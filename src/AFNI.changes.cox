@@ -3869,3 +3869,8 @@
 02 Aug 2002
  * Modified plug_realtime.c to deal with multiple input channels.
  * Modified rtfeedme.c to send multiple dataset channels.
+
+05 Aug 2002
+ * Removed DEBUGTHISFILE macro from all places that used it.
+ * Modified plug_realtime.c to deal with case when more channels than
+     controllers are in use.

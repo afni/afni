@@ -902,7 +902,9 @@ typedef struct {                 /* windows and widgets */
    XtPointer_array * widgets ;   /* 'real-time' functions */
 } MCW_interruptables ;
 
+#ifndef MAX_CONTROLLERS
 #define MAX_CONTROLLERS 5
+#endif
 
 /*-------------- Here there be global variables.  So shoot me. --------------*/
 

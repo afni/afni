@@ -32,20 +32,6 @@
 #  define TWO_TWO(x,y) TWO_ONE(x,y)
 #endif
 
-#define DONT_USE_DEBUGTHISFILE /* 02 Aug 2002 */
-#ifdef DONT_USE_DEBUGTHISFILE  /* 04 Jun 2001 */
-# undef  DEBUGTHISFILE
-# define DEBUGTHISFILE 0
-#endif
-
-#ifndef DEBUGTHISFILE
-   /** as in
-         if( DEBUGTHISFILE ) fprintf(stderr,"Yo mama!\n") ;
-    **/
-
-#  define DEBUGTHISFILE getenv(TWO_TWO(__FILE__, "_DEBUG"))
-#endif
-
 /*********************************************************************/
 #ifdef USE_TRACING
 

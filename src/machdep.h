@@ -108,10 +108,6 @@
                               [God, I hope this is the end of this ]
                               [Solaris nightmare -- I'm sick of it!]
 
-    DONT_USE_DEBUGTHISFILE = if this is defined, then the DEBUGTHISFILE
-                             macro in debugtrace.h will be disabled;
-                             this macro has caused trouble on one system
-
     USE_FLOCK = There are two incompatible ways of 'locking' a file
     USE_LOCKF = on Unix: the flock() and lockf() functions.  Defining
                 one of these will enable the use of the corresponding
@@ -318,7 +314,6 @@ extern long   strtol() ;
 # define DYNAMIC_LOADING_VIA_DL
 # undef  DONT_UNROLL_FFTS
 # define USE_FLOCK
-# define DONT_USE_DEBUGTHISFILE
 # define USE_RANDOM
 # define DONT_USE_STRPTIME
 # define NEED_XSETLOCALE
