@@ -8,10 +8,13 @@
 
 /*** NOT 7D SAFE ***/
 
+/*! Return far[] if (i,j) is inside the image, otherwise return 0. */
+
 #define FINS(i,j) (  ( (i)<0 || (j)<0 || (i)>=nx || (j)>=ny ) \
                      ? 0.0 : far[(i)+(j)*nx] )
 
 /*-------------------------------------------------------------------*/
+/*! Invert a 2D matrix, dude. */
 
 static void invert2d( float  axx, float  axy, float  ayx, float  ayy ,
                       float *bxx, float *bxy, float *byx, float *byy  )
@@ -25,8 +28,8 @@ static void invert2d( float  axx, float  axy, float  ayx, float  ayy ,
    return ;
 }
 
-/*-------------------------------------------------------------------
-    Affine transform a 2D image, using bilinear interpolation:
+/*-------------------------------------------------------------------*/
+/*! Affine transform a 2D image, using bilinear interpolation:
     If flag == 0
        [ xout ] = [ axx axy ] [ xin ]
        [ yout ] = [ ayx ayy ] [ yin ]
@@ -105,18 +108,26 @@ MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *im, int flag ,
    return new ;
 }
 
-/*----------------------------------------------------------------------
-  Same for RGB [11 Dec 2000]
-------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------*/
+
+/*! Same as FINS(), but for the R component of an RGB image. */
 
 #define RINS(i,j) (  ( (i)<0 || (j)<0 || (i)>=nx || (j)>=ny ) \
                      ? 0.0 : far[3*((i)+(j)*nx)] )
 
+/*! Same as FINS(), but for the G component of an RGB image. */
+
 #define GINS(i,j) (  ( (i)<0 || (j)<0 || (i)>=nx || (j)>=ny ) \
                      ? 0.0 : far[3*((i)+(j)*nx)+1] )
 
+/*! Same as FINS(), but for the B component of an RGB image. */
+
 #define BINS(i,j) (  ( (i)<0 || (j)<0 || (i)>=nx || (j)>=ny ) \
                      ? 0.0 : far[3*((i)+(j)*nx)+2] )
+
+/*----------------------------------------------------------------------*/
+/*!  Same as mri_aff2d_byte(), but for RGB images [11 Dec 2000].
+------------------------------------------------------------------------*/
 
 MRI_IMAGE *mri_aff2d_rgb( MRI_IMAGE *im, int flag ,
                           float axx, float axy, float ayx, float ayy )
