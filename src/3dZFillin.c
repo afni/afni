@@ -8,8 +8,6 @@ int main( int argc , char * argv[] )
    MRI_IMAGE * brim ;
    int verb=0 ;
 
-mainENTRY("3dZFillin main") ;
-
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dZFillin [options] dataset\n"
              "Extracts 1D rows in the given direction from a 3D dataset,\n"
@@ -37,6 +35,8 @@ mainENTRY("3dZFillin main") ;
             ) ;
       exit(0) ;
    }
+
+   mainENTRY("3dZFillin main") ; machdep() ; AFNI_logger("3dZfillin",argc,argv) ;
 
    /*-- scan args --*/
 

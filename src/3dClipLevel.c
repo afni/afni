@@ -10,8 +10,6 @@ int main( int argc , char * argv[] )
    byte * bar ;
    int nhist , nneg=0 , verb=0 , nhalf , iv,nvals ;
 
-   mainENTRY("3dClipLevel main") ; machdep() ;  /* 10 Aug 2001 */
-
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dClipLevel [options] dataset\n"
              "Estimates the value at which to clip the anatomical dataset so\n"
@@ -43,6 +41,8 @@ int main( int argc , char * argv[] )
             ) ;
       exit(0) ;
    }
+
+   mainENTRY("3dClipLevel main"); machdep(); AFNI_logger("3dCliplevel",argc,argv);
 
    /*-- options --*/
 

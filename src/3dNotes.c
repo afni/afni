@@ -17,7 +17,6 @@ void Error_Exit(char *message) {
         exit(1);
 }
 
-
 void Show_Help(void) {
    fprintf(stderr, 
    "3dNotes - a program to add, delete and show notes for AFNI datasets.\n"
@@ -86,6 +85,8 @@ int main (int argc, char * argv[]) {
 
    if (argc == 1)   /* no file listed */
       Show_Help();
+
+   mainENTRY("3dNotes main"); machdep(); AFNI_logger("3dNotes",argc,argv);
 
    for (i=0; i<MAX_DSET_NOTES; i++) {
       notes[i] = NULL;

@@ -132,6 +132,9 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3dfractionize main"); machdep();
+   AFNI_logger("3dfractionize",argc,argv);
+
    /*-- read command line args --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){

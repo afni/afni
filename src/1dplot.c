@@ -101,6 +101,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   mainENTRY("1dplot main"); machdep();
+
    /* open X11 */
 
    shell = XtVaAppInitialize(

@@ -67,6 +67,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3dTstat main"); machdep(); AFNI_logger("3dTstat",argc,argv);
+
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 

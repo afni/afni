@@ -442,12 +442,16 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) BUCK_Syntax() ;
 
+   mainENTRY("3dbucket main"); machdep();
+
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
+
+   AFNI_logger("3dbucket",argc,argv) ;
 
    BUCK_read_opts( argc , argv ) ;
 

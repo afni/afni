@@ -261,6 +261,9 @@ int main( int argc , char *argv[] )
    /*- scan command line -*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) TS_syntax(NULL) ;
+
+   mainENTRY("3dTshift main"); machdep(); AFNI_logger("3dTshift",argc,argv);
+
    SHIFT_set_method( MRI_FOURIER ) ;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -498,7 +501,7 @@ int main( int argc , char *argv[] )
             }
 
             THD_linear_detrend( ntt-ignore , gar+ignore , &g0,&g1 ) ;
- 
+
             for( gmin=gmax=gar[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
                     if( gar[jj] < gmin ) gmin = gar[jj] ;
                else if( gar[jj] > gmax ) gmax = gar[jj] ;

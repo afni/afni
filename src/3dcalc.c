@@ -104,6 +104,7 @@ static MRI_IMAGE * TS_flim[26] ;  /* 17 Apr 1998 */
 static float *     TS_flar[26] ;
 static int         TS_nmax = 0 ;
 static int         TS_make = 0 ;
+static float       TS_dt   = 1.0 ; /* 13 Aug 2001 */
 
 /* this macro tells if a variable (index 0..25) is defined,
    either by a time series file or an input dataset - 16 Nov 1999 */
@@ -157,6 +158,19 @@ void CALC_read_opts( int argc , char * argv[] )
    }
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      /**** -dt val [13 Aug 2001] ****/
+
+      if( strncmp(argv[nopt],"-dt",3) == 0 ){
+         if( ++nopt >= argc ){
+            fprintf(stderr,"*** need an argument after -dt!\n") ; exit(1) ;
+         }
+         TS_dt = strtod( argv[nopt] , NULL ) ;
+         if( TS_dt == 0.0 ){
+            fprintf(stderr,"*** Illegal value after -dt!\n"); exit(1);
+         }
+         nopt++ ; continue ;  /* go to next arg */
+      }
 
       /**** -histpar letter [22 Nov 1999] ****/
 
@@ -579,8 +593,8 @@ DSET_DONE: continue;
       TS_make   = 1 ;        /* flag to force manufacture of a 3D+time dataset */
       fprintf(stderr,
               "+++ Calculating 3D+time[%d]"
-              " dataset from 3D datasets and time series\n" ,
-              ntime_max ) ;
+              " dataset from 3D datasets and time series, with dt=%g\n" ,
+              ntime_max , TS_dt ) ;
    }
 
    /* 15 Apr 1999: check if each input dataset is used,
@@ -682,6 +696,8 @@ void CALC_Syntax(void)
     "                    if multiple input datasets are used, and you wish\n"
     "                    to have the previous history of one of them prepended\n"
     "                    to the History Note of the newly created dataset.\n"
+    "  -dt tstep     = Use 'tstep' as the TR for manufactured 3D+time datasets.\n"
+    "                    If not given, defaults to 1 second.\n"
     "\n"
     "3D+TIME DATASETS:\n"
     " This version of 3dcalc can operate on 3D+time datasets.  Each input dataset\n"
@@ -727,7 +743,7 @@ void CALC_Syntax(void)
     "   3dcalc -a a3D+orig -b b.1D -expr \"a*b\" \n"
     " The output dataset will 3D+time with the value at (x,y,z,t) being\n"
     " computed by a3D(x,y,z)*b(t).  The TR for this dataset will be set\n"
-    " to 1 second -- this could be altered later with program 3drefit.\n"
+    " to 'tstep' seconds -- this could be altered later with program 3drefit.\n"
     " Another method to set up the correct timing would be to input an\n"
     " unused 3D+time dataset -- 3dcalc will then copy that dataset's time\n"
     " information, but simply do not use that dataset's letter in -expr.\n"
@@ -751,9 +767,8 @@ void CALC_Syntax(void)
     " In addition, slices of the dataset might be offset in time from one\n"
     " another, and this is allowed for in the computation of 't'.  Use program\n"
     " 3dinfo to find out the structure of your datasets, if you are not sure.\n"
-    " If no input datasets are 3D+time, then the effective value of TR is 1.0\n"
-    " in the output dataset, with t=0 at the first sub-brick.  In this case,\n"
-    " you would be better off using the 'l' variable.\n"
+    " If no input datasets are 3D+time, then the effective value of TR is tstep\n"
+    " in the output dataset, with t=0 at the first sub-brick.\n"
     "\n"
     " Similarly, the '-i', '-j', and '-k' values, if not otherwise used,\n"
     " will be loaded with the voxel spatial index coordinates.  The '-l'\n"
@@ -919,19 +934,20 @@ int main( int argc , char * argv[] )
    int   iii,jjj,kkk , nx,nxy ;
    THD_dataxes * daxes ;
 
-   /** do machine dependent fixups **/
-   machdep() ;
-
    /*** read input options ***/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) CALC_Syntax() ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
+   mainENTRY("3dcalc main"); machdep() ;
+
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
+
+   AFNI_logger("3dcalc",argc,argv) ;
 
    for (ii=0; ii<26; ii++) ntime[ii] = 0 ;
 
@@ -975,7 +991,7 @@ int main( int argc , char * argv[] )
    if( TS_make ){
       EDIT_dset_items( new_dset ,
                           ADN_ntt    , ntime_max      ,
-                          ADN_ttdel  , 1.0            ,
+                          ADN_ttdel  , TS_dt          ,
                           ADN_ttorg  , 0.0            ,
                           ADN_ttdur  , 0.0            ,
                           ADN_tunits , UNITS_SEC_TYPE ,

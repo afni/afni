@@ -910,8 +910,6 @@ int main( int argc , char * argv[] )
    if( argc > 1 && strncmp(argv[1],"-TRACE",5) == 0 ) DBG_trace = 2 ; /* 23 Aug 1998 */
 #endif
 
-   mainENTRY("AFNI:main") ;              /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
-
 #ifdef USE_TRACING
    if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
 #endif
@@ -919,6 +917,12 @@ int main( int argc , char * argv[] )
    /*--- help? ---*/
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
+
+   mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
+
+#if 0
+   if( argc > 1 ) AFNI_logger("afni",argc,argv) ; /* 14 Aug 2001 */
+#endif
 
    /*--- with a little help from my FRIENDS --*/
 

@@ -140,7 +140,7 @@ int main( int argc , char * argv[] )
    XtErrorHandler old_handler ;
    Boolean        all_good ;
 
-mainENTRY("to3d:main") ;
+   mainENTRY("to3d:main") ;
    machdep() ; /* RWCox: 20 Apr 2001 */
 
    /* read the user data from the command line, if any */
@@ -177,9 +177,9 @@ mainENTRY("to3d:main") ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
+   AFNI_logger("to3d",argc,argv) ; /* 14 Aug 2001 */
 
-   Argc = argc ;
-   Argv = argv ;
+   Argc = argc ; Argv = argv ;
 
    T3D_initialize_user_data() ;
    T3D_read_images() ;

@@ -2397,6 +2397,7 @@ extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_countmask( int , byte * ) ;
+extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
 
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;        /* 12 Aug 2001 */
 extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;
@@ -2597,6 +2598,9 @@ extern int    tross_Get_Notecount( THD_3dim_dataset * ) ;
 
 extern char * tross_datetime(void) ;
 extern char * tross_commandline( char * , int , char ** ) ;
+
+extern int AFNI_logger( char * , int , char ** ) ; /* 13 Aug 2001 */
+extern void AFNI_sleep( int ) ;
 
 extern void   tross_Append_History ( THD_3dim_dataset * , char * ) ;
 extern char * tross_Get_History    ( THD_3dim_dataset * ) ;

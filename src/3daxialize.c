@@ -54,6 +54,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3daxialize main"); machdep(); AFNI_logger("3daxialize",argc,argv);
+
    /*- options -*/
 
    iarg = 1 ;

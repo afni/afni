@@ -151,6 +151,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3dclust main"); machdep(); AFNI_logger("3dclust",argc,argv);
+
    THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord ) ; /* July 1997 */
    CL_read_opts( argc , argv ) ;
    nopt = CL_nopt ;

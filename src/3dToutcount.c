@@ -53,6 +53,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3dToutcount main"); machdep(); AFNI_logger("3dToutcount",argc,argv);
+
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 

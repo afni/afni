@@ -108,7 +108,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){ VL_syntax() ; exit(0); }
 
-mainENTRY("3dvolreg main") ; machdep() ;
+   mainENTRY("3dvolreg main") ; machdep() ; AFNI_logger("3dvolreg",argc,argv) ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 

@@ -3016,3 +3016,10 @@
      THD_median.c and THD_cliplevel.c to the library.
  * Modified 3dTqual.c to use these library functions.
  * Modified 3dToutcount.c to have -autoclip option.
+
+13 Aug 2001
+ * Added -dt option to 3dcalc.c.
+ * Added routine AFNI_logger() in afni_logger.c.
+
+14 Aug 2001
+ * Modified a bunch of programs to use AFNI_logger().

@@ -146,8 +146,6 @@ int main( int argc , char *argv[] )
 
    /*----*/
 
-   mainENTRY("3dTqual main") ; machdep() ;
-
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dTqual [options] dataset\n"
              "Computes a `quality index' for each sub-brick in a 3D+time dataset.\n"
@@ -211,6 +209,8 @@ int main( int argc , char *argv[] )
             ) ;
       exit(0) ;
    }
+
+   mainENTRY("3dTqual main"); machdep(); AFNI_logger("3dTqual",argc,argv);
 
    /*-- option processing --*/
 

@@ -237,6 +237,8 @@ void get_options
 
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
+
+  AFNI_logger("adwarp",argc,argv) ;
   
 
   /*----- initialize the input options -----*/
@@ -852,7 +854,7 @@ int main( int argc , char * argv[] )
   THD_3dim_dataset * new_dset = NULL;       /* new (output) dataset */
   THD_dataxes new_daxes;                    /* new dataset axes */
   
-  ENTRY("adwarp main") ;
+  mainENTRY("adwarp main") ; machdep() ;
   
   /*----- Identify software -----*/
   printf ("\n");

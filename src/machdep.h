@@ -105,6 +105,12 @@
                              macro in debugtrace.h will be disabled;
                              this macro has caused trouble on one system
 
+    USE_FLOCK = There are two incompatible ways of 'locking' a file
+    USE_LOCKF = on Unix: the flock() and lockf() functions.  Defining
+                one of these will enable the use of the corresponding
+                function.  If neither is defined, file locking will
+                not be used.
+
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 
@@ -157,6 +163,7 @@
 # define FIX_SCALE_SIZE_PROBLEM
 # define DYNAMIC_LOADING_VIA_SHL
 # undef  DONT_UNROLL_FFTS    /* FFTs are faster, but csfft.c compiles slowly */
+# define USE_LOCKF
 #endif
 
 /*** SGI IRIX ***/
@@ -172,6 +179,7 @@
     extern int alphasort(struct dirent **, struct dirent **) ;
 # endif
 # undef  DONT_UNROLL_FFTS         /* helps some */
+# define USE_FLOCK
 #endif
 
 /*** SunOS or Solaris ***/
@@ -212,6 +220,7 @@ extern long   strtol() ;
 # define FIX_SCALE_SIZE_PROBLEM
 # define DONT_INSTALL_ICONS
 # define DYNAMIC_LOADING_VIA_DL
+# define USE_LOCKF
 #endif
 
 /*** IBM RS6000 courtesy Doug Morris of UIUC ***/
@@ -246,6 +255,7 @@ extern long   strtol() ;
 # define BOXUP_SCALE              /* looks nicer */
 # define DYNAMIC_LOADING_VIA_DL
 # undef  DONT_UNROLL_FFTS         /* helps a lot */
+# define USE_FLOCK
 #endif
 
 /* SCO UDK under Unixware 7 -- contributed by Jason Bacon */

@@ -209,8 +209,6 @@ int main( int argc , char * argv[] )
    void  * svol ;
    int cmode , fscale ; FILE * far ;
 
-   mainENTRY("3dZcat main") ; machdep() ;
-
    /*** read input options ***/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) ZCAT_Syntax() ;
@@ -221,6 +219,8 @@ int main( int argc , char * argv[] )
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
+
+   mainENTRY("3dZcat main") ; machdep() ; AFNI_logger("3dZcat",argc,argv) ;
 
    ZCAT_read_opts( argc , argv ) ;
 

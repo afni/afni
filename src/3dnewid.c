@@ -29,6 +29,8 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
 
+   mainENTRY("3dnewid main"); machdep(); AFNI_logger("3dnewid",argc,argv);
+
    if( strcmp(argv[1],"-fun") == 0 ){         /* 22 May 2000: for fun */
       MCW_idcode idc2 ;
       idc  = MCW_new_idcode() ;

@@ -10,8 +10,6 @@ int main( int argc , char * argv[] )
    int add_I=0 , add_S=0 , add_A=0 , add_P=0 , add_L=0 , add_R=0 ;
    char * prefix="zcutup" ;
 
-   mainENTRY("3dZcutup main") ; machdep() ;
-
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -72,6 +70,8 @@ int main( int argc , char * argv[] )
            ) ;
       exit(0) ;
    }
+
+   mainENTRY("3dZcutup main") ; machdep() ; AFNI_logger("3dZcutup",argc,argv) ;
 
    /*-- read command line options --*/
 

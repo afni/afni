@@ -815,10 +815,14 @@ int main( int argc , char * argv[] )
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
+   mainENTRY("3dmerge main") ; machdep() ;
+
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
+
+   AFNI_logger("3dmerge",argc,argv) ;
 
    first_file = MRG_read_opts( argc , argv ) ;
    file_count = argc - first_file ;            /* number of datasets input */

@@ -177,6 +177,9 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3dZregrid main"); machdep();
+   AFNI_logger("3dZregrid",argc,argv) ;
+
    /*-- scan options --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
