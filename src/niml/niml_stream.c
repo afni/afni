@@ -2610,9 +2610,7 @@ int NI_stream_readbuf( NI_stream_type *ns , char *buffer , int nbytes )
    if( nbytes  == 0                        ) return  0; /* that was real easy */
    if( buffer  == NULL || nbytes      <  0 ) return -1; /* stupid caller */
    if( ns->buf == NULL || ns->bufsize == 0 ) return -1; /* shouldn't happen */
-
-   if( !NI_stream_readable(ns) )                 return -1 ; /* stupid stream */
-   ii = NI_stream_readcheck(ns,1) ; if( ii < 1 ) return ii ; /* unready */
+   if( !NI_stream_readable(ns) )             return -1; /* stupid stream */
 
    /* see how many unused bytes are already in the input buffer */
 

@@ -1342,6 +1342,7 @@ int NI_read_columns( NI_stream_type *ns,
      case NI_TEXT_MODE:   ReadFun = NI_text_to_val  ; break;
      case NI_BINARY_MODE: ReadFun = NI_binary_to_val; break;
      default:
+       fprintf(stderr,"\n** NI_read_columns: Base64 not implemented!\n");
        FREEUP ; return -1 ;
    }
 

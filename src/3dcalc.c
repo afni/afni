@@ -112,6 +112,10 @@ static float       TS_dt   = 1.0 ; /* 13 Aug 2001 */
 #define VAR_DEFINED(kv) \
    (TS_flim[kv] != NULL || CALC_dset[kv] != NULL || CALC_dshift[kv] >= 0)
 
+static float Rfac = 0.299 ;  /* 10 Feb 2002: for RGB inputs */
+static float Gfac = 0.587 ;
+static float Bfac = 0.114 ;
+
 /*--------------------------- prototypes ---------------------------*/
 void CALC_read_opts( int , char ** ) ;
 void CALC_Syntax(void) ;
@@ -159,6 +163,21 @@ void CALC_read_opts( int argc , char * argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
+      /**** -rgbfac r g b [10 Feb 2003] ****/
+
+      if( strncmp(argv[nopt],"-rgbfac",7) == 0 ){
+        if( ++nopt >= argc ){
+          fprintf(stderr,"*** need an argument after -rgbfac!\n") ; exit(1) ;
+        }
+        Rfac = strtod( argv[nopt++] , NULL ) ;
+        Gfac = strtod( argv[nopt++] , NULL ) ;
+        Bfac = strtod( argv[nopt++] , NULL ) ;
+        if( Rfac == 0.0 && Gfac == 0.0 && Bfac == 0.0 ){
+          fprintf(stderr,"*** All 3 factors after -rgbfac are zero!?\n"); exit(1);
+        }
+        continue ;
+      }
+
       /**** -dt val [13 Aug 2001] ****/
 
       if( strncmp(argv[nopt],"-dt",3) == 0 ){
@@ -198,7 +217,7 @@ void CALC_read_opts( int argc , char * argv[] )
             CALC_datum = MRI_float ;
          } else if( strcmp(argv[nopt],"byte") == 0 ){
             CALC_datum = MRI_byte ;
-         } else if( strcmp(argv[nopt],"complex") == 0 ){  /* not listed help */
+         } else if( strcmp(argv[nopt],"complex") == 0 ){  /* not listed in help */
             CALC_datum = MRI_complex ;
          } else {
             fprintf(stderr,"*** -datum of type '%s' not supported in 3dcalc!\n",
@@ -521,7 +540,7 @@ void CALC_read_opts( int argc , char * argv[] )
                 else
                     for (ii=0; ii < ntime[ival]; ii++)
                        CALC_short[ival][ii] = (short *) DSET_ARRAY(dset, ii);
-             break;
+            break;
 
             case MRI_float:
                CALC_float[ival] = (float **) malloc( sizeof(float *) * ntime[ival] ) ;
@@ -530,7 +549,7 @@ void CALC_read_opts( int argc , char * argv[] )
                else
                   for (ii=0; ii < ntime[ival]; ii++)
                      CALC_float[ival][ii] = (float *) DSET_ARRAY(dset, ii);
-                    break;
+            break;
 
             case MRI_byte:
                CALC_byte[ival] = (byte **) malloc( sizeof(byte *) * ntime[ival] ) ;
@@ -539,10 +558,25 @@ void CALC_read_opts( int argc , char * argv[] )
                else
                   for (ii=0; ii < ntime[ival]; ii++)
                      CALC_byte[ival][ii] = (byte *) DSET_ARRAY(dset, ii);
-             break;
+            break;
 
-          } /* end of switch over type switch */
-         if( CALC_datum < 0 ) CALC_datum = CALC_type[ival] ;
+            case MRI_rgb:   /* 10 Feb 2003 */
+               CALC_byte[ival] = (byte **) malloc( sizeof(byte *) * ntime[ival] ) ;
+               if (ntime[ival] == 1 )
+                  CALC_byte[ival][0] = (byte *) DSET_ARRAY(dset, isub) ;
+               else
+                  for (ii=0; ii < ntime[ival]; ii++)
+                     CALC_byte[ival][ii] = (byte *) DSET_ARRAY(dset, ii);
+            break ;
+
+            default:
+               fprintf(stderr,"** Dataset %s has illegal data type: %s\n",
+                         argv[nopt-1] ,
+                         MRI_type_name[CALC_type[ival]] ) ;
+            exit(1) ;
+
+         } /* end of switch over type switch */
+         if( CALC_datum < 0 && CALC_type[ival] != MRI_rgb ) CALC_datum = CALC_type[ival] ;
 
 DSET_DONE: continue;
 
@@ -698,6 +732,16 @@ void CALC_Syntax(void)
     "                    to the History Note of the newly created dataset.\n"
     "  -dt tstep     = Use 'tstep' as the TR for manufactured 3D+time datasets.\n"
     "                    If not given, defaults to 1 second.\n"
+    "  -rgbfac A B C = For RGB input datasets, the 3 channels (r,g,b) are collapsed\n"
+    "                    to one for the purposes of 3dcalc, using the formula\n"
+    "                      value = A*r + B*g + C*b\n"
+    "                    The default values are A=0.299 B=0.587 C=0.114, which\n"
+    "                    gives the grayscale intensity.  To pick out the Green\n"
+    "                    channel only, use '-rgbfac 0 1 0', for example.  Note\n"
+    "                    that each channel in an RGB dataset is a byte in the\n"
+    "                    range 0..255.  Thus, '-rgbfac 0.001173 0.002302 0.000447'\n"
+    "                    will compute the intensity rescaled to the range 0..1.0\n"
+    "                    (i.e., 0.001173=0.299/255, etc.)\n"
     "\n"
     "3D+TIME DATASETS:\n"
     " This version of 3dcalc can operate on 3D+time datasets.  Each input dataset\n"
@@ -977,6 +1021,8 @@ int main( int argc , char * argv[] )
    if( jjj == 1 ) tross_Copy_History( CALC_dset[ids] , new_dset ) ;
    tross_Make_History( "3dcalc" , argc,argv , new_dset ) ;
 
+   if( CALC_datum < 0 ) CALC_datum = MRI_float ;  /* 10 Feb 2003 */
+
    EDIT_dset_items( new_dset ,
                        ADN_prefix         , CALC_output_prefix ,
                        ADN_directory_name , CALC_session ,
@@ -1176,6 +1222,11 @@ int main( int argc , char * argv[] )
                            atoz[ids][jj-ii] =  CALC_byte[jds][kts][jjs]
                                              * CALC_ffac[jds][kts];
                         break ;
+                        case MRI_rgb:
+                           atoz[ids][jj-ii] = Rfac*CALC_byte[jds][kts][3*jjs  ]
+                                             +Gfac*CALC_byte[jds][kts][3*jjs+1]
+                                             +Bfac*CALC_byte[jds][kts][3*jjs+2] ;
+                        break ;
                      }
                   }
                }
@@ -1202,6 +1253,14 @@ int main( int argc , char * argv[] )
                         atoz[ids][jj-ii] = CALC_byte[ids][0][jj] * CALC_ffac[ids][0] ;
                      }
                   break;
+
+                  case MRI_rgb:
+                     for (jj =jbot ; jj < jtop ; jj ++ ){
+                        atoz[ids][jj-ii] = Rfac*CALC_byte[ids][0][3*jj  ]
+                                          +Gfac*CALC_byte[ids][0][3*jj+1]
+                                          +Bfac*CALC_byte[ids][0][3*jj+2] ;
+                     }
+                  break;
                }
             }
 
@@ -1224,6 +1283,14 @@ int main( int argc , char * argv[] )
                  case MRI_byte:
                     for (jj = jbot ; jj < jtop ; jj ++ ){
                        atoz[ids][jj-ii] = CALC_byte[ids][kt][jj] * CALC_ffac[ids][kt];
+                    }
+                 break;
+
+                 case MRI_rgb:
+                    for (jj =jbot ; jj < jtop ; jj ++ ){
+                       atoz[ids][jj-ii] = Rfac*CALC_byte[ids][kt][3*jj  ]
+                                         +Gfac*CALC_byte[ids][kt][3*jj+1]
+                                         +Bfac*CALC_byte[ids][kt][3*jj+2] ;
                     }
                  break;
                 }
