@@ -6986,9 +6986,12 @@ STATUS(" -- function widgets ON") ;
 
       /* make some widgets sensitive if we have the threshold available */
 
+#if 0
       if( ! have_thr ){
          SENSITIZE( im3d->vwid->func->thr_rowcol , 0 ) ;
-      } else {
+      } else
+#endif
+      {
          static int first=1, zfim[MAX_CONTROLLERS] ; int qq ;
          if( first ){
            first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) zfim[qq]=1;
