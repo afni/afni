@@ -243,10 +243,16 @@ ENTRY("THD_open_ctfmri") ;
        hh.dataSize  >  2             ||
        hh.mmPerPixel_sagittal <= 0.0 ||
        hh.mmPerPixel_coronal  <= 0.0 ||
-       hh.mmPerPixel_axial    <= 0.0 ||
-       hh.headOrigin_sagittal <= 0.0 ||
-       hh.headOrigin_coronal  <= 0.0 ||
-       hh.headOrigin_axial    <= 0.0   ) BADBAD("bad header data") ;
+       hh.mmPerPixel_axial    <= 0.0   ) BADBAD("bad header data") ;
+
+   /*- 16 Mar 2005: instead of complaining about negative Origins,
+                    just reset them to something semi-reasonable;
+       I just get by with a little help from my friends
+       - Zuxiang Li in this case.                                -*/
+
+   if( hh.headOrigin_sagittal <= 0.0 ) hh.headOrigin_sagittal = hh.imageSize/2.;
+   if( hh.headOrigin_coronal  <= 0.0 ) hh.headOrigin_coronal  = hh.imageSize/2.;
+   if( hh.headOrigin_axial    <= 0.0 ) hh.headOrigin_axial    = hh.imageSize/2.;
 
    /* debugging code to print header information */
 #if 0
