@@ -624,3 +624,6 @@
     - added vol2surf.o into CS_OBJS and vol2surf.h into LIBHEADERS
   * added vol2surf.[ch] into the src directory (for libmri)
 
+02 September 2004:
+  * modified 3dROIstats.c to fix the minmax initializer
+
