@@ -401,11 +401,11 @@ ENTRY("AFNI_parse_args") ;
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
 
 #ifdef USE_TRACING
-      if( strncmp(argv[narg],"-trace",5) == 0 && !ALLOW_real_time ){
+      if( strncmp(argv[narg],"-trace",5) == 0 ){
          DBG_trace = 1 ;
          narg++ ; continue ;
       }
-      if( strncmp(argv[narg],"-TRACE",5) == 0 && !ALLOW_real_time ){  /* 23 Aug 1998 */
+      if( strncmp(argv[narg],"-TRACE",5) == 0 ){  /* 23 Aug 1998 */
          DBG_trace = 2 ;
          if( MAIN_shell != NULL )
             XSynchronize(XtDisplay(MAIN_shell),TRUE) ; /* 01 Dec 1999 */
@@ -440,8 +440,10 @@ ENTRY("AFNI_parse_args") ;
       if( strncmp(argv[narg],"-rt",3) == 0 ){
          GLOBAL_argopt.allow_rt       = -1 ;
          GLOBAL_argopt.no_frivolities =  1 ;
+#if 0
 #ifdef USE_TRACING
          DBG_trace                    =  0 ;  /* 26 Jan 2001 */
+#endif
 #endif
          narg++ ; continue ;  /* go to next arg */
       }
@@ -833,8 +835,10 @@ ENTRY("AFNI_parse_args") ;
 
    } /* end of loop over argv's starting with '-' */
 
+#if 0
 #ifdef USE_TRACING
    if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
+#endif
 #endif
 
    /** 16 July 1997: orientation code change **/
@@ -952,8 +956,10 @@ int main( int argc , char * argv[] )
    if( argc > 1 && strncmp(argv[1],"-TRACE",5) == 0 ) DBG_trace = 2 ; /* 23 Aug 1998 */
 #endif
 
+#if 0
 #ifdef USE_TRACING
    if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
+#endif
 #endif
 
    /** 25 Oct 2001: check for -q (quiet) option right away **/
@@ -1132,6 +1138,8 @@ int main( int argc , char * argv[] )
 
    MCW_disable_help() ;
 
+STATUS("start XtAppMainLoop") ;
+
    XtAppMainLoop(MAIN_app) ;
    exit(0) ;
 }
@@ -1165,6 +1173,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
         ============================================================================*/
 
       default:{
+STATUS("default call") ;
          if( nosplash || nodown ) RETURN(True) ;
          if( !nodown &&
              COX_clock_time()-eltime >= max_splash ){ AFNI_splashdown(); RETURN(True); }
@@ -1176,6 +1185,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
         ============================================================================*/
 
       case 0:{
+STATUS("call 0") ;
 
 #ifdef NO_FRIVOLITIES
         nosplash = 1 ;
@@ -1200,7 +1210,9 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
       case 7:
       case 8:
       case 9:
-      case 10: if( !nosplash) iochan_sleep(1) ; /* waste time to let splash popup */
+      case 10:
+STATUS("sleep call") ;
+        if( !nosplash) iochan_sleep(1) ; /* waste time to let splash popup */
       break ;
 
       /*============================================================================
@@ -1210,6 +1222,8 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
       case 11:{
 
         int do_images ;                           /* 19 Oct 1999 */
+
+STATUS("call 11") ;
 
         REPORT_PROGRESS(". Widgets") ;
 
@@ -1240,6 +1254,8 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
 
       case 12:{
 
+STATUS("call 12") ;
+
         REPORT_PROGRESS(". Input files:") ;
 
         AFNI_read_inputs( MAIN_argc , MAIN_argv ) ;
@@ -1254,6 +1270,8 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
         ============================================================================*/
 
       case 13:{
+
+STATUS("call 13") ;
 
         GLOBAL_library.registered_0D.num = 0 ;               /* initialize registry */
         GLOBAL_library.registered_1D.num = 0 ;               /* initialize registry */
@@ -1306,6 +1324,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
            char str[128] ;
 
            if( ! GLOBAL_argopt.noplugins ){
+STATUS("initialize plugins") ;
               GLOBAL_library.plugins = PLUG_get_many_plugins( MAIN_argv[0] ) ;
               AFNI_plugin_button( MAIN_im3d ) ;
            }
@@ -1316,7 +1335,8 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
 
            if( !GLOBAL_argopt.noplugouts ){  /* June 1997 */
                AFNI_init_plugouts() ;
-               XtSetSensitive(MAIN_im3d->vwid->dmode->misc_plugout_pb,False) ; /* 07 Nov 2001 */
+               if( MAIN_im3d->vwid->dmode->misc_plugout_pb != NULL )
+                 XtSetSensitive(MAIN_im3d->vwid->dmode->misc_plugout_pb,False) ; /* 07 Nov 2001 */
                REPORT_PROGRESS("\n Plugouts      = listening for connections") ;
            }
         }
@@ -1330,6 +1350,8 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
         ============================================================================*/
 
       case 14:{
+
+STATUS("call 14") ;
 
         OPEN_CONTROLLER( MAIN_im3d ) ;
 
@@ -1414,6 +1436,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
       /*============================================================================*/
 #if 0
       case 15:{  /* not used at present, but ready to be added when needed */
+STATUS("call 15") ;
       }
       break ;
 #endif
