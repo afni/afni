@@ -284,6 +284,7 @@ typedef struct {
          (strcmp(argv[m_kar], "-nomall") == 0) ||    \
          (strcmp(argv[m_kar], "-yesmall") == 0) ||   \
          (strcmp(argv[m_kar], "-trace") == 0) ||     \
+         (strcmp(argv[m_kar], "-novolreg") == 0) ||   \
          (strcmp(argv[m_kar], "-TRACE") == 0)) ) {   \
 		/* valid options, but already taken care of */  \
 		m_brk = YUP;                                   \

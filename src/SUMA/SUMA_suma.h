@@ -175,7 +175,10 @@
    #include "SUMA_SphericalMapping.h"
    #include "SUMA_xColBar.h"
    #include "SUMA_SurfClust.h"
-
+   #include "SUMA_IsoSurface.h"
+   #define SUMA_IGNORE_VOLREG {  \
+      SUMAg_CF->IgnoreVolreg = 1;   \
+   }
 #else
    /* define the necessary macros */   
    #define SUMA_STDERR stderr
@@ -196,6 +199,7 @@
    #define SUMA_SLP_Crit SUMA_S_Crit
    #define SUMA_SL_Crit SUMA_S_Crit
    #define SUMA_L_Crit SUMA_S_Crit
+   #define SUMA_IGNORE_VOLREG { }
    
    #define SUMA_LH(msg) {\
       if (LocalHead) fprintf (SUMA_STDERR, "%s:\n %s\n", FuncName, msg);  \

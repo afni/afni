@@ -1,5 +1,14 @@
 #ifndef SUMA_CREATEDO_INCLUDED
 #define SUMA_CREATEDO_INCLUDED
+typedef struct {
+   char *idcode_str; /* copied by value */
+   char *LocalDomainParentID;  /* copied by value */
+   SUMA_SO_File_Format FileFormat; /*defaults to  SUMA_ASCII*/
+   SUMA_SO_File_Type FileType; /*defaults to SUMA_FT_NOT_SPECIFIED*/
+} SUMA_NEW_SO_OPT; 
+
+SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void);
+SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, int N_FaceSet, SUMA_NEW_SO_OPT *nsooptu);
 SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO, 
                                        float *NodeList, int N_Node, 
                                        int *FaceSetList, int N_FaceSet,

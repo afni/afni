@@ -3,7 +3,7 @@
 
 typedef enum { SUMA_SORT_CLUST_NOT_SET, SUMA_SORT_CLUST_NO_SORT, SUMA_SORT_CLUST_BY_NUMBER_NODES, SUMA_SORT_CLUST_BY_AREA } SUMA_SURF_CLUST_SORT_MODES;
 /* structures to be used by surface clusters functions */
-#define SURFCLUST_MAX_SURF 10  /*!< Maximum number of surfaces allowed for SurfClust*/
+#define SURFCLUST_MAX_SURF 1  /*!< Maximum number of surfaces allowed for SurfClust*/
 typedef struct {
    SUMA_SO_File_Type iType;
    char *sv_name;

@@ -7,6 +7,93 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;
 
+SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void)
+{
+   static char FuncName[]={"SUMA_NewNewSOOpt"};
+   SUMA_NEW_SO_OPT *nsoopt=NULL;
+   SUMA_ENTRY;
+   
+   nsoopt = (SUMA_NEW_SO_OPT *) SUMA_malloc(sizeof(SUMA_NEW_SO_OPT));
+   nsoopt->idcode_str = NULL;
+   nsoopt->LocalDomainParentID = NULL;
+   nsoopt->FileFormat = SUMA_ASCII;
+   nsoopt->FileType = SUMA_FT_NOT_SPECIFIED;
+   
+   SUMA_RETURN(nsoopt);
+}
+/*!
+   Creates a surface object and its normals and edge list from a list of Nodes and triangles.
+   NodeListp (float **) pointer to nodelist. This points to the vector of node coordinates.
+                        The copy into SO is done by pointer and *NodeListp is set to NULL
+                        to keep users on the straight and narrow.
+   N_Node (int) number of nodes
+   
+   FaceSetList (int **) pointer to facesetlist. Assumes triangular mesh
+   N_FaceSet (int) number of triangles
+   nsooptu (SUMA_NEW_SO_OPT *) an options structure to dictate what to do with certain
+                     fields of SO. At the moment, just pass NULL.
+*/
+SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, int N_FaceSet, SUMA_NEW_SO_OPT *nsooptu)
+{
+   static char FuncName[]={"SUMA_NewSO"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_NEW_SO_OPT *nsoopt=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!nsooptu) {
+      nsoopt = SUMA_NewNewSOOpt();
+   } else {
+      nsoopt = nsooptu;
+   }
+   
+   SO = SUMA_Alloc_SurfObject_Struct(1); 
+   
+   SO->FileFormat = nsoopt->FileFormat;
+   SO->FileType = nsoopt->FileType;
+   
+   SUMA_LH("NodeList");
+   SO->NodeDim = 3;
+   SO->NodeList = *NodeList; *NodeList = NULL;  /* keeps user from freeing afterwards ... */
+   SO->N_Node = N_Node;
+   
+   SUMA_LH("Center deal")
+   SUMA_DIM_CENTER(SO);
+   
+   SUMA_LH("FaceSetList");
+   SO->FaceSetDim = 3;
+   SO->FaceSetList = *FaceSetList; *FaceSetList = NULL;  /* keeps user from freeing afterwards ... */
+   SO->N_FaceSet = N_FaceSet;
+   
+   SUMA_LH("Metrics");
+   if (!SUMA_SurfaceMetrics(SO, "EdgeList, MemberFace", NULL)) {
+      SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+   }
+      
+   SUMA_LH("Normals");
+   SUMA_RECOMPUTE_NORMALS(SO);
+   
+   SUMA_LH("trimmings");
+   SO->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));  
+   if (nsoopt->idcode_str) sprintf(SO->idcode_str, "%s", nsoopt->idcode_str);
+   else UNIQ_idcode_fill (SO->idcode_str);
+   if (nsoopt->LocalDomainParentID) SO->LocalDomainParentID = SUMA_copy_string(nsoopt->LocalDomainParentID);
+   SO->LocalDomainParentID = SUMA_copy_string(SO->idcode_str);
+   
+   /* the stupid copies */
+   SO->glar_NodeList = (GLfloat *)SO->NodeList;
+   SO->glar_FaceSetList = (GLint *) SO->FaceSetList;
+   SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; 
+   SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList; 
+   
+   if (nsooptu != nsoopt) {
+      SUMA_free(nsoopt); nsoopt=NULL; 
+   }
+   
+   SUMA_RETURN(SO);
+}
+
 /*!
    \brief A function to create a surface that is a child of another.
            function can also be used to replace NodeList and/or 
@@ -18,6 +105,7 @@ extern int SUMAg_N_DOv;
    \param N_FaceSet (int): number of facesets
    \param replace: (SUMA_Boolean)   YUP = replace NodeList and/or FaceSetList in SO and return SO. 
                                     NOPE = return a new SurfaceObject, 
+   \sa SUMA_NewSO
 DO NOT FREE NodeList and/or FaceSetList upon returning
 */
 SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO, 
@@ -66,7 +154,7 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
  
    if (FaceSetList) {
       SUMA_LH("New FaceSet List");
-      SOn->FaceSetList = FaceSetList; SOn->N_FaceSet = N_FaceSet;
+      SOn->FaceSetList = FaceSetList; SOn->N_FaceSet = N_FaceSet; SOn->FaceSetDim = SO->FaceSetDim;
       /* Need a new edge list */
       if (!SUMA_SurfaceMetrics(SOn, "EdgeList, MemberFace", NULL)) {
          SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
@@ -98,13 +186,15 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
 
    if (!replace) {
       SUMA_LH("New IDs");
-      SOn->idcode_str = UNIQ_hashcode("DummyNameNothingLikeIt");
+      SOn->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));  
+      UNIQ_idcode_fill (SOn->idcode_str);
       SOn->LocalDomainParentID = SUMA_copy_string(SO->LocalDomainParentID);
    }
 
    /* the stupid copies */
    
    SOn->glar_NodeList = (GLfloat *)SOn->NodeList;
+   SOn->glar_NodeNormList = (GLfloat *)SOn->NodeNormList;
    SOn->glar_FaceSetList = (GLint *) SOn->FaceSetList;
    SOn->glar_FaceNormList = (GLfloat *) SOn->FaceNormList;
    
@@ -2972,7 +3062,10 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       SUMA_SL_Warn("NULL SO");
       SUMA_RETURN(YUP);
    }
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO\n", FuncName);
+   if (LocalHead) {
+      if (SO->Label) fprintf (SUMA_STDERR, "%s: freeing SO %s\n", FuncName, SO->Label);
+      else fprintf (SUMA_STDERR, "%s: freeing SO\n", FuncName);
+   }
    /* Start with the big ones and down*/
    /* From SUMA 1.2 and on, some glar_ pointers are copies of others and should not be freed */ 
    SO->glar_FaceSetList = NULL;

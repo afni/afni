@@ -1644,6 +1644,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->DsetList = (DList *)SUMA_malloc(sizeof(DList));
    dlist_init (cf->DsetList, SUMA_FreeDset);
    
+   cf->IgnoreVolreg = NOPE;
    return (cf);
 
 }

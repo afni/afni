@@ -4721,6 +4721,7 @@ int main (int argc,char *argv[])
    SUMA_SurfSpecFile Spec;
    SUMA_INDEXING_ORDER d_order;
    void *SO_name = NULL;
+   SUMA_Boolean exists = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 	
    SUMA_mainENTRY;
@@ -4738,6 +4739,24 @@ int main (int argc,char *argv[])
        }
    
    Opt = SUMA_GetPatch_ParseInput (argv, argc);
+   
+   if (!Opt->VolOnly) { /* just to check on output file names */
+      for (i=0; i < Opt->N_surf; ++i) {
+         if (Opt->N_surf > 1) {
+            sprintf(ext, "_%c", 65+i);
+            ppref = SUMA_append_string(Opt->out_prefix, ext);
+         } else {
+            ppref = SUMA_copy_string(Opt->out_prefix);
+         }
+         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, SO->FileType, &exists);
+         if (exists) {
+            fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, ppref);
+            exit(1);
+         }
+         if (ppref) SUMA_free(ppref); ppref = NULL; 
+         if (SO_name) SUMA_free(SO_name); SO_name = NULL;
+      } 
+   }
    
    /* read all surfaces */
    if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
@@ -4859,7 +4878,7 @@ int main (int argc,char *argv[])
          } else {
             ppref = SUMA_copy_string(Opt->out_prefix);
          }
-         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, SO->FileType);
+         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, SO->FileType, &exists);
          if (ppref) SUMA_free(ppref); ppref = NULL;
          /* save the original pointers to the facesets and their number */
          FaceSetList = SO->FaceSetList;

@@ -877,6 +877,7 @@ void SUMA_FreeDset(void *vp)
    static char FuncName[]={"SUMA_FreeDset"};
    int i;
    SUMA_DSET *dset;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -887,6 +888,7 @@ void SUMA_FreeDset(void *vp)
       SUMA_SL_Err("dset structure has links to it.\n"
                   "structure not freed.\n"
                   "That is a now a memory leak.\n");
+      SUMA_ShowDset (dset, 0, NULL);            
       SUMA_RETURNe;
    }
    if (dset->nel) NI_free_element(dset->nel); dset->nel = NULL; /* you can keep ni_free from freeing a nel->vec[i] 
@@ -955,7 +957,7 @@ void *SUMA_UnlinkFromPointer(void *ptr)
       SUMA_RETURN(NULL);
    }
    dset = (SUMA_LinkedPtr *)ptr;
-   if (LocalHead) fprintf(SUMA_STDERR, "%s:\n Unink Requested from pointer %p.\n"
+   if (LocalHead) fprintf(SUMA_STDERR, "%s:\n Unlink Requested from pointer %p.\n"
                                        "LinkedPtrType = %d, owner_id = %s\n"
                                        "N_links was %d\n", 
                                        FuncName, dset, dset->LinkedPtrType, dset->owner_id, dset->N_links);
@@ -995,7 +997,7 @@ SUMA_DSET * SUMA_NewDsetPointer(void)
 {
    static char FuncName[]={"SUMA_NewDsetPointer"};
    SUMA_DSET *dset = NULL;
-   
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
 
    dset = (SUMA_DSET *)SUMA_malloc(sizeof(SUMA_DSET));
@@ -1003,7 +1005,7 @@ SUMA_DSET * SUMA_NewDsetPointer(void)
       SUMA_SL_Err("Failed to allocate for dset");
       SUMA_RETURN(dset);
    }
-
+   if (LocalHead) fprintf(SUMA_STDERR,"%s:\n dset %p allocated.\n", FuncName, dset);
    /* initialize */
    dset->nel = NULL;
    dset->N_links = 0;
@@ -1241,6 +1243,8 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
    SS = SUMA_StringAppend(NULL, NULL);
    
    if (dset) {
+      SS = SUMA_StringAppend_va(SS, "Dset %p\n", dset);
+      SS = SUMA_StringAppend_va(SS, "Number of Links: %d\n", dset->N_links);
       if (dset->nel) {
          SS = SUMA_StringAppend_va(SS, "Dset Name: %s (%d)\n", 
             dset->nel->name, SUMA_Dset_Type(dset->nel->name));
@@ -3092,6 +3096,8 @@ char *SUMA_help_basics()
                   "   [-TRACE]: Turns on extreme tracing.\n"
                   "   [-nomall]: Turn off memory tracing.\n"
                   "   [-yesmall]: Turn on memory tracing (default).\n"
+                  "   [-novolreg]: Ignore any Volreg or Tagalign transformations\n"
+                  "                present in the Surface Volume.\n"
                   "  NOTE: For programs that output results to stdout\n"
                   "    (that is to your shell/screen), the debugging info\n"
                   "    might get mixed up with your results.\n" 
@@ -3150,6 +3156,11 @@ void SUMA_ParseInput_basics (char *argv[], int argc)
       if (!brk && (strcmp(argv[kar], "-TRACE") == 0)) {
 			fprintf(SUMA_STDERR,"Warning %s: SUMA running in detailed I/O trace mode.\n", FuncName);
 			Doiotrace = 2;
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-novolreg") == 0)) {
+			SUMA_IGNORE_VOLREG;
          brk = 1;
 		}
       

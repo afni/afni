@@ -669,7 +669,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    SUMA_NODE_FIRST_NEIGHB *firstNeighb=NULL;
    SUMA_Boolean DoWind = YUP;
    int n=0, m=0, in=0, trouble;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2603,7 +2603,7 @@ int main (int argc, char *argv[])
 
    if ( surfaces_orig[0]==NULL || surfaces_orig[1]==NULL) {
       fprintf(SUMA_STDERR, "\nError %s: Unable to aquire SO. Exiting.\n   (Perhaps your indicated surface state does not exist in the given spec file?)\n\n", FuncName);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+      if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
       if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
       exit(1);
    }
@@ -2621,7 +2621,7 @@ int main (int argc, char *argv[])
       if ( surfaces_orig[i]->FileType!=SUMA_FREE_SURFER && 
            surfaces_orig[i]->FileType!=SUMA_PLY && surfaces_orig[i]->FileType!=SUMA_VEC ) { 
          fprintf(SUMA_STDERR, "\n***\n   The SurfaceType (of surface %d) is not currently handled\n     by this program due to lack of data.\n   If you would like this option to be added, please contact\n     ziad@nih.gov or brenna.argall@nih.gov.\n***\n\n", i);
-         if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+         if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
          if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
          exit(1);
       }
@@ -2633,7 +2633,7 @@ int main (int argc, char *argv[])
    spec_info = SUMA_calloc(3, sizeof(SUMA_SpecSurfInfo));
    if ( spec_info==NULL ) {
       fprintf(SUMA_STDERR, "Error %s: Unable to allocate spec_info. Exiting.\n", FuncName);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+      if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
       if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
       exit(1);
    }
@@ -2710,7 +2710,7 @@ int main (int argc, char *argv[])
       surfaces_orig[1]->FN = SUMA_Build_FirstNeighb( surfaces_orig[1]->EL, surfaces_orig[1]->N_Node, surfaces_orig[1]->idcode_str);
    if ( surfaces_orig[1]->FN==NULL || surfaces_orig[1]->EL==NULL ) {
       fprintf(SUMA_STDERR, "Error %s: Failed in acquired Surface Metrics.\n", FuncName);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+      if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
       if (surfaces_orig) SUMA_free(surfaces_orig);
       if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
       exit (1);
@@ -2719,7 +2719,7 @@ int main (int argc, char *argv[])
    MI = SUMA_MapSurface( surfaces_orig[0], surfaces_orig[1]);
    if (!MI) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_MapSurface.\n", FuncName);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+      if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
       if (surfaces_orig) SUMA_free(surfaces_orig);
       if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
       exit (1);
@@ -2728,7 +2728,7 @@ int main (int argc, char *argv[])
    morph_SO = SUMA_morphToStd( surfaces_orig[1], MI, YUP);
    if (!morph_SO) {
       fprintf(SUMA_STDERR, "Error %s: Fail in SUMA_morphToStd.\n", FuncName);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+      if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
       if (surfaces_orig) SUMA_free(surfaces_orig);
       if (MI) SUMA_Free_MorphInfo(MI);
       if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
@@ -2753,7 +2753,7 @@ int main (int argc, char *argv[])
    if ( !writeFile ) {
       fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
       if (MI) SUMA_Free_MorphInfo (MI);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+      if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
       if (morph_SO) SUMA_Free_Surface_Object (morph_SO);
       SUMA_free(surfaces_orig);
       if (spec_info) SUMA_free(spec_info);
@@ -2768,7 +2768,7 @@ int main (int argc, char *argv[])
 
    /* free the variables */
    if (MI) SUMA_Free_MorphInfo (MI);
-   if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+   if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
    if (surfaces_orig) SUMA_free(surfaces_orig);
    if (morph_SO) SUMA_Free_Surface_Object (morph_SO);
    if (spec_info) SUMA_free(spec_info);
@@ -2899,18 +2899,23 @@ int main (int argc, char *argv[])
 
    FILE *tmpFile=NULL;
     
+   SUMA_mainENTRY;
+   
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
+   SUMA_STANDALONE_INIT;
+   #if 0
    SUMAg_CF = SUMA_Create_CommonFields ();
    if (SUMAg_CF == NULL) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
       exit(1);
    }
+   #endif
    
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
-
+   
    cs = SUMA_Create_CommSrtuct();
    if (!cs) exit(1);
 
@@ -2938,6 +2943,8 @@ int main (int argc, char *argv[])
          exit (1);
       }
       
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+
 		if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
 			fprintf(SUMA_STDOUT,"Warning %s: SUMA running in in/out debug mode.\n", FuncName);
 			SUMA_INOUT_NOTIFY_ON;
@@ -3182,7 +3189,7 @@ int main (int argc, char *argv[])
                }
             }
             fprintf(SUMA_STDERR, "%s:\nExiting after SUMA_SphereQuality\n", FuncName);
-            if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+            if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
             if (surfaces_orig) SUMA_free (surfaces_orig);
             if (spec_order) SUMA_free(spec_order);
             if (spec_mapRef) SUMA_free(spec_mapRef);
@@ -3197,7 +3204,7 @@ int main (int argc, char *argv[])
          if ( surfaces_orig[id]->FileType!=SUMA_FREE_SURFER && 
               surfaces_orig[id]->FileType!=SUMA_PLY && surfaces_orig[id]->FileType!=SUMA_VEC ) { 
             fprintf(SUMA_STDERR, "\n***\n   The Surface Type is not currently handled by this program\n     due to lack of data.\n   If you would like this option to be added, please contact\n     ziad@nih.gov or brenna.argall@nih.gov.\n***\n\n");
-            if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+            if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
             if (surfaces_orig) SUMA_free (surfaces_orig);
             if (spec_order) SUMA_free(spec_order);
             if (spec_mapRef) SUMA_free(spec_mapRef);
@@ -3215,7 +3222,7 @@ int main (int argc, char *argv[])
          
          if ( SUMA_filexists(spec_info[i_surf].fileToRead) ) {
             fprintf (SUMA_STDERR,"Error %s: %s exists. Will not overwrite.\n", FuncName, spec_info[i_surf].fileToRead);
-            if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+            if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
             if (surfaces_orig) SUMA_free (surfaces_orig);
             if (spec_order) SUMA_free(spec_order);
             if (spec_mapRef) SUMA_free(spec_mapRef);
@@ -3338,7 +3345,7 @@ int main (int argc, char *argv[])
       else {
          /*no spherical input -> exit*/
          fprintf(SUMA_STDERR, "\nError %s: Neither sphere.reg nor sphere brain states present in Spec file.\nWill not contintue.\n", FuncName);
-         if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+         if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
          if (surfaces_orig) SUMA_free (surfaces_orig);
          if (spec_order) SUMA_free(spec_order);
          if (spec_mapRef) SUMA_free(spec_mapRef);
@@ -3358,7 +3365,7 @@ int main (int argc, char *argv[])
    for (i=0; i<mx_N_surf; ++i) {
       if ( spec_order[i]!=-1 && i!=6 && i!=7 && !(surfaces_orig[i_morph]->N_Node == surfaces_orig[i]->N_Node) ) {
          fprintf(SUMA_STDERR, "Error %s: Surfaces (ref [%d], %d!=%d) differ in node number. Exiting.\n", FuncName, i, surfaces_orig[i_morph]->N_Node, surfaces_orig[i]->N_Node);
-         if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+         if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
          if (surfaces_orig) SUMA_free (surfaces_orig);
          if (spec_order) SUMA_free(spec_order);
          if (spec_mapRef) SUMA_free(spec_mapRef);
@@ -3417,7 +3424,7 @@ int main (int argc, char *argv[])
    icoSurf = SUMA_CreateIcosahedron (r, depth, ctr, bin);
    if (!icoSurf) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+      if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
       if (surfaces_orig) SUMA_free (surfaces_orig);
       if (spec_order) SUMA_free(spec_order);
       if (spec_mapRef) SUMA_free(spec_mapRef);
@@ -3449,7 +3456,7 @@ int main (int argc, char *argv[])
    MI = SUMA_MapSurface( icoSurf, surfaces_orig[i_morph] ) ;
    if (!MI) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+      if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
       if (surfaces_orig) SUMA_free (surfaces_orig);
       if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
       if (spec_order) SUMA_free(spec_order);
@@ -3477,7 +3484,7 @@ int main (int argc, char *argv[])
             surfaces_orig[id]->FN = SUMA_Build_FirstNeighb( surfaces_orig[id]->EL, surfaces_orig[id]->N_Node, surfaces_orig[id]->idcode_str);
          if ( surfaces_orig[id]->FN==NULL || surfaces_orig[id]->EL==NULL ) {
             fprintf(SUMA_STDERR, "Error %s: Failed in acquired Surface Metrics.\n", FuncName);
-            if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+            if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
             if (surfaces_orig) SUMA_free (surfaces_orig);
             if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
             if (currSurf) SUMA_free (currSurf);
@@ -3491,7 +3498,7 @@ int main (int argc, char *argv[])
          currSurf = SUMA_morphToStd( surfaces_orig[id], MI, YUP);
          if ( !currSurf ) {
             fprintf(SUMA_STDERR, "Error %s: Failed in morphing surface object.\n", FuncName);
-            if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+            if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
             if (surfaces_orig) SUMA_free (surfaces_orig);
             if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
             if (currSurf) SUMA_free (currSurf);
@@ -3544,7 +3551,7 @@ int main (int argc, char *argv[])
          
          if ( !writeFile ) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+            if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
             if (surfaces_orig) SUMA_free (surfaces_orig);
             if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
             if (currSurf) SUMA_free (currSurf);
@@ -3579,8 +3586,8 @@ int main (int argc, char *argv[])
 
    /*free surfaces*/
    if (icoSurf) SUMA_Free_Surface_Object (icoSurf);
-   if (currSurf) { SUMA_Free_Surface_Object(currSurf);}
-   if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+   if (currSurf) { SUMA_Free_Surface_Object(currSurf);} 
+   if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
    if (surfaces_orig) SUMA_free (surfaces_orig);
    
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
