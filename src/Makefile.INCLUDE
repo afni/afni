@@ -605,6 +605,10 @@ strblast:strblast.o
 	$(RM) $@
 	$(CC) -o 3dWarp 3dWarp.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dWarp_NEW:3dWarp_NEW.o
+	$(RM) $@
+	$(CC) -o 3dWarp_NEW 3dWarp_NEW.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 rotcom:rotcom.o
 	$(RM) $@
 	$(CC) -o rotcom rotcom.o $(LFLAGS) -lmri -lf2c $(LLIBS)

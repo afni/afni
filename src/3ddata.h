@@ -3565,6 +3565,12 @@ extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
 extern THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * ,
                                        int,int,int,int,int,int , char * , int ) ;
 
+extern THD_3dim_dataset * THD_warp3D(
+                     THD_3dim_dataset *,
+                     void w_in2out(float,float,float,float *,float *,float *),
+                     void w_out2in(float,float,float,float *,float *,float *),
+                     float , char *, int , int ) ;
+
 /*-- 02 Mar 2001: thd_entropy16.c --*/
 
 extern void   ENTROPY_setup     (void) ;
