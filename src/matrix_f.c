@@ -263,10 +263,8 @@ void matrix_enter (matrix * m)
      Otherwise, return null matrix.
 */
 
-#ifdef USE_ALTIVEC
-# include "mri_image.h"
-  extern MRI_IMAGE *mri_read_1D(char *) ;
-#endif
+#include "mri_image.h"
+extern MRI_IMAGE *mri_read_1D(char *) ;
 
 void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 		       int error_exit)
