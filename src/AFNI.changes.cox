@@ -4522,3 +4522,6 @@
 28 Apr 2003
  * Modified 3dcalc to add -taxis option.
  * Added mri_fromstring.c, to input 1D data in the form '1D:5@0,10@1,5@0', etc.
+
+29 Apr 2003
+ * Modified imseq.c and machdep.h to add ENFORCE_ASPECT #define (for Mac OS X).

@@ -121,6 +121,10 @@
                              systems - this will eliminate duplicate
                              image redraws in imseq.c.
 
+    ENFORCE_ASPECT = Set this if you want image aspect ratio enforcement
+                     compiled into your system.  Can also be set at runtime
+                     using the AFNI_ENFORCE_ASPECT environment variable.
+
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 
@@ -326,6 +330,7 @@ extern long   strtol() ;
 # ifndef DONT_USE_MCW_MALLOC
 #  define DONT_USE_MCW_MALLOC
 # endif
+# define ENFORCE_ASPECT           /* 29 Apr 2003 */
 #endif
 
 /************************************************************************
