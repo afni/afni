@@ -1,6 +1,6 @@
      Changes to the MCW AFNI package that are not in the manuals (yet)
 ==========================================================================
-27 December 1997:
+27 December 1996:
    The new auxiliary program "3dnewid" is mentioned in the AFNI
      user's manual, but not in the auxiliary programs manual.
      This program will assign a new identifier (ID) code to a
@@ -277,7 +277,8 @@
 --------------------------------------------------------------------------
 30 October 1997:
    Added popup "hints" to AFNI controls.  See the file README.environment
-     for information on how to turn them on and off.
+     for information on how to turn them on and off.  These may also
+     be attached to plugins.
 --------------------------------------------------------------------------
 06 November 1997:
    Added program 3dRegAna to perform linear regression analysis on

@@ -19,7 +19,8 @@ The documentation for MCW AFNI is in the following files:
 
 Most of these files are no longer included in the base distribution,
 afni96.tgz, but are in the file doc.tgz.  This change is due to their
-ever-growing size.
+ever-growing size.  These files can also be individually accessed
+from the Web page http://varda.biophysics.mcw.edu/~cox/
 
 The *.ps files are PostScript.  If you do not have a PostScript printer,
 then the freeware programs Ghostscript and Ghostview will enable you to
@@ -39,20 +40,20 @@ commands should suffice:
 
    tar xf gzip.tar
    cd gzip-1.2.4
-   -- follow the instructions in the INSTALL file --
+   -- follow the instructions in the INSTALL file
 
 The archive file with the source code for AFNI and its associated programs
 is afni96.tgz.  To uncompress this, the following commands should work:
 
    gzip -dc afni96.tgz | tar xf -
    cd ./AFNI96
-   -- follow the instructions in the README file    --
-   -- (which are similar to the instructions below) --
+   -- follow the instructions in the README file
+   -- (which are similar to the instructions below)
 
 The PostScript documentation is unpacked with
 
    gzip -dc doc.tgz | tar xf -
-   -- files are in subdirectory DOC/ --
+   -- files are in subdirectory DOC/
 
 For some platforms (those which we have easily available at MCW),
 binaries are available in the binaries/ subdirectory at the FTP
@@ -331,5 +332,6 @@ There is a link to the Web pages made for AFNI on my home page, given below.
 =============================================================================
 Robert W. Cox, PhD
 Biophysics Research Institute / Medical College of Wisconsin
-Voice: 414-456-4038 / Fax: 414-266-8515 / mailto:rwcox@mcw.edu
+Voice: 414-456-4038 / Fax: 414-456-6512 / mailto:rwcox@mcw.edu
 http://www.biophysics.mcw.edu/BRI-people/cox.html
+http://varda.biophysics.mcw.edu/~cox/index.html

@@ -1,9 +1,23 @@
+Anatomical Dataset Types
+========================
+First, you must realize that I (and therefore AFNI) consider
+the raw functional image time series to be "anatomical" data.
+Only after processing does it show functional information.
+For this reason you should create your 3D+time datasets as
+one of the anatomical types.
+
+No AFNI program (at this time) uses the actual anatomical
+dataset type (e.g., SPGR or EPI) for any purpose.  This type
+information is only for your convenience.
+
 Functional Dataset Types
 ========================
-At present (23 July 1997), there are 11 functional dataset types.
-(The first five are documented in "afni_plugins.ps".)
+In contrast, the functional dataset type is very meaningful
+to the AFNI software.  At present (23 July 1997), there are 11
+functional dataset types.  (The first five are documented in
+"afni_plugins.ps".)
 
-The first one ("fim") stores a single number per voxel.  All the
+The first type ("fim") stores a single number per voxel.  All the
 others store 2 numbers per voxel.  The second type ("fith") is
 obsolescent, and will not be discussed further here.
 
@@ -81,7 +95,9 @@ figt: The PDF of the gamma distribution is proportional to
 fipt: The "p-value" is the probability that a Poisson deviate is larger
       than the threshold value.
 
-For more details, see Abramowitz and Stegun, and "cdflib.txt".
+For more details, see Abramowitz and Stegun (the sacred book for
+applied mathematicians), or other books on classical probability
+distributions.
 
 The "p-values" for fico, fitt, and fizt datasets are 2-sided: that is,
 the value displayed by AFNI (below the slider) is the probability that
