@@ -3,9 +3,10 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "xutil.h"
 #include "afni_environ.h"
+#include "debugtrace.h"    /* 12 Mar 2001 */
 
 /*--------------------------------------------------------------------
   force an immediate expose for the widget
@@ -51,14 +52,18 @@ Colormap MCW_get_colormap( Widget w )
    return cmap ;
 }
 
+/*--------------------------------------------------------------------*/
+
 int MCW_get_depth( Widget w )  /* 14 Sep 1998 */
 {
    int depth = 0 ;
 
    if( w == NULL || ! XtIsWidget(w) ) return 0 ;
    XtVaGetValues( w , XmNdepth  , &depth , NULL ) ;
-   return depth ;
+   return depth  ;
 }
+
+/*--------------------------------------------------------------------*/
 
 Visual * MCW_get_visual( Widget w )  /* 14 Sep 1998 */
 {
@@ -420,8 +425,10 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
    return wmsg ;
 }
 
-/*- callback when the popup message created above is a PushButton
-    (Note that w is the PushButton widget, so its parent is to be killed) -*/
+/*-------------------------------------------------------------------------
+    callback when the popup message created above is a PushButton
+    (Note that w is the PushButton widget, so its parent is to be killed)
+---------------------------------------------------------------------------*/
 
 void MCW_message_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
@@ -437,7 +444,9 @@ void MCW_message_CB( Widget w , XtPointer cd , XtPointer cbs )
 #endif
 }
 
+/*----------------------------------------------------*/
 /*--- callback when timer expires on popup message ---*/
+/*----------------------------------------------------*/
 
 void MCW_message_timer_CB( XtPointer client_data , XtIntervalId * id )
 {
@@ -457,8 +466,9 @@ void MCW_set_widget_cursor( Widget w , int cur )
    return ;
 }
 
-void MCW_alter_widget_cursor( Widget w, int cur,
-			      char * fgname, char * bgname )
+/*--------------------------------------------------------------------*/
+
+void MCW_alter_widget_cursor( Widget w, int cur, char * fgname, char * bgname )
 {
    XColor fg , bg ;
    Cursor ccc ;
@@ -585,6 +595,8 @@ void MCW_hint_toggle(void)
    return ;
 }
 
+/*--------------------------------------------------------------------*/
+
 #define RES_CONVERT( res_name, res_value) \
        XtVaTypedArg, (res_name), XmRString, (res_value), strlen(res_value) + 1
 
@@ -634,6 +646,8 @@ void MCW_register_hint( Widget w , char * msg )
    return ;
 }
 
+/*--------------------------------------------------------------------*/
+
 void MCW_reghint_children( Widget w , char * msg )
 {
    Widget * children=NULL ;
@@ -664,6 +678,8 @@ void MCW_register_help( Widget w , char * msg )
    XtAddCallback( w , XmNhelpCallback , MCW_help_CB , msg ) ;
    return ;
 }
+
+/*--------------------------------------------------------------------*/
 
 void MCW_reghelp_children( Widget w , char * msg )
 {
@@ -937,12 +953,16 @@ Widget MCW_popup_meter( Widget wparent , int position )
    return wscal ;
 }
 
+/*--------------------------------------------------------------------*/
+
 void MCW_popdown_meter( Widget wscal )
 {
    if( wscal == NULL ) return ;
    XtDestroyWidget( XtParent(wscal) ) ;
    return ;
 }
+
+/*--------------------------------------------------------------------*/
 
 void MCW_set_meter( Widget wscal , int percent )
 {
@@ -1131,6 +1151,8 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
    return tw ;
 }
 
+/*--------------------------------------------------------------------*/
+
 void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    MCW_textwin * tw = (MCW_textwin *) client_data ;
@@ -1147,6 +1169,8 @@ void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
    XBell( XtDisplay(w) , 100 ) ;
    return ;
 }
+
+/*--------------------------------------------------------------------*/
 
 void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
@@ -1250,30 +1274,27 @@ void RWC_visibilize_widget( Widget w )
   A callback version of the above (for use when menus are mapped, say)
 ------------------------------------------------------------------------*/
 
-#undef DBGXIN
-
 static void RWC_visibilize_timeout_CB( XtPointer cd , XtIntervalId * id )
 {
    Widget w = (Widget) cd ;
-#ifdef DBGXIN
-fprintf(stderr,"RWC_visibilize_timout_CB\n") ;
-#endif
-   RWC_visibilize_widget(w) ; return ;
+ENTRY("RWC_visibilize_timeout_CB") ;
+   RWC_visibilize_widget(w) ; EXRETURN ;
 }
+
+/*--------------------------------------------------------------------*/
 
 void RWC_visibilize_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    Widget wpar = w ;
-#ifdef DBGXIN
-fprintf(stderr,"RWC_visibilize_CB\n") ;
-#endif
+ENTRY("RWC_visibilize_CB") ;
+
    while( !XtIsShell(wpar) ){ wpar = XtParent(w); } /* find 1st shell parent */
 
    /* must wait for the thing to actually appear, dammit */
 
    (void) XtAppAddTimeOut( XtWidgetToApplicationContext(wpar) ,
                            1 , RWC_visibilize_timeout_CB , wpar ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -1293,7 +1314,9 @@ void RWC_xineramize( Display * dpy,
    static int nxsi=0 , *xbot,*ybot,*xtop,*ytop ;
    int ii , ss ;
 
-   if( dpy==NULL || xn==NULL || yn==NULL || ww<0 || hh<0 ) return ; /* ERROR */
+ENTRY("RWC_xineramize") ;
+
+   if( dpy==NULL || xn==NULL || yn==NULL || ww<0 || hh<0 ) EXRETURN; /* ERROR */
 
    /*--- first time in: check AFNI.xinerama X resource
                         load boundaries of sub-screens from resource ---*/
@@ -1307,9 +1330,12 @@ void RWC_xineramize( Display * dpy,
 
       if( xdef != NULL && (xdef[0] == 'N' || xdef[0] == 'n') ){ /* skip Xinerama */
          nxsi = 0 ;
+         STATUS("AFNI_XINERAMA is NO") ;
       } else {
          xdef  = XGetDefault(dpy,"AFNI","xinerama") ; /* get resource */
          if( xdef != NULL ){
+            STATUS("Initializing from AFNI.xinerama:") ;
+            STATUS(xdef) ;
             nn = 0 ; sscanf(xdef,"%d%n",&nxsi,&nn) ;  /* number of sub-screens */
             if( nn <= 0 || nxsi <= 1 ){               /* ERROR */
                nxsi = 0 ;
@@ -1326,11 +1352,15 @@ void RWC_xineramize( Display * dpy,
                   xbot[ii] = xorg ; xtop[ii] = xorg+wide ;
                   ybot[ii] = yorg ; ytop[ii] = yorg+high ;
                   xp += nn ;
-#ifdef DBGXIN
-fprintf(stderr,"RWC_xineramize: xbot=%4d ybot=%4d xtop=%4d ytop=%4d\n",
-                xbot[ii],ybot[ii],xtop[ii],ytop[ii] ) ;
-#endif
+
+                  if(PRINT_TRACING){
+                    char str[256] ;
+                    sprintf(str," Screen %d: xbot=%4d ybot=%4d xtop=%4d ytop=%4d",
+                                  ii,xbot[ii],ybot[ii],xtop[ii],ytop[ii] ) ;
+                    STATUS(str) ;
+                  }
                }
+
                nxsi = ii ;  /* in case the scan aborted */
             }
          }
@@ -1350,8 +1380,8 @@ fprintf(stderr,"RWC_xineramize: xbot=%4d ybot=%4d xtop=%4d ytop=%4d\n",
       }
    }
 
-#if 0                                          /* doesn't occur anymore */
-   if( nxsi == 0 ){ *xn=xx; *yn=yy; return; }  /* not setup?  change nothing */
+#if 0                                           /* doesn't occur anymore */
+   if( nxsi == 0 ){ *xn=xx; *yn=yy; EXRETURN; } /* not setup? change nothing */
 #endif
 
    /*--- find the Xinerama sub-screen that (xx,yy) is on (if any) ---*/
@@ -1365,9 +1395,10 @@ fprintf(stderr,"RWC_xineramize: xbot=%4d ybot=%4d xtop=%4d ytop=%4d\n",
       ss = 0 ;  /* must use #0 - what else is there? */
    }
 
-#ifdef DBGXIN
-fprintf(stderr,"RWC_xineramize: xx=%d yy=%d ww=%d hh=%d ss=%d\n",xx,yy,ww,hh,ss);
-#endif
+   if(PRINT_TRACING){
+      char str[256] ;
+      sprintf(str,"Rect: xx=%d yy=%d ww=%d hh=%d; On ss=%d",xx,yy,ww,hh,ss); STATUS(str);
+   }
 
    /*--- if not inside any screen, find one it is closest to ---*/
 
@@ -1393,9 +1424,10 @@ fprintf(stderr,"RWC_xineramize: xx=%d yy=%d ww=%d hh=%d ss=%d\n",xx,yy,ww,hh,ss)
 
          if( dd < dmin ){ dmin = dd; ss = ii; } /* smallest so far? */
       }
-#ifdef DBGXIN
-fprintf(stderr,"RWC_xineramize: new ss=%d\n",ss) ;
-#endif
+
+      if(PRINT_TRACING){
+         char str[256] ; sprintf(str,"New ss=%d",ss) ; STATUS(str) ;
+      }
    }
 
    /*--- now adjust position so all of rectangle
@@ -1406,11 +1438,12 @@ fprintf(stderr,"RWC_xineramize: new ss=%d\n",ss) ;
    if( xx    < xbot[ss]+BUF  ){ xx = xbot[ss]+BUF; }        /* move right */
    if( yy    < ybot[ss]+BUF  ){ yy = ybot[ss]+BUF; }        /* move down */
 
-#ifdef DBGXIN
-fprintf(stderr,"RWC_xineramize: new xx=%d yy=%d\n",xx,yy) ;
-#endif
 
-   *xn = xx ; *yn = yy ; return ;
+   if(PRINT_TRACING){
+      char str[256] ; sprintf(str,"New xx=%d yy=%d",xx,yy) ; STATUS(str) ;
+   }
+
+   *xn = xx ; *yn = yy ; EXRETURN ;
 }
 
 /*----------  Fix a Linux stupidity  ------------------------------------*/

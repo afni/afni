@@ -9,7 +9,7 @@
 
 #include "thd_shear3d.h"  /* 06 Feb 2001 */
 
-#define ERREX(str) (fprintf(stderr,"*** %s\n",str),exit(1))
+#define ERREX(str) (fprintf(stderr,"** %s\n",str),exit(1))
 
 /******* global data *******/
 
@@ -108,6 +108,9 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){ VL_syntax() ; exit(0); }
 
+mainENTRY("3dvolreg main") ;
+/*** enable_mcw_malloc() ; ***/
+
    Argc = argc ; Argv = argv ; Iarg = 1 ;
    VL_command_line() ;
 
@@ -141,18 +144,18 @@ int main( int argc , char *argv[] )
 
       mm = THD_dataset_mismatch( VL_gridpar_dset , VL_dset ) ;
       if( mm & (MISMATCH_DELTA | MISMATCH_ORIENT) ){
-         fprintf(stderr,"*** Fatal Error:\n"
-                        "*** -gridparent dataset and input dataset don't\n"
-                        "*** match in grid spacing and/or orientation!\n"  ) ;
+         fprintf(stderr,"** Fatal Error:\n"
+                        "** -gridparent dataset and input dataset don't\n"
+                        "** match in grid spacing and/or orientation!\n"  ) ;
          exit(1) ;
       }
 
       if( DSET_NX(VL_gridpar_dset) != DSET_NX(VL_dset) ||
           DSET_NY(VL_gridpar_dset) != DSET_NY(VL_dset)   ){
 
-         fprintf(stderr,"*** Fatal Error:\n"
-                        "*** -gridparent and input datasets\n"
-                        "*** don't match in x,y dimensions!\n" ) ;
+         fprintf(stderr,"** Fatal Error:\n"
+                        "** -gridparent and input datasets\n"
+                        "** don't match in x,y dimensions!\n" ) ;
          exit(1) ;
       }
 
@@ -161,8 +164,8 @@ int main( int argc , char *argv[] )
       nz_gp = DSET_NZ(VL_gridpar_dset) ; nz_ds = DSET_NZ(VL_dset) ;
 
       if( nz_gp < nz_ds ){
-         fprintf(stderr,"*** Fatal Error:\n"
-                        "*** -gridparent has fewer slices than input dataset!\n") ;
+         fprintf(stderr,"** Fatal Error:\n"
+                        "** -gridparent has fewer slices than input dataset!\n") ;
          exit(1) ;
       }
       if( nz_gp > nz_ds ){                     /* must zeropad */
@@ -203,8 +206,8 @@ int main( int argc , char *argv[] )
                              NULL , ZPAD_EMPTY ) ;
 
          if( pset == NULL ){
-            fprintf(stderr,"*** Fatal Error:\n"
-                           "*** Can't properly zeropad output dataset!\n" ) ;
+            fprintf(stderr,"** Fatal Error:\n"
+                           "** Can't properly zeropad output dataset!\n" ) ;
             exit(1) ;
          }
 
@@ -217,7 +220,7 @@ int main( int argc , char *argv[] )
    EDIT_dset_items( new_dset , ADN_prefix , VL_prefix , ADN_none ) ;
    if( THD_is_file( DSET_HEADNAME(new_dset) ) ){
       fprintf(stderr,
-              "*** Output file %s already exists -- cannot continue!\n",
+              "** Output file %s already exists -- cannot continue!\n",
               DSET_HEADNAME(new_dset) ) ;
       exit(1) ;
    }
@@ -349,7 +352,7 @@ int main( int argc , char *argv[] )
    if( VL_tshift ){
       int eee = THD_dataset_tshift( VL_dset , VL_tshift_ignore ) ;
       if( eee )
-         fprintf(stderr,"+++ WARNING: some error during -tshift operation!\n") ;
+         fprintf(stderr,"++ WARNING: some error during -tshift operation!\n") ;
       else
          EDIT_dset_items( new_dset ,
                             ADN_nsl    , 0   ,  /* has no offsets now */
@@ -490,7 +493,7 @@ int main( int argc , char *argv[] )
 
       if( albase == NULL ){
          fprintf(stderr,
-                 "*** Can't initialize first pass alignment algorithm\n");
+                 "** Can't initialize first pass alignment algorithm\n");
          exit(1);
       }
 
@@ -582,7 +585,7 @@ int main( int argc , char *argv[] )
 
    albase = mri_3dalign_setup( VL_imbase , VL_imwt ) ;
    if( albase == NULL ){
-      fprintf(stderr,"*** Can't initialize base image for alignment\n"); exit(1);
+      fprintf(stderr,"** Can't initialize base image for alignment\n"); exit(1);
    }
    if( VL_imwt != NULL ) mri_free( VL_imwt ) ;
 
@@ -685,7 +688,7 @@ int main( int argc , char *argv[] )
          if( npadd ){
             MRI_IMAGE * qim = mri_zeropad_3D( 0,0,0,0,npad_neg,npad_pos , fim ) ;
             if( qim == NULL ){
-               fprintf(stderr,"*** Can't zeropad at kim=%d -- FATAL ERROR!\n",kim);
+               fprintf(stderr,"** Can't zeropad at kim=%d -- FATAL ERROR!\n",kim);
                exit(1) ;
             }
             mri_free(fim) ; fim = qim ;
@@ -1172,6 +1175,9 @@ void VL_syntax(void)
     "                                  num=0.  Note that the amount of computation\n"
     "                                  grows as num**3, so don't increase num\n"
     "                                  past 4, or the program will run forever!\n"
+    "                             N.B.: The 'del' parameter cannot be larger than\n"
+    "                                   10%% of the smallest dimension of the input\n"
+    "                                   dataset.\n"
     "\n"
     " N.B.: * This program can consume VERY large quantities of memory.\n"
     "          (Rule of thumb: 40 bytes per input voxel.)\n"
@@ -1250,7 +1256,7 @@ void VL_command_line(void)
          else if( strcmp(str,"heptic")  == 0 ) VL_final = MRI_HEPTIC ;
          else if( strcmp(str,"Fourier") == 0 ) VL_final = MRI_FOURIER ;
          else {
-            fprintf(stderr,"*** Illegal mode after -final\n"); exit(1);
+            fprintf(stderr,"** Illegal mode after -final\n"); exit(1);
          }
          Iarg++ ; continue ;
       }
@@ -1296,7 +1302,7 @@ void VL_command_line(void)
             fprintf(stderr,"++ WARNING: second -zpad option!\n") ;
          VL_zpad = (int) strtod( Argv[++Iarg] , NULL ) ;
          if( VL_zpad < 0 ){
-            fprintf(stderr,"*** ERROR: Can't use -zpad %d\n",VL_zpad) ;
+            fprintf(stderr,"** ERROR: Can't use -zpad %d\n",VL_zpad) ;
             exit(1) ;
          }
          THD_rota_setpad(VL_zpad,VL_zpad,VL_zpad) ;
@@ -1375,14 +1381,14 @@ void VL_command_line(void)
         int bb,ii ; char * cpt ;
 
         if( VL_imbase != NULL || VL_nbase > 0 ){
-           fprintf(stderr,"*** Can't have two -base arguments\n") ; exit(1) ;
+           fprintf(stderr,"** Can't have two -base arguments\n") ; exit(1) ;
         }
 
         /* try an integer */
 
         bb = strtol( Argv[++Iarg] , &cpt , 10 ) ;
         if( bb < 0 ){
-          fprintf(stderr,"*** Illegal number after -base\n"); exit(1);
+          fprintf(stderr,"** Illegal number after -base\n"); exit(1);
         }
 
         if( *cpt == '\0' ){  /* it WAS an integer */
@@ -1398,14 +1404,14 @@ void VL_command_line(void)
 
           VL_bset = THD_open_dataset( Argv[Iarg] ) ;
           if( VL_bset == NULL ){
-             fprintf(stderr,"*** Couldn't open -base dataset %s\n",Argv[Iarg]) ;
+             fprintf(stderr,"** Couldn't open -base dataset %s\n",Argv[Iarg]) ;
              exit(1) ;
           }
           if( VL_verbose )
              fprintf(stderr,"++ Reading in base dataset %s\n",DSET_BRIKNAME(VL_bset)) ;
           DSET_load(VL_bset) ;
           if( !DSET_LOADED(VL_bset) ){
-             fprintf(stderr,"*** Couldn't read -base dataset %s\n",
+             fprintf(stderr,"** Couldn't read -base dataset %s\n",
                      DSET_BRIKNAME(VL_bset)) ;
              exit(1) ;
           }
@@ -1444,11 +1450,11 @@ void VL_command_line(void)
         float ee ; char * eq ;
         ee = strtod(Argv[++Iarg],&eq) ;
         if( ee < 0 ){
-           fprintf(stderr,"*** Illegal value after -edging\n"); exit(1);
+           fprintf(stderr,"** Illegal value after -edging\n"); exit(1);
         }
         if( *eq == '%' ){
            if( ee > 25.0 ){
-              fprintf(stderr,"*** Illegal percentage after -edging\n"); exit(1);
+              fprintf(stderr,"** Illegal percentage after -edging\n"); exit(1);
            }
            VL_edperc = 1 ; VL_edging = ee ;
         } else {
@@ -1465,27 +1471,27 @@ void VL_command_line(void)
         char dname[256] ;
 
         if( VL_imwt != NULL ){
-           fprintf(stderr,"*** Can't have two -weight options\n") ; exit(1) ;
+           fprintf(stderr,"** Can't have two -weight options\n") ; exit(1) ;
         }
 
         /* break it into 'wset[bb]' pieces */
 
         cpt = strstr( Argv[++Iarg] , "[" ) ;
         if( cpt == NULL || cpt == Argv[Iarg] ){
-           fprintf(stderr,"*** Illegal weight dataset after -weight\n"); exit(1);
+           fprintf(stderr,"** Illegal weight dataset after -weight\n"); exit(1);
         }
         ii = cpt - Argv[Iarg] ;
         memcpy(dname,Argv[Iarg],ii) ; dname[ii] = '\0' ;
         bb = -1 ; sscanf( cpt+1 , "%d" , &bb ) ;
         if( bb < 0 ){
-           fprintf(stderr,"*** Illegal sub-brick selector after -weight\n"); exit(1);
+           fprintf(stderr,"** Illegal sub-brick selector after -weight\n"); exit(1);
         }
         wset = THD_open_one_dataset( dname ) ;
         if( wset == NULL ){
-           fprintf(stderr,"*** Can't open weight dataset %s\n",dname); exit(1);
+           fprintf(stderr,"** Can't open weight dataset %s\n",dname); exit(1);
         }
         if( bb >= DSET_NVALS(wset) ){
-           fprintf(stderr,"*** Illegal sub-brick selector for dataset %s\n",dname);
+           fprintf(stderr,"** Illegal sub-brick selector for dataset %s\n",dname);
            exit(1) ;
         }
         if( VL_verbose )
@@ -1507,7 +1513,7 @@ void VL_command_line(void)
       if( strcmp(Argv[Iarg],"-tshift") == 0 ){
          VL_tshift = 1 ;
          VL_tshift_ignore = (int) strtod(Argv[++Iarg],NULL) ;
-         if( VL_tshift_ignore < 0 ) ERREX("*** -tshift parameter is negative!") ;
+         if( VL_tshift_ignore < 0 ) ERREX("-tshift parameter is negative!") ;
          Iarg++ ; continue ;
       }
 
@@ -1517,15 +1523,15 @@ void VL_command_line(void)
          ATR_float * atr ;
 
          if( VL_rotpar_dset != NULL )
-            ERREX("*** Can't use -2 -rotparent options!") ;
+            ERREX("Can't use -2 -rotparent options!") ;
 
          VL_rotpar_dset = THD_open_one_dataset( Argv[++Iarg] ) ;
          if( VL_rotpar_dset == NULL )
-            ERREX("*** Can't open -rotparent dataset!\n") ;
+            ERREX("Can't open -rotparent dataset!\n") ;
 
          atr = THD_find_float_atr( VL_rotpar_dset->dblk , "VOLREG_MATVEC_000000" ) ;
          if( atr == NULL || atr->nfl < 12 )
-            ERREX("*** -rotparent dataset doesn't have VOLREG attributes!?") ;
+            ERREX("-rotparent dataset doesn't have VOLREG attributes!?") ;
 
          Iarg++ ; continue ;
       }
@@ -1533,11 +1539,11 @@ void VL_command_line(void)
       if( strncmp(Argv[Iarg],"-gridpar",7) == 0 ){
 
          if( VL_gridpar_dset != NULL )
-            ERREX("*** Can't use -2 -gridparent options!") ;
+            ERREX("Can't use -2 -gridparent options!") ;
 
          VL_gridpar_dset = THD_open_one_dataset( Argv[++Iarg] ) ;
          if( VL_gridpar_dset == NULL )
-            ERREX("*** Can't open -gridparent dataset!\n") ;
+            ERREX("Can't open -gridparent dataset!\n") ;
 
          Iarg++ ; continue ;
       }
@@ -1584,11 +1590,11 @@ void VL_command_line(void)
       } else {
         ee = strtod(ef,&eq) ;
         if( ee < 0 ){
-           fprintf(stderr,"*** Illegal value in AFNI_VOLREG_EDGING\n"); exit(1);
+           fprintf(stderr,"** Illegal value in AFNI_VOLREG_EDGING\n"); exit(1);
         }
         if( *eq == '%' ){
            if( ee > 25.0 ){
-              fprintf(stderr,"*** Illegal percentage in AFNI_VOLREG_EDGING\n"); exit(1);
+              fprintf(stderr,"** Illegal percentage in AFNI_VOLREG_EDGING\n"); exit(1);
            }
            VL_edperc = 1 ; VL_edging = ee ;
         } else {
@@ -1600,9 +1606,9 @@ void VL_command_line(void)
    /*** Open the dataset to be registered ***/
 
    if( Iarg > Argc ){
-      fprintf(stderr,"*** Too few arguments!?\n") ; exit(1) ;
+      fprintf(stderr,"** Too few arguments!?\n") ; exit(1) ;
    } else if( Iarg < Argc-1 ){
-      fprintf(stderr,"*** Too many arguments?!\n") ; exit(1) ;
+      fprintf(stderr,"** Too many arguments?!\n") ; exit(1) ;
    }
 
    VL_dset = THD_open_dataset( Argv[Iarg] ) ;
@@ -1610,7 +1616,7 @@ void VL_command_line(void)
    /** Check for errors **/
 
    if( VL_dset == NULL ){
-      fprintf(stderr,"*** Can't open dataset %s\n",Argv[Iarg]) ; exit(1) ;
+      fprintf(stderr,"** Can't open dataset %s\n",Argv[Iarg]) ; exit(1) ;
    }
 
    if( VL_tshift ){
@@ -1629,7 +1635,7 @@ void VL_command_line(void)
    }
 
    if( VL_imbase == NULL && VL_nbase >= DSET_NVALS(VL_dset) ){
-      fprintf(stderr,"*** Dataset %s doesn't have base brick index = %d\n",
+      fprintf(stderr,"** Dataset %s doesn't have base brick index = %d\n",
               Argv[Iarg] , VL_nbase ) ;
       exit(1) ;
    }
@@ -1687,7 +1693,7 @@ void VL_command_line(void)
                               VL_imbase->ny != DSET_NY(VL_dset) ||
                               VL_imbase->nz != DSET_NZ(VL_dset)   ) ){
 
-      fprintf(stderr,"*** Dataset %s doesn't conform to dimensions of base brick\n",
+      fprintf(stderr,"** Dataset %s doesn't conform to dimensions of base brick\n",
                Argv[Iarg] ) ;
       fprintf(stderr,"    Base    has nx = %d  ny = %d  nz = %d\n",
                      VL_imbase->nx, VL_imbase->ny, VL_imbase->nz ) ;
@@ -1715,7 +1721,7 @@ void VL_command_line(void)
                             VL_imwt->ny != DSET_NY(VL_dset) ||
                             VL_imwt->nz != DSET_NZ(VL_dset)   ) ){
 
-      fprintf(stderr,"*** Dataset %s doesn't conform to dimensions of weight brick\n",
+      fprintf(stderr,"** Dataset %s doesn't conform to dimensions of weight brick\n",
                Argv[Iarg] ) ;
       fprintf(stderr,"    Weight  has nx = %d  ny = %d  nz = %d\n",
                      VL_imwt->nx, VL_imwt->ny, VL_imwt->nz ) ;
@@ -1725,8 +1731,21 @@ void VL_command_line(void)
    }
 
    if( VL_intern && DSET_NVALS(VL_dset) == 1 ){
-      fprintf(stderr,"*** You can't register a 1 brick dataset to itself!\n") ;
+      fprintf(stderr,"** You can't register a 1 brick dataset to itself!\n") ;
       exit(1) ;
+   }
+
+   /* 15 Mar 2001: adjust VL_coarse_del, perhaps */
+
+   if( VL_twopass && VL_coarse_del > 0 && VL_coarse_num > 0 ){
+     int mm ;
+     mm = MIN( DSET_NX(VL_dset) , DSET_NY(VL_dset) ) ;
+     mm = MIN( DSET_NZ(VL_dset) , mm ) ;
+     mm = (int)(0.1*mm + 0.499) ;
+     if( VL_coarse_del > mm ){
+        fprintf(stderr,"++ Coarse del was %d, replaced with %d\n",VL_coarse_del,mm) ;
+        VL_coarse_del = mm ;
+     }
    }
 
    /*** done (we hope) ***/

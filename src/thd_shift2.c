@@ -70,6 +70,15 @@ void fft_shift2( int n, int nup, float af, float * f, float ag, float * g )
    complex csf , csg ;
 #endif
 
+ENTRY("fft_shift2") ;
+
+   /* 15 Mar 2001: shift too big ==> return all zeros */
+
+   if( (af < -n || af > n) && (ag < -n || ag > n) ){
+      for( ii=0 ; ii < n ; ii++ ) f[ii] = g[ii] = 0.0 ;
+      EXRETURN ;
+   }
+
    /* make new memory for row storage? */
 
    if( nup > nuptop ){
@@ -156,7 +165,7 @@ void fft_shift2( int n, int nup, float af, float * f, float ag, float * g )
    else
       for( ii=0; ii < n; ii++ ){ f[ii] = sf*row[ii].r; }
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -175,7 +184,6 @@ static float * lcbuf = NULL ;
 #endif
 
 #define SEPARATE_FINS
-#undef  UNROLLIT
 
 /*---------------------------------------------------------------------------*/
 
@@ -204,7 +212,17 @@ void hept_shift( int n , float af , float * f )
    int ibot,itop ;
 #endif
 
+ENTRY("hept_shift") ;
+
    af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
+
+   /* 15 Mar 2001: if shift is too large, return all zeros */
+
+   if( ia <= -n || ia >= n ){
+      for( ii=0 ; ii < n ; ii++ ) f[ii] = 0.0 ;
+      EXRETURN ;
+   }
+
    aa = af - ia ;
    wt_m1 = S_M1(aa) ; wt_00 = S_00(aa) ;
    wt_p1 = S_P1(aa) ; wt_p2 = S_P2(aa) ;
@@ -228,6 +246,7 @@ void hept_shift( int n , float af , float * f )
                  + wt_m3 * f[ix-3] + wt_p4 * f[ix+4] ;
    }
 
+   if( ibot > n ) ibot = n ; /* 15 Mar 2001 */
    for( ii=0 ; ii < ibot ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_m2 * FINS(ix-2) + wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
@@ -235,6 +254,7 @@ void hept_shift( int n , float af , float * f )
                  + wt_m3 * FINS(ix-3) + wt_p4 * FINS(ix+4) ;
    }
 
+   if( itop < 0 ) itop = -1 ; /* 15 Mar 2001 */
    for( ii=itop+1 ; ii < n ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_m2 * FINS(ix-2) + wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
@@ -256,7 +276,7 @@ void hept_shift( int n , float af , float * f )
 #endif /* SEPARATE_FINS */
 
    memcpy( f , lcbuf , sizeof(float)*n ) ;
-   return ;
+   EXRETURN ;
 }
 
 void hept_shift2( int n, int nup, float af, float * f, float ag, float * g )
@@ -289,7 +309,17 @@ void quint_shift( int n , float af , float * f )
    int ibot,itop ;
 #endif
 
+ENTRY("quint_shift") ;
+
    af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
+
+   /* 15 Mar 2001: if shift is too large, return all zeros */
+
+   if( ia <= -n || ia >= n ){
+      for( ii=0 ; ii < n ; ii++ ) f[ii] = 0.0 ;
+      EXRETURN ;
+   }
+
    aa = af - ia ;
    wt_m1 = Q_M1(aa) ; wt_00 = Q_00(aa) ;
    wt_p1 = Q_P1(aa) ; wt_p2 = Q_P2(aa) ;
@@ -311,12 +341,14 @@ void quint_shift( int n , float af , float * f )
                  + wt_p1 * f[ix+1] + wt_p2 * f[ix+2] + wt_p3 * f[ix+3] ;
    }
 
+   if( ibot > n ) ibot = n ; /* 15 Mar 2001 */
    for( ii=0 ; ii < ibot ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_m2 * FINS(ix-2) + wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
                  + wt_p1 * FINS(ix+1) + wt_p2 * FINS(ix+2) + wt_p3 * FINS(ix+3) ;
    }
 
+   if( itop < 0 ) itop = -1 ; /* 15 Mar 2001 */
    for( ii=itop+1 ; ii < n ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_m2 * FINS(ix-2) + wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
@@ -335,7 +367,7 @@ void quint_shift( int n , float af , float * f )
 #endif /* SEPARATE_FINS */
 
    memcpy( f , lcbuf , sizeof(float)*n ) ;
-   return ;
+   EXRETURN ;
 }
 
 void quint_shift2( int n, int nup, float af, float * f, float ag, float * g )
@@ -364,7 +396,17 @@ void cub_shift( int n , float af , float * f )
    int ibot,itop ;
 #endif
 
+ENTRY("cub_shift") ;
+
    af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
+
+   /* 15 Mar 2001: if shift is too large, return all zeros */
+
+   if( ia <= -n || ia >= n ){
+      for( ii=0 ; ii < n ; ii++ ) f[ii] = 0.0 ;
+      EXRETURN ;
+   }
+
    aa = af - ia ;
    wt_m1 = P_M1(aa) ; wt_00 = P_00(aa) ;
    wt_p1 = P_P1(aa) ; wt_p2 = P_P2(aa) ;
@@ -379,33 +421,20 @@ void cub_shift( int n , float af , float * f )
    ibot = 1-ia ;   if( ibot < 0   ) ibot = 0 ;
    itop = n-3-ia ; if( itop > n-1 ) itop = n-1 ;
 
-#ifndef UNROLLIT
    for( ii=ibot ; ii <= itop ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_m1 * f[ix-1] + wt_00 * f[ix]
                  + wt_p1 * f[ix+1] + wt_p2 * f[ix+2] ;
    }
-#else /* yes UNROLLIT */
-   for( ii=ibot ; ii <= itop-1 ; ii+=2 ){
-      ix = ii + ia ;
-      lcbuf[ii] =  wt_m1 * f[ix-1] + wt_00 * f[ix]
-                 + wt_p1 * f[ix+1] + wt_p2 * f[ix+2] ;
-      lcbuf[ii+1] =  wt_m1 * f[ix] + wt_00 * f[ix+1]
-                   + wt_p1 * f[ix+2] + wt_p2 * f[ix+3] ;
-   }
-   if( ii == itop ){
-      ix = ii + ia ;
-      lcbuf[ii] =  wt_m1 * f[ix-1] + wt_00 * f[ix]
-                 + wt_p1 * f[ix+1] + wt_p2 * f[ix+2] ;
-   }
-#endif /* UNROLLIT */
 
+   if( ibot > n ) ibot = n ; /* 15 Mar 2001 */
    for( ii=0 ; ii < ibot ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
                  + wt_p1 * FINS(ix+1) + wt_p2 * FINS(ix+2) ;
    }
 
+   if( itop < 0 ) itop = -1 ; /* 15 Mar 2001 */
    for( ii=itop+1 ; ii < n ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
@@ -424,7 +453,7 @@ void cub_shift( int n , float af , float * f )
 #endif /* SEPARATE_FINS */
 
    memcpy( f , lcbuf , sizeof(float)*n ) ;
-   return ;
+   EXRETURN ;
 }
 
 void cub_shift2( int n, int nup, float af, float * f, float ag, float * g )
@@ -446,9 +475,18 @@ void lin_shift( int n , float af , float * f )
    int ibot,itop ;
 #endif
 
+ENTRY("lin_shift") ;
+
    af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
    aa = af - ia ;
    wt_00 = 1.0 - aa ; wt_p1 = aa ;  /* linear interpolation weights */
+
+   /* 15 Mar 2001: if shift is too large, return all zeros */
+
+   if( ia <= -n || ia >= n ){
+      for( ii=0 ; ii < n ; ii++ ) f[ii] = 0.0 ;
+      EXRETURN ;
+   }
 
    if( n > nlcbuf ){
       if( lcbuf != NULL ) free(lcbuf) ;
@@ -459,15 +497,25 @@ void lin_shift( int n , float af , float * f )
 #ifdef SEPARATE_FINS
    ibot = -ia  ;   if( ibot < 0   ) ibot = 0 ;
    itop = n-2-ia ; if( itop > n-1 ) itop = n-1 ;
+
+#if 0
+if(PRINT_TRACING){
+  char str[256]; sprintf(str,"n=%d ia=%d ibot=%d itop=%d",n,ia,ibot,itop); STATUS(str);
+}
+#endif
+
    for( ii=ibot ; ii <= itop ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_00 * f[ix] + wt_p1 * f[ix+1] ;
    }
 
+   if( ibot > n ) ibot = n ; /* 15 Mar 2001 */
    for( ii=0 ; ii < ibot ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
    }
+
+   if( itop < 0 ) itop = -1 ; /* 15 Mar 2001 */
    for( ii=itop+1 ; ii < n ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
@@ -483,7 +531,7 @@ void lin_shift( int n , float af , float * f )
 #endif /* SEPARATE_FINS */
 
    memcpy( f , lcbuf , sizeof(float)*n ) ;
-   return ;
+   EXRETURN ;
 }
 
 void lin_shift2( int n, int nup, float af, float * f, float ag, float * g )
@@ -501,7 +549,16 @@ void nn_shift( int n , float af , float * f )
 {
    int   ii , ia , ix ;
 
+ENTRY("nn_shift") ;
+
    af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
+
+   /* 15 Mar 2001: if shift is too large, return all zeros */
+
+   if( ia <= -n || ia >= n ){
+      for( ii=0 ; ii < n ; ii++ ) f[ii] = 0.0 ;
+      EXRETURN ;
+   }
 
    if( n > nlcbuf ){
       if( lcbuf != NULL ) free(lcbuf) ;
@@ -515,7 +572,7 @@ void nn_shift( int n , float af , float * f )
    }
 
    memcpy( f , lcbuf , sizeof(float)*n ) ;
-   return ;
+   EXRETURN ;
 }
 
 void nn_shift2( int n, int nup, float af, float * f, float ag, float * g )
@@ -536,6 +593,14 @@ void ts_shift( int n , float af , float * f )
    int ibot,itop ;
 
    af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
+
+   /* 15 Mar 2001: if shift is too large, return all zeros */
+
+   if( ia <= -n || ia >= n ){
+      for( ii=0 ; ii < n ; ii++ ) f[ii] = 0.0 ;
+      EXRETURN ;
+   }
+
    aa = af - ia ;
 
    if( n > nlcbuf ){
@@ -570,9 +635,11 @@ void ts_shift( int n , float af , float * f )
       for( ii=ibot ; ii <= itop ; ii++ ){
          ix = ii + ia ; lcbuf[ii] =  0.5*( f[ix] + f[ix+1] ) ;
       }
+      if( ibot > n ) ibot = n ; /* 15 Mar 2001 */
       for( ii=0 ; ii < ibot ; ii++ ){
          ix = ii + ia ; lcbuf[ii] =  0.5*( FINS(ix) + FINS(ix+1) ) ;
       }
+      if( itop < 0 ) itop = -1 ; /* 15 Mar 2001 */
       for( ii=itop+1 ; ii < n ; ii++ ){
          ix = ii + ia ; lcbuf[ii] =  0.5*( FINS(ix) + FINS(ix+1) ) ;
       }

@@ -376,3 +376,44 @@ int read_URL( char * url , char ** data )
 
    return -1 ;
 }
+
+/*------------------------------------------------------------------
+  Read a URL and save it to disk in tmpdir.  The filename
+  it is saved in is returned in the malloc-ed space *tname.
+  The byte count is the return value of the function;
+  if <= 0, then an error transpired (and *tname is not set).
+--------------------------------------------------------------------*/
+
+extern char * THD_trailname( char * fname , int lev ) ;
+
+int read_URL_tmpdir( char * url , char ** tname )
+{
+   int nn , ll ;
+   char * data , * fname , * tt ;
+   FILE * fp ;
+
+   if( url == NULL || tname == NULL ) return -1 ;
+
+   nn = read_URL( url , &data ) ;  /* get the data into memory */
+   if( nn <= 0 ) return -1 ;       /* bad */
+
+   /* make the output filename */
+
+   setup_tmpdir() ;
+   fname = malloc(strlen(url)+strlen(tmpdir)+1) ;
+   tt    = THD_trailname(url,0) ;
+   strcpy(fname,tmpdir) ; strcat(fname,tt) ; ll = strlen(fname) ;
+   if( ll > 3 && strcmp(fname+(ll-3),".gz") == 0 ) fname[ll-3] = '\0' ;
+
+   /* open and write output */
+
+   fp = fopen( fname , "wb" ) ;
+   if( fp == NULL ){
+      fprintf(stderr,"** Can't open temporary file %s\n",fname);
+      free(data) ; return -1 ;
+   }
+   ll = fwrite(data,1,nn,fp) ; fclose(fp) ; free(data) ;
+   if( ll != nn ){ unlink(fname); return -1; } /* write failed */
+
+   *tname = fname ; return nn ;
+}

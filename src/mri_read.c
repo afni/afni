@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/stat.h>
 
 /*** for non ANSI compilers ***/
 
@@ -19,6 +20,9 @@
 #endif
 
 #include "mrilib.h"
+
+char MRILIB_orients[8] = "\0" ;  /* 12 Mar 2001 */
+float MRILIB_zoff      = 0.0 ;
 
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
@@ -490,6 +494,10 @@ MRI_IMARR * mri_read_file( char * fname )
 
       newar = mri_read_analyze75( new_fname ) ;
 
+   } else if( strstr(new_fname,".ima") != NULL ){  /* 12 Mar 2001 */
+
+      newar = mri_read_siemens( new_fname ) ;
+
    } else {
       newim = mri_read( new_fname ) ;      /* read from a 2D file */
       if( newim == NULL ){ free(new_fname) ; return NULL ; }
@@ -522,6 +530,7 @@ MRI_IMAGE * mri_read_just_one( char * fname )
 -------------------------------------------------------------------*/
 
 static int mri_imcount_analyze75( char * ) ;  /* prototype */
+static int mri_imcount_siemens( char * ) ;
 
 int mri_imcount( char * tname )
 {
@@ -609,6 +618,10 @@ int mri_imcount( char * tname )
 
    if( strstr(new_fname,".hdr") != NULL ){
       return mri_imcount_analyze75( new_fname ) ;
+   }
+
+   if( strstr(new_fname,".ima") != NULL ){        /* 12 Mar 2001 */
+      return mri_imcount_siemens( new_fname ) ;
    }
 
    /*** not a 3D filename ***/
@@ -901,8 +914,6 @@ char * imsized_fname( char * fname )
    new_name = my_strdup(fname) ;  /* no fit --> return copy of old name */
    return new_name ;
 }
-
-#include <sys/stat.h>
 
 long mri_filesize( char * pathname )
 {
@@ -1305,7 +1316,9 @@ MRI_IMARR * mri_read_3A( char * tname )
 
 #include "mayo_analyze.h"
 
-static void swap_long(void *ppp)
+/*---------------------------------------------------------------*/
+
+static void swap_4(void *ppp)
 {
    unsigned char *pntr = (unsigned char *) ppp ;
    unsigned char b0, b1, b2, b3;
@@ -1316,7 +1329,22 @@ static void swap_long(void *ppp)
 
 /*---------------------------------------------------------------*/
 
-static void swap_short(void *ppp)
+static void swap_8(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1, b2, b3;
+   unsigned char b4, b5, b6, b7;
+
+   b0 = *pntr    ; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
+   b4 = *(pntr+4); b5 = *(pntr+5); b6 = *(pntr+6); b7 = *(pntr+7);
+
+   *pntr     = b7; *(pntr+1) = b6; *(pntr+2) = b5; *(pntr+3) = b4;
+   *(pntr+4) = b3; *(pntr+5) = b2; *(pntr+6) = b1; *(pntr+7) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+static void swap_2(void *ppp)
 {
    unsigned char *pntr = (unsigned char *) ppp ;
    unsigned char b0, b1;
@@ -1329,40 +1357,40 @@ static void swap_short(void *ppp)
 
 static void swap_analyze_hdr( struct dsr *pntr )
 {
-   swap_long(&pntr->hk.sizeof_hdr) ;
-   swap_long(&pntr->hk.extents) ;
-   swap_short(&pntr->hk.session_error) ;
-   swap_short(&pntr->dime.dim[0]) ;
-   swap_short(&pntr->dime.dim[1]) ;
-   swap_short(&pntr->dime.dim[2]) ;
-   swap_short(&pntr->dime.dim[3]) ;
-   swap_short(&pntr->dime.dim[4]) ;
-   swap_short(&pntr->dime.dim[5]) ;
-   swap_short(&pntr->dime.dim[6]) ;
-   swap_short(&pntr->dime.dim[7]) ;
+   swap_4(&pntr->hk.sizeof_hdr) ;
+   swap_4(&pntr->hk.extents) ;
+   swap_2(&pntr->hk.session_error) ;
+   swap_2(&pntr->dime.dim[0]) ;
+   swap_2(&pntr->dime.dim[1]) ;
+   swap_2(&pntr->dime.dim[2]) ;
+   swap_2(&pntr->dime.dim[3]) ;
+   swap_2(&pntr->dime.dim[4]) ;
+   swap_2(&pntr->dime.dim[5]) ;
+   swap_2(&pntr->dime.dim[6]) ;
+   swap_2(&pntr->dime.dim[7]) ;
 #if 0
-   swap_short(&pntr->dime.unused1) ;
+   swap_2(&pntr->dime.unused1) ;
 #endif
-   swap_short(&pntr->dime.datatype) ;
-   swap_short(&pntr->dime.bitpix) ;
-   swap_long(&pntr->dime.pixdim[0]) ;
-   swap_long(&pntr->dime.pixdim[1]) ;
-   swap_long(&pntr->dime.pixdim[2]) ;
-   swap_long(&pntr->dime.pixdim[3]) ;
-   swap_long(&pntr->dime.pixdim[4]) ;
-   swap_long(&pntr->dime.pixdim[5]) ;
-   swap_long(&pntr->dime.pixdim[6]) ;
-   swap_long(&pntr->dime.pixdim[7]) ;
-   swap_long(&pntr->dime.vox_offset) ;
-   swap_long(&pntr->dime.funused1) ;
-   swap_long(&pntr->dime.funused2) ;
-   swap_long(&pntr->dime.cal_max) ;
-   swap_long(&pntr->dime.cal_min) ;
-   swap_long(&pntr->dime.compressed) ;
-   swap_long(&pntr->dime.verified) ;
-   swap_short(&pntr->dime.dim_un0) ;
-   swap_long(&pntr->dime.glmax) ;
-   swap_long(&pntr->dime.glmin) ;
+   swap_2(&pntr->dime.datatype) ;
+   swap_2(&pntr->dime.bitpix) ;
+   swap_4(&pntr->dime.pixdim[0]) ;
+   swap_4(&pntr->dime.pixdim[1]) ;
+   swap_4(&pntr->dime.pixdim[2]) ;
+   swap_4(&pntr->dime.pixdim[3]) ;
+   swap_4(&pntr->dime.pixdim[4]) ;
+   swap_4(&pntr->dime.pixdim[5]) ;
+   swap_4(&pntr->dime.pixdim[6]) ;
+   swap_4(&pntr->dime.pixdim[7]) ;
+   swap_4(&pntr->dime.vox_offset) ;
+   swap_4(&pntr->dime.funused1) ;
+   swap_4(&pntr->dime.funused2) ;
+   swap_4(&pntr->dime.cal_max) ;
+   swap_4(&pntr->dime.cal_min) ;
+   swap_4(&pntr->dime.compressed) ;
+   swap_4(&pntr->dime.verified) ;
+   swap_2(&pntr->dime.dim_un0) ;
+   swap_4(&pntr->dime.glmax) ;
+   swap_4(&pntr->dime.glmin) ;
    return ;
 }
 
@@ -1540,6 +1568,225 @@ MRI_IMARR * mri_read_analyze75( char * hname )
    fclose(fp) ; return newar ;
 }
 
+/*---------------------------------------------------------------------------
+  12 Mar 2001 - stuff to read a Siemens Vision .ima file
+-----------------------------------------------------------------------------*/
+
+#include "siemens_vision.h"
+
+static int mri_imcount_siemens( char * hname )
+{
+   struct Siemens_vision_header head ;
+   FILE * fp ;
+   int i,j,xx,yy , matrix , swap , imagesize,nxx,blank , slices ;
+   struct stat file_stat ;
+   short *imar ;
+
+   /*--- check file size ---*/
+
+   if( hname == NULL ) return 0 ;
+
+   i = stat( hname , &file_stat ) ;
+   if( i < 0 ) return 0 ;
+
+   /*--- read header data ---*/
+
+   fp = fopen( hname , "rb" ) ;
+   if( fp == NULL ) return 0 ;
+   fread( &head , sizeof(struct Siemens_vision_header) , 1 , fp ) ;
+
+   /*-- check some integer in header to determine if we need to byteswap --*/
+
+   swap = ( head.SiemensStudyDateMM < 0 || head.SiemensStudyDateMM > 13 ) ;
+   if( swap ){
+      swap_4( &(head.SiemensStudyDateMM) ) ;
+      if( head.SiemensStudyDateMM < 0 || head.SiemensStudyDateMM > 13 ){
+         swap = 0 ;
+      }
+   }
+
+   /*-- find image size from header --*/
+
+   if( swap ) swap_4( &(head.DisplayMatrixSize) ) ;
+   imagesize = head.DisplayMatrixSize ;
+
+   /*-- determine number of sub-images in file --*/
+
+#undef  MATRIX_MAX
+#define MATRIX_MAX 9
+
+   i = 2*imagesize*imagesize ;
+   for( matrix=1 ; matrix < MATRIX_MAX ; matrix++ )
+     if( file_stat.st_size == i*matrix*matrix + SIEMENS_HEADERSIZE ) break ;
+
+   if( matrix == MATRIX_MAX ){
+     fclose(fp) ; return 0 ; /* didn't recognize file format */
+   }
+#undef MATRIX_MAX
+
+   /*-- read image data from file (but don't byteswap it) --*/
+
+   imar = (short *) calloc(sizeof(short),matrix*matrix*imagesize*imagesize) ;
+   fseek( fp , SIEMENS_HEADERSIZE , SEEK_SET ) ;
+   fread( imar , sizeof(short) , matrix*matrix*imagesize*imagesize , fp ) ;
+   fclose(fp) ;
+
+   /*-- count slices - all zero (blank) slices at end are skipped --*/
+
+   slices = 0 ; nxx = matrix*imagesize ;
+
+   for( yy=0 ; yy < matrix ; yy++ ){      /* rows in array of sub-images */
+      for( xx=0 ; xx < matrix ; xx++ ){   /* cols in array of sub-images */
+         blank = 1 ;
+         for( j=0 ; j < imagesize ; j++ ){    /* row in sub-image */
+            for( i=0 ; i < imagesize ; i++ ){ /* col in sub-image */
+               if( imar[i+xx*imagesize+(j+yy*imagesize)*nxx] ) blank = 0 ;
+            }
+         }
+         if( !blank ) slices = 1 + xx + yy*matrix ;
+      }
+   }
+
+   free(imar) ; return slices ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+MRI_IMARR * mri_read_siemens( char * hname )
+{
+   struct Siemens_vision_header head ;
+   FILE * fp ;
+   int i,j,xx,yy , matrix , swap , imagesize,nxx,blank , slices,nz ;
+   struct stat file_stat ;
+   short *imar ;
+   MRI_IMARR * newar ;
+   MRI_IMAGE * newim ;
+   short     * nar ;
+   char buf[256] ;
+   float dx,dy,dz ;
+
+   /*--- check file size ---*/
+
+   if( hname == NULL ) return NULL ;
+
+   i = stat( hname , &file_stat ) ;
+   if( i < 0 ) return NULL ;
+
+   /*--- read header data ---*/
+
+   fp = fopen( hname , "rb" ) ;
+   if( fp == NULL ) return NULL ;
+   fread( &head , sizeof(struct Siemens_vision_header) , 1 , fp ) ;
+
+   /*-- check some integer in header to determine if we need to byteswap --*/
+
+   swap = ( head.SiemensStudyDateMM < 0 || head.SiemensStudyDateMM > 13 ) ;
+   if( swap ){
+      swap_4( &(head.SiemensStudyDateMM) ) ;
+      if( head.SiemensStudyDateMM < 0 || head.SiemensStudyDateMM > 13 ){
+         swap = 0 ;
+      }
+   }
+
+   /*-- find image size from header --*/
+
+   if( swap ) swap_4( &(head.DisplayMatrixSize) ) ;
+   imagesize = head.DisplayMatrixSize ;
+
+   /*-- determine number of sub-images in file --*/
+
+#undef  MATRIX_MAX
+#define MATRIX_MAX 9
+
+   i = 2*imagesize*imagesize ;
+   for( matrix=1 ; matrix < MATRIX_MAX ; matrix++ )
+     if( file_stat.st_size == i*matrix*matrix + SIEMENS_HEADERSIZE ) break ;
+
+   if( matrix == MATRIX_MAX ){
+     fclose(fp) ; return NULL ; /* didn't recognize file format */
+   }
+#undef MATRIX_MAX
+
+   /*-- read image data from file and byteswap it, if needed --*/
+
+   imar = (short *) calloc(sizeof(short),matrix*matrix*imagesize*imagesize) ;
+   fseek( fp , SIEMENS_HEADERSIZE , SEEK_SET ) ;
+   fread( imar , sizeof(short) , matrix*matrix*imagesize*imagesize , fp ) ;
+   fclose(fp) ;
+
+   if( swap ) swap_twobytes( matrix*matrix*imagesize*imagesize , imar ) ;
+
+   /*-- count slices - all zero (blank) slices at end are skipped --*/
+
+   slices = 0 ; nxx = matrix*imagesize ;
+
+   for( yy=0 ; yy < matrix ; yy++ ){      /* rows in array of sub-images */
+      for( xx=0 ; xx < matrix ; xx++ ){   /* cols in array of sub-images */
+         blank = 1 ;
+         for( j=0 ; j < imagesize ; j++ ){    /* row in sub-image */
+            for( i=0 ; i < imagesize ; i++ ){ /* col in sub-image */
+               if( imar[i+xx*imagesize+(j+yy*imagesize)*nxx] ) blank = 0 ;
+            }
+         }
+         if( !blank ) slices = 1 + xx + yy*matrix ;
+      }
+   }
+
+   if( slices == 0 ){
+      free(imar) ; return NULL ;
+   }
+
+   /*-- get image dimensions, etc --*/
+
+   if( swap ){
+      swap_8(&(head.FOVRow));
+      swap_8(&(head.FOVColumn));
+      swap_8(&(head.SliceThickness));
+   }
+   dx = head.FOVRow    / imagesize ;
+   dy = head.FOVColumn / imagesize ;
+   dz = head.SliceThickness ;
+
+   MRILIB_orients[0] = head.OrientationSet1Left[0] ;
+   MRILIB_orients[1] = head.OrientationSet2Right[0];
+   MRILIB_orients[2] = head.OrientationSet1Top[0]  ;
+   MRILIB_orients[3] = head.OrientationSet2Down[0] ;
+   MRILIB_orients[4] = head.OrientationSet1Back[0] ;
+   MRILIB_orients[5] = head.OrientationSet2Front[0];
+   for (i=0; i<6; i++) {
+      if (MRILIB_orients[i]=='H') MRILIB_orients[i]='S';
+      if (MRILIB_orients[i]=='F') MRILIB_orients[i]='I';
+   }
+   MRILIB_orients[6] = '\0' ;
+   MRILIB_zoff = fabs(strtod(head.TextSlicePosition,NULL)) ;
+
+   /*-- create output --*/
+
+   INIT_IMARR(newar) ;
+
+   for( yy=0 ; yy < matrix ; yy++ ){      /* rows in array of sub-images */
+      for( xx=0 ; xx < matrix ; xx++ ){   /* cols in array of sub-images */
+
+         newim = mri_new( imagesize , imagesize , MRI_short ) ;
+         nar   = MRI_SHORT_PTR( newim ) ;
+
+         for( j=0 ; j < imagesize ; j++ )    /* row in sub-image */
+           memcpy( nar+j*imagesize ,
+                   imar+xx*imagesize+(j+yy*imagesize)*nxx , 2*imagesize ) ;
+
+         sprintf( buf , "%s#%d:%d" , hname,xx,yy ) ;
+         mri_add_name( buf , newim ) ;
+
+         newim->dx = dx ; newim->dy = dy ; newim->dz = dz ; newim->dw = 1.0 ;
+         ADDTO_IMARR(newar,newim) ;
+         if( IMARR_COUNT(newar) == slices ) goto Done ;  /* Aauugghh!!! */
+      }
+   }
+
+Done:
+   free(imar) ;
+   return newar ;
+}
 
 /*---------------------------------------------------------------------------
    Stuff to read a file in "delay" mode -- 01 Jan 1997.
@@ -1653,6 +1900,10 @@ MRI_IMARR * mri_read_file_delay( char * fname )
    } else if( strstr(new_fname,".hdr") != NULL ){ /* 05 Feb 2001 - ANALYZE header */
 
       newar = mri_read_analyze75( new_fname ) ;
+
+   } else if( strstr(new_fname,".ima") != NULL ){ /* 12 Mar 2001 - Siemens */
+
+      newar = mri_read_siemens( new_fname ) ;
 
    } else {
       newim = mri_read( new_fname ) ;      /* read from a 2D file */

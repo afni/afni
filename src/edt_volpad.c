@@ -175,5 +175,5 @@ ENTRY("mri_zeropad_3D") ;
                            im->nz+nzbot+nztop , im->kind ) ;
    MRI_COPY_AUX(jm,im) ;
    mri_fix_data_pointer( var , jm ) ;
-   return jm ;
+   RETURN( jm );
 }

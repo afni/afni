@@ -2686,3 +2686,18 @@
  * Fixed 1deval.c so that "-v" option becomes "-verb" (since "-v" had
      another meaning in that program).  Also modified several other
      programs so that "-verb" is accepted (instead of "-v" or "-verbose").
+ * Modified imseq.c to de/re-sensitize overlay opacity arrowval when
+     "See Overlay" is turned off/on.
+
+12 Mar 2001
+ * Modified mri_read.c to read Siemens Vision format .ima files.
+ * Modified mrilib.h to have global variables MRILIB_* that hold
+     orientation info from image files, if present.  Modified to3d.c
+     to use this information.
+ * New program siemens_vision.c prints out info from the .ima format
+     files' header.
+
+15 Mar 2001
+ * Fixed bug in thd_shift2.c: when the shift was larger than the data
+     line size, buffer overrun could occur.  In this case, the proper
+     result is all zeros, so that's what I substituted.

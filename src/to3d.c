@@ -238,6 +238,24 @@ QQQ("main1");
          }
          user_inputs.fov = user_inputs.xsize * user_inputs.nx ;
       }
+
+      /* 12 Mar 2001: MRILIB_ global variables may contain useful info */
+
+      if( MRILIB_orients[0] != '\0'                  &&
+          user_inputs.xorient == user_inputs.yorient &&
+          user_inputs.xorient == user_inputs.zorient   ){
+
+         char acod ;
+
+         acod = toupper(MRILIB_orients[0]) ; user_inputs.xorient = ORCODE(acod) ;
+         acod = toupper(MRILIB_orients[2]) ; user_inputs.yorient = ORCODE(acod) ;
+         acod = toupper(MRILIB_orients[4]) ; user_inputs.zorient = ORCODE(acod) ;
+
+         if( MRILIB_zoff != 0.0 ){
+            user_inputs.zorigin = MRILIB_zoff ;
+            user_inputs.xyz_centered &= ~ZCENTERED ;
+         }
+      }
    }
 
    if( argopt.xtwarns == False )
@@ -2144,8 +2162,10 @@ void T3D_initialize_user_data(void)
          user_inputs.xin_bot = xin_bot ;
          user_inputs.xin_top = xin_top ;
 
+#if 0
 printf("decoded %s to give xincode=%d bot=%f top=%f\n",Argv[nopt],
        user_inputs.xincode, user_inputs.xin_bot, user_inputs.xin_top ) ;
+#endif
 
          nopt++ ; continue ;
       }
@@ -2275,8 +2295,10 @@ printf("decoded %s to give xincode=%d bot=%f top=%f\n",Argv[nopt],
          user_inputs.yin_bot = yin_bot ;
          user_inputs.yin_top = yin_top ;
 
+#if 0
 printf("decoded %s to give yincode=%d bot=%f top=%f\n",Argv[nopt],
        user_inputs.yincode, user_inputs.yin_bot, user_inputs.yin_top ) ;
+#endif
 
          nopt++ ; continue ;
       }
@@ -2406,8 +2428,10 @@ printf("decoded %s to give yincode=%d bot=%f top=%f\n",Argv[nopt],
          user_inputs.zin_bot = zin_bot ;
          user_inputs.zin_top = zin_top ;
 
+#if 0
 printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
        user_inputs.zincode, user_inputs.zin_bot, user_inputs.zin_top ) ;
+#endif
 
          nopt++ ; continue ;
       }
@@ -3582,6 +3606,8 @@ printf("T3D_read_images: mri_imcount totals nz=%d\n",nz) ;
    }
 
    /*--- read 1st file to get sizes ---*/
+
+   CLEAR_MRILIB_globals ;  /* 12 Mar 2001 */
 
 #ifdef USE_MRI_DELAY
    if( argopt.delay_input )

@@ -3477,6 +3477,7 @@ ENTRY("ISQ_disp_act_CB") ;
       seq->opt = seq->save_opt ;        /* and then set toggles */
       ISQ_disp_options( seq , False ) ;
       new_opt = True ;
+      AV_SENSITIZE(seq->ov_opacity_av,!seq->opt.no_overlay) ; /* 09 Mar 2001 */
 
    } else {                                     /* any other activation: */
       new_opt = ISQ_disp_options( seq , True ); /* --> set options */
@@ -3548,6 +3549,8 @@ ENTRY("ISQ_disp_options") ;
       seq->opt.rot         = bval[NTOG_ROT] ;
 
       seq->opt.no_overlay  = ( bval[NTOG_COL] & 1 ) != 0 ;
+
+      AV_SENSITIZE(seq->ov_opacity_av,!seq->opt.no_overlay) ; /* 09 Mar 2001 */
 
       seq->opt.scale_group = bval[NTOG_SCL] ;
 
@@ -4471,6 +4474,7 @@ ENTRY("drive_MCW_imseq") ;
          if( newopt != NULL ) seq->opt = * newopt ;
          seq->opt.parent = (XtPointer) seq ;
          SET_SAVE_LABEL(seq) ;
+         AV_SENSITIZE(seq->ov_opacity_av,!seq->opt.no_overlay) ; /* 09 Mar 2001 */
 
          seq->im_label[0] = '\0' ;  /* will force redraw */
          ISQ_redisplay( seq , -1 , isqDR_display ) ;

@@ -77,7 +77,7 @@ void ShowHdr(char *fileName, struct dsr *hdr)
    printf("descrip:  <%s> \n", string);
    strncpy(string,hdr->hist.aux_file,24);
    printf("aux_file: <%s> \n", string);
-   printf("orient:   <%d> \n", hdr->hist.orient);
+   printf("orient:   <%d> \n", (int) hdr->hist.orient);
 
    strncpy(string,hdr->hist.originator,10);
    printf("originator: <%s> \n", string);

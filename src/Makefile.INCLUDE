@@ -704,6 +704,10 @@ abut:abut.o
 	$(RM) $@
 	$(CC) -o abut abut.o $(LFLAGS) $(LLIBS)
 
+siemens_vision:siemens_vision.o
+	$(RM) $@
+	$(CC) -o siemens_vision siemens_vision.o $(LFLAGS) $(LLIBS)
+
 sfim:sfim.o
 	$(RM) $@
 	$(CC) -o sfim sfim.o $(LFLAGS) $(LLIBS)

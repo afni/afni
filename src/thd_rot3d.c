@@ -146,9 +146,11 @@ static void apply_xshear( float a , float b , float s ,
    int ii,jj,kk , nup,nst ;
    float a0 , a1 , st ;
 
+ENTRY("apply_xshear") ;
+
    /* don't do anything if shift is less than 0.001 pixel */
 
-   st = fabs(a)*ny2 + fabs(b)*nz2 + fabs(s) ; if( st < 1.e-3 ) return ;
+   st = fabs(a)*ny2 + fabs(b)*nz2 + fabs(s) ; if( st < 1.e-3 ) EXRETURN ;
 
    if( shift_method == MRI_FOURIER ){
       nst = nx + 0.5*st ;
@@ -165,7 +167,7 @@ static void apply_xshear( float a , float b , float s ,
       }
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------
@@ -181,9 +183,11 @@ static void apply_yshear( float a , float b , float s ,
    int ii,jj,kk , nup,nst ;
    float a0 , a1 , st ;
 
+ENTRY("apply_yshear") ;
+
    /* don't do anything if shift is less than 0.001 pixel */
 
-   st = fabs(a)*nx2 + fabs(b)*nz2 + fabs(s) ; if( st < 1.e-3 ) return ;
+   st = fabs(a)*nx2 + fabs(b)*nz2 + fabs(s) ; if( st < 1.e-3 ) EXRETURN ;
 
    if( shift_method == MRI_FOURIER ){
       nst = ny + 0.5*st ;
@@ -209,7 +213,7 @@ static void apply_yshear( float a , float b , float s ,
       }
    }
 
-   free(fj0) ; return ;
+   free(fj0) ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------
@@ -225,9 +229,11 @@ static void apply_zshear( float a , float b , float s ,
    int ii,jj,kk , nup,nst ;
    float a0 , a1 , st ;
 
+ENTRY("apply_zshear") ;
+
    /* don't do anything if shift is less than 0.001 pixel */
 
-   st = fabs(a)*nx2 + fabs(b)*ny2 + fabs(s) ; if( st < 1.e-3 ) return ;
+   st = fabs(a)*nx2 + fabs(b)*ny2 + fabs(s) ; if( st < 1.e-3 ) EXRETURN ;
 
    if( shift_method == MRI_FOURIER ){
       nst = nz + 0.5*st ;
@@ -253,7 +259,7 @@ static void apply_zshear( float a , float b , float s ,
       }
    }
 
-   free(fj0) ; return ;
+   free(fj0) ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------
@@ -267,7 +273,9 @@ static void apply_3shear( MCW_3shear shr ,
    int qq ;
    float a , b , s ;
 
-   if( ! ISVALID_3SHEAR(shr) ) return ;
+ENTRY("apply_3shear") ;
+
+   if( ! ISVALID_3SHEAR(shr) ) EXRETURN ;
 
    /* carry out a preliminary 180 flippo ? */
 
@@ -276,7 +284,7 @@ static void apply_3shear( MCW_3shear shr ,
          case 1: flip_xy( nx,ny,nz,vol ) ; break ;
          case 2: flip_xz( nx,ny,nz,vol ) ; break ;
          case 3: flip_yz( nx,ny,nz,vol ) ; break ;
-        default:                           return ;  /* should not occur */
+        default:                           EXRETURN ;  /* should not occur */
       }
    }
 
@@ -307,7 +315,7 @@ static void apply_3shear( MCW_3shear shr ,
       }
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------
@@ -367,7 +375,9 @@ void THD_rota_vol( int   nx   , int   ny   , int   nz   ,
    register int   nxyz=nx*ny*nz , ii ;
 #endif
 
-   if( nx < 2 || ny < 2 || nz < 2 || vol == NULL ) return ;
+ENTRY("THD_rota_vol") ;
+
+   if( nx < 2 || ny < 2 || nz < 2 || vol == NULL ) EXRETURN ;
 
    if( xdel == 0.0 ) xdel = 1.0 ;
    if( ydel == 0.0 ) ydel = 1.0 ;
@@ -389,7 +399,7 @@ fprintf(stderr,"  xdel=%g  ydel=%g  zdel=%g\n",xdel,ydel,zdel) ;
 
    if( ! ISVALID_3SHEAR(shr) ){
       fprintf(stderr,"*** THD_rota_vol: can't compute shear transformation!\n") ;
-      return ;
+      EXRETURN ;
    }
 
 #if 0
@@ -402,7 +412,7 @@ fprintf(stderr,"  xdel=%g  ydel=%g  zdel=%g\n",xdel,ydel,zdel) ;
            if( vol[ii] < bot ) bot = vol[ii] ;
       else if( vol[ii] > top ) top = vol[ii] ;
    }
-   if( bot >= top ) return ;
+   if( bot >= top ) EXRETURN ;
 #endif
 
    /********************************/
@@ -438,7 +448,7 @@ fprintf(stderr,"  xdel=%g  ydel=%g  zdel=%g\n",xdel,ydel,zdel) ;
    }
 #endif
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------

@@ -159,9 +159,11 @@ MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
    double * chol_fitim=NULL ;
    MRI_3dalign_basis * bout = NULL ;
 
+ENTRY("mri_3dalign_setup") ;
+
    if( ! MRI_IS_3D(imbase) ){
       fprintf(stderr,"\n*** mri_3dalign_setup: cannot use nD images!\a\n") ;
-      return NULL ;
+      RETURN( NULL );
    }
 
    /*-- base image --*/
@@ -371,7 +373,7 @@ MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
    bout->fitim      = fitim ;
    bout->chol_fitim = chol_fitim ;
 
-   return bout ;
+   RETURN( bout );
 }
 
 /*-----------------------------------------------------------------------
@@ -393,6 +395,8 @@ MRI_IMAGE * mri_3dalign_one( MRI_3dalign_basis * basis , MRI_IMAGE * im ,
    int iter , good , ii ;
    float dxt , dyt , dzt , ftop,fbot ;
    MRI_IMAGE * tim , * fim ;
+
+ENTRY("mri_3dalign_one") ;
 
    fitim      = basis->fitim ;
    chol_fitim = basis->chol_fitim ;
@@ -500,7 +504,7 @@ MRI_IMAGE * mri_3dalign_one( MRI_3dalign_basis * basis , MRI_IMAGE * im ,
 
    if( fim != im ) mri_free(fim) ;  /* if it was a copy, junk it */
 
-   return tim ;  /* 10-4, good buddy */
+   RETURN( tim );  /* 10-4, good buddy */
 }
 
 /*--------------------------------------------------------------------*/
@@ -514,8 +518,10 @@ MRI_IMARR * mri_3dalign_many( MRI_IMAGE * im , MRI_IMAGE * imwt , MRI_IMARR * im
    MRI_IMARR * alim ;
    MRI_3dalign_basis * basis ;
 
+ENTRY("mri_3dalign_many") ;
+
    basis = mri_3dalign_setup( im , imwt ) ;
-   if( basis == NULL ) return NULL ;
+   if( basis == NULL ) RETURN( NULL );
 
    INIT_IMARR( alim ) ;
 
@@ -529,17 +535,18 @@ MRI_IMARR * mri_3dalign_many( MRI_IMAGE * im , MRI_IMAGE * imwt , MRI_IMARR * im
    }
 
    mri_3dalign_cleanup( basis ) ;
-   return alim ;
+   RETURN( alim );
 }
 
 /*--------------------------------------------------------------------*/
 
 void mri_3dalign_cleanup( MRI_3dalign_basis * basis )
 {
-   if( basis == NULL ) return ;
+ENTRY("mri_3dalign_cleanup") ;
+   if( basis == NULL ) EXRETURN ;
 
    if( basis->fitim      != NULL ){ DESTROY_IMARR( basis->fitim ) ; }
    if( basis->chol_fitim != NULL ){ free(basis->chol_fitim) ; }
 
-   free(basis) ; return ;
+   free(basis) ; EXRETURN ;
 }
