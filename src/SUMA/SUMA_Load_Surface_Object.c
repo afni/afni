@@ -2728,6 +2728,7 @@ void usage_SUMA_quickspec()
             "           FS: FreeSurfer ascii format\n"
             "           PLY: ply format\n"
             "           SF: Caret/SureFit format\n"
+            "           BV: BrainVoyager format\n"
             "        NAME: Name of surface file. \n"
             "           For SF and 1D formats, NAME is composed of two names\n"
             "           the coord file followed by the topo file\n"
@@ -2840,7 +2841,7 @@ int main (int argc,char *argv[])
          /* get the type */
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "TYPE argument must follow -tn \n");
+		  		fprintf (SUMA_STDERR, "TYPE argument must follow -tsn \n");
 				exit (1);
 			}
          TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
@@ -2851,7 +2852,7 @@ int main (int argc,char *argv[])
          /* get the state */
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "STATE argument must follow TYPE -tn \n");
+		  		fprintf (SUMA_STDERR, "STATE argument must follow TYPE with -tsn \n");
 				exit (1);
 			}
          State[N_surf] = argv[kar];
@@ -4221,3 +4222,778 @@ char * SUMA_coord_file( SUMA_SurfSpecFile * spec, int index )
     return NULL;
 }
 
+
+#define SUMA_CHECK_INPUT_SURF(name, topo, ok) {  \
+   ok = 0;  \
+   if (SUMA_filexists(name)) {   \
+      if  (!(topo)) { ok = 1; }   \
+      else { if (SUMA_filexists(topo)) {ok = 1;}  } \
+   } \
+   if (!ok) {  \
+      if (topo) { \
+         fprintf(SUMA_STDERR,"Error %s:\nCould not locate surface %s %s\n", FuncName, name, topo); \
+      } else { \
+         fprintf(SUMA_STDERR,"Error %s:\nCould not locate surface %s \n", FuncName, name); \
+      }  \
+   }  \
+}
+
+#define SUMA_BLANK_NEW_SPEC_SURF(spec)  {\
+         strcpy(spec->Group[spec->N_Surfs], "command line");   \
+         spec->IDcode[spec->N_Surfs]= NULL;  \
+         spec->SurfaceLabel[spec->N_Surfs][0] = '\0'; \
+         spec->EmbedDim[spec->N_Surfs] = 3;  \
+         strcpy(spec->AnatCorrect[spec->N_Surfs], "Y");  \
+         spec->Hemisphere[spec->N_Surfs][0] = '\0';   \
+         spec->DomainGrandParentID[spec->N_Surfs][0] = '\0';   \
+         strcpy(spec->LocalDomainParent[spec->N_Surfs],"SAME");  \
+         spec->LocalCurvatureParent[spec->N_Surfs][0] = '\0';  \
+         spec->OriginatorID[spec->N_Surfs][0] = '\0'; \
+}
+
+void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps)
+{
+   static char FuncName[]={"SUMA_Show_IO_args"};
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!ps) { fprintf(SUMA_STDERR,"NULL ps\n"); SUMA_RETURNe; }
+   
+   if (ps->accept_t) fprintf(SUMA_STDERR,"accepting -t* options\n");
+   if (ps->accept_s) fprintf(SUMA_STDERR,"accepting -surf_* options\n");
+   if (ps->accept_i) fprintf(SUMA_STDERR,"accepting -i_* options\n");
+   if (ps->accept_o) fprintf(SUMA_STDERR,"accepting -o_* options\n");
+   if (ps->accept_spec) fprintf(SUMA_STDERR,"accepting -spec option\n");
+   if (ps->accept_sv) fprintf(SUMA_STDERR,"accepting -sv option\n");
+
+   fprintf(SUMA_STDERR,"%d sv:\n", ps->N_sv);
+   if (ps->N_sv) {
+      for (i=0; i<ps->N_sv; ++i) {
+         fprintf(SUMA_STDERR,"   %d: %s\n", i, ps->sv[i]);
+      }
+   }
+   fprintf(SUMA_STDERR,"%d vp:\n", ps->N_vp);
+   if (ps->N_vp) {
+      for (i=0; i<ps->N_vp; ++i) {   
+         fprintf(SUMA_STDERR,"   %d: %s\n", i, ps->vp[i]);
+      }
+   }
+
+   fprintf(SUMA_STDERR,"%d spec names:\n", ps->N_spec_names);
+   for (i=0; i<ps->N_spec_names; ++i) {
+      fprintf(SUMA_STDERR,"   %d: %s\n", i, ps->spec_names[i]);
+   }
+   fprintf(SUMA_STDERR,"%d s_surfnames from %s\n", ps->s_N_surfnames, ps->spec_names[0]);
+   for (i=0; i<ps->s_N_surfnames; ++i) {
+      fprintf(SUMA_STDERR,"   %d: %s\n", i, ps->s_surfnames[i]);
+   }
+   fprintf(SUMA_STDERR,"%d i_surfnames\n", ps->i_N_surfnames);
+   for (i=0; i<ps->i_N_surfnames; ++i) {
+      if (ps->i_surftopo[i]) fprintf(SUMA_STDERR,"   %d: %s %s %s\n", i, ps->i_state[i], ps->i_surfnames[i], ps->i_surftopo[i]);
+      else fprintf(SUMA_STDERR,"   %d: %s %s\n", i, ps->i_state[i],ps->i_surfnames[i]);
+   }
+   fprintf(SUMA_STDERR,"%d ipar_surfnames\n", ps->ipar_N_surfnames);
+   for (i=0; i<ps->ipar_N_surfnames; ++i) {
+      if (ps->ipar_surftopo[i]) fprintf(SUMA_STDERR,"   %d: %s %s %s\n", i, ps->ipar_state[i], ps->ipar_surfnames[i], ps->ipar_surftopo[i]);
+      else fprintf(SUMA_STDERR,"   %d: %s %s\n", i, ps->ipar_state[i], ps->ipar_surfnames[i]);
+   }
+   fprintf(SUMA_STDERR,"%d o_surfnames\n", ps->o_N_surfnames);
+   for (i=0; i<ps->o_N_surfnames; ++i) {
+      if (ps->o_surftopo[i]) fprintf(SUMA_STDERR,"   %d: %s %s %s\n", i, ps->o_state[i], ps->o_surfnames[i], ps->o_surftopo[i]);
+      else fprintf(SUMA_STDERR,"   %d: %s %s\n", i, ps->o_state[i], ps->o_surfnames[i]);
+   }
+   fprintf(SUMA_STDERR,"%d t_surfnames\n", ps->t_N_surfnames);
+   for (i=0; i<ps->t_N_surfnames; ++i) {
+      if (ps->t_surftopo[i]) fprintf(SUMA_STDERR,"   %d: %s %s %s\n", i, ps->t_state[i], ps->t_surfnames[i], ps->t_surftopo[i]);
+      else fprintf(SUMA_STDERR,"   %d: %s %s\n", i, ps->t_state[i], ps->t_surfnames[i]);
+   }
+   
+   fprintf(SUMA_STDERR,"%d arguments on command line:\n", ps->N_args);
+   for (i=0; i<ps->N_args; ++i) {
+      if (ps->arg_checked[i]) fprintf(SUMA_STDERR," %d+   ",i);
+      else fprintf(SUMA_STDERR," %d-   ",i);
+   }
+   fprintf(SUMA_STDERR,"\n");
+      
+   SUMA_RETURNe;
+}
+SUMA_SurfSpecFile *SUMA_IO_args2_spec(SUMA_GENERIC_ARGV_PARSE *ps)
+{
+   static char FuncName[]={"SUMA_IO_args2_spec"};
+   int i;
+   byte ok;
+   char sbuf[SUMA_MAX_LABEL_LENGTH+1];
+   SUMA_SurfSpecFile *spec = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   spec = (SUMA_SurfSpecFile *)SUMA_malloc(sizeof(SUMA_SurfSpecFile));
+   spec->N_Surfs = 0;
+   spec->N_States = 0;
+   spec->N_Groups = 1;
+   strcpy(spec->SpecFilePath, "./");
+   strcpy(spec->SpecFileName, "FromCommandLine.spec");   
+   if (ps->accept_i) {
+      SUMA_LH("Processing -i");
+      if (ps->i_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); SUMA_RETURN(spec); }
+      for (i=0; i<ps->i_N_surfnames; ++i) {
+         SUMA_CHECK_INPUT_SURF(ps->i_surfnames[i], ps->i_surftopo[i], ok);
+         if (!ok) { SUMA_free(spec); spec = NULL; SUMA_RETURN(spec); }
+         strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->i_FT[i]));
+         if (ps->i_FF[i] == SUMA_BINARY || ps->i_FF[i] == SUMA_BINARY_LE || ps->i_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
+         else strcpy(spec->SurfaceFormat[spec->N_Surfs], "ASCII");
+         if (ps->i_FT[i] == SUMA_SUREFIT || ps->i_FT[i] == SUMA_VEC) {
+            strcpy(spec->TopoFile[spec->N_Surfs], ps->i_surftopo[i]);
+            strcpy(spec->CoordFile[spec->N_Surfs], ps->i_surfnames[i]);
+            if (ps->vp[i]) strcpy(spec->SureFitVolParam[spec->N_Surfs], ps->vp[i]);
+         } else {
+            strcpy(spec->SurfaceFile[spec->N_Surfs], ps->i_surfnames[i]);
+         }
+         if (ps->sv[i]) strcpy(spec->VolParName[spec->N_Surfs], ps->sv[i]); else spec->VolParName[spec->N_Surfs][0] = '\0';
+         if (ps->i_state[i])  { strcpy(spec->State[spec->N_Surfs], ps->i_state[i]); ++spec->N_States;} 
+         else { sprintf(spec->State[spec->N_Surfs], "iS_%d", spec->N_States); ++spec->N_States; }
+         SUMA_BLANK_NEW_SPEC_SURF(spec);
+         ++spec->N_Surfs;
+      }
+   }
+   if (ps->accept_t) {
+      SUMA_LH("Processing it");
+      if (ps->t_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); SUMA_RETURN(spec); }
+      for (i=0; i<ps->t_N_surfnames; ++i) {  
+         SUMA_CHECK_INPUT_SURF(ps->t_surfnames[i], ps->t_surftopo[i], ok);
+         if (!ok) { SUMA_free(spec); spec = NULL; SUMA_RETURN(spec); }
+         strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->t_FT[i]));
+         if (ps->t_FF[i] == SUMA_BINARY || ps->t_FF[i] == SUMA_BINARY_LE || ps->t_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
+         else strcpy(spec->SurfaceFormat[spec->N_Surfs], "ASCII");
+         if (ps->t_FT[i] == SUMA_SUREFIT || ps->t_FT[i] == SUMA_VEC) {
+            strcpy(spec->TopoFile[spec->N_Surfs], ps->t_surftopo[i]);
+            strcpy(spec->CoordFile[spec->N_Surfs], ps->t_surfnames[i]);
+            if (ps->vp[i]) strcpy(spec->SureFitVolParam[spec->N_Surfs], ps->vp[i]);
+         } else {
+            strcpy(spec->SurfaceFile[spec->N_Surfs], ps->t_surfnames[i]);
+         }
+         if (ps->sv[i]) strcpy(spec->VolParName[spec->N_Surfs], ps->sv[i]); else spec->VolParName[spec->N_Surfs][0] = '\0';
+         if (ps->t_state[i])  { strcpy(spec->State[spec->N_Surfs], ps->t_state[i]); ++spec->N_States;} 
+         else { sprintf(spec->State[spec->N_Surfs], "iS_%d", spec->N_States); ++spec->N_States; }
+         SUMA_BLANK_NEW_SPEC_SURF(spec);
+         ++spec->N_Surfs;
+      }
+   }
+   
+   SUMA_LH("Working States");
+   /* now create the states list */
+   if (!spec->N_Surfs) { SUMA_RETURN(spec); }
+   
+   spec->N_States = 1;
+   sprintf(spec->StateList, "%s|", spec->State[0]);
+   for (i=1; i<spec->N_Surfs; ++i) {
+      sprintf(sbuf,"%s|",spec->State[i]); 
+      if (!SUMA_iswordin(spec->StateList, sbuf)) { sprintf(spec->StateList, "%s|", spec->State[i]); ++spec->N_States; }
+   }
+   if (LocalHead) fprintf(SUMA_STDERR,"%s:\n%d distinct states\n%s\n", FuncName, spec->N_States, spec->StateList);
+   SUMA_RETURN(spec);
+}
+
+SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
+{
+   static char FuncName[]={"SUMA_CreateGenericArgParse"};
+   SUMA_GENERIC_ARGV_PARSE *ps=NULL;
+   int i;
+   SUMA_ENTRY;
+   
+   ps = (SUMA_GENERIC_ARGV_PARSE*)SUMA_malloc(sizeof(SUMA_GENERIC_ARGV_PARSE));
+   
+   for (i=0;i<SUMA_MAX_SURF_ON_COMMAND; ++i) {
+      ps->t_surfnames[i] =  ps->t_surftopo[i] = ps->t_surfpath[i] = ps->t_surfprefix[i] = ps->t_state[i] = NULL;
+      ps->t_N_surfnames = 0; ps->t_FF[i] = SUMA_FF_NOT_SPECIFIED; ps->t_FT[i] = SUMA_FT_NOT_SPECIFIED; ps->t_anatomical[i] = NOPE;
+      ps->i_surfnames[i] =  ps->i_surftopo[i] = ps->i_surfpath[i] = ps->i_surfprefix[i] = ps->i_state[i] = NULL;
+      ps->i_N_surfnames = 0; ps->i_FF[i] = SUMA_FF_NOT_SPECIFIED; ps->i_FT[i] = SUMA_FT_NOT_SPECIFIED;  ps->i_anatomical[i] = NOPE;
+      ps->ipar_surfnames[i] =  ps->ipar_surftopo[i] = ps->ipar_surfpath[i] = ps->ipar_surfprefix[i] = ps->ipar_state[i] = NULL; 
+      ps->ipar_N_surfnames = 0; ps->ipar_FF[i] = SUMA_FF_NOT_SPECIFIED; ps->ipar_FT[i] = SUMA_FT_NOT_SPECIFIED;  ps->ipar_anatomical[i] = NOPE;
+      ps->o_surfnames[i] =  ps->o_surftopo[i] = ps->o_surfpath[i] = ps->o_surfprefix[i] = ps->o_state[i] = NULL;
+      ps->o_N_surfnames = 0; ps->o_FF[i] = SUMA_FF_NOT_SPECIFIED; ps->o_FT[i] = SUMA_FT_NOT_SPECIFIED; ps->o_anatomical[i] = NOPE;
+      ps->s_surfnames[i] = ps->s_surfprefix[i] = ps->s_surfpath[i] = NULL;  
+      ps->s_N_surfnames = 0;
+      ps->spec_names[i] = NULL; ps->N_spec_names = 0;
+      ps->sv[i] = NULL; ps->N_sv = 0;
+      ps->vp[i] = NULL; ps->N_vp = 0;
+   }
+   
+   for (i=0; i< SUMA_N_ARGS_MAX; ++i) {
+      ps->arg_checked[i] = 0;
+   }
+   ps->N_args = 0;
+   
+   if (SUMA_iswordin(optflags,"-t;")) ps->accept_t = 1; else ps->accept_t = 0;
+   if (SUMA_iswordin(optflags,"-i;")) ps->accept_i = 1; else ps->accept_i = 0;
+   if (SUMA_iswordin(optflags,"-s;")) ps->accept_s = 1; else ps->accept_s = 0;
+   if (SUMA_iswordin(optflags,"-o;")) ps->accept_o = 1; else ps->accept_o = 0;
+   if (SUMA_iswordin(optflags,"-spec;")) ps->accept_spec = 1; else ps->accept_spec = 0;
+   if (SUMA_iswordin(optflags,"-sv;")) ps->accept_sv = 1; else ps->accept_sv = 0;
+   
+   SUMA_RETURN(ps);
+}
+
+SUMA_GENERIC_ARGV_PARSE *SUMA_FreeGenericArgParse(SUMA_GENERIC_ARGV_PARSE *ps)
+{
+   static char FuncName[]={"SUMA_FreeGenericArgParse"};
+   int i;
+   SUMA_ENTRY;
+   
+   if (ps) {
+      for (i=0; i<SUMA_MAX_SURF_ON_COMMAND; ++i) {
+         if (ps->t_surfnames[i]) SUMA_free(ps->t_surfnames[i]); ps->t_surfnames[i]= NULL;
+         if (ps->t_surftopo[i]) SUMA_free(ps->t_surftopo[i]); ps->t_surftopo[i]= NULL;
+         if (ps->t_surfpath[i]) SUMA_free(ps->t_surfpath[i]); ps->t_surfpath[i]= NULL;
+         if (ps->t_surfprefix[i]) SUMA_free(ps->t_surfprefix[i]);ps->t_surfprefix[i] = NULL;
+         if (ps->t_state[i]) SUMA_free(ps->t_state[i]);ps->t_state[i] = NULL;
+         if (ps->i_surfnames[i]) SUMA_free(ps->i_surfnames[i]); ps->i_surfnames[i]= NULL;
+         if (ps->i_surftopo[i]) SUMA_free(ps->i_surftopo[i]); ps->i_surftopo[i]= NULL;
+         if (ps->i_surfpath[i]) SUMA_free(ps->i_surfpath[i]); ps->i_surfpath[i]= NULL;
+         if (ps->i_surfprefix[i]) SUMA_free(ps->i_surfprefix[i]);ps->i_surfprefix[i] = NULL;
+         if (ps->i_state[i]) SUMA_free(ps->i_state[i]);ps->i_state[i] = NULL;
+         if (ps->ipar_surfnames[i]) SUMA_free(ps->ipar_surfnames[i]); ps->ipar_surfnames[i]= NULL;
+         if (ps->ipar_surftopo[i]) SUMA_free(ps->ipar_surftopo[i]); ps->ipar_surftopo[i]= NULL;
+         if (ps->ipar_surfpath[i]) SUMA_free(ps->ipar_surfpath[i]); ps->ipar_surfpath[i]= NULL;
+         if (ps->ipar_surfprefix[i]) SUMA_free(ps->ipar_surfprefix[i]);ps->ipar_surfprefix[i] = NULL;
+         if (ps->ipar_state[i]) SUMA_free(ps->ipar_state[i]);ps->ipar_state[i] = NULL;
+         if (ps->o_surfnames[i]) SUMA_free(ps->o_surfnames[i]); ps->o_surfnames[i]= NULL;
+         if (ps->o_surftopo[i]) SUMA_free(ps->o_surftopo[i]); ps->o_surftopo[i]= NULL;
+         if (ps->o_surfpath[i]) SUMA_free(ps->o_surfpath[i]); ps->o_surfpath[i]= NULL;
+         if (ps->o_surfprefix[i]) SUMA_free(ps->o_surfprefix[i]);ps->o_surfprefix[i] = NULL;
+         if (ps->o_state[i]) SUMA_free(ps->o_state[i]);ps->o_state[i] = NULL;
+         if (ps->s_surfnames[i]) SUMA_free(ps->s_surfnames[i]); ps->s_surfnames[i]= NULL;
+         if (ps->s_surfprefix[i]) SUMA_free(ps->s_surfprefix[i]);ps->s_surfprefix[i] = NULL;
+         if (ps->s_surfpath[i]) SUMA_free(ps->s_surfpath[i]); ps->s_surfpath[i]= NULL;
+         if (ps->spec_names[i]) SUMA_free(ps->spec_names[i]); ps->spec_names[i] = NULL;
+         if (ps->sv[i]) SUMA_free(ps->sv[i]); ps->sv[i] = NULL;
+         if (ps->vp[i]) SUMA_free(ps->vp[i]); ps->vp[i] = NULL;
+      }
+      SUMA_free(ps); ps = NULL;  
+   } 
+   SUMA_RETURN(NULL);
+}  
+
+char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
+{
+   static char FuncName[]={"SUMA_help_IO_Args"};
+   char *s=NULL;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (opt->accept_i) {
+      SS = SUMA_StringAppend (SS, 
+                  " Specifying surfaces using -i_TYPE options: \n"
+                  "    -i_TYPE inSurf specifies the input surface,\n"
+                  "            TYPE is one of the following:\n"
+                  "       fs: FreeSurfer surface. \n"
+                  "           If surface name has .asc it is assumed to be\n"
+                  "           in ASCII format. Otherwise it is assumed to be\n"
+                  "           in BINARY_BE (Big Endian) format.\n"
+                  "           Patches in Binary format cannot be read at the moment.\n"
+                  "       sf: SureFit surface. \n"
+                  "           You must specify the .coord followed by the .topo file.\n"
+                  "       vec (or 1D): Simple ascii matrix format. \n"
+                  "            You must specify the NodeList file followed by the \n"
+                  "            FaceSetList file.\n"
+                  "            NodeList contains 3 floats per line, representing \n"
+                  "            X Y Z vertex coordinates.\n"
+                  "            FaceSetList contains 3 ints per line, representing \n"
+                  "            v1 v2 v3 triangle vertices.\n"
+                  "       ply: PLY format, ascii or binary.\n"
+                  "            Only vertex and triangulation info is preserved.\n"
+                  "       bv: BrainVoyager format. \n"
+                  "           Only vertex and triangulation info is preserved.\n"
+      );
+   }
+   
+   if (opt->accept_o) {
+      SS = SUMA_StringAppend (SS, 
+                  " Specifying surfaces using -o_TYPE options: \n"
+                  "    -o_TYPE outSurf specifies the output surface, \n"
+                  "            TYPE is one of the following:\n"
+                  "       fs: FreeSurfer ascii surface. \n"
+             /*   "       fsp: FeeSurfer ascii patch surface. \n"
+                  "            In addition to outSurf, you need to specify\n"
+                  "            the name of the parent surface for the patch.\n"
+                  "            using the -ipar_TYPE option.\n" */ /* This option is only for ConvertSurface */
+                  "       sf: SureFit surface. \n"
+                  "           You can provide either a prefix: -o_sf brain or \n"
+                  "           the both .coord and .topo file names: -o_sf XYZ.coord TRI.topo\n"
+                  "           The program will determine your choice by examining \n"
+                  "           the first character of the second parameter following\n"
+                  "           -o_sf. If that character is a '-' then you have supplied\n"
+                  "           a prefix and the program will generate the coord and topo names.\n"
+                  "       vec (or 1D): Simple ascii matrix format. \n"
+                  "            see help for vec under -i_TYPE options for format specifications.\n"
+                  "            for the surface's name you can either use a prefix or specify\n"
+                  "            both of the coord and topo names. See -o_sf option above.\n"
+                  "       ply: PLY format, ascii or binary.\n"
+      );
+   }
+   
+   if (opt->accept_t) {
+      SS = SUMA_StringAppend (SS, 
+                  " Specifying surfaces using -t* options: \n"
+                  "   -tn TYPE NAME: specify surface type and name.\n"
+                  "                  See below for help on the parameters.\n"
+                  "   -tsn TYPE STATE NAME: specify surface type state and name.\n"
+	               "        TYPE: Choose from the following (case sensitive):\n"
+                  "           1D: 1D format\n"
+                  "           FS: FreeSurfer ascii format\n"
+                  "           PLY: ply format\n"
+                  "           SF: Caret/SureFit format\n"
+                  "           BV: BrainVoyager format\n"
+                  "        NAME: Name of surface file. \n"
+                  "           For SF and 1D formats, NAME is composed of two names\n"
+                  "           the coord file followed by the topo file\n"
+                  "        STATE: State of the surface.\n"
+                  "           Default is S1, S2.... for each surface.\n"
+      );
+   }
+   
+
+   if (opt->accept_sv) {
+      SS = SUMA_StringAppend (SS, 
+                  "    -sv SurfaceVolume [VolParam for sf surfaces]\n"
+                  "       If you supply a surface volume, the coordinates of the input surface.\n"
+                  "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
+                  "        You must also specify a VolParam file for SureFit surfaces.\n"
+      );
+   }
+   
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
+   
+}
+/*!
+   A function to parse command line arguments and return a convenient
+   structure that can be used by various programs for surface specifications
+
+   I hope and pray that this will not be a can of worms. 
+*/
+SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optflags)
+{
+   static char FuncName[]={"SUMA_Parse_IO_Args"};
+   int i, kar, ind, N_name;
+   SUMA_Boolean brk = NOPE;
+   SUMA_GENERIC_ARGV_PARSE *ps=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (argc >= SUMA_N_ARGS_MAX) {
+      SUMA_S_Err("Number of arguments exceeds SUMA's parsing limit.");
+      SUMA_RETURN(NULL);
+   }
+   
+   ps = SUMA_CreateGenericArgParse(optflags);
+   if (!ps) {
+      SUMA_S_Err("Failed to create parse structure.");
+      SUMA_RETURN(NULL);
+   }
+   ps->N_args = argc;
+   kar = 1;
+	brk = NOPE;
+	while (kar < argc) { /* loop accross command ine options */
+      if (ps->accept_sv) {
+         if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err("need 1 or 2 arguments after -sv ");
+				   exit (1);
+			   }
+            if (ps->N_sv >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed sv files...");
+               exit(1);   
+            }
+			   ps->sv[ps->N_sv] = SUMA_copy_string(argv[kar]);
+            /* is there a volparam option ?*/
+            if (kar+1 < argc) {
+               /* maybe a volparam file */
+               if (argv[kar+1][0] == '-') { /* NOPE*/
+               } else {
+                  kar ++; ps->arg_checked[kar]=1;
+                  ps->vp[ps->N_vp] = SUMA_copy_string(argv[kar]);
+                  ++ps->N_vp;
+               }
+            }
+			   ++ps->N_sv;
+            brk = YUP;
+		   }   
+      }
+      if (ps->accept_spec || ps->accept_s) {
+         if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err( "need argument after -spec ");
+				   exit (1);
+			   }
+            if (ps->N_spec_names >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed spec files...");
+               exit(1);   
+            }
+			   ps->spec_names[ps->N_spec_names] = SUMA_copy_string(argv[kar]);
+			   ++ps->N_spec_names;
+            brk = YUP;
+		   }   
+      }
+      if (ps->accept_s) {
+         if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
+            ps->arg_checked[kar]=1;
+		      if (kar + 1>= argc)  {
+		  	      SUMA_S_Err( "need argument after -surf_X SURF_NAME \n");
+			      exit (1);
+		      }
+		      ind = argv[kar][6] - 'A';
+            if (ind < 0 || ind >= 'Z') {
+               fprintf (SUMA_STDERR,   "Error %s:\n -surf_X SURF_NAME option is out of range.\n"
+                                       "Only %d surfaces are allowed. \n"
+                                       "Must start with surf_A for first surface.\n", FuncName, 'Z');
+			      exit (1);
+            }
+            kar ++;
+            ps->arg_checked[kar]=1;
+            if (ps->s_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->s_surfnames[ps->s_N_surfnames+ind] = SUMA_copy_string(argv[kar]);
+            ++ps->s_N_surfnames;
+            brk = YUP;
+	      }  
+      }
+      if (ps->accept_i) {
+         if (!brk && ( (strcmp(argv[kar], "-i_bv") == 0) || (strcmp(argv[kar], "-i_BV") == 0) ) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -i_bv ");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->i_FT[ps->i_N_surfnames] = SUMA_BRAIN_VOYAGER;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_BINARY;
+            ++ps->i_N_surfnames;
+            brk = YUP;
+         }
+
+         if (!brk && ( (strcmp(argv[kar], "-i_fs") == 0) || (strcmp(argv[kar], "-i_FS") == 0)) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -i_fs ");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->i_FT[ps->i_N_surfnames] = SUMA_FREE_SURFER;
+            if (SUMA_isExtension(ps->i_surfnames[ps->i_N_surfnames], ".asc")) 
+               ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
+            else
+               ps->i_FF[ps->i_N_surfnames] = SUMA_BINARY_BE;
+            ++ps->i_N_surfnames;
+            brk = YUP;
+         }
+         
+         if (!brk && ( (strcmp(argv[kar], "-i_sf") == 0) || (strcmp(argv[kar], "-i_SF") == 0)) ){
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar+1 >= argc)  {
+	            SUMA_S_Err( "need 2 arguments after -i_sf");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            kar ++; ps->arg_checked[kar]=1;
+            ps->i_surftopo[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->i_FT[ps->i_N_surfnames] = SUMA_SUREFIT;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
+            ++ps->i_N_surfnames;            
+            brk = YUP;
+         }
+
+         if (!brk && ( (strcmp(argv[kar], "-i_vec") == 0) || (strcmp(argv[kar], "-i_1d") == 0) ||
+                       (strcmp(argv[kar], "-i_VEC") == 0) || (strcmp(argv[kar], "-i_1D") == 0) ) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar+1 >= argc)  {
+	            SUMA_S_Err( "need 2 argument after -i_vec or -i_1d");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            kar ++; ps->arg_checked[kar]=1;
+            ps->i_surftopo[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->i_FT[ps->i_N_surfnames] = SUMA_VEC;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII; 
+            ++ps->i_N_surfnames;            
+            brk = YUP;
+         }
+
+         if (!brk && ( (strcmp(argv[kar], "-i_ply") == 0) || (strcmp(argv[kar], "-i_Ply") == 0) || (strcmp(argv[kar], "-i_PLY") == 0))) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -i_ply ");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->i_FT[ps->i_N_surfnames] = SUMA_PLY;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
+            ++ps->i_N_surfnames;
+            brk = YUP;
+         }
+         
+         if (!brk && ( (strcmp(argv[kar], "-i_iv") == 0) || (strcmp(argv[kar], "-i_IV") == 0) )) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -i_iv ");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->i_FT[ps->i_N_surfnames] = SUMA_INVENTOR_GENERIC;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
+            ++ps->i_N_surfnames;
+            brk = YUP;
+         }
+      }
+      
+      if (ps->accept_t) {
+         if (!brk && (strcmp(argv[kar], "-tn") == 0)) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err( "Type argument must follow -tn ");
+				   exit (1);
+			   }
+            if (ps->t_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            /* get the type */
+            ps->t_FT[ps->t_N_surfnames] = SUMA_SurfaceTypeCode(argv[kar]);
+            if (ps->t_FT[ps->t_N_surfnames] == SUMA_FT_ERROR || ps->t_FT[ps->t_N_surfnames] == SUMA_FT_NOT_SPECIFIED) {
+               fprintf (SUMA_STDERR, "%s is a bad file type.\n", argv[kar]);
+               exit(1);
+            }
+            /* get the name */
+            if (ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT || ps->t_FT[ps->t_N_surfnames] == SUMA_VEC) N_name = 2;
+            else N_name = 1;
+            if (kar+N_name >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
+				   exit (1);
+			   }
+            kar ++; ps->arg_checked[kar]=1;
+            ps->t_surfnames[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (N_name == 2) {
+               kar ++; ps->arg_checked[kar]=1;
+               ps->t_surftopo[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
+            } 
+
+            ++ps->t_N_surfnames; 
+			   brk = YUP;
+		   } 
+         
+         if (!brk && (strcmp(argv[kar], "-tsn") == 0)) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "Type argument must follow -tn \n");
+				   exit (1);
+			   }
+            if (ps->t_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            /* get the type */
+            ps->t_FT[ps->t_N_surfnames] = SUMA_SurfaceTypeCode(argv[kar]);
+            if (ps->t_FT[ps->t_N_surfnames] == SUMA_FT_ERROR || ps->t_FT[ps->t_N_surfnames] == SUMA_FT_NOT_SPECIFIED) {
+               fprintf (SUMA_STDERR, "%s is a bad file type.\n", argv[kar]);
+               exit(1);
+            }
+            /* get the state */
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err( "STATE argument must follow TYPE with -tsn ");
+				   exit (1);
+			   }
+            ps->t_state[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
+
+            /* get the name */
+            if (ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT || ps->t_FT[ps->t_N_surfnames] == SUMA_VEC) N_name = 2;
+            else N_name = 1;
+            if (kar+N_name >= argc)  {
+		  		   fprintf (SUMA_STDERR, "Error %s:\nneed %d elements for NAME \n", FuncName, N_name);
+				   exit (1);
+			   }
+            kar ++; ps->arg_checked[kar]=1;
+            ps->t_surfnames[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (N_name == 2) {
+               kar ++; ps->arg_checked[kar]=1;
+               ps->t_surftopo[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
+            } 
+            /* get the format */
+            if (  ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT || ps->t_FT[ps->t_N_surfnames] == SUMA_VEC ||
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_INVENTOR_GENERIC ) 
+                  ps->t_FF[ps->t_N_surfnames] = SUMA_ASCII;
+            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_PLY)  ps->t_FF[ps->t_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
+            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_BRAIN_VOYAGER) ps->t_FF[ps->t_N_surfnames] = SUMA_BINARY;
+            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_FREE_SURFER) {
+               if (SUMA_isExtension(ps->t_surfnames[ps->t_N_surfnames], ".asc")) 
+               ps->t_FF[ps->t_N_surfnames] = SUMA_ASCII;
+            else
+               ps->t_FF[ps->t_N_surfnames] = SUMA_BINARY_BE;
+            }
+            
+            ++ps->t_N_surfnames;  
+			   brk = YUP;
+		   }
+          
+      }
+      if (ps->accept_o) {
+         if (!brk && ( (strcmp(argv[kar], "-o_fs") == 0) || (strcmp(argv[kar], "-o_FS") == 0) ) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err( "need argument after -o_fs ");
+				   exit (1);
+			   }
+			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER);
+            ps->o_FT[ps->o_N_surfnames] = SUMA_FREE_SURFER;
+            ++ps->o_N_surfnames;    
+			   brk = YUP;
+		   }
+      
+         if (!brk && ( (strcmp(argv[kar], "-o_fsp") == 0) || (strcmp(argv[kar], "-o_FSP") == 0) ) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err( "need argument after -o_fsp ");
+				   exit (1);
+			   }
+			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+			   
+			   ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER_PATCH); 
+            ps->o_FT[ps->o_N_surfnames] = SUMA_FREE_SURFER_PATCH;
+			   ++ps->o_N_surfnames;   
+            brk = YUP;
+		   }
+
+         if (!brk && ( (strcmp(argv[kar], "-o_sf") == 0) || (strcmp(argv[kar], "-o_SF") == 0)) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err( "need 1 or 2 argument after -o_sf ");
+				   exit (1);
+			   }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_SUREFIT);
+            ps->o_FT[ps->o_N_surfnames] = SUMA_SUREFIT;
+            /* is there another argument ?*/
+            if (kar+1 < argc)  {
+		  		   if (argv[kar+1][0] == '-') {
+                  /* that is an option flag */ 
+                  ps->o_surftopo[ps->o_N_surfnames] = SUMA_copy_string(ps->o_surfnames[ps->o_N_surfnames]);
+               } else {
+                  kar ++; ps->arg_checked[kar]=1;
+                  ps->o_surftopo[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_SUREFIT);
+               }
+			   }
+            ++ps->o_N_surfnames;   
+			   brk = YUP;
+		   }
+      
+      
+         if (!brk && (  (strcmp(argv[kar], "-o_vec") == 0) || (strcmp(argv[kar], "-o_1d") == 0)  ||
+                        (strcmp(argv[kar], "-o_VEC") == 0) || (strcmp(argv[kar], "-o_1D") == 0) ) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err( "need 1 or 2 argument after -o_sf ");
+				   exit (1);
+			   }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
+            ps->o_FT[ps->o_N_surfnames] = SUMA_VEC;
+			   /* is there another argument ?*/
+            if (kar+1 < argc)  {
+		  		   if (argv[kar+1][0] == '-') {
+                  /* that is an option flag */ 
+                  ps->o_surftopo[ps->o_N_surfnames] = SUMA_copy_string(ps->o_surfnames[ps->o_N_surfnames]);
+               } else {
+                  kar ++; ps->arg_checked[kar]=1;
+                  ps->o_surftopo[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
+               }
+			   }
+            ++ps->o_N_surfnames;   
+			   brk = YUP;
+		   }
+      
+         if (!brk && ( (strcmp(argv[kar], "-o_ply") == 0) || (strcmp(argv[kar], "-o_PLY") == 0) || (strcmp(argv[kar], "-o_Ply") == 0)) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+		  		   SUMA_S_Err( "need argument after -o_ply \n");
+				   exit (1);
+			   }
+			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+			   ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_PLY); 
+            ps->o_FT[ps->o_N_surfnames] = SUMA_PLY;
+			   ++ps->o_N_surfnames;  
+			   brk = YUP;
+		   }
+      }
+
+		brk = NOPE;
+		kar ++;
+   }   
+   
+   
+    
+   SUMA_RETURN(ps);
+}

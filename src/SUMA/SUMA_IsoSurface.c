@@ -39,6 +39,94 @@ extern int SUMAg_N_DOv;
    mcb->data[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y] = val; \
 }
 
+/*----------------------------------------------------
+  A slightly modified version of Bob's qhull_wrap function
+  
+  Compute the convex hull of a bunch of 3-vectors
+  Inputs:
+    npt = number of vectors
+    xyz = array of coordinates of 3-vectors;
+          the i-th vector is stored in
+            xyz[3*i] xyz[3*i+1] xyz[3*i+2]
+  Output:
+    *ijk = pointer to malloc()-ed array of triangles;
+           the j-th triangle is stored in
+             ijk[3*j] ijk[3*j+1] ijk[3*j+2]
+           where the integer index i refers to the
+           i-th 3-vector input
+
+  Return value is the number of triangles.  If this
+  is zero, something bad happened.
+
+  Example:
+    int ntri , *tri , nvec ;
+    float vec[something] ;
+    ntri = SUMA_qhull_wrap( nvec , vec , &tri ) ;
+
+  This function just executes the Geometry Center
+  program qhull to compute the result.  This program
+  should be in the user's path, or this function
+  will fail (return 0).
+------------------------------------------------------*/
+
+int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk )
+{
+   int ii,jj , nfac , *fac ;
+   int fd ; FILE *fp ;
+   char qbuf[128] ;
+
+#ifndef DONT_USE_MKSTEMP
+   char fname[] = "/tmp/afniXXXXXX" ;
+#else
+   char *fname ;
+#endif
+
+   if( npt < 3 || xyz == NULL || ijk == NULL ){
+      fprintf(stderr,"SUMA_qhull_wrap: bad inputs\n") ;
+      return 0 ;
+   }
+
+#ifndef DONT_USE_MKSTEMP
+   fd = mkstemp( fname ) ;
+   if( fd == -1 ){ fprintf(stderr,"SUMA_qhull_wrap: mkstemp fails\n"); return 0; }
+   fp = fdopen( fd , "w" ) ;
+   if( fp == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: fdopen fails\n"); close(fd); return 0; }
+#else
+   fname = tmpnam(NULL) ;
+   if( fname == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: tmpnam fails\n"); return 0; }
+   fp = fopen( fname , "w" ) ;
+   if( fp == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: fopen fails\n"); return 0; }
+#endif
+
+   fprintf(fp,"3\n%d\n",npt) ;
+   for( ii=0 ; ii < npt ; ii++ )
+      fprintf(fp,"%g %g %g\n",xyz[3*ii],xyz[3*ii+1],xyz[3*ii+2]) ;
+
+   fclose(fp) ;
+
+   sprintf(qbuf,"qhull QJ i < %s",fname) ;
+   fp = popen( qbuf , "r" ) ;
+   if( fp == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: popen fails\n"); remove(fname); return 0; }
+
+   jj = fscanf(fp,"%d",&nfac) ;
+   if( jj != 1 || nfac < 1 ){ fprintf(stderr,"SUMA_qhull_wrap: 1st fscanf fails\n"); pclose(fp); remove(fname); return 0; }
+
+   fac = (int *) malloc( sizeof(int)*3*nfac ) ;
+   if( fac == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: malloc fails\n"); pclose(fp); remove(fname); return 0; }
+
+   for( ii=0 ; ii < nfac ; ii++ ){
+      jj = fscanf(fp,"%d %d %d",fac+(3*ii),fac+(3*ii+1),fac+(3*ii+2)) ;
+      if( jj < 3 ){
+         fprintf(stderr,"SUMA_qhull_wrap: fscanf fails at ii=%d\n",ii) ;
+         pclose(fp); remove(fname); free(fac); return 0;
+      }
+   }
+
+   pclose(fp); remove(fname);
+
+   *ijk = fac ; return nfac ;
+}
+
 /*!
    A function version of the program mc by Thomas Lewiner
    see main.c in ./MarchingCubes
@@ -87,6 +175,40 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_ISOSURFACE_OPTIONS * Opt)
       compute_data( *mcp , Opt->obj_type) ;
    }
 
+   if (0) {
+      float *xyz;
+      int npt, *ijk=NULL, nf;
+      SUMA_SurfaceObject *SO=NULL;
+      cnt = 0; npt = 0;
+      FILE *fid=NULL;
+      fprintf(SUMA_STDERR,"%s:\nRunning qhull...\n", FuncName);
+      xyz = (float *)SUMA_malloc(3*mcp->size_z*mcp->size_y*mcp->size_x*sizeof(float));
+      for(  k = 0 ; k < mcp->size_z ; k++ ) {
+         for(  j = 0 ; j < mcp->size_y ; j++ ) {
+            for(  i = 0 ; i < mcp->size_x ; i++ ) {
+               if (Opt->mcdatav[cnt] == 1) {
+                  xyz[3*npt] = i; xyz[3*npt+1] = j; xyz[3*npt+2] = k; 
+                  npt++;
+               }
+               ++cnt;
+            }
+         }
+      }
+      if (! (nf = SUMA_qhull_wrap(npt, xyz, &ijk)) ) {
+         fprintf(SUMA_STDERR,"%s:\nFailed in SUMA_qhull_wrap\n", FuncName);
+      }
+      fprintf(SUMA_STDERR,"%s:\n%d triangles.\n", FuncName, nf);
+      SO = SUMA_Patch2Surf(xyz, npt, ijk, nf, 3);
+      free(ijk); ijk=NULL;
+      SUMA_free(xyz); xyz = NULL;
+      
+      fid = fopen("crap_tri.1D", "w"); for (i=0;i<SO->N_FaceSet;++i) fprintf(fid,"%d %d %d\n", 
+         SO->FaceSetList[3*i], SO->FaceSetList[3*i+1],SO->FaceSetList[3*i+2]); fclose(fid);
+      fid = fopen("crap_node.1D", "w"); for (i=0;i<SO->N_Node;++i) fprintf(fid,"%f %f %f\n", 
+         SO->NodeList[3*i], SO->NodeList[3*i+1],SO->NodeList[3*i+2]); fclose(fid);
+      SUMA_Free_Surface_Object(SO); SO = NULL;
+   }
+   
    if (Opt->debug) fprintf(SUMA_STDERR,"%s:\nrunning MarchingCubes...\n", FuncName);
    run(mcp) ;
    clean_temps(mcp) ;
@@ -159,7 +281,7 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_ISOSURFACE_OPTIONS * Opt)
    SUMA_RETURN(SO);
 }
 /*!
-   Shamelessly stolen from Rick who stole it from Bob. To hide this theft, I use longer names for functions and variables.
+  contains code shamelessly stolen from Rick who stole it from Bob. 
 */
 SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt)
 {
@@ -223,7 +345,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt)
 	               SUMA_RETURN(NOPE);
 	            }
 	            Opt->ninmask = THD_countmask( Opt->ninmask, bmask );
-               for (i=0; i<Opt->nvox; ++i) if (bmask[i]) Opt->mcdatav[i] = (float)bmask[i]; else Opt->mcdatav[i] = -1;
+               for (i=0; i<Opt->nvox; ++i) if (bmask[i]) Opt->mcdatav[i] = (double)bmask[i]; else Opt->mcdatav[i] = -1;
                free(bmask);bmask=NULL;
             } else {
                SUMA_SL_Err("NULL cmask"); SUMA_RETURN(NOPE);
