@@ -1460,7 +1460,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 {
    static char FuncName[]={"SUMA_Create_CommonFields"};
    SUMA_CommonFields *cf;
-   int i, portn = -1, n;
+   int i, portn = -1, n, portn2;
    char *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1501,6 +1501,20 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    } else {
       portn = SUMA_TCP_PORT;
    }   
+   
+   eee = getenv("SUMA_AFNI_TCP_PORT2");
+   if (eee) {
+      portn2 = atoi(eee);
+      if (portn2 < 1024 ||  portn2 > 65535) {
+         fprintf (SUMA_STDERR, "Warning %s:\n"
+                               "Environment variable SUMA_AFNI_TCP_PORT2 %d is invalid.\n"
+                               "port must be between 1025 and 65534.\n"
+                               "Using default of %d\n", FuncName, portn2, portn+1);
+         portn2 = portn+1;
+      } 
+   } else {
+      portn2 = portn+1;
+   }   
     
    for (i=0; i<SUMA_MAX_STREAMS; ++i) {
       cf->ns_v[i] = NULL;
@@ -1509,7 +1523,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       cf->TrackingId_v[i] = 0;
       cf->NimlStream_v[i][0] = '\0';
       cf->HostName_v[i][0] = '\0';
-      cf->TCP_port[i] = portn + i;   /* me hopes those will be OK */
+      if (i==0) cf->TCP_port[i] = portn;           /* AFNI listening */
+      else if (i==1) cf->TCP_port[i] = portn2;     /* AFNI listening */
+      else cf->TCP_port[i] = SUMA_TCP_LISTEN_PORT0 + i - 2;   /* SUMA listening */
    }
    cf->Listening = NOPE;
    cf->niml_work_on = NOPE;
@@ -2056,62 +2072,6 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    s = SS->s; SUMA_free(SS); SS= NULL;
    
    SUMA_RETURN(s);
-}
-/*! assign new afni host name 
-    SUMA_Assign_HostName (cf, HostName, istream)
-   
-   Assigns a new HostName for niml communication on a particular stream
-   
-   \param cf (SUMA_CommonFields *) pointer to Common Fields structure, field AfniHostName will be modified here
-   \param HostName (char *) hostname in IP number form, or name form afni.nimh.nih.gov or afni (if in /etc/hosts file)
-                                 NULL to set cf->HostName_v[istream] to localhost if i = SUMA_AFNI_STREAM_INDEX
-                                                                                 127.0.0.1 otherwise. That's done to keep
-                                                                                 Shared Memory communication betwen AFNI 
-                                                                                 and SUMA only.
-   \param istream (int) if -1 then all streams are set to HostName
-                        otherwise, only HostName_v[istream] is set
-   \ret ans (SUMA_Boolean) YUP/NOPE
-   
-   
-*/
-SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream)
-{
-   static char FuncName[]={"SUMA_Assign_HostName"};
-   int istart = 0, istop = 0, i = 0;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-
-   if (istream == -1) {
-      istart = 0; istop = SUMA_MAX_STREAMS; 
-   } else {
-      istart = istream; istop = istream + 1;
-   }
-   
-   for (i = istart; i < istop; ++i) {
-      if (HostName == NULL)
-         if (i == SUMA_AFNI_STREAM_INDEX) {
-            sprintf(cf->HostName_v[i], "localhost"); /*  using localhost will allow the use of Shared Memory.
-                                                         That is only allowed for SUMA<-->AFNI */
-         } else {
-            sprintf(cf->HostName_v[i], "127.0.0.1");  /* force TCP for the commoners */
-         }  
-      else {   
-         if (strlen(HostName) > SUMA_MAX_NAME_LENGTH - 20) {
-            fprintf(SUMA_STDERR,"Error %s: too long a host name (> %d chars).\n", FuncName, SUMA_MAX_NAME_LENGTH - 20);
-            SUMA_RETURN (NOPE);
-         }
-         sprintf(cf->HostName_v[i],"%s", HostName);
-      }
-
-      sprintf(cf->NimlStream_v[i],"tcp:%s:%d", 
-            cf->HostName_v[i], cf->TCP_port[i]);
-
-      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Set HostName %d to %s (stream name: %s)\n", 
-                     FuncName, i, cf->HostName_v[i], cf->NimlStream_v[i]);
-   }
-   
-   SUMA_RETURN (YUP);
 }
 
 /*!

@@ -6781,7 +6781,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
          SUMA_FreeDset(dset); dset=NULL;
          SUMA_RETURNe;
       }
-      NI_set_attribute(dset->nel,"MeshParent_idcode", SO->idcode_str);
+      NI_set_attribute(dset->nel,"Parent_ID", SO->idcode_str);
       NI_set_attribute(dset->nel,"GeomParent_idcode", SO->idcode_str);
    } else {
       SUMA_SL_Note("dset has a mesh parent, Checking relationship");

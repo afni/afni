@@ -1,6 +1,17 @@
 #ifndef SUMA_MACROSm_INCLUDED
 #define SUMA_MACROSm_INCLUDED
 
+/*!
+   Macro to create a new ID code at random (when strn = NULL) or a hash of a string
+   written mostly to allow for the allocation of newcode with SUMA's functions
+*/
+#define SUMA_NEW_ID(newcode, strn) { \
+   if ((newcode)) { SUMA_SL_Err("newcode pointer must be null"); } \
+   else if (!(strn)) { (newcode) = (char*)SUMA_calloc(SUMA_IDCODE_LENGTH, sizeof(char)); UNIQ_idcode_fill((newcode)); } \
+   else {   char *m_tmp; m_tmp = UNIQ_hashcode((strn)); (newcode) = SUMA_copy_string(m_tmp); free(m_tmp); m_tmp = NULL; }  \
+}
+
+
 #define SUMA_WHAT_ENDIAN(End){   \
    int m_one = 1;   \
    /* From RickR's Imon */ \
@@ -252,7 +263,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 /*!
    Pause prompt, stdin
 */
-#define SUMA_PAUSE_PROMPT(s) { int m_jnk; fprintf(SUMA_STDOUT,"Pausing: %s  ...", s); fflush(SUMA_STDOUT); m_jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); }
+#define SUMA_PAUSE_PROMPT(s) { int m_jnk; fprintf(SUMA_STDOUT,"Pausing: %s  ...", s); fflush(SUMA_STDOUT); m_jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); fflush(SUMA_STDOUT);}
 
 /*!
    A macro to recalculate a surface's center and its bounding box 

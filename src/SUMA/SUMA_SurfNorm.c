@@ -307,6 +307,8 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr
 
    NP = FaceDim;
    RetStrct = (SUMA_MEMBER_FACE_SETS *)SUMA_malloc(sizeof(SUMA_MEMBER_FACE_SETS));
+   RetStrct->idcode_str = NULL;
+   SUMA_NEW_ID(RetStrct->idcode_str, NULL);
    RetStrct->N_links = 0;
    if (ownerid) sprintf(RetStrct->owner_id, "%s", ownerid);
    else RetStrct->owner_id[0] = '\0';
@@ -391,6 +393,7 @@ SUMA_Boolean SUMA_Free_MemberFaceSets (SUMA_MEMBER_FACE_SETS *MF)
    }
    
    SUMA_LH("No more links, here we go");
+   if (MF->idcode_str) SUMA_free(MF->idcode_str);
    if (MF->NodeMemberOfFaceSet) SUMA_free2D((char **)MF->NodeMemberOfFaceSet, MF->Nnode);
    if (MF->N_Memb) SUMA_free(MF->N_Memb);
    if (MF) SUMA_free(MF);

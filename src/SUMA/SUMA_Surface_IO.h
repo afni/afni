@@ -35,6 +35,8 @@ SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, c
 SUMA_FORM_AFNI_DSET_STRUCT *SUMA_New_FormAfniDset_Opt(void);
 SUMA_FORM_AFNI_DSET_STRUCT *SUMA_Free_FormAfniDset_Opt(SUMA_FORM_AFNI_DSET_STRUCT *Opt);
 THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, SUMA_FORM_AFNI_DSET_STRUCT *Opt);
+NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee) ;
+SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr); 
 
 
 #endif

@@ -20,5 +20,19 @@ void SUMA_FakeIt (int Solo);
 SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUMA);
 SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUMA_Boolean fromSUMA, SUMA_Boolean killit);
 int SUMA_which_stream_index (SUMA_CommonFields *cf, char *nel_stream_name);
+SUMA_Boolean SUMA_SendSumaNewSurface(SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs);
+SUMA_COMM_STRUCT *SUMA_Create_CommSrtuct(void);
+SUMA_COMM_STRUCT *SUMA_Free_CommSrtuct(SUMA_COMM_STRUCT *cs);
+SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void *data, SUMA_DSET_TYPE dtype, int action);
+SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action);
+NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *instanceID, int cleanup);
+NI_element * SUMA_Mesh_IJK2Mesh_IJK_nel (SUMA_SurfaceObject *SO, int *val, SUMA_Boolean cleanup, SUMA_DSET_TYPE dtype);
+SUMA_Boolean SUMA_Mesh_IJK_nel2Mesh_IJK(SUMA_SurfaceObject *SO, NI_element *nel);
+NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup, SUMA_DSET_TYPE dtype);
+SUMA_Boolean SUMA_NodeXYZ_nel2NodeXYZ (SUMA_SurfaceObject *SO, NI_element *nel);
+SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream);
+SUMA_Boolean SUMA_SendDset_Afni( NI_stream ns, THD_3dim_dataset *dset, int all);
+NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, SUMA_DSET_TYPE dtype);
+SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel);
 
 #endif

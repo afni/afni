@@ -441,7 +441,11 @@ int main (int argc,char *argv[])
 		}
 		
 	}/* loop accross command ine options */
-
+   /* -ah option now checked for in ps */
+   if (ps->cs->afni_host_name && !AfniHostName) {
+      AfniHostName = SUMA_copy_string(ps->cs->afni_host_name);
+   }
+   
    /* any Specp to be found ?*/
    
 	if (specfilename[0] == NULL && Specp[0] == NULL) {
