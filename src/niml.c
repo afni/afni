@@ -7098,6 +7098,15 @@ fprintf(stderr,"  and writing it [%d]\n",strlen(wbuf) ) ;
       nout = NI_stream_write( ns , ">\n" , 2 ) ;
       ADDOUT ;
 
+      /* 06 Mar 2002: write a bunch of blanks */
+
+#define MINOUT 256
+      if( nout < MINOUT ){
+         char str[MINOUT+16] ;
+         sprintf(str,"%*.*s\n",MINOUT-nout,MINOUT-nout," ") ;
+         NI_stream_write( ns , str , strlen(str) ) ;
+      }
+
       return ntot ;
    } /* end of write data element */
 
