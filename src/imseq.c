@@ -1830,6 +1830,39 @@ ENTRY("ISQ_zoom_pb_CB") ;
    EXRETURN ;
 }
 
+/*-------------------------------------------------------------------------*/
+/*! Actually pan the zoomed image, lr steps left/right, ud steps up/down.
+---------------------------------------------------------------------------*/
+
+void ISQ_actually_pan( MCW_imseq *seq , int lr , int ud )  /* 24 Jan 2003 */
+{
+   float hh,vv , mh,dh , hhold,vvold ;
+
+ENTRY("ISQ_actually_pan") ;
+
+   if( !ISQ_REALZ(seq) || seq->zoom_fac == 1 || seq->zoom_xim == NULL ) EXRETURN;
+
+   mh = (seq->zoom_fac-1.001)/seq->zoom_fac ;  /* max offset    */
+   dh = 0.020/seq->zoom_fac ;                  /* delta offset   */
+   hh=seq->zoom_hor_off ; hhold=hh ;           /* current offsets */
+   vv=seq->zoom_ver_off ; vvold=vv ;
+
+   hh += lr*dh ;
+        if( hh < 0.0) hh = 0.0 ;
+   else if( hh > mh ) hh = mh  ;
+
+   vv += ud*dh ;
+        if( vv < 0.0) vv = 0.0 ;
+   else if( vv > mh ) vv = mh  ;
+
+   if( vv == vvold && hh == hhold ) EXRETURN ; /* no changes? */
+
+   seq->zoom_hor_off = hh ;                    /* changes! */
+   seq->zoom_ver_off = vv ;
+   ISQ_show_zoom( seq ) ;                      /* redraw */
+   EXRETURN ;
+}
+
 /*--------------------------------------------------------------------------*/
 /*! Callback for 'crop' button. */
 
@@ -3782,7 +3815,7 @@ static int qhandler( Display *dpy , XErrorEvent *xev ){ xwasbad=1; return 0; }
 
 /*-----------------------------------------------------------------------*/
 
-static int ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
+int ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
 {
    int iw,ih , zlev=seq->zoom_fac , pw,ph , xoff,yoff , newim=0 , flash=0 ;
 
@@ -4205,7 +4238,7 @@ ENTRY("ISQ_drawing_EV") ;
 
       case MotionNotify:{
         XMotionEvent * event = (XMotionEvent *) ev ;
-        int bx,by ; float hh,vv , mh,dh , hhold,vvold ;
+        int bx,by ;
 
         /** 03 Oct 2002: change Shift+Button1 into Button2, then send to that event handler **/
 
@@ -4226,30 +4259,14 @@ ENTRY("ISQ_drawing_EV") ;
 
         /*-- if here, change panning offset --*/
 
-        mh = (seq->zoom_fac-1.001)/seq->zoom_fac ;  /* max offset    */
-        dh = 0.020/seq->zoom_fac ;                  /* delta offset   */
-        hh=seq->zoom_hor_off ; hhold=hh ;           /* current offsets */
-        vv=seq->zoom_ver_off ; vvold=vv ;
+        bx = event->x ; by = event->y ;
+        ISQ_actually_pan( seq , (bx>seq->zoom_xp) ? -1
+                               :(bx<seq->zoom_xp) ?  1 : 0 ,
+                                (by>seq->zoom_yp) ? -1
+                               :(by<seq->zoom_yp) ?  1 : 0   ) ;
 
-        bx = event->x ;                             /* see if x offset */
-        if( bx > seq->zoom_xp )                     /* must be changed */
-           hh -= dh ; if( hh < 0.0) hh = 0.0 ;
-        else if( bx < seq->zoom_xp )
-           hh += dh ; if( hh > mh ) hh = mh ;
+        seq->zoom_xp = bx ; seq->zoom_yp = by ;
 
-        by = event->y ;                             /* see if y offset */
-        if( by > seq->zoom_yp )                     /* must be changed */
-           vv -= dh ; if( vv < 0.0) vv = 0.0 ;
-        else if( by < seq->zoom_yp )
-           vv += dh ; if( vv > mh ) vv = mh ;
-
-        seq->zoom_xp = bx ; seq->zoom_yp = by ;     /* old xy coords */
-
-        if( vv == vvold && hh == hhold ) EXRETURN ; /* no changes? */
-
-        seq->zoom_hor_off = hh ;                    /* changes! */
-        seq->zoom_ver_off = vv ;
-        ISQ_show_zoom( seq ) ;                      /* redraw */
         EXRETURN ;
       }
       break ;
@@ -6841,6 +6858,20 @@ ENTRY("ISQ_arrowpad_CB") ;
       cbs.reason = isqCR_appress ;
       seq->status->send_CB( seq , seq->getaux , &cbs ) ;
       EXRETURN ;
+   }
+
+   /* 24 Jan 2003: pan a zoomed image */
+
+   if( seq->zoom_button1 && seq->zoom_fac > 1 && seq->zoom_xim != NULL ){
+     switch( apad->which_pressed ){
+       default:
+       case AP_DOWN:  xoff =  0 ; yoff = -1 ; break ;
+       case AP_UP:    xoff =  0 ; yoff =  1 ; break ;
+       case AP_LEFT:  xoff =  1 ; yoff =  0 ; break ;
+       case AP_RIGHT: xoff = -1 ; yoff =  0 ; break ;
+     }
+     ISQ_actually_pan( seq , xoff , yoff ) ;
+     EXRETURN ;
    }
 
    xwin = ywin = XYORG ;

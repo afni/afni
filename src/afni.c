@@ -4556,8 +4556,10 @@ static char * AFNI_image_help =
  "q = close window (=Done)\n"
  "z = zoom out  Z = zoom in\n"
  "p = panning mode on & off\n"
- "> = forward 1 image\n"
- "< = backward 1 image" ;
+ "> = Page Up   = forward 1 image\n"
+ "< = Page Down = backward 1 image\n"
+ "Left/Right/Up/Down arrow keys\n"
+ "  move crosshairs or pan image\n" ;
 
 static char * AFNI_arrowpad_help =
    "Click arrows to scroll crosshair position\n"
