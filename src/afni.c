@@ -1773,13 +1773,14 @@ STATUS("get status") ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
       float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz ;
-      float rr_box=1.0,gg_box=0.8,bb_box=0.8 ;
-      float rr_lin=1.0,gg_lin=0.9,bb_lin=0.0 ;
+      float rr_box=1.0,gg_box=0.0,bb_box=0.0 ;
+      float rr_lin=1.0,gg_lin=0.0,bb_lin=1.0 ;
+      float rr_led=1.0,gg_led=0.0,bb_led=0.0 ;
       char str[32] , *eee ;
       float rx=RX ;         /* default rectangle halfsize */
       int   kkk=0 ;
-      float xyz=0 , rxm,rxp ;
-      int skip_boxes=0 , skip_lines=0 ;
+      float xyz=0.0,xyzp,xyzm , rxm,rxp ;
+      int skip_boxes=1 , skip_lines=0 , skip_lcen=0, skip_ledg=1 ;
       float boxsize=RX , linewidth=0.0 ;   /* 23 Feb 2003 */
 
       if( ag == NULL ) continue ;          /* skip this one */
@@ -1789,7 +1790,7 @@ STATUS("get status") ;
       /* define parameters for node boxes and triangle lines */
 
       if( swid != NULL && ks < swid->nrow ){     /* 19 Aug 2002: the new way */
-        int cc ;                                 /*           to set colors: */
+        int cc, dd ;                             /*           to set colors: */
                                                  /* from the surface widgets */
 
         cc = MCW_val_bbox(swid->surf_bbox[ks]) ; /* 19 Feb 2003: skip it all? */
@@ -1804,11 +1805,19 @@ STATUS("get status") ;
             bb_box = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
           }
           cc = swid->surf_line_av[ks]->ival ;
-          skip_lines = (cc == 0) ;
-          if( !skip_lines ){
+          dd = swid->surf_ledg_av[ks]->ival ;             /* 26 Feb 2003 */
+          skip_lcen  = (cc == 0) ;
+          skip_ledg  = (dd == 0) ;
+          skip_lines = (skip_lcen && skip_ledg) ;
+          if( cc > 0 ){
             rr_lin = DCOV_REDBYTE(im3d->dc,cc)   / 255.0 ;
             gg_lin = DCOV_GREENBYTE(im3d->dc,cc) / 255.0 ;
             bb_lin = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
+          }
+          if( dd > 0 ){                                   /* 26 Feb 2003 */
+            rr_led = DCOV_REDBYTE(im3d->dc,dd)   / 255.0 ;
+            gg_led = DCOV_GREENBYTE(im3d->dc,dd) / 255.0 ;
+            bb_led = DCOV_BLUEBYTE(im3d->dc,dd)  / 255.0 ;
           }
           boxsize   = swid->boxsize_av->ival   * 0.1   ;  /* 23 Feb 2003 */
           linewidth = swid->linewidth_av->ival * 0.002 ;
@@ -1899,7 +1908,7 @@ STATUS("get status") ;
          xm = 0.5*(xb+xt); xw = 0.25*(xt-xb); xb = xm-xw; xt = xm+xw;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
-            if( nod[ii].x > xb && nod[ii].x < xt ){           /* inside?  */
+            if( nod[ii].x >= xb && nod[ii].x <= xt ){         /* inside?  */
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ; /* convert  */
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;     /* coords   */
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;     /* to slice */
@@ -1920,7 +1929,7 @@ STATUS("get status") ;
             }
           }
          }
-         kkk = 0 ; xyz = xm ;  /* for the triangles/lines below */
+         kkk = 0 ; xyz = xm ; xyzp = xt ; xyzm = xb ;  /* for the triangles/lines below */
       }
       else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){          /* search y */
          float yb=fvm.xyz[1] , yt=fvp.xyz[1] , ym,yw ;
@@ -1928,7 +1937,7 @@ STATUS("get status") ;
          ym = 0.5*(yb+yt); yw = 0.25*(yt-yb); yb = ym-yw; yt = ym+yw;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
-            if( nod[ii].y > yb && nod[ii].y < yt ){
+            if( nod[ii].y >= yb && nod[ii].y <= yt ){
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
@@ -1949,7 +1958,7 @@ STATUS("get status") ;
             }
           }
          }
-         kkk = 1 ; xyz = ym ;  /* for the triangles/lines below */
+         kkk = 1 ; xyz = ym ; xyzp = yt ; xyzm = yb ;  /* for the triangles/lines below */
       }
       else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){          /* search z */
          float zb=fvm.xyz[2] , zt=fvp.xyz[2] , zm,zw ;
@@ -1957,7 +1966,7 @@ STATUS("get status") ;
          zm = 0.5*(zb+zt); zw = 0.25*(zt-zb); zb = zm-zw; zt = zm+zw;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
-            if( nod[ii].z > zb && nod[ii].z < zt ){
+            if( nod[ii].z >= zb && nod[ii].z <= zt ){
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
@@ -1978,7 +1987,7 @@ STATUS("get status") ;
             }
           }
          }
-         kkk = 2 ; xyz = zm ;  /* for the triangles/lines below */
+         kkk = 2 ; xyz = zm ; xyzp = zt ; xyzm = zb ;  /* for the triangles/lines below */
       }
 
       /* 10 Mar 2002:
@@ -1992,84 +2001,97 @@ STATUS("get status") ;
         int      ntr = ag->num_ijk ;    /* number of triangles */
         int id,jd,kd ;
         THD_fvec3 fvijk[3] ;
-        float ci,cj,ck ;
+        float ci,cj,ck , xlev ;
+        int ilev ;
 
-        set_color_memplot(rr_lin,gg_lin,bb_lin) ;  /* line drawing colors */
-        set_thick_memplot(linewidth) ;             /* 23 Feb 2003 */
-
-        /* loop over triangles */
-
-        for( ii=0 ; ii < ntr ; ii++ ){
-
-          /* get indexes of triangle's nodes (from their id's) */
-
-          id = SUMA_find_node_id(ag,tr[ii].id); if( id < 0 ) continue;
-          jd = SUMA_find_node_id(ag,tr[ii].jd); if( jd < 0 ) continue;
-          kd = SUMA_find_node_id(ag,tr[ii].kd); if( kd < 0 ) continue;
-
-          /* load DICOM coords of triangle's nodes */
-
-          LOAD_FVEC3(fvijk[0], nod[id].x, nod[id].y, nod[id].z) ;
-          LOAD_FVEC3(fvijk[1], nod[jd].x, nod[jd].y, nod[jd].z) ;
-          LOAD_FVEC3(fvijk[2], nod[kd].x, nod[kd].y, nod[kd].z) ;
-
-          /* want 1 node on one size of plane, and 2 on the other */
-
-          ci = fvijk[0].xyz[kkk] - xyz ;      /* differences from center */
-          cj = fvijk[1].xyz[kkk] - xyz ;      /* of current slice plane */
-          ck = fvijk[2].xyz[kkk] - xyz ;
-          jj = 4*(ci > 0.0) + 2*(cj > 0.0) + (ck > 0.0) ;
-          if( jj == 0 || jj == 7 ) continue ; /* all have same sign */
-
-          /* setup id,jd,kd so fvijk[id] is on one side of plane,
-             and so that fvijk[jd] and fvijk[kd] are on other side */
-
-          switch( jj ){
-             case 6:
-             case 1: id = 2 ; jd = 0 ; kd = 1 ; break ;  /* kd is the 1 */
-             case 5:
-             case 2: id = 1 ; jd = 0 ; kd = 2 ; break ;  /* jd is the 1 */
-             case 4:
-             case 3: id = 0 ; jd = 1 ; kd = 2 ; break ;  /* id is the 1 */
+        for( ilev=0 ; ilev <= 2 ; ilev++ ){  /* 26 Feb 2003: loop over levels: */
+                                             /* slice center, top & bot edges  */
+          if( ilev == 0 ){
+            if( skip_lcen ) continue ;
+            xlev = xyz ;
+            set_color_memplot(rr_lin,gg_lin,bb_lin) ;  /* line drawing colors */
+            set_thick_memplot(linewidth) ;
+          } else {
+            if( skip_ledg ) continue ;
+            xlev = (ilev == 1) ? xyzp : xyzm ;
+            set_color_memplot(rr_led,gg_led,bb_led) ;
+            set_thick_memplot(0) ;
           }
 
-          /* linearly interpolate between fvijk[id] and fvijk[jd]
-             to find the point where this line hits the slice plane */
+          /* loop over triangles */
 
-          ci = fvijk[id].xyz[kkk] - xyz ;
-          cj = fvijk[id].xyz[kkk] - fvijk[jd].xyz[kkk] ;
-          if( cj == 0.0 ) continue ;            /* should not happen */
-          ck = ci / cj ;
-          if( ck < 0.0 || ck > 1.0 ) continue ; /* should not happen */
-          cj = 1.0 - ck ;
-          fvp = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[jd]) ;
+          for( ii=0 ; ii < ntr ; ii++ ){
 
-          /* linearly interpolate between fvijk[id] and fvijk[kd] */
+            /* get indexes of triangle's nodes (from their id's) */
 
-          cj = fvijk[id].xyz[kkk] - fvijk[kd].xyz[kkk] ;
-          if( cj == 0.0 ) continue ;
-          ck = ci / cj ;
-          if( ck < 0.0 || ck > 1.0 ) continue ;
-          cj = 1.0 - ck ;
-          fvm = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[kd]) ;
+            id = SUMA_find_node_id(ag,tr[ii].id); if( id < 0 ) continue;
+            jd = SUMA_find_node_id(ag,tr[ii].jd); if( jd < 0 ) continue;
+            kd = SUMA_find_node_id(ag,tr[ii].kd); if( kd < 0 ) continue;
 
-          /* transform interpolated points to FD_brick coords */
+            /* load DICOM coords of triangle's nodes */
 
-          fvp = THD_dicomm_to_3dmm( br->dset , fvp ) ;
-          fvp = THD_3dmm_to_3dfind( br->dset , fvp ) ;
-          fvp = THD_3dfind_to_fdfind( br , fvp ) ;
-          fvm = THD_dicomm_to_3dmm( br->dset , fvm ) ;
-          fvm = THD_3dmm_to_3dfind( br->dset , fvm ) ;
-          fvm = THD_3dfind_to_fdfind( br , fvm ) ;
+            LOAD_FVEC3(fvijk[0], nod[id].x, nod[id].y, nod[id].z) ;
+            LOAD_FVEC3(fvijk[1], nod[jd].x, nod[jd].y, nod[jd].z) ;
+            LOAD_FVEC3(fvijk[2], nod[kd].x, nod[kd].y, nod[kd].z) ;
 
-          /* plot a line segment between them, in the plane of the slice */
-          /* [21 Mar 2002: include the 0.5 shift mentioned way up above] */
+            /* want 1 node on one size of plane, and 2 on the other */
 
-          plotline_memplot( s1*(fvp.xyz[0]+0.5) , 1.0-s2*(fvp.xyz[1]+0.5) ,
-                            s1*(fvm.xyz[0]+0.5) , 1.0-s2*(fvm.xyz[1]+0.5)  ) ;
+            ci = fvijk[0].xyz[kkk] - xlev;      /* differences from center */
+            cj = fvijk[1].xyz[kkk] - xlev;      /* of current slice plane */
+            ck = fvijk[2].xyz[kkk] - xlev;
+            jj = 4*(ci > 0.0) + 2*(cj > 0.0) + (ck > 0.0) ;
+            if( jj == 0 || jj == 7 ) continue ; /* all have same sign */
 
-        } /* end of loop over triangles */
-        set_thick_memplot(0.0) ;              /* 15 Jan 2003 */
+            /* setup id,jd,kd so fvijk[id] is on one side of plane,
+               and so that fvijk[jd] and fvijk[kd] are on other side */
+
+            switch( jj ){
+               case 6:
+               case 1: id = 2 ; jd = 0 ; kd = 1 ; break ;  /* kd is the 1 */
+               case 5:
+               case 2: id = 1 ; jd = 0 ; kd = 2 ; break ;  /* jd is the 1 */
+               case 4:
+               case 3: id = 0 ; jd = 1 ; kd = 2 ; break ;  /* id is the 1 */
+            }
+
+            /* linearly interpolate between fvijk[id] and fvijk[jd]
+               to find the point where this line hits the slice plane */
+  
+            ci = fvijk[id].xyz[kkk] - xlev;
+            cj = fvijk[id].xyz[kkk] - fvijk[jd].xyz[kkk] ;
+            if( cj == 0.0 ) continue ;            /* should not happen */
+            ck = ci / cj ;
+            if( ck < 0.0 || ck > 1.0 ) continue ; /* should not happen */
+            cj = 1.0 - ck ;
+            fvp = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[jd]) ;
+  
+            /* linearly interpolate between fvijk[id] and fvijk[kd] */
+  
+            cj = fvijk[id].xyz[kkk] - fvijk[kd].xyz[kkk] ;
+            if( cj == 0.0 ) continue ;
+            ck = ci / cj ;
+            if( ck < 0.0 || ck > 1.0 ) continue ;
+            cj = 1.0 - ck ;
+            fvm = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[kd]) ;
+  
+            /* transform interpolated points to FD_brick coords */
+  
+            fvp = THD_dicomm_to_3dmm( br->dset , fvp ) ;
+            fvp = THD_3dmm_to_3dfind( br->dset , fvp ) ;
+            fvp = THD_3dfind_to_fdfind( br , fvp ) ;
+            fvm = THD_dicomm_to_3dmm( br->dset , fvm ) ;
+            fvm = THD_3dmm_to_3dfind( br->dset , fvm ) ;
+            fvm = THD_3dfind_to_fdfind( br , fvm ) ;
+  
+            /* plot a line segment between them, in the plane of the slice */
+            /* [21 Mar 2002: include the 0.5 shift mentioned way up above] */
+  
+            plotline_memplot( s1*(fvp.xyz[0]+0.5) , 1.0-s2*(fvp.xyz[1]+0.5) ,
+                              s1*(fvm.xyz[0]+0.5) , 1.0-s2*(fvm.xyz[1]+0.5)  ) ;
+  
+          } /* end of loop over triangles */
+          set_thick_memplot(0.0) ;              /* 15 Jan 2003 */
+        } /* end of loop over levels: 26 Feb 2003 */
       } /* end of if over doing lines */
      } /* end of loop over surface index ks */
     } /* end of plotting surface stuff */

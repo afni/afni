@@ -4534,7 +4534,10 @@ DPR(" .. ButtonPress") ;
 
          /* don't allow button presses in a recorder window, or in zoom-pan mode */
 
-         if( seq->record_mode || seq->zoom_button1 ){ XBell(seq->dc->display,100); EXRETURN; }
+         if( seq->record_mode || seq->zoom_button1 ){
+           if( seq->record_mode || event->button != Button1 ) XBell(seq->dc->display,100);
+           EXRETURN;
+         }
 
          /* button press in the wbar => popup menu */
 

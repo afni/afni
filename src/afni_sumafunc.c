@@ -506,6 +506,10 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
                                "Lines" , im3d->dc ,                \
                                0 , im3d->dc->ovc->ncol_ov-1 , 1 ,  \
                                AFNI_surf_redraw_CB , im3d ) ;      \
+     swid->surf_ledg_av[ii] = new_MCW_colormenu( rc ,              \
+                               "+/-" , im3d->dc ,                  \
+                               0 , im3d->dc->ovc->ncol_ov-1 , 0 ,  \
+                               AFNI_surf_redraw_CB , im3d ) ;      \
      MCW_reghint_children( swid->surf_node_av[ii]->wrowcol ,       \
                            "Color of node boxes" ) ;               \
      MCW_reghelp_children( swid->surf_node_av[ii]->wrowcol ,       \
@@ -517,9 +521,14 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
                            "Color of triangle lines" ) ;           \
      MCW_reghelp_children( swid->surf_line_av[ii]->wrowcol ,       \
                            "If this is not 'none', then\n"         \
-                           "line segments will be drawn for\n"     \
-                           "the intersection of each surface\n"    \
-                           "triangle with the slice plane."    ) ; \
+                           "line segments will be drawn for the\n" \
+                           "intersection of each surface facet\n"  \
+                           "with the slice center plane."       ); \
+     MCW_reghelp_children( swid->surf_ledg_av[ii]->wrowcol ,       \
+                           "If this is not 'none', then\n"         \
+                           "line segments will be drawn for the\n" \
+                           "intersection of each surface facet\n"  \
+                           "with the slice edge planes (+/-)." ) ; \
   } while(0)
 
 /*------------------------------------------------------------------------*/
@@ -668,6 +677,7 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
    swid->surf_bbox    = (MCW_bbox **)     XtCalloc( num , sizeof(MCW_bbox *)     ) ;
    swid->surf_node_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
    swid->surf_line_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
+   swid->surf_ledg_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
 
    for( ii=0 ; ii < num ; ii++ ){
       MAKE_SURF_ROW(ii) ;
@@ -714,6 +724,7 @@ ENTRY("AFNI_update_surface_widgets") ;
      swid->surf_bbox    = (MCW_bbox **)     XtRealloc( (char *)swid->surf_bbox   ,num*sizeof(MCW_bbox *)     );
      swid->surf_node_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_node_av,num*sizeof(MCW_arrowval *) );
      swid->surf_line_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_line_av,num*sizeof(MCW_arrowval *) );
+     swid->surf_ledg_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_line_av,num*sizeof(MCW_arrowval *) );
      for( ii=swid->nall ; ii < num ; ii++ ){
        MAKE_SURF_ROW(ii) ;
      }

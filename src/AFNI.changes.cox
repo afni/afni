@@ -4355,3 +4355,7 @@
      when multiple timeseries graphing was introduced - forgot to
      reset tsar pointer to original data when graphing double plot
      in plus/minus mode.
+
+26 Feb 2003
+ * Modified afni_graph.c and afni_sumafunc.c to allow drawing of triangle
+     intersections at edges of slice plane, as well as at center.
