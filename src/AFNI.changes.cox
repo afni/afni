@@ -4242,3 +4242,6 @@
  * Modified afni.c to do the time lock properly when the anat has no
      time axis but the func does.
  * Modified 3dcopy.c to work with copying non-AFNI datasets.
+
+29 Jan 2003
+ * Modified 3drefit.t to add -Torg option (for MEG guys).

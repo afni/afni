@@ -72,7 +72,9 @@ void Syntax(char * str)
     "\n"
     "  -TR time        Changes the TR time to a new value (see 'to3d -help').\n"
     "  -notoff         Removes the slice-dependent time-offsets.\n"
-    "               ** WARNING: these 2 options apply only to 3D+time datasets.\n"
+    "  -Torg ttt       Set the time origin of the dataset to value 'ttt'.\n"
+    "                  (Time origins are set to 0 in to3d.)\n"
+    "               ** WARNING: these 3 options apply only to 3D+time datasets.\n"
     "\n"
     "  -newid          Changes the ID code of this dataset as well.\n"
     "\n"
@@ -200,6 +202,7 @@ int main( int argc , char * argv[] )
    int new_ydel   = 0 ; float ydel ;
    int new_zdel   = 0 ; float zdel ;
    int new_TR     = 0 ; float TR ;
+   int new_Torg   = 0 ; float Torg ; /* 29 Jan 2003 */
    int new_tunits = 0 ; int tunits ;
    int new_idcode = 0 ;
    int new_nowarp = 0 ;
@@ -630,6 +633,18 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /** -Torg (29 Jan 2003) **/
+
+      if( strncmp(argv[iarg],"-Torg",5) == 0 ){
+        char *eptr ;
+        if( iarg+1 >= argc ) Syntax("need an argument after -Torg!");
+        Torg = strtod( argv[++iarg]  , &eptr ) ;
+        if( *eptr != '\0' )
+          fprintf(stderr,"** -Torg %s ends in unexpected character\n",argv[iarg]) ;
+        new_Torg = 1 ; new_stuff++ ;
+        iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** -newid **/
 
       if( strncmp(argv[iarg],"-newid",4) == 0 ){
@@ -863,6 +878,14 @@ int main( int argc , char * argv[] )
                   dset->taxis->toff_sl[ii] *= frac ;
             }
          }
+      }
+
+      if( new_Torg ){                   /* 29 Jan 2003 */
+        if( dset->taxis == NULL ){
+          fprintf(stderr,"  ** can't process -Torg for this dataset!\n") ;
+        } else {
+          dset->taxis->ttorg = Torg ;
+        }
       }
 
       if( new_toff_sl ){              /* 12 Feb 2001 */
