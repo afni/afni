@@ -1463,7 +1463,7 @@ void read_input_data
             if( strcmp( option_data->stim_filename[is] ,
                         option_data->stim_filename[js]  ) == 0 )
               fprintf(stderr,"** -stim_file ERROR: "
-                             "filename #%d '%s' identical to #%d '%s'\n" ,
+                             "#%d '%s' same as #%d '%s'\n" ,
                       is+1,option_data->stim_filename[is] ,
                       js+1,option_data->stim_filename[js]  ) ;
           }
@@ -3057,7 +3057,7 @@ void calculate_results
   { int *iar , k ;
     iar = matrix_check_columns( xdata , 1.e-3 ) ;
     if( iar != NULL ){
-      fprintf(stderr,"\n** Problems with the X matrix columns:\n") ;
+      fprintf(stderr,"** Problems with the X matrix columns:\n") ;
       for( k=0 ; iar[2*k] >= 0 ; k++ ){
         if( iar[2*k+1] >= 0 )
           fprintf(stderr," * Columns %d and %d are nearly collinear!\n",
@@ -3065,7 +3065,6 @@ void calculate_results
         else
           fprintf(stderr," * Column %d is all zeros!\n",iar[2*k] ) ;
       }
-      fprintf(stderr,"\n") ;
       free(iar) ;
     }
   }
