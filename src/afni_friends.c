@@ -385,7 +385,7 @@ static mday holiday[] = {
    {JUL, 1,"Ghana Republic Day"                                      } ,
    {JUL, 1,"Rwanda Independence Day"                                 } ,
    {JUL, 1,"Somalia Independence Day"                                } ,
-   {JUL, 2,"Anniversay of American Independence"                     } ,
+   {JUL, 2,"Anniversary of American Independence"                    } ,
    {JUL, 2,"Thurgood Marshall's birthday"                            } ,
    {JUL, 3,"Franz Kafka's birthday"                                  } ,
    {JUL, 4,"Anniversary of Declaration of Independence"              } ,
