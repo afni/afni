@@ -5,7 +5,7 @@ int main( int argc , char *argv[] )
    int iarg , ii,jj,kk,mm , nvec , do_one=0 , nx=0,ny , ff ;
    MRI_IMAGE *tim ;
    MRI_IMARR *tar ;
-   double *amat , *sval , *umat , *vmat ;
+   double *amat , *sval , *umat , *vmat , smax,del,sum ;
    float *far ;
 
    /* help? */
@@ -70,9 +70,10 @@ int main( int argc , char *argv[] )
 
    /* create matrix from 1D files */
 
-#define A(i,j) amat[(i)+(j)*nx]
-#define U(i,j) umat[(i)+(j)*nx]
-#define V(i,j) vmat[(i)+(j)*nvec]
+#define A(i,j) amat[(i)+(j)*nx]     /* nx X nvec matrix */
+#define U(i,j) umat[(i)+(j)*nx]     /* ditto */
+#define V(i,j) vmat[(i)+(j)*nvec]   /* nvec X nvec matrix */
+#define X(i,j) amat[(i)+(j)*nvec]   /* nvec X nx matrix */
 
    amat = (double *)malloc( sizeof(double)*nx*nvec ) ;
    umat = (double *)malloc( sizeof(double)*nx*nvec ) ;
@@ -127,6 +128,35 @@ int main( int argc , char *argv[] )
    for( kk=0 ; kk < nvec ; kk++ ){
      printf("%02d:",kk) ;
      for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",V(kk,jj)) ;
+     printf("\n") ;
+   }
+
+   smax = sval[0] ;
+   for( ii=1 ; ii < nvec ; ii++ )
+     if( sval[ii] > smax ) smax = sval[ii] ;
+
+   del = 1.e-12 * smax*smax ;
+   for( ii=0 ; ii < nvec ; ii++ )
+     sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
+
+   /* create pseudo-inverse */
+
+   for( ii=0 ; ii < nvec ; ii++ ){
+     for( jj=0 ; jj < nx ; jj++ ){
+       sum = 0.0l ;
+       for( kk=0 ; kk < nvec ; kk++ )
+         sum += sval[kk] * V(ii,kk) * U(jj,kk) ;
+       X(ii,jj) = sum ;
+     }
+   }
+
+   printf("\n"
+          "++ Pseudo-inverse:\n   " ) ;
+   for( jj=0 ; jj < nx ; jj++ ) printf(" ---------") ;
+   printf("\n") ;
+   for( kk=0 ; kk < nvec ; kk++ ){
+     printf("%02d:",kk) ;
+     for( jj=0 ; jj < nx ; jj++ ) printf(" %9.5f",X(kk,jj)) ;
      printf("\n") ;
    }
 
