@@ -4,6 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*---------------------------------------------------------------------------*/
 /*
   This program calculates a functional image from an ANFI 3D+time data set, 
   by calculating the correlation between the image time series and one or
@@ -29,12 +30,19 @@
   Mod:     Added changes for incorporating History notes.
   Date:    10 September 1999
 
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
 
 */
 
-#define PROGRAM_NAME "3dfim"                         /* name of this program */
-#define PROGRAM_DATE "10 September 1999"         /* date of last program mod */
+/*---------------------------------------------------------------------------*/
 
+#define PROGRAM_NAME "3dfim"                         /* name of this program */
+#define PROGRAM_AUTHOR "R. W. Cox and B. D. Ward"          /* program author */
+#define PROGRAM_INITIAL "06 Sept 1996"    /* date of initial program release */
+#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+
+/*---------------------------------------------------------------------------*/
 
 #define SO_BIG 33333
 
@@ -731,6 +739,9 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
 
    /* --- give help if needed --- */
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax(NULL) ;
+  
+   /*----- add to program log -----*/
+   AFNI_logger (PROGRAM_NAME,argc,argv); 
 
    /* --- setup opt with defaults --- */
    strcpy (opt->prefix_name, "");   /* no prefix name yet */
@@ -985,17 +996,19 @@ void Syntax( char *note )
 
 int main( int argc , char *argv[] )
 {
-   line_opt  opt ;                /* holds data constructed from command line */
-   THD_3dim_dataset * new_dset;   /* functional data set to be calculated */
-   Boolean ok;                    /* true if 3d write is successful */
+   line_opt  opt ;               /* holds data constructed from command line */
+   THD_3dim_dataset * new_dset;  /* functional data set to be calculated */
+   Boolean ok;                   /* true if 3d write is successful */
    
-
 
    /*----- Identify software -----*/
    printf ("\n\n");
    printf ("Program: %s \n", PROGRAM_NAME);
-   printf ("Date:    %s \n", PROGRAM_DATE);
+   printf ("Author:  %s \n", PROGRAM_AUTHOR);
+   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
    printf ("\n");
+
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 

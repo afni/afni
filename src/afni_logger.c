@@ -43,9 +43,11 @@ int AFNI_logger( char * pname , int argc , char ** argv )
    FILE *fp ;
    int ll ;
 
-   eh = getenv("HOME") ; if( eh == NULL ) return -1 ;
-   if( AFNI_yesenv("AFNI_DONT_LOGFILE") ) return -1 ;
-   cline = tross_commandline( pname , argc , argv ) ;
+   if( pname == NULL || pname[0] == '\0' ) return -1 ;
+   eh = getenv("HOME") ; if( eh == NULL )  return -1 ;
+   if( AFNI_yesenv("AFNI_DONT_LOGFILE") )  return -1 ;
+   if( argc > 1 ) cline = tross_commandline( pname , argc , argv ) ;
+   else           cline = strdup(pname) ;
    if( cline == NULL ) return -1 ;
    cdate = tross_datetime() ;
    fn = malloc(strlen(eh)+strlen(logfile)+8) ;
@@ -57,7 +59,8 @@ int AFNI_logger( char * pname , int argc , char ** argv )
 #if 0
       fprintf(stderr,"%s: LOCKED\n",cline);
 #endif
-      AFNI_sleep(11) ; ll = LOCK_file(fp) ;
+      ll = strlen(pname) ; if( ll > 11 ) ll = 11 ;
+      AFNI_sleep(ll) ; ll = LOCK_file(fp) ;
       if( ll ){ fclose(fp); free(fn); free(cdate); free(cline); return -1; }
    }
    fseek(fp,0,SEEK_END) ;

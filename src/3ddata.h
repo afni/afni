@@ -2601,6 +2601,9 @@ extern char * tross_commandline( char * , int , char ** ) ;
 
 extern int AFNI_logger( char * , int , char ** ) ; /* 13 Aug 2001 */
 extern void AFNI_sleep( int ) ;
+#define AFNI_log_string(ss) AFNI_logger(ss,0,NULL)
+
+void THD_outlier_count( THD_3dim_dataset *, float, int **, int * ) ; /* 15 Aug 2001 */
 
 extern void   tross_Append_History ( THD_3dim_dataset * , char * ) ;
 extern char * tross_Get_History    ( THD_3dim_dataset * ) ;

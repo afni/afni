@@ -18,6 +18,13 @@
   Author:  B. Douglas Ward
   Date:    28 June 2001
 
+  Mod:     Correction to baseline parameter input error checking for case 
+           of concatenated runs.
+  Date:    11 July 2001
+
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -25,10 +32,9 @@
 #define PROGRAM_NAME    "3dConvolve"                 /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "28 June 2001"    /* date of initial program release */
-#define PROGRAM_LATEST  "28 June 2001"    /* date of latest program revision */
+#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
-
 
 #define RA_error DC_error
 
@@ -287,6 +293,10 @@ void get_options
 
   /*----- does user request help menu? -----*/
   if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
+
+  
+  /*----- add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv); 
 
   
   /*----- initialize the input options -----*/
@@ -1248,7 +1258,7 @@ void check_for_valid_inputs
   
 
   /*----- Check number of baseline parameters -----*/
-  if (base_length != option_data->polort+1)
+  if (base_length != (option_data->polort+1)*num_blocks)
     {
       sprintf (message, "Baseline parameters:   Expected: %d   Actual: %d",
 	       option_data->polort+1, base_length);
@@ -2147,7 +2157,7 @@ int main
 		     &censor_array, &good_list, &block_list,
 		     &stimulus, &stim_length, &errts_data, &predts_vol);
 
-
+  exit(0);
 }
 
 

@@ -11,12 +11,12 @@ int main( int argc , char * argv[] )
    byte * mmm=NULL ;
    int    mmvox=0 ;
    char * prefix=NULL ;
-   int do_autoclip=0 , npass=0 ;   /* 12 Aug 2001 */
+   int do_autoclip=0 , npass=0 , do_range=0 ;   /* 12 Aug 2001 */
    float clip_val=0.0 ;
 
    /*----- Read command line -----*/
 
-   if( argc < 2 ){
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dToutcount [options] dataset\n"
              "Calculates number of 'outliers' a 3D+time dataset, at each\n"
              "time point, and writes the results to stdout.\n"
@@ -26,6 +26,9 @@ int main( int argc , char * argv[] )
              " -qthr q    = Use 'q' instead of 0.001 in the calculation\n"
              "                of alpha (below): 0 < q < 1.\n"
              " -autoclip  = Clip off 'small' voxels (as in 3dClipLevel).\n"
+             " -range     = Print out median+3.5*MAD of outlier count with\n"
+             "                each time point; use with 1dplot as in\n"
+             "                3dToutcount -range fred+orig | 1dplot -stdin -one\n"
              " -save ppp  = Make a new dataset, and save the outlier Q in each\n"
              "                voxel, where Q is calculated from voxel value v by\n"
              "                Q = -log10(qg(abs((v-median)/(sqrt(PI/2)*MAD))))\n"
@@ -60,6 +63,10 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-autoclip") == 0 ){  /* 12 Aug 2001 */
          do_autoclip = 1 ; iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-range") == 0 ){  /* 12 Aug 2001 */
+         do_range = 1 ; iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-save") == 0 ){
@@ -202,7 +209,17 @@ int main( int argc , char * argv[] )
 
    if( saveit && cc > 0 ) DSET_write( oset ) ;
 
-   for( iv=0 ; iv < nvals ; iv++ ) printf("%6d\n",count[iv]) ;
+   if( do_range ){
+      float *ff = (float *)malloc(sizeof(float)*nvals) , cmed,cmad ;
+      int ctop ;
+
+      for( iv=0 ; iv < nvals ; iv++ ) ff[iv] = count[iv] ;
+      qmedmad_float( nvals,ff , &cmed,&cmad ) ; free(ff) ;
+      ctop = (int)(cmed+3.5*cmad+0.499) ;
+      for( iv=0 ; iv < nvals ; iv++ ) printf("%6d %d\n",count[iv],ctop) ;
+   } else {
+      for( iv=0 ; iv < nvals ; iv++ ) printf("%6d\n",count[iv]) ;
+   }
 
 #if 0
    DSET_unload(dset) ; free(count) ; free(var) ; if(mmm!=NULL)free(mmm) ;

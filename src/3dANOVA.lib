@@ -1,3 +1,10 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1998-2001, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
+/*---------------------------------------------------------------------------*/
 /*
    This file contains routines used by the three ANOVA programs:  3dANOVA, 
    3dANOVA2, and 3dANOVA3.
@@ -33,13 +40,11 @@
             to allow operator selection of individual sub-bricks for input.
    Date:    02 December 1999
 
+   Mod:     Correction to routine destroy_anova_options.  Removed memory
+            deallocation for option_data->first_dataset.
+   Date:    01 August 2001
+
 */
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
-
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -742,9 +747,6 @@ void destroy_anova_options (anova_options * option_data)
 	    free (option_data->xname[i][j][k][m]);
 	    option_data->xname[i][j][k][m] = NULL;
 	  }
-
-  free (option_data->first_dataset);
-  option_data->first_dataset = NULL;
 
   if (option_data->nftr)
     {

@@ -178,6 +178,9 @@
   Mod:     Minor changes to input error checking routine.
   Date:    06 July 2001
 
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -185,7 +188,7 @@
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "06 July 2001"    /* date of latest program revision */
+#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -565,6 +568,10 @@ void get_options
 
   /*----- does user request help menu? -----*/
   if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
+
+
+  /*----- add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv); 
 
   
   /*----- initialize the input options -----*/
@@ -3787,6 +3794,7 @@ int main
 		     &rfull_vol, &glt_coef_vol, &glt_fstat_vol, 
 		     &glt_rstat_vol, &fitts_vol, &errts_vol);
 
+  exit(0);
 }
 
 

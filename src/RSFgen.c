@@ -37,6 +37,9 @@
   Mod:     Changes to eliminate constraints on number of stimulus time series.
   Date:    11 May 2001
 
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -44,7 +47,7 @@
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "06 July 1999"    /* date of initial program release */
-#define PROGRAM_LATEST "11 May 2001"      /* date of latest program revision */
+#define PROGRAM_LATEST "15 August 2001"   /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -168,6 +171,10 @@ void get_options
 
   /*----- Does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
+
+  
+  /*----- add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv); 
 
 
   /*----- Main loop over input options -----*/
@@ -844,18 +851,8 @@ int main
   if (darray != NULL)  { free (darray); darray = NULL; }
   if (earray != NULL)  { free (earray); earray = NULL; }
 
-  return;
+  exit(0);
 }
 
 /*---------------------------------------------------------------------------*/
-
-
-
-
-
-
-
-
-
-
 

@@ -4,6 +4,27 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*---------------------------------------------------------------------------*/
+/*
+  This program extracts 2D image files from an AFNI 3D dataset.
+
+  File:    from3d.c
+  Author:  B. Douglas Ward
+  Date:    30 August 1996
+
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
+*/
+/*---------------------------------------------------------------------------*/
+
+#define PROGRAM_NAME "from3d"                        /* name of this program */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_INITIAL "30 August 1996"  /* date of initial program release */
+#define PROGRAM_LATEST "15 August 2001"     /* date of last program revision */
+
+/*---------------------------------------------------------------------------*/
+
 #include "mrilib.h"
 
 #define FatalError(str) \
@@ -66,7 +87,11 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
    int nopt;
    float ftemp;
 
-   if (Argc < 2)  Syntax();
+   /*----- Does user request help menu? -----*/
+   if (Argc < 2 || strncmp(Argv[1],"-help",4) == 0) Syntax();
+
+   /*----- Add to program log -----*/
+   AFNI_logger (PROGRAM_NAME,Argc,Argv); 
 
    /* --- set default values --- */
    *verbose = FALSE;
@@ -85,9 +110,6 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
    nopt = 1 ;
    while ( nopt < Argc && Argv[nopt][0] == '-' )
    {
-
-       /* --- help option --- */
-      if ( strncmp(Argv[nopt],"-help",4) == 0 )  Syntax() ;
 
       /* --- verbose option --- */
       if ( strncmp(Argv[nopt],"-v",2) == 0 )
@@ -213,6 +235,15 @@ int main( int argc , char * argv[] )
         prefix_filename[THD_MAX_NAME],
         output_filename[THD_MAX_NAME],
         str[THD_MAX_NAME];
+
+  
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+  printf ("\n");
 
    /* --- get user command line inputs --- */
    F3D_initialize_user_data (argc, argv,

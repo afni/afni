@@ -1,6 +1,6 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   of Wisconsin, 1994-2001, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
@@ -14,11 +14,20 @@
   Author:  B. Douglas Ward
   Date:    18 March 1998
 
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 
+/*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dbuc2fim"                     /* name of this program */
-#define LAST_MOD_DATE "18 March 1998"            /* date of last program mod */
+#define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
+#define PROGRAM_INITIAL "18 March 1998"   /* date of initial program release */
+#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+
+/*---------------------------------------------------------------------------*/
+
 
 #include "mrilib.h"
 
@@ -326,15 +335,20 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * new_dset=NULL , * dset ;
    char buf[256] ;
 
-   /*----- identify program -----*/
-   printf ("\n\nProgram %s \n", PROGRAM_NAME);
-   printf ("Last revision: %s \n\n", LAST_MOD_DATE);
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR);
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+  printf ("\n");
+
 
    /*** read input options ***/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) B2F_Syntax() ;
 
-   mainENTRY("3dbuc2fim main"); machdep(); AFNI_logger("3dbuc2fim",argc,argv);
+   mainENTRY("3dbuc2fim main"); machdep(); AFNI_logger(PROGRAM_NAME,argc,argv);
 
    B2F_read_opts( argc , argv ) ;
 

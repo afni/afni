@@ -16,12 +16,16 @@
   Author:  B. Douglas Ward
   Date:    12 April 2001
 
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dExtrema"                     /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "12 April 2001"             /* date of last program mod */
+#define PROGRAM_INITIAL "12 April 2001" /* date of initial program release */
+#define PROGRAM_LATEST "15 August 2001"     /* date of last program revision */
 
 
 /*---------------------------------------------------------------------------*/
@@ -1233,8 +1237,15 @@ void * initialize_program (int argc, char * argv[], int * nopt)
   commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
 
 
-  /*----- Read input options -----*/
+  /*----- Does user request help menu? -----*/
   if( argc < 2 || strcmp(argv[1],"-help") == 0 ) EX_Syntax() ;
+
+  
+  /*----- Add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv); 
+
+
+  /*----- Read input options -----*/
   *nopt = EX_read_opts( argc , argv ) ;
 
 
@@ -1649,9 +1660,10 @@ int main( int argc , char * argv[] )
 
   /*----- Identify software -----*/
   printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
-  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
 

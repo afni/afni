@@ -206,6 +206,8 @@ void AFNI_load_defaults( Widget ) ;
 
 int decode_location( char * str , float * val , int * dcode ) ;
 
+void T3D_check_outliers(int) ;  /* 15 Aug 2001 */
+
 static int   INIT_ngray ;
 static float INIT_gamma ;
 static float INIT_fov ;

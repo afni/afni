@@ -1678,6 +1678,8 @@ STATUS("defaulted anatomy underlay") ;
 
    AFNI_process_alteration(im3d) ;
 
+   HINTIZE_pbar(im3d) ; /* 15 Aug 2001 */
+
    EXRETURN ;
 }
 

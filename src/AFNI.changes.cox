@@ -3023,3 +3023,12 @@
 
 14 Aug 2001
  * Modified a bunch of programs to use AFNI_logger().
+
+15 Aug 2001
+ * Modified 3dToutcount.c to have a -range option, a la 3dTqual.c.
+ * Added function THD_outlier_count() to do more or less what 3dToutcount.c does.
+ * Used this in to3d.c to automatically check new 3D+time datasets for outliers.
+
+16 Aug 2001
+ * Modified afni_func.c to hintize the pbar in function AFNI_underlay_CB().
+ * Modified the outlier stuff in to3d.c some.

@@ -1,6 +1,6 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   of Wisconsin, 1994-2001, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
@@ -43,13 +43,20 @@
            to allow operator selection of individual sub-bricks for input.
   Date:    03 December 1999
 
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME "3dRegAna"                      /* name of this program */
-#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "03 December 1999"          /* date of last program mod */
+#define PROGRAM_NAME    "3dRegAna"                   /* name of this program */
+#define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
+#define PROGRAM_INITIAL "10 Oct 1997"     /* date of initial program release */
+#define PROGRAM_LATEST  "15 Aug 2001"     /* date of latest program revision */
+
+/*---------------------------------------------------------------------------*/
+
 #define SUFFIX ".3dregana"                     /* suffix for temporary files */
 
 #include <stdio.h>
@@ -59,7 +66,6 @@
 
 
 #include "RegAna.c"
-
 
 /*---------------------------------------------------------------------------*/
 
@@ -1089,6 +1095,10 @@ void get_inputs
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
  
+  
+  /*----- add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv); 
+
 
   /*----- initialize the input options -----*/
   initialize_options (regmodel, option_data);
@@ -3184,12 +3194,13 @@ int main
   model regmodel;              /* linear regression model */
   int piece_size;              /* number of voxels in dataset piece */
 
-
+   
   /*----- Identify software -----*/
   printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
-  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
   /*-- 22 Feb 1999: addto the arglist, if user wants to --*/
@@ -3215,6 +3226,7 @@ int main
   /*----- end of program -----*/
   terminate_program (&xdata, &regmodel, &option_data);  
 
+  exit(0);
 }
 
 

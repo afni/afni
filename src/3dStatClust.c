@@ -28,13 +28,16 @@
   Mod:     Corrected error in sort_clusters routine.
   Date:    30 April 2001
 
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dStatClust"                   /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "08 October 1999" /* date of initial program release */
-#define PROGRAM_LATEST "30 April 2001"      /* date of last program revision */
+#define PROGRAM_LATEST "15 August 2001"     /* date of last program revision */
 
 #define MAX_PARAMETERS 100
 
@@ -344,8 +347,14 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
   commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
 
 
-  /*----- Read input options -----*/
+  /*----- Does user request help menu? -----*/
   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) SC_Syntax() ;
+
+  /*----- Add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv); 
+
+
+  /*----- Read input options -----*/
   nopt = SC_read_opts( argc , argv ) ;
 
 

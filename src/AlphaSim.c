@@ -25,6 +25,10 @@
 
   Mod:     Added -mask option.  (Adapted from: 3dpc.c)
   Date:    15 June 2000
+
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 
 
@@ -33,7 +37,7 @@
 #define PROGRAM_NAME "AlphaSim"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "18 June 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "15 June 2000"    /* date of latest program revision */
+#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -175,6 +179,10 @@ void get_options (int argc, char ** argv,
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
   
+  
+  /*----- add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv); 
+
 
   /*----- initialize the input options -----*/
   initialize_options (nx, ny, nz, dx, dy, dz, filter, sigmax, sigmay, sigmaz,
@@ -1511,6 +1519,7 @@ int main (int argc, char ** argv)
   /*----- terminate program -----*/
   terminate (&fim, &arfim, &freq_table, &max_table);
 
+  exit(0);
 }
 
 

@@ -23,6 +23,8 @@ static THD_diskptr      * dkptr   = NULL ;
 static THD_marker_set   * markers = NULL ;
 static THD_string_array * imnames = NULL ;  /* name for each slice */
 
+static int outliers_checked = 0 ; /* 15 Aug 2001 */
+
 static int     Argc , First_Image_Arg = 1 ;
 static char ** Argv ;
 static char *  dbrick = NULL ;  /* global image data array */
@@ -95,19 +97,29 @@ static char * FALLback[] =
 
 void AFNI_handler(char * msg){}
 
+#define CURSOR_normalize                                                    \
+  do{ MCW_alter_widget_cursor(wset.topshell,-XC_left_ptr,"yellow","blue") ; \
+      XSync( XtDisplay(wset.topshell), False ) ;                            \
+      XmUpdateDisplay( wset.topshell ) ; } while(0)
+
+#define CURSOR_watchize                                \
+  do{ MCW_set_widget_cursor(wset.topshell,-XC_watch) ; \
+      XSync( XtDisplay(wset.topshell), False ) ;       \
+      XmUpdateDisplay( wset.topshell ) ; } while(0)
+
 void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    char msg[512] ;
 
    MCW_help_CB(NULL,NULL,NULL) ;
-   MCW_alter_widget_cursor( wset.topshell , -XC_left_ptr , "yellow","blue" ) ;
+   CURSOR_normalize ;
 
    if( negative_shorts && !AFNI_yesenv("AFNI_NO_NEGATIVES_WARNING") ){ /* 19 Jan 2000 */
       sprintf(msg , " \n"
-                    " WARNING: %d negative voxels were\n"
-                    "          read in images of shorts.\n"
-                    "          It is possible the input\n"
-                    "          images need byte-swapping.\n \n"
+                    " to3d WARNING: %d negative voxels were\n"
+                    "               read in images of shorts.\n"
+                    "               It is possible the input\n"
+                    "               images need byte-swapping.\n \n"
                     " ** I recommend that you View Images. **\n" ,
               negative_shorts ) ;
 
@@ -117,16 +129,23 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 
    if( nfloat_err ){ /* 20 Jan 2000 */
       sprintf(msg , " \n"
-                    " WARNING: %d errors in floating point images\n"
-                    "          were detected.  It is possible that\n"
-                    "          the inputs need to be 4swap-ed, or\n"
-                    "          otherwise repaired.\n \n"
-                    " ** Erroneous values have been replaced by\n"
+                    " to3d WARNING: %d errors in floating point images\n"
+                    "               were detected.  It is possible that\n"
+                    "               the inputs need to be 4swap-ed, or\n"
+                    "               otherwise repaired.\n \n"
+                    " ** Erroneous values have been replaced by   **\n"
                     " ** zeros. I recommend that you View Images. **\n" ,
               nfloat_err ) ;
 
       (void) MCW_popup_message( wset.geometry_parent_label , msg ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
+
+   if( user_inputs.ntt > 0 ){                 /* 15 Aug 2001 */
+      dset->taxis = myXtNew( THD_timeaxis ) ;
+      dset->taxis->ntt = user_inputs.ntt ;
+      T3D_check_outliers(0) ; outliers_checked = 1 ;
+      myXtFree(dset->taxis) ;
    }
 }
 
@@ -177,7 +196,6 @@ int main( int argc , char * argv[] )
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
-   AFNI_logger("to3d",argc,argv) ; /* 14 Aug 2001 */
 
    Argc = argc ; Argv = argv ;
 
@@ -185,8 +203,9 @@ int main( int argc , char * argv[] )
    T3D_read_images() ;
 
    if( negative_shorts )
-      printf("WARNING: %d negative voxels were read in images of shorts.\n"
-             "         It is possible the input images need byte-swapping.\n",
+      fprintf(stderr,
+             "to3d WARNING: %d negative voxels were read in images of shorts.\n"
+             "              It is possible the input images need byte-swapping.\n",
              negative_shorts ) ;
 
 QQQ("main1");
@@ -324,7 +343,7 @@ QQQ("main2");
 
    /* let the user do the rest */
 
-   (void) XtAppAddTimeOut( app , 1000 , AFNI_startup_timeout_CB , NULL ) ;
+   (void) XtAppAddTimeOut( app , 999 , AFNI_startup_timeout_CB , NULL ) ;
    XtAppMainLoop(app) ;
    exit(0) ;
 }
@@ -2056,6 +2075,16 @@ void T3D_initialize_user_data(void)
          nopt++ ; continue ;
       }
 
+      /*--- 15 Aug 2001: -skip_outliers ---*/
+
+      if( strcmp(Argv[nopt],"-skip_outliers") == 0 ){
+         putenv("AFNI_TO3D_OUTLIERS=No") ; nopt++ ; continue ;
+      }
+
+      if( strcmp(Argv[nopt],"-text_outliers") == 0 ){
+         putenv("AFNI_TO3D_OUTLIERS=Text") ; nopt++ ; continue ;
+      }
+
       /*--- July 1997: -orient code ---*/
 
       if( strncmp(Argv[nopt],"-orient",4) == 0 ){
@@ -2765,6 +2794,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
      }
 
      commandline = tross_commandline( "to3d" , Argc , qargv ) ;
+     AFNI_log_string(commandline) ; /* 14 Aug 2001 */
 
      if( qargv != Argv ) free(qargv) ;
    }
@@ -3133,6 +3163,23 @@ void Syntax()
 
    printf(
     "\n"
+    "NEW IN 2001:\n"
+    "  -skip_outliers\n"
+    "     If present, this tells the program to skip the outlier check that is\n"
+    "     automatically performed for 3D+time datasets.  You can also turn this\n"
+    "     feature off by setting the environment variable AFNI_TO3D_OUTLIERS\n"
+    "     to \"No\".\n"
+    "  -text_outliers\n"
+    "    If present, tells the program to only print out the outlier check\n"
+    "     results in text form, not graph them.  You can make this the default\n"
+    "     by setting the environment variable AFNI_TO3D_OUTLIERS to \"Text\".\n"
+    "    N.B.: If to3d is run in batch mode, then no graph can be produced.\n"
+    "          Thus, this option only has meaning when to3d is run with the\n"
+    "          interactive graphical user interface.\n"
+   ) ;
+
+   printf(
+    "\n"
     "OPTIONS THAT AFFECT THE X11 IMAGE DISPLAY\n"
     "   -gamma gg    the gamma correction factor for the\n"
     "                  monitor is 'gg' (default gg is 1.0; greater than\n"
@@ -3381,6 +3428,13 @@ void T3D_swap_CB( Widget w , XtPointer cd , XtPointer call_data )
    if( ISQ_REALZ(wset.seq) ){
       drive_MCW_imseq( wset.seq , isqDR_clearstat , NULL ) ;
       drive_MCW_imseq( wset.seq , isqDR_display   , (XtPointer)-1 ) ;
+   }
+
+   if( user_inputs.ntt > 0 ){                 /* 15 Aug 2001 */
+      dset->taxis = myXtNew( THD_timeaxis ) ;
+      dset->taxis->ntt = user_inputs.ntt ;
+      T3D_check_outliers(0) ; outliers_checked = 1 ;
+      myXtFree(dset->taxis) ;
    }
 
    return ;
@@ -4202,7 +4256,7 @@ void T3D_open_view_CB( Widget w ,
       if( ISQ_REALZ(wset.seq) )
          XMapRaised( XtDisplay(wset.topshell) , XtWindow(wset.seq->wtop) ) ;
       else
-         XBell( XtDisplay(wset.topshell) , 100 ) ;
+         XBell( XtDisplay(wset.topshell) , 100 ) ; /* should never happen */
       return ;
    }
 
@@ -4236,6 +4290,8 @@ void T3D_open_view_CB( Widget w ,
    { static char * ws[4] = { "-x" , "-y" , "+x" , "+y" } ;
      drive_MCW_imseq( wset.seq, isqDR_winfosides, (XtPointer)ws ) ;
    }
+
+   drive_MCW_imseq( wset.seq , isqDR_display , (XtPointer)-1 ) ;
 
    MCW_invert_widget( wset.open_view_pb ) ;
 
@@ -4448,9 +4504,9 @@ QQQ("save_file1");
    /*-- get the dataset statistics --*/
 
    if( dset->taxis == NULL )
-      bigfile = (daxes->nxx * daxes->nyy * daxes->nzz > 999999) ;
+      bigfile = (daxes->nxx * daxes->nyy * daxes->nzz > 9999999) ;
    else
-      bigfile = (daxes->nxx * daxes->nyy * daxes->nzz * dset->taxis->ntt > 999999) ;
+      bigfile = (daxes->nxx * daxes->nyy * daxes->nzz * dset->taxis->ntt > 9999999) ;
 
    if( wset.topshell != NULL && bigfile ){
       wmsg = MCW_popup_message( wset.save_file_pb ,
@@ -4467,6 +4523,10 @@ QQQ("save_file1");
    }
 
    THD_load_statistics( dset ) ;
+
+   if( !outliers_checked ){    /* 15 Aug 2001 */
+      T3D_check_outliers(0) ; outliers_checked = 1 ;
+   }
 
    if( wmsg != NULL ) XtDestroyWidget( wmsg ) ;
 
@@ -5466,3 +5526,94 @@ int decode_location( char * str , float * val , int * dcode )
    return (sstr-str) ;
 }
 #endif /* USE_OLD_DCODE */
+
+/*----------------------- 15 Aug 2001: count outliers -----------------------------*/
+
+void T3D_check_outliers( int opcode )
+{
+   char *eee = my_getenv("AFNI_TO3D_OUTLIERS") ;
+   int skip = (eee != NULL && (*eee == 'N' || *eee == 'n')) ;
+   int text = (eee != NULL && (*eee == 'T' || *eee == 't')) ;
+
+   if( dset->taxis != NULL                  &&
+       dset->taxis->ntt > 5                 &&
+       !skip                                &&
+       ISANATTYPE(user_inputs.dataset_type)   ){
+
+     int *out_count, out_ctop , cc=0 ;
+     Widget wmsg ;
+
+     if( wset.topshell != NULL ){
+        wmsg = MCW_popup_message( wset.save_file_pb ,
+                                   "****************\n"
+                                   "* Checking for *\n"
+                                   "* time series  *\n"
+                                   "*   outliers   *\n"
+                                   "****************" ,
+                                MCW_CALLER_KILL ) ;
+        CURSOR_watchize ;
+     } else {
+        fprintf(stderr,"Checking for time series outliers\n") ;
+     }
+
+     THD_outlier_count( dset , 0.01 , &out_count , &out_ctop ) ;
+
+     if( out_count != NULL && out_ctop > 0 ){  /* compute the output message */
+        int iv,nvals=dset->taxis->ntt ;
+        char *msg = malloc(888+8*nvals) ;
+        strcpy(msg," \nto3d WARNING:\nSignificant outliers detected in these sub-bricks:\n") ;
+        for( iv=0 ; iv < nvals ; iv++ ){
+           if( out_count[iv] > out_ctop ){
+              sprintf(msg+strlen(msg)," %3d",iv) ; cc++ ;
+              if( cc%12 == 0 ) strcat(msg,"\n") ;
+           }
+        }
+        if( cc%12 > 0 ) strcat(msg,"\n") ;
+        strcat(msg,"You should inspect the dataset for possible corruption.\n");
+        strcat(msg," [Outliers are defined as in program 3dToutcount.     ]\n");
+        strcat(msg," [Outliers early in an EPI time series may be due to  ]\n");
+        strcat(msg," [the longitudinal magnetization equilibration effect.]\n");
+        strcat(msg," [Other causes are subject movement, scanner problems,]\n");
+        strcat(msg," [or anything that makes a time series look irregular.]\n");
+        strcat(msg," [  3dToutcount -save outnam dataset | 1dplot -stdin  ]\n");
+        strcat(msg," [can be used to make a dataset 'outnam' that marks   ]\n");
+        strcat(msg," [outlier voxels; see 3dToutcount -help for details.  ]\n");
+
+        if( cc > 0 ){                             /* any sub-bricks fail? */
+           fprintf(stderr,"%s\n",msg) ;           /* print message        */
+           if( wset.topshell != NULL && !text ){  /* graph outlier count  */
+              float *y[2] ;
+              y[0] = malloc(sizeof(float)*nvals) ;
+              y[1] = malloc(sizeof(float)*nvals) ;
+              for( iv=0 ; iv < nvals ; iv++ ){
+                 y[0][iv] = out_count[iv] ; y[1][iv] = out_ctop ;
+              }
+              plot_ts_lab( XtDisplay(wset.topshell) ,              /* graph */
+                           nvals , NULL , 2 , y ,
+                           "Sub-brick Index" ,
+                           "Outlier Count (and Threshold)" ,
+                           user_inputs.output_filename , NULL , NULL ) ;
+              free(y[0]); free(y[1]) ;
+           }
+           (void) MCW_popup_message( wset.xsize_av->wrowcol , /* message */
+                                     msg , MCW_USER_KILL     ) ;
+        }
+        free(msg) ;
+     }
+
+     if( out_count != NULL ) free(out_count) ;
+
+     if( wset.topshell != NULL ){
+        XtDestroyWidget(wmsg); CURSOR_normalize;
+        if( cc == 0 )
+          (void) MCW_popup_message( wset.save_file_pb ,
+                                    " \n"
+                                    "** No unusual outlier  **\n"
+                                    "** concentration found **\n" ,
+                                    MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     } else {
+        if( cc == 0 )
+          fprintf(stderr,"No unusual outlier concentration found\n") ;
+     }
+   }
+}

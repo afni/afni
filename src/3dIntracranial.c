@@ -1,6 +1,6 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   of Wisconsin, 1999-2001, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
@@ -21,13 +21,18 @@
 
   Mod:     Interface changes for new estpdf.c
   Date:    28 January 2000
+
+  Mod:     Added call to AFNI_logger.
+  Date:    15 August 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dIntracranial"                /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
-#define PROGRAM_DATE "28 January 2000"           /* date of last program mod */
+#define PROGRAM_INITIAL "04 June 1999"    /* date of initial program release */
+#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -127,6 +132,10 @@ void get_options
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
    
+  
+  /*----- add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv); 
+
 
   /*----- main loop over input options -----*/
   while (nopt < argc )
@@ -610,7 +619,7 @@ void SEGMENT_auto ()
   write_afni_data (cv);
 
 
- return ;
+  return ;
 
 }
 
@@ -632,7 +641,8 @@ int main
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
   printf ("Author:  %s \n", PROGRAM_AUTHOR);
-  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
   
@@ -643,6 +653,7 @@ int main
   /*----- Perform automatic segmentation -----*/
   SEGMENT_auto();
 
+  exit(0);
 }
 
 /*---------------------------------------------------------------------------*/
