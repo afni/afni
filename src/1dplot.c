@@ -266,3 +266,13 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 
    return ;
 }
+
+/*----------  Fix a Linux stupidity  ------------------------------------*/
+
+#ifdef NEED_XSETLOCALE
+#include <locale.h>
+
+char * _Xsetlocale( int category, const char * locale)
+{ return setlocale(category,locale) ; }
+#endif
+

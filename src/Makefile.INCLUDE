@@ -21,7 +21,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
 
 T3OBJS  = to3d.o $(IMOBJS)
 
-MISC    = afni.montage AFNI.Xdefaults AFNI.afnirc mF64 mF128 3d*.lib gmovie
+MISC    = afni.montage AFNI.Xdefaults AFNI.afnirc mF64 mF128 3d*.lib gmovie*
 
 ## Some programs (like whirlgif) are not included in this list,
 ## and must be "made" separately.  This list is the core AFNI

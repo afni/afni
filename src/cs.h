@@ -21,6 +21,7 @@ extern void qsort_intint   ( int , int *    , int * ) ;
 /***** Eigensolutions *****/
 
 extern void symeig_double( int , double * , double * ) ;
+extern void symeigval_double( int , double * , double * ) ;
 
 /***** Argument list mangling *****/
 

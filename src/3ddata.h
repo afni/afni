@@ -2052,6 +2052,7 @@ extern THD_string_array * THD_get_all_filenames( char * ) ;
 extern THD_string_array * THD_extract_regular_files( THD_string_array * ) ;
 extern THD_string_array * THD_extract_directories( THD_string_array * ) ;
 extern int THD_is_file( char * pathname ) ;
+extern int THD_is_symlink( char * pathname ) ;  /* 03 Mar 1999 */
 extern int THD_is_directory( char * pathname ) ;
 extern int THD_equiv_files( char * , char * ) ;
 extern long THD_filesize( char * pathname ) ;

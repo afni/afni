@@ -634,6 +634,7 @@ fprintf(stderr,"dcode=%d  dx=%g  dy=%g  dz=%g\n",
    Input and output arrays are f[n] and g[n].  (Note: g may be NULL.)
 ----------------------------------------------------------------------------*/
 
+#undef TAPER
 #define TFRAC 0.05
 #define RECUR
 
@@ -660,6 +661,7 @@ static void fft_shift2( int n, int nup, float af, float * f, float ag, float * g
       nuptop = nup ;
    }
 
+#ifdef TAPER
    if( nup != nupold ){
       ntaper = TFRAC * nup ;
       ntbase = n21 - ntaper ;
@@ -672,6 +674,7 @@ static void fft_shift2( int n, int nup, float af, float * f, float ag, float * g
          taper[ii] = 0.54 + 0.46 * cos((ii+1)*sf) ; /* Hamming taper */
       nupold = nup ;
    }
+#endif
 
    /* FFT the pair of rows */
 
@@ -693,6 +696,7 @@ static void fft_shift2( int n, int nup, float af, float * f, float ag, float * g
 
    /* taper the ends of the FFT */
 
+#ifdef TAPER
    for( ii=ntbase ; ii < nby2 ; ii++ ){     /* ntaper + ntbase = nby2+1 */
       row[ii].r     *= taper[ii-ntbase] ;
       row[ii].i     *= taper[ii-ntbase] ;
@@ -701,6 +705,7 @@ static void fft_shift2( int n, int nup, float af, float * f, float ag, float * g
    }
    row[nby2].r *= taper[ntaper-1] ;
    row[nby2].i *= taper[ntaper-1] ;
+#endif
 
    /* untangle FFT coefficients from row into cf,cg */
 

@@ -15,8 +15,9 @@ static integer c__1 = 1;
 {
     /* Initialized data */
 
-    static integer n_funcargs__[49] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
-	    2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1 };
+    static integer n_funcargs__[77] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
+	    2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,-1,
+	    4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2 };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -600,7 +601,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*50] = "SIN                             " 
+    static char c_funcname__[32*78] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -627,7 +628,22 @@ L9000:
 	    "                            " "MOFN                            " 
 	    "ASTEP                           " "SIND                        "
 	    "    " "COSD                            " "TAND                  "
-	    "          " "DUMMY                           ";
+	    "          " "MEDIAN                          " "FICO_T2P        "
+	    "                " "FICO_P2T                        " "FICO_T2Z  "
+	    "                      " "FITT_T2P                        " "FITT"
+	    "_P2T                        " "FITT_T2Z                        " 
+	    "FIFT_T2P                        " "FIFT_P2T                    "
+	    "    " "FIFT_T2Z                        " "FIZT_T2P              "
+	    "          " "FIZT_P2T                        " "FIZT_T2Z        "
+	    "                " "FICT_T2P                        " "FICT_P2T  "
+	    "                      " "FICT_T2Z                        " "FIBT"
+	    "_T2P                        " "FIBT_P2T                        " 
+	    "FIBT_T2Z                        " "FIBN_T2P                    "
+	    "    " "FIBN_P2T                        " "FIBN_T2Z              "
+	    "          " "FIGT_T2P                        " "FIGT_P2T        "
+	    "                " "FIGT_T2Z                        " "FIPT_T2P  "
+	    "                      " "FIPT_P2T                        " "FIPT"
+	    "_T2Z                        " "DUMMY                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -722,7 +738,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*50] = "SIN                             " 
+    static char c_funcname__[32*78] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -749,7 +765,22 @@ L8000:
 	    "                            " "MOFN                            " 
 	    "ASTEP                           " "SIND                        "
 	    "    " "COSD                            " "TAND                  "
-	    "          " "DUMMY                           ";
+	    "          " "MEDIAN                          " "FICO_T2P        "
+	    "                " "FICO_P2T                        " "FICO_T2Z  "
+	    "                      " "FITT_T2P                        " "FITT"
+	    "_P2T                        " "FITT_T2Z                        " 
+	    "FIFT_T2P                        " "FIFT_P2T                    "
+	    "    " "FIFT_T2Z                        " "FIZT_T2P              "
+	    "          " "FIZT_P2T                        " "FIZT_T2Z        "
+	    "                " "FICT_T2P                        " "FICT_P2T  "
+	    "                      " "FICT_T2Z                        " "FIBT"
+	    "_T2P                        " "FIBT_P2T                        " 
+	    "FIBT_T2Z                        " "FIBN_T2P                    "
+	    "    " "FIBN_P2T                        " "FIBN_T2Z              "
+	    "          " "FIGT_T2P                        " "FIGT_P2T        "
+	    "                " "FIGT_T2Z                        " "FIPT_T2P  "
+	    "                      " "FIPT_P2T                        " "FIPT"
+	    "_T2Z                        " "DUMMY                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -903,7 +934,7 @@ L120:
 */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 1568, c_id__, 32L, 32L);
+	s_copy(c_funcname__ + 2464, c_id__, 32L, 32L);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
 		 {
@@ -912,7 +943,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 49) {
+	if (ifunc <= 77) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1139,7 +1170,28 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 #define r8_val__ (equiv_0)
     extern doublereal dgamma_(doublereal *), qg_(doublereal *);
     static char cncode[8];
+    extern doublereal median_(integer *, doublereal *);
     static integer ialpha;
+    extern doublereal fibntp_(doublereal *, doublereal *, doublereal *), 
+	    fibnpt_(doublereal *, doublereal *, doublereal *), ficotp_(
+	    doublereal *, doublereal *, doublereal *, doublereal *), ficopt_(
+	    doublereal *, doublereal *, doublereal *, doublereal *), fibttp_(
+	    doublereal *, doublereal *, doublereal *), ficttp_(doublereal *, 
+	    doublereal *), fictpt_(doublereal *, doublereal *), fibtpt_(
+	    doublereal *, doublereal *, doublereal *), fifttp_(doublereal *, 
+	    doublereal *, doublereal *), fiftpt_(doublereal *, doublereal *, 
+	    doublereal *), ficotz_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *), fibntz_(doublereal *, doublereal *, doublereal *), 
+	    figttp_(doublereal *, doublereal *, doublereal *), figtpt_(
+	    doublereal *, doublereal *, doublereal *), fibttz_(doublereal *, 
+	    doublereal *, doublereal *), ficttz_(doublereal *, doublereal *), 
+	    fifttz_(doublereal *, doublereal *, doublereal *), figttz_(
+	    doublereal *, doublereal *, doublereal *), fipttp_(doublereal *, 
+	    doublereal *), fitttp_(doublereal *, doublereal *), fittpt_(
+	    doublereal *, doublereal *), fiptpt_(doublereal *, doublereal *), 
+	    fizttp_(doublereal *), fiztpt_(doublereal *), fipttz_(doublereal *
+	    , doublereal *), fitttz_(doublereal *, doublereal *), fizttz_(
+	    doublereal *);
     static doublereal r8_eval__[128];
     extern doublereal dai_(doublereal *), dbi_(doublereal *, integer *);
     static integer itm;
@@ -1154,6 +1206,9 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 
 
 /*  External library functions */
+
+
+/*  Statistics functions (01 Mar 1999 - see parser_int.c) */
 
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1440,6 +1495,10 @@ L1000:
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = land_(&ntm, &r8_eval__[neval - 1]);
+    } else if (s_cmp(cncode, "MEDIAN", 8L, 6L) == 0) {
+	ntm = (integer) r8_eval__[neval - 1];
+	neval -= ntm;
+	r8_eval__[neval - 1] = median_(&ntm, &r8_eval__[neval - 1]);
     } else if (s_cmp(cncode, "OR", 8L, 2L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
@@ -1457,6 +1516,130 @@ L1000:
 	} else {
 	    r8_eval__[neval - 1] = 0.;
 	}
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FICO_T2P", 8L, 8L) == 0) {
+	neval += -3;
+	d__2 = (d__1 = r8_eval__[neval - 1], abs(d__1));
+	r8_eval__[neval - 1] = ficotp_(&d__2, &r8_eval__[neval], &r8_eval__[
+		neval + 1], &r8_eval__[neval + 2]);
+    } else if (s_cmp(cncode, "FICO_P2T", 8L, 8L) == 0) {
+	neval += -3;
+	r8_eval__[neval - 1] = ficopt_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2]);
+    } else if (s_cmp(cncode, "FICO_T2Z", 8L, 8L) == 0) {
+	neval += -3;
+	r8_eval__[neval - 1] = ficotz_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FITT_T2P", 8L, 8L) == 0) {
+	--neval;
+	d__2 = (d__1 = r8_eval__[neval - 1], abs(d__1));
+	r8_eval__[neval - 1] = fitttp_(&d__2, &r8_eval__[neval]);
+    } else if (s_cmp(cncode, "FITT_P2T", 8L, 8L) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = fittpt_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+    } else if (s_cmp(cncode, "FITT_T2Z", 8L, 8L) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = fitttz_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIFT_T2P", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fifttp_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+    } else if (s_cmp(cncode, "FIFT_P2T", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fiftpt_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+    } else if (s_cmp(cncode, "FIFT_T2Z", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fifttz_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIZT_T2P", 8L, 8L) == 0) {
+	d__2 = (d__1 = r8_eval__[neval - 1], abs(d__1));
+	r8_eval__[neval - 1] = fizttp_(&d__2);
+    } else if (s_cmp(cncode, "FIZT_P2T", 8L, 8L) == 0) {
+	r8_eval__[neval - 1] = fiztpt_(&r8_eval__[neval - 1]);
+    } else if (s_cmp(cncode, "FIZT_T2Z", 8L, 8L) == 0) {
+	r8_eval__[neval - 1] = fizttz_(&r8_eval__[neval - 1]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FICT_T2P", 8L, 8L) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = ficttp_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+    } else if (s_cmp(cncode, "FICT_P2T", 8L, 8L) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = fictpt_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+    } else if (s_cmp(cncode, "FICT_T2Z", 8L, 8L) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = ficttz_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIBT_T2P", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fibttp_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+    } else if (s_cmp(cncode, "FIBT_P2T", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fibtpt_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+    } else if (s_cmp(cncode, "FIBT_T2Z", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fibttz_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIBN_T2P", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fibntp_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+    } else if (s_cmp(cncode, "FIBN_P2T", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fibnpt_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+    } else if (s_cmp(cncode, "FIBN_T2Z", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = fibntz_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIGT_T2P", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = figttp_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+    } else if (s_cmp(cncode, "FIGT_P2T", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = figtpt_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+    } else if (s_cmp(cncode, "FIGT_T2Z", 8L, 8L) == 0) {
+	neval += -2;
+	r8_eval__[neval - 1] = figttz_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIPT_T2P", 8L, 8L) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = fipttp_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+    } else if (s_cmp(cncode, "FIPT_P2T", 8L, 8L) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = fiptpt_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+    } else if (s_cmp(cncode, "FIPT_T2Z", 8L, 8L) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = fipttz_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+/* ...................................................................
+.... */
     }
 /* .......................................................................
  */
@@ -1526,7 +1709,27 @@ L8000:
     extern doublereal dgamma_(doublereal *);
     static integer ialpha, iv;
     static char cncode[8];
-    extern doublereal qg_(doublereal *);
+    extern doublereal qg_(doublereal *), median_(integer *, doublereal *), 
+	    ficotp_(doublereal *, doublereal *, doublereal *, doublereal *), 
+	    ficopt_(doublereal *, doublereal *, doublereal *, doublereal *), 
+	    fibttp_(doublereal *, doublereal *, doublereal *), ficttp_(
+	    doublereal *, doublereal *), fictpt_(doublereal *, doublereal *), 
+	    fibtpt_(doublereal *, doublereal *, doublereal *), fifttp_(
+	    doublereal *, doublereal *, doublereal *), fiftpt_(doublereal *, 
+	    doublereal *, doublereal *), ficotz_(doublereal *, doublereal *, 
+	    doublereal *, doublereal *), fibntp_(doublereal *, doublereal *, 
+	    doublereal *), fibnpt_(doublereal *, doublereal *, doublereal *), 
+	    fibntz_(doublereal *, doublereal *, doublereal *), fibttz_(
+	    doublereal *, doublereal *, doublereal *), ficttz_(doublereal *, 
+	    doublereal *), figttp_(doublereal *, doublereal *, doublereal *), 
+	    figtpt_(doublereal *, doublereal *, doublereal *), fifttz_(
+	    doublereal *, doublereal *, doublereal *), figttz_(doublereal *, 
+	    doublereal *, doublereal *), fipttp_(doublereal *, doublereal *), 
+	    fitttp_(doublereal *, doublereal *), fittpt_(doublereal *, 
+	    doublereal *), fiptpt_(doublereal *, doublereal *), fizttp_(
+	    doublereal *), fiztpt_(doublereal *), fipttz_(doublereal *, 
+	    doublereal *), fitttz_(doublereal *, doublereal *), fizttz_(
+	    doublereal *);
     static doublereal r8_eval__[6464]	/* was [64][101] */;
     extern doublereal dai_(doublereal *), dbi_(doublereal *, integer *);
     static integer ibv, itm, jtm;
@@ -1548,6 +1751,9 @@ L8000:
 
 
 /*  External library functions */
+
+
+/*  Statistics functions (01 Mar 1999 - see parser_int.c) */
 
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2189,6 +2395,18 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = land_(&ntm, scop);
 	    }
+	} else if (s_cmp(cncode, "MEDIAN", 8L, 6L) == 0) {
+	    ntm = (integer) r8_eval__[(neval << 6) - 64];
+	    neval -= ntm;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		i__3 = ntm;
+		for (jtm = 1; jtm <= i__3; ++jtm) {
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+			    6) - 65];
+		}
+		r8_eval__[iv - ibv + (neval << 6) - 65] = median_(&ntm, scop);
+	    }
 	} else if (s_cmp(cncode, "OR", 8L, 2L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
@@ -2227,6 +2445,257 @@ L1000:
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
 		}
 	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FICO_T2P", 8L, 8L) == 0) {
+	    neval += -3;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		d__2 = (d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(
+			d__1));
+		r8_eval__[iv - ibv + (neval << 6) - 65] = ficotp_(&d__2, &
+			r8_eval__[iv - ibv + (neval + 1 << 6) - 65], &
+			r8_eval__[iv - ibv + (neval + 2 << 6) - 65], &
+			r8_eval__[iv - ibv + (neval + 3 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FICO_P2T", 8L, 8L) == 0) {
+	    neval += -3;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = ficopt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			- 65]);
+	    }
+	} else if (s_cmp(cncode, "FICO_T2Z", 8L, 8L) == 0) {
+	    neval += -3;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = ficotz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			- 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FITT_T2P", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		d__2 = (d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(
+			d__1));
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fitttp_(&d__2, &
+			r8_eval__[iv - ibv + (neval + 1 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FITT_P2T", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fittpt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FITT_T2Z", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fitttz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIFT_T2P", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fifttp_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIFT_P2T", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fiftpt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIFT_T2Z", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fifttz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIZT_T2P", 8L, 8L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		d__2 = (d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(
+			d__1));
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fizttp_(&d__2);
+	    }
+	} else if (s_cmp(cncode, "FIZT_P2T", 8L, 8L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fiztpt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIZT_T2Z", 8L, 8L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fizttz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FICT_T2P", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = ficttp_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FICT_P2T", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fictpt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FICT_T2Z", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = ficttz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIBT_T2P", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fibttp_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIBT_P2T", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fibtpt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIBT_T2Z", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fibttz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIBN_T2P", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fibntp_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIBN_P2T", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fibnpt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIBN_T2Z", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fibntz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIGT_T2P", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = figttp_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIGT_P2T", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = figtpt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIGT_T2Z", 8L, 8L) == 0) {
+	    neval += -2;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = figttz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIPT_T2P", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fipttp_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIPT_P2T", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fiptpt_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "FIPT_T2Z", 8L, 8L) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = fipttz_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
 	}
 /* ------------------------------------------------------------------
 ---- */
@@ -2439,6 +2908,57 @@ doublereal land_(integer *n, doublereal *x)
 
 
 
+doublereal median_(integer *n, doublereal *x)
+{
+    /* System generated locals */
+    integer i__1;
+    doublereal ret_val;
+
+    /* Local variables */
+    static integer i__, it;
+    static doublereal tmp;
+
+    /* Parameter adjustments */
+    --x;
+
+    /* Function Body */
+    if (*n == 1) {
+	ret_val = x[1];
+	return ret_val;
+    } else if (*n == 2) {
+	ret_val = (x[1] + x[2]) * .5;
+	return ret_val;
+    }
+/* ---  Bubble sort */
+L50:
+    it = 0;
+    i__1 = *n;
+    for (i__ = 2; i__ <= i__1; ++i__) {
+	if (x[i__ - 1] > x[i__]) {
+	    tmp = x[i__];
+	    x[i__] = x[i__ - 1];
+	    x[i__ - 1] = tmp;
+	    it = 1;
+	}
+/* L100: */
+    }
+    if (it != 0) {
+	goto L50;
+    }
+/* ---  Even N --> average of middle 2 */
+/* ---  Odd  N --> middle 1 */
+    it = *n / 2;
+    if (it << 1 == *n) {
+	ret_val = (x[it] + x[it + 1]) * .5;
+    } else {
+	ret_val = x[it + 1];
+    }
+    return ret_val;
+} /* median_ */
+
+
+
+
 doublereal lor_(integer *n, doublereal *x)
 {
     /* System generated locals */
@@ -2625,10 +3145,10 @@ doublereal dbesk1_(doublereal *x)
     integer s_wsfe(cilist *), e_wsfe(void);
 
     /* Fortran I/O blocks */
-    static cilist io___83 = { 0, 6, 0, fmt_999, 0 };
+    static cilist io___86 = { 0, 6, 0, fmt_999, 0 };
 
 
-    s_wsfe(&io___83);
+    s_wsfe(&io___86);
     e_wsfe();
     return 0;
 } /* qqqerr_ */

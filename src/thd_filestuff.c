@@ -1,21 +1,26 @@
 #include "mrilib.h"
 #include "thd.h"
 
-
 int THD_is_file( char * pathname )
 {
-   static struct stat buf ;
-   int ii ;
+   static struct stat buf ; int ii ;
 
    if( pathname == NULL ) return 0 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
    ii = (buf.st_mode & S_IFREG) != 0 ; return ii ;
 }
 
+int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
+{
+   char buf[32] ; int ii ;
+
+   ii = readlink( pathname , buf , 32 ) ;
+   return (ii > 0) ;
+}
+
 long THD_filesize( char * pathname )
 {
-   static struct stat buf ;
-   int ii ;
+   static struct stat buf ; int ii ;
 
    if( pathname == NULL ) return -1 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
@@ -24,8 +29,7 @@ long THD_filesize( char * pathname )
 
 int THD_is_directory( char * pathname )
 {
-   static struct stat buf ;
-   int ii ;
+   static struct stat buf ; int ii ;
 
    if( pathname == NULL ) return 0 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
@@ -34,8 +38,8 @@ int THD_is_directory( char * pathname )
 
 int THD_equiv_files( char * path1 , char * path2 )
 {
-   static struct stat buf1 , buf2 ;
-   int ii ;
+   static struct stat buf1 , buf2 ; int ii ;
+
    if( path1 == NULL || path2 == NULL ) return -1 ;
    ii = stat( path1 , &buf1 ) ; if( ii != 0 ) return -1 ;
    ii = stat( path2 , &buf2 ) ; if( ii != 0 ) return -1 ;

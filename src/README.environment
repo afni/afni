@@ -269,6 +269,24 @@ The third variable is
 This is used to set the initial precalculation mode for the renderer
 (this mode can be altered interactively, unlike the stepsizes).
 
+-------------------------
+Variable: AFNI_NOREALPATH
+-------------------------
+Normally, when AFNI reads a list of session directories, it converts
+their names to the "real path" form, which follows symbolic links, and
+removes '/./' and '/../' components.  These converted names are used
+for display purposes in the "Switch Session" chooser and in other
+places.  If you wish to have the names NOT converted to the "real path"
+format, set this environment variable (to anything), as in
+
+   setenv AFNI_NOREALPATH Elvis
+
+(For more information on the "real path" conversion, see the Unix
+man page for the realpath() function.)  Note that if you use this
+feature, then the effect of AFNI_SESSTRAIL will be limited to what
+you type on the command line, since is the realpath() function
+that provides the higher level hierarchies of the session names.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

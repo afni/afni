@@ -42,3 +42,25 @@ void symeig_double( int n , double * a , double * e )
    free(fv1) ; free(fv2) ;
    return ;
 }
+
+/*------------------ just compute the eigenvalues -------------------*/
+
+void symeigval_double( int n , double * a , double * e )
+{
+   integer nm , matz , ierr ;
+   double * fv1 , * fv2 ;
+
+   if( a == NULL || e == NULL || n < 1 ) return ;
+
+   if( n == 1 ){ e[0] = a[0] ; return ; } /* degenerate case */
+
+   fv1 = (double *) malloc(sizeof(double)*n) ;  /* workspaces */
+   fv2 = (double *) malloc(sizeof(double)*n) ;
+
+   nm = n ; matz = 0 ; ierr = 0 ;
+
+   rs_( &nm , &nm , a , e , &matz , a , fv1 , fv2 , &ierr ) ;
+
+   free(fv1) ; free(fv2) ;
+   return ;
+}

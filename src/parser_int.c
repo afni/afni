@@ -110,3 +110,103 @@ doublereal derf_ ( doublereal * x )
 
 doublereal derfc_( doublereal * x )
 { return (doublereal) erfc( (double) *x ) ; }
+
+/**** statistic conversion routines ****/
+
+/*--- macros to create functions ---*/
+
+#undef FUNC3
+#undef FUNC2
+#undef FUNC1
+#undef FUNC0
+
+#define FUNC4(fname,fcode,sfunc)                                      \
+   doublereal fname( doublereal * x, doublereal * a, doublereal * b,  \
+                                                     doublereal * c ) \
+   {  float aux[3] , xx , val ;                                       \
+      xx     = (float) (*x) ;                                         \
+      aux[0] = (float) (*a) ;                                         \
+      aux[1] = (float) (*b) ;                                         \
+      aux[2] = (float) (*c) ;                                         \
+      val = sfunc( xx , fcode , aux ) ;                               \
+      return (doublereal) val ;                                       \
+   }
+
+#define FUNC3(fname,fcode,sfunc)                                      \
+   doublereal fname( doublereal * x, doublereal * a, doublereal * b ) \
+   {  float aux[2] , xx , val ;                                       \
+      xx     = (float) (*x) ;                                         \
+      aux[0] = (float) (*a) ;                                         \
+      aux[1] = (float) (*b) ;                                         \
+      val = sfunc( xx , fcode , aux ) ;                               \
+      return (doublereal) val ;                                       \
+   }
+
+#define FUNC2(fname,fcode,sfunc)                       \
+   doublereal fname( doublereal * x , doublereal * a ) \
+   {  float aux[1] , xx , val ;                        \
+      xx     = (float) (*x) ;                          \
+      aux[0] = (float) (*a) ;                          \
+      val = sfunc( xx , fcode , aux ) ;                \
+      return (doublereal) val ;                        \
+   }
+
+#define FUNC1(fname,fcode,sfunc)         \
+   doublereal fname( doublereal * x )    \
+   {  float  xx , val ;                  \
+      xx     = (float) (*x) ;            \
+      val = sfunc( xx , fcode , NULL ) ; \
+      return (doublereal) val ;          \
+   }
+
+#define FUNC_COR_TYPE   2
+#define FUNC_TT_TYPE    3
+#define FUNC_FT_TYPE    4
+#define FUNC_ZT_TYPE    5
+#define FUNC_CT_TYPE    6
+#define FUNC_BT_TYPE    7
+#define FUNC_BN_TYPE    8
+#define FUNC_GT_TYPE    9
+#define FUNC_PT_TYPE   10
+
+extern float THD_stat_to_pval(float,int,float *) ;
+extern float THD_pval_to_stat(float,int,float *) ;
+extern float THD_stat_to_zscore(float,int,float *) ;
+
+/*--- now create the functions ---*/
+
+FUNC4(ficotp_,FUNC_COR_TYPE,THD_stat_to_pval)
+FUNC4(ficopt_,FUNC_COR_TYPE,THD_pval_to_stat)
+FUNC4(ficotz_,FUNC_COR_TYPE,THD_stat_to_zscore)
+
+FUNC2(fitttp_,FUNC_TT_TYPE,THD_stat_to_pval)
+FUNC2(fittpt_,FUNC_TT_TYPE,THD_pval_to_stat)
+FUNC2(fitttz_,FUNC_TT_TYPE,THD_stat_to_zscore)
+
+FUNC3(fifttp_,FUNC_FT_TYPE,THD_stat_to_pval)
+FUNC3(fiftpt_,FUNC_FT_TYPE,THD_pval_to_stat)
+FUNC3(fifttz_,FUNC_FT_TYPE,THD_stat_to_zscore)
+
+FUNC1(fizttp_,FUNC_ZT_TYPE,THD_stat_to_pval)
+FUNC1(fiztpt_,FUNC_ZT_TYPE,THD_pval_to_stat)
+FUNC1(fizttz_,FUNC_ZT_TYPE,THD_stat_to_zscore)
+
+FUNC2(ficttp_,FUNC_CT_TYPE,THD_stat_to_pval)
+FUNC2(fictpt_,FUNC_CT_TYPE,THD_pval_to_stat)
+FUNC2(ficttz_,FUNC_CT_TYPE,THD_stat_to_zscore)
+
+FUNC3(fibttp_,FUNC_BT_TYPE,THD_stat_to_pval)
+FUNC3(fibtpt_,FUNC_BT_TYPE,THD_pval_to_stat)
+FUNC3(fibttz_,FUNC_BT_TYPE,THD_stat_to_zscore)
+
+FUNC3(fibntp_,FUNC_BN_TYPE,THD_stat_to_pval)
+FUNC3(fibnpt_,FUNC_BN_TYPE,THD_pval_to_stat)
+FUNC3(fibntz_,FUNC_BN_TYPE,THD_stat_to_zscore)
+
+FUNC3(figttp_,FUNC_GT_TYPE,THD_stat_to_pval)
+FUNC3(figtpt_,FUNC_GT_TYPE,THD_pval_to_stat)
+FUNC3(figttz_,FUNC_GT_TYPE,THD_stat_to_zscore)
+
+FUNC2(fipttp_,FUNC_PT_TYPE,THD_stat_to_pval)
+FUNC2(fiptpt_,FUNC_PT_TYPE,THD_pval_to_stat)
+FUNC2(fipttz_,FUNC_PT_TYPE,THD_stat_to_zscore)

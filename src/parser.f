@@ -787,7 +787,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
-     X       LAND,LOR,LMOFN
+     X       LAND,LOR,LMOFN,MEDIAN
 C
 C  External library functions
 C
@@ -795,6 +795,18 @@ C
      X       DBESI0,DBESI1 , DBESJ0,DBESJ1 , DBESK0,DBESK1 ,
      X       DBESY0,DBESY1 ,
      X       DERF,DERFC
+C
+C  Statistics functions (01 Mar 1999 - see parser_int.c)
+C
+      REAL * 8  FICOTP , FICOPT , FICOTZ ,
+     X          FITTTP , FITTPT , FITTTZ ,
+     X          FIFTTP , FIFTPT , FIFTTZ ,
+     X          FIZTTP , FIZTPT , FIZTTZ ,
+     X          FICTTP , FICTPT , FICTTZ ,
+     X          FIBTTP , FIBTPT , FIBTTZ ,
+     X          FIBNTP , FIBNPT , FIBNTZ ,
+     X          FIGTTP , FIGTPT , FIGTTZ ,
+     X          FIPTTP , FIPTPT , FIPTTZ
 C
       REAL*8 R2D , D2R
       PARAMETER ( R2D = 57.29577951308232D+00 ,
@@ -1007,6 +1019,10 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = LAND( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'MEDIAN' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = MEDIAN( NTM , R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'OR'  )THEN
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
@@ -1024,6 +1040,111 @@ C.......................................................................
             ELSE
                R8_EVAL(NEVAL) = 0.D+0
             ENDIF
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
+            NEVAL = NEVAL - 3
+            R8_EVAL(NEVAL) = FICOTP(ABS(R8_EVAL(NEVAL)),
+     X                              R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2),R8_EVAL(NEVAL+3) )
+         ELSEIF( CNCODE .EQ. 'FICO_P2T' )THEN
+            NEVAL = NEVAL - 3
+            R8_EVAL(NEVAL) = FICOPT(R8_EVAL(NEVAL)  ,R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2),R8_EVAL(NEVAL+3) )
+         ELSEIF( CNCODE .EQ. 'FICO_T2Z' )THEN
+            NEVAL = NEVAL - 3
+            R8_EVAL(NEVAL) = FICOTZ(R8_EVAL(NEVAL)  ,R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2),R8_EVAL(NEVAL+3) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FITT_T2P' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FITTTP(ABS(R8_EVAL(NEVAL)),
+     X                              R8_EVAL(NEVAL+1))
+         ELSEIF( CNCODE .EQ. 'FITT_P2T' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FITTPT(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1))
+         ELSEIF( CNCODE .EQ. 'FITT_T2Z' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FITTTZ(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1))
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIFT_T2P' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIFTTP(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+         ELSEIF( CNCODE .EQ. 'FIFT_P2T' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIFTPT(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+         ELSEIF( CNCODE .EQ. 'FIFT_T2Z' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIFTTZ(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIZT_T2P' )THEN
+            R8_EVAL(NEVAL) = FIZTTP(ABS(R8_EVAL(NEVAL)))
+         ELSEIF( CNCODE .EQ. 'FIZT_P2T' )THEN
+            R8_EVAL(NEVAL) = FIZTPT(R8_EVAL(NEVAL))
+         ELSEIF( CNCODE .EQ. 'FIZT_T2Z' )THEN
+            R8_EVAL(NEVAL) = FIZTTZ(R8_EVAL(NEVAL))
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FICT_T2P' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FICTTP(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1))
+         ELSEIF( CNCODE .EQ. 'FICT_P2T' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FICTPT(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1))
+         ELSEIF( CNCODE .EQ. 'FICT_T2Z' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FICTTZ(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1))
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIBT_T2P' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIBTTP(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+         ELSEIF( CNCODE .EQ. 'FIBT_P2T' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIBTPT(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+         ELSEIF( CNCODE .EQ. 'FIBT_T2Z' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIBTTZ(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIBN_T2P' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIBNTP(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+         ELSEIF( CNCODE .EQ. 'FIBN_P2T' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIBNPT(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+         ELSEIF( CNCODE .EQ. 'FIBN_T2Z' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIBNTZ(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIGT_T2P' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIGTTP(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+         ELSEIF( CNCODE .EQ. 'FIGT_P2T' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIGTPT(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+         ELSEIF( CNCODE .EQ. 'FIGT_T2Z' )THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = FIGTTZ(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                              R8_EVAL(NEVAL+2) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIPT_T2P' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FIPTTP(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1))
+         ELSEIF( CNCODE .EQ. 'FIPT_P2T' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FIPTPT(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1))
+         ELSEIF( CNCODE .EQ. 'FIPT_T2Z' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = FIPTTZ(R8_EVAL(NEVAL),R8_EVAL(NEVAL+1))
+C.......................................................................
          ENDIF
 C.......................................................................
       IF( NCODE .LT. NUM_CODE )GOTO 1000
@@ -1035,9 +1156,9 @@ C-----------------------------------------------------------------------
 C
 C
 C
-      SUBROUTINE PAREVEC( NUM_CODE , C_CODE , VA, VB, VC, VD, VE, 
-     X                    VF, VG, VH, VI, VJ, VK, VL, VM, VN, VO, 
-     X   		  VP, VQ, VR, VS, VT, VU, VV, VW, VX, VY, VZ, 
+      SUBROUTINE PAREVEC( NUM_CODE , C_CODE , VA, VB, VC, VD, VE,
+     X                    VF, VG, VH, VI, VJ, VK, VL, VM, VN, VO,
+     X   		  VP, VQ, VR, VS, VT, VU, VV, VW, VX, VY, VZ,
      X                    LVEC, VOUT )
       IMPLICIT NONE
 C
@@ -1051,14 +1172,14 @@ C
       PARAMETER ( NUM_ESTACK = 101 , NVMAX = 64 )
       REAL*8      VA(LVEC), VB(LVEC), VC(LVEC), VD(LVEC), VE(LVEC),
      X		  VF(LVEC), VG(LVEC), VH(LVEC), VI(LVEC), VJ(LVEC),
-     X            VK(LVEC), VL(LVEC), VM(LVEC), VN(LVEC), VO(LVEC), 
-     X		  VP(LVEC), VQ(LVEC), VR(LVEC), VS(LVEC), VT(LVEC), 
+     X            VK(LVEC), VL(LVEC), VM(LVEC), VN(LVEC), VO(LVEC),
+     X		  VP(LVEC), VQ(LVEC), VR(LVEC), VS(LVEC), VT(LVEC),
      X		  VU(LVEC), VV(LVEC), VW(LVEC), VX(LVEC), VY(LVEC),
      X		  VZ(LVEC), VOUT(LVEC)
 C
       REAL*8  R8_EVAL(NVMAX,NUM_ESTACK) , R8VAL(NVMAX,26)
 C
-      INTEGER     NEVAL , NCODE , IALPHA , IV,IBV,IVBOT,IVTOP , 
+      INTEGER     NEVAL , NCODE , IALPHA , IV,IBV,IVBOT,IVTOP ,
      X 		  JF,KF, NTM,ITM,JTM
       CHARACTER*8 C8_VAL , CNCODE , C2CODE
       REAL*8      R8_VAL , X , Y
@@ -1071,7 +1192,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
-     X       LOR, LMOFN
+     X       LOR, LMOFN , MEDIAN
 C
 C  External library functions
 C
@@ -1079,6 +1200,18 @@ C
      X       DBESI0,DBESI1 , DBESJ0,DBESJ1 , DBESK0,DBESK1 ,
      X       DBESY0,DBESY1 ,
      X       DERF,DERFC
+C
+C  Statistics functions (01 Mar 1999 - see parser_int.c)
+C
+      REAL * 8  FICOTP , FICOPT , FICOTZ ,
+     X          FITTTP , FITTPT , FITTTZ ,
+     X          FIFTTP , FIFTPT , FIFTTZ ,
+     X          FIZTTP , FIZTPT , FIZTTZ ,
+     X          FICTTP , FICTPT , FICTTZ ,
+     X          FIBTTP , FIBTPT , FIBTTZ ,
+     X          FIBNTP , FIBNPT , FIBNTZ ,
+     X          FIGTTP , FIGTPT , FIGTTZ ,
+     X          FIPTTP , FIPTPT , FIPTTZ
 C
       REAL*8 R2D , D2R
       PARAMETER ( R2D = 57.29577951308232D+00 ,
@@ -1511,6 +1644,15 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = LAND( NTM, SCOP )
 	    ENDDO
+         ELSEIF( CNCODE .EQ. 'MEDIAN'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = MEDIAN( NTM, SCOP )
+	    ENDDO
          ELSEIF( CNCODE .EQ. 'OR'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -1540,6 +1682,190 @@ C.......................................................................
                   R8_EVAL(IV-IBV,NEVAL) = 0.D+0
                ENDIF
 	    ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
+            NEVAL = NEVAL - 3
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FICOTP(ABS(R8_EVAL(IV-IBV,NEVAL)),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2),
+     X                                       R8_EVAL(IV-IBV,NEVAL+3) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FICO_P2T' )THEN
+            NEVAL = NEVAL - 3
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FICOPT(R8_EVAL(IV-IBV,NEVAL)  ,
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2),
+     X                                       R8_EVAL(IV-IBV,NEVAL+3) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FICO_T2Z' )THEN
+            NEVAL = NEVAL - 3
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FICOTZ(R8_EVAL(IV-IBV,NEVAL)  ,
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2),
+     X                                       R8_EVAL(IV-IBV,NEVAL+3) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FITT_T2P' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FITTTP(ABS(R8_EVAL(IV-IBV,NEVAL)),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FITT_P2T' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FITTPT(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FITT_T2Z' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FITTTZ(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIFT_T2P' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIFTTP(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                     R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIFT_P2T' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIFTPT(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                     R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIFT_T2Z' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIFTTZ(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                     R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIZT_T2P' )THEN
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIZTTP(ABS(R8_EVAL(IV-IBV,NEVAL)))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIZT_P2T' )THEN
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIZTPT(R8_EVAL(IV-IBV,NEVAL))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIZT_T2Z' )THEN
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIZTTZ(R8_EVAL(IV-IBV,NEVAL))
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FICT_T2P' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FICTTP(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FICT_P2T' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FICTPT(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FICT_T2Z' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FICTTZ(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIBT_T2P' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIBTTP(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIBT_P2T' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIBTPT(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIBT_T2Z' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIBTTZ(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIBN_T2P' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIBNTP(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIBN_P2T' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIBNPT(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIBN_T2Z' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIBNTZ(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIGT_T2P' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIGTTP(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIGT_P2T' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIGTPT(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIGT_T2Z' )THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIGTTZ(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1),
+     X                                       R8_EVAL(IV-IBV,NEVAL+2) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'FIPT_T2P' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIPTTP(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIPT_P2T' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIPTPT(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'FIPT_T2Z' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = FIPTTZ(R8_EVAL(IV-IBV,NEVAL),
+     X                                       R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+C.......................................................................
          ENDIF
 C----------------------------------------------------------------------
          IF( NCODE .LT. NUM_CODE )GOTO 1000
@@ -1671,6 +1997,45 @@ C
          IF( X(I) .EQ. 0.D+0 ) RETURN
 100   CONTINUE
       LAND = 1.D+0
+      RETURN
+      END
+C
+C
+C
+      FUNCTION MEDIAN(N,X)
+      REAL *8 MEDIAN , X(N) , TMP
+      INTEGER N , I , IT
+
+      IF( N .EQ. 1 )THEN
+         MEDIAN = X(1)
+         RETURN
+      ELSEIF( N .EQ. 2 )THEN
+         MEDIAN = 0.5D+00 * (X(1)+X(2))
+         RETURN
+      ENDIF
+
+C---  Bubble sort
+
+50    IT = 0
+      DO 100 I=2,N
+         IF( X(I-1) .GT. X(I) )THEN
+            TMP    = X(I)
+            X(I)   = X(I-1)
+            X(I-1) = TMP
+            IT     = 1
+         ENDIF
+100   CONTINUE
+      IF( IT .NE. 0 )GOTO 50
+
+C---  Even N --> average of middle 2
+C---  Odd  N --> middle 1
+
+      IT = N/2
+      IF( 2*IT .EQ. N )THEN
+         MEDIAN = 0.5D+00 * (X(IT)+X(IT+1))
+      ELSE
+         MEDIAN = X(IT+1)
+      ENDIF
       RETURN
       END
 C
