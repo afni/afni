@@ -1588,7 +1588,7 @@ libSUMA.a:
 	$(CP) SUMA/libSUMA.a ${INSTALLDIR}; \
 	$(CP) SUMA/libSUMA.a ./;	)
 	
-suma:libSUMA.a libmri.a librickr.a
+suma_exec:libSUMA.a libmri.a librickr.a
 	( cd SUMA ;	\
 	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -1601,4 +1601,11 @@ suma:libSUMA.a libmri.a librickr.a
 	$(CP) SUMA/suma SUMA/MakeColorMap ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	 
-	
+suma_clean:
+	$(RM) SUMA/libSUMA.a libSUMA.a	
+	if [ -f SUMA/suma ]; then $(RM) SUMA/suma; fi;
+	if [ -f suma ]; then $(RM) suma; fi;
+	if [ -f SUMA/MakeColorMap ]; then $(RM) SUMA/MakeColorMap; fi;
+	if [ -f MakeColorMap ]; then $(RM) MakeColorMap; fi;
+
+suma: suma_clean suma_exec
