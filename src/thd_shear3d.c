@@ -762,6 +762,38 @@ THD_dvecmat DMAT_symeig( THD_dmat33 inmat )
 }
 
 /*---------------------------------------------------------------------
+   Compute the SVD of matrix inmat.
+-----------------------------------------------------------------------*/
+
+typedef struct { THD_dmat33 u,v ; THD_dfvec3 d ; } THD_udv33 ;
+
+THD_udv33 DMAT_svd( THD_dmat33 inmat )
+{
+   THD_udv33 out ;
+   double a[9] , e[3] , u[9] , v[9] ;
+   int ii , jj ;
+
+   /* load matrix from inmat into simple array */
+
+   for( jj=0 ; jj < 3 ; jj++ )
+      for( ii=0 ; ii < 3 ; ii++ ) a[ii+3*jj] = inmat.mat[ii][jj] ;
+
+   svd_double( 3,3 , a , e,u,v ) ;
+
+   /* load eigenvectors and eigenvalues into output */
+
+   for( jj=0 ; jj < 3 ; jj++ ){
+      out.d.xyz[jj] = e[jj] ;                 /* eigenvalues */
+      for( ii=0 ; ii < 3 ; ii++ ){
+         out.u.mat[ii][jj] = u[ii+3*jj] ;     /* eigenvectors */
+         out.v.mat[ii][jj] = v[ii+3*jj] ;     /* eigenvectors */
+      }
+   }
+
+   return out ;
+}
+
+/*---------------------------------------------------------------------
    Compute                  pp
             [      T       ]
             [ inmat  inmat ]   for some power pp
@@ -842,6 +874,23 @@ THD_dmat33 DMAT_svdrot_new( THD_dmat33 inmat )
    return nn ;
 }
 
+/*---------------------------------------------------------------------*/
+/*  Yet another alternative calculation to above, computing U and V
+    even more directly.  [22 Oct 2004]
+-----------------------------------------------------------------------*/
+
+THD_dmat33 DMAT_svdrot_newer( THD_dmat33 inmat )
+{
+   THD_udv33 udv ;
+   THD_dmat33 vm , um , nn ;
+
+   udv = DMAT_svd( inmat ) ;
+   vm = udv.v ;
+   um = TRANSPOSE_DMAT( udv.u );
+   nn = DMAT_MUL( vm , um ) ;
+   return nn ;
+}
+
 /*---------------------------------------------------------------------
   Compute proper orthgonal matrix R and vector V to make
 
@@ -859,7 +908,7 @@ THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 *xx, THD_dfvec3 *yy, double *ww )
    THD_dvecmat out ;
    THD_dfvec3  cx,cy , tx,ty ;
    THD_dmat33  cov ;
-   double *wt , wsum ;
+   double *wt , wsum , dd ;
    int ii,jj,kk ;
 
    /*- check for bad inputs -*/
@@ -897,8 +946,27 @@ THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 *xx, THD_dfvec3 *yy, double *ww )
          for( ii=0 ; ii < 3 ; ii++ )
             cov.mat[ii][jj] += wt[kk]*tx.xyz[ii]*ty.xyz[jj] ;
    }
+   dd = ( fabs(cov.mat[0][0]) + fabs(cov.mat[1][1]) + fabs(cov.mat[2][2]) ) / 3.0 ;
+#if 0
+fprintf(stderr,"dd=%g  diag=%g %g %g\n",dd,cov.mat[0][0],cov.mat[1][1],cov.mat[2][2] ) ;
+#endif
+   dd = dd / 1.e9 ;
+#if 0
+fprintf(stderr,"dd=%g\n",dd) ;
+#endif
+   if( cov.mat[0][0] < dd ) cov.mat[0][0] = dd ;
+   if( cov.mat[1][1] < dd ) cov.mat[1][1] = dd ;
+   if( cov.mat[2][2] < dd ) cov.mat[2][2] = dd ;
 
-   out.mm = DMAT_svdrot_new( cov ) ;  /* compute rotation matrix [R] */
+#if 0
+DUMP_DMAT33( "cov" , cov ) ;
+#endif
+
+   out.mm = DMAT_svdrot_newer( cov ) ;  /* compute rotation matrix [R] */
+
+#if 0
+DUMP_DMAT33( "out.mm" , out.mm ) ;
+#endif
 
    tx = DMATVEC( out.mm , cx ) ;     /* compute translation vector V */
    out.vv = SUB_DFVEC3( cy , tx ) ;

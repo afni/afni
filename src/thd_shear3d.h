@@ -71,6 +71,7 @@ extern THD_dvecmat DMAT_symeig( THD_dmat33 inmat ) ;
 extern THD_dmat33 DMAT_pow( THD_dmat33 inmat , double pp ) ;
 extern THD_dmat33 DMAT_svdrot_old( THD_dmat33 inmat ) ;
 extern THD_dmat33 DMAT_svdrot_new( THD_dmat33 inmat ) ;  /* 09 Apr 2003 */
+extern THD_dmat33 DMAT_svdrot_newer( THD_dmat33 inmat ) ;  /* 22 Oct 2004 */
 extern THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 * xx, THD_dfvec3 * yy, double * ww ) ;
 
 #endif /* _THD_SHEAR3D_HEADER_ */
