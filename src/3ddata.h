@@ -907,6 +907,7 @@ static THD_warp tempA_warp ;
 #define STORAGE_UNDEFINED  0
 #define STORAGE_BY_BRICK   2
 #define STORAGE_BY_MINC    3
+#define STORAGE_BY_VOLUMES 4  /* 20 Jun 2002 */
 
 /*! \brief Contains information about where/how dataset is stored on disk.
 
@@ -2083,6 +2084,19 @@ typedef struct THD_3dim_dataset {
 #define DSET_IS_MINC(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&       \
                            ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
                            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MINC )
+
+/*! Determine if datablock db is stored by volume files rather than 1 big BRIK */
+
+#define DBLK_IS_VOLUMES(db) ( ISVALID_DBLK(db) &&                                \
+                              ISVALID_DISKPTR((db)->diskptr) &&                  \
+                              (db)->diskptr->storage_mode == STORAGE_BY_VOLUMES )
+
+/*! Determine if dataset ds is stored in volumes files rather than 1 big BRIK */
+
+#define DSET_IS_VOLUMES(ds) ( ISVALID_DSET(ds) &&                                    \
+                              ISVALID_DBLK((ds)->dblk) &&                            \
+                              ISVALID_DISKPTR((ds)->dblk->diskptr) &&                \
+                              (ds)->dblk->diskptr->storage_mode == STORAGE_BY_VOLUMES )
 
 /*! \brief Determine if AFNI is allowed to over-write dataset ds */
 
