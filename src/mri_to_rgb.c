@@ -247,3 +247,20 @@ MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * im )
    MRI_COPY_AUX(newim,im) ;
    return newim ;
 }
+
+/*-----------------------------------------------------------------------------*/
+
+void mri_invert_inplace( MRI_IMAGE *im )
+{
+   register byte *bar ;
+   register int ii , nbar ;
+
+   if( im == NULL ) return ;
+   switch( im->kind ){
+     default: return ;
+     case MRI_byte:  nbar =   im->nvox ; bar = MRI_BYTE_PTR(im) ; break ;
+     case MRI_rgb:   nbar = 3*im->nvox ; bar = MRI_RGB_PTR(im)  ; break ;
+   }
+   for( ii=0 ; ii < nbar ; ii++ ) bar[ii] = 255 - bar[ii] ;
+   return ;
+}

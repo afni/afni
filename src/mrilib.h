@@ -669,6 +669,7 @@ extern MRI_IMARR * mri_rgb_to_3float( MRI_IMAGE * ) ;
 extern MRI_IMARR * mri_rgb_to_3byte( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
+extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
 
 extern MRI_IMAGE * mri_to_rgba( MRI_IMAGE * ) ;  /* 20 Mar 2002 */
 
