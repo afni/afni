@@ -195,6 +195,7 @@ typedef struct {
 	int N_States;
 	int N_Groups;
 	char StateList[SUMA_MAX_N_SURFACE_SPEC*100];
+	char SpecFilePath[2000];
 } SUMA_SurfSpecFile;
 
 /*! structure that containing node's first order neighbors */

@@ -818,9 +818,10 @@ SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs)
 SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 {/* SUMA_Read_SpecFile */
 	static char FuncName[]={"SUMA_Read_SpecFile"};
-	char s[1000], stmp[100],  stmp2[100], c;
+	char s[SUMA_MAX_DIR_LENGTH], stmp[SUMA_MAX_DIR_LENGTH],  stmp2[SUMA_MAX_DIR_LENGTH], c;
 	int ex, skp, evl, i;
 	FILE *sf_file;
+	SUMA_FileName SpecName;
 	SUMA_Boolean OKread_SurfaceFormat, OKread_SurfaceType, OKread_SureFitTopo, OKread_SureFitCoord;
 	SUMA_Boolean OKread_MappingRef, OKread_SureFitVolParam, OKread_FreeSurferSurface, OKread_InventorSurface;
 	SUMA_Boolean OKread_Group, OKread_State, OKread_EmbedDim;
@@ -833,6 +834,17 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 	}
 	Spec->N_Surfs = 0;
 	
+	/* set the path for the spec file */
+	SpecName = SUMA_StripPath (f_name);
+	if (strlen(SpecName.Path) > SUMA_MAX_DIR_LENGTH-1) {
+		fprintf(SUMA_STDERR,"Error %s: Path of specfile > %d charcters.\n", FuncName, SUMA_MAX_DIR_LENGTH-1);
+		return (NOPE);
+	}
+	sprintf(Spec->SpecFilePath,"%s", SpecName.Path);
+	/* free SpecName since it's not used elsewhere */
+	if (SpecName.Path) free(SpecName.Path);
+	if (SpecName.FileName) free(SpecName.FileName);
+
 	/*read the thing*/
 	sf_file = fopen (f_name,"r");
 	if (sf_file == NULL)
@@ -1058,10 +1070,11 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					fprintf(SUMA_STDERR,"Error %s: %s\n", FuncName, NewSurfWarn);
 					return (NOPE);
 				}
-				if (!SUMA_ParseLHS_RHS (s, stmp, Spec->SureFitTopo[Spec->N_Surfs-1])) {
+				if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
 					fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
 					return (NOPE);
 				}
+				sprintf(Spec->SureFitTopo[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
 				if (!OKread_SureFitTopo) {
 					fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
 					return (NOPE);
@@ -1078,10 +1091,12 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					fprintf(SUMA_STDERR,"Error %s: %s\n", FuncName, NewSurfWarn);
 					return (NOPE);
 				}
-				if (!SUMA_ParseLHS_RHS (s, stmp, Spec->SureFitCoord[Spec->N_Surfs-1])) {
+				if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
 					fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
 					return (NOPE);
 				}
+				sprintf (Spec->SureFitCoord[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+				
 				if (!OKread_SureFitCoord) {
 					fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
 					return (NOPE);
@@ -1098,10 +1113,11 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					fprintf(SUMA_STDERR,"Error %s: %s\n", FuncName, NewSurfWarn);
 					return (NOPE);
 				}
-				if (!SUMA_ParseLHS_RHS (s, stmp, Spec->MappingRef[Spec->N_Surfs-1])) {
+				if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
 					fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
 					return (NOPE);
 				}
+				sprintf (Spec->MappingRef[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
 				if (!OKread_MappingRef) {
 					fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
 					return (NOPE);
@@ -1118,10 +1134,12 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					fprintf(SUMA_STDERR,"Error %s: %s\n", FuncName, NewSurfWarn);
 					return (NOPE);
 				}
-				if (!SUMA_ParseLHS_RHS (s, stmp, Spec->SureFitVolParam[Spec->N_Surfs-1])) {
+				if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
 					fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
 					return (NOPE);
 				}
+				sprintf (Spec->SureFitVolParam[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+				
 				if (!OKread_SureFitVolParam) {
 					fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
 					return (NOPE);
@@ -1138,10 +1156,11 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					fprintf(SUMA_STDERR,"Error %s: %s\n", FuncName, NewSurfWarn);
 					return (NOPE);
 				}
-				if (!SUMA_ParseLHS_RHS (s, stmp, Spec->FreeSurferSurface[Spec->N_Surfs-1])) {
+				if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
 					fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
 					return (NOPE);
 				}
+				sprintf (Spec->FreeSurferSurface[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
 				if (!OKread_FreeSurferSurface) {
 					fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
 					return (NOPE);
@@ -1158,10 +1177,12 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					fprintf(SUMA_STDERR,"Error %s: %s\n", FuncName, NewSurfWarn);
 					return (NOPE);
 				}
-				if (!SUMA_ParseLHS_RHS (s, stmp, Spec->InventorSurface[Spec->N_Surfs-1])) {
+				if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
 					fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
 					return (NOPE);
 				}
+				sprintf(Spec->InventorSurface[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+				
 				if (!OKread_InventorSurface) {
 					fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
 					return (NOPE);

@@ -65,19 +65,19 @@ Side effects :
 ***/
 SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 {/*SUMA_FreeSurfer_Read*/
-   char FuncName[100], stmp[50]; 
+   char stmp[50]; 
    FILE *fs_file;
 	int ex, cnt, jnki, amax[3], maxamax;
 	float jnkf, **NodeList;
 	char c;
-	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_FreeSurfer_Read");
-   
+	static char FuncName[]={"SUMA_FreeSurfer_Read"};
+	   
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
+		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
 		return (NOPE);
+	}else {
+		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
 	}
 	
 	
