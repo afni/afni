@@ -6805,10 +6805,19 @@ STATUS(" -- processing points in this dataset") ;
    /*------ 06 Mar 2002: turn "SUMA to" on image popup on or off ------*/
 
    if( im3d->vwid->imag->pop_sumato_pb != NULL ){
-     if( im3d->anat_now->su_surf == NULL )
-        XtSetSensitive( im3d->vwid->imag->pop_sumato_pb , False ) ;
+     if( im3d->anat_now->su_surf != NULL )
+        XtManageChild( im3d->vwid->imag->pop_sumato_pb ) ;
      else
-        XtSetSensitive( im3d->vwid->imag->pop_sumato_pb , True  ) ;
+        XtUnmanageChild( im3d->vwid->imag->pop_sumato_pb ) ;
+   }
+
+   /*------ 01 May 2002: turn "Jump to (MNI)" on or off ------*/
+
+   if( im3d->vwid->imag->pop_mnito_pb != NULL ){
+      if( CAN_TALTO(im3d) )
+         XtManageChild( im3d->vwid->imag->pop_mnito_pb ) ;
+      else
+         XtUnmanageChild( im3d->vwid->imag->pop_mnito_pb ) ;
    }
 
    /*-------------------------------------------------------------------*/
@@ -7406,6 +7415,22 @@ ENTRY("AFNI_imag_pop_CB") ;
       }
    }
 
+   /*-- 01 May 2002: jump to MNI coordinates --*/
+
+   if( w == im3d->vwid->imag->pop_mnito_pb &&
+       im3d->type == AFNI_3DDATA_VIEW        ){
+
+      MCW_imseq * seq ;
+
+      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
+      if( ISQ_REALZ(seq) && CAN_TALTO(im3d) ){
+         MCW_choose_string( seq->wbar , "Enter MNI x,y,z:" , NULL ,
+                            AFNI_mnito_CB , (XtPointer) im3d ) ;
+      } else {
+         XBell(XtDisplay(w),100) ; /* should never happen */
+      }
+   }
+
    /*-- 06 Mar 2002: jump to a node in a surface --*/
 
    if( w == im3d->vwid->imag->pop_sumato_pb &&
@@ -7681,6 +7706,49 @@ void AFNI_see_ttatlas_CB( Widget w, XtPointer cd, XtPointer cb)
 }
 
 /*---------------------------------------------------------------------
+   called when the mnito chooser is set - 01 May 2002
+-----------------------------------------------------------------------*/
+
+void AFNI_mnito_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   float xx,yy,zz ;
+   char dum1[32],dum2[32];
+   int nn ;
+   THD_fvec3 tv ;
+
+ENTRY("AFNI_mnito_CB") ;
+
+   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+
+   if( !CAN_TALTO(im3d) || cbs->reason != mcwCR_string  ){   /* error */
+      POPDOWN_string_chooser ;
+      XBell( im3d->dc->display , 100 ) ;
+      EXRETURN ;
+   }
+
+   nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
+   if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+
+   LOAD_ANAT_VIEW(im3d) ;
+
+   LOAD_FVEC3(tv,xx,yy,zz) ;    /* MNI coords */
+   tv = THD_mni_to_tta( tv ) ;  /* Talairach coords */
+
+   /* transform from Talairach to current view, if needed */
+
+   if( im3d->anat_now->view_type != VIEW_TALAIRACH_TYPE )
+      tv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
+                                  tv , im3d->anat_now ) ;
+
+   nn = AFNI_jumpto_dicom( im3d , tv.xyz[0], tv.xyz[1], tv.xyz[2] ) ;
+   if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------
    called when the jumpto chooser is set
 -----------------------------------------------------------------------*/
 
@@ -7707,6 +7775,8 @@ ENTRY("AFNI_jumpto_CB") ;
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }
+
+/*---------------------------------------------------------------------*/
 
 int AFNI_jumpto_dicom( Three_D_View * im3d , float xx, float yy, float zz )
 {
@@ -7735,7 +7805,7 @@ ENTRY("AFNI_jumpto_dicom") ;
    }
 }
 
-/*-- the two functions below date to 19 Aug 1999 --*/
+/*----------- the two functions below date to 19 Aug 1999 -------------*/
 
 int AFNI_jumpto_ijk( Three_D_View * im3d , int ii, int jj, int kk )
 {
@@ -7757,6 +7827,8 @@ ENTRY("AFNI_jumpto_ijk") ;
       RETURN(-1) ;
    }
 }
+
+/*---------------------------------------------------------------------*/
 
 void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {

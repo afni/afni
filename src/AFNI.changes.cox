@@ -3709,3 +3709,6 @@
  * Added edt_clust2.c (NIH_find_clusters) to implement ISOVALUE_MODE and
      ISOMERGE_MODE.
  * Incorporated Ziad Saad's Ifile program into AFNI distribution.
+
+01 May 2002
+ * Added "Jump to (MNI)" button to image popup menu (afni_widg.c and afni.c).
