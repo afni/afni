@@ -79,6 +79,7 @@ int main(int argc, char **argv)
      if( ii > iarg )
        printf("---------------------------------------------------------------\n");
 
+     mri_dicom_seterr(-1) ;  /* make sure all errors are printed - 07 May 2003 */
 STATUS("calling funct mri_dicom_header()") ;
      ppp = mri_dicom_header( argv[ii] ) ;
 STATUS("returned from mri_dicom_header()") ;
