@@ -102,5 +102,7 @@ void PBAR_make_bigmap( char *,
 
 void PBAR_set_bigmap( MCW_pbar * , char * ) ;               /* 03 Feb 2003 */
 char * PBAR_get_bigmap( MCW_pbar * ) ;                      /* 03 Feb 2003 */
+int PBAR_define_bigmap( char *cmd ) ;                       /* 07 Feb 2003 */
+
 
 #endif
