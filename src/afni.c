@@ -2115,12 +2115,22 @@ ENTRY("AFNI_read_inputs") ;
       THD_3dim_dataset * dset ;
       THD_session * new_ss ;
       int vv ;
+      int gnim ;  /* 16 Mar 1998: names from globbing */
+      char ** gname ;
 
-      dset = AFNI_read_images( argc - GLOBAL_argopt.first_file_arg ,
-                               &(argv[GLOBAL_argopt.first_file_arg]) );
+      MCW_file_expand( argc - GLOBAL_argopt.first_file_arg ,
+                       &(argv[GLOBAL_argopt.first_file_arg]) ,
+                       &gnim , &gname ) ;
+
+      if( gnim < 1 )
+         FatalError("No valid filenames on command line?!" ) ;
+
+      dset = AFNI_read_images( gnim , gname ) ;
 
       if( dset == NULL )
          FatalError("Could not form 3D dataset from images!" ) ;
+
+      MCW_free_expand( gnim , gname ) ;
 
       /* set up minuscule session and session list */
 

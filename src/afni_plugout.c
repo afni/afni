@@ -71,13 +71,17 @@ ENTRY("AFNI_plugout_workproc") ;
    if( ioc_control == NULL ){
       ioc_control = iochan_init( TCP_PLUGOUT_CONTROL , "accept" ) ;
       if( ioc_control == NULL ){
-         iochan_sleep(VLONG_DELAY) ;  /* wait a bit, try again */
-         ioc_control = iochan_init( TCP_PLUGOUT_CONTROL , "accept" ) ;
+         fprintf(stderr,"PO: waiting to listen on control channel") ;
+         for( ii=0 ; ii < 10 ; ii++ ){
+            fprintf(stderr,".") ;
+            iochan_sleep(VLONG_DELAY) ;  /* wait a bit, try again */
+            ioc_control = iochan_init( TCP_PLUGOUT_CONTROL , "accept" ) ;
+            if( ioc_control != NULL ) break ;
+         }
+         fprintf(stderr,"\n") ;
          if( ioc_control == NULL ){
-#if 0
             fprintf(stderr,"PO: can't listen for control channel!\a\n") ;
-#endif
-            RETURN(False) ;
+            RETURN(True) ;
          }
       }
       opcount++ ;

@@ -4,6 +4,17 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+16 March 1998:
+   'afni -im' will now perform internal globbing of filenames -- that is,
+     it can do wildcard expansion itself.  For example:
+        afni -im '3D:-1:0:256:256:1:I.*'
+     will use the 3D: format to read a bunch of 256x256 images from files
+     named I.001, I.002, etc.  See the output of "to3d -help" for more
+     details about the globbing feature.
+   Bucket type "follower" datasets created applying the Talairach warp
+     of an anatomical parent to a dataset will now properly keep their
+     data parent's sub-brick labels, etc.
+--------------------------------------------------------------------------
 13 February 1998:
    The new plugin "Draw Dataset" offers a way to interactively edit the
      values inside a dataset.  It is intended to allow the creation of

@@ -31,6 +31,7 @@ static int                CALC_nvox  = -1 ;
 static PARSER_code *      CALC_code  = NULL ;
 static int 		  ntime[26] ;
 static int 		  ntime_max = 0 ;
+static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
 
 static THD_3dim_dataset *  CALC_dset[26] ;
 static int                 CALC_type[26] ;
@@ -84,6 +85,13 @@ void CALC_read_opts( int argc , char * argv[] )
             exit(1) ;
          }
          nopt++ ; continue ;  /* go to next arg */
+      }
+
+      /**** -fscale [16 Mar 1998] ****/
+
+      if( strncmp(argv[nopt],"-fscale",6) == 0 ){
+         CALC_fscale = 1 ;
+         nopt++ ; continue ;
       }
 
       /**** -prefix prefix ****/
@@ -270,6 +278,12 @@ void CALC_Syntax(void)
     "  -datum type = Coerce the output data to be stored as the given type,\n"
     "                  which may be byte, short, or float.\n"
     "                  [default = datum of first input dataset]\n"
+    "  -fscale     = Force scaling of the output to the maximum integer\n"
+    "                  range.  This only has effect if the output datum\n"
+    "                  is byte or short (either forced or defaulted).\n"
+    "                  [default is to scale only if the computed values\n"
+    "                   seem to need it -- are all less than 1 or have\n"
+    "                   some value beyond the integer upper limit]\n"
     "  -a dname    = Read dataset 'dname' and call the voxel values 'a'\n"
     "                  in the expression that is input below.  'a' may be any\n"
     "                  single letter from 'a' to 'z'.\n"
@@ -507,8 +521,12 @@ int main( int argc , char * argv[] )
 
          if( gtop == 0.0 ) fprintf(stderr,"Warning: output is all zeros!\n") ;
 
-         fimfac = (gtop > MRI_TYPE_maxval[CALC_datum] || (gtop > 0.0 && gtop <= 1.0) )
-                  ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
+         if( CALC_fscale ){   /* 16 Mar 1998 */
+            fimfac = MRI_TYPE_maxval[CALC_datum]/ gtop ;
+         } else {
+            fimfac = (gtop > MRI_TYPE_maxval[CALC_datum] || (gtop > 0.0 && gtop <= 1.0) )
+                     ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
+         }
 
 	 dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
 

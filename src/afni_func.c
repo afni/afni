@@ -523,7 +523,12 @@ ENTRY("AFNI_follower_dataset") ;
    new_dset->dblk->natr        = new_dset->dblk->natr_alloc  = 0 ;
    new_dset->dblk->atr         = NULL ;
    new_dset->dblk->parent      = (XtPointer) new_dset ;
-   THD_init_datablock_labels( new_dset->dblk ) ; /* 30 Nov 1997 */
+
+   if( data_parent->dblk->brick_lab == NULL ){
+      THD_init_datablock_labels( new_dset->dblk ) ; /* 30 Nov 1997 */
+   } else {
+      THD_copy_datablock_auxdata( data_parent->dblk , new_dset->dblk ) ;
+   }
 
    DSET_unlock(new_dset) ;  /* Feb 1998 */
 

@@ -563,7 +563,10 @@ int main( int argc , char * argv[] )
          if( nvals > 1 && dset->taxis != NULL ){
             fprintf(stderr,"  ** can't change 3D+time dataset to new type:\n") ;
             fprintf(stderr,"     new type has more than one value per voxel!\n") ;
-         } else if( dset->taxis == NULL && nvals != dset->dblk->nvals ){
+         } else if( dset->taxis == NULL && nvals != dset->dblk->nvals &&
+                    ((dtype==HEAD_FUNC_TYPE && ftype!=FUNC_BUCK_TYPE)||  
+                     (dtype==HEAD_ANAT_TYPE && ftype!=ANAT_BUCK_TYPE)  ) ){
+
             fprintf(stderr,"  ** can't change dataset to new type:\n") ;
             fprintf(stderr,"     mismatch in number of sub-bricks!\n") ;
          } else {

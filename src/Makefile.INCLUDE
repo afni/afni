@@ -635,7 +635,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO) \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
-        model_null.$(SO) \
+        model_null.$(SO) model_diffusion.$(SO) \
         model_sinewave_ap.$(SO) model_sinewave_apf.$(SO) \
         model_squarewave_ap.$(SO) model_squarewave_apf.$(SO) \
         model_trnglwave_ap.$(SO) model_trnglwave_apf.$(SO) \

@@ -57,6 +57,14 @@
 #endif
 #endif
 
+#ifndef BE_AFNI_IGNORANT
+#define BE_AFNI_AWARE
+#endif
+
+#ifdef BE_AFNI_AWARE
+#undef DONT_MANGLE_XYZ
+#endif
+
 /***-----------------------------------------------------------------------***/
 
 #define GX_MAX    512                  /* Horizontal size of graph window */

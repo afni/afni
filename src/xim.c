@@ -209,7 +209,7 @@ MRI_IMAGE * XImage_to_mri(  MCW_DC * dc , XImage * ximage )
    int nx , ny , npix , ii,jj , kk , pix_bytes , allgray , pp , lsize ;
    byte * rgb , * gray ;
    byte rr,gg,bb ;
-   char * ptr ;
+   byte * ptr ;
    XColor * xc ;
    MRI_IMAGE * outim ;
 
@@ -230,7 +230,7 @@ fprintf(stderr,
    lsize = ximage->bytes_per_line ;
 
    pix_bytes = ximage->bits_per_pixel / 8;    /* 1 or 2 bytes per pixel */
-   ptr       = (char *) ximage->data ;        /* pointer to pixels */
+   ptr       = (byte *) ximage->data ;        /* pointer to pixels */
 
    rgb = (byte *) malloc( sizeof(byte) * 3*npix ) ;
    if( rgb == NULL ){
