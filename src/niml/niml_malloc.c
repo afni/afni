@@ -634,15 +634,6 @@ NI_dpr("hidden_NI_free: called from %s#%d\n",fnam,lnum) ;
 
 }
 
-/*-----------------------------------------------------------------*/
-/*! 17 Dec 2003: In case a true NI_free() call gets thru somehow.  */
-/*-----------------------------------------------------------------*/
-
-void NI_free( void *p )
-{
-  hidden_NI_free( p , (char *)"Nada" , 0 ) ;
-}
-
 /*------------------------------------------------*/
 /*! Insertion_sort : sort an array of int + int.  */
 
@@ -772,6 +763,18 @@ void qsort_intint( int n , int * a , int * ia )
    qsrec_intint( n , a , ia , QS_CUTOFF ) ;
    isort_intint( n , a , ia ) ;
    return ;
+}
+
+/*-----------------------------------------------------------------*/
+/*! 17 Dec 2003: In case a true NI_free() call gets thru somehow.  */
+/*-----------------------------------------------------------------*/
+
+#ifdef NI_free
+#undef NI_free
+#endif
+void NI_free( void *p )
+{
+  hidden_NI_free( p , (char *)"Nada" , 0 ) ;
 }
 
 #endif  /* NIML_OLD_MALLOC or DONT_USE_MCW_MALLOC */
