@@ -5127,7 +5127,9 @@ void JPEG_matrix_gray( matrix X , char *fname )
 
    jpfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
    sprintf( jpfilt , "%s -quality 95 > %s" , pg , fname ) ;
+#ifndef CYGWIN
    signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
+#endif
    fp = popen( jpfilt , "w" ) ;
    if( fp == NULL ){
      mri_free(im) ; free((void *)jpfilt) ;
