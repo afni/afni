@@ -1566,7 +1566,7 @@ ENTRY("plot_graphs") ;
 
          if( tsim == NULL ){
             ADDTO_IMARR(tsimar,NULL) ;
-            if( dplot) ADDTO_IMARR(dplot_imar,NULL) ;
+            if( dplot ) ADDTO_IMARR(dplot_imar,NULL) ;
             continue ;
          }
 
@@ -1590,12 +1590,12 @@ STATUS("about to perform 0D transformation") ;
          if( grapher->transform1D_func != NULL ){
             MRI_IMAGE * qim ;
 
-            if( dplot ){
-               qim = mri_to_float(tsim) ;
+            if( dplot ){                      /* copy and save original */
+               qim = mri_to_float(tsim) ;     /* if double plot is on  */
                ADDTO_IMARR(dplot_imar,qim) ;
             }
             else
-               qim = tsim ;
+               qim = tsim ;                   /* transform original */
 
 STATUS("about to perform 1D transformation") ;
 
