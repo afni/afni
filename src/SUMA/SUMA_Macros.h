@@ -1,5 +1,5 @@
-#ifndef SUMA_MACROS_INCLUDED
-#define SUMA_MACROS_INCLUDED
+#ifndef SUMA_MACROSm_INCLUDED
+#define SUMA_MACROSm_INCLUDED
 
 /* Many of these macros are taken from DSP_in_C examples in
 C Language Algorithms for Digital Signal Processing 
@@ -15,12 +15,12 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 	norm (float) norm of a 
 */
 #define SUMA_NORM_VEC(a,nel,norm) { \
-	int _I; \
+	int m_I; \
 	norm = 0.0; \
-	for (_I = 0; _I < nel; _I++) { \
-		norm += a[_I]*a[_I];	 \
+	for (m_I = 0; m_I < nel; m_I++) { \
+		norm += a[m_I]*a[m_I];	 \
 	} \
-	norm = sqrtf(norm); \
+	norm = sqrt(norm); \
 }
 
 
@@ -31,10 +31,10 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 	amin minimum of a (make sure types of a and amin match)
 */
 #define SUMA_MIN_VEC(a,nel,amin) { \
-	int _I; \
+	int m_I; \
 	amin = a[0]; \
-	for (_I = 1; _I < nel; _I++) { \
-		if (a[_I] < amin) amin = a[_I];	 \
+	for (m_I = 1; m_I < nel; m_I++) { \
+		if (a[m_I] < amin) amin = a[m_I];	 \
 	} \
 }
 
@@ -46,13 +46,13 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 	minloc (int) index into a where the minimum was found
 */
 #define SUMA_MIN_LOC_VEC(a,nel,amin, minloc) { \
-	int _I; \
+	int m_I; \
 	amin = a[0]; \
 	minloc = 0; \
-	for (_I = 1; _I < nel; _I++) { \
-		if (a[_I] < amin) { \
-			amin = a[_I];	 \
-			minloc = _I; \
+	for (m_I = 1; m_I < nel; m_I++) { \
+		if (a[m_I] < amin) { \
+			amin = a[m_I];	 \
+			minloc = m_I; \
 		} \
 	} \
 }
@@ -64,10 +64,10 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 	amax maximum of a (make sure types of a and amax match)
 */
 #define SUMA_MAX_VEC(a,nel,amax) { \
-	int _I; \
+	int m_I; \
 	amax = a[0]; \
-	for (_I = 1; _I < nel; _I++) { \
-		if (a[_I] > amax) amax = a[_I];	 \
+	for (m_I = 1; m_I < nel; m_I++) { \
+		if (a[m_I] > amax) amax = a[m_I];	 \
 	} \
 }
 
@@ -81,14 +81,14 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 	amaxloc index where maximum is found
 */
 #define SUMA_MIN_MAX_VEC(a,nel, amin, amax, aminloc, amaxloc) { \
-	int _I; \
+	int m_I; \
 	amaxloc = 0; \
 	amax = a[0]; \
 	aminloc = 0; \
 	amin = a[0];\
-	for (_I = 1; _I < nel; _I++) { \
-		if (a[_I] > amax) { amax = a[_I]; amaxloc = _I; }	 \
-		else { if (a[_I] < amin) { amin = a[_I]; aminloc = _I; } }	 \
+	for (m_I = 1; m_I < nel; m_I++) { \
+		if (a[m_I] > amax) { amax = a[m_I]; amaxloc = m_I; }	 \
+		else { if (a[m_I] < amin) { amin = a[m_I]; aminloc = m_I; } }	 \
 	} \
 }
 
@@ -114,8 +114,8 @@ SUMA_ADD_VEC(a,b,c,len,typea,typeb,typec)
                   typea *_PTA = a;  \
                   typeb *_PTB = b;  \
                   typec *_PTC = c;  \
-                  int _IX;  \
-                      for(_IX = 0 ; _IX < (len) ; _IX++)  \
+                  int m_IX;  \
+                      for(m_IX = 0 ; m_IX < (len) ; m_IX++)  \
                           *_PTC++ = (typec)((*_PTA++) + (*_PTB++));  \
                   }
 
@@ -144,8 +144,8 @@ SUMA_SUB_VEC(a,b,c,len,typea,typeb,typec)
                   typea *_PTA = a;  \
                   typeb *_PTB = b;  \
                   typec *_PTC = c;  \
-                  int _IX;  \
-                      for(_IX = 0 ; _IX < (len) ; _IX++)  \
+                  int m_IX;  \
+                      for(m_IX = 0 ; m_IX < (len) ; m_IX++)  \
                           *_PTC++ = (typec)((*_PTA++) - (*_PTB++));  \
                   }
 #endif
@@ -177,8 +177,8 @@ WARNING: The input data vectors are not cast to the type of c.
                    typea *_PTA = a;  \
                    typeb *_PTB = b;  \
                    typec *_PTC = c;  \
-                   int _IX;  \
-                       for(_IX = 0 ; _IX < (len) ; _IX++)  \
+                   int m_IX;  \
+                       for(m_IX = 0 ; m_IX < (len) ; m_IX++)  \
                            *_PTC++ = (typec)((*_PTA++) * (*_PTB++));  \
                    }
 #endif
@@ -201,9 +201,9 @@ SUMA_SUM_VEC(a,s,len,typea)
 #ifndef SUMA_SUM_VEC
 #define SUMA_SUM_VEC(a,s,len,typea) {  \
                        typea *_PTA = a;  \
-                       int _IX;  \
+                       int m_IX;  \
                        s = (*_PTA++);  \
-                       for(_IX = 1 ; _IX < (len) ; _IX++)  \
+                       for(m_IX = 1 ; m_IX < (len) ; m_IX++)  \
                            s += (*_PTA++);  \
                    }
 #endif
@@ -230,8 +230,8 @@ SUMA_SCALE_VEC(a,b,s,len,typea,typeb)
 #define SUMA_SCALE_VEC(a,b,s,len,typea,typeb) {  \
                        typea *_PTA = (typea *)a;  \
                        typeb *_PTB = (typeb *)b;  \
-                       int _IX;  \
-                       for(_IX = 0 ; _IX < (len) ; _IX++)  \
+                       int m_IX;  \
+                       for(m_IX = 0 ; m_IX < (len) ; m_IX++)  \
                            *(_PTB)++ = (typeb)(s * (*(_PTA)++));  \
                     }
 #endif                   
@@ -254,9 +254,9 @@ SUMA_EXTRACT_VEC (a,b,ind,len)
 #define SUMA_EXTRACT_VEC(a,b,ind,len,typea,typeb) {  \
                        typea *_PTA = (typea *)a;  \
                        typeb *_PTB = (typeb *)b;  \
-							  int _IX;  \
-                       for(_IX = 0 ; _IX < (len) ; _IX++)  \
-                         _PTB[_IX] = _PTA[ind[_IX]];   \
+							  int m_IX;  \
+                       for(m_IX = 0 ; m_IX < (len) ; m_IX++)  \
+                         _PTB[m_IX] = _PTA[ind[m_IX]];   \
 						  }
 
 
@@ -280,9 +280,9 @@ SUMA_CAT_VEC(a,b, catata, lenb,typea,typeb)
 #define SUMA_CAT_VEC(a,b, catata, lenb,typea,typeb) { \
                        typea *_PTA = (typea *)a;  \
                        typeb *_PTB = (typeb *)b;  \
-                       int _IX;  \
+                       int m_IX;  \
 							  _PTA = _PTA + catata; \
-							  for(_IX = 0 ; _IX < (lenb) ; _IX++)  \
+							  for(m_IX = 0 ; m_IX < (lenb) ; m_IX++)  \
                            *(_PTA)++ = (typea)(*(_PTB)++);  \
                     }
 						  
@@ -328,9 +328,9 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
                  typea **_AMX = (typea **)a;  \
                  typeb *_PTB = (typeb *)b;  \
                  typea *_PTA;  \
-                 int _IX,_JX;  \
-                 for(_IX = 0 ; _IX < rows ; _IX++) {  \
-                     _PTA = _AMX[_IX ] ;  \
+                 int m_IX,_JX;  \
+                 for(m_IX = 0 ; m_IX < rows ; m_IX++) {  \
+                     _PTA = _AMX[m_IX ] ;  \
                      for(_JX = 0 ; _JX < col ; _JX++)  \
                          _PTA++; \
 							*_PTB++ = (typeb)(*_PTA++);  \
@@ -346,11 +346,11 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
 	amin minimum of each column in a (make sure types of a and amin match)
 */
 #define SUMA_MIN_MAT_COL(a, rows, cols, amin) { \
-						int _IX, _JX;	\
-						for (_IX = 0; _IX < cols ; _IX++) {	\
-							amin[_IX]=a[0][_IX];	\
+						int m_IX, _JX;	\
+						for (m_IX = 0; m_IX < cols ; m_IX++) {	\
+							amin[m_IX]=a[0][m_IX];	\
 							for (_JX = 1 ; _JX < rows ; _JX++)  \
-								if (a[_JX][_IX] < amin[_IX]) amin[_IX] = a[_JX][_IX];\
+								if (a[_JX][m_IX] < amin[m_IX]) amin[m_IX] = a[_JX][m_IX];\
 							}\
 						}
 						
@@ -363,11 +363,11 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
 	amax maximum of each column in a (make sure types of a and amin match)
 */
 #define SUMA_MAX_MAT_COL(a, rows, cols, amax) { \
-						int _IX, _JX;	\
-						for (_IX = 0; _IX < cols ; _IX++) {	\
-							amax[_IX]=a[0][_IX];	\
+						int m_IX, _JX;	\
+						for (m_IX = 0; m_IX < cols ; m_IX++) {	\
+							amax[m_IX]=a[0][m_IX];	\
 							for (_JX = 1 ; _JX < rows ; _JX++)  \
-								if (a[_JX][_IX] > amax[_IX]) amax[_IX] = a[_JX][_IX];\
+								if (a[_JX][m_IX] > amax[m_IX]) amax[m_IX] = a[_JX][m_IX];\
 						}\
 					}
 						
@@ -382,15 +382,15 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
 
 */
 #define SUMA_MIN_MAX_SUM_MAT_COL(a, rows, cols, amin, amax, asum) { \
-						int _IX, _JX;	\
-						for (_IX = 0; _IX < cols ; _IX++) {	\
-							amax[_IX]=a[0][_IX];	\
-							amin[_IX]=a[0][_IX];	\
-							asum[_IX]=a[0][_IX];	\
+						int m_IX, _JX;	\
+						for (m_IX = 0; m_IX < cols ; m_IX++) {	\
+							amax[m_IX]=a[0][m_IX];	\
+							amin[m_IX]=a[0][m_IX];	\
+							asum[m_IX]=a[0][m_IX];	\
 							for (_JX = 1 ; _JX < rows ; _JX++) { \
-								if (a[_JX][_IX] > amax[_IX]) amax[_IX] = a[_JX][_IX];\
-								if (a[_JX][_IX] < amin[_IX]) amin[_IX] = a[_JX][_IX];\
-								asum[_IX] += a[_JX][_IX];	\
+								if (a[_JX][m_IX] > amax[m_IX]) amax[m_IX] = a[_JX][m_IX];\
+								if (a[_JX][m_IX] < amin[m_IX]) amin[m_IX] = a[_JX][m_IX];\
+								asum[m_IX] += a[_JX][m_IX];	\
 							}	\
 						}\
 					}
@@ -413,9 +413,9 @@ SUMA_MAT_TO_VEC(a,b,rows,cols,typea,typeb)
                  typea **_AMX = (typea **)a;  \
                  typeb *_PTB = (typeb *)b;  \
                  typea *_PTA;  \
-                 int _IX,_JX;  \
-                 for(_IX = 0 ; _IX < rows ; _IX++) {  \
-                     _PTA = _AMX[_IX ];  \
+                 int m_IX,_JX;  \
+                 for(m_IX = 0 ; m_IX < rows ; m_IX++) {  \
+                     _PTA = _AMX[m_IX ];  \
                      for(_JX = 0 ; _JX < cols ; _JX++)  \
                          *_PTB++ = (typeb) (*_PTA++);  \
                  }  \
@@ -440,8 +440,8 @@ SUMA_COPY_VEC(a,b,len,typea,typeb)
 #define SUMA_COPY_VEC(a,b,len,typea,typeb) {  \
                        typea *_PTA = (typea *)a;  \
                        typeb *_PTB = (typeb *)b;  \
-                       int _IX;  \
-                       for(_IX = 0 ; _IX < (len) ; _IX++)  \
+                       int m_IX;  \
+                       for(m_IX = 0 ; m_IX < (len) ; m_IX++)  \
                            *(_PTB)++ = (typeb)(*(_PTA)++);  \
                     }
 
@@ -471,9 +471,9 @@ WARNING: The input data vectors are not cast to the type of s.
 #define SUMA_DOTP_VEC(a,b,s,len,typea,typeb) {  \
                        typea *_PTA = a;  \
                        typeb *_PTB = b;  \
-                       int _IX;  \
+                       int m_IX;  \
                        s = (*_PTA++) * (*_PTB++);  \
-                       for(_IX = 1 ; _IX < (len) ; _IX++)  \
+                       for(m_IX = 1 ; m_IX < (len) ; m_IX++)  \
                            s += (*_PTA++) * (*_PTB++);  \
                    }
 
@@ -502,12 +502,12 @@ WARNING: The input data vectors are not cast to the type of s.
                	  typea *_PTA;  \
                	  typeb *_PTB;  \
                	  typec *_PTC;  \
-               	  int _IX,_JX,_KX;  \
-               	  for(_IX = 0 ; _IX < rowsa ; _IX++) {  \
-                     	_PTC = _CMX[_IX];  \
+               	  int m_IX,_JX,_KX;  \
+               	  for(m_IX = 0 ; m_IX < rowsa ; m_IX++) {  \
+                     	_PTC = _CMX[m_IX];  \
                      	_PTB = _BMX[0];  \
                      	for(_JX = 0 ; _JX < colsb ; _JX++) {  \
-                        	 _PTA = _AMX[_IX];  \
+                        	 _PTA = _AMX[m_IX];  \
                         	 *_PTC = (*_PTA++) * (*_PTB++);  \
                         	 for(_KX = 1 ; _KX < colsa ; _KX++)  \
                            	  *_PTC += (*_PTA++)* _BMX[_KX][_JX];  \
@@ -537,10 +537,10 @@ WARNING: The input data vectors are not cast to the type of s.
                	  typea **_AMX = (typea **)a;  \
                	  typeb **_BMX = (typeb **)b;  \
                	  typec **_CMX = (typec **)c;  \
-               	  int _IX,_JX;  \
-               	  for(_IX = 0 ; _IX < rowsa ; _IX++) {  \
+               	  int m_IX,_JX;  \
+               	  for(m_IX = 0 ; m_IX < rowsa ; m_IX++) {  \
                      	for(_JX = 0 ; _JX < colsa ; _JX++) {  \
-                        	 _CMX[_IX][_JX] = _AMX[_IX][_JX] + _BMX[_IX][_JX];  \
+                        	 _CMX[m_IX][_JX] = _AMX[m_IX][_JX] + _BMX[m_IX][_JX];  \
                      	}  \
                	  }  \
             	 }    
@@ -565,10 +565,10 @@ WARNING: The input data vectors are not cast to the type of s.
                	  typea **_AMX = (typea **)a;  \
                	  typeb **_BMX = (typeb **)b;  \
                	  typec **_CMX = (typec **)c;  \
-               	  int _IX,_JX;  \
-               	  for(_IX = 0 ; _IX < rowsa ; _IX++) {  \
+               	  int m_IX,_JX;  \
+               	  for(m_IX = 0 ; m_IX < rowsa ; m_IX++) {  \
                      	for(_JX = 0 ; _JX < colsa ; _JX++) {  \
-                        	 _CMX[_IX][_JX] = _AMX[_IX][_JX] - _BMX[_IX][_JX];  \
+                        	 _CMX[m_IX][_JX] = _AMX[m_IX][_JX] - _BMX[m_IX][_JX];  \
                      	}  \
                	  }  \
             	 }    
@@ -591,10 +591,10 @@ WARNING: The input data vectors are not cast to the type of s.
 	#define SUMA_TRANSP_MAT(a,b,rowsa,colsa,typea,typeb) {  \
                	  typea **_AMX = (typea **)a;  \
                	  typeb **_BMX = (typeb **)b;  \
-               	  int _IX,_JX;  \
-               	  for(_IX = 0 ; _IX < rowsa ; _IX++) {  \
+               	  int m_IX,_JX;  \
+               	  for(m_IX = 0 ; m_IX < rowsa ; m_IX++) {  \
                      	for(_JX = 0 ; _JX < colsa ; _JX++) {  \
-                        	 _BMX[_JX][_IX] = _AMX[_IX][_JX];  \
+                        	 _BMX[_JX][m_IX] = _AMX[m_IX][_JX];  \
                      	}  \
                	  }  \
             	 }    
@@ -607,12 +607,12 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_2_GLCOLAR4(RGBmat, glcolar, nrgb) {\
-		int _I, _I4 = 0; \
-		for (_I=0; _I < nrgb; ++_I) {\
-			glcolar[_I4] = RGBmat[_I][0]; ++_I4;\
-			glcolar[_I4] = RGBmat[_I][1]; ++_I4;\
-			glcolar[_I4] = RGBmat[_I][2]; ++_I4;\
-			++_I4;\
+		int m_I, m_I4 = 0; \
+		for (m_I=0; m_I < nrgb; ++m_I) {\
+			glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+			glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+			glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
+			++m_I4;\
 		}\
 	}
 	
@@ -625,12 +625,12 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat2GLCOLAR4(glcolar, RGBmat, nrgb) {\
-		int _I, _I4 = 0; \
-		for (_I=0; _I < nrgb; ++_I) {\
-			RGBmat[_I][0] = glcolar[_I4]; ++_I4;\
-			RGBmat[_I][1] = glcolar[_I4]; ++_I4;\
-			RGBmat[_I][2] = glcolar[_I4]; ++_I4;\
-			++_I4;\
+		int m_I, m_I4 = 0; \
+		for (m_I=0; m_I < nrgb; ++m_I) {\
+			RGBmat[m_I][0] = glcolar[m_I4]; ++m_I4;\
+			RGBmat[m_I][1] = glcolar[m_I4]; ++m_I4;\
+			RGBmat[m_I][2] = glcolar[m_I4]; ++m_I4;\
+			++m_I4;\
 		}\
 	}
 	
@@ -648,20 +648,20 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4(RGBmat, glcolar, nrgb, add) {\
-		int _I, _I4 = 0; \
+		int m_I, m_I4 = 0; \
 		if (!add) {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				glcolar[_I4] = RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] = RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] = RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 		} else {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				glcolar[_I4] += RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] += RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] += RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				glcolar[m_I4] += RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] += RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] += RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 		}\
 	}
@@ -681,20 +681,20 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4(RGBmat, glcolar, nrgb, fact, add) {\
-		int _I, _I4 = 0; \
+		int m_I, m_I4 = 0; \
 		if (!add) {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				glcolar[_I4] = fact * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] = fact * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] = fact * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				glcolar[m_I4] = fact * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] = fact * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] = fact * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 		}else {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				glcolar[_I4] += fact * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] += fact * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] += fact * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				glcolar[m_I4] += fact * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] += fact * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] += fact * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 		}\
 	}
@@ -715,20 +715,20 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_FullGlobLoc2_GLCOLAR4(RGBmat, glcolar, nrgb, fact, locfact, add) {\
-		int _I, _I4 = 0; \
+		int m_I, m_I4 = 0; \
 		if (!add) {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				glcolar[_I4] = locfact[_I] * fact * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] = locfact[_I] * fact * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] = locfact[_I] * fact * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 		} else {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				glcolar[_I4] += locfact[_I] * fact * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] += locfact[_I] * fact * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] += locfact[_I] * fact * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 		}\
 	}
@@ -748,20 +748,20 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4(RGBmat, glcolar, nrgb, locfact, add) {\
-		int _I, _I4 = 0; \
+		int m_I, m_I4 = 0; \
 		if (!add) {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				glcolar[_I4] = locfact[_I] * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] = locfact[_I] * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] = locfact[_I] * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 		} else {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				glcolar[_I4] += locfact[_I] * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] += locfact[_I] * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] += locfact[_I] * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 		}\
 	}
@@ -783,25 +783,25 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, nrgb, isColored, add, N_Node) {\
-		int _I, _I4 = 0; \
+		int m_I, m_I4 = 0; \
 		if (!add) {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[NodeId[_I]] = YUP;\
-				if (NodeId[_I] < N_Node) {\
-					_I4 = 4*NodeId[_I]; \
-					glcolar[_I4] = RGBmat[_I][0]; ++_I4;\
-					glcolar[_I4] = RGBmat[_I][1]; ++_I4;\
-					glcolar[_I4] = RGBmat[_I][2]; ++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[NodeId[m_I]] = YUP;\
+				if (NodeId[m_I] < N_Node) {\
+					m_I4 = 4*NodeId[m_I]; \
+					glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+					glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+					glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
 				}\
 			}\
 		} else {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[NodeId[_I]] = YUP;\
-				if (NodeId[_I] < N_Node) {\
-					_I4 = 4*NodeId[_I]; \
-					glcolar[_I4] += RGBmat[_I][0]; ++_I4;\
-					glcolar[_I4] += RGBmat[_I][1]; ++_I4;\
-					glcolar[_I4] += RGBmat[_I][2]; ++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[NodeId[m_I]] = YUP;\
+				if (NodeId[m_I] < N_Node) {\
+					m_I4 = 4*NodeId[m_I]; \
+					glcolar[m_I4] += RGBmat[m_I][0]; ++m_I4;\
+					glcolar[m_I4] += RGBmat[m_I][1]; ++m_I4;\
+					glcolar[m_I4] += RGBmat[m_I][2]; ++m_I4;\
 				}\
 			}\
 		}\
@@ -825,25 +825,25 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, nrgb, isColored, fact, add, N_Node) {\
-		int _I, _I4 = 0, _II; \
+		int m_I, m_I4 = 0, m_II; \
 		if (!add) {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[NodeId[_I]] = YUP;\
-				if (NodeId[_I] < N_Node) {\
-					_I4 = 4*NodeId[_I]; \
-					glcolar[_I4] = fact * RGBmat[_I][0]; ++_I4;\
-					glcolar[_I4] = fact * RGBmat[_I][1]; ++_I4;\
-					glcolar[_I4] = fact * RGBmat[_I][2]; ++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[NodeId[m_I]] = YUP;\
+				if (NodeId[m_I] < N_Node) {\
+					m_I4 = 4*NodeId[m_I]; \
+					glcolar[m_I4] = fact * RGBmat[m_I][0]; ++m_I4;\
+					glcolar[m_I4] = fact * RGBmat[m_I][1]; ++m_I4;\
+					glcolar[m_I4] = fact * RGBmat[m_I][2]; ++m_I4;\
 				}\
 			}\
 		} else {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[NodeId[_I]] = YUP;\
-				if (NodeId[_I] < N_Node) {\
-					_I4 = 4*NodeId[_I]; \
-					glcolar[_I4] += fact * RGBmat[_I][0]; ++_I4;\
-					glcolar[_I4] += fact * RGBmat[_I][1]; ++_I4;\
-					glcolar[_I4] += fact * RGBmat[_I][2]; ++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[NodeId[m_I]] = YUP;\
+				if (NodeId[m_I] < N_Node) {\
+					m_I4 = 4*NodeId[m_I]; \
+					glcolar[m_I4] += fact * RGBmat[m_I][0]; ++m_I4;\
+					glcolar[m_I4] += fact * RGBmat[m_I][1]; ++m_I4;\
+					glcolar[m_I4] += fact * RGBmat[m_I][2]; ++m_I4;\
 				}\
 			}\
 		}\
@@ -868,25 +868,25 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_PartGlobLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, nrgb, isColored, fact, locfact, add, N_Node) {\
-		int _I, _I4 = 0; \
+		int m_I, m_I4 = 0; \
 		if (!add) {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[NodeId[_I]] = YUP;\
-				if (NodeId[_I] < N_Node) {\
-					_I4 = 4*NodeId[_I]; \
-					glcolar[_I4] = locfact[_I] * fact * RGBmat[_I][0]; ++_I4;\
-					glcolar[_I4] = locfact[_I] * fact * RGBmat[_I][1]; ++_I4;\
-					glcolar[_I4] = locfact[_I] * fact * RGBmat[_I][2]; ++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[NodeId[m_I]] = YUP;\
+				if (NodeId[m_I] < N_Node) {\
+					m_I4 = 4*NodeId[m_I]; \
+					glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
+					glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
+					glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
 				}\
 			}\
 		} else {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[NodeId[_I]] = YUP;\
-				if (NodeId[_I] < N_Node) {\
-					_I4 = 4*NodeId[_I]; \
-					glcolar[_I4] += locfact[_I] * fact * RGBmat[_I][0]; ++_I4;\
-					glcolar[_I4] += locfact[_I] * fact * RGBmat[_I][1]; ++_I4;\
-					glcolar[_I4] += locfact[_I] * fact * RGBmat[_I][2]; ++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[NodeId[m_I]] = YUP;\
+				if (NodeId[m_I] < N_Node) {\
+					m_I4 = 4*NodeId[m_I]; \
+					glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
+					glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
+					glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
 				}\
 			}\
 		}\
@@ -911,25 +911,25 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, nrgb, isColored,  locfact, add, N_Node) {\
-		int _I, _I4 = 0; \
+		int m_I, m_I4 = 0; \
 		if (!add) {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[NodeId[_I]] = YUP;\
-				if (NodeId[_I] < N_Node) {\
-					_I4 = 4*NodeId[_I]; \
-					glcolar[_I4] = locfact[_I] * RGBmat[_I][0]; ++_I4;\
-					glcolar[_I4] = locfact[_I] * RGBmat[_I][1]; ++_I4;\
-					glcolar[_I4] = locfact[_I] * RGBmat[_I][2]; ++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[NodeId[m_I]] = YUP;\
+				if (NodeId[m_I] < N_Node) {\
+					m_I4 = 4*NodeId[m_I]; \
+					glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
+					glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
+					glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
 				}\
 			}\
 		}else {\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[NodeId[_I]] = YUP;\
-				if (NodeId[_I] < N_Node) {\
-					_I4 = 4*NodeId[_I]; \
-					glcolar[_I4] += locfact[_I] * RGBmat[_I][0]; ++_I4;\
-					glcolar[_I4] += locfact[_I] * RGBmat[_I][1]; ++_I4;\
-					glcolar[_I4] += locfact[_I] * RGBmat[_I][2]; ++_I4;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[NodeId[m_I]] = YUP;\
+				if (NodeId[m_I] < N_Node) {\
+					m_I4 = 4*NodeId[m_I]; \
+					glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
+					glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
+					glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
 				}\
 			}\
 		}\
@@ -946,50 +946,52 @@ WARNING: The input data vectors are not cast to the type of s.
 	*/
 	
 	#define SUMA_FillBlanks_GLCOLAR4(isColored, N_Nodes, R, G, B, glcolar) {\
-		int _I, _I4; \
-		for (_I=0; _I < N_Nodes; ++_I) {\
-			if (!isColored[_I]) {\
-				_I4 = 4*_I; \
-				glcolar[_I4] = R; ++_I4;\
-				glcolar[_I4] = G; ++_I4;\
-				glcolar[_I4] = B; ++_I4;\
+		int m_I, m_I4; \
+		for (m_I=0; m_I < N_Nodes; ++m_I) {\
+			if (!isColored[m_I]) {\
+				m_I4 = 4*m_I; \
+				glcolar[m_I4] = R; ++m_I4;\
+				glcolar[m_I4] = G; ++m_I4;\
+				glcolar[m_I4] = B; ++m_I4;\
 			}\
 		}\
 	}
 
 	/*!
-		SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity_opacity 
+		This macro used to be called: SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity
+		SUMA_RGB_FnGnL_AR4op_opacity 
 		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-		Full means that N is equal to all the nodes in the surface
-		NoGlob means no global factor is applied to the color values
-		NoLocal means no local factor (per node) is applied to the color values
+		F (Full) means that N is equal to all the nodes in the surface
+		nG (NoGlob) means no global factor is applied to the color values
+		nL (NoLocal) means no local factor (per node) is applied to the color values
 		
-		SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity(RGBmat, glcolar, N, add)   
+		SUMA_RGB_FnGnL_AR4op(RGBmat, glcolar, N, add)   
 		RGBmat (float **) N x 3 matrix of RGB values
 		glcolar (GLfloat *) (4 N) x 1 vector 
 		isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
 		
 	*/
 	
-	#define SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity(RGBmat, glcolar, nrgb, isColored) {\
-		int _I, _I4 = 0; \
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[_I] = YUP;\
-				glcolar[_I4] = RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] = RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] = RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+	#define SUMA_RGB_FnGnL_AR4op(RGBmat, glcolar, nrgb, isColored) {\
+		int m_I, m_I4 = 0; \
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[m_I] = YUP;\
+				glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 	}
 	
 	/*!
-		SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity 
+		This macro used to be called: SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity
+		SUMA_RGB_FGnL_AR4op 
 		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-		Full means that N is equal to all the nodes in the surface
-		Glob means a global factor is applied to the color values
-		NoLocal means no local factor (per node) is applied to the color values
+		F (Full) means that N is equal to all the nodes in the surface
+		G (Glob) means a global factor is applied to the color values
+		nL (NoLocal) means no local factor (per node) is applied to the color values
 		
-		SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity(RGBmat, glcolar, N, fact, add)   
+		SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, N, fact, add)   
 		RGBmat (float **) N x 3 matrix of RGB values
 		glcolar (GLfloat *) (4 N) x 1 vector 
 		fact (float) a factor applied to each color R, G, B values in the entire list
@@ -997,27 +999,30 @@ WARNING: The input data vectors are not cast to the type of s.
 		if fact is < 0 then no color mixing is done. 
 	*/
 	
-	#define SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity(RGBmat, glcolar, nrgb, fact, isColored) {\
-		int _I, _I4 = 0; \
-		float _of;\
-		_of = 1-fact;\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[_I] = YUP;\
-				glcolar[_I4] = _of * glcolar[_I4] + fact * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] = _of * glcolar[_I4] + fact * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] = _of * glcolar[_I4] + fact * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+	#define SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, nrgb, fact, isColored) {\
+		int m_I, m_I4 = 0; \
+		float m_of;\
+		m_of = 1-fact;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[m_I] = YUP;\
+				glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 	}
 	
 	/*!
-		SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity 
-		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-		Full means that N is equal to all the nodes in the surface
-		Glob means a global factor is applied to the color values
-		Local means a local factor (per node) is applied to the color values
+	 This macro used to be called: SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
+			but name was too long for some compilers 
 		
-		SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity(RGBmat, glcolar, N, fact, locfact, add)   
+		SUMA_RGB_FGL_AR4op 
+		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
+		F (Full) means that N is equal to all the nodes in the surface
+		G (Glob) means a global factor is applied to the color values
+		L (Local) means a local factor (per node) is applied to the color values
+		
+		SUMA_RGB_FGL_AR4op(RGBmat, glcolar, N, fact, locfact, add)   
 		RGBmat (float **) N x 3 matrix of RGB values
 		glcolar (GLfloat *) (4 N) x 1 vector 
 		fact (float) a factor applied to each color R, G, B values in the entire list
@@ -1025,55 +1030,58 @@ WARNING: The input data vectors are not cast to the type of s.
 		isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
 	*/
 	
-	#define SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity(RGBmat, glcolar, nrgb, fact, locfact, isColored) {\
-		int _I, _I4 = 0; \
-		float _of, _of2;\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[_I] = YUP;\
-				_of = locfact[_I] * fact; \
-				_of2 = (1-_of);\
-				glcolar[_I4] = _of2 * glcolar[_I4] + _of * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] = _of2 * glcolar[_I4] + _of * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] = _of2 * glcolar[_I4] + _of * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+	#define SUMA_RGB_FGL_AR4op(RGBmat, glcolar, nrgb, fact, locfact, isColored) {\
+		int m_I, m_I4 = 0; \
+		float m_of, m_of2;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[m_I] = YUP;\
+				m_of = locfact[m_I] * fact; \
+				m_of2 = (1-m_of);\
+				glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 	}
 	
 	/*!
-		SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity 
+		This macro used to be called: SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity 
+
+		SUMA_RGB_FnGL_AR4op 
 		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-		Full means that N is equal to all the nodes in the surface
-		NoGlob means no global factor is applied to the color values
-		Local means a local factor (per node) is applied to the color values
+		F (Full) means that N is equal to all the nodes in the surface
+		nG (NoGlob) means no global factor is applied to the color values
+		L (Local) means a local factor (per node) is applied to the color values
 		
-		SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity(RGBmat, glcolar, N, locfact, add)   
+		SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, N, locfact, add)   
 		RGBmat (float **) N x 3 matrix of RGB values
 		glcolar (GLfloat *) (4 N) x 1 vector 
 		locfact (float *) a N x 1 vector of factors applied to their respective nodes 
 		isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
 	*/
 	
-	#define SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity(RGBmat, glcolar, nrgb, locfact, isColored) {\
-		int _I, _I4 = 0; \
-		float _of;\
-			for (_I=0; _I < nrgb; ++_I) {\
-				isColored[_I] = YUP;\
-				_of = 1-locfact[_I];\
-				glcolar[_I4] = _of * glcolar[_I4] + locfact[_I] * RGBmat[_I][0]; ++_I4;\
-				glcolar[_I4] = _of * glcolar[_I4] + locfact[_I] * RGBmat[_I][1]; ++_I4;\
-				glcolar[_I4] = _of * glcolar[_I4] + locfact[_I] * RGBmat[_I][2]; ++_I4;\
-				++_I4;\
+	#define SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, nrgb, locfact, isColored) {\
+		int m_I, m_I4 = 0; \
+		float m_of;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				isColored[m_I] = YUP;\
+				m_of = 1-locfact[m_I];\
+				glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
+				glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
+				glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
+				++m_I4;\
 			}\
 	}
 	
 	/*!
-		SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity 
+		This macro used to be called: SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity 
+		SUMA_RGB_PnGnL_AR4op 
 		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-		Part means that colors are specified for some of the nodes only N < N_Nodes
-		NoGlob means no global factor is applied to the color values
-		NoLocal means no local factor (per node) is applied to the color values
+		P (Part) means that colors are specified for some of the nodes only N < N_Nodes
+		nG (NoGlob) means no global factor is applied to the color values
+		nL (NoLocal) means no local factor (per node) is applied to the color values
 		
-		SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity(RGBmat, NodeId, glcolar, N, isColored, N_Nodes)   
+		SUMA_RGB_PnGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, N_Nodes)   
 		RGBmat (float **) N x 3 matrix of RGB values
 		NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
 		glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
@@ -1081,27 +1089,28 @@ WARNING: The input data vectors are not cast to the type of s.
 		when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
 	*/
 	
-	#define SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity(RGBmat, NodeId, glcolar, nrgb, isColored, N_Node) {\
-		int _I, _I4 = 0; \
-			for (_I=0; _I < nrgb; ++_I) {\
-					if (NodeId[_I] < N_Node) {\
-						_I4 = 4*NodeId[_I]; \
-						glcolar[_I4] = RGBmat[_I][0]; ++_I4;\
-						glcolar[_I4] = RGBmat[_I][1]; ++_I4;\
-						glcolar[_I4] = RGBmat[_I][2]; ++_I4;\
+	#define SUMA_RGB_PnGnL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, N_Node) {\
+		int m_I, m_I4 = 0; \
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+					if (NodeId[m_I] < N_Node) {\
+						m_I4 = 4*NodeId[m_I]; \
+						glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+						glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+						glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
 					}\
-					isColored[NodeId[_I]] = YUP;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 	}
 	
 	/*!
-		SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity 
+		This macro used to be called: SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity
+		SUMA_RGB_PGnL_AR4op 
 		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-		Part means that colors are specified for some of the nodes only N < N_Nodes
-		NoGlob means a global factor is applied to the color values
-		NoLocal means no local factor (per node) is applied to the color values
+		P (Part) means that colors are specified for some of the nodes only N < N_Nodes
+		G (Glob) means a global factor is applied to the color values
+		nL (NoLocal) means no local factor (per node) is applied to the color values
 		
-		SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity(RGBmat, NodeId, glcolar, N, isColored, fact, N_Nodes)   
+		SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, fact, N_Nodes)   
 		RGBmat (float **) N x 3 matrix of RGB values
 		NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
 		glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
@@ -1110,38 +1119,40 @@ WARNING: The input data vectors are not cast to the type of s.
 		fact (float) a factor applied to each color R, G, B values in the entire list
 	*/
 	
-	#define SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity(RGBmat, NodeId, glcolar, nrgb, isColored, fact, N_Node) {\
-		int _I, _I4 = 0, _II; \
-		float _of;\
-		_of = 1 - fact;\
-			for (_I=0; _I < nrgb; ++_I) {\
-				if (!isColored[NodeId[_I]]) { /* a new color, put it down as it is */\
-					if (NodeId[_I] < N_Node) {\
-						_I4 = 4*NodeId[_I]; \
-						glcolar[_I4] = fact * RGBmat[_I][0]; ++_I4;\
-						glcolar[_I4] = fact * RGBmat[_I][1]; ++_I4;\
-						glcolar[_I4] = fact * RGBmat[_I][2]; ++_I4;\
+	#define SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, fact, N_Node) {\
+		int m_I, m_I4 = 0, m_II; \
+		float m_of;\
+		m_of = 1 - fact;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
+					if (NodeId[m_I] < N_Node) {\
+						m_I4 = 4*NodeId[m_I]; \
+						glcolar[m_I4] = fact * RGBmat[m_I][0]; ++m_I4;\
+						glcolar[m_I4] = fact * RGBmat[m_I][1]; ++m_I4;\
+						glcolar[m_I4] = fact * RGBmat[m_I][2]; ++m_I4;\
 					}\
-					isColored[NodeId[_I]] = YUP;\
+					isColored[NodeId[m_I]] = YUP;\
 				}else {/* mixing to be done */\
-					if (NodeId[_I] < N_Node) {\
-						_I4 = 4*NodeId[_I]; \
-						glcolar[_I4] = _of * glcolar[_I4] + fact * RGBmat[_I][0]; ++_I4;\
-						glcolar[_I4] = _of * glcolar[_I4] + fact * RGBmat[_I][1]; ++_I4;\
-						glcolar[_I4] = _of * glcolar[_I4] + fact * RGBmat[_I][2]; ++_I4;\
+					if (NodeId[m_I] < N_Node) {\
+						m_I4 = 4*NodeId[m_I]; \
+						glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][0]; ++m_I4;\
+						glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][1]; ++m_I4;\
+						glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][2]; ++m_I4;\
 					}\
 				}\
 			}\
 	}
 	
 	/*!
-		SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity 
-		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-		Part means that colors are specified for some of the nodes only N < N_Nodes
-		NoGlob means a global factor is applied to the color values
-		NoLocal means a local factor (per node) is applied to the color values
+		This macro used to be called: SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity
 		
-		SUMA_RGBmat_PartGlobaLoc2_GLCOLAR4_opacity(RGBmat, NodeId, glcolar, N, isColored, fact, locfact, add, N_Nodes)   
+		SUMA_RGB_PGL_AR4op 
+		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
+		P (Part) means that colors are specified for some of the nodes only N < N_Nodes
+		G (Glob) means a global factor is applied to the color values
+		L (Local) means a local factor (per node) is applied to the color values
+		
+		SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, fact, locfact, add, N_Nodes)   
 		RGBmat (float **) N x 3 matrix of RGB values
 		NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
 		glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
@@ -1151,40 +1162,41 @@ WARNING: The input data vectors are not cast to the type of s.
 		locfact (float *)  N x 1 vector of factors applied to their respective nodes 
 	*/
 	
-	#define SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity(RGBmat, NodeId, glcolar, nrgb, isColored, fact, locfact, N_Node) {\
-		int _I, _I4 = 0; \
-		float _of, _of2;\
-			for (_I=0; _I < nrgb; ++_I) {\
-				if (!isColored[NodeId[_I]]) { /* a new color, put it down as it is */\
-					if (NodeId[_I] < N_Node) {\
-						_I4 = 4*NodeId[_I]; \
-						_of = (locfact[_I] * fact);\
-						glcolar[_I4] = _of * RGBmat[_I][0]; ++_I4;\
-						glcolar[_I4] = _of * RGBmat[_I][1]; ++_I4;\
-						glcolar[_I4] = _of * RGBmat[_I][2]; ++_I4;\
+	#define SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, fact, locfact, N_Node) {\
+		int m_I, m_I4 = 0; \
+		float m_of, m_of2;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
+					if (NodeId[m_I] < N_Node) {\
+						m_I4 = 4*NodeId[m_I]; \
+						m_of = (locfact[m_I] * fact);\
+						glcolar[m_I4] = m_of * RGBmat[m_I][0]; ++m_I4;\
+						glcolar[m_I4] = m_of * RGBmat[m_I][1]; ++m_I4;\
+						glcolar[m_I4] = m_of * RGBmat[m_I][2]; ++m_I4;\
 					}\
-					isColored[NodeId[_I]] = YUP;\
+					isColored[NodeId[m_I]] = YUP;\
 				}else { /* mixing to be done */\
-					if (NodeId[_I] < N_Node) {\
-						_I4 = 4*NodeId[_I]; \
-						_of = (locfact[_I] * fact);\
-						_of2 = (1 - _of);\
-						glcolar[_I4] = _of2 * glcolar[_I4] + _of * RGBmat[_I][0]; ++_I4;\
-						glcolar[_I4] = _of2 * glcolar[_I4] + _of * RGBmat[_I][1]; ++_I4;\
-						glcolar[_I4] = _of2 * glcolar[_I4] + _of * RGBmat[_I][2]; ++_I4;\
+					if (NodeId[m_I] < N_Node) {\
+						m_I4 = 4*NodeId[m_I]; \
+						m_of = (locfact[m_I] * fact);\
+						m_of2 = (1 - m_of);\
+						glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; ++m_I4;\
+						glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; ++m_I4;\
+						glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][2]; ++m_I4;\
 					}\
 				}\
 			}\
 	}
 	
 	/*!
-		SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity 
+		This macro used to be called: SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity
+		SUMA_RGB_PnGL_AR4op 
 		copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-		Part means that colors are specified for some of the nodes only N < N_Nodes
-		NoGlob means no global factor is applied to the color values
-		NoLocal means a local factor (per node) is applied to the color values
+		P (Part) means that colors are specified for some of the nodes only N < N_Nodes
+		nG (NoGlob) means no global factor is applied to the color values
+		L (Local) means a local factor (per node) is applied to the color values
 		
-		SUMA_RGBmat_PartNoGlobaLoc2_GLCOLAR4_opacity(RGBmat, NodeId, glcolar, N, isColored, locfact, add, N_Nodes)   
+		SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, locfact, add, N_Nodes)   
 		RGBmat (float **) N x 3 matrix of RGB values
 		NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
 		glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
@@ -1194,25 +1206,25 @@ WARNING: The input data vectors are not cast to the type of s.
 		
 	*/
 	
-	#define SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity(RGBmat, NodeId, glcolar, nrgb, isColored,  locfact, N_Node) {\
-		int _I, _I4 = 0; \
-		float _of;\
-			for (_I=0; _I < nrgb; ++_I) {\
-				if (!isColored[NodeId[_I]]) { /* a new color, put it down as it is */\
-					if (NodeId[_I] < N_Node) {\
-						_I4 = 4*NodeId[_I]; \
-						glcolar[_I4] = locfact[_I] * RGBmat[_I][0]; ++_I4;\
-						glcolar[_I4] = locfact[_I] * RGBmat[_I][1]; ++_I4;\
-						glcolar[_I4] = locfact[_I] * RGBmat[_I][2]; ++_I4;\
+	#define SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored,  locfact, N_Node) {\
+		int m_I, m_I4 = 0; \
+		float m_of;\
+			for (m_I=0; m_I < nrgb; ++m_I) {\
+				if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
+					if (NodeId[m_I] < N_Node) {\
+						m_I4 = 4*NodeId[m_I]; \
+						glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
+						glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
+						glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
 					}\
-					isColored[NodeId[_I]] = YUP;\
+					isColored[NodeId[m_I]] = YUP;\
 				}else { /* mixing to be done */\
-					if (NodeId[_I] < N_Node) {\
-						_I4 = 4*NodeId[_I]; \
-						_of = 1 - locfact[_I];\
-						glcolar[_I4] = _of * glcolar[_I4] + locfact[_I] * RGBmat[_I][0]; ++_I4;\
-						glcolar[_I4] = _of * glcolar[_I4] + locfact[_I] * RGBmat[_I][1]; ++_I4;\
-						glcolar[_I4] = _of * glcolar[_I4] + locfact[_I] * RGBmat[_I][2]; ++_I4;\
+					if (NodeId[m_I] < N_Node) {\
+						m_I4 = 4*NodeId[m_I]; \
+						m_of = 1 - locfact[m_I];\
+						glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
+						glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
+						glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
 					}\
 				}\
 			}\
