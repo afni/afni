@@ -96,3 +96,15 @@
 14 January 2003:
   * update 3dresample to clear warp info before writing to disk
 
+15 January 2003:
+  * The highly anticipated release of Imon 2.0!!
+      - Imon now has an optional rtfeedmd functionality.
+      - add files rickr/realtime.[ch]
+      - modified rickr/Imon.[ch]
+      - modified rickr/Makefile
+          o to build .o files with -DDONT_USE_MCW_MALLOC
+          o to use $(EXTRA_LIBS) for sockets on solaris machines
+      - modified Makefile.INCLUDE
+          o Imon now also depends on rickr/realtime.[ch]
+          o pass $(EXTRA_LIBS) to the make under rickr
+

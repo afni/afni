@@ -1366,7 +1366,7 @@ file_tool:
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool .. ; )
 
-Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
+Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h thd_iochan.o
 	( cd rickr ; 							\
 	make Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS=$(EXTRA_LIBS)' ;	\

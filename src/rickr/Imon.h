@@ -5,11 +5,11 @@
 
 #define IFM_PROG_NAME   "Imon"
 
-#define INIT_ALLOC         200       /* initial number of structs        */
-#define MAX_FLEN           200       /* maximum characters in filename   */
+#define IFM_MAX_FLEN       200       /* maximum characters in filename   */
 #define IFM_PAD_LEN         20       /* padding for I-file expansion     */
 #define IFM_EPSILON      0.001       /* slice epsilon                    */
 #define IFM_STAT_ALLOC      20       /* allocation blocksize - run stats */
+#define IFM_MAX_IM_ALLOC    40       /* initial limit for read_ge_files  */
 #define IFM_MAX_RUN_NAPS     3       /* maximum number of mid-run naps   */
 
 #define IFM_MIN_NICE_INC   -19       /* minimum nice value increment     */
@@ -26,11 +26,11 @@
                                     /* from Ifile.c ... */
 typedef struct                      /* stuff extracted from GE I.* image */
 {
-    int   good;                     /* is this a good image? */
-    int   nx, ny;                   /* image matrix */
+    int   good;                     /* is this a good image?           */
+    int   nx, ny;                   /* image matrix                    */
     int   uv17;                     /* apparently codes for scan index */
-    float dx,dy,dz, zoff, tr,te;    /* various dimensions */
-    char  orients[8];               /* orientation string */
+    float dx,dy,dz, zoff, tr,te;    /* various dimensions              */
+    char  orients[8];               /* orientation string              */
 } ge_header_info;
 
 typedef struct                      /* extra stuff from mri_read.c     */
@@ -40,21 +40,35 @@ typedef struct                      /* extra stuff from mri_read.c     */
     int   hdroff;                   /* offset of image header          */
     int   skip;                     /* offset of image data into file  */
     int   swap;                     /* did we do byte swapping?        */
+    int   kk;			    /* z-orient info (1=LR, 2=PA, 3=IS)*/
     float xyz[9];
 } ge_extras;
 
 typedef struct
 {
     ge_header_info   geh;           /* array of ge_header_info structs  */
-    ge_extras        gex;           /* array of ge_extras structs       */
-    int              index;         /* index into fnames array          */
+    ge_extras        gex;           /* array of ge_extras structs      */
+    int              index;         /* index into fnames array        */
+    int              bytes;         /* size of image in bytes        */
+    void           * image;	    /* actual image data            */
 } finfo_t;
+
+typedef struct
+{
+    int		     nalloc;	    /* number of images allocated for   */
+    int		     nused;	    /* number of images in use now      */
+    int		     ary_len;       /* length of allocated im_ary array */
+    int		     im_size;	    /* size of each individual image    */
+    void          ** im_ary;	    /* array of images                  */
+    void           * x_im;          /* extra image for afni comm        */
+} im_store_t;
 
 typedef struct
 {
     int              nused;         /* number of elements assigned      */
     int              nalloc;        /* number of elements allocated for */
     finfo_t        * flist;         /* array of finfo structures        */
+    im_store_t       im_store;      /* structure to hold actual images  */
 
     char           * start_dir;     /* user input starting directory    */
     char           * glob_dir;      /* wildcard format to search for    */
@@ -67,7 +81,7 @@ typedef struct
 typedef struct			    /* used for the stats_t struct      */
 {
     int  volumes;		    /* number of volumes in this run    */
-    char first_im[MAX_FLEN];	    /* file name for first image        */
+    char f1name[IFM_MAX_FLEN];	    /* file name for first image        */
 } run_t;
 
 typedef struct			/* used to output statistics at the end */
@@ -85,9 +99,10 @@ typedef struct
 {
     ge_header_info geh;                  /* sample GE header structure       */
     int            nim;                  /* number of images in this volume  */
-    int            first_im, last_im;    /* indicies into the fnames list    */
-    char           first_file[MAX_FLEN]; /* file name of first slice image   */
-    char           last_file [MAX_FLEN]; /* file name of last slice image    */
+    int            fl_1;                 /* first index into flist           */
+    int            fn_1, fn_n;           /* indicies into the fnames list    */
+    char           first_file[IFM_MAX_FLEN]; /*file name of first slice image*/
+    char           last_file [IFM_MAX_FLEN]; /*file name of last slice image */
     float          z_first;              /* z location of first slice image  */
     float          z_last;               /* z location of last slice image   */
     float          z_delta;              /* signed slice thickness           */
@@ -100,40 +115,6 @@ typedef struct
     int level;
 } IFM_debug;
 
-/*----------------------------------------------------------------------*/
-
-static int check_stalled_run  ( int run, int seq_num, int naps, int nap_time );
-static int dir_expansion_form ( char * sin, char ** sexp );
-static int find_first_volume  ( vol_t * v, param_t * p );
-static int find_more_volumes  ( vol_t * v, param_t * p );
-static int find_next_zoff     ( param_t * p, int start, float zoff );
-static int init_options       ( param_t * p, int argc, char * argv[] );
-static int nap_time_from_tr   ( float tr );
-static int read_ge_files      ( param_t * p, int next, int max );
-static int read_ge_header     ( char * pathname, ge_header_info * hi,
-	                        ge_extras * E);
-static int scan_ge_files      ( finfo_t * flist, char ** fnames,
-				int next, int nfiles );
-static int set_volume_stats   ( vol_t * v );
-static int show_run_stats     ( stats_t * s );
-static int swap_4             ( void * ptr );
-
-static void hf_signal         ( int signum );
-
-/* volume scanning */
-static int volume_match  ( vol_t * vin, vol_t * vout, param_t * p, int start );
-static int volume_search ( vol_t * V, param_t * p, int * start, int maxsl );
-
-/* information functions */
-static int idisp_hf_param_t     ( char * info, param_t * p );
-static int idisp_hf_vol_t       ( char * info, vol_t * v );
-static int idisp_ge_extras      ( char * info, ge_extras * E );
-static int idisp_ge_header_info ( char * info, ge_header_info * I );
-
-static int usage                ( char * prog, int level );
-
-/* local copy of afni function */
-unsigned long l_THD_filesize    ( char * pathname );
 
 /*----------------------------------------------------------------------*/
 /* macros */
