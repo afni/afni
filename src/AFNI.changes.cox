@@ -3999,3 +3999,7 @@
  * Modified plug_drawdset.c (and imseq.[ch], afni_receive.c, afni.h) to make
      button2 drawing overlay have thicker lines, closer to what will actually
      be filled.  Also added 1 larger "3D Nbhd" stencil.
+
+10 Oct 2002
+ * Modified thd_analyzeread.c to correct signs of origin when orientation has
+     some negative axes.
