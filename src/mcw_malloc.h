@@ -21,6 +21,20 @@
 
 #define MCW_MALLOC_enabled 0
 
+#define MCW_MALLOC_status  NULL
+
+#undef  mcw_malloc
+#define mcw_malloc  malloc
+
+#undef  mcw_realloc
+#define mcw_realloc realloc
+
+#undef  mcw_calloc
+#define mcw_calloc  calloc
+
+#undef  mcw_free
+#define mcw_free    free
+
 /*---------------------------------------------------------------------------*/
 #else
 
@@ -53,6 +67,8 @@ extern int    mcw_malloc_enabled(void) ;
 /*-- how to check if the tracking routines are working --*/
 
 #define MCW_MALLOC_enabled mcw_malloc_enabled()
+
+#define MCW_MALLOC_status  mcw_malloc_status()
 
 /*-- do the same macro thing for the Xt library functions --*/
 
