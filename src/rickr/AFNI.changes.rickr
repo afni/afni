@@ -626,4 +626,5 @@
 
 02 September 2004:
   * modified 3dROIstats.c to fix the minmax initializer
+  * modified vol2surf.[ch] SUMA_3dVol2Surf.[ch] (-> v6.1) : library shuffle
 
