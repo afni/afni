@@ -4,6 +4,14 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*----------------------------------------------------------------------
+ * history:
+ *
+ *   2003 Dec 19 [rickr]
+ *     - added Mean and Sigma to bottom of graph window
+ *----------------------------------------------------------------------
+*/
+
 #undef MAIN
 #include "afni_graph.h"
 #include "afni.h"
@@ -1318,6 +1326,8 @@ ENTRY("redraw_graph") ;
 
    fd_txt( grapher , xxx , 21, strp) ;
 
+   xxx = DC_text_width(grapher->dc,strp) ;           /* 19 Dec 2003 [rickr] */
+
    npoints = grapher->status->num_series ;
 
    if( grapher->pin_num < MIN_PIN )          /* 27 Apr 1997 */
@@ -1339,7 +1349,23 @@ ENTRY("redraw_graph") ;
       }
    }
 
-   fd_txt( grapher , xxx ,  7, strp ) ;
+   fd_txt( grapher , grapher->xx_text_2 ,  7, strp ) ;
+
+   /* add third column        19 Dec 2003  [rickr] */
+
+   www = DC_text_width(grapher->dc,strp) ; xxx = MAX(xxx,www) ;
+
+   grapher->xx_text_3 = grapher->xx_text_2 + xxx + 15 ;
+
+   if( !grapher->textgraph && !ISONE(grapher) ){
+      sprintf(strp,"Mean:  %10s", MV_format_fval(grapher->tmean[xc][yc]) ) ;
+
+      fd_txt( grapher , grapher->xx_text_3 ,  21, strp ) ;
+
+      sprintf(strp,"Sigma: %10s", MV_format_fval(grapher->tstd[xc][yc]) ) ;
+
+      fd_txt( grapher , grapher->xx_text_3 ,   7, strp ) ;
+   }
 
    /*** flush the pixmap to the screen ***/
 
