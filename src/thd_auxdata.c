@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -110,15 +110,20 @@ void THD_init_datablock_labels( THD_datablock * dblk )
    return ;
 }
 
-void THD_store_datablock_label( THD_datablock * dblk , int iv , char * str )
+void THD_store_datablock_label( THD_datablock *dblk , int iv , char *str )
 {
+   char *sss ;  /* 02 Sep 2004 */
+
    if( ! ISVALID_DATABLOCK(dblk) || iv < 0 || iv >= dblk->nvals  ) return ;
 
    if( dblk->brick_lab == NULL ) THD_init_datablock_labels( dblk ) ;
 
    myXtFree( dblk->brick_lab[iv] ) ;
    if( str != NULL && str[0] != '\0' ){
-      dblk->brick_lab[iv] = XtNewString( str ) ;
+      sss = strdup(str) ;
+      if( strlen(sss) > 32 ) sss[32] = '\0' ;
+      dblk->brick_lab[iv] = XtNewString( sss ) ;
+      free((void *)sss) ;
    } else {
       dblk->brick_lab[iv] = (char *) XtMalloc(sizeof(char)*8) ;
       sprintf( dblk->brick_lab[iv] , "#%d" , iv ) ;

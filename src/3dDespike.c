@@ -10,13 +10,6 @@
 
 /*----------------------------------------------------------------------*/
 
-#undef INLINE
-#ifdef __GNUC__
-# define INLINE inline
-#else
-# define INLINE /*nada*/
-#endif
-
 static INLINE float mytanh( float x )
 {
   register float ex , exi ;

@@ -263,6 +263,7 @@ ENTRY("THD_init_one_datablock") ;
          ngood = ipos - ipold - 1 ;                   /* number of good chars */
          if( ngood > 0 ){
             XtFree(dblk->brick_lab[ibr]) ;
+            if( ngood > 32 ) ngood = 32 ;      /* 02 Sep 2004 */
             dblk->brick_lab[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
             memcpy( dblk->brick_lab[ibr] , atr_labs->ch+(ipold+1) , ngood ) ;
             dblk->brick_lab[ibr][ngood] = '\0' ;

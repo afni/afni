@@ -5197,3 +5197,10 @@
      evaluate basis expressions so often).
  * Added basis_write_sresp() to 3dDeconvolve.c to write standard deviation
      of the IRFs.
+
+02 Sep 2004 (from San Francisco)
+ * Modified mri_symbolize.c to correctly use the intlist() function.
+ * Patched thd_auxdata.c and thd_initdblk.c not to create brick labels
+     over 32 characters in length.  (Someone who shall remain nameless
+     created one several thousand characters long, and thd_info.c didn't
+     like that much.)
