@@ -454,7 +454,8 @@ ENTRY("SPLASH_decode26") ;
 
 void AFNI_find_splash_ppms(void)  /* 17 Sep 2001 */
 {
-   char *epath , *elocal , ename[THD_MAX_NAME] , *eee ;
+   char *epath , *elocal , *eee ;
+   char edir[THD_MAX_NAME] , **ename ;
    int epos , ll , ii , id , nppm , nx,ny ;
    char **fppm ;
 
@@ -486,29 +487,33 @@ ENTRY("AFNI_find_splash_ppms") ;
    /*----- extract blank delimited strings;
            use as directory names to look for files -----*/
 
+   ename    = (char **) malloc(sizeof(char *)*2) ;
+   ename[0] = (char *)  malloc(THD_MAX_NAME) ;
+   ename[1] = (char *)  malloc(THD_MAX_NAME) ;
+
    epos = 0 ;
 
    do{
-      ii = sscanf( elocal+epos , "%s%n" , ename , &id ); /* next substring */
-      if( ii < 1 ) break ;                               /* none -> done   */
+      ii = sscanf( elocal+epos , "%s%n" , edir , &id ); /* next substring */
+      if( ii < 1 ) break ;                              /* none -> done   */
 
-      /** check if ename occurs earlier in elocal **/
+      /** check if edir occurs earlier in elocal **/
 
-      eee = strstr( elocal , ename ) ;
+      eee = strstr( elocal , edir ) ;
       if( eee != NULL && (eee-elocal) < epos ){ epos += id ; continue ; }
 
       epos += id ;                                 /* char after last scanned */
 
-      ii = strlen(ename) ;                         /* make sure name has   */
-      if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
-          ename[ii]  = '/' ; ename[ii+1] = '\0' ;
+      ii = strlen(edir) ;                          /* make sure name has   */
+      if( edir[ii-1] != '/' ){                     /* a trailing '/' on it */
+          edir[ii]  = '/' ; edir[ii+1] = '\0' ;
       }
-      strcat(ename,".afnisplash*.ppm") ;           /* add filenname pattern */
+      strcpy(ename[0],edir) ;
+      strcat(ename[0],".afnisplash*.ppm") ;        /* add filenname pattern */
+      strcpy(ename[1],edir) ;
+      strcat(ename[1],"afnisplash*.ppm") ;         /* add filenname pattern */
 
-STATUS(ename) ;
-
-      eee = ename ;
-      MCW_file_expand( 1,&eee , &nppm , &fppm );   /* find files that match */
+      MCW_file_expand( 2,ename, &nppm , &fppm );   /* find files that match */
       if( nppm <= 0 ) continue ;                   /* no files found */
 
       /** add files we found to list, if they are good **/
@@ -531,7 +536,8 @@ STATUS(ename) ;
 
    } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
 
-   free(elocal) ; EXRETURN ;
+   free(elocal) ; free(ename[0]) ; free(ename[1]) ; free(ename) ;
+   EXRETURN ;
 }
 
 #endif /* NO_FRIVOLITIES */
