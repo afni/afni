@@ -1,0 +1,42 @@
+# This works on a Sun/Solaris 2.8 with the cc in /opt/SUNWspro/bin
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = cc -fast -Xa -w -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
+CCVOL  = cc -fast -Xa -w -DSOLARIS -D_ILP32
+CCFAST = $(CC)
+CCMIN  = cc
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
+LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
+
+# These extra libraries are for Suns
+
+EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -G
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib
+
+AR     = /usr/ccs/bin/ar
+RANLIB = /usr/bin/touch
+TAR    = /bin/tar
+GZIP   = gzip
+MKDIR  = /bin/mkdir
+LD     = /usr/ucb/ld
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./solaris28_suncc
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
+
+
+######################################################################
+
+include Makefile.INCLUDE
