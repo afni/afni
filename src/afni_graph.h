@@ -392,7 +392,7 @@ typedef struct {
    Pixmap  logo_pixmap ; /* for the corner */
    int     logo_width , logo_height ;
 
-   Widget option_rowcol , option_mbar ;
+   Widget option_rowcol ;  /* 29 Sep 2000: removed option_mbar */
 
    Widget opt_menu , opt_cbut ;
    Widget opt_scale_menu    , opt_scale_cbut  ,

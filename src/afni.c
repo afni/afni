@@ -2446,7 +2446,7 @@ STATUS("graCR_pickref") ;
                                    AFNI_fimmer_pickref_CB , (XtPointer) im3d ) ;
          } else {
             (void) MCW_popup_message(
-                      grapher->option_mbar ,
+                      grapher->option_rowcol ,
                       "No timeseries library\nexists to pick from!" ,
                       MCW_USER_KILL | MCW_TIMER_KILL ) ;
          }
@@ -2467,7 +2467,7 @@ STATUS("graCR_pickort") ;
                                    AFNI_fimmer_pickort_CB , (XtPointer) im3d ) ;
          } else {
             (void) MCW_popup_message(
-                      grapher->option_mbar ,
+                      grapher->option_rowcol ,
                       "No timeseries library\nexists to pick from!" ,
                       MCW_USER_KILL | MCW_TIMER_KILL ) ;
          }

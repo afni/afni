@@ -2302,3 +2302,12 @@
  * Many places now use visibilize to make sure dialogs and menus pop
      up on 1 sub-screen.  See, for example, all uses of the function
      RWC_visibilize_widget() and the macro VISIBILIZE_WHEN_MAPPED().
+
+29 Sep 2000
+ * Modified afni_graph.[ch] to move FIM and Opt menus onto private
+     menubars.  (Got rid of grapher->option_mbar everywhere.)
+ * Also put a Form inbetween the afni_graph shell and the drawing
+     area.  The option_rowcol that holds all the menu buttons is
+     now a child of the Form, not the drawing area.  This makes
+     it possible to popup the menus with Button3 (the Button3
+     popup on the drawing area interfered with this).

@@ -20,6 +20,7 @@ MCW_grapher * new_MCW_grapher( MCW_DC * dc , get_ptr getser , XtPointer aux )
    MCW_grapher * grapher ;
    static int new_xsize = -1 , new_ysize = -1 ;
    char * buf , * cpt ;
+   Widget rc_tmp , mb_tmp , form_tmp ;  /* 29 Sep 2000 */
 
 ENTRY("new_MCW_grapher") ;
 
@@ -108,17 +109,35 @@ ENTRY("new_MCW_grapher") ;
       }
    }
 
+   /** 29 Sep 2000: put in a Form to hold everything **/
+
+   form_tmp = XtVaCreateWidget(
+                  "dialog" , xmFormWidgetClass , grapher->fdw_graph ,
+                    XmNwidth  , new_xsize + GL_DLX + GR_DLX ,
+                    XmNheight , new_ysize + GT_DLY + GB_DLY ,
+                    XmNborderWidth , 0 ,
+                    XmNtraversalOn , False ,
+                    XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+
    /** make a drawing area to get everything **/
 
    grapher->draw_fd =
        XtVaCreateManagedWidget(
-         "dialog" , xmDrawingAreaWidgetClass , grapher->fdw_graph ,
+         "dialog" , xmDrawingAreaWidgetClass , form_tmp ,
 
+#if 0
           XmNwidth  , new_xsize + GL_DLX + GR_DLX ,
           XmNheight , new_ysize + GT_DLY + GB_DLY ,
+#endif
 
-          XmNmarginWidth  , 1 ,
-          XmNmarginHeight , 1 ,
+          XmNtopAttachment    , XmATTACH_FORM ,
+          XmNleftAttachment   , XmATTACH_FORM ,
+          XmNrightAttachment  , XmATTACH_FORM ,
+          XmNbottomAttachment , XmATTACH_FORM ,
+
+          XmNmarginWidth  , 0 ,
+          XmNmarginHeight , 0 ,
 
           XmNtraversalOn , False ,
           XmNinitialResourcesPersistent , False ,
@@ -184,39 +203,53 @@ ENTRY("new_MCW_grapher") ;
 
    grapher->option_rowcol =
       XtVaCreateWidget(
-         "dialog" , xmRowColumnWidgetClass , grapher->draw_fd ,
+         "dialog" , xmRowColumnWidgetClass , form_tmp ,
             XmNpacking     , XmPACK_TIGHT ,
             XmNorientation , XmHORIZONTAL ,
             XmNmarginWidth , 0 ,
             XmNmarginHeight, 0 ,
-            XmNspacing     , 3 ,
+            XmNspacing     , 2 ,
             XmNbackground  , grapher->dc->ovc->pixov_brightest ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
+            XmNleftAttachment   , XmATTACH_NONE ,
+            XmNtopAttachment    , XmATTACH_NONE ,
+            XmNrightAttachment  , XmATTACH_FORM ,
+            XmNbottomAttachment , XmATTACH_FORM ,
          NULL ) ;
-
-   /*-----------------------------------*/
-   /*--- Menu bar of Cascade buttons ---*/
-   /*-----------------------------------*/
-
-   grapher->option_mbar =
-         XmCreateMenuBar( grapher->option_rowcol, "dialog" , NULL,0 ) ;
-   XtVaSetValues( grapher->option_mbar ,
-                     XmNmarginWidth  , 0 ,
-                     XmNmarginHeight , 0 ,
-                     XmNbackground   , grapher->dc->ovc->pixov_brightest ,
-                     XmNspacing      , 3 ,
-                     XmNborderWidth  , 0 ,
-                     XmNtraversalOn  , False ,
-                  NULL ) ;
-   XtManageChild( grapher->option_mbar ) ;
 
    /*------------------------*/
    /*--- FIM Menu Buttons ---*/
    /*------------------------*/
 
-   grapher->fmenu = AFNI_new_fim_menu( grapher->option_mbar , GRA_fim_CB , 1 ) ;
+   /* 29 Sep 2000: move menu buttons each onto private menubars */
+
+   rc_tmp = XtVaCreateWidget(
+              "dialog" , xmRowColumnWidgetClass , grapher->option_rowcol ,
+                 XmNorientation , XmHORIZONTAL ,
+                 XmNpacking , XmPACK_TIGHT ,
+                 XmNmarginWidth , 0 ,
+                 XmNmarginHeight, 0 ,
+                 XmNspacing     , 0 ,
+                 XmNbackground  , grapher->dc->ovc->pixov_brightest ,
+                 XmNtraversalOn , False ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+   mb_tmp = XmCreateMenuBar( rc_tmp , "dialog" , NULL,0 ) ;
+   XtVaSetValues( mb_tmp ,
+                     XmNmarginWidth  , 0 ,
+                     XmNmarginHeight , 0 ,
+                     XmNspacing      , 0 ,
+                     XmNborderWidth  , 0 ,
+                     XmNborderColor  , 0 ,
+                     XmNtraversalOn  , False ,
+                     XmNbackground   , grapher->dc->ovc->pixov_brightest ,
+                  NULL ) ;
+   XtManageChild( mb_tmp ) ;
+
+   grapher->fmenu = AFNI_new_fim_menu( mb_tmp , GRA_fim_CB , 1 ) ;
    grapher->fmenu->parent = (XtPointer) grapher ;
+   XtManageChild( rc_tmp ) ;
 
    grapher->polort = 1 ;  /* 27 May 1999 */
 
@@ -236,14 +269,39 @@ ENTRY("new_MCW_grapher") ;
    /*--- Opt Menu Buttons ---*/
    /*------------------------*/
 
+   /* 29 Sep 2000: move menu buttons each onto private menubars */
+
+   rc_tmp = XtVaCreateWidget(
+              "dialog" , xmRowColumnWidgetClass , grapher->option_rowcol ,
+                 XmNorientation , XmHORIZONTAL ,
+                 XmNpacking , XmPACK_TIGHT ,
+                 XmNmarginWidth , 0 ,
+                 XmNmarginHeight, 0 ,
+                 XmNspacing     , 0 ,
+                 XmNbackground  , grapher->dc->ovc->pixov_brightest ,
+                 XmNtraversalOn , False ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+   mb_tmp = XmCreateMenuBar( rc_tmp , "dialog" , NULL,0 ) ;
+   XtVaSetValues( mb_tmp ,
+                     XmNmarginWidth  , 0 ,
+                     XmNmarginHeight , 0 ,
+                     XmNspacing      , 0 ,
+                     XmNborderWidth  , 0 ,
+                     XmNborderColor  , 0 ,
+                     XmNtraversalOn  , False ,
+                     XmNbackground   , grapher->dc->ovc->pixov_brightest ,
+                  NULL ) ;
+   XtManageChild( mb_tmp ) ;
+
    grapher->opt_menu =
-         XmCreatePulldownMenu( grapher->option_mbar , "menu" , NULL,0 ) ;
+         XmCreatePulldownMenu( mb_tmp , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(grapher->opt_menu) ;  /* 27 Sep 2000 */
 
    grapher->opt_cbut =
          XtVaCreateManagedWidget(
-            "dialog" , xmCascadeButtonWidgetClass , grapher->option_mbar ,
+            "dialog" , xmCascadeButtonWidgetClass , mb_tmp ,
                LABEL_ARG("Opt") ,
                XmNsubMenuId , grapher->opt_menu ,
                XmNmarginWidth  , 0 ,
@@ -255,6 +313,8 @@ ENTRY("new_MCW_grapher") ;
                XmNtraversalOn  , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
+
+   XtManageChild( rc_tmp ) ;
 
    MCW_register_hint( grapher->opt_cbut , "Graphing options menu" ) ;
 
@@ -695,11 +755,22 @@ if(PRINT_TRACING)
 
    /** for the present, don't realize widgets (make the user do it later) **/
 
+   XtManageChild( form_tmp ) ;  /* 29 Sep 2000 */
+
 #if 0
 STATUS("realizing widgets") ;
    XtRealizeWidget( grapher->fdw_graph ) ;
 
-   while( XtWindow(grapher->draw_fd) == (Window) NULL ) ; /* wait */
+   while( XtWindow(grapher->form_tmp) == (Window) NULL ) ; /* wait */
+
+   XtVaSetValues( grapher->option_rowcol ,
+                    XmNleftAttachment   , XmATTACH_NONE ,
+                    XmNtopAttachment    , XmATTACH_NONE ,
+                    XmNrightAttachment  , XmATTACH_FORM ,
+                    XmNbottomAttachment , XmATTACH_FORM ,
+                  NULL ) ;
+   XMapRaised( XtDisplay(grapher->option_rowcol) ,
+               XtWindow(grapher->option_rowcol)   ) ;
 
    MCW_alter_widget_cursor( grapher->fdw_graph , -XC_left_ptr ,"yellow","blue" ) ;
 
@@ -2600,7 +2671,7 @@ STATUS(str); }
       break ;
 
       case 'S':
-         MCW_choose_string( grapher->option_mbar ,
+         MCW_choose_string( grapher->option_rowcol ,
                             "Save PNM Prefix:" , NULL ,
                             GRA_saver_CB , (XtPointer) grapher ) ;
       break ;
@@ -2820,14 +2891,14 @@ STATUS("User pressed Done button: starting timeout") ;
 
    if( w == grapher->opt_write_suffix_pb ){
       EXRONE(grapher) ;  /* 22 Sep 2000 */
-      MCW_choose_string( grapher->option_mbar ,
+      MCW_choose_string( grapher->option_rowcol ,
                          "'Write Center' Suffix:" , Grapher_Stuff.wcsuffix ,
                          GRA_wcsuffix_choose_CB , NULL ) ;
       EXRETURN ;
    }
 
    if( w == grapher->opt_scale_choose_pb ){
-      MCW_choose_integer( grapher->option_mbar , "Scale" ,
+      MCW_choose_integer( grapher->option_rowcol , "Scale" ,
                           -9999 , 9999 , (int)(grapher->fscale) ,
                           GRA_scale_choose_CB , (XtPointer) grapher ) ;
       EXRETURN ;
@@ -2835,7 +2906,7 @@ STATUS("User pressed Done button: starting timeout") ;
 
 #ifndef USE_OPTMENUS
    if( w == grapher->opt_mat_choose_pb ){
-      MCW_choose_integer( grapher->option_mbar , "Matrix" ,
+      MCW_choose_integer( grapher->option_rowcol , "Matrix" ,
                           1 , grapher->mat_max , grapher->mat ,
                           GRA_mat_choose_CB , (XtPointer) grapher ) ;
       EXRETURN ;
@@ -2843,14 +2914,14 @@ STATUS("User pressed Done button: starting timeout") ;
 #endif
 
    if( w == grapher->opt_grid_choose_pb ){
-      MCW_choose_integer( grapher->option_mbar , "Grid" ,
+      MCW_choose_integer( grapher->option_rowcol , "Grid" ,
                           grid_ar[0] , grid_ar[GRID_MAX-1] , grapher->grid_spacing ,
                           GRA_grid_choose_CB , (XtPointer) grapher ) ;
       EXRETURN ;
    }
 
    if( w == grapher->opt_pin_choose_pb ){   /* 27 Apr 1997 */
-      MCW_choose_integer( grapher->option_mbar , "Pin Num" ,
+      MCW_choose_integer( grapher->option_rowcol , "Pin Num" ,
                           0 , MAX_PIN , grapher->pin_num ,
                           GRA_pin_choose_CB , (XtPointer) grapher ) ;
       EXRETURN ;
@@ -2858,7 +2929,7 @@ STATUS("User pressed Done button: starting timeout") ;
 
 #ifndef USE_OPTMENUS
    if( w == grapher->opt_slice_choose_pb && grapher->status->nz > 1 ){
-      MCW_choose_integer( grapher->option_mbar , "Slice" ,
+      MCW_choose_integer( grapher->option_rowcol , "Slice" ,
                           0 , grapher->status->nz - 1 , grapher->zpoint ,
                           GRA_slice_choose_CB , (XtPointer) grapher ) ;
       EXRETURN ;
@@ -2881,7 +2952,7 @@ STATUS("User pressed Done button: starting timeout") ;
                                GRA_pick_xaxis_CB , (XtPointer) grapher ) ;
       } else {
         (void) MCW_popup_message(
-                  grapher->option_mbar ,
+                  grapher->option_rowcol ,
                   "No timeseries library\nexists to pick from!" ,
                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
       }
@@ -3607,7 +3678,19 @@ STATUS("replacing ort timeseries") ;
             XtRealizeWidget( grapher->fdw_graph ) ;
             while( XtWindow(grapher->fdw_graph) == (Window) NULL ) ; /* wait */
 
-            MCW_alter_widget_cursor(grapher->fdw_graph,-XC_left_ptr,"yellow","blue") ;
+            /* 29 Sep 2000: next 2 lines of code are for the Form change */
+
+            XtVaSetValues( grapher->option_rowcol ,
+                             XmNleftAttachment   , XmATTACH_NONE ,
+                             XmNtopAttachment    , XmATTACH_NONE ,
+                             XmNrightAttachment  , XmATTACH_FORM ,
+                             XmNbottomAttachment , XmATTACH_FORM ,
+                           NULL ) ;
+            XMapRaised( XtDisplay(grapher->option_rowcol) ,
+                        XtWindow(grapher->option_rowcol)   ) ;
+
+            MCW_alter_widget_cursor(grapher->fdw_graph,-XC_left_ptr,
+                                                       "yellow","blue") ;
 
             MCW_widget_geom( grapher->draw_fd , &width , &height , NULL,NULL ) ;
             GRA_new_pixmap( grapher , width , height , 0 ) ;
@@ -3746,14 +3829,14 @@ ENTRY("GRA_fim_CB") ;
    /*** read or write or smooth ***/
 
    else if( w == grapher->fmenu->fim_editref_read_pb ){
-      MCW_choose_string( grapher->option_mbar ,
+      MCW_choose_string( grapher->option_rowcol ,
                          "Ideal Input Filename:" , NULL ,
                          GRA_refread_choose_CB , (XtPointer) grapher ) ;
    }
 
    else if( w == grapher->fmenu->fim_editref_write_pb ){
       if( grapher->ref_ts != NULL && IMARR_COUNT(grapher->ref_ts) > 0 ){
-         MCW_choose_string( grapher->option_mbar ,
+         MCW_choose_string( grapher->option_rowcol ,
                             "Ideal Output Filename:" , NULL ,
                             GRA_refwrite_choose_CB , (XtPointer) grapher ) ;
       } else {
@@ -3763,7 +3846,7 @@ ENTRY("GRA_fim_CB") ;
 
    else if( w == grapher->fmenu->fim_editref_store_pb ){
       if( grapher->ref_ts != NULL && IMARR_COUNT(grapher->ref_ts) > 0 ){
-         MCW_choose_string( grapher->option_mbar ,
+         MCW_choose_string( grapher->option_rowcol ,
                             "Label to Store Ideal:" , NULL ,
                             GRA_refstore_choose_CB , (XtPointer) grapher ) ;
       } else {
@@ -3867,7 +3950,7 @@ ENTRY("GRA_fim_CB") ;
 #ifdef USE_OPTMENUS
       GRA_ignore_choose_CB( grapher->fmenu->fim_ignore_choose_av , grapher ) ;
 #else
-      MCW_choose_integer( grapher->option_mbar , "Initial Ignore" ,
+      MCW_choose_integer( grapher->option_rowcol , "Initial Ignore" ,
                           0 , grapher->status->num_series-1 , grapher->init_ignore ,
                           GRA_ignore_choose_CB , (XtPointer) grapher ) ;
 #endif
@@ -3879,7 +3962,7 @@ ENTRY("GRA_fim_CB") ;
 #ifdef USE_OPTMENUS
       GRA_polort_choose_CB( grapher->fmenu->fim_polort_choose_av , grapher ) ;
 #else
-      MCW_choose_integer( grapher->option_mbar , "Polort Order" ,
+      MCW_choose_integer( grapher->option_rowcol , "Polort Order" ,
                           0 , MAX_POLORT , grapher->polort ,
                           GRA_polort_choose_CB , (XtPointer) grapher ) ;
 #endif
@@ -3888,7 +3971,7 @@ ENTRY("GRA_fim_CB") ;
    /* 02 Jun 1999: set FIM bkg threshold */
 
    else if( w == grapher->fmenu->fim_bkthr_choose_pb ){
-      MCW_choose_integer( grapher->option_mbar , "Bkg Thresh %" ,
+      MCW_choose_integer( grapher->option_rowcol , "Bkg Thresh %" ,
                           0 , 99 , (int)(100*FIM_THR) ,
                           GRA_bkthr_choose_CB , (XtPointer) grapher ) ;
    }
