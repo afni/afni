@@ -304,6 +304,8 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SendColorMapToAfni")) SUMA_RETURN(SE_SendColorMapToAfni);
    if (!strcmp(Scom,"SaveSOFileSelection")) SUMA_RETURN(SE_SaveSOFileSelection);
    if (!strcmp(Scom,"SetSOinFocus")) SUMA_RETURN(SE_SetSOinFocus);
+   if (!strcmp(Scom,"LoadViewFileSelection")) SUMA_RETURN(SE_LoadViewFileSelection);
+   if (!strcmp(Scom,"SaveViewFileSelection")) SUMA_RETURN(SE_SaveViewFileSelection);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -474,7 +476,11 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
       case SE_SaveSOFileSelection:
          SUMA_RETURN("SaveSOFileSelection");      
       case SE_SetSOinFocus:
-         SUMA_RETURN("SE_SetSOinFocus");
+         SUMA_RETURN("SetSOinFocus");
+      case SE_LoadViewFileSelection:
+         SUMA_RETURN("LoadViewFileSelection"); 
+      case SE_SaveViewFileSelection:
+         SUMA_RETURN("SaveViewFileSelection"); 
       /*case SE_:
          SUMA_RETURN("");      */
       default:        

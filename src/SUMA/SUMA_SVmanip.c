@@ -1527,7 +1527,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          int rotval = (int)strtod(eee, NULL);
          if (rotval >= 0) cf->X->NumForeSmoothing = rotval;
          else {
-            SUMA_SL_Warn("Bad value for environment variable SUMA_NumForeSmoothing\nAssuming default of 0");
+            fprintf (SUMA_STDERR,   "Warning %s:\n"
+                                    "Bad value for environment variable SUMA_NumForeSmoothing\n"
+                                    "Assuming default of 0", FuncName);
             cf->X->NumForeSmoothing = 0;
          }
       } else cf->X->NumForeSmoothing = 0;
@@ -1539,7 +1541,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          if (strcmp(eee,"NO") == 0) cf->X->WarnClose = NOPE;
          else if (strcmp(eee,"YES") == 0) cf->X->WarnClose = YUP;
          else {
-            SUMA_SL_Warn("Bad value for environment variable SUMA_WarnBeforeClose\nAssuming default of YES");
+            fprintf (SUMA_STDERR,   "Warning %s:\n"
+                                    "Bad value for environment variable SUMA_WarnBeforeClose\n"
+                                    "Assuming default of YES", FuncName);
             cf->X->WarnClose = YUP;
          }
       } else cf->X->WarnClose = YUP;

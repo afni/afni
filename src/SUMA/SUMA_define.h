@@ -148,7 +148,7 @@ typedef enum { SE_Empty,
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
-               SE_SetSOinFocus, SE_StartListening,
+               SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, SE_SaveViewFileSelection,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -178,7 +178,8 @@ typedef enum {    SOPT_ibbb,  /*!< int, byte, byte, byte, null */
 
 
 typedef enum { SW_File, 
-               SW_FileOpen, SW_FileOpenSpec, SW_FileOpenSurf, SW_FileClose, 
+               SW_FileOpen, SW_FileOpenSpec, SW_FileOpenSurf, SW_FileClose,
+               SW_FileSaveView, SW_FileLoadView, 
                SW_N_File } SUMA_WIDGET_INDEX_FILE; /*!< Indices to widgets under File menu. 
                                                       Make sure you begin with SW_File and end
                                                       with SW_N_File */
@@ -816,7 +817,7 @@ typedef struct {
    void *CancelData; /*!< data sent along to CancelCallback */
    void (*HelpCallback)(void *data);
    void (*HelpData);
-   SUMA_Boolean (*VerifyFunction)(char *word, void *data);
+   int (*VerifyFunction)(char *word, void *data);
    void (*VerifyData); 
    Widget actionarea;
    Widget pane;
