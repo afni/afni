@@ -755,7 +755,7 @@ STATUS("no data left after cluster edit!") ;
       if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: filtering fim\n") ;
 
       EDIT_filter_volume (nx, ny, nz, dx, dy, dz, fim_type, vfim,
-                          filter_opt, filter_rmm);
+                          filter_opt, filter_rmm , edopt->fmask , edopt->fexpr );
    }
 
 
@@ -765,7 +765,7 @@ STATUS("no data left after cluster edit!") ;
       if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: filtering thr\n") ;
 
       EDIT_filter_volume (nx, ny, nz, dx, dy, dz, thr_type, vthr,
-                          thrfilter_opt, thrfilter_rmm);
+                          thrfilter_opt, thrfilter_rmm , edopt->fmask , edopt->fexpr );
    }
 
 

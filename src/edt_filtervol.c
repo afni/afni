@@ -1,10 +1,10 @@
 #include "mrilib.h"
+#include "parser.h"
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
 
 #undef  AFNI_DEBUG
 #undef  CLUST_DEBUG
@@ -12,7 +12,6 @@
 #define ENTRY(x)  /* nada */
 #define EXRETURN  return
 #define RETURN(x) return(x)
-
 
 /*-----------------------------------------------------------------------------
    Routine to filter volume data.
@@ -23,6 +22,9 @@
       vfim         = volume data itself
       filter_opt   = indicates filtering method to be applied
       filter_rmm   = radius of "influence" of neighboring voxels
+
+      fmask        = if non-NULL, is a mask of allowable voxels
+      fexpr        = character string for FCFLAG_EXPR
 
    The filtered data is returned in vfim.
 
@@ -35,10 +37,12 @@
    voxel coordinates are now stored as 3 separate short integers.
    BDW  06 March 1997
 
+   Added fmask and fexpr: RWCox - 09 Aug 2000
 -----------------------------------------------------------------------------*/
 
 void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
-                   int fim_type, void * vfim, int filter_opt, float filter_rmm)
+                   int fim_type, void * vfim, int filter_opt, float filter_rmm,
+                   byte * fmask , char * fexpr )
 {
    MCW_cluster * mask;                   /* mask for filtering */
    int nxy, nxyz;                        /* dimensions of volume data */
@@ -58,9 +62,21 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    int
       npts, nznpts;        /* number of points in average */
 
+   float wtsum ;           /* 09 Aug 2000: stuff for FCFLAG_EXPR */
+   float * wt=NULL ;
+   PARSER_code * pcode ;
+
    nxy = nx*ny;  nxyz = nxy*nz;
 
+#define GOODVOX(ijk) (fmask==NULL || fmask[ijk]!=0)
+#define BADVOX(ijk)  (fmask!=NULL && fmask[ijk]==0)
+
+   /* 09 Aug 2000: can't use AVER code if mask is in place */
+
+   if( fmask != NULL && filter_opt == FCFLAG_AVER ) filter_opt = FCFLAG_MEAN ;
+
    /***--- 07 Jan 1998 ---***/
+
    if( filter_opt == FCFLAG_AVER ){
       if( fim_type != MRI_float ){
          ffim = (float *) malloc (sizeof(float) * nxyz);
@@ -79,9 +95,11 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
       }
       return ;
    }
+
    /***--- end 07 Jan 1998 ---***/
 
    /*--- Make a cluster that is a mask of points closer than filter_rmm ---*/
+
    mask = MCW_build_mask (nx, ny, nz, dx, dy, dz, filter_rmm);
    if (mask == NULL)
    {
@@ -90,7 +108,50 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    }
    mnum = mask->num_pt;
 
+   /* 09 Aug 2000: evaluate expression weights into wt */
+
+   if( filter_opt == FCFLAG_EXPR ){
+      double atoz[26] ;
+
+      if( fexpr == NULL ){
+         fprintf(stderr,"*** EDIT_filter_volume: no fexpr for FCFLAG_EXPR!\n");
+         exit(1) ;
+      }
+
+      pcode = PARSER_generate_code( fexpr ) ;
+      if( pcode == NULL ){
+         fprintf(stderr,"*** EDIT_filter_volume: illegal fexpr!\n"); exit(1);
+      }
+
+      wt = (float *) malloc(sizeof(float)*(mnum+1)) ;
+
+#define II  8  /* a=0 b=1 ... i=8 ... z=25 */
+#define JJ  9
+#define KK 10
+#define RR 17
+#define XX 23
+#define YY 24
+#define ZZ 25
+
+      for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ;
+
+      wt[0] = PARSER_evaluate_one( pcode , atoz ) ;  /* weight at center */
+
+      for (jma = 0; jma < mnum; jma++){              /* rest of weights */
+         atoz[II] = mask->i[jma] ;
+         atoz[JJ] = mask->j[jma] ;
+         atoz[KK] = mask->k[jma] ;
+         atoz[XX] = atoz[II] * dx ;
+         atoz[YY] = atoz[JJ] * dy ;
+         atoz[ZZ] = atoz[KK] * dz ;
+         atoz[RR] = sqrt(atoz[XX]*atoz[XX] + atoz[YY]*atoz[YY] + atoz[ZZ]*atoz[ZZ]) ;
+         wt[jma+1] = PARSER_evaluate_one( pcode , atoz ) ;
+      }
+      free(pcode) ;
+   }
+
    /*--- Allocate space for floating point data ---*/
+
    ffim = (float *) malloc (sizeof(float) * nxyz);
    if (ffim == NULL)
    {
@@ -105,9 +166,11 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    }
 
    /*--- Convert vfim to floating point data ---*/
+
    EDIT_coerce_type (nxyz, fim_type, vfim, MRI_float, ffim);
 
    /*--- Iteration over all voxels in vfim ---*/
+
    for (k = 0; k < nz; k++)
    {
       for (j = 0; j < ny; j++)
@@ -115,28 +178,33 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
          for (i = 0; i < nx; i++)
          {
             /*--- Initialization for filtering of voxel #(i,j,k) ---*/
+
             ijkvox = THREE_TO_IJK (i, j, k, nx, nxy);
-            mag = ffim[ijkvox];
-            switch (filter_opt)
-            {
-               case FCFLAG_MEAN:
-                  sum = mag;  npts = 1;  break;
-               case FCFLAG_NZMEAN:
-                  if (mag != 0.0)
-                     {sumnz = mag;   nznpts = 1;}
-                  else
-                     {sumnz = 0.0;   nznpts = 0;}
-                  break;
-               case FCFLAG_MAX:
-                  max = mag;  break;
-               case FCFLAG_AMAX:
-                  amax = fabs(mag);  break;
-               case FCFLAG_SMAX:
-                  smax = mag;  break;
-               default:  break;
-               }
+            npts = nznpts = 0 ;
+            sum = sumnz = max = amax = smax = wtsum = 0.0 ;
+            if( GOODVOX(ijkvox) ){
+              mag = ffim[ijkvox];
+              switch (filter_opt)
+              {
+                 case FCFLAG_MEAN:
+                    sum = mag;  npts = 1;  break;
+                 case FCFLAG_NZMEAN:
+                    if (mag != 0.0)
+                       {sumnz = mag;   nznpts = 1;}
+                    break;
+                 case FCFLAG_MAX:
+                    max = mag; npts = 1 ;  break;
+                 case FCFLAG_AMAX:
+                    amax = fabs(mag); npts = 1 ;  break;
+                 case FCFLAG_SMAX:
+                    smax = mag; npts = 1 ;  break;
+                 case FCFLAG_EXPR:
+                    sum = wt[0]*mag ; wtsum = wt[0] ; npts = 1 ; break ;
+                 }
+            }
 
             /*--- Now iterate over the positions in the mask ---*/
+
             switch (filter_opt)
 	      {
 	      case FCFLAG_MEAN:
@@ -148,6 +216,7 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
 		    if (ii < 0   || jj < 0   || kk < 0 ||
 			ii >= nx || jj >= ny || kk >= nz)  continue;
 		    ijkma = THREE_TO_IJK (ii, jj, kk, nx, nxy);
+                    if( BADVOX(ijkma) ) continue ;
 		    mag = ffim[ijkma];
 		    sum += mag;  npts++;
                   }
@@ -161,10 +230,25 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
 		    if (ii < 0   || jj < 0   || kk < 0 ||
 			ii >= nx || jj >= ny || kk >= nz)  continue;
 		    ijkma = THREE_TO_IJK (ii, jj, kk, nx, nxy);
+                    if( BADVOX(ijkma) ) continue ;
 		    mag = ffim[ijkma];
 		    if (mag != 0.0)  {sumnz += mag;  nznpts++;}
                   }
 		break;
+              case FCFLAG_EXPR:
+		for (jma = 0; jma < mnum; jma++)
+		  {
+		    ii = i + mask->i[jma];
+		    jj = j + mask->j[jma];
+		    kk = k + mask->k[jma];
+		    if (ii < 0   || jj < 0   || kk < 0 ||
+			ii >= nx || jj >= ny || kk >= nz)  continue;
+		    ijkma = THREE_TO_IJK (ii, jj, kk, nx, nxy);
+                    if( BADVOX(ijkma) ) continue ;
+		    mag = ffim[ijkma];
+		    sum += wt[jma+1]*mag;  npts++; wtsum += wt[jma+1] ;
+                  }
+              break ;
 	      case FCFLAG_MAX:
 		for (jma = 0; jma < mnum; jma++)
                   {
@@ -174,8 +258,10 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
 		    if (ii < 0   || jj < 0   || kk < 0 ||
 			ii >= nx || jj >= ny || kk >= nz)  continue;
 		    ijkma = THREE_TO_IJK (ii, jj, kk, nx, nxy);
+                    if( BADVOX(ijkma) ) continue ;
 		    mag = ffim[ijkma];
-		    if (mag > max)  max = mag;
+		    if (npts == 0 || mag > max)  max = mag;
+                    npts++ ;
                   }
                   break;
 	      case FCFLAG_AMAX:
@@ -187,8 +273,10 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
 		    if (ii < 0   || jj < 0   || kk < 0 ||
 			ii >= nx || jj >= ny || kk >= nz)  continue;
 		    ijkma = THREE_TO_IJK (ii, jj, kk, nx, nxy);
+                    if( BADVOX(ijkma) ) continue ;
 		    mag = ffim[ijkma];
-		    if (fabs(mag) > amax)  amax = fabs(mag);
+		    if (npts == 0 || fabs(mag) > amax)  amax = fabs(mag);
+                    npts++ ;
                   }
 		break;
 	      case FCFLAG_SMAX:
@@ -200,24 +288,31 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
 		    if (ii < 0   || jj < 0   || kk < 0 ||
 			ii >= nx || jj >= ny || kk >= nz)  continue;
 		    ijkma = THREE_TO_IJK (ii, jj, kk, nx, nxy);
+                    if( BADVOX(ijkma) ) continue ;
 		    mag = ffim[ijkma];
-		    if (fabs(mag) > fabs(smax))  smax = mag;
+		    if (npts == 0 || fabs(mag) > fabs(smax))  smax = mag;
+                    npts++ ;
                   }
 		break;
 	      default:  break;
 	      }
 
             /*--- Save statistic for this voxel ---*/
+
             switch (filter_opt)
 	      {
-	      case FCFLAG_MEAN:  ffim_out[ijkvox] = sum/npts;   break;
+	      case FCFLAG_MEAN:
+                ffim_out[ijkvox] = (npts > 0)     ? sum/npts     : 0.0 ; break;
+
 	      case FCFLAG_NZMEAN:
-		if (nznpts > 0) ffim_out[ijkvox] = sumnz/nznpts;
-		else ffim_out[ijkvox] = 0.0;
-		break;
-	      case FCFLAG_MAX:   ffim_out[ijkvox] = max;   break;
-	      case FCFLAG_AMAX:  ffim_out[ijkvox] = amax;  break;
-	      case FCFLAG_SMAX:  ffim_out[ijkvox] = smax;  break;
+                ffim_out[ijkvox] = (nznpts > 0)   ? sumnz/nznpts : 0.0 ; break ;
+
+              case FCFLAG_EXPR:
+                ffim_out[ijkvox] = (wtsum != 0.0) ? sum/wtsum    : 0.0 ; break ;
+
+	      case FCFLAG_MAX:  ffim_out[ijkvox] = max ;  break;
+	      case FCFLAG_AMAX: ffim_out[ijkvox] = amax;  break;
+	      case FCFLAG_SMAX: ffim_out[ijkvox] = smax;  break;
 	      default:  break;
 	      }
          }  /* i */
@@ -231,6 +326,7 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    KILL_CLUSTER (mask);
    free (ffim);
    free (ffim_out);
+   if( wt != NULL ) free(wt) ;
 
    return;
 }
@@ -246,7 +342,7 @@ void EDIT_aver_fvol( int   nx, int   ny, int   nz,
 {
    MCW_cluster * mask ;
    int i, j, k , ij , ii ;
-   int jk,jkadd , nxadd,nyadd,nzadd , nxyz_add , mnum ; 
+   int jk,jkadd , nxadd,nyadd,nzadd , nxyz_add , mnum ;
    float * ffim ;
    int * madd ;
    float fac , sum ;

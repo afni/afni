@@ -217,9 +217,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dnvals 3dnvals.o $(LFLAGS) $(LLIBS)
 
-3dproject:3dproject.o
+3dproject:3dproject.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dproject 3dproject.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dproject 3dproject.o parser.o parser_int.o \
+              $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dinfo:3dinfo.o
 	$(RM) $@
@@ -313,21 +314,24 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o nsize nsize.o $(LFLAGS) $(LLIBS)
 
-3dclust:3dclust.o
+3dclust:3dclust.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dclust 3dclust.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dclust 3dclust.o parser.o parser_int.o \
+              $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-3dhistog:3dhistog.o
+3dhistog:3dhistog.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dhistog 3dhistog.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dhistog 3dhistog.o  parser.o parser_int.o \
+              $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dhclip:3dhclip.o
 	$(RM) $@
 	$(CC) -o 3dhclip 3dhclip.o $(LFLAGS) $(LLIBS)
 
-3dmerge:3dmerge.o
+3dmerge:3dmerge.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dmerge 3dmerge.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dmerge 3dmerge.o parser.o parser_int.o \
+                 $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dcalc:3dcalc.o parser.o parser_int.o
 	$(RM) $@
@@ -343,9 +347,10 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CCD) -o d3dmerge 3dmerge.c $(LFLAGS) $(LLIBS)
 
-3dttest:3dttest.o
+3dttest:3dttest.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dttest 3dttest.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dttest 3dttest.o parser.o parser_int.o \
+              $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dUniformize:3dUniformize.o
 	$(RM) $@
@@ -1142,8 +1147,14 @@ Xphace:Xphace.o $(IMOBJS)
 3dbetafit:3dbetafit.o betafit.c
 	$(CC) -o 3dbetafit 3dbetafit.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
+3dbetafit2.o:3dbetafit2.c
+	$(CCFAST) -c 3dbetafit2.c $(IFLAGS)
+
 3dbetafit2:3dbetafit2.o betafit.c
 	$(CC) -o 3dbetafit2 3dbetafit2.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+
+3dbetafit3:3dbetafit3.o betafit.c
+	$(CC) -o 3dbetafit3 3dbetafit3.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

@@ -27,9 +27,10 @@
 ******************************************************************************/
 
 #define PROGRAM_NAME "3dmerge"                       /* name of this program */
-#define LAST_MOD_DATE "04 February 1998"         /* date of last program mod */
+#define LAST_MOD_DATE "09 August 2000"         /* date of last program mod */
 
 #include "mrilib.h"
+#include "parser.h"    /* 09 Aug 2000 */
 
 #define MAIN
 #define MEGA  1048576  /* 2^20 */
@@ -136,6 +137,113 @@ int MRG_read_opts( int argc , char * argv[] )
          }
          MRG_ivthr = MRG_edopt.iv_thr = (int) strtod( argv[nopt++] , NULL ) ;
          continue ;
+      }
+
+      /**** 09 Aug 2000: -1fmask dset ****/
+
+      if( strncmp(argv[nopt],"-1fmask",6) == 0 ){
+         THD_3dim_dataset * mset ; int nn ;
+
+         if( MRG_edopt.nfmask > 0 ){
+            fprintf(stderr,"Can't have 2 -fmask options!\n") ;
+            exit(1) ;
+         }
+         if( ++nopt >= argc ){
+            fprintf(stderr,"No argument after %s?\n",argv[nopt-1]) ;
+            exit(1);
+         }
+
+         mset = THD_open_dataset( argv[nopt++] ) ;
+         if( mset == NULL ){
+            fprintf(stderr,"*** Can't open -fmask dataset\n") ;
+            exit(1) ;
+         }
+         if( DSET_BRICK_TYPE(mset,0) == MRI_complex ){
+            fprintf(stderr,"*** Can't deal with complex-valued -fmask dataset\n");
+            exit(1) ;
+         }
+
+         MRG_edopt.fmask  = THD_makemask( mset , 0 , 666.0,-666.0 ) ;
+         MRG_edopt.nfmask = DSET_NVOX(mset) ;
+
+         nn = THD_countmask(MRG_edopt.nfmask,MRG_edopt.fmask) ;
+         if( nn < 2 ){
+            fprintf(stderr,"*** Too few (%d) nonzero voxels in -fmask!\n",nn) ;
+            exit(1) ;
+         }
+
+         DSET_delete(mset) ;
+
+         if( MRG_edopt.filter_opt == FCFLAG_AVER )
+            MRG_edopt.filter_opt = FCFLAG_MEAN ;
+
+         if( MRG_edopt.thrfilter_opt == FCFLAG_AVER )
+            MRG_edopt.thrfilter_opt = FCFLAG_MEAN ;
+
+         continue ;
+      }
+
+      /**** 09 Aug 2000: -1filter_expr rmm expr ****/
+
+      if( strncmp(argv[nopt],"-1filter_expr",13) == 0 ){
+         PARSER_code * pcode ; int hsym[26] , aa , naa , nee ;
+         double atoz[26] , val ;
+
+         nopt++ ;
+         if( nopt+1 >= argc ){
+            fprintf(stderr,"*** Need 2 arguments after -1filter_expr\n") ;
+            exit(1) ;
+         }
+         MRG_edopt.filter_opt = FCFLAG_EXPR;
+         MRG_edopt.filter_rmm  = strtod( argv[nopt++] , NULL ) ;
+         if( MRG_edopt.filter_rmm <= 0.0 ){
+            fprintf(stderr,"*** Illegal rmm value after -1filter_expr\n");
+            exit(1) ;
+         }
+
+         MRG_edopt.fexpr = argv[nopt++] ;
+         pcode = PARSER_generate_code( MRG_edopt.fexpr ) ;  /* compile */
+
+         if( pcode == NULL ){
+            fprintf(stderr,"*** Illegal expr after -1filter_expr\n");
+            exit(1);
+         }
+
+#undef   MASK
+#undef   PREDEFINED_MASK
+#define  MASK(x)          (1 << (x-'a'))
+#define  PREDEFINED_MASK  ( MASK('r') | MASK('x') | MASK('y') | MASK('z')   \
+                                      | MASK('i') | MASK('j') | MASK('k') )
+
+         /* check if only legal symbols are used */
+
+         PARSER_mark_symbols( pcode , hsym ) ;  /* find symbols used */
+
+         for( nee=naa=aa=0 ; aa < 26 ; aa++ ){
+            if( hsym[aa] ){
+               if( ((1<<aa) & PREDEFINED_MASK) == 0 ){
+                  nee++ ;  /* count of illegal symbols */
+                  fprintf(stderr,"*** Symbol %c in -1filter_expr is illegal\n",'a'+aa) ;
+               } else {
+                  naa++ ;  /* count of legal symbols */
+               }
+            }
+         }
+         if( nee > 0 ) exit(1) ;  /* can't use this expression! */
+         if( naa == 0 ){          /* no symbols?  check if identically 0 */
+            double atoz[26] , val ;
+            val = PARSER_evaluate_one( pcode , atoz ) ;
+            if( val != 0.0 ){
+               fprintf(stderr,"+++ Warning: -1filter_expr is constant = %g\n",val) ;
+            } else {
+               fprintf(stderr,"*** -1filter_expr is identically zero\n") ;
+               exit(1) ;
+            }
+         }
+
+         free(pcode) ;  /* will recompile when it is used */
+
+         MRG_have_edopt = 1 ; continue ;
       }
 
 
@@ -424,9 +532,78 @@ void MRG_Syntax(void)
     "                  of 1 brick datasets can later be assembled into a\n"
     "                  multi-brick bucket dataset using program '3dbucket'\n"
     "                  or into a 3D+time dataset using program '3dTcat'.\n"
-    "          N.B.: If these options aren't used, j=0 and k=1 are the defaults.\n"
+    "          N.B.: If these options aren't used, j=0 and k=1 are the defaults\n"
     "\n"
-
+    "  The following option allows you to specify a mask dataset that\n"
+    "  limits the action of the 'filter' options to voxels that are\n"
+    "  nonzero in the mask:\n"
+    "\n"
+    "  -1fmask mset = Read dataset 'mset' (which can include a\n"
+    "                  sub-brick specifier) and use the nonzero\n"
+    "                  voxels as a mask for the filter options.\n"
+    "                  Filtering calculations will not use voxels\n"
+    "                  that are outside the mask.  If an output\n"
+    "                  voxel does not have ANY masked voxels inside\n"
+    "                  the rmm radius, then that output voxel will\n"
+    "                  be set to 0.\n"
+    "         N.B.: * Only the -1filter_* and -t1filter_* options are\n"
+    "                 affected by -1fmask.\n"
+    "               * In the linear averaging filters (_mean, _nzmean,\n"
+    "                 and _expr), voxels not in the mask will not be used\n"
+    "                 or counted in either the numerator or denominator.\n"
+    "                 This can give unexpected results.  If the mask is\n"
+    "                 designed to exclude the volume outside the brain,\n"
+    "                 then voxels exterior to the brain, but within 'rmm',\n"
+    "                 will have a few voxels inside the brain included\n"
+    "                 in the filtering.  Since the sum of weights (the\n"
+    "                 denominator) is only over those few intra-brain\n"
+    "                 voxels, the effect will be to extend the significant\n"
+    "                 part of the result outward by rmm from the surface\n"
+    "                 of the brain.  In contrast, without the mask, the\n"
+    "                 many small-valued voxels outside the brain would\n"
+    "                 be included in the numerator and denominator sums,\n"
+    "                 which would barely change the numerator (since the\n"
+    "                 voxel values are small outside the brain), but would\n"
+    "                 increase the denominator greatly (by including many\n"
+    "                 more weights).  The effect in this case (no -1fmask)\n"
+    "                 is to make the filtering taper off gradually in the\n"
+    "                 rmm-thickness shell around the brain.\n"
+    "               * Thus, if the -1fmask is intended to clip off non-brain\n"
+    "                 data from the filtering, its use should be followed by\n"
+    "                 masking operation using 3dcalc:\n"
+    "      3dmerge -1filter_aver 12 -1fmask mask+orig -prefix x input+orig\n"
+    "      3dcalc  -a x -b mask+orig -prefix y -expr 'a*step(b)'\n"
+    "      rm -f x+orig.*\n"
+    "                 The desired result is y+orig - filtered using only\n"
+    "                 brain voxels (as defined by mask+orig), and with\n"
+    "                 the output confined to the brain voxels as well.\n"
+    "\n"
+    "  The following option allows you to specify an almost arbitrary\n"
+    "  weighting function for 3D linear filtering:\n"
+    "\n"
+    "  -1filter_expr rmm expr\n"
+    "     Defines a filter about each voxel of radius 'rmm' millimeters.\n"
+    "     The filter weights are proportional to the expression evaluated\n"
+    "     at each voxel offset in the rmm neighborhood.  You can use only\n"
+    "     these symbols in the expression:\n"
+    "         r = radius from center\n"
+    "         x = dataset x-axis offset from center\n"
+    "         y = dataset y-axis offset from center\n"
+    "         z = dataset z-axis offset from center\n"
+    "         i = x-axis index offset from center\n"
+    "         j = y-axis index offset from center\n"
+    "         k = z-axis index offset from center\n"
+    "     Example:\n"
+    "       -1filter_expr 12.0 'exp(-r*r/36.067)'\n"
+    "     This does a Gaussian filter over a radius of 12 mm.  In this\n"
+    "     example, the FWHM of the filter is 10 mm. [in general, the\n"
+    "     denominator in the exponent would be 0.36067 * FWHM * FWHM.\n"
+    "     This is the only way to get a Gaussian blur combined with the\n"
+    "     -1fmask option.  The radius rmm=12 is chosen where the weights\n"
+    "     get smallish.]  Another example:\n"
+    "       -1filter_expr 20.0 'exp(-(x*x+16*y*y+z*z)/36.067)'\n"
+    "     which is a non-spherical Gaussian filter.\n"
+    "\n"
     "MERGING OPTIONS APPLIED TO FORM THE OUTPUT DATASET:\n"
     " [That is, different ways to combine results. The]\n"
     " [following '-g' options are mutually exclusive! ]\n"
@@ -662,6 +839,12 @@ int main( int argc , char * argv[] )
 
    nice(1) ;  /* slow us down, a little */
 
+   if( MRG_edopt.nfmask > 0 && MRG_edopt.nfmask != nxyz ){
+      fprintf(stderr,
+              "*** -1fmask and 1st dataset don't have same number of voxels\n\a");
+      exit(1) ;
+   }
+
    /*******************************************************************/
    /****      if only one file, edit it, modify its names ...      ****/
    /****      then write the modified dataset to disk              ****/
@@ -723,6 +906,10 @@ int main( int argc , char * argv[] )
 
       if( !MRG_be_quiet && !MRG_doall ){ printf(".") ; fflush(stdout) ; }
     }
+
+   if( MRG_edopt.nfmask > 0 ){
+     free(MRG_edopt.fmask) ; MRG_edopt.fmask = NULL ; MRG_edopt.nfmask = 0 ;
+   }
 
     if( !MRG_be_quiet && !MRG_doall ) printf("\n") ;
 
@@ -816,7 +1003,7 @@ int main( int argc , char * argv[] )
             fimfac = EDIT_coerce_autoscale( nxyz , input_datum  , efim ,
                                                    output_datum , dfim  ) ;
             if( fimfac == 0.0 ) fimfac  = 1.0 ;
-            if( efac   != 0.0 ) fimfac /= efac ; 
+            if( efac   != 0.0 ) fimfac /= efac ;
 
             DSET_BRICK_FACTOR(new_dset,ivout) = (fimfac != 0.0 && fimfac != 1.0)
                                                 ? 1.0/fimfac : 0.0 ;
@@ -1229,6 +1416,10 @@ int main( int argc , char * argv[] )
 
    myXtFree(tfim) ;                      /* not needed any more */
    if( ttfim != NULL ) myXtFree(ttfim) ;
+
+   if( MRG_edopt.nfmask > 0 ){
+     free(MRG_edopt.fmask) ; MRG_edopt.fmask = NULL ; MRG_edopt.nfmask = 0 ;
+   }
 
    /*** if only one dset encountered, some error! ***/
 

@@ -215,7 +215,7 @@ BFIT_data * BFIT_bootstrap_sample( BFIT_data * bfd )
    }
 
    for( ii=ibot ; ii < mcount ; ii++ ){
-      jj = (lrand48() % nuse) + ibot ;
+      jj = ((lrand48()>>8) % nuse) + ibot ;
       nfd->bval[ii] = bfd->bval[jj] ;
       if( nfd->cval != NULL )
          nfd->cval[ii] = bfd->cval[jj] ;

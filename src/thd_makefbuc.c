@@ -74,7 +74,7 @@
          for( jv=0 ; jv < nbrik ; jv++ ) FREEUP(fout[jv]) ;  \
          free(fout) ;                                        \
       } } while(0)
- 
+
 #undef  FREE_WORKSPACE
 #define FREE_WORKSPACE                              \
   do{ FREEUP(bptr) ; FREEUP(sptr) ; FREEUP(fptr) ;  \
@@ -107,6 +107,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
    double tzero , tdelta , ts_mean , ts_slope ;
    int   ii , old_datum , nuse , use_fac , iz,izold, nxy,nvox , iv ;
    register int kk ;
+   int nbad=0 ;        /* 08 Aug 2000 */
 
    /*----------------------------------------------------------*/
    /*----- Check inputs to see if they are reasonable-ish -----*/
@@ -370,7 +371,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 
       for( iv=0 ; iv < nbrik ; iv++ ) val[iv] = 0.0 ;
 
-      user_func( tzero,tdelta , nuse,fxar,ts_mean,ts_slope , user_data , nbrik,val ) ;
+      user_func( tzero,tdelta, nuse,fxar,ts_mean,ts_slope, user_data, nbrik,val );
 
       for( iv=0 ; iv < nbrik ; iv++ ) fout[iv][ii] = val[iv] ;
 
@@ -381,6 +382,16 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
    /* end notification */
 
    user_func( 0.0 , 0.0 , 0 , NULL,0.0,0.0 , user_data , nbrik , NULL ) ;
+
+   /*---- Count and correct float errors ----*/
+
+   for( iv=0 ; iv < nbrik ; iv++ )
+      nbad += thd_floatscan( nvox, fout[iv] ) ;
+
+   if( nbad > 0 )
+      fprintf(stderr,
+              "++ Warning: %d bad floats computed in MAKER_4D_to_typed_fbuc\n\a",
+              nbad ) ;
 
    /*------------------------------------------------------------------------*/
    /*------- The output is now in fout[iv][ii], iv=0..nbrik-1, ii=0..nvox-1.

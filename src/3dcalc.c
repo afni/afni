@@ -908,6 +908,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * new_dset=NULL ;
    float ** buf;
    double   temp[VSIZE];
+   int      nbad ;      /* 09 Aug 2000: check for bad results */
 
    THD_ivec3 iv ;       /* 05 Feb 1999:                */
    THD_fvec3 fv ;       /* stuff for computing (x,y,z) */
@@ -1265,6 +1266,14 @@ int main( int argc , char * argv[] )
                 buf[kt][jj] = temp[jj-ii];
 
          } /* end of loop over space (voxels) */
+
+         /* 09 Aug 2000: check results for validity */
+
+         nbad = thd_floatscan( CALC_nvox , buf[kt] ) ;
+         if( nbad > 0 )
+           fprintf(stderr,
+                   "+++ Warning: %d bad floats replaced by 0 in sub-brick %d\n\a",
+                   nbad , kt ) ;
 
          /* 30 April 1998: purge 3D+time sub-bricks if possible */
 

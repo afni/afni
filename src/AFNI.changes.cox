@@ -2214,3 +2214,16 @@
 21 Jul 2000
  * Added AFNI_ENFORCE_ASPECT to afni_pplug_env.c.
  * Added AFNI_IMAGE_PGMFILE_[1-9] to afni_splash.c.
+
+08 Aug 2000
+ * Used thd_floatscan() to check/fix possible float errors from
+     user functions (in the thd_make*.c functions and in afni_fimmer.c).
+     Was prompted by errors produced in Ziad Saad's Hilbert plugin.
+
+09 Aug 2000
+ * Modified thd_floatscan.c to use finitef() on Linux.
+ * Modified 3dcalc.c to use thd_floatscan() to check results.
+ * Modified 3dmerge.c to have -1fmask option to restrict filtering,
+     and -1filter_expr option to do arbitrary linear filtering.
+     (Also changed editvol.h, edt_checkargv.c, edt_filtervol.c, and
+      edt_onedset.c)

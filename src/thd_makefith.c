@@ -96,7 +96,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
 
    float val , d0fac , d1fac , x0,x1;
    double tzero , tdelta , ts_mean , ts_slope ;
-   int   ii , old_datum , nuse , use_fac , iz,izold, nxy,nvox ;
+   int   ii , old_datum , nuse , use_fac , iz,izold, nxy,nvox , nbad ;
    register int kk ;
 
    /*----------------------------------------------------------*/
@@ -349,6 +349,12 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
    /* end notification */
 
    user_func( 0.0 , 0.0 , 0 , NULL,0.0,0.0 , user_data , NULL , NULL ) ;
+
+   nbad = thd_floatscan(nvox,fout) + thd_floatscan(nvox,tout) ;
+   if( nbad > 0 )
+      fprintf(stderr,
+              "++ Warning: %d bad floats computed in MAKER_4D_to_typed_fith\n\a",
+              nbad ) ;
 
    /*-------------------------------------------------------------------*/
    /*------- The output is now in fout[ii] and tout[ii],  ii=0..nvox-1.

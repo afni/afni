@@ -371,6 +371,8 @@ int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt 
          fprintf(stderr,"illegal value after -1filter_aver \n") ;
          exit(1) ;
       }
+
+      if( edopt->nfmask > 0 ) edopt->filter_opt = FCFLAG_MEAN ;
       CHECK_DONE ;
    }
 
@@ -389,6 +391,8 @@ int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt 
          fprintf(stderr,"illegal value after -t1filter_aver \n") ;
          exit(1) ;
       }
+
+      if( edopt->nfmask > 0 ) edopt->thrfilter_opt = FCFLAG_MEAN ;
       CHECK_DONE ;
    }
 

@@ -193,6 +193,10 @@ typedef struct EDIT_options {
 
    int   verbose ;                /* 01 Nov 1999 --> verbose output during editing */
 
+   int   nfmask ;                 /* 09 Aug 2000 --> filter mask */
+   byte * fmask ;
+   char * fexpr ;                 /* 09 Aug 2000 --> filter expression */
+
 } EDIT_options ;
 
 /*--- cluster editing options ---*/   /* 10 Sept 1996 */
@@ -213,7 +217,8 @@ typedef struct EDIT_options {
 #define FCFLAG_AMAX   4
 #define FCFLAG_SMAX   5
 
-#define FCFLAG_AVER   66        /* 7 Jan 1998 */
+#define FCFLAG_AVER   66        /*  7 Jan 1998 */
+#define FCFLAG_EXPR   77        /* 09 Aug 2000 */
 
 #define INIT_EDOPT(edopt)              \
       ( (edopt)->thtoin        = 0   , \
@@ -241,6 +246,9 @@ typedef struct EDIT_options {
         (edopt)->iv_thr        = -1  , \
         (edopt)->zscore        = 0   , \
         (edopt)->verbose       = 0   , \
+        (edopt)->nfmask        = 0   , \
+        (edopt)->fmask         = NULL, \
+        (edopt)->fexpr         = NULL, \
        0 )
 
 extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;
@@ -285,7 +293,7 @@ extern void EDIT_cluster_array (MCW_cluster_array * , int, float, float);
 
 /* 11 Sept 1996 */
 extern void EDIT_filter_volume (int, int, int, float, float, float,
-                                int, void *, int, float);
+                                int, void *, int, float , byte * , char * );
 
 /**---------------- AFNI Dataset item Names ----------------**/
 

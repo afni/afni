@@ -1521,7 +1521,7 @@ ucode_stuff:
       MRI_IMAGE * tsim ;
       float     * tsar , * val , ** vbr ;
       short     * sar ;
-      int         nts , jts ;
+      int         nts , jts , nbad=0 ;
       MRI_IMARR * imar ;
 
       /* mark which ones to execute */
@@ -1627,6 +1627,9 @@ ucode_stuff:
       for( iv=0 ; iv < newbrik ; iv++ ){
          tsar   = vbr[iv] ;              /* float data */
          topval = 0.0 ;                  /* find range of data */
+
+         nbad += thd_floatscan( nvox , tsar ) ;  /* 08 Aug 2000 */
+
          for( it=0 ; it < nvox ; it++ )
             if( fabs(tsar[it]) > topval ) topval = fabs(tsar[it]) ;
 
@@ -1656,6 +1659,11 @@ ucode_stuff:
       for( uu=0 ; uu < nuse ; uu++ )
          ufunc[uu]( -(brik1[uu]+oldbrik) , NULL ,
                     udata[uu] , nbrik[uu] , (void *) new_dset ) ;
+
+      if( nbad > 0 )
+         fprintf(stderr,
+                 "++ Warning: %d bad floats computed by user fimfuncs!\n\a",
+                 nbad ) ;
 
    } /* 01 Feb 2000: end of user_func addition to FIMming */
 

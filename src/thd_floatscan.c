@@ -6,7 +6,7 @@
 # define USE_ISNANF
 #endif
 
-#if defined(HP) || defined(OSF1)
+#if defined(HP) || defined(OSF1) || defined(LINUX)
 # define USE_ISNANF
 # define USE_FINITEF
 #endif
