@@ -5927,6 +5927,7 @@ void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
    float xx,yy,zz ;
+   char dum1[32],dum2[32];
    int nn ;
 
 ENTRY("AFNI_jumpto_CB") ;
@@ -5934,8 +5935,8 @@ ENTRY("AFNI_jumpto_CB") ;
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
 
-   nn = sscanf( cbs->cval , "%f %f %f" , &xx,&yy,&zz ) ;
-   if( nn != 3 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+   nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
+   if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
 
    THD_coorder_to_dicom( &GLOBAL_library.cord , &xx,&yy,&zz ) ;
 
@@ -6001,14 +6002,15 @@ void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    Three_D_View * im3d = (Three_D_View *) cd ;
    int ii,jj,kk ;
    int nn ;
+   char dum1[32],dum2[32];
 
 ENTRY("AFNI_jumpto_CB") ;
 
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
 
-   nn = sscanf( cbs->cval , "%d %d %d" , &ii,&jj,&kk ) ;
-   if( nn != 3 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+   nn = sscanf( cbs->cval , "%d%[ ,]%d%[ ,]%d" , &ii,dum1,&jj,dum2,&kk ) ;
+   if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
    if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;

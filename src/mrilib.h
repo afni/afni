@@ -334,6 +334,7 @@ extern void cfft2d( int , int , int , float * , float * ) ;
 extern void csfft_cox( int,int , complex * ) ;
 extern void csfft_many( int,int,int , complex * ) ;
 extern int  csfft_nextup(int) ;
+extern void csfft_scale_inverse(int) ;
 
 extern void *mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;

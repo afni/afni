@@ -27,6 +27,8 @@ int main( int argc , char * argv[] )
       cs[ii] = cx[ii] ;
    }
 
+   csfft_scale_inverse(1) ;
+
    csfft_cox( -1 , N , cx ) ;
 
    for( ii=0 ; ii < N ; ii++ )
@@ -35,8 +37,8 @@ int main( int argc , char * argv[] )
    csfft_cox( 1 , N , cx ) ;
    sum = 0.0 ;
    for( ii=0 ; ii < N ; ii++ ){
-      xx = cx[ii].r/N - cs[ii].r ;
-      yy = cx[ii].i/N - cs[ii].i ; sum += xx*xx + yy*yy ;
+      xx = cx[ii].r - cs[ii].r ;
+      yy = cx[ii].i - cs[ii].i ; sum += xx*xx + yy*yy ;
    }
    sum = sqrt( sum/N ) ;
    printf("RMS error = %g\n",sum) ;

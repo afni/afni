@@ -10,7 +10,7 @@
 #  include "mrilib.h"   /* for use in AFNI package */
 #endif
 
-/*** Prototypes:                                                         ***
+/*** Prototypes for externally callable functions:                       ***
  ***    Complex-to-complex FFT in place:                                 ***
  ***      mode = -1 or +1 (NO SCALING ON INVERSE!)                       ***
  ***      idim = dimension (power of 2)                                  ***
@@ -18,7 +18,9 @@
  ***    Re-initializes itself only when idim changes from previous call. ***/
 
 void csfft_cox( int mode , int idim , complex * xc ) ;
-int csfft_nextup( int idim ) ;
+int  csfft_nextup( int idim ) ;
+void csfft_scale_inverse( int scl ) ;  /* scl=1 ==> force 1/N for mode=+1 */
+                                       /* scl=0 ==> no 1/N scaling        */
 
 /*** Aug 1999:                                                           ***
  ***   idim can now contain factors of 3 and/or 5, up to and including   ***
@@ -44,7 +46,13 @@ static void fft_5dec( int , int , complex * ) ;
 #undef PI
 #define PI (3.141592653589793238462643)
 
-/*---------- For the unrolled FFT routines: November 1998 ----------*/
+/*-------------- To order the 1/N scaling on inversion: Aug 1999 ------------*/
+
+static int sclinv = 0 ;  /* set by csfft_scale_inverse */
+
+void csfft_scale_inverse( int scl ){ sclinv = scl ; return ; }
+
+/*-------------- For the unrolled FFT routines: November 1998 --------------*/
 
 #ifndef DONT_UNROLL_FFTS
    static void fft8  ( int mode , complex * xc ) ;
@@ -157,12 +165,19 @@ static void csfft_trigconsts( int idim )  /* internal function */
 
 /*--------------------------------------------------------------------
    Complex-to-complex FFT in place:
-     mode = -1 or +1 (NO SCALING ON INVERSE!)
-     idim = dimension (power of 2)
+     mode = -1 or +1 (1/idim scaling on inverse [+1] if sclinv
+                      was set in the call to csfft_scale_inverse)
+     idim = dimension (power of 2, possibly with a factor
+                       of 3^p * 5^q also, for p,q=0..RMAX)
      xc   = input/output array
    Automagically re-initializes itself when idim changes from
    previous call.  By AJ (Andrzej Jesmanowicz), modified by RWCox.
 ----------------------------------------------------------------------*/
+
+#define SCLINV                                                 \
+ if( sclinv && mode > 0 && rec == 0 ){                         \
+   register int qq ; register float ff = 1.0 / (float) idim ;  \
+   for( qq=0 ; qq < idim ; qq++ ){ xc[qq].r *= ff ; xc[qq].i *= ff ; } }
 
 void csfft_cox( int mode , int idim , complex * xc )
 {
@@ -170,32 +185,38 @@ void csfft_cox( int mode , int idim , complex * xc )
    register complex       *r0, *r1, *csp;
    register float         co, si, f0, f1, f2, f3, f4;
 
+   static int rec=0 ;  /* recursion level */
+
    /*-- November 1998: maybe use the unrolled FFT routines --*/
 
 #ifndef DONT_UNROLL_FFTS
-   switch( idim ){
-      case    1:                    return ;
-      case    2: fft2   (mode,xc) ; return ;
-      case    4: fft4   (mode,xc) ; return ;
-      case    8: fft8   (mode,xc) ; return ;
-      case   16: fft16  (mode,xc) ; return ;
-      case   32: fft32  (mode,xc) ; return ;
-      case   64: fft64  (mode,xc) ; return ;
-      case  128: fft128 (mode,xc) ; return ;
-      case  256: fft256 (mode,xc) ; return ;
-      case  512: fft512 (mode,xc) ; return ;
-      case 1024: fft1024(mode,xc) ; return ;
-      case 2048: fft2048(mode,xc) ; return ;
+   switch( idim ){                                  /* none of these  */
+      case    1:                           return;  /* routines will  */
+      case    2: fft2   (mode,xc); SCLINV; return;  /* call csfft_cox */
+      case    4: fft4   (mode,xc); SCLINV; return;  /* so don't need  */
+      case    8: fft8   (mode,xc); SCLINV; return;  /* to do rec++    */
+      case   16: fft16  (mode,xc); SCLINV; return;
+      case   32: fft32  (mode,xc); SCLINV; return;
+      case   64: fft64  (mode,xc); SCLINV; return;
+      case  128: fft128 (mode,xc); SCLINV; return;
+      case  256: fft256 (mode,xc); SCLINV; return;
+      case  512: fft512 (mode,xc); SCLINV; return;
+      case 1024: fft1024(mode,xc); SCLINV; return;
+      case 2048: fft2048(mode,xc); SCLINV; return;
 
-      case  4096: fft_4dec(mode, 4096,xc) ; return ;
-      case  8192: fft_4dec(mode, 8192,xc) ; return ;
-      case 16384: fft_4dec(mode,16384,xc) ; return ;
-      case 32768: fft_4dec(mode,32768,xc) ; return ;
+      case  4096: fft_4dec(mode, 4096,xc); SCLINV; return;
+      case  8192: fft_4dec(mode, 8192,xc); SCLINV; return;
+      case 16384: fft_4dec(mode,16384,xc); SCLINV; return;
+      case 32768: fft_4dec(mode,32768,xc); SCLINV; return;
    }
 #endif  /* end of unrollificationizing */
 
-   if( idim % 3 == 0 ){ fft_3dec(mode,idim,xc); return; } /* Aug 1999 */
-   if( idim % 5 == 0 ){ fft_5dec(mode,idim,xc); return; }
+   /*-- Aug 1999: deal with factors of 3 or 5 [might call csfft_cox] --*/
+
+   if( idim%3 == 0 ){rec++; fft_3dec(mode,idim,xc); rec--; SCLINV; return;}
+   if( idim%5 == 0 ){rec++; fft_5dec(mode,idim,xc); rec--; SCLINV; return;}
+
+   /*-- below here: the old general power of 2 routine --*/
 
    /**-- perhaps initialize --**/
 
@@ -243,21 +264,7 @@ void csfft_cox( int mode , int idim , complex * xc )
       m = i3;
    }
 
-#ifdef SCALE_INVERSE
-   if (mode > 0) {
-      f0 = 1.0 / idim ;
-      i0 = 0; i1 = 1;
-      while (i0 < n) {
-         r0    = xc + i0; r1    = xc + i1; f1    = r0->r; f2    = r0->i;
-         f3    = r1->r;   f4    = r1->i;   f1   *= f0;    f2   *= f0;
-         f3   *= f0;      f4   *= f0;      r0->r = f1;    r0->i = f2;
-         r1->r = f3;      r1->i = f4;
-         i0 += 2; i1 += 2;
-      }
-   }
-#endif
-
-   return ;
+   SCLINV ; return ;
 }
 
 /*--------------------------------------------------------------------
