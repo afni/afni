@@ -12,7 +12,9 @@
  *-----------------------------------------------------*
  * Code for -numROI added by T. ROss 5/00              * 
  *-----------------------------------------------------*
- * Code for -minmax,-nzminmax added by R. Reynolds 7/04*
+ * Code for -minmax,-nzminmax added by R Reynolds 7/04 *
+ *-----------------------------------------------------*
+ * Fixed minmax initializers           R Reynolds 9/04 *
  *******************************************************/
 
 #include "mrilib.h"
@@ -423,10 +425,11 @@ int main(int argc, char *argv[])
             /* init the min/max values */
 	    for (i = 0; i < num_ROI; i++) {
 		if ( minmax ) {
-		    min[i] = max[i] = input_data[0];
+		    min[i] =  1e30;    /* oops, don't init outside mask      */
+                    max[i] = -1e30;    /* thanks, Shruti  02 Sep 2004 [rickr]*/
 		}
 		if ( nzminmax ) {
-		    nzmin[i] =  1e30;    /* that really big number */
+		    nzmin[i] =  1e30;  /* that really big number */
 		    nzmax[i] = -1e30;
 		}
 	    }
