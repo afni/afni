@@ -152,6 +152,28 @@ int NI_clock_time(void)
                 +(new_tval.tv_usec - old_tval.tv_usec)*0.001 + 0.5 ) ;
 }
 
+/*---------------------------------------------------------------------------*/
+/*! Replacement for mktemp(). */
+
+char * NI_mktemp( char *template )
+{
+   int nt ; char *xx,*uu ; struct stat buf ;
+
+   if( template == NULL || template[0] == '\0' ) return NULL ;
+
+   nt = strlen(template) ;
+   if( nt < 6 ){ template[0] = '\0'; return NULL; }
+   xx = template+(nt-6) ;
+   if( strcmp(xx,"XXXXXX") != 0 ){ template[0] = '\0'; return NULL; }
+
+   while(1){
+     uu = UUID_idcode() ;
+     memcpy( xx , uu , 6 ) ;
+     nt = stat( template , &buf ) ;
+     if( nt != 0 ) return template ;
+   }
+}
+
 /*************************************************************************/
 /****************** NIML string utilities ********************************/
 /*************************************************************************/
@@ -1730,7 +1752,7 @@ static int read_URL_http( char *url , int msec , char **data )
    if( cflag ){
       setup_tmpdir() ;
       strcpy(qname,tmpdir) ; strcat(qname,"ElvisXXXXXX") ;
-      mktemp(qname) ;
+      NI_mktemp(qname) ;
       if( qname[0] != '\0' ){
          strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
          if( cfile == NULL ) cflag == 0 ;
@@ -1895,14 +1917,14 @@ static int read_URL_ftp( char *url , char **data )
 
    setup_tmpdir() ;
    strcpy(qname,tmpdir) ; strcat(qname,"EthelXXXXXX") ;
-   mktemp(qname) ;
+   NI_mktemp(qname) ;
    if( qname[0] == '\0' ) return( -1 );
    if( cflag ) strcat(qname,".gz") ;
 
    /* write the script file that will be used to run ftp */
 
    strcpy(sname,tmpdir) ; strcat(sname,"DahmerXXXXXX") ;
-   mktemp(sname) ;             if( sname[0] == '\0' ) return( -1 );
+   NI_mktemp(sname) ;          if( sname[0] == '\0' ) return( -1 );
    sp = fopen( sname , "w" ) ; if( sp == NULL )       return( -1 );
 
    fprintf( sp , "#!/bin/sh\n" ) ;

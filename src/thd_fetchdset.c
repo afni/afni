@@ -26,7 +26,7 @@ ENTRY("THD_fetch_dset") ;
    /*** read the .HEAD file to a temporary file ***/
 
    fprintf(stderr,"\n+++ Trying to fetch %s",hp) ;
-   nhp = read_URL_tmpdir( hp , &thp ) ;
+   nhp = NI_read_URL_tmpdir( hp , &thp ) ;
    if( nhp <= 0 ){ fprintf(stderr," **FAILED\n"); free(hp); RETURN(NULL); }
 
    /*** try to open it as a dataset header ***/
@@ -52,11 +52,11 @@ ENTRY("THD_fetch_dset") ;
 
    strcpy( hp+(strlen(hp)-5) , ".BRIK.gz" ) ;
    fprintf(stderr," ++ Trying to fetch %s",hp) ; iochan_sleep(100) ;
-   nbp = read_URL( hp , &bp ) ;
+   nbp = NI_read_URL( hp , &bp ) ;
    if( nbp <= 0 ){
       iv = strlen(hp) ; hp[iv-3] = '\0' ; /* remove the .gz and try again */
       fprintf(stderr," ** FAILED!\n ++ Trying to fetch %s",hp) ; iochan_sleep(100) ;
-      nbp = read_URL( hp , &bp ) ;
+      nbp = NI_read_URL( hp , &bp ) ;
       if( nbp <= 0 ){
          fprintf(stderr," ** FAILED\n");
          free(hp); DSET_delete(dset); RETURN(NULL);
@@ -121,7 +121,7 @@ ENTRY("THD_fetch_1D") ;
    if( url == NULL || url[0] == '\0' ) RETURN(NULL) ;
 
    fprintf(stderr,"\n+++ Trying to fetch %s",url) ;
-   nhp = read_URL_tmpdir( url , &fname ) ;
+   nhp = NI_read_URL_tmpdir( url , &fname ) ;
    if( nhp <= 0 ){ fprintf(stderr," **FAILED\n"); RETURN(NULL); }
    fprintf(stderr,": %d bytes read",nhp) ;
    flim = mri_read_1D(fname) ; unlink(fname) ; free(fname) ;
@@ -164,7 +164,7 @@ ENTRY("THD_fetch_many_datasets") ;
    /* get the list of filenames */
 
    fprintf(stderr,"\n+++ Trying to fetch %s",url) ;
-   nlist = read_URL( url , &list ) ;
+   nlist = NI_read_URL( url , &list ) ;
    if( nlist <= 0 ){
       fprintf(stderr," **FAILED\n"); free(hnam); RETURN(NULL);
    }
