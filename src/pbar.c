@@ -266,26 +266,54 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
 {
    int ii , nn , kk ;
 
-   /* if needed, setup initial color field tables */
+   /* if needed, setup initial colorscale tables */
 
-#define NBIGMAP_INIT 4
+#define NBIGMAP_INIT 7                           /* # of initial colorscales */
+#define NBIG_GAP     6
+#define NBIG_MBOT    (NPANE_BIG/2-NBIG_GAP)
+#define NBIG_MTOP    (NPANE_BIG/2+NBIG_GAP)
+#define AJJ_RED        0.0
+#define AJJ_YEL       60.0
+#define AJJ_GRN      120.0
+#define AJJ_CYN      180.0
+#define AJJ_BLU      240.0
+#define AJJ_PUR      300.0
    if( bigmap_num == 0 ){
      bigmap_num     = NBIGMAP_INIT ;
      bigmap_name    = (char **) malloc(sizeof(char *)*NBIGMAP_INIT) ;
      bigmap_name[0] = strdup("Spectrum:red_to_blue") ;
-     bigmap_name[1] = strdup("Spectrum:yellow_to_red") ;
-     bigmap_name[2] = strdup("Color_circle_AJJ") ;
-     bigmap_name[3] = strdup("Color_circle_ZSS") ;
+     bigmap_name[1] = strdup("Spectrum:red_to_blue+gap") ;
+     bigmap_name[2] = strdup("Spectrum:yellow_to_cyan") ;
+     bigmap_name[3] = strdup("Spectrum:yellow_to_cyan+gap") ;
+     bigmap_name[4] = strdup("Spectrum:yellow_to_red") ;
+     bigmap_name[5] = strdup("Color_circle_AJJ") ;
+     bigmap_name[6] = strdup("Color_circle_ZSS") ;
      bigmap         = (rgbyte **) malloc(sizeof(rgbyte *)*NBIGMAP_INIT) ;
      bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
      bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
      bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
      bigmap[3]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[4]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[5]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[6]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
      for( ii=0 ; ii < NPANE_BIG ; ii++ ){
-       bigmap[0][ii] = DC_spectrum_AJJ(      ii*(250.0/(NPANE_BIG-1))-5.0,0.8);
-       bigmap[1][ii] = DC_spectrum_AJJ( 60.0-ii*( 60.0/(NPANE_BIG-1))    ,0.7);
-       bigmap[2][ii] = DC_spectrum_AJJ(      ii*(360.0/(NPANE_BIG-1))    ,0.8);
-       bigmap[3][ii] = DC_spectrum_ZSS(360.0-ii*(360.0/(NPANE_BIG-1))    ,1.0);
+       bigmap[0][ii] = DC_spectrum_AJJ(      ii*((AJJ_BLU+8.0)/(NPANE_BIG-1.0))-4.0,0.8);
+       bigmap[4][ii] = DC_spectrum_AJJ( 60.0-ii*(AJJ_YEL/(NPANE_BIG-1.0))          ,0.7);
+       bigmap[5][ii] = DC_spectrum_AJJ(      ii*(360.0  /(NPANE_BIG-1.0))          ,0.8);
+       bigmap[6][ii] = DC_spectrum_ZSS(360.0-ii*(360.0  /(NPANE_BIG-1.0))          ,1.0);
+       if( ii < NBIG_MBOT ){
+         bigmap[1][ii] = DC_spectrum_AJJ(         ii*(AJJ_YEL/(NBIG_MBOT-1.0)) , 0.8 );
+         bigmap[2][ii] = DC_spectrum_AJJ( AJJ_YEL-ii*(AJJ_YEL/(NBIG_MBOT-1.0)) , 0.8 );
+         bigmap[3][ii] = bigmap[2][ii] ;
+       } else if( ii > NBIG_MTOP ){
+         bigmap[1][ii] = DC_spectrum_AJJ( AJJ_CYN+(ii-NBIG_MTOP-1)*(60.0/(NPANE_BIG-NBIG_MTOP-2.0)),0.8);
+         bigmap[2][ii] = DC_spectrum_AJJ( AJJ_BLU-(ii-NBIG_MTOP-1)*(60.0/(NPANE_BIG-NBIG_MTOP-2.0)),0.8);
+         bigmap[3][ii] = bigmap[2][ii] ;
+       } else {
+         bigmap[1][ii].r = bigmap[1][ii].g = bigmap[1][ii].b = 0 ;
+         bigmap[2][ii]   = DC_spectrum_AJJ( 360.0-(ii-NBIG_MBOT+1)*(120.0/(NBIG_MTOP-NBIG_MBOT+2.0)),0.8) ;
+         bigmap[3][ii].r = bigmap[3][ii].g = bigmap[3][ii].b = 0 ;
+       }
      }
      PBAR_enviro_bigmaps( first_dc ) ;
    }
@@ -519,18 +547,25 @@ void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
    /* make an image of what we want to see */
 
    if( pbar->bigxim == NULL ){
-     int ww,hh , ii ;
+     int ww,hh , ii , jj , kk ;
      MRI_IMAGE *cim ;
      XImage    *xim ;
-     byte      *car ;
+     byte      *car , r,g,b ;
 
      MCW_widget_geom( pbar->panes[0] , &ww,&hh , NULL,NULL ) ;
-     cim = mri_new( 1,NPANE_BIG , MRI_rgb ) ;
+     cim = mri_new( ww,NPANE_BIG , MRI_rgb ) ;
      car = MRI_RGB_PTR(cim) ;
-     for( ii=0 ; ii < NPANE_BIG ; ii++ ){
-       car[3*ii  ] = pbar->bigcolor[ii].r ;
-       car[3*ii+1] = pbar->bigcolor[ii].g ;
-       car[3*ii+2] = pbar->bigcolor[ii].b ;
+     for( kk=ii=0 ; ii < NPANE_BIG ; ii++ ){
+       r=pbar->bigcolor[ii].r; g= pbar->bigcolor[ii].g; b=pbar->bigcolor[ii].b;
+       if( r > 0 || g > 0 || b > 0 ){
+         for( jj=0 ; jj < ww ; jj++ ){
+           car[kk++] = r; car[kk++] = g; car[kk++] = b;
+         }
+       } else {                                            /* 06 Feb 2003 */
+         for( jj=0 ; jj < ww ; jj++ ){
+           car[kk++]=128; car[kk++]=128; car[kk++]=128;
+         }
+       }
      }
      xim = mri_to_XImage( pbar->dc , cim ) ;
      pbar->bigxim = resize_XImage( pbar->dc , xim , ww,hh ) ;
