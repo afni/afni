@@ -43,26 +43,27 @@ EXTRAS   = cjpeg djpeg whirlgif mpeg_encode mpegtoppm myget Xphace rmz aiv
 PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   \
            sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals          \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3daxialize \
-           p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta  \
-           waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket       \
-           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk    \
-           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna      \
-           2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat \
-           3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam        \
-           3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose     \
-           3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
-           3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot  \
-           3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
-           3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid    \
-           3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
-           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual      \
-           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM        \
-           3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
-           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
-           3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI \
-           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot          \
-           3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat     \
-           $(EXTRAS) Imon fftest serial_helper
+           p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta   \
+           waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket         \
+           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk       \
+           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna         \
+           2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat    \
+           3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam           \
+           3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose        \
+           3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump   \
+           3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     \
+           3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump     \
+           3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid        \
+           3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum     \
+           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual          \
+           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM            \
+           3dAFNItoANALYZE siemens_vision ge_header mayo_analyze                \
+           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC              \
+           3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
+           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot              \
+           3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
+           3dSpatNorm Imon fftest serial_helper                                 \
+           $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -82,7 +83,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC          \
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI    \
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
-                  3dWarp nicat                                                    \
+                  3dWarp nicat 3dSpatNorm                                         \
                   $(EXTRAS) Imon
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -956,6 +957,10 @@ iochan_relay:iochan_relay.o
 	$(RM) $@
 	$(CC) -o 3dCM 3dCM.o $(LFLAGS) $(LLIBS)
 
+3dSpatNorm:3dSpatNorm.o
+	$(RM) $@
+	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(LFLAGS) $(LLIBS)
+
 ### Sort of clean
 
 clean:
@@ -1169,7 +1174,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o \
            thd_mincwrite.o thd_mnicoords.o thd_strfunc.o                  \
            thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o   \
-           thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o
+           thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o       \
+           thd_brainormalize.o
 
 # these are now included in NIML
 

@@ -217,52 +217,52 @@ typedef union MRI_DATA {
 */
 
 typedef struct MRI_IMAGE {
-          int nx ;            /*< 1st dimension of image */
-          int ny ;            /*< 2nd dimension of image (1 for 1D image) */
-          int nz  ;           /*< 3rd dimension of image (1 for 2D image) */
-          int nt ;            /*< 4th dimension of image (1 for 3D image) */
-          int nu ;            /*< 5th dimension of image (1 for 4D image) */
-          int nv ;            /*< 6th dimension of image (1 for 5D image) */
-          int nw  ;           /*< 7th dimension of image (1 for 6D image) */
-          int nxy ;           /*< nx*ny */
-          int nxyz ;          /*< nx*ny*nz */
-          int nxyzt  ;        /*< nx*ny*nz*nt */
-          int nvox   ;        /*< number of voxels total */
-          int pixel_size ;    /*< bytes per pixel */
+          int nx ;            /*!< 1st dimension of image */
+          int ny ;            /*!< 2nd dimension of image (1 for 1D image) */
+          int nz  ;           /*!< 3rd dimension of image (1 for 2D image) */
+          int nt ;            /*!< 4th dimension of image (1 for 3D image) */
+          int nu ;            /*!< 5th dimension of image (1 for 4D image) */
+          int nv ;            /*!< 6th dimension of image (1 for 5D image) */
+          int nw  ;           /*!< 7th dimension of image (1 for 6D image) */
+          int nxy ;           /*!< nx*ny */
+          int nxyz ;          /*!< nx*ny*nz */
+          int nxyzt  ;        /*!< nx*ny*nz*nt */
+          int nvox   ;        /*!< number of voxels total */
+          int pixel_size ;    /*!< bytes per pixel */
 
-          MRI_TYPE kind ;     /*< one of the MRI_TYPE codes above */
-          MRI_DATA im ;       /*< pointer to actual pixel data */
-          char * name ;       /*< string attached; may be NULL; might be filename */
+          MRI_TYPE kind ;     /*!< one of the MRI_TYPE codes above */
+          MRI_DATA im ;       /*!< pointer to actual pixel data */
+          char *name ;        /*!< string attached; may be NULL; might be filename */
 
-          float dx ;          /*< physical pixel size, if != 0 */
-          float dy ;          /*< physical pixel size, if != 0 */
-          float dz ;          /*< physical pixel size, if != 0 */
-          float dt ;          /*< physical pixel size, if != 0 */
-          float du ;          /*< physical pixel size, if != 0 */
-          float dv ;          /*< physical pixel size, if != 0 */
-          float dw ;          /*< physical pixel size, if != 0 */
-          float xo ;          /*< spatial origin of axis */
-          float yo ;          /*< spatial origin of axis */
-          float zo ;          /*< spatial origin of axis */
-          float to ;          /*< spatial origin of axis */
-          float uo ;          /*< spatial origin of axis */
-          float vo ;          /*< spatial origin of axis */
-          float wo ;          /*< spatial origin of axis */
+          float dx ;          /*!< physical pixel size, if != 0 */
+          float dy ;          /*!< physical pixel size, if != 0 */
+          float dz ;          /*!< physical pixel size, if != 0 */
+          float dt ;          /*!< physical pixel size, if != 0 */
+          float du ;          /*!< physical pixel size, if != 0 */
+          float dv ;          /*!< physical pixel size, if != 0 */
+          float dw ;          /*!< physical pixel size, if != 0 */
+          float xo ;          /*!< spatial origin of axis */
+          float yo ;          /*!< spatial origin of axis */
+          float zo ;          /*!< spatial origin of axis */
+          float to ;          /*!< spatial origin of axis */
+          float uo ;          /*!< spatial origin of axis */
+          float vo ;          /*!< spatial origin of axis */
+          float wo ;          /*!< spatial origin of axis */
 
 #ifdef USE_MRI_LABELS
-         char xlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
-              ylab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
-              zlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
-              tlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
-              ulab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
-              vlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
-              wlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
+         char xlab[MRI_LABEL_SIZE] ;  /*!< labels for each dimension */
+              ylab[MRI_LABEL_SIZE] ;  /*!< labels for each dimension */
+              zlab[MRI_LABEL_SIZE] ;  /*!< labels for each dimension */
+              tlab[MRI_LABEL_SIZE] ;  /*!< labels for each dimension */
+              ulab[MRI_LABEL_SIZE] ;  /*!< labels for each dimension */
+              vlab[MRI_LABEL_SIZE] ;  /*!< labels for each dimension */
+              wlab[MRI_LABEL_SIZE] ;  /*!< labels for each dimension */
 #endif
 
 #ifdef USE_MRI_DELAY
-         char * fname ;  /*< to read actual image data after delay */
-         int foffset ;   /*< offset into fname of image data */
-         int fondisk ;   /*< flag to indicate if is on disk (?) */
+         char *fname ;   /*!< to read actual image data after delay */
+         int foffset ;   /*!< offset into fname of image data */
+         int fondisk ;   /*!< flag to indicate if is on disk (?) */
 #endif
 
          int was_swapped ; /* 07 Mar 2002 */
