@@ -67,6 +67,12 @@ int main( int argc , char * argv[] )
    if( STRING_HAS_SUFFIX(new_name,".svl") ){
       fprintf(stderr,"** New dataset name can't be an CTF-SAM file!\n"); exit(1);
    }
+   if( STRING_HAS_SUFFIX(old_name,".nii") || STRING_HAS_SUFFIX(old_name,".nii.gz") ){
+      fprintf(stderr,"** Old dataset name can't be a NIfTI-1 file!\n"); exit(1);
+   }
+   if( STRING_HAS_SUFFIX(new_name,".nii") || STRING_HAS_SUFFIX(old_name,".nii.gz") ){
+      fprintf(stderr,"** New dataset name can't be a NIfTI-1 file!\n"); exit(1);
+   }
 
    /* check old_name for a +view suffix somewhere */
 

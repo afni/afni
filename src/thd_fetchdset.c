@@ -23,6 +23,7 @@ ENTRY("THD_fetch_dset") ;
    cp = strstr(hp,".HEAD") ;
    if( cp == NULL                       &&
        !STRING_HAS_SUFFIX(hp,".nii")    &&  /* 28 Aug 2003 */
+       !STRING_HAS_SUFFIX(hp,".nii.gz") &&  /* 06 Apr 2005 */
        !STRING_HAS_SUFFIX(hp,".mnc")    &&
        !STRING_HAS_SUFFIX(hp,".mnc.gz")   ) strcat(hp,".HEAD") ;
 
