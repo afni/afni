@@ -592,5 +592,6 @@
 
 03 August 2004:
   * modified f2cdir/rawio.h, hiding read/write declarations for 64-bit machines
-  * added Makefile.solaris9_suncc_64 (works on kampos)
+  * added Makefile.solaris9_suncc_64
+  * added Makefile.linux_gcc33_64 (for Fedora Core 2, x86-64)
 
