@@ -328,8 +328,8 @@ if (NF == 3),
 	         case 1,
 	            switch Contr.ord2.cnt(i).idx2
 		            case 2, what = msdenom(4);   % MSAB
-						case 3, what = msdenom(5) * (dsgn == 1 | dsgn == 2) + what = msdenom(3) * (dsgn == 4);   % MSAC
-						% For design type 4 -- BXC(A): the denominator is MSBC(A), the one for main effect of C(A)!
+						case 3, what = msdenom(5) * (dsgn == 1 | dsgn == 2) + msdenom(3) * (dsgn == 4);   % MSAC
+						% For design type 4 -- BXC(A): the denominator for this contrast C(A) is MSBC(A), the one for main effect of C(A)!
 	            end	
 	         case 2,
 	         if (Contr.ord2.cnt(i).idx2 == 3),
