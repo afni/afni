@@ -1678,7 +1678,7 @@ ENTRY("ISQ_reset_dimen") ;
    if( eee != NULL ){
       float fff=0.0 ; int ii ;
       ii = sscanf(eee,"%f",&fff) ;
-      if( ii > 0 && fff > 0.0 && fff <= 0.9 ) maxfrac = fff ;
+      if( ii > 0 && fff > 0.0 && fff <= 1.0 ) maxfrac = fff ;
       else                                    maxfrac = DEFAULT_MAXFRAC ;
    }
 
