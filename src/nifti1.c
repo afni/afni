@@ -4,14 +4,6 @@
 #include <math.h>
 #include "nifti1.h"
 
-int main( int argc , char *argv[] )
-{
-   nifti_1_header h ;
-   printf("%d\n",sizeof(h)) ; exit(0) ;
-}
-
-#if 0
-
 /*****===================================================================*****/
 /*****      Sample functions to deal with NIFTI-1 and ANALYZE files      *****/
 /*****...................................................................*****/
@@ -51,6 +43,11 @@ typedef struct {                  /** Image storage struct **/
   float cal_min , cal_max ;       /* calibration parameters */
 
   int qform_code , sform_code ;   /* codes for (x,y,z) space meaning */
+
+  float quatern_b, quatern_c,     /* quaternion transform parameters */
+        quatern_d, qoffset_x,     /* [when writing a dataset,  these ] */
+        qoffset_y, qoffset_z,     /* [are used for qform, NOT qto_xyz] */
+        qfac                 ;
 
   nifti_mat44 qto_xyz ;           /* qform: transform (i,j,k) to (x,y,z) */
   nifti_mat44 qto_ijk ;           /* qform: transform (x,y,z) to (i,j,k) */
@@ -94,8 +91,10 @@ unsigned int get_filesize( char *pathname ) ;
 
 nifti_image * nifti_image_read    ( char *hname , int read_data ) ;
 void          nifti_image_load    ( nifti_image *nim ) ;
+void          nifti_image_unload  ( nifti_image *nim ) ;
 void          nifti_image_free    ( nifti_image *nim ) ;
 void          nifti_image_infodump( nifti_image *nim ) ;
+void          nifti_image_write   ( nifti_image *nim ) ;
 
 /*-------------------- Some C convenience macros ----------------------------*/
 
@@ -112,7 +111,7 @@ void          nifti_image_infodump( nifti_image *nim ) ;
 
 #ifdef isfinite       /* use isfinite() to check floats/doubles for goodness */
 #  define IS_GOOD_FLOAT(x) isfinite(x)       /* check if x is a "good" float */
-#  define FIXED_FLOAT(x)   (isfinite(x) ? (x) : 0.0)         /* fixed if bad */
+#  define FIXED_FLOAT(x)   (isfinite(x) ? (x) : 0)           /* fixed if bad */
 #else
 #  define IS_GOOD_FLOAT(x) 1                               /* don't check it */
 #  define FIXED_FLOAT(x)   (x)                               /* don't fix it */
@@ -169,7 +168,7 @@ nifti_mat44 nifti_mat44_inverse( nifti_mat44 R )
    deti = r11*r22*r33-r11*r32*r23-r21*r12*r33
          +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
 
-   if( deti != 0.0 ) deti = 1.0 / deti ;
+   if( deti != 0.0l ) deti = 1.0l / deti ;
 
    Q.m[0][0] = deti*( r22*r33-r32*r23) ;
    Q.m[0][1] = deti*(-r12*r33+r32*r13) ;
@@ -189,8 +188,8 @@ nifti_mat44 nifti_mat44_inverse( nifti_mat44 R )
    Q.m[2][3] = deti*(-r11*r22*v3+r11*r32*v2+r21*r12*v3
                      -r21*r32*v1-r31*r12*v2+r31*r22*v1) ;
 
-   Q.m[3][0] = Q.m[3][1] = Q.m[3][2] = 0.0 ;
-   Q.m[3][3] = (deti == 0.0) ? 0.0 : 1.0 ;  /* failure flag if deti == 0.0 */
+   Q.m[3][0] = Q.m[3][1] = Q.m[3][2] = 0.0l ;
+   Q.m[3][3] = (deti == 0.0l) ? 0.0l : 1.0l ; /* failure flag if deti == 0 */
 
    return Q ;
 }
@@ -214,6 +213,7 @@ void swap_2bytes( int n , void *ar )
    for( ii=0 ; ii < n ; ii++ ){
      tt = tb[ii].a ; tb[ii].a = tb[ii].b ; tb[ii].b = tt ;
    }
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -230,6 +230,7 @@ void swap_4bytes( int n , void *ar )
      tt = tb[ii].a ; tb[ii].a = tb[ii].d ; tb[ii].d = tt ;
      tt = tb[ii].b ; tb[ii].b = tb[ii].c ; tb[ii].c = tt ;
    }
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -248,6 +249,7 @@ void swap_8bytes( int n , void *ar )
      tt = tb[ii].c ; tb[ii].c = tb[ii].C ; tb[ii].C = tt ;
      tt = tb[ii].d ; tb[ii].d = tb[ii].D ; tb[ii].D = tt ;
    }
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -272,6 +274,7 @@ void swap_16bytes( int n , void *ar )
      tt = tb[ii].g ; tb[ii].g = tb[ii].G ; tb[ii].G = tt ;
      tt = tb[ii].h ; tb[ii].h = tb[ii].H ; tb[ii].H = tt ;
    }
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -284,6 +287,7 @@ void swap_Nbytes( int n , int siz , void *ar )
      case 8:  swap_8bytes ( n , ar ) ; break ;
      case 16: swap_16bytes( n , ar ) ; break ;
    }
+   return ;
 }
 
 /*---------------------------------------------------------------*/
@@ -327,6 +331,7 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
      swap_4bytes(4,h->srow_z);
      swap_2(h->intent_code); swap_4(h->toffset);
    }
+   return ;
 }
 
 #define THIS_IS_UNIX
@@ -557,39 +562,43 @@ nifti_image * nifti_image_read( char *hname , int read_data )
 
    } else {                 /** NIFTI: quaternion-specified transformation **/
 
-     double a,b,c,d , pfac ;
+     double a,b,c,d , qfac ;
 
      b = FIXED_FLOAT( nhdr.quatern_b ) ;
      c = FIXED_FLOAT( nhdr.quatern_c ) ;
      d = FIXED_FLOAT( nhdr.quatern_d ) ;
-     a = 1.0 - (b*b + c*c + d*d) ;
+     a = 1.0l - (b*b + c*c + d*d) ;
      if( a < 0.0 ){                      /* weird quaternion input! */
-       a = 1.0 / sqrt(1.0-a) ;
+       a = 1.0l / sqrt(1.0l-a) ;
        b *= a ; c *= a ; d *= a ;        /* normalize (b,c,d) vector */
-       a = 0.0 ;                         /* a = 0 ==> 180 degree rotation */
+       a = 0.0l ;                        /* a = 0 ==> 180 degree rotation */
      } else{
        a = sqrt(a) ;                     /* angle = 2*arccos(a) */
      }
 
+     nim->quatern_b = b ; nim->quatern_c = c ; nim->quatern_d = d ;
+
      /* load rotation matrix, including scaling factors for voxel sizes */
 
-     pfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
+     qfac = (nhdr.pixdim[0] < 0.0) ? -1.0l : 1.0l ;  /* left-handedness? */
 
-     nim->qto_xyz.m[0][0] = (a*a+b*b-c*c-d*d) * nim->dx * pfac ;
-     nim->qto_xyz.m[0][1] = (2*b*c-2*a*d    ) * nim->dy ;
-     nim->qto_xyz.m[0][2] = (2*b*d+2*a*c    ) * nim->dz ;
-     nim->qto_xyz.m[1][0] = (2*b*c+2*a*d    ) * nim->dx * pfac ;
-     nim->qto_xyz.m[1][1] = (a*a+c*c-b*b-d*d) * nim->dy ;
-     nim->qto_xyz.m[1][2] = (2*c*d-2*a*b    ) * nim->dz ;
-     nim->qto_xyz.m[2][0] = (2*b*d-2*a*c    ) * nim->dx * pfac ;
-     nim->qto_xyz.m[2][1] = (2*c*d+2*a*b    ) * nim->dy ;
-     nim->qto_xyz.m[2][2] = (a*a+d*d-c*c-b*b) * nim->dz ;
+     nim->qfac = qfac ;
+
+     nim->qto_xyz.m[0][0] = (a*a+b*b-c*c-d*d) * nim->dx * qfac ;
+     nim->qto_xyz.m[0][1] = (b*c-a*d        ) * nim->dy * 2.0l ;
+     nim->qto_xyz.m[0][2] = (b*d+a*c        ) * nim->dz * 2.0l ;
+     nim->qto_xyz.m[1][0] = (b*c+a*d        ) * nim->dx * qfac ;
+     nim->qto_xyz.m[1][1] = (a*a+c*c-b*b-d*d) * nim->dy * 2.0l ;
+     nim->qto_xyz.m[1][2] = (c*d-a*b        ) * nim->dz * 2.0l ;
+     nim->qto_xyz.m[2][0] = (b*d-a*c        ) * nim->dx * qfac ;
+     nim->qto_xyz.m[2][1] = (c*d+a*b        ) * nim->dy * 2.0l ;
+     nim->qto_xyz.m[2][2] = (a*a+d*d-c*c-b*b) * nim->dz * 2.0l ;
 
      /* load offsets */
 
-     nim->qto_xyz.m[0][3] = FIXED_FLOAT(nhdr.qoffset_x) ;
-     nim->qto_xyz.m[0][3] = FIXED_FLOAT(nhdr.qoffset_y) ;
-     nim->qto_xyz.m[2][3] = FIXED_FLOAT(nhdr.qoffset_z) ;
+     nim->qoffset_x = nim->qto_xyz.m[0][3] = FIXED_FLOAT(nhdr.qoffset_x) ;
+     nim->qoffset_y = nim->qto_xyz.m[0][3] = FIXED_FLOAT(nhdr.qoffset_y) ;
+     nim->qoffset_z = nim->qto_xyz.m[2][3] = FIXED_FLOAT(nhdr.qoffset_z) ;
 
      nim->qform_code = nhdr.qform_code ;
    }
@@ -670,7 +679,7 @@ nifti_image * nifti_image_read( char *hname , int read_data )
 }
 
 /*--------------------------------------------------------------------------*/
-/* Load the data from disk into an already-prepared image struct.
+/* Load the image data from disk into an already-prepared image struct.
 ----------------------------------------------------------------------------*/
 
 #undef  ERREX
@@ -693,6 +702,8 @@ void nifti_image_load( nifti_image *nim )
    fseek( fp , nim->iname_offset , SEEK_SET ) ;
 
    /* make space for data, then read all of it in one operation */
+
+   if( nim->data != NULL ) free(nim->data) ;
 
    ntot      = nim->nbyper * nim->nvox ;            /* total number of bytes */
    nim->data = malloc( ntot ) ;
@@ -741,6 +752,19 @@ void nifti_image_load( nifti_image *nim )
    }
 #endif
 
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Unload the data in a nifti_image struct, but keep the metadata.
+----------------------------------------------------------------------------*/
+
+void nifti_image_unload( nifti_image *nim )
+{
+   if( nim != NULL && nim->data != NULL ){
+     free(nim->data) ; nim->data = NULL ;
+   }
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -876,5 +900,183 @@ void nifti_image_infodump( nifti_image *nim )
    if( nim->data == NULL ) printf("  data not loaded\n") ;
    else                    printf("  data loaded at address %p\n",nim->data) ;
 
+   return ;
 }
-#endif
+
+/*--------------------------------------------------------------------------*/
+/* Write a nifti_image to disk.  The following fields of nim affect how
+   the output appears:
+    - nifti_type = 0 ==> ANALYZE-7.5 format file pair will be written
+    - nifti_type = 1 ==> NIFTI-1 format single file will be written
+    - nifti_type = 2 ==> NIFTI_1 format file pair will be written
+    - fname is the name of the output file (header or header+data)
+    - if a file pair is being written, iname is the name of the data file
+    - existing files WILL be overwritten with extreme prejudice
+    - if qform_code > 0, the quatern_*, qoffset_*, and qfac fields determine
+      the qform output, NOT the qto_xyz matrix; if you want to compute these
+      fields from the qto_xyz matrix, you can use the utility function
+      nifti_mat44_to_quatern()
+----------------------------------------------------------------------------*/
+
+#undef  ERREX
+#define ERREX(msg)                                                \
+ do{ fprintf(stderr,"** ERROR: nifti_image_write: %s\n",(msg)) ;  \
+     return ; } while(0)
+
+void nifti_image_write( nifti_image *nim )
+{
+   struct nifti_1_header nhdr ;
+   FILE *fp ;
+   size_t ss ;
+
+   if( nim        == NULL                          ) ERREX("NULL input") ;
+   if( nim->fname == NULL || nim->fname[0] == '\0' ) ERREX("bad fname input") ;
+   if( nim->data  == NULL                          ) ERREX("no image data") ;
+
+   memcpy(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
+
+   /* make iname from fname, if needed */
+
+   if( nim->nifti_type != 1 ){            /* writing into 2 files */
+     if( nim->iname != NULL && strcmp(nim->fname,nim->fname) == 0 ){
+       free(nim->iname) ; nim->iname = NULL ;
+     }
+     if( nim->iname == NULL ){
+       int ll = strlen(nim->fname) ; char *cc ;
+       nim->iname = calloc(1,ll+5) ;
+       strcpy(nim->iname,nim->fname) ;
+       if( ll > 4 ) strcpy(nim->iname+ll-4,".img") ; /* create .img filename */
+       else         strcat(nim->iname     ,".img") ;
+     }
+     nim->iname_offset = 0 ;
+   } else {
+     nim->iname_offset = sizeof(nhdr) ;   /* writing into 1 file */
+   }
+
+   /** load the ANALYZE-7.5 generic parts of the header **/
+
+   nhdr.sizeof_hdr = sizeof(nhdr) ;
+   nhdr.regular    = 'r' ;
+
+   nhdr.dim[0] = nim->ndim ;
+   nhdr.dim[1] = nim->nx ; nhdr.dim[2] = nim->ny ; nhdr.dim[3] = nim->nz ;
+   nhdr.dim[4] = nim->nt ; nhdr.dim[5] = nim->nu ; nhdr.dim[6] = nim->nv ;
+   nhdr.dim[7] = nim->nw ;
+
+   nhdr.pixdim[0] = 0.0 ;
+   nhdr.pixdim[1] = nim->dx ; nhdr.pixdim[2] = nim->dy ;
+   nhdr.pixdim[3] = nim->dz ; nhdr.pixdim[4] = nim->dt ;
+   nhdr.pixdim[5] = nim->du ; nhdr.pixdim[6] = nim->dv ;
+   nhdr.pixdim[7] = nim->dw ;
+
+   nhdr.datatype = nim->datatype ;
+   nhdr.bitpix   = 8 * nim->nbyper ;
+
+   if( nim->cal_max > nim->cal_min ){
+     nhdr.cal_max = nim->cal_max ;
+     nhdr.cal_min = nim->cal_min ;
+   }
+
+   if( nim->scl_slope != 0.0 ){
+     nhdr.scl_slope = nim->scl_slope ;
+     nhdr.scl_inter = nim->scl_inter ;
+   }
+
+   if( nim->descrip[0] != '\0' ){
+     memcpy(nhdr.descrip ,nim->descrip ,79) ; nhdr.descrip[79] = '\0' ;
+   }
+   if( nim->aux_file[0] != '\0' ){
+     memcpy(nhdr.aux_file ,nim->aux_file ,23) ; nhdr.aux_file[23] = '\0' ;
+   }
+
+   /** Load NIFTI specific stuff into the header **/
+
+   if( nim->nifti_type > 0 ){
+
+     if( nim->nifti_type == 1 ) strcpy(nhdr.magic,"n+1") ;   /* 1 file */
+     else                       strcpy(nhdr.magic,"ni1") ;   /* 2 files */
+
+     nhdr.intent_code = nim->intent_code ;
+     nhdr.intent_p1   = nim->intent_p1 ;
+     nhdr.intent_p2   = nim->intent_p2 ;
+     nhdr.intent_p3   = nim->intent_p3 ;
+     if( nim->intent_name[0] != '\0' ){
+       memcpy(nhdr.intent_name,nim->intent_name,15) ;
+       nhdr.intent_name[15] = '\0' ;
+     }
+
+     nhdr.vox_offset  = (float) nim->iname_offset ;
+     nhdr.xyz_units   = (char) nim->xyz_units ;
+     nhdr.time_units  = (char) nim->time_units ;
+     nhdr.toffset     = nim->toffset ;
+
+     if( nim->qform_code > 0 ){
+       nhdr.qform_code = nim->qform_code ;
+       nhdr.quatern_b  = nim->quatern_b ;
+       nhdr.quatern_c  = nim->quatern_c ;
+       nhdr.quatern_d  = nim->quatern_d ;
+       nhdr.qoffset_x  = nim->qoffset_x ;
+       nhdr.qoffset_y  = nim->qoffset_y ;
+       nhdr.qoffset_z  = nim->qoffset_z ;
+       nhdr.pixdim[0]  = nim->qfac ;
+     }
+
+     if( nim->sform_code > 0 ){
+       nhdr.sform_code = nim->sform_code ;
+       nhdr.srow_x[0] = nim->sto_xyz.m[0][0] ;
+       nhdr.srow_x[1] = nim->sto_xyz.m[0][1] ;
+       nhdr.srow_x[2] = nim->sto_xyz.m[0][2] ;
+       nhdr.srow_x[3] = nim->sto_xyz.m[0][3] ;
+       nhdr.srow_y[0] = nim->sto_xyz.m[1][0] ;
+       nhdr.srow_y[1] = nim->sto_xyz.m[1][1] ;
+       nhdr.srow_y[2] = nim->sto_xyz.m[1][2] ;
+       nhdr.srow_y[3] = nim->sto_xyz.m[1][3] ;
+       nhdr.srow_z[0] = nim->sto_xyz.m[2][0] ;
+       nhdr.srow_z[1] = nim->sto_xyz.m[2][1] ;
+       nhdr.srow_z[2] = nim->sto_xyz.m[2][2] ;
+       nhdr.srow_z[3] = nim->sto_xyz.m[2][3] ;
+     }
+   }
+
+   /** Open file, write header **/
+
+   fp = fopen( nim->fname , "wb" ) ;
+   if( fp == NULL ) ERREX("can't open output file") ;
+
+   ss = fwrite( &nhdr , 1 , sizeof(nhdr) , fp ) ;
+   if( ss < sizeof(nhdr) ){
+     fclose(fp) ; ERREX("bad write to output file") ;
+   }
+
+   /** If not writing 1 file, close header and open image file **/
+
+   if( nim->nifti_type != 1 ){
+     fclose(fp) ;
+     fp = fopen( nim->iname , "wb" ) ;
+     if( fp == NULL ) ERREX("can't open image file") ;
+   }
+
+   /** Write all the image data at once **/
+
+   ss = fwrite( nim->data , nim->nbyper , nim->nvox , fp ) ;
+   fclose(fp) ;
+   if( ss < nim->nvox ) ERREX("bad write to image file") ;
+   return ;
+}
+
+/****************************************************************************/
+int main( int argc , char *argv[] )
+{
+   nifti_image *nim ;
+
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+     printf("Usage: nifti1 infile [outfile]\n") ;
+     printf("sizeof(nifti_1_header)=%d\n",sizeof(nifti_1_header)) ;
+     exit(0) ;
+   }
+
+   nim = nifti_image_read( argv[1] , 1 ) ;
+   if( nim == NULL ) exit(1) ;
+   nifti_image_infodump( nim ) ;
+   exit(0) ;
+}
