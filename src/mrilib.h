@@ -28,6 +28,9 @@ extern float MRILIB_xcos[3] ;
 extern float MRILIB_ycos[3] ;
 extern float MRILIB_zcos[3] ;
 
+extern int   use_MRILIB_slicespacing ;  /* 10 Jan 2004 */
+extern float MRILIB_slicespacing ;
+
 /*! Clear the MRILIB globals (which are designed to transmit info from image files to to3d.c). */
 
 #define CLEAR_MRILIB_globals                              \
@@ -35,6 +38,7 @@ extern float MRILIB_zcos[3] ;
      MRILIB_zoff=MRILIB_xoff=MRILIB_yoff=MRILIB_tr=0.0;   \
      use_MRILIB_xoff=use_MRILIB_yoff=use_MRILIB_zoff=0;   \
      use_MRILIB_xcos=use_MRILIB_ycos=use_MRILIB_zcos=0;   \
+     use_MRILIB_slicespacing=0;                           \
  } while(0)
 
 #include <stdio.h>

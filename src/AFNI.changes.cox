@@ -4865,3 +4865,7 @@
  * Modified afni.c to display surface overlay from other datasets in
      the same directory, if the current underlay datasets doesn't have
      any surfaces.
+
+10 Jan 2004
+ * Modified mrilib.h, mri_read.c, and to3d.c to allow use of inter-slice
+     spacing to override slice thickness, at least for GE I.* files.

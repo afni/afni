@@ -84,6 +84,14 @@ int use_MRILIB_zcos    = 0 ;
 
 float MRILIB_zcos[3]   = { 0.0 , 0.0 , 1.0 } ;
 
+/*! Global variable saying whether to use MRILIB_slicespacing. */
+
+int use_MRILIB_slicespacing = 0 ;
+
+/*! Global variable giving the spacing between slice centers. */
+
+float MRILIB_slicespacing = 0.0 ;
+
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
 MRI_IMAGE *mri_try_mri( FILE * , int * ) ;  /* prototypes */
@@ -322,6 +330,12 @@ ENTRY("mri_read") ;
 
                float qoff = zz - zoff ;  /* vive la difference */
                if( qoff < 0 ) kk = -kk ; /* kk determines z-axis orientation */
+
+               if( !use_MRILIB_slicespacing && qoff != 0.0 ){ /* 10 Jan 2004 */
+                 use_MRILIB_slicespacing = 1 ;
+                     MRILIB_slicespacing = fabs(qoff) ;
+               }
+
                switch( kk ){
                 case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
                 case -1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
