@@ -36,11 +36,18 @@
            GLT linear constraints.
   Date:    29 January 2002
 
+  Mod:     If FLOATIZE is defined, uses floats instead of doubles -- RWCox.
+  Date:    03 Mar 2003
+
 */
 
 /*---------------------------------------------------------------------------*/
 
-#include "matrix.c"
+#ifndef FLOATIZE
+# include "matrix.c"
+#else
+# include "matrix_f.c"
+#endif
 
 void RA_error (char * message);
 
@@ -322,7 +329,6 @@ float  calc_sspe
   register float * sum = NULL;        /* sum of observations at each level */
   register float diff;                /* difference between observation and average */
   register float sspe;                /* pure error sum of squares */
-  register double *yy ;
 
 
   /*----- initialize sum -----*/
@@ -334,15 +340,10 @@ float  calc_sspe
 
 
   /*----- accumulate sum for each level -----*/
-  yy = y.elts ;
   for (i = 0;  i < y.dim;  i++)
     {
       j = levels[i];
-#if 0
       sum[j] += y.elts[i];
-#else
-      sum[j] += yy[i] ;
-#endif
     }
 
 
@@ -351,11 +352,7 @@ float  calc_sspe
   for (i = 0;  i < y.dim;  i++)
     {
       j = levels[i];
-#if 0
       diff = y.elts[i] - (sum[j]/counts[j]);
-#else
-      diff = yy[i] - (sum[j]/counts[j]);
-#endif
       sspe += diff * diff;
     }
 

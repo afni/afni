@@ -231,11 +231,19 @@
 
   Mod:     Added "multi-get" feature with USE_GET macro -- RWCox.
   Date:    27 Feb 2003
+
+  Mod:     If FLOATIZE is defined, uses floats instead of doubles -- RWCox.
+  Date:    03 Mar 2003 (triple trinity day)
 */
 
 /*---------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
+#ifndef FLOATIZE
+# define PROGRAM_NAME   "3dDeconvolve"               /* name of this program */
+#else
+# define PROGRAM_NAME   "3dDeconvolve_f"             /* name of this program */
+#endif
+
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
 #define PROGRAM_LATEST  "27 February 2003"    /* latest program revision date*/
@@ -247,7 +255,12 @@
 /*---------------------------------------------------------------------------*/
 
 #include "mrilib.h"
-#include "matrix.h"
+
+#ifndef FLOATIZE
+# include "matrix.h"
+#else
+# include "matrix_f.h"
+#endif
 
 #include "Deconvolve.c"
 

@@ -4374,3 +4374,9 @@
      where the rectangle case didn't have a "break", so fell through and
      drew a circle as well.
  * Modified mritopgm.c to have a clipping option.
+
+03 Mar 2003
+ * Created matrix_f.[ch] as float alternatives to matrix.[ch].  Then used this
+     in 3dDeconvolve.c and RegAna.c to create a program 3dDeconvolve_f compiled
+     from 3dDeconvolve.c when the FLOATIZE C macro is defined.  Speedup on a
+     Linux box is about 40% (due to less memory fetch).
