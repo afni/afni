@@ -824,6 +824,8 @@ void DC_gray_change( MCW_DC * dc , int dlev )
    XColor * xc = dc->xgry_im ;
    int    * in = dc->xint_im ;
 
+   if( dc->use_xcol_im ) return ;
+
    delta = dlev * abs( (in[nc-1] - in[0]) / nc ) ;
 
    for( i=0 ; i < nc ; i++ ){
@@ -858,6 +860,8 @@ void DC_gray_contrast( MCW_DC * dc , int dlev )
    int      nc = dc->ncol_im ;
    XColor * xc = dc->xgry_im ;
    int    * in = dc->xint_im ;
+
+   if( dc->use_xcol_im ) return ;
 
    delta = dlev * (abs(in[nc-1] - in[0]) >> 6) / nc ;
    if( delta == 0 ) delta = dlev ;
