@@ -14,7 +14,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    static char *png_filter  = NULL ;  /* pngtopnm  */
 
    char *pg , *pg2 , *filt=NULL ;
-   int nf , nbuf , ipos , nx,ny,maxval , bper ;
+   int nf , nbuf , ipos , nx,ny,maxval , bper , nbim ;
    FILE *fp ;
    MRI_IMAGE *im ;
    byte *imar , *buf ;
@@ -90,14 +90,14 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
    /*--- create the filter for this file and open the pipe ---*/
 
-   pg = malloc(nf+strlen(filt)+32) ;
+   pg = malloc(nf+strlen(filt)+32) ;  /* string to hold filter */
    sprintf( pg , filt , fname ) ;
 
-   signal( SIGPIPE , SIG_IGN ) ;  /* don't like this signal */
+   signal( SIGPIPE , SIG_IGN ) ;  /* ignore this signal */
    fp = popen( pg , "r" ) ;
    if( fp == NULL ){ free(pg); return NULL; }  /* bad pipe */
 
-   buf = malloc(QBUF) ;  /* read buffer for initial data */
+   buf = malloc(QBUF) ;  /* read buffer for initial data from pipe */
 
    /*--- read 1st block from pipe ---*/
 
@@ -111,22 +111,24 @@ MRI_IMAGE * mri_read_stuff( char *fname )
      free(buf); free(pg); pclose(fp); return NULL;
    }
 
-        if( buf[1] == '6' ) bper = 3 ; /* PPM */
-   else if( buf[1] == '5' ) bper = 1 ; /* PGM */
-   else {                              /* bad */
-     free(buf); free(pg); pclose(fp); return NULL;
+        if( buf[1] == '6' ) bper = 3 ;              /* PPM from pipe */
+   else if( buf[1] == '5' ) bper = 1 ;              /* PGM from pipe */
+   else {
+     free(buf); free(pg); pclose(fp); return NULL;  /* bad bad bad!! */
    }
 
-   ipos = 2 ;
+   ipos = 2 ;  /* start scanning for PNM header stuff at position 2 in buf */
 
    /* skip comment lines in the buffer */
 
+#undef  SKIPCOM
 #define SKIPCOM                                                     \
  { if(buf[ipos]=='#')                                               \
      do{ ipos++; } while( ipos<nbuf && buf[ipos]!='\n' ) ; }
 
    /* find an ASCII number in the buffer */
 
+#undef  NUMSCAN
 #define NUMSCAN(var)                                                \
 { SKIPCOM ;                                                         \
   while( ipos<nbuf && !isdigit(buf[ipos]) ){ipos++; SKIPCOM;}       \
@@ -138,47 +140,66 @@ MRI_IMAGE * mri_read_stuff( char *fname )
     chb[nch]='\0'; var = strtol(chb,NULL,10);                       \
   } }
 
+  /* scan for the nx variable */
+
   NUMSCAN(nx) ;
   if( nx < 2 || ipos >= nbuf ){                      /* bad */
     free(buf); free(pg); pclose(fp); return NULL;
   }
+
+  /* scan for the ny variable */
 
   NUMSCAN(ny) ;
   if( ny < 2 || ipos >= nbuf ){                      /* bad */
     free(buf); free(pg); pclose(fp); return NULL;
   }
 
+  /* scan for the maxval variable */
+
   NUMSCAN(maxval) ;
   if( maxval <= 0 || maxval > 255 || ipos >= nbuf ){ /* bad */
     free(buf); free(pg); pclose(fp); return NULL;
   }
 
-  ipos++ ;   /* ipos now points at 1st byte of image data */
+  ipos++ ;   /* skip byte after maxval;                   */
+             /* ipos now points at 1st byte of image data */
 
   /*--- create output image struct  ---*/
 
   if( bper == 3 ){                        /* PPM */
-    im = mri_new( nx , ny , MRI_rgb ) ;
+    im   = mri_new( nx , ny , MRI_rgb ) ;
     imar = MRI_RGB_PTR(im) ;
   } else {                                /* PGM */
-    im = mri_new( nx , ny , MRI_byte ) ;
+    im   = mri_new( nx , ny , MRI_byte ) ;
     imar = MRI_BYTE_PTR(im) ;
   }
   mri_add_name( fname , im ) ;
+  nbim = bper * nx * ny ;        /* num bytes in image array imar */
 
-  /*--- copy remaining data in buf to image array ---*/
+  /*--- copy remaining data in buf (if any) to image array ---*/
 
-  if( ipos < nbuf )
-    memcpy( imar , buf , nbuf-ipos ) ;
+  nbuf = nbuf - ipos ;             /* num bytes left in buf */
+  if( nbuf > nbim ) nbuf = nbim ;  /* but don't want too much */
+  if( nbuf > 0 )
+    memcpy( imar , buf , nbuf ) ;
 
-  free(buf) ;          /* have used this up now */
-  ipos = nbuf-ipos ;   /* how many bytes we've read into image */
+  free(buf) ;     /* have used this up now */
 
-  /*--- read rest of image directly from pipe ---*/
+  /*--- read rest of image array directly from pipe ---*/
 
-  fread( imar+ipos , 1 , bper*nx*ny-ipos , fp ) ;
+  if( nbuf < nbim )
+    fread( imar+nbuf , 1 , nbim-nbuf , fp ) ;
 
-  /*--- toss the trash and vamoose the ranch ---*/
+  free(pg) ; pclose(fp) ;  /* toss out the trash */
 
-  free(pg); pclose(fp); return im;
+  /*--- if maxval < 255, scale byte data up to that level ---*/
+
+  if( maxval < 255 ){
+    int ii ; float fac = 255.4/maxval ;
+    for( ii=0 ; ii < nbim ; ii++ ) imar[ii] = (byte)( imar[ii]*fac ) ;
+  }
+
+  /*--- vamoose the ranch ---*/
+
+  return im;
 }

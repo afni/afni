@@ -252,7 +252,7 @@ static mday holiday[] = {
    {JUN, 8,"Frank Lloyd Wright's birthday"                           } ,
    {JUN, 9,"Anniversary of Donald Duck's debut"                      } ,
    {JUN,15,"Anniversary of Magna Carta"                              } ,
-   {JUN,15,"Anniversary of US-British 'Pig War'                      } ,
+   {JUN,15,"Anniversary of US-British 'Pig War'"                     } ,
    {JUN,16,"Geronimo's birthday"                                     } ,
    {JUN,17,"Anniversary of Battle of Bunker's Hill"                  } ,
    {JUN,19,"Juneteenth"                                              } ,
