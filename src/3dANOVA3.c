@@ -5,11 +5,21 @@
    File:    3dANOVA3.c
    Author:  B. D. Ward
    Date:    29 January 1997
+
+   Mod:     Extensive changes required to implement the 'bucket' dataset.
+   Date:    30 December 1997
+
+   Mod:     Separated 3dANOVA.h and 3dANOVA.lib files.
+   Date:    5 January 1998
+
+   Mod:     Continuation of 'bucket' dataset changes.
+   Date:    9 January 1998
+
 */
 
 
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1997 by
+  This software is Copyright 1997, 1998 by
 
             Medical College of Wisconsin
             8701 Watertown Plank Road
@@ -25,9 +35,11 @@
 
 #define PROGRAM_NAME "3dANOVA3"                      /* name of this program */
 #define SUFFIX ".3danova3"                /* suffix for temporary data files */
-#define LAST_MOD_DATE "4 February 1997" /* date of last program modification */
+#define LAST_MOD_DATE "9 January 1998"           /* date of last program mod */
 
 #include "3dANOVA.h"
+#include "3dANOVA.lib"
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -61,13 +73,17 @@ void display_help_menu()
      "                                        and level k of factor C     \n"
      " . . .                           . . .                              \n"
      "                                                                    \n"
-      "-dset a b c filename           data set for level a of factor A     \n"
-      "                                        and level b of factor B     \n"
+     "-dset a b c filename           data set for level a of factor A     \n"
+     "                                        and level b of factor B     \n"
      "                                        and level c of factor C     \n"
      "                                                                    \n"
      "[-voxel num]                   screen output for voxel # num        \n" 
      "[-diskspace]                   print out disk space required for    \n"
      "                                  program execution                 \n"  
+     "                                                                      \n"
+     "                                                                      \n"
+     "The following commands generate individual AFNI 2 sub-brick datasets: \n"
+     "                                                                      \n"
      "[-fa filename]                 F-statistic for factor A effect      \n"
      "                                  output is written to 'filename'   \n"
      "[-fb filename]                 F-statistic for factor B effect      \n"
@@ -100,7 +116,15 @@ void display_help_menu()
      "                                  output is written to 'filename'   \n"
      "[-ccontr c1...cr filename]     contrast in factor C levels          \n"
      "                                  output is written to 'filename'   \n"
-     );
+     "                                                                      \n"
+     "                                                                      \n"
+     "The following command generates one AFNI 'bucket' type dataset:       \n"
+     "                                                                      \n"
+     "[-bucket prefixname]     create one AFNI 'bucket' dataset whose       \n"
+     "                           sub-bricks are obtained by concatenating   \n"
+     "                           the above output files; the output 'bucket'\n"
+     "                           is written to file prefixname              \n"
+    );
   
   exit(0);
 }
@@ -645,9 +669,23 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	}
       
       
+      /*-----   -bucket filename   -----*/
+      if (strncmp(argv[nopt], "-bucket", 4) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  ANOVA_error ("need argument after -bucket ");
+	  option_data->bucket_filename = malloc (sizeof(char)*MAX_NAME_LENGTH);
+	  strcpy (option_data->bucket_filename, argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+      
+      
       /*----- unknown command -----*/
-      ANOVA_error ("unrecognized command line option ");
+      sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
+      ANOVA_error (message);
     }
+
   
   /*----- check that all treatment sample sizes are equal -----*/
   option_data->n = n[0][0][0];
@@ -757,6 +795,10 @@ void check_output_files (anova_options * option_data)
   if (option_data->num_ccontr > 0)
     for (i = 0;  i < option_data->num_ccontr;  i++)
       check_one_output_file (option_data, option_data->ccname[i]);
+
+  if (option_data->bucket_filename != NULL)
+    check_one_output_file (option_data, option_data->bucket_filename);
+
 }
 
 
@@ -884,6 +926,7 @@ void check_for_valid_inputs (anova_options * option_data)
 int required_data_files (anova_options * option_data)
 {
   int now;                         /* current number of disk files */
+  int nout;                        /* number of output files */
   int nmax;                        /* maximum number of disk files */
 
 
@@ -907,7 +950,7 @@ int required_data_files (anova_options * option_data)
 
 
   /*----- space for output files -----*/
-  now = now + option_data->nfa + option_data->nfb + option_data->nfc 
+  nout = option_data->nfa + option_data->nfb + option_data->nfc 
     + option_data->nfab + option_data->nfac + option_data->nfbc 
     + option_data->nfabc 
     + option_data->num_ameans + option_data->num_bmeans 
@@ -916,7 +959,12 @@ int required_data_files (anova_options * option_data)
     + option_data->num_acontr + option_data->num_bcontr
     + option_data->num_ccontr;
 
+  now = now + nout;
+
   nmax = max (now, nmax);
+
+  if (option_data->bucket_filename != NULL)
+    nmax = max (nmax, 2*nout);
   
   return (nmax);
 }
@@ -3141,8 +3189,8 @@ void calculate_ameans (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (mean);    mean = NULL;
   free (tmean);   tmean = NULL;
+  free (mean);    mean = NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -3240,8 +3288,8 @@ void calculate_bmeans (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (mean);    mean = NULL;
   free (tmean);   tmean = NULL;
+  free (mean);    mean = NULL;
 }
 
 
@@ -3327,8 +3375,8 @@ void calculate_cmeans (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (mean);    mean = NULL;
   free (tmean);   tmean = NULL;
+  free (mean);    mean = NULL;
 }
 
 
@@ -3433,8 +3481,8 @@ void calculate_adifferences (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (diff);    diff = NULL;
   free (tdiff);   tdiff = NULL;
+  free (diff);    diff = NULL;
   
 }
 
@@ -3540,8 +3588,8 @@ void calculate_bdifferences (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (diff);    diff = NULL;
   free (tdiff);   tdiff = NULL;
+  free (diff);    diff = NULL;
   
 }
 
@@ -3634,8 +3682,8 @@ void calculate_cdifferences (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (diff);    diff = NULL;
   free (tdiff);   tdiff = NULL;
+  free (diff);    diff = NULL;
   
 }
 
@@ -3745,8 +3793,8 @@ void calculate_acontrasts (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (contr);    contr = NULL;
   free (tcontr);   tcontr = NULL;
+  free (contr);    contr = NULL;
   
 }
 
@@ -3855,8 +3903,8 @@ void calculate_bcontrasts (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (contr);    contr = NULL;
   free (tcontr);   tcontr = NULL;
+  free (contr);    contr = NULL;
   
 }
 
@@ -3952,8 +4000,8 @@ void calculate_ccontrasts (anova_options * option_data)
     }
   
   /*----- release memory -----*/
-  free (contr);    contr = NULL;
   free (tcontr);   tcontr = NULL;
+  free (contr);    contr = NULL;
   
 }
 
@@ -4057,7 +4105,7 @@ void analyze_results (anova_options * option_data)
    /*-----  calculate F-statistic for B*C interaction effect  -----*/
    if (option_data->nfbc)  calculate_fbc (option_data);
 
-   /*-----  calculate F-statistic for B*C interaction effect  -----*/
+   /*-----  calculate F-statistic for A*B*C interaction effect  -----*/
    if (option_data->nfabc)  calculate_fabc (option_data);
 
    /*-----  estimate level means for factor A  -----*/
@@ -4092,11 +4140,361 @@ void analyze_results (anova_options * option_data)
 
 /*---------------------------------------------------------------------------*/
 /*
+   Routine to create an AFNI "bucket" output dataset.
+*/
+
+void create_bucket (anova_options * option_data)
+
+{
+  char bucket_str[10000];             /* command line for program 3dbucket */
+  char refit_str[10000];              /* command line for program 3drefit */
+  THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
+  THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
+  int i;                              /* file index */
+  int ibrick;                         /* sub-brick index number */
+  char str[100];                      /* temporary character string */
+
+
+  /*----- read first dataset -----*/
+  dset = THD_open_one_dataset (option_data->first_dataset) ;
+  if( ! ISVALID_3DIM_DATASET(dset) ){
+    fprintf(stderr,"*** Unable to open dataset file %s\n",
+	    option_data->first_dataset);
+    exit(1) ;
+  }
+  
+
+  /*----- make an empty copy of this dataset -----*/
+  new_dset = EDIT_empty_copy( dset ) ;
+  THD_delete_3dim_dataset (dset , False);   dset = NULL;
+  EDIT_dset_items (new_dset, 
+		   ADN_directory_name, option_data->session,
+		   ADN_none);
+
+  
+  /*----- begin command line for program 3dbucket -----*/
+  strcpy (bucket_str, "3dbucket");
+  strcat (bucket_str, " -prefix ");
+  strcat (bucket_str, option_data->bucket_filename);
+
+
+  /*----- begin command line for program 3drefit -----*/
+  strcpy (refit_str, "3drefit ");
+  ibrick = -1;
+
+ 
+  /*----- make F-stat for factor A data sub-bricks -----*/
+  if (option_data->nfa != 0)
+    {
+      add_file_name (new_dset, option_data->faname, bucket_str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:Inten ",
+	       ibrick, option_data->faname);
+      strcat (refit_str, str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:F-stat ", 
+	       ibrick, option_data->faname);
+      strcat (refit_str, str);
+    }
+  
+  
+  /*----- make F-stat for factor B sub-bricks -----*/
+  if (option_data->nfb != 0)
+    {
+      add_file_name (new_dset, option_data->fbname, bucket_str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:Inten ",
+	       ibrick, option_data->fbname);
+      strcat (refit_str, str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:F-stat ", 
+	       ibrick, option_data->fbname);
+      strcat (refit_str, str);
+    }
+  
+  
+  /*----- make F-stat for factor C sub-bricks -----*/
+  if (option_data->nfc != 0)
+    {
+      add_file_name (new_dset, option_data->fcname, bucket_str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:Inten ",
+	       ibrick, option_data->fcname);
+      strcat (refit_str, str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:F-stat ", 
+	       ibrick, option_data->fcname);
+      strcat (refit_str, str);
+    }
+  
+  
+  /*----- make F-stat for A*B interaction sub-bricks -----*/
+  if (option_data->nfab != 0)
+    {
+      add_file_name (new_dset, option_data->fabname, bucket_str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:Inten ",
+	       ibrick, option_data->fabname);
+      strcat (refit_str, str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:F-stat ", 
+	       ibrick, option_data->fabname);
+      strcat (refit_str, str);
+    }
+  
+  
+  /*----- make F-stat for A*C interaction sub-bricks -----*/
+  if (option_data->nfac != 0)
+    {
+      add_file_name (new_dset, option_data->facname, bucket_str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:Inten ",
+	       ibrick, option_data->facname);
+      strcat (refit_str, str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:F-stat ", 
+	       ibrick, option_data->facname);
+      strcat (refit_str, str);
+    }
+  
+  
+  /*----- make F-stat for B*C interaction sub-bricks -----*/
+  if (option_data->nfbc != 0)
+    {
+      add_file_name (new_dset, option_data->fbcname, bucket_str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:Inten ",
+	       ibrick, option_data->fbcname);
+      strcat (refit_str, str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:F-stat ", 
+	       ibrick, option_data->fbcname);
+      strcat (refit_str, str);
+    }
+  
+  
+  /*----- make F-stat for A*B*C interaction sub-bricks -----*/
+  if (option_data->nfabc != 0)
+    {
+      add_file_name (new_dset, option_data->fabcname, bucket_str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:Inten ",
+	       ibrick, option_data->fabcname);
+      strcat (refit_str, str);
+
+      ibrick++;
+      sprintf (str, " -sublabel %d %s:F-stat ", 
+	       ibrick, option_data->fabcname);
+      strcat (refit_str, str);
+    }
+  
+  
+  /*----- make factor A level mean sub-bricks -----*/
+  if (option_data->num_ameans > 0)
+    for (i = 0; i < option_data->num_ameans; i++)
+      {
+	add_file_name (new_dset, option_data->amname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Mean ", 
+		 ibrick, option_data->amname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->amname[i]);
+	strcat (refit_str, str);
+      }
+  
+
+  /*----- make factor B level mean sub-bricks -----*/
+  if (option_data->num_bmeans > 0)
+    for (i = 0; i < option_data->num_bmeans; i++)
+      {
+	add_file_name (new_dset, option_data->bmname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Mean ", 
+		 ibrick, option_data->bmname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->bmname[i]);
+	strcat (refit_str, str);
+      }
+  
+
+  /*----- make factor C level mean sub-bricks -----*/
+  if (option_data->num_cmeans > 0)
+    for (i = 0; i < option_data->num_cmeans; i++)
+      {
+	add_file_name (new_dset, option_data->cmname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Mean ", 
+		 ibrick, option_data->cmname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->cmname[i]);
+	strcat (refit_str, str);
+      }
+  
+
+  /*----- make difference in factor A level means sub-bricks -----*/
+  if (option_data->num_adiffs > 0)
+    for (i = 0; i < option_data->num_adiffs; i++)
+      {
+	add_file_name (new_dset, option_data->adname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Diff ", 
+		 ibrick, option_data->adname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->adname[i]);
+	strcat (refit_str, str);
+      }
+  
+
+  /*----- make difference in factor B level means sub-bricks -----*/
+  if (option_data->num_bdiffs > 0)
+    for (i = 0; i < option_data->num_bdiffs; i++)
+      {
+	add_file_name (new_dset, option_data->bdname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Diff ", 
+		 ibrick, option_data->bdname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->bdname[i]);
+	strcat (refit_str, str);
+      }
+  
+
+  /*----- make difference in factor C level means sub-bricks -----*/
+  if (option_data->num_cdiffs > 0)
+    for (i = 0; i < option_data->num_cdiffs; i++)
+      {
+	add_file_name (new_dset, option_data->cdname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Diff ", 
+		 ibrick, option_data->cdname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->cdname[i]);
+	strcat (refit_str, str);
+      }
+  
+
+  /*----- make contrast in factor A level means sub-brickss -----*/
+  if (option_data->num_acontr > 0)
+    for (i = 0; i < option_data->num_acontr; i++)
+      {
+	add_file_name (new_dset, option_data->acname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Contr ", 
+		 ibrick, option_data->acname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->acname[i]);
+	strcat (refit_str, str);
+      }
+
+
+  /*----- make contrast in factor B level means sub-bricks -----*/
+  if (option_data->num_bcontr > 0)
+    for (i = 0; i < option_data->num_bcontr; i++)
+      {
+	add_file_name (new_dset, option_data->bcname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Contr ", 
+		 ibrick, option_data->bcname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->bcname[i]);
+	strcat (refit_str, str);
+      }
+
+
+  /*----- make contrast in factor C level means sub-bricks -----*/
+  if (option_data->num_ccontr > 0)
+    for (i = 0; i < option_data->num_ccontr; i++)
+      {
+	add_file_name (new_dset, option_data->ccname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Contr ", 
+		 ibrick, option_data->ccname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->ccname[i]);
+	strcat (refit_str, str);
+      }
+
+
+  /*----- invoke program 3dbucket to generate bucket type output dataset
+          by concatenating previous output files -----*/
+  printf("Writing `bucket' dataset ");
+  printf("into %s\n", option_data->bucket_filename);
+  system (bucket_str);
+
+
+  /*----- invoke program 3drefit to label individual sub-bricks -----*/
+  add_file_name (new_dset, option_data->bucket_filename, refit_str);
+  system (refit_str);
+
+
+  /*----- release memory -----*/
+  THD_delete_3dim_dataset (new_dset , False);   new_dset = NULL;
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Routine to release memory and remove any remaining temporary data files.
+  If the '-bucket' option has been used, create the bucket dataset and
+  dispose of the 2 sub-brick datasets.
 */
 
 void terminate (anova_options * option_data)
- {
+{
+  int i;
+  THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
+  THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
+
 
   /*----- remove temporary data files -----*/
   if (option_data->n != 1)  volume_delete ("sse");
@@ -4115,6 +4513,109 @@ void terminate (anova_options * option_data)
       volume_delete ("ssca");
       volume_delete ("ssbca");
     }
+
+
+  /*----- create bucket dataset -----*/
+  if (option_data->bucket_filename != NULL)
+    create_bucket (option_data);
+  
+
+  /*----- if 'bucket' datset was created, remove the individual 2-subbrick
+          data files -----*/
+  if (option_data->bucket_filename != NULL)
+    {
+
+      /*----- read first dataset -----*/
+      dset = THD_open_one_dataset (option_data->first_dataset) ;
+      if( ! ISVALID_3DIM_DATASET(dset) ){
+	fprintf(stderr,"*** Unable to open dataset file %s\n",
+		option_data->first_dataset);
+	exit(1) ;
+      }
+      
+      /*----- make an empty copy of this dataset -----*/
+      new_dset = EDIT_empty_copy (dset);
+      THD_delete_3dim_dataset (dset , False);   dset = NULL;
+      EDIT_dset_items (new_dset, 
+		       ADN_directory_name, option_data->session,
+		       ADN_none);
+      
+      /*----- remove F-stat for factor A main effect data file -----*/
+      if (option_data->nfa != 0)
+	remove_dataset (new_dset, option_data->faname);
+      
+      /*----- remove F-stat for factor B main effect data file -----*/
+      if (option_data->nfb != 0)
+	remove_dataset (new_dset, option_data->fbname);
+      
+      /*----- remove F-stat for factor C main effect data file -----*/
+      if (option_data->nfc != 0)
+	remove_dataset (new_dset, option_data->fcname);
+      
+      /*----- remove F-stat for A*B interaction data file -----*/
+      if (option_data->nfab != 0)
+	remove_dataset (new_dset, option_data->fabname);
+      
+      /*----- remove F-stat for A*C interaction data file -----*/
+      if (option_data->nfac != 0)
+	remove_dataset (new_dset, option_data->facname);
+      
+      /*----- remove F-stat for B*C interaction data file -----*/
+      if (option_data->nfbc != 0)
+	remove_dataset (new_dset, option_data->fbcname);
+      
+      /*----- remove F-stat for A*B*C interaction data file -----*/
+      if (option_data->nfabc != 0)
+	remove_dataset (new_dset, option_data->fabcname);
+      
+     /*----- remove factor A level mean data files -----*/
+      if (option_data->num_ameans > 0)
+	for (i = 0; i < option_data->num_ameans; i++)
+	  remove_dataset (new_dset, option_data->amname[i]);
+      
+      /*----- remove factor B level mean data files -----*/
+      if (option_data->num_bmeans > 0)
+	for (i = 0; i < option_data->num_bmeans; i++)
+	  remove_dataset (new_dset, option_data->bmname[i]);
+      
+      /*----- remove factor C level mean data files -----*/
+      if (option_data->num_cmeans > 0)
+	for (i = 0; i < option_data->num_cmeans; i++)
+	  remove_dataset (new_dset, option_data->cmname[i]);
+      
+      /*----- remove difference in factor A levels data files -----*/
+      if (option_data->num_adiffs > 0)
+	for (i = 0; i < option_data->num_adiffs; i++)
+	  remove_dataset (new_dset, option_data->adname[i]);
+      
+      /*----- remove difference in factor B levels data files -----*/
+      if (option_data->num_bdiffs > 0)
+	for (i = 0; i < option_data->num_bdiffs; i++)
+	  remove_dataset (new_dset, option_data->bdname[i]);
+      
+      /*----- remove difference in factor C levels data files -----*/
+      if (option_data->num_cdiffs > 0)
+	for (i = 0; i < option_data->num_cdiffs; i++)
+	  remove_dataset (new_dset, option_data->cdname[i]);
+      
+      /*----- remove contrast in factor A levels data files -----*/
+      if (option_data->num_acontr > 0)
+	for (i = 0; i < option_data->num_acontr; i++)
+	  remove_dataset (new_dset, option_data->acname[i]);
+      
+      /*----- remove contrast in factor B levels data files -----*/
+      if (option_data->num_bcontr > 0)
+	for (i = 0; i < option_data->num_bcontr; i++)
+	  remove_dataset (new_dset, option_data->bcname[i]);
+      
+      /*----- remove contrast in factor C levels data files -----*/
+      if (option_data->num_ccontr > 0)
+	for (i = 0; i < option_data->num_ccontr; i++)
+	  remove_dataset (new_dset, option_data->ccname[i]);
+      
+      THD_delete_3dim_dataset (new_dset , False);   new_dset = NULL;
+    }
+
 
   /*----- deallocate memory -----*/
   destroy_anova_options (option_data);

@@ -27,7 +27,7 @@ ENTRY("AFNI_see_func_CB") ;
    old_val = (im3d->vinfo->func_visible) ? 1 : 0 ;
    new_val = MCW_val_bbox( im3d->vwid->view->see_func_bbox ) ;
 
-   if( w == NULL || old_val != new_val ){
+   if( old_val != new_val ){
       im3d->vinfo->func_visible = (new_val == 1) ? True : False ;
       if( ! ISVALID_3DIM_DATASET(im3d->fim_now) )             /* 29 Apr 1997 */
          im3d->vinfo->func_visible = False ;

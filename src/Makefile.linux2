@@ -1,8 +1,8 @@
-# This Makefile works on Linux 1.2.13
+# This Makefile works on Linux 2.0.39
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -Wpointer-arith
-CC     = gcc -O2 -m486 -ffast-math -DLINUX -DNO_GAMMA $(CEXTRA)
+CC     = gcc -O2 -m486 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCMIN  = gcc -s
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include
@@ -27,26 +27,26 @@ CP = /bin/cp
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./linux
+INSTALLDIR = ./linux2
 LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
 
-# LLIBS  = -lmri -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+LLIBS  = -lmri -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
 
 # for static linking, as far as possible
 
-LLIBS = -lmri -ldl               \
-        /usr/X11R6/lib/libXm.a   \
-        /usr/X11R6/lib/libXpm.a  \
-        /usr/X11R6/lib/libXext.a \
-        /usr/X11R6/lib/libXmu.a  \
-        /usr/X11R6/lib/libXt.a   \
-        /usr/X11R6/lib/libSM.a   \
-        /usr/X11R6/lib/libICE.a  \
-        /usr/X11R6/lib/libX11.a  \
-        /usr/lib/libm.a          \
-        /usr/lib/libc.a
+# LLIBS = -lmri -ldl               \
+#         /usr/X11R6/lib/libXm.a   \
+#        /usr/X11R6/lib/libXpm.a  \
+#        /usr/X11R6/lib/libXext.a \
+#        /usr/X11R6/lib/libXmu.a  \
+#        /usr/X11R6/lib/libXt.a   \
+#        /usr/X11R6/lib/libSM.a   \
+#        /usr/X11R6/lib/libICE.a  \
+#        /usr/X11R6/lib/libX11.a  \
+#        /usr/lib/libm.a          \
+#        /usr/lib/libc.a
 
 ###############################################################
 

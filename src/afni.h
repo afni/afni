@@ -558,12 +558,23 @@ typedef struct {
 /*----- Data for FIM-age ------*/
 
 #define FIM_ALPHA_MASK  1
-#define FIM_CORR_MASK   2
-#define FIM_BEST_MASK   4
-#define FIM_PERC_MASK   8
-#define FIM_BASE_MASK  16
+#define FIM_BEST_MASK   2
+#define FIM_PERC_MASK   4
+#define FIM_BASE_MASK   8
+#define FIM_CORR_MASK  16
 
-#define FIM_DOALL_MASK  (1 | 2 | 4 | 8 | 16)
+#define FIM_DOALL_MASK   (1 | 2 | 4 | 8 | 16)
+#define FIM_DEFAULT_MASK (1 | 2 | 4 |     16)
+
+#define FIM_NUM_OPTS    5
+
+#ifdef MAIN
+   char * fim_opt_labels[FIM_NUM_OPTS] = {
+     "Fit Coef" , "Best Index" , "% Change" , "Baseline" , "Correlation"
+   } ;
+#else
+   extern char * fim_opt_labels[] ;
+#endif
 
 typedef struct {
    MRI_IMAGE *        fimref ;

@@ -11,12 +11,20 @@
              absolute noise parameter constraints.
    Date:     22 August 1997
 
+   Mod:      Added options for percent signal change above baseline, and
+             calculation of area under the signal above baseline.
+   Date:     26 November 1997
+
+   Mod:      Print error message if unable to locate any signal models or 
+             any noise models.
+   Date:     26 December 1997
+
 */
 
 
 /*---------------------------------------------------------------------------*/
 /*
-  This software is Copyright 1997 by
+  This software is Copyright 1997, 1998 by
 
             Medical College of Wisconsin
             8701 Watertown Plank Road
@@ -38,8 +46,8 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
-#define PROGRAM_NAME "plug_nlfit"             /* name of this program */
-#define LAST_MOD_DATE "29 August 1997"        /* date of last program mod */
+#define PROGRAM_NAME "plug_nlfit"                  /* name of this program */
+#define LAST_MOD_DATE "09 January 1998"        /* date of last program mod */
 
 
 #include <math.h>
@@ -434,6 +442,9 @@ float *  nlfit
   float rmsreg;                /* rms for the full regression model */
   float smax;                  /* signed maximum of signal */
   float tmax;                  /* epoch of signed maximum of signal */
+  float pmax;                  /* percentage change due to signal */
+  float area;                  /* area between signal and baseline */
+  float parea;                 /* percent area between signal and baseline */
   float * min_sconstr = NULL;  /* min parameter constraints for signal model */
   float * max_sconstr = NULL;  /* max parameter constraints for signal model */
 
@@ -470,13 +481,14 @@ float *  nlfit
 		   min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
 		   ts_length, x_array,
 		   par_rdcd, sse_rdcd, par_full, sse_full,
-		   &rmsreg, &freg, &smax, &tmax, tpar_full);
+		   &rmsreg, &freg, &smax, &tmax, &pmax, &area, &parea,
+		   tpar_full);
 
 
   /*----- report results for this voxel -----*/
   report_results (nname, sname, r, p, npname, spname, ts_length,
 		  par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
-		  rmsreg, freg, smax, tmax, label);
+		  rmsreg, freg, smax, tmax, pmax, area, parea, label);
   printf ("\nVoxel Results: \n");
   printf ("%s \n", *label);
   
@@ -594,6 +606,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 	 }
      }
    num_noise_models = ii;
+   if (num_noise_models <= 0)  
+     NLfit_error ("Unable to locate any noise models");
    plug_noise_index = 1;
 
 
@@ -645,6 +659,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 	 }
      }
    num_signal_models = ii;
+   if (num_signal_models <= 0)  
+     NLfit_error ("Unable to locate any signal models");
    plug_signal_index = 0;
 
 

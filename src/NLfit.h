@@ -5,6 +5,10 @@
   Author:   B. Douglas Ward
   Date:     3 June 1997
 
+  Mod:      Added options for percent signal change above baseline, and
+            calculation of area under the signal above baseline.
+            26 November 1997
+
 */
 
 
@@ -292,6 +296,9 @@ void analyze_results
   float * freg,           /* f-statistic for the full regression model */
   float * smax,           /* signed maximum of signal */
   float * tmax,           /* epoch of signed maximum of signal */
+  float * pmax,           /* percentage change due to signal */
+  float * area,           /* area between signal and baseline */
+  float * parea,          /* percentage area between signal and baseline */
   float * tpar_full       /* t-statistic of the parameters in the full model */
 );
 
@@ -319,6 +326,9 @@ void report_results
   float freg,              /* f-statistic for the full regression model */
   float smax,              /* signed maximum of signal */
   float tmax,              /* epoch of signed maximum of signal */
+  float pmax,              /* percentage change due to signal */
+  float area,              /* area between signal and baseline */
+  float parea,             /* percentage area between signal and baseline */
   char ** label            /* label output for this voxel */
 );
 

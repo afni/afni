@@ -55,6 +55,9 @@
     DONT_USE_HINTS = if this is set, then the popup hints won't be
                      compiled into AFNI.
 
+    NEED_XSETLOCALE = if this is set, then the routine _Xsetlocale
+                      must be provided (needed for some Linux systems).
+
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 
@@ -155,6 +158,13 @@ extern int alphasort(struct dirent **, struct dirent **) ;
 #endif
 
 /*** Linux 1.2.x ***/
+
+#ifdef LINUX2
+# define NEED_XSETLOCALE
+# ifndef LINUX
+#   define LINUX
+# endif
+#endif
 
 #ifdef LINUX
 # include <dirent.h>

@@ -7,14 +7,17 @@
    Date:     17 June 1997
    
    Mod:      Function srand48 used for random number initialization.
-             29 August 1997
+   Date:     29 August 1997
+
+   Mod:      Extensive changes required to implement the 'bucket' dataset.
+   Date:     09 January 1998
 
 */
 
 
 /*---------------------------------------------------------------------------*/
 /*
-  This software is Copyright 1997 by
+  This software is Copyright 1997, 1998 by
 
             Medical College of Wisconsin
             8701 Watertown Plank Road
@@ -31,8 +34,8 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME "3dTSgen"                  /* name of this program */
-#define LAST_MOD_DATE "29 August 1997"          /* date of last program mod */
+#define PROGRAM_NAME "3dTSgen"                       /* name of this program */
+#define LAST_MOD_DATE "09 January 1998"          /* date of last program mod */
 
 
 #include <stdio.h>
@@ -49,6 +52,17 @@
 #include "matrix.c"
 #include "simplex.c"
 #include "NLfit.c"
+
+
+typedef struct NL_options
+{ 
+  char * bucket_filename;      /* file name for bucket dataset */
+  int numbricks;               /* number of sub-bricks in bucket dataset */
+  int * brick_type;            /* indicates type of sub-brick */
+  int * brick_coef;            /* regression coefficient number for sub-brick*/
+  char ** brick_label;         /* character string label for sub-brick */
+
+} NL_options;
 
 
 /*---------------------------------------------------------------------------*/
@@ -75,15 +89,41 @@ void display_help_menu()
      "-sigma  s          s = std. dev. of additive Gaussian noise           \n"
      "[-voxel num]       screen output for voxel #num                       \n"
      "-output fname      fname = filename of output 3d + time data file     \n"
+     "                                                                      \n"
+     "                                                                      \n"
+     "The following commands generate individual AFNI 1 sub-brick datasets: \n"
+     "                                                                      \n"
      "[-scoef k fname]   write kth signal parameter gs[k];                  \n"
-     "                     output 'fim' is written to file fname            \n"
+     "                     output 'fim' is written to prefix filename fname \n"
      "[-ncoef k fname]   write kth noise parameter gn[k];                   \n"
-     "                     output 'fim' is written to file fname            \n"
+     "                     output 'fim' is written to prefix filename fname \n"
+     "                                                                      \n"
+     "                                                                      \n"
+     "The following commands generate one AFNI 'bucket' type dataset:       \n"
+     "                                                                      \n"
+     "[-bucket n prefixname]   create one AFNI 'bucket' dataset containing  \n"
+     "                           n sub-bricks; n=0 creates default output;  \n"
+     "                           output 'bucket' is written to prefixname   \n"
+     "The mth sub-brick will contain:                                       \n"
+     "[-brick m scoef k label]   kth signal parameter regression coefficient\n"
+     "[-brick m ncoef k label]   kth noise parameter regression coefficient \n"
     );
   
   exit(0);
 }
 
+
+/*---------------------------------------------------------------------------*/
+     
+/** macro to test a malloc-ed pointer for validity **/
+     
+#define MTEST(ptr) \
+     if((ptr)==NULL) \
+     ( fprintf(stderr,"*** Cannot allocate memory for statistics!\n"         \
+	       "*** Try using the -workmem option to reduce memory needs,\n" \
+	       "*** or create more swap space in the operating system.\n"    \
+	       ), exit(0) )
+     
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -105,7 +145,8 @@ void initialize_options
   char ** input_filename,     /* file name of prototype 3d+time dataset */
   char ** output_filename,    /* file name for output 3d+time dataset */
   char *** ncoef_filename,    /* file name for noise model parameters */
-  char *** scoef_filename     /* file name for signal model parameters */
+  char *** scoef_filename,    /* file name for signal model parameters */
+  NL_options * option_data    /* bucket dataset options */
 )
  
 {
@@ -171,6 +212,14 @@ void initialize_options
       (*scoef_filename)[ip] = NULL;
     }
 
+
+  /*----- initialize bucket dataset options -----*/
+  option_data->bucket_filename = NULL;
+  option_data->numbricks = -1;
+  option_data->brick_type = NULL;
+  option_data->brick_coef = NULL;
+  option_data->brick_label = NULL;
+
 }
 
 
@@ -203,10 +252,12 @@ void get_options
   char *** scoef_filename,    /* file name for signal model parameters */
 
   int * nxyz,                       /* number of voxels in image */
-  int * ts_length                   /* length of time series data */  
+  int * ts_length,                  /* length of time series data */  
+  NL_options * option_data          /* bucket dataset options */
 )
 
 {
+  const MAX_BRICKS = 100;           /* max. number of bricks in the bucket */
   int nopt = 1;                     /* input option argument counter */
   int ival, index;                  /* integer input */
   float fval;                       /* float input */
@@ -216,6 +267,8 @@ void get_options
 
   NLFIT_MODEL_array * model_array = NULL;   /* array of SO models */
   int im;                                   /* model index */
+  int ibrick;                       /* sub-brick index */
+  int nbricks;                      /* number of bricks in the bucket */
 
   
   /*----- does user request help menu? -----*/
@@ -232,7 +285,8 @@ void get_options
   initialize_options (nmodel, smodel, npname, spname,
 		      min_nconstr, max_nconstr, min_sconstr, max_sconstr,
 		      sigma, nvoxel, input_filename, 
-		      output_filename, ncoef_filename, scoef_filename); 
+		      output_filename, ncoef_filename, scoef_filename,
+		      option_data); 
   
   /*----- main loop over input options -----*/
   while (nopt < argc )
@@ -439,6 +493,121 @@ void get_options
 	}
       
 
+      /*----- -bucket n prefixname -----*/
+      if (strncmp(argv[nopt], "-bucket", 7) == 0)
+	{
+	  nopt++;
+	  if (nopt+1 >= argc)  NLfit_error ("need 2 arguments after -bucket ");
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival < 0) || (ival > MAX_BRICKS))
+	    NLfit_error ("illegal argument after -bucket ");
+	  nopt++;
+
+	  option_data->bucket_filename = 
+	    malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  if (option_data->bucket_filename == NULL)
+	    NLfit_error ("Unable to allocate memory for bucket_filename");
+	  strcpy (option_data->bucket_filename, argv[nopt]);
+	  
+	  /*----- set number of sub-bricks in the bucket -----*/
+	  if (ival == 0)
+	    nbricks = (*p) + (*r);
+	  else
+	    nbricks = ival;
+	  option_data->numbricks = nbricks;
+	  
+	  /*----- allocate memory and initialize bucket dataset options -----*/
+	  option_data->brick_type = malloc (sizeof(int) * nbricks);
+	  option_data->brick_coef = malloc (sizeof(int) * nbricks);
+	  option_data->brick_label = malloc (sizeof(char *) * nbricks);
+	  for (ibrick = 0;  ibrick < nbricks;  ibrick++)
+	    {
+	      option_data->brick_type[ibrick] = -1;
+	      option_data->brick_coef[ibrick] = -1;
+	      option_data->brick_label[ibrick] = 
+		malloc (sizeof(char) * MAX_NAME_LENGTH);
+	    }
+	  
+
+	  if (ival == 0)   
+	    /*----- throw  (almost) everything into the bucket -----*/
+	    {
+	      for (ibrick = 0;  ibrick < (*r);  ibrick++)
+		{
+		  option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
+		  option_data->brick_coef[ibrick] = ibrick;
+		  strcpy (option_data->brick_label[ibrick], (*npname)[ibrick]);
+		}
+	      
+	      for (ibrick = (*r);  ibrick < (*p) + (*r);  ibrick++)
+		{
+		  option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
+		  option_data->brick_coef[ibrick] = ibrick;
+		  strcpy (option_data->brick_label[ibrick],
+			  (*spname)[ibrick-(*r)]);
+		}	      
+	    }
+
+	  nopt++;
+	  continue;
+	}
+
+
+      /*----- -brick m type k label -----*/
+      if (strncmp(argv[nopt], "-brick", 6) == 0)
+	{
+	  nopt++;
+	  if (nopt+2 >= argc)  
+	    NLfit_error ("need more arguments after -brick ");
+	  sscanf (argv[nopt], "%d", &ibrick);
+	  if ((ibrick < 0) || (ibrick >= option_data->numbricks))
+	    NLfit_error ("illegal argument after -brick ");
+	  nopt++;
+
+	  if (strncmp(argv[nopt], "scoef", 4) == 0)
+	    {
+	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
+
+	      nopt++;
+	      sscanf (argv[nopt], "%d", &ival);
+	      if ((ival < 0) || (ival > (*p)))
+		NLfit_error ("illegal argument after scoef ");
+	      option_data->brick_coef[ibrick] = ival + (*r);
+	      
+	      nopt++;
+	      if (nopt >= argc)  
+		NLfit_error ("need more arguments after -brick ");
+	      strcpy (option_data->brick_label[ibrick], argv[nopt]); 
+	    }
+
+	  else if (strncmp(argv[nopt], "ncoef", 4) == 0)
+	    {
+	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
+
+	      nopt++;
+	      sscanf (argv[nopt], "%d", &ival);
+	      if ((ival < 0) || (ival > (*r)))
+		NLfit_error ("illegal argument after ncoef ");
+	      option_data->brick_coef[ibrick] = ival;
+	      
+	      nopt++;
+	      if (nopt >= argc)  
+		NLfit_error ("need more arguments after -brick ");
+	      strcpy (option_data->brick_label[ibrick], argv[nopt]); 
+	    }
+
+	  else  NLfit_error ("unable to interpret options after -brick ");
+	  	  
+	  printf ("ibrick = %d \n", ibrick);
+	  printf ("brick_type  = %d \n", option_data->brick_type[ibrick]);
+	  printf ("brick_coef  = %d \n", option_data->brick_coef[ibrick]);
+	  printf ("brick_label = %s \n", option_data->brick_label[ibrick]);
+	  
+	  nopt++;
+	  continue;
+	}
+     
+      
       /*----- unknown command -----*/
       NLfit_error ("unrecognized command line option ");
     }
@@ -510,7 +679,8 @@ void check_output_files
   char * input_filename,         /* file name for input 3d+time data set */
   char * output_filename,        /* file name for output 3d+time data set */
   char ** ncoef_filename,        /* file name for noise model parameters */
-  char ** scoef_filename         /* file name for signal model parameters */
+  char ** scoef_filename,        /* file name for signal model parameters */
+  char * bucket_filename         /* file name for bucket dataset */
 )
 
 {
@@ -533,6 +703,9 @@ void check_output_files
     }
 
 
+  if (bucket_filename != NULL)   
+    check_one_output_file (dset_time, bucket_filename);
+
   THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL ;
 }
 
@@ -554,7 +727,8 @@ void check_for_valid_inputs
   char * input_filename,          /* file name of prototype 3d+time dataset */
   char * output_filename,         /* file name for output 3d+time data set */
   char ** ncoef_filename,         /* file name for noise model parameters */
-  char ** scoef_filename          /* file name for signal model parameters */
+  char ** scoef_filename,         /* file name for signal model parameters */
+  char * bucket_filename          /* file name for bucket dataset */
 )
 
 {
@@ -572,7 +746,7 @@ void check_for_valid_inputs
 
   /*----- check whether any of the output files already exist -----*/
   check_output_files (input_filename, output_filename, 
-		      ncoef_filename, scoef_filename);
+		      ncoef_filename, scoef_filename, bucket_filename);
 
 }
 
@@ -616,7 +790,10 @@ void initialize_program
   float ** par_full,       /* estimated parameters for the full model */
 
   float *** ncoef_vol,     /* volume of noise model parameters */
-  float *** scoef_vol      /* volume of signal model parameters */
+  float *** scoef_vol,     /* volume of signal model parameters */
+
+  NL_options * option_data          /* bucket dataset options */
+
 )
      
 {
@@ -632,12 +809,13 @@ void initialize_program
 	       min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
 	       sigma, nvoxel,
 	       input_filename, output_filename, ncoef_filename, scoef_filename,
-	       nxyz, ts_length);
+	       nxyz, ts_length, option_data);
 
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (*r, *p, *min_nconstr, *max_nconstr, 
 			  *min_sconstr, *max_sconstr, *input_filename, 
-			  *output_filename, *ncoef_filename, *scoef_filename);
+			  *output_filename, *ncoef_filename, *scoef_filename,
+			  option_data->bucket_filename);
 
   /*----- allocate space for input time series -----*/
   *ts_array = (float *) malloc (sizeof(float) * (*ts_length));
@@ -1100,6 +1278,149 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
 
 /*---------------------------------------------------------------------------*/
 /*
+  Routine to write one bucket data set.
+*/
+
+void write_bucket_data 
+(
+  int q,                  /* number of parameters in the noise model */
+  int p,                  /* number of parameters in the signal model */
+  int  nxyz,              /* number of voxels in image */
+  int  n,                 /* length of time series data */  
+
+  float ** ncoef_vol,     /* volume of noise model parameters */
+  float ** scoef_vol,     /* volume of signal model parameters */
+
+  char * input_filename,
+
+  NL_options * option_data     /* user input options */
+)
+
+{
+  const float EPSILON = 1.0e-10;
+
+  THD_3dim_dataset * old_dset = NULL;    /* prototype dataset */
+  THD_3dim_dataset * new_dset = NULL;    /* output bucket dataset */
+  char * output_prefix;     /* prefix name for bucket dataset */
+  char * output_session;    /* directory for bucket dataset */
+  int nbricks, ib;          /* number of sub-bricks in bucket dataset */
+  short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
+  float factor;             /* factor is new scale factor for sub-brick #ib */
+  int brick_type;           /* indicates statistical type of sub-brick */
+  int brick_coef;           /* regression coefficient index for sub-brick */
+  char * brick_label;       /* character string label for sub-brick */
+  int ierror;               /* number of errors in editing data */
+  float * volume;           /* volume of floating point data */
+  int dimension;            /* dimension of full model = p + q */
+
+    
+  /*----- initialize local variables -----*/
+  nbricks = option_data->numbricks;
+  output_prefix = option_data->bucket_filename;
+  output_session = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+  strcpy (output_session, "./");
+  dimension = p + q;
+  
+
+  /*----- allocate memory -----*/
+  bar  = (short **) malloc (sizeof(short *) * nbricks);
+  MTEST (bar);
+
+ 
+  /*----- read first dataset -----*/
+  old_dset = THD_open_one_dataset (input_filename);
+  
+
+  /*-- make an empty copy of this dataset, for eventual output --*/
+  new_dset = EDIT_empty_copy (old_dset);
+  
+
+  /*----- Modify some structural properties.  Note that the nbricks
+          just make empty sub-bricks, without any data attached. -----*/
+  ierror = EDIT_dset_items (new_dset,
+                            ADN_prefix,          output_prefix,
+			    ADN_directory_name,  output_session,
+			    ADN_type,            HEAD_FUNC_TYPE,
+			    ADN_func_type,       FUNC_BUCK_TYPE,
+                            ADN_ntt,             0,               /* no time */
+			    ADN_nvals,           nbricks,
+			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+			    ADN_none ) ;
+  
+  if( ierror > 0 )
+    {
+      fprintf(stderr, 
+	      "*** %d errors in attempting to create output dataset!\n", 
+	      ierror);
+      exit(1);
+    }
+  
+  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+    {
+      fprintf(stderr,
+	      "*** Output dataset file %s already exists--cannot continue!\n",
+	      DSET_HEADNAME(new_dset));
+      exit(1);
+    }
+  
+
+  /*----- deleting exemplar dataset -----*/ 
+  THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
+  
+
+  /*----- loop over new sub-brick index, attach data array with 
+          EDIT_substitute_brick then put some strings into the labels and 
+          keywords, and modify the sub-brick scaling factor -----*/
+  for (ib = 0;  ib < nbricks;  ib++)
+    {
+      /*----- get information about this sub-brick -----*/
+      brick_type  = option_data->brick_type[ib];
+      brick_coef  = option_data->brick_coef[ib];
+      brick_label = option_data->brick_label[ib];
+
+      if (brick_type == FUNC_FIM_TYPE)
+	{	
+	  if (brick_coef < q)
+	    volume = ncoef_vol[brick_coef];
+	  else if (brick_coef < p+q)
+	    volume = scoef_vol[brick_coef-q];
+	}
+
+      /*----- allocate memory for output sub-brick -----*/
+      bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
+      MTEST (bar[ib]);
+      factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+					  MRI_short, bar[ib]);
+
+      if (factor < EPSILON)  factor = 0.0;
+      else factor = 1.0 / factor;
+
+      /*----- edit the sub-brick -----*/
+      EDIT_BRICK_LABEL (new_dset, ib, brick_label);
+      EDIT_BRICK_FACTOR (new_dset, ib, factor);
+
+      
+      /*----- attach bar[ib] to be sub-brick #ib -----*/
+      EDIT_substitute_brick (new_dset, ib, MRI_short, bar[ib]);
+
+    }
+
+
+  /*----- write bucket data set -----*/
+  printf("Writing `bucket' dataset ");
+  printf("into %s\n", DSET_HEADNAME(new_dset));
+  THD_load_statistics (new_dset);
+  THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+
+  
+  /*----- deallocate memory -----*/   
+  THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Write out the parameter files.
 */
 
@@ -1115,7 +1436,9 @@ void output_parameters
 
   char * input_filename,     /* file name of prototype 3d+time dataset */
   char ** ncoef_filename,    /* file name for noise model parameters */
-  char ** scoef_filename     /* file name for signal model parameters */
+  char ** scoef_filename,    /* file name for signal model parameters */
+
+  NL_options * option_data   /* user input options */
 )
 
 {
@@ -1125,6 +1448,12 @@ void output_parameters
 
 
   dimension = r + p;
+
+
+  /*----- write the bucket dataset -----*/
+  if (option_data->numbricks > 0)
+    write_bucket_data (r, p, nxyz, ts_length, ncoef_vol, scoef_vol,	  
+		       input_filename, option_data);
 
 
   /*----- write noise model parameters -----*/
@@ -1288,6 +1617,8 @@ void main
 )
 
 {
+  NL_options option_data;  /* bucket dataset options */
+
   /*----- declare time series variables -----*/
   int ts_length;                       /* length of time series data */
   float ** x_array = NULL;             /* independent variable matrix */
@@ -1339,7 +1670,7 @@ void main
 		      &scoef_filename,
 		      &nxyz, &ts_length, &x_array, &ts_array, &d_array, 
 		      &par_full, 
-		      &ncoef_vol, &scoef_vol);
+		      &ncoef_vol, &scoef_vol, &option_data);
 
 
   /*----- loop over voxels in the data set -----*/
@@ -1380,7 +1711,7 @@ void main
   /*----- output the parameter files -----*/
   output_parameters (r, p, nxyz, ts_length, ncoef_vol, scoef_vol,
 		  input_filename,
-		  ncoef_filename, scoef_filename);
+		  ncoef_filename, scoef_filename, &option_data);
 
 		 
   /*----- end of program -----*/

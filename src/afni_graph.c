@@ -686,6 +686,7 @@ STATUS("destroying arrowvals") ;
    myXtFree( grapher->setshift_left_av)     ;
    myXtFree( grapher->setshift_inc_av)      ;
    myXtFree( grapher->fmenu->fim_opt_bbox ) ;  /* Jan 1998 */
+   myXtFree( grapher->fmenu->fimp_opt_bbox );  /* Jan 1998 */
    myXtFree( grapher->fmenu )               ;
    myXtFree( grapher->cen_line )            ;
    myXtFree( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
@@ -3218,8 +3219,11 @@ ENTRY("GRA_fim_CB") ;
 
    else if( w == grapher->fmenu->fim_execfimp_pb ){
       cbs.reason = graCR_dofim ;
-      cbs.key    = FIM_DOALL_MASK ;
-      grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+      cbs.key    = MCW_val_bbox(grapher->fmenu->fimp_opt_bbox) ;
+      if( cbs.key > 0 )
+         grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+      else
+         XBell( grapher->dc->display , 100 ) ;
    }
 
    /*** FIM plotting buttons ***/
@@ -3798,6 +3802,16 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
    MENU_DLINE(fim_menu) ;
    FIM_MENU_QBUT( fim_execfimp_pb  , "Compute FIM+" , "-> fbuc") ;
    MCW_set_widget_bg( fmenu->fim_execfimp_pb , redcolor , 0 ) ;
+
+   (void) XtVaCreateManagedWidget(
+           "dialog" , xmSeparatorWidgetClass , qbut_menu ,
+            XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+   fmenu->fimp_opt_bbox = new_MCW_bbox( qbut_menu, FIM_NUM_OPTS, fim_opt_labels,
+                                        MCW_BB_check , MCW_BB_noframe ,
+                                        NULL , NULL ) ;
+
+   MCW_set_bbox( fmenu->fimp_opt_bbox , FIM_DEFAULT_MASK ) ;
 
    return fmenu ;
 }

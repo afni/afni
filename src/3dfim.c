@@ -16,9 +16,13 @@
   Corrected reference to "ort" time series data structure.
   BDW       05 Sept 1997
 
+  Print a more explicit error message when ideal or "ort" time series are not 
+  of sufficient length.
+  BDW       14 January 1998
+
 */
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1996 by
+  This software is Copyright 1996, 1997, 1998 by
 
             Medical College of Wisconsin
             8701 Watertown Plank Road
@@ -32,7 +36,7 @@
   is not allowed.
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 #define PROGRAM_NAME "3dfim"          /* name of this program */
-#define LAST_MOD_DATE "05 Sept 1997"  /* date of last program modification */
+#define LAST_MOD_DATE "14 Jan 1998"  /* date of last program modification */
 
 
 #define SO_BIG 33333
@@ -78,36 +82,59 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
          * ref_ts_max = NULL, 
          * baseline   = NULL;      /* 19 May 1997 */
 
+   int i;
    
    int nupdt      = 0 ,  /* number of updates done yet */
        min_updt   = 5 ;  /* min number needed for display */
 
 
-   /*--- check for legal inputs ---*/
+   /*--- check for legal inputs ---*/      /* 14 Jan 1998 */
 
-   if( ! DSET_GRAPHABLE(dset_time)    ||
-       ref_ts == NULL                 ||
-       ref_ts->tsarr[0]->len < DSET_NUM_TIMES(dset_time) ){
+   if (!DSET_GRAPHABLE(dset_time)) 
+     {
+       fprintf (stderr, "Error:  Invalid 3d+time input data file \n");
+       RETURN (NULL);
+     }
+   
+   if (ref_ts == NULL)
+     {
+       fprintf (stderr, "Error:  No ideal time series \n");
+       RETURN (NULL);
+     }
 
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"illegal inputs: ntime=%d num_ts=%d",
-          DSET_NUM_TIMES(dset_time), 
-                         (ref_ts==NULL) ? (0) : (ref_ts->tsarr[0]->len) ) ;
-  STATUS(str) ; }
-#endif
-
-      RETURN(NULL) ;
-   }
+   for (i = 0;  i < ref_ts->num;  i++)
+     if (ref_ts->tsarr[i]->len < DSET_NUM_TIMES(dset_time))
+       { 
+	 char str[256] ;
+	 sprintf (str,
+	   "Error:  ideal time series is too short: ntime=%d num_ts=%d \n",
+		  DSET_NUM_TIMES(dset_time), 
+		  ref_ts->tsarr[i]->len);
+	 fprintf (stderr, str) ;    
+	 RETURN (NULL) ;
+       }
 
 
    /** 10 Dec 1996: allow for orts **/
 
    if( ort_ts->num > 0 )      /** 05 Sept 1997 **/
      {
-       nx_ort = ort_ts->tsarr[0]->len ;
+       internal_ort = 0;
        ny_ort = ort_ts->num;
-       internal_ort = (nx_ort < DSET_NUM_TIMES(dset_time)) ;
+       for (i = 0;  i < ny_ort;  i++)
+	 {
+	   nx_ort = ort_ts->tsarr[i]->len ;
+	   if (nx_ort < DSET_NUM_TIMES(dset_time))   /* 14 Jan 1998 */
+	     { 
+	       char str[256] ;
+	       sprintf (str,
+		 "Error:  ort time series is too short: ntime=%d ort_ts=%d \n",
+			DSET_NUM_TIMES(dset_time), 
+			ort_ts->tsarr[i]->len);
+	       fprintf (stderr, str) ;    
+	       RETURN (NULL) ;
+	     }	   
+	 }
      } 
    else 
      {

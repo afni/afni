@@ -13,12 +13,18 @@
   Mod:      Changed random number initialization from srand to srand48.
             29 August 1997
 
+  Mod:      Added options for percent signal change above baseline, and
+            calculation of area under the signal above baseline.
+            26 November 1997
+
+  Mod:      Continuation of previous modification.
+            8 January 1998
 */
 
 
 /*---------------------------------------------------------------------------*/
 /*
-  This software is Copyright 1997 by
+  This software is Copyright 1997, 1998 by
 
             Medical College of Wisconsin
             8701 Watertown Plank Road
@@ -235,12 +241,13 @@ void calc_linear_regression
   *sse = vector_dot (e, e);
 
   /*----- dispose of matrices -----*/
-  matrix_destroy (&xt);
-  matrix_destroy (&xtx);
-  matrix_destroy (&xtxinv);
-  matrix_destroy (&xtxinvxt);
   vector_destroy (&e);
-  
+  vector_destroy (&yhat);
+  matrix_destroy (&xtxinvxt);
+  matrix_destroy (&xtxinv);
+  matrix_destroy (&xtx);
+  matrix_destroy (&xt);
+
 }
 
 
@@ -282,9 +289,9 @@ void calc_reduced_model
   vector_to_array (b, b_array);
 
   /*----- dispose of matrices and vectors -----*/
-  matrix_destroy (&x);
-  vector_destroy (&y);
   vector_destroy (&b);
+  vector_destroy (&y);
+  matrix_destroy (&x);
 }
 
 
@@ -716,8 +723,8 @@ void calc_partial_derivatives
 
   /*----- free memory -----*/
   free (par);        par = NULL;
-  free (ts1_array);  ts1_array = NULL;
   free (ts2_array);  ts2_array = NULL;
+  free (ts1_array);  ts1_array = NULL;
 
 }  
 
@@ -748,6 +755,9 @@ void analyze_results
   float * freg,           /* f-statistic for the full regression model */
   float * smax,           /* signed maximum of signal */
   float * tmax,           /* epoch of signed maximum of signal */
+  float * pmax,           /* percentage change due to signal */
+  float * area,           /* area between signal and baseline */
+  float * parea,          /* percentage area between signal and baseline */
   float * tpar_full       /* t-statistic of the parameters in the full model */
 )
 
@@ -762,8 +772,11 @@ void analyze_results
   matrix d, dt, dtd, dtdinv;     /* matrices used for calc. of covariance */
   int ok;                        /* boolean for successful matrix inversion */
   float stddev;                  /* est. std. dev. for a parameter */
-  float * y_array;               /* estimated signal time series */
+  float * y_array = NULL;        /* estimated signal time series */
+  float * base_array = NULL;     /* baseline time series */
+  float barea;                   /* area under baseline */
   int it;                        /* time series index */
+  float y1, y2, y3;              /* temporary values for calculating area */
 
 
   /*----- initialization -----*/
@@ -790,21 +803,93 @@ void analyze_results
   /*----- root-mean-square error for the regression -----*/
   *rmsreg = sqrt(mse_full);
 
-
-  /*----- calculate signed maximum of the signal -----*/
+  /*----- generate time series corresponding to the signal model -----*/
   y_array = (float *) malloc (sizeof(float) * (ts_length));
   if (y_array == NULL)
     NLfit_error ("Unable to allocate memory for y_array");
   smodel (par_full+r, ts_length, x_array, y_array);
-  *smax = y_array[0];
+
+  /*----- generate time series corresponding to the noise model -----*/
+  base_array = (float *) malloc (sizeof(float) * (ts_length));
+  if (base_array == NULL)
+    NLfit_error ("Unable to allocate memory for base_array");
+  nmodel (par_full, ts_length, x_array, base_array);
+
+  /*----- initialize signal parameters -----*/
   *tmax = x_array[0][1];
-  for (it = 0;  it < ts_length;  it++)
-    if (fabs(y_array[it]) > fabs(*smax))
-      {
-	*smax = y_array[it];
-	*tmax = x_array[it][1];
-      }
-  free (y_array);   y_array = NULL;
+  *smax = y_array[0];
+  if (fabs(base_array[0]) > EPSILON)
+    *pmax = 100.0 * y_array[0] / fabs(base_array[0]);
+  else
+    *pmax = 0.0;
+  *area = 0.0;
+  barea = 0.0;
+  *parea = 0.0;
+
+  /*----- calculate signed maximum of the signal, percent change, area -----*/
+  for (it = 1;  it < ts_length;  it++)
+    {
+      /*----- calculate signed maximum of signal, and
+	calculate max. percentage change of signal wrt baseline -----*/
+      if (fabs(y_array[it]) > fabs(*smax))
+	{
+	  *tmax = x_array[it][1];
+	  *smax = y_array[it];
+	  if (fabs(base_array[it]) > EPSILON)
+	    *pmax = 100.0 * y_array[it] / fabs(base_array[it]);
+	}
+      
+      /*----- calculate area and percentage area under the signal -----*/
+      y1 = y_array[it-1];   y2 = y_array[it];
+      if ((y1 > 0.0) && (y2 > 0.0))
+	{
+	  *area += (y1 + y2) / 2.0;
+	  *parea += (y1 + y2) / 2.0;
+	}
+      else if ((y1 < 0.0) && (y2 < 0.0))
+	{
+	  *area -= (y1 + y2) / 2.0;
+	  *parea += (y1 + y2) / 2.0;
+	}
+      else
+	{
+	  y3 = fabs(y1) + fabs(y2);
+	  if (y3 > EPSILON)
+	    {
+	      *area += (y1*y1 + y2*y2) / (2.0 * y3);
+	      if (y1 > y2)
+		*parea += (y1*y1 - y2*y2) / (2.0 * y3);
+	      else
+		*parea -= (y1*y1 - y2*y2) / (2.0 * y3);
+	    }
+	}
+      
+      y1 = base_array[it-1];   y2 = base_array[it];
+      if ((y1 > 0.0) && (y2 > 0.0))
+	{
+	  barea += (y1 + y2) / 2.0;
+	}
+      else if ((y1 < 0.0) && (y2 < 0.0))
+	{
+	  barea -= (y1 + y2) / 2.0;
+	}
+      else
+	{
+	  y3 = fabs(y1) + fabs(y2);
+	  if (y3 > EPSILON)
+	    {
+	      barea += (y1*y1 + y2*y2) / (2.0 * y3);
+	    }
+	}
+    }  /* it */
+
+  if (barea > EPSILON)
+    *parea *= 100.0/barea;
+  else
+    *parea = 0.0;
+
+  free (base_array);   base_array = NULL;
+  free (y_array);      y_array = NULL;
 
 
   /*----- initialize matrices -----*/
@@ -840,10 +925,10 @@ void analyze_results
     
 
   /*----- dispose of matrices -----*/
-  matrix_destroy (&d);    
-  matrix_destroy (&dt); 
-  matrix_destroy (&dtd);
   matrix_destroy (&dtdinv);
+  matrix_destroy (&dtd);
+  matrix_destroy (&dt); 
+  matrix_destroy (&d);    
 }
 
 
@@ -870,6 +955,9 @@ void report_results
   float freg,              /* f-statistic for the full regression model */
   float smax,              /* signed maximum of signal */
   float tmax,              /* epoch of signed maximum of signal */
+  float pmax,              /* percentage change due to signal */
+  float area,              /* area between signal and baseline */
+  float parea,             /* percentage area between signal and baseline */
   char ** label            /* label output for this voxel */
 )
 
@@ -907,10 +995,17 @@ void report_results
       strcat (lbuf, sbuf);            
     }
   
-  sprintf (sbuf, "\nSignal Smax = %12.6f \n", smax);
+  sprintf (sbuf, "\nSignal Tmax  = %12.3f \n", tmax);
   strcat (lbuf, sbuf);
-  sprintf (sbuf, "Signal Tmax = %12.6f \n", tmax);
+  sprintf (sbuf,   "Signal Smax  = %12.3f \n", smax);
   strcat (lbuf, sbuf);
+  sprintf (sbuf,   "Signal PSmax = %12.3f \n", pmax);
+  strcat (lbuf, sbuf);
+  sprintf (sbuf,   "Signal Area  = %12.3f \n", area);
+  strcat (lbuf, sbuf);
+  sprintf (sbuf,   "Signal PArea = %12.3f \n", parea);
+  strcat (lbuf, sbuf);
+
 
   sprintf (sbuf, "\nRMSE Rdcd = %8.3f \n", sqrt(sse_rdcd/(ts_length-r)));
   strcat (lbuf, sbuf);
@@ -925,3 +1020,16 @@ void report_results
   *label = lbuf;
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

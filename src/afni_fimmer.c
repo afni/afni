@@ -589,13 +589,13 @@ ENTRY("AFNI_fimmer_compute") ;
    /* modify labels for each brick */
 
    if( ibr_fim >= 0 )
-      EDIT_BRICK_LABEL( new_dset , ibr_fim  , "FIM" ) ;
+      EDIT_BRICK_LABEL( new_dset , ibr_fim  , "Fit Coef" ) ;
    if( ibr_corr >= 0 )
       EDIT_BRICK_LABEL( new_dset , ibr_corr , "Correlation" ) ;
    if( ibr_best >= 0 )
       EDIT_BRICK_LABEL( new_dset , ibr_best , "Best Index" ) ;
    if( ibr_perc >= 0 )
-      EDIT_BRICK_LABEL( new_dset , ibr_perc , "Percent Change" ) ;
+      EDIT_BRICK_LABEL( new_dset , ibr_perc , "% Change" ) ;
    if( ibr_base >= 0 )
       EDIT_BRICK_LABEL( new_dset , ibr_base , "Baseline" ) ;
 
@@ -1218,8 +1218,8 @@ ENTRY("AFNI_fimmer_execute") ;
        XBell(im3d->dc->display,100) ; EXRETURN ;
    }
 
-   AFNI_SEE_FUNC_ON(im3d) ;
    AFNI_fimmer_redisplay( 1 , im3d , new_dset ) ;
+   AFNI_SEE_FUNC_ON(im3d) ;
 
    (void) THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
@@ -1256,6 +1256,7 @@ ENTRY("AFNI_fimmer_redisplay") ;
       if( new_dset->func_type == FUNC_BUCK_TYPE ){   /* 15 Dec 1997 */
          im3d->vinfo->fim_index = 0 ;
          im3d->vinfo->thr_index = 1 ;
+         if( DSET_NVALS(new_dset) == 1 ) im3d->vinfo->thr_index = 0 ;
       }
 
       AFNI_initialize_view( im3d->anat_now , im3d ) ;
