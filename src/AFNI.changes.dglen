@@ -9,5 +9,9 @@
  * Created 3dDWItoDT.c. Program calculates diffusion tensor data from diffusion weighted images.
 
 20 December 2004
- * Fixed bugs for initializing and freeing vectors in timeseries function that
-would sometimes result in segment faults
+ * Fixed bugs for initializing and freeing vectors in 3dDTeig timeseries
+   function that would sometimes result in segment faults
+
+23 December 2004
+ * Automask option now working in 3dDWItoDT.
+
