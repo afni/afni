@@ -159,6 +159,9 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 		}
 	}
 
+   /* now free the dset pointer */
+   THD_delete_3dim_dataset( dset , False ) ;
+   
 	SUMA_RETURN (VP);
 }
 

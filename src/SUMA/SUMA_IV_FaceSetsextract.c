@@ -64,6 +64,8 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 	int ip, NP, cnt, nospacing, MaxAlloc = 100, *linv, *FaceSetList;
 	div_t cnt4;
 	FILE*iv_file;
+   static char FuncName[]={"SUMA_IV_FaceSetsextract"};
+   
 
 	/* intialize the number of points read to 0 */
 	*N_FaceSetList = 0;

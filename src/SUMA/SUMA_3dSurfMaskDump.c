@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.2 (February 13, 2003)"
+#define VERSION "version 1.2 (February 11, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurfMaskDump - dump ascii dataset values corresponding to a surface
@@ -45,8 +45,8 @@
 /*----------------------------------------------------------------------
  * history:
  *
- * 1.2  February 13, 2003
- *   - init SUMAg array pointers, and check before calling Free_().
+ * 1.2  February 11, 2003
+ *   - do not free structs at the end
  *
  * 1.1  February 11, 2003
  *   - handle no arguments as with -help
@@ -239,15 +239,13 @@ int write_so_data ( opts_t * opts, param_t * p, SUMA_SurfaceObject * so )
 */
 int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 {
-    if ( ( SUMAg_DOv != NULL ) &&
-	 ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 ) )
-	fprintf(stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
+    if ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 )
+	fprintf( stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
 
-    if ( ( SUMAg_SVv != NULL ) &&
-	 ( SUMA_Free_SurfaceViewer_Struct_Vect(SUMAg_SVv, SUMAg_N_SVv) == 0 ) )
+    if ( SUMA_Free_SurfaceViewer_Struct_Vect(SUMAg_SVv, SUMAg_N_SVv) == 0 )
 	fprintf( stderr, "** failed SUMA_Free_SurfaceViewer_Struct_Vect()\n" );
 
-    if ( ( SUMAg_CF != NULL ) && ( SUMA_Free_CommonFields(SUMAg_CF) == 0 ) )
+    if ( SUMA_Free_CommonFields(SUMAg_CF) == 0 )
 	fprintf( stderr, "** failed SUMA_Free_CommonFields()\n" );
 
     fclose( p->outfp );
@@ -274,6 +272,9 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 	return -1;
     }
 
+   if (opts->debug > 1)
+   SUMAg_CF->MemTrace = 1;
+   
     /* for SUMA type notifications */
     if ( opts->debug > 3 )
 	SUMAg_CF->InOut_Notify = 1;
