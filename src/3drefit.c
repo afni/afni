@@ -98,6 +98,10 @@ void Syntax(char * str)
     "                  in the dataset.  This is useful if you have done something to\n"
     "                  modify the contents of the .BRIK file associated with this\n"
     "                  dataset.\n"
+    "  -redo_bstat     Re-computes the statistics for each sub-brick.  Requires\n"
+    "                  reading the .BRIK file, of course.  Also does -clear_bstat\n"
+    "                  before recomputing statistics, so that if the .BRIK read\n"
+    "                  fails for some reason, then you'll be left without stats.\n"
     "\n"
     "  -statpar v ...  Changes the statistical parameters stored in this\n"
     "                  dataset.  See 'to3d -help' for more details.\n"
@@ -227,6 +231,7 @@ int main( int argc , char * argv[] )
    int new_byte_order = 0 ;          /* 25 Apr 1998 */
    int new_toff_sl    = 0 ;          /* 12 Feb 2001 */
    int clear_bstat    = 0 ;          /* 28 May 2002 */
+   int redo_bstat     = 0 ;          /* 01 Feb 2005 */
    int copyaux        = 0 ;          /* 08 Jun 2004 */
    THD_3dim_dataset *auxset=NULL ;   /* 08 Jun 2004 */
    char *new_label2   = NULL ;       /* 21 Dec 2004 */
@@ -321,6 +326,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-clear_bstat") == 0 ){
          clear_bstat = 1 ;
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strcmp(argv[iarg],"-redo_bstat") == 0 ){  /* 01 Feb 2005 */
+         clear_bstat = 1 ; redo_bstat = 1 ;
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -869,6 +879,10 @@ int main( int argc , char * argv[] )
           REMOVEFROM_KILL( dset->kl , dset->stats->bstat ) ;
           dset->stats = NULL ;
         }
+      }
+
+      if( redo_bstat ){
+        THD_load_statistics( dset ) ;   /* 01 Feb 2005 */
       }
 
       /* 25 April 1998 */
