@@ -15,7 +15,9 @@ void mri_histogram( MRI_IMAGE * im , float hbot,float htop ,
    register float sbin ;
    MRI_IMAGE * lim ;
 
-   if( im == NULL || htop <= hbot || nbin < 2 ) return ;
+ENTRY("mri_histogram") ;
+
+   if( im == NULL || htop <= hbot || nbin < 2 ) EXRETURN ;
 
    /* can handle shorts and floats;  all else -> convert to float */
 
@@ -58,5 +60,5 @@ void mri_histogram( MRI_IMAGE * im , float hbot,float htop ,
    }
 
    if( lim != im ) mri_free( lim ) ;  /* toss temporary array */
-   return ;
+   EXRETURN ;
 }

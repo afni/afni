@@ -12,10 +12,12 @@ MRI_IMAGE * mri_scalize( MRI_IMAGE *inim , int kind , float *sfac )
    float gtop , fac , fimfac ;
    MRI_IMAGE *outim ;
 
+ENTRY("mri_scalize") ;
+
    if( inim == NULL            ||
        inim->kind != MRI_float ||
       sfac == NULL             ||
-      !MRI_IS_INT_TYPE(kind)     ) return NULL ;
+      !MRI_IS_INT_TYPE(kind)     ) RETURN(NULL) ;
 
    fac = *sfac ; if( fac < 0.0 ) fac = 0.0 ;
 
@@ -31,5 +33,5 @@ MRI_IMAGE * mri_scalize( MRI_IMAGE *inim , int kind , float *sfac )
      EDIT_coerce_scale_type( inim->nvox , 1.0/fimfac ,
                              MRI_float , MRI_FLOAT_PTR(inim) ,
                              outim->kind , mri_data_pointer(outim) ) ;
-   *sfac = fimfac ; return outim ;
+   *sfac = fimfac ; RETURN(outim) ;
 }

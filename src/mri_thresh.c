@@ -17,14 +17,16 @@ void mri_threshold( double thbot , double thtop , MRI_IMAGE * thrim , MRI_IMAGE 
 {
    register int ii , npix ;
 
+ENTRY("mri_threshold") ;
+
    if( thrim == NULL           || im == NULL ||
-       thrim->nvox != im->nvox || thbot >= thtop ) return ;
+       thrim->nvox != im->nvox || thbot >= thtop ) EXRETURN ;
 
    npix = im->nvox ;
 
    switch( thrim->kind ){
 
-      default: return ;  /* don't know how to use this type of threshold image */
+      default: EXRETURN ;  /* don't know how to use this type of threshold image */
 
       case MRI_short:{                     /* threshold image is shorts */
          register short th1 , th2 ;
@@ -33,48 +35,48 @@ void mri_threshold( double thbot , double thtop , MRI_IMAGE * thrim , MRI_IMAGE 
 
          switch( im->kind ){
 
-            default: return ;  /* unknown type of data image */
+            default: EXRETURN ;  /* unknown type of data image */
 
             case MRI_byte:{
                register byte * ar = MRI_BYTE_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_short:{
                register short * ar = MRI_SHORT_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_int:{
                register int * ar = MRI_INT_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_float:{
                register float * ar = MRI_FLOAT_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0.0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_double:{
                register double * ar = MRI_DOUBLE_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0.0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_complex:{
                register complex * ar = MRI_COMPLEX_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii].r = ar[ii].i = 0.0 ;
-               return ;
+               EXRETURN ;
             }
          }
       } /* end of short thrim */
@@ -86,53 +88,53 @@ void mri_threshold( double thbot , double thtop , MRI_IMAGE * thrim , MRI_IMAGE 
 
          switch( im->kind ){
 
-            default: return ;
+            default: EXRETURN ;
 
             case MRI_byte:{
                register byte * ar = MRI_BYTE_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_short:{
                register short * ar = MRI_SHORT_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_int:{
                register int * ar = MRI_INT_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_float:{
                register float * ar = MRI_FLOAT_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0.0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_double:{
                register double * ar = MRI_DOUBLE_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0.0 ;
-               return ;
+               EXRETURN ;
             }
 
             case MRI_complex:{
                register complex * ar = MRI_COMPLEX_PTR(im) ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii].r = ar[ii].i = 0.0 ;
-               return ;
+               EXRETURN ;
             }
          }
       } /* end of float thrim */
 
    }
 
-   return ;  /* should not be reached! */
+   EXRETURN ;  /* should not be reached! */
 }

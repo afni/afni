@@ -12,7 +12,9 @@ void mri_histoshort_all( MRI_IMAGE * im , int * hist )
    register int ih , npix , ii ;
    short * sar ;
 
-   if( im == NULL || im->kind != MRI_short || hist == NULL ) return ;
+ENTRY("mri_histoshort_all") ;
+
+   if( im == NULL || im->kind != MRI_short || hist == NULL ) EXRETURN ;
 
    npix = im->nvox ;
    sar  = MRI_SHORT_PTR(im) ;
@@ -22,7 +24,7 @@ void mri_histoshort_all( MRI_IMAGE * im , int * hist )
    for( ii=0 ; ii < npix ; ii++ )
       hist[ sar[ii]+OFF_SHORT ] ++ ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------- for this one, declare 'int hist[32768]' --------*/
@@ -32,7 +34,9 @@ void mri_histoshort_nonneg( MRI_IMAGE * im , int * hist )
    register int ih , npix , ii ;
    short * sar ;
 
-   if( im == NULL || im->kind != MRI_short || hist == NULL ) return ;
+ENTRY("mri_histoshort_nonneg") ;
+
+   if( im == NULL || im->kind != MRI_short || hist == NULL ) EXRETURN ;
 
    npix = im->nvox ;
    sar  = MRI_SHORT_PTR(im) ;
@@ -42,5 +46,5 @@ void mri_histoshort_nonneg( MRI_IMAGE * im , int * hist )
    for( ii=0 ; ii < npix ; ii++ )
       if( sar[ii] >= 0 ) hist[ sar[ii] ] ++ ;
 
-   return ;
+   EXRETURN ;
 }
