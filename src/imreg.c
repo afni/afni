@@ -215,6 +215,9 @@ void REG_syntax(void)
     "\n"
     "  -dfspacetime[:0]  Apply both algorithms: dfspace, then dftime.\n"
     "\n"
+    "The new two options are used to play with the -dfspace algorithm,\n"
+    "which has a 'coarse' fit phase and a 'fine' fit phase:\n"
+    "\n"
     "  -fine blur dxy dphi  Set the 3 'fine' fit parameters:\n"
     "                         blur = FWHM of image blur prior to registration,\n"
     "                                  in pixels [must be > 0];\n"
@@ -223,8 +226,7 @@ void REG_syntax(void)
     "                         dphi = convergence tolerance for rotations,\n"
     "                                  in degrees.\n"
     "\n"
-    "  -nofine              Turn off the 'fine' fit algorithm; in some cases it\n"
-    "                         makes things worse, not better.  By default, the\n"
+    "  -nofine              Turn off the 'fine' fit algorithm. By default, the\n"
     "                         algorithm is on, with parameters 1.0, 0.07, 0.21.\n"
    ) ;
 
