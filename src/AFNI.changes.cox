@@ -3848,3 +3848,8 @@
 24 Jul 2002
  * Modified UNIQ_idcode() in niml.c to get 4 extra bytes from /dev/urandom,
      if it is readable.
+
+29 Jul 2002
+ * Modified AFNI_read_images() in afni.c to use im->dx,dy,dz in "-im" usage
+     of program, if images read have voxel spacing (e.g., Analyze).
+ * Modified imseq.c to NOT turn off widgets if only 1 slice to display.

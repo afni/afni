@@ -20,6 +20,8 @@
 
 #define COLSIZE AV_colsize()  /* for optmenus -- 11 Dec 2001 */
 
+#define DONT_ONOFF_ONE        /* 29 Jul 2002 */
+
 /************************************************************************
    Define the buttons and boxes that go in the "Disp" dialog
 *************************************************************************/
@@ -3527,6 +3529,11 @@ ENTRY("ISQ_scale_CB") ;
 
    if( ! ISQ_REALZ(seq) ) EXRETURN ;
 
+   if( seq->status->num_total < 2 ){  /* 29 Jul 2002 */
+      XmScaleSetValue( seq->wscale , 0 ) ;
+      EXRETURN ;
+   }
+
    ISQ_redisplay( seq , cbs->value , isqDR_display ) ;
 
    ISQ_but_done_reset( seq ) ;
@@ -6300,8 +6307,10 @@ static unsigned char record_bits[] = {
             POPUP_cursorize( seq->wbut_bot[NBUT_SAVE] ) ;
             XmUpdateDisplay( seq->wtop ) ;
          }
+#ifndef DONT_ONOFF_ONE
          if( seq->status->num_total == 1 )  /* 08 Aug 2001 */
             drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
+#endif
          seq->valid = 2 ;
          RETURN( True );
       }
@@ -6427,6 +6436,7 @@ static unsigned char record_bits[] = {
 
       /*------- new numtotal -------*/
 
+#if 0                                   /* 29 Jul 2002: removed from the canon for unuse */
       case isqDR_numtotal:{
          int newtot = (int) drive_data ,
              oldtot = seq->status->num_total ,
@@ -6477,6 +6487,7 @@ static unsigned char record_bits[] = {
          RETURN( True );
       }
       break ;
+#endif
 
       /*------- new image sequence!!! -------*/
 
@@ -6667,7 +6678,7 @@ ENTRY("ISQ_setup_new") ;
                      XmNvalue   , seq->im_nr ,
                   NULL ) ;
 
-#if 1
+#ifndef DONT_ONOFF_ONE
    if( seq->status->num_total == 1 )
       drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
 #endif
@@ -8700,10 +8711,12 @@ ENTRY("ISQ_record_open") ;
 
    drive_MCW_imseq( seq->record_imseq , isqDR_realize, NULL ) ;
 
+#ifndef DONT_ONOFF_ONE
    if( ntot == 1 )
       drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_offwid);
    else
       drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_onwid );
+#endif
 
    drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
 
@@ -8733,10 +8746,12 @@ ENTRY("ISQ_record_update") ;
 
    drive_MCW_imseq( seq->record_imseq , isqDR_newseq , seq ) ;
 
+#ifndef DONT_ONOFF_ONE
    if( ntot == 1 )
       drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_offwid);
    else
       drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_onwid );
+#endif
 
    drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer)npos ) ;
 
