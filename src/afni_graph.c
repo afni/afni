@@ -1813,15 +1813,17 @@ STATUS("about to perform 1D transformation") ;
 
    /** find the average time series [27 Jan 2004] **/
 
-   { float *avar , fac ;
+   if( NPTS(grapher) > 1 && IMARR_COUNT(tsimar) > 0 ){
+     float *avar , fac ; int nax ;
+STATUS("about to make average time series") ;
      if( grapher->ave_tsim != NULL ) mri_free(grapher->ave_tsim) ;
      grapher->ave_tsim = mri_new( NPTS(grapher) , 1 , MRI_float ) ;
      avar = MRI_FLOAT_PTR(grapher->ave_tsim) ;
      for( ix=0 ; ix < IMARR_COUNT(tsimar) ; ix++ ){
-       tsim = IMARR_SUBIMAGE(tsimar,ix) ;
-       tsar = MRI_FLOAT_PTR(tsim) ;
-       if( tsar == NULL ) continue ;
-       for( i=0 ; i < tsim->nx ; i++ ) avar[i] += tsar[i] ;
+       tsim = IMARR_SUBIMAGE(tsimar,ix) ; if( tsim == NULL ) continue ;
+       tsar = MRI_FLOAT_PTR(tsim)       ; if( tsar == NULL ) continue ;
+       nax = MIN( grapher->ave_tsim->nx , tsim->nx ) ;
+       for( i=0 ; i < nax ; i++ ) avar[i] += tsar[i] ;
      }
      fac = 1.0 / IMARR_COUNT(tsimar) ;
      for( i=0 ; i < grapher->ave_tsim->nx ; i++ ) avar[i] *= fac ;
@@ -1834,6 +1836,8 @@ STATUS("about to perform 1D transformation") ;
          IMARR_SUBIMAGE(grapher->ref_ts,0) = grapher->ave_tsim ;  /* replace first one */
        }
      }
+   } else if( grapher->ave_tsim != NULL ){
+     mri_free(grapher->ave_tsim) ; grapher->ave_tsim = NULL ;
    }
 
    /** find some statistics of each time series **/
