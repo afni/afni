@@ -59,7 +59,6 @@ int get_surf_data     ( v2s_opts_t * sopt, v2s_param_t * p );
 int init_options      ( opts_t * opts, int argc, char * argv [] );
 int print_default_line( FILE * fp, int max_ind, int node_ind,
                         int vind, int i, int j, int k, float fval );
-int print_header      ( FILE * outfp, char * surf, char * map, v2s_results *sd);int read_surf_files   ( opts_t * opts, SUMA_SurfSpecFile * spec );
 int set_smap_opts     ( opts_t * opts, v2s_param_t * p, v2s_opts_t * sopt );
 int suma2afni_surf    ( v2s_opts_t * sopt, v2s_param_t * p,
                         SUMA_SurfaceObject * so, int sindex );
@@ -68,8 +67,6 @@ int usage             ( char * prog, int level );
 int validate_datasets ( opts_t * opts, v2s_param_t * p );
 int validate_options  ( opts_t * opts, v2s_param_t * p );
 int validate_surface  ( opts_t * opts, v2s_param_t * p );
-int write_outfile_1D  ( v2s_opts_t * sopt, v2s_results * sd, char * label );
-int write_outfile_niml( v2s_opts_t * sopt, v2s_results * sd, int free_vals );
 int write_output      ( v2s_opts_t * sopt, v2s_param_t * p );
 
 #endif   /* _3dVOL2SURF_H_ */

@@ -684,4 +684,38 @@
 
 07 October 2004:
   * modified afni_plugin.h: fixed extern name PLUTO_set_v2s_addrs()
+  * modified afni.h: changed prototype for AFNI_vol2surf_func_overlay()
+  * modified afni_niml.c
+    - most of the file is part of a diff, beware...
+    - received local_domain_parent and ID from suma
+    - added local struct types ldp_surf_list and LDP_list
+    - in AFNI_process_NIML_data(), broke process_NIML_TYPE blocks out
+      as separate functions
+    - added process_NIML_SUMA_node_normals()
+    - modified AFNI_niml_redisplay_CB() to process surfaces over a list
+      of local domain parents
+    - added fill_ldp_surf_list(), to create an LDP list from the surfaces
+    - added disp_ldp_surf_list(), for debug
+  * modified afni_vol2surf.c
+    - new params surfA, surfB, use_defaults for AFNI_vol2surf_func_overlay()
+    - pass use_defaults to afni_vol2surf()
+  * modified plug_vol2surf.c
+    - added second surface pair to globals
+    - small help and hint changes
+    - fixed receive order of fr and mm offsets
+    - verify that surface pairs have matching LDPs
+    - added PV2S_disp_afni_surfaces() to list all surfaces w/indices
+  * modified vol2surf.[ch]
+    - added disp_v2s_plugin_opts()
+    - dealt with default v2s mapping of surface pairs
+    - added fill_sopt_default()
+    - moved v2s_write_outfile_*() here, with print_header()
+    - in afni_vol2surf(), actually write output files
+  * modified afni_suma.[ch]
+    - change idcode_domaingroup to idcode_ldp
+    - add char label_ldp[64]
+    - init label_ldp and idcode_ldp
+  * modified SUMA_3dVol2Surf.[ch] (-> v6.3)
+    - in suma2afni_surf() deal with LDP changes to SUMA_surface
+    - changed write_outfile functions to v2s_* and moved them to library
 

@@ -63,6 +63,21 @@ static int dont_hear_suma = 0 ;
 
 #define EPS 0.01
 
+/*--------------------------------------------------------*/
+/*! local structure types for organizing surfaces and LDPs */
+typedef struct {
+   char * idcode;
+   char * label;
+   int    nsurf;
+   int    sA, sB;
+   int    use_v2s;
+} ldp_surf_list;
+
+typedef struct {
+   ldp_surf_list * list;
+   int             nused, nalloc;
+} LDP_list;
+
 /*------------------------------------------------*/
 /*! If 1, send data; if 0, debug print it instead */
 
@@ -86,6 +101,23 @@ static void    AFNI_process_NIML_data( int , void * , int ) ;
 static void    AFNI_niml_redisplay_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_viewpoint_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_driver( char * , NI_stream_type *, NI_element * ) ;
+
+/*----------------------------------------------------------------------
+ * AFNI_process_NIML_data() has been broken in to many process_NIML_TYPE()
+ * functions.  Functionality has been added for local_domain_parents, such
+ * that surface data is sent per LDP, not per surface.  08 Oct 2004 [rickr]
+ *----------------------------------------------------------------------*/
+
+static int     process_NIML_SUMA_ixyz( NI_element * nel, int ct_start ) ;
+static int     process_NIML_SUMA_ijk( NI_element * nel, int ct_start ) ;
+static int     process_NIML_SUMA_node_normals( NI_element * nel, int ct_start );
+static int     process_NIML_SUMA_crosshair_xyz(NI_element * nel) ;
+static int     process_NIML_Node_ROI( NI_element * nel, int ct_start ) ;
+
+static int     disp_ldp_surf_list(LDP_list * ldp_list, THD_session * sess);
+static int     fill_ldp_surf_list(LDP_list * ldp_list, THD_session * sess,
+                                  v2s_plugin_opts * po);
+
 
 /*-----------------------------------------------------------------------*/
 /*! Routine executed at AFNI exit: shutdown all open NI_stream.
@@ -278,16 +310,16 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
    return False ;
 }
 
+
 /*----------------------------------------------------------------------*/
 /*! Process NIML data.  "chan" is the type of stream it came from;
     this is currently not used.
 ------------------------------------------------------------------------*/
-
 static void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
 {
-   int tt=NI_element_type(nini) , ct_read=0 , ct_tot=0 ;
+   int tt=NI_element_type(nini) ;
    NI_element *nel ;
-   char msg[1024] ;
+   char msg[256] ;
 
 ENTRY("AFNI_process_NIML_data") ;
 
@@ -310,840 +342,41 @@ ENTRY("AFNI_process_NIML_data") ;
 
    nel = (NI_element *) nini ;
 
-   if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
-
 #if 0
 fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 #endif
 
-   /******** Surface nodes for a dataset *********/
-
+   /* broke out as functions, added node_normals         06 Oct 2004 [rickr] */
    if( strcmp(nel->name,"SUMA_ixyz") == 0 ){
-     THD_slist_find find ;
-     THD_3dim_dataset *dset ;
-     THD_session *sess ;      /* 20 Jan 2004 */
-     SUMA_surface *ag ;
-     int *ic ; float *xc,*yc,*zc ; char *idc , idstr[32] ;
-     int num , ii ;
-     Three_D_View *im3d = AFNI_find_open_controller() ;
-     MCW_choose_cbs cbs ;
-     int nss = GLOBAL_library.sslist->num_sess ;
 
-     if( dont_hear_suma ) EXRETURN ;
+     process_NIML_SUMA_ixyz(nel, ct_start) ;  /* surface nodes for a dataset */
 
-     /*-- check element for suitability --*/
+   } else if( strcmp(nel->name,"SUMA_ijk") == 0 ){
 
-     if( nel->vec_len    <  1        ||  /* empty element?             */
-         nel->vec_filled <  1        ||  /* no data was filled in?      */
-         nel->vec_num    <  4        ||  /* less than 4 columns?         */
-         nel->vec_typ[0] != NI_INT   ||  /* must be int,float,float,float */
-         nel->vec_typ[1] != NI_FLOAT ||
-         nel->vec_typ[2] != NI_FLOAT ||
-         nel->vec_typ[3] != NI_FLOAT   ){
+     process_NIML_SUMA_ijk(nel, ct_start) ;   /* surface triangles from SUMA */
 
-       AFNI_popup_message( "*** ERROR:\n\n"
-                           " SUMA_ixyz surface data\n"
-                           " is badly formatted! \n" ) ;
+   } else if( strcmp(nel->name,"SUMA_node_normals") == 0 ){
 
-       if( nel->vec_len    < 1 ) fprintf(stderr,"** SUMA_ixyz vec_len    = %d\n",nel->vec_len) ;
-       if( nel->vec_filled < 1 ) fprintf(stderr,"** SUMA_ixyz vec_filled = %d\n",nel->vec_filled) ;
-       EXRETURN ;
-     }
+     process_NIML_SUMA_node_normals(nel, ct_start) ;/* node normals for surf */
 
-     /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
-          so that we can attach this surface to a dataset for display;
-          if we don't find the attribute or the dataset, then we quit --*/
+   } else if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0 ){
 
-     idc = NI_get_attribute( nel , "volume_idcode" ) ;
-     if( idc == NULL )
-       idc = NI_get_attribute( nel , "dataset_idcode" ) ;
-     if( idc == NULL && nss > 1 ){
-        AFNI_popup_message( "*** ERROR:\n "
-                            " SUMA_ixyz surface input\n"
-                            " does not identify dataset! \n " ) ;
-        EXRETURN ;
-     }
-     find = PLUTO_dset_finder(idc) ; dset = find.dset ;
-     if( dset == NULL && nss > 1 ){
-        sprintf(msg, "*** ERROR:\n\n"
-                     " SUMA_ixyz volume dataset idcode is \n"
-                     "   %s\n"
-                     " Can't find this in AFNI\n", idc ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
+     process_NIML_SUMA_crosshair_xyz(nel) ;            /* new focus position */
 
-     if( dset != NULL )
-       sess = GLOBAL_library.sslist->ssar[find.sess_index] ;  /* 20 Jan 2004 */
-     else
-       sess = GLOBAL_library.sslist->ssar[0] ;
+   } else if( strcmp(nel->name,"Node_ROI") == 0 ){
 
-     /*-- get surface ID code (or make it up) --*/
+     process_NIML_Node_ROI(nel, ct_start) ;         /* ROI drawing from SUMA */
 
-     idc = NI_get_attribute( nel , "surface_idcode" ) ;
-     if( idc == NULL )
-       idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
-     if( idc == NULL ){
-       UNIQ_idcode_fill(idstr) ; idc = idstr ;
-     }
-
-     /*-- 14 Aug 2002: we used to trash old surfaces,
-                       but now we just accumulate them
-          20 Jan 2004: now we put them on the session instead of dataset --*/
-
-     num = sess->su_num ;  /* number of surfaces currently attached */
-
-     /* 19 Aug 2002: check for surface idcode in existing set of surfaces */
-
-     for( ii=0 ; ii < num ; ii++ )
-       if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
-
-     if( ii < num ){       /* found it, which is bad */
-        sprintf(msg, "+++ WARNING:\n\n"
-                     " SUMA_ixyz volume surface idcode is\n"
-                     "  %s\n"
-                     " which is already loaded in this session \n"
-                     "  %.222s\n" ,
-                idc , sess->sessname ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-
-     /*-- make space for 1 more set of surface pointers --*/
-
-     /* the surface itself [created below] */
-
-     sess->su_surf = (SUMA_surface **) realloc(sess->su_surf,
-                                               (num+1)*sizeof(SUMA_surface *)) ;
-
-     /*-- initialize surface that we will fill up here --*/
-
-     sess->su_surf[num] = ag = SUMA_create_empty_surface() ;
-
-     MCW_strncpy(ag->idcode,idc,32);  /* idc is surface idcode from above */
-
-     /*-- 19 Aug 2002: get surface label (or make it up) --*/
-
-     idc = NI_get_attribute( nel , "surface_label" ) ;
-     if( idc == NULL )
-       idc = NI_get_attribute( nel , "SUMA_label" ) ;
-
-     if( idc != NULL )
-       MCW_strncpy(ag->label,idc,64) ;
-     else
-       sprintf(ag->label,"Surf#%d",num+1) ;
-
-     /*-- set IDCODEs of surface and of its dataset --*/
-
-     if( dset != NULL )
-       MCW_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
-
-     /*-- pointers to the data columns in the NI_element --*/
-
-     ic = (int *)   nel->vec[0] ;  /* index */
-     xc = (float *) nel->vec[1] ;  /* x coordinate */
-     yc = (float *) nel->vec[2] ;  /* y coordinate */
-     zc = (float *) nel->vec[3] ;  /* z coordinate */
-
-     /*-- add nodes to the surface --*/
-
-     SUMA_add_nodes_ixyz( ag , nel->vec_filled , ic,xc,yc,zc ) ;
-
-     /*-- prepare the surface for AFNI --*/
-
-     SUMA_ixyzsort_surface( ag ) ;
-
-     sess->su_num = num+1 ;     /* 14 Aug 2002 */
-
-     /*-- we're done! --*/
-
-     if( ct_start >= 0 )                     /* keep track of how */
-       ct_tot = NI_clock_time() - ct_start ; /* long this took   */
-
-     sprintf(msg,"+++ NOTICE:\n\n"                    /* and tell  */
-                 " SUMA_ixyz surface received:\n"     /* the user  */
-                 "  %-14.14s\n"                       /* some info */
-                 " %d nodes attached to session\n"
-                 "  %.222s\n"
-                 " This is surface #%d for this session \n" ,
-                 ag->label, nel->vec_filled , sess->sessname , num+1 ) ;
-
-     if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
-                                              "I/O time  =%4d ms\n"
-                                              "Processing=%4d ms\n" ,
-                              ct_read , ct_tot-ct_read ) ;
-
-     /* 16 Jun 2003: if need be, switch sessions and anatomy */
-
-     if( dset != NULL && find.sess_index != im3d->vinfo->sess_num ){
-       cbs.ival = find.sess_index ;
-       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
-                                 (XtPointer) im3d ,  &cbs          ) ;
-     }
-#if 1
-     if( dset != NULL && find.dset_index != im3d->vinfo->anat_num ){
-       cbs.ival = find.dset_index ;
-       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
-                                 (XtPointer) im3d ,  &cbs          ) ;
-     }
-#endif
-
-     AFNI_popup_message( msg ) ;
-
-     /* need to make the "Control Surface"
-        widgets know about this extra surface */
-
-     AFNI_update_all_surface_widgets( sess ) ;  /* 19 Aug 2002 */
-
-     dont_tell_suma = 1 ;
-     PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
-     dont_tell_suma = 0 ;
-
-#if 0
-     XtSetSensitive( im3d->vwid->imag->pop_sumato_pb, True  ) ;
-#endif
+   } else {
+     /*** If here, then name of element didn't match anything ***/
+     sprintf(msg,"*** ERROR:\n\n"
+                 " Unknown NIML input: \n"
+                 "  %.222s \n"
+                 " Ignoring it, and hoping it goes away.\n" ,
+                 nel->name) ;
+     AFNI_popup_message(msg) ;
      EXRETURN ;
    }
-
-   /********* surface triangles from SUMA **********/
-
-   if( strcmp(nel->name,"SUMA_ijk") == 0 ){
-     THD_3dim_dataset *dset ;
-     SUMA_surface *ag ;
-     int *it, *jt , *kt ; char *idc ;
-     int num , ii , nold ;
-     THD_session *sess ;             /* 20 Jan 2004 */
-     THD_slist_find find ;
-
-     if( dont_hear_suma ) EXRETURN ;
-
-     /*-- check element for suitability --*/
-
-     if( nel->vec_len    <  1      ||  /* empty element?        */
-         nel->vec_filled <  1      ||  /* no data was filled in? */
-         nel->vec_num    <  3      ||  /* less than 4 columns?  */
-         nel->vec_typ[0] != NI_INT ||  /* must be int,int,int  */
-         nel->vec_typ[1] != NI_INT ||
-         nel->vec_typ[2] != NI_INT   ){
-
-       AFNI_popup_message( "*** ERROR:\n\n"
-                           " SUMA_ijk surface data \n"
-                           " is badly formatted!\n" ) ;
-       EXRETURN ;
-     }
-
-     /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
-          so that we can attach this surface to a dataset for display;
-          if we don't find the attribute or the dataset, then we quit --*/
-
-     idc = NI_get_attribute( nel , "volume_idcode" ) ;
-     if( idc == NULL )
-       idc = NI_get_attribute( nel , "dataset_idcode" ) ;
-     if( idc == NULL ){
-        AFNI_popup_message( "*** ERROR:\n "
-                            " SUMA_ijk surface input\n"
-                            " does not identify dataset! \n" ) ;
-        EXRETURN ;
-     }
-     find = PLUTO_dset_finder( idc ) ; dset = find.dset ;
-     if( dset == NULL ){
-        sprintf(msg, "*** ERROR:\n\n"
-                     " SUMA_ijk surface dataset idcode is \n"
-                     "   %s\n"
-                     " Can't find this in AFNI\n", idc ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-     sess = GLOBAL_library.sslist->ssar[find.sess_index] ;  /* 20 Jan 2004 */
-
-     /*-- session must already have a surface --*/
-
-     num = sess->su_num ;
-     if( num == 0 ){
-        sprintf(msg,"*** ERROR:\n\n"
-                    " SUMA_ijk surface data\n"
-                    " received for dataset\n"
-                    "  %.222s\n"
-                    " before any SUMA_ixyz data! \n" ,
-                DSET_FILECODE(dset) ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-
-     idc = NI_get_attribute( nel , "surface_idcode" ) ;
-     if( idc == NULL )
-       idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
-     if( idc == NULL ){
-        AFNI_popup_message( "*** ERROR:\n\n"
-                            " SUMA_ijk surface input\n"
-                            " does not have surface idcode! \n" ) ;
-        EXRETURN ;
-     }
-
-     /* 14 Aug 2002: find surface idcode in dataset's list of surfaces */
-
-     for( ii=0 ; ii < num ; ii++ )
-       if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
-
-     if( ii == num ){
-        sprintf(msg, "*** ERROR:\n\n"
-                     " SUMA_ijk surface input surface idcode\n"
-                     "  %s\n"
-                     " does not match any surface in session \n"
-                     "  %.222s\n" ,
-                idc, sess->sessname ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-
-     ag = sess->su_surf[ii] ; /* set surface to run with */
-
-     if( ag->num_ijk > 0 ){
-        sprintf(msg, "*** WARNING:\n\n"
-                     " SUMA_ijk surface input surface idcode\n"
-                     "  %s\n"
-                     " already has %d triangles in it, and\n"
-                     " the SUMA user is trying to add %d more!\n" ,
-                idc, ag->num_ijk , nel->vec_filled ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-
-     /*-- pointers to the data columns in the NI_element --*/
-
-     it = (int *) nel->vec[0] ;  /* node index #1 */
-     jt = (int *) nel->vec[1] ;  /* node index #2 */
-     kt = (int *) nel->vec[2] ;  /* node index #3 */
-
-     /*-- add nodes to the surface --*/
-
-     nold = ag->num_ijk ;  /* 19 Aug 2002: # triangles before */
-
-     SUMA_add_triangles( ag , nel->vec_filled , it,jt,kt ) ;
-
-     /*-- we're done! --*/
-
-     if( ct_start >= 0 )                      /* keep track    */
-       ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
-
-     if( nold == 0 )
-       sprintf(msg,"+++ NOTICE:\n\n"                       /* let the   */
-                   " SUMA_ijk triangles received:\n"       /* pitiful   */
-                   " %d triangles attached to surface \n"  /* user see  */
-                   "  %-14.14s\n"                          /* what just */
-                   " in session\n"                         /* happened  */
-                   "  %.222s\n" ,
-                   nel->vec_filled , ag->label , sess->sessname ) ;
-     else
-       sprintf(msg,"+++ NOTICE:\n\n"
-                   " SUMA_ijk triangles received:\n"
-                   " %d NEW triangles attached to surface\n"
-                   "  %-14.14s\n"
-                   " (previously had %d triangles) in session \n"
-                   "  %.222s\n" ,
-                   nel->vec_filled , ag->label , nold , sess->sessname ) ;
-
-     if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
-                                              "I/O time  =%4d ms\n"
-                                              "Processing=%4d ms\n" ,
-                              ct_read , ct_tot-ct_read ) ;
-
-     AFNI_popup_message( msg ) ;
-
-     dont_tell_suma = 1 ;
-     PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
-     dont_tell_suma = 0 ;
-
-     EXRETURN ;
-   }
-
-   /********* node normals from SUMA       05 Oct 2004 [rickr] **********/
-
-   if( strcmp(nel->name,"SUMA_node_normals") == 0 ){
-     THD_3dim_dataset *dset ;
-     SUMA_surface *ag ;
-     float *xc, *yc, *zc ;
-     char  *idc ;
-     int num , ii ;
-     THD_session *sess ;
-     THD_slist_find find ;
-
-     if( dont_hear_suma ) EXRETURN ;
-
-     /*-- check element for suitability --*/
-
-     if( nel->vec_len    <  1        ||  /* empty element?        */
-         nel->vec_filled <  1        ||  /* no data was filled in? */
-         nel->vec_num    <  3        ||  /* less than 3 columns?  */
-         nel->vec_typ[0] != NI_FLOAT ||  /* must be float,float,float */
-         nel->vec_typ[1] != NI_FLOAT ||
-         nel->vec_typ[2] != NI_FLOAT ){
-
-       AFNI_popup_message( "*** ERROR:\n\n"
-                           " SUMA_node_normals data \n"
-                           " is badly formatted!\n" ) ;
-       EXRETURN ;
-     }
-
-     /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
-          so that we can attach this surface to a dataset for display;
-          if we don't find the attribute or the dataset, then we quit --*/
-
-     idc = NI_get_attribute( nel , "volume_idcode" ) ;
-     if( idc == NULL )
-       idc = NI_get_attribute( nel , "dataset_idcode" ) ;
-     if( idc == NULL ){
-        AFNI_popup_message( "*** ERROR:\n "
-                            " SUMA_node_normals input\n"
-                            " does not identify dataset! \n" ) ;
-        EXRETURN ;
-     }
-     find = PLUTO_dset_finder( idc ) ; dset = find.dset ;
-     if( dset == NULL ){
-        sprintf(msg, "*** ERROR:\n\n"
-                     " SUMA_node_normals surface dataset idcode is \n"
-                     "   %s\n"
-                     " Can't find this in AFNI\n", idc ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-     sess = GLOBAL_library.sslist->ssar[find.sess_index] ;
-
-     /*-- session must already have a surface --*/
-
-     num = sess->su_num ;
-     if( num == 0 ){
-        sprintf(msg,"*** ERROR:\n\n"
-                    " SUMA_node_normals surface data\n"
-                    " received for dataset\n"
-                    "  %.222s\n"
-                    " before any SUMA_ixyz data! \n" ,
-                DSET_FILECODE(dset) ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-
-     idc = NI_get_attribute( nel , "surface_idcode" ) ;
-     if( idc == NULL )
-       idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
-     if( idc == NULL ){
-        AFNI_popup_message( "*** ERROR:\n\n"
-                            " SUMA_node_normals surface input\n"
-                            " does not have surface idcode! \n" ) ;
-        EXRETURN ;
-     }
-
-     /* find surface idcode in dataset's list of surfaces */
-
-     for( ii=0 ; ii < num ; ii++ )
-       if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
-
-     if( ii == num ){
-        sprintf(msg, "*** ERROR:\n\n"
-                     " SUMA_node_normals surface input surface idcode\n"
-                     "  %s\n"
-                     " does not match any surface in session \n"
-                     "  %.222s\n" ,
-                idc, sess->sessname ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-
-     ag = sess->su_surf[ii] ; /* set surface to run with */
-
-     if( nel->vec_filled != ag->num_ixyz ){
-        sprintf(msg, "*** ERROR:\n\n"
-                     " SUMA_node_normals surface input surface idcode\n"
-                     "  %s\n"
-                     " has %d nodes, but has been sent %d normals\n" ,
-                     idc, ag->num_ixyz, nel->vec_filled ) ;
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-
-     if( ag->norm != NULL ){
-        sprintf(msg, "*** WARNING:\n\n"
-                     " SUMA_node_normals surface input surface idcode\n"
-                     "  %s\n"
-                     " already has normals associated with it,\n"
-                     " replacing old normals with new ones\n" , idc ) ;
-        AFNI_popup_message( msg ) ;
-     }
-
-     /*-- pointers to the data columns in the NI_element --*/
-
-     xc = (float *) nel->vec[0] ;  /* norm.x     */
-     yc = (float *) nel->vec[1] ;  /* norm.y     */
-     zc = (float *) nel->vec[2] ;  /* norm.z     */
-
-     /*-- add normals to the surface --*/
-
-     if( SUMA_add_norms_xyz( ag , nel->vec_filled , xc,yc,zc ) ){
-        sprintf(msg, "*** ERROR:SUMA_add_norms_ixyz failure!\n");
-        AFNI_popup_message( msg ) ;
-        EXRETURN ;
-     }
-
-     /*-- we're done! --*/
-
-     if( ct_start >= 0 )                      /* keep track    */
-       ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
-
-     sprintf(msg,"+++ NOTICE:\n\n"
-                 " SUMA_node_normals normals received:\n"
-                 " %d normals attached to surface\n"
-                 "  %-14.14s\n"
-                 " in session \n"
-                 "  %.222s\n" ,
-                 nel->vec_filled , ag->label , sess->sessname ) ;
-
-     if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
-                                              "I/O time  =%4d ms\n"
-                                              "Processing=%4d ms\n" ,
-                              ct_read , ct_tot-ct_read ) ;
-
-     AFNI_popup_message( msg ) ;
-
-     dont_tell_suma = 1 ;
-     PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
-     dont_tell_suma = 0 ;
-
-     EXRETURN ;
-   }
-
-   /********* new focus position **********/
-
-   if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0 ){
-     float *xyz ;
-
-     if( dont_hear_suma ) EXRETURN ;
-
-     if( nel->vec_len    <  3        ||
-         nel->vec_filled <  3        ||
-         nel->vec_num    <  1        ||
-         nel->vec_typ[0] != NI_FLOAT   ){
-
-       AFNI_popup_message( "+++ WARNING:\n\n"
-                           " SUMA_crosshair_xyz input \n"
-                           " is badly formatted!\n" );
-       EXRETURN ;
-     }
-
-     xyz = (float *) nel->vec[0] ;
-     dont_tell_suma = 1 ;
-     AFNI_jumpto_dicom( AFNI_find_open_controller(), xyz[0],xyz[1],xyz[2] );
-     dont_tell_suma = 0 ;
-     EXRETURN ;
-   }
-
-   /*********** ROI drawing from SUMA **********/
-
-   if( strcmp(nel->name,"Node_ROI") == 0 ){
-     int *nlist , *nval , num_list , num,ii,jj,pp,ks ;
-     char *surf_idc , *roi_prefix , *dset_idc ;
-     THD_slist_find find ;
-     THD_3dim_dataset *dset_anat , *dset_func ;
-     SUMA_surface *ag ;
-     Three_D_View *im3d = AFNI_find_open_controller() ;
-     MCW_choose_cbs cbs ;
-     THD_session *sess ;
-     THD_fvec3 fv ; THD_ivec3 iv ;
-     short *funcar ;
-     float xbot,ybot,zbot , xtop,ytop,ztop ;
-     int wodsave , nx,ny,nxy ;
-
-     if( dont_hear_suma ) EXRETURN ;
-
-STATUS("received Node_ROI element") ;
-
-     if( nel->vec_num    <  2        ||
-         nel->vec_typ[0] != NI_INT   ||
-         nel->vec_typ[1] != NI_INT     ){
-
-       AFNI_popup_message( "+++ WARNING:\n\n"
-                           " Node_ROI input \n"
-                           " is badly formatted!\n" );
-       EXRETURN ;
-     }
-
-     nlist    = (int *) nel->vec[0] ;  /* node list */
-     nval     = (int *) nel->vec[1] ;  /* value list */
-     num_list = nel->vec_filled ;      /* number of nodes */
-
-     /** get ID codes of surface and anat parents **/
-
-STATUS("checking Node_ROI ID codes") ;
-
-     surf_idc = NI_get_attribute( nel , "MeshParent_idcode" ) ;
-     if( surf_idc == NULL )
-       surf_idc = NI_get_attribute( nel , "surface_idcode" ) ;
-     if( surf_idc == NULL )
-       surf_idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
-
-     dset_idc = NI_get_attribute( nel , "volume_idcode" ) ;
-     if( dset_idc == NULL )
-       dset_idc = NI_get_attribute( nel , "dataset_idcode" ) ;
-
-     /** get name of dataset this goes into **/
-
-     roi_prefix = NI_get_attribute( nel , "target_volume" ) ;
-     if( roi_prefix == NULL )
-       roi_prefix = NI_get_attribute( nel , "ROI_prefix" ) ;
-
-     /** check for errors [there are lots of possibilities] **/
-
-     if( surf_idc == NULL ){
-       AFNI_popup_message( "*** ERROR:\n\n"
-                           " Node_ROI input doesn't\n"
-                           " set 'MeshParent_idcode'!\n" ) ;
-       EXRETURN ;
-     }
-     if( dset_idc == NULL ){
-       AFNI_popup_message( "*** ERROR:\n\n"
-                           " Node_ROI input doesn't\n"
-                           " set 'volume_idcode'!\n" ) ;
-       EXRETURN ;
-     }
-     if( roi_prefix == NULL ){
-       AFNI_popup_message( "*** ERROR:\n\n"
-                           " Node_ROI input doesn't\n"
-                           " set 'target_volume'!\n" ) ;
-       EXRETURN ;
-     }
-     if( !THD_filename_pure(roi_prefix) ){
-       sprintf(msg, "*** ERROR:\n\n"
-                    " Node_ROI 'target_volume' prefix \n"
-                    "   %s\n"
-                    " contains illegal characters!\n" , roi_prefix ) ;
-       AFNI_popup_message( msg ) ;
-       EXRETURN ;
-     }
-
-     /** find parent volume for this ROI (from its ID code) **/
-
-STATUS("searching for Node_ROI parent volume") ;
-
-     find = PLUTO_dset_finder( dset_idc ) ; dset_anat = find.dset ;
-     if( dset_anat == NULL ){
-       sprintf(msg, "*** ERROR:\n\n"
-                    " Node_ROI volume dataset idcode is \n"
-                    "   %s\n"
-                    " Can't find this in AFNI\n", dset_idc ) ;
-       AFNI_popup_message( msg ) ;
-       EXRETURN ;
-     }
-     sess = GLOBAL_library.sslist->ssar[find.sess_index] ;  /* 20 Jan 2004 */
-
-     /** find the surface within this session (from its ID code) **/
-
-STATUS("searching for Node_ROI surface") ;
-
-     num = sess->su_num ;
-     if( num == 0 ){
-       sprintf(msg,"*** ERROR:\n\n"
-                   " Node_ROI data received for dataset\n"
-                   "  %.222s\n"
-                   " but no surfaces available in session! \n" ,
-               DSET_FILECODE(dset_anat) ) ;
-       AFNI_popup_message( msg ) ;
-       EXRETURN ;
-     }
-
-     for( ks=0 ; ks < num ; ks++ )
-       if( strstr(sess->su_surf[ks]->idcode,surf_idc) != NULL ) break ;
-
-     if( ks == num ){
-       sprintf(msg, "*** ERROR:\n\n"
-                    " Node_ROI surface idcode\n"
-                    "  %s\n"
-                    " does not match any surface in session \n"
-                    "  %.222s\n" ,
-               surf_idc, sess->sessname ) ;
-       AFNI_popup_message( msg ) ;
-       EXRETURN ;
-     }
-
-     ag = sess->su_surf[ks] ; /* set surface to run with */
-
-     /** switch session and anat dataset, if need be **/
-
-     if( find.sess_index != im3d->vinfo->sess_num ){
-       cbs.ival = find.sess_index ;
-       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
-                                 (XtPointer) im3d ,  &cbs          ) ;
-     }
-     if( find.dset_index >= 0 && find.dset_index != im3d->vinfo->anat_num ){
-       cbs.ival = find.dset_index ;
-       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
-                                 (XtPointer) im3d ,  &cbs          ) ;
-     }
-
-     AFNI_update_all_surface_widgets( sess ) ;
-#if 0
-     XtSetSensitive( im3d->vwid->imag->pop_sumato_pb, True ) ;
-#endif
-
-     /* see if ROI dataset already exists */
-
-STATUS("searching for Node_ROI functional dataset") ;
-
-     find = THD_dset_in_session( FIND_PREFIX , roi_prefix , sess ) ;
-     dset_func = find.dset ;
-
-     /* func dataset already exists?  Check if for goodness. */
-
-     if( dset_func != NULL ){
-       if( !EQUIV_DATAXES(dset_anat->daxes,dset_func->daxes) ){
-         sprintf(msg, "*** ERROR:\n\n"
-                      " Node_ROI functional dataset\n"
-                      "  %.222s\n"
-                      " exists, but doesn't match geometry of anat dataset\n"
-                      "  %.222s\n" ,
-                 roi_prefix , DSET_FILECODE(dset_anat) ) ;
-         AFNI_popup_message( msg ) ;
-         EXRETURN ;
-       }
-       DSET_mallocize(dset_func) ;     /* oops */
-       if( !DSET_LOADED(dset_func) ){
-         DSET_load(dset_func) ;
-         if( !DSET_LOADED(dset_func) ){
-           sprintf(msg, "*** ERROR:\n\n"
-                        " Node_ROI functional dataset\n"
-                        "  %.222s\n"
-                        " exists, but doesn't have data!\n" ,
-                   roi_prefix ) ;
-           AFNI_popup_message( msg ) ;
-           EXRETURN ;
-         }
-         DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
-         sprintf(msg,"+++ NOTICE:\n\n"
-                     " Node_ROI command is using existing dataset\n"
-                     "  %.222s\n" , DSET_FILECODE(dset_func) ) ;
-         AFNI_popup_message( msg ) ;
-       }
-       if( find.dset_index >= 0 && find.dset_index != im3d->vinfo->func_num ){
-         cbs.ival = find.dset_index ;
-         AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
-                                   (XtPointer) im3d ,  &cbs          ) ;
-       }
-
-     } else { /*** no pre-existing func?  create a dataset now ***/
-
-       ii = sess->num_dsset ;
-       if( ii >= THD_MAX_SESSION_SIZE ){
-         sprintf(msg, "*** ERROR:\n\n"
-                      " Can't create Node_ROI dataset\n"
-                      "  %.222s\n"
-                      " because of AFNI session overflow!\n" ,
-                 roi_prefix ) ;
-         AFNI_popup_message( msg ) ;
-         EXRETURN ;
-       }
-
-       dset_func = EDIT_empty_copy( dset_anat ) ;
-       EDIT_dset_items( dset_func ,
-                          ADN_prefix    , roi_prefix     ,
-                          ADN_type      , HEAD_FUNC_TYPE ,
-                          ADN_func_type , FUNC_BUCK_TYPE ,
-                          ADN_nvals     , 1              ,
-                          ADN_ntt       , 0              ,
-                          ADN_brick_fac , NULL           ,
-                        ADN_none ) ;
-       EDIT_BRICK_TO_NOSTAT( dset_func , 0 ) ;
-       EDIT_substitute_brick( dset_func , 0 , MRI_short , NULL ) ;
-
-       sess->dsset[ii][dset_func->view_type] = dset_func ;
-       sess->num_dsset ++ ;
-
-STATUS("switching func to Node_ROI dataset") ;
-
-       cbs.ival = ii ;
-       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
-                                 (XtPointer) im3d ,  &cbs          ) ;
-
-STATUS("popping up Node_ROI dataset creation notice") ;
-       sprintf(msg,"+++ NOTICE:\n\n"
-                   " Node_ROI command is creating dataset\n"
-                   "  %.222s\n" ,
-              DSET_FILECODE(dset_func) ) ;
-       AFNI_popup_message( msg ) ;
-
-STATUS("destroying any pre-existing Node_ROI vvlist") ;
-       DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
-     }
-
-STATUS("locking Node_ROI dataset into memory") ;
-     DSET_lock(dset_func) ;  /* lock into memory (no purge allowed) */
-
-     funcar = (short *) DSET_BRICK_ARRAY(dset_func,0) ;  /* array to draw */
-
-     /** now, see if there is an old voxel value list
-              attached to the surface ; if so zero out those voxels **/
-
-     if( ag->vv != NULL ){
-fprintf(stderr,"++ erasing %d voxels from previous SUMA ROI\n",ag->vv->nvox) ;
-       for( ii=0 ; ii < ag->vv->nvox ; ii++ ) funcar[ ag->vv->voxijk[ii] ] = 0;
-       DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
-     } else {
-STATUS("no old Node_ROI vvlist") ;
-     }
-
-     /** now put values from SUMA into dataset array **/
-
-     if( num_list > 0 ){
-fprintf(stderr,"++ writing %d voxels from SUMA ROI\n",num_list) ;
-       ag->vv = (SUMA_vvlist *) malloc( sizeof(SUMA_vvlist) ) ;
-       ag->vv->nvox   = num_list ;
-       ag->vv->voxijk = (int *)   malloc( sizeof(int)  *num_list ) ;
-       ag->vv->voxval = (float *) malloc( sizeof(float)*num_list ) ;
-
-       wodsave = dset_func->wod_flag ; dset_func->wod_flag = 0 ;
-
-       xbot = DSET_XXMIN(dset_func) ; xtop = DSET_XXMAX(dset_func) ;
-       ybot = DSET_YYMIN(dset_func) ; ytop = DSET_YYMAX(dset_func) ;
-       zbot = DSET_ZZMIN(dset_func) ; ztop = DSET_ZZMAX(dset_func) ;
-       nx = DSET_NX(dset_func); ny = DSET_NY(dset_func); nxy = nx*ny ;
-
-       for( ii=0 ; ii < num_list ; ii++ ){
-         pp = SUMA_find_node_id( ag , nlist[ii] ) ;
-         if( pp >= 0 ){
-           LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
-           fv = THD_dicomm_to_3dmm( dset_func , fv ) ;
-           if( fv.xyz[0] < xbot || fv.xyz[0] > xtop ) continue ;
-           if( fv.xyz[1] < ybot || fv.xyz[1] > ytop ) continue ;
-           if( fv.xyz[2] < zbot || fv.xyz[2] > ztop ) continue ;
-           iv = THD_3dmm_to_3dind( dset_func , fv ) ;
-           jj = iv.ijk[0] + iv.ijk[1]*nx + iv.ijk[2]*nxy ;
-           funcar[jj] = nval[ii] ;
-           ag->vv->voxijk[ii] = jj ; ag->vv->voxval[ii] = nval[ii] ;
-         }
-       }
-     } else {
-STATUS("no nodes in Node_ROI input") ;
-     }
-
-     DSET_write( dset_func ) ;  /* save to disk */
-
-     dont_overlay_suma = 1 ;
-
-STATUS("redisplay Node_ROI function") ;
-     MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
-     im3d->vinfo->func_visible = 1 ;
-     PLUTO_dset_redisplay( dset_func ) ;  /* redisplay windows with this dataset */
-     AFNI_process_drawnotice( im3d ) ;
-
-     EXRETURN ;
-   }
-
-   /*** If here, then name of element didn't match anything ***/
-
-   sprintf(msg,"*** ERROR:\n\n"
-               " Unknown NIML input: \n"
-               "  %.222s \n"
-               " Ignoring it, and hoping it goes away.\n" ,
-               nel->name) ;
-   AFNI_popup_message(msg) ;
-   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -1159,11 +392,12 @@ void AFNI_disable_suma_overlay( int aa )
 
 static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
 {
+   static LDP_list ldp_list = { NULL, 0, 0 };   /* 07 Oct 2004 [rickr] */
    Three_D_View *im3d = (Three_D_View *) qqq ;
    THD_3dim_dataset *adset , *fdset ;
    SUMA_irgba *map ;
-   SUMA_irgba *saved_map ;  /* so we can call vol2surf just once for now */
-   int        nmap, saved_nmap , nvused , nvtot , ct , ks , v2s ;
+   int        nmap, nvused , nvtot , ct , kldp ;
+   int        sA, sB, v2s;
    NI_element *nel ;
    char msg[16] ;
    THD_session *sess ;   /* 20 Jan 2004 */
@@ -1189,48 +423,38 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    ct = NI_clock_time() ;
 
-   /* 12 Dec 2002:
-      Now we loop over all surfaces in the current session
-      and send the node+color map for each and every one! */
+   if( fill_ldp_surf_list(&ldp_list, sess, &gv2s_plug_opts) != 0 )
+     EXRETURN ;
 
-   saved_map  = NULL ;
-   saved_nmap = 0 ;
-   for( ks=0 ; ks < sess->su_num ; ks++ ){
+   if( gv2s_plug_opts.sopt.debug > 1 )    /* spit out some info */
+      disp_ldp_surf_list(&ldp_list, sess);
+
+   /* 07 Oct 2004 [rickr]
+      Now we loop over all local domain parents in the current session
+      and send the node+color map for each and every one! */
+   for( kldp=0 ; kldp < ldp_list.nused ; kldp++ ){
+
+     /* For each LDP, if use_v2s, use it
+      *               else if one surface, use afni
+      *               else, call vol2surf w/midpoint on the 2 surfaces
+      *                                             07 Oct 2004 [rickr] */
 
      nvused = -1 ;
-     v2s = 0 ;
+     v2s    =  0 ;
 
-     /* Okay, we'll be messy for the moment, since this logic will change
-      * once Ziad and I make some decisions.  For now, let's call vol2surf
-      * only once, and save map and nmap for later.
-      * The first time through, call v2s and (if we'll return) save the
-      * resulting map.  Then when we return, use those saved results.
-      *                                                29 Sep 2004 [rickr]
-     */
-     if( gv2s_plug_opts.ready &&
-         ( gv2s_plug_opts.surfA == ks || gv2s_plug_opts.surfB == ks ) ) {
-       v2s = 1 ;   /* vol2surf case */
+     sA = ldp_list.list[kldp].sA;   /* for the sake of laziness */
+     sB = ldp_list.list[kldp].sB;
 
-       if( ! saved_map ) {
-          /* we have not called vol2surf yet */
-          nmap = AFNI_vol2surf_func_overlay( im3d, &map ) ;
-          if(gv2s_plug_opts.surfB >= 0 && gv2s_plug_opts.surfB < sess->su_num) {
-             /* then we will be back, save map and nmap for next time */
-             saved_map  = map ;
-             saved_nmap = nmap ;
-          }
-       } else {
-          /* vol2surf has been called, use the stored map */
-          map  = saved_map ;
-          nmap = saved_nmap ;
-          saved_map  = NULL ;
-          if( gv2s_plug_opts.sopt.debug > 0 )
-             fprintf(stderr,"AFNI_vol2surf - using results from surf %d\n", ks);
-       }
-     } else {
-       nmap = AFNI_vnlist_func_overlay( im3d,ks , &map,&nvused ) ;
+     if( ldp_list.list[kldp].use_v2s ){            /* vol2surf was requested */
+       nmap = AFNI_vol2surf_func_overlay( im3d, &map, sA, sB, 0 ) ;
+       v2s = 1;
+     } else if ( ldp_list.list[kldp].nsurf == 2 ){  /* use v2s with defaults */
+       nmap = AFNI_vol2surf_func_overlay( im3d, &map, sA, sB, 1 ) ;
+       v2s = 1;
+     } else {  /* one surface, no request: use vnlist */
+       nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;
        if( gv2s_plug_opts.sopt.debug > 0 )
-          fprintf(stderr,"AFNI_vnlist returned %d for surf %d\n", nmap, ks) ;
+          fprintf(stderr,"AFNI_vnlist returned %d for surf %d\n", nmap, sA) ;
      }
 
 #if 0
@@ -1238,12 +462,16 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 #endif
 
      /* base the error checking on which mapping method was used */
-     if( ! v2s && ( nmap < 0 || sess->su_surf[ks]->vn == NULL ) )
+     if( ! v2s && ( nmap < 0 || sess->su_surf[sA]->vn == NULL ) )
+     {
+       if( gv2s_plug_opts.sopt.debug > 0 )
+         fprintf(stderr,"** afni: bad surface %d, ret: %d,%p\n", sA, nmap, map);
        continue ; /* this is bad */
+     }
      else if( v2s && (nmap < 0 || (nmap > 0 && !map))) /* 29 Sep 2004 [rickr] */
      {
        if( gv2s_plug_opts.sopt.debug > 0 )
-         fprintf(stderr,"** afni: bad surface %d, ret: %d,%p\n", ks, nmap, map);
+         fprintf(stderr,"** bad v2s map %d, ret: %d,%p\n", sA, nmap, map);
        continue ; /* this is bad */
      }
 
@@ -1267,9 +495,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
          bcol[ii] = map[ii].b  ; acol[ii] = map[ii].a ;
        }
 
-       /* do not free the map if the map is saved and we have a v2s surface */
-       if( ! saved_map || ! v2s )
-          free(map) ;       /* data in nel, so don't need map no more */
+       free(map) ;       /* data in nel, so don't need map no more */
 
      } else {         /*--- make an empty data element ---*/
 
@@ -1278,14 +504,16 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
      }
 
-     if ( sess->su_surf[ks]->vn )            /* 29 Sep 2004 [rickr] */
-       nvtot = sess->su_surf[ks]->vn->nvox ; /* 13 Mar 2002 and 20 Jan 2004 */
+     if ( sess->su_surf[sA]->vn )            /* 29 Sep 2004 [rickr] */
+       nvtot = sess->su_surf[sA]->vn->nvox ; /* 13 Mar 2002 and 20 Jan 2004 */
      else
        nvtot = -1;      /* make it clear, vol2surf has no interface for this */
 
      /* 13 Mar 2002: send idcodes of surface and datasets involved */
 
-     NI_set_attribute( nel, "surface_idcode" , sess->su_surf[ks]->idcode ) ;
+     NI_set_attribute( nel, "surface_idcode" , sess->su_surf[sA]->idcode ) ;
+     NI_set_attribute( nel, "local_domain_parent_ID" ,
+                            sess->su_surf[sA]->idcode_ldp ) ;
      NI_set_attribute( nel, "volume_idcode"  , adset->idcode.str ) ;
      NI_set_attribute( nel, "function_idcode", fdset->idcode.str ) ;
 
@@ -1319,6 +547,158 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    EXRETURN ;
 }
+
+/*--------------------------------------------------------------------*/
+/*! Display the contents of the LDP_list
+----------------------------------------------------------------------*/
+static int disp_ldp_surf_list(LDP_list * ldp_list, THD_session * sess)
+{
+   ldp_surf_list * slist;
+   int             ldp;
+
+ENTRY("disp_ldp_surf_list");
+
+   if(!ldp_list || !sess ) {
+      fprintf(stderr,"** disp_ldp_surf_list: bad params (%p,%p)\n",
+              ldp_list, sess);
+      RETURN(1);
+   }
+
+   if( ldp_list->nused <= 0 ){
+      fprintf(stderr,"+d LDP_list: empty\n");
+      RETURN(0);
+   }
+
+   fprintf(stderr,"+d LDP_list:\n"
+                  "       (nused, nalloc)       = (%d, %d)\n",
+                  ldp_list->nused, ldp_list->nalloc);
+
+   for (ldp = 0, slist = ldp_list->list; ldp < ldp_list->nused; ldp++, slist++ )
+      fprintf(stderr,"       (nsurf,sA,sB,use_v2s) = (%d, %d, %d, %d) : '%s'\n",
+              slist->nsurf, slist->sA, slist->sB, slist->use_v2s, slist->label);
+
+   RETURN(0);
+}
+
+/*--------------------------------------------------------------------*/
+/*! For this session, make a list of surfaces per local domain parent.
+----------------------------------------------------------------------*/
+static int fill_ldp_surf_list(LDP_list * ldp_list, THD_session * sess,
+                              v2s_plugin_opts * po)
+{
+   ldp_surf_list * slist;
+   int             surf, surf_tmp, ldp;
+
+ENTRY("fill_ldp_surf_list");
+
+   if(!ldp_list || !sess || !po ) {
+      fprintf(stderr,"** fill_ldp_surf_list: bad params (%p,%p,%p)\n",
+              ldp_list, sess, po);
+      RETURN(1);
+   }
+
+   if ( sess->su_num <= 0 ) RETURN(0);
+
+   /* first of all, be slightly wasteful and grow the list to su_num length */
+   if( ldp_list->nalloc < sess->su_num ){
+      ldp_list->nalloc = sess->su_num;
+      ldp_list->list = (ldp_surf_list *)realloc(ldp_list->list,
+                                 ldp_list->nalloc * sizeof(ldp_surf_list));
+      if( !ldp_list->list ){
+         fprintf(stderr,"** can't allocate ldp_list (%d)\n", ldp_list->nalloc);
+         exit(1);
+      }
+   }
+
+   /* now, go through the very difficult task of emptying the ldp_list */
+   ldp_list->nused = 0;
+
+   /* next, fill the list with ldp and their surfaces (beware of O(n^2)...) */
+   for ( surf = 0; surf < sess->su_num; surf++ ) {
+      for ( ldp = 0; ldp < ldp_list->nused; ldp++ )  /* does thie ldp exist? */
+         if ( strncmp(ldp_list->list[ldp].idcode,
+                      sess->su_surf[surf]->idcode_ldp,32) == 0 )
+            break;
+      slist = &ldp_list->list[ldp];     /* note where we are */
+
+      if( ldp == ldp_list->nused ){     /* then we have a new ldp */
+         slist->idcode  = sess->su_surf[surf]->idcode_ldp;
+         slist->label   = sess->su_surf[surf]->label_ldp;
+         slist->nsurf   = 1;     /* adding first surface        */
+         slist->sA      = surf;  /* the session's surface index */
+         slist->sB      = -1;    /* init to unused              */
+         slist->use_v2s = 0;     /* assume no user request      */
+
+         ldp_list->nused++;     /* we have added a new ldp entry */
+      } else {
+         if( slist->nsurf == 0 ){
+            fprintf(stderr,"** fill_ldp_surf_list insert screwup!\n");
+            RETURN(1);
+         } else if ( slist->nsurf > 1 ){
+            fprintf(stderr,"** warning, found too many surfaces for LDP:\n"  
+                    "      LDP         : %s\n"
+                    "      new surface : %s\n"
+                    "      surf 0      : %s\n"
+                    "      surf 1      : %s\n",
+                    slist->label, sess->su_surf[surf]->label,
+                    sess->su_surf[slist->sA]->label,
+                    sess->su_surf[slist->sB]->label);
+            fprintf(stderr,"   --> ignoring new surface...\n");
+         } else {
+           slist->sB = surf;    /* the easy, good case */
+           slist->nsurf++;
+         }
+      }
+   }
+
+   /* rcr - fix mis-match for the case where we skip a user-requested surface */
+
+   if( ! po->ready ) RETURN(0);   /* then don't worry about vol2surf */
+
+   /* now go back and verify which surface(s) can use vol2surf */
+   for ( ldp = 0; ldp< ldp_list->nused; ldp++ ){
+      slist = &ldp_list->list[ldp];
+      surf  = slist->sA;
+      if( po->use0 && surf == po->s0A ) {
+         if( po->s0B >= 0 && po->s0B != slist->sB ){
+            fprintf(stderr,"** user surfs %d and %d should match %d and %d\n",
+                           po->s0A, po->s0B, slist->sA, slist->sB);    
+         } else {
+           slist->use_v2s = 1;     /* we have a match, maybe a pair */
+         }
+      } else if( po->use0 && surf == po->s0B ) {
+         if( po->s0A >= 0 && po->s0A != slist->sB ){
+            fprintf(stderr,"** user surfs %d and %d should match %d and %d\n",
+                           po->s0B, po->s0A, slist->sA, slist->sB);    
+         } else {  /* regardless of pair */
+           slist->use_v2s = 1;     /* we have a match, but reverse */
+           surf_tmp = po->s0A;
+           po->s0A  = po->s0B;
+           po->s0B  = surf_tmp;
+         }
+      } else if( po->use1 && surf == po->s1A ) {
+         if( po->s1B >= 0 && po->s1B != slist->sB ){
+            fprintf(stderr,"** user surfs %d and %d should match %d and %d\n",
+                           po->s1A, po->s1B, slist->sA, slist->sB);    
+         } else {
+           slist->use_v2s = 1;     /* we have a match, maybe pair */
+         }
+      } else if( po->use1 && surf == po->s1B ) {
+         if( po->s1A >= 0 && po->s1A != slist->sB ){
+            fprintf(stderr,"** user surfs %d and %d should match %d and %d\n",
+                           po->s1B, po->s1A, slist->sA, slist->sB);    
+         } else {
+           slist->use_v2s = 1;     /* we have a match, but reverse */
+           surf_tmp = po->s1A;
+           po->s1A  = po->s1B;
+           po->s1B  = surf_tmp;
+         }
+      }
+   }
+
+   RETURN(0);
+}
+
 
 /*--------------------------------------------------------------------*/
 /*! Receives notice when user changes viewpoint position.
@@ -1474,4 +854,873 @@ void AFNI_get_xhair_node( void *qq3d , int *kkbest , int *iibest )
    if( kkbest != NULL ) *kkbest = kbest ;
    if( iibest != NULL ) *iibest = ibest ;
    return ;
+}
+
+/***********************************************************************/
+/**  process NIML elements, one process_NIML_TYPE function per TYPE   **/
+/**  - broken out of AFNI_process_NIML_data()    06 Oct 2004 [rickr]  **/
+/***********************************************************************/
+
+
+/******** Surface nodes for a dataset *********/
+static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
+{
+   THD_slist_find find ;
+   THD_3dim_dataset *dset ;
+   THD_session *sess ;      /* 20 Jan 2004 */
+   SUMA_surface *ag ;
+   int *ic ; float *xc,*yc,*zc ; char *idc , idstr[32] ;
+   int num , ii ;
+   Three_D_View *im3d = AFNI_find_open_controller() ;
+   MCW_choose_cbs cbs ;
+   int nss = GLOBAL_library.sslist->num_sess ;
+   int ct_read = 0, ct_tot = 0 ;
+   char msg[1024] ;
+
+ENTRY("process_NIML_SUMA_ixyz");
+
+   if( dont_hear_suma ) RETURN(0) ;
+
+   if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
+
+   /*-- check element for suitability --*/
+
+   if( nel->vec_len    <  1        ||  /* empty element?             */
+       nel->vec_filled <  1        ||  /* no data was filled in?      */
+       nel->vec_num    <  4        ||  /* less than 4 columns?         */
+       nel->vec_typ[0] != NI_INT   ||  /* must be int,float,float,float */
+       nel->vec_typ[1] != NI_FLOAT ||
+       nel->vec_typ[2] != NI_FLOAT ||
+       nel->vec_typ[3] != NI_FLOAT   ){
+
+     AFNI_popup_message( "*** ERROR:\n\n"
+                         " SUMA_ixyz surface data\n"
+                         " is badly formatted! \n" ) ;
+
+     if( nel->vec_len    < 1 )
+        fprintf(stderr,"** SUMA_ixyz vec_len    = %d\n",nel->vec_len) ;
+     if( nel->vec_filled < 1 )
+        fprintf(stderr,"** SUMA_ixyz vec_filled = %d\n",nel->vec_filled) ;
+     RETURN(1) ;
+   }
+
+   /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
+        so that we can attach this surface to a dataset for display;
+        if we don't find the attribute or the dataset, then we quit --*/
+
+   idc = NI_get_attribute( nel , "volume_idcode" ) ;
+   if( idc == NULL )
+     idc = NI_get_attribute( nel , "dataset_idcode" ) ;
+   if( idc == NULL && nss > 1 ){
+      AFNI_popup_message( "*** ERROR:\n "
+                          " SUMA_ixyz surface input\n"
+                          " does not identify dataset! \n " ) ;
+      RETURN(1) ;
+   }
+   find = PLUTO_dset_finder(idc) ; dset = find.dset ;
+   if( dset == NULL && nss > 1 ){
+      sprintf(msg, "*** ERROR:\n\n"
+                   " SUMA_ixyz volume dataset idcode is \n"
+                   "   %s\n"
+                   " Can't find this in AFNI\n", idc ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+
+   if( dset != NULL )
+     sess = GLOBAL_library.sslist->ssar[find.sess_index] ;  /* 20 Jan 2004 */
+   else
+     sess = GLOBAL_library.sslist->ssar[0] ;
+
+   /*-- get surface ID code (or make it up) --*/
+
+   idc = NI_get_attribute( nel , "surface_idcode" ) ;
+   if( idc == NULL )
+     idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+   if( idc == NULL ){
+     UNIQ_idcode_fill(idstr) ; idc = idstr ;
+   }
+
+   /*-- 14 Aug 2002: we used to trash old surfaces,
+                     but now we just accumulate them
+        20 Jan 2004: now we put them on the session instead of dataset --*/
+
+   num = sess->su_num ;  /* number of surfaces currently attached */
+
+   /* 19 Aug 2002: check for surface idcode in existing set of surfaces */
+
+   for( ii=0 ; ii < num ; ii++ )
+     if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
+
+   if( ii < num ){       /* found it, which is bad */
+      sprintf(msg, "+++ WARNING:\n\n"
+                   " SUMA_ixyz volume surface idcode is\n"
+                   "  %s\n"
+                   " which is already loaded in this session \n"
+                   "  %.222s\n" ,
+              idc , sess->sessname ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+
+ /*-- make space for 1 more set of surface pointers --*/
+
+   /* the surface itself [created below] */
+
+   sess->su_surf = (SUMA_surface **) realloc(sess->su_surf,
+                                             (num+1)*sizeof(SUMA_surface *)) ;
+
+   /*-- initialize surface that we will fill up here --*/
+
+   sess->su_surf[num] = ag = SUMA_create_empty_surface() ;
+
+   MCW_strncpy(ag->idcode,idc,32);  /* idc is surface idcode from above */
+
+   /*-- 06 Oct 2004 [rickr]: get idcode of local domain parent (to surface) --*/
+
+   idc = NI_get_attribute( nel , "local_domain_parent_ID" ) ;
+   if( idc == NULL ){
+     UNIQ_idcode_fill(idstr) ; idc = idstr ;
+   }
+   MCW_strncpy(ag->idcode_ldp,idc,32) ;
+
+   /*-- 06 Oct 2004: get label of local domain parent (or make it up) --*/
+
+   idc = NI_get_attribute( nel , "local_domain_parent" ) ;
+   if( idc == NULL )
+     sprintf(ag->label_ldp,"Surf#%d_local_domain_parent",num+1) ;
+   else
+     MCW_strncpy(ag->label_ldp,idc,64) ;
+
+   /*-- 19 Aug 2002: get surface label (or make it up) --*/
+
+   idc = NI_get_attribute( nel , "surface_label" ) ;
+   if( idc == NULL )
+     idc = NI_get_attribute( nel , "SUMA_label" ) ;
+
+   if( idc != NULL )
+     MCW_strncpy(ag->label,idc,64) ;
+   else
+     sprintf(ag->label,"Surf#%d",num+1) ;
+
+   /*-- set IDCODEs of surface and of its dataset --*/
+
+   if( dset != NULL )
+     MCW_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
+
+   /*-- pointers to the data columns in the NI_element --*/
+
+   ic = (int *)   nel->vec[0] ;  /* index */
+   xc = (float *) nel->vec[1] ;  /* x coordinate */
+   yc = (float *) nel->vec[2] ;  /* y coordinate */
+   zc = (float *) nel->vec[3] ;  /* z coordinate */
+
+   /*-- add nodes to the surface --*/
+
+   SUMA_add_nodes_ixyz( ag , nel->vec_filled , ic,xc,yc,zc ) ;
+
+   /*-- prepare the surface for AFNI --*/
+
+   SUMA_ixyzsort_surface( ag ) ;
+
+   sess->su_num = num+1 ;     /* 14 Aug 2002 */
+
+   /*-- we're done! --*/
+
+   if( ct_start >= 0 )                     /* keep track of how */
+     ct_tot = NI_clock_time() - ct_start ; /* long this took   */
+
+   sprintf(msg,"+++ NOTICE:\n\n"                    /* and tell  */
+               " SUMA_ixyz surface received:\n"     /* the user  */
+               "  %-14.14s\n"                       /* some info */
+               " %d nodes attached to session\n"
+               "  %.222s\n"
+               " This is surface #%d for this session \n" ,
+               ag->label, nel->vec_filled , sess->sessname , num+1 ) ;
+
+   if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
+                                            "I/O time  =%4d ms\n"
+                                            "Processing=%4d ms\n" ,
+                            ct_read , ct_tot-ct_read ) ;
+
+   /* 16 Jun 2003: if need be, switch sessions and anatomy */
+
+   if( dset != NULL && find.sess_index != im3d->vinfo->sess_num ){
+     cbs.ival = find.sess_index ;
+     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
+                               (XtPointer) im3d ,  &cbs          ) ;
+   }
+#if 1
+   if( dset != NULL && find.dset_index != im3d->vinfo->anat_num ){
+     cbs.ival = find.dset_index ;
+     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
+                               (XtPointer) im3d ,  &cbs          ) ;
+   }
+#endif
+
+   AFNI_popup_message( msg ) ;
+
+   /* need to make the "Control Surface"
+      widgets know about this extra surface */
+
+   AFNI_update_all_surface_widgets( sess ) ;  /* 19 Aug 2002 */
+
+   dont_tell_suma = 1 ;
+   PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
+   dont_tell_suma = 0 ;
+
+#if 0
+   XtSetSensitive( im3d->vwid->imag->pop_sumato_pb, True  ) ;
+#endif
+   RETURN(0) ;
+}
+
+/********* surface triangles from SUMA **********/
+static int process_NIML_SUMA_ijk( NI_element * nel, int ct_start )
+{
+   THD_3dim_dataset *dset ;
+   SUMA_surface *ag ;
+   int *it, *jt , *kt ; char *idc ;
+   int num , ii , nold ;
+   THD_session *sess ;             /* 20 Jan 2004 */
+   THD_slist_find find ;
+   int ct_read = 0, ct_tot = 0 ;
+   char msg[1024] ;
+
+ENTRY("process_NIML_SUMA_ijk");
+
+   if( dont_hear_suma ) RETURN(0) ;
+
+   if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
+
+   /*-- check element for suitability --*/
+
+   if( nel->vec_len    <  1      ||  /* empty element?        */
+       nel->vec_filled <  1      ||  /* no data was filled in? */
+       nel->vec_num    <  3      ||  /* less than 4 columns?  */
+       nel->vec_typ[0] != NI_INT ||  /* must be int,int,int  */
+       nel->vec_typ[1] != NI_INT ||
+       nel->vec_typ[2] != NI_INT   ){
+
+     AFNI_popup_message( "*** ERROR:\n\n"
+                         " SUMA_ijk surface data \n"
+                         " is badly formatted!\n" ) ;
+     RETURN(1) ;
+   }
+
+   /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
+        so that we can attach this surface to a dataset for display;
+        if we don't find the attribute or the dataset, then we quit --*/
+
+   idc = NI_get_attribute( nel , "volume_idcode" ) ;
+   if( idc == NULL )
+     idc = NI_get_attribute( nel , "dataset_idcode" ) ;
+   if( idc == NULL ){
+      AFNI_popup_message( "*** ERROR:\n "
+                          " SUMA_ijk surface input\n"
+                          " does not identify dataset! \n" ) ;
+      RETURN(1) ;
+   }
+   find = PLUTO_dset_finder( idc ) ; dset = find.dset ;
+   if( dset == NULL ){
+      sprintf(msg, "*** ERROR:\n\n"
+                   " SUMA_ijk surface dataset idcode is \n"
+                   "   %s\n"
+                   " Can't find this in AFNI\n", idc ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+   sess = GLOBAL_library.sslist->ssar[find.sess_index] ;  /* 20 Jan 2004 */
+
+   /*-- session must already have a surface --*/
+
+   num = sess->su_num ;
+   if( num == 0 ){
+      sprintf(msg,"*** ERROR:\n\n"
+                  " SUMA_ijk surface data\n"
+                  " received for dataset\n"
+                  "  %.222s\n"
+                  " before any SUMA_ixyz data! \n" ,
+              DSET_FILECODE(dset) ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+
+   idc = NI_get_attribute( nel , "surface_idcode" ) ;
+   if( idc == NULL )
+     idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+   if( idc == NULL ){
+      AFNI_popup_message( "*** ERROR:\n\n"
+                          " SUMA_ijk surface input\n"
+                          " does not have surface idcode! \n" ) ;
+      RETURN(1) ;
+   }
+
+   /* 14 Aug 2002: find surface idcode in dataset's list of surfaces */
+
+   for( ii=0 ; ii < num ; ii++ )
+     if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
+
+   if( ii == num ){
+      sprintf(msg, "*** ERROR:\n\n"
+                   " SUMA_ijk surface input surface idcode\n"
+                   "  %s\n"
+                   " does not match any surface in session \n"
+                   "  %.222s\n" ,
+              idc, sess->sessname ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+
+   ag = sess->su_surf[ii] ; /* set surface to run with */
+
+   if( ag->num_ijk > 0 ){
+      sprintf(msg, "*** WARNING:\n\n"
+                   " SUMA_ijk surface input surface idcode\n"
+                   "  %s\n"
+                   " already has %d triangles in it, and\n"
+                   " the SUMA user is trying to add %d more!\n" ,
+              idc, ag->num_ijk , nel->vec_filled ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;   /* perhaps we can remove this */
+   }
+
+   /*-- pointers to the data columns in the NI_element --*/
+
+   it = (int *) nel->vec[0] ;  /* node index #1 */
+   jt = (int *) nel->vec[1] ;  /* node index #2 */
+   kt = (int *) nel->vec[2] ;  /* node index #3 */
+
+   /*-- add nodes to the surface --*/
+
+   nold = ag->num_ijk ;  /* 19 Aug 2002: # triangles before */
+
+   SUMA_add_triangles( ag , nel->vec_filled , it,jt,kt ) ;
+
+   /*-- we're done! --*/
+
+   if( ct_start >= 0 )                      /* keep track    */
+     ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
+
+   if( nold == 0 )
+     sprintf(msg,"+++ NOTICE:\n\n"                       /* let the   */
+                 " SUMA_ijk triangles received:\n"       /* pitiful   */
+                 " %d triangles attached to surface \n"  /* user see  */
+                 "  %-14.14s\n"                          /* what just */
+                 " in session\n"                         /* happened  */
+                 "  %.222s\n" ,
+                 nel->vec_filled , ag->label , sess->sessname ) ;
+   else
+     sprintf(msg,"+++ NOTICE:\n\n"
+                 " SUMA_ijk triangles received:\n"
+                 " %d NEW triangles attached to surface\n"
+                 "  %-14.14s\n"
+                 " (previously had %d triangles) in session \n"
+                 "  %.222s\n" ,
+                 nel->vec_filled , ag->label , nold , sess->sessname ) ;
+
+   if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
+                                            "I/O time  =%4d ms\n"
+                                            "Processing=%4d ms\n" ,
+                            ct_read , ct_tot-ct_read ) ;
+
+   AFNI_popup_message( msg ) ;
+
+   dont_tell_suma = 1 ;
+   PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
+   dont_tell_suma = 0 ;
+
+   RETURN(0) ;
+}
+
+/********* node normals from SUMA       05 Oct 2004 [rickr] **********/
+static int process_NIML_SUMA_node_normals( NI_element * nel, int ct_start )
+{
+   THD_3dim_dataset *dset ;
+   SUMA_surface *ag ;
+   float *xc, *yc, *zc ;
+   char  *idc ;
+   int num , ii ;
+   THD_session *sess ;
+   THD_slist_find find ;
+   int ct_read = 0, ct_tot = 0 ;
+   char msg[1024] ;
+
+ENTRY("process_NIML_SUMA_node_normals");
+
+   if( dont_hear_suma ) RETURN(0) ;
+
+   if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
+
+   /*-- check element for suitability --*/
+
+   if( nel->vec_len    <  1        ||  /* empty element?        */
+       nel->vec_filled <  1        ||  /* no data was filled in? */
+       nel->vec_num    <  3        ||  /* less than 3 columns?  */
+       nel->vec_typ[0] != NI_FLOAT ||  /* must be float,float,float */
+       nel->vec_typ[1] != NI_FLOAT ||
+       nel->vec_typ[2] != NI_FLOAT ){
+
+     AFNI_popup_message( "*** ERROR:\n\n"
+                         " SUMA_node_normals data \n"
+                         " is badly formatted!\n" ) ;
+     RETURN(1) ;
+   }
+
+   /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
+        so that we can attach this surface to a dataset for display;
+        if we don't find the attribute or the dataset, then we quit --*/
+
+   idc = NI_get_attribute( nel , "volume_idcode" ) ;
+   if( idc == NULL )
+     idc = NI_get_attribute( nel , "dataset_idcode" ) ;
+   if( idc == NULL ){
+      AFNI_popup_message( "*** ERROR:\n "
+                          " SUMA_node_normals input\n"
+                          " does not identify dataset! \n" ) ;
+      RETURN(1) ;
+   }
+   find = PLUTO_dset_finder( idc ) ; dset = find.dset ;
+   if( dset == NULL ){
+      sprintf(msg, "*** ERROR:\n\n"
+                   " SUMA_node_normals surface dataset idcode is \n"
+                   "   %s\n"
+                   " Can't find this in AFNI\n", idc ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+   sess = GLOBAL_library.sslist->ssar[find.sess_index] ;
+
+   /*-- session must already have a surface --*/
+
+   num = sess->su_num ;
+   if( num == 0 ){
+      sprintf(msg,"*** ERROR:\n\n"
+                  " SUMA_node_normals surface data\n"
+                  " received for dataset\n"
+                  "  %.222s\n"
+                  " before any SUMA_ixyz data! \n" ,
+              DSET_FILECODE(dset) ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+
+   idc = NI_get_attribute( nel , "surface_idcode" ) ;
+   if( idc == NULL )
+     idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+   if( idc == NULL ){
+      AFNI_popup_message( "*** ERROR:\n\n"
+                          " SUMA_node_normals surface input\n"
+                          " does not have surface idcode! \n" ) ;
+      RETURN(1) ;
+   }
+
+   /* find surface idcode in dataset's list of surfaces */
+
+   for( ii=0 ; ii < num ; ii++ )
+     if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
+
+   if( ii == num ){
+      sprintf(msg, "*** ERROR:\n\n"
+                   " SUMA_node_normals surface input surface idcode\n"
+                   "  %s\n"
+                   " does not match any surface in session \n"
+                   "  %.222s\n" ,
+              idc, sess->sessname ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+
+   ag = sess->su_surf[ii] ; /* set surface to run with */
+
+   if( nel->vec_filled != ag->num_ixyz ){
+      sprintf(msg, "*** ERROR:\n\n"
+                   " SUMA_node_normals surface input surface idcode\n"
+                   "  %s\n"
+                   " has %d nodes, but has been sent %d normals\n" ,
+                   idc, ag->num_ixyz, nel->vec_filled ) ;
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+
+   if( ag->norm != NULL ){
+      sprintf(msg, "*** WARNING:\n\n"
+                   " SUMA_node_normals surface input surface idcode\n"
+                   "  %s\n"
+                   " already has normals associated with it,\n"
+                   " replacing old normals with new ones\n" , idc ) ;
+      AFNI_popup_message( msg ) ;
+   }
+
+   /*-- pointers to the data columns in the NI_element --*/
+
+   xc = (float *) nel->vec[0] ;  /* norm.x     */
+   yc = (float *) nel->vec[1] ;  /* norm.y     */
+   zc = (float *) nel->vec[2] ;  /* norm.z     */
+
+   /*-- add normals to the surface --*/
+
+   if( SUMA_add_norms_xyz( ag , nel->vec_filled , xc,yc,zc ) ){
+      sprintf(msg, "*** ERROR:SUMA_add_norms_ixyz failure!\n");
+      AFNI_popup_message( msg ) ;
+      RETURN(1) ;
+   }
+
+   /*-- we're done! --*/
+
+   if( ct_start >= 0 )                      /* keep track    */
+     ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
+
+   sprintf(msg,"+++ NOTICE:\n\n"
+               " SUMA_node_normals normals received:\n"
+               " %d normals attached to surface\n"
+               "  %-14.14s\n"
+               " in session \n"
+               "  %.222s\n" ,
+               nel->vec_filled , ag->label , sess->sessname ) ;
+
+   if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
+                                            "I/O time  =%4d ms\n"
+                                            "Processing=%4d ms\n" ,
+                            ct_read , ct_tot-ct_read ) ;
+
+   AFNI_popup_message( msg ) ;
+
+   dont_tell_suma = 1 ;
+   PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
+   dont_tell_suma = 0 ;
+
+   RETURN(0) ;
+}
+
+/********* new focus position **********/
+static int process_NIML_SUMA_crosshair_xyz(NI_element * nel)
+{
+  float *xyz ;
+
+ENTRY("process_NIML_SUMA_crosshair_xyz");
+
+   if( dont_hear_suma ) RETURN(0) ;
+
+   if( nel->vec_len    <  3        ||
+       nel->vec_filled <  3        ||
+       nel->vec_num    <  1        ||
+       nel->vec_typ[0] != NI_FLOAT   ){
+
+     AFNI_popup_message( "+++ WARNING:\n\n"
+                         " SUMA_crosshair_xyz input \n"
+                         " is badly formatted!\n" );
+     RETURN(1) ;
+   }
+
+   xyz = (float *) nel->vec[0] ;
+   dont_tell_suma = 1 ;
+   AFNI_jumpto_dicom( AFNI_find_open_controller(), xyz[0],xyz[1],xyz[2] );
+   dont_tell_suma = 0 ;
+   RETURN(0) ;
+}
+
+/*********** ROI drawing from SUMA **********/
+static int process_NIML_Node_ROI( NI_element * nel, int ct_start )
+{
+   int *nlist , *nval , num_list , num,ii,jj,pp,ks ;
+   char *surf_idc , *roi_prefix , *dset_idc ;
+   THD_slist_find find ;
+   THD_3dim_dataset *dset_anat , *dset_func ;
+   SUMA_surface *ag ;
+   Three_D_View *im3d = AFNI_find_open_controller() ;
+   MCW_choose_cbs cbs ;
+   THD_session *sess ;
+   THD_fvec3 fv ; THD_ivec3 iv ;
+   short *funcar ;
+   float xbot,ybot,zbot , xtop,ytop,ztop ;
+   int wodsave , nx,ny,nxy ;
+   int ct_read = 0 ;
+   char msg[1024] ;
+
+ENTRY("process_NIML_Node_ROI");
+
+   if( dont_hear_suma ) RETURN(0) ;
+
+   if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
+
+STATUS("received Node_ROI element") ;
+
+   if( nel->vec_num    <  2        ||
+       nel->vec_typ[0] != NI_INT   ||
+       nel->vec_typ[1] != NI_INT     ){
+
+     AFNI_popup_message( "+++ WARNING:\n\n"
+                         " Node_ROI input \n"
+                         " is badly formatted!\n" );
+     RETURN(1) ;
+   }
+
+   nlist    = (int *) nel->vec[0] ;  /* node list */
+   nval     = (int *) nel->vec[1] ;  /* value list */
+   num_list = nel->vec_filled ;      /* number of nodes */
+
+   /** get ID codes of surface and anat parents **/
+
+STATUS("checking Node_ROI ID codes") ;
+
+   surf_idc = NI_get_attribute( nel , "MeshParent_idcode" ) ;
+   if( surf_idc == NULL )
+     surf_idc = NI_get_attribute( nel , "surface_idcode" ) ;
+   if( surf_idc == NULL )
+     surf_idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+
+   dset_idc = NI_get_attribute( nel , "volume_idcode" ) ;
+   if( dset_idc == NULL )
+     dset_idc = NI_get_attribute( nel , "dataset_idcode" ) ;
+
+   /** get name of dataset this goes into **/
+
+   roi_prefix = NI_get_attribute( nel , "target_volume" ) ;
+   if( roi_prefix == NULL )
+     roi_prefix = NI_get_attribute( nel , "ROI_prefix" ) ;
+
+   /** check for errors [there are lots of possibilities] **/
+
+   if( surf_idc == NULL ){
+     AFNI_popup_message( "*** ERROR:\n\n"
+                         " Node_ROI input doesn't\n"
+                         " set 'MeshParent_idcode'!\n" ) ;
+     RETURN(1) ;
+   }
+   if( dset_idc == NULL ){
+     AFNI_popup_message( "*** ERROR:\n\n"
+                         " Node_ROI input doesn't\n"
+                         " set 'volume_idcode'!\n" ) ;
+     RETURN(1) ;
+   }
+   if( roi_prefix == NULL ){
+     AFNI_popup_message( "*** ERROR:\n\n"
+                         " Node_ROI input doesn't\n"
+                         " set 'target_volume'!\n" ) ;
+     RETURN(1) ;
+   }
+   if( !THD_filename_pure(roi_prefix) ){
+     sprintf(msg, "*** ERROR:\n\n"
+                  " Node_ROI 'target_volume' prefix \n"
+                  "   %s\n"
+                  " contains illegal characters!\n" , roi_prefix ) ;
+     AFNI_popup_message( msg ) ;
+     RETURN(1) ;
+   }
+
+   /** find parent volume for this ROI (from its ID code) **/
+
+STATUS("searching for Node_ROI parent volume") ;
+
+   find = PLUTO_dset_finder( dset_idc ) ; dset_anat = find.dset ;
+   if( dset_anat == NULL ){
+     sprintf(msg, "*** ERROR:\n\n"
+                  " Node_ROI volume dataset idcode is \n"
+                  "   %s\n"
+                  " Can't find this in AFNI\n", dset_idc ) ;
+     AFNI_popup_message( msg ) ;
+     RETURN(1) ;
+   }
+   sess = GLOBAL_library.sslist->ssar[find.sess_index] ;  /* 20 Jan 2004 */
+
+   /** find the surface within this session (from its ID code) **/
+
+STATUS("searching for Node_ROI surface") ;
+
+   num = sess->su_num ;
+   if( num == 0 ){
+     sprintf(msg,"*** ERROR:\n\n"
+                 " Node_ROI data received for dataset\n"
+                 "  %.222s\n"
+                 " but no surfaces available in session! \n" ,
+             DSET_FILECODE(dset_anat) ) ;
+     AFNI_popup_message( msg ) ;
+     RETURN(1) ;
+   }
+
+   for( ks=0 ; ks < num ; ks++ )
+     if( strstr(sess->su_surf[ks]->idcode,surf_idc) != NULL ) break ;
+
+   if( ks == num ){
+     sprintf(msg, "*** ERROR:\n\n"
+                  " Node_ROI surface idcode\n"
+                  "  %s\n"
+                  " does not match any surface in session \n"
+                  "  %.222s\n" ,
+             surf_idc, sess->sessname ) ;
+     AFNI_popup_message( msg ) ;
+     RETURN(1) ;
+   }
+
+   ag = sess->su_surf[ks] ; /* set surface to run with */
+
+   /** switch session and anat dataset, if need be **/
+
+   if( find.sess_index != im3d->vinfo->sess_num ){
+     cbs.ival = find.sess_index ;
+     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
+                               (XtPointer) im3d ,  &cbs          ) ;
+   }
+   if( find.dset_index >= 0 && find.dset_index != im3d->vinfo->anat_num ){
+     cbs.ival = find.dset_index ;
+     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
+                               (XtPointer) im3d ,  &cbs          ) ;
+   }
+
+   AFNI_update_all_surface_widgets( sess ) ;
+#if 0
+   XtSetSensitive( im3d->vwid->imag->pop_sumato_pb, True ) ;
+#endif
+
+   /* see if ROI dataset already exists */
+
+STATUS("searching for Node_ROI functional dataset") ;
+
+   find = THD_dset_in_session( FIND_PREFIX , roi_prefix , sess ) ;
+   dset_func = find.dset ;
+
+   /* func dataset already exists?  Check if for goodness. */
+
+   if( dset_func != NULL ){
+     if( !EQUIV_DATAXES(dset_anat->daxes,dset_func->daxes) ){
+       sprintf(msg, "*** ERROR:\n\n"
+                    " Node_ROI functional dataset\n"
+                    "  %.222s\n"
+                    " exists, but doesn't match geometry of anat dataset\n"
+                    "  %.222s\n" ,
+               roi_prefix , DSET_FILECODE(dset_anat) ) ;
+       AFNI_popup_message( msg ) ;
+       RETURN(1) ;
+     }
+     DSET_mallocize(dset_func) ;     /* oops */
+     if( !DSET_LOADED(dset_func) ){
+       DSET_load(dset_func) ;
+       if( !DSET_LOADED(dset_func) ){
+         sprintf(msg, "*** ERROR:\n\n"
+                      " Node_ROI functional dataset\n"
+                      "  %.222s\n"
+                      " exists, but doesn't have data!\n" ,
+                 roi_prefix ) ;
+         AFNI_popup_message( msg ) ;
+         RETURN(1) ;
+       }
+       DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
+       sprintf(msg,"+++ NOTICE:\n\n"
+                   " Node_ROI command is using existing dataset\n"
+                   "  %.222s\n" , DSET_FILECODE(dset_func) ) ;
+       AFNI_popup_message( msg ) ;
+     }
+     if( find.dset_index >= 0 && find.dset_index != im3d->vinfo->func_num ){
+       cbs.ival = find.dset_index ;
+       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
+                                 (XtPointer) im3d ,  &cbs          ) ;
+     }
+
+   } else { /*** no pre-existing func?  create a dataset now ***/
+
+     ii = sess->num_dsset ;
+     if( ii >= THD_MAX_SESSION_SIZE ){
+       sprintf(msg, "*** ERROR:\n\n"
+                    " Can't create Node_ROI dataset\n"
+                    "  %.222s\n"
+                    " because of AFNI session overflow!\n" ,
+               roi_prefix ) ;
+       AFNI_popup_message( msg ) ;
+       RETURN(1) ;
+     }
+
+     dset_func = EDIT_empty_copy( dset_anat ) ;
+     EDIT_dset_items( dset_func ,
+                        ADN_prefix    , roi_prefix     ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                        ADN_nvals     , 1              ,
+                        ADN_ntt       , 0              ,
+                        ADN_brick_fac , NULL           ,
+                      ADN_none ) ;
+     EDIT_BRICK_TO_NOSTAT( dset_func , 0 ) ;
+     EDIT_substitute_brick( dset_func , 0 , MRI_short , NULL ) ;
+
+     sess->dsset[ii][dset_func->view_type] = dset_func ;
+     sess->num_dsset ++ ;
+
+STATUS("switching func to Node_ROI dataset") ;
+
+     cbs.ival = ii ;
+     AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
+                               (XtPointer) im3d ,  &cbs          ) ;
+
+STATUS("popping up Node_ROI dataset creation notice") ;
+     sprintf(msg,"+++ NOTICE:\n\n"
+                 " Node_ROI command is creating dataset\n"
+                 "  %.222s\n" ,
+            DSET_FILECODE(dset_func) ) ;
+     AFNI_popup_message( msg ) ;
+
+STATUS("destroying any pre-existing Node_ROI vvlist") ;
+     DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
+   }
+
+STATUS("locking Node_ROI dataset into memory") ;
+   DSET_lock(dset_func) ;  /* lock into memory (no purge allowed) */
+
+   funcar = (short *) DSET_BRICK_ARRAY(dset_func,0) ;  /* array to draw */
+
+   /** now, see if there is an old voxel value list
+            attached to the surface ; if so zero out those voxels **/
+
+   if( ag->vv != NULL ){
+fprintf(stderr,"++ erasing %d voxels from previous SUMA ROI\n",ag->vv->nvox) ;
+     for( ii=0 ; ii < ag->vv->nvox ; ii++ ) funcar[ ag->vv->voxijk[ii] ] = 0;
+     DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
+   } else {
+STATUS("no old Node_ROI vvlist") ;
+   }
+
+   /** now put values from SUMA into dataset array **/
+
+   if( num_list > 0 ){
+fprintf(stderr,"++ writing %d voxels from SUMA ROI\n",num_list) ;
+     ag->vv = (SUMA_vvlist *) malloc( sizeof(SUMA_vvlist) ) ;
+     ag->vv->nvox   = num_list ;
+     ag->vv->voxijk = (int *)   malloc( sizeof(int)  *num_list ) ;
+     ag->vv->voxval = (float *) malloc( sizeof(float)*num_list ) ;
+
+     wodsave = dset_func->wod_flag ; dset_func->wod_flag = 0 ;
+
+     xbot = DSET_XXMIN(dset_func) ; xtop = DSET_XXMAX(dset_func) ;
+     ybot = DSET_YYMIN(dset_func) ; ytop = DSET_YYMAX(dset_func) ;
+     zbot = DSET_ZZMIN(dset_func) ; ztop = DSET_ZZMAX(dset_func) ;
+     nx = DSET_NX(dset_func); ny = DSET_NY(dset_func); nxy = nx*ny ;
+
+     for( ii=0 ; ii < num_list ; ii++ ){
+       pp = SUMA_find_node_id( ag , nlist[ii] ) ;
+       if( pp >= 0 ){
+         LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
+         fv = THD_dicomm_to_3dmm( dset_func , fv ) ;
+         if( fv.xyz[0] < xbot || fv.xyz[0] > xtop ) continue ;
+         if( fv.xyz[1] < ybot || fv.xyz[1] > ytop ) continue ;
+         if( fv.xyz[2] < zbot || fv.xyz[2] > ztop ) continue ;
+         iv = THD_3dmm_to_3dind( dset_func , fv ) ;
+         jj = iv.ijk[0] + iv.ijk[1]*nx + iv.ijk[2]*nxy ;
+         funcar[jj] = nval[ii] ;
+         ag->vv->voxijk[ii] = jj ; ag->vv->voxval[ii] = nval[ii] ;
+       }
+     }
+   } else {
+STATUS("no nodes in Node_ROI input") ;
+   }
+
+   DSET_write( dset_func ) ;  /* save to disk */
+
+   dont_overlay_suma = 1 ;
+
+STATUS("redisplay Node_ROI function") ;
+   MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
+   im3d->vinfo->func_visible = 1 ;
+   PLUTO_dset_redisplay( dset_func ) ;  /* redisplay windows with this dataset */
+   AFNI_process_drawnotice( im3d ) ;
+
+   RETURN(0) ;
 }

@@ -121,10 +121,12 @@ typedef struct {
   float zcen ;                 /*!< Averagest z-coordinate in ixyz */
 
   char idcode[32] ;            /*!< IDCODE for this structure */
-  char idcode_domaingroup[32]; /*!< IDCODE for group of associated surfaces */
+  /* changed idcode_domaingroup to idcode_ldp            06 Oct 2004 [rickr] */
+  char idcode_ldp[32] ;        /*!< IDCODE for surface's local domain parent */
   char idcode_dset[32] ;       /*!< IDCODE for AFNI dataset domain parent */
 
   char label[64] ;             /*!< Label for user interaction */
+  char label_ldp[64] ;         /*!< Label of surface's local domain parent */
 
   SUMA_vvlist *vv ;            /*!< For ROIs from SUMA */
   SUMA_vnlist *vn ;            /*!< Voxel-to-node mapping, for overlays */
