@@ -4543,3 +4543,4 @@
 
 06 May 2003
  * Minor changes to 3dDeconvolve.c.
+ * From Rich Hammett, AFNI_TRY_DICOM_LAST environment variable.
