@@ -419,12 +419,13 @@ ENTRY("mri_read_dicom") ;
    /*-- 27 Nov 2002: fix stupid GE error,
                      where the slice spacing is really the slice gap --*/
 
-   { int stupid_ge_fix ;
+   { int stupid_ge_fix , no_stupidity ;
      float sp=0.0 , th=0.0 ;
      static int nwarn=0 ;
 
      eee           = getenv("AFNI_SLICE_SPACING_IS_GAP") ;
      stupid_ge_fix = (eee != NULL && (*eee=='Y' || *eee=='y') ) ;
+     no_stupidity  = (eee != NULL && (*eee=='N' || *eee=='y') ) ;  /* 03 Mar 2003 */
 
      if( epos[E_SLICE_SPACING] != NULL ){                  /* get reported slice spacing */
        ddd = strstr(epos[E_SLICE_SPACING],"//") ;
@@ -435,21 +436,24 @@ ENTRY("mri_read_dicom") ;
        if( ddd != NULL ) sscanf( ddd+2 , "%f" , &th ) ;
      }
 
-     sp = fabs(sp) ;                                       /* we don't use the sign */
+     th = fabs(th) ; sp = fabs(sp) ;                       /* we don't use the sign */
 
-     if( stupid_ge_fix ){                                  /* the stupid GE way */
+     if( stupid_ge_fix ){                                  /* always be stupid */
        dz = sp+th ;
      } else {
-       dz = (sp != 0.0) ? sp : th ;                        /* the correct DICOM way */
+       dz = (sp > th) ? sp : th ;                          /* the correct DICOM way */
 
-       if( sp < th ) dz = sp+th ;                          /* the stupid GE way again */
+#define GFAC 0.99
 
-       if( sp > 0.0 && sp < th && nwarn < NWMAX ){
-         fprintf(stderr,
-                 "++ DICOM WARNING: file %s has Slice_Spacing=%f smaller than Slice_Thickness=%f\n",
-                 fname , sp , th ) ;
-         if( nwarn == 0 )
+       if( !no_stupidity ){                                /* unless stupidity is turned off */
+         if( sp > 0.0 && sp < GFAC*th ) dz = sp+th ;       /* the stupid GE way again */
+
+         if( sp > 0.0 && sp < GFAC*th && nwarn < NWMAX ){
            fprintf(stderr,
+                   "++ DICOM WARNING: file %s has Slice_Spacing=%f smaller than Slice_Thickness=%f\n",
+                   fname , sp , th ) ;
+           if( nwarn == 0 )
+            fprintf(stderr,
               "\n"
               "++  Setting environment variable AFNI_SLICE_SPACING_IS_GAP       ++\n"
               "++   to YES will make the center-to-center slice distance        ++\n"
@@ -462,14 +466,15 @@ ENTRY("mri_read_dicom") ;
               "++  This correction has been made on this data: dz=%6.3f.       ++\n"
               "\n\a" ,
              sp+th , dz ) ;
+         }
+         if( sp > 0.0 && sp < th && nwarn == NWMAX )
+           fprintf(stderr,"++ DICOM WARNING: no more Slice_Spacing messages will be printed\n") ;
+         nwarn++ ;
        }
-       if( sp > 0.0 && sp < th && nwarn == NWMAX )
-         fprintf(stderr,"++ DICOM WARNING: no more Slice_Spacing messages will be printed\n") ;
-       nwarn++ ;
      }
      if( dz == 0.0 && dx != 0.0 ) dz = 1.0 ;               /* nominal dz */
 
-   } /*-- end of dz code --*/
+   } /*-- end of dz code, with all its stupidities --*/
 
    /* get dt */
 

@@ -4380,3 +4380,4 @@
      in 3dDeconvolve.c and RegAna.c to create a program 3dDeconvolve_f compiled
      from 3dDeconvolve.c when the FLOATIZE C macro is defined.  Speedup on a
      Linux box is about 40% (due to less memory fetch).
+ * Modified mri_read_dicom.c to allow user to skip stupid GE fixup entirely.
