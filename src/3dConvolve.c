@@ -1612,7 +1612,7 @@ void calculate_results
   /*----- Initialize the independent variable matrix -----*/
   init_indep_var_matrix (p, q, polort, nt, N, good_list, block_list, 
 			 num_blocks, num_stimts, stimulus, stim_length, 
-			 min_lag, max_lag, nptr, &xdata);
+			 min_lag, max_lag, nptr, NULL, &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
 
