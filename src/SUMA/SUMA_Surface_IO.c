@@ -1310,7 +1310,7 @@ int main (int argc,char *argv[])
    int kar, Showct;
    char *fname = NULL, *fcmap = NULL, *froi = NULL, *fcol = NULL;
    SUMA_Boolean SkipCoords = NOPE, brk;
-   SUMA_Boolean LocalHead = YUP;	
+   SUMA_Boolean LocalHead = NOPE;	
    
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
@@ -1430,7 +1430,7 @@ float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols, SUMA_Boolean rowm
    int cnt, ex, id, i, ncol, nvec;
    char c, comment[SUMA_MAX_STRING_LENGTH];
    FILE *fs_file = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1646,7 +1646,7 @@ int main (int argc,char *argv[])
    char *fname = NULL;
    FILE *outfile=NULL;
    SUMA_Boolean SkipCoords = NOPE, brk, rowmajor;
-   SUMA_Boolean LocalHead = YUP;	
+   SUMA_Boolean LocalHead = NOPE;	
    
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();

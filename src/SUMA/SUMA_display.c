@@ -362,7 +362,7 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    char *fnamestmp=NULL, *fnamestmp2=NULL;
    int feyl;
    SUMA_SurfaceViewer *csv;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -449,7 +449,7 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
          ShowBackground[1];   char *atmp;
    NI_stream nstdin;
    SUMA_SurfaceViewer *csv;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

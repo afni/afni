@@ -526,13 +526,29 @@ SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void)
 {
    static char FuncName[]={"SUMA_Build_Color_maps"};
    SUMA_RGB_NAME *Cv = NULL;
+   int i;
    SUMA_COLOR_MAP **CMv=NULL;
-   SUMA_COLOR_MAP *CMp=NULL, *CMn=NULL;
+   SUMA_COLOR_MAP *CM=NULL;
    SUMA_AFNI_COLORS *SAC=NULL;
    
    SUMA_ENTRY;
    
    SAC = SUMA_Get_AFNI_Default_Color_Maps();
+   
+   /* Now add SUMA's colormaps */
+   
+   for (i=SUMA_CMAP_UNDEFINED+1; i<SUMA_CMAP_N_MAPS; ++i) {
+      CM = SUMA_GetStandardMap (i);
+      if (!CM) {
+         SUMA_SL_Crit("Failed to create standard maps");
+         SUMA_RETURN(NULL);
+      }
+      SAC->CMv = SUMA_Add_ColorMap (CM, SAC->CMv, &(SAC->N_maps));
+      if (!SAC->CMv) {
+         SUMA_SL_Crit("Failed in SUMA_Add_ColorMap");
+         SUMA_RETURN(NULL);
+      }
+   }
    
    SUMA_RETURN(SAC);
 }
@@ -637,6 +653,7 @@ SUMA_RGB_NAME * SUMA_Add_Color (char *Name, float r, float g, float b, float a, 
 -  This process is not terribly efficient by not many maps
 are loaded in this manner.
 -  You can send NULL for OldCMv if this vector has yet to be created
+-  Color map structure is copied by reference. Do not free it.
 
 */
 SUMA_COLOR_MAP ** SUMA_Add_ColorMap (SUMA_COLOR_MAP *CM, SUMA_COLOR_MAP **OldCMv, int *N_maps) 
@@ -1626,12 +1643,160 @@ int main (int argc,char *argv[])
 }   
 #endif
 
+/*!
+   
+   -  Some of the fields of SUMA_SCALE_TO_MAP_OPT are ignored here.
+   1- Find the colormap structure 
+   2- Linearize the colormap if need be
+   3- Apply a global brightness coefficient (if any) on the colors in the colormap   
+   4- Loop accross each node in the intensity column
+      if its threshold meets the cut-off,
+      colorize it
+      
+*/
+SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
+{
+   static char FuncName[]={"SUMA_ScaleToMap_Interactive"};
+   float *V=NULL, *T=NULL, *B=NULL;
+   int i, icmap, i3, cnt, cnt3, loc[2];
+   float Range[2], minV, maxV, minB, maxB, fact=0.0, floc = 0.0;
+   SUMA_COLOR_MAP *ColMap = NULL;
+   SUMA_SCALE_TO_MAP_OPT *Opt = NULL;
+   SUMA_COLOR_SCALED_VECT * SV = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   Opt = Sover->OptScl;
+   
+   if (!Sover->cmapname) { SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE); }
+   icmap = SUMA_Find_ColorMap ( Sover->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+   if (icmap < 0) { SUMA_SL_Err("Failed to find ColMap"); SUMA_RETURN(NOPE); }
+   ColMap = SUMAg_CF->scm->CMv[icmap];
+   
+   /* manually create a SUMA_COLOR_SCALED_VECT * */
+   SV = SUMA_Create_ColorScaledVect(Sover->dset_link->nel->vec_filled);
+   
+   SUMA_LH("Fetching vetors from dset");
+   T = NULL; V = NULL; B = NULL;
+   /* Thresholding ? */
+   if (Opt->tind >= 0) { 
+      SUMA_LH("Fetching Threshold column");
+      /* got to copy values into float vectors 'cause of possible types */
+      T = SUMA_Col2Float (Sover->dset_link->nel, Opt->tind, 0);
+      if (!T) { SUMA_SL_Err("Failed to get T"); SUMA_RETURN(NOPE); }
+      for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+         if (T[i] < Opt->ThreshRange[0]) {
+            SV->isMasked[i] = YUP; /* Mask */
+         } else {
+            /* don't mask, default*/
+         }
+      }
+      /* T is no longer needed */
+      if (T) SUMA_free(T); T = NULL;
+   } 
+   
+   SUMA_LH("Fetching Intensity column");
+   if (Opt->find < 0) { SUMA_SL_Crit("Bad column index.\n"); SUMA_RETURN(NOPE); }
+   else { 
+      /* got to copy values into float vectors 'cause of possible types */
+      V = SUMA_Col2Float (Sover->dset_link->nel, Opt->find, 0);
+      if (!V) { SUMA_SL_Err("Failed to get V"); SUMA_RETURN(NOPE); }
+   }
+   
+   /* colorizing */
+   if (Opt->alaAFNI) {
+      /* a la AFNI */
+      SUMA_LH("Scaling a la AFNI");
+      if (!SUMA_ScaleToMap_alaAFNI (V, Sover->dset_link->nel->vec_filled,
+                                    SUMA_LARG_ABS(Opt->IntRange[0], Opt->IntRange[1]), 
+                                    ColMap, Opt,
+                                    SV) ) {
+         SUMA_SL_Err("Failed in SUMA_ScaleToMap_alaAFNI");
+         SUMA_RETURN(NOPE);   
+      }
+   } else { 
+      /* a la SUMA */
+      SUMA_LH("Scaling a la SUMA");
+      if (!SUMA_ScaleToMap( V, Sover->dset_link->nel->vec_filled,
+                            Opt->IntRange[0], Opt->IntRange[1], 
+                            ColMap, Opt,
+                            SV) ){
+         SUMA_SL_Err("Failed in  SUMA_ScaleToMap");
+         SUMA_RETURN(NOPE);                    
+      }
+   }                              
+  
+   if (Opt->bind >= 0) {
+      SUMA_LH("Brightness modulation needed"); 
+      /* got to copy values into float vectors 'cause of possible types */
+      B = SUMA_Col2Float (Sover->dset_link->nel, Opt->bind, 0);
+      if (!B) { SUMA_SL_Err("Failed to get B"); SUMA_RETURN(NOPE); }
+      /* go over B and clip it, if needed */
+      if (Opt->BrightRange[0] && Opt->BrightRange[1]) {
+         /* need to clip B */
+         minB = Opt->BrightRange[0]; maxB = Opt->BrightRange[1];
+         for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+            if (!SV->isMasked[i]) {
+               /* worry only about unmasked colors */
+               if (B[i] < Opt->BrightRange[0]) B[i] = Opt->BrightRange[0];
+               else if (B[i] < Opt->BrightRange[1]) B[i] = Opt->BrightRange[1];
+            }
+         }
+      } else {
+         if (!SUMA_GetColRange(Sover->dset_link->nel, Opt->bind, Range, loc)) { SUMA_SL_Err("Failed to get ColRange!"); SUMA_RETURN(NOPE); }
+         minB = Range[0]; maxB = Range[1];
+      }
+      /* Now scale B and modulate colors in SV*/
+      SUMA_LH("Scaling by B");
+      fact = (Opt->BrightMap[1] - Opt->BrightMap[0]) / (maxB - minB) + Opt->BrightMap[0];
+      for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+         if (!SV->isMasked[i]) {
+            /* B[i] = (B[i] - minB) * fact; SV->cV[i] = SV->cV[i] * B[i]; */
+            i3 = 3*i;
+            floc = (B[i] - minB) * fact ;
+            SV->cV[i3   ] = SV->cV[i3   ] * floc;
+            SV->cV[i3 +1] = SV->cV[i3 +1] * floc;
+            SV->cV[i3 +2] = SV->cV[i3 +2] * floc;
+         }
+      }
+   }
+   
+   /* finally copy results */
+   SUMA_LH("Copying into NodeDef");
+   cnt = 0;
+   for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+      if (!SV->isMasked[i]) {
+         cnt3 = 3*cnt; i3 = 3*i;
+         Sover->NodeDef[cnt] = Sover->NodeDef[i];
+         Sover->ColVec[cnt3   ] = SV->cV[i3   ];
+         Sover->ColVec[cnt3 +1] = SV->cV[i3 +1];
+         Sover->ColVec[cnt3 +2] = SV->cV[i3 +2];
+         ++cnt;
+      }
+   }
+   Sover->N_NodeDef = cnt;
+   
+   
+   /* clean up */
+   SUMA_LH("Cleanup, cleanup, everybody cleanup");
+   if (T) SUMA_free(T); T = NULL;
+   if (V) SUMA_free(V); V = NULL;
+   if (B) SUMA_free(B); B = NULL;
+   if (SV)  SUMA_Free_ColorScaledVect (SV); SV = NULL;
+   SUMA_RETURN(YUP);
+   
+}
 
-SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR_MAP *ColMap, SUMA_SCALE_TO_MAP_OPT *Opt, SUMA_COLOR_SCALED_VECT * SV)
+SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V, 
+                                       float range, 
+                                       SUMA_COLOR_MAP *ColMap, 
+                                       SUMA_SCALE_TO_MAP_OPT *Opt, 
+                                       SUMA_COLOR_SCALED_VECT * SV)
 {
    static char FuncName[]={"SUMA_ScaleToMap_alaAFNI"};
    int i,j, i0, i1, i3, mxColindex;
-   float Vmin, Vmax, MinCol, MaxCol, Vrange, Vscl, r;
+   float Vmin, Vmax, MinCol, MaxCol, Vrange, Vscl, r, **Mbuf= NULL;
    SUMA_Boolean NewMap = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1733,15 +1898,18 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR
    }
    
    /* if brightness factor is given, apply it to color map and mask color */
+   Mbuf = NULL;
    if (Opt->BrightFact <= 0 || Opt->BrightFact > 1) {
       fprintf (SUMA_STDERR,"Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
       SUMA_RETURN (NOPE);
    }else {
-      if (Opt->BrightFact != 1) {
+      if (Opt->BrightFact != 1) { 
+         Mbuf = ColMap->M; /* save pointer */
+         ColMap->M = (float **)SUMA_allocate2D(ColMap->N_Col, 3, sizeof(float));
          for (i=0; i < ColMap->N_Col; ++i) {
-            ColMap->M[i][0] *= Opt->BrightFact;
-            ColMap->M[i][1] *= Opt->BrightFact;
-            ColMap->M[i][2] *= Opt->BrightFact;
+            ColMap->M[i][0] = Mbuf[i][0] * Opt->BrightFact;
+            ColMap->M[i][1] = Mbuf[i][1] * Opt->BrightFact;
+            ColMap->M[i][2] = Mbuf[i][2] * Opt->BrightFact;
          }
          /* now for the mask color */
          Opt->MaskColor[0] *= Opt->BrightFact;
@@ -1874,6 +2042,11 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR
 
       }
    }
+   if (Mbuf) {
+      /* free what is in ColMap->M */
+      SUMA_free2D((char **)ColMap->M, ColMap->N_Col);
+      ColMap->M = Mbuf; Mbuf = NULL;
+   }
    if (NewMap) {
       SUMA_LH("Freeing linearized colormap.");
       SUMA_Free_ColorMap (ColMap); 
@@ -1909,11 +2082,15 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR
       +Values in Mask Range are applied BEFORE the clipping is done 
          IF (Mask[0] <= V[i] <= Mask[1]) V[i] is masked 
 */
-SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_COLOR_MAP *ColMap, SUMA_SCALE_TO_MAP_OPT *Opt, SUMA_COLOR_SCALED_VECT * SV)
+SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, 
+                              float Vmin, float Vmax, 
+                              SUMA_COLOR_MAP *ColMap, 
+                              SUMA_SCALE_TO_MAP_OPT *Opt, 
+                              SUMA_COLOR_SCALED_VECT * SV)
 {
    static char FuncName[]={"SUMA_ScaleToMap"};
    int i,j, i0, i1, mxColindex, i3=0;
-   float MinCol, MaxCol, Vrange, Vscl, r;
+   float MinCol, MaxCol, Vrange, Vscl, r, **Mbuf= NULL;
    SUMA_Boolean NewMap = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1952,21 +2129,21 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
    if (Opt->ApplyClip) {
       for (i=0; i < N_V; ++i) {
          if (!SV->isMasked[i]) { /* don't waist time on masked stuff */
-            if (V[i] > Opt->ClipRange[0]) { 
+            if (V[i] > Opt->IntRange[0]) { 
                /* that's cool */
             } else {
-               V[i] = Opt->ClipRange[0];
+               V[i] = Opt->IntRange[0];
             }
 
-            if (V[i] < Opt->ClipRange[1]) { 
+            if (V[i] < Opt->IntRange[1]) { 
                /* that's cool */
             } else {
-               V[i] = Opt->ClipRange[1];
+               V[i] = Opt->IntRange[1];
             }
          } 
       }
-      Vmin = Opt->ClipRange[0];
-      Vmax = Opt->ClipRange[1];
+      Vmin = Opt->IntRange[0];
+      Vmax = Opt->IntRange[1];
    }
    
    /* is the colormap non-linear ? */
@@ -1987,15 +2164,18 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
    }
    
    /* if brightness factor is given, apply it to color map and mask color */
+   Mbuf = NULL;
    if (Opt->BrightFact <= 0 || Opt->BrightFact > 1) {
       fprintf (SUMA_STDERR,"Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
       SUMA_RETURN (NOPE);
    }else {
       if (Opt->BrightFact != 1) {
+         Mbuf = ColMap->M; /* save pointer */
+         ColMap->M = (float **)SUMA_allocate2D(ColMap->N_Col, 3, sizeof(float));
          for (i=0; i < ColMap->N_Col; ++i) {
-            ColMap->M[i][0] *= Opt->BrightFact;
-            ColMap->M[i][1] *= Opt->BrightFact;
-            ColMap->M[i][2] *= Opt->BrightFact;
+            ColMap->M[i][0] = Mbuf[i][0] * Opt->BrightFact;
+            ColMap->M[i][1] = Mbuf[i][1] * Opt->BrightFact;
+            ColMap->M[i][2] = Mbuf[i][2] * Opt->BrightFact;
          }
          /* now for the mask color */
          Opt->MaskColor[0] *= Opt->BrightFact;
@@ -2118,6 +2298,11 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
       }
    
    }
+   if (Mbuf) {
+      /* free what is in ColMap->M */
+      SUMA_free2D((char **)ColMap->M, ColMap->N_Col);
+      ColMap->M = Mbuf; Mbuf = NULL;
+   }
    if (NewMap) {
       SUMA_LH("Freeing linearized colormap.");
       SUMA_Free_ColorMap (ColMap); 
@@ -2216,10 +2401,16 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->MaskRange[0] = Opt->MaskRange[1] = 0.0;
    Opt->MaskColor[0] = Opt->MaskColor[1] = Opt->MaskColor[2] = 0.0; 
    Opt->ApplyClip = NOPE;
-   Opt->ClipRange[0] = Opt->ClipRange[1] = 0.0;
+   Opt->IntRange[0] = Opt->IntRange[1] = 0.0;
+   Opt->BrightRange[0] = 0.0; Opt->BrightRange[1] = 0.0; 
+   Opt->BrightMap[0] = 0.3; Opt->BrightMap[1] = 0.8; 
    Opt->BrightFact = 1.0;
    Opt->interpmode = SUMA_INTERP;
+   Opt->alaAFNI = NOPE;
    Opt->MaskZero = NOPE;
+   Opt->find = -1;
+   Opt->tind = -1;
+   Opt->bind = -1;
    SUMA_RETURN (Opt);
 
 }
@@ -2255,6 +2446,10 @@ char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col)
       case SUMA_CMAP_nGRAY20:
          *N_col = 20;
          SUMA_RETURN("ngray20");
+         break;
+      case SUMA_CMAP_GRAY02:
+         *N_col = 02;
+         SUMA_RETURN("gray02");
          break;
       case SUMA_CMAP_GRAY20:
          *N_col = 20;
@@ -2302,15 +2497,19 @@ SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name)
    SUMA_ENTRY;
    
    if (!Name) SUMA_RETURN(SUMA_CMAP_ERROR);
-   if (!strcmp(Name, "Undefined")) SUMA_RETURN(SUMA_CMAP_UNDEFINED);
+   SUMA_TO_LOWER(Name);
+   if (!strcmp(Name, "undefined")) SUMA_RETURN(SUMA_CMAP_UNDEFINED);
    if (!strcmp(Name, "rgybr20")) SUMA_RETURN(SUMA_CMAP_RGYBR20);
    if (!strcmp(Name, "ngray20")) SUMA_RETURN(SUMA_CMAP_nGRAY20);
    if (!strcmp(Name, "gray20")) SUMA_RETURN(SUMA_CMAP_GRAY20);
+   if (!strcmp(Name, "gray02")) SUMA_RETURN(SUMA_CMAP_GRAY02);
    if (!strcmp(Name, "bw20")) SUMA_RETURN(SUMA_CMAP_BW20);
    if (!strcmp(Name, "bgyr19")) SUMA_RETURN(SUMA_CMAP_BGYR19);
    if (!strcmp(Name, "matlab_default_byr64")) SUMA_RETURN(SUMA_CMAP_MATLAB_DEF_BYR64);
    if (!strcmp(Name, "bgyr64")) SUMA_RETURN(SUMA_CMAP_BGYR64);
+   if (!strcmp(Name, "ygbrp64")) SUMA_RETURN(SUMA_CMAP_ROI64);
    if (!strcmp(Name, "roi64")) SUMA_RETURN(SUMA_CMAP_ROI64);
+   if (!strcmp(Name, "ygbrp128")) SUMA_RETURN(SUMA_CMAP_ROI128);
    if (!strcmp(Name, "roi128")) SUMA_RETURN(SUMA_CMAP_ROI128);
    /* if (!strcmp(Name, "")) SUMA_RETURN(); */
    SUMA_RETURN(SUMA_CMAP_ERROR);
@@ -2324,6 +2523,7 @@ SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name)
       SUMA_CMAP_RGYBR20
       SUMA_CMAP_BGYR19
       SUMA_CMAP_GRAY20
+      SUMA_CMAP_GRAY02
       SUMA_CMAP_nGRAY20
       SUMA_CMAP_BW20
       SUMA_CMAP_MATLAB_DEF_BYR64
@@ -2392,6 +2592,30 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                }
                break;
             }
+            
+         case SUMA_CMAP_GRAY02:
+            {
+               Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
+               if (!Fiducials) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
+                  SUMA_RETURN (NULL);
+               }
+               /* create the fiducial colors */
+               k = 0;
+               Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.4; ++k;/* 0.4 gray */
+               Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.7; ++k;/* 0.8 gray */
+
+               /* generate 2 colors colormap */
+               CM = SUMA_MakeColorMap (Fiducials, k, 2, NOPE, SUMA_StandardMapName(mapcode,&nc));
+               /* free Fiducials */
+               SUMA_free2D((char **)Fiducials, k);
+               
+               if (!CM) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
+                  SUMA_RETURN (NULL);   
+               }
+               break;
+            }   
                      
          case SUMA_CMAP_GRAY20:
             {
@@ -2416,7 +2640,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                }
                break;
             }
-            
+         
          case SUMA_CMAP_nGRAY20:
             {
                Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
@@ -2800,7 +3024,7 @@ int main (int argc,char *argv[])
    int Vminloc, Vmaxloc, *iV = NULL;
    float Vmin, Vmax, brfact;
    float *V = NULL, *Vsort = NULL;
-   float ClipRange[2], MaskColor[3], MaskRange[2], arange;
+   float IntRange[2], MaskColor[3], MaskRange[2], arange;
    SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip, Vopt;
    SUMA_Boolean iVopt, inopt, NoMaskCol, MapSpecified, alaAFNI, MaskZero;
    SUMA_Boolean brk, frf, ShowMap, ShowMapdb;
@@ -2821,8 +3045,11 @@ int main (int argc,char *argv[])
    }
    
    /* fill the color maps */
-   SUMAg_CF->scm = SUMA_Get_AFNI_Default_Color_Maps();
-   
+   SUMAg_CF->scm = SUMA_Build_Color_maps();
+   if (!SUMAg_CF->scm) {
+      SUMA_SL_Err("Failed to build color maps.\n");
+      exit(1);
+   }
    SUMA_INOUT_NOTIFY_OFF;
    
    /* this is placed down here to */
@@ -3015,8 +3242,8 @@ int main (int argc,char *argv[])
             exit (1);
          }
          ApplyClip = YUP;
-         ClipRange[0] = atof(argv[kar]); kar ++;
-         ClipRange[1] = atof(argv[kar]);
+         IntRange[0] = atof(argv[kar]); kar ++;
+         IntRange[1] = atof(argv[kar]);
          brk = YUP;
       }
       
@@ -3027,8 +3254,8 @@ int main (int argc,char *argv[])
             exit (1);
          }
          ApplyPercClip = YUP;
-         ClipRange[0] = atof(argv[kar]); kar ++;
-         ClipRange[1] = atof(argv[kar]);
+         IntRange[0] = atof(argv[kar]); kar ++;
+         IntRange[1] = atof(argv[kar]);
          brk = YUP;
       }
       
@@ -3105,6 +3332,7 @@ int main (int argc,char *argv[])
          MapType = SUMA_CMAP_UNDEFINED;
          if (strcmp(argv[kar], "RYGBR20") == 0)    MapType = SUMA_CMAP_RGYBR20;
          if (strcmp(argv[kar], "BW20") == 0)    MapType = SUMA_CMAP_BW20;
+         if (strcmp(argv[kar], "GRAY02") == 0)    MapType = SUMA_CMAP_GRAY02;
          if (strcmp(argv[kar], "GRAY20") == 0)    MapType = SUMA_CMAP_GRAY20;
          if (strcmp(argv[kar], "BGYR19") == 0)    MapType = SUMA_CMAP_BGYR19;
          if (strcmp(argv[kar], "MATLAB_DEF_BYR64") == 0)    MapType = SUMA_CMAP_MATLAB_DEF_BYR64;
@@ -3131,6 +3359,91 @@ int main (int argc,char *argv[])
       
    }/* loop accross command ine options */
    
+   /* Get your colors straightened out */
+   #if 0
+      /*    ++ Feb 20, Now inside SUMAg_CF */
+      /* Load AFNI default color maps */
+      SAC = SUMA_Get_AFNI_Default_Color_Maps ();
+      if (!SAC) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to obtain AFNI's standard colors.\n", FuncName);
+         exit(1);
+      } else {
+         /* are there database files to read */
+         if (dbfile) {
+            SUMA_LH("Now trying to read db file");
+            if (SUMA_AFNI_Extract_Colors ( dbfile, SAC ) < 0) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
+               exit(1);
+            }
+         }
+      }
+   #else
+      SAC = SUMAg_CF->scm;
+      /* are there database files to read */
+      if (dbfile) {
+         SUMA_LH("Now trying to read db file");
+         if (SUMA_AFNI_Extract_Colors ( dbfile, SAC ) < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
+            exit(1);
+         }
+      }
+   #endif
+   
+   FromAFNI = NOPE; /* assume colormap is not coming from SAC (the colormap database structure) */
+   if (CmapFileName) { 
+      /* load the color map */
+      CM = SUMA_Read_Color_Map_1D (CmapFileName);
+      if (CM == NULL) {
+         fprintf (SUMA_STDERR,"Error %s: Could not load colormap.\n", FuncName);
+         exit (1); 
+      }
+      if (frf) {
+         SUMA_LH("Flipping colormap");
+         SUMA_Flip_Color_Map (CM);
+      }   
+
+      if (!CM->Sgn) CM->Sgn = Sgn; 
+   }else{
+      /* dunno what kind of map yet. Try default first */
+      if (MapType != SUMA_CMAP_UNDEFINED) {
+         CM = SUMA_GetStandardMap (MapType);
+         if (CM) {
+            /* good, sign it and out you go */   
+            CM->Sgn = Sgn;
+         } else {
+            fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName);
+            exit (1); 
+         }
+      } else {
+         SUMA_LH("An AFNI color map ");
+         /* a color from AFNI's maps */
+         FromAFNI = YUP;
+         imap = SUMA_Find_ColorMap ( MapName, SAC->CMv, SAC->N_maps, -2);
+         if (imap < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Could not find colormap %s.\n", FuncName, MapName);
+            exit (1); 
+         }
+         CM = SAC->CMv[imap];
+      }
+   }
+   
+   
+   /* show the colromap on STDERR */
+   if (ShowMap) {
+      fprintf (SUMA_STDERR, "%s: Colormap used:\n", FuncName);
+      SUMA_Show_ColorMapVec (&CM, 1, NULL, 2);
+      exit(0);
+   }
+   
+   /* show all the colors and colormaps in SAC on STDERR */
+   if (ShowMapdb) {
+      fprintf (SUMA_STDERR, "%s: AFNI colormaps found in db:\n", FuncName);
+      SUMA_Show_ColorVec (SAC->Cv, SAC->N_cols, NULL);
+      SUMA_Show_ColorMapVec (SAC->CMv, SAC->N_maps, NULL, 2);
+      exit(0);
+   }
+
+
    if (!IntName) {
       fprintf (SUMA_STDERR,"Error %s: No input file specified.\n", FuncName);
       exit(1);
@@ -3149,16 +3462,6 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDERR,"Error %s: -frf option is only valid with -cmapfile.\n", FuncName);
       exit(1);
    }
-   
-   #if 0
-   /* will not work with [ choosers ] */
-   if (CmapFileName) {
-      if (!SUMA_filexists (CmapFileName)) {
-         fprintf (SUMA_STDERR,"Error %s: File %s could not be found.\n", FuncName, CmapFileName);
-         exit(1);
-      }
-   } 
-   #endif
    
    if (ApplyPercClip && ApplyClip) {
       fprintf (SUMA_STDERR,"Error %s: Simultaneous use of -clp and -perc_clp. You should be punished.\n", FuncName);
@@ -3252,9 +3555,9 @@ int main (int argc,char *argv[])
    /* figure out the range if PercRange is used */
    if (ApplyPercClip) {
       
-      fprintf (SUMA_STDERR,"%s: Percentile range [%f..%f] is equivalent to ", FuncName, ClipRange[0], ClipRange[1]);
-      Vsort = SUMA_PercRange (V, NULL, N_V, ClipRange, ClipRange);
-      fprintf (SUMA_STDERR,"[%f..%f]\n", ClipRange[0], ClipRange[1]);
+      fprintf (SUMA_STDERR,"%s: Percentile range [%f..%f] is equivalent to ", FuncName, IntRange[0], IntRange[1]);
+      Vsort = SUMA_PercRange (V, NULL, N_V, IntRange, IntRange);
+      fprintf (SUMA_STDERR,"[%f..%f]\n", IntRange[0], IntRange[1]);
       ApplyClip = YUP;
       
       if (Vsort) SUMA_free(Vsort);
@@ -3264,80 +3567,6 @@ int main (int argc,char *argv[])
       }
    }
    
-   #if 0
-      /*    ++ Feb 20, Now inside SUMAg_CF */
-      /* Load AFNI default color maps */
-      SAC = SUMA_Get_AFNI_Default_Color_Maps ();
-      if (!SAC) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to obtain AFNI's standard colors.\n", FuncName);
-         exit(1);
-      } else {
-         /* are there database files to read */
-         if (dbfile) {
-            SUMA_LH("Now trying to read db file");
-            if (SUMA_AFNI_Extract_Colors ( dbfile, SAC ) < 0) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
-               exit(1);
-            }
-         }
-      }
-   #else
-      SAC = SUMAg_CF->scm;
-   #endif
-   
-   FromAFNI = NOPE; /* assume colormap is not coming from SAC (the colormap database structure) */
-   if (CmapFileName) { 
-      /* load the color map */
-      CM = SUMA_Read_Color_Map_1D (CmapFileName);
-      if (CM == NULL) {
-         fprintf (SUMA_STDERR,"Error %s: Could not load colormap.\n", FuncName);
-         exit (1); 
-      }
-      if (frf) {
-         SUMA_LH("Flipping colormap");
-         SUMA_Flip_Color_Map (CM);
-      }   
-
-      if (!CM->Sgn) CM->Sgn = Sgn; 
-   }else{
-      /* dunno what kind of map yet. Try default first */
-      if (MapType != SUMA_CMAP_UNDEFINED) {
-         CM = SUMA_GetStandardMap (MapType);
-         if (CM) {
-            /* good, sign it and out you go */   
-            CM->Sgn = Sgn;
-         } else {
-            fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName);
-            exit (1); 
-         }
-      } else {
-         SUMA_LH("An AFNI color map ");
-         /* a color from AFNI's maps */
-         FromAFNI = YUP;
-         imap = SUMA_Find_ColorMap ( MapName, SAC->CMv, SAC->N_maps, -2);
-         if (imap < 0) {
-            fprintf (SUMA_STDERR,"Error %s: Could not find colormap %s.\n", FuncName, MapName);
-            exit (1); 
-         }
-         CM = SAC->CMv[imap];
-      }
-   }
-   
-   
-   /* show the colromap on STDERR */
-   if (ShowMap) {
-      fprintf (SUMA_STDERR, "%s: Colormap used:\n", FuncName);
-      SUMA_Show_ColorMapVec (&CM, 1, NULL, 2);
-      exit(0);
-   }
-   
-   /* show all the colors and colormaps in SAC on STDERR */
-   if (ShowMapdb) {
-      fprintf (SUMA_STDERR, "%s: AFNI colormaps found in db:\n", FuncName);
-      SUMA_Show_ColorVec (SAC->Cv, SAC->N_cols, NULL);
-      SUMA_Show_ColorMapVec (SAC->CMv, SAC->N_maps, NULL, 2);
-      exit(0);
-   }
    
    /* get the options for creating the scaled color mapping */
    OptScl = SUMA_ScaleToMapOptInit();
@@ -3355,7 +3584,7 @@ int main (int argc,char *argv[])
    
    if (ApplyClip) {
       OptScl->ApplyClip = YUP;
-      OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
+      OptScl->IntRange[0] = IntRange[0]; OptScl->IntRange[1] = IntRange[1];
    }
 
    OptScl->interpmode = interpmode;
@@ -3533,12 +3762,14 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
 /*!
    Function to allocate and initialize an Overlays pointer
    
-   ans = SUMA_CreateOverlayPointer (N_Nodes, Name, SUMA_DSET *dset);
+   ans = SUMA_CreateOverlayPointer (N_Nodes, Name, SUMA_DSET *dset, char *ownerid);
    
    \param N_Nodes (int): The number of nodes for which color is assigned
    \param Name (char *): A character string containing the name of the color overlay
    \param dset (SUMA_DSET *): Pointer to data set structure that this plane gets its 
                               data from. 
+   \param ownerid (char *) idcode of owner of colorplane. Can set it to NULL if you
+                           don't care.
    \ret ans (SUMA_OVERLAYS *): a pointer to the structure containing the color overlay
       NULL is returned in case of trouble.
       
@@ -3553,12 +3784,13 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
     
 */
 
-SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_DSET *dset)
+SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_DSET *dset, char *ownerid)
 {
    static char FuncName[]={"SUMA_CreateOverlayPointer"};
    SUMA_OVERLAYS *Sover=NULL;
    SUMA_FileName sfn;
-   int N_Alloc = -1, *NodeDef=NULL, N_NodeDef = -1;
+   int N_Alloc = -1, i=0;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -3573,13 +3805,24 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
       SUMA_RETURN (NULL);
    }
    
+   #ifdef USE_INODE
+   #else
+   Sover->N_links = 0;
+   if (ownerid) sprintf(Sover->owner_id, "%s", ownerid);
+   else Sover->owner_id[0] = '\0';
+   Sover->LinkedPtrType = SUMA_LINKED_OVERLAY_TYPE;
+   #endif
+   
    /* make a link to dset */
+   SUMA_LH("Linking to Dset");
    Sover->dset_link = (SUMA_DSET *)SUMA_LinkToPointer ((void *)dset);
    /* N_Nodes is no longer used, use it for sanity check only */
-   if (N_Nodes != Sover->dset_link->nel->vec_len) {
-      SUMA_SL_Err("N_Nodes not equal to vec_len.");
-      SUMA_RETURN(NULL);
-   }
+   if (Sover->dset_link->nel) {
+      if (N_Nodes != Sover->dset_link->nel->vec_len) {
+         SUMA_SL_Err("N_Nodes not equal to vec_len.");
+         SUMA_RETURN(NULL);
+      }
+  } else { SUMA_SL_Err ("No nel yet !"); SUMA_RETURN(NULL);}
    
    /* copy the name */
    Sover->Name = (char *)SUMA_calloc (strlen(Name)+1, sizeof(char));
@@ -3591,21 +3834,24 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    if (sfn.Path) SUMA_free(sfn.Path); /* get rid of path */
    
    
-   #if 0
    /* not here anymore */
-   Sover->N_Alloc = N_Nodes; 
-   Sover->NodeDef = (int *) SUMA_calloc(Sover->N_Alloc, sizeof(int));
-   Sover->NodeDef[0] = -1;
-   Sover->N_NodeDef = -1;
-   #endif
+   SUMA_LH("Allocating for vectors");
    N_Alloc = COLP_N_ALLOC(Sover);
+   
+   if (N_Alloc != N_Nodes) {
+      SUMA_SL_Err("This is not supposed to be.");
+      SUMA_RETURN(NULL);
+   }
+   Sover->N_NodeDef = N_Nodes;
+   Sover->NodeDef = (int *) SUMA_calloc(N_Alloc, sizeof(int));
+   for (i=0; i < Sover->N_NodeDef; ++i) Sover->NodeDef[i] = i;
    Sover->FullList = 1;
    
    /* Sover->ColMat = (float **) SUMA_allocate2D(Sover->N_Alloc, 3, sizeof(float)); NO MORE 2D ! Mar 17 04*/
    Sover->ColVec = (float *)SUMA_calloc(N_Alloc*3, sizeof(float));
    Sover->LocalOpacity = (float *)SUMA_calloc(N_Alloc, sizeof(float));
    
-   if (!Sover->ColVec || !Sover->LocalOpacity) {
+   if (!Sover->ColVec || !Sover->LocalOpacity || !Sover->NodeDef) {
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover fields.\n", FuncName);
       SUMA_free(Sover);
       SUMA_RETURN (NULL);   
@@ -3619,17 +3865,17 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    
    /* new, from Feb 20 */
    /* default, choose something */
+   SUMA_LH("SCM stuff");
    if (!SUMAg_CF->scm) {
       SUMA_SL_Warn("SUMA color maps not set up.\n");
       Sover->cmapname = NULL;
-      Sover->find = -1; 
-      Sover->tind = -1;
-      Sover->bind = -1;
    } else {
-      Sover->cmapname = NULL;
-      Sover->find = -1; 
-      Sover->tind = -1;
-      Sover->bind = -1;
+      Sover->cmapname = SUMA_copy_string("bgyr64");
+      Sover->OptScl = SUMA_ScaleToMapOptInit();
+      if (!Sover->OptScl) {
+         fprintf (SUMA_STDERR,"Error %s: Could not get scaling option structure.\n", FuncName);
+         SUMA_RETURN (NOPE); 
+      }
    }
    SUMA_RETURN (Sover);
 }
@@ -3677,17 +3923,22 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
       fprintf (SUMA_STDERR,"Error %s: Sover is NULL, nothing to do. Returning OK flag.\n", FuncName);
       SUMA_RETURN (YUP);
    }
+   /* is this pointer used by others ? */
+   if (Sover->N_links) {
+      Sover = (SUMA_OVERLAYS*)SUMA_UnlinkFromPointer((void *)Sover);
+      SUMA_RETURN (YUP);
+   }
    
+   /* No more links, go for it */
    if (Sover->dset_link) Sover->dset_link = (SUMA_DSET *)SUMA_UnlinkFromPointer((void *)Sover->dset_link);
-   #if 0
-      if (Sover->NodeDef) SUMA_free(Sover->NodeDef);
-      /* if (Sover->ColMat) SUMA_free2D ((char **)Sover->ColMat, Sover->N_Alloc); */
-   #endif
+   if (Sover->NodeDef) SUMA_free(Sover->NodeDef);
+   /* if (Sover->ColMat) SUMA_free2D ((char **)Sover->ColMat, Sover->N_Alloc); */
    if (Sover->ColVec)  SUMA_free(Sover->ColVec);
    if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity);
    if (Sover->Label) SUMA_free(Sover->Label);
    if (Sover->Name) SUMA_free(Sover->Name);
    if (Sover->cmapname) SUMA_free(Sover->cmapname);
+   if (Sover->OptScl) SUMA_free(Sover->OptScl);
    SUMA_free(Sover); Sover = NULL;
    
    SUMA_RETURN (YUP);
@@ -3790,7 +4041,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer
    
    if (LocalHead)   { 
       fprintf (SUMA_STDOUT, "%s: Showing all overlay planes.\n", FuncName);
-      SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays); } 
+      SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays, 0); } 
    
 
    /* get the indices into the color structure vector of overlays to be shown */
@@ -4214,14 +4465,14 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
    
    
 */
-SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overlays) 
+SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overlays, int detail) 
 {
    static char FuncName[]={"SUMA_Show_ColorOverlayPlanes"};
    char *s;
    
    SUMA_ENTRY;
 
-   s = SUMA_ColorOverlayPlane_Info (Overlays, N_Overlays);
+   s = SUMA_ColorOverlayPlane_Info (Overlays, N_Overlays, detail);
    if (s) {
       fprintf (SUMA_STDERR,"%s\n", s);
       SUMA_free(s);
@@ -4234,11 +4485,12 @@ SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overl
    \brief Shows the contents of the color overlay planes
    \sa SUMA_Show_ColorOverlayPlanes (for backward compat.)
 */
-char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays) 
+char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int detail) 
 {
    static char FuncName[]={"SUMA_ColorOverlayPlane_Info"};
-   char stmp[1000], *s = NULL;
-   int i, j, ShowN;
+   char stmp[1000], *s = NULL, *s2 = NULL;
+   int i, j, ShowN, icmap;
+   SUMA_COLOR_MAP *ColMap=NULL;
    int N_Alloc = -1, *NodeDef=NULL, N_NodeDef = -1;
 
    SUMA_STRING *SS = NULL;
@@ -4251,6 +4503,13 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays)
    SS = SUMA_StringAppend (SS,stmp);
    for (i=0; i < N_Overlays; ++i) {
       if (Overlays[i]) {
+         #ifdef USE_INODE
+         SS = SUMA_StringAppend_va (SS, "Using stupid inode system\n");
+         #else
+         SS = SUMA_StringAppend_va (SS, "N_links = %d\n", Overlays[i]->N_links);
+         SS = SUMA_StringAppend_va (SS, "LinkedPtrType = %d\n", Overlays[i]->LinkedPtrType);
+         SS = SUMA_StringAppend_va (SS, "owner_id = %s\n",  Overlays[i]->owner_id);
+         #endif
          NodeDef = COLP_NODEDEF(Overlays[i]);
          N_NodeDef = COLP_N_NODEDEF(Overlays[i]);
          N_Alloc = COLP_N_ALLOC(Overlays[i]);
@@ -4273,7 +4532,18 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays)
          }
          SS = SUMA_StringAppend (SS,stmp);        
          SS = SUMA_StringAppend (SS,"\n");
-
+         if (Overlays[i]->cmapname) SS = SUMA_StringAppend (SS,"cmapname = NULL\n");
+         else SS = SUMA_StringAppend_va (SS,"cmapname = %s\n", Overlays[i]->cmapname);
+         /* get the color map */
+         icmap = SUMA_Find_ColorMap ( Overlays[i]->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+         if (icmap < 0) { SS = SUMA_StringAppend (SS,"cmap not found.\n"); }
+         else {
+            ColMap = SUMAg_CF->scm->CMv[icmap];
+            s2 = SUMA_ColorMapVec_Info(&ColMap, 1, detail);
+            SS = SUMA_StringAppend (SS, s2); SUMA_free(s2); s2 = NULL;
+         }   
+         s2 = SUMA_ScaleToMapOpt_Info (Overlays[i]->OptScl, 0);
+         SS = SUMA_StringAppend (SS, s2); SUMA_free(s2); s2 = NULL;
       } else {
          SS = SUMA_StringAppend (SS,"\tNULL overlay plane.\n");
       }
@@ -4284,6 +4554,62 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays)
    s = SS->s;
    SUMA_free(SS); 
    
+   SUMA_RETURN(s);
+}
+
+SUMA_Boolean SUMA_ShowScaleToMapOpt(SUMA_SCALE_TO_MAP_OPT *OptScl, FILE *Out, int detail)
+{
+   static char FuncName[]={"SUMA_ShowScaleToMapOpt"};
+   char *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Out) Out = stdout;
+   
+   s = SUMA_ScaleToMapOpt_Info(OptScl, detail);
+   
+   fprintf (Out, "%s\n", s);
+   
+   if (s) SUMA_free(s); s = NULL;
+   
+   SUMA_RETURN(YUP);
+}
+
+char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail)
+{
+   static char FuncName[]={"SUMA_ScaleToMapOpt_Info"};
+   char *s = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY; 
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (!OptScl) { SS = SUMA_StringAppend (SS, "NULL ScaleToMap options\n"); }
+   else {
+      SS = SUMA_StringAppend (SS, "ScaleToMap options:\n");
+      SS = SUMA_StringAppend_va (SS, "ApplyMask = %d\n", OptScl->ApplyMask);
+      SS = SUMA_StringAppend_va (SS, "MaskRange = %f %f\n", 
+         OptScl->MaskRange[0],  OptScl->MaskRange[1]);
+      SS = SUMA_StringAppend_va (SS, "MaskColor = %f %f %f\n", 
+         OptScl->MaskColor[0],  OptScl->MaskColor[1], OptScl->MaskColor[2]);
+      SS = SUMA_StringAppend_va (SS, "ApplyClip = %d\n", OptScl->ApplyClip);
+      SS = SUMA_StringAppend_va (SS, "BrightFact = %f\n", OptScl->BrightFact);
+      SS = SUMA_StringAppend_va (SS, "MaskZero = %d\n", OptScl->MaskZero);
+      SS = SUMA_StringAppend_va (SS, "find = %d\n", OptScl->find);
+      SS = SUMA_StringAppend_va (SS, "IntRange = %f %f\n", 
+         OptScl->IntRange[0], OptScl->IntRange[1]);
+      SS = SUMA_StringAppend_va (SS, "tind = %d\n", OptScl->tind);
+      SS = SUMA_StringAppend_va (SS, "ThreshRange = %f %f\n", 
+         OptScl->ThreshRange[0], OptScl->ThreshRange[1]);
+      SS = SUMA_StringAppend_va (SS, "bind = %d\n", OptScl->bind);
+      SS = SUMA_StringAppend_va (SS, "BrightRange = %f %f\n", 
+         OptScl->BrightRange[0], OptScl->BrightRange[1]);
+      SS = SUMA_StringAppend_va (SS, "BrightMap = %f %f\n", 
+         OptScl->BrightMap[0], OptScl->BrightMap[1]);
+      SS = SUMA_StringAppend_va (SS, "alaAFNI = %d\n", OptScl->alaAFNI);
+      SS = SUMA_StringAppend_va (SS, "interpmode = %d\n", OptScl->interpmode);
+   }        
+   SUMA_SS2S(SS, s);
    SUMA_RETURN(s);
 }
 
@@ -4339,7 +4665,9 @@ DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
       SUMA_LH("In Loop");
          OvD = (SUMA_OVERLAY_LIST_DATUM *)SUMA_malloc(sizeof(SUMA_OVERLAY_LIST_DATUM));
          OvD->Overlay = SO->Overlays[i];
+         #ifdef USE_INODE
          OvD->Overlay_Inode = SO->Overlays_Inode[i];
+         #endif
          if (!OvD->Overlay) {
             SUMA_LH("NULL Overlay");
          }
@@ -4732,6 +5060,7 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
 /*!
    \brief Adds a new plane to SO->Overlays. 
    If plane exists, you get an error message
+   Overlay_Inode is only used if #ifdef USE_INODE
 */
 SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_INODE *Overlay_Inode)
 {
@@ -4743,11 +5072,16 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    
    SUMA_ENTRY; 
    
-   if (!Overlay || !Overlay_Inode) {
+   if (!Overlay) {
       SUMA_S_Err("You sent me NULLS!");
       SUMA_RETURN (NOPE);
    }
-   
+   #ifdef USE_INODE
+      if (!Overlay_Inode) {
+      SUMA_S_Err("You sent me NULLS!");
+      SUMA_RETURN (NOPE);
+   }
+   #endif
    if (SUMA_isOverlayOfSO(SO, Overlay)) {
       SUMA_S_Err("Plane exists in SO->Overlays.");
       SUMA_RETURN (NOPE);
@@ -4778,7 +5112,10 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    SUMA_LH("Adding to list...");
    OvD = (SUMA_OVERLAY_LIST_DATUM *) SUMA_malloc(sizeof(SUMA_OVERLAY_LIST_DATUM));
    OvD->Overlay = Overlay;
+   #ifdef USE_INODE
    OvD->Overlay_Inode = Overlay_Inode;
+   #endif
+   
    if (Overlay->BrightMod) {
       SUMA_LH("Back dude...");
       dlist_ins_next(BackList, dlist_tail(BackList), (void *)OvD);
@@ -4792,8 +5129,9 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    SUMA_LH("Out dude...");
    /* place the Overlay plane and its inode in SO */
    SO->Overlays[SO->N_Overlays] = Overlay;
+   #ifdef USE_INODE   
    SO->Overlays_Inode[SO->N_Overlays] = Overlay_Inode;
-   
+   #endif
    /* Now increment the number of overlays to be in SO */
    ++SO->N_Overlays;
    
@@ -4906,19 +5244,21 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          SUMA_AddNelCol (dset->nel, SUMA_NODE_G, NULL, NULL, 1);
          SUMA_AddNelCol (dset->nel, SUMA_NODE_B, NULL, NULL, 1);
 
-         Overlay = SUMA_CreateOverlayPointer (SO->N_Node, Name, dset);
+         Overlay = SUMA_CreateOverlayPointer (SO->N_Node, Name, dset, SO->idcode_str);
          if (!Overlay) {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
             SUMA_RETURN(NOPE);
          } 
-
+         
+         #ifdef USE_INODE
          /* make an Inode for the overlay */
          Overlay_Inode = SUMA_CreateInode ((void *)Overlay, SO->idcode_str);
          if (!Overlay_Inode) {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
             SUMA_RETURN(NOPE);
          }
-
+         #endif
+         
          /* set up some defaults for the overlap plane */
          Overlay->Show = sopd->Show;
          Overlay->GlobalOpacity = sopd->GlobalOpacity;
@@ -4953,14 +5293,17 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
       
       SO->Overlays[OverInd]->DimFact = sopd->DimFact;
       SO->Overlays[OverInd]->cmapname = SUMA_copy_string("explicit"); /* explict color definition in data */
-      SO->Overlays[OverInd]->FullList = 0; /*!< This type of planes is usually a full list because it has the nodes defined*/
+      SO->Overlays[OverInd]->FullList = 0; /*!< This type of planes is not usually a full list because it has the nodes defined*/
       
       /* Now put the colors in the overlay plane */
       if (LocalHead) fprintf (SUMA_STDERR,
                               "%s: %d node colors are to be inserted.\n",
                               FuncName, i_max);
                                     
-      COLP_N_NODEDEF(SO->Overlays[OverInd]) = i_max; /* set the number of nodes filled */
+      COLP_N_NODEDEF(SO->Overlays[OverInd]) = i_max; /* set the number of nodes filled IN THE OVERLAY PLANE*/
+      SO->Overlays[OverInd]->dset_link->nel->vec_filled = i_max; /* set the number of nodes filled IN THE DSET, For this
+                                                      type of dsets, the N_NodeDef is the same for both OVERLAY
+                                                      and DSET*/
       if (COLP_N_NODEDEF(SO->Overlays[OverInd])) {
          int *iv, N_i,*Nv; 
          float *Rv, *Gv, *Bv; 
@@ -5063,6 +5406,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
                /* surfaces related and not identical, check on colorplanes */
                if (!SUMA_Fetch_OverlayPointer (SO2->Overlays, SO2->N_Overlays, Name, &OverInd)) {
                   /* color plane not found, link to that of SO */
+                  #ifdef USE_INODE
                   SO2->Overlays_Inode[SO2->N_Overlays] = SUMA_CreateInodeLink (SO2->Overlays_Inode[SO2->N_Overlays],\
                          SO->Overlays_Inode[SO->N_Overlays-1]);
                   if (!SO2->Overlays_Inode[SO2->N_Overlays]) {
@@ -5070,8 +5414,10 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
                      SUMA_RETURN(NOPE);
                   }
                   /* now copy the actual overlay plane pointer */
-                  SO2->Overlays[SO2->N_Overlays] = SO->Overlays[SO->N_Overlays-1];
-
+                  SO2->Overlays[SO2->N_Overlays] = SO->Overlays[SO->N_Overlays-1]; 
+                  #else
+                  SO2->Overlays[SO2->N_Overlays] = (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO->Overlays[SO->N_Overlays-1]);
+                  #endif
                   /*setup the defaults */
                   SO2->Overlays[SO2->N_Overlays]->Show = YUP;
                   SO2->Overlays[SO2->N_Overlays]->GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;
@@ -5749,7 +6095,10 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
    
    SUMA_ENTRY;
    
-   
+   if (LocalHead)  {
+      SUMA_LH("Color Plane Pre Colorizing");
+      SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
+   }
    if (!cp) { SUMA_SL_Err("NULL cp"); SUMA_RETURN(NOPE); }
    if (!cp->dset_link) { SUMA_SL_Err("Where's your dset_link?"); SUMA_RETURN(NOPE); }
    if (!cp->cmapname) { SUMA_SL_Err("Where's your cmapname?"); SUMA_RETURN(NOPE); }
@@ -5788,6 +6137,7 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       if (cp->DimFact == 1.0) {
          for (i=0; i < cp->dset_link->nel->vec_filled; ++i) {
             i3 = 3 * i;
+            cp->NodeDef[i] = Nv[i];
             cp->ColVec[i3] = Rv[i]; ++i3;
             cp->ColVec[i3] = Gv[i]; ++i3;
             cp->ColVec[i3] = Bv[i]; 
@@ -5795,6 +6145,7 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       } else {
          for (i=0; i < cp->dset_link->nel->vec_filled; ++i) {   
             i3 = 3 * i;
+            cp->NodeDef[i] = Nv[i];
             cp->ColVec[i3] = Rv[i] * cp->DimFact; ++i3;
             cp->ColVec[i3] = Gv[i] * cp->DimFact; ++i3;
             cp->ColVec[i3] = Bv[i] * cp->DimFact; 
@@ -5802,10 +6153,105 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       }
    } else {
       /* indirect mapping */
-      SUMA_SL_Note ("Remember to fix me");
+      if (!SUMA_ScaleToMap_Interactive (cp)) {
+         SUMA_SL_Err("Failed in SUMA_ScaleToMap_Interactive.");
+         SUMA_RETURN(0); 
+      }
    }   
    
+   cp->N_NodeDef = cp->dset_link->nel->vec_filled;
+   
+   
+   if (LocalHead)  {
+      SUMA_LH("Color Plane Post Colorizing");
+      SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
+   }
    SUMA_RETURN(1);
+}
+
+/*!
+   \brief Sets up the defaults for the convexity plane.
+   
+   \param SO (SUMA_SurfaceObject *) pointer to surface object that the convexity dataset
+                                    is attributed to. 
+   \param ConvPlane (SUMA_OVERLAYS *) 
+*/
+SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetList) 
+{
+   static char FuncName[]={"SUMA_SetConvexityPlaneDefaults"};
+   float IntRange[2], *Vsort;
+   float *Cx=NULL;
+   int junk;
+   char *eee = NULL;
+   int icmap;
+   SUMA_OVERLAYS *ConvPlane;
+    
+   SUMA_ENTRY;
+   
+   if (!(ConvPlane = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, "Convexity", &junk))) {
+      SUMA_SL_Err("Failed to find overlay plane 'Convexity'");
+      SUMA_RETURN(NOPE);
+   }
+      
+   /* decide on the color map */
+   eee = getenv("SUMA_ConvColorMap");
+   if (eee) {
+      icmap = SUMA_Find_ColorMap ( eee, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+      if (icmap < 0) {
+         SUMA_SL_Err("Colormap specified in\n"
+                     "environment variable SUMA_ConvColorMap\n"
+                     "was not found. Using ngray20.\n");
+         SUMA_STRING_REPLACE(ConvPlane->cmapname, "ngray20");
+     } else {
+         SUMA_STRING_REPLACE(ConvPlane->cmapname, eee);
+     }
+   } else {
+      SUMA_STRING_REPLACE(ConvPlane->cmapname, "ngray20");
+   } 
+
+   /* decide on the convexity brightness factor */
+   eee = getenv("SUMA_ConvBrightFactor");
+   if (eee) {
+      ConvPlane->OptScl->BrightFact = (float)strtod(eee, NULL);
+      if (ConvPlane->OptScl->BrightFact < 0) {
+         SUMA_SL_Err("Brightness factor specified in\n"
+                     "environment variable SUMA_ConvColorMap\n"
+                     "is negative. Using default.\n");
+         ConvPlane->OptScl->BrightFact = SUMA_DIM_CONVEXITY_COLOR_FACTOR;
+     } 
+   } else {
+      ConvPlane->OptScl->BrightFact = SUMA_DIM_CONVEXITY_COLOR_FACTOR;
+   } 
+   
+   /* Now place the color map in the Coloroverlay structure */
+   ConvPlane->GlobalOpacity = SUMA_CONVEXITY_COLORPLANE_OPACITY;
+   ConvPlane->Show = YUP;
+   ConvPlane->BrightMod = YUP;
+
+   /* work the options for creating the scaled color mapping a bit */
+   ConvPlane->OptScl->interpmode = SUMA_NO_INTERP;
+   ConvPlane->OptScl->ApplyClip = YUP;
+   IntRange[0] = 5; IntRange[1] = 95; /* percentile clipping range*/ 
+   Cx = (float *)SUMA_GetCx(SO->idcode_str, DsetList, 0);
+   if (!Cx) { SUMA_SL_Err("Failed to find Cx\n"); SUMA_RETURN (NOPE);  }
+   Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, IntRange, IntRange); 
+   if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
+      /* the new method */
+      if (fabs(IntRange[0]) > IntRange[1]) {
+         IntRange[1] = -IntRange[0];
+      } else {
+         IntRange[0] = -IntRange[1];
+      }
+
+   } else { 
+     /* The old method, do nothing here */ 
+   }
+   if (Vsort) SUMA_free(Vsort); Vsort = NULL;
+
+   ConvPlane->OptScl->find = 0; /* the intensity column */
+   ConvPlane->OptScl->IntRange[0] = IntRange[0]; ConvPlane->OptScl->IntRange[1] = IntRange[1];
+
+   SUMA_RETURN(YUP);
 }
 
 /*-----------------------------------------------------------------*/

@@ -10,6 +10,9 @@
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
+/* largest absolute value */
+#define SUMA_LARG_ABS(a, b) ( ( fabs((double)(a)) > fabs((double)(b)) ) ? fabs((double)(a)) : fabs((double)(b)) )
+ 
 /*! the 1D index of element 
    [r][c] in a row major matrix 
    of nc columns */ 
@@ -376,6 +379,18 @@ Bruce Kimball, Paul Embree and Bruce Kimble
    aminloc = 0; \
    amin = a[0];\
    for (m_I = 1; m_I < nel; m_I++) { \
+      if (a[m_I] > amax) { amax = a[m_I]; amaxloc = m_I; }    \
+      else { if (a[m_I] < amin) { amin = a[m_I]; aminloc = m_I; } }    \
+   } \
+}
+
+#define SUMA_MIN_MAX_VEC_STRIDE(a,nel, amin, amax, aminloc, amaxloc, stride) { \
+   int m_I; \
+   amaxloc = 0; \
+   amax = a[0]; \
+   aminloc = 0; \
+   amin = a[0];\
+   for (m_I = stride; m_I < nel; m_I = m_I+stride) { \
       if (a[m_I] > amax) { amax = a[m_I]; amaxloc = m_I; }    \
       else { if (a[m_I] < amin) { amin = a[m_I]; aminloc = m_I; } }    \
    } \

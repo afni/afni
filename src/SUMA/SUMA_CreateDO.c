@@ -803,7 +803,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    SUMA_STANDARD_CMAP mapcode;
    DList *list=NULL;
    SUMA_EngineData *ED = NULL;
-   SUMA_Boolean Unique = NOPE, LocalHead = NOPE;
+   SUMA_Boolean Unique = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
             
    SUMA_ENTRY;
    
@@ -816,7 +817,11 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             mapcode = SUMA_CMAP_BGYR64;
          } else if (strcmp (eee, "ygbrp64") == 0) {
             mapcode = SUMA_CMAP_ROI64;
+         } else if (strcmp (eee, "roi64") == 0) {
+            mapcode = SUMA_CMAP_ROI64;
          } else if (strcmp (eee, "ygbrp128") == 0) {
+            mapcode = SUMA_CMAP_ROI128;
+         } else if (strcmp (eee, "roi128") == 0) {
             mapcode = SUMA_CMAP_ROI128;
          } else {
             mapcode = SUMA_CMAP_ROI128;
@@ -1835,16 +1840,21 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (SO->N_Overlays) {
       /* freeing color overlays */
       for (i=0; i < SO->N_Overlays; ++i) {
+         #ifdef USE_INODE
          SUMA_ReleaseOverlay(SO->Overlays[i] , SO->Overlays_Inode[i]);
-         SO->Overlays[i] = NULL;
          SO->Overlays_Inode[i] = NULL;
+         #else
+         SUMA_FreeOverlayPointer (SO->Overlays[i]);
+         #endif
+         SO->Overlays[i] = NULL;
       }
       SO->N_Overlays = 0;
    }
    /*Now free the vector of pointers */
    SUMA_free(SO->Overlays);
+   #ifdef USE_INODE
    SUMA_free(SO->Overlays_Inode);
-   
+   #endif
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing FN\n", FuncName);
 
    /* freeing FN,  make sure that there are no links to FN*/
@@ -2264,7 +2274,7 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       if (SO->N_Overlays) {
          sprintf (stmp,"%d Overlay planes.\n", SO->N_Overlays);
          SS = SUMA_StringAppend (SS,stmp);
-         s = SUMA_ColorOverlayPlane_Info(SO->Overlays, SO->N_Overlays);
+         s = SUMA_ColorOverlayPlane_Info(SO->Overlays, SO->N_Overlays, 0);
          if (s) {
             SS = SUMA_StringAppend (SS,s);
             SUMA_free(s);
@@ -2386,11 +2396,15 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].glar_NodeNormList = NULL; 
       /* create vector of pointers */
       SO[i].Overlays = (SUMA_OVERLAYS **) SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
+      #ifdef USE_INODE
       SO[i].Overlays_Inode = (SUMA_INODE **) SUMA_malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 
+      #endif
       /* fill pointers with NULL */
       for (j=0; j < SUMA_MAX_OVERLAYS; ++j) {
          SO[i].Overlays[j] = NULL;
+         #ifdef USE_INODE
          SO[i].Overlays_Inode[j] = NULL;
+         #endif
       }
       SO[i].N_Overlays = 0;
       SO[i].SentToAfni = NOPE;

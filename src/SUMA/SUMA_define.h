@@ -252,9 +252,12 @@ typedef struct {
 }  SUMA_OVERLAY_PLANE_DATA; /*!< This is a conveninence structure meant to carry data required to fill a color plane. 
                                  \sa SUMA_OVERLAYS*/
 
-typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
+typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, /* Begin adding colormaps next: */
+               SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20, SUMA_CMAP_GRAY02,
                SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
-               SUMA_CMAP_MATLAB_DEF_BYR64, SUMA_CMAP_BGYR64, SUMA_CMAP_ROI64, SUMA_CMAP_ROI128 } SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
+               SUMA_CMAP_MATLAB_DEF_BYR64, SUMA_CMAP_BGYR64, SUMA_CMAP_ROI64, SUMA_CMAP_ROI128,
+               SUMA_CMAP_N_MAPS /* Don't add after this one */
+               } SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
 
 typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI_DRAWING_STATUS;
 
@@ -356,23 +359,68 @@ typedef struct {
                                sound clear a year from now */  
 } SUMA_ROI_PLANE;
 
+typedef enum { SUMA_UNDEFINED_MODE, 
+               SUMA_DIRECT, /*!< no interpolation on the colormap, node value is typecast to int and directly used
+                                      to access color map */
+               SUMA_NO_INTERP,   /*!< no interpolation on the colormap (like in afni with paned colormaps) but ranging
+                                       is applied */  
+               SUMA_INTERP       /*!< interpolation on the colormap, SUMA's default */
+            } SUMA_COLORMAP_INTERP_MODE;
+               
+/*! a structure holding the options for the function SUMA_ScaleToMap 
+\sa SUMA_ScaleToMapOptInit to allocate and initialize such a structure 
+to free this structure use the free function
+*/
+typedef struct {
+   SUMA_Boolean ApplyMask; /*!< if YUP then values that fall in MaskRange are assigned the color in MaskColor */
+   float MaskRange[2]; /*!< values between MaskRange[0] and MaskRange[1] (inclusive) are assigned MaskColor */
+   float MaskColor[3]; /*!< color to assign to masked nodes */
+   SUMA_Boolean ApplyClip; /*!< if YUP then range clipping using Range is applied */
+   
+   /* fields used in the _Interactive scale to map mode */
+   float BrightFact; /*!< a brightness factor to apply to the color map. 
+                           This factor is applied to the colors in the colormap and the mask colors*/
+   SUMA_Boolean MaskZero; /*!< values equal to zero will be masked no matter what */
+   float ThreshRange[2]; /*!< Thresholding range. Only first value will be used */
+   float IntRange[2]; /*!< nodes with values <= Range[0] are given the first color in the color map, 
+                           values >= Range[1] get the last color in the map (USED to be called ClipRange*/
+   float BrightRange[2]; /*!< Same as IntRange but for brightness modulating column */
+   float BrightMap[2]; /*!< BrightRange[0] is mapped to BrightMap[0], BrightRange[1] is mapped to BrightMap[1] */
+   SUMA_Boolean alaAFNI; /*!< If yes, use ScaleToMap_alaAFNI, if NOPE, use ScaleToMap */
+   SUMA_COLORMAP_INTERP_MODE interpmode; /*!< see typedef.*/
+   int find;   /*!< index of function sub-brick */
+   int tind;   /*!< index of thresholf sub-brick */
+   int bind;   /*!< index of attenuation sub-brick */
+   
+
+} SUMA_SCALE_TO_MAP_OPT;
+
 /*! Structure containing one color overlay */
 typedef struct {
+   int LinkedPtrType; /*!< Indicates the type of linked pointer */
+   int N_links;   /*!< Number of links to this pointer */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
+
    SUMA_Boolean Show; /*!< if YUP then this overlay enters the composite color map */
    char *Name; /*!< name of ovelay, CONVEXITY or Functional or areal boundaries perhaps. The Name can be a filename with path*/
    char *Label; /*!< Usually the same as Name without any existing path */
-   #if 0
-      /* These now come from dset_link ,
-      use macros COLP_NODEDEF, COLP_N_NODEDEF and COLP_N_ALLOC instead*/
+      /* These can't just come from dset_link because as you change the threshold, and other parameters 
+      some nodes may not get colored so the NodeDef list will differ from that in dset.
+      The macros COLP_NODEDEF, COLP_N_NODEDEF and COLP_N_ALLOC will be redefined
+      to point to fields inside the overlays structure                           Mon Mar 29 15:11:01 EST 2004*/
    int *NodeDef; /*!< nodes over which the colors are defined*/
    int N_NodeDef; /*!< total number of nodes specified in NodeDef*/
+   #if 0
+      /* That one is still borrowed from dset structure */
    int N_Alloc; /*!< You'd think this should be equal to NodeDef, but in instances where you may be receiving
              varying numbers of colors to the same plane, it's a pain to have to free and realloc space.
              So, while the juice is only up to N_NodeDef, the allocation is for N_Alloc */
+   
    #endif
    int FullList; /*!< if 1 then it indicates that a full listing of node colors exists.
-                     i.e. nodes need not be defined explicitly */
-   /* float **ColMat; *//*!< N_NodeDef x 3 matrix containing colors of nodes specified in NodeDef */
+                     i.e. nodes need not be defined explicitly, in that case 
+                     NodeDef is stil explicitly defined. I have my reasons.*/
+                     
    float *ColVec; /*!< N_NodeDef x 3 vector containing colors of nodes specified in NodeDef, Replaces ColMat, Wed Mar 17 04*/
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to all values in ColMat */
    float *LocalOpacity; /*!< Opacity factor vector between 0 and 1 to apply to each individual node color */
@@ -388,20 +436,10 @@ typedef struct {
                               This is done in the functions for creating and destroying
                               overlay planes */ 
    char *cmapname; /*!< name of colormap (must be in SUMAg_CF->scm)  */
-   int find;   /*!< index of function sub-brick */
-   int tind;   /*!< index of thresholf sub-brick */
-   int bind;   /*!< index of attenuation sub-brick */
+   SUMA_SCALE_TO_MAP_OPT *OptScl;   /* Options for mapping values in dset to colormap */
    
 } SUMA_OVERLAYS;
 
-
-typedef enum { SUMA_UNDEFINED_MODE, 
-               SUMA_DIRECT, /*!< no interpolation on the colormap, node value is typecast to int and directly used
-                                      to access color map */
-               SUMA_NO_INTERP,   /*!< no interpolation on the colormap (like in afni with paned colormaps) but ranging
-                                       is applied */  
-               SUMA_INTERP       /*!< interpolation on the colormap, SUMA's default */
-            } SUMA_COLORMAP_INTERP_MODE;
 
 typedef enum { SUMA_BAD_MODE=-1, 
                SUMA_ORIG_MIX_MODE,  /*!< The original mode for color overlaying: 
@@ -412,23 +450,6 @@ typedef enum { SUMA_BAD_MODE=-1,
                               Named after the eminent A. M. L.*/
                SUMA_MAX_MODES /*!< The limit, used for cycling */
                } SUMA_COL_MIX_MODE;
-               
-/*! a structure holding the options for the function SUMA_ScaleToMap 
-\sa SUMA_ScaleToMapOptInit to allocate and initialize such a structure 
-to free this structure use the free function
-*/
-typedef struct {
-   SUMA_Boolean ApplyMask; /*!< if YUP then values that fall in MaskRange are assigned the color in MaskColor */
-   float MaskRange[2]; /*!< values between MaskRange[0] and MaskRange[1] (inclusive) are assigned MaskColor */
-   float MaskColor[3]; /*!< color to assign to masked nodes */
-   SUMA_Boolean ApplyClip; /*!< if YUP then values that range clipping using Range is applied */
-   float ClipRange[2]; /*!< nodes with values <= Range[0] are given the first color in the color map, values >= Range[1] get the last color in the map */
-   float BrightFact; /*!< a brightness factor to apply to the color map. This factor is applied to the colors in the colormap and the mask colors*/
-   SUMA_Boolean MaskZero; /*!< values equal to zero will be masked no matter what */
-   SUMA_COLORMAP_INTERP_MODE interpmode; /*!< If YUP then no interpolation is done between colors of the colormap.
-                              AFNI does not interpolate colors when using the paned colormaps.
-                              The default in SUMA is NOPE, i.e. interpolation is performed*/
-} SUMA_SCALE_TO_MAP_OPT;
 
 /*! structure containing the color mapping of a vector */
 typedef struct {
@@ -1368,7 +1389,9 @@ typedef struct {
 
 typedef struct {
    SUMA_OVERLAYS *Overlay; /*!< pointer to color overlay structures */
+   #ifdef USE_INODE
    SUMA_INODE *Overlay_Inode; /*!< pointer to Inodes corresponding to each Overlay struct */
+   #endif
 } SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists of SO->Overlays and co */ 
 
 
@@ -1481,7 +1504,9 @@ typedef struct {
    SUMA_VOLPAR *VolPar; /*!< Parent Volume structure */
    
    SUMA_OVERLAYS **Overlays; /*!< vector of pointers to color overlay structures */
+   #ifdef USE_INODE
    SUMA_INODE **Overlays_Inode; /*!< vector of pointers to Inodes corresponding to each Overlays struct */
+   #endif
    int N_Overlays; /*!< number of pointers to overlay structures */
    
    SUMA_X_SurfCont *SurfCont;/*!< pointer to structure containing surface controller widget structure */

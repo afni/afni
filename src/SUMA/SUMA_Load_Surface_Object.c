@@ -1942,110 +1942,46 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
             #endif
    
 
-            /* Now create the color map that goes with Cx */
-            { /* MOST OF THIS BLOCK SHOULD BE TURNED TO A FUNCTION */
-               SUMA_COLOR_MAP *CM;
-               SUMA_SCALE_TO_MAP_OPT * OptScl;
-               SUMA_STANDARD_CMAP MapType;
-               SUMA_COLOR_SCALED_VECT * SV;
-               float ClipRange[2], *Vsort;
-               float *Cx=NULL;
-               SUMA_DSET *dset=NULL;
-               
-               /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BYR64)*/
-               CM = SUMA_GetStandardMap (SUMA_CMAP_nGRAY20);
-               if (CM == NULL) {
-                  fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName); 
-                  SUMA_RETURN (NOPE);
-               }
-
-               /* get the options for creating the scaled color mapping */
-               OptScl = SUMA_ScaleToMapOptInit();
-               if (!OptScl) {
-                  fprintf (SUMA_STDERR,"Error %s: Could not get scaling option structure.\n", FuncName);
-                  SUMA_RETURN (NOPE); 
-               }
-
-               /* work the options a bit */
-               OptScl->ApplyClip = YUP;
-               ClipRange[0] = 5; ClipRange[1] = 95; /* percentile clipping range*/ 
-               Cx = (float *)SUMA_GetCx(SO->idcode_str, DsetList, 0);
-               if (!Cx) {
-                  SUMA_SL_Err("Failed to find Cx\n");
-                  SUMA_RETURN (NOPE); 
-               }
-               
-               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, ClipRange, ClipRange); 
-               if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
-                  /* the new method */
-                  if (fabs(ClipRange[0]) > ClipRange[1]) {
-                     ClipRange[1] = -ClipRange[0];
-                  } else {
-                     ClipRange[0] = -ClipRange[1];
-                  }
-                  
-               } else { 
-                 /* The old method, do nothing here */ 
-               }
-               OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
-               OptScl->BrightFact = SUMA_DIM_CONVEXITY_COLOR_FACTOR;
-
-               /* map the values in Cx to the colormap */
-               SV = SUMA_Create_ColorScaledVect(SO->N_Node);/* allocate space for the result */
-               if (!SV) {
-                  fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
-                  SUMA_RETURN (NOPE);
-               }
-
-               /* finally ! */
-               /* decide on the coloring range */
-               /*fprintf (SUMA_STDERR,"%s: 1st color in map %f %f %f\n", FuncName, CM->M[0][0], CM->M[0][1],CM->M[0][2]);*/
-               if (!SUMA_ScaleToMap (Cx, SO->N_Node, ClipRange[0], ClipRange[1], CM, OptScl, SV)) {
-                  fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
-                  SUMA_RETURN (NOPE);
-               }
-
-
-               /* create an overlay plane */
+            {
+               SUMA_DSET *dset=NULL;/* create the color plane for Convexity*/
+             
+             /* create an overlay plane */
                if (!(dset = (SUMA_DSET *)SUMA_GetCx(SO->idcode_str, DsetList, 1))) {
                   SUMA_SL_Err("Failed to find dset!");
                   SUMA_RETURN (NOPE);
                }
-               NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity", dset);
+               NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity", dset, SO->idcode_str);
                if (!NewColPlane) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
                   SUMA_RETURN (NOPE);
                } 
 
+               #ifdef USE_INODE
                /* make an Inode for the overlay */
                NewColPlane_Inode = SUMA_CreateInode ((void *)NewColPlane, SO->idcode_str);
                if (!NewColPlane_Inode) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
                   SUMA_RETURN (NOPE);
                }
-
-               /* Now place the color map in the Coloroverlay structure */
-               NewColPlane->ColVec = SV->cV; SV->cV = NULL; /* this way the color vector will not be freed */
-               /* NewColPlane->N_NodeDef = SO->N_Node; NO LONGER IN THIS STRUCT */
-               NewColPlane->GlobalOpacity = SUMA_CONVEXITY_COLORPLANE_OPACITY;
-               NewColPlane->Show = YUP;
-               NewColPlane->BrightMod = YUP;
-
+               #endif
+               
                /* Add this plane to SO->Overlays */
                if (!SUMA_AddNewPlane (SO, NewColPlane, NewColPlane_Inode)) {
                   SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
                   SUMA_FreeOverlayPointer(NewColPlane);
                   SUMA_RETURN (NOPE);
                }
-
                
-               /* free */
-               if (Vsort) SUMA_free(Vsort);
-               if (CM) SUMA_Free_ColorMap (CM);
-               if (OptScl) SUMA_free(OptScl);
-               if (SV) SUMA_Free_ColorScaledVect (SV);
+               if (!SUMA_SetConvexityPlaneDefaults(SO, DsetList)) {
+                  SUMA_SL_Err("Failed to set plane defaults."); SUMA_RETURN(NOPE);
+               }
+               
+
+               /* colorize the plane */
+               SUMA_ColorizePlane(NewColPlane);
+               
             }
-            
+                        
             /* Create a Mesh Axis for the surface */
             SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis");
             if (SO->MeshAxis == NULL) {
