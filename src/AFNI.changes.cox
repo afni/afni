@@ -3944,3 +3944,9 @@
 28 Aug 2002
  * Modified thd_initsess.c and thd_analyzeread.c to support FSL/FEAT
      input .map files.
+
+01 Sep 2002
+ * Program 3dDespike.c.
+
+03 Sep 2002
+ * Modify 3dDespike.c to allow float datasets, print nicer messages, etc.
