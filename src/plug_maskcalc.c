@@ -9,6 +9,9 @@
  * plug_maskcalc.c		- plugin to do mask-based computations
  *
  * $Log$
+ * Revision 1.4  2003/06/25 20:45:07  rwcox
+ * Cput
+ *
  * Revision 1.3  2000/12/21 16:10:54  cox
  * AFNI
  *
@@ -23,7 +26,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <malloc.h>
+#ifndef DARWIN
+#  include <malloc.h>
+#endif
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>

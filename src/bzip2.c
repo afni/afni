@@ -133,7 +133,9 @@
    #include <sys/types.h>
    #include <utime.h>
    #include <unistd.h>
+#ifndef DARWIN
    #include <malloc.h>
+#endif
    #include <sys/stat.h>
    #include <sys/times.h>
 
