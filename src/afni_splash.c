@@ -35,6 +35,7 @@ static void *handle = NULL ;
 static int do_write=2 ;
 
 static int AFNI_find_jpegs( char *, char ***) ;  /* 26 Nov 2003 */
+static int AFNI_find_todays_face(void) ;         /* 30 Mar 2005 */
 
 /*----------------------------------------------------------------------------*/
 
@@ -146,12 +147,14 @@ ENTRY("AFNI_splashup") ;
       imov = NULL ; ff = 0 ;
       if( num_face > 0 ){                       /* external face_*.jpg files */
         static int *dold=NULL, ndold=0 ; int qq ;
+        dd = AFNI_find_todays_face() ;  /* 30 Mar 2005: find a    */
+        if( dd >= 0 ) goto Have_dd ;    /* special face for today */
         if( ndold == 0 && num_face > 1 ){
           ndold = num_face/2 ;
           dold  = (int *) malloc(sizeof(int)*ndold) ;
           for( qq=0 ; qq < ndold ; qq++ ) dold[qq] = -1 ;
         }
-     Retry_dd:
+      Retry_dd:
         dd = (lrand48() >> 8) % num_face ;              /* pick random file */
         if( num_face > 1 ){                       /* check if used recently */
           for( qq=0 ; qq < ndold && dold[qq] != dd ; qq++ ) ;       /* nada */
@@ -160,6 +163,7 @@ ENTRY("AFNI_splashup") ;
             dold[qq-1] = dold[qq] ;
           dold[ndold-1] = dd ;
         }
+      Have_dd:
         imov = mri_read_stuff( fname_face[dd] ) ;              /* read file */
         if( imov != NULL && (imov->nx > MAX_XOVER || imov->ny > MAX_YOVER) ){
           float xfac=MAX_XOVER/(float)(imov->nx),
@@ -1638,4 +1642,64 @@ ENTRY("AFNI_finalrun_script_CB") ;
 
    AFNI_startup_script_CB( (XtPointer) cbs->cval , NULL ) ;
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+#include <time.h>
+#define JAN  1
+#define FEB  2
+#define MAR  3
+#define APR  4
+#define MAY  5
+#define JUN  6
+#define JUL  7
+#define AUG  8
+#define SEP  9
+#define OCT 10
+#define NOV 11
+#define DEC 12
+
+typedef struct { int mon,day; char *label; } mday ;
+#define NTMAX 9
+
+static mday facials[] = {
+ {MAR,30,"face_vincent" } ,
+ {FEB,12,"face_lincoln" } ,
+ {JAN, 3,"face_tolkien" } ,
+ {MAR,14,"face_einstein"} ,
+ {APR,27,"face_grant"   } ,
+ {SEP, 7,"face_rwcox"   } ,
+{0,0,NULL} } ;  /* last element = flag to stop searching */
+
+static int AFNI_find_todays_face(void)
+{
+   time_t tt ;
+   struct tm *lt ;
+   int ii , ntar , dd , tar[NTMAX] ;
+   static int iold=-1 ;
+   char *flab ;
+
+   if( num_face <= 0 || fname_face == NULL ) return -1 ;  /* bad */
+   if( num_face == 1 )                       return  0 ;  /* duh */
+
+   /* find if this day is in the 'facials' list */
+
+   tt = time(NULL) ;         /* seconds since 01 Jan 1970 */
+   lt = localtime( &tt ) ;   /* break into pieces */
+   for( ii=0 ; facials[ii].day > 0 ; ii++ )
+     if( facials[ii].mon == lt->tm_mon+1 && facials[ii].day == lt->tm_mday ) break ;
+   if( facials[ii].day <= 0 ) return -1 ;  /* today is not special */
+
+   /* OK, find face names that match */
+
+   flab = facials[ii].label ;
+
+   for( ntar=dd=0 ; ntar < NTMAX && dd < num_face ; dd++ )
+     if( strstr(fname_face[dd],flab) != NULL ) tar[ntar++] = dd ;
+
+   if( ntar == 0 ) return -1 ;
+   if( ntar == 1 ) return tar[0] ;
+   ii = (lrand48()>>8) % ntar ;
+   if( ii == iold ) ii = (ii+1)%ntar ;
+   iold = ii ; return tar[ii] ;
 }
