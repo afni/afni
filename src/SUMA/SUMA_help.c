@@ -113,6 +113,8 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + SurfClust: Program to find clusters of activation\n"
             "               on the surface.\n"
             "  + IsoSurface: Program to create isosurfaces from AFNI volumes.\n"
+            "  + ConvexHull: Program to create the convex hull of a set of\n"
+            "                points.\n"
             "Modifications:\n"
             "  + SUMA:\n"
             "    Slight modification to threshold scale.\n"
