@@ -1011,5 +1011,19 @@ float  vector_dotself( vector a )
 }
 
 /*---------------------------------------------------------------------------*/
+/*!
+  Compute the L_infinity norm of a matrix: the max absolute row sum.
+*/
 
+float matrix_norm( matrix a )
+{
+   int i,j , rows=a.rows, cols=a.cols ;
+   float sum , smax=0.0 ;
 
+   for (i = 0;  i < rows;  i++){
+     sum = 0.0 ;
+     for (j = 0;  j < cols;  j++) sum += fabs(a.elts[i][j]) ;
+     if( sum > smax ) smax = sum ;
+   }
+   return smax ;
+}
