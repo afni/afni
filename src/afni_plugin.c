@@ -4191,7 +4191,7 @@ ENTRY("PLUGIN_seq_send_CB") ;
                    "A bug we do not really need.\n"
                    "At sleepy-time he beats a path\n"
                    "Straight to the bedroom or the bath.\n"
-                   "You always wallop where he?s not,\n"
+                   "You always wallop where he's not,\n"
                    "Or, if he is, he makes a spot. \n"
                 ,
                    " \n"
