@@ -1213,7 +1213,7 @@ static Boolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
    static int nosplash = 0 , nodown = 0 ;
-   static double eltime=0.0 , max_splash=1.0 ;
+   static double eltime=0.0 , max_splash=2.0 ;
    int ii ;
 
 ENTRY("MAIN_workprocess") ;  /* 23 Jan 2001: added ENTRY/RETURN to this routine */
