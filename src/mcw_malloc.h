@@ -60,7 +60,7 @@ extern void * mcw_realloc( void * , size_t , char * , int ) ;
 extern void * mcw_calloc( size_t , size_t , char * , int ) ;
 extern void   mcw_free( void * ) ;
 
-extern char * mcw_malloc_status(void) ;
+extern char * mcw_malloc_status(const char *,int) ;
 extern void   mcw_malloc_dump(void) ;
 extern int    mcw_malloc_enabled(void) ;
 
@@ -68,7 +68,7 @@ extern int    mcw_malloc_enabled(void) ;
 
 #define MCW_MALLOC_enabled mcw_malloc_enabled()
 
-#define MCW_MALLOC_status  mcw_malloc_status()
+#define MCW_MALLOC_status  mcw_malloc_status(__FILE__,__LINE__)
 
 /*-- do the same macro thing for the Xt library functions --*/
 

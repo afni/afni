@@ -479,7 +479,8 @@ typedef struct {
 
 } MCW_grapher ;
 
-#define GRA_TIMERFUNC_INDEX 701
+#define GRA_TIMERFUNC_INDEX  701
+#define GRA_TIMERFUNC_BOUNCE 702
 
 extern void GRA_timer_CB( XtPointer , XtIntervalId * ) ; /* 04 Dec 2003 */
 extern void GRA_timer_stop( MCW_grapher * ) ;

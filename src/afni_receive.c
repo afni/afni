@@ -107,8 +107,11 @@ ENTRY("AFNI_receive_init") ;
       if( im3d->vinfo->receiver[ir] == NULL ) break ;
 
    if( ir == im3d->vinfo->num_receiver ){
-      im3d->vinfo->receiver = AFREALL( im3d->vinfo->receiver, AFNI_receiver *,
-				       ir+1 ); 
+#if 0
+fprintf(stderr,"AFNI_receive_init AFREALL() with ir=%d num_receiver=%d\n",
+        ir,im3d->vinfo->num_receiver ) ;
+#endif
+      im3d->vinfo->receiver = AFREALL( im3d->vinfo->receiver, AFNI_receiver *, ir+1 ); 
       im3d->vinfo->num_receiver ++ ;
    }
    im3d->vinfo->receiver[ir] = AFMALL( AFNI_receiver, sizeof(AFNI_receiver)) ;

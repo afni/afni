@@ -181,7 +181,8 @@ ENTRY("new_MCW_grapher") ;
                        "1 = move to 1st time point\n"
                        "l = move to last time point\n"
                        "L = turn AFNI logo on/off\n"
-                       "v = Video up in time  V = Video down in time\n"
+                       "v/V = Video up/down in time\n"
+                       "r/R = Video ricochet up/down in time\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
                        "and for other options to control graph display."
@@ -2943,13 +2944,6 @@ STATUS(str); }
          redraw_graph( grapher , 0 ) ;
       break ;
 
-#if 0
-      case 'r':
-         grapher->grid_color = (grapher->grid_color + 1 ) % grapher->dc->ovc->ncol_ov ;
-         redraw_graph( grapher , 0 ) ;
-      break;
-#endif
-
       case 'q':
       case 'Q':
          end_fd_graph_CB( NULL , (XtPointer) grapher , NULL ) ;
@@ -3019,6 +3013,19 @@ STATUS(str); }
           grapher->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
           if( grapher->timer_delay <= 0 ) grapher->timer_delay = 1 ;
           grapher->timer_param = (buf[0] == 'v') ? 1 : -1 ;
+          grapher->timer_id    =
+          XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb) ,
+                           grapher->timer_delay , GRA_timer_CB , grapher ) ;
+        }
+      break ;
+
+      case 'r':
+      case 'R':
+        if( grapher->status->num_series > 1 ){
+          grapher->timer_func  = GRA_TIMERFUNC_BOUNCE ;
+          grapher->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
+          if( grapher->timer_delay <= 0 ) grapher->timer_delay = 1 ;
+          grapher->timer_param = (buf[0] == 'b') ? 1 : -1 ;
           grapher->timer_id    =
           XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb) ,
                            grapher->timer_delay , GRA_timer_CB , grapher ) ;
@@ -5398,6 +5405,29 @@ ENTRY("GRA_timer_CB") ;
        int nn = grapher->time_index , nt=grapher->status->num_series ;
        if( nt > 1 && grapher->timer_param != 0 ){
          nn = (nn+grapher->timer_param+nt) % nt ;
+         redo = 1 ;
+         if( grapher->status->send_CB != NULL ){
+           GRA_cbs cbs ;
+           cbs.reason = graCR_setindex ;
+           cbs.key    = nn ;
+           cbs.event  = NULL ;
+           grapher->status->send_CB( grapher, grapher->getaux, &cbs ) ;
+         } else {
+           (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)nn) ;
+         }
+       }
+     }
+     break ;
+
+     case GRA_TIMERFUNC_BOUNCE:{
+       int nn = grapher->time_index , nt=grapher->status->num_series ;
+       if( nt > 1 && grapher->timer_param != 0 ){
+         nn = nn + grapher->timer_param ;
+         if( nn <  0  ){
+           nn = -nn; grapher->timer_param = -grapher->timer_param;
+         } else if( nn >= nt ){
+           nn = 2*(nt-1)-nn; grapher->timer_param = -grapher->timer_param;
+         }
          redo = 1 ;
          if( grapher->status->send_CB != NULL ){
            GRA_cbs cbs ;

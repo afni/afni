@@ -32,11 +32,11 @@
 
 #else
 
-# define MCHECK                           \
-   do{ char * mc = mcw_malloc_status() ;  \
+# define MCHECK                                            \
+   do{ char * mc = mcw_malloc_status(__LINE__,__FILE__) ;  \
         if( mc != NULL ) printf("** Memory usage: %s\n",mc) ; } while(0)
 
-# define MPROBE do{ if( !DBG_trace ) mcw_malloc_status() ; } while(0)
+# define MPROBE do{ if( !DBG_trace ) mcw_malloc_status(__FILE__,__LINE__) ; } while(0)
 
 #endif
 

@@ -1,10 +1,14 @@
 #include "mrilib.h"
 
+#undef  TDIR
 #define TDIR "m2pAFNI/"
 
 static int first=1 ;
 static char *tmpdir      = NULL ;
 static char *mpeg_filter = NULL ;
+
+#undef  TSIZ
+#define TSIZ 6666666
 
 /*----------------------------*/
 /*! Setup mpeg reading stuff. */
@@ -49,6 +53,8 @@ MRI_IMARR * mri_read_mpeg( char *fname )
    /*--- check input for OK-ness ---*/
 
    if( fname == NULL || *fname == '\0' ) return NULL ;
+   ii = mri_filesize(fname) ;
+   if( ii <= 0 ) return NULL ;
 
    mpeg_setup() ;
 
@@ -61,7 +67,9 @@ MRI_IMARR * mri_read_mpeg( char *fname )
    THD_mkdir( tmpdir ) ;                    /* create the temp directory */
    if( !THD_is_directory(tmpdir) ){ free(pg); return NULL; }  /* can't?  */
 
+   if( ii > TSIZ ) fprintf(stderr,"++ Decoding file %s",fname) ;
    system( pg ) ;    /* run the command */
+   if( ii > TSIZ ) fprintf(stderr,".\n") ;
 
    /*--- read files from the temp directory ---*/
 
@@ -108,6 +116,8 @@ int mri_imcount_mpeg( char *fname )
    /*--- check input for OK-ness ---*/
 
    if( fname == NULL || *fname == '\0' ) return 0 ;
+   ii = mri_filesize(fname) ;
+   if( ii <= 0 ) return NULL ;
 
    mpeg_setup() ;
 
