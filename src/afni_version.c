@@ -1,6 +1,6 @@
 #include "afni.h"
 
-#define AFNI_LATEST "http://afni.nimh.nih.gov/afni/afni_latest.shtml"
+#define AFNI_LATEST "http://afni.nimh.nih.gov/afni/news"
 
 #define FAIL_MESSAGE(reason)                                           \
  do{                                                                   \
