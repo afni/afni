@@ -824,24 +824,28 @@ static THD_warp tempA_warp ;  /* temporary warp */
 #define STORAGE_BY_BRICK   2
 #define STORAGE_BY_MINC    3
 
-/* the filenames in this structure are really path names
-   (that is, they have the directory name prependend)    */
+/*! \brief Contains information about where/how dataset is stored on disk
+     The filenames in this structure are really path names
+     (that is, they have the directory name prependend).
+/*
 
 typedef struct {
-      int type ;
-      int rank , nvals , dimsizes[THD_MAX_RANK] ;
-      int storage_mode ;                   /* one of the STORAGE_ codes  */
+      int type ;                           /*!< must be DISKPTR_TYPE */
+      int rank ;                           /*!< must be 3 */
+      int nvals ;                          /*!< number of 3D volumes; must agree with THD_datablock */
+      int dimsizes[THD_MAX_RANK] ;         /*!< size of each dimension of 3D array */
+      int storage_mode ;                   /*!< one of the STORAGE_ codes  */
 
-                                           /* 25 April 1998:         */
-      int byte_order ;                     /* LSB_FIRST or MSB_FIRST */
+                                           /* 25 April 1998:           */
+      int byte_order ;                     /*!< LSB_FIRST or MSB_FIRST */
 
-      char prefix[THD_MAX_PREFIX] ;        /* filenames on disk will be  */
-      char viewcode[THD_MAX_VIEWCODE] ;    /* formed from filecode.*     */
-      char filecode[THD_MAX_FILECODE] ;    /* filecode = prefix+viewcode */
+      char prefix[THD_MAX_PREFIX] ;        /*!< prefix part of filename */
+      char viewcode[THD_MAX_VIEWCODE] ;    /*!< viewcode part of filename */
+      char filecode[THD_MAX_FILECODE] ;    /*!< filecode = prefix+viewcode */
 
-      char directory_name[THD_MAX_NAME] ;  /* contain all files */
-      char header_name[THD_MAX_NAME] ;     /* contains attributes */
-      char brick_name[THD_MAX_NAME] ;      /* THIS contains data */
+      char directory_name[THD_MAX_NAME] ;  /*!< contain all files for this dataset */
+      char header_name[THD_MAX_NAME] ;     /*!< contains attributes */
+      char brick_name[THD_MAX_NAME] ;      /*!< THIS contains actual data volumes */
 } THD_diskptr ;
 
 #define ATRNAME_BYTEORDER "BYTEORDER_STRING"
