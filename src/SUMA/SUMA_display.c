@@ -604,7 +604,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          
          /* build File Cascade button */
          btn = XmCreatePushButton (menupane, "Quit", NULL, 0);
-         XtAddCallback (btn, XmNactivateCallback, SUMA_cb_quit, NULL);
+         XtAddCallback (btn, XmNactivateCallback, SUMA_cb_quit, (XtPointer)&(SUMAg_SVv[ic]));
          XtManageChild (btn);
          XtSetArg(args[0], XmNsubMenuId, menupane);
          cascade = XmCreateCascadeButton(menubar, "File", args, 1);
@@ -615,24 +615,32 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          menupane = XmCreatePulldownMenu (menubar, "menupane", NULL, 0);
          XtVaSetValues(menupane,
             XmNtearOffModel, XmTEAR_OFF_ENABLED);
+         
          btn = XmCreatePushButton (menupane, "Surface Controller", NULL, 0);
          XtAddCallback (btn, XmNactivateCallback, SUMA_cb_view_surface_controller, NULL);
          XtManageChild (btn);
+         
          btn = XmCreatePushButton (menupane, "Viewer Controller", NULL, 0);
          XtAddCallback (btn, XmNactivateCallback, SUMA_cb_view_viewer_controller, NULL);
          XtManageChild (btn);
-         btn = XmCreateToggleButton(menupane, "Cross Hair", NULL, 0);
-         XtAddCallback(btn, XmNvalueChangedCallback,
+         
+         SUMAg_SVv[ic].X->ToggleCrossHair_View_tglbtn = XmCreateToggleButton(menupane, "Cross Hair", NULL, 0);
+         XtAddCallback(SUMAg_SVv[ic].X->ToggleCrossHair_View_tglbtn, XmNvalueChangedCallback,
           (XtCallbackProc) SUMA_cb_toggle_crosshair, (XtPointer)&(SUMAg_SVv[ic]));
-         XtManageChild(btn);
+         XtManageChild(SUMAg_SVv[ic].X->ToggleCrossHair_View_tglbtn);
+         XmToggleButtonSetState (SUMAg_SVv[ic].X->ToggleCrossHair_View_tglbtn, 
+            SUMAg_SVv[ic].ShowCrossHair, NOPE);
+            
          btn = XmCreateToggleButton(menupane, "Node in Focus", NULL, 0);
          XtAddCallback(btn, XmNvalueChangedCallback,
           (XtCallbackProc) SUMA_cb_toggle_node_in_focus, NULL);
          XtManageChild(btn);
-         btn = XmCreatePushButton(menupane, "Selected Faceset", NULL, 0);
+         
+         btn = XmCreateToggleButton(menupane, "Selected Faceset", NULL, 0);
          XtAddCallback(btn, XmNvalueChangedCallback,
           (XtCallbackProc) SUMA_cb_toggle_selected_faceset, NULL);
          XtManageChild(btn);
+         
          XtSetArg(args[0], XmNsubMenuId, menupane);
          cascade = XmCreateCascadeButton(menubar, "View", args, 1);
          XtManageChild(cascade);
@@ -1250,10 +1258,12 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y)
 
 void SUMA_cb_quit(Widget w, XtPointer data, XtPointer callData)
 {
+   SUMA_SurfaceViewer *sv;
    static char FuncName[] = {"SUMA_cb_quit"};
 
+   sv = (SUMA_SurfaceViewer *)data;
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-   SUMA_ButtClose_pushed (w, data, callData);
+   SUMA_ButtClose_pushed (sv->X->GLXAREA, data, callData);
    
    SUMA_RETURNe;
 }
