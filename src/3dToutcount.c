@@ -3,7 +3,7 @@
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * dset , * oset=NULL ;
-   int nvals , iv , nxyz , ii , iarg , saveit=0 , oot , ic,cc ;
+   int nvals , iv , nxyz , ii,jj , iarg , saveit=0 , oot , ic,cc ;
    int * count ;
    float qthr=0.001 , alph,fmed,fmad , fbot,ftop,fsig , sq2p ;
    MRI_IMAGE * flim ;
@@ -12,6 +12,10 @@ int main( int argc , char * argv[] )
    int    mmvox=0 ;
    char * prefix=NULL ;
    int do_autoclip=0 , npass=0 , do_range=0 ;   /* 12 Aug 2001 */
+
+   int polort=0 , nref ;                        /* 07 Aug 2002 */
+   float **ref ;
+   float  *fit ;
 
    /*----- Read command line -----*/
 
@@ -37,10 +41,17 @@ int main( int argc , char * argv[] )
              "             or Q = 0 if v is 'close' to the median.\n"
              "              The prefix of the new dataset (float format) is 'ppp'.\n"
              "\n"
+             " -polort nn = Detrend each voxel time series with polynomials of\n"
+             "                order 'nn' prior to outlier estimation.  Default\n"
+             "                value of nn=0, which means just remove the median.\n"
+             "                Detrending is done with L1 regression, not L2.\n"
+             "\n"
              "OUTLIERS are defined as follows:\n"
-             " * The median and MAD of each time series are calculated.\n"
+             " * The trend and MAD of each time series are calculated.\n"
+             "   - MAD = median absolute deviation\n"
+             "         = median absolute value of time series minus trend.\n"
              " * In each time series, points that are 'far away' from the\n"
-             "    median are called outliers, where 'far' is defined by\n"
+             "    trend are called outliers, where 'far' is defined by\n"
              "      alpha * sqrt(PI/2) * MAD\n"
              "      alpha = qginv(0.001/N) (inverse of reversed Gaussian CDF)\n"
              "      N     = length of time series\n"
@@ -117,6 +128,14 @@ int main( int argc , char * argv[] )
          DSET_delete(mask_dset) ; iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-polort") == 0 ){
+        polort = strtol( argv[++iarg] , NULL , 10 ) ;
+        if( polort < 0 || polort > 3){
+          fprintf(stderr,"** Illegal value of polort!\n"); exit(1);
+        }
+        iarg++ ; continue ;
+      }
+
       fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
    }
 
@@ -184,33 +203,88 @@ int main( int argc , char * argv[] )
    count = (int *) calloc( sizeof(int) , nvals ) ;
    var   = (float *) malloc( sizeof(float) * nvals ) ;
 
+   /* 07 Aug 2002: make polort refs */
+
+   nref = polort+1 ;
+   ref  = (float **) malloc( sizeof(float *) * nref ) ;
+   for( jj=0 ; jj < nref ; jj++ )
+     ref[jj] = (float *) malloc( sizeof(float) * nvals ) ;
+
+   fit = (float *) malloc( sizeof(float) * nref ) ;
+
+   /* r(t) = 1 */
+
+   for( iv=0 ; iv < nvals ; iv++ ) ref[0][iv] = 1.0 ;
+
+   jj = 1 ;
+   if( polort > 0 ){
+
+     /* r(t) = t - tmid */
+
+     float tm = 0.5 * (nvals-1.0) ; float fac = 2.0 / nvals ;
+     for( iv=0 ; iv < nvals ; iv++ ) ref[1][iv] = (iv-tm)*fac ;
+     jj = 2 ;
+
+     /* r(t) = (t-tmid)**jj */
+
+     for( ; jj <= polort ; jj++ )
+       for( iv=0 ; iv < nvals ; iv++ )
+         ref[jj][iv] = pow( (iv-tm)*fac , (double)jj ) ;
+   }
+
    /*--- loop over voxels and count ---*/
 
    for( cc=ii=0 ; ii < nxyz ; ii++ ){
       if( mmm != NULL && mmm[ii] == 0 ) continue ;  /* masked out */
-      flim = THD_extract_series( ii , dset , 0 ) ;
-      far  = MRI_FLOAT_PTR(flim) ;
-      memcpy(var,far,sizeof(float)*nvals ) ;
 
-      fmed = qmed_float( nvals , far ) ;
       npass++ ;
-      for( iv=0 ; iv < nvals ; iv++ ) far[iv] = fabs(far[iv]-fmed) ;
+
+      flim = THD_extract_series( ii , dset , 0 ) ;  /* get data */
+      far  = MRI_FLOAT_PTR(flim) ;
+      memcpy(var,far,sizeof(float)*nvals ) ;        /* copy data */
+
+      if( polort == 0 ){                     /* the old way */
+
+        fmed = qmed_float( nvals , far ) ;
+        for( iv=0 ; iv < nvals ; iv++ ){
+          var[iv] = var[iv] - fmed ;         /* remove median = resid */
+          far[iv] = fabs(var[iv]) ;          /* abs value of resid */
+        }
+
+      } else {                               /* 07 Aug 2002: detrend */
+
+        float val ;
+        for( jj=0 ; jj < nref ; jj++ ) fit[jj] = 0.0 ;      /* no constraints */
+        jj = cl1_solve( nvals , nref , far , ref , fit ) ;  /* get fit */
+        if( jj ) continue ;                                 /* bad! should not happen */
+        for( iv=0 ; iv < nvals ; iv++ ){                    /* detrend */
+          val = 0.0 ;
+          for( jj=0 ; jj < nref ; jj++ )                    /* fitted value */
+            val += fit[jj] * ref[jj][iv] ;
+
+          var[iv] = var[iv]-val ;            /* remove fitted value = resid */
+          far[iv] = fabs(var[iv]) ;          /* abs value of resid */
+        }
+      }
+
+      /* find median of detrended data */
+
       fmad = qmed_float( nvals , far ) ;
-      fbot = fmed - alph*fmad ; ftop = fmed + alph*fmad ;
+      ftop = alph*fmad ; fbot = -ftop ;
 
       if( fmad > 0.0 ){
-         if( saveit ) fsig = 1.0/(sq2p*fmad) ;
-         for( ic=iv=0 ; iv < nvals ; iv++ ){
-            oot = (var[iv] < fbot || var[iv] > ftop ) ;
-            if( oot ){ count[iv]++ ; cc++ ; }
-            if( saveit ){
-               if( oot ){ far[iv] = -log10qg(fabs((var[iv]-fmed)*fsig)); ic++; }
-               else     { far[iv] = 0.0 ; }
-            }
-         }
+        if( saveit ) fsig = 1.0/(sq2p*fmad) ;
+        for( ic=iv=0 ; iv < nvals ; iv++ ){
+          oot = (var[iv] < fbot || var[iv] > ftop ) ;
+          if( oot ){ count[iv]++ ; cc++ ; }
+          if( saveit ){
+            if( oot ){ far[iv] = -log10qg(fabs(var[iv]*fsig)); ic++; }
+            else     { far[iv] = 0.0 ; }
+          }
+        }
 
-         if( ic > 0 )
-            THD_insert_series( ii,oset, nvals,MRI_float,far , 0 ) ;
+        if( ic > 0 )
+          THD_insert_series( ii,oset, nvals,MRI_float,far , 0 ) ;
       }
 
       mri_free(flim) ;

@@ -995,6 +995,10 @@ csfft.o:csfft.c
 	$(RM) $@
 	$(CCFAST) -c csfft.c $(IFLAGS)
 
+cl1.o:cl1.c
+	$(RM) $@
+	$(CCFAST) -c cl1.c $(IFLAGS)
+
 mri_drawing.o:mri_drawing.c
 	$(RM) $@
 	$(CCFAST) -c mri_drawing.c $(IFLAGS)
@@ -1086,7 +1090,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
-           niml.o afni_suma.o
+           niml.o afni_suma.o cl1.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -1140,7 +1144,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_scatplot.$(SO) plug_nudge.$(SO)    plug_wavelets.$(SO)    \
         plug_second_dataset.$(SO)               plug_betafit.$(SO)     \
         plug_zeropad.$(SO)  plug_nth_dataset.$(SO)                     \
-        plug_roiplot.$(SO)  plug_ttget.$(SO)                           \
+        plug_roiplot.$(SO)  plug_ttget.$(SO)    plug_L1fit.$(SO)       \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \

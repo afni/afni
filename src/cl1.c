@@ -1,5 +1,7 @@
 #include <math.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "f2c.h"
 
 /* prototype for function at end */
@@ -29,20 +31,25 @@ static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
 
 int cl1_solve( int ndim , int nvec , float *z , float **A , float *y )
 {
-   /* internal variables */
+   /* loop counters */
 
    int jj , ii ;
 
-   /* variables for CL1 */
+   /* variables for CL1 (types declared in f2c.h) */
 
-   integer k,l,m,n,klmd,klm2d,nklmd,n2d , kode,iter , *iu,*s ;
+   integer k,l,m,n,klmd,klm2d,nklmd,n2d , kode=0,iter , *iu,*s ;
    real *q , toler , *x , *res , error , *cu ;
 
    /*-- check inputs --*/
 
-   if( ndim < 1 || nvec < 1 )                         return 4 ;
-   if( A == NULL || y == NULL || z == NULL )          return 4 ;
-   for( jj=0 ; jj < nvec ; jj++ ) if( A[jj] == NULL ) return 4 ;
+   if( ndim < 1 || nvec < 1 )                         kode = 4 ;
+   if( A == NULL || y == NULL || z == NULL )          kode = 4 ;
+   for( jj=0 ; jj < nvec ; jj++ ) if( A[jj] == NULL ) kode = 4 ;
+
+   if( kode ){
+     fprintf(stderr,"** cl1_solve ERROR: illegal inputs!\n") ;
+     return (int)kode ;
+   }
 
    /*-- setup call to CL1 --*/
 
@@ -78,14 +85,17 @@ int cl1_solve( int ndim , int nvec , float *z , float **A , float *y )
 
    for( jj=0 ; jj < nvec ; jj++ )
       for( ii=0 ; ii < ndim ; ii++ )
-         q[ii+jj*klm2d] = A[jj][ii] ;
+         q[ii+jj*klm2d] = A[jj][ii] ;   /* matrix */
 
    for( ii=0 ; ii < ndim ; ii++ )
-      q[ii+nvec*klm2d] = z[ii] ;
+      q[ii+nvec*klm2d] = z[ii] ;        /* vector */
 
-   for( jj=0 ; jj < nvec ; jj++ ) y[jj] = x[jj] ;
+   for( jj=0 ; jj < nvec ; jj++ )       /* signal constraints on solution */
+     x[jj] = (y[jj] < 0.0) ? -1.0
+            :(y[jj] > 0.0) ?  1.0 : 0.0 ;
 
-   for( ii=0 ; ii < ndim ; ii++ ) res[ii] = 0.0 ;
+   for( ii=0 ; ii < ndim ; ii++ )       /* no constraints on resids */
+      res[ii] = 0.0 ;
 
    /*-- do the work --*/
 
@@ -95,7 +105,16 @@ int cl1_solve( int ndim , int nvec , float *z , float **A , float *y )
 
    free(q) ; free(res) ; free(cu) ; free(iu) ; free(s) ;
 
-   if( kode != 0 ){ free(x) ; return (int)kode ; }
+   if( kode != 0 ){
+     free(x) ;
+     switch( kode ){
+       case 1: fprintf(stderr,"** cl1_solve ERROR: no feasible solution!\n"); break;
+       case 2: fprintf(stderr,"** cl1_solve ERROR: rounding errors!\n")     ; break;
+       case 3: fprintf(stderr,"** cl1_solve ERROR: max iterations!\n")      ; break;
+      default: fprintf(stderr,"** cl1_solve ERROR: unknown problem!\n")     ; break;
+     }
+     return (int)kode ;
+   }
 
    /*-- copy results into output --*/
 
