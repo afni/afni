@@ -713,6 +713,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      if( dont_hear_suma ) EXRETURN ;
 
+STATUS("received Node_ROI element") ;
+
      if( nel->vec_num    <  2        ||
          nel->vec_typ[0] != NI_INT   ||
          nel->vec_typ[1] != NI_INT     ){
@@ -728,6 +730,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      num_list = nel->vec_filled ;      /* number of nodes */
 
      /** get ID codes of surface and anat parents **/
+
+STATUS("checking Node_ROI ID codes") ;
 
      surf_idc = NI_get_attribute( nel , "DomParent_idcode" ) ;
      if( surf_idc == NULL )
@@ -776,6 +780,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /** find parent volume for this ROI (from its ID code) **/
 
+STATUS("searching for Node_ROI parent volume") ;
+
      find = PLUTO_dset_finder( dset_idc ) ; dset_anat = find.dset ;
      if( dset_anat == NULL ){
        sprintf(msg, "*** ERROR:\n\n"
@@ -787,6 +793,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      }
 
      /** find the surface within this dataset (from its ID code) **/
+
+STATUS("searching for Node_ROI surface") ;
 
      num = dset_anat->su_num ;
      if( num == 0 ){
@@ -848,6 +856,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      XtSetSensitive( im3d->vwid->imag->pop_sumato_pb, True ) ;
 
      /* see if ROI dataset already exists */
+
+STATUS("searching for Node_ROI functional dataset") ;
 
      find = THD_dset_in_session( FIND_PREFIX , roi_prefix , sess ) ;
      dset_func = find.dset ;
@@ -915,17 +925,25 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
        sess->func[ii][dset_func->view_type] = dset_func ;
        sess->num_func ++ ;
+
+STATUS("switching func to Node_ROI dataset") ;
+
        cbs.ival = ii ;
        AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                  (XtPointer) im3d ,  &cbs          ) ;
 
+STATUS("popping up Node_ROI dataset creation notice") ;
        sprintf(msg,"+++ NOTICE:\n\n"
                    " Node_ROI command is creating dataset\n"
-                   "  %.222s\n" , DSET_FILECODE(dset_func) ) ;
+                   "  %.222s\n" ,
+              DSET_FILECODE(dset_func) ) ;
        AFNI_popup_message( msg ) ;
 
+STATUS("destroying any pre-existing Node_ROI vvlist") ;
        DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
      }
+
+STATUS("locking Node_ROI dataset into memory") ;
      DSET_lock(dset_func) ;  /* lock into memory (no purge allowed) */
 
      funcar = (short *) DSET_BRICK_ARRAY(dset_func,0) ;  /* array to draw */
@@ -937,12 +955,14 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 fprintf(stderr,"++ erasing %d voxels from previous SUMA ROI\n",ag->vv->nvox) ;
        for( ii=0 ; ii < ag->vv->nvox ; ii++ ) funcar[ ag->vv->voxijk[ii] ] = 0;
        DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
+     } else {
+STATUS("no old Node_ROI vvlist") ;
      }
 
      /** now put values from SUMA into dataset array **/
 
      if( num_list > 0 ){
-fprintf(stderr,"++ writing %d voxels from SUMA ROI\n",ag->vv->nvox) ;
+fprintf(stderr,"++ writing %d voxels from SUMA ROI\n",num_list) ;
        ag->vv = (SUMA_vvlist *) malloc( sizeof(SUMA_vvlist) ) ;
        ag->vv->nvox   = num_list ;
        ag->vv->voxijk = (int *)   malloc( sizeof(int)  *num_list ) ;
@@ -969,12 +989,16 @@ fprintf(stderr,"++ writing %d voxels from SUMA ROI\n",ag->vv->nvox) ;
            ag->vv->voxijk[ii] = jj ; ag->vv->voxval[ii] = nval[ii] ;
          }
        }
+     } else {
+STATUS("no nodes in Node_ROI input") ;
      }
+
      DSET_write( dset_func ) ;  /* save to disk */
 
      dont_overlay_suma = 1 ;
 
 #if 1
+STATUS("redisplay Node_ROI function") ;
      MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
      im3d->vinfo->func_visible = 1 ;
      PLUTO_dset_redisplay( dset_func ) ;  /* redisplay windows with this dataset */
