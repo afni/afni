@@ -1075,7 +1075,8 @@ ENTRY("T3D_create_widgets") ;
    /*---- Label to show what kind of data is stored ----*/
 
    { char buf[32] ;
-     sprintf( buf , "Datum: %s\n" , MRI_TYPE_name[argopt.datum_all] ) ;
+     sprintf( buf , "Datum: %s [%dx%d]\n" ,
+              MRI_TYPE_name[argopt.datum_all], user_inputs.nx,user_inputs.ny ) ;
      wset.datum_label =
         XtVaCreateManagedWidget(
            "dialog" , xmLabelWidgetClass , wset.topform ,
