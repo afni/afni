@@ -3758,6 +3758,6 @@
 
 28 May 2002
  * Modified 3drefit.c to add -clear_bstat option.
- * Modified 3dAutomask.c to make -fillin default = 0.
- * Modifed thd_automask.c to skip fillin and to instead find complement
-    of largest component of zeros as the mask.
+ * Modified 3dAutomask.c to remove -fillin option.
+ * Modifed thd_automask.c to make fillin = brick size/60, and to make
+     final mask = complement of largest component of zeros.
