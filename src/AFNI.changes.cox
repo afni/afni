@@ -4842,3 +4842,8 @@
 23 Dec 2003
  * Checked in many changes to deal with compilation of afni with g++
      (version 3.2 or later).
+
+30 Dec 2003
+ * Fixed annoying bugs in NIML stream I/O.
+ * Modified niml/niml_do.c to allow user to register callbacks that
+     supplement builtin verbs.

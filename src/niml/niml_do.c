@@ -21,6 +21,10 @@ typedef void (*ddfun)(char *,NI_stream_type *,NI_element *) ;
     two callbacks for the same verb.  If func is input as NULL, then this
     will remove a callback, if it was defined earlier; if func is NULL and
     verb was not previously defined, then nothing happens.
+
+    However, you CAN register a callback for a builtin verb.  The normal
+    processing will take place, then the user callback will be invoked
+    if that processing was good.  [This feature was added on 30 Dec 2003.]
 -----------------------------------------------------------------------------*/
 
 void NI_register_doer( char *verb , NI_voidfunc *func )
@@ -71,7 +75,7 @@ void NI_register_doer( char *verb , NI_voidfunc *func )
 int NI_do( NI_stream_type *ns , NI_element *nel )
 {
    char *verb , *object ;
-   int ii ;
+   int ii , builtin=0 ;
 
    /*- check inputs for OK-ositiness -*/
 
@@ -100,19 +104,19 @@ int NI_do( NI_stream_type *ns , NI_element *nel )
 
      NI_stream_close_keep(ns,0) ;                        /* trash old stream */
      *ns = *nsnew; NI_free(nsnew);                       /* replace old guts */
-     return 0 ;
+     builtin = 1 ;
 
    } /****------------------------- end reopen --------------------------*****/
 
-   if( strcmp(verb,"close_this") == 0 ){  /****---- close this stream ----****/
+   else if( strcmp(verb,"close_this") == 0 ){  /****-- close this stream -****/
 
      NI_stream_close_keep(ns,0);                   /* close and mark as dead */
-     return 0 ;
+     builtin = 1 ;
 
    } /****------------------------ end close_this ------------------------****/
 
-   if( strcmp(verb,"typedef") == 0 ){    /****---- define a NIML type ----****/
-                                         /****     [12 Feb 2003]          ****/
+   else if( strcmp(verb,"typedef") == 0 ){    /****-- define a NIML type -****/
+                                              /****   [12 Feb 2003]       ****/
      char tnam[256] , tdef[8200] ;
      int tt ;
 
@@ -121,7 +125,8 @@ int NI_do( NI_stream_type *ns , NI_element *nel )
      tnam[0] = tdef[0] = '\0' ;
      sscanf(object,"%255s %8199s",tnam,tdef) ;
      tt = NI_rowtype_define( tnam , tdef ) ;
-     return (tt >0) ? 0 : -1 ;
+     if( tt < 0 ) return -1 ;                    /* bad definition */
+     builtin = 1 ;
 
    } /****------------------------ end typedef ---------------------------****/
 
@@ -140,5 +145,5 @@ int NI_do( NI_stream_type *ns , NI_element *nel )
 
    /*--- if we get here, we got a verb we don't recognize ---*/
 
-   return -1 ;
+   return ((builtin) ? 0 : -1) ;
 }

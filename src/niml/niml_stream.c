@@ -2184,6 +2184,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
 
    ns->bad = MARKED_FOR_DEATH ; /* label this as unclean, not to be touched */
    NI_free(ns->buf) ;           /* don't need internal buffer any more */
+   ns->buf = NULL ;
    return ;
 }
 
@@ -2310,7 +2311,7 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
 {
    int ii ;
 
-   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return -1 ;
+   if( !NI_stream_writeable(ns) ) return -1 ;
 
    switch( ns->type ){
 
@@ -2502,7 +2503,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
    /** check for reasonable inputs **/
 
-   if( ns == NULL || ns->bad  || buffer == NULL || nbytes < 0 ) return -1 ;
+   if( ns == NULL || ns->bad || buffer == NULL || nbytes < 0 ) return -1 ;
 
    if( nbytes == 0 ) return 0 ;
 

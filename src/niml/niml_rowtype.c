@@ -986,6 +986,7 @@ int NI_write_rowtype( NI_stream_type *ns , NI_rowtype *rt ,
                       int ndat , void *dat , int tmode )
 {
    void *dpt = dat ;
+   if( rt == NULL ) return -1 ;
    return NI_write_columns( ns , 1 , &(rt->code) , ndat , &dpt , tmode ) ;
 }
 
@@ -1032,16 +1033,17 @@ int NI_write_columns( NI_stream_type *ns,
 
    /*-- check inputs --*/
 
-   if( col_num <= 0 || col_len <= 0                       ) return  0 ;
-   if( ns == NULL   || col_typ == NULL || col_dat == NULL ) return -1 ;
+   if( col_num <= 0    || col_len <= 0    ) return  0 ;
+   if( col_typ == NULL || col_dat == NULL ) return -1 ;
+   if( !NI_stream_writeable(ns)           ) return -1 ;
 
    /*-- check stream --*/
 
    if( ns->bad ){                       /* not connected yet? */
-     jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
+     jj = NI_stream_goodcheck(ns,66) ;  /* try to connect it */
      if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
    }
-   jj = NI_stream_writecheck(ns,1) ;
+   jj = NI_stream_writecheck(ns,66) ;
    if( jj < 1 ) return jj ;
 
    if( ns->type == NI_STRING_TYPE )  /* output to string buffer ==> text mode */
@@ -1077,7 +1079,7 @@ int NI_write_columns( NI_stream_type *ns,
         and binary output ==> can write all data direct to stream at once --*/
 
    if( col_num == 1 && tmode == NI_BINARY_MODE && fsiz[0] == rt[0]->psiz ){
-     nout = NI_stream_write( ns , col_dat[0] , fsiz[0]*col_num ) ;
+     nout = NI_stream_write( ns , col_dat[0] , fsiz[0]*col_len ) ;
      FREEUP ; return nout ;
    }
 
@@ -1337,16 +1339,17 @@ int NI_read_columns( NI_stream_type *ns,
 
    /*-- check inputs --*/
 
-   if( col_num <= 0 || col_len <  0                       ) return  0 ;
-   if( ns == NULL   || col_typ == NULL || col_dat == NULL ) return -1 ;
+   if( col_num <= 0    || col_len <  0    ) return  0 ;
+   if( col_typ == NULL || col_dat == NULL ) return -1 ;
+   if( !NI_stream_readable(ns)            ) return -1 ;
 
    /*-- check stream --*/
 
    if( ns->bad ){                       /* not connected yet? */
-     jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
+     jj = NI_stream_goodcheck(ns,66) ;  /* try to connect it */
      if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
    }
-   jj = NI_stream_hasinput(ns,1) ;      /* any data to be had? */
+   jj = NI_stream_hasinput(ns,66) ;     /* any data to be had? */
    if( jj < 1 ) return jj ;             /* nope? then vamoose! */
 
    /* create array of NI_rowtype for columns, etc. */

@@ -64,7 +64,8 @@ void * NI_read_element( NI_stream_type *ns , int msec )
    header_stuff *hs ;
    int start_time=NI_clock_time() , mleft ;
 
-   if( ns == NULL ) return NULL ;  /* bad input */
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH || ns->buf == NULL )
+     return NULL ;  /* bad input stream */
 
 #ifdef NIML_DEBUG
 NI_dpr("ENTER NI_read_element\n") ;
@@ -76,8 +77,8 @@ NI_dpr("ENTER NI_read_element\n") ;
       then see if it can connect now            */
 
    if( ns->bad ){
-      nn = NI_stream_goodcheck( ns , msec ) ;
-      if( nn < 1 ) return NULL ;              /* didn't connect */
+     nn = NI_stream_goodcheck( ns , msec ) ;
+     if( nn < 1 ) return NULL ;              /* didn't connect */
    }
 
    /*-- Try to find the element header --*/
@@ -98,8 +99,8 @@ NI_dpr("NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" ,
    /* didn't find it */
 
    if( nn < 0 ){
-      if( NI_stream_readcheck(ns,0) < 0 ) return NULL ;   /* connection lost */
-      NI_sleep(1); goto HeadRestart;                      /* try again */
+     if( NI_stream_readcheck(ns,0) < 0 ) return NULL ;   /* connection lost */
+     NI_sleep(1); goto HeadRestart;                      /* try again */
    }
 
 #ifdef NIML_DEBUG
@@ -235,9 +236,10 @@ NI_dpr("NI_read_element: returning empty element\n") ;
         /*-- 23 Aug 2002: do something, instead of returning data? --*/
 
         if( nel != NULL && strcmp(nel->name,"ni_do") == 0 ){
-           NI_do( ns , nel ) ;
-           NI_free_element( nel ) ;
-           num_restart = 0 ; goto HeadRestart ;
+          NI_do( ns , nel ) ;
+          NI_free_element( nel ) ;
+          if( ns->bad == MARKED_FOR_DEATH || ns->buf == NULL ) return NULL ;
+          num_restart = 0 ; goto HeadRestart ;
         }
 
         if( read_header_only && nel->vec != NULL ){
@@ -382,7 +384,7 @@ int NI_decode_one_double( NI_stream_type *ns, double *val , int ltend )
 
    /*-- check inputs for stupidness --*/
 
-   if( ns == NULL || val == NULL ) return 0 ;
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH || val == NULL ) return 0 ;
 
    /*--- might loop back here to check if have enough data for a number ---*/
 
@@ -508,7 +510,7 @@ int NI_decode_one_string( NI_stream_type *ns, char **str , int ltend )
 
    /*-- check inputs for stupidness --*/
 
-   if( ns == NULL || str == NULL ) return 0 ;
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH || str == NULL ) return 0 ;
 
    /*--- might loop back here to check if have enough data ---*/
 
@@ -603,6 +605,7 @@ Restart:
 void NI_reset_buffer( NI_stream_type *ns )
 {
    if( ns == NULL || ns->npos <= 0 || ns->nbuf <= 0 ) return ;
+   if( ns->buf == NULL || ns->bad == MARKED_FOR_DEATH ) return ;
 
    if( ns->npos < ns->nbuf ){           /* haven't used up all data yet */
       memmove( ns->buf, ns->buf+ns->npos, ns->nbuf-ns->npos ) ;
@@ -640,6 +643,8 @@ static int scan_for_angles( NI_stream_type *ns, int msec )
    int caseb=0 ;  /* 1 => force rescan even if time is up */
 
    if( ns == NULL ) return -1 ;  /* bad input */
+
+   if( ns->buf == NULL || ns->bad == MARKED_FOR_DEATH ) return -1 ;
 
    epos = ns->npos ;
 
@@ -698,7 +703,7 @@ NI_dpr("  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
              away all data in the buffer, and get some more data
         (b) if the goal was the closing '>', then we need more data
             in the buffer, but need to keep the existing data
-        (c) UNLESS the buffer is full
+        (c) UNLESS the buffer is full AND npos is zero
              - in this case, the universe ends right here and now --*/
 
    if( goal == '<' ){                    /* case (a) */
@@ -707,7 +712,7 @@ NI_dpr("  scan_for_angles: case (a)\n") ;
 #endif
       ns->nbuf = ns->npos = epos = 0 ; caseb = 0 ;
 
-   } else if( ns->nbuf < ns->bufsize ){  /* case (b) */
+   } else if( ns->nbuf < ns->bufsize || ns->npos > 0 ){  /* case (b) */
 #ifdef NIML_DEBUG
 NI_dpr("  scan_for_angles: case (b)\n") ;
 #endif
@@ -802,20 +807,20 @@ NI_dpr("ENTER NI_write_element\n") ;
 #define AF     0
 #define ADDOUT if(nout<0){AF;fprintf(stderr,"NIML: write abort!\n");return -1;} else ntot+=nout
 
-   if( ns == NULL ) return -1 ;
+   if( !NI_stream_writeable(ns) ) return -1 ;  /* stupid user */
 
    if( ns->bad ){                        /* socket that hasn't connected yet */
 #ifdef NIML_DEBUG
 NI_dpr("NI_write_element: write socket not connected\n") ;
 #endif
-      jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
+      jj = NI_stream_goodcheck(ns,666) ; /* try to connect it */
       if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
 #ifdef NIML_DEBUG
 NI_dpr("NI_write_element: write socket now connected\n") ;
 #endif
    } else {                              /* check if good ns has gone bad */
-      jj = NI_stream_writecheck(ns,1) ;
-      if( jj < 1 ) return jj ;
+      jj = NI_stream_writecheck(ns,666) ;
+      if( jj < 0 ) return jj ;
    }
 
    tmode &= 255 ;
