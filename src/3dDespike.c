@@ -38,9 +38,9 @@ int main( int argc , char * argv[] )
    char *prefix="despike" , *tprefix=NULL ;
 
    int corder=-1 , nref , ignore=0 , polort=2 , nuse , nomask=0 ;
-   int nspike,qspike , nbig,qbig ;
+   int nspike,qspike , nbig,qbig , nproc ;
    float **ref ;
-   float  *fit , *ssp , tval , c21,ic21 ;
+   float  *fit , *ssp , tval , c21,ic21 , pspike,pbig ;
    short  *sar , *qar ;
    byte   *tar , *mask=NULL ;
    float  *zar , *yar ;
@@ -356,18 +356,25 @@ int main( int argc , char * argv[] )
    /*--- loop over voxels and do work ---*/
 
    fprintf(stderr,"++ edit thresholds: %.1f .. %.1f standard deviations\n",cut1,cut2) ;
+   fprintf(stderr,"++                [ %.4f%% .. %.4f%% of normal distribution]\n",
+                  200.0*qg(cut1) , 200.0*qg(cut2) ) ;
    fprintf(stderr,"++ %d slices to process\n",DSET_NZ(dset)) ;
    kzold  = -1 ;
-   nspike =  0 ; nbig = 0 ;
+   nspike =  0 ; nbig = 0 ; nproc = 0 ;
    for( ii=0 ; ii < nxyz ; ii++ ){   /* ii = voxel index */
 
       if( mask != NULL && mask[ii] == 0 ) continue ;   /* skip this voxel */
 
       kz = DSET_index_to_kz(dset,ii) ;       /* starting a new slice */
       if( kz != kzold ){
-        fprintf(stderr,
-                "++ starting slice %d [thus far: %d edits; %d big ones]\n",
-                kz,nspike,nbig) ;
+        fprintf(stderr, "++ start slice %2d",kz ) ;
+        if( nproc > 0 ){
+          pspike = (100.0*nspike)/nproc ;
+          pbig   = (100.0*nbig  )/nproc ;
+          fprintf(stderr,"; done %d data points, %d edits [%.3f%%], %d big edits [%.3f%%]",
+                  nproc,nspike,pspike,nbig,pbig ) ;
+        }
+        fprintf(stderr,"\n") ;
         kzold = kz ;
       }
 
@@ -452,7 +459,7 @@ int main( int argc , char * argv[] )
             qspike++ ; if( ssp[iv] < -cut2 ) qbig++ ;
           }
         }
-        nspike += qspike ; nbig += qbig ;
+        nspike += qspike ; nbig += qbig ; nproc += nuse ;
 
       } /* end of processing time series when fsig is positive */
 
@@ -475,9 +482,16 @@ int main( int argc , char * argv[] )
 
    } /* end of loop over voxels #ii */
 
-   fprintf(stderr,"++ %d edits; %d big ones\n",nspike,nbig) ;
-
    DSET_delete(dset) ; /* delete input dataset */
+
+   if( nproc > 0 ){
+     pspike = (100.0*nspike)/nproc ;
+     pbig   = (100.0*nbig  )/nproc ;
+     fprintf(stderr,"++ FINAL: %d data points, %d edits [%.3f%%], %d big edits [%.3f%%]\n",
+             nproc,nspike,pspike,nbig,pbig ) ;
+   } else {
+     fprintf(stderr,"++ FINAL: no edits made!\n") ;
+   }
 
    /* write results */
 
