@@ -4090,3 +4090,8 @@
  * Added thd_ctfread.c to read CTF MRI files as datasets.
  * Modified thd_initsess.s, thd_opendset.c, thd_loaddblk.c, 3ddata.h to
      use the CTF functions.
+
+05 Dec 2002
+ * Added CTF SAM file input to thd_ctfread.c.
+ * Modified 3dIntracranial.c to convert input dataset to shorts if it is
+     stored as bytes.  The output will still be shorts.
