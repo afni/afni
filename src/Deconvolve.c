@@ -299,7 +299,7 @@ if(PRINT_TRACING){
        } else {            /* 15 Jul 2004: the new way: Legendre - RWCox */
 
          double xx , aa=2.0/(nlast-nfirst-1.0) ; /* map nfirst..nlast-1 */
-         for( m=mfirst ; m < mlast ; m++ ){        /* to interval [-1,1] */
+         for( m=mfirst ; m < mlast ; m++ ){      /* to interval [-1,1] */
            xx = aa*(n-nfirst) - 1.0 ;
            x.elts[n][m] = legendre( xx , m-mfirst ) ;
          }

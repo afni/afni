@@ -149,6 +149,7 @@ GetElement:
                  nn , npi->attr_lhs[nn] , npi->attr_rhs[nn] ) ;
    }
 
+#if 0
    nsout = NI_stream_open( "str:" , "w" ) ;
    if( nsout == NULL ){
       fprintf(stderr,"NI_stream_open fails for output\n"); exit(1);
@@ -158,6 +159,8 @@ GetElement:
 
    fprintf(stderr,"\n------ NI_write_element = %d ------\n%s\n==========================\n" ,
            nn, NI_stream_getbuf(nsout) ) ;
+   NI_stream_close(nsout) ;
+#endif
 
    if( nsf != NULL ){
       nn = NI_write_element( nsf , nini , bmode ) ;

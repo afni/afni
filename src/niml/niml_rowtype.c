@@ -1092,6 +1092,10 @@ int NI_write_columns( NI_stream_type *ns,
    if( col_typ == NULL || col_dat == NULL ) return -1 ;
    if( !NI_stream_writeable(ns)           ) return -1 ;
 
+#if 0
+fprintf(stderr,"NI_write_columns: col_num=%d col_len=%d tmode=%d\n",col_num,col_len,tmode) ;
+#endif
+
    /*-- check stream --*/
 
    if( ns->bad ){                        /* not connected yet? */
@@ -1136,7 +1140,14 @@ int NI_write_columns( NI_stream_type *ns,
         and binary output ==> can write all data direct to stream at once --*/
 
    if( col_num == 1 && tmode == NI_BINARY_MODE && fsiz[0] == rt[0]->psiz ){
+#if 0
+int ct = NI_clock_time() ;
+#endif
      nout = NI_stream_write( ns , col_dat[0] , fsiz[0]*col_len ) ;
+#if 0
+ct = NI_clock_time()-ct ;
+fprintf(stderr,"NI_write_columns FAST case: %d bytes in %d ms\n",fsiz[0]*col_len,ct) ;
+#endif
      FREEUP ; return nout ;
    }
 
