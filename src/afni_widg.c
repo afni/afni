@@ -2459,6 +2459,23 @@ STATUS("making func->rowcol") ;
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
+   /*--- environment button in menu [10 Feb 2004] ---*/
+
+#ifdef ALLOW_PLUGINS
+   func->pbar_environment_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Edit Environment") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->pbar_environment_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+#else
+   func->pbar_environment_pb = NULL ;
+#endif
+
    func->pbar_equalize_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,

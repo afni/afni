@@ -658,6 +658,16 @@ ENTRY("AFNI_pbar_CB") ;
                          AFNI_finalize_saveim_CB , cd ) ;
    }
 
+   /*---- 10 Feb 2004: start the Edit Environment pseudo-plugin ----*/
+
+   else if( w == im3d->vwid->func->pbar_environment_pb &&
+            w != NULL                                    ){
+
+     AFNI_misc_CB( im3d->vwid->dmode->misc_environ_pb ,
+                   (XtPointer) im3d , (XtPointer) NULL ) ;
+   }
+
+
    /*** done ***/
 
    EXRETURN ;

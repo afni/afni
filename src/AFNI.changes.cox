@@ -4944,3 +4944,5 @@
 
 10 Feb 2004
  * Made threshold locking move sliders during drag, not just end of drag.
+     Also change pval at bottom of locked sliders during drag.  Also put
+     Edit Environment button on top-of-pbar popup menu.
