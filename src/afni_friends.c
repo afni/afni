@@ -40,19 +40,21 @@ static AFNI_friend afni_friends[] = {
   { "T Ross"         , (         4 | 8 | 16 | 32                        ) } ,
   { "H Garavan"      , (         4 | 8 | 16                 | 256       ) } ,
   { "SJ Li"          , (     2                                          ) } ,
-  { "ZS Saad"        , (     2 | 4 | 8 | 16                             ) } ,
+  { "ZS Saad"        , (     2 | 4 | 8 | 16      | 64                   ) } ,
   { "K Ropella"      , (     2                                          ) } ,
   { "B Knutson"      , (                 16 |           128             ) } ,
   { "B Biswal"       , (                 16                             ) } ,
   { "RM Birn"        , (             8 | 16 |           128 | 512       ) } ,
-  { "V Roopchansingh", (         4 | 8 | 16                             ) } ,
+  { "V Roopchansingh", (         4 | 8 | 16      | 64                   ) } ,
   { "J Ratke"        , (                 16                             ) } ,
   { "PSF Bellgowan"  , (             8 | 16                             ) } ,
   { "S Durgerian"    , (             8 | 16                             ) } ,
   { "M Belmonte"     , (             8 |           64                   ) } ,
   { "V van Gogh"     , (                      32                        ) } ,
   { "K Bove-Bettis"  , (                 16 |           128             ) } ,
-  { "E Kapler"       , (                                128             ) }
+  { "E Kapler"       , (                                128             ) } ,
+  { "R Doucette"     , (                           64                   ) } ,
+  { "RC Reynolds"    , (                           64                   ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
