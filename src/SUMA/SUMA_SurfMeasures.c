@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.3 (December 11, 2003)"
+#define VERSION "version 1.4 (January 22, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -43,6 +43,15 @@ static char g_history[] =
     "----------------------------------------------------------------------\n"
     "history :\n"
     "\n"
+    "1.0 December 01, 2003  [rickr]\n"
+    "  - initial release\n"
+    "\n"
+    "1.1 December 02, 2003  [rickr]\n"
+    "  - fixed stupid macro error, grrrr...\n"
+    "\n"
+    "1.2 December 03, 2003  [rickr]\n"
+    "  - added '-cmask' and '-nodes_1D' options\n"
+    "\n"
     "1.3 December 11, 2003  [rickr]\n"
     "  - added required program argument(s): '-surf_A' (and 'B' for 2 surfs)\n"
     "      o  see '-help' for a description and examples\n"
@@ -53,14 +62,11 @@ static char g_history[] =
     "  - added '-hist' option\n"
     "  - display angle averages only if at least 1 total is computed\n"
     "\n"
-    "1.2 December 03, 2003  [rickr]\n"
-    "  - added '-cmask' and '-nodes_1D' options\n"
-    "\n"
-    "1.1 December 02, 2003  [rickr]\n"
-    "  - fixed stupid macro error, grrrr...\n"
-    "\n"
-    "1.0 December 01, 2003  [rickr]\n"
-    "  - initial release\n"
+    "1.4 January 22, 2004  [rickr]\n"
+    "  - fixed error with '-nodes_1D' indexing (fp0 in write_output())\n"
+    "    (for output of node coordinates)\n"
+    "  - added '-sv' option to examples\n"
+    "  - reversed history list (most recent last) for '-hist' option\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -217,8 +223,8 @@ ENTRY("write_output");
 
 	node = p->nodes[nindex];
 
-	p0.xyz[0] = fp0[0];  p0.xyz[1] = fp0[1];  p0.xyz[2] = fp0[2];
-	p1.xyz[0] = fp1[0];  p1.xyz[1] = fp1[1];  p1.xyz[2] = fp1[2];
+	memcpy(p0.xyz, fp0+3*node, 3*sizeof(float));
+	memcpy(p1.xyz, fp1+3*node, 3*sizeof(float));
 
 	dist = dist_fn(3, p0.xyz, p1.xyz);
 	if ( dist < min_dist ) min_dist = dist;
@@ -265,12 +271,14 @@ ENTRY("write_output");
 
 		case E_SM_COORD_A:
 		    for (c = 0; c < 3; c++)
-			fprintf(p->outfp,"  %10s", MV_format_fval(fp0[c]));
+			fprintf(p->outfp,"  %10s",
+				MV_format_fval(fp0[3*node+c]));
 		    break;
 
 		case E_SM_COORD_B:
 		    for (c = 0; c < 3; c++)
-			fprintf(p->outfp,"  %10s", MV_format_fval(fp1[c]));
+			fprintf(p->outfp,"  %10s",
+				MV_format_fval(fp1[3*node+c]));
 		    break;
 
 		case E_SM_N_AREA_A:
@@ -316,8 +324,8 @@ ENTRY("write_output");
 	if ( node == opts->dnode && opts->debug > 0 )
 	{
 	    fprintf(stderr,"-- dnode %d:\n", node);
-	    disp_f3_point("-- p0    = ", fp0);
-	    disp_f3_point("-- p1    = ", fp1);
+	    disp_f3_point("-- p0    = ", fp0+3*node);
+	    disp_f3_point("-- p1    = ", fp1+3*node);
 
 	    if ( atn > 0.0 || atna > 0.0 || atnb > 0.0 )
 	    {
@@ -325,9 +333,6 @@ ENTRY("write_output");
 		disp_f3_point("-- normB = ", norms1 + 3*node);
 	    }
 	}
-
-	fp0 += 3;
-	fp1 += 3;
     }
 
     ave_dist = tdist/p->nnodes;
@@ -1797,6 +1802,7 @@ ENTRY("usage");
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred1.spec                     \\\n"
+	    "            -sv         fred_anat+orig                 \\\n"
 	    "            -surf_A     smoothwm                       \\\n"
 	    "            -func       coord_A                        \\\n"
 	    "            -func       n_area_A                       \\\n"
@@ -1813,11 +1819,12 @@ ENTRY("usage");
 	    "         o  coordinates of the second segment node\n"
 	    "\n"
 	    "         Additionally, display total surface areas, minimum and\n"
-	    "         maxumum thicknesses, and the total volume for the\n"
+	    "         maximum thicknesses, and the total volume for the\n"
 	    "         cortical ribbon.\n"
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred2.spec                     \\\n"
+	    "            -sv         fred_anat+orig                 \\\n"
 	    "            -surf_A     smoothwm                       \\\n"
 	    "            -surf_B     pial                           \\\n"
 	    "            -func       n_area_A                       \\\n"
@@ -1856,6 +1863,7 @@ ENTRY("usage");
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred2.spec                     \\\n"
+	    "            -sv         fred_anat+orig                 \\\n"
 	    "            -surf_A     smoothwm                       \\\n"
 	    "            -surf_B     pial                           \\\n"
 	    "            -func       ang_norms                      \\\n"
@@ -1870,10 +1878,11 @@ ENTRY("usage");
 	    "       of file sdata.1D.  Furthermore, restrict those nodes to\n"
 	    "       the mask inferred by the given '-cmask' option.\n"
 	    "\n"
-	    "        %s                                         \\\n"
+	    "        %s                                                   \\\n"
 	    "            -spec       fred2.spec                           \\\n"
-	    "            -surf_A     smoothwm                       \\\n"
-	    "            -surf_B     pial                           \\\n"
+	    "            -sv         fred_anat+orig                       \\\n"
+	    "            -surf_A     smoothwm                             \\\n"
+	    "            -surf_B     pial                                 \\\n"
 	    "            -func       node_vol                             \\\n"
 	    "            -func       thick                                \\\n"
 	    "            -func       n_area_A                             \\\n"
@@ -2049,7 +2058,7 @@ ENTRY("usage");
 	    "\n"
 	    "        e.g. -sv fred_anat+orig\n"
 	    "\n"
-	    "        If there is any need to know the orientaion of the\n"
+	    "        If there is any need to know the orientation of the\n"
 	    "        surface, a surface volume dataset may be provided.\n"
 	    "\n"
 	    "    -ver                  : show version information\n"

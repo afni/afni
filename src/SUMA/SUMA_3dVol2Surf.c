@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.8 (December 15, 2003)"
+#define VERSION "version 3.9 (December 22, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -63,38 +63,35 @@ static char g_history[] =
     "----------------------------------------------------------------------\n"
     "history:\n"
     "\n"
-    "3.8  December 15, 2003  [rickr]\n"
-    "  - added options '-surf_A' and '-surf_B'\n"
-    "  - called SUMA_spec_select_surfs() and SUMA_spec_set_map_refs()\n"
-    "    to pick requested surfaces from spec file\n"
-    "  - removed option '-kso'\n"
-    "  - added '-hist' option\n"
+    "1.0  February 10, 2003  [rickr]\n"
+    "  - initial release\n"
     "\n"
-    "3.7  November 04, 2003  [rickr]\n"
-    "  - added ENTRY() stuff\n"
+    "1.1  February 11, 2003  [rickr]\n"
+    "  - handle no arguments as with -help\n"
+    "  - minor updates to -help\n"
     "\n"
-    "3.6  October 21, 2003  [rickr]\n"
-    "  - finish upates for -f_keep_surf_order option\n"
-    "    (help and sopt)\n"
+    "1.2  February 13, 2003  [rickr]\n"
+    "  - init SUMAg array pointers, check before calling Free_()\n"
     "\n"
-    "3.5  October 20, 2003  [rickr]\n"
-    "  - call the new engine function, SUMA_LoadSpec_eng()\n"
-    "    (this will restrict the debug output from SUMA_LoadSpec())\n"
+    "1.3  February 14, 2003  [rickr]\n"
+    "  - optionally enable more SUMA debugging\n"
     "\n"
-    "3.4  October 01, 2003  [rickr]\n"
-    "  - added -oom_value option\n"
-    "  - added additional help example (for -oob and -oom options)\n"
+    "2.0  June 06, 2003  [rickr]\n"
+    "  - re-wrote program according to 3dSurf2Vol (which was written\n"
+    "    according to this :) - using map functions and node lists\n"
+    "  - added midpoint map function\n"
     "\n"
-    "3.3  September 23, 2003  [rickr]\n"
-    "  - added help for -no_headers option\n"
+    "2.1  June 10, 2003  [rickr]\n"
+    "  - added ave map function (see dump_ave_map)\n"
     "\n"
-    "3.2  September 20, 2003  [rickr]\n"
-    "  - added max_abs mapping function\n"
-    "  - added options '-oob_index' and '-oob_value'\n"
-    "  - added CHECK_NULL_STR macro\n"
+    "2.2  June 19, 2003  [rickr]\n"
+    "  - added -f_index INDEX_TYPE option (to index across nodes, too)\n"
+    "  - set the default of -f_steps to 2\n"
+    "  - use SMD prefix for macros\n"
     "\n"
-    "3.1  September 17, 2003  [rickr]\n"
-    "  - fixed the help instructions for '-cmask'\n"
+    "2.3  July 21, 2003  [rickr]\n"
+    "  - fixed problem with nodes outside grid_par dataset\n"
+    "  - added min/max distance info\n"
     "\n"
     "3.0  August 05, 2003  [rickr]\n"
     "  - renamed SUMA_3dSurfMaskDump.[ch] to SUMA_3dVol2Surf.[ch]\n"
@@ -112,39 +109,51 @@ static char g_history[] =
     "  - added new debug info\n"
     "  - added checking of surface order (process from inner to outer)\n"
     "\n"
-    "2.3  July 21, 2003  [rickr]\n"
-    "  - fixed problem with nodes outside grid_par dataset\n"
-    "  - added min/max distance info\n"
+    "3.1  September 17, 2003  [rickr]\n"
+    "  - fixed the help instructions for '-cmask'\n"
     "\n"
-    "2.2  June 19, 2003  [rickr]\n"
-    "  - added -f_index INDEX_TYPE option (to index across nodes, too)\n"
-    "  - set the default of -f_steps to 2\n"
-    "  - use SMD prefix for macros\n"
+    "3.2  September 20, 2003  [rickr]\n"
+    "  - added max_abs mapping function\n"
+    "  - added options '-oob_index' and '-oob_value'\n"
+    "  - added CHECK_NULL_STR macro\n"
     "\n"
-    "2.1  June 10, 2003  [rickr]\n"
-    "  - added ave map function (see dump_ave_map)\n"
+    "3.3  September 23, 2003  [rickr]\n"
+    "  - added help for -no_headers option\n"
     "\n"
-    "2.0  June 06, 2003  [rickr]\n"
-    "  - re-wrote program according to 3dSurf2Vol (which was written\n"
-    "    according to this :) - using map functions and node lists\n"
-    "  - added midpoint map function\n"
+    "3.4  October 01, 2003  [rickr]\n"
+    "  - added -oom_value option\n"
+    "  - added additional help example (for -oob and -oom options)\n"
     "\n"
-    "1.3  February 14, 2003  [rickr]\n"
-    "  - optionally enable more SUMA debugging\n"
+    "3.5  October 20, 2003  [rickr]\n"
+    "  - call the new engine function, SUMA_LoadSpec_eng()\n"
+    "    (this will restrict the debug output from SUMA_LoadSpec())\n"
     "\n"
-    "1.2  February 13, 2003  [rickr]\n"
-    "  - init SUMAg array pointers, check before calling Free_()\n"
+    "3.6  October 21, 2003  [rickr]\n"
+    "  - finish upates for -f_keep_surf_order option\n"
+    "    (help and sopt)\n"
     "\n"
-    "1.1  February 11, 2003  [rickr]\n"
-    "  - handle no arguments as with -help\n"
-    "  - minor updates to -help\n"
+    "3.7  November 04, 2003  [rickr]\n"
+    "  - added ENTRY() stuff\n"
     "\n"
-    "1.0  February 10, 2003  [rickr]\n"
-    "  - initial release\n"
+    "3.8  December 15, 2003  [rickr]\n"
+    "  - added options '-surf_A' and '-surf_B'\n"
+    "  - called SUMA_spec_select_surfs() and SUMA_spec_set_map_refs()\n"
+    "    to pick requested surfaces from spec file\n"
+    "  - removed option '-kso'\n"
+    "  - added '-hist' option\n"
+    "\n"
+    "3.9  January 08, 2004  [rickr]\n"
+    "  - added '-use_norms' option (segments come from norms)\n"
+    "  - added '-norm_len' option to alter default normal lengths\n"
+    "  - added '-keep_norm_dir' option to prevent direction check\n"
+    "  - reversed order from '-hist' option (newer at bottom)\n"
+    "  - added example with normals to help, along with option descriptions\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
  * todo:
+ *   - option to restrict columns for output?
+ *   - option to use binary niml format for output
  *----------------------------------------------------------------------
 */
 
@@ -152,7 +161,9 @@ static char g_history[] =
 #include "SUMA_suma.h"
 #include "SUMA_3dVol2Surf.h"
 
-/* globals */
+/* --------------------  globals  -------------------- */
+
+/* for all SUMA programs... */
 SUMA_SurfaceViewer * SUMAg_SVv = NULL;	/* array of Surf View structs   */
 int                  SUMAg_N_SVv = 0;	/* length of SVv array          */
 SUMA_DO            * SUMAg_DOv = NULL;	/* array of Displayable Objects */
@@ -164,7 +175,7 @@ char * g_smap_names[] = { "none", "mask", "midpoint", "mask2", "ave",
                           "count", "min", "max", "max_abs", "seg_vals" };
 
 
-/* AFNI prototype */
+/* --------------------  AFNI prototype(s)  -------------------- */
 extern void machdep( void );
 
 #define MAIN
@@ -204,7 +215,7 @@ int main( int argc , char * argv[] )
     if ( (ret_val = create_node_list( &sopt, &node_list )) != 0 )
 	return ret_val;
 
-    if ( (ret_val = write_output( &sopt, &opts, &params, &node_list )) != 0 )
+    if ( (ret_val = write_output( &sopt, &params, &node_list )) != 0 )
 	return ret_val;
 
     /* free memory */
@@ -218,15 +229,14 @@ int main( int argc , char * argv[] )
  * write_output
  *----------------------------------------------------------------------
 */
-int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
-	           node_list_t * N )
+int write_output ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 {
 ENTRY("write_output");
 
-    if ( sopt == NULL || opts == NULL || p == NULL || N == NULL )
+    if ( sopt == NULL || p == NULL || N == NULL )
     {
-	fprintf( stderr, "** smd_wo - bad params (%p,%p,%p,%p)\n",
-		 sopt, opts, p, N );
+	fprintf( stderr, "** smd_wo - bad params (%p,%p,%p)\n",
+		 sopt, p, N );
 	RETURN(-1);
     }
 
@@ -324,11 +334,26 @@ ENTRY("dump_surf_3dt");
 	max_index = vals_over_steps(sopt->map) ? sopt->f_steps : subs;
 
 	/* note the endpoints */
-	r3mm.p1 = THD_dicomm_to_3dmm(p->gpar, N->nodes[nindex]);
-	if ( N->depth > 1 )
-	    r3mm.pn = THD_dicomm_to_3dmm(p->gpar, N->nodes[nindex+N->nnodes]);
+	if ( sopt->use_norms )
+	{
+	    /* first apply normals, then transform to current 3dmm */
+	    r3mm.p1 = N->nodes[nindex];
+	    directed_dist(r3mm.pn.xyz, r3mm.p1.xyz,
+		          N->norms[0]+3*nindex, sopt->norm_len);
+
+	    r3mm.p1 = THD_dicomm_to_3dmm(p->gpar, r3mm.p1);
+	    r3mm.pn = THD_dicomm_to_3dmm(p->gpar, r3mm.pn);
+	}
 	else
-	    r3mm.pn = r3mm.p1;
+	{
+	    r3mm.p1 = THD_dicomm_to_3dmm(p->gpar, N->nodes[nindex]);
+
+	    if ( N->depth > 1 )
+		r3mm.pn = THD_dicomm_to_3dmm(p->gpar,
+			  N->nodes[nindex+N->nnodes]);
+	    else
+		r3mm.pn = r3mm.p1;
+	}
 
 	/* make any user-defined ajustments */
 	v2s_adjust_endpts( sopt, &r3mm.p1, &r3mm.pn );
@@ -410,13 +435,16 @@ ENTRY("dump_surf_3dt");
 	{
 	    fprintf(stderr, "-- nindex, findex, index1d = %d, %d, %d\n",
 		    nindex, findex, index1d );
+	    if ( sopt->use_norms )
+		fprintf(stderr,"-- normal %f, %f, %f\n", N->norms[0][3*nindex],
+			N->norms[0][3*nindex+1], N->norms[0][3*nindex+2]);
 	    disp_mri_imarr( "++ raw data: ", &r3mm_res.ims );
 	}
 
 	/* clean up the MRI_IMARR struct, but don't free imarr */
 	for ( sub = 0; sub < r3mm_res.ims.num; sub++ )
 	{
-	    free(r3mm_res.ims.imarr[sub]);
+	    mri_free(r3mm_res.ims.imarr[sub]);
 	    r3mm_res.ims.imarr[sub] = NULL;
 	}
 	r3mm_res.ims.num = 0;
@@ -598,6 +626,8 @@ ENTRY("segment_imarr");
 */
 int create_node_list ( smap_opts_t * sopt, node_list_t * N )
 {
+    int nsurf = 2;
+
 ENTRY("create_node_list");
 
     if ( sopt == NULL || N == NULL )
@@ -606,33 +636,162 @@ ENTRY("create_node_list");
 	RETURN(-1);
     }
 
-    switch (sopt->map)
+    if ( (sopt->map == E_SMAP_MASK) || sopt->use_norms )
+	nsurf = 1;
+
+    if ( alloc_node_list( sopt, N, nsurf ) )
+	RETURN(-1);
+
+    if ( sopt->use_norms )
     {
-	case E_SMAP_COUNT:
-	case E_SMAP_MASK2:
-	    fprintf( stderr, "** function '%s' coming soon ...\n",
-		     g_smap_names[sopt->map] );
+	if ( ! N->norms[0] )
+	{
+	    fprintf(stderr,"** failure: surface '%s' has no normal list\n",
+		    CHECK_NULL_STR(N->labels[0]));
 	    RETURN(-1);
-	    break;
+	}
 
-	case E_SMAP_MASK:
-	    if ( alloc_node_list( sopt, N, 1 ) )
-		RETURN(-1);
-	    break;
+	if ( sopt->debug > 1 )
+	    fprintf(stderr,"-- have normals for surface '%s'\n",
+		CHECK_NULL_STR(N->labels[0]));
 
-	case E_SMAP_AVE:
-	case E_SMAP_MAX:
-	case E_SMAP_MAX_ABS:
-	case E_SMAP_MIN:
-	case E_SMAP_MIDPT:
-	case E_SMAP_SEG_VALS:
-	    if ( alloc_node_list( sopt, N, 2 ) )
-		RETURN(-1);
-	    break;
-
-	default:
-	    fprintf( stderr, "** cnl: unknown map %d\n", sopt->map );
+	if ( ! sopt->keep_norm_dir && check_norm_dirs(sopt, N, 0) )
 	    RETURN(-1);
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * check_norm_dirs	- check to reverse normal directions
+ *
+ * Count how many of six bounding points point away from the center.
+ *     6   : perfect, no change
+ *     5   : provide warning, but apply no change
+ *     2-4 : cannot determine direction
+ *           --> this is a program terminating failure condition
+ *     1   : provide warning, and reverse direction
+ *     0   : no warning, just reverse direction
+ *
+ * return   0 : success (cases 0,1,5,6)
+ *         -1 : failure (cases 2-4)
+ *----------------------------------------------------------------------
+*/
+int check_norm_dirs ( smap_opts_t * sopt, node_list_t * N, int surf )
+{
+    THD_fvec3 * coords;
+    float     * norms;
+    float       fmin[3], fmax[3];
+    int         min[3], max[3];
+    int         match[6];		/* +/- 1, for direction match */
+    int         node, c, ncount;
+
+ENTRY("check_norm_dirs");
+
+    norms  = N->norms[surf];		 /* point to nodes for this surface  */
+    coords = N->nodes + surf*N->nnodes;	 /* point to coords for this surface */
+
+    /* init mins and max's from node 0 */
+    min[0] = max[0] = min[1] = max[1] = min[2] = max[2] = 0;
+
+    fmin[0] = fmax[0] = coords->xyz[0];
+    fmin[1] = fmax[1] = coords->xyz[1];
+    fmin[2] = fmax[2] = coords->xyz[2];
+    coords++;
+
+    /* now check the rest of them */
+    for ( node = 1; node < N->nnodes; node++, coords++ )
+    {
+	/* for each of x, y and z, check min and max */
+	for ( c = 0; c < 3; c++ )
+	{
+	    if ( fmin[c] > coords->xyz[c] )
+	    {
+		min[c]  = node;
+		fmin[c] = coords->xyz[c];
+	    }
+
+	    if ( fmax[c] < coords->xyz[c] )
+	    {
+		max[c]  = node;
+		fmax[c] = coords->xyz[c];
+	    }
+	}
+    }
+    coords = N->nodes + surf*N->nnodes;	 /* reset coords to the beginning */
+
+    if ( sopt->debug > 1 )
+    {
+	fprintf(stderr,"++ normals:\n"
+		"      mins       : %d, %d, %d\n"
+		"      min coords : %f, %f, %f\n"
+		"      mins0      : %f, %f, %f\n"
+		"      mins1      : %f, %f, %f\n"
+		"      mins2      : %f, %f, %f\n"
+		"\n"
+		"      maxs       : %d, %d, %d\n"
+		"      max coords : %f, %f, %f\n"
+		"      maxs0      : %f, %f, %f\n"
+		"      maxs1      : %f, %f, %f\n"
+		"      maxs2      : %f, %f, %f\n",
+		min[0], min[1], min[2], 
+		fmin[0], fmin[1], fmin[2], 
+		coords[min[0]].xyz[0], coords[min[0]].xyz[1],
+				       coords[min[0]].xyz[2], 
+		coords[min[1]].xyz[0], coords[min[1]].xyz[1],
+				       coords[min[1]].xyz[2], 
+		coords[min[2]].xyz[0], coords[min[2]].xyz[1],
+				       coords[min[2]].xyz[2], 
+		max[0], max[1], max[2], 
+		fmax[0], fmax[1], fmax[2], 
+		coords[max[0]].xyz[0], coords[max[0]].xyz[1],
+				       coords[max[0]].xyz[2], 
+		coords[max[1]].xyz[0], coords[max[1]].xyz[1],
+				       coords[max[1]].xyz[2], 
+		coords[max[2]].xyz[0], coords[max[2]].xyz[1],
+				       coords[max[2]].xyz[2] );
+
+    }
+
+    /* now count the number of normals pointing "toward" the center */
+    match[0] = norms[3*min[0]  ] > 0;
+    match[1] = norms[3*min[1]+1] > 0;
+    match[2] = norms[3*min[2]+2] > 0;
+
+    match[3] = norms[3*max[0]  ] < 0;
+    match[4] = norms[3*max[1]+1] < 0;
+    match[5] = norms[3*max[2]+2] < 0;
+
+    if ( sopt->debug > 1 )
+	fprintf(stderr,"-- matches[0..5] = (%d, %d, %d,  %d, %d, %d)\n",
+		match[0], match[1], match[2], match[3], match[4], match[5] );
+
+    ncount = 0;
+    for ( c = 0; c < 6; c++ )
+	if ( match[c] )
+	    ncount++;
+
+    /* do we fail? */
+    if ( (ncount >= 2) && (ncount <= 4) )
+    {
+	fprintf(stderr, "** cannot determine directions for normals:\n"
+		"   Option '-keep_norm_dir' is required to proceed.\n"
+		"   It is ~%d%% likely that you will want to negate the\n"
+		"   normal length in '-norm_len'\n",
+		(int)(100*ncount/6.0) );
+	RETURN(-1);
+    }
+
+    /* or do we just warn the user? */
+    if ( (ncount == 1) || (ncount == 5) )
+	fprintf(stderr,"** warning: only 83%% sure of direction of normals\n");
+    
+    /* do we need to reverse the direction? */
+    if ( ncount < 2 )
+    {
+	fprintf(stderr,"-- reversing direction of normals\n");
+	sopt->norm_len *= -1.0;
     }
 
     RETURN(0);
@@ -652,8 +811,7 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
 {
     SUMA_SurfaceObject ** so;
     THD_fvec3          *  fvp;
-    float              *  fp, radius[2];
-    float              *  radp = radius;
+    float              *  fp, radius[V2S_MAX_SURFS];
     int                   rv, nindex, sindex;
 
 ENTRY("alloc_node_list");
@@ -682,9 +840,13 @@ ENTRY("alloc_node_list");
     }
 
     /* fill node list struct */
-    N->depth  = nsurf;
-    N->nnodes = so[0]->N_Node;
-    N->nodes  = (THD_fvec3 *)malloc(N->depth*N->nnodes*(int)sizeof(THD_fvec3));
+
+    N->depth     = nsurf;
+    N->nnodes    = so[0]->N_Node;
+    N->center[0] = so[0]->Center[0];
+    N->center[1] = so[0]->Center[1];
+    N->center[2] = so[0]->Center[2];
+    N->nodes = (THD_fvec3 *)malloc(N->depth*N->nnodes*(int)sizeof(THD_fvec3));
     if ( N->nodes == NULL )
     {
 	fprintf( stderr, "** cnlm: failed to allocate %d THD_fvec3 structs\n",
@@ -702,7 +864,7 @@ ENTRY("alloc_node_list");
 	RETURN(-1);
     }
 
-    /* copy the xyz coordinates for each node */
+    /* per surf, get label, norms, and copy xyz coords for each node */
 
     fvp = N->nodes;	/* linear coverage of all nodes */
     for ( sindex = 0; sindex < nsurf; sindex++ )
@@ -717,6 +879,7 @@ ENTRY("alloc_node_list");
 	}
 
 	N->labels[sindex] = so[sindex]->Label;
+	N->norms [sindex] = so[sindex]->NodeNormList;
 
 	for ( nindex = 0, fp = so[sindex]->NodeList;
 	      nindex < N->nnodes;
@@ -726,11 +889,7 @@ ENTRY("alloc_node_list");
 	    fvp++;
 	}
 
-	surf_ave_radius(radp, so[sindex], sopt->debug);
-
-	/* for 2 surfaces, note both of the radii */
-	if ( nsurf == 2 )
-	    radp++;
+	surf_ave_radius(radius+sindex, so[sindex], sopt->debug);
     }
 
 #if 0		/* with -surf_A and -surf_B, intended order is known   v3.8 */
@@ -805,6 +964,8 @@ ENTRY("get_mappable_surfs");
 */
 int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
 {
+    int nsurf = 1;
+
 ENTRY("set_smap_opts");
 
     memset( sopt, 0, sizeof(*sopt) );
@@ -814,9 +975,12 @@ ENTRY("set_smap_opts");
 
     /* set defaults before checking map type */
 
-    sopt->debug   = opts->debug;	/* for output in library functions */
-    sopt->dnode   = opts->dnode;	/* for output in library functions */
-    sopt->no_head = opts->no_head;
+    sopt->debug         = opts->debug;
+    sopt->dnode         = opts->dnode;
+    sopt->no_head       = opts->no_head;
+    sopt->use_norms     = opts->use_norms;
+    sopt->norm_len      = opts->norm_len;
+    sopt->keep_norm_dir = opts->keep_norm_dir;
 
     sopt->f_index = V2S_M2_INDEX_VOXEL;	     /* default is "voxel" */
 
@@ -853,10 +1017,13 @@ ENTRY("set_smap_opts");
 	case E_SMAP_MIN:
 	case E_SMAP_MASK2:
 	case E_SMAP_SEG_VALS:
+	    nsurf = 2;
 	    break;
 
+	case E_SMAP_MIDPT:	/* continue to SMAP_MASK */
+	    nsurf = 2;
+
 	case E_SMAP_MASK:
-	case E_SMAP_MIDPT:
 	    if (sopt->f_steps != V2S_M2_STEPS_DEFAULT)
 	    {
 		fprintf(stderr,"** -f_steps option not valid\n");
@@ -866,6 +1033,13 @@ ENTRY("set_smap_opts");
 	    /* we will only use the first point in the computation */
 	    sopt->f_steps = 1;
 	    break;
+    }
+
+    if ( (nsurf == 2) && !opts->snames[1] && !opts->use_norms )
+    {
+	fprintf(stderr, "** function '%s' requires 2 surfaces\n",
+		        g_smap_names[sopt->map]);
+	RETURN(-1);
     }
 
     if ( opts->debug > 0 )
@@ -882,7 +1056,9 @@ ENTRY("set_smap_opts");
 int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
 		     node_list_t * N )
 {
-ENTRY("final_clean_up");
+    if (N->nodes)   free(N->nodes);
+    if (N->labels)  free(N->labels);
+
     if ( ( SUMAg_DOv != NULL ) &&
 	 ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 ) )
 	fprintf(stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
@@ -936,11 +1112,8 @@ ENTRY("read_surf_files");
 
     SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-    if ( debug )
-    {
+    if ( debug )	/* can't SUMA_ShowSpecStruct() yet    - v3.9 */
 	fputs( "-- SUMA_Read_SpecFile()...\n", stderr );
-	SUMA_ShowSpecStruct(spec, stderr, 3);
-    }
 
     if ( SUMA_Read_SpecFile( opts->spec_file, spec) == 0 )
     {
@@ -957,7 +1130,7 @@ ENTRY("read_surf_files");
     }
 
     if ( debug )
-	SUMA_ShowSpecStruct(spec, stderr, debug > 0 ? 3 : 1);
+	SUMA_ShowSpecStruct(spec, stderr, opts->debug > 2 ? 3 : 1);
 
     if ( SUMA_spec_set_map_refs(spec, opts->debug) != 0 )
 	RETURN(-1);
@@ -1015,7 +1188,8 @@ ENTRY("init_options");
     opts->snames[1]   = NULL;
     opts->f_index_str = NULL;
 
-    opts->dnode = -1;			/* init to something invalid */
+    opts->norm_len    = 1.0;		/* init to 1.0 millimeter    */
+    opts->dnode       = -1;		/* init to something invalid */
 
     for ( ac = 1; ac < argc; ac++ )
     {
@@ -1144,6 +1318,10 @@ ENTRY("init_options");
 	    usage( PROG_NAME, V2S_USE_HIST );
 	    RETURN(-1);
 	}
+	else if ( ! strncmp(argv[ac], "-keep_norm_dir", 14) )
+	{
+	    opts->keep_norm_dir = 1;
+	}
 	else if ( ! strncmp(argv[ac], "-grid_parent", 5) ||
 		  ! strncmp(argv[ac], "-inset", 6)       ||
 		  ! strncmp(argv[ac], "-input", 6) )
@@ -1170,6 +1348,17 @@ ENTRY("init_options");
 	else if ( ! strncmp(argv[ac], "-no_headers", 5) )
 	{
 	    opts->no_head = 1;
+	}
+	else if ( ! strncmp(argv[ac], "-norm_len", 9) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -norm_len LENGTH\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		RETURN(-1);
+	    }
+
+	    opts->norm_len = atof(argv[++ac]);
 	}
 	else if ( ! strncmp(argv[ac], "-oob_index", 8) )
 	{
@@ -1259,6 +1448,10 @@ ENTRY("init_options");
 
             opts->sv_file = argv[++ac];
 	}
+	else if ( ! strncmp(argv[ac], "-use_norms", 5) )
+	{
+	    opts->use_norms = 1;
+	}
 	else if ( ! strncmp(argv[ac], "-version", 2) )
 	{
 	    usage( PROG_NAME, V2S_USE_VERSION );
@@ -1315,6 +1508,20 @@ ENTRY("validate_options");
     if ( opts->snames[0] == NULL )
     {
 	fprintf(stderr,"** missing '-surf_A SURF_NAME' option\n");
+	RETURN(-1);
+    }
+
+    if ( opts->use_norms )
+    {
+	if ( opts->snames[1] )
+	{
+	    fprintf(stderr,"** no '-use_norms' option with 2 surfaces\n");
+	    RETURN(-1);
+	}
+    }
+    else if ( opts->norm_len != 1.0 || opts->keep_norm_dir )
+    {
+	fprintf(stderr,"** options for normals requires '-use_norms'\n");
 	RETURN(-1);
     }
 
@@ -1710,9 +1917,9 @@ ENTRY("usage");
 	    "       -f_index      voxels                                   \\\n"
 	    "       -f_p1_fr      -0.1                                     \\\n"
 	    "       -f_pn_fr      0.2                                      \\\n"
-	    "       -out_1D       fred_surf_ave.1D\n"
+	    "       -out_1D       fred_surf_ave2.1D\n"
 	    "\n"
-	    "    5. Similar to example 4, instead of computing the average\n"
+	    "    5. Similar to example 3, instead of computing the average\n"
 	    "       across each segment (one average per sub-brick), output\n"
 	    "       the volume value at _every_ point across the segment.\n"
 	    "       The output here would be 'f_steps' values per node pair,\n"
@@ -1730,9 +1937,7 @@ ENTRY("usage");
 	    "       -map_func     seg_vals                                 \\\n"
 	    "       -f_steps      10                                       \\\n"
 	    "       -f_index      nodes                                    \\\n"
-	    "       -f_p1_fr      -0.1                                     \\\n"
-	    "       -f_pn_fr      0.2                                      \\\n"
-	    "       -out_1D       fred_surf_ave.1D\n"
+	    "       -out_1D       fred_surf_vals.1D\n"
 	    "\n"
             "    6. Similar to example 5, but make sure there is output for\n"
             "       every node pair in the surfaces.  Since it is expected\n"
@@ -1755,9 +1960,25 @@ ENTRY("usage");
 	    "       -map_func     seg_vals                                 \\\n"
 	    "       -f_steps      10                                       \\\n"
 	    "       -f_index      nodes                                    \\\n"
-	    "       -f_p1_fr      -0.1                                     \\\n"
-	    "       -f_pn_fr      0.2                                      \\\n"
+	    "       -oob_value    0.0                                      \\\n"
 	    "       -out_1D       fred_surf_ave.1D\n"
+	    "\n"
+	    "    7. This is a basic example of calculating the average along\n"
+	    "       each segment, but where the segment is produced by only\n"
+	    "       one surface, along with its set of surface normals.  The\n"
+	    "       segments will be 2.5 mm in length.\n"
+	    "\n"
+	    "    %s                                                \\\n"
+	    "       -spec         fred2.spec                               \\\n"
+	    "       -surf_A       smoothwm                                 \\\n"
+	    "       -sv           fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -use_norms                                             \\\n"
+	    "       -norm_len     2.5                                      \\\n"
+	    "       -map_func     seg_vals                                 \\\n"
+	    "       -f_steps      10                                       \\\n"
+	    "       -f_index      nodes                                    \\\n"
+	    "       -out_1D       fred_surf_norm_ave.1D\n"
 	    "\n"
 	    "  --------------------------------------------------\n"
 	    "\n"
@@ -1971,6 +2192,63 @@ ENTRY("usage");
 	    "\n"
 	    "  ------------------------------\n"
 	    "\n"
+	    "  options specific to use of normals:\n"
+	    "\n"
+	    "    Notes:\n"
+	    "\n"
+	    "      o Using a single surface with its normals for segment\n"
+	    "        creation can be done in lieu of using two surfaces.\n"
+	    "\n"
+	    "      o Normals at surface nodes are defined by the average of\n"
+	    "        the normals of the triangles including the given node.\n"
+	    "\n"
+	    "      o The default normals have a consistent direction, but it\n"
+	    "        may be opposite of what is should be.  For this reason,\n"
+	    "        the direction is verified by default, and may be negated\n"
+	    "        internally.  See the '-keep_norm_dir' option for more\n"
+	    "        information.\n"
+	    "\n"
+	    "    -use_norms             : use normals for second surface\n"
+	    "\n"
+	    "        Segments are usually defined by connecting corresponding\n"
+	    "        node pairs from two surfaces.  With this options the\n"
+	    "        user can use one surface, along with its normals, to\n"
+	    "        define the segments.\n"
+	    "\n"
+	    "        By default, each segment will be 1.0 millimeter long, in\n"
+	    "        the direction of the normal.  The '-norm_len' option\n"
+	    "        can be used to alter this default action.\n"
+	    "\n"
+	    "    -keep_norm_dir         : keep the direction of the normals\n"
+	    "\n"
+	    "        Normal directions are verified by checking that the\n"
+	    "        normals of the outermost 6 points point away from the\n"
+	    "        center of mass.  If they point inward instead, then\n"
+	    "        they are negated.\n"
+	    "\n"
+	    "        This option will override the directional check, and\n"
+	    "        use the normals as they come.\n"
+	    "\n"
+	    "    -norm_len LENGTH       : use LENGTH for node normals\n"
+	    "\n"
+	    "        e.g.     -norm_len  3.0\n"
+	    "        e.g.     -norm_len -3.0\n"
+	    "        default: -norm_len  1.0\n"
+	    "\n"
+	    "        For use with the '-use_norms' option, this allows the\n"
+	    "        user to specify a directed distance to use for segments\n"
+	    "        based on the normals.  So for each node on a surface,\n"
+	    "        the computation segment will be from the node, in the\n"
+	    "        direction of the normal, a signed distance of LENGTH.\n"
+	    "\n"
+	    "        A negative LENGTH means to use the opposite direction\n"
+	    "        from the normal.\n"
+	    "\n"
+	    "        The '-surf_B' option is not allowed with the use of\n"
+	    "        normals.\n"
+	    "\n"
+	    "  ------------------------------\n"
+	    "\n"
 	    "  general options:\n"
 	    "\n"
 	    "    -cmask MASK_COMMAND    : (optional) command for dataset mask\n"
@@ -2128,7 +2406,7 @@ ENTRY("usage");
 	    "                (many thanks to Z. Saad and R.W. Cox)\n"
 	    "\n",
 	    prog, prog,
-	    prog, prog, prog, prog, prog, prog,
+	    prog, prog, prog, prog, prog, prog, prog,
 	    VERSION );
     }
     else if ( level == V2S_USE_HIST )
@@ -2431,6 +2709,30 @@ ENTRY("v2s_apply_filter");
     RETURN((float)comp);
 }
 
+/*---------------------------------------------------------------------------
+ * directed_dist  - travel from pold, along dir, a distance of dist
+ *---------------------------------------------------------------------------
+*/
+float directed_dist( float * pnew, float * pold, float * dir, float dist ) 
+{
+    double mag, ratio;
+    int    c;
+
+ENTRY("directed_dist");
+
+    mag = magnitude_f(dir, 3);
+
+    if ( mag < V2S_EPSILON )	/* can't be negative */
+	ratio = 0.0;
+    else
+	ratio = dist/mag;
+
+    for ( c = 0; c < 3; c++ )
+	pnew[c] = pold[c] + dir[c]*ratio;
+
+    RETURN(dist);
+}
+
 
 #if 0								/* v3.8 */
 
@@ -2522,7 +2824,8 @@ ENTRY("surf_ave_radius");
     *radius = sum/so->N_Node;
 
     if ( disp )
-	fprintf(stderr,"-- surf %s has average dist %f to center %f, %f, %f\n",
+	fprintf(stderr,"-- surf %s has average dist %f\n"
+		       "        to center (%f, %f, %f)\n",
 		so->Label, *radius, c0, c1, c2 );
 
     RETURN(0);
@@ -2584,25 +2887,28 @@ ENTRY("disp_opts_t");
 
     fprintf(stderr,
 	    "options struct at %p :\n"
-	    "    gpar_file          = %s\n"
-	    "    out_file           = %s\n"
-	    "    spec_file          = %s\n"
-	    "    sv_file            = %s\n"
-	    "    cmask_cmd          = %s\n"
-	    "    map_str            = %s\n"
-	    "    snames[0,1]        = %s, %s\n"
-	    "    no_head            = %d\n"
-	    "    debug, dnode       = %d, %d\n"
-	    "    f_index_str        = %s\n"
-	    "    f_steps            = %d\n"
-	    "    f_p1_fr, f_pn_fr   = %f, %f\n"
-	    "    f_p1_mm, f_pn_mm   = %f, %f\n"
+	    "    gpar_file           = %s\n"
+	    "    out_file            = %s\n"
+	    "    spec_file           = %s\n"
+	    "    sv_file             = %s\n"
+	    "    cmask_cmd           = %s\n"
+	    "    map_str             = %s\n"
+	    "    snames[0,1]         = %s, %s\n"
+	    "    no_head             = %d\n"
+	    "    use_norms, norm_len = %d, %f\n"
+	    "    keep_norm_dir       = %d\n"
+	    "    debug, dnode        = %d, %d\n"
+	    "    f_index_str         = %s\n"
+	    "    f_steps             = %d\n"
+	    "    f_p1_fr, f_pn_fr    = %f, %f\n"
+	    "    f_p1_mm, f_pn_mm    = %f, %f\n"
 	    , opts,
 	    CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->out_file),
 	    CHECK_NULL_STR(opts->spec_file), CHECK_NULL_STR(opts->sv_file),
 	    CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
 	    CHECK_NULL_STR(opts->snames[0]), CHECK_NULL_STR(opts->snames[1]),
-	    opts->no_head, opts->debug, opts->dnode,
+	    opts->no_head, opts->use_norms, opts->norm_len, opts->keep_norm_dir,
+	    opts->debug, opts->dnode,
 	    CHECK_NULL_STR(opts->f_index_str), opts->f_steps,
 	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
 	    );
@@ -2631,19 +2937,38 @@ ENTRY("disp_smap_opts_t");
     fprintf(stderr,
 	    "smap_opts_t struct at %p :\n"
 	    "    map, debug, dnode   = %d, %d, %d\n"
-	    "    no_head, f_index    = %d, %d\n"
-	    "    f_steps             = %d\n"
+	    "    no_head             = %d\n"
+	    "    use_norms, norm_len = %d, %f\n"
+	    "    keep_norm_dir       = %d\n"
+	    "    f_index, f_steps    = %d, %d\n"
 	    "    f_p1_fr, f_pn_fr    = %f, %f\n"
 	    "    f_p1_mm, f_pn_mm    = %f, %f\n"
 	    "    cmask               = %p\n"
 	    , sopt,
 	    sopt->map, sopt->debug, sopt->dnode, sopt->no_head,
+	    sopt->use_norms, sopt->norm_len, sopt->keep_norm_dir,
 	    sopt->f_index, sopt->f_steps,
 	    sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm,
 	    sopt->cmask
 	    );
 
     RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * magnitude_f		- return magnitude of float vector
+ *----------------------------------------------------------------------
+*/
+double magnitude_f( float * p, int length )
+{
+    int     c;
+    double  sums = 0.0;
+
+    for ( c = 0; c < length; c++, p++ )
+	sums += (*p) * (*p);
+
+    return(sqrt(sums));
 }
 
 
@@ -2774,4 +3099,26 @@ ENTRY("disp_mri_imarr");
     RETURN(0);
 }
 
+int disp_fvec ( char * info, float * f, int len )
+{
+    int c;
+
+ENTRY("disp_fvec");
+
+    if ( info )
+	fputs( info, stderr );
+
+    if ( f == NULL || len < 0 )
+    {
+	fprintf(stderr, "disp_fvec: bad input: f = %p, len = %d\n", f, len);
+	RETURN(-1);
+    }
+
+    for ( c = 0; c < len; c++ )
+	fprintf(stderr, "  %f", f[c]);
+
+    fputc('\n', stderr);
+
+    RETURN(0);
+}
 
