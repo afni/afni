@@ -112,6 +112,7 @@ ENTRY("AFNI_thr_scale_drag CB") ;
 
       FIX_SCALE_VALUE(im3d) ;
       AFNI_set_thr_pval( im3d ) ;
+      AFNI_thrdrag_lock_carryout( im3d ) ; /* 10 Feb 2004 */
    }
    EXRETURN ;
 }

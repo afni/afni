@@ -4941,3 +4941,6 @@
      threshold p-value locking.
  * Added AFNI_DISP_SCROLLBARS to afni_pplug_env.c, to control if Disp
      menu in image viewer gets scrollbars.
+
+10 Feb 2004
+ * Made threshold locking move sliders during drag, not just end of drag.
