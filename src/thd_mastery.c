@@ -101,6 +101,8 @@ ENTRY("THD_open_dataset") ;
       ivlist = MCW_get_intlist( DSET_NVALS(dset) , subv ) ;
    }
    if( ivlist == NULL ){
+      fprintf(stderr,"** WARNING: bad sub-brick selector => using [0..%d]\n",
+              DSET_NVALS(dset)-1) ;
       ivlist = (int *) malloc(sizeof(int)*(DSET_NVALS(dset)+1)) ;
       ivlist[0] = DSET_NVALS(dset) ;
       for( kk=0 ; kk < ivlist[0] ; kk++ ) ivlist[kk+1] = kk ;
