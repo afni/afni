@@ -4506,6 +4506,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) sphere_voronoi_vectors , /* 18 Oct 2001 */
    (vptr_func *) new_CREN_renderer ,      /* 14 Feb 2002 */
    (vptr_func *) THD_average_timeseries , /* 03 Apr 2002 */
+   (vptr_func *) cl1_solve ,              /* 07 Aug 2002 */
 #endif
 NULL } ;
 
