@@ -944,4 +944,6 @@
    - only modify offset if it is too small (nifti_set_iname_offset)
    - added nifti_type 3 to nifti_makehdrname and nifti_makeimgname
    - added function nifti_set_filenames()
+07 Jan 2005: INITIAL RELEASE OF nifti_tool (v 1.0)
+   - lots of functions
 
