@@ -1631,10 +1631,10 @@ ENTRY("ISQ_zoom_av_CB") ;
 
    SENSITIZE( seq->zoom_drag_pb , (zlev>1) ) ;
 
-   AV_SENSITIZE_DOWN( seq->zoom_val_av , (zlev > 1       ) ) ;
-   AV_SENSITIZE_UP  ( seq->zoom_val_av , (zlev < ZOOM_TOP) ) ;
+   AV_SENSITIZE_DOWN( av , (zlev > 1       ) ) ;
+   AV_SENSITIZE_UP  ( av , (zlev < ZOOM_TOP) ) ;
 
-   if( zlev == 1 && seq->zoom_button1 ){
+   if( zlev == 1 && seq->zoom_button1 ){       /* can't pan at zlev=1 */
       seq->zoom_button1 = 0 ;
       MCW_invert_widget( seq->zoom_drag_pb ) ;
       POPUP_cursorize( seq->wimage ) ;
@@ -1653,14 +1653,13 @@ ENTRY("ISQ_zoom_av_CB") ;
 
    /* must redisplay image totally */
 
-   if( zlev > 1 ) MCW_invert_widget( av->wlabel ) ;  /* 22 Mar 2002 */
-
    ISQ_redisplay( seq , -1 , isqDR_display ) ;
-
-   if( zlev > 1 ) MCW_invert_widget( av->wlabel ) ;  /* 22 Mar 2002 */
 
    EXRETURN ;
 }
+
+/*--------------------------------------------------------------------------*/
+/*! Callback for 'pan' button. */
 
 void ISQ_zoom_pb_CB( Widget w , XtPointer client_data ,
                                 XtPointer call_data    )
@@ -3578,7 +3577,7 @@ static int qhandler( Display *dpy , XErrorEvent *xev ){ xwasbad=1; return 0; }
 #ifdef ALLOW_ZOOM
 static int ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
 {
-   int iw,ih , zlev=seq->zoom_fac , pw,ph , xoff,yoff , newim=0 ;
+   int iw,ih , zlev=seq->zoom_fac , pw,ph , xoff,yoff , newim=0 , flash=0 ;
 
 ENTRY("ISQ_show_zoom") ;
 
@@ -3634,8 +3633,10 @@ ENTRY("ISQ_show_zoom") ;
       it will be save in the seq struct for next time,
       unless the image changes, in which case it will have been axed */
 
+
    if( seq->zoom_xim == NULL ){
      MRI_IMAGE *im , *tim ;
+     flash = 1 ; MCW_invert_widget( seq->zoom_val_av->wlabel ) ;
      im  = XImage_to_mri( seq->dc, seq->given_xim, X2M_USE_CMAP|X2M_FORCE_RGB ) ;
      tim = mri_dup2D(zlev,im) ; mri_free(im) ;
      seq->zoom_xim = mri_to_XImage(seq->dc,tim) ; mri_free(tim) ;
@@ -3678,6 +3679,8 @@ ENTRY("ISQ_show_zoom") ;
               seq->zoom_pixmap ,
               XtWindow(seq->wimage) , seq->dc->origGC ,
               xoff , yoff , iw,ih , 0,0 ) ;
+
+   if( flash ) MCW_invert_widget( seq->zoom_val_av->wlabel ) ;
 
    RETURN(1) ;
 }
