@@ -1422,7 +1422,7 @@ char * AFNI_resam_texter( MCW_arrowval * av , XtPointer junk )
 void AFNI_resam_av_CB( MCW_arrowval * av , XtPointer cd )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
-   int reunder , redisplay , isfunc ;
+   int reunder , redisplay ;
 
 ENTRY("AFNI_resam_av_CB") ;
 
@@ -1435,7 +1435,6 @@ ENTRY("AFNI_resam_av_CB") ;
    if( av == im3d->vwid->dmode->func_resam_av ){
 STATUS("set func_resam_mode") ;
       im3d->vinfo->func_resam_mode = av->ival ;
-      isfunc = True ;
       if( im3d->b123_fim != NULL ){
          im3d->b123_fim->resam_code =
           im3d->b231_fim->resam_code =
@@ -1445,7 +1444,6 @@ STATUS("set func_resam_mode") ;
    } else if( av == im3d->vwid->dmode->thr_resam_av ){  /* 09 Dec 1997 */
 STATUS("set thr_resam_mode") ;
       im3d->vinfo->thr_resam_mode = av->ival ;
-      isfunc = True ;
       if( im3d->b123_fim != NULL ){
          im3d->b123_fim->thr_resam_code =
           im3d->b231_fim->thr_resam_code =
@@ -1455,12 +1453,9 @@ STATUS("set thr_resam_mode") ;
    } else if( av == im3d->vwid->dmode->anat_resam_av ){
 STATUS("set anat_resam_mode") ;
       im3d->vinfo->anat_resam_mode = av->ival ;
-      isfunc = False ;
       im3d->b123_anat->resam_code =
        im3d->b231_anat->resam_code =
         im3d->b312_anat->resam_code = im3d->vinfo->anat_resam_mode ;
-   } else {
-      EXRETURN ;  /* should not occur! */
    }
 
    SHOW_AFNI_PAUSE ;

@@ -43,6 +43,7 @@ static int AFNI_drive_pbar_rotate      ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_set_func_autorange     ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_set_func_range         ( char *cmd ) ; /* 21 Jan 2003 */
 static int AFNI_set_func_visible       ( char *cmd ) ; /* 21 Jan 2003 */
+static int AFNI_set_func_resam         ( char *cmd ) ; /* 21 Jan 2003 */
 
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
@@ -93,6 +94,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_FUNC_AUTORANGE" , AFNI_set_func_autorange      } ,
  { "SET_FUNC_RANGE"     , AFNI_set_func_range          } ,
  { "SET_FUNC_VISIBLE"   , AFNI_set_func_visible        } ,
+ { "SET_FUNC_RESAM"     , AFNI_set_func_resam          } ,
 
  { NULL , NULL } } ;
 
@@ -1652,5 +1654,60 @@ ENTRY("AFNI_set_func_visible") ;
 
    MCW_set_bbox( im3d->vwid->view->see_func_bbox , nn ) ;
    AFNI_see_func_CB( NULL , im3d , NULL ) ;
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}.{NN|Li|Cu|Bk}
+   "SET_FUNC_RESAM A.Li.Li"
+---------------------------------------------------------------------------*/
+
+static int AFNI_set_func_resam( char *cmd )
+{
+   int ic , dadd=2 , fr=-1 , tr=-1 ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_set_func_resam") ;
+
+   if( cmd == NULL || strlen(cmd) < 2 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+        if( cmd[dadd] == 'N' && cmd[dadd+1] == 'N' ) fr = 0 ;
+   else if( cmd[dadd] == 'L' && cmd[dadd+1] == 'i' ) fr = 1 ;
+   else if( cmd[dadd] == 'C' && cmd[dadd+1] == 'u' ) fr = 2 ;
+   else if( cmd[dadd] == 'B' && cmd[dadd+1] == 'k' ) fr = 2 ;
+   else                                              RETURN(-1);
+
+   if( cmd[dadd+2] == '.' ){
+     dadd += 3 ;
+          if( cmd[dadd] == 'N' && cmd[dadd+1] == 'N' ) tr = 0 ;
+     else if( cmd[dadd] == 'L' && cmd[dadd+1] == 'i' ) tr = 1 ;
+     else if( cmd[dadd] == 'C' && cmd[dadd+1] == 'u' ) tr = 2 ;
+     else if( cmd[dadd] == 'B' && cmd[dadd+1] == 'k' ) tr = 2 ;
+     else                                              RETURN(-1);
+   }
+
+   AV_assign_ival( im3d->vwid->dmode->func_resam_av , fr ) ;
+   im3d->vinfo->func_resam_mode = fr ;
+   if( im3d->b123_fim != NULL )
+     im3d->b123_fim->resam_code =
+      im3d->b231_fim->resam_code =
+       im3d->b312_fim->resam_code = im3d->vinfo->func_resam_mode ;
+
+   if( tr >= 0 ){
+     AV_assign_ival( im3d->vwid->dmode->thr_resam_av , fr ) ;
+     im3d->vinfo->thr_resam_mode = tr ;
+     if( im3d->b123_fim != NULL )
+       im3d->b123_fim->thr_resam_code =
+        im3d->b231_fim->thr_resam_code =
+         im3d->b312_fim->thr_resam_code = im3d->vinfo->thr_resam_mode ;
+   }
+
+   AFNI_resam_av_CB( NULL , im3d ) ;
    RETURN(0) ;
 }
