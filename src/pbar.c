@@ -235,26 +235,26 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    pbar->bigfac  = 0.0 ;
 #ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
-   pbar->big_menu = XmCreatePopupMenu( pbar->top      , "help" , NULL , 0 ) ;
+   pbar->big_menu = XmCreatePopupMenu( pbar->top      , "menu" , NULL , 0 ) ;
 #else
-   pbar->big_menu = XmCreatePopupMenu( pbar->panes[0] , "help" , NULL , 0 ) ;
+   pbar->big_menu = XmCreatePopupMenu( pbar->panes[0] , "menu" , NULL , 0 ) ;
 #endif
 
    SAVEUNDERIZE(XtParent(pbar->big_menu)) ;
    VISIBILIZE_WHEN_MAPPED(pbar->big_menu) ;
 
    pbar->big_label = XtVaCreateManagedWidget(
-                     "help" , xmLabelWidgetClass , pbar->big_menu ,
+                     "menu" , xmLabelWidgetClass , pbar->big_menu ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
 
-   (void) XtVaCreateManagedWidget( "help",
+   (void) XtVaCreateManagedWidget( "menu",
                                     xmSeparatorWidgetClass, pbar->big_menu ,
                                        XmNseparatorType , XmSINGLE_LINE ,
                                     NULL ) ;
 
    pbar->big_choose_pb = XtVaCreateManagedWidget(
-                           "help" , xmPushButtonWidgetClass , pbar->big_menu ,
+                           "menu" , xmPushButtonWidgetClass , pbar->big_menu ,
                              LABEL_ARG("Choose Colorscale") ,
                              XmNtraversalOn , False ,
                              XmNinitialResourcesPersistent , False ,

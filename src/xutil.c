@@ -239,7 +239,7 @@ char * MCW_hotcolor(Widget w)
    if( redcolor == NULL ){
      char *xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL, "hotcolor" ) ;
 
-     redcolor = (xdef != NULL) ? (xdef) : ("red3") ;
+     redcolor = (xdef != NULL) ? (xdef) : ("red4") ;
    }
    return redcolor ;
 }
@@ -798,7 +798,7 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
       while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
 
       wpop = XtVaCreatePopupShell(
-              "AFNI" , xmDialogShellWidgetClass , wpar ,
+              "help" , xmDialogShellWidgetClass , wpar ,
                  XmNmappedWhenManaged , False ,
                  XmNallowShellResize , True ,
                  XmNdeleteResponse , XmDO_NOTHING ,
@@ -1044,14 +1044,17 @@ void MCW_set_meter( Widget wscal , int percent )
    int val , old ;
 
 #undef  NCOL
-#define NCOL 11
+#define NCOL 30
 #ifdef NCOL
    static int icol=0 ;
-   static char *cname[] = { "#ff0000", "#ff9900",
-                            "#ffff00", "#99ff00",
-                            "#00ff00", "#00ff99",
-                            "#0088dd", "#0000dd",
-                            "#9900ff", "#ff00ff", "#ff0099" } ;
+   static char *cname[] = {
+      "#0000ff", "#3300ff", "#6600ff", "#9900ff", "#cc00ff",
+      "#ff00ff", "#ff00cc", "#ff0099", "#ff0066", "#ff0033",
+      "#ff0000", "#ff3300", "#ff6600", "#ff9900", "#ffcc00",
+      "#ffff00", "#ccff00", "#99ff00", "#66ff00", "#33ff00",
+      "#00ff00", "#00ff33", "#00ff66", "#00ff99", "#00ffcc",
+      "#00ffff", "#00ccff", "#0099ff", "#0066ff", "#0033ff"
+    } ;
 #endif
 
    val = percent ;
@@ -1138,7 +1141,7 @@ ENTRY("new_MCW_textwin_2001") ;
    tw->kill_data = kill_data ;
 
    tw->wshell = XtVaCreatePopupShell(
-                 "dialog" , xmDialogShellWidgetClass , wpar ,
+                 "menu" , xmDialogShellWidgetClass , wpar ,
                     XmNx , xpr ,
                     XmNy , ypr ,
                     XmNborderWidth , 0 ,
@@ -1154,7 +1157,7 @@ ENTRY("new_MCW_textwin_2001") ;
    /* create a form to hold everything else */
 
    tw->wtop = XtVaCreateWidget(
-                "dialog" , xmFormWidgetClass , tw->wshell ,
+                "menu" , xmFormWidgetClass , tw->wshell ,
                   XmNborderWidth , 0 ,
                   XmNborderColor , 0 ,
                   XmNtraversalOn , False ,
@@ -1177,7 +1180,7 @@ ENTRY("new_MCW_textwin_2001") ;
    /* create text area */
 
    tw->wscroll = XtVaCreateManagedWidget(
-                    "dialog" , xmScrolledWindowWidgetClass , tw->wtop ,
+                    "menu" , xmScrolledWindowWidgetClass , tw->wtop ,
                        XmNscrollingPolicy        , XmAUTOMATIC ,
                        XmNvisualPolicy           , XmVARIABLE ,
                        XmNscrollBarDisplayPolicy , XmAS_NEEDED ,
@@ -1200,7 +1203,7 @@ ENTRY("new_MCW_textwin_2001") ;
                   NULL ) ;
 
    tw->wtext = XtVaCreateManagedWidget(
-                    "dialog" , xmTextWidgetClass , tw->wscroll ,
+                    "menu" , xmTextWidgetClass , tw->wscroll ,
                        XmNeditMode               , XmMULTI_LINE_EDIT ,
                        XmNautoShowCursorPosition , editable ,
                        XmNeditable               , editable ,

@@ -323,7 +323,9 @@ extern long   strtol() ;
 # define SCANDIR_WANTS_CONST
 # define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
 # define MMAP_THRESHOLD -1        /* no mmap-ing */
+#if 0
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
+#endif
 # define BOXUP_SCALE              /* looks nicer */
 # define DYNAMIC_LOADING_VIA_DL
 # undef  DONT_UNROLL_FFTS
