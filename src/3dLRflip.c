@@ -51,6 +51,7 @@ int main( int argc , char * argv[] )
    /* modify dataset name */
 
    EDIT_dset_items( dset , ADN_prefix , prefix , ADN_none ) ;
+   dset->idcode = MCW_new_idcode() ;  /* 24 Aug 2003 - ooops */
    tross_Make_History( "3dLRflip", argc,argv, dset ) ;
 
    /* loop over bricks */

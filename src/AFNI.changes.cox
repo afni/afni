@@ -4710,3 +4710,6 @@
  * Added AFNI_MAX_OPTMENU environment variable (bbox.c, etc.).
  * Modified Makefile.INCLUDE to chmog ugo+x the ./configure files
      in a couple of subdirectories.
+
+24 Aug 2003
+ * Modified 3dLRflip.c to give output dataset a new prefix (oops).
