@@ -298,6 +298,19 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             
             svi->ResetGLStateVariables = YUP; 
             
+            #if 0
+            /* logic for that not too clear yet */
+            /* set the SO in Focus */
+            ED = SUMA_InitializeEngineListData (SE_SetSOinFocus);
+            if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                   SEF_i, (void*)&dest_SO_ID,
+                                                   SES_SumaFromAfni, (void *)svi, NOPE,
+                                                   SEI_Tail, NULL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+               SUMA_RETURN (NOPE);
+            }
+            #endif
+            
             SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaFromAfni, svi);
             if (!SUMA_Engine (&list)) {
                fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);

@@ -183,6 +183,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"OpenDrawnROIFileSelection")) SUMA_RETURN(SE_OpenDrawnROIFileSelection);
    if (!strcmp(Scom,"SendColorMapToAfni")) SUMA_RETURN(SE_SendColorMapToAfni);
    if (!strcmp(Scom,"SaveSOFileSelection")) SUMA_RETURN(SE_SaveSOFileSelection);
+   if (!strcmp(Scom,"SetSOinFocus")) SUMA_RETURN(SE_SetSOinFocus);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -300,6 +301,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SendColorMapToAfni");      
       case SE_SaveSOFileSelection:
          SUMA_RETURN("SaveSOFileSelection");      
+      case SE_SetSOinFocus:
+         SUMA_RETURN("SE_SetSOinFocus");
       /*case SE_:
          SUMA_RETURN("");      */
       default:        
@@ -706,9 +709,10 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
 { 
    SUMA_ENGINE_CODE Dest=SES_Empty;
    static char FuncName[]={"SUMA_RegisterEngineListCommand"};
-   SUMA_Boolean LocalHead = NOPE, Refill = NOPE;
+   SUMA_Boolean  Refill = NOPE;
    DListElmt *tail=NULL, *head=NULL, *NewElement=NULL;
    SUMA_EngineData * Old_ED=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    

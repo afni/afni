@@ -326,7 +326,7 @@ void SUMA_Version (FILE *Out)
 	if (Out == NULL) {
 		Out = stdout;
 	}
-	fprintf (Out, "\n\tSUMA version 2.0, July 09 2003\n");
+	fprintf (Out, "\n\tSUMA version 2.0, July 31 2003\n");
 	return;
 }
 
