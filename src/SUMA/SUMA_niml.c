@@ -30,7 +30,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 	SUMA_Boolean LocalHead = NOPE;
 	SUMA_SurfaceViewer *sv;
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	if (SUMA_NIML_WORKPROC_IO_NOTIFY && SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	sv = (SUMA_SurfaceViewer *)thereiselvis;
 	
@@ -38,7 +38,10 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 
      if( sv->ns == NULL ){
        fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream is not open. \n");
-		 SUMA_RETURN(True); /* Don't call me with that lousy stream again */
+		 if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
+         SUMA_RETURN(True); /* Don't call me with that lousy stream again */
+       }
+         else return (True);
      }
 
      /* check if stream has gone bad */
@@ -49,7 +52,10 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
        NI_stream_close( sv->ns ) ;
        sv->ns = NULL ;
 		 fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream gone bad. Stream closed. \n");
-       SUMA_RETURN(True);               /* Don't call me with that lousy stream again */
+       if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
+         SUMA_RETURN(True);               /* Don't call me with that lousy stream again */
+       }
+         else return (True);
      }
 
      /* if here, stream is good;
@@ -89,7 +95,10 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
      }
    
 
-   SUMA_RETURN(False) ;  /* always call me back */
+   if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
+      SUMA_RETURN(False) ;  /* always call me back */
+   }
+      else return (False);
 }
 
 /*----------------------------------------------------------------------*/
@@ -485,10 +494,10 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
 
    /* put columns into element */
 
-   NI_add_column( nel , NI_INT   , ic ) ; free(ic) ;
-   NI_add_column( nel , NI_FLOAT , xc ) ; free(xc) ;
-   NI_add_column( nel , NI_FLOAT , yc ) ; free(yc) ;
-   NI_add_column( nel , NI_FLOAT , zc ) ; free(zc) ;
+   NI_add_column( nel , NI_INT   , ic ) ; SUMA_free(ic) ;
+   NI_add_column( nel , NI_FLOAT , xc ) ; SUMA_free(xc) ;
+   NI_add_column( nel , NI_FLOAT , yc ) ; SUMA_free(yc) ;
+   NI_add_column( nel , NI_FLOAT , zc ) ; SUMA_free(zc) ;
 
 	NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
 	NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
@@ -547,9 +556,9 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
 
    /* put columns into element */
 
-   NI_add_column( nel , NI_INT   , I ) ; free(I) ;
-   NI_add_column( nel , NI_INT   , J ) ; free(J) ;
-   NI_add_column( nel , NI_INT   , K ) ; free(K) ;
+   NI_add_column( nel , NI_INT   , I ) ; SUMA_free(I) ;
+   NI_add_column( nel , NI_INT   , J ) ; SUMA_free(J) ;
+   NI_add_column( nel , NI_INT   , K ) ; SUMA_free(K) ;
 
 	NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
 	NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
@@ -622,7 +631,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 	
 	NI_add_column( nel , NI_FLOAT , XYZmap );
 	
-	if (XYZmap) free(XYZmap);
+	if (XYZmap) SUMA_free(XYZmap);
 
 	SUMA_RETURN (nel);
 }
@@ -727,7 +736,7 @@ void SUMA_remove_workproc2( XtWorkProc func , XtPointer data )
       		fprintf(SUMA_STDERR,"%s: No workprocs left\n", FuncName) ;
 		#endif
       XtRemoveWorkProc( wpid ) ;
-      free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
+      SUMA_free(workp) ; workp = NULL ; SUMA_free(datap) ; datap = NULL ;
       num_workp = 0 ;
    } else {
    	for( ii=0 ; ii < num_workp ; ii++ ){
@@ -765,7 +774,7 @@ void SUMA_remove_workproc( XtWorkProc func )
       		fprintf(stderr,"SUMA_remove_workproc: No workprocs left\n") ;
 		#endif
       XtRemoveWorkProc( wpid ) ;
-      free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
+      SUMA_free(workp) ; workp = NULL ; SUMA_free(datap) ; datap = NULL ;
       num_workp = 0 ;
    } else {
    	for( ii=0 ; ii < num_workp ; ii++ ){
@@ -791,7 +800,7 @@ Boolean SUMA_workprocess( XtPointer fred )
    int ii , ngood ;
    Boolean done ;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	if (SUMA_WORKPROC_IO_NOTIFY && SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 #ifdef WPDEBUG
    { static int ncall=0 ;
@@ -799,7 +808,12 @@ Boolean SUMA_workprocess( XtPointer fred )
        fprintf(stderr,"SUMA_workprocess: entry %d\n",ncall) ; }
 #endif
 
-   if( num_workp == 0 ) SUMA_RETURN(True) ;
+   if( num_workp == 0 ) {
+      if (SUMA_WORKPROC_IO_NOTIFY) {
+         SUMA_RETURN(True) ;
+      }
+         else return(True);
+   }
 
    for( ii=0,ngood=0 ; ii < num_workp ; ii++ ){
       if( workp[ii] != NULL ){
@@ -813,11 +827,18 @@ Boolean SUMA_workprocess( XtPointer fred )
 #ifdef WPDEBUG
       fprintf(stderr,"Found no workprocs left\n") ;
 #endif
-      free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
+      SUMA_free(workp) ; workp = NULL ; SUMA_free(datap) ; datap = NULL ;
       num_workp = 0 ;
-      SUMA_RETURN(True) ;
+      if (SUMA_WORKPROC_IO_NOTIFY) {
+         SUMA_RETURN(True) ;
+      }
+         else return (True);
    }
-   SUMA_RETURN(False) ;
+   
+   if (SUMA_WORKPROC_IO_NOTIFY) {
+      SUMA_RETURN(False) ;
+   }
+      else return(False);
 }
 
 /*---------------------------------------------------------------*/

@@ -314,7 +314,19 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 						 }else { cbuf2 = cbuf; }
 					} while (cbuf2 != 'n' && cbuf != '1' && cbuf != '0'); 
 					if (cbuf == '1') { SUMAg_CF->InOut_Notify = YUP; SUMAg_CF->InOut_Level = 1;
-					}else if (cbuf == '0') { SUMAg_CF->InOut_Notify = NOPE; SUMAg_CF->InOut_Level = 0;}		
+					}else if (cbuf == '0') { SUMAg_CF->InOut_Notify = NOPE; SUMAg_CF->InOut_Level = 0;}	
+               #if SUMA_MEMTRACE_FLAG
+                  fflush (stdin);
+                  do {
+						   fprintf(SUMA_STDOUT,"-MemTrace (current %d): ", SUMAg_CF->MemTrace);
+						    cbuf = getc(stdin);
+						    if (cbuf != 'n') {
+						 	   cbuf2 = getc(stdin);
+						    }else { cbuf2 = cbuf; }
+					   } while (cbuf2 != 'n' && cbuf != '1' && cbuf != '0'); 
+					   if (cbuf == '1') { SUMAg_CF->MemTrace = YUP; 
+					   }else if (cbuf == '0') { SUMAg_CF->MemTrace = NOPE;}	
+               #endif	
 				}else {
 					SUMA_help_message(NULL);
 				}
@@ -371,7 +383,20 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 				}
 				break;
 
-			case XK_m:
+			case XK_M:
+            if (Kev.state & ControlMask){
+               #if SUMA_MEMTRACE_FLAG
+                  if (SUMAg_CF->MemTrace) {
+                    SUMA_ShowMemTrace (SUMAg_CF->Mem, NULL);
+                  } else {
+                     fprintf (SUMA_STDERR,"%s: Memtrace is disabled. Try ctrl+h.\n", FuncName);
+                     SUMA_RETURNe;
+                  }
+               #endif
+            }
+            break;
+            
+         case XK_m:
          		sv->GVS[sv->StdView].ApplyMomentum = !sv->GVS[sv->StdView].ApplyMomentum;
 					if (sv->GVS[sv->StdView].ApplyMomentum) {
 	         		 sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->App, 1, SUMA_momentum, (XtPointer) w);
@@ -453,7 +478,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 							SUMA_Print_Surface_Object((SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP, stdout);
 							--n_do_id;
 						}
-						free(do_id);
+						SUMA_free(do_id);
 					}
 					break;
 				}
@@ -599,8 +624,8 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 						} 
 					} /* ic */	
 
-					free (attr_sm);
-					free (attrbuf);
+					SUMA_free(attr_sm);
+					SUMA_free(attrbuf);
 					/*fprintf(SUMA_STDOUT, "%s: Smoothing Done ...\n", FuncName);*/
 					SUMA_postRedisplay(w, clientData, callData);
 				}
@@ -651,7 +676,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 							break;
 					}	
 					SO->Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, SO->Cx, SO->FN);
-					if (attr_sm) free(attr_sm);
+					if (attr_sm) SUMA_free(attr_sm);
 
 					fprintf(SUMA_STDOUT, "%s: Use SUMA_ScaleToMap to colorize Conv.txt and display it on surface.\n", FuncName);
 					CM = SUMA_GetStandardMap (SUMA_CMAP_nGRAY20);
@@ -694,12 +719,12 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 						SUMA_RGBmat_2_GLCOLAR4(SV->cM, SO->glar_ColorList, SO->N_Node);
 
 						/* free */
-						if (Vsort) free(Vsort);
+						if (Vsort) SUMA_free(Vsort);
 						if (CM) SUMA_Free_ColorMap (CM);
- 						if (OptScl) free(OptScl);
+ 						if (OptScl) SUMA_free(OptScl);
 						if (SV) SUMA_Free_ColorScaledVect (SV);
 						if (SO->Cx) {
-							free(SO->Cx);
+							SUMA_free(SO->Cx);
 							SO->Cx = NULL;
 						}
 
@@ -788,7 +813,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 							((SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP)->ShowMeshAxis = sv->ShowMeshAxis;
 							--n_do_id;
 						}
-						free(do_id);
+						SUMA_free(do_id);
 					}
 				}
 				SUMA_postRedisplay(w, clientData, callData);
@@ -1158,7 +1183,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 									fprintf(SUMA_STDERR, "Error %s: SUMA_Point_To_Line_Distance Failed\n", FuncName);
 									break;
 								}
-								free(do_id);
+								SUMA_free(do_id);
 								/* report some results */
 								id = SO->NodeDim * i2min;
 								fprintf (SUMA_STDOUT, "Node [%d] %f, %f, %f was closest (%f mm) to line\n", \
@@ -1193,8 +1218,8 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 									fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
 								}
 								/* done with d2, and others, free them */
-								if (d2 != NULL) free(d2);
-								free (Indx);
+								if (d2 != NULL) SUMA_free(d2);
+								SUMA_free(Indx);
 							}/* locate the nodes closest to the line */
 							#endif
 

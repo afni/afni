@@ -257,9 +257,9 @@ void SUMA_Free_ColorMap (SUMA_COLOR_MAP* SM)
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
-   if (SM->Name) free (SM->Name);
+   if (SM->Name) SUMA_free(SM->Name);
    if (SM->M) SUMA_free2D((char **)SM->M, SM->N_Col);
-   if (SM) free (SM);
+   if (SM) SUMA_free(SM);
 
    SUMA_RETURNe;
 }
@@ -603,7 +603,7 @@ int main (int argc,char *argv[])
       if (Fid) SUMA_free2D((char **)Fid, N_Fid / 3);
    } else {
       if (Fid) SUMA_free2D((char **)Fid, N_Fid / 4);
-      if (Nind) free(Nind);
+      if (Nind) SUMA_free(Nind);
    }
    if (SM) SUMA_Free_ColorMap(SM);
    
@@ -767,7 +767,7 @@ SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node)
    
    if (!S->cM || !S->isMasked) {
       fprintf(SUMA_STDERR, "Error %s: Failed to allocate for S->cM or S->isMasked.\n", FuncName);
-      free(S); S = NULL;
+      SUMA_free(S); S = NULL;
       SUMA_RETURN (S);
    }
    
@@ -790,8 +790,8 @@ void SUMA_Free_ColorScaledVect (SUMA_COLOR_SCALED_VECT * S)
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
    if (S->cM) SUMA_free2D((char **)S->cM, S->N_Node);
-   if (S->isMasked) free(S->isMasked);
-   if (S) free (S);
+   if (S->isMasked) SUMA_free(S->isMasked);
+   if (S) SUMA_free(S);
    SUMA_RETURNe;
 }
 
@@ -1027,7 +1027,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                
                /* free Fiducials & Nind*/
                SUMA_free2D((char **)Fiducials, k);
-               free (Nind);
+               SUMA_free(Nind);
                
                if (!CM) {
                   fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
@@ -1307,9 +1307,9 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDERR,"[%f..%f]\n", ClipRange[0], ClipRange[1]);
       ApplyClip = YUP;
       
-      if (Vsort) free(Vsort);
+      if (Vsort) SUMA_free(Vsort);
       else {
-         fprintf (SUMA_STDERR,"Error %s: Error in SUMA_SUMA_PercRange.\n", FuncName);
+         fprintf (SUMA_STDERR,"Error %s: Error in SUMA_PercRange.\n", FuncName);
          exit(1);
       }
    }
@@ -1370,13 +1370,13 @@ int main (int argc,char *argv[])
    }
    
    /* freeing time */
-   if (Va) free(Va);
+   if (Va) SUMA_free(Va);
    if (iVopt){
-      if (V) free (V);
-      if (iV) free (iV);
+      if (V) SUMA_free(V);
+      if (iV) SUMA_free(iV);
    }
    if (CM) SUMA_Free_ColorMap (CM);
-    if (OptScl) free(OptScl);
+    if (OptScl) SUMA_free(OptScl);
    if (SV) SUMA_Free_ColorScaledVect (SV);
 
    
@@ -1411,7 +1411,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
 
    if (PercRange[0] < 0 || PercRange[0] > 100 || PercRange[1] < 0 || PercRange[1] > 100) {
       fprintf (SUMA_STDERR, "Error %s: Values in PercRange must be between 0 and 100.\nVsort will be freed.\n", FuncName);
-      if (Vsort) free(Vsort);
+      if (Vsort) SUMA_free(Vsort);
       SUMA_RETURN (NULL);
    }
     
@@ -1426,7 +1426,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
       SUMA_COPY_VEC (V, Vsort, N_V, float, float);
       
       /* sort Vsort */
-      isort = SUMA_z_qsort (Vsort  , N_V ); free(isort);
+      isort = SUMA_z_qsort (Vsort  , N_V ); SUMA_free(isort);
    } 
    
    /* choose the index for the lower range */
@@ -1473,7 +1473,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
    }
    if (strlen(Name) - 1 > SUMA_MAX_LABEL_LENGTH) {
       fprintf (SUMA_STDERR,"Error %s: Name must be less than %d characters in length.\n", FuncName, SUMA_MAX_LABEL_LENGTH-1);
-      free (Sover);
+      SUMA_free(Sover);
       SUMA_RETURN (NULL);
    } else {
       strcpy (Sover->Name, Name);
@@ -1486,7 +1486,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
    
    if (!Sover->NodeDef || !Sover->ColMat || !Sover->LocalOpacity) {
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover fields.\n", FuncName);
-      free (Sover);
+      SUMA_free(Sover);
       SUMA_RETURN (NULL);   
    }
    
@@ -1522,11 +1522,11 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
       SUMA_RETURN (YUP);
    }
    
-   if (Sover->NodeDef) free (Sover->NodeDef);
+   if (Sover->NodeDef) SUMA_free(Sover->NodeDef);
    if (Sover->ColMat) SUMA_free2D ((char **)Sover->ColMat, Sover->N_Alloc);
-   if (Sover->LocalOpacity) free(Sover->LocalOpacity);
+   if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity);
    
-   free (Sover); Sover = NULL;
+   SUMA_free(Sover); Sover = NULL;
    
    SUMA_RETURN (YUP);
 }
@@ -1672,7 +1672,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
                ShowOverLays_Back_sort[j] = ShowOverLays_Back[isort[j]];
             }
             /* done with isort, free it */
-            free(isort);
+            SUMA_free(isort);
          } 
          if (NshowOverlays_Back == 1) {
                ShowOverLays_Back_sort[0] = ShowOverLays_Back[0];
@@ -1707,7 +1707,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
                ShowOverLays_sort[j] = ShowOverLays[isort[j]];
             }
             /* done with isort, free it */
-            free(isort);
+            SUMA_free(isort);
          } 
          if (NshowOverlays  == 1) {
             ShowOverLays_sort[0] = ShowOverLays[0];   
@@ -1828,11 +1828,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
    }
    
    /* free this mess and get out */   
-   if (isColored) free(isColored);
-   if (isColored_Back) free(isColored_Back);
-   if (glcolar_Back) free(glcolar_Back);
-   if (isColored_Fore) free(isColored_Fore);
-   if (glcolar_Fore) free(glcolar_Fore);
+   if (isColored) SUMA_free(isColored);
+   if (isColored_Back) SUMA_free(isColored_Back);
+   if (glcolar_Back) SUMA_free(glcolar_Back);
+   if (isColored_Fore) SUMA_free(isColored_Fore);
+   if (glcolar_Fore) SUMA_free(glcolar_Fore);
    
    SUMA_RETURN (YUP);
 }
@@ -2014,7 +2014,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_old(SUMA_OVERLAYS ** Overlays, int N_Overl
    
    if (!NshowOverlays) { /* nothing to see here */
       SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
-      free (isColored);
+      SUMA_free(isColored);
       SUMA_RETURN (YUP);
    }
    
@@ -2093,7 +2093,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_old(SUMA_OVERLAYS ** Overlays, int N_Overl
       SUMA_RETURN (YUP);
    }
 
-   free(isColored);
+   SUMA_free(isColored);
 
    SUMA_RETURN (YUP);
 }

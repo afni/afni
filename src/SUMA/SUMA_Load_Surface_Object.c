@@ -445,8 +445,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 	}
 	sprintf(Spec->SpecFilePath,"%s", SpecName.Path);
 	/* free SpecName since it's not used elsewhere */
-	if (SpecName.Path) free(SpecName.Path);
-	if (SpecName.FileName) free(SpecName.FileName);
+	if (SpecName.Path) SUMA_free(SpecName.Path);
+	if (SpecName.FileName) SUMA_free(SpecName.FileName);
 
 	/*read the thing*/
 	sf_file = fopen (f_name,"r");
@@ -928,7 +928,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 					SUMA_RETURN(NOPE);
 				}
 
-				free(SF_name); 
+				SUMA_free(SF_name); 
 
 				SurfIn = YUP;			
 				brk = YUP;
@@ -1089,9 +1089,9 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 					}
 
 					/* free */
-					if (Vsort) free(Vsort);
+					if (Vsort) SUMA_free(Vsort);
 					if (CM) SUMA_Free_ColorMap (CM);
- 					if (OptScl) free(OptScl);
+ 					if (OptScl) SUMA_free(OptScl);
 					if (SV) SUMA_Free_ColorScaledVect (SV);
 				}
 				
@@ -1182,7 +1182,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 					SUMA_RETURN(NOPE);
 				}
 
-				free(SF_name); 
+				SUMA_free(SF_name); 
 
 				SurfIn = YUP;			
 				brk = YUP;
@@ -1522,7 +1522,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
 					fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
 			}	else {
 				SO->Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, SO->Cx, SO->FN);
-				if (attr_sm) free(attr_sm);
+				if (attr_sm) SUMA_free(attr_sm);
 			}
 		}
 		if (SO->Cx == NULL) {

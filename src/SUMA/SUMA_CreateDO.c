@@ -65,9 +65,9 @@ void SUMA_Free_Axis (SUMA_Axis *Ax)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	if (Ax->Name != NULL) free (Ax->Name);
-	if (Ax->idcode_str != NULL) free (Ax->idcode_str);
-	if (Ax) free(Ax);
+	if (Ax->Name != NULL) SUMA_free(Ax->Name);
+	if (Ax->idcode_str != NULL) SUMA_free(Ax->idcode_str);
+	if (Ax) SUMA_free(Ax);
 	SUMA_RETURNe;
 }
 
@@ -275,7 +275,7 @@ void SUMA_Free_CrossHair (SUMA_CrossHair *Ch)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (Ch->sphobj) gluDeleteQuadric(Ch->sphobj);
-	if (Ch) free(Ch);
+	if (Ch) SUMA_free(Ch);
 	SUMA_RETURNe;
 }
 
@@ -322,7 +322,7 @@ void SUMA_Free_SphereMarker (SUMA_SphereMarker *SM)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (SM->sphobj) gluDeleteQuadric(SM->sphobj);
-	if (SM) free(SM);
+	if (SM) SUMA_free(SM);
 	SUMA_RETURNe;
 }
 
@@ -385,7 +385,7 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	if (FM) free(FM);
+	if (FM) SUMA_free(FM);
 	SUMA_RETURNe;
 }
 
@@ -530,21 +530,21 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
 	SO->glar_FaceNormList = NULL;
 	
 	/*fprintf (stdout, "SO->glar_ColorList... ");*/
-	if (SO->glar_ColorList)	free(SO->glar_ColorList);
+	if (SO->glar_ColorList)	SUMA_free(SO->glar_ColorList);
 	/*fprintf (stdout, "SO->NodeList... ");*/
-	if (SO->NodeList)	free(SO->NodeList);
+	if (SO->NodeList)	SUMA_free(SO->NodeList);
 	/*fprintf (stdout, "SO->NodeList... ");*/
-	if (SO->FaceSetList) free(SO->FaceSetList);
+	if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
 	/*fprintf (stdout, "SO->FaceSetList... ");*/
-	if (SO->NodeNormList) free(SO->NodeNormList);
+	if (SO->NodeNormList) SUMA_free(SO->NodeNormList);
 	/*fprintf (stdout, "SO->NodeNormList... ");*/
-	if (SO->FaceNormList) free(SO->FaceNormList);
+	if (SO->FaceNormList) SUMA_free(SO->FaceNormList);
 	/*fprintf (stdout, "SO->FaceNormList... ");*/
-	if (SO->Name_NodeParent) free(SO->Name_NodeParent);
+	if (SO->Name_NodeParent) SUMA_free(SO->Name_NodeParent);
 	/*fprintf (stdout, "SO->Name.FileName... ");*/
-	if (SO->Name.FileName) free(SO->Name.FileName);
+	if (SO->Name.FileName) SUMA_free(SO->Name.FileName);
 	/*fprintf (stdout, "SO->Name.Path... ");*/
-	if (SO->Name.Path) free(SO->Name.Path);
+	if (SO->Name.Path) SUMA_free(SO->Name.Path);
 	if (SO->MeshAxis) SUMA_Free_Axis (SO->MeshAxis);
 	if (SO->MF) {
 		if (!SUMA_Free_MemberFaceSets (SO->MF)) {
@@ -554,78 +554,85 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
 	if (SO->NodeMarker) SUMA_Free_SphereMarker (SO->NodeMarker);
 	if (SO->FaceSetMarker) SUMA_Free_FaceSetMarker(SO->FaceSetMarker);
 	/*fprintf (stdout, "SO... ");*/
-	if (SO->idcode_str) free(SO->idcode_str);
-	if (SO->MapRef_idcode_str) free(SO->MapRef_idcode_str);
-	if (SO->Group) free(SO->Group);
-	if (SO->State) free(SO->State);
-	if (SO->PolyArea) free(SO->PolyArea);
+	if (SO->idcode_str) SUMA_free(SO->idcode_str);
+	if (SO->MapRef_idcode_str) SUMA_free(SO->MapRef_idcode_str);
+	if (SO->Group) SUMA_free(SO->Group);
+	if (SO->State) SUMA_free(SO->State);
+	if (SO->PolyArea) SUMA_free(SO->PolyArea);
 	if (SO->SC) {
 		SUMA_Free_SURFACE_CURVATURE(SO->SC);
 	}
 	
 	/* freeing Cx,  make sure that there are no links to Cx*/
-	if (SUMA_ReleaseLink(SO->Cx_Inode)) { 
-		/* some links are left, do not free memory */
-	} else {
-		if (SO->Cx) free(SO->Cx);
-		/* now free SO->Cx_Inode */
-		free(SO->Cx_Inode);
-	}
-	SO->Cx = NULL;
-	SO->Cx_Inode = NULL;
-	
+	if (SO->Cx || SO->Cx_Inode) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
+      if (SUMA_ReleaseLink(SO->Cx_Inode)) { 
+		   /* some links are left, do not free memory */
+	   } else {
+		   if (SO->Cx) SUMA_free(SO->Cx);
+		   /* now free SO->Cx_Inode */
+		   SUMA_free(SO->Cx_Inode);
+	   }
+	   SO->Cx = NULL;
+	   SO->Cx_Inode = NULL;
+	} 
+   
 	/* freeing overlays */
 	if (SO->N_Overlays) {
 		/* freeing color overlays */
 		fprintf (SUMA_STDERR,"%s: Freeing Overlays.\n", FuncName);
 		for (i=0; i < 	SO->N_Overlays; ++i) {
-			if (SUMA_ReleaseLink(SO->Overlays_Inode[i])) { 
-				/* some links are left, do not free memory */
-			} else {
-				fprintf (SUMA_STDERR,"%s: Overlays[%d] is free of links, freeing allocated memory ...\n", FuncName, i);
-				if (SO->Overlays[i]) SUMA_FreeOverlayPointer (SO->Overlays[i]);
-				free (SO->Overlays_Inode[i]); 
-			}
+			if (SO->Overlays_Inode[i] || SO->Overlays[i]) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
+            if (SUMA_ReleaseLink(SO->Overlays_Inode[i])) { 
+				   /* some links are left, do not free memory */
+			   } else {
+				   fprintf (SUMA_STDERR,"%s: Overlays[%d] is free of links, freeing allocated memory ...\n", FuncName, i);
+				   if (SO->Overlays[i]) SUMA_FreeOverlayPointer (SO->Overlays[i]);
+				   SUMA_free(SO->Overlays_Inode[i]); 
+			   }
+         }
 			SO->Overlays[i] = NULL;
 			SO->Overlays_Inode[i] = NULL;
 		}
 		SO->N_Overlays = 0;
 	}
 	/*Now free the vector of pointers */
-	free (SO->Overlays);
-	free (SO->Overlays_Inode);
+	SUMA_free(SO->Overlays);
+	SUMA_free(SO->Overlays_Inode);
 	
 	/* freeing FN,  make sure that there are no links to FN*/
-	if (SUMA_ReleaseLink(SO->FN_Inode)) { 
-		/* some links are left, do not free memory */
-	} else {
-		if (SO->FN) {
-			if (!SUMA_Free_FirstNeighb (SO->FN)) {
-				fprintf(SUMA_STDERR,"Error SUMA_Free_Surface_Object : Failed to free SO->FN");
-			}
-		}
-		/* now free SO->FN_Inode */
-		free(SO->FN_Inode);
+	if (SO->FN_Inode || SO->FN) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
+      if (SUMA_ReleaseLink(SO->FN_Inode)) { 
+		   /* some links are left, do not free memory */
+	   } else {
+		   if (SO->FN) {
+			   if (!SUMA_Free_FirstNeighb (SO->FN)) {
+				   fprintf(SUMA_STDERR,"Error SUMA_Free_Surface_Object : Failed to free SO->FN");
+			   }
+		   }
+		   /* now free SO->FN_Inode */
+		   SUMA_free(SO->FN_Inode);
+	   }
 	}
 	SO->FN = NULL;
 	SO->FN_Inode = NULL;
-	
 	/* freeing Label */
-	if (SO->Label) free(SO->Label);
+	if (SO->Label) SUMA_free(SO->Label);
 	
 	/* freeing EL,  make sure that there are no links to EL*/
-	if (SUMA_ReleaseLink(SO->EL_Inode)) { 
-		/* some links are left, do not free memory */
-	} else {
-		if (SO->EL) SUMA_free_Edge_List (SO->EL);
-		/* now free SO->EL_Inode */
-		free(SO->EL_Inode);
-	}
+	if (SO->EL_Inode || SO->EL){ /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
+      if (SUMA_ReleaseLink(SO->EL_Inode)) { 
+		   /* some links are left, do not free memory */
+	   } else {
+		   if (SO->EL) SUMA_free_Edge_List (SO->EL);
+		   /* now free SO->EL_Inode */
+		   SUMA_free(SO->EL_Inode);
+	   }
+   }
 	SO->EL = NULL;
 	SO->EL_Inode = NULL;
 
 	
-	if (SO) free (SO);
+	if (SO) SUMA_free(SO);
 	/*fprintf (stdout, "Done\n");*/
 	SUMA_RETURN (YUP);
 }   

@@ -806,7 +806,7 @@ SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned int h
 	 fprintf(fp, "\n");
 
 	fprintf(fp, "grestore\n");
-	free(pixels);
+	SUMA_free(pixels);
 	fclose(fp);
 	SUMA_RETURN (0);
 }
@@ -953,13 +953,13 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 				++cntindx;
 			} else { OKname = YUP; }
 
-			free (padprfx);
+			SUMA_free(padprfx);
 		}
 
 	  fprintf (SUMA_STDOUT,"%s: Writing image to %s ...", FuncName, padname);
 	  SUMA_generateEPS(padname, /* color */ 1, csv->X->WIDTH, csv->X->HEIGHT);
 	  fprintf (SUMA_STDOUT,"Done.\n");
-	  free (padname);
+	  SUMA_free(padname);
 	}
 
 	/* render to original context */

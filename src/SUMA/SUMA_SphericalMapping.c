@@ -11,7 +11,7 @@
 #else
    extern SUMA_CommonFields *SUMAg_CF; 
 #endif
- 
+
 
 /**divides 1 triangle into 4 recursively to recDepth*/
 void SUMA_tesselate(float *nodeList, int *triList, int *nCtr, int *tCtr, int recDepth, int depth, int n1, int n2, int n3)
@@ -179,7 +179,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int recDepth)
    /**create icosahedron node list*/
    nodePtCt = -1;
    icosaNode = SUMA_calloc(3*numNodes, sizeof(float));
-   icosaTri = calloc(3*numTri, sizeof(int));
+   icosaTri = SUMA_calloc(3*numTri, sizeof(int));
 
    if (!icosaNode || !icosaTri) {
    fprintf (SUMA_STDERR,"Error %s: Could not allocate for icosaNode and/or icosaTri.\n",FuncName);
@@ -315,12 +315,12 @@ SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM)
       SUMA_RETURN (YUP);
    }
    
-   if (SOM->NewNodeList) free (SOM->NewNodeList);
-   if (SOM->NodeVal) free (SOM->NodeVal);
-   if (SOM->NodeDisp) free (SOM->NodeDisp);
-   if (SOM->NodeCol) free(SOM->NodeCol);
+   if (SOM->NewNodeList) SUMA_free (SOM->NewNodeList);
+   if (SOM->NodeVal) SUMA_free (SOM->NodeVal);
+   if (SOM->NodeDisp) SUMA_free (SOM->NodeDisp);
+   if (SOM->NodeCol) SUMA_free(SOM->NodeCol);
    
-   free (SOM);
+   SUMA_free (SOM);
    
    SUMA_RETURN (YUP);
 }
@@ -458,29 +458,32 @@ int main (int argc, char *argv[])
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, sout);
    
    /**write tesselated icosahedron to file*/
-  icosaFile = fopen(sout, "w");
+   icosaFile = fopen(sout, "w");
    if (!icosaFile) {
       fprintf (SUMA_STDERR, "Error %s: Failed in opening %s for writing.\n", FuncName, sout);
       exit(1);
    }
-   
-  fprintf (icosaFile,"#tesselated icosahedron for SUMA_recursion.c\n");
-  fprintf (icosaFile, "%d %d\n", SO->N_Node, SO->N_FaceSet);
-  j=0;
-  for (i=0; i<SO->N_Node; ++i) {
-    j=3*i;
-    fprintf (icosaFile, "%f  %f  %f  0\n", SO->NodeList[j], SO->NodeList[j+1], SO->NodeList[j+2]);
-  }
-  
-  for (i=0; i<SO->N_FaceSet; ++i) {
-    j = 3*i;
-    fprintf (icosaFile, "%d %d %d 0\n", SO->FaceSetList[j], SO->FaceSetList[j+1], SO->FaceSetList[j+2]);
-  }
-  fclose(icosaFile);
 
-  if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-  
-  exit(0);
+   fprintf (icosaFile,"#tesselated icosahedron for SUMA_recursion.c\n");
+   fprintf (icosaFile, "%d %d\n", SO->N_Node, SO->N_FaceSet);
+   j=0;
+   for (i=0; i<SO->N_Node; ++i) {
+      j=3*i;
+      fprintf (icosaFile, "%f  %f  %f  0\n", SO->NodeList[j], SO->NodeList[j+1], SO->NodeList[j+2]);
+   }
+
+   for (i=0; i<SO->N_FaceSet; ++i) {
+      j = 3*i;
+      fprintf (icosaFile, "%d %d %d 0\n", SO->FaceSetList[j], SO->FaceSetList[j+1], SO->FaceSetList[j+2]);
+   }
+   fclose(icosaFile);
+
+   /* free the surface object */
+   SUMA_Free_Surface_Object (SO);
+
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+
+   exit(0);
   
 }/* main SUMA_CreateIcosahedron*/
 #endif

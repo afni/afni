@@ -23,6 +23,7 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d);
 SUMA_Boolean SUMA_Point_To_Line_Distance (float *NodeList, int N_points, float *P1, float *P2, float *d2, float *d2min, int *i2min);
 SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float *P1, float *d2, float *d2min, int *i2min);
 int *SUMA_z_dqsort (int *x , int nx );
+int *SUMA_z_dqsort_nsc (int *x , int nx );
 int *SUMA_z_qsort (float *x , int nx );
 void SUMA_disp_dmat (int **v,int nr, int nc , int SpcOpt);
 void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt);

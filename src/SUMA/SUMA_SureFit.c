@@ -371,14 +371,14 @@ SUMA_Boolean SUMA_Free_SureFit (SUMA_SureFit_struct *SF)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	if (SF->NodeList != NULL) free (SF->NodeList);
-	if (SF->NodeId != NULL) free(SF->NodeId);
+	if (SF->NodeList != NULL) SUMA_free(SF->NodeList);
+	if (SF->NodeId != NULL) SUMA_free(SF->NodeId);
 	if (SF->Specs_mat != NULL) SUMA_free2D ((char **)SF->Specs_mat, SF->N_Node_Specs);
 	if (SF->FN.FirstNeighb != NULL) SUMA_free2D((char **)SF->FN.FirstNeighb, SF->FN.N_Node);
-	if (SF->FN.N_Neighb != NULL) free (SF->FN.N_Neighb);
-	if (SF->FN.NodeId != NULL) free (SF->FN.NodeId);
-	if (SF->FaceSetList != NULL) free(SF->FaceSetList);
-	if (SF!= NULL) free(SF);
+	if (SF->FN.N_Neighb != NULL) SUMA_free(SF->FN.N_Neighb);
+	if (SF->FN.NodeId != NULL) SUMA_free(SF->FN.NodeId);
+	if (SF->FaceSetList != NULL) SUMA_free(SF->FaceSetList);
+	if (SF!= NULL) SUMA_free(SF);
 	
 	SUMA_RETURN (YUP);
 }
