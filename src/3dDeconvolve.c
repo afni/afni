@@ -4487,8 +4487,13 @@ int main
 		     &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
  		     &glt_rstat_vol, &fitts_vol, &errts_vol);
 
-  if (proc_use_jobs == 1)       /* output requested - 2003.08.15 [rickr] */
+  if (proc_use_jobs == 1){       /* output requested - 2003.08.15 [rickr] */
     fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time());
+#ifndef FLOATIZE
+    if( proc_numjob == 1 )
+      fprintf(stderr,"++ Flops=%g\n",get_matrix_flops()) ;
+#endif
+  }
 
   exit(0);
 }
