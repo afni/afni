@@ -2312,18 +2312,21 @@ NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
       hs->rhs[hs->nattr] = NULL ;             /* in case there is no RHS */
 
       id = ss.j ;
-      if( id >= ndat ) break ;    /* end of input ? */
-      if( IS_QUOTE_CHAR(dat[id]) ) id++ ;  /* skip closing quote */
-      if( id >= ndat ) break ;    /* end of input ? */
+      if( id >= ndat ) break ;                      /* end of input ? */
+      if( IS_QUOTE_CHAR(dat[id]) ) id++ ;           /* skip close quote */
+      while( id < ndat && isspace(dat[id]) ) id++ ; /* skip blanks */
+      if( id >= ndat ) break ;                      /* end of input ? */
 
       if( dat[id] != '=' ){                   /* no '=' means no RHS */
          (hs->nattr)++ ;
          continue ;                           /* so get next attribute */
       }
 
-      id++ ; if( id >= ndat ) break ;         /* skip the '=' */
+      id++ ;                                        /* skip the '=' */
+      while( id < ndat && isspace(dat[id]) ) id++ ; /* skip blanks */
+      if( id >= ndat ) break ;                      /* end of input ? */
 
-      /* find next string */
+      /* find next string (the RHS) */
 
       ss = find_string( id , ndat , dat ) ;
 
