@@ -75,6 +75,18 @@ void NI_sleep( int msec )
    return ;
 }
 
+/*--------------------------------------------------------------------------*/
+/*! Return the file length (-1 if file not found). */
+
+static long NI_filesize( char *pathname )
+{
+   static struct stat buf ; int ii ;
+
+   if( pathname == NULL ) return -1 ;
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
+   return buf.st_size ;
+}
+
 /*---------------------------------------------------------------*/
 /*! Return time elapsed since first call to this routine (msec). */
 
@@ -530,6 +542,8 @@ static NI_element * make_empty_data_element( header_stuff *hs )
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
 
+   nel_>vec_filled = 0 ;  /* no data has been filled into vectors */
+
    if( !hs->empty ){  /* find and process ni_* attributes about vectors */
 
      /* ni_type attribute */
@@ -943,7 +957,8 @@ void NI_add_to_group( NI_group *ngr , void *nini )
 
 #include <signal.h>
 
-/*! for tcp - indicates that SIGPIPE is ignored */
+/*! For tcp - indicates that SIGPIPE is ignored;
+    will be set the first time tcp_send is called. */
 
 static int nosigpipe = 0 ;
 
@@ -969,7 +984,7 @@ static int nosigpipe = 0 ;
 
 /*! Next delay in milliseconds, given current delay. */
 
-#define NEXTDMS(dm) MIN(1.1*(dm)+1.01 , 1000.0)
+#define NEXTDMS(dm) MIN(1.1*(dm)+1.01,999.0)
 
 /********************************************************************
   Routines to manipulate TCP/IP stream sockets.
@@ -1271,6 +1286,10 @@ static int tcp_accept( int sd , char ** hostname , char ** hostaddr )
    return sd_new ;
 }
 
+/*******************************************************************/
+/*** Functions to read/write from NI_streams (files or sockets). ***/
+/*******************************************************************/
+
 /*-----------------------------------------------------------------*/
 /*! Open a NIML input or output stream, and return a pointer to it.
 
@@ -1400,7 +1419,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       if( strlen(fname) < 1 ) return NULL ;
 
-      fp = fopen( fname , do_create ? "wb"       /* always in binary mode */
+      fp = fopen( fname , do_create ? "wb"     /* always in binary mode */
                                     : "rb" ) ;
 
       if( fp == NULL ) return NULL ;
@@ -1417,6 +1436,12 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->bad      = 0 ;
 
       NI_strncpy( ns->name , fname , 128 ) ;
+
+      if( ns->io_mode == NI_INPUT_MODE )     /* save the file size */
+         ns->fsize = NI_filesize( fname ) ;  /* if we are reading  */
+      else
+         ns->fsize = -1 ;
+
       return ns ;
    }
 
@@ -1427,7 +1452,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 /*!  Check if the given NI_stream is ready for I/O.
 
    If not, wait up to msec milliseconds to establish the connection to
-   the other end; if msec < 0, will wait indefinitely.
+   the other end; if msec < 0, will wait nearly forever.
    Returns 1 if ready; 0 if not; -1 if an error occurs.
    Possible errors are:
      * ns was connected, and now has become disconnected
@@ -1448,8 +1473,7 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
       /** File I/O: is good if file is open (should always be true) **/
 
       case NI_FILE_TYPE:
-        if( ns->fp == NULL ) return -1 ;
-      return 1 ;
+        return ( (ns->fp != NULL) ? 1 : -1 ) ;
 
       /** Socket I/O **/
 
@@ -1527,25 +1551,15 @@ void NI_stream_close( NI_stream_type *ns )
    NI_free(ns) ; return ;
 }
 
-/*--------------------------------------------------------------------------*/
-/*! Return the file length (-1 if file not found). */
-
-static long NI_filesize( char *pathname )
-{
-   static struct stat buf ; int ii ;
-
-   if( pathname == NULL ) return -1 ;
-   ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
-   return buf.st_size ;
-}
-
 /*---------------------------------------------------------------------------*/
 /*!  Check if the NI_stream is ready to have data read out of it.
 
   If not, the routine will wait up to msec milliseconds for data to be
-  available.  If msec < 0, this routine will wait indefinitely.
-  The return value is 1 if data is ready, 0 if not.
-  -1 will be returned if some unrecoverable error is detected.
+  available.  If msec < 0, this routine will wait nearly forever.
+  The return value is 1 if data is ready, 0 if not;
+  -1 will be returned if some unrecoverable error is detected:
+    tcp: the socket connection was dropped
+   file: you have reached the end of the file, and are still trying to read.
 -----------------------------------------------------------------------------*/
 
 int NI_stream_readcheck( NI_stream_type *ns , int msec )
@@ -1575,13 +1589,14 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
       case NI_FILE_TYPE:{
          long f_len , f_pos ;
 
-         f_len = NI_filesize( ns->name ) ;   /* length of file      */
+         f_len = ns->fsize ;                 /* length of file      */
          if( f_len < 0 ) return -1 ;         /* file not found (?)  */
 
          f_pos = ftell( ns->fp ) ;           /* where are we now?   */
          if( f_pos < 0 ) return -1 ;         /* should never happen */
 
-         return (f_pos < f_len) ;   /* can read if we aren't at end */
+         return (f_pos < f_len) ? 1 : -1 ;   /* is good or bad, but */
+                                             /* never just neutral  */
       }
    }
 
@@ -1592,9 +1607,12 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
 /*!  Check if the NI_stream is ready to have data written into it.
 
   If not, the routine will wait up to msec milliseconds for writing to
-  be allowable.  If msec < 0, this routine will wait indefinitely.
-  The return value is 1 if data can be sent, 0 if not.
-  -1 will be returned if some unrecoverable error is detected.
+  be allowable.  If msec < 0, this routine will wait nearly forever.
+  The return value is 1 if data can be sent, 0 if not;
+  -1 will be returned if some unrecoverable error is detected:
+    tcp: the socket closed down at the other end
+   file: this should never happen, unless you try to write to
+         a readonly NI_stream
 -----------------------------------------------------------------------------*/
 
 int NI_stream_writecheck( NI_stream_type *ns , int msec )
@@ -1620,7 +1638,7 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
       /** file: ==> if the file was opened in write mode **/
 
       case NI_FILE_TYPE:
-        return (ns->io_mode == NI_OUTPUT_MODE) ;
+        return ( (ns->io_mode == NI_OUTPUT_MODE) ? 1 : -1 ) ;
    }
 
    return -1 ;  /* should never be reached */
@@ -1650,7 +1668,7 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
    if( nbytes == 0 ) return 0 ;  /* that was easy */
 
-   ii = NI_stream_goodcheck(ns,0) ;  /* check if stream is good */
+   ii = NI_stream_goodcheck(ns,1) ;  /* check if stream is good */
    if( ii != 1 ) return ii ;         /* if not, leave now */
 
    ii = NI_stream_writecheck(ns,1) ; /* check if stream is writable */
@@ -1687,7 +1705,7 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
    Returns the number of bytes actually read.  For both the case of
    sockets and files, this may be less than nbytes (may even be 0).
-   If an error occurs, -1 is returned.
+   If an error occurs and no data is read, -1 is returned.
 
    For tcp: streams, if no data is available, this function will wait until
    something can be read.  If this behavior is undesirable, then you should
@@ -1708,7 +1726,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
        buffer == NULL || nbytes < 0   ) return -1 ;
 
    if( nbytes == 0 ) return 0 ;
-   if( NI_stream_goodcheck(ns,0) != 1 ) return -1 ;
+   if( NI_stream_goodcheck(ns,1) != 1 ) return -1 ;
 
    switch( ns->type ){
 
@@ -1739,7 +1757,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
               If minread=0, then may read nothing (but will try).
 
     msec    = Maximum amount of time to wait to satisfy minread,
-              in milliseconds.  If msec<0, will wait forever.
+              in milliseconds.  If msec<0, will wait nearly forever.
               If msec=0, will return after 1st read attempt, even
               if nothing was obtained.
 
@@ -1756,9 +1774,9 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
    if( NI_stream_goodcheck(ns,0) <= 0 ) return -1 ; /* bad input */
 
-   if( ns->nbuf >= NI_BUFSIZE ) return 0 ;      /* buffer already full */
+   if( ns->nbuf >= NI_BUFSIZE ) return 0 ;  /* buffer already full */
 
-   if( msec < 0 ) msec = 999999999 ;            /* a long time (11+ days) */
+   if( msec < 0 ) msec = 999999999 ;        /* a long time (11+ days) */
 
    /* read loop */
 
@@ -1770,7 +1788,7 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
       if( ngood > 0 ){                    /* we can read! */
 
-         ii = NI_stream_read( ns, ns->buf + ns->nbuf, NI_BUFSIZE-ns->nbuf ) ;
+         ii = NI_stream_read( ns, ns->buf+ns->nbuf, NI_BUFSIZE-ns->nbuf ) ;
 
          if( ii > 0 ){                 /* we got data! */
             ns->nbuf += ii ;           /* buffer is now longer */
@@ -1781,14 +1799,14 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
             if( ns->nbuf >= NI_BUFSIZE || ntot >= minread ) break ;
 
-         } else if( ii < 0 ){          /* stream suddenly died? */
-            ngood = ii ; break ;
+         } else if( ii < 0 ){          /* stream suddenly died horribly? */
+            ngood = -1 ; break ;
          }
       }
 
       /* if we don't require data, then exit no matter what our status is */
 
-      if( minread == 0 ) break ;
+      if( minread <= 0 ) break ;
 
       /* if the max time has elapsed, then exit */
 
@@ -1799,8 +1817,12 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
       NI_sleep(5) ;
    }
 
-   if( ntot == 0 && ngood < 0 ) return ngood ;
-   return ntot ;
+   /* if didn't get any data, and
+      if the NI_stream was bad, return -1 as a flag of displeasure */
+
+   if( ntot == 0 && ngood < 0 ) ntot = -1 ;
+
+   return ntot ;  /* otherwise, return # of bytes read (may be 0) */
 }
 
 /*-----------------------------------------------------------------*/
@@ -1844,6 +1866,11 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
    If header start '<' and stop '>' are encountered, then this
    function will read data until it can create an element, or until
    the data stream is bad (i.e., the file ends, or the socket closes).
+
+   If NULL is returned, that can be because there is no data to
+   read even in the buffer, or because the input data stream has gone
+   bad (i.e., will return no more data ever).  To check for the latter
+   case, use NI_stream_readcheck().
 ----------------------------------------------------------------------*/
 
 void * NI_read_element( NI_stream_type *ns )
@@ -1860,27 +1887,22 @@ void * NI_read_element( NI_stream_type *ns )
 
 Restart:                            /* loop back here to retry */
    num_restart++ ;
-   if( num_restart > 9 ) return NULL ;  /* don't allow too many loops */
+   if( num_restart > 5 ) return NULL ;  /* don't allow too many loops */
 
-   nn = NI_stream_readcheck(ns,1) ; /* check if data can be read */
-   if( nn < 0 ) return NULL ;       /* stream has done gone bad */
+   nn = NI_stream_readcheck(ns,0) ; /* check if data can be read */
 
    /*-- Minimum element is "<a/>", which is 4 bytes long --*/
 
-   if( ns->nbuf < 4 && nn == 0  ) return NULL ; /* no data */
+   if( ns->nbuf < 4 && nn <= 0  ) return NULL ; /* no data */
 
    /*-- Read some data, if there is any space for it --*/
 
    if( ns->nbuf < NI_BUFSIZE && nn > 0 ){
-
-      ii = NI_stream_read( ns , ns->buf + ns->nbuf , NI_BUFSIZE - ns->nbuf ) ;
-
-      if( ii <= 0 ) return NULL ;  /* stream went bad somehow */
-
-      ns->nbuf += ii ;             /* buffer is now longer */
-
-      if( ns->nbuf < 4 ) return NULL ; /* not enough data yet */
+      ii = NI_stream_read( ns, ns->buf + ns->nbuf, NI_BUFSIZE - ns->nbuf ) ;
+      if( ii > 0 ) ns->nbuf += ii ; /* buffer is longer now */
    }
+
+   if( ns->nbuf < 4 ) return NULL ; /* not enough data yet */
 
    /*-- Check buffer for header start character --*/
 
@@ -1918,7 +1940,7 @@ Restart:                            /* loop back here to retry */
          and try again.  However, something bad will probably happen
          if there really is an element that has such a large header,
          since we just cut off the start of that header, and now will
-         have to deal with its tail.  Oh well; life is tough, then you die. */
+         have to deal with its tail. Oh well: life is tough, then you die. */
 
       ns->nbuf = 0 ;
       goto Restart ;  /* try to read more data */
@@ -1942,10 +1964,10 @@ Restart:                            /* loop back here to retry */
       goto Restart ; /* try to read more data */
    }
 
-   /*----- If here, have parsed a header.
-           First, expunge the data bytes that
-           were consumed to make the header; that is, we can
-           start reading data from ns->buf[0]..ns->buf[ns->nbuf-1]. --*/
+   /*----- If here, have parsed a header (and will not Restart).
+           First, expunge the data bytes that were consumed to make
+           the header; that is, we can then start reading data from
+           ns->buf[0] .. ns->buf[ns->nbuf-1]                        --*/
 
    if( nn+nhs < ns->nbuf ){
       memmove( ns->buf , ns->buf+nn+nhs , ns->nbuf-nn-nhs ) ;
@@ -1963,12 +1985,12 @@ Restart:                            /* loop back here to retry */
 
       /* we now have to read the elements within the group */
 
-   }
+   } /* end of reading group element */
 
    else { /*---------------------- a data element -------------------*/
 
       NI_element *nel = make_empty_data_element( hs ) ;
-      int form , swap , nball , nbrow ;
+      int form , swap , nball , nbrow , row,col,npos ;
       destroy_header_stuff( hs ) ;
 
       if( nel == NULL          ||     /* nel == NULL should never happen. */
@@ -1982,11 +2004,11 @@ Restart:                            /* loop back here to retry */
       /* Find the form of the input */
 
       form = NI_TEXT_MODE ; /* default is text mode */
-      swap = 0 ;            /* and then don't byte swap */
+      swap = 0 ;            /* and (obviously) don't byte swap */
 
       ii = string_index( "ni_form" , nel->attr_num , nel->attr_lhs ) ;
 
-      if( ii >= 0 &&  nel->attr_rhs[ii] != NULL ){ /* parse ni_form=rhs */
+      if( ii >= 0 && nel->attr_rhs[ii] != NULL ){ /* parse ni_form=rhs */
 
          /* at present, the only non-text mode is "binary" */
 
@@ -2003,15 +2025,152 @@ Restart:                            /* loop back here to retry */
          }
       }
 
-      /*-- Determine if the buffer might already have enough data;
-           if it don't, try to read some more data bytes RIGHT NOW. --*/
-
-      nbrow = NI_element_rowsize( nel ) ;
-      nball = nbrow * nel->vec_len ;
-      if( ns->nbuf < nball ) (void) NI_stream_fillbuf( ns , 0 , 0 ) ;
-
       /*-- Now must actually read data and put it somewhere (oog). */
-   }
+
+      npos = 0 ;  /* next position in buffer to read from */
+      row  = 0 ;  /* next index in vectors to fill */
+
+      nbrow = NI_element_rowsize( nel ) ;  /* how much data for one row */
+      nball = nbrow * nel->vec_len ;       /* how much data total */
+
+      switch( form ){
+
+        default:  break ;   /* bad!!! should never ever happen */
+
+        /*......................................................*/
+
+        case NI_BINARY_MODE:
+         while( row < nel->vel_len ){  /* loop over input rows */
+
+           /* if not enough data left in buffer for 1 row
+              of data, then try to read more data into the buffer */
+
+           if( ns->nbuf-npos < nbrow ){
+
+             if( npos > 0 ){  /* discard used-up data in buffer */
+               if( npos < ns->nbuf ){
+                 memmove( ns->buf , ns->buf+npos , ns->nbuf-npos ) ;
+                 ns->nbuf -= npos ;
+               } else {
+                 ns->nbuf = 0 ;  /* all data in buffer is used-up */
+               }
+             }
+             npos = 0 ;  /* read data from start of buffer */
+
+             /* now read at least enough to fill one data row,
+                waiting forever if need be (or until the stream goes bad) */
+
+             (void) NI_stream_fillbuf( ns , nbrow-ns->nbuf , -1 ) ;
+
+             /* if still don't have a full row of data,
+                something bad has happened (end-of-file? closed socket?);
+                so put what pitiful data we have into the vectors and exit */
+
+             if( ns->nbuf-npos < nbrow ){
+               if( ns->nbuf-npos > 0 ){   /* if we have any data at all */
+                 char *qbuf = NI_malloc( sizeof(char)*nbrow ) ;
+                 memcpy( qbuf , ns->buf+npos , ns->nbuf-npos ) ;
+                 NI_fill_vector_row( nel , row , qbuf ) ; row++ ;
+                 NI_free(qbuf) ;
+               }
+               ns->nbuf = 0 ;  /* buffer is all used-up now */
+
+               nel->vec_filled = row ;  /* record how much we got */
+               return nel ;             /* and slink home */
+             }
+           }
+
+           /* normal case: have (at least) a full row of data bytes,
+                           so put them into the vectors, and loop    */
+
+           NI_fill_vector_row( nel , row , ns->buf+npos ) ;
+           npos += nbrow ;  /* we used up this many bytes */
+           row++ ;          /* we filled this row */
+
+         } /* end of loop over vector rows */
+
+         nel->vec_filled = row ;  /* how many rows were filled above */
+
+        break ;  /* end of binary input */
+
+        /*......................................................*/
+
+#define IS_USELESS(c) ( isspace(c) || iscntrl(c) )
+
+        case NI_TEXT_MODE:{
+         int need_data , epos ;
+
+         while( row < nel->vel_len ){  /* loop over input rows */
+          for( col=0 ; col < nel->vec_num ; col++ ){ /* over input vectors */
+
+            /* skip useless characters */
+
+            while( npos < ns->nbuf && IS_USELESS(ns->buf[npos]) ) npos++ ;
+
+            /* check if we ran into the closing '<' prematurely */
+
+            if( npos < ns->nbuf && ns->buf[npos] == '<' ) goto TextEnd ;
+
+            /* might loop back here to check if have enough data for a number */
+TextRestart:
+            /* if we need some data, try to get some */
+
+            need_data = (ns->nbuf-npos < 2) ; /* need at least 2 bytes */
+
+            /* we also must have a string of non-useless characters
+               delimited by a useless character or by a closing '<' */
+
+            if( !need_data ){  /* so have at least 2 characters */
+               epos=npos+1 ;
+               while( epos < ns->nbuf           &&
+                      ns->buf[epos] != '<'      &&
+                      !IS_USELESS(ns->buf[epos])  ) epos++ ;
+
+               need_data = (epos == ns->nbuf) ; /* need more data */
+
+               if( npos == 0 && need_data ){ /* buffer is full of data */
+                  npos = ns->nbuf ;          /* that isn't delimited,  */
+                  goto TextEnd ;             /* so toss it out & quit. */
+               }
+            }
+
+            if( need_data ){ /* get some more data */
+
+             if( npos > 0 ){  /* discard used-up data in buffer */
+               if( npos < ns->nbuf ){
+                 memmove( ns->buf , ns->buf+npos , ns->nbuf-npos ) ;
+                 ns->nbuf -= npos ;
+               } else {
+                 ns->nbuf = 0 ;  /* all data in buffer is used-up */
+               }
+             }
+             npos = 0 ;  /* read data from start of buffer */
+
+             /* read at least 1 byte,
+                waiting forever if need be (unless the data stream goes bad) */
+
+             nn = NI_stream_fillbuf( ns , 1 , -1 ) ;
+
+             /** WHAT TO DO WITH nn?? **/
+
+            }
+
+            /* here, try to interpret data bytes */
+
+          } /* end of loop over vector columns */
+         } /* end of loop over vector rows */
+
+TextDone:
+         nel->vec_filled = row ;  /* how many rows were filled above */
+        }
+        break ;  /* end of text input */
+
+      } /* end of reading data into the element */
+
+      /*-- now scan for the end-of-element marker </something>,
+           and skip all input bytes up to (and including) the close '>' --*/
+
+   } /* end of reading data element */
 
    return NULL ; /* should never be reached */
 }

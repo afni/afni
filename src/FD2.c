@@ -24,6 +24,8 @@
 
 /***---------------- additions for use of array of MRI_IMAGE --------------***/
 
+#undef USE_TRACING  /* not for use in this old program */
+
 #include "mrilib.h"
 #include "overfim.h"
 #include "pcor.h"
@@ -580,7 +582,7 @@ struct _undo_buf *undo_buf = NULL;
 struct _undo_buf *undo_ref = NULL; /* for reference line */
 int           act_undo = -1, ref_undo = -1;
 char          FT_name[100];
-int           im_f, phase = 0; 
+int           im_f, phase = 0;
 #define FFT_MAG .2
 float         fft_mag = FFT_MAG; /* fft amplitude magnify factor AJJ */
 float         *T_ref; /* tmp pointer of LSQ_ref[0]->ts when FFT done AJJ */

@@ -3464,3 +3464,7 @@
      thing.  This may be the cause of the bug that Jill Weisberg
      reported (that the whereami function stops working and then
      crashes AFNI when the user presses the Quit button).
+
+05 Feb 2002
+ * Put #undef USE_TRACING in FD2.c, since it uses STATUS() for something
+      else.
