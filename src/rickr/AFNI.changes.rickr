@@ -563,3 +563,5 @@
 07 July 2004:
   * modified 3dROIstats - added -minmax, -nzminmax options
 
+20 July 2004:
+  * modified 3dANOVA3.c to fix stack space problem (see N_INDEX)
