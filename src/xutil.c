@@ -1652,6 +1652,8 @@ static RWC_draw_rect( Display *dis, Window win, GC gc, int x1,int y1,int x2,int 
     XDrawPoint( dis,win,gc , xb,yb ) ;
 }
 
+#define RWC_draw_line XDrawLine
+
 /*---------------------------------------------------------------------------*/
 
 void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
@@ -1659,7 +1661,8 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
    Display *dis ;
    Window win , rW,cW ;
    int grab , xold,yold , x,y, rx,ry , first=1 ;
-   unsigned int mask , bmask=Button1Mask|Button2Mask|Button3Mask ;
+   unsigned int mask ;                                      /* which buttons */
+   unsigned int bmask=Button1Mask|Button2Mask|Button3Mask ; /* all buttons  */
    XGCValues  gcv;
    GC         myGC ;
 
@@ -1676,15 +1679,19 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
    grab = !XGrabPointer(dis, win, False, 0, GrabModeAsync,
                         GrabModeAsync, win, None, (Time)CurrentTime);
 
+   /* grab fails => exit */
+
+   if( !grab ){ XBell(dis,100); *x2=x1; *y2=y1; return; }
+
    xold = x1 ; yold = y1 ;  /* current location of pointer */
 
-   /** loop and find out where the pointer is, while button is down **/
+   /** loop and find out where the pointer is (while button is down) **/
 
    while( XQueryPointer(dis,win,&rW,&cW,&rx,&ry,&x,&y,&mask) ){
 
      /* check if all buttons are released */
 
-     if( !(mask & bmask) ) break ;  /* done */
+     if( !(mask & bmask) ) break ;  /* no button down => done! */
 
      /* pointer now at (x,y) in the window */
 
@@ -1697,10 +1704,12 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
 
        /* draw new rectangle */
 
-       RWC_draw_rect( dis,win,myGC , x1,y1 , x,y ) ;
        xold = x ; yold = y ; first = 0 ;
-     }
-   }
+       RWC_draw_rect( dis,win,myGC , x1,y1 , xold,yold ) ;
+
+     } /* end of new (x,y) position */
+
+   } /* end of loop while button is pressed */
 
    if( !first )  /* undraw old rectangle */
      RWC_draw_rect( dis,win,myGC , x1,y1 , xold,yold ) ;
