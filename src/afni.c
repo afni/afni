@@ -844,9 +844,12 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    }
 
    { char * hh = getenv("AFNI_HINTS") ;
-     if( hh != NULL && ( strncmp(hh,"NO",2)==0 ||
-                         strncmp(hh,"no",2)==0 ||
-                         strncmp(hh,"No",2)==0 ) )
+     if( hh != NULL && ( strncmp(hh,"NO" ,2)==0 ||
+                         strncmp(hh,"no" ,2)==0 ||
+                         strncmp(hh,"No" ,2)==0 ||
+                         strncmp(hh,"OFF",3)==0 ||
+                         strncmp(hh,"off",3)==0 ||
+                         strncmp(hh,"Off",3)==0   ) )
         MCW_hint_toggle() ;
    }
 

@@ -143,7 +143,7 @@ the Datamode control panel.
 
 Hints can be permanently disabled by setting the C macro
 DONT_USE_HINTS in machdep.h and recompiling AFNI.  They can also
-be disabled by setting AFNI_HINTS to "KILL".
+be disabled at runtime by setting AFNI_HINTS to "KILL".
 
 =================================
 | Robert W. Cox, PhD            |
