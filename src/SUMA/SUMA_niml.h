@@ -3,6 +3,7 @@
 
 NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO);
 NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO);
+NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO);
 Boolean SUMA_niml_workproc( XtPointer thereiselvis );
 Boolean SUMA_workprocess( XtPointer fred );
 void SUMA_remove_workproc( XtWorkProc func );

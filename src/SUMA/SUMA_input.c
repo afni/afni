@@ -765,7 +765,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_t:
-            if ((Kev.state & ControlMask) && SUMAg_CF->Dev){
+            if ((Kev.state & ControlMask)){
                   SUMA_SLP_Note("Forcing a resend of Surfaces to Afni...");
                   if (!list) list = SUMA_CreateList();
                   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_SetForceAfniSurf, SES_Suma, sv);
