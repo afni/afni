@@ -501,7 +501,6 @@ float * read_one_time_series
 {
   char message[THD_MAX_NAME];    /* error message */
   char * cpt;                    /* pointer to column suffix */
-  char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
   MRI_IMAGE * im, * flim;  /* pointers to image structures 
 			      -- used to read 1D ASCII */
@@ -514,9 +513,9 @@ float * read_one_time_series
 
 
   /*----- Read the time series file -----*/
-  flim = mri_read_1D(filename) ;
+  flim = mri_read_1D(ts_filename) ;
   if (flim == NULL)
-    {
+    {                      /* filename -> ts_filename   11 Sep 2003 [rickr] */
       sprintf (message,  "Unable to read time series file: %s",  ts_filename);
       FIM_error (message);
     }

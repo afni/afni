@@ -290,3 +290,6 @@
 08 September 2003:
   * modified L_CREATE_SPEC write error to name correct directory
 
+11 September 2003:
+  * modified 3dfim+.c: read_one_time_series() was still using old 'filename'
+
