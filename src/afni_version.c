@@ -1,10 +1,5 @@
 #include "afni.h"
 
-/* 27 Jan 2003: print a message if version check is disabled */
-
-#define AFNI_WGET   "wget -nv -m -np -nH --cut-dirs=3 -P %s "          \
-                    "http://afni.nimh.nih.gov/AFNI/bin/%s/"
-
 #define AFNI_LATEST "http://afni.nimh.nih.gov/afni/afni_latest.shtml"
 
 #define FAIL_MESSAGE(reason)                                           \
@@ -44,6 +39,8 @@ int AFNI_version_check(void){ return 0; }
 
 static pid_t vc_child_pid = (pid_t)(-1) ;
 static IOCHAN *vc_ioc     = NULL ;
+
+char * AFNI_make_update_script(void) ;  /* prototype */
 
 /*------------------------------------------------------------------------*/
 /*!  This is only called from within the child process. */
@@ -204,6 +201,7 @@ int AFNI_version_check(void)
    char *vbuf=NULL ;
    char vv[128]="none" ,
         r1[128]="none" , r2[128]="\0" , r3[128] ="\0" ;
+   char *sname ;
 
    /* if something is rotten, then toss it out */
 
@@ -297,25 +295,22 @@ int AFNI_version_check(void)
                    "****************************************************\n"
           , VERSION,RELEASE , AFNI_HOST , vv,r1,r2,r3 , AFNI_LATEST ) ;
 
-   /* 18 Feb 2003: Update info for precompiled binaries */
+   /* 26 Oct 2004: Create an update script, if possible */
 
-#ifdef SHOWOFF
-#undef SHSH
-#undef SHSHSH
-#define SHSH(x)   #x
-#define SHSHSH(x) SHSH(x)
-   { char *bname = SHSHSH(SHOWOFF) ;
-     char *aname = THD_find_executable("afni") ;
-     if( aname == NULL ) aname = "/your/afni/binary/directory" ;
-     fprintf(stderr,
-                   " You can download current binaries using\n"
-                   AFNI_WGET "\n"
-                   "****************************************************\n" ,
-             aname , bname ) ;
-   }
-#undef SHSH
-#undef SHSHSH
-#endif /* SHOWOFF */
+   sname = AFNI_make_update_script() ;
+   if( sname != NULL )
+     fprintf(stderr, "\n"
+                     "====================================================\n"
+                     " File  %s\n"
+                     " is a script to download/install updated binaries.\n"
+                     "====================================================\n" ,
+             sname ) ;
+   else
+     fprintf(stderr, "\n"
+                     "====================================================\n"
+                     " Can't create UPDATER script in your AFNI directory.\n"
+                     "====================================================\n"
+            ) ;
 
    return 1 ;
 }
@@ -347,12 +342,12 @@ char * AFNI_make_update_script(void)
    strcpy(adir,pg_afni) ;                /* extract name of AFNI directory */
    cpt = THD_trailname(adir,0) ;
    *cpt = '\0' ;
-   if( strlen(adir) <= 0 ) return NULL;    /* no AFNI directory? */
+   if( strlen(adir) <= 0 ) return NULL ; /* no AFNI directory? */
 
    strcpy( cwd , adir ) ;                /* try to write a test file there */
    strcat( cwd , "qwerty" ) ;
    fp = fopen( cwd , "a" ) ;
-   if( fp == NULL ) return NULL;           /* can't write to AFNI directory? */
+   if( fp == NULL ) return NULL;         /* can't write to AFNI directory? */
    fclose(fp) ; remove(cwd) ;
 
    getcwd( cwd , 4096 ) ;   /* get current directory for later use */
