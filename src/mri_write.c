@@ -284,3 +284,31 @@ int mri_write_ascii( char * fname, MRI_IMAGE * im )
    fclose(imfile) ;
    return 1 ;
 }
+
+/*------------------------------------------------------------
+   05 Jan 2000: write raw data from image
+--------------------------------------------------------------*/
+
+int mri_write_raw( char *fname , MRI_IMAGE *im )
+{
+   FILE  *imfile ;
+   void  *data ;
+   int   dsize ;
+
+   if( im == NULL || fname == NULL || fname[0] == '\0' ) return 0 ;
+
+   dsize = im->pixel_size * im->nvox ;
+   data = mri_data_pointer( im ) ;
+
+   if( dsize <= 0 || data == NULL ) return 0 ;
+
+   imfile = fopen( fname , "w" ) ;
+
+   if( imfile == NULL ){
+      fprintf(stderr,"** Can't open for output: %s\n",fname) ; return 0 ;
+   }
+
+   fwrite( data , 1 , dsize , imfile ) ;
+   fclose( imfile ) ;
+   return 1 ;
+}

@@ -67,7 +67,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
       fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;
    }
    fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
-   exit(1) ;
+   MPROBE ; exit(1) ;
 }
 #define DBG_SIGNALS ( signal(SIGPIPE,DBG_sigfunc) , \
                       signal(SIGSEGV,DBG_sigfunc) , \

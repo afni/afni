@@ -1958,3 +1958,17 @@
 
 05 Jan 2000
  * Changed default AFNI_SPLASHTIME to 1.0 seconds in afni.c.
+ * Added "static" to mixshade menu strings in plug_render.c.
+ * Added MCHECK to DBG_SIGNALS in dbtrace.h.
+ * Added routine mri_write_raw() to mri_write.c.
+ * Modified from3d.c to have -raw and -float options.
+
+07 Jan 2000
+ * Modified plug_render.c to allow ShowThru color overlays: by doing two
+     renderings - underlay and overlay separately - and then compositing
+     the two images afterwards.
+
+10 Jan 2000
+ * Modified plug_render.c to add AFNI_RENDER_SHOWTHRU_FAC variable to
+     control the compositing of ShowThru images.
+

@@ -1709,6 +1709,8 @@ ENTRY("PLUG_action_CB") ;
 
       /***** CALL THE PLUGIN !!!! *****/
 
+      MPROBE ;
+
       SHOW_AFNI_PAUSE ;
       mesg = plint->call_func( plint ) ;
       SHOW_AFNI_READY ;
@@ -3124,6 +3126,8 @@ ENTRY("PLUG_startup_plugin_CB") ;
    if( plint->call_method == PLUGIN_CALL_IMMEDIATELY ){
 
 STATUS("calling plugin") ;
+
+      MPROBE ;
 
       SHOW_AFNI_PAUSE ;
       mesg = plint->call_func( plint ) ;

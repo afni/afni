@@ -309,7 +309,7 @@ int read_URL_ftp( char * url , char ** data )
    sp = fopen( sname , "w" ) ; if( sp == NULL )       return -1 ;
 
    fprintf( sp , "#!/bin/sh\n" ) ;
-   fprintf( sp , "ftp -n << EEEEE > /dev/null\n") ;
+   fprintf( sp , "ftp -n << EEEEE &> /dev/null\n") ;
    if( port > 0 )
       fprintf( sp , "open %s %d\n" , hostname , port ) ;
    else

@@ -132,12 +132,18 @@ static int new_dset = 0 ;              /* Is it new?      */
 static int dset_ival = 0 ;             /* Sub-brick index */
 static char dset_title[THD_MAX_NAME] ; /* Title string */
 
-static MRI_IMAGE * grim , * opim ;  /* volumes to render */
+static MRI_IMAGE * grim=NULL ,
+                 * opim=NULL ;      /* volumes to render */
 static void * render_handle ;       /* rendering struct */
 
-#define FREE_VOLUMES                                   \
-  do{ if(grim != NULL){ mri_free(grim); grim = NULL; } \
-      if(opim != NULL){ mri_free(opim); opim = NULL; } } while(0)
+static MRI_IMAGE * grim_showthru=NULL ,
+                 * opim_showthru=NULL ;  /* 07 Jan 2000 */
+
+#define FREEIM(x) if( (x) != NULL ){ mri_free(x); (x)=NULL; }
+
+#define FREE_VOLUMES                                  \
+  do{ FREEIM(grim) ; FREEIM(opim) ;                   \
+      FREEIM(grim_showthru); FREEIM(opim_showthru) ; } while(0) ;
 
 #define NEED_VOLUMES (grim == NULL || opim == NULL)
 
@@ -166,7 +172,7 @@ static int xhair_recv  = -1 ;    /* 29 Mar 1999 */
                              im3d->vinfo->k3             != xhair_kzold || \
                              im3d->vinfo->xhairs_orimask != xhair_omold   )
 
-static int   post_facto_load = 0 ;  /* in case the user loads before Draw */
+static int new_data_loaded = 0 ;
 
 static int renderer_open   = 0 ;
 
@@ -288,8 +294,7 @@ static unsigned char afni48ren_bits[] = {
 
 /*-------------------- Functional overlay stuff ----------------------*/
 
-#define INVALIDATE_OVERLAY \
-  do{ if( ovim != NULL ){ mri_free(ovim); ovim = NULL; }} while(0)
+#define INVALIDATE_OVERLAY do{ FREEIM(ovim) ; } while(0)
 
 #define DO_OVERLAY   (func_dset != NULL && func_see_overlay)
 #define NEED_OVERLAY (DO_OVERLAY && ovim == NULL)
@@ -371,6 +376,9 @@ static int   func_posfunc       = 0   ;
 static float func_range         = DEFAULT_FUNC_RANGE ;
 static float func_autorange     = DEFAULT_FUNC_RANGE ;
 static int   func_computed      = 0 ;
+
+static int   func_showthru      = 0 ;  /* 07 Jan 2000 */
+static int   func_showthru_pass = 0 ;
 
 #define NOSHADE 1
 #define NOMIX   2
@@ -666,7 +674,9 @@ char * REND_main( PLUGIN_interface * plint )
    ovim          = NULL ;   /* no overlay volume yet */
    func_dset     = NULL ;   /* no functional dataset yet */
 
-   post_facto_load = 0 ;    /* not needed yet */
+   new_data_loaded = 0 ;    /* not yet */
+
+   grim_showthru = opim_showthru = NULL ; /* 07 Jan 2000 */
 
    set_MCW_pasgraf( his_graf , NULL ) ;  /* set histogram graph to 0's */
    redraw_MCW_pasgraf( his_graf ) ;
@@ -1731,7 +1741,7 @@ void REND_reload_dataset(void)
 
    /* find data range, clip it, convert to bytes */
 
-   grim = mri_new_conforming( vim , MRI_byte ) ;  /* new data */
+   grim = mri_new_conforming( vim , MRI_byte ) ;  /* new image data */
    gar  = MRI_BYTE_PTR(grim) ;
 
    switch( DSET_BRICK_TYPE(dset,dset_ival) ){
@@ -1833,7 +1843,7 @@ void REND_reload_dataset(void)
 
    FIX_SCALE_SIZE ;
 
-   /* copy data into opacity */
+   /* copy image data into opacity */
 
    opim = mri_to_byte( grim ) ;
 
@@ -1864,7 +1874,7 @@ void REND_reload_dataset(void)
 
       redraw_MCW_pasgraf( his_graf ) ;
 
-      /* modify the grayscale */
+      /* modify the grayscale per the brightness graf */
 
       if( ! gry_graf->yeqx ){
          byte * bar=MRI_BYTE_PTR(grim) , * fun=gry_graf->func ;
@@ -1872,7 +1882,7 @@ void REND_reload_dataset(void)
          for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = fun[ bar[ii] ] ;
       }
 
-      /* modify the opacity */
+      /* modify the opacity per the opacity graf */
 
       if( !opa_graf->yeqx || ofac < 1.0 ){
          byte * bar=MRI_BYTE_PTR(opim) , * fun=opa_graf->func ;
@@ -1901,23 +1911,47 @@ void REND_reload_dataset(void)
 
       if( ovim == NULL ) REND_reload_func_dset() ;
 
-      gar  = MRI_BYTE_PTR(grim) ;
-      opar = MRI_BYTE_PTR(opim) ;
       ovar = MRI_BYTE_PTR(ovim) ;
 
-      /* convert gar into index into the functional colormap */
+      if( !func_showthru ){  /* the old code: embed color into volume */
 
-      for( ii=0 ; ii < nvox ; ii++ ){
-         if( ovar[ii] == 0 ) gar[ii] = gar[ii] >> 1   ;  /* gray */
-         else                gar[ii] = 127 + ovar[ii] ;  /* color */
-      }
+        gar  = MRI_BYTE_PTR(grim) ;
+        opar = MRI_BYTE_PTR(opim) ;
 
-      /* if needed, modify the opacity where there is color */
+        /* convert gar into index into the functional colormap */
 
-      if( func_color_opacity > 0.0 ){
-         byte opac = (byte)(255.0 * MIN(func_color_opacity,1.0)) ;
-         for( ii=0 ; ii < nvox ; ii++ )
-            if( ovar[ii] != 0 ) opar[ii] = opac ;
+        for( ii=0 ; ii < nvox ; ii++ ){
+           if( ovar[ii] == 0 ) gar[ii] = gar[ii] >> 1   ;  /* gray */
+           else                gar[ii] = 127 + ovar[ii] ;  /* color */
+        }
+
+        /* if needed, modify the opacity where there is color */
+
+        if( func_color_opacity > 0.0 ){
+           byte opac = (byte)(255.0 * MIN(func_color_opacity,1.0)) ;
+           for( ii=0 ; ii < nvox ; ii++ )
+              if( ovar[ii] != 0 ) opar[ii] = opac ;
+        }
+
+      } else {  /* 07 Jan 2000: make the showthru bricks instead */
+
+        byte * garst , * oparst ;
+
+        grim_showthru = mri_new_conforming( vim , MRI_byte ) ;
+        opim_showthru = mri_new_conforming( vim , MRI_byte ) ;
+        garst  = MRI_BYTE_PTR(grim_showthru) ;
+        oparst = MRI_BYTE_PTR(opim_showthru) ;
+
+        memset( garst  , 0 , sizeof(byte)*nvox ) ;
+        memset( oparst , 0 , sizeof(byte)*nvox ) ;
+
+        for( ii=0 ; ii < nvox ; ii++ ){       /* load values only if */
+           if( ovar[ii] != 0 ){               /* there is overlay   */
+
+              garst[ii]  = 127 + ovar[ii] ;   /* color index */
+              oparst[ii] = 240 ;              /* mostly opaque */
+           }
+        }
       }
 
       func_computed = 1 ;  /* data is now set for color rendering */
@@ -1930,7 +1964,7 @@ void REND_reload_dataset(void)
 
    MCW_invert_widget(reload_pb) ;  /* turn the signal off */
 
-   new_dset = 0 ;
+   new_dset = 0 ; new_data_loaded = 1 ;
    return ;
 }
 
@@ -1944,13 +1978,7 @@ void REND_reload_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    REND_reload_dataset() ;             /* load data again */
 
-   if( render_handle != NULL ){
-      REND_reload_renderer() ;         /* send it to renderer */
-      post_facto_load = 0 ;
-      REND_draw_CB(NULL,NULL,NULL) ;   /* redraw */
-   } else {
-      post_facto_load = 1 ;            /* need to remember this action */
-   }
+   if( render_handle != NULL ) REND_draw_CB(NULL,NULL,NULL) ; /* draw */
 
    return ;
 }
@@ -1963,22 +1991,42 @@ void REND_reload_renderer(void)
 {
    if( render_handle == NULL ) return ;  /* error */
 
-   if( func_computed ){
+   if( func_computed ){   /* render the underlay and overlay */
 
-      if( ! func_cmap_set ){
+      if( !func_cmap_set ){
          MREN_set_rgbmap( render_handle, func_ncmap, func_rmap,func_gmap,func_bmap ) ;
          func_cmap_set = 1 ;
       }
 
-      MREN_set_rgbbytes( render_handle , grim ) ;  /* color overlay */
+      if( !func_showthru ){  /* the old code: both underlay and overlay are in grim */
 
-   } else {
+         MREN_set_rgbbytes( render_handle , grim ) ;  /* color overlay */
+         MREN_set_opabytes( render_handle , opim ) ;
 
-      MREN_set_graybytes( render_handle , grim ) ; /* grayscale overlay */
+      } else {               /* 07 Jan 2000:
+                                grayscale underlay is in grim
+                                color overlay is in grim_showthru */
 
+         switch( func_showthru_pass ){  /* do the 2 images separately */
+            default:
+            case 0:
+               MREN_set_graybytes( render_handle , grim ) ;  /* underlay */
+               MREN_set_opabytes ( render_handle , opim ) ;
+            break ;
+
+            case 1:
+               MREN_set_rgbbytes( render_handle , grim_showthru ) ; /* overlay */
+               MREN_set_opabytes( render_handle , opim_showthru ) ;
+            break ;
+         }
+      }
+
+   } else {  /* just render the underlay in gray */
+
+      MREN_set_graybytes( render_handle , grim ) ; /* grayscale underlay */
+      MREN_set_opabytes ( render_handle , opim ) ;
    }
 
-   MREN_set_opabytes( render_handle , opim ) ;     /* same for either case */
    return ;
 }
 
@@ -2015,11 +2063,15 @@ void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
       FREE_VOLUMES ;
    }
 
-   if( NEED_RELOAD ){
-      REND_reload_dataset() ;
-      REND_reload_renderer() ;
-   } else if ( post_facto_load || MREN_needs_data(render_handle) ){
-      REND_reload_renderer() ;
+   if( NEED_RELOAD ) REND_reload_dataset() ;
+
+   if( new_data_loaded                ||     /* new data was loaded here */
+       MREN_needs_data(render_handle) ||     /* renderer isn't ready yet */
+       (func_computed && func_showthru)  ){  /* am doing ShowThru images */
+
+      func_showthru_pass = 0 ;  /* always a good value */
+      REND_reload_renderer() ;  /* load data from arrays here into renderer */
+      new_data_loaded = 0 ;
    }
 
    /* setup for viewing */
@@ -2045,6 +2097,57 @@ void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XBell(dc->display,100) ;
       MCW_invert_widget(draw_pb) ; return ;
+   }
+
+   /* 07 Jan 2000 - make the showthru image now, if needed */
+
+#if 1
+# define STCOM(x) (x)
+#else
+# define STCOM(x) (((x) + ((x)<<1))>>2)  /* 0.75 * x */
+#endif
+
+   if( func_computed && func_showthru ){
+      MRI_IMAGE * cim ;
+
+      static float ccf=-666.0 , ggf ;  /* 10 Jan 2000: merger factors */
+      static int   ccm=0 ;
+      if( ccf < 0.0 ){
+         char * env = getenv("AFNI_RENDER_SHOWTHRU_FAC") ;
+         if( env != NULL ) ccf = strtod(env,NULL) ;
+         if( ccf <= 0.0 || ccf > 1.0 ) ccf = 1.0 ;
+         ggf = 1.0 - ccf ;
+         ccm = (ccf != 1.0) ;
+      }
+
+      func_showthru_pass = 1 ;
+      REND_reload_renderer() ;  /* load showthru data */
+
+      cim = MREN_render( render_handle , npixels ) ;  /* render it */
+      if( cim == NULL ){
+        (void) MCW_popup_message( draw_pb ,
+                                     "** ShowThru Rendering fails, **\n"
+                                     "** for unknown reasons       **\n\n"
+                                     "** Sorry about that -- RWCox **\n" ,
+                                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
+        XBell(dc->display,100) ;
+      } else {
+         byte *rar=MRI_BYTE_PTR(rim) , *car=MRI_RGB_PTR(cim) ; /* composite it */
+         int ii ;
+
+         for( ii=0 ; ii < cim->nvox ; ii++ ){
+            if( car[3*ii] == 0 && car[3*ii+1] == 0 && car[3*ii+2] == 0 ){
+               car[3*ii] = car[3*ii+1] = car[3*ii+2] = STCOM( rar[ii] ) ;
+
+            } else if( ccm ){                                /* 10 Jan 2000 */
+               car[3*ii]   = ccf*car[3*ii]   + ggf*rar[ii] ; /* merge color */
+               car[3*ii+1] = ccf*car[3*ii+1] + ggf*rar[ii] ; /* & grayscale */
+               car[3*ii+2] = ccf*car[3*ii+2] + ggf*rar[ii] ;
+            }
+         }
+
+         mri_free(rim) ; rim = cim ;
+      }
    }
 
    /* 20 Dec 1999 - restrict colors, if ordered and needed */
@@ -2416,6 +2519,21 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     threshold voxel will be.  If it is set to 'Underlay', then\n"
        "     the opacity of a colored voxel will be determined from the\n"
        "     underlay opacity at that location.\n"
+       "   N.B.: The special value of 'ShowThru' will make the color overlay\n"
+       "         be opaque (opacity=1.0), and also show through the grayscale\n"
+       "         underlay no matter how far it is embedded inside the brain.\n"
+       "         This is done by doing 2 renderings, 1 with the underlay only\n"
+       "         and one with the overlay only.  The resulting 2 images are\n"
+       "         then merged.  The default merger is to use an overlay pixel\n"
+       "         if it is nonzero, otherwise use the corresponding underlay\n"
+       "         pixel.  The environment variable AFNI_RENDER_SHOWTHRU_FAC\n"
+       "         can be used to control the merging when the overlay image\n"
+       "         pixel is nonzero.  This variable should be set to a value\n"
+       "         between 0.0 and 1.0; suppose that its value is denoted by c.\n"
+       "         Then the merging algorithm, at each image pixel, is\n"
+       "           if( overlay == 0 ) pixel = underlay;\n"
+       "           else               pixel = c * overlay + (1-c) * underlay;\n"
+       "         I personally like the results with c=0.65.\n"
        "\n"
        " * 'See Overlay' is used to toggle the color overlay computations\n"
        "     on and off - it should be pressed IN for the overlay to become\n"
@@ -4194,7 +4312,8 @@ void REND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
       new_dset = 1 ;           /* flag it as new         */
       FREE_VOLUMES ;           /* free the internal data */
       REND_reload_dataset() ;  /* load the data          */
-      REND_reload_renderer() ;
+
+      if( render_handle != NULL ) REND_draw_CB(NULL,NULL,NULL) ; /* draw */
 
    /*--- selection of overlay color sub-brick ---*/
 
@@ -4518,7 +4637,7 @@ void REND_func_widgets(void)
             "dialog" , xmSeparatorWidgetClass , wfunc_pbar_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
- { char * pb_dum_label[2] = { "Dummy" , "Dummy" } ;
+ { static char * pb_dum_label[2] = { "Dummy" , "Dummy" } ;
    wfunc_pbar_palette_av = new_MCW_arrowval(
                              wfunc_pbar_menu ,     /* parent Widget */
                              "Set Pal " ,          /* label */
@@ -4539,7 +4658,7 @@ void REND_func_widgets(void)
             "dialog" , xmSeparatorWidgetClass , wfunc_pbar_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
- { char * pb_dum_label[3] = { "Normal" , "NoShade" , "NoMix" } ;  /* 21 Dec 1999 */
+ { static char * pb_dum_label[3] = { "Normal" , "NoShade" , "NoMix" } ;  /* 21 Dec 1999 */
    wfunc_pbar_mixshade_av = new_MCW_arrowval(
                              wfunc_pbar_menu ,     /* parent Widget */
                              "Mixing  " ,          /* label */
@@ -4722,17 +4841,18 @@ void REND_func_widgets(void)
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
- { static char * func_opacity_labels[11] = {
+ { static char * func_opacity_labels[12] = {
                        "Underlay" ,
                        " 0.1" , " 0.2" , " 0.3" , " 0.4" , " 0.5" ,
-                       " 0.6" , " 0.7" , " 0.8" , " 0.9" , " 1.0"  } ;
+                       " 0.6" , " 0.7" , " 0.8" , " 0.9" , " 1.0" ,
+                       "ShowThru" } ;
 
    wfunc_opacity_av = new_MCW_arrowval(
                           wfunc_opacity_rowcol  , /* parent Widget */
                           "Color Opacity " ,      /* label */
                           MCW_AV_optmenu ,        /* option menu style */
                           0 ,                     /* first option */
-                          10 ,                    /* last option */
+                          11 ,                    /* last option */
                           5 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* decimal shift */
@@ -5259,8 +5379,12 @@ void REND_color_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
 
 void REND_color_opacity_CB( MCW_arrowval * av , XtPointer cd )
 {
+   int ofs = func_showthru ;
    func_color_opacity = 0.1 * av->ival ;
+   func_showthru = (av->ival == 11) ;    /* 07 Jan 2000 */
    INVALIDATE_OVERLAY ;
+
+   if( func_showthru != ofs ) FREE_VOLUMES ;
    return ;
 }
 
@@ -6881,7 +7005,7 @@ void REND_state_to_widgets( RENDER_state * rs )
          REND_thr_scale_CB( NULL,NULL , &cbs ) ;
       }
 
-      if( RSOK(func_color_opacity,0.0,1.001) ){
+      if( RSOK(func_color_opacity,0.0,1.101) ){
          ii = (int)(rs->func_color_opacity * 10.0 + 0.01) ;
          AV_assign_ival( wfunc_opacity_av , ii ) ;
          REND_color_opacity_CB( wfunc_opacity_av , NULL ) ;

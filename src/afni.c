@@ -852,7 +852,7 @@ int main( int argc , char * argv[] )
    int ii ;
 
 #ifdef CATCH_SIGNALS
-   signal(SIGINT ,AFNI_sigfunc) ;
+   signal(SIGINT ,AFNI_sigfunc) ;   /* may be superseded by DBG_SIGNALS below */
    signal(SIGBUS ,AFNI_sigfunc) ;
    signal(SIGSEGV,AFNI_sigfunc) ;
    signal(SIGTERM,AFNI_sigfunc) ;
