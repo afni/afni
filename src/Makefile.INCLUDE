@@ -1472,13 +1472,13 @@ Imon.exe: thd_iochan.o
 serial_helper: rickr/serial_helper.c
 	( cd rickr ;                                                    \
 	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'  \
-			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) serial_helper .. ; )
 
 serial_helper.exe: rickr/serial_helper.c
 	( cd rickr ;                                                    \
 	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'  \
-			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) serial_helper.exe .. ; )
 
 #######
