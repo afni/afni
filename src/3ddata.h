@@ -3628,6 +3628,8 @@ extern THD_warp * AFNI_make_affwarp_12(float,float,float,float,
 extern THD_warp * AFNI_make_affwarp_mat   ( THD_mat33 ) ;         /* 28 Aug 2002 */
 extern THD_warp * AFNI_make_affwarp_matvec( THD_mat33 , THD_fvec3 ) ;
 
+extern THD_ivec3 THD_matrix_to_orientation( THD_mat33 R ) ;       /* 27 Aug 2003 */
+
 extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
                                      int,int,int, float, char *, int,int,byte * );
 
