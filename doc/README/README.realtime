@@ -30,6 +30,8 @@ ACQUISITION_TYPE arg
  *This command is not required, since there is a default.
 
 NAME arg
+or
+PREFIX arg
   This command tells AFNI what name to use for the new dataset.
  *It is not required, since AFNI will generate a name if none is given.
 
@@ -125,9 +127,26 @@ XYZAXES xcode ycode zcode
  *This command is required, so that AFNI knows the orientation of the
   slices in space.
 
+NUM_CHAN nc
+  Specifies the number of independent image "channels" that will be
+  sent to AFNI.  Each channel goes into a separate dataset.  Channel
+  images are interleaved; for example, if nc=3, then
+    image #1 -> datataset #1
+    image #2 -> datataset #2
+    image #3 -> datataset #3
+    image #4 -> datataset #1
+    image #5 -> datataset #2
+    et cetera.
+  For 2D acquisitions, each slice is one "image" in the list above.
+  For 3D acquisitions, each volume is one "image".
+  All channels will have the same datum type, the same xyz dimensions,
+  and so on.
+ * This command is optional, since the default value of nc is 1.
+
 DRIVE_AFNI command
   You can also pass commands to control AFNI (e.g., open windows) in the
   image prolog.  See README.driver for the list of command strings.
+ * This command is optional.
 
 
 ==============================================
