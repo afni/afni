@@ -11,6 +11,7 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_Engine.c SUMA_Surface_IO.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
 		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c SUMA_DataSets.c	\
 		 SUMA_Homer.c SUMA_xColBar.c 
+       
 SUMA_GTS_SRCS =  SUMA_gts.c
 
 SUMA_SRCS_MAIN = SUMA_suma.c
@@ -217,13 +218,13 @@ ShowCmap: SUMA_xColBar.c
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 
-SampBias: SUMA_SampBias.c libgts.a ${SUMALIB} 
+SampBias: SUMA_SampBias.c ${SUMALIB} 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
    	${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c ${SUMA_INCLUDE_PATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
-		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} libgts.a 
+		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
 
 SurfMesh: SUMA_coarsen.c libgts.a ${SUMALIB}
 	$(RM) $@
@@ -251,7 +252,7 @@ libgts.a: ${SUMA_GTS_OBJS}
 	  $(RANLIB) src/.libs/$@ ;	\
 	  $(CP) -p src/.libs/$@ .. ; \
 	  cd ..	; \
-	  echo "Adding SUMA's GTS functions to libSUMA.a"	\
+	  echo "Adding SUMA's GTS functions to libSUMA.a";	\
 	  ar q libSUMA.a ${SUMA_GTS_OBJS} ; \
 	  $(RANLIB) ${SUMALIB} ; )
      
@@ -340,7 +341,7 @@ packbins:
 	${RM} -r SUMA_bin
 	
 all: libSUMA.a mainobj suma install 
-allgts: libgts.a SampBias SurfMesh
+allgts: libgts.a SurfMesh install 
 
 standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile	      \
