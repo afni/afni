@@ -29,6 +29,7 @@ static char helpstring[] =
    "          Top       = maximum value from dataset to include\n\n"
    " Bins:    Number    = number of bins to use\n"
    "          Max Count = maximum count per bin\n\n"
+   "          Smooth    = +/- bin range to smooth histogram\n"
    " Mask:    Dataset   = masking dataset\n"
    "          Sub-brick = which one to use\n\n"
    " Range:   Bottom    = min value from mask dataset to use\n"
@@ -93,8 +94,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*-- third line of input --*/
 
    PLUTO_add_option( plint , "Bins" , "Bins" , FALSE ) ;
-   PLUTO_add_number( plint , "Number" , 10,512,0, 100,1 ) ;
+   PLUTO_add_number( plint , "Number" , 10,1000,0, 100,1 ) ;
    PLUTO_add_number( plint , "Max Count" , 0,999999999,0 , 0,1 ) ;
+   PLUTO_add_number( plint , "Smooth"    , 0,99,0 , 0,1 ) ;  /* 03 Dec 2004 */
 
    /*-- fourth line of input --*/
 
@@ -139,6 +141,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
    MRI_IMAGE * flim ;
    float     * flar ;
    int       * hbin ;
+   int smooth=0 ;      /* 03 Dec 2004 */
 
    int miv=0 ;
 
@@ -197,8 +200,9 @@ static char * HISTO_main( PLUGIN_interface * plint )
       /*-- Number of bins --*/
 
       if( strcmp(tag,"Bins") == 0 ){
-         nbin = PLUTO_get_number(plint) ;
+         nbin     = PLUTO_get_number(plint) ;
          maxcount = PLUTO_get_number(plint) ;
+         smooth   = PLUTO_get_number(plint) ;  /* 03 Dec 2004 */
          continue ;
       }
 
@@ -463,7 +467,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
       hbot = val_bot ; htop = val_top ;
    }
 
-   if( nbin < 10 || nbin > 512 ){
+   if( nbin < 10 || nbin > 1000 ){
       switch( DSET_BRICK_TYPE(input_dset,iv) ){
          case MRI_float:
             nbin = (int) sqrt((double)mcount) ;
@@ -480,7 +484,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
          break ;
 
       }
-      if( nbin < 10 ) nbin = 10 ; else if( nbin > 512 ) nbin = 512 ;
+      if( nbin < 10 ) nbin = 10 ; else if( nbin > 1000 ) nbin = 1000 ;
    }
 
    /*-- actually compute and plot histogram --*/
@@ -488,6 +492,32 @@ static char * HISTO_main( PLUGIN_interface * plint )
    hbin = (int *) calloc((nbin+1),sizeof(int)) ;
 
    mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
+
+   if( smooth > 0 ){  /* 03 Dec 2004 */
+     int nwid=smooth , *gbin=(int *)calloc((nbin+1),sizeof(int)) , ibot,itop ;
+     float ws,wss , *wt ;
+
+     ws = 0.0 ;
+     wt = (float *)malloc(sizeof(float)*(2*nwid+1)) ;
+     for( ii=0 ; ii <= 2*nwid ; ii++ ){
+       wt[ii] = nwid-abs(nwid-ii) + 0.5f ;
+       ws += wt[ii] ;
+     }
+     for( ii=0 ; ii <= 2*nwid ; ii++ ) wt[ii] /= ws ;
+
+     for( jj=0 ; jj <= nbin ; jj++ ){
+       ibot = jj-nwid ; if( ibot < 0    ) ibot = 0 ;
+       itop = jj+nwid ; if( itop > nbin ) itop = nbin ;
+       ws = wss = 0.0 ;
+       for( ii=ibot ; ii <= itop ; ii++ ){
+         ws += wt[nwid-jj+ii] * hbin[ii] ; wss += wt[nwid-jj+ii] ;
+       }
+       gbin[jj] = rint(ws/wss) ;
+     }
+     memcpy(hbin,gbin,sizeof(int)*(nbin+1)) ;
+     free((void *)wt) ; free((void *)gbin) ;
+   }
+
    if( maxcount > 0 ){
       for( ii=0 ; ii <= nbin ; ii++ ) hbin[ii] = MIN( hbin[ii] , maxcount ) ;
    }

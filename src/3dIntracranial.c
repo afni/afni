@@ -162,7 +162,7 @@ void get_options
 	  MTEST (anat_filename);
 	  strcpy (anat_filename, argv[nopt]);
 
-	  anat = THD_open_one_dataset (anat_filename);
+	  anat = THD_open_dataset (anat_filename);
 	  if (!ISVALID_3DIM_DATASET (anat))
 	    {
 	      sprintf (message, "Can't open dataset: %s\n", anat_filename); 
@@ -529,7 +529,7 @@ void write_afni_data
 
   /*----- initialize local variables -----*/
   filename = prefix_filename;
-  dset = THD_open_one_dataset (anat_filename);
+  dset = THD_open_dataset (anat_filename);
   nxyz = DSET_NX(dset) * DSET_NY(dset) * DSET_NZ(dset);
 
   
