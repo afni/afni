@@ -33,6 +33,8 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
        ! ISVALID_DATABLOCK(dset->dblk) ||
        ! ISVALID_DISKPTR(dset->dblk->diskptr) ) return False ;
 
+   if( DSET_IS_MASTERED(dset) ) return False ;  /* 11 Jan 1999 */
+
    blk = dset->dblk ; daxes = dset->daxes ;  /* always used fixed daxes */
 
    /*------------------------------*/

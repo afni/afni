@@ -1,6 +1,11 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------
   erase the insides of a diskptr from the earth
 -----------------------------------------------------------------*/
@@ -71,6 +76,11 @@ ENTRY("THD_delete_datablock") ;
    if( dblk->brick_stataux  != NULL ){
       for( ibr=0 ; ibr < dblk->nvals ; ibr++ ) myXtFree( dblk->brick_stataux[ibr] ) ;
       myXtFree( dblk->brick_stataux ) ;
+   }
+
+   if( DBLK_IS_MASTERED(dblk) ){       /* 11 Jan 1999 */
+      myXtFree( dblk->master_ival ) ;
+      myXtFree( dblk->master_bytes ) ;
    }
 
    THD_delete_diskptr( dblk->diskptr ) ;

@@ -3761,6 +3761,10 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    THD_init_datablock_brick( dblk , argopt.datum_all , NULL ) ;
    THD_null_datablock_auxdata( dblk ) ;
 
+   dblk->master_nvals = 0 ;     /* 11 Jan 1999 */
+   dblk->master_ival  = NULL ;
+   dblk->master_bytes = NULL ;
+
    bsize = nx*ny*nz * mri_datum_size( argopt.datum_all ) ;
    for( ibr=0 ; ibr < nvals ; ibr++ ){
       mri_fix_data_pointer( dbrick + ibr*bsize , DBLK_BRICK(dblk,ibr) ) ;

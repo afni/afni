@@ -1,6 +1,11 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------*/
 
 static int compress_mode = COMPRESS_NOFILE ;
@@ -91,6 +96,7 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
    /*-- sanity checks --*/
 
    if( ! ISVALID_DATABLOCK(blk) ) return False ;
+   if( DBLK_IS_MASTERED(blk) )    return False ;  /* 11 Jan 1999 */
 
    dkptr = blk->diskptr ;
    if( ! ISVALID_DISKPTR(dkptr) ) WRITE_ERR("illegal file type") ;

@@ -5,14 +5,12 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 #undef  AFNI_DEBUG
 #undef  CLUST_DEBUG
 #define STATUS(x) /* nada */
 #define ENTRY(x)  /* nada */
 #define EXRETURN  return
 #define RETURN(x) return(x)
-
 
 /*-----------------------------------------------------------------------
   Edit some internals of a dataset.  Notice that it is possible to

@@ -31,7 +31,11 @@ int main( int argc , char * argv[] )
    if( strcmp(argv[iarg],"-v") == 0 ){ verbose = 1 ; iarg++ ; }
 
    for( ; iarg < argc ; iarg++ ){
+#if 0
       dset = THD_open_one_dataset( argv[iarg] ) ;
+#else
+      dset = THD_open_dataset( argv[iarg] ) ;
+#endif
       if( dset == NULL ){
          printf("\nCan't open dataset %s\n",argv[iarg]) ;
          continue ;

@@ -233,28 +233,28 @@ int mri_write_ascii( char * fname, MRI_IMAGE * im )
          case MRI_float:{
             float * iar = MRI_FLOAT_PTR(im) + (jj*nx) ;
             for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %g",iar[ii]) ;
+               fprintf(imfile," %14.7g",iar[ii]) ;
          }
          break ;
 
          case MRI_short:{
             short * iar = MRI_SHORT_PTR(im) + (jj*nx) ;
             for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %d",iar[ii]) ;
+               fprintf(imfile," %6d",iar[ii]) ;
          }
          break ;
 
          case MRI_byte:{
             byte * iar = MRI_BYTE_PTR(im) + (jj*nx) ;
             for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %d",iar[ii]) ;
+               fprintf(imfile," %3d",iar[ii]) ;
          }
          break ;
 
          case MRI_int:{
             int * iar = MRI_INT_PTR(im) + (jj*nx) ;
             for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %d",iar[ii]) ;
+               fprintf(imfile," %6d",iar[ii]) ;
          }
          break ;
       }

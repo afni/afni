@@ -31,7 +31,6 @@ ENTRY("THD_init_one_datablock") ;
       else             no_mmap = (strcmp(hh,"YES") == 0) ;
    }
 
-
    /*-- sanity check --*/
 
    if( dirname  == NULL || strlen(dirname)  == 0 ||
@@ -60,6 +59,10 @@ printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
    dblk->brick_keywords = NULL ;
    dblk->brick_statcode = NULL ;
    dblk->brick_stataux  = NULL ;
+
+   dblk->master_nvals = 0 ;     /* 11 Jan 1999 */
+   dblk->master_ival  = NULL ;
+   dblk->master_bytes = NULL ;
 
    DBLK_unlock(dblk) ;  /* Feb 1998 */
 

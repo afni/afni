@@ -6717,6 +6717,10 @@ STATUS("init new_dblk") ;
    new_dblk->brick       = NULL ;
    THD_init_datablock_brick( new_dblk , -1 , adam_dblk ) ;
 
+   new_dblk->master_nvals = 0 ;     /* 11 Jan 1999 */
+   new_dblk->master_ival  = NULL ;
+   new_dblk->master_bytes = NULL ;
+
    DSET_unlock(new_dset) ;
 
    THD_null_datablock_auxdata( new_dblk ) ;

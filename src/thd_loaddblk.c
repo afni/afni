@@ -54,6 +54,11 @@ ENTRY("THD_load_datablock") ;
    nz = dkptr->dimsizes[2] ;  nxyz  = nxy * nz  ;
    nv = dkptr->nvals       ;  nxyzv = nxyz * nv ; ntot = blk->total_bytes ;
 
+   if( DBLK_IS_MASTERED(blk) )                  /* 11 Jan 1999 */
+      blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+
+   /** set up space for bricks via malloc **/
+
    if( blk->malloc_type == DATABLOCK_MEM_MALLOC ){
 
       /** malloc space for each brick separately **/
@@ -67,7 +72,7 @@ ENTRY("THD_load_datablock") ;
 
       if( THD_count_databricks(blk) < nv ){
          fprintf(stderr,  "\n*** failure to malloc dataset memory\n") ;
-         if( freeup != NULL ){
+         if( freeup != NULL ){  /* try to free some space? */
             freeup() ;
             for( ibr=0 ; ibr < nv ; ibr++ ){
                if( DBLK_ARRAY(blk,ibr) == NULL ){
@@ -86,7 +91,7 @@ ENTRY("THD_load_datablock") ;
          }
       }
 
-      /** mmap the whole file at once **/
+   /** mmap the whole file at once (makes space and reads it all at once) **/
 
    } else if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
       int fd ;
@@ -150,7 +155,7 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
          return False ;
       break ;
 
-     /*-- read brick file --*/
+     /*-- read brick file (there is no other option)--*/
 
       case STORAGE_BY_BRICK:{
          FILE * far ;
@@ -171,13 +176,45 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
          /* read each sub-brick all at once */
 
          id = 0 ;
-         for( ibr=0 ; ibr < nv ; ibr++ ){
-            id += fread( DBLK_ARRAY(blk,ibr), 1,
-                         DBLK_BRICK_BYTES(blk,ibr), far ) ;
-#ifdef THD_DEBUG
-  printf("  -- Reading: # bytes desired = %d  total read = %d\n",
-         DBLK_BRICK_BYTES(blk,ibr),id) ;
-#endif
+         if( ! DBLK_IS_MASTERED(blk) ){      /* read each brick */
+
+            for( ibr=0 ; ibr < nv ; ibr++ )
+               id += fread( DBLK_ARRAY(blk,ibr), 1,
+                            DBLK_BRICK_BYTES(blk,ibr), far ) ;
+
+         } else {  /* 11 Jan 1999: read brick from master, put into place(s) */
+
+            int nfilled = 0 , nbuf=0 , jbr, nbr ;
+            char * buf=NULL ;
+
+            /* loop over master sub-bricks until dataset is filled */
+
+            for( ibr=0 ; nfilled < nv && ibr < blk->master_nvals ; ibr++ ){
+
+               if( nbuf < blk->master_bytes[ibr] ){  /* make more space for it */
+                  if( buf != NULL ) free(buf) ;
+                  nbuf = blk->master_bytes[ibr] ;
+                  buf  = malloc( sizeof(char) * nbuf ) ;
+                  if( buf == NULL ) break ;
+               }
+
+               /* read the master sub-brick */
+
+               nbr = fread( buf , 1 , blk->master_bytes[ibr] , far ) ;
+               if( nbr < blk->master_bytes[ibr] ) break ;
+
+               /* find all the dataset sub-bricks that are copies of this */
+
+               for( jbr=0 ; jbr < nv ; jbr++ ){
+                  if( blk->master_ival[jbr] == ibr ){  /* copy it in */
+                     memcpy( DBLK_ARRAY(blk,jbr) , buf , blk->master_bytes[ibr] ) ;
+                     nfilled++ ;  /* number of bricks filled */
+                     id += nbr ;  /* number of bytes read into dataset */
+                  }
+               }
+            }  /* end of loop over master sub-bricks */
+
+            if( buf != NULL ) free(buf) ;
          }
 
          COMPRESS_fclose(far) ;
@@ -204,6 +241,7 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
                      mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
                   break ;
 
+                  case MRI_float:
                   case MRI_int:
                      mri_swap4( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
                   break ;

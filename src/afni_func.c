@@ -546,6 +546,10 @@ ENTRY("AFNI_follower_dataset") ;
    new_dset->dblk->brick       = NULL ;
    THD_init_datablock_brick( new_dset->dblk , -1 , data_parent->dblk ) ;
 
+   new_dset->dblk->master_nvals = 0 ;     /* 11 Jan 1999 */
+   new_dset->dblk->master_ival  = NULL ;
+   new_dset->dblk->master_bytes = NULL ;
+
    /* create the names for storage on disk (if ever)
       -- note we put it in the same directory as the data_parent */
 

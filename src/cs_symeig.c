@@ -9,11 +9,14 @@
 ******************************************************************************/
 
 /*--------------------------------------------------------------------------
-   Compute the eigenvalue/vector decomposition of a symmetric matrix.
+   Compute the eigenvalue/vector decomposition of a symmetric matrix,
+   stored in double precision.
      n = order of matrix
      a = on input: matrix(i,j) is in a[i+n*j] for i=0..n-1 , j=0..n-1
            output: a[i+n*j] has the i'th component of the j'th eigenvector
-     e =   output: e[j] has the j'th eigenvalue, ordered so that
+     e = on input: not used (but the calling program must
+                             allocate the space for e[0..n-1])
+           output: e[j] has the j'th eigenvalue, ordered so that
            e[0] <= e[1] <= ... <= e[n-1]
    Uses the f2c translation of EISPACK.
 ----------------------------------------------------------------------------*/

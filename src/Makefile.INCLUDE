@@ -265,14 +265,9 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CC) -o 3dttest 3dttest.o $(LFLAGS) $(LLIBS)
 
-# Warning: compiling 3dpc requires the presence of
-#          the Lapack library, not distributed with AFNI
-
-LLAPACK = -Llapack -Lblas -lf2c
-
 3dpc:3dpc.o
 	$(RM) $@
-	$(CC) -o 3dpc 3dpc.o $(LFLAGS) $(LLAPACK) $(LLIBS)
+	$(CC) -o 3dpc 3dpc.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3ddot:3ddot.o
 	$(RM) $@
@@ -650,7 +645,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetinsess.o  thd_idcode.o thd_opendset.o thd_zblock.o  \
            thd_dsetinslist.o thd_info.o thd_purgedblk.o thd_http.o    \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
-           thd_trusthost.o thd_rot3d.o
+           thd_trusthost.o thd_rot3d.o thd_mastery.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \

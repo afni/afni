@@ -388,6 +388,7 @@ void VL_syntax(void)
    printf(
     "Usage: 3dvolreg [options] dataset\n"
     "Registers each 3D sub-brick from the input dataset to the base brick.\n"
+    "'dataset' may contain a sub-brick selector list.\n"
     "\n"
     "OPTIONS:\n"
     "  -verbose        Print progress reports.  Use twice for LOTS of output.\n"
@@ -698,7 +699,7 @@ void VL_command_line(void)
       fprintf(stderr,"*** Too many arguments?!\n") ; exit(1) ;
    }
 
-   VL_dset = THD_open_one_dataset( Argv[Iarg] ) ;
+   VL_dset = THD_open_dataset( Argv[Iarg] ) ;
 
    /** Check for errors **/
 

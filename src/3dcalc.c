@@ -5,20 +5,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1997-8 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application.  The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 /*---------------------------------------------------------------------------
 This program is revised for 3D+time data calculation,
   [Raoqiong Tong, August 1997]
@@ -28,9 +14,13 @@ Added ability to use a 1D time series file as a "dataset" -- see TS variables.
 
 Added ability to operate on 3D bucket datasets -- see ALLOW_BUCKETS macro.
   [RW Cox, April 1998]
+
+Added ability to use sub-brick selectors on input datasets -- see ALLOW_SUBV macro.
+  [RW Cox, Jan 1999]
 ----------------------------------------------------------------------------*/
 
 #define ALLOW_BUCKETS
+#define ALLOW_SUBV
 
 #include "mrilib.h"
 #include "parser.h"
@@ -220,8 +210,11 @@ void CALC_read_opts( int argc , char * argv[] )
          }
 
          /*-- back to the normal dataset opening routine --*/
-
+#ifndef ALLOW_SUBV
          dset = THD_open_one_dataset( argv[nopt++] ) ;
+#else
+         dset = THD_open_dataset( argv[nopt++] ) ;
+#endif
          if( dset == NULL ){
             fprintf(stderr,"can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
          }
@@ -395,8 +388,15 @@ void CALC_Syntax(void)
     "                  will be used in the calculations.  For example,\n"
     "                  '-b3 dname' specifies that the variable 'b' refers to\n"
     "                  sub-brick 3 of the dataset (indexes start at 0).\n"
+
+#ifndef ALLOW_SUBV
     "             ** The type and number of sub-bricks in a dataset can be\n"
     "                  printed out using the '3dinfo' program.\n"
+#else
+    "            N.B.: Another way to achieve the effect of '-b3' is described\n"
+    "                  below in the 'INPUT DATASET SPECIFICATION' section.\n"
+#endif
+
     "  -expr \"expression\"\n"
     "                Apply the expression within quotes to the input datasets,\n"
     "                one voxel at a time, to produce the output dataset.\n"
@@ -406,7 +406,7 @@ void CALC_Syntax(void)
     "  -session dir  = Use 'dir' for the output dataset session directory.\n"
     "                    [default='./'=current working directory]\n"
     "\n"
-    "3D+time Datasets:\n"
+    "3D+TIME DATASETS:\n"
     " This version of 3dcalc can operate on 3D+time datasets.  Each input dataset\n"
     " will be in one of these conditions:\n"
     "    (A) Is a regular 3D (no time) dataset; or\n"
@@ -426,8 +426,14 @@ void CALC_Syntax(void)
     " alter the .HEAD parameters of the output dataset, if desired.)\n"
 #endif
 
+#ifdef ALLOW_SUBV
     "\n"
-    "1D Time Series:\n"
+    "INPUT DATASET SPECIFICATION:\n"
+    MASTER_HELP_STRING
+#endif
+
+    "\n"
+    "1D TIME SERIES:\n"
     " You can also input a '*.1D' time series file in place of a dataset.\n"
     " In this case, the value at each spatial voxel at time index n will be\n"
     " the same, and will be the n-th value from the time series file.\n"

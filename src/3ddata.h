@@ -772,6 +772,10 @@ typedef struct {
       int    malloc_type ;    /* memory allocation method */
       int    locked ;         /* Feb 1998: locked in memory (un-purgeable) */
 
+      int    master_nvals ;   /* Jan 1999: for datasets that are extracted      */
+      int *  master_ival ;    /*           in pieces from a master dataset      */
+      int *  master_bytes ;   /* master_ival[nvals]; master_bytes[master_nvals] */
+
       THD_diskptr * diskptr ; /* where the data is on disk (if anywhere!) */
 
       int       natr , natr_alloc ;
@@ -793,6 +797,9 @@ typedef struct {
 #define DBLK_lock(db)   ((db)->locked = 1)
 #define DBLK_unlock(db) ((db)->locked = 0)
 #define DBLK_LOCKED(db) ((db)->locked)
+
+#define DBLK_IS_MASTERED(db) \
+  ((db)->master_nvals > 0 && (db)->master_ival != NULL && (db)->master_bytes != NULL)
 
 extern void THD_delete_datablock         ( THD_datablock * ) ;
 extern void THD_init_datablock_brick     ( THD_datablock * , int , void * ) ;
@@ -1795,6 +1802,8 @@ static char tmp_dblab[8] ;
 #define DSET_IS_MALLOC(ds)  DBLK_IS_MALLOC((ds)->dblk)
 #define DSET_IS_MMAP(ds)    DBLK_IS_MMAP((ds)->dblk)
 
+#define DSET_IS_MASTERED(ds) DBLK_IS_MASTERED((ds)->dblk)
+
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
 typedef struct THD_3dim_dataset_array {
@@ -2086,6 +2095,36 @@ extern XtPointer_array * THD_init_alldir_datablocks( char * ) ;
 extern THD_session * THD_init_session( char * ) ;
 
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
+extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
+
+#define MASTER_HELP_STRING                                                    \
+    " An input dataset is specified using one of these forms:\n"              \
+    "    'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.\n"         \
+    " You can also add a sub-brick selection list after the end of the\n"     \
+    " dataset name.  This allows only a subset of the sub-bricks to be\n"     \
+    " read in (by default, all of a dataset's sub-bricks are input).\n"       \
+    " A sub-brick selection list looks like one of the following forms:\n"    \
+    "   fred+orig[5]                     ==> use only sub-brick #5\n"         \
+    "   fred+orig[5,9,17]                ==> use #5, #9, and #12\n"           \
+    "   fred+orig[5..8]     or [5-8]     ==> use #5, #6, #7, and #8\n"        \
+    "   fred+orig[5..13(2)] or [5-13(2)] ==> use #5, #7, #9, #11, and #13\n"  \
+    " Sub-brick indexes start at 0.  You can use the character '$'\n"         \
+    " to indicate the last sub-brick in a dataset; for example, you\n"        \
+    " can select every third sub-brick by using the selection list\n"         \
+    "   fred+orig[0..$(3)]\n"                                                 \
+    "\n"                                                                      \
+    " N.B.: The sub-bricks are read in the order specified, which may\n"      \
+    " not be the order in the original dataset.  For example, using\n"        \
+    "   fred+orig[0..$(2),1..$(2)]\n"                                         \
+    " will cause the sub-bricks in fred+orig to be input into memory\n"       \
+    " in an interleaved fashion.  Using\n"                                    \
+    "   fred+orig[$..0]\n"                                                    \
+    " will reverse the order of the sub-bricks.\n"                            \
+    "\n"                                                                      \
+    " N.B.: The '$', '(', ')', '[', and ']' characters are special to\n"      \
+    " the shell, so you will have to escape them.  This is most easily\n"     \
+    " done by putting the entire dataset plus selection list inside\n"        \
+    " forward single quotes, as in 'fred+orig[5..7,9]'.\n"
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern THD_3dim_dataset * THD_3dim_from_block( THD_datablock * ) ;

@@ -211,6 +211,7 @@ int main( int argc , char * argv[] )
       printf(
         "Usage: rtfeedme [options] dataset\n"
         "Test the real-time plugin by sending all the bricks in 'dataset' to AFNI.\n"
+        "'dataset' may include a sub-brick selector list.\n"
         "\n"
         "Options:\n"
         "  -host sname =  Send data, via TCP/IP, to AFNI running on the\n"
@@ -282,10 +283,10 @@ int main( int argc , char * argv[] )
 
    if( iarg >= argc ){ fprintf(stderr,"*** No dataset argument\n"); exit(1); }
 
-   RT_dset = THD_open_one_dataset( argv[iarg] ) ;
+   RT_dset = THD_open_dataset( argv[iarg] ) ;
    if( RT_dset == NULL ){
       fprintf(stderr,"*** Can't open dataset %s\n",argv[iarg]);
-   exit(1);
+      exit(1);
    }
 
    if( AFNI_verbose )

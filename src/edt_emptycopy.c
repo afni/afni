@@ -5,14 +5,12 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 #undef  AFNI_DEBUG
 #undef  CLUST_DEBUG
 #define STATUS(x) /* nada */
 #define ENTRY(x)  /* nada */
 #define EXRETURN  return
 #define RETURN(x) return(x)
-
 
 /*****************  New routines for AFNI-96  ***************************/
 
@@ -141,6 +139,10 @@ THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * old_dset )
 
    THD_null_datablock_auxdata( new_dblk ) ;
    if( old_good ) THD_copy_datablock_auxdata( old_dset->dblk , new_dblk ) ;
+
+   new_dblk->master_nvals = 0 ;     /* 11 Jan 1999 */
+   new_dblk->master_ival  = NULL ;  /* Copy does not inherit mastery */
+   new_dblk->master_bytes = NULL ;
 
    if( old_good )
       *new_daxes  = *(old_dset->daxes) ;    /* copy all contents */

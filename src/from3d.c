@@ -48,6 +48,7 @@ void Syntax(void)
     "-tlast num         Set 'num' = number of last time slice to be extracted. \n"
     "                     (default = largest) \n"
     "-input fname       Read 3d data set from file 'fname'. \n"
+    "                     'fname' may include a sub-brick selector list.\n"
     "-prefix rname      Write 2d data sets using prefix 'rname'. \n"
    ) ;
    exit(0) ;
@@ -202,7 +203,7 @@ int main( int argc , char * argv[] )
       input_filename, prefix_filename );
       
    /* --- open 3d data set --- */
-   dset = THD_open_one_dataset( input_filename ) ;
+   dset = THD_open_dataset( input_filename ) ;
    if( dset == NULL )  FatalError ("Unable to open input file") ;
    if ( verbose )  printf("\n" "3d Dataset File:    %s\n" , input_filename ) ; 
       

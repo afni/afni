@@ -88,7 +88,8 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
       printf(
          "Usage: 3drotate [options] dataset\n"
-         "Rotates and/or translates an AFNI dataset.\n"
+         "Rotates and/or translates all bricks from an AFNI dataset.\n"
+         "'dataset' may contain a sub-brick selector list.\n"
          "The options are:\n"
          "  -prefix fname    = Sets the output dataset prefix name to be 'fname'\n"
          "  -verbose         = Prints out progress reports\n"
@@ -223,7 +224,7 @@ int main( int argc , char * argv[] )
 
    if( iopt >= argc ){ fprintf(stderr,"*** No input dataset?\n") ; exit(1) ; }
 
-   dset = THD_open_one_dataset( argv[iopt] ) ;
+   dset = THD_open_dataset( argv[iopt] ) ;
    if( dset == NULL ){
       fprintf(stderr,"*** Cannot open dataset %s!\n",argv[iopt]) ; exit(1) ;
    }
