@@ -389,6 +389,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_SurfaceViewer *svi = NULL;
    SUMA_OVERLAYS * tmpptr; 
    GLfloat *glar_ColorList = NULL;
+   SUMA_SURF_NORM SN;
    SUMA_OVERLAY_PLANE_DATA sopd;
 
    /*int it;
@@ -654,6 +655,14 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       XYZ = (float *)nel->vec[0];
       for (i=0; i < nel->vec_len; ++i) SO->NodeList[i] = XYZ[i];
 
+      /* must recompute normals */
+      if (SO->NodeNormList) SUMA_free(SO->NodeNormList); SO->NodeNormList = NULL;
+      if (SO->FaceNormList) SUMA_free(SO->FaceNormList); SO->FaceNormList = NULL;
+      SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );
+      SO->NodeNormList = SN.NodeNormList;
+      SO->FaceNormList = SN.FaceNormList;
+      SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */
+      
       /* file a redisplay request */
       if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
       if (!list) list = SUMA_CreateList();
