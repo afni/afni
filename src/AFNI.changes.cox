@@ -5237,3 +5237,8 @@
 22 Oct 2004
  * Modifed thd_shear3d.c to use true SVD in computing the rotation for
      3dTagalign, rather than the symmetric eigensolution method.
+
+29 Oct 2004
+ * Modified 3dfim+.c to make Spearman and Quadrant CC bricks fico.
+ * Modified niml/niml_rowtype.c to auto-define VEC_basictype_len types
+     when first referenced.
