@@ -3565,3 +3565,9 @@
    * Modified program 3dbucket, so that if there is more than one input 
      dataset, it will copy the command line history from the first input
      to the output bucket dataset.
+
+15 Mar 2002
+ * Modified imseq.c ISQ_show_zoom() function to discard old zoomed image if
+     the pixmap had to be re-created.
+ * Modified mri_dup.c to do 4x RGB gray pixels separately.  Not clear if this
+     is really worth it, but it's in there now.
