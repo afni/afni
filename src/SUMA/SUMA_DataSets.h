@@ -16,7 +16,14 @@
                                        can use it, one hopes*/
 typedef enum { NOPE, YUP} SUMA_Boolean;
 
-typedef enum { SUMA_notypeset = -1, SUMA_byte, SUMA_int, SUMA_float, SUMA_double, SUMA_string} SUMA_VARTYPE;
+typedef enum { SUMA_notypeset = -1, 
+               SUMA_byte = NI_BYTE, 
+               SUMA_short = NI_SHORT, 
+               SUMA_int = NI_INT, 
+               SUMA_float = NI_FLOAT32, 
+               SUMA_double = NI_FLOAT64, 
+               SUMA_complex = NI_COMPLEX64,
+               SUMA_string = NI_STRING} SUMA_VARTYPE;
 
 /*! filename and path */
 typedef struct {
@@ -91,7 +98,8 @@ typedef enum {
    SUMA_NODE_Gb,      /*!< Node G color in bytes*/
    SUMA_NODE_Bb,      /*!< Node B color in bytes*/
    SUMA_NODE_Ab,      /*!< Node A value in bytes*/ 
-   SUMA_NODE_STRING   /*!< Generic String */
+   SUMA_NODE_STRING,   /*!< Generic String */
+   SUMA_NODE_SHORT      /*!< Generic short */
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr
@@ -461,6 +469,7 @@ char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);
 SUMA_DSET_TYPE SUMA_Dset_Type (char *Name);
 char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp);
 SUMA_COL_TYPE SUMA_Col_Type (char *Name);
+SUMA_COL_TYPE SUMA_TypeOfColNumb(NI_element *nel, int ind) ;
 SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp); 
 int SUMA_ShowNel (NI_element *nel);
 int SUMA_AddNelCol ( NI_element *nel, char *col_label,
