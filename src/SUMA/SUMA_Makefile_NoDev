@@ -51,6 +51,11 @@ install:
 	mv suma ${INSTALLDIR_SUMA}
 	mv MakeColorMap ${INSTALLDIR_SUMA} 
 	
-all: libSUMA.a suma MakeColorMap install
+packobjs:
+	${CP} ../libmri.a ../librickr.a ./
+	tar -cf $(SUMA_BIN_ARCHIVE) suma MakeColorMap libSUMA.a libmri.a librickr.a	
+	${RM} libmri.a librickr.a
+	
+all: libSUMA.a suma MakeColorMap packobjs install 
 
-anew: clean libSUMA.a suma MakeColorMap install
+anew: clean libSUMA.a suma MakeColorMap packobjs install 
