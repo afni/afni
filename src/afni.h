@@ -363,7 +363,8 @@ typedef struct {
 typedef struct {
       Widget wtop , rowcol , top_lab , done_pb ;
       int nrow , nall ;
-      Widget *surf_rc , *surf_lab ;
+      Widget *surf_rc ;
+      MCW_bbox **surf_bbox ;                       /* 19 Feb 2003 */
       MCW_arrowval **surf_node_av, **surf_line_av ;
 } AFNI_surface_widgets ;
 

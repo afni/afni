@@ -1784,19 +1784,26 @@ STATUS("get status") ;
 
       if( swid != NULL && ks < swid->nrow ){     /* 19 Aug 2002: the new way */
         int cc ;                                 /*           to set colors: */
-        cc = swid->surf_node_av[ks]->ival ;      /* from the surface widgets */
-        skip_boxes = (cc == 0) ;
-        if( !skip_boxes ){
-          rr_box = DCOV_REDBYTE(im3d->dc,cc)   / 255.0 ;
-          gg_box = DCOV_GREENBYTE(im3d->dc,cc) / 255.0 ;
-          bb_box = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
-        }
-        cc = swid->surf_line_av[ks]->ival ;
-        skip_lines = (cc == 0) ;
-        if( !skip_lines ){
-          rr_lin = DCOV_REDBYTE(im3d->dc,cc)   / 255.0 ;
-          gg_lin = DCOV_GREENBYTE(im3d->dc,cc) / 255.0 ;
-          bb_lin = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
+                                                 /* from the surface widgets */
+
+        cc = MCW_val_bbox(swid->surf_bbox[ks]) ; /* 19 Feb 2003: skip it all? */
+        if( cc == 0 ){
+          skip_boxes = skip_lines = 1 ;
+        } else {                                 /* see what is turned on */
+          cc = swid->surf_node_av[ks]->ival ;
+          skip_boxes = (cc == 0) ;
+          if( !skip_boxes ){
+            rr_box = DCOV_REDBYTE(im3d->dc,cc)   / 255.0 ;
+            gg_box = DCOV_GREENBYTE(im3d->dc,cc) / 255.0 ;
+            bb_box = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
+          }
+          cc = swid->surf_line_av[ks]->ival ;
+          skip_lines = (cc == 0) ;
+          if( !skip_lines ){
+            rr_lin = DCOV_REDBYTE(im3d->dc,cc)   / 255.0 ;
+            gg_lin = DCOV_GREENBYTE(im3d->dc,cc) / 255.0 ;
+            bb_lin = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
+          }
         }
 
       } else {                                   /* the old way    */
