@@ -2108,8 +2108,8 @@ MRI_IMARR * mri_read_analyze75( char * hname )
 
    switch( hdr.dime.datatype ){
       default:
-         fprintf(stderr,"*** %s: Unknown ANALYZE datatype=%d\n",
-                 hname,hdr.dime.datatype) ;
+         fprintf(stderr,"*** %s: Unknown ANALYZE datatype=%d (%s)\n",
+                 hname,hdr.dime.datatype,ANDT_string(hdr.dime.datatype) ) ;
       return NULL ;
 
       case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ;               break;
@@ -2289,8 +2289,8 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
 
    switch( hdr.dime.datatype ){
       default:
-         fprintf(stderr,"*** %s: Unknown ANALYZE datatype=%d\n",
-                 hname,hdr.dime.datatype) ;
+         fprintf(stderr,"*** %s: Unknown ANALYZE datatype=%d (%s)\n",
+                 hname,hdr.dime.datatype,ANDT_string(hdr.dime.datatype) ) ;
       return NULL ;
 
       case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ;               break;

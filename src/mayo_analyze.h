@@ -123,6 +123,17 @@ struct dsr
 #define ANDT_RGB            128  /* RGB triple (24 bits/voxel)   */
 #define ANDT_ALL            255
 
+#define ANDT_string(aa)                     \
+ ((aa)==ANDT_BINARY        ? "binary"       \
+ :(aa)==ANDT_UNSIGNED_CHAR ? "byte"         \
+ :(aa)==ANDT_SIGNED_SHORT  ? "short"        \
+ :(aa)==ANDT_SIGNED_INT    ? "int"          \
+ :(aa)==ANDT_FLOAT         ? "float"        \
+ :(aa)==ANDT_COMPLEX       ? "complex"      \
+ :(aa)==ANDT_DOUBLE        ? "double"       \
+ :(aa)==ANDT_RGB           ? "RGB"          \
+ :                           "unknown" )
+
 /***************************************************************************
 The header format is flexible and can be extended for new user-defined data
 types. The essential structures of the header are the header_key and the
@@ -140,7 +151,7 @@ The image_dimension substructure describes the organization and size of the
 images. These elements enable the database to reference images by volume and
 slice number. Explanation of each element follows:
 
-     short int dim[]; = array of the image dimensions 
+     short int dim[]; = array of the image dimensions
           dim[0]      = Number of dimensions in database; usually 4
           dim[1]      = Image X dimension; number of pixels in an image row
           dim[2]      = Image Y dimension; number of pixel rows in slice
@@ -151,12 +162,12 @@ slice number. Explanation of each element follows:
                                voxel
           char cal_units[4] = specifies the name of the calibration unit
 
-         short int datatype = datatype for this image set 
+         short int datatype = datatype for this image set
                                Acceptable values for datatype are one of
                                the ANDT_* defines above
 
          short int bitpix   = number of bits per pixel; 1, 8, 16, 32, 64
-         short int dim_un0  = unused 
+         short int dim_un0  = unused
 
          float pixdim[]     = Parallel array to dim[], giving real world
                                measurements in mm and ms.

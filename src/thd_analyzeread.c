@@ -156,8 +156,8 @@ ENTRY("THD_open_analyze") ;
 
    switch( hdr.dime.datatype ){
       default:
-         fprintf(stderr,"*** %s: Unsupported ANALYZE datatype=%d\n",
-                 hname,hdr.dime.datatype) ;
+         fprintf(stderr,"*** %s: Unsupported ANALYZE datatype=%d (%s)\n",
+                 hname,hdr.dime.datatype,ANDT_string(hdr.dime.datatype) ) ;
       RETURN( NULL );
 
       case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ; break;
