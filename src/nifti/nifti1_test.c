@@ -90,11 +90,11 @@ int main( int argc , char *argv[] )
    /* if no output prefix, dump the image to the screen */
    if( iarg >= argc ){ nifti_image_infodump(nim); exit(0); }
 
-   if( debug > 0 ){
+   if( debug > 1 ){
       if( nim->fname )
-         fprintf(stderr,"-d freeing header filename '%s'\n",nim->fname);
+         fprintf(stderr,"nift1_test: free header filename '%s'\n",nim->fname);
       if( nim->iname )
-         fprintf(stderr,"-d freeing image filename '%s'\n",nim->iname);
+         fprintf(stderr,"nift1_test: free image filename '%s'\n",nim->iname);
    }
 
    nim->nifti_type = outmode ;
