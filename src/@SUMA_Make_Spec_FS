@@ -306,7 +306,7 @@ L_SET_SURF_DIRS:
 
     # decide whether we need to make surf/SUMA directory
 
-    set suma_dir = $start_dir/SUMA
+    set suma_dir = ./SUMA
 
     if ( -d $suma_dir ) then
 	if ( $debug ) echo "-- $suma_dir already exists, continuing..."
@@ -425,7 +425,7 @@ L_CONVERT_SURFACES:
 	    endif
 	endif
 
-	\mv -f $surf.asc $suma_dir	# how barbaric!
+	\mv -f $surf.asc $start_dir/$suma_dir	# how barbaric!
 
 	if ( $status ) then
 	    set endstr = ( "failure: cannot write"	\
@@ -550,7 +550,7 @@ L_CREATE_BRICK:
 	     -zSLAB 127.5P-A $cor_files
     endif
 
-    mv $afni_dataset.HEAD $afni_dataset.BRIK $suma_dir
+    mv $afni_dataset.HEAD $afni_dataset.BRIK $start_dir/$suma_dir
 
     echo "++ created AFNI file '$suma_dir/$afni_dataset.HEAD'"
     echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
