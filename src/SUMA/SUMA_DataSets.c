@@ -747,7 +747,7 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
 char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold)
 {
    static char FuncName[]={"SUMA_HistString"}; 
-   char *stmp=NULL, *sold=NULL;
+   char *stmp=NULL;
    int N_tot, i;
    
    SUMA_ENTRY;
@@ -1374,6 +1374,7 @@ void * SUMA_GetCx(char *idcode_str, DList *DsetList, int ReturnDsetPointer)
 int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node)
 {
    static char FuncName[]={"SUMA_GetNodeIndex_FromNodeRow"};
+   static int WarnCount;
    int Found = -1, i, *NodeDef=NULL;
    double dval=0.0;
    char *str=NULL;
@@ -1394,11 +1395,16 @@ int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node)
                   "Bad logic!");
       SUMA_RETURN(-1);
    } 
+   
+   #if 0 
+   /*(DO NOT DELETE)*/
+   /* This would fail if data are not ordered such that row(i) is the data for node i */
    /* try the fast one */
    SUMA_LH("Trying the fast one");
    if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
       SUMA_RETURN(row);
    }
+   #endif
    
    SUMA_LH("Trying the slow mo");
    /* does this dset have a column index ? */
@@ -1413,6 +1419,17 @@ int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node)
          SUMA_RETURN(NodeDef[row]);
       }
    } 
+   
+   /* last resort, assume that data are ordered properly (see commented out section above)*/
+   if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
+      if (!(WarnCount % 25 - 1)) {
+         SUMA_SLP_Warn( "Assuming ith row of data\n"
+                     "corresponds to node i.\n"
+                     "You'll get trash if this is not true.\n"
+                     "This warning is shown intermittently.");
+      } ++ WarnCount; 
+      SUMA_RETURN(row);
+   }
       
    SUMA_SL_Err("No way to get column index.");
       
@@ -1432,6 +1449,7 @@ int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node)
 int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
 {
    static char FuncName[]={"SUMA_GetNodeRow_FromNodeIndex"};
+   static int WarnCount;
    int Found = -1, i, *NodeDef=NULL;
    double dval=0.0;
    char *str=NULL;
@@ -1440,11 +1458,15 @@ int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
    
    SUMA_ENTRY;
       
+   #if 0
+   /* DO NOT DELETE, SEE BELOW */
    /* try the fast one */
+   /* This would fail if data are not ordered such that row(i) is the data for node i */
    SUMA_LH("Trying the fast one");
    if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
       SUMA_RETURN(node);
    }
+   #endif
    
    SUMA_LH("Trying the slow mo");
    /* does this dset have a column index ? */
@@ -1465,6 +1487,17 @@ int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
       }
    } else {
       SUMA_LH("No Col. Index found");
+   }
+   
+   /* last resort, assume that data are ordered properly (see commented out section above)*/
+   if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
+      if (!(WarnCount % 25 - 1)) {
+         SUMA_SLP_Warn( "Assuming ith row of data\n"
+                     "corresponds to node i.\n"
+                     "You'll get trash if this is not true.\n"
+                     "This warning is shown intermittently.");
+      } ++ WarnCount;       
+      SUMA_RETURN(node);
    }
       
    /* bad news lews, this node is not in this Dset */ 
