@@ -3858,7 +3858,7 @@ STATUS("making prog->rowcol") ;
          "dialog" , xmLabelWidgetClass , imag->popmenu ,
             LABEL_ARG("   bkgd =xxxxxx") ,
             XmNalignment , XmALIGNMENT_BEGINNING ,
-            XmNrecomputeSize , False ,
+            XmNrecomputeSize , True ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;

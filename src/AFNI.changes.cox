@@ -4335,3 +4335,5 @@
 21 Feb 2003
  * Modified imseq.c to use "-bpp 24" in ppmtobmp output to BMP files, avoiding
      quantization problems.
+ * Modified afni.c to add a "#NodeID" string to the Button-3 image viewer popup,
+     when a surface is present.
