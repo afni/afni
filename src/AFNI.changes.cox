@@ -4171,3 +4171,6 @@
 24 Dec 2002
  * Modified mri_read_dicom.c to save Siemens extra info string even if
      file isn't a mosaic.
+
+27 Dec 2002
+ * Modified 3dttest.c to save DOF dataset if -unpooled is used.

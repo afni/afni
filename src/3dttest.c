@@ -35,6 +35,8 @@ static char TT_label[THD_MAX_LABEL]   = "\0" ;
 
 static int TT_datum = ILLEGAL_TYPE ;
 
+static char TT_dof_prefix[THD_MAX_PREFIX] = "\0" ;  /* 27 Dec 2002 */
+
 /*--------------------------- prototypes ---------------------------*/
 void TT_read_opts( int , char ** ) ;
 void TT_syntax(char *) ;
@@ -154,6 +156,16 @@ DUMP2 ;
          nopt++ ; continue ;  /* skip to next arg */
       }
 
+      /** -dof_prefix **/
+
+      if( strncmp(argv[nopt],"-dof_prefix",6) == 0 ){  /* 27 Dec 2002 */
+DUMP2 ;
+         nopt++ ;
+         if( nopt >= argc ) TT_syntax("need argument after -dof_prefix!") ;
+         MCW_strncpy( TT_dof_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
+         continue ;
+      }
+
 #ifdef USE_PTHRESH
       /** -pthresh pval **/
 
@@ -259,6 +271,9 @@ DUMP2 ;
    if( TT_pooled == 0 && TT_use_bval == 1 )
       TT_syntax("-base1 and -unpooled are mutually exclusive!") ;
 
+   if( TT_pooled == 1 && TT_dof_prefix[0] != '\0' )  /* 27 Dec 2002 */
+      fprintf(stderr,"** WARNING: -dof_prefix is used only with -unpooled!\n");
+
 #ifdef TTDEBUG
 printf("*** finished with options\n") ;
 #endif
@@ -321,7 +336,20 @@ void TT_syntax(char * msg)
     "                         This only makes sense if -paired is NOT given.\n"
     "                   N.B.: If this option is used, the number of degrees\n"
     "                         of freedom per voxel is a variable, rather\n"
-    "                         than a constant.  NOT RECOMMENDED.\n"
+    "                         than a constant.\n"
+    "  -dof_prefix ddd    = If '-unpooled' is also used, then a dataset with\n"
+    "                         prefix 'ddd' will be created that contains the\n"
+    "                         degrees of freedom (DOF) in each voxel.\n"
+    "                         You can convert the t-value in the -prefix\n"
+    "                         dataset to a z-score using the -dof_prefix dataset\n"
+    "                         using commands like so:\n"
+    "           3dcalc -a 'pname+orig[1]' -b ddd+orig \\\n"
+    "                  -datum float -prefix ddd_zz -expr 'fitt_t2z(a,b)'\n"
+    "           3drefit -substatpar 0 fizt ddd_zz+orig\n"
+    "                         At present, AFNI is incapable of directly dealing\n"
+    "                         with datasets whose DOF parameter varies between\n"
+    "                         voxels.  Converting to a z-score (with no parameters)\n"
+    "                         is one way of getting around this difficulty.\n"
 #ifdef USE_PTHRESH
     "  -pthresh pval      = 'pval' is a probability level (i.e., from 0 to 1)\n"
     "                         at which to threshold the output, per voxel.\n"
@@ -402,6 +430,9 @@ int main( int argc , char * argv[] )
    int   output_datum ;
    int   piece_size ;
    float npiece , memuse ;
+
+   float *dofbrik=NULL , *dofar=NULL ;
+   THD_3dim_dataset *dof_dset=NULL ;
 
    /*-- read command line arguments --*/
 
@@ -548,9 +579,41 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
    vdif = (void *)  malloc( mri_datum_size(output_datum) * nxyz ) ; MTEST(vdif) ;
    tsp  = (short *) malloc( sizeof(short) * nxyz )                ; MTEST(tsp)  ;
 
+   /* 27 Dec 2002: make DOF dataset (if prefix is given, and unpooled is on) */
+
+   if( TT_pooled == 0 && TT_dof_prefix[0] != '\0' ){
+     dofbrik = (float *) malloc( sizeof(float) * nxyz ) ; MTEST(dofbrik) ;
+
+     dof_dset = EDIT_empty_copy( new_dset ) ;
+
+     tross_Make_History( "3dttest" , argc,argv , dof_dset ) ;
+
+     EDIT_dset_items( dof_dset ,
+                       ADN_prefix , TT_dof_prefix ,
+                       ADN_directory_name , TT_session ,
+                       ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE,
+                       ADN_func_type , FUNC_BUCK_TYPE ,
+                       ADN_nvals , 1 ,
+                       ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+
+     if( THD_is_file(dof_dset->dblk->diskptr->header_name) ){
+        fprintf(stderr,
+                "*** -dof_prefix dataset file %s already exists--cannot continue!\a\n",
+                dof_dset->dblk->diskptr->header_name ) ;
+        exit(1) ;
+     }
+
+     EDIT_substitute_brick( dof_dset , 0 , MRI_float , dofbrik ) ;
+   }
+
+   /* print out memory usage to edify the user */
+
    if( ! TT_be_quiet ){
       memuse =    sizeof(float) * piece_size * npiece
               + ( mri_datum_size(output_datum) + sizeof(short) ) * nxyz ;
+
+      if( dofbrik != NULL ) memuse += sizeof(float) * nxyz ;  /* 27 Dec 2002 */
 
       printf("--- allocated %d Megabytes memory for internal use\n",(int)(memuse/MEGA)) ;
    }
@@ -572,7 +635,7 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
       num1_inv = 1.0 / num1 ;  num1m1_inv = 1.0 / (num1-1) ;
    }
 
-   /*----- loop over pieces to process the input dataset with -----*/
+   /*----- loop over pieces to process the input datasets with -----*/
 
 /** macro to open a dataset and make it ready for processing **/
 
@@ -612,7 +675,7 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
 
    num_piece = (nxyz + piece_size - 1) / piece_size ;
 
-   nice(5) ;  /** lower priority a little **/
+   nice(2) ;  /** lower priority a little **/
 
    for( piece=0 ; piece < num_piece ; piece++ ){
 
@@ -822,20 +885,28 @@ printf(" ** pooled test: num_tt = %d\n",num_tt) ;
 #endif
 
       } else { /** case 3: unpaired 2-sample, unpooled variance **/
+               /** 27 Dec 2002: modified to save DOF into dofar **/
+
+         if( dofbrik != NULL ) dofar = dofbrik + fim_offset ;  /* 27 Dec 2002 */
 
          for( ii=0 ; ii < piece_len ; ii++ ){
             dd = av2[ii] - av1[ii]          ; DIFASS ;
             q1 = num1_inv * sd1[ii]*sd1[ii] ;
             q2 = num2_inv * sd2[ii]*sd2[ii] ;
-            if( q1>0.0 && q2>0.0 ){
+            if( q1>0.0 && q2>0.0 ){               /* have positive variances? */
                num_tt++ ;
                tt       = dd / sqrt(q1+q2) ;
                tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
                                       : (tt<-TOP_TT) ? (-TOP_SS)
                                                      : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
                tt = fabs(tt) ; if( tt > tt_max ) tt_max = tt ;
+
+               if( dofar != NULL )                             /* 27 Dec 2002 */
+                 dofar[ii] =  (q1+q2)*(q1+q2)
+                            / (num1m1_inv*q1*q1 + num2m1_inv*q2*q2) ;
             } else {
                tsar[ii] = 0 ;
+               if( dofar != NULL ) dofar[ii] = 1.0 ;           /* 27 Dec 2002 */
             }
          }
 
@@ -885,6 +956,12 @@ printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
 
    THD_load_statistics( new_dset ) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+
+   if( dof_dset != NULL ){                                  /* 27 Dec 2002 */
+     printf("--- Writing unpooled DOF dataset into %s\n",
+            dof_dset->dblk->diskptr->header_name) ;
+     DSET_write( dof_dset ) ;
+   }
 
    exit(0) ;
 }
