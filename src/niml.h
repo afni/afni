@@ -280,6 +280,8 @@ extern void   NI_swap2( int, void * ) ;
 extern void   NI_swap4( int, void * ) ;
 extern void   NI_swap8( int, void * ) ;
 
+extern char * NI_mktemp( char * ) ;  /* 21 Aug 2002 */
+
 extern char * NI_type_name( int ) ;
 extern int    NI_type_size( int ) ;
 

@@ -3922,3 +3922,5 @@
  * Modified niml.c to add NI_mktemp(), and change use of /dev/urandom.
  * Modified machdep.c to change use of mallopt() for Linux - seems to
      make big malloc()'s work better (?).
+ * Modified thd_fetchdset.c to use niml.c functions, instead of the
+     older thd_http.c functions.
