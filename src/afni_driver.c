@@ -27,6 +27,8 @@ static int AFNI_drive_close_graph_1D( char *cmd ) ;
 static int AFNI_drive_clear_graph_1D( char *cmd ) ;
 static int AFNI_drive_addto_graph_1D( char *cmd ) ;
 
+static int AFNI_drive_geom_graph    ( char *cmd ) ; /* 16 Nov 2001 */
+
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
   Return value is 0 if good, -1 if bad.
@@ -57,6 +59,8 @@ static AFNI_driver_pair dpair[] = {
  { "CLOSE_GRAPH_1D"   , AFNI_drive_close_graph_1D    } ,
  { "CLEAR_GRAPH_1D"   , AFNI_drive_clear_graph_1D    } ,
  { "ADDTO_GRAPH_1D"   , AFNI_drive_addto_graph_1D    } ,
+
+ { "SET_GRAPH_GEOM"   , AFNI_drive_geom_graph        } ,
 
  { "QUIT"             , AFNI_drive_quit              } ,
 
@@ -602,13 +606,14 @@ static void freeup_strings( int n , char **sar )
   (*stok)[i] is the i-th string.
 ----------------------------------------------------------------------------*/
 
-#define QUOTE '"'
+#define DQUOT '"'
+#define SQUOT '\''
 #define NUL   '\0'
 
 static int breakup_string( char *sin , char ***stok )
 {
    int n_tok , quote , ll ;
-   char **s_tok , *cpt , *sss ;
+   char **s_tok , *cpt , *sss , qch=NUL ;
 
    if( stok == NULL || sin == NULL || sin[0] == NUL ) return -1 ;
 
@@ -626,14 +631,18 @@ static int breakup_string( char *sin , char ***stok )
 
       /* if starts with a quote, note that factoid */
 
-      quote = 0 ;
-      if( *cpt == QUOTE ){ quote=1 ; cpt++; if( *cpt == NUL ) break; }
+      if( *cpt == SQUOT || *cpt == DQUOT ){
+         quote = 1 ; qch = *cpt ; cpt++ ;   /* qch = quote character */
+         if( *cpt == NUL ) break ;
+      } else {
+        quote = 0 ;
+      }
 
       /* scan until end of sub-string */
 
       sss = cpt ;    /* start of sub-string */
       if( quote ){
-         while( *cpt != NUL && *cpt != QUOTE  ) cpt++ ;  /* scan to next quote */
+         while( *cpt != NUL && *cpt != qch    ) cpt++ ;  /* scan to next quote */
       } else {
          while( *cpt != NUL && !isspace(*cpt) ) cpt++ ;  /* to next non-blank */
       }
@@ -754,6 +763,48 @@ static void kill_graph_xy( MEM_topshell_data * mp )
    if( mp->userdata != NULL ) free(mp->userdata) ;
 
    free( Graph_xy_list[ii] ) ; Graph_xy_list[ii] = NULL ; return ;
+}
+
+/*--------------------------------------------------------------------------
+  SET_GRAPH_GEOM gname geom=something
+----------------------------------------------------------------------------*/
+
+static int AFNI_drive_geom_graph( char *cmd )
+{
+   int ntok , ig ;
+   char **stok=NULL ;
+   char *gname , *cpt ;
+   Graph_xy *gxy ;
+   int gww=-1,ghh=-1,gxx=-1,gyy=-1 ;
+
+ENTRY("AFNI_drive_geom_graph") ;
+
+   /* tokenize the command string */
+
+   ntok = breakup_string( cmd , &stok ) ;
+   if( ntok <= 0 || stok == NULL ) RETURN(-1) ;
+
+   /* check if this graph name is already in use */
+
+   ig = find_graph_xy_name( stok[0] ) ;
+   freeup_strings(ntok,stok) ;
+   if( ig < 0 || Graph_xy_list[ig]->mp == NULL ) RETURN(-1) ;
+   gxy = Graph_xy_list[ig] ;
+
+   cpt = strstr(cmd,"geom=") ;
+   if( cpt == NULL || strlen(cpt) < 7 ) RETURN(-1) ;
+
+   AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
+
+   ig = -1 ;
+   if( gxx >= 0 && gyy >= 0 ){
+     XtVaSetValues( gxy->mp->top , XmNx,gxx    , XmNy,gyy     , NULL ); ig=0;
+   }
+   if( gww > 0 && ghh > 0 ){
+     XtVaSetValues( gxy->mp->top , XmNwidth,gww, XmNheight,ghh, NULL ); ig=0;
+   }
+
+   RETURN(ig) ;
 }
 
 /*--------------------------------------------------------------------------

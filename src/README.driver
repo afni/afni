@@ -7,8 +7,9 @@ command line of the form
   DRIVE_AFNI command arguments ...
 
 to AFNI (once the plugout connection is open, of course).  The commands
-available are described below.  The sample plugout plugout_drive.c
-can be used to test things.
+available are described below.  The sample plugout plugout_drive.c can
+be used to test how things work (highly recommended before you start
+writing your own code).
 
 RESCAN_THIS [c]
   rescans the current session directory for controller 'c', where 'c'
@@ -47,7 +48,54 @@ CLOSE_WINDOW [c].windowname
 QUIT
   AFNI will exit immediately.
 
- -------------------------
+============
+** GRAPHS **
+============
+The following commands are used to open graph windows and manipulate them.
+At present there are two similar kinds of graphs:
+
+  XY = connected (x,y) pairs - you must supply (x,y) for each new point
+  1D = x increments by 1 each time, so you only give y for each new point;
+       when x overflows past the right boundary, it wraps back to x=0.
+
+Each graph can have multiple sub-graphs, which are stacked up vertically
+with separate y axes and a common x axis (sub-graph #1 at the bottom, etc.).
+
+Label strings in the graphs are interpreted in a TeX-like fashion.  In
+particular, an underscore means to start a subscript and a circumflex means
+to start a superscript.  Subscript or superscripts that are more than one
+character long can be grouped using curly {braces}.
+
+Greek letters and other special characters can be included using TeX-like
+escapes. For example, "time (\Delta t=0.1)" might be a good label for the
+x-axis of a 1D graph.  The full list of such escapes is
+
+  \Plus      \Cross      \Diamond        \Box
+  \FDiamond  \FBox       \FPlus          \FCross    \Burst    \Octagon
+  \alpha     \beta       \gamma          \delta     \epsilon  \zeta
+  \eta       \theta      \iota           \kappa     \lambda   \mu
+  \nu        \xi         \omicron        \pi        \rho      \sigma
+  \tau       \upsilon    \phi            \chi       \psi      \omega
+  \Alpha     \Beta       \Gamma          \Delta     \Epsilon  \Zeta
+  \Eta       \Theta      \Iota           \Kappa     \Lambda   \Mu
+  \Nu        \Xi         \Omicron        \Pi        \Rho      \Sigma
+  \Tau       \Upsilon    \Phi            \Chi       \Psi      \Omega
+  \propto    \int        \times          \div       \approx   \partial
+  \cap       \langle     \rangle         \ddagger   \pm
+  \leq       \S          \hbar           \lambar
+  \cup       \degree     \nabla          \downarrow
+  \leftarrow \rightarrow \leftrightarrow \oint
+  \in        \notin      \surd           \cents
+  \bar       \exists     \geq            \forall
+  \subset    \oplus      \otimes         \dagger
+  \neq       \supset     \infty          \uparrow
+  \{         \}          \\              \_         \?
+
+All characters are drawn with line strokes from an internal font; standard
+fonts (e.g., Helvetica) are not available.  If you want classier looking
+graphs, find another program.
+
+--------------------------
 
 OPEN_GRAPH_XY gname toplab xbot xtop xlab ny ybot ytop ylab nam_1 .. nam_ny
   This opens a graph window for graphing non-MRI data.  Each graph window
@@ -60,13 +108,14 @@ OPEN_GRAPH_XY gname toplab xbot xtop xlab ny ybot ytop ylab nam_1 .. nam_ny
     ny     = number of sub-graphs (all share same x-axis) [1]
     ybot   = numerical minimum of y-axis in graph         [0]
     ytop   = numerical maximum of y-axis in graph         [1]
+    ylab   = string to graph to left of y-axis            [empty]
     nam_1  = name to plot at right of sub-graph 1, etc.   [not plotted]
   Arguments are separated by spaces.  If a label has a space in it, you can
-  put the label inside "double quote characters".  If you don't want a particular
-  label plotted, make it the empty string "".  If you don't want names plotted
-  at the right of sub-graphs, stop the arguments at ylab.  Only the gname
-  argument is strictly required - the other arguments have default values,
-  which are given in [brackets] above.
+  put the label inside "double" or 'single' quote characters.  If you don't
+  want a particular label plotted, make it the empty string "" or ''.  If you
+  don't want names plotted at the right of sub-graphs, stop the arguments at
+  ylab.  Only the gname argument is strictly required - the other arguments
+  have default values, which are given in [brackets] above.
 
 CLOSE_GRAPH_XY gname
   Closes the graph window with the given name.
@@ -80,12 +129,21 @@ ADDTO_GRAPH_xy gname x y_1 y_2 .. y_ny [repeat]
   of points on the line, subject to the limitation that a plugout command
   line cannot contain more than 64 Kbytes.
 
- -------------------------
+--------------------------
 
 OPEN_GRAPH_1D gname toplab nx dx xlab ny ybot ytop ylab nam_1 .. nam_ny
   Opens a graph window that is set up to plot nx points across with spacing dx,
   in ny separate sub-graphs.  When the graph is full, the graph recycles back
-  to the beginning.
+  to the beginning.  The meaning and [default] values of parameters are:
+    toplab = string to graph at top of graph              [empty]
+    nx     = number of points along the x-axis            [500]
+    dx     = spacing between x-axis points                [1]
+    xlab   = string to graph below x-axis                 [empty]
+    ny     = number of sub-graphs (all share same x-axis) [1]
+    ybot   = numerical minimum of y-axis in graph         [0]
+    ytop   = numerical maximum of y-axis in graph         [1]
+    ylab   = string to graph to left of y-axis            [empty]
+    nam_1  = name to plot at right of sub-graph 1, etc.   [not plotted]
 
 CLOSE_GRAPH_1D gname
   Closes the graph window with the given name.
@@ -99,3 +157,12 @@ ADDTO_GRAPH_1D gname y_1 y_2 .. y_ny [repeat]
   plugout command line cannot contain more than 64 Kbytes.  Also, if you
   put more than nx sets of values, only the first nx will be plotted, since
   that will fill up the graph through one full cycle.
+
+--------------------------
+
+SET_GRAPH_GEOM gname geom=X-geometry-string
+  This lets you move/resize a graph (1D or XY).  X-geometry-string is one
+  of the forms:
+    300x100         = set window size to 300 pixels wide, 100 high
+    +50+90          = set window location to 50 pixels across, 90 down
+    300x100+50+90   = set window size and location at the same time

@@ -3325,3 +3325,9 @@
  * Added plot_strip.c to coxplot/, for doing timeseries plots with
      recyling back to the left when the graph is full.
  * Added OPEN_GRAPH_1D (etc.) to afni_driver.c.
+ * Added cutoff() to afni_plugout.c when it closes a socket.
+
+16 Nov 2001
+ * Modified coxplot/plot_strip.c to add an X at the end of each
+      evolving graph.
+ * Modified afni_driver.c to have command SET_GRAPH_GEOM.
