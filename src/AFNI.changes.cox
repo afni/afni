@@ -4192,13 +4192,17 @@
  * Modified niml/niml_rowtype.c to deal with String type and debugged
      stuff with output of var dim arrays.
 
-02 Jan 2002
+02 Jan 2003
  * Added a error message to mcw_malloc.c to note when an allocation fails.
 
-10 Jan 2002
+10 Jan 2003
  * Modified edt_blur.c to clip output to input range.
 
 13 Jan 2002
  * Modified Makefile.solaris28_gcc on hador system - plugins would no longer
      load.  Use of GNU ld instead of UCB ld fixes this, but for unknown
      reasons.  Evil spirits?
+
+15 Jan 2003
+ * Modified afni.c to let user set SUMA line thickness via environment
+     variable.  Also changed afni_pplug_env.c to match.
