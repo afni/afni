@@ -3958,7 +3958,7 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
    dbrick = bar = (char*)XtMalloc( dsize * nx * ny * nz ) ;
    nvoxt  = nx * ny * nz ;
 
-#ifdef AFNI_DEBUG
+#if 0
 printf("T3D_read_images: first file (%s) has nx=%d ny=%d #im=%d\n",
        gname[0],nx,ny,arr->num) ;
 #endif
@@ -4008,8 +4008,8 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
 
          im = arr->imarr[kim] ;
          if( im->nx != nx || im->ny != ny ){
-            fprintf(stderr,"*** file %s has nonconforming images!\n",
-                   gname[lf] ) ;
+            fprintf(stderr,"*** file %s has nonconforming images: first=%dx%d this=%dx%d\n",
+                   gname[lf] , nx,ny , im->nx,im->ny) ;
             exit(1) ;
          }
 
