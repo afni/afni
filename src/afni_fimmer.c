@@ -2000,7 +2000,7 @@ STATUS("loading statistics") ;
       AFNI_reset_func_range( im3d ) ;
       AFNI_set_thr_pval( im3d ) ;
 
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+      AFNI_redisplay_func( im3d ) ;  /* 05 Mar 2002 */
    }
 
    EXRETURN ;

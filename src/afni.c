@@ -4441,6 +4441,14 @@ ENTRY("AFNI_ijk_lock_change_CB") ;
 
 /*------------------------------------------------------------------------*/
 
+void AFNI_redisplay_func( Three_D_View * im3d )  /* 05 Mar 2002 */
+{
+   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   AFNI_process_funcdisplay( im3d ) ;
+}
+
+/*------------------------------------------------------------------------*/
+
 void AFNI_set_viewpoint( Three_D_View * im3d ,
                          int xx,int yy,int zz , int redisplay_option )
 {
@@ -4651,6 +4659,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    /** Mar 1999: do it in an external routine, not here.  **/
 
    if( new_xyz ) AFNI_process_viewpoint( im3d ) ;
+   else          AFNI_process_redisplay( im3d ) ;
 
    if( new_xyz && im3d->vwid->imag->pop_whereami_twin != NULL ){
 

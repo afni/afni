@@ -262,6 +262,10 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
       only_ovc->ncol_ov     = 1 ;
 
       only_ovc->bright_ov[0] = 0.0 ;  /* 20 Dec 1999 */
+
+      dc->ovc->r_ov[0] = 0 ;          /* 04 Mar 2002 */
+      dc->ovc->g_ov[0] = 0 ;
+      dc->ovc->b_ov[0] = 0 ;
    }
 
    for( ii=0 ; ii < novr ; ii++ ){

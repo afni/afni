@@ -6636,6 +6636,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
            nout = NI_stream_write( ns , att , strlen(att) ) ;
            ADDOUT ;
 
+#if 0
            /* extras: ni_veclen and ni_vecnum attributes */
 
            sprintf(att," ni_veclen=\"%d\"",nel->vec_len) ;
@@ -6645,6 +6646,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
            sprintf(att," ni_vecnum=\"%d\"",nel->vec_num) ;
            nout = NI_stream_write( ns , att , strlen(att) ) ;
            ADDOUT ;
+#endif
          }
 
          /* ni_delta */
