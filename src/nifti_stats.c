@@ -1,26 +1,46 @@
 
-/*************************************************************************/
-/**  Functions to compute cumulative distributions and their inverses   **/
-/**  for the NIfTI-1 statistical type.  Much of this code is taken      **/
-/**  from other sources.  In particular, the cdflib functions by        **/
-/**  Brown and Lovato make up the bulk of this file.  That code         **/
-/**  was placed in the public domain.  The code by K. Krishnamoorthy is **/
-/**  also released for unrestricted use.  Finally, the other parts      **/
-/**  of this file by RW Cox are released to the public domain.          **/
-/**                                                                     **/
-/**  Most of this file comprises a set of "static" functions, to be     **/
-/*-  called by the user-level functions at the very end of the file.    **/
-/*************************************************************************/
+ /************************************************************************/
+ /**  Functions to compute cumulative distributions and their inverses  **/
+ /**  for the NIfTI-1 statistical types.  Much of this code is taken    **/
+ /**  from other sources.  In particular, the cdflib functions by       **/
+ /**  Brown and Lovato make up the bulk of this file.  That code        **/
+ /**  was placed in the public domain.  The code by K. Krishnamoorthy   **/
+ /**  is also released for unrestricted use.  Finally, the other parts  **/
+ /**  of this file (by RW Cox) are released to the public domain.       **/
+ /**                                                                    **/
+ /**  Most of this file comprises a set of "static" functions, to be    **/
+ /**  called by the user-level functions at the very end of the file.   **/
+ /**  At the end of the file is a simple main program to drive these    **/
+ /**  functions.                                                        **/
+ /**                                                                    **/
+ /**  To find the user-level functions, search forward for the string   **/
+ /**  "nifti_", which will be at about line 11000.                      **/
+ /************************************************************************/
+ /*****==============================================================*****/
+ /***** Neither the National Institutes of Health (NIH), the DFWG,   *****/
+ /***** nor any of the members or employees of these institutions    *****/
+ /***** imply any warranty of usefulness of this material for any    *****/
+ /***** purpose, and do not assume any liability for damages,        *****/
+ /***** incidental or otherwise, caused by any use of this document. *****/
+ /***** If these conditions are not acceptable, do not use this!     *****/
+ /*****==============================================================*****/
+ /************************************************************************/
+
+ /*.......................................................................
+    To compile with gcc, for example:
+
+    gcc -O3 -ffast-math -o nifti_stats nifti_stats.c -lm
+ ........................................................................*/
 
 #include "nifti1.h"   /* for the NIFTI_INTENT_* constants */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
-/*************************************************************************/
-/************* Include all the cdflib functions here and now *************/
-/*************     [about 9900 lines of code below here]     *************/
-/*************************************************************************/
+ /************************************************************************/
+ /************ Include all the cdflib functions here and now *************/
+ /************     [about 9900 lines of code below here]     *************/
+ /************************************************************************/
 
 /** Prototypes for cdflib functions **/
 
@@ -6216,7 +6236,7 @@ static unsigned long qbdd,qcond,qdum1,qdum2,qincr,qlim,qok,qup;
 DINVR:
     if(*status > 0) goto S310;
     qcond = !qxmon(small,*x,big);
-    if(qcond) ftnstop(" SMALL, X, BIG not monotone in INVR");
+    if(qcond){ ftnstop("SMALL,X,BIG nonmonotone in E0000"); *status=-1; return;}
     xsave = *x;
 /*
      See that SMALL and BIG bound the zero and set QINCR
@@ -6598,7 +6618,7 @@ static double dlanor,approx,correc,xx,xx2,T2;
      .. Executable Statements ..
 */
     xx = fabs(*x);
-    if(xx < 5.0e0) ftnstop(" Argument too small in DLANOR");
+    if(xx < 5.0e0){ ftnstop("Argument too small in DLANOR"); return 66.6; }
     approx = -dlsqpi-0.5e0*xx*xx-log(xx);
     xx2 = xx*xx;
     T2 = 1.0e0/xx2;
@@ -6989,7 +7009,7 @@ static double dstrem,sterl,T2;
             0.347320283765002252252252252252D12
             -0.123696021422692744542517103493D14
 */
-    if(*z <= 0.0e0) ftnstop("Zero or negative argument in DSTREM");
+    if(*z <= 0.0e0){ ftnstop("nonpositive argument in DSTREM"); return 66.6; }
     if(!(*z > 6.0e0)) goto S10;
     T2 = 1.0e0/pow(*z,2.0);
     dstrem = devlpl(coef,&K1,&T2)**z;
@@ -9469,8 +9489,8 @@ Prints msg to standard error and then exits
 ************************************************************************/
 /* msg - error message */
 {
-  if (msg != NULL) fprintf(stderr,"%s\n",msg);
-  exit(1);
+  if (msg != NULL) fprintf(stderr,"*** CDFLIB ERROR: %s\n",msg);
+  /** exit(1); **/  /** RWCox - DON'T EXIT */
 } /* END */
 
 /***=====================================================================***/
@@ -9903,33 +9923,21 @@ static int outval ;
 }
 
 /*************************************************************************/
-/************************ End of cdflib inclusion ************************/
 /*************************************************************************/
-
+/************************ End of cdflib inclusion ************************/
 /*************************************************************************/
 /*************************************************************************/
 
 /*-----------------------------------------------------------------------*/
 typedef struct { double p,q ; } pqpair ;  /* for returning p=cdf q=1-cdf */
 /*-----------------------------------------------------------------------*/
+#undef  BIGG
+#define BIGG 9.99e+37                     /* a really big number (duh)   */
+/*-----------------------------------------------------------------------*/
 
 /*************************************************************************/
 /******** Internal functions for various statistical computations ********/
 /*************************************************************************/
-
-/*--------------------------------------------------------------------*/
-/*!   Given qq, return x such that Q(x)=qq, for 0 < qq < 1,
-      where Q(x) = 1-P(x) = reversed cdf of N(0,1) variable.
-----------------------------------------------------------------------*/
-
-static double Qginv( double qq )
-{
-   double p , q ;
-
-   if( qq <= 0.0          ) return  99.99 ;
-   if( qq >= 0.9999999999 ) return -99.99 ;
-   p = 1.0-qq ; q = qq ; return dinvnr(&p,&q) ;
-}
 
 /*---------------------------------------------------------------
   F statistic
@@ -9942,7 +9950,7 @@ static double fstat_pq2s( pqpair pq , double dofnum , double dofden )
 
    which  = 2 ;
    p      = pq.p ; if( p <= 0.0 ) return 0.0 ;
-   q      = pq.q ; if( q <= 0.0 ) return 9999.99 ;
+   q      = pq.q ; if( q <= 0.0 ) return BIGG ;
    f      = 0.0 ;
    dfn    = dofnum ;
    dfd    = dofden ;
@@ -9981,7 +9989,7 @@ static double fnonc_pq2s( pqpair pq , double dofnum , double dofden , double non
 
    which  = 2 ;
    p      = pq.p ;   if( p <= 0.0 ) return 0.0 ;
-   q      = pq.q ;   if( q <= 0.0 ) return 9999.99 ;
+   q      = pq.q ;   if( q <= 0.0 ) return BIGG ;
    f      = 0.0 ;
    dfn    = dofnum ;
    dfd    = dofden ;
@@ -10030,8 +10038,8 @@ static double normal_pq2s( pqpair pq )
 {
    double p=pq.p , q=pq.q ;
 
-   if( p <= 0.0 ) return -99.99 ;
-   if( q <= 0.0 ) return  99.99 ;
+   if( p <= 0.0 ) return -BIGG ;
+   if( q <= 0.0 ) return  BIGG ;
    return dinvnr( &p,&q ) ;
 }
 
@@ -10063,8 +10071,8 @@ static double chisq_pq2s( pqpair pq , double dof )
    double p,q,x,df,bound ;
 
    which  = 2 ;
-   p      = pq.p ; if( p <= 0.0 ) return    0.0 ;
-   q      = pq.q ; if( q <= 0.0 ) return 9999.9 ;
+   p      = pq.p ; if( p <= 0.0 ) return  0.0 ;
+   q      = pq.q ; if( q <= 0.0 ) return BIGG ;
    x      = 0.0 ;
    df     = dof ;
 
@@ -10101,8 +10109,8 @@ static double chsqnonc_pq2s( pqpair pq , double dof , double nonc )
    double p,q,x,df,bound , pnonc ;
 
    which  = 2 ;
-   p      = pq.p ; if( p <= 0.0 ) return    0.0 ;
-   q      = pq.q ; if( q <= 0.0 ) return 9999.9 ;
+   p      = pq.p ; if( p <= 0.0 ) return  0.0 ;
+   q      = pq.q ; if( q <= 0.0 ) return BIGG ;
    x      = 0.0 ;
    df     = dof ;
    pnonc  = nonc ;
@@ -10170,7 +10178,7 @@ static pqpair binomial_s2pq( double ss , double ntrial , double ptrial )
    s      = ss ;            if( s  <  0.0 ) return pq ;
    xn     = ntrial ;        if( xn <= 0.0 ) return pq ;
    pr     = ptrial ;        if( pr <  0.0 ) return pq ;
-   ompr   = 1.0l - ptrial ;
+   ompr   = 1.0 - ptrial ;
 
    cdfbin( &which , &p , &q , &s , &xn , &pr , &ompr , &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -10189,7 +10197,7 @@ static double binomial_pq2s( pqpair pq , double ntrial , double ptrial )
    s      = 0.0 ;
    xn     = ntrial ;
    pr     = ptrial ;
-   ompr   = 1.0l - ptrial ;
+   ompr   = 1.0 - ptrial ;
 
    cdfbin( &which , &p , &q , &s , &xn , &pr , &ompr , &status , &bound ) ;
    return s ;
@@ -10224,8 +10232,8 @@ static double gamma_pq2s( pqpair pq , double sh , double sc )
    double p,q, x,shape,scale,bound ;
 
    which  = 2 ;
-   p      = pq.p ; if( p <= 0.0 ) return    0.0 ;
-   q      = pq.q ; if( q <= 0.0 ) return 9999.9 ;
+   p      = pq.p ; if( p <= 0.0 ) return  0.0 ;
+   q      = pq.q ; if( q <= 0.0 ) return BIGG ;
    x      = 0.0 ;
    shape  = sh ;
    scale  = sc ;
@@ -10366,8 +10374,8 @@ static pqpair logistic_s2pq( double xx )  /* this isn't hard, either */
 
 static double logistic_pq2s( pqpair pq )
 {
-        if( pq.p <= 0.0 ) return -99.99 ;
-   else if( pq.q <= 0.0 ) return  99.99 ;
+        if( pq.p <= 0.0 ) return -BIGG ;
+   else if( pq.q <= 0.0 ) return  BIGG ;
 
    if( pq.p < pq.q ) return -log(1.0/pq.p-1.0) ;
    else              return  log(1.0/pq.q-1.0) ;
@@ -10390,15 +10398,15 @@ static pqpair laplace_s2pq( double xx )  /* easy */
 
 static double laplace_pq2s( pqpair pq )
 {
-        if( pq.p <= 0.0 ) return -99.9 ;
-   else if( pq.q <= 0.0 ) return  99.9 ;
+        if( pq.p <= 0.0 ) return -BIGG ;
+   else if( pq.q <= 0.0 ) return  BIGG ;
 
    if( pq.p < pq.q ) return  log(2.0*pq.p) ;
    else              return -log(2.0*pq.q) ;
 }
 
 /*----------------------------------------------------------------
-   noncentral T distribution = hard
+   noncentral T distribution = hard calculation
 ------------------------------------------------------------------*/
 
 /****************************************************************************
@@ -10629,7 +10637,7 @@ L1:
    rempois = rempois - pkf ;
 
    if( i > k ){
-     if( error <= 1.e-12 || i >= 1000 ) goto L2 ;
+     if( error <= 1.e-12 || i >= 9999 ) goto L2 ;
      goto L1 ;
    } else {
      pgamb = pgamb*(a-i+1.0)/(y*(a+b-i)) ;
@@ -10643,7 +10651,7 @@ L1:
      term =  ptermb + delosq2*qtermb ;
      sum = sum + term  ;
      rempois = rempois - pkb ;
-     if (rempois <= 1.e-12 || i >= 1000) goto L2 ;
+     if (rempois <= 1.e-12 || i >= 9999) goto L2 ;
      goto L1 ;
    }
 L2:
@@ -10657,10 +10665,76 @@ L2:
 }
 
 /*------------------------------*/
+/* Inverse to above function;
+   uses cdflib dstinv()/dinvr()
+   to solve the equation.
+--------------------------------*/
 
 static double tnonc_pq2s( pqpair pq , double dof , double nonc )
 {
-   return 0.0 ;   /*** NOT IMPLEMENTED ***/
+   double t ;  /* will be result */
+   double tbot,ttop , dt ;
+   double T6=1.e-50,T7=1.e-8 ;
+   double K4=0.5,K5=5.0 ;
+   double fx ;
+   unsigned long qhi,qleft ;
+   int status , qporq , ite ;
+   pqpair tpq ;
+
+   if( dof  <= 0.0 ) return  BIGG ;  /* bad user */
+   if( pq.p <= 0.0 ) return -BIGG ;
+   if( pq.q <= 0.0 ) return  BIGG ;
+
+   t = student_pq2s(pq,dof) ;   /* initial guess */
+
+   if( fabs(nonc) < 1.e-8 ) return t ;
+
+   t += 0.5*nonc ;  /* adjust up or down */
+
+   dt = 0.1 * fabs(t) ; if( dt < 1.0 ) dt = 1.0 ;  /* stepsize */
+
+   /* scan down for lower bound, below which cdf is < p */
+
+   tbot = t ;
+   for( ite=0 ; ite < 1000 ; ite++ ){
+     tpq = tnonc_s2pq( tbot , dof , nonc ) ;
+     if( tpq.p <= pq.p ) break ;
+     tbot -= dt ;
+   }
+   if( ite >= 1000 ) return -BIGG ;
+
+   /* scan up for upper bound, above which cdf is > p */
+
+   ttop = tbot+0.5*dt ;
+   for( ite=0 ; ite < 1000 ; ite++ ){
+     tpq = tnonc_s2pq( ttop , dof , nonc ) ;
+     if( tpq.p >= pq.p ) break ;
+     ttop += dt ;
+   }
+   if( ite >= 1000 ) return BIGG ;
+
+   t = 0.5*(tbot+ttop) ;  /* initial guess in middle */
+
+   /* initialize searching parameters */
+
+   dstinv(&tbot,&ttop,&K4,&K4,&K5,&T6,&T7);
+
+   status = 0 ; qporq = (pq.p <= pq.q) ;
+
+   while(1){
+
+     dinvr(&status,&t,&fx,&qleft,&qhi) ;
+
+     if( status != 1 ) return t ;  /* done! */
+
+     tpq = tnonc_s2pq( t , dof , nonc ) ;  /* get cdf */
+
+     /* goal of dinvr is to drive fx to zero */
+
+     fx = (qporq) ? pq.p-tpq.p : pq.q-tpq.q ;
+   }
+
+   return BIGG ;  /* unreachable */
 }
 
 /*----------------------------------------------------------------
@@ -10679,6 +10753,8 @@ static pqpair chi_s2pq( double xx , double dof )
 
 static double chi_pq2s( pqpair pq , double dof )
 {
+   if( pq.p <= 0.0 ) return  0.0 ;
+   if( pq.q <= 0.0 ) return BIGG ;
    return sqrt(chisq_pq2s(pq,dof)) ;
 }
 
@@ -10702,8 +10778,8 @@ static pqpair extval1_s2pq( double x )
 
 static double extval1_pq2s( pqpair pq )
 {
-        if( pq.p <= 0.0 ) return -99.9 ;
-   else if( pq.p >= 1.0 ) return  99.9 ;
+        if( pq.p <= 0.0 ) return -BIGG ;
+   else if( pq.p >= 1.0 ) return  BIGG ;
    return -log(-log(pq.p)) ;
 }
 
@@ -10728,8 +10804,8 @@ static pqpair weibull_s2pq( double x , double c )
 
 static double weibull_pq2s( pqpair pq , double c )
 {
-        if( pq.p <= 0.0 || c <= 0.0 ) return   0.0 ;
-   else if( pq.q <= 0.0             ) return 999.9 ;
+        if( pq.p <= 0.0 || c <= 0.0 ) return  0.0 ;
+   else if( pq.q <= 0.0             ) return BIGG ;
    return pow( -log(pq.q) , 1.0/c ) ;
 }
 
@@ -10754,10 +10830,68 @@ static pqpair invgauss_s2pq( double x, double c )
 }
 
 /*------------------------------*/
+/* Inverse to above function;
+   uses cdflib dstinv()/dinvr()
+   to solve the equation.
+--------------------------------*/
 
 static double invgauss_pq2s( pqpair pq , double c )
 {
-   return 0.0 ;  /** NOT IMPLEMENTED **/
+   double t ;  /* will be result */
+   double tbot,ttop , dt ;
+   double T6=1.e-50,T7=1.e-8 ;
+   double K4=0.5,K5=5.0 ;
+   double fx ;
+   unsigned long qhi,qleft ;
+   int status , qporq , ite ;
+   pqpair tpq ;
+
+   if( c    <= 0.0 ) return  BIGG ;  /* bad user */
+   if( pq.p <= 0.0 ) return   0.0 ;
+   if( pq.q <= 0.0 ) return  BIGG ;
+
+   /* initial guess is t=1; scan down for lower bound */
+
+   tbot = 1.01 ; dt = 0.9 ;
+   for( ite=0 ; ite < 1000 ; ite++ ){
+     tpq = invgauss_s2pq( tbot , c ) ;
+     if( tpq.p <= pq.p ) break ;
+     tbot *= dt ;
+   }
+   if( ite >= 1000 ) return 0.0 ;
+
+   /* scan up for upper bound */
+
+   dt = 1.1 ; ttop = tbot*dt ;
+   for( ite=0 ; ite < 1000 ; ite++ ){
+     tpq = invgauss_s2pq( ttop , c ) ;
+     if( tpq.p >= pq.p ) break ;
+     ttop *= dt ;
+   }
+   if( ite >= 1000 ) return BIGG ;
+
+   t = sqrt(tbot*ttop) ; /* start at geometric mean */
+
+   /* initialize searching parameters */
+
+   dstinv(&tbot,&ttop,&K4,&K4,&K5,&T6,&T7);
+
+   status = 0 ; qporq = (pq.p <= pq.q) ;
+
+   while(1){
+
+     dinvr(&status,&t,&fx,&qleft,&qhi) ;
+
+     if( status != 1 ) return t ;  /* done! */
+
+     tpq = invgauss_s2pq( t , c ) ;
+
+     /* goal is to drive fx to zero */
+
+     fx = (qporq) ? pq.p-tpq.p : pq.q-tpq.q ;
+   }
+
+   return BIGG ;  /* unreachable */
 }
 
 /*--------------------------------------------------------------------------*/
@@ -10811,7 +10945,7 @@ static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
 
      /* this case is trivial */
 
-     case NIFTI_INTENT_PVAL:       pq.p = 1.0l-val ; pq.q = val       ; break;
+     case NIFTI_INTENT_PVAL:       pq.p = 1.0-val ; pq.q = val        ; break;
    }
 
    return pq ;
@@ -10819,13 +10953,13 @@ static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
 
 /*--------------------------------------------------------------------------*/
 /*! Given a pq value (cdf and 1-cdf), compute the value that gives this.
-    If an error occurs, you'll probably get back 9999.99.
+    If an error occurs, you'll probably get back a BIGG number.
     All the actual work is done in utility functions for each distribution.
 ----------------------------------------------------------------------------*/
 
 static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
 {
-   double val=9999.99 ;
+   double val=BIGG ;
 
    if( pq.p < 0.0 || pq.q < 0.0 || pq.p > 1.0 || pq.q > 1.0 ) return val ;
 
@@ -10848,7 +10982,7 @@ static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
      /* these distributions are shifted and scaled copies of a standard case */
 
      case NIFTI_INTENT_INVGAUSS:
-        if( p1 > 0.0 && p2 > 0.0 ) val = invgauss_pq2s      ( pq,p2/p1); break;
+        if( p1 > 0.0 && p2 > 0.0 ) val = p1*invgauss_pq2s   ( pq,p2/p1); break;
 
      case NIFTI_INTENT_WEIBULL:
         if( p2 > 0.0 && p3 > 0.0 ) val = p1+p2*weibull_pq2s ( pq, p3 ) ; break;
@@ -10921,12 +11055,11 @@ static char *inam[]={ NULL , NULL ,
 
 #include <ctype.h>
 #include <string.h>
+
 /*--------------------------------------------------------------------------*/
 /*! Given a string name for a statistic, return its integer code.
     Returns -1 if not found.
 ----------------------------------------------------------------------------*/
-
-
 
 int nifti_intent_code( char *name )
 {
@@ -10984,7 +11117,7 @@ double nifti_stat2rcdf( double val, int code, double p1,double p2,double p3 )
      - code     = NIFTI_INTENT_* statistical code
      - p1,p2,p3 = parameters of the distribution
 
-  If an error transpires, you'll probably get back 9999.9.
+  If an error transpires, you'll probably get back a BIGG number.
 ----------------------------------------------------------------------------*/
 
 double nifti_cdf2stat( double p , int code, double p1,double p2,double p3 )
@@ -11000,7 +11133,7 @@ double nifti_cdf2stat( double p , int code, double p1,double p2,double p3 )
      - code     = NIFTI_INTENT_* statistical code
      - p1,p2,p3 = parameters of the distribution
 
-  If an error transpires, you'll probably get back 9999.9.
+  If an error transpires, you'll probably get back a BIGG number.
 ----------------------------------------------------------------------------*/
 
 double nifti_rcdf2stat( double q , int code, double p1,double p2,double p3 )
@@ -11011,50 +11144,131 @@ double nifti_rcdf2stat( double q , int code, double p1,double p2,double p3 )
 }
 
 /*--------------------------------------------------------------------------*/
-/* Sample program to test the above functions.
+/*! Given a statistic, compute a z-score from it.  That is, the output
+    is z such that cdf(z) of a N(0,1) variable is the same as the cdf
+    of the given distribution at val.
+----------------------------------------------------------------------------*/
+
+double nifti_stat2zscore( double val , int code, double p1,double p2,double p3 )
+{
+   pqpair pq ;
+
+   if( code == NIFTI_INTENT_ZSCORE ) return val ;           /* trivial */
+   if( code == NIFTI_INTENT_NORMAL ) return (val-p1)/p2 ;   /* almost so */
+
+   pq = stat2pq( val, code, p1,p2,p3 ) ;                    /* find cdf */
+   return normal_pq2s( pq ) ;                               /* find z  */
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Given a statistic, compute a half-z-score from it.  That is, the output
+    is z such that cdf(z) of a half-N(0,1) variable is the same as the cdf
+    of the given distribution at val.  A half-N(0,1) variable has density
+    zero for z < 0 and twice the usual N(0,1) density for z > 0.
+----------------------------------------------------------------------------*/
+
+double nifti_stat2hzscore( double val, int code, double p1,double p2,double p3 )
+{
+   pqpair pq ;
+
+   pq = stat2pq( val, code, p1,p2,p3 ) ;                    /* find cdf */
+   pq.q = 0.5*(1.0-pq.p) ; pq.p = 0.5*(1.0+pq.p) ;          /* mangle it */
+   return normal_pq2s( pq ) ;                               /* find z  */
+}
+
+/****************************************************************************/
+/*[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]*/
+/****************************************************************************/
+
+/*--------------------------------------------------------------------------*/
+/* Sample program to test the above functions.  Otherwise unimportant.
 ----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
    double val , p , q , p1=0.0,p2=0.0,p3=0.0 ;
    double vbot,vtop,vdel ;
-   int code , iarg=1 , doq=0 , dod=0 ;
+   int code , iarg=1 , doq=0 , dod=0 , doi=0 , doz=0 , doh=0 ;
 
-   if( argc < 3 ){
+   /*-- print some help for the pitiful user --*/
+
+   if( argc < 3 || strstr(argv[1],"help") != NULL ){
     int ii ;
-    printf("Usage: nifti_stats [-q|-d] val CODE [p1 p2 p3]\n") ;
-    printf(" val can be a single number or in the form bot:top:step\n") ;
+    printf("\n") ;
+    printf("Demo program for computing NIfTI statistical functions.\n") ;
+    printf("Usage: nifti_stats [-q|-d|-1|-z] val CODE [p1 p2 p3]\n") ;
+    printf(" val can be a single number or in the form bot:top:step.\n") ;
+    printf(" default ==> output p = Prob(statistic < val).\n") ;
+    printf("  -q     ==> output is 1-p.\n") ;
+    printf("  -d     ==> output is density.\n") ;
+    printf("  -1     ==> output is x such that Prob(statistic < x) = val.\n") ;
+    printf("  -z     ==> output is z such that Normal cdf(z) = p(val).\n") ;
+    printf("  -h     ==> output is z such that 1/2-Normal cdf(z) = p(val).\n");
     printf(" Allowable CODEs:\n") ;
     for( ii=NIFTI_FIRST_STATCODE ; ii <= NIFTI_LAST_STATCODE ; ii++ ){
      printf("  %-10s",inam[ii]); if((ii-NIFTI_FIRST_STATCODE)%6==5)printf("\n");
     }
-    printf("\n"); exit(0);
+    printf("\n") ;
+    printf(" Following CODE are distributional parameters, as needed.\n");
+    printf("\n") ;
+    printf("Results are written to stdout, 1 number per output line.\n") ;
+    printf("Example (piping output into AFNI program 1dplot):\n") ;
+    printf(" nifti_stats -d 0:4:.001 INVGAUSS 1 3 | 1dplot -dx 0.001 -stdin\n");
+    printf("\n") ;
+    printf("Author - RW Cox - SSCC/NIMH/NIH/DHHS/USA/EARTH - March 2004\n") ;
+    printf("\n") ;
+    exit(0) ;
    }
+
+   /*-- check first arg to see if it is an output option;
+        if so, set the appropriate output flag to determine what to compute --*/
 
         if( strcmp(argv[iarg],"-q") == 0 ){ doq = 1 ; iarg++ ; }
    else if( strcmp(argv[iarg],"-d") == 0 ){ dod = 1 ; iarg++ ; }
+   else if( strcmp(argv[iarg],"-1") == 0 ){ doi = 1 ; iarg++ ; }
+   else if( strcmp(argv[iarg],"-z") == 0 ){ doz = 1 ; iarg++ ; }
+   else if( strcmp(argv[iarg],"-h") == 0 ){ doh = 1 ; iarg++ ; }
+
+   /*-- get the value(s) to process --*/
 
    vbot=vtop=vdel = 0.0 ;
    sscanf( argv[iarg++] , "%lf:%lf:%lf" , &vbot,&vtop,&vdel ) ;
    if( vbot >= vtop ) vdel = 0.0 ;
    if( vdel <= 0.0  ) vtop = vbot ;
 
+   /*-- decode the CODE into the integer signifying the distribution --*/
+
    code = nifti_intent_code(argv[iarg++]) ;
      if( code < 0 ){ fprintf(stderr,"illegal code=%s\n",argv[iarg-1]); exit(1); }
+
+   /*-- get the parameters, if present (defaults are 0) --*/
+
    if( argc > iarg ) p1 = strtod(argv[iarg++],NULL) ;
    if( argc > iarg ) p2 = strtod(argv[iarg++],NULL) ;
    if( argc > iarg ) p3 = strtod(argv[iarg++],NULL) ;
 
+   /*-- loop over input value(s), compute output, write to stdout --*/
+
    for( val=vbot ; val <= vtop ; val += vdel ){
-     if( doq )
+     if( doq )                                        /* output = 1-cdf */
        p = nifti_stat2rcdf( val , code,p1,p2,p3 ) ;
-     else if( dod )
+     else if( dod )                                   /* output = density */
        p = 1000.0*( nifti_stat2cdf(val+.001,code,p1,p2,p3)
                    -nifti_stat2cdf(val     ,code,p1,p2,p3)) ;
-     else
-       p = nifti_stat2cdf ( val , code,p1,p2,p3 ) ;
+     else if( doi )                                   /* output = inverse */
+       p = nifti_cdf2stat( val , code,p1,p2,p3 ) ;
+     else if( doz )                                   /* output = z score */
+       p = nifti_stat2zscore( val , code,p1,p2,p3 ) ;
+     else if( doh )                                   /* output = halfz score */
+       p = nifti_stat2hzscore( val , code,p1,p2,p3 ) ;
+     else                                              /* output = cdf */
+       p = nifti_stat2cdf( val , code,p1,p2,p3 ) ;
+
      printf("%.9g\n",p) ;
-     if( vdel <= 0.0 ) break ;
+     if( vdel <= 0.0 ) break ;  /* the case of just 1 value */
    }
+
+   /*-- terminus est --*/
+
    exit(0) ;
 }

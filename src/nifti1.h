@@ -510,11 +510,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
              NL Johnson, S Kotz, N Balakrishnan.                            */
     /*----------------------------------------------------------------------*/
 
-  /*! [C2, chap 32] Correlation coefficient R (3 params):
-       p1 = number of sample points
-       p2 = number of "fitting" regressors
-       p3 = number of "no interest" regressors
-      R/sqrt(1-R*R) is t-distributed with (p1-p2-p3) DOF. */
+  /*! [C2, chap 32] Correlation coefficient R (1 param):
+       p1 = degrees of freedom
+       R/sqrt(1-R*R) is t-distributed with p1 DOF. */
 
 #define NIFTI_INTENT_CORREL      2
 
