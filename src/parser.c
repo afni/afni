@@ -56,7 +56,7 @@ static doublereal c_b362 = 12.;
 	    integer *, ftnlen);
     static doublereal val_token__;
     extern integer last_nonblank__(char *, ftnlen);
-    static integer nf, n_code__[1024], n_func__[20], ntoken;
+    static integer nf, n_code__[2048], n_func__[40], ntoken;
     static char c_local__[10000];
     extern /* Subroutine */ int execute_(integer *, char *, ftnlen);
 #define c8_token__ ((char *)equiv_0)

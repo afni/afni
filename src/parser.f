@@ -21,7 +21,7 @@ C
 C  Compilation, evaluation, and function stacks.
 C
       INTEGER     NUM_CSTACK , NUM_FSTACK
-      PARAMETER ( NUM_CSTACK = 1024 , NUM_FSTACK = 20 )
+      PARAMETER ( NUM_CSTACK = 2048 , NUM_FSTACK = 40 )
 C
       INTEGER   N_CODE(NUM_CSTACK) , NCODE , NEXTCODE ,
      X          N_FUNC(NUM_FSTACK) , NFUNC
