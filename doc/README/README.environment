@@ -2018,9 +2018,23 @@ Variable: AFNI_X11_REDECORATE (editable)
 By default, AFNI tries to change some of the "decorations" (control buttons)
 on some of the windows it creates (e.g., removing resize handles).  If you
 don't want this to happen, set this variable to NO.  This variable only
-has effect on windows created AFTER it is set, so if you change this
+has an effect on windows created AFTER it is set, so if you change this
 interactively in the Edit Environment plugin, it will not affect existing
 windows.  Normally, you would want to set this in your .afnirc file.
+
+-------------------------------
+Variable: AFNI_IMAGE_SAVESQUARE
+-------------------------------
+YES/NO: Forces images (from the image view "Save" button) to be saved with
+square pixels, even if they are stored with nonsquare pixels.
+
+-------------------------------
+Variable: AFNI_BUCKET_LABELSIZE
+-------------------------------
+Sets the width of the "ULay", "OLay", and "Thr" menu choosers on the
+"Define Overlay" control panel.  The default value is 14 characters.
+If the width of your dataset sub-brick labels is more than 14, you may
+want to increase this.  The valid range of values is 4..32 (inclusive).
 
 =============================================
 | Robert W Cox, PhD                         |
