@@ -59,6 +59,10 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
          outbuf = THD_zzprintf(outbuf,"Byte Order:      %s" , MSB_FIRST_STRING) ;
       break ;
    }
+
+   if( THD_find_string_atr(dset->dblk,ATRNAME_BYTEORDER) == NULL ) /* 19 Sep 1999 */
+      outbuf = THD_zzprintf(outbuf," {assumed}") ;
+
    kv = mri_short_order() ;
    switch( kv ){
       case LSB_FIRST:
@@ -69,9 +73,13 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
       break ;
    }
 
+   /*-- keywords --*/
+
    cpt = DSET_KEYWORDS(dset) ;
    if( cpt != NULL && cpt[0] != '\0' )
       outbuf = THD_zzprintf(outbuf,"Keywords:        %s\n" , cpt ) ;
+
+   /*-- idcodes --*/
 
 #ifdef OMIT_DATASET_IDCODES
    if( strlen(dset->anat_parent_name) > 0 )
@@ -92,6 +100,8 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
    else if( strlen(dset->warp_parent_name) > 0 )
       outbuf = THD_zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
 #endif
+
+   /*-- tagset --*/
 
    if( dset->tagset != NULL && dset->tagset->num > 0 ){
       int ii , ns=0 ;

@@ -1666,3 +1666,9 @@
      3dFourier.c, 3dROIstats.c, 3dmaskave.c, 3dnvals.c, 3dproject.c, 3dttest.c.
  * Modified 3dclust.c to use -1dindex and -1tindex, as in 3dmerge.c
  * Modified 3dTcat.c to have options -rlt+ and -rlt++.
+
+19 Sep 1999:
+ * If dataset header doesn't have BYTEORDER attribute, thd_info.c now prints
+     "{assumed}" next to the reported byte order.
+ * Added hostname to History Note time stamp, so you can see what on what
+     machine a program was run.

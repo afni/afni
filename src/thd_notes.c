@@ -62,6 +62,17 @@ char * tross_datetime(void)
    return qh ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+#undef  NNAME
+#define NNAME 1025
+static char * tross_hostname(void)  /* 19 Sep 1999 */
+{
+   char * cn = malloc(NNAME) ;
+   gethostname( cn , NNAME ) ;
+   return cn ;
+}
+
 /*---------------------------------------------------------------------------
    Add a note after the last current note
 -----------------------------------------------------------------------------*/
@@ -256,22 +267,24 @@ void tross_Copy_History( THD_3dim_dataset * old_dset , THD_3dim_dataset * new_ds
 void tross_Append_History( THD_3dim_dataset *dset, char *cn )
 {
    ATR_string * hist ;
-   char * ch , * chold , * cdate ;
-   int ii , idate ;
+   char * ch , * chold , * cdate , * cname ;
+   int ii , idate , iname ;
 
    if( !ISVALID_DSET(dset) || cn == NULL || cn[0] == '\0' ) return ;
 
    hist = THD_find_string_atr(dset->dblk,"HISTORY_NOTE") ;
    cdate = tross_datetime() ; idate = strlen(cdate) ;
+   cname = tross_hostname() ; iname = strlen(cname) ;  /* 19 Sep 1999 */
 
    /*- add to the history -*/
 
    if( hist != NULL ){
 
       chold = tross_Expand_String(hist->ch) ; if( chold == NULL ) return ;
-      ii = strlen(chold) ; chold = realloc( chold , ii+idate+strlen(cn)+8 ) ;
+      ii = strlen(chold) ; chold = realloc( chold , ii+idate+iname+strlen(cn)+12 ) ;
       strcat(chold,"\n") ;
-      strcat(chold,"[") ; strcat(chold,cdate) ; strcat(chold,"] ") ;
+      strcat(chold,"[") ; strcat(chold,cname) ; strcat(chold,": ") ;
+                          strcat(chold,cdate) ; strcat(chold,"] ") ;
       strcat(chold,cn) ;
       ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); return; }
       THD_set_string_atr(dset->dblk, "HISTORY_NOTE", ch);
@@ -280,14 +293,14 @@ void tross_Append_History( THD_3dim_dataset *dset, char *cn )
    /*- create the history -*/
 
    } else {
-      chold = malloc( idate+strlen(cn)+8 ) ;
-      sprintf(chold,"[%s] %s",cdate,cn) ;
+      chold = malloc( idate+iname+strlen(cn)+12 ) ;
+      sprintf(chold,"[%s: %s] %s",cname,cdate,cn) ;
       ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); return; }
       THD_set_string_atr(dset->dblk, "HISTORY_NOTE", ch);
       free(ch) ; free(chold) ;
    }
 
-   free(cdate) ; return ;
+   free(cdate) ; free(cname) ; return ;
 }
 
 /*----------------------------------------------------------------------------
