@@ -4471,9 +4471,11 @@ static char * AFNI_image_help =
  "will open up the Disp/Mont/Save\n"
  "control panels, respectively.\n\n"
  "Shift+Button2: drag crop region\n\n"
- "q = close window (quit)\n"
+ "q = close window (=Done)\n"
  "z = zoom out  Z = zoom in\n"
- "p = toggle panning" ;
+ "p = panning mode on & off\n"
+ "> = forward 1 image\n"
+ "< = backward 1 image" ;
 
 static char * AFNI_arrowpad_help =
    "Click arrows to scroll crosshair position\n"

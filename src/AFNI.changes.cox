@@ -4095,3 +4095,7 @@
  * Added CTF SAM file input to thd_ctfread.c.
  * Modified 3dIntracranial.c to convert input dataset to shorts if it is
      stored as bytes.  The output will still be shorts.
+
+07 Dec 2002
+ * Modified imseq.c to change image number on '<' or '>' keys (like
+     the graph windows).

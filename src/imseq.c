@@ -751,15 +751,20 @@ if( PRINT_TRACING ){
    { float xxx = newseq->hactual , yyy = newseq->vactual ;
      float fff = (xxx*yyy)/(dc->width*dc->height) , ggg ;
 
+     /* modify if window too small for display */
+
      if( fff < minfrac ){
-       fff = sqrt(minfrac/fff) ; xxx *= fff ; yyy *= fff ; /* expand area */
-       fff = ggg = 1.0 ;
-       if( xxx >= 0.9*dc->width ) fff = 0.9*dc->width / xxx ; /* don't let */
-       if( yyy >= 0.9*dc->height) ggg = 0.9*dc->height/ yyy ; /* be too big */
-       fff = MIN(fff,ggg) ; xxx *= fff ; yyy *= fff ;
-       if( xxx < 1.0 || yyy < 1.0 ){                      /* weird result?? */
-           xxx = newseq->hactual ; yyy = newseq->vactual ; /* back to old way */
-       }
+       fff = sqrt(minfrac/fff); xxx *= fff; yyy *= fff;   /* expand area */
+     }
+
+     /* modify if window too big for display */
+
+     fff = ggg = 1.0 ;
+     if( xxx >= 0.9*dc->width ) fff = 0.9*dc->width / xxx; /* don't let  */
+     if( yyy >= 0.9*dc->height) ggg = 0.9*dc->height/ yyy; /* be too big */
+     fff = MIN(fff,ggg) ; xxx *= fff ; yyy *= fff ;
+     if( xxx < 1.0 || yyy < 1.0 ){                     /* weird result?? */
+       xxx = newseq->hactual ; yyy = newseq->vactual; /* back to old way */
      }
      xwide = (int) ( 0.49 + xxx / IMAGE_FRAC ) ;
      yhigh = (int) ( 0.49 + yyy / IMAGE_FRAC ) ;
@@ -3689,7 +3694,8 @@ ENTRY("ISQ_redisplay") ;
 }
 
 /*------------------------------------------------------------------------
-   set image number in an imseq
+   set image number in an imseq;
+   return value is 0 if this can't be done, 1 if things go OK
 --------------------------------------------------------------------------*/
 
 int ISQ_set_image_number( MCW_imseq * seq , int n )
@@ -3700,31 +3706,32 @@ ENTRY("ISQ_set_image_number") ;
 
    if( n < 0 || n >= seq->status->num_total ){
 
-      if( seq->status->num_total > 1 ){
-         XBell( seq->dc->display , 100 ) ;
-         fprintf(stderr,"\n*** ILLEGAL IMAGING:\n"
-                        " ISQ_set_image_number %d\n",n);
+     if( seq->status->num_total > 1 ){
+       XBell( seq->dc->display , 100 ) ;
+       fprintf(stderr,"\n*** ILLEGAL IMAGING:\n"
+                      " ISQ_set_image_number %d\n",n);
 
-         fprintf(stderr," status: num_total=%d num_series=%d\n",
-                 seq->status->num_total , seq->status->num_series ) ;
-      } else {
-         XmScaleSetValue( seq->wscale , 0 ) ;  /* 08 Aug 2001 */
-      }
+       fprintf(stderr," status: num_total=%d num_series=%d\n",
+               seq->status->num_total , seq->status->num_series ) ;
+     } else {
+       XmScaleSetValue( seq->wscale , 0 ) ;  /* 08 Aug 2001 */
+     }
 
-      RETURN(0) ;
+     RETURN(0) ;
    }
 
    if( seq->im_nr != n ){
-      seq->im_nr = n ;
-      XmScaleSetValue( seq->wscale , n ) ;  /* be sure to change scale */
+     XmScaleSetValue( seq->wscale , n ) ;  /* be sure to change scale */
 
-      if( seq->status->send_CB != NULL ){
-         ISQ_cbs cbs ;
-
-         cbs.reason = isqCR_newimage ;
-         cbs.nim    = seq->im_nr ;
-         seq->status->send_CB( seq , seq->getaux , &cbs ) ;
-      }
+     if( seq->status->send_CB != NULL ){
+       ISQ_cbs cbs ;
+       seq->im_nr = n ;
+       cbs.reason = isqCR_newimage ;
+       cbs.nim    = seq->im_nr ;
+       seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+     } else {
+       ISQ_redisplay( seq , n , isqDR_display ) ;  /* 07 Nov 2002 */
+     }
    }
    RETURN(1) ;
 }
@@ -4265,56 +4272,88 @@ DPR(" .. KeyPress") ;
          XLookupString( event , buf , 32 , &ks , NULL ) ;
          if( buf[0] == '\0' ) break ;                     /* nada */
 
-         /* 10 Mar 2002: quit if 'q' or 'Q' is pressed */
+         /* 07 Dec 2002: modified ad hoc series of if-s into a switch */
 
-         if( buf[0] == 'q' || buf[0] == 'Q' ){
-           ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ; break ;
-         }
+         switch( buf[0] ){
 
-         /* 05 Apr 2002: zoom out/in for 'z' or 'Z' */
+           /* 10 Mar 2002: quit if 'q' or 'Q' is pressed */
 
-         if( buf[0] == 'z' || buf[0] == 'Z' ){
-           int call=0 , zlev=seq->zoom_fac ;
-           if( buf[0] == 'z' && zlev > ZOOM_BOT ){
-             AV_assign_ival( seq->zoom_val_av , zlev-1 ) ; call = 1 ;
-           } else if( buf[0] == 'Z' && zlev < ZOOM_TOP ){
-             AV_assign_ival( seq->zoom_val_av , zlev+1 ) ; call = 1 ;
+           case 'q':
+           case 'Q':{
+             ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ;
+             EXRETURN ;
            }
-           if( call )
-             ISQ_zoom_av_CB( seq->zoom_val_av , (XtPointer)seq ) ;
-           else
-             XBell(seq->dc->display,100) ;
-           EXRETURN ;
-         }
+           break ;
 
-         /* and toggle panning with 'p' or 'P' */
+           /* 07 Dec 2002: scroll forward or backward
+                           using '<' or '>' keys (like graphs) */
 
-         if( buf[0] == 'p' || buf[0] == 'P' ){
-           if( seq->zoom_fac > 1 )
-             ISQ_zoom_pb_CB( seq->zoom_drag_pb , (XtPointer)seq , NULL ) ;
-           else
-             XBell(seq->dc->display,100) ;
-           EXRETURN ;
-         }
+           case '>':
+           case '<':{
+             int nn=seq->im_nr , nt=seq->status->num_total ;
+             if( nt > 1 ){
+               if( buf[0] == '<' ){ nn--; if( nn <  0 ) nn = nt-1; }
+               else               { nn++; if( nn >= nt) nn = 0   ; }
+               ISQ_set_image_number( seq , nn ) ;
+             }
+             EXRETURN ;
+           }
+           break ;
 
-         /* 17 Jun 2002: toggle cropping with 'c' or 'C' */
+           /* 05 Apr 2002: zoom out/in for 'z' or 'Z' */
 
-         if( buf[0] == 'c' || buf[0] == 'C' ){
-           ISQ_crop_pb_CB( seq->crop_drag_pb , (XtPointer)seq , NULL ) ;
-           EXRETURN ;
-         }
+           case 'z':
+           case 'Z':{
+             int call=0 , zlev=seq->zoom_fac ;
+             if( buf[0] == 'z' && zlev > ZOOM_BOT ){
+               AV_assign_ival( seq->zoom_val_av , zlev-1 ) ; call = 1 ;
+             } else if( buf[0] == 'Z' && zlev < ZOOM_TOP ){
+               AV_assign_ival( seq->zoom_val_av , zlev+1 ) ; call = 1 ;
+             }
+             if( call )
+               ISQ_zoom_av_CB( seq->zoom_val_av , (XtPointer)seq ) ;
+             else
+               XBell(seq->dc->display,100) ;
+             EXRETURN ;
+           }
+           break ;
 
-         /* 17 May 2002: do image fraction */
+           /* and toggle panning with 'p' or 'P' */
 
-         if( buf[0] == 'i' || buf[0] == 'I' ){
-           int iv = seq->arrow[NARR_FRAC]->ival ;
-           if( buf[0] == 'i' )
-             AV_assign_ival( seq->arrow[NARR_FRAC] , iv-1 ) ;
-           else if( buf[0] == 'I' )
-             AV_assign_ival( seq->arrow[NARR_FRAC] , iv+1 ) ;
-           ISQ_arrow_CB( seq->arrow[NARR_FRAC] , seq ) ;
-           EXRETURN ;
-         }
+           case 'P':
+           case 'p':{
+             if( seq->zoom_fac > 1 )
+               ISQ_zoom_pb_CB( seq->zoom_drag_pb , (XtPointer)seq , NULL ) ;
+             else
+               XBell(seq->dc->display,100) ;
+             EXRETURN ;
+           }
+           break ;
+
+           /* 17 Jun 2002: toggle cropping with 'c' or 'C' */
+
+           case 'c':
+           case 'C':{
+             ISQ_crop_pb_CB( seq->crop_drag_pb , (XtPointer)seq , NULL ) ;
+             EXRETURN ;
+           }
+           break ;
+
+           /* 17 May 2002: do image fraction */
+
+           case 'i':
+           case 'I':{
+             int iv = seq->arrow[NARR_FRAC]->ival ;
+             if( buf[0] == 'i' )
+               AV_assign_ival( seq->arrow[NARR_FRAC] , iv-1 ) ;
+             else if( buf[0] == 'I' )
+               AV_assign_ival( seq->arrow[NARR_FRAC] , iv+1 ) ;
+             ISQ_arrow_CB( seq->arrow[NARR_FRAC] , seq ) ;
+             EXRETURN ;
+           }
+           break ;
+
+         } /* end of switch on character typed */
 
          /* in special modes (record, Button2, zoom-pan) mode, this is bad */
 
@@ -4325,11 +4364,11 @@ DPR(" .. KeyPress") ;
          /* otherwise, notify the master, if we have one */
 
          if( w == seq->wimage && seq->status->send_CB != NULL ){
-            cbs.reason = isqCR_keypress ;
-            cbs.event  = ev ;
-            cbs.key    = buf[0] ;
-            cbs.nim    = seq->im_nr ;
-            seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+           cbs.reason = isqCR_keypress ;
+           cbs.event  = ev ;
+           cbs.key    = buf[0] ;
+           cbs.nim    = seq->im_nr ;
+           seq->status->send_CB( seq , seq->getaux , &cbs ) ;
          }
       }
       break ;  /* end of KeyPress */
