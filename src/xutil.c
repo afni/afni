@@ -371,7 +371,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
    /* create a popup shell with a label */
 
    wmsg = XtVaCreatePopupShell(
-             "menu" , xmDialogShellWidgetClass , wparent ,
+             "help" , xmDialogShellWidgetClass , wparent ,
                 XmNx , xpr ,
                 XmNy , ypr ,
                 XmNinitialResourcesPersistent , False ,
@@ -389,7 +389,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
       case MCW_CALLER_KILL:
 
          wlab = XtVaCreateManagedWidget(
-                  "menu" , xmLabelWidgetClass , wmsg ,
+                  "help" , xmLabelWidgetClass , wmsg ,
                      XtVaTypedArg,XmNlabelString,XmRString,msg,strlen(msg)+1,
                      XmNalignment , XmALIGNMENT_BEGINNING ,
                      XmNinitialResourcesPersistent , False ,
@@ -400,7 +400,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
       case MCW_USER_KILL:
 
          wlab = XtVaCreateManagedWidget(
-                  "menu" , xmPushButtonWidgetClass , wmsg ,
+                  "help" , xmPushButtonWidgetClass , wmsg ,
                      XtVaTypedArg,XmNlabelString,XmRString,msg,strlen(msg)+1,
                      XmNalignment , XmALIGNMENT_BEGINNING ,
                      XmNinitialResourcesPersistent , False ,

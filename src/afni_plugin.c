@@ -4046,6 +4046,7 @@ ENTRY("PLUGIN_seq_send_CB") ;
 
 #ifndef NO_FRIVOLITIES
       case isqCR_buttonpress:{
+         XButtonEvent *xev = (XButtonEvent *) cbs->event ;
 #define NBIRN 10
          static int nold=0 ;
          static char * birn[NBIRN] = { " \n** Don't DO That! **\n "                        ,
@@ -4095,10 +4096,40 @@ ENTRY("PLUGIN_seq_send_CB") ;
                                  " The Mercy on Thy People, Lord!\n"
                                } ;
 
-         if( !NO_frivolities && nold < NBIRN ){
-           MCW_popup_message( seq->wimage , birn[nold++] , MCW_USER_KILL ) ;
-         } else {
-           PLUTO_beep() ;
+#define NKLING 5
+         static int nkl=0 ;
+         static char *kling[NKLING] = {
+                                 " \n What is this talk of 'release'?\n"
+                                 " Klingons do not make software 'releases'.\n"
+                                 " Our software 'escapes', leaving a bloody trail of\n"
+                                 " designers and 'Quality Assurance' people in its wake.\n"        ,
+
+                                 " \n Debugging? Klingons do not debug.\n"
+                                 " Our software does not coddle the weak.\n"                       ,
+
+                                 " \n Klingon software does NOT have BUGS.\n"
+                                 " It has FEATURES, and those features are too\n"
+                                 " sophisticated for a Romulan pig like you to understand.\n"      ,
+
+                                 " \n Our users will know fear and cower before our software!\n"
+                                 " Ship it! Ship it and let them flee like the dogs they are!\n"  ,
+
+                                 " \n You question the worthiness of my code?\n"
+                                 " I should kill you where you stand!\n"
+                               } ;
+
+         if( xev == NULL || xev->button == Button1 ){
+           if( !NO_frivolities && nold < NBIRN ){
+             MCW_popup_message( seq->wimage , birn[nold++] , MCW_USER_KILL ) ;
+           } else {
+             PLUTO_beep() ;
+           }
+         } else if( xev->button == Button3 ){
+           if( !NO_frivolities && nkl < NKLING ){
+             MCW_popup_message( seq->wimage , kling[nkl++] , MCW_USER_KILL ) ;
+           } else {
+             PLUTO_beep() ;
+           }
          }
       }
       break ;
