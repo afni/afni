@@ -73,10 +73,12 @@ static AFNI_driver_pair dpair[] = {
  { "SET_ANATOMY"      , AFNI_drive_switch_anatomy    } ,
  { "SWITCH_ANATOMY"   , AFNI_drive_switch_anatomy    } ,
  { "SWITCH_UNDERLAY"  , AFNI_drive_switch_anatomy    } ,
+ { "SET_UNDERLAY"     , AFNI_drive_switch_anatomy    } ,
 
  { "SET_FUNCTION"     , AFNI_drive_switch_function   } ,
  { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
  { "SWITCH_OVERLAY"   , AFNI_drive_switch_function   } ,
+ { "SET_OVERLAY"      , AFNI_drive_switch_function   } ,
 
  { "PURGE_MEMORY"     , AFNI_drive_purge_memory      } ,
 
@@ -194,6 +196,13 @@ ENTRY("AFNI_drive_purge_memory") ;
    /* find this dataset in current session of this controller */
 
    slf = THD_dset_in_sessionlist( FIND_PREFIX, dname, GLOBAL_library.sslist,-1 );
+
+   if( slf.dset_index < 0 ){   /* 18 Mar 2005 */
+     MCW_idcode idcode ;
+     MCW_strncpy( idcode.str , dname , MCW_IDSIZE ) ;
+     slf = THD_dset_in_sessionlist( FIND_IDCODE, &idcode,
+                                    GLOBAL_library.sslist,-1 );
+   }
 
    if( slf.sess_index >= 0 && slf.dset_index >= 0 ){
      THD_3dim_dataset **dss =
@@ -351,6 +360,12 @@ ENTRY("AFNI_switch_anatomy") ;
 
    slf = THD_dset_in_session( FIND_PREFIX , dname , im3d->ss_now ) ;
 
+   if( slf.dset_index < 0 ){   /* 18 Mar 2005 */
+     MCW_idcode idcode ;
+     MCW_strncpy( idcode.str , dname , MCW_IDSIZE ) ;
+     slf = THD_dset_in_session( FIND_IDCODE , &idcode , im3d->ss_now ) ;
+   }
+
    if( slf.dset_index < 0 ) RETURN(-1) ;
 
    cbs.ival = slf.dset_index ;
@@ -398,6 +413,12 @@ ENTRY("AFNI_switch_function") ;
    /* find this dataset in current session of this controller */
 
    slf = THD_dset_in_session( FIND_PREFIX , dname , im3d->ss_now ) ;
+
+   if( slf.dset_index < 0 ){   /* 18 Mar 2005 */
+     MCW_idcode idcode ;
+     MCW_strncpy( idcode.str , dname , MCW_IDSIZE ) ;
+     slf = THD_dset_in_session( FIND_IDCODE , &idcode , im3d->ss_now ) ;
+   }
 
    if( slf.dset_index < 0 ) RETURN(-1) ;
 

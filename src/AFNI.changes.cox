@@ -5373,3 +5373,6 @@
 11 Mar 2005
  * Fixed up the NIML-ization of datasets, and their transmission into
      AFNI.
+
+18 Mar 2005
+ * Finished up NIML bulk transfer of datasets to AFNI, etc.

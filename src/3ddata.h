@@ -3307,6 +3307,8 @@ extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
 
+extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
+
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)
 
@@ -3882,5 +3884,6 @@ extern int THD_add_bricks( THD_3dim_dataset * , void * ) ;
 
 extern NI_element * THD_subbrick_to_niml( THD_3dim_dataset *, int , int ) ;
 extern NI_group * THD_dataset_to_niml( THD_3dim_dataset * ) ;
+
 
 #endif /* _MCW_3DDATASET_ */

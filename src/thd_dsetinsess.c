@@ -12,11 +12,11 @@
    [28 Jul 2003] Modified for new THD_session struct.
 -------------------------------------------------------------------*/
 
-THD_slist_find THD_dset_in_session( int find_type , void * target ,
-                                    THD_session * sess  )
+THD_slist_find THD_dset_in_session( int find_type , void *target ,
+                                    THD_session *sess  )
 {
    int id , iv , im ;
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset *dset ;
    THD_slist_find find ;
 
    /*-- sanity check --*/
@@ -30,7 +30,7 @@ THD_slist_find THD_dset_in_session( int find_type , void * target ,
       /**** search for a name ****/
 
       case FIND_NAME:{
-         char * target_name = (char *) target ;
+         char *target_name = (char *) target ;
          if( strlen(target_name) == 0 ){
             BADFIND(find) ; return find ;
          }
@@ -51,7 +51,7 @@ THD_slist_find THD_dset_in_session( int find_type , void * target ,
       /**** search for a prefix ****/
 
       case FIND_PREFIX:{
-         char * target_prefix = (char *) target ;
+         char *target_prefix = (char *) target ;
          if( strlen(target_prefix) == 0 ){
             BADFIND(find) ; return find ;
          }
@@ -72,7 +72,7 @@ THD_slist_find THD_dset_in_session( int find_type , void * target ,
       /**** search for an idcode ****/
 
       case FIND_IDCODE:{
-         MCW_idcode target_id = * ((MCW_idcode *) target) ;
+         MCW_idcode target_id = *((MCW_idcode *) target) ;
 
          if( ISZERO_IDCODE(target_id) ){
             BADFIND(find) ; return find ;

@@ -239,6 +239,11 @@ ENTRY("THD_niml_to_dataset") ;
      THD_update_statistics( dset ) ;
    }
 
+   /* 18 Mar 2005: if the header orders, zero fill any undefined bricks */
+
+   rhs = NI_get_attribute( ngr , "AFNI_zerofill" ) ;
+   if( rhs != NULL && toupper(rhs[0]) == 'Y' ) THD_zerofill_dataset(dset);
+
    RETURN(dset) ;
 }
 
@@ -453,6 +458,112 @@ ENTRY("THD_dataset_to_niml") ;
    }
 
    RETURN(ngr) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Put an MRI_IMAGE into a NIML data element.
+-----------------------------------------------------------------------------*/
+
+NI_element * mri_to_niml( MRI_IMAGE *im )
+{
+   NI_element *nel ;
+   void *vpt ;
+   char rhs[256] ;
+
+ENTRY("mri_to_niml") ;
+
+   vpt = mri_data_pointer(im) ;
+   if( vpt == NULL ) RETURN(NULL) ;
+
+   nel = NI_new_data_element( "MRI_IMAGE" , im->nvox ) ;
+
+   /* put in some attributes about the MRI_IMAGE struct */
+
+   sprintf( rhs , "%d,%d,%d,%d,%d,%d,%d" ,
+            im->nx , im->ny , im->nz , im->nt , im->nu , im->nv , im->nw ) ;
+   NI_set_attribute( nel , "mri_dimen" , rhs ) ;
+
+   if( im->dx != 0.0 || im->dy != 0.0 || im->dz != 0.0 ||
+       im->dt != 0.0 || im->du != 0.0 || im->dv != 0.0 || im->dw != 0.0 ){
+
+     sprintf( rhs , "%f,%f,%f,%f,%f,%f,%f" ,
+              im->dx , im->dy , im->dz , im->dt , im->du , im->dv , im->dw ) ;
+     NI_set_attribute( nel , "mri_dxyz" , rhs ) ;
+   }
+
+   if( im->xo != 0.0 || im->yo != 0.0 || im->zo != 0.0 ||
+       im->to != 0.0 || im->uo != 0.0 || im->vo != 0.0 || im->wo != 0.0 ){
+
+     sprintf( rhs , "%f,%f,%f,%f,%f,%f,%f" ,
+              im->xo , im->yo , im->zo , im->to , im->uo , im->vo , im->wo ) ;
+     NI_set_attribute( nel , "mri_xyzo" , rhs ) ;
+   }
+
+   if( im->name != NULL || im->name[0] != '\0' )
+     NI_set_attribute( nel , "mri_name" , rhs ) ;
+
+   /* put in the data */
+
+   NI_add_column( nel , im->kind , vpt ) ;
+
+   RETURN(nel) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Convert a NIML element to an MRI_IMAGE.
+-----------------------------------------------------------------------------*/
+
+MRI_IMAGE * niml_to_mri( NI_element *nel )
+{
+   char *rhs ;
+   int   nx,ny,nz,nt,nu,nv,nw ;
+   MRI_IMAGE *im ;
+   void *vpt ;
+   int  nvox ;
+
+ENTRY("niml_to_mri") ;
+
+   if( NI_element_type(nel)          != NI_ELEMENT_TYPE ||
+       strcmp(nel->name,"MRI_IMAGE") != NULL            ||
+       nel->vec_num                  != 1               ||
+       nel->vec_len                  <= 0                 ) RETURN(NULL) ;
+
+   rhs = NI_get_attribute( nel , "mri_dimen" ) ;
+   if( rhs == NULL ) RETURN(NULL) ;
+   sscanf( rhs , "%d,%d,%d,%d,%d,%d,%d" ,
+           &nx , &ny , &nz , &nt , &nu , &nv , &nw ) ;
+   if( nx < 1 ) nx = 1 ;
+   if( ny < 1 ) ny = 1 ;
+   if( nz < 1 ) nz = 1 ;
+   if( nt < 1 ) nt = 1 ;
+   if( nu < 1 ) nu = 1 ;
+   if( nv < 1 ) nv = 1 ;
+   if( nw < 1 ) nw = 1 ;
+
+   im = mri_new_7D_generic( nx,ny,nz,nt,nu,nv,nw ,
+                            nel->vec_typ[0] , 1   ) ;
+   if( im == NULL ) RETURN(NULL) ;
+
+   vpt = mri_data_pointer(im) ;
+   nvox = im->nvox ; if( nvox > nel->vec_len ) nvox = nel->vec_len ;
+   memcpy( vpt , nel->vec[0] , im->pixel_size * nvox ) ;
+
+   rhs = NI_get_attribute( nel , "mri_dxyz" ) ;
+   if( rhs != NULL )
+     sscanf( rhs , "%f,%f,%f,%f,%f,%f,%f" ,
+             &(im->dx), &(im->dy), &(im->dz),
+             &(im->dt), &(im->du), &(im->dv), &(im->dw) ) ;
+
+   rhs = NI_get_attribute( nel , "mri_xyzo" ) ;
+   if( rhs != NULL )
+     sscanf( rhs , "%f,%f,%f,%f,%f,%f,%f" ,
+             &(im->xo), &(im->yo), &(im->zo),
+             &(im->to), &(im->uo), &(im->vo), &(im->wo) ) ;
+
+   rhs = NI_get_attribute( nel , "mri_name" ) ;
+   if( rhs != NULL ) mri_add_name( rhs , im ) ;
+
+   RETURN(im) ;
 }
 
 /*---------------------------------------------------------------------------*/
