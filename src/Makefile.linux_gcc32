@@ -1,0 +1,76 @@
+# This Makefile works on Linux.
+# This is for compiling with GCC 3.2, for a Pentium IV or above CPU.
+
+# CPROF = -pg -g
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
+
+CC     = /usr/local/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCVOL  = /usr/local/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = /usr/local/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 -DNO_GAMMA $(CEXTRA)
+
+CCMIN  = /usr/local/bin/gcc $(CPROF)
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/X11R6/include
+LFLAGS = -L. -L/usr/X11R6/lib
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /bin/gzip
+LD     = /usr/local/bin/gcc $(CPROF)
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./linux_gcc32
+LIBDIR = $(INSTALLDIR)
+
+INSTALL_PREREQ = suma
+
+# for dynamic linking
+
+# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+
+# for static linking to Motif, dynamic to all else
+
+LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lm  -ldl -lc
+
+# for static linking, as far as possible
+
+# LLIBS = -lmri -ldl               \
+#         /usr/X11R6/lib/libXm.a   \
+#        /usr/X11R6/lib/libXpm.a  \
+#        /usr/X11R6/lib/libXext.a \
+#        /usr/X11R6/lib/libXmu.a  \
+#        /usr/X11R6/lib/libXt.a   \
+#        /usr/X11R6/lib/libSM.a   \
+#        /usr/X11R6/lib/libICE.a  \
+#        /usr/X11R6/lib/libX11.a  \
+#        /usr/lib/libm.a          \
+#        /usr/lib/libc.a
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma (NO STATIC LINKING OF GL libs)
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
+#use -lGLw if you have libGLw.a or libGLw.so* or 
+#  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
+SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lm 
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_Linux.tar
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+###############################################################
+
+include Makefile.INCLUDE
