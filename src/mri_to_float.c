@@ -91,7 +91,7 @@ WHOAMI ; IMHEADER(oldim) ;
 
    if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
 
-   fac   = scl ;
+   fac   = scl ; if( fac == 0.0 ) fac = 1.0 ;
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
 

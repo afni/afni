@@ -1086,6 +1086,10 @@ thd_rot3d.o:thd_rot3d.c
 	$(RM) $@
 	$(CCFAST) -c thd_rot3d.c $(IFLAGS)
 
+thd_automask.o:thd_automask.c
+	$(RM) $@
+	$(CCFAST) -c thd_automask.c $(IFLAGS)
+
 # can't use CCFAST on thd_shift2 because GCC optimizer fails
 
 thd_shift2.o:thd_shift2.c
