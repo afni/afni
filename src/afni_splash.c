@@ -1072,8 +1072,8 @@ STATUS("no ***LAYOUT found") ;
 
    e_asp = my_getenv("AFNI_ENFORCE_ASPECT") ;
    if( !YESSISH(e_asp) ){
-      putenv("AFNI_ENFORCE_ASPECT=YES") ;
-      e_turnoff = 1 ;
+     putenv("AFNI_ENFORCE_ASPECT=YES") ;
+     e_turnoff = 1 ;
    }
 
    /*-- now do the commanded work --*/

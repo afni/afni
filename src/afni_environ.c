@@ -127,7 +127,7 @@ ENTRY("AFNI_process_environ") ;
       /**-- ENVIRONMENT section [04 Jun 1999] --**/
 
       if( strcmp(str,"***ENVIRONMENT") == 0 ){  /* loop, looking for environment settings */
-         char * enveqn ; int nl , nr ;
+         char *enveqn ; int nl , nr ;
 
          while(1){                          /* loop, looking for 'name = value' */
             GETEQN ;
@@ -153,7 +153,7 @@ ENTRY("AFNI_process_environ") ;
 
 int AFNI_yesenv( char * ename )     /* 21 Jun 2000 */
 {
-   char * ept ;
+   char *ept ;
    if( ename == NULL ) return 0 ;
    ept = my_getenv(ename) ;
    return YESSISH(ept) ;
@@ -161,7 +161,7 @@ int AFNI_yesenv( char * ename )     /* 21 Jun 2000 */
 
 int AFNI_noenv( char * ename )     /* 21 Jun 2000 */
 {
-   char * ept ;
+   char *ept ;
    if( ename == NULL ) return 0 ;
    ept = my_getenv(ename) ;
    return NOISH(ept) ;
