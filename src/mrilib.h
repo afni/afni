@@ -399,6 +399,7 @@ extern int mri_datum_size( MRI_TYPE typ ) ;
 extern MRI_IMAGE *mri_read_ascii( char * ) ;
 extern int mri_write_ascii( char * , MRI_IMAGE * ) ;
 extern int mri_write_raw( char * , MRI_IMAGE * ) ;       /* 05 Jan 2000 */
+extern void mri_write_analyze( char * , MRI_IMAGE * ) ;  /* 29 Nov 2001 */
 
 extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
 extern int mri_write_1D( char * , MRI_IMAGE * ) ;        /* 16 Nov 1999 */
