@@ -4295,6 +4295,7 @@ DPR(" .. ButtonPress") ;
                      int xmid=(imx2+imx1)/2, xh=(imx2-imx1)/2, xhw=zlev*xh ;
                      int ymid=(imy2+imy1)/2, yh=(imy2-imy1)/2, yhw=zlev*yh ;
                      int nx,ny ;
+                     float mh = (zlev-1.001)/zlev ;
                      nx = (seq->crop_nxorg > 0) ? seq->crop_nxorg : seq->horig ;
                      ny = (seq->crop_nxorg > 0) ? seq->crop_nyorg : seq->vorig ;
 #if 0
@@ -4307,20 +4308,23 @@ fprintf(stderr,"      imy1=%d imy2=%d ymid=%d yh=%d yhw=%d ny=%d\n",imy1,imy2,ym
                      imy1 = ymid-yhw ; imy2 = ymid+yhw ;
                           if( imy1 <  0    ){ imy1 = 0   ; imy2 = imy1+2*yhw; }
                      else if( imy2 >= ny-1 ){ imy2 = ny-1; imy1 = imy2-2*yhw; }
-                     seq->zoom_hor_off = ((float)(xmid-xh-imx1))
-                                        /((float)(imx2-imx1)) ;
                      if( seq->opt.mirror )
-                       seq->zoom_hor_off = 1.0-seq->zoom_hor_off ;
-#if 0
-fprintf(stderr,"      imx1=%d imx2=%d hor_off=%f\n",imx1,imx2,seq->zoom_hor_off);
-#endif
-                     if( seq->zoom_hor_off < 0.0 ) seq->zoom_hor_off = 0.0 ;
+                       seq->zoom_hor_off = ((float)(imx2-xmid-xh))
+                                          /((float)(imx2-imx1)) ;
+                     else
+                       seq->zoom_hor_off = ((float)(xmid-xh-imx1))
+                                          /((float)(imx2-imx1)) ;
+
                      seq->zoom_ver_off = ((float)(ymid-yh-imy1))
                                         /((float)(imy2-imy1)) ;
 #if 0
+fprintf(stderr,"      imx1=%d imx2=%d hor_off=%f\n",imx1,imx2,seq->zoom_hor_off);
 fprintf(stderr,"      imy1=%d imy2=%d ver_off=%f\n",imy1,imy2,seq->zoom_ver_off);
 #endif
-                     if( seq->zoom_ver_off < 0.0 ) seq->zoom_ver_off = 0.0 ;
+                          if( seq->zoom_hor_off > mh  ) seq->zoom_hor_off = mh  ;
+                     else if( seq->zoom_hor_off < 0.0 ) seq->zoom_hor_off = 0.0 ;
+                          if( seq->zoom_ver_off > mh  ) seq->zoom_ver_off = mh  ;
+                     else if( seq->zoom_ver_off < 0.0 ) seq->zoom_ver_off = 0.0 ;
                    }
                    seq->crop_xa = imx1 ; seq->crop_xb = imx2 ;
                    seq->crop_ya = imy1 ; seq->crop_yb = imy2 ;
