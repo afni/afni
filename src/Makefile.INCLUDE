@@ -1712,6 +1712,8 @@ suma_clean:
 	if [ -f suma ]; then $(RM) suma; fi;
 	if [ -f SUMA/MakeColorMap ]; then $(RM) SUMA/MakeColorMap; fi;
 	if [ -f MakeColorMap ]; then $(RM) MakeColorMap; fi;
+	if [ -f SUMA/3dSurfMaskDump ]; then $(RM) SUMA/3dSurfMaskDump; fi;
+	if [ -f 3dSurfMaskDump ]; then $(RM) 3dSurfMaskDump; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -1720,8 +1722,9 @@ suma_link:
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
 	$(CP) libmri.a librickr.a ../	;\
-	$(RM) suma MakeColorMap	;\
-	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 'INSTALLDIR=$(INSTALLDIR)' \
+	$(RM) suma MakeColorMap 3dSurfMaskDump	;\
+	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 3dSurfMaskDump \
+	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -1735,7 +1738,7 @@ suma_link:
 #install suma
 suma_install:
 	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/suma SUMA/MakeColorMap ${INSTALLDIR} ; \
+	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/3dSurfMaskDump ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install
