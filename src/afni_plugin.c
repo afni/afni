@@ -146,8 +146,6 @@ if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"opening plugin %s" , fname ) ; STATUS(str) ; }
 
-fprintf(stderr,"opening plugin %s\n",fname) ;
-
    DYNAMIC_OPEN( fname , plin->libhandle ) ;
 
    if( ! ISVALID_DYNAMIC_handle( plin->libhandle ) ){  /* open failed */
@@ -172,8 +170,6 @@ if(PRINT_TRACING)
 
    /*----- find the required symbol -----*/
    /*..... 13 Sep 2001: add _ for stupid Darwin .....*/
-
-fprintf(stderr,"  scanning for PLUGIN_init\n") ;
 
 #ifndef DARWIN
    DYNAMIC_SYMBOL(plin->libhandle, "PLUGIN_init" , plin->libinit_func );
