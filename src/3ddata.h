@@ -37,12 +37,12 @@
 #include "thd_compress.h"
 
 #ifndef myXtFree
-/*! \brief Macro to free a pointer and NULL-ize it as well */
+/*! \brief Macro to free a pointer and NULL-ize it as well. */
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
 #endif
 
 #ifndef myXtNew
-/*! \brief Macro to allocate memory and zero-ize it */
+/*! \brief Macro to allocate memory and zero-ize it. */
 #define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
 #endif
 
@@ -53,10 +53,12 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 # include "agni.h"
 #endif
 
-/*~ \brief Enables compilation of the MINC dataset code */
+/*~ \brief Enables compilation of the MINC dataset code. */
+
 #define ALLOW_MINC   /* 29 Oct 2001 */
 
-/*! \brief Macro to check if string ss ends in string suf */
+/*! \brief Macro to check if string ss ends in string suf. */
+
 #define STRING_HAS_SUFFIX(ss,suf)              \
   ((ss != NULL) && (suf != NULL) &&            \
    (strlen(ss) >= strlen(suf))   &&            \
@@ -64,39 +66,50 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 /***************************** dimensions ***************************/
 
-/*! \brief Max length of a "name" of a file, or stuff like that */
+/*! \brief Max length of a "name" of a file, or stuff like that. */
+
 #define THD_MAX_NAME      256
 
-/*! \brief Max length of a dataset label */
+/*! \brief Max length of a dataset label. */
+
 #define THD_MAX_LABEL     38
 
-/*! \brief Max length of a dataset prefix */
+/*! \brief Max length of a dataset prefix. */
+
 #define THD_MAX_PREFIX     (127+1)  /* must be more than THD_MAX_LABEL */
 
-/*! \brief Max length of a dataset view code (+orig, etc) */
+/*! \brief Max length of a dataset view code (+orig, etc). */
+
 #define THD_MAX_VIEWCODE   (4+1)
 
-/*! \brief Max length of a dataset suffix (BRIK, etc) */
+/*! \brief Max length of a dataset suffix (BRIK, etc). */
+
 #define THD_MAX_SUFFIX     (4+1)
 
-/*! \brief Max length of a dataset filecode (prefix+view) */
+/*! \brief Max length of a dataset filecode (prefix+view). */
+
 #define THD_MAX_FILECODE   (THD_MAX_PREFIX+THD_MAX_VIEWCODE)
 
-/*! \brief Default label for a dataset
+/*! \brief Default label for a dataset.
+
     Labels aren't really used anymore, since the stupid users didn't like them
 */
 #define THD_DEFAULT_LABEL "Elvis Lives"
 
-/*! \brief Max num anat datasets per session */
+/*! \brief Max num anat datasets per session. */
+
 #define THD_MAX_SESSION_ANAT  512
 
-/*! \brief Max num func datasets per session */
+/*! \brief Max num func datasets per session. */
+
 #define THD_MAX_SESSION_FUNC  512
 
-/*! \brief Max number of directories */
+/*! \brief Max number of directories. */
+
 #define THD_MAX_NUM_SESSION    80
 
-/*! \brief Largest of THD_MAX_SESSION_ANAT THD_MAX_SESSION_FUNC THD_MAX_NUM_SESSION */
+/*! \brief Largest of THD_MAX_SESSION_ANAT THD_MAX_SESSION_FUNC THD_MAX_NUM_SESSION. */
+
 #define THD_MAX_CHOICES THD_MAX_SESSION_FUNC
 
 #define THD_MAX_MARKSET       5
@@ -104,7 +117,8 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 #define FAIL    -1
 #define SUCCESS  1
 
-/*! \brief General "type code" for invalid data
+/*! \brief General "type code" for invalid data.
+
     Various things are labeled with non-negative type codes (e.g., statistics types).
     Negative type codes indicate something is not valid.
 */
@@ -113,10 +127,12 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 /***************  generic function with no return value  **********************/
 
-/*! \brief Generic function type returning void */
+/*! \brief Generic function type returning void. */
+
 typedef void generic_func() ;
 
-/*! \brief Generic function type returning float */
+/*! \brief Generic function type returning float. */
+
 typedef float float_func() ;
 
 typedef struct {                 /* for "registered" functions */
@@ -141,10 +157,12 @@ typedef struct {                 /* for "registered" functions */
 
 /******************************** macros ******************************/
 
-/*! \brief First part of TWO_TWO macro */
+/*! \brief First part of TWO_TWO macro. */
+
 #define TWO_ONE(x,y) x ## y
 
-/*! \brief Combine two interpreted tokens into one using TWO_TWO */
+/*! \brief Combine two interpreted tokens into one using TWO_TWO. */
+
 #define TWO_TWO(x,y) TWO_ONE(x,y)
 
 /*! Copy n units of the given type "type * ptr", into a structure "str",
@@ -163,7 +181,8 @@ typedef struct {                 /* for "registered" functions */
 #define COPY_FROM_STRUCT(str,off,type,ptr,n) \
    (void) memcpy( (char *)(ptr), (char *)(&(str))+(off), (n)*sizeof(type) )
 
-/*! \brief Safe version of strncpy, which always leaves a NUL at the end
+/*! \brief Safe version of strncpy, which always leaves a NUL at the end.
+
     The standard stupid strncpy(dest,src,n) might not leave a NUL character
     at the end if the src string is too long.  This criminal behavior is
     reformed by this macro.
@@ -177,7 +196,7 @@ typedef struct {                 /* for "registered" functions */
 #define IC_DSET 44301
 #define IC_FLIM 55402
 
-/*! \brief Dynamically extendable array of XtPointer */
+/*! \brief Dynamically extendable array of XtPointer. */
 
 typedef struct {
       int num ;          /*!< Number currently in use */
@@ -188,8 +207,9 @@ typedef struct {
 
 #define INC_XTARR 8
 
-/*! \brief Initialize dynamic XtPointer array named "name"
-    XtPointer_array *name ;
+/*! \brief Initialize dynamic XtPointer array named "name".
+
+    You must declare "XtPointer_array *name;".
 */
 #define INIT_XTARR(name)               \
    ( (name) = XtNew(XtPointer_array) , \
@@ -197,7 +217,7 @@ typedef struct {
      (name)->ar  = NULL ,              \
      (name)->ic  = NULL   )
 
-/*! \brief Add a pointer to a dynamic XtPointer array */
+/*! \brief Add a pointer to a dynamic XtPointer array. */
 
 #define ADDTO_XTARR(name,bblk)                                 \
    { if( (name)->num == (name)->nall ){                        \
@@ -214,16 +234,19 @@ typedef struct {
       ((name)->num)++ ;                              \
      } }
 
-/*! \brief Number of good entries in a dynamic XtPointer array */
+/*! \brief Number of good entries in a dynamic XtPointer array. */
+
 #define XTARR_NUM(name)  ((name)->num)
 
-/*! \brief i-th entry in a dynamic XtPointer array */
+/*! \brief i-th entry in a dynamic XtPointer array. */
+
 #define XTARR_XT(name,i) ((name)->ar[i])
 
 #define XTARR_IC(name,i) ((name)->ic[i])
 
-/*! \brief Free a dynamic XtPointer array
-    But not what the pointers point to - that is a completely separate matter
+/*! \brief Free a dynamic XtPointer array.
+
+    But not what the pointers point to - that is a completely separate matter.
 */
 
 #define FREE_XTARR(name)      \
@@ -237,7 +260,7 @@ typedef struct {
 
 /************************* string array stuff *************************/
 
-/*! \brief Dynamic array of character strings */
+/*! \brief Dynamic array of character strings. */
 
 typedef struct {
       int num ;      /*!< Number of strings currently stored */
@@ -246,16 +269,19 @@ typedef struct {
       KILL_list kl ; /*!< For semi-automatic memory cleanup */
 } THD_string_array ;
 
-/*! \brief Return pointer to qq-th string in dynamic string array ss */
+/*! \brief Return pointer to qq-th string in dynamic string array ss. */
+
 #define SARR_STRING(ss,qq) ((ss)->ar[(qq)])
 
-/*! \brief Return number of strings stored in dynamic string array ss */
+/*! \brief Return number of strings stored in dynamic string array ss. */
+
 #define SARR_NUM(ss)       ((ss)->num)
 
 #define INC_SARR 64
 
-/*! \brief Initialize an empty dynamic string array named "name"
-    THD_string_array *name ;
+/*! \brief Initialize an empty dynamic string array named "name".
+
+    You must declare "THD_string_array *name;".
 */
 
 #define INIT_SARR(name)                 \
@@ -264,7 +290,7 @@ typedef struct {
      (name)->ar  = NULL ,               \
      INIT_KILL((name)->kl) )
 
-/*! \brief Add string str to dynamic string array "name" */
+/*! \brief Add string str to dynamic string array "name". */
 
 #define ADDTO_SARR(name,str)                                          \
  do{ if( (name)->num == (name)->nall ){                               \
@@ -279,13 +305,13 @@ typedef struct {
       ((name)->num)++ ;                                               \
      } } while(0)
 
-/*! \brief Remove the ijk-th string from dynamic string array "name" */
+/*! \brief Remove the ijk-th string from dynamic string array "name". */
 
 #define REMOVEFROM_SARR(name,ijk)                \
  do{ SINGLE_KILL((name)->kl,(name)->ar[(ijk)]) ; \
      (name)->ar[(ijk)] = NULL ; } while(0)
 
-/*! \brief Kill all entries in the dynamic string array "name" */
+/*! \brief Kill all entries in the dynamic string array "name". */
 
 #define DESTROY_SARR(name)    \
  do{ if( (name) != NULL ){    \
@@ -299,7 +325,8 @@ extern int SARR_find_substring( THD_string_array * sar , char * sub ) ;
 extern int SARR_lookfor_string   ( THD_string_array * sar , char * str , int nstart ) ;
 extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nstart ) ;
 
-/*! \brief Concatenate strings p1 and p2 into string pout, making them a filesystem path
+/*! \brief Concatenate strings p1 and p2 into string pout, making them a filesystem path.
+
     If p1 doesn't end in a '/', the '/' between p1/p2 will be added.
     The pout array must be previously allocated.
 */
@@ -311,19 +338,19 @@ extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nst
 
 /*************** dynamic array of sorted (x,y,z) points *************/
 
-/*! \brief Dynamic array of sorted (x,y,z) points */
+/*! \brief Dynamic array of xyz and ijk points. */
 
 typedef struct {
       int num ;                          /*!< Number of points currently in use */
       int nall ;                         /*!< Number of points currently allocated */
-      THD_fvec3 * xyz ;                  /*!< Array of xyz coordinates */
-      THD_ivec3 * ijk ;                  /*!< Array of ijk indexes */
+      THD_fvec3 * xyz ;                  /*!< Array of xyz coordinates in parent */
+      THD_ivec3 * ijk ;                  /*!< Array of ijk indexes in parent */
       struct THD_3dim_dataset * parent ; /*!< Dataset these things come from */
 } THD_vector_list ;
 
 #define INC_VLIST 64
 
-/*! \brief Initialize a dynamic array of xyz points, attached to datset ddd */
+/*! \brief Initialize a dynamic array of xyz points, attached to datset ddd. */
 
 #define INIT_VLIST(name,ddd) \
    ( (name) = XtNew(THD_vector_list) ,  \
@@ -331,9 +358,10 @@ typedef struct {
      (name)->xyz = NULL , (name)->ijk = NULL , \
      (name)->parent = (ddd) )
 
-/*! \brief Add 1 xyz-vector to the array of xyz points
+/*! \brief Add 1 xyz-vector to the array of xyz points.
+
     The ijk-vector will be converted from the xyz coordinates,
-    using the dataset for this array.
+    using the parent dataset for this array.
 */
 
 #define ADD_FVEC_TO_VLIST(name,vec) \
@@ -348,9 +376,10 @@ typedef struct {
      (name)->ijk[(name)->num] = THD_3dmm_to_3dind((name)->parent,(vec)) ;  \
      ((name)->num)++; }
 
-/*! \brief Add one ijk-vector to the array of xyz points
+/*! \brief Add one ijk-vector to the array of xyz points.
+
     The xyz-vector will be converted from the ijk indexes, using
-    the dataset for this array.
+    the parent dataset for this array.
 */
 
 #define ADD_IVEC_TO_VLIST(name,vec) \
@@ -365,7 +394,7 @@ typedef struct {
      (name)->xyz[(name)->num] = THD_3dind_to_3dmm((name)->parent,(vec)) ;  \
      ((name)->num)++; }
 
-/*! \brief Destroy an array of xyz points */
+/*! \brief Destroy an array of xyz points. */
 
 #define DESTROY_VLIST(name)      \
    { if( (name) != NULL ){       \
@@ -384,13 +413,13 @@ typedef struct {
 #define FIRST_ATR_TYPE 0
 #define LAST_ATR_TYPE  2
 
-/*! \brief Things to look for in the .HEAD file */
+/*! \brief Things to look for in the .HEAD file; these define start of an attribute. */
 
 static char * ATR_typestr[] = {
    "string-attribute" , "float-attribute" , "integer-attribute"
 } ;
 
-/*! \brief Stores an integer-attribute (array of ints) */
+/*! \brief Stores an integer-attribute (array of ints). */
 
 typedef struct {
       int    type ;   /*!< should be ATR_INT_TYPE */
@@ -399,7 +428,7 @@ typedef struct {
       int  * in ;     /*!< array of ints stored here */
 } ATR_int ;
 
-/*! \brief Stores a float-attribute (array of floats) */
+/*! \brief Stores a float-attribute (array of floats). */
 
 typedef struct {
       int     type ;  /*!< should be ATR_FLOAT_TYPE */
@@ -408,7 +437,7 @@ typedef struct {
       float * fl ;    /*!< array of floats stored here */
 } ATR_float ;
 
-/*! \brief Stores a string-attribute (array of strings) */
+/*! \brief Stores a string-attribute (array of strings). */
 
 typedef struct {
       int    type ;   /*!< should be ATR_STRING_TYPE */
@@ -421,7 +450,7 @@ typedef struct {
 extern void THD_zblock(int,char *) ;   /* replace zeros with ZBLOCKs */
 extern void THD_unzblock(int,char *) ; /* undo the above */
 
-/*! \brief Union type to hold an arbitrary attribute */
+/*! \brief Union type to hold an arbitrary attribute. */
 
 typedef union {
       int          type ;      /*!< Determines type of data here */
@@ -828,7 +857,8 @@ static THD_warp tempA_warp ;  /* temporary warp */
 #define STORAGE_BY_BRICK   2
 #define STORAGE_BY_MINC    3
 
-/*! \brief Contains information about where/how dataset is stored on disk
+/*! \brief Contains information about where/how dataset is stored on disk.
+
      The filenames in this structure are really path names
      (that is, they have the directory name prependend).
 */
@@ -856,18 +886,18 @@ typedef struct {
 
 extern void THD_delete_diskptr( THD_diskptr * ) ;
 
-/*! \brief Determine if THD_diskptr dk is valid */
+/*! \brief Determine if THD_diskptr dk is valid. */
 
 #define ISVALID_DISKPTR(dk) ( (dk)!=NULL && (dk)->type==DISKPTR_TYPE )
 
-/*! \brief Convert a file prefix and viewcode into a filecode (prefix+view) */
+/*! \brief Convert a file prefix and viewcode into a filecode (prefix+view). */
 
 #define PREFIX_VIEW_TO_FILECODE(pr,vv,fc) sprintf( (fc),"%s+%s",(pr),(vv) )
 
-/*! \brief Extract the prefix from a filecode (prefix+view)
+/*! \brief Extract the prefix from a filecode (prefix+view).
+
     - If there is no '+', puts an empty string into fc
-    - Otherwise, scans backward from end to find last '+'; everything
-      before that is the prefix
+    - Otherwise, scans backward from end to find last '+'; everything before that is the prefix
     - Space for fc must be allocated beforehand
 */
 
@@ -1551,7 +1581,7 @@ static int FUNC_ival_thr[] = { -1, 1,1,1,1,1,1,1,1,1,1, 0 } ; /* index of thresh
 
 #define MAX_STAT_AUX 64
 
-/*! \brief Number of statistical parameters needed for each statistic code */
+/*! \brief Number of statistical parameters needed for each statistic code. */
 
 static int FUNC_need_stat_aux[] = { 0 , 0 , 3 , 1 , 2 ,
                                     0 , 1 , 2 , 2 , 2 , 1 ,
@@ -1767,9 +1797,9 @@ typedef struct THD_3dim_dataset {
 } THD_3dim_dataset ;
 
 #ifdef ALLOW_AGNI
-  /*! \brief Determine if dataset ds has AGNI surface data attached */
+  /*! \brief Determine if dataset ds has AGNI surface data attached. */
 # define DSET_HAS_AGNI(ds)   ( (ds)->ag_sname != NULL && (ds)->ag_surf != NULL )
-  /*! \brief Clear out the AFNI surface data pointers in dataset ds */
+  /*! \brief Clear out the AFNI surface data pointers in dataset ds. */
 # define DSET_NULL_AGNI(ds)  ((ds)->ag_sname=NULL, (ds)->ag_surf=NULL, (ds)->ag_vmap=NULL)
 #else
 # define DSET_HAS_AGNI(ds)   0
@@ -1777,75 +1807,100 @@ typedef struct THD_3dim_dataset {
 # define AGNI_unload(ds)     /* nada */
 #endif
 
-/*! \brief A marker that defines a dataset that is about to be killed */
+/*! \brief A marker that defines a dataset that is about to be killed. */
+
 #define DOOMED 665
 
-/*! \brief Return pointer to current dataset axes (warp-on-demand or permanent) */
+/*! \brief Return pointer to current dataset axes (warp-on-demand or permanent). */
+
 #define CURRENT_DAXES(ds) (((ds)->wod_flag) ? ((ds)->wod_daxes) : ((ds)->daxes))
 
-/*! \brief Determine if ds is a pointer to a valid dataset */
+/*! \brief Determine if ds is a pointer to a valid dataset. */
+
 #define ISVALID_3DIM_DATASET(ds) \
    ( (ds) != NULL && (ds)->type >= FIRST_3DIM_TYPE && \
                      (ds)->type <= LAST_3DIM_TYPE )
 
-/*! \brief Determine if ds is a pointer to a valid dataset */
+/*! \brief Determine if ds is a pointer to a valid dataset. */
+
 #define ISVALID_DSET ISVALID_3DIM_DATASET
 
-/*! \brief Determine if nn is a functional dataset type code */
+/*! \brief Determine if nn is a functional dataset type code. */
+
 #define ISFUNCTYPE(nn) ( (nn) == HEAD_FUNC_TYPE || (nn) == GEN_FUNC_TYPE )
-/*! \brief Determine if dset is a functional dataset */
+
+/*! \brief Determine if dset is a functional dataset. */
+
 #define ISFUNC(dset) ( ISVALID_DSET(dset) && ISFUNCTYPE((dset)->type) )
 
-/*! \brief Determine if nn is an anatomical dataset type code */
+/*! \brief Determine if nn is an anatomical dataset type code. */
+
 #define ISANATTYPE(nn) ( (nn) == HEAD_ANAT_TYPE || (nn) == GEN_ANAT_TYPE )
-/*! \brief Determine if dset is an anatomical dataset */
+
+/*! \brief Determine if dset is an anatomical dataset. */
+
 #define ISANAT(dset) ( ISVALID_DSET(dset) && ISANATTYPE((dset)->type) )
 
-/*! \brief Determine if nn is a head dataset type code */
+/*! \brief Determine if nn is a head dataset type code. */
+
 #define ISHEADTYPE(nn) ( (nn) = HEAD_ANAT_TYPE || (nn) == HEAD_FUNC_TYPE )
-/*! \brief Determine if dset is a head dataset (vs. non-head) */
+
+/*! \brief Determine if dset is a head dataset (vs. non-head). */
+
 #define ISHEAD(dset) ( ISVALID_DSET(dset) && ISHEADTYPE((dset)->type) )
 
 /*! \brief Determine if dset is an anatomical bucket dataset */
+
 #define ISANATBUCKET(dset) ( ISANAT(dset) && (dset)->func_type == ANAT_BUCK_TYPE )
+
 /*! \brief Determine if dset is a functional bucket dataset */
+
 #define ISFUNCBUCKET(dset) ( ISFUNC(dset) && (dset)->func_type == FUNC_BUCK_TYPE )
 
 /*! \brief Determine if dset is a bucket dataset (functional or anatomical) */
+
 #define ISBUCKET(dset) ( ISANATBUCKET(dset) || ISFUNCBUCKET(dset) )
 
 /*! \brief Not currently used for anything (probably never will be) */
+
 #define ISMERGER(ds) ( ISVALID_DSET(ds) && (ds)->func_type == MERGER_TYPE )
 
 /*! \brief Determine if dataset ds is actually stored on disk */
+
 #define DSET_ONDISK(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
                           (ds)->dblk->diskptr->storage_mode!=STORAGE_UNDEFINED )
 
 /*! \brief Determine if dataset ds is stored in a BRIK file on disk */
+
 #define DSET_IS_BRIK(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
                            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_BRICK )
 
 /*! \brief Determine if datablock db is stored in a MINC file on disk */
+
 #define DBLK_IS_MINC(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) && \
                            (db)->diskptr->storage_mode == STORAGE_BY_MINC )
 
 /*! \brief Determine if dataset ds is stored in a MINC file on disk */
+
 #define DSET_IS_MINC(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&       \
                            ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
                            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MINC )
 
 /*! \brief Determine if AFNI is allowed to over-write dataset ds */
+
 #define DSET_WRITEABLE(ds)                            \
  ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&    \
    (ds)->warp_parent != NULL && !DSET_IS_MINC(ds)  )
 
 /*! \brief Determine if dataset ds is stored in a compressed format */
+
 #define DSET_COMPRESSED(ds)                  \
    ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
      (ds)->dblk->diskptr != NULL          && \
      COMPRESS_filecode((ds)->dblk->diskptr->brick_name) >= 0 )
 
 /*! \brief Purge the data of dataset ds from memory (you can reload it later) */
+
 # define PURGE_DSET(ds)                                                 \
   do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )                 \
          (void) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY ) ; \
@@ -1853,41 +1908,55 @@ typedef struct THD_3dim_dataset {
   } while(0)
 
 /*! \brief Determine if dataset ds is loadable into memory */
+
 #define DSET_INMEMORY(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
                             (ds)->dblk->malloc_type!=DATABLOCK_MEM_UNDEFINED )
 
 #define DBLK_BRICK(db,iv) ((db)->brick->imarr[(iv)])
+
 /*! \brief Return the MRI_IMAGE * that is the iv-th volume of dataset ds */
+
 #define DSET_BRICK(ds,iv) DBLK_BRICK((ds)->dblk,(iv))
 
 #define DBLK_BRICK_TYPE(db,iv) (DBLK_BRICK((db),(iv))->kind)
+
 /*! \brief Return the datum code (MRI_short, etc.) of the iv-th volume of dataset ds */
+
 #define DSET_BRICK_TYPE(ds,iv) DBLK_BRICK_TYPE((ds)->dblk,(iv))
 
 /*! \brief Return the number of voxels in the iv-th volume of dataset ds */
+
 #define DBLK_BRICK_NVOX(db,iv) (DBLK_BRICK((db),(iv))->nvox)
 
 #define DBLK_ARRAY(db,iv) mri_data_pointer( DBLK_BRICK((db),(iv)) )
+
 /*! \brief Return the pointer to the actual data in the iv-th volume of dataset ds */
+
 #define DSET_ARRAY(ds,iv) DBLK_ARRAY((ds)->dblk,(iv))
 
 #define DSET_BRICK_ARRAY DSET_ARRAY  /* Because I sometimes forget the  */
 #define DBLK_BRICK_ARRAY DBLK_ARRAY  /* correct names given above - RWC */
 
 #define DBLK_BRICK_FACTOR(db,iv) ((db)->brick_fac[(iv)])
-/*! \brief Return the brick scaling factor of the iv-th volume of dataset ds
+
+/*! \brief Return the brick scaling factor of the iv-th volume of dataset ds.
+
     If the scale factor is 0, then the brick is used "as-is"; that is,
     the effective scale factor is 1.
 */
+
 #define DSET_BRICK_FACTOR(ds,iv) DBLK_BRICK_FACTOR((ds)->dblk,(iv))
 
 extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 
 #define DBLK_BRICK_BYTES(db,iv) ((db)->brick_bytes[iv])
+
 /*! \brief Return number of bytes stored in the iv-th volume of dataset ds */
+
 #define DSET_BRICK_BYTES(ds,iv) DBLK_BRICK_BYTES((ds)->dblk,(iv))
 
-/*! \brief Return the volume index of the "most important" sub-brick in dataset ds
+/*! \brief Return the volume index of the "most important" sub-brick in dataset ds.
+
     This is still used in places, but is fairly obsolete
 */
 #define DSET_PRINCIPAL_VALUE(ds) ( ISANAT(ds) ? ANAT_ival_zero[(ds)->func_type] \
@@ -1895,7 +1964,8 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 
 #define DSET_PRINCIPAL_INDEX DSET_PRINCIPAL_VALUE
 
-/*! \brief Return the volume index of the "threshold" sub-brick in dataset ds
+/*! \brief Return the volume index of the "threshold" sub-brick in dataset ds.
+
     This is analogous to DSET_PRINCIPAL_VALUE, and is also sort-of-obsolete.
 */
 #define DSET_THRESH_VALUE(ds) (ISANAT((ds)) ? -1 : FUNC_ival_thr[(ds)->func_type])
@@ -1903,101 +1973,150 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 #define DSET_THRESH_INDEX DSET_THRESH_VALUE
 
 /*! \brief Return a pointer to the prefix of dataset ds */
+
 #define DSET_PREFIX(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                        ? ((ds)->dblk->diskptr->prefix) : "\0" )
 
 extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2001 */
 
 /*! \brief Return a pointer to the filecode of dataset ds (prefix+view) */
+
 #define DSET_FILECODE(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                          ? ((ds)->dblk->diskptr->filecode) : "\0" )
 
 /*! \brief Return a pointer to the .HEAD filename of dataset ds */
+
 #define DSET_HEADNAME(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                          ? ((ds)->dblk->diskptr->header_name) : "\0" )
 
 /*! \brief Return a pointer to the .BRIK filename of dataset ds */
+
 #define DSET_BRIKNAME(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                          ? ((ds)->dblk->diskptr->brick_name) : "\0" )
 #define DSET_BRICKNAME DSET_BRIKNAME
 
 /*! \brief Return a pointer to the directory name of dataset ds */
+
 #define DSET_DIRNAME(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                          ? ((ds)->dblk->diskptr->directory_name) : "\0" )
+
 #define DSET_SESSNAME DSET_DIRNAME
 
 /*! \brief Return a pointer to the ID code of dataset ds */
+
 #define DSET_IDCODE(ds) (&((ds)->idcode))
 
 /* 25 April 1998 */
 
 #define DBLK_BYTEORDER(db)  ((db)->diskptr->byte_order)
+
 /*! \brief Return LSB_FIRST or MSB_FIRST for dataset ds */
+
 #define DSET_BYTEORDER(ds)  DBLK_BYTEORDER((ds)->dblk)
 
 /** macros for time-dependent datasets **/
 
-/*! \brief Return number of time points in dataset ds
+/*! \brief Return number of time points in dataset ds.
+
     If value is 1, dataset is not time-dependent, but it still may have
     multiple sub-bricks (if it is a bucket dataset, for example)
 */
 #define DSET_NUM_TIMES(ds)       ( ((ds)->taxis == NULL) ? 1 : (ds)->taxis->ntt )
-/*! \brief Return number of values stored at each time point for dataset ds
-    Will always be 1 in the current version of AFNI
+
+/*! \brief Return number of values stored at each time point for dataset ds.
+
+    Will always be 1 in the current version of AFNI!
 */
 #define DSET_NVALS_PER_TIME(ds)  ( (ds)->dblk->nvals / DSET_NUM_TIMES(ds) )
+
 /*! \brief Return number of sub-bricks in dataset ds */
+
 #define DSET_NVALS(ds)           ( (ds)->dblk->nvals )
 
 /*! \brief Return number of voxels in each sub-brick of dataset ds */
+
 #define DSET_NVOX(ds) ( (ds)->daxes->nxx * (ds)->daxes->nyy * (ds)->daxes->nzz )
 
 /*! \brief Return number of voxels along x-axis of dataset ds */
+
 #define DSET_NX(ds) ((ds)->daxes->nxx)
+
 /*! \brief Return number of voxels along y-axis of dataset ds */
+
 #define DSET_NY(ds) ((ds)->daxes->nyy)
+
 /*! \brief Return number of voxels along z-axis of dataset ds */
+
 #define DSET_NZ(ds) ((ds)->daxes->nzz)
 
 /*! \brief Return grid spacing (voxel size) along x-axis of dataset ds */
+
 #define DSET_DX(ds) ((ds)->daxes->xxdel)  /* added 17 Aug 1998 */
+
 /*! \brief Return grid spacing (voxel size) along y-axis of dataset ds */
+
 #define DSET_DY(ds) ((ds)->daxes->yydel)
+
 /*! \brief Return grid spacing (voxel size) along z-axis of dataset ds */
+
 #define DSET_DZ(ds) ((ds)->daxes->zzdel)
 
 /*! \brief Return grid origin along x-axis of dataset ds */
+
 #define DSET_XORG(ds) ((ds)->daxes->xxorg)  /* 29 Aug 2001 */
+
 /*! \brief Return grid origin along y-axis of dataset ds */
+
 #define DSET_YORG(ds) ((ds)->daxes->yyorg)
+
 /*! \brief Return grid origin along y-axis of dataset ds */
+
 #define DSET_ZORG(ds) ((ds)->daxes->zzorg)
 
 /*! \brief Return smallest x-coordinate of grid for dataset ds */
+
 #define DSET_XXMIN(ds) ((ds)->daxes->xxmin) /* 11 Sep 2001 */
+
 /*! \brief Return largest x-coordinate of grid for dataset ds */
+
 #define DSET_XXMAX(ds) ((ds)->daxes->xxmax)
+
 /*! \brief Return smallest y-coordinate of grid for dataset ds */
+
 #define DSET_YYMIN(ds) ((ds)->daxes->yymin)
+
 /*! \brief Return largest y-coordinate of grid for dataset ds */
+
 #define DSET_YYMAX(ds) ((ds)->daxes->yymax)
+
 /*! \brief Return smallest z-coordinate of grid for dataset ds */
+
 #define DSET_ZZMIN(ds) ((ds)->daxes->zzmin)
+
 /*! \brief Return largest z-coordinate of grid for dataset ds */
+
 #define DSET_ZZMAX(ds) ((ds)->daxes->zzmax)
 
   /* these next 4 added 19 Aug 1999 */
 
 /*! \brief Find the x-axis index of a 3D array index in dataset ds */
+
 #define DSET_index_to_ix(ds,ii)         (  (ii) % (ds)->daxes->nxx)
+
 /*! \brief Find the y-axis index of a 3D array index in dataset ds */
+
 #define DSET_index_to_jy(ds,ii)         ( ((ii) / (ds)->daxes->nxx) % (ds)->daxes->nyy )
+
 /*! \brief Find the z-axis index of a 3D array index in dataset ds */
+
 #define DSET_index_to_kz(ds,ii)         (  (ii) /((ds)->daxes->nxx * (ds)->daxes->nyy ))
+
 /*! \brief Convert a triple-index (ix,jy,kz) to a single 3D index for dataset ds */
+
 #define DSET_ixyz_to_index(ds,ix,jy,kz) ((ix)+((jy)+(kz)*(ds)->daxes->nyy)*(ds)->daxes->nxx)
 
 /*! \brief Determine if dataset ds has cubical voxels */
+
 #define DSET_CUBICAL(ds) ( fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->yydel) && \
                            fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->zzdel)   )
 
@@ -2006,7 +2125,8 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
                              (ds)->wod_flag == False  && DSET_NUM_TIMES(ds) > 1 && \
                              ( DSET_ONDISK(ds) || DSET_LOADED(ds) && DSET_LOCKED(ds) ) )
 #else
-/*! \brief Determine if a graph window can be opened for dataset ds
+/*! \brief Determine if a graph window can be opened for dataset ds.
+
     Cannot graph warp-on-demand datasets
 */
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
@@ -2015,17 +2135,25 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
 #endif
 
 /*! \brief Return the TR for dataset ts; will be 0 if not time-dependent */
+
 #define DSET_TIMESTEP(ds)        ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdel )
+
 #define DSET_TR                  DSET_TIMESTEP
-/*! \brief Return the time origin for dataset ds
+
+/*! \brief Return the time origin for dataset ds.
+
     Is always 0 in current version of AFNI
 */
 #define DSET_TIMEORIGIN(ds)      ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttorg )
-/*! \brief Return the time duration of image acquisition for dataset ds
+
+/*! \brief Return the time duration of image acquisition for dataset ds.
+
     Is always 0 in current version of AFNI (was intended for true 3D echo-volume imaging)
 */
 #define DSET_TIMEDURATION(ds)    ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdur )
-/*! \brief Return the time-step units code for dataset ds
+
+/*! \brief Return the time-step units code for dataset ds.
+
     Will be one of
       - UNITS_MSEC_TYPE  milliseconds
       - UNITS_SEC_TYPE   seconds
@@ -2035,7 +2163,8 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
 #define DSET_TIMEUNITS(ds)       ( ((ds)->taxis == NULL) ? ILLEGAL_TYPE             \
                                                          : (ds)->taxis->units_type )
 
-/*! \brief Return number of time-axis slice offsets for datsaet ds
+/*! \brief Return number of time-axis slice offsets for datsaet ds.
+
     Will be zero for non-time-dependent datasets, and may be zero or positive
     for time-dependent datasets
 */
@@ -2045,7 +2174,9 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
 
 static char tmp_dblab[8] ;
 #define DBLK_BRICK_LAB(db,iv) ( ((db)->brick_lab != NULL) ? ((db)->brick_lab[iv]) : "?" )
-/*! \brief Return the label string for sub-brick iv of dataset ds
+
+/*! \brief Return the label string for sub-brick iv of dataset ds.
+
     This label is used on chooser menus, for example
 */
 #define DSET_BRICK_LAB(ds,iv) DBLK_BRICK_LAB((ds)->dblk,(iv))
@@ -2054,7 +2185,8 @@ static char tmp_dblab[8] ;
 #define DBLK_BRICK_STATCODE(db,iv)  \
  ( ((db)->brick_statcode != NULL) ? (db)->brick_statcode[iv] : ILLEGAL_TYPE )
 
-/*! \brief Return the statistical type code for the iv-th volume of dataset ds
+/*! \brief Return the statistical type code for the iv-th volume of dataset ds.
+
     Will be -1 if this sub-brick is not tagged as being an SPM
 */
 #define DSET_BRICK_STATCODE(ds,iv)                                         \
@@ -2080,6 +2212,7 @@ static char tmp_dblab[8] ;
  ( ((db)->brick_stataux != NULL) ? (db)->brick_stataux[iv][jj] : 0.0 )
 
 /*! \brief Return the jj-th statistical parameter for the iv-th volume of dataset ds */
+
 #define DSET_BRICK_STATPAR(ds,iv,jj)                                       \
    ( ISBUCKET((ds)) ? DBLK_BRICK_STATPAR((ds)->dblk,(iv),(jj))             \
                     : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type]) \
@@ -2098,7 +2231,7 @@ static char tmp_dblab[8] ;
 #define DSET_KEYWORDS_HAS(ds,ss) \
    THD_string_has( DSET_KEYWORDS((ds)) , (ss) )
 
-/*! macro to load the self_name and labels of a dataset
+/*! Macro to load the self_name and labels of a dataset
     with values computed from the filenames;
     replaces user control/input of these values in to3d
 */
@@ -2109,9 +2242,9 @@ static char tmp_dblab[8] ;
     strcpy((ds)->label1   ,(ds)->dblk->diskptr->filecode)      , \
     strcpy((ds)->label2   ,THD_DEFAULT_LABEL) )
 
-/*! macro to load statistics of a dataset if it
-      (1) doesn't have statistics already, or
-      (2) has bad statistics from the (very) old to3d bug
+/*! Macro to load brick statistics of a dataset if it
+      - doesn't have statistics already, or
+      - has bad statistics from the (very) old to3d bug
 */
 
 #define RELOAD_STATS(dset)                                                  \
@@ -2121,7 +2254,8 @@ static char tmp_dblab[8] ;
           (dset)->stats->bstat[1].min > (dset)->stats->bstat[1].max ) ) ){  \
      THD_load_statistics((dset)) ; }
 
-/*! \brief Determine if the ii-th volume of dataset dset has a valid brick statistic
+/*! \brief Determine if the ii-th volume of dataset dset has a valid brick statistic.
+
     Brick statistics are just the min and max values in the volume
     (not scaled by the brick scaling factor)
 */
@@ -2147,7 +2281,8 @@ static char tmp_dblab[8] ;
          KILL_STATISTIC( (ds)->stats ) ;                   \
          (ds)->stats = NULL ; } } while(0)
 
-/*! \brief macro to initialize the global stat_aux data in a dataset
+/*! \brief Macro to initialize the global stat_aux data in a dataset.
+
     Note that each sub-brick now has its own stat_aux data, and this
     global data is only used for the older (non-bucket) functional
     dataset types such as "fico"
@@ -2158,7 +2293,7 @@ static char tmp_dblab[8] ;
       for( is=0 ; is < MAX_STAT_AUX ; is++ )  \
          (ds)->stat_aux[is] = (is < (nf)) ? (ff)[is] : 0.0 ; } while(0)
 
-/*! \brief clear the global stat_aux data in a dataset */
+/*! \brief Clear the global stat_aux data in a dataset */
 
 #define ZERO_STAT_AUX(ds)                              \
   do{ int is ; for( is=0 ; is < MAX_STAT_AUX ; is++ )  \
@@ -2166,84 +2301,104 @@ static char tmp_dblab[8] ;
 
 /** macros to load and unload a dataset from memory **/
 
-/*! \brief Load dataset ds's sub-bricks into memory
-    If it is already loaded, does nothing
+/*! \brief Load dataset ds's sub-bricks into memory.
+
+    If it is already loaded, does nothing (so you can call this without much penalty).
 */
 #define DSET_load(ds)   THD_load_datablock( (ds)->dblk )
 
-/*! \brief Unload dataset ds's sub-bricks from memory
+/*! \brief Unload dataset ds's sub-bricks from memory.
+
     Won't do anything if the dataset is locked into memory
 */
 #define DSET_unload(ds) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY )
 
-/*! \brief Unload sub-brick iv in dataset ds from memory
+/*! \brief Unload sub-brick iv in dataset ds from memory.
+
     Only does something if the dataset is malloc()-ed,
     not mmap()-ed, and not locked in memory
 */
 #define DSET_unload_one(ds,iv) THD_purge_one_brick( (ds)->dblk , (iv) )
 
-/*! \brief Delete dataset ds's volumes and struct from memory
+/*! \brief Delete dataset ds's volumes and struct from memory.
+
     Does not delete from disk
 */
 #define DSET_delete(ds) THD_delete_3dim_dataset((ds),False)
 
-/*! \brief Write dataset ds to disk
+/*! \brief Write dataset ds to disk.
+
     Also loads the sub-brick statistics
 */
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
 /*! \brief Write only the dataset header to disk, for dataset ds */
+
 #define DSET_write_header(ds)  THD_write_3dim_dataset( NULL,NULL , (ds),False )
 
-/*! \brief Check if dataset ds if fully loaded into memory
+/*! \brief Check if dataset ds if fully loaded into memory.
+
     If return is 0 (false), you could try DSET_load(ds)
 */
 #define DSET_LOADED(ds) ( THD_count_databricks((ds)->dblk) == DSET_NVALS(ds) )
 
 /*! \brief Lock dataset ds into memory */
+
 #define DSET_lock(ds)      DBLK_lock((ds)->dblk)       /* Feb 1998 */
+
 /*! \brief Unlock dataset ds (so it can be purged) */
+
 #define DSET_unlock(ds)    DBLK_unlock((ds)->dblk)
+
 /*! \brief Check if dataset ds is locked into memory */
+
 #define DSET_LOCKED(ds)    DBLK_LOCKED((ds)->dblk)
 
-/*! \brief Force this dataset to be loaded into memory using malloc()
+/*! \brief Force this dataset to be loaded into memory using malloc().
+
     If you are altering the dataset contents, this is required,
     since a mmap()-ed dataset is readonly.
 */
 #define DSET_mallocize(ds) DBLK_mallocize((ds)->dblk)
+
 /*! \brief Force this dataset to be loaded into memory using mmap()
     You cannot alter any sub-brick data, since mmap() is done in
     readonly mode.
 */
 #define DSET_mmapize(ds)   DBLK_mmapize((ds)->dblk)
-/*! \brief Let AFNI decide how to load a dataset into memory
+
+/*! \brief Let AFNI decide how to load a dataset into memory.
+
     May choose mmap() or malloc()
 */
 #define DSET_anyize(ds)    DBLK_anyize((ds)->dblk)
 
-/*! \brief Super-lock dataset ds into memory
+/*! \brief Super-lock dataset ds into memory.
+
     Super-locked datasets will not be unlocked by DSET_unlock
 */
 #define DSET_superlock(ds) DBLK_superlock((ds)->dblk)  /* 22 Mar 2001 */
 
 /*! \brief Check if dataset ds is loaded into memory using malloc() */
+
 #define DSET_IS_MALLOC(ds)  DBLK_IS_MALLOC((ds)->dblk)
+
 /*! \brief Check if dataset ds is loaded into memory using mmap() */
+
 #define DSET_IS_MMAP(ds)    DBLK_IS_MMAP((ds)->dblk)
 
-/*! \brief Check if dataset ds is "mastered": gets its data from someone else
-    Mastered datasets are specified on the command line with the
-    [a..b] syntax, etc.
+/*! \brief Check if dataset ds is "mastered": gets its data from someone else.
+
+    Mastered datasets are specified on the command line with the [a..b] syntax, etc.
 */
 #define DSET_IS_MASTERED(ds) DBLK_IS_MASTERED((ds)->dblk)
 
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
-/*! \brief A dynamic array type for AFNI datasets
-    This is used when collecting all the datasets in a directory
-    into a "session"
+/*! \brief A dynamic array type for AFNI datasets.
+
+    This is used when collecting all the datasets in a directory into a THD_session.
 */
 
 typedef struct THD_3dim_dataset_array {
@@ -2254,9 +2409,9 @@ typedef struct THD_3dim_dataset_array {
 
 #define INC_3DARR 8
 
-/*! \brief Initialize a new AFNI dataset array into variable "name"
-    You should declare
-      THD_3dim_dataset_array *name
+/*! \brief Initialize a new AFNI dataset array into variable "name".
+
+    You should declare "THD_3dim_dataset_array *name;".
 */
 #define INIT_3DARR(name)                  \
    ( (name) = XtNew(THD_3dim_dataset_array) ,\
@@ -2277,9 +2432,10 @@ typedef struct THD_3dim_dataset_array {
       ((name)->num)++ ;                  \
      } }
 
-/*! \brief Free the AFNI dataset array (but don't kill the datasets)
+/*! \brief Free the AFNI dataset array (but don't kill the datasets).
+
     This would be used after the dataset pointers have been moved
-    someplace else (into the THD_session structure)
+    someplace else (e.g., into the THD_session structure)
 */
 
 #define FREE_3DARR(name)      \
@@ -2349,7 +2505,8 @@ typedef struct {
 
 #define SESSIONLIST_TYPE 107
 
-/*! \brief Array of THD_sessions
+/*! \brief Array of THD_sessions.
+
     Holds all the datasets read into AFNI from all directories
 */
 
@@ -2371,7 +2528,8 @@ typedef struct {
       for( is=0 ; is < THD_MAX_NUM_SESSION ; is++ ) (sl)->ssar[is] = NULL ; \
       (sl)->num_sess = 0 ; }
 
-/*! \brief Return type for THD_sessionlist searching (see THD_dset_in_*)
+/*! \brief Return type for THD_sessionlist searching (see THD_dset_in_*).
+
     There are different ways to search for a dataset in THD_sessionlist
       - FIND_NAME    to find by the name field (is now obsolete)
       - FIND_IDCODE  to find by the dataset ID code
