@@ -2132,6 +2132,14 @@ N.B.: If AFNI_SHOW_SURF_POPUPS is YES, then it wins over
       AFNI_KILL_SURF_POPUPS being YES.  If neither is set, then
       messages are displayed to stderr.
 
+-----------------------------
+Variable: AFNI_EDGIZE_OVERLAY (editable)
+-----------------------------
+If set to YES, then the color overlays in the image windows will only
+have their edge pixels displayed.  That is, each 'blob' will be hollowed
+out, leaving only its edges.  If you do this, you probably want to make
+the color overlay opaque, so that the results are easily seen.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
