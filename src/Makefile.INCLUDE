@@ -108,11 +108,7 @@ vastness:all plugins install install_plugins install_lib
 
 ### Make many things
 
-ifndef DO_LIBDL
-all:libmri.a libcoxplot.a libvolpack.a programs
-else
-all:libdl.a libmri.a libcoxplot.a libvolpack.a programs
-endif
+all:$(LIBDL) libmri.a libcoxplot.a libvolpack.a programs
 
 ### Make a few more things
 
