@@ -149,7 +149,7 @@ float THD_quadrant_corr( int n , float *x , float *y )
 
 float THD_pearson_corr( int n, float *x , float *y )
 {
-   float xv , yv , xy ;
+   float xv=0 , yv=0 , xy=0 ;
    int ii ;
 
    for( ii=0 ; ii < n ; ii++ ){

@@ -295,6 +295,10 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
 
+#ifdef ALLOW_AGNI
+   GLOBAL_argopt.enable_agni    = 0 ;      /* 29 Aug 2001 */
+#endif
+
 #if 0
    GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
 #else                                      /* 09 Oct 2000 */
@@ -448,6 +452,15 @@ ENTRY("AFNI_parse_args") ;
          GLOBAL_argopt.elide_quality = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
+
+#ifdef ALLOW_AGNI
+      /*---- -agni [29 Aug 2001] -----*/
+
+      if( strcmp(argv[narg],"-agni") == 0 ){
+         GLOBAL_argopt.enable_agni = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+#endif
 
       /*----- -tbar 'name' option -----*/
 
@@ -1535,7 +1548,91 @@ STATUS("get status") ;
    /*--- 26 Feb 2001: return a memplot drawing struct ---*/
 
    if( type == isqCR_getmemplot ){
-      RETURN( (XtPointer) NULL ) ;
+#ifndef ALLOW_AGNI
+     RETURN(NULL) ;
+#else
+# define RX 0.25
+     if( !AGNI_ENABLED || br->dset->ag_surf == NULL ) RETURN(NULL) ;
+     {
+      Three_D_View * im3d = (Three_D_View *) br->parent ;
+      int nn=br->dset->ag_surf->num_nod , ii ;
+      AGNI_nod *nod = br->dset->ag_surf->nod ;
+      MEM_plotdata * mp ;
+      THD_ivec3 iv,ivp,ivm ;
+      THD_fvec3 fv,fvp,fvm ;
+      float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz ;
+
+      LOAD_IVEC3(iv,0,0,n+1) ;
+      ivp = THD_fdind_to_3dind( br , iv ) ;
+      fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
+      fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
+      LOAD_IVEC3(iv,0,0,n-1) ;
+      ivm = THD_fdind_to_3dind( br , iv ) ;
+      fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
+      fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
+
+      ii = create_memplot("AGNI memplot",1.0) ;
+      if( ii != 0 ){
+         mp = find_memplot( "AGNI memplot" ) ;
+         delete_memplot( mp ) ;
+         ii = create_memplot("AGNI memplot",1.0) ;
+         if( ii != 0 ){
+            RETURN(NULL) ;
+         }
+      }
+      mp = get_active_memplot() ;
+      set_color_memplot(1.0,0.9,0.0) ; /* yellow-ish */
+
+      dxyz = MIN(br->del1,br->del2) ;
+      dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+
+      if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* search x */
+         float xb=fvm.xyz[0] , xt=fvp.xyz[0] , xm,xw ;
+         if( xb > xt ){ float t=xb ; xb=xt ; xt=t ; }
+         xm = 0.5*(xb+xt); xw = 0.25*(xt-xb); xb = xm-xw; xt = xm+xw;
+         for( ii=0 ; ii < nn ; ii++ ){
+            if( nod[ii].x > xb && nod[ii].x < xt ){
+               LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
+               fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
+               fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
+               fv = THD_3dfind_to_fdfind( br , fv ) ;
+               plotrect_memplot( s1*(fv.xyz[0]-RX), 1.0-s2*(fv.xyz[1]-RX),
+                                 s1*(fv.xyz[0]+RX), 1.0-s2*(fv.xyz[1]+RX)  ) ;
+            }
+         }
+      } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* search y */
+         float yb=fvm.xyz[1] , yt=fvp.xyz[1] , ym,yw ;
+         if( yb > yt ){ float t=yb ; yb=yt ; yt=t ; }
+         ym = 0.5*(yb+yt); yw = 0.25*(yt-yb); yb = ym-yw; yt = ym+yw;
+         for( ii=0 ; ii < nn ; ii++ ){
+            if( nod[ii].y > yb && nod[ii].y < yt ){
+               LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
+               fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
+               fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
+               fv = THD_3dfind_to_fdfind( br , fv ) ;
+               plotrect_memplot( s1*(fv.xyz[0]-RX), 1.0-s2*(fv.xyz[1]-RX),
+                                 s1*(fv.xyz[0]+RX), 1.0-s2*(fv.xyz[1]+RX)  ) ;
+            }
+         }
+      } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* search z */
+         float zb=fvm.xyz[2] , zt=fvp.xyz[2] , zm,zw ;
+         if( zb > zt ){ float t=zb ; zb=zt ; zt=t ; }
+         zm = 0.5*(zb+zt); zw = 0.25*(zt-zb); zb = zm-zw; zt = zm+zw;
+         for( ii=0 ; ii < nn ; ii++ ){
+            if( nod[ii].z > zb && nod[ii].z < zt ){
+               LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
+               fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
+               fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
+               fv = THD_3dfind_to_fdfind( br , fv ) ;
+               plotrect_memplot( s1*(fv.xyz[0]-RX), 1.0-s2*(fv.xyz[1]-RX),
+                                 s1*(fv.xyz[0]+RX), 1.0-s2*(fv.xyz[1]+RX)  ) ;
+            }
+         }
+      }
+      if( MEMPLOT_NLINE(mp) < 1 ){ delete_memplot(mp) ; mp = NULL ; }
+      RETURN(mp) ; /* will be destroyed in imseq */
+     }
+#endif
    }
 
    /*--- underlay image # n ---*/
@@ -5476,6 +5573,12 @@ STATUS("purging old datasets from memory (maybe)") ;
       im3d->fim_now  = new_func ;
       AFNI_purge_unused_dsets() ;
    }
+#ifdef ALLOW_AGNI
+   else if( AGNI_ENABLED && old_anat != new_anat ){ /* 29 Aug 2001 */
+      AGNI_unload( old_anat ) ;
+      AGNI_load  ( new_anat ) ;
+   }
+#endif
 
    /*---------------------------------------------------------*/
    /* set the new datasets that we will deal with from now on */

@@ -151,6 +151,14 @@ extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;
 extern void           scale_memplot( float,float,float,float,float,
                                      MEM_plotdata * ) ;
 
+#define MRI_ROT_0   1  /* codes for various rotations */
+#define MRI_ROT_90  2  /* [do not change these unless */
+#define MRI_ROT_180 4  /*  mrilib.h is changed also!] */
+#define MRI_ROT_270 8
+#define MRI_FLMADD  128
+
+extern void flip_memplot( int , int , MEM_plotdata * ) ; /* 30 Aug 2001 */
+
 /*-- draw to a PostScript file: see also plot_ps.c --**/
 
 extern void memplot_to_postscript( char * , MEM_plotdata * ) ;

@@ -11,6 +11,7 @@
    3D coordinate conversion routines;
      tags for coordinate systems:
        fdind  = FD_brick voxel indices (ints)
+       fdfind = FD_brick voxel indices (floats - added 30 Aug 2001)
        3dind  = THD_3dim_dataset voxel indices (ints)
        3dfind = THD_3dim_dataset floating point voxel indices
                   (used for subvoxel resolution)
@@ -237,6 +238,38 @@ THD_ivec3 THD_3dind_to_fdind( FD_brick * br , THD_ivec3 id )
 
       if( br->a123.ijk[qq] > 0 ) ib.ijk[qq] = id.ijk[ax] ;
       else                       ib.ijk[qq] = br->sxyz.ijk[ax] - id.ijk[ax];
+   }
+
+   return ib ;
+}
+
+/*---------------------------------------------------------------------*/
+
+THD_fvec3 THD_fdfind_to_3dfind( FD_brick * br , THD_fvec3 ib ) /* 30 Aug 2001 */
+{
+   THD_fvec3 id ;
+   int qq , ax ;
+
+   for( qq=0 ; qq < 3 ; qq++ ){
+      ax = abs( br->a123.ijk[qq] ) - 1 ;   /* 0,1,2, for x,y,z */
+
+      if( br->a123.ijk[qq] > 0 ) id.xyz[ax] = ib.xyz[qq] ;
+      else                       id.xyz[ax] = br->sxyz.ijk[ax] - ib.xyz[qq];
+   }
+
+   return id ;
+}
+
+THD_fvec3 THD_3dfind_to_fdfind( FD_brick * br , THD_fvec3 id ) /* 30 Aug 2001 */
+{
+   THD_fvec3 ib ;
+   int qq , ax ;
+
+   for( qq=0 ; qq < 3 ; qq++ ){
+      ax = abs( br->a123.ijk[qq] ) - 1 ;
+
+      if( br->a123.ijk[qq] > 0 ) ib.xyz[qq] = id.xyz[ax] ;
+      else                       ib.xyz[qq] = br->sxyz.ijk[ax] - id.xyz[ax];
    }
 
    return ib ;

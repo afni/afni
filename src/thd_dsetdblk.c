@@ -32,10 +32,12 @@ THD_3dim_dataset * THD_3dim_from_block( THD_datablock * blk )
    int new_idcode = 0 ;
 #endif
 
+ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
+
    /* sanity check */
 
    if( ! ISVALID_DATABLOCK(blk) || ! ISVALID_DISKPTR(blk->diskptr) )
-      return NULL ;
+      RETURN( NULL );
 
    /*-- initialize a new 3D dataset --*/
 
@@ -701,5 +703,9 @@ THD_3dim_dataset * THD_3dim_from_block( THD_datablock * blk )
    }
 #endif
 
-   return dset ;
+#ifdef ALLOW_AGNI
+   AGNI_get_sname(dset) ;
+#endif
+
+   RETURN( dset );
 }

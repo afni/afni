@@ -26,6 +26,8 @@ THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * old_dset )
    THD_diskptr      * new_dkptr ;
    int                new_nvals , old_good ;
 
+ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
+
    old_good = ISVALID_3DIM_DATASET(old_dset) ;
 
    /** make some new places to store stuff **/
@@ -194,5 +196,9 @@ THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * old_dset )
       new_dset->taxis = NULL ;
    }
 
-   return new_dset ;
+#ifdef ALLOW_AGNI
+   DSET_NULL_AGNI(new_dset) ;  /* 29 Aug 2001 */
+#endif
+
+   RETURN( new_dset );
 }

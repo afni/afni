@@ -3099,11 +3099,12 @@ DPR("putting sized_xim to screen");
    /*-- 26 Feb 2001: draw some line overlay, a la coxplot? --*/
    /*** (shouldn't be HERE, but this is just a test)       ***/
 
-   if( !seq->opt.no_overlay && seq->mont_nx == 1 || seq->mont_ny == 1 ){
+   if( !seq->opt.no_overlay && seq->mont_nx == 1 && seq->mont_ny == 1 ){
       MEM_plotdata * mp ;
       mp = (MEM_plotdata *) seq->getim( seq->im_nr ,
                                         isqCR_getmemplot , seq->getaux ) ;
       if( mp != NULL ){
+         flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror, mp ) ;
          memplot_to_X11_sef( seq->dc->display ,
                              XtWindow(seq->wimage) , mp , 0,0,1 ) ;
          delete_memplot(mp) ;

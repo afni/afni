@@ -11,14 +11,14 @@ MYDOCS   = docfiles/*.tex *.txt art12cox.sty $(DOCS)
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
-            afni_slice_short.o afni_slice_float.o    \
-            afni_slice_byte.o  afni_slice_complex.o \
-            afni_pcor.o afni_pcor_float.o          \
-            pbar.o afni_graph.o afni_plugin.o     \
-            parser.o parser_int.o afni_plugout.o afni_fimfunc.o  \
-            afni_setup.o afni_receive.o mcw_graf.o afni_splash.o \
-            afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o  \
-            afni_ttren.o afni_pplug_1dfunc.o                     \
+            afni_slice_short.o afni_slice_float.o                  \
+            afni_slice_byte.o  afni_slice_complex.o                \
+            afni_pcor.o afni_pcor_float.o                          \
+            pbar.o afni_graph.o afni_plugin.o                      \
+            parser.o parser_int.o afni_plugout.o afni_fimfunc.o    \
+            afni_setup.o afni_receive.o mcw_graf.o afni_splash.o   \
+            afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o    \
+            afni_ttren.o afni_pplug_1dfunc.o                       \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -917,9 +917,9 @@ mcw_graf.o:mcw_graf.h
 ###################################################################
 # make the mri library
 
-agni.o:agni.c agni.h
+agni.o:agni.c agni.h cs_sort_template.h
 	$(RM) $@
-	$(CCFAST) -c agni.c -I./sipp $(IFLAGS)
+	$(CCFAST) -c agni.c $(IFLAGS)
 
 csfft.o:csfft.c
 	$(RM) $@
@@ -989,7 +989,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
            thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o          \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o   \
-           thd_outlier_count.o thd_correlate.o
+           thd_outlier_count.o thd_correlate.o agni.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -1356,5 +1356,8 @@ Xphace:Xphace.o $(IMOBJS)
 
 testcox:testcox.o
 	$(CC) -o testcox testcox.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+agni_to_afni:agni_to_afni.o
+	$(CC) -o agni_to_afni agni_to_afni.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 #-------------------------------------------------------------------------------

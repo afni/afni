@@ -3055,3 +3055,25 @@
      Also, made it check for negatives again after 2swap; skip outlier
      check if too many negatives (more than 1%); print percentage of
      negatives in negatives report.
+
+26 Aug 2001
+ * Modified to3d.c to have -save_outliers option.
+
+28 Aug 2001
+ * Modified thd_correlate.c Pearson routine to initialize sums (oops).
+
+29 Aug 2001
+ * Created cs_sort_template.h, a file to generate quicksort functions from
+     a macro-defined type and macro-defined order.
+ * Adapted 1st version of agni.[ch] to fit into afni, for surface display.
+     Changes also to afni.c (to draw the damn thing), imseq.c, and some
+     other minor junk.
+
+30 Aug 2001
+ * Modified coxplot/plot_cox.c to have a flip_memplot() function, for use
+     in imseq.c graphing overlay.
+ * Modified coxplot/plot_x11.c to draw a Point rather than a Rectangle
+     if the rectangle has width=height=0.
+ * Modified afni.c to draw surface nodes in correct places, rather than
+     in center of their voxels.  Also involved changes to thd_coords.c,
+     to have new functions for floating point coords in FD_bricks.

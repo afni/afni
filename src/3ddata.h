@@ -42,6 +42,11 @@
 
 struct THD_3dim_dataset ;  /* incomplete definition */
 
+#define ALLOW_AGNI   /* 29 Aug 2001 */
+#ifdef ALLOW_AGNI
+# include "agni.h"
+#endif
+
 /***************************** dimensions ***************************/
 
 #define THD_MAX_NAME      256
@@ -1616,7 +1621,23 @@ typedef struct THD_3dim_dataset {
 
       KILL_list kl ;
       XtPointer parent ;
+
+#ifdef ALLOW_AGNI
+      AGNI_surface * ag_surf ;  /* 29 Aug 2001 */
+      char * ag_sname ;
+      int * ag_vmap ;
+#endif
+
 } THD_3dim_dataset ;
+
+#ifdef ALLOW_AGNI
+# define DSET_HAS_AGNI(ds)   ( (ds)->ag_sname != NULL && (ds)->ag_surf != NULL )
+# define DSET_NULL_AGNI(ds)  ((ds)->ag_sname=NULL, (ds)->ag_surf=NULL, (ds)->ag_vmap=NULL)
+#else
+# define DSET_HAS_AGNI(ds)   0
+# define DSET_NULL_AGNI(ds)  /* nada */
+# define AGNI_unload(ds)     /* nada */
+#endif
 
 #define DOOMED 665
 
@@ -1655,9 +1676,11 @@ typedef struct THD_3dim_dataset {
      (ds)->dblk->diskptr != NULL          && \
      COMPRESS_filecode((ds)->dblk->diskptr->brick_name) >= 0 )
 
-#define PURGE_DSET(ds)                                  \
- do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )  \
-        (void) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY ) ; } while(0)
+# define PURGE_DSET(ds)                                                 \
+  do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )                 \
+         (void) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY ) ; \
+      AGNI_unload(ds) ;                                                 \
+  } while(0)
 
 #define DSET_INMEMORY(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
                             (ds)->dblk->malloc_type!=DATABLOCK_MEM_UNDEFINED )
@@ -1734,6 +1757,10 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
 #define DSET_DX(ds) ((ds)->daxes->xxdel)  /* added 17 Aug 1998 */
 #define DSET_DY(ds) ((ds)->daxes->yydel)
 #define DSET_DZ(ds) ((ds)->daxes->zzdel)
+
+#define DSET_XORG(ds) ((ds)->daxes->xxorg)  /* 29 Aug 2001 */
+#define DSET_YORG(ds) ((ds)->daxes->yyorg)
+#define DSET_ZORG(ds) ((ds)->daxes->zzorg)
 
   /* these next 4 added 19 Aug 1999 */
 
@@ -2399,6 +2426,9 @@ extern void THD_const_detrend    ( int, float *, float * ); /* 24 Aug 2001 */
 
 extern THD_ivec3 THD_fdind_to_3dind( FD_brick * , THD_ivec3 ) ;
 extern THD_ivec3 THD_3dind_to_fdind( FD_brick * , THD_ivec3 ) ;
+
+extern THD_fvec3 THD_fdfind_to_3dfind( FD_brick *, THD_fvec3) ; /* 30 Aug 2001 */
+extern THD_fvec3 THD_3dfind_to_fdfind( FD_brick *, THD_fvec3) ;
 
 extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 

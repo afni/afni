@@ -21,6 +21,8 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
    char * ptr ;
    MRI_IMAGE * im ;
 
+ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
+
    if( native_order < 0 ) native_order = mri_short_order() ;
 
    floatscan = AFNI_yesenv("AFNI_FLOATSCAN") ;
@@ -30,20 +32,20 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
 
    /*-- sanity checks --*/
 
-   if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ) return False ;
+   if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ) RETURN( False );
 
    ii = THD_count_databricks( blk ) ;
-   if( ii == blk->nvals ) return True ;
+   if( ii == blk->nvals ) RETURN( True );
 
-   if( blk->malloc_type == DATABLOCK_MEM_UNDEFINED ) return False ;
+   if( blk->malloc_type == DATABLOCK_MEM_UNDEFINED ) RETURN( False );
 
    dkptr = blk->diskptr ;
    if( ! ISVALID_DISKPTR(dkptr) || dkptr->storage_mode == STORAGE_UNDEFINED )
-      return False ;
+      RETURN( False );
 
    if( dkptr->rank != 3 ){
       fprintf(stderr,"\n*** Cannot read non 3D datablocks ***\n") ;
-      return False ;
+      RETURN( False );
    }
 
    /*-- allocate data space --*/
@@ -108,7 +110,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
                { char * str = mcw_malloc_status() ;
                  if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str);}
 #endif
-               return False ;
+               RETURN( False );
             } else {
                fprintf(stderr,"*** was able to free up enough memory\n") ;
 #ifdef USING_MCW_MALLOC
@@ -117,7 +119,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
 #endif
             }
          } else {
-            return False ;
+            RETURN( False );
          }
       }
 
@@ -131,7 +133,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
                            "   - do you have permission? does file exist?\n" ,
                   dkptr->brick_name ) ;
          perror("*** Unix error message") ;
-         return False ;
+         RETURN( False );
       }
 
       /* 04 May 2001: check file size (the Katie Lee bug) */
@@ -166,13 +168,13 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
             if( ptr == (char *)(-1) ){
                fprintf(stderr,"*** cannot fix problem!\n") ;
                close(fd) ;
-               return False ;
+               RETURN( False );
             } else {
                fprintf(stderr,"*** was able to fix problem!\n") ;
             }
          } else {
             close(fd) ;
-            return False ;
+            RETURN( False );
          }
       }
 
@@ -186,7 +188,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
          ptr += DBLK_BRICK_BYTES(blk,ibr) ;
       }
 
-      return True ;  /* finito */
+      RETURN( True );  /* finito */
    }
 
    /*** read data into newly malloc-ed bricks ***/
@@ -195,7 +197,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
 
       default:
          fprintf(stderr,"\n*** illegal storage mode in read ***\n") ;
-         return False ;
+         RETURN( False );
       break ;
 
      /*-- read brick file (there is no other option)--*/
@@ -215,7 +217,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
                     "- do you have permission?\n" ,
                     dkptr->brick_name ) ;
             perror("*** Unix error message") ;
-            return False ;
+            RETURN( False );
          }
 
          /* read each sub-brick all at once */
@@ -274,7 +276,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
                       "*** desired %d bytes but only got %d\n" ,
                     dkptr->brick_name , blk->total_bytes , id ) ;
             perror("*** Unix error message") ;
-            return False ;
+            RETURN( False );
          }
 
          /* 25 April 1998: check and fix byte ordering */
@@ -398,11 +400,11 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
             }
          }
 
-         return True ;
+         RETURN( True );
       }
       break ;
 
    } /* end of switch on storage modes */
 
-   return False ;  /* should NEVER be reached */
+   RETURN( False );  /* should NEVER be reached */
 }

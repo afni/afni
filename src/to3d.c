@@ -23,7 +23,8 @@ static THD_diskptr      * dkptr   = NULL ;
 static THD_marker_set   * markers = NULL ;
 static THD_string_array * imnames = NULL ;  /* name for each slice */
 
-static int outliers_checked = 0 ; /* 15 Aug 2001 */
+static int outliers_checked = 0 ;     /* 15 Aug 2001 */
+static char * outliers_fname = NULL ; /* 26 Aug 2001 */
 
 static int     Argc , First_Image_Arg = 1 ;
 static char ** Argv ;
@@ -2089,6 +2090,16 @@ void T3D_initialize_user_data(void)
          putenv("AFNI_TO3D_OUTLIERS=Text") ; nopt++ ; continue ;
       }
 
+      /*--- 26 Aug 2001: -save_outliers ---*/
+
+      if( strcmp(Argv[nopt],"-save_outliers") == 0 ){
+         if(++nopt > Argc) FatalError("-save_outliers needs a filename") ;
+         outliers_fname = Argv[nopt] ;
+         if( !THD_filename_ok(outliers_fname) )
+            FatalError("-save_outliers filename is illegal") ;
+         nopt++ ; continue ;
+      }
+
       /*--- July 1997: -orient code ---*/
 
       if( strncmp(Argv[nopt],"-orient",4) == 0 ){
@@ -3180,6 +3191,17 @@ void Syntax()
     "    N.B.: If to3d is run in batch mode, then no graph can be produced.\n"
     "          Thus, this option only has meaning when to3d is run with the\n"
     "          interactive graphical user interface.\n"
+    "  -save_outliers fname\n"
+    "    Tells the program to save the outliers count into a 1D file with\n"
+    "    name 'fname'.  You could graph this file later with the command\n"
+    "       1dplot -one fname\n"
+    "    If this option is used, the outlier count will be saved even if\n"
+    "    nothing appears 'suspicious' (whatever that means).\n"
+    "  NOTES on outliers:\n"
+    "    * See '3dToutcount -help' for a description of how outliers are\n"
+    "       defined.\n"
+    "    * The outlier count is not done if the input images are shorts\n"
+    "       and there is a significant (> 1%%) number of negative inputs.\n"
    ) ;
 
    printf(
@@ -5591,6 +5613,17 @@ void T3D_check_outliers( int opcode )
            if( out_count[iv] > out_ctop ){
               sprintf(msg+strlen(msg)," %3d",iv) ; cc++ ;
               if( cc%12 == 0 ) strcat(msg,"\n") ;
+           }
+        }
+
+        if( outliers_fname != NULL ){                    /* 26 Aug 2001 */
+           FILE *fp = fopen( outliers_fname , "w" ) ;
+           if( fp == NULL ){
+             fprintf(stderr,"** Can't open -save_outliers %s\n",outliers_fname);
+           } else {
+             for( iv=0 ; iv < nvals ; iv++ )
+               fprintf(fp,"%3d %3d\n",out_count[iv],out_ctop) ;
+             fclose(fp) ;
            }
         }
 

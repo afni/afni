@@ -51,7 +51,7 @@ typedef struct { byte r,g,b,a ; } rgba ;  /* 24 Aug 2001 */
 #define LOAD_rgba(s,rr,gg,bb,aa)   ((s).r=(rr),(s).g=(gg),(s).b=(bb),(s).a=(bb))
 #define UNLOAD_rgba(s,rr,gg,bb,aa) ((rr)=(s).r,(gg)=(s).g,(bb)=(s).b,(aa)=(s).a)
 
-#define BYTE_TO_ZONE(b) (((b)==255) ? 1.0 : 0.0392157*(b))
+#define BYTE_TO_ZONE(b) (0.0392157*(b))
 #define ZONE_TO_BYTE(z) ((byte)(255.49*(z)))
 
 typedef enum MRI_TYPE {
