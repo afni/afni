@@ -8229,17 +8229,11 @@ ENTRY("AFNI_make_warp") ;
 
          /* load bot & top with largest possible excursions from
             origin (the ALIGNBOX dimensions were added 3/25/95)  */
-#if 1
+
          LOAD_FVEC3(awarp->warp.bot,
                     -ATLAS_ALIGNBOX_LAT,-ATLAS_ALIGNBOX_ANT,-ATLAS_ALIGNBOX_INF);
          LOAD_FVEC3(awarp->warp.top,
                      ATLAS_ALIGNBOX_LAT, ATLAS_ALIGNBOX_POS, ATLAS_ALIGNBOX_SUP);
-#else
-         LOAD_FVEC3(awarp->warp.bot,
-                     -ATLAS_BBOX_LAT,-ATLAS_BBOX_ANT,-ATLAS_BBOX_INF);
-         LOAD_FVEC3(awarp->warp.top,
-                      ATLAS_BBOX_LAT, ATLAS_BBOX_POS, ATLAS_BBOX_SUP);
-#endif
 
 #ifdef AFNI_DEBUG
 STATUS("Original -> Aligned Map::") ;
@@ -8638,14 +8632,28 @@ ENTRY("AFNI_init_warp") ;
             (sizes chosen to include borders of Atlas figures) ---*/
 
       case WARP_TALAIRACH_12_TYPE:{
-         float zbottom ;
-         int   use_tlrc_big ;
+         int   use_tlrc_big=MCW_val_bbox( im3d->vwid->marks->tlrc_big_bbox ) ;
+         float xtop=ATLAS_BBOX_LAT ,
+               ybot=ATLAS_BBOX_ANT ,
+               ytop=ATLAS_BBOX_POS ,
+               zbot=(use_tlrc_big) ? ATLAS_BBOX_INF_NEW : ATLAS_BBOX_INF ,
+               ztop=ATLAS_BBOX_SUP ;
 
-         use_tlrc_big = MCW_val_bbox( im3d->vwid->marks->tlrc_big_bbox ) ;
-         zbottom      = (use_tlrc_big != 0) ? ATLAS_BBOX_INF_NEW : ATLAS_BBOX_INF ;
+#define GETVAL(vvv,nnn) do{ char *eee = getenv(nnn) ;                            \
+                            if( eee != NULL ){                                   \
+                              float val=strtod(eee,NULL); if(val>0.0) vvv = val; \
+                            } } while(0)
 
-         LOAD_FVEC3(xnew_bot,-ATLAS_BBOX_LAT,-ATLAS_BBOX_ANT,-zbottom       );
-         LOAD_FVEC3(xnew_top, ATLAS_BBOX_LAT, ATLAS_BBOX_POS, ATLAS_BBOX_SUP);
+         GETVAL(xtop,"AFNI_TLRC_BBOX_LAT") ;  /* 16 Apr 2002: get new bounding box */
+         GETVAL(ybot,"AFNI_TLRC_BBOX_ANT") ;  /* from environment variables, maybe */
+         GETVAL(ytop,"AFNI_TLRC_BBOX_POS") ;
+         GETVAL(zbot,"AFNI_TLRC_BBOX_INF") ;
+         GETVAL(ztop,"AFNI_TLRC_BBOX_SUP") ;
+
+#undef GETVAL
+
+         LOAD_FVEC3( xnew_bot ,-xtop,-ybot,-zbot ) ;
+         LOAD_FVEC3( xnew_top , xtop, ytop, ztop ) ;
       }
       break ;
 

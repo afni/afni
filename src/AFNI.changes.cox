@@ -3662,3 +3662,4 @@
  * Modified 3dAutomask.c to add history note.
  * Modified afni_plugin.h and NLfit_model.h to read dlfcn.h from
      dlcompat/ subdirectory on Darwin systems.
+ * Modified afni.c to allow environment variables to set +tlrc box size.
