@@ -98,7 +98,7 @@
 
 15 January 2003:
   * The highly anticipated release of Imon 2.0!!
-      - Imon now has an optional rtfeedmd functionality.
+      - Imon now has optional rtfeedme functionality.
       - add files rickr/realtime.[ch]
       - modified rickr/Imon.[ch]
       - modified rickr/Makefile
@@ -108,3 +108,8 @@
           o Imon now also depends on rickr/realtime.[ch]
           o pass $(EXTRA_LIBS) to the make under rickr
 
+27 January 2003:
+  * modified Makefile.solaris28_gcc : defined EXTRA_LIBS_2
+      (is EXTRA_LIBS without -lgen and -ldl)
+  * modified Makefile.INCLUDE for Imon to use EXTRA_LIBS_2
+  * modified rickr/Makefile for Imon to use EXTRA_LIBS_2
