@@ -1790,7 +1790,8 @@ libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
-	3dSurf2Vol SurfMeasures ConvertSurface MapIcosahedron CreateIcosahedron SurfaceMetrics packbins 'INSTALLDIR=$(INSTALLDIR)' \
+	3dSurf2Vol SurfMeasures ConvertSurface MapIcosahedron CreateIcosahedron SurfaceMetrics \
+   SurfSmooth inspec packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -1854,6 +1855,10 @@ suma_clean:
 	if [ -f SUMA/SUMA_pixmap2eps ]; then $(RM) SUMA/SUMA_pixmap2eps; fi;
 	if [ -f SurfaceMetrics ]; then $(RM) SurfaceMetrics; fi;
 	if [ -f SUMA/SurfaceMetrics ]; then $(RM) SUMA/SurfaceMetrics; fi;
+	if [ -f inspec ]; then $(RM) inspec; fi;
+	if [ -f SUMA/inspec ]; then $(RM) SUMA/inspec; fi;
+	if [ -f SurfSmooth ]; then $(RM) SurfSmooth; fi;
+	if [ -f SUMA/SurfSmooth ]; then $(RM) SUMA/SurfSmooth; fi;
 	if [ -f MapIcosahedron ]; then $(RM) MapIcosahedron; fi;
 	if [ -f SUMA/MapIcosahedron ]; then $(RM) SUMA/MapIcosahedron; fi;
 	if [ -f CreateIcosahedron ]; then $(RM) CreateIcosahedron; fi;
@@ -1866,9 +1871,10 @@ suma_link:
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
 	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
-	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures ScaleToMap MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics;\
+	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures ScaleToMap MapIcosahedron \
+   CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics SurfSmooth inspec;\
 	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
-	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics\
+	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics SurfSmooth inspec\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -1885,7 +1891,8 @@ suma_install:
 	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
 	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf SUMA/3dSurf2Vol SUMA/SurfMeasures \
 	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron SUMA/CompareSurfaces \
-	SUMA/ConvertSurface SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics ${INSTALLDIR} ; \
+	SUMA/ConvertSurface SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics \
+   SUMA/inspec SUMA/SurfSmooth ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install
