@@ -59,7 +59,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	MCW_idcode idcode;
 		
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+fprintf (SUMA_STDERR, "CRAP\n");
 	/* read the header of the parent volume */
 	dset = THD_open_dataset(volparent_name);
 	if (dset == NULL) {
@@ -215,7 +215,14 @@ void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out)
 }
 
 /*!
-	Transform the coordinates of a surface object to AFNI-DICOM convention
+	\brief Transform the coordinates of a surface object to AFNI-DICOM convention and transform the coordinates by SO->VolPar
+   ans = SUMA_Align_to_VolPar (SO, SF_Struct);
+   \param SO (SUMA_SurfaceObject *)
+   \param S_Struct (void *) That is only needed for SureFit surfaces and is nothing but a type cast of a SUMA_SureFit_struct containing information on cropping.
+                              send NULL for all other surfaces.
+   \return YUP/NOPE
+   For SureFit and FreeSurfer surfaces, the coordinates are first set in RAI (DICOM) coordinate system before applying SO->VolPar.
+   For other surface formats, SO->VolPar is applied to whatever coordinates are in SO->NodeList
 */
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 {
@@ -226,7 +233,6 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	int i, ND, id;
 	SUMA_SureFit_struct *SF;
 	SUMA_FreeSurfer_struct *FS;
-	SUMA_Boolean Bad=YUP;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -281,12 +287,42 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 			}
 			break;
 		default:
-			fprintf(SUMA_STDERR,"Error %s: Unknown SO->FileType\n", FuncName);
-			SUMA_RETURN (NOPE);
+			fprintf(SUMA_STDERR,"Warning %s: Unknown SO->FileType. Assuming coordinates are in DICOM already.\n", FuncName);
 			break;
 	}
 	
-	/* Now perform the rotation needed to align the surface with the current experiment's data */
+   if (!SUMA_Apply_VolReg_Trans (SO)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Apply_VolReg_Trans.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+
+	SUMA_RETURN (YUP);
+}
+
+/*!
+\brief applies the transform in SO->VolPar to SO->NodeList. This only makes sense if 
+SO->NodeList is in DICOM to begin with...
+\param SO (SUMA_SurfaceObject *) You better have NodeList and VolPar in there...
+\return YUP/NOPE
+\sa SUMA_Align_to_VolPar
+NOTE: The field SO->VOLREG_APPLIED is set to NOPE if this function fails, YUP otherwise
+*/
+SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
+{
+	static char FuncName[]={"SUMA_Apply_VolReg_Trans"};
+   int i, ND, id;
+   SUMA_Boolean Bad=YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (SO->VOLREG_APPLIED) {
+      fprintf (SUMA_STDERR,"Error %s: Volreg already applied. Nothing done.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+
+	ND = SO->NodeDim;
+   
+   /* perform the rotation needed to align the surface with the current experiment's data */
 	if (SO->VolPar->VOLREG_MATVEC != NULL || SO->VolPar->VOLREG_CENTER_OLD != NULL || SO->VolPar->VOLREG_CENTER_BASE != NULL) {
 		Bad = NOPE;
 		if (SO->VolPar->VOLREG_MATVEC == NULL) {
@@ -353,7 +389,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 		SO->VOLREG_APPLIED = YUP;	
 	} else
 		SO->VOLREG_APPLIED = NOPE;
-	
+      
 	SUMA_RETURN (YUP);
 }
 

@@ -45,12 +45,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-   /* not ready to undo VolPar transformation */
-   if (SO->VolPar) {
-      fprintf (SUMA_STDERR, "Error %s: SO->VolPar transformation matrix ignored.\n", FuncName);
-      SUMA_RETURN (NOPE);
-   }
-
+   
    switch (SO_FT) {
       case SUMA_PLY:
          if (!SUMA_Ply_Write ((char *)F_name, SO)) {
@@ -69,10 +64,12 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          }
          break;
       case SUMA_SUREFIT:
-         fprintf (SUMA_STDERR, "Error %s: Not ready to deal with SureFit surfaces.\n", FuncName);
-         SUMA_RETURN (NOPE);
          if (SO_FF != SUMA_ASCII) {
             fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for SureFit surfaces.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (!SUMA_SureFit_Write ((SUMA_SFname *)F_name, SO)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to write SureFit surface.\n", FuncName);
             SUMA_RETURN (NOPE);
          }
          break;
@@ -1561,12 +1558,12 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
       You can specify more than one parameter "Convexity, PolyArea"
       if the field of a certain parameter is not NULL then it is assumed that 
       this parameter was computed at an earlier time and will not be recalculated.
-      Some parameters require the computation of others and that's done automatically
+      Some parameters require the computation of others and that's done automatically.
    \param SOinh (SUMA_SurfaceObject *) Some of the metrics can be inherited from SOinh (done through inodes)
       if things make sense. SOinh is typically the Mapping Reference SO. Pass NULL not to use this feature.
       Currently, only EL and FN can use this feature if the number of nodes, facesets match and SOinh is the 
       mapping reference of SO
-   \ret ans (SUMA_Boolean) NOPE = failure
+   \return ans (SUMA_Boolean) NOPE = failure
    
    Convexity : Fills Cx field in SO, An inode is also created
    
