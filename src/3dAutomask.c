@@ -20,7 +20,7 @@ int main( int argc , char * argv[] )
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
              "                 [default='automask']\n"
              "  -fillin nnn = Fill in holes inside the mask of width up\n"
-             "                 to 'nnn' voxels. [default=1]\n"
+             "                 to 'nnn' voxels. [default=0=no fillin]\n"
             ) ;
       exit(0) ;
    }
@@ -42,11 +42,12 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-fillin") == 0 ){
          fillin = strtol( argv[++iarg] , NULL , 10 ) ;
-         if( fillin <= 0 ){
+         if( fillin <  0 ){
            fprintf(stderr,"** -fillin %s is illegal!\n",argv[iarg]) ;
            exit(1) ;
+         } else if( fillin > 0 ){
+           fillin = (fillin+2) / 2 ;
          }
-         fillin = (fillin+2) / 2 ;
          iarg++ ; continue ;
       }
 
