@@ -578,3 +578,6 @@
   * modified 3dresample.c (-> v1.7), passing NULL for sublist
   * modified plug_crender.c (-> v1.9a), temporary update, passing sublist NULL
 
+27 July 2004:
+  * modified plug_crender.c (-> v1.9) to resample only appropriate sub-bricks
+
