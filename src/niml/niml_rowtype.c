@@ -18,25 +18,52 @@ typedef struct { char a; complex b; } qvzw_complex ;
 typedef struct { char a; rgb     b; } qvzw_rgb     ;
 typedef struct { char a; rgba    b; } qvzw_rgba    ;
 
+/* Arrays to hold the alignments, sizes, and names of the basic types. */
+
 static int   type_alignment[NI_NUM_BASIC_TYPES] ;
 static int   type_size     [NI_NUM_BASIC_TYPES] ;
 static char *type_name     [NI_NUM_BASIC_TYPES] = {
   "byte" , "short" , "int" , "float" , "double" , "complex" , "rgb" , "rgba"
 } ;
 
-/*! The table of user-defined rowtypes. */
+/* these are used to find/save the alignment and size of pointers */
+
+typedef struct { char a; void   *b; } qvzw_pointer ;
+static int pointer_alignment ;
+static int pointer_size ;
+
+/*! The Htable of user-defined rowtypes, indexed by type name. */
 
 static Htable *rowtype_table = NULL ;
 
-/*! Register a rowtype into the table, both by name and by integer
-    code (turned into a string, since that's how an Htable works). */
+/*! The array of user-defined rowtypes, indexed by type code. */
+
+static NI_rowtype **rowtype_array = NULL ;
+static int         rowtype_num    = 0    ;
+
+/*! Rowtype code for first user-defined type. */
+
+#define ROWTYPE_OFFSET     1001
+
+/*! Used to set the code for each new user-defined type. */
+
+#define ROWTYPE_BASE_CODE (ROWTYPE_OFFSET-NI_NUM_BASIC_TYPES)
+
+/*! Convert a type code into an index into rowtype_array. */
+
+#define ROWTYPE_index(cod)                                     \
+ ( ((cod) < ROWTYPE_OFFSET) ? (cod) : (cod)-ROWTYPE_BASE_CODE )
+
+/*! Register a rowtype into the table and array. */
 
 #define ROWTYPE_register(rr)                               \
- do{ char ts[16] ;                                         \
+ do{ int nn ;                                              \
      if( rowtype_table == NULL ) setup_basic_types() ;     \
      addto_Htable( (rr)->name , (rr) , rowtype_table ) ;   \
-     sprintf(ts,"#%06d",(rr)->code) ;                      \
-     addto_Htable( ts , (rr) , rowtype_table ) ;           \
+     nn = rowtype_num + 1 ;                                \
+     rowtype_array = NI_realloc( rowtype_array ,           \
+                                sizeof(NI_rowtype *)*nn ); \
+     rowtype_array[nn-1] = rr ;  rowtype_num = nn ;        \
  } while(0)
 
 /*--------------------------------------------------------------------------*/
@@ -48,6 +75,8 @@ static void setup_basic_types(void)
    int ii ;
 
    if( rowtype_table != NULL ) return ;  /* don't run this twice */
+
+   /* get alignments and sizes of the basic types */
 
    type_alignment[NI_BYTE   ] = offsetof(qvzw_byte   ,b) ;
    type_alignment[NI_SHORT  ] = offsetof(qvzw_short  ,b) ;
@@ -67,11 +96,17 @@ static void setup_basic_types(void)
    type_size[NI_RGB    ] = sizeof(rgb    ) ;
    type_size[NI_RGBA   ] = sizeof(rgba   ) ;
 
+   /* alignment and size of pointers */
+
+   pointer_alignment = offsetof(qvzw_pointer,b) ;
+   pointer_size      = sizeof(void *) ;
+
    /* initialize the rowtype table with the basic types */
 
    rowtype_table = new_Htable(19) ;
 
    for( ii=0 ; ii < NI_NUM_BASIC_TYPES ; ii++ ){
+
      rt               = NI_new( NI_rowtype ) ;
      rt->code         = ii ;
      rt->size         = type_size[ii] ;
@@ -86,9 +121,18 @@ static void setup_basic_types(void)
      rt->comp_num     = 1 ;
      rt->comp_typ     = NI_malloc(sizeof(int)) ;
      rt->comp_typ[0]  = ii ;
+
      ROWTYPE_register( rt ) ;
    }
 }
+
+/*-------------------------------------*/
+/*! Error exit macro for next function */
+
+#undef  ERREX
+#define ERREX(str)                                                         \
+ do { fprintf(stderr,"** NI_rowtype_define(%s,%s): %s\n",tname,tdef,str);  \
+      return -1 ; } while(0)
 
 /*--------------------------------------------------------------------------*/
 /* Define a NI_rowtype, which is an expression of a C struct.
@@ -126,34 +170,35 @@ int NI_rowtype_define( char *tname , char *tdef )
    str_array *sar ;
    char *tp ;
 
-   /* check inputs */
+   /*-- check inputs --*/
 
    if( tname == NULL || *tname == '\0' ||
-       tdef  == NULL || *tdef  == '\0' || !isalpha(*tname) ) return -1 ;
+       tdef  == NULL || *tdef  == '\0' ||
+       !isalpha(*tname)                   ) ERREX("bad inputs") ;
 
-   /* create Htable of basic types, if not already defined */
+   /*-- create Htable of basic types, if not already defined --*/
 
    if( rowtype_table == NULL ) setup_basic_types() ;
 
-   /* see if type name already defined */
+   /*-- see if type name already defined --*/
 
    rt = NI_rowtype_find_name( tname ) ;
-   if( rt != NULL ) return -1 ;
+   if( rt != NULL ) ERREX("type name already defined") ;
 
-   /* break defining string into components */
+   /*-- break defining string into components --*/
 
    sar = decode_string_list( tdef , ",;" ) ;
 
-   if( sar == NULL || sar->num < 1 ){ NI_free(sar); return -1; }
+   if( sar == NULL || sar->num < 1 ){ NI_free(sar); ERREX("illegal definition"); }
 
-   /* make the type rowtype */
+   /*-- make the new rowtype --*/
 
    rt = NI_new( NI_rowtype ) ;
-   rt->code = ROWTYPE_BASE_CODE + sizeof_Htable(rowtype_table)/2 ;
+   rt->code = ROWTYPE_BASE_CODE + sizeof_Htable(rowtype_table) ;
    rt->name = strdup( tname ) ;
    rt->userdef = strdup( tdef ) ;
 
-   /* loop over components, loading the new rt with their info */
+   /*-- loop over components in tdef, loading the new rt with their info --*/
 
    rt->part_num = rt->comp_num = 0 ;
 
@@ -167,7 +212,7 @@ int NI_rowtype_define( char *tname , char *tdef )
        jd = nn = 0 ;
        sscanf( tp , "%d%n" , &jd , &nn ) ;   /* get the count */
        if( jd <= 0 || nn <= 0 ){             /* shouldn't happen */
-         delete_rowtype(rt); delete_str_array(sar); return -1 ;
+         delete_rowtype(rt); delete_str_array(sar); ERREX("bad repeat count");
        }
        id = nn ;                   /* skip count prefix characters */
        if( tp[id] == '*' ) id++ ;  /* allow for "3*float" */
@@ -179,7 +224,7 @@ int NI_rowtype_define( char *tname , char *tdef )
 
      qt = NI_rowtype_find_name( tp+id ) ;
      if( qt == NULL ){
-       delete_rowtype(rt); delete_str_array(sar); return -1 ;
+       delete_rowtype(rt); delete_str_array(sar); ERREX("bad component type");
      }
 
      /* add jd copies of this component type */
@@ -196,7 +241,7 @@ int NI_rowtype_define( char *tname , char *tdef )
 
    delete_str_array(sar) ;                  /* done with this string array */
 
-   if( rt->part_num == 0 ){ delete_rowtype(rt); return -1; }  /* no parts? */
+   if( rt->part_num == 0 ){ delete_rowtype(rt); ERREX("no components?"); }  /* no parts? */
 
    /* now loop over components, breaking them down into their parts,
       storing the part types and their offsets into the C struct    */
@@ -313,11 +358,12 @@ NI_rowtype * NI_rowtype_find_name( char *nn )
 
 NI_rowtype * NI_rowtype_find_code( int nn )
 {
-   char ts[16] ;
+   int ii ;
    if( nn < 0 ) return NULL ;
    if( rowtype_table == NULL ) setup_basic_types() ;
-   sprintf(ts,"#%06d",nn) ;
-   return (NI_rowtype *) findin_Htable(ts,rowtype_table) ;
+   ii = ROWTYPE_index(nn) ;
+   if( ii > rowtype_num ) return NULL ;
+   return rowtype_array[ii] ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -359,27 +405,6 @@ int NI_rowtype_name_to_size( char *nn )
    return -1 ;
 }
 
-/*-----------------------------------------------------------------------*/
-/*! Define a rowmap in a NI_element from a NI_rowtype expression
-    of a C struct.
-    - code = integer code for the NI_rowtype
-    - RWCox - 10 Dec 2002
--------------------------------------------------------------------------*/
-
-void NI_define_rowmap_from_rowtype_code( NI_element *nel, int code )
-{
-   int nrow=0 , typ,off ;
-   NI_rowtype *qt ;
-
-   if( nel == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
-   if( code < 0 ) return ;
-
-   qt = NI_rowtype_find_code( code ) ;
-   if( qt == NULL ) return ;
-
-   NI_define_rowmap_AR( nel, qt->part_num, qt->part_typ, qt->part_off ) ;
-}
-
 /*-----------------------------------------------------------*/
 /*! Return the size in bytes of an atomic datatype.
     If an unknown or variable length type (i.e., string)
@@ -413,4 +438,25 @@ int NI_rowtype_code_to_size( int dtyp )
      return 0 ;
   }
   return 0 ;  /* unreachable */
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Define a rowmap in a NI_element from a NI_rowtype expression
+    of a C struct.
+    - code = integer code for the NI_rowtype
+    - RWCox - 10 Dec 2002
+-------------------------------------------------------------------------*/
+
+void NI_define_rowmap_from_rowtype_code( NI_element *nel, int code )
+{
+   int nrow=0 , typ,off ;
+   NI_rowtype *qt ;
+
+   if( nel == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
+   if( code < 0 ) return ;
+
+   qt = NI_rowtype_find_code( code ) ;
+   if( qt == NULL ) return ;
+
+   NI_define_rowmap_AR( nel, qt->part_num, qt->part_typ, qt->part_off ) ;
 }
