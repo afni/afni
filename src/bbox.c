@@ -617,13 +617,14 @@ ENTRY("new_MCW_optmenu") ;
 
    /* 11 Dec 2001: allow user to choose via Button-3 popup */
 
-   if( allow_optmenu_EV )
+   if( allow_optmenu_EV ){
      XtInsertEventHandler( av->wrowcol ,      /* handle events in optmenu */
                            ButtonPressMask ,  /* button presses */
                            FALSE ,            /* nonmaskable events? */
                            optmenu_EV ,       /* handler */
                            (XtPointer) av ,   /* client data */
                            XtListTail ) ;     /* last in queue */
+   }
 
    RETURN(av) ;
 }
@@ -797,6 +798,49 @@ ENTRY("optmenu_finalize") ;
 
    EXRETURN ;
 }
+
+/*--------------------------------------------------------------------------*/
+#if 0
+void optmenu_EV_fixup( Widget ww )   /* 15 Mar 2004 - RWCox */
+{
+   static int    nwid = 0    ;
+   static Widget *wid = NULL ;
+   int ii , jj ;
+   Widget *qwid ;
+
+ENTRY("optmenu_EV_fixup") ;
+
+   if( ww == (Widget)NULL ){                   /* try to fix what's on the list */
+     if( nwid == 0 ) EXRETURN ;
+if(PRINT_TRACING){ char str[256]; sprintf(str,"scanning %d widgets for fixing",nwid); STATUS(str); }
+     for( ii=jj=0 ; ii < nwid ; ii++ ){
+if(PRINT_TRACING){ char str[256]; sprintf(str,"  ii=%d\n",ii); STATUS(str); }
+if(PRINT_TRACING){ char str[256]; sprintf(str,"  wid[ii]=%p\n",(char *)wid[ii]); STATUS(str); }
+       if( wid[ii] != (Widget)NULL && XtIsRealized(wid[ii])      &&
+           XtIsManaged(wid[ii])    && MCW_widget_visible(wid[ii])  ){
+if(PRINT_TRACING){ char str[256]; sprintf(str,"  about to fix ii=%d\n",ii); STATUS(str); }
+         POPUP_cursorize(wid[ii]) ;
+         wid[ii] = NULL ; jj++ ;
+if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d cursor fixed\n",ii); STATUS(str); }
+       }
+else if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d not fixable\n",ii); STATUS(str); }
+     }
+     if( jj == 0 ){ STATUS("nothing to fix"); EXRETURN; }
+     if( jj >= nwid ){ STATUS("fixed them all"); free(wid); wid = NULL; nwid = 0; EXRETURN; }
+     qwid = (Widget *) calloc( nwid , sizeof(Widget) ) ;
+     for( ii=jj=0 ; ii < nwid ; ii++ )
+       if( wid[ii] != (Widget)NULL ) qwid[jj++] = wid[ii] ;
+     free(wid) ; wid = qwid ; nwid = jj ;
+if(PRINT_TRACING){ char str[256]; sprintf(str,"  %d left to fix later\n",nwid); STATUS(str); }
+
+   } else {                               /* add to the list */
+     wid = (Widget *)realloc( (void *)wid , sizeof(Widget)*(nwid+1) ) ;
+     wid[nwid++] = ww ;
+if(PRINT_TRACING){ char str[256]; sprintf(str," now have %d to fix",nwid); STATUS(str); }
+   }
+   EXRETURN ;
+}
+#endif
 
 /*--------------------------------------------------------------------------*/
 
