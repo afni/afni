@@ -4,10 +4,10 @@ THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm ) ;
 
 int main( int argc , char * argv[] )
 {
-   int narg=1, do_automask=0 , iv , nxyz ;
+   int narg=1, do_automask=0 , iv , nxyz , do_set=0 ;
    THD_3dim_dataset *xset ;
    byte *mmm=NULL ; int nmask=0 , nvox_mask ;
-   THD_fvec3 cmv ;
+   THD_fvec3 cmv , setv ;
 
    /*-- read command line arguments --*/
 
@@ -20,12 +20,27 @@ int main( int argc , char * argv[] )
              "                 that the mask dataset and the input dataset\n"
              "                 must have the same number of voxels.\n"
              "  -automask    Generate the mask automatically.\n"
+             "  -set x y z   After computing the CM of the dataset, set the\n"
+             "                 origin fields in the header so that the CM\n"
+             "                 will be at (x,y,z) in DICOM coords.\n"
             ) ;
       exit(0) ;
    }
 
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
+
+      if( strcmp(argv[narg],"-set") == 0 ){
+        float xset,yset,zset ;
+        if( narg+3 >= argc ){
+          fprintf(stderr,"*** -set need 3 args following!\n") ; exit(1) ;
+        }
+        xset = strtod( argv[++narg] , NULL ) ;
+        yset = strtod( argv[++narg] , NULL ) ;
+        zset = strtod( argv[++narg] , NULL ) ;
+        LOAD_FVEC3(setv,xset,yset,zset) ; do_set = 1 ;
+        narg++ ; continue ;
+      }
 
       if( strncmp(argv[narg],"-mask",5) == 0 ){
         THD_3dim_dataset *mask_dset ;
@@ -100,10 +115,27 @@ int main( int argc , char * argv[] )
        fprintf(stderr,"+++ Mask/Dataset grid size mismatch at %s\n -- skipping\n",argv[narg]) ;
        DSET_delete(xset) ; continue ;
      }
-     for( iv=0 ; iv < DSET_NVALS(xset) ; iv++ ){
-       cmv = THD_cmass( xset , iv , mmm ) ;
-       printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
-       DSET_unload_one(xset,iv) ;
+
+     cmv = THD_cmass( xset , 0 , mmm ) ;
+     printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+     DSET_unload(xset) ;
+
+     if( do_set ){
+       THD_fvec3 dv , ov ;
+       if( !DSET_IS_BRIK(xset) || DSET_IS_MASTERED(xset) ){
+         fprintf(stderr,"+++ Can't modify CM of dataset %s\n",argv[narg]) ;
+       } else {
+         LOAD_FVEC3(ov,DSET_XORG(xset),DSET_YORG(xset),DSET_ZORG(xset)) ;
+         ov = THD_3dmm_to_dicomm( xset , ov ) ;
+         dv = SUB_FVEC3(setv,cmv) ;
+         ov = ADD_FVEC3(dv,ov) ;
+         ov = THD_dicomm_to_3dmm( xset , ov ) ;
+         xset->daxes->xxorg = ov.xyz[0] ;
+         xset->daxes->yyorg = ov.xyz[1] ;
+         xset->daxes->zzorg = ov.xyz[2] ;
+         fprintf(stderr,"+++ Rewriting header %s\n",DSET_HEADNAME(xset)) ;
+         DSET_write_header( xset ) ;
+       }
      }
      DSET_delete(xset) ;
   }

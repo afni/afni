@@ -56,7 +56,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid    \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual      \
-           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
+           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM        \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI \
@@ -951,6 +951,10 @@ iochan_relay:iochan_relay.o
 3dROIstats:3dROIstats.o
 	$(RM) $@
 	$(CC) -o 3dROIstats 3dROIstats.o $(LFLAGS) $(LLIBS)
+
+3dCM:3dCM.o
+	$(RM) $@
+	$(CC) -o 3dCM 3dCM.o $(LFLAGS) $(LLIBS)
 
 ### Sort of clean
 

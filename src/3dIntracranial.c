@@ -403,7 +403,8 @@ void initialize_program
 	rfim[icount] = sfim[ixyz];
 	icount++;
       }
-  printf ("%d voxels above lower cutoff = %d \n", icount, lower_cutoff);
+  if (! quiet)
+    printf ("%d voxels above lower cutoff = %d \n", icount, lower_cutoff);
 
 
   /*----- Get PDF estimate and set voxel intensity limits -----*/
@@ -670,14 +671,20 @@ int main
 )
 
 {
+  int ii ;
 
   /*----- Identify software -----*/
-  printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR);
-  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
-  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
-  printf ("\n");
+  
+  for( ii=1 ; ii < argc ; ii++ )
+    if( strncmp(argv[ii],"-quiet",6) == NULL ) break ;
+  if( ii == argc ){
+    printf ("\n\n");
+    printf ("Program: %s \n", PROGRAM_NAME);
+    printf ("Author:  %s \n", PROGRAM_AUTHOR);
+    printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+    printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+    printf ("\n");
+  }
 
   mainENTRY("3dIntracranial:main") ; machdep() ;
 
