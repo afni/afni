@@ -46,6 +46,7 @@ int * SUMA_divEdge( float *nodeList, int *nCtr, int node1, int node2, int N_Div)
 void SUMA_triangulateRow( float *nodeList, int *triList, int *nCtr, int *tCtr, int N_Div, int *currFloor, int node1, int node2);
 void SUMA_addNode(float *nodeList, int *ctr, float x, float y, float z);
 void SUMA_addTri(int *triList, int *ctr, int n1, int n2, int n3);
+SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot);
 
 SUMA_SO_map *SUMA_Create_SO_map (void);
 SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM); 

@@ -1460,8 +1460,18 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
                OptScl->ApplyClip = YUP;
                ClipRange[0] = 5; ClipRange[1] = 95; /* percentile clipping range*/ 
                Vsort = SUMA_PercRange (SO->Cx, NULL, SO->N_Node, ClipRange, ClipRange); 
+               if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
+                  /* the new method */
+                  if (fabs(ClipRange[0]) > ClipRange[1]) {
+                     ClipRange[1] = -ClipRange[0];
+                  } else {
+                     ClipRange[0] = -ClipRange[1];
+                  }
+                  
+               } else { 
+                 /* The old method, do nothing here */ 
+               }
                OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
-
                OptScl->BrightFact = SUMA_DIM_CONVEXITY_COLOR_FACTOR;
 
                /* map the values in SO->Cx to the colormap */
@@ -1472,8 +1482,9 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
                }
 
                /* finally ! */
+               /* decide on the coloring range */
                /*fprintf (SUMA_STDERR,"%s: 1st color in map %f %f %f\n", FuncName, CM->M[0][0], CM->M[0][1],CM->M[0][2]);*/
-               if (!SUMA_ScaleToMap (SO->Cx, SO->N_Node, Vsort[0], Vsort[SO->N_Node-1], CM, OptScl, SV)) {
+               if (!SUMA_ScaleToMap (SO->Cx, SO->N_Node, ClipRange[0], ClipRange[1], CM, OptScl, SV)) {
                   fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
                   SUMA_RETURN (NOPE);
                }
@@ -2062,9 +2073,10 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
          }
       }
       
-      {
+      #if 0
+      { 
+         /* smooth the estimate twice*/
          float *attr_sm;
-         /* smooth estimate twice */
          attr_sm = SUMA_SmoothAttr_Neighb (SO->Cx, SO->N_Node, NULL, SO->FN);
          if (attr_sm == NULL) {
                fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
@@ -2073,6 +2085,21 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
             if (attr_sm) SUMA_free(attr_sm);
          }
       }
+      #else 
+         /* smooth the estimate as much as specified*/
+         {
+            char *eee = getenv("SUMA_NumConvSmooth");
+            if (eee) {
+               int N_smooth = (int)strtod(eee, NULL);
+               if (N_smooth > 1) {
+                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, N_smooth);
+               } else {
+                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, 2);
+               }
+            }   
+         }
+      #endif
+      
       if (SO->Cx == NULL) {
          fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
          SO->Cx_Inode = NULL;

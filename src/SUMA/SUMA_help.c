@@ -72,7 +72,7 @@ char * SUMA_help_message_Info(void)
       "\nKeyboard Controls\n");
    SS = SUMA_StringAppend (SS, 
       "\t  a: attenuation by background, toggle.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+   SS = SUMA_StringAppend (SS, 
       "\t  B: Backface culling, toggle.\n");
    SS = SUMA_StringAppend (SS, 
       "\t  b: background color, toggle.\n\n");

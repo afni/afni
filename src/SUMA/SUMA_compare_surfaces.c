@@ -374,7 +374,7 @@ int main (int argc,char *argv[])
     N0[1] = SN1.NodeNormList[id+1];
     N0[2] = SN1.NodeNormList[id+2];
 
-    Points = SUMA_Point_At_Distance(N0, P0, 100);
+   Points = SUMA_Point_At_Distance(N0, P0, 100);
    if (Points) {
       P1[0] = Points[0][0];
       P1[1] = Points[0][1];
