@@ -3660,7 +3660,7 @@ typedef struct {
    int nparam ;
    MRI_warp3D_param_def *param ;
    float scale_init , scale_out ;
-   float delfac ;
+   float delfac , tolfac ;
 
    int regmode , verb , max_iter , num_iter , wtproc ;
    int xedge , yedge , zedge ;

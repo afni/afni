@@ -235,14 +235,16 @@ int main( int argc , char * argv[] )
             "-----------------\n"
             "Technical Options:\n"
             "-----------------\n"
-            "  -maxite    m  = Allow up to 'm' iterations for convergence\n"
+            "  -maxite    m  = Allow up to 'm' iterations for convergence.\n"
             "  -delta     d  = Distance, in voxel size, used to compute\n"
-            "                   image derivatives using finite differences\n"
+            "                   image derivatives using finite differences.\n"
             "  -weight  wset = Set the weighting applied to each voxel\n"
-            "                   proportional to the brick specified here\n"
+            "                   proportional to the brick specified here.\n"
             "  -parfix n v   = Fix the n'th parameter of the warp model to\n"
             "                   the value 'v'.  More than one -parfix option\n"
-            "                   can be used.\n"
+            "                   can be used, to fix multiple parameters.\n"
+            "  -thresh t     = Set the convergence parameter to be 't' voxels\n"
+            "                   voxel movement.  [Default=0.03]\n"
             "\n"
             "----------------------\n"
             "AFFINE TRANSFORMATIONS:\n"
@@ -298,9 +300,10 @@ int main( int argc , char * argv[] )
    abas.param      = NULL ;
    abas.scale_init = 1.0 ;
    abas.delfac     = 1.0 ;
+   abas.tolfac     = 0.03 ;
    abas.regmode    = MRI_LINEAR ;
    abas.verb       = 0 ;
-   abas.max_iter   = 19 ;
+   abas.max_iter   = 0 ;
    abas.wtproc     = 1 ;
    abas.imbase     = NULL ;
    abas.imwt       = NULL ;
@@ -503,6 +506,18 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[nopt],"-thresh") == 0 ){
+       float val ;
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** ERROR: need an argument after -thresh!\n"); exit(1);
+       }
+       val = strtod( argv[nopt] , NULL ) ;
+       if( val > 0.001 && val < 3.01 ) abas.tolfac = val ;
+       nopt++ ; continue ;
+     }
+
+     /*-----*/
+
      fprintf(stderr,"** ERROR: unknown option %s\n",argv[nopt]) ;
      exit(1) ;
 
@@ -603,6 +618,7 @@ int main( int argc , char * argv[] )
      fprintf(stderr,"** ERROR: no free parameters in transform model!\n") ;
      nerr++ ;
    }
+   if( abas.max_iter <= 0 ) abas.max_iter = 9*nfree+5 ;
 
    /*-- other checks for good set of inputs --*/
 
