@@ -522,7 +522,7 @@ d3dmerge:3dmerge.c
 
 3dUniformize:3dUniformize.o
 	$(RM) $@
-	$(CC) -o 3dUniformize 3dUniformize.o $(PLFLAGS) $(LLIBS)
+	$(CC) -o 3dUniformize 3dUniformize.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
 
 3dpc:3dpc.o
 	$(RM) $@
@@ -558,7 +558,7 @@ d3dmerge:3dmerge.c
 
 3ddelay:3ddelay.o
 	$(RM) $@
-	$(CC) -o 3ddelay 3ddelay.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3ddelay 3ddelay.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 ent16:ent16.o
 	$(RM) $@
@@ -644,19 +644,19 @@ rtfeedme:rtfeedme.o
 
 3dNLfim:3dNLfim.o NLfit.c NLfit.h NLfit_model.c NLfit_model.h
 	$(RM) $@
-	$(CC) -o 3dNLfim 3dNLfim.o $(PLFLAGS) $(LLIBS)
+	$(CC) -o 3dNLfim 3dNLfim.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
 
 3dStatClust:3dStatClust.o
 	$(RM) $@
-	$(CC) -o 3dStatClust 3dStatClust.o $(PLFLAGS) $(LLIBS)
+	$(CC) -o 3dStatClust 3dStatClust.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
 
 RSFgen:RSFgen.o
 	$(RM) $@
-	$(CC) -o RSFgen RSFgen.o $(LFLAGS) $(LLIBS)
+	$(CC) -o RSFgen RSFgen.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dTSgen:3dTSgen.o NLfit.c NLfit.h NLfit_model.c NLfit_model.h
 	$(RM) $@
-	$(CC) -o 3dTSgen 3dTSgen.o $(PLFLAGS) $(LLIBS)
+	$(CC) -o 3dTSgen 3dTSgen.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
 
 AlphaSim:AlphaSim.o
 	$(RM) $@
@@ -680,7 +680,7 @@ AlphaSim:AlphaSim.o
 
 3dfim+:3dfim+.o
 	$(RM) $@
-	$(CC) -o 3dfim+ 3dfim+.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dfim+ 3dfim+.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dKruskalWallis:3dKruskalWallis.o
 	$(RM) $@
@@ -692,14 +692,14 @@ AlphaSim:AlphaSim.o
 
 3dRegAna:3dRegAna.o
 	$(RM) $@
-	$(CC) -o 3dRegAna 3dRegAna.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dRegAna 3dRegAna.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dDeconvolve.o:3dDeconvolve.c Deconvolve.c RegAna.c matrix.c matrix.h
 	$(CCFAST) -c 3dDeconvolve.c $(IFLAGS)
 
 3dDeconvolve:3dDeconvolve.o
 	$(RM) $@
-	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 # The float (vs. double) version of 3dDeconvolve
 
@@ -710,11 +710,11 @@ AlphaSim:AlphaSim.o
 
 3dDeconvolve_f:3dDeconvolve_f.o
 	$(RM) $@
-	$(CC) -o 3dDeconvolve_f 3dDeconvolve_f.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dDeconvolve_f 3dDeconvolve_f.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dConvolve:3dConvolve.o
 	$(RM) $@
-	$(CC) -o 3dConvolve 3dConvolve.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dConvolve 3dConvolve.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dIntracranial:3dIntracranial.o
 	$(RM) $@
@@ -733,7 +733,7 @@ adwarp:adwarp.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 
 2dImReg:2dImReg.o
 	$(RM) $@
-	$(CC) -o 2dImReg 2dImReg.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 2dImReg 2dImReg.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 waver:waver.o parser.o parser_int.o
 	$(RM) $@
