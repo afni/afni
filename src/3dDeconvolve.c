@@ -332,7 +332,25 @@
 # define MATRIX_TYPE float
 #endif
 
-void JPEG_matrix_gray( matrix X , char *fname ) ;  /* prototype */
+/*------------ prototypes for routines far below (RWCox) ------------------*/
+
+void JPEG_matrix_gray( matrix X , char *fname ) ; /* save X matrix to a JPEG */
+
+void XSAVE_matrices( THD_3dim_dataset * ) ;       /* save X matrix into file */
+
+static int xsave=0 ;                                   /* globals for -xsave */
+static int nGoodList=0 , *GoodList=NULL ;
+static int nParam=0 , *ParamIndex=NULL , *ParamStim=NULL ;
+static char **ParamLabel=NULL ;
+static char *InputFilename=NULL, *BucketFilename=NULL, *CoefFilename=NULL ;
+static matrix X , XtXinv , XtXinvXt ;
+
+static int xrestore = 0 ;                           /* globals for -xrestore */
+static char *xrestore_filename = NULL ;
+
+#define XSAVE_version "0.5"
+
+/*---------------------------------------------------------------------------*/
 
 #include "Deconvolve.c"
 
@@ -393,7 +411,7 @@ typedef struct DC_options
 
   int nocond ;          /* flag to disable condition numbering [15 Jul 2004] */
 
-  char * xjpeg_filename ;  /* plot file for -xjpeg option [21 Jul 2004] */
+  char *xjpeg_filename; /* plot file for -xjpeg option [21 Jul 2004] */
 
 } DC_options;
 
@@ -522,6 +540,20 @@ void display_help_menu()
     "                     parameters of interest, such as the estimated IRF \n"
     "                     coefficients, and full model fit statistics.      \n"
     "                     Output 'bucket' dataset is written to bprefix.    \n"
+    "                                                                       \n"
+    "[-xsave]           Flag to save X matrix into file bprefix.xsave       \n"
+    "                     (only works if -bucket option is also given)      \n"
+    "[-noxsave]         Don't save X matrix (this is the default)           \n"
+    "[-cbucket cprefix] Save the regression coefficients (no statistics)    \n"
+    "                     into a dataset named 'cprefix'.  This dataset     \n"
+    "                     will be used in a -xrestore run instead of the    \n"
+    "                     bucket dataset, if possible.                      \n"
+    "                                                                       \n"
+    "[-xrestore f.xsave] Restore the X matrix, etc. from a previous run     \n"
+    "                     that was saved into file 'f.xsave'.  You can      \n"
+    "                     then carry out new -glt tests.  When -xrestore    \n"
+    "                     is used, most other command line options are      \n"
+    "                     ignored.                                          \n"
     "                                                                       \n"
     "     The following options control the screen output only:             \n"
     "[-quiet]             Flag to suppress initial screen output            \n"
@@ -792,6 +824,8 @@ void get_options
       if( strcmp(argv[nopt],"-nocond") == 0 ){  /* 15 Jul 2004 */
 #ifndef FLOATIZE
         option_data->nocond = 1 ;   /* only allow this for double precision */
+#else
+        fprintf(stderr,"** WARNING: -nocond is ignored in 3dDeconvolve_f!\n") ;
 #endif
         nopt++ ; continue ;
       }
@@ -804,8 +838,7 @@ void get_options
 	  option_data->xjpeg_filename = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->xjpeg_filename);
 	  strcpy (option_data->xjpeg_filename, argv[nopt]);
-	  nopt++;
-	  continue;
+	  nopt++; continue;
 	}
 
 
@@ -939,6 +972,25 @@ void get_options
       if( strstr(argv[nopt],"svd") != NULL ){
         use_psinv = (strncmp(argv[nopt],"-svd",4) == 0) ;
         nopt++ ; continue ;
+      }
+
+      /*----- -noxsave [25 Jul 2004] -----*/
+
+      if( strstr(argv[nopt],"xsave") != NULL ){
+        xsave = (strncmp(argv[nopt],"-xsave",5) == 0) ;
+        nopt++ ; continue ;
+      }
+
+      /*----- -xrestore [26 Jul 2004] -----*/
+
+      if( strcmp(argv[nopt],"-xrestore") == 0 ){
+        nopt++;
+        if( nopt >= argc)
+          DC_error ("need argument after -xrestore ");
+        xrestore_filename = strdup( argv[nopt] ) ;
+        if( !THD_is_file(xrestore_filename) )
+          DC_error("file named after -xrestore doesn't exist") ;
+        xrestore = 1 ; nopt++ ; continue ;
       }
 
       /*-----   -quiet   -----*/
@@ -1327,7 +1379,7 @@ void get_options
 
 
       /*-----   -bucket filename   -----*/
-      if (strcmp(argv[nopt], "-bucket") == 0)
+      if (strcmp(argv[nopt], "-bucket") == 0 || strcmp(argv[nopt],"-prefix") == 0 )
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need file prefixname after -bucket ");
@@ -1336,6 +1388,15 @@ void get_options
 	  strcpy (option_data->bucket_filename, argv[nopt]);
 	  nopt++;
 	  continue;
+	}
+
+      /*-----   -cbucket filename   -----*/
+      if (strcmp(argv[nopt], "-cbucket") == 0 || strcmp(argv[nopt],"-cprefix") == 0 )
+	{
+	  nopt++;
+	  if (nopt >= argc)  DC_error ("need file prefixname after -cbucket ");
+          CoefFilename = strdup( argv[nopt] ) ;
+	  nopt++; continue;
 	}
 
 
@@ -1953,6 +2014,7 @@ void check_for_valid_inputs
   int * glt_rows;          /* number of linear constraints in glt */
   int iglt;                /* general linear test index */
   int nerr=0 ;             /* 22 Oct 2003 */
+  int can_xsave ;
 
 
   /*----- Initialize local variables -----*/
@@ -1967,6 +2029,19 @@ void check_for_valid_inputs
   q  = option_data->q;
   qp = option_data->qp;
 
+  /*----- Check if -xsave was given without -bucket ------*/
+  if( xsave && option_data->bucket_filename == NULL ){
+    fprintf(stderr,"** WARNING: -xsave given without -bucket!\n") ;
+    xsave = 0 ;
+  }
+  can_xsave = (!option_data->nocout && !option_data->nobout) ||
+              (CoefFilename != NULL) ;
+  if( xsave && !can_xsave ){
+    fprintf(stderr,
+            "** WARNING: -xsave disabled since you used -nocout and/or -nobout\n"
+            "            and did not use -cbucket!\n" ) ;
+    xsave = 0 ;
+  }
 
   /*----- Check length of censor array -----*/
   if (censor_length < nt)
@@ -2025,6 +2100,12 @@ void check_for_valid_inputs
        DC_error (message);
    }
   option_data->N = N;
+
+  if( xsave ){                 /* 25 Jul 2004 */
+     GoodList = *good_list ;
+    nGoodList = N ;
+    nParam    = p ;
+  }
 
 
   /*----- Check number of stimulus time series -----*/
@@ -2425,6 +2506,7 @@ void allocate_memory
   bout  = 1 - (option_data->nobout || option_data->nocout);
   cout  = 1 - option_data->nocout;
 
+  if( CoefFilename != NULL ){ bout = cout = 1 ; }  /* 26 Jul 2004 */
 
   /*----- Allocate memory space for volume data -----*/
   *coef_vol  = (float **) malloc (sizeof(float *) * p);   MTEST(*coef_vol);
@@ -3443,10 +3525,16 @@ void calculate_results
 
   matrix_destroy (&xtxinvxt_base);
   matrix_destroy (&x_base);
-  matrix_destroy (&xtxinvxt_full);
-  matrix_destroy (&xtxinv_full);
-  matrix_destroy (&x_full);
   matrix_destroy (&xdata);
+  if( !xsave ){
+    matrix_destroy (&xtxinvxt_full);
+    matrix_destroy (&xtxinv_full);
+    matrix_destroy (&x_full);
+  } else {
+    X        = x_full        ;  /* 25 Jul 2004 (RWCox): */
+    XtXinv   = xtxinv_full   ;  /* Stuff to be -xsave-d */
+    XtXinvXt = xtxinvxt_full ;  /* into bucket dataset. */
+  }
 
   if (num_glt > 0)
     {
@@ -3906,14 +3994,20 @@ void write_bucket_data
   int ibrick;               /* sub-brick index */
   int dof, ndof, ddof;      /* degrees of freedom */
   char label[THD_MAX_NAME];   /* general label for sub-bricks */
+  char blab[THD_MAX_NAME] ;   /* label for baseline funcs */
   int num_glt;                   /* number of general linear tests */
   int * glt_rows;                /* number of linear constraints in glt */
   int iglt;                      /* general linear test index */
   int ilc;                       /* linear combination index */
 
+  THD_3dim_dataset *coef_dset = NULL ;   /* coefficient bucket? */
+  int cbuck , bout,cout ;
 
   /*----- read prototype dataset -----*/
   old_dset = THD_open_one_dataset (option_data->input_filename);
+
+  bout = !option_data->nobout ;
+  cout = !option_data->nocout ;
 
 
   /*----- Initialize local variables -----*/
@@ -3951,16 +4045,10 @@ void write_bucket_data
   sprintf (label, "Output prefix: %s", output_prefix);
   tross_Append_History ( new_dset, label);
 
-
-  /*----- delete prototype dataset -----*/
-  THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
-
-
   /*----- Modify some structural properties.  Note that the nbricks
           just make empty sub-bricks, without any data attached. -----*/
   ierror = EDIT_dset_items (new_dset,
                             ADN_prefix,          output_prefix,
-			    ADN_directory_name,  output_session,
 			    ADN_type,            HEAD_FUNC_TYPE,
 			    ADN_func_type,       FUNC_BUCK_TYPE,
 			    ADN_datum_all,       MRI_short ,
@@ -3977,13 +4065,54 @@ void write_bucket_data
       exit(1);
     }
 
+  if( strstr(output_prefix,"/") == NULL )
+   (void) EDIT_dset_items (new_dset,
+                             ADN_directory_name,  output_session,
+                           ADN_none ) ;
+
   if (THD_is_file(DSET_HEADNAME(new_dset)))
     {
       fprintf(stderr,
-	      "** Output dataset file %s already exists--cannot continue!\n",
+	      "** Bucket dataset file %s already exists--cannot continue!\n",
 	      DSET_HEADNAME(new_dset));
       exit(1);
     }
+
+  if( CoefFilename != NULL ){
+    coef_dset = EDIT_empty_copy( new_dset ) ;
+    tross_Copy_History( old_dset , coef_dset ) ;
+    tross_Make_History( PROGRAM_NAME , argc , argv , coef_dset ) ;
+    (void) EDIT_dset_items( coef_dset,
+                            ADN_prefix,          CoefFilename ,
+			    ADN_type,            HEAD_FUNC_TYPE,
+			    ADN_func_type,       FUNC_BUCK_TYPE,
+			    ADN_datum_all,       MRI_short ,
+                            ADN_ntt,             0,               /* no time */
+			    ADN_nvals,           p ,
+			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
+			    ADN_none ) ;
+    if( strstr(CoefFilename,"/") == NULL )
+      (void) EDIT_dset_items( coef_dset ,
+                                ADN_directory_name,  output_session,
+                              ADN_none ) ;
+    if( THD_is_file(DSET_HEADNAME(coef_dset)) ){
+      fprintf(stderr,
+	      "** Coefficient dataset file %s already exists--cannot continue!\n",
+	      DSET_HEADNAME(coef_dset));
+      exit(1);
+    }
+  }
+
+  /*----- save names for future xsave-ing -----*/
+  if( xsave ){
+    InputFilename  = strdup(THD_trailname(DSET_HEADNAME(old_dset),0)) ;
+    BucketFilename = strdup(THD_trailname(DSET_HEADNAME(new_dset),0)) ;
+    if( coef_dset != NULL )
+      CoefFilename = strdup(THD_trailname(DSET_HEADNAME(coef_dset),0)) ;
+  }
+
+  /*----- delete prototype dataset -----*/
+  THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
 
 
   /*----- Attach individual sub-bricks to the bucket dataset -----*/
@@ -3994,38 +4123,67 @@ void write_bucket_data
   if (option_data->full_first)
     ibrick += option_data->vout + option_data->rout + option_data->fout;
 
+  cbuck = -1 ;
+
 
   /*----- Include fit coefficients and associated statistics? -----*/
-  if (! option_data->nocout)
+  if( cout || coef_dset != NULL )
     {
 
+      if( xsave ){
+        ParamStim  = (int *)  calloc(sizeof(int)   ,nParam) ;
+        ParamLabel = (char **)calloc(sizeof(char *),nParam) ;
+        if( cout && bout )
+          ParamIndex = (int *)calloc(sizeof(int)   ,nParam) ;
+        else
+          ParamIndex = NULL ;
+      }
+
       /*----- Baseline statistics -----*/
-      if (! option_data->nobout)
+      if( bout || coef_dset != NULL )
 	{
 	  strcpy (label, "Base");
+
+          if( legendre_polort ) strcpy(blab,"P_") ;  /* 25 Jul 2004: */
+          else                  strcpy(blab,"t^") ;  /* label for polynomials */
+
 	  for (icoef = 0;  icoef < qp;  icoef++)
 	    {
 	      if (qp == polort+1)
 		strcpy (label, "Base");
 	      else
-		sprintf (label, "Run #%d", icoef/(polort+1) + 1);
+		sprintf (label, "Run#%d", icoef/(polort+1) + 1);
 	
 	      /*----- Baseline coefficient -----*/
-	      ibrick++;
 	      brick_type = FUNC_FIM_TYPE;
-	      sprintf (brick_label, "%s t^%d Coef", label, icoef % (polort+1));
+              sprintf (brick_label, "%s %s%d Coef", label,blab, icoef % (polort+1));
 	      volume = coef_vol[icoef];
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz,
-				brick_type, brick_label, 0, 0, 0, bar);
+
+              if( cout && bout )
+	        attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
+				  brick_type, brick_label, 0, 0, 0, bar);
+
+              sprintf(brick_label,"%s:%s%d" , label,blab,icoef%(polort+1)) ;
+              if( xsave ){
+                if( ParamIndex != NULL ) ParamIndex[icoef] = ibrick ;
+                ParamStim [icoef] = 0 ;
+                ParamLabel[icoef] = strdup(brick_label) ;
+              }
+
+              if( coef_dset != NULL ){
+                cbuck++ ;
+                attach_sub_brick( coef_dset , cbuck , volume , nxyz ,
+				  brick_type, brick_label, 0, 0, 0, bar);
+              }
 	
 	      /*----- Baseline t-stat -----*/
-	      if (option_data->tout)
+	      if ( cout && bout && option_data->tout)
 		{
 		  ibrick++;
 		  brick_type = FUNC_TT_TYPE;
 		  dof = N - p;
-		  sprintf (brick_label, "%s t^%d t-st",
-			   label, icoef % (polort+1));
+		  sprintf (brick_label, "%s %s%d t-st",
+			   label,blab, icoef % (polort+1));
 		  volume = tcoef_vol[icoef];
 		  attach_sub_brick (new_dset, ibrick, volume, nxyz,
 				    brick_type, brick_label, dof, 0, 0, bar);
@@ -4044,19 +4202,34 @@ void write_bucket_data
 	  for (ilag = option_data->stim_minlag[istim];
 	       ilag <= option_data->stim_maxlag[istim];  ilag++)
 	    {
-	      if ((! option_data->stim_base[istim])
-	       || (! option_data->nobout))
+	      if( !option_data->stim_base[istim] ||
+	          bout                           ||
+                  coef_dset != NULL                )
 		{
 		  /*----- Stimulus coefficient -----*/
-		  ibrick++;
 		  brick_type = FUNC_FIM_TYPE;
 		  sprintf (brick_label, "%s[%d] Coef", label, ilag);
 		  volume = coef_vol[icoef];		
-		  attach_sub_brick (new_dset, ibrick, volume, nxyz,
-				    brick_type, brick_label, 0, 0, 0, bar);
+                  if( cout && (!option_data->stim_base[istim] || bout) )
+		    attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
+				      brick_type, brick_label, 0, 0, 0, bar);
+
+                  sprintf(brick_label,"%s:%d",label,ilag) ;
+                  if( xsave ){
+                    if( ParamIndex != NULL ) ParamIndex[icoef] = ibrick ;
+                    ParamStim [icoef] = option_data->stim_base[istim] ? 0
+                                                                      : istim+1 ;
+                    ParamLabel[icoef] = strdup(brick_label) ;
+                  }
+
+                  if( coef_dset != NULL ){
+                    cbuck++ ;
+                    attach_sub_brick( coef_dset , cbuck , volume , nxyz ,
+				      brick_type, brick_label, 0, 0, 0, bar);
+                  }
 	
 		  /*----- Stimulus t-stat -----*/
-		  if (option_data->tout)
+		  if (cout && option_data->tout && (!option_data->stim_base[istim] || bout) )
 		    {
 		      ibrick++;
 		      brick_type = FUNC_TT_TYPE;
@@ -4072,9 +4245,8 @@ void write_bucket_data
 	    }
 	
 	  /*----- Stimulus R^2 stat -----*/
-	  if ((option_data->rout)
-	    && ((! option_data->stim_base[istim])
-		|| (! option_data->nobout)))
+	  if( cout && option_data->rout
+	           && (!option_data->stim_base[istim] || bout) )
 	    {
 	      ibrick++;
 	      brick_type = FUNC_THR_TYPE;
@@ -4085,9 +4257,8 @@ void write_bucket_data
 	    }
 	
 	  /*----- Stimulus F-stat -----*/
-	  if ((option_data->fout)
-	    && ((! option_data->stim_base[istim])
-		|| (! option_data->nobout)))
+	  if( cout && option_data->fout
+  	           && (!option_data->stim_base[istim] || bout) )
 	    {
 	      ibrick++;
 	      brick_type = FUNC_FT_TYPE;
@@ -4104,6 +4275,17 @@ void write_bucket_data
 
     }  /*  if (! option_data->nocout)  */
 
+    if( coef_dset != NULL ){
+      if( !option_data->quiet )
+        fprintf(stderr,"++ Writing cbucket to %s\n",DSET_HEADNAME(coef_dset)) ;
+      DSET_write(coef_dset) ;
+      DSET_delete(coef_dset) ; coef_dset = NULL ;
+    }
+
+
+  /*----- 25 Jul 2004: save matrix info (etc.) to dataset header -----*/
+
+  if( xsave ) XSAVE_matrices( new_dset ) ;
 
   /*----- General linear test statistics -----*/
   for (iglt = 0;  iglt < num_glt;  iglt++)
@@ -4880,23 +5062,48 @@ void JPEG_matrix_gray( matrix X , char *fname )
 
 #include "niml.h"
 
+#if 0
 /*-----------------------------------------------------------------*/
-/*! Encode a matrix into a NIML element and thence into a string;
-    free() this when done with it.
+/*! Turn a NIML element into a string.
 -------------------------------------------------------------------*/
 
-char * matrix_to_niml_string( matrix a )
+char * niml_element_to_string( NI_element *nel )
+{
+   NI_stream ns ;
+   char *stout ;
+   int ii,jj ;
+
+   if( nel == NULL ) return NULL ;
+
+   ns = NI_stream_open( "str:" , "w" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   stout = strdup( NI_stream_getbuf(ns) ) ;
+   NI_stream_close( ns ) ;
+   jj = strlen(stout) ;
+   for( ii=jj-1 ; ii > 0 && isspace(stout[ii]) ; ii-- ) ; /* trailing blanks */
+   stout[ii+1] = '\0' ;
+   return stout ;
+}
+#endif
+
+/*-----------------------------------------------------------------*/
+/*! Encode a matrix into a NIML element, which is returned;
+    NI_free_element() this when done with it.
+    ename is the name of the NIML element to create.
+-------------------------------------------------------------------*/
+
+NI_element * matrix_to_niml( matrix a , char *ename )
 {
    int m=a.rows , n=a.cols , ii,jj ;
    MATRIX_TYPE **aar = a.elts ;
    NI_element *nel ;
-   NI_stream ns ;
    double *ecol ;
-   char *stout ;
 
-   if( m < 1 || n < 1 || aar == NULL ) return NULL ;  /* bad user, bad */
+   if( m < 1 || n < 1 || aar == NULL ) return ;  /* bad user, bad */
 
-   nel  = NI_new_data_element( "matrix" , m ) ;
+   if( ename == NULL || *ename == '\0' ) ename = "matrix" ;
+
+   nel  = NI_new_data_element( ename , m ) ;
    ecol = (double *) malloc(sizeof(double)*m) ;
 
    for( jj=0 ; jj < n ; jj++ ){
@@ -4905,44 +5112,29 @@ char * matrix_to_niml_string( matrix a )
    }
 
    free((void *)ecol) ;
-
-   ns = NI_stream_open( "str:" , "w" ) ;
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
-   NI_free_element( nel ) ;
-   stout = strdup( NI_stream_getbuf(ns) ) ;
-   NI_stream_close( ns ) ;
-   jj = strlen(stout) ;
-   for( ii=jj-1 ; ii > 0 && isspace(stout[ii]) ; ii-- ) ; /* trailing blanks */
-   stout[ii+1] = '\0' ;
-   return stout ;
+   return nel ;
+   return ;
 }
 
 /*-------------------------------------------------------------------*/
-/*! Read a NIML element from a string, then decode it into a matrix.
+/*! Decode an NIML element into a matrix.
 ---------------------------------------------------------------------*/
 
-int niml_string_to_matrix( char *stin , matrix *a )
+void niml_to_matrix( NI_element *nel , matrix *a )
 {
-   NI_stream ns ;
-   NI_element *nel ;
    int m , n , ii , jj ;
    double *ecol ;
    MATRIX_TYPE **aar ;
+   char *ename ;
 
-   if( stin == NULL || *stin == '\0' || a == NULL ) return 0 ;
-
-   ns = NI_stream_open( "str:" , "r" ) ;
-   NI_stream_setbuf( ns , stin ) ;
-   nel = (NI_element *)NI_read_element( ns , 1 ) ;
-   NI_stream_close( ns ) ;
-   if( nel == NULL ) return 0 ;
+   if( nel == NULL || a == NULL ) return ;
 
    m = nel->vec_len ;   /* number of rows */
    n = nel->vec_num ;   /* number of cols */
 
-   if( m < 1 || n < 1 ){ NI_free_element(nel); return 0; }
+   if( m < 1 || n < 1 ) return ;
    for( jj=0 ; jj < n ; jj++ )
-     if( nel->vec_typ[jj] != NI_DOUBLE ){ NI_free_element(nel); return 0; }
+     if( nel->vec_typ[jj] != NI_DOUBLE ) return ;
 
    matrix_create( m , n , a ) ;
    aar = a->elts ;
@@ -4952,5 +5144,147 @@ int niml_string_to_matrix( char *stin , matrix *a )
      for( ii=0 ; ii < m ; ii++ ) aar[ii][jj] = (MATRIX_TYPE)ecol[ii] ;;
    }
 
-   NI_free_element( nel ) ; return 1 ;
+   return ;
+}
+
+/*-----------------------------------------------------------------*/
+/*! Encode an integer list into a NIML element.
+    NI_free_element() this when done with it.
+    ename is the name of the NIML element to create.
+-------------------------------------------------------------------*/
+
+NI_element * intvec_to_niml( int nvec , int *vec , char *ename )
+{
+   NI_element *nel ;
+
+   if( nvec < 1 || vec == NULL ) return NULL ;  /* bad user, bad */
+
+   if( ename == NULL || *ename == '\0' ) ename = "intvec" ;
+
+   nel = NI_new_data_element( ename , nvec ) ;
+   NI_add_column( nel , NI_INT , vec ) ;
+   return nel ;
+}
+
+/*-------------------------------------------------------------------*/
+
+NI_element * stringvec_to_niml( int nstr , char **str , char *ename )
+{
+   NI_element *nel ;
+
+   if( nstr < 1 || str == NULL ) return NULL ;  /* bad user, bad */
+
+   if( ename == NULL || *ename == '\0' ) ename = "stringvec" ;
+
+   nel = NI_new_data_element( ename , nstr ) ;
+   NI_add_column( nel , NI_STRING , str ) ;
+   return nel ;
+}
+
+/*-------------------------------------------------------------------*/
+
+void XSAVE_matrices( THD_3dim_dataset *dset )
+{
+   char *fname , *prefix , *cpt ;
+   NI_stream ns ;
+   NI_element *nel ;
+
+   if( !ISVALID_DSET(dset) || !xsave ) return ;
+
+   /*-- open output stream, based on name of dataset --*/
+
+   prefix = DSET_PREFIX( dset ) ;
+   fname  = malloc( sizeof(char) * (strlen(prefix)+32) ) ;
+   strcpy(fname,"file:") ; strcat(fname,prefix) ; strcat(fname,".xsave") ;
+   if( THD_is_ondisk(fname+5) )
+     fprintf(stderr,
+             "** WARNING: -xsave output file %s will be overwritten!\n",fname+5) ;
+   ns = NI_stream_open( fname , "w" ) ;
+   if( ns == (NI_stream)NULL ){
+     fprintf(stderr,
+             "** ERROR: -xsave output file %s can't be opened!\n",fname+5) ;
+     free((void *)fname) ;
+     return ;
+   }
+
+   /*-- write a header element --*/
+
+   nel = NI_new_data_element( "XSAVE", 0 ) ;
+   if( InputFilename != NULL )
+     NI_set_attribute( nel , "InputFilename"  , InputFilename  ) ;
+   if( BucketFilename != NULL )
+     NI_set_attribute( nel , "BucketFilename" , BucketFilename ) ;
+   if( CoefFilename != NULL )
+     NI_set_attribute( nel , "CoefFilename"   , CoefFilename   ) ;
+
+   sprintf(fname,"%d",X.rows) ;
+   NI_set_attribute( nel , "NumTimePoints" , fname ) ;
+   sprintf(fname,"%d",X.cols) ;
+   NI_set_attribute( nel , "NumRegressors" , fname ) ;
+
+   NI_set_attribute( nel , "Deconvolveries" , XSAVE_version ) ;
+
+   cpt = tross_datetime() ;
+   NI_set_attribute( nel , "DateTime" , cpt ) ;
+   free((void *)cpt) ;
+   cpt = tross_hostname() ;
+   NI_set_attribute( nel , "Hostname" , cpt ) ;
+   free((void *)cpt) ;
+   cpt = tross_username() ;
+   NI_set_attribute( nel , "Username" , cpt ) ;
+   free((void *)cpt) ;
+
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+
+   /*-- write the matrices --*/
+
+   nel = matrix_to_niml( X , "matrix" ) ;
+   NI_set_attribute( nel , "name" , "X" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+
+   nel = matrix_to_niml( XtXinv , "matrix" ) ;
+   NI_set_attribute( nel , "name" , "XtXinv" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+
+   nel = matrix_to_niml( XtXinvXt , "matrix" ) ;
+   NI_set_attribute( nel , "name" , "XtXinvXt" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+
+   /*-- list of good time points --*/
+
+   nel = intvec_to_niml( nGoodList , GoodList , "intvec" ) ;
+   NI_set_attribute( nel , "name" , "GoodList" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+
+   /*-- list of bucket indices with estimated parameters --*/
+
+   if( ParamIndex != NULL ){
+     nel = intvec_to_niml( nParam, ParamIndex , "intvec" ) ;
+     NI_set_attribute( nel , "name" , "ParamIndex" ) ;
+     (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+     NI_free_element( nel ) ;
+   }
+
+   /*-- which stimlus input file, for each parameter --*/
+
+   nel = intvec_to_niml( nParam, ParamStim , "intvec" ) ;
+   NI_set_attribute( nel , "name" , "ParamStim" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+
+   /*-- stimulus label, for each parameter --*/
+
+   nel = stringvec_to_niml( nParam , ParamLabel , "stringvec" ) ;
+   NI_set_attribute( nel , "name" , "ParamLabel" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+
+   /*-- done, finito, ciao babee --*/
+
+   NI_stream_close(ns) ; free((void *)fname) ; return ;
 }

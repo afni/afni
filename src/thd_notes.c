@@ -74,7 +74,7 @@ char * tross_datetime(void)
 
 #undef  NNAME
 #define NNAME 1025
-static char * tross_hostname(void)  /* 19 Sep 1999 */
+char * tross_hostname(void)  /* 19 Sep 1999 */
 {
    char * cn = AFMALL(char, NNAME) ;
    gethostname( cn , NNAME ) ;
@@ -85,7 +85,7 @@ static char * tross_hostname(void)  /* 19 Sep 1999 */
 
 #include <pwd.h>
 
-static char * tross_username(void)  /* 20 Sep 1999 */
+char * tross_username(void)  /* 20 Sep 1999 */
 {
    uid_t uu = getuid() ;
    struct passwd * pwd = getpwuid(uu) ;
