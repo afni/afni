@@ -1028,6 +1028,24 @@ STATUS("bad function datatypes!!") ;
       KILL_1MRI(im_fim) ; KILL_1MRI(im_thr) ; RETURN(NULL) ;
    }
 
+   /* 15 Jun 2000: transformation of functional image? */
+
+   if( im3d->vwid->func->pbar_transform0D_func != NULL ){
+      MRI_IMAGE * tim = mri_to_float(im_fim) ;
+      im3d->vwid->func->pbar_transform0D_func( tim->nvox , MRI_FLOAT_PTR(tim) ) ;
+      if( im_fim != im_thr ) mri_free(im_fim) ;
+      im_fim = tim ;
+   }
+
+   if( im3d->vwid->func->pbar_transform2D_func != NULL ){
+      MRI_IMAGE * tim = mri_to_float(im_fim) ;
+      im3d->vwid->func->pbar_transform2D_func( tim->nx, tim->ny,
+                                               tim->dx, tim->dy,
+                                               MRI_FLOAT_PTR(tim) ) ;
+      if( im_fim != im_thr ) mri_free(im_fim) ;
+      im_fim = tim ;
+   }
+
    /* create output image */
 
    npix  = im_fim->nx * im_fim->ny ;

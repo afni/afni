@@ -78,5 +78,6 @@ extern void AFNI_finalize_read_palette_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_set_pbar_top_CB( Widget, XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_finalize_write_palette_CB( Widget, XtPointer, MCW_choose_cbs * );
 extern void AFNI_finalize_saveim_CB( Widget, XtPointer, MCW_choose_cbs * );
+extern void AFNI_palette_tran_CB( MCW_arrowval * , XtPointer ) ;
 
 #endif

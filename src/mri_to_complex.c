@@ -58,6 +58,18 @@ WHOAMI ; IMHEADER(oldim) ;
 #endif
          break ;
 
+      case MRI_rgb:{                          /* 16 Jun 2000 */
+         byte * rgb = MRI_RGB_PTR(oldim) ;
+         complex * car = MRI_COMPLEX_PTR(newim) ;
+         for( ii=0 ; ii < npix ; ii++ ){      /* scale to brightness */
+            car[ii].r =  0.299 * rgb[3*ii]    /* between 0 and 255   */
+                       + 0.587 * rgb[3*ii+1]
+                       + 0.114 * rgb[3*ii+2] ;
+            car[ii].i = 0.0 ;
+         }
+      }
+      break ;
+
       default:
          fprintf( stderr , "mri_to_complex:  unrecognized image kind\n" ) ;
          MRI_FATAL_ERROR ;

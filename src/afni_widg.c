@@ -2356,6 +2356,60 @@ STATUS("making func->rowcol") ;
       XtUnmanageChild( func->pbar_palette_av->wrowcol ) ;
    }
 
+   /*-- 15 Jun 2000: 0D func list --*/
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+   func->pbar_transform0D_av = new_MCW_arrowval(
+                             func->pbar_menu ,     /* parent Widget */
+                             "Tran 0D " ,          /* label */
+                             MCW_AV_optmenu ,      /* option menu style */
+                             0 ,                   /* first option */
+                             1 ,                   /* last option */
+                             0 ,                   /* initial selection */
+                             MCW_AV_readtext ,     /* ignored but needed */
+                             0 ,                   /* ditto */
+                             AFNI_palette_tran_CB, /* callback when changed */
+                             (XtPointer) im3d ,    /* data for above */
+                             MCW_av_substring_CB , /* text creation routine */
+                             AFNI_dummy_av_label   /* data for above */
+                           ) ;
+
+   MCW_reghint_children( func->pbar_transform0D_av->wrowcol ,
+                         "Transform overlay image values" ) ;
+   XtUnmanageChild( func->pbar_transform0D_av->wrowcol ) ;
+   func->pbar_transform0D_index = 0 ;
+   func->pbar_transform0D_func  = NULL ;
+
+   /*-- 16 Jun 2000: 2D func list --*/
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+   func->pbar_transform2D_av = new_MCW_arrowval(
+                             func->pbar_menu ,     /* parent Widget */
+                             "Tran 2D " ,          /* label */
+                             MCW_AV_optmenu ,      /* option menu style */
+                             0 ,                   /* first option */
+                             1 ,                   /* last option */
+                             0 ,                   /* initial selection */
+                             MCW_AV_readtext ,     /* ignored but needed */
+                             0 ,                   /* ditto */
+                             AFNI_palette_tran_CB, /* callback when changed */
+                             (XtPointer) im3d ,    /* data for above */
+                             MCW_av_substring_CB , /* text creation routine */
+                             AFNI_dummy_av_label   /* data for above */
+                           ) ;
+
+   MCW_reghint_children( func->pbar_transform2D_av->wrowcol ,
+                         "Transform overlay image values" ) ;
+   XtUnmanageChild( func->pbar_transform2D_av->wrowcol ) ;
+   func->pbar_transform2D_index = 0 ;
+   func->pbar_transform2D_func  = NULL ;
+
    /**-- Color pbar to control intensity-to-color mapping --**/
 
    { float pmin , pmax ;  /* posfunc added 3/21/95 */

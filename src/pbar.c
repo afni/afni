@@ -72,7 +72,12 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
       check_pixmap = XCreatePixmapFromBitmapData(
                         XtDisplay(parent) , RootWindowOfScreen(XtScreen(parent)) ,
                         check_bits , check_width , check_height ,
-                        1,0,DefaultDepthOfScreen(XtScreen(parent)) ) ;
+#if 0
+                        1,0,
+#else
+                        dc->ovc->pixov_brightest , dc->ovc->pixov_darkest ,
+#endif
+                        DefaultDepthOfScreen(XtScreen(parent)) ) ;
 
    /** make the panes **/
 
@@ -500,7 +505,7 @@ printf("set pane %d to height %d\n",npane-1,sum) ; fflush(stdout) ;
 MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
 {
    MRI_IMAGE * im ;
-   int   ii,npix,kk,ll , sum,hh ;
+   int   ii,npix,kk,ll,jj , sum,hh ;
    float pmin,pmax , rhh,fhh , hfrac ;
    byte rr,gg,bb , *bar ;
 
@@ -519,7 +524,6 @@ MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
    hfrac = ny / (pmax-pmin) ;
    rhh  = 0.0 ;
    sum  = ny ;
-   ll   = 0 ;
 
    /* do each pane */
 
@@ -529,27 +533,51 @@ MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
       rhh  = fhh - hh ;                                  /* remainder */
       sum -= hh ;                                        /* # pixels left */
 
-      rr = DCOV_REDBYTE  (pbar->dc,pbar->ov_index[kk]) ;
-      gg = DCOV_GREENBYTE(pbar->dc,pbar->ov_index[kk]) ;
-      bb = DCOV_BLUEBYTE (pbar->dc,pbar->ov_index[kk]) ;
+      if( pbar->ov_index[kk] > 0 ){                      /* solid color */
+         rr = DCOV_REDBYTE  (pbar->dc,pbar->ov_index[kk]) ;
+         gg = DCOV_GREENBYTE(pbar->dc,pbar->ov_index[kk]) ;
+         bb = DCOV_BLUEBYTE (pbar->dc,pbar->ov_index[kk]) ;
 
-      npix = hh*nx ;
-      for( ii=0 ; ii < npix ; ii++ ){
-        *bar++ = rr ; *bar++ = gg ; *bar++ = bb ;
+         npix = hh*nx ;
+         for( ii=0 ; ii < npix ; ii++ ){
+           *bar++ = rr ; *bar++ = gg ; *bar++ = bb ;
+         }
+      } else {                                           /* check pattern */
+         byte bwj , bwi ;
+         bwj = 255 ;
+         for( jj=0 ; jj < hh ; jj++ ){
+            bwi = bwj ;
+            for( ii=0 ; ii < nx ; ii++ ){
+              *bar++ = bwi ; *bar++ = bwi ; *bar++ = bwi ; bwi = ~bwi ;
+            }
+            bwj = ~bwj ;
+         }
       }
-
    }
 
    /* last pane */
 
    kk = pbar->num_panes-1 ;
-   rr = DCOV_REDBYTE  (pbar->dc,pbar->ov_index[kk]) ;
-   gg = DCOV_GREENBYTE(pbar->dc,pbar->ov_index[kk]) ;
-   bb = DCOV_BLUEBYTE (pbar->dc,pbar->ov_index[kk]) ;
 
-   npix = sum*nx ;
-   for( ii=0 ; ii < npix ; ii++ ){
-     *bar++ = rr ; *bar++ = gg ; *bar++ = bb ;
+   if( pbar->ov_index[kk] > 0 ){                      /* solid color */
+      rr = DCOV_REDBYTE  (pbar->dc,pbar->ov_index[kk]) ;
+      gg = DCOV_GREENBYTE(pbar->dc,pbar->ov_index[kk]) ;
+      bb = DCOV_BLUEBYTE (pbar->dc,pbar->ov_index[kk]) ;
+
+      npix = sum*nx ;
+      for( ii=0 ; ii < npix ; ii++ ){
+        *bar++ = rr ; *bar++ = gg ; *bar++ = bb ;
+      }
+   } else {                                           /* check pattern */
+      byte bwj , bwi ;
+      bwj = 255 ;
+      for( jj=0 ; jj < hh ; jj++ ){
+         bwi = bwj ;
+         for( ii=0 ; ii < nx ; ii++ ){
+           *bar++ = bwi ; *bar++ = bwi ; *bar++ = bwi ; bwi = ~bwi ;
+         }
+         bwj = ~bwj ;
+      }
    }
 
    return im ;

@@ -440,7 +440,14 @@ typedef struct {
              pbar_readin_pb , pbar_writeout_pb ;
       MCW_arrowval * pbar_palette_av ;
       Widget pbar_showtable_pb ;
-      Widget pbar_saveim_pb  ;    /* 15 Jun 2000 */
+
+      Widget pbar_saveim_pb  ;                  /* 15 Jun 2000 */
+      MCW_arrowval * pbar_transform0D_av ;
+      generic_func * pbar_transform0D_func ;
+      int            pbar_transform0D_index ;
+      MCW_arrowval * pbar_transform2D_av ;
+      generic_func * pbar_transform2D_func ;
+      int            pbar_transform2D_index ;
 
       Widget options_rowcol , options_label ;
       MCW_bbox     * underlay_bbox ;
@@ -780,7 +787,7 @@ extern void AFNI_purge_unused_dsets(void) ;
 extern int AFNI_controller_index( Three_D_View * ) ;
 
 #define OPEN_CONTROLLER(iq) \
- ( XtRealizeWidget((iq)->vwid->top_shell) , (iq)->opened = 1 )
+ ( XtRealizeWidget((iq)->vwid->top_shell), AFNI_startup_3dview(iq), (iq)->opened = 1 )
 
 #define CLOSE_CONTROLLER(iq) \
  ( AFNI_closedown_3dview(iq), XtUnrealizeWidget((iq)->vwid->top_shell), (iq)->opened = 0 )
@@ -922,6 +929,7 @@ extern void AFNI_gra_send_CB(MCW_grapher * grapher,FD_brick * br,GRA_cbs * cbs);
 extern void AFNI_read_inputs   ( int argc, char * argv[] );
 extern void AFNI_make_widgets  ( Three_D_View * im3d );
 extern void AFNI_closedown_3dview( Three_D_View * im3d );
+extern void AFNI_startup_3dview  ( Three_D_View * im3d ); /* 15 Jun 2000 */
 extern MRI_IMAGE * AFNI_overlay( int n , FD_brick * br );
 
 extern char * AFNI_controller_label( Three_D_View * im3d ); /* 01 Apr 1999 */

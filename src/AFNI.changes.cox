@@ -2165,9 +2165,16 @@
  * Added new picture to splash screen (the MCW gang).  Also, added
      AFNI_IMAGE_PGMFILE environment variable to afni_splash.c
 
-16 Jun 2000
+15 Jun 2000
  * Added option "-nscale" to 3dcalc.c [that damn Tom Ross again].
  * Added an SCO Makefile [from Jason Bacon] and a couple of patches
      to go with it.
  * Added "Save to PPM" button to color pbar popup menus, to let the
      user save a representation of the color overlay scheme.
+ * Fixed check_pixmap in pbar.c to be correct in TrueColor.
+ * Added "Tran 0D" to color pbar popup for AFNI controllers (but not
+     for the rendering plugin).
+
+16 Jun 2000
+ * Added "Tran 2D" to color pbar popup for AFNI controllers.
+ * Fixed "Save to PPM" to save a check pattern for the "none" color.

@@ -3181,6 +3181,59 @@ STATUS("forcible adoption of unparented datasets") ;
 }
 
 /*--------------------------------------------------------------------------
+  Final adjustments before a controller is opened for use - 15 Jun 2000
+----------------------------------------------------------------------------*/
+
+void AFNI_startup_3dview( Three_D_View * im3d )
+{
+ENTRY("AFNI_startup_3dview") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   /* the pbar Tran 0D menu */
+
+   if( GLOBAL_library.registered_0D.num > 0 ){
+      refit_MCW_optmenu( im3d->vwid->func->pbar_transform0D_av ,
+                           0 ,                                 /* new minval */
+                           GLOBAL_library.registered_0D.num ,  /* new maxval */
+                           0 ,                                 /* new inival */
+                           0 ,                                 /* new decim? */
+                           ISQ_transform_label ,               /* text func  */
+                           &(GLOBAL_library.registered_0D)     /* text data  */
+                        ) ;
+      XtManageChild( im3d->vwid->func->pbar_transform0D_av->wrowcol ) ;
+   } else {
+      XtUnmanageChild( im3d->vwid->func->pbar_transform0D_av->wrowcol ) ;
+   }
+
+   im3d->vwid->func->pbar_transform0D_index = 0 ;
+   im3d->vwid->func->pbar_transform0D_func  = NULL ;
+
+   /* the pbar Tran 2D menu */
+
+   if( GLOBAL_library.registered_2D.num > 0 ){
+      refit_MCW_optmenu( im3d->vwid->func->pbar_transform2D_av ,
+                           0 ,                                 /* new minval */
+                           GLOBAL_library.registered_2D.num ,  /* new maxval */
+                           0 ,                                 /* new inival */
+                           0 ,                                 /* new decim? */
+                           ISQ_transform_label ,               /* text func  */
+                           &(GLOBAL_library.registered_2D)     /* text data  */
+                        ) ;
+      XtManageChild( im3d->vwid->func->pbar_transform2D_av->wrowcol ) ;
+   } else {
+      XtUnmanageChild( im3d->vwid->func->pbar_transform2D_av->wrowcol ) ;
+   }
+
+   im3d->vwid->func->pbar_transform2D_index = 0 ;
+   im3d->vwid->func->pbar_transform2D_func  = NULL ;
+
+   /* Hey Rocky!  Watch me pull a rabbit out of my hat! */
+
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------
    delete the viewers associated with this controller panel
 ---------------------------------------------------------------------------*/
 

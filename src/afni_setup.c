@@ -912,3 +912,38 @@ ENTRY("AFNI_finalize_saveim_CB") ;
 
    POPDOWN_string_chooser; mri_free(im); free(fname); EXRETURN;
 }
+
+/*----------------------------------------------------------------------------*/
+
+void AFNI_palette_tran_CB( MCW_arrowval * av , XtPointer cd )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_palette_tran_CB") ;
+
+   if( !IM3D_VALID(im3d) ) EXRETURN ;
+
+   if( av == im3d->vwid->func->pbar_transform0D_av ){         /* 15 Jun 2000 */
+
+      im3d->vwid->func->pbar_transform0D_index = av->ival ;
+      if( av->ival == 0 )
+         im3d->vwid->func->pbar_transform0D_func = NULL ;
+      else
+         im3d->vwid->func->pbar_transform0D_func =
+            GLOBAL_library.registered_0D.funcs[av->ival-1];
+
+   } else if( av == im3d->vwid->func->pbar_transform2D_av ){  /* 16 Jun 2000 */
+
+      im3d->vwid->func->pbar_transform2D_index = av->ival ;
+      if( av->ival == 0 )
+         im3d->vwid->func->pbar_transform2D_func = NULL ;
+      else
+         im3d->vwid->func->pbar_transform2D_func =
+            GLOBAL_library.registered_2D.funcs[av->ival-1];
+   }
+
+   if( im3d->vinfo->func_visible )
+      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+
+   EXRETURN ;
+}
