@@ -18,28 +18,28 @@ int mri_write( char *fname , MRI_IMAGE *im )
    void  *data ;
    int   dsize , noheader = FALSE ;
 
-WHOAMI ; IMHEADER(im) ;
+ENTRY("mri_write") ;
 
-   if( im == NULL ) return 0 ;
+   if( im == NULL ) RETURN(0) ;
    if( ! MRI_IS_2D(im) ){
-      return mri_write_7D( fname , im ) ;
+      RETURN(mri_write_7D( fname , im )) ;
    }
 
-   if( im->kind == MRI_rgb  ){ return mri_write_pnm( fname , im ) ; }
-   if( im->kind == MRI_byte ){ return mri_write_pnm( fname , im ) ; }
+   if( im->kind == MRI_rgb  ){ RETURN(mri_write_pnm( fname , im )) ; }
+   if( im->kind == MRI_byte ){ RETURN(mri_write_pnm( fname , im )) ; }
 
    imfile = fopen( fname , "r" ) ;
    if( imfile != NULL ){
       fclose( imfile ) ;
       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
-      return 0 ;
+      RETURN(0) ;
    }
 
    imfile = fopen( fname , "w" ) ;
 
    if( imfile == NULL ){
       fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
-      return 0 ;
+      RETURN(0) ;
    }
 
    /*** possibly write MRI header, unless a standard image type ***/
@@ -93,7 +93,7 @@ WHOAMI ; IMHEADER(im) ;
    fwrite( data , im->pixel_size , im->nx * im->ny , imfile ) ;
    fclose( imfile ) ;
 
-   return 1 ;
+   RETURN(1) ;
 }
 
 /**************************************************************************/

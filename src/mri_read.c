@@ -646,22 +646,24 @@ MRI_IMAGE *mri_try_pgm( FILE *imfile , int *skip )
    char buf[64] ;
    MRI_IMAGE *im ;
 
+ENTRY("mri_try_pgm") ;
+
    fseek( imfile , 0 , SEEK_SET ) ;  /* rewind file */
 
-   ch = getc( imfile ) ; if( ch != 'P' ) return NULL ;  /* check for magic */
-   ch = getc( imfile ) ; if( ch != '5' ) return NULL ;
+   ch = getc( imfile ) ; if( ch != 'P' ) RETURN(NULL);  /* check for magic */
+   ch = getc( imfile ) ; if( ch != '5' ) RETURN(NULL);
 
    /* magic P5 found, so read numbers */
 
    ch = getc(imfile) ;
 
-   NUMSCAN(nx)     ; if( nx     <= 0 ) return NULL ;
-   NUMSCAN(ny)     ; if( ny     <= 0 ) return NULL ;
-   NUMSCAN(maxval) ; if( maxval <= 0 || maxval >  255 ) return NULL ;
+   NUMSCAN(nx)     ; if( nx     <= 0 ) RETURN(NULL);
+   NUMSCAN(ny)     ; if( ny     <= 0 ) RETURN(NULL);
+   NUMSCAN(maxval) ; if( maxval <= 0 || maxval >  255 ) RETURN(NULL);
 
    *skip = ftell(imfile) ;
    im    = mri_new( nx , ny , MRI_byte ) ;
-   return im ;
+   RETURN(im);
 }
 
 /*--------------------------------------------------------------
@@ -688,9 +690,11 @@ MRI_IMARR * mri_read_3D( char * tname )
    void      * imar ;
    FILE      * imfile ;
 
+ENTRY("mri_read_3D") ;
+
    /*** get info from 3D tname ***/
 
-   if( tname == NULL || strlen(tname) < 10 ) return NULL ;
+   if( tname == NULL || strlen(tname) < 10 ) RETURN(NULL) ;
 
    switch( tname[2] ){  /* allow for 3D: or 3Ds: or 3Db: */
 
@@ -761,7 +765,7 @@ MRI_IMARR * mri_read_3D( char * tname )
 
    if( ngood < 6 || himage < 0 ||
        nx <= 0   || ny <= 0    || nz <= 0 ||
-       strlen(fname) <= 0                   ) return NULL ;   /* bad info */
+       strlen(fname) <= 0                   ) RETURN(NULL);   /* bad info */
 
    /*** 06 Mar 2001: special case of fname ***/
 
@@ -775,7 +779,7 @@ MRI_IMARR * mri_read_3D( char * tname )
          mri_add_name( buf , newim ) ;
          ADDTO_IMARR(newar,newim) ;
       }
-      return newar ;
+      RETURN(newar);
    }
 
    /*** open the input file and position it ***/
@@ -783,7 +787,7 @@ MRI_IMARR * mri_read_3D( char * tname )
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
       fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
-      return NULL ;
+      RETURN(NULL);
    }
 
    fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
@@ -811,7 +815,7 @@ MRI_IMARR * mri_read_3D( char * tname )
         "for hglobal=%d himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
         fname,length,ngood,hglobal,himage,nx,ny,nz,datum_len ) ;
       fclose( imfile ) ;
-      return NULL ;
+      RETURN(NULL);
    }
 
    /*** read images from the file ***/
@@ -840,7 +844,7 @@ MRI_IMARR * mri_read_3D( char * tname )
    }
 
    fclose(imfile) ;
-   return newar ;
+   RETURN(newar);
 }
 
 /*--------------------------------------------------------------*/
@@ -1137,28 +1141,28 @@ MRI_IMARR * mri_read_ppm3( char * fname )
    FILE * imfile ;
    byte * rby , * gby , * bby , * rgby ;
 
-WHOAMI ;
+ENTRY("mri_read_ppm3") ;
 
    /*** open input file ***/
 
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-      fprintf(stderr,"couldn't open file %s in mri_read_ppm3\n",fname); return NULL ;
+      fprintf(stderr,"couldn't open file %s in mri_read_ppm3\n",fname); RETURN(NULL) ;
    }
 
    /*** check if a raw PPM file ***/
 
-   ch = getc( imfile ) ; if( ch != 'P' ) { fclose(imfile) ; return NULL ; }
-   ch = getc( imfile ) ; if( ch != '6' ) { fclose(imfile) ; return NULL ; }
+   ch = getc( imfile ) ; if( ch != 'P' ) { fclose(imfile) ; RETURN(NULL); }
+   ch = getc( imfile ) ; if( ch != '6' ) { fclose(imfile) ; RETURN(NULL); }
 
    /* magic P6 found, so read numbers in header */
 
    ch = getc(imfile) ;
 
-   NUMSCAN(nx)     ; if( nx     <= 0 )   { fclose(imfile) ; return NULL ; }
-   NUMSCAN(ny)     ; if( ny     <= 0 )   { fclose(imfile) ; return NULL ; }
+   NUMSCAN(nx)     ; if( nx     <= 0 )   { fclose(imfile) ; RETURN(NULL); }
+   NUMSCAN(ny)     ; if( ny     <= 0 )   { fclose(imfile) ; RETURN(NULL); }
    NUMSCAN(maxval) ; if( maxval <= 0 ||
-                         maxval >  255 ) { fclose(imfile) ; return NULL ; }
+                         maxval >  255 ) { fclose(imfile) ; RETURN(NULL); }
 
    /*** create output images and workspace array ***/
 
@@ -1183,7 +1187,7 @@ WHOAMI ;
    if( length != 3*nx*ny ){
       free(rgby) ; mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
       fprintf(stderr,"couldn't read data from file %s in mri_read_ppm3\n",fname) ;
-      return NULL ;
+      RETURN(NULL);
    }
 
    /*** put data from workspace array into output images ***/
@@ -1202,7 +1206,7 @@ WHOAMI ;
    ADDTO_IMARR( outar , rim ) ;
    ADDTO_IMARR( outar , gim ) ;
    ADDTO_IMARR( outar , bim ) ;
-   return outar ;
+   RETURN(outar);
 }
 
 /*-----------------------------------------------------------------
@@ -1482,26 +1486,26 @@ MRI_IMAGE * mri_read_ppm( char * fname )
    byte      * rgby ;
    char        buf[256] ;
 
-WHOAMI ;
+ENTRY("mri_read_ppm") ;
 
    /*** open input file ***/
 
    imfile = fopen( fname , "r" ) ;
-   if( imfile == NULL ) return NULL ;
+   if( imfile == NULL ) RETURN(NULL);
 
    /*** check if a raw PPM file ***/
 
-   ch = getc( imfile ) ; if( ch != 'P' ) { fclose(imfile) ; return NULL ; }
-   ch = getc( imfile ) ; if( ch != '6' ) { fclose(imfile) ; return NULL ; }
+   ch = getc( imfile ) ; if( ch != 'P' ) { fclose(imfile) ; RETURN(NULL); }
+   ch = getc( imfile ) ; if( ch != '6' ) { fclose(imfile) ; RETURN(NULL); }
 
    /* magic P6 found, so read numbers in header */
 
    ch = getc(imfile) ;
 
-   NUMSCAN(nx)    ; if( nx     <= 0 )  { fclose(imfile); return NULL; }
-   NUMSCAN(ny)    ; if( ny     <= 0 )  { fclose(imfile); return NULL; }
+   NUMSCAN(nx)    ; if( nx     <= 0 )  { fclose(imfile); RETURN(NULL); }
+   NUMSCAN(ny)    ; if( ny     <= 0 )  { fclose(imfile); RETURN(NULL); }
    NUMSCAN(maxval); if( maxval <= 0 ||
-                        maxval >  255 ){ fclose(imfile); return NULL; }
+                        maxval >  255 ){ fclose(imfile); RETURN(NULL); }
 
    /*** create output image ***/
 
@@ -1513,7 +1517,7 @@ WHOAMI ;
    length = fread( rgby , sizeof(byte) , 3*nx*ny , imfile ) ;
    fclose( imfile ) ;
 
-   if( length != 3*nx*ny ){ mri_free(rgbim) ; return NULL ; }
+   if( length != 3*nx*ny ){ mri_free(rgbim) ; RETURN(NULL) ; }
 
    /* 17 Sep 2001: scale to maxval=255, if needed */
 
@@ -1522,7 +1526,7 @@ WHOAMI ;
       for( ii=0 ; ii < 3*nx*ny ; ii++ ) rgby[ii] = (byte)( rgby[ii]*fac ) ;
    }
 
-   return rgbim ;
+   RETURN(rgbim) ;
 }
 /*---------------------------------------------------------------*/
 
@@ -1634,9 +1638,11 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    int  ncol , bpos , blen , nrow ;
    static char *buf=NULL ;            /* 20 Jun 2002: make a ptr */
 
-   if( fname == NULL || fname[0] == '\0' ) return NULL ;
+ENTRY("mri_read_ascii") ;
 
-   fts = fopen( fname , "r" ); if( fts == NULL ) return NULL;
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
+
+   fts = fopen( fname , "r" ); if( fts == NULL ) RETURN(NULL);
 
    if( buf == NULL ) buf = malloc(LBUF) ;  /* 20 Jun 2002: 1st time in */
 
@@ -1644,7 +1650,7 @@ MRI_IMAGE * mri_read_ascii( char * fname )
                (skipping lines that are comments or entirely blank)     */
 
    ptr = my_fgets( buf , LBUF , fts ) ;
-   if( ptr==NULL || *ptr=='\0' ){ fclose(fts); return NULL; }  /* bad read? */
+   if( ptr==NULL || *ptr=='\0' ){ fclose(fts); RETURN(NULL); }  /* bad read? */
 
    blen = strlen(buf) ;
    bpos = 0 ;
@@ -1656,7 +1662,7 @@ MRI_IMAGE * mri_read_ascii( char * fname )
      if( ii < 1 ){ ncol = 0; break; }           /* bad scan? */
      ncol++; bpos += jj;
    } while( bpos < blen ) ;
-   if( ncol == 0 ){ fclose(fts); return NULL; } /* couldn't read? */
+   if( ncol == 0 ){ fclose(fts); RETURN(NULL); } /* couldn't read? */
 
    /** At this point, ncol is the number of floats to be read from each line **/
 
@@ -1704,7 +1710,7 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    }
    fclose( fts ) ; /* finished with this file! */
 
-   if( used_tsar <= 1 ){ free(tsar); return NULL; }
+   if( used_tsar <= 1 ){ free(tsar); RETURN(NULL); }
 
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
@@ -1715,7 +1721,7 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    mri_fix_data_pointer( tsar , outim ) ;
    mri_add_name( fname , outim ) ;
 
-   return outim ;
+   RETURN(outim) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1738,7 +1744,9 @@ MRI_IMAGE * mri_read_1D( char * fname )
    int ii,nx,ny,nts , *ivlist , *ivl ;
    float * far , * oar ;
 
-   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 255 ) return NULL ;
+ENTRY("mri_read_1D") ;
+
+   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 255 ) RETURN(NULL) ;
 
    /*-- split filename and subvector list --*/
 
@@ -1749,7 +1757,7 @@ MRI_IMAGE * mri_read_1D( char * fname )
       subv[0] = '\0' ;
    } else if( cpt == fname ){           /* can't be at start of filename! */
       fprintf(stderr,"*** Illegal filename in mri_read_1D: %s\n",fname) ;
-      return NULL ;
+      RETURN(NULL) ;
    } else {                             /* got a subvector list */
       ii = cpt - fname ;
       memcpy(dname,fname,ii) ; dname[ii] = '\0' ;
@@ -1759,9 +1767,9 @@ MRI_IMAGE * mri_read_1D( char * fname )
    /*-- read file in --*/
 
    inim = mri_read_ascii(dname) ;
-   if( inim == NULL ) return NULL ;
+   if( inim == NULL ) RETURN(NULL) ;
    flim = mri_transpose(inim) ; mri_free(inim) ;
-   if( subv[0] == '\0' ) return flim ;             /* no subvector => am done */
+   if( subv[0] == '\0' ) RETURN(flim) ;             /* no subvector => am done */
 
    /*-- get the subvector list --*/
 
@@ -1772,7 +1780,7 @@ MRI_IMAGE * mri_read_1D( char * fname )
    if( ivlist == NULL || ivlist[0] < 1 ){
       fprintf(stderr,"*** Illegal subvector list in mri_read_1D: %s\n",fname) ;
       if( ivlist != NULL ) free(ivlist) ;
-      mri_free(flim) ; return NULL ;
+      mri_free(flim) ; RETURN(NULL) ;
    }
 
    nts = ivlist[0] ;                          /* number of subvectors */
@@ -1781,7 +1789,7 @@ MRI_IMAGE * mri_read_1D( char * fname )
    for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
       if( ivl[ii] < 0 || ivl[ii] >= ny ){
          fprintf(stderr,"*** Out-of-range subvector list in mri_read_1D: %s\n",fname) ;
-         mri_free(flim) ; free(ivlist) ; return NULL ;
+         mri_free(flim) ; free(ivlist) ; RETURN(NULL) ;
       }
    }
 
@@ -1792,7 +1800,7 @@ MRI_IMAGE * mri_read_1D( char * fname )
    for( ii=0 ; ii < nts ; ii++ )               /* copy desired rows */
       memcpy( oar + ii*nx , far + ivl[ii]*nx , sizeof(float)*nx ) ;
 
-   mri_free(flim) ; free(ivlist) ; return outim ;
+   mri_free(flim) ; free(ivlist) ; RETURN(outim) ;
 }
 
 /*---------------------------------------------------------------------------
@@ -1890,9 +1898,11 @@ MRI_IMARR * mri_read_3A( char * tname )
    MRI_IMAGE * newim , * flim ;
    float * ff ;
 
+ENTRY("mri_read_3A") ;
+
    /*** get info from 3A tname ***/
 
-   if( tname == NULL || strlen(tname) < 10 ) return NULL ;
+   if( tname == NULL || strlen(tname) < 10 ) RETURN(NULL) ;
 
    switch( tname[2] ){  /* allow for 3As:, 3Ab:, 3Af: */
 
@@ -1914,13 +1924,13 @@ MRI_IMARR * mri_read_3A( char * tname )
          break ;
    }
 
-   if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) return NULL ;
+   if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) RETURN(NULL) ;
 
    /* read the input file */
 
    read_ascii_floats( fname , &nff , &ff ) ;
 
-   if( nff <= 0 || ff == NULL ) return NULL ;
+   if( nff <= 0 || ff == NULL ) RETURN(NULL) ;
 
    nxy = nx*ny ; nxyz = nxy*nz ;
 
@@ -1959,7 +1969,7 @@ MRI_IMARR * mri_read_3A( char * tname )
       ADDTO_IMARR(newar,newim) ;
    }
 
-   free(ff) ; return newar ;
+   free(ff) ; RETURN(newar) ;
 }
 
 /*---------------------------------------------------------------------------
@@ -1975,6 +1985,7 @@ MRI_IMARR * mri_read_3A( char * tname )
 
 static void swap_analyze_hdr( struct dsr *pntr )
 {
+ENTRY("swap_analyze_hdr") ;
    swap_4(&pntr->hk.sizeof_hdr) ;
    swap_4(&pntr->hk.extents) ;
    swap_2(&pntr->hk.session_error) ;
@@ -2009,7 +2020,7 @@ static void swap_analyze_hdr( struct dsr *pntr )
    swap_2(&pntr->dime.dim_un0) ;
    swap_4(&pntr->dime.glmax) ;
    swap_4(&pntr->dime.glmin) ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------*/
@@ -2024,12 +2035,14 @@ static int mri_imcount_analyze75( char * hname )
    struct dsr hdr ;    /* ANALYZE .hdr format */
    int doswap , nz ;
 
+ENTRY("mri_imcount_analyze75") ;
+
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) return 0 ;
+   if( fp == NULL ) RETURN(0) ;
    hdr.dime.dim[0] = 0 ;
    fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
    fclose(fp) ;
-   if( hdr.dime.dim[0] == 0 ) return 0 ;
+   if( hdr.dime.dim[0] == 0 ) RETURN(0) ;
    doswap = (hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15) ;
    if( doswap ) swap_analyze_hdr( &hdr ) ;
 
@@ -2042,7 +2055,7 @@ static int mri_imcount_analyze75( char * hname )
    }
    if( nz < 1 ) nz = 1 ;
 
-   return nz ;
+   RETURN(nz) ;
 }
 
 /*---------------------------------------------------------------*/
@@ -2067,22 +2080,24 @@ MRI_IMARR * mri_read_analyze75( char * hname )
    int floatize ;     /* 28 Nov 2001 */
    int spmorg=0 ;     /* 28 Nov 2001 */
 
+ENTRY("mri_read_analyze75") ;
+
    /* check & prepare filenames */
 
-   if( hname == NULL ) return NULL ;
+   if( hname == NULL ) RETURN(NULL) ;
    jj = strlen(hname) ;
-   if( jj < 5 ) return NULL ;
-   if( strcmp(hname+jj-3,"hdr") != 0 ) return NULL ;
+   if( jj < 5 ) RETURN(NULL) ;
+   if( strcmp(hname+jj-3,"hdr") != 0 ) RETURN(NULL) ;
    strcpy(iname,hname) ; strcpy(iname+jj-3,"img") ;
 
    /* read header file into struct */
 
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) return NULL ;
+   if( fp == NULL ) RETURN(NULL) ;
    hdr.dime.dim[0] = 0 ;
    fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
    fclose(fp) ;
-   if( hdr.dime.dim[0] == 0 ) return NULL ;
+   if( hdr.dime.dim[0] == 0 ) RETURN(NULL) ;
 
    /* check for swap-age */
 
@@ -2119,7 +2134,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       default:
          fprintf(stderr,"*** %s: Unknown ANALYZE datatype=%d (%s)\n",
                  hname,hdr.dime.datatype,ANDT_string(hdr.dime.datatype) ) ;
-      return NULL ;
+      RETURN(NULL) ;
 
       case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ;               break;
       case ANDT_SIGNED_SHORT:  datum_type = MRI_short  ;               break;
@@ -2135,7 +2150,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
 
    nx = hdr.dime.dim[1] ;
    ny = hdr.dime.dim[2] ;
-   if( nx < 2 || ny < 2 ) return NULL ;
+   if( nx < 2 || ny < 2 ) RETURN(NULL) ;
 
    switch( hdr.dime.dim[0] ){
       case 2:  nz = 1                                 ; break ;
@@ -2158,13 +2173,13 @@ MRI_IMARR * mri_read_analyze75( char * hname )
    length = THD_filesize(iname) ;
    if( length <= 0 ){
       fprintf(stderr,"*** Can't find ANALYZE file %s\n",iname) ;
-      return NULL ;
+      RETURN(NULL) ;
    }
 
    fp = fopen( iname , "rb" ) ;
    if( fp == NULL ){
       fprintf(stderr,"*** Can't open ANALYZE file %s\n",iname) ;
-      return NULL ;
+      RETURN(NULL) ;
    }
 
    ngood = datum_len*nx*ny*nz ;
@@ -2173,7 +2188,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
         "*** ANALYZE file %s is %d bytes long but must be at least %d bytes long\n"
         "*** for nx=%d ny=%d nz=%d and voxel=%d bytes\n",
         iname,length,ngood,nx,ny,nz,datum_len ) ;
-      fclose(fp) ; return NULL ;
+      fclose(fp) ; RETURN(NULL) ;
    }
 
    /*** read images from the file ***/
@@ -2220,7 +2235,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       if( fac != 0.0 ) mri_scale_inplace( fac , newim ) ;
    }
 
-   fclose(fp) ; return newar ;
+   fclose(fp) ; RETURN(newar) ;
 }
 
 /*-----------------------------------------------------------------*/
@@ -2248,22 +2263,24 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
    int   nt , nxyz ;  /* 26 Aug 2002 */
    float dt ;
 
+ENTRY("mri_read3D_analyze75") ;
+
    /* check & prepare filenames */
 
-   if( hname == NULL ) return NULL ;
+   if( hname == NULL ) RETURN(NULL) ;
    jj = strlen(hname) ;
-   if( jj < 5 ) return NULL ;
-   if( strcmp(hname+jj-3,"hdr") != 0 ) return NULL ;
+   if( jj < 5 ) RETURN(NULL) ;
+   if( strcmp(hname+jj-3,"hdr") != 0 ) RETURN(NULL) ;
    strcpy(iname,hname) ; strcpy(iname+jj-3,"img") ;
 
    /* read header file into struct */
 
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) return NULL ;
+   if( fp == NULL ) RETURN(NULL) ;
    hdr.dime.dim[0] = 0 ;
    fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
    fclose(fp) ;
-   if( hdr.dime.dim[0] == 0 ) return NULL ;
+   if( hdr.dime.dim[0] == 0 ) RETURN(NULL) ;
 
    /* check for swap-age */
 
@@ -2300,7 +2317,7 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
       default:
          fprintf(stderr,"*** %s: Unknown ANALYZE datatype=%d (%s)\n",
                  hname,hdr.dime.datatype,ANDT_string(hdr.dime.datatype) ) ;
-      return NULL ;
+      RETURN(NULL) ;
 
       case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ;               break;
       case ANDT_SIGNED_SHORT:  datum_type = MRI_short  ;               break;
@@ -2316,7 +2333,7 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
 
    nx = hdr.dime.dim[1] ;
    ny = hdr.dime.dim[2] ;
-   if( nx < 2 || ny < 2 ) return NULL ;
+   if( nx < 2 || ny < 2 ) RETURN(NULL) ;
 
    switch( hdr.dime.dim[0] ){
       case 2:  nz = 1 ; nt = 1 ;                           ; break ;
@@ -2338,13 +2355,13 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
    length = THD_filesize(iname) ;
    if( length <= 0 ){
       fprintf(stderr,"*** Can't find ANALYZE file %s\n",iname) ;
-      return NULL ;
+      RETURN(NULL) ;
    }
 
    fp = fopen( iname , "rb" ) ;
    if( fp == NULL ){
       fprintf(stderr,"*** Can't open ANALYZE file %s\n",iname) ;
-      return NULL ;
+      RETURN(NULL) ;
    }
 
    ngood = datum_len*nx*ny*nz*nt ;
@@ -2353,7 +2370,7 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
         "*** ANALYZE file %s is %d bytes long but must be at least %d bytes long\n"
         "*** for nx=%d ny=%d nz=%d nt=%d and voxel=%d bytes\n",
         iname,length,ngood,nx,ny,nz,nt,datum_len ) ;
-      fclose(fp) ; return NULL ;
+      fclose(fp) ; RETURN(NULL) ;
    }
 
    /*** read images from the file ***/
@@ -2399,7 +2416,7 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
       if( fac != 0.0 ) mri_scale_inplace( fac , newim ) ;
    }
 
-   fclose(fp) ; return newar ;
+   fclose(fp) ; RETURN(newar) ;
 }
 
 /*---------------------------------------------------------------------------
@@ -2513,17 +2530,19 @@ MRI_IMARR * mri_read_siemens( char * hname )
    float dx,dy,dz ;
    char *eee ; int ileave=0 ;  /* 25 Sep 2001 */
 
+ENTRY("mri_read_siemens") ;
+
    /*--- check file size ---*/
 
-   if( hname == NULL ) return NULL ;
+   if( hname == NULL ) RETURN(NULL) ;
 
    i = stat( hname , &file_stat ) ;
-   if( i < 0 ) return NULL ;
+   if( i < 0 ) RETURN(NULL) ;
 
    /*--- read header data ---*/
 
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) return NULL ;
+   if( fp == NULL ) RETURN(NULL) ;
    fread( &head , sizeof(struct Siemens_vision_header) , 1 , fp ) ;
 
    /*-- check some integer in header to determine if we need to byteswap --*/
@@ -2551,7 +2570,7 @@ MRI_IMARR * mri_read_siemens( char * hname )
      if( file_stat.st_size == i*matrix*matrix + SIEMENS_HEADERSIZE ) break ;
 
    if( matrix == MATRIX_MAX ){
-     fclose(fp) ; return NULL ; /* didn't recognize file format */
+     fclose(fp) ; RETURN(NULL) ; /* didn't recognize file format */
    }
 #undef MATRIX_MAX
 
@@ -2580,7 +2599,7 @@ MRI_IMARR * mri_read_siemens( char * hname )
       }
    }
 
-   if( slices == 0 ){ free(imar) ; return NULL ; }  /* bad news */
+   if( slices == 0 ){ free(imar) ; RETURN(NULL) ; }  /* bad news */
 
    /*-- get image dimensions, etc --*/
 
@@ -2651,7 +2670,7 @@ Done:
       FREE_IMARR(newar) ; newar = qar ;
    }
 
-   free(imar) ; return newar ;
+   free(imar) ; RETURN(newar) ;
 }
 
 /*---------------------------------------------------------------------------
