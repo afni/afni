@@ -6,6 +6,10 @@ CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
 WARNOPT = -Wall -Wno-unused-variable
 endif
 
+ifndef RANLIB
+RANLIB = /usr/bin/ranlib
+endif
+
 ifeq ($(CC),gcc)
 #if (on safni) CC starts with gcc then it means makefile is executed from afni's makefile
 #can't use ndef with CC because it's always defined
@@ -66,7 +70,7 @@ ${SUMALIB} : ${SUMA_OBJS}
 	rm -f ${SUMALIB}
 	ar q ${SUMALIB} ${SUMA_OBJS}
 	echo "library Rebuilt ..."
-	#$(RANLIB) ${SUMALIB} 
+	$(RANLIB) ${SUMALIB} 
 
 
 clean:
