@@ -3193,3 +3193,7 @@
  * Modified afni_plugin.c to make plugin alphabetization the default (that
      is, the user has to "setenv AFNI_PLUGINS_ALPHABETIZE NO" to get the
      old behavior).
+
+16 Oct 2001
+ * Took new FD2.c from Andrzej Jesmanowicz, with changes to run with
+     X11 TrueColor visual.

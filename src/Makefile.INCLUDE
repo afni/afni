@@ -180,9 +180,9 @@ pcorsh.o:pcor.c pcor.h
 	$(CC) -c pcorsh.c $(IFLAGS) -DREF_FLOAT_SINGLE -DVOX_SHORT
 	$(RM) pcorsh.c
 
-FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o
+FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o csfft_AJ.o
 	$(RM) $@
-	$(CC) -o FD2 FD2.o mcw.o overfim.o ts.o pcorsh.o $(LFLAGS) $(LLIBS)
+	$(CC) -o FD2 FD2.o mcw.o overfim.o ts.o pcorsh.o csfft_AJ.o $(LFLAGS) $(LLIBS)
 
 dFD2:dFD2.o ts.o mcw.o overfim.o pcorsh.o
 	$(RM) $@
