@@ -1883,6 +1883,7 @@ STATUS("finding statistics of time series") ;
            grapher->tmean[ix][iy] = grapher->tbot[ix][iy] =
              grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
            grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0 ;  /* 08 Mar 2001 */
+           grapher->sbot[ix][iy] = grapher->stop[ix][iy] = 0 ;    /* 19 Mar 2004 */
            continue ;
          }
 
@@ -1905,6 +1906,7 @@ STATUS("finding statistics of time series") ;
            qsumq += tsar[i] * tsar[i] ;
          }
          grapher->tbot[ix][iy] = qbot ; grapher->ttop[ix][iy] = qtop ;
+         grapher->sbot[ix][iy] = ibot ; grapher->stop[ix][iy] = itop-1 ; /* 19 Mar 2004 */
          qsum  = qsum / (itop-ibot) ; grapher->tmean[ix][iy] = qsum ;
          qsumq = (qsumq - (itop-ibot) * qsum * qsum) / (itop-ibot-1.0) ;
          grapher->tstd[ix][iy] = (qsumq > 0.0) ? sqrt(qsumq) : 0.0 ;
@@ -2714,6 +2716,7 @@ STATUS("KeyPress event") ;
          int bx,by , width,height , but ;
          int i, j, gx , gy , mat , xloc,yloc ;
          unsigned int but_state ;
+         int xd,yd,zd ;  /* 19 Mar 2004: for mangling to AFNI indexes */
 
 STATUS("button press") ;
 
@@ -2876,11 +2879,21 @@ STATUS("button press") ;
                AV_fval_to_char( grapher->tmad[ix][iy]  , bmad ) ;
 
                if( grapher->tuser[ix][iy] == NULL )
-                 qstr = AFMALL(char, 512) ;
+                 qstr = AFMALL(char, 912) ;
                else
-                 qstr = AFMALL(char, 512+strlen(grapher->tuser[ix][iy])) ;
+                 qstr = AFMALL(char, 912+strlen(grapher->tuser[ix][iy])) ;
 
-               sprintf( qstr, "Ignored = %d\n"
+               /* 19 Mar 2004: mangle FD_brick indexes to AFNI indexes */
+
+               xd = xloc; yd = yloc; zd = grapher->zpoint ;
+#ifndef DONT_MANGLE_XYZ
+               { THD_ivec3 id ;
+                 id = THD_fdind_to_3dind( grapher->getaux , TEMP_IVEC3(xd,yd,zd) ) ;
+                 xd = id.ijk[0] ; yd = id.ijk[1] ; zd = id.ijk[2] ; }
+#endif
+               sprintf( qstr, "Data Statistics\n"
+                              "---------------\n"
+                              "Indexes = %d:%-d\n" /* 19 Mar 2004 */
                               "x voxel = %d\n"
                               "y voxel = %d\n"
                               "z voxel = %d\n"
@@ -2890,8 +2903,9 @@ STATUS("button press") ;
                               "Sigma   =%s\n"
                               "Median  =%s\n"     /* 08 Mar 2001 */
                               "MAD     =%s" ,
-                        grapher->init_ignore ,
-                        xloc,yloc, grapher->zpoint, bmin,bmax,bmean,bstd,bmed,bmad ) ;
+                        grapher->sbot[ix][iy], grapher->stop[ix][iy], /* 19 Mar 2004 */
+                        xd , yd , zd ,
+                        bmin,bmax,bmean,bstd,bmed,bmad ) ;
 
                 /** 22 Apr 1997: incorporate user string for this voxel **/
 
@@ -3427,7 +3441,7 @@ STATUS("User pressed Done button: starting timeout") ;
       char *lvec[2] = { "Bot" , "Top" } ;
       int   ivec[2] ;
       ivec[0] = grapher->pin_bot ; ivec[1] = grapher->pin_top ;
-      MCW_choose_vector( grapher->option_rowcol , "Graph Pins" ,
+      MCW_choose_vector( grapher->option_rowcol , "Graph Pins: Bot..Top-1" ,
                          2 , lvec,ivec ,
                          GRA_pin_choose_CB , (XtPointer) grapher ) ;
       EXRETURN ;

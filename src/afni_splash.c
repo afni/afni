@@ -1117,8 +1117,8 @@ STATUS("no ***LAYOUT found") ;
          /* make the graph length pinned? */
 
          if( graph_pinnum[cc][ww] > 1 ){
-            drive_MCW_grapher( gra , graDR_setpinnum , (XtPointer) graph_pinnum[cc][ww] ) ;
-            if(goslow || PRINT_TRACING) sleep(1);
+           drive_MCW_grapher( gra, graDR_setpinnum, (XtPointer)graph_pinnum[cc][ww] );
+           if(goslow || PRINT_TRACING) sleep(1);
          }
 
          /* change the graph window geometry? */
