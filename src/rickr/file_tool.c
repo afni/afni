@@ -1,5 +1,5 @@
 
-#define VERSION         "3.0 (March 17, 2004)"
+#define VERSION         "3.1 (March 17, 2004)"
 
 /*----------------------------------------------------------------------
  * file_tool.c	- display or modify (binary?) info in files
@@ -103,6 +103,9 @@ static char g_history[] =
  "     (see -mod_type s/uint1, s/uint2, s/uint4, float4, float8\n"
  "   - added '-ge_off' option, to display file offsets for some GEMS fields\n"
  "   - added '-hist' option, to display this history\n"
+ "\n"
+ " 3.1  March 17, 2004\n"
+ "   - only check length against data_len for string mods\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -771,7 +774,7 @@ set_params( param_t * p, int argc, char * argv[] )
 	    p->mod_data = g_rep_output_data;
 	    p->data_len = p->length;
 	}
-	else if ( p->length < p->data_len ) /* only with MOD_STR */
+	else if ( p->mod_type == MOD_STR && p->length < p->data_len )
 	{
 	    fprintf( stderr, "failure: data length <%d> exceeds length <%d>\n",
 		     p->data_len, p->length );
