@@ -6,7 +6,7 @@
 #define V2S_INDEX_VOXEL           0
 #define V2S_INDEX_NODE            1
 
-#define V2S_STEPS_TOOOOO_BIG  	  100000
+#define V2S_STEPS_TOOOOO_BIG  	  10000
 
 #define V2S_EPSILON	      	  0.0001
 
@@ -18,6 +18,7 @@
 #define V2S_SKIP_K		 16
 #define V2S_SKIP_NVALS		 32
 #define V2S_SKIP_VALS		 64	/* never skip first result value */
+#define V2S_SKIP_ALL		127
 
 #define CHECK_NULL_STR(str)  ( str ? str : "<NULL>" )
 #define CHECK_EMPTY_STR(str) ( str[0] ? str : "<empty>" )
@@ -78,8 +79,8 @@ typedef struct
     float       f_pn_mm;		/* mm distance to add to pn      */
     char      * outfile_1D;		/* filename for ascii output     */
     char      * outfile_niml;		/* filename for NIML output      */
-    v2s_oob_t   oob;			/* display info for oob nodes  */
-    v2s_oob_t   oom;			/* display info for oom nodes  */
+    v2s_oob_t   oob;			/* display info for oob nodes    */
+    v2s_oob_t   oom;			/* display info for oom nodes    */
 } v2s_opts_t;
 
 typedef struct

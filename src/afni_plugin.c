@@ -4665,6 +4665,22 @@ char * get_PLUGIN_strval( PLUGIN_strval * av )   /* must be XtFree-d */
                     return XmTextFieldGetString( av->textf ) ;
 }
 
+/* Set the addresses of the main vol2surf globals.  Note that the
+ * plugin options pointer is stored as (void *) so that vol2surf.h
+ * will not need to percolate up to afni.h.	09 Sep 2004 [rickr]
+ */
+#include "vol2surf.h"
+int PLUTO_set_v2s_addrs(void ** vopt, char *** maps, char ** hist)
+{
+    if ( !vopt || !maps || !hist ) return -1;
+
+    *vopt = (void *)&gv2s_plug_opts;
+    *maps = gv2s_map_names;
+    *hist = gv2s_history;
+
+    return 0;
+}
+
 /**************************************************************************/
 /*========================================================================*/
 /*============ These must remain the last lines of this file! ============*/
@@ -5249,3 +5265,4 @@ double PLUTO_cpu_time(void)  /* in seconds */
    return 0.0l ;
 #endif
 }
+
