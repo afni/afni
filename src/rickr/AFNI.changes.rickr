@@ -197,3 +197,9 @@
   * modified Makefile.INCLUDE - added ge4_header.o to MRI_OBJS for mri_read_file
   * modified file_tool (version 2.1) for slight change to ge4_read_header()
 
+06 June 2003:
+  * modified SUMA_3dSurfMaskDump.[ch]
+      o now 3dSurfMaskDump version 2.0
+      o re-wrote program in terms of 3dSurf2Vol, to handle varying map types
+      o added 'midpoint' map function
+
