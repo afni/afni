@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.1 (February 11, 2003)"
+#define VERSION "version 1.2 (February 11, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurfMaskDump - dump ascii dataset values corresponding to a surface
@@ -45,6 +45,9 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 1.2  February 11, 2003
+ *   - do not free structs at the end
+ *
  * 1.1  February 11, 2003
  *   - handle no arguments as with -help
  *   - minor updates to -help
@@ -59,11 +62,11 @@
 #include "SUMA_3dSurfMaskDump.h"
 
 /* SUMA globals */
-SUMA_SurfaceViewer * SUMAg_SVv;		/* array of Surf View structs   */
+SUMA_SurfaceViewer * SUMAg_SVv = NULL;	/* array of Surf View structs   */
 int                  SUMAg_N_SVv = 0;	/* length of SVv array          */
-SUMA_DO            * SUMAg_DOv;		/* array of Displayable Objects */
+SUMA_DO            * SUMAg_DOv = NULL;	/* array of Displayable Objects */
 int                  SUMAg_N_DOv = 0;	/* length of DOv array          */
-SUMA_CommonFields  * SUMAg_CF;		/* info common to all viewers   */
+SUMA_CommonFields  * SUMAg_CF = NULL;	/* info common to all viewers   */
 
 
 #define MAIN
@@ -236,6 +239,7 @@ int write_so_data ( opts_t * opts, param_t * p, SUMA_SurfaceObject * so )
 */
 int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 {
+#if 0
     if ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 )
 	fprintf( stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
 
@@ -244,6 +248,7 @@ int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 
     if ( SUMA_Free_CommonFields(SUMAg_CF) == 0 )
 	fprintf( stderr, "** failed SUMA_Free_CommonFields()\n" );
+#endif
 
     fclose( p->outfp );
 
