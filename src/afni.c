@@ -38,16 +38,11 @@
 
 #include "afni.h"
 
-#if defined(VERSION) && defined(RELEASE)
-#  define ANNOUNCEMENT  \
-   "MCW AFNI: Analysis of Functional NeuroImages, by R.W. Cox (rwcox@mcw.edu)\n" \
-   "v. " VERSION ": Copyright Medical College of Wisconsin: " RELEASE "\n"       \
-   "Development supported by MCW funds and by NIH grants MH51358 & NS34798.\n"
-#else
-#  define ANNOUNCEMENT \
-     "MCW AFNI: Analysis of Functional NeuroImages, by R.W. Cox (rwcox@mcw.edu)\n" \
-     "          Copyright 1994,1995 Medical College of Wisconsin\n"
-#endif
+#define ANNOUNCEMENT  \
+   "MCW AFNI: Analysis of Functional NeuroImages, by R.W. Cox (rwcox@mcw.edu)\n"  \
+   "v. " VERSION ": Copyright Medical College of Wisconsin: " RELEASE "\n"        \
+   "Development supported by MCW funds and by NIH grants MH51358 & NS34798.\n"    \
+   "Clinical uses are not recommended, and have not been evaluated by the FDA.\n"
 
 /* ----------------------------------- */
 #define USE_FRIENDS
