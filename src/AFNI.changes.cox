@@ -3471,10 +3471,16 @@
 
 06 Feb 2002
  * Adapted modified plug_histog.c from Vinai Roopchansingh (added the
-      "Output" option to write results to a file).
+     "Output" option to write results to a file).
 
 19 Feb 2002
  * Modified 3dAutoTcorrelate.c to add "-time" option.
 
 25 Feb 2002
- * Modified thd_getpathprogs.c to skip path elements that aren't directories.
+ * Adapted modified 3dDeconvolve.c from Doug Ward.
+ * Modified thd_getpathprogs.c to skip path elements that aren't directories
+     (some people have no clue, do they?).
+
+26 Feb 2002
+ * Modified afni.c to fix up the bucket widgets in AFNI_setup_viewing() again
+   (cf. 29 Jan 2002)
