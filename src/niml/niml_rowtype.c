@@ -1409,7 +1409,7 @@ int NI_read_columns( NI_stream_type *ns,
 
    /*-- OK, have to read the hard ways --*/
 
-   if( open_ended ) row_top = 1999999999 ;   /* 27 Mar 2003 */
+   row_top = (open_ended) ? 1999999999 : col_len ; /* 28 Mar 2003 */
 
    for( row=0 ; row < row_top ; row++ ){                  /* loop over rows */
                                                           /* until all done */

@@ -332,6 +332,9 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
        AFNI_popup_message( "*** ERROR:\n\n"
                            " SUMA_ixyz surface data\n"
                            " is badly formatted! \n" ) ;
+
+       if( nel->vec_len    < 1 ) fprintf(stderr,"** SUMA_ixyz vec_len    = %d\n",nel->vec_len) ;
+       if( nel->vec_filled < 1 ) fprintf(stderr,"** SUMA_ixyz vec_filled = %d\n",nel->vec_filled) ;
        EXRETURN ;
      }
 
