@@ -19,6 +19,9 @@
 #define DSET_ERR(str) \
    {fprintf(stderr,"\n*** DATASET error:   %s\n",str);dset_ok=False;}
 
+#define DSET_ERRN(str,val) \
+   {fprintf(stderr,"\n*** DATASET error:   %s (%f)\n",str,(float)(val));dset_ok=False;}
+
 #define DSET_WARN(str) \
    {fprintf(stderr,"\n*** DATASET warning: %s\n",str);}
 
