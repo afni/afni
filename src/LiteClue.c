@@ -30,6 +30,9 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
+Revision 1.3  1997/11/06 16:26:48  cox
+Fixes so it won't crash so easily
+
 Revision 1.2  1997/11/05 21:28:04  cox
 *** empty log message ***
 
@@ -102,9 +105,16 @@ $log
 
 #include <stdio.h>
 
+#if 0
 #define CheckWidgetClass(routine) \
 	if (XtClass(w) != xcgLiteClueWidgetClass) \
 		wrong_widget(routine)
+
+#else
+#define CheckWidgetClass(routine) \
+	if (XtClass(w) != xcgLiteClueWidgetClass) \
+		return BADVALUE
+#endif
 
 /* extern _XmSelectColorDefault();	/* cgi */
 static Boolean setValues( Widget _current, Widget _request, Widget _new, ArgList args, Cardinal * num_args);
@@ -603,6 +613,7 @@ Return:
 void XcgLiteClueAddWidget(Widget w, Widget watch,  char * text, int size, int option )
 {
 #	define ROUTINE "XcgLiteClueAddWidget"
+#       define BADVALUE /* nada */
 	XcgLiteClueWidget cw = (XcgLiteClueWidget) w;
 	struct liteClue_context_str * obj;
 	Boolean exists = False;
@@ -644,6 +655,7 @@ void XcgLiteClueAddWidget(Widget w, Widget watch,  char * text, int size, int op
 	}
 
 #	undef ROUTINE
+#       undef BADVALUE
 }
 
 
@@ -666,6 +678,7 @@ Return:
 void XcgLiteClueDeleteWidget(Widget w, Widget watch)
 {
 #	define ROUTINE "XcgLiteClueDeleteWidget"
+#       define BADVALUE  /* nada */
 	XcgLiteClueWidget cw = (XcgLiteClueWidget) w;
 	struct liteClue_context_str * obj;
 
@@ -686,6 +699,7 @@ void XcgLiteClueDeleteWidget(Widget w, Widget watch)
 	}
 
 #	undef ROUTINE
+#	undef BADVALUE
 }
 
 
@@ -712,6 +726,7 @@ Return:
 void XcgLiteClueSetSensitive(Widget w, Widget watch, Boolean sensitive)
 {
 #	define ROUTINE "XcgLiteClueSetSensitive"
+#       define BADVALUE  /* nada */
 	XcgLiteClueWidget cw = (XcgLiteClueWidget) w;
 	struct liteClue_context_str * obj;
 
@@ -737,6 +752,7 @@ void XcgLiteClueSetSensitive(Widget w, Widget watch, Boolean sensitive)
 	}
 
 #	undef ROUTINE
+#	undef BADVALUE
 }
 
 /*
@@ -762,6 +778,7 @@ Return:	sensitive - True or False
 Boolean XcgLiteClueGetSensitive(Widget w, Widget watch)
 {
 #	define ROUTINE "XcgLiteClueGetSensitive"
+#       define BADVALUE  False
 
 	XcgLiteClueWidget cw = (XcgLiteClueWidget) w;
 	struct liteClue_context_str * obj;
@@ -783,6 +800,7 @@ Boolean XcgLiteClueGetSensitive(Widget w, Widget watch)
 		return False;
 
 #	undef ROUTINE
+#	undef BADVALUE
 }
 
 
@@ -823,6 +841,7 @@ Return:	True - event was dispatched to non-sensitive watched widget.
 Boolean XcgLiteClueDispatchEvent(Widget w, XEvent  *event)
 {
 #	define ROUTINE "XcgLiteClueDispatchEvent"
+#       define BADVALUE  False
 
 	XcgLiteClueWidget cw = (XcgLiteClueWidget) w;
 	struct liteClue_context_str * obj;
@@ -850,5 +869,6 @@ Boolean XcgLiteClueDispatchEvent(Widget w, XEvent  *event)
 	return False;
 
 #	undef ROUTINE
+#	undef BADVALUE
 }
 
