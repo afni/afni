@@ -25,7 +25,7 @@
 
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
-#define WORDS_BIGENDIAN 1
+/* #undef WORDS_BIGENDIAN */
 
 /* Define if you don't have the <stdlib.h>.  */
 /* #undef NO_STDLIB_H */
@@ -40,7 +40,7 @@
 #define HAVE_ALLOCA 1
 
 /* Define if you have <alloca.h> and it should be used (not on Ultrix).  */
-/* #undef HAVE_ALLOCA_H */
+#define HAVE_ALLOCA_H 1
 
 /* Define if you don't have the strerror function  */
 /* #undef NO_STRERROR */
@@ -49,7 +49,7 @@
 #define SIZEOF_SIZE_T 4
 
 /* The number of bytes in a off_t */
-#define SIZEOF_OFF_T 8
+#define SIZEOF_OFF_T 4
 
 /* Define to `int' if system doesn't define.  */
 /* #undef ssize_t */
