@@ -43,9 +43,9 @@ Note that the spaces around the "=" sign are required.  See README.setup
 for more information about the possible contents of .afnirc besides the
 environment variables.
 
-Other programs in the AFNI package also read the ***ENVIRONMENT section
-of the .afnirc file.  This is needed so that environment settings that
-affect those programs (e.g., AFNI_COMPRESSOR for auto-compression of
+A few other programs in the AFNI package also read the ***ENVIRONMENT
+section of the .afnirc file.  This is needed so that environment settings
+that affect those programs (e.g., AFNI_COMPRESSOR for auto-compression of
 output datasets) can be properly initialized in .afnirc.
 
 At the same time, the routine in AFNI that initializes certain internal
@@ -70,7 +70,8 @@ way are:
  AFNI_graph_ideal_thick   = ditto for the ideal graphs
  AFNI_graph_ort_thick     = ditto for the ort graphs
  AFNI_graph_dplot_thick   = ditto for the dplot graphs
- AFNI_graph_ggap          = spacing between graph boxes
+ AFNI_graph_ggap          = initial spacing between graph boxes
+ AFNI_graph_matrix        = initial number of sub-graphs
  AFNI_fim_polort          = polynomial detrending order for FIM
  AFNI_fim_ignore          = how many pts to ignore at start when doing FIM
  AFNI_montage_periodic    = True allows periodic montage wraparound
@@ -89,11 +90,12 @@ AFNI*troughColor, must be set via the X11 mechanism and cannot be set using
 Unix environment variables.  This is because they are interpreted by the
 Motif graphics library when it starts and not by any actual AFNI code.
 
-The following example is my own .afnirc file on the Linux system on which
-I do most of the AFNI development.  The first ones (in lower case) are
-described in AFNI.Xdefaults.  The later ones (all upper case) are documented
-in this file.  (You can tell from this file that I like to have things line
-up.  You would never be able to tell this from my office, though.)
+The following example is from my own .afnirc file on the Linux system on
+which I do most of the AFNI development.  The first ones (in lower case)
+are described in AFNI.Xdefaults.  The later ones (all upper case) are
+documented in this file.  (You can tell from this file that I like to
+have things line up.  You would never be able to tell this from the
+piles of paper in my office, though.)
 
  ***ENVIRONMENT
 
@@ -867,7 +869,7 @@ the plugin's Help window.
 AFNI_REALTIME_Images_Only  = "No" or "Yes"
 AFNI_REALTIME_Root         = name for datasets to be created
 AFNI_REALTIME_Update       = an integer from 0 to 19
-AFNI_REALTIME_Function     = "None" or "FIM"
+AFNI_REALTIME_Function     = "None" or "FIM" (cf. AFNI_FIM_IDEAL below)
 AFNI_REALTIME_Verbose      = "No", "Yes", or "Very"
 AFNI_REALTIME_Registration = "None", "2D:_realtime", "2D:_at_end",
                              "3D:_realtime", "3D:_at_end",
@@ -880,7 +882,7 @@ AFNI_REALTIME_NR           = an integer from 5 to 9999
 AFNI_REALTIME_YR           = a floating point number from 0.1 to 10.0
 
 The following internal controls can only be set using these environment
-variables:
+variables (there is no GUI to set these values):
 
 AFNI_REALTIME_volreg_maxite      = an integer >= 1 [default = 9]
 AFNI_REALTIME_volreg_maxite_est  = an integer >= 1 [default = 1]
@@ -899,6 +901,13 @@ AFNI_REALTIME_WRITEWAIT = if the image data pauses for this number
 
 For more information about how the realtime plugin works, read the file
 README.realtime.
+
+------------------------
+Variable: AFNI_FIM_IDEAL
+------------------------
+This variable specifies the filename of the initial FIM ideal timeseries.
+The main use of this would be to be able to initialize the Realtime
+plugin without direct user intervention.
 
 ----------------------------------
 Variable: AFNI_PLUGINS_ALPHABETIZE
@@ -1206,13 +1215,6 @@ intersection overlay.  The units are the width of the entire image;
 reasonable values are in the range 0..0.01; 0 means to draw the thinnest
 line possible.  Since this is editable, you can experiment with it to
 see what looks good.
-
-------------------------
-Variable: AFNI_FIM_IDEAL
-------------------------
-This variable specifies the filename of the initial FIM ideal timeseries.
-The main use of this would be to be able to initialize the Realtime
-plugin without direct user intervention.
 
 -------------------------
 Variable: AFNI_NIML_START
