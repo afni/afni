@@ -1570,7 +1570,10 @@ libSUMA.a:
 	( cd SUMA ;	\
 	make -f SUMA_Makefile clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
 	'CC=$(CC)'	;	\
-	$(CP) libSUMA.a ../ ; )
+	cd ../	;	\
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
+	$(CP) SUMA/libSUMA.a ${INSTALLDIR}; \
+	$(CP) SUMA/libSUMA.a ./;	)
 	
 suma:libSUMA.a libmri.a librickr.a
 	( cd SUMA ;	\
@@ -1579,6 +1582,8 @@ suma:libSUMA.a libmri.a librickr.a
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'CC=$(CC)'	;	\
-	$(CP) libSUMA.a ../ ; )
+	cd ../	;\
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
+	$(CP) suma ${INSTALLDIR} ; )
 	 
 	
