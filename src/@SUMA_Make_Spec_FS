@@ -188,7 +188,7 @@ L_PARSE_COMMAND:
     if ( $debug ) echo "-- usage okay"
     if ( $debug > 1 ) set echo
 
-    set spec_files   = ( SUMA_{$subj_id}_lh.spec SUMA_{$subj_id}_rh.spec )
+    set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
     set afni_dataset = $afni_prefix+orig
 
@@ -453,7 +453,7 @@ L_CREATE_SPEC:
 	    set list_cur = ( $list_rh )
 	endif
 
-	set spec_file = SUMA_{$subj_id}_$hand.spec
+	set spec_file = {$subj_id}_$hand.spec
 
 	if ( $debug ) echo "++ creating spec file '$spec_file'..."
 
@@ -590,7 +590,7 @@ L_HELP_END:
     echo "      - verify existence of necessary programs "
     echo "        (afni, to3d, suma, mris_conver)"
     echo "      - determine the location of surface and COR files"
-    echo "      - creation of ascii surface files via 'mri_convert'"
+    echo "      - creation of ascii surface files via 'mris_convert'"
     echo "      - creation of left and right hemisphere SUMA spec files"
     echo "      - creation of an AFNI dataset from the COR files via 'to3d'"
     echo ""
@@ -602,7 +602,7 @@ L_HELP_END:
     echo ""
     echo "    $prog_name -sid subject1"
     echo "    $prog_name -help"
-    echo "    $prog_name -fspath subject1/surface_stuff -sid subect1"
+    echo "    $prog_name -fspath subject1/surface_stuff -sid subject1"
     echo "    $prog_name -neuro -sid 3.14159265 -debug 1"
     echo ""
     echo "  options:"
@@ -642,7 +642,7 @@ L_HELP_END:
     echo "    2. Patches of surfaces need the word patch in their name, in"
     echo "       order to use the correct option for 'mris_convert'."
     echo ""
-    echo "       R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
+    echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
     echo ""
 
     exit

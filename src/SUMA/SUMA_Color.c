@@ -296,7 +296,7 @@ int r_ulong_size ( unsigned long l )
 	return 2;
 
     return 1;
-}
+} 
 
 #ifdef SUMA_MakeColorMap_STAND_ALONE
 void SUMA_MakeColorMap_usage ()
@@ -339,11 +339,11 @@ void SUMA_MakeColorMap_usage ()
 		/*fprintf (SUMA_STDOUT, "\t To Compile:\ngcc  -DSUMA_MakeColorMap_STAND_ALONE -Wall -Wno-unused-variable -o SUMA_MakeColorMap SUMA_Color.c SUMA_lib.a libmri.a  -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lcurses -lm\n");*/
 		fprintf (SUMA_STDOUT, "\t\t Ziad S. Saad & Rick R. Reynolds SSCC/NIMH/NIH ziad@nih.gov \tTue Apr 23 14:14:48 EDT 2002\n\n");
 	}
-
+ 
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"SUMA_MakeColorMap-main"}, *FidName, *Prfx, h[9]; 
-	int Ncols, N_Fid, kar, i, ifact, *Nind;
+   char FuncName[]={"SUMA_MakeColorMap-main"}, *FidName = NULL, *Prfx = NULL, h[9]; 
+	int Ncols = 0, N_Fid, kar, i, ifact, *Nind = NULL;
 	float **Fid, **M;
 	SUMA_Boolean brk, SkipLast, AfniHex, PosMap, Usage1, Usage2;
 	SUMA_COLOR_MAP *SM;

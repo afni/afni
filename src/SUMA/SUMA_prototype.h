@@ -15,6 +15,7 @@ void input(Widget w, XtPointer clientData, XtPointer callData);
 void SUMA_help(void);
 void SUMA_help_message(FILE *Out);
 void SUMA_VolSurf_help (FILE *Out);
+void SUMA_Version (FILE *Out);
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (SUMA_SurfaceViewer *csv, int argc,char *argv[]);
 void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 SUMA_Boolean  SUMA_RegisterCommand(char *S, char d, char term, char *Scom, SUMA_Boolean Prepend);

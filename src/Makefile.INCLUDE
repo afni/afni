@@ -1578,6 +1578,7 @@ nicat:nicat.o
 
 libSUMA.a:  
 	( cd SUMA ;	\
+	rm -f libSUMA.a	;\
 	make -f SUMA_Makefile clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
 	'CC=$(CC)'	;	\
 	cd ../	;	\
@@ -1587,13 +1588,13 @@ libSUMA.a:
 	
 suma:libSUMA.a libmri.a librickr.a
 	( cd SUMA ;	\
-	make -f SUMA_Makefile all 'INSTALLDIR=$(INSTALLDIR)' \
+	make -f SUMA_Makefile suma MakeColorMap 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'CC=$(CC)'	;	\
 	cd ../	;\
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) suma ${INSTALLDIR} ; )
+	$(CP) SUMA/suma SUMA/MakeColorMap ${INSTALLDIR} ; )
 	 
 	

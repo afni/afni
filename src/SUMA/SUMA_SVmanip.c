@@ -625,6 +625,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 		return (cf);
 	}
 	
+	cf->Dev = NOPE;
+	
 	return (cf);
 
 }
