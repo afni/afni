@@ -3869,6 +3869,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    if (!SUMAg_CF->scm) {
       SUMA_SL_Note("SUMA color maps not set up.");
       Sover->cmapname = NULL;
+      Sover->OptScl = NULL;
    } else {
       Sover->cmapname = SUMA_copy_string("bgyr64");
       Sover->OptScl = SUMA_ScaleToMapOptInit();
@@ -4535,15 +4536,19 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int
          if (Overlays[i]->cmapname) SS = SUMA_StringAppend (SS,"cmapname = NULL\n");
          else SS = SUMA_StringAppend_va (SS,"cmapname = %s\n", Overlays[i]->cmapname);
          /* get the color map */
-         icmap = SUMA_Find_ColorMap ( Overlays[i]->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
-         if (icmap < 0) { SS = SUMA_StringAppend (SS,"cmap not found.\n"); }
-         else {
-            ColMap = SUMAg_CF->scm->CMv[icmap];
-            s2 = SUMA_ColorMapVec_Info(&ColMap, 1, detail);
+         if (SUMAg_CF->scm) {
+            icmap = SUMA_Find_ColorMap ( Overlays[i]->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+            if (icmap < 0) { SS = SUMA_StringAppend (SS,"cmap not found.\n"); }
+            else {
+               ColMap = SUMAg_CF->scm->CMv[icmap];
+               s2 = SUMA_ColorMapVec_Info(&ColMap, 1, detail);
+               SS = SUMA_StringAppend (SS, s2); SUMA_free(s2); s2 = NULL;
+            }   
+            s2 = SUMA_ScaleToMapOpt_Info (Overlays[i]->OptScl, 0);
             SS = SUMA_StringAppend (SS, s2); SUMA_free(s2); s2 = NULL;
-         }   
-         s2 = SUMA_ScaleToMapOpt_Info (Overlays[i]->OptScl, 0);
-         SS = SUMA_StringAppend (SS, s2); SUMA_free(s2); s2 = NULL;
+         } else {
+            SS = SUMA_StringAppend (SS,"\tNULL SUMA color maps.\n");
+         }
       } else {
          SS = SUMA_StringAppend (SS,"\tNULL overlay plane.\n");
       }
