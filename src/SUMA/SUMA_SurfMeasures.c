@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.6 (February 11, 2004)"
+#define VERSION "version 1.7 (February 23, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -17,6 +17,9 @@
  *     coord_B		: second xyz coordinate
  *     n_area_A		: area for each node on the first surface
  *     n_area_B		: area for each node on the second surface
+ *     n_avearea_A	: average area of trianges for each node on surface
+ *     n_avearea_B	: average area of trianges for each node on surface
+ *     n_ntri		: number of included trianges for each node
  *     nodes            : node index
  *     node_vol		: between surface volume per node
  *     norm_A		: vector of normal at node on first surface
@@ -73,6 +76,9 @@ static char g_history[] =
     "\n"
     "1.6 February 11, 2004  [rickr]\n"
     "  - add a little debug help for !AnatCorrect case\n"
+    "\n"
+    "1.7 February 23, 2004  [rickr]\n"
+    "  - added functions 'n_avearea_A', 'n_avearea_B', 'n_ntri'\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -100,6 +106,7 @@ SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 /* these must match smeasure_codes_e enum */
 char * g_sm_names[] = { "none", "ang_norms", "ang_ns_A", "ang_ns_B",
 			"coord_A", "coord_B", "n_area_A", "n_area_B",
+			"n_avearea_A", "n_avearea_B", "n_ntri",
 			"node_vol", "nodes", "norm_A", "norm_B", "thick" };
 
 char * g_sm_desc[] = { "invalid function",
@@ -110,6 +117,9 @@ char * g_sm_desc[] = { "invalid function",
 		       "xyz coordinates of node on second surface",
 		       "associated node area on first surface",
 		       "associated node area on second surface",
+		       "for each node, average area of triangles (surf A)",
+		       "for each node, average area of triangles (surf B)",
+		       "for each node, number of associated triangles",
 		       "associated node volume between surfaces",
 		       "node number",
 		       "vector of normal at node on first surface",
@@ -176,6 +186,8 @@ int main ( int argc, char * argv[] )
 */
 int write_output( opts_t * opts, param_t * p )
 {
+    SUMA_SurfaceObject * so0, * so1;
+
     THD_fvec3   p0, p1;
     double      tarea0, tarea1, tvolume;
     double      dist, min_dist, max_dist, tdist;
@@ -190,19 +202,22 @@ int write_output( opts_t * opts, param_t * p )
 
 ENTRY("write_output");
 
+    so0 = p->S.slist[0];
+    so1 = p->S.slist[1];
+
     /* just a simple case for now */
 
     print_column_headers(opts, p);
 
     /* initialize some pointers */
-    fp0    = p->S.slist[0]->NodeList;
-    norms0 = p->S.slist[0]->NodeNormList;
+    fp0    = so0->NodeList;
+    norms0 = so0->NodeNormList;
 
     /* if we have only one surface, just init fp1 to that */
     if ( p->S.nsurf > 1 )
     {
-	fp1    = p->S.slist[1]->NodeList;
-	norms1 = p->S.slist[1]->NodeNormList;
+	fp1    = so1->NodeList;
+	norms1 = so1->NodeNormList;
     }
     else
     {
@@ -295,6 +310,20 @@ ENTRY("write_output");
 		case E_SM_N_AREA_B:
 		    fprintf(p->outfp,"  %10s",
 			    MV_format_fval(p->S.narea[1][node]));
+		    break;
+
+		case E_SM_N_AVEAREA_A:
+		    fprintf(p->outfp,"  %10s",
+		    MV_format_fval(p->S.narea[0][node]/so0->MF->N_Memb[node]));
+		    break;
+
+		case E_SM_N_AVEAREA_B:
+		    fprintf(p->outfp,"  %10s",
+		    MV_format_fval(p->S.narea[1][node]/so1->MF->N_Memb[node]));
+		    break;
+
+		case E_SM_NTRI:
+		    fprintf(p->outfp,"  %10d", so0->MF->N_Memb[node]);
 		    break;
 
 		case E_SM_NODES:
@@ -646,6 +675,10 @@ ENTRY("get_surf_measures");
 	    if ( fcodes[c] == E_SM_N_AREA_A )
 		geta = 1;
 	    else if ( fcodes[c] == E_SM_N_AREA_B )
+		getb = 1;
+	    else if ( fcodes[c] == E_SM_N_AVEAREA_A )
+		geta = 1;
+	    else if ( fcodes[c] == E_SM_N_AVEAREA_B )
 		getb = 1;
 	    else if ( fcodes[c] == E_SM_NODE_VOL )
 	    {
@@ -1697,6 +1730,7 @@ ENTRY("validate_option_lists");
 
 	    case E_SM_COORD_A:
 	    case E_SM_N_AREA_A:
+	    case E_SM_N_AVEAREA_A:
 	    case E_SM_NODES:
 	    case E_SM_NORM_A:
 		break;
@@ -1726,10 +1760,21 @@ ENTRY("validate_option_lists");
 		
 	    case E_SM_COORD_B:
 	    case E_SM_N_AREA_B:
+	    case E_SM_N_AVEAREA_B:
 	    case E_SM_NODE_VOL:
 	    case E_SM_THICK:
 
 		SM_2SURF_TEST(c);
+		break;
+
+	    case E_SM_NTRI:
+		if ( ! p->S.slist[0]->MF->N_Memb )
+		{
+		    fprintf(stderr,"** missing Face Member list, func '%s'\n",
+			    g_sm_names[fcodes[c]]);
+		    errs++;
+		}
+
 		break;
 	}
 
@@ -1798,7 +1843,7 @@ ENTRY("usage");
 
 	/* display current list of measures */
 	for ( c = E_SM_INVALID + 1; c < E_SM_FINAL; c++ )
-	    printf( "        %-10s : %s\n", g_sm_names[c], g_sm_desc[c]);
+	    printf( "        %-12s : %s\n", g_sm_names[c], g_sm_desc[c]);
 
 	printf(
 	    "\n"
@@ -2002,7 +2047,7 @@ ENTRY("usage");
 
 	/* display current list of measures */
 	for ( c = E_SM_INVALID + 1; c < E_SM_FINAL; c++ )
-	    printf( "            %-10s : %s\n", g_sm_names[c], g_sm_desc[c]);
+	    printf( "            %-12s : %s\n", g_sm_names[c], g_sm_desc[c]);
 
 	printf(
 	    "\n"

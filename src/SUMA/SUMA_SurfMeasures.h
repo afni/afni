@@ -32,19 +32,22 @@
 /* measure codes, to match g_smeasure_names */
 typedef enum
 {
-    E_SM_INVALID,			/* do not change INVALID or FINAL    */
-    E_SM_ANG_NORMS,			/* give angle diff between normals   */
-    E_SM_ANG_NS_A,			/* give norm A angle to segment      */
-    E_SM_ANG_NS_B,			/* give norm B angle to segment      */
-    E_SM_COORD_A,			/* give coordinates of first node    */
-    E_SM_COORD_B,			/* give coordinates of second node   */
-    E_SM_N_AREA_A,			/* give node area of first node      */
-    E_SM_N_AREA_B,			/* give node area of second node     */
-    E_SM_NODE_VOL,			/* give volume for each node         */
-    E_SM_NODES,				/* print out node indices            */
-    E_SM_NORM_A,			/* give normal vector for first node */
-    E_SM_NORM_B,			/* give normal vector for second node*/
-    E_SM_THICK,				/* display between surface thickness */
+    E_SM_INVALID,			/* do not change INVALID or FINAL     */
+    E_SM_ANG_NORMS,			/* give angle diff between normals    */
+    E_SM_ANG_NS_A,			/* give norm A angle to segment       */
+    E_SM_ANG_NS_B,			/* give norm B angle to segment       */
+    E_SM_COORD_A,			/* give coordinates of first node     */
+    E_SM_COORD_B,			/* give coordinates of second node    */
+    E_SM_N_AREA_A,			/* give node area of first node       */
+    E_SM_N_AREA_B,			/* give node area of second node      */
+    E_SM_N_AVEAREA_A,			/* average area of included triangles */
+    E_SM_N_AVEAREA_B,			/* average area of included triangles */
+    E_SM_NTRI,		 		/* give number of included triangles  */
+    E_SM_NODE_VOL,			/* give volume for each node          */
+    E_SM_NODES,				/* print out node indices             */
+    E_SM_NORM_A,			/* give normal vector for first node  */
+    E_SM_NORM_B,			/* give normal vector for second node */
+    E_SM_THICK,				/* display between surface thickness  */
     E_SM_FINAL
 } smeasure_codes_e;
 
