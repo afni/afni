@@ -16,6 +16,7 @@ int main( int argc , char * argv[] )
    float data_bot=666.0 , data_top=-666.0 ;
    int indump = 0 ;                           /* 19 Aug 1999 */
    int pslice=-1 , qslice=-1 , nxy,nz ;       /* 15 Sep 1999 */
+   int quiet=0 ;                              /* 23 Nov 1999 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskave [options] dataset\n"
@@ -69,6 +70,9 @@ int main( int argc , char * argv[] )
              "                       each direction, then the array offset\n"
              "                       in the brick corresponding to (i,j,k)\n"
              "                       is i+j*nx+k*nx*ny.\n"
+             " -q     or\n"
+             " -quiet        Means to print only the minimal results.\n"
+             "               This is useful if you want to create a *.1D file.\n"
              "\n"
              "The output is printed to stdout (the terminal), and can be\n"
              "saved to a file using the usual redirection operation '>'.\n"
@@ -80,6 +84,11 @@ int main( int argc , char * argv[] )
 
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
+
+      if( strcmp(argv[narg],"-q") == 0 || strcmp(argv[narg],"-quiet") == 0 ){
+         quiet++ ;
+         narg++ ; continue ;
+      }
 
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          if( mask_dset != NULL ){
@@ -421,7 +430,8 @@ int main( int argc , char * argv[] )
                if( dumpit ) printf("  Sigma = %g",sigma) ;
                else         printf("  %g",sigma) ;
             }
-            printf(" [%d voxels]\n",mc) ;
+            if( !quiet ) printf(" [%d voxels]\n",mc) ;
+            else         printf("\n") ;
          }
          break ;
 
@@ -464,7 +474,8 @@ int main( int argc , char * argv[] )
                if( dumpit ) printf("  Sigma = %g",sigma) ;
                else         printf("  %g",sigma) ;
             }
-            printf(" [%d voxels]\n",mc) ;
+            if( !quiet ) printf(" [%d voxels]\n",mc) ;
+            else         printf("\n") ;
          }
          break ;
 
@@ -507,7 +518,8 @@ int main( int argc , char * argv[] )
                if( dumpit ) printf("  Sigma = %g",sigma) ;
                else         printf("  %g",sigma) ;
             }
-            printf(" [%d voxels]\n",mc) ;
+            if( !quiet ) printf(" [%d voxels]\n",mc) ;
+            else         printf("\n") ;
          }
          break ;
       }

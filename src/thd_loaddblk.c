@@ -255,6 +255,9 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
                   break ;
 
                   case MRI_complex:  /* 14 Sep 1999: swap complex also! */
+                     mri_swap4( 2*DBLK_BRICK_NVOX(blk,ibr), DBLK_ARRAY(blk,ibr)) ;
+                  break ;
+
                   case MRI_float:
                   case MRI_int:
                      mri_swap4( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;

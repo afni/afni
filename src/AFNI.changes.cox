@@ -1830,3 +1830,15 @@
  * Added -histpar option to 3dcalc.c.
  * Added differential subscripting to 3dcalc.c.
  * Modified thd_intlist.c to allow for negative list elements.
+
+23 Nov 1999
+ * Modified 3dcalc.c differential subscripting to allow abbreviations
+     of the form a+j, a-k, etc.
+ * Added -quiet option to 3dmaskave.c.
+ * Added -normalize option to 3dDetrend.c.
+ * Fixed error in afni_func.c (and adwarp.c) when writing out a dataset
+     that was told to have a byte order different from the native order -
+     it was written in native order and the header wouldn't know about
+     that - the result was the file was read in incorrectly later.
+ * Also fixed thd_writedblk.c and thd_loaddblk.c to handle byte swapping
+     on complex data correctly.

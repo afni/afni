@@ -16,6 +16,7 @@ static int *              DT_exvar   = NULL ;
 static int                DT_exnum   = 0    ;
 static int                DT_verb    = 0    ;
 static int                DT_replace = 0    ;
+static int                DT_norm    = 0    ;  /* 23 Nov 1999 */
 
 static float              DT_current_del = -1.0 ;
 
@@ -72,6 +73,13 @@ void DT_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-replace",5) == 0 ){
          DT_replace++ ;
+         nopt++ ; continue ;
+      }
+
+      /**** -normalize [23 Nov 1999] ****/
+
+      if( strncmp(argv[nopt],"-normalize",5) == 0 ){
+         DT_norm++ ;
          nopt++ ; continue ;
       }
 
@@ -253,6 +261,10 @@ void DT_Syntax(void)
     " -verb         = Print out some verbose output as the program runs.\n"
     " -replace      = Instead of subtracting the fit from each voxel,\n"
     "                   replace the voxel data with the time series fit.\n"
+    " -normalize    = Normalize each output voxel time series; that is,\n"
+    "                   make the sum-of-squares equal to 1.\n"
+    "           N.B.: This option is only valid if the input dataset is\n"
+    "                 stored as floats!\n"
     "\n"
     "Component Options:\n"
     "These options determine the components that will be removed from\n"
@@ -350,6 +362,12 @@ int main( int argc , char * argv[] )
                              DSET_BRICK_TYPE(DT_dset,iv) ,
                              DSET_ARRAY(DT_dset,iv)       ) ;
 
+   if( DT_norm && DSET_BRICK_TYPE(new_dset,0) != MRI_float ){
+      fprintf(stderr,"+++ Warning: turning -normalize option off since\n"
+                     "             input dataset is not in float format!\n");
+      DT_norm = 0 ;
+   }
+
    /* load reference (detrending) vectors;
       setup to do least squares fitting of each voxel */
 
@@ -391,6 +409,8 @@ int main( int argc , char * argv[] )
 
       if( !DT_replace )                                             /* remove */
          for( ii=0 ; ii < nvals ; ii++ ) fit[ii] = fv[ii] - fit[ii] ;
+
+      if( DT_norm ) THD_normalize( nvals , fit ) ;  /* 23 Nov 1999 */
 
       THD_insert_series( kk, new_dset, nvals, MRI_float, fit, 0 ) ;
 

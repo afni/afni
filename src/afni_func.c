@@ -3161,6 +3161,7 @@ Boolean AFNI_refashion_dataset( Three_D_View * im3d ,
    void * imar ;
    FILE * far ;
    float brfac_save ;
+   int native_order , save_order ;  /* 23 Nov 1999 */
 
    Boolean picturize ;
    Pixmap brain_pixmap ;
@@ -3277,6 +3278,10 @@ ENTRY("AFNI_refashion_dataset") ;
    if( ! isfunc )
       resam_mode = im3d->vinfo->anat_resam_mode ;
 
+   native_order = mri_short_order() ;                           /* 23 Nov 1999 */
+   save_order   = (dkptr->byte_order > 0) ? dkptr->byte_order
+                                          : THD_get_write_order() ;
+
    for( ival=0 ; ival < nv ; ival++ ){  /* for each sub-brick */
 
       dsiz = mri_datum_size( DSET_BRICK_TYPE(dset,ival) ) ;
@@ -3315,6 +3320,14 @@ STATUS("have new image") ;
 #endif
 
          imar = mri_data_pointer(im) ;
+         if( save_order != native_order ){                   /* 23 Nov 1999 */
+            switch( im->kind ){
+               case MRI_short:   mri_swap2(  npix,imar) ; break ;
+               case MRI_float:
+               case MRI_int:     mri_swap4(  npix,imar) ; break ;
+               case MRI_complex: mri_swap4(2*npix,imar) ; break ;
+            }
+         }
          code = fwrite( imar , dsiz , npix , far ) ;
          mri_free(im) ;
 

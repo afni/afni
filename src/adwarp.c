@@ -10,6 +10,9 @@
   Mod:     Added changes for incorporating History notes.
   Date:    10 September 1999
 
+  Mod:     Added changes for proper byte ordering on output.
+  Date:    23 Nov 1999 - RW Cox
+
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -19,7 +22,7 @@
 
 #define PROGRAM_NAME "adwarp.c"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "10 September 1999"         /* date of last program mod */
+#define PROGRAM_DATE "23 November 1999"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -547,6 +550,8 @@ Boolean adwarp_refashion_dataset
   FILE * far ;
   float brfac_save ;
   int resam_mode;
+
+  int native_order , save_order ;  /* 23 Nov 1999 */
   
 
 ENTRY("adwarp_refashion_dataset") ;
@@ -640,6 +645,10 @@ ENTRY("adwarp_refashion_dataset") ;
   
   if( ! isfunc )
     resam_mode = option_data->anat_resam_mode ;
+
+   native_order = mri_short_order() ;                           /* 23 Nov 1999 */
+   save_order   = (dkptr->byte_order > 0) ? dkptr->byte_order
+                                          : THD_get_write_order() ;
   
   for( ival=0 ; ival < nv ; ival++ ){  /* for each sub-brick */
 
@@ -682,6 +691,14 @@ STATUS("have new image") ;
 #endif
 
         imar = mri_data_pointer(im) ;
+         if( save_order != native_order ){                   /* 23 Nov 1999 */
+            switch( im->kind ){
+               case MRI_short:   mri_swap2(  npix,imar) ; break ;
+               case MRI_float:
+               case MRI_int:     mri_swap4(  npix,imar) ; break ;
+               case MRI_complex: mri_swap4(2*npix,imar) ; break ;
+            }
+         }
 	code = fwrite( imar , dsiz , npix , far ) ;
 	mri_free(im) ;
 	

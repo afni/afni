@@ -257,6 +257,11 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
    save_order = (output_order > 0) ? output_order
                                    : dkptr->byte_order ;
 
+#if 0
+fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
+               save_order, dkptr->byte_order ) ;
+#endif
+
    if( save_order != LSB_FIRST && save_order != MSB_FIRST )
       save_order = native_order ;
 
@@ -365,13 +370,18 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
                      mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
                   break ;
 
+                  case MRI_complex:   /* 23 Nov 1999 */
+                     mri_swap4( 2*DBLK_BRICK_NVOX(blk,ibr), DBLK_ARRAY(blk,ibr)) ;
+                  break ;
+
+                  case MRI_float:     /* 23 Nov 1999 */
                   case MRI_int:
                      mri_swap4( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
                   break ;
                }
             }
 
-            id += fwrite( DBLK_ARRAY(blk,ibr), 1, DBLK_BRICK_BYTES(blk,ibr), far ) ;
+            id += fwrite( DBLK_ARRAY(blk,ibr), 1, DBLK_BRICK_BYTES(blk,ibr), far );
          }
 
          COMPRESS_fclose(far) ;
@@ -392,6 +402,8 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
 
          if( id != blk->total_bytes )
             WRITE_ERR("write error in brick file - is disk full?") ;
+
+         dkptr->byte_order = save_order ;  /* 23 Nov 1999 */
 
          return True ;
       }

@@ -52,6 +52,8 @@ static int                CALC_gscale = 0 ;  /* 01 Apr 1999 */
 
 static int                CALC_histpar = -1 ; /* 22 Nov 1999 */
 
+/*---------- dshift stuff [22 Nov 1999] ----------*/
+
 #define DSHIFT_MODE_STOP  0
 #define DSHIFT_MODE_WRAP  1
 #define DSHIFT_MODE_ZERO  2
@@ -65,6 +67,8 @@ static int                CALC_dshift_mode[26] ;
 
 static int                CALC_dshift_mode_current = DSHIFT_MODE_STOP ;
 static int                CALC_has_timeshift       = 0 ;
+
+/*------------------------------------------------*/
 
 static int   CALC_has_sym[26] ;                      /* 15 Sep 1999 */
 static char  abet[] = "abcdefghijklmnopqrstuvwxyz" ;
@@ -313,12 +317,16 @@ void CALC_read_opts( int argc , char * argv[] )
          /*-- 22 Nov 1999: allow for a differentially
                            subscripted name, as in "-b a[1,0,0,0]" --*/
 
-         if( ll >= 10             &&
-             argv[nopt][1] == '[' &&
-             argv[nopt][0] >= 'a' && argv[nopt][0] <= 'z' ){
+         if( (argv[nopt][0] >= 'a' && argv[nopt][0] <= 'z') &&  /* legal name */
+             ( (ll >= 3 && argv[nopt][1] == '[') ||             /* subscript */
+               (ll == 3 &&                                      /*    OR    */
+                (argv[nopt][1] == '+' || argv[nopt][1] == '-')) /* +- ijkl */
+             ) ){
 
             int jds = argv[nopt][0] - 'a' ;  /* actual dataset index */
-            int * ijkl ;
+            int * ijkl ;                     /* array of subscripts */
+
+            /*- sanity checks -*/
 
             if( ids > 2 ){
                fprintf(stderr,
@@ -333,15 +341,34 @@ void CALC_read_opts( int argc , char * argv[] )
                exit(1) ;
             }
 
-            MCW_intlist_allow_negative(1) ;
-            ijkl = MCW_get_intlist( 9999 , argv[nopt]+1 ) ;
-            MCW_intlist_allow_negative(0) ;
+            /*- get subscripts -*/
 
-            if( ijkl == NULL || ijkl[0] != 4 ){
-               fprintf(stderr,"*** Illegal differential subscripting %s\n",
-                              argv[nopt] ) ;
-               exit(1) ;
+            if( argv[nopt][1] == '[' ){            /* format is [i,j,k,l] */
+               MCW_intlist_allow_negative(1) ;
+               ijkl = MCW_get_intlist( 9999 , argv[nopt]+1 ) ;
+               MCW_intlist_allow_negative(0) ;
+               if( ijkl == NULL || ijkl[0] != 4 ){
+                  fprintf(stderr,"*** Illegal differential subscripting %s\n",
+                                 argv[nopt] ) ;
+                  exit(1) ;
+               }
+            } else {                               /* format is +i, -j, etc */
+                ijkl = (int *) malloc( sizeof(int) * 5 ) ;
+                ijkl[1] = ijkl[2] = ijkl[3] = ijkl[4] = 0 ;  /* initialize */
+                switch( argv[nopt][2] ){
+                   default:
+                      fprintf(stderr,"**** Bad differential subscripting %s\n",
+                                 argv[nopt] ) ;
+                   exit(1) ;
+
+                   case 'i': ijkl[1] = (argv[nopt][1]=='+') ? 1 : -1 ; break ;
+                   case 'j': ijkl[2] = (argv[nopt][1]=='+') ? 1 : -1 ; break ;
+                   case 'k': ijkl[3] = (argv[nopt][1]=='+') ? 1 : -1 ; break ;
+                   case 'l': ijkl[4] = (argv[nopt][1]=='+') ? 1 : -1 ; break ;
+                }
             }
+
+            /*- more sanity checks -*/
 
             if( ijkl[1]==0 && ijkl[2]==0 && ijkl[3]==0 && ijkl[4]==0 ){
                fprintf(stderr,
@@ -352,10 +379,13 @@ void CALC_read_opts( int argc , char * argv[] )
             if( ntime[jds] == 1 && ijkl[4] != 0 ){
                fprintf(stderr,
                        "--- Warning: differential subscript %s has nonzero time\n"
-                       "             shift on base dataset with 1 sub-brick!\n",
+                       "             shift on base dataset with 1 sub-brick!\n"
+                       "             Setting time shift to 0.\n" ,
                        argv[nopt] ) ;
                ijkl[4] = 0 ;
             }
+
+            /*- set values for later use -*/
 
             CALC_dshift  [ival] = jds ;
             CALC_dshift_i[ival] = ijkl[1] ;
@@ -367,10 +397,13 @@ void CALC_read_opts( int argc , char * argv[] )
 
             CALC_has_timeshift = CALC_has_timeshift || (ijkl[4] != 0) ;
 
-            free(ijkl) ; nopt++ ; goto DSET_DONE ;
-         }
+            /*- time to trot, Bwana -*/
 
-         /*-- back to the normal dataset opening routine --*/
+            free(ijkl) ; nopt++ ; goto DSET_DONE ;
+
+         } /* end of _dshift */
+
+         /*-- meanwhile, back at the "normal" dataset opening ranch --*/
 
 #ifndef ALLOW_SUBV
          dset = THD_open_one_dataset( argv[nopt++] ) ;
@@ -737,6 +770,15 @@ void CALC_Syntax(void)
     " Note that the physical directions of the x-, y-, and z-axes depend\n"
     " on how the dataset was acquired or constructed.  See the output of\n"
     " program 3dinfo to determine what direction corresponds to what axis.\n"
+    "\n"
+    " For convenience, the following abbreviations may be used in place of\n"
+    " some common subscript combinations:\n"
+    "   [1,0,0,0] == +i    [-1, 0, 0, 0] == -i\n"
+    "   [0,1,0,0] == +j    [ 0,-1, 0, 0] == -j\n"
+    "   [0,0,1,0] == +k    [ 0, 0,-1, 0] == -k\n"
+    "   [0,0,0,1] == +l    [ 0, 0, 0,-1] == -l\n"
+    " The median smoothing example can thus be abbreviated as\n"
+    "   -a fred+orig -b a+l -c a-l -expr 'median(a,b,c)'\n"
     "\n"
     " When a shift calls for a voxel that is outside of the dataset range,\n"
     " one of three things can happen:\n"
