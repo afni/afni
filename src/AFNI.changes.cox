@@ -5026,3 +5026,13 @@
 
 02 Apr 2004
  * Mods to fix auto_grid()-ing in afni_graph.[ch].
+
+05 Apr 2004 (?)
+ * Fixes to afni_graph.c to spackle over unexplainable crashes on Mac when
+     a timeseries chooser is opened and later the graph window is closed.
+
+08 Apr 2004
+ * AFNI_X11_REDECORATE in xutil.h and afni_pplug_env.c, to replace MCW_isitmwm().
+
+09 Apr 2004
+ * Fixed lack of fclose() in ts.c (a 10 year old bug!).
