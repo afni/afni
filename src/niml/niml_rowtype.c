@@ -306,7 +306,6 @@ int NI_rowtype_define( char *tname , char *tdef )
    /*-- initialize the new rowtype --*/
 
    rt          = NI_new( NI_rowtype ) ;
-   rt->code    = ROWTYPE_BASE_CODE + rowtype_num ;
    rt->name    = NI_strdup( tname ) ;
    rt->userdef = NI_strdup( tdef ) ;
    rt->flag    = 0 ;
@@ -393,7 +392,7 @@ int NI_rowtype_define( char *tname , char *tdef )
          rt->flag |= ROWTYPE_VARSIZE_MASK ; /* mark rowtype as variable dim  */
 
      } else {       /*** variable count: add 1 component that is a pointer   */
-                    /***                 to an array of fixed dim elements, */
+                    /***                 to an array of fixed dim elements,  */
                     /***                 dimension given in component #jd    */
 
        /* but can't have a var dim array of var dim arrays! */
@@ -587,6 +586,13 @@ int NI_rowtype_define( char *tname , char *tdef )
        rt->psiz += rt->part_siz[ii] ;
    }
 
+   /* 28 Oct 2004: Move assignment of the new rowtype code to the end,
+                   since a recursive call via NI_rowtype_find_name()
+                   might have created a new rowtype before this one.
+                   An example definition: "int,VECTOR_float_32,int".  */
+                  
+   rt->code = ROWTYPE_BASE_CODE + rowtype_num ;
+
    /** debugging printouts **/
 
    if( ROWTYPE_debug ){
@@ -635,11 +641,16 @@ int NI_rowtype_define( char *tname , char *tdef )
 }
 
 /*--------------------------------------------------------------------*/
-/*! Find a rowtype by its name. [19 Feb 2003: or its alias.] */
+/*! Find a rowtype by its name.
+    19 Feb 2003: or its alias.
+    28 Oct 2004: If name is of form VECTOR_basictype_length,
+                 then a new rowtype is created on the spot;
+                 e.g., "VECTOR_float_32" is like "float[32]". */
 
 NI_rowtype * NI_rowtype_find_name( char *nn )
 {
    NI_rowtype *rt ; int ii ;
+   static int busy=0 ;       /* 28 Oct 2004: prevent recursion */
 
    if( nn == NULL || *nn == '\0' ) return NULL ;
    if( rowtype_table == NULL ) setup_basic_types() ;
@@ -650,6 +661,50 @@ NI_rowtype * NI_rowtype_find_name( char *nn )
 
    for( ii=0 ; ii <= NI_NUM_BASIC_TYPES ; ii++ )
      if( strcmp(type_alias[ii],nn) == 0 ) return rowtype_array[ii] ;
+
+   /*-- 28 Oct 2004: Define fixed size vector types here and now:
+                     format of nn must be VECTOR_basictype_length --*/
+
+   if( busy ) return NULL ;
+
+   ii = strlen(nn) ;
+   if( ii < 12 || strncmp(nn,"VECTOR_",7) != 0 || strchr(nn+7,'_') == NULL )
+     return NULL ;
+
+   { char bt[32] , rt[64] ; int tt , dd ;
+
+     /* extract basic type name (after "VECTOR_") into bt array */
+
+     for( ii=7 ; ii < 32 && nn[ii] != '\0' && nn[ii] != '_' ; ii++ )
+       bt[ii-7] = nn[ii] ;
+     if( nn[ii] != '_' ) return NULL ;   /* bad end of basic type name */
+     bt[ii-7] = '\0' ;                   /* terminate with NUL byte */
+
+     /* find bt name in basic type name list (or alias list) */
+
+     for( tt=0 ; tt <= NI_NUM_BASIC_TYPES ; tt++ )
+       if( strcmp(type_name[tt],bt) == 0 ) break ;
+
+     if( tt > NI_NUM_BASIC_TYPES ){
+       for( tt=0 ; tt <= NI_NUM_BASIC_TYPES ; tt++ )
+         if( strcmp(type_alias[tt],bt) == 0 ) break ;
+       if( tt > NI_NUM_BASIC_TYPES ) return NULL ;
+     }
+
+     /* find dimension after the nn[ii] character, which is '_' */
+
+     dd = 0 ; sscanf( nn+ii+1 , "%d" , &dd ) ;
+     if( dd <= 0 ) return NULL ;
+
+     /* ready to create a new rowtype now */
+
+     sprintf(rt,"%s[%d]",type_name[tt],dd) ;
+
+     busy = 1 ;                        /* prevent recursion!!! */
+     tt = NI_rowtype_define( nn , rt ) ;
+     busy = 0 ;
+     if( tt >= ROWTYPE_OFFSET ) return rowtype_array[tt-ROWTYPE_OFFSET] ;
+   }
 
    return NULL ;
 }
