@@ -142,6 +142,7 @@ int main( int argc , char *argv[] )
       if( nmask < 2 ) exit(1) ;
    } else {
       nmask = nvox ;
+      fprintf(stderr,"++ computing for all %d voxels\n",nmask) ;
    }
 
    /*-- create output dataset --*/
@@ -174,9 +175,15 @@ int main( int argc , char *argv[] )
       exit(1) ;
    }
 
-   { float nb = (   cset->dblk->total_bytes
-                  + xset->dblk->total_bytes ) / (1024.0*1024.0) ;
-     fprintf(stderr,"++ Memory required = %.1f Mbytes\n",nb) ;
+   { double nb = (double)(xset->dblk->total_bytes) ;
+     nb += (double)(nmask) * (double)(nvox) * sizeof(short) ;
+     nb /= (1024.0*1024.0) ;
+     fprintf(stderr,
+       "++ Memory required = %.1f Mbytes for %d output sub-bricks\n",nb,nmask);
+     if( nb > 2000.0 ){
+       fprintf(stderr,"** ERROR: can't use more than 2000 Mbytes of memory!\n");
+       exit(1) ;
+     }
    }
 
    tross_Make_History( "3dAutoTcorrelate" , argc,argv , cset ) ;
@@ -189,7 +196,8 @@ int main( int argc , char *argv[] )
       if( mmm != NULL && mmm[ii] == 0 ) continue ; /* skip it */
 
       if( kout > 0 && kout%10 == 0 )
-         fprintf(stderr,kout%100==0?":":".") ;           /* progress meter*/
+         fprintf(stderr, (kout%1000==0) ? "!"
+                        :(kout%100 ==0) ? ":" : "." ) ;  /* progress meter */
 
       /* create and modify output brick */
 
@@ -242,7 +250,7 @@ int main( int argc , char *argv[] )
 
    } /* end of loop over ref voxels */
 
-   fprintf(stderr,"!") ;
+   fprintf(stderr,"*writing output*") ;
 
    /* toss the other trash */
 
