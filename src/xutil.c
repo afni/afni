@@ -222,6 +222,7 @@ void MCW_discard_events( Widget w , int ev_mask )
 
    if( w == NULL || XtWindow(w) == (Window) NULL ) return ;
 
+   XSync( XtDisplay(w) , False ) ;
    while( XCheckWindowEvent( XtDisplay(w), XtWindow(w) , ev_mask , &evjunk ) ) ;
    return ;
 }

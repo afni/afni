@@ -3901,3 +3901,7 @@
  * Modified various things (afni.h, afni.c, afni_niml.c, afni_suma.c)
      to allow for multiple surfaces per dataset.
  * Modified niml.h to disable shm stuff for Cygwin.
+
+16 Aug 2002
+ * Modified imseq.[ch] and afni.c to suppress multiple image redraws
+     when an image window is first opened.

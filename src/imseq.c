@@ -3586,6 +3586,7 @@ void ISQ_redisplay( MCW_imseq * seq , int n , int type )
    static int         recur_n   = -1 ;
    static MCW_imseq * recur_seq = NULL ;
 
+   if( seq == NULL || seq->ignore_redraws ) return ;  /* 16 Aug 2002 */
 ENTRY("ISQ_redisplay") ;
 
    if( ! ISQ_VALID(seq) ) EXRETURN ;
@@ -3844,6 +3845,10 @@ ENTRY("ISQ_show_zoom") ;
 
    if( flash ) MCW_invert_widget( seq->zoom_val_av->wlabel ) ;
 
+#ifdef DISCARD_EXCESS_EXPOSES
+    MCW_discard_events( seq->wimage , ExposureMask ) ;
+#endif
+
    RETURN(1) ;
 }
 
@@ -3855,6 +3860,7 @@ ENTRY("ISQ_show_zoom") ;
 
 void ISQ_show_image( MCW_imseq * seq )
 {
+   if( seq == NULL || seq->ignore_redraws ) return ;  /* 16 Aug 2002 */
 ENTRY("ISQ_show_image") ;
 
    if( ! ISQ_REALZ(seq) ) EXRETURN ;
@@ -3874,10 +3880,10 @@ ENTRY("ISQ_show_image") ;
    if( seq->given_xim != NULL &&
        seq->zoom_fac  >  1    &&
        seq->mont_nx   == 1    &&
-       seq->mont_ny   == 1      ){
+       seq->mont_ny   == 1      ){    /* show a zoomed image instead */
 
       int ss = ISQ_show_zoom( seq ) ;
-      if( ss > 0 ) EXRETURN ;        /* if it failed, fall through */
+      if( ss > 0 ) EXRETURN ;         /* if it failed, fall through */
    }
 
    if( seq->given_xim != NULL && seq->sized_xim == NULL ){
@@ -3894,7 +3900,13 @@ DPR("making sized_xim");
    if( seq->sized_xim != NULL ){
 DPR("putting sized_xim to screen");
 
-if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ) fprintf(stderr,"imseq->wimage: XPutImage\n");
+#if 0
+if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
+  fprintf(stderr,"==== imseq->wimage: XPutImage w=%d h=%d\n",
+  seq->sized_xim->width , seq->sized_xim->height ) ;
+  DBG_traceback() ;
+}
+#endif
 
      XPutImage( seq->dc->display , XtWindow(seq->wimage) , seq->dc->origGC ,
                 seq->sized_xim , 0,0,0,0,
@@ -3938,6 +3950,11 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ) fprintf(stderr,"imseq->wimage: XPutImage\n
    seq->never_drawn = 0 ;
 
    ISQ_draw_winfo( seq ) ;
+
+#ifdef DISCARD_EXCESS_EXPOSES
+    MCW_discard_events( seq->wimage , ExposureMask ) ;
+#endif
+
    EXRETURN ;
 }
 
@@ -4051,6 +4068,7 @@ ENTRY("ISQ_set_barhint") ;
 
 void ISQ_show_bar( MCW_imseq * seq )
 {
+   if( seq == NULL || seq->ignore_redraws ) return ;  /* 16 Aug 2002 */
 ENTRY("ISQ_show_bar") ;
 
    if( ! ISQ_REALZ(seq) ) EXRETURN ;
@@ -4076,6 +4094,10 @@ DPR("putting sized_xbar to screen");
                 seq->sized_xbar , 0,0,0,0,
                 seq->sized_xbar->width , seq->sized_xbar->height ) ;
    }
+
+#ifdef DISCARD_EXCESS_EXPOSES
+    MCW_discard_events( seq->wbar , ExposureMask ) ;
+#endif
 
    EXRETURN ;
 }
@@ -4174,9 +4196,6 @@ ENTRY("ISQ_drawing_EV") ;
 DPRI(" .. Expose; count=",event->count) ;
 
          XSync( XtDisplay(w) , False ) ;
-#if 0
-         MCW_discard_events( w , ExposureMask );
-#endif
          if( event->count == 0 ){      /* don't bother if more Expose to come */
             if( w == seq->wimage ){    /* 25 Sep 2000: check for hidden resizes */
                int nx,ny ;
@@ -4198,6 +4217,7 @@ DPR(" .. really a hidden resize") ;
             }
             else if( w == seq->wbar )
                ISQ_show_bar( seq ) ;
+
          }
       }
       break ;
@@ -4428,14 +4448,6 @@ DPR(" .. ButtonPress") ;
           event->width,event->height);
   STATUS(str) ;
  }
-
-         /* For some systems, a ConfigureNotify is followed
-            by one or more Expose-s.  We can discard these now. */
-
-#ifdef DISCARD_RESIZE_EXPOSES
-         XSync( XtDisplay(w) , False ) ;
-         MCW_discard_events( w , ExposureMask ) ;
-#endif
 
          /* simply delete the XImage sized to the window;
             redisplay will then automatically size it when called */
@@ -5747,6 +5759,10 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_plot_plot       (int)
                            1=show overlay plot; 0=don't; -1=toggle widget
 
+*    isqDR_ignore_redraws  (int)
+                           1=ignore redraw commands
+                           0=don't ignore redraw commands
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -5765,6 +5781,15 @@ ENTRY("drive_MCW_imseq") ;
                  drive_code) ;
          XBell( seq->dc->display , 100 ) ;
          RETURN( False );
+      }
+      break ;
+
+      /*--------- ignore redraws? [16 Aug 2002] -------------*/
+
+      case isqDR_ignore_redraws:{
+         int dd = (int)drive_data ;
+         seq->ignore_redraws = dd ;
+         RETURN( True ) ;
       }
       break ;
 
@@ -6401,7 +6426,7 @@ static unsigned char record_bits[] = {
 
 
          seq->im_label[0] = '\0' ;  /* will force redraw */
-         ISQ_redisplay( seq , -1 , isqDR_display ) ;
+         if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
          RETURN( True );
       }
       break ;

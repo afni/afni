@@ -475,7 +475,7 @@ static void NUD_make_widgets(void)
    /** the actual angles **/
 
    roll_av = new_MCW_arrowval( hrc, "I" ,
-                                MCW_AV_downup , -90,90,0 ,
+                                MCW_AV_downup , -300,300,0 ,
                                 MCW_AV_editext , 1 ,
                                 NULL , NULL , NULL,NULL ) ;
    MCW_reghint_children( roll_av->wrowcol , "Roll angle [I-axis]" ) ;
@@ -483,7 +483,7 @@ static void NUD_make_widgets(void)
    SEP_VER(hrc) ;
 
    pitch_av = new_MCW_arrowval( hrc, "R" ,
-                                MCW_AV_downup , -90,90,0 ,
+                                MCW_AV_downup , -300,300,0 ,
                                 MCW_AV_editext , 1 ,
                                 NULL , NULL , NULL,NULL ) ;
    MCW_reghint_children( pitch_av->wrowcol , "Pitch angle [R-axis]" ) ;
@@ -491,7 +491,7 @@ static void NUD_make_widgets(void)
    SEP_VER(hrc) ;
 
    yaw_av = new_MCW_arrowval( hrc, "A" ,
-                                MCW_AV_downup , -90,90,0 ,
+                                MCW_AV_downup , -300,300,0 ,
                                 MCW_AV_editext , 1 ,
                                 NULL , NULL , NULL,NULL ) ;
    MCW_reghint_children( yaw_av->wrowcol , "Yaw angle [A-axis]" ) ;
@@ -550,7 +550,7 @@ static void NUD_make_widgets(void)
    /** the actual shifts **/
 
    dS_av = new_MCW_arrowval( hrc, "S" ,
-                                MCW_AV_downup , -90,90,0 ,
+                                MCW_AV_downup , -999,999,0 ,
                                 MCW_AV_editext , 1 ,
                                 NULL , NULL , NULL,NULL ) ;
    MCW_reghint_children( dS_av->wrowcol , "Delta Superior" ) ;
@@ -558,7 +558,7 @@ static void NUD_make_widgets(void)
    SEP_VER(hrc) ;
 
    dL_av = new_MCW_arrowval( hrc, "L" ,
-                                MCW_AV_downup , -90,90,0 ,
+                                MCW_AV_downup , -999,999,0 ,
                                 MCW_AV_editext , 1 ,
                                 NULL , NULL , NULL,NULL ) ;
    MCW_reghint_children( dL_av->wrowcol , "Delta Left" ) ;
@@ -566,7 +566,7 @@ static void NUD_make_widgets(void)
    SEP_VER(hrc) ;
 
    dP_av = new_MCW_arrowval( hrc, "P" ,
-                                MCW_AV_downup , -90,90,0 ,
+                                MCW_AV_downup , -999,999,0 ,
                                 MCW_AV_editext , 1 ,
                                 NULL , NULL , NULL,NULL ) ;
    MCW_reghint_children( dP_av->wrowcol , "Delta Posterior" ) ;
