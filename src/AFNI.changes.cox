@@ -2006,3 +2006,7 @@
      of *.1D files.
  * Modified afni.[ch] to allow use of "-no1D" option to skip reading
      of *.1D files from the dataset directories.
+
+28 Jan 2000
+ * Modified coxplot/plot_x11.c to skip use of XDBE if AFNI_NO_XDBE
+     environment variable is set.

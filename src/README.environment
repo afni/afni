@@ -608,6 +608,15 @@ warning that it pops up in a message window when it discovers negative
 values in the input short images.  (The warning will still be printed
 to stdout.)
 
+----------------------
+Variable: AFNI_NO_XDBE
+----------------------
+If this variable is set (to anything), then the X11 Double Buffer
+Extension (XDBE) will not be used, even if the X11 server supports it.
+This is needed when the X11 server says that it supports it, but actually
+does not implement it correctly - this is a problem on the Xsgi server
+running under IRIX 6.5.3 on R4400 machines.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |
