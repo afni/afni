@@ -6,6 +6,10 @@
 /* 04 Dec 2002: first cut by RWCox.                                */
 /*******************************************************************/
 
+/****************************************************************/
+/*********** header structs for CTF MRI version 2.0 file        */
+/****************************************************************/
+
 enum { coronal=0, sagittal, axial };
 
 #define LEFT_ON_LEFT      0
@@ -17,10 +21,6 @@ enum { Modality_MRI=0, Modality_CT, Modality_PET, Modality_SPECT, Modality_OTHER
 #define VERSION_2_STR   "CTF_MRI_FORMAT VER 2.0"
 #define VERSION_21_STR  "CTF_MRI_FORMAT VER 2.1"
 #define VERSION_22_STR  "CTF_MRI_FORMAT VER 2.2"
-
-/****************************************************************************/
-/*********** additional header structs for  CTF MRI version 2.0 file        */
-/****************************************************************************/
 
 typedef struct HeadModel_Info {
      short               Nasion_Sag;          /* fiduciary point voxel locations */
@@ -312,8 +312,6 @@ ENTRY("THD_open_ctfmri") ;
      oxx = ORI_A2P_TYPE; oyy = ORI_S2I_TYPE; ozz = ORI_L2R_TYPE;   /** ASL? **/
    }
 
-   orixyz.ijk[0] = oxx ; orixyz.ijk[1] = oyy ; orixyz.ijk[2] = ozz ;
-
    /* now set grid size, keeping in mind that
        A-P is positive and P-A is negative,
        R-L is positive and L-R is negative,
@@ -393,7 +391,7 @@ ENTRY("THD_open_ctfmri") ;
    if( swap ) ii = REVERSE_ORDER(ii) ;
    dset->dblk->diskptr->byte_order = ii ;
 
-   /*-- flag to read data from disk using ANALYZE mode --*/
+   /*-- flag to read data from disk using CTF MRI mode --*/
 
    dset->dblk->diskptr->storage_mode = STORAGE_BY_CTFMRI ;
    strcpy( dset->dblk->diskptr->brick_name , fname ) ;
@@ -538,7 +536,7 @@ ENTRY("THD_load_ctfmri") ;
 
    if( nbad > 0 ){
      fprintf(stderr,
-             "\n** failed to malloc %d ANALYZE bricks out of %d\n\a",nbad,nv);
+             "\n** failed to malloc %d CTR MRI bricks out of %d\n\a",nbad,nv);
      for( ibr=0 ; ibr < nv ; ibr++ ){
        if( DBLK_ARRAY(dblk,ibr) != NULL ){
          free(DBLK_ARRAY(dblk,ibr)) ;
@@ -571,8 +569,378 @@ ENTRY("THD_load_ctfmri") ;
    EXRETURN ;
 }
 
-/*-------------------------------------------------------------------*/
-/*-------------------------------------------------------------------*/
+/****************************************************************************
+ SAM static image files are structured as follows:
 
-THD_3dim_dataset * THD_open_ctfsam( char *fname ){ return NULL; }
-void THD_load_ctfsam( THD_datablock *dblk ){ }
+  char     Identity[8] = "SAMIMAGE"; // uniquely identifies image file
+  SAM_HDR  SAMHeader;                // SAM header
+  double   Voxel[0];                 // 1st SAM voxel (units=A-m, (A-m)^2,
+  double   Voxel[1];                 // 2nd SAM voxel        Z, T, F, or P)
+              "
+              "
+  double   Voxel[V];                 // last SAM voxel
+
+  Coefficients & image voxels are ordered in X,Y,Z sequence, with Z the least
+  significant index (most rapidly changing), Y is next, and then X.
+  Coordinate indices always advance in the positive direction. This implies
+  that Voxel[0] is in the right, posterior, inferior position relative to
+  the region of interest (bounding box of image).
+
+  RWCox: the data storage order then seems to be IRP
+*****************************************************************************/
+
+#define COV_VERSION      1                  /* this is version 1 -- got it? */
+#define SAM_VERSION      1                  /* this, too! */
+
+/** SAM file types **/
+
+#define SAM_TYPE_IMAGE         0            /* flags file as a SAM static image file */
+#define SAM_TYPE_WT_ARRAY      1            /* flags file as SAM coefficients for regular target array */
+#define SAM_TYPE_WT_LIST       2            /* flags file as SAM coefficients for target list */
+
+/** define SAM unit types **/
+
+#define      SAM_UNIT_COEFF    0            /* SAM coefficients A-m/T */
+#define      SAM_UNIT_MOMENT   1            /* SAM source (or noise) strength A-m */
+#define      SAM_UNIT_POWER    2            /* SAM source (or noise) power (A-m)^2 */
+#define      SAM_UNIT_SPMZ     3            /* SAM z-deviate */
+#define      SAM_UNIT_SPMF     4            /* SAM F-statistic */
+#define      SAM_UNIT_SPMT     5            /* SAM T-statistic */
+#define      SAM_UNIT_SPMP     6            /* SAM probability */
+#define      SAM_UNIT_MUSIC    7            /* MUSIC metric */
+
+
+/* 'SAM_HDR' is to be used for both SAM coefficients & SAM static images */
+typedef struct {
+   int    Version;       /* file version number */
+   char   SetName[256];  /* name of parent dataset */
+   int    NumChans;      /* number of channels used by SAM */
+   int    NumWeights;    /* number of SAM virtual channels (0=static image) */
+   int    pad_bytes1;    /* ** align next double on 8 byte boundary */
+   double XStart;        /* x-start coordinate (m) */
+   double XEnd;          /* x-end coordinate (m) */
+   double YStart;        /* y-start coordinate (m) */
+   double YEnd;          /* y-end coordinate (m) */
+   double ZStart;        /* z-start coordinate (m) */
+   double ZEnd;          /* z-end coordinate (m) */
+   double StepSize;      /* voxel step size (m) */
+   double HPFreq;        /* highpass frequency (Hz) */
+   double LPFreq;        /* lowpass frequency (Hz) */
+   double BWFreq;        /* bandwidth of filters (Hz) */
+   double MeanNoise;     /* mean primary sensor noise (T) */
+   char   MriName[256];  /* MRI image file name */
+   int    Nasion[3];     /* MRI voxel index for nasion */
+   int    RightPA[3];    /* MRI voxel index for right pre-auricular */
+   int    LeftPA[3];     /* MRI voxel index for left pre-auricular */
+   int    SAMType;       /* SAM file type */
+   int    SAMUnit;       /* SAM units (a bit redundant, but may be useful) */
+   int    pad_bytes2;    /* ** align end of structure on 8 byte boundary */
+} SAM_HDR;
+
+/*-------------------------*/
+/*! Macro for bad return. */
+
+#undef  BADBAD
+#define BADBAD(s)                                                \
+  do{ fprintf(stderr,"** THD_open_ctfsam(%s): %s\n",fname,s);    \
+      RETURN(NULL);                                              \
+  } while(0)
+
+/*-----------------------------------------------------------------*/
+/*! Open a CTF .svl (SAM) file as an unpopulated AFNI dataset.
+    It will be populated later, in THD_load_ctfsam().
+-------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_open_ctfsam( char *fname )
+{
+   FILE *fp ;
+   SAM_HDR hh ;
+   char Identity[9] ;
+   int ii,nn , swap ;
+   THD_3dim_dataset *dset=NULL ;
+   char prefix[THD_MAX_PREFIX] , *ppp , tname[12] , ori[4] ;
+   THD_ivec3 nxyz , orixyz ;
+   THD_fvec3 dxyz , orgxyz ;
+   int iview ;
+   int ngood , length , datum_type , datum_len , oxx,oyy,ozz ;
+   int   nx,ny,nz ;
+   float dx,dy,dz , xorg,yorg,zorg ;
+
+ENTRY("THD_open_ctfsam") ;
+
+   /* open input file */
+
+   if( fname == NULL || *fname == '\0' ) BADBAD("bad input filename");
+   fp = fopen( fname , "rb" ) ;
+   if( fp == NULL )                      BADBAD("can't open input file");
+
+   /* read header */
+
+   fread( Identity , 1,8 , fp ) ; Identity[8] = '\0' ;
+   fread( &hh , sizeof(hh) , 1 , fp ) ;
+   fclose(fp) ;
+
+   if( hh.Version == 0 ) BADBAD("bad header Version") ;
+
+   swap = (hh.Version != 1) ;
+
+   if( swap ){                   /* swap header fields */
+     swap_4( &hh.Version    ) ;
+     swap_4( &hh.NumChans   ) ;
+     swap_4( &hh.NumWeights ) ;
+     swap_8( &hh.XStart     ) ;
+     swap_8( &hh.XEnd       ) ;
+     swap_8( &hh.YStart     ) ;
+     swap_8( &hh.YEnd       ) ;
+     swap_8( &hh.ZStart     ) ;
+     swap_8( &hh.ZEnd       ) ;
+     swap_8( &hh.StepSize   ) ;
+     swap_8( &hh.HPFreq     ) ;
+     swap_8( &hh.LPFreq     ) ;
+     swap_8( &hh.BWFreq     ) ;
+     swap_8( &hh.MeanNoise  ) ;
+     swap_4( &hh.Nasion[0]  ) ;
+     swap_4( &hh.RightPA[0] ) ;
+     swap_4( &hh.LeftPA[0]  ) ;
+     swap_4( &hh.Nasion[1]  ) ;
+     swap_4( &hh.RightPA[1] ) ;
+     swap_4( &hh.LeftPA[1]  ) ;
+     swap_4( &hh.Nasion[2]  ) ;
+     swap_4( &hh.RightPA[2] ) ;
+     swap_4( &hh.LeftPA[2]  ) ;
+     swap_4( &hh.SAMType    ) ;
+     swap_4( &hh.SAMUnit    ) ;
+   }
+
+   if( hh.Version  != 1       ||
+       hh.XStart   >= hh.XEnd ||
+       hh.YStart   >= hh.YEnd ||
+       hh.ZStart   >= hh.ZEnd ||
+       hh.StepSize <= 0.0       ) BADBAD("bad header data") ;
+
+#if 0
+   printf("Version   = %d\n",hh.Version) ;
+   printf("NumChans  = %d\n",hh.NumChans) ;
+   printf("NumWeights= %d\n",hh.NumWeights) ;
+   printf("XStart    = %g\n",hh.XStart) ;
+   printf("Xend      = %g\n",hh.XEnd) ;
+   printf("YStart    = %g\n",hh.YStart) ;
+   printf("YEnd      = %g\n",hh.YEnd) ;
+   printf("ZStart    = %g\n",hh.ZStart) ;
+   printf("Zend      = %g\n",hh.ZEnd) ;
+   printf("StepSize  = %g\n",hh.StepSize) ;
+   printf("HPFreq    = %g\n",hh.HPFreq) ;
+   printf("LPFreq    = %g\n",hh.LPFreq) ;
+   printf("BWFreq    = %g\n",hh.BWFreq) ;
+   printf("MeanNoise = %g\n",hh.MeanNoise) ;
+   printf("Nasion[0] = %d\n",hh.Nasion[0]) ;
+   printf("Nasion[1] = %d\n",hh.Nasion[1]) ;
+   printf("Nasion[2] = %d\n",hh.Nasion[2]) ;
+   printf("RightPA[0]= %d\n",hh.RightPA[0]) ;
+   printf("RightPA[1]= %d\n",hh.RightPA[1]) ;
+   printf("RightPA[2]= %d\n",hh.RightPA[2]) ;
+   printf("LeftPA[0] = %d\n",hh.LeftPA[0]) ;
+   printf("LeftPA[1] = %d\n",hh.LeftPA[1]) ;
+   printf("LeftPA[2] = %d\n",hh.LeftPA[2]) ;
+   printf("SAMtype   = %d\n",hh.SAMType) ;
+   printf("SAMunit   = %d\n",hh.SAMUnit) ;
+   printf("SetName   = %s\n",hh.SetName) ;
+   printf("MriName   = %s\n",hh.MriName) ;
+   printf("headersize= %d\n",sizeof(hh)+8) ;
+#endif
+
+   hh.StepSize *= 1000.0 ;   /* convert distances from m to mm */
+   hh.XStart   *= 1000.0 ;
+   hh.YStart   *= 1000.0 ;
+   hh.ZStart   *= 1000.0 ;
+   hh.XEnd     *= 1000.0 ;
+   hh.YEnd     *= 1000.0 ;
+   hh.ZEnd     *= 1000.0 ;
+
+   dx = dy = dz = hh.StepSize ;
+
+   nx = (int)((hh.ZEnd - hh.ZStart)/dz + 0.99); /* dataset is stored in Z,Y,X order */
+   ny = (int)((hh.YEnd - hh.YStart)/dy + 0.99); /* but AFNI calls these x,y,z       */
+   nz = (int)((hh.XEnd - hh.XStart)/dx + 0.99);
+
+   /* determine if file is big enough to hold all data it claims */
+
+   nn = THD_filesize(fname) ;
+   if( nn < 8+sizeof(hh) + 8*nx*ny*nz )
+     BADBAD("input file too small") ;
+
+   datum_type = MRI_float ;  /* actually is double, but AFNI doesn't grok that */
+
+   /* set orientation = IRP = xyz ordering */
+
+   ori[0] = 'I'; ori[1] = 'R'; ori[2] = 'P';
+
+   oxx = ORCODE(ori[0]); oyy = ORCODE(ori[1]); ozz = ORCODE(ori[2]);
+   if( !OR3OK(oxx,oyy,ozz) ){
+     oxx = ORI_I2S_TYPE; oyy = ORI_R2L_TYPE; ozz = ORI_P2A_TYPE;   /** IRP? **/
+   }
+
+   orixyz.ijk[0] = oxx ; orixyz.ijk[1] = oyy ; orixyz.ijk[2] = ozz ;
+
+   /* now set grid size, keeping in mind that
+      A-P is positive and P-A is negative,
+      R-L is positive and L-R is negative,
+      I-S is positive and S-I is negative.       */
+
+   switch( ori[0] ){
+     case 'A':  dx =  hh.StepSize ; xorg = -hh.XStart ; break ;
+     case 'P':  dx = -hh.StepSize ; xorg = -hh.XStart ; break ;
+     case 'R':  dx =  hh.StepSize ; xorg =  hh.YStart ; break ;
+     case 'L':  dx = -hh.StepSize ; xorg =  hh.YStart ; break ;
+     case 'I':  dx =  hh.StepSize ; xorg =  hh.ZStart ; break ;
+     case 'S':  dx = -hh.StepSize ; xorg =  hh.ZStart ; break ;
+   }
+   switch( ori[1] ){
+     case 'A':  dy =  hh.StepSize ; yorg = -hh.XStart ; break ;
+     case 'P':  dy = -hh.StepSize ; yorg = -hh.XStart ; break ;
+     case 'R':  dy =  hh.StepSize ; yorg =  hh.YStart ; break ;
+     case 'L':  dy = -hh.StepSize ; yorg =  hh.YStart ; break ;
+     case 'I':  dy =  hh.StepSize ; yorg =  hh.ZStart ; break ;
+     case 'S':  dy = -hh.StepSize ; yorg =  hh.ZStart ; break ;
+   }
+   switch( ori[2] ){
+     case 'A':  dz =  hh.StepSize ; zorg = -hh.XStart ; break ;
+     case 'P':  dz = -hh.StepSize ; zorg = -hh.XStart ; break ;
+     case 'R':  dz =  hh.StepSize ; zorg =  hh.YStart ; break ;
+     case 'L':  dz = -hh.StepSize ; zorg =  hh.YStart ; break ;
+     case 'I':  dz =  hh.StepSize ; zorg =  hh.ZStart ; break ;
+     case 'S':  dz = -hh.StepSize ; zorg =  hh.ZStart ; break ;
+   }
+
+   /*-- make a dataset --*/
+
+   dset = EDIT_empty_copy(NULL) ;
+
+   dset->idcode.str[0] = 'C' ;  /* overwrite 1st 3 bytes */
+   dset->idcode.str[1] = 'T' ;
+   dset->idcode.str[2] = 'F' ;
+
+   ppp = THD_trailname(fname,0) ;                   /* strip directory */
+   MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
+
+   nxyz.ijk[0] = nx ; dxyz.xyz[0] = dx ;  /* setup axes lengths and voxel sizes */
+   nxyz.ijk[1] = ny ; dxyz.xyz[1] = dy ;
+   nxyz.ijk[2] = nz ; dxyz.xyz[2] = dz ;
+
+   orixyz.ijk[0] = oxx ; orgxyz.xyz[0] = xorg ;
+   orixyz.ijk[1] = oyy ; orgxyz.xyz[1] = yorg ;
+   orixyz.ijk[2] = ozz ; orgxyz.xyz[2] = zorg ;
+
+   iview = VIEW_ORIGINAL_TYPE ;
+
+   /*-- actually send the values above into the dataset header --*/
+
+   EDIT_dset_items( dset ,
+                      ADN_prefix      , prefix ,
+                      ADN_datum_all   , datum_type ,
+                      ADN_nxyz        , nxyz ,
+                      ADN_xyzdel      , dxyz ,
+                      ADN_xyzorg      , orgxyz ,
+                      ADN_xyzorient   , orixyz ,
+                      ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                      ADN_nvals       , 1 ,
+                      ADN_type        , HEAD_FUNC_TYPE ,
+                      ADN_view_type   , iview ,
+                      ADN_func_type   , FUNC_FIM_TYPE ,
+                    ADN_none ) ;
+
+   /*-- set byte order (for reading from disk) --*/
+
+   ii = mri_short_order() ;
+   if( swap ) ii = REVERSE_ORDER(ii) ;
+   dset->dblk->diskptr->byte_order = ii ;
+
+   /*-- flag to read data from disk using CTF SAM mode --*/
+
+   dset->dblk->diskptr->storage_mode = STORAGE_BY_CTFSAM ;
+   strcpy( dset->dblk->diskptr->brick_name , fname ) ;
+
+   RETURN(dset) ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Actually load data from a CTF SAM file into a dataset.
+--------------------------------------------------------------------*/
+
+void THD_load_ctfsam( THD_datablock *dblk )
+{
+   THD_diskptr *dkptr ;
+   int nx,ny,nz,nv , nxy,nxyz,nxyzv , ibr,nbad , ii,swap ;
+   FILE *fp ;
+   void *ptr ;
+   double *dbar ;
+   float  *ftar ;
+
+ENTRY("THD_load_ctfsam") ;
+
+   /*-- check inputs --*/
+
+   if( !ISVALID_DATABLOCK(dblk)                         ||
+       dblk->diskptr->storage_mode != STORAGE_BY_CTFSAM ||
+       dblk->brick == NULL                                ) EXRETURN ;
+
+   dkptr = dblk->diskptr ;
+
+   /* open and position file at start of data (after header) */
+
+   fp = fopen( dkptr->brick_name , "rb" ) ;  /* .img file */
+   if( fp == NULL ) EXRETURN ;
+   fseek( fp , sizeof(SAM_HDR)+8 , SEEK_SET ) ;
+
+   /*-- allocate space for data --*/
+
+   nx = dkptr->dimsizes[0] ;
+   ny = dkptr->dimsizes[1] ; nxy   = nx * ny   ;
+   nz = dkptr->dimsizes[2] ; nxyz  = nxy * nz  ;
+   nv = dkptr->nvals       ; nxyzv = nxyz * nv ;
+
+   dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
+
+   /*-- malloc space for each brick separately --*/
+
+   for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
+     if( DBLK_ARRAY(dblk,ibr) == NULL ){
+       ptr = malloc( DBLK_BRICK_BYTES(dblk,ibr) ) ;
+       mri_fix_data_pointer( ptr ,  DBLK_BRICK(dblk,ibr) ) ;
+       if( ptr == NULL ) nbad++ ;
+     }
+   }
+
+   /*-- if couldn't get them all, take our ball and go home in a snit --*/
+
+   if( nbad > 0 ){
+     fprintf(stderr,
+             "\n** failed to malloc %d CTR MRI bricks out of %d\n\a",nbad,nv);
+     for( ibr=0 ; ibr < nv ; ibr++ ){
+       if( DBLK_ARRAY(dblk,ibr) != NULL ){
+         free(DBLK_ARRAY(dblk,ibr)) ;
+         mri_fix_data_pointer( NULL , DBLK_BRICK(dblk,ibr) ) ;
+       }
+     }
+     fclose(fp) ; EXRETURN ;
+   }
+
+   /*-- SAM data is stored as doubles,
+        but we have to store it in AFNI as floats --*/
+
+   dbar = (double *) calloc(sizeof(double),nxyz) ;     /* work space */
+   swap = ( dkptr->byte_order != mri_short_order() ) ;
+
+   for( ibr=0 ; ibr < nv ; ibr++ ){
+     fread( dbar, 1, sizeof(double)*nxyz, fp ) ;
+     ftar = DBLK_ARRAY(dblk,ibr) ;
+     for( ii=0 ; ii < nxyz ; ii++ ){
+       if( swap ) swap_8(dbar+ii) ;
+       ftar[ii] = dbar[ii] ;
+     }
+   }
+
+   fclose(fp) ; free(dbar) ;
+
+   EXRETURN ;
+}
