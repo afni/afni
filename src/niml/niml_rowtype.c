@@ -1043,8 +1043,10 @@ int NI_write_columns( NI_stream_type *ns,
      jj = NI_stream_goodcheck(ns,66) ;  /* try to connect it */
      if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
    }
+#if 1
    jj = NI_stream_writecheck(ns,66) ;
-   if( jj < 1 ) return jj ;
+   if( jj < 0 ) return jj ;
+#endif
 
    if( ns->type == NI_STRING_TYPE )  /* output to string buffer ==> text mode */
      tmode = NI_TEXT_MODE ;
@@ -1210,6 +1212,9 @@ int NI_write_columns( NI_stream_type *ns,
 
        case NI_BINARY_MODE:   /* jj bytes of binary in wbuf */
          nout = NI_stream_write( ns , wbuf , jj ) ;
+#ifdef NIML_DEBUG
+if( nout != jj ) fprintf(stderr,"NI_write_columns: col#%d sends %d bytes; nout=%d\n",col,jj,nout) ;
+#endif
          ADDOUT ;
        break ;
 
@@ -1343,6 +1348,10 @@ int NI_read_columns( NI_stream_type *ns,
    if( col_typ == NULL || col_dat == NULL ) return -1 ;
    if( !NI_stream_readable(ns)            ) return -1 ;
 
+#ifdef NIML_DEBUG
+NI_dpr("ENTER NI_read_columns\n") ;
+#endif
+
    /*-- check stream --*/
 
    if( ns->bad ){                       /* not connected yet? */
@@ -1411,9 +1420,16 @@ int NI_read_columns( NI_stream_type *ns,
    for( row=0 ; row < row_top ; row++ ){                  /* loop over rows */
                                                           /* until all done */
 
+#ifdef NIML_DEBUG
+NI_dpr(" Starting row #%d\n",row) ;
+#endif
+
      /* 27 Mar 2003: maybe need to extend length of columns */
 
      if( open_ended && row >= col_len ){
+#ifdef NIML_DEBUG
+NI_dpr("  Extending column lengths!\n") ;
+#endif
        jj = (int)(1.2*col_len+32) ;
        for( col=0 ; col < col_num ; col++ ){
          col_dat[col] = NI_realloc( col_dat[col] , char, fsiz[col]*jj ) ;
@@ -1455,6 +1471,10 @@ ReadFinality:
        NI_swap_column( rt[col] , nin , col_dat[col] ) ;
    }
 
+#ifdef NIML_DEBUG
+NI_dpr("Leaving NI_read_columns\n") ;
+#endif
+
    FREEUP ; return nin ;
 }
 
@@ -1477,7 +1497,17 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
    if( rt->size == rt->psiz ){        /* fixed-size type with no padding */
                                /* ==> can read directly into data struct */
 
+#ifdef NIML_DEBUG
+NI_dpr("NI_binary_to_val: ns->npos=%d ns->nbuf=%d\n",ns->npos,ns->nbuf) ;
+#endif
      jj = NI_stream_readbuf( ns , (char *)dpt , rt->size ) ;
+#ifdef NIML_DEBUG
+if( dfp != NULL ){
+ char wbuf[256]="\0" ;
+ NI_val_to_text( rt , (char *)dpt , wbuf ) ;
+ NI_dpr("   after readbuf: ns->npos=%d ns->nbuf=%d  value=%s\n",ns->npos,ns->nbuf,wbuf) ;
+}
+#endif
      return (jj == rt->size) ;
 
    } else {                                              /* derived type */
