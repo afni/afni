@@ -884,7 +884,7 @@ THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 *xx, THD_dfvec3 *yy, double *ww )
      yy = [R] xx + V   (k=0..n-1)
        k        k
 
-  true in the unweighted least squares sense.
+    is true in the unweighted least squares sense.
 ----------------------------------------------------------------------------*/
 
 THD_dvecmat DLSQ_affine( int n, THD_dfvec3 *xx, THD_dfvec3 *yy )
@@ -926,6 +926,71 @@ THD_dvecmat DLSQ_affine( int n, THD_dfvec3 *xx, THD_dfvec3 *yy )
    }
    xtxinv = DMAT_INV( xtx ) ;
    out.mm = DMAT_MUL( yxt , xtxinv ) ;
+   tx = DMATVEC( out.mm , cx ) ;
+   out.vv = SUB_DFVEC3( cy , tx ) ;
+   return out ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute a transformation to take one set of vectors into another.
+    That is, find matrix R and vector B so that
+
+     yy = [R] xx + V   (k=0..n-1)
+       k        k
+
+    is true in the unweighted least squares sense.  Here, we restrict R
+    to be a scalar multiple of an orthgonal matrix.
+----------------------------------------------------------------------------*/
+
+THD_dvecmat DLSQ_rotscl( int n, THD_dfvec3 *xx, THD_dfvec3 *yy , int ndim )
+{
+   THD_dvecmat out ;
+   THD_dfvec3  cx,cy , tx,ty ;
+   THD_dmat33  yxt , xtx , xtxinv , aa,bb,cc ;
+   int ii,jj,kk ;
+   double wsum ;
+
+   /*- check for bad inputs -*/
+
+   if( n < 3 || xx == NULL || yy == NULL ){ LOAD_ZERO_DMAT(out.mm); return out; }
+
+   /*- compute centroids of each set of vectors -*/
+
+   LOAD_DFVEC3(cx,0,0,0) ; LOAD_DFVEC3(cy,0,0,0) ; wsum = 0.0 ;
+   for( kk=0 ; kk < n ; kk++ ){
+     cx = ADD_DFVEC3(cx,xx[kk]) ;  /* sums of vectors */
+     cy = ADD_DFVEC3(cy,yy[kk]) ;
+   }
+   wsum = 1.0 / n ;
+   cx.xyz[0] *= wsum ; cx.xyz[1] *= wsum ; cx.xyz[2] *= wsum ;  /* centroids */
+   cy.xyz[0] *= wsum ; cy.xyz[1] *= wsum ; cy.xyz[2] *= wsum ;
+
+   /*- compute products of data matrices -*/
+
+   LOAD_DIAG_DMAT(yxt,1.e-9,1.e-9,1.e-9) ;
+   LOAD_DIAG_DMAT(xtx,1.e-9,1.e-9,1.e-9) ;
+   for( kk=0 ; kk < n ; kk++ ){
+     tx = SUB_DFVEC3( xx[kk] , cx ) ;  /* remove centroids */
+     ty = SUB_DFVEC3( yy[kk] , cy ) ;
+     for( jj=0 ; jj < 3 ; jj++ ){
+       for( ii=0 ; ii < 3 ; ii++ ){
+         yxt.mat[ii][jj] += ty.xyz[ii]*tx.xyz[jj] ;
+         xtx.mat[ii][jj] += tx.xyz[ii]*tx.xyz[jj] ;
+       }
+     }
+   }
+   xtxinv = DMAT_INV( xtx ) ;
+   aa = DMAT_MUL( yxt , xtxinv ) ;
+   bb = DMAT_pow( aa , -0.5 ) ;
+   cc = DMAT_MUL( aa , bb) ;
+   wsum = DMAT_DET(aa); wsum = fabs(wsum);
+   switch( ndim ){
+     default:
+     case 3: wsum = pow(wsum,0.333333333333) ; break ;  /* 3D rotation */
+     case 2: wsum = sqrt(wsum)               ; break ;  /* 2D rotation */
+   }
+   out.mm = DMAT_SCALAR( cc , wsum ) ;
+
    tx = DMATVEC( out.mm , cx ) ;
    out.vv = SUB_DFVEC3( cy , tx ) ;
    return out ;

@@ -13,6 +13,10 @@
 
 THD_dmat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
 
+#define ROTATION  1  /* matrix_type options */
+#define AFFINE    2
+#define ROTSCL    3
+
 /*-------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
@@ -34,7 +38,7 @@ int main( int argc , char * argv[] )
 
    float matar[12] ;
 
-   int use_affine=0 , use_3dWarp=0 ;
+   int use_3dWarp=1 , matrix_type=ROTATION ;
 
    /*--- help? ---*/
 
@@ -46,6 +50,7 @@ int main( int argc , char * argv[] )
              "Options:\n"
              " -master mset  = Use dataset 'mset' as the master dataset\n"
              "                   [this is a nonoptional option]\n"
+#if 0
              "\n"
              " -wtval        = Use the numerical value attached to each tag\n"
              "                   in the master as weighting factor for that tag\n"
@@ -54,15 +59,17 @@ int main( int argc , char * argv[] )
              "           N.B.: The default is to weight each tag the same.\n"
              "                   If you use weights, a larger weight means to\n"
              "                   count aligning that tag as more important.\n"
+#endif
              "\n"
              " -nokeeptags   = Don't put transformed locations of dset's tags\n"
-             "                   into the output dataset [default = do this]\n"
+             "                   into the output dataset [default = keep tags]\n"
              "\n"
              " -matvec mfile = Write the matrix+vector of the transformation to\n"
              "                   file 'mfile'.  This can be used as input to the\n"
-             "                   '-matvec_dicom' option of 3drotate, if you want\n"
+             "                   '-matvec_out2in' option of 3dWarp, if you want\n"
              "                   to align other datasets in the same way (e.g.,\n"
              "                   functional datasets).\n"
+#if 0
              "           N.B.: The matrix+vector of the transformation is also\n"
              "                   saved in the .HEAD file of the output dataset\n"
              "                   (unless -dummy is used).  You can use the\n"
@@ -74,10 +81,14 @@ int main( int argc , char * argv[] )
              "                   rather than the '3drotate' function.  The output\n"
              "                   dataset will be computed on the same grid as the\n"
              "                   master dataset.\n"
-             "           N.B.: This option is implied by the '-affine' option.\n"
+             "           N.B.: This option is implied by '-affine' and '-rotscl'.\n"
+#endif
+             "\n"
+             " -rotate       = Compute the best transformation as a rotation + shift.\n"
+             "                   This is the default.\n"
              "\n"
              " -affine       = Compute the best transformation as a general affine\n"
-             "                   map rather than just a rotation + shift.  In both\n"
+             "                   map rather than just a rotation + shift.  In all\n"
              "                   cases, the transformation from input to output\n"
              "                   coordinates is of the form\n"
              "                      [out] = [R] [in] + [V]\n"
@@ -90,6 +101,11 @@ int main( int argc , char * argv[] )
              "                   shear the volume.  Be sure to look at the dataset\n"
              "                   before and after to make sure things are OK.\n"
              "\n"
+             " -rotscl       = Compute transformation as a rotation times an isotropic\n"
+             "                   scaling; that is, [R] is an orthogonal matrix times\n"
+             "                   a scalar.\n"
+             "           N.B.: '-affine' and '-rotscl' do unweighted least squares.\n"
+             "\n"
              " -prefix pp    = Use 'pp' as the prefix for the output dataset.\n"
              "                   [default = 'tagalign']\n"
              " -verb         = Print progress reports\n"
@@ -98,12 +114,10 @@ int main( int argc , char * argv[] )
              "                   '-matvec' is used, the mfile will be written.\n"
              "\n"
              "Nota Bene:\n"
-             "* The output dataset is rotated/shifted using the equivalent of the\n"
-             "   options '-clipit -heptic' for 3drotate.\n"
-             "* If -3dWarp is on, then cubic interpolation is used.\n"
+             "* Cubic interpolation is used.  The transformation is carried out\n"
+             "  using the same methods as program 3dWarp.\n"
              "\n"
-             "Author: RWCox - 16 Jul 2000\n"
-             "        RWCox - 21 Apr 2003: added -3dWarp and -affine stuff\n"
+             "Author: RWCox - 16 Jul 2000, etc.\n"
             ) ;
       exit(0) ;
    }
@@ -115,17 +129,33 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
-      if( strcmp(argv[iarg],"-affine") == 0 ){   /* 21 Apr 2003 */
-        use_affine = 1 ; use_3dWarp = 1 ;
+      if( strcmp(argv[iarg],"-rotate") == 0 ){   /* 22 Apr 2003 */
+        matrix_type = ROTATION ; use_3dWarp = 1 ;
         iarg++ ; continue ;
       }
 
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-affine") == 0 ){   /* 21 Apr 2003 */
+        matrix_type = AFFINE ; use_3dWarp = 1 ;
+        iarg++ ; continue ;
+      }
+
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-rotscl") == 0 ){   /* 22 Apr 2003 */
+        matrix_type = ROTSCL ; use_3dWarp = 1 ;
+        iarg++ ; continue ;
+      }
+
+#if 0
       /*-----*/
 
       if( strcmp(argv[iarg],"-3dWarp") == 0 ){   /* 21 Apr 2003 */
         use_3dWarp = 1 ;
         iarg++ ; continue ;
       }
+#endif
 
       /*-----*/
 
@@ -152,6 +182,7 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
+#if 0
       /*-----*/
 
       if( strcmp(argv[iarg],"-wtval") == 0 ){
@@ -184,6 +215,7 @@ int main( int argc , char * argv[] )
          mri_free(wtim) ;
          iarg++ ; continue ;
       }
+#endif
 
       /*-----*/
 
@@ -233,6 +265,7 @@ int main( int argc , char * argv[] )
 
    if( mset == NULL )                    ERREX("No -master option found on command line") ;
 
+#if 0
    if( ww != NULL && nww < nvec )        ERREX("Not enough weights found in -wt1D file") ;
 
    /*-- if -wtval, setup weights from master tag values --*/
@@ -248,6 +281,7 @@ int main( int argc , char * argv[] )
          }
       }
    }
+#endif
 
    /*-- read input dataset (to match to master dataset) --*/
 
@@ -298,11 +332,20 @@ int main( int argc , char * argv[] )
 
    /*-- compute best transformation from mset to dset coords --*/
 
-   if( !use_affine )
-     rt = DLSQ_rot_trans( nvec , yy , xx , ww ) ;  /* in thd_rot3d.c */
-   else
-     rt = DLSQ_affine   ( nvec , yy , xx ) ;       /* 21 Apr 2003 */
+   switch( matrix_type ){
+     default:
+     case ROTATION:
+       rt = DLSQ_rot_trans( nvec , yy , xx , ww ) ;  /* in thd_rot3d.c */
+     break ;
 
+     case AFFINE:
+       rt = DLSQ_affine   ( nvec , yy , xx ) ;       /* 21 Apr 2003 */
+     break ;
+
+     case ROTSCL:
+       rt = DLSQ_rotscl   ( nvec , yy , xx , (DSET_NZ(dset)==1) ? 2 : 3 ) ;
+     break ;
+   }
    rtinv = INV_DVECMAT(rt) ;
 
    /*-- check for floating point legality --*/
@@ -324,7 +367,7 @@ int main( int argc , char * argv[] )
 
    dsum = DMAT_DET(rt.mm) ;
 
-   if( dsum == 0.0 || (!use_affine && fabs(dsum-1.0) > 0.01) ){
+   if( dsum == 0.0 || (matrix_type == ROTATION && fabs(dsum-1.0) > 0.01) ){
      fprintf(stderr,"** Invalid transform matrix computed: tags dependent?\n"
                     "** computed [matrix] and [vector] follow:\n" ) ;
 
@@ -344,28 +387,28 @@ int main( int argc , char * argv[] )
                rt.mm.mat[ii][0],rt.mm.mat[ii][1],rt.mm.mat[ii][2],rt.vv.xyz[ii] );
    }
 
-   if( !use_affine ){
-     float theta, costheta , dist ;
+   if( matrix_type == ROTATION || matrix_type == ROTSCL ){
+     double theta, costheta , dist , fac=1.0 ;
 
-     costheta = 0.5 * sqrt(1.0 + DMAT_TRACE(rt.mm)) ;
+     if( matrix_type == ROTSCL ){
+       fac = DMAT_DET(rt.mm); fac = fabs(fac);
+       if( DSET_NZ(dset) == 1 ) fac = sqrt(fac) ;
+       else                     fac = pow(fac,0.33333333);
+     }
+
+     costheta = 0.5 * sqrt(1.0 + DMAT_TRACE(rt.mm)/fac ) ;
      theta    = 2.0 * acos(costheta) * 180/3.14159265 ;
      dist     = SIZE_DFVEC3(rt.vv) ;
 
-     if( verb || (theta < 0.1 && dist < 0.1) )
-        fprintf(stderr,"++ Total rotation = %.2f degrees; translation = %.2f mm\n",
-                theta,dist) ;
-
-     if( theta < 0.1 && dist < 0.1 ){
-        fprintf(stderr,"** rotation + translation too small - quitting run\n") ;
-        exit(1) ;
-     }
+     fprintf(stderr,"++ Total rotation=%.2f degrees; translation=%.2f mm; scaling=%.2f\n",
+             theta,dist,fac) ;
    }
 
    if( mfile ){
       FILE * mp ;
 
       if( THD_is_file(mfile) )
-         fprintf(stderr,"++ Warning: will overwrite -matvec %s\n",mfile) ;
+         fprintf(stderr,"++ Warning: -matvec will overwrite file %s\n",mfile) ;
 
       mp = fopen(mfile,"w") ;
       if( mp == NULL ){
@@ -375,7 +418,7 @@ int main( int argc , char * argv[] )
           fprintf(mp,"    %10.5f %10.5f %10.5f   %10.5f\n",
                   rt.mm.mat[ii][0],rt.mm.mat[ii][1],rt.mm.mat[ii][2],rt.vv.xyz[ii] );
         fclose(mp) ;
-        fprintf(stderr,"++ Wrote matrix+vector to %s\n",mfile) ;
+        if( verb ) fprintf(stderr,"++ Wrote matrix+vector to %s\n",mfile) ;
       }
    }
 
@@ -386,6 +429,7 @@ int main( int argc , char * argv[] )
    /*-- 21 Apr 2003: transformation can be done the old way (a la 3drotate),
                      or the new way (a la 3dWarp).                          --*/
 
+#if 0
    if( !use_3dWarp ){          /**** the old way ****/
 
      /*-- now must scramble the rotation matrix and translation
@@ -521,7 +565,9 @@ int main( int argc , char * argv[] )
 
      if( verb ) fprintf(stderr,"\n") ;
 
-   } else {   /**** the new way: use 3dWarp type transformation ****/
+   } else
+#endif
+   {   /**** the new way: use 3dWarp type transformation ****/
 
      THD_3dim_dataset *oset ;
      THD_vecmat tran ;

@@ -3434,8 +3434,9 @@ extern MRI_IMAGE * THD_rota3D_matvec( MRI_IMAGE *, THD_dmat33,THD_dfvec3 ) ;
 extern void THD_rota_vol_matvec( int, int, int, float, float, float, float *,
                                  THD_dmat33 , THD_dfvec3 ) ;
 
-extern THD_dvecmat DLSQ_rot_trans( int, THD_dfvec3 *, THD_dfvec3 *, double * ) ;
-extern THD_dvecmat DLSQ_affine   ( int, THD_dfvec3 *, THD_dfvec3 * ) ;
+extern THD_dvecmat DLSQ_rot_trans( int, THD_dfvec3 *, THD_dfvec3 *, double * );
+extern THD_dvecmat DLSQ_affine   ( int, THD_dfvec3 *, THD_dfvec3 *           );
+extern THD_dvecmat DLSQ_rotscl   ( int, THD_dfvec3 *, THD_dfvec3 *, int      );
 
 extern THD_dvecmat THD_read_dvecmat( char * , int ) ;  /* THD_read_vecmat.c */
 

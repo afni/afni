@@ -4507,5 +4507,10 @@
      "quiet" variable, if the USE_QUIET macro is defined.
 
 18 Apr 2003
- * New program 3dWarp.c.
+ * New program 3dWarp.c (along with mri_warp3D.c).
  * Minor changes to 3dAnhist.c for Lukas Pezawas.
+
+22 Apr 2003
+ * Modified 3dTagalign.c (and thd_shear3d.c) heavily to use THD_warp3D() instead
+     of rotation-only functions, and to allow different kinds of transformation
+     matrices to be used.

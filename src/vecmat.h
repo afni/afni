@@ -238,7 +238,7 @@ static float tempRWC ;
                               + (A).mat[i][1] * (B).mat[1][j] \
                               + (A).mat[i][2] * (B).mat[2][j]   )
 
-#define MAT_MUL(A,B) \
+#define MAT_MUL(A,B)                                   \
   ( tempA_mat33.mat[0][0] = ROW_DOT_COL((A),(B),0,0) , \
     tempA_mat33.mat[1][0] = ROW_DOT_COL((A),(B),1,0) , \
     tempA_mat33.mat[2][0] = ROW_DOT_COL((A),(B),2,0) , \
@@ -248,6 +248,17 @@ static float tempRWC ;
     tempA_mat33.mat[0][2] = ROW_DOT_COL((A),(B),0,2) , \
     tempA_mat33.mat[1][2] = ROW_DOT_COL((A),(B),1,2) , \
     tempA_mat33.mat[2][2] = ROW_DOT_COL((A),(B),2,2) , tempA_mat33 )
+
+#define MAT_SCALAR(A,c)                          \
+  ( tempA_mat33.mat[0][0] = (c)*(A).mat[0][0] ,  \
+    tempA_mat33.mat[1][0] = (c)*(A).mat[1][0] ,  \
+    tempA_mat33.mat[2][0] = (c)*(A).mat[2][0] ,  \
+    tempA_mat33.mat[0][1] = (c)*(A).mat[0][1] ,  \
+    tempA_mat33.mat[1][1] = (c)*(A).mat[1][1] ,  \
+    tempA_mat33.mat[2][1] = (c)*(A).mat[2][1] ,  \
+    tempA_mat33.mat[0][2] = (c)*(A).mat[0][2] ,  \
+    tempA_mat33.mat[1][2] = (c)*(A).mat[1][2] ,  \
+    tempA_mat33.mat[2][2] = (c)*(A).mat[2][2] , tempA_mat33 )
 
    /* matrix determinant */
 
@@ -607,6 +618,17 @@ static double dtempRWC ;
     tempA_dmat33.mat[0][2] = ROW_DOT_COL((A),(B),0,2) , \
     tempA_dmat33.mat[1][2] = ROW_DOT_COL((A),(B),1,2) , \
     tempA_dmat33.mat[2][2] = ROW_DOT_COL((A),(B),2,2) , tempA_dmat33 )
+
+#define DMAT_SCALAR(A,c)                          \
+  ( tempA_dmat33.mat[0][0] = (c)*(A).mat[0][0] ,  \
+    tempA_dmat33.mat[1][0] = (c)*(A).mat[1][0] ,  \
+    tempA_dmat33.mat[2][0] = (c)*(A).mat[2][0] ,  \
+    tempA_dmat33.mat[0][1] = (c)*(A).mat[0][1] ,  \
+    tempA_dmat33.mat[1][1] = (c)*(A).mat[1][1] ,  \
+    tempA_dmat33.mat[2][1] = (c)*(A).mat[2][1] ,  \
+    tempA_dmat33.mat[0][2] = (c)*(A).mat[0][2] ,  \
+    tempA_dmat33.mat[1][2] = (c)*(A).mat[1][2] ,  \
+    tempA_dmat33.mat[2][2] = (c)*(A).mat[2][2] , tempA_dmat33 )
 
    /* matrix determinant */
 
