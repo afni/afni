@@ -23,6 +23,7 @@ static int                      TCAT_dry   = 0 ;     /* dry run? */
 static int                      TCAT_verb  = 0 ;     /* verbose? */
 static int                      TCAT_type  = -1 ;    /* dataset type */
 static int                      TCAT_glue  = 0 ;     /* glueing run? */
+static int                      TCAT_rlt   = 0 ;     /* remove linear trend? */
 
 static char TCAT_output_prefix[THD_MAX_PREFIX] = "tcat" ;
 static char TCAT_session[THD_MAX_NAME]         = "./"   ;
@@ -55,7 +56,7 @@ void TCAT_read_opts( int argc , char * argv[] )
    THD_3dim_dataset * dset ;
    int * svar ;
    char * str;
-   int ok, ilen, nlen;
+   int ok, ilen, nlen , max_nsub=0 ;
 
    INIT_3DARR(TCAT_dsar) ;  /* array of datasets */
    INIT_XTARR(TCAT_subv) ;  /* array of sub-brick selector arrays */
@@ -97,7 +98,7 @@ void TCAT_read_opts( int argc , char * argv[] )
       /**** -dry ****/
 
       if( strncmp(argv[nopt],"-dry",3) == 0 ){
-         TCAT_dry = TCAT_verb = 1 ;
+         TCAT_dry = 1 ; TCAT_verb++ ;
          nopt++ ; continue ;
       }
 
@@ -105,6 +106,13 @@ void TCAT_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-verb",2) == 0 ){
          TCAT_verb++ ;
+         nopt++ ; continue ;
+      }
+
+      /**** -rlt ****/
+
+      if( strncmp(argv[nopt],"-rlt",3) == 0 ){
+         TCAT_rlt = 1 ;
          nopt++ ; continue ;
       }
 
@@ -217,7 +225,22 @@ void TCAT_read_opts( int argc , char * argv[] )
       }
       ADDTO_XTARR(TCAT_subv,svar) ;  /* list of sub-brick selectors */
 
+      max_nsub = MAX( max_nsub , svar[0] ) ;
+
    }  /* end of loop over command line arguments */
+
+   /*--- final sanity checks ---*/
+
+   if( max_nsub < 3 && TCAT_rlt ){
+      fprintf(stderr,"*** Warning: can't apply -rlt option -- "
+                     "Not enough points per input dataset.\n" ) ;
+      TCAT_rlt = 0 ;
+   }
+
+   if( TCAT_rlt && TCAT_dry ){
+      fprintf(stderr,"*** Warning: -rlt option does nothing with -dry!\n") ;
+      TCAT_rlt = 0 ;
+   }
 
    return ;
 }
@@ -362,10 +385,18 @@ void TCAT_Syntax(void)
     "                       combining sub-bricks from multiple inputs.\n"
     "     -verb         = Print out some verbose output as the program\n"
     "                       proceeds (-dry implies -verb).\n"
+    "                       Using -verb twice results in quite lengthy output.\n"
+    "     -rlt          = Remove linear trends in each voxel time series loaded\n"
+    "                       from each input dataset, SEPARATELY.  That is, the\n"
+    "                       data from each dataset is detrended separately.\n"
+    "                       At least 3 sub-bricks from a dataset must be input\n"
+    "                       for this option to apply.\n"
     "\n"
     "Command line arguments after the above are taken as input datasets.\n"
     "A dataset is specified using one of these forms:\n"
     "   'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.\n"
+    "\n"
+    "SUB-BRICK SELECTION:\n"
     "You can also add a sub-brick selection list after the end of the\n"
     "dataset name.  This allows only a subset of the sub-bricks to be\n"
     "included into the output (by default, all of the input dataset\n"
@@ -380,29 +411,33 @@ void TCAT_Syntax(void)
     "can select every third sub-brick by using the selection list\n"
     "  fred+orig[0..$(3)]\n"
     "\n"
-    "N.B.: The TR and other time-axis properties are taken from the\n"
-    " first input dataset that is itself 3D+time.  If no input\n"
-    " datasets contain such information, then TR is set to 1.0.\n"
-    " This can be altered using the 3drefit program.\n"
+    "NOTES:\n"
+    "* The TR and other time-axis properties are taken from the\n"
+    "  first input dataset that is itself 3D+time.  If no input\n"
+    "  datasets contain such information, then TR is set to 1.0.\n"
+    "  This can be altered using the 3drefit program.\n"
     "\n"
-    "N.B.: The sub-bricks are output in the order specified, which may\n"
-    " not be the order in the original datasets.  For example, using\n"
-    "    fred+orig[0..$(2),1..$(2)]\n"
-    " will cause the sub-bricks in fred+orig to be output into the\n"
-    " new dataset in an interleaved fashion.  Using\n"
-    "    fred+orig[$..0]\n"
-    " will reverse the order of the sub-bricks in the output.\n"
+    "* The sub-bricks are output in the order specified, which may\n"
+    "  not be the order in the original datasets.  For example, using\n"
+    "     fred+orig[0..$(2),1..$(2)]\n"
+    "  will cause the sub-bricks in fred+orig to be output into the\n"
+    "  new dataset in an interleaved fashion.  Using\n"
+    "     fred+orig[$..0]\n"
+    "  will reverse the order of the sub-bricks in the output.\n"
+    "  If the -rlt option is used, the sub-bricks selected from each\n"
+    "  input dataset will be re-ordered into the output dataset, and\n"
+    "  then this sequence will be detrended.\n"
     "\n"
-    "N.B.: You can use the '3dinfo' program to see how many sub-bricks\n"
-    " a 3D+time or a bucket dataset contains.\n"
+    "* You can use the '3dinfo' program to see how many sub-bricks\n"
+    "  a 3D+time or a bucket dataset contains.\n"
     "\n"
-    "N.B.: The '$', '(', ')', '[', and ']' characters are special to\n"
-    " the shell, so you will have to escape them.  This is most easily\n"
-    " done by putting the entire dataset plus selection list inside\n"
-    " single quotes, as in 'fred+orig[5..7,9]'.\n"
+    "* The '$', '(', ')', '[', and ']' characters are special to\n"
+    "  the shell, so you will have to escape them.  This is most easily\n"
+    "  done by putting the entire dataset plus selection list inside\n"
+    "  single quotes, as in 'fred+orig[5..7,9]'.\n"
     "\n"
-    "N.B.: You may wish to use the 3drefit program on the output dataset\n"
-    " to modify some of the .HEAD file parameters.\n"
+    "* You may wish to use the 3drefit program on the output dataset\n"
+    "  to modify some of the .HEAD file parameters.\n"
    ) ;
 
    exit(0) ;
@@ -412,9 +447,10 @@ void TCAT_Syntax(void)
 
 int main( int argc , char * argv[] )
 {
-   int ninp , ids , nv , iv,jv,kv , ivout , new_nvals ;
+   int ninp , ids , nv , iv,jv,kv , ivout , new_nvals , ivbot,ivtop ;
    THD_3dim_dataset * new_dset=NULL , * dset ;
    char buf[256] ;
+   float * rlt0=NULL , *rlt1=NULL ;
 
    /*** read input options ***/
 
@@ -504,6 +540,19 @@ int main( int argc , char * argv[] )
 
    THD_force_malloc_type( new_dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
+   /*** if needed, create space for detrending ***/
+
+   if( TCAT_rlt ){
+      rlt0 = (float *) malloc( sizeof(float) * TCAT_nvox ) ;
+      rlt1 = (float *) malloc( sizeof(float) * TCAT_nvox ) ;
+      if( rlt0 == NULL || rlt1 == NULL ){
+         fprintf(stderr,"*** Warning: can't malloc memory for detrending!\n") ;
+         if( rlt0 != NULL ) free(rlt0) ;
+         if( rlt1 != NULL ) free(rlt1) ;
+         TCAT_rlt = 0 ;
+      }
+   }
+
    /*** loop over input datasets ***/
 
    if( ninp > 1 ) myXtFree( new_dset->keywords ) ;
@@ -525,6 +574,7 @@ int main( int argc , char * argv[] )
 
       /** loop over sub-bricks to output **/
 
+      ivbot = ivout ;                       /* save this for later */
       for( iv=0 ; iv < nv ; iv++ ){
          jv = SUBV(ids,iv) ;                /* which sub-brick to use */
 
@@ -607,6 +657,7 @@ int main( int argc , char * argv[] )
 
          ivout++ ;
       }
+      ivtop = ivout ;  /* new_dset[ivbot..ivtop-1] are from the current dataset */
 
       /** loop over all bricks in input dataset and
           unload them if they aren't going into the output
@@ -629,12 +680,138 @@ int main( int argc , char * argv[] )
          }
       }
 
+      /*** remove linear trend? ***/
+
+      if( TCAT_rlt ){
+
+         /* have enough data? */
+
+         if( ivtop-ivbot < 3 ){
+            if( TCAT_verb ) printf("-verb: skipping -rlt for %s\n",DSET_FILECODE(dset)) ;
+
+         } else {
+            float c0,c1,c2 , det , a0,a1,a2 , qq ;
+            int iv , ns , kk , err=0 ;
+
+            if( TCAT_verb )
+               printf("-verb: applying -rlt to data from %s\n",DSET_FILECODE(dset)) ;
+
+            /* compute weighting coefficients */
+
+            ns  = ivtop - ivbot ;                        /* number of sub-bricks */
+            c0  = ns ;                                   /* sum[ 1 ]   */
+            c1  = 0.5 * ns * (ns-1) ;                    /* sum[ qq ]   */
+            c2  = 0.16666667 * ns * (ns-1) * (2*ns-1) ;  /* sum[ qq*qq ] */
+            det = c0*c2 - c1*c1 ;
+            a0  =  c2 / det ;   /*             -1  */
+            a1  = -c1 / det ;   /*   [ c0  c1 ]    */
+            a2  =  c0 / det ;   /*   [ c1  c2 ]    */
+
+            /* set voxel sums to 0 */
+
+            for( iv=0 ; iv < TCAT_nvox ; iv++ ) rlt0[iv] = rlt1[iv] = 0.0 ;
+
+            /* compute voxel sums */
+
+            for( kk=ivbot ; kk < ivtop ; kk++ ){
+               qq = kk - ivbot ;
+               switch( DSET_BRICK_TYPE(new_dset,kk) ){
+                  default:
+                     err = 1 ;
+                     fprintf(stderr,
+                             "*** Warning: -rlt can't handle datum type %s from %s\n",
+                             MRI_TYPE_name[DSET_BRICK_TYPE(new_dset,kk)] ,
+                             DSET_FILECODE(dset) ) ;
+                  break ;
+
+                  case MRI_short:{
+                     short * bar = (short *) DSET_ARRAY(new_dset,kk) ;
+                     float fac = DSET_BRICK_FACTOR(new_dset,kk) ;
+
+                     if( fac == 0.0 ) fac = 1.0 ;
+                     for( iv=0 ; iv < TCAT_nvox ; iv++ ){
+                        rlt0[iv] += (fac * bar[iv]) ;        /* sum of voxel    */
+                        rlt1[iv] += (fac * bar[iv]) * qq ;   /* sum of voxel*qq */
+                     }
+                  }
+                  break ;
+
+                  case MRI_float:{
+                     float * bar = (float *) DSET_ARRAY(new_dset,kk) ;
+                     float fac = DSET_BRICK_FACTOR(new_dset,kk) ;
+
+                     if( fac == 0.0 ) fac = 1.0 ;
+                     for( iv=0 ; iv < TCAT_nvox ; iv++ ){
+                        rlt0[iv] += (fac * bar[iv]) ;
+                        rlt1[iv] += (fac * bar[iv]) * qq ;
+                     }
+                  }
+                  break ;
+               }
+               if( err ) break ;
+            } /* end of loop over sub-bricks */
+
+            /* only do the detrending if no errors happened */
+
+            if( !err ){
+               for( iv=0 ; iv < TCAT_nvox ; iv++ ){     /* transform voxel sums */
+                 c0 = a0 * rlt0[iv] + a1 * rlt1[iv] ;
+                 c1 = a1 * rlt0[iv] + a2 * rlt1[iv] ;
+                 rlt0[iv] = c0 ; rlt1[iv] = c1 ;
+               }
+
+               for( kk=ivbot ; kk < ivtop ; kk++ ){     /* detrend */
+                  qq = kk - ivbot ;
+                  switch( DSET_BRICK_TYPE(new_dset,kk) ){
+
+#undef ROUND
+#ifndef NO_RINT
+#  define ROUND(qq)   ((short)rint((qq)))
+#else
+#  define ROUND(qq)   ((short)(qq))
+#endif
+
+                     case MRI_short:{
+                        short * bar = (short *) DSET_ARRAY(new_dset,kk) ;
+                        float fac = DSET_BRICK_FACTOR(new_dset,kk) , val,finv ;
+
+                        if( fac == 0.0 ) fac = 1.0 ;
+                        finv = 1.0 / fac ;
+                        for( iv=0 ; iv < TCAT_nvox ; iv++ ){
+                           val = fac*bar[iv] - rlt0[iv] - rlt1[iv]*qq ;
+                           bar[iv] = ROUND(finv*val) ;
+                        }
+                     }
+                     break ;
+
+                     case MRI_float:{
+                        float * bar = (float *) DSET_ARRAY(new_dset,kk) ;
+                        float fac = DSET_BRICK_FACTOR(new_dset,kk) , val,finv ;
+
+                        if( fac == 0.0 ) fac = 1.0 ;
+                        finv = 1.0 / fac ;
+                        for( iv=0 ; iv < TCAT_nvox ; iv++ ){
+                           val = fac*bar[iv] - rlt0[iv] - rlt1[iv]*qq ;
+                           bar[iv] = (finv*val) ;
+                        }
+                     }
+                     break ;
+                  }
+               }
+            }
+         }
+      } /* end of -rlt */
+
    } /* end of loop over input datasets */
 
+   if( TCAT_rlt ){ free(rlt0) ; free(rlt1) ; }
+
    if( ! TCAT_dry ){
-      if( TCAT_verb ) printf("-verb: loading statistics\n") ;
+      if( TCAT_verb ) printf("-verb: computing sub-brick statistics\n") ;
       THD_load_statistics( new_dset ) ;
-      if( TCAT_verb ) printf("-verb: writing output\n") ;
+
+      if( TCAT_verb ) printf("-verb: writing output to %s and %s\n",
+                             DSET_HEADNAME(new_dset) , DSET_BRIKNAME(new_dset) ) ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
    }
 
