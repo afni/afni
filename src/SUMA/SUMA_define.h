@@ -2027,9 +2027,9 @@ typedef struct {
 typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, SUMA_SORT_BY_LLC_DISTANCE, SUMA_SORT_BY_LL_QUAD } SUMA_SORT_BOX_AXIS_OPTION;
 typedef enum { SUMA_LOWER_LEFT_SCREEN, SUMA_UPPER_LEFT_SCREEN, SUMA_UPPER_RIGHT_SCREEN, SUMA_LOWER_RIGHT_SCREEN } SUMA_SCREEN_CORNERS;
 typedef struct {
-   double upp;
-   double uppx;
-   double uppy;
+   double world_length;
+   double screen_length_x;
+   double screen_length_y;
    double P1[3];
    double P2[3];
    int SegIndex;
@@ -2043,6 +2043,7 @@ typedef struct {
    int AxisDim;
    int LLCclosestPoint;
    double LLCclosestDist;
+   double TxOff[3];
 }  SUMA_AxisSegmentInfo;
  
 #endif

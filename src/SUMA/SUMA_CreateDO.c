@@ -689,7 +689,16 @@ void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso)
    Ax->Center[2] = cso->Center[2];
    Ax->MTspace = 10; Ax->mTspace = 2;
    Ax->MTsize = 4; Ax->mTsize = 2;
-   Ax->DoCross = 1;
+   {
+      char *eee = getenv("SUMA_UseCrossTicks");
+      if (eee) {
+         SUMA_TO_LOWER(eee);
+         if (strcmp (eee, "yes") == 0) Ax->DoCross = 1;
+            else Ax->DoCross = 0;
+      } else {
+         Ax->DoCross = 0;
+      }
+   }
    SUMA_RETURNe;
 }
 
@@ -708,7 +717,17 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    Ax->XYZspan[0]= Ax->XYZspan[1]= Ax->XYZspan[2]= 100.0;
    Ax->MTspace = 10; Ax->mTspace = 2;
    Ax->MTsize = 4; Ax->mTsize = 2;
-   Ax->DoCross = 1;
+   {
+      char *eee = getenv("SUMA_UseCrossTicks");
+      if (eee) {
+         SUMA_TO_LOWER(eee);
+         if (strcmp (eee, "yes") == 0) Ax->DoCross = 1;
+            else Ax->DoCross = 0;
+      } else {
+         Ax->DoCross = 0;
+      }
+   }
+   
    Ax->Center[0] = sv->GVS[sv->StdView].RotaCenter[0];
    Ax->Center[1] = sv->GVS[sv->StdView].RotaCenter[1];
    Ax->Center[2] = sv->GVS[sv->StdView].RotaCenter[2];
@@ -801,13 +820,10 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
 #define SUMA_SORTED_AXIS_WORKS { \
             ASIp->Quad[0] = Q[ASIp->PointIndex[0]];   \
             ASIp->Quad[1] = Q[ASIp->PointIndex[1]];   \
-            for (i=0;i<3;++i) d[i] = ( P[ASIp->PointIndex[0]][i] - P[ASIp->PointIndex[1]][i] ); \
-            SUMA_NORM_VEC (d, 3, d1); \
-            for (i=0;i<2;++i) d[i] = ( S[ASIp->PointIndex[0]*3+i] - S[ASIp->PointIndex[1]*3+i] );  \
-            SUMA_NORM_VEC (d, 2, d2);  \
-            ASIp->upp = d1 / d2; \
-            ASIp->uppx = d1 / (S[ASIp->PointIndex[0]*3] - S[ASIp->PointIndex[1]*3]);   \
-            ASIp->uppy = d1 / (S[ASIp->PointIndex[0]*3+1] - S[ASIp->PointIndex[1]*3+1]);   \
+            for (i=0;i<3;++i) d[i] = ( P[ASIp->PointIndex[1]][i] - P[ASIp->PointIndex[0]][i] ); \
+            SUMA_NORM_VEC (d, 3, ASIp->world_length); \
+            ASIp->screen_length_x = S[ASIp->PointIndex[1]*3] - S[ASIp->PointIndex[0]*3];   \
+            ASIp->screen_length_y = S[ASIp->PointIndex[1]*3+1] - S[ASIp->PointIndex[0]*3+1];   \
             for (i=0;i<3;++i) d[i] = ( ( P[ASIp->PointIndex[0]][i] + P[ASIp->PointIndex[1]][i] ) / 2.0 - sv->Pcenter_close[i] ); \
             SUMA_NORM_VEC (d, 3, ASIp->MidSegDist);   \
             for (i=0;i<2;++i) d[i] = ( S[ASIp->PointIndex[0]*3+i] - LLC[i] );  \
@@ -822,6 +838,11 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
             SUMA_NORM_VEC (d, 3, d2); if (d1 < d2) ASIp->MidFaceDist = d1; else ASIp->MidFaceDist = d2;  \
             SUMA_COPY_VEC(P[ASIp->PointIndex[0]], ASIp->P1, 3, double, double);  \
             SUMA_COPY_VEC(P[ASIp->PointIndex[1]], ASIp->P2, 3, double, double);  \
+            ASIp->TxOff[0] = (-ASIp->tick2_dir[0] - ASIp->tick1_dir[0]);   \
+            ASIp->TxOff[1] = (-ASIp->tick2_dir[1] - ASIp->tick1_dir[1]);   \
+            ASIp->TxOff[2] = (-ASIp->tick2_dir[2] - ASIp->tick1_dir[2]);   \
+            SUMA_NORM_VEC (ASIp->TxOff, 3, d1); /* DO NOT USE /= in the next line !!! */\
+            ASIp->TxOff[0] = ASIp->TxOff[0] / d1; ASIp->TxOff[1] = ASIp->TxOff[1] / d1; ASIp->TxOff[2] = ASIp->TxOff[2] / d1; \
 }
 /*!
    
@@ -836,7 +857,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
 DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_SORT_BOX_AXIS_OPTION opt)
 {
    static char FuncName[]={"SUMA_SortedAxisSegmentList"};
-   double P[8][3], C[6][3], d[3], d1, d2, S[24], upp, uppx, uppy;
+   double P[8][3], C[6][3], d[3], d1, d2, S[24], world_length, screen_length_x, screen_length_y;
    int Q[8];
    static double xAx[3] = {1, 0, 0}, yAx[3] = { 0, 1, 0 }, zAx[3] = {0, 0, 1}, LLC[3] = {0, 0, 0};
    static double mxAx[3] = {-1, 0, 0}, myAx[3] = { 0, -1, 0 }, mzAx[3] = {0, 0, -1};
@@ -890,9 +911,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 1; /* b */
             ASIp->FaceIndex[0] = 0; /* Plane a, b, f, e */
             ASIp->FaceIndex[1] = 1; /* Plane a, b, d, c */
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(zAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(yAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 1: /* Seg 2 */
             ASIp->AxisDim = 0;  /* X axis */
@@ -900,9 +921,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 3; /* d */
             ASIp->FaceIndex[0] = 1; /* Plane a, b, d, c */
             ASIp->FaceIndex[1] = 5; /* Plane c, d, h, g */
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(zAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(myAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 2: /* Seg 3 */
             ASIp->AxisDim = 0;  /* X axis */
@@ -910,9 +931,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 5; /* f */
             ASIp->FaceIndex[0] = 0; /* Plane a, b, f, e*/
             ASIp->FaceIndex[1] = 3; /* Plane e, f, h, g*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(mzAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(yAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 3: /* Seg 4 */ 
             ASIp->AxisDim = 0;  /* X axis */
@@ -920,9 +941,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 7; /* h */
             ASIp->FaceIndex[0] = 5; /* Plane c, d, h, g*/
             ASIp->FaceIndex[1] = 3; /* Plane e, f, h, g*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(mzAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(myAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 4: /* seg 5*/ 
             ASIp->AxisDim = 1; /* Y axis */
@@ -930,9 +951,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 2; /* c */
             ASIp->FaceIndex[0] = 1; /* Plane a, b, d, c*/
             ASIp->FaceIndex[1] = 2; /* Plane a, c, g, e*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(xAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(zAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 5: /* seg 6*/ 
             ASIp->AxisDim = 1; /* Y axis */ 
@@ -940,9 +961,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 3; /* d */
             ASIp->FaceIndex[0] = 1; /* Plane a, b, d, c*/
             ASIp->FaceIndex[1] = 4; /* Plane b, d, h, f*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(mxAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(zAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 6: /* seg 7*/ 
             ASIp->AxisDim = 1; /* Y axis */ 
@@ -950,9 +971,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 6; /* g */
             ASIp->FaceIndex[0] = 2; /* Plane a, c, g, e*/
             ASIp->FaceIndex[1] = 3; /* Plane e, f, h, g*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(xAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(mzAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 7: /* seg 8*/ 
             ASIp->AxisDim = 1; /* Y axis */ 
@@ -960,9 +981,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 7; /* h */
             ASIp->FaceIndex[0] = 3; /* Plane e, f, h, g*/
             ASIp->FaceIndex[1] = 4; /* Plane b, d, h, f*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(mxAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(mzAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 8: /* seg 9*/ 
             ASIp->AxisDim = 2; /* Z axis */ 
@@ -970,9 +991,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 4; /* e */
             ASIp->FaceIndex[0] = 0; /* Plane a, b, f, e */
             ASIp->FaceIndex[1] = 2; /* Plane a, c, g, e */
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(xAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(yAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 9: /* seg 10*/ 
             ASIp->AxisDim = 2; /* Z axis */ 
@@ -980,9 +1001,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 5; /* f */
             ASIp->FaceIndex[0] = 0; /* Plane a, b, f, e*/
             ASIp->FaceIndex[1] = 4; /* Plane b, d, h, f*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(mxAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(yAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 10: /* seg 11*/ 
             ASIp->AxisDim = 2; /* Z axis */ 
@@ -990,9 +1011,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 6; /* g */
             ASIp->FaceIndex[0] = 5; /* Plane c, d, h, g*/
             ASIp->FaceIndex[1] = 2; /* Plane a, c, g, e*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(xAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(myAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
          case 11: /* seg 12*/ 
             ASIp->AxisDim = 2; /* Z axis */ 
@@ -1000,9 +1021,9 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             ASIp->PointIndex[1] = 7; /* h */
             ASIp->FaceIndex[0] = 5; /* Plane c, d, h, g*/
             ASIp->FaceIndex[1] = 4; /* Plane b, d, h, f*/
-            SUMA_SORTED_AXIS_WORKS;
             SUMA_COPY_VEC(mxAx, ASIp->tick1_dir, 3, double, double);
             SUMA_COPY_VEC(myAx, ASIp->tick2_dir, 3, double, double);
+            SUMA_SORTED_AXIS_WORKS;
             break;
       }
    }
@@ -1080,8 +1101,8 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
             Elm = dlist_next(Elm);
          }
          ASIp = (SUMA_AxisSegmentInfo *)Elm->data;
-         if (LocalHead) fprintf (SUMA_STDERR,"%s:\ni %d\ttype %d\tMidSegDist %f\tMidFaceDist %f\tQuads[%d, %d]\t upp, uppx, uppy = [%.2f %.2f %.2f]\n", 
-                     FuncName, i, ASIp->AxisDim, ASIp->MidSegDist, ASIp->MidFaceDist, ASIp->Quad[0], ASIp->Quad[1], ASIp->upp, ASIp->uppx, ASIp->uppy);
+         if (LocalHead) fprintf (SUMA_STDERR,"%s:\ni %d\ttype %d\tMidSegDist %f\tMidFaceDist %f\tQuads[%d, %d]\t world_length, screen_length_x, screen_length_y = [%.2f %.2f %.2f]\n", 
+                     FuncName, i, ASIp->AxisDim, ASIp->MidSegDist, ASIp->MidFaceDist, ASIp->Quad[0], ASIp->Quad[1], ASIp->world_length, ASIp->screen_length_x, ASIp->screen_length_y);
          ++i;
       } while(Elm != dlist_tail(list));
    }
@@ -1164,11 +1185,11 @@ SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
          do {
             ASI = (SUMA_AxisSegmentInfo *)Elm->data;
             if (ASI->AxisDim == 0) {
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: X axis, i = %d, Elm = %p\n", FuncName, i, Elm); 
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: X axis, i = %d, SegIndex = %d, world, Sx, Sy = %.2f,%.2f,%.2f, off = %f, %f %f\n", FuncName, i, ASI->SegIndex, ASI->world_length, ASI->screen_length_x, ASI->screen_length_y, ASI->TxOff[0], ASI->TxOff[1],ASI->TxOff[2]); 
             } else if (ASI->AxisDim == 1) {
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Y axis, i = %d, Elm = %p\n", FuncName, i, Elm); 
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Y axis, i = %d, SegIndex = %d, world, Sx, Sy = %.2f,%.2f,%.2f, off = %f, %f %f\n", FuncName, i, ASI->SegIndex, ASI->world_length, ASI->screen_length_x, ASI->screen_length_y, ASI->TxOff[0], ASI->TxOff[1],ASI->TxOff[2]); 
             } else if (ASI->AxisDim == 2) {
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Z axis, i = %d, Elm = %p\n", FuncName, i, Elm); 
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Z axis, i = %d, SegIndex = %d, world, Sx, Sy = %.2f,%.2f,%.2f, off = %f, %f %f\n", FuncName, i, ASI->SegIndex, ASI->world_length, ASI->screen_length_x, ASI->screen_length_y, ASI->TxOff[0], ASI->TxOff[1],ASI->TxOff[2]); 
             } else { SUMA_S_Err("Major bobo."); SUMA_RETURN(NOPE); }
             
             if (i < 3 && (sv->ShowWorldAxis == SUMA_THREE_TEXT_WAX || sv->ShowWorldAxis == SUMA_BOX_TEXT_WAX)) 
@@ -1232,7 +1253,8 @@ SUMA_Boolean SUMA_AxisText(SUMA_AxisSegmentInfo *ASIp, double *Ps)
    /* do some text action */
    if (valid) {
       glColor3fv(txcol); 
-      sprintf(txt,"%.2f", Ps[ASIp->AxisDim]);
+      sprintf(txt,"%.1f", Ps[ASIp->AxisDim]);
+      /* sprintf(txt,"%s", MV_format_fval2(Ps[ASIp->AxisDim], 5)); */
       for (is=0; txt[is] != '\0'; is++) {
          glutBitmapCharacter(GLUT_BITMAP_9_BY_15, txt[is]);
       }  
@@ -1251,10 +1273,10 @@ SUMA_Boolean SUMA_AxisText(SUMA_AxisSegmentInfo *ASIp, double *Ps)
 SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA_Boolean AddText)
 {
    static char FuncName[]={"SUMA_DrawLineAxis"};
-   double u3[3],nu, nu3, size[2], space[2];
+   double u3[3],nu, nu3, txofffac, size[2], space[2];
    double Pt[3], Ps[3];
    int prec = 1000, NmT;
-   int i, jj;
+   int i, jj, nTick[2];
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    SUMA_Boolean LocalHead = NOPE;
       
@@ -1332,9 +1354,20 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
             glVertex3f(Ps[0]+ASIp->tick1_dir[0]*size[jj], Ps[1]+ASIp->tick1_dir[1]*size[jj], Ps[2]+ASIp->tick1_dir[2]*size[jj]);
             glVertex3f(Ps[0], Ps[1], Ps[2]);
             glVertex3f(Ps[0]+ASIp->tick2_dir[0]*size[jj], Ps[1]+ASIp->tick2_dir[1]*size[jj], Ps[2]+ASIp->tick2_dir[2]*size[jj]);
+               #if 0 /* for a little debug */
+               if (jj==1) {
+                  glVertex3f(Ps[0], Ps[1], Ps[2]);
+                  txofffac = 1.0 * size[1];
+                  Ps[0] = i*space[1]*u3[0] + Pt[0] + txofffac * ASIp->TxOff[0]; 
+                  Ps[1] = i*space[1]*u3[1] + Pt[1] + txofffac * ASIp->TxOff[1]; 
+                  Ps[2] = i*space[1]*u3[2] + Pt[2] + txofffac * ASIp->TxOff[2];
+                  glVertex3f(Ps[0], Ps[1], Ps[2]);
+               }
+               #endif
             ++i;
          }
       }
+      nTick[jj] = i-1;
       
       
    }
@@ -1345,12 +1378,38 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
          
 
    if (AddText) { /* do the text for major ticks only */
+      float MinYstep, MinXstep, dSxT, dSyT, curXstep, curYstep;
+      int OKnext;
+      dSxT = (float)fabs(ASIp->screen_length_x) / (float)nTick[1];
+      dSyT = (float)fabs(ASIp->screen_length_y) / (float)nTick[1];
+      MinYstep = 15 ; /* height of letters in pixels (using GLUT_BITMAP_9_BY_15) */
+      MinXstep = 9 * 5; /* length of string in pixels (around 5 chars, including sign, using %.1f )*/
+      if (LocalHead) fprintf (SUMA_STDERR,"%s:\ndS = %f, %f\n", FuncName, dSxT, dSyT);
       i = 0;
-      while (i*space[1] < nu3) {
-         Ps[0] = i*space[1]*u3[0] + Pt[0]; Ps[1] = i*space[1]*u3[1] + Pt[1]; Ps[2] = i*space[1]*u3[2] + Pt[2];
-         SUMA_AxisText(ASIp, Ps);
-         ++i;
+      if (Ax->DoCross) { /* size has already been modified above ... */
+         /* perhaps add a factor to the shift below, we'll see .. */
+         txofffac = 2.0 * size[1];
+      } else {
+         txofffac = 1.0 * size[1];
       }
+            OKnext = 1;
+            curXstep =0; curYstep=0;
+            while (i*space[1] < nu3) {
+               if(OKnext) {
+                  Ps[0] = i*space[1]*u3[0] + Pt[0] + txofffac * ASIp->TxOff[0]; 
+                  Ps[1] = i*space[1]*u3[1] + Pt[1] + txofffac * ASIp->TxOff[1]; 
+                  Ps[2] = i*space[1]*u3[2] + Pt[2] + txofffac * ASIp->TxOff[2];
+                  SUMA_AxisText(ASIp, Ps);
+               }
+               curXstep += dSxT; curYstep += dSyT; 
+               if (curXstep > MinXstep || curYstep > MinYstep) { 
+                  OKnext = 1;
+                  curXstep =0; curYstep=0;
+               } else {
+                  OKnext = 0;
+               }
+               ++i;
+            }
    }
    
    SUMA_RETURN(YUP);
