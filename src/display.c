@@ -1392,9 +1392,9 @@ int DC_parse_color( MCW_DC *dc, char *str, float *rr, float *gg, float *bb )
    XColor cell ; int ok ;
    ok = XParseColor( dc->display , dc->colormap , str, &cell ) ;
    if( ok ){
-      *rr = cell.red   / 65536.0 ;
-      *gg = cell.green / 65536.0 ;
-      *bb = cell.blue  / 65536.0 ;
+      *rr = cell.red   / 65535.0 ;
+      *gg = cell.green / 65535.0 ;
+      *bb = cell.blue  / 65535.0 ;
       return 0 ;
    }
    return 1 ;

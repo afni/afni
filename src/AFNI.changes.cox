@@ -3909,3 +3909,7 @@
  * Modified xutil.h WAIT_for_window() macro to wait a little longer.
      This is in an attempt to get rid of random problems with graph
      windows opening with bad Pixmap contents.
+
+19 Aug 2002
+ * Modified afni_sumafunc.c (afni.h, etc.) to have a control panel for
+     surface stuff.  At this time, lets user set colors.

@@ -10,7 +10,7 @@
 /*! Port number for talking to AFNI */
 
 #ifndef SUMA_TCP_PORT
-#define SUMA_TCP_PORT 53211
+#define SUMA_TCP_PORT 53211   /* my Zip code in Wisconsin */
 #endif
 
 /*--- define types ---*/
@@ -73,6 +73,8 @@ typedef struct {
 
   char idcode[32] ;            /*!< IDCODE string for this structure */
   char idcode_dset[32] ;       /*!< IDCODE string for AFNI dataset */
+
+  char label[32] ;             /*!< Label for user-interaction [19 Aug 2002] */
 } SUMA_surface ;
 
 /*! Macro for node count in a SUMA_surface struct */

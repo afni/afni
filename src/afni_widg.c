@@ -1314,6 +1314,7 @@ STATUS("making view->rowcol") ;
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->marks_rowcol ,
             LABEL_ARG("Define Markers") ,
+            XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1381,6 +1382,7 @@ STATUS("making view->rowcol") ;
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->func_rowcol ,
             LABEL_ARG("Define Function") ,
+            XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1426,6 +1428,7 @@ STATUS("making view->rowcol") ;
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->rowcol ,
             LABEL_ARG("Define Datamode") ,
+            XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1470,6 +1473,7 @@ STATUS("making view->rowcol") ;
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
             LABEL_ARG("Switch Session") ,
+            XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1489,6 +1493,7 @@ STATUS("making view->rowcol") ;
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
             LABEL_ARG("Switch Anatomy") ,
+            XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1515,6 +1520,7 @@ STATUS("making view->rowcol") ;
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
             LABEL_ARG("Switch Function") ,
+            XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1531,6 +1537,32 @@ STATUS("making view->rowcol") ;
     ) ;
    MCW_register_hint( view->choose_func_pb ,
                       "Switch between functional datasets" ) ;
+
+   view_count ++ ;
+
+   /* 19 Aug 2002: Surface chooser! */
+
+   view->choose_surf_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
+            LABEL_ARG("Control Surface") ,
+            XmNmarginHeight , 1 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( view->choose_surf_pb , XmNactivateCallback ,
+                  AFNI_choose_surface_CB , im3d ) ;
+
+   MCW_register_help( view->choose_surf_pb ,
+                       "Use this to control the display\n"
+                       "of overlaid surfaces in image\n"
+                       "viewing windows."
+                    ) ;
+   MCW_register_hint( view->choose_surf_pb ,
+                      "Control surface overlay" ) ;
+
+   view->swid = NULL ;   /* no widgets for surface yet */
 
    view_count ++ ;
 
@@ -1601,7 +1633,7 @@ STATUS("making view->rowcol") ;
 
    xstr = XmStringCreateLtoR("(y[M",XmFONTLIST_DEFAULT_TAG );
    XtVaGetValues( view->choose_func_pb , XmNfontList , &xflist , NULL ) ;
-   view_height = (12 + XmStringHeight(xflist,xstr)) * view_count ;
+   view_height = (10 + XmStringHeight(xflist,xstr)) * view_count ;
    XmStringFree( xstr ) ;
 
    EXRETURN ;

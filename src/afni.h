@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.50d"
+#define VERSION "2.50e"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "16 Aug 2002      "
+#define RELEASE "19 Aug 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -355,6 +355,15 @@ typedef struct {
       Widget pop_mnito_pb ;  /* 01 May 2002 */
 } AFNI_imaging_widgets ;
 
+/*--- 19 Aug 2002: Switch Surface control box ---*/
+
+typedef struct {
+      Widget wtop , rowcol , done_pb ;
+      int nrow , nall ;
+      Widget *surf_rc , *surf_lab ;
+      MCW_arrowval **surf_node_av, **surf_line_av ;
+} AFNI_surface_widgets ;
+
 /*---*/
 
 typedef struct {
@@ -376,6 +385,9 @@ typedef struct {
              popchoose_sess_pb , popchoose_anat_pb , popchoose_func_pb ;
 
       Boolean marks_pb_inverted , func_pb_inverted , dmode_pb_inverted ;
+
+      Widget choose_surf_pb ;  /* 19 Aug 2002 */
+      AFNI_surface_widgets *swid ;
 } AFNI_viewing_widgets ;
 
 #define OPEN_PANEL(iq,panel)                                             \
@@ -1241,6 +1253,10 @@ extern void   AFNI_thresh_top_CB( MCW_arrowval * , XtPointer ) ;
 extern void AFNI_set_valabel( FD_brick *, int, MRI_IMAGE *, char * ) ;
 
 extern void AFNI_init_niml( void ) ; /* 28 Feb 2002 */
+
+extern void AFNI_choose_surface_CB( Widget , XtPointer , XtPointer ) ; /* 19 Aug 2002 */
+extern void AFNI_update_surface_widgets( Three_D_View * ) ;
+extern void AFNI_update_all_surface_widgets( THD_3dim_dataset * ) ;
 
 /*-------------------------------------------------------------------
   Include prototypes for actual data warping and slicing here.

@@ -25,7 +25,7 @@ ENTRY("SUMA_create_empty_surface") ;
       fprintf(stderr,"SUMA_create_empty_surface: can't malloc!\n"); EXIT(1);
    }
 
-   ag->idcode[0] = ag->idcode_dset[0] = '\0' ;
+   ag->idcode[0] = ag->idcode_dset[0] = ag->label[0] = '\0' ;
 
    ag->xbot = ag->ybot = ag->zbot =  WAY_BIG ;
    ag->xtop = ag->ytop = ag->ztop = -WAY_BIG ;
@@ -350,6 +350,8 @@ ENTRY("SUMA_read_surface") ;
    cpt = UNIQ_hashcode(fname); strcpy(ag->idcode,cpt); free(cpt);
 
    strcpy( ag->idcode_dset , dset->idcode.str ) ;
+
+   NI_strncpy( ag->label, THD_trailname(fname,0), 32 ) ;  /* 19 Aug 2002 */
 
    /*-- read data --*/
 
