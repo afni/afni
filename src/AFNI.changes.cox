@@ -4311,3 +4311,6 @@
 18 Feb 2003
  * Modified afni_func.c to add a hint to the colorscale.
  * Modified NIML stuff to use rowtypes more properly (niml_element.c, etc.).
+ * Modified various Makefile.* to define SHOWOFF macro (once again).
+ * Modified afni_version.c to print out appropriate wget command for update.
+ * Modified afni.c to printout precompiled version, if present.
