@@ -42,7 +42,9 @@ int main( int argc , char * argv[] )
              "                 must have the same number of voxels.\n"
              "               SPECIAL CASE: If 'mset' is the string 'SELF',\n"
              "                             then the input dataset will be\n"
-             "                             used to mask itself.\n"
+             "                             used to mask itself.  That is,\n"
+             "                             only nonzero voxels from the\n"
+             "                             #miv sub-brick will be used.\n"
              "  -mindex miv  Means to use sub-brick #'miv' from the mask\n"
              "                 dataset.  If not given, miv=0.\n"
              "  -mrange a b  Means to further restrict the voxels from\n"
@@ -248,6 +250,14 @@ int main( int argc , char * argv[] )
    }
 #endif
 
+   /* read input dataset */
+
+   input_dset = THD_open_dataset( argv[narg] ) ;
+   if( input_dset == NULL ){
+     fprintf(stderr,"*** Cannot open input dataset!\n") ; exit(1) ;
+   }
+   if( self_mask ) mask_dset = input_dset ;  /* 06 Dec 2004 */
+
    if( miv > 0 ){                /* 06 Aug 1998 */
      if( mask_dset == NULL ){
        fprintf(stderr,"*** -mindex option used without -mask!\n") ; exit(1) ;
@@ -255,13 +265,6 @@ int main( int argc , char * argv[] )
      if( miv >= DSET_NVALS(mask_dset) ){
        fprintf(stderr,"*** -mindex value is too large!\n") ; exit(1) ;
      }
-   }
-
-   /* read input dataset */
-
-   input_dset = THD_open_dataset( argv[narg] ) ;
-   if( input_dset == NULL ){
-     fprintf(stderr,"*** Cannot open input dataset!\n") ; exit(1) ;
    }
 
    if( DSET_BRICK_TYPE(input_dset,0) == MRI_complex ){
@@ -295,9 +298,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Cannot malloc workspace!\n") ; exit(1) ;
    }
 
-   if( mask_dset != NULL || self_mask ){
-      if( self_mask ) mask_dset = input_dset ;  /* 06 Dec 2004 */
-      else
+   if( mask_dset != NULL ){
       if( DSET_NVOX(mask_dset) != nvox ){
         fprintf(stderr,"*** Input and mask datasets are not same dimensions!\n") ;
         exit(1) ;

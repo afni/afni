@@ -1012,11 +1012,13 @@ afni_src.tgz:
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
 
+### Make the source of the Matlab code
+
 afni_matlab.tgz:
-	$(MKDIR) afni_src
-	$(CP) -r matlab ./afni_src
-	$(TAR) cf - afni_src | $(GZIP) -9v > afni_matlab.tgz
-	$(RM) -r afni_src
+	$(MKDIR) afni_matlab
+	$(CP) -r matlab ./afni_matlab
+	$(TAR) cf - afni_matlab | $(GZIP) -9v > afni_matlab.tgz
+	$(RM) -r afni_matlab
 
 ### Make the documentation distribution: only for use by RWCox
 
