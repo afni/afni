@@ -442,7 +442,9 @@ char * shm_attach( int shmid )
 {
    char * adr ;
    adr = (char *) shmat( shmid , NULL , 0 ) ;
-   if( adr == (char *) -1 ){ adr = NULL ; PERROR("Can't attach shared memory? shm_attach") ; }
+   if( adr == (char *) -1 ){
+     adr = NULL ; PERROR("Can't attach shared memory? shm_attach") ;
+   }
    return adr ;
 }
 
@@ -458,7 +460,7 @@ int shm_size( int shmid )
 
    if( shmid < 0 ) return -1 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
-   if( ii < 0 ){ PERROR("Can't check shared memory? shm_size") ;  return -1 ; }
+   if( ii < 0 ){ PERROR("Can't check shared memory? shm_size");  return -1; }
    return buf.shm_segsz ;
 }
 
