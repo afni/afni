@@ -544,12 +544,16 @@ L_CREATE_BRICK:
 
     # create BRIK with to3d
 
+    #SLAB changed by ZSS Mar 12 04. was 0.5 mm off. Bug pointed
+    #out by A. Thomas. Good info found here:
+    #www.wideman-one.com/gw/brain/fs/coords/fscoords.htm
+    
     if ( $neuro_ori == 1 ) then
-	to3d -prefix $afni_prefix -xSLAB 127.5L-R -ySLAB 127.5S-I \
-	     -zSLAB 127.5P-A $cor_files
+	to3d -prefix $afni_prefix -xSLAB 127L-128R -ySLAB 128S-127I \
+	     -zSLAB 128P-127A $cor_files
     else
-	to3d -prefix $afni_prefix -xSLAB 127.5R-L -ySLAB 127.5S-I \
-	     -zSLAB 127.5P-A $cor_files
+	to3d -prefix $afni_prefix -xSLAB 128R-127L -ySLAB 128S-127I \
+	     -zSLAB 128P-127A $cor_files
     endif
 
     mv $afni_dataset.HEAD $afni_dataset.BRIK $start_dir/$suma_dir

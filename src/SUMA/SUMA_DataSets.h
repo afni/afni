@@ -51,6 +51,7 @@ typedef enum {
    SUMA_NODE_Gb,      /*!< Node G color in bytes*/
    SUMA_NODE_Bb,      /*!< Node B color in bytes*/
    SUMA_NODE_Ab,      /*!< Node A value in bytes*/ 
+   SUMA_NODE_STRING   /*!< Generic String */
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr

@@ -169,7 +169,7 @@ typedef enum { SEI_WTSDS,
                SEI_Head, SEI_Tail, SEI_Before, SEI_After, SEI_In,
                SEI_BadLoc } SUMA_ENGINE_INSERT_LOCATION;
                
-typedef enum { SUMA_byte, SUMA_int, SUMA_float, SUMA_double, SUMA_string} SUMA_VARTYPE;
+typedef enum { SUMA_notypeset = -1, SUMA_byte, SUMA_int, SUMA_float, SUMA_double, SUMA_string} SUMA_VARTYPE;
 typedef enum {    SOPT_ibbb,  /*!< int, byte, byte, byte, null */
                   SOPT_ifff   /*!< int, float, float, float, null */
             } SUMA_OVERLAY_PLANE_TYPE; /*!< type of color plane data, letters code for 
@@ -195,8 +195,9 @@ typedef enum { SW_View,
                                                       Make sure you begin with SW_View and end
                                                       with SW_N_View */
 typedef enum { SW_Help, 
-               SW_HelpViewer,  SW_HelpMessageLog, SW_HelpSep1, SW_HelpIONotify,
-               SW_HelpMemTrace,  
+               SW_HelpUsage,  SW_HelpMessageLog, SW_HelpSep1, 
+               SW_HelpSUMAGlobal, SW_HelpViewerStruct, SW_HelpSurfaceStruct, SW_HelpSep2, 
+               SW_HelpIONotify, SW_HelpMemTrace,  
                SW_N_Help } SUMA_WIDGET_INDEX_HELP; /*!< Indices to widgets under Help menu.
                                                          Make sure you begin with SW_View and end
                                                          with SW_N_View */                                                   
@@ -331,6 +332,9 @@ typedef struct {
 /*! Structure containing a color map */
 typedef struct {
    float ** M; /*!< N_Col x 3 matrix of R G B values (0..1) */
+   char **cname; /*!< N_Col pointers to strings containing name of 
+                       each color. This can be NULL when no names are 
+                       assigned*/
    int N_Col; /*!< number of colors in the color map */
    float *frac; /*!< N_col x 1 vector containing the fraction of scale 
                      assigned to each color, these are
@@ -358,10 +362,10 @@ typedef struct {
    SUMA_Boolean Show; /*!< if YUP then this overlay enters the composite color map */
    char *Name; /*!< name of ovelay, CONVEXITY or Functional or areal boundaries perhaps. The Name can be a filename with path*/
    char *Label; /*!< Usually the same as Name without any existing path */
-   int *NodeDef; /*!< nodes overwhich the colors are defined*/
+   int *NodeDef; /*!< nodes over which the colors are defined*/
    int N_NodeDef; /*!< total number of nodes specified in NodeDef*/
    int N_Alloc; /*!< You'd think this should be equal to NodeDef, but in instances where you may be receiving
-             varying numbers of colors to the same plane, it's a pane to have to free and realloc space.
+             varying numbers of colors to the same plane, it's a pain to have to free and realloc space.
              So, while the juice is only up to N_NodeDef, the allocation is for N_Alloc */
    float **ColMat; /*!< N_NodeDef x 3 matrix containing colors of nodes specified in NodeDef */
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to all values in ColMat */
@@ -370,9 +374,49 @@ typedef struct {
    SUMA_Boolean BrightMod; /*!< if YUP then colors overlaid on top of this plane have their 
                               brightness modulated by the average intensity of the colors in that 
                               plane see the function SUMA_Overlays_2_GLCOLAR4 for details. 
-                              In other obscure words, if YUP then plane is part of background.*/  
+                              In other obscure words, if YUP then plane is part of background.*/ 
+   
+   /* New additions, Fri Feb 20 13:21:28 EST 2004 */
+   char *dset_idcode_str; /*!< unique identifer of the data set of type SUMA_DSET 
+                               attached to this overlay plane */   
+   int N_sub;  /*!< Number of sub-bricks in data vector */
+   char *cmapname; /*!< name of colormap (must be in SUMAg_CF->scm)  */
+   int find;   /*!< index of function sub-brick */
+   int tind;   /*!< index of thresholf sub-brick */
+   int bind;   /*!< index of attenuation sub-brick */
+   
 } SUMA_OVERLAYS;
 
+/*! Structure to contain a dataset defined on the surface */
+typedef struct {
+   /* WHAT WILL YOU DO ABOUT THE FACT THAT YOU'LL NEED NodeDef 
+   and N_NodeDef both here AND in SUMA_OVERLAYS. 
+   You Might want to move it here because it is not 
+   really a property of SUMA_OVERLAYS. 
+   But you'll need a quick way to grab it from SUMA_DSET 
+   for a certain overlay and you'll need to create a SUMA_DSET
+   when you load a color file ... */
+   char *idcode_str; /*!< Unique identifier for this data set */
+   char *domain_idcode_str; /*!< Unique identifier for the domain over which this set is defined */
+   
+   void *data; /*!<  Vector containing node values. 
+                     Length of this vector is N_sub*NodeDef
+                     if order is SUMA_COLUMN_MAJOR then consecutive
+                     values in data correspond to consecutive nodes
+                     in NodeDef. Otherwise if SUMA_ROW_MAJOR, ordering
+                     is used then consecutive values correspond to different
+                     sub-brick values at the same node.
+                     You do not have to have data associated with an overlay plane,
+                     it can be just colors*/
+   SUMA_INDEXING_ORDER order; /*!< way in which node data are ordered in data vector.
+                                   See data for more info */
+   SUMA_VARTYPE tp; /*!< type of values stored in data */
+   SUMA_Boolean SortedNodeDef; /*!< flag indicating that nodes in NodeDef are sorted.
+                                    Need function to do binary search for a certain
+                                    node index... IS IT ALWAYS THE CASE THAT NodeDef 
+                                    is used or is it assumed that indexing is explicit
+                                    when a complete set is loaded ?*/ 
+} SUMA_DSET;
 
 typedef enum { SUMA_UNDEFINED_MODE, 
                SUMA_DIRECT, /*!< no interpolation on the colormap, node value is typecast to int and directly used
@@ -874,6 +918,7 @@ typedef struct {
    SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio button groups */
    Widget *LockView_tbg;   /*!< vector of toggleview buttons */
    Widget LockAllView_tb;  /*!< widget of toggleAllview button */
+   SUMA_CREATE_TEXT_SHELL_STRUCT *SumaInfo_TextShell;
 }SUMA_X_SumaCont;
 
 
@@ -1562,69 +1607,7 @@ typedef struct {
 
 /* *** Niml defines end */
 
-/*! structure containing information global to all surface viewers */
-typedef struct {
-   SUMA_Boolean Dev; /*!< Flag for developer option (allows the use of confusing or kludge options) */
-   SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function is entered or exited */ 
-   int InOut_Level; /*!< level of nested function calls */
-   
-   int N_OpenSV; /*!< Number of open (visible) surface viewers.
-                     Do not confuse this with the number of surface viewers
-                     created (SUMAg_N_SVv)*/
-   
-   SUMA_MEMTRACE_STRUCT *Mem; /*!< structure used to keep track of memory usage */
-   SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage (must also set SUMA_MEMTRACE_FLAG ) */
-
-   char HostName_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH];   /*!<  name or ipaddress of hosts maximum allowed name is 20
-                                                                      chars less than allocated for, see SUMA_Assign_AfniHostName
-                                                                      *** Dec. 19 03: This field used to be called AfniHostName
-                                                                      It is now a vector of hostnmes allowing for multiple
-                                                                      connections. 
-                                                                      AfniHostName = HostName_v[SUMA_AFNI_STREAM_INDEX]*/ 
-   char NimlStream_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH]; /*!< niml stream name for communicating with other programs 
-                                                                 *** Dec. 19 03: This field used to be called AfniNimlStream
-                                                                 AfniNimlStream = NimlStream_v[SUMA_AFNI_STREAM_INDEX]*/
-   NI_stream ns_v[SUMA_MAX_STREAMS]; /*!< 
-                     *** Pre: Dec 19 03:
-                     Stream used to communicate with AFNI. 
-                     It is null when no communication stream is open. 
-                     The stream can be open with Connected set to NOPE.
-                     In that case no communication between the two programs
-                     but resuming communication is easy since surfaces need
-                     not be sent to AFNI again as would be the case if the stream 
-                     was completely closed 
-                     *** Dec. 19 03
-                     Used to be called ns for connecting to AFNI.
-                     ns = ns_v[SUMA_AFNI_STREAM_INDEX]*/
-   int ns_flags_v[SUMA_MAX_STREAMS];
-   int TCP_port[SUMA_MAX_STREAMS];
-   
-   SUMA_Boolean Connected_v[SUMA_MAX_STREAMS]; /*!< YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI 
-                                                   *** Dec. 19 03
-                                                   Vectorized Connected like fields above*/
-   int TrackingId_v[SUMA_MAX_STREAMS]; /*!<  for keeping track of serial number of incoming nels 
-                                             0 if not keeping track. So start numbering at 1*/
-   
-   SUMA_Boolean Listening; /*!< SUMA is listening for connections */
-   SUMA_Boolean niml_work_on; /*!< Flag indicating that niml workprocess is ON */
-   SUMA_LINK_TYPES Locked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that Locked[i] != SUMA_No_Lock have their cross hair locked together */   
-   SUMA_Boolean ViewLocked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that ViewLocked[i] = YUP have their view point locked together */    
-   SUMA_Boolean SwapButtons_1_3; /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
-   SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
-   DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
-   SUMA_Boolean ROI_mode; /*!< Flag specifying that SUMA is in ROI drawing mode */
-   SUMA_Boolean Pen_mode;  /*!< Flag specifying that a pen is being used for drawing */
-   SUMA_COLOR_MAP *ROI_CM; /*!< Color map used to map an ROI's index to a color */
-   SUMA_ROI_FILL_MODES ROI_FillMode; /*!< flag indicating how to fill a closed contour */
-   SUMA_COL_MIX_MODE ColMixMode; /*!< controls the way colors from multiple planes are mixed together */
-   SUMA_Boolean ROI2afni; /*!< Send ROIs to afni as you draw them*/
-   int nimlROI_Datum_type; /*!< the code for nimlROI_Datum_type */
-
-   char **GroupList; /*!< Names of surface groups */
-   int N_Group;   /*!< number of groups  available */
-
-} SUMA_CommonFields;
-               
+              
 /*! structure containing a surface patch */
 typedef struct {
    int N_FaceSet; /*!< Number of Facesets forming patch */
@@ -1817,5 +1800,70 @@ typedef enum {
    SUMA_GPSO1_is_GPSO2,     /*!< SO1 and SO2 have the same  granddaddy*/
 } SUMA_DOMAIN_KINSHIPS; /*!< The type of relationships between surfaces, modify 
                               function SUMA_DomainKinships_String; */
+/*! structure containing information global to all surface viewers */
+typedef struct {
+   SUMA_Boolean Dev; /*!< Flag for developer option (allows the use of confusing or kludge options) */
+   SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function is entered or exited */ 
+   int InOut_Level; /*!< level of nested function calls */
+   
+   int N_OpenSV; /*!< Number of open (visible) surface viewers.
+                     Do not confuse this with the number of surface viewers
+                     created (SUMAg_N_SVv)*/
+   
+   SUMA_MEMTRACE_STRUCT *Mem; /*!< structure used to keep track of memory usage */
+   SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage (must also set SUMA_MEMTRACE_FLAG ) */
 
+   char HostName_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH];   /*!<  name or ipaddress of hosts maximum allowed name is 20
+                                                                      chars less than allocated for, see SUMA_Assign_AfniHostName
+                                                                      *** Dec. 19 03: This field used to be called AfniHostName
+                                                                      It is now a vector of hostnmes allowing for multiple
+                                                                      connections. 
+                                                                      AfniHostName = HostName_v[SUMA_AFNI_STREAM_INDEX]*/ 
+   char NimlStream_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH]; /*!< niml stream name for communicating with other programs 
+                                                                 *** Dec. 19 03: This field used to be called AfniNimlStream
+                                                                 AfniNimlStream = NimlStream_v[SUMA_AFNI_STREAM_INDEX]*/
+   NI_stream ns_v[SUMA_MAX_STREAMS]; /*!< 
+                     *** Pre: Dec 19 03:
+                     Stream used to communicate with AFNI. 
+                     It is null when no communication stream is open. 
+                     The stream can be open with Connected set to NOPE.
+                     In that case no communication between the two programs
+                     but resuming communication is easy since surfaces need
+                     not be sent to AFNI again as would be the case if the stream 
+                     was completely closed 
+                     *** Dec. 19 03
+                     Used to be called ns for connecting to AFNI.
+                     ns = ns_v[SUMA_AFNI_STREAM_INDEX]*/
+   int ns_flags_v[SUMA_MAX_STREAMS];
+   int TCP_port[SUMA_MAX_STREAMS];
+   
+   SUMA_Boolean Connected_v[SUMA_MAX_STREAMS]; /*!< YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI 
+                                                   *** Dec. 19 03
+                                                   Vectorized Connected like fields above*/
+   int TrackingId_v[SUMA_MAX_STREAMS]; /*!<  for keeping track of serial number of incoming nels 
+                                             0 if not keeping track. So start numbering at 1*/
+   
+   SUMA_Boolean Listening; /*!< SUMA is listening for connections */
+   SUMA_Boolean niml_work_on; /*!< Flag indicating that niml workprocess is ON */
+   SUMA_LINK_TYPES Locked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that Locked[i] != SUMA_No_Lock have their cross hair locked together */   
+   SUMA_Boolean ViewLocked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that ViewLocked[i] = YUP have their view point locked together */    
+   SUMA_Boolean SwapButtons_1_3; /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
+   SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
+   DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
+   SUMA_Boolean ROI_mode; /*!< Flag specifying that SUMA is in ROI drawing mode */
+   SUMA_Boolean Pen_mode;  /*!< Flag specifying that a pen is being used for drawing */
+   SUMA_COLOR_MAP *ROI_CM; /*!< Color map used to map an ROI's index to a color */
+   SUMA_ROI_FILL_MODES ROI_FillMode; /*!< flag indicating how to fill a closed contour */
+   SUMA_COL_MIX_MODE ColMixMode; /*!< controls the way colors from multiple planes are mixed together */
+   SUMA_Boolean ROI2afni; /*!< Send ROIs to afni as you draw them*/
+   int nimlROI_Datum_type; /*!< the code for nimlROI_Datum_type */
+
+   char **GroupList; /*!< Names of surface groups */
+   int N_Group;   /*!< number of groups  available */
+
+   SUMA_AFNI_COLORS *scm;  /*!< a structure containing all the colormaps available to SUMA */
+   SUMA_DSET *dset_v; /*!< Vector of dataset structures */
+   int N_dset; /*!< number of datasets is dset_v */
+} SUMA_CommonFields;
+ 
 #endif

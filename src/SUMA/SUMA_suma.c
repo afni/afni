@@ -8,6 +8,7 @@
    
 #include "SUMA_suma.h"
 #include "../afni.h"
+#include <signal.h>
 
 /* CODE */
 
@@ -20,6 +21,64 @@ SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
 
+void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
+{
+   char * sname ;
+   static volatile int fff=0 ;
+   if( fff ) _exit(1) ; else fff = 1 ;
+   switch(sig){
+      default:      sname = "unknown" ; break ;
+      case SIGINT:  sname = "SIGINT"  ; break ;
+      case SIGPIPE: sname = "SIGPIPE" ; break ;
+      case SIGSEGV: sname = "SIGSEGV" ; break ;
+      case SIGBUS:  sname = "SIGBUS"  ; break ;
+      case SIGTERM: sname = "SIGTERM" ; break ;
+   }
+   fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
+   TRACEBACK ;
+   fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
+   exit(1) ;
+}
+
+#ifdef SUMA_DISASTER
+/*!
+   a function to test debugging 
+*/
+int * SUMA_disaster(void)
+{
+   static char FuncName[]={"SUMA_disaster"};
+   int *iv1=NULL, *iv2 = NULL, *iv3 = NULL;
+   int N_iv1, N_iv2;
+   int i;
+   
+   SUMA_ENTRY;
+   N_iv1 = 5;
+   N_iv2 = 5;
+   iv1 = (int*) SUMA_calloc(N_iv1, sizeof(int));
+   iv2 = (int*) SUMA_calloc(N_iv2, sizeof(int));
+   
+   /* overwrite iv1 */
+   iv1[N_iv1] = 3;
+   
+   /* overwrite iv2 */
+   iv2[N_iv2] = 7;
+   
+   /* free iv1 (that should give a warning)*/
+   SUMA_free(iv1); /* without the -trace option, 
+                      you'll get a warning of this corruption here */
+
+   /* try to free iv3 although it was not allocated for */
+   /* AFNI's functions do not check for this ...*/
+   /* SUMA_free(iv3);*/
+         
+   /* don't free iv2, that should only give a warning when you exit with -trace option turned on */
+   
+   /* if you use -trace, you'll get a warning at the return for iv2 
+   All allocated memory will be checked, at the return, not just iv2*/   
+   SUMA_RETURN(iv2); 
+}
+
+#endif
 
 void SUMA_usage ()
    
@@ -47,8 +106,16 @@ void SUMA_usage ()
                   "                     setting AfniHost to 127.0.0.1\n"
                   "   [-niml]: Start listening for NIML-formatted elements.\n"     
 			         "   [-dev]: Allow access to options that are not well polished for consuption.\n"     
-			         "   [-iodbg] Trun on the In/Out debug info from the start.\n"     
-			         "   [-memdbg] Turn on the memory tracing from the start.\n"     
+                  "   [-trace]: Turns on In/Out debug and Memory tracing.\n"
+                  "             For speeding up the tracing log, I recommend \n"
+                  "             you redirect stdout to a file when using this option:\n"
+                  "             suma -spec lh.spec -sv ... > TraceFile\n"
+                  "             This option replaces the old -iodbg and -memdbg.\n"
+                  "   [-TRACE]: Turns on extreme tracing.\n"
+                  "   [-nomall]: Turn off memory tracing.\n"
+                  "   [-yesmall]: Turn on memory tracing (default).\n"
+                  /*"   [-iodbg] Trun on the In/Out debug info from the start.\n"
+			         "   [-memdbg] Turn on the memory tracing from the start.\n" */    
                   "   [-visuals] Shows the available glxvisuals and exits.\n"
                   "   [-version] Shows the current version number.\n"
                   "   [-latest_news] Shows the latest news for the current \n"
@@ -116,13 +183,21 @@ int main (int argc,char *argv[])
    DListElmt *Element= NULL;
    int iv15[15], N_iv15, ispec;
    struct stat stbuf;
-   SUMA_Boolean Start_niml = NOPE;
+   SUMA_Boolean Start_niml = NOPE, Domemtrace = YUP;
    SUMA_Boolean LocalHead = NOPE;
    
     
+   SUMA_mainENTRY;
+   
 	/* allocate space for CommonFields structure */
 	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
+   /* install signal handler, shamelessly copied from AFNI) */
+   signal(SIGINT ,SUMA_sigfunc) ;   
+   signal(SIGBUS ,SUMA_sigfunc) ;
+   signal(SIGSEGV,SUMA_sigfunc) ;
+   signal(SIGTERM,SUMA_sigfunc) ;
+
    SUMA_process_environ();
    
    SUMAg_CF = SUMA_Create_CommonFields ();
@@ -130,9 +205,10 @@ int main (int argc,char *argv[])
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
+   SUMAg_CF->scm = SUMA_Get_AFNI_Default_Color_Maps();
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
-   
+   SUMA_ParseInput_basics (argv, argc);
    if (argc < 2)
        {
           SUMA_usage ();
@@ -155,6 +231,7 @@ int main (int argc,char *argv[])
    ispec = 0;
 	brk = NOPE;
 	SurfIn = NOPE;
+   Domemtrace = YUP; 
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		
@@ -197,15 +274,57 @@ int main (int argc,char *argv[])
 		}
       
 		if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
-			fprintf(SUMA_STDOUT,"Warning %s: SUMA running in in/out debug mode.\n", FuncName);
-			SUMAg_CF->InOut_Notify = YUP;
+			fprintf(SUMA_STDERR,"Error %s: Obsolete, use -trace\n", FuncName);
+			exit (0);
+         /*
+         fprintf(SUMA_STDOUT,"Warning %s: SUMA running in in/out debug mode.\n", FuncName);
+         SUMA_INOUT_NOTIFY_ON; 
+			brk = YUP;
+         */
+		}
+      
+      if (  !brk && 
+            (strcmp(argv[kar], "-trace") == 0) ||
+            (strcmp(argv[kar], "-TRACE") == 0) ||
+            (strcmp(argv[kar], "-nomall") == 0) ||
+            (strcmp(argv[kar], "-yesmall") == 0) ) {
+			/* dealt with in SUMA_ParseInput_basics */
+			brk = YUP;
+		}
+      #if 0
+      if (  !brk && (strcmp(argv[kar], "-trace") == 0)) {
+			fprintf(SUMA_STDERR,"Warning %s: SUMA running in trace mode.\n", FuncName);
+         SUMA_INOUT_NOTIFY_ON;
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-TRACE") == 0)) {
+			fprintf(SUMA_STDERR,"Warning %s: SUMA running in trace mode.\n", FuncName);
+         SUMA_INOUT_NOTIFY_ON;
+         /* modify DBG_trace to a higher level */
+         DBG_trace = 2;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-nomall") == 0)) {
+         Domemtrace = NOPE;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-yesmall") == 0)) {
+         Domemtrace = YUP;
+			brk = YUP;
+		}
+      
+      #endif
 		#if SUMA_MEMTRACE_FLAG
          if (!brk && (strcmp(argv[kar], "-memdbg") == 0)) {
-			   fprintf(SUMA_STDOUT,"Warning %s: SUMA running in memory trace mode.\n", FuncName);
+			   fprintf(SUMA_STDOUT,"Error %s: -memdbg is obsolete, use -trace\n", FuncName);
+			   exit (0);
+            fprintf(SUMA_STDOUT,"Warning %s: SUMA running in memory trace mode.\n", FuncName);
 			   SUMAg_CF->MemTrace = YUP;
+            #ifdef USING_MCW_MALLOC
+            #endif
 			   brk = YUP;
 		   }
       #endif
@@ -292,6 +411,16 @@ int main (int argc,char *argv[])
 		
 	}/* loop accross command ine options */
 
+   #if 0
+   /* dealt with in SUMA_ParseInput_basics */
+   
+   if (Domemtrace) {
+      /* fprintf(SUMA_STDOUT,"Warning %s: enabling mcw_malloc\n", FuncName); */
+      SUMA_MEMTRACE_ON;
+   } else {
+      /* fprintf(SUMA_STDOUT,"Warning %s: mcw_malloc not enabled\n", FuncName); */
+   }
+   #endif
 	if (specfilename[0] == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: No spec filename specified.\n", FuncName);
 		exit(1);
@@ -302,7 +431,15 @@ int main (int argc,char *argv[])
 		exit (1);
 	}
    
-	
+   #ifdef SUMA_DISASTER
+   /* a function to test Memtracing */
+   {
+      int *jnk;
+      jnk = SUMA_disaster();
+      SUMA_free(jnk); /* without the -trace, you'll get a warning here if jnk is corrupted */
+   }
+   #endif
+      
 	/* create an Eye Axis DO */
 	EyeAxis = SUMA_Alloc_Axis ("Eye Axis");
 	if (EyeAxis == NULL) {

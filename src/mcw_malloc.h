@@ -63,6 +63,9 @@ extern void   mcw_free( void * ) ;
 extern char * mcw_malloc_status(const char *,int) ;
 extern void   mcw_malloc_dump(void) ;
 extern int    mcw_malloc_enabled(void) ;
+extern void   pause_mcw_malloc(void);
+extern void   resume_mcw_malloc(void);
+extern int    mcw_malloc_paused(void);
 
 /*-- how to check if the tracking routines are working --*/
 

@@ -9,7 +9,7 @@ void SUMA_Help_open (void *p)
 {
    static char FuncName[]={"SUMA_Help_open"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    /* nothing to do here */
    
    SUMA_RETURNe;
@@ -22,7 +22,7 @@ void SUMA_Help_destroyed (void *p)
 {
    static char FuncName[]={"SUMA_Help_destroyed"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMAg_CF->X->Help_TextShell = NULL;
    
@@ -36,7 +36,7 @@ void SUMA_Message_open (void *p)
 {
    static char FuncName[]={"SUMA_Message_open"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    /* nothing to do here */
    
    SUMA_RETURNe;
@@ -49,7 +49,7 @@ void SUMA_Message_destroyed (void *p)
 {
    static char FuncName[]={"SUMA_Message_destroyed"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMAg_CF->X->Log_TextShell = NULL;
    
@@ -64,11 +64,11 @@ char * SUMA_help_message_Info(void)
    char stmp[1000], *s = NULL;
    SUMA_STRING *SS = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
 
-   s = SUMA_New_Additions (0.0, 1);
+   s = SUMA_New_Additions (0, 1);
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
    
    SS = SUMA_StringAppend (SS, 
@@ -133,10 +133,11 @@ char * SUMA_help_message_Info(void)
       "             between: No Lock, Index Lock and \n"
       "             XYZ Lock. The switching is order is \n"
       "             based on the lock of the first viewer.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     Ctrl+M: Show memory trace if Debug flag \n"
-      "             MemTrace is on. (requires compilation \n"
-      "             with SUMA_MEMTRACE_FLAG 1).\n");
+   SS = SUMA_StringAppend (SS, 
+      "     Alt+Ctrl+M: Dumps memory trace to file \n"
+      "                 called malldump.NNN where NNN\n"
+      "                 is the smallest number between\n"
+      "                 001 and 999 that has not been used.\n");
    SS = SUMA_StringAppend (SS, 
       "     m: momentum, toggle\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
@@ -302,7 +303,7 @@ char * SUMA_help_message_Info(void)
    
    /* add latest additions */
    SS = SUMA_StringAppend (SS, "Current Version Info:\n");
-   s = SUMA_New_Additions (0.0, 0);
+   s = SUMA_New_Additions (0, 0);
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
 
    /* clean SS */
@@ -322,7 +323,7 @@ void SUMA_help_message(FILE *Out)
 	char *s=NULL;
    static char FuncName[]={"SUMA_help_message"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Out == NULL) {
 		Out = stdout;
@@ -391,15 +392,15 @@ char *SUMA_All_Programs(void )
    - To add a new version, you must add a case statement in SUMA_New_Additions_perver
      AND add the version number in the beginning of verv in SUMA_New_Additions
 */
-char * SUMA_New_Additions (float ver, SUMA_Boolean StampOnly)
+char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
 {
    static char FuncName[]={"SUMA_New_Additions"};
    char *s = NULL;
    int i;
    SUMA_STRING *SS = NULL;
-   float verv[] = {2.4800, 2.4500, -1.0000}; /* modify this dude and you must update SUMA_New_Additions_perver  
-                                       Add to the left of the vector, leave the last value of -1 untouched
-                                       The number of significant digits should be constant*/
+   int verv[] = { 24800, 24500, -10000}; /* modify this dude and you must update SUMA_New_Additions_perver  
+                                       Add to the left of the vector, leave the last value of -10000 untouched
+                                       If you like to think of floating point version numbers,divide by 10000*/
    
    SUMA_ENTRY;
    
@@ -431,6 +432,9 @@ char * SUMA_New_Additions (float ver, SUMA_Boolean StampOnly)
       }
    }
    
+   /* add the compile date */
+   SS = SUMA_StringAppend_va (SS, "\nCompile Date:\n   %s\n",__DATE__);
+   
    /* clean SS */
    SS = SUMA_StringAppend (SS, NULL);
    /* copy s pointer and free SS */
@@ -451,26 +455,23 @@ char * SUMA_New_Additions (float ver, SUMA_Boolean StampOnly)
    - To add a new version, you must add a case statement in SUMA_New_Additions_perver
      AND add the version number in the beginning of verv in SUMA_New_Additions
 */
-char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
+char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
 {
    static char FuncName[]={"SUMA_New_Additions_perver"};
    char *s = NULL;
-   const int ti = 10000; /* The power of 10 should be equal to the significant digits used in ver */
-   int V;
    SUMA_STRING *SS = NULL;
    
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
    
-   V = (int)floor(ver*ti);
    
-   switch (V) {
+   switch (ver) {
       /* Must modify verv in SUMA_New_Additions when you touch this block */
       /*
-      case (int)(XXX*ti):
+      case XX:
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.2f, DATEHERE\n", ver); if (StampOnly) break;
+            "++ SUMA version %.2f, DATEHERE\n", (float)ver/10000.0); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
             "  + \n"
@@ -478,9 +479,20 @@ char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
             "  + \n");
          break; 
       */
-      case (int)((2.48*ti)):
+      /*
+      case 24900:
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.4f, Jan. 16 2004\n", ver); if (StampOnly) break;
+            "++ SUMA version %.2f, DATEHERE\n", (float)ver/10000.0); if (StampOnly) break;
+         SS = SUMA_StringAppend(SS, 
+            "New Programs:\n"
+            "  + \n"
+            "Modifications:\n"
+            "  + \n");
+         break; 
+         */
+      case 24800:
+         SS = SUMA_StringAppend_va(SS, 
+            "++ SUMA version %.4f, Jan. 16 2004\n", (float)ver/10000.0); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "Modifications:\n"
             "  + Beginning of multiple group support in SUMA\n"
@@ -488,9 +500,9 @@ char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
             "    are no longer passed to the image recorder.\n" );
          break; 
          
-      case (int)((2.45*ti)):
+      case 24500:
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.4f, Jan. 6 2004\n", ver); if (StampOnly) break;
+            "++ SUMA version %.4f, Jan. 6 2004\n", (float)ver/10000.0); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
             "  + inspec: Shows the contents of a spec file\n"
@@ -514,7 +526,7 @@ char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
          break;
       
       default:
-         SS = SUMA_StringAppend_va(SS, "++ %f? No such version, fool!\n", ver);
+         SS = SUMA_StringAppend_va(SS, "++ %f? No such version, fool!\n", (float)ver/10000.0);
          break;
    }
    
@@ -539,7 +551,7 @@ void SUMA_Version (FILE *Out)
    if (Out == NULL) {
 		Out = stdout;
 	}
-   s = SUMA_New_Additions (0.0, 0);
+   s = SUMA_New_Additions (0, 0);
 	if (s) {
       fprintf (Out, "\n   %s\n", s);
       SUMA_free(s);

@@ -31,7 +31,7 @@ int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV, SUMA_SurfaceVi
    static char FuncName[]={"SUMA_WhichViewerInMomentum"};
    int ii = -1;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SVv) SUMA_RETURN(-1);
    
@@ -61,7 +61,7 @@ SUMA_Boolean SUMA_LockEnum_LockType (SUMA_LINK_TYPES i, char *Name);
 SUMA_Boolean SUMA_LockEnum_LockType (SUMA_LINK_TYPES i, char *Name)
 {
    static char FuncName[]={"SUMA_LockEnum_LockType"};
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);   
+   SUMA_ENTRY;   
    
    switch (i) {
       case SUMA_No_Lock:
@@ -90,7 +90,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
    static char FuncName[]={"SUMA_Alloc_SurfaceViewer_Struct"};
    int i, j, n;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SVv =  (SUMA_SurfaceViewer *)SUMA_malloc(sizeof(SUMA_SurfaceViewer)*N);
    if (SVv == NULL) {
@@ -325,7 +325,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
    static char FuncName[]={"SUMA_Free_SurfaceViewer_Struct"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
    if (SV->X->Title) SUMA_free(SV->X->Title);
@@ -373,7 +373,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, int N
    int i;
    SUMA_Boolean Ret= YUP;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i < N; ++i)  {
       if (&SVv[i] != NULL) {
@@ -404,7 +404,7 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
    int i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Filling a color list for surface %s (%s).\n", FuncName, SO->Label, SO->idcode_str);
 
@@ -473,7 +473,7 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
    GLfloat * glar_ColorList = NULL;
    SUMA_Boolean Found = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!DO_idstr) {
       fprintf (SUMA_STDERR,"Error %s: DO_idstr is NULL, this should not be.\n", FuncName);
@@ -520,7 +520,7 @@ SUMA_Boolean SUMA_EmptyColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
    int i;
    SUMA_Boolean Found = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!sv->ColList) {
       fprintf (SUMA_STDERR,"Error %s: sv->ColList is NULL, this should not be.\n", FuncName);
@@ -593,7 +593,7 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv)
    static char FuncName[]={"SUMA_SetShownLocalRemixFlag"};
    int k;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    for (k=0; k < sv->N_ColList; ++k) {
       sv->ColList[k].Remix = YUP;
@@ -622,7 +622,7 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *sv
    int k, kk, dov_id;   
    SUMA_Boolean Found = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SO_idcode_str || !sv) {
       fprintf (SUMA_STDERR,"Error %s: NULL sv or SO_idcode_str. BAD\n", FuncName);
@@ -691,7 +691,7 @@ SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, in
    int i, k, kk, dov_id;   
    SUMA_Boolean Found = NOPE, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SO_idcode_str || !SVv) {
       fprintf (SUMA_STDERR,"Error %s: NULL SVv or SO_idcode_str. BAD\n", FuncName);
@@ -750,7 +750,7 @@ SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv)
    int i, kk;   
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SVv) {
       fprintf (SUMA_STDERR,"Error %s: NULL SVv . BAD\n", FuncName);
@@ -778,7 +778,7 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_d
    SUMA_SurfaceObject *so_op;
    static char FuncName[]={"SUMA_UpdateViewPoint"};
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    NewCenter[0] = 0.0;
    NewCenter[1] = 0.0;
@@ -841,7 +841,7 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
    SUMA_SurfaceObject *so_op;
    static char FuncName[]={"SUMA_UpdateRotaCenter"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    NewCenter[0] = 0.0;
    NewCenter[1] = 0.0;
@@ -886,7 +886,7 @@ void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, int deta
    static char FuncName[]={"SUMA_Show_SurfaceViewer_Struct"};
    char *s = NULL;  
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
    
@@ -1007,7 +1007,7 @@ SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out, int detail)
    static char FuncName[]={"SUMA_Show_ViewState"};
    char *s = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
 
@@ -1031,7 +1031,7 @@ char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail)
    SUMA_STRING *SS = NULL;
    char *s=NULL;   
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_ENTRY;
    
@@ -1087,7 +1087,7 @@ SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void)
    static char FuncName[]={"SUMA_Alloc_ViewState_Hist"};
    SUMA_ViewState_Hist *vsh;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    vsh = (SUMA_ViewState_Hist *)SUMA_malloc(sizeof(SUMA_ViewState_Hist));
    if (vsh == NULL) {
@@ -1102,7 +1102,7 @@ SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh)
 {
    static char FuncName[]={"SUMA_Free_ViewState_Hist"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (vsh == NULL) SUMA_RETURN (YUP);
    if (vsh->RegisteredDO) SUMA_free(vsh->RegisteredDO);
@@ -1163,7 +1163,7 @@ SUMA_ViewState *SUMA_Alloc_ViewState (int N)
    int i;
    static char FuncName[]={"SUMA_Alloc_ViewState"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_SL_Err("Should not be using this anymore.\n"
                "Start using SUMA_New_ViewState.\n"
@@ -1192,7 +1192,7 @@ SUMA_ViewState *SUMA_Alloc_ViewState (int N)
 SUMA_Boolean SUMA_Free_ViewState (SUMA_ViewState *vs)
 {
    static char FuncName[]={"SUMA_Free_ViewState"};
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (vs == NULL) SUMA_RETURN (YUP);
    if (vs->Name) SUMA_free(vs->Name);
@@ -1212,7 +1212,7 @@ int SUMA_WhichSV (SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv)
    static char FuncName[]={"SUMA_WhichSV"};
    int i = 0;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SVv || !sv) {
       fprintf (SUMA_STDERR, "Error %s: NULL SVv or sv.\n", FuncName);
@@ -1239,7 +1239,7 @@ int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup)
    int i = 0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!ForceGroup) {
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Searching for: %s\n", 
@@ -1291,7 +1291,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
    SUMA_SurfaceObject * SO;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (LocalHead && SUMA_WhichSV(csv, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
       fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", FuncName, 65+SUMA_WhichSV(csv, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
@@ -1442,8 +1442,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->InOut_Notify = NOPE;
    cf->InOut_Level = 0;
    cf->MemTrace = NOPE;
+   #ifdef USE_SUMA_MALLOC
    cf->Mem = SUMA_Create_MemTrace();
-   
+   #endif
    
    eee = getenv("SUMA_AFNI_TCP_PORT");
    if (eee) {
@@ -1545,7 +1546,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    }
    
    cf->MessageList = SUMA_CreateMessageList ();
+   #ifdef USE_SUMA_MALLOC
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
+   #endif
    cf->ROI_mode = NOPE;
    cf->Pen_mode = NOPE;
    
@@ -1576,6 +1579,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->GroupList = NULL;
    cf->N_Group = -1;
+   
+   cf->scm = NULL;
+   cf->dset_v = NULL;
+   cf->N_dset = -1;
    
    return (cf);
 
@@ -1672,7 +1679,7 @@ SUMA_X_SumaCont *SUMA_CreateSumaContStruct (void)
    }
    SumaCont->LockView_tbg = (Widget *)calloc (SUMA_MAX_SURF_VIEWERS, sizeof(Widget));
    SumaCont->LockAllView_tb = NULL;
-   
+   SumaCont->SumaInfo_TextShell = NULL;
    return (SumaCont);
 }
 
@@ -1687,6 +1694,7 @@ void *SUMA_FreeSumaContStruct (SUMA_X_SumaCont *SumaCont)
    /* do not use commonfields related stuff here for obvious reasons */
    if (SumaCont->Lock_rbg) SUMA_FreeLock_rbg (SumaCont->Lock_rbg);
    if (SumaCont->LockView_tbg) free (SumaCont->LockView_tbg);
+   if (SumaCont->SumaInfo_TextShell) { SUMA_SL_Warn("SumaCont->SumaInfo_TextShell is not being freed") };
    if (SumaCont) free(SumaCont);
    return (NULL);
 }
@@ -1815,8 +1823,13 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->X->N_ForeSmooth_prmpt) SUMA_FreePromptDialogStruct (cf->X->N_ForeSmooth_prmpt);
    if (cf->X) free(cf->X);
    if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList);
+   if (cf->scm) cf->scm = SUMA_DestroyAfniColors (cf->scm);
+   if (cf->N_dset > 0) {
+      fprintf(SUMA_STDERR,"%s:\nMUST FREE DSETS.\n", FuncName);
+   }
+   #ifdef USE_SUMA_MALLOC
    if (cf->Mem) SUMA_Free_MemTrace (cf->Mem); /* always free this right before the end */
-   
+   #endif
    if (cf) free(cf);
    
    return (YUP);
@@ -1842,7 +1855,7 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    char *s=NULL;
    SUMA_STRING *SS=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SS = SUMA_StringAppend_va(NULL, NULL);
    
@@ -1855,14 +1868,31 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    
    for (i=0; i < SUMA_MAX_STREAMS; ++i) {
       SS = SUMA_StringAppend_va(SS,"   HostName: %s\n", cf->HostName_v[i]);
-      SS = SUMA_StringAppend_va(SS,"   NimlStream: %s\n", FuncName, cf->NimlStream_v[i]);
+      SS = SUMA_StringAppend_va(SS,"   NimlStream: %s\n", cf->NimlStream_v[i]);
    }
    
    SS = SUMA_StringAppend_va(SS,"   Available Groups: %d\n", cf->N_Group);
    for (i=0; i<cf->N_Group; ++i) {
       SS = SUMA_StringAppend_va(SS,"      Group[%d]: %s\n", i, cf->GroupList[i]);
    }
-
+   
+   #ifdef USE_SUMA_MALLOC
+      /* dunno what to show here ... */
+   #else 
+      SS = SUMA_StringAppend_va(SS,"   DBG_trace = %d\n", DBG_trace);
+      SS = SUMA_StringAppend_va(SS,"   InOut_Notify = %d\n", cf->InOut_Notify);
+      SS = SUMA_StringAppend_va(SS,"   MemTrace = %d\n", cf->MemTrace);
+   #endif
+   
+   /* add the colormap info */
+   if (cf->scm) {
+      SS = SUMA_StringAppend(SS, "   Colormaps:\n");
+      SS = SUMA_StringAppend(SS, SUMA_ColorMapVec_Info (cf->scm->CMv, cf->scm->N_maps, detail));
+   } else {
+      SS = SUMA_StringAppend_va(SS, "   No Colormaps.\n");
+   }  
+   
+   /* clean up */
    SS = SUMA_StringAppend_va(SS, NULL);
    s = SS->s; SUMA_free(SS); SS= NULL;
    
@@ -1891,7 +1921,7 @@ SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int is
    int istart = 0, istop = 0, i = 0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (istream == -1) {
       istart = 0; istop = SUMA_MAX_STREAMS; 
@@ -1944,7 +1974,7 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    int i, maxdim = -1, is;
    SUMA_SurfaceObject *SO = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    is = sv->iState;
    if (is < 0) {
@@ -2043,7 +2073,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    int EyeAxis_ID;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    #if 0
    /* adds DOs individually, left for reference purposes */
@@ -2179,7 +2209,7 @@ void SUMA_UpdateAllViewerCursor()
    static char FuncName[]={"SUMA_UpdateAllViewerCursor"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    for (i=0; i<SUMAg_N_SVv; ++i) {
       if (SUMAg_SVv[i].X) {
@@ -2198,7 +2228,7 @@ void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv)
    static char FuncName[]={"SUMA_UpdateViewerCursor"};
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!sv->X) SUMA_RETURNe;
    if (!sv->X->GLXAREA) SUMA_RETURNe;
@@ -2225,7 +2255,7 @@ void SUMA_UpdateViewerTitle_old(SUMA_SurfaceViewer *sv)
    SUMA_Boolean LeftSide, RightSide, RightShown, LeftShown;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!sv->X) SUMA_RETURNe;
    if (!sv->X->TOPLEVEL) SUMA_RETURNe;
@@ -2334,7 +2364,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    SUMA_Boolean LeftSide, RightSide, RightShown, LeftShown;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!sv->X) SUMA_RETURNe;
    if (!sv->X->TOPLEVEL) SUMA_RETURNe;

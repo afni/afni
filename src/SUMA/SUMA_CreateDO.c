@@ -24,7 +24,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label)
    static char FuncName[]={"SUMA_Alloc_Segment"};
    SUMA_SegmentDO * SDO= NULL;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (N_n > 0) {
       SDO = (SUMA_SegmentDO *) SUMA_malloc (sizeof (SUMA_SegmentDO));
@@ -72,7 +72,7 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
 {
    static char FuncName[]={"SUMA_free_SegmentDO"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SDO) SUMA_RETURNe;
    
@@ -91,7 +91,7 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
    static char FuncName[]={"SUMA_Alloc_Axis"};
    SUMA_Axis* Ax;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    Ax = (SUMA_Axis *) SUMA_malloc (sizeof (SUMA_Axis));
    if (Ax == NULL) {
@@ -145,7 +145,7 @@ void SUMA_Free_Axis (SUMA_Axis *Ax)
 {
    static char FuncName[]={"SUMA_Free_Axis"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Ax->Name != NULL) SUMA_free(Ax->Name);
    if (Ax->idcode_str != NULL) SUMA_free(Ax->idcode_str);
@@ -158,7 +158,7 @@ void SUMA_EyeAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv)
    static char FuncName[]={"SUMA_EyeAxisStandard"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    Ax->Stipple = SUMA_DASHED_LINE;
    Ax->XYZspan[0] = Ax->XYZspan[1] = Ax->XYZspan[2] = 1000.0;
@@ -172,7 +172,7 @@ void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso)
 {
    static char FuncName[]={"SUMA_EyeAxisStandard"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    Ax->Stipple = SUMA_SOLID_LINE;
    Ax->XYZspan[0]= Ax->XYZspan[1]= Ax->XYZspan[2]= 100.0;
@@ -188,7 +188,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
    int i, N_n3;
    static char FuncName[]={"SUMA_DrawSegmentDO"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SDO) {
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
@@ -239,7 +239,7 @@ SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax)
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    static char FuncName[]={"SUMA_DrawAxis"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    glLineWidth(Ax->LineWidth);
    switch (Ax->Stipple) {
@@ -303,7 +303,7 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_
    int i, roi_cnt=0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    *N_ROI = -1;
    
@@ -361,7 +361,7 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov,
    int i, roi_cnt=0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    *N_ROI = -1;
    
@@ -423,7 +423,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
    DListElmt *NextElm=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    
    for (i=0; i < N_do; ++i) {
@@ -656,7 +656,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO,
    int N_nelv = 0, ii=0;
    SUMA_Boolean CreateNel, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -733,7 +733,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    SUMA_EngineData *ED = NULL;
    SUMA_Boolean Unique = NOPE, LocalHead = NOPE;
             
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    /* select the color map */
@@ -1111,7 +1111,7 @@ int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique)
    DListElmt *NextElm = NULL;
    SUMA_ROI_DATUM *ROId=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!dlist_size(D_ROI->ROIstrokelist)) {
       *N_Nodes = 0;
@@ -1175,7 +1175,7 @@ void SUMA_Free_ROI_PlaneData (void *da)
    static char FuncName[]={"SUMA_Free_ROI_PlaneData"};
    SUMA_ROI_PLANE *pl = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    pl = (SUMA_ROI_PLANE *)da;
    
@@ -1228,7 +1228,7 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
    int i;
    SUMA_Boolean found = NOPE, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!ROIplaneListIn) { /* initialization land */
       ROIplaneList = (DList *)SUMA_malloc(sizeof(DList));
@@ -1294,7 +1294,7 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_CrossHair* Ch)
    static char FuncName[]={"SUMA_DrawCrossHair"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    glLineWidth(Ch->LineWidth);
    /*fprintf(SUMA_STDOUT, "Center: %f, %f, %f. Gap %f, Radius: %f\n",\
@@ -1356,7 +1356,7 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    static char FuncName[]={"SUMA_Alloc_CrossHair"};
    SUMA_CrossHair* Ch;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    Ch = SUMA_malloc (sizeof (SUMA_CrossHair));
    if (Ch == NULL) {
@@ -1415,7 +1415,7 @@ void SUMA_Free_CrossHair (SUMA_CrossHair *Ch)
 {
    static char FuncName[]={"SUMA_Free_CrossHair"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Ch->sphobj) gluDeleteQuadric(Ch->sphobj);
    if (Ch) SUMA_free(Ch);
@@ -1429,7 +1429,7 @@ SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void)
    static char FuncName[]={"SUMA_SphereMarker"};
    SUMA_SphereMarker* SM;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SM = SUMA_malloc (sizeof (SUMA_SphereMarker));
    if (SM == NULL) {
@@ -1462,7 +1462,7 @@ void SUMA_Free_SphereMarker (SUMA_SphereMarker *SM)
 {
    static char FuncName[]={"SUMA_Free_SphereMarker"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SM->sphobj) gluDeleteQuadric(SM->sphobj);
    if (SM) SUMA_free(SM);
@@ -1474,7 +1474,7 @@ SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM)
 {   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, dx, dy, dz;
    static char FuncName[]={"SUMA_DrawFaceSetMarker"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    dx = SUMA_SELECTED_FACESET_OFFSET_FACTOR * FM->NormVect[0];
    dy = SUMA_SELECTED_FACESET_OFFSET_FACTOR * FM->NormVect[1];
@@ -1507,7 +1507,7 @@ SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void)
    SUMA_FaceSetMarker* FM;
    static char FuncName[]={"SUMA_Alloc_FaceSetMarker"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    FM = SUMA_malloc (sizeof (SUMA_FaceSetMarker));
    if (FM == NULL) {
@@ -1526,7 +1526,7 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 {
    static char FuncName[]={"SUMA_Free_FaceSetMarker"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (FM) SUMA_free(FM);
    SUMA_RETURNe;
@@ -1540,7 +1540,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_DRAWN_ROI *DrawnROI = NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* check on rendering mode */
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
@@ -1685,7 +1685,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    int i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!SO) {
       SUMA_SL_Warn("NULL SO");
@@ -1840,7 +1840,7 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
    char stmp[1000], *s = NULL;
    SUMA_STRING *SS = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
       
@@ -2240,7 +2240,7 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
    static char FuncName[]={"SUMA_Print_Surface_Object"};
    char *s;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
       
@@ -2266,7 +2266,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
    SUMA_SurfaceObject *SO;
    int i, j;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SO = (SUMA_SurfaceObject *)SUMA_malloc(sizeof(SUMA_SurfaceObject)*N);
    if (SO == NULL) {
@@ -2349,7 +2349,7 @@ SUMA_Boolean SUMA_freeROI (SUMA_ROI *ROI)
 {
    static char FuncName[]={"SUMA_freeROI"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
       
    if (ROI->Parent_idcode_str) SUMA_free(ROI->Parent_idcode_str);
    if (ROI->idcode_str) SUMA_free(ROI->idcode_str);
@@ -2372,7 +2372,7 @@ SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI)
 {
    static char FuncName[]={"SUMA_freeDrawnROI"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    
    if (D_ROI->Parent_idcode_str) SUMA_free(D_ROI->Parent_idcode_str);
@@ -2408,7 +2408,7 @@ SUMA_ROI *SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char *l
    int i = 0;
    static char FuncName[]={"SUMA_AllocateROI"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ROI = (SUMA_ROI *) SUMA_malloc (sizeof(SUMA_ROI));
    ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH+1, sizeof(char));
@@ -2461,7 +2461,7 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING
    static int ROI_index = 1;
    static char FuncName[]={"SUMA_AllocateDrawnROI"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    D_ROI = (SUMA_DRAWN_ROI *) SUMA_malloc (sizeof(SUMA_DRAWN_ROI));
    D_ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
@@ -2511,7 +2511,7 @@ void SUMA_FreeROIDatum (void * data)
    SUMA_ROI_DATUM *ROId=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ROId = (SUMA_ROI_DATUM *)data;
    
@@ -2537,7 +2537,7 @@ SUMA_ROI_DATUM * SUMA_AllocROIDatum (void)
    static char FuncName[]={"SUMA_AllocROIDatum"};
    SUMA_ROI_DATUM *ROId=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ROId = (SUMA_ROI_DATUM *) SUMA_malloc (sizeof(SUMA_ROI_DATUM));
    
@@ -2566,7 +2566,7 @@ SUMA_Boolean SUMA_isROIdequal (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2)
    static char FuncName[]={"SUMA_isROIdequal"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!ROId1 || !ROId2) SUMA_RETURN(NOPE);
    if (ROId1->N_n != ROId2->N_n) SUMA_RETURN(NOPE);
@@ -2603,7 +2603,7 @@ SUMA_Boolean SUMA_AppendToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2
    int i, N_nNew=-1, N_tNew=-1, *tPathNew=NULL, *nPathNew=NULL;
    SUMA_Boolean CommonTip = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!ROId1) SUMA_RETURN(YUP);
    if (!ROId1->N_n)  SUMA_RETURN(YUP);
@@ -2707,7 +2707,7 @@ SUMA_Boolean SUMA_PrependToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId
    int i, N_nNew=-1, N_tNew=-1, *tPathNew=NULL, *nPathNew=NULL;
    SUMA_Boolean CommonTip = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!ROId1) SUMA_RETURN(YUP);
    if (!ROId1->N_n)  SUMA_RETURN(YUP);
@@ -2800,7 +2800,7 @@ void SUMA_ShowDrawnROIDatum (SUMA_ROI_DATUM *ROId, FILE *out, SUMA_Boolean Short
    static char FuncName[]={"SUMA_ShowDrawnROIDatum"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!out) out = SUMA_STDERR;
    
@@ -2870,7 +2870,7 @@ void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, SUMA_Boolean ShortVers
    static char FuncName[]={"SUMA_ShowDrawnROI"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!out) out = SUMA_STDERR;
 
@@ -2956,7 +2956,7 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
    SUMA_Boolean LocalHead = NOPE;
    
    /* register at the first call only */
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!ROI_Mask) {
       SUMA_S_Err("NULL Mask.");
@@ -3041,7 +3041,7 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
    SUMA_DRAWN_ROI *ROI = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!Node) SUMA_RETURN(NULL);
    

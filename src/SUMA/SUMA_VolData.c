@@ -22,7 +22,7 @@ SUMA_VOLPAR *SUMA_Alloc_VolPar (void)
 	static char FuncName[]={"SUMA_Alloc_VolPar"};
 	SUMA_VOLPAR *VP;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	VP = (SUMA_VOLPAR *)SUMA_malloc(sizeof(SUMA_VOLPAR));
 	if (VP == NULL) {
@@ -35,7 +35,7 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
 {
 	static char FuncName[]={"SUMA_Free_VolPar"};
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	if (VP->prefix != NULL) SUMA_free(VP->prefix);
 	if (VP->filecode != NULL) SUMA_free(VP->filecode);
@@ -60,7 +60,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	MCW_idcode idcode;
 	SUMA_Boolean LocalHead = NOPE;
    	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	/* read the header of the parent volume */
 	dset = THD_open_dataset(volparent_name);
@@ -204,7 +204,7 @@ char *SUMA_VolPar_Info (SUMA_VOLPAR *VP)
    char stmp[1000], *s=NULL;
    SUMA_STRING *SS = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SS = SUMA_StringAppend (NULL, NULL);
    
@@ -302,7 +302,7 @@ void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out)
 	static char FuncName[]={"SUMA_Show_VolPar"};
 	char *s;
    
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	if (Out == NULL) Out = SUMA_STDOUT;
 	
@@ -339,7 +339,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	SUMA_SureFit_struct *SF;
 	SUMA_FreeSurfer_struct *FS;
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	/* allocate for cord structure */
 	cord_surf = (THD_coorder *)SUMA_malloc(sizeof(THD_coorder));
@@ -420,7 +420,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
    int i, ND, id;
    SUMA_Boolean UseVolreg, UseTagAlign, Bad=YUP;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SO->VOLREG_APPLIED) {
       fprintf (SUMA_STDERR,"Error %s: Volreg already applied. Nothing done.\n", FuncName);
@@ -596,7 +596,7 @@ THD_fvec3 SUMA_THD_3dfind_to_3dmm( SUMA_SurfaceObject *SO,
 	static char FuncName[]={"SUMA_THD_3dfind_to_3dmm"};
    THD_fvec3     fv ;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
    fv.xyz[0] = SO->VolPar->xorg + iv.xyz[0] * SO->VolPar->dx ;
    fv.xyz[1] = SO->VolPar->yorg + iv.xyz[1] * SO->VolPar->dy ;
@@ -612,7 +612,7 @@ THD_fvec3 SUMA_THD_3dind_to_3dmm( SUMA_SurfaceObject *SO,
 	static char FuncName[]={"SUMA_THD_3dind_to_3dmm"};
 	THD_fvec3     fv ;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
    fv.xyz[0] = SO->VolPar->xorg + iv.ijk[0] * SO->VolPar->dx ;
    fv.xyz[1] = SO->VolPar->yorg + iv.ijk[1] * SO->VolPar->dy ;
@@ -628,7 +628,7 @@ THD_fvec3 SUMA_THD_3dmm_to_3dfind( SUMA_SurfaceObject *SO ,
 	static char FuncName[]={"SUMA_THD_3dmm_to_3dfind"};
    THD_fvec3     iv ;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 
    iv.xyz[0] = (fv.xyz[0] - SO->VolPar->xorg) / SO->VolPar->dx ;
@@ -655,7 +655,7 @@ THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  ,
 	static char FuncName[]={"SUMA_THD_3dmm_to_3dind"};
    THD_ivec3     iv ;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
    iv.ijk[0] = (fv.xyz[0] - SO->VolPar->xorg) / SO->VolPar->dx + 0.499 ;
    iv.ijk[1] = (fv.xyz[1] - SO->VolPar->yorg) / SO->VolPar->dy + 0.499 ;
@@ -688,7 +688,7 @@ THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
 	THD_fvec3 dicv ;
    float xim,yim,zim , xdic = 0.0, ydic = 0.0, zdic = 0.0 ;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
    xim = imv.xyz[0] ; yim = imv.xyz[1] ; zim = imv.xyz[2] ;
 
@@ -746,7 +746,7 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
 	THD_fvec3 imv ;
    float xim,yim,zim , xdic,ydic,zdic ;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
    xdic = dicv.xyz[0] ; ydic = dicv.xyz[1] ; zdic = dicv.xyz[2] ;
 
@@ -869,7 +869,7 @@ SUMA_Boolean SUMA_AFNI_forward_warp_xyz( THD_warp * warp , float *xyzv, int N)
    THD_fvec3 new_fv, old_fv;
    int i, i3;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if( warp == NULL ) {
       fprintf (SUMA_STDERR, "Error %s: NULL warp.\n", FuncName);

@@ -10,6 +10,15 @@
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
+/*! the 1D index of element 
+   [r][c] in a row major matrix 
+   of nc columns */ 
+#define SRM(r,c,nc) ((nc)*(r)+(c))
+/*! the 1D index of element 
+   [r][c] in a column major matrix 
+   of nr rows */ 
+#define SCM(r,c,nr) ((r)+(nr)*(c))
+
 #define SUMA_WRAP_VALUE(v, min, max)   \
    {  \
       if (v > max) v = min;   \
@@ -172,16 +181,6 @@
    for (m_i=0; m_i < SUMAg_CF->InOut_Level; ++m_i) fprintf (SUMA_STDERR," ");\
    fprintf (SUMA_STDERR,"--dbg: Left    %s (lvl %d).\n", m_fname, SUMAg_CF->InOut_Level); \
    --SUMAg_CF->InOut_Level;   \
-}
-
-#define SUMA_RETURN(m_rvar) {\
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }\
-   return(m_rvar);\
-}
-
-#define SUMA_RETURNe  {\
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }\
-   return ;\
 }
 
 

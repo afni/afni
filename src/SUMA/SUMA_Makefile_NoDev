@@ -146,6 +146,10 @@ SurfSmooth: SUMA_GeomComp.c
 	$(RM) $@
 	${CC} -DSUMA_SurfSmooth_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_GeomComp.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SurfPatch: SUMA_GeomComp.c
+	$(RM) $@
+	${CC} -DSUMA_getPatch_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_GeomComp.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 SUMA_Homer: SUMA_Homer.c
 	$(RM) $@
 	${CC} -DSUMA_Homer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Homer.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -172,6 +176,22 @@ SurfMeasures: SUMA_SurfMeasures.c
 		${SUMALIB} libply.a ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+FScurv_to_1D: SUMA_Surface_IO.c
+	$(RM) $@
+	${CC} -DSUMA_FScurv_to_1D_STAND_ALONE	\
+   	${CCOPT} ${WARNOPT} -o $@ SUMA_Surface_IO.c ${SUMA_INCLUDE_PATH}		\
+		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
+		${SUMALIB} libply.a ${AFNILIB} ${ZLIB}			\
+		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+FSread_annot: SUMA_Surface_IO.c
+	$(RM) $@
+	${CC} -DSUMA_FSread_annot_STAND_ALONE	\
+   	${CCOPT} ${WARNOPT} -o $@ SUMA_Surface_IO.c ${SUMA_INCLUDE_PATH}		\
+		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
+		${SUMALIB} libply.a ${AFNILIB} ${ZLIB}			\
+		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+      
 libply.a: 
 	( cd PLY ;	\
 	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
@@ -192,6 +212,7 @@ install:
 	@if [ -f MakeColorMap ]; then mv MakeColorMap ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ROI2dataset ]; then mv ROI2dataset ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfSmooth ]; then mv SurfSmooth ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfPatch ]; then mv SurfPatch ${INSTALLDIR_SUMA}; fi;
 	@if [ -f CompareSurfaces ]; then mv CompareSurfaces ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_inflate_compare ]; then mv SUMA_inflate_compare ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_Ply_Read ]; then mv SUMA_Ply_Read ${INSTALLDIR_SUMA}; fi;
@@ -205,6 +226,8 @@ install:
 	@if [ -f SurfaceMetrics ]; then mv SurfaceMetrics ${INSTALLDIR_SUMA}; fi;
 	@if [ -f inspec ]; then mv inspec ${INSTALLDIR_SUMA}; fi;
 	@if [ -f quickspec ]; then mv quickspec ${INSTALLDIR_SUMA}; fi;
+	@if [ -f FScurv_to_1D ]; then mv FScurv_to_1D ${INSTALLDIR_SUMA}; fi;
+	@if [ -f FSread_annot ]; then mv FSread_annot ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -222,6 +245,7 @@ packbins:
 	@if [ -f MakeColorMap ]; then $(CP) -p MakeColorMap SUMA_bin/; fi;
 	@if [ -f ROI2dataset ]; then $(CP) -p ROI2dataset SUMA_bin/; fi;
 	@if [ -f SurfSmooth ]; then $(CP) -p SurfSmooth SUMA_bin/; fi;
+	@if [ -f SurfPatch ]; then $(CP) -p SurfPatch SUMA_bin/; fi;
 	@if [ -f CompareSurfaces ]; then $(CP) -p CompareSurfaces SUMA_bin/; fi;
 	@if [ -f SUMA_inflate_compare ]; then $(CP) -p SUMA_inflate_compare SUMA_bin/; fi;
 	@if [ -f SUMA_Ply_Read ]; then $(CP) -p SUMA_Ply_Read SUMA_bin/; fi;
@@ -235,6 +259,8 @@ packbins:
 	@if [ -f SurfaceMetrics ]; then $(CP) -p SurfaceMetrics SUMA_bin/; fi;	
 	@if [ -f inspec ]; then $(CP) -p inspec SUMA_bin/; fi;	
 	@if [ -f quickspec ]; then $(CP) -p quickspec SUMA_bin/; fi;	
+	@if [ -f FScurv_to_1D ]; then $(CP) -p FScurv_to_1D SUMA_bin/; fi;	
+	@if [ -f FSread_annot ]; then $(CP) -p FSread_annot SUMA_bin/; fi;	
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
@@ -246,7 +272,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_FreeSurfer ScaleToMap MakeColorMap CompareSurfaces		      \
 	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics SUMA_TestDataSets   \
-	ROI2dataset SurfSmooth inspec quickspec
+	ROI2dataset SurfSmooth SurfPatch inspec quickspec FScurv_to_1D FSread_annot
 
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 

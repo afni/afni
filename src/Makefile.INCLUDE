@@ -1806,7 +1806,7 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
 	3dSurf2Vol SurfMeasures ConvertSurface MapIcosahedron CreateIcosahedron SurfaceMetrics \
-   SurfSmooth inspec quickspec packbins 'INSTALLDIR=$(INSTALLDIR)' \
+   SurfSmooth inspec quickspec FSread_annot SurfPatch packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -1874,9 +1874,13 @@ suma_clean:
 	if [ -f SurfaceMetrics ]; then $(RM) SurfaceMetrics; fi;
 	if [ -f SUMA/SurfaceMetrics ]; then $(RM) SUMA/SurfaceMetrics; fi;
 	if [ -f inspec ]; then $(RM) inspec; fi;
-	if [ -f quickspec ]; then $(RM) quickspec; fi;
 	if [ -f SUMA/inspec ]; then $(RM) SUMA/inspec; fi;
+	if [ -f quickspec ]; then $(RM) quickspec; fi;
 	if [ -f SUMA/quickspec ]; then $(RM) SUMA/quickspec; fi;
+	if [ -f FSread_annot ]; then $(RM) FSread_annot; fi;
+	if [ -f SUMA/FSread_annot ]; then $(RM) SUMA/FSread_annot; fi;
+	if [ -f SurfPatch ]; then $(RM) SurfPatch; fi;
+	if [ -f SUMA/SurfPatch ]; then $(RM) SUMA/SurfPatch; fi;
 	if [ -f SurfSmooth ]; then $(RM) SurfSmooth; fi;
 	if [ -f SUMA/SurfSmooth ]; then $(RM) SUMA/SurfSmooth; fi;
 	if [ -f MapIcosahedron ]; then $(RM) MapIcosahedron; fi;
@@ -1892,9 +1896,11 @@ suma_link:
 	touch *.a	;\
 	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures ScaleToMap MapIcosahedron \
-   CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics SurfSmooth inspec quickspec;\
+   CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics SurfSmooth inspec \
+   quickspec FSread_annot SurfPatch;\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
-	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics SurfSmooth inspec quickspec\
+	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics SurfSmooth inspec \
+   quickspec FSread_annot SurfPatch\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -1913,7 +1919,7 @@ suma_install:
 	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf SUMA/3dSurf2Vol SUMA/SurfMeasures \
 	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron SUMA/CompareSurfaces \
 	SUMA/ConvertSurface SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics \
-   SUMA/inspec SUMA/quickspec SUMA/SurfSmooth ${INSTALLDIR} ; \
+   SUMA/inspec SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfSmooth ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install

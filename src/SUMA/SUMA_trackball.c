@@ -256,7 +256,7 @@ SUMA_build_rotmatrix(GLfloat m[4][4], float q[4])
 	static char FuncName[]={"SUMA_build_rotmatrix"};
 	SUMA_Boolean LocalHead = NOPE;
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 	m[0][0] = 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2]);
 	m[0][1] = 2.0 * (q[0] * q[1] - q[2] * q[3]);
 	m[0][2] = 2.0 * (q[2] * q[0] + q[1] * q[3]);

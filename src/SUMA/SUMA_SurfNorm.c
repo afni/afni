@@ -92,7 +92,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
    int *Index, *N_Memb, i, j, maxind, NotMember, id, id2, ND, ip, NP;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ND = 3;
    NP = 3;
@@ -301,7 +301,7 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr
    int **tmpMember;
    int i, inode, iface, ip , NP;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    NP = FaceDim;
    RetStrct = (SUMA_MEMBER_FACE_SETS *)SUMA_malloc(sizeof(SUMA_MEMBER_FACE_SETS));
@@ -375,7 +375,7 @@ SUMA_Boolean SUMA_Free_MemberFaceSets (SUMA_MEMBER_FACE_SETS *MF)
 {
    static char FuncName[]={"SUMA_Free_MemberFaceSets"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (MF->NodeMemberOfFaceSet) SUMA_free2D((char **)MF->NodeMemberOfFaceSet, MF->Nnode);
    if (MF->N_Memb) SUMA_free(MF->N_Memb);

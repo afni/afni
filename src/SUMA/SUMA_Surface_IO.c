@@ -14,6 +14,10 @@
 #define STAND_ALONE
 #elif defined SUMA_ROI2dataset_STAND_ALONE
 #define STAND_ALONE
+#elif defined SUMA_FScurv_to_1D_STAND_ALONE
+#define STAND_ALONE
+#elif defined SUMA_FSread_annot_STAND_ALONE
+#define STAND_ALONE
 #endif
 
 #ifdef STAND_ALONE
@@ -33,9 +37,138 @@ extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;  
 #endif
    
-/* CODE */
+/* Swapping functions from Bob's code. He has them statically declared */
+#undef SUMA_swap_4
+#undef SUMA_swap_2
+#undef SUMA_swap_8
+/*! Swap the 4 bytes pointed to by ppp: abcd -> dcba. */
+
+static void SUMA_swap_4(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1, b2, b3;
+
+   b0 = *pntr; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
+   *pntr = b3; *(pntr+1) = b2; *(pntr+2) = b1; *(pntr+3) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+/*! Swap the 8 bytes pointed to by ppp: abcdefgh -> hgfedcba. */
+
+static void SUMA_swap_8(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1, b2, b3;
+   unsigned char b4, b5, b6, b7;
+
+   b0 = *pntr    ; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
+   b4 = *(pntr+4); b5 = *(pntr+5); b6 = *(pntr+6); b7 = *(pntr+7);
+
+   *pntr     = b7; *(pntr+1) = b6; *(pntr+2) = b5; *(pntr+3) = b4;
+   *(pntr+4) = b3; *(pntr+5) = b2; *(pntr+6) = b1; *(pntr+7) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+/*! Swap the 2 bytes pointed to by ppp: ab -> ba. */
+
+static void SUMA_swap_2(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1;
+
+   b0 = *pntr; b1 = *(pntr+1);
+   *pntr = b1; *(pntr+1) = b0;
+}
+
    
+/*!
+   \brief a macro for reading one integer from a file pointer.
+   Assumes for swapping that int is 4 bytes 
    
+   \param nip (int *)
+   \param bs (int) 0: no swap, 1 swap
+   \param fp (FILE *)
+   \param ex (int) value returned by fread
+*/
+#define SUMA_READ_INT(nip, bs, fp, ex)  \
+{  static int m_chnk = sizeof(int);\
+   ex = fread (nip, m_chnk, 1, fp); \
+   if (bs) {   \
+      if (m_chnk == 4) SUMA_swap_4( nip ) ;  \
+      else if (m_chnk == 8) SUMA_swap_8( nip ) ;  \
+      else if (m_chnk == 2) SUMA_swap_2( nip ) ; /* keep compiler quiet about using swap_2 */ \
+      else { SUMA_SL_Err ("No swapping performed.") } \
+   }  \
+}
+
+
+/*!
+   \brief A function to take a prefix and turn it into the structure needed
+          by SUMA_Save_Surface_Object   
+   - free returned pointer with SUMA_free
+*/
+
+void * SUMA_Prefix2SurfaceName (char *prefix, char *path, char *vp_name, SUMA_SO_File_Type oType)
+{
+   static char FuncName[]={"SUMA_Prefix2SurfaceName"};
+   SUMA_SFname *SF_name = NULL;
+   char *ppref = NULL;
+   void *SO_name = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (path) {
+      if (path[strlen(path)-1] == '/') {
+         ppref = SUMA_append_replace_string(path, prefix, "", 0);
+      } else {
+         ppref = SUMA_append_replace_string(path, prefix, "/", 0);
+      }
+   } else {
+      ppref = SUMA_copy_string(prefix);
+   }
+   
+   switch (oType) {
+      case SUMA_SUREFIT:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         snprintf(SF_name->name_coord, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s.coord", ppref);
+         snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s.topo", ppref); 
+         if (!vp_name) { /* initialize to empty string */
+            SF_name->name_param[0] = '\0'; 
+         }
+         else {
+            snprintf(SF_name->name_param, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s", vp_name);
+         }
+         SO_name = (void *)SF_name;
+         break;
+      case SUMA_VEC:
+         if (SF_name) SUMA_free(SF_name);
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         snprintf(SF_name->name_coord, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s.1D.coord", ppref);
+         snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s.1D.topo", ppref); 
+         SO_name = (void *)SF_name;
+         break;
+      case SUMA_FREE_SURFER:
+         SO_name = (void *)SUMA_append_string(ppref,".asc"); 
+         break;  
+      case SUMA_PLY:
+         SO_name = (void *)SUMA_append_string(ppref,".ply"); ; 
+         break;  
+      default:
+         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
+         SUMA_RETURN(NULL);
+   }
+   
+   if (ppref) SUMA_free(ppref);
+    
+   SUMA_RETURN(SO_name);
+}
    
 /*!**  
 Function: SUMA_SureFit_Read_Coord 
@@ -66,7 +199,7 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	int ex, EndHead, FoundHead, evl, cnt, skp, ND, id;
 	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 	
 	ND = 3;
 	
@@ -179,7 +312,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	int ex, EndHead, FoundHead, evl, cnt, skp, jnk, i, ip, NP;
 	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
@@ -335,7 +468,7 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
 {	int cnt, id, ND, NP;
 	static char FuncName[]={"SUMA_Show_SureFit"};
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	ND = 3;
 	NP = 3;
@@ -432,7 +565,7 @@ SUMA_Boolean SUMA_SureFit_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
    int i, j;
    FILE *outFile = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (strlen(Fname->name_coord)) {
       if (SUMA_filexists(Fname->name_coord)) {
@@ -541,7 +674,7 @@ SUMA_Boolean SUMA_Free_SureFit (SUMA_SureFit_struct *SF)
 {
 	static char FuncName[]={"SUMA_Free_SureFit"};
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	if (SF->NodeList != NULL) SUMA_free(SF->NodeList);
 	if (SF->NodeId != NULL) SUMA_free(SF->NodeId);
@@ -566,7 +699,7 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 	SUMA_Boolean Done;
 	char delimstr[] = {' ', '\0'}, stmp[100], s[1000], *st;
 
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
@@ -766,14 +899,866 @@ int main (int argc,char *argv[])
 
 /*! Functions to read and manipulate FreeSurfer surfaces*/
 
-/* CODE */
+#define SUMA_FS_ANNOT_TAG_COLORTABLE   1
+#define SUMA_FS_STRLEN 50
+typedef struct {
+   int r;
+   int g;
+   int b;
+   int flag;
+   char name[SUMA_FS_STRLEN];
+} SUMA_FS_COLORTABLE_ENTRY;
+
+typedef struct {
+   char *fname;
+   int nbins;
+   SUMA_FS_COLORTABLE_ENTRY *bins;
+} SUMA_FS_COLORTABLE;
+
+SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len)
+{
+   static char FuncName[]={"SUMA_CreateFS_ColorTable"};
+   SUMA_FS_COLORTABLE *ct = NULL;
+   
+   SUMA_ENTRY;
+   
+   ct = (SUMA_FS_COLORTABLE*) SUMA_malloc(sizeof(SUMA_FS_COLORTABLE));
+   if (!ct) {
+      SUMA_SL_Crit("Failed to allocate for ct");
+      SUMA_RETURN(NULL);
+   }
+   ct->nbins = nbins;
+   ct->bins = (SUMA_FS_COLORTABLE_ENTRY *) SUMA_malloc(nbins * 
+                                          sizeof(SUMA_FS_COLORTABLE_ENTRY));
+   
+   ct->fname = (char *)SUMA_malloc((len + 1)*sizeof(char));
+   if (!ct->bins || !ct->fname) {
+      SUMA_SL_Crit("Failed to allocate for ct fields");
+      if (ct->bins) SUMA_free(ct->bins);
+      if (ct->fname) SUMA_free(ct->fname);
+      SUMA_free(ct);
+      SUMA_RETURN(NULL);
+   }
+   ct->fname[0] = '\0';
+   SUMA_RETURN(ct);
+}
+
+SUMA_FS_COLORTABLE *SUMA_FreeFS_ColorTable (SUMA_FS_COLORTABLE *ct)
+{
+   static char FuncName[]={"SUMA_FreeFS_ColorTable"};
+   
+   SUMA_ENTRY;
+   
+   if (!ct) SUMA_RETURN(NULL);
+   
+   if (ct->bins) SUMA_free(ct->bins);
+   if (ct->fname) SUMA_free(ct->fname);
+   
+   SUMA_free(ct);
+   
+   SUMA_RETURN(NULL);
+}
+
+char *SUMA_FS_ColorTable_Info(SUMA_FS_COLORTABLE *ct)
+{
+   static char FuncName[]={"SUMA_FS_ColorTable_Info"};
+   char *s=NULL;
+   int i;
+   SUMA_STRING *SS = NULL;
+
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+
+   if (!ct) SS = SUMA_StringAppend(SS,"NULL ct");
+   else {
+      if (ct->fname) SS = SUMA_StringAppend_va(SS, "fname: %s\nnbins: %d\n", ct->fname, ct->nbins);
+      else SS = SUMA_StringAppend_va(SS, "fname: NULL\nnbins: %d\n", ct->nbins);
+      if (!ct->bins) SS = SUMA_StringAppend_va(SS, "NULL bins\n");
+      else {
+         for (i=0; i<ct->nbins; ++i) {
+            SS = SUMA_StringAppend_va(SS, "bin[%d]: %d %d %d %d : %s\n", 
+                                       i, ct->bins[i].r, ct->bins[i].g, 
+                                       ct->bins[i].b, ct->bins[i].flag,
+                                       ct->bins[i].name);
+         }
+      }   
+   }
+   
+   SS = SUMA_StringAppend(SS,NULL);
+   s = SS->s; 
+   SUMA_free(SS);
+   
+   SUMA_RETURN(s);
+
+}
+
+SUMA_Boolean SUMA_Show_FS_ColorTable(SUMA_FS_COLORTABLE *ct, FILE *fout)
+{
+   static char FuncName[]={"SUMA_Show_FS_ColorTable"};
+   char *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!fout) fout = stdout;
+   
+   s = SUMA_FS_ColorTable_Info(ct);
+   if (s) {
+      fprintf(fout, "%s\n", s);
+      SUMA_free(s);
+   } else {
+      SUMA_SL_Err("Failed in SUMA_FS_ColorTable_Info");
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief
+      function to read FS's annotation file 
+      
+   \param f_name (char *)
+   \param ROIout (FILE *)
+   \param cmapout (FILE *)
+   
+   - If a colormap is found, it is added to SUMAg_CF->scm
+   - Based on code provided by Bruce Fischl
+*/
+SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_col, int Showct)
+{
+   static char FuncName[]={"SUMA_readFSannot"};
+   int n_labels = -1, ex, ni, chnk, j, annot, r, g, b, imap;
+   int tg, len, nbins, i;
+   FILE *fl=NULL;
+   FILE *fr=NULL;
+   FILE *fc=NULL;
+   FILE *fo=NULL; 
+   SUMA_FS_COLORTABLE *ct=NULL;
+   SUMA_FS_COLORTABLE_ENTRY *cte;
+   SUMA_Boolean bs = NOPE;
+   int *rv=NULL, *gv=NULL, *bv=NULL, *anv=NULL, *niv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* check for existence */
+	if (!SUMA_filexists(f_name)) {
+		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+		SUMA_RETURN (NOPE);
+	}else if (LocalHead) {
+		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
+	}
+   if (f_ROI) { /* check for existence of ROI file */
+      if (SUMA_filexists(f_ROI)) { 
+         fprintf(SUMA_STDERR,"Error %s: File %s exists, will not overwrite.\n", FuncName, f_ROI);
+	      SUMA_RETURN (NOPE);
+      }else {
+         fr = fopen(f_ROI, "w");
+         if (!fr) {
+            SUMA_SL_Err("Failed to open file for writing.\n");
+            SUMA_RETURN(NOPE);
+         } 
+      }
+   }
+   
+   if (f_cmap) { /* check for existence of ROI file */
+      if (SUMA_filexists(f_cmap)) { 
+         fprintf(SUMA_STDERR,"Error %s: File %s exists, will not overwrite.\n", FuncName, f_cmap);
+	      SUMA_RETURN (NOPE);
+      }else {
+         fc = fopen(f_cmap, "w");
+         if (!fc) {
+            SUMA_SL_Err("Failed to open file for writing.\n");
+            SUMA_RETURN(NOPE);
+         }  
+      }
+   }
+   
+   if (f_col) { /* check for existence of ROI file */
+      if (SUMA_filexists(f_col)) { 
+         fprintf(SUMA_STDERR,"Error %s: File %s exists, will not overwrite.\n", FuncName, f_col);
+	      SUMA_RETURN (NOPE);
+      }else {
+         fo = fopen(f_col, "w");
+         if (!fo) {
+            SUMA_SL_Err("Failed to open file for writing.\n");
+            SUMA_RETURN(NOPE);
+         }  
+      }
+   }
+   
+   bs = NOPE;
+   fl = fopen(f_name, "r");
+   if (!fl) {
+      SUMA_SL_Err("Failed to open file for reading.\n");
+      SUMA_RETURN(NOPE);
+   }
+   chnk = sizeof(int);
+   ex = fread (&n_labels, chnk, 1, fl);
+   if (n_labels < 0 || n_labels > 500000) { /* looks like swapping is needed */
+      if (LocalHead) {
+         SUMA_SL_Warn("Byte swapping binary data.");
+      }
+      SUMA_swap_4( &n_labels ) ;
+      bs = YUP;
+   }
+   
+   
+   niv = (int *) SUMA_malloc(sizeof(int)*n_labels);
+   rv = (int *) SUMA_malloc(sizeof(int)*n_labels);
+   gv = (int *) SUMA_malloc(sizeof(int)*n_labels);
+   bv = (int *) SUMA_malloc(sizeof(int)*n_labels);
+   anv = (int *) SUMA_malloc(sizeof(int)*n_labels);
+   if (!rv || !gv || !bv || !anv || !niv) {
+      SUMA_SL_Crit("Failed to allocate.");
+      SUMA_RETURN(NOPE);
+   }
+
+   if (ex != EOF) {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Expecting to read %d labels\n", FuncName, n_labels);
+   }   
+   SUMA_LH("Reading annotations...");
+   for (j=0; j<n_labels; ++j) {
+      SUMA_READ_INT (&ni, bs, fl, ex);
+      if (ni < 0 || ni >= n_labels) {
+         fprintf(SUMA_STDERR,"Error %s:\n Read a node index of %d. Bad because  < 0 or > %d\n", FuncName, ni, n_labels);
+         SUMA_RETURN(NOPE);
+      }
+      SUMA_READ_INT (&annot, bs, fl, ex);
+      niv[j] = ni;
+      anv[j] = annot;
+      rv[j] = annot & 0x0000ff;
+      gv[j] = (annot >> 8) & 0x0000ff;
+      bv[j] = (annot >> 16) & 0x0000ff;
+      if (LocalHead && ( j < 5 || j > n_labels - 5)) {
+         fprintf (SUMA_STDERR, "annot[%d]: %d = %d %d %d\n", 
+                                 ni, anv[j], rv[j], gv[j], bv[j]);
+      }
+   }
+   
+   SUMA_LH("Searching for colortables");
+   while (!feof(fl)) {
+      SUMA_READ_INT (&tg, bs, fl, ex);
+      if (tg == SUMA_FS_ANNOT_TAG_COLORTABLE) {
+         SUMA_LH("Found color table");
+         SUMA_READ_INT (&nbins, bs, fl, ex);
+         SUMA_READ_INT (&len, bs, fl, ex);
+         ct = SUMA_CreateFS_ColorTable(nbins, len);
+         fread(ct->fname, sizeof(char), len, fl) ;
+         for (i = 0 ; i < nbins ; i++)
+         {
+                cte = &ct->bins[i] ;
+                SUMA_READ_INT (&len, bs, fl, ex);
+                if (len < 0 || len > SUMA_FS_STRLEN ) {
+                     SUMA_SL_Err("Too long a name");
+                     SUMA_RETURN(NOPE);
+                }
+                fread(cte->name, sizeof(char), len, fl) ;
+                SUMA_READ_INT (&(cte->r), bs, fl, ex);
+                SUMA_READ_INT (&(cte->g), bs, fl, ex);
+                SUMA_READ_INT (&(cte->b), bs, fl, ex);
+                SUMA_READ_INT (&(cte->flag), bs, fl, ex);
+         }
+      }
+   }             
+   
+   if (fc) { /* write the colormap to a file */
+      fprintf(fc, "#name\n#bin  r  g  b  flag \n");
+      for (i=0; i<ct->nbins; ++i) {
+         fprintf(fc, "#%s\n", ct->bins[i].name);
+         fprintf(fc, "%d   %f %f %f %d\n", 
+                     i, (float)ct->bins[i].r/255.0, (float)ct->bins[i].g/255.0, 
+                     (float)ct->bins[i].b/255.0, ct->bins[i].flag );
+      }
+   }
+   
+   if (fr) { /* write the annotation, ROI style  */
+      if (ct) {
+         fprintf(fr, "#NodeID  ROI(indexed into labels cmap)  r  g  b \n");
+         for (i=0; i < n_labels; ++i) {
+               j = 0;
+               imap = -1;
+               while (j < ct->nbins && imap < 0) {
+                  if (  ct->bins[j].r == rv[i] &&
+                        ct->bins[j].b == bv[i] &&
+                        ct->bins[j].g == gv[i]  ) {
+                     imap = j;
+                  }
+                  ++j;
+               }
+               if (imap < 0) {
+                  SUMA_SL_Warn("Node Color (label) not found in cmap.\nMarking with -1.");
+               }
+               fprintf(fr, "%d  %d  %f %f %f   \n",
+                        niv[i], imap, (float)rv[i]/255.0, (float)gv[i]/255.0, (float)bv[i]/255.0);
+         }
+      } else { /* no color map */
+         fprintf(fr, "#NodeID  Annotation\n");
+         for (i=0; i < n_labels; ++i) {
+            fprintf(fr, "%d  %d \n", niv[i], anv[i]);
+         }
+      }
+   }
+   
+   if (fo) { /* write the annotation, ROI style  */
+      if (ct) {
+         fprintf(fo, "#NodeID  r  g  b \n");
+         for (i=0; i < n_labels; ++i) {
+               fprintf(fo, "%d  %f %f %f   \n",
+                        niv[i], (float)rv[i]/255.0, (float)gv[i]/255.0, (float)bv[i]/255.0);
+         }
+      } else { /* no color map */
+         fprintf(fo, "#NodeID  Annotation\n");
+         for (i=0; i < n_labels; ++i) {
+            fprintf(fo, "%d  %d \n", niv[i], anv[i]);
+         }
+      }
+   }
+   
+   if (Showct) {
+      if (ct) {
+         SUMA_Show_FS_ColorTable(ct, NULL);
+         ct = SUMA_FreeFS_ColorTable(ct);
+      }else {
+         fprintf(SUMA_STDOUT,"No color table found.\n");
+      }
+   }
+   
+   /* package the results for SUMA */
+   /* 1- Transform ct to a SUMA_COLOR_MAP (do that BEFORE the free operation above) 
+         The cname field in SUMA_COLOR_MAP was create for that purpose.
+         First allocate for cmap then use SUMA_copy_string to fill it with 
+         the names*/
+   /* 2- Create a vector from the labels and create a data set from it */ 
+   
+   if (fl) fclose (fl); fl = NULL;
+   if (fr) fclose (fr); fr = NULL;
+   if (fc) fclose (fc); fc = NULL;
+   if (fo) fclose (fo); fo = NULL;
+   
+   if (niv) SUMA_free(niv); niv = NULL;
+   if (rv) SUMA_free(rv); rv = NULL;
+   if (gv) SUMA_free(gv); gv = NULL;
+   if (bv) SUMA_free(bv); bv = NULL;
+   if (anv) SUMA_free(anv); anv = NULL;
+   
+   SUMA_RETURN(YUP);
+} 
+
+#ifdef SUMA_FSread_annot_STAND_ALONE
+
+void usage_SUMA_FSread_annot_Main ()
+   
+  {/*Usage*/
+      static char FuncName[]={"usage_SUMA_FSread_annot_Main"};
+      char * s = NULL;
+          printf ("\n"
+                  "Usage:  \n"
+                  "  FSread_annot   <-input ANNOTFILE>  \n"
+                  "                 [-col_1D annot.1D.col]  \n"
+                  "                 [-roi_1D annot.1D.roi] \n"
+                  "                 [-cmap_1D annot.1D.cmap]\n"
+                  "                 [show_FScmap]\n"
+                  "                 [-help]  \n"
+                  "  Reads a FreeSurfer annotaion file and outputs\n"
+                  "  an equivalent ROI file and/or a colormap file \n"
+                  "  for use with SUMA.\n"
+                  "\n"
+                  "  Required options:\n"
+                  "     -input ANNOTFILE: Binary formatted FreeSurfer\n"
+                  "                       annotation file.\n"
+                  "     AND one of the optional options.\n"
+                  "  Optional options:\n"
+                  "     -col_1D annot.1D.col: Write a 4-column 1D color file. \n"
+                  "                           The first column is the node\n"
+                  "                           index followed by r g b values.\n"
+                  "                           This color file can be imported \n"
+                  "                           using the 'c' option in SUMA.\n"
+                  "                           If no colormap was found in the\n"
+                  "                           ANNOTFILE then the file has 2 columns\n"
+                  "                           with the second being the annotation\n"
+                  "                           value.\n"
+                  "     -roi_1D annot.1D.roi: Write a 5-column 1D roi file.\n"
+                  "                           The first column is the node\n"
+                  "                           index, followed by its index in the\n"
+                  "                           colormap, followed by r g b values.\n"
+                  "                           This roi file can be imported \n"
+                  "                           using the 'Load' button in SUMA's\n"
+                  "                           'Draw ROI' controller.\n"
+                  "                           If no colormap was found in the\n"
+                  "                           ANNOTFILE then the file has 2 columns\n"
+                  "                           with the second being the annotation\n"
+                  "                           value. \n"
+                  "     -cmap_1D annot.1D.cmap: Write a 4-column 1D color map file.\n"
+                  "                             The first column is the color index,\n"
+                  "                             followed by r g b and flag values.\n"
+                  "                             The name of each color is inserted\n"
+                  "                             as a comment because 1D files do not\n"
+                  "                             support text data.\n"
+                  "     -show_FScmap: Show the info of the colormap in the ANNOT file.\n"
+                  "\n"        
+                  "\n");
+       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+       printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+       exit (0);
+  }/*Usage*/
+   
+int main (int argc,char *argv[])
+{/* Main */
+   static char FuncName[]={"FSread_annot"};
+   int kar, Showct;
+   char *fname = NULL, *fcmap = NULL, *froi = NULL, *fcol = NULL;
+   SUMA_Boolean SkipCoords = NOPE, brk;
+   SUMA_Boolean LocalHead = YUP;	
+   
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   /* parse command line */
+   kar = 1;
+   fname = NULL;
+   froi = NULL;
+   fcmap = NULL;
+   fcol = NULL;
+	brk = NOPE;
+   Showct = 0;
+	while (kar < argc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_SUMA_FSread_annot_Main();
+          exit (0);
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-show_FScmap") == 0)) {
+         Showct = 1;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-input") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -input\n");
+				exit (1);
+			}
+         fname = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-roi_1D") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -ROI_1D\n");
+				exit (1);
+			}
+         froi = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-cmap_1D") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -cmap_1D\n");
+				exit (1);
+			}
+         fcmap = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-col_1D") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -col_1D\n");
+				exit (1);
+			}
+         fcol = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+   
+   if (!fcmap && !froi && !fcol && !Showct) {
+      SUMA_SL_Err("Nothing to do.\nUse either -cmap_1D or \n -roi_1D or -col_1D or \n -show_FScmap options.");
+      exit(1);
+   }
+   if (!fname) {
+      SUMA_SL_Err("No input file specified.");
+      exit(1);
+   }
+   
+   SUMA_readFSannot (fname, froi, fcmap, fcol, Showct);
+   
+   exit(0);
+}
+#endif
+
+/*!
+
+   \brief   v = SUMA_readFScurv (curvname, nrows, ncols, rowmajor, SkipCoords);
+            Not terribly useful of a function because it is practically a .1D
+            format!
+   \param   curvname (char *) name of ascii curvature file
+   \param   nrows (int *) will contain the number of elements in file
+   \param   ncols (int *) will contain the number of columns in file.
+                           This is 5 for curvature files if SkipCoords is not set
+                           (node index, x, y, z, data)
+                           2 if SkipCoords
+                           (node index, data)
+   \param   rowmajor (SUMA_Boolean) if (YUP) return results in row major order, else column major
+   \param   SkipCoords (SUMA_Boolean) if (YUP) reads only node index and data value (1st and last column
+                                       of curvature files (skips the intermediary coordinates)
+   \return   v (float *) vector containing curvature file data
+   
+*/
+
+float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols, SUMA_Boolean rowmajor, SUMA_Boolean SkipCoords)   
+{
+   static char FuncName[]={"SUMA_readFScurv"};
+   MRI_IMAGE *im = NULL;
+   float *v = NULL, jnk, *far;
+   int cnt, ex, id, i, ncol, nvec;
+   char c, comment[SUMA_MAX_STRING_LENGTH];
+   FILE *fs_file = NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   /* check for existence */
+	if (!SUMA_filexists(f_name)) {
+		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+		SUMA_RETURN (NULL);
+	}else if (LocalHead) {
+		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
+	}
+   
+   if (SkipCoords) *ncols = 2;
+   else *ncols = 5; /* constant */	
+
+   if (*ncols !=2 && *ncols != 5) {
+      SUMA_SL_Crit("ncols must be either 2 or 5");
+      SUMA_RETURN(NULL);
+   }
+
+
+   #if 0
+      /* thought is had the number of nodes at the top ! */
+      /* start reading */
+	   fs_file = fopen (f_name,"r");
+	   if (fs_file == NULL) {
+         SUMA_SL_Err ("Could not open input file");
+         SUMA_RETURN (v);
+	   }
+
+	   /* read first character and check if it is a comment */
+	   ex = fscanf (fs_file,"%c",&c);
+	   if (c == '#') {
+		   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Found comment\n", FuncName); 
+
+         /*skip till next line */
+		   cnt = 0;
+		   while (ex != EOF && c != '\n') {
+			   ex = fscanf (fs_file,"%c",&c);
+			   if (cnt < SUMA_MAX_STRING_LENGTH-2) {
+				   sprintf(comment, "%s%c", comment, c);
+				   ++cnt;
+			   } else {
+				   fprintf(SUMA_STDERR,"Error %s: Too long a comment in curvature file, increase SUMA_MAX_STRING_LENGTH\n", FuncName);
+				   SUMA_RETURN (NOPE);
+			   }
+		   }
+	   }
+
+
+	   /* read in the number of nodes */
+	   ex = fscanf(fs_file, "%d", nrows);
+
+      if (*nrows <= 0) {
+         SUMA_SL_Crit("Trouble parsing curvature file.\nNull or negative number of nodes\n");
+         SUMA_RETURN(NULL);
+      }
+
+	   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Allocating for data (%dx%d) \n", FuncName, *nrows, *ncols);
+
+      v = (float *) SUMA_calloc(*nrows * *ncols, sizeof(float));
+      if (!v) {
+         SUMA_SL_Crit("Failed to allocate for v");
+         SUMA_RETURN(v);
+      }
+
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Parsing file...\n", FuncName);
+
+      if (rowmajor) {
+         cnt = 0;
+	      if (*ncols == 5) {
+            while (ex != EOF && cnt < *nrows) {
+		         id = *ncols * cnt;
+		         ex = fscanf(fs_file, "%f %f %f %f %f", &(v[id]), &(v[id+1]),&(v[id+2]), &(v[id+3]), &(v[id+4]) );
+		         ++cnt;
+	         }
+         } else {
+            while (ex != EOF && cnt < *nrows) {
+		         id = *ncols * cnt;
+		         ex = fscanf(fs_file, "%f %f %f %f %f", &(v[id]), &jnk, &jnk, &jnk, &(v[id+1]) );
+		         ++cnt;
+	         }
+         } 
+
+      } else {
+         cnt = 0;
+	      if (*ncols == 5) {
+            while (ex != EOF && cnt < *nrows) {
+		         ex = fscanf(fs_file, "%f %f %f %f %f", &(v[cnt]), &(v[cnt+ *nrows]),&(v[cnt+ 2 * *nrows]), &(v[cnt+ 3 * *nrows]), &(v[cnt+ 4 * *nrows]));
+		         ++cnt;
+	         }
+         } else if (*nrows == 2) {
+            while (ex != EOF && cnt < *nrows) {
+		         ex = fscanf(fs_file, "%f %f %f %f %f", &(v[cnt]), &jnk, &jnk, &jnk, &(v[cnt+ *nrows]));
+		         ++cnt;
+	         }
+         } else {
+
+         }
+      }
+
+      if (cnt != *nrows) {
+		   fprintf(SUMA_STDERR,"Error %s: Expected %d rows, %d read.\n", FuncName, *nrows, cnt);
+		   SUMA_free(v); v = NULL;
+         SUMA_RETURN (NULL);
+	   }
+   #else 
+      /* now load the input data */
+      SUMA_LH("Reading file...");
+      im = mri_read_1D (f_name);
+
+      if (!im) {
+         SUMA_SL_Err("Failed to read 1D file");
+         SUMA_RETURN(NULL);
+      }
+
+      far = MRI_FLOAT_PTR(im);
+      nvec = im->nx;
+      ncol = im->ny;
+      /* data in column major order at this point */
+
+      if (!nvec) {
+         SUMA_SL_Err("Empty file");
+         SUMA_RETURN(NULL);
+      }
+
+      if (ncol != 5) {
+         SUMA_SL_Err("Must have 5 columns in data file.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         SUMA_RETURN(NULL);
+      }
+      
+      *nrows = nvec;
+      
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Allocating for data (%dx%d) \n", FuncName, *nrows, *ncols);
+
+      v = (float *) SUMA_calloc(*nrows * *ncols, sizeof(float));
+      
+      if (!v) {
+         SUMA_SL_Crit("Failed to allocate for v");
+         SUMA_RETURN(v);
+      }
+
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Parsing file...\n", FuncName);
+
+      if (rowmajor) {
+	      if (*ncols == 5) {
+            SUMA_LH("RowMajor, All Coords");
+            for (i=0; i< *nrows; ++i) {
+               id = *ncols*i;
+               v[id] = far[i];
+               v[id+1] = far[i+*nrows];
+               v[id+2] = far[i+2 * *nrows];
+               v[id+3] = far[i+3 * *nrows];
+               v[id+4] = far[i+4 * *nrows];
+            }   
+         } else {
+            SUMA_LH("RowMajor, Skipping Coords");
+            for (i=0; i< *nrows; ++i) {
+               id = *ncols*i;
+               v[id] = far[i];
+               v[id+1] = far[i+4 * *nrows];
+            }
+         } 
+      } else {
+	      if (*ncols == 5) {
+            SUMA_LH("ColMajor, All Coords");
+            for (i=0; i<*ncols * *nrows; ++i) v[i] = far[i];
+         } else if (*ncols == 2) {
+            SUMA_LH("ColMajor, Skipping Coords");
+            for (i=0; i<*nrows; ++i) v[i] = far[i];
+            for (i=*nrows; i< 2 * *nrows; ++i) v[i] = far[i+3 * *nrows];
+         } 
+      }
+      mri_free(im); im = NULL; far = NULL;
+   #endif
+   SUMA_RETURN(v);
+}
+
+/* write a standalone version to convert to 1D format */
+#ifdef SUMA_FScurv_to_1D_STAND_ALONE
+
+void usage_SUMA_FScurv_to_1D_Main ()
+   
+  {/*Usage*/
+      static char FuncName[]={"usage_FScurv_to_1D"};
+      char * s = NULL;
+          printf ("\n"
+                  "Usage:  FScurv_to_1D [-skip_coords] [-output outfile] -input curv_name.asc  \n"
+                  "   Reads in a FreeSurfer curvature file and writes it out in 1D format. \n"
+                  "   But the format is 1D to begin with, so 'what is that program for?' you ask. \n"
+                  "   Not much, I say. It is used to test a SUMA function and also allows you\n"
+                  "   to select the node index and data values from the 5 columns of the curv files.\n"
+                  "\n"
+                  "   -input curv_name.asc: name of ASCII curvature file. To change a curvature file \n"
+                  "                     to ASCII, use mris_convert -c curv_name surf curvfile.asc \n"
+                  "                     surf is the surface over which the curvfile is defined, like\n"
+                  "                     lh.inflated.\n"
+                  "   -skip_coords: If specified, the node coordinates are not included in the output.\n"
+                  "   -output outfile: If specified, the output goes to a file instead of stdout, \n"
+                  "                    which is the screen\n"
+                  "\n");
+       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+       printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+       exit (0);
+  }/*Usage*/
+   
+int main (int argc,char *argv[])
+{/* Main */
+   static char FuncName[]={"FScurv_to_1D"};
+   int i, j, id, nrows=0, ncols=0, kar;
+   float *v = NULL;
+   char *outname = NULL;
+   char *fname = NULL;
+   FILE *outfile=NULL;
+   SUMA_Boolean SkipCoords = NOPE, brk, rowmajor;
+   SUMA_Boolean LocalHead = YUP;	
+   
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   /* parse command line */
+   kar = 1;
+   outname = NULL;
+   fname = NULL;
+   SkipCoords = NOPE;
+   rowmajor = YUP;  /* just to test the function's execution */
+	brk = NOPE;
+	while (kar < argc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_SUMA_FScurv_to_1D_Main();
+          exit (0);
+		}
+      if (!brk && ( (strcmp(argv[kar], "-skip_coords") == 0) ) ) {
+			SkipCoords = YUP;
+         brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-output") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -output\n");
+				exit (1);
+			}
+         outname = argv[kar];
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-input") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -input\n");
+				exit (1);
+			}
+         fname = argv[kar];
+			brk = YUP;
+		}
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+   
+   if (!fname) {
+      SUMA_SL_Err("No input file specified.");
+      exit(1);
+   }
+   /* work the output name */
+   if (!outname) {
+      outfile = SUMA_STDOUT;
+   } else {
+      outname = SUMA_Extension(outname, ".1D", NOPE); /* outname should be freed at the end */
+      if (SUMA_filexists(outname)) {
+         fprintf(SUMA_STDERR,"Error %s: Output file %s exists, will not overwrite.\n", FuncName, outname);
+         exit(1);
+      }
+      outfile = fopen(outname, "w");
+      if (!outfile) {
+         SUMA_SL_Crit("Failed to open file for writing.\n"
+                      "Check file permissions.");
+         exit(1);
+      }
+   }
+   
+   /* do the deed */
+   v = SUMA_readFScurv (fname, &nrows, &ncols, rowmajor, SkipCoords);   
+   if (!v) {
+      SUMA_SL_Err("Failed in SUMA_readFScurv");
+      exit(1);
+   }
+   
+   if (rowmajor) {
+      for (i=0; i<nrows; ++i) {
+         id = ncols * i;
+         fprintf(outfile,"%d\t", (int) v[id]);
+         for (j=1; j<ncols; ++j) fprintf(outfile,"%f\t", v[id+j]);
+         fprintf(outfile,"\n");
+      }
+
+   } else {
+      for (i=0; i<nrows; ++i) {
+         fprintf(outfile,"%d\t", (int) v[i]);
+         for (j=1; j<ncols; ++j) fprintf(outfile,"%f\t", v[i+j*nrows]);
+         fprintf(outfile,"\n");
+      }
+   }
+   
+   if (outname) {
+      fclose (outfile); outfile = NULL;
+      SUMA_free(outname); outname = NULL;
+   }
+   SUMA_free(v); v = NULL;
+   
+   exit(0);
+}
+#endif
    
 /* just call engine with debug set                20 Oct 2003 [rickr] */
 SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 {/* SUMA_FreeSurfer_Read */
    static char FuncName[]={"SUMA_FreeSurfer_Read"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_RETURN(SUMA_FreeSurfer_Read_eng(f_name, FS, 1));
 }/* SUMA_FreeSurfer_Read */
@@ -825,7 +1810,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 	static char FuncName[]={"SUMA_FreeSurfer_Read_eng"};
 	SUMA_Boolean LocalHead = NOPE;
 	   
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
@@ -1021,7 +2006,7 @@ SUMA_Boolean SUMA_Free_FreeSurfer (SUMA_FreeSurfer_struct *FS)
 {
 	static char FuncName[]={"SUMA_Free_FreeSurfer"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
 	if (FS->FaceSetList != NULL) SUMA_free(FS->FaceSetList);
 	if (FS->NodeList != NULL) SUMA_free(FS->NodeList);
@@ -1039,7 +2024,7 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 	static char FuncName[]={"SUMA_Show_FreeSurfer"};
 	int ND = 3, id, ip;
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	if (Out == NULL) Out = SUMA_STDOUT;
 	fprintf (Out, "Comment: %s\n", FS->comment);
@@ -1236,7 +2221,7 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
    char **obj_info = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* open a PLY file for reading */
    ply = ply_open_for_reading(f_name, &nelems, &elist, &file_type, &version);
@@ -1455,7 +2440,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
    Face *faces = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (SUMA_filexists (f_name)) {
       fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n", FuncName, f_name);
@@ -1586,7 +2571,7 @@ SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLin
    int i, j;
    FILE *outFile = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (SUMA_filexists(fileNm)) {
       fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, fileNm);
@@ -1648,7 +2633,7 @@ SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
    int i, j;
    FILE *outFile = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (strlen(Fname->name_coord)) {
       if (SUMA_filexists(Fname->name_coord)) {
@@ -2279,13 +3264,16 @@ int main (int argc,char *argv[])
       case SUMA_SUREFIT:
          if (SF_name) SUMA_free(SF_name);
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         sprintf(SF_name->name_coord,"%s", of_name);
-         sprintf(SF_name->name_topo,"%s", of_name2); 
+         snprintf(SF_name->name_coord, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s", of_name);
+         snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s", of_name2); 
          if (!vp_name) { /* initialize to empty string */
             SF_name->name_param[0] = '\0'; 
          }
          else {
-            sprintf(SF_name->name_param,"%s", vp_name);
+            snprintf(SF_name->name_param, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s", vp_name);
          }
          SO_name = (void *)SF_name;
          if (!SUMA_Save_Surface_Object (SO_name, SO,  SUMA_SUREFIT, SUMA_ASCII)) {
@@ -2296,8 +3284,10 @@ int main (int argc,char *argv[])
       case SUMA_VEC:
          if (SF_name) SUMA_free(SF_name);
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         sprintf(SF_name->name_coord,"%s", of_name);
-         sprintf(SF_name->name_topo,"%s", of_name2); 
+         snprintf(SF_name->name_coord, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s", of_name);
+         snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                   "%s", of_name2); 
          SO_name = (void *)SF_name;
          if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
@@ -2353,7 +3343,7 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_LH("Called");   
 
@@ -2475,7 +3465,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
    SUMA_DRAWN_ROI **ROIv=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_LH("Called");
    
@@ -2503,7 +3493,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
       SUMA_RETURN(NULL);
    }
    
-   if (LocalHead) {
+   if (0 && LocalHead) {
       SUMA_disp_vect(far, ncol*nrow);
    }
       
@@ -2688,7 +3678,10 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
                                     fillcolor, edgecolor, edgethickness, 
                                     SUMAg_DOv, SUMAg_N_DOv,
                                     ForDisplay);
-      
+      if (nrow == 5 || nrow == 4) {
+         SUMA_LH("Marking as color by fillcolor");
+         ROIv[i]->ColorByLabel = NOPE;
+      }
       if (Label) SUMA_free(Label); Label = NULL;
       if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
       if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROIv[i]->Parent_idcode_str);
@@ -2733,7 +3726,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
    SUMA_Boolean found = YUP, AddNel = YUP, AlwaysReplace = NOPE, NeverReplace = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    *N_ROI = 0;
    
@@ -3001,7 +3994,7 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
    NI_element *nel=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* Now you have the ROIs, concatenate all NodesInROI vectors into 1*/
    /* count the total number of nodes */
@@ -3461,7 +4454,7 @@ void SUMA_SaveSOascii (char *filename, void *data)
    SUMA_SAVESO_STRUCT *SaveSO_data = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_LH("Called");   
       
@@ -3640,7 +4633,7 @@ void SUMA_SaveDrawnROI (char *filename, void *data)
    SUMA_SurfaceObject *SO= NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_LH("Called");   
    if (!data) {
@@ -3695,7 +4688,7 @@ SUMA_Boolean SUMA_SaveDrawnROI_1D (char *filename, SUMA_SurfaceObject *SO, SUMA_
    int N_ROI=0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    SUMA_LH("Called");   
 
    if (SaveWhat == SW_DrawROI_SaveWhatThis) {
@@ -3735,7 +4728,7 @@ SUMA_Boolean SUMA_SaveDrawnROINIML (char *filename, SUMA_SurfaceObject *SO, SUMA
    int N_ROI=0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    SUMA_LH("Called");   
 
    if (SaveWhat == SW_DrawROI_SaveWhatThis) {
@@ -3781,7 +4774,7 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
    SUMA_DRAWN_ROI *ROI = NULL;
    SUMA_Boolean WriteBin = NOPE, LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Format == SUMA_ASCII) WriteBin = NOPE;
    else if (Format == SUMA_BINARY) WriteBin = YUP;
@@ -3899,7 +4892,7 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
    int i = -1, cnt = 0, *isort=NULL, *iLabel=NULL, *iNode=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!ROI) {
       SUMA_SL_Err("Null ROI");
@@ -4003,7 +4996,7 @@ SUMA_1D_DRAWN_ROI * SUMA_Free_1DDrawROI (SUMA_1D_DRAWN_ROI *ROI_1D)
    static char FuncName[]={"SUMA_Free_1DDrawROI"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!ROI_1D) SUMA_RETURN(NULL);
    
@@ -4030,7 +5023,7 @@ SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *fil
    FILE *fout=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* add a .1D.roi extension */
    newname = SUMA_Extension(filename, ".1D.roi", NOPE); 

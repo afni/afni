@@ -31,7 +31,7 @@ SUMA_INODE *SUMA_CreateInodeLink (SUMA_INODE * FromIN, SUMA_INODE *ToIN)
 {
    static char FuncName[] = {"SUMA_CreateInodeLink"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (FromIN) {
       fprintf (SUMA_STDERR,"Error %s: FromIN Inode is not NULL. \n\tFromIN pointer is left undisturbed.\n", FuncName);
@@ -66,7 +66,7 @@ SUMA_Boolean SUMA_isInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
 {
    static char FuncName[] = {"SUMA_isInodeLink"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!IN) {
       fprintf (SUMA_STDERR, "Warning %s: IN is null.\n", FuncName); 
@@ -91,7 +91,7 @@ SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
 {
    static char FuncName[] = {"SUMA_BreakInodeLink"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!IN) {
       fprintf (SUMA_STDERR, "Warning %s: IN is null, nothing to do.\n", FuncName); 
@@ -129,7 +129,7 @@ int SUMA_ReleaseLink (SUMA_INODE * IN)
    static char FuncName[]={"SUMA_ReleaseLink"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!IN) {
       /* This typically happens when A link was never created in the first place.
@@ -162,7 +162,7 @@ int SUMA_AddLink (SUMA_INODE * IN)
 {
    static char FuncName[]={"SUMA_AddLink"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!IN) {
       fprintf (SUMA_STDERR,"Error %s: Inode is null.\n", FuncName);
@@ -189,7 +189,7 @@ SUMA_INODE *SUMA_CreateInode (void *data, char *ID)
    static char FuncName[]={"SUMA_CreateInode"};
    SUMA_INODE *IN;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    IN = (SUMA_INODE *)SUMA_malloc (sizeof(SUMA_INODE));
    if (IN == NULL) {
@@ -212,7 +212,7 @@ SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N)
    static char FuncName[]={"SUMA_Alloc_DisplayObject_Struct"};
    SUMA_DO *dov;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    dov = (SUMA_DO *)SUMA_malloc(sizeof(SUMA_DO)*N);
    if (dov == NULL) {
@@ -229,7 +229,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
 {
    static char FuncName[]={"SUMA_Free_Displayable_Object"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    switch (dov->ObjectType) {
       case SO_type:
@@ -268,7 +268,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object_Vect (SUMA_DO *dov, int N)
    int i;
    SUMA_Boolean Ret = YUP;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i < N; ++i) {
       if (&dov[i] != NULL) {
@@ -287,7 +287,7 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Typ
 {
    static char FuncName[] = {"SUMA_AddDO"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* make sure you did not exceed allocated space */
    if (*N_dov >= SUMA_MAX_DISPLAYABLE_OBJECTS) {
@@ -320,7 +320,7 @@ SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free
    int i;
    SUMA_Boolean LocalHead = NOPE, Found=NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -364,7 +364,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    static char FuncName[]={"SUMA_RegisterDO"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (LocalHead && SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
       fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", FuncName, 65+SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
@@ -421,7 +421,7 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    static char FuncName[]={"SUMA_UnRegisterDO"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* check to see if dov_id exists */
    i = 0;
@@ -482,7 +482,7 @@ void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out)
    SUMA_SurfaceObject *so_op;
    static char FuncName[]={"SUMA_Show_DOv"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
    fprintf(Out,"\nDOv contents (%d elements):\n", N_dov);
@@ -558,7 +558,7 @@ int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N)
    int *do_id, i;
    static char FuncName[]={"SUMA_GetDO_Type"};
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    *N = 0;
 
@@ -589,7 +589,7 @@ SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_SurfaceObject *SO;
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (idcode == NULL) {
       fprintf(SUMA_STDERR,"Warning SUMA_existSO: NULL idcode.\n");
@@ -621,7 +621,7 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_SegmentDO *sdo = NULL;
    SUMA_Axis *sax = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (idcode == NULL) {
       fprintf(SUMA_STDERR,"Warning %s: NULL idcode.\n", FuncName);
@@ -683,7 +683,7 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_SegmentDO *sdo = NULL;
    SUMA_Axis *sax = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (idcode == NULL) {
       fprintf(SUMA_STDERR,"Warning %s: NULL idcode.\n", FuncName);
@@ -747,7 +747,7 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    int i;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType == SO_type) {
@@ -780,7 +780,7 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_SurfaceObject *SO;
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType == SO_type) {
@@ -814,7 +814,7 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, in
    SUMA_SurfaceObject *SO;
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType == SO_type) {
@@ -854,7 +854,7 @@ SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_ismappable"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SO->LocalDomainParentID != NULL) {
       /* SO is mappable */
@@ -892,7 +892,7 @@ SUMA_Boolean SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_isLocalDomainParent"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SO->LocalDomainParentID == NULL) {
       SUMA_RETURN (NOPE);
@@ -967,7 +967,7 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1, SUMA_SurfaceO
    static char FuncName[]={"SUMA_WhatAreYouToMe"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SO1->idcode_str || !SO2->idcode_str) {
       fprintf (SUMA_STDERR, "Error %s: NULL idcode_str.\n", FuncName);
@@ -1071,7 +1071,7 @@ SUMA_Boolean SUMA_isSO (SUMA_DO DO)
 {
    static char FuncName[]={"SUMA_isSO"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (DO.ObjectType == SO_type) {
       SUMA_RETURN (YUP);
@@ -1108,7 +1108,7 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, S
    SUMA_Boolean Found = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    list = (DList *)SUMA_malloc(sizeof(DList));
    listop = (DList *)SUMA_malloc(sizeof(DList));
@@ -1219,7 +1219,7 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void)
    static char FuncName[]={"SUMA_CreateAssembleListStruct"};
    SUMA_ASSEMBLE_LIST_STRUCT *str=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    str = (SUMA_ASSEMBLE_LIST_STRUCT *)SUMA_malloc(sizeof(SUMA_ASSEMBLE_LIST_STRUCT));
    str->clist = NULL;
@@ -1241,7 +1241,7 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT
    static char FuncName[]={"SUMA_FreeAssembleListStruct"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!str) SUMA_RETURN(NULL);
    
@@ -1276,7 +1276,7 @@ SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov
    SUMA_DRAWN_ROI *ROI = NULL;
    static char FuncName[]={"SUMA_FetchROI_InCreation"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    for (i=0; i < N_dov; ++i) {
       if (dov[i].ObjectType == ROIdO_type) {
@@ -1309,7 +1309,7 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
    SUMA_SurfaceObject *SO_ROI = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (LocalHead) {
       fprintf (SUMA_STDERR, "%s: %s SO->LocalDomainParentID\n", FuncName, SO->LocalDomainParentID);
@@ -1348,7 +1348,7 @@ SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO)
    static char FuncName[]={"SUMA_isROIrelated"};
    SUMA_SurfaceObject *SO_ROI = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
    SO_ROI = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
@@ -1390,7 +1390,7 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO, in
    SUMA_ROI *ROI = NULL;
    SUMA_Boolean LocalHead = NOPE;
     
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    *N_added = -1;
    
@@ -1456,7 +1456,7 @@ int SUMA_Build_Mask_DrawnROI (SUMA_DRAWN_ROI *D_ROI, int *Mask)
    int ii, N_added;
    SUMA_ROI_DATUM *ROId=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    N_added = -1;
    
@@ -1507,7 +1507,7 @@ SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI)
    SUMA_Boolean WasCurrent = NOPE, Shaded = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!ROI) {
       SUMA_LH("Null ROI");
