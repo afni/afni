@@ -152,10 +152,10 @@ ENTRY("AFNI_splashup") ;
             dold[qq-1] = dold[qq] ;
           dold[ndold-1] = dd ;
         }
-        imov = mri_read_stuff( fname_face[dd] ) ;               /* read file */
+        imov = mri_read_stuff( fname_face[dd] ) ;              /* read file */
         if( imov != NULL && (imov->nx > MAX_XOVER || imov->ny > MAX_YOVER) ){
           float xfac=MAX_XOVER/(float)(imov->nx),
-                yfac=MAX_YOVER/(float)(imov->ny) ;     /* rescale if too big */
+                yfac=MAX_YOVER/(float)(imov->ny) ;    /* rescale if too big */
           int nxnew,nynew ; MRI_IMAGE *imq ;
           if( xfac > yfac ) xfac = yfac ;
           nxnew = (int)(xfac*imov->nx) ; nynew = (int)(xfac*imov->ny) ;
