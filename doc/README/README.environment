@@ -1460,6 +1460,11 @@ of a Layout file (cf. AFNI_LAYOUT_FILE above), you'll get a Script file.
 The capabilities of Script files are being expanded.  Not all features of
 the AFNI window setup are currently save-able this way.
 
+You can load a Script file interactively during an AFNI run by using the
+button "Datamode->Misc->Run Script".  As a 'secret' option, if you enter
+a line containing a blank in the the filename dialog, that line will be
+executed as a single command, rather than be used as a script filename.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

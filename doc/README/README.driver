@@ -11,10 +11,11 @@ available are described below.  The sample plugout plugout_drive.c can
 be used to test how things work (highly recommended before you start
 writing your own code).
 
-A startup script (file ${HOME}/.afni.startup_script) can also give a
-sequence of commands to be run immediately after AFNI starts up.
-The file consists of a sequence of command lines (without the "DRIVE_AFNI"
-prefix).
+A startup Script (file ".afni.startup_script") can also give a sequence
+of commands to be run immediately after AFNI starts up.  The file consists
+of a sequence of command lines (without the "DRIVE_AFNI" prefix).  It is
+also possible to read in a Script file using the "Datamode->Misc->Run Script"
+button from the AFNI controller.
 
 ADD_OVERLAY_COLOR colordef colorlab
   Adds the color defined by the string "colordef" to the list of overlay
