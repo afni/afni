@@ -55,23 +55,62 @@ int main( int argc , char *argv[] )
 {
    int num_I , ii,jj , ngood , nrun , i, UseUv17 = 0;
    char **nam_I  ;
-   char **gnam_I ;
+   char **gnam_I , *PatOpt=NULL;
    int   *time_I , *uv17, lmax=0 , ll , thresh , ibot,itop ;
    float *zoff_I , tr , zth1,zth2 , zd ;
    ge_header_info geh ;
-   int Ni, CurVolInd, *New_Vol_Loc, *VolSize, N_Vols, *TroubVolume, iTroub, MultiSliceVol, *DupSlice, iDup, BadRun, AllGood = 1, GoodRun;
+   int Ni, CurVolInd, *New_Vol_Loc, *VolSize, N_Vols, *TroubVolume, iTroub, 
+      MultiSliceVol, *DupSlice, iDup, BadRun, AllGood = 1, GoodRun, kar = -1,
+      brk = 0, StrtFiles = 0;
    float *Dzv, fact;
    char fmt[128] ;
    FILE * fout_dbg, *fout_panga;
 
    if (argc == 1) { Ifile_help(); exit(1); }
-   if (strcmp (argv[1],"-h") == 0 || strcmp (argv[1],"-help") == 0) { Ifile_help(); exit(1); }
-   if (strcmp (argv[1],"-nt") == 0) { 
-      fprintf(stderr,"++ using User Variable 17.\n");
-      UseUv17 = 1; } 
+   kar = 1;
+	brk = 0;
+   StrtFiles = 0;
+	UseUv17 = 0;
+   while (kar < argc && !StrtFiles) { /* loop accross command ine options */
+      if (strcmp (argv[kar],"-h") == 0 || strcmp (argv[kar],"-help") == 0) { Ifile_help(); exit(1); }
+      if (!brk && (strcmp(argv[kar], "-nt") == 0)) {
+         UseUv17 = 1;
+			brk = 1;
+         ++kar;
+		}
+      if (!brk && (strcmp(argv[kar], "-sp") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "Error: Need argument after -sp.\n");
+				exit (1);
+			}
+         PatOpt =  (char *)malloc(strlen(argv[kar]+1)*sizeof(char));
+         
+         sprintf(PatOpt,"%s",argv[kar]);
+         brk = 1;
+         ++kar;
+      }
+      
+      /* nothing found, save location and get out */
+      if (!brk) {
+         /* Done with options */
+         StrtFiles = kar;
+      } else {
+         brk = 0;
+      }
+   }
+   
+   if (UseUv17) { 
+      fprintf(stderr,"++ using User Variable 17.\n"); } 
    else { 
-      fprintf(stderr,"++ using time stamp.\n");
-      UseUv17 = 0; } 
+      fprintf(stderr,"++ using time stamp.\n");} 
+   
+   if (!PatOpt) { 
+      PatOpt = (char *)malloc(sizeof(char)*10);
+      sprintf(PatOpt,"alt+z");
+   }
+   
+   fprintf(stderr,"++ using slice pattern %s\n", PatOpt);
    
    /*
    for (i = 1; i < argc; ++i) {
@@ -87,12 +126,10 @@ int main( int argc , char *argv[] )
    fprintf(fout_panga, "#Change the following options to your liking (see @RenamePanga -help for more info):\n\n");
    fprintf(fout_panga, "set OutlierCheck = '-oc' #set to '-oc' to check for outliers, '' to skip checking.\n");
    fprintf(fout_panga, "set OutPrefix = 'OutBrick' #Output brick prefix.\n\n");
+   
    /*-- get the list of files */
-   if (UseUv17) {
-      MCW_file_expand( argc-2, argv + 2  , &num_I , &nam_I );
-   } else {
-      MCW_file_expand( argc-1, argv + 1  , &num_I , &nam_I );
-   }
+   fprintf(stderr,"++ Expanding file list ...\n") ;
+   MCW_file_expand( argc - StrtFiles, argv + StrtFiles  , &num_I , &nam_I );
 
    fprintf(stderr,"++ found %d '*/I.*' files\n",num_I) ;
 
@@ -304,9 +341,11 @@ int main( int argc , char *argv[] )
                ++ GoodRun;
                fprintf(fout_panga,"@RenamePanga %s ", strtok(gnam_I[ibot],"/"));
                if (MultiSliceVol)
-                  fprintf(fout_panga,"%s %d %d $OutPrefix $OutlierCheck\n", strtok(NULL,"/I."), (int)Ni/N_Vols, N_Vols);
+                  fprintf(fout_panga,"%s %d %d $OutPrefix -sp %s $OutlierCheck\n", 
+                     strtok(NULL,"/I."), (int)Ni/N_Vols, N_Vols, PatOpt);
                else
-                  fprintf(fout_panga,"%s %d %d $OutPrefix $OutlierCheck\n", strtok(NULL,"/I."), N_Vols, (int)Ni/N_Vols);
+                  fprintf(fout_panga,"%s %d %d $OutPrefix -sp %s $OutlierCheck\n", 
+                     strtok(NULL,"/I."), N_Vols, (int)Ni/N_Vols, PatOpt);
             }
             else
             {
@@ -321,6 +360,9 @@ int main( int argc , char *argv[] )
 
       ibot = itop ;  /* start scan here */
    }
+   
+   free(PatOpt);
+   
    #ifdef DBG_FILE
       fclose (fout_dbg);
    #endif
@@ -350,7 +392,12 @@ void Ifile_help ()
    {
       fprintf(stdout,"\nUsage: Ifile [Options] <File List> \n");
       fprintf(stdout,"\n\t[-nt]: Do not use time stamp to identify complete scans.\n");
-      fprintf(stdout,"\t       Complete scans are identified from 'User Variable 17' in the image header.\n");
+      fprintf(stdout,"\t       Complete scans are identified from 'User Variable 17'\n"
+                     "\t       in the image header.\n");
+      fprintf(stdout,"\t[-sp Pattern]: Slice acquisition pattern.\n"          
+                     "\t               Sets the slice acquisition pattern.\n"
+                     "\t               The default option is alt+z.\n"
+                     "\t               See to3d -help for acceptable options.\n");   
       fprintf(stdout,"\n\t<File List>: Strings of wildcards defining series of\n");
       fprintf(stdout,"\t              GE-Real Time (GERT) images to be assembled\n");
       fprintf(stdout,"\t              as an afni brick. Example:\n");

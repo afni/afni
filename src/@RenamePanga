@@ -28,7 +28,7 @@ set GeomOption = ''
 set Autoto3d = 1
 set KeepPrefix = 0
 set OutCheck = 0
-
+set PatOpt = 'alt+z'
 if ($Nargs > 5) then
 	#for the moment this is for interactive mode
 	set cnt = 6
@@ -43,7 +43,17 @@ if ($Nargs > 5) then
 			case -i:
 				set To3Dint = 1
 				breaksw
-			case -gp_OBSOLETE:
+			case -sp:
+            @ cnt ++
+            if ($Nargs < $cnt) then
+					echo ""
+					echo "ERROR: You must specify a pattern option after -sp."
+					echo ""
+               goto ENDALL
+				endif
+            set PatOpt = $argv[$cnt]
+            breaksw
+         case -gp_OBSOLETE:
 				set UseGp = 1
 				@ cnt ++
 				if ($Nargs < $cnt) then
@@ -203,10 +213,10 @@ TO3D:
 		set DefSize = ''
 	endif
 	
-	echo "Now Running: to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR alt+z $DefSize -@ < $listfile"
+	echo "Now Running: to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR $PatOpt $DefSize -@ < $listfile"
 	echo ""
-	echo "to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR alt+z $DefSize -@ < $listfile" >> $LogFile
-	      to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR alt+z $DefSize  -@ < $listfile 
+	echo "to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR $PatOpt $DefSize -@ < $listfile" >> $LogFile
+	      to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR $PatOpt $DefSize -@ < $listfile 
 	
 	
 	test -f $BrickPrefix'+orig.HEAD' || goto NOBRIK
@@ -296,7 +306,7 @@ NOBRIK:
 USAGE:
 	set DS = `date +%Y`.`date +%m`.`date +%d`
 	echo ""
-	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>  [-kp] [-i] [-oc]" 	
+	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>  [-kp] [-i] [-oc] [-sp Pattern]" 	
 	echo ""
 	echo "Creates AFNI bricks from RealTime GE EPI series."
 	echo ""
@@ -325,7 +335,9 @@ USAGE:
 	echo " -oc: Performs outliers check. This is useful to do but it slows to3d down and"
 	echo "  maybe annoying when checking your data while scanning. If you choose -oc, the"
 	echo "  outliers are written to a .1D file and placed in the afni directory."
-	echo ""
+	echo "  -sp Pattern: Sets the slice acquisition pattern. The default option is alt+z."
+   echo "  see to3d -help for various acceptable options."
+   echo ""
 	echo ""
 	echo "A log file (MAPLOG_Panga) is created in the current directory."
 	echo ""
@@ -343,7 +355,7 @@ USAGE:
 	echo "Thanks to Jill W., Mike B. and Shruti J. for reporting bugs and testing the scripts."
 	echo "***********"
 	echo ""
-	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>  [-i] [-kp] [-oc]" 	
+	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>  [-i] [-kp] [-oc] [-sp Pattern]" 	
 	echo ""
 	echo " Version $VerNum   Ziad Saad (ziad@nih.gov) Dec 5 2001   SSCC/LBC/NIMH." 
  	goto ENDALL
