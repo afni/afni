@@ -395,6 +395,54 @@ for (iT=1:1:N_tasks),
    end
 end	
 
+fprintf('\nSometimes covariates are considered in the modeling process. For example, if there were head motion');
+fprintf('\nduring the scanning, the variation caused by the motion is better accounted for by adding those');
+fprintf('\nparameters from 3dvolreg into the analysis. These regressors will be included as part of the baseline');
+fprintf('\nso that the finalthe final full F is interpreted as baseline + pure noise versus baseline + real signal + noise.');
+
+flg10 = 0;
+while flg10 == 0,
+   base = input('\n\nDo you want to add some covariates? (1 - yes; 0 - no) ');
+	if (base ~= 0 & base ~= 1), 
+	   flg10 = 0; fprintf(2,'Error: the input is not a number. Please try it again.\n');
+	   else flg10 = 1;
+	end
+end
+
+N_base = 0;
+if (base == 1),
+   flg10 = 0;
+   while flg10 == 0,
+      N_base = input('\nHow many covariates? ');
+		if (isnumeric(N_base) == 0 | isempty(N_base)),
+	      flg10 = 0; fprintf(2,'Error: the input is not a number. Please try it again.\n');
+   	else flg10 = 1;
+      end
+   end
+	if (N_base > 0),
+      for (i = 1:N_base),
+	      flg10 = 0;
+         while flg10 == 0,
+			   fprintf('Number %i covariate ', i);
+            stimbase(i).label = input('name is: ', 's');
+			   if (ischar(stimbase(i).label) == 0 | isempty(stimbase(i).label)),
+	            flg10 = 0; fprintf(2,'Error: the input is not a string. Please try it again.\n');
+      	   else flg10 = 1;
+            end
+         end
+			flg10 = 0;
+         while flg10 == 0,		
+   	      fprintf('Number %i covariate 1D file (or file with column specified) ', i);
+            stimbase(i).file = input('expression is: ', 's');
+	   		if (ischar(stimbase(i).file) == 0 | isempty(stimbase(i).file)),
+	            flg10 = 0; fprintf(2,'Error: the input is not a string. Please try it again.\n');
+   	      else flg10 = 1;
+            end
+         end
+		end % for (i = 1:N_base)
+	end % if (N_baser > 0)	
+end % if (base == 1)	
+
 %Get information for contrast tests from the user
 
 flg10 = 0;
@@ -676,9 +724,9 @@ Mandatory_opt1 = '';
 
 if (run_norm == 1 | run_mask.do == 1),
    Mandatory_opt1 = sprintf('%s   -input %s%s.BRIK \\\n   -num_stimts %d \\\n   -polort %d \\\n',...
-                         Mandatory_opt1, preprc_fn, InBrikView, N_tasks*N_basis, polort);
+                         Mandatory_opt1, preprc_fn, InBrikView, N_tasks*N_basis+N_base, polort);
 else Mandatory_opt1 = sprintf('%s   -input %s%s.BRIK \\\n   -num_stimts %d \\\n   -polort %d \\\n',...
-                         Mandatory_opt1, InBrikPrefix, InBrikView, N_tasks*N_basis, polort);
+                         Mandatory_opt1, InBrikPrefix, InBrikView, N_tasks*N_basis+N_base, polort);
 end
 if (N_runs > 1),
    Mandatory_opt1 =sprintf('%s   -concat %s \\\n', Mandatory_opt1, Concat_fn);
@@ -711,6 +759,14 @@ for (iT=1:1:N_tasks),
    end
 end
 
+if (N_base > 0), % for covariates (with stim_base)
+	for (ii = N_base),		
+			Mandatory_opt2 = sprintf('%s   -stim_file %d %s \\\n',...
+                     Mandatory_opt2, N_tasks*N_basis+ii, stimbase(ii).file);
+         Mandatory_opt3 = sprintf('%s   -stim_base %d -stim_label %d %s \\\n',...
+                     Mandatory_opt3, N_tasks*N_basis+ii, N_tasks*N_basis+ii, stimbase(ii).label);
+	end	
+end
 
 %create options for task effect test with genereal linear test
 %here we assume the user implicitly wants to test all tasks
@@ -722,7 +778,7 @@ end
 gltopt1 = '';
 if (Run_Type == 2),   %for regression
    if (N_basis ~= 1);
-      [err,taskfile] = TaskTest(N_runs, polort, N_basis, N_tasks, Task);
+      [err,taskfile] = TaskTest(N_runs, polort, N_basis, N_tasks, Task, N_base);
 		gltopt1 = sprintf('%s   -num_glt %i\\\n', gltopt1, N_tasks+N_contr);
       for (i = 1:1:N_tasks),		   
 %         gltopt1 = sprintf('%s   -glt 1 %s   -glt_label %i %s\\\n', gltopt1, taskfile(i).name, i, Task(i).Label);
@@ -736,7 +792,7 @@ end
 
 gltopt2 = '';
 if (contrast)
-   [err,contrfile] = ContrastTest (N_runs, polort, N_basis, Task, N_tasks, N_contr, El);
+   [err,contrfile] = ContrastTest (N_runs, polort, N_basis, Task, N_tasks, N_contr, El, N_base);
 	if (err),
       fprintf(2,'Error %s: Failed in ContrastTest.\n', contrfile);
       while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end

@@ -1,4 +1,4 @@
-function [err,contrfile] = ContrastTest (N_runs, polort, N_basis, Task, N_tasks, N_contr, El)
+function [err,contrfile] = ContrastTest (N_runs, polort, N_basis, Task, N_tasks, N_contr, El, N_base)
 %
 %   [err,] = ContrastTest ()
 %
@@ -39,7 +39,7 @@ err = 1;
 
 %Create a matrix so that 3dDeconvolve uses for regressor test.
 
-length = (polort+1)*N_runs;
+length = (polort+1)*N_runs+N_base;
 for (iT = 1:1:N_tasks),
    for (j = 1:1:N_basis)    ,
 	   length = length + (Task(iT).BasisOpt_struct(j).maxlag - Task(iT).BasisOpt_struct(j).minlag + 1);
