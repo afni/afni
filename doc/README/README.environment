@@ -1322,6 +1322,15 @@ the Talairach Daemon database onto odd-sized +tlrc datasets.  Therefore, I
 recommend that these variables be used only when strictly needed, and with
 caution.
 
+-------------------------
+Variable: AFNI_TTRR_SETUP
+-------------------------
+Name of a file to be loaded to define Talairach Atlas Colors, when the Atlas
+Colors control panel is first created.  Format is the same as a file created
+from this control panel's "Save" button.  This filename should be an absolute
+path (e.g., /home/yourname/.afni_ttcolors), since otherwise it will be read
+relative to the directory in which you start AFNI.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

@@ -8,4 +8,4 @@ if( "$1" == "-help" )then
    exit 0
 endif
 
-cvs -Q status `find . -type f -maxdepth 1` | grep ^File: | grep -v Up-to-date
+cvs -Q status `find . -type f` | grep ^File: | grep -v Up-to-date
