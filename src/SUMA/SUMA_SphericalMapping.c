@@ -3089,8 +3089,8 @@ int main (int argc, char *argv[])
    }
    
    /*contains information regarding spec order and mapping reference
-     [0]=>smwm, [1]=>pial, [2]=>infl, [3]=>sphr, [4]=>sphr.reg, [5]=>white [6]=>patch*/
-   mx_N_surf = 8;
+     [0]=>smwm, [1]=>pial, [2]=>infl, [3]=>sphr, [4]=>sphr.reg, [5]=>white [6]=>occip.patch*/
+   mx_N_surf = 10;
    spec_order = SUMA_calloc( mx_N_surf, sizeof(int));
    spec_mapRef = SUMA_calloc( mx_N_surf, sizeof(int));
    for (i=0; i<mx_N_surf; ++i) {
@@ -3137,11 +3137,17 @@ int main (int argc, char *argv[])
       else if ((SUMA_iswordin( currSurf->State, "white") ==1) ) 
          id = 5;
       /*3d patch*/
-      else if ((SUMA_iswordin( currSurf->State, "patch.3d") ==1) ) 
+      else if ((SUMA_iswordin( currSurf->State, "occip.patch.3d") ==1) ) 
          id = 6;
       /*flat patch*/
-      else if ((SUMA_iswordin( currSurf->State, "patch.flat") ==1) ) 
+      else if ((SUMA_iswordin( currSurf->State, "occip.patch.flat") ==1) ) 
          id = 7;
+      /*3d patch*/
+      else if ((SUMA_iswordin( currSurf->State, "full.patch.3d") ==1) ) 
+         id = 8;
+      /*flat patch*/
+      else if ((SUMA_iswordin( currSurf->State, "full.patch.flat") ==1) ) 
+         id = 9;
       else {
          
             fprintf(SUMA_STDERR, "\nWarning %s: Surface State %s not recognized. Skipping...\n", 
@@ -3253,6 +3259,10 @@ int main (int argc, char *argv[])
             spec_mapRef[id] = 6;
          else if ( SUMA_iswordin( currMapRef->State, "occip.patch.flat") ==1 )
             spec_mapRef[id] = 7;
+         else if ( SUMA_iswordin( currMapRef->State, "full.patch.3d") ==1 )
+            spec_mapRef[id] = 8;
+         else if ( SUMA_iswordin( currMapRef->State, "full.patch.flat") ==1 )
+            spec_mapRef[id] = 9;
          else {
             /*mapping ref is not one of the regular surface states*/
             fprintf(SUMA_STDERR, "\nWarning %s: Mapping Reference %s has no recognized surface state in its name.\n\tSetting to default smoothwm.\n\n", FuncName, currMapRef->State);
@@ -3363,7 +3373,7 @@ int main (int argc, char *argv[])
    
    /*make certain same number of nodes in all (full, not patch) surfaces*/
    for (i=0; i<mx_N_surf; ++i) {
-      if ( spec_order[i]!=-1 && i!=6 && i!=7 && !(surfaces_orig[i_morph]->N_Node == surfaces_orig[i]->N_Node) ) {
+      if ( spec_order[i]!=-1 && i!=6 && i!=7 && i!=8 && i!=9 &&!(surfaces_orig[i_morph]->N_Node == surfaces_orig[i]->N_Node) ) {
          fprintf(SUMA_STDERR, "Error %s: Surfaces (ref [%d], %d!=%d) differ in node number. Exiting.\n", FuncName, i, surfaces_orig[i_morph]->N_Node, surfaces_orig[i]->N_Node);
          if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
          if (surfaces_orig) SUMA_free (surfaces_orig);
