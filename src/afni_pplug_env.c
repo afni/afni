@@ -99,7 +99,7 @@ static char *env_fixed[] = {
 
 #define NUM_cord_strings 50
 
-static char * cord_strings[NUM_cord_strings] = {
+static char *cord_strings[NUM_cord_strings] = {
  "Dicom" , "Flipped" ,
   "RAI" , "RAS" , "RPI" , "RPS" , "RIA" , "RIP" , "RSA" , "RSP" ,
   "LAI" , "LAS" , "LPI" , "LPS" , "LIA" , "LIP" , "LSA" , "LSP" ,
@@ -117,6 +117,7 @@ static void ENV_marksquality( char * ) ;
 static void ENV_trusthost( char * ) ;     /* 21 Feb 2001 */
 static void ENV_cwd( char * ) ;           /* 22 Feb 2001 */
 static void ENV_redraw_titles( char * );  /* 21 Dec 2004 */
+static void ENV_redisplay( char * );      /* 21 Mar 2005 */
 
 #ifdef USE_SESSTRAIL
 static void ENV_sesstrail( char * ) ;
@@ -155,11 +156,11 @@ typedef struct {
   int  vcount ;                /* for STRING */
   char ** vlist ;              /* for STRING */
   char vvalue[VAL_NMAX] ;
-  generic_func * vfunc ;
+  generic_func *vfunc ;
 } ENV_var ;
 
-static int   NUM_env_var = 0 ;
-static ENV_var * env_var = NULL ;
+static int  NUM_env_var = 0 ;
+static ENV_var *env_var = NULL ;
 
 /*----------------- prototypes for internal routines -----------------*/
 
@@ -406,6 +407,11 @@ PLUGIN_interface * ENV_init(void)
                    "Use 'label2' field for window titles?" ,
                    NUM_yesno_list , yesno_list , ENV_redraw_titles ) ;
 
+   /* 21 Mar 2005 [RWCox] */
+   ENV_add_string( "AFNI_EDGIZE_OVERLAY" ,
+                   "Display color overlay as edges only?" ,
+                   NUM_yesno_list , yesno_list , ENV_redisplay ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
@@ -517,9 +523,9 @@ PLUGIN_interface * ENV_init(void)
   Add a new variable to the list
 ****************************************************************************/
 
-void ENV_add_numeric( char * vname , char * vhint ,
+void ENV_add_numeric( char *vname , char *vhint ,
                       int vbot , int vtop , int vdecim , int vdef ,
-                      generic_func * cbfunc )
+                      generic_func *cbfunc )
 {
    int ii ;
 
@@ -549,7 +555,7 @@ void ENV_add_numeric( char * vname , char * vhint ,
    return ;
 }
 
-void ENV_add_yesno( char * vname , char * vhint ) /* 08 Aug 2001 */
+void ENV_add_yesno( char *vname , char *vhint ) /* 08 Aug 2001 */
 {
    ENV_add_string( vname , vhint ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
@@ -589,7 +595,7 @@ void ENV_add_string( char *vname , char *vhint ,
   AFNI will popup the return string in a message box.
 ****************************************************************************/
 
-static char * ENV_main( PLUGIN_interface * plint )
+static char * ENV_main( PLUGIN_interface *plint )
 {
    char *tag ;
    int ii,kk , ndone=0 ;
@@ -626,7 +632,7 @@ static char * ENV_main( PLUGIN_interface * plint )
          /* write a string value into the environment */
 
          case ENV_STRING:{
-            char * str = PLUTO_get_string(plint) ; int jj ;
+            char *str = PLUTO_get_string(plint) ; int jj ;
 
             if( env_var[ii].vcount > 0 ){
                jj = PLUTO_string_index( str , env_var[ii].vcount ,
@@ -702,9 +708,9 @@ static void ENV_globalrange( char *vname )
 
 /*-----------------------------------------------------------------------*/
 
-static void ENV_coorder( char * vname )
+static void ENV_coorder( char *vname )
 {
-   char * str = getenv(vname) ;
+   char *str = getenv(vname) ;
    if( str == NULL ) str = "RAI" ;
    MCW_strncpy(GLOBAL_argopt.orient_code,str,4) ;
    THD_coorder_fill( GLOBAL_argopt.orient_code , &GLOBAL_library.cord ) ;
@@ -713,9 +719,16 @@ static void ENV_coorder( char * vname )
 
 /*-----------------------------------------------------------------------*/
 
-static void ENV_compressor( char * vname )
+static void ENV_redisplay( char *vname )  /** 21 Mar 2005 */
 {
-   char * str = getenv(vname) ;
+   PLUTO_force_redisplay() ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+static void ENV_compressor( char *vname )
+{
+   char *str = getenv(vname) ;
    int meth ;
 
    if( str == NULL ) str = "None" ;
@@ -727,11 +740,11 @@ static void ENV_compressor( char * vname )
 /*-----------------------------------------------------------------------*/
 
 #ifdef USE_SESSTRAIL
-static void ENV_sesstrail( char * vname )
+static void ENV_sesstrail( char *vname )
 {
    int ii , tt ;
-   THD_session * sess ;
-   char * str = getenv(vname) ;
+   THD_session *sess ;
+   char *str = getenv(vname) ;
 
    if( str == NULL ) str = "1" ;
    ii = SESSTRAIL ; SESSTRAIL = (int) strtod(str,NULL) ;
@@ -757,9 +770,9 @@ static void ENV_sesstrail( char * vname )
 /*-----------------------------------------------------------------------*/
 
 #if 0
-static void ENV_byteorder( char * vname )
+static void ENV_byteorder( char *vname )
 {
-   char * str = getenv(vname) ;
+   char *str = getenv(vname) ;
    int meth ;
 
    meth = PLUTO_string_index( str , NUM_byteorder_list , byteorder_list ) ;
@@ -775,9 +788,9 @@ static void ENV_byteorder( char * vname )
 
 /*-----------------------------------------------------------------------*/
 
-static void ENV_trusthost( char * vname )  /* 21 Feb 2001 */
+static void ENV_trusthost( char *vname )  /* 21 Feb 2001 */
 {
-   char * str = getenv(vname) ;
+   char *str = getenv(vname) ;
    TRUST_addhost(str) ;
 }
 
@@ -792,9 +805,9 @@ static void ENV_redraw_titles( char *vname ) /* 21 Dec 2004 */
 
 /*-----------------------------------------------------------------------*/
 
-static void ENV_cwd( char * vname )  /* 22 Feb 2001 */
+static void ENV_cwd( char *vname )  /* 22 Feb 2001 */
 {
-  char * str = getenv(vname) , buf[256] , *bpt ;
+  char *str = getenv(vname) , buf[256] , *bpt ;
 
   if( str != NULL && str[0] != '\0' ){
      int ii = chdir(str) ;
@@ -814,17 +827,17 @@ static void ENV_cwd( char * vname )  /* 22 Feb 2001 */
 
 /*-----------------------------------------------------------------------*/
 
-static void ENV_leftisleft( char * vname )
+static void ENV_leftisleft( char *vname )
 {
-   char * str = getenv(vname) ;
+   char *str = getenv(vname) ;
    GLOBAL_argopt.left_is_left = YESSISH(str) ;
 }
 
 /*-----------------------------------------------------------------------*/
 
-static void ENV_marksquality( char * vname )
+static void ENV_marksquality( char *vname )
 {
-   char * str = getenv(vname) ;
+   char *str = getenv(vname) ;
    GLOBAL_argopt.elide_quality = YESSISH(str) ;
 }
 #endif

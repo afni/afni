@@ -2,7 +2,7 @@
 
 /*--------------- Sample 0D function: log10 of each input point ------------*/
 
-void log10_func( int num , float * vec )
+void log10_func( int num , float *vec )
 {
    int ii ;
    float vmax , vmin ;
@@ -39,7 +39,7 @@ void log10_func( int num , float * vec )
 
 /*------------ Sample 0D function: Signed sqrt of each input point ---------*/
 
-void ssqrt_func( int num , float * vec )
+void ssqrt_func( int num , float *vec )
 {
    int ii ;
    double val ;
@@ -56,7 +56,7 @@ void ssqrt_func( int num , float * vec )
 
 /*--------------- Sample 1D function: Order Statistics Filter -------------*/
 
-void osfilt3_func( int num , double to,double dt, float * vec )
+void osfilt3_func( int num , double to,double dt, float *vec )
 {
    int ii ;
    float aa,bb,cc ;
@@ -72,7 +72,7 @@ void osfilt3_func( int num , double to,double dt, float * vec )
 
 /*--------------- Sample 1D function: Median of 3 Filter ----------------*/
 
-void median3_func( int num , double to,double dt, float * vec )
+void median3_func( int num , double to,double dt, float *vec )
 {
    int ii ;
    float aa,bb,cc ;
@@ -88,9 +88,9 @@ void median3_func( int num , double to,double dt, float * vec )
 
 /*---------------- Sample 1D function: abs(FFT) [30 Jun 2000] --------------*/
 
-void absfft_func( int num , double to,double dt, float * vec )
+void absfft_func( int num , double to,double dt, float *vec )
 {
-   static complex * cx=NULL ;
+   static complex *cx=NULL ;
    static int      ncx=0 , numold=0 ;
    float f0,f1 ;
    int ii ;
@@ -159,8 +159,8 @@ float extreme_proj( int n , float *ar )  /* 02 Feb 2002 */
 /*----------------------- Sample 2D transformations --------------------*/
 /*======================================================================*/
 
-static float * atemp = NULL ;
-static int    natemp = -666 ;
+static float *atemp = NULL ;
+static int   natemp = -666 ;
 
 #define MAKE_ATEMP(nvox)                     \
   do{ if( natemp < (nvox) ){                 \
@@ -172,11 +172,11 @@ static int    natemp = -666 ;
 
 /*------------------------------------------------------------------------*/
 
-void median9_box_func( int nx , int ny , double dx, double dy, float * ar )
+void median9_box_func( int nx , int ny , double dx, double dy, float *ar )
 {
    int ii , jj , nxy , joff ;
    float aa[9] ;
-   float * ajj , * ajm , * ajp ;
+   float *ajj , *ajm , *ajp ;
 
    if( nx < 3 || ny < 3 ) return ;
 
@@ -184,7 +184,7 @@ void median9_box_func( int nx , int ny , double dx, double dy, float * ar )
 
    nxy = nx * ny ;
    MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+   memcpy(atemp,ar,sizeof(float)*nxy) ;
 
    /** process copy of input back into the input array **/
 
@@ -236,11 +236,11 @@ void median9_box_func( int nx , int ny , double dx, double dy, float * ar )
 
 /*------------------------------------------------------------------------*/
 
-void winsor9_box_func( int nx , int ny , double dx, double dy, float * ar )
+void winsor9_box_func( int nx , int ny , double dx, double dy, float *ar )
 {
    int ii , jj , nxy , joff ;
    float aa[9] ;
-   float * ajj , * ajm , * ajp ;
+   float *ajj , *ajm , *ajp ;
 
    if( nx < 3 || ny < 3 ) return ;
 
@@ -248,7 +248,7 @@ void winsor9_box_func( int nx , int ny , double dx, double dy, float * ar )
 
    nxy = nx * ny ;
    MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+   memcpy(atemp,ar,sizeof(float)*nxy) ;
 
    /** process copy of input back into the input array **/
 
@@ -294,11 +294,11 @@ void winsor9_box_func( int nx , int ny , double dx, double dy, float * ar )
 
 /*------------------------------------------------------------------------*/
 
-void osfilt9_box_func( int nx , int ny , double dx, double dy, float * ar )
+void osfilt9_box_func( int nx , int ny , double dx, double dy, float *ar )
 {
    int ii , jj , nxy , joff ;
    float aa[9] ;
-   float * ajj , * ajm , * ajp ;
+   float *ajj , *ajm , *ajp ;
 
    if( nx < 3 || ny < 3 ) return ;
 
@@ -306,7 +306,7 @@ void osfilt9_box_func( int nx , int ny , double dx, double dy, float * ar )
 
    nxy = nx * ny ;
    MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+   memcpy(atemp,ar,sizeof(float)*nxy) ;
 
    /** process copy of input back into the input array **/
 
@@ -352,11 +352,11 @@ void osfilt9_box_func( int nx , int ny , double dx, double dy, float * ar )
 
 /*------------------------------------------------------------------------*/
 
-void median21_box_func( int nx , int ny , double dx, double dy, float * ar )
+void median21_box_func( int nx , int ny , double dx, double dy, float *ar )
 {
    int ii , jj , nxy , joff ;
    float aa[21] ;
-   float * ajj , * ajm , * ajp , * ajmm , * ajpp ;
+   float *ajj , *ajm , *ajp , *ajmm , *ajpp ;
 
    if( nx < 5 || ny < 5 ) return ;
 
@@ -364,11 +364,7 @@ void median21_box_func( int nx , int ny , double dx, double dy, float * ar )
 
    nxy = nx * ny ;
    MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-#if 0
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
-#else
-   memcpy( atemp , ar , sizeof(float)*nxy ) ;
-#endif
+   memcpy(atemp,ar,sizeof(float)*nxy) ;
 
    /** process copy of input back into the input array **/
 
@@ -407,11 +403,11 @@ void median21_box_func( int nx , int ny , double dx, double dy, float * ar )
 
 /*------------------------------------------------------------------------*/
 
-void winsor21_box_func( int nx , int ny , double dx, double dy, float * ar )
+void winsor21_box_func( int nx , int ny , double dx, double dy, float *ar )
 {
    int ii , jj , nxy , joff ;
    float aa[21] ;
-   float * ajj , * ajm , * ajp , * ajmm , * ajpp ;
+   float *ajj , *ajm , *ajp , *ajmm , *ajpp ;
 
    static int kbot=-1 , ktop ;
 
@@ -420,7 +416,7 @@ void winsor21_box_func( int nx , int ny , double dx, double dy, float * ar )
    /** initialize cutoffs [07 Dec 1999] **/
 
    if( kbot < 0 ){
-      char * ee = my_getenv("AFNI_WINSOR21_CUTOFF") ;
+      char *ee = my_getenv("AFNI_WINSOR21_CUTOFF") ;
       kbot = 6 ;   /* default */
       if( ee != NULL ){
          ii = strtol( ee , NULL , 10 ) ;
@@ -433,11 +429,7 @@ void winsor21_box_func( int nx , int ny , double dx, double dy, float * ar )
 
    nxy = nx * ny ;
    MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-#if 0
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
-#else
-   memcpy( atemp , ar , sizeof(float)*nxy ) ;
-#endif
+   memcpy(atemp,ar,sizeof(float)*nxy) ;
 
    /** process copy of input back into the input array **/
 
@@ -475,9 +467,9 @@ void winsor21_box_func( int nx , int ny , double dx, double dy, float * ar )
 
 /*------- [30 Jun 2000: abs(2D FFT) function] ----------------------------*/
 
-void fft2D_func( int nx , int ny , double dx, double dy, float * ar )
+void fft2D_func( int nx , int ny , double dx, double dy, float *ar )
 {
-   complex * cxar , *cpt ;
+   complex *cxar , *cpt ;
    int nxup,nyup , ii,jj ;
    float fi,fj , *fpt ;
 
