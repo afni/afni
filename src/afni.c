@@ -1047,7 +1047,7 @@ int main( int argc , char * argv[] )
    { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
      if( lenv != NULL ){
         float bk = strtod(lenv,NULL) ;
-        if( bk > 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
+        if( bk >= 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
      }
    }
 

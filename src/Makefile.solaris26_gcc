@@ -12,8 +12,10 @@ LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
 
 # These extra libraries are for Suns
 
-# EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
-EXTRA_LIBS = /usr/lib/libsocket.a /usr/lib/libnsl.a /usr/lib/libgen.a -ldl -lc
+EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
+# EXTRA_LIBS = /usr/openwin/lib/libXt.a /usr/openwin/lib/libXext.a \
+#              -lICE -lSM /usr/openwin/lib/libX11.a /usr/openwin/lib/libXext.a \
+#              /usr/lib/libsocket.a /usr/lib/libnsl.a /usr/lib/libgen.a -ldl
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -G
@@ -37,6 +39,7 @@ INSTALLDIR = ./solaris26_gcc
 LIBDIR = $(INSTALLDIR)
 
 LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
+# LLIBS  = -lmri -lXm $(EXTRA_LIBS) -lm -lc
 
 ######################################################################
 

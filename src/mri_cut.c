@@ -39,7 +39,7 @@ MRI_IMAGE * mri_cut_2D( MRI_IMAGE * im , int xa, int xb, int ya, int yb )
 
    for( yy=ya ; yy <= yb ; yy++ ){          /* for each output row */
       irow = par + (yy*nx+xa)*ps ;          /* ptr to input */
-      orow = qar + (yy-ya)*ps ;             /* ptr to output */
+      orow = qar + (yy-ya)*xps ;            /* ptr to output */
       memcpy( orow , irow , xps ) ;         /* copy input to output */
    }
 

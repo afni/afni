@@ -481,6 +481,15 @@ if(PRINT_TRACING)
 if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"number of voxels = %d",nvox) ; STATUS(str) ; }
 
+   /** 10 May 2000: check if nothing was found to work on **/
+
+   if( nvox == 0 ){
+      fprintf(stderr,"\n*** no voxels to FIM on!"
+                     "\n*** try setting the Bkg Thresh lower"
+                     "\n    [on the FIM -> Edit Ideal menu]\a\n") ;
+      free(indx) ; RETURN(NULL) ;
+   }
+
    /** allocate space for voxel values **/
 
    vval = (float *) malloc( sizeof(float) * nvox) ;

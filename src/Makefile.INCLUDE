@@ -39,7 +39,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
-           3dWavelets 3dfim+
+           3dWavelets 3dfim+ imcutup
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -50,7 +50,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot \
                   3dIntracranial 24swap 3dTsmooth RSFgen float_scan 3dmaskdump \
                   3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 1dtranspose \
-                  3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot
+                  3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot imcutup
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
@@ -102,6 +102,9 @@ ppmtocmap:ppmtocmap.c
 
 impdif:impdif.c
 	$(CC) -o impdif impdif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+
+imcutup:imcutup.c
+	$(CC) -o imcutup imcutup.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 float_scan:float_scan.c
 	$(CC) -o float_scan float_scan.c $(IFLAGS) $(LFLAGS) $(LLIBS)
@@ -793,7 +796,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o  \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
            mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o mri_cut.o    \
-           mri_overlay.o mri_copy.o
+           mri_overlay.o mri_copy.o mri_uncat2D.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \

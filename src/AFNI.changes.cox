@@ -2124,3 +2124,13 @@
      realtime mode (due to long hang time while master version web page
      is fetched across the network).
  * Added program 3dfim+.c from Doug Ward.
+
+09 May 2000
+ * Added program imcutup.c and function mri_uncat2D.c to break 2D images
+     up into pieces.
+
+10 May 2000
+ * Modified afni_fimmer.c to print out an error message if nvox is zero.
+     This happens if the FIM Bkg Thresh is too high.  Also modified
+     afni.c to allow this value to be initialize to 0 (before, 1% was the
+     minimum).

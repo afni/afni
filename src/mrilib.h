@@ -518,6 +518,7 @@ extern MRI_IMAGE * mri_transpose( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_filt_fft( MRI_IMAGE * im , float,int,int,int ) ;
 
 extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
+extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
 
 extern MRI_IMAGE * mri_shift_1D( MRI_IMAGE * im , float shift ) ;
 
