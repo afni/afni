@@ -235,6 +235,9 @@ void SUMA_cb_SetDrawROI_SaveWhat(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data);
 int SUMA_AskUser_ROI_replace(Widget parent, char *question, int default_ans);
 int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_ans);
+char * SUMA_ClassOf(int c);
+char * SUMA_Format(int n, int w);
+void SUMA_ShowVisuals (void); 
 
 
 

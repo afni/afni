@@ -36,6 +36,7 @@ void SUMA_usage ()
 			 printf ("\n\t        \n");
 			 printf ("\n\t[-iodbg] This option will trun on the In/Out debug info from the getgo.\n");
 			 printf ("\n\t[-memdbg] This option will trun on the memory tracing from the getgo.\n");
+          printf ("\n\t[-visuals] Shows the available glxvisuals and exits.\n");
           */
 			 /*SUMA_VolSurf_help(NULL); OBSOLETE */
 			 printf ("\n\n\tFor help on interacting with SUMA, press 'ctrl+h' with the mouse pointer inside SUMA's window.\n");
@@ -97,7 +98,7 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    
     
-   if (argc < 3)
+   if (argc < 2)
        {
           SUMA_usage ();
           exit (1);
@@ -127,11 +128,17 @@ int main (int argc,char *argv[])
 	SurfIn = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+		
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			SUMA_usage ();
           exit (1);
 		}
 		
+      if (strcmp(argv[kar], "-visuals") == 0) {
+			 SUMA_ShowVisuals ();
+          exit (0);
+		}
+      
 		if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
 			fprintf(SUMA_STDOUT,"Warning %s: SUMA running in in/out debug mode.\n", FuncName);
 			SUMAg_CF->InOut_Notify = YUP;

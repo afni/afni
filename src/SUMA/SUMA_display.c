@@ -7104,6 +7104,154 @@ void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data)
    SUMA_RETURNe;        
 }
 
+/*!
+   \brief spits out stats about available visuals 
+   
+   - copied from program glxvisuals.c by Mark Kilgard
+*/
+void SUMA_ShowVisuals (void) 
+{
+   static char FuncName[]={"SUMA_ShowVisuals"};
+   Display *dpy;
+   XVisualInfo match, *visualList, *vi, *visualToTry;
+   int errorBase, eventBase, major, minor, found;
+   int glxCapable, bufferSize, level, renderType, doubleBuffer, stereo,
+      auxBuffers, redSize, greenSize, blueSize, alphaSize, depthSize,
+      stencilSize, acRedSize, acGreenSize, acBlueSize, acAlphaSize;
+
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   dpy = XOpenDisplay(NULL);
+   if (!dpy) {
+      fprintf(SUMA_STDERR, "Error %s: Could not connect to %s.\n", FuncName, XDisplayName(NULL));
+      SUMA_RETURNe;
+   }
+   if (glXQueryExtension(dpy, &errorBase, &eventBase) == False) {
+      fprintf(SUMA_STDERR, "Error %s: OpenGL not supported by X server.\n" ,FuncName);
+      SUMA_RETURNe;
+   }
+
+   glXQueryVersion(dpy, &major, &minor);
+   printf("display: %s\n", XDisplayName(NULL));
+   printf("using GLX version: %d.%d\n\n", major, minor);
+
+   match.screen = DefaultScreen(dpy);
+   visualList = XGetVisualInfo(dpy, VisualScreenMask, &match, &found);
+   
+   printf("   visual     bf lv rg d st  r  g  b a   ax dp st accum buffs\n");
+   printf(" id dep cl    sz l  ci b ro sz sz sz sz  bf th cl  r  g  b  a\n");
+   printf("-------------------------------------------------------------\n");
+
+   visualToTry = NULL;
+   for(vi = visualList; found > 0; found--, vi++) {
+      glXGetConfig(dpy, vi, GLX_USE_GL, &glxCapable);
+      if (glxCapable) {
+         printf("0x%x %2d %s", vi->visualid, vi->depth, SUMA_ClassOf(vi->class));
+         glXGetConfig(dpy, vi, GLX_BUFFER_SIZE, &bufferSize);
+         glXGetConfig(dpy, vi, GLX_LEVEL, &level);
+         glXGetConfig(dpy, vi, GLX_RGBA, &renderType);
+         glXGetConfig(dpy, vi, GLX_DOUBLEBUFFER, &doubleBuffer);
+         glXGetConfig(dpy, vi, GLX_STEREO, &stereo);
+         glXGetConfig(dpy, vi, GLX_AUX_BUFFERS, &auxBuffers);
+         glXGetConfig(dpy, vi, GLX_RED_SIZE, &redSize);
+         glXGetConfig(dpy, vi, GLX_GREEN_SIZE, &greenSize);
+         glXGetConfig(dpy, vi, GLX_BLUE_SIZE, &blueSize);
+         glXGetConfig(dpy, vi, GLX_ALPHA_SIZE, &alphaSize);
+         glXGetConfig(dpy, vi, GLX_DEPTH_SIZE, &depthSize);
+         glXGetConfig(dpy, vi, GLX_STENCIL_SIZE, &stencilSize);
+         glXGetConfig(dpy, vi, GLX_ACCUM_RED_SIZE, &acRedSize);
+         glXGetConfig(dpy, vi, GLX_ACCUM_GREEN_SIZE, &acGreenSize);
+         glXGetConfig(dpy, vi, GLX_ACCUM_BLUE_SIZE, &acBlueSize);
+         glXGetConfig(dpy, vi, GLX_ACCUM_ALPHA_SIZE, &acAlphaSize);
+         printf("    %2s %2s %1s  %1s  %1s ",
+           SUMA_Format(bufferSize, 2), SUMA_Format(level, 2),
+           renderType ? "r" : "c",
+            doubleBuffer ? "y" : ".", 
+            stereo ? "y" : ".");
+         printf("%2s %2s %2s %2s ",
+            SUMA_Format(redSize, 2), SUMA_Format(greenSize, 2),
+            SUMA_Format(blueSize, 2), SUMA_Format(alphaSize, 2));
+         printf("%2s %2s %2s %2s %2s %2s %2s",
+           SUMA_Format(auxBuffers, 2), SUMA_Format(depthSize, 2), SUMA_Format(stencilSize, 2),
+           SUMA_Format(acRedSize, 2), SUMA_Format(acGreenSize, 2),
+           SUMA_Format(acBlueSize, 2), SUMA_Format(acAlphaSize, 2));
+         printf("\n");
+         visualToTry = vi;
+         }
+   }
+
+   if (visualToTry) {
+      GLXContext context;
+      Window window;
+      Colormap colormap;
+      XSetWindowAttributes swa;
+
+      context = glXCreateContext(dpy, visualToTry, 0, GL_TRUE);
+      colormap = XCreateColormap(dpy,
+      RootWindow(dpy, visualToTry->screen),
+      visualToTry->visual, AllocNone);
+      swa.colormap = colormap;
+      swa.border_pixel = 0;
+      window = XCreateWindow(dpy, RootWindow(dpy, visualToTry->screen), 0, 0, 100, 100,
+      0, visualToTry->depth, InputOutput, visualToTry->visual,
+      CWBorderPixel | CWColormap, &swa);
+      glXMakeCurrent(dpy, window, context);
+      printf("\n");
+      printf("OpenGL vendor string: %s\n", glGetString(GL_VENDOR));
+      printf("OpenGL renderer string: %s\n", glGetString(GL_RENDERER));
+      printf("OpenGL version string: %s\n", glGetString(GL_VERSION));
+      if (glXIsDirect(dpy, context))
+         printf("direct rendering: supported\n");
+   } else printf("No GLX-capable visuals!\n");
+   
+   XFree(visualList);
+
+   
+   SUMA_RETURNe;
+}
+
+char * SUMA_ClassOf(int c)
+{
+   static char FuncName[]={"SUMA_ClassOf"};
+  
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   switch (c) {
+      case StaticGray:   SUMA_RETURN("sg");
+      case GrayScale:    SUMA_RETURN("gs");
+      case StaticColor:  SUMA_RETURN("sc");
+      case PseudoColor:  SUMA_RETURN("pc");
+      case TrueColor:    SUMA_RETURN("tc");
+      case DirectColor:  SUMA_RETURN("dc");
+      default:           SUMA_RETURN("??");
+   }
+}
+
+char * SUMA_Format(int n, int w)
+{
+   static char FuncName[]={"SUMA_Format"};
+   static char buffer[256];
+   static int bufptr;
+   char *buf;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (bufptr >= sizeof(buffer) - w)
+      bufptr = 0;
+   
+   buf = buffer + bufptr;
+   
+   if (n == 0)
+      sprintf(buf, "%*s", w, ".");
+   else
+      sprintf(buf, "%*d", w, n);
+   
+   bufptr += w + 1;
+
+   SUMA_RETURN(buf);
+}
+
 
 /*
 void  (Widget w, XtPointer data, XtPointer client_data)
