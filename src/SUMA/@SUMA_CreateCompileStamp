@@ -1,0 +1,55 @@
+#!/bin/csh -f
+ 
+if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
+	goto USAGE
+endif
+
+set StampFile = $1
+
+PREPSTRINGS:
+	set Un_s = `uname -a`
+	set Dir_s = `pwd`
+	set Date_s = `date`
+	echo $Date_s
+	set Param_s = `grep SUMA ../Makefile`
+	
+	echo -n '#!' > $StampFile
+	echo '/bin/csh -f' >> $StampFile
+	echo '#Script created by:'$0 $1 >> $StampFile
+	echo '' >> $StampFile
+	echo 'echo ""' >> $StampFile
+	echo 'echo "The suma binaries were compiled on:"' >> $StampFile
+	echo 'echo "'$Date_s'"' >> $StampFile
+	echo 'echo ""' >> $StampFile
+	echo 'echo "Compilation directory:"' >> $StampFile
+	echo 'echo "'$Dir_s'"' >> $StampFile
+	echo 'echo ""' >> $StampFile
+	echo 'echo "Compilation system:"' >> $StampFile
+	echo 'echo "'$Un_s'"' >> $StampFile
+	echo 'echo ""' >> $StampFile
+	echo 'echo "Compilation Options (from Makefile):"' >> $StampFile
+	echo 'echo "'$Param_s'"' >> $StampFile
+	echo 'echo ""' >> $StampFile
+	echo '' >> $StampFile
+	
+	chmod a+x $StampFile
+
+goto END
+
+USAGE:
+	echo ""
+	echo "Usage: `basename $0` <StampFile> "
+	echo "Creates a script that shows where and when the current suma executable was generated."
+	echo "To view the results, execute StampFile from a shell."
+	echo ""
+	echo "This script is to be run from afni_src/SUMA directory with"
+	echo "Makefile in afni_src/"
+	echo ""
+	echo "This script is executed by SUMA_Makefile:packbins"
+	echo ""
+	echo "Ziad Saad (ziad@nih.gov)"
+	echo "LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
+	echo ""
+	goto END
+
+END:
