@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------
    ***  This program does something, but nobody is quite sure what.  ***
-  ***  But what it does is very important, nobody doubts that, either. ***
+  ***  But what it does is very important; nobody doubts that, either. ***
 --------------------------------------------------------------------------*/
 
 #include "mrilib.h"
@@ -63,6 +63,10 @@ void ijk_warp_inv( float  ii , float  jj , float  kk ,
 /*--------------------------------------------------------------------------*/
 
 #define WARPDRIVE_SHIFT    1
+#define WARPDRIVE_ROTATE   2
+#define WARPDRIVE_SCALE    3
+#define WARPDRIVE_AFFINE   4
+#define WARPDRIVE_BILINEAR 5
 
 static float xsh , ysh , zsh ;
 
@@ -84,10 +88,6 @@ void warper_shift_inv( float aa , float bb , float cc ,
 }
 
 /*--------------------------------------------------------------------------*/
-
-#define WARPDRIVE_ROTATE   2
-#define WARPDRIVE_SCALE    3
-#define WARPDRIVE_AFFINE   4
 
 static THD_vecmat mv_for , mv_inv ;
 
@@ -124,41 +124,67 @@ static THD_mat33 rot_matrix( int ax1, double th1,
    return q ;
 }
 
-#define D2R (PI/180.0)
+#define D2R (PI/180.0)                /* angles are in degrees */
 
-void parset_rotate(void)
-{
-   mv_for.mm = rot_matrix( 2,D2R*parvec[3] , 0,D2R*parvec[4] , 1,D2R*parvec[5] ) ;
-   LOAD_FVEC3( mv_for.vv , parvec[0] , parvec[1] , parvec[2] ) ;
-   mv_inv = INV_VECMAT( mv_for ) ;
-}
+#define MATORDER_SDU  1
+#define MATORDER_SUD  2
+#define MATORDER_DSU  3
+#define MATORDER_DUS  4
+#define MATORDER_USD  5
+#define MATORDER_UDS  6
 
-/*--------------------------------------------------------------------------*/
-
-void parset_rotate_scale(void)
-{
-   THD_mat33 q,p ;
-   q = rot_matrix( 2,D2R*parvec[3] , 0,D2R*parvec[4] , 1,D2R*parvec[5] ) ;
-   LOAD_DIAG_MAT( p , parvec[6] , parvec[7] , parvec[8] ) ;
-   mv_for.mm = MAT_MUL( p , q ) ;
-   LOAD_FVEC3( mv_for.vv , parvec[0] , parvec[1] , parvec[2] ) ;
-   mv_inv = INV_VECMAT( mv_for ) ;
-}
-
-/*--------------------------------------------------------------------------*/
+static int matorder = MATORDER_SDU ;
+static int dcode    = DELTA_AFTER  ;  /* cf. 3ddata.h */
 
 void parset_affine(void)
 {
-   LOAD_FVEC3( mv_for.vv , parvec[0] , parvec[1] , parvec[2] ) ;
-   LOAD_MAT( mv_for.mm , parvec[3] , parvec[ 4] , parvec[ 5] ,
-                         parvec[6] , parvec[ 7] , parvec[ 8] ,
-                         parvec[9] , parvec[10] , parvec[11]  ) ;
-   mv_inv = INV_VECMAT( mv_for ) ;
-}
+   THD_mat33 ss,dd,uu,aa,bb ;
+   THD_fvec3 vv ;
 
-/*--------------------------------------------------------------------------*/
-#define WARPDRIVE_BILINEAR 5
-/*--------------------------------------------------------------------------*/
+#if 0
+{ int ii;fprintf(stderr,"\nparset:");
+  for(ii=0;ii<12;ii++)fprintf(stderr," %g",parvec[ii]); fprintf(stderr,"\n");}
+#endif
+
+   /* rotation */
+
+   uu = rot_matrix( 2, D2R*parvec[3] , 0, D2R*parvec[4] , 1, D2R*parvec[5] ) ;
+
+   /* scaling */
+
+   LOAD_DIAG_MAT( dd , parvec[6] , parvec[7] , parvec[8] ) ;
+
+   /* shear */
+
+   LOAD_MAT( ss , 1.0        , 0.0        , 0.0 ,
+                  parvec[9]  , 1.0        , 0.0 ,
+                  parvec[10] , parvec[11] , 1.0  ) ;
+
+   /* multiply them, as ordered */
+
+   switch( matorder ){
+     case MATORDER_SDU:  aa = MAT_MUL(ss,dd) ; bb = uu ; break ;
+     case MATORDER_SUD:  aa = MAT_MUL(ss,uu) ; bb = dd ; break ;
+     case MATORDER_DSU:  aa = MAT_MUL(dd,ss) ; bb = uu ; break ;
+     case MATORDER_DUS:  aa = MAT_MUL(dd,uu) ; bb = ss ; break ;
+     case MATORDER_USD:  aa = MAT_MUL(uu,ss) ; bb = dd ; break ;
+     case MATORDER_UDS:  aa = MAT_MUL(uu,dd) ; bb = ss ; break ;
+   }
+   mv_for.mm = MAT_MUL(aa,bb) ;
+
+   LOAD_FVEC3( vv , parvec[0] , parvec[1] , parvec[2] ) ;
+
+   switch( dcode ){
+     case DELTA_AFTER:  mv_for.vv = vv ; break ;
+     case DELTA_BEFORE: mv_for.vv = MATVEC( mv_for.mm , vv ) ; break ;
+   }
+
+   mv_inv = INV_VECMAT( mv_for ) ;
+
+#if 0
+DUMP_VECMAT("mv_for",mv_for) ; DUMP_VECMAT("mv_inv",mv_inv) ;
+#endif
+}
 
 /*--------------------------------------------------------------------------*/
 
@@ -197,7 +223,7 @@ int main( int argc , char * argv[] )
             "-------------\n"
             "  -linear   }\n"
             "  -cubic    } = Chooses spatial interpolation method.\n"
-            "  -NN       } =   [default = linear]\n"
+            "  -NN       } =   [default = linear; inaccurate but fast]\n"
             "  -quintic  }\n"
             "\n"
             "  -base bbb   = Load dataset 'bbb' as the base to which the\n"
@@ -218,6 +244,48 @@ int main( int argc , char * argv[] )
             "                   the value 'v'.  More than one -parfix option\n"
             "                   can be used.\n"
             "\n"
+            "----------------------\n"
+            "AFFINE TRANSFORMATIONS:\n"
+            "----------------------\n"
+            "The options below control how the affine tranformations\n"
+            "(-shift_rotate, -shift_rotate_scale, -affine_general)\n"
+            "are structured in terms of 3x3 matrices:\n"
+            "\n"
+            "  -SDU or -SUD }= Set the order of the matrix multiplication\n"
+            "  -DSU or -DUS }= for the affine transformations:\n"
+            "  -USD or -UDS }=   S = lower triangular shear (params #10-12)\n"
+            "                    D = diagonal scaling matrix (params #7-9)\n"
+            "                    U = rotation matrix (params #4-6)\n"
+            "                  Default order is '-SDU', which means that\n"
+            "                  the U matrix is applied first, then the\n"
+            "                  D matrix, then the S matrix.\n"
+            "\n"
+            "The matrices are specified in DICOM-ordered (x,y,z) coordinates as:\n"
+            "\n"
+            "  [U] = [Rotate_y(param#6)] [Rotate_x(param#5)] [Rotate_z(param #4)]\n"
+            "        (angles are in degrees)\n"
+            "\n"
+            "  [D] = diag( param#7 , param#8 , param#9 )\n"
+            "\n"
+            "        [    1        0     0 ]\n"
+            "  [S] = [ param#10    1     0 ]\n"
+            "        [ param#11 param#12 1 ]\n"
+            "\n"
+            "  -ashift OR   }= Apply the shift parameters (#1-3) after OR\n"
+            "  -bshift      }= before the matrix transformation.\n"
+            "\n"
+            " For example, the default (-SDU/-ashift) has the transformation\n"
+            " specified as [x]_warp = [S] [D] [U] [x]_in + [shift].\n"
+            "\n"
+            " Using '-parfix', you can specify that some of these parameters\n"
+            " are fixed.  For example, '-shift_rotate_scale' is equivalent\n"
+            " '-affine_general -parfix 10 0 -parfix 11 0 -parfix 12 0'.\n"
+            " Don't attempt to use the '-parfix' option unless you understand\n"
+            " this example!\n"
+            "\n"
+            "-------------------------\n"
+            "  RWCox - November 2004\n"
+            "-------------------------\n"
            ) ;
      exit(0) ;
    }
@@ -251,6 +319,33 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[nopt],"-SDU") == 0 ){
+       matorder = MATORDER_SDU ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-SUD") == 0 ){
+       matorder = MATORDER_SUD ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-DSU") == 0 ){
+       matorder = MATORDER_DSU ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-DUS") == 0 ){
+       matorder = MATORDER_DUS ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-USD") == 0 ){
+       matorder = MATORDER_USD ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-UDS") == 0 ){
+       matorder = MATORDER_UDS ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-ashift") == 0 ){
+       dcode = DELTA_AFTER     ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-bshift") == 0 ){
+       dcode = DELTA_BEFORE    ; nopt++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[nopt],"-parfix") == 0 ){
        int np , ip ; float vp ;
        if( ++nopt >= argc-1 ){
@@ -265,7 +360,8 @@ int main( int argc , char * argv[] )
        for( ip=0 ; ip < nparfix ; ip++ ){
          if( parfix[ip].np == np ){
            fprintf(stderr,
-                   "++ WARNING: multiple -parfix options for param #%d\n",np) ;
+                   "++ WARNING: ignoring later -parfix option for param #%d\n" ,
+                   ip ) ;
            break ;
          }
        }
@@ -276,73 +372,24 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
-  /*! Add a parameter to a warp3D model.
-       - nm = name of parameter
-       - bb = min value allowed
-       - tt = max value allowed
-       - id = value for identity warp
-       - dd = delta to use for stepsize
-       - ll = tolerance for convergence test */
-
-#define ADDPAR(nm,bb,tt,id,dd,ll)                               \
- do{ int p=abas.nparam ;                                        \
-     abas.param = (MRI_warp3D_param_def *) realloc(             \
-                      (void *)abas.param ,                      \
-                      sizeof(MRI_warp3D_param_def)*(p+1) ) ;    \
-     abas.param[p].min   = (bb) ; abas.param[p].max   = (tt) ;  \
-     abas.param[p].delta = (dd) ; abas.param[p].toler = (ll) ;  \
-     abas.param[p].ident = abas.param[p].val_init = (dd) ;      \
-     strcpy( abas.param[p].name , (nm) ) ;                      \
-     abas.param[p].fixed = 0 ;                                  \
-     abas.nparam = p+1 ;                                        \
- } while(0)
-
-     /*-----*/
-
      if( strcmp(argv[nopt],"-shift_only") == 0 ){
-       warp_parset = parset_shift ;
-       warp_for    = warper_shift_for ;
-       warp_inv    = warper_shift_inv ;
        warpdrive_code = WARPDRIVE_SHIFT ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-shift_rotate") == 0 ){
-       warp_parset = parset_rotate ;
-       warp_for    = warper_affine_for ;
-       warp_inv    = warper_affine_inv ;
-
-       ADDPAR( "x-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "y-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "z-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
-
-       ADDPAR( "z-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "x-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "y-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
-
        warpdrive_code = WARPDRIVE_ROTATE ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-shift_rotate_scale") == 0 ){
-       warp_parset = parset_rotate_scale ;
-       warp_for    = warper_affine_for ;
-       warp_inv    = warper_affine_inv ;
        warpdrive_code = WARPDRIVE_SCALE ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-affine_general") == 0 ){
-       warp_parset = parset_affine ;
-       warp_for    = warper_affine_for ;
-       warp_inv    = warper_affine_inv ;
        warpdrive_code = WARPDRIVE_AFFINE ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-bilinear_general") == 0 ){
-#if 1
-       fprintf(stderr,"** ERROR: -bilinear_general not implemented yet!\n") ;
-       exit(1) ;
-#else
        warpdrive_code = WARPDRIVE_BILINEAR ; nopt++ ; continue ;
-#endif
      }
 
      /*-----*/
@@ -461,33 +508,103 @@ int main( int argc , char * argv[] )
 
    } /*--- end of loop over command line options ---*/
 
-   /*-- check for good set of inputs --*/
-
    if( abas.verb ) fprintf(stderr,"++ Checking inputs\n") ;
+
+   /*-- parameterize the warp model --*/
+
+   /*! Add a parameter to the warp3D model.
+        - nm = name of parameter
+        - bb = min value allowed
+        - tt = max value allowed
+        - id = value for identity warp
+        - dd = delta to use for stepsize
+        - ll = tolerance for convergence test */
+
+#define ADDPAR(nm,bb,tt,id,dd,ll)                               \
+ do{ int p=abas.nparam ;                                        \
+     abas.param = (MRI_warp3D_param_def *) realloc(             \
+                      (void *)abas.param ,                      \
+                      sizeof(MRI_warp3D_param_def)*(p+1) ) ;    \
+     abas.param[p].min   = (bb) ; abas.param[p].max   = (tt) ;  \
+     abas.param[p].delta = (dd) ; abas.param[p].toler = (ll) ;  \
+     abas.param[p].ident = abas.param[p].val_init = (id) ;      \
+     strcpy( abas.param[p].name , (nm) ) ;                      \
+     abas.param[p].fixed = 0 ;                                  \
+     abas.nparam = p+1 ;                                        \
+ } while(0)
+
+   nerr = 0 ;
+   if( warpdrive_code <= 0 ){
+     fprintf(stderr,"** ERROR: need a transform-specifying option!\n");
+     nerr++ ;
+   } else if( warpdrive_code >= WARPDRIVE_SHIFT &&
+              warpdrive_code <= WARPDRIVE_AFFINE  ){
+
+       ADDPAR( "x-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+
+       ADDPAR( "z-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "x-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+
+       ADDPAR( "x-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
+
+       ADDPAR( "y/x-shear" , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z/x-shear" , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z/y-shear" , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+
+       for( kpar=0 ; kpar < 12 ; kpar++ )
+         parvec[kpar] = abas.param[kpar].ident ;
+
+       if( warpdrive_code == WARPDRIVE_SHIFT ){
+         warp_parset = parset_shift ;
+         warp_for    = warper_shift_for ;
+         warp_inv    = warper_shift_inv ;
+       } else {
+         warp_parset = parset_affine ;
+         warp_for    = warper_affine_for ;
+         warp_inv    = warper_affine_inv ;
+       }
+
+       switch( warpdrive_code ){
+         case WARPDRIVE_SHIFT:  abas.nparam =  3 ; break ;
+         case WARPDRIVE_ROTATE: abas.nparam =  6 ; break ;
+         case WARPDRIVE_SCALE:  abas.nparam =  9 ; break ;
+         case WARPDRIVE_AFFINE: abas.nparam = 12 ; break ;
+       }
+   } else {
+     fprintf(stderr,"** ERROR: unimplemented transform model!\n") ;
+     nerr++ ;
+   }
 
    nfree = abas.nparam ;
    for( kpar=0 ; kpar < nparfix ; kpar++ ){
      np = parfix[kpar].np - 1 ; vp = parfix[kpar].vp ;
      if( np >= 0 && np < abas.nparam ){
-       abas.param[np].fixed     = 1  ;
-       abas.param[np].val_fixed = vp ;
-       nfree -- ;
-     } else {
+       if( vp >= abas.param[np].min && vp <= abas.param[np].max ){
+         abas.param[np].fixed     = 1  ;
+         abas.param[np].val_fixed = vp ;
+         nfree -- ;
+       } else {        /* bad value */
+         fprintf(stderr,
+                 "** ERROR: -parfix for param #%d has illegal value!\n",np+1) ;
+         nerr++ ;
+       }
+     } else {          /* bad index */
        fprintf(stderr,
                "++ WARNING: -parfix for param #%d is out of range 1..%d\n",
                np+1 , abas.nparam+1 ) ;
      }
    }
    if( nfree <= 0 ){
-     fprintf(stderr,"** ERROR: no free parameters left -- too much -parfix!\n") ;
+     fprintf(stderr,"** ERROR: no free parameters in transform model!\n") ;
      nerr++ ;
    }
 
-   nerr = 0 ;
-   if( abs.nparam < 1 || warpdrive_code <= 0 ){
-     fprintf(stderr,"** ERROR: need to input a transform-specifying option!\n");
-     nerr++ ;
-   }
+   /*-- other checks for good set of inputs --*/
 
    if( baset == NULL ){
      fprintf(stderr,"** ERROR: need to specify a base dataset!\n") ;
@@ -558,7 +675,9 @@ int main( int argc , char * argv[] )
      }
    }
 
-   if( nerr > 0 ) exit(1) ;
+   if( nerr > 0 ){
+     fprintf(stderr,"** 3dWarpDrive exits due to fatal errors!\n"); exit(1);
+   }
 
    /*-- set up (x,y,z) <-> (i,j,k) transformations ---*/
 
@@ -596,7 +715,7 @@ int main( int argc , char * argv[] )
 
    mri_warp3D_align_setup( &abas ) ;
 
-   if( abas.verb ) fprintf(stderr,"++ Beginning alignment iterations\n") ;
+   if( abas.verb ) fprintf(stderr,"++ Beginning alignment loop\n") ;
    nvals = DSET_NVALS(inset) ;
    for( kim=0 ; kim < nvals ; kim++ ){
      for( kpar=0 ; kpar < abas.nparam ; kpar++ ){
@@ -639,7 +758,8 @@ int main( int argc , char * argv[] )
 
    /*-- write the results to disk for all of history to see --*/
 
-   if( abas.verb ) fprintf(stderr,"\n++ Writing dataset\n") ;
+   if( abas.verb )
+     fprintf(stderr,"++ Writing dataset: %s\n",DSET_FILECODE(outset));
    DSET_write( outset ) ;
    exit(0) ;
 }
