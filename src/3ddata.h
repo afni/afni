@@ -3729,6 +3729,8 @@ extern int    tross_Get_Notecount( THD_3dim_dataset * ) ;
 extern void tross_Addto_History( THD_3dim_dataset *, THD_3dim_dataset *) ;
 
 extern char * tross_datetime(void) ;
+extern char * tross_username(void) ;
+extern char * tross_hostname(void) ;
 extern char * tross_commandline( char * , int , char ** ) ;
 
 extern int AFNI_logger( char * , int , char ** ) ; /* 13 Aug 2001 */
