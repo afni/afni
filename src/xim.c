@@ -333,13 +333,19 @@ ENTRY("resize_XImage") ;
 }
 
 /*---------------------------------------------------------------------------
-   Input = XImage (with pixels from dc)
-           use_cmap == 0 ==> use only the Pixels in dc [the old way]
-                    != 0 ==> use the entire colormap   [11 Feb 1999]
-   Ouput = RGB or Grayscale image
+   input  = XImage (with Pixel values from dc)
+   output = RGB or Grayscale image
+   code   = mask of values indicating optional processing:
+
+            (code & X2M_USE_CMAP) != 0 means use the entire colormap
+                                  == 0 means use only Pixels in dc
+
+            (code & X2M_FORCE_RGB)!= 0 means output is always RGB format
+                                  == 0 means output might be byte format
+                                       (grayscale) if all pixels are gray
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * XImage_to_mri(  MCW_DC * dc , XImage * ximage , int use_cmap )
+MRI_IMAGE * XImage_to_mri( MCW_DC * dc , XImage * ximage , int code )
 {
    int nx , ny , npix , ii,jj , kk , allgray , lsize ;
    Pixel pp ;
@@ -349,6 +355,9 @@ MRI_IMAGE * XImage_to_mri(  MCW_DC * dc , XImage * ximage , int use_cmap )
    XColor * xc ;
    MRI_IMAGE * outim ;
    int  border ;        /* 22 Aug 1998 */
+
+   int use_cmap  = ((code & X2M_USE_CMAP ) != 0) ;  /* 03 Apr 2001 */
+   int force_rgb = ((code & X2M_FORCE_RGB) != 0) ;
 
 ENTRY("XImage_to_mri") ;
 
@@ -381,7 +390,7 @@ fprintf(stderr,
    switch( dc->byper ){
 
       case 1:                              /* 1 byte per pixel */
-         kk = 0 ; allgray = 1 ;
+         kk = 0 ; allgray = !force_rgb ;
          for( jj=0 ; jj < ny ; jj++ ){
             for( ii=0 ; ii < nx ; ii++ ){
                pp = ptr[ii+jj*lsize] ;                       /* pixel value */
@@ -395,7 +404,7 @@ fprintf(stderr,
       break ;
 
       case 2:                               /* 2 bytes per pixel */
-         kk = 0 ; allgray = 1 ;
+         kk = 0 ; allgray = !force_rgb ;
          for( jj=0 ; jj < ny ; jj++ ){
             for( ii=0 ; ii < nx ; ii++ ){
                if( border == MSBFirst )
@@ -413,7 +422,7 @@ fprintf(stderr,
       break ;
 
       case 3:                               /* 3 & 4 added 22 Aug 1998 */
-         kk = 0 ; allgray = 1 ;
+         kk = 0 ; allgray = !force_rgb ;
          for( jj=0 ; jj < ny ; jj++ ){
             for( ii=0 ; ii < nx ; ii++ ){
                if( border == MSBFirst )
@@ -433,7 +442,7 @@ fprintf(stderr,
       break ;
 
       case 4:
-         kk = 0 ; allgray = 1 ;
+         kk = 0 ; allgray = !force_rgb ;
          for( jj=0 ; jj < ny ; jj++ ){
             for( ii=0 ; ii < nx ; ii++ ){
                if( border == MSBFirst )

@@ -69,6 +69,9 @@ all:libmri.a libcoxplot.a libvolpack.a programs
 
 itall:all plugins install install_plugins
 
+$(INSTALLDIR):
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
+
 totality:cleaner all plugins install install_plugins install_lib clean
 	$(CP) README* $(INSTALLDIR)
 
@@ -762,14 +765,9 @@ clean:
 cleaner:
 	$(RM) *.a $(PROGRAMS)
 
-# backup:
-# 	rsh manwe chmod -R u+w /usr3/cox/AFNI98
-# 	rcp -prv * manwe:/usr3/cox/AFNI98
-# 	rsh manwe /bin/rm -rf /usr3/cox/AFNI98/www/AFNI98/binaries
-
 backup:
-	rsh mandos chmod -R u+w /home/cox/BACKUP
-	rcp -prv * mandos:/home/cox/BACKUP
+	ssh afni chmod -R u+w /home/rwcox/BACKUP
+	scp -prv * afni:/home/rwcox/BACKUP
 
 backtape:
 	$(TAR) cvf $(TAPE) ../AFNI98/
@@ -819,15 +817,15 @@ afnidoc.tgz:
 	$(TAR) cf - ./AFNIDOC | $(GZIP) -9v > afnidoc.tgz
 	$(RM) -r ./AFNIDOC
 
-install:
+install: $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS) $(INSTALLDIR)
 
-install_noplug:
+install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS) $(INSTALLDIR)
 
-install_lib:
+install_lib: $(LIBDIR)
 	$(CP) libmri.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
 ###################################################################
 # some dependencies (not complete)
@@ -1025,7 +1023,7 @@ tross_plugins: plug_fourier.$(SO)
 
 belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
 
-install_plugins:
+install_plugins: $(INSTALLDIR)
 	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)
 	echo Plugins put in directory $(INSTALLDIR):
 	echo Do not forget to setenv AFNI_PLUGINPATH appropriately

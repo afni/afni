@@ -1960,7 +1960,7 @@ ENTRY("ISQ_saver_CB") ;
             strcat(seq->saver_prefix,"pnm") ;
 
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
-         tim = XImage_to_mri( seq->dc , seq->given_xim , 1 ) ;
+         tim = XImage_to_mri( seq->dc , seq->given_xim , X2M_USE_CMAP ) ;
          if( tim != NULL ){
             static int warned=0 ;
 
@@ -4981,7 +4981,11 @@ ENTRY("ISQ_montage_CB") ;
             NULL ) ;
 
    seq->mont_across_av = new_MCW_arrowval(
+#if 1
                           wrc , "Across:" ,
+#else
+                          wrc , NULL ,   /* just for testing purposes */
+#endif
                           MCW_AV_optmenu ,
                           1 , MONT_NMAX , seq->mont_nx ,
                           MCW_AV_edittext , 0 ,

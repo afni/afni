@@ -25,4 +25,7 @@ extern MRI_IMAGE * XImage_to_mri( MCW_DC * , XImage * , int ) ;
 extern XImage * pixar_to_XImage( MCW_DC * , int,int , Pixel * ) ;
 extern XImage * rgb_to_XImage( MCW_DC * , MRI_IMAGE * ) ;
 
+#define X2M_USE_CMAP  (1<<0)  /* masks for XImage_to_mri() 3rd arg */
+#define X2M_FORCE_RGB (1<<1)
+
 #endif /* _MCW_XIM_HEADER_ */
