@@ -2253,7 +2253,7 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
    char stmp[SUMA_MAX_NAME_LENGTH+100];
    NI_element *nel = NULL;
    NI_stream ns ;
-   int n_read=0, i;
+   int n_read=0, i, answer;
    SUMA_NIML_ROI_DATUM *niml_ROI_datum_buff=NULL;
    SUMA_NIML_DRAWN_ROI * nimlROI=NULL;
    SUMA_DRAWN_ROI *ROI=NULL;
@@ -2300,9 +2300,12 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
                                        "Replace ROI %s (%s) by\n" \
                                        "version in file ?", 
                   NI_get_attribute( nel , "Label"), NI_get_attribute( nel , "idcode_str")); 
-            switch (AskUser (SUMAg_SVv[0].X->TOPLEVEL, 
+            
+            answer = AskUser (SUMAg_SVv[0].X->TOPLEVEL, 
                               stmp, 
-                              "Yes", "No", 1)) {
+                              "Yes", "No", 1);
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: Got %d, You ?\n", FuncName, answer);
+            switch (answer) {
                case 1:
                   SUMA_LH("1");
                   break;

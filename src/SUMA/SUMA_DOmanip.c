@@ -246,7 +246,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
          SUMA_free_SegmentDO ((SUMA_SegmentDO *)dov->OP);
          break;
       case AO_type:
-         fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free AO objects\n");
+         SUMA_Free_Axis((SUMA_Axis*)dov->OP);
          break;
       case GO_type:
          fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free GO objects\n");
@@ -494,6 +494,34 @@ void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out)
                fprintf(Out,"DOv ID: %d\n\tAxis Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
                fprintf(Out,"\tName: %s\tidcode: %s\n", ao->Name, ao->idcode_str);
             }
+            break;
+         case LS_type:
+            {
+               SUMA_SegmentDO *sdo=NULL;
+               
+               sdo = (SUMA_SegmentDO *)dov[i].OP;
+               fprintf(Out,"DOv ID: %d\n\tLine Segment Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
+               fprintf(Out,"\tLabel: %s\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+            
+            }
+            break;
+         case ROIdO_type:
+            {
+               SUMA_DRAWN_ROI *dROI = NULL;
+               
+               dROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+               fprintf(Out,"DOv ID: %d\n\tLine Segment Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
+               fprintf(Out,"\tLabel: %s\tidcode: %s\n", dROI->Label, dROI->idcode_str);
+            }  
+            break;
+         case ROIO_type:
+            {
+               SUMA_ROI *ROI = NULL;
+               
+               ROI = (SUMA_ROI *)dov[i].OP;
+               fprintf(Out,"DOv ID: %d\n\tLine Segment Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
+               fprintf(Out,"\tLabel: %s\tidcode: %s\n", ROI->Label, ROI->idcode_str);
+            }  
             break;
          case GO_type:
             fprintf(Out,"DOv ID: %d\n\tGrid Object\n", i);
