@@ -46,3 +46,33 @@ Tmask * create_Tmask_byte( int nx, int ny, int nz, byte * vol )
 
    return tm ;
 }
+
+/*-----------------------------------------------------------------------*/
+
+Tmask * create_Tmask_rgba( int nx, int ny, int nz, rgba * vol )
+{
+   Tmask *tm ;
+   int ii,jj,kk,vv , nxy,nyz,nzx ;
+   byte *xym,*yzm,*zxm , *bxy,*byz,*bzx ;
+   rgba *bz ;
+
+   tm = (Tmask *) malloc(sizeof(Tmask)) ;
+   tm->nmask[TM_IXY] = nxy = nx*ny ;
+   tm->nmask[TM_IYZ] = nyz = ny*nz ;
+   tm->nmask[TM_IZX] = nzx = nz*nx ;
+
+   tm->mask[TM_IXY] = xym = (byte *) calloc(1,sizeof(byte)*nxy) ;
+   tm->mask[TM_IYZ] = yzm = (byte *) calloc(1,sizeof(byte)*nyz) ;
+   tm->mask[TM_IZX] = zxm = (byte *) calloc(1,sizeof(byte)*nzx) ;
+
+   for( byz=yzm,kk=0 ; kk < nz ; kk++,byz+=ny ){
+     bz = vol + kk*nxy ;
+     for( bxy=xym,jj=0 ; jj < ny ; jj++,bz+=nx,bxy+=nx ){
+       for( bzx=zxm,ii=0 ; ii < nx ; ii++,bzx+=nz ){
+         if( bz[ii].a ){ bxy[ii] = byz[jj] = bzx[kk] = 1 ; }
+       }
+     }
+   }
+
+   return tm ;
+}

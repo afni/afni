@@ -3401,6 +3401,7 @@ typedef struct {
 
 extern void free_Tmask( Tmask * ) ;
 extern Tmask * create_Tmask_byte( int, int, int, byte * ) ;
+extern Tmask * create_Tmask_rgba( int, int, int, rgba * ) ;
 
 #define TM_ZLINE(tm,i) (tm==NULL || tm->mask[TM_IXY][i])
 #define TM_YLINE(tm,i) (tm==NULL || tm->mask[TM_IZX][i])
