@@ -127,14 +127,14 @@ void NIDS_free_struct( void *ndd )
    /* decrementation */
 
    nd->nref -- ;
-   if( nd->nref > 0 ) return ;         /* keep it */
+   if( nd->nref > 0 ) return ;      /* keep it */
 
    /* OK, blot it from the universe */
 
-   switch( nd->type ){                 /* N.B.: there is no default */
+   switch( nd->type ){              /* N.B.: there is no default */
 
-     case NIDS_STRUCT_TYPE:            /* These types have no sub-structs */
-     case NIDS_FLOAT_ONE_TYPE:         /* or sub-arrays that need deleting */
+     case NIDS_STRUCT_TYPE:         /* These types have no sub-structs */
+     case NIDS_FLOAT_ONE_TYPE:      /* or sub-arrays that need deleting */
      case NIDS_AFFINE_3DMAP_TYPE:
      case NIDS_RECT_DOMAIN_TYPE:
        DELETE_STRUCT(nd) ;
@@ -316,21 +316,21 @@ void * NIDS_copy_struct( void *ndd )
        DUPLICATE_STRUCT(NIDS_vector) ;
        nn->vec_len = qq->vec_len ;
        nn->vec_typ = qq->vec_typ ;
-       if( qq->vec != NULL ){                                 /* copy array */
+       if( qq->vec != NULL ){                                /* copy array */
          ii = nn->vec_len * NIDS_datatype_size(nn->vec_typ) ;
          nn->vec = NIDS_malloc(ii) ;
          memcpy( nn->vec , qq->vec , ii ) ;
        } else {
          nn->vec = NULL ;
        }
-       if( qq->vec_range != NULL ){                           /* copy array */
+       if( qq->vec_range != NULL ){                          /* copy array */
          ii = 2 * NIDS_datatype_size(nn->vec_typ) ;
          nn->vec_range = NIDS_malloc(ii) ;
          memcpy( nn->vec_range , qq->vec_range , ii ) ;
        } else {
          nn->vec_range = NULL ;
        }
-       nn->statistic = NIDS_copy_struct( qq->statistic ) ;    /* recursion */
+       nn->statistic = NIDS_copy_struct( qq->statistic ) ;   /* recursion */
      }
      break ;
 
@@ -339,7 +339,7 @@ void * NIDS_copy_struct( void *ndd )
        DUPLICATE_STRUCT(NIDS_string_vector) ;
        nn->vec_len = qq->vec_len ;
        nn->vec_typ = qq->vec_typ ;
-       if( qq->vec != NULL ){                                 /* copy array */
+       if( qq->vec != NULL ){                                /* copy array */
          nn->vec = NIDS_malloc(sizeof(char *)*nn->vec_len) ;
          for( ii=0 ; ii < nn->vec_len ; ii++ )
            nn->vec[ii] = NIDS_strdup(qq->vec[ii]) ;
@@ -355,19 +355,19 @@ void * NIDS_copy_struct( void *ndd )
        NIDS_index_t ii ;
        DUPLICATE_STRUCT(NIDS_points_domain) ;
        nn->num_node = ii = qq->num_node ;
-       if( qq->id != NULL ){                                  /* copy array */
+       if( qq->id != NULL ){                                 /* copy array */
          nn->id = NIDS_malloc(ii*sizeof(NIDS_index_t)) ;
          memcpy( nn->id , qq->id , ii*sizeof(NIDS_index_t) ) ;
        }
-       if( qq->x != NULL ){                                   /* copy array */
+       if( qq->x != NULL ){                                  /* copy array */
          nn->x = NIDS_malloc(ii*sizeof(float)) ;
          memcpy( nn->x , qq->x , ii*sizeof(float) ) ;
        }
-       if( qq->y != NULL ){                                   /* copy array */
+       if( qq->y != NULL ){                                  /* copy array */
          nn->y = NIDS_malloc(ii*sizeof(float)) ;
          memcpy( nn->y , qq->y , ii*sizeof(float) ) ;
        }
-       if( qq->z != NULL ){                                   /* copy array */
+       if( qq->z != NULL ){                                  /* copy array */
          nn->z = NIDS_malloc(ii*sizeof(float)) ;
          memcpy( nn->z , qq->z , ii*sizeof(float) ) ;
        }
@@ -385,11 +385,11 @@ void * NIDS_copy_struct( void *ndd )
          nv = NIDS_dataset_vecnum(nn) ;
          nn->vec = NIDS_malloc(sizeof(NIDS_vector *)*nv) ;
          for( ii=0 ; ii < nv ; ii++ )
-           nn->vec[ii] = NIDS_copy_struct( qq->vec[ii] ) ;    /* recursion */
+           nn->vec[ii] = NIDS_copy_struct( qq->vec[ii] ) ;   /* recursion */
        } else {
          nn->vec = NULL ;
        }
-       nn->domain = NIDS_copy_struct( qq->domain ) ;          /* recursion */
+       nn->domain = NIDS_copy_struct( qq->domain ) ;         /* recursion */
      }
      break ;
 
@@ -491,7 +491,7 @@ void * NIDS_dataset_transpose( void *ndd )
 
    /* copy data from old vectors to new vectors */
 
-   if( tt != NIDS_STRING ){                      /* copy fixed length content */
+   if( tt != NIDS_STRING ){                 /* copy fixed length content */
 
      char *vnew , *vold ;
      for( ii=0 ; ii < nvec_new ; ii++ ){
@@ -505,7 +505,7 @@ void * NIDS_dataset_transpose( void *ndd )
      for( ii=0 ; ii < nvec_new ; ii++ )
        NIDS_set_vector_range( ndnew->vec[ii] ) ;
 
-   } else {                                        /* duplicate strings */
+   } else {                                 /* duplicate strings */
 
      char **vnew , **vold ;
      for( ii=0 ; ii < nvec_new ; ii++ ){
