@@ -4359,3 +4359,5 @@
 26 Feb 2003
  * Modified afni_graph.c and afni_sumafunc.c to allow drawing of triangle
      intersections at edges of slice plane, as well as at center.
+ * Modified "view_setter" code to work more intuitively when only one
+     image viewer is open, etc.
