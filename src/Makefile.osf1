@@ -21,7 +21,7 @@ GZIP   = /usr/local/bin/gzip
 
 RM = /usr/bin/rm -f
 MV = /usr/bin/mv -f
-CP = /usr/bin/cp
+CP = /usr/bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 

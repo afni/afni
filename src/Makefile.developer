@@ -1,31 +1,23 @@
-## for SGI (nimloth in particular)
-
-# use the following line for the R10000 chip
-# CC     = cc -woff all -O3 -64 -r10000 -DSGI
-
-# use the following line for the R4400 chip
-# CC     = cc -xansi -O2 -mips2 -DSGI
-
-# I don't have access to a R5000 or R8000 system -- RWCox.
+## for SGI (varda in particular)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -xansi -O2 -DSGI -DUSE_TRACING
-CCMIN  = cc -s
+CC     = cc -woff all -O2 -n32 -DSGI -DUSE_TRACING
+CCMIN  = cc -s -n32
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I.
 LFLAGS = -s -L.
 
 PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -shared
+PLUGIN_LFLAGS = -shared -n32
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -L.
+PLFLAGS       = -L. -n32
 
 AR     = /usr/bin/ar
 RANLIB = /sbin/touch
 TAR    = /bin/tar
 MKDIR  = /bin/mkdir
 LD     = /bin/ld
-GZIP   = /usr/local/bin/gzip
+GZIP   = /usr/sbin/gzip
 
 RM = /bin/rm -f
 MV = /bin/mv -f
@@ -34,7 +26,7 @@ CP = /bin/cp
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = $(HOME)/abin
-LIBDIR     = $(HOME)/lib
+LIBDIR     = $(HOME)/abin
 
 LLIBS  = -lmri -lXm -lXt -lX11 -lm -ldl -lc
 
@@ -45,7 +37,7 @@ restore:
 	co -q -u RCS/*,v
 	chmod u+w $(RCSFILES)
 
-RCSFILES = *.c *.h *.f *.xbm Makefile.* README* *.tex AFNI.Xdef*
+RCSFILES = *.c *.h *.f *.xbm Makefile.* README* *.tex AFNI.Xdef* 3d*.lib
 
 checkin:
 	chmod u+w $(RCSFILES)

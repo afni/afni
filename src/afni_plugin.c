@@ -158,6 +158,12 @@ ENTRY("PLUG_read_plugin") ;
    plin->interface_count = nin = 0 ;
    plin->interface       = NULL ;
 
+#ifdef AFNI_DEBUG
+#ifdef MALLOC_TRACE
+   check_malloc() ;
+#endif
+#endif
+
    do {
       plint = (PLUGIN_interface *) plin->libinit_func( nin ) ;
       if( plint == NULL ) break ;

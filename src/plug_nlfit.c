@@ -715,7 +715,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 
    /*----- discard the model array -----*/
-#if 1
+#if 0
    DESTROY_MODEL_ARRAY (model_array);
 #endif
 

@@ -52,7 +52,7 @@ void EDIT_add_bricklist( THD_3dim_dataset * dset ,
    dblk->brick_fac = (float *) XtRealloc( (char *) dblk->brick_fac ,
                                           sizeof(float) * new_nvals ) ;
 
-   dset->dblk->nvals = dset->dblk->diskptr->nvals = new_nvals ;
+   dblk->nvals = dblk->diskptr->nvals = new_nvals ;
 
    /** allocate new sub-brick images **/
 
@@ -72,22 +72,26 @@ void EDIT_add_bricklist( THD_3dim_dataset * dset ,
 
    /** allocate new sub-brick auxiliary data: labels **/
 
-   if( dblk->brick_lab == NULL ) THD_init_datablock_labels( dblk ) ;
-
-   dblk->brick_lab = (char **) XtRealloc( (char *) dblk->brick_lab ,
-                                          sizeof(char *) * new_nvals ) ;
+   if( dblk->brick_lab == NULL )
+      THD_init_datablock_labels( dblk ) ;
+   else
+      dblk->brick_lab = (char **) XtRealloc( (char *) dblk->brick_lab ,
+                                             sizeof(char *) * new_nvals ) ;
    for( ibr=0 ; ibr < nbr ; ibr++ ){
       sprintf( str , "#%d" , nvals+ibr ) ;
+      dblk->brick_lab[nvals+ibr] = NULL ;
       THD_store_datablock_label( dblk , nvals+ibr , str ) ;
    }
 
    /** keywords **/
 
-   if( dblk->brick_keywords == NULL ) THD_init_datablock_keywords( dblk ) ;
-
-   dblk->brick_keywords = (char **) XtRealloc( (char *) dblk->brick_keywords ,
-                                              sizeof(char *) * new_nvals ) ;
+   if( dblk->brick_keywords == NULL )
+      THD_init_datablock_keywords( dblk ) ;
+   else
+      dblk->brick_keywords = (char **) XtRealloc( (char *) dblk->brick_keywords ,
+                                                  sizeof(char *) * new_nvals ) ;
    for( ibr=0 ; ibr < nbr ; ibr++ ){
+      dblk->brick_keywords[nvals+ibr] = NULL ;
       THD_store_datablock_keywords( dblk , nvals+ibr , NULL ) ;
    }
 

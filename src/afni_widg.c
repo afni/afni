@@ -4463,6 +4463,20 @@ ENTRY("AFNI_misc_button") ;
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_newstuff_pb , "List New Features" ) ;
 
+   /*--- pushbutton to purge unused datasets ---*/
+
+   dmode->misc_purge_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Purge Memory") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_purge_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_newstuff_pb , "Purge unused datasets" ) ;
+
    /*--- pushbutton to toggle routine tracing ---*/
 #if defined(USE_TRACING) && !defined(PRINT_TRACING)
    dmode->misc_tracing_pb =

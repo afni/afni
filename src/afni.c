@@ -2319,6 +2319,7 @@ ENTRY("AFNI_read_inputs") ;
             fprintf(stderr,"\n%d errors creating dummy dataset!\a\n",ii) ;
             exit(1) ;
          }
+         DSET_lock(new_ss->anat[0][0]) ; /* lock into memory */
 
          nbar = DSET_BRICK_BYTES(new_ss->anat[0][0],0) ;
          for( jj=0 ; jj < QQ_NT ; jj++ ){
@@ -8837,7 +8838,7 @@ muntrace ()
 #undef calloc
 #undef free
 
-#define INC_MT 4096
+#define INC_MT 16384
 static int amt = 0 , nmt = 0 ;
 static void  ** pmt = NULL ;
 static size_t * psz = NULL ;

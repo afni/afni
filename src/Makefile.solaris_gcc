@@ -26,7 +26,7 @@ LD     = /usr/ucb/ld
 
 RM = /bin/rm -f
 MV = /bin/mv -f
-CP = /bin/cp
+CP = /bin/cp -f
 
 LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 

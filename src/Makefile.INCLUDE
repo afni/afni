@@ -34,7 +34,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt bzip2 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-           2dImReg 3dmaskave
+           2dImReg 3dmaskave 3dbuc2fim
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -46,6 +46,9 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
 all:libmri.a programs
 
 itall:all plugins install install_plugins
+
+totality:all plugins install install_plugins install_lib clean
+	$(CP) README* $(INSTALLDIR)
 
 all_noplug:libmri.a programs_noplug
 
@@ -62,6 +65,9 @@ newstuff.hhh:quotize README.changes
 
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
+
+3dbuc2fim:3dbuc2fim.o
+	$(CC) -o 3dbuc2fim 3dbuc2fim.o $(LFLAGS) $(LLIBS)
 
 whirlgif:whirlgif.h whirlgif.c
 	$(CC) -o whirlgif -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
@@ -315,7 +321,7 @@ dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
       afni.c afni_func.c afni_widg.c afni_warp.c afni_fimmer.c \
       pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_setup.c  \
       afni_pcor.c afni_pcor_update.c afni_plugin.c afni_receive.c \
-      parser.c parser_int.c afni_plugout.c afni_plugout.c
+      parser.c parser_int.c afni_plugout.c afni_plugout.c newstuff.hhh
 	$(CCD) -o dafni $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE \
                 afni.c afni_func.c afni_widg.c afni_warp.c afni_graph.c \
                 dafni_slice_short.o dafni_slice_float.o  LiteClue.o \
@@ -670,6 +676,11 @@ plug_realtime.$(SO):plug_realtime.c
 	$(RM) $@
 	$(PLUGIN_CC) -c plug_realtime.c $(IFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_realtime.$(SO) plug_realtime.o
+
+plug_drealtime.$(SO):plug_realtime.c
+	$(RM) $@
+	$(PLUGIN_CCD) -c plug_realtime.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(LD) $(PLUGIN_LFLAGS) -o plug_drealtime.$(SO) plug_realtime.o
 
 epsim:epsim.o
 	$(RM) $@

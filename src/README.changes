@@ -4,6 +4,15 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+20 March 1998:
+   Program '3dmaskave' can produce statistics of a VOI from within a
+     dataset, using a mask dataset created by the Draw Dataset plugin.
+   Program '3dbuc2fim' can create fim, fico, etc., datasets from a
+     bucket dataset.  This can be used with programs (such as 3dmerge)
+     that don't support bucket dataset inputs at this time.
+   Program 2dImReg has been modified to allow printout of the estimated
+     motion parameters.
+--------------------------------------------------------------------------
 16 March 1998:
    'afni -im' will now perform internal globbing of filenames -- that is,
      it can do wildcard expansion itself.  For example:
@@ -360,11 +369,13 @@
    [Per the request of Anders Andersen of the University of Kentucky.]
 --------------------------------------------------------------------------
 27 December 1996:
-   The new auxiliary program "3dnewid" is mentioned in the AFNI
-     user's manual, but not in the auxiliary programs manual.
-     This program will assign a new identifier (ID) code to a
-     dataset.  This is useful if you use "cp" to copy a dataset's
-     files: the new copy should have "3dnewid" run on it.
+   The new auxiliary program "3dnewid" is mentioned in the AFNI user's
+     manual, but not in the auxiliary programs manual.  This program will
+     assign a new identifier (ID) code to a dataset.  This is necessary if
+     you use "cp" to copy a dataset's files: the new copy should have
+     "3dnewid" run on it.  Without a new ID code, afni may get confused if
+     both datasets are read into the program at once, since it uses ID
+     codes to keep track of datasets internally.
 --------------------------------------------------------------------------
 
    *******************************************************************

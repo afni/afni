@@ -2123,50 +2123,17 @@ STATUS("processing new session") ;
                   for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
                      PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
 
+               /* if we were living with a dummy, fix that */
+
+               if( GLOBAL_library.have_dummy_dataset ) UNDUMMYIZE ;
+
                /* put the new session into place in the list of sessions */
 
-               if( GLOBAL_library.have_dummy_dataset ){
-
-                  /* replace the dummy session, if present */
-
-                  MCW_choose_cbs mcbs ;
-                  THD_session * old_ss ;
-                  THD_3dim_dataset * dds ;
-
-STATUS("replacing dummy session") ;
-                  old_ss = GLOBAL_library.sslist->ssar[0] ;
-                  dds    = old_ss->anat[0][0] ;
-
-                  GLOBAL_library.sslist->ssar[0] = new_ss ;
-                  mcbs.ival = 0 ;
-
-                  AFNI_finalize_dataset_CB(
-                     im3d->vwid->view->choose_sess_pb , im3d , &mcbs ) ;
-
-#if 0
-STATUS("deleting dummy dataset") ; MCHECK ;
-                  THD_delete_3dim_dataset( dds , False ) ;
-STATUS("deleted dummy dataset") ; MCHECK ;
-#else
-STATUS("purging dummy dataset") ; MCHECK ;
-                  DSET_unload( dds ) ;
-STATUS("purged dummy dataset") ; MCHECK ;
-#endif
-                  myXtFree( old_ss ) ;
-
-                  XtSetSensitive( im3d->vwid->prog->clone_pb , True ) ;
-                  GLOBAL_library.have_dummy_dataset = 0 ;
-
-               } else {
-
-                  /* add a completely new session */
-
 STATUS("adding new session to list") ;
-                  GLOBAL_library.sslist->ssar[GLOBAL_library.sslist->num_sess]
-                    = new_ss ;
-                  (GLOBAL_library.sslist->num_sess)++ ;
-                  THD_reconcile_parents( GLOBAL_library.sslist ) ;
-               }
+               GLOBAL_library.sslist->ssar[GLOBAL_library.sslist->num_sess]
+                 = new_ss ;
+               (GLOBAL_library.sslist->num_sess)++ ;
+               THD_reconcile_parents( GLOBAL_library.sslist ) ;
 
                sprintf(str," \n Session #%2d"
                             "\n %s"
@@ -2375,20 +2342,7 @@ void AFNI_rescan_session( int sss )
 
 ENTRY("AFNI_rescan_session") ;
 
-   if( GLOBAL_library.have_dummy_dataset ){
-      im3d = GLOBAL_library.controllers[0] ;
-      if( IM3D_OPEN(im3d) )
-         (void) MCW_popup_message( im3d->vwid->dmode->rescan_pb ,
-                     "********************\n"
-                     "** Cannot rescan  **\n"
-                     "** dummy session! **\n"
-                     "********************"  ,
-                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      else
-         fprintf(stderr,"Cannot rescan Dummy session!\n") ;
-
-      BEEPIT ; EXRETURN ;
-   }
+   if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
 
    /*--- sanity checks ---*/
 
@@ -3992,6 +3946,10 @@ ENTRY("AFNI_misc_CB") ;
                               inf , TEXT_READONLY ) ;
 
       free(inf) ;
+   }
+
+   else if( w == im3d->vwid->dmode->misc_purge_pb ){
+      AFNI_purge_unused_dsets() ;
    }
 
 #if defined(USE_TRACING) && !defined(PRINT_TRACING)

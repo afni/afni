@@ -8,6 +8,11 @@
   Author:  B. Douglas Ward
   Date:    04 February 1998
 
+
+  Mod:     Added routines to write the registration parameters, and the RMS 
+           error, to user specified ASCII files.
+  Date:    20 March 1998
+
 */
 
 
@@ -32,24 +37,37 @@
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "2dImReg"                       /* name of this program */
-#define LAST_MOD_DATE "04 February 1998"         /* date of last program mod */
+#define LAST_MOD_DATE "20 March 1998"            /* date of last program mod */
 
-#define MAX_NAME_LENGTH 80
+#define MAX_NAME_LENGTH 80          /* max. strength length for file names */ 
+#define STATE_DIM 4                 /* number of registration parameters */   
 
 #include "mrilib.h"
+#include "matrix.h"
 
-typedef struct IR_options
+
+/*----- Global variables -----*/ 
+int * t_to_z = NULL;           /* convert time-order to z-order of slices */  
+int * z_to_t = NULL;           /* convert z-order to time-order of slices */
+ 
+
+typedef struct IR_options      /* user input options */
 {
-  char * input_filename;
-  char * new_prefix;
-  char * base_filename;
-  int base;
-  int nofine;
-  float blur;
-  float dxy;
-  float dphi;
-  int debug;
+  char * input_filename;       /* file name for input 3d+time dataset */
+  char * base_filename;        /* file name for reference (base) volume */
+  int base_vol_index;          /* image number for base volume */
+  int nofine;                  /* boolean for no fine fit */
+  float blur;                  /* FWHM of blurring prior to registration */
+  float dxy;                   /* convergence tolerance for translations */
+  float dphi;                  /* convergence tolerance for rotations */
+  char * new_prefix;           /* prefix name for registered dataset */
+  char * dprefix;              /* prefix name for registration parameters */
+  char * rprefix;              /* prefix name for volume RMS error */
+  int debug;                   /* write additional output to screen */
 } IR_options;
+
+
+#include "matrix.c"
 
 
 /*---------------------------------------------------------------------------*/
@@ -68,7 +86,6 @@ void display_help_menu()
      "Usage:                                                                \n"
      "2dImReg                                                               \n"
      "-input fname           Filename of input 3d+time dataset to process   \n"
-     "-prefix pname          Prefix name for output 3d+time dataset         \n"
      "-basefile fname        Filename of 3d+time dataset for base image     \n"
      "                         (default = current input dataset)            \n"
      "-base num              Time index for base image  (0 <= num)          \n"
@@ -84,7 +101,24 @@ void display_help_menu()
      "     dphi = Convergence tolerance for rotations (in degrees)          \n"
      "               (default:  dphi = 0.21)                                \n"
      "                                                                      \n"
-     "-debug                 Lots of additional output to screen            \n"
+     "-prefix pname     Prefix name for output 3d+time dataset              \n"
+     "                                                                      \n"
+     "-dprefix dname    Write files 'dname'.dx, 'dname'.dy, 'dname'.psi     \n"
+     "                    containing the registration parameters for each   \n"
+     "                    slice in chronological order.                     \n"
+     "                    File formats:                                     \n"
+     "                      'dname'.dx:   time(sec)   dx(pixels)            \n"
+     "                      'dname'.dy:   time(sec)   dy(pixels)            \n"
+     "                      'dname'.psi   time(sec)   psi(degrees)          \n"
+     "                                                                      \n"
+     "-rprefix rname    Write files 'rname'.oldrms and 'rname'.newrms       \n"
+     "                    containing the volume RMS error for the original  \n"
+     "                    and the registered datasets, respectively.        \n"
+     "                    File formats:                                     \n"
+     "                      'rname'.oldrms:   volume(num)   rms_error       \n"
+     "                      'rname'.newrms:   volume(num)   rms_error       \n"
+     "                                                                      \n"
+     "-debug            Lots of additional output to screen                 \n"
     );
   
   exit(0);
@@ -114,20 +148,22 @@ void IR_error
 
 void initialize_options
 (
-  IR_options ** opt
+  IR_options ** opt            /* user input options */
 )
 
 {
   (*opt) = (IR_options *) malloc (sizeof(IR_options));
 
   (*opt)->input_filename = NULL;
-  (*opt)->new_prefix = NULL;
   (*opt)->base_filename = NULL;
-  (*opt)->base = 3;       
+  (*opt)->base_vol_index = 3;       
   (*opt)->nofine = 0;
   (*opt)->blur = 1.0;     
   (*opt)->dxy  = 0.07;    
   (*opt)->dphi = 0.21;   
+  (*opt)->new_prefix = NULL;
+  (*opt)->dprefix = NULL;
+  (*opt)->rprefix = NULL;
   (*opt)->debug = 0;
 }
 
@@ -141,7 +177,7 @@ void get_user_inputs
 (
   int argc,                       /* number of input arguments */
   char ** argv,                   /* array of input arguments */ 
-  IR_options ** option_data
+  IR_options ** option_data       /* user input options */
 )
 
 {
@@ -172,20 +208,6 @@ void get_user_inputs
 	}
      
 
-      /*-----   -prefix pname   -----*/
-      if (strncmp(argv[nopt], "-prefix", 7) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  IR_error ("Need argument after -prefix ");
-	  (*option_data)->new_prefix 
-	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  strcpy ((*option_data)->new_prefix, argv[nopt]);
-
-	  nopt++;
-	  continue;
-	}
-     
-
       /*-----   -basefile filename   -----*/
       if (strncmp(argv[nopt], "-basefile", 9) == 0)
 	{
@@ -207,12 +229,54 @@ void get_user_inputs
 	  sscanf (argv[nopt], "%d", &ival);
 	  if (ival < 0) 
 	    IR_error ("Illegal argument after -base  ( must be >= 0 ) ");
-	  (*option_data)->base = ival;
+	  (*option_data)->base_vol_index = ival;
 	  nopt++;
 	  continue;
 	}
 
-      
+
+      /*-----   -prefix pname   -----*/
+      if (strncmp(argv[nopt], "-prefix", 7) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  IR_error ("Need argument after -prefix ");
+	  (*option_data)->new_prefix 
+	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  strcpy ((*option_data)->new_prefix, argv[nopt]);
+
+	  nopt++;
+	  continue;
+	}
+     
+
+      /*-----   -dprefix dname   -----*/
+      if (strncmp(argv[nopt], "-dprefix", 8) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  IR_error ("Need argument after -dprefix ");
+	  (*option_data)->dprefix 
+	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  strcpy ((*option_data)->dprefix, argv[nopt]);
+
+	  nopt++;
+	  continue;
+	}
+     
+
+      /*-----   -rprefix rname   -----*/
+      if (strncmp(argv[nopt], "-rprefix", 8) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  IR_error ("Need argument after -rprefix ");
+	  (*option_data)->rprefix 
+	    = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  strcpy ((*option_data)->rprefix, argv[nopt]);
+
+	  nopt++;
+	  continue;
+	}
+     
+
       /*-----   -nofine -----*/
       if (strncmp(argv[nopt], "-nofine", 7) == 0)
 	{
@@ -222,7 +286,7 @@ void get_user_inputs
 	}
 
            
-       /*-----   -fine blur dxy dphi  -----*/
+      /*-----   -fine blur dxy dphi  -----*/
       if (strncmp(argv[nopt], "-fine", 5) == 0)
 	{
 	  nopt++;
@@ -273,17 +337,187 @@ void get_user_inputs
 
 /*---------------------------------------------------------------------------*/
 /*
+   Routine to read a 3d+time dataset.
+*/
+
+void read_dataset 
+(
+  char * filename,                /* file name of 3d+time dataset */
+  THD_3dim_dataset ** dset        /* pointer to 3d+time dataset */
+)
+
+{
+  char message[80];               /* error message */
+
+
+  /*----- Open the 3d+time dataset -----*/
+  *dset = THD_open_one_dataset (filename);
+  if (*dset == NULL)  
+    { 
+      sprintf (message, 
+	       "Unable to open data file: %s", filename);
+      IR_error (message);
+    }
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+   Initialize the slice sequence arrays.
+*/
+
+void initialize_slice_sequence 
+(
+  IR_options * option_data,        /* user input options */
+  THD_3dim_dataset * dset          /* pointer to 3d+time dataset */
+)
+
+{
+  int num_slices;                  /* number of slices per volume */
+  int ivolume;                     /* volume index number */
+  int itemp;                       /* temporary variable */
+  float ttemp;                     /* temporary variable */
+  float * time_array = NULL;       /* array of slice acquisition times */
+  int iz, i, j;                    /* index numbers */
+  float z;                         /* slice z location */
+
+
+  /*----- Initialize local variables -----*/
+  num_slices = dset->taxis->nsl;
+  ivolume = 0;
+
+
+  /*----- Allocate memory for arrays -----*/
+  t_to_z = (int *) malloc (sizeof(int) * num_slices);
+  z_to_t = (int *) malloc (sizeof(int) * num_slices);
+  time_array = (float *) malloc (sizeof(float) * num_slices);
+
+
+  /*----- Initialize array of slice acquisition times -----*/
+  for (iz = 0;  iz < num_slices;  iz++)
+    {
+      z = iz * dset->taxis->dz_sl + dset->taxis->zorg_sl;
+      time_array[iz] = THD_timeof (ivolume, z, dset->taxis);
+      t_to_z[iz] = iz;
+    }
+
+
+  /*----- Sort slice z-indices by increasing time -----*/
+  for (i = 0;  i < num_slices-1;  i++)
+    for (j = i+1;  j < num_slices;  j++)
+      if (time_array[j] < time_array[i])
+	{
+	  itemp = t_to_z[i];
+	  t_to_z[i] = t_to_z[j];
+	  t_to_z[j] = itemp;
+
+	  ttemp = time_array[i];
+	  time_array[i] = time_array[j];
+	  time_array[j] = ttemp;
+	} 
+
+
+  /*----- Sort slice time-indices by increasing z index -----*/
+  for (i = 0;  i < num_slices;  i++)
+    {
+      j = t_to_z[i];
+      z_to_t[j] = i;
+    }
+
+
+  /*----- Write out the slice ordering arrays -----*/
+  if (option_data->debug)
+    for (i = 0;  i < num_slices;  i++)
+      printf ("time[%2d] = %12.3f   t_to_z[%2d] = %2d   z_to_t[%2d] = %2d\n",
+	      i, time_array[i], i, t_to_z[i], i, z_to_t[i]);
+
+  
+  /*----- Release memory -----*/
+  free (time_array);   time_array = NULL;
+} 
+
+
+/*---------------------------------------------------------------------------*/
+/*
+   Routine to initialize the array of state vectors.
+*/
+
+void initialize_state_history 
+(
+  THD_3dim_dataset * dset,            /* pointer to input 3d+time dataset */
+  vector ** state_history             /* time series of state vectors */
+)
+
+{
+  int num_slices;                     /* number of slices per volume */
+  int ts_length;                      /* number of volumes */
+  int num_vectors;                    /* total number of state vectors */
+  int i;                              /* state vector index */
+
+
+  /*----- Initialize local variables -----*/
+  num_slices = dset->taxis->nsl;
+  ts_length = DSET_NUM_TIMES(dset);
+  num_vectors = ts_length * num_slices;
+
+
+  /*----- Allocate memory for array of state vectors -----*/
+  *state_history = (vector *) malloc (sizeof(vector) * num_vectors);
+
+
+  /*----- Initialize array of state vectors -----*/
+  for (i = 0;  i < num_vectors;  i++)
+    {
+      vector_initialize (&((*state_history)[i]));
+      vector_create (STATE_DIM, &((*state_history)[i]));
+    }
+}
+
+ 
+/*---------------------------------------------------------------------------*/
+/*
+   Routine to initialize the RMS error arrays.
+*/
+
+void initialize_rms_arrays 
+(
+  THD_3dim_dataset * dset,       /* pointer to input 3d+time dataset */
+  float ** old_rms_array,        /* volume RMS error for input dataset */
+  float ** new_rms_array         /* volume RMS error for registered dataset */
+)
+
+{
+  int ts_length;                 /* number of volumes */
+
+
+  ts_length = DSET_NUM_TIMES(dset);
+
+  /*----- Allocate space for RMS error arrays -----*/
+  *old_rms_array = (float *) malloc (sizeof(float) * ts_length);
+  *new_rms_array = (float *) malloc (sizeof(float) * ts_length);
+  
+
+}
+
+ 
+/*---------------------------------------------------------------------------*/
+/*
   Routine to perform all program initialization.
 */
 
 void initialize_program
 (
-  int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
-  IR_options ** option_data
+  int argc,                       /* number of input arguments */
+  char ** argv,                   /* array of input arguments */ 
+  IR_options ** option_data,      /* user input options */
+  vector ** state_history,        /* time series of state vectors */
+  float ** old_rms_array,         /* volume RMS error for input dataset */
+  float ** new_rms_array          /* volume RMS error for registered dataset */
 )
 
 {
+  THD_3dim_dataset * dset;
 
   /*----- Initialize input options -----*/
   initialize_options (option_data);
@@ -291,6 +525,26 @@ void initialize_program
 
   /*----- Get user inputs -----*/
   get_user_inputs (argc, argv, option_data);
+
+
+  /*----- Read the input 3d+time dataset to be registered -----*/
+  read_dataset ((*option_data)->input_filename, &dset);
+
+  
+  /*----- Initialize the z-slice time order arrays -----*/
+  initialize_slice_sequence (*option_data, dset);
+
+
+  /*----- Initialize the array of state vectors -----*/
+  initialize_state_history (dset, state_history);
+
+
+  /*----- Allocate space for RMS error arrays -----*/
+  initialize_rms_arrays (dset, old_rms_array, new_rms_array);
+
+
+  /*----- Release memory -----*/
+  THD_delete_3dim_dataset (dset, False);   dset = NULL;
 
 }
 
@@ -406,6 +660,76 @@ void check_output_file
 
 /*---------------------------------------------------------------------------*/
 /*
+  Evaluate accuracy of registration.
+*/
+
+void eval_registration
+(
+  IR_options * option_data,       /* user input options */
+  THD_3dim_dataset * old_dset,    /* input dataset */
+  THD_3dim_dataset * new_dset,    /* output datasets */
+  THD_3dim_dataset * base_dset,   /* base image dataset */
+  int base,                       /* base volume index */
+  float * old_rms_array,          /* volume RMS error for input dataset */
+  float * new_rms_array           /* volume RMS error for registered dataset */
+  )
+     
+{
+  int nx, ny, nz, nxyz;
+  int ix, jy, kz;
+  int ixyz;
+  float old_sse, new_sse;
+  float diff;
+  float old_rmse, new_rmse;
+  int ivolume, num_volumes;
+  short * sold, * snew, * sbase;
+
+
+  /*----- Get dataset dimensions -----*/
+  nx = old_dset->daxes->nxx;
+  ny = old_dset->daxes->nyy;
+  nz = old_dset->daxes->nzz;
+  nxyz = nx * ny * nz;
+  num_volumes = DSET_NUM_TIMES (old_dset);
+
+  sbase = (short *) DSET_ARRAY (base_dset, base);
+
+  for (ivolume = 0;  ivolume < num_volumes; ivolume++)
+    {
+      old_sse = 0.0;
+      new_sse = 0.0;
+
+      sold  = (short *) DSET_ARRAY (old_dset,ivolume);
+      snew  = (short *) DSET_ARRAY (new_dset,ivolume);
+      
+      for (kz = 0;  kz < nz;  kz++)
+	for (jy = 0;  jy < ny;  jy++)
+	  for (ix = 0;  ix < nx;  ix++)
+	    {
+	      ixyz = ix + jy*nx + kz*nx*ny;
+	      diff = sold[ixyz] - sbase[ixyz];
+	      old_sse += diff*diff;
+	      diff = snew[ixyz] - sbase[ixyz];
+	      new_sse += diff*diff;
+	    }
+      
+      old_rmse = sqrt (old_sse / nxyz);
+      new_rmse = sqrt (new_sse / nxyz);
+
+      if (option_data->debug)
+	printf ("Volume = %d   OLD RMSE = %f   NEW RMSE = %f \n", 
+		ivolume, old_rmse, new_rmse);
+      
+      old_rms_array[ivolume] = old_rmse;
+      new_rms_array[ivolume] = new_rmse;
+
+    }
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Main routine for this program.
   If the return string is not NULL, some error transpired, and
   the program will display the error message.
@@ -421,7 +745,13 @@ void check_output_file
     } while(0) ;
 
 
-char * IMREG_main (IR_options * opt)
+char * IMREG_main 
+(
+  IR_options * opt,
+  vector * state_history,
+  float * old_rms_array,
+  float * new_rms_array
+)
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    THD_3dim_dataset * base_dset;               /* base image dataset */
@@ -437,6 +767,8 @@ char * IMREG_main (IR_options * opt)
    float  ** fptr = NULL , ** fbase = NULL, ** fout = NULL ;
 
    float * dxar = NULL , * dyar = NULL , * phiar = NULL ;
+
+   int it;
 
    /*--------------------------------------------------------------------*/
    /*----- Check batch command inputs to see if they are reasonable -----*/
@@ -522,7 +854,7 @@ char * IMREG_main (IR_options * opt)
 
    base_datum = DSET_BRICK_TYPE(base_dset,0);
 
-   base = opt->base;
+   base = opt->base_vol_index;
    if( base >= DSET_NUM_TIMES(base_dset))
       return "******************************\n"
              "Base image number is too large\n"
@@ -702,8 +1034,20 @@ char * IMREG_main (IR_options * opt)
       if( ims_out == NULL )
 	fprintf(stderr,"IMREG: mri_align_dfspace return NULL\n") ;
 
+      
+      /*----- Store the registration parameters -----*/
+      if (opt->dprefix != NULL)
+	for (ii = 0;  ii < ntime;  ii++)
+	  {
+	    it = ii*nz + z_to_t[kk];
+	    state_history[it].elts[1] = dxar[ii];
+	    state_history[it].elts[2] = dyar[ii];
+	    state_history[it].elts[3] = (180.0/PI)*phiar[ii];
+	  }
+      
+
       /*** 4d) Put the output back in on top of the input;
-               note that the output is always in MRI_float format ***/
+	       note that the output is always in MRI_float format ***/
 
       if (opt->debug)
 	fprintf(stderr,"IMREG: slice %d -- put output back into dataset\n",kk);
@@ -784,6 +1128,12 @@ char * IMREG_main (IR_options * opt)
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
   
 
+  /*----- evaluate results -----*/
+  if (opt->rprefix != NULL)
+    eval_registration (opt, old_dset, new_dset, base_dset, base, 
+		       old_rms_array, new_rms_array);
+
+
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset( old_dset , False ) ; old_dset = NULL ;
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
@@ -797,6 +1147,232 @@ char * IMREG_main (IR_options * opt)
 
 
 /*---------------------------------------------------------------------------*/
+/*
+  Routine to write RMS error arrays. 
+*/
+
+
+void output_rms_arrays
+(
+  IR_options * option_data,     /* user input options */
+  THD_3dim_dataset * dset,      /* pointer to input 3d+time dataset */
+  float * old_rms_array,        /* volume RMS error for input dataset */
+  float * new_rms_array         /* volume RMS error for registered dataset */
+)
+
+{
+  int it;                                  /* time index */
+  int ts_length;                           /* length of time series data */  
+  char filename[MAX_NAME_LENGTH];          /* name of output file */
+  FILE * old_rms_file , * new_rms_file;    /* file for volume RMS error */
+
+
+  /*----- Initialize local variables -----*/
+  ts_length = DSET_NUM_TIMES(dset);
+
+
+  /*----- Open output files -----*/
+  strcpy (filename, option_data->rprefix);
+  strcat (filename, ".oldrms");
+  old_rms_file = fopen (filename, "w");
+  strcpy (filename, option_data->rprefix);
+  strcat (filename, ".newrms");
+  new_rms_file = fopen (filename, "w");
+
+
+  /*----- Write volume RMS error data -----*/
+  for (it = 0;  it < ts_length;  it++)
+    {
+      fprintf (old_rms_file, "%d  %f\n" , it, old_rms_array[it]);
+      fprintf (new_rms_file, "%d  %f\n" , it, new_rms_array[it]);
+    }
+
+
+  /*----- Close output files -----*/
+  fclose (old_rms_file);
+  fclose (new_rms_file);
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Get the time corresponding to this particular slice.
+*/
+ 
+float get_time  (int ivolume, int iz,  THD_3dim_dataset * dset)
+
+{
+  float time;
+  float z;
+
+
+  z = iz * dset->taxis->dz_sl + dset->taxis->zorg_sl;
+  time = THD_timeof (ivolume, z, dset->taxis);
+  
+  if (dset->taxis->units_type == UNITS_MSEC_TYPE)
+    time /= 1000.0;
+
+  return (time);
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to write the registration parameter time series. 
+*/
+
+
+void output_state_history
+(
+  IR_options * option_data,     /* user input options */
+  THD_3dim_dataset * dset,
+  vector * state_history
+)
+
+{
+  int iv;                           /* vector index */
+  int ts_length;                    /* length of time series */
+  int num_slices;                   /* number of slices in each volume */
+  int num_vectors;                  /* total number of state vectors */
+  int ivolume;                      /* volume index */
+  int iz;                           /* z slice index */
+  float t;                          /* time for current vector */
+  char filename[MAX_NAME_LENGTH];   /* string for output file name */
+
+  FILE * dx_file, * dy_file, * psi_file;   /* output files */
+
+
+  /*----- Initialize local variables -----*/
+  num_slices = dset->taxis->nsl;
+  ts_length = DSET_NUM_TIMES(dset);
+
+
+  /*----- Calculate total number of state vectors -----*/
+  num_vectors = ts_length * num_slices;
+
+
+  /*----- Open output files -----*/
+  strcpy (filename, option_data->dprefix);
+  strcat (filename, ".dx");
+  dx_file = fopen (filename, "w");
+
+  strcpy (filename, option_data->dprefix);
+  strcat (filename, ".dy");
+  dy_file = fopen (filename, "w");
+
+  strcpy (filename, option_data->dprefix);
+  strcat (filename, ".psi");
+  psi_file = fopen (filename, "w");
+
+  
+  /*----- Write the registration parameters -----*/
+  for (iv = 0;  iv < num_vectors;  iv++)
+    {
+      ivolume = iv / num_slices;
+      iz = t_to_z[iv % num_slices];
+      t = get_time (ivolume, iz, dset);
+      fprintf (dx_file,  "%f   %f\n", t, state_history[iv].elts[1]);
+      fprintf (dy_file,  "%f   %f\n", t, state_history[iv].elts[2]);
+      fprintf (psi_file, "%f   %f\n", t, state_history[iv].elts[3]);
+    }
+
+
+  /*----- Close output files -----*/
+  fclose (dx_file);
+  fclose (dy_file);
+  fclose (psi_file);
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Output results.
+*/
+
+void output_results  
+(
+  IR_options * option_data,     /* user input options */
+  vector * state_history,       /* time series of state vectors */
+  float * old_rms_array,        /* volume RMS error for input dataset */
+  float * new_rms_array         /* volume RMS error for registered dataset */
+)
+
+{
+  THD_3dim_dataset * dset;
+
+
+  read_dataset (option_data->input_filename, &dset);
+
+
+  /*----- Write the time series of state parameters -----*/
+  if (option_data->dprefix != NULL)
+    output_state_history (option_data, dset, state_history);
+
+
+  /*----- Write user specified auxiliary time series data -----*/
+  if (option_data->rprefix != NULL)
+    output_rms_arrays (option_data, dset, old_rms_array, new_rms_array);
+
+
+  THD_delete_3dim_dataset (dset, False);   dset = NULL;
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Terminate the program.
+*/
+
+void terminate_program  
+(
+  IR_options ** option_data,
+  vector ** state_history,       /* time series of state vectors */
+  float ** old_rms_array,        /* volume RMS error for input dataset */
+  float ** new_rms_array         /* volume RMS error for registered dataset */
+)
+
+{
+  THD_3dim_dataset * dset;       /* pointer to input 3d+time dataset */
+  int num_slices;                /* number of slices in each volume */
+  int ts_length;                 /* length of time series */
+  int num_vectors;               /* total number of state vectors */
+  int i;                         /* index */
+
+
+  /*----- Initialize local variables -----*/
+  read_dataset ((*option_data)->input_filename, &dset);
+  num_slices = dset->taxis->nsl;
+  ts_length = DSET_NUM_TIMES(dset);
+  num_vectors = ts_length * num_slices;
+  THD_delete_3dim_dataset (dset, False);   dset = NULL;
+
+
+  /*----- Release memory -----*/
+  free (*option_data);     *option_data = NULL;
+  free (t_to_z);           t_to_z = NULL;
+  free (z_to_t);           z_to_t = NULL;
+
+  
+  if (*old_rms_array != NULL)
+    { free (*old_rms_array);   *old_rms_array = NULL; }
+  if (*new_rms_array != NULL)
+    { free (*new_rms_array);   *new_rms_array = NULL; }
+
+
+  /*----- Deallocate memory for array of state vectors -----*/
+  if (*state_history != NULL)
+    {
+      for (i = 0;  i < num_vectors;  i++)
+	vector_destroy (&((*state_history)[i]));
+      free (*state_history);   *state_history = NULL;
+    }
+
+}
+
+
+/*---------------------------------------------------------------------------*/
 
 void main
 (
@@ -805,8 +1381,11 @@ void main
 )
 
 {
-  IR_options * option_data;
-  char * chptr;
+  IR_options * option_data;            /* user input options */
+  char * chptr;                        /* error message from processing */
+  vector * state_history = NULL;       /* time series of state vectors */
+  float * old_rms_array = NULL;        /* original data volume RMS error */
+  float * new_rms_array = NULL;        /* registered data volume RMS error */
 
 
   /*----- Identify software -----*/
@@ -815,14 +1394,33 @@ void main
 
   
   /*----- Program initialization -----*/
-  initialize_program (argc, argv, &option_data);
+  initialize_program (argc, argv, &option_data, &state_history, 
+		      &old_rms_array, &new_rms_array);
 
 
   /*----- Register all slices in the dataset -----*/
-  chptr = IMREG_main (option_data);
+  chptr = IMREG_main (option_data, state_history,
+		      old_rms_array, new_rms_array);
 
 
   /*----- Check for processing errors -----*/
-  if (chptr != NULL)   printf ("%s \n", chptr);
+  if (chptr != NULL)   
+    {
+      printf ("%s \n\n", chptr);
+      exit(1);
+    }
 
+
+  /*----- Output the results -----*/
+  output_results (option_data, state_history, 
+		  old_rms_array, new_rms_array);
+
+
+  /*----- Terminate the program -----*/
+  terminate_program (&option_data, &state_history,
+		     &old_rms_array, &new_rms_array);
+ 
 }
+
+
+

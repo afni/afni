@@ -1,5 +1,20 @@
 #include "afni.h"
 
+#ifdef AFNI_DEBUG
+#  define USE_TRACING
+#  define PRINT_TRACING
+#endif
+#include "dbtrace.h"
+
+#if defined(USE_TRACING) && defined(MALLOC_TRACE)
+# define VMCHECK                                                \
+  do{ if(verbose){                                              \
+         fprintf(stderr,"RT check_malloc: ") ; fflush(stderr) ; \
+         fprintf(stderr,"%s\n",check_malloc()) ; } } while(0)
+#else
+# define VMCHECK /* nada */
+#endif
+
 #define TCP_CONTROL "tcp:*:7954"      /* control channel specification */
 #define INFO_SIZE  (16*1024)          /* change this ==> change SHM_CHILD below */
 #define SHM_CHILD  "shm:afnibahn:16K" /* for data from the child */
@@ -410,6 +425,7 @@ Boolean RT_worker( XtPointer elvis )
       if( rtinp->dset != NULL ){       /* if we started a dataset */
          if( verbose == 2 )
             fprintf(stderr,"RT: data channel closed down.\n") ;
+         VMCHECK ;
          RT_finish_dataset( rtinp ) ;  /* then we can finish it */
       } else {
          fprintf(stderr,"RT: data channel closed dataset was fully defined!\a\n") ;
@@ -440,6 +456,7 @@ Boolean RT_worker( XtPointer elvis )
 
          if( verbose )
             fprintf(stderr,"RT: receiving data from child process\n") ;
+         VMCHECK ;
 
          ninfo = 0 ;
          while(1){
@@ -462,6 +479,7 @@ Boolean RT_worker( XtPointer elvis )
 
          if( verbose == 2 )
             fprintf(stderr,"RT: child info channel returned %d bytes.\n",ninfo) ;
+         VMCHECK ;
 
          /* process the info and store it in the real-time struct */
 
@@ -487,6 +505,7 @@ Boolean RT_worker( XtPointer elvis )
          if( rtinp->dset == NULL && rtinp->info_ok ){
             if( verbose == 2 )
                fprintf(stderr,"RT: info complete --> creating dataset.\n") ;
+            VMCHECK ;
             RT_start_dataset( rtinp ) ;
          }
       }
@@ -513,6 +532,8 @@ Boolean RT_worker( XtPointer elvis )
           rtinp->nvol > rtinp->last_nvol                                   &&
           (delt=PLUTO_elapsed_time()-rtinp->last_elapsed)  > WRITE_INTERVAL   ){
 
+         int cmode ;
+
          fprintf(stderr,"RT: no image data for %g seconds --> saving to disk.\n",delt) ;
 
          PLUTO_popup_transient( plint , " \n"
@@ -520,9 +541,17 @@ Boolean RT_worker( XtPointer elvis )
                                         " Saving current dataset to disk.\n" ) ;
 
          RT_tell_afni(rtinp,TELL_NORMAL) ;
+
+         cmode = THD_get_write_compression() ;      /* 20 Mar 1998 */
+         THD_set_write_compression(COMPRESS_NONE) ;
+         SHOW_AFNI_PAUSE ;
+
          THD_write_3dim_dataset( NULL,NULL , rtinp->dset , True ) ;
          if( rtinp->func_dset != NULL )
             THD_write_3dim_dataset( NULL,NULL , rtinp->func_dset , True ) ;
+
+         THD_set_write_compression(cmode) ;
+         SHOW_AFNI_READY ;
 
          rtinp->last_nvol    = rtinp->nvol ;
          rtinp->last_elapsed = PLUTO_elapsed_time() ;
@@ -535,6 +564,7 @@ Boolean RT_worker( XtPointer elvis )
    if( jj < 0 ){                 /* something bad */
       if( verbose == 2 )
          fprintf(stderr,"RT: data channel closed down.\n") ;
+      VMCHECK ;
       if( rtinp->dset != NULL ) RT_finish_dataset( rtinp ) ;
       CLEANUP ; return False ;
    }
@@ -589,6 +619,7 @@ Boolean RT_worker( XtPointer elvis )
 
       if( verbose == 2 )
          fprintf(stderr,"RT: processed %d bytes of header info from data channel\n",jj) ;
+      VMCHECK ;
 
       rtinp->no_data = 0 ;  /* can't say we never received data */
 
@@ -704,6 +735,7 @@ RT_input * new_RT_input(void)
 
    if( verbose == 2 )
       fprintf(stderr,"RT: opened data channel %s\n",rtin->name_data) ;
+   VMCHECK ;
 
    /** if more follows, that is a command for a child process
        (which will not be started until the first image data arrives) **/
@@ -726,6 +758,7 @@ RT_input * new_RT_input(void)
       else
          fprintf(stderr,"RT: no info command given.\n") ;
    }
+   VMCHECK ;
 
    /** the command (if any) will be run later **/
 
@@ -736,6 +769,7 @@ RT_input * new_RT_input(void)
 
    if( verbose )
       fprintf(stderr,"RT: waiting for data channel to open.\n") ;
+   VMCHECK ;
 
    while(1){
       ii = iochan_goodcheck(rtin->ioc_data,1000) ;             /* wait up to 1000 msec */
@@ -750,6 +784,7 @@ RT_input * new_RT_input(void)
 
    if( verbose == 2 )
       fprintf(stderr,"RT: data channel is opened.\n") ;
+   VMCHECK ;
 
    /** initialize internal constants in the struct **/
 
@@ -878,6 +913,7 @@ void RT_start_child( RT_input * rtin )
 
       if( verbose == 2 )
          fprintf(stderr,"RT: forked a child process to execute '%s'\n",rtin->name_info) ;
+      VMCHECK ;
 
       /** open a channel to communicate with the child **/
 
@@ -1003,6 +1039,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
       if( verbose == 2 )
          fprintf(stderr,"RT: info line buffer=%s\n",buf) ;
+      VMCHECK ;
 
       /************************************/
       /*** Scan for legal input strings ***/
@@ -1048,6 +1085,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
               BADNEWS ;
          if( verbose == 2 )
             fprintf(stderr,"RT: dzz = %g\n",rtin->dzz) ;
+         VMCHECK ;
 
       } else if( STARTER("ZFIRST") ){
          float val = 0.0 ;
@@ -1060,6 +1098,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
             fprintf(stderr,"RT: zzorg = %g%c\n" ,
                     rtin->zzorg , (rtin->zzdcode < 0) ? ' '
                                                       : ORIENT_first[rtin->zzdcode] ) ;
+         VMCHECK ;
 
       } else if( STARTER("XYFOV") ){
          float xval = 0.0 , yval = 0.0 , zval = 0.0 ;
@@ -1072,6 +1111,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
                 BADNEWS ;
          if( verbose == 2 )
             fprintf(stderr,"RT: fov = %g %g %g\n",rtin->xxfov,rtin->yyfov,rtin->zzfov) ;
+         VMCHECK ;
 
       } else if( STARTER("XYMATRIX") ){
          int xval = 0 , yval = 0 , zval = 0 ;
@@ -1084,6 +1124,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
                 BADNEWS ;
          if( verbose == 2 )
             fprintf(stderr,"RT: matrix = %d %d %d\n",rtin->nxx,rtin->nyy,rtin->nzz) ;
+         VMCHECK ;
 
       } else if( STARTER("ZNUM") ){
          int zval = 0 ;
@@ -1096,6 +1137,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
               BADNEWS ;
          if( verbose == 2 )
             fprintf(stderr,"RT: # slices = %d\n",rtin->nzz) ;
+         VMCHECK ;
 
       } else if( STARTER("DATUM") ){
          int ii ;
@@ -1109,6 +1151,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
               BADNEWS ;
          if( verbose == 2 )
             fprintf(stderr,"RT: datum code = %d\n",rtin->datum) ;
+         VMCHECK ;
 
       } else if( STARTER("ZORDER") ){
          char str[32] = "\0" ; int nord=0 , nb = 0 , nq ;
@@ -1353,6 +1396,8 @@ void RT_start_dataset( RT_input * rtin )
 
    rtin->afni_status = 0 ;  /* uninformed at this time */
 
+   DSET_lock(rtin->dset) ;  /* 20 Mar 1998 */
+
    /***********************************************/
    /** now prepare space for incoming image data **/
 
@@ -1387,6 +1432,7 @@ void RT_start_dataset( RT_input * rtin )
       if( verbose == 2 )
          fprintf(stderr,"RT: putting %d buffered images into dataset\n" ,
                         IMARR_COUNT(rtin->bufar) ) ;
+      VMCHECK ;
 
       upsave = update ;  /* don't do updates to AFNI during this step */
       update = 0 ;
@@ -1404,6 +1450,7 @@ void RT_start_dataset( RT_input * rtin )
 
       if( verbose == 2 )
          fprintf(stderr,"RT: buffered images all placed into dataset\n") ;
+      VMCHECK ;
    }
 
    /** dataset now created and ready to boogie! **/
@@ -1477,6 +1524,7 @@ int RT_process_data( RT_input * rtin )
    if( rtin->dset == NULL && rtin->info_ok ){
       if( verbose == 2 )
          fprintf(stderr,"RT: info complete --> creating dataset.\n") ;
+      VMCHECK ;
       RT_start_dataset( rtin ) ;
    }
 
@@ -1486,10 +1534,9 @@ int RT_process_data( RT_input * rtin )
 
       if( rtin->im != NULL ){  /** process data into dataset directly **/
 
-/*
          if( verbose == 2 )
             fprintf(stderr,"RT: reading image into dataset sub-brick.\n") ;
-*/
+         VMCHECK ;
 
          RT_read_image( rtin , rtin->im ) ;  /* read into dataset buffer */
          RT_process_image( rtin ) ;          /* process it for the dataset */
@@ -1507,8 +1554,10 @@ int RT_process_data( RT_input * rtin )
          if( rtin->bufar == NULL )    /* initialize buffer for input images */
             INIT_IMARR(rtin->bufar) ;
 
-         if( verbose == 2 && rtin->bufar->num % 10 == 0 )
+         if( verbose == 2 && rtin->bufar->num % 10 == 0 ){
             fprintf(stderr,"RT: reading image into buffer[%d]\n",rtin->bufar->num) ;
+            VMCHECK ;
+         }
 
          newim  = mri_new( rtin->imsize , 1 , MRI_byte ) ; /* make space for next image */
          newbuf = (char *) MRI_BYTE_PTR(newim) ;           /* pointer to image data */
@@ -1559,6 +1608,7 @@ void RT_process_image( RT_input * rtin )
 
       if( verbose == 2 )
          fprintf(stderr,"RT: now have %d complete sub-bricks.\n",rtin->nvol) ;
+      VMCHECK ;
 
       /* first time: put this volume in as "substitute" for empty 1st brick
          later:      add new volume at end of chain                         */
@@ -1568,14 +1618,23 @@ void RT_process_image( RT_input * rtin )
       else
          EDIT_add_brick( rtin->dset , rtin->datum , 0.0 , rtin->sbr ) ;
 
+      VMCHECK ;
+      if( verbose == 2 )
+         fprintf(stderr,"RT: added brick to dataset\n") ;
+      VMCHECK ;
+
       /* must also change the number of times recorded
          [EDIT_add_brick does 'nvals' correctly, but not 'ntt'] */
 
       if( rtin->dtype == DTYPE_3DT || rtin->dtype == DTYPE_2DZT ){
          EDIT_dset_items( rtin->dset , ADN_ntt , rtin->nvol , ADN_none ) ;
+         if( verbose == 2 )
+            fprintf(stderr,"RT: altered ntt in dataset header\n") ;
+         VMCHECK ;
       } else if( rtin->nvol > 1 ){
          fprintf(stderr,"RT: have %d bricks for time-independent dataset!\a\n",
                  rtin->nvol) ;
+         VMCHECK ;
       }
 
       /** compute function, maybe? **/
@@ -1599,11 +1658,19 @@ void RT_process_image( RT_input * rtin )
 
       /** make space for next sub-brick to arrive **/
 
+      if( verbose == 2 )
+         fprintf(stderr,"RT: malloc-ing %d bytes for next volume\n",rtin->sbr_size) ;
+      VMCHECK ;
+
       rtin->sbr = malloc( rtin->sbr_size ) ;
       if( rtin->sbr == NULL ){
-         fprintf(stderr,"RT: can't malloc real-time brick #%d\a\n",rtin->nvol+1) ;
+         fprintf(stderr,"RT: can't malloc real-time brick %d\a\n",rtin->nvol+1) ;
          exit(1) ;
       }
+      if( verbose == 2 )
+         fprintf(stderr,"RT: malloc succeeded\n") ;
+      VMCHECK ;
+
       rtin->im  = rtin->sbr ;  /* location of slice #0 within sub-brick */
       rtin->nsl = 0 ;          /* number of slices gathered so far */
 
@@ -1612,6 +1679,10 @@ void RT_process_image( RT_input * rtin )
       if( update > 0 ){  /* if we want updates every so often */
          int doit ;
 
+         if( verbose == 2 )
+            fprintf(stderr,"RT: checking for update status\n") ;
+         VMCHECK ;
+
          doit = ( (rtin->dtype==DTYPE_3DT || rtin->dtype==DTYPE_2DZT) &&
                   (rtin->nvol == MIN_TO_GRAPH ||
                    (rtin->nvol > MIN_TO_GRAPH && rtin->nvol % update == 0)) ) ;
@@ -1619,6 +1690,7 @@ void RT_process_image( RT_input * rtin )
          if( doit ){
             if( verbose == 2 )
                fprintf(stderr,"RT: about to tell AFNI about this dataset.\n") ;
+            VMCHECK ;
             RT_tell_afni(rtin,TELL_NORMAL) ;
          }
       }
@@ -1684,6 +1756,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
                           "    to AFNI controller [%c] session %s\n" ,
                  DSET_FILECODE(rtin->dset) , rtin->nvol ,
                  clll , sess->sessname ) ;
+      VMCHECK ;
 
       EDIT_dset_items( rtin->dset, ADN_directory_name,sess->sessname, ADN_none ) ;
 
@@ -1691,16 +1764,9 @@ void RT_tell_afni( RT_input * rtin , int mode )
 
       if( ISANAT(rtin->dset) ){
 
-         if( GLOBAL_library.have_dummy_dataset ){   /* special circumstances */
+         if( GLOBAL_library.have_dummy_dataset ) UNDUMMYIZE ;
 
-            id       = 0 ;                          /* replace the dummy */
-            dds      = sess->anat[0][VIEW_ORIGINAL_TYPE] ;
-            old_anat = NULL ;
-            GLOBAL_library.have_dummy_dataset = 0 ; /* not any more! */
-
-         } else {                                   /* normal circumstances */
-            id = sess->num_anat ;
-         }
+         id = sess->num_anat ;
 
          if( id >= THD_MAX_SESSION_ANAT ){
             fprintf(stderr,"RT: max number of anat datasets exceeded!\a\n") ;
@@ -1743,6 +1809,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
 
       if( verbose )
          fprintf(stderr,"RT: update with %d bricks to AFNI [%c]\n",rtin->nvol,clll) ;
+      VMCHECK ;
 
       tav->fmax = tav->imax = im3d->vinfo->time_index = rtin->nvol - 1  ;
       AV_assign_ival( tav , tav->imax ) ;
@@ -1767,6 +1834,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
                                 "    to AFNI controller [%c] session %s\n" ,
                        DSET_FILECODE(rtin->func_dset) , DSET_NVALS(rtin->func_dset) ,
                        clll , sess->sessname ) ;
+            VMCHECK ;
 
             EDIT_dset_items( rtin->func_dset, ADN_directory_name,sess->sessname, ADN_none ) ;
             id = sess->num_func ;
@@ -1800,10 +1868,11 @@ void RT_tell_afni( RT_input * rtin , int mode )
 
       AFNI_initialize_view( old_anat , im3d ) ;  /* Geronimo! */
 
-#if 1
+#if 0
       if( dds != NULL ){       /* purge dummy dataset from memory */
          if( verbose == 2 )
             fprintf(stderr,"RT: purging dummy dataset now.\n") ;
+         VMCHECK ;
          DSET_unload( dds ) ;
       }
 #endif
@@ -1827,6 +1896,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
             if( verbose == 2 )
                fprintf(stderr,"RT: send redraw message to controller [%c]\n",
                        clabel[ii] ) ;
+            VMCHECK ;
             AFNI_modify_viewing( qq3d , False ) ;  /* Crazy Horse! */
 
          }
@@ -1837,8 +1907,12 @@ void RT_tell_afni( RT_input * rtin , int mode )
    /**--- if this is the final call, do some cleanup stuff ---**/
 
    if( mode == TELL_FINAL ){
+
+      int cmode ;
+
       if( verbose == 2 )
          fprintf(stderr,"RT: finalizing dataset to AFNI (including disk output).\n") ;
+      VMCHECK ;
 
          fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
                           "    to AFNI controller [%c] session %s\n" ,
@@ -1859,20 +1933,33 @@ void RT_tell_afni( RT_input * rtin , int mode )
 /**
       THD_load_statistics( rtin->dset ) ;
 **/
+
+      cmode = THD_get_write_compression() ;      /* 20 Mar 1998 */
+      THD_set_write_compression(COMPRESS_NONE) ;
+      SHOW_AFNI_PAUSE ;
+
       THD_write_3dim_dataset( NULL,NULL , rtin->dset , True ) ;
+      DSET_unlock( rtin->dset ) ;  /* 20 Mar 1998 */
 
       if( rtin->func_dset != NULL ){
          rtin->func_func( rtin , FINAL_MODE ) ;
          THD_write_3dim_dataset( NULL,NULL , rtin->func_dset , True ) ;
+         DSET_unlock( rtin->func_dset ) ;  /* 20 Mar 1998 */
          THD_force_malloc_type( rtin->func_dset->dblk , DATABLOCK_MEM_ANY ) ;
       }
+
+      THD_set_write_compression(cmode) ;
+      SHOW_AFNI_READY ;
 
       AFNI_force_adoption( sess , GLOBAL_argopt.warp_4D ) ;
       AFNI_make_descendants( GLOBAL_library.sslist ) ;
       THD_force_malloc_type( rtin->dset->dblk , DATABLOCK_MEM_ANY ) ;
+
+      AFNI_purge_unused_dsets() ;
    }
 
    if( verbose == 2 ) SHOW_TIMES ;
+   VMCHECK ;
 
    return ;
 }
@@ -1897,6 +1984,7 @@ void RT_finish_dataset( RT_input * rtin )
    fprintf(stderr,"RT: finish dataset with %d bricks completed.\n",rtin->nvol) ;
 
    if( verbose ) SHOW_TIMES ;
+   VMCHECK ;
 
    /** tell afni about it one last time **/
 
@@ -2270,6 +2358,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
 
       if( verbose == 2 )
          fprintf(stderr,"RTfim: %d/%d voxels being FIMmed.\n",nvox,nxyz) ;
+      VMCHECK ;
 
       vval = (float *) malloc( sizeof(float) * nvox) ;
       if( vval == NULL ){
@@ -2342,6 +2431,8 @@ int RT_fim_recurse( RT_input * rtin , int mode )
          }
          mri_fix_data_pointer( ptr ,  DSET_BRICK(new_dset,iv) ) ;
       }
+
+      DSET_lock( rtin->func_dset ) ; /* 20 Mar 1998 */
 
    }  /*---- end of initializing at first important time point ----*/
 

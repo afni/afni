@@ -282,13 +282,7 @@ void LMAP_XNAME( THD_linear_mapping * map , int resam_mode ,
    int out_ind , jstep , kstep ;
    int nxold,nyold,nzold , nxnew,nynew,nznew ;
 
-#ifdef AFNI_DEBUG
-{ char function_name[128] ;
-  sprintf(function_name,"AFNI_lmap_to_xslice(%s)" , MRI_TYPE_name[TWO_TWO(MRI_,DTYPE)]) ;
-  ENTRY(function_name) ; }
-#else
   ENTRY("AFNI_lmap_to_xslice") ;
-#endif
 
    /*--- set up ranges ---*/
 
@@ -934,13 +928,7 @@ void LMAP_YNAME( THD_linear_mapping * map , int resam_mode ,
    int out_ind , jstep , kstep ;
    int nxold,nyold,nzold , nxnew,nynew,nznew ;
 
-#ifdef AFNI_DEBUG
-{ char function_name[128] ;
-  sprintf(function_name,"AFNI_lmap_to_yslice(%s)" , MRI_TYPE_name[TWO_TWO(MRI_,DTYPE)]) ;
-  ENTRY(function_name) ; }
-#else
   ENTRY("AFNI_lmap_to_yslice") ;
-#endif
 
    /*--- set up ranges ---*/
 
@@ -1565,13 +1553,7 @@ void LMAP_ZNAME( THD_linear_mapping * map , int resam_mode ,
    int out_ind , jstep , kstep ;
    int nxold,nyold,nzold , nxnew,nynew,nznew ;
 
-#ifdef AFNI_DEBUG
-{ char function_name[128] ;
-  sprintf(function_name,"AFNI_lmap_to_zslice(%s)" , MRI_TYPE_name[TWO_TWO(MRI_,DTYPE)]) ;
-  ENTRY(function_name) ; }
-#else
   ENTRY("AFNI_lmap_to_zslice") ;
-#endif
 
    /*--- set up ranges ---*/
 
@@ -2191,13 +2173,7 @@ void B2SL_NAME( int nxx, int nyy, int nzz ,
 {
    int ystep = nxx , zstep = nxx*nyy ;
 
-#ifdef AFNI_DEBUG
-{ char function_name[128] ;
-  sprintf(function_name,"AFNI_br2sl(%s)" , MRI_TYPE_name[TWO_TWO(MRI_,DTYPE)]) ;
-  ENTRY(function_name) ; }
-#else
   ENTRY("AFNI_br2sl") ;
-#endif
 
    switch( fixed_axis ){
 

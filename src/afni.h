@@ -115,7 +115,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "16 Mar 1998      "
+#define RELEASE "20 Mar 1998      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -470,7 +470,7 @@ typedef struct {
       Widget         misc_voxind_pb ;
       Widget         misc_hints_pb ;
       Widget         misc_anat_info_pb , misc_func_info_pb ;
-      Widget         misc_newstuff_pb , misc_tracing_pb ;
+      Widget         misc_newstuff_pb , misc_purge_pb , misc_tracing_pb ;
 } AFNI_datamode_widgets ;
 
 /*---*/
@@ -793,6 +793,11 @@ typedef struct {
 #define GPT             GLOBAL_library.gpt
 
 #define DOING_REALTIME_WORK (GLOBAL_library.interruptables.windows != NULL)
+
+#define UNDUMMYIZE                                                              \
+ do { GLOBAL_library.have_dummy_dataset = 0 ;                                   \
+      XtSetSensitive(GLOBAL_library.controllers[0]->vwid->prog->clone_pb,True); \
+    } while(0)
 
 /*-----------------------------------------------------------*/
 /*------------------------ prototypes -----------------------*/
