@@ -6511,6 +6511,7 @@ STATUS("deciding whether to use function WOD") ;
         if( swarp != NULL ){
           func_brick_possible = 0 ;      /* require warp-on-demand */
           im3d->fim_selfwarp  = swarp ;  /* transform from fim to anat coords */
+fprintf(stderr,"++ Loaded self warp\n") ;
         }
       } else {
         im3d->fim_selfwarp = NULL ;      /* no transform required */

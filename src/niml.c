@@ -8417,8 +8417,8 @@ Htable * new_Htable( int len )
 {
    Htable *ht ;
 
-        if( len   <= 12 ) len = 13 ;  /* smallest allowed */
-   else if( len%2 == 0  ) len++ ;     /* mustn't be even */
+        if( len   <= 7 ) len = 7 ;  /* smallest allowed */
+   else if( len%2 == 0 ) len++ ;    /* mustn't be even */
 
    ht = (Htable *) calloc( 1 , sizeof(Htable) ) ;
 
