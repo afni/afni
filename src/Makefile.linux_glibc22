@@ -3,13 +3,13 @@
 # Add the following to CCFAST to get improved speed on Pentium-IV type chips,
 # with the GCC 3.1.x (or higher) series of compilers:
 #
-# -msse -mmmx -mfpmath=sse
+# -msse -mfpmath=sse
 #
 # Also, change "586" to "686" in the "-march" option.
 
 GCC    = /usr/bin/gcc
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -mmmx
 CC     = $(GCC) -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCVOL  = $(GCC) -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCFAST = $(GCC) -O3 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
