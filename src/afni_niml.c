@@ -323,6 +323,7 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
    int cc , nn , ct , ngood=0 ;
    void *nini ;
    char str[512] ;
+   int keep_reading , read_msec ; /* 17 Mar 2005 */
 
 ENTRY("AFNI_niml_workproc") ;
 
@@ -330,16 +331,20 @@ ENTRY("AFNI_niml_workproc") ;
 
    for( cc=0 ; cc < NUM_NIML ; cc++ ){
 
+     keep_reading = 0 ;  /* 17 Mar 2005 */
+
      /* open streams that aren't open */
 
      if( ns_listen[cc] == NULL && (ns_flags[cc]&FLAG_SKIP)==0 ){
-if(PRINT_TRACING){
-  sprintf(str,"call NI_stream_open('%s')",ns_name[cc]) ;
-  STATUS(str) ;
-}
+       if(PRINT_TRACING){
+         sprintf(str,"call NI_stream_open('%s')",ns_name[cc]) ;
+         STATUS(str) ;
+       }
+
        ns_listen[cc] = NI_stream_open( ns_name[cc] , "r" ) ;
+
        if( ns_listen[cc] == NULL ){
-STATUS("NI_stream_open failed") ;
+         STATUS("NI_stream_open failed") ;
          ns_flags[cc] = FLAG_SKIP ; continue ;
        }
        ns_flags[cc]  = FLAG_WAITING ;
@@ -350,29 +355,38 @@ STATUS("NI_stream_open failed") ;
 
      /* now check if stream has gone bad */
 
-if(PRINT_TRACING){
-  sprintf(str,"call NI_stream_goodcheck('%s')",ns_listen[cc]->orig_name) ;
-  STATUS(str) ;
-}
+     if(PRINT_TRACING){
+       sprintf(str,"call NI_stream_goodcheck('%s')",ns_listen[cc]->orig_name);
+       STATUS(str) ;
+     }
+
+     /* 17 Mar 2005: loopback point if instructed to keep reading */
+
+  Keep_Reading:
+     read_msec = (keep_reading) ? 222 : 1 ;  /* 1/3 of the Beast! */
+
      nn = NI_stream_goodcheck( ns_listen[cc] , 1 ) ;
 
      if( nn < 0 ){                          /* is bad */
-STATUS("NI_stream_goodcheck was unhappy") ;
+       STATUS("NI_stream_goodcheck was unhappy") ;
        fprintf(stderr,"++ NIML connection closed from %s\n",
                 NI_stream_name(ns_listen[cc])               ) ;
 
        NI_stream_closenow( ns_listen[cc] ) ;
-       ns_listen[cc] = NULL ;  /* will reopen next time */
+       ns_listen[cc] = NULL ;  /* will be reopened next time */
+       keep_reading  = 0 ;
        continue ;              /* skip to next stream  */
      }
 
      if( nn == 0 ){
-STATUS("NI_stream_goodcheck was neutral") ;
+       STATUS("NI_stream_goodcheck was neutral") ;
+       keep_reading = 0 ;
        continue ;  /* waiting: skip to next stream */
      }
 
      /* if here, stream is good */
-STATUS("NI_stream_goodcheck was good!") ;
+
+     STATUS("NI_stream_goodcheck was good!") ;
 
      /* if just became good, print a message */
 
@@ -384,30 +398,58 @@ STATUS("NI_stream_goodcheck was good!") ;
 
      /* see if there is any data to be read */
 
-     nn = NI_stream_hasinput( ns_listen[cc] , 1 ) ;
+     nn = NI_stream_hasinput( ns_listen[cc] , read_msec ) ;
 
-     if( nn > 0 ){                                   /* has data!*/
-       ct   = NI_clock_time() ;                      /* start timer */
-       nini = NI_read_element( ns_listen[cc] , 2 ) ; /* read data */
+     if( nn > 0 ){                                           /* has data!*/
+       STATUS("Reading data!") ;
+       ct   = NI_clock_time() ;                           /* start timer */
+       nini = NI_read_element( ns_listen[cc] , read_msec ) ;  /* read it */
 
-       if( nini != NULL ){                           /* handle it */
+       if( nini != NULL ){                                  /* handle it */
          if( serrit ) NIML_to_stderr(nini,0) ;
-         AFNI_process_NIML_data( cc , nini , ct ) ;
+
+         /* a processing instruction? */
+
+         if( NI_element_type(nini) == NI_PROCINS_TYPE ){  /* 17 Mar 2005 */
+           NI_procins *npi = (NI_procins *)nini ;
+
+           STATUS("A processing instruction!") ;
+           if( strcasecmp(npi->name,"keep_reading") == 0 )
+             keep_reading = 1 ;
+           else if( strcasecmp(npi->name,"pause_reading") == 0 )
+             keep_reading = 0 ;
+
+         /* actual data (single element or group)? */
+
+         } else {
+           STATUS("Actual NIML data!") ;
+           AFNI_process_NIML_data( cc , nini , ct ) ;    /* do something */
+         }
+
+         STATUS("Freeing NIML element") ;
+         NI_free_element( nini ) ;                           /* trash it */
        }
 
-       NI_free_element( nini ) ;                     /* trash it */
+     } else keep_reading = 0 ;  /* was no data in the read_msec interval */
+
+     if( keep_reading ){
+       STATUS("Loopback to Keep_Reading") ;
+       goto Keep_Reading ;              /* try to get another input now! */
      }
-   }
+
+   } /* end of loop over input NIML streams */
 
    dont_tell_suma = 0 ;                              /* talk to SUMA */
    dont_overlay_suma = 0 ;
+
+   /* hopefully the following will never happen */
 
    if( ngood == 0 ){
      fprintf(stderr,"++ NIML shutting down: no listening sockets\n") ;
      RETURN( True ) ;
    }
 
-   RETURN( False ) ;
+   RETURN( False ) ;   /* normal return: this function will be called again */
 }
 
 /*----------------------------------------------------------------------*/

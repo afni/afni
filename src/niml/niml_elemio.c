@@ -34,6 +34,44 @@ static int header_stuff_is_procins( header_stuff *hs )
 }
 
 /*--------------------------------------------------------------------*/
+/*! Write a simple processing instruction to the stream:
+    - "<?str ?>\n" will be written
+    - Return value is the number of bytes written
+    - Return 0 means that the stream wasn't ready to write
+    - Return -1 means an error happened, and nothing was written
+    - 17 Mar 2005 - RWCox
+----------------------------------------------------------------------*/
+
+int NI_write_procins( NI_stream_type *ns , char *str )
+{
+   char *buf ; int jj ;
+
+   /* check inputs for good-ositifulness */
+
+   if( !NI_stream_writeable(ns)             ) return -1 ;  /* stupid user */
+   if( str == NULL || !IS_STRING_CHAR(*str) ) return -1 ;
+
+   /* check if stream is ready to take data */
+
+   if( ns->bad ){                       /* socket that hasn't connected yet */
+     jj = NI_stream_goodcheck(ns,666) ; /* try to connect it */
+     if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
+   } else {                             /* check if good ns has gone bad */
+     jj = NI_stream_writecheck(ns,666) ;
+     if( jj < 0 ) return jj ;
+   }
+
+   /* write the processing instruction: "<?str ?>\n" */
+
+   buf = (char *)malloc(strlen(str)+16) ;
+   sprintf( buf , "<?%s ?>\n" , str ) ;
+   jj = NI_stream_writestring( ns , buf ) ;
+
+   free((void *)buf) ; return jj ;
+}
+
+
+/*--------------------------------------------------------------------*/
 
 static int read_header_only = 0 ;
 void NI_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
