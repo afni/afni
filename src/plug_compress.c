@@ -25,7 +25,8 @@ static char helpstring[] =
   "the CPU time it takes to read and write compressed files."
   "\n"
   "As usual, after you make your choice, you must press one of the\n"
-  "'Run' buttons for the plugin to be executed."
+  "'Run' buttons for the plugin to be executed.\n"
+  "Author -- RW Cox"
 ;
 
 /*--------------------- strings for output format --------------------*/

@@ -92,6 +92,7 @@ static char helpstring[] =
    " \n"
    " Time Scale: Reference    = Internal or External time reference. \n"
    "             File         = External time reference file name. \n" 
+   "Author -- BD Ward"
 ;
 
 

@@ -11,15 +11,25 @@
 char * COPY_main( PLUGIN_interface * ) ;
 
 static char helpstring[] =
-   " Purpose: Creating a copy of a dataset\n"
+   " Purpose: Creating a copy of a dataset.\n"
    " Inputs:\n"
    " Dataset = A dataset in the current session that exists in memory\n"
    "             (not warp-on-demand).\n"
-   " Prefix  = Filename prefix to be used for the output dataset."
+   " Prefix  = Filename prefix to be used for the output dataset.\n"
+   " Fill    = How to fill voxel data in new dataset:\n"
+   "             Data [All] = copy all sub-bricks from input\n"
+   "             Zero [All] = fill all sub-bricks with zero\n"
+   "             Zero [One] = make new dataset have only 1 sub-brick,\n"
+   "                          and fill with zero -- this is useful for\n"
+   "                          creating mask datasets using the\n"
+   "                          'Draw Dataset' plugin.\n"
+   " Type    = Lets you change the 'type' of the output dataset, for\n"
+   "             example from anat to func.\n"
+   "Author -- RWCox"
 ;
 
-#define NFILL 2
-static char * fill_options[NFILL] = { "Data" , "Zero" } ;
+#define NFILL 3
+static char * fill_options[NFILL] = { "Data [All]" , "Zero [All]" , "Zero [One]" } ;
 
 /***********************************************************************
    Set up the interface to the user
@@ -90,6 +100,8 @@ char * COPY_main( PLUGIN_interface * plint )
              "COPY_main:  bad input dataset\n"
              "*****************************"  ;
 
+   dtyp = dset->type ;
+
    PLUTO_next_option(plint) ;
    new_prefix = PLUTO_get_string(plint) ;
    if( ! PLUTO_prefix_ok(new_prefix) )
@@ -102,7 +114,8 @@ char * COPY_main( PLUGIN_interface * plint )
 
       if( strcmp(tag,"Data Fill") == 0 ){
          cpt   = PLUTO_get_string(plint) ;
-         zfill = ( cpt != NULL && strcmp(cpt,fill_options[1]) == 0 ) ;
+         if( cpt != NULL )
+            zfill = PLUTO_string_index( cpt , NFILL , fill_options ) ;
       }
 
       else if( strcmp(tag,"Dataset") == 0 ){
@@ -126,7 +139,14 @@ char * COPY_main( PLUGIN_interface * plint )
 
    /*-- make a new dataset --*/
 
-   new_dset = PLUTO_copy_dset( dset , new_prefix ) ;
+   if( zfill <= 1 ){
+      new_dset = PLUTO_copy_dset( dset , new_prefix ) ;
+   } else {
+      new_dset = EDIT_empty_copy( dset ) ;
+
+      if( ISANATTYPE(dtyp) ) ftyp = ANAT_OMRI_TYPE ;
+      else                   ftyp = FUNC_FIM_TYPE ;
+   }
 
    if( new_dset == NULL )
       return  "****************************************\n"
@@ -141,6 +161,25 @@ char * COPY_main( PLUGIN_interface * plint )
                                        ADN_type      , dtyp ,
                                        ADN_func_type , ftyp ,
                                     ADN_none ) ;
+
+   /* if 'Zero [One]', make a brick */
+
+   if( zfill == 2 ){
+      int ityp , nbytes ;
+      void * new_brick ;
+
+      EDIT_dset_items( new_dset ,
+                          ADN_prefix , new_prefix ,
+                          ADN_label1 , new_prefix ,
+                          ADN_nvals  , 1 ,
+                          ADN_ntt    , 0 ,
+                       ADN_none ) ;
+
+      ityp      = DSET_BRICK_TYPE(new_dset,0) ;
+      nbytes    = DSET_BRICK_BYTES(new_dset,0) ;
+      new_brick = malloc( nbytes ) ;
+      EDIT_substitute_brick( new_dset , 0 , ityp , new_brick ) ;
+   }
 
    if( zfill ){
       int nvals = DSET_NVALS(new_dset) , ival , nbytes ;

@@ -73,8 +73,16 @@ int main( int argc , char * argv[] )
              "This only works on datasets that are stored as shorts,\n"
              "and whose elements are all nonnegative.\n"
              "  -blast   = Set values at or below the cutoff to zero.\n"
+             "               In 3D+time datasets, a spatial location\n"
+             "               is set to zero only if a majority of time\n"
+             "               points fall below the cutoff; in that case\n"
+             "               all the values at that location are zeroed.\n"
              "  -snr fac = Set cutoff to 'fac' times the estimated\n"
-             "               noise level.  Default fac = 2.5.\n"
+             "               noise level.  Default fac = 2.5.  What to\n"
+             "               use for this depends strongly on your MRI\n"
+             "               system -- I often use 5, but our true SNR\n"
+             "               is about 100 for EPI.\n"
+             "Author -- RW Cox\n"
             ) ;
       exit(0) ;
    }
@@ -140,15 +148,32 @@ int main( int argc , char * argv[] )
       printf(" Cutoff=%d  Count=%d [%4.1f%%]",ncut,nnn,perc) ; fflush(stdout) ;
 
       if( blast && nnn > 0 ){
-         for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
-            bar = DSET_ARRAY(dset,iv) ;
-            for( ii=0 ; ii < nvox ; ii++ ) if( bar[ii] <= ncut ) bar[ii] = 0 ;
+         int nkilled ;
+         if( DSET_NUM_TIMES(dset) <= 1 ){
+            for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
+               bar = DSET_ARRAY(dset,iv) ;
+               for( ii=0 ; ii < nvox ; ii++ ) if( bar[ii] <= ncut ) bar[ii]=0;
+            }
+            nkilled = nnn ;
+         } else {                                  /* 24 Mar 1998 */
+            int nvh = DSET_NVALS(dset)/2 , qq ;
+            for( ii=0,nkilled=0 ; ii < nvox ; ii++ ){
+               for( iv=0,qq=0 ; iv < DSET_NVALS(dset) ; iv++ ){
+                  bar = DSET_ARRAY(dset,iv) ; if( bar[ii] <= ncut ) qq++ ;
+               }
+               if( qq >= nvh ){
+                  for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
+                     bar = DSET_ARRAY(dset,iv) ; bar[ii]=0;
+                  }
+                  nkilled += DSET_NVALS(dset) ;
+               }
+            }
          }
+         printf("--blasted %d voxels",nkilled) ; fflush(stdout) ;
          DSET_write(dset) ;
-         printf("--blasted") ; fflush(stdout) ;
       }
 
-      printf("\n") ;
+      printf(".\n") ;
       THD_delete_3dim_dataset( dset , False ) ;
    }
 

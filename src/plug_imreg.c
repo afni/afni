@@ -24,6 +24,7 @@ static char helpstring[] =
   "   Fine Fit:   Blur   = FWHM of blurring prior to registration\n"
   "               Dxy    = Convergence tolerance for translations\n"
   "               Dphi   = Convergence tolerance for rotations\n"
+  "Author -- RW Cox"
 ;
 
 /*----------------- prototypes for internal routines -----------------*/

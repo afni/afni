@@ -16,7 +16,8 @@ static char helpstring[] =
   " Remove Mean = If this option is toggled, then the means\n"
   "                of each dataset will be removed before\n"
   "                the correlations are computed.\n"
-  " The output is popped up into a window on the screen."
+  " The output is popped up into a window on the screen.\n"
+  "Author -- RW Cox"
 ;
 
 /*---------- prototypes for internal routines ----------*/

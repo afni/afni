@@ -463,12 +463,14 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "Step 1) Choose a dataset to edit.\n"
   "        * Only datasets that have data BRIKs stored at the current\n"
   "            resolution can be edited.\n"
-  "        * Datasets may be copied with the 'Dataset Copy' plugin.\n"
   "        * It is probably best that the dataset being edited be\n"
   "            displayed.  Otherwise it will be impossible to gauge\n"
   "            the effect of the editing operations.\n"
   "        * At this time, only datasets that have a single sub-brick\n"
   "            can be edited.\n"
+  "        * Datasets may be copied with the 'Dataset Copy' plugin.\n"
+  "            Making an empty dataset with a given geometry can be\n"
+  "            done using the 'Zero [One]' option in that plugin.\n"
   "\n"
   "Step 2) Choose a drawing value.\n"
   "        * This is the number that will be placed into the dataset\n"
@@ -486,12 +488,11 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "        * 'Open Curve' means to select dataset voxels that lie under\n"
   "            the pixel lines drawn on the image as you move the mouse\n"
   "            with button 2 held down.\n"
-  "        * 'Closed Curve ' means to close the curve drawn from the last\n"
+  "        * 'Closed Curve' means to close the curve drawn from the last\n"
   "            point drawn (where button 2 is released) back to the\n"
   "            first point drawn (where button 2 was pressed).\n"
   "        * 'Points' means to take only the voxels corresponding\n"
-  "            to the screen pixels about which X11 sends notice\n"
-  "            (this is not very useful).\n"
+  "            to the screen pixels about which X11 sends notice.\n"
   "        * 'Flood->Value' means to flood fill outwards from the first\n"
   "            chosen voxel, stopping when the Dataset Value is reached.\n"
   "            In conjunction with 'Closed Curve', it can be used to draw\n"
@@ -574,7 +575,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "SUGGESTIONS?\n"
   "  * Please send them to rwcox@mcw.edu\n"
   "  * Even better than suggestions are implementations.\n"
-
+  "  * Even better than implementations are chocolate chip bagels.\n"
+  "Author -- RW Cox"
 
     , TEXT_READONLY ) ;
    return ;
@@ -1174,11 +1176,9 @@ void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * var )
 
    } /* end of switch on brick type */
 
-   /* recompute statistics, if the loaded value is big or small */
+   /* recompute statistics */
 
-   if( !ISVALID_STATISTIC(dset->stats)   ||
-       vload > dset->stats->bstat[0].max ||
-       vload < dset->stats->bstat[0].min   ) THD_load_statistics( dset ) ;
+   THD_load_statistics( dset ) ;
 
    /* now redisplay dataset, in case anyone is looking at it */
 

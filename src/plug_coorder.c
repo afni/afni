@@ -27,7 +27,8 @@ static char helpstring[] =
   "See the output of 'afni -help' for more information.\n"
   "\n"
   "As usual, after you make your choice, you must press one of the\n"
-  "'Run' buttons for the plugin to be executed."
+  "'Run' buttons for the plugin to be executed.\n"
+  "Author -- RW Cox"
 ;
 
 /*--------------------- strings for output format --------------------*/

@@ -66,6 +66,7 @@ static char helpstring[] =
   "  Thr Blur     Apply Gaussian blur function to threshold data sub-brick \n"
   "  Thr Filter   Apply specified filter to threshold data sub-brick \n"
   "  Thr Datum    Coerce threshold data sub-brick to be stored as given type\n"
+  "Author -- BD Ward"
 ;
 
 
