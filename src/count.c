@@ -10,20 +10,40 @@ int main( int argc , char *argv[] )
    int ii , bot = -1 , top = -1 , step = -1 , rando_count = 0, rando_num ;
    int narg , ndig = 4 , iout ;
    static char root[6664] , fmt[128] , suffix[6664] ;
+   float sclfac = 0.0 ;
 
 /*** Usage ***/
 
    if( argc < 3 || strncmp(argv[1],"-help",2) == 0 ){
 
       printf(
-        "Produces many numbered copies of the root and/or suffix\n"
-        "Usage: count [-digits #] [-root name] [-suffix name] bot top [step]\n"
-        "       -digits defaults to 4\n"
-        "       -root and -suffix default to empty strings\n"
-        "       step defaults to 1\n"
-        "       if step is of the form 'R#', then # random counts are produced\n"
-        "        in the range bot..top, inclusive\n"
-        "       if bot > top, counts backwards\n"
+        "Usage: count [options] bot top [step]\n"
+        "\n"
+        "* Produces many numbered copies of the root and/or suffix,\n"
+        "    counting from 'bot' to 'top' with stride 'step'.\n"
+        "* If 'bot' > 'top', counts backwards with stride '-step'.\n"
+        "* If step is of the form 'R#', then '#' random counts are produced\n"
+        "    in the range 'bot..top' (inclusive).\n"
+        "* 'bot' and 'top' must not be negative; step must be positive.\n"
+        "\n"
+        "Options:\n"
+        "  -digits n    prints numbers with 'n' digits [default=4]\n"
+        "  -root rrr    prints string 'rrr' before the number [default=empty]\n"
+        "  -suffix sss  prints string 'sss' after the number [default=empty]\n"
+        "  -scale fff   multiplies each number by the factor 'fff';\n"
+        "                 if this option is used, -digits is ignored and\n"
+        "                 the floating point format '%%g' is used for output.\n"
+        "                 ('fff' can be a floating point number.)\n"
+        "\n"
+        "The main application of this program is for use in C shell programming:\n"
+        "  foreach fred ( `count 1 20` )\n"
+        "     mv wilma.${fred} barney.${fred}\n"
+        "  end\n"
+        "The backward quote operator in the foreach statement executes the\n"
+        "count program, captures its output, and puts it on the command line.\n"
+        "The loop body renames each file wilma.0001 to wilma.0020 to barney.0001\n"
+        "to barney.0020.  Read the man page for csh to get more information.  In\n"
+        "particular, the csh built-in command '@' can be useful.\n"
       ) ;
 
       exit(0) ;
@@ -55,6 +75,11 @@ int main( int argc , char *argv[] )
 
       if( strncmp(argv[narg],"-suffix",3) == 0 ){
          strcpy(suffix,argv[++narg]) ;
+         continue ;
+      }
+
+      if( strncmp(argv[narg],"-scale",3) == 0 ){
+         sclfac = strtod(argv[++narg],NULL) ;
          continue ;
       }
 
@@ -109,22 +134,35 @@ int main( int argc , char *argv[] )
 /*** set up to iterate ***/
 
    if( step <= 0 ) step = 1 ;
-   sprintf( fmt , " %%s%%0%dd%%s" , ndig ) ;
+
+   if( sclfac == 0.0 )
+      sprintf( fmt , " %%s%%0%dd%%s" , ndig ) ;
+   else
+      strcpy( fmt , " %s%g%s" ) ;
 
 /*** iterate ***/
 
    if( ! rando_count ){
       if( bot <= top ){
          for( ii=bot ; ii <= top ; ii += step )
-            printf( fmt , root , ii , suffix ) ;
+            if( sclfac == 0.0 )
+               printf( fmt , root , ii , suffix ) ;
+            else
+               printf( fmt , root , sclfac*ii , suffix ) ;
       } else {
          for( ii=bot ; ii >= top ; ii -= step )
-            printf( fmt , root , ii , suffix ) ;
+            if( sclfac == 0.0 )
+               printf( fmt , root , ii , suffix ) ;
+            else
+               printf( fmt , root , sclfac*ii , suffix ) ;
       }
    } else {
       for( ii=0 ; ii < rando_num ; ii++ ){
          iout = ranco( bot , top ) ;
-         printf( fmt , root , iout , suffix ) ;
+         if( sclfac == 0.0 )
+            printf( fmt , root , iout , suffix ) ;
+         else
+            printf( fmt , root , sclfac*iout , suffix ) ;
       }
    }
 

@@ -412,6 +412,19 @@ removed as soon as AFNI is ready to go.  By setting AFNI_SPLASHTIME
 to 0.0, you can have the splash screen removed as soon as possible
 (and the fade-out feature will be disabled).
 
+--------------------------------
+Variable: AFNI_FIM_PERCENT_LIMIT
+--------------------------------
+This sets an upper limit on the % Change that the FIM+ computation
+will compute.  For example
+
+  setenv AFNI_FIM_PERCENT_LIMIT 50
+
+means that computed values over 50% will be set to 50%, and values
+below -50% will be set to -50%.  This can be useful to avoid scaling
+problems that arise when some spurious voxels with tiny baselines have
+huge percent changes.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

@@ -123,7 +123,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "23 August 1999   "
+#define RELEASE "30 August 1999   "
 
 #ifdef MAIN
 #define AFNI_about \

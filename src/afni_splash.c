@@ -32,7 +32,7 @@ ENTRY("AFNI_splashdown") ;
 
    if( handle != NULL ){
 #ifdef USE_FADING
-      float max_splash = 5.0 ;
+      float max_splash = 3.0 ;
       char * hh = getenv("AFNI_SPLASHTIME") ;
       if( hh != NULL ) max_splash = strtod(hh,NULL) ;
       if( max_splash > 0.0 ){

@@ -229,12 +229,37 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
       outbuf = THD_zzprintf(outbuf,"\n") ;
    }
 
+   /** If present, print out Notes **/
+
+   { ATR_int *notecount;
+     ATR_string *note;
+     int num_notes, i, j, num_char , mmm ;
+     char note_name[20], *chn , *chd ;
+
+     notecount = THD_find_int_atr(dset->dblk, "NOTES_COUNT");
+     if( notecount != NULL ){
+        num_notes = notecount->in[0] ;
+        if( !verbose && num_notes > 5 ) num_notes = 5 ;
+        mmm = (verbose) ? 4000 : 400 ;
+        for (i=1; i<= num_notes; i++) {
+           chn = tross_Get_Note( dset , i ) ;
+           if( chn != NULL ){
+              j = strlen(chn) ; if( j > mmm ) chn[mmm] = '\0' ;
+              chd = tross_Get_Notedate(dset,i) ;
+              if( chd == NULL ){ chd = malloc(16) ; strcpy(chd,"no date") ; }
+              outbuf = THD_zzprintf(outbuf,"\n----- NOTE %d [%s] -----\n%s\n",i,chd,chn) ;
+              free(chn) ; free(chd) ;
+           }
+        }
+     }
+   }
+
    return outbuf ;
 }
 
 char * THD_zzprintf( char * sss , char * fmt , ... )
 {
-   static char sbuf[2048] ;
+   static char sbuf[4096] ;
    char * zz ;
    int   nzz , nsbuf ;
    va_list vararg_ptr ;

@@ -35,6 +35,8 @@
   Mod:     Added option for matrix calculation of general linear tests.
   Date:    02 July 1999
 
+  Mod:     Increased max. allowed number of input stimulus functions.
+  Date:    24 August 1999
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -45,13 +47,13 @@
 
 #define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "02 July 1999"              /* date of last program mod */
+#define PROGRAM_DATE "24 August 1999"            /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
 #define MAX_XVARS 200                           /* max. number of parameters */
-#define MAX_STIMTS 10                 /* max. number of stimulus time series */
+#define MAX_STIMTS 20                 /* max. number of stimulus time series */
 #define MAX_GLT 10                    /* max. number of general linear tests */
 #define MAX_CONSTR 10                 /* max. number of linear constraints   */
 

@@ -1,28 +1,21 @@
 
-    ***** Welcome to the world of MCW AFNI, version 2.21 *****
+    ***** Welcome to the world of MCW AFNI, version 2.23 *****
     *****  Robert W. Cox, Medical College of Wisconsin   *****
-    *****                  January 1999                  *****
+    *****                  August 1999                   *****
 
+DOCUMENTATION
+-------------
 The documentation for MCW AFNI is in the following files:
 
   afni200.ps       = User documentation for the AFNI program itself.
   afni_aux.ps      = User documentation for MCW AFNI auxiliary programs.
   afni_plugins.ps  = Programmer documentation for writing "plugins"
                        to extend the capabilities of AFNI.
-  3dANOVA3.ps      = User documentation for new 3dANOVA3 program
-                       (also included in afni_aux.ps).
   FD2.ps           = User documentation for the older program FD2.
-  paper.ps         = AFNI paper from "Computers and Biomedical Research".
-  regnotes.ps      = Some notes on subject motion and image registration.
   README           = This file.
   README.changes   = Additions to the package since manuals were written.
   README.copyright = The Copyright of MCW AFNI.
   README.*         = Other documentation files about specific issues.
-
-Most of these files are no longer included in the base distribution,
-afni98.tgz, but are in the file doc.tgz.  This change is due to their
-ever-growing size.  These files can also be individually accessed
-from the Web page http://varda.biophysics.mcw.edu/~cox/
 
 The *.ps files are PostScript.  If you do not have a PostScript printer,
 then the freeware programs Ghostscript and Ghostview will enable you to
@@ -31,7 +24,11 @@ types of printers.  See the WWW site
    http://www.cs.wisc.edu/~ghost/index.html
 for more information about the Ghostscript and Ghostview programs.
 
-As is often the case with Unix software, installation requires work.
+The PostScript files are no longer included in the base distribution,
+afni98.tgz, but are in the file afnidoc.tgz.  This change is due to
+their ever-growing size.  The file afni_aux.ps contains documentation
+for almost all of the command line programs included in the AFNI package.
+There are also individual .ps files for each of these programs.
 
 ARCHIVES
 --------
@@ -53,32 +50,31 @@ is afni98.tgz.  To uncompress this, the following commands should work:
 
 The PostScript documentation is unpacked with
 
-   gzip -dc doc.tgz | tar xf -
-   -- files are in subdirectory DOC/
+   gzip -dc afnidoc.tgz | tar xf -
+   -- files are in subdirectory AFNIDOC/
 
-For some platforms (those which we have easily available at MCW),
-binaries are available in the binaries/ subdirectory at the FTP
-distribution site.
+For some platforms (those which we have easily available at MCW), binaries
+are available in the binaries/ subdirectory at the distribution site.
 
 COMPILATION
 -----------
 To compile AFNI, you will have to choose a Makefile.  Some of the versions
 in the distribution file are
 
-  filename            target system          compiler
-  -------------       ---------------        -----------------------
-  Makefile.hpux*      HP 7000/8000 series    HP compiler, HP Motif
-  Makefile.sgi*       SGI IRIX systems       SGI compiler, SGI Motif
-  Makefile.linux      Linux                  GCC compiler, Red Hat Motif
-  Makefile.sparky     SunOS 4.1.3            GCC compiler, 3rd party Motif
-  Makefile.sparc5_2.5 Solaris 2.5            Sun compiler, /usr/dt Motif
-  Makefile.rs6000     IBM RS/6000            IBM compiler, IBM Motif
-  Makefile.osf1       DEC Alpha OSF/1        GCC compiler
+  filename               target system         compiler
+  -------------          ---------------       -----------------------
+  Makefile.hpux*         HP 7000/8000 series   HP compiler, HP Motif
+  Makefile.sgi*          SGI IRIX systems      SGI compiler, SGI Motif
+  Makefile.linux*        Linux                 GCC compiler, Red Hat Motif
+  Makefile.solaris26_gcc Solaris 2.6           GCC compiler, Sun Motif
+  Makefile.rs6000        IBM RS/6000           IBM compiler, IBM Motif
+  Makefile.osf1          DEC Alpha OSF/1       GCC compiler
 
 (The hpux and sgi Makefiles come in slightly different versions for the
-different versions of IRIX and the different cpu classes.  Not all the
-possibilities are represented here -- just those to which I have easy
-access in Milwaukee.)
+different versions of IRIX and the different cpu classes.  The linux
+Makefiles are for different versions of Red Hat - _rh52 is for version
+5.2 and _rh60 is for version 6.0.  Not all the possibilities are
+represented here -- just those to which I have easy access in Milwaukee.)
 
 You will undoubtedly need to alter the INSTALLDIR macro in the Makefile
 before you compile.  The flags for the C compiler and loader likely
@@ -87,25 +83,16 @@ compiling on a system virtually identical to one we have at MCW.
 Once you have figured this part out (what fun!), then the commands
 
    cp Makefile.whatever Makefile
-   make all install clean
-
-should do to compile and install the programs in your chosen directory.
-To compile and install the optional plugin packages, the command
-
-   make all plugins install install_plugins clean
-or
-   make itall clean
-or
    make totality
 
-should be used instead.  Note that the SunOS 4.1.3 and IBM RS/6000
-Makefiles do not include plugin support, since I don't have regular
-access to such systems.  I believe that these systems are similar to
-SGI systems in this regards.  (The only system that I know of which
-is different is HP-UX.)  Note also that the "models" routines and
-"nlfit" programs require that plugins be compiled.  To get the plugin
-code to run correctly on a new type of system, you must edit the file
-"machdep.h" appropriately.
+Note that the IBM RS/6000 Makefile does not include plugin support,
+since I don't have regular access to such systems.  I believe that
+these systems are similar to SGI systems in this regards.  (The only
+system that I know of which is different is HP-UX.)  Note also that
+the "models" routines and "nlfit" programs require that plugins be
+compiled.  To get the plugin code to run correctly on a new type of
+system, you must edit the file "machdep.h" appropriately, and probably
+know a fair amount of detail about your operating system.
 
 GENERAL WOES
 ------------
@@ -162,47 +149,19 @@ GENERAL WOES
    most of the color cells.  Notorious offenders are Netscape and
    the CDE default color setup.  Netscape can "install" its own
    colormap if it is run with the command "netscape -install".  AFNI
-   cannot do this, and it always uses the default colormap.
+   also has a "-install" switch, if you want to try it.
 
-WOES: Sun
----------
-If you are using a Sun workstation and SunOS 4.1.3, you should be aware that
-older versions of Sun's X11 graphics server ("xnews") is prone to crash with
-Motif programs, including AFNI.  A new version of this server is available
-in the "Public Patch" section of SunSolve's WWW pages, at
-  http://sunsolve1.sun.com/pub-cgi/us/pubpatchpage.pl
-The last time I checked, the patch number was 100444-76.  To use the programs
-AFNI and to3d, you MUST install this new server.  (It is quite easy, if you
-have super-user access.)
+WOES and GOOD NEWS: Sun
+-----------------------
+You may need to install some patches from Sun for X11 and Motif to get
+AFNI to run reliably on your Solaris system.
 
-Sun's ANSI C compiler will produce lots of warning messages.  The program
-still seems to work.  One site has reported a problem with AFNI compiled
-under Solaris with Sun's Motif.  Apparently, there is a bug in some versions
-of Sun's Motif that causes the value for the threshold slider not to be
-displayed.  I don't know how to fix this problem, so I implemented a
-workaround.  If you are running Solaris AND have this problem, edit the
-"machdep.h" file, and uncomment the line where the macro
-FIX_SCALE_VALUE_PROBLEM is defined.  Then remake afni, and the threshold
-slider value will be displayed in the top of the slider window (where
-the label normally appears).
-
-Do not use very high levels of optimization (-xO4, say) with the Sun
-compiler.  It introduces bugs in AFNI, and the Talairach transformation
-will be computed incorrectly.  This occurred with the compiler as
-of 1996, and may be fixed by now.  But I don't have much access to any
-Sun machines, nor do I particularly care to.  Getting AFNI to work on
-Solaris is apparently troublesome, due to Sun bugs and incompatibilities
-with other flavors of Unix.  I have had reports of serious trouble with
-Solaris 2.6, but not having easy access to such a machine, don't know
-what to do about it.
-
-GOOD NEWS: Sun
---------------
 Solaris 2.5 and above now ship with Motif.  The libraries are stored
 in the directory /usr/dt/lib.  By changing IFLAGS and LFLAGS
 appropriately in the Makefile, you should be able to compile and
 run the afni and to3d programs.  (Assuming you have the ANSI C
-compiler, of course.)  Makefile.sparc5_2.5 will probably work for you.
+compiler, of course.)  Makefile.sparc5_2.5 or Makefile.solaris26_gcc
+will probably work for you.
 
 /usr/dt/lib is not included in the default search path when a program
 starts.  To force this directory to be searched for libraries at program
@@ -224,30 +183,7 @@ Alternatively, Makefile.sparc5_2.5 is set up to record the use of the
 If you use this feature of the Makefile, then it shouldn't be necessary
 to set the LD_LIBRARY_PATH variable (although it wouldn't hurt).
 
-There seem to be some bugs in Sun's Motif as distributed with Solaris 2.5.
-AFNI sometimes crashes under Solaris if the graph windows are used.  You
-need to install some patches that Sun has released for X11, Xt, and Motif.
-For Solaris 2.5, these can be found at the USA Web pages
-   http://access1.sun.com/patch.recommended/2.5.html
-   http://sunsolve1.sun.com/pub-cgi/us/pubpatchpage.pl
-or you can scout around on Sun's Web site to find them, if these links
-becomes void.  (Only the root user can install these patches.  I don't
-know which patches are absolutely necessary -- I simply installed all
-of the OpenWindows, X11, Xt, and Motif patches I could get.  That fixed
-the problems with the graph window.)  I'm not sure if these patches are
-all incorporated into Solaris 2.6.
-
-The problem with the Motif file selection box (used by the "Read" buttons
-in AFNI) has been fixed.  This was due to an incompatibility between the
-BSD Unix "scandir" routine and the Motif FileSelectionBox widget.  AFNI
-has been rewritten to avoid scandir, and this problem should now be
-resolved (as of Feb 1998 and AFNI v2.20).  As a result of this fix, all
-reference to the "ucblib" libraries has been removed from the Solaris
-Makefiles.
-
-CONFUSION: Sun [19 April 1999]
-------------------------------
-The problems with Solaris 2.6 seem to be fixed with some patches
+Some problems with Solaris 2.6 seem to be fixed with some patches
 described in source code file "machdep.h".  You may need one or
 both of these for this operating system.  Another problem arises
 with Solaris 2.5 (SunOS 5.5).  In this case, you might need to
@@ -316,7 +252,7 @@ platforms.  Apparently this is a bug (or a feature?) with SGI's Motif
 library.  I have been unable to find a way around this problem.  I don't
 know why software from SGI doesn't have this problem.
 
-Some older versions of the SGI X11 server (Xsgi) don't seem to discard
+Some old versions of the SGI X11 server (Xsgi) don't seem to discard
 their garbage very well.  This can lead to consumption of huge quantities
 of memory over time.  The solution is to forcibly restart the server
 every time you log out.  This can be done by setting the
@@ -348,10 +284,6 @@ the output of 'to3d -help' for more details.
    file README.environment for a few more details.  ... Later in May:
    I just now remembered to update the sample datasets on the ftp site,
    so that they should display correctly without byte swapping.
-
-Linux does not seem to handle large mmap-ed files very well.  I have
-heard this is much better in kernels 2.x, but I am still using
-1.2.13, so cannot speak to this issue.
 
 If you need to reconfigure your X11 server and are using XFree86,
 this can be done with the program xf86config, or with some programs

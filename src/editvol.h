@@ -259,6 +259,8 @@ extern void EDIT_aver_fvol( int, int, int,
 
 extern void EDIT_zscore_vol( int,int,float,void *,int,float * ) ;
 
+extern void EDIT_clip_float( float , int , float * ) ;
+
 /********************* New routines for AFNI-96 ****************************/
 
 /**----------------------- prototypes -----------------------**/

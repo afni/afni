@@ -291,6 +291,8 @@ THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
 
    int polort = im3d->fimdata->polort , ip ;  /* 30 May 1999 */
 
+   float top_perc = 0.0 ;                     /* 30 Aug 1999 */
+
 #ifndef DONT_USE_METER
    Widget meter = NULL ;
    int meter_perc , meter_pold ;
@@ -626,6 +628,16 @@ if(PRINT_TRACING)
    if( ibr_base >= 0 )
       EDIT_BRICK_LABEL( new_dset , ibr_base , "Baseline" ) ;
 
+   /*-- 30 Aug 1999: set limits on percent change --*/
+
+   if( ibr_perc >= 0 ){
+      char * cp = my_getenv("AFNI_FIM_PERCENT_LIMIT") ;
+      if( cp != NULL ){
+         float tp = strtod(cp,NULL) ;
+         if( tp > 0.0 ) top_perc = tp ;
+      }
+   }
+
    /* create bricks */
 
    for( iv=0 ; iv < new_dset->dblk->nvals ; iv++ ){
@@ -801,6 +813,8 @@ STATUS("getting 1 ref perc") ;
 
          PCOR_get_perc( pc_ref[0] , pc_vc[0] , vval , NULL ) ;
 
+         if( top_perc > 0.0 ) EDIT_clip_float( top_perc , nvox , vval ) ;
+
          topval = 0.0 ;
          for( iv=0 ; iv < nvox ; iv++ )
             if( fabs(vval[iv]) > topval ) topval = fabs(vval[iv]) ;
@@ -924,6 +938,9 @@ STATUS("getting 1 ref base") ;
       /** perc brick */
 
       if( ibr_perc >= 0 ){
+
+         if( top_perc > 0.0 ) EDIT_clip_float( top_perc , nvox , pbest ) ;
+
          topval = 0.0 ;
          for( iv=0 ; iv < nvox ; iv++ )
             if( fabs(pbest[iv]) > topval ) topval = fabs(pbest[iv]) ;

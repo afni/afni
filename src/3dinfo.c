@@ -5,7 +5,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 void Syntax(void)
 {
    printf(

@@ -7,6 +7,10 @@
   Date:    06 July 1999
 
 
+  Mod:     Increased max. allowed number of input stimulus functions.
+  Date:    24 August 1999
+
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -16,7 +20,7 @@
 
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "06 July 1999"              /* date of last program mod */
+#define PROGRAM_DATE "24 August 1999"            /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -33,7 +37,7 @@
   Global variables and constants.
 */
 
-#define MAX_STIM 10            /* max. number of stimulus time series */
+#define MAX_STIM 20            /* max. number of stimulus time series */
 #define MAX_STRING_LENGTH 80   /* max. length of input string */
 
 
@@ -322,7 +326,7 @@ void print_array (int * design)
 
   for (i = 0;  i < nt;  i++)
     {
-      printf (" %d ", design[i]);
+      printf (" %2d ", design[i]);
       if ((i+1) % 20 == 0)  printf ("\n");
     }
 

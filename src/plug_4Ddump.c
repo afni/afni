@@ -199,8 +199,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    global_plint = plint ;  /* make global copy */
 
-   PLUTO_set_sequence( plint , "z:Saad" ) ;
-
    /*--------- 1st line: Input dataset and mask files ---------*/
 
    PLUTO_add_option( plint ,
@@ -784,7 +782,7 @@ fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, in
 	int sz,i,indx,tst;
 	div_t divstuff,tempx,tempy,tempz;
 	FILE * INFILE;
-	fXYZ * xyzvect;
+	fXYZ * xyzvect=NULL ;
 	
 	/* ncols must be > 0 */
 	if (ncols <= 0)
@@ -841,7 +839,7 @@ fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, in
 				{
 					printf ("\nFatal Error : Failed to Allocate memory\a\n");
 					printf ("Abandon Lab Immediately !\n\n");
-					return;
+					return NULL ;
 				};
 				
 	INFILE = fopen (fname,"r");
@@ -889,7 +887,7 @@ fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, in
 float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int *Err)
 {/*extract_index*/
 	
-	float tmp, *indxvect;
+	float tmp, *indxvect=NULL;
 	int sz,i;
 	div_t divstuff,temp;
 	FILE * INFILE;
@@ -942,7 +940,7 @@ float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int 
 				{
 					printf ("\nFatal Error : Failed to Allocate memory\a\n");
 					printf ("Abandon Lab Immediately !\n\n");
-					return;
+					return NULL ;
 				}; 
 	
 	INFILE = fopen (fname,"r");

@@ -2319,4 +2319,20 @@ extern void AFNI_concatenate_warp( THD_warp * , THD_warp * ) ;
 extern THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * ,
                                                    THD_linear_mapping *  ) ;
 
+/*--------------------------------------------------------------------------*/
+
+/*--- Stuff for Tom Ross's NOTES ---*/
+
+#define MAX_DSET_NOTES 999
+
+extern void   tross_Add_Note   (THD_3dim_dataset *, char *) ;
+extern void   tross_Delete_Note(THD_3dim_dataset *, int   ) ;
+
+extern char * tross_Expand_String( char * ) ;
+extern char * tross_Encode_String( char * ) ;
+
+extern void   tross_Store_Note  ( THD_3dim_dataset * , int , char * ) ;
+extern char * tross_Get_Note    ( THD_3dim_dataset * , int ) ;
+extern char * tross_Get_Notedate( THD_3dim_dataset * , int ) ;
+
 #endif /* _MCW_3DDATASET_ */

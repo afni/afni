@@ -5,9 +5,9 @@
 
 F2C = ./f2c -A
 
-MYDOCS   = *.tex *ps *.txt art12cox.sty README*
-DOCS     = *.ps README*
+DOCS     = docfiles/*.ps README*
 MINDOCS  = README*
+MYDOCS   = docfiles/*.tex *.txt art12cox.sty $(DOCS) 
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
@@ -628,12 +628,12 @@ mydoc.tgz:
 	$(TAR) cf - ./MYDOC | $(GZIP) -9v > mydoc.tgz
 	$(RM) -r ./MYDOC
 
-doc.tgz:
+afnidoc.tgz:
 	$(RM) $@
-	$(MKDIR) ./DOC
-	$(CP) $(DOCS) ./DOC
-	$(TAR) cf - ./DOC | $(GZIP) -9v > doc.tgz
-	$(RM) -r ./DOC
+	$(MKDIR) ./AFNIDOC
+	$(CP) $(DOCS) ./AFNIDOC
+	$(TAR) cf - ./AFNIDOC | $(GZIP) -9v > afnidoc.tgz
+	$(RM) -r ./AFNIDOC
 
 install:
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
@@ -731,7 +731,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetinslist.o thd_info.o thd_purgedblk.o thd_http.o    \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
            thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o  \
-           thd_checkidc.o thd_floatscan.o
+           thd_checkidc.o thd_floatscan.o thd_notes.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \

@@ -397,3 +397,21 @@ ENTRY("EDIT_coerce_autoscale") ;
    EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
    RETURN( fac );
 }
+
+/*-----------------------------------------------------------------------*/
+
+void EDIT_clip_float( float top , int nxyz , float * vol )
+{
+   int ii ;
+   float bot ;
+
+   if( top <= 0.0 || nxyz <= 0 || vol == NULL ) return ;
+
+   bot = -top ;
+
+   for( ii=0 ; ii < nxyz ; ii++ )
+           if( vol[ii] > top ) vol[ii] = top ;
+      else if( vol[ii] < bot ) vol[ii] = bot ;
+
+   return ;
+}

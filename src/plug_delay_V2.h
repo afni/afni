@@ -283,12 +283,12 @@ void padd (float *x,float *y,float pad_val,int ix,int lnx,int lny)
                 if (lny < lnx) 
                         {
                                 error_message ("padd","lny < lnx !",1);
-                                exit;
+                                exit(1);
                         }
                 if (ix > lnx+1)
                         {
                                 error_message ("padd","ix > lnx+1 !",1);
-                                exit;
+                                exit(1);
                         }
                         
                 for (i=0;i<lnx;++i)
@@ -745,12 +745,12 @@ void c_padd (COMPLEX *x,COMPLEX *y,COMPLEX pad_val,int ix,int lnx,int lny)
                 if (lny < lnx) 
                         {
                                 error_message ("c_padd","lny < lnx !",1);
-                                exit;
+                                exit(1);
                         }
                 if (ix > lnx+1)
                         {
                                 error_message ("c_padd","ix > lnx+1 !",1);
-                                exit;
+                                exit(1);
                         }
                         
                 for (i=0;i<lnx;++i)
@@ -1220,7 +1220,7 @@ if (opt > 0)							/* Execution mode */
 				{
 					printf ("\nFatal Error : Failed to Allocate memory\a\n");
 					printf ("Abandon Lab Immediately !\n\n");
-					return;
+					return(2);
 				};
 
 			/* creating a vector to remove the bowtie artifact from the auto and cross correlation curves, and set to zero 
@@ -1540,6 +1540,7 @@ else if (opt == 0)
 		return (0);						
 	}/* opt == 0 */
 
+ return(0) ;
 }
 
 

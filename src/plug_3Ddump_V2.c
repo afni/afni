@@ -87,8 +87,14 @@ static char helpstring[] =
   "                   5..n- Subbrick values (Sb1 Sb2 ... Sbn) : Voxel values at each subbrick.\n\n"
   "If you have/find questions/comments/bugs about the plugin, \n"
   "send me an E-mail: ziad@image.bien.mu.edu\n\n"
-  "                    Ziad Saad   Nov. 9 97, latest update Feb 23 98.\n\n"
+  "                    Ziad Saad   Nov. 9 97, latest update Aug. 26 99.\n\n"
 ;
+
+/* Significant update Aug. 26 99 */ 
+/* The indexing into Storear has been swapped (columns became rows and rows columns.
+That's because each subbrick was not stored in a vector on N elements, rather in N vectors
+of 1 element each. That made the allocation process very slow, especially now that Bob has
+malloc and calloc going through his own macros. */
 
 /*-------- strings for output format  and some definitions -----------*/
 
@@ -132,8 +138,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    plint = PLUTO_new_interface( "3D Dump98" , "Ascii dump of 3D Dataset" , helpstring ,
                                  PLUGIN_CALL_VIA_MENU , DUMP_main  ) ;
-
-   PLUTO_set_sequence( plint , "z:Saad" ) ;
 
    /*-- first line of input: Dataset --*/
 
@@ -493,7 +497,7 @@ int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
 
    /* Allocate space for data storage */
 	fxar = (float *) malloc( sizeof(float) * nxyz ) ; fxar_new = 1 ;
-   Storear = (float **) allocate2D (nxyz, ud->Nsub,sizeof(float));
+   Storear = (float **) allocate2D (ud->Nsub ,nxyz ,sizeof(float)); /* changed from :  allocate2D (nxyz  ,ud->Nsub,sizeof(float)) */
 	
 	if (fxar == NULL || Storear == NULL)
 		{
@@ -513,7 +517,7 @@ int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
 			
 			/* Store the iith sub-brick in Storear array */
 			for (jj = 0; jj < nxyz; ++jj)
-					Storear[jj][ii] = fxar[jj];
+					Storear[ii][jj] = fxar[jj]; /* changed from : Storear[jj][ii] */
 		}
 		
    DSET_unload( xset ) ;  /* don't need this in memory anymore */
@@ -529,13 +533,13 @@ int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
       	pass = YUP;
       	if (pass && ud->DoInt)
       		{
-      			if (Storear[ii][ud->intind-1] < ud->mini || Storear[ii][ud->intind-1] > ud->maxi)
+      			if (Storear[ud->intind-1][ii] < ud->mini || Storear[ud->intind-1][ii] > ud->maxi) /* changed both from : Storear[ii][ud->intind-1]*/
       				pass = NOPE;
       		}
       	
       	if (pass && ud->DoThres)   
       		{
-      			if (Storear[ii][ud->thrind-1] < ud->minth || Storear[ii][ud->thrind-1] > ud->maxth)
+      			if (Storear[ud->thrind-1][ii] < ud->minth || Storear[ud->thrind-1][ii] > ud->maxth)/* changed both from : Storear[ii][ud->intind-1]*/
       				pass = NOPE;
       		}
       	
@@ -548,7 +552,7 @@ int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
          	fprintf (ud->outfile,"%d\t%d\t%d\t%d\t",ii,xpos,ypos,zpos);
          		
 				for (jj = 0; jj < ud->Nsub; ++jj)
-					fprintf (ud->outfile," %f\t",Storear[ii][jj]); 
+					fprintf (ud->outfile," %f\t",Storear[jj][ii]); /* changed from: Storear[ii][jj] */
 					
 				fprintf (ud->outfile,"\n");
 					    	
@@ -576,7 +580,7 @@ int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
 		}
 	
 	
-	free2D ((char **)Storear,nxyz);	
+	free2D ((char **)Storear,ud->Nsub);	/* changed from free2D ((char **)Storear,nxyz); */
 
 	
    return ndmp ;

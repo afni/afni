@@ -33,8 +33,11 @@
 #  define REPORT_PROGRESS(str) (printf(str),fflush(stdout))
 #endif
 
-#define REFRESH \
-  do{ XmUpdateDisplay(im3d->vwid->top_shell); REPORT_PROGRESS("."); } while(0)
+static int num_entry = 0 ;  /* 31 Aug 1999 */
+
+#define REFRESH         \
+  if( num_entry == 1 ){ \
+     XmUpdateDisplay(im3d->vwid->top_shell); REPORT_PROGRESS("."); }
 
 /*---------------------------------------------------------------------
    Make all the rest of the widgets for a Three_D_View
@@ -278,6 +281,8 @@ ENTRY("AFNI_make_widgets") ;
 
    if( ! IM3D_VALID(im3d) )
       FatalError("illegal call to AFNI_make_widgets") ;
+
+   num_entry++ ;
 
    last_color = im3d->dc->ovc->ncol_ov - 1 ;
 
