@@ -60,11 +60,21 @@ sets the select color of the widget to its foreground color */
       XtVaSetValues (m_w, XmNselectColor, m_fg_pix, NULL);  \
 }
 
-/*! set the string of a label */
+/*! set the string of a label , sa: SUMA_SET_LABEL_MAX*/
 #define SUMA_SET_LABEL(m_w, m_s) {\
    XmString m_str = XmStringCreateLocalized(m_s); \
    XtVaSetValues (m_w, XmNlabelString, m_str, NULL); \
    XmStringFree (m_str);   \
+}
+
+/*! set the string of a label, use a maximum of m_max chars*/
+#define SUMA_SET_LABEL_MAX(m_w, m_s, m_max) {\
+   char m_tmp = '\0'; \
+   if (strlen(m_s) >= m_max) { m_tmp = m_s[m_max-1]; m_s[m_max-1] = '\0'; } \
+   XmString m_str = XmStringCreateLocalized(m_s); \
+   XtVaSetValues (m_w, XmNlabelString, m_str, NULL); \
+   XmStringFree (m_str);   \
+   if (m_tmp != '\0') m_s[m_max-1] = m_tmp;  \
 }
 
 #define SUMA_SET_TEXT_FIELD(m_w, m_s) {\

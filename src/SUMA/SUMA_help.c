@@ -175,10 +175,7 @@ char * SUMA_help_message_Info(void)
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  v: Show current surface viewer structure (cSV).\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  w: Write the rendered scene to an \n"
-      "\t     image file on disk. (Surface_Label*.eps\n"
-      "\t     or suma_img*.eps).\n"
-      "\t     This option will be dropped in future versions.\n"
+      "\t  w: This option has been dropped.\n"
       "\t     Instead, use 'r' or 'R' recording options\n"
       "\t     or use a screen grab instead. \n"
       "\t     (like xv on unix systems, and grab on Macs.)\n");
@@ -330,7 +327,7 @@ void SUMA_Version (FILE *Out)
 	if (Out == NULL) {
 		Out = stdout;
 	}
-	fprintf (Out, "\n\tSUMA version 2.0, July 31 2003\n");
+	fprintf (Out, "\n\tSUMA version 2.4, Dec. 16 2003\n");
 	return;
 }
 

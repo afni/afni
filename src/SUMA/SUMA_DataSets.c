@@ -390,6 +390,45 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg)
    return(1);
 }
 
+/*!
+   \brief truncates a string to a certain length.
+   Adds ... as the last characters of the string
+   The original string is not modified.
+    
+   s_tr = SUMA_truncate_string(s1, n);
+   
+   - free returned pointer with: if(s_tr) free(s_tr);
+*/
+char *SUMA_truncate_string(char *buf, int n)
+{
+   static char FuncName[]={"SUMA_truncate_string"};
+   char *atr = NULL;
+   int i;
+
+   if (!buf) return(NULL);
+   
+   if (n < 5) {
+      fprintf(stderr,"Error %s:\nNot worth the effort. N < 5.", FuncName);
+      return(NULL);
+   }
+   
+   if (strlen(buf) <= n) {
+      atr = (char *) calloc(strlen(buf)+2, sizeof(char));
+      sprintf(atr, "%s", buf);
+      return (atr);
+   }else {
+      atr = (char *) calloc(n+2, sizeof(char));
+      i=0;
+      while (i < n - 3) {
+         atr[i] = buf[i];
+         ++i;
+      }
+      atr[i-3] = atr[i-2] = atr[i-1] = '.';
+      atr[i] = '\0';
+   }
+   
+   return(atr);  
+}
 
 /*!
    \brief returns a copy of a null terminated string . 

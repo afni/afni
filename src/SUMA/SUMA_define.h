@@ -84,7 +84,7 @@
 #define SUMA_MAX_NAME_LENGTH 500   /*!< Maximum number of characters in a filename */
 #define SUMA_MAX_DIR_LENGTH 2000    /*!< Maximum number of characters in a directory name */
 #define SUMA_MAX_COMMAND_LENGTH      2000/*!< Maximum number of characters in a command string */
-#define SUMA_MAX_LABEL_LENGTH 100 /*!< Maximum number of characters for labeling and naming suma fields and objects */
+#define SUMA_MAX_LABEL_LENGTH 300 /*!< Maximum number of characters for labeling and naming suma fields and objects */
 #define SUMA_IDCODE_LENGTH 50   /*!< Max. length of idcode_str of all suma objects */
 #define SUMA_MAX_STRING_LENGTH 1000 /*!< Maximum number of characters in a string */ 
 #define SUMA_MAX_COLOR_NAME 50 /*!< Max. length of the name of a color */

@@ -104,7 +104,7 @@ char *SUMA_copy_string(char *buf);
 char * SUMA_append_string(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
                                     char *Spc, int whichTofree);
-
+char * SUMA_truncate_string (char *s1, int length);
 
 
 
