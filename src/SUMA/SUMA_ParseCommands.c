@@ -765,6 +765,7 @@ char *SUMA_BuildMessageLog (DList *ML)
    static char FuncName[]={"SUMA_BuildMessageLog"};
    char *s=NULL;
    SUMA_STRING *SS = NULL;
+   SUMA_MessageData *MD=NULL;
    DListElmt *CurElmt=NULL;
    
    SUMA_ENTRY;
@@ -780,8 +781,9 @@ char *SUMA_BuildMessageLog (DList *ML)
       SUMA_RETURN (NULL);
    }
    do {
-      SS = SUMA_StringAppend (SS, SUMA_FormatMessage ((SUMA_MessageData *)CurElmt->data)); 
-      SS = SUMA_StringAppend (SS, "---------------------\n");
+      MD = (SUMA_MessageData *)CurElmt->data;
+      SS = SUMA_StringAppend (SS, SUMA_FormatMessage (MD)); 
+      if (MD->Type != SMT_Text)SS = SUMA_StringAppend (SS, "---------------------\n");
    } while ((CurElmt = dlist_next(CurElmt)));
    
    /* clean SS */

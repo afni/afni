@@ -940,6 +940,19 @@ WARNING: The input data vectors are not cast to the type of s.
       }  \
    }  \
    
+/*!
+   \brief Macro to calculate the distance Un from P1-->P2 a
+   \param P1/P2 (float *) 3-elements arrays containing XYZ of P1 and P2
+   \param Un (float) the norm of |P1--P2|
+*/ 
+#define SUMA_SEG_NORM(P1, P2, Un){  \
+      static double m_dx, m_dy,m_dz;   \
+      /* Calculate normalized unit vector of line formed by P1, P2 */   \
+      m_dx = P2[0] - P1[0];   \
+      m_dy = P2[1] - P1[1];   \
+      m_dz = P2[2] - P1[2];   \
+      Un = sqrt(m_dx*m_dx + m_dy*m_dy + m_dz*m_dz);   \
+   }  \
 
    /*!
    SUMA_MULT_MAT MACRO FOR MATRIX MULTIPLICATION:

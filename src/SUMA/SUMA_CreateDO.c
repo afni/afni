@@ -4137,6 +4137,73 @@ void SUMA_ShowDrawnROIDatum (SUMA_ROI_DATUM *ROId, FILE *out, SUMA_Boolean Short
    SUMA_RETURNe;
 }
 
+#define SUMA_FS_DIJKSTRA_DISTANCE_FACTOR 1.20711 /* taken from pp 198, col 1 Fischl et al Neuroimage 9, 195-207 1999, Cortical Surface-Based Analysis */
+void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId, FILE *out, SUMA_WIDGET_INDEX_DRAWROI_WHATDIST option)
+{
+   static char FuncName[]={"SUMA_ReportDrawnROIDatumLength"};
+   int N0, N1, i, N_n, *nPath, N_left;
+   SUMA_Boolean *isNodeInMesh = NULL;
+   float *p1, *p2;
+   float ds = 0, d = 0, ds_c, dd, dd_c;
+   char *s = NULL;
+   SUMA_STRING *SS = NULL;   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ROId) SUMA_RETURNe;
+   if (ROId->N_n < 2) SUMA_RETURNe;
+   if (option != SW_DrawROI_WhatDistAll && option != SW_DrawROI_WhatDistTrace) {
+      SUMA_SL_Err("Why do you get this here ?");
+      SUMA_RETURNe;
+   }
+   SS = SUMA_StringAppend (NULL, NULL);
+
+   /* calculate path distance */
+   ds = 0.0;
+   for (i=0; i<ROId->N_n-1; ++i) {
+      p1 = &(SO->NodeList[3*ROId->nPath[i]]);
+      p2 = &(SO->NodeList[3*ROId->nPath[i+1]]);
+      SUMA_SEG_NORM(p1, p2, d); 
+      ds = ds + d;
+   }
+   ds_c = ds / SUMA_FS_DIJKSTRA_DISTANCE_FACTOR;
+   
+   dd = -1.0;  dd_c = -1.0;
+   if (option == SW_DrawROI_WhatDistAll) { /* do shortest distance */
+      isNodeInMesh = (SUMA_Boolean*) SUMA_malloc(SO->N_Node * sizeof(SUMA_Boolean)); N_left = SO->N_Node; for (i=0;i<N_left;++i) isNodeInMesh[i] = YUP;
+      if (!isNodeInMesh) {
+         SUMA_SL_Err("Failed to allocate!\nWill not compute shortest distance.");
+      }else {
+         nPath = SUMA_Dijkstra (SO, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], isNodeInMesh, &N_left, 1, &dd, &N_n);
+         if (nPath) { 
+            SUMA_free(nPath); nPath = NULL; dd_c = dd / SUMA_FS_DIJKSTRA_DISTANCE_FACTOR;
+         } else { 
+            dd = -2.0;  dd_c = -2.0;
+         }
+         SUMA_free(isNodeInMesh); isNodeInMesh = NULL;
+      }
+      SS = SUMA_StringAppend_va(SS,
+         "#Distances on %s\n"
+         "#n0\tn1\tN_n\td\td_c\tds\tds_c\n"
+         "%d\t%d\t%d\t%.2f\t%.2f\t%.2f\t%.2f\n", 
+         SO->Label, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], ROId->N_n, ds, ds_c, dd, dd_c);
+   } else if (option == SW_DrawROI_WhatDistTrace) {
+      SS = SUMA_StringAppend_va(SS,
+         "#Distances on %s\n"
+         "#n0\tn1\tN_n\td\td_c\n"
+         "%d\t%d\t%d\t%.2f\t%.2f\n", 
+         SO->Label, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], ROId->N_n, ds, ds_c);
+   }
+   
+   SUMA_SS2S(SS,s);
+   if (out) fprintf(out, "%s", s);
+   
+   SUMA_L_Text(s);
+   
+   SUMA_free (s); s= NULL;
+   SUMA_RETURNe;
+} 
 /*!
    \brief Show contents of a drawn ROI
    SUMA_ShowDrawnROI (ROI, Out, ShortVersion);

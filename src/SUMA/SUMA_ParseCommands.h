@@ -144,6 +144,37 @@ const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp);
 }
 
 /*!
+   \brief Macro that reports a text message to the log 
+
+*/
+#define SUMA_L_Text(msg) {\
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Text, SMA_Log); \
+}
+/*!
+   \brief Macro that reports a text message to stderr 
+
+*/
+#define SUMA_S_Text(msg) {\
+   fprintf (SUMA_STDERR, "%s\n", msg);  \
+}
+/*!
+   \brief Macro that reports a text message to stderr and log 
+
+*/
+#define SUMA_SL_Text(msg) {\
+   fprintf (SUMA_STDERR, "%s\n", msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Text, SMA_Log); \
+}
+/*!
+   \brief Macro that reports a text message to stderr and log and popup
+
+*/
+#define SUMA_SLP_Text(msg) {\
+   fprintf (SUMA_STDERR, "%s\n", msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Text, SMA_LogAndPopup); \
+}
+
+/*!
    \brief Macro that reports a warning to the log 
 
 */
