@@ -8,10 +8,14 @@
 
 static int allow_negative = 0 ;
 
+/*! Allow negative indexes in MCW_get_intlist() */
+
 void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
 {
    allow_negative = iii ; return ;
 }
+
+/*! Stopping criterion for MCW_get_intlist() */
 
 #define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='\0' )
 
@@ -20,7 +24,8 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
    character string str.  If we call the output pointer fred,
    then fred[0] = number of integers in the list (> 0), and
         fred[i] = i-th integer in the list for i=1..fred[0].
-   If fred == NULL or fred[0] == 0, then something is wrong.
+   If on return, fred == NULL or fred[0] == 0, then something is
+   wrong, and the caller must deal with that.
 
    Syntax of input string:
      - initial '{' or '[' is skipped, if present
@@ -35,14 +40,15 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
          "a..b(c)" or "a-b(c)", where "c" encodes the step
      - Example:  "[2,7..4,3..9(2)]" decodes to the list
          2 7 6 5 4 3 5 7 9
+     - entries should be in the range 0..nvals-1
 -------------------------------------------------------------------*/
 
 int * MCW_get_intlist( int nvals , char *str )
 {
-   int * subv = NULL ;
+   int *subv = NULL ;
    int ii , ipos , nout , slen ;
    int ibot,itop,istep , nused ;
-   char * cpt ;
+   char *cpt ;
 
    /* Meaningless input? */
 
@@ -52,7 +58,7 @@ int * MCW_get_intlist( int nvals , char *str )
 
    if( str == NULL || str[0] == '\0' ) return NULL ;
 
-   /* skip initial '[' */
+   /* skip initial '[' or '{' */
 
    subv    = (int *) malloc( sizeof(int) * 2 ) ;
    subv[0] = nout = 0 ;
@@ -74,10 +80,21 @@ int * MCW_get_intlist( int nvals , char *str )
          ibot = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
          ibot = strtol( str+ipos , &cpt , 10 ) ;
-         if( ibot < 0 && !allow_negative ){ free(subv) ; return NULL ; }
-         if( ibot >= nvals ) ibot = nvals-1 ;
+         if( ibot < 0 && !allow_negative ){
+           fprintf(stderr,"** ERROR: sub-brick index %d is out of range 0..%d\n",
+                   ibot,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         if( ibot >= nvals ){
+           fprintf(stderr,"** ERROR: sub-brick index %d is out of range 0..%d\n",
+                   ibot,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
          nused = (cpt-(str+ipos)) ;
-         if( ibot == 0 && nused == 0 ){ free(subv) ; return NULL ; }
+         if( ibot == 0 && nused == 0 ){
+           fprintf(stderr,"** ERROR: sub-brick syntax error '%s'\n",str+ipos) ;
+           free(subv) ; return NULL ;
+         }
          ipos += nused ;
       }
 
@@ -101,6 +118,8 @@ int * MCW_get_intlist( int nvals , char *str )
       } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
          ipos++ ; ipos++ ;
       } else {
+         fprintf(stderr,"** ERROR: sub-brick selector syntax is bad: '%s'\n",
+                 str+ipos) ;
          free(subv) ; return NULL ;
       }
 
@@ -110,10 +129,21 @@ int * MCW_get_intlist( int nvals , char *str )
          itop = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
          itop = strtol( str+ipos , &cpt , 10 ) ;
-         if( itop < 0 && !allow_negative ){ free(subv) ; return NULL ; }
-         if( itop >= nvals ) itop = nvals-1 ;
+         if( itop < 0 && !allow_negative ){
+           fprintf(stderr,"** ERROR: sub-brick index %d is out of range 0..%d\n",
+                   itop,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         if( itop >= nvals ){
+           fprintf(stderr,"** ERROR: sub-brick index %d is out of range 0..%d\n",
+                   itop,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
          nused = (cpt-(str+ipos)) ;
-         if( itop == 0 && nused == 0 ){ free(subv) ; return NULL ; }
+         if( itop == 0 && nused == 0 ){
+           fprintf(stderr,"** ERROR: sub-brick syntax error '%s'\n",str+ipos) ;
+           free(subv) ; return NULL ;
+         }
          ipos += nused ;
       }
 
@@ -128,10 +158,17 @@ int * MCW_get_intlist( int nvals , char *str )
       if( str[ipos] == '(' ){  /* decode an integer */
          ipos++ ;
          istep = strtol( str+ipos , &cpt , 10 ) ;
-         if( istep == 0 ){ free(subv) ; return NULL ; }
+         if( istep == 0 ){
+           fprintf(stderr,"** ERROR: sub-brick loop step is 0!\n") ;
+           free(subv) ; return NULL ;
+         }
          nused = (cpt-(str+ipos)) ;
          ipos += nused ;
          if( str[ipos] == ')' ) ipos++ ;
+         if( (ibot-itop)*istep > 0 ){
+           fprintf(stderr,"** WARNING: sub-brick count '%d..%d(%d)' means nothing!\n",
+                   ibot,itop,istep ) ;
+         }
       }
 
       /** add values to output **/

@@ -5112,3 +5112,4 @@
      into the top.
  * Modified afni_fimmer.c to correctly use scaling factors if present in
      the time series data.
+ * Added printout of pseudo-inverse to 1dsvd.c.
