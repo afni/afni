@@ -311,6 +311,14 @@ int main (int argc,char *argv[])
 		}
 	/*	fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
 	#endif
+
+	/* decide what the best state is */
+	SUMAg_cSV->StdView = SUMA_BestStandardView (SUMAg_cSV, SUMAg_DOv, SUMAg_N_DOv);
+	/*fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, SUMAg_cSV->StdView);*/
+	if (SUMAg_cSV->StdView == SUMA_Dunno) {
+		fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
+		SUMAg_cSV->StdView = SUMA_3D;
+	}
 	
 	/* Set the Rotation Center */
 	if (!SUMA_UpdateRotaCenter(SUMAg_cSV, SUMAg_DOv, SUMAg_N_DOv)) {

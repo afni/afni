@@ -42,6 +42,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 {
    int cc , nn ;
    void *nini ;
+	static char FuncName[]={"SUMA_niml_workproc"};
 	
      /* check if stream is open */
 
@@ -74,10 +75,17 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 
 		fprintf(SUMA_STDERR," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
 
-       if( nini != NULL )
-          if (!SUMA_process_NIML_data( nini )) {
-			 	
+       if( nini != NULL ) {
+       	/*
+			NI_element *nel ;
+			nel = (NI_element *)nini ;
+			fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
+					nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
+			*/		
+		    if (!SUMA_process_NIML_data( nini )) {
+			 	fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
 			 }
+		}
 
       NI_free_element( nini ) ;
 
@@ -95,7 +103,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 
 SUMA_Boolean SUMA_process_NIML_data( void *nini )
 {
-   int tt = NI_element_type(nini) ;
+	int tt = NI_element_type(nini) ;
    NI_element *nel ;
 	SUMA_EngineData EngineData; /* Do not free EngineData, only its contents*/
 	char CommString[SUMA_MAX_COMMAND_LENGTH], *nel_surfidcode;
@@ -104,6 +112,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 	int i, *inel, I_C = -1, iv3[3];
 	byte *r, *g, *b;
 	static char FuncName[]={"SUMA_process_NIML_data"};
+	SUMA_Boolean Empty_irgba = NOPE;
 	
 	SUMA_SurfaceObject *SO;
 	/*int it;
@@ -117,17 +126,17 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 
 	/* initialize EngineData */
 	if (!SUMA_InitializeEngineData (&EngineData)) {
-		fprintf(SUMA_STDERR,"Error SUMA_process_NIML_data: Failed to initialize EngineData\n");
+		fprintf(SUMA_STDERR,"Error %s: Failed to initialize EngineData\n", FuncName);
 		return(NOPE);
 	}
 
    if( tt < 0 ) {/* should never happen */
-		fprintf(SUMA_STDERR,"Error SUMA_process_NIML_data: Should never have happened.\n");
+		fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
 		return(NOPE);
 	} 
 
    if( tt != NI_ELEMENT_TYPE ){  /* should never happen */
-		fprintf(SUMA_STDERR,"Error SUMA_process_NIML_data: Should never have happened.\n");
+		fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
 		return(NOPE);
 	}
    
@@ -135,19 +144,21 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
       process the data based on the element name */
 
    nel = (NI_element *) nini ;
-
-	fprintf(SUMA_STDERR,"SUMA_process_NIML_data:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n",\
+	
+	/*
+	fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
 					nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
-
+	*/
+	
    /*--- CrossHair XYZ ---*/
 	if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0) {/* SUMA_crosshair_xyz */
      /*-- check element for suitability --*/
      if( nel->vec_len    < 1 || nel->vec_filled <  1) {  /* empty element?             */
-			fprintf(SUMA_STDERR,"SUMA_process_NIML_data: Empty crosshair xyz.\n");
+			fprintf(SUMA_STDERR,"%s: Empty crosshair xyz.\n", FuncName);
 	  		return (YUP);
 	  }
 	  if( nel->vec_len != 3 || nel->vec_num != 1 || nel->vec_typ[0] != NI_FLOAT) {
-	  		fprintf(SUMA_STDERR,"SUMA_process_NIML_data: SUMA_crosshair_xyz requires 3 floats in one vector.\n");
+	  		fprintf(SUMA_STDERR,"%s: SUMA_crosshair_xyz requires 3 floats in one vector.\n", FuncName);
 			return(NOPE);
 	  }
 
@@ -166,7 +177,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 		/* attach the cross hair to the selected surface */
 		nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
 		if (nel_surfidcode == NULL) {
-			fprintf(SUMA_STDERR,"Error SUMA_process_NIML_data: surface_idcode missing in nel.\nLoose Crosshair\n");
+			fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\nLoose Crosshair\n", FuncName);
 			iv3[0] = -1;
 		} else {
 			iv3[0] = SUMAg_cSV->Focus_SO_ID;
@@ -181,7 +192,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 		}
 		sprintf(CommString,"BindCrossHair~");
 		if (!SUMA_Engine (CommString, &EngineData)) {
-			fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+			fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
 		}
 		
 		/* send cross hair coordinates */
@@ -189,11 +200,11 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 		sprintf(sdestination,"SetCrossHair");
 		sprintf(ssource,"afni");
 		if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)XYZ, sdestination, ssource, NOPE)) {
-			fprintf(SUMA_STDERR,"Error SUMA_process_NIML_data: Failed to register %s to %s\n", sfield, sdestination);
+			fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
 		}
 		sprintf(CommString,"Redisplay|SetCrossHair~");
 		if (!SUMA_Engine (CommString, &EngineData)) {
-			fprintf(stderr, "Error SUMA_process_NIML_data: SUMA_Engine call failed.\n");
+			fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
 		}		
 		
 		/* don't free nel, it's freed later on */
@@ -204,13 +215,14 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 	/* SUMA_irgba Node colors */
 	if( strcmp(nel->name,"SUMA_irgba") == 0) {/* SUMA_irgba */
 		if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
-			fprintf(SUMA_STDERR,"SUMA_process_NIML_data: Empty SUMA_irgba.\n");
-	  		return (YUP);
-	  	}
-		if( nel->vec_num != 5 || nel->vec_typ[0] != NI_INT || nel->vec_typ[1] != NI_BYTE || nel->vec_typ[2] != NI_BYTE || nel->vec_typ[3] != NI_BYTE) {
-	  		fprintf(SUMA_STDERR,"SUMA_process_NIML_data: SUMA_irgba Bad format\n");
-			return(NOPE);
-	  }
+			fprintf(SUMA_STDERR,"%s: Empty SUMA_irgba.\n", FuncName);
+			Empty_irgba = YUP;
+	  	}else {
+			if( nel->vec_num != 5 || nel->vec_typ[0] != NI_INT || nel->vec_typ[1] != NI_BYTE || nel->vec_typ[2] != NI_BYTE || nel->vec_typ[3] != NI_BYTE) {
+	  			fprintf(SUMA_STDERR,"%s: SUMA_irgba Bad format\n", FuncName);
+				return(NOPE);
+		  }
+		}
 	  
 	  /* show me nel */
 	  /*SUMA_nel_stdout (nel);*/
@@ -218,14 +230,14 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 		/* make sure that the Surface idcode corresponds to the one in focus */
 	   nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
 		if (nel_surfidcode == NULL) {
-			fprintf(SUMA_STDERR,"Error SUMA_process_NIML_data: surface_idcode missing in nel.\n");
+			fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\n", FuncName);
 			return (NOPE);
 		} else {
 			if (strcmp(nel_surfidcode, SO->MapRef_idcode_str) != 0) {
-				fprintf(SUMA_STDERR,"Error SUMA_process_NIML_data: surface_idcode in nel not equal to SO->MapRef_idcode_str.\n");
+				fprintf(SUMA_STDERR,"Error %s: surface_idcode in nel not equal to SO->MapRef_idcode_str.\n", FuncName);
 				return(NOPE);
 			} else {
-				fprintf(SUMA_STDOUT,"Warning SUMA_process_NIML_data: Matching surface idcode\n");
+				fprintf(SUMA_STDOUT,"%s: Matching surface idcode\n", FuncName);
 			}
 		}
 	  
@@ -237,7 +249,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 			EngineData.N_rows = SO->N_Node;
 			fm = (float **)SUMA_allocate2D (EngineData.N_rows, EngineData.N_cols, sizeof(float));
 			if (fm == NULL) {
-				fprintf(stderr,"Error SUMA_niml: Failed to allocate space for fm\n");
+				fprintf(stderr,"Error %s: Failed to allocate space for fm\n", FuncName);
 				return (NOPE);
 			}
 
@@ -289,14 +301,14 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 			sprintf(sdestination,"SetNodeColor");
 			sprintf(ssource,"afni");
 			if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fm, sdestination, ssource, YUP)) {
-				fprintf(SUMA_STDERR,"Error SUMA_input: Failed to register %s to %s\n", sfield, sdestination);
+				fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
 				return(NOPE);
 			}
 
 			/* call EngineData */
 			sprintf(CommString,"Redisplay|SetNodeColor~");
 			if (!SUMA_Engine (CommString, &EngineData)) {
-				fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+				fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
 				return (NOPE);
 			}
 
@@ -307,7 +319,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 				SUMA_OVERLAYS * tmpptr; 
 				int OverInd, _ID;
 				SUMA_SurfaceObject *SOmap;
-				
 				/* create a color overlay plane */
 				/* you could create an overlay plane with partial node coverage but you'd have to clean up and reallocate
 				with each new data sent since the number of colored nodes will change. So I'll allocate for the entire node list 
@@ -370,7 +381,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 						OverInd = SO->N_Overlays; 
 						++SO->N_Overlays;
 					}
-					
+						 
 				}
 				
 				/* now place dem colors in the overlay plane */
@@ -378,35 +389,39 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 				SO->Overlays[OverInd]->GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;
 				SO->Overlays[OverInd]->BrightMod = NOPE;
 				
-				inel = (int *)nel->vec[0];
-				r = (byte *)nel->vec[1];
-				g = (byte *)nel->vec[2];
-				b = (byte *)nel->vec[3];
+				if (!Empty_irgba) {
+					inel = (int *)nel->vec[0];
+					r = (byte *)nel->vec[1];
+					g = (byte *)nel->vec[2];
+					b = (byte *)nel->vec[3];
 
-				/* dim colors from maximum intensity to preserve surface shape highlights */
-				dimfact = 255.0 / SUMA_DIM_AFNI_COLOR_FACTOR;				/* set the colored nodes to something */
-				
-				for (i=0; i < nel->vec_len; ++i) {
-					/*fprintf(SUMA_STDERR,"Node %d: r%d, g%d, b%d\n", inel[i], r[i], g[i], b[i]);*/
-					SO->Overlays[OverInd]->NodeDef[i] = inel[i];
-					SO->Overlays[OverInd]->ColMat[i][0] = (float)(r[i]) / dimfact;
-					SO->Overlays[OverInd]->ColMat[i][1] = (float)(g[i]) / dimfact;
-					SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) / dimfact;
+					/* dim colors from maximum intensity to preserve surface shape highlights */
+					dimfact = 255.0 / SUMA_DIM_AFNI_COLOR_FACTOR;				/* set the colored nodes to something */
+					for (i=0; i < nel->vec_len; ++i) {
+						/*fprintf(SUMA_STDERR,"Node %d: r%d, g%d, b%d\n", inel[i], r[i], g[i], b[i]);*/
+						SO->Overlays[OverInd]->NodeDef[i] = inel[i];
+						SO->Overlays[OverInd]->ColMat[i][0] = (float)(r[i]) / dimfact;
+						SO->Overlays[OverInd]->ColMat[i][1] = (float)(g[i]) / dimfact;
+						SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) / dimfact;
+					}
+					SO->Overlays[OverInd]->N_NodeDef = nel->vec_len;
+				} else {
+					SO->Overlays[OverInd]->N_NodeDef = 0;
 				}
-				SO->Overlays[OverInd]->N_NodeDef = nel->vec_len;
 				
 				/*Do the mix thing */
+				/*fprintf(SUMA_STDERR, "%s: Mixing colors ...\n", FuncName);*/
 				if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, \
 						SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
 						fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
 						return (NOPE);
 				}
 				
-			
+				
 				/* file a redisplay request */
 				sprintf(CommString,"Redisplay~");
 				if (!SUMA_Engine (CommString, NULL)) {
-					fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+					fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
 					return (NOPE);
 				}
 			}
@@ -419,7 +434,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 
    /*** If here, then name of element didn't match anything ***/
 
-   fprintf(SUMA_STDERR,"Error SUMA_process_NIML_data: Unknown NIML input: %s\n",nel->name) ;
+   fprintf(SUMA_STDERR,"Error %s: Unknown NIML input: %s\n", FuncName ,nel->name) ;
    return (NOPE) ;
 }
 

@@ -104,6 +104,9 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 					SV->GVS[j].RotaCenter[0] = 0.0;
 					SV->GVS[j].RotaCenter[1] = 0.0;
 					SV->GVS[j].RotaCenter[2] = 0.0;
+					
+					SV->GVS[j].translateVec[0] = 0.0;
+					SV->GVS[j].translateVec[1] = 0.0;
 					break;
 				default:
 					fprintf(SUMA_STDERR,"Error %s: Undefined viewing mode.\n", FuncName);
@@ -175,6 +178,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		SV->ShowForeground = YUP;
 		SV->ShowBackground = YUP;
 		SV->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+		
 
 	}
 	return (SVv);
