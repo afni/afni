@@ -703,7 +703,7 @@ NI_rowtype * NI_rowtype_find_name( char *nn )
      busy = 1 ;                        /* prevent recursion!!! */
      tt = NI_rowtype_define( nn , rt ) ;
      busy = 0 ;
-     if( tt >= ROWTYPE_OFFSET ) return rowtype_array[tt-ROWTYPE_OFFSET] ;
+     if( tt >= ROWTYPE_OFFSET ) return rowtype_array[tt-ROWTYPE_BASE_CODE] ;
    }
 
    return NULL ;
