@@ -1,4 +1,4 @@
-function [err, Qd, s, termname, nterms, sindices, dfbothSS, modw, modwo, tnames, dfterm, dfe, Contr] = PreProc(n, NF, group, varnames, FL, Contr, dsgn, cov, unbalanced)
+function [err, Qd, s, termname, nterms, sindices, dfbothSS, modw, modwo, tnames, dfterm, dfe, Contr] = PreProc(n, NF, group, varnames, FL, Contr, cov, unbalanced)
 %
 %   [err, Qd, Rd, sindices, dfboth, modw, modwo, dfx] = PreProc(n,group,varnames)
 %
