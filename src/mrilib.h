@@ -17,6 +17,8 @@ extern float MRILIB_tr ;                /* 03 Dec 2001 */
 extern float MRILIB_xoff ;              /* 07 Dec 2001 */
 extern float MRILIB_yoff ;
 
+/*! Clear the MRILIB globals (which are designed to transmit info from image files to to3d.c). */
+
 #define CLEAR_MRILIB_globals \
  do{ MRILIB_orients[0]='\0'; MRILIB_zoff=MRILIB_tr=0.0; } while(0)
 
@@ -32,6 +34,7 @@ extern float MRILIB_yoff ;
 #endif
 
 #ifndef WAY_BIG
+/*! A big number (anything over this is infinity). */
 #  define WAY_BIG 1.e+10
 #endif
 
@@ -47,15 +50,26 @@ extern float MRILIB_yoff ;
 
 /**** define types ****/
 
+/*! The MRI_byte data type. */
+
 typedef unsigned char byte ;
+
+/*! RGBA data type; not used anywhere (yet). */
 
 typedef struct { byte r,g,b,a ; } rgba ;  /* 24 Aug 2001 */
 
 #define LOAD_rgba(s,rr,gg,bb,aa)   ((s).r=(rr),(s).g=(gg),(s).b=(bb),(s).a=(bb))
 #define UNLOAD_rgba(s,rr,gg,bb,aa) ((rr)=(s).r,(gg)=(s).g,(bb)=(s).b,(aa)=(s).a)
 
-#define BYTE_TO_ZONE(b) (0.0392157*(b))
+/*! Scale a byte [0..255] to a float in [0..1). */
+
+#define BYTE_TO_ZONE(b) (0.00392157*(b))
+
+/*! Scale a float in [0..1] to a byte in [0..255]. */
+
 #define ZONE_TO_BYTE(z) ((byte)(255.49*(z)))
+
+/*! Integer flags for different image types.  Sometimes called the "datum". */
 
 typedef enum MRI_TYPE {
          MRI_byte , MRI_short  , MRI_int  ,
@@ -65,41 +79,73 @@ typedef enum MRI_TYPE {
 #define MRI_type MRI_TYPE ;
 #define MRI_kind MRI_TYPE ;
 
+/*! The last MRI_TYPE yet defined. */
+
 #define LAST_MRI_TYPE 6
+
+/*! String names for MRI_TYPE. */
 
 static char * MRI_TYPE_name[7] =
   { "byte" , "short" , "int" , "float" , "double" , "complex" , "rgb" } ;
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 
+/*! Max value of a byte. */
+
 #define MRI_maxbyte         255
+
+/*! Max value of a short. */
+
 #define MRI_maxshort      32767
+
+/*! Max value of an int. */
+
 #define MRI_maxint   2147483647
+
+/*! Max values for various types, if they have them. */
 
 static float MRI_TYPE_maxval[7] =
   { 255.0 , 32767.0 , 2147483647.0 , 0.0,0.0,0.0 , 255.0 } ;
 
+/*! Force a float into a short. */
+
 #define SHORTIZE(xx) (  ((xx) < -32767.0) ? (short)-32767                    \
                       : ((xx) >  32767.0) ? (short) 32767 : (short)rint(xx) )
+
+/*! Force a float into a byte. */
 
 #define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                     \
                       : ((xx) > 255.0) ? (byte)255 : (byte)rint(xx) )
 
+/*! Determine if a MRI_TYPE is an integer type. */
+
 #define MRI_IS_INT_TYPE(typ) ((typ) < 3)
+
+/*! I suppose that the next C makes this pleonastic. */
 
 typedef struct complex { float r , i ; } complex ;
 
 /*-------*/
+
+/*! Triple to hold RGB bytes. */
+
 typedef struct rgbyte { byte r,g,b ; } rgbyte ;  /* 15 Feb 1999 */
 
 static rgbyte tEMp_rgbyte_aAa ;
 
+/*! Convert one RBG triple (rgbyte) to a single int. */
+
 #define RGBYTE_TO_INT(rgb) ( (rgb).r << 16 | (rgb).g << 8 | (rgb).b )
+
+/*! Convert one int to a RGB triple (rgbyte). */
 
 #define INT_TO_RGB(q) ( tEMp_rgbyte_aAa.r = ((q) >> 16) & 0xff , \
                         tEMp_rgbyte_aAa.g = ((q) >>  8) & 0xff , \
                         tEMp_rgbyte_aAa.b = (q)         & 0xff , tEMp_rgbyte_aAa )
 /*-------*/
+
+/*! A union type to hold all possible MRI_IMAGE types.
+    This was created before I really understood how to use void *. */
 
 typedef union MRI_DATA {
          byte     *byte_data ;
@@ -126,29 +172,67 @@ typedef union MRI_DATA {
 #  define BSWAP_DELAY  2
 #endif
 
+/*! Stores one image (1D to 7D).
+    Why 7D, you ask?  Well, I originally only had 2D images here.
+    When extending AFNI from 3D to 3D+time and buckets, I thought
+    that I might use 4D images (x,y,z,t) as the basic element.
+    Instead, I decided to use an array of 3D images (in a THD_datablock),
+    but by then I'd extended this typedef to allow (x,y,z,t,u,v,w) dimensioned
+    arrays.  I don't think anyplace ever uses more than 3D images, though.
+*/
+
 typedef struct MRI_IMAGE {
-         int nx,ny,nz , nt,nu,nv,nw ,   /* dimensions of array */
-             nxy,nxyz,nxyzt , nvox  ,   /* nx*ny , nxy*nz , nxyz*nt , # voxels */
-             pixel_size ;               /* bytes per pixel */
-         MRI_TYPE kind ;                /* one of the type codes above */
-         MRI_DATA im ;                  /* pointer to pixel data */
-         char * name ;                  /* string attached; may be NULL */
-         float dx,dy,dz, dt,du,dv,dw ,  /* physical pixel dimensions, if != 0 */
-               xo,yo,zo, to,uo,vo,wo  ; /* offsets for dimensions */
+          int nx ;            /*< 1st dimension of image */
+          int ny ;            /*< 2nd dimension of image (1 for 1D image) */
+          int nz  ;           /*< 3rd dimension of image (1 for 2D image) */
+          int nt ;            /*< 4th dimension of image (1 for 3D image) */
+          int nu ;            /*< 5th dimension of image (1 for 4D image) */
+          int nv ;            /*< 6th dimension of image (1 for 5D image) */
+          int nw  ;           /*< 7th dimension of image (1 for 6D image) */
+          int nxy ;           /*< nx*ny */
+          int nxyz ;          /*< nx*ny*nz */
+          int nxyzt  ;        /*< nx*ny*nz*nt */
+          int nvox   ;        /*< number of voxels total */
+          int pixel_size ;    /*< bytes per pixel */
+
+          MRI_TYPE kind ;     /*< one of the MRI_TYPE codes above */
+          MRI_DATA im ;       /*< pointer to actual pixel data */
+          char * name ;       /*< string attached; may be NULL; might be filename */
+
+          float dx ;          /*< physical pixel size, if != 0 */
+          float dy ;          /*< physical pixel size, if != 0 */
+          float dz ;          /*< physical pixel size, if != 0 */
+          float dt ;          /*< physical pixel size, if != 0 */
+          float du ;          /*< physical pixel size, if != 0 */
+          float dv ;          /*< physical pixel size, if != 0 */
+          float dw ;          /*< physical pixel size, if != 0 */
+          float xo ;          /*< spatial origin of axis */
+          float yo ;          /*< spatial origin of axis */
+          float zo ;          /*< spatial origin of axis */
+          float to ;          /*< spatial origin of axis */
+          float uo ;          /*< spatial origin of axis */
+          float vo ;          /*< spatial origin of axis */
+          float wo ;          /*< spatial origin of axis */
+
 #ifdef USE_MRI_LABELS
-         char xlab[MRI_LABEL_SIZE] ,    /* labels for each dimension */
-              ylab[MRI_LABEL_SIZE] , zlab[MRI_LABEL_SIZE] ,
-              tlab[MRI_LABEL_SIZE] , ulab[MRI_LABEL_SIZE] ,
-              vlab[MRI_LABEL_SIZE] , wlab[MRI_LABEL_SIZE]  ;
+         char xlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
+              ylab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
+              zlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
+              tlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
+              ulab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
+              vlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
+              wlab[MRI_LABEL_SIZE] ;  /*< labels for each dimension */
 #endif
 
 #ifdef USE_MRI_DELAY
-         char * fname ;
-         int foffset , fondisk ;
+         char * fname ;  /*< to read actual image data after delay */
+         int foffset ;   /*< offset into fname of image data */
+         int fondisk ;   /*< flag to indicate if is on disk (?) */
 #endif
 } MRI_IMAGE ;
 
 #ifdef USE_MRI_LABELS
+/*! Copy auxiliary data from one MRI_IMAGE to another. */
 #  define MRI_COPY_AUX(nn,oo)                                           \
     ( (nn)->dx = (oo)->dx , (nn)->dy = (oo)->dy , (nn)->dz = (oo)->dz , \
       (nn)->dt = (oo)->dt , (nn)->du = (oo)->du , (nn)->dv = (oo)->dv , \
@@ -172,11 +256,19 @@ typedef struct MRI_IMAGE {
       mri_add_name( (oo)->name , (nn) ) )
 #endif
 
+/*! Check if MRI_IMAGE is 1D (ny=1) */
 #define MRI_IS_1D(iq)  ((iq)->ny == 1)
+
+/*! Check if MRI_IMAGE is 2D (nz=1) */
 #define MRI_IS_2D(iq)  ((iq)->ny > 1 && (iq)->nz == 1)
+
+/*! Check if MRI_IMAGE is 3D (nt=1) */
 #define MRI_IS_3D(iq)  ((iq)->nz > 1 && (iq)->nt == 1)
+
+/*! Check if MRI_IMAGE is 4D (nu=1) */
 #define MRI_IS_4D(iq)  ((iq)->nt > 1 && (iq)->nu == 1)
 
+/*! Return dimensionality of MRI_IMAGE */
 #define MRI_DIMENSIONALITY(iq)                     \
  ( ((iq)->ny == 1) ? 1 : ((iq)->nz == 1) ? 2 :     \
    ((iq)->nt == 1) ? 3 : ((iq)->nu == 1) ? 4 :     \
@@ -207,17 +299,27 @@ typedef struct MRI_IMAGE {
 
 /*********** Type: array of MRI_IMAGE pointers ***********/
 
+/*! Array of MRI_IMAGE pointers. */
+
 typedef struct MRI_IMARR {
-      int num , nall ;
-      MRI_IMAGE ** imarr ;
+      int num ;              /*< Number of actual MRI_IMAGE here */
+      int nall ;             /*< Size of imarr array currently allocated */
+      MRI_IMAGE ** imarr ;   /*< Array of MRI_IMAGE pointers */
 } MRI_IMARR ;
+
+/*! Get the nn-th image from the image array "name". */
 
 #define IMAGE_IN_IMARR(name,nn) ((name)->imarr[(nn)])
 #define IMARR_SUBIMAGE          IMAGE_IN_IMARR
 #define IMARR_SUBIM             IMAGE_IN_IMARR
+
+/*! Get the number of images in the image array "name". */
+
 #define IMARR_COUNT(name)       ((name)->num)
 
 #define INC_IMARR 32
+
+/*! Initialize an MRI_IMARR struct. */
 
 #define INIT_IMARR(name)                                                           \
    do{ int iq ; (name) = (MRI_IMARR *) malloc(sizeof(MRI_IMARR)) ;                 \
@@ -225,6 +327,8 @@ typedef struct MRI_IMARR {
        (name)->imarr = (MRI_IMAGE **)malloc(sizeof(MRI_IMAGE *)*INC_IMARR) ;       \
        for( iq=(name)->num ; iq < (name)->nall ; iq++ ) (name)->imarr[iq] = NULL ; \
        break ; } while(0)
+
+/*! Add one MRI_IMAGE to the MRI_IMARR struct. */
 
 #define ADDTO_IMARR(name,imm)                                                           \
    do{ int nn , iq ;                                                                    \
@@ -235,15 +339,21 @@ typedef struct MRI_IMARR {
        nn = (name)->num ; ((name)->num)++ ;                                             \
        (name)->imarr[nn] = (imm) ; break ; } while(0)
 
+/*! Free the MRI_IMARR struct (but not the images within). */
+
 #define FREE_IMARR(name)                                                        \
    do{ if( (name) != NULL ){                                                    \
           free((name)->imarr); free((name)); (name) = NULL; } break; } while(0)
+
+/*! Free the MRI_IMARR struct, including the images within. */
 
 #define DESTROY_IMARR(name)                                                     \
    do{ int nn ;                                                                 \
        if( (name) != NULL ){                                                    \
           for( nn=0 ; nn < (name)->num ; nn++ ) mri_free((name)->imarr[nn]) ;   \
           free((name)->imarr); free((name)); (name) = NULL; } break; } while(0)
+
+/*! Free all images at-and-after [qq] in the MRI_IMARR struct. */
 
 #define TRUNCATE_IMARR(name,qq)                                                 \
    do{ int nn ;                                                                 \
@@ -257,34 +367,53 @@ typedef struct MRI_IMARR {
 static float   MRI_fla ;                      /* float temporaries   */
 static complex MRI_cxa , MRI_cxb , MRI_cxc ;  /* complex temporaries */
 
+/*! Return a complex from two floats. */
+
 #define CMPLX(x,y) ( MRI_cxa.r = (x) , MRI_cxa.i = (y) , MRI_cxa )
+
+/*! Return complex u+v */
 
 #define CADD(u,v) ( MRI_cxa.r = u.r + v.r , \
                     MRI_cxa.i = u.i + v.r , MRI_cxa )
 
+/*! complex u += v */
+
 #define CADDTO(u,v) ( u.r += v.r , u.i += v.i )
 
+/*! Return complex u-v */
 #define CSUB(u,v) ( MRI_cxa.r = u.r - v.r , \
                     MRI_cxa.i = u.i - v.i , MRI_cxa )
 
+/*! complex u -= v */
+
 #define CSUBFROM(u,v) ( u.r -= v.r , u.i -= v.i )
+
+/*! Return complex u*v */
 
 #define CMULT(u,v) ( MRI_cxb.r = u.r * v.r - u.i * v.i , \
                      MRI_cxb.i = u.r * v.i + u.i * v.r , MRI_cxb )
 
+/*! complex u *= v */
+
 #define CMULTBY(u,v) ( MRI_fla = u.r * v.r - u.i * v.i , \
                        u.i     = u.r * v.i + u.i * v.r , u.r = MRI_fla )
 
-/** output of CJMULT is u * conjg(v) **/
+/*! Return complex u * conjg(v) */
 
 #define CJMULT(u,v) ( MRI_cxb.r = u.r * v.r + u.i * v.i , \
                       MRI_cxb.i = u.i * v.r - u.r * v.i , MRI_cxb )
 
+/*! complex u *= conjg(v) */
+
 #define CJMULTBY(u,v) ( MRI_fla = u.r * v.r + u.i * v.i , \
                         u.i     = u.i * v.r - u.r * v.i , u.r = MRI_fla )
 
+/*! complex w += u*v */
+
 #define CMADD(u,v,w) ( w.r += u.r * v.r - u.i * v.i , \
                        w.i += u.r * v.i + u.i * v.r    )
+
+/*! Return complex exp(I*t) */
 
 #define CEXPIT(t)   ( MRI_cxc.r = cos(t) , MRI_cxc.i = sin(t) , MRI_cxc )
 
@@ -292,15 +421,22 @@ static complex MRI_cxa , MRI_cxb , MRI_cxc ;  /* complex temporaries */
 
 static int MRI_mm ;
 
+/*! Median of 3. */
+
 #define MEDIAN(a,b,c) ( MRI_mm = 4*((a)<(b)) + 2*((a)<(c)) + ((b)<(c)) , \
                         (MRI_mm==3||MRI_mm==4) ? (a) :                   \
                         (MRI_mm==7||MRI_mm==0) ? (b) : (c) )
 
+/*! Order-statistic filter of 3. */
+
 #define OSFSUM(p,q,r) (0.70*(p)+0.15*((q)+(r)))
+
+/*! Order-statistic filter of 3. */
 
 #define OSFILT(a,b,c) ( MRI_mm = 4*((a)<(b)) + 2*((a)<(c)) + ((b)<(c)) , \
                         (MRI_mm==3||MRI_mm==4) ? OSFSUM(a,b,c) :         \
                         (MRI_mm==7||MRI_mm==0) ? OSFSUM(b,a,c) : OSFSUM(c,a,b) )
+
 #ifndef TRUE
 #   define TRUE  (1)
 #endif
@@ -323,6 +459,8 @@ static int MRI_mm ;
 #define CSQR(z)  (SQR(z.r)+SQR(z.i))
 #define CABS(z)  sqrt(CSQR(z))
 #define CARG(z)  ( ((z).r!=0.0 || (z).i!=0.0) ? atan2((z).i,(z).r) : 0.0 )
+
+/*! complex z /= abs(z) */
 
 #define CUNITIZE(z) ( MRI_fla=CABS(z) , z.r=z.r/MRI_fla , z.i=z.i/MRI_fla )
 
@@ -373,7 +511,12 @@ extern void csfft_use_fftw( int ) ;     /* 20 Oct 2000 */
 extern void *mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
+
+/*! Set the data pointer in an MRI_IMAGE to NULL. */
+
 #define mri_clear_data_pointer(iq) mri_fix_data_pointer(NULL,(iq))
+
+/*! Set all pixels in MRI_IMAGE to zero. */
 
 #define mri_zero_image(iq) \
    memset(mri_data_pointer(iq),0,(iq)->nvox*(iq)->pixel_size)
@@ -417,9 +560,14 @@ MRI_IMAGE *mri_new_7D_generic( int nx, int ny, int nz, int nt,
                                int nu, int nv, int nw,
                                MRI_TYPE kind , int make_space ) ;
 
+/*! Create new MRI_IMAGE of type kk, with same dimensions as iq. */
+
 #define mri_new_conforming(iq,kk)                                   \
    mri_new_7D_generic( (iq)->nx, (iq)->ny, (iq)->nz , (iq)->nt ,    \
                        (iq)->nu, (iq)->nv, (iq)->nw , (kk) , TRUE )
+
+/*! Create new MRI_IMAGE of type kk, with same dimensions as iq,
+    and with no data space allocated. */
 
 #define mri_empty_conforming(iq,kk)                                 \
    mri_new_7D_generic( (iq)->nx, (iq)->ny, (iq)->nz , (iq)->nt ,    \
@@ -596,6 +744,8 @@ extern void mri_get_cmass_2D( MRI_IMAGE *, float *, float * ); /* 12 Nov 2001 */
 
 /*---------------------------------------------------------------------*/
 /* 07 April 1998: routines for one-at-a-time alignment (mri_2dalign.c) */
+
+/*! Struct used in 2D image registration. */
 
 typedef struct {
    MRI_IMARR * fitim , * fine_fitim ;
