@@ -634,6 +634,15 @@ NI_dpr("hidden_NI_free: called from %s#%d\n",fnam,lnum) ;
 
 }
 
+/*-----------------------------------------------------------------*/
+/*! 17 Dec 2003: In case a true NI_free() call gets thru somehow.  */
+/*-----------------------------------------------------------------*/
+
+void NI_free( void *p )
+{
+  hidden_NI_free( p , (char *)"Nada" , 0 ) ;
+}
+
 /*------------------------------------------------*/
 /*! Insertion_sort : sort an array of int + int.  */
 
