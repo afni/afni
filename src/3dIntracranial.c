@@ -28,6 +28,8 @@
   Mod:     Added option to suppress spatial smoothing of segmentation mask.
   Date:    03 December 2001
 
+  Mod:     Set MAX_STRING_LENGTH equal to THD_MAX_NAME.
+  Date:    02 December 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -35,7 +37,7 @@
 #define PROGRAM_NAME "3dIntracranial"                /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
 #define PROGRAM_INITIAL "04 June 1999"    /* date of initial program release */
-#define PROGRAM_LATEST "03 December 2001" /* date of latest program revision */
+#define PROGRAM_LATEST "02 December 2002" /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 /*

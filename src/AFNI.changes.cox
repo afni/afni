@@ -3840,7 +3840,7 @@
      suggestion of Jack Lancaster.
 
 19 Jul 2002
- * New functiona mri_read_dicom() to read images from DICOM files.
+ * New function mri_read_dicom() to read images from DICOM files.
 
 23 Jul 2002
  * Modified mri_read_dicom.c to get slice orientation and offsets.
@@ -4080,3 +4080,4 @@
  * Modified plug_crender.c to use mcw_graf.c stuff of 30 Nov 2002.
  * Modified mri_read_dicom.c to deal with Siemens Mosaic differently, to
      accomodate variations from NYU's Allegra scanner (vs. NIDA's).
+ * Modified to3d.c to show NX x NY along with Datum in GUI.

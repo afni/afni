@@ -80,6 +80,9 @@
            the baseline model.
   Date:    02 May 2002
 
+  Mod:     Increased size of screen output buffer (again).
+  Date:    02 December 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -585,7 +588,7 @@ static double fstat_t2p( double ff , double dofnum , double dofden )
 
 /*---------------------------------------------------------------------------*/
 
-static char lbuf[8192];   /* character string containing statistical summary */
+static char lbuf[65536];  /* character string containing statistical summary */
 static char sbuf[256];
 
 
@@ -621,7 +624,7 @@ void report_results
 )
 
 {
-  const int MAXBUF = 7936;    /* maximum buffer string length */
+  const int MAXBUF = 65000;   /* maximum buffer string length */
   int m;                      /* coefficient index */
   int is;                     /* stimulus index */
   int ilag;                   /* time lag index */
@@ -765,7 +768,10 @@ void report_results
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	}
     }
-  
+
+  if (strlen(lbuf) >= MAXBUF) 
+    strcat (lbuf, "\n\nWarning:  Screen output buffer is full. \n");
+
   *label = lbuf ;  /* send address of lbuf back in what label points to */
 
 }

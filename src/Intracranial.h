@@ -11,6 +11,9 @@
   File:    Intracranial.h
   Author:  B. Douglas Ward
   Date:    04 June 1999
+
+  Mod:     Set MAX_STRING_LENGTH equal to THD_MAX_NAME.
+  Date:    02 December 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -31,7 +34,7 @@ static int   min_conn_int   = 4;
 static float max_conn_float = 2.0;    /* maximum voxel connectivity to leave */
 static int   max_conn_int   = 2;
 
-#define MAX_STRING_LENGTH 80
+#define MAX_STRING_LENGTH THD_MAX_NAME
 
 
 /*---------------------------------------------------------------------------*/

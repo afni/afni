@@ -36,18 +36,23 @@
   Mod:     Added changes for incorporating History notes.
   Date:    10 September 1999
 
+  Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
+  Date:    02 December 2002
 */
 
 /*---------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME "2dImReg"                       /* name of this program */
-#define PROGRAM_DATE "10 September 1999"         /* date of last program mod */
+#define PROGRAM_NAME    "2dImReg"                   /* name of this program */
+#define PROGRAM_INITIAL "04 Feb 1998"     /* date of initial program release */
+#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
 
-#define MAX_NAME_LENGTH 80          /* max. strength length for file names */ 
-#define STATE_DIM 4                 /* number of registration parameters */   
+/*---------------------------------------------------------------------------*/
 
 #include "mrilib.h"
 #include "matrix.h"
+
+#define MAX_NAME_LENGTH THD_MAX_NAME  /* max. string length for file names */ 
+#define STATE_DIM 4                   /* number of registration parameters */ 
 
 
 /*----- Global variables -----*/ 
@@ -1478,10 +1483,12 @@ int main
   float * new_rms_array = NULL;        /* registered data volume RMS error */
 
 
+   
   /*----- Identify software -----*/
   printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
   

@@ -49,6 +49,9 @@
   Mod:     Modified routine write_afni_data so that all output
            subbricks will now have the scaled short integer format.
   Date:    14 March 2002
+
+  Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
+  Date:    02 December 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -56,7 +59,7 @@
 #define PROGRAM_NAME    "3dRegAna"                   /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "10 Oct 1997"     /* date of initial program release */
-#define PROGRAM_LATEST  "14 Mar 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -111,7 +114,7 @@
 
 #define MAX_XVARS 101            /* max. number of independent variables */
 #define MAX_OBSERVATIONS 1000    /* max. number of input datasets */
-#define MAX_NAME_LENGTH 80       /* max. streng length for file names */ 
+#define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
 #define MEGA  1048576            /* one megabyte */
 
 static char * commandline = NULL ;       /* command line for history notes */

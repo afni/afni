@@ -20,6 +20,8 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
+  Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
+  Date:    02 December 2002
 */
 
 
@@ -29,15 +31,13 @@
 #define PROGRAM_NAME "3dFWHM"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "20 February 1997"/* date of initial program release */
-#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST  "02 December 2002"/* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
-#define MAX_NAME_LENGTH 80            /* max. strength length for file names */
-
-
 #include "mrilib.h"
 
+#define MAX_NAME_LENGTH THD_MAX_NAME    /* max. string length for file names */
 
 /*---------------------------------------------------------------------------*/
 
