@@ -180,7 +180,7 @@ int main( int argc , char *argv[] )
    if( VL_verbose ) fprintf(stderr,"++ Initializing alignment base\n") ;
 
    if( VL_imbase == NULL ){
-      VL_imbase = mri_to_float(DSET_BRICK(VL_dset,VL_nbase)) ;
+      VL_imbase = mri_to_float(DSET_BRICK(VL_dset,VL_nbase)) ; /* copy this */
    } else {
       VL_nbase = -1 ;  /* will not match any sub-brick index */
    }
@@ -628,8 +628,9 @@ void VL_syntax(void)
     "                                  proportional to the brick specified here\n"
     "                                  [default=smoothed base brick].\n"
     "                     -twopass = Do two passes of the registration algorithm:\n"
-    "                                 (1) with smoothed base and data bricks, to\n"
-    "                                     get a crude alignment, then\n"
+    "                                 (1) with smoothed base and data bricks, with\n"
+    "                                     linear interpolation, to get a crude\n"
+    "                                     alignment, then\n"
     "                                 (2) with the input base and data bricks, to\n"
     "                                     get a fine alignment.\n"
     "                                This method is useful when aligning high-\n"
@@ -643,13 +644,21 @@ void VL_syntax(void)
     "                                Use '-verbose -verbose' to check on the\n"
     "                                iterative progress of the passes.\n"
     "\n"
-    " WARNINGS: This program can consume VERY large quantities of memory.\n"
-    "            Use of '-verbose -verbose' will show the amount of workspace,\n"
-    "            and the steps used in each iteration.\n"
-    "           Always check the results visually to make sure that the program\n"
-    "            wasn't trapped in a 'false optimum'.\n"
+    " N.B.: * This program can consume VERY large quantities of memory.\n"
+    "          Use of '-verbose -verbose' will show the amount of workspace,\n"
+    "          and the steps used in each iteration.\n"
+    "       * Always check the results visually to make sure that the program\n"
+    "          wasn't trapped in a 'false optimum'.\n"
+    "       * The default rotation threshold is reasonable for 64x64 images.\n"
+    "          You may want to decrease it proportionally for larger datasets.\n"
+    "       * -twopass resets the -maxite parameter to 50; if you want to use\n"
+    "          a different value, use -maxite AFTER the -twopass option.\n"
+    "       * After registering high-resolution anatomicals, you may need to\n"
+    "          set their origins in 3D space to match.  This can be done using\n"
+    "          the '-duporigin' option to program 3drefit.\n"
 
    , VL_maxite , VL_dxy , VL_dph , VL_del ) ;
+
    return ;
 }
 
@@ -836,35 +845,29 @@ void VL_command_line(void)
 
         } else {             /* it WAS NOT an integer */
 
-          THD_3dim_dataset * bset ;
-          char dname[256] ;
+          THD_3dim_dataset * bset ;   /* 13 Sep 2000: replaced old code */
+                                      /* with use of THD_open_dataset() */
 
-          /* break it into 'bset[bb]' pieces */
-
-          cpt = strstr( Argv[Iarg] , "[" ) ;
-          if( cpt == NULL || cpt == Argv[Iarg] ){
-             fprintf(stderr,"*** Illegal base dataset after -base\n"); exit(1);
-          }
-          ii = cpt - Argv[Iarg] ;
-          memcpy(dname,Argv[Iarg],ii) ; dname[ii] = '\0' ;
-          bb = -1 ; sscanf( cpt+1 , "%d" , &bb ) ;
-          if( bb < 0 ){
-             fprintf(stderr,"*** Illegal sub-brick selector after -base\n"); exit(1);
-          }
-          VL_nbase  = bb ;
-          VL_intern = 0 ;   /* not internal to input dataset */
-
-          bset = THD_open_one_dataset( dname ) ;
+          bset = THD_open_dataset( Argv[Iarg] ) ;
           if( bset == NULL ){
-             fprintf(stderr,"*** Can't open base dataset %s\n",dname); exit(1);
-          }
-          if( bb >= DSET_NVALS(bset) ){
-             fprintf(stderr,"*** Illegal sub-brick selector for dataset %s\n",dname);
+             fprintf(stderr,"*** Couldn't open -base dataset %s\n",Argv[Iarg]) ;
              exit(1) ;
           }
           if( VL_verbose )
              fprintf(stderr,"++ Reading in base dataset %s\n",DSET_BRIKNAME(bset)) ;
           DSET_load(bset) ;
+          if( !DSET_LOADED(bset) ){
+             fprintf(stderr,"*** Couldn't read -base dataset %s\n",
+                     DSET_BRIKNAME(bset)) ;
+             exit(1) ;
+          }
+          if( DSET_NVALS(bset) > 1 )
+             fprintf(stderr,
+                     "+++ WARNING: -base dataset %s has more than 1 sub-brick\n",
+                     Argv[Iarg]) ;
+
+          VL_intern = 0 ;   /* not internal to input dataset */
+
           VL_imbase = mri_to_float( DSET_BRICK(bset,bb) ) ;  /* copy this */
           DSET_delete( bset ) ;                              /* toss this */
         }

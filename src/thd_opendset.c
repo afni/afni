@@ -24,7 +24,7 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
    /*-- perhaps open the new-fangled way [22 May 2000] --*/
 
    if( getenv("AFNI_USE_THD_open_dataset") != NULL &&
-       strstr(pathname,"[")           != NULL   ){
+       strstr(pathname,"[")                != NULL   ){
 
       return THD_open_dataset( pathname ) ;
    }

@@ -50,6 +50,9 @@ void Syntax(char * str)
     "               ** SPECIAL CASE: you can use the string 'cen' in place of\n"
     "                  a distance to force that axis to be re-centered.\n"
     "\n"
+    "  -duporigin cset Copies the xorigin, yorigin, and zorigin values from\n"
+    "                  the header of dataset 'cset'.\n"
+    "\n"
     "  -dxorigin dx    Adds distance 'dx' (or 'dy', or 'dz') to the center\n"
     "  -dyorigin dy    coordinate of the edge voxel.  Can be used with the\n"
     "  -dzorigin dz    values input to the 'Nudge xyz' plugin.\n"
@@ -166,9 +169,9 @@ int main( int argc , char * argv[] )
    THD_dataxes      * daxes ;
    int new_stuff = 0 ;
    int new_orient = 0 ; char orient_code[4] ; int xxor,yyor,zzor ;
-   int new_xorg   = 0 ; float xorg ; int cxorg=0 , dxorg=0 ;
-   int new_yorg   = 0 ; float yorg ; int cyorg=0 , dyorg=0 ;
-   int new_zorg   = 0 ; float zorg ; int czorg=0 , dzorg=0 ;
+   int new_xorg   = 0 ; float xorg ; int cxorg=0, dxorg=0 , duporg=0 ;
+   int new_yorg   = 0 ; float yorg ; int cyorg=0, dyorg=0 ;
+   int new_zorg   = 0 ; float zorg ; int czorg=0, dzorg=0 ;
    int new_xdel   = 0 ; float xdel ;
    int new_ydel   = 0 ; float ydel ;
    int new_zdel   = 0 ; float zdel ;
@@ -417,6 +420,21 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /* 13 Sep 2000: -duporigin */
+
+      if( strcmp(argv[iarg],"-duporigin") == 0 ){
+         THD_3dim_dataset * cset ;
+         if( ++iarg >= argc ) Syntax("need an argument after -duporigin!");
+         cset = THD_open_dataset( argv[iarg] ) ;
+         if( cset == NULL ) Syntax("couldn't open -duporigin dataset!");
+         daxes = cset->daxes ;
+         xorg = daxes->xxorg ; yorg = daxes->yyorg ; zorg = daxes->zzorg ;
+         cxorg = cyorg = czorg = dxorg = dyorg = dzorg = 0 ;
+         new_xorg = new_yorg = new_zorg = duporg = 1 ; new_stuff++ ;
+         DSET_delete(cset) ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
       /* 02 Mar 2000: -d?origin stuff, to go with plug_nudge.c */
 
       if( strncmp(argv[iarg],"-dxorigin",4) == 0 ){
@@ -638,16 +656,22 @@ int main( int argc , char * argv[] )
 
       if( dxorg )
          daxes->xxorg += xorg ;
+      else if( duporg )
+         daxes->xxorg = xorg ;
       else if( new_xorg || new_orient )
          daxes->xxorg = (ORIENT_sign[daxes->xxorient] == '+') ? (-xorg) : (xorg) ;
 
       if( dyorg )
          daxes->yyorg += yorg ;
+      else if( duporg )
+         daxes->yyorg = yorg ;
       else if( new_yorg || new_orient )
          daxes->yyorg = (ORIENT_sign[daxes->yyorient] == '+') ? (-yorg) : (yorg) ;
 
       if( dzorg )
          daxes->zzorg += zorg ;
+      else if( duporg )
+         daxes->zzorg = zorg ;
       else if( new_zorg || new_orient )
          daxes->zzorg = (ORIENT_sign[daxes->zzorient] == '+') ? (-zorg) : (zorg) ;
 

@@ -2256,4 +2256,8 @@
      in 3dmerge.c to use fake values of dx=dy=dz=1.
  * Added -1filter_winsor to 3dmerge.c and edt_filtervol.c.
  * Added "IJK lock" to afni.[ch] and afni_widg.c (Lock menu).
- * Added "-twopass" option to 3dvolreg.c.
+ * Added -twopass option to 3dvolreg.c.
+
+13 Sep 2000
+ * Finalized -twopass changes to 3dvolreg.c.
+ * Add -duporigin option to 3drefit.c.
