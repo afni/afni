@@ -473,7 +473,16 @@ typedef struct {
    XtPointer parent ;
 
    float tmed[MAT_MAX][MAT_MAX] , tmad[MAT_MAX][MAT_MAX] ;    /* 08 Mar 2001 */
+
+   XtIntervalId timer_id ;                          /* 04 Dec 2003 */
+   int          timer_func, timer_param, timer_delay ;
+
 } MCW_grapher ;
+
+#define GRA_TIMERFUNC_INDEX 701
+
+extern void GRA_timer_CB( XtPointer , XtIntervalId * ) ; /* 04 Dec 2003 */
+extern void GRA_timer_stop( MCW_grapher * ) ;
 
 #define BASELINE_INDIVIDUAL  1  /* 07 Aug 2001 */
 #define BASELINE_COMMON      2

@@ -535,7 +535,7 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 
    /*-- 03 Dec 2001: try to read MPEG "datasets" --*/
 
-   if( getenv("AFNI_MPEG_DATASETS") != NULL ){
+   if( !AFNI_noenv("AFNI_MPEG_DATASETS") ){
      char ename[4*THD_MAX_NAME+64] , **fn_mpeg , *eee ;
      int num_mpeg , ii ;
 

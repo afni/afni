@@ -4660,16 +4660,17 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
 
            /* 03 Dec 2003: advance picture continuously? */
 
-           case 'm':
-           case 'M':{
+           case 'v':
+           case 'V':{
              if( seq->button2_enabled ){
                MCW_popup_message( w, " \n Not when \n"
                                         " Drawing! \n ", MCW_USER_KILL );
                XBell(seq->dc->display,100) ;
              } else if( seq->status->num_total > 1 ){      /* bring it on */
                seq->timer_func  = ISQ_TIMERFUNC_INDEX ;
-               seq->timer_delay = 1 ;
-               seq->timer_param = (buf[0] == 'm') ? -1 : 1 ;
+               seq->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
+               if( seq->timer_delay <= 0 ) seq->timer_delay = 1 ;
+               seq->timer_param = (buf[0] == 'v') ? 1 : -1 ;
                seq->timer_id    =
                  XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
                                   seq->timer_delay , ISQ_timer_CB , seq ) ;
