@@ -120,6 +120,10 @@
            graph options menu.
   Date:    06 May 2002
 
+  Mod:     Fixed bug in show_options rountine that would cause program crash 
+           when the baseline was set to "None".
+  Date:    03 Oct 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -127,7 +131,7 @@
 #define PROGRAM_NAME    "plug_deconvolve"            /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "06 May  2002"    /* date of latest program revision */
+#define PROGRAM_LATEST  "03 Oct  2002"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -617,7 +621,7 @@ static void show_options ()
 
   /*----- Show current input options -----*/
   printf ("\nControls: \n");
-  printf ("Baseline  = %10s \n", baseline_strings[plug_polort]);
+  printf ("Baseline  = %10s \n", baseline_strings[plug_polort+1]);
   printf ("NFirst    = %10d \n", plug_NFirst);
   printf ("NLast     = %10d \n", plug_NLast);
   printf ("IRF label = %10s \n", IRF_label);
