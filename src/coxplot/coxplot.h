@@ -168,6 +168,7 @@ extern int            create_memplot_surely( char *, float ) ;      /* 20 Sep 20
 extern MEM_plotdata * copy_memplot( MEM_plotdata * ) ; /*-- 26 Feb 2001 --*/
 extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;
 extern void           scale_memplot( float,float,float,float,float,MEM_plotdata * );
+extern MEM_plotdata * clip_memplot( float,float,float,float , MEM_plotdata * ) ;
 
 extern void           cutlines_memplot( int,int,MEM_plotdata * ) ; /* 15 Nov 2001 */
 extern void           insert_at_memplot( int , MEM_plotdata * ) ;

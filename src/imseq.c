@@ -8888,6 +8888,7 @@ ENTRY("ISQ_getmemplot") ;
      float sx,sy,tx,ty ;
      float xa=seq->crop_xa, xb=seq->crop_xb, ya=seq->crop_ya, yb=seq->crop_yb ;
      float nxorg=seq->crop_nxorg , nyorg=seq->crop_nyorg ;
+     MEM_plotdata *np ;
 
      /** Original plot has [0..1]x[0..1] mapped to [0..nxorg]x[nyorg..0].
          Now, image will be cropped to [xa..xb]x[ya..yb], which will be
@@ -8901,8 +8902,8 @@ ENTRY("ISQ_getmemplot") ;
          Input:   x_plot  = x_image / nxorg
                   y_plot  = 1 - y_image / nyorg
 
-         Output:  x_plot' = sx * x_plot + tx   } This is done in
-                  y_plot' = sy * y_plot + ty   } scale_memplot function
+         Output:  x_plot' = sx * x_plot + tx   > This is done in
+                  y_plot' = sy * y_plot + ty   > scale_memplot function
 
          Find sx,tx so that x_plot'[x_image=xa]=0 and x_plot'[x_image=xb]=1.
          Find sy,ty so that y_plot'[y_image=yb]=0 and y_plot'[y_image=ya]=1. **/
@@ -8914,6 +8915,8 @@ ENTRY("ISQ_getmemplot") ;
      ty = -sy * (1.0 - yb / nyorg) ;
 
      scale_memplot( sx,tx , sy,ty , 1.0 , mp ) ;
+     np = clip_memplot( 0.0,0.0 , 1.0,1.0 , mp ) ;
+     DESTROY_MEMPLOT(mp) ; mp = np ;
    }
 
    RETURN(mp) ;
