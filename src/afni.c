@@ -1279,6 +1279,8 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
 
         AFNI_register_slice_proj( "Median"  , qmed_float ) ; /* in cs_qmed.c */
 
+        AFNI_register_slice_proj( "Extreme" , extreme_proj ) ; /* 02 Feb 2002 */
+
 #ifdef HUBERIZE
         AFNI_register_1D_funcstr( "Huber Fit" , huber_func ) ;
 #endif

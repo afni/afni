@@ -4078,9 +4078,16 @@ ENTRY("ISQ_but_disp_CB") ;
              MCW_reghelp_children( seq->slice_proj_av->wrowcol ,
                                    "Choose a projection function\n"
                                    "to apply to plus-or-minus\n"
-                                   "'Slab' slices."                  ) ;
+                                   "'Slab' slices from each pixel.\n"
+                                   "Built-in projections:\n"
+                                   " Minimum = smallest value in slab\n"
+                                   " Maximum = largest value in slab\n"
+                                   " Mean    = average value in slab\n"
+                                   " Median  = median value in slab\n"
+                                   " Extreme = value farthest from median" ) ;
+
              MCW_reghint_children( seq->slice_proj_av->wrowcol ,
-                                   "Slice projection function"       ) ;
+                                   "Slice projection function"  ) ;
 
              seq->slice_proj_range_av =
                 new_MCW_optmenu( rcboxes , "Slab +-" ,
@@ -4090,9 +4097,11 @@ ENTRY("ISQ_but_disp_CB") ;
              MCW_reghelp_children( seq->slice_proj_range_av->wrowcol ,
                                    "Choose thickness of Project slice\n"
                                    "package (in each direction from\n"
-                                   "central slice)."                    ) ;
+                                   "central slice).  For example:\n"
+                                   " 2 ==> slab is 5 slices thick\n"
+                                   "       (2 before, 2 after, central)" ) ;
              MCW_reghint_children( seq->slice_proj_range_av->wrowcol ,
-                                   "Slice projection slab size"         ) ;
+                                   "Slab half-thickness"              ) ;
              nav++ ;
          }
 

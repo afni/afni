@@ -142,6 +142,19 @@ float mean_proj( int n , float *ar )
    return (v/n) ;
 }
 
+float extreme_proj( int n , float *ar )  /* 02 Feb 2002 */
+{
+   float vv,ww , med=qmed_float(n,ar) ;
+   int ii , jj ;
+
+   jj = 0 ; vv = fabs(ar[0]-med) ;       /* Find the value */
+   for( ii=1 ; ii < n ; ii++ ){          /* furthest from */
+      ww = fabs(ar[ii]-med) ;            /* the median.  */
+      if( ww > vv ){ vv=ww; jj=ii; }
+   }
+   return ar[jj] ;
+}
+
 /*======================================================================*/
 /*----------------------- Sample 2D transformations --------------------*/
 /*======================================================================*/
