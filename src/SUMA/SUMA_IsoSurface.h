@@ -84,7 +84,9 @@ typedef struct {
    int DoSpatNorm;
    int WriteSpatNorm;
    int fillhole;
+   THD_3dim_dataset *iset;
    FILE *dbg_eyenodes;
+   float SpatShift[3];
 } SUMA_ISOSURFACE_OPTIONS;
 
 SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt);

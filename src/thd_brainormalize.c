@@ -961,6 +961,15 @@ static void ijkwarp( float  i, float  j, float  k ,
   *z = ak*k + bk ;
 }
 
+static void ijk_invwarp(   float x, float y, float z ,  
+                           float  *i, float  *j, float  *k)
+{
+  *i = ( x - bi ) / ai;
+  *j = ( y - bj ) / aj;
+  *k = ( z - bk ) / ak;
+}
+
+
 /*! 
    \brief takes in voxel indices into the Spat Normed volume (RAI) and
    returns voxel indices and coordinates in the original volume. Used
@@ -978,6 +987,8 @@ static void ijkwarp( float  i, float  j, float  k ,
    \param *zrai_orig (float *) Z coordinate in original volume (dicomm)
    
    ZSS Sometime in April 05
+   
+   \sa brainnormalize_inv_coord
 */
 void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
                            float *iorig, float *jorig, float *korig ,
