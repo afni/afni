@@ -1386,12 +1386,14 @@ ENTRY("AFNI_drive_set_threshold") ;
 /*------------------------------------------------------------------------*/
 /*! SET_PBAR_NUMBER [c.]num
     as in "SET_PBAR_NUMBER A.3"
+    use a large number (99, say) to turn on colorscale mode
 --------------------------------------------------------------------------*/
 
 static int AFNI_drive_set_pbar_number( char *cmd )
 {
    int ic , dadd=2 , num=-1 ;
    Three_D_View *im3d ;
+   MCW_pbar *pbar ;
 
 ENTRY("AFNI_drive_set_pbar_number") ;
 
@@ -1404,10 +1406,26 @@ ENTRY("AFNI_drive_set_pbar_number") ;
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
 
+   pbar = im3d->vwid->func->inten_pbar ;
+
    num = (int) strtod( cmd+dadd , NULL ) ;
-   if( num < NPANE_MIN || num > NPANE_MAX ) RETURN(-1) ;
+   if( num < NPANE_MIN ) RETURN(-1) ;
+   if( num > NPANE_MAX ) num = NPANE_MAX+1 ;
    AV_assign_ival( im3d->vwid->func->inten_av , num ) ;
-   alter_MCW_pbar( im3d->vwid->func->inten_pbar , num , NULL ) ;
+
+   HIDE_SCALE(im3d) ;
+   if( num <= NPANE_MAX ){
+     pbar->bigmode = 0 ;
+     alter_MCW_pbar( pbar , num , NULL ) ;
+   } else {
+     int npane=pbar->num_panes , jm=pbar->mode ;
+     float pmax=pbar->pval_save[npane][0][jm] ,
+           pmin=pbar->pval_save[npane][npane][jm] ;
+     PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
+     AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+   }
+   FIX_SCALE_SIZE(im3d) ;
+
    RETURN(0) ;
 }
 
@@ -1453,6 +1471,7 @@ ENTRY("AFNI_drive_set_pbar_sign") ;
 /*-------------------------------------------------------------------------*/
 /*! SET_PBAR_ALL [c.]{+|-}num val=color val=color ...
    "SET_PBAR_ALL A.+5 1.0=yellow 0.5=red 0.05=none -0.05=blue -0.50=cyan"
+   "SET_PBAR_ALL A.+99 topval colorscale_name"
 ---------------------------------------------------------------------------*/
 
 static int AFNI_drive_set_pbar_all( char *cmd )
@@ -1486,53 +1505,72 @@ ENTRY("AFNI_drive_set_pbar_all") ;
    /* get number of panes */
 
    sscanf( cmd+dadd , "%d%n" , &npan , &nn ) ;
-   if( npan < NPANE_MIN || npan > NPANE_MAX ) RETURN(-1) ;
+   if( npan < NPANE_MIN ) RETURN(-1) ;
+   if( npan > NPANE_MAX ) npan = NPANE_MAX+1 ;
    dadd += nn ;
-
-   /* get value=colorname array */
-
-   for( ii=0 ; ii < npan ; ii++ ){
-     str[0] = '\0' ; nn = 0 ;
-     sscanf( cmd+dadd , "%f=%255s%n" , &val,str,&nn ) ;
-     if( str[0] == '\0' || nn == 0 ) RETURN(-1) ;  /* can't parse */
-
-     col = DC_find_overlay_color( GLOBAL_library.dc , str ) ;
-     if( col < 0 )                   RETURN(-1) ;  /* bad color name */
-
-     for( jj=0 ; jj < ii ; jj++ )                  /* check ordering */
-       if( pval[jj] <= val )         RETURN(-1) ;
-
-     if( ii > 0 ){                                 /* check size */
-       if( fabs(val) >= pval[0] )    RETURN(-1) ;
-       if( pos && val <= 0.0 )       RETURN(-1) ;
-     } else {
-       if( val <= 0.0 )              RETURN(-1) ;
-     }
-
-     pval[ii] = val ; pcol[ii] = col ;
-     dadd += nn ;
-   }
-   if( pos ) pval[npan] = 0.0 ;        /* set bottom level */
-   else      pval[npan] = -pval[0] ;
-
-   /* now set pbar values */
 
    pbar = im3d->vwid->func->inten_pbar ;
 
-   im3d->vinfo->use_posfunc = pbar->mode = pos ;
-   MCW_set_bbox( im3d->vwid->func->inten_bbox , pos ) ;
+   if( npan <= NPANE_MAX ){ /* discrete panes: get value=colorname array */
 
-   for( ii=0 ; ii < npan ; ii++ ){
-     pbar->ov_index[ii] = pbar->ovin_save[npan][ii][pos] = pcol[ii] ;
-     PBAR_set_panecolor( pbar , ii , pcol[ii] ) ;
+     for( ii=0 ; ii < npan ; ii++ ){
+       str[0] = '\0' ; nn = 0 ;
+       sscanf( cmd+dadd , "%f=%255s%n" , &val,str,&nn ) ;
+       if( str[0] == '\0' || nn == 0 ) RETURN(-1) ;  /* can't parse */
+
+       col = DC_find_overlay_color( GLOBAL_library.dc , str ) ;
+       if( col < 0 )                   RETURN(-1) ;  /* bad color name */
+
+       for( jj=0 ; jj < ii ; jj++ )                  /* check ordering */
+         if( pval[jj] <= val )         RETURN(-1) ;
+
+       if( ii > 0 ){                                 /* check size */
+         if( fabs(val) >= pval[0] )    RETURN(-1) ;
+         if( pos && val <= 0.0 )       RETURN(-1) ;
+       } else {
+         if( val <= 0.0 )              RETURN(-1) ;
+       }
+  
+       pval[ii] = val ; pcol[ii] = col ;
+       dadd += nn ;
+     }
+     if( pos ) pval[npan] = 0.0 ;        /* set bottom level */
+     else      pval[npan] = -pval[0] ;
+
+   } else {     /* 03 Feb 2003: get topval and colorscale_name */
+
+     str[0] = '\0' ; val = 0.0 ;
+     sscanf( cmd+dadd , "%f %s" , &val, str ) ;
+     if( val <= 0.0 ) RETURN(-1) ;
    }
 
-   AV_assign_ival( im3d->vwid->func->inten_av , npan ) ;
-   alter_MCW_pbar( pbar , npan , pval ) ;
+   /* now set pbar values (and other widgets) */
 
-   AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
-                      (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
-                                                      : im3d->vinfo->fim_autorange );
+   im3d->vinfo->use_posfunc = pbar->mode = pos ;
+   MCW_set_bbox( im3d->vwid->func->inten_bbox , pos ) ;
+   AV_assign_ival( im3d->vwid->func->inten_av , npan ) ;
+
+   HIDE_SCALE(im3d) ;
+   if( npan <= NPANE_MAX ){         /* set discrete panels */
+     for( ii=0 ; ii < npan ; ii++ ){
+       pbar->ov_index[ii] = pbar->ovin_save[npan][ii][pos] = pcol[ii] ;
+       PBAR_set_panecolor( pbar , ii , pcol[ii] ) ;
+     }
+     pbar->bigmode = 0 ;
+     alter_MCW_pbar( pbar , npan , pval ) ;
+     AFNI_hintize_pbar( pbar , (im3d->vinfo->fim_range != 0.0)
+                                ? im3d->vinfo->fim_range
+                                : im3d->vinfo->fim_autorange ) ;
+   } else {    /* set the colorscale */
+     float pmax, pmin ;
+     pbar->bigset = 0 ;
+     pmax = val ; pmin = (pbar->mode) ? 0.0 : -pmax ;
+     PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
+     PBAR_set_bigmap( pbar , str ) ;
+     AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+   }
+   FIX_SCALE_SIZE(im3d) ;
+
    RETURN(0) ;
 }
 

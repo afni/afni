@@ -50,6 +50,15 @@ SET_PBAR_ALL [c.]{+|-}num val=color val=color ...
   The top pane runs from 2.0-1.5 and is yellow; the second pane runs from
   1.5-1.0 and is blue, etc.  The 'color' values must be legal color labels.
 
+SET_PBAR_ALL [c.]{+|-}99 topval colorscale_name
+  Sets the color pbar for controller #c to be in "continuous" colorscale
+  mode.  Again, '+' or '-' is used to specify if the colorscale should
+  be positive-only or signed.  The special value of 99 panes is used
+  to indicate colorscale mode.  The number 'topval' tells the scale
+  value to go at the top of the colorscale.  The string 'colorscale_name'
+  tells which colorscale to use.  For example:
+    SET_PBAR_ALL A.+99 1.0 Color_circle_AJJ
+
 PBAR_ROTATE [c.]{+|-}
   Rotates the color pbar in the positive ('+') or negative ('-') direction:
     PBAR_ROTATE A.+
