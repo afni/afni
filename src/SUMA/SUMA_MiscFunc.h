@@ -58,9 +58,15 @@ used linear pointer storage methods making for inefficient searching
    debugtrace.c/h
    */
    #define SUMA_free mcw_free
-   #define SUMA_malloc(a) mcw_malloc((a),__FILE__,__LINE__)
-   #define SUMA_calloc(a,b) mcw_calloc((a),(b),__FILE__,__LINE__)
-   #define SUMA_realloc(a,b) mcw_realloc((a),(b),__FILE__,__LINE__)
+   #ifndef DONT_USE_MCW_MALLOC
+      #define SUMA_malloc(a) mcw_malloc((a),__FILE__,__LINE__)
+      #define SUMA_calloc(a,b) mcw_calloc((a),(b),__FILE__,__LINE__)
+      #define SUMA_realloc(a,b) mcw_realloc((a),(b),__FILE__,__LINE__)
+   #else
+      #define SUMA_malloc(a) mcw_malloc((a))
+      #define SUMA_calloc(a,b) mcw_calloc((a))
+      #define SUMA_realloc(a,b) mcw_realloc((a),(b))
+   #endif
    #define SUMA_ENTRY ENTRY(FuncName)
    #define SUMA_RETURN RETURN
    #define SUMA_RETURNe EXRETURN
