@@ -459,6 +459,10 @@ extern void NI_malloc_dump(void) ;
 extern void NI_malloc_enable_tracking(void) ;
 extern int NI_malloc_tracking_enabled(void) ;
 
+extern int NI_malloc_replace( void *(*um)(size_t)        ,
+                              void *(*ur)(void *,size_t) ,
+                              void  (*uf)(void *)         ) ;
+
 /*! Free and set pointer to NULL. */
 #define NI_FREE(p) ( NI_free(p), (p)=NULL )
 

@@ -178,7 +178,7 @@ void NIML_to_stderr( void *nini , int send )
 {
    NI_stream ns_err ;
    if( NI_element_type(nini) != NI_ELEMENT_TYPE ) return ;
-   ns_err = NI_stream_open( "fd:2" , "w" ) ;
+   ns_err = NI_stream_open( "stderr:" , "w" ) ;
    if( ns_err != NULL ){
      if( send )
        fprintf(stderr,"-------------- AFNI sends NIML element: --------------\n");

@@ -352,8 +352,8 @@ static int tcp_listen( int port )
    with a pointer to the Internet address (in 'dot' form) of the host that
    connected.
 
-   Both the char * pointers returned are from malloc(), and should be
-   free()-d when no longer needed.  If they aren't needed at all, just
+   Both the char * pointers returned are from NI_malloc(), and should be
+   NI_free()-d when no longer needed.  If they aren't needed at all, just
    pass in NULL for these arguments.
 
    Note that this routine will block until somebody connects.  You can
@@ -420,7 +420,8 @@ static char * init_hosts[] = { /*!< Initial list of OK computers */
 /*----------------------------------------------------------------*/
 /*! Return the Internet address (in 'dot' format, as a string)
    given the name of the host.  If NULL is returned, some
-   error occurrrrred.  The string is malloc()-ed.
+   error occurrrrred.  The string is NI_malloc()-ed, and should
+   be NI_free()-ed when no longer needed.
 ------------------------------------------------------------------*/
 
 char * NI_hostname_to_inet( char *host )
@@ -474,11 +475,11 @@ static void add_trusted_host( char *hnam )
       hh = hnam ;                     /* store dotted number */
    }
 
-   host_list = (char **) realloc(host_list,sizeof(char *)*(host_num+1)) ;
-   host_list[host_num] = (char *) malloc(HSIZE) ;
+   host_list = (char **) NI_realloc(host_list,sizeof(char *)*(host_num+1)) ;
+   host_list[host_num] = (char *) NI_malloc(HSIZE) ;
    strcpy( host_list[host_num] , hh ) ; host_num++ ;
 
-   if( hh != hnam ) free(hh) ;
+   if( hh != hnam ) NI_free(hh) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -492,9 +493,9 @@ static void init_trusted_list(void)
 
    if( host_num == 0 ){
       host_num = INIT_NHO ;
-      host_list = (char **) malloc( sizeof(char *) * INIT_NHO ) ;
+      host_list = (char **) NI_malloc( sizeof(char *) * INIT_NHO ) ;
       for( ii=0 ; ii < INIT_NHO ; ii++ ){
-         host_list[ii] = (char *) malloc(HSIZE) ;
+         host_list[ii] = (char *) NI_malloc(HSIZE) ;
          strcpy( host_list[ii] , init_hosts[ii] ) ;
       }
 
@@ -541,7 +542,7 @@ int NI_trust_host( char *hostid )
    if( hostid == NULL || hostid[0] == '\0' ) return 0 ;
 
    if( !hostname_dotted(hostid) ){
-      hh = NI_hostname_to_inet(hostid) ;  /* will be malloc()-ed */
+      hh = NI_hostname_to_inet(hostid) ;  /* will be NI_malloc()-ed */
       if( hh == NULL ) return 0 ;
    }
 
@@ -550,12 +551,12 @@ int NI_trust_host( char *hostid )
 
    for( ii=0 ; ii < host_num ; ii++ ){
       if( strstr(hh,host_list[ii]) == hh ){
-        if( hh != hostid ) free(hh) ;
+        if( hh != hostid ) NI_free(hh) ;
         return 1 ;
       }
    }
 
-   if( hh != hostid ) free(hh) ;
+   if( hh != hostid ) NI_free(hh) ;
    return 0 ;
 }
 
@@ -790,7 +791,7 @@ static SHMioc * SHM_init( char * name , char * mode )
 
    /** initialize SHMioc **/
 
-   ioc = (SHMioc *) calloc( 1 , sizeof(SHMioc) ) ;
+   ioc = (SHMioc *) NI_malloc( sizeof(SHMioc) ) ;
 
    strcpy( ioc->name , key ) ;  /* save the key name  */
 
@@ -815,7 +816,7 @@ static SHMioc * SHM_init( char * name , char * mode )
          jj = SHM_fill_accept( ioc ) ;  /* fill struct */
 
          if( jj < 0 ){                  /* this is bad */
-           free(ioc) ; return NULL ;
+           NI_free(ioc); return NULL;
          }
 
          return ioc ;                   /** DONE **/
@@ -830,11 +831,11 @@ static SHMioc * SHM_init( char * name , char * mode )
       ioc->whoami = SHM_CREATOR ;
       ioc->id = SHM_create( key, size1+size2+SHM_HSIZE+4 ) ; /* create it */
       if( ioc->id < 0 ){                                     /* can't? quit */
-         free(ioc) ; return NULL ;
+         NI_free(ioc); return NULL;
       }
       bbb = SHM_attach( ioc->id ) ;                        /* attach it   */
       if( bbb == NULL ){                                   /* can't? quit */
-         free(ioc) ; return NULL ;
+         NI_free(ioc); return NULL;
       }
 
       ioc->shmbuf   = bbb ;                                /* buffer */
@@ -865,7 +866,7 @@ static SHMioc * SHM_init( char * name , char * mode )
       if( jj > 2 ){                                        /* should not  */
         shmdt( bbb ) ;                                     /* happen ever */
         shmctl( ioc->id , IPC_RMID , NULL ) ;
-        free(ioc) ; return NULL ;
+        NI_free(ioc); return NULL;
       }
 
       ioc->bad  = (jj < 2)          /* ready if both   */
@@ -979,7 +980,7 @@ static void SHM_close( SHMioc *ioc )
       ioc->bad = SHM_IS_DEAD ;               /* leave for dead */
    }
 
-   free(ioc) ; return ;
+   NI_free(ioc) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1339,6 +1340,8 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
              the descriptor comes from fileno() on a previously opened
              FILE stream, you will have trouble if you mix I/O to this
              stream with NI_stream_read()/NI_stream_write().
+           - You can use "stdin:", "stdout:", or "stderr:" as synonyms
+             for "fd:0", "fd:1", and "fd:2".
 
   The formats for the "mode" input are described below:
 
@@ -1569,8 +1572,8 @@ NI_stream NI_stream_open( char *name , char *mode )
                                : NI_INPUT_MODE  ;
       ns->bad      = 0 ;
 
-      ns->buf      = NI_malloc(NI_BUFSIZE) ;
-      ns->bufsize  = NI_BUFSIZE ;
+      ns->bufsize  = do_create ? 16 : NI_BUFSIZE ;
+      ns->buf      = NI_malloc(ns->bufsize) ;
 
       NI_strncpy( ns->name , fname , 256 ) ;
 
@@ -1586,6 +1589,10 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    /********************************************************************/
    /***** fd: very similar to a file, but we don't have to open it *****/
+
+        if( strncmp(name,"stdin:" ,6) == 0 ) name = "fd:0" ;  /* 25 Mar 2003 */
+   else if( strncmp(name,"stdout:",7) == 0 ) name = "fd:1" ;
+   else if( strncmp(name,"stderr:",7) == 0 ) name = "fd:2" ;
 
    if( strncmp(name,"fd:",3) == 0 ){
       int fd=-1 ; FILE *fp ;
@@ -1627,8 +1634,8 @@ NI_stream NI_stream_open( char *name , char *mode )
                                : NI_INPUT_MODE  ;
       ns->bad      = 0 ;
 
-      ns->buf      = NI_malloc(NI_BUFSIZE) ;
-      ns->bufsize  = NI_BUFSIZE ;
+      ns->bufsize  = do_create ? 16 : NI_BUFSIZE ;
+      ns->buf      = NI_malloc(ns->bufsize) ;
 
       NI_strncpy( ns->name , name , 256 ) ;
 
@@ -2138,6 +2145,9 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
 #endif
 
       case NI_FD_TYPE:
+        if( ns->fp != NULL && ns->io_mode == NI_OUTPUT_MODE ) fflush(ns->fp) ;
+      break ;
+
       case NI_REMOTE_TYPE:
       case NI_STRING_TYPE:                     /* nothing to do */
       break ;

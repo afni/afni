@@ -4,6 +4,47 @@
 /************************  NIML malloc stuff *******************************/
 /***************************************************************************/
 
+/*-------------------------------------------------------------------------*/
+/** 25 Mar 2003: allow user to replace malloc, realloc, free functions    **/
+
+static void * (*user_malloc)(size_t)         = NULL ;
+static void * (*user_realloc)(void *,size_t) = NULL ;
+static void   (*user_free)(void *)           = NULL ;
+static int  use_userfunc                     = 0    ;
+static int  ni_mall_used                     = 0    ;
+
+/*-------------------------------------------------------------------------*/
+/*! Allow user to replace malloc(), realloc(), and free() functions used
+    in NI_malloc(), NI_realloc(), and NI_free().
+      - um = replacement for malloc()
+      - ur = replacement for realloc()
+      - uf = replacement for free()
+      - all 3 must be non-NULL
+      - this function must be called BEFORE any call to NI_malloc() etc.
+        takes place, or this function will fail
+      - return value is 1 if the replacement is accepted, 0 if not
+      - note that NI_malloc() always 0 fills the result, even the one
+         returned by um()
+      - RWCox - 25 Mar 2003 (VR Day)
+---------------------------------------------------------------------------*/
+
+int NI_malloc_replace( void *(*um)(size_t)        ,
+                       void *(*ur)(void *,size_t) ,
+                       void  (*uf)(void *)         ){
+
+  if( ni_mall_used ||
+      use_userfunc ||
+      um == NULL   ||
+      ur == NULL   ||
+      uf == NULL     ) return 0 ;
+
+  user_malloc  = um ;
+  user_realloc = ur ;
+  user_free    = uf ;
+  use_userfunc = 1  ;
+  return 1 ;
+}
+
 #if defined(NIML_OLD_MALLOC) || defined(DONT_USE_MCW_MALLOC)
 
 /*--------------------------------------------------------------------------*/
@@ -12,12 +53,17 @@
 
 void * NI_malloc( size_t len )
 {
-   void *p = calloc(1,len) ;
+   void *p ;
+   if( use_userfunc ){
+     p = user_malloc(len) ; if( p != NULL ) memset(p,0,len) ;
+   } else {
+     p = calloc(1,len) ;
+   }
    if( p == NULL ){
      fprintf(stderr,"** ERROR: NI_malloc() fails. Aauugghh!\n") ;
      NI_sleep(333); exit(1);
    }
-   return p ;
+   ni_mall_used = 1 ; return p ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -26,7 +72,11 @@ void * NI_malloc( size_t len )
 
 void NI_free( void *p )
 {
-   if( p != NULL ) free(p) ;
+   if( p != NULL ){
+     if( use_userfunc ) user_free(p) ;
+     else               free(p) ;
+   }
+   ni_mall_used = 1 ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -35,12 +85,15 @@ void NI_free( void *p )
 
 void * NI_realloc( void *p , size_t len )
 {
-   void *q = realloc( p , len ) ;
+   void *q
+
+   if( use_userfunc ) q = user_realloc( p , len ) ;
+   else               q = realloc( p , len ) ;
    if( q == NULL && len > 0 ){
      fprintf(stderr,"** ERROR: NI_realloc() fails. Ooooogg!\n");
      NI_sleep(333); exit(1);
    }
-   return q ;
+   ni_mall_used = 1 ; return q ;
 }
 
 /**** Fake routines with no meaning in this NI_malloc version ****/
@@ -228,6 +281,7 @@ static void * malloc_track( size_t n , char *fn , int ln )
    memset( fred+(n+NEXTRA), MAGIC , NEXTRA ) ;
 #endif
 
+   ni_mall_used = 1 ;
    add_tracker(fred,n,fn,ln) ;      /* put in hash table */
    return (void *)(fred+NEXTRA) ;
 }
@@ -280,6 +334,7 @@ static void * realloc_track( NI_mallitem *ip, size_t n, char *fn, int ln )
    probe_track(ip) ;  /* check for integrity before reallocation */
    cfred = ip->pmt ;  /* old address */
 
+   ni_mall_used = 1 ;
    nfred = realloc( cfred , nn ) ;
    if( nfred == NULL ) return NULL ;  /* this is bad - real bad */
 
@@ -340,6 +395,7 @@ static void free_track( NI_mallitem *ip )
 
    probe_track(ip) ;  /* check for integrity before freeing */
 
+   ni_mall_used = 1 ;
    free(cfred) ; ip->pmt = NULL ; return ;
 }
 
@@ -480,6 +536,9 @@ void NI_malloc_enable_tracking(void)       /* cannot be disabled */
 {
    char *str ;
 
+   if( use_userfunc ) return ;   /* 25 Mar 2003 */
+   ni_mall_used = 1 ;
+
    if( use_tracking ) return ;   /* 05 Nov 2001 */
 
    str = getenv("AFNI_NO_MCW_MALLOC") ;
@@ -518,8 +577,9 @@ void * hidden_NI_malloc( size_t n , char *fnam , int lnum )
 {
    void *p ;
 
-   if( use_tracking ) p = calloc_track(1,n,fnam,lnum) ;
-   else               p = calloc(1,n) ;
+        if( use_userfunc ){ p = user_malloc(n); if(p)memset(p,0,n); }
+   else if( use_tracking )  p = calloc_track(1,n,fnam,lnum) ;
+   else                     p = calloc(1,n) ;
 
    if( p == NULL ){
      fprintf(stderr,"** ERROR: NI_malloc() fails. Aauugghh!\n") ;
@@ -545,7 +605,9 @@ void * hidden_NI_realloc( void *fred , size_t n , char *fnam , int lnum )
    if( fred == NULL )
       return hidden_NI_malloc( n , fnam , lnum ) ;
 
-   if( use_tracking && (ip=shift_tracker(fred)) != NULL )
+   if( use_userfunc )
+     q = user_realloc( fred , n ) ;
+   else if( use_tracking && (ip=shift_tracker(fred)) != NULL )
      q = realloc_track( ip , n , fnam,lnum ) ;
    else
      q = realloc( fred , n ) ;
@@ -572,8 +634,9 @@ void hidden_NI_free( void *fred , char *fnam , int lnum )
 
    if( fred == NULL ) return ;
 
-   if( use_tracking && (ip=shift_tracker(fred)) != NULL ) free_track( ip ) ;
-   else                                                   free( fred ) ;
+   if( use_userfunc )                                          user_free(fred) ;
+   else if( use_tracking && (ip=shift_tracker(fred)) != NULL ) free_track( ip ) ;
+   else                                                        free( fred ) ;
 
 #ifdef NIML_DEBUG
 NI_dpr("hidden_NI_free: called from %s#%d\n",fnam,lnum) ;

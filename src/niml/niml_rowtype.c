@@ -287,9 +287,19 @@ int NI_rowtype_define( char *tname , char *tdef )
    if( rowtype_table == NULL ) setup_basic_types() ;
 
    /*-- see if type name already defined --*/
+   /*-- 25 Mar 2003: if it is, return the old code --*/
 
    rt = NI_rowtype_find_name( tname ) ;
-   if( rt != NULL ) ERREX("type name already defined") ;
+   if( rt != NULL ){
+     if( strcmp(rt->userdef,tdef) != 0 ){
+       fprintf(stderr,
+                "++ NI_rowtype_define: illegal attempt to redefine type '%s'\n"
+                "++          old definition: %s\n"
+                "++ (failed) new definition: %s\n" ,
+               tname , rt->userdef , tdef ) ;
+     }
+     return rt->code ;
+   }
 
    /*-- break defining string into components --*/
 
