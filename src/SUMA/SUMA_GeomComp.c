@@ -1,8 +1,836 @@
 #include "SUMA_suma.h"
 
-extern SUMA_CommonFields *SUMAg_CF; 
+#undef STAND_ALONE
+
+#if defined SUMA_SurfSmooth_STAND_ALONE
+#define STAND_ALONE 
+#endif
+
+#ifdef STAND_ALONE
+/* these global variables must be declared even if they will not be used by this main */
+SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_DO *SUMAg_DOv = NULL;   /*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
+#else
+extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
-extern int SUMAg_N_DOv;
+extern SUMA_SurfaceViewer *SUMAg_SVv;
+extern int SUMAg_N_SVv; 
+extern int SUMAg_N_DOv;  
+#endif
+
+/*!
+
+   \brief A function to calculate the geodesic distance of nodes connected to node n
+          See labbook NIH-3 pp 138 and on for notes on algorithm 
+   \param n (int) index of center node
+   \param SO (SUMA_SurfaceObject *) structure containing surface object
+   \param off (float *) a vector such that off[i] = the geodesic distance of node i
+                        to node n. The vector should be initialized to -1.0
+   \param lim (float) maximum geodesic distance to travel
+   
+   - This function is too slow. See SUMA_getoffsets2
+   \sa SUMA_getoffsets2
+*/
+#define DBG 1
+#define DoCheck 1
+SUMA_Boolean SUMA_getoffsets (int n, SUMA_SurfaceObject *SO, float *Off, float lim) 
+{
+   static char FuncName[]={"SUMA_getoffsets"};
+   int i, ni, iseg;
+   float Off_tmp;
+   SUMA_Boolean Visit = NOPE;
+   static SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   #if DoCheck
+   if (!SO->FN || !SO->EL) {
+      SUMA_SL_Err("SO->FN &/| SO->EL are NULL.\n");
+      SUMA_RETURN(NOPE);
+   }
+   #endif
+   
+   #if DBG
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Working node %d, %d neighbs. lim = %f\n", 
+                                    FuncName, n, SO->FN->N_Neighb[n], lim);
+   #endif
+   
+   for (i=0; i < SO->FN->N_Neighb[n]; ++i) {
+      ni = SO->FN->FirstNeighb[n][i]; /* for notational sanity */
+      iseg = SUMA_FindEdge (SO->EL, n, SO->FN->FirstNeighb[n][i]);
+      #if DoCheck
+      if (iseg < 0) {
+         SUMA_SL_Err("Failed to find segment");
+         SUMA_RETURN(NOPE);
+      }
+      #endif
+      
+      Off_tmp = Off[n] + SO->EL->Le[iseg];   /* that is the distance from n (original n) to ni along
+                                                that particular path */
+                                             
+      Visit = NOPE;
+      if (Off[ni] < 0 || Off_tmp < Off[ni]) { /* Distance improvement, visit/revist that node */
+         if (Off_tmp < lim) { /* only record if less than lim */
+            Visit = YUP;
+            Off[ni] = Off_tmp;
+         } 
+      } 
+      
+      #if DBG
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: %d --> %d. Visit %d, Current %f, Old %f\n", 
+         FuncName, n, ni, Visit, Off_tmp, Off[ni]);
+      #endif
+      
+      #if 0
+         { int jnk; fprintf(SUMA_STDOUT,"Pausing ..."); jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); }
+      #endif
+
+      if (Visit) { /* a new node has been reached with an offset less than limit, go down that road */
+         if (!SUMA_getoffsets (ni, SO, Off, lim))  {
+            SUMA_SL_Err("Failed in SUMA_getoffsets");
+            SUMA_RETURN (NOPE);
+         }
+      }
+   }
+
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Allocate and initialize SUMA_GET_OFFSET_STRUCT* struct 
+   OffS = SUMA_Initialize_getoffsets (N_Node);
+   
+   \param N_Node(int) number of nodes forming mesh 
+   \return OffS (SUMA_GET_OFFSET_STRUCT *) allocate structure
+           with initialized fields for zeroth order layer
+   
+   \sa SUMA_AddNodeToLayer
+   \sa SUMA_Free_getoffsets
+   \sa SUMA_Initialize_getoffsets
+*/           
+   
+SUMA_GET_OFFSET_STRUCT *SUMA_Initialize_getoffsets (int N_Node)
+{
+   static char FuncName[]={"SUMA_Initialize_getoffsets"};
+   int i;
+   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (N_Node <= 0) {
+      SUMA_SL_Err("Bad values for N_Node");
+      SUMA_RETURN (OffS);
+   }
+   
+   OffS = (SUMA_GET_OFFSET_STRUCT *)SUMA_malloc(sizeof(SUMA_GET_OFFSET_STRUCT));
+   if (!OffS) {
+      SUMA_SL_Err("Failed to allocate for OffS");
+      SUMA_RETURN (OffS);
+   }
+   
+   OffS->OffVect = (float *) SUMA_malloc(N_Node * sizeof(float));
+   OffS->LayerVect = (int *) SUMA_malloc(N_Node * sizeof(int));
+   OffS->N_Nodes = N_Node;
+   
+   if (!OffS->LayerVect || !OffS->OffVect) {
+      SUMA_SL_Err("Failed to allocate for OffS->LayerVect &/| OffS->OffVect");
+      SUMA_free(OffS);
+      SUMA_RETURN (OffS);
+   }
+   
+   /* initialize vectors */
+   for (i=0; i< N_Node; ++i) {
+      OffS->OffVect[i] = 0.0;
+      OffS->LayerVect[i] = -1;
+   }
+   
+   /* add a zeroth layer for node n */
+   OffS->N_layers = 1;
+   OffS->layers = (SUMA_NODE_NEIGHB_LAYER *) SUMA_malloc(OffS->N_layers * sizeof(SUMA_NODE_NEIGHB_LAYER));
+   OffS->layers[0].N_AllocNodesInLayer = 1;
+   OffS->layers[0].NodesInLayer = (int *) SUMA_malloc(OffS->layers[0].N_AllocNodesInLayer * sizeof(int));
+   OffS->layers[0].N_NodesInLayer = 0;   
+   
+   SUMA_RETURN (OffS);
+   
+}
+
+/*!
+   \brief Add node n to neighboring layer LayInd in OffS
+   ans = SUMA_AddNodeToLayer (n, LayInd, OffS);
+   
+   \param n (int)
+   \param LayInd (int)
+   \param OffS (SUMA_GET_OFFSET_STRUCT *)
+   \return YUP/NOPE (good/bad)
+   
+   - allocation is automatically taken care of
+   
+   \sa SUMA_Free_getoffsets
+   \sa SUMA_Initialize_getoffsets
+*/
+SUMA_Boolean SUMA_AddNodeToLayer (int n, int LayInd, SUMA_GET_OFFSET_STRUCT *OffS)
+{
+   static char FuncName[]={"SUMA_AddNodeToLayer"};
+   static SUMA_Boolean LocalHead = NOPE;
+   
+   /* is this a new layer */
+   if (LayInd > OffS->N_layers) { /* error */
+      SUMA_SL_Err("LayInd > OffS->N_layers. This should not be!");
+      SUMA_RETURN(NOPE);
+   } else if (LayInd == OffS->N_layers) { /* need a new one */
+      SUMA_LH("Adding layer");
+      OffS->N_layers += 1;
+      OffS->layers = (SUMA_NODE_NEIGHB_LAYER *) SUMA_realloc(OffS->layers, OffS->N_layers*sizeof(SUMA_NODE_NEIGHB_LAYER));
+      OffS->layers[LayInd].N_AllocNodesInLayer = 200;
+      OffS->layers[LayInd].NodesInLayer = (int *) SUMA_malloc(OffS->layers[LayInd].N_AllocNodesInLayer * sizeof(int));
+      OffS->layers[LayInd].N_NodesInLayer = 0;
+   }
+   
+   OffS->layers[LayInd].N_NodesInLayer += 1;
+   /* do we need to reallocate for NodesInLayer ? */
+   if (OffS->layers[LayInd].N_NodesInLayer ==  OffS->layers[LayInd].N_AllocNodesInLayer) { /* need more space */
+      SUMA_LH("reallocating neighbors");
+      OffS->layers[LayInd].N_AllocNodesInLayer += 200;
+      OffS->layers[LayInd].NodesInLayer = (int *) SUMA_realloc (OffS->layers[LayInd].NodesInLayer, OffS->layers[LayInd].N_AllocNodesInLayer * sizeof(int));
+   }
+   
+   OffS->layers[LayInd].NodesInLayer[OffS->layers[LayInd].N_NodesInLayer - 1] = n;
+   
+   SUMA_RETURN(YUP); 
+}
+
+/*!
+   \brief free memory associated with SUMA_GET_OFFSET_STRUCT * struct
+   
+   \param OffS (SUMA_GET_OFFSET_STRUCT *) Offset strcture
+   \return NULL
+   
+   \sa SUMA_Recycle_getoffsets
+   \sa SUMA_Initialize_getoffsets
+*/
+SUMA_GET_OFFSET_STRUCT * SUMA_Free_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS) 
+{
+   static char FuncName[]={"SUMA_Free_getoffsets"};
+   int i = 0;
+   static SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!OffS) SUMA_RETURN(NULL);
+   
+   if (OffS->layers) {
+      for (i=0; i< OffS->N_layers; ++i) if (OffS->layers[i].NodesInLayer) SUMA_free(OffS->layers[i].NodesInLayer);
+      SUMA_free(OffS->layers);
+   }
+   
+   if (OffS->OffVect) SUMA_free(OffS->OffVect);
+   if (OffS->LayerVect) SUMA_free(OffS->LayerVect);
+   SUMA_free(OffS); OffS = NULL;
+   
+   SUMA_RETURN(NULL);
+}
+
+/*!
+   \brief reset the SUMA_GET_OFFSET_STRUCT after it has been used by a node
+   \param OffS (SUMA_GET_OFFSET_STRUCT *) Offset structure that has node neighbor
+                                          info and detail to be cleared
+   \return (YUP/NOPE) success/failure 
+   
+   - No memory is freed here
+   - The used node layer indices are reset to -1
+   - The number of nodes in each layer are reset to 0
+   
+   \sa SUMA_Free_getoffsets to free this structure once and for all
+   \sa SUMA_Initialize_getoffsets
+*/
+SUMA_Boolean SUMA_Recycle_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS)
+{
+   static char FuncName[]={"SUMA_Recycle_getoffsets"};
+   int i, j;
+   static SUMA_Boolean LocalHead = NOPE;
+   
+   for (i=0; i < OffS->N_layers; ++i) {
+      /* reset the layer index of used nodes in LayerVect */
+      for (j=0; j < OffS->layers[i].N_NodesInLayer; ++j) {
+         OffS->LayerVect[OffS->layers[i].NodesInLayer[j]] = -1;
+      }
+      /* reset number of nodes in each layer */
+      OffS->layers[i].N_NodesInLayer = 0;
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief calculates the length of the segments defined
+   by a node and its first-order neighbors. The resulting
+   matrix very closely resembles SO->FN->FirstNeighb
+   DistFirstNeighb = SUMA_CalcNeighbDist (SO);
+   
+   \param SO (SUMA_SurfaceObject *) with FN field required
+   \return DistFirstNeighb (float **) DistFirstNeighb[i][j] contains the 
+                                      length of the segment formed by nodes
+                                      SO->FN->NodeId[i] and SO->FN->FirstNeighb[i][j]
+                                      
+   This function was created to try and speed up SUMA_getoffsets2 but it proved
+   useless.
+   Sample code showing two ways of getting segment length:
+   #if 1
+         // calculate segment distances(a necessary horror) 
+         // this made no difference in speed  
+         DistFirstNeighb = SUMA_CalcNeighbDist (SO);
+         if (!DistFirstNeighb) { 
+            SUMA_SL_Crit("Failed to allocate for DistFirstNeighb\n");
+            exit(1);
+         }
+         { int n1, n2, iseg;
+            n1 = 5; n2 = SO->FN->FirstNeighb[n1][2];
+            iseg = SUMA_FindEdge(SO->EL, n1, n2);
+            fprintf(SUMA_STDERR, "%s: Distance between nodes %d and %d:\n"
+                                 "from DistFirstNeighb = %f\n"
+                                 "from SO->EL->Le = %f\n", FuncName, n1, n2,
+                                 DistFirstNeighb[n1][2], SO->EL->Le[iseg]);
+            exit(1);
+         } 
+   #endif
+*/   
+   
+float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_CalcNeighbDist"};
+   float **DistFirstNeighb=NULL, *a, *b;
+   int i, j;
+   static SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SO) { SUMA_RETURN(NULL); }
+   if (!SO->FN) { SUMA_RETURN(NULL); }
+   
+   DistFirstNeighb = (float **)SUMA_allocate2D(SO->FN->N_Node, SO->FN->N_Neighb_max, sizeof(float));
+   if (!DistFirstNeighb) {
+      SUMA_SL_Crit("Failed to allocate for DistFirstNeighb");
+      SUMA_RETURN(NULL);
+   }
+   for (i=0; i < SO->FN->N_Node; ++i) {
+      a = &(SO->NodeList[3*SO->FN->NodeId[i]]);
+      for (j=0; j < SO->FN->N_Neighb[i]; ++j) {
+         b = &(SO->NodeList[3*SO->FN->FirstNeighb[i][j]]);
+         SUMA_SEG_LENGTH(a, b, DistFirstNeighb[i][j]);
+         if (SO->FN->NodeId[i] == 5 && SO->FN->FirstNeighb[i][j] == 133092) {
+            fprintf (SUMA_STDERR, "%f %f %f\n%f %f %f\n%f\n", 
+               SO->NodeList[3*SO->FN->NodeId[i]], SO->NodeList[3*SO->FN->NodeId[i]+1], SO->NodeList[3*SO->FN->NodeId[i]+2],
+               SO->NodeList[3*SO->FN->FirstNeighb[i][j]], SO->NodeList[3*SO->FN->FirstNeighb[i][j]+1], 
+               SO->NodeList[3*SO->FN->FirstNeighb[i][j]+2], DistFirstNeighb[i][j]);
+         }
+      }
+   }
+   
+   SUMA_RETURN (DistFirstNeighb);
+}
+
+/*!
+   \brief A function to calculate the geodesic distance of nodes connected to node n
+           SUMA_getoffsets was the first incarnation but it was too slow.
+    ans = SUMA_getoffsets2 (n, SO, lim, OffS) 
+   
+   \param n (int) index of center node
+   \param SO (SUMA_SurfaceObject *) structure containing surface object
+   \param lim (float) maximum geodesic distance to travel
+   \param OffS (SUMA_GET_OFFSET_STRUCT *) initialized structure to contain
+          the nodes that neighbor n within lim mm 
+   \return ans (SUMA_Boolean) YUP = GOOD, NOPE = BAD
+   
+   \sa SUMA_AddNodeToLayer
+   \sa SUMA_Free_getoffsets
+   \sa SUMA_Initialize_getoffsets
+
+
+
+The following code was used to test different methods for calculating the segment length,
+none (except for Seg = constant) proved to be faster, probably because of memory access time.
+One of the options required the use of DistFirstNeighb which is calculated by function
+SUMA_CalcNeighbDist. It mirrors SO->EL->FirstNeighb  
+
+static int SEG_METHOD;
+switch (SEG_METHOD) {
+   case CALC_SEG: 
+      // this is the slow part, too many redundant computations. 
+      //cuts computation time by a factor > 3 if Seg was set to a constant
+      //However, attempts at accessing pre-calculated segment lengths
+      //proved to be slower. 
+      SUMA_SEG_LENGTH (a, b, Seg); 
+      break;
+   case FIND_EDGE_MACRO:
+      // this one's even slower, calculations have been made once but
+      //function calls are costly (7.53 min)
+      iseg = -1;
+      if (n_k < n_jne) {SUMA_FIND_EDGE (SO->EL, n_k, n_jne, iseg);}
+      else {SUMA_FIND_EDGE (SO->EL, n_jne, n_k, iseg);}
+      if (iseg < 0) { 
+         SUMA_SL_Err("Segment not found.\nSetting Seg = 10000.0");
+         Seg = 10000.0; 
+      } else Seg = SO->EL->Le[iseg];
+      break;
+   case FIND_EDGE:
+      //this one's even slower, calculations have been made once but
+      //function calls are costly
+      iseg = SUMA_FindEdge (SO->EL, n_k, n_jne); 
+      Seg = SO->EL->Le[iseg];
+      break;
+
+   case DIST_FIRST_NEIGHB:
+      // consumes memory but might be faster than previous 2 (5.22 min)
+      Seg = DistFirstNeighb[n_jne][k];
+      break;
+   case CONST:
+      // 1.7 min 
+      Seg = 1.0;
+      break;
+   default:
+      SUMA_SL_Err("Bad option");
+      break;
+}                    
+*/
+SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GET_OFFSET_STRUCT *OffS) 
+{
+   static char FuncName[]={"SUMA_getoffsets"};
+   int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0;
+   float Off_tmp, Seg, *a, *b, minSeg;
+   SUMA_Boolean Visit = NOPE;
+   SUMA_Boolean AllDone = NOPE;
+   static SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!OffS) {
+      SUMA_SL_Err("NULL OffS");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* setup 0th layer */
+   OffS->OffVect[n] = 0.0;   /* n is at a distance 0.0 from itself */
+   OffS->LayerVect[n] = 0;   /* n is on the zeroth layer */
+   OffS->layers[0].N_NodesInLayer = 1;
+   OffS->layers[0].NodesInLayer[0] = n;
+   
+   LayInd = 1;  /* index of next layer to build */
+   AllDone = NOPE;
+   while (!AllDone) {
+      
+      AllDone = YUP; /* assume that this would be the last layer */
+      for (il=0; il < OffS->layers[LayInd - 1].N_NodesInLayer; ++il) { /* go over all nodes in previous layer */
+         n_il =  OffS->layers[LayInd - 1].NodesInLayer[il]; /* node from previous layer */
+         
+         for (jne=0; jne < SO->FN->N_Neighb[n_il]; ++jne) { /* go over all the neighbours of node n_il */
+            n_jne = SO->FN->FirstNeighb[n_il][jne];        /* node that is an immediate neighbor to n_il */
+            
+            if (OffS->LayerVect[n_jne] < 0) { /* node is not assigned to a layer yet */
+               OffS->LayerVect[n_jne] =  LayInd;    /* assign new layer index to node */
+               OffS->OffVect[n_jne] = 0.0;          /* reset its distance from node n */
+               SUMA_AddNodeToLayer (n_jne, LayInd, OffS);   /* add the node to the nodes in the layer */
+               minSeg = 100000.0; n_prec = -1; Seg = 0.0;
+               for (k=0; k < SO->FN->N_Neighb[n_jne]; ++k) { /* calculate shortest distance of node to any precursor */  
+                  n_k = SO->FN->FirstNeighb[n_jne][k];
+                  if (OffS->LayerVect[n_k] == LayInd - 1) { /* this neighbor is a part of the previous layer, good */
+                     a = &(SO->NodeList[3*n_k]); b = &(SO->NodeList[3*n_jne]);
+                     /* this is the slow part, too many redundant computations. 
+                        Computation time is cut by a factor > 2 if Seg was set to a constant
+                        However, attempts at accessing pre-calculated segment lengths
+                        proved to be slower. See Comments in function help*/
+                     SUMA_SEG_LENGTH_SQ (a, b, Seg);                    
+                     if (Seg < minSeg) {
+                        minSeg = Seg;
+                        n_prec = n_k;
+                     }
+                  }
+               }/* for k */
+               
+               if (n_prec < 0) { /* bad news */
+                  SUMA_SL_Crit("No precursor found for node.");
+                  OffS = SUMA_Free_getoffsets (OffS);
+                  SUMA_RETURN(NOPE);
+               } else {
+                  OffS->OffVect[n_jne] = OffS->OffVect[n_prec] + sqrt(Seg);
+                  if (OffS->OffVect[n_jne] < lim) { /* must go at least one more layer */
+                     AllDone = NOPE;
+                  }
+               }
+            } /* node not already in layer */
+            
+         } /* for jne */
+      
+      } /* for il */    
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: On to layer %d\n", FuncName, LayInd);
+      ++LayInd;
+   } /* while AllDone */
+   
+   SUMA_RETURN(YUP);
+}
+
+#ifdef SUMA_SurfSmooth_STAND_ALONE
+void usage_SUMA_SurfSmooth ()
+   {
+      printf ("\n\33[1mUsage: \33[0m SurfSmooth <-i_TYPE inSurf> <-input inData> <-lim dmax> [-dbg_n ni dbg_prfx] [-h/-help]\n"
+              "\t -i_TYPE inSurf specifies the input surface, TYPE is one of the following:\n"
+              "\t    fs: FreeSurfer surface. \n"
+              "\t        Only .asc surfaces are read.\n"
+              "\t    sf: SureFit surface. \n"
+              "\t        You must specify the .coord followed by the .topo file.\n"
+              "\t    vec: Simple ascii matrix format. \n"
+              "\t         You must specify the NodeList file followed by the FaceSetList file.\n"
+              "\t         NodeList contains 3 floats per line, representing X Y Z vertex coordinates.\n"
+              "\t         FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n"
+              "\t    ply: PLY format, ascii or binary.\n"
+              "\t -lim dmax: maximum distance to search from a certain node \n"
+              "\t -input inData: file containing data (in 1D format)\n"
+              "\t -dbg_n ni dbg_prfx: Output debugging results for node ni\n"
+              "\t                     into files with prefix dbg_prfx.\n"
+              "\t -h or -help: this help message.\n"
+              "\t Try:\n"
+              "\t SurfSmooth -i_fs ../SurfData/SUMA/lh.smoothwm.asc -input in.1D -lim 15 -dbg_n 5 junk\n"
+              "\t ScaleToMap -input junkoffset.1D 0 2 -cmap BGYR19 -nomsk_col > junkoffset.1D.col\n"
+              "\n\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Fri Nov 14 \n");
+       exit (0);
+   }
+
+int main (int argc,char *argv[])
+{/* Main */    
+   static char FuncName[]={"SurfSmooth"}; 
+	int kar, icol, nvec, ncol, i, ii, ShowNode;
+   float lim, *data_old = NULL, *far = NULL;
+   float **DistFirstNeighb;
+   char  *if_name = NULL, *if_name2 = NULL, *in_name = NULL, *vp_name = NULL, *sv_name = NULL, *ShowOffset_DBG = NULL;
+   void *SO_name = NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   MRI_IMAGE *im = NULL;
+   SUMA_SFname *SF_name = NULL;
+   SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED;
+   SUMA_Boolean brk;
+   struct  timeval start_time, start_time_all;
+   float etime_GetOffset, etime_GetOffset_all;   
+   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   if (argc < 6)
+       {
+          usage_SUMA_SurfSmooth();
+          exit (1);
+       }
+   
+   kar = 1;
+   lim = 1000000;
+   ShowNode = -1;
+	brk = NOPE;
+	while (kar < argc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_SUMA_SurfSmooth();
+          exit (0);
+		}
+		
+      if (!brk && (strcmp(argv[kar], "-dbg_n") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -dbg_n ");
+				exit (1);
+			}
+			ShowNode = atoi(argv[kar]); kar ++;
+         ShowOffset_DBG = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-input") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -input ");
+				exit (1);
+			}
+			in_name = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -i_fs ");
+				exit (1);
+			}
+			if_name = argv[kar];
+         iType = SUMA_FREE_SURFER;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -i_sf");
+				exit (1);
+			}
+			if_name = argv[kar]; kar ++;
+         if_name2 = argv[kar];
+         iType = SUMA_SUREFIT;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_vec") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec");
+				exit (1);
+			}
+			if_name = argv[kar]; kar ++;
+         if_name2 = argv[kar];
+         iType = SUMA_VEC;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -i_ply ");
+				exit (1);
+			}
+			if_name = argv[kar];
+         iType = SUMA_PLY;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-lim") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -lim ");
+				exit (1);
+			}
+			lim = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+
+   if (ShowNode < 0 && ShowOffset_DBG) {
+      fprintf (SUMA_STDERR,"Error %s: Bad debug node index (%d) in option -dbg_n\n", FuncName, ShowNode);
+      exit (1);
+   }
+   
+   if (!if_name) {
+      fprintf (SUMA_STDERR,"Error %s: input surface not specified.\n", FuncName);
+      exit(1);
+   }
+
+   if (!in_name) {
+      fprintf (SUMA_STDERR,"Error %s: input data not specified.\n", FuncName);
+      exit(1);
+   }
+   
+   if (iType == SUMA_FT_NOT_SPECIFIED) {
+      fprintf (SUMA_STDERR,"Error %s: input type not recognized.\n", FuncName);
+      exit(1);
+   }
+   
+   if (iType == SUMA_SUREFIT) {
+      if (!if_name2) {
+         fprintf (SUMA_STDERR,"Error %s: input SureFit surface incorrectly specified.\n", FuncName);
+         exit(1);
+      }
+   }
+   
+   if (iType == SUMA_VEC) {
+      if (!if_name2) {
+         fprintf (SUMA_STDERR,"Error %s: input vec surface incorrectly specified.\n", FuncName);
+         exit(1);
+      }
+   }
+   
+   /* test for existence of input files */
+   if (!SUMA_filexists(if_name)) {
+      fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
+      exit(1);
+   }
+   
+   if (!SUMA_filexists(in_name)) {
+      fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
+      exit(1);
+   }
+   
+   if (if_name2) {
+      if (!SUMA_filexists(if_name2)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name2);
+         exit(1);
+      }
+   }
+   
+   /* now for the real work */
+   /* prepare the name of the surface object to read*/
+   switch (iType) {
+      case SUMA_SUREFIT:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", if_name);
+         sprintf(SF_name->name_topo,"%s", if_name2); 
+         if (!vp_name) { /* initialize to empty string */
+            SF_name->name_param[0] = '\0'; 
+         }
+         else {
+            sprintf(SF_name->name_param,"%s", vp_name);
+         }
+         SO_name = (void *)SF_name;
+         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, sv_name);
+         break;
+      case SUMA_VEC:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", if_name);
+         sprintf(SF_name->name_topo,"%s", if_name2); 
+         SO_name = (void *)SF_name;
+         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
+         break;
+      case SUMA_FREE_SURFER:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
+         break;  
+      case SUMA_PLY:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
+         break;  
+      default:
+         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
+         exit(1);
+   }
+   
+   if (!SO) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
+      exit (1);
+   }
+
+   if (ShowNode >= 0 && ShowNode >= SO->N_Node) {
+      fprintf (SUMA_STDERR,"Error %s: Requesting debugging info for a node index (%d) \n"
+                           "that does not exist in a surface of %d nodes.\nRemember, indexing starts at 0.\n", 
+                           FuncName, ShowNode, SO->N_Node);
+      exit (1);
+   }
+   
+   /* form EL and FN */
+   if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList", NULL, 0)) {
+      SUMA_SLP_Err("Failed to calculate surface metrics");
+      exit(1); 
+   }
+
+   /* now load the input data */
+   im = mri_read_1D (in_name);
+   
+   if (!im) {
+      SUMA_SL_Err("Failed to read 1D file");
+      exit(1);
+   }
+   
+   far = MRI_FLOAT_PTR(im);
+   nvec = im->nx;
+   ncol = im->ny;
+   
+   if (!nvec) {
+      SUMA_SL_Err("Empty file");
+      exit(1);
+   }
+  
+   /* smooth each column on its own ...*/  
+   /* the way you read and pass the data to the smoothing function should be 
+   designed, this is at a debugging level ... */
+   for (icol = 0; icol < ncol; ++icol) {
+      /* process one column at a time */
+      data_old = (float *) SUMA_calloc(nvec, sizeof(float)); 
+      if (!data_old) {
+         SUMA_SL_Crit("Failed to allocate for data column");
+         exit(1);
+      }
+      
+      for (i=0; i < nvec; ++i) {
+         data_old[i] = (int)far[i+icol*nvec];
+      }
+      
+      /* initialize OffS */
+      OffS = SUMA_Initialize_getoffsets (SO->N_Node);
+      
+      SUMA_etime(&start_time_all,0);
+      for (i=0; i < SO->N_Node; ++i) {
+         /* show me the offset from node 0 */
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Calculating offsets from node %d\n",FuncName, i);
+         if (i == 0) {
+            SUMA_etime(&start_time,0);
+         }
+         SUMA_getoffsets2 (i, SO, lim, OffS);
+         if (i == 99) {
+            etime_GetOffset = SUMA_etime(&start_time,1);
+            fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
+                                 "Projected completion time: %f minutes\n", 
+                                 FuncName, lim, etime_GetOffset, i+1, 
+                                 etime_GetOffset * SO->N_Node / 60.0 / (i+1));
+         }
+
+         /* Show me the offsets for one node*/
+         if (ShowOffset_DBG) {
+            if (i == ShowNode) {
+               FILE *fid=NULL;
+               char *outname=NULL;
+               outname = SUMA_Extension(ShowOffset_DBG, ".1D", YUP);
+               outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
+               fid = fopen(outname, "w"); free(outname); outname = NULL;
+               if (!fid) {
+                  SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
+               } else {
+                  fprintf (fid,"#Column 1 = Node index\n"
+                               "#column 2 = Neighborhood layer\n"
+                               "#Column 3 = Distance from node %d\n", ShowNode);
+                  for (ii=0; ii<SO->N_Node; ++ii) {
+                     if (OffS->LayerVect[ii] >= 0) {
+                        fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
+                     }
+                  }
+                  fclose(fid);
+               }
+            }
+         }
+         
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Recycling OffS\n", FuncName);
+         SUMA_Recycle_getoffsets (OffS);
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Done.\n", FuncName); 
+         
+      }
+      
+      etime_GetOffset_all = SUMA_etime(&start_time_all,1);
+      fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
+                           FuncName, lim, etime_GetOffset_all / 60.0 , SO->N_Node);
+         
+   }
+   
+   mri_free(im); im = NULL;   /* done with that baby */
+   if (SO) SUMA_Free_Surface_Object(SO);
+   if (data_old) SUMA_free(data_old);  
+   
+   exit(0);
+}
+#endif
 
 /*!
    Given a set of node indices, return a patch of the original surface that contains them

@@ -1235,6 +1235,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->MessageList = SUMA_CreateMessageList ();
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    cf->ROI_mode = NOPE;
+   cf->Pen_mode = NOPE;
    
    cf->nimlROI_Datum_type = NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
    if (cf->nimlROI_Datum_type < 0) {
@@ -1705,6 +1706,46 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
 
 
    SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief updates the cursor in all viewers 
+*/
+void SUMA_UpdateAllViewerCursor()
+{
+   static char FuncName[]={"SUMA_UpdateAllViewerCursor"};
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   for (i=0; i<SUMAg_N_SVv; ++i) {
+      if (SUMAg_SVv[i].X) {
+         SUMA_UpdateViewerCursor(&(SUMAg_SVv[i]));
+      } 
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief updates the cursor in one viewer
+*/
+void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv)   
+{  
+   static char FuncName[]={"SUMA_UpdateViewerCursor"};
+   SUMA_Boolean LocalHead = NOPE;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!sv->X) SUMA_RETURNe;
+   if (!sv->X->GLXAREA) SUMA_RETURNe;
+   if (SUMAg_CF->ROI_mode) {
+      if (SUMAg_CF->Pen_mode) MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_pencil ) ;
+      else  MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_target ) ;
+   } else {
+      MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_top_left_arrow ) ;
+   }
+   SUMA_RETURNe;
 }
 
 /*!

@@ -42,6 +42,25 @@
             }  \
    }         
 
+/*! 
+   A macro version of SUMA_FindEdge
+   Use function for robust error checking.
+   Here you are on your own.
+   
+   you should make sure n1 < n2
+   you should initialize iseg to -1 before calling the macro
+   
+*/
+
+#define SUMA_FIND_EDGE(m_EL, m_n1, m_n2, m_iseg)  \
+{  int m_eloc ;   \
+   m_eloc = m_EL->ELloc[m_n1];  \
+   do {  \
+      if (m_EL->EL[m_eloc][1] == m_n2) m_iseg = m_eloc;   \
+      ++m_eloc;  \
+   } while (m_EL->EL[m_eloc][0] == m_n1 && m_eloc < m_EL->N_EL);  \
+} 
+
 /*!
    Macro that sets Ntail to be the index of the last node of the last ROIdatum in a 
    DrawnROI. Ntail is -1 if the macro fails
@@ -239,6 +258,34 @@ by
 Bruce Kimball, Paul Embree and Bruce Kimble 
 1991, Prentice Hall
 */
+
+/*! \def SUMA_SEG_LENGTH(a,b, dist)
+\brief SUMA_SEG_LENGTH macro for a segment's length 
+   a pointer to xyz coordinates
+   b pointer to xyz coordinates
+   dist (float) sqrt( (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])     
+                     +(m_b[1] - m_a[1]) * (m_b[1] - m_a[1])     
+                     +(m_b[2] - m_a[2]) * (m_b[2] - m_a[2]) ); 
+*/
+#define SUMA_SEG_LENGTH(m_a, m_b, m_dist) {         \
+   m_dist = sqrt(  (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])     \
+                  +(m_b[1] - m_a[1]) * (m_b[1] - m_a[1])     \
+                  +(m_b[2] - m_a[2]) * (m_b[2] - m_a[2]) );    \
+}
+
+/*! \def SUMA_SEG_LENGTH_SQ(a,b, dist)
+\brief SUMA_SEG_LENGTH_SQ macro for a segment's squared length 
+   a pointer to xyz coordinates
+   b pointer to xyz coordinates
+   dist (float)      ( (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])     
+                     +(m_b[1] - m_a[1]) * (m_b[1] - m_a[1])     
+                     +(m_b[2] - m_a[2]) * (m_b[2] - m_a[2]) ); 
+*/
+#define SUMA_SEG_LENGTH_SQ(m_a, m_b, m_dist) {         \
+   m_dist =   (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])     \
+             +(m_b[1] - m_a[1]) * (m_b[1] - m_a[1])     \
+             +(m_b[2] - m_a[2]) * (m_b[2] - m_a[2]) ;    \
+}
 
 /*! \def SUMA_NORM_VEC(a,nel, norm)
 \brief SUMA_NORM_VEC macro for vectors's norm (sqrt of sum of squares)

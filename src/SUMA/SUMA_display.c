@@ -1187,6 +1187,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    ++SUMAg_CF->N_OpenSV;
    ++CallNum;
    
+   SUMA_UpdateViewerCursor (&(SUMAg_SVv[ic]));
    SUMA_UpdateViewerTitle (&(SUMAg_SVv[ic]));
 
    SUMA_RETURN (YUP);
@@ -2850,6 +2851,8 @@ void SUMA_CreateDrawROIWindow(void)
    /*put a toggle button for the DrawROI more */
    /* Turn on the ROI drawing mode, since that is what the users want to do the first time they open this window */
    SUMAg_CF->ROI_mode = YUP;
+   /* make a call to change the cursor */
+   SUMA_UpdateAllViewerCursor(); 
    SUMAg_CF->X->DrawROI->DrawROImode_tb = XtVaCreateManagedWidget("Draw Mode", 
       xmToggleButtonGadgetClass, rc, NULL);
    XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, SUMAg_CF->ROI_mode, NOPE);
@@ -2861,6 +2864,23 @@ void SUMA_CreateDrawROIWindow(void)
 
    /* set the toggle button's select color */
    SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->DrawROImode_tb);
+   
+   /*put a toggle button for the Pen mode */
+   SUMAg_CF->X->DrawROI->Penmode_tb = XtVaCreateManagedWidget("Pen", 
+      xmToggleButtonGadgetClass, rc, NULL);
+   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->Penmode_tb, SUMAg_CF->Pen_mode, NOPE);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Penmode_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_DrawROIPen_toggled, 
+                  NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->Penmode_tb , SUMA_DrawROI_PenMode_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Penmode_tb , "Toggles Pen drawing mode" ) ;
+
+   /* set the toggle button's select color */
+   SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->Penmode_tb);
+   
+   /* set sensitivity of Pen button */
+   if (SUMAg_CF->ROI_mode) XtSetSensitive (SUMAg_CF->X->DrawROI->Penmode_tb, 1);
+   else XtSetSensitive (SUMAg_CF->X->DrawROI->Penmode_tb, 0);
    
    /* Put a toggle button for real time communication with AFNI */
    SUMAg_CF->X->DrawROI->AfniLink_tb = XtVaCreateManagedWidget("Afni Link", 
@@ -4103,9 +4123,34 @@ void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
    
    SUMAg_CF->ROI_mode = !SUMAg_CF->ROI_mode;
    
+   /* take care of sensitivity of Pen button */
+   if (!SUMAg_CF->ROI_mode) XtSetSensitive (SUMAg_CF->X->DrawROI->Penmode_tb, 0);
+   else XtSetSensitive (SUMAg_CF->X->DrawROI->Penmode_tb, 1);
+
+   SUMA_UpdateAllViewerCursor();
+   
    SUMA_RETURNe;
 
 }
+
+/*!
+   \brief Toggles the pen mode
+*/
+
+void SUMA_cb_DrawROIPen_toggled (Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_DrawROIPen_toggled"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMAg_CF->Pen_mode = !SUMAg_CF->Pen_mode;
+   
+   SUMA_UpdateAllViewerCursor();
+   
+   SUMA_RETURNe;
+
+}
+
 
 /*!
    \brief Toggles the Afni link mode

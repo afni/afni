@@ -510,7 +510,9 @@ typedef struct {
 /*! structure that containing node's first order neighbors */
 typedef struct {
    int N_Node; /*!< Number of nodes whose neighbors are listed in this structure */
-   int *NodeId; /*!< Id of each node whose neighbors are listed in this structure */
+   int *NodeId; /*!< Id of each node whose neighbors are listed in this structure 
+                     WARNING: A lot of functions do not use this field and assume
+                     N_Node = number of nodes in the surface! */
    int **FirstNeighb; /*!< N_Node x N_Neighb_max matrix with each row specifying the indices of neighboring nodes.
                         After Tue Jan  7 18:13:44 EST 2003: The nodes are now ordered to form a path on the surface.
                         Note: There is no guarantee that the path is closed. */
@@ -795,6 +797,7 @@ typedef struct {
 typedef struct {
    Widget AppShell; /*!< AppShell widget for the DrawROI window*/ 
    Widget DrawROImode_tb; /*!< widget for toggling draw ROI mode */
+   Widget Penmode_tb;   /*!< widget for toggling draw with Pen mode */
    Widget AfniLink_tb; /*!< widget for toggling link to Afni */
    Widget ParentLabel_lb; /*!< widget for specifying a label for the parent surface */ 
    Widget Redo_pb;
@@ -1471,6 +1474,7 @@ typedef struct {
    SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
    DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
    SUMA_Boolean ROI_mode; /*!< Flag specifying that SUMA is in ROI drawing mode */
+   SUMA_Boolean Pen_mode;  /*!< Flag specifying that a pen is being used for drawing */
    SUMA_COLOR_MAP *ROI_CM; /*!< Color map used to map an ROI's index to a color */
    SUMA_ROI_FILL_MODES ROI_FillMode; /*!< flag indicating how to fill a closed contour */
    SUMA_Boolean ROI2afni; /*!< Send ROIs to afni as you draw them*/
@@ -1607,5 +1611,39 @@ typedef struct {
    SUMA_RGB_NAME *Cv;      /* a vector of RGB_Name structures containing the named colors used by AFNI */
    int N_cols;             /* the number of defined colors in Cv */
 } SUMA_AFNI_COLORS;
+
+
+typedef struct {
+   int *NodesInLayer;      /*!< Vector containing nodes that are neighbors to node n 
+                               (Vector contains N_NodesInLayer useful values but has N_AllocNodesInLayer allocated spots)
+                               Those neighbors can be of any order (see below and structure SUMA_GET_OFFSET_STRUCT) */
+   int N_NodesInLayer;     /*!< Number of nodes in this layer */
+   int N_AllocNodesInLayer;   /*!< Number of nodes allocated for in this layer. Allocation is done in chunks of 200 at a time */
+} SUMA_NODE_NEIGHB_LAYER;  /*!< Structure containing the layers neighboring a node n.
+                                The 0th order layer contain n only
+                                The 1st order layer contains the first order neighbors of n
+                                etc.. */
+
+typedef struct {
+   int N_layers;           /*!< Number of node neighborhoods of a certain node n 
+                                The 0th order layer contain n only
+                                The 1st order layer contains the first order neighbors of n
+                                etc.. */
+   SUMA_NODE_NEIGHB_LAYER *layers;  /*!<  layers[0] is the zeroth order layer
+                                          layers[1] is the 1st order layer, etc.
+                                          See  SUMA_NODE_NEIGHB_LAYER */
+   
+   int N_Nodes;            /*!< Number of nodes in mesh */
+   int *LayerVect;         /*!< vector containing the neighborhood layer of a certain node from node n
+                                 LayerVect[5] = 2; means node 5 is a 2nd order neighbor to node n
+                                 LayerVect[5] = -1; means node 5 is not within the limit distance from node n
+                                 All values in LayerVect are initialized to -1 */
+   float *OffVect;         /*!< vector containing the distance of nodes in the mesh from node n
+                                 d = OffVect[5]; is the geodesic distance of node 5 from node n
+                                 OffVect is N_Nodes long. 
+                                 OffVect[k] is meaningless if LayerVect[k] < 0 */
+} SUMA_GET_OFFSET_STRUCT;  /*!< Structure containing nodes that are within a certain geodesic distance (lim) from 
+                                a certain node. */
+
 
 #endif

@@ -1450,7 +1450,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    case ButtonPress:
       if (LocalHead) fprintf(stdout,"In ButtonPress\n");      
       pButton = Bev.button;
-      if (SUMAg_CF->SwapButtons_1_3) {
+      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
          if (pButton == Button1) pButton = Button3;
          else if (pButton == Button3) pButton = Button1;
       }
@@ -1514,8 +1514,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (LocalHead) fprintf(SUMA_STDERR,"%s: Button 3 downplain jane, viewer #%d : X=%f, Y = %f\n", \
                   FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv), (float)Bev.x, (float)Bev.y);
                
+               #if 0
                /* are we in ROI drawing mode ? */
                if (Bev.state & ShiftMask && SUMAg_CF->ROI_mode && sv->Focus_SO_ID >= 0) {
+                  /* ROI drawing mode */
+                  ROI_mode = YUP;     
+               }else {
+                  ROI_mode = NOPE;
+               }
+               #endif
+               /* are we in ROI drawing mode ? */
+               if (SUMAg_CF->ROI_mode && sv->Focus_SO_ID >= 0 && !(Bev.state & ShiftMask)) {
                   /* ROI drawing mode */
                   ROI_mode = YUP;     
                }else {
@@ -1591,7 +1600,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    case ButtonRelease:
       if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName); 
       rButton = Bev.button;
-      if (SUMAg_CF->SwapButtons_1_3) {
+      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
          if (rButton == Button1) rButton = Button3;
          else if (rButton == Button3) rButton = Button1;
       }
@@ -1640,7 +1649,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       
    case MotionNotify:
       if (LocalHead) fprintf(stdout,"In MotionNotify\n"); 
-      if (SUMAg_CF->SwapButtons_1_3) {
+      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
         if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
             mButton = SUMA_Button_12_Motion;
          } else if(Mev.state & Button3MotionMask) {
