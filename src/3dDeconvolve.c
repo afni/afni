@@ -4739,6 +4739,7 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
    create_memplot_surely( "Gplot" , 1.0 ) ;
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    set_thick_memplot( 0.0 ) ;
+   set_opacity_memplot( 1.0 ) ;
 
    flipxy = (ymask & TSGRAY_FLIP_XY) != 0 ;
    sepscl = (ymask & TSGRAY_SEPARATE_YSCALE) != 0 ;
@@ -4768,6 +4769,7 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
 
    if( dobox ){
      set_color_memplot( boxr, boxg, boxb ) ; /* lines between each column */
+     set_opacity_memplot( 0.789 ) ;
      for( jj=0 ; jj <= nts ; jj++ ){
        if( flipxy ){
          plotline_memplot( 1.0,jj*dy , 0.0,jj*dy ) ;
@@ -4777,6 +4779,7 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
      }
    }
 
+   set_opacity_memplot( 1.0 ) ;
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    mp = get_active_memplot() ;
    return mp ;
@@ -4812,6 +4815,8 @@ MRI_IMAGE * PLOT_matrix_gray( matrix X )
      int a=-1, b=-1 ;
      sscanf( eee , "%dx%d" , &a,&b ) ;
      if( a > 99 && b > 99 ){ nxim = a ; nyim = b ; }
+     if( a < -1 ) nxim = -a*nts ;
+     if( b <  0 ) nyim = -b*npt ;
    }
 
    im = mri_new( nxim , nyim , MRI_rgb ) ;
