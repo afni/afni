@@ -2,15 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "nifti_1.h"
+#include "nifti1.h"
 
 /*****===================================================================*****/
 /*****      Sample functions to deal with NIFTI-1 and ANALYZE files      *****/
 /*****...................................................................*****/
 /*****            This code is released to the public domain.            *****/
 /*****...................................................................*****/
-/*****  Author: Robert W Cox, NIMH/NIH/DHHS/USA                          *****/
-/*****  Date:   April 2003                                               *****/
+/*****  Author: Robert W Cox, SSCC/DIRP/NIMH/NIH/DHHS/USA/EARTH          *****/
+/*****  Date:   July 2003                                                *****/
 /*****...................................................................*****/
 /*****  Neither the National Institutes of Health (NIH), nor any of its  *****/
 /*****  employees imply any warranty of usefulness of this software for  *****/
@@ -18,6 +18,13 @@
 /*****  incidental or otherwise, caused by any use of this document.     *****/
 /*****===================================================================*****/
 
+int main( int argc , char *argv[] )
+{
+   struct nifti_1_header h ;
+   printf("sizeof(h) = %d\n",(int)sizeof(h)) ; exit(0) ;
+}
+
+#if 0
 /********************** Some sample data structures **************************/
 
 typedef struct {                   /** 4x4 matrix struct **/
@@ -713,3 +720,4 @@ void nifti_image_infodump( nifti_image *nim )
 
    return ;
 }
+#endif
