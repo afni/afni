@@ -8,12 +8,12 @@ CCFAST = $(CC)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/Motif-2.1/include
-LFLAGS = -s -L. -L/usr/Motif-2.1/lib
+LFLAGS = -s -L. -L/usr/Motif-2.1/lib -x
 
 PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -shared
+PLUGIN_LFLAGS = -shared -x
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -L.
+PLFLAGS       = -L. -x
 
 AR     = /usr/bin/ar
 RANLIB = /sbin/touch
