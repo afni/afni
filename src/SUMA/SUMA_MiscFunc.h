@@ -1,10 +1,19 @@
 #ifndef SUMA_MISCFUNC_INCLUDED
 #define SUMA_MISCFUNC_INCLUDED
 
-void* SUMA_free(void *ptr);
-void *SUMA_calloc (size_t nmemb, size_t size);
-void *SUMA_malloc (size_t size);
-void *SUMA_realloc (void *ptr, size_t size);
+#define SUMA_free( p ) \
+	SUMA_free_fn( FuncName, p )
+#define SUMA_calloc( nmemb,  size) \
+	SUMA_calloc_fn( FuncName, nmemb, size)
+#define SUMA_malloc(size) \
+	SUMA_malloc_fn( FuncName, size)
+#define SUMA_realloc( ptr, size) \
+	SUMA_realloc_fn( FuncName, ptr, size)
+   
+void* SUMA_free_fn(const char *CallingFunc, void *ptr);
+void *SUMA_calloc_fn (const char *CallingFunc, size_t nmemb, size_t size);
+void *SUMA_malloc_fn (const char *CallingFunc, size_t size);
+void *SUMA_realloc_fn (const char *CallingFunc, void *ptr, size_t size);
 SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void);
 void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out);
 SUMA_Boolean SUMA_Free_MemTrace (SUMA_MEMTRACE_STRUCT * Mem);

@@ -7,7 +7,7 @@ extern SUMA_CommonFields *SUMAg_CF;
 /* This group of functions will get replaced by Bob's mcw_malloc functions that are more efficient */
 
    /*!
-      ptr = SUMA_malloc ( size );
+      ptr = SUMA_malloc_fn (const char *CF,  size );
       \purpose a wrapper around malloc function that allows one to keep track of allocated memory.
       For the tracking to occurr, you need to have SUMA_MEMTRACE_FLAG set to 1 (when compiling) and then turn the flag SUMAg_CF->MemTrace on.
       ifdef SUMA_MEMTRACE_FLAG and SUMAg_CF->MemTrace then when size bytes are allocated to ptr the following happens:
@@ -16,13 +16,14 @@ extern SUMA_CommonFields *SUMAg_CF;
       ++SUMAg_CF->Mem->N_alloc; 
 
       otherwise, only ptr = malloc (size) is executed.
+      \param CF (const char *) name of calling function
       \param size (size_t)
       \ret ptr (void *)
    */
-   void *SUMA_malloc (size_t size)
+   void *SUMA_malloc_fn (const char *CF, size_t size)
    {
       void *ptr;
-      static char FuncName[]={"SUMA_malloc"};
+      static char FuncName[]={"SUMA_malloc_fn"};
 
       #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -59,11 +60,11 @@ extern SUMA_CommonFields *SUMAg_CF;
       #endif
    }
 
-   void *SUMA_realloc (void *ptr, size_t size) 
+   void *SUMA_realloc_fn (const char *CF, void *ptr, size_t size) 
    {
       void *ptr2;
       int i;
-      static char FuncName[]={"SUMA_realloc"};
+      static char FuncName[]={"SUMA_realloc_fn"};
 
       #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -97,17 +98,18 @@ extern SUMA_CommonFields *SUMAg_CF;
 
    }
    /*!
-      This function is very similar to SUMA_malloc except that it uses calloc instead of malloc and 
+      This function is very similar to SUMA_malloc_fn except that it uses calloc instead of malloc and 
       SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc] = nmemb*size;
+      \param CF (const char *) name of calling function
       \param nmemb (size_t) number of elements
       \param size (size_t) size of an element
       \ret ptr (void *) pointer to nmemb*size allocated space
 
-      \sa SUMA_malloc
+      \sa SUMA_malloc_fn
    */
-   void *SUMA_calloc (size_t nmemb, size_t size) {
+   void *SUMA_calloc_fn (const char *CF, size_t nmemb, size_t size) {
       void *ptr;
-      static char FuncName[]={"SUMA_calloc"};
+      static char FuncName[]={"SUMA_calloc_fn"};
 
       #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -150,12 +152,13 @@ extern SUMA_CommonFields *SUMAg_CF;
    }
 
    /*!
-      ptr = SUMA_free(ptr);
+      ptr = SUMA_free(const char *CF, ptr);
 
+      \param CF (const char *) name of calling function
       \param ptr (void *)
-      \ret NULL 
+      \return NULL 
 
-      This function is the complement of SUMA_malloc and SUMA_calloc, it keeps track of freed memory.
+      This function is the complement of SUMA_malloc_fn and SUMA_calloc_fn, it keeps track of freed memory.
       Its usage is slightly different from that of C's free function in that the function always returns
       a NULL so that one could with one function call free a pointer and set it to NULL.
 
@@ -163,9 +166,9 @@ extern SUMA_CommonFields *SUMAg_CF;
       If you are doing massive amounts of freeing you may not want to use this function.
 
    */
-   void* SUMA_free(void *ptr)
+   void* SUMA_free_fn(const char *CF, void *ptr)
    {
-      static char FuncName[]={"SUMA_free"};
+      static char FuncName[]={"SUMA_free_fn"};
       int i;
 
       #if SUMA_MEMTRACE_FLAG
@@ -189,7 +192,7 @@ extern SUMA_CommonFields *SUMAg_CF;
                }
             }
             if (!Found) {
-              fprintf (SUMA_STDERR, "Error %s: Pointer %p not found in Mem struct. \n", FuncName,ptr); 
+              fprintf (SUMA_STDERR, "Error %s: Pointer %p not found in Mem struct. \n\tOffending Calling Function is %s\n", FuncName,ptr, CF); 
             }
          }
 
@@ -202,20 +205,20 @@ extern SUMA_CommonFields *SUMAg_CF;
    }
 #else
    /* classic vanilla */
-   void *SUMA_malloc (size_t size)
+   void *SUMA_malloc_fn (const char *CF, size_t size)
    {
       return (malloc(size));
    }
-   void* SUMA_free(void *ptr)
+   void* SUMA_free_fn(const char *CF, void *ptr)
    {
       free(ptr);
       return (NULL);
    }
-   void *SUMA_calloc (size_t nmemb, size_t size) 
+   void *SUMA_calloc_fn (const char *CF, size_t nmemb, size_t size) 
    {
       return (calloc(nmemb, size));
    }
-   void *SUMA_realloc (void *ptr, size_t size)
+   void *SUMA_realloc_fn (const char *CF, void *ptr, size_t size)
    {
       return (realloc(ptr, size));
    }
