@@ -22,7 +22,7 @@ int main( int argc , char * argv[] )
 
    /*-- help? --*/
 
-   if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1dfft [options] infile outfile\n"
             "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
             "in columns); outfile will be a similar file, with the absolute\n"
@@ -117,15 +117,15 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
    }
 
-   if( nopt+1 >= argc ){
-      fprintf(stderr,"** Need input and output filenames!\n");exit(1);
+   if( nopt >= argc ){
+      fprintf(stderr,"** Need input filenames!\n");exit(1);
    }
 
-   if( !THD_filename_ok(argv[nopt+1]) ){
-      fprintf(stderr,"** Illegal output filename!\n"); exit(1);
+   if( argc > nopt+1 && !THD_filename_ok(argv[nopt+1]) ){
+     fprintf(stderr,"** Illegal output filename!\n"); exit(1);
    }
-   if( strcmp(argv[nopt+1],"-") != 0 && THD_is_file(argv[nopt+1]) ){
-      fprintf(stderr,"** Output file already exists!\n"); exit(1);
+   if( argc > nopt+1 && strcmp(argv[nopt+1],"-") != 0 && THD_is_file(argv[nopt+1]) ){
+     fprintf(stderr,"** Output file already exists!\n"); exit(1);
    }
 
    if( hilbert && cxop != FROMCX ){
@@ -256,6 +256,6 @@ int main( int argc , char * argv[] )
       for( ii=0 ; ii < nfft ; ii++ ) oar[ii] = cxar[ii].r / nfft ;
    }
 
-   mri_write_1D( argv[nopt+1] , outim ) ;
+   mri_write_1D( (argc > nopt+1) ? argv[nopt+1] : "-" , outim ) ;
    exit(0) ;
 }

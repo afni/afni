@@ -12,18 +12,19 @@ int main( int argc , char * argv[] )
 
    /*-- help? --*/
 
-   if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 1dtranspose infile outfile\n"
-            "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
-            "in columns); outfile will be a similar file, but transposed.\n"
-            "You can use a column subvector selector list on infile, as in\n"
-            "  1dtranspose 'fred.1D[0,3,7]' ethel.1D\n"
-            "\n"
-            "* This program may produce files with lines longer than a\n"
-            "   text editor can handle.\n"
-            "* If 'outfile' is '-', the output is written to stdout.\n"
-           ) ;
-      exit(0) ;
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+     printf(
+       "Usage: 1dtranspose infile outfile\n"
+       "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
+       "in columns); outfile will be a similar file, but transposed.\n"
+       "You can use a column subvector selector list on infile, as in\n"
+       "  1dtranspose 'fred.1D[0,3,7]' ethel.1D\n"
+       "\n"
+       "* This program may produce files with lines longer than a\n"
+       "   text editor can handle.\n"
+       "* If 'outfile' is '-' (or missing entirely), output goes to stdout.\n"
+     ) ;
+     exit(0) ;
    }
 
    machdep() ;
@@ -31,7 +32,7 @@ int main( int argc , char * argv[] )
    if( !THD_filename_ok(argv[2]) ){
       fprintf(stderr,"** Illegal output filename!\n"); exit(1);
    }
-   if( strcmp(argv[2],"-") != 0 && THD_is_file(argv[2]) ){
+   if( argc > 2 && strcmp(argv[2],"-") != 0 && THD_is_file(argv[2]) ){
       fprintf(stderr,"** Output file already exists!\n"); exit(1);
    }
 
@@ -39,9 +40,9 @@ int main( int argc , char * argv[] )
 
    inim = mri_read_1D( argv[1] ) ;
    if( inim == NULL ){
-      fprintf(stderr,"** Can't read input file!\n"); exit(1);
+     fprintf(stderr,"** Can't read input file!\n"); exit(1);
    }
 
-   mri_write_ascii( argv[2] , inim ) ;
+   mri_write_ascii( (argc >2) ? argv[2] : "-" , inim ) ;
    exit(0) ;
 }
