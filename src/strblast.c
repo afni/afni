@@ -1,56 +1,109 @@
 #include "mrilib.h"
 
-int suck_file( char *fname , char **fbuf ) ;
+/*----------------------------------------------------------------------
+   history:
+
+   ...         [rwcox]
+     - Initial Version(s)
+
+   24 Mar 2005 [rickr]
+     - added options: -help, -new_char, -new_string, -unescape
+  ----------------------------------------------------------------------
+*/
+
+   
+void help_n_exit( void );
+int  suck_file( char *fname , char **fbuf ) ;
 
 int main( int argc , char * argv[] )
 {
    int nbuf , ntarg , ii,jj, nfind , ff ;
    char *fbuf , *targ ;
-   char *jstr="AFNI-rules-" ; int njstr=strlen(jstr) ;
+   char *jstr=strdup("AFNI-rules-") ; int njstr=strlen(jstr) ;
+
+   int   ac, unesc = 0; /* for -unescape option    24 Mar 2005 [rickr] */
+   int   use_newstr = 0;
+   char  newchar = 'x';
 
    int   nfname=0 ;    /* for globbing */
    char **fname=NULL ;
 
    /* help? */
 
-   if( argc < 3 ){
-      printf("Usage: strblast targetstring filename ...\n"
-             "Finds exact copies of the target string in each of\n"
-             "the input files, and replaces all characters with\n"
-             "some junk string.\n"
-             "Example:\n"
-             "  strings I.001 | more # see if Subject Name is present\n"
-             "  strblast 'Subject Name' I.*\n"
-             "Notes and Warnings:\n"
-             "  * strblast will modify the input files irreversibly!\n"
-             "      You might want to test if they are still usable.\n"
-             "  * strblast reads files into memory to operate on them.\n"
-             "      If the file is too big to fit in memory, strblast\n"
-             "      will fail.\n"
-             "  * strblast  will do internal wildcard expansion, so\n"
-             "      if there are too many input files for your shell to\n"
-             "      handle, you can do something like\n"
-             "         strblast 'Subject Name' 'I.*'\n"
-             "      and strblast will expand the 'I.*' wildcard for you.\n"
-            ) ;
-      exit(0) ;
+   if( argc < 3 ) help_n_exit();
+
+   /* Check for arguments.  If we don't get an exact match, continue, */
+   /* allowing the user to start a target string with '-'.            */
+   for( ac = 1; ac < argc && argv[ac][0] == '-'; ac++ ){
+      if( strcmp(argv[ac], "-help") == 0 )
+         help_n_exit();
+
+      if( strcmp(argv[ac], "-new_char") == 0 ){
+         ac++;
+         if( ac >= argc ){
+            fprintf(stderr,"** -new_char option requires an argument\n");
+            exit(1);
+         }
+         
+         newchar = argv[ac][0];
+      }
+
+      if( strcmp(argv[ac], "-new_string") == 0 ){
+         ac++;
+         if( ac >= argc ){
+            fprintf(stderr,"** -new_string option requires an argument\n");
+            exit(1);
+         }
+         
+         jstr = strdup(argv[ac]);
+         njstr = strlen(jstr);
+         use_newstr = 1;
+      }
+
+      if( strcmp(argv[ac], "-unescape") == 0 )
+         unesc = 1;
+   }
+
+   if( ac > argc-2 ){
+      fprintf(stderr,"** missing target string or input files\n");
+      fprintf(stderr,"   (please see 'strblast -help')\n");
+      exit(1);
    }
 
    machdep() ;
 
    /* load the target */
 
-   targ = argv[1] ; ntarg = strlen(targ) ;
+   targ = argv[ac] ; ntarg = strlen(targ) ; ac++ ;
    if( ntarg < 1 ){
       fprintf(stderr,"** Can't enter an empty target string!\n") ;
       exit(1) ;
    }
-   if( ntarg < njstr ){ jstr = "x" ; njstr = 1 ; }
+   if( unesc ){ /* let's leave argv alone, so dup the string */
+      char * tnew = strdup(targ);
+      if( !tnew ){ fprintf(stderr,"** cannot dup targetstring?!\n"); exit(1); }
+      for(ii=0, jj = 0; ii<ntarg; ii++, jj++){
+              if(tnew[ii] == '\\' && tnew[ii+1] == 't'){tnew[jj] = '\t'; ii++;}
+         else if(tnew[ii] == '\\' && tnew[ii+1] == 'n'){tnew[jj] = '\n'; ii++;}
+         else if(tnew[ii] == '\\' && tnew[ii+1] == 'r'){tnew[jj] = '\r'; ii++;}
+         else if(ii > jj) tnew[jj] = tnew[ii];
+      }
+      tnew[jj] = '\0';  /* and terminate */
+
+      /* now for the ol' switcheroo... */
+      targ = tnew;  ntarg = jj;
+   }
+
+   /* if the replacement string is too long, truncate it */
+   if( ntarg < njstr ){
+      if( use_newstr ){ jstr[ntarg] = '\0' ; njstr = ntarg; }
+      else            { jstr[0] = newchar  ; njstr = 1;     }
+   }
 
    /* get input filenames */
 
    MCW_warn_expand(1) ;
-   MCW_file_expand( argc-2 , argv+2 , &nfname , &fname ) ;
+   MCW_file_expand( argc-ac , argv+ac , &nfname , &fname ) ;
    MCW_warn_expand(0) ;
    if( nfname == 0 ){
       fprintf(stderr,"** No files found from command line!\n") ;
@@ -82,7 +135,7 @@ int main( int argc , char * argv[] )
             if( jj == ntarg ){  /* found it */
                nfind++ ;
                for( jj=0 ; jj < njstr ; jj++ ) fbuf[ii+jj] = jstr[jj] ;
-               for(      ; jj < ntarg ; jj++ ) fbuf[ii+jj] = 'x' ;
+               for(      ; jj < ntarg ; jj++ ) fbuf[ii+jj] = newchar ;
             }
             ii += ntarg-1 ;
          }
@@ -132,4 +185,59 @@ int suck_file( char *fname , char **fbuf )
    close( fd ) ;
    if( ii <= 0 ){ free(buf) ; return 0; }
    *fbuf = buf ; return ii ;
+}
+
+void help_n_exit( void )
+{
+   printf("Usage: strblast [options] TARGETSTRING filename ...\n"
+          "Finds exact copies of the target string in each of\n"
+          "the input files, and replaces all characters with\n"
+          "some junk string.\n"
+          "\n"
+          "options:\n"
+          "\n"
+          "  -help              : show this help\n"
+          "\n"
+          "  -new_char CHAR     : replace TARGETSTRING with CHAR (repeated)\n"
+          "\n"
+          "      This option is used to specify what TARGETSTRING is\n"
+          "      replaced with.  In this case, replace it with repeated\n"
+          "      copies of the character CHAR.\n"
+          "\n"
+          "  -new_string STRING : replace TARGETSTRING with STRING\n"
+          "\n"
+          "      This option is used to specify what TARGETSTRING is\n"
+          "      replaced with.  In this case, replace it with the string\n"
+          "      STRING.  If STRING is not long enough, then CHAR from the\n"
+          "      -new_char option will be used to complete the overwrite\n"
+          "      (or the character 'x', by default).\n"
+          "\n"
+          "  -unescape          : parse TARGETSTRING for escaped characters\n"
+          "                       (includes '\\t', '\\n', '\\r')\n"
+          "\n"
+          "      If this option is given, strblast will parse TARGETSTRING\n"
+          "      replacing any escaped characters with their encoded ASCII\n"
+          "      values.\n"
+          "\n"
+          "Examples:\n"
+          "  strings I.001 | more # see if Subject Name is present\n"
+          "  strblast 'Subject Name' I.*\n"
+          "\n"
+          "  strblast -unescape \"END OF LINE\\n\"       infile.txt\n"
+          "  strblast -new_char \" \" \"BAD STRING\"      infile.txt\n"
+          "  strblast -new_string \"GOOD\" \"BAD STRING\" infile.txt\n"
+          "\n"
+          "Notes and Warnings:\n"
+          "  * strblast will modify the input files irreversibly!\n"
+          "      You might want to test if they are still usable.\n"
+          "  * strblast reads files into memory to operate on them.\n"
+          "      If the file is too big to fit in memory, strblast\n"
+          "      will fail.\n"
+          "  * strblast  will do internal wildcard expansion, so\n"
+          "      if there are too many input files for your shell to\n"
+          "      handle, you can do something like\n"
+          "         strblast 'Subject Name' 'I.*'\n"
+          "      and strblast will expand the 'I.*' wildcard for you.\n"
+         ) ;
+   exit(0) ;
 }
