@@ -5,14 +5,13 @@
 ******************************************************************************/
 
 /**********************************************************************/
-/* GPL AFNI:                                                          */
+/* GPL/NIH AFNI:                                                      */
 /*    Analysis of Functional NeuroImages                              */
 /*                                                                    */
 /* Author: Robert W. Cox, PhD                                         */
-/*         Biophysics Research Institute                              */
-/*         Medical College of Wisconsin                               */
-/*         8701 Watertown Plank Road                                  */
-/*         Milwaukee, WI 53226                                        */
+/*         Scientific and Statistical Computing Core                  */
+/*         National Institute of Mental Health                        */
+/*         Bethesda, MD 20892  USA                                    */
 /*                                                                    */
 /* Acknowledgments:                                                   */
 /*   + This program would have been much more difficult had           */
@@ -978,6 +977,8 @@ int main( int argc , char * argv[] )
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
+   if( !GLOBAL_argopt.quiet ) AFNI_start_version_check() ;  /* 21 Nov 2002 */
+
    mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
 
    THD_set_freeup( AFNI_purge_unused_dsets ) ;  /* 18 Oct 2001 */
@@ -1179,6 +1180,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
 
       default:{
 STATUS("default call") ;
+
          if( nosplash || nodown ) RETURN(True) ;
          if( !nodown &&
              COX_clock_time()-eltime >= max_splash ){ AFNI_splashdown(); RETURN(True); }
@@ -1568,6 +1570,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
      AFNI_init_niml() ;
      XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
    }
+
+   /* 21 Nov 2002: check the AFNI version */
+
+   if( !GLOBAL_argopt.quiet ) AFNI_version_check() ;
 
    /* finish up getting AFNI ready to be presented to the world */
 

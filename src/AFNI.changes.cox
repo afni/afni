@@ -4047,3 +4047,4 @@
 21 Nov 2002
  * Added some extra programs (gifsicle, mpeg_encode, cjpeg, etc.) to the PROGRAMS
      macro in Makefile.INCLUDE.
+ * Added version checking to afni.c startup code.
