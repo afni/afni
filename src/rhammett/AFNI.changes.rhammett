@@ -1,4 +1,19 @@
 25 Feb 2003
-   * modified mri_read_dicom.c to read Siemens mosaic files with less information
-     than previous versions.
+   * modified mri_read_dicom.c to allow to3d to read and process 
+     Siemens mosaic files with less information than previous versions.
+
+XX Feb 2003
+   * modified 3dTsmooth.c to allow specification of an arbitrary (odd-order)
+     filter in a text file for the smoothing operation.
+
+XX Jan 2003
+   * modified 3dTstat.c to allow specification of multiple statistics in
+     a single command.
+   * modified 3dTstat.c to output bucket datasets instead of single volume
+     datasets.
+
+XX Dec 2003
+   * modified 3dTstat.c to add option to calculate the Durbin-Watson
+     statistic (which measures first-order autocorrelation of data
+     in time).
 
