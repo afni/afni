@@ -132,3 +132,6 @@
   * minor updates to SUMA/SUMA_3dSurfMaskDump.c (for -help)
   * 3dSurfMaskDump rv 1.2: do not free structs at the end
 
+13 February 2003:
+  * 3dSurfMaskDump rv 1.2: redo rv1.2: free structs conditionally (and init)
+
