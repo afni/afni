@@ -4240,7 +4240,7 @@ STATUS("can't load thresh bstat") ;
 
    /*** make label ***/
 
-   sprintf( buf , "Anat %s:%s\nFunc %s:%s\nThr  %s:%s" ,
+   sprintf( buf , "ULay %s:%s\nOLay %s:%s\nThr  %s:%s" ,
             anat_minch,anat_maxch, fim_minch,fim_maxch, thr_minch,thr_maxch ) ;
 
 STATUS(buf) ;

@@ -82,7 +82,7 @@ static char * AFNI_crosshair_av_label[9] = {  /* modified 31 Dec 1998 */
 
 static char * AFNI_see_marks_bbox_label[1] = { "See Markers" } ;
 
-static char * AFNI_see_func_bbox_label[1] = { "See Overlay" } ;
+static char * AFNI_see_func_bbox_label[1] = { "See OverLay" } ;
 
 static char * AFNI_wrap_bbox_label[1] = {"Wrap"} ;
 static char * AFNI_xhall_bbox_label[1] = {"X+"} ;
@@ -111,10 +111,10 @@ static char * AFNI_tlrc_big_bbox_label[1] = { "Big Talairach Box?" } ;
    "             Talairach view."
 
 static char * AFNI_anatmode_bbox_label[2] =
-   { "View Anat Data Brick" , "Warp Anat on Demand" } ;
+   { "View ULay Data Brick" , "Warp ULay on Demand" } ;
 
 static char * AFNI_funcmode_bbox_label[2] =
-   { "View Func Data Brick" , "Warp Func on Demand" } ;
+   { "View OLay Data Brick" , "Warp OLay on Demand" } ;
 
 #define AFNI_see_marks_bbox_help                       \
    "pressed IN:  markers for this view will display\n" \
@@ -126,12 +126,12 @@ static char * AFNI_funcmode_bbox_label[2] =
    "Oct 1998: Also controls the display of dataset\n"  \
    "          'tags' -- see the 'Edit Tagset' plugin."
 
-#define AFNI_see_func_bbox_help \
-   "pressed IN:  functional overlay will display\n" \
-   "pressed OUT: functional overlay won't display"  \
-   "\n"                                             \
-   "This is useful for seeing what anatomical\n"    \
-   "features are 'under' a particular function."
+#define AFNI_see_func_bbox_help                        \
+   "pressed IN:  overlay dataset will display\n"       \
+   "pressed OUT: overlay dataset won't display"        \
+   "\n"                                                \
+   "This is useful for seeing what anatomical\n"       \
+   "features are 'under' a particular overlay color."
 
 #define AFNI_marks_edits_bbox_help                            \
    "pressed IN:  you are allowed to change the markers\n"     \
@@ -1547,7 +1547,7 @@ STATUS("making view->rowcol") ;
    view->define_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->func_rowcol ,
-            LABEL_ARG("Define Overlay") ,
+            LABEL_ARG("Define OverLay") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1560,9 +1560,9 @@ STATUS("making view->rowcol") ;
 
    MCW_register_help( view->define_func_pb ,
      "Use this to control the thresholds,\n"
-      "colors, etc. for functional overlays" ) ;
+      "colors, etc. for overlays" ) ;
    MCW_register_hint( view->define_func_pb ,
-                      "Open/close functional overlay control panel" ) ;
+                      "Open/close overlay control panel" ) ;
 
    view_count ++ ;
 
@@ -1582,7 +1582,7 @@ STATUS("making view->rowcol") ;
    MCW_reghelp_children( view->see_func_bbox->wrowcol ,
                          AFNI_see_func_bbox_help ) ;
    MCW_reghint_children( view->see_func_bbox->wrowcol ,
-                         "Visibility of functional overlay" ) ;
+                         "Visibility of color overlay" ) ;
 
    ADDTO_KILL(im3d->kl,view->see_func_bbox) ;
 
@@ -1658,7 +1658,7 @@ STATUS("making view->rowcol") ;
    view->choose_anat_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
-            LABEL_ARG("Switch Underlay") ,
+            LABEL_ARG("Switch UnderLay") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1668,8 +1668,8 @@ STATUS("making view->rowcol") ;
                   AFNI_choose_dataset_CB , im3d ) ;
 
    MCW_register_help( view->choose_anat_pb ,
-        "Use this to choose which\n"
-        "anatomical 3D dataset to view\n"
+        "Use this to choose which 3D\n"
+        "dataset to view as the underlay\n"
         "(from the current session).\n\n"
         "N.B.: Datasets which can be\n"
         "  graphed are marked with a\n"
@@ -1685,7 +1685,7 @@ STATUS("making view->rowcol") ;
    view->choose_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
-            LABEL_ARG("Switch Overlay") ,
+            LABEL_ARG("Switch OverLay") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1696,13 +1696,13 @@ STATUS("making view->rowcol") ;
 
    MCW_register_help( view->choose_func_pb ,
      "Use this to choose which\n"
-     "functional 3D dataset to view\n"
+     "overlay 3D dataset to view\n"
      "(from the current session).\n"
      "N.B.: Datasets that are compressed\n"
      "  have 'z' after their names."
     ) ;
    MCW_register_hint( view->choose_func_pb ,
-                      "Switch datasets for overlay/function" ) ;
+                      "Switch datasets for color overlay" ) ;
 
    view_count ++ ;
 
@@ -1758,7 +1758,7 @@ STATUS("making view->rowcol") ;
    view->popchoose_anat_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-            LABEL_ARG("Switch Underlay") ,
+            LABEL_ARG("Switch UnderLay") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1770,7 +1770,7 @@ STATUS("making view->rowcol") ;
    view->popchoose_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-            LABEL_ARG("Switch Overlay") ,
+            LABEL_ARG("Switch OverLay") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -2428,15 +2428,14 @@ STATUS("making func->rowcol") ;
    MCW_reghelp_children( func->thr_scale ,
       "Drag the slider bar to\n"
       "adjust the threshold\n"
-      "for function display.\n\n"
+      "for overlay display.\n\n"
       "* Threshold doesn't apply\n"
       "  if dataset is RGB-format.\n"
-      "* Threshold applies to statistic\n"
-      "  sub-brick if available; else\n"
-      "  to functional data sub-brick.\n"
+      "* Threshold applies to 'Thr'\n"
+      "  sub-brick.\n"
     ) ;
 #if 0
-   MCW_register_hint( func->thr_scale , "Threshold for functional overlay" ) ;
+   MCW_register_hint( func->thr_scale , "Threshold for color overlay" ) ;
 #endif
 
    /** Mar 1996: label for computed p-value, under scale **/
@@ -2789,7 +2788,7 @@ STATUS("making func->rowcol") ;
    MCW_reghelp_children( func->inten_pbar->panew ,
       "Drag the separator bars to alter the thresholds.\n"
       "Click in a pane to alter the color for that range.\n\n"
-      "The functional dataset value that maps to 1.0 is\n"
+      "The overlay dataset value that maps to 1.0 is\n"
       "determined by the 'autoRange' controls to the right.\n"
       "\n"
       "In 'continuous' colorscale mode, Button-1 click flips\n"
@@ -2800,7 +2799,7 @@ STATUS("making func->rowcol") ;
    MCW_reghelp_children( func->inten_pbar->top ,
       "Drag the separator bars to alter the thresholds.\n"
       "Click in a pane to alter the color for that range.\n\n"
-      "The functional dataset value that maps to 1.0 is\n"
+      "The overlay dataset value that maps to 1.0 is\n"
       "determined by the 'autoRange' controls to the right.\n"
       "\n"
       "In 'continuous' colorscale mode, Button-1 click flips\n"
@@ -2811,14 +2810,14 @@ STATUS("making func->rowcol") ;
    MCW_register_help( func->inten_label ,
       "Drag the separator bars to alter the thresholds.\n"
       "Click in a pane to alter the color for that range.\n\n"
-      "The functional dataset value that maps to 1.0 is\n"
+      "The overlay dataset value that maps to 1.0 is\n"
       "determined by the 'autoRange' controls to the right.\n\n"
       "N.B.: A popup menu to control the palette\n"
       "      setup is 'hidden' under this label."
    ) ;
 
    MCW_register_hint( func->inten_label ,
-                      "Control functional overlay colors" ) ;
+                      "Control overlay colors" ) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->inten_rowcol ,
@@ -2865,14 +2864,14 @@ STATUS("making func->rowcol") ;
                  (im3d->vinfo->use_posfunc) ? (1) : (0) ) ;
 
    MCW_reghelp_children( func->inten_bbox->wrowcol ,
-                         "Pressed In: Displays only positive function\n"
+                         "Pressed In: Displays only positive overlay\n"
                          "            values in the 'pbar' above and\n"
                          "            in the color overlays.\n"
                          "       Out: Displays positive and negative\n"
-                         "            function values.\n\n"
-                         "N.B.: Zero function values are never overlaid." ) ;
+                         "            overlay values.\n\n"
+                         "N.B.: Zero overlay values are never overlaid." ) ;
    MCW_reghint_children( func->inten_bbox->wrowcol ,
-                         "Use positive-only or signed functional values" ) ;
+                         "Use positive-only or signed overlay values" ) ;
 
    ADDTO_KILL(im3d->kl,func->inten_bbox) ;
 
@@ -2911,13 +2910,13 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->underlay_bbox->wrowcol ,
       "Use these buttons to choose\n"
-      "whether the anatomical or\n"
-      "functional images appear\n"
+      "whether the underlay or\n"
+      "overlay images appear\n"
       "as the background display" ) ;
 
-   { char * hh[] = { "Use anatomical dataset for background" ,
-                     "Use functional dataset for background" ,
-                     "Use thresholded functional dataset for background" } ;
+   { char * hh[] = { "Use underlay dataset for background" ,
+                     "Use overlay dataset for background" ,
+                     "Use thresholded overlay dataset for background" } ;
      MCW_bbox_hints( func->underlay_bbox , 3 , hh ) ;
    }
 
@@ -2948,7 +2947,7 @@ STATUS("making func->rowcol") ;
 
    func->anat_buck_av = new_MCW_arrowval(
                           func->buck_rowcol    ,  /* parent Widget */
-                          "Anat" ,                /* label */
+                          "ULay" ,                /* label */
                           MCW_AV_optmenu ,        /* option menu style */
                           0 ,                     /* first option */
                           1 ,                     /* last option */
@@ -2966,8 +2965,8 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->anat_buck_av->wrowcol ,
                          "Use this to choose which\n"
-                         "sub-brick of the anatomical\n"
-                         "dataset to display (='Anat').\n"
+                         "sub-brick of the overlay\n"
+                         "dataset to display (='ULay').\n"
                          "(The sub-brick labels are\n"
                          " assigned when the dataset\n"
                          " is created.  The [index]\n"
@@ -2975,7 +2974,7 @@ STATUS("making func->rowcol") ;
                          " location of the sub-brick\n"
                          " in the dataset.)"           ) ;
    MCW_reghint_children( func->anat_buck_av->wrowcol ,
-                         "Choose Anat sub-brick" ) ;
+                         "Choose UnderLay sub-brick" ) ;
 
    ADDTO_KILL(im3d->kl,func->anat_buck_av) ;
 
@@ -2985,7 +2984,7 @@ STATUS("making func->rowcol") ;
 
    func->fim_buck_av = new_MCW_arrowval(
                           func->buck_rowcol    ,  /* parent Widget */
-                          "Func" ,                /* label */
+                          "OLay" ,                /* label */
                           MCW_AV_optmenu ,        /* option menu style */
                           0 ,                     /* first option */
                           1 ,                     /* last option */
@@ -3003,8 +3002,8 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->fim_buck_av->wrowcol ,
                          "Use this to choose which\n"
-                         "sub-brick of the functional\n"
-                         "dataset to display (='Func').\n"
+                         "sub-brick of the overlay\n"
+                         "dataset to display (='OLay').\n"
                          "(The sub-brick labels are\n"
                          " assigned when the dataset\n"
                          " is created.  The [index]\n"
@@ -3012,7 +3011,7 @@ STATUS("making func->rowcol") ;
                          " location of the sub-brick\n"
                          " in the dataset.)"           ) ;
    MCW_reghint_children( func->fim_buck_av->wrowcol ,
-                         "Choose Func sub-brick" ) ;
+                         "Choose overlay sub-brick" ) ;
 
    ADDTO_KILL(im3d->kl,func->fim_buck_av) ;
 
@@ -3040,9 +3039,9 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->thr_buck_av->wrowcol ,
                          "Use this to choose which\n"
-                         "sub-brick of the functional\n"
+                         "sub-brick of the overlay\n"
                          "dataset with which to threshold\n"
-                         "the Func sub-brick (='Thr').\n"
+                         "the OLay sub-brick (='Thr').\n"
                          "(The sub-brick labels are\n"
                          " assigned when the dataset\n"
                          " is created.  The [index]\n"
@@ -3091,8 +3090,8 @@ STATUS("making func->rowcol") ;
 
    MCW_register_help( func->range_label ,
                         "These are the range of values in the\n"
-                        "Underlay and Overlay 3D datasets.\n"
-                        "The functional values may be useful\n"
+                        "UnderLay and OverLay 3D datasets.\n"
+                        "The overlay values may be useful\n"
                         "for choosing the Range for the pbar.\n"
                         "[If a dataset is warped from a\n"
                         " 'parent', these statistics are\n"
@@ -3119,7 +3118,7 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->range_bbox->wrowcol ,
                          "This button determines whether the program\n"
-                         "or the user sets the Func value that maps\n"
+                         "or the user sets the OLay value that maps\n"
                          "to the color pbar level 1.0:\n\n"
                          "Pressed In: use 'autoRange' value for pbar 1.0\n"
                          "       Out: user controls Range value (below)"
@@ -3160,11 +3159,11 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->range_av->wrowcol ,
                          "When the autoRange button above is Out, this\n"
-                         "selector is used to set the Func level which\n"
+                         "selector is used to set the OLay level which\n"
                          "maps to 1.0 on the color pbar."
                        ) ;
    MCW_reghint_children( func->range_av->wrowcol ,
-                         "Func value that maps to 1.0 for color overlay" ) ;
+                         "OLay value that maps to 1.0 for color overlay" ) ;
 
    ADDTO_KILL(im3d->kl,func->range_av) ;
 
@@ -3273,8 +3272,8 @@ STATUS("making func->rowcol") ;
      ADDTO_KILL(im3d->kl,func->see_ttatlas_bbox) ;
    }
 
-   xstr = XmStringCreateLtoR( "Anat = xxxxxxxxxxxxxxxx\n"
-                              "Func = xxxxxxxxxxxxxxxx\n"
+   xstr = XmStringCreateLtoR( "ULay = xxxxxxxxxxxxxxxx\n"
+                              "OLay = xxxxxxxxxxxxxxxx\n"
                               "Thr  = xxxxxxxxxxxxxxxx" ,
                             XmFONTLIST_DEFAULT_TAG ) ;
 
@@ -3351,9 +3350,9 @@ STATUS("making dmode->rowcol") ;
    dmode->anatmode_bbox->parent = (XtPointer) im3d ;
 
    MCW_reghelp_children( dmode->anatmode_bbox->wrowcol ,
-     "View Anat Data Brick ==> data from anatomy file is displayed\n"
+     "View ULay Data Brick ==> data from underlay file is displayed\n"
      "                   (will be grayed-out if data is not available)\n"
-     "Warp Anat on Demand  ==> data is resampled as needed for display" ) ;
+     "Warp ULay on Demand  ==> data is resampled as needed for display" ) ;
 
    { char * hh[] = { "View data direct from brick" ,
                      "View data resampled to new grid" } ;
@@ -3366,7 +3365,7 @@ STATUS("making dmode->rowcol") ;
 
    dmode->anat_resam_av = new_MCW_arrowval(
                              dmode->rowcol ,
-                             "Anat resam mode" ,
+                             "ULay resam mode" ,
                              AVOPT_STYLE ,
                              FIRST_RESAM_TYPE ,
                              LAST_RESAM_TYPE ,
@@ -3388,7 +3387,7 @@ STATUS("making dmode->rowcol") ;
 
    MCW_reghelp_children( dmode->anat_resam_av->wrowcol ,
      "This controls the resampling mode for\n"
-     "anatomical data (for display and writing):\n\n"
+     "underlay data (for display and writing):\n\n"
      "NN = nearest neighbor resampling [fastest]\n"
      "Li = linear interpolation        [OK]\n"
      "Cu = cubic interpolation         [nice but slow]\n"
@@ -3444,15 +3443,15 @@ STATUS("making dmode->rowcol") ;
    dmode->funcmode_bbox->parent = (XtPointer) im3d ;
 
    MCW_reghelp_children( dmode->funcmode_bbox->wrowcol ,
-     "View Func Data Brick ==> data from functional file is displayed\n"
+     "View OLay Data Brick ==> data from overlay file is displayed\n"
      "                   (will be grayed-out if data is not available)\n"
-     "Warp Func on Demand  ==> data is resampled as needed for display\n\n"
-     "N.B.: Functional data is always overlaid on anatomical data.\n"
-     "  To be displayed directly from the functional data brick,\n"
-     "  this brick must conform in dimensions to the anatomical\n"
-     "  data being displayed.  Even if the functional brick exists,\n"
-     "  if its dimensions do not correspond to the anatomical brick\n"
-     "  or the resampling dimension (below), then the functional data\n"
+     "Warp OLay on Demand  ==> data is resampled as needed for display\n\n"
+     "N.B.: Overlay data is always on top of underlay data.\n"
+     "  To be displayed directly from the overlay data brick,\n"
+     "  this brick must conform in dimensions to the underlay\n"
+     "  data being displayed.  Even if the overlay brick exists,\n"
+     "  if its dimensions do not correspond to the underlay brick\n"
+     "  or the resampling dimension (below), then the overlay data\n"
      "  being displayed will be 'warped-on-demand'.  Such warping\n"
      "  always occurs from the 'most original' source.  For example,\n"
      "  if a Talairach view brick is altered (via a plugin, or another\n"
@@ -3474,9 +3473,9 @@ STATUS("making dmode->rowcol") ;
    dmode->func_resam_av = new_MCW_arrowval(
                              dmode->rowcol ,
 #ifdef USE_OPTMENUS
-                             "Func resam mode" ,
+                             "OLay resam mode" ,
 #else
-                             "Func mode " ,
+                             "OLay mode " ,
 #endif
                              AVOPT_STYLE ,
                              FIRST_RESAM_TYPE ,
@@ -3499,7 +3498,7 @@ STATUS("making dmode->rowcol") ;
 
    MCW_reghelp_children( dmode->func_resam_av->wrowcol ,
      "This controls the resampling mode for\n"
-     "functional data (display and writing):\n\n"
+     "overlay data (display and writing):\n\n"
      "NN = nearest neighbor resampling [fastest]\n"
      "Li = linear interpolation        [OK]\n"
      "Cu = cubic interpolation         [nice but slow]\n"
@@ -3541,7 +3540,7 @@ STATUS("making dmode->rowcol") ;
 
    MCW_reghelp_children( dmode->thr_resam_av->wrowcol ,
      "This controls the resampling mode for\n"
-     "functional data (threshold only):\n\n"
+     "overlay data (threshold only):\n\n"
      "NN = nearest neighbor resampling [fastest]\n"
      "Li = linear interpolation        [OK]\n"
      "Cu = cubic interpolation         [nice but slow]\n"
@@ -3590,7 +3589,7 @@ STATUS("making dmode->rowcol") ;
    dmode->write_anat_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , dmode->write_rowcol ,
-            LABEL_ARG("Anat") ,
+            LABEL_ARG("ULay") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -3604,7 +3603,7 @@ STATUS("making dmode->rowcol") ;
    dmode->write_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , dmode->write_rowcol ,
-            LABEL_ARG("Func") ,
+            LABEL_ARG("OLay") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -3613,7 +3612,7 @@ STATUS("making dmode->rowcol") ;
                   AFNI_write_dataset_CB , im3d ) ;
 
    MCW_register_hint( dmode->write_func_pb ,
-                      "Write current function to disk" ) ;
+                      "Write current overlay dataset to disk" ) ;
 
    dmode->write_many_pb =
       XtVaCreateManagedWidget(
@@ -3637,8 +3636,8 @@ STATUS("making dmode->rowcol") ;
         "The `Resam' controls determine the resolution and\n"
         "interpolation used in creating the new bricks.\n"
         "\n"
-        "Anat --> current anatomical dataset brick.\n"
-        "Func --> current functional dataset brick.\n"
+        "ULay --> current overlay dataset brick.\n"
+        "OLay --> current underlay dataset brick.\n"
         "Many --> select one or more datasets from a list.\n"
         "\n"
         "N.B.:\n"
@@ -5149,8 +5148,8 @@ ENTRY("AFNI_misc_button") ;
                              " Show Hints?       = Turn popup hints\n"
                              "                      off or on\n"
 #endif
-                             " Anat Info         = Show 3dinfo output\n"
-                             " Func Info         = for current datasets\n"
+                             " ULay Info         = Show 3dinfo output\n"
+                             " OLay Info         = for current datasets\n"
 #ifdef ALLOW_PLUGINS
                              " Edit Environment  = Control environment vars\n"
                              " Edit 2DChain      = Control 2DChain function\n"
@@ -5253,7 +5252,7 @@ ENTRY("AFNI_misc_button") ;
    dmode->misc_anat_info_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("Anat Info") ,
+               LABEL_ARG("ULay Info") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , False ,
                XmNinitialResourcesPersistent , False ,
@@ -5265,7 +5264,7 @@ ENTRY("AFNI_misc_button") ;
    dmode->misc_func_info_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("Func Info") ,
+               LABEL_ARG("OLay Info") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , False ,
                XmNinitialResourcesPersistent , False ,

@@ -5031,8 +5031,8 @@ void AFNI_do_bkgd_lab( Three_D_View * im3d )
 
 #define VSTR(x) ( ((x)[0] == '\0') ? ("?") : (x) )
 
-   sprintf(str,"Anat = %s\n"
-               "Func = %s\n"
+   sprintf(str,"ULay = %s\n"
+               "OLay = %s\n"
                "Thr  = %s" ,
            VSTR(im3d->vinfo->anat_val),
            VSTR(im3d->vinfo->func_val),
@@ -6599,7 +6599,7 @@ ENTRY("AFNI_setup_viewing") ;
        im3d->vinfo->tempflag == 0  &&
        !AFNI_noenv("AFNI_VIEW_ANAT_BRICK") ){
 
-STATUS("setting anatmode_bbox back to 'View Anat Data Brick'") ;
+STATUS("setting anatmode_bbox back to 'View ULay Data Brick'") ;
       im3d->vinfo->force_anat_wod = 0 ;
       MCW_set_bbox( im3d->vwid->dmode->anatmode_bbox , DMODE_BRICK_BVAL ) ;
    }

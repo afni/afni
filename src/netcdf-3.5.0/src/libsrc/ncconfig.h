@@ -25,7 +25,7 @@
 
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
-/* #undef WORDS_BIGENDIAN */
+#define WORDS_BIGENDIAN 1
 
 /* Define if you don't have the <stdlib.h>.  */
 /* #undef NO_STDLIB_H */
@@ -49,7 +49,7 @@
 #define SIZEOF_SIZE_T 4
 
 /* The number of bytes in a off_t */
-#define SIZEOF_OFF_T 4
+#define SIZEOF_OFF_T 8
 
 /* Define to `int' if system doesn't define.  */
 /* #undef ssize_t */
