@@ -3894,6 +3894,8 @@ DPR("making sized_xim");
    if( seq->sized_xim != NULL ){
 DPR("putting sized_xim to screen");
 
+if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ) fprintf(stderr,"imseq->wimage: XPutImage\n");
+
      XPutImage( seq->dc->display , XtWindow(seq->wimage) , seq->dc->origGC ,
                 seq->sized_xim , 0,0,0,0,
                 seq->sized_xim->width , seq->sized_xim->height ) ;
