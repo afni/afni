@@ -3326,6 +3326,7 @@ extern void THD_update_statistics( THD_3dim_dataset * ) ;
 extern THD_brick_stats THD_get_brick_stats( MRI_IMAGE * ) ;
 
 extern THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * , THD_ivec3 ) ;
+extern THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * , THD_ivec3 ) ;
 extern THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset * , THD_fvec3 ) ;
 extern THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset * , THD_fvec3 ) ;
                                                    /* 28 Sep 2004  [rickr] */
