@@ -771,7 +771,7 @@ afni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 
 ### The star of the show
 
-afni.o:afni.c
+afni.o:afni.c niml.h
 	$(RM) $@
 	$(CC) -c afni.c $(IFLAGS) $(SHOWOFF)
 
