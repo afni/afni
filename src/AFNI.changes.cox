@@ -4047,10 +4047,12 @@
 21 Nov 2002
  * Added some extra programs (gifsicle, mpeg_encode, cjpeg, etc.) to the PROGRAMS
      macro in Makefile.INCLUDE.
- * Added version checking to afni.c startup code.
 
 22 Nov 2002
  * Added mri_read_stuff.c to filter input from JPEGs, TIFFs, BMPs, etc., into
      mri_read.c.
  * Added afni_version.c to check AFNI version at startup.
  * Modified edt_dsetitems.c to strip "+orig" etc. from tail of new prefix.
+
+23 Nov 2002
+ * Modified afni_version.c to only do a check once every 12 hours.
