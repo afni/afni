@@ -13,7 +13,7 @@
     doublereal d__1;
 
     /* Builtin functions */
-    double sqrt(doublereal), d_sign(doublereal *, doublereal *);
+    double d_sign(doublereal *, doublereal *);
 
     /* Local variables */
     static doublereal f, g, h__;

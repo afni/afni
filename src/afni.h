@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 #include <Xm/Separator.h>
 #include <Xm/Display.h>

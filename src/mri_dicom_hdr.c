@@ -2217,61 +2217,6 @@ DCM_ImportStream(unsigned char *buf, unsigned long length,
 		    NULL, NULL, NULL);
 }
 
-/* DCM_ExportStream
-**
-** Purpose:
-**	Export a DICOM object into the stream format suitable
-**	for network transmission or disk storage.
-**
-** Parameter Dictionary:
-**	object		Pointer to caller's DICOM object
-**	opt		Bitmask giving options for exporting data.  Legal
-**			options give the byte order of exported data:
-**				DCM_ORDERNATIVE
-**				DCM_ORDERLITTLEENDIAN
-**				DCM_ORDERBIGENDIAN
-**	buffer		Pointer to caller's buffer to hold next slug
-**			of DCM stream data.
-**	bufferlength	Length of caller's buffer to hold stream data.
-**	returnlength	Pointer to caller's variable into which we write
-**			the amount of data exported.
-**	ctx		Pointer to context variable we maintain to keep
-**			track of our location in export process.
-**
-** Return Values:
-**
-**	DCM_FILEACCESSERROR
-**	DCM_ILLEGALOBJECT
-**	DCM_LISTFAILURE
-**	DCM_NORMAL
-**	DCM_NULLOBJECT
-**
-** Algorithm:
-**	Description of the algorithm (optional) and any other notes.
-*/
-
-CONDITION
-DCM_ExportStream(DCM_OBJECT ** callerObject, unsigned long opt,
-		 void *buffer, unsigned long bufferlength,
-		 DCM_EXPORT_STREAM_CALLBACK* callback,
-		 void *ctx)
-{
-
-
-    PRIVATE_OBJECT
-	** object;
-    CONDITION
-	cond;
-
-    object = (PRIVATE_OBJECT **) callerObject;
-    cond = checkObject(object, "DCM_ExportStream");
-    if (cond != DCM_NORMAL)
-	return cond;
-
-    return exportStream(callerObject, opt, buffer, bufferlength, callback,
-			ctx, 0);
-}
-
 /* DCM_GetObjectSize
 **
 ** Purpose:
@@ -2791,6 +2736,12 @@ DCM_Debug(CTNBOOLEAN flag)
 ** Algorithm:
 **	Description of the algorithm (optional) and any other notes.
 */
+
+CONDITION
+DCM_ExportStream(DCM_OBJECT ** callerObject, unsigned long opt,
+		 void *buffer, unsigned long bufferlength,
+		 DCM_EXPORT_STREAM_CALLBACK* callback,
+		 void *ctx) ;
 
 CONDITION
 DCM_WriteFile(DCM_OBJECT ** callerObject, unsigned long opt, const char *file)
@@ -12292,3 +12243,58 @@ UTL_FileSize(const char* path, U32* size)
   }
 }
 
+
+/* DCM_ExportStream
+**
+** Purpose:
+**	Export a DICOM object into the stream format suitable
+**	for network transmission or disk storage.
+**
+** Parameter Dictionary:
+**	object		Pointer to caller's DICOM object
+**	opt		Bitmask giving options for exporting data.  Legal
+**			options give the byte order of exported data:
+**				DCM_ORDERNATIVE
+**				DCM_ORDERLITTLEENDIAN
+**				DCM_ORDERBIGENDIAN
+**	buffer		Pointer to caller's buffer to hold next slug
+**			of DCM stream data.
+**	bufferlength	Length of caller's buffer to hold stream data.
+**	returnlength	Pointer to caller's variable into which we write
+**			the amount of data exported.
+**	ctx		Pointer to context variable we maintain to keep
+**			track of our location in export process.
+**
+** Return Values:
+**
+**	DCM_FILEACCESSERROR
+**	DCM_ILLEGALOBJECT
+**	DCM_LISTFAILURE
+**	DCM_NORMAL
+**	DCM_NULLOBJECT
+**
+** Algorithm:
+**	Description of the algorithm (optional) and any other notes.
+*/
+
+CONDITION
+DCM_ExportStream(DCM_OBJECT ** callerObject, unsigned long opt,
+		 void *buffer, unsigned long bufferlength,
+		 DCM_EXPORT_STREAM_CALLBACK* callback,
+		 void *ctx)
+{
+
+
+    PRIVATE_OBJECT
+	** object;
+    CONDITION
+	cond;
+
+    object = (PRIVATE_OBJECT **) callerObject;
+    cond = checkObject(object, "DCM_ExportStream");
+    if (cond != DCM_NORMAL)
+	return cond;
+
+    return exportStream(callerObject, opt, buffer, bufferlength, callback,
+			ctx, 0);
+}

@@ -38,9 +38,6 @@ extern struct {
     integer i__1;
     real r__1, r__2;
 
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
     /* Local variables */
     static real xold, yold, size, xorg, yorg;
     static logical lstr[96666];

@@ -1,3 +1,4 @@
+#define _MCW_MALLOC_HEADER_
 #include "mrilib.h"
 
 #if defined(LINUX)

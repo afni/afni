@@ -21,26 +21,9 @@ void sig_die(register char *s, int kill)
 #endif
 {
 	/* print error message, then clear buffers */
-	fprintf(stderr, "%s\n", s);
-
-	if(kill)
-		{
-		fflush(stderr);
-		f_exit();
-		fflush(stderr);
-		/* now get a core */
-#ifdef SIGIOT
-		signal(SIGIOT, SIG_DFL);
-#endif
-		abort();
-		}
-	else {
-#ifdef NO_ONEXIT
-		f_exit();
-#endif
-		exit(1);
-		}
-	}
+	if( s != NULL ) fprintf(stderr, "%s\n", s);
+        exit(1) ;
+}
 #ifdef __cplusplus
 }
 #endif

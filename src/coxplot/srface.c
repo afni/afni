@@ -83,10 +83,6 @@ static integer c__2 = 2;
     integer z_dim1, z_offset, m_dim2, m_offset, i__1, i__2, i__3, i__4, i__5, 
 	    i__6, i__7, i__8, i__9, i__10;
 
-    /* Builtin functions */
-    double sin(doublereal), cos(doublereal), sqrt(doublereal), atan2(
-	    doublereal, doublereal);
-
     /* Local variables */
     static integer ipic, npic, ipli, jplj;
     static real ster, poix, poiy, poiz, xeye;
@@ -1455,9 +1451,6 @@ L370:
     /* System generated locals */
     real r__1, r__2, r__3;
 
-    /* Builtin functions */
-    double sqrt(doublereal);
-
     /* Local variables */
     static real yeye, xeye, zeye, alpha;
     extern /* Subroutine */ int trn32s_(real *, real *, real *, real *, real *
@@ -1543,9 +1536,6 @@ L20:
 
     /* System generated locals */
     real r__1, r__2, r__3, r__4;
-
-    /* Builtin functions */
-    double sqrt(doublereal);
 
     /* Local variables */
     static integer jump, jump2, jump3;

@@ -224,4 +224,9 @@ typedef doublereal E_f;	/* real function with -R not specified */
 #undef unix
 #undef vax
 #endif
-#endif
+
+#include <math.h>
+
+#undef complex
+#define complex complexxx
+#endif  /* F2C_INCLUDE */

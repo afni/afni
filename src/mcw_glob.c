@@ -4,10 +4,6 @@
              -- added routines MCW_*_expand at end
 ***************************************************************************/
 
-/* #ifdef CYGWIN   rickr - 2003 May 01 */
-#include <errno.h>
-/* #endif */
-
 /*
  * Copyright (c) 1989 The Regents of the University of California.
  * All rights reserved.
@@ -67,9 +63,6 @@
 /** the following were in "sh.h",
     but I put them here to get rid of the need for that file -- RWCox **/
 
-#undef  __P
-#define __P(a) a
-
 #define xfree     free
 #define xmalloc   malloc
 #define xrealloc  realloc
@@ -114,6 +107,9 @@ typedef void * ptr_t;
 #endif
 
 typedef unsigned short Char;
+
+#undef  __P
+#define __P(a) a
 
 static	int	 glob1 		__P((Char *, glob_t *, int));
 static	int	 glob2		__P((Char *, Char *, Char *, glob_t *, int));
@@ -277,7 +273,10 @@ static int
 compare(const ptr_t p, const ptr_t q)
 {
 #if defined(NLS) && !defined(NOSTRCOLL)
+
+#if 0
     errno = 0;  /* strcoll sets errno, another brain-damage */
+#endif
 
     return (strcoll(*(char **) p, *(char **) q));
 #else
@@ -524,7 +523,9 @@ glob2( Char *pathbuf,Char *pathend, Char *pattern, glob_t *pglob, int no_match)
 static int
 glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pglob, int no_match)
 {
+#if 0
     extern int errno;
+#endif
     DIR    *dirp;
     struct dirent *dp;
     int     err;
@@ -537,7 +538,10 @@ glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pg
 #endif
 
     *pathend = EOS;
+
+#if 0
     errno = 0;
+#endif
 
     if (!(dirp = Opendir(pathbuf))) {
 	/* todo: don't call for ENOENT or ENOTDIR? */

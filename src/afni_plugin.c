@@ -254,7 +254,8 @@ if(PRINT_TRACING)
 ----------------------------------------------------------------------*/
 
 #ifdef DARWIN
-extern unsigned long _dyld_present(void);
+#include <mach-o/dyld.h>
+/* extern unsigned long _dyld_present(void); */
 #endif
 
 AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
@@ -269,6 +270,9 @@ AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
 
 ENTRY("PLUG_get_many_plugins") ;
 
+/**
+#if defined(DARWIN) && !defined(c_plusplus) && !defined(__cplusplus)
+**/
 #ifdef DARWIN
    if( _dyld_present() == 0 ) RETURN(NULL) ;  /* 05 Sep 2001: Mac OSX */
 #endif
@@ -5222,6 +5226,7 @@ double PLUTO_elapsed_time(void) /* in seconds */
 
 double PLUTO_cpu_time(void)  /* in seconds */
 {
+#ifdef CLK_TCK
    struct tms ttt ;
 
    (void) times( &ttt ) ;
@@ -5229,4 +5234,7 @@ double PLUTO_cpu_time(void)  /* in seconds */
                                      /* + ttt.tms_stime */
                       )
            / (double) CLK_TCK ) ;
+#else
+   return 0.0l ;
+#endif
 }

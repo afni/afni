@@ -5,6 +5,15 @@
 #include "stddef.h"
 #endif
 
+#ifndef __THROW
+# if defined __cplusplus && (__GNUC__ >= 3 || __GNUC_MINOR__ >= 8) && !defined(DARWIN)
+#  define __THROW       throw ()
+# else
+#  define __THROW
+# endif
+# define KILL__THROW
+#endif
+
 #ifndef SEEK_SET
 #define SEEK_SET 0
 #define SEEK_CUR 1
@@ -69,7 +78,7 @@ extern void f_init(void);
 extern int (*f__donewrec)(void), t_putc(int), x_wSL(void);
 extern void b_char(char*,char*,ftnlen), g_char(char*,ftnlen,char*);
 extern int c_sfe(cilist*), z_rnew(void);
-extern int isatty(int);
+extern int isatty(int) __THROW ;
 extern int err__fl(int,int,char*);
 extern int xrd_SL(void);
 #ifdef __cplusplus
@@ -100,3 +109,7 @@ extern int f__hiwater;	/* so TL doesn't confuse us */
 #define INT	8
 
 #define buf_end(x) (x->_flag & _IONBF ? x->_ptr : x->_base + BUFSIZ)
+
+#ifdef KILL__THROW
+#undef __THROW
+#endif

@@ -4,6 +4,7 @@
 */
 
 #include "f2c.h"
+#include <math.h>
 
 /* Table of constant values */
 
@@ -1223,12 +1224,8 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
     integer s_cmp(char *, char *, ftnlen, ftnlen);
-    double d_int(doublereal *), pow_dd(doublereal *, doublereal *), sin(
-	    doublereal), cos(doublereal), tan(doublereal), sqrt(doublereal), 
-	    exp(doublereal), log(doublereal), d_lg10(doublereal *), asin(
-	    doublereal), acos(doublereal), atan(doublereal), atan2(doublereal,
-	     doublereal), sinh(doublereal), cosh(doublereal), tanh(doublereal)
-	    ;
+    double d_int(doublereal *), pow_dd(doublereal *, doublereal *),
+	    d_lg10(doublereal *);
 
     /* Local variables */
     extern doublereal land_(integer *, doublereal *), derf_(doublereal *), 
@@ -1814,12 +1811,8 @@ L8000:
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
     integer s_cmp(char *, char *, ftnlen, ftnlen);
-    double d_int(doublereal *), pow_dd(doublereal *, doublereal *), sin(
-	    doublereal), cos(doublereal), tan(doublereal), sqrt(doublereal), 
-	    exp(doublereal), log(doublereal), d_lg10(doublereal *), asin(
-	    doublereal), acos(doublereal), atan(doublereal), atan2(doublereal,
-	     doublereal), sinh(doublereal), cosh(doublereal), tanh(doublereal)
-	    ;
+    double d_int(doublereal *), pow_dd(doublereal *, doublereal *),
+	    d_lg10(doublereal *) ;
 
     /* Local variables */
     extern doublereal land_(integer *, doublereal *), derf_(doublereal *), 
@@ -3117,9 +3110,6 @@ doublereal ztone_(doublereal *x)
     /* System generated locals */
     doublereal ret_val;
 
-    /* Builtin functions */
-    double tan(doublereal), tanh(doublereal);
-
     /* Local variables */
     static doublereal y;
 
@@ -3235,9 +3225,6 @@ doublereal eran_(doublereal *top)
     /* System generated locals */
     doublereal ret_val;
 
-    /* Builtin functions */
-    double log(doublereal);
-
     /* Local variables */
     extern doublereal unif_(doublereal *);
     static doublereal u1;
@@ -3262,9 +3249,6 @@ doublereal lran_(doublereal *top)
 {
     /* System generated locals */
     doublereal ret_val;
-
-    /* Builtin functions */
-    double log(doublereal);
 
     /* Local variables */
     extern doublereal unif_(doublereal *);
@@ -3314,10 +3298,6 @@ doublereal gran2_(doublereal *b, doublereal *s)
 
     /* System generated locals */
     doublereal ret_val;
-
-    /* Builtin functions */
-    double log(doublereal), sqrt(doublereal), sin(doublereal), cos(doublereal)
-	    ;
 
     /* Local variables */
     extern doublereal unif_(doublereal *);
@@ -3400,9 +3380,6 @@ doublereal qginv_(doublereal *p)
 {
     /* System generated locals */
     doublereal ret_val, d__1;
-
-    /* Builtin functions */
-    double log(doublereal), sqrt(doublereal), exp(doublereal);
 
     /* Local variables */
     static integer newt;

@@ -4838,3 +4838,7 @@
 
 17 Dec 2003
  * Fixed Amalloc.h bug.
+
+23 Dec 2003
+ * Checked in many changes to deal with compilation of afni with g++
+     (version 3.2 or later).
