@@ -42,7 +42,7 @@ int main( int argc , char * argv[] )
    int nxin,nyin,nzin,nxyzin,nvals , ival ;
    int nxout,nyout,nzout,nxyzout ;
    char * prefix = "warped" ;
-   int nopt=1 , verb=0 , zpad=0 ;
+   int nopt=1 , verb=0 , zpad=0 , fsl=0 ;
    int use_matvec=0 ;
    float xbot,xtop , ybot,ytop , zbot,ztop ;
    int use_newgrid=0 ;
@@ -76,6 +76,9 @@ int main( int argc , char * argv[] )
             "  -cubic      } = Chooses spatial interpolation method.\n"
             "  -NN         }     [default = linear]\n"
             "  -quintic    }\n"
+            "\n"
+            "  -fsl_matvec   = Indicates that the matrix file 'mmm' uses FSL\n"
+            "                    ordered coordinates ('LPI').\n"
             "\n"
             "  -newgrid ddd  = Tells program to compute new dataset on a\n"
             "                    new 3D grid, with spacing of 'ddd' mmm.\n"
@@ -113,6 +116,12 @@ int main( int argc , char * argv[] )
    /*-- command line options --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[nopt],"-fsl_matvec") == 0 ){
+       fsl = 1 ; nopt++ ; continue ;
+     }
 
      /*-----*/
 
@@ -215,7 +224,7 @@ int main( int argc , char * argv[] )
        if( matim == NULL ){
          fprintf(stderr,"** Can't read -matvec file %s\n",argv[nopt]); exit(1);
        }
-       if( matim->nx != 4 || matim->ny != 3 ){
+       if( matim->nx != 4 || matim->ny < 3 ){
          fprintf(stderr,"** -matvec file not 3x4!\n"); exit(1);
        }
 
@@ -268,6 +277,24 @@ int main( int argc , char * argv[] )
    if( !use_matvec ){
      fprintf(stderr,"** Don't you want to use -matvec?\n") ;
      exit(1) ;
+   }
+
+   /*-- 06 Aug 2003: if FSL matrix, flip stuff around --*/
+
+   if( fsl ){
+     dicom_in2out.mm.mat[0][2] = -dicom_in2out.mm.mat[0][2] ;
+     dicom_in2out.mm.mat[1][2] = -dicom_in2out.mm.mat[1][2] ;
+     dicom_in2out.mm.mat[2][0] = -dicom_in2out.mm.mat[2][0] ;
+     dicom_in2out.mm.mat[2][1] = -dicom_in2out.mm.mat[2][1] ;
+     dicom_in2out.vv.xyz[0]    = -dicom_in2out.vv.xyz[0]    ;
+     dicom_in2out.vv.xyz[1]    = -dicom_in2out.vv.xyz[1]    ;
+
+     dicom_out2in.mm.mat[0][2] = -dicom_out2in.mm.mat[0][2] ;
+     dicom_out2in.mm.mat[1][2] = -dicom_out2in.mm.mat[1][2] ;
+     dicom_out2in.mm.mat[2][0] = -dicom_out2in.mm.mat[2][0] ;
+     dicom_out2in.mm.mat[2][1] = -dicom_out2in.mm.mat[2][1] ;
+     dicom_out2in.vv.xyz[0]    = -dicom_out2in.vv.xyz[0]    ;
+     dicom_out2in.vv.xyz[1]    = -dicom_out2in.vv.xyz[1]    ;
    }
 
    /*-- 1 remaining argument should be a dataset --*/
