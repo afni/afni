@@ -80,12 +80,18 @@ typedef struct {                  /** Image storage struct **/
 /*--------------- Prototypes of functions defined in this file --------------*/
 
 char *nifti_datatype_string( int dt ) ;
+char *nifti_units_string   ( int uu ) ;
+char *nifti_intent_string  ( int ii ) ;
+char *nifti_xform_string   ( int xx ) ;
+
 nifti_mat44 nifti_mat44_inverse( nifti_mat44 R ) ;
+
 void swap_2bytes ( int n , void *ar ) ;
 void swap_4bytes ( int n , void *ar ) ;
 void swap_8bytes ( int n , void *ar ) ;
 void swap_16bytes( int n , void *ar ) ;
 void swap_Nbytes ( int n , int siz , void *ar ) ;
+
 void swap_nifti_header( struct nifti_1_header *h , int is_nifti ) ;
 unsigned int get_filesize( char *pathname ) ;
 
@@ -145,6 +151,86 @@ char *nifti_datatype_string( int dt )
    }
 
    return "**ILLEGAL**" ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Return a pointer to a string holding the name of a NIFTI units type.
+   Don't free() or modify this string!  It points to static storage.
+-----------------------------------------------------------------------------*/
+
+char *nifti_units_string( int uu )
+{
+   switch( uu ){
+     case NIFTI_UNITS_METER:  return "m" ;
+     case NIFTI_UNITS_MM:     return "mm" ;
+     case NIFTI_UNITS_MICRON: return "um" ;
+     case NIFTI_UNITS_SEC:    return "s" ;
+     case NIFTI_UNITS_MSEC:   return "ms" ;
+     case NIFTI_UNITS_USEC:   return "us" ;
+     case NIFTI_UNITS_HZ:     return "Hz" ;
+     case NIFTI_UNITS_PPM:    return "ppm" ;
+   }
+   return "Unknown" ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Return a pointer to a string holding the name of a NIFTI transform type.
+   Don't free() or modify this string!  It points to static storage.
+-----------------------------------------------------------------------------*/
+
+char *nifti_xform_string( int xx )
+{
+   switch( xx ){
+     case NIFTI_XFORM_SCANNER_ANAT:  return "Scanner Anat" ;
+     case NIFTI_XFORM_ALIGNED_ANAT:  return "Aligned Anat" ;
+     case NIFTI_XFORM_TALAIRACH:     return "Talairach" ;
+     case NIFTI_XFORM_MNI_152:       return "MNI_152" ;
+   }
+   return "Unknown" ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Return a pointer to a string holding the name of a NIFTI intent type.
+   Don't free() or modify this string!  It points to static storage.
+-----------------------------------------------------------------------------*/
+
+char *nifti_intent_string( int ii )
+{
+   switch( ii ){
+     case NIFTI_INTENT_CORREL:     return "Correlation" ;
+     case NIFTI_INTENT_TTEST:      return "T-statistic" ;
+     case NIFTI_INTENT_FTEST:      return "F-statistic" ;
+     case NIFTI_INTENT_ZSCORE:     return "Z-score"     ;
+     case NIFTI_INTENT_CHISQ:      return "Chi-squared" ;
+     case NIFTI_INTENT_BETA:       return "Beta distribution" ;
+     case NIFTI_INTENT_BINOM:      return "Binomial distribution" ;
+     case NIFTI_INTENT_GAMMA:      return "Gamma distribution" ;
+     case NIFTI_INTENT_POISSON:    return "Poisson distribution" ;
+     case NIFTI_INTENT_NORMAL:     return "Normal distribution" ;
+     case NIFTI_INTENT_FTEST_NONC: return "F-statistic noncentral" ;
+     case NIFTI_INTENT_CHISQ_NONC: return "Chi-squared noncentral" ;
+     case NIFTI_INTENT_LOGISTIC:   return "Logistic distribution" ;
+     case NIFTI_INTENT_LAPLACE:    return "Laplace distribution" ;
+     case NIFTI_INTENT_UNIFORM:    return "Uniform distribition" ;
+     case NIFTI_INTENT_TTEST_NONC: return "T-statistic noncentral" ;
+     case NIFTI_INTENT_WEIBULL:    return "Weibull distribution" ;
+     case NIFTI_INTENT_CHI:        return "Chi distribution" ;
+     case NIFTI_INTENT_INVGAUSS:   return "Inverse Gaussian distribution" ;
+     case NIFTI_INTENT_EXTVAL:     return "Extreme Value distribution" ;
+     case NIFTI_INTENT_PVAL:       return "P-value" ;
+
+     case NIFTI_INTENT_ESTIMATE:   return "Estimate" ;
+     case NIFTI_INTENT_LABEL:      return "Label index" ;
+     case NIFTI_INTENT_NEURONAME:  return "NeuroNames index" ;
+     case NIFTI_INTENT_GENMATRIX:  return "General matrix" ;
+     case NIFTI_INTENT_SYMMATRIX:  return "Symmetric matrix" ;
+     case NIFTI_INTENT_DISPVECT:   return "Displacement vector" ;
+     case NIFTI_INTENT_VECTOR:     return "Vector" ;
+     case NIFTI_INTENT_POINTSET:   return "Pointset" ;
+     case NIFTI_INTENT_TRIANGLE:   return "Triangle" ;
+     case NIFTI_INTENT_QUATERNION: return "Quaternion" ;
+   }
+   return "Unknown" ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -442,13 +528,13 @@ nifti_image * nifti_image_read( char *hname , int read_data )
 
    if( nhdr.dim[1] <= 0 )                ERREX("bad dim[1]") ;
 
-   for( ii=2 ; ii < 7 ; ii++ )
+   for( ii=2 ; ii <= 7 ; ii++ )
      if( nhdr.dim[ii] <= 0 ) nhdr.dim[ii] = 1 ;  /* fix bad dim[] values */
 
    /** if dim[0] is 0, get number of dimensions another way **/
 
    ndim = nhdr.dim[0] ;
-   if( ndim == 0 ){
+   if( ndim == 0 || is_nifti ){
      for( ii=7 ; ii >= 2 ; ii++ )            /* loop backwards until we  */
        if( nhdr.dim[ii] > 1 ) break ;        /* find a dim bigger than 1 */
      ndim = ii ;
@@ -792,10 +878,15 @@ void nifti_image_infodump( nifti_image *nim )
 
    if( nim == NULL ){
      printf(" ?? input is NULL ??!!\n\n") ; return ;
-   }
+   } else
+     printf("\n") ;
 
-   printf("\n  header filename = %s\n",nim->fname) ;
-   printf(  "  image  filename = %s  offset = %d\n",
+   printf("  NIFTI storage type = %s\n",
+          (nim->nifti_type == 0 ) ? "ANALYZE-7.5"
+         :(nim->nifti_type == 1 ) ? "NIFTI-1 in 1 file"
+         :                          "NIFTI-1 in 2 files" ) ;
+   printf("  header filename = %s\n",nim->fname) ;
+   printf("  image  filename = %s  offset = %d\n",
           nim->iname,nim->iname_offset) ;
 
    printf("  ndim = %3d\n"
@@ -815,17 +906,27 @@ void nifti_image_infodump( nifti_image *nim )
           nim->nvox , nim->nbyper ,
           nim->datatype , nifti_datatype_string(nim->datatype) ) ;
 
-   printf("  scl_slope = %g  scl_inter = %g\n" ,
-          nim->scl_slope , nim->scl_inter       ) ;
-
-   printf("  cal_min   = %g  cal_max   = %g\n" ,
+   printf("  cal_min = %g  cal_max = %g\n" ,
           nim->cal_min   , nim->cal_max         ) ;
 
-   printf("  intent_code = %d  intent_p1=%g  intent_p2=%g  intent_p3=%g\n" ,
-          nim->intent_code, nim->intent_p1, nim->intent_p2, nim->intent_p3 ) ;
+   if( nim->nifti_type > 0 ){
+     printf("  scl_slope = %g  scl_inter = %g\n" ,
+            nim->scl_slope , nim->scl_inter       ) ;
 
-   if( nim->intent_name[0] != '\0' )
-     printf("  intent_name = %s\n",nim->intent_name) ;
+     printf("  intent_code = %d (%s)\n"
+            "  intent_p1=%g  intent_p2=%g  intent_p3=%g\n" ,
+            nim->intent_code, nifti_intent_string(nim->intent_code) ,
+            nim->intent_p1, nim->intent_p2, nim->intent_p3 ) ;
+
+     if( nim->intent_name[0] != '\0' )
+       printf("  intent_name = %s\n",nim->intent_name) ;
+
+     printf("  toffset = %g\n",nim->toffset) ;
+     printf("  xyz_units  = %d (%s)\n"
+            "  time_units = %d (%s)\n" ,
+            nim->xyz_units ,nifti_units_string(nim->xyz_units),
+            nim->time_units,nifti_units_string(nim->time_units) ) ;
+   }
 
    if( nim->descrip[0] != '\0' )
      printf("  descrip = %s\n",nim->descrip) ;
@@ -833,46 +934,52 @@ void nifti_image_infodump( nifti_image *nim )
    if( nim->aux_file[0] != '\0' )
      printf("  aux_file = %s\n",nim->aux_file) ;
 
-   printf("  toffset = %g\n",nim->toffset) ;
-   printf("  xyz_units = %d  time_units = %d\n" ,
-          nim->xyz_units,nim->time_units ) ;
-
-   printf("  qform_code = %d  qto_xyz matrix =\n"
-          "    %9.6f %9.6f %9.6f   %9.6f\n"
-          "    %9.6f %9.6f %9.6f   %9.6f\n"
-          "    %9.6f %9.6f %9.6f   %9.6f\n"
-          "    %9.6f %9.6f %9.6f   %9.6f\n" ,
-       nim->qform_code      ,
-       nim->qto_xyz.m[0][0] , nim->qto_xyz.m[0][1] ,
-       nim->qto_xyz.m[0][2] , nim->qto_xyz.m[0][3] ,
-       nim->qto_xyz.m[1][0] , nim->qto_xyz.m[1][1] ,
-       nim->qto_xyz.m[1][2] , nim->qto_xyz.m[1][3] ,
-       nim->qto_xyz.m[2][0] , nim->qto_xyz.m[2][1] ,
-       nim->qto_xyz.m[2][2] , nim->qto_xyz.m[2][3] ,
-       nim->qto_xyz.m[3][0] , nim->qto_xyz.m[3][1] ,
-       nim->qto_xyz.m[3][2] , nim->qto_xyz.m[3][3]  ) ;
-
-   printf("  qto_ijk matrix =\n"
-          "    %9.6f %9.6f %9.6f   %9.6f\n"
-          "    %9.6f %9.6f %9.6f   %9.6f\n"
-          "    %9.6f %9.6f %9.6f   %9.6f\n"
-          "    %9.6f %9.6f %9.6f   %9.6f\n" ,
-       nim->qto_ijk.m[0][0] , nim->qto_ijk.m[0][1] ,
-       nim->qto_ijk.m[0][2] , nim->qto_ijk.m[0][3] ,
-       nim->qto_ijk.m[1][0] , nim->qto_ijk.m[1][1] ,
-       nim->qto_ijk.m[1][2] , nim->qto_ijk.m[1][3] ,
-       nim->qto_ijk.m[2][0] , nim->qto_ijk.m[2][1] ,
-       nim->qto_ijk.m[2][2] , nim->qto_ijk.m[2][3] ,
-       nim->qto_ijk.m[3][0] , nim->qto_ijk.m[3][1] ,
-       nim->qto_ijk.m[3][2] , nim->qto_ijk.m[3][3]  ) ;
-
-   if( nim->sform_code != NIFTI_XFORM_UNKNOWN ){
-     printf("  sform_code = %d  sto_xyz matrix =\n"
+   if( nim->qform_code > 0 ){
+     printf("  qform_code = %d (%s)\n"
+            "  qto_xyz matrix =\n"
             "    %9.6f %9.6f %9.6f   %9.6f\n"
             "    %9.6f %9.6f %9.6f   %9.6f\n"
             "    %9.6f %9.6f %9.6f   %9.6f\n"
             "    %9.6f %9.6f %9.6f   %9.6f\n" ,
-         nim->sform_code      ,
+         nim->qform_code      , nifti_xform_string(nim->qform_code) ,
+         nim->qto_xyz.m[0][0] , nim->qto_xyz.m[0][1] ,
+         nim->qto_xyz.m[0][2] , nim->qto_xyz.m[0][3] ,
+         nim->qto_xyz.m[1][0] , nim->qto_xyz.m[1][1] ,
+         nim->qto_xyz.m[1][2] , nim->qto_xyz.m[1][3] ,
+         nim->qto_xyz.m[2][0] , nim->qto_xyz.m[2][1] ,
+         nim->qto_xyz.m[2][2] , nim->qto_xyz.m[2][3] ,
+         nim->qto_xyz.m[3][0] , nim->qto_xyz.m[3][1] ,
+         nim->qto_xyz.m[3][2] , nim->qto_xyz.m[3][3]  ) ;
+
+     printf("  qto_ijk matrix =\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n" ,
+         nim->qto_ijk.m[0][0] , nim->qto_ijk.m[0][1] ,
+         nim->qto_ijk.m[0][2] , nim->qto_ijk.m[0][3] ,
+         nim->qto_ijk.m[1][0] , nim->qto_ijk.m[1][1] ,
+         nim->qto_ijk.m[1][2] , nim->qto_ijk.m[1][3] ,
+         nim->qto_ijk.m[2][0] , nim->qto_ijk.m[2][1] ,
+         nim->qto_ijk.m[2][2] , nim->qto_ijk.m[2][3] ,
+         nim->qto_ijk.m[3][0] , nim->qto_ijk.m[3][1] ,
+         nim->qto_ijk.m[3][2] , nim->qto_ijk.m[3][3]  ) ;
+
+     printf("  quatern_b = %g  quatern_c = %g  quatern_c = %g\n"
+            "  qoffset_x = %g  qoffset_y = %g  qoffset_z = %g\n"
+            "  qfac = %g\n" ,
+         nim->quatern_b , nim->quatern_c , nim->quatern_c ,
+         nim->qoffset_x , nim->qoffset_y , nim->qoffset_z , nim->qfac ) ;
+   }
+
+   if( nim->sform_code != NIFTI_XFORM_UNKNOWN ){
+     printf("  sform_code = %d (%s)\n"
+            "  sto_xyz matrix =\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n" ,
+         nim->sform_code      , nifti_xform_string(nim->sform_code) ,
          nim->sto_xyz.m[0][0] , nim->sto_xyz.m[0][1] ,
          nim->sto_xyz.m[0][2] , nim->sto_xyz.m[0][3] ,
          nim->sto_xyz.m[1][0] , nim->sto_xyz.m[1][1] ,
@@ -897,8 +1004,11 @@ void nifti_image_infodump( nifti_image *nim )
          nim->sto_ijk.m[3][2] , nim->sto_ijk.m[3][3]  ) ;
    }
 
-   if( nim->data == NULL ) printf("  data not loaded\n") ;
-   else                    printf("  data loaded at address %p\n",nim->data) ;
+   if( nim->data == NULL )
+     printf("  data not loaded\n") ;
+   else
+     printf("  data loaded at address %p (%u bytes)\n",
+            nim->data , (unsigned int)(nim->nbyper*nim->nvox) ) ;
 
    return ;
 }
@@ -1061,10 +1171,14 @@ void nifti_image_write( nifti_image *nim )
    ss = fwrite( nim->data , nim->nbyper , nim->nvox , fp ) ;
    fclose(fp) ;
    if( ss < nim->nvox ) ERREX("bad write to image file") ;
+
+   nim->swapsize = 0 ;  /* don't swap if we read back in */
    return ;
 }
 
 /****************************************************************************/
+/****************************************************************************/
+
 int main( int argc , char *argv[] )
 {
    nifti_image *nim ;
