@@ -546,10 +546,11 @@ static INLINE int clip_line_to_rect( float xclbot , float yclbot ,
    /* if inside entire region, then do nothing */
 
    if( x1 >= xclbot && x2 <= xcltop ){
-     if( y1 < y2 )
+     if( y1 < y2 ){
        if( y1 >= yclbot && y2 <= ycltop ) return 0 ;
-     else
+     } else {
        if( y2 >= yclbot && y1 <= ycltop ) return 0 ;
+     }
    }
 
    /* Clip line in X direction */
@@ -569,9 +570,9 @@ static INLINE int clip_line_to_rect( float xclbot , float yclbot ,
 
    /* Check line again to see if it falls outside of plot region */
 
-   if( y1 < y2 )
+   if( y1 < y2 ){
      if( y2 < yclbot || y1 > ycltop ) return -1;
-   else {
+   } else {
      if( y1 < yclbot || y2 > ycltop ) return -1;
 
      temp=x1 ; x1=x2 ; x2=temp;                 /* make sure y1 <= y2 */
