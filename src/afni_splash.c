@@ -156,6 +156,8 @@ ENTRY("AFNI_splashup") ;
         if( num_face > 1 ){                       /* check if used recently */
           for( qq=0 ; qq < ndold && dold[qq] != dd ; qq++ ) ;       /* nada */
           if( qq < ndold ) goto Retry_dd ;                    /* was recent */
+          if( (lrand48() & 66) != 0 &&
+              strstr(fname_face[dd],"wildman") != NULL ) goto Retry_dd ;
           for( qq=1 ; qq < ndold ; qq++ )        /* wasn't, so save in list */
             dold[qq-1] = dold[qq] ;
           dold[ndold-1] = dd ;
