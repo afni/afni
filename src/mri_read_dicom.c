@@ -209,11 +209,11 @@ ENTRY("mri_read_dicom") ;
        static int nwarn=0 ;
        if( nwarn < NWMAX )
          fprintf(stderr,
-                 "++ WARNING: DICOM file %s has Bits_Stored=%d and High_Bit=%d\n",
+                 "++ DICOM WARNING: file %s has Bits_Stored=%d and High_Bit=%d\n",
                  fname,bs,hb) ;
        nwarn++ ;
        if( nwarn == NWMAX )
-         fprintf(stderr,"++ WARNING: no more Bits_Stored messages will be printed\n") ;
+         fprintf(stderr,"++ DICOM WARNING: no more Bits_Stored messages will be printed\n") ;
      }
    }
 
@@ -223,11 +223,11 @@ ENTRY("mri_read_dicom") ;
       static int nwarn=0 ;
       if( nwarn < NWMAX )
         fprintf(stderr,
-                "++ WARNING: DICOM file %s has Rescale tags - not implemented here\n",
+                "++ DICOM WARNING: file %s has Rescale tags - not implemented here\n",
                 fname ) ;
       nwarn++ ;
       if( nwarn == NWMAX )
-        fprintf(stderr,"++ WARNING: no more Rescale tags messages will be printed\n") ;
+        fprintf(stderr,"++ DICOM WARNING: no more Rescale tags messages will be printed\n") ;
    }
 
    /* check if Window is ordered */
@@ -236,11 +236,11 @@ ENTRY("mri_read_dicom") ;
       static int nwarn=0 ;
       if( nwarn < NWMAX )
         fprintf(stderr,
-                "++ WARNING: DICOM file %s has Window tags  - not implemented here\n",
+                "++ DICOM WARNING: file %s has Window tags  - not implemented here\n",
                 fname ) ;
       nwarn++ ;
       if( nwarn == NWMAX )
-        fprintf(stderr,"++ WARNING: no more Window tags messages will be printed\n") ;
+        fprintf(stderr,"++ DICOM WARNING: no more Window tags messages will be printed\n") ;
    }
 
    /*** extract attributes of the image(s) to be read in ***/
@@ -296,7 +296,7 @@ ENTRY("mri_read_dicom") ;
 
            if( nz > 1 ){
              fprintf(stderr,
-                     "** ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
+                     "** DICOM ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
                      mos_ix,mos_iy,mos_nx,mos_ny,fname,nz) ;
              free(ppp) ; RETURN(NULL) ;
            }
@@ -306,11 +306,11 @@ ENTRY("mri_read_dicom") ;
            mosaic = 1 ;
            mos_nz = mos_ix * mos_iy ;   /* number of slices in mosaic */
            if( nwarn < NWMAX )
-             fprintf(stderr,"++ NOTICE: %dx%d Siemens Mosaic of %dx%d images in file %s\n",
+             fprintf(stderr,"++ DICOM NOTICE: %dx%d Siemens Mosaic of %dx%d images in file %s\n",
                     mos_ix,mos_iy,mos_nx,mos_ny,fname) ;
            nwarn++ ;
            if( nwarn == NWMAX )
-             fprintf(stderr,"++ NOTICE: no more Siemens Mosiac messages will be printed\n") ;
+             fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosiac messages will be printed\n") ;
 
            /* 31 Oct 2002: extract extra Siemens info, if possible */
 
@@ -338,11 +338,11 @@ ENTRY("mri_read_dicom") ;
            static int nwarn=0 ;
            if( nwarn < NWMAX )
              fprintf(stderr,
-                     "++ WARNING: bad SIEMENS MOSAIC parameters: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
+                     "++ DICOM WARNING: bad SIEMENS MOSAIC parameters: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
                      mos_nx,mos_ny , mos_ix,mos_iy , nx,ny ) ;
            nwarn++ ;
            if( nwarn == NWMAX )
-             fprintf(stderr,"++ NOTICE: no more SIEMENS MOSAIC parameter messages will be printed\n");
+             fprintf(stderr,"++ DICOM NOTICE: no more SIEMENS MOSAIC parameter messages will be printed\n");
          }
 
        } /* end of if E_ACQ_MATRIX has good values in it */
@@ -350,11 +350,11 @@ ENTRY("mri_read_dicom") ;
        else {                  /* warn if E_ACQ_MATRIX has bad values */
          static int nwarn=0 ;
          if( nwarn < NWMAX )
-           fprintf(stderr,"++ WARNING: bad SIEMENS MOSAIC Acquisition Matrix: %d %d %d %d\n",
+           fprintf(stderr,"++ DICOM WARNING: bad SIEMENS MOSAIC Acquisition Matrix: %d %d %d %d\n",
                    aa,bb,cc,dd ) ;
          nwarn++ ;
          if( nwarn == NWMAX )
-           fprintf(stderr,"++ NOTICE: no more SIEMENS MOSAIC Acquisition Matrix messages will be printed\n");
+           fprintf(stderr,"++ DICOM NOTICE: no more SIEMENS MOSAIC Acquisition Matrix messages will be printed\n");
        }
 
      } /* end of if have '//' in E_ACQ_MATRIX */
@@ -933,7 +933,7 @@ ENTRY("mri_imcount_dicom") ;
 
            if( nz > 1 ){
              fprintf(stderr,
-                     "** ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
+                     "** DICOM ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
                      mos_ix,mos_iy,mos_nx,mos_ny,fname,nz) ;
              free(ppp) ; RETURN(0) ;
            }

@@ -3830,6 +3830,10 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 
    /**--- count up the actual number of images into nz ---**/
 
+#ifndef AFNI_DEBUG
+   printf("Counting images: ");fflush(stdout);
+#endif
+
    nz = 0 ;
    for( lf=0 ; lf < gnim ; lf++ ){
       ii = mri_imcount( gname[lf] ) ;
@@ -3840,7 +3844,9 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
       nz += ii ;
    }
 #ifdef AFNI_DEBUG
-printf("T3D_read_images: mri_imcount totals nz=%d\n",nz) ;
+   printf("T3D_read_images: mri_imcount totals nz=%d\n",nz) ;
+#else
+   printf(" total=%d 2D slices\n",nz) ;
 #endif
 
    if( nz < NZBOT ){
