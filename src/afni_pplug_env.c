@@ -257,6 +257,10 @@ PLUGIN_interface * ENV_init(void)
      ENV_add_string( "AFNI_SUMA_LINECOLOR" ,                  /* 10 Mar 2002 */
                      "Color name for surface line overlays [or none]" ,
                      0,NULL , NULL ) ;
+
+     ENV_add_numeric( "AFNI_SUMA_LINESIZE" ,                  /* 15 Jan 2003 */
+                      "Line thickness for surface intersection overlay" ,
+                      0 , 30 , 3 , 0 , NULL ) ;
    }
 
 #ifndef NO_FRIVOLITIES

@@ -1914,9 +1914,16 @@ STATUS("get status") ;
         int      ntr = ag->num_ijk ;    /* number of triangles */
         int id,jd,kd ;
         THD_fvec3 fvijk[3] ;
-        float ci,cj,ck ;
+        float ci,cj,ck , lx=0.0 ;
 
         set_color_memplot(rr_lin,gg_lin,bb_lin) ;  /* line drawing colors */
+
+        eee = getenv( "AFNI_SUMA_LINESIZE" ) ;     /* 15 Jan 2003 */
+        if( eee != NULL ){
+          lx = strtod(eee,NULL) ;
+          if( lx < 0.0 || lx > 0.1 ) lx = 0.0 ;
+        }
+        set_thick_memplot(lx) ;
 
         /* loop over triangles */
 
@@ -1990,6 +1997,7 @@ STATUS("get status") ;
                             s1*(fvm.xyz[0]+0.5) , 1.0-s2*(fvm.xyz[1]+0.5)  ) ;
 
         } /* end of loop over triangles */
+        set_thick_memplot(0.0) ;              /* 15 Jan 2003 */
       } /* end of if over doing lines */
      } /* end of loop over surface index ks */
     } /* end of plotting surface stuff */
