@@ -27,14 +27,15 @@ static int    lover[NOVER]={NLINE_cox1,NLINE_cox2,NLINE_cox3,NLINE_cox4};
 
 /*------------------------------------------------------------------------------------*/
 #undef  NMAIN
-#define NMAIN 1
+#define NMAIN 2
 #ifdef  NMAIN
-#  include "splash_gang.h"
+#  include "splash_gang.h"  /* MCW gang */
+#  include "splash_sscc.h"  /* NIH gang */
 
-static char **bmain[NMAIN]={BAR_gang  };
-static int    xmain[NMAIN]={NX_gang   };
-static int    ymain[NMAIN]={NY_gang   };
-static int    lmain[NMAIN]={NLINE_gang};
+static char **bmain[NMAIN]={BAR_gang  ,BAR_sscc  };
+static int    xmain[NMAIN]={NX_gang   ,NX_sscc   };
+static int    ymain[NMAIN]={NY_gang   ,NY_sscc   };
+static int    lmain[NMAIN]={NLINE_gang,NLINE_sscc};
 #endif
 /*------------------------------------------------------------------------------------*/
 
