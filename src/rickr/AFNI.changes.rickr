@@ -502,3 +502,7 @@
 24 March 2004:
   * modified file_tool.c (-> v3.2), only check max length for mods
 
+30 March 2004:
+  * made history notes of ziad's added argument to SUMA_LoadSpec_eng()
+      - 3dSurf2Vol (v3.3), 3dVol2Surf (v4.4), SurfMeasures (v1.8)
+

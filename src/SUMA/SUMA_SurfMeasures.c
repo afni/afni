@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.7a (February 23, 2004)"
+#define VERSION "version 1.8 (March 26, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -79,13 +79,13 @@ static char g_history[] =
     "\n"
     "1.7 February 23, 2004  [rickr]\n"
     "  - added functions 'n_avearea_A', 'n_avearea_B', 'n_ntri'\n"
+    "\n"
+    "1.8 March 26, 2004  [ziad]\n"
+    "  - DsetList added to SUMA_LoadSpec_eng() and SUMA_SurfaceMetrics_eng()\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
  * todo:
- *
- * - allow (okay, force) users to specify surfaces by name
- * - add -hist option
  *----------------------------------------------------------------------
 */
 
@@ -689,7 +689,8 @@ ENTRY("get_surf_measures");
 
     if ( geta ) 
     {
-	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[0], "PolyArea", NULL, debug, SUMAg_CF->DsetList) )
+	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[0], "PolyArea", NULL, debug,
+		                      SUMAg_CF->DsetList) )
 	{
 	    fprintf(stderr,"** gsf: surface metrics A failure\n");
 	    RETURN(-1);
@@ -707,7 +708,8 @@ ENTRY("get_surf_measures");
 	    RETURN(-1);
 	}
 
-	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[1], "PolyArea", NULL, debug, SUMAg_CF->DsetList) )
+	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[1], "PolyArea", NULL, debug,
+		                      SUMAg_CF->DsetList) )
 	{
 	    fprintf(stderr,"** gsf: surface metrics B failure\n");
 	    RETURN(-1);
