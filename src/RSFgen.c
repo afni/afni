@@ -42,6 +42,10 @@
 
   Mod:     Made -nblock option compatible with the Markov Chain options.
   Date:    06 March 2002
+
+  Mod:     Added -one_col option to write stimulus functions as a single
+           column of decimal integers.
+  Date:    18 April 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -49,7 +53,7 @@
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "06 July 1999"    /* date of initial program release */
-#define PROGRAM_LATEST "06 March 2002"    /* date of latest program revision */
+#define PROGRAM_LATEST "18 April 2002"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -80,6 +84,7 @@ long seed = 1234567;    /* random number seed */
 long pseed = 0;         /* stimulus permutation random number seed */
 char * prefix = NULL;   /* prefix for output .1D stimulus functions */
 int one_file = 0;       /* flag for place stim functions into a single file */
+int one_col = 0;        /* flag for write stim functions as a single column */
 int markov = 0;         /* flag for Markov process */
 char * tpm_file = NULL; /* file name for input of transition prob. matrix */
 float pzero = 0.0;      /* zero (null) state probability */
@@ -124,6 +129,8 @@ void display_help_menu()
     "                     (default: k = 1)                                  \n"
     "[-seed s]        s = random number seed                                \n"
     "[-one_file]      place stimulus functions into a single .1D file       \n"
+    "[-one_col]       write stimulus functions as a single column of decimal\n"
+    "                   integers (default: multiple columns of binary nos.) \n"
     "[-prefix pname]  pname = prefix for p output .1D stimulus functions    \n"
     "                   e.g., pname1.1D, pname2.1D, ..., pnamep.1D          \n"
     "                                                                       \n"
@@ -297,6 +304,15 @@ void get_options
       if (strncmp(argv[nopt], "-one_file", 9) == 0)
 	{
 	  one_file = 1;
+	  nopt++;
+	  continue;
+	}
+
+
+      /*-----  -one_col  -----*/
+      if (strcmp(argv[nopt], "-one_col") == 0)
+	{
+	  one_col = 1;
 	  nopt++;
 	  continue;
 	}
@@ -730,11 +746,14 @@ void write_many_ts (char * filename, int * design)
 
   for (it = 0;  it < NT;  it++)
     {
-      for (is = 0;  is < num_stimts;  is++)
-	if (design[it] == is+1)
-	  fprintf (outfile, "  %d", 1);
-	else
-	  fprintf (outfile, "  %d", 0);	  
+      if (one_col)
+	fprintf (outfile, "  %d", design[it]);
+      else
+	for (is = 0;  is < num_stimts;  is++)
+	  if (design[it] == is+1)
+	    fprintf (outfile, "  %d", 1);
+	  else
+	    fprintf (outfile, "  %d", 0);	  
       fprintf (outfile, " \n");
     }
 
@@ -755,7 +774,7 @@ void write_results (int * design)
   int is, i;
 
 
-  if (one_file)
+  if (one_file || one_col)
     {
       sprintf (filename, "%s.1D", prefix);
       write_many_ts (filename, design);

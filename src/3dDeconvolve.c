@@ -1,6 +1,6 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1998-2001, and are released under the Gnu General Public
+   of Wisconsin, 1998-2002, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
@@ -213,14 +213,18 @@
            of baseline parameters and statistics.
   Date:    27 February 2002
 
+  Mod:     Allow user to specify which input stimulus functions are part of
+           the baseline model.
+  Date:    02 May 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
-#define PROGRAM_INITIAL "02 Sep 1998"     /* date of initial program release */
-#define PROGRAM_LATEST  "27 Feb 2002"     /* date of latest program revision */
+#define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
+#define PROGRAM_LATEST  "02 May 2002"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -255,11 +259,14 @@ typedef struct DC_options
   int nodata;              /* flag for 'no data' option */
   int p;                   /* number of parameters in the full model */
   int q;                   /* number of parameters in the baseline model */
+  int qp;                  /* number of polynomial trend parameters 
+			      in the baseline model  Note: qp <= q <= p  */
   int nbricks;             /* number of sub-bricks in bucket dataset output */
 
   int num_stimts;          /* number of stimulus time series */
   char ** stim_filename;   /* input stimulus time series */
   char ** stim_label;      /* label for stimulus time series */
+  int * stim_base;         /* flag for stim fn. is part of baseline model */
   int * stim_minlag;       /* min. time lag for impulse response */
   int * stim_maxlag;       /* max. time lag for impulse response */
   int * stim_nptr;         /* number of stim fn. points per TR */
@@ -342,6 +349,7 @@ void display_help_menu()
     "                       (0 <= num)   (default: num = 0)                 \n"
     "-stim_file k sname   sname = filename of kth time series input stimulus\n"
     "[-stim_label k slabel] slabel = label for kth input stimulus           \n"
+    "[-stim_base k]       kth input stimulus is part of the baseline model  \n"
     "[-stim_minlag k m]   m = minimum time lag for kth input stimulus       \n"
     "                       (default: m = 0)                                \n"
     "[-stim_maxlag k n]   n = maximum time lag for kth input stimulus       \n"
@@ -427,6 +435,7 @@ void initialize_options
   option_data->nodata   = 0;
   option_data->p        = 0;
   option_data->q        = 0;
+  option_data->qp       = 0;
   option_data->nbricks  = 0;
   
 
@@ -434,6 +443,7 @@ void initialize_options
   option_data->num_stimts = 0;
   option_data->stim_filename = NULL;
   option_data->stim_label = NULL;
+  option_data->stim_base = NULL;
   option_data->stim_minlag = NULL;
   option_data->stim_maxlag = NULL;
   option_data->stim_nptr = NULL;
@@ -498,6 +508,8 @@ void initialize_stim_options
   MTEST (option_data->stim_filename);
   option_data->stim_label = (char **) malloc (sizeof(char *) * num_stimts);
   MTEST (option_data->stim_label);
+  option_data->stim_base = (int *) malloc (sizeof(int) * num_stimts);
+  MTEST (option_data->stim_base);
   option_data->stim_minlag = (int *) malloc (sizeof(int) * num_stimts);
   MTEST (option_data->stim_minlag);
   option_data->stim_maxlag = (int *) malloc (sizeof(int) * num_stimts);
@@ -518,9 +530,10 @@ void initialize_stim_options
       MTEST (option_data->stim_label[is]);
       sprintf (option_data->stim_label[is], "Stim #%d ", is+1);
 
-      option_data->stim_minlag[is] = 0;
-      option_data->stim_maxlag[is] = 0;
-      option_data->stim_nptr[is]   = 1;
+      option_data->stim_base[is] = 0;
+      option_data->stim_minlag[is]   = 0;
+      option_data->stim_maxlag[is]   = 0;
+      option_data->stim_nptr[is]     = 1;
 
       option_data->iresp_filename[is] = NULL;
       option_data->sresp_filename[is] = NULL;
@@ -829,6 +842,23 @@ void get_options
 	  nopt++;
 
 	  strcpy (option_data->stim_label[k], argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+      
+
+      /*-----   -stim_base k   -----*/
+      if (strcmp(argv[nopt], "-stim_base") == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  
+	    DC_error ("need 1 argument after -stim_base");
+
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival < 1) || (ival > option_data->num_stimts))
+	    DC_error ("-stim_base k   Require: 1 <= k <= num_stimts");
+	  k = ival-1;
+	  option_data->stim_base[k] = 1;
 	  nopt++;
 	  continue;
 	}
@@ -1286,10 +1316,12 @@ void read_input_data
   int nt;                  /* number of input data time points */
   int nxyz;                /* number of voxels */
   int num_stimts;          /* number of stimulus time series arrays */
+  int * baseline;          /* flag for baseline stimulus function */
   int * min_lag;           /* minimum time delay for impulse response */
   int * max_lag;           /* maximum time delay for impulse response */
-  int q;                   /* number of baseline parameters */
-  int p;                   /* total number of parameters */
+  int qp;                  /* number of polynomial trend baseline parameters */
+  int q;                   /* number of baseline model parameters */
+  int p;                   /* number of full model parameters */
   int is;                  /* stimulus time series index */
   int num_glt;             /* number of general linear tests */
   int iglt;                /* general linear test index */
@@ -1298,8 +1330,9 @@ void read_input_data
   /*----- Initialize local variables -----*/
   num_stimts = option_data->num_stimts;
   num_glt    = option_data->num_glt;
-  min_lag = option_data->stim_minlag;
-  max_lag = option_data->stim_maxlag;
+  baseline = option_data->stim_base;
+  min_lag  = option_data->stim_minlag;
+  max_lag  = option_data->stim_maxlag;
 
 
   /*----- Read the input stimulus time series -----*/
@@ -1439,16 +1472,19 @@ void read_input_data
 
 
   /*----- Determine total number of parameters in the model -----*/
-  q = (option_data->polort + 1) * (*num_blocks);
-  p = q;
+  qp = (option_data->polort + 1) * (*num_blocks);
+  q = qp;
+  p = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
       if (max_lag[is] < min_lag[is])
 	DC_error ("Require min lag <= max lag for all stimuli");
       p += max_lag[is] - min_lag[is] + 1;
+      if (baseline[is])  q += max_lag[is] - min_lag[is] + 1;
     }
-  option_data->p = p;
-  option_data->q = q;
+  option_data->p  = p;
+  option_data->q  = q;
+  option_data->qp = qp;
   
 
   /*----- Read the censorship file -----*/
@@ -1555,6 +1591,9 @@ void remove_zero_stimfns
 
 	  option_data->p -=  
 	    option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
+	  if (option_data->stim_base[is])
+	    option_data->q -=  
+	      option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
 	  for (isp = is;  isp < num_stimts-1;  isp++)
 	    {
 	      stimulus[isp] = stimulus[isp+1];
@@ -1562,6 +1601,8 @@ void remove_zero_stimfns
 	      option_data->stim_filename[isp] 
 		= option_data->stim_filename[isp+1];
 	      option_data->stim_label[isp] = option_data->stim_label[isp+1];
+	      option_data->stim_base[isp] 
+		= option_data->stim_base[isp+1];
 	      option_data->stim_minlag[isp] = option_data->stim_minlag[isp+1];
 	      option_data->stim_maxlag[isp] = option_data->stim_maxlag[isp+1];
 	      option_data->iresp_filename[isp] 
@@ -1693,8 +1734,9 @@ void check_for_valid_inputs
   int * max_lag;           /* maximum time delay for impulse response */
   int * nptr;              /* number of stim fn. time points per TR */
   int m;                   /* number of time delays for impulse response */
-  int q;                   /* number of baseline parameters */
-  int p;                   /* total number of parameters */
+  int qp;                  /* number of polynomial trend baseline parameters */
+  int q;                   /* number of baseline model parameters */
+  int p;                   /* number of full model parameters */
   int nbricks;             /* number of sub-bricks in bucket dataset output */
   int it;                  /* time point index */
   int nt;                  /* number of images in input 3d+time dataset */
@@ -1716,8 +1758,9 @@ void check_for_valid_inputs
   num_glt = option_data->num_glt;
   glt_rows = option_data->glt_rows;
   nptr = option_data->stim_nptr;
-  p = option_data->p;
-  q = option_data->q;
+  p  = option_data->p;
+  q  = option_data->q;
+  qp = option_data->qp;
 
 
   /*----- Check length of censor array -----*/
@@ -1837,19 +1880,31 @@ void check_for_valid_inputs
   nbricks = 0;
   if (option_data->bucket_filename != NULL)
     {
-      if ((! option_data->nobout) && (! option_data->nocout))
-	nbricks += q * (1 + option_data->tout);
       if (! option_data->nocout)
-	nbricks += (p-q) * (1 + option_data->tout)
-	  + num_stimts * (option_data->rout + option_data->fout);
+	{
+	  if (! option_data->nobout)
+	    nbricks += qp * (1 + option_data->tout);
+
+	  for (is = 0;  is < num_stimts;  is++)
+	    {
+	      if ((!option_data->stim_base[is]) || (!option_data->nobout))
+		{
+		  m = max_lag[is] - min_lag[is] + 1;
+		  nbricks += m * (1 + option_data->tout);
+		  nbricks += option_data->rout + option_data->fout;
+		}
+	    }
+	}
+	 
       nbricks += option_data->rout + option_data->fout + option_data->vout;
+
       if (num_glt > 0)
 	for (iglt = 0;  iglt < num_glt;  iglt++)
 	  {
 	    nbricks += glt_rows[iglt] * (1 + option_data->tout);
 	    nbricks += option_data->rout + option_data->fout;
 	  }
-
+      
       if (nbricks <= 0)
 	{
 	  sprintf (message, 
@@ -1857,9 +1912,10 @@ void check_for_valid_inputs
 		   nbricks);
 	  DC_error (message);
 	}
+      
     }
   option_data->nbricks = nbricks;
-
+      
 
   /*----- Check for zero slice offsets with nptr option -----*/
   if (dset_time != NULL)
@@ -1931,21 +1987,22 @@ void allocate_memory
 )
 
 {
-  int ip;                    /* parameter index */
-  int q;                     /* number of baseline parameters */
-  int p;                     /* total number of parameters */
-  int nxyz;                  /* total number of voxels */
-  int ixyz;                  /* voxel index */
-  int is;                    /* stimulus index */
-  int num_stimts;            /* number of stimulus time series */
-  int num_glt;               /* number of general linear tests */
-  int iglt;                  /* general linear test index */
-  int nlc;                   /* number of linear combinations in a GLT */
-  int ilc;                   /* linear combination index */
-  int it;                    /* time point index */
-  int nt;                    /* number of images in input 3d+time dataset */
-  int * min_lag;             /* minimum time delay for impulse response */
-  int * max_lag;             /* maximum time delay for impulse response */
+  int ip;                  /* parameter index */
+  int qp;                  /* number of polynomial trend baseline parameters */
+  int q;                   /* number of baseline model parameters */
+  int p;                   /* number of full model parameters */
+  int nxyz;                /* total number of voxels */
+  int ixyz;                /* voxel index */
+  int is;                  /* stimulus index */
+  int num_stimts;          /* number of stimulus time series */
+  int num_glt;             /* number of general linear tests */
+  int iglt;                /* general linear test index */
+  int nlc;                 /* number of linear combinations in a GLT */
+  int ilc;                 /* linear combination index */
+  int it;                  /* time point index */
+  int nt;                  /* number of images in input 3d+time dataset */
+  int * min_lag;           /* minimum time delay for impulse response */
+  int * max_lag;           /* maximum time delay for impulse response */
 
   int fout;             /* flag to output F-statistics */
   int rout;             /* flag to output R^2 statistics */
@@ -1959,8 +2016,9 @@ void allocate_memory
   nxyz = option_data->nxyz;
   num_stimts = option_data->num_stimts;
   num_glt = option_data->num_glt;
-  q = option_data->q;
-  p = option_data->p;
+  qp = option_data->qp;
+  q  = option_data->q;
+  p  = option_data->p;
   nt = option_data->nt;
   min_lag = option_data->stim_minlag;
   max_lag = option_data->stim_maxlag;
@@ -1985,34 +2043,47 @@ void allocate_memory
     }
 
   if (bout)
-    for (ip = 0;  ip < q;  ip++)
+    for (ip = 0;  ip < qp;  ip++)
       {
 	zero_fill_volume (&((*coef_vol)[ip]),  nxyz);
 	if (tout) zero_fill_volume (&((*tcoef_vol)[ip]),  nxyz);
       }
 
-  ip = q-1;
+  ip = qp - 1;
   for (is = 0;  is < num_stimts;  is++)
     {
       for (it = min_lag[is];  it <= max_lag[is];  it++)
 	{
 	  ip++;
-	  if (cout || (option_data->iresp_filename[is] != NULL))
-	    zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	  
+	  if (option_data->stim_base[is])
+	    {
+	      if (bout || (option_data->iresp_filename[is] != NULL))
+		zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	  
+	      if (bout && tout)
+		zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
+	    }
+	  else
+	    {
+	      if (cout || (option_data->iresp_filename[is] != NULL))
+		zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	  
+	      if (cout && tout)
+		zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
+	    }
 	  if (option_data->sresp_filename[is] != NULL)
 	    zero_fill_volume (&((*scoef_vol)[ip]), nxyz);
-	  if (tout)
-	    zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
 	}
     }
 
 
-  if (fout)
+  if (fout) 
     {
       *fpart_vol = (float **) malloc (sizeof(float *) * num_stimts);
       MTEST(*fpart_vol);
       for (is = 0;  is < num_stimts;  is++)
-	zero_fill_volume (&((*fpart_vol)[is]), nxyz);
+	if ((! option_data->stim_base[is]) || (! option_data->nobout))
+	  zero_fill_volume (&((*fpart_vol)[is]), nxyz);
+	else
+	  *fpart_vol[is] = NULL;
     }
 
 
@@ -2021,7 +2092,10 @@ void allocate_memory
       *rpart_vol = (float **) malloc (sizeof(float *) * num_stimts);
       MTEST(*rpart_vol);
       for (is = 0;  is < num_stimts;  is++)
-	zero_fill_volume (&((*rpart_vol)[is]), nxyz);
+	if ((! option_data->stim_base[is]) || (! option_data->nobout))
+	  zero_fill_volume (&((*rpart_vol)[is]), nxyz);
+	else
+	  *rpart_vol[is] = NULL;
     }
 
 
@@ -2389,16 +2463,16 @@ void save_voxel
 
 void report_evaluation 
 (
-  int q,                      /* number of parameters in the baseline model */
-  int num_stimts,             /* number of stimulus time series */
-  char ** stim_label,         /* label for each stimulus */
-  int * min_lag,              /* minimum time delay for impulse response */ 
-  int * max_lag,              /* maximum time delay for impulse response */ 
-  matrix xtxinv_full,         /* matrix:  1/(X'X)      for full model */
-  int num_glt,                /* number of general linear tests */
-  char ** glt_label,          /* label for general linear test */
-  int * glt_rows,             /* number of linear constraints in glt */
-  matrix * cxtxinvct          /* array of matrices:  C(1/(X'X))C' for glt */
+  int qp,                  /* number of polynomial trend baseline parameters */
+  int num_stimts,          /* number of stimulus time series */
+  char ** stim_label,      /* label for each stimulus */
+  int * min_lag,           /* minimum time delay for impulse response */ 
+  int * max_lag,           /* maximum time delay for impulse response */ 
+  matrix xtxinv_full,      /* matrix:  1/(X'X)      for full model */
+  int num_glt,             /* number of general linear tests */
+  char ** glt_label,       /* label for general linear test */
+  int * glt_rows,          /* number of linear constraints in glt */
+  matrix * cxtxinvct       /* array of matrices:  C(1/(X'X))C' for glt */
 )
 
 {
@@ -2411,7 +2485,7 @@ void report_evaluation
 
   
   /*----- Print the normalized parameter standard deviations -----*/
-  m = q;
+  m = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
       printf ("\nStimulus: %s \n", stim_label[is]);
@@ -2480,8 +2554,9 @@ void calculate_results
 {
   float * ts_array = NULL;    /* array of measured data for one voxel */
 
-  int p;                      /* number of parameters in the full model */
-  int q;                      /* number of parameters in the baseline model */
+  int qp;                     /* number of poly. trend baseline parameters */
+  int q;                      /* number of baseline model parameters */
+  int p;                      /* number of full model parameters */
   int polort;                 /* degree of polynomial for baseline model */
   int m;                      /* parameter index */
   int n;                      /* data point index */
@@ -2513,6 +2588,7 @@ void calculate_results
   int N;                   /* number of usable data points */
 
   int num_stimts;          /* number of stimulus time series */
+  int * baseline;          /* flag for stim function in baseline model */ 
   int * min_lag;           /* minimum time delay for impulse response */ 
   int * max_lag;           /* maximum time delay for impulse response */ 
   int * nptr;              /* number of stim fn. time points per TR */
@@ -2550,6 +2626,7 @@ void calculate_results
   rms_min = option_data->rms_min;
   num_stimts = option_data->num_stimts;
   stim_label = option_data->stim_label;
+  baseline = option_data->stim_base;
   min_lag = option_data->stim_minlag;
   max_lag = option_data->stim_maxlag;
   nptr    = option_data->stim_nptr;
@@ -2558,8 +2635,9 @@ void calculate_results
   glt_rows = option_data->glt_rows;
 
   polort = option_data->polort;
-  q = option_data->q;
-  p = option_data->p;
+  qp = option_data->qp;
+  q  = option_data->q;
+  p  = option_data->p;
 
   N = option_data->N;
 
@@ -2628,15 +2706,15 @@ void calculate_results
 
 
   /*----- Initialize the independent variable matrix -----*/
-  init_indep_var_matrix (p, q, polort, nt, N, good_list, block_list, 
+  init_indep_var_matrix (p, qp, polort, nt, N, good_list, block_list, 
 			 num_blocks, num_stimts, stimulus, stim_length, 
 			 min_lag, max_lag, nptr, &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
 
   /*----- Initialization for the regression analysis -----*/
-  init_regression_analysis (p, q, num_stimts, min_lag, max_lag, xdata, 
-			    &x_full, &xtxinv_full, &xtxinvxt_full, 
+  init_regression_analysis (p, qp, num_stimts, baseline, min_lag, max_lag, 
+			    xdata, &x_full, &xtxinv_full, &xtxinvxt_full, 
 			    &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
   if ((option_data->xout) || nodata) 
       matrix_sprint ("(X'X) inverse matrix:", xtxinv_full);
@@ -2653,7 +2731,7 @@ void calculate_results
   if (nodata)
     {
       report_evaluation 
-	(q, num_stimts, stim_label, min_lag, max_lag, xtxinv_full, 
+	(qp, num_stimts, stim_label, min_lag, max_lag, xtxinv_full, 
 	 num_glt, glt_label, glt_rows, cxtxinvct); 
     }
 
@@ -2710,11 +2788,11 @@ void calculate_results
 	       || (option_data->input1D_filename != NULL) )
 	    {
 	      printf ("\n\nResults for Voxel #%d: \n", ixyz);
-	      report_results (N, p, q, polort, block_list, num_blocks, 
-			      num_stimts, stim_label, min_lag, max_lag,
-			      coef, tcoef, fpart, rpart, ffull, rfull, mse, 
-			      num_glt, glt_label, glt_rows, glt_coef, 
-			      glt_tcoef, fglt, rglt, &label);
+	      report_results (N, qp, q, p, polort, block_list, num_blocks, 
+			   num_stimts, stim_label, baseline, min_lag, max_lag,
+			   coef, tcoef, fpart, rpart, ffull, rfull, mse, 
+		           num_glt, glt_label, glt_rows, glt_coef, 
+		           glt_tcoef, fglt, rglt, &label);
 	      printf ("%s \n", label);
 	    }
 	  
@@ -3191,8 +3269,9 @@ void write_bucket_data
   float * volume;           /* volume of floating point data */
 
   int N;                    /* number of usable data points */
-  int p;                    /* number of parameters in the full model */
-  int q;                    /* number of parameters in the rdcd model */
+  int qp;                   /* number of poly. trend baseline parameters */
+  int q;                    /* number of baseline model parameters */
+  int p;                    /* number of full model parameters */
   int polort;               /* degree of polynomial for baseline model */
   int num_stimts;           /* number of stimulus time series */
   int istim;                /* stimulus index */
@@ -3221,9 +3300,10 @@ void write_bucket_data
   glt_rows = option_data->glt_rows;
 
   polort = option_data->polort;
-  q = option_data->q;
-  p = option_data->p;
-  N = option_data->N;
+  qp = option_data->qp;
+  q  = option_data->q;
+  p  = option_data->p;
+  N  = option_data->N;
   nbricks = option_data->nbricks;
 
 
@@ -3299,9 +3379,9 @@ void write_bucket_data
       if (! option_data->nobout)
 	{
 	  strcpy (label, "Base");
-	  for (icoef = 0;  icoef < q;  icoef++)
+	  for (icoef = 0;  icoef < qp;  icoef++)
 	    {
-	      if (q == polort+1)
+	      if (qp == polort+1)
 		strcpy (label, "Base");
 	      else
 		sprintf (label, "Run #%d", icoef/(polort+1) + 1);
@@ -3331,7 +3411,7 @@ void write_bucket_data
       
 
       /*----- Stimulus statistics -----*/
-      icoef = q;
+      icoef = qp;
       for (istim = 0;  istim < num_stimts;  istim++)        
 	{                                 
 	  strcpy (label, option_data->stim_label[istim]);
@@ -3340,31 +3420,37 @@ void write_bucket_data
 	  for (ilag = option_data->stim_minlag[istim];
 	       ilag <= option_data->stim_maxlag[istim];  ilag++)
 	    {                             
-	      /*----- Stimulus coefficient -----*/
-	      ibrick++;
-	      brick_type = FUNC_FIM_TYPE;
-	      sprintf (brick_label, "%s[%d] Coef", label, ilag);
-	      volume = coef_vol[icoef];		  
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-				brick_type, brick_label, 0, 0, 0, bar);
-	      
-	      /*----- Stimulus t-stat -----*/
-	      if (option_data->tout)
+	      if ((! option_data->stim_base[istim]) 
+	       || (! option_data->nobout))
 		{
+		  /*----- Stimulus coefficient -----*/
 		  ibrick++;
-		  brick_type = FUNC_TT_TYPE;
-		  dof = N - p;
-		  sprintf (brick_label, "%s[%d] t-st", label, ilag);
-		  volume = tcoef_vol[icoef];
+		  brick_type = FUNC_FIM_TYPE;
+		  sprintf (brick_label, "%s[%d] Coef", label, ilag);
+		  volume = coef_vol[icoef];		  
 		  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+				    brick_type, brick_label, 0, 0, 0, bar);
+	      
+		  /*----- Stimulus t-stat -----*/
+		  if (option_data->tout)
+		    {
+		      ibrick++;
+		      brick_type = FUNC_TT_TYPE;
+		      dof = N - p;
+		      sprintf (brick_label, "%s[%d] t-st", label, ilag);
+		      volume = tcoef_vol[icoef];
+		      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
 				    brick_type, brick_label, dof, 0, 0, bar);
+		    }
 		}
 	      
 	      icoef++;
 	    }
 	    
 	  /*----- Stimulus R^2 stat -----*/
-	  if (option_data->rout)
+	  if ((option_data->rout)
+	    && ((! option_data->stim_base[istim]) 
+		|| (! option_data->nobout)))
 	    {
 	      ibrick++;
 	      brick_type = FUNC_THR_TYPE;
@@ -3375,7 +3461,9 @@ void write_bucket_data
 	    }
 	  
 	  /*----- Stimulus F-stat -----*/
-	  if (option_data->fout)
+	  if ((option_data->fout)
+	    && ((! option_data->stim_base[istim]) 
+		|| (! option_data->nobout)))
 	    {
 	      ibrick++;
 	      brick_type = FUNC_FT_TYPE;
@@ -3564,8 +3652,9 @@ void output_results
 )
 
 {
-  int q;                    /* number of parameters in baseline model */
-  int p;                    /* number of parameters in the full model */
+  int qp;                   /* number of poly. trend baseline parameters */
+  int q;                    /* number of baseline model parameters */
+  int p;                    /* number of full model parameters */
   int polort;               /* degree of polynomial for baseline model */
   int num_stimts;           /* number of stimulus time series */
   int * min_lag;            /* minimum time delay for impulse response */ 
@@ -3580,8 +3669,9 @@ void output_results
 
   /*----- Initialize local variables -----*/
   polort = option_data->polort;
-  q = option_data->q;
-  p = option_data->p;
+  qp = option_data->qp;
+  q  = option_data->q;
+  p  = option_data->p;
   num_stimts = option_data->num_stimts;
   min_lag = option_data->stim_minlag;
   max_lag = option_data->stim_maxlag;
@@ -3601,7 +3691,7 @@ void output_results
 
 
   /*----- Write the impulse response function 3d+time dataset -----*/
-  ib = q;
+  ib = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
       ts_length = max_lag[is] - min_lag[is] + 1;
@@ -3624,7 +3714,7 @@ void output_results
  
 
   /*----- Write the standard deviation 3d+time dataset -----*/
-  ib = q;
+  ib = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
       ts_length = max_lag[is] - min_lag[is] + 1;

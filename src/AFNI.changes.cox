@@ -3712,3 +3712,32 @@
 
 01 May 2002
  * Added "Jump to (MNI)" button to image popup menu (afni_widg.c and afni.c).
+
+07 May 2002
+ Changes from Doug Ward:
+ * The -one_col option has been added to program RSFgen.  With this option,
+   the input stimulus functions are written as a single column of decimal integers
+   (rather than multiple columns of binary numbers).
+ * The -stim_base option was added to Program 3dDeconvolve.  This modification
+   allows the user to specify which input stimulus functions are to be included
+   as part of the baseline model.  By default, the input stimulus functions are
+   not included in the baseline model.  This option will effect the output values
+   for the Full Model R^2 and Full Model F-stat, since these statistics indicate
+   the significance of the full regression model relative to the baseline model.
+   This option might be useful, for example, when the estimated motion parameters
+   are included as input stimulus functions.  In most cases, the user would want
+   the motion parameters to be part of the baseline model.  By indicating that
+   the motion parameters are part of the baseline model, they will not contribute
+   to the full regression model sum of squares.
+ * The Deconvolution plugin was also modified to incorporate the above change.
+   On the far right of each stimulus function input line of the Deconvolution
+   plugin interface, there is a new option chooser labeled "Base", which allows
+   the user to specify that this stimulus function is to be considered as part of
+   the baseline model.
+ * The Deconvolution plugin was modified to allow a better graphical
+   representation of the estimated impulse response function when the user selects
+   option DC_IRF under Tran 1D of the graph options menu.  When using the DC_IRF
+   function, note that the Double Plot option should be set to "Off".
+ * The 3dDeconvolve documentation was updated to reflect the above changes.
+   In particular, see Examples 1.4.3.2 and 2.3.2 of the Deconvolution manual in
+   file 3dDeconvolve.ps.
