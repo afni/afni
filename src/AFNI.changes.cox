@@ -3678,3 +3678,10 @@
  * Modified 3dAutomask.c to have -fillin option.
  * Modified cox_render.c to remove memset() of new image to 0, since
      mri_new() does this since 01 Nov 2001.
+
+22 Apr 2002
+ * Modified debugtrace.h to include "last_status" variable: keeps of copy of the
+     last STATUS() string, and prints it when the program crashes.
+ * Modified thd_dsetdblk.c to deal with NULL dataset at very end - the SUMA stuff
+     didn't check for that, which caused a crash if the dataset couldn't be
+     constructed.

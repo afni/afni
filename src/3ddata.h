@@ -1981,12 +1981,14 @@ typedef struct THD_3dim_dataset {
 } THD_3dim_dataset ;
 
 /*! \brief Determine if dataset ds has SUMA surface data attached. */
-#define DSET_HAS_SUMA(ds)   ( (ds)->su_sname != NULL && (ds)->su_surf != NULL )
+#define DSET_HAS_SUMA(ds)   ( (ds)!=NULL && (ds)->su_sname!=NULL && (ds)->su_surf!=NULL )
 
 /*! \brief Clear out the AFNI surface data pointers in dataset ds. */
-# define DSET_NULL_SUMA(ds)                      \
-  ( (ds)->su_sname=NULL, (ds)->su_surf=NULL,     \
-    (ds)->su_vmap=NULL , (ds)->su_vnlist=NULL )
+# define DSET_NULL_SUMA(ds)                         \
+  do{ if( (ds) != NULL ){                           \
+        (ds)->su_sname=NULL; (ds)->su_surf=NULL  ;  \
+        (ds)->su_vmap=NULL ; (ds)->su_vnlist=NULL;  \
+      } } while(0)
 
 /*! \brief A marker that defines a dataset that is about to be killed. */
 
