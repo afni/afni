@@ -29,12 +29,13 @@
                                                     Watch for saturation effects!*/
 
 #define SUMA_MAT_SHININESS_INIT 0 /*!< Surface object shininess, 0 20, 50 .. 128*/
-#define SUMA_MAT_SPECULAR_INIT    0.0, 0.0, 0.0, 1.0 /*<! The specular color of the material, keep this and the exponent (that's MAT_SHININESS) 0 to keep shininess down*/
-#define SUMA_MAT_AMBIENT_INIT    0.2, 0.2, 0.2, 1.0 /*<! Ambient light has an undetermined direction and is scattered equally in all directions */
-#define SUMA_MAT_DIFFUSE_INIT    0.8, 0.8, 0.8, 1.0 /*<! Diffuse light comes from one direction, but is scattered equally in all directions and appears equally bright no matter where the eye is located*/
-#define SUMA_MAT_EMISSION_INIT    0.0, 0.0, 0.0, 1.0 /*<! Emissive color is emanated from the object and is unaffected by light sources. It adds no light to other objects in the scene */
-
-#define SUMA_LMODEL_AMBIENT       1.0, 1.0, 1.0, 1.0 /*<! keep the ambient light high */
+#define SUMA_MAT_SPECULAR_INIT    0.0, 0.0, 0.0, 1.0 /*!< The specular color of the material, keep this and the exponent (that's MAT_SHININESS) 0 to keep shininess down*/
+#define SUMA_MAT_AMBIENT_INIT    0.2, 0.2, 0.2, 1.0 /*!< Fraction of Ambient light reflected.Ambient light has an undetermined direction and is scattered equally in all directions */
+#define SUMA_MAT_DIFFUSE_INIT    0.8, 0.8, 0.8, 1.0 /*!<  Fraction of Diffuse light reflected.Diffuse light comes from one direction, but is scattered equally in all directions and appears equally bright no matter where the eye is located*/
+#define SUMA_MAT_EMISSION_INIT    0.0, 0.0, 0.0, 1.0 /*!< Emissive color/light emanated from object.
+                                                           and unaffected by light sources. 
+                                                           It adds no light to other objects in the scene */
+#define SUMA_LMODEL_AMBIENT       1.0, 1.0, 1.0, 1.0 /*!< keep the ambient light high */
 
 #define SUMA_CLEAR_COLOR_R         0.0 /*!< clear color (viewer background) Red */
 #define SUMA_CLEAR_COLOR_G         0.0 /*!< clear color (viewer background) Green */
@@ -42,10 +43,10 @@
 #define SUMA_CLEAR_COLOR_A         0.0 /*!< clear color (viewer background) Alpha */
 
 
-#define SUMA_BACKFACE_CULL 0 /*<! 1/0 flag for culling backface facesets */
-#define SUMA_CHECK_WINDING 0 /*<! 1/0 flag for checking triangle winding */
+#define SUMA_BACKFACE_CULL 0 /*!< 1/0 flag for culling backface facesets */
+#define SUMA_CHECK_WINDING 0 /*!< 1/0 flag for checking triangle winding */
 
-#define SUMA_LIGHT0_COLOR_INIT    1.0, 1.0, 1.0,  1.0 /*<! add some local light for shading */
+#define SUMA_LIGHT0_COLOR_INIT    1.0, 1.0, 1.0,  1.0 
 #define SUMA_INTITIAL_LIGHT0_SWITCH 1 /*!< -1 works well for SureFit Surfaces, 1 works well for iv and FreeSurfer surfaces */
 #define SUMA_STDERR stderr
 #define SUMA_STDOUT stdout
@@ -561,7 +562,7 @@ typedef struct {
 
 /*! Displayable Object Type */
 typedef struct {
-   void *OP;   /*<! Object Pointer */
+   void *OP;   /*!< Object Pointer */
    SUMA_DO_Types ObjectType; /*!< Type of displayable object */
    SUMA_DO_CoordType CoordType; /*!< Type of coordinate system that the object is attached to
                                     This is used to determine whether the object is drawn before or 
@@ -944,7 +945,7 @@ typedef struct {
    int MinIdleDelta;       /*!< minimum spinDeltaX or spinDeltaY to initiate momentum rotation */
    float deltaQuat[4];   /*!< Quaternion increment */
    float currentQuat[4]; /*!< Current quaternion */
-   Boolean ApplyMomentum;   /*<! Turn momentum ON/OFF */
+   Boolean ApplyMomentum;   /*!< Turn momentum ON/OFF */
 } SUMA_GEOMVIEW_STRUCT;
 
 /*! structure holding the pointer the node color assignment and a bit more */
