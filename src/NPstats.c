@@ -13,9 +13,11 @@
            to allow operator selection of individual sub-bricks for input.
   Date:    03 December 1999
 
+  Mod:     Moved routines for sorting numbers and determining ranks to
+           separate file ranks.c.
+  Date:    31 March 2000
 
 */
-
 
 
 /*****************************************************************************
@@ -34,6 +36,23 @@ void NP_error (char * message)
    fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
    exit(1);
 }
+
+
+/*---------------------------------------------------------------------------*/
+
+/** macro to test a malloc-ed pointer for validity **/
+
+#define MTEST(ptr) \
+if((ptr)==NULL) \
+( NP_error ("Cannot allocate memory") )
+     
+
+/*---------------------------------------------------------------------------*/
+/*
+  Include routines for sorting numbers and determining ranks.
+*/
+
+#include "ranks.c"
 
 
 /*---------------------------------------------------------------------------*/
@@ -161,18 +180,6 @@ do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
 
 
 /*---------------------------------------------------------------------------*/
-     
-/** macro to test a malloc-ed pointer for validity **/
-     
-#define MTEST(ptr) \
-     if((ptr)==NULL) \
-     ( fprintf(stderr,"*** Cannot allocate memory for statistics!\n"         \
-	       "*** Try using the -workmem option to reduce memory needs,\n" \
-	       "*** or create more swap space in the operating system.\n"    \
-	       ), exit(0) )
-     
-
-/*---------------------------------------------------------------------------*/
 /*
   Read one AFNI data set from file 'filename'. 
   The data is converted to floating point (in ffim).
@@ -203,174 +210,6 @@ void read_afni_data (NP_options * option_data, char * filename,
 			  MRI_float               ,ffim  ) ;   /* output */
   
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Structure to store list of values, sorted in increasing order.
-*/
-  
-typedef struct node
-{
-  float fval;             /* floating point value */
-  int d;                  /* count of number of occurances of this value */
-  struct node * next;     /* link to next node */
-} node;
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Print contents of list, starting at smallest value. 
-*/
-
-void list_print (node * n, int * count)
-{
-  int i;
-
-  for (i = 0;  i < n->d;  i++)
-    {
-      printf (" %6.1f", n->fval);
-      *count += 1;
-      if (*count % 10 == 0)
-	printf ("\n");
-    }
-
-  if (n->next != NULL)
-    list_print (n->next, count);
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Delete the entire list.
-*/
-
-void list_delete (node ** n)
-{
-  if ((*n)->next != NULL)
-    list_delete (&((*n)->next));
-  free (*n);
-  *n = NULL;
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Insert one node with value r; reset pointers.
-*/
-
-void node_insert (node ** n, float r)
-{
-  node * ptr;
-
-  ptr = *n;
-  *n = (node *) malloc (sizeof(node));
-  (*n)->fval = r;
-  (*n)->d = 1;
-  (*n)->next = ptr;
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Add number r to list; if number is already in the list, just increment the
-  counter.  Otherwise, insert new node.
-*/
-
-void node_addvalue (node ** head, float r)
-{
-  node ** lastptr;
-  node * ptr;
-
-
-  if (*head == NULL)  node_insert (head, r);
-  else
-    {
-      lastptr = head;
-      ptr = *head;
-
-      while ( (ptr->fval < r) && (ptr->next != NULL) )
-	{
-	  lastptr = &(ptr->next);
-	  ptr = ptr->next;
-	}
-      
-      if (ptr->fval > r)
-	node_insert (lastptr, r);
-      else
-	if (ptr->fval == r)
-	  ptr->d += 1;
-        else
-	  node_insert (&(ptr->next), r);
-    }
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Get rank corresponding to number r.  If ties exist, return average rank.
-*/
-
-float node_get_rank (node * head, float r)
-{
-  node * ptr;
-  float rank;
-
-  ptr = head;
-  rank = 0.0;
-
-  while (ptr->fval != r)
-    {
-      rank += ptr->d;
-      ptr = ptr->next;
-    }
-
-  rank += (ptr->d + 1) / 2.0;
-  return (rank);
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Return value corresponding to the specified rank.
-*/
-
-float node_get_value (node * head, int rank)
-{
-  node * ptr;
-  int k;
-
-  ptr = head;
-  k = 0;
-
-  while (k + ptr->d < rank)
-    {
-      k += ptr->d;
-      ptr = ptr->next;
-    }
-
-  return (ptr->fval);
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Return value corresponding to the median value.
-*/
-
-float node_get_median (node * head, int n)
-{
-  float median;
-
-
-  if (n % 2)
-    median = node_get_value(head, n/2 + 1);
-  else
-    median = 0.5 * (node_get_value(head, n/2) + 
-		    node_get_value(head, n/2 + 1));
-
-  return (median);
 }
 
 

@@ -96,7 +96,7 @@ static void qsrec_floatfloat( int n , float * ar , float * iar , int cutoff )
 
         if( j <= i ) break ;         /* if j meets i, quit */
 
-        QS_SWAPF( a[i] , a[j] ) ; QS_SWAPI( ia[i] , ia[j] ) ;
+        QS_SWAPF( a[i] , a[j] ) ; QS_SWAPF( ia[i] , ia[j] ) ;
       } while( 1 ) ;
 
       /*----- at this point, the array is partitioned -----*/

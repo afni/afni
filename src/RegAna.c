@@ -20,6 +20,8 @@
            residual error time series (-errts) to 3d+time datasets.
   Date:    22 November 1999
 
+  Mod:     Added function calc_sse_fit.
+  Date:    21 April 2000
 
 
 */
@@ -171,6 +173,44 @@ float  calc_sse
 
   /*----- dispose of vectors -----*/
   vector_destroy (&e);
+  vector_destroy (&yhat);
+
+
+  /*----- return SSE -----*/
+  return (sse);
+ 
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Calculate the error sum of squares and the residuals.
+*/
+
+float  calc_resids
+(
+  matrix x,                  /* independent variable matrix  */
+  vector b,                  /* vector of estimated regression parameters */
+  vector y,                  /* vector of measured data */
+  vector * e                 /* vector of residuals */
+)
+
+{
+  vector yhat;               /* product Xb */
+  float sse;                 /* error sum of squares */
+
+
+  /*----- initialize vectors -----*/
+  vector_initialize (&yhat);
+
+
+  /*----- calculate the error sum of squares -----*/
+  vector_multiply (x, b, &yhat);
+  vector_subtract (y, yhat, e);
+  sse = vector_dot (*e, *e);
+
+
+  /*----- dispose of vectors -----*/
   vector_destroy (&yhat);
 
 

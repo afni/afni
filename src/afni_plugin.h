@@ -515,6 +515,8 @@ extern void PLUTO_popup_meter( PLUGIN_interface * ) ;
 extern void PLUTO_popdown_meter( PLUGIN_interface * ) ;
 extern void PLUTO_set_meter( PLUGIN_interface * , int ) ;
 
+/*------------------------------------------------------------------------*/
+
 typedef struct {
    MCW_imseq * seq ;
    MRI_IMAGE * im ;
@@ -531,6 +533,29 @@ extern void      PLUGIN_seq_send_CB( MCW_imseq * , XtPointer , ISQ_cbs * ) ;
 
 #define PLUTO_popkill_image(hh) \
    ( PLUTO_popdown_image(hh) , XtFree((char *)(hh)) , (hh)=NULL )
+
+/*------------------------------------------------------------------------*/
+
+typedef struct {
+   MCW_imseq * seq ;
+   MRI_IMARR * imar ;
+   int rgb_count ;
+   generic_func * kill_func ;
+   void * kill_data ;
+} PLUGIN_imseq ;
+
+extern void * PLUTO_imseq_popup( MRI_IMARR *, generic_func *, void * ) ;
+extern void * PLUTO_imseq_popim( MRI_IMAGE *, generic_func *, void * ) ;
+
+extern void   PLUTO_imseq_addto( void * , MRI_IMAGE * ) ;
+extern void   PLUTO_imseq_destroy( void * ) ;
+extern void   PLUTO_imseq_retitle( void * , char * ) ;
+extern void   PLUTO_imseq_rekill( void *, generic_func *, void * ) ;
+
+extern XtPointer PLUTO_imseq_getim( int , int , XtPointer ) ;
+extern void PLUTO_imseq_send_CB( MCW_imseq * , XtPointer , ISQ_cbs * ) ;
+
+/*------------------------------------------------------------------------*/
 
 extern THD_3dim_dataset * PLUTO_4D_to_typed_fim( THD_3dim_dataset * old_dset ,
                                                  char * new_prefix , int new_datum ,

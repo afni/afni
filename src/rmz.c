@@ -75,7 +75,7 @@ int main( int argc , char * argv[] )
                fprintf(stderr," ** Can't access file %s\n",argv[iarg]) ;
          }
       }
-      sync() ;
+      sync() ; if( irep < nrep-1 ) sleep(1) ;
       if( ng == 0 ) break ;  /* none were 'good' */
    }
 

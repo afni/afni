@@ -2110,3 +2110,17 @@
 18 Apr 2000
  * Rewrote plug_nudge.c to do rotations and shifts.
  * Added mri_copy.c.
+
+21 April 2000
+ * Fixed bug in qsort_floatfloat (cs_sort_ff.c).
+ * First version of plug_betafit.c.
+
+28 April 2000
+ * Modified plug_realtime.c (and afni_plugin.[ch]) to do "Image Only" realtime
+     acquisition - just show the images, don't do anything else.
+
+01 May 2000
+ * Modified afni_widg.c to disable Datamode->Misc->Version Check if in
+     realtime mode (due to long hang time while master version web page
+     is fetched across the network).
+ * Added program 3dfim+.c from Doug Ward.

@@ -72,6 +72,10 @@ typedef struct {
 
    int info_ok , no_data ;        /* status flags */
 
+   int         image_mode ;       /* 28 Apr 2000 */
+   void      * image_handle ;
+   MRI_IMAGE * image_space ;
+
    char     name_data[NNAME] ;    /* where to get image data */
    IOCHAN * ioc_data ;            /* IO channel for image data */
 
@@ -161,7 +165,24 @@ typedef struct {
 
 static char helpstring[] =
    " Purpose: Controlling realtime dataset acquisitions.\n"
-   " Input:\n"
+   "\n"
+   " USAGE:\n"
+   " Set the controls to the state you want BEFORE realtime image input\n"
+   " begins, then press one of the 'Run' buttons to send the control\n"
+   " information to AFNI.\n"
+   "\n"
+   " INPUTS:\n"
+   " Images Only = If 'No', then the input images will be used\n"
+   "                 to assemble a dataset.  If 'Yes', then the\n"
+   "                 input images will be displayed but not made\n"
+   "                 into a dataset or otherwise saved.\n"
+   "                 (They will only be stored in the image viewer\n"
+   "                  that is opened - you can use 'Save:bkg' to\n"
+   "                  write them to disk, if desired, before\n"
+   "                  closing the 'Realtime Images' viewer window.)\n"
+   "               If this input is 'Yes', then none of the other\n"
+   "                 inputs below have much meaning!\n"
+   "\n"
    " Root     = Root prefix to be used for new datasets.\n"
    "              The actual prefix will be of the form Root#001\n"
    "\n"
@@ -224,6 +245,8 @@ static int  update               = 1  ;     /* default update frequency */
 static char * FUNC_strings[NFUNC] = { "None" , "FIM" } ;
 static int func_code = 0 ;
 
+static int image_mode = 0 ;  /* 28 Apr 2000 */
+
 #define FUNC_NONE  0  /* symbolic values for the func_code */
 #define FUNC_RTFIM 1
 
@@ -235,7 +258,8 @@ int RT_fim_recurse( RT_input * , int ) ;
 
 int_func * FUNC_funcs[NFUNC] = { NULL , RT_fim_recurse } ;
 
-#define NVERB 3
+#define NYESNO 2
+#define NVERB  3
 static char * VERB_strings[NVERB] = { "No" , "Yes" , "Very" } ;
 static int verbose = 1 ;
 
@@ -349,35 +373,40 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_set_sequence( plint , "A:AArealtime" ) ;
    PLUTO_set_butcolor( plint , "hot" ) ;
 
-   /*-- first line of input: Prefix for output dataset --*/
+   /*-- 28 Apr 2000: Images Only mode --*/
+
+   PLUTO_add_option( plint , "" , "Mode" , TRUE ) ;
+   PLUTO_add_string( plint , "Images Only" , NYESNO,VERB_strings,image_mode ) ;
+
+   /*-- next line of input: Prefix for output dataset --*/
 
    PLUTO_add_option( plint , "" , "Root" , FALSE ) ;
    PLUTO_add_string( plint , "Root" , 0,NULL , 19 ) ;
 
-   /*-- second line of input: Update frequency --*/
+   /*-- next line of input: Update frequency --*/
 
    PLUTO_add_option( plint , "" , "Update" , FALSE ) ;
    PLUTO_add_number( plint , "Update" , 0,19,0 , update , FALSE ) ;
 
-   /*-- third line of input: Function computation --*/
+   /*-- next line of input: Function computation --*/
 
    PLUTO_add_option( plint , "" , "Function" , FALSE ) ;
    PLUTO_add_string( plint , "Function" , NFUNC , FUNC_strings , func_code ) ;
 
-   /*-- fourth line of input: Verbosity flag --*/
+   /*-- next line of input: Verbosity flag --*/
 
    PLUTO_add_option( plint , "" , "Verbose" , FALSE ) ;
    PLUTO_add_string( plint , "Verbose" , NVERB , VERB_strings , verbose ) ;
 
 #ifdef ALLOW_REGISTRATION
-   /*-- fifth line of input: registration mode --*/
+   /*-- next line of input: registration mode --*/
 
    PLUTO_add_option( plint , "" , "Registration" , FALSE ) ;
    PLUTO_add_string( plint , "Registration" , NREG , REG_strings , regmode ) ;
    PLUTO_add_number( plint , "Base Image" , 0,59,0 , regtime , FALSE ) ;
    PLUTO_add_string( plint , "Resampling" , NRESAM , REG_resam_strings , reg_resam ) ;
 
-   /*-- sixth line of input: registration graphing --*/
+   /*-- next line of input: registration graphing --*/
 
    PLUTO_add_option( plint , "" , "Graphing" , FALSE ) ;
    PLUTO_add_string( plint , "Graph" , NGRAPH , GRAPH_strings , reggraph ) ;
@@ -416,6 +445,14 @@ char * RT_main( PLUGIN_interface * plint )
 #endif
 
    while( (tag=PLUTO_get_optiontag(plint)) != NULL ){
+
+      /* 28 Apr 2000: added "Images Only" mode */
+
+      if( strcmp(tag,"Mode") == 0 ){
+         str        = PLUTO_get_string(plint) ;
+         image_mode = PLUTO_string_index( str , NYESNO , VERB_strings ) ;
+         continue ;
+      }
 
       if( strcmp(tag,"Root") == 0 ){
          new_prefix = PLUTO_get_string(plint) ;
@@ -474,6 +511,14 @@ char * RT_main( PLUGIN_interface * plint )
       return buf ;
 
    }  /* end of loop over active input options */
+
+   /*-- 28 Apr 2000: if in Image Only mode, turn some stuff off --*/
+
+   if( image_mode ){
+      func_code = 0 ;
+      regmode   = 0 ;
+      reggraph  = 0 ;
+   }
 
    return NULL ;  /* nothing bad happened */
 }
@@ -544,18 +589,7 @@ int RT_check_listen(void)
 /***************************************************************************/
 /**             macro to close down the realtime input stream             **/
 
-#if 0
-# define CLEANUP                                                         \
-  do { IOCHAN_CLOSE(rtinp->ioc_data) ;                                   \
-       IOCHAN_CLOSE(rtinp->ioc_info) ;                                   \
-       DESTROY_IMARR(rtinp->bufar) ;                                     \
-       if( rtinp->sbr != NULL ) free( rtinp->sbr ) ;                     \
-       if( rtinp->child_info > 0 ) kill( rtinp->child_info , SIGTERM ) ; \
-       free(rtinp) ; rtinp = NULL ;  ioc_control = NULL ; GRIM_REAPER ;  \
-  } while(0)
-#else
-# define CLEANUP cleanup_rtinp()
-#endif
+#define CLEANUP cleanup_rtinp()
 
 /**------------ 01 Aug 1998: replace the macro with a function -----------**/
 
@@ -591,6 +625,13 @@ void cleanup_rtinp(void)
    FREEUP( rtinp->reg_phi   ) ; FREEUP( rtinp->reg_psi   ) ;
    FREEUP( rtinp->reg_theta ) ;
 #endif
+
+   if( rtinp->image_handle != NULL )
+      PLUTO_imseq_rekill( rtinp->image_handle,NULL,NULL ) ;  /* 28 Apr 2000 */
+
+   if( rtinp->image_space != NULL ){
+      mri_clear_data_pointer(rtinp->image_space) ; mri_free(rtinp->image_space) ;
+   }
 
    free(rtinp) ; rtinp = NULL ;                 /* destroy data structure */
    ioc_control = NULL ;                         /* ready to listen again */
@@ -633,7 +674,7 @@ Boolean RT_worker( XtPointer elvis )
 
    if( iochan_goodcheck(rtinp->ioc_data,0) != 1 ){
 
-      if( rtinp->dset != NULL ){       /* if we started a dataset */
+      if( rtinp->sbr != NULL ){       /* if we started acquisition */
          if( verbose == 2 )
             fprintf(stderr,"RT: data channel closed down.\n") ;
          VMCHECK ;
@@ -729,7 +770,7 @@ Boolean RT_worker( XtPointer elvis )
 
          /* if all the setup info is OK, we can create the dataset now */
 
-         if( rtinp->dset == NULL && rtinp->info_ok ){
+         if( rtinp->sbr == NULL && rtinp->info_ok ){
             if( verbose == 2 )
                fprintf(stderr,"RT: info complete --> creating dataset.\n") ;
             VMCHECK ;
@@ -755,9 +796,10 @@ Boolean RT_worker( XtPointer elvis )
           and there is something new to write out,
           then write the datasets out again.         **/
 
-      if( !rtinp->no_data                                                  &&
-          rtinp->nvol > rtinp->last_nvol                                   &&
-          (delt=PLUTO_elapsed_time()-rtinp->last_elapsed)  > WRITE_INTERVAL   ){
+      if( !rtinp->no_data                 &&
+          rtinp->nvol > rtinp->last_nvol  &&
+          !rtinp->image_mode              &&  /* 28 Apr 2000 */
+          (delt=PLUTO_elapsed_time()-rtinp->last_elapsed) > WRITE_INTERVAL  ){
 
          int cmode ;
 
@@ -792,7 +834,7 @@ Boolean RT_worker( XtPointer elvis )
       if( verbose == 2 )
          fprintf(stderr,"RT: data channel closed down.\n") ;
       VMCHECK ;
-      if( rtinp->dset != NULL ) RT_finish_dataset( rtinp ) ;
+      if( rtinp->sbr != NULL ) RT_finish_dataset( rtinp ) ;
       CLEANUP ; return False ;
    }
 
@@ -872,7 +914,7 @@ Boolean RT_worker( XtPointer elvis )
 
    if( jj < 0 ){
       fprintf(stderr,"RT: data channel aborted during image read!\n") ;
-      if( rtinp->dset != NULL ) RT_finish_dataset( rtinp ) ;
+      if( rtinp->sbr != NULL ) RT_finish_dataset( rtinp ) ;
       CLEANUP ; return False ;
    }
 
@@ -1022,6 +1064,10 @@ RT_input * new_RT_input(void)
    /** initialize internal constants in the struct **/
 
    rtin->info_ok = 0 ; rtin->no_data = 1 ;
+
+   rtin->image_mode   = image_mode ;  /* 28 Apr 2000 */
+   rtin->image_handle = NULL ;
+   rtin->image_space  = NULL ;
 
    strcpy(rtin->prefix,root) ;
 
@@ -1279,6 +1325,24 @@ int RT_acquire_info( char * command )
 void RT_check_info( RT_input * rtin , int prt )
 {
    if( rtin == NULL ) return ;
+
+   /*-- 28 Apr 2000: if in Image Only mode, do fewer checks --*/
+
+   if( rtin->image_mode ){
+
+      rtin->info_ok = ( rtin->nxx > 1 )                         &&
+                      ( rtin->nyy > 1 )                         &&
+                      ( AFNI_GOOD_DTYPE(rtin->datum) ) ;
+
+      if( rtin->info_ok || !prt ) return ;  /* if good, or if no print */
+
+      if( !(rtin->nxx > 1)                ) EPR("Image x-dimen not > 1") ;
+      if( !(rtin->nyy > 1)                ) EPR("Image y-dimen not > 1") ;
+      if( !(AFNI_GOOD_DTYPE(rtin->datum)) ) EPR("Bad datum") ;
+      return ;
+   }
+
+   /*-- below here: must construct dataset, so do all necessary checks --*/
 
    rtin->info_ok = ( rtin->dtype > 0 )                            &&
                    ( THD_filename_ok(rtin->prefix) )              &&
@@ -1543,6 +1607,8 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
    /** now, determine if enough information exists to create a dataset **/
 
+   if( rtin->image_mode ) rtin->nzz = 1 ;  /* 28 Apr 2000 */
+
    RT_check_info( rtin , 0 ) ;
 
    /** if possible, now compute the number of bytes in each input image **/
@@ -1573,6 +1639,28 @@ void RT_start_dataset( RT_input * rtin )
    THD_fvec3 dxyz , orgxyz ;
    int nvox , npix , n1 , ii ;
    char npr[THD_MAX_PREFIX] ;
+
+   /*********************************************/
+   /** 28 Apr 2000: Image Only mode is simpler **/
+
+   if( rtin->image_mode ){
+      nvox = rtin->nxx * rtin->nyy ;
+      n1   = mri_datum_size( rtin->datum ) ;
+
+      rtin->sbr_size = nvox * n1 ;                /* size of image space */
+      rtin->sbr      = malloc( rtin->sbr_size ) ; /* image space */
+      rtin->imsize   = rtin->sbr_size ;
+      rtin->im       = rtin->sbr ;                /* image space again */
+      rtin->nzz      = 1 ;
+
+      rtin->image_space = mri_new_vol_empty( rtin->nxx, rtin->nyy, 1, rtin->datum ) ;
+      mri_fix_data_pointer( rtin->sbr , rtin->image_space ) ;
+
+      return ;
+   }
+
+   /*******************************************/
+   /** Must create a dataset and other stuff **/
 
    /***************************/
    /** Let there be dataset! **/
@@ -1866,7 +1954,7 @@ int RT_process_data( RT_input * rtin )
 
    /** can we create a dataset yet? **/
 
-   if( rtin->dset == NULL && rtin->info_ok ){
+   if( rtin->sbr == NULL && rtin->info_ok ){
       if( verbose == 2 )
          fprintf(stderr,"RT: info complete --> creating dataset.\n") ;
       VMCHECK ;
@@ -1917,6 +2005,17 @@ int RT_process_data( RT_input * rtin )
    return 1 ;
 }
 
+/*--------------------------------------------------------------------
+   Function to be called if the user kills the Image Only viewer
+----------------------------------------------------------------------*/
+
+static void RT_image_kfun(void * kdata)                /* 28 Apr 2000 */
+{
+   RT_input * rtin = (RT_input *) kdata ;
+   if( rtin != NULL ) rtin->image_handle = NULL ;
+   return ;
+}
+
 /*-------------------------------------------------------------------
    Given image data stored in rtin->im, process it into the dataset
    that is under construction.  This routine should only be called
@@ -1928,6 +2027,18 @@ int RT_process_data( RT_input * rtin )
 void RT_process_image( RT_input * rtin )
 {
    int vdone ;
+
+   /** 28 Apr 2000: Image Only mode stuff **/
+
+   if( rtin->image_mode ){
+      if( rtin->image_handle != NULL ){
+         PLUTO_imseq_addto( rtin->image_handle , rtin->image_space ) ;
+      } else {
+         rtin->image_handle = PLUTO_imseq_popim( rtin->image_space, RT_image_kfun,rtin ) ;
+         PLUTO_imseq_retitle( rtin->image_handle , "Realtime Images" ) ;
+      }
+      return ;
+   }
 
    /** check if new image completes the current volume **/
 
@@ -2380,6 +2491,11 @@ void RT_tell_afni( RT_input * rtin , int mode )
 void RT_finish_dataset( RT_input * rtin )
 {
    int ii ;
+
+   if( rtin->image_mode ){
+      if( verbose == 2 ) SHOW_TIMES ;
+      return ;
+   }
 
    if( ! ISVALID_3DIM_DATASET(rtin->dset) ) return ;
 

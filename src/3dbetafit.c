@@ -130,32 +130,135 @@ int betasolve( double e0, double e1, double xc, double * ap, double * bp )
 
 /*-----------------------------------------------------------------------*/
 
-void betafill( double a , double b , int n , float * x )
-{
-   int ii ;
-   for( ii=0 ; ii < n ; ii++ )
-      x[ii] = beta_p2t( drand48() , a , b ) ;
-   return ;
-}
-
-/*-----------------------------------------------------------------------*/
-
 int main( int argc , char * argv[] )
 {
-   double aa=0.5 , bb=31.0 , xc , e0,e1 , at,bt ;
-   int narg=1 , npt,n,ii ;
+   double aa=2.0 , bb=100.0 , pp=70.0 , e0,e1 ;
+   int narg=1 , nvox,ii ;
    float * bv ;
 
-   srand48((long)time(NULL)) ;
+   THD_3dim_dataset * dset , * mask_dset ;
+   float mask_bot=666.0 , mask_top=-666.0 ;
+   byte * mmm=NULL ;
 
-   if( argc < 5 ){printf("Usage: betafit a b xc n\n"); exit(0); }
+   if( argc < 2 ){
+      printf("Usage: 3dbetafit [options] dataset\n"
+             "Fits a beta distribution to the values in a brick.\n"
+             "\n"
+             "Options:\n"
+             "  -amid aa    = Sets the middle of the search range\n"
+             "                 for the 'a' parameter to 'aa'\n"
+             "  -bmid bb    = Sets the middleof the search range\n"
+             "                 for the 'b' parameter to 'bb'\n"
+             "  -mask mset  = A mask dataset to indicate which\n"
+             "                 voxels are to be used\n"
+             "  -mrange b t = Use only mask values in range from\n"
+             "                 'b' to 't' (inclusive)\n"
+             "  -pcut pp    = Cut off the cumulative histogram\n"
+             "                 at percentage 'pp' [default=70]\n"
+         ) ;
+         exit(0) ;
+   }
 
-   at = strtod(argv[narg++],NULL) ;
-   bt = strtod(argv[narg++],NULL) ;
-   xc = strtod(argv[narg++],NULL) ;
-   npt = (int) strtod(argv[narg++],NULL) ;
-   bv = (float *)malloc(sizeof(float)*npt) ;
-   betafill( at,bt , npt,bv ) ;
+   /* scan command-line args */
+
+   while( narg < argc && argv[narg][0] == '-' ){
+
+      if( strcmp(argv[narg],"-amid") == 0 ){
+         aa = strtod(argv[++narg],NULL) ;
+         if( aa < 0.2 || aa > 10.0 ){
+            fprintf(stderr,"*** Illegal value after -amid!\n");exit(1);
+         }
+         narg++ ; continue;
+      }
+
+      if( strcmp(argv[narg],"-bmid") == 0 ){
+         bb = strtod(argv[++narg],NULL) ;
+         if( bb < 0.2 || aa > 1000.0 ){
+            fprintf(stderr,"*** Illegal value after -bmid!\n");exit(1);
+         }
+         narg++ ; continue;
+      }
+
+      if( strcmp(argv[narg],"-pcut") == 0 ){
+         pp = strtod(argv[++narg],NULL) ;
+         if( pp < 20.0 || pp > 99.0 ){
+            fprintf(stderr,"*** Illegal value after -pcut!\n");exit(1);
+         }
+         narg++ ; continue;
+      }
+
+      if( strncmp(argv[narg],"-mask",5) == 0 ){
+         if( mask_dset != NULL ){
+            fprintf(stderr,"*** Cannot have two -mask options!\n") ; exit(1) ;
+         }
+         if( narg+1 >= argc ){
+            fprintf(stderr,"*** -mask option requires a following argument!\n");
+            exit(1) ;
+         }
+         mask_dset = THD_open_dataset( argv[++narg] ) ;
+         if( mask_dset == NULL ){
+            fprintf(stderr,"*** Cannot open mask dataset!\n") ; exit(1) ;
+         }
+         if( DSET_BRICK_TYPE(mask_dset,0) == MRI_complex ){
+            fprintf(stderr,"*** Cannot deal with complex-valued mask dataset!\n");
+            exit(1) ;
+         }
+         narg++ ; continue ;
+      }
+
+      if( strncmp(argv[narg],"-mrange",5) == 0 ){
+         if( narg+2 >= argc ){
+            fprintf(stderr,"*** -mrange option requires 2 following arguments!\n")
+;
+             exit(1) ;
+         }
+         mask_bot = strtod( argv[++narg] , NULL ) ;
+         mask_top = strtod( argv[++narg] , NULL ) ;
+         if( mask_top < mask_top ){
+            fprintf(stderr,"*** -mrange inputs are illegal!\n") ; exit(1) ;
+         }
+         narg++ ; continue ;
+      }
+
+      fprintf(stderr,"*** Illegal option: %s\n",argv[narg]) ; exit(1) ;
+   }
+
+   if( narg >= argc ){
+      fprintf(stderr,"*** No dataset argument on command line!?\n");exit(1);
+   }
+
+   dset = THD_open_dataset( argv[narg] ) ;
+   if( dset == NULL ){
+      fprintf(stderr,"*** Can't open dataset %s\n",argv[narg]); exit(1);
+   }
+   nvox = DSET_NVOX(dset) ;
+
+   /* make a byte mask from mask dataset */
+
+   if( mask_dset != NULL ){
+      int mcount ;
+      if( DSET_NVOX(mask_dset) != nvox ){
+         fprintf(stderr,"*** Input and mask datasets are not same dimensions!\n");
+         exit(1) ;
+      }
+      mmm = THD_makemask( mask_dset , 0 , mask_bot,mask_top ) ;
+      mcount = THD_countmask( nvox , mmm ) ;
+      fprintf(stderr,"+++ %d voxels in the mask\n",mcount) ;
+      if( mcount <= 999 ){
+         fprintf(stderr,"*** Mask is too small!\n");exit(1);
+      }
+      DSET_delete(mask_dset) ;
+   }
+
+   /* load data from dataset */
+
+   DSET_load(dset) ;
+   if( !DSET_LOADED(dset) ){
+      fprintf(stderr,"*** Couldn't load dataset brick!\n");exit(1);
+   }
+
+   /* compute expected values of log(x) and log(1-x) */
+
    e0=e1 = 0.0 ;
    for( ii=n=0 ; ii < npt ; ii++ ){
       if( bv[ii] < xc ){
@@ -165,7 +268,11 @@ int main( int argc , char * argv[] )
    e0 /= n ; e1 /= n ;
    fprintf(stderr,"%d points below cutoff; e0=%g  e1=%g\n",n,e0,e1) ;
 
-   betarange( 0.2*at , 5.0*at , 0.2*bt , 5.0*bt , 66666 ) ;
+   /* setup range of values over which to solve, then solve  */
 
-   betasolve( e0,e1,xc , &aa,&bb ); exit(0) ;
+   betarange( 0.2*aa , 5.0*aa , 0.2*bb , 5.0*bb , 31416 ) ;
+
+   betasolve( e0,e1,xc , &aa,&bb );
+
+   exit(0) ;
 }

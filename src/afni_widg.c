@@ -4556,17 +4556,21 @@ ENTRY("AFNI_misc_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   dmode->misc_vcheck_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("Version Check") ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , False ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->misc_vcheck_pb , XmNactivateCallback ,
-                  AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_vcheck_pb , "List New Features" ) ;
+   if( !ALLOW_real_time ){    /* 01 May 2000: only if not doing realtime */
+      dmode->misc_vcheck_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , menu ,
+                  LABEL_ARG("Version Check") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( dmode->misc_vcheck_pb , XmNactivateCallback ,
+                     AFNI_misc_CB , im3d ) ;
+      MCW_register_hint( dmode->misc_vcheck_pb,"Compare to master distribution" );
+   } else {
+      dmode->misc_vcheck_pb = NULL ;
+   }
 
    /*--- pushbutton to purge unused datasets ---*/
 

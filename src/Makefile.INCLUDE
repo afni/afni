@@ -39,7 +39,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
-           3dWavelets
+           3dWavelets 3dfim+
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -414,6 +414,10 @@ AlphaSim:AlphaSim.o
 3dWavelets:3dWavelets.o
 	$(RM) $@
 	$(CC) -o 3dWavelets 3dWavelets.o $(LFLAGS) $(LLIBS)
+
+3dfim+:3dfim+.o
+	$(RM) $@
+	$(CC) -o 3dfim+ 3dfim+.o $(LFLAGS) $(LLIBS)
 
 3dKruskalWallis:3dKruskalWallis.o
 	$(RM) $@
@@ -1110,11 +1114,11 @@ unu.o:unu.c
 unu:unu.o
 	$(CC) -o unu unu.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
-ibeta.o:ibeta.c
-	$(CCFAST) -c ibeta.c $(IFLAGS)
+betafit.o:betafit.c
+	$(CCFAST) -c betafit.c $(IFLAGS)
 
-ibeta:ibeta.o
-	$(CC) -o ibeta ibeta.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+betafit:betafit.o
+	$(CC) -o betafit betafit.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

@@ -23,6 +23,12 @@
   Mod:      Modified matrix_file_read to use mri_read_ascii routine.
   Date:     12 January 2000
 
+  Mod:      Changed return type of vector_dot from float to double.
+  Date:     13 April 2000
+
+  Mod:      Added functions column_to_vector and matrix_extract_rows.
+  Date:     21 April 2000
+
 */
 
 
@@ -331,6 +337,27 @@ void matrix_extract (matrix a, int p, int * list, matrix * b)
   for (i = 0;  i < rows;  i++)
     for (j = 0;  j < cols;  j++)
       b->elts[i][j] = a.elts[i][list[j]];
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Extract p rows (specified by list) from matrix a.  Result is matrix b.
+*/
+
+void matrix_extract_rows (matrix a, int p, int * list, matrix * b)
+{
+  int i, j;
+  int rows, cols;
+
+  rows = p;
+  cols = a.cols;
+
+  matrix_create (rows, cols, b);
+
+  for (i = 0;  i < rows;  i++)
+    for (j = 0;  j < cols;  j++)
+      b->elts[i][j] = a.elts[list[i]][j];
 }
 
 
@@ -726,6 +753,25 @@ void array_to_vector (int dim, float * f, vector * v)
 
 /*---------------------------------------------------------------------------*/
 /*
+  Convert column c of matrix m into vector v.
+*/
+
+void column_to_vector (matrix m, int c, vector * v)
+{
+  int i;
+  int dim;
+
+  dim = m.rows;
+  vector_create (dim, v);
+
+  for (i = 0;  i < dim;  i++)
+    v->elts[i] = m.elts[i][c];
+}
+
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Convert vector v into array f.
 */
 
@@ -812,10 +858,10 @@ void vector_multiply (matrix a, vector b, vector * c)
   Calculate dot product of vector a with vector b. 
 */
 
-float vector_dot (vector a, vector b)
+double vector_dot (vector a, vector b)
 {
   int i, dim;
-  float sum;
+  double sum;
 
   if (a.dim != b.dim)
     matrix_error ("Incompatible dimensions for vector dot product");
