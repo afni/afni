@@ -102,6 +102,15 @@ static void SUMA_swap_2(void *ppp)
       else { SUMA_SL_Err ("No swapping performed.") } \
    }  \
 }
+#define SUMA_READ_FLOAT(nip, bs, fp, ex)  \
+{  static int m_chnk = sizeof(float);\
+   ex = fread (nip, m_chnk, 1, fp); \
+   if (bs) {   \
+      if (m_chnk == 4) SUMA_swap_4( nip ) ;  \
+      else if (m_chnk == 8) SUMA_swap_8( nip ) ;  \
+      else { SUMA_SL_Err ("No swapping performed.") } \
+   }  \
+}
 
 
 /*!
@@ -1999,6 +2008,130 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 	
 }/* SUMA_FreeSurfer_Read_eng*/
 
+/*!
+   
+   Thanks for info from Graham Wideman, https://wideman-one.com/gw/brain/fs/surfacefileformats.htm
+*/
+SUMA_Boolean SUMA_FreeSurfer_ReadBin_eng (char * f_name, SUMA_FreeSurfer_struct *FS, int debug)
+{/*SUMA_FreeSurfer_ReadBin_eng*/
+	static char FuncName[]={"SUMA_FreeSurfer_ReadBin_eng"};
+   char stmp[50]; 
+   FILE *fs_file;
+	int ex, End, rmax,  chnk, cnt, i, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId, magic;
+	float jnkf, *NodeList;
+	char c;
+   byte m1, m2, m3;
+	SUMA_Boolean bs;
+   SUMA_Boolean LocalHead = NOPE;
+	   
+	SUMA_ENTRY;
+   
+   if (debug) LocalHead = YUP;
+   
+	/* check for existence */
+	if (!SUMA_filexists(f_name)) {
+		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+		SUMA_RETURN (NOPE);
+	}else if ( debug > 1) {
+		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
+	}
+	
+	/* start reading */
+	fs_file = fopen (f_name,"r");
+	if (fs_file == NULL)
+		{
+			SUMA_SL_Err ("Could not open input file ");
+			SUMA_RETURN (NOPE);
+		}
+
+   SUMA_WHAT_ENDIAN(End);
+   if (End == MSB_FIRST) {
+      SUMA_LH("No swapping needed");
+      bs = NOPE;
+   } else {
+      bs = YUP;
+      SUMA_LH("Swapping needed");
+   }
+   
+   ex = fread (&m1, 1, 1, fs_file);
+   ex = fread (&m2, 1, 1, fs_file);
+   ex = fread (&m3, 1, 1, fs_file);
+   magic = (m1 << 16) + (m2 << 8) + m3 ;
+   if (magic == (-2 & 0x00ffffff)) {
+      SUMA_LH("OK tri");
+   } else {
+      SUMA_SL_Err("Failed to identify magic number for a triangulated surface.\n");
+      SUMA_RETURN(NOPE);
+   }
+   chnk = sizeof(char);
+   ex = fread (&c, chnk, 1, fs_file);
+   rmax = 0;
+   while (c != '\n' &&rmax < 5000) {
+      if (LocalHead) fprintf(SUMA_STDERR,"%c",c);
+      ex = fread (&c, chnk, 1, fs_file);
+      ++rmax;
+   }
+   if (rmax >= 5000) {
+      SUMA_SL_Err("Unexpected tres tres long comment.");
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_LH("End of comment");
+   /* read one more to skip second \n */
+   ex = fread (&c, chnk, 1, fs_file);
+   if (c != '\n') {
+      SUMA_SL_Err("Failed to find second newline.");
+      SUMA_RETURN(NOPE);
+   }else {
+      SUMA_LH("Found end of comment");
+   }
+   
+   /* read the number of nodes and the number of triangles */
+   SUMA_READ_INT (&FS->N_Node, bs, fs_file, ex);
+   if (FS->N_Node < 0 || FS->N_Node > 2000000) {
+      SUMA_SL_Err("Failed to get number of nodes");
+      SUMA_RETURN(NOPE);
+   }else {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Expecting to read %d nodes.\n", FuncName, FS->N_Node);
+   }
+   
+   SUMA_READ_INT (&FS->N_FaceSet, bs, fs_file, ex);
+   if (FS->N_FaceSet < 0 || FS->N_FaceSet > 2000000) {
+      SUMA_SL_Err("Failed to get number of triangles");
+      SUMA_RETURN(NOPE);
+   }else {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Expecting to read %d triangles.\n", FuncName, FS->N_FaceSet);
+   }
+   
+   /* allocate */
+	FS->NodeList = (float *)SUMA_calloc(FS->N_Node * 3, sizeof(float));
+	FS->FaceSetList = (int *)SUMA_calloc(FS->N_FaceSet * 3, sizeof(int));
+   if (!FS->NodeList || !FS->FaceSetList) {
+      SUMA_SL_Err("Failed to allocate");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /*read in the meat */
+   for (i=0; i<FS->N_Node * 3; ++i) {
+      SUMA_READ_FLOAT (&(FS->NodeList[i]), bs, fs_file, ex);
+      if (ex == EOF) {
+         SUMA_SL_Err("Premature end of file!");
+         SUMA_free(FS->NodeList); SUMA_free(FS->FaceSetList);  FS->NodeList = NULL ; FS->FaceSetList = NULL;
+         SUMA_RETURN(NOPE);
+      }
+   }
+   for (i=0; i<FS->N_FaceSet * 3; ++i) {
+      SUMA_READ_INT (&(FS->FaceSetList[i]), bs, fs_file, ex);
+      if (ex == EOF) {
+         SUMA_SL_Err("Premature end of file!");
+         SUMA_free(FS->NodeList); SUMA_free(FS->FaceSetList);  FS->NodeList = NULL ; FS->FaceSetList = NULL;
+         SUMA_RETURN(NOPE);
+      }   
+   }
+   
+   fclose(fs_file);
+   SUMA_LH("Returning");
+   SUMA_RETURN(YUP);
+}
 /*! 
 	free memory allocated for FreeSurfer structure  
 */
@@ -2027,15 +2160,28 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 	SUMA_ENTRY;
 
 	if (Out == NULL) Out = SUMA_STDOUT;
-	fprintf (Out, "Comment: %s\n", FS->comment);
+	if (FS->comment) fprintf (Out, "Comment: %s\n", FS->comment);
+   else fprintf (Out, "Comment: NULL\n");
 	fprintf (Out, "N_Node %d\n", FS->N_Node);
-	fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		FS->NodeId[0], FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
-		FS->NodeId[1], FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
-	if (FS->N_Node > 2) {
-      fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		   FS->NodeId[FS->N_Node-2], FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
-		   FS->NodeId[FS->N_Node-1], FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
+	if (FS->NodeId) {
+      fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
+		   FS->NodeId[0], FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
+		   FS->NodeId[1], FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
+	   if (FS->N_Node > 2) {
+         fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
+		      FS->NodeId[FS->N_Node-2], FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
+		      FS->NodeId[FS->N_Node-1], FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
+      }
+   } else {
+      fprintf (Out, "NULL NodeId\n");
+      fprintf (Out, "First 2 points X Y Z:\n\t %f %f %f\n\t %f %f %f\n", \
+		   FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
+		   FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
+	   if (FS->N_Node > 2) {
+         fprintf (Out, "Last 2 points X Y Z:\n\t %f %f %f\n\t %f %f %f\n", \
+		      FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
+		      FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
+      }
    }
 	fprintf (Out, "N_FaceSet %d\n", FS->N_FaceSet);
 	if (!FS->isPatch) {
@@ -2234,10 +2380,18 @@ int main (int argc,char *argv[])
        }
    
 	sprintf(FS_name, "%s", argv[1]);
-	if (!SUMA_FreeSurfer_Read (FS_name, FS)) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FreeSurfer_Read\n", FuncName);
-		exit(1);
-	}
+   
+   if (!SUMA_isExtension(FS_name, ".asc")) {
+	   if (!SUMA_FreeSurfer_ReadBin_eng (FS_name, FS, 0)) {
+		   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FreeSurferBin_Read\n", FuncName);
+		   exit(1);
+	   }
+   }else {
+      if (!SUMA_FreeSurfer_Read_eng (FS_name, FS, 0)) {
+		   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FreeSurfer_Read\n", FuncName);
+		   exit(1);
+	   }
+   }
 	
 	
 	SUMA_Show_FreeSurfer (FS, NULL);
@@ -2926,7 +3080,10 @@ void usage_SUMA_ConvertSurface ()
                   "    Only fields pertinent to SUMA are preserved.\n"
                   "    -i_TYPE inSurf specifies the input surface, TYPE is one of the following:\n"
                   "       fs: FreeSurfer surface. \n"
-                  "           Only .asc surfaces are read.\n"
+                  "           If surface name has .asc it is assumed to be\n"
+                  "           in ASCII format. Otherwise it is assumed to be\n"
+                  "           in BINARY_BE (Big Endian) format.\n"
+                  "           Patches in Binary format cannot be read at the moment.\n"
                   "       sf: SureFit surface. \n"
                   "           You must specify the .coord followed by the .topo file.\n"
                   "       vec (or 1D): Simple ascii matrix format. \n"
@@ -3460,7 +3617,10 @@ int main (int argc,char *argv[])
       case SUMA_FREE_SURFER:
          SO_name = (void *)if_name; 
          fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
+         if (SUMA_isExtension(SO_name, ".asc")) 
+            SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
+         else
+            SO = SUMA_Load_Surface_Object_eng (SO_name, SUMA_FREE_SURFER, SUMA_BINARY_BE, sv_name, 0);
          break;  
       case SUMA_PLY:
          SO_name = (void *)if_name; 
