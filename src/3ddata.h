@@ -37,7 +37,7 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 #define THD_MAX_NAME      256
 #define THD_MAX_LABEL     38
-#define THD_MAX_PREFIX     (49+1)  /* must be more than THD_MAX_LABEL */
+#define THD_MAX_PREFIX     (127+1)  /* must be more than THD_MAX_LABEL */
 #define THD_MAX_VIEWCODE   (4+1)
 #define THD_MAX_SUFFIX     (4+1)
 #define THD_MAX_FILECODE   (THD_MAX_PREFIX+THD_MAX_VIEWCODE)
