@@ -1563,7 +1563,7 @@ mpeg_encode:
 
 mpegtoppm:
 	( cd mpegtoppm_dir ; \
-	  ./configure --disable-sdl --disable-mlib --without-x ; \
+	  ./configure --disable-sdl --disable-mlib --without-x --disable-dependency-tracking ; \
 	  make ; mv doc/sample2 ../mpegtoppm ; make clean ; )
 
 #######
