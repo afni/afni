@@ -2120,7 +2120,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
         "*** ANALYZE file %s is %d bytes long but must be at least %d bytes long\n"
         "*** for nx=%d ny=%d nz=%d and voxel=%d bytes\n",
         iname,length,ngood,nx,ny,nz,datum_len ) ;
-      return NULL ;
+      fclose(fp) ; return NULL ;
    }
 
    /*** read images from the file ***/
