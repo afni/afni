@@ -109,6 +109,7 @@ typedef struct {
    Widget fim_ignore_menu   , fim_ignore_cbut ,
           fim_ignore_down_pb, fim_ignore_up_pb , fim_ignore_choose_pb ;
    Widget fim_pickref_pb , fim_pickort_pb , fim_execute_pb , fim_execfimp_pb ;
+   Widget fimp_setdefault_pb , fimp_setall_pb ;
    Widget fim_pickdset_pb ;
 
    MCW_bbox * fim_opt_bbox , * fimp_opt_bbox ;

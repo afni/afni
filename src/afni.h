@@ -119,12 +119,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.24g"
+#define VERSION "2.25 "
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "03 December 1999 "
+#define RELEASE "04 January 2000  "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -133,7 +133,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
      "*           Version " VERSION " -- " RELEASE " *\n"  \
      "*                                              *\n"  \
      "* Copyright:     Medical College of Wisconsin  *\n"  \
-     "*   1994-9       Milwaukee, WI 53226-0509      *\n"  \
+     "*   1994-2000    Milwaukee, WI 53226-0509      *\n"  \
      "*                                              *\n"  \
      "* Author:  Robert W. Cox, Ph.D.                *\n"  \
      "* E-mail:  rwcox@mcw.edu                       *\n"  \
@@ -623,15 +623,21 @@ typedef struct {
 #define FIM_PAVE_MASK  32
 #define FIM_AVER_MASK  64
 
-#define FIM_DOALL_MASK   (1 | 2 | 4 | 8 | 16 | 32 | 64 )
-#define FIM_DEFAULT_MASK (1 | 2 | 4 |     16)
+#define FIM_PTOP_MASK 128  /* these 3 added on 03 Jan 2000 */
+#define FIM_TOPL_MASK 256
+#define FIM_SIGM_MASK 512
 
-#define FIM_NUM_OPTS    7
+#define FIM_DEFAULT_MASK (1 | 2 | 4 | 16)
+
+#define FIM_NUM_OPTS   10
 
 #ifdef MAIN
    char * fim_opt_labels[FIM_NUM_OPTS] = {
-     "Fit Coef" , "Best Index" , "% Change"   , "Baseline" , "Correlation" ,
-                                 "% From Ave" , "Average"
+     "Fit Coef" , "Best Index" , "% Change"    , "Baseline" ,
+                                 "Correlation" ,
+                                 "% From Ave"  , "Average"  ,
+                                 "% From Top"  , "Topline"  ,
+                                 "Sigma Resid"
    } ;
 #else
    extern char * fim_opt_labels[] ;

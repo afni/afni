@@ -460,7 +460,9 @@ will compute.  For example
 means that computed values over 50% will be set to 50%, and values
 below -50% will be set to -50%.  This can be useful to avoid scaling
 problems that arise when some spurious voxels with tiny baselines have
-huge percent changes.
+huge percent changes.  This limit applies to all 3 possible percentages
+that FIM and FIM+ can compute: % from baseline, % from average, and
+% from top.
 
 ---------------------------
 Variable: AFNI_NOTES_DLINES
@@ -484,6 +486,9 @@ values from this list:
    16 = Correlation
    32 = % From Ave
    64 = Average
+  128 = % From Top
+  256 = Topline
+  512 = Sigma Resid
 
 If you don't set this variable, the default mask is 23 = 1+2+4+16.
 

@@ -73,7 +73,6 @@ static AFNI_friend afni_friends[] = {
   { "A.S. Bloom"       , ( 1 | 2         | 16                 ) } ,
   { "T. Ross"          , (         4 | 8 | 16 | 32            ) } ,
   { "H. Garavan"       , (         4 | 8 | 16                 ) } ,
-  { "R. Reynolds"      , (                           64       ) } ,
   { "S.J. Li"          , (     2                              ) } ,
   { "Z. Saad"          , (     2 | 4 | 8 | 16                 ) } ,
   { "K. Ropella"       , (     2                              ) } ,
@@ -2614,6 +2613,7 @@ ENTRY("AFNI_read_inputs") ;
       INIT_SARR(dlist) ;
       if( no_args ){
          if( GLOBAL_argopt.recurse > 0 ){
+STATUS("no args: recursion on ./") ;
             flist = THD_get_all_subdirs( GLOBAL_argopt.recurse , "./" ) ;
             if( flist != NULL ){
                for( jj=0 ; jj < flist->num ; jj++ ){
@@ -2622,6 +2622,7 @@ ENTRY("AFNI_read_inputs") ;
                DESTROY_SARR(flist) ;
             }
          } else {
+STATUS("no args: using ./") ;
             ADDTO_SARR(dlist,"./") ;
          }
       } else {
@@ -2644,6 +2645,7 @@ ENTRY("AFNI_read_inputs") ;
       /** 09 Sep 1998: eliminate duplicates from the directory list **/
 
       { THD_string_array * qlist ;
+STATUS("normalizing directory list") ;
         qlist = THD_normalize_flist( dlist ) ;
         if( qlist != NULL ){ DESTROY_SARR(dlist) ; dlist = qlist ; }
       }
@@ -2654,6 +2656,11 @@ ENTRY("AFNI_read_inputs") ;
 
       num_ss = dlist->num ;
       for( id=0 ; id < num_ss ; id++ ){
+
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"try to read directory %s",dlist->ar[id]) ; STATUS(str) ; }
+
          dname  = dlist->ar[id] ;                /* try to read datasets from */
          new_ss = THD_init_session( dname ) ;    /* this directory name       */
 
@@ -2699,6 +2706,8 @@ ENTRY("AFNI_read_inputs") ;
                sprintf(str,"\n*** session      %s has no anatomies!  Skipping.",dname) ;
                REPORT_PROGRESS(str) ;
                nskip_noanat ++ ;
+            } else {
+               STATUS("no datasets found!") ;
             }
 #if 0
             REMOVEFROM_SARR( dlist , id ) ;  /* no datasets --> don't keep in list */
@@ -2916,6 +2925,8 @@ ENTRY("AFNI_read_inputs") ;
 
       /*** read all timeseries files from all directories ***/
 
+STATUS("reading timeseries files") ;
+
       GLOBAL_library.timeseries = THD_get_many_timeseries( dlist ) ;
 
       REFRESH ;
@@ -2935,13 +2946,22 @@ ENTRY("AFNI_read_inputs") ;
          then, make any datasets that don't exist but logically
          descend from the warp and anatomy parents just assigned */
 
+STATUS("checking idcodes for duplicates") ;
+
       THD_check_idcodes( GLOBAL_library.sslist ) ;     /* 08 Jun 1999 */
+
+STATUS("reconciling parent pointers") ;
+
       THD_reconcile_parents( GLOBAL_library.sslist ) ; /* parents from .HEAD files */
+
+STATUS("forcible adoption of unparented datasets") ;
 
       for( id=0 ; id < GLOBAL_library.sslist->num_sess ; id++ ){  /* functions w/o parents, */
          new_ss = GLOBAL_library.sslist->ssar[id] ;               /* forcibly get one */
          AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
       }
+
+STATUS("making descendant datasets") ;
 
       AFNI_make_descendants( GLOBAL_library.sslist ) ;
 

@@ -47,9 +47,9 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 #define THD_DEFAULT_LABEL "Elvis Lives"
 
-#define THD_MAX_SESSION_ANAT  192
-#define THD_MAX_SESSION_FUNC  192
-#define THD_MAX_NUM_SESSION    64
+#define THD_MAX_SESSION_ANAT  512   /* max num anat datasets per directory */
+#define THD_MAX_SESSION_FUNC  512   /* max num func datasets per directory */
+#define THD_MAX_NUM_SESSION    80   /* max number of directories */
 
 #define THD_MAX_CHOICES THD_MAX_SESSION_FUNC  /* largest of the above! */
 

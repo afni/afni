@@ -1942,3 +1942,15 @@
  * Modified plug_render.c to put the 'non-mixing' stuff into a separate
      menu on the 'Color' popup.
  * Took 3dROIstats.c mods from Mike Beauchamp for the -summary option.
+
+03 Jan 2000
+ * Modified 3ddata.h to increase maximum number of datasets per directory
+     to 512 anats and funcs (each), and max number of directorys to 80.
+ * Modified afni.h, afni_fimmer.c, afni_pcor.c, and afni_graph.c to
+     add "% From Top" option to FIM menus.
+
+04 Jan 2000
+ * Added gran(m,s) function to parser.f and 3dcalc.c.
+ * Added "Set All" and "Set Defaults" buttons to FIM+ menu in afni_graph.[ch].
+ * Removed contents of file README.changes.
+ * Abbreviated "Cannot find ..." error messages in thd_reconpar.c.

@@ -3515,6 +3515,7 @@ ENTRY("GRA_fim_CB") ;
          default:  cbs.key = FIM_ALPHA_MASK | FIM_CORR_MASK ; break ;
          case 2:   cbs.key = FIM_PERC_MASK  | FIM_CORR_MASK ; break ;
          case 4:   cbs.key = FIM_PAVE_MASK  | FIM_CORR_MASK ; break ;
+         case 3:   cbs.key = FIM_PTOP_MASK  | FIM_CORR_MASK ; break ;
       }
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    }
@@ -3526,6 +3527,20 @@ ENTRY("GRA_fim_CB") ;
          grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
       else
          XBell( grapher->dc->display , 100 ) ;
+   }
+
+   /*** 04 Jan 2000: modify the FIM+ button settings ***/
+
+   else if( w == grapher->fmenu->fimp_setdefault_pb ){
+     char * ff = my_getenv( "AFNI_FIM_MASK" ) ; int mm=0 ;
+     if( ff != NULL ) mm = strtol(ff,NULL,10) ;
+     if( mm <= 0 ) mm = FIM_DEFAULT_MASK ;
+     MCW_set_bbox( grapher->fmenu->fimp_opt_bbox , mm ) ;
+   }
+
+   else if( w == grapher->fmenu->fimp_setall_pb ){
+      int mm = (2 << FIM_NUM_OPTS) - 1 ;
+      MCW_set_bbox( grapher->fmenu->fimp_opt_bbox , mm ) ;
    }
 
    /*** FIM plotting buttons ***/
@@ -4137,12 +4152,12 @@ ENTRY("AFNI_new_fim_menu") ;
    MCW_set_widget_bg( fmenu->fim_execute_pb ,
                       MCW_hotcolor(fmenu->fim_execute_pb) , 0 ) ;
 
-   { static char * blab[] = { "Fit Coef" , "% Change" , "% From Ave" } ;
+   { static char * blab[] = {"Fit Coef", "% Change", "% From Ave", "% From Top"};
      (void) XtVaCreateManagedWidget(
              "dialog" , xmSeparatorWidgetClass , qbut_menu ,
               XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
-     fmenu->fim_opt_bbox = new_MCW_bbox( qbut_menu , 3 , blab ,
+     fmenu->fim_opt_bbox = new_MCW_bbox( qbut_menu , 4 , blab ,
                                          MCW_BB_radio_one , MCW_BB_noframe ,
                                          NULL , NULL ) ;
    }
@@ -4165,6 +4180,32 @@ ENTRY("AFNI_new_fim_menu") ;
      if( mm <= 0 ) mm = FIM_DEFAULT_MASK ;
      MCW_set_bbox( fmenu->fimp_opt_bbox , mm ) ;
    }
+
+   /* 04 Jan 2000: add some more buttons */
+
+   (void) XtVaCreateManagedWidget(
+           "dialog" , xmSeparatorWidgetClass , qbut_menu ,
+            XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+   fmenu->fimp_setdefault_pb =
+      XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
+                                 LABEL_ARG( "Set Defaults") ,
+                                 XmNmarginHeight , 0 ,
+                                 XmNtraversalOn , False ,
+                                 XmNinitialResourcesPersistent , False ,
+                               NULL ) ;
+   XtAddCallback( fmenu->fimp_setdefault_pb ,
+                  XmNactivateCallback , cbfunc , (XtPointer) fmenu ) ;
+
+   fmenu->fimp_setall_pb =
+      XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
+                                 LABEL_ARG( "Set All") ,
+                                 XmNmarginHeight , 0 ,
+                                 XmNtraversalOn , False ,
+                                 XmNinitialResourcesPersistent , False ,
+                               NULL ) ;
+   XtAddCallback( fmenu->fimp_setall_pb ,
+                  XmNactivateCallback , cbfunc , (XtPointer) fmenu ) ;
 
    RETURN(fmenu) ;
 }

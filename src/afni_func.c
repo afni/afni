@@ -807,7 +807,7 @@ ENTRY("AFNI_force_adoption") ;
 
 if(PRINT_TRACING)
 { char str[256] ;
-  sprintf(str,"scanning anat dataset %d for markers\n",aa) ; STATUS(str) ; }
+  sprintf(str,"scanning anat dataset %d for markers",aa) ; STATUS(str) ; }
 
       dset = ss->anat[aa][0] ;              /* original view */
 

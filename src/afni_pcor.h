@@ -10,6 +10,7 @@
          Magn. Res. Med. 33:230-236.
      -- June 1995: added get_variance and some comments
      -- June 1996: modified to fit into AFNI
+     -- Jan  2000: added get_stdev
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 #include <stdlib.h>
@@ -117,6 +118,7 @@ extern void PCOR_get_pcor_and_coef(PCOR_references *, PCOR_voxel_corr *,
                                    float, float *,float * ) ;
 
 extern void PCOR_get_variance(PCOR_voxel_corr *, float *) ;
+extern void PCOR_get_stdev   (PCOR_voxel_corr *, float *) ;  /* 03 Jan 2000 */
 
 extern void update_PCOR_references(float *,PCOR_references *) ;
 

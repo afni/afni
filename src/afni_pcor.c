@@ -415,6 +415,14 @@ void PCOR_get_variance(PCOR_voxel_corr * vc, float * var)
    return ;
 }
 
+void PCOR_get_stdev(PCOR_voxel_corr * vc, float * sig)  /* 03 Jan 2000 */
+{
+   int vox , nv = vc->nvox ;
+   PCOR_get_variance( vc , sig ) ;
+   for( vox=0 ; vox < nv ; vox++ ) sig[vox] = sqrt(fabs(sig[vox])) ;
+   return ;
+}
+
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 /*** Get least squares fit coefficients (all of them, Frank).
@@ -474,13 +482,14 @@ void PCOR_get_lsqfit(PCOR_references * ref, PCOR_voxel_corr * vc, float *fit[] )
      08 Sep 1999:
        basaver = 0 ==> baseline for percent change calculation
                        is the bottom of the curve [old method]
-               = 1 ==> baseline is average of the curve [for AJ] ***/
+               = 1 ==> baseline is average of the curve [for AJ]
+               = 2 ==> baseline is the top of the curve [03 Jan 2000] ***/
 
 void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
                    float * coef, float * bline, int basaver )
 {
    int vox,jj,kk , nv=vc->nvox , nr=vc->nref , nup=ref->nupdate ;
-   float sum , base , rdif , rmin ;
+   float sum , base , rdif , rmin , rmax ;
    float * ff , * bb , * dd ;
 
    /*** check inputs for OK-ness ***/
@@ -505,7 +514,7 @@ void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
    /* range of last reference */
 
    rmin = ref->rmin[nr-1] ;
-   rdif = 100.0 * (ref->rmax[nr-1] - ref->rmin[nr-1]) ;
+   rmax = ref->rmax[nr-1] ; rdif = 100.0 * (rmax-rmin) ;
    if( rdif == 0.0 ){
       for( vox=0 ; vox < nv ; vox++ ) coef[vox] = 0.0 ;
       fprintf(stderr,"\nPCOR_get_perc: ref vector has no range!\n") ;
@@ -533,8 +542,12 @@ void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
          ff[jj] = sum * dd[jj] ;
       }
 
-      base = (basaver) ? ff[nr-1] * bb[nr-1]       /* baseline = average */
-                       : ff[nr-1] * rmin ;         /*          = bottom  */
+      switch( basaver ){
+          default:
+          case 0: base = ff[nr-1] * rmin    ; break; /* baseline = bottom  */
+          case 1: base = ff[nr-1] * bb[nr-1]; break; /* baseline = average */
+          case 2: base = ff[nr-1] * rmax    ; break; /* baseline = top     */
+      }
 
       for( jj=0 ; jj < nr-1 ; jj++ )   /* 30 May 1999: used to have nr-2 */
          base += ff[jj] * bb[jj] ;     /*              which was wrong!  */

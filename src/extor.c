@@ -30,7 +30,7 @@ Tmask * create_Tmask( int nx, int ny, int nz, byte * vol )
 
    tm->mask[IXY] = xym = (byte *) calloc(1,sizeof(byte)*nxy) ;
    tm->mask[IYZ] = yzm = (byte *) calloc(1,sizeof(byte)*nyz) ;
-   tm->mask[IXZ] = zxm = (byte *) calloc(1,sizeof(byte)*nzx) ;
+   tm->mask[IZX] = zxm = (byte *) calloc(1,sizeof(byte)*nzx) ;
 
    for( byz=yzm,kk=0 ; kk < nz ; kk++,byz+=ny ){
       bz = vol + kk*nxy ;
@@ -120,12 +120,14 @@ void extract_assign_directions( int nx, int ny, int nz, int fixdir ,
 -------------------------------------------------------------------------*/
 
 void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
+                      Tmask * tm ,
                       int fixdir , int fixijk , float da , float db ,
                       int ma , int mb , byte * im )
 {
    int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
    register int aa , ijkoff , aoff,boff ;
    int astep,bstep,cstep , na,nb,nc ;
+   byte * mask ;
 
    memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
@@ -147,9 +149,13 @@ void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
    ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
    boff   = bbot * ma ;
 
+   mask = (tm == NULL) ? NULL
+                       : tm->mask[fixdir%3] + (fixijk*nb - bdel) ;
+
    for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
-      for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
-         im[aa+boff] = vol[aoff+ijkoff] ;
+      if( mask == NULL || mask[bb] )
+         for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+            im[aa+boff] = vol[aoff+ijkoff] ;
 
    return ;
 }
@@ -159,6 +165,7 @@ void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
 -----------------------------------------------------------------------------*/
 
 void extract_byte_lifl( int nx , int ny , int nz , byte * vol ,
+                        Tmask * tm ,
                         int fixdir , int fixijk , float da , float db ,
                         int ma , int mb , byte * im )
 {
@@ -167,6 +174,7 @@ void extract_byte_lifl( int nx , int ny , int nz , byte * vol ,
    int astep,bstep,cstep , na,nb,nc ;
    float fa , fb ;
    float f_a_b , f_ap_b , f_a_bp , f_ap_bp ;
+   byte * mask ;
 
    memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
@@ -198,13 +206,16 @@ void extract_byte_lifl( int nx , int ny , int nz , byte * vol ,
    ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
    boff   = bbot * ma ;
 
-   for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
-      for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
-         im[aa+boff] = (byte)(  f_a_b   * vol[aoff+ijkoff]
-                              + f_ap_b  * vol[aoff+(ijkoff+LR)]
-                              + f_a_bp  * vol[aoff+(ijkoff+UL)]
-                              + f_ap_bp * vol[aoff+(ijkoff+UR)] ) ;
+   mask = (tm == NULL) ? NULL
+                       : tm->mask[fixdir%3] + (fixijk*nb - bdel) ;
 
+   for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+      if( mask == NULL || mask[bb] || mask[bb+1] )
+         for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+            im[aa+boff] = (byte)(  f_a_b   * vol[aoff+ijkoff]
+                                 + f_ap_b  * vol[aoff+(ijkoff+LR)]
+                                 + f_a_bp  * vol[aoff+(ijkoff+UL)]
+                                 + f_ap_bp * vol[aoff+(ijkoff+UR)] ) ;
    return ;
 }
 
@@ -213,6 +224,7 @@ void extract_byte_lifl( int nx , int ny , int nz , byte * vol ,
 -----------------------------------------------------------------------------*/
 
 void extract_byte_liby( int nx , int ny , int nz , byte * vol ,
+                        Tmask * tm ,
                         int fixdir , int fixijk , float da , float db ,
                         int ma , int mb , byte * im )
 {
@@ -222,6 +234,7 @@ void extract_byte_liby( int nx , int ny , int nz , byte * vol ,
    float fa , fb ;
    float f_a_b , f_ap_b , f_a_bp , f_ap_bp ;
    byte  b_a_b , b_ap_b , b_a_bp , b_ap_bp ;
+   byte * mask ;
 
    memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
@@ -258,13 +271,16 @@ void extract_byte_liby( int nx , int ny , int nz , byte * vol ,
    ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
    boff   = bbot * ma ;
 
-   for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
-      for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
-         im[aa+boff] = (byte)((  b_a_b   * vol[aoff+ijkoff]
-                               + b_ap_b  * vol[aoff+(ijkoff+LR)]
-                               + b_a_bp  * vol[aoff+(ijkoff+UL)]
-                               + b_ap_bp * vol[aoff+(ijkoff+UR)] ) >> 8 ) ;
+   mask = (tm == NULL) ? NULL
+                       : tm->mask[fixdir%3] + (fixijk*nb - bdel) ;
 
+   for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+      if( mask == NULL || mask[bb] || mask[bb+1] )
+        for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+           im[aa+boff] = (byte)((  b_a_b   * vol[aoff+ijkoff]
+                                 + b_ap_b  * vol[aoff+(ijkoff+LR)]
+                                 + b_a_bp  * vol[aoff+(ijkoff+UL)]
+                                 + b_ap_bp * vol[aoff+(ijkoff+UR)] ) >> 8 ) ;
    return ;
 }
 
@@ -281,6 +297,7 @@ void extract_byte_liby( int nx , int ny , int nz , byte * vol ,
 #endif
 
 void extract_byte_ts( int nx , int ny , int nz , byte * vol ,
+                      Tmask * tm ,
                       int fixdir , int fixijk , float da , float db ,
                       int ma , int mb , byte * im )
 {
@@ -288,6 +305,7 @@ void extract_byte_ts( int nx , int ny , int nz , byte * vol ,
    register int aa , ijkoff , aoff,boff ;
    int astep,bstep,cstep , na,nb,nc , nts,dts1,dts2 ;
    float fa , fb ;
+   byte * mask ;
 
    memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
@@ -342,25 +360,31 @@ void extract_byte_ts( int nx , int ny , int nz , byte * vol ,
    ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
    boff   = bbot * ma ;
 
+   mask = (tm == NULL) ? NULL
+                       : tm->mask[fixdir%3] + (fixijk*nb - bdel) ;
+
    switch( nts ){
 
       case 1:
          ijkoff += dts1 ;
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
-            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
+             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = vol[aoff+ijkoff] ;
       break ;
 
       case 2:
          ijkoff += dts1 ; dts2 -= dts1 ;
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
-            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
+             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = (vol[aoff+ijkoff] + vol[aoff+(ijkoff+dts2)]) >> 1;
       break ;
 
       case 4:
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
-            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
+             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = ( vol[aoff+ijkoff]     +vol[aoff+(ijkoff+LR)]
                               +vol[aoff+(ijkoff+UL)]+vol[aoff+(ijkoff+UR)]) >> 2;
       break ;
@@ -386,6 +410,7 @@ void extract_byte_ts( int nx , int ny , int nz , byte * vol ,
 #endif
 
 void extract_byte_fs( int nx , int ny , int nz , byte * vol ,
+                      Tmask * tm ,
                       int fixdir , int fixijk , float da , float db ,
                       int ma , int mb , byte * im )
 {
@@ -393,6 +418,7 @@ void extract_byte_fs( int nx , int ny , int nz , byte * vol ,
    register int aa , ijkoff , aoff,boff ;
    int astep,bstep,cstep , na,nb,nc , nfs,dfs1,dfs2,dfs3,dfs4 , ap,bp ;
    float fa , fb ;
+   byte * mask ;
 
    memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
@@ -497,11 +523,15 @@ printf("fixijk=%3d  nfs=%d  dfs1=%d  dfs2=%d  dfs3=%d  dfs4=%d\n",
         fixijk,nfs,dfs1,dfs2,dfs3,dfs4);
 #endif
 
+   mask = (tm == NULL) ? NULL
+                       : tm->mask[fixdir%3] + (fixijk*nb - bdel) ;
+
    switch( nfs ){
 
       case 1:                                          /* 1 point (NN copy) */
          ijkoff += dfs1 ;
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = vol[aoff+ijkoff] ;
       break ;
@@ -509,6 +539,7 @@ printf("fixijk=%3d  nfs=%d  dfs1=%d  dfs2=%d  dfs3=%d  dfs4=%d\n",
       case 2:                                          /* 2 points (1/2+1/2) */
          ijkoff += dfs1 ; dfs2 -= dfs1 ;
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = (vol[aoff+ijkoff] + vol[aoff+(ijkoff+dfs2)]) >> 1 ;
       break ;
@@ -516,6 +547,7 @@ printf("fixijk=%3d  nfs=%d  dfs1=%d  dfs2=%d  dfs3=%d  dfs4=%d\n",
       case 3:                                          /* 2 points (3/4+1/4) */
          ijkoff += dfs1 ; dfs2 -= dfs1 ;
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = ( (vol[aoff+ijkoff] << 1) + vol[aoff+ijkoff]
                               + vol[aoff+(ijkoff+dfs2)]                  ) >> 2 ;
@@ -524,6 +556,7 @@ printf("fixijk=%3d  nfs=%d  dfs1=%d  dfs2=%d  dfs3=%d  dfs4=%d\n",
       case 4:                                          /* 4 points (9/16+3/16+3/16+1/16) */
          ijkoff += dfs1 ; dfs2 -= dfs1 ; dfs3 -= dfs1 ; dfs4 -= dfs1 ;
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = ( (vol[aoff+ijkoff] << 3)
                               + vol[aoff+ijkoff]
@@ -535,6 +568,7 @@ printf("fixijk=%3d  nfs=%d  dfs1=%d  dfs2=%d  dfs3=%d  dfs4=%d\n",
       case 5:                                          /* 4 points (3/8+3/8+1/8+1/8) */
          ijkoff += dfs1 ; dfs2 -= dfs1 ; dfs3 -= dfs1 ; dfs4 -= dfs1 ;
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = ( ((vol[aoff+ijkoff] + vol[aoff+(ijkoff+dfs2)]) << 1)
                               + (vol[aoff+ijkoff] + vol[aoff+(ijkoff+dfs2)])
@@ -544,6 +578,7 @@ printf("fixijk=%3d  nfs=%d  dfs1=%d  dfs2=%d  dfs3=%d  dfs4=%d\n",
       case 6:                                          /* 4 points (1/4+1/4+1/4+1/4) */
          ijkoff += dfs1 ; dfs2 -= dfs1 ; dfs3 -= dfs1 ; dfs4 -= dfs1 ;
          for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+           if( mask == NULL || mask[bb] || mask[bb+1] )
             for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
                im[aa+boff] = (  vol[aoff+ijkoff]        + vol[aoff+(ijkoff+dfs2)]
                               + vol[aoff+(ijkoff+dfs3)] + vol[aoff+(ijkoff+dfs4)] ) >> 2 ;
@@ -597,6 +632,7 @@ void extract_byte_speedtest( int nrep , int fixdir , float * ct )
                              da = aa*(kk - 0.5*(nc-1.0)) + apad ;    \
                              db = bb*(kk - 0.5*(nc-1.0)) + bpad ;    \
                              func( nx,ny,nz , vin ,                  \
+                                   NULL ,                            \
                                    fixdir , kk , da , db ,           \
                                    ma , mb , vout + kk*mab ) ;       \
                           }                                          \
@@ -666,12 +702,13 @@ void putplane_byte( int nx , int ny , int nz , byte * vol ,
  ******************************************************************************
  ******************************************************************************/
 
-typedef void gfun( int , int , int , byte * ,
+typedef void gfun( int , int , int , byte * , Tmask * ,
                    int , int , float , float , int , int , byte * ) ;
 
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * in_dset ;
+   Tmask * tmask ;
    int nx,ny,nz,nxy , kk,ii , ma,mb,mab ,
        apad,bpad , pp,ploop=1,fixdir;
    float aa , bb , da,db ;
@@ -681,7 +718,7 @@ int main( int argc , char * argv[] )
    double cputim ;
    gfun * func = extract_byte_nn ;
    char * cfun = "nn" ;
-   int astep,bstep,cstep , na,nb,nc ;
+   int astep,bstep,cstep , na,nb,nc , use_tmask ;
 
    if( argc < 3 ){
       printf("Usage 1: extor fixdir A B bytedset [loops [suffix]]\n") ;
@@ -690,6 +727,7 @@ int main( int argc , char * argv[] )
    }
 
    fixdir = strtol(argv[1],NULL,10) ;
+   if( fixdir < 0 ){ use_tmask = 1 ; fixdir = -fixdir ; }
    if( fixdir<1 || fixdir>3 ){fprintf(stderr,"fixdir=%d?\n",fixdir);exit(1);}
 
    if( argc == 3 ){
@@ -758,6 +796,8 @@ int main( int argc , char * argv[] )
    imout = mri_new( ma,mb , MRI_byte ) ; vout = MRI_BYTE_PTR(imout) ;
    immax = mri_new( ma,mb , MRI_byte ) ; vmax = MRI_BYTE_PTR(immax) ;
 
+   tmask = (use_tmask) ? create_Tmask(nx,ny,nz,vin) : NULL ;
+
    cputim = COX_cpu_time() ;
 
    for( pp=0 ; pp < ploop ; pp++ ){
@@ -766,7 +806,7 @@ int main( int argc , char * argv[] )
         da = aa*(kk - 0.5*(nc-1.0)) + apad ;
         db = bb*(kk - 0.5*(nc-1.0)) + bpad ;
 
-        func( nx,ny,nz , vin , fixdir,kk , da,db , ma,mb , vout ) ;
+        func( nx,ny,nz , vin,tmask , fixdir,kk , da,db , ma,mb , vout ) ;
 
         for( ii=0 ; ii < mab ; ii++ )
           if( vout[ii] > vmax[ii] ) vmax[ii] = vout[ii] ;

@@ -11,15 +11,27 @@
     have been read in from multiple sessions
 ------------------------------------------------------------------*/
 
-#define IFNOANAT(ds)                                                           \
-   if( needed && (ds)->anat_parent == NULL )                                   \
-      fprintf(stderr, "\n*** Cannot find anat parent %s\n*** of Dataset %s\n", \
+#ifdef OMIT_DATASET_IDCODES
+# define IFNOANAT(ds)                                           \
+   if( needed && (ds)->anat_parent == NULL )                    \
+      fprintf(stderr, "\n** Can't find anat parent %s of %s\n", \
              (ds)->anat_parent_name , DSET_HEADNAME(ds) )
 
-#define IFNOWARP(ds)                                                           \
-   if( needed && (ds)->warp_parent == NULL && ! DSET_ONDISK(ds) )              \
-      fprintf(stderr, "\n*** Cannot find warp parent %s\n*** of Dataset %s\n", \
+# define IFNOWARP(ds)                                             \
+   if( needed && (ds)->warp_parent == NULL && ! DSET_ONDISK(ds) ) \
+      fprintf(stderr, "\n** Can't find warp parent %s of %s\n",   \
              (ds)->warp_parent_name , DSET_HEADNAME(ds) )
+#else
+# define IFNOANAT(ds)                                           \
+   if( needed && (ds)->anat_parent == NULL )                    \
+      fprintf(stderr, "\n** Can't find anat parent %s of %s\n", \
+             (ds)->anat_parent_idcode.str , DSET_HEADNAME(ds) )
+
+# define IFNOWARP(ds)                                             \
+   if( needed && (ds)->warp_parent == NULL && ! DSET_ONDISK(ds) ) \
+      fprintf(stderr, "\n** Can't find warp parent %s of %s\n",   \
+             (ds)->warp_parent_idcode.str , DSET_HEADNAME(ds) )
+#endif
 
 #ifdef THD_DEBUG
 # define SHOW_PARENTING(str,ds,dsp)                                            \

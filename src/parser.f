@@ -817,7 +817,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
-     X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE
+     X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE, GRAN
 C
 C  External library functions
 C
@@ -959,6 +959,10 @@ C.......................................................................
             NEVAL          = NEVAL - 1
             IF( R8_EVAL(NEVAL).NE.0.D+0.AND.R8_EVAL(NEVAL+1).NE.0.D+0)
      X        R8_EVAL(NEVAL) = ATAN2( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'GRAN')THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = GRAN( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
             IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
@@ -1235,7 +1239,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
-     X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE
+     X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE , GRAN
 C
 C  External library functions
 C
@@ -1551,16 +1555,23 @@ C.......................................................................
      X                                        R8_EVAL(IV-IBV,NEVAL+1) )
             ENDDO
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'GRAN')THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = GRAN( R8_EVAL(IV-IBV,NEVAL) ,
+     X                                       R8_EVAL(IV-IBV,NEVAL+1) )
+            ENDDO
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
             DO IV=IVBOT,IVTOP
-            IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 87.5 )
-     X        R8_EVAL(IV-IBV,NEVAL) = SINH( R8_EVAL(IV-IBV,NEVAL) )
+              IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 87.5 )
+     X          R8_EVAL(IV-IBV,NEVAL) = SINH( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'COSH' )THEN
             DO IV=IVBOT,IVTOP
-            IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 87.5 )
-     X         R8_EVAL(IV-IBV,NEVAL) = COSH( R8_EVAL(IV-IBV,NEVAL) )
+              IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 87.5 )
+     X           R8_EVAL(IV-IBV,NEVAL) = COSH( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'TANH' )THEN
@@ -1988,6 +1999,64 @@ C
 C
 C
 C
+CCC      FUNCTION UNIF( XJUNK )
+CCC      IMPLICIT REAL*8 (A-H,O-Z)
+CCC      PARAMETER ( IA = 99992 , IB = 12345 , IT = 99991 )
+CCC      PARAMETER ( F  = 1.00009D-05 )
+CCC      DATA IX / 271 /
+CCCC+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CCC      IX = MOD( IA*IX+IB , IT )
+CCC      UNIF = F * IX
+CCC      RETURN
+CCC      END
+C
+C
+C
+      FUNCTION UNIF( XJUNK )
+      IMPLICIT REAL*8 (A-H,O-Z)
+C
+C     FACTOR - INTEGER OF THE FORM 8*K+5 AS CLOSE AS POSSIBLE
+C              TO  2**26 * (SQRT(5)-1)/2     (GOLDEN SECTION)
+C     TWO28  = 2**28  (I.E. 28 SIGNIFICANT BITS FOR DEVIATES)
+C
+      PARAMETER ( FACTOR = 41475557.0D+00 , TWO28 = 268435456.0D+00 )
+C
+      DATA R / 0.D+00 /
+C
+C     RETURNS SAMPLE U FROM THE  0,1 -UNIFORM DISTRIBUTION
+C     BY A MULTIPLICATIVE CONGRUENTIAL GENERATOR OF THE FORM
+C        R := R * FACTOR (MOD 1) .
+C     IN THE FIRST CALL R IS INITIALIZED TO
+C        R := IR / 2**28 ,
+C     WHERE IR MUST BE OF THE FORM  IR = 4*K+1.
+C     THEN R ASSUMES ALL VALUES  0 < (4*K+1)/2**28 < 1 DURING
+C     A FULL PERIOD 2**26 OF SUNIF.
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+      IF( R .EQ. 0.D+00 ) R = 65537.D+00 / TWO28
+      R    = DMOD(R*FACTOR,1.0D+00)
+      UNIF = R
+      RETURN
+      END
+C
+C
+C
+      FUNCTION GRAN( B , S )
+      IMPLICIT REAL*8 (A-H,O-Z)
+C
+C  Compute a Gaussian random deviate with mean B and stdev S
+C
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+      U2 = UNIF(0.D+00)
+100   U1 = UNIF(0.D+00)
+      IF( U1 .LE. 0.D+00 ) GOTO 100
+      GRAN = B + S * SQRT(-2.0*LOG(U1)) * SIN(6.2831853D+00*U2)
+      RETURN
+      END
+C
+C
+C
       FUNCTION QGINV( P )
 C
 C  Return x such that Q(x)=P, for 0 < P < 1.  Q=reversed Gaussian cdf.
@@ -2117,7 +2186,7 @@ C
       FUNCTION MEDIAN(N,X)
       REAL *8 MEDIAN , X(N) , TMP
       INTEGER N , IT
-
+C
       IF( N .EQ. 1 )THEN
          MEDIAN = X(1)
          RETURN
@@ -2139,14 +2208,14 @@ C
          ENDIF
          RETURN
       ENDIF
-
+C
 C---  sort it
-
+C
       CALL BSORT(N,X)
-
+C
 C---  Even N --> average of middle 2
 C---  Odd  N --> middle 1
-
+C
       IT = N/2
       IF( 2*IT .EQ. N )THEN
          MEDIAN = 0.5D+00 * (X(IT)+X(IT+1))
