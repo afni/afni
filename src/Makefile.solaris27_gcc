@@ -18,9 +18,9 @@ EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
 #              /usr/lib/libsocket.a /usr/lib/libnsl.a /usr/lib/libgen.a -ldl
 
 PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -G
+PLUGIN_LFLAGS = -G -s
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib
+PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib -s
 
 AR     = /usr/ccs/bin/ar
 RANLIB = /usr/bin/touch
