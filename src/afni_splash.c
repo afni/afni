@@ -147,8 +147,8 @@ ENTRY("AFNI_splashup") ;
       imov = NULL ; ff = 0 ;
       if( num_face > 0 ){                       /* external face_*.jpg files */
         static int *dold=NULL, ndold=0 ; int qq ;
-        dd = AFNI_find_todays_face() ;  /* 30 Mar 2005: find a    */
-        if( dd >= 0 ) goto Have_dd ;    /* special face for today */
+        dd = AFNI_find_todays_face() ;               /* 30 Mar 2005: find a */
+        if( dd >= 0 ){ ff=-1; goto Have_dd; }     /* special face for today */
         if( ndold == 0 && num_face > 1 ){
           ndold = num_face/2 ;
           dold  = (int *) malloc(sizeof(int)*ndold) ;
@@ -174,7 +174,7 @@ ENTRY("AFNI_splashup") ;
           imq = mri_resize( imov , nxnew,nynew ) ;          /* kind of slow */
           mri_free(imov); imov = imq;        /* replace with rescaled image */
         }
-        if( imov != NULL ){           /* ff = 2 for me, 1 for everyone else */
+        if( ff == 0 && imov != NULL ){       /* ff = 2 for me, 1 for everyone else */
           ff = (strstr(fname_face[dd],"_rwcox") != NULL) ? 2 : 1 ;
         }
       }
@@ -186,7 +186,7 @@ ENTRY("AFNI_splashup") ;
       dd = IXOVER + (MAX_XOVER-nxov)/2 ;          /* and location to put it */
       ee = JYOVER + (MAX_YOVER-nyov)/2 ;
       mri_overlay_2D( imspl, imov, dd,ee ); mri_free(imov);
-      if( ff ){                                 /* overlay title under face */
+      if( ff > 0 ){                             /* overlay title under face */
         imov = SPLASH_decodexx( NX_facetitle,NY_facetitle,NLINE_facetitle,
                                 NC_facetitle,RMAP_facetitle,
                                 RMAP_facetitle,RMAP_facetitle ,
