@@ -5191,3 +5191,9 @@
 
 29 Aug 2004
  * Added EXPR(bot,top) basis function to 3dDeconvolve.c.
+
+30 Aug 2004
+ * Modified 3dDeconvolve.c basis_write_response() to be more efficient (don't
+     evaluate basis expressions so often).
+ * Added basis_write_sresp() to 3dDeconvolve.c to write standard deviation
+     of the IRFs.
