@@ -4018,3 +4018,6 @@
 28 Oct 2002
  * Changes to mri_dicom_hdr.c and mri_read_dicom.c to deal with Siemens' stupid
      mosaic format.
+
+01 Nov 2002
+ * More changes for mosaic input.
