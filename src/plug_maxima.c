@@ -39,6 +39,7 @@ char * MAXIMA_main( PLUGIN_interface * );
 
 char               grMessage[ R_MESSAGE_L ];
 static char      * grStyle[] = { "Sort-n-Remove", "Weighted-Average" };
+static char      * grNY[]    = { "No", "Yes" };
 
 static char        helpstring[] =
     "Maxima - used to locate extrema in a functional dataset.\n"
@@ -117,7 +118,24 @@ static char        helpstring[] =
     "\n"
     "Author: (the lamented) R Reynolds\n"
     "\n"
-    "Updated: 2004 Feb 20 [rickr]\n"
+    "History:\n"
+    "\n"
+    "  20 Feb 2004 [rickr]\n"
+    "    - added ENTRY/RETURN macros\n"
+    "    - do not process last plane\n"
+    "    - allow any anat/func type datasets of type short\n"
+    "    - added sub-brick selector\n"
+    "    - note that dist and radius are in voxels\n"
+    "    - output coordinates in RAI mm format\n"
+    "\n"
+    "  01 Nov 2004 [rickr]\n"
+    "    - remove restrictions on threshold input\n"
+    "    - rearrange options, and add a Debug Level\n"
+    "    - increment style (should be in {1,2}, not {0,1}\n"
+    "    - add a little debug output, including show_point_list_s()\n"
+    "    - removed unused variables\n"
+    "    - true_max update in find_local_maxima()\n"
+    "    - added check for warp-on-demand failure\n"
    ;
 
 
@@ -163,7 +181,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint, "Threshold" , "cutoff" , FALSE ) ;
    PLUTO_add_hint( plint, "option: choose a threshold for value at extrema" );
-   PLUTO_add_number( plint, "Cutoff", -20000, 20000, 0, 1000, 1 );
+   PLUTO_add_number( plint, "Cutoff", 0, 0, 0, 1000, 1 );
 
    /*-- fourth line of input: min_dist option --*/
 
@@ -178,28 +196,29 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 			  "points in mask" );
    PLUTO_add_number( plint, "Radius(vox)", 0, 1000, 1, 50, 1 );
 
-   /*-- sixth line of input: negatives option --*/
-
-   PLUTO_add_option( plint, "Neg Extrema" , "negatives" , FALSE ) ;
-   PLUTO_add_hint( plint, "option: search for negative extrema" );
-
-   /*-- seventh line of input: style option --*/
+   /*-- sixth line of input: style option --*/
 
    PLUTO_add_option( plint, "Neighbor" , "style" , FALSE ) ;
    PLUTO_add_hint( plint, "option: technique for neighbor removal" );
    PLUTO_add_string( plint, "Style", 2, grStyle, 0 );
 
+   /*-- seventh line of input: negatives and true max options --*/
+
+   PLUTO_add_option( plint, "params" , "params" , FALSE ) ;
+   PLUTO_add_hint( plint, "options: negative extrema and true max" );
+   PLUTO_add_string( plint, "Neg Extrema", 2, grNY, 0 );
+   PLUTO_add_hint( plint, "search for negative extrema, not positive" );
+   PLUTO_add_string( plint, "True Max", 2, grNY, 0 );
+   PLUTO_add_hint( plint, "exclude extrema with equal neighbors" );
+
    /*-- eighth line of input: true_max option --*/
 
-   PLUTO_add_option( plint, "True Max" , "true_max" , FALSE ) ;
-   PLUTO_add_hint( plint, "option: do not include extrema with "
-			  "equal neighbors" );
-
-   /*-- ninth line of input: quiet option --*/
-
-   PLUTO_add_option( plint, "No Text Out" , "quiet" , FALSE ) ;
-   PLUTO_add_hint( plint, "option: do not output extrema as text" );
-
+   PLUTO_add_option( plint, "output" , "output" , FALSE ) ;
+   PLUTO_add_hint( plint, "options: no output text, debug level" );
+   PLUTO_add_string( plint, "No Text Out", 2, grNY, 0 );
+   PLUTO_add_hint( plint, "do not output extrema as text (to terminal)" );
+   PLUTO_add_number( plint, "Debug Level", 0, 4, 0, 0, 0 );
+   PLUTO_add_hint( plint, "search for negative extrema, not positive" );
 
    return plint;
 }
@@ -250,10 +269,10 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
 {
     THD_3dim_dataset * dset;
     MCW_idcode       * idc ;
-    char             * optag, * infile = NULL, * outfile = NULL, * style_str;
+    char             * optag, * outfile = NULL, * str;
     float              cutoff = 0.0, min_dist = 0.0, out_rad = 0.0;
     int                negatives = 0, quiet = 0, true_max = 0, opcnt = 0;
-    int                style = MAX_SORT_N_REMOVE_STYLE, sb;
+    int                val, debug = 0, style = MAX_SORT_N_REMOVE_STYLE, sb;
 
 ENTRY("process_args");
     /* get AFNI inputs */
@@ -317,18 +336,23 @@ ENTRY("process_args");
 			"options : Output radius must be non-negative\n"
 			"--------------------------------------------");
 	}
-	else if ( ! strcmp( optag, "negatives" ) )
+	else if ( ! strcmp( optag, "params" ) )
 	{
-	    negatives = 1;
+	    str = PLUTO_get_string( plint );		/* Neg Extrema */
+	    val = PLUTO_string_index(str, 2, grNY);
+	    if ( val > 0 ) negatives = 1;
+	    str = PLUTO_get_string( plint );		/* True Max    */
+	    val = PLUTO_string_index(str, 2, grNY);
+	    if ( val > 0 ) true_max = 1;
 	}
 	else if ( ! strcmp( optag, "style" ) )
 	{
-	    if ( ( style_str = PLUTO_get_string( plint ) ) == NULL )
+	    if ( ( str = PLUTO_get_string( plint ) ) == NULL )
 		RETURN( "-------------------------------\n"
 			"options : missing style string?\n"
 			"-------------------------------");
-	    if ((( style = PLUTO_string_index(style_str, 2, grStyle)) 
-				< 0 ) || ( style > MAX_MAX_STYLE ) )
+	    if ((( style = PLUTO_string_index(str, 2, grStyle)) 
+				< 0 ) || ( style >= MAX_MAX_STYLE ) )
 	    {
 		sprintf( grMessage,
 		    "---------------------------\n"
@@ -336,14 +360,15 @@ ENTRY("process_args");
 		    "---------------------------", style );
 		RETURN(grMessage);
 	    }
+	    style++;
 	}
-	else if ( ! strcmp( optag, "true_max" ) )
+	else if ( ! strcmp( optag, "output" ) )
 	{
-	    true_max = 1;
-	}
-	else if ( ! strcmp( optag, "quiet" ) )
-	{
-	    quiet = 1;
+	    str = PLUTO_get_string( plint );		/* No Text Out */
+	    val = PLUTO_string_index(str, 2, grNY);
+	    if ( val > 0 ) quiet = 1;
+	    debug = PLUTO_get_number( plint );          /* Debug Level */
+	    
 	}
 	else	/* illegal option? */
 	{
@@ -371,7 +396,7 @@ ENTRY("process_args");
                "----------------------------------");
 
     /* now fill any remaining parameters */
-    M->cutoff     = cutoff/A->factor[0];
+    M->cutoff     = cutoff / A->factor[0];
     M->min_dist   = min_dist;
     M->out_rad    = out_rad;
 
@@ -379,6 +404,14 @@ ENTRY("process_args");
     M->ngbr_style = style;
     M->quiet      = quiet;
     M->true_max   = true_max;
+    M->debug      = debug;
+
+    if ( M->debug > 0 )
+    {
+	show_maxima_s( "plugin values applied ", M );
+	fprintf(stderr,"  using sub-brick %d, factor %f\n",
+		A->sub_brick, A->factor[0]);
+    }
 
     RETURN(NULL);
 }
@@ -399,6 +432,9 @@ ENTRY("process_data");
     if ( ! create_point_list( M ) )
         RETURN(0);
 
+    if ( M->debug > 0 )
+	show_point_list_s( "+d point list created: ", &M->P, M->debug );
+
     gr_orig_data = M->sdata;            /* global needed for sorting */
     if ( M->negatives )
         qsort( M->P.plist, M->P.used, sizeof( int ), point_comp_neg );
@@ -408,10 +444,41 @@ ENTRY("process_data");
     if ( ( M->min_dist > 1.0 ) && ! apply_min_dist( M ) )
         RETURN(0);
 
+    if ( M->debug > 1 )
+	show_point_list_s( "+d point list sorted/cleaned: ", &M->P, M->debug );
+
     if ( M->outfile )
         apply_fill_radius( M );
 
     RETURN(1);
+}
+
+
+/*----------------------------------------------------------------------
+**  Display the contents of the point_list_s struct.
+**----------------------------------------------------------------------
+*/
+static void
+show_point_list_s( char * mesg, point_list_s * p, int debug )
+{
+    int c;
+
+ENTRY("show_point_list_s");
+
+    if ( mesg ) fputs( mesg, stderr );
+
+    fprintf(stderr, "point_list_s @ %p, used = %d, M = %d\n",
+	    p, p->used, p->M);
+
+    if ( debug <= 0 ) EXRETURN;		/* we're done */
+
+    fprintf(stderr,"  plist starting @ %p:", p->plist );
+
+    for ( c = 0; c < p->used; c++ )
+	fprintf(stderr,"  %d", p->plist[c] );
+    fprintf(stderr,"\n");
+
+    EXRETURN;
 }
 
 
@@ -422,20 +489,24 @@ ENTRY("process_data");
 **----------------------------------------------------------------------
 */
 static void
-show_maxima_s( maxima_s * M )
+show_maxima_s( char * mesg, maxima_s * M )
 {
+ENTRY("show_maxima_s");
+
+    if ( mesg ) fputs( mesg, stderr );
+
     fprintf( stderr,
         "------------------------------\n"
-        "dset   *      : %x\n"
-        "sdata  *      : %x\n"
-        "result *      : %x\n"
+        "dset   *      : %p\n"
+        "sdata  *      : %p\n"
+        "result *      : %p\n"
         "nx            : %d\n"
         "ny            : %d\n"
         "nz            : %d\n"
         "nxy           : %d\n"
         "nvox          : %d\n"
 
-        "P.plist       : %x\n"
+        "P.plist       : %p\n"
         "P.used        : %d\n"
         "P.M           : %d\n"
 
@@ -456,17 +527,21 @@ show_maxima_s( maxima_s * M )
         "overwrite     : %d\n"
         "quiet         : %d\n"
         "true_max      : %d\n"
+        "debug         : %d\n"
         "------------------------------\n",
 
-        (int)M->dset, (int)M->sdata, (int)M->result,
+        M->dset, M->sdata, M->result,
         M->nx, M->ny, M->nz, M->nxy, M->nvox,
-        (int)M->P.plist, M->P.used, M->P.M,
+        M->P.plist, M->P.used, M->P.M,
         M->extrema_count,
         M->data_type, M->adn_type, M->func_type,
         M->outfile,
         M->cutoff, M->min_dist, M->out_rad,
-        M->negatives, M->ngbr_style, M->overwrite, M->quiet, M->true_max
+        M->negatives, M->ngbr_style, M->overwrite,
+	M->quiet, M->true_max, M->debug
     );
+
+    EXRETURN;
 }
 
 
@@ -509,7 +584,7 @@ clear_around_point( int p, maxima_s * M, point_list_s * newP )
     int yc, zc, xrad, yrad, yrad2;
     int xbase, ybase, zbase;
 
-    short * sptr, * optr, * mptr;
+    short * optr;
     float   radius = M->min_dist;
 
     static point_list_s P = { NULL, 0, 0 };  /* for allocation speed */
@@ -667,6 +742,9 @@ ENTRY("create_pint_list");
 	if ( *mptr++ )
 	    if ( ! add_point_to_list( P, count ) )
 		RETURN(0);
+
+    if ( M->debug > 0 )
+	show_point_list_s( "+d point list created: ", &M->P, M->debug );
 
     RETURN(1);
 }
@@ -895,31 +973,6 @@ ENTRY("find_local_maxima");
 		    if ( ! M->negatives )
 		    {
 			for ( c = 0; c < 26; c++ )
-			    if ( *sourcep < sourcep[offset[c]] )
-			    {
-				*destp = 0;
-				M->extrema_count--;
-
-				break;
-			    }
-		    }
-		    else
-		    {
-			for ( c = 0; c < 26; c++ )
-			    if ( *sourcep > sourcep[offset[c]] )
-			    {
-				*destp = 0;
-				M->extrema_count--;
-
-				break;
-			    }
-		    }
-		}
-		else
-		{
-		    if ( ! M->negatives )
-		    {
-			for ( c = 0; c < 26; c++ )
 			    if ( *sourcep <= sourcep[offset[c]] )
 			    {
 				*destp = 0;
@@ -940,12 +993,39 @@ ENTRY("find_local_maxima");
 			    }
 		    }
 		}
+		else
+		{
+		    if ( ! M->negatives )
+		    {
+			for ( c = 0; c < 26; c++ )
+			    if ( *sourcep < sourcep[offset[c]] )
+			    {
+				*destp = 0;
+				M->extrema_count--;
+
+				break;
+			    }
+		    }
+		    else
+		    {
+			for ( c = 0; c < 26; c++ )
+			    if ( *sourcep > sourcep[offset[c]] )
+			    {
+				*destp = 0;
+				M->extrema_count--;
+
+				break;
+			    }
+		    }
+		}
 
 		sourcep++;
 		destp++;
 	    }
 	}
     }
+
+    if ( M->debug > 0 ) show_maxima_s( "post find local maxima: ", M );
 
     RETURN(1);
 }
@@ -1032,7 +1112,7 @@ display_coords( r_afni_s * A, maxima_s * M )
     short * optr;
     short * mptr;
     int   * iptr;
-    int     X, Y, Z, offset, count;
+    int     X, Y, Z, count;
     int     xm1 = M->nx - 1, ym1 = M->ny - 1, zm1 = M->nz - 1;
 
     point_list_s * P = &M->P;
@@ -1059,13 +1139,6 @@ ENTRY("display_coords");
 	    /* do dicom coordinates from ijk, instead */
 	    printf( "(%.2f  %.2f  %.2f) : val = %d\n",
 		    f3.xyz[0], f3.xyz[1], f3.xyz[2], *optr );
-
-/*     printf( "(%4d,%4d,%4d) : val = %d\n",
-		(int)(xmin)+(int)(xlen*X/xm1),
-		(int)(ymin)+(int)(ylen*Y/ym1),
-		(int)(zmin)+(int)(zlen*Z/zm1),
-		*optr );
-*/
 	}
 	else
 	{
@@ -1073,13 +1146,6 @@ ENTRY("display_coords");
 
 	    printf( "(%.2f  %.2f  %.2f) : val = %f\n",
 		    f3.xyz[0], f3.xyz[1], f3.xyz[2], prod );
-
-/*	    printf( "(%4d,%4d,%4d) : val = %f\n",
-		(int)(xmin)+(int)(xlen*X/xm1),
-		(int)(ymin)+(int)(ylen*Y/ym1),
-		(int)(zmin)+(int)(zlen*Z/zm1),
-		prod );
-*/
 	}
     }
 
@@ -1179,6 +1245,7 @@ ENTRY("init_maxima_s");
     M->overwrite    = 0;
     M->quiet        = 0;
     M->true_max     = 0;
+    M->debug        = 0;
 
     RETURN(1);
 }
@@ -1252,6 +1319,14 @@ ENTRY("r_set_afni_s_from_dset");
     A->dset[ 0 ] = dset;                 /* rickr - use sub-brick */
     A->simage[ 0 ] = ( short * )DSET_ARRAY( dset, A->sub_brick );
 
+    if ( !A->simage[0] )
+    {
+	sprintf(grMessage,
+            "** data not available, is this in warp-on-demand mode?\n");
+	rERROR(grMessage);
+	RETURN(0);
+    }
+
     if ((A->factor[0] = DSET_BRICK_FACTOR(dset, A->sub_brick)) == 0.0 )
         A->factor[0] = 1.0;
 
@@ -1286,6 +1361,7 @@ ENTRY("r_set_afni_s_from_dset");
     }
 
     A->max_u_short  = r_get_max_u_short( (u_short *)A->simage[0], A->nvox );
+
 /*    A->num_dsets++;   not using more than one */
 
     RETURN(1);
