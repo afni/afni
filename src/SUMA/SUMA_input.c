@@ -70,7 +70,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       }else if (Kev.state & Mod1Mask){
          fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);
       }else if (Kev.state & Mod2Mask){
-         fprintf (SUMA_STDERR,"%s: Mod2 down\n", FuncName);
+         fprintf (SUMA_STDERR,"%s: Mod2 down (apple on mac)\n", FuncName);
       }else if (Kev.state & Mod3Mask){
          fprintf (SUMA_STDERR,"%s: Mod3 down\n", FuncName);
       }else if (Kev.state & Mod4Mask){
@@ -369,7 +369,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_e:
             if (SUMAg_CF->Dev) {
-               if (Kev.state & ControlMask){ /* used to be Mod1Mask i.e. alt + e but does not work on the mac*/
+               if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){ /*  Mod1Mask is alt in linux, Mod2Mask is the apple on mac*/
                   int error, cnt = 0;
                   fprintf (SUMA_STDERR, "%s: Looking for OpenGL errors ...\n", FuncName);
                   while ((error = glGetError()) != GL_NO_ERROR) {
@@ -459,7 +459,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                
                   sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpXYZ_prmpt);  
 
-               } else if (Kev.state & Mod1Mask){     
+               } else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){     
                   sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
                                                       "Enter index of focus node\nCross hair's XYZ will not be affected:", 
                                                       "",
@@ -523,7 +523,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
                }
-            } if (Kev.state & Mod1Mask){ /* alt + l */
+            } if (Kev.state & Mod1Mask  || Kev.state & Mod2Mask){ /* alt + l */
                /* register cross hair XYZ with ED */
                if (!list) list = SUMA_CreateList();
                ED = SUMA_InitializeEngineListData (SE_SetLookAt);
@@ -569,7 +569,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_M:
-            if ((Kev.state & Mod1Mask) && (Kev.state & ControlMask) ){
+            if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) ){
                   #ifndef DONT_USE_MCW_MALLOC
                   /* write memtrace results to disk */
                   if (!mcw_malloc_enabled) {
@@ -736,7 +736,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                break;
             }
          case XK_s:
-            if ((Kev.state & Mod1Mask) && (Kev.state & ControlMask) && SUMAg_CF->Dev){
+            if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) && SUMAg_CF->Dev){
                if (!list) list = SUMA_CreateList();
                ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
                if (!SUMA_RegisterEngineListCommand (  list, ED,
@@ -749,7 +749,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }               
    
-            } else if (Kev.state & Mod1Mask){
+            } else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){
                /* swap buttons 1 and 3 */
                SUMAg_CF->SwapButtons_1_3 = !SUMAg_CF->SwapButtons_1_3;
                if (SUMAg_CF->SwapButtons_1_3) {
@@ -1351,7 +1351,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /*add and apply rotation*/
                add_quats (dQ, cQ, sv->GVS[sv->StdView].currentQuat);
                SUMA_postRedisplay(w, clientData, callData);
-            }else if (Kev.state & Mod1Mask) {
+            }else if (Kev.state & Mod1Mask  || Kev.state & Mod2Mask) {
                /*ffprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
             }else {
                /*ffprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
@@ -1388,7 +1388,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                add_quats (dQ, cQ, sv->GVS[sv->StdView].currentQuat);
                SUMA_postRedisplay(w, clientData, callData);
                
-            }else if (Kev.state & Mod1Mask) {
+            }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
                /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
             }else {
                /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
@@ -1430,7 +1430,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
                axis_to_quat(a, SUMA_PI, sv->GVS[sv->StdView].currentQuat);
                SUMA_postRedisplay(w, clientData, callData);
-            }else if (Kev.state & Mod1Mask) {
+            }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
                /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
             }else {
                /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
@@ -1481,7 +1481,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
                axis_to_quat(a, 0, sv->GVS[sv->StdView].currentQuat);
                SUMA_postRedisplay(w, clientData, callData);
-            }else if (Kev.state & Mod1Mask) {
+            }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
                /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
             }else {
                if (LocalHead) fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);

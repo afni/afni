@@ -4484,6 +4484,7 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
    SUMA_RETURN(ROIfill);
 }
 
+
 /*! 
    \brief function to turn a set of nodes into a DrawnROI
    

@@ -52,7 +52,7 @@ int main (int argc,char *argv[])
   float N0[3];
   float maxdistance, mindistance;
   float *distance;
-  float **Points;
+  float Points[2][3], p1[3], p2[3];
   SUMA_COLOR_MAP *MyColMap;
   SUMA_SCALE_TO_MAP_OPT *MyOpt;
   SUMA_COLOR_SCALED_VECT * MySV;
@@ -241,7 +241,7 @@ int main (int argc,char *argv[])
     N0[0] = SN1.NodeNormList[id];
     N0[1] = SN1.NodeNormList[id+1];
     N0[2] = SN1.NodeNormList[id+2];
-    Points = SUMA_Point_At_Distance(N0, P0, 10);
+    SUMA_POINT_AT_DISTANCE(N0, P0, 10, Points);
     P1[0] = Points[0][0];
     P1[1] = Points[0][1];
     P1[2] = Points[0][2];
@@ -283,7 +283,7 @@ int main (int argc,char *argv[])
     N0[0] = SN1.NodeNormList[id];
     N0[1] = SN1.NodeNormList[id+1];
     N0[2] = SN1.NodeNormList[id+2];
-    Points = SUMA_Point_At_Distance(N0, P0, 1000);
+    SUMA_POINT_AT_DISTANCE(N0, P0, 1000, Points);
     P1[0] = Points[0][0];
     P1[1] = Points[0][1];
     P1[2] = Points[0][2];
@@ -315,7 +315,13 @@ int main (int argc,char *argv[])
     }
     
     /*now try with the segment from Points[0] to Points[1] returned above. */
-    triangle = SUMA_MT_intersect_triangle(Points[0],Points[1], SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, NULL);
+    p1[0] = Points[0][0]; 
+    p1[1] = Points[0][1]; 
+    p1[2] = Points[0][2];
+    p2[0] = Points[1][0]; 
+    p2[1] = Points[1][1]; 
+    p2[2] = Points[1][2];
+    triangle = SUMA_MT_intersect_triangle(p1,p2, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, NULL);
     //SUMA_Show_MT_intersect_triangle(triangle, NULL);
     if (triangle->N_hits ==0) {
       distance[i] = -1;

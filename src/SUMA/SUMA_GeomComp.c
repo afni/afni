@@ -46,6 +46,335 @@ extern int SUMAg_N_DOv;
 #if 0 /* now set in default arguments */
 int SUMA_GEOMCOMP_NI_MODE = NI_BINARY_MODE;
 #endif
+
+/*!
+*/
+int SUMA_Subdivide_Mesh(float **NodeListp, int *N_Nodep, int **FaceSetListp, int *N_FaceSetp, float maxarea)
+{
+   static char FuncName[]={"SUMA_Subdivide_Mesh"};
+   int in, it, N_NodeAlloc, N_FaceSetAlloc, N_Node, N_FaceSet, it3, in0, in1, in2, inc3, inc, itn, itn3;
+   float c[3];
+   float *NodeList = NULL, a, *n1, *n2, *n0;
+   int *FaceSetList = NULL;
+   SUMA_SurfaceObject SObuf, *SO=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   SO = &SObuf;
+   
+   N_NodeAlloc = N_Node = *N_Nodep;
+   N_FaceSetAlloc = N_FaceSet = *N_FaceSetp;
+   NodeList = *NodeListp;
+   FaceSetList = *FaceSetListp;
+   SO->NodeList = NodeList; SO->FaceSetList = FaceSetList;
+   if (!NodeList || !FaceSetList) { SUMA_SL_Err("NULL input"); SUMA_RETURN(NOPE); }
+   
+   it = 0; /* triangle index */
+   while (it < N_FaceSet) {
+      it3 = 3*it; 
+      in0 = FaceSetList[it3]; in1 = FaceSetList[it3+1]; in2 = FaceSetList[it3+2]; /* node indices */
+      n0 = &(NodeList[3*in0]); n1 = &(NodeList[3*in1]); n2 = &(NodeList[3*in2]);   /* node coordinates */
+      SUMA_TRI_AREA(n0, n1, n2, a); /* area of triangle */
+      if (a > maxarea) {
+         if (N_NodeAlloc <= N_Node) { /* need to realloc ?*/
+            N_NodeAlloc += 20000;
+            NodeList = (float *)SUMA_realloc(NodeList, N_NodeAlloc * 3 * sizeof(float));
+            /* you always add 2 triangles per new node here */
+            N_FaceSetAlloc += 40000;
+            FaceSetList = (int *)SUMA_realloc(FaceSetList, N_FaceSetAlloc * 3 * sizeof(int));
+            if (!NodeList || !FaceSetList) { SUMA_SL_Crit("Failed to realloc"); SUMA_RETURN(NOPE); }
+            SO->NodeList = NodeList; SO->FaceSetList = FaceSetList;
+         }
+         SUMA_FACE_CENTROID(SO, it, c); /* c is the centroid of triangle it */
+         inc = N_Node; inc3 = inc*3;  ++N_Node; /* index of new centroid node */
+         NodeList[inc3] = c[0]; NodeList[inc3+1] = c[1]; NodeList[inc3+2] = c[2];   /* add new centroid to bottom of list */
+         FaceSetList[it3+2] = inc; /* old triangle is now 1st new triangle in0 in1 inc */
+         itn = N_FaceSet; itn3 = 3 * itn; ++N_FaceSet; /* index of new second triangle */ 
+         FaceSetList[itn3] = inc; FaceSetList[itn3+1] = in1; FaceSetList[itn3+2] = in2;
+         itn = N_FaceSet; itn3 = 3 * itn; ++N_FaceSet; /* index of new third triangle */ 
+         FaceSetList[itn3] = inc; FaceSetList[itn3+1] = in2; FaceSetList[itn3+2] = in0; 
+      } else {
+         ++it;
+      }
+   }
+   
+   /* reallocate */
+   FaceSetList = (int *)SUMA_realloc(FaceSetList, N_FaceSet * 3 * sizeof(int));
+   NodeList = (float *)SUMA_realloc(NodeList, N_Node * 3 * sizeof(float));
+   
+   *NodeListp = NodeList;
+   *FaceSetListp = FaceSetList;
+   *N_FaceSetp = N_FaceSet;
+   *N_Nodep = N_Node;
+   
+   SUMA_RETURN(YUP);
+}
+/*!
+   \brief Function to detect surface self intersection
+   returns -1 in case of error,
+            0 in case of no intersection
+            1 in case of intersection
+*/ 
+int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt)
+{
+   static char FuncName[]={"SUMA_isSelfIntersect"};
+   float *NodePos = NULL, *p1=NULL, *p2=NULL, *p3 = NULL, p[3], *ep1=NULL, *ep2=NULL;
+   int hit = 0, k, t1, t2, it, it3, n1, n2, n3;
+   SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!SO->EL) {
+      SUMA_SL_Err("NULL SO->EL");
+      SUMA_RETURN(-1);
+   }
+   
+   if (StopAt < 1) StopAt = 1;
+   
+   hit = 0; k = 0;
+   while (k < SO->EL->N_EL) {
+         t1 = SO->EL->ELps[k][1]; t2 = SO->EL->ELps[SUMA_MIN_PAIR(k+1, SO->EL->N_EL-1)][1];
+         ep1 = &(SO->NodeList[3*SO->EL->EL[k][0]]); ep2 = &(SO->NodeList[3*SO->EL->EL[k][1]]);
+         /* find out if segment intersects */
+         MTI = SUMA_MT_intersect_triangle(ep1, ep2, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, MTI); 
+         for (it=0; it<SO->N_FaceSet; ++it) {
+            if (MTI->isHit[it] && it != t1 && it != t2) {
+               /* ray hit triangle, is intersection inside segment ? */
+               /* SUMA_LH("Checking hit..."); */
+               it3 = SO->FaceSetDim*it;
+               n1 = SO->FaceSetList[it3]; n2 = SO->FaceSetList[it3+1]; n3 = SO->FaceSetList[it3+2];
+               p1 = &(SO->NodeList[SO->NodeDim*n1]); p2 = &(SO->NodeList[SO->NodeDim*n2]); p3 = &(SO->NodeList[SO->NodeDim*n3]);   
+               SUMA_FROM_BARYCENTRIC(MTI->u[it], MTI->v[it], p1, p2, p3, p);
+               if (p[0] > ep1[0] && p[0] < ep2[0]) {
+                  if (p[1] > ep1[1] && p[1] < ep2[1]) {
+                     if (p[2] > ep1[2] && p[2] < ep2[2]) {
+                        /* point in segment, self intersection detected. */
+                        if (LocalHead) fprintf(SUMA_STDERR,"%s: Triangle %d (%d, %d, %d) was hit by segment formed by nodes [%d, %d]\n", 
+                           FuncName, it, n1, n2, n3, SO->EL->EL[k][0], SO->EL->EL[k][1]);
+                           ++ hit;
+                        break;
+                     }
+                  }
+               }
+            }
+         }
+         if (hit >= StopAt) break;
+         /* skip duplicate edges */
+         if (SO->EL->ELps[k][2] > 0) {
+               k += SO->EL->ELps[k][2];
+         } else ++k;
+   }
+   
+   if (MTI) MTI = SUMA_Free_MT_intersect_triangle(MTI); 
+   
+   if (LocalHead) {
+      if (!hit) {
+         SUMA_LH("Surface does not self intersect.");
+      } else {
+         SUMA_LH("Surface self intersects.");
+      }
+   }
+   SUMA_RETURN(hit);
+}
+
+/*!
+   \brief find the neighbors to a voxel.
+   \param ijk (int) a voxel's 1D index 
+   \param ni, nj, nk (int) number of voxels in each of the three directions
+   \param ntype (SUMA_VOX_NEIGHB_TYPES) neighborhood type
+                  SUMA_VOX_NEIGHB_FACE a maximum total of 6 neighbors
+                  SUMA_VOX_NEIGHB_EDGE a maximum total of 6 + 12 neighbors
+                  SUMA_VOX_NEIGHB_CORNER a maximum total of 6 + 12 + 8 neighbors
+   \param nl (int *) vector to contain the 1D indices of neighboring voxels. Voxels 
+                     outside the volume boundaries are not considered. You should make sure nl
+                     can hold a total of 26 values.
+   \param N_n (int) number of neighbors.
+*/               
+int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES ntype, int *nl)
+{
+   static char FuncName[]={"SUMA_VoxelNeighbors"};
+   int i, j, k;
+   int nij, N_n;
+   
+   SUMA_ENTRY;
+   
+   N_n = 0; nij = ni * nj;
+   
+   /* change ijk to 3D */
+   SUMA_1D_2_3D_index(ijk, i, j, k, ni, nij);
+   
+   if (i >= ni || i < 0) { SUMA_SL_Err("Voxel out of bounds along i direction"); SUMA_RETURN(N_n); }
+   if (j >= nj || j < 0) { SUMA_SL_Err("Voxel out of bounds along j direction"); SUMA_RETURN(N_n); }
+   if (k >= nk || k < 0) { SUMA_SL_Err("Voxel out of bounds along k direction"); SUMA_RETURN(N_n); }
+  
+   /* start with the face neighbors */
+   if (i-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j, k, ni, nij); ++N_n; }
+   if (j-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i, j-1, k, ni, nij); ++N_n; } 
+   if (k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i, j, k-1, ni, nij); ++N_n; } 
+   if (i+1 < ni) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j, k, ni, nij); ++N_n; } 
+   if (j+1 < nj) { nl[N_n] = SUMA_3D_2_1D_index(i, j+1, k, ni, nij); ++N_n; } 
+   if (k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i, j, k+1, ni, nij); ++N_n; } 
+   
+   if ( ntype < SUMA_VOX_NEIGHB_EDGE) { SUMA_RETURN(N_n); }
+   
+   /* add edge neighbors */
+   if (i-1 >= 0 && j-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j+1 < nj) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k, ni, nij); ++N_n; }
+   if (i-1 >= 0 && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j, k-1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j, k+1, ni, nij); ++N_n; }
+   if (j-1 >= 0 && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i, j-1, k-1, ni, nij); ++N_n; } 
+   if (j-1 >= 0 && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i, j-1, k+1, ni, nij); ++N_n; } 
+   if (i+1 < ni && j-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k, ni, nij); ++N_n; }
+   if (i+1 < ni && j+1 < nj) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k, ni, nij); ++N_n; }
+   if (i+1 < ni && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j, k-1, ni, nij); ++N_n; }
+   if (i+1 < ni && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j, k+1, ni, nij); ++N_n; }
+   if (j+1 < nj && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i, j+1, k-1, ni, nij); ++N_n; } 
+   if (j+1 < nj && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i, j+1, k+1, ni, nij); ++N_n; } 
+   
+   if ( ntype < SUMA_VOX_NEIGHB_CORNER) { SUMA_RETURN(N_n); }
+   
+   /* add corner neighbors */
+   if (i-1 >= 0 && j-1 >= 0 && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k-1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j-1 >= 0 && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k+1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j+1 < nj && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k-1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j+1 < nj && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k+1, ni, nij); ++N_n; }
+   if (i+1 < ni && j-1 >= 0 && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k-1, ni, nij); ++N_n; }
+   if (i+1 < ni && j-1 >= 0 && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k+1, ni, nij); ++N_n; }
+   if (i+1 < ni && j+1 < nj && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k-1, ni, nij); ++N_n; }
+   if (i+1 < ni && j+1 < nj && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k+1, ni, nij); ++N_n; }
+
+   
+   SUMA_RETURN(N_n);
+}
+
+/*!
+   \brief Function to fill the volume enclose in a mask
+   \param ijkmask (byte *) mask (nvox x 1), typically the result of the intersection of a closed surface with a volume
+   \param ijkseed (int) 1D index of seed voxel. Must be inside the mask and not a part of it.
+   \param ni (int) number of voxels in the i direction
+   \param nj (int) number of voxels in the j direction
+   \param nk (int) number of voxels in the k direction
+   \param N_in (int *) to contain the number of voxels inside the mask
+   \parm usethisisin (byte *)store results in this mask vector rather than allocate for a new one.
+   \return isin (byte *) a nvox x 1 vector containing:
+      0: for voxels outside mask
+      1: for voxels inside mask
+       
+*/
+byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, int *N_in, byte *usethisisin) 
+{
+   static char FuncName[]={"SUMA_FillToVoxelMask"};
+   byte *isin = NULL, *visited=NULL;
+   DList*candlist=NULL;
+   DListElmt *dothiselm=NULL;
+   int dothisvoxel, itmp;
+   int nl[50], N_n, in ,neighb, nijk, i, j, k, nij;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   *N_in = 0;
+   
+   if (!ijkmask) {
+      SUMA_SL_Err("Nothing to do");
+      SUMA_RETURN(NULL);
+   }
+   if (ijkmask[ijkseed]) {
+      SUMA_SL_Err("Seed is on mask. Bad business.");
+      SUMA_RETURN(NULL);
+   }
+   
+   nij = ni * nj;
+   nijk = ni * nj * nk;
+   
+   if (LocalHead) {
+      SUMA_1D_2_3D_index (ijkseed, i, j, k, ni, nij);
+      fprintf(SUMA_STDERR,"%s:\nSeed is %d %d %d\n", FuncName, i, j, k); 
+   }
+   candlist = (DList*)SUMA_malloc(sizeof(DList));
+   visited = (byte *)SUMA_calloc(nijk, sizeof(byte));
+   if (!visited || !candlist) {
+      SUMA_SL_Crit("Failed to allocate for visited or candlist");  
+      SUMA_RETURN(NULL);  
+   }
+   
+   if (usethisisin) isin = usethisisin;
+   else {
+      isin = (byte *)SUMA_calloc(nijk, sizeof(byte));
+      if (!isin) {
+         SUMA_SL_Crit("Failed to allocate");
+         SUMA_RETURN(NULL);
+      }
+   }
+   
+   dothisvoxel = ijkseed;
+   dlist_init(candlist, NULL);
+   
+   
+   isin[dothisvoxel] = 1; ++(*N_in); /* Add voxel to cluster */
+   visited[dothisvoxel] = 1;  
+   dlist_ins_next(candlist, dlist_tail(candlist), (void *)dothisvoxel); /* Add voxel as next candidate*/
+   
+   while (dlist_size(candlist)) {
+      /* find neighbors in its vicinity */
+      dothiselm = dlist_head(candlist); dothisvoxel = (int) dothiselm->data;
+      N_n = SUMA_VoxelNeighbors (dothisvoxel, ni, nj, nk, SUMA_VOX_NEIGHB_FACE, nl);
+      /* remove node from candidate list */
+      dlist_remove(candlist, dothiselm, (void*)&itmp);
+      /* search to see if any are to be assigned */
+      for (in=0; in<N_n; ++in) { 
+         neighb = nl[in];
+         if (!ijkmask[neighb]) {
+            isin[neighb] = 1; ++(*N_in); /* Add voxel to cluster */
+            /* mark it as a candidate if it has not been visited as a candidate before */
+            if (!visited[neighb]) {
+               dlist_ins_next(candlist, dlist_tail(candlist), (void *)neighb);
+               visited[neighb] = 1;   
+            }
+         }
+      }
+   }
+   
+   if (visited) SUMA_free(visited); visited = NULL;
+   if (candlist) { dlist_destroy(candlist); SUMA_free(candlist); candlist  = NULL; }
+
+   SUMA_RETURN(isin);
+}
+
+/*!
+   \brief find voxels whose centers are inside the box with corners c1 and c2
+   c1, c2 are in voxel index coordinates. c1 is the minimum coordinates point.
+   c2 is the maximum coordinates point.
+*/
+SUMA_Boolean SUMA_VoxelsInBox(int *voxelsijk, int *N_in, float *c1, float *c2)
+{
+   static char FuncName[]={"SUMA_VoxelsInBox"};
+   int n3, i, j, k;
+   
+   SUMA_ENTRY;
+   
+   if (!voxelsijk) { 
+      SUMA_SL_Err("NULL voxelsijk");
+      SUMA_RETURN(NOPE); 
+   }
+   
+   *N_in = 0;
+   
+   for (k = SUMA_ROUND(c1[2]); k <= SUMA_ROUND(c2[2]); ++k) {
+      for (j = SUMA_ROUND(c1[1]); j <= SUMA_ROUND(c2[1]); ++j) {
+         for (i = SUMA_ROUND(c1[0]); i <= SUMA_ROUND(c2[0]); ++i) {
+            n3 = 3*(*N_in);
+            voxelsijk[n3] = i; voxelsijk[n3+1] = j; voxelsijk[n3+2] = k; 
+            ++(*N_in); 
+         }
+      }
+   }     
+   SUMA_RETURN(YUP); 
+}
+
+
 /*!
    \brief Applies an affine transform the coordinates in NodeList
    
@@ -783,7 +1112,7 @@ typedef struct {
 double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float *tmpList)
 {
    static char FuncName[]={"SUMA_NewAreaAtRadius"};
-   double Dr, A=0.0,  Un, U[3], Dn, **P2 = NULL, c[3];
+   double Dr, A=0.0,  Un, U[3], Dn, P2[2][3], c[3];
    float *fp;
    int i;
    SUMA_Boolean LocalHead = NOPE;
@@ -800,15 +1129,8 @@ double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float
       Dn = Dr*Un + Un;
       if (Un) {
          SUMA_COPY_VEC(SO->Center, c, 3, float, double);
-         P2 = SUMA_dPoint_At_Distance(U, c, Dn);
-         if (P2) { /* must loose precision here to stay compatible with node coordinate list types */
-            tmpList[3*i] = (float)P2[0][0]; tmpList[3*i+1] = (float)P2[0][1]; tmpList[3*i+2] = (float)P2[0][2];
-            SUMA_free2D((char **)P2, 2);  P2 = NULL;
-         }else {
-            SUMA_SL_Err("Failed in SUMA_Point_At_Distance!\n"
-                     "No coordinates modified");
-            SUMA_RETURN(0);
-         }
+         SUMA_POINT_AT_DISTANCE_NORM(U, c, Dn, P2);
+         tmpList[3*i] = (float)P2[0][0]; tmpList[3*i+1] = (float)P2[0][1]; tmpList[3*i+2] = (float)P2[0][2];
       } else {
          SUMA_SL_Err("Identical points!\n"
                      "No coordinates modified");
@@ -844,7 +1166,7 @@ double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float
 double SUMA_NewVolumeAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float *tmpList)
 {
    static char FuncName[]={"SUMA_NewVolumeAtRadius"};
-   double Dr, V=0.0,  Un, U[3], Dn, **P2 = NULL, c[3];
+   double Dr, V=0.0,  Un, U[3], Dn, P2[2][3], c[3];
    float *fp;
    int i;
    SUMA_Boolean LocalHead = NOPE;
@@ -861,15 +1183,8 @@ double SUMA_NewVolumeAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, flo
       Dn = Dr*Un + Un;
       if (Un) {
          SUMA_COPY_VEC(SO->Center, c, 3, float, double);
-         P2 = SUMA_dPoint_At_Distance(U, c, Dn);
-         if (P2) { /* must loose precision here to stay compatible with node coordinate list types */
-            tmpList[3*i] = (float)P2[0][0]; tmpList[3*i+1] = (float)P2[0][1]; tmpList[3*i+2] = (float)P2[0][2];
-            SUMA_free2D((char **)P2, 2);  P2 = NULL;
-         }else {
-            SUMA_SL_Err("Failed in SUMA_Point_At_Distance!\n"
-                     "No coordinates modified");
-            SUMA_RETURN(0);
-         }
+         SUMA_POINT_AT_DISTANCE_NORM(U, c, Dn, P2);
+         tmpList[3*i] = (float)P2[0][0]; tmpList[3*i+1] = (float)P2[0][1]; tmpList[3*i+2] = (float)P2[0][2];
       } else {
          SUMA_SL_Err("Identical points!\n"
                      "No coordinates modified");
@@ -897,7 +1212,7 @@ double SUMA_AreaDiff(double r, void *fvdata)
    SUMA_SurfaceObject *SO, *SOref;
    SUMA_COMM_STRUCT *cs=NULL;
    SUMA_AreaDiffDataStruct *fdata = (SUMA_AreaDiffDataStruct*)fvdata ;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
 
    SUMA_ENTRY;
    
@@ -926,6 +1241,9 @@ double SUMA_AreaDiff(double r, void *fvdata)
    
    A = SUMA_NewAreaAtRadius(SO, r, Rref, fdata->tmpList);
    da = Aref - A; /* the area difference */
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s: Call %d, A = %f, Aref = %f, da = %f\n", FuncName,ncall, A, Aref, da);
+   }
       
    /* need an update ? */
    if (cs->Send) { /* send the update (it's SOref "in SUMA" that's being modified on the fly) */
@@ -1143,7 +1461,7 @@ SUMA_Boolean SUMA_GetVolDiffRange(SUMA_VolDiffDataStruct *fdata, double *ap, dou
 
 /*!
    \brief inflates or deflates a surface to make the area of one surface (SO) equal to the area of another (SOref)
-   \param SO: The surface to modify
+   \param SO: The surface to modify. SO's NodeList pointer is reallocated in the function!
    \param SOref: The reference surface
    \param tol (float): The acceptable difference between the two areas
    \param cs (SUMA_COMM_STRUCT *): The suma communication structure
@@ -1274,7 +1592,7 @@ SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObj
    int i=0, j=0, cnt = 0, istrt, istp;
    struct timeval start_time, start_time_all;
    float etime_GetOffset, etime_GetOffset_all, ave_dist= 0.0, dj = 0.0, ave_dist_ref= 0.0, *a=NULL;
-   float **P2=NULL, U[3], Un;
+   float P2[2][3], U[3], Un;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1306,14 +1624,8 @@ SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObj
       radial direction Center-->node*/
       a = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(SO->Center, a, U, Un);
       if (Un) {
-         P2 = SUMA_Point_At_Distance(U, SO->Center, ave_dist_ref);
-         if (P2) {
-            SO->NodeList[3*i] = P2[0][0]; SO->NodeList[3*i+1] = P2[0][1]; SO->NodeList[3*i+2] = P2[0][2];
-            SUMA_free2D((char **)P2, 2);  P2 = NULL;
-         }else {
-            SUMA_SL_Err("Failed in SUMA_Point_At_Distance!\n"
-                        "No coordinates modified");
-         }
+         SUMA_POINT_AT_DISTANCE_NORM(U, SO->Center, ave_dist_ref, P2);
+         SO->NodeList[3*i] = P2[0][0]; SO->NodeList[3*i+1] = P2[0][1]; SO->NodeList[3*i+2] = P2[0][2];
       } else {
             SUMA_SL_Err("Identical points!\n"
                         "No coordinates modified");
@@ -1405,7 +1717,7 @@ SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *
    int i=0, j=0, cnt = 0, istrt, istp;
    struct timeval start_time, start_time_all;
    float etime_GetOffset, etime_GetOffset_all, ave_dist= 0.0, dj = 0.0, ave_dist_ref= 0.0, *a=NULL;
-   float **P2=NULL, U[3], Un;
+   float P2[2][3], U[3], Un;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1469,14 +1781,8 @@ SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *
       radial direction Center-->node*/
       a = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(SO->Center, a, U, Un);
       if (Un) {
-         P2 = SUMA_Point_At_Distance(U, SO->Center, ave_dist_ref);
-         if (P2) {
-            SO->NodeList[3*i] = P2[0][0]; SO->NodeList[3*i+1] = P2[0][1]; SO->NodeList[3*i+2] = P2[0][2];
-            SUMA_free2D((char **)P2, 2);  P2 = NULL;
-         }else {
-            SUMA_SL_Err("Failed in SUMA_Point_At_Distance!\n"
-                        "No coordinates modified");
-         }
+         SUMA_POINT_AT_DISTANCE_NORM(U, SO->Center, ave_dist_ref, P2);
+         SO->NodeList[3*i] = P2[0][0]; SO->NodeList[3*i+1] = P2[0][1]; SO->NodeList[3*i+2] = P2[0][2];
       } else {
             SUMA_SL_Err("Identical points!\n"
                         "No coordinates modified");
@@ -2525,6 +2831,51 @@ SUMA_COMM_STRUCT *SUMA_Free_CommSrtuct(SUMA_COMM_STRUCT *cs)
    SUMA_RETURN(NULL);
 }
 
+/*! 
+   \brief sends a full surface to SUMA
+*/
+SUMA_Boolean SUMA_SendSumaNewSurface(SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs)
+{
+   static char FuncName[]={"SUMA_SendSumaNewSurface"};
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !cs) { SUMA_SL_Err("NULL surface or NULL cs"); SUMA_RETURN(NOPE); }
+   if (!cs->Send || !cs->talk_suma) { SUMA_SL_Err("Nothing to do"); SUMA_RETURN(NOPE); }
+   {
+      /* send the mesh since this is a new surface */
+      if (!SUMA_SendToSuma (SO, cs, (void *)SO->FaceSetList, SUMA_NEW_MESH_IJK, 1)) {
+         SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+         cs->Send = NOPE;
+         cs->talk_suma = NOPE;
+         SUMA_RETURN(NOPE);
+      }
+      /* now send the coordinates of the new surface */
+      if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, SUMA_NEW_NODE_XYZ, 1)) {
+         SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+         cs->Send = NOPE;
+         cs->talk_suma = NOPE;
+         SUMA_RETURN(NOPE);
+      }
+      /* now send the command to register the new surface with viewers*/
+      if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_PREP_NEW_SURFACE, 1)) {
+         SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+         cs->Send = NOPE;
+         cs->talk_suma = NOPE;
+         SUMA_RETURN(NOPE);
+     }
+      /* now manually clean up the function that created the new surface.
+      last SUMA_SendToSuma call will only clean up the dtype that was being sent last.
+      SUMA_SendToSuma can only clean when the same dtype is being sent. THAT NEEDS TO BE FIXED, perhaps send
+      a flag to indicate how many objects you intend to send of any type. If it is one object
+      then SendToSuma will do cleanup automatically without hangup ...*/
+      SUMA_Mesh_IJK2Mesh_IJK_nel (SO, NULL, YUP, SUMA_NEW_MESH_IJK);
+      SUMA_NodeXYZ2NodeXYZ_nel (SO, NULL, YUP, SUMA_NEW_NODE_XYZ);
+   }
+   
+   SUMA_RETURN(YUP);
+}
+   
 /*!
    \brief Function to handle send data elements to AFNI
    \param SO (SUMA_SurfaceObject *) pointer to surface object structure
@@ -2544,6 +2895,10 @@ SUMA_COMM_STRUCT *SUMA_Free_CommSrtuct(SUMA_COMM_STRUCT *cs)
                                   Connections getting closed in the midst of things are
                                   not considered as errors because they should not halt 
                                   the execution of the main program
+   NOTE: The cleanup automatically closes the connection. That is stupid whenever you need to 
+   send multiple types of data for multiple surfaces. Cleanup should be done without closing connections!
+   See comment in function SUMA_SendSumaNewSurface's code.
+   Also, send kth should be more clever, keeping separate counts per datatype and per surface
                                     
 */
 SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void *data, SUMA_DSET_TYPE dtype, int action)
@@ -3190,6 +3545,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
       if (OptScl) SUMA_free(OptScl); OptScl = NULL;
       if (SV) SUMA_Free_ColorScaledVect (SV); SV = NULL;
       if (rgba) SUMA_free(rgba); rgba = NULL;
+      i_in = 0;
       SUMA_RETURN(NULL);
    }
        
@@ -5050,6 +5406,121 @@ int main (int argc,char *argv[])
    SUMA_RETURN(0);
 } 
 #endif
+/*!
+   \brief determine overall orientation of triangle normals and change triangle orientation if required
+   \param NodeList (float *) xyz vector of node coords
+   \param N_Node (int) number of nodes
+   \param FaceSetList (int *) [n1 n2 n3] vector of triangles
+   \param N_FaceSet (int) number of triangles
+   \param orient (int) 0: Do not change orientation
+                        1: make sure most normals point outwards from center. Flip all triangles if necessary (unless Force is used)
+                        -1: make sure most normals point towards center. Flip all triangles if necessary (unless Force is used)
+   \param Force (int) 1: Force the flipping of only those triangles whose normals point in the wrong direction (opposite to orient).
+                           With this option, you will destroy the winding consistency of a surface!  
+   \return ans (int):   0: error
+                       1: most normals were pointing outwards
+                       -1:  most normals were pointing inwards
+*/
+int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, int orient, int Force)
+{
+   static char FuncName[]={"SUMA_OrientTriangles"};
+   int i, j, ip, negdot, posdot, sgn, NP, ND, n1, n2, n3, flip;
+   float d1[3], d2[3], c[3], tc[3], U[3], dot, *norm, mag;
+   FILE *fout = NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   
+   if (!NodeList || !FaceSetList || !N_Node || !N_FaceSet) {
+      SUMA_SL_Err("Null or no input");
+      SUMA_RETURN(0);
+   }
+   norm = (float *)SUMA_calloc(3*N_FaceSet, sizeof(float));
+   if (!norm) {
+      SUMA_SL_Crit("Failed to allocate for norm"); SUMA_RETURN(0);
+   }
+   if (Force) {
+      SUMA_SL_Warn("Using Force option! You might destroy triangulation consistency of surface!");
+   }
+   NP = ND = 3;
+   /* calculate the center coordinate */
+   c[0] = c[1] = c[2];
+   for (i=0; i < N_Node; ++i) {
+      ip = ND * i; c[0] += NodeList[ip]; c[1] += NodeList[ip+1]; c[2] += NodeList[ip+2];    
+   }
+   c[0] /= N_Node; c[1] /= N_Node; c[2] /= N_Node;
+   
+   /* calculate normals for each triangle, taken from SUMA_SurfNorm*/
+   if (0 && LocalHead) {
+      SUMA_SL_Note("Writing SUMA_OrientTriangles.1D");
+      fout = fopen("SUMA_OrientTriangles.1D", "w");
+   }
+   negdot = 0; posdot = 0;
+   for (i=0; i < N_FaceSet; i++) {
+      ip = NP * i;
+      n1 = FaceSetList[ip]; n2 = FaceSetList[ip+1]; n3 = FaceSetList[ip+2];   /* node indices making up triangle */
+      tc[0] = (NodeList[3*n1]   + NodeList[3*n2]   + NodeList[3*n3]  )/3; /* centroid of triangle */
+      tc[1] = (NodeList[3*n1+1] + NodeList[3*n2+1] + NodeList[3*n3+1])/3; 
+      tc[2] = (NodeList[3*n1+2] + NodeList[3*n2+2] + NodeList[3*n3+2])/3; 
+      /* calc normal */
+      for (j=0; j < 3; j++) {
+         d1[j] = NodeList[(ND*n1)+j] - NodeList[(ND*n2)+j];
+         d2[j] = NodeList[(ND*n2)+j] - NodeList[(ND*n3)+j];
+      }
+      norm[ip] = d1[1]*d2[2] - d1[2]*d2[1];
+      norm[ip+1] = d1[2]*d2[0] - d1[0]*d2[2];
+      norm[ip+2] = d1[0]*d2[1] - d1[1]*d2[0];
+      
+      /* dot the normal with vector from center to node */
+      U[0] = tc[0] - c[0]; U[1] = tc[1] - c[1]; U[2] = tc[2] - c[2];
+      SUMA_DOTP_VEC(U, &(norm[ip]), dot, 3, float, float);
+      if (dot < 0) {
+         ++negdot;
+         if (0 && LocalHead) { fprintf (SUMA_STDERR,"%s: Triangle %d has a negative dot product %f\nc  =[%.3f %.3f %.3f]\ntc =[%.3f %.3f %.3f]\nnorm=[%.3f %.3f %.3f]\n",
+                      FuncName, i, dot, c[0], c[1], c[2], tc[0], tc[1], tc[2], norm[ip+0], norm[ip+1], norm[ip+2]); }
+         
+      } else {
+         if (fout) { 
+               SUMA_NORM_VEC(norm,3,mag); if (!mag) mag = 1; mag /= 5; 
+               if (fout) fprintf (fout,"%.3f %.3f %.3f %.3f %.3f %.3f\n", tc[0], tc[1], tc[2], tc[0]+norm[ip+0]/mag, tc[1]+norm[ip+1]/mag, tc[2]+norm[ip+2]/mag);
+         }
+         ++posdot;
+      }      
+      
+      if (Force) {
+         if ( (dot < 0 && orient > 0) || (dot > 0 && orient < 0)) {
+            n1 = FaceSetList[ip]; FaceSetList[ip] = FaceSetList[ip+2]; FaceSetList[ip+2] = n1;  
+         }
+      }
+   }
+   if (fout) fclose(fout); fout = NULL;
+   flip = 0; sgn = 0;
+   if (posdot >= negdot) {
+      SUMA_LH("Normals appear to point away from center");
+      sgn = 1;
+      if (orient < 0) flip = 1;
+   } else {
+      SUMA_LH("Normals appear to point towards center");
+      sgn = -1;
+      if (orient > 0) flip = 1;
+   }
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\n Found %d positive dot products and %d negative ones.\n", FuncName, posdot, negdot);
+   }
+   
+   if (flip && !Force) {
+      SUMA_LH("Flipping");
+      for (i=0; i < N_FaceSet; i++) {
+         ip = NP * i;
+         n1 = FaceSetList[ip]; FaceSetList[ip] = FaceSetList[ip+2]; FaceSetList[ip+2] = n1;
+      }
+   }
+   
+   if (norm) SUMA_free(norm); norm = NULL;
+   
+   SUMA_RETURN(sgn);
+}
 
 /* 
    \brief a function to turn a surface patch (not all vertices are in use) into a surface where all nodes are used.
@@ -5060,6 +5531,7 @@ int main (int argc,char *argv[])
    \param PatchDim (int) 3 for triangular, 4 for rectangular patches etc. ..
    \return SO (SUMA_SurfaceObject *) surface object structure with NodeList, N_NodeList, FaceSetList and N_FaceSetList
                                      filled. Note node indexing in SO is not related to the indexing in patch.
+   - Nothing but NodeList and FaceSetList is created here. KEEP IT THAT WAY
 */
 
 SUMA_SurfaceObject *SUMA_Patch2Surf(float *NodeList, int N_NodeList, int *PatchFaces, int N_PatchFaces, int PatchDim)
@@ -5849,12 +6321,13 @@ Date : Thu Nov 19 14:55:54 CST 1998
  
  
 Usage : 
-      Eq = SUMA_Plane_Equation (P1, P2, P3)
+      Eq = SUMA_Plane_Equation (P1, P2, P3, thisEq)
  
  
    \param P1 (float *) 1x3 vector Coordinates of Point1
    \param P2 (float *) 1x3 vector Coordinates of Point2
    \param P3 (float *) 1x3 vector Coordinates of Point3
+   \param thisEq (float *) use this pointer to store Eq rather than create a new one (set to NULL if you want a new one)
    \return Eq (float *) 1x4 vector containing the equation of the plane containing the three points.
          The equation of the plane is : 
          Eq[0] X + Eq[1] Y + Eq[2] Z + Eq[3] = 0
@@ -5862,14 +6335,14 @@ Usage :
          If the three points are colinear, Eq = [0 0 0 0]
  
 */
-float * SUMA_Plane_Equation (float * P1, float *P2, float *P3)
+float * SUMA_Plane_Equation (float * P1, float *P2, float *P3, float *usethisEq)
 {/*SUMA_Plane_Equation*/
    float *Eq;
    static char FuncName[] = {"SUMA_Plane_Equation"}; 
     
    SUMA_ENTRY;
-
-   Eq = (float *) SUMA_calloc(4,sizeof(float));
+   if (usethisEq) Eq = usethisEq;
+   else Eq = (float *) SUMA_calloc(4,sizeof(float));
    if (!Eq)
       {
          fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
@@ -5999,7 +6472,9 @@ SUMA_SURF_PLANE_INTERSECT *SUMA_Surf_Plane_Intersect (SUMA_SurfaceObject *SO, fl
    while (k < SO->EL->N_EL)
       {
          /* find out if segment intersects */
-         if (SUMA_IS_NEG(NodePos[SO->EL->EL[k][0]] * NodePos[SO->EL->EL[k][1]])) {
+         /* if (SUMA_IS_NEG(NodePos[SO->EL->EL[k][0]] * NodePos[SO->EL->EL[k][1]])) { *//* can speed this check by explicitly checking for sign difference: 
+                                                                                    if (SUMA_SIGN(a) != SUMA_SIGN(b)) ... */   
+         if (SUMA_SIGN(NodePos[SO->EL->EL[k][0]]) != SUMA_SIGN(NodePos[SO->EL->EL[k][1]]) ) {
             Hit = YUP;
             /* find the intersection point in that segment */
             u = -NodePos[SO->EL->EL[k][0]] / (NodePos[SO->EL->EL[k][1]] - NodePos[SO->EL->EL[k][0]]);
@@ -6114,7 +6589,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
    /* computing plane's equation */
    Eq = SUMA_Plane_Equation ( &(SO->NodeList[3*Nfrom]), 
                               P,
-                              &(SO->NodeList[3*Nto]) );
+                              &(SO->NodeList[3*Nto]) , NULL);
    
    if (!Eq) {
       fprintf(SUMA_STDOUT,"Error %s: Failed in SUMA_Plane_Equation.\n", FuncName);

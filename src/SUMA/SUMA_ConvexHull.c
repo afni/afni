@@ -34,6 +34,10 @@ extern int SUMAg_N_DOv;
     xyz = array of coordinates of 3-vectors;
           the i-th vector is stored in
             xyz[3*i] xyz[3*i+1] xyz[3*i+2]
+   fliporient = 0 --> leave triangles as they come out of qhull,
+                1 --> flip their orientation
+               \sa SUMA_OrientTriangles if you are not sure about flipping.
+
   Output:
     *ijk = pointer to malloc()-ed array of triangles;
            the j-th triangle is stored in
@@ -47,7 +51,7 @@ extern int SUMAg_N_DOv;
   Example:
     int ntri , *tri , nvec ;
     float vec[something] ;
-    ntri = SUMA_qhull_wrap( nvec , vec , &tri ) ;
+    ntri = SUMA_qhull_wrap( nvec , vec , &tri, 0 ) ;
 
   This function just executes the Geometry Center
   program qhull to compute the result.  This program
@@ -55,8 +59,9 @@ extern int SUMAg_N_DOv;
   will fail (return 0).
 ------------------------------------------------------*/
 
-int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk )
+int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , int fliporient)
 {
+   static char FuncName[]={"SUMA_qhull_wrap"};
    int ii,jj , nfac , *fac ;
    int fd ; FILE *fp ;
    char qbuf[128] ;
@@ -100,14 +105,23 @@ int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk )
    fac = (int *) malloc( sizeof(int)*3*nfac ) ;
    if( fac == NULL ){ fprintf(stderr,"SUMA_qhull_wrap: malloc fails\n"); pclose(fp); remove(fname); return 0; }
 
-   for( ii=0 ; ii < nfac ; ii++ ){
-      jj = fscanf(fp,"%d %d %d",fac+(3*ii),fac+(3*ii+1),fac+(3*ii+2)) ;
-      if( jj < 3 ){
-         fprintf(stderr,"SUMA_qhull_wrap: fscanf fails at ii=%d\n",ii) ;
-         pclose(fp); remove(fname); free(fac); return 0;
+   if (fliporient) {
+      for( ii=0 ; ii < nfac ; ii++ ){
+         jj = fscanf(fp,"%d %d %d",fac+(3*ii+2),fac+(3*ii+1),fac+(3*ii)) ;
+         if( jj < 3 ){
+            fprintf(stderr,"SUMA_qhull_wrap: fscanf fails at ii=%d\n",ii) ;
+            pclose(fp); remove(fname); free(fac); return 0;
+         }
+      }
+   } else {
+      for( ii=0 ; ii < nfac ; ii++ ){
+         jj = fscanf(fp,"%d %d %d",fac+(3*ii),fac+(3*ii+1),fac+(3*ii+2)) ;
+         if( jj < 3 ){
+            fprintf(stderr,"SUMA_qhull_wrap: fscanf fails at ii=%d\n",ii) ;
+            pclose(fp); remove(fname); free(fac); return 0;
+         }
       }
    }
-
    pclose(fp); remove(fname);
 
    *ijk = fac ; return nfac ;
@@ -165,7 +179,7 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(SUMA_ISOSURFACE_OPTIONS * Opt)
       SUMA_S_Err("No input");
       SUMA_RETURN(NULL);
    }
-   if (! (nf = SUMA_qhull_wrap(npt, xyz, &ijk)) ) {
+   if (! (nf = SUMA_qhull_wrap(npt, xyz, &ijk, 1)) ) {
       fprintf(SUMA_STDERR,"%s:\nFailed in SUMA_qhull_wrap\n", FuncName);
       SUMA_RETURN(SO);
    }
