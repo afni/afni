@@ -371,7 +371,7 @@ Block block, dest;
         s += trans_coef[i][k] * tmp[8*k+j];
 
       if (collect_quant) {
-	fprintf(collect_quant_fp, "%d %lf\n", 8*i+j, s);
+	fprintf(collect_quant_fp, "%d %f\n", 8*i+j, s);
       } 
       if (DoLaplace) {
 	L1[LaplaceCnum][i*8+j] += s*s;
