@@ -79,6 +79,9 @@
     NEED_XSETLOCALE = if this is set, then the routine _Xsetlocale
                       must be provided (needed for some Linux systems).
 
+    NEED_NL_LANGINFO = if this is set, then the routine nl_langinfo()
+                       must be provided (need on Mac OS X)
+
     DONT_UNROLL_FFTS = if this is set, then the unrolled FFT routines
                        (for lengths 32, 64, 128, 256) will NOT be used --
                        they are generally faster, but may have trouble
@@ -309,16 +312,18 @@ extern long   strtol() ;
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define SCANDIR_WANTS_CONST
 # define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
-/* # define MMAP_THRESHOLD -1 */       /* no mmap-ing */
+# define MMAP_THRESHOLD -1        /* no mmap-ing */
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
 # define BOXUP_SCALE              /* looks nicer */
 # define DYNAMIC_LOADING_VIA_DL
-# undef  DONT_UNROLL_FFTS         /* helps a lot */
+# undef  DONT_UNROLL_FFTS
 # define USE_FLOCK
 # define DONT_USE_DEBUGTHISFILE
 # define USE_RANDOM
 # define DONT_USE_STRPTIME
 # define NEED_XSETLOCALE
+# define NEED_NL_LANGINFO
+# define DONT_USE_MCW_MALLOC
 #endif
 
 /************************************************************************

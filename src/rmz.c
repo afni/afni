@@ -9,7 +9,7 @@ static unsigned char buf[NBUF] ;
 
 int main( int argc , char * argv[] )
 {
-   int iarg , ii,ll,jj , nw , verb=1 , ibot , irep,nrep=NREP , ng=0 ;
+   int iarg , ii,ll,jj , verb=1 , ibot , irep,nrep=NREP , ng=0 ;
    FILE * fp ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -56,11 +56,10 @@ int main( int argc , char * argv[] )
 
          ll = THD_filesize( argv[iarg] ) ;
          if( ll >= 0 && THD_is_file(argv[iarg]) ){
-            fp = fopen( argv[iarg], "w" ) ;
+            fp = fopen( argv[iarg], "r+" ) ;
             if( fp != NULL ){
-               for( jj=0 ; jj < ll ; jj += NBUF ){
-                  nw = MIN(ll-jj,NBUF) ; fwrite( buf, 1, nw, fp ) ;
-               }
+               for( jj=0 ; jj < ll ; jj += NBUF )
+                  fwrite( buf, 1, NBUF, fp ) ;
                fflush(fp) ; fsync(fileno(fp)) ; fclose(fp) ;
                if( irep == (nrep-1) ){
                   unlink(argv[iarg]) ;
@@ -75,7 +74,9 @@ int main( int argc , char * argv[] )
                fprintf(stderr," ** Can't access file %s\n",argv[iarg]) ;
          }
       }
-      sync() ; if( irep < nrep-1 ) sleep(1) ;
+      sync() ; if( irep < nrep-1 ){
+                 fprintf(stderr,"++ End pass %d\n",irep+1); sleep(1) ;
+               }
       if( ng == 0 ) break ;  /* none were 'good' */
    }
 

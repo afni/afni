@@ -152,6 +152,8 @@ static int      OUT_xy   = 0 ;
 static int      OUT_npts = -666 ;
 static double * OUT_ts   = NULL ;
 
+static int      OUT_numout = -666 ;    /* 08 Apr 2002 */
+
 static int      IN_num_tstim = -666 ;  /* 16 May 2001 = #8 */
 static double * IN_tstim     = NULL ;
 static double   IN_top_tstim = 0.0  ;
@@ -237,11 +239,13 @@ int main( int argc , char * argv[] )
    /*---- if no input timeseries, just output waveform ----*/
 
    if( IN_npts < 1 && IN_num_tstim < 1 ){
+      int top = WAV_npts ;
+      if( OUT_numout > 0 ) top = OUT_numout ;
       if( OUT_xy ){
-         for( ii=0 ; ii < WAV_npts ; ii++ )
+         for( ii=0 ; ii < top ; ii++ )
             printf( "%g %g\n" , WAV_dt * ii , WAV_ts[ii] ) ;
       } else {
-         for( ii=0 ; ii < WAV_npts ; ii++ )
+         for( ii=0 ; ii < top ; ii++ )
             printf( "%g\n" , WAV_ts[ii] ) ;
       }
       exit(0) ;
@@ -251,13 +255,14 @@ int main( int argc , char * argv[] )
 
    if( IN_npts > 0 ){
       OUT_npts = IN_npts + WAV_npts ;
+      if( OUT_numout > 0 ) OUT_npts = OUT_numout ;
       OUT_ts   = (double *) malloc( sizeof(double) * OUT_npts ) ;
       for( ii=0 ; ii < OUT_npts ; ii++ ) OUT_ts[ii] = 0.0 ;
 
       for( jj=0 ; jj < IN_npts ; jj++ ){
          val = IN_ts[jj] ;
          if( val == 0.0 || fabs(val) >= 33333.0 ) continue ;
-         for( ii=0 ; ii < WAV_npts ; ii++ )
+         for( ii=0 ; ii < WAV_npts && ii+jj < OUT_npts ; ii++ )
             OUT_ts[ii+jj] += val * WAV_ts[ii] ;
       }
 
@@ -270,13 +275,14 @@ int main( int argc , char * argv[] )
       int ibot,itop ;
 
       OUT_npts = ceil(IN_top_tstim/WAV_dt) + WAV_npts ;
+      if( OUT_numout > 0 ) OUT_npts = OUT_numout ;
       OUT_ts   = (double *) malloc( sizeof(double) * OUT_npts ) ;
       for( ii=0 ; ii < OUT_npts ; ii++ ) OUT_ts[ii] = 0.0 ;
 
       for( jj=0 ; jj < IN_num_tstim ; jj++ ){
         ibot = (int) (IN_tstim[jj]/WAV_dt) ;    /* may be 1 too early */
         itop = ibot + WAV_npts ;
-        if( itop > OUT_npts ) itop = OUT_npts ; /* shouldn't happen */
+        if( itop > OUT_npts ) itop = OUT_npts ;
         for( ii=ibot ; ii < itop ; ii++ ){
            val = WAV_peak * waveform( WAV_dt * ii - IN_tstim[jj] ) ;
            OUT_ts[ii] += val ;
@@ -373,6 +379,19 @@ void Syntax(void)
     "                       -tstim `cat filename`\n"
     "                     where using the backward-single-quote operator\n"
     "                     of the usual Unix shells.\n"
+    "\n"
+    "  -when DATA     = Read time blocks when stimulus is 'on' (=1) from the\n"
+    "                     command line and convolve the waveform with with\n"
+    "                     a zero-one input.  For example:\n"
+    "                       -when 20..40 60..80\n"
+    "                     means that the stimulus function is 1.0 for time\n"
+    "                     steps number 20 to 40, and 60 to 80 (inclusive),\n"
+    "                     and zero otherwise.  (The first time step is\n"
+    "                     numbered 0.)\n"
+    "\n"
+    "  -numout NN     = Output a timeseries with NN points; if this option\n"
+    "                     is not given, then enough points are output to\n"
+    "                     let the result tail back down to zero.\n"
     "\n"
     "At least one option is required, or the program will just print this message\n"
     "to stdout.  Only one of the 3 timeseries input options above can be used.\n"
@@ -596,6 +615,74 @@ void Process_Options( int argc , char * argv[] )
             IN_npts += count ; iopt++ ;
          }
          nopt = iopt ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-when") == 0 ){   /* 08 Apr 2002 */
+         int iopt , bot,top , nn , nbt,*bt , count=0 , ii,kk ;
+         float value ;
+         char sep ;
+
+         if( IN_npts > 0 || IN_num_tstim > 0 ){
+            fprintf(stderr,"Cannot input two timeseries!\n") ;
+            exit(1) ;
+         }
+
+         if( nopt+1 >= argc ) ERROR ;
+         iopt = nopt+1 ;
+         nbt  = 0 ;
+         bt   = (int *) malloc(sizeof(int)) ;
+         while( iopt < argc && argv[iopt][0] != '-' ){
+
+            /* scan for value..value */
+
+            bot = top = -1 ;
+            nn = sscanf( argv[iopt],"%d..%d",&bot,&top) ;
+            if( nn < 1 || bot < 0 ){
+              fprintf(stderr,"Illegal value after -when: %s\n",argv[iopt]) ;
+              exit(1) ;
+            }
+            if( nn == 1 ){
+              top = bot ;
+            } else if( top < bot ){
+              fprintf(stderr,"Illegal value after -when: %s\n",argv[iopt]) ;
+              exit(1) ;
+            }
+
+            /* save (bot,top) pairs in bt */
+
+            bt = (int *) realloc( bt , sizeof(int)*(nbt+1)*2 ) ;
+            bt[2*nbt  ] = bot ;
+            bt[2*nbt+1] = top ; nbt++ ;
+            if( count < top ) count = top ;
+            iopt++ ;
+         }
+
+         if( nbt < 1 ){
+            fprintf(stderr,"No ranges after -when?\n") ; exit(1) ;
+         }
+
+         IN_npts = count+1 ;
+         IN_ts   = (double *) malloc( sizeof(double) * IN_npts ) ;
+         for( ii=0 ; ii < IN_npts ; ii++ ) IN_ts[ii] = 0.0 ;
+
+         for( kk=0 ; kk < nbt ; kk++ ){
+            bot = bt[2*kk] ; top = bt[2*kk+1] ;
+            for( ii=bot ; ii <= top ; ii++ ) IN_ts[ii] = 1.0 ;
+         }
+
+         free(bt) ; nopt = iopt ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-numout") == 0 ){   /* 08 Apr 2002 */
+         int val = -1 ;
+         if( nopt+1 >= argc ) ERROR ;
+         sscanf(argv[nopt+1],"%d",&val) ;
+         if( val <= 1 ){
+           fprintf(stderr,"Illegal value after -numout: %s\n",argv[nopt]);
+           exit(1);
+         }
+         OUT_numout = val ;
+         nopt++ ; nopt++ ; continue ;
       }
 
       ERROR ;

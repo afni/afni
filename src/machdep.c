@@ -46,7 +46,12 @@ long int lrand48(void){ return random(); }
 
 #ifdef NEED_XSETLOCALE
 #include <locale.h>
-
 char * _Xsetlocale( int category, const char * locale)
 { return setlocale(category,locale) ; }
+#endif
+
+/*----- 09 Apr 2002 -----*/
+
+#ifdef NEED_NL_LANGINFO
+char * nl_langinfo(){ return "ISO-8859-1"; }
 #endif
