@@ -1,7 +1,6 @@
 #ifndef SUMA_DOMANIP_INCLUDED
 #define SUMA_DOMANIP_INCLUDED
 
-SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName);
 float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex);
 int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList);
 SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList );

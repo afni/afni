@@ -90,14 +90,14 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 
 */
 #define SUMA_S_Err(msg) {\
-   fprintf (SUMA_STDERR, "Error %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Error %s:\n %s\n", FuncName, msg);  \
 }
 /*!
    \brief Macro that reports an error to stderr and log 
 
 */
 #define SUMA_SL_Err(msg) {\
-   fprintf (SUMA_STDERR, "Error %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Error %s:\n %s\n", FuncName, msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Error, SMA_Log); \
 }
 /*!
@@ -105,7 +105,7 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 
 */
 #define SUMA_SLP_Err(msg) {\
-   fprintf (SUMA_STDERR, "Error %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Error %s:\n %s\n", FuncName, msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Error, SMA_LogAndPopup); \
 }
 
@@ -121,14 +121,14 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 
 */
 #define SUMA_S_Note(msg) {\
-   fprintf (SUMA_STDERR, "Notice %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
 }
 /*!
    \brief Macro that reports a notice to stderr and log 
 
 */
 #define SUMA_SL_Note(msg) {\
-   fprintf (SUMA_STDERR, "Notice %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_Log); \
 }
 /*!
@@ -136,7 +136,7 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 
 */
 #define SUMA_SLP_Note(msg) {\
-   fprintf (SUMA_STDERR, "Notice %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_LogAndPopup); \
 }
 
@@ -152,14 +152,14 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 
 */
 #define SUMA_S_Warn(msg) {\
-   fprintf (SUMA_STDERR, "Warning %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
 }
 /*!
    \brief Macro that reports a warning to stderr and log 
 
 */
 #define SUMA_SL_Warn(msg) {\
-   fprintf (SUMA_STDERR, "Warning %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_Log); \
 }
 /*!
@@ -167,7 +167,7 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 
 */
 #define SUMA_SLP_Warn(msg) {\
-   fprintf (SUMA_STDERR, "Warning %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_LogAndPopup); \
 }
 
@@ -183,14 +183,14 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 
 */
 #define SUMA_S_Crit(msg) {\
-   fprintf (SUMA_STDERR, "Critical %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Critical %s:\n %s\n", FuncName, msg);  \
 }
 /*!
    \brief Macro that reports a critical error to stderr and log 
 
 */
 #define SUMA_SL_Crit(msg) {\
-   fprintf (SUMA_STDERR, "Critical %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Critical %s:\n %s\n", FuncName, msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_Log); \
 }
 /*!
@@ -198,15 +198,18 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 
 */
 #define SUMA_SLP_Crit(msg) {\
-   fprintf (SUMA_STDERR, "Critical %s: %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Critical %s:\n %s\n", FuncName, msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_LogAndPopup); \
 }
 
+#define SUMA_BEEP {  \
+   if (SUMAg_SVv[0].X->TOPLEVEL) XBell (XtDisplay (SUMAg_SVv[0].X->TOPLEVEL), SUMA_BEEP_LENGTH_MS);  \
+}
 /*!
    \brief Macro that reports a message to SUMA_STDERR if LocalHead is set to YUP
 */
 #define SUMA_LH(msg) {\
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: %s\n", FuncName, msg);  \
+   if (LocalHead) fprintf (SUMA_STDERR, "%s:\n %s\n", FuncName, msg);  \
 }
 
 #endif

@@ -73,7 +73,7 @@ int main (int argc,char *argv[])
   char *state2 = NULL;
   char *hemi = NULL;
   float B_dim[3];
-  char *fout = NULL;
+  char *fout = NULL, *fname=NULL;
   SUMA_EDGE_LIST *SEL = NULL;
   SUMA_Boolean KeepMTI = YUP;
 
@@ -208,18 +208,24 @@ int main (int argc,char *argv[])
 
   /* check on the output filename */
   if (fout == NULL) { /* form default name */
-    sprintf(fout, "%s_%s_%s_%s_%s",hemi,tag1,state1,tag2,state2);
+    fname = (char *)SUMA_malloc (
+            ( strlen(hemi) + strlen(tag1) + strlen(state1) + strlen(tag2) + strlen(state2) + 20 ) *
+            sizeof(char)); 
+    sprintf(fname, "%s_%s_%s_%s_%s",hemi,tag1,state1,tag2,state2);
 
-     }
-    sprintf (colorfilename, "%s.col", fout);
-    sprintf (distancefilename, "%s.dist", fout);
+  } else {
+     fname = SUMA_copy_string(fout); 
+  }
+  
+    sprintf (colorfilename, "%s.col", fname);
+    sprintf (distancefilename, "%s.dist", fname);
    
   /* section that will create the files that contain 6 values corresponding to two points to draw segments in SUMA */
 
-  sprintf(segmentfilename1, "%s.allsegs.txt",fout);
-  sprintf(segmentfilename2, "%s.longsegs.txt",fout);
-  sprintf(segmentfilename3, "%s.badsegs.txt",fout); 
-  sprintf(trianglesfilename, "%s.triangles.txt",fout); 
+  sprintf(segmentfilename1, "%s.allsegs.txt",fname);
+  sprintf(segmentfilename2, "%s.longsegs.txt",fname);
+  sprintf(segmentfilename3, "%s.badsegs.txt",fname); 
+  sprintf(trianglesfilename, "%s.triangles.txt",fname); 
 
  if((segfile1 = fopen(segmentfilename1, "w"))==NULL) {
     fprintf(SUMA_STDERR, "Could not open segment file 1.\n");
@@ -379,6 +385,7 @@ int main (int argc,char *argv[])
   
   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
   
+  if (fname) SUMA_free(fname);
   return 1;
 }
 

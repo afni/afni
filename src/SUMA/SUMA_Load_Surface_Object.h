@@ -1,5 +1,6 @@
 #ifndef SUMA__INCLUDED
 #define SUMA__INCLUDED
+SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName);
 SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs);
 SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec);
 SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName);

@@ -1746,7 +1746,7 @@ int main (int argc,char *argv[])
 void usage_SUMA_ConvertSurface ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc]\n");
+          printf ("\n\33[1mUsage: \33[0m ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc]\n");
           printf ("\t reads in a surface and writes it out in another format.\n");
           printf ("\t Note: This is a not a general utility conversion program. \n");
           printf ("\t Only fields pertinent to SUMA are preserved.\n");
@@ -1786,7 +1786,9 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SUMA_ConvertSurface"}; 
 	int kar;
-   char *if_name = NULL, *of_name = NULL, *if_name2 = NULL, *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL, *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL;
+   char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
+         *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL, 
+         *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL;
    SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED, oType = SUMA_FT_NOT_SPECIFIED;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
@@ -1794,7 +1796,7 @@ int main (int argc,char *argv[])
    void *SO_name = NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc;
+   SUMA_Boolean brk, Do_tlrc, LocalHead = NOPE;
    
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
@@ -1933,6 +1935,7 @@ int main (int argc,char *argv[])
          oType = SUMA_PLY;
 			brk = YUP;
 		}
+      
       if (!brk && (strcmp(argv[kar], "-tlrc") == 0)) {
          Do_tlrc = YUP;
          brk = YUP;
@@ -2156,7 +2159,7 @@ int main (int argc,char *argv[])
       
    }
    
-   SUMA_Print_Surface_Object (SO, stderr);
+   if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
    
    fprintf (SUMA_STDOUT,"Writing surface...\n");
    
@@ -2230,7 +2233,10 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
 {
    static char FuncName[]={"SUMA_OpenDrawnROI"};
    DList *list=NULL;
-   int i;
+   SUMA_DRAWN_ROI **ROIv=NULL;
+   int i, N_ROI;
+   SUMA_SurfaceObject *SO=NULL;
+   
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -2238,14 +2244,38 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    SUMA_LH("Called");   
 
    /* check for type ... */
-   /* NOT DONE YET */
    
-   /* load niml ROI */
-   if (!SUMA_OpenDrawnROI_NIML (filename)) {
-      SUMA_SLP_Err("Failed to read NIML ROI.");
+   if (SUMA_isExtension(filename, ".niml.roi")) {
+      /* load niml ROI */
+      if (!( ROIv = SUMA_OpenDrawnROI_NIML (filename, &N_ROI))) {
+         SUMA_SLP_Err("Failed to read NIML ROI.");
+         SUMA_RETURNe;
+      }
+   }else if (SUMA_isExtension(filename, ".1D.roi")) {
+      /* load 1D ROI */
+      /* You need to select a parent surface */
+      SUMA_SLP_Warn("Assuming parent surface.");
+      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_SVv[0].Focus_SO_ID].OP);
+      if (!( ROIv = SUMA_OpenDrawnROI_1D (filename, SO->idcode_str, &N_ROI))) {
+         SUMA_SLP_Err("Failed to read NIML ROI.");
+         SUMA_RETURNe;
+      }
+   }else {
+      SUMA_SLP_Err(  "Failed to recognize\n"
+                     "ROI type from filename.");
       SUMA_RETURNe;
-   }
+   } 
    
+   /* put those ROIs in SUMAg_DOv */
+   for (i=0; i < N_ROI; ++i) {
+      /* add ROI to DO list */
+      if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIv[i], ROIdO_type, SUMA_LOCAL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+      }
+   }
+   /* free ROIv */
+   if (ROIv) SUMA_free(ROIv); ROIv = NULL;
+
    /* if there are no currentROIs selected, set currentROI to the
       first in the list */
    if (!SUMAg_CF->X->DrawROI->curDrawnROI) {
@@ -2261,6 +2291,14 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
       SUMA_InitializeDrawROIWindow(SUMAg_CF->X->DrawROI->curDrawnROI);   
    }
    
+   /* Now update the Paint job on the ROI plane */
+   if (!SUMA_Paint_SO_ROIplanes (
+            SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, 
+            SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+      SUMA_RETURNe;
+   }
+   
    /* put a nice redisplay here */
    if (!list) list = SUMA_CreateList ();
    SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL); 
@@ -2272,7 +2310,287 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    SUMA_RETURNe; 
 }
 
-SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
+/*!
+   Since parent information does not exist in ROI 1D files, 
+   you need to specify the parent surface.
+   
+   ans = SUMA_OpenDrawnROI_1D (filename, Parent_idcode_str);
+   
+   \param filename (char *) name of 1D file (see below for formats)
+   \param Parent_idcode_str (char *) idcode of parent surface
+   \return ans (SUMA_Boolean) YUP for good NOPE for not good.
+   
+   - The ROI is added to SUMAg_DOv
+   
+   - The 1D file can have multiple formats. Some are particularly
+   inefficient and should not be used. But we aim to please so 
+   anything goes. You can have a varying number of columns which 
+   are i, l, r, g, b. These columns stand for index, label, red,
+   green and blue, respectively.
+      * format 1: i 
+      Only a bunch of node (int) indices are supplied. Label of all nodes
+      defaults to 0 and a default color is given
+      * format 2: i l
+      Each node carries a label (int) with it. This way you can
+      have multiple ROIs specified in one 1D file. The same
+      color is assigned to each of the ROIs. 
+      * format 3: i r g b
+      A bunch of nodes with r g b (float) triplet specifying the nodes'
+      colors. Obviously, since all nodes belong to the same ROI, 
+      the specification of an r g b for each node is redundant since
+      all nodes in the same ROI have the same color. Use the 
+      niml format if that sounds crazy to you. If you want a different
+      color for each node then you should not load the data as an ROI
+      but as a node color file. 
+      * format 4: i l r g b
+      A bunch of nodes with labels and r g b .
+      Like format 2 but with the possibility of specifying the colors of
+      each ROI. 
+       
+*/ 
+SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str, int *N_ROI)
+{
+   static char FuncName[]={"SUMA_OpenDrawnROI_1D"};
+   MRI_IMAGE *im = NULL;
+   int ncol, nrow, *iLabel=NULL, *iNode = NULL, *isort=NULL,
+      i, N_Labels = 0, *iStart=NULL, *iStop=NULL, cnt = 0;
+   float *far=NULL, *r=NULL, *g=NULL, *b=NULL, *RGB=NULL;
+   SUMA_DRAWN_ROI **ROIv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_LH("Called");
+   
+   *N_ROI = 0;
+   
+   im = mri_read_1D (filename);
+   
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
+   
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+   
+   if (!ncol) {
+      SUMA_SL_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
+   if (nrow != 1 && nrow != 2 && nrow != 4 && nrow != 5) {
+      SUMA_SL_Err("File must have\n"
+                  " 1,2,4 or 5 columns.");
+      mri_free(im); im = NULL;   /* done with that baby */
+      SUMA_RETURN(NULL);
+   }
+   
+   if (LocalHead) {
+      SUMA_disp_vect(far, ncol*nrow);
+   }
+      
+   switch (nrow) {
+      case 1:
+         /* Node index only*/
+         SUMA_LH ("1D format: i");
+         iNode = (int *)SUMA_malloc(ncol*sizeof(int));
+         iLabel = (int *)SUMA_malloc(1*sizeof(int));
+         if (!iNode ||!iLabel) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         for (i=0; i < ncol; ++i) iNode[i] = (int)far[i];
+         mri_free(im); im = NULL;   /* done with that baby */
+         
+         iLabel[0] = 0;
+         N_Labels = 1;
+         iStart = (int *)SUMA_malloc(1*sizeof(int));
+         iStop = (int *)SUMA_malloc(1*sizeof(int));
+         RGB = (float *)SUMA_malloc(3*1*sizeof(float));
+         iStart[0] = 0;
+         iStop[0] = ncol-1;
+         RGB[0] = 1.0; RGB[1] = 1.0; RGB[2] = 0;
+         break;
+      case 2:
+         /* Node index & Node Label */
+         SUMA_LH("1D format: i l");
+         /* copy the node indices and labels for cleanliness */
+         iLabel = (int *)SUMA_malloc(ncol*sizeof(int));
+         iNode = (int *)SUMA_malloc(ncol*sizeof(int));
+         if (!iNode || !iLabel) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         for (i=0; i < ncol; ++i) iLabel[i] = (int)far[i+ncol];
+         /* sort the Labels and the iNode accordingly */
+         isort = SUMA_z_dqsort( iLabel, ncol);
+         for (i=0; i < ncol; ++i) iNode[i] = (int)far[isort[i]];
+
+         mri_free(im); im = NULL;   /* done with that baby */
+
+         /* Count the number of distinct labels */
+         N_Labels = 1;
+         for (i=1; i < ncol; ++i) if (iLabel[i] != iLabel[i-1]) ++N_Labels;
+         /* store where each label begins and ends */
+         iStart = (int *)SUMA_malloc(N_Labels*sizeof(int));
+         iStop = (int *)SUMA_malloc(N_Labels*sizeof(int));
+         RGB = (float *)SUMA_malloc(3*N_Labels*sizeof(float));
+         if (!iStart || !iStop) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         cnt = 0;
+         iStart[cnt] = 0;
+         iStop[cnt] = ncol -1;
+         RGB[3*cnt] = 1.0; RGB[3*cnt+1] = 1.0; RGB[3*cnt+2] = 0;
+         for (i=1; i < ncol; ++i) {
+            if (iLabel[i] != iLabel[i-1]) {
+               iStop[cnt] = i-1;
+               ++cnt; 
+               iStart[cnt] = i;
+               iStop[cnt] = ncol -1;
+               RGB[3*cnt] = 1.0; RGB[3*cnt+1] = 1.0; RGB[3*cnt+2] = 0;
+            }
+         }
+         break;
+      case 4:
+         /* Node index, R G B */
+         SUMA_LH("1D format: i R G B");
+         iNode = (int *)SUMA_malloc(ncol*sizeof(int));
+         iLabel = (int *)SUMA_malloc(1*sizeof(int));
+         r = (float *)SUMA_malloc(ncol*sizeof(float));
+         g = (float *)SUMA_malloc(ncol*sizeof(float));
+         b = (float *)SUMA_malloc(ncol*sizeof(float));
+         if (!iNode || !iLabel || !r || !g || !b) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         
+         for (i=0; i < ncol; ++i) {
+            iNode[i] = (int)far[i];
+            r[i] = (float)far[i+ncol];
+            g[i] = (float)far[i+2*ncol];
+            b[i] = (float)far[i+3*ncol];
+         }
+         
+         iLabel[0] = 0;
+         N_Labels = 1;
+         iStart = (int *)SUMA_malloc(1*sizeof(int));
+         iStop = (int *)SUMA_malloc(1*sizeof(int));
+         RGB = (float *)SUMA_malloc(3*1*sizeof(float));
+         mri_free(im); im = NULL;   /* done with that baby */
+        
+         iStart[0] = 0;
+         iStop[0] = ncol-1;
+         RGB[0] = r[0]; RGB[1] = g[0]; RGB[2] = b[0];
+         break;
+      case 5:
+         /* Node index, Node Label, R G B */
+         SUMA_LH("1D format: i l R G B");
+         /* copy the node indices and labels for cleanliness */
+         iLabel = (int *)SUMA_malloc(ncol*sizeof(int));
+         iNode = (int *)SUMA_malloc(ncol*sizeof(int));
+         r = (float *)SUMA_malloc(ncol*sizeof(float));
+         g = (float *)SUMA_malloc(ncol*sizeof(float));
+         b = (float *)SUMA_malloc(ncol*sizeof(float));
+         if (!iNode || !iLabel || !r || !g || !b) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         for (i=0; i < ncol; ++i) iLabel[i] = (int)far[i+ncol];
+         /* sort the Labels and the iNode accordingly */
+         isort = SUMA_z_dqsort( iLabel, ncol);
+         for (i=0; i < ncol; ++i) {
+            iNode[i] = (int)far[isort[i]];
+            r[i] = (float)far[isort[i]+2*ncol];
+            g[i] = (float)far[isort[i]+3*ncol];
+            b[i] = (float)far[isort[i]+4*ncol];
+         }     
+         mri_free(im); im = NULL;   /* done with that baby */
+
+         /* Count the number of distinct labels */
+         N_Labels = 1;
+         for (i=1; i < ncol; ++i) if (iLabel[i] != iLabel[i-1]) ++N_Labels;
+         /* store where each label begins and ends */
+         iStart = (int *)SUMA_malloc(N_Labels*sizeof(int));
+         iStop = (int *)SUMA_malloc(N_Labels*sizeof(int));
+         RGB = (float *)SUMA_malloc(3*N_Labels*sizeof(float));
+         if (!iStart || !iStop || !RGB) {
+            SUMA_SL_Err("Failed to allocate");
+            SUMA_RETURN(NULL);
+         }
+         cnt = 0;
+         iStart[cnt] = 0;
+         iStop[cnt] = ncol -1;
+         RGB[3*cnt] = r[0]; RGB[3*cnt+1] = g[0]; RGB[3*cnt+2] = b[0];
+         for (i=1; i < ncol; ++i) {
+            if (iLabel[i] != iLabel[i-1]) {
+               iStop[cnt] = i-1;
+               ++cnt; 
+               iStart[cnt] = i;
+               iStop[cnt] = ncol -1;
+               RGB[3*cnt] = r[i]; RGB[3*cnt+1] = g[i]; RGB[3*cnt+2] = b[i];
+            }
+         }
+         break;
+      default:
+         SUMA_SLP_Err("Unrecognized 1D format");
+         mri_free(im); im = NULL;   /* done with that baby */
+         break;
+   }
+   
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_malloc(N_Labels*sizeof(SUMA_DRAWN_ROI*));
+   
+   for (i=0; i < N_Labels; ++i) {
+      int Value, N_Node, *Node=NULL;
+      float fillcolor[3], edgecolor[3];
+      int edgethickness;
+      char stmp[20], *Label=NULL;
+      SUMA_PARSED_NAME *NewName=NULL; 
+      
+      edgethickness = 3;
+      fillcolor[0] = RGB[3*i]; fillcolor[1] = RGB[3*i+1]; fillcolor[2] = RGB[3*i+2]; 
+      edgecolor[0] = 0; edgecolor[1] = 0; edgecolor[2] = 1; 
+      Value = iLabel[iStart[i]]; /* the index label of this ROI */
+      N_Node = iStop[i] - iStart[i] + 1; /* Number of Nodes in this ROI */
+      Node = &(iNode[iStart[i]]); /* pointer to location of first index in this ROI */
+      /* prepare a label for these ROIs */
+      NewName = SUMA_ParseFname (filename);
+      if (!NewName) {
+         Label = SUMA_copy_string("BadLabel");
+      }else {
+         sprintf(stmp,"(%d)", Value);
+         Label = SUMA_append_string(stmp,NewName->FileName_NoExt);
+      }
+      ROIv[i] = SUMA_1DROI_to_DrawnROI( Node, N_Node , 
+                                    Value, Parent_idcode_str,
+                                    Label, NULL,
+                                    fillcolor, edgecolor, edgethickness, 
+                                    SUMAg_DOv, SUMAg_N_DOv);
+      
+      if (Label) SUMA_free(Label); Label = NULL;
+      if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROIv[i]->Parent_idcode_str);
+
+   }
+   
+   if (iLabel) SUMA_free(iLabel); iLabel = NULL;
+   if (isort) SUMA_free(isort); isort = NULL;
+   if (iNode) SUMA_free(iNode); iNode = NULL;
+   if (iStart) SUMA_free(iStart); iStart = NULL;
+   if (iStop) SUMA_free(iStop); iStop = NULL;
+   if (r) SUMA_free(r); r = NULL;
+   if (g) SUMA_free(g); g = NULL;
+   if (b) SUMA_free(b); b = NULL;
+   if (RGB) SUMA_free(RGB); RGB = NULL;
+   
+   *N_ROI = N_Labels;
+   SUMA_RETURN(ROIv);
+     
+}
+
+SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI)
 { /* begin embedded function */
    static char FuncName[]={"SUMA_OpenDrawnROI_NIML"};
    char stmp[SUMA_MAX_NAME_LENGTH+100], *nel_idcode;
@@ -2282,13 +2600,17 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
    int n_read=0, idat, answer, inel, iDO, N_nel;
    SUMA_NIML_ROI_DATUM *niml_ROI_datum_buff=NULL;
    SUMA_NIML_DRAWN_ROI * nimlROI=NULL;
-   SUMA_DRAWN_ROI *ROI=NULL;
+   SUMA_DRAWN_ROI **ROIv=NULL;
    SUMA_Boolean found = YUP, AddNel = YUP, AlwaysReplace = NOPE, NeverReplace = NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   *N_ROI = 0;
    
    if (SUMAg_CF->nimlROI_Datum_type < 0) {
       SUMA_SL_Err("Bad niml type code");
-      SUMA_RETURN(NOPE);
+      SUMA_RETURN(NULL);
    }
    if (LocalHead) fprintf(SUMA_STDERR, "%s: roi_type code = %d\n", FuncName, SUMAg_CF->nimlROI_Datum_type) ;
 
@@ -2296,13 +2618,13 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
    ns = NI_stream_open( stmp , "r" ) ;
    if( ns == NULL ){
       SUMA_SL_Err("Can't open ROI file"); 
-      SUMA_RETURN(NOPE);
+      SUMA_RETURN(NULL);
    }
    
    nelv = (NI_element **) SUMA_calloc(SUMA_MAX_DISPLAYABLE_OBJECTS, sizeof(NI_element *));
    if (!nelv) {
       SUMA_SLP_Crit("Failed to allocate");
-      SUMA_RETURN(NOPE);
+      SUMA_RETURN(NULL);
    }
    
    NeverReplace = NOPE;
@@ -2318,12 +2640,14 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
          
          if (strcmp(nel->name,"A_drawn_ROI")) {
             SUMA_SLP_Err ("ni element not of the \n'A_drawn_ROI' variety.\nElement discarded.");
-            SUMA_RETURN(NOPE);
+            NI_free_element(nel) ; nel = NULL;
+            SUMA_RETURN(NULL);
          }
          /* somewhat redundant test */
          if (nel->vec_typ[0] != SUMAg_CF->nimlROI_Datum_type) {
             SUMA_SLP_Err ("Datum type mismatch.");
-            SUMA_RETURN(NOPE);
+            NI_free_element(nel) ; nel = NULL;
+            SUMA_RETURN(NULL);
          }
 
          /* find out if a displayable object exists with the same idcode_str */
@@ -2373,13 +2697,24 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
 
                   default:
                      SUMA_SLP_Crit("Don't know what to do with this button.");
-                     SUMA_RETURN(NOPE);
+                     SUMA_RETURN(NULL);
                      break;
                }
             } 
          } else {
             AddNel = YUP;
          } 
+         
+         /* make sure element's parent exists */
+         if (AddNel) {
+            SUMA_LH("Checking for Parent surface...");
+            if ((iDO = SUMA_whichDO(NI_get_attribute( nel , "Parent_idcode_str"), SUMAg_DOv, SUMAg_N_DOv)) < 0) {
+               SUMA_SLP_Err(  "ROI's parent surface\n"
+                              "is not loaded. ROI is\n"
+                              "discarded." );
+               AddNel = NOPE;
+            }
+         }
          
          if (AddNel) {
             SUMA_LH("Adding Nel");
@@ -2402,10 +2737,11 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
    if( !n_read){
       SUMA_SL_Err("Found no elements in file!"); 
       SUMA_free(nelv);
-      SUMA_RETURN(NOPE);
+      SUMA_RETURN(NULL);
    }
    
    /* Now turn those nel into ROIS */
+   ROIv = (SUMA_DRAWN_ROI **) SUMA_malloc(N_nel*sizeof(SUMA_DRAWN_ROI*));
    for (inel=0; inel < N_nel; ++inel) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Processing nel %d/%d...\n", FuncName, inel, N_nel);
       nel = nelv[inel];
@@ -2421,6 +2757,21 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
       nimlROI->Label = NI_get_attribute( nel , "Label");
       nimlROI->iLabel = (int)strtod(NI_get_attribute( nel , "iLabel"), NULL);
       nimlROI->N_ROI_datum = nel->vec_len;
+      nimlROI->ColPlaneName = NI_get_attribute( nel , "ColPlaneName");
+      if (SUMA_StringToNum (NI_get_attribute( nel , "FillColor"), 
+                           nimlROI->FillColor, 3) < 0) {
+         SUMA_SLP_Err("Failed in reading FillColor.");
+         SUMA_free(nelv);
+         SUMA_RETURN(NULL);
+      }
+      if (SUMA_StringToNum (NI_get_attribute( nel , "EdgeColor"), 
+                           nimlROI->EdgeColor, 3) < 0) {
+         SUMA_SLP_Err("Failed in reading EdgeColor.");
+         SUMA_free(nelv);
+         SUMA_RETURN(NULL);
+      }
+      nimlROI->EdgeThickness = (int)strtod(NI_get_attribute( nel , "EdgeThickness"), NULL);              
+      
       if (LocalHead) {
          fprintf (SUMA_STDERR,"%s: vec_type[0] = %d (%d)\n", 
             FuncName, nel->vec_typ[0], SUMAg_CF->nimlROI_Datum_type) ;
@@ -2469,32 +2820,35 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
          /* ROI already exists delete it */
          if (!SUMA_DeleteROI ((SUMA_DRAWN_ROI *)SUMAg_DOv[iDO].OP)) {
             SUMA_SLP_Err("Failed to delete ROI");
-            SUMA_RETURN(NOPE); 
+            SUMA_RETURN(NULL); 
          }
       }
       
       /* transfom nimlROI to a series of drawing actions */
       SUMA_LH("Transforming ROI to a series of actions...");
-      ROI = SUMA_NIMLDrawnROI_to_DrawnROI (nimlROI);
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROI->Parent_idcode_str);
+      ROIv[inel] = SUMA_NIMLDrawnROI_to_DrawnROI (nimlROI);
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROIv[inel]->Parent_idcode_str);
 
-      /* add ROI to DO list */
-      if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROI, ROIdO_type, SUMA_LOCAL)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
-      }
+      /* manually free nimlROI fields that received copies of allocated space as opposed to pointer copies */
+      SUMA_free(nimlROI->idcode_str);
+      SUMA_free(nimlROI->Parent_idcode_str); 
+      SUMA_free(nimlROI->Label);
+      SUMA_free(nimlROI->ColPlaneName);
+
 
       /* free nimlROI */
       nimlROI = SUMA_Free_NIMLDrawROI(nimlROI);
 
       /* free nel and get it ready for the next load */
       NI_free_element(nel) ; nel = NULL;
-      
+            
    }
    
    /* free nelv */
    SUMA_free(nelv);
    
-   SUMA_RETURN(YUP);
+   *N_ROI = N_nel;
+   SUMA_RETURN(ROIv);
 } 
    
 /*!
@@ -2509,7 +2863,7 @@ void SUMA_SaveDrawnROI (char *filename, void *data)
    static char FuncName[]={"SUMA_SaveDrawnROI"};
    SUMA_DRAWN_ROI *DrawnROI=NULL;
    SUMA_SurfaceObject *SO= NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -2564,7 +2918,7 @@ SUMA_Boolean SUMA_SaveDrawnROI_1D (char *filename, SUMA_SurfaceObject *SO, SUMA_
    char stmp[SUMA_MAX_NAME_LENGTH+20];
    SUMA_DRAWN_ROI **ROIv = NULL;
    int N_ROI=0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    SUMA_LH("Called");   
@@ -2604,7 +2958,7 @@ SUMA_Boolean SUMA_SaveDrawnROINIML (char *filename, SUMA_SurfaceObject *SO, SUMA
    char stmp[SUMA_MAX_NAME_LENGTH+20];
    SUMA_DRAWN_ROI **ROIv = NULL;
    int N_ROI=0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    SUMA_LH("Called");   
@@ -2650,7 +3004,7 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
    NI_stream ns ;
    SUMA_NIML_DRAWN_ROI *niml_ROI = NULL;
    SUMA_DRAWN_ROI *ROI = NULL;
-   SUMA_Boolean WriteBin = NOPE, LocalHead = YUP;
+   SUMA_Boolean WriteBin = NOPE, LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -2692,10 +3046,10 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
          NI_stream_close( ns ) ; 
          SUMA_RETURN(NOPE);
       }
-
+ 
       /* Now create a ni element */
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Creating new element of %d segments\n", FuncName, niml_ROI->N_ROI_datum);
-      nel = NI_new_data_element("A_drawn_ROI",  niml_ROI->N_ROI_datum);
+      nel = NI_new_data_element(SUMA_Dset_Name(SUMA_NODE_ROI),  niml_ROI->N_ROI_datum);
 
       SUMA_LH("Adding column...");
       NI_add_column( nel , SUMAg_CF->nimlROI_Datum_type, niml_ROI->ROI_datum );
@@ -2708,7 +3062,16 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
       NI_set_attribute (nel, "iLabel", stmp);
       sprintf(stmp,"%d", niml_ROI->Type);
       NI_set_attribute (nel, "Type", stmp);
-
+      NI_set_attribute (nel, "ColPlaneName", niml_ROI->ColPlaneName);
+      sprintf(stmp,"%f %f %f", niml_ROI->FillColor[0], niml_ROI->FillColor[1],
+                              niml_ROI->FillColor[2]);
+      NI_set_attribute (nel, "FillColor",stmp);
+      sprintf(stmp,"%f %f %f", niml_ROI->EdgeColor[0], niml_ROI->EdgeColor[1],
+                              niml_ROI->EdgeColor[2]);
+      NI_set_attribute (nel, "EdgeColor",stmp);
+      sprintf(stmp,"%d", niml_ROI->EdgeThickness);
+      NI_set_attribute (nel, "EdgeThickness", stmp);                   
+      
       if (LocalHead) SUMA_nel_stdout (nel);
 
       if (!WriteBin) {
@@ -2758,8 +3121,8 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
    SUMA_1D_DRAWN_ROI *ROI_1D=NULL;
    SUMA_ROI_DATUM *ROI_Datum=NULL;
    DListElmt *Elm = NULL;
-   int i = -1, cnt = 0;
-   SUMA_Boolean LocalHead = YUP;
+   int i = -1, cnt = 0, *isort=NULL, *iLabel=NULL, *iNode=NULL;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -2785,9 +3148,11 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
    ROI_1D->idcode_str = ROI->idcode_str;
    ROI_1D->Parent_idcode_str = ROI->Parent_idcode_str;
    ROI_1D->Label = ROI->Label;
-   ROI_1D->iNode = (int *) SUMA_calloc(ROI_1D->N, sizeof(int));
-   ROI_1D->iLabel = (int *) SUMA_calloc(ROI_1D->N, sizeof(int));
-   if (!ROI_1D->iNode || !ROI_1D->iLabel) {
+   ROI_1D->iNode = NULL;
+   ROI_1D->iLabel = NULL;
+   iNode = (int *) SUMA_calloc(ROI_1D->N, sizeof(int));
+   iLabel = (int *) SUMA_calloc(ROI_1D->N, sizeof(int));
+   if (!iNode || !iLabel) {
       SUMA_SL_Err("Failed to allocate");
       SUMA_RETURN(NULL);
    }
@@ -2800,11 +3165,54 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
       else Elm = Elm->next;
       ROI_Datum = (SUMA_ROI_DATUM *)Elm->data;
       for (i=0; i < ROI_Datum->N_n; ++i) {
-         ROI_1D->iNode[cnt] = ROI_Datum->nPath[i];
-         ROI_1D->iLabel[cnt] = ROI->iLabel;
+         iNode[cnt] = ROI_Datum->nPath[i];
+         iLabel[cnt] = ROI->iLabel;
          ++cnt;
       }
    } while (Elm != dlist_tail(ROI->ROIstrokelist));
+   
+   /* some node entries are redundant, clear those up */
+   /* first sort iNode */
+   isort = SUMA_z_dqsort( iNode, ROI_1D->N);
+
+   /* Now sort the labels accordingly */
+   ROI_1D->iLabel = (int *) SUMA_calloc(ROI_1D->N, sizeof(int));
+   ROI_1D->iNode = (int *) SUMA_calloc(ROI_1D->N, sizeof(int));
+   if (!ROI_1D->iNode || !ROI_1D->iLabel) {
+      SUMA_SL_Err("Failed to allocate");
+      SUMA_RETURN(NULL);
+   }
+   
+   for (i=0; i < ROI_1D->N; ++i) {
+      ROI_1D->iLabel[i] = iLabel[isort[i]];
+   }
+   if (iLabel) SUMA_free(iLabel); iLabel = NULL; /* done with unsorted version of iLabel */
+   
+   /* Now remove redundant entries */
+   cnt = 0;
+   ROI_1D->iNode[cnt] = iNode[0]; 
+   ROI_1D->iLabel[cnt] = ROI_1D->iLabel[0];
+   ++cnt;
+   for (i=1;i<ROI_1D->N;++i)
+    {
+      if ((iNode[i] != iNode[i- 1]))
+         {
+            ROI_1D->iNode[cnt] = iNode[i];
+            ROI_1D->iLabel[cnt] = ROI_1D->iLabel[i]; 
+            ++cnt;   
+         }
+   }
+
+   
+   /* you would reallocate here, because cnt is always <= ROI_1D->N,
+   but it is not worth the effort because cnt is only slightly
+   less than ROI_1D->N */
+   
+   /* just update ROI_1D->N */
+   ROI_1D->N = cnt;
+   
+   if (isort) SUMA_free(isort); isort = NULL;
+   if (iNode) SUMA_free(iNode); iNode = NULL;
    
    SUMA_RETURN(ROI_1D);
 }
@@ -2818,7 +3226,7 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
 SUMA_1D_DRAWN_ROI * SUMA_Free_1DDrawROI (SUMA_1D_DRAWN_ROI *ROI_1D)
 {
    static char FuncName[]={"SUMA_Free_1DDrawROI"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -2840,16 +3248,25 @@ SUMA_1D_DRAWN_ROI * SUMA_Free_1DDrawROI (SUMA_1D_DRAWN_ROI *ROI_1D)
 SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *filename) 
 {
    static char FuncName[]={"SUMA_Write_DrawnROI_1D"};
-   char stmp[SUMA_MAX_NAME_LENGTH+20];
+   char *newname=NULL;
    int i,j;
    SUMA_1D_DRAWN_ROI *ROI_1D = NULL;
    SUMA_DRAWN_ROI *ROI = NULL;
    FILE *fout=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   fout = fopen(filename,"w");
+   /* add a .1D.roi extension */
+   newname = SUMA_Extension(filename, ".1D.roi", NOPE); 
+   if (!newname) {
+      SUMA_SL_Err("Invalid filename");
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_LH(newname);
+
+   fout = fopen(newname,"w");
    if (!fout) {
       SUMA_SL_Err("Failed to open file for writing.");
       SUMA_RETURN(NOPE);
@@ -2890,6 +3307,7 @@ SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *fil
    }
    
    fclose(fout) ; 
+   if (newname) SUMA_free(newname);
    
    SUMA_RETURN(YUP);
 }

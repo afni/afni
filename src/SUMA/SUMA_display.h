@@ -195,6 +195,7 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title, SUMA_
 SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy, SUMA_FILE_SELECT_MODE Mode, SUMA_Boolean preserve,
                                                                   void (*SelectCallback)(char *filename, void *data), void *SelectData,
                                                                   void (*CancelCallback)(void *data), void *CancelData,
+                                                                  char *FilePattern,
                                                                   SUMA_SELECTION_DIALOG_STRUCT *dlg);
 void SUMA_FileSelection_Unmap_cb (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_FreeFileSelectionDialogStruct(SUMA_SELECTION_DIALOG_STRUCT *dlg);

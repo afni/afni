@@ -7,7 +7,7 @@ extern int SUMAg_N_DOv;
 /*!
    Given a set of node indices, return a patch of the original surface that contains them
    
-   Patch = SUMA_getPatch (NodesSelected, N_Nodes, Full_FaceSetList, N_Full_FaceSetList, Memb)
+   Patch = SUMA_getPatch (NodesSelected, N_Nodes, Full_FaceSetList, N_Full_FaceSetList, Memb, MinHits)
 
    \param NodesSelected (int *) N_Nodes x 1 Vector containing indices of selected nodes. 
             These are indices into NodeList making up the surface formed by Full_FaceSetList.
@@ -15,25 +15,29 @@ extern int SUMAg_N_DOv;
    \param Full_FaceSetList (int *) N_Full_FaceSetList  x 3 vector containing the triangles forming the surface 
    \param N_Full_FaceSetList (int) number of triangular facesets forming the surface
    \param Memb (SUMA_MEMBER_FACE_SETS *) structure containing the node membership information (result of SUMA_MemberFaceSets function)
-
+   \param MinHits (int) minimum number of nodes to be in a patch before the patch is selected. 
+         Minimum is 1, Maximum logical is 3, assuming you do not have repeated node indices
+         in NodesSelected.
    \ret Patch (SUMA_PATCH *) Structure containing the patch's FaceSetList, FaceSetIndex (into original surface) and number of elements.
          returns NULL in case of trouble.   Free Patch with SUMA_freePatch(Patch);
 
    \sa SUMA_MemberFaceSets, SUMA_isinbox, SUMA_PATCH
 */
 
-SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetList, int N_Full_FaceSetList, SUMA_MEMBER_FACE_SETS *Memb)
+SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes, 
+                              int *Full_FaceSetList, int N_Full_FaceSetList, 
+                              SUMA_MEMBER_FACE_SETS *Memb, int MinHits)
 {
    int * BeenSelected;
    int i, j, node, ip, ip2, NP;
    SUMA_PATCH *Patch;
-    static char FuncName[]={"SUMA_getPatch"};
+   static char FuncName[]={"SUMA_getPatch"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    NP = 3;
    BeenSelected = (int *)SUMA_calloc (N_Full_FaceSetList, sizeof(int));
-   Patch = (SUMA_PATCH *)SUMA_malloc(sizeof(Patch));
+   Patch = (SUMA_PATCH *)SUMA_malloc(sizeof(SUMA_PATCH));
    
    if (!BeenSelected || !Patch) {
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for BeenSelected or patch.\n", FuncName);
@@ -46,9 +50,9 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetLi
       for (j=0; j < Memb->N_Memb[node]; ++j) {
          if (!BeenSelected[Memb->NodeMemberOfFaceSet[node][j]]) {
             /* this faceset has not been selected, select it */
-            BeenSelected[Memb->NodeMemberOfFaceSet[node][j]] = 1;
             ++ Patch->N_FaceSet;
          }
+         ++ BeenSelected[Memb->NodeMemberOfFaceSet[node][j]];
       }   
    }
    
@@ -56,14 +60,17 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetLi
    
    Patch->FaceSetList = (int *) SUMA_calloc (Patch->N_FaceSet * 3, sizeof(int));
    Patch->FaceSetIndex = (int *) SUMA_calloc (Patch->N_FaceSet, sizeof(int));
+   Patch->nHits = (int *) SUMA_calloc (Patch->N_FaceSet, sizeof(int));
    
-   if (!Patch->FaceSetList || !Patch->FaceSetIndex) {
+   if (!Patch->FaceSetList || !Patch->FaceSetIndex || !Patch->nHits) {
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for Patch->FaceSetList || Patch_FaceSetIndex.\n", FuncName);
       SUMA_RETURN(NULL);
    }
+   
    j=0;
    for (i=0; i < N_Full_FaceSetList; ++i) {
-      if (BeenSelected[i]) {
+      if (BeenSelected[i] >= MinHits) {
+         Patch->nHits[j] = BeenSelected[i];
          Patch->FaceSetIndex[j] = i;
          ip = NP * j;
          ip2 = NP * i;
@@ -73,6 +80,11 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetLi
          ++j;
       }
    }
+   
+   /* reset the numer of facesets because it might have changed given the MinHits condition,
+   It won't change if MinHits = 1.
+   It's OK not to change the allocated space as long as you are using 1D arrays*/
+   Patch->N_FaceSet = j;
    
    if (BeenSelected) SUMA_free(BeenSelected);
    
@@ -89,16 +101,147 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetLi
 
 SUMA_Boolean SUMA_freePatch (SUMA_PATCH *Patch) 
 {
-    static char FuncName[]={"SUMA_freePatch"};
+   static char FuncName[]={"SUMA_freePatch"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    
    if (Patch->FaceSetIndex) SUMA_free(Patch->FaceSetIndex);
    if (Patch->FaceSetList) SUMA_free(Patch->FaceSetList);
+   if (Patch->nHits) SUMA_free(Patch->nHits);
    if (Patch) SUMA_free(Patch);
    SUMA_RETURN(YUP);
    
+}
+
+SUMA_Boolean SUMA_ShowPatch (SUMA_PATCH *Patch, FILE *Out) 
+{
+   static char FuncName[]={"SUMA_freePatch"};
+   int ip, i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!Out) Out = stderr;
+   
+   fprintf (Out, "Patch Contains %d triangles:\n", Patch->N_FaceSet);
+   fprintf (Out, "FaceIndex (nHits): FaceSetList[0..2]\n");
+   for (i=0; i < Patch->N_FaceSet; ++i) {
+      ip = 3 * i;   
+      fprintf (Out, "%d(%d):   %d %d %d\n",
+            Patch->FaceSetIndex[i], Patch->nHits[i], Patch->FaceSetList[ip],
+            Patch->FaceSetList[ip+1], Patch->FaceSetList[ip+2]);
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Returns the contour of a patch 
+*/
+SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_Node, int *N_ContEdges)
+{
+   static char FuncName[]={"SUMA_GetContour"};
+   SUMA_EDGE_LIST * SEL=NULL;
+   SUMA_PATCH *Patch = NULL;
+   int i, Tri, Tri1, Tri2, sHits;
+   SUMA_CONTOUR_EDGES *CE = NULL;
+   SUMA_Boolean *isNode=NULL, LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   *N_ContEdges = -1;
+   
+   /* get the Node member structure if needed*/
+   if (!SO->MF) {
+      SUMA_SLP_Err("Member FaceSet not created.\n");
+      SUMA_RETURN(CE);
+      #if 0
+         fprintf(SUMA_STDOUT, "%s: Computing MemberFaceSets... \n", FuncName);
+         SO->MF = SUMA_MemberFaceSets (SO->N_Node, SO->FaceSetList, SO->N_FaceSet, 3);
+         if (SO->MF == NULL) {
+            fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_MemberFaceSets. \n", FuncName);
+            SUMA_RETURN(CE);
+         }
+         /* YOU SHOULD CREATE INODES FOR THIS BABY and link related surfaces,
+         actually, you might want to do this on the parent surface and then link
+         Inodes to other related surfaces. Perhaps add it at startup */
+      #endif
+   }  
+
+   /* create a flag vector of which node are in Nodes */
+   isNode = (SUMA_Boolean *) SUMA_calloc(SO->N_Node, sizeof(SUMA_Boolean));
+   if (!isNode) {
+      SUMA_SLP_Crit("Failed to allocate for isNode");
+      SUMA_RETURN(CE);
+   }
+   
+   for (i=0; i < N_Node; ++i) isNode[Nodes[i]] = YUP;
+   
+   Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, SO->N_FaceSet, SO->MF, 2);
+   SUMA_ShowPatch (Patch,NULL);
+   
+   if (Patch->N_FaceSet) {
+      SEL = SUMA_Make_Edge_List (Patch->FaceSetList, Patch->N_FaceSet, SO->N_Node, SO->NodeList);
+   
+      /* SUMA_Show_Edge_List (SEL, NULL); */
+      /* allocate for maximum */
+      CE = (SUMA_CONTOUR_EDGES *) SUMA_malloc(SEL->N_EL * sizeof(SUMA_CONTOUR_EDGES));
+      if (!CE) {
+         SUMA_SLP_Crit("Failed to allocate for CE");
+         SUMA_RETURN(CE);
+      }
+   
+      /* edges that are part of unfilled triangles are good */
+      i = 0;
+      *N_ContEdges = 0;
+      while (i < SEL->N_EL) {
+         if (SEL->ELps[i][2] == 2) {
+            Tri1 = SEL->ELps[i][1];
+            Tri2 = SEL->ELps[i+1][1];
+            sHits = Patch->nHits[Tri1] + Patch->nHits[Tri2];
+            if (sHits == 5 || sHits == 4) { /* one tri with 3 hits and one with 2 hits or 2 Tris with 2 hits each */
+               /* Pick edges that are part of only one triangle with three hits */
+                                           /* or two triangles with two hits */
+               /* There's one more condition, both nodes have to be a part of the original list */
+               if (isNode[SEL->EL[i][0]] && isNode[SEL->EL[i][1]]) {
+                  CE[*N_ContEdges].n1 = SEL->EL[i][0];
+                  CE[*N_ContEdges].n2 = SEL->EL[i][1];
+                  ++ *N_ContEdges;
+                  
+                  if (LocalHead) {
+                     fprintf (SUMA_STDERR,"%s: Found edge made up of nodes [%d %d]\n",
+                        FuncName, SEL->EL[i][0], SEL->EL[i][1]);
+                  }
+               }
+            }
+         }
+         
+         if (SEL->ELps[i][2] > 0) {
+            i += SEL->ELps[i][2];
+         } else {
+            i ++;
+         }
+      }
+      
+      /* Now reallocate */
+      if (! *N_ContEdges) {
+         SUMA_free(CE); CE = NULL;
+         SUMA_RETURN(CE);
+      }else {
+         CE = (SUMA_CONTOUR_EDGES *) SUMA_realloc (CE, *N_ContEdges * sizeof(SUMA_CONTOUR_EDGES));
+         if (!CE) {
+            SUMA_SLP_Crit("Failed to reallocate for CE");
+            SUMA_RETURN(CE);
+         }
+      }
+         
+      SUMA_free_Edge_List (SEL); 
+   }
+   
+   SUMA_freePatch (Patch);
+   SUMA_free(isNode);
+   
+   SUMA_RETURN(CE);
 }
 
 /*!
@@ -1424,7 +1567,7 @@ int *SUMA_NodePath_to_EdgePath (SUMA_EDGE_LIST *EL, int *Path, int N_Path, int *
 {
    static char FuncName[]={"SUMA_NodePath_to_EdgePath"};
    int *ePath = NULL, i, i0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
  
@@ -2460,7 +2603,7 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
                      SUMA_BRANCH tmp;
                      int nlst1, nlst2, k, tmpreplace, tmpmove;
                      static char FuncName[]={"SUMA_WeldBranches"};
-                     SUMA_Boolean LocalHead = YUP;
+                     SUMA_Boolean LocalHead = NOPE;
 
                      if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 

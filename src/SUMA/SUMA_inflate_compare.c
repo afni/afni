@@ -291,7 +291,7 @@ int main (int argc,char *argv[])
       isin = SUMA_isinbox (SO2->NodeList, SO2->N_Node, P0, B_dim, 0);
       if (isin.nIsIn) {
 	/* find the patch of surface 2 that is formed by those intersection nodes */
-	Patch = SUMA_getPatch (isin.IsIn, isin.nIsIn, SO2->FaceSetList, SO2->N_FaceSet, Memb);
+	Patch = SUMA_getPatch (isin.IsIn, isin.nIsIn, SO2->FaceSetList, SO2->N_FaceSet, Memb, 1);
 	if (Patch == NULL) {
 	  fprintf(SUMA_STDERR, "Error %s: Null returned from SUMA_getPatch.\n", FuncName);
 	  exit (1);

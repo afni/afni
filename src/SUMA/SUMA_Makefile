@@ -80,7 +80,7 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_IV_FaceSetsextract.c  SUMA_SurfNorm.c SUMA_DOmanip.c SUMA_StripPath.c 	\
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
 		 SUMA_Engine.c SUMA_Surface_IO.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
-		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c
+		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c SUMA_DataSets.c
        
 SUMA_SRCS_MAIN = SUMA_suma.c
 
@@ -90,7 +90,8 @@ AFNI_3dOBJS = ../parser.o ../parser_int.o
 SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
 SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
-		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h
+		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h  \
+		 SUMA_DataSets.h
 
 #library only
 ${SUMALIB} : libply.a ${SUMA_OBJS}
@@ -180,6 +181,14 @@ ConvertSurface: SUMA_Surface_IO.c
 	$(RM) $@
 	${CC} -DSUMA_ConvertSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SurfaceMetrics: SUMA_Load_Surface_Object.c
+	$(RM) $@
+	${CC} -DSUMA_SurfaceMetrics_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_TestDataSets: SUMA_DataSets.c
+	$(RM) $@
+	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 3dSurfMaskDump: SUMA_3dSurfMaskDump.c 
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_3dSurfMaskDump.c ${SUMA_INCLUDE_PATH}		\
@@ -235,7 +244,8 @@ all: libSUMA.a mainobj suma install
 standalones: SUMA_CreateIcosahedron SUMA_Map_SurfacetoSurface SUMA_MapIcosahedron SUMA_SureFit \
 SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer ScaleToMap MakeColorMap \
 SUMA_compare_surfaces SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface \
-3dSurfMaskDump 3dSurf2Vol
+3dSurfMaskDump 3dSurf2Vol SurfaceMetrics SUMA_TestDataSets
+
 
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 

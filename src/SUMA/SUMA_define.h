@@ -57,6 +57,7 @@
 #define SUMA_CROSS_HAIR_SPHERE_RADIUS 0.5
 #define SUMA_SELECTED_NODE_SPHERE_RADIUS 0.25
 
+#define SUMA_BEEP_LENGTH_MS 50 /*!< beep time in ms */
 #define SUMA_XYZ_XFORM_BOXDIM_MM 5 /*!< search box width (in mm) used to change XYZ to the closest node index. Keep this one small, 5 mm works for me. Otherwise you may get thrown way off of where you should be. It is no guarantee that the closest node is part of the faceset you are looking at*/
 #define SUMA_SELECTED_FACESET_LINE_WIDTH 2 /*!< Line Width of highlighting triangles */
 #define SUMA_SELECTED_FACESET_OFFSET_FACTOR 0.01 /*!< highlighting is done by drawing two triangles at a fractional distance of the normal vector */
@@ -240,8 +241,7 @@ typedef enum { SUMA_ROI_OpenPath,   /*!< A collection of nodes that are topologi
                SUMA_ROI_ClosedPath, /*!< A closed OpenPath */
                SUMA_ROI_FilledArea, /*!< A filled ClosePath */
                                     /* Preserve the order of the above three */
-               SUMA_ROI_Collection  /*!< NOT USED YET: A collection of ROIdatums, a generic descriptor that is used to
-                                          make do without SUMA_ROI structure*/
+               SUMA_ROI_Collection  /*!< A collection of nodes */
             } SUMA_ROI_DRAWING_TYPE;  /*!< an ROI created by drawing (or other means)*/
 
 typedef enum { SUMA_BSA_Undefined, SUMA_BSA_AppendStroke, SUMA_BSA_AppendStrokeOrFill, SUMA_BSA_JoinEnds, SUMA_BSA_FillArea } SUMA_BRUSH_STROKE_ACTION; 
@@ -308,6 +308,16 @@ typedef struct {
    int N_Col; /*!< number of colors in the color map */
    char *Name; /*!< Name of colormap */
 } SUMA_COLOR_MAP;
+
+/*! structure containing an ROI Plane's infor */ 
+typedef struct {
+   char *name; /*!< name of plane and the indices of the ROIs that belong to it */
+   DList *ROI_index_lst;   /*!< list of indices (into SUMA_DO * SUMAg_DOv) of 
+                               SUMA_DRAWN_ROI * objects that belong to a certain 
+                               plane. That sounds confusing now, I'm sure it'll 
+                               sound clear a year from now */  
+} SUMA_ROI_PLANE;
+
 
 /*! Structure containing one color overlay */
 typedef struct {
@@ -405,6 +415,12 @@ typedef struct {
 #define SUMA_MAX_ROI_CTRL_NODES 100 /*!< Maximum number of control nodes in an ROI */
 #define SUMA_MAX_ROI_CTRL_NODES3 300 
 #define SUMA_MAX_ROI_ON_SURFACE 100 /*!< Maximum number of ROIs Drawn on a surface */
+
+typedef struct {   
+   int n1;  /*!<index of edge's first node */
+   int n2; /*!<index of edge's second node */
+} SUMA_CONTOUR_EDGES; /*<! structure defining an edge by the nodes forming it*/
+
 /*! structure to hold the drawing of an ROI */
 typedef struct {   
    SUMA_ROI_DRAWING_TYPE Type;   /*!< The type of ROI drawn, that would be closed path, etc, etc, */
@@ -412,6 +428,13 @@ typedef struct {
    char *idcode_str;    /*!< unique idcode for ROI */
    char *Parent_idcode_str; /*!< idcode of parent surface */
    char *Label; /*!< ascii label for ROI */ 
+   char *ColPlaneName;  /*!< Name of color plane that the ROI is painted in.
+                     If this field is set to NULL then the ROI will be painted
+                     in the generic ROI_Plane plane. For the moment, NULL is the only
+                     option */
+   float FillColor[3];  /*!< RGB fill color */
+   float EdgeColor[3];  /*!< RGB edge color */
+   int EdgeThickness;   /*!< thickness of edge */
    int iLabel; /*!< An integer value, another way to represent a Label */
    SUMA_ROI_DRAWING_STATUS DrawStatus; /*!< Status of the ROI being drawn, finished, being drawn, being edited, etc. */
 
@@ -419,6 +442,9 @@ typedef struct {
 
    DList *ActionStack; /*!< a stack containing the various actions performed*/
    DListElmt *StackPos; /*!< The element of ActionStack that represents the current position */
+   
+   int N_CE; /*!< number of contour edges */
+   SUMA_CONTOUR_EDGES *CE; /*!< a vector of edges that form the contour of the ROI */
 } SUMA_DRAWN_ROI;
 
 typedef struct {
@@ -426,6 +452,10 @@ typedef struct {
    char *idcode_str;
    char *Parent_idcode_str;
    char *Label;
+   char *ColPlaneName;
+   float FillColor[3];  /*!< RGB fill color */
+   float EdgeColor[3];  /*!< RGB edge color */
+   int EdgeThickness;   /*!< thickness of edge */
    int iLabel;
    SUMA_NIML_ROI_DATUM *ROI_datum; /*!< a vector of ROI data (a multitude of ROI datum) */
    int N_ROI_datum;
@@ -640,6 +670,8 @@ typedef struct {
    Widget daddy; /*!< widget of parent */
    char *filename; /*!< selected filename. 
                NOTE: This is only valid when a selection has been made */
+   char *FilePattern; /*!< Pattern for filename filtering
+                           Only relevant when window is opened */
    SUMA_Boolean preserve; /*!< If YUP, then widget is only unmanaged when 
                               selection is made or cancel is pressed. In 
                               this case, you should take care of dlg's safekeeping
@@ -792,7 +824,8 @@ typedef struct {
    char *Title; 
    int REDISPLAYPENDING;
    int WIDTH, HEIGHT;
-   XtWorkProcId REDISPLAYID, MOMENTUMID;
+   XtWorkProcId REDISPLAYID;
+   XtIntervalId MOMENTUMID;
    GC gc;
    SUMA_X_ViewCont *ViewCont; /*!< pointer to structure containing viewer controller widget structure */
    Widget ToggleCrossHair_View_tglbtn; /*!< OBSOLETE Toggle button in View-> menu */
@@ -801,6 +834,11 @@ typedef struct {
    Widget ViewMenu[SW_N_View]; /*!< Vector of widgets under View Menu */
    Widget HelpMenu[SW_N_Help]; /*!< Vector of widgets under Help Menu */
    SUMA_PROMPT_DIALOG_STRUCT *LookAt_prmpt; /*!< structure for the LookAt dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *JumpIndex_prmpt; /*!< structure for the Jump To Index dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *JumpXYZ_prmpt; /*!< structure for the Jump To XYZ dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *JumpFocusNode_prmpt; /*!< structure for setting the Focus Node dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *JumpFocusFace_prmpt; /*!< structure for setting the Focus FaceSet dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *HighlightBox_prmpt; /*!<  structure for highlighting nodes in Box dialog */ 
 }SUMA_X;
 
 /*! structure containg X vars common to all viewers */
@@ -1270,6 +1308,7 @@ typedef struct {
    SUMA_Axis *MeshAxis;   /*!< pointer to XYZ axis centered on the surface's centroid */
    
    SUMA_MEMBER_FACE_SETS *MF; /*!< structure containing the facesets containing each node */
+   SUMA_INODE *MF_Inode; /*!< Inode structure for MF*/
    SUMA_NODE_FIRST_NEIGHB *FN; /*!< structure containing the first order neighbors of each node */
    SUMA_INODE *FN_Inode; /*!< Inode structure for FN */
    SUMA_EDGE_LIST *EL; /*!< structure containing the edge list */
@@ -1306,7 +1345,6 @@ typedef struct {
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Load_Surface_Object in SUMA_Load_Surface_Object.c
                */      
-
 
 /*! structure containing a mapping of one surface to another*/
 typedef struct {
@@ -1421,7 +1459,9 @@ typedef struct {
    int N_FaceSet; /*!< Number of Facesets forming patch */
    int *FaceSetList; /*!< vector (was a matrix prior to SUMA 1.2) (N_FaceSet x 3) containing indices of nodes forming triangles making up the patch */
    int *FaceSetIndex; /*!< vector (N_FaceSet x 1) containing indices of triangles in FaceSetList in the FaceSetList of the surface that the patch was taken from */
-} SUMA_PATCH;
+   int *nHits; /*!< (N_FaceSet x 1) If patch is created from a set of nodes,
+                  nHits[i] is the number of nodes refering to this Faceset */
+} SUMA_PATCH; /*!< A surface patch, typically created from a set of nodes */
 
 /*! structure containing ClientData 
 This remains to be used somewhere ... */

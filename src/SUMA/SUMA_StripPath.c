@@ -196,6 +196,32 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
 }/*SUMA_ParseFname*/
 
 /*!
+   \brief ans = SUMA_isExtension(filename, ext);
+      YUP if filename has the extension ext
+*/
+SUMA_Boolean SUMA_isExtension(char *filename, char *ext)
+{
+   static char FuncName[]={"SUMA_isExtension"}; 
+   int cnt, N_ext, N_filename;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!filename) SUMA_RETURN(NOPE);
+   if (!ext) SUMA_RETURN(NOPE);
+   N_ext = strlen(ext);
+   N_filename = strlen(filename);
+   if (N_ext > N_filename) SUMA_RETURN(NOPE);
+
+   cnt = 1;
+   while (cnt <= N_ext) {
+      if (filename[N_filename-cnt] != ext[N_ext-cnt]) SUMA_RETURN(NOPE);
+      ++cnt; 
+   } 
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
    \brief ans = SUMA_Extension(filename, ext, Remove);
       removes or enforces an arbitrary extension from/to a filename
    
@@ -205,7 +231,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
                                       Do nothing if it is not there already 
                                 NOPE = Add extension if not there
                                        Do nothing if it is there already    
-   \returns ans (char*) containing filename without ext
+   \returns ans (char*) containing modified filename 
   
    - You must free ans on your own
    Examples:

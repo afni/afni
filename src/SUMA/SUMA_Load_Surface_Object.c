@@ -3,17 +3,36 @@
    
 #include "SUMA_suma.h"
 
+
 /*#define  DO_SCALE_RANGE   *//*!< scale node coordinates to 0 <--> 100. DO NOT USE IT, OBSOLETE*/
 #ifndef DO_SCALE_RANGE
    #define DO_SCALE 319.7   /*!< scale node coordinates by specified factor. Useful for tesscon coordinate system in iv files*/
 #endif
 
-#ifdef SUMA_Read_SpecFile_STAND_ALONE
-   SUMA_CommonFields *SUMAg_CF;
+#undef STAND_ALONE
+
+#if defined SUMA_Read_SpecFile_STAND_ALONE
+#define STAND_ALONE
 #elif defined SUMA_Load_Surface_Object_STAND_ALONE
-   SUMA_CommonFields *SUMAg_CF;
-#else 
-   extern SUMA_CommonFields *SUMAg_CF; 
+#define STAND_ALONE
+#elif defined SUMA_SurfaceMetrics_STAND_ALONE
+#define STAND_ALONE 
+#endif
+
+#ifdef STAND_ALONE
+/* these global variables must be declared even if they will not be used by this main */
+SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
+#else
+extern SUMA_CommonFields *SUMAg_CF;
+extern SUMA_DO *SUMAg_DOv;
+extern SUMA_SurfaceViewer *SUMAg_SVv;
+extern int SUMAg_N_SVv; 
+extern int SUMAg_N_DOv;  
 #endif
 
 /* CODE */
@@ -1571,7 +1590,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
                } else SOinh = NULL;
          
                
-               if (!SUMA_SurfaceMetrics (SO, "EdgeList", SOinh)) {
+               if (!SUMA_SurfaceMetrics (SO, "EdgeList, MemberFace", SOinh)) {
                   fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                   SUMA_RETURN (NOPE);
                }
@@ -1667,16 +1686,53 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
    
    if (DoEL && SOinh) {
       if (strcmp(SO->MapRef_idcode_str, SOinh->idcode_str)) {
-         fprintf (SUMA_STDERR,"Warning %s: It appears that you wanted to inherit EL and FN. That was not possible.\n", FuncName);
+         SUMA_SL_Warn(  "Cannot inherit Edge List\n"
+                        "and First Neightbor.\n"
+                        "Cause: idcode mismatch.\n"
+                        "Independent lists will\n"
+                        "be created." );
          SOinh = NULL;
       }else if (!SOinh->EL_Inode || !SOinh->FN_Inode){
-         fprintf (SUMA_STDERR,"Warning %s: It appears that you wanted to inherit EL and FN. That was not possible because there Inodes are null.\n", FuncName);
+         SUMA_SL_Warn(  "Cannot inherit Edge List\n"
+                        "and First Neightbor.\n"
+                        "Cause: NULL inodes.\n"
+                        "Independent lists will\n"
+                        "be created.");
          SOinh = NULL;
       }else if (SO->N_Node != SOinh->N_Node || SO->N_FaceSet != SOinh->N_FaceSet) {
-         fprintf (SUMA_STDERR,"Warning %s: It appears that you wanted to inherit EL and FN. That was not possible of N_Node and N_FaceSet mismatch.\n", FuncName);
+         SUMA_SL_Warn(  "(IGNORE for surface patches)\n"
+                        "Cannot inherit Edge List\n"
+                        "and First Neightbor.\n"
+                        "Cause: Node number mismatch.\n"
+                        "Independent lists will\n"
+                        "be created.");
          SOinh = NULL;      
       }
    }
+   
+   if (DoMF && SOinh) {
+      if (strcmp(SO->MapRef_idcode_str, SOinh->idcode_str)) {
+         SUMA_SL_Warn(  "Cannot inherit MemberFaceSet\n"
+                        "Cause: idcode mismatch.\n"
+                        "Independent lists will\n"
+                        "be created." );
+         SOinh = NULL;
+      }else if (!SOinh->MF_Inode){
+         SUMA_SL_Warn(  "Cannot inherit MemberFaceSet\n"
+                        "Cause: NULL inodes.\n"
+                        "Independent lists will\n"
+                        "be created.");
+         SOinh = NULL;
+      }else if (SO->N_Node != SOinh->N_Node || SO->N_FaceSet != SOinh->N_FaceSet) {
+         SUMA_SL_Warn(  "(IGNORE for surface patches)\n"
+                        "Cannot inherit MemberFaceSet\n"
+                        "Cause: Node number mismatch.\n"
+                        "Independent lists will\n"
+                        "be created.");
+         SOinh = NULL;      
+      }
+   }
+   
     
    /* prerequisits */
    if (DoCurv) {
@@ -1836,26 +1892,549 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
    
    
    if (DoMF) {
-      /* determine the MemberFaceSets */
-      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Determining MemberFaceSets  ...\n", FuncName);
-      SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim);
-      if (SO->MF->NodeMemberOfFaceSet == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: Error in SUMA_MemberFaceSets\n", FuncName);
-         SO->MF = NULL;
+      if (!SOinh) {
+         /* determine the MemberFaceSets */
+         if (LocalHead) fprintf(SUMA_STDOUT, "%s: Determining MemberFaceSets  ...\n", FuncName);
+         SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim);
+         if (SO->MF->NodeMemberOfFaceSet == NULL) {
+            fprintf(SUMA_STDERR,"Error %s: Error in SUMA_MemberFaceSets\n", FuncName);
+            SO->MF = NULL;
+            SO->MF_Inode = NULL;
+         }else {
+            SO->MF_Inode = SUMA_CreateInode ((void *)SO->MF, SO->idcode_str);
+            if (!SO->MF_Inode) {
+               fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
+            }
+         }
+      } else { /* inherit */
+         if (LocalHead) fprintf(SUMA_STDOUT, "%s: Linking Member Facesets ...\n", FuncName);
+         SO->MF_Inode  = SUMA_CreateInodeLink (SO->MF_Inode, SOinh->MF_Inode);
+         if (!SO->MF_Inode) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         SO->MF = SOinh->MF;  
       }
    }
 
    SUMA_RETURN (YUP);
 }
 
-#ifdef SUMA_Read_SpecFile_STAND_ALONE
+#ifdef SUMA_SurfaceMetrics_STAND_ALONE
 
-SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
-SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
-int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-SUMA_CommonFields *SUMAg_CF;
+void usage_SUMA_SurfaceMetrics ()
+   {
+      printf ("\n\33[1mUsage: \33[0m SurfaceMetrics <-Metric1> [[-Metric2] ...] \n"
+              "\t<-i_TYPE inSurf> [<-sv SurfaceVolume [VolParam for sf surfaces]>]\n"
+              "\t[-tlrc] [<-prefix prefix>]\n\n");
+      printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Mon May 19 15:41:12 EDT 2003\n\n");   
+   }
+
+int main (int argc,char *argv[])
+{/* Main */
+   char FuncName[]={"Main_SUMA_SurfaceMetrics"};
+   char  *OutName=NULL, *OutPrefix = NULL, *if_name = NULL, 
+         *if_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
+         *tlrc_name = NULL;
+   SUMA_STRING *MetricList = NULL;
+   int i, n1, n2, n1_3, n2_3, kar, nt;
+   double edgeL2;
+   FILE *fout=NULL;
+   SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED;
+   SUMA_SurfaceObject *SO = NULL;   
+   SUMA_SFname *SF_name = NULL;
+   void *SO_name = NULL;   
+   THD_warp *warp=NULL ;
+   THD_3dim_dataset *aset=NULL;
+   SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
+                  Do_area, Do_edges, LocalHead = NOPE;  
+   
+   
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   if (argc < 4)
+       {
+          usage_SUMA_SurfaceMetrics ();
+          exit (1);
+       }
+   
+   MetricList = SUMA_StringAppend (NULL, NULL);
+   kar = 1;
+	brk = NOPE;
+   Do_tlrc = NOPE;
+   Do_conv = NOPE;
+   Do_area = NOPE;
+   Do_curv = NOPE;
+   Do_edges = NOPE;
+   OutPrefix = NULL;
+   
+	while (kar < argc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_SUMA_SurfaceMetrics();
+          exit (1);
+		}
+		
+		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -i_fs ");
+				exit (1);
+			}
+			if_name = argv[kar];
+         iType = SUMA_FREE_SURFER;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -i_sf");
+				exit (1);
+			}
+			if_name = argv[kar]; kar ++;
+         if_name2 = argv[kar];
+         iType = SUMA_SUREFIT;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_vec") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec");
+				exit (1);
+			}
+			if_name = argv[kar]; kar ++;
+         if_name2 = argv[kar];
+         iType = SUMA_VEC;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -i_ply ");
+				exit (1);
+			}
+			if_name = argv[kar];
+         iType = SUMA_PLY;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -prefix ");
+				exit (1);
+			}
+			OutPrefix = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
+         if (iType == SUMA_FT_NOT_SPECIFIED) {
+            fprintf (SUMA_STDERR, " -sv option must be preceeded by -i_TYPE option.");
+            exit(1);
+         }
+         kar ++;
+			if (iType == SUMA_SUREFIT) {
+            if (kar+1 >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 2 argument after -sv (SurfaceVolume and VolumeParent)");
+				   exit (1);
+			   }
+            sv_name = argv[kar]; kar ++;
+            vp_name = argv[kar];
+         } else {
+            if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need argument after -sv ");
+				   exit (1);
+			   }
+			   sv_name = argv[kar];
+         }
+			brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-tlrc") == 0)) {
+         Do_tlrc = YUP;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-conv") == 0)) {
+         Do_conv = YUP;
+         MetricList = SUMA_StringAppend (MetricList, "Convexity "); 
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-area") == 0)) {
+         Do_area = YUP;
+         MetricList = SUMA_StringAppend (MetricList, "PolyArea "); 
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-curv") == 0)) {
+         Do_curv = YUP;
+         MetricList = SUMA_StringAppend (MetricList, "Curvature "); 
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-edges") == 0)) {
+         Do_edges = YUP;
+         MetricList = SUMA_StringAppend (MetricList, "EdgeList "); 
+         brk = YUP;
+      }
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+
+   /* clean MetricList */
+   MetricList = SUMA_StringAppend (MetricList, NULL); 
+   
+   /* sanity checks */
+   if (!MetricList) {
+      SUMA_S_Err("No Metrics specified.\nNothing to do.\n");
+      exit(1);
+   }
+   
+   if (!if_name) {
+      SUMA_S_Err("Input surface not specified.\n");
+      exit(1);
+   }
+   
+   if (iType == SUMA_FT_NOT_SPECIFIED) {
+      SUMA_S_Err("Input type not recognized.\n");
+      exit(1);
+   }
+   
+   if (iType == SUMA_SUREFIT) {
+      if (!if_name2) {
+         SUMA_S_Err("Input SureFit surface incorrectly specified.\n");
+         exit(1);
+      }
+      if (sv_name && !vp_name) {
+         SUMA_S_Err("VolParent must specified with -sv potion for SureFit surfaces. \n");
+         exit(1);
+      }
+   }
+   
+   if (iType == SUMA_VEC) {
+      if (!if_name2) {
+         SUMA_S_Err("Input vec surface incorrectly specified.\n");
+         exit(1);
+      }
+   }
+   
+   /* test for existence of input files */
+   if (!SUMA_filexists(if_name)) {
+      fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
+      exit(1);
+   }
+   
+   if (if_name2) {
+      if (!SUMA_filexists(if_name2)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name2);
+         exit(1);
+      }
+   }
+
+   if (sv_name) {
+      if (!SUMA_filexists(sv_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, sv_name);
+         exit(1);
+      }
+   }
+   
+   if (Do_tlrc && !sv_name) {
+      fprintf (SUMA_STDERR,"Error %s: -tlrc must be used with -sv option.\n", FuncName);
+      exit(1);
+   }
+   
+   if (vp_name) {
+      if (!SUMA_filexists(vp_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, vp_name);
+         exit(1);
+      }
+   }
+
+   /* read the surface */
+   
+   /* prepare the name of the surface object to read*/
+   switch (iType) {
+      case SUMA_SUREFIT:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", if_name);
+         sprintf(SF_name->name_topo,"%s", if_name2); 
+         if (!vp_name) { /* initialize to empty string */
+            SF_name->name_param[0] = '\0'; 
+         }
+         else {
+            sprintf(SF_name->name_param,"%s", vp_name);
+         }
+         SO_name = (void *)SF_name;
+         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, sv_name);
+         break;
+      case SUMA_VEC:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", if_name);
+         sprintf(SF_name->name_topo,"%s", if_name2); 
+         SO_name = (void *)SF_name;
+         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
+         break;
+      case SUMA_FREE_SURFER:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
+         break;  
+      case SUMA_PLY:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
+         break;  
+      default:
+         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
+         exit(1);
+   }
+   
+   if (!SO) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
+      exit (1);
+   }
+   
+   if (Do_tlrc) {
+      fprintf (SUMA_STDOUT,"Performing talairach transform...\n");
+
+      /* form the tlrc version of the surface volume */
+      tlrc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+strlen(SO->VolPar->prefix)+60, sizeof(char));
+      sprintf (tlrc_name, "%s%s+tlrc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
+      if (!SUMA_filexists(tlrc_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, tlrc_name);
+         exit(1);
+      }
+      
+      /* read the tlrc header */
+      aset = THD_open_dataset(tlrc_name) ;
+      if( !ISVALID_DSET(aset) ){
+         fprintf (SUMA_STDERR,"Error %s: %s is not a valid data set.\n", FuncName, tlrc_name) ;
+         exit(1);
+      }
+      if( aset->warp == NULL ){
+         fprintf (SUMA_STDERR,"Error %s: tlrc_name does not contain a talairach transform.\n", FuncName);
+         exit(1);
+      }
+      
+      warp = aset->warp ;
+      
+      /* now warp the coordinates, one node at a time */
+      if (!SUMA_AFNI_forward_warp_xyz(warp, SO->NodeList, SO->N_Node)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNI_forward_warp_xyz.\n", FuncName);
+         exit(1);
+      }
+
+      
+      
+   }
+   
+   /* create the surface label*/
+   SO->Label = SUMA_SurfaceFileName (SO, NOPE);
+   if (!SO->Label) {
+      SUMA_S_Err("Failed to create Label");
+      exit(1);
+   }
+
+   if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
+   
+   /* Now do the deed */
+   SUMA_LH (MetricList->s);
+   
+   if (!SUMA_SurfaceMetrics (SO, MetricList->s, NULL)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+      exit(1);
+   }
+   
+   SUMA_LH ("Done with Metrics");
+   
+   /* output time */
+   if (!OutPrefix) {
+      OutPrefix = SUMA_copy_string(SO->Label);
+   }
+   
+   OutName = (char*) SUMA_malloc((strlen(OutPrefix) + 30) * sizeof(char));
+   
+   
+   if (Do_edges) {
+      
+      SUMA_S_Note("Writing edges...");
+      
+      if (!SO->EL) {
+         SUMA_S_Err("Edge list not computed.");
+         exit(1);
+      }
+      
+      sprintf(OutName, "%s.edges", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Edge output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Edge List\n");
+      fprintf (fout,"#eI = Edge Index\n");
+      fprintf (fout,"#n1 = Node 1\n");
+      fprintf (fout,"#n2 = Node 2\n");
+      fprintf (fout,"#nt = Number of triangles containing edge\n"); 
+      fprintf (fout,"#eL = Edge Length\n");
+      fprintf (fout,"#eI\tn1\tn2\tnt\teL\n\n");
+      for (i=0; i < SO->EL->N_EL; ++i) {
+         if (SO->EL->ELps[i][2] >= 0) {
+            n1 = SO->EL->EL[i][0];
+            n2 = SO->EL->EL[i][1];
+            nt = SO->EL->ELps[i][2];
+            n1_3 = 3 * n1;
+            n2_3 = 3 * n2;
+            edgeL2 = ( (SO->NodeList[n2_3] - SO->NodeList[n1_3]) * (SO->NodeList[n2_3] - SO->NodeList[n1_3]) ) +
+                     ( (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) * (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) ) +
+                     ( (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) * (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) ); 
+                     
+            fprintf (fout,"%d\t%d\t%d\t%d\t%f\n",
+                  i, n1, n2, nt, sqrt(edgeL2));
+                  
+         }   
+      }
+      fclose(fout); fout = NULL;
+      
+   }
+   
+   if (Do_area) {
+      SUMA_S_Note("Writing areas...");
+      
+      if (!SO->PolyArea) {
+         SUMA_S_Err("Areas not computed");
+         exit(1);
+      }  
+      
+      sprintf(OutName, "%s.area", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Area output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#FaceSet Area\n");
+      fprintf (fout,"#fI = FaceSet Index\n");
+      fprintf (fout,"#fA = FaceSet Area\n");
+      fprintf (fout,"#fI\t#fA\n\n");
+      
+      for (i=0; i < SO->N_FaceSet; ++i) {
+         fprintf (fout,"%d\t%f\n", i, SO->PolyArea[i]);
+      }  
+      
+      fclose(fout); fout = NULL;
+   }
+   
+   if (Do_curv) {
+      SUMA_S_Note("Writing curvatures ...");
+      
+      if (!SO->SC) {
+         SUMA_S_Err("Curvatures not computed");
+         exit(1);
+      }
+      
+      sprintf(OutName, "%s.curv", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Curvature output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }  
+      
+      fprintf (fout,"#Curvature\n");
+      fprintf (fout,"#nI = Node Index\n");
+      fprintf (fout,"#T1 = 1 x 3 vector of 1st principal direction of surface\n");
+      fprintf (fout,"#T2 = 1 x 3 vector of 2nd principal direction of surface\n");
+      fprintf (fout,"#Kp1 = curvature along T1\n");
+      fprintf (fout,"#Kp2 = curvature along T2\n");
+      fprintf (fout,"#nI\tT1[0]\tT1[1]\tT1[2]\tT2[0]\tT2[1]\tT2[2]\tKp1\tKp2\n\n");
+      
+      for (i=0; i < SO->N_Node; ++i) {
+         fprintf (fout,"%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
+            i, SO->SC->T1[i][0], SO->SC->T1[i][1], SO->SC->T1[i][2], 
+            SO->SC->T2[i][0], SO->SC->T2[i][1], SO->SC->T2[i][2],
+            SO->SC->Kp1[i], SO->SC->Kp2[i] );
+      }
+      
+      fclose(fout); fout = NULL;
+   }
+   
+   if (Do_conv) {
+      SUMA_S_Note("Writing convexities ...");
+      
+      if (!SO->Cx) {
+         SUMA_S_Err("Convexities not computed");
+         exit(1);
+      }
+      
+      sprintf(OutName, "%s.conv", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Convexities output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }  
+      
+      fprintf (fout,"#Convexity\n");
+      fprintf (fout,"nI = Node Index\n");
+      fprintf (fout,"C = Convexity\n");
+      fprintf (fout,"#nI\tC\n\n");
+      
+      for (i=0; i < SO->N_Node; ++i) {
+         fprintf (fout,"%d\t%f\n", i, SO->Cx[i]);
+      }
+      
+      fclose(fout); fout = NULL;
+   }   
+   
+   SUMA_LH("Clean up");
+   /* clean up */
+   if (MetricList) SUMA_free(MetricList);
+   if (OutPrefix) SUMA_free(OutPrefix);
+   if (OutName) SUMA_free(OutName);   
+   if (SO) SUMA_Free_Surface_Object(SO);
+   
+   return(0);
+} /* Main */
+#endif
+
+#ifdef SUMA_Read_SpecFile_STAND_ALONE
 
 void usage_SUMA_Read_SpecFile ()
    
@@ -1900,13 +2479,6 @@ int main (int argc,char *argv[])
 #endif
 
 #ifdef SUMA_Load_Surface_Object_STAND_ALONE
-
-SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
-SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
-int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-SUMA_CommonFields *SUMAg_CF;
 
 void usage_SUMA_Load_Surface_Object_STAND_ALONE ()
    

@@ -5444,10 +5444,7 @@ int SUMA_ReadNumStdin (float *fv, int nv)
    while (nvr < nv && !eos) {
       fv[nvr] = strtod(strtp, &endp);
       if (LocalHead) fprintf (SUMA_STDERR, "Local Debug %s: ERANGE: %d, EDOM %d, errno %d\n", FuncName, ERANGE, EDOM, errno); 
-      if (errno) {
-         fprintf(SUMA_STDERR,"Error %s: Syntax error reading item %d.\n", FuncName, i);
-         SUMA_RETURN (-1);
-      }
+      
       if (endp == strtp) { 
          eos = YUP;
       } else {
@@ -5509,10 +5506,7 @@ SUMA_Boolean SUMA_isNumString (char *s, void *p)
    while (!eos) {
       d = strtod(strtp, &endp);
       if (LocalHead) fprintf (SUMA_STDERR, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
-      if (errno) {
-         SUMA_SLP_Err("Syntax error in parsing string.");
-         SUMA_RETURN (NOPE);
-      }
+      
 
       if (endp == strtp && *endp=='\0') { 
          eos = YUP;
@@ -5582,11 +5576,7 @@ int SUMA_StringToNum (char *s, float *fv, int N)
    while (!eos) {
       d = strtod(strtp, &endp);
       if (LocalHead) fprintf (SUMA_STDERR, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
-      if (errno) {
-         SUMA_SLP_Err("Syntax error in parsing string.");
-         SUMA_RETURN (NOPE);
-      }
-
+      
       if (endp == strtp && *endp=='\0') { 
          eos = YUP;
       } else {
@@ -5766,6 +5756,8 @@ int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted )
          }
    }
    ++*kunq;
+   
+   
    /* get rid of extra space allocated */
    xunq = (int *) SUMA_calloc(*kunq,sizeof(int));
    SUMA_COPY_VEC(xtmp,xunq,*kunq,int,int);

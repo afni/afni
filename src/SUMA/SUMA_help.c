@@ -88,22 +88,33 @@ char * SUMA_help_message_Info(void)
       "\t  f: functional overlay, toggle.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  J: Set the selected FaceSet on SO in Focus.\n"
-      "\t     Does not update in other viewers.\n");
+      "\t     Does not update in other viewers\n"
+      "\t     or in AFNI\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  j: Set the cross hair to a certain node on \n"
       "\t     SO in Focus.\n"
-      "\t     Does not update in other viewers\n");
+      "\t     Does update in other viewers\n"
+      "\t     if linked by index"
+      "\t     and AFNI if connected\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+j: Set the cross hair's XYZ location. \n"
-      "\t          Does not update in other viewers\n");
+      "\t     Does update in other viewers\n"
+      "\t     if linked by XYZ"
+      "\t     and AFNI if connected\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  Alt+j: Set the Focus node. \n"
-      "\t         Cross hair's XYZ remain unchanged.\n"
-      "\t         Does not update in other viewers\n\n");
+      "\t     Cross hair's XYZ remain unchanged.\n"
+      "\t     Does not update in other viewers\n"
+      "\t     or in AFNI\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  H: Highlight nodes inside a specified box.\n");
+      "\t  H: Highlight nodes inside a specified box.\n"
+      "\t     Does not update other viewers\n"
+      "\t     Paints into existing colors\n"
+      "\t     Highlight is wiped out with new\n"
+      "\t     colors.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  h: NO LONGER USED\n");
+      "\t  h: NO LONGER USED.\n"
+      "\t     Please use Ctrl+h instead.\n");
    SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+h: help message\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
@@ -144,9 +155,13 @@ char * SUMA_help_message_Info(void)
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  v: Show current surface viewer structure (cSV).\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  w: Write the rendered scene to an image file \n"
-      "\t     on disk. \n"
-      "\t     (Surface_Label*.eps or suma_img*.eps).\n");
+      "\t  w: Write the rendered scene to an \n"
+      "\t     image file on disk. (Surface_Label*.eps\n"
+      "\t     or suma_img*.eps).\n"
+      "\t     You are better off using a screen\n"
+      "\t     (Surface_Label*.eps or suma_img*.eps).\n"
+      "\t     grab instead. (like xv on unix systems,\n"
+      "\t     and grab on Macs.\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  W: Write ascii files containing the NodeList,\n"
       "\t     the FaceSetList and the nodecolors of the \n"

@@ -3,6 +3,8 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 extern SUMA_DO *SUMAg_DOv;
+extern SUMA_SurfaceViewer *SUMAg_SVv;
+extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;
 
 /*!
@@ -451,7 +453,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                      case SUMA_ROI_FilledArea:
                         SUMA_LH("Pink First, Yellow Next");
                         SUMA_COPY_VEC(Pink, ROI_SphCol_frst, 4, GLfloat, GLfloat);
-                        SUMA_COPY_VEC(Yellow, ROI_SphCol, 4, GLfloat, GLfloat);       
+                        SUMA_COPY_VEC(Cyan, ROI_SphCol, 4, GLfloat, GLfloat);       
                         break;   
                      default:
                         SUMA_LH("Default");
@@ -460,70 +462,93 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                         break;
 
                   }
+                  /* start with the first element */
+                  NextElm = NULL;
+                  N_ROId = 0;
+                  do {
+                     if (!NextElm) {
+                        NextElm = dlist_head(D_ROI->ROIstrokelist);
+                     }else {
+                        NextElm = dlist_next(NextElm);
+                     }
+                     ROId = (SUMA_ROI_DATUM *)NextElm->data;
+                     if (ROId->Type == SUMA_ROI_NodeSegment) { 
+                        if (ROId->N_n) {
+                           if (!N_ROId) {
+                              /* draw 1st sphere */
+                              SUMA_LH("First sphere");
+                              glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol_frst);
+                              idFirst = 3 * ROId->nPath[0];
+                              glTranslatef (SO->NodeList[idFirst], SO->NodeList[idFirst+1], SO->NodeList[idFirst+2]);
+                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                              glTranslatef (-SO->NodeList[idFirst], -SO->NodeList[idFirst+1], -SO->NodeList[idFirst+2]);
+                           } 
+
+                           glLineWidth(6);
+                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol);
+                           /* always start at 1 since the 0th node was draw at the end of the previous ROId */
+                           for (ii = 1; ii < ROId->N_n; ++ii) {
+                              id = 3 * ROId->nPath[ii];
+                              id2 = 3 * ROId->nPath[ii-1];
+
+                              /* draw lines connecting spheres */
+                              glBegin(GL_LINES);
+                              glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], SO->NodeList[id2+2]);
+                              glVertex3f(SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]); 
+                              glEnd();
+
+                              glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
+                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                              glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                           }
+
+
+                           ++N_ROId;
+                        }
+                     } else { /* non segment type Drawn ROI */
+                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_NodeGroup);
+                           for (ii=0; ii < ROId->N_n; ++ii) {
+                              id = 3 * ROId->nPath[ii];
+                              glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
+                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                              glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                           }
+
+                     }
+                  } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
                } else {
-                  /* finished, mark it as such */
+                  /* finished, draw contour */
                   SUMA_LH("Finished DROI");
                   ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.3; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
                   ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;
+                  
+                  
+                  if (D_ROI->CE) {
+                     int id1cont, id2cont, icont;
+                     /* Draw the contour */
+                     glLineWidth(6);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol);
+                     
+                     for (icont = 0; icont < D_ROI->N_CE; ++icont) {
+                        SUMA_LH("Drawing contour ...");
+                        id1cont = 3 * D_ROI->CE[icont].n1;
+                        id2cont = 3 * D_ROI->CE[icont].n2;
+                        glBegin(GL_LINES);
+                        glVertex3f(SO->NodeList[id2cont], SO->NodeList[id2cont+1], SO->NodeList[id2cont+2]);
+                        glVertex3f(SO->NodeList[id1cont], SO->NodeList[id1cont+1], SO->NodeList[id1cont+2]); 
+                        glEnd();
+                     }
+                  }
+                  
+                  
+                  
                }
 
-               /* start with the first element */
-               NextElm = NULL;
-               N_ROId = 0;
-               do {
-                  if (!NextElm) {
-                     NextElm = dlist_head(D_ROI->ROIstrokelist);
-                  }else {
-                     NextElm = dlist_next(NextElm);
-                  }
-                  ROId = (SUMA_ROI_DATUM *)NextElm->data;
-                  if (ROId->Type == SUMA_ROI_NodeSegment) { 
-                     if (ROId->N_n) {
-                        if (!N_ROId) {
-                           /* draw 1st sphere */
-                           SUMA_LH("First sphere");
-                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol_frst);
-                           idFirst = 3 * ROId->nPath[0];
-                           glTranslatef (SO->NodeList[idFirst], SO->NodeList[idFirst+1], SO->NodeList[idFirst+2]);
-                           gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                           glTranslatef (-SO->NodeList[idFirst], -SO->NodeList[idFirst+1], -SO->NodeList[idFirst+2]);
-                        } 
-
-                        glLineWidth(6);
-                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol);
-                        /* always start at 1 since the 0th node was draw at the end of the previous ROId */
-                        for (ii = 1; ii < ROId->N_n; ++ii) {
-                           id = 3 * ROId->nPath[ii];
-                           id2 = 3 * ROId->nPath[ii-1];
-
-                           /* draw lines connecting spheres */
-                           glBegin(GL_LINES);
-                           glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], SO->NodeList[id2+2]);
-                           glVertex3f(SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]); 
-                           glEnd();
-
-                           glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                           gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                           glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
-                        }
-
-                        
-                        ++N_ROId;
-                     }
-                  } else { /* non segment type Drawn ROI */
-                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_NodeGroup);
-                        for (ii=0; ii < ROId->N_n; ++ii) {
-                           id = 3 * ROId->nPath[ii];
-                           glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                           gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                           glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
-                        }
-                  
-                  }
-               } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
             }
             break;
+            
          case ROIO_type:
+            /* hopefully he distinction between drawn and not drawn will no longer be needed .... */
             ROI = (SUMA_ROI *)dov[i].OP;
             if (SUMA_isROIrelated (ROI, SO)) { /* draw it */
                if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing ROI %s \n", FuncName, ROI->Label);
@@ -609,11 +634,417 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
             /* not an ROI */
             break;
       }/* case Object Type */
+      
    }
-
 
    SUMA_RETURN (YUP);
 }         
+
+/*!
+   \brief Where real men draw their ROIs
+   
+   - First the function creates a list
+   of the various ROI planes on SO
+   - For each plane
+      - Fill them up with ROIs nodes, do mixing if necessary
+   
+   
+*/
+SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO, 
+                                       SUMA_DO* dov, int N_do)
+{
+   static char FuncName[]={"SUMA_Paint_SO_ROIplanes"};
+   DList * ROIPlaneList = NULL;
+   SUMA_ROI_PLANE *Plane = NULL;
+   int *N_ColHist = NULL, *ivect = NULL, *Nodes=NULL;
+   float *r=NULL, *g=NULL, *b=NULL, *rvect=NULL, *gvect=NULL, *bvect=NULL;
+   int i, ii, N_NewNode, istore, OverInd=-1, inode, i_D_ROI, LastOfPreSeg, N_Nodes=0;
+   SUMA_OVERLAY_PLANE_DATA sopd;
+   DListElmt *NextPlaneElm = NULL, *NextROIElm = NULL, *NextElm=NULL;
+   SUMA_DRAWN_ROI *D_ROI = NULL;
+   SUMA_ROI_DATUM *ROId=NULL;
+   SUMA_Boolean Unique = NOPE, LocalHead = NOPE;
+            
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /* intilialize list */
+   ROIPlaneList = SUMA_Addto_ROIplane_List (NULL, NULL, 0);
+   
+   /* go through all ROIs and place each under its ROI plane */
+   for (i=0; i < N_do; ++i) {
+      switch (dov[i].ObjectType) { /* case Object Type */
+         case ROIdO_type:
+            D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+            break;
+         default:
+            D_ROI = NULL;
+            break;
+      }
+      if (D_ROI && SUMA_isdROIrelated (D_ROI, SO)) {
+         /* found one, put it in list if useful */
+         if (D_ROI->ROIstrokelist) {
+            if (dlist_size(D_ROI->ROIstrokelist)) {
+               SUMA_LH("Adding plane");
+               /* add it to plane list */
+               ROIPlaneList = SUMA_Addto_ROIplane_List ( ROIPlaneList,
+                                                         dov, i);
+                                                         
+            }
+         }
+      
+      }
+   }   
+   
+   /* For each ROI plane */
+   NextPlaneElm = NULL;
+   for (i=0; i < dlist_size(ROIPlaneList); ++i) {
+      if (!NextPlaneElm) NextPlaneElm = dlist_head(ROIPlaneList);
+      else NextPlaneElm = NextPlaneElm->next;
+
+      Plane = (SUMA_ROI_PLANE *)NextPlaneElm->data;
+      
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Processing plane %s\n", FuncName, Plane->name);
+      
+      if (!dlist_size(Plane->ROI_index_lst)) continue;
+      
+      /* allocate for node color history and all node colors */
+      N_ColHist = (int *) SUMA_calloc(SO->N_Node, sizeof (int));
+      r = (float *)SUMA_malloc (SO->N_Node*sizeof(float));
+      g = (float *)SUMA_malloc (SO->N_Node*sizeof(float));
+      b = (float *)SUMA_malloc (SO->N_Node*sizeof(float));
+      if (!N_ColHist || !r || !g || !b) {
+         SUMA_SLP_Crit( "Failed to allocate.\n"
+                        "for N_ColHist, r, g or b.");
+         SUMA_RETURN(NOPE);
+      }
+      
+      N_NewNode = 0; /* keep track of the total number of colored nodes */
+      /* now go through each ROI in that plane and merge the colors */
+      NextROIElm = NULL;
+      do {
+         SUMA_LH("New NextROIElm");
+         if (!NextROIElm) NextROIElm = dlist_head(Plane->ROI_index_lst);
+         else NextROIElm = NextROIElm->next;
+         i_D_ROI = (int)(NextROIElm->data);
+         if (LocalHead) fprintf (SUMA_STDERR, 
+                                 "%s: Working with DO %d/%d.\n",
+                                 FuncName,  i_D_ROI, N_do);  
+         D_ROI = (SUMA_DRAWN_ROI *) dov[i_D_ROI].OP;
+         
+         /* now for each node in the DrawnROI, add its color */
+         N_Nodes = 0;
+         Unique = YUP; /* This is to eliminate redundant nodes 
+                        that can legally occur when the path loops
+                        over itself. As a result, nodes
+                        that are visited multiple times appear
+                        brighter than the surrounding. */
+         Nodes = SUMA_NodesInROI (D_ROI, &N_Nodes, Unique);
+         if (Nodes) {
+            for (ii=0; ii < N_Nodes; ++ii) {
+               inode = Nodes[ii];
+               if (!N_ColHist[inode]) {
+                  r[inode] = D_ROI->FillColor[0];
+                  g[inode] = D_ROI->FillColor[1];
+                  b[inode] = D_ROI->FillColor[2];
+                  ++N_NewNode;
+               } else { /* already used up color, add new color */
+                  SUMA_LH("Revisiting Color");
+                  r[inode] = r[inode] + D_ROI->FillColor[0];
+                  g[inode] = g[inode] + D_ROI->FillColor[1];
+                  b[inode] = b[inode] + D_ROI->FillColor[2];
+               }
+               ++N_ColHist[inode];
+            }
+            
+            SUMA_free(Nodes);
+         }
+      } while (NextROIElm != dlist_tail(Plane->ROI_index_lst));
+      
+      SUMA_LH("Scaling and storing ");
+      /* create a conveninent list of the colors that goes into */
+      ivect = (int *)SUMA_malloc(N_NewNode * sizeof(int));
+      rvect = (float *)SUMA_malloc(N_NewNode * sizeof(float));
+      gvect = (float *)SUMA_malloc(N_NewNode * sizeof(float));
+      bvect = (float *)SUMA_malloc(N_NewNode * sizeof(float));
+      if (!ivect || !rvect || !gvect || !bvect) {
+         SUMA_SLP_Crit( "Failed to allocate.\n"
+                        "for *vect family");
+         SUMA_RETURN(NOPE);
+      }
+      
+      istore = 0;
+      for (ii=0; ii < SO->N_Node; ++ii) {
+         if (N_ColHist[ii]) {
+            #if 0
+               /* You do not want to average the colors after summing them
+               because that will have the effect of dimming them.
+               Say you had 0 0 1 and 0 1 0
+               You'll end up with 0 0.5 0.5 which does not have the 
+               same brightness as the original colors.
+               You might want to make the brightness uniform but
+               we leave that for posterity ...
+               */ 
+               if (N_ColHist[ii] > 1) {
+                  /* scale the summed colors for that plane */
+                  
+                  r[ii] /= N_ColHist[ii];
+                  g[ii] /= N_ColHist[ii];
+                  b[ii] /= N_ColHist[ii];
+               }
+            #endif
+            /* put the colors in the short vectors */
+            ivect[istore] = ii;
+            rvect[istore] = r[ii];
+            gvect[istore] = g[ii];
+            bvect[istore] = b[ii];
+            ++istore;
+         }
+      }
+      
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: N_NewNode = %d, istore = %d.\n",
+                                    FuncName, N_NewNode, istore);
+      SUMA_LH("Freedom");
+      /* free the big ones */
+      SUMA_free(N_ColHist); 
+      SUMA_free(r); 
+      SUMA_free(g); 
+      SUMA_free(b);
+      
+
+      /* put the colors in a color plane */
+      sopd.N = N_NewNode;
+      sopd.Type = SOPT_ifff;
+      sopd.Source = SES_Suma;
+      sopd.GlobalOpacity = 0.3;
+      sopd.BrightMod = NOPE;
+      sopd.Show = YUP;
+      sopd.DimFact = 0.5;
+      sopd.i = (void *)ivect;
+      sopd.r = (void *)rvect;
+      sopd.g = (void *)gvect;
+      sopd.b = (void *)bvect;
+      sopd.a = NULL;
+
+      if (!SUMA_iRGB_to_OverlayPointer (SO, Plane->name, &sopd, &OverInd, dov, N_do)) {
+         SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
+         SUMA_RETURN(NOPE);
+      }      
+      
+   }
+      
+   SUMA_LH("Destroying list");
+   /* destroy plane list */
+   dlist_destroy (ROIPlaneList);
+
+   /* Set the remix flag for that surface */
+   if(!SUMA_SetRemixFlag (SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SetRemixFlag.\n", FuncName);
+      SUMA_RETURN(NOPE);
+   }   
+   
+   /* should be cool, now return */   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique) 
+   Returns a vector containing the number of nodes making up an ROI 
+   
+   \param D_ROI (SUMA_DRAWN_ROI *)
+   \param N_Nodes (int *) updated with the total number of nodes in Nodes
+   \param Unique (SUMA_Boolean) Remove repeated node occurences
+   \return Nodes (int *) N_Nodesx1 vector of nodes forming ROI
+*/
+int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique) 
+{
+   static char FuncName[]={"SUMA_NodesInROI"};
+   int *Nodes = NULL, LastOfPreSeg, N_max = -1, ii;
+   DListElmt *NextElm = NULL;
+   SUMA_ROI_DATUM *ROId=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!dlist_size(D_ROI->ROIstrokelist)) {
+      *N_Nodes = 0;
+      SUMA_RETURN (NULL);
+   }
+   
+   /* a quick count of number of nodes */
+   N_max = 0;
+   NextElm = NULL;
+   do {
+      if (!NextElm) NextElm = dlist_head(D_ROI->ROIstrokelist);
+      else NextElm = dlist_next(NextElm);
+      ROId = (SUMA_ROI_DATUM *)NextElm->data;
+      N_max += ROId->N_n;
+   }while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
+   
+   if (!N_max) {
+      *N_Nodes = 0;
+      SUMA_RETURN (NULL);
+   }
+   
+   Nodes = (int*)SUMA_malloc(N_max*sizeof(int));
+   if (!Nodes) {
+      SUMA_SLP_Crit("Failed to allocate for Nodes.");
+      *N_Nodes = -1;
+      SUMA_RETURN(NULL);
+   }
+     
+   /* Fill 'er up */
+   *N_Nodes = 0;
+   LastOfPreSeg = -1; /* index of last node in previous segment */
+   NextElm = NULL;
+   do {
+      if (!NextElm) NextElm = dlist_head(D_ROI->ROIstrokelist);
+      else NextElm = dlist_next(NextElm);
+
+      ROId = (SUMA_ROI_DATUM *)NextElm->data;
+      
+      for (ii=0; ii < ROId->N_n; ++ii) {
+         if (ROId->nPath[ii] != LastOfPreSeg) {
+            Nodes[*N_Nodes] = ROId->nPath[ii];
+            ++ *N_Nodes;
+         }
+      }
+      if (ROId->N_n) { /* store last node of segment */
+         LastOfPreSeg = ROId->nPath[ROId->N_n - 1];
+      } else {
+         LastOfPreSeg = -1;
+      }
+   } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
+
+   /* user wants sorting ? */
+   if (Unique) {
+      int *Nodes_Unq = NULL;
+      int N_Nodes_Unq = -1;
+      Nodes_Unq = SUMA_UniqueInt (Nodes, *N_Nodes, &N_Nodes_Unq, 0);
+      if (Nodes) SUMA_free(Nodes);  Nodes = NULL; 
+      *N_Nodes = N_Nodes_Unq;
+      Nodes = Nodes_Unq;
+   } 
+      
+   SUMA_RETURN(Nodes);
+   
+}
+
+void SUMA_Free_ROI_PlaneData (void *da)
+{
+   static char FuncName[]={"SUMA_Free_ROI_PlaneData"};
+   SUMA_ROI_PLANE *pl = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   pl = (SUMA_ROI_PLANE *)da;
+   
+   if (!pl) SUMA_RETURNe;
+   
+   /* destroy the list containing ROIs belonging to plane */
+   if (pl->ROI_index_lst) dlist_destroy (pl->ROI_index_lst);
+   if (pl->name) SUMA_free(pl->name);
+   
+   /* now free the structure */
+   SUMA_free(pl);
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Adds and ROI in the list of ROI planes
+   
+   ROIplaneList = SUMA_Addto_ROIplane_List (ROIplaneListIn,
+                                             dov, idov);
+   
+   \param ROIplaneListIn (DList *) the list of 
+      ROI planes
+   \param dov (SUMA_DO *) vector of displayable objects
+   \param idov (int) index into dov of DrawnROI object
+   \return ROIplaneList DList *) the updated
+      list of ROI planes
+   
+   - If the ROI is part of a new plane, 
+   the plane is added to the list and the ROI
+   is placed under that plane.
+   - If the ROI is part of a plane in the list
+   then the ROI is placed under that plane
+   - The first time you call the function, 
+   send in NULL for ROIplaneListIn to initialize
+   the list.
+   - The subsequent times you call the function
+   use the returned ROIplaneList for ROIplaneListIn
+   
+*/
+DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
+{
+   static char FuncName[]={"SUMA_Addto_ROIplane_List"};
+   DList *ROIplaneList = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_DRAWN_ROI *D_ROI = NULL;
+   char *UsedName = NULL;
+   SUMA_DO *doel = NULL;
+   SUMA_ROI_PLANE *Plane;
+   int i;
+   SUMA_Boolean found = NOPE, LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!ROIplaneListIn) { /* initialization land */
+      ROIplaneList = (DList *)SUMA_malloc(sizeof(DList));
+      dlist_init (ROIplaneList, SUMA_Free_ROI_PlaneData);
+      SUMA_RETURN(ROIplaneList);
+   } else {
+      ROIplaneList = ROIplaneListIn;
+   }
+   
+   doel = &(dov[idov]);
+   
+   if (doel->ObjectType != ROIdO_type) {
+      SUMA_SLP_Crit("Only planning to deal\n"
+                   "with ROIdO_type type");
+      dlist_destroy(ROIplaneList);
+      SUMA_RETURN(NULL);
+   }
+   
+   D_ROI = D_ROI = (SUMA_DRAWN_ROI *)doel->OP;
+   
+   /* What is the name of this ROI's plane ?*/
+   if (!D_ROI->ColPlaneName) {
+      /* Bad, no color plane name, give it a fake one */
+      UsedName = SUMA_copy_string("DefROIpl");
+   }else {
+      UsedName = SUMA_copy_string(D_ROI->ColPlaneName);
+   }
+   
+   /* search for the plane name in the list */
+   i = 0;
+   found = NOPE;
+   Plane = NULL;
+   while (!found && i < ROIplaneList->size) {
+      if (i == 0) NextElm = dlist_head(ROIplaneList);
+      else NextElm = dlist_next(NextElm);
+      Plane = (SUMA_ROI_PLANE *)NextElm->data;
+      if (strcmp (UsedName,Plane->name) == 0) {
+         SUMA_LH("PlaneFound");
+         found = YUP;
+         SUMA_free(UsedName); /* no longer needed */
+      }
+      ++i;
+   }
+   
+   if (!found) { /* must create this plane */
+      Plane = (SUMA_ROI_PLANE *)SUMA_malloc(sizeof(SUMA_ROI_PLANE));
+      Plane->name = UsedName; /* preserved, don't go freeing UsedName later! */
+      Plane->ROI_index_lst = (DList *) SUMA_malloc(sizeof(DList));
+      dlist_init(Plane->ROI_index_lst, NULL);
+      dlist_ins_next(ROIplaneList, dlist_tail(ROIplaneList), (void *)Plane);
+   }
+   
+   /* now put the ROI in question in that list, easiest is to store its index into dov */
+   dlist_ins_next(Plane->ROI_index_lst, dlist_tail(Plane->ROI_index_lst), (void *)idov);
+   
+   /* OK, done, now return */
+   SUMA_RETURN(ROIplaneList);
+}
 
 /*! Create the cross hair */
 SUMA_Boolean SUMA_DrawCrossHair (SUMA_CrossHair* Ch)
@@ -1038,11 +1469,6 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->Name.Path\n", FuncName);
    if (SO->Name.Path) SUMA_free(SO->Name.Path);
    if (SO->MeshAxis) SUMA_Free_Axis (SO->MeshAxis);
-   if (SO->MF) {
-      if (!SUMA_Free_MemberFaceSets (SO->MF)) {
-            fprintf(SUMA_STDERR,"Error SUMA_Free_Surface_Object : Failed to free SO->MF");
-         }
-   }
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->NodeMarker\n", FuncName);
    if (SO->NodeMarker) SUMA_Free_SphereMarker (SO->NodeMarker);
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->FaceSetMarker\n", FuncName);
@@ -1125,6 +1551,18 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    }
    SO->EL = NULL;
    SO->EL_Inode = NULL;
+
+   if (SO->MF_Inode || SO->MF){ /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
+      if (SUMA_ReleaseLink(SO->MF_Inode)) { 
+         /* some links are left, do not free memory */
+      } else {
+         if (SO->MF) SUMA_Free_MemberFaceSets (SO->MF);
+         /* now free SO->MF_Inode */
+         SUMA_free(SO->MF_Inode);
+      }
+   }
+   SO->MF = NULL;
+   SO->MF_Inode = NULL;
 
    if (SO->SurfCont) SUMA_FreeSurfContStruct(SO->SurfCont);
    
@@ -1579,6 +2017,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Label = NULL;
       SO[i].EmbedDim = 3;
       SO[i].MF = NULL;
+      SO[i].MF_Inode = NULL;
       SO[i].FN = NULL;
       SO[i].FN_Inode = NULL;
       SO[i].EL = NULL;
@@ -1664,8 +2103,10 @@ SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI)
    if (D_ROI->Parent_idcode_str) SUMA_free(D_ROI->Parent_idcode_str);
    if (D_ROI->idcode_str) SUMA_free(D_ROI->idcode_str);
    if (D_ROI->Label) SUMA_free(D_ROI->Label);
+   if (D_ROI->ColPlaneName) SUMA_free(D_ROI->ColPlaneName); 
    if (D_ROI->ROIstrokelist) SUMA_EmptyDestroyList(D_ROI->ROIstrokelist);
    if (D_ROI->ActionStack) SUMA_EmptyDestroyActionStack(D_ROI->ActionStack);
+   if (D_ROI->CE) SUMA_free(D_ROI->CE);
    if (D_ROI) SUMA_free(D_ROI);
    
    SUMA_RETURN (YUP);
@@ -1735,6 +2176,8 @@ SUMA_ROI *SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char *l
    \param label (char *) label ascii label to label ROI. If you pass NULL, a number is assigned to the ROI automatically
    \param ilabel (int) integer label (or value)
    \return (SUMA_DRAWN_ROI *) D_ROI pointer to ROI object created
+   
+   \sa SUMA_NIMLDrawnROI_to_DrawnROI where a SUMA_DRAWN_ROI is also created
 */
 SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_STATUS DrawStatus, 
                                        SUMA_ROI_DRAWING_TYPE Type, char *label, int ilabel) 
@@ -1748,8 +2191,13 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING
    D_ROI = (SUMA_DRAWN_ROI *) SUMA_malloc (sizeof(SUMA_DRAWN_ROI));
    D_ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
    D_ROI->Parent_idcode_str = (char *)SUMA_calloc (strlen(Parent_idcode_str)+1, sizeof (char));
+   D_ROI->ColPlaneName = SUMA_copy_string("DefROIpl");
+   D_ROI->FillColor[0] = 1.0; D_ROI->FillColor[1] = 0.0; D_ROI->FillColor[2] = 0.0;
+   D_ROI->EdgeColor[0] = 0.0; D_ROI->EdgeColor[1] = 0.0; D_ROI->EdgeColor[2] = 1.0;
    D_ROI->ROIstrokelist = (DList *)SUMA_malloc (sizeof(DList));
    dlist_init(D_ROI->ROIstrokelist, SUMA_FreeROIDatum);
+   D_ROI->CE = NULL;
+   D_ROI->N_CE = -1;
    
    if (label) D_ROI->Label = (char *)SUMA_calloc (strlen(label)+1, sizeof(char));
    else D_ROI->Label = (char *)SUMA_calloc (20, sizeof(char));
@@ -2282,3 +2730,86 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
    SUMA_RETURN(ROIfill);
 }
 
+/*! 
+   \brief function to turn a set of nodes into a DrawnROI
+   
+   \param Node (int *) pointer to set of nodes forming ROI
+               Redundant nodes are removed. Nodes are copied
+               to new location so you can free this pointer
+               if you wish.
+   \param N_Node (int) number of nodes in ROI
+   \param Value (int) to go in ROI->iLabel
+   \param Parent_idcode_str (char *) to get copied into 
+         ROI->Parent_idcode_str
+   \param Label (char *) to get copied into ROI->Label
+   \param ColPlaneName (char *) to get copied into ROI->ColPlaneName 
+   \param FillColor (float[3])
+   \param EdgeColor (float[3])
+   \param EdgeThickness (int)
+   \return ROI (SUMA_DRAWN_ROI *)
+   
+   - No DO/Undos possible in this format
+*/
+
+SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char *Parent_idcode_str, 
+                                          char *Label, char *ColPlaneName, 
+                                          float *FillColor, float *EdgeColor, int EdgeThickness, 
+                                          SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_1DROI_to_DrawnROI"};
+   SUMA_ROI_DATUM *ROI_Datum = NULL;
+   SUMA_DRAWN_ROI *ROI = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!Node) SUMA_RETURN(NULL);
+   
+   /* allocate and initialize */
+   ROI = SUMA_AllocateDrawnROI (Parent_idcode_str, SUMA_ROI_Finished,
+                               SUMA_ROI_Collection,  Label,  Value);
+   
+   /* add the colors */
+   SUMA_COPY_VEC(EdgeColor, ROI->EdgeColor, 3, float, float);
+   SUMA_COPY_VEC(FillColor, ROI->FillColor, 3, float, float);
+   ROI->EdgeThickness = EdgeThickness;
+   
+   /* fill in the only ROI datum */
+   ROI_Datum = SUMA_AllocROIDatum ();
+   ROI_Datum->action = SUMA_BSA_Undefined;
+   if(LocalHead) fprintf (SUMA_STDERR,"%s: About to add %d nodes of value %d...\n", FuncName, N_Node, Value);
+   
+   ROI_Datum->nPath = SUMA_UniqueInt(Node, N_Node, &ROI_Datum->N_n, NOPE);
+   if (!ROI_Datum->nPath) {
+      SUMA_SLP_Crit("Failed to allocate");
+      SUMA_RETURN(NOPE);
+   }
+   ROI_Datum->Type = SUMA_ROI_NodeGroup;
+   
+   SUMA_LH("Appending stroke");
+   /* just append that baby */
+   dlist_ins_next(ROI->ROIstrokelist, dlist_tail(ROI->ROIstrokelist), (void *)ROI_Datum);
+   
+   /* You must find the contour by yourself. This is normally
+   done when the status is set to SUMA_ROI_Finished via the 
+   action stack functions */
+   { 
+      int *cNodes, N_cNodes;
+      SUMA_Boolean Unique = NOPE;
+
+      SUMA_LH("Getting Contour ");
+      N_cNodes = 0;
+      Unique = NOPE; /* Set to YUP if you have node indices listed more than once. 
+                        1D ROIs are uniquized in the reading functions*/
+      cNodes = SUMA_NodesInROI (ROI, &N_cNodes, Unique);
+      if (cNodes) {
+         ROI->CE = SUMA_GetContour (
+                        SUMA_findSOp_inDOv(ROI->Parent_idcode_str, dov, N_dov), 
+                        cNodes, N_cNodes, &(ROI->N_CE));
+         if (!ROI->CE) { SUMA_LH("Null DrawnROI->CE"); }
+         else { SUMA_LH("Good DrawnROI->CE"); }
+         SUMA_free(cNodes);
+      }
+   }
+   SUMA_RETURN(ROI);
+}

@@ -312,7 +312,7 @@ SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free
 {
    static char FuncName[] = {"SUMA_RemoveDO"};
    int i;
-   SUMA_Boolean LocalHead=YUP, Found=NOPE;
+   SUMA_Boolean LocalHead = NOPE, Found=NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -764,7 +764,7 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
 */
 SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
 {
-   static char FuncName[]={"SUMA_findSO_inDOv"};
+   static char FuncName[]={"SUMA_findSOp_inDOv"};
    SUMA_SurfaceObject *SO;
    int i;
    
@@ -1197,7 +1197,7 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO, in
    int Npart = 0,i;
    SUMA_DRAWN_ROI *D_ROI=NULL;
    SUMA_ROI *ROI = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
     
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    

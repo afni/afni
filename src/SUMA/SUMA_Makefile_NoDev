@@ -109,6 +109,10 @@ ConvertSurface: SUMA_Surface_IO.c
 	$(RM) $@
 	${CC} -DSUMA_ConvertSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SurfaceMetrics: SUMA_Load_Surface_Object.c
+	$(RM) $@
+	${CC} -DSUMA_SurfaceMetrics_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 3dSurfMaskDump: SUMA_3dSurfMaskDump.c 
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_3dSurfMaskDump.c ${SUMA_INCLUDE_PATH}		\
