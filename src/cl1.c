@@ -21,15 +21,20 @@ static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
 
   for y[j] (j=0..nvec-1), subject to constraints (based on y[j] input)
 
-    input y[j] =  0 ==> unconstrained
-               =  1 ==> y[j] must be non-negative on output
-               = -1 ==> y[j] must be non-positive on output
+  If input cony != 0, then you can supply constraints on the values
+  of the output y[j] by putting values into the input y[j]:
+
+  input y[j] =  0 ==> unconstrained
+             =  1 ==> y[j] must be non-negative on output
+             = -1 ==> y[j] must be non-positive on output
+
+  If cony == 0, then the input y[j] is ignored.
 
   The return value of the function is 0 if everything worked, and
   nonzero if an error occured.
 -----------------------------------------------------------------------*/
 
-int cl1_solve( int ndim , int nvec , float *z , float **A , float *y )
+int cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 {
    /* loop counters */
 
@@ -63,7 +68,7 @@ int cl1_solve( int ndim , int nvec , float *z , float **A , float *y )
    nklmd = n+k+l+m ;
    n2d   = n+2 ;
 
-   kode  = 1 ;       /* enforce implicit constraints on x[] */
+   kode  = (cony != 0) ; /* enforce implicit constraints on x[] */
    iter  = 10*klmd ;
 
    toler = 0.0001 ;
@@ -90,9 +95,11 @@ int cl1_solve( int ndim , int nvec , float *z , float **A , float *y )
    for( ii=0 ; ii < ndim ; ii++ )
       q[ii+nvec*klm2d] = z[ii] ;        /* vector */
 
-   for( jj=0 ; jj < nvec ; jj++ )       /* signal constraints on solution */
-     x[jj] = (y[jj] < 0.0) ? -1.0
-            :(y[jj] > 0.0) ?  1.0 : 0.0 ;
+   if( cony ){
+     for( jj=0 ; jj < nvec ; jj++ )       /* constraints on solution */
+       x[jj] = (y[jj] < 0.0) ? -1.0
+              :(y[jj] > 0.0) ?  1.0 : 0.0 ;
+   }
 
    for( ii=0 ; ii < ndim ; ii++ )       /* no constraints on resids */
       res[ii] = 0.0 ;
