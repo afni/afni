@@ -12,23 +12,58 @@
 
 static float p10( float x ) ;  /* prototype */
 
-#undef  NCLR
-#define NCLR 4
-static float ccc[NCLR][3] = {
+#undef  NCLR_MAX
+#define NCLR_MAX 19
+static float ccc[NCLR_MAX][3] = {
   { 0.0 , 0.0 , 0.0 } ,
   { 0.9 , 0.0 , 0.0 } ,
   { 0.0 , 0.7 , 0.0 } ,
   { 0.0 , 0.0 , 0.9 } ,
 } ;
 
+static int NCLR = 4 ;
+
 #define STGOOD(s) ( (s) != NULL && (s)[0] != '\0' )
 
 #define THIK 0.003
 #define SY   0.07
 
+/*----------------------------------------------------------------------*/
 static int xpush=1 , ypush=1 ;
 
 void plot_ts_xypush( int a , int b ){ xpush=a; ypush=b; }  /* 12 Mar 2003 */
+
+/*----------------------------------------------------------------------*/
+/* Check to define colors for plotting from environment variables.
+------------------------------------------------------------------------*/
+
+static void init_colors(void)
+{
+   static int first=1 ;
+   char ename[32] , *eee ;
+   float rf,gf,bf ;
+   int ii ;
+
+   if( !first ) return ;
+   first = 0 ;
+
+   for( ii=1 ; ii < NCLR_MAX ; ii++ ){
+     sprintf(ename,"AFNI_1DPLOT_COLOR_%02d",ii+1) ;
+     eee = getenv(ename) ;
+     if( eee != NULL ){
+       rf=gf=bf = -1.0 ;
+       sscanf( eee , "rgbi:%f/%f/%f" , &rf,&gf,&bf ) ;
+       if( rf >= 0.0 && rf <= 1.0 && gf >= 0.0 && gf <= 1.0 && bf >= 0.0 && bf <= 1.0 ){
+         ccc[ii][0] = rf ; ccc[ii][1] = gf ; ccc[ii][2] = bf ;
+         NCLR = ii+1 ;
+       } else {
+         fprintf(stderr,
+                 "%s = %s is not in form 'rgbi:val/val/val' with each val in [0,1].\n" ,
+                 ename , eee ) ;
+       }
+     }
+   }
+}
 
 /*-----------------------------------------------------------------------
   Plot some timeseries data into an in-memory plot structure, which
@@ -58,6 +93,8 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    /*-- sanity check --*/
 
    if( nx <= 1 || ny == 0 || y == NULL ) return NULL ;
+
+   init_colors() ;
 
    /*-- make up an x-axis if none given --*/
 
@@ -377,6 +414,8 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
    if( dpy == NULL || ny == 0 || xbot >= xtop || ybot >= ytop ) return NULL ;
 
+   init_colors() ;
+
    /*-- push range of x outwards --*/
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
@@ -544,6 +583,8 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    return mp ;
 }
 
+/*----------------------------------------------------------------------*/
+
 void plot_ts_addto( MEM_topshell_data * mp ,
                     int nx , float * x , int ny , float ** y )
 {
@@ -555,6 +596,8 @@ void plot_ts_addto( MEM_topshell_data * mp ,
 
    if( mp == NULL || mp->userdata == NULL || ! mp->valid ||
        nx <= 1    || ny == 0              || x == NULL   || y == NULL ) return ;
+
+   init_colors() ;
 
    ud = (float *) mp->userdata ;
    xobot = ud[0] ; xotop = ud[1] ; yobot = ud[2] ; yotop = ud[3] ;

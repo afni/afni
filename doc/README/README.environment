@@ -1591,6 +1591,24 @@ behavior, set this environment variable to YES.  This setting (YES) will
 be necessary if you have an older version of ppmtobmp in your path, which
 doesn't support the "-bpp" option.
 
+------------------------------
+Variable: AFNI_1DPLOT_COLOR_xx
+------------------------------
+This variable lets you set the colors used in the 1dplot program (and other
+similar graphs).  Here, "xx" is a number from "01" to "19".  The value of
+the environment variable must be in the form "rgbi:rf/gf/bf", where each
+color intensity (rf, gf, bf) is a number between 0.0 and 1.0.  For example,
+"rgbi:1.0/1.0/0.0" is yellow.  By default, the first 4 colors are defined
+as the equivalents of
+  setenv AFNI_1DPLOT_COLOR_01 rgbi:0.0/0.0/0.0         BLACK
+  setenv AFNI_1DPLOT_COLOR_02 rgbi:0.9/0.0/0.0         RED
+  setenv AFNI_1DPLOT_COLOR_03 rgbi:0.0/0.7/0.0         GREEN
+  setenv AFNI_1DPLOT_COLOR_04 rgbi:0.0/0.0/0.9         BLUE
+You can alter these colors.  The largest color number you define will be
+the last color index used; if more line colors are needed, they will cycle
+back to color 01.  If you leave a gap (e.g., you define color 06 but not 05),
+then the undefined colors are black.
+
 =========================================
 | Robert W Cox, PhD                     |
 | National Institute of Mental Health   |

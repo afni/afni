@@ -4489,3 +4489,7 @@
 09 Apr 2003
  * Fixed thd_shear3d.h function DMAT_svdrot() to work properly when input matrix
      is singular.
+
+11 Apr 2003
+ * Modified coxplot/plot_ts.c to allow setting of line colors using
+     AFNI_1DPLOT_COLOR_xx environment variables.
