@@ -939,6 +939,8 @@ ENTRY("mri_read_file") ;
               strstr(new_fname,".TIFF") != NULL ||
               strstr(new_fname,".bmp" ) != NULL ||
               strstr(new_fname,".BMP" ) != NULL ||
+              strstr(new_fname,".pbm" ) != NULL ||
+              strstr(new_fname,".PBM" ) != NULL ||
               strstr(new_fname,".png" ) != NULL ||
               strstr(new_fname,".PNG" ) != NULL   ){ /* 22 Nov 2002 */
 

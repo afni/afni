@@ -12,9 +12,10 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    static char *tiff_filter = NULL ;  /* tifftopnm */
    static char *bmp_filter  = NULL ;  /* bmptoppm  */
    static char *png_filter  = NULL ;  /* pngtopnm  */
+   static char *pnm_filter  = NULL ;  /* cat */
 
    char *pg , *pg2 , *filt=NULL ;
-   int nf , nbuf , ipos , nx,ny,maxval , bper , nbim ;
+   int nf , nbuf , ipos , nx,ny,maxval=255 , bper,nbim, pbm=0 ;
    FILE *fp ;
    MRI_IMAGE *im ;
    byte *imar , *buf ;
@@ -27,6 +28,12 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
    if( first ){
      first = 0 ;
+
+     pg = THD_find_executable( "cat" ) ;    /* cheap, but works */
+     if( pg != NULL ){
+       pnm_filter = malloc(strlen(pg)+32) ;
+       sprintf( pnm_filter , "%s %%s" , pg ) ;
+     }
 
      pg = THD_find_executable( "djpeg" ) ;
      if( pg != NULL ){
@@ -75,6 +82,13 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    else if( strcmp(pg ,".gif" ) == 0 ||
             strcmp(pg ,".GIF" ) == 0   ) filt = gif_filter  ;
 
+   else if( strcmp(pg ,".pbm" ) == 0 ||
+            strcmp(pg ,".PBM" ) == 0 ||
+            strcmp(pg ,".pgm" ) == 0 ||
+            strcmp(pg ,".PGM" ) == 0 ||
+            strcmp(pg ,".ppm" ) == 0 ||
+            strcmp(pg ,".PPM" ) == 0   ) filt = pnm_filter  ;
+
    else if( strcmp(pg ,".tif" ) == 0 ||
             strcmp(pg ,".TIF" ) == 0 ||
             strcmp(pg2,".tiff") == 0 ||
@@ -86,7 +100,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    else if( strcmp(pg ,".png" ) == 0 ||
             strcmp(pg ,".PNG" ) == 0   ) filt = png_filter  ;
 
-   if( filt == NULL ) return NULL ;  /* didn't match */
+   if( filt == NULL ) return NULL ;  /* didn't match, or no filter */
 
    /*--- create the filter for this file and open the pipe ---*/
 
@@ -113,6 +127,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
         if( buf[1] == '6' ) bper = 3 ;              /* PPM from pipe */
    else if( buf[1] == '5' ) bper = 1 ;              /* PGM from pipe */
+   else if( buf[1] == '4' ){bper = 1 ; pbm=1; }     /* PBM from pipe */
    else {
      free(buf); free(pg); pclose(fp); return NULL;  /* bad bad bad!! */
    }
@@ -156,9 +171,11 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
   /* scan for the maxval variable */
 
-  NUMSCAN(maxval) ;
-  if( maxval <= 0 || maxval > 255 || ipos >= nbuf ){ /* bad */
-    free(buf); free(pg); pclose(fp); return NULL;
+  if( !pbm ){
+    NUMSCAN(maxval) ;
+    if( maxval <= 0 || maxval > 255 || ipos >= nbuf ){ /* bad */
+      free(buf); free(pg); pclose(fp); return NULL;
+    }
   }
 
   ipos++ ;   /* skip byte after maxval;                   */
@@ -169,7 +186,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
   if( bper == 3 ){                        /* PPM */
     im   = mri_new( nx , ny , MRI_rgb ) ;
     imar = MRI_RGB_PTR(im) ;
-  } else {                                /* PGM */
+  } else {                                /* PGM or PBM */
     im   = mri_new( nx , ny , MRI_byte ) ;
     imar = MRI_BYTE_PTR(im) ;
   }
@@ -181,7 +198,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
   nbuf = nbuf - ipos ;             /* num bytes left in buf */
   if( nbuf > nbim ) nbuf = nbim ;  /* but don't want too much */
   if( nbuf > 0 )
-    memcpy( imar , buf , nbuf ) ;
+    memcpy( imar , buf+ipos , nbuf ) ;
 
   free(buf) ;     /* have used this up now */
 
@@ -192,7 +209,11 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
   free(pg) ; pclose(fp) ;  /* toss out the trash */
 
+  /*--- if was really a PBM image, inflate to PGM now ---*/
+
   /*--- if maxval < 255, scale byte data up to that level ---*/
+
+  if( pbm ) mri_inflate_pbm( im ) ;  /* 02 Jan 2002 */
 
   if( maxval < 255 ){
     int ii ; float fac = 255.4/maxval ;
@@ -202,4 +223,33 @@ MRI_IMAGE * mri_read_stuff( char *fname )
   /*--- vamoose the ranch ---*/
 
   return im;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Inflate data from PBM to PGM, in place.
+----------------------------------------------------------------------------*/
+
+void mri_inflate_pbm( MRI_IMAGE *im )  /* 02 Jan 2002 */
+{
+   MRI_IMAGE *qim ;
+   byte *qimar , *imar ;
+   int ii,jj , nx,ny , nbrow , i8 ;
+   byte bmask[8] = { 1<<7 , 1<<6 , 1<<5 , 1<<4 , 1<<3 , 1<<2 , 1<<1 , 1 } ;
+
+   if( im == NULL || im->kind != MRI_byte ) return ;
+
+   nx = im->nx ; ny = im->ny ;
+   qim   = mri_new( nx , ny , MRI_byte ) ;
+   qimar = MRI_BYTE_PTR(qim) ;
+   imar  = MRI_BYTE_PTR(im) ;
+
+   nbrow = nx/8 ; if( 8*nbrow < nx ) nbrow++ ;
+
+   for( jj=0 ; jj < ny ; jj++ )
+     for( ii=0 ; ii < nx ; ii++ ){
+       i8 = ii >> 3 ;
+       qimar[ii+jj*nx] = ( imar[(i8)+jj*nbrow] & bmask[ii&7] ) != 0 ;
+     }
+
+   memcpy( imar , qimar , nx*ny ) ; mri_free( qim ) ;
 }
