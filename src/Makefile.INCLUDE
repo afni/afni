@@ -60,7 +60,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI \
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom                \
-           3dDeconvolve_f                                                   \
+           3dDeconvolve_f 3dAnhist                                          \
            $(EXTRAS) Imon
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
@@ -475,6 +475,10 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o 3dhistog 3dhistog.o  parser.o parser_int.o \
               $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3dAnhist:3dAnhist.o
+	$(RM) $@
+	$(CC) -o 3dAnhist 3dAnhist.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dhclip:3dhclip.o
 	$(RM) $@
