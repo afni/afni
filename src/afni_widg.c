@@ -639,12 +639,11 @@ STATUS("making imag->rowcol") ;
 
    /*--- Talairach To button in menu ---*/
 
-#ifdef USE_TALAIRACH_TO
    if( im3d->type == AFNI_3DDATA_VIEW ){
       imag->pop_talto_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-               LABEL_ARG("Talairach to") ,
+               LABEL_ARG("-Talairach to") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , False ,
                XmNinitialResourcesPersistent , False ,
@@ -657,7 +656,7 @@ STATUS("making imag->rowcol") ;
          imag->pop_whereami_pb =        /* 10 Jul 2001 */
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-                  LABEL_ARG(" -Where Am I?") ,
+                  LABEL_ARG("-Where Am I?") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , False ,
                   XmNinitialResourcesPersistent , False ,
@@ -669,7 +668,7 @@ STATUS("making imag->rowcol") ;
          imag->pop_ttren_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-                  LABEL_ARG(" -Atlas colors") ,
+                  LABEL_ARG("-Atlas colors") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , False ,
                   XmNinitialResourcesPersistent , False ,
@@ -687,11 +686,6 @@ STATUS("making imag->rowcol") ;
       imag->pop_ttren_pb = imag->pop_whereami_pb = NULL ; /* 10 Jul 2001 */
       imag->pop_whereami_twin = NULL ;
    }
-#else
-   imag->pop_talto_pb = NULL ;
-   imag->pop_ttren_pb = imag->pop_whereami_pb = NULL ;    /* 10 Jul 2001 */
-   imag->pop_whereami_twin = NULL ;
-#endif /* USE_TALAIRACH_TO */
 
    /*--- imageonly button in menu ---*/
 
@@ -2949,10 +2943,42 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->fim_dset_label , "Dataset to be FIM-ed") ;
 #endif
 
+   /* 25 Jul 2001: a toggle box to show the TT Atlas */
+
+   { char *see_ttatlas_label[1] = { "See TT Atlas Regions" } ;
+     func->see_ttatlas_bbox =
+      new_MCW_bbox( func->options_rowcol ,
+                    1 , see_ttatlas_label ,
+                    MCW_BB_check ,
+                    MCW_BB_frame ,
+                    AFNI_see_ttatlas_CB , (XtPointer) im3d ) ;
+
+     func->see_ttatlas_bbox->parent = (XtPointer) im3d ;
+
+     MCW_set_bbox( func->see_ttatlas_bbox ,
+                   (im3d->vinfo->see_ttatlas) ? (1) : (0) ) ;
+
+     MCW_reghelp_children( func->see_ttatlas_bbox->wrowcol ,
+                           "This button determines whether to show\n"
+                           "the Talairach-Tournoux Atlas regions,\n"
+                           "which are controlled by the 'Atlas Colors'\n"
+                           "item on the image viewing window popup menu."
+                         ) ;
+     MCW_reghint_children( func->see_ttatlas_bbox->wrowcol ,
+                           "Use 'Atlas Colors' from image popup menu" ) ;
+
+#if 0
+     if( TT_retrieve_atlas() == NULL )
+         XtSetSensitive( func->see_ttatlas_bbox->wrowcol , False ) ;
+#endif
+
+     ADDTO_KILL(im3d->kl,func->see_ttatlas_bbox) ;
+   }
+
 #ifdef ALLOW_BKGD_LAB
    xstr = XmStringCreateLtoR( "Anat = xxxxxxxxxxxxxxxx\n"
                               "Func = xxxxxxxxxxxxxxxx\n"
-                              "Thr  = xxxxxxxxxxxxxxxx\n" ,
+                              "Thr  = xxxxxxxxxxxxxxxx" ,
                             XmFONTLIST_DEFAULT_TAG ) ;
 
    func->bkgd_lab =
@@ -4091,6 +4117,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->thr_index         = 0 ;
 
    im3d->vinfo->tempflag          = 0 ;  /* 15 Mar 2000 */
+   im3d->vinfo->see_ttatlas       = 0 ;  /* 25 Jul 2001 */
 
    /* Feb 1998: receive stuff, including drawing */
    /* Mar 1999: modified to allow for multiple receivers */

@@ -4374,6 +4374,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) THD_zeropad ,
    (vptr_func *) THD_axcode ,
    (vptr_func *) THD_dataset_rowfillin ,
+   (vptr_func *) mri_histobyte ,         /* 25 Jul 2001 */
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){

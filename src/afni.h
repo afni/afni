@@ -125,12 +125,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.30c"
+#define VERSION "2.31a"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "13 Jul 2001      "
+#define RELEASE "26 Jul 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -260,6 +260,8 @@ typedef struct {
       int writeownsize ; /* 01 Aug 1999 */
 
       int tempflag ;     /* 15 Mar 2000: for quick communication of state */
+
+      int see_ttatlas ;  /* 25 Jul 2001 */
 
 } AFNI_view_info ;
 
@@ -478,6 +480,8 @@ typedef struct {
       Widget bkgd_lab ;
 
       MCW_arrowval * range_rotate_av ;  /* 30 Mar 2001 */
+
+      MCW_bbox * see_ttatlas_bbox ;     /* 25 Jul 2001 */
 } AFNI_function_widgets ;
 
 #define PBAR_MODEBUT  0
@@ -1142,6 +1146,8 @@ extern void AFNI_inten_bbox_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_wrap_bbox_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_xhall_bbox_CB( Widget , XtPointer , XtPointer ) ;
 
+extern void AFNI_see_ttatlas_CB( Widget, XtPointer, XtPointer ) ; /* 25 Jul 2001 */
+
 extern void AFNI_range_rotate_av_CB( MCW_arrowval *, XtPointer ); /* 30 Mar 2001 */
 extern void AFNI_hintize_pbar( MCW_pbar * ,  float ) ;            /* 30 Mar 2001 */
 
@@ -1326,14 +1332,13 @@ extern void AFNI_process_alteration( Three_D_View * ) ;
 extern void AFNI_process_drawing   ( Three_D_View *, int,int, int *,int *,int * );
 extern void AFNI_process_ttatlas   ( Three_D_View * ) ;
 
+extern MRI_IMAGE * AFNI_ttatlas_overlay(Three_D_View *, int,int,int,int, MRI_IMAGE *) ;
+
 extern void AFNI_3d_linefill( int  ,int * ,int * ,int * ,
                               int *,int **,int **,int ** ) ;
 
 /*-----------------------------------------------------------*/
 /*----------------- data for Talairach To -------------------*/
-
-#define USE_TALAIRACH_TO
-#ifdef USE_TALAIRACH_TO
 
 #define TTO_CMAX    48
 #define TTO_LMAX    (TTO_CMAX+16)
@@ -1635,8 +1640,6 @@ typedef struct {
 #define TTRR_HEMI_BOTH  2
 
 extern TTRR_params * TTRR_get_params(void) ;
-
-#endif /* USE_TALAIRACH_TO */
 
 /*-------------------------------------------------------*/
 /*--------------  registration of functions -------------*/

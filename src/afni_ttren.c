@@ -2,18 +2,12 @@
 #include "afni.h"
 #include <Xm/XmAll.h>
 
-#ifndef USE_TALAIRACH_TO
-static void TTRR_popup(void){ return; }  /* doesn't do too much */
-#else
-
 #define NUM_AV_FIRST 20  /* number of colormenus to create on first pass */
-
-#undef AV_INVERT         /* if defined, invert colormenu when not 'none' */
 
 /*-- internal data structure --*/
 
 typedef struct {
-   int  reg_num ;
+   int  reg_num , av_invert ;
    MCW_arrowval *reg_av[TTO_COUNT] ;  /* colormenus */
    char  *reg_label[TTO_COUNT] ;      /* labels for menus */
    short  reg_tto[TTO_COUNT]   ;      /* index into afni.h TTO_list */
@@ -80,8 +74,8 @@ static char *HEMI_strings[NHEMI] = { HEMI_LEFT , HEMI_RIGHT , HEMI_BOTH } ;
 
 static char helpstring[] =
   "The purpose of these controls is to enable display of the brain\n"
-  "regions defined by the Talairach Daemon database (contributed\n"
-  "Jack Lancaster and Peter Fox of RIC UTHSCSA).\n"
+  "regions defined by the Talairach Daemon database (generously\n"
+  "contributed by Jack Lancaster and Peter Fox of RIC UTHSCSA).\n"
   "\n"
   "In the database, some voxels have 2 labels - a larger scale\n"
   "'gyral' name and a finer scale 'area' name; these are marked\n"
@@ -91,6 +85,8 @@ static char helpstring[] =
   "      709,953 voxels with only a 'gyral' label\n"
   "       15,898 voxels with only a 'area' label\n"
   "      479,886 voxels with both types of labels\n"
+  "For example, the Parahippocampal Gyrus and the Hippocampus (area)\n"
+  "have a great deal of overlap.\n"
   "\n"
   "Method:\n"
   "  To enable display of the selected regions, you must choose the\n"
@@ -98,11 +94,14 @@ static char helpstring[] =
   "  determine the order in which color overlays take place; for example,\n"
   "  'Gyral/Area/Func' means that a 'gyral' color, if present in a voxel,\n"
   "  will overlay on top of any 'area' color there, which would in turn\n"
-  "  overlay on top of any functional color there.\n"
+  "  overlay on top of any functional color there.  At this time, there\n"
+  "  is no way to blend the colors from overlapping results.\n"
   "\n"
-  "Hemisphere(s) \n"
+  "Hemisphere(s):\n"
   "  Use this to control which side(s) of the brain will have brain\n"
-  "  region overlays\n"
+  "  region overlays.  At this time, this option only affects the volume\n"
+  "  rendering and has no effect on the 2D image viewers, in which\n"
+  "  regions from both hemispheres will be rendered, regardless.\n"
   "\n"
   "The regional controls are to set the overlay colors; if a region's\n"
   "color is set to 'none', then it will not be overlaid.\n"
@@ -110,24 +109,34 @@ static char helpstring[] =
   "To change all overlay colors to 'none', use the Clear button.\n"
   "\n"
   "NOTES:\n"
-  " * At this time, the Redraw button has no functionality\n"
-  " * The colors only affect the Render Dataset plugin, and only\n"
-  "     then if the dataset being rendered is at 1 mm resolution\n"
-  "     in the Talairach coordinate system\n"
-  " * To use this in the Render Dataset plugin, you must have\n"
-  "     overlays turned on; after you set the colors here,\n"
-  "     press the Reload button in the plugin\n"
+  " * At this time, the Redraw button has no functionality;\n"
+  "     after you change the color settings in this window, you must\n"
+  "     force an image redisplay to see the changes.  In the 2D image\n"
+  "     viewers, you can do this by turning 'See TT Atlas Regions'\n"
+  "     off and on;  in the volume renderer, you must press the 'Reload'\n"
+  "     button to force the proper redisplay ('Draw' isn't enough).\n"
+  " * The region rendering only works if the dataset being drawn in the\n"
+  "     2D image viewers and/or Render Dataset plugin is in the +tlrc\n"
+  "     coordinates sytem, and is at 1 mm resolution.\n"
+  " * The regions used here are derived from the axial slices in the\n"
+  "     Talairach-Tournoux Atlas.  Since these slices are several mm\n"
+  "     apart, the resolution of the regions in the I-S direction is\n"
+  "     fairly crude.  This means that the regions look 'blocky' in\n"
+  "     sagittal and coronal 2D images, but look smoother in axial images.\n"
+  " * The Atlas is only useful as a ROUGH guide to determining where you\n"
+  "     are in any individual brain.  Do not rely exclusively on the Atlas\n"
+  "     for brain region labeling: you must use your knowledge, skills,\n"
+  "     and abilities as well.\n"
   "\n"
   "-- RWCox - July 2001\n"
 ;
-
 
 /*----------------------------------------------------------------------------*/
 
 static void TTRR_setup_widgets( MCW_DC * dc )
 {
    XmString xstr ;
-   char lbuf[256] ;
+   char lbuf[256] , *ept ;
    Widget toprc , bar , actar , frame , separator , label ;
    int ww,hh,bww , ii ;
 
@@ -144,6 +153,8 @@ ENTRY("TTRR_setup_widgets") ;
    ttc = myXtNew(TTRR_controls) ; /* will live forever */
 
    ttc->dc = dc ;
+
+   ttc->av_invert = AFNI_yesenv( "AFNI_TTRR_INVERT" ) ;
 
    /**** create Shell that can be opened up later ****/
 
@@ -461,11 +472,11 @@ ENTRY("TTRR_popup") ;
 
 static void TTRR_av_CB( MCW_arrowval * av , XtPointer cd )
 {
-#ifdef AV_INVERT
-   if( av == NULL || av->ival == av->old_ival ) return ;
+   if( !ttc->av_invert || av == NULL || av->ival == av->old_ival ) return ;
+
    if( av->ival == 0 ||
        (av->ival != 0 && av->old_ival == 0) ) MCW_invert_widget(av->wrowcol);
-#endif
+
    return ;
 }
 
@@ -495,10 +506,9 @@ ENTRY("TTRR_action_CB") ;
       for( ii=0 ; ii < ttc->reg_num ; ii++ ){
          if( ttc->reg_av[ii]->ival != 0 ){
             AV_assign_ival( ttc->reg_av[ii] , 0 ) ;
-#ifdef AV_INVERT
-            if( ttc->reg_av[ii]->old_ival != 0 )
+
+            if( ttc->av_invert && ttc->reg_av[ii]->old_ival != 0 )
                MCW_invert_widget(ttc->reg_av[ii]->wrowcol);
-#endif
          }
       }
 
@@ -572,5 +582,3 @@ ENTRY("TTRR_get_params") ;
    ttp->num = jj ;  /* number of 'on' regions */
    RETURN(ttp) ;
 }
-
-#endif /* USE_TALAIRACH_TO */

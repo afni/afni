@@ -36,6 +36,7 @@ static MCW_action_item ISQ_disp_act[NACT_DISP] = {
 } ;
 
 /*-- structures defining toggle button boxes --*/
+
                        /* number of buttons in each button box */
 #define NBUT_DISP1  4  /* Rotation box */
 #define NBUT_DISP2  1  /* Mirror box */
@@ -43,7 +44,7 @@ static MCW_action_item ISQ_disp_act[NACT_DISP] = {
 #define NBUT_DISP4  2  /* Range scaling box */
 #define NBUT_DISP5  2  /* Auto- or Group- scale box */
 #define NBUT_DISP6  1  /* Free aspect box */
-#define NBUT_DISP7  3  /* Save box */
+#define NBUT_DISP7  2  /* Save box */              /* 26 Jul 2001: was 3, now 2 */
 #define NBUT_DISP8  3  /* IMPROC buttons */
 #define NBUT_DISP9  4  /* CX buttons */
 
@@ -64,7 +65,7 @@ static char * ISQ_dl3[NBUT_DISP3] = { "No Overlay" } ;
 static char * ISQ_dl4[NBUT_DISP4] = { "Min-to-Max" , "2%-to-98%" } ;
 static char * ISQ_dl5[NBUT_DISP5] = { "Autoscale" , "Groupscale" } ;
 static char * ISQ_dl6[NBUT_DISP6] = { "Free Aspect" } ;
-static char * ISQ_dl7[NBUT_DISP7] = { "Nsize Save" , "PNM Save" , "Save One" } ;
+static char * ISQ_dl7[NBUT_DISP7] = { "Nsize Save" , "PNM Save" } ;
 static char * ISQ_dl8[NBUT_DISP8] = { "Flatten" , "Sharpen" , "Edge Detect" } ;
 static char * ISQ_dl9[NBUT_DISP9] = {
    "Complex->Mag" , "Complex->Arg" , "Complex->Real" , "Complex->Imag" } ;
@@ -145,17 +146,12 @@ static char * ISQ_bb7_help[NBUT_DISP7] = {
  "       OUT= 'natural' (data given) saved images sizes"   ,
 
  "PNM:   IN = saved images are color (PNM format)\n"
- "       OUT= saved images are background data only\n" ,
-
- "One:   IN = only the current image will be saved (PNM format)\n"
- "       OUT= a range of slices can be saved\n"
-
+ "       OUT= saved images are background data only\n"
 } ;
 
 static char * ISQ_bb7_hint[NBUT_DISP7] = {
  "IN: Save background images in power-of-2 sizes" ,
- "IN: Save background images in PNM format" ,
- "IN: Save one image in PNM format"
+ "IN: Save background images in PNM format"
 } ;
 
 static char * ISQ_bb8_help[NBUT_DISP8] = {
@@ -232,7 +228,7 @@ static void ISQ_setup_ppmto_filters(void)
    char *pg , *pg2 , *str ;
    int bv ;
 
-   ppmto_num = 0 ; bv = ISQ_SAV_ONE ;
+   ppmto_num = 0 ; bv = ISQ_SAV_PNM ;
 
    pg = THD_find_executable( "cat" ) ;
    if( pg != NULL ){
@@ -355,19 +351,17 @@ static char * ISQ_but_done_label2 = "DONE" ;
 
 static char * ISQ_save_label_bg  = "Save:bkg" ;
 static char * ISQ_save_label_all = "Save:pnm" ;
-static char * ISQ_save_label_one = "Save:one" ;
 
 #define SET_SAVE_LABEL(seq)                                               \
-  do{ if( (seq)->opt.save_filter < 0 ){                                   \
-         MCW_set_widget_label( (seq)->wbut_bot[NBUT_SAVE] ,               \
-                               (seq)->opt.save_pnm ? ISQ_save_label_all   \
-                              :(seq)->opt.save_one ? ISQ_save_label_one   \
-                                                   : ISQ_save_label_bg ); \
+  do{ char sl[16] ;                                                       \
+      if( (seq)->opt.save_filter < 0 ){                                   \
+         strcpy(sl, (seq)->opt.save_pnm ? ISQ_save_label_all              \
+                                        : ISQ_save_label_bg );            \
       }else{                                                              \
-         char sl[16] ;                                                    \
          sprintf(sl,"Save.%.3s",ppmto_suffix[(seq)->opt.save_filter]) ;   \
-         MCW_set_widget_label( (seq)->wbut_bot[NBUT_SAVE] , sl ) ;        \
-      } } while(0)
+      }                                                                   \
+      if( seq->opt.save_one ) sl[3] = '1' ;                               \
+      MCW_set_widget_label( (seq)->wbut_bot[NBUT_SAVE] , sl ) ; } while(0)
 
 static const ISQ_bdef ISQ_but_rig_def[NBUTTON_RIG] = {
      { "Colr" , ISQ_but_color_CB } ,
@@ -394,14 +388,9 @@ static char * ISQ_but_bot_help[NBUTTON_BOT] = {
    "is selected from the 'Disp' button options window.\n"
    " :bkg = Will save only the background image data values\n"
    "        (in a recorder window, the background image IS in color)\n"
-   " :pnm = Will save the actual displayed image in color (PNM format)\n"
-   " :one = Will save just the single frame displayed on the screen\n"
-   "        using the PNM format\n"
+   " :pnm = Will save the actual displayed focus image in color (PNM format)\n"
    "NOTES:\n"
    " * Saved images will NOT be stretched to match window resizing.\n"
-   " * Only the Save:one mode will reflect the use of Montages.\n"
-   "    Because of this, use of the Mont button to create anything\n"
-   "    but a 1x1 layout will switch this Save button to Save:one.\n"
    " * The PNM format requires the 'netpbm' package to be useful.\n"
    "    Alternatively, the 'xv' program will read/write PNM images." ,
 
@@ -2103,24 +2092,56 @@ ENTRY("ISQ_saver_CB") ;
          EXRETURN ;
       }
 
-      /*-- April 1996: Save:one case here --*/
+      /*-- April 1996: Save One case here --*/
 
       if( seq->opt.save_one ){
          char * ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
          int    sll  = strlen( seq->saver_prefix ) ;
 
-         if( ppnm == seq->saver_prefix + (sll-5) )  /* 17 June 1997 */
-            seq->saver_prefix[sll-1] = '\0' ;
-         else
-            strcat(seq->saver_prefix,"pnm") ;
+         /* undump XImage to MRI_IMAGE (rgb format) */
 
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , X2M_USE_CMAP ) ;
-         if( tim != NULL ){
+
+         if( tim != NULL ){                  /* actually got image */
             static int warned=0 ;
 
-            printf("Writing one PNM image to file %s\n",seq->saver_prefix) ;
-            mri_write_pnm( seq->saver_prefix , tim ) ;
+            if( seq->opt.save_filter < 0 ){  /* the old code: dump to PNM file */
+
+               if( ppnm == seq->saver_prefix + (sll-5) )  /* 17 June 1997 */
+                  seq->saver_prefix[sll-1] = '\0' ;
+               else
+                  strcat(seq->saver_prefix,"pnm") ;
+
+               printf("Writing one PNM image to file %s\n",seq->saver_prefix) ;
+               mri_write_pnm( seq->saver_prefix , tim ) ;
+
+            } else {  /* 26 Jul 2001: allow Save One in filtered formats */
+
+               char filt[512] ; int ff=seq->opt.save_filter ; FILE *fp ;
+               int pc ;
+
+               sprintf( fname, "%s%s", seq->saver_prefix, ppmto_suffix[ff] ) ;
+               sprintf( filt , ppmto_filter[ff] , fname ) ;
+               printf("Writing one image to file %s\n",fname) ;
+               signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
+               fp = popen( filt , "w" ) ;
+               if( fp == NULL ){
+                  fprintf(stderr,"** Can't open output filter: %s\a\n",filt) ;
+                  if( errno != 0 ) perror("** Unix error message") ;
+                  POPDOWN_string_chooser ; mri_free(tim) ; EXRETURN ;
+               }
+
+               fprintf(fp,"P6\n%d %d\n255\n" , tim->nx,tim->ny ) ;
+               fwrite( MRI_RGB_PTR(tim), sizeof(byte), 3*tim->nvox, fp ) ;
+               pc = pclose(fp) ;
+               if( pc == -1 ){
+                  perror("** Error in image output pipe") ;
+                  fprintf(stderr,"** filter command was %s\n",filt) ;
+                  POPDOWN_string_chooser ; mri_free(tim) ; EXRETURN ;
+               }
+            }
+
             mri_free( tim ) ; tim = NULL ;  /* 17 June 1997 */
 
             if( seq->dc->visual_class == TrueColor &&
@@ -2129,7 +2150,7 @@ ENTRY("ISQ_saver_CB") ;
                warned = 1 ;
                fprintf(stderr,
                 "\n"
-                "*** WARNING: Save:one with X11 TrueColor depth=16 can ***\n"
+                "*** WARNING: Save One with X11 TrueColor depth=16 can ***\n"
                 "***          result in gray pixels not having R=G=B.  ***\n");
             }
 
@@ -3518,6 +3539,28 @@ ENTRY("ISQ_but_disp_CB") ;
       if( ib == NTOG_IMP ){
          int nav = 0 ;
 
+         char * save_one_label[] = { "Save One" } ;      /* 26 Jul 2001 */
+         seq->save_one_bbox = new_MCW_bbox( rcboxes ,
+                                            1 ,
+                                            save_one_label ,
+                                            MCW_BB_check ,
+                                            MCW_BB_frame ,
+                                            ISQ_disp_act_CB , (XtPointer) seq ) ;
+         MCW_reghelp_children( seq->save_one_bbox->wrowcol ,
+                               " \n"
+                               "When pressed IN, then the 'Save' button\n"
+                               "will only save a snapshot of the current\n"
+                               "display.  This is the only way to save\n"
+                               "a montage.\n"
+                               "\n"
+                               "When pressed OUT, then the 'Save' button\n"
+                               "asks for the first and last image indexes\n"
+                               "to save, and then saves each individual\n"
+                               "image (no montage) to a file.\n"
+                             ) ;
+         MCW_reghint_children( seq->save_one_bbox->wrowcol ,
+                               "Save just 1 (including montage)" ) ;
+
          if( seq->status->transforms0D != NULL &&
              seq->status->transforms0D->num > 0  ){
 
@@ -3860,10 +3903,11 @@ ENTRY("ISQ_disp_options") ;
       seq->opt.free_aspect = ( bval[NTOG_ASP] & ISQ_ASPECT    ) != 0 ;
       seq->opt.save_nsize  = ( bval[NTOG_SAV] & ISQ_SAV_NSIZE ) != 0 ;
       seq->opt.save_pnm    = ( bval[NTOG_SAV] & ISQ_SAV_PNM   ) != 0 ;
-      seq->opt.save_one    = ( bval[NTOG_SAV] & ISQ_SAV_ONE   ) != 0 ;
+
+      seq->opt.save_one    = MCW_val_bbox(seq->save_one_bbox)   != 0 ; /* 26 Jul 2001 */
 
       seq->opt.save_filter = -1 ;
-      if( bval[NTOG_SAV] > ISQ_SAV_ONE && ppmto_num > 0 ){  /* 27 Jun 2001 */
+      if( bval[NTOG_SAV] > ISQ_SAV_PNM && ppmto_num > 0 ){  /* 27 Jun 2001 */
          int ii ;
          for( ii=0 ; ii < ppmto_num ; ii++ ){
             if( bval[NTOG_SAV] == ppmto_bval[ii] ){
@@ -3910,8 +3954,7 @@ ENTRY("ISQ_disp_options") ;
       bval[NTOG_ASP] = (seq->opt.free_aspect) ? ISQ_ASPECT    : 0 ;
 
       bval[NTOG_SAV] = ( (seq->opt.save_nsize)? ISQ_SAV_NSIZE : 0 )
-                      +( (seq->opt.save_pnm)  ? ISQ_SAV_PNM   : 0 )
-                      +( (seq->opt.save_one)  ? ISQ_SAV_ONE   : 0 ) ;
+                      +( (seq->opt.save_pnm)  ? ISQ_SAV_PNM   : 0 ) ;
 
       if( seq->opt.save_filter >= 0 && ppmto_num > 0 )       /* 27 Jun 2001 */
          bval[NTOG_SAV] = ppmto_bval[seq->opt.save_filter] ;
@@ -3922,6 +3965,9 @@ ENTRY("ISQ_disp_options") ;
 
       for( ib=0 ; ib < NBOX_DISP ; ib++ )
          MCW_set_bbox( seq->bbox[ib] , bval[ib] ) ;
+
+      MCW_set_bbox( seq->save_one_bbox ,
+                    (seq->opt.save_one) ? 1 : 0 ) ; /* 26 Jul 2001 */
 
       RETURN(False) ;
    }
@@ -4456,8 +4502,8 @@ static unsigned char record_bits[] = {
 
          /* change to Save:bkg */
 
-         seq->opt.save_one = False ;
-         seq->opt.save_pnm = False ;
+         seq->opt.save_one = 0 ;
+         seq->opt.save_pnm = 0 ;
          seq->opt.save_filter = -1 ;  /* 27 Jun 2001 */
          SET_SAVE_LABEL(seq) ;
 
@@ -4561,13 +4607,10 @@ static unsigned char record_bits[] = {
          if( mm[4] >= 0 &&
              mm[4] <= seq->dc->ovc->ncol_ov-1 ) seq->mont_gapcolor = mm[4] ;
 
-         /* set Save:one */
+         /* set Save One */
 
          if( seq->mont_nx * seq->mont_ny > 1 && !seq->opt.save_one ){
-            seq->opt.save_nsize  = 0 ;
-            seq->opt.save_pnm    = 0 ;
-            seq->opt.save_one    = 1 ;
-            seq->opt.save_filter = -1 ; /* 27 Jun 2001 */
+            seq->opt.save_one = 1 ;
             SET_SAVE_LABEL(seq) ;
          }
 
@@ -5650,13 +5693,10 @@ ENTRY("ISQ_montage_action_CB") ;
          seq->mont_gap_old      = seq->mont_gap ;
          seq->mont_gapcolor_old = seq->mont_gapcolor ;
 
-         /* set to "Save:one" if have an actual montage going now */
+         /* set to "Save One" if have an actual montage going now */
 
          if( seq->mont_nx * seq->mont_ny > 1 && !seq->opt.save_one ){
-            seq->opt.save_nsize  = 0 ;
-            seq->opt.save_pnm    = 0 ;
-            seq->opt.save_one    = 1 ;
-            seq->opt.save_filter = -1 ; /* 27 Jun 2001 */
+            seq->opt.save_one = 1 ;
             SET_SAVE_LABEL(seq) ;
          }
       break ;
@@ -7210,7 +7250,7 @@ ENTRY("ISQ_record_kill_CB") ;
 }
 
 /*---------------------------------------------------------------------
-   Handle the Button 3 popup on a recorder's Save: button
+   Handle the Button 3 popup on the Save: button
 -----------------------------------------------------------------------*/
 
 void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
@@ -7226,7 +7266,7 @@ void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
       XBell(XtDisplay(w),100); POPDOWN_strlist_chooser ; return ;
    }
 
-   seq->opt.save_nsize  = seq->opt.save_pnm = seq->opt.save_one = 0 ;
+   seq->opt.save_nsize = seq->opt.save_pnm = 0 ;
 
    pp = cbs->ival ;
    if( pp == 0 || pp > ppmto_num ) seq->opt.save_filter = -1 ;

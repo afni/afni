@@ -2912,3 +2912,18 @@
  * Modified mcw_glob.c to only print warning message if allowed to.
      Modifed various codes that use MCW_file_expand() to turn such 
      messages on or off, depending on what I feel like.
+
+24 Jul 2001
+ * Modified thd_ttatlas_query.c to return up to 9 results, and to print
+     a cautionary tail.
+ * Modified plug_render.c to display TT atlas regions.
+
+25 Jul 2001
+ * Modified plug_render.c to histogram new dataset bricks and choose
+     99.5% point as the default upper level for scaling.
+ * Modified afni.c, afni_func.c, afni_widg.c, afni_warp.c to enable
+     rendering of TT Atlas regions as overlays in 2D image viewers.
+
+26 Jul 2001
+ * Modified imseq.[ch] to allow 'Save One' to be independent of the
+     output filter (e.g., so can save a montage into a JPEG file).

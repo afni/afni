@@ -143,7 +143,7 @@ typedef struct {
 
 #define ISQ_SAV_NSIZE 1
 #define ISQ_SAV_PNM   2
-#define ISQ_SAV_ONE   4
+#define ISQ_SAV_ONE   4      /* 26 Jul 2001: no longer used */
 
 #define ISQ_IMPROC_NONE   0  /* values returned by various button   */
 #define ISQ_IMPROC_FLAT   1
@@ -423,7 +423,7 @@ typedef struct MCW_imseq {
      MCW_arrowval * ov_opacity_av ;
      Widget ov_opacity_sep ;         /* 08 Mar 2001 */
 
-     Widget record_rc , record_cbut ;   /* 24 Apr 2001: recording stuff */
+     Widget record_rc , record_cbut; /* 24 Apr 2001: recording stuff */
      MCW_bbox * record_status_bbox ;
      MCW_bbox * record_method_bbox ;
      int record_status ;
@@ -431,6 +431,8 @@ typedef struct MCW_imseq {
      int record_mode ;
      struct MCW_imseq * record_imseq ;
      MRI_IMARR * record_imarr ;
+
+     MCW_bbox * save_one_bbox ;      /* 26 Jun 2001 */
 
 } MCW_imseq ;
 

@@ -1281,6 +1281,115 @@ STATUS("bad im_fim->kind!") ;
    RETURN(im_ov) ;
 }
 
+/*-----------------------------------------------------------------------
+  Make an overlay from the TT atlas
+   n = slice index; (ax_1,ax_2,ax_3) = slice orientation codes
+   fov = functional overlay image previously computed
+         if non-NULL, then fov will be overlaid, and will be returned
+         if NULL, then a new image will be created and returned
+  -- 25 Jul 2001 - RWCox
+-------------------------------------------------------------------------*/
+
+MRI_IMAGE * AFNI_ttatlas_overlay( Three_D_View * im3d ,
+                                  int n , int ax_1 , int ax_2 , int ax_3 ,
+                                  MRI_IMAGE * fov )
+{
+   THD_3dim_dataset *dseTT ;
+   TTRR_params *ttp ;
+   byte *b0 , *b1 , *brik, *val, *ovc , g_ov,a_ov,final_ov ;
+   short *ovar ;
+   MRI_IMAGE *ovim=NULL , *b0im , *b1im ;
+   int gwin , fwin , nreg , ii,jj ;
+
+ENTRY("AFNI_ttatlas_overlay") ;
+
+   /* setup and sanity checks */
+
+   dseTT = TT_retrieve_atlas() ; if( dseTT == NULL )      RETURN(NULL) ;
+
+   /* make sure Atlas and current dataset match in size */
+
+   if( DSET_NVOX(dseTT) != DSET_NVOX(im3d->anat_now) )    RETURN(NULL) ;
+
+   /* make sure we are actually drawing something */
+
+   ttp = TTRR_get_params() ; if( ttp == NULL )            RETURN(NULL) ;
+
+   /* at this time, hemisphere processing doesn't work in this function */
+
+#if 0
+   switch( ttp->hemi ){
+      case TTRR_HEMI_LEFT:  hbot=HEMX+1 ; break ;
+      case TTRR_HEMI_RIGHT: hbot= 0     ; break ;
+      case TTRR_HEMI_BOTH:  hbot= 0     ; break ;
+   }
+#endif
+
+   /* get slices from TTatlas dataset */
+
+   DSET_load(dseTT) ;
+   b0im = AFNI_slice_flip( n , 0 , RESAM_NN_TYPE , ax_1,ax_2,ax_3 , dseTT ) ;
+   if( b0im == NULL )                                     RETURN(NULL) ;
+
+   b1im = AFNI_slice_flip( n , 1 , RESAM_NN_TYPE , ax_1,ax_2,ax_3 , dseTT ) ;
+   if( b1im == NULL ){ mri_free(b0im) ;                   RETURN(NULL) ; }
+
+   /* make a new overlay image, or just operate on the old one */
+
+   if( fov == NULL ){
+      ovim = mri_new_conforming( b0im , MRI_short ) ;   /* new overlay */
+      ovar = MRI_SHORT_PTR(ovim) ;
+      memset( ovar , 0 , ovim->nvox * sizeof(short) ) ;
+   } else{
+      ovim = fov ;                                      /* old overlay */
+      ovar = MRI_SHORT_PTR(ovim) ;
+      if( ovim->nvox != b0im->nvox ){                     /* shouldn't */
+         mri_free(b0im) ; mri_free(b1im) ; RETURN(NULL) ; /* happen!  */
+      }
+   }
+
+   b0 = MRI_BYTE_PTR(b0im) ; b1 = MRI_BYTE_PTR(b1im) ;
+
+   /* fwin => function 'wins' over Atlas */
+   /* gwin => gyral Atlas brick 'wins' over 'area' Atlas brick */
+
+   fwin = (ttp->meth == TTRR_METH_FGA) || (ttp->meth == TTRR_METH_FAG) ;
+   gwin = (ttp->meth == TTRR_METH_FGA) || (ttp->meth == TTRR_METH_GAF) ;
+
+   nreg = ttp->num ;    /* number of 'on' regions     */
+   brik = ttp->ttbrik ; /* which sub-brick in atlas    */
+   val  = ttp->ttval ;  /* which code in that sub-brick */
+   ovc  = ttp->ttovc ;  /* which overlay color index   */
+
+   /* loop over image voxels, find overlays from Atlas */
+
+   for( ii=0 ; ii < ovim->nvox ; ii++ ){
+
+      if( ovar[ii] && fwin ) continue ; /* function wins */
+
+      /* check Atlas 'on' regions for hits */
+
+      g_ov = a_ov = 0 ;
+      for( jj=0 ; (g_ov==0 || a_ov==0) && jj<nreg ; jj++ ){
+              if( b0[ii] == val[jj] ) g_ov = ovc[jj] ;
+         else if( b1[ii] == val[jj] ) a_ov = ovc[jj] ;
+      }
+
+      if( g_ov==0 && a_ov==0 ) continue ;  /* no hit */
+
+      /* find the winner */
+
+      if( g_ov && (gwin || a_ov==0) ) final_ov = g_ov ;
+      else                            final_ov = a_ov ;
+
+      ovar[ii] = final_ov ;  /* and the winner is ... */
+   }
+
+   mri_free(b0im) ; mri_free(b1im) ;  /* free at last */
+
+   RETURN(ovim) ;
+}
+
 /*---------------------------------------------------------------------*/
 
 char * AFNI_resam_texter( MCW_arrowval * av , XtPointer junk )

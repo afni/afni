@@ -1,19 +1,19 @@
 #include "mrilib.h"
 #include "afni.h"
 
-static int           have_dseTT = -1 ;
+static int           have_dseTT = -1   ;
 static THD_3dim_dataset * dseTT = NULL ;
 
-#define MAX_FIND 7
-#define WAMIRAD  7.5
-static MCW_cluster * wamiclust = NULL ;
+#define MAX_FIND 9                    /* max number to find within WAMIRAD  */
+#define WAMIRAD  7.5                  /* search radius: must not exceed 9.5 */
+static MCW_cluster * wamiclust=NULL ;
 
 /*-----------------------------------------------------------------------*/
 
 THD_3dim_dataset * TT_retrieve_atlas(void)
 {
    if( have_dseTT < 0 ) TT_load_atlas() ;
-   return dseTT ;
+   return dseTT ;                         /* might be NULL */
 }
 
 /*-----------------------------------------------------------------------*/
@@ -93,7 +93,8 @@ void TT_purge_atlas(void)
 }
 
 /*----------------------------------------------------------------------
-   Return a multi-line string of TT atlas labels near the given point.
+   Return a multi-line string of TT atlas labels near the given point
+   (xx,yy,zz are in Dicom order coordinates).
    If NULL is returned, an error happened.  If no labels are near the
    given point, then a single line saying "you're lost" is returned.
    The string returned is malloc()-ed and should be free()-ed later.
@@ -115,45 +116,31 @@ ENTRY("TT_whereami") ;
    /*-- setup stuff: load atlas dataset, prepare search mask --*/
 
    if( dseTT == NULL ){
-      ii = TT_load_atlas() ; if( ii == 0 ) RETURN( NULL ) ;
+      ii = TT_load_atlas() ; if( ii == 0 ) RETURN(NULL) ;
    }
    DSET_load(dseTT) ;
-   b2 = DSET_BRICK_ARRAY(dseTT,0) ; if( b2 == NULL ) RETURN( NULL ) ;
-   b4 = DSET_BRICK_ARRAY(dseTT,1) ; if( b4 == NULL ) RETURN( NULL ) ;
+   b2 = DSET_BRICK_ARRAY(dseTT,0) ; if( b2 == NULL ) RETURN(NULL) ;
+   b4 = DSET_BRICK_ARRAY(dseTT,1) ; if( b4 == NULL ) RETURN(NULL) ;
 
    if( wamiclust == NULL ){
       wamiclust = MCW_build_mask( 0,0,0 , 1.0,1.0,1.0 , WAMIRAD ) ;
-      if( wamiclust == NULL ) RETURN( NULL ) ;
-      for( ii=0 ; ii < wamiclust->num_pt ; ii++ )
+      if( wamiclust == NULL ) RETURN(NULL) ;  /* should not happen! */
+
+      for( ii=0 ; ii < wamiclust->num_pt ; ii++ )       /* load radius */
          wamiclust->mag[ii] = (int)rint(sqrt((double)(
                                          wamiclust->i[ii]*wamiclust->i[ii]
                                         +wamiclust->j[ii]*wamiclust->j[ii]
                                         +wamiclust->k[ii]*wamiclust->k[ii]))) ;
 
-#if 0
-fprintf(stderr,"Before sort\n") ;
-for(ii=0;ii<wamiclust->num_pt;ii++)
-  fprintf(stderr,"%d %d %d %.0f\n",
-          wamiclust->i[ii],wamiclust->j[ii],wamiclust->k[ii],wamiclust->mag[ii]);
-#endif
-
       MCW_sort_cluster( wamiclust ) ;  /* sort by radius */
-
-#if 0
-fprintf(stderr,"After sort\n") ;
-for(ii=0;ii<wamiclust->num_pt;ii++)
-  fprintf(stderr,"%d %d %d %.0f\n",
-          wamiclust->i[ii],wamiclust->j[ii],wamiclust->k[ii],wamiclust->mag[ii]);
-#endif
-
    }
 
    /*-- find locations near the given one that are in the Atlas --*/
 
-   ijk = THD_3dmm_to_3dind( dseTT , TEMP_FVEC3(xx,yy,zz) ) ;  /* indexes */
-   UNLOAD_IVEC3(ijk,ix,jy,kz) ;
+   ijk = THD_3dmm_to_3dind( dseTT , TEMP_FVEC3(xx,yy,zz) ) ;  /* get indexes */
+   UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               /* from coords */
 
-   nx = DSET_NX(dseTT) ;
+   nx = DSET_NX(dseTT) ;               /* size of TT atlas dataset axes */
    ny = DSET_NY(dseTT) ;
    nz = DSET_NZ(dseTT) ; nxy = nx*ny ;
 
@@ -199,7 +186,9 @@ for(ii=0;ii<wamiclust->num_pt;ii++)
 
    /*-- assemble output string(s) --*/
 
-#define WAMI_HEAD "------- nearby Talairach Daemon structures -------\n"
+#define WAMI_HEAD "+++++++ nearby Talairach Daemon structures +++++++\n"
+#define WAMI_TAIL "\n******* Please use results with caution! *******"   \
+                  "\n******* Brain anatomy is quite variable! *******"
 
    if( nfind == 0 ){
       rbuf = strdup( WAMI_HEAD
@@ -210,7 +199,7 @@ for(ii=0;ii<wamiclust->num_pt;ii++)
 
    /*-- bubble-sort what we found, by radius --*/
 
-   if( nfind > 1 ){
+   if( nfind > 1 ){  /* don't have to sort only 1 result */
      int swap, tmp ;
      do{
         swap=0 ;
@@ -239,7 +228,8 @@ for(ii=0;ii<wamiclust->num_pt;ii++)
             if( b2f == TTO_list[ii].tdval ) break ;
          if( ii < TTO_COUNT )                       /* always true? */
             b2lab = TTO_list[ii].name ;
-         if( b2lab != NULL && xx < 0 && strstr(b2lab,"Left") != NULL )
+
+         if( b2lab != NULL && xx < 0 && strstr(b2lab,"Left") != NULL ) /* maybe is Right */
             b2lab = TTO_list[ii+1].name ;
       }
 
@@ -298,6 +288,8 @@ for(ii=0;ii<wamiclust->num_pt;ii++)
    if( sar->num == 1 ){    /* shouldn't ever happen */
       sprintf(lbuf,"Found %d marked but unlabeled regions???\n",nfind) ;
       ADDTO_SARR(sar,lbuf) ;
+   } else {
+      ADDTO_SARR(sar,WAMI_TAIL) ;  /* cautionary tail */
    }
 
    /*- convert list of labels into one big multi-line string -*/

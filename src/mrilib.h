@@ -509,7 +509,9 @@ extern MRI_IMAGE *mri_float_func( int,int,
 extern void mri_histogram( MRI_IMAGE * , float,float ,
                                          int,int, int h[] ) ;
 
-extern void mri_histobyte( MRI_IMAGE * , int * ) ;
+extern void mri_histobyte        ( MRI_IMAGE * , int * ) ;
+extern void mri_histoshort_all   ( MRI_IMAGE * , int * ) ;  /* 25 Jul 2001 */
+extern void mri_histoshort_nonneg( MRI_IMAGE * , int * ) ;
 
 extern void mri_percents( MRI_IMAGE * , int nper , float per[] ) ;
 extern MRI_IMAGE * mri_flatten( MRI_IMAGE * ) ;

@@ -4350,7 +4350,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
          char str[256] ;
          sprintf(str,"Anat = %s\n"
                      "Func = %s\n"
-                     "Thr  = %s\n" ,
+                     "Thr  = %s" ,
                  VSTR(im3d->vinfo->anat_val),
                  VSTR(im3d->vinfo->func_val), VSTR(im3d->vinfo->thr_val) ) ;
 
@@ -4386,7 +4386,6 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    if( new_xyz ) AFNI_process_viewpoint( im3d ) ;
 
-#ifdef USE_TALAIRACH_TO
    if( new_xyz && im3d->vwid->imag->pop_whereami_twin != NULL ){
 
       char * tlab = AFNI_ttatlas_query( im3d ) ;
@@ -4399,7 +4398,6 @@ DUMP_IVEC3("             new_ib",new_ib) ;
          free(tlab) ;
       }
    }
-#endif
 
    EXRETURN ;
 }
@@ -4428,19 +4426,22 @@ ENTRY("AFNI_overlay") ;
 
    dset = im3d->anat_now ;
 
-   ovgood = (im3d->vinfo->crosshair_visible == True) ||
+   ovgood = (im3d->vinfo->crosshair_visible == True)                  ||
 
             (  dset->markers != NULL       &&
               (dset->markers->numset > 0)  &&
-              (im3d->vwid->marks->ov_visible == True) ) ||
+              (im3d->vwid->marks->ov_visible == True) )               ||
 
             (  dset->tagset != NULL  &&
                dset->tagset->num > 0 &&
-               (im3d->vwid->marks->tag_visible == True) ) ||
+               (im3d->vwid->marks->tag_visible == True) )             ||
 
             ( dset->pts != NULL && im3d->vinfo->pts_visible == True ) ||
 
-            ( im3d->vinfo->func_visible == True ) ;
+            ( im3d->vinfo->func_visible == True )                     ||
+
+            ( im3d->vinfo->see_ttatlas &&
+              im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE ) ;
 
    if( ! ovgood ) RETURN(NULL) ;
 
@@ -4456,6 +4457,24 @@ if(PRINT_TRACING)
    if( im3d->vinfo->func_visible ){
       br_fim = UNDERLAY_TO_OVERLAY(im3d,br) ;
       fov    = AFNI_func_overlay( n , br_fim ) ;
+   }
+
+   /*----- 25 Jul 2001: get TT atlas overlay, if desired and possible -----*/
+
+   if( im3d->vinfo->see_ttatlas &&
+       im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE ){
+
+      MRI_IMAGE * tov ;
+
+      int ax_1 = br->a123.ijk[0] ;
+      int ax_2 = br->a123.ijk[1] ;
+      int ax_3 = br->a123.ijk[2] ;
+
+      tov = AFNI_ttatlas_overlay( im3d , n , ax_1 , ax_2 , ax_3 , fov ) ;
+      if( tov != NULL && tov != fov ){
+         if( fov != NULL ) mri_free(fov) ;  /* should not happen */
+         fov = tov ;
+      }
    }
 
    /*----- now set up overlay image as the functional overlay
@@ -6076,7 +6095,6 @@ STATUS(" -- processing points in this dataset") ;
    /*-------------------------------------------------------------------*/
    /*--- Sep 1995: turn Talairach to button on image popup on or off ---*/
 
-#ifdef USE_TALAIRACH_TO
 STATUS(" -- managing talairach_to button") ;
 
    if( im3d->vwid->imag->pop_talto_pb != NULL ){
@@ -6094,7 +6112,16 @@ STATUS(" -- managing talairach_to button") ;
           XtSetSensitive( im3d->vwid->imag->pop_ttren_pb , False ); /* 12 Jul 2001 */
       }
    }
-#endif /* USE_TALAIRACH_TO */
+
+   /*--- 25 Jul 2001: sensitize 'See TT Atlas Regions' button ---*/
+
+#if 1
+   XtSetSensitive( im3d->vwid->func->see_ttatlas_bbox->wrowcol ,
+                   (Boolean)( im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE &&
+                              TT_retrieve_atlas()       != NULL                  ) ) ;
+#else
+   XtSetSensitive( im3d->vwid->func->see_ttatlas_bbox->wrowcol , False ) ;
+#endif
 
    /*------------------------------------*/
    /*--- May 1996: Time index control ---*/
@@ -6634,7 +6661,6 @@ ENTRY("AFNI_imag_pop_CB") ;
       }
    }
 
-#ifdef USE_TALAIRACH_TO
    /*-- jump to a predetermined Talairach anatomical reference point --*/
 
    if( w == im3d->vwid->imag->pop_talto_pb &&
@@ -6704,7 +6730,7 @@ ENTRY("AFNI_imag_pop_CB") ;
           "by Jack Lancaster and Peter Fox of RIC UTHSCSA).\n"
           "\n"
           "The search is conducted outwards from the focus point, until\n"
-          "7 different structures are found, or a 7 mm radius is reached,\n"
+          "9 different structures are found, or a 7 mm radius is reached,\n"
           "whichever occurs first. (Distances are rounded to nearest 1 mm,\n"
           "the grid spacing on which the database is constructed.) Labels\n"
           "reported on different output lines came from different voxels.\n"
@@ -6723,10 +6749,12 @@ ENTRY("AFNI_imag_pop_CB") ;
           "           50 'gyral' labels (times 2 for Left and Right)\n"
           "           68 'area' labels\n"
           "          355 distinct combinations of labels\n"
-          "Note Well:\n"
+          "Note Very Well:\n"
           "* This feature of AFNI is experimental, and is subject to change.\n"
-          "* The labels reported here should be considered only approximate.\n"
-          "* Do NOT rely on them exclusively for anatomical identification!!\n"
+          "* The Atlas is only useful as a ROUGH guide to determining where\n"
+          "    you are in any individual brain.  Do not rely exclusively on\n"
+          "    the Atlas for brain region identification: you must use your\n"
+          "    knowledge, skills, and abilities as well.\n"
           "* Do NOT use this feature for surgical or therapeutic planning!!!"
          ) ;
 
@@ -6743,7 +6771,6 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       TTRR_popup( im3d ) ;
    }
-#endif /* USE_TALAIRACH_TO */
 
    /*--- unmap of the popup itself ---*/
 
@@ -6753,7 +6780,6 @@ ENTRY("AFNI_imag_pop_CB") ;
    EXRETURN ;
 }
 
-#ifdef USE_TALAIRACH_TO
 /*---------------------------------------------------------------------
    called when the talto chooser is set
 -----------------------------------------------------------------------*/
@@ -6866,7 +6892,25 @@ char * AFNI_ttatlas_query( Three_D_View * im3d )
 
    return NULL ;
 }
-#endif /* USE_TALAIRACH_TO */
+
+/*-------------------------------------------------------------------------
+  See the TT atlas in the overlay? -- 25 Jul 2001
+---------------------------------------------------------------------------*/
+
+void AFNI_see_ttatlas_CB( Widget w, XtPointer cd, XtPointer cb)
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   int newsee = MCW_val_bbox(im3d->vwid->func->see_ttatlas_bbox) ;
+
+   if( newsee == im3d->vinfo->see_ttatlas ) return ;
+
+   im3d->vinfo->see_ttatlas = newsee ;
+
+   if( im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE )
+      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+
+   return ;
+}
 
 /*---------------------------------------------------------------------
    called when the jumpto chooser is set

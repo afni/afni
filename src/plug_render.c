@@ -358,7 +358,9 @@ static unsigned char afni48ren_bits[] = {
 
 #define INVALIDATE_OVERLAY do{ FREEIM(ovim) ; } while(0)
 
-#define DO_OVERLAY   (func_dset != NULL && func_see_overlay)
+#define DO_OVERLAY   ((func_dset != NULL && func_see_overlay) ||          \
+                      func_see_ttatlas || (xhair_flag && xhair_ovc > 0) )
+
 #define NEED_OVERLAY (DO_OVERLAY && ovim == NULL)
 #define NEED_RELOAD  (NEED_VOLUMES || NEED_OVERLAY)
 
@@ -386,9 +388,7 @@ void REND_init_cmap(void) ;
 void REND_reload_func_dset(void) ;
 void REND_reload_renderer(void) ;
 
-#ifdef USE_TALAIRACH_TO
 void REND_overlay_ttatlas(void) ; /* 12 Jul 2001 */
-#endif
 
 static Widget wfunc_open_pb ;
 void REND_open_func_CB( Widget , XtPointer , XtPointer ) ;
@@ -417,6 +417,8 @@ static MCW_bbox * wfunc_see_overlay_bbox , * wfunc_cut_overlay_bbox ,
                 * wfunc_kill_clusters_bbox , * wfunc_range_bbox ;
 static MCW_arrowval * wfunc_clusters_rmm_av , * wfunc_clusters_vmul_av ;
 
+static MCW_bbox * wfunc_see_ttatlas_bbox ;    /* 24 Jul 2001 */
+
 static Widget wfunc_pbar_menu , wfunc_pbar_equalize_pb , wfunc_pbar_settop_pb ;
 static Widget wfunc_pbar_saveim_pb ;
 static MCW_arrowval * wfunc_pbar_palette_av ;
@@ -437,6 +439,7 @@ static float func_thresh_top    = 1.0 ;
 static int   func_use_thresh    = 1   ;   /* not currently alterable */
 static float func_color_opacity = 0.5 ;
 static int   func_see_overlay   = 0   ;
+static int   func_see_ttatlas   = 0   ;   /* 24 Jul 2001 */
 static int   func_cut_overlay   = 0   ;
 static int   func_kill_clusters = 0   ;
 static float func_clusters_rmm  = 1.0 ;
@@ -480,6 +483,7 @@ void REND_see_overlay_CB   ( Widget , XtPointer , XtPointer ) ;
 void REND_cut_overlay_CB   ( Widget , XtPointer , XtPointer ) ;
 void REND_kill_clusters_CB ( Widget , XtPointer , XtPointer ) ;
 void REND_finalize_func_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
+void REND_see_ttatlas_CB   ( Widget , XtPointer , XtPointer ) ;   /* 24 Jul 2001 */
 
 void REND_range_av_CB     ( MCW_arrowval * , XtPointer ) ;
 void REND_thresh_top_CB   ( MCW_arrowval * , XtPointer ) ;
@@ -598,6 +602,7 @@ void REND_set_thr_pval(void) ;
      float func_thresh_top    ;
      float func_color_opacity ;
      int   func_see_overlay   ;
+     int   func_see_ttatlas   ;   /* 24 Jul 2001 */
      int   func_cut_overlay   ;
      int   func_kill_clusters ;
      float func_clusters_rmm  ;
@@ -1805,6 +1810,10 @@ void REND_reload_dataset(void)
    XmString xstr ;
    char str[64] ;
 
+#define HISTOGRAMATE  /* 25 Jul 2001 */
+#define NHIST 255
+   int vtop ;
+
    MCW_invert_widget(reload_pb) ;        /* flash a signal */
 
    /* start by tossing any old data */
@@ -1828,15 +1837,32 @@ void REND_reload_dataset(void)
          short * sar = (short *) var ;
 
          vmin = vmax = sar[0] ;
-         for( ii=1 ; ii < nvox ; ii++ ){
+         for( ii=1 ; ii < nvox ; ii++ ){        /* find range of values */
             val = sar[ii] ;
                  if( vmin > val ) vmin = val ;
             else if( vmax < val ) vmax = val ;
          }
 
+#ifdef HISTOGRAMATE
+         if( vmax > vmin && vmin >= 0 && new_dset ){  /* 25 Jul 2001: find 'good' upper value */
+           int hist[NHIST] , nhist,nh,hh ;
+           nhist = (vmax-vmin > NHIST) ? NHIST : (vmax-vmin) ;
+           mri_histogram( vim , vmin,vmax , 1,nhist , hist ) ;
+           for( nh=ii=0 ; ii < nvox ; ii++ ) if( sar[ii] ) nh++ ;  /* count nonzeros  */
+           nh *= 0.005 ;                                           /* find 99.5% point */
+           for( ii=nhist-1 ; ii > 1 && nh > 0 ; ii-- ) nh -= hist[ii] ; /* in histogram */
+           vtop = vmin + (ii+0.5)*(vmax-vmin)/(nhist-0.01) ;
+           if( vtop > vmax || vtop <= vmin ) vtop = vmax ;
+         } else {
+            vtop = vmax ;
+         }
+#else
+         vtop = vmax ;
+#endif
+
          if( new_dset ){
             AV_assign_ival( clipbot_av , vmin ) ; cbot = vmin ;
-            AV_assign_ival( cliptop_av , vmax ) ; ctop = vmax ;
+            AV_assign_ival( cliptop_av , vtop ) ; ctop = vtop ;  /* 25 Jul 2001: vmax -> vtop */
          } else {
             cbot = MAX( clipbot_av->ival , vmin ) ;
             ctop = MIN( cliptop_av->ival , vmax ) ;
@@ -1854,15 +1880,31 @@ void REND_reload_dataset(void)
          byte * bar = (byte *) var ;
 
          vmin = vmax = bar[0] ;
-         for( ii=1 ; ii < nvox ; ii++ ){
+         for( ii=1 ; ii < nvox ; ii++ ){        /* find range of values */
             val = bar[ii] ;
                  if( vmin > val ) vmin = val ;
             else if( vmax < val ) vmax = val ;
          }
 
+#ifdef HISTOGRAMATE
+         if( vmax > vmin && new_dset ){        /* 25 Jul 2001: find 'good' upper value */
+           int hist[256] , nhist=256,nh,hh ;
+           mri_histobyte( vim , hist ) ;
+           for( nh=0,ii=1 ; ii < nhist ; ii++ ) nh += hist[ii] ; /* count nonzeros    */
+           nh *= 0.005 ;                                         /* find 99.5% point   */
+           for( ii=nhist-1 ; ii > 1 && nh > 0 ; ii-- ) nh -= hist[ii] ; /* in histogram */
+           vtop = ii ;
+           if( vtop > vmax || vtop <= vmin ) vtop = vmax ;
+         } else {
+            vtop = vmax ;
+         }
+#else
+         vtop = vmax ;
+#endif
+
          if( new_dset ){
             AV_assign_ival( clipbot_av , vmin ) ; cbot = vmin ;
-            AV_assign_ival( cliptop_av , vmax ) ; ctop = vmax ;
+            AV_assign_ival( cliptop_av , vtop ) ; ctop = vtop ;  /* 25 Jul 2001: vmax -> vtop */
          } else {
             cbot = MAX( clipbot_av->ival , vmin ) ;
             ctop = MIN( cliptop_av->ival , vmax ) ;
@@ -2648,6 +2690,10 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        " * 'See Overlay' is used to toggle the color overlay computations\n"
        "     on and off - it should be pressed IN for the overlay to become\n"
        "     visible.\n"
+       " * 'TT Atlas' is used to toggle the overlay of regions from the\n"
+       "     Talairach Atlas on and off.  This option only has effect if\n"
+       "     the underlay dataset being viewed in the the +tlrc coordinate\n"
+       "     system and has 1 mm cubical voxels (the default).\n"
        "\n"
        " * 'Cutout Overlay' determines if the cutout operations affect the\n"
        "     overlaid voxels.  If it is pressed IN, then cutouts will include\n"
@@ -4020,7 +4066,7 @@ void REND_cutout_blobs( MRI_IMAGE * oppim )
 #define KEEP(i,j,k) keep[(i)+(j)*nx+(k)*nxy]
 
          case CUT_NONOVERLAY:
-         if( func_dset != NULL ){
+         if( DO_OVERLAY ){  /* 24 Jul 2001: changed condition from func_dset != NULL */
             byte * ovar ;
             float adx=fabs(dx) , ady=fabs(dy) , adz=fabs(dz) ;
 
@@ -5047,12 +5093,35 @@ void REND_func_widgets(void)
    { char * see_overlay_label[1]   = { "See Overlay" } ;
      char * cut_overlay_label[1]   = { "Cutout Overlay" } ;
      char * kill_clusters_label[1] = { "Remove Small Clusters" } ;
+     char * see_ttatlas_label[1]   = { "TT Atlas" } ;              /* 24 Jul 2001 */
+     Widget wrc ;
 
-     wfunc_see_overlay_bbox = new_MCW_bbox( wfunc_opacity_rowcol ,
+     wrc = XtVaCreateWidget(                                       /* 24 Jul 2001 */
+             "AFNI" , xmRowColumnWidgetClass , wfunc_opacity_rowcol ,
+                XmNorientation , XmHORIZONTAL ,
+                XmNpacking , XmPACK_TIGHT ,
+                XmNmarginHeight, 0 ,
+                XmNmarginWidth , 0 ,
+                XmNtraversalOn , False ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+     wfunc_see_overlay_bbox = new_MCW_bbox( wrc ,
                                             1 , see_overlay_label ,
                                             MCW_BB_check ,
                                             MCW_BB_noframe ,
                                             REND_see_overlay_CB , NULL ) ;
+
+     wfunc_see_ttatlas_bbox = new_MCW_bbox( wrc ,                  /* 24 Jul 2001 */
+                                            1 , see_ttatlas_label ,
+                                            MCW_BB_check ,
+                                            MCW_BB_noframe ,
+                                            REND_see_ttatlas_CB , NULL ) ;
+
+     if( TT_retrieve_atlas() == NULL )
+       XtSetSensitive( wfunc_see_ttatlas_bbox->wrowcol , False ) ;
+
+     XtManageChild(wrc) ;                                          /* 24 Jul 2001 */
 
      wfunc_cut_overlay_bbox = new_MCW_bbox( wfunc_opacity_rowcol ,
                                             1 , cut_overlay_label ,
@@ -5627,6 +5696,21 @@ void REND_see_overlay_CB( Widget w, XtPointer cd, XtPointer cb)
 }
 
 /*------------------------------------------------------------------------------
+   Called to toggle visibility of the TT atlas -- 24 Jul 2001
+--------------------------------------------------------------------------------*/
+
+void REND_see_ttatlas_CB( Widget w, XtPointer cd, XtPointer cb)
+{
+   int newsee = MCW_val_bbox(wfunc_see_ttatlas_bbox) ;
+
+   if( newsee == func_see_ttatlas ) return ;
+
+   func_see_ttatlas = newsee ;
+   INVALIDATE_OVERLAY ; FREE_VOLUMES ;
+   return ;
+}
+
+/*------------------------------------------------------------------------------
    Called to toggle whether or not cutouts affect the overlay
 --------------------------------------------------------------------------------*/
 
@@ -5860,9 +5944,16 @@ void REND_reload_func_dset(void)
    byte fim_ovc[NPANE_MAX+1] ;
    float fim_thr[NPANE_MAX] , scale_factor , thresh ;
 
-   if( func_dset == NULL ) return ;  /* error */
-
    INVALIDATE_OVERLAY ;              /* toss old overlay, if any */
+
+   if( !func_see_overlay || func_dset == NULL ){ /* 24 Jul 2001: if not seeing */
+                                                 /* function, make empty ovim  */
+
+      ovim = mri_new_conforming( DSET_BRICK(dset,dset_ival) , MRI_byte ) ;
+      ovar = MRI_BYTE_PTR(ovim) ;
+      memset( ovar , 0 , DSET_NVOX(dset) ) ;
+      goto EndOfFuncOverlay ;                 /* AHA! */
+   }
 
    DSET_load(func_dset) ;            /* make sure is in memory */
 
@@ -6042,16 +6133,17 @@ void REND_reload_func_dset(void)
       }
    }  /* end of cluster removal */
 
-#ifdef USE_TALAIRACH_TO
-   REND_overlay_ttatlas() ;  /* 12 July 2001 */
-#endif
+   /*----- other overlay stuff -----*/
+
+EndOfFuncOverlay:
+
+   if( func_see_ttatlas ) REND_overlay_ttatlas() ;  /* 12 July 2001 */
 
    if( xhair_flag ) REND_xhair_overlay() ; /* 08 Mar 2001 */
 
    return ;
 }
 
-#ifdef USE_TALAIRACH_TO
 /*-----------------------------------------------------------------------
    Overlay regions from the Talairach Daemon database, if possible
 -------------------------------------------------------------------------*/
@@ -6069,6 +6161,8 @@ void REND_overlay_ttatlas(void)
    byte *brik , *val , *ovc , g_ov , a_ov , final_ov ;
 
    /* sanity checks and setup */
+
+   if( ovim == NULL ) return ;
 
    nvox = ovim->nvox ;
 
@@ -6119,7 +6213,7 @@ void REND_overlay_ttatlas(void)
       /* check atlas dataset for hits */
 
       g_ov = a_ov = 0 ;
-      for( jj=0 ; g_ov==0 && a_ov==0 && jj<nreg ; jj++ ){
+      for( jj=0 ; (g_ov==0 || a_ov==0) && jj<nreg ; jj++ ){
               if( b0[ii] == val[jj] ) g_ov = ovc[jj] ;
          else if( b1[ii] == val[jj] ) a_ov = ovc[jj] ;
       }
@@ -6134,7 +6228,6 @@ void REND_overlay_ttatlas(void)
 
    return ;
 }
-#endif /* USE_TALAIRACH_TO */
 
 /*-----------------------------------------------------------------------
    Overlay some colored lines showing the crosshair location.
@@ -7018,6 +7111,7 @@ RENDER_state_array * REND_read_states( char * fname , RENDER_state * rsbase )
       ASS_FLOAT( func_thresh_top    ) ;
       ASS_FLOAT( func_color_opacity ) ;
       ASS_INT(   func_see_overlay   ) ;
+      ASS_INT(   func_see_ttatlas   ) ;  /* 24 Jul 2001 */
       ASS_INT(   func_cut_overlay   ) ;
       ASS_INT(   func_kill_clusters ) ;
       ASS_FLOAT( func_clusters_rmm  ) ;
@@ -7175,6 +7269,7 @@ char * REND_save_state( RENDER_state * rs , RENDER_state * rsbase )
    RSP_INT(   func_cut_overlay   ) ; RSP_INT(   func_kill_clusters ) ;
    RSP_FLOAT( func_clusters_rmm  ) ; RSP_FLOAT( func_clusters_vmul ) ;
    RSP_FLOAT( func_range         ) ;
+                                     RSP_INT(   func_see_ttatlas   ) ; /* 24 Jul 2001 */
 
    /* pbar values [all of them if number or mode changed] */
 
@@ -7321,6 +7416,7 @@ void REND_widgets_to_state( RENDER_state * rs )
       TO_RS(func_cut_overlay)   ; TO_RS(func_kill_clusters) ;
       TO_RS(func_clusters_rmm)  ; TO_RS(func_clusters_vmul) ;
       TO_RS(func_range)         ;
+                                  TO_RS(func_see_ttatlas)   ; /* 24 Jul 2001 */
 
       /* pbar stuff */
 
@@ -7563,6 +7659,11 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
       if( RSOK(func_see_overlay,0,1) ){
          MCW_set_bbox( wfunc_see_overlay_bbox , rs->func_see_overlay ) ;
          REND_see_overlay_CB(NULL,NULL,NULL) ;
+      }
+
+      if( RSOK(func_see_ttatlas,0,1) ){  /* 24 Jul 2001 */
+         MCW_set_bbox( wfunc_see_ttatlas_bbox , rs->func_see_ttatlas ) ;
+         REND_see_ttatlas_CB(NULL,NULL,NULL) ;
       }
 
       if( RSOK(func_cut_overlay,0,1) ){

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #undef MAIN
 
 /****** This file contains routines related to warping datasets ******/
@@ -791,15 +791,15 @@ STATUS("scaling slice to floats") ;
 }
 
 /*-------------------------------------------------------------
-   a version of FD_brick_to_mri that allows on-the-fly warping
+   A version of FD_brick_to_mri that allows on-the-fly warping.
+   25 Jul 2001 -- moved the flipping stuff to new function
+   AFNI_slice_flip() -- RWCox
 ---------------------------------------------------------------*/
 
 MRI_IMAGE * FD_warp_to_mri( int kslice , int ival , FD_brick * br )
 {
    int ax_1 , ax_2 , ax_3 ;
-   int fixed_axis , fixed_index , dsl_1 , dsl_2 , rot,mir;
-   MRI_IMAGE * dsim , * flim ;
-   THD_dataxes * daxes ;
+   MRI_IMAGE * flim ;
    int resam_code ;
 
 ENTRY("FD_warp_to_mri") ;
@@ -808,17 +808,46 @@ ENTRY("FD_warp_to_mri") ;
 
    if( br == NULL || kslice < 0 ) RETURN(NULL) ;  /* should not happen! */
 
-   ax_1 = br->a123.ijk[0] ;
+   ax_1 = br->a123.ijk[0] ;  /* axis codes for the desired image */
    ax_2 = br->a123.ijk[1] ;
    ax_3 = br->a123.ijk[2] ;
 
-if(PRINT_TRACING)
-{ char str[256] ;
-  sprintf(str,"kslice=%d ax_1=%d ax_2=%d ax_3=%d",
-          kslice,ax_1,ax_2,ax_3) ;
-  STATUS(str) ; }
+   resam_code = ( DSET_BRICK_STATCODE(br->dset,ival) > 0 )
+                ? br->thr_resam_code
+                : br->resam_code ;
 
-   daxes = CURRENT_DAXES(br->dset) ;
+   flim = AFNI_slice_flip( kslice , ival , resam_code ,
+                           ax_1 , ax_2 , ax_3 , br->dset ) ;
+
+   RETURN(flim) ;
+}
+
+/*-----------------------------------------------------------------
+   Get the #kslice-th slice from sub-brick #ival with resampling
+   mode resam, and flip it so that it is oriented along directions
+   (ax_1,ax_2,ax_3) -- 25 Jul 2001 - RWCox
+-------------------------------------------------------------------*/
+
+MRI_IMAGE * AFNI_slice_flip( int kslice , int ival , int resam ,
+                             int ax_1, int ax_2, int ax_3 ,
+                             THD_3dim_dataset * dset       )
+{
+   int fixed_axis , fixed_index , dsl_1 , dsl_2 , rot,mir;
+   MRI_IMAGE * dsim , * flim ;
+   THD_dataxes * daxes ;
+   int resam_code ;
+
+ENTRY("AFNI_slice_flip") ;
+
+   /*--- get the image from the dataset ---*/
+
+   if( dset == NULL || kslice < 0 ) RETURN(NULL) ;  /* should not happen! */
+
+   daxes = CURRENT_DAXES(dset) ;
+
+   /* determine which axis kslice refers to,
+      which determines fixed_index, and also compute
+      dsl_1 and dsl_2 = axis codes for image returned from AFNI_dataset_slice() */
 
    switch( ax_3 ){
       default: RETURN(NULL) ;
@@ -842,31 +871,15 @@ if(PRINT_TRACING)
                 fixed_index = daxes->nzz - kslice - 1 ; break ;
    }
 
-if(PRINT_TRACING)
-{ char str[256] ;
-  sprintf(str,"fixed_axis=%d fixed_index=%d dsl_1=%d dsl_2=%d",
-          fixed_axis,fixed_index,dsl_1,dsl_2) ;
-  STATUS(str) ; }
-
-   resam_code = ( DSET_BRICK_STATCODE(br->dset,ival) > 0 )
-                ? br->thr_resam_code
-                : br->resam_code ;
-
-if(PRINT_TRACING)
-{ char str[256] ;
-  sprintf(str,"ival=%d  statcode=%d  resam_code=%d",
-          ival,DSET_BRICK_STATCODE(br->dset,ival),resam_code) ;
-  STATUS(str) ; }
-
-   dsim = AFNI_dataset_slice( br->dset ,
-                              fixed_axis , fixed_index , ival , resam_code ) ;
+   dsim = AFNI_dataset_slice( dset ,
+                              fixed_axis , fixed_index , ival , resam ) ;
 
    if( dsim == NULL ) RETURN(NULL) ;
 
    /*--- the image may need to be flippo-ed to be
          in the orientation that the FD_brick wants ---*/
 
-          if( dsl_1 ==  ax_1 && dsl_2 ==  ax_2 ){
+          if( dsl_1 ==  ax_1 && dsl_2 ==  ax_2 ){  /* the easy case */
       RETURN(dsim) ;
 
    } else if( dsl_1 ==  ax_1 && dsl_2 == -ax_2 ){
@@ -905,17 +918,9 @@ if(PRINT_TRACING)
       RETURN(NULL) ;
    }
 
-if(PRINT_TRACING)
-{ char str[256] ;
-  sprintf(str,"flipping output image: rot=%d mir=%d",rot,mir) ; STATUS(str) ;
-  sprintf(str,"input to mri_flippo: nx=%d ny=%d type=%s",
-          dsim->nx,dsim->ny,MRI_TYPE_name[dsim->kind]) ; STATUS(str) ; }
-
    flim = mri_flippo( rot , mir , dsim ) ;  /* will set dx,dy OK */
 
-   if( dsim != flim ){
-STATUS("freeing sliced image in favor of flipped image") ;
-      mri_free( dsim ) ;
-   }
+   if( dsim != flim ) mri_free( dsim ) ;
+
    RETURN(flim) ;
 }
