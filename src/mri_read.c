@@ -1736,6 +1736,8 @@ ENTRY("mri_read_ppm") ;
 /*! Length of line buffer for mri_read_ascii() */
 #define LBUF 524288  /* 08 Jul 2004: increased to 512K from 64K */
 
+#undef USE_LASTBUF
+
 /*---------------------------------------------------------------*/
 /*! [20 Jun 2002] Like fgets, but also
      - skips blank or comment lines
@@ -1749,17 +1751,22 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 {
    char *ptr ;
    int nbuf , ll,ii , cflag ;
-   char *qbuf ;
+   static char *qbuf=NULL ;
+
+#ifdef USE_LASTBUF
    static char *lastbuf = NULL ;   /* 20 Jul 2004 */
    static int  nlastbuf = 0 ;
 
    if( buf == NULL && lastbuf != NULL ){    /* 20 Jul 2004 */
      free((void *)lastbuf); lastbuf = NULL; nlastbuf = 0 ;
    }
+#endif
+
+   if( buf == NULL && qbuf != NULL ){ free((void *)qbuf); qbuf = NULL; }
 
    if( buf == NULL || size < 1 || fts == NULL ) return NULL ;
 
-   qbuf = AFMALL(char, LBUF) ;  /* 1st time in */
+   if( qbuf == NULL ) qbuf = AFMALL(char, LBUF) ;  /* 1st time in */
 
    nbuf  = 0 ;  /* num bytes stored in buf so far */
    cflag = 0 ;  /* flag if we're catenating lines */
@@ -1778,14 +1785,15 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
      if( *ptr == '\0' ){ if(cflag) break; else continue; }
 
+#ifdef USE_LASTBUF
      /* if a duplicate is requested, return it now [20 Jul 2004] */
 
      if( *ptr == '"' && *(ptr+1) == '"' && nlastbuf > 0 && nbuf == 0 ){
        ll = strlen(lastbuf) ; if( ll >= size ) ll = size-1 ;
        memcpy(buf,lastbuf,ll-1) ; buf[ll] = '\0' ;
-       free((void *)qbuf) ;
        return buf ;
      }
+#endif
 
      /* skip comment lines (even if we are catenating) */
 
@@ -1815,8 +1823,7 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
    } /* loop to get next line if catenation is turned on */
 
-   free((void *)qbuf) ;  /* 08 Jul 2004 */
-
+#ifdef LASTBUF
    /* make a copy of result in lastbuf [20 Jul 2004] */
 
    ll = strlen(buf) ;
@@ -1824,6 +1831,7 @@ static char * my_fgets( char *buf , int size , FILE *fts )
      nlastbuf = ll+2 ; lastbuf = (char *)realloc((void *)lastbuf,nlastbuf) ;
    }
    memcpy(lastbuf,buf,ll+1) ;
+#endif
 
    /* and we is done */
 
@@ -1948,7 +1956,7 @@ ENTRY("mri_read_ascii") ;
    /** step 1: read in the first line and see how many numbers are in it
                (skipping lines that are comments or entirely blank)     */
 
-   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset lastbuf [20 Jul 2004] */
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
    ptr = my_fgets( buf , LBUF , fts ) ;
    if( ptr==NULL || *ptr=='\0' ){ fclose(fts); RETURN(NULL); }  /* bad read? */
 
@@ -2039,7 +2047,7 @@ ENTRY("mri_read_ascii") ;
      nrow++ ;                  /* got one more complete row! */
    }
    fclose( fts ) ; /* finished with this file! */
-   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset lastbuf [20 Jul 2004] */
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
 
    if( used_tsar <= 1 ){ free(tsar); RETURN(NULL); }
 
@@ -2052,6 +2060,7 @@ ENTRY("mri_read_ascii") ;
    mri_fix_data_pointer( tsar , outim ) ;
    mri_add_name( fname , outim ) ;
 
+   free((void *)buf) ; buf = NULL ;
    RETURN(outim) ;
 }
 

@@ -5117,6 +5117,14 @@
      remove all zero stimuli from the list.
  * Added -xjpeg option to 3dDeconvolve: grayplot of X matrix.
 
-22 Jul 2002
+22 Jul 2004
  * Modified mri_drawing.c and coxplot/plot_cox.c to allow for opacity.
      Used this in -xjpeg option in 3dDeconvolve.c.
+
+28 Jul 2004
+ * Finished (I hope) addition of -xsave and -xrestore options to 3dDeconvolve.
+ * Fixed (I hope) bug in AFNI_setup_viewing() in afni.c, where the ULay
+     sub-brick chooser optmenu wouldn't be configured correctly in controller
+     [B] (etc.) due to anat_old check not also checking im3d_old.
+ * Modified mri_read_ascii() and my_fgets() in mri_read.c to not malloc/free
+     line buffer for each line read.  Also, removed the "" feature.
