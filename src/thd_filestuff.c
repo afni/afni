@@ -113,7 +113,7 @@ int THD_is_symlink( char *pathname )  /* 03 Mar 1999 */
 }
 
 /*-------------------------------------------------------*/
-/*! Return the file length (-1 if file not found). */
+/*! Return the file length (0 if file not found). */
 
 unsigned long THD_filesize( char *pathname )
 {
