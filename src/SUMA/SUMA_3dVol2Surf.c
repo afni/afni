@@ -1,5 +1,5 @@
 
-#define VERSION "version  5.0 (May 18, 2004)"
+#define VERSION "version  5.1 (May 19, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -176,12 +176,14 @@ static char g_history[] =
     "  - added '-first_node' and '-last_node' option for limited output\n"
     "  - made major additions for memory handling of output data\n"
     "    (went from 'print as you go' to 'store and output at end')\n"
+    "\n"
+    "5.1  May 19, 2004  [rickr]\n"
+    "  - added help for '-first_node' and '-last_node' options (sorry, Ziad)\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
  * todo:
  *   - option to restrict columns for output?
- *   - option to use binary niml format for output
  *----------------------------------------------------------------------
 */
 
@@ -2225,8 +2227,26 @@ ENTRY("usage");
             "       -f_index      nodes                                    \\\n"
             "       -out_niml     fred_anat_norm_ave.2.5.niml\n"
             "\n"
+            "    8. This is the same as example 7, but where the surface\n"
+            "       nodes are restricted to the range 1000..1999 via the\n"
+            "       options '-first_node' and '-last_node'.\n"
+            "\n"
+            "    %s                                                \\\n"
+            "       -spec         fred2.spec                               \\\n"
+            "       -surf_A       smoothwm                                 \\\n"
+            "       -sv           fred_anat+orig                           \\\n"
+            "       -grid_parent  fred_anat+orig                           \\\n"
+            "       -first_node   1000                                     \\\n"
+            "       -last_node    1999                                     \\\n"
+            "       -use_norms                                             \\\n"
+            "       -norm_len     2.5                                      \\\n"
+            "       -map_func     ave                                      \\\n"
+            "       -f_steps      10                                       \\\n"
+            "       -f_index      nodes                                    \\\n"
+            "       -out_niml     fred_anat_norm_ave.2.5.niml\n"
+            "\n"
 	    "  --------------------------------------------------\n",
-	    prog, prog, prog, prog, prog, prog, prog );
+	    prog, prog, prog, prog, prog, prog, prog, prog );
 
 	printf(
 	    "\n"
@@ -2532,6 +2552,18 @@ ENTRY("usage");
             "        during the execution of the program.  Current levels are\n"
             "        from 0 to 5.\n"
             "\n"
+            "    -first_node NODE_NUM   : skip all previous nodes\n"
+            "\n"
+            "        e.g. -first_node 1000\n"
+            "        e.g. -first_node 1000 -last_node 1999\n"
+            "\n"
+            "        Restrict surface node output to those with indices as\n"
+            "        large as NODE_NUM.  In the first example, the first 1000\n"
+            "        nodes are ignored (those with indices from 0 through\n"
+            "        999).\n"
+            "\n"
+            "        See also, '-last_node'.\n"
+            "\n"
             "    -dnode NODE_NUM        :  (optional) node for debug\n"
             "\n"
             "        e.g. -dnode 1874\n"
@@ -2546,6 +2578,17 @@ ENTRY("usage");
             "    -hist                  : show revision history\n"
             "\n"
             "        Display module history over time.\n"
+            "\n"
+            "    -last_node NODE_NUM    : skip all following nodes\n"
+            "\n"
+            "        e.g. -last_node 1999\n"
+            "        e.g. -first_node 1000 -last_node 1999\n"
+            "\n"
+            "        Restrict surface node output to those with indices no\n"
+            "        larger than NODE_NUM.  In the first example, nodes above\n"
+            "        1999 are ignored (those with indices from 2000 on up).\n"
+            "\n"
+            "        See also, '-first_node'.\n"
             "\n"
             "    -no_headers            : do not output column headers\n"
             "\n"
