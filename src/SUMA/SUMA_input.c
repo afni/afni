@@ -219,7 +219,6 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;            
 
-
          case XK_c:
             fprintf(stdout,"Enter name of color file (enter nothing to cancel): ");
             /*Load colors from file */
@@ -712,14 +711,91 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                break;
             }
          case XK_s:
-            if (Kev.state & Mod1Mask){
+            if ((Kev.state & Mod1Mask) && (Kev.state & ControlMask) && SUMAg_CF->Dev){
+               int i=0;
+                  FILE *tmp;
+                  int itmp, itmp2;
+                  SUMA_SegmentDO *SDO = NULL;
+                  
+                  fprintf(stdout,"Enter name of segments file (enter nothing to cancel): ");
+                  /* load segments from file */
+                     while ((cbuf = getc(stdin)) != '\n' && i < SUMA_MAX_STRING_LENGTH-1) {
+                        s[i] = cbuf;
+                        ++ i;
+                     }
+                     if (i == SUMA_MAX_STRING_LENGTH-1) {
+                        fprintf(SUMA_STDERR,"Error %s: Filename should not be longer than %d.\n", FuncName, SUMA_MAX_STRING_LENGTH-1);
+                        fflush(stdin);
+                        SUMA_RETURNe;
+                     }
+                     s[i] = '\0';
+                     if (!i) SUMA_RETURNe;
+
+                  /* find out if file exists and how many values it contains */
+                  ntot = SUMA_float_file_size (s);
+                  if (ntot < 0) {
+                     fprintf(SUMA_STDERR,"Error %s: filename %s could not be open.\n", FuncName,  s);
+                     SUMA_RETURNe;
+                  }
+
+                  /* make sure it's a full matrix */
+                  if ((ntot % 6)) {
+                     fprintf(SUMA_STDERR,"Error %s: file %s contains %d values, not divisible by 6 (3 values per node).\n" , 
+                        FuncName, s, ntot);
+                     SUMA_RETURNe;
+                  }
+
+                  ntot = ntot / 6;
+                  /* allocate for segments DO */
+                  SDO = SUMA_Alloc_SegmentDO (ntot, s);
+                  if (!SDO) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
+                     SUMA_RETURNe;
+                  }
+                  
+                  fprintf(SUMA_STDERR,"%s: Reading %d nodes from file %s...\n", FuncName, 2*SDO->N_n, s);
+                  /* fill up SDO */
+                  tmp = fopen(s, "r");
+                  itmp = 0;
+                  while (itmp < 3 * SDO->N_n) {   
+                     itmp2 = itmp;
+                     fscanf (tmp,"%f",&(SDO->n0[itmp])); ++itmp;
+                     fscanf (tmp,"%f",&(SDO->n0[itmp])); ++itmp;
+                     fscanf (tmp,"%f",&(SDO->n0[itmp])); ++itmp;
+                     fscanf (tmp,"%f",&(SDO->n1[itmp2])); ++itmp2;
+                     fscanf (tmp,"%f",&(SDO->n1[itmp2])); ++itmp2;
+                     fscanf (tmp,"%f",&(SDO->n1[itmp2])); ++itmp2;
+                  }
+                  for (itmp=0; itmp < 6* SDO->N_n; ++itmp) {
+                     
+                  }
+                  fclose (tmp);   
+
+                  /* addDO */
+                  if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_LOCAL)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+                     SUMA_RETURNe;
+                  }
+
+                  /* register DO with viewer */
+                  if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+                     SUMA_RETURNe;
+                  }
+                  
+                  /* redisplay curent only*/
+                  sv->ResetGLStateVariables = YUP;
+                  SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+               
+   
+            } else if (Kev.state & Mod1Mask){
                /* swap buttons 1 and 3 */
                SUMAg_CF->SwapButtons_1_3 = !SUMAg_CF->SwapButtons_1_3;
                if (SUMAg_CF->SwapButtons_1_3) {
                   fprintf (SUMA_STDOUT,"%s: Buttons 1 and 3 are swapped.\n", FuncName);
                } else {
                   fprintf (SUMA_STDOUT,"%s: Default functions for buttons 1 and 3.\n", FuncName);
-               }
+               }               
             } else if (SUMAg_CF->Dev) {
                for (ii=0; ii< sv->N_DO; ++ii) {
                   if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) 

@@ -25,6 +25,8 @@ static String fallbackResources[] = {
   "*frame*shadowType: SHADOW_IN", NULL
 }; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
 
+Widget mainw, menubar, menupane, btn, cascade, frame;
+Arg menuPaneArgs[1], args[1];
 
 
 Boolean
@@ -177,7 +179,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case AO_type:
                if (csv->ShowEyeAxis){
                   if (!SUMA_CreateAxis ((SUMA_Axis*)dov[csv->ShowDO[i]].OP)) {
-                     fprintf(stderr,"display error: Could not display EYE AXIS\n");
+                     fprintf(SUMA_STDERR,"Error %s: Could not display EYE AXIS\n", FuncName);
                   }
                }
                break;
@@ -188,6 +190,11 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case ROIO_type:
                /* those are drawn by SUMA_CreateMesh */
+               break;
+            case LS_type:
+               if (!SUMA_CreateSegmentDO ((SUMA_SegmentDO *)dov[csv->ShowDO[i]].OP)) {
+                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_CreateSegmentDO.\n", FuncName);
+               }
                break;
          }
       }
@@ -232,6 +239,11 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case ROIO_type:
                /* those are drawn by SUMA_CreateMesh */
+               break;
+            case LS_type:
+               if (!SUMA_CreateSegmentDO ((SUMA_SegmentDO *)dov[csv->ShowDO[i]].OP)) {
+                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_CreateSegmentDO.\n", FuncName);
+               }
                break;
          }
       }
@@ -510,7 +522,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    static char FuncName[]={"SUMA_X_SurfaceViewer_Create"};
    static int CallNum = 0;
    int ic = 0;
-   char *vargv[1]={ "suma" };
+   char *vargv[1]={ "[A] SUMA" };
    int cargc = 1;
    SUMA_Boolean NewCreation = NOPE, Found;
    char slabel[20]; 
@@ -544,7 +556,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       /* an unopen window was found, check its top level widget */
       if (SUMAg_SVv[ic].X->TOPLEVEL == NULL) {
          /* Unopen window found, needs a shell */
-         sprintf(slabel,"suma-%d", ic);
+         sprintf(slabel,"[%c] SUMA", 65+ic);
          SUMAg_SVv[ic].X->DPY = SUMAg_CF->DPY_controller1;
          SUMAg_SVv[ic].X->TOPLEVEL = XtVaAppCreateShell(slabel , "Suma" ,
                    topLevelShellWidgetClass , SUMAg_SVv[ic].X->DPY ,
@@ -579,6 +591,54 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
        SUMAg_SVv[ic].X->DOUBLEBUFFER = False;
       }
 
+      /* Step 3.5 Wed Dec 18 14:49:25 EST 2002 - The GUI*/
+         /* see Kilgard's OpenGL Programming for the X window system */
+         /* create main window */
+         mainw = XmCreateMainWindow (SUMAg_SVv[ic].X->TOPLEVEL, "mainw", NULL, 0);
+         XtManageChild (mainw);      
+         /* create menu bar */
+         menubar = XmCreateMenuBar (mainw, "menubar", NULL, 0);
+         XtManageChild (menubar);
+         /* create menu pane */
+         menupane = XmCreatePulldownMenu (menubar, "menupane", NULL, 0);
+         
+         /* build File Cascade button */
+         btn = XmCreatePushButton (menupane, "Quit", NULL, 0);
+         XtAddCallback (btn, XmNactivateCallback, SUMA_cb_quit, NULL);
+         XtManageChild (btn);
+         XtSetArg(args[0], XmNsubMenuId, menupane);
+         cascade = XmCreateCascadeButton(menubar, "File", args, 1);
+         XtManageChild(cascade);
+
+         /* build View Cascade button */
+        /* create menu pane */
+         menupane = XmCreatePulldownMenu (menubar, "menupane", NULL, 0);
+         XtVaSetValues(menupane,
+            XmNtearOffModel, XmTEAR_OFF_ENABLED);
+         btn = XmCreatePushButton (menupane, "Surface Controller", NULL, 0);
+         XtAddCallback (btn, XmNactivateCallback, SUMA_cb_view_surface_controller, NULL);
+         XtManageChild (btn);
+         btn = XmCreatePushButton (menupane, "Viewer Controller", NULL, 0);
+         XtAddCallback (btn, XmNactivateCallback, SUMA_cb_view_viewer_controller, NULL);
+         XtManageChild (btn);
+         btn = XmCreateToggleButton(menupane, "Cross Hair", NULL, 0);
+         XtAddCallback(btn, XmNvalueChangedCallback,
+          (XtCallbackProc) SUMA_cb_toggle_crosshair, (XtPointer)&(SUMAg_SVv[ic]));
+         XtManageChild(btn);
+         btn = XmCreateToggleButton(menupane, "Node in Focus", NULL, 0);
+         XtAddCallback(btn, XmNvalueChangedCallback,
+          (XtCallbackProc) SUMA_cb_toggle_node_in_focus, NULL);
+         XtManageChild(btn);
+         btn = XmCreatePushButton(menupane, "Selected Faceset", NULL, 0);
+         XtAddCallback(btn, XmNvalueChangedCallback,
+          (XtCallbackProc) SUMA_cb_toggle_selected_faceset, NULL);
+         XtManageChild(btn);
+         XtSetArg(args[0], XmNsubMenuId, menupane);
+         cascade = XmCreateCascadeButton(menubar, "View", args, 1);
+         XtManageChild(cascade);
+
+         /* build Edit Cascade button */
+         
       #ifdef SUMA_MOTIF_GLXAREA
         /* Step 4. */
         SUMAg_SVv[ic].X->FORM = XmCreateForm(SUMAg_SVv[ic].X->TOPLEVEL, "form", NULL, 0);
@@ -597,23 +657,30 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 
         /* Step 6. */
          /* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
-        SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
+         SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
           glwMDrawingAreaWidgetClass, SUMAg_SVv[ic].X->FRAME,
           GLwNvisualInfo, SUMAg_SVv[ic].X->VISINFO,
           XtNcolormap, SUMAg_SVv[ic].X->CMAP,
           NULL);
       #else
+         fprintf (SUMA_STDERR, "------------------ooooooooooo--------------------\n");
       /* Step 4-6. */
-        SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(&(SUMAg_SVv[ic]));
+         SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(&(SUMAg_SVv[ic]));
 
-      /* glwDrawingAreaWidgetClass requires libMesaGLw.a */
-        SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
-          glwDrawingAreaWidgetClass, SUMAg_SVv[ic].X->TOPLEVEL,
+         /* create a frame to put glxarea in */
+         SUMAg_SVv[ic].X->FRAME  = XmCreateFrame (mainw, "frame", NULL, 0);
+         XtManageChild(SUMAg_SVv[ic].X->FRAME);
+
+         /* glwDrawingAreaWidgetClass requires libMesaGLw.a */
+         SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
+          glwDrawingAreaWidgetClass, SUMAg_SVv[ic].X->FRAME,
           GLwNvisualInfo, SUMAg_SVv[ic].X->VISINFO,
           XtNcolormap, SUMAg_SVv[ic].X->CMAP,
           NULL);
+      
       #endif
 
+         
       /* Step 7. */
       XtAddCallback(SUMAg_SVv[ic].X->GLXAREA, GLwNginitCallback, SUMA_graphicsInit, NULL);
       XtAddCallback(SUMAg_SVv[ic].X->GLXAREA, GLwNexposeCallback, SUMA_expose, NULL);
@@ -1181,3 +1248,69 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y)
    SUMA_RETURN (YUP);
 }
 
+void SUMA_cb_quit(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_quit"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ButtClose_pushed (w, data, callData);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_view_surface_controller(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_view_surface_controller"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   fprintf (SUMA_STDERR,"%s: Not setup yet.\n", FuncName);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_view_viewer_controller(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_view_viewer_controller"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   fprintf (SUMA_STDERR,"%s: Not setup yet.\n", FuncName);
+
+   SUMA_RETURNe;
+}
+
+
+/* the function expects the surface viewer pointer in data */
+void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData)
+{
+   char CommString[SUMA_MAX_COMMAND_LENGTH];
+   static char FuncName[] = {"SUMA_cb_toggle_crosshair"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+      
+   sprintf(CommString, "Redisplay|ToggleCrossHair~");
+   if (!SUMA_Engine (CommString, NULL, (SUMA_SurfaceViewer *)data)) {
+      fprintf(stderr,"Error SUMA_input: Failed SUMA_Engine\n");
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_toggle_node_in_focus(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_toggle_node_in_focus"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_toggle_selected_faceset"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_RETURNe;
+}         

@@ -111,7 +111,10 @@
 typedef enum  { SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC } SUMA_SO_File_Type;
 typedef enum { SUMA_ASCII, SUMA_BINARY } SUMA_SO_File_Format;
 typedef enum { NOPE, YUP} SUMA_Boolean;
-typedef enum {SO_type, AO_type, ROIdO_type, ROIO_type, GO_type} SUMA_DO_Types;   /*!< Displayable Object Types S: surface, A: axis, G: grid, ROId: Region of interest drawn type*/
+typedef enum {SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type} SUMA_DO_Types;   /*!< Displayable Object Types 
+                                                                                    S: surface, A: axis, G: grid, 
+                                                                                    ROId: Region of interest drawn type,
+                                                                                    LS_type: segment*/
 typedef enum {SUMA_SCREEN, SUMA_LOCAL} SUMA_DO_CoordType; /*!< Coordinate system that Displayable object is attached to
                                                                   SCREEN is for a fixed system, LOCAL is for a mobile system,
                                                                   ie one that is rotated by the mouse movements */
@@ -393,6 +396,21 @@ typedef struct {
    GLfloat LineCol[4]; /*!< LineColor of Edge*/
    GLfloat NormVect[3]; /*!< normal vector of faceset, two triangles are drawn at a small distance from the selected FaceSet */
 }SUMA_FaceSetMarker;
+
+/*!
+   Structure containg a bunch of segments defined between n0 and n1
+*/
+typedef struct {
+   char *idcode_str;    /*!< unique idcode for DO */
+   char *Label; /*!< ascii label for DO */ 
+
+   GLfloat *n0; /*!< vector containing XYZ of nodes 1 (3*N_n elements long)*/
+   GLfloat *n1; /*!< vector containing XYZ of nodes 2 (3*N_n elements long)*/
+   int N_n; /*!< Number of elements in n0 and n1 */
+   GLfloat LineWidth; /*!< LineWidth of all segment*/
+   GLfloat LineCol[4]; /*!< LineColor of all segments*/
+   SUMA_STIPPLE Stipple; /*!< dashed or solid line */
+}SUMA_SegmentDO;
 
 /*! Structure containing the communication info and status with AFNI */
 typedef struct {

@@ -240,12 +240,16 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
             fprintf(SUMA_STDERR,"Error SUMA_freeROI, could not free  ROI.\n");
          }
          break;
+      case LS_type:
+         SUMA_free_SegmentDO ((SUMA_SegmentDO *)dov->OP);
+         break;
       case AO_type:
          fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free AO objects\n");
          break;
       case GO_type:
          fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free GO objects\n");
          break;
+         
    }   
    if (dov) SUMA_free(dov);
    SUMA_RETURN(YUP);

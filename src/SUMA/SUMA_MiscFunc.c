@@ -429,15 +429,7 @@ int SUMA_Read_file (float *x,char *f_name,int n_points)
    while (ex != EOF)
    {
      ++cnt;
-     /* NOT WORKING, RETURNS SIZEOF (FLOAT) .....
-     if (sizeof(x) < cnt)
-      {
-        fprintf(SUMA_STDERR, "%d = sizeof(x)\n",sizeof(x));
-        fprintf(SUMA_STDERR, "\nNot Enough Memory Allocated \n\a");
-        fprintf(SUMA_STDERR, "Exiting @SUMA_Read_file function\n");
-        exit (0);
-      }
-     ............................................ */
+     
      ex = fscanf (internal_file,"%f",&x[cnt]);
 
      if ((n_points != 0) && (cnt == n_points)) ex = EOF;
@@ -2393,33 +2385,42 @@ ans = SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, d, closest_
     
    
    float P0[3], P1[3], iP[3], d[3];
-   int closest_vert, ivert1, ivert2, Nref;  
+   int closest_vert, ivert1, ivert2, ivert0, Nref, jj, jj3, Incident[100], N_Incident, Checked[100], N_Checked;  
    SUMA_Boolean Found;
    int cnt;
    
    Found = NOPE; // flag for exiting when a triangle has been intersected
    cnt = 0;
-   cntmax = SO->FN->N_Neighb[Nref] - 1;
+   cntmax = SO->FN->N_Neighb[Nref];
    // NOTE: This assumes that FN->NodeId is monotonically increasing from 0 to N_Node -1
    while (!Found && cnt < cntmax) {
-      //ivert0 = Nref;
-      ivert1 = SO->FN->FirstNeighb[Nref][cnt];
-      ivert2 = SO->FN->FirstNeighb[Nref][cnt+1];
-      if (SUMA_MT_isIntersect_Triangle (P0, P1, SO->NodeList[Nref], SO->NodeList[ivert1], SO->NodeList[ivert2], iP, d, &closest_vert)) Found = YUP;
+      // find the triangles touching the edge Nref-FirstNeighb[Nref][cnt], usually there are two 
+      if (!SUMA_Get_Incident(Nref, SO->FN->FirstNeighb[Nref][cnt], SO->EL, Indident, &N_Incident) {
+         TROUBLE, SHOULD NEVER HAPPEN
+      }
+      
+      for (jj=0; jj < N_Incident; ++jj) {
+         // found some triangle, make sure that we have not examined it yet
+         SUMA_IS_IN_VEC (Checked, N_Checked, Incident[jj], ichecked);
+         if (ichecked < 0) {
+            // Not found, add it 
+            Checked[N_Checked] = Incident[jj]; ++N_Checked;
+            // test it
+            jj3 = 3 * Incident[jj];
+            ivert0 = 3*SO->FaceSetList[jj3];
+            ivert1 = 3*SO->FaceSetList[jj3+1];
+            ivert2 = 3*SO->FaceSetList[jj3+2];
+            if (SUMA_MT_isIntersect_Triangle (P0, P1, SO->NodeList[ivert0], SO->NodeList[ivert1], SO->NodeList[ivert2], iP, d, &closest_vert)) Found = YUP;
+         }
+      }
       ++cnt;
-   }
-   if (!Found) {
-      // last triangle to check
-      ivert1 = SO->FN->FirstNeighb[Nref][cntmax];
-      ivert2 = SO->FN->FirstNeighb[Nref][0];
-      if (SUMA_MT_isIntersect_Triangle (P0, P1, SO->NodeList[Nref], SO->NodeList[ivert1], SO->NodeList[ivert2], iP, d, &closest_vert)) Found = YUP;
    }
    if (!Found) {
       fprintf (SUMA_STDERR, "Error %s: No triangle containing node %d was intersected by P0-P1.\n", 
          FuncName, Nref);
    }else {
       fprintf (SUMA_STDERR, "%s: P0-P1 intersects the triangle formed by nodes indexed (%d %d %d) at location iP (%f %f %f)\n", 
-         FuncName, Nref, ivert1, ivert2, iP[0], iP[1], iP[2]);
+         FuncName, ivert0/3, ivert1/3, ivert2/3, iP[0], iP[1], iP[2]);
       fprintf (SUMA_STDERR, "%s: The distance from iP to each of the nodes is: (%f %f %f).iP is closest to vert%d\n", 
          FuncName, d[0], d[1], d[2], closest_vert);
    }

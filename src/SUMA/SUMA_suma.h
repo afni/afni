@@ -12,6 +12,12 @@
 #include <X11/StringDefs.h>
 #include <X11/Xatom.h>  /* For XA_RGB_DEFAULT_MAP. */
 #include <X11/Xmu/StdCmap.h>  /* For XmuLookupStandardColormap. */
+#include <Xm/MainW.h>
+#include <Xm/RowColumn.h>
+#include <Xm/PushB.h>
+#include <Xm/ToggleB.h>
+#include <Xm/CascadeB.h>
+#include <Xm/Frame.h>
 #include <math.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
