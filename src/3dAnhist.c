@@ -558,10 +558,10 @@ int main( int argc , char * argv[] )
        if( verb ) fprintf(stderr,".") ;
        if( nregtry < 8                 ){ nregtry++ ; goto RegTry ; }
        if( nregtry < 12 && nbetter > 0 ){ nregtry++ ; goto RegTry ; }
-       if( verb ) fprintf(stderr,"\n") ;
+       if( verb ) fprintf(stderr,"!\n") ;
      } /* end of fitting */
 
-       /* save some results */
+     /* save some results */
 
      sprintf(cmd,"%s.1D",fname) ;
      hf = fopen( cmd , "w" ) ;
@@ -581,18 +581,21 @@ int main( int argc , char * argv[] )
          /* compute individual fits into Gmat[jj] curves,
             and total number in each fit into wt[jj] values */
 
+         if( verb > 1 ) fprintf(stderr,"++ Computing individual fits:") ;
          for( jj=0 ; jj < npk ; jj++ ) wt[jj] = 0.0 ;
          gtot = 0 ;
          for( ii=cbot ; ii <= ctop ; ii++ ){
            gtot += gist[ii] ;
            for( jj=0 ; jj < npk ; jj++ ){
+             if( verb > 1 ) fprintf(stderr,"(%d,%d)",jj,ii) ;
              apar = apbest[jj] ;
              gval = lambest[jj] *
                     pmodel_bin(ii-0.5,ii+0.5,pkbest[jj],wwbest[jj]) ;
-             Gmat[jj][ii] = rint(gval) ;
-             wt[jj] += Gmat[jj][ii] ;
+             Gmat[jj][ii-cbot] = rint(gval) ;
+             wt[jj] += Gmat[jj][ii-cbot] ;
            }
          }
+         if( verb > 1 ) fprintf(stderr,"\n") ;
 
          for( jj=0 ; jj < npk ; jj++ ){
            fprintf(hf,"# Peak %d fit: location=%.1f width=%.2f skew=%.3f height=%.1f\n",
@@ -632,14 +635,15 @@ int main( int argc , char * argv[] )
 
            /* scan for crossover between fitted densities */
 
-           ibot = (int)mu_bot ; itop = 1+(int)mu_top ;
+           ibot =   (int)mu_bot; ibot = MAX(ibot,cbot); ibot = MIN(ibot,ctop);
+           itop = 1+(int)mu_top; itop = MAX(itop,cbot); itop = MIN(itop,ctop);
            for( ix=ibot ; ix < itop ; ix++ )
-             if( Gmat[0][ix] < Gmat[1][ix] ) break ;
+             if( Gmat[0][ix-cbot] < Gmat[1][ix-cbot] ) break ;
            if( ix < itop && ix > ibot ){
              threshold = ix-0.5 ;
              gx0 = gx1 = 0 ;
-             for( ii=cbot ; ii < ix   ; ii++ ) gx0 += Gmat[1][ii] ;
-             for( ii=ix   ; ii < ctop ; ii++ ) gx1 += Gmat[0][ii] ;
+             for( ii=cbot ; ii <  ix   ; ii++ ) gx0 += Gmat[1][ii-cbot] ;
+             for( ii=ix   ; ii <= ctop ; ii++ ) gx1 += Gmat[0][ii-cbot] ;
              fprintf(hf,"# Overlaps: Thresh=%.1f  Fit 1=%d  Fit 2=%d\n",
                      threshold,gx0,gx1) ;
              cer = ((float)(gx0+gx1))/(wt[0]+wt[1]) ;
@@ -659,7 +663,7 @@ int main( int argc , char * argv[] )
          for( ii=cbot ; ii <= ctop ; ii++ ){
            fprintf(hf,"%5d %6d %6d %6d",ii,gist[ii],hist[ii],gist[ii]-hist[ii]) ;
            for( jj=0 ; jj < npk ; jj++ )
-             fprintf(hf," %6d",(int)Gmat[jj][ii]) ;
+             fprintf(hf," %6d",(int)Gmat[jj][ii-cbot]) ;
            fprintf(hf,"\n") ;
          }
 
