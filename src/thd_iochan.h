@@ -171,4 +171,7 @@ extern int      read_URL     ( char * url, char ** data ) ;
 extern void     set_URL_ftp_ident( char * name , char * pwd ) ;
 extern void     set_URL_progress( int ) ;
 
+extern void     set_HTTP_10( int ) ;            /* 24 Mar 2005 */
+extern void     set_HTTP_user_agent( char *) ;
+
 #endif
