@@ -139,6 +139,9 @@ void SUMA_cb_FileOpenSpec (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileOpenSurf (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileClose (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData);
+void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData);
+void SUMA_ViewerInfo_destroyed (void *p);
+void SUMA_ViewerInfo_open (void *p);
 SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTestShellStruct (void (*opencallback)(void *data), void *opendata, 
                                                             void (*closecallback)(void*data), void *closedata);
 SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA_CREATE_TEXT_SHELL_STRUCT *TextShellStruct);
@@ -244,6 +247,10 @@ void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_SurfCont_SwitchColPlane(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_ViewerCont_SwitchState (Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_ViewerCont_SwitchGroup (Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_CloseSwitchGroup(Widget w, XtPointer data, XtPointer call_data);
 SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ColPlane);
 SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO);
@@ -336,11 +343,21 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans);
    "Close Surface controller window.\n"   \
    "Current settings are preserved\n"\
    "when controller is reopened.\n"
-   
+
+#define SUMA_closeViewerCont_help   \
+   "Close Viewer controller window.\n"   \
+   "Current settings are preserved\n"\
+   "when controller is reopened.\n"
+  
 #define  SUMA_moreSurfInfo_help  \
    "Opens a dialog with detailed\n" \
    "information about the surface\n"\
    "object.\n"
+
+#define  SUMA_moreViewerInfo_help  \
+   "Opens a dialog with detailed\n" \
+   "information about the surface\n"\
+   "viewer.\n"
 
 #define SUMA_DrawROI_ColPlaneShow_help   \
    "Shows/Hides the colorplane."

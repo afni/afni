@@ -39,8 +39,9 @@
 #ifdef STAND_ALONE
 /* these global variables must be declared even if they will not be used by this main */
 SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
+                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
 SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
@@ -1041,11 +1042,13 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          sprintf(stmp,"LocalCurvatureParent");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found LocalCurvatureParent  field, parse it */
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->LocalCurvatureParent[Spec->N_Surfs-1])) {
+            if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            
+            snprintf (Spec->LocalCurvatureParent[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char), 
+                     "%s%s", Spec->SpecFilePath, stmp2);
+                     
             if (!OKread_LocalCurvatureParent) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
@@ -1054,14 +1057,17 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
             }
             skp = 1;
          }
-         
+
          sprintf(stmp,"LocalDomainParent");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found LocalDomainParent  field, parse it */
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->LocalDomainParent[Spec->N_Surfs-1])) {
+            if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
+            
+            snprintf (Spec->LocalDomainParent[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
             
             if (!OKread_LocalDomainParent) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
@@ -1071,7 +1077,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
             }
             skp = 1;
          }
-         
+
          
          sprintf(stmp,"EmbedDimension");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
@@ -1171,7 +1177,9 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf(Spec->TopoFile[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf(Spec->TopoFile[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
+            
             if (!OKread_TopoFile) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
@@ -1192,7 +1200,9 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf(Spec->TopoFile[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf(Spec->TopoFile[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),"%s%s", 
+               Spec->SpecFilePath, stmp2);
+            
             if (!OKread_TopoFile) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
@@ -1213,7 +1223,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf (Spec->CoordFile[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf (Spec->CoordFile[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
             
             if (!OKread_CoordFile) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
@@ -1235,7 +1246,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf (Spec->CoordFile[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf (Spec->CoordFile[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
             
             if (!OKread_CoordFile) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
@@ -1257,7 +1269,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf (Spec->MappingRef[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf (Spec->MappingRef[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
             if (!OKread_MappingRef) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
@@ -1279,7 +1292,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf (Spec->SureFitVolParam[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf (Spec->SureFitVolParam[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
             
             if (!OKread_SureFitVolParam) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
@@ -1301,7 +1315,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf (Spec->SurfaceFile[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf (Spec->SurfaceFile[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
             if (!OKread_FreeSurferSurface) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
@@ -1322,7 +1337,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf (Spec->SurfaceFile[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf (Spec->SurfaceFile[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
             if (!OKread_FreeSurferSurface) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
@@ -1343,7 +1359,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            sprintf(Spec->SurfaceFile[Spec->N_Surfs-1], "%s%s", Spec->SpecFilePath, stmp2);
+            snprintf(Spec->SurfaceFile[Spec->N_Surfs-1], SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+               "%s%s", Spec->SpecFilePath, stmp2);
             
             if (!OKread_InventorSurface) {
                fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
@@ -1444,6 +1461,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec)
 {
    static char FuncName[]={"SUMA_CheckOnSpecFile"};
+   static int ob_warn = 0;
    int i;
    
    SUMA_ENTRY;
@@ -1460,18 +1478,22 @@ SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec)
                      "OriginatorID or DomainGrandParentID  ");
          SUMA_RETURN(NOPE);            
       }
-      if (  Spec->MappingRef[i][0]  ) {
-         fprintf(SUMA_STDERR, "Warning: This field is obsolete.\n"
-                              "Consider replacing the next line:\n"
-                              "\tMappingRef = %s\n"
-                              "with\n"
-                              "\tLocalDomainParent = %s\n"
-                              "\tLocalCurvatureParent = %s\n", 
-                              Spec->MappingRef[i], Spec->MappingRef[i], Spec->MappingRef[i]);
+      if (  Spec->MappingRef[i][0] ) {
          
+         if (!ob_warn) { 
+            fprintf(SUMA_STDERR, "Warning:\n"
+                                 "The field MappingRef in the spec file \n"
+                                 "is obsolete. Consider replacing: \n"
+                                 "  MappingRef = %s\n"
+                                 "  with\n"
+                                 "  LocalDomainParent = %s\n"
+                                 "Similar warnings will be muted.\n",
+                                 Spec->MappingRef[i], Spec->MappingRef[i]);
+         }
          strcpy(Spec->LocalDomainParent[i], Spec->MappingRef[i]);
          strcpy(Spec->LocalCurvatureParent[i], Spec->MappingRef[i]);
          Spec->MappingRef[i][0] = '\0';
+         ++ob_warn;
       }
       if ( strlen(Spec->LocalCurvatureParent[i]) ) {
          if ( ! strstr(Spec->LocalCurvatureParent[i], Spec->LocalDomainParent[i]) ) {
@@ -1811,12 +1833,11 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
    if (Spec->DomainGrandParentID[i][0]) SO->DomainGrandParentID = SUMA_copy_string(Spec->DomainGrandParentID[i]);
    if (Spec->LocalCurvatureParent[i][0]) SO->LocalCurvatureParent = SUMA_copy_string(Spec->LocalCurvatureParent[i]);
    if (Spec->LocalDomainParent[i][0]) SO->LocalDomainParent = SUMA_copy_string(Spec->LocalDomainParent[i]);
-   if (Spec->AnatCorrect[i][0] == 'Y') SO->AnatCorrect = YUP;
-   else if (Spec->AnatCorrect[i][0] == 'N') SO->AnatCorrect = NOPE;
-   else {
-      Spec->AnatCorrect[i][0] = SUMA_GuessAnatCorrect(SO);
-   }
-         
+   if (Spec->AnatCorrect[i][0] == '\0') Spec->AnatCorrect[i][0] = SUMA_GuessAnatCorrect(SO);
+   SO->AnatCorrect = NOPE;
+   if (Spec->AnatCorrect[i][0] == 'Y')  SO->AnatCorrect = YUP;
+   else SO->AnatCorrect = NOPE;
+   
    SUMA_RETURN(SO);
 
 } /* end SUMA_Load_Spec_Surf */
@@ -1852,7 +1873,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
    SUMA_OVERLAYS *NewColPlane=NULL;
    SUMA_INODE *NewColPlane_Inode = NULL;
    SUMA_Boolean SurfIn = NOPE;
-   
+   SUMA_Boolean LocalHead = NOPE; 
+
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if ( debug )
@@ -1863,7 +1885,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
          if ( debug || 1) { /* turned this back on as a pacifier */
 	    fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
 	    fprintf (SUMA_STDERR,
-		     "Surface #%d/%d(directly mappable), loading ...\n",i, Spec->N_Surfs );
+		     "Surface #%d/%d(Local Domain Parent), loading ...\n",i, Spec->N_Surfs );
 	 }
 
          if (Spec->VolParName[i][0] != '\0') {
@@ -2049,7 +2071,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
 	 if ( debug  || 1) { /* turned this back on as a pacifier */
             fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
             fprintf (SUMA_STDERR,
-		     "Surface #%d/%d (mappable via MappingRef), loading ...\n",i, Spec->N_Surfs);
+		     "Surface #%d/%d (mappable via Local Domain Parent), loading ...\n",i, Spec->N_Surfs);
 	 }
          
          SO = SUMA_Load_Spec_Surf(Spec, i, tmpVolParName, debug);
@@ -2101,10 +2123,10 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
             } else {
                /* make sure that specified Mapping ref had been loaded */
                   int j = 0, ifound = -1;
-                  while (j <=Spec->N_Surfs) {
-                     /*fprintf(SUMA_STDERR,"%s\n%s\n%s\n%s\n%s\n", \
+                  while (j < Spec->N_Surfs) {
+                     if (LocalHead) { fprintf(SUMA_STDERR,"%s:\n%s\n%s\n%s\n%s\n", FuncName, \
                         Spec->LocalDomainParent[i], Spec->CoordFile[j], Spec->TopoFile[j],\
-                         Spec->SurfaceFile[j]);*/ 
+                         Spec->SurfaceFile[j]); }
                      if (strcmp(Spec->LocalDomainParent[i], Spec->CoordFile[j]) == 0 || \
                          strcmp(Spec->LocalDomainParent[i], Spec->TopoFile[j]) == 0 ||  \
                          strcmp(Spec->LocalDomainParent[i], Spec->SurfaceFile[j]) == 0) {
@@ -2433,11 +2455,11 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
       { 
          /* smooth the estimate twice*/
          float *attr_sm;
-         attr_sm = SUMA_SmoothAttr_Neighb (SO->Cx, SO->N_Node, NULL, SO->FN);
+         attr_sm = SUMA_SmoothAttr_Neighb (SO->Cx, SO->N_Node, NULL, SO->FN, 1);
          if (attr_sm == NULL) {
                fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
          }   else {
-            SO->Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, SO->Cx, SO->FN);
+            SO->Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, SO->Cx, SO->FN, 1);
             if (attr_sm) SUMA_free(attr_sm);
          }
       }
@@ -2448,9 +2470,9 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
             if (eee) {
                int N_smooth = (int)strtod(eee, NULL);
                if (N_smooth > 1) {
-                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, N_smooth);
+                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, 1, N_smooth);
                } else {
-                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, 5);
+                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, 1, 5);
                }
             }   
          }
@@ -2671,8 +2693,8 @@ int main (int argc,char *argv[])
    int detail, kar, i, N_surf, N_name, idefstate;
    FILE *fid = NULL;
    char *spec_name, stmp[500], *Unique_st;
-   SUMA_SO_File_Type TypeC;
-   char  *Type[SUMA_MAX_N_SURFACE_SPEC], *State[SUMA_MAX_N_SURFACE_SPEC],
+   SUMA_SO_File_Type TypeC[SUMA_MAX_N_SURFACE_SPEC];
+   char  *State[SUMA_MAX_N_SURFACE_SPEC],
          *Name_coord[SUMA_MAX_N_SURFACE_SPEC], *Name_topo[SUMA_MAX_N_SURFACE_SPEC];
    SUMA_Boolean brk;
    
@@ -2725,14 +2747,13 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "Type argument must follow -tn \n");
 				exit (1);
 			}
-			Type[N_surf] = argv[kar];
-         TypeC = SUMA_SurfaceTypeCode(Type[N_surf]);
-         if (TypeC == SUMA_FT_ERROR || TypeC == SUMA_FT_NOT_SPECIFIED) {
-            fprintf (SUMA_STDERR, "%s is a bad file type.\n", Type[N_surf]);
+         TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
+         if (TypeC[N_surf] == SUMA_FT_ERROR || TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
+            fprintf (SUMA_STDERR, "%s is a bad file type.\n", argv[kar]);
             exit(1);
          }
          /* get the name */
-         if (TypeC == SUMA_SUREFIT || TypeC == SUMA_VEC) N_name = 2;
+         if (TypeC[N_surf] == SUMA_SUREFIT || TypeC[N_surf] == SUMA_VEC) N_name = 2;
          else N_name = 1;
          if (kar+N_name >= argc)  {
 		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
@@ -2760,10 +2781,9 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "TYPE argument must follow -tn \n");
 				exit (1);
 			}
-			Type[N_surf] = argv[kar];
-         TypeC = SUMA_SurfaceTypeCode(Type[N_surf]);
-         if (TypeC == SUMA_FT_ERROR || TypeC == SUMA_FT_NOT_SPECIFIED) {
-            fprintf (SUMA_STDERR, "%s is a bad file TYPE.\n", Type[N_surf]);
+         TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
+         if (TypeC[N_surf] == SUMA_FT_ERROR || TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
+            fprintf (SUMA_STDERR, "%s is a bad file TYPE.\n", argv[kar]);
             exit(1);
          }
          /* get the state */
@@ -2775,7 +2795,7 @@ int main (int argc,char *argv[])
          State[N_surf] = argv[kar];
          
          /* get the name */
-         if (TypeC == SUMA_SUREFIT || TypeC == SUMA_VEC) N_name = 2;
+         if (TypeC[N_surf] == SUMA_SUREFIT || TypeC[N_surf] == SUMA_VEC) N_name = 2;
          else N_name = 1;
          if (kar+N_name >= argc)  {
 		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
@@ -2843,7 +2863,7 @@ int main (int argc,char *argv[])
    idefstate = 0;
    for (i=0; i < N_surf; ++i) {
       fprintf(fid, "\nNewSurface\n");
-      fprintf(fid, "\tSurfaceType = %s\n", Type[i]);
+      fprintf(fid, "\tSurfaceType = %s\n", SUMA_SurfaceTypeString(TypeC[i]));
       if (!State[i]) { 
          ++idefstate;
          fprintf(fid, "\tSurfaceState = S_%d\n", idefstate);

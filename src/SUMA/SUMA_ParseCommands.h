@@ -15,7 +15,7 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *MTI, char *Location);
 SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *MTI);
 int SUMA_EngineSourceCode (char *Scom);
 void SUMA_EngineSourceString (char *Scom, int ses_code);
-
+const char *SUMA_DomainKinships_String (SUMA_DOMAIN_KINSHIPS code);
 DList *SUMA_CreateList (void);
 SUMA_EngineData *SUMA_InitializeEngineListData (SUMA_ENGINE_CODE CommandCode);
 DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * EngineData,  

@@ -14,6 +14,7 @@ void SUMA_VolSurf_help (FILE *Out);
 void SUMA_Version (FILE *Out);
 char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly);
 char * SUMA_New_Additions (float ver, SUMA_Boolean StampOnly);
+char *SUMA_All_Programs(void );
 void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 void SUMA_unSetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 

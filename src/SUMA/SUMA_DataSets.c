@@ -27,8 +27,9 @@ This file might be compiled and used by AFNI
       /* need to define these global variables because function calls are made to functions in files that declare these variables as extern */
       SUMA_CommonFields *SUMAg_CF;
       SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-      SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-      int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
+      SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
+                                          SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
+      int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
       SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
       int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
    #endif

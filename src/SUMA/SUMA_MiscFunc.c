@@ -4462,15 +4462,18 @@ int main (int argc,char *argv[])
             null then it is assumed to have the required allocated space for the proper type.
    \param fn (SUMA_NODE_FIRST_NEIGHB) structure containing the first order neighbors of the nodes. 
             It is assumed that fn contains the neighbors info for all nodes whose attributes are in attr.
-            That is from 0 to N_attr.  
+            That is from 0 to N_attr. 
+   \param nr (int) number of values per node in attr (for multiplexed vectors).
+                   So, if attr was R0G0Bo R1 G1 B1, ..., RnGnBn then nr = 3
+                   Only row major multiplexing is allowed. 
    \return attr_sm (float *) pointer to smoothed version of attr
    
    \sa   SUMA_SmoothAttr_Neighb_Rec  
 */
-float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn)
+float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr)
 {
    static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
-   int i, j;
+   int ni, im, offs, j;
     
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -4482,8 +4485,8 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
       fprintf (SUMA_STDERR, "Error %s: fn is null, nothing to do.\n",FuncName);
       SUMA_RETURN (NULL); 
    }
-   if (fn->N_Node != N_attr) {
-      fprintf (SUMA_STDERR, "Error %s: N_attr (%d) must be equal to fn->N_Node (%d).\n",FuncName, N_attr, fn->N_Node);
+   if (nr*fn->N_Node != N_attr) {
+      fprintf (SUMA_STDERR, "Error %s: N_attr (%d) must be equal to nr * fn->N_Node (%d * %d = %d).\n",FuncName, N_attr, nr, fn->N_Node, nr * fn->N_Node);
       SUMA_RETURN (NULL); 
    }
    
@@ -4498,23 +4501,27 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
       SUMA_RETURN (NULL);
    } 
    
-   for (i=0; i < N_attr; ++i) {
-      /* make sure node id corresponds to i. That is you have a full set of nodes 0..N_attr */
-      if (fn->NodeId[i] != i) {
+   
+   for (ni=0; ni < fn->N_Node; ++ni) { /* a counter for node index */
+      /* make sure node id corresponds to ni. That is you have a full set of nodes 0..fn->N_Node */
+      if (fn->NodeId[ni] != ni) {
          /* It's OK not to die here. This does occur in patches */
-         /*fprintf (SUMA_STDERR, "Warning %s: fn does not seem to contain an explicit list of neighbors, from 0..N_attr. fn->NodeId[i] = %d, i = %d. Skipping node %d.\n", \
-            FuncName, fn->NodeId[i], i, i); */
+         /*fprintf (SUMA_STDERR, "Warning %s: fn does not seem to contain an explicit list of neighbors, from 0..N_attr. fn->NodeId[ni] = %d, ni = %d. Skipping node %d.\n", \
+            FuncName, fn->NodeId[ni], ni, ni); */
          /*SUMA_free(attr_sm); 
          attr_sm = NULL;
          SUMA_RETURN (attr_sm);*/
          continue;
       }
-      attr_sm[i] = attr[i];
-      for (j=0; j < fn->N_Neighb[i]; ++j)
-      {
-         attr_sm[i] += attr[fn->FirstNeighb[i][j]]; 
-      }   
-      attr_sm[i] /= (fn->N_Neighb[i]+1);
+      offs = nr * ni;
+      for (im=0; im<nr; ++im) {
+         attr_sm[offs+im] = attr[offs+im];
+         for (j=0; j < fn->N_Neighb[ni]; ++j)
+         {
+            attr_sm[offs+im] += attr[nr*fn->FirstNeighb[ni][j]+im]; 
+         }   
+         attr_sm[offs+im] /= (fn->N_Neighb[ni]+1);
+      }
    }
    
    SUMA_RETURN (attr_sm);   
@@ -4524,14 +4531,14 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
    \brief float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, 
                                              float *attr_sm_orig, 
                                              SUMA_NODE_FIRST_NEIGHB *fn, 
-                                             int N_rep)
+                                             int nr, int N_rep)
    A wrapper function to call SUMA_SmoothAttr_Neighb repeatedly
    See SUMA_SmoothAttr_Neighb for input and output options. The only additional
    option is N_Rec the number of repeated smoothing calls.
    
 */
 float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig, 
-                                    SUMA_NODE_FIRST_NEIGHB *fn, int N_rep)
+                                    SUMA_NODE_FIRST_NEIGHB *fn, int nr, int N_rep)
 {
    static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
    int i;
@@ -4554,7 +4561,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    curr_attr = attr; /* initialize with user's data */
    while (i < N_rep) {
       /* intermediary calls */
-      attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, NULL, fn);
+      attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, NULL, fn, nr);
       if (i > 1)  { /* second or more time in */
          /* free input to previous calculation */
          if (curr_attr) SUMA_free(curr_attr);
@@ -4564,7 +4571,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    }      
    
    /* last call, honor the user's return pointer */
-   attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, attr_sm_orig, fn);
+   attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, attr_sm_orig, fn, nr);
    
    /* free curr_attr if i > 1, i.e. it is not the user's original copy */
    if (i > 1) {

@@ -4,28 +4,26 @@
 #undef MAIN
   
 #ifdef SUMA_MakeColorMap_STAND_ALONE
-   /* need to define these global variables because function calls are made to functions in files that declare these variables as extern */
-   SUMA_CommonFields *SUMAg_CF;
-   SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-   SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-   int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
-   SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
-   int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-   
+#define STAND_ALONE
 #elif defined SUMA_ScaleToMap_STAND_ALONE
-   /* need to define these global variables because function calls are made to functions in files that declare these variables as extern */
-   SUMA_CommonFields *SUMAg_CF;
-   SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-   SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-   int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
-   SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
-   int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-   
+#define STAND_ALONE
+#endif
+
+#ifdef STAND_ALONE
+/* these global variables must be declared even if they will not be used by this main */
+SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
+                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
+SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
 #else
-   extern SUMA_CommonFields *SUMAg_CF;
-   extern int SUMAg_N_DOv; 
-   extern SUMA_DO *SUMAg_DOv;
-   
+extern SUMA_CommonFields *SUMAg_CF;
+extern SUMA_DO *SUMAg_DOv;
+extern SUMA_SurfaceViewer *SUMAg_SVv;
+extern int SUMAg_N_SVv; 
+extern int SUMAg_N_DOv;  
 #endif
 
 /*! The set of functions deals with node colors
@@ -3669,7 +3667,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer
    int OverlayOrder_Back[SUMA_MAX_OVERLAYS], OverlayOrder[SUMA_MAX_OVERLAYS];
    int i, j, NshowOverlays, NshowOverlays_Back, *isort, i4, i4_0, i4_1, i4_2;
    SUMA_Boolean *isColored, *isColored_Fore, *isColored_Back;
-   GLfloat *glcolar_Fore , *glcolar_Back;
+   GLfloat *glcolar_Fore , *glcolar_Fore_tmp, *glcolar_Back;
    float avg_Back, avgfact;
    SUMA_OVERLAYS ** Overlays;
    int N_Overlays;  
@@ -3816,15 +3814,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            if (SV->NumForeSmoothing > 0) { 
-               SUMA_SL_Err(   "Not implememented yet\n"
-                              "you need to create a version of SUMA_SmoothAttr_Neighb_Rec\n"
-                              "that would work with a multiplexed vector.\n"
-                              "node index is obtained from vector index...\n");
-                               
-               /* this next line does not work, at all 
-               glcolar_Fore = SUMA_SmoothAttr_Neighb_Rec (glcolar_Fore, SO->N_Node, glcolar_Fore, SO->FN, SV->NumForeSmoothing); */
-               
+            if (SUMAg_CF->X->NumForeSmoothing > 0) { 
+               glcolar_Fore_tmp = NULL;
+               glcolar_Fore_tmp = SUMA_SmoothAttr_Neighb_Rec (glcolar_Fore, 4*SO->N_Node, NULL, SO->FN, 4, SUMAg_CF->X->NumForeSmoothing); 
+               if (!glcolar_Fore_tmp) {
+                  SUMA_SL_Err("Smoothing failed.\n");
+               } else {
+                  SUMA_free(glcolar_Fore); glcolar_Fore = glcolar_Fore_tmp; glcolar_Fore_tmp = NULL;
+               }
             }
       } else {
          ShowForeground = NOPE;
@@ -4772,13 +4769,13 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
       if (!SUMA_Fetch_OverlayPointer (SO->Overlays, SO->N_Overlays, Name, &OverInd)) {
          SUMA_LH("pointer not found");
          /* overlay plane not found, create a new one on the mappable surface*/
-         if (!SUMA_isINHmappable(SO)) {
+         if (!SUMA_isLocalDomainParent(SO)) {
             if (sopd->Source == SES_Afni) {
-               /* unexpected, surfaces coming from AFNI with a map should be inherrently mappable */
-               fprintf(SUMA_STDERR,"Error %s: Surface %s (ID: %s) received from AFNI is not Inherrently mappable.\n", FuncName, SO->Label, SO->idcode_str);
+               /* unexpected, surfaces coming from AFNI with a map should be a local domain parent */
+               fprintf(SUMA_STDERR,"Error %s: Surface %s (ID: %s) received from AFNI is not a local domain parent.\n", FuncName, SO->Label, SO->idcode_str);
                SUMA_RETURN(NOPE);
             } else {
-               SUMA_SL_Warn ("Placing colors on surface \nnot inherently mappable.\nCase not tested.");
+               SUMA_SL_Warn ("Placing colors on surface \nnot a local domain parent.\nCase not tested.");
             }
          } 
 
@@ -4904,9 +4901,9 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
       /* Now that you have the color overlay plane set, go about all the surfaces, searching for ones related to SO 
       and make sure they have this colorplane, otherwise, create a link to it. */   
       for (i=0; i < N_dov; ++i) {
-         if (SUMA_isSO(dov[i])) {
+         if (SUMA_isSO(dov[i])) { 
             SO2 = (SUMA_SurfaceObject *)dov[i].OP;
-            if (SUMA_isRelated(SO, SO2) && SO != SO2) {
+            if (SUMA_isRelated(SO, SO2, 1) && SO != SO2) { /* only 1st order kinship allowed */
                /* surfaces related and not identical, check on colorplanes */
                if (!SUMA_Fetch_OverlayPointer (SO2->Overlays, SO2->N_Overlays, Name, &OverInd)) {
                   /* color plane not found, link to that of SO */
@@ -5058,7 +5055,8 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO)
    SUMA_ASSEMBLE_LIST_STRUCT *clist_str = NULL;
    SUMA_OVERLAY_LIST_DATUM *OvD=NULL, *oOvD=NULL;
    SUMA_Boolean SortByOrder = YUP;
-   SUMA_Boolean Found = NOPE, LocalHead = NOPE;
+   SUMA_Boolean Found = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    

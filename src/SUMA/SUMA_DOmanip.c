@@ -364,7 +364,13 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   
+   if (LocalHead && SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
+      fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", FuncName, 65+SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
+      /* turn off the LocalHead, too much output*/
+      LocalHead = NOPE;
+   }  
+    
    /* check to see if dov_id exists */
    i = 0;
    while (i < cSV->N_DO) {
@@ -852,20 +858,38 @@ SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO)
    if (SO->LocalDomainParentID != NULL) {
       /* SO is mappable */
       SUMA_RETURN (YUP);
-   } 
+   }
+    
    SUMA_RETURN (NOPE);
 
 }
 
 /*!
-   determines if a Surface Object is inherently mappable (ie LocalDomainParentID == idcode_str)
-   ans = SUMA_isINHmappable (SUMA_SurfaceObject *SO)
-   \param SO (SUMA_SurfaceObject *)
-   \ret YUP/NOPE
+   Left here temporarily for backward compatibility
+   
+   use the more appropriately named SUMA_isLocalDomainParent
 */
 SUMA_Boolean SUMA_isINHmappable (SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_isINHmappable"};
+   
+   SUMA_ENTRY;
+   
+   SUMA_RETURN(SUMA_isLocalDomainParent(SO));
+}
+
+/*!
+   determines if a Surface Object is a local domain parent (ie LocalDomainParentID == idcode_str)
+   (used to be called inherently mappable) 
+   ans = SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO)
+   \param SO (SUMA_SurfaceObject *)
+   \ret YUP/NOPE
+   
+   -- Used to be called SUMA_isINHmappable
+*/
+SUMA_Boolean SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_isLocalDomainParent"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -873,65 +897,174 @@ SUMA_Boolean SUMA_isINHmappable (SUMA_SurfaceObject *SO)
       SUMA_RETURN (NOPE);
    }
    if (strcmp(SO->LocalDomainParentID, SO->idcode_str) == 0) {
-      /* SO is inherently mappable */
+      /* SO is the local domain parent */
       SUMA_RETURN (YUP);
    } 
    SUMA_RETURN (NOPE);
 }
 
 /*!
-   \brief ans = SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
-   returns YUP if SO1 and SO2 are related, ie: 
+   \brief ans = SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, int level);
+   
+   returns YUP if SO1 and SO2 are related at level 1 or 2
+   level 1 means nuclear family (share the same parent)
+   level 2 means extended family (share a grandparent, ultimately this could be the grand icosahedron duc
+                                 Surfaces must be the of the same hemi side since both hemispheres can have
+                                 the same grandparent, use level 3 if you want to go across hemis.)
+   level 3 is like level with no care for what side of the brain we're working with
+   For more definitions on relationships:
+   
+   \sa SUMA_WhatAreYouToMe
+*/
+
+SUMA_Boolean SUMA_isRelated ( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, int level)
+{
+   static char FuncName[]={"SUMA_isRelated"};
+   SUMA_DOMAIN_KINSHIPS kin;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   kin =  SUMA_WhatAreYouToMe (SO1, SO2);
+   switch (level) {
+      case 3: /* anything goes */
+         if (  (kin > SUMA_DOMAINS_NOT_RELATED) ) SUMA_RETURN(YUP);
+         break;
+      case 2: /* share an ancestor, but same side */
+         if (  (kin > SUMA_DOMAINS_NOT_RELATED) &&
+               (SO1->Side == SO2->Side) ) SUMA_RETURN(YUP);
+         break;
+      case 1: /* nuclear family only */
+         if (  (kin > SUMA_DOMAINS_NOT_RELATED) && 
+               (kin < SUMA_NUCELAR_FAMILY ) &&
+               (SO1->Side == SO2->Side) ) SUMA_RETURN(YUP); /* last condition is not really necessary but it don't hoyt...*/
+         break;
+      default:
+         SUMA_SL_Err("Bad value for level.");   
+         break;
+   }
+   SUMA_RETURN(NOPE);
+}
+
+/*!
+   \brief ans = SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
+   returns a code for the kinship between two surfaces:
+    
    SO1->idcode_str = SO2->idcode_str (in this case SO1 = SO2) or 
    SO1->LocalDomainParentID = SO2->idcode_str (SO2 is the mapping reference of SO1) or
    SO1->idcode_str = SO2->LocalDomainParentID (SO1 is the mapping reference of SO2)
    SO1->LocalDomainParentID = SO2->LocalDomainParentID (SO1 and SO2 have the same mapping reference) or 
+   SO1->DomainGrandParentID = SO2->idcode_str (SO2 is the granddaddy of SO1) or
+   SO1->idcode_str = SO2->DomainGrandParentID (SO1 is the granddaddy of SO2) or
+   SO1->DomainGrandParentID = SO2->DomainGrandParentID (SO1 and SO2 have the same granddaddy) 
+   
+   \sa definition of SUMA_DOMAIN_KINSHIPS and
+   \sa SUMA_DomainKinships_String
 */
-SUMA_Boolean SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2)
+SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2)
 {
-   static char FuncName[]={"SUMA_isRelated"};
+   static char FuncName[]={"SUMA_WhatAreYouToMe"};
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (!SO1->idcode_str || !SO2->idcode_str) {
       fprintf (SUMA_STDERR, "Error %s: NULL idcode_str.\n", FuncName);
-      SUMA_RETURN (NOPE);
+      SUMA_RETURN (SUMA_DOMAINS_NOT_RELATED);
    }
    
    if (strcmp (SO1->idcode_str, SO2->idcode_str) == 0) {
       /* SO1 = SO2 */
-      SUMA_RETURN (YUP);
+      SUMA_LH(SUMA_DomainKinships_String (SUMA_SO1_is_SO2));
+      SUMA_RETURN (SUMA_SO1_is_SO2);
    }
    
    if (SO1->LocalDomainParentID) {
       if (strcmp (SO1->LocalDomainParentID, SO2->idcode_str) == 0) {
-         /* SO2 is the mapping reference of SO1 */
-         SUMA_RETURN (YUP);
+         /* SO2 is the local domain parent of SO1 */
+         SUMA_LH(SUMA_DomainKinships_String (SUMA_SO2_is_LDPSO1));
+         SUMA_RETURN (SUMA_SO2_is_LDPSO1);
       }
    }
    
    if (SO2->LocalDomainParentID) {
       if (strcmp (SO1->idcode_str, SO2->LocalDomainParentID) == 0) {
-          /* SO1 is the mapping reference of SO2 */
-          SUMA_RETURN (YUP);
+          /* SO1 is the local domain parent of SO2 */
+          SUMA_LH(SUMA_DomainKinships_String (SUMA_SO1_is_LDPSO2));
+          SUMA_RETURN (SUMA_SO1_is_LDPSO2);
       }
    }
    
    if (SO1->LocalDomainParentID && SO2->LocalDomainParentID) {
       if (strcmp (SO1->LocalDomainParentID, SO2->LocalDomainParentID) == 0) {
-         /* SO1 and SO2 have the same mapping reference */
-         SUMA_RETURN (YUP);
+         /* SO1 and SO2 have the same local domain parent */
+         SUMA_LH(SUMA_DomainKinships_String (SUMA_LDPSO1_is_LDPSO2));
+         SUMA_RETURN (SUMA_LDPSO1_is_LDPSO2);
       }
    }
    
-   SUMA_RETURN (NOPE);
+   if (SO1->DomainGrandParentID && SO2->idcode_str) {
+      if (strcmp (SO1->DomainGrandParentID, SO2->idcode_str) == 0) {
+         /* SO2 is the grand daddy of SO1 */
+         SUMA_LH(SUMA_DomainKinships_String (SUMA_SO2_is_GPSO1));
+         SUMA_RETURN (SUMA_SO2_is_GPSO1);
+      }
+   }
+   
+   if (SO1->idcode_str && SO2->DomainGrandParentID) {
+      if (strcmp (SO1->idcode_str, SO2->DomainGrandParentID) == 0) {
+         /* SO1 is the grand daddy of SO2 */
+         SUMA_LH(SUMA_DomainKinships_String (SUMA_SO1_is_GPSO2));
+         SUMA_RETURN (SUMA_SO1_is_GPSO2);
+      }
+   }
+   
+   if (SO1->DomainGrandParentID && SO2->DomainGrandParentID) {
+      if (strcmp (SO1->DomainGrandParentID, SO2->DomainGrandParentID) == 0) {
+         /* SO1 and SO2 have the same grand daddy */
+         SUMA_LH(SUMA_DomainKinships_String (SUMA_GPSO1_is_GPSO2));
+         SUMA_RETURN (SUMA_GPSO1_is_GPSO2);
+      }
+   }
+   
+   SUMA_LH(SUMA_DomainKinships_String (SUMA_DOMAINS_NOT_RELATED));
+   SUMA_RETURN (SUMA_DOMAINS_NOT_RELATED);
    
 }
 
 /*!
-SUMA_Boolean SUMA_isSO (SUMA_DO DO) 
+   \brief SUMA_Boolean SUMA_isSO_G (SUMA_DO DO, char *Group) 
+   returns YUP if DO is a surface object
+   and is a part of the group Group
+   
+   \sa SUMA_isSO
+*/
+SUMA_Boolean SUMA_isSO_G (SUMA_DO DO, char *Group) 
+{
+   static char FuncName[]={"SUMA_isSO_G"};
+   SUMA_SurfaceObject *SO = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Group) {
+      SUMA_SL_Err("Null Group");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (SUMA_isSO(DO)) {
+      SO = (SUMA_SurfaceObject *)DO.OP;
+      if (strcmp(SO->Group, Group)) { SUMA_RETURN(NOPE); }
+      else { SUMA_RETURN(YUP); }
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+/*!
+   \brief SUMA_Boolean SUMA_isSO (SUMA_DO DO) 
    returns YUP if DO is of SO_type
    ans = SUMA_isSO (DO) ;
+   
+   \sa SUMA_isSO_G (SUMA_DO DO, char *Group)
 */
 SUMA_Boolean SUMA_isSO (SUMA_DO DO) 
 {
@@ -971,7 +1104,8 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, S
    void **oplist=NULL;
    SUMA_DRAWN_ROI *ROI=NULL;
    SUMA_ASSEMBLE_LIST_STRUCT *clist_str = NULL;
-   SUMA_Boolean Found = NOPE, LocalHead = NOPE;
+   SUMA_Boolean Found = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -1190,7 +1324,7 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
       SUMA_RETURN (NOPE);
    }
    
-   if (SUMA_isRelated (SO, SO_ROI)) {
+   if (SUMA_isRelated (SO, SO_ROI, 1)) { /* relationship of the 1st order only */ 
       SUMA_RETURN (YUP);
    }
 
@@ -1223,7 +1357,7 @@ SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO)
       SUMA_RETURN (NOPE);
    }
    
-   if (SUMA_isRelated (SO, SO_ROI)) {
+   if (SUMA_isRelated (SO, SO_ROI, 1)) { /* relationship of the 1st order only */
       SUMA_RETURN (YUP);
    }
 
@@ -1369,7 +1503,8 @@ SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI)
    SUMA_ASSEMBLE_LIST_STRUCT *ALS = NULL;
    SUMA_DRAWN_ROI *NextROI=NULL;
    int i;
-   SUMA_Boolean WasCurrent = NOPE, Shaded = NOPE, LocalHead = NOPE;
+   SUMA_Boolean WasCurrent = NOPE, Shaded = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 

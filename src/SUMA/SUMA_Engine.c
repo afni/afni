@@ -434,7 +434,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             break;
          case SE_Load_Group:
-            /* Does not need an sv 
+            /* Does not need a sv 
                expects  a pointer to .spec filename in cp, 
                         a VolumeParent name in vp,
                         the indices of the viewers to register the surfaces with in iv15. 
@@ -476,10 +476,17 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 			         exit(1);
 		         }
 
+               /* register the new group with SUMA */
+               if (!SUMA_RegisterGroup(SUMAg_CF, &Spec)) {
+                  SUMA_SL_Err("Failed to register group");
+                  break;
+               }
+               
 	            /* Register the surfaces in Spec file with the surface viewer and perform setups */
 	            if (LocalHead) fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewers ...\n", FuncName);
+               
                for (ii = 0; ii < EngineData->i; ++ii) {
-		            if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &SUMAg_SVv[EngineData->iv15[ii]])) {
+                  if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &(SUMAg_SVv[EngineData->iv15[ii]]))) {
 			            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
 			            exit(1);
 		            }
@@ -723,18 +730,33 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects nothing in EngineData */
             { int loc_ID;
             
-            /* send to afni the list of inherently mappable surfaces and with a surface volume*/
+            /* send to afni the list of anatomically correct surfaces and with a surface volume*/
             /* No surfaces are sent twice because there should not be duplicate 
-            inherently mappable surfaces in SUMAg_DOv */
+            local domain parent surfaces in SUMAg_DOv */
             /* prior to Wed Nov  6 17:47:20 EST 2002, only mappable surfaces that are related to the ones shown in the viewer
             were being sent to AFNI. Now all mappable surfaces loaded are sent regardless of what is shown */
-            
+            /* Jan. 08 04: All anatomically correct surfaces are now sent to AFNI */
             for (ii=0; ii<SUMAg_N_DOv; ++ii) {
                if (SUMA_isSO(SUMAg_DOv[ii])) {
                   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[ii].OP);
-                  if (!SUMA_isINHmappable(SO)) {
+                  #if 0 
+                  /* Jan. 08 04 this is the right thing to do but 
+                  AFNI is not ready to deal with this
+                  and things can get confusing. See 
+                  confusing fat point in Readme_Modify.log,
+                  date: Thu Jan  8 13:55:33 EST 2004 */
+                  if (!SO->AnatCorrect) {
                      continue;
                   }
+                  #else 
+                  /* Jan. 08 04 the old and not confusing way. 
+                  Turn it off as soon as AFNI is ready 
+                  for the option  above.
+                  See labbook NIH-3 page 146 */
+                  if (!SUMA_isLocalDomainParent(SO)) {
+                     continue;
+                  }
+                  #endif
                   /* if this surface has been sent to AFNI before, bypass it */
                   if (SO->SentToAfni) {
                      if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s has been sent to AFNI before.\n", \
@@ -1054,7 +1076,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               it = 0;
                               while (it < N_SOlist && !Found) {
                                  SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[SOlist[it]].OP;
-                                 if (SUMA_isRelated (SO1, SO2)) {
+                                 if (SUMA_isRelated (SO1, SO2, 2)) { /* high level relationship is allowed */
                                     svi->Ch->SurfaceID = SOlist[it];
                                     if (sv->Ch->NodeID > SO2->N_Node) {
                                        fprintf (SUMA_STDERR,"Error %s: NodeID is larger than N_Node. Setting NodeID to 0.\n", FuncName);
@@ -1561,7 +1583,7 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    for (i=0; i< sv->N_DO; ++i) {
-      if (SUMA_isSO(dov[sv->RegisteredDO[i]])) {
+      if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
          if (SO_IDs != NULL) SO_IDs[k] = sv->RegisteredDO[i];
          ++k;
       }
@@ -1590,7 +1612,7 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    for (i=0; i< sv->N_DO; ++i) {
-      if (SUMA_isSO(dov[sv->RegisteredDO[i]])) {
+      if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
          SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
          if (SO->Show) {
             if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR ) {
@@ -1619,6 +1641,7 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    \param sv (SUMA_SurfaceViewer *) pointer to surface viewer structure 
    \ret nxtState (int) the index into sv->VSv of the next state
       -1 if there is trouble
+      icur is returned if there is no next state of the group sv->CurGroupName
    \sa SUMA_PrevState 
 */
 int SUMA_NextState(SUMA_SurfaceViewer *sv)
@@ -1627,15 +1650,30 @@ int SUMA_NextState(SUMA_SurfaceViewer *sv)
    int inxt, icur;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
-   icur = SUMA_WhichState (sv->State, sv);
+   
+   SUMA_SL_Warn("Modified next SUMA_WhichState\nMake sure it tests OK");
+   icur = SUMA_WhichState (sv->State, sv, sv->CurGroupName);
    if (icur < 0) {
       fprintf(SUMA_STDERR,"Error %s: SUMA_WhichState failed.\n", FuncName);
       SUMA_RETURN (-1);
    } else {
-      SUMA_RETURN((icur + 1) % sv->N_VSv);
+      inxt = (icur + 1) % sv->N_VSv;
+      do {
+         /* Now see if the upcoming one is of the same group */
+         if (inxt == icur) {
+            /* back where we started */
+            SUMA_RETURN(inxt);
+         } else {
+            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName)) { /* group match, good, go back */
+               SUMA_RETURN(inxt);
+            }
+         }
+         inxt = (inxt + 1) % sv->N_VSv;
+      } while (1);
    }
    
+   /* should not get here */
+   SUMA_SL_Err("Flow error");
    SUMA_RETURN (-1);
 }
 
@@ -1651,13 +1689,25 @@ int SUMA_PrevState(SUMA_SurfaceViewer *sv)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   icur = SUMA_WhichState (sv->State, sv);   if (icur < 0) {
+   SUMA_SL_Warn("Modified next SUMA_WhichState\nMake sure it tests OK");
+   icur = SUMA_WhichState (sv->State, sv, sv->CurGroupName);   
+   if (icur < 0) {
       fprintf(SUMA_STDERR,"Error %s: SUMA_WhichState failed.\n", FuncName);
       SUMA_RETURN (-1);
    } else {
-      icur = icur -1;
-      if (icur < 0) icur = sv->N_VSv + icur;
-      SUMA_RETURN(icur);
+      inxt = icur -1; if (inxt < 0) inxt = sv->N_VSv + inxt;
+      do {
+         /* Now see if the upcoming one is of the same group */
+         if (inxt == icur) {
+            /* back where we started */
+            SUMA_RETURN(inxt);
+         } else {
+            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName)) { /* group match, good, go back */
+               SUMA_RETURN(inxt);
+            }
+         }
+         inxt = inxt -1; if (inxt < 0) inxt = sv->N_VSv + inxt;
+      } while (1);
    }
    
    SUMA_RETURN (-1);
@@ -1783,12 +1833,12 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
 }
 
 /*! 
-   ans = SUMA_SwitchState (dov, N_dov, sv, nxtstateID);
+   ans = SUMA_SwitchState (dov, N_dov, sv, nxtstateID, nxtgroup);
    
    Replaces one viewing state with another
 
 */
-SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, int nxtstateID)
+SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, int nxtstateID, char *nxtgroup)
 {
    static char FuncName[]={"SUMA_SwitchState"};
    SUMA_Axis *EyeAxis;
@@ -1806,10 +1856,10 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    XYZ = NULL;
    XYZmap = NULL;
    
-   curstateID = SUMA_WhichState(sv->State, sv);
+   curstateID = SUMA_WhichState(sv->State, sv, sv->CurGroupName);
    
    /* unregister all the surfaces for the current view */
-   if (LocalHead) fprintf(SUMA_STDERR,"Local Debug %s: Unregistering \n", FuncName);
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Unregistering state %d\n", FuncName, curstateID);
    for (i=0; i<sv->VSv[curstateID].N_MembSOs; ++i) {
       if (!SUMA_UnRegisterDO(sv->VSv[curstateID].MembSOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to UnRegisterDO.\n", FuncName);
@@ -1817,8 +1867,19 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
       }
    }
    
+   /* adopt the new group */
+   if (strcmp(sv->CurGroupName, nxtgroup)) { 
+      SUMA_LH("Changing group...");
+      if (!SUMA_AdoptGroup(sv, nxtgroup)) {
+         SUMA_SLP_Err("Failed to adopt new group");
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+      SUMA_LH("No group change...");
+   }
+   
    /* register all the surfaces from the next view */
-   if (LocalHead) fprintf(SUMA_STDERR,"Local Debug %s: Registering DOv...\n", FuncName);
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Registering DOv of state %d...\n", FuncName, nxtstateID);
    for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
       if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembSOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
@@ -2035,9 +2096,13 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    sv->State =  sv->VSv[nxtstateID].Name;
    sv->iState = nxtstateID;
    
-   /* set the focus ID to the first surface in the next view   */
+   /* set the focus ID to the first surface in the next view */
    sv->Focus_SO_ID = sv->VSv[nxtstateID].MembSOs[0];
-
+   
+   if (LocalHead) {
+      SUMA_SurfaceObject *SOtmp=(SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP);
+      fprintf(SUMA_STDERR,"%s: Setting new Focus ID to surface %s\n", FuncName, SOtmp->Label);
+   }
    /* decide what the best state is */
    sv->StdView = SUMA_BestStandardView (sv,dov, N_dov);
    if (LocalHead) fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);
@@ -2067,8 +2132,8 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
       EyeAxis = (SUMA_Axis *)(dov[EyeAxis_ID].OP);
       SUMA_EyeAxisStandard (EyeAxis, sv);
    }
-   
-    
+
+       
    /* Home call baby */
    if (!list) list = SUMA_CreateList();
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
@@ -2221,13 +2286,13 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
       SUMA_RETURN (NULL);
    } 
    
-   /* if surface is Inherently mappable, do the obivious */
-   if (SUMA_isINHmappable(SO)){
-      /*fprintf(SUMA_STDERR,"%s: Surface is inherently mappable. XYZmap = XYZ.\n", FuncName); */
+   /* if surface is a local domain parent, do the obivious */
+   if (SUMA_isLocalDomainParent(SO)){
+      /*fprintf(SUMA_STDERR,"%s: Surface is a local domain parent. XYZmap = XYZ.\n", FuncName); */
       SUMA_COPY_VEC (XYZ, XYZmap, 3, float, float);
       SUMA_RETURN (XYZmap);   
    }
-   /* if surface is not Inherrently mappable, do the deed */
+   /* if surface is not a  local domain parent , do the deed */
    if (!SUMA_ismappable(SO)){
       fprintf(SUMA_STDERR,"%s: Surface is NOT mappable, returning NULL.\n", FuncName);
       SUMA_free(XYZmap);
@@ -2338,9 +2403,9 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
       SUMA_RETURN (NULL);
    }
 
-   /* if surface is Inherently mappable, do the obivious */
-   if (SUMA_isINHmappable(SO)){
-      fprintf(SUMA_STDERR,"%s: Surface is inherently mappable. XYZ = XYZmap.\n", FuncName);
+   /* if surface is a local domain parent, do the obivious */
+   if (SUMA_isLocalDomainParent(SO)){
+      fprintf(SUMA_STDERR,"%s: Surface is a local domain parent. XYZ = XYZmap.\n", FuncName);
       SUMA_COPY_VEC (XYZmap, XYZ, 3, float, float);
       SOmap = SO;
       /* do not return yet, must fix the node id too */
@@ -2436,10 +2501,28 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
    if (!SUMA_ismappable(SOcur)) {
       SUMA_RETURN (-1);
    }
-
+   
    for (i=0; i<N_prec_list; ++i) {
       SO_prec = (SUMA_SurfaceObject *)(dov[prec_list[i]].OP);
-      if (strcmp(SOcur->LocalDomainParentID, SO_prec->LocalDomainParentID) == 0 || strcmp(SOcur->LocalDomainParentID, SO_prec->idcode_str) == 0) {
+      
+      if (  SO_prec == SOcur ||
+            strcmp(SOcur->idcode_str, SO_prec->idcode_str) == 0 ) {
+         SUMA_SL_Err("Flow problem. Did not expect identical surfaces in this condition\n");
+         SUMA_BEEP; 
+         /* 
+         I changed the condition 
+         if (  strcmp(SOcur->LocalDomainParentID, SO_prec->LocalDomainParentID) == 0 || 
+            strcmp(SOcur->LocalDomainParentID, SO_prec->idcode_str) == 0 )
+         to
+         if (  SUMA_isRelated(SOcur, SO_prec, 1) )
+         The two are the same except for the condition when the two surfaces are identical.
+         So I put in a error message when that would happen and I'll deal with it then.
+         ZSS Jan 08 04
+         */
+         
+      }
+      
+      if (  SUMA_isRelated(SOcur, SO_prec, 1) ) { /* Change made Jan 08 04, see note above */
          /* there's some relationship here, save it for return */
          if (rel_id < 0) {
             rel_id = prec_list[i];

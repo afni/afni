@@ -1844,12 +1844,16 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
       ND = SO->NodeDim;
       NP = SO->FaceSetDim;
       
+      /* SO->Label */
       if (SO->Label == NULL)
-         SS = SUMA_StringAppend (SS,"Label is NULL.\n");
+         SS = SUMA_StringAppend (SS,"Label: NULL.\n");
       else   {
-         sprintf (stmp,"Label: %s\n", SO->Label);
-         SS = SUMA_StringAppend (SS,stmp);
+         SS = SUMA_StringAppend_va (SS, "Label: %s\n", SO->Label);
       }
+      
+      /* SO->AnatCorrect */
+      if (SO->AnatCorrect) SS = SUMA_StringAppend (SS,"Anatomically correct = YES\n");
+      else SS = SUMA_StringAppend (SS,"Anatomically correct = NO\n");
       
       switch (SO->Side) {
          case SUMA_SIDE_ERROR:
@@ -1871,68 +1875,45 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
       
       switch (SO->FileType) {
          case SUMA_SUREFIT:
-            sprintf (stmp,"SureFit surface.\n");
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"Coord FileName: %s \n", SO->Name_coord.FileName);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"Coord Path: %s \n", SO->Name_coord.Path);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"Topo FileName: %s \n", SO->Name_topo.FileName);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"Topo Path: %s \n", SO->Name_topo.Path);
-            SS = SUMA_StringAppend (SS,stmp);
+            SS = SUMA_StringAppend_va (SS, "SureFit surface.\n");
+            SS = SUMA_StringAppend_va (SS,"Coord FileName: %s \n", SO->Name_coord.FileName);
+            SS = SUMA_StringAppend_va (SS,"Coord Path: %s \n", SO->Name_coord.Path);
+            SS = SUMA_StringAppend_va (SS,"Topo FileName: %s \n", SO->Name_topo.FileName);
+            SS = SUMA_StringAppend_va (SS,"Topo Path: %s \n", SO->Name_topo.Path);
             break;
          case SUMA_VEC:
-            sprintf (stmp,"VEC surface.\n");
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"NodeList FileName: %s \n", SO->Name_coord.FileName);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"NodeList Path: %s \n", SO->Name_coord.Path);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"FaceSetList FileName: %s \n", SO->Name_topo.FileName);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"FaceSetList Path: %s \n", SO->Name_topo.Path);
-            SS = SUMA_StringAppend (SS,stmp);
+            SS = SUMA_StringAppend_va (SS,"VEC surface.\n");
+            SS = SUMA_StringAppend_va (SS,"NodeList FileName: %s \n", SO->Name_coord.FileName);
+            SS = SUMA_StringAppend_va (SS,"NodeList Path: %s \n", SO->Name_coord.Path);
+            SS = SUMA_StringAppend_va (SS,"FaceSetList FileName: %s \n", SO->Name_topo.FileName);
+            SS = SUMA_StringAppend_va (SS,"FaceSetList Path: %s \n", SO->Name_topo.Path);
             break;
          case SUMA_FREE_SURFER:
-            sprintf (stmp,"FreeSurfer surface.\n");
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"FileName: %s\n", SO->Name.FileName);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"Path: %s\n", SO->Name.Path);
-            SS = SUMA_StringAppend (SS,stmp);
+            SS = SUMA_StringAppend_va (SS,"FreeSurfer surface.\n");
+            SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
             break;
          case SUMA_INVENTOR_GENERIC:
-            sprintf (stmp,"Inventor generic surface.\n");
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"FileName: %s\n", SO->Name.FileName);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"Path: %s\n", SO->Name.Path);
-            SS = SUMA_StringAppend (SS,stmp);
+            SS = SUMA_StringAppend_va (SS,"Inventor generic surface.\n");
+            SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
             break;
          case SUMA_PLY: 
-            sprintf (stmp,"PLY surface.\n");
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"FileName: %s\n", SO->Name.FileName);
-            SS = SUMA_StringAppend (SS,stmp);
-            sprintf (stmp,"Path: %s\n", SO->Name.Path);
-            SS = SUMA_StringAppend (SS,stmp);
+            SS = SUMA_StringAppend_va (SS,"PLY surface.\n");
+            SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
             break;
          case SUMA_FT_NOT_SPECIFIED:
-            sprintf (stmp,"File Type not specified.\n");
-            SS = SUMA_StringAppend (SS,stmp);
+            SS = SUMA_StringAppend_va (SS,"File Type not specified.\n");
             break;
          default:
-            sprintf (stmp,"Unknown surface type.\n");
-            SS = SUMA_StringAppend (SS,stmp);
+            SS = SUMA_StringAppend_va (SS,"Unknown surface type.\n");
             break;
       }
 
-      sprintf (stmp,"FileType: %d\t FileFormat: %d\n", SO->FileType, SO->FileFormat);
-      SS = SUMA_StringAppend (SS,stmp);
+      SS = SUMA_StringAppend_va (SS,"FileType: %d\t FileFormat: %d\n", SO->FileType, SO->FileFormat);
 
-      sprintf (stmp,"IDcode: %s\n", SO->idcode_str);
-      SS = SUMA_StringAppend (SS,stmp);
+      SS = SUMA_StringAppend_va (SS,"IDcode: %s\n", SO->idcode_str);
       
       if (!SO->LocalDomainParent) SS = SUMA_StringAppend_va (SS,"LocalDomainParent is NULL\n");
       else SS = SUMA_StringAppend_va (SS,"LocalDomainParent: %s\n", SO->LocalDomainParent);
@@ -1952,12 +1933,11 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
       if (!SO->DomainGrandParentID) SS = SUMA_StringAppend_va (SS,"DomainGrandParentID is NULL\n");
       else SS = SUMA_StringAppend_va (SS,"DomainGrandParentID: %s\n", SO->DomainGrandParentID);
              
-      sprintf (stmp,"Group: %s\tState: %s\n", SO->Group, SO->State);
-      SS = SUMA_StringAppend (SS,stmp);
+      SS = SUMA_StringAppend_va (SS,"Group: %s\tState: %s\n", SO->Group, SO->State);
 
       if (SUMA_ismappable(SO)) {
-         if (SUMA_isINHmappable(SO)) {
-            sprintf (stmp,"Surface is Inherently Mappable.\n");
+         if (SUMA_isLocalDomainParent(SO)) {
+            sprintf (stmp,"Surface is a Local Domain Parent.\n");
             SS = SUMA_StringAppend (SS,stmp);
          } else {
             sprintf (stmp,"Surface is Mappable.\n");

@@ -37,6 +37,7 @@ void SUMA_JumpXYZ (char *s, void *data);
 void SUMA_JumpFocusNode (char *s, void *data);
 void SUMA_JumpFocusFace (char *s, void *data);
 void SUMA_HighlightBox (char *s, void *data);
+void SUMA_SetNumForeSmoothing (char *s, void *data);
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke 

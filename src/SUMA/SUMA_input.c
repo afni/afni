@@ -133,10 +133,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                int curstateID = -1, nxtstateID = -1, dov_ID = -1;
 
                /* make sure switching is OK */
-               
-               curstateID = SUMA_WhichState(sv->State, sv);
+               SUMA_SL_Warn("Modified next SUMA_WhichState\nMake sure it tests OK");
+               curstateID = SUMA_WhichState(sv->State, sv, sv->CurGroupName);
                SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-               if (SUMA_isINHmappable (SO)) {
+               if (SUMA_isLocalDomainParent (SO)) {
                   /* get the last non mappable state in SV */
                   if (sv->LastNonMapStateID < 0) { /* not recorded, complain and quit */
                      fprintf(SUMA_STDERR,"Warning %s: Nothing defined to toggle with yet.\n", FuncName); 
@@ -147,7 +147,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf (SUMA_STDERR,"%s: surface is inherrently mappable, switching to last non mappable state %d.\n", \
                         FuncName, sv->LastNonMapStateID);
                         
-                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, sv->LastNonMapStateID)) {
+                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, sv->LastNonMapStateID, sv->CurGroupName)) {
                      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
                      break;
                   }
@@ -160,7 +160,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /* find SO that is mappable reference & get corresponding state ID*/
                   dov_ID = SUMA_findSO_inDOv(SO->LocalDomainParentID, SUMAg_DOv, SUMAg_N_DOv);
                   SOmap = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-                  nxtstateID = SUMA_WhichState(SOmap->State, sv);
+                  SUMA_SL_Warn("Modified next SUMA_WhichState\nMake sure it tests OK");   
+                  nxtstateID = SUMA_WhichState(SOmap->State, sv, sv->CurGroupName);
                   
                   if (nxtstateID < 0) {
                      fprintf (SUMA_STDERR,"%s: Failed in SUMA_findSO_inDOv This should not happen.\n", FuncName);
@@ -174,7 +175,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   sv->LastNonMapStateID = curstateID;
 
                   /* go there */
-                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID)) {
+                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID, sv->CurGroupName)) {
                      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
                      break;
                   }
@@ -216,7 +217,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_SurfaceObject *SO = NULL;
 
                for (ii=0; ii< sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
+                  if (SUMA_isSO_G(SUMAg_DOv[sv->RegisteredDO[ii]], sv->Group)) {
                      SO = (SUMA_SurfaceObject*)SUMAg_DOv[sv->RegisteredDO[ii]].OP;
                      /* remix colors */
                      glar_ColorList = SUMA_GetColorList (sv, SO->idcode_str);
@@ -575,9 +576,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                      
                      for (it = 0; it < SUMAg_N_DOv; ++it) {
-                        if (SUMA_isSO (SUMAg_DOv[it])) {
+                        if (SUMA_isSO_G (SUMAg_DOv[it], sv->CurGroupName)) {
                            SO = (SUMA_SurfaceObject *)SUMAg_DOv[it].OP;
-                           if (SUMA_isINHmappable(SO)) {
+                           if (SUMA_isLocalDomainParent(SO)) {
                               int imax;
                               /* add the shift */
                               fprintf (SUMA_STDERR,"%s: Shifting %s by %f %f %f mm RAI.\n", FuncName, SO->Label, fv3[0], fv3[1], fv3[2]);
@@ -613,7 +614,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_n:
                if (Kev.state & ControlMask){
-                  fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
+                  if (LocalHead) fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
                   /* open a new controller */
                   if (!SUMA_X_SurfaceViewer_Create ()) {
                      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", FuncName);
@@ -822,9 +823,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case XK_v:
+            #if 0
+            /*** No longer in use, Jan 03 2004 */
             if (SUMAg_CF->Dev) {
                SUMA_Show_SurfaceViewer_Struct (sv, stdout, 0);
             }
+            #endif
             break;
 
          case XK_W:
@@ -878,6 +882,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             SUMA_postRedisplay(w, clientData, callData);
             break;
 
+         case XK_8:
+            {
+               char stmp[100];
+               sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
+               SUMAg_CF->X->N_ForeSmooth_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Foreground smoothing iterations", 
+                                                         stmp,
+                                                         sv->X->TOPLEVEL, YUP,
+                                                         SUMA_APPLY_BUTTON,
+                                                         SUMA_SetNumForeSmoothing, (void *)sv,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         SUMA_isNumString, (void*)1,  
+                                                         SUMAg_CF->X->N_ForeSmooth_prmpt);
+
+               SUMAg_CF->X->N_ForeSmooth_prmpt = SUMA_CreatePromptDialog("Foreground smoothing iterations", SUMAg_CF->X->N_ForeSmooth_prmpt);
+            }
+            break;
+            
          case XK_asterisk:
             fprintf(SUMA_STDOUT, "%s: smoothing node attributes ...\n", FuncName);
             {
@@ -910,7 +932,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      cnt += 1;
                   } 
 
-                  attr_sm = SUMA_SmoothAttr_Neighb (attrbuf, SO->N_Node, NULL, SO->FN); 
+                  attr_sm = SUMA_SmoothAttr_Neighb (attrbuf, SO->N_Node, NULL, SO->FN, 1); 
                   if (attr_sm == NULL) {
                      fprintf(stderr,"Error SUMA_input: Failed in SUMA_SmoothAttr_Neighb\n");
                      break;
@@ -979,12 +1001,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      break;
                }   
                /* smooth estimate twice */
-               attr_sm = SUMA_SmoothAttr_Neighb (SO->Cx, SO->N_Node, NULL, SO->FN);
+               attr_sm = SUMA_SmoothAttr_Neighb (SO->Cx, SO->N_Node, NULL, SO->FN, 1);
                if (attr_sm == NULL) {
                      fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
                      break;
                }   
-               SO->Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, SO->Cx, SO->FN);
+               SO->Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, SO->Cx, SO->FN, 1);
                if (attr_sm) SUMA_free(attr_sm);
 
                fprintf(SUMA_STDOUT, "%s: Use SUMA_ScaleToMap to colorize Conv.txt and display it on surface.\n", FuncName);
@@ -1049,12 +1071,19 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_comma:
             {
                /* switch state, back one */
-               int nxtstateID = -1;
+               int nxtstateID = -1, curstateID = -1;
                int origState = sv->iState;
                char *note=NULL;
                
                if (sv->N_VSv < 2) break;
 
+               curstateID = SUMA_WhichState (sv->State, sv, sv->CurGroupName);
+               if (curstateID < 0) {
+                  SUMA_SL_Err("Current State not found.\n"
+                              "Should not happen here.");
+                  SUMA_RETURNe;
+               }
+               
                if (SUMAg_N_SVv > 1) {
                   ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, SUMAg_N_SVv, sv);
                   if (ii >= 0) {
@@ -1077,6 +1106,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);*/
                   /* toggle to the next view state */
                   nxtstateID = SUMA_PrevState(sv);
+                  if (nxtstateID == curstateID) break;
                   if (nxtstateID < 0) {
                      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_PrevState.\n", FuncName);
                      break;
@@ -1084,7 +1114,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", \
                      FuncName, sv->State, sv->VSv[nxtstateID].Name);
 
-                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID)) {
+                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID, sv->CurGroupName)) {
                      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
                      break;
                   }
@@ -1108,11 +1138,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_period:
             {
                /* switch state, forward one */
-               int nxtstateID=-1;
+               int nxtstateID=-1, curstateID = -1;
                int origState = sv->iState;
                char *note=NULL;
                
                if (sv->N_VSv < 2) break;
+               
+               curstateID = SUMA_WhichState (sv->State, sv, sv->CurGroupName);
+               if (curstateID < 0) {
+                  SUMA_SL_Err("Current State not found.\n"
+                              "Should not happen here.");
+                  SUMA_RETURNe;
+               }
                
                if (SUMAg_N_SVv > 1) {
                   ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, SUMAg_N_SVv, sv);
@@ -1133,16 +1170,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      SUMA_free(note);   note = NULL;
                   }
                   
-                  /*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);*/
+                  if (LocalHead) fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);
+                  
                   /* toggle to the next view state */
                   nxtstateID = SUMA_NextState(sv);
+                  if (nxtstateID == curstateID) break;
                   if (nxtstateID < 0) {
                      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_NextState.\n", FuncName);
                      break;
                   }
                   fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", FuncName, sv->State, sv->VSv[nxtstateID].Name);
 
-                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID)) {
+                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID, sv->CurGroupName)) {
                      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
                      break;
                   }
@@ -1315,7 +1354,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
             break;
-
+         
          case XK_Left:   /*KEY_LEFT:*/
             /*fprintf(stdout,"Left Key\n");*/
             if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
@@ -3614,6 +3653,53 @@ void SUMA_SetLight0 (char *s, void *data)
    }
 
    SUMA_RETURNe;
+}
+
+/*!
+   \brief sets the number of smoothing operations to perform on foreground colors
+   before display
+*/
+void SUMA_SetNumForeSmoothing (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_SetNumForeSmoothing"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv3[3];
+   SUMA_Boolean LocalHead = NOPE; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, fv3, 1) != 1) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+
+   /* set sv */
+  
+   if ((int)fv3[0] < 0) {
+      SUMA_SLP_Err("Only positive integer\nvalues are valid.\n"); 
+      SUMA_RETURNe;
+   } 
+   SUMAg_CF->X->NumForeSmoothing = (int)fv3[0];
+   
+   /* flag surfaces for remix */
+   SUMA_SetAllRemixFlag(SUMAg_SVv, SUMAg_N_SVv);
+   
+   /* register a redisplay for sv*/
+   if (!list) list = SUMA_CreateList();
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, sv);
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+
+   SUMA_RETURNe;
+   
 }
 /*!
    \brief rotates surface to face a certain coordinate 

@@ -295,6 +295,38 @@ const char *SUMA_ColMixModeString (SUMA_COL_MIX_MODE mode)
    }
    
 }
+
+const char *SUMA_DomainKinships_String (SUMA_DOMAIN_KINSHIPS code)
+{
+   static char FuncName[]={"SUMA_DomainKinships_String"};
+   
+   SUMA_ENTRY;
+   
+   switch (code) {
+      case SUMA_DOMAINS_ERROR:
+         SUMA_RETURN("Code Error");
+      case SUMA_DOMAINS_NOT_RELATED:
+         SUMA_RETURN("Surfaces domains not related");
+      case SUMA_SO1_is_SO2:
+         SUMA_RETURN("Surfaces are the same (identical idcodes)");
+      case SUMA_SO1_is_LDPSO2:
+         SUMA_RETURN("Surface 1 is the local domain parent of Surface 2");
+      case SUMA_SO2_is_LDPSO1:
+         SUMA_RETURN("Surface 2 is the local domain parent of Surface 1");
+      case SUMA_NUCELAR_FAMILY:
+         SUMA_RETURN("Flag for nuclear family flag limit");
+      case SUMA_LDPSO1_is_LDPSO2:
+         SUMA_RETURN("Surfaces have same domain grandparent");
+      case SUMA_SO1_is_GPSO2:
+         SUMA_RETURN("Surface 1 is the domain grandparent of Surface 2");
+      case SUMA_SO2_is_GPSO1:
+         SUMA_RETURN("Surface 2 is the domain grandparent of Surface 1");
+      default:
+         SUMA_RETURN("Should not see this"); 
+   }
+     
+   SUMA_RETURN("Should not see this either");
+}
 /*!
    \brief Transforms a command code into a string for human consumption
    const char *SUMA_CommandString (SUMA_ENGINE_CODE code);
@@ -462,11 +494,11 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    if (!cd) { SUMA_RETURN(SUMA_FT_ERROR); }
    
    if (!strcmp(cd, "NotSpecified")) { SUMA_RETURN(SUMA_FT_NOT_SPECIFIED ); }
-   if (!strcmp(cd, "FreeSurfer")) { SUMA_RETURN( SUMA_FREE_SURFER); }
-   if (!strcmp(cd, "SureFit")) { SUMA_RETURN( SUMA_SUREFIT); }
-   if (!strcmp(cd, "GenericInventor")) { SUMA_RETURN(SUMA_INVENTOR_GENERIC ); }
-   if (!strcmp(cd, "Ply")) { SUMA_RETURN( SUMA_PLY); }
-   if (!strcmp(cd, "1D")) { SUMA_RETURN(SUMA_VEC ); }
+   if (!strcmp(cd, "FreeSurfer") || !strcmp(cd, "FS")) { SUMA_RETURN( SUMA_FREE_SURFER); }
+   if (!strcmp(cd, "SureFit") || !strcmp(cd, "SF")) { SUMA_RETURN( SUMA_SUREFIT); }
+   if (!strcmp(cd, "GenericInventor") || !strcmp(cd, "INV")) { SUMA_RETURN(SUMA_INVENTOR_GENERIC ); }
+   if (!strcmp(cd, "Ply") || !strcmp(cd, "PLY")) { SUMA_RETURN( SUMA_PLY); }
+   if (!strcmp(cd, "1D") || !strcmp(cd, "VEC")) { SUMA_RETURN(SUMA_VEC ); }
    if (!strcmp(cd, "Error")) { SUMA_RETURN(SUMA_FT_ERROR ); }
    /* if (!strcmp(cd, "")) { SUMA_RETURN( ); } */
    SUMA_RETURN(SUMA_FT_ERROR); 
