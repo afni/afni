@@ -669,7 +669,7 @@ ncx_put_int_double(void *xp, const double *ip)
 
 /* x_float */
 
-#if X_SIZEOF_FLOAT == SIZEOF_FLOAT && !defined(NO_IEEE_FLOAT)
+#if defined(INTEL_CC) || ( X_SIZEOF_FLOAT == SIZEOF_FLOAT && !defined(NO_IEEE_FLOAT))
 
 static void
 get_ix_float(const void *xp, float *ip)
@@ -1273,7 +1273,7 @@ ncx_put_float_double(void *xp, const double *ip)
 
 /* x_double */
 
-#if X_SIZEOF_DOUBLE == SIZEOF_DOUBLE  && !defined(NO_IEEE_FLOAT)
+#if defined(INTEL_CC) || (X_SIZEOF_DOUBLE == SIZEOF_DOUBLE  && !defined(NO_IEEE_FLOAT))
 
 static void
 get_ix_double(const void *xp, double *ip)
