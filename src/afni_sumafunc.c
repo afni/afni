@@ -546,6 +546,8 @@ ENTRY("AFNI_update_surface_widgets") ;
    num  = im3d->anat_now->su_num ;  /* # of surfaces */
    swid = im3d->vwid->view->swid ;
 
+   SENSITIZE( im3d->vwid->view->choose_surf_pb , (Boolean)(num > 0) ) ;
+
    if( swid == NULL ) EXRETURN ;
 
    /* make more widget rows? (1 per surface is needed) */
@@ -578,8 +580,6 @@ ENTRY("AFNI_update_surface_widgets") ;
      sprintf(str,"%-14.14s: ",im3d->anat_now->su_surf[ii]->label) ;
      MCW_set_widget_label( swid->surf_lab[ii] , str ) ;
    }
-
-   SENSITIZE( im3d->vwid->view->choose_surf_pb , (Boolean)(num > 0) ) ;
 
    EXRETURN ;
 }
