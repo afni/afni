@@ -63,6 +63,8 @@ L_INIT_VARS:
 			occip.patch.3d		\
 			occip.patch.flat	\
 			sphere			\
+         white          \
+         shpere.reg     \
 			)
 
 goto L_INIT_VARS_DONE

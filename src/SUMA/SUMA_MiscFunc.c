@@ -4253,8 +4253,8 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
 */
 SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 {
-   static char FuncName[]={"SUMA_BuildFirstNeighb"};
-   int i, j, n1, n2,  **FirstNeighb, N_ELm1, jj, tmp;
+   static char FuncName[]={"SUMA_Build_FirstNeighb"};
+   int i, j, n1, n2,  **FirstNeighb, N_ELm1, jj, tmp, TessErr_Cnt=0;
    SUMA_Boolean skp;
    SUMA_NODE_FIRST_NEIGHB *FN;
    
@@ -4361,16 +4361,23 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
             }
         }
         if (jj != FN->N_Neighb[i]) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in copying neighbor list! jj=%d, FN->N_Neighb[%d]=%d\n", 
-               FuncName, jj, i, FN->N_Neighb[i]);
-            fprintf (SUMA_STDERR, "\tThis is likely due to a tessellation error, one or more edges may not be part of 2 and only 2 triangles.\n\tNeighbor list for node %d is not ordered as connected vertices.\n", 
-               i);
+            if (!TessErr_Cnt) {
+               fprintf (SUMA_STDERR, "Error %s: Failed in copying neighbor list! jj=%d, FN->N_Neighb[%d]=%d\n", 
+                  FuncName, jj, i, FN->N_Neighb[i]);
+               fprintf (SUMA_STDERR, "\tIf this is a closed surface, the problem is likely due to a tessellation error.\n\tOne or more edges may not be part of 2 and only 2 triangles.\n\tNeighbor list for node %d will not be ordered as connected vertices.\n", 
+                  i);
+               fprintf (SUMA_STDERR, "\tFurther occurences of this error will not be reported.\n");
+            }
+            ++TessErr_Cnt;
             while (jj < FN->N_Neighb[i]) {
                FirstNeighb[i][jj] = FN->FirstNeighb[i][jj];
                ++jj;
             }
         }    
       #endif
+   }
+   if (TessErr_Cnt) {
+      fprintf (SUMA_STDERR, "\t%d similar occurences of the error above were found in this mesh.\n", TessErr_Cnt);
    }
    SUMA_free2D((char **)FN->FirstNeighb, N_Node);
    FN->FirstNeighb = FirstNeighb;
