@@ -498,7 +498,7 @@ fprintf(stderr,
    Adapted from mri_to_XImage by RWCox -- 11 Feb 1999
 -------------------------------------------------------------------------*/
 
-extern XImage * pixar_to_XImage( MCW_DC * dc, int nx, int ny, Pixel * par )
+XImage * pixar_to_XImage( MCW_DC * dc, int nx, int ny, Pixel * par )
 {
    int  w2, width, height , border ;
    unsigned char * Image ;
@@ -594,20 +594,73 @@ ENTRY("pixar_to_XImage") ;
    RETURN( ximage ) ;
 }
 
-/*----------------------------------------------------------------------------
-   Convert an MRI_IMAGE of rgb bytes to an XImage
+/*-------------------------------------------------------------------*/
+#ifdef __GNUC__
+# define INLINE inline
+#else
+# define INLINE /*nada*/
+#endif
+/*-------------------------------------------------------------------*/
+/*! Local copy of function from display.c, hopefully for speed.
+---------------------------------------------------------------------*/
+
+static INLINE Pixel tc_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
+{
+   static MCW_DC * dcold=NULL ;
+   DC_colordef * cd = dc->cdef ;
+   static unsigned long pold=0 ;
+   static byte rold=0 , gold=0 , bold=0 ;
+   unsigned long r , g , b ;
+
+   if( cd == NULL ){ reload_DC_colordef(dc) ; cd = dc->cdef ; }
+
+   if( rr == 0   && gg == 0   && bb == 0   ) return 0 ;          /* common */
+   if( rr == 255 && gg == 255 && bb == 255 ) return cd->whpix ;  /* cases  */
+
+   if( dc == dcold && rr == rold && gg == gold && bb == bold ) /* Remembrance of Things Past? */
+      return (Pixel) pold ;
+
+   rold = rr ; gold = gg ; bold = bb ; dcold = dc ;            /* OK, remember for next time */
+
+   r = (cd->rrshift<0) ? (rr<<(-cd->rrshift))
+                       : (rr>>cd->rrshift)   ; r = r & cd->rrmask ;
+
+   g = (cd->ggshift<0) ? (gg<<(-cd->ggshift))
+                       : (gg>>cd->ggshift)   ; g = g & cd->ggmask ;
+
+   b = (cd->bbshift<0) ? (bb<<(-cd->bbshift))
+                       : (bb>>cd->bbshift)   ; b = b & cd->bbmask ;
+
+   pold = r | g | b ;  /* assemble color from components */
+   return (Pixel) pold ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static XImage * rgb_to_XImage_simple( MCW_DC *, MRI_IMAGE * ) ;
+static XImage * rgb_to_XImage_clever( MCW_DC *, MRI_IMAGE * ) ;
+
+XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
+{
+   switch( dc->visual_class ){
+     case TrueColor:   return rgb_to_XImage_simple(dc,im) ;
+     case PseudoColor: return rgb_to_XImage_clever(dc,im) ;
+   }
+   return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Convert an MRI_IMAGE of rgb bytes to an XImage (TrueColor visual)
 ------------------------------------------------------------------------------*/
 
-#undef BRUTE_FORCE
-#ifdef BRUTE_FORCE
-XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
+static XImage * rgb_to_XImage_simple( MCW_DC * dc , MRI_IMAGE * im )
 {
    int nxy , ii ;
    byte * rgb ;
    Pixel * par ;
    XImage * xim ;
 
-ENTRY("rgb_to_XImage") ;
+ENTRY("rgb_to_XImage_simple") ;
 
    /*-- sanity check --*/
 
@@ -616,19 +669,21 @@ ENTRY("rgb_to_XImage") ;
    nxy = im->nx * im->ny ;
    rgb = MRI_RGB_PTR(im) ;
 
-   par = (Pixel *) malloc( sizeof(Pixel) * nxy ) ; if( par == NULL ) RETURN( NULL ) ;
+   par = (Pixel *) malloc(sizeof(Pixel)*nxy); if( par == NULL ) RETURN(NULL) ;
 
    for( ii=0 ; ii < nxy ; ii++ )
-      par[ii] = DC_rgb_to_pixel( dc , rgb[3*ii], rgb[3*ii+1], rgb[3*ii+2] ) ;
+     par[ii] = tc_rgb_to_pixel( dc , rgb[3*ii], rgb[3*ii+1], rgb[3*ii+2] ) ;
 
    xim = pixar_to_XImage( dc , im->nx , im->ny , par ) ;
 
    free(par) ; RETURN( xim ) ;
 }
 
-#else /* not BRUTE_FORCE */
+/*-----------------------------------------------------------------------*/
+/*! Convert an MRI_IMAGE of rgb bytes to an XImage (general visual)
+-------------------------------------------------------------------------*/
 
-XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
+static XImage * rgb_to_XImage_clever( MCW_DC * dc , MRI_IMAGE * im )
 {
    int nxy , ii , c ;
    byte * rgb , r,g,b ;
@@ -636,7 +691,7 @@ XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
    XImage * xim ;
    int * col_ar , * ii_ar ;
 
-ENTRY("rgb_to_XImage") ;
+ENTRY("rgb_to_XImage_clever") ;
 
    /*-- sanity check --*/
 
@@ -677,4 +732,3 @@ ENTRY("rgb_to_XImage") ;
 
    free(par) ; RETURN( xim ) ;
 }
-#endif /* BRUTE_FORCE */
