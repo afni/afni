@@ -393,6 +393,12 @@ been known to go into nearly-infinite loops.
 Setting this variable implies setting AFNI_NOMMAP to YES, since
 only in-memory bricks can be altered (mmap-ed bricks are readonly).
 
+-----------------------
+Variable: AFNI_NOSPLASH
+-----------------------
+If this variable is set (to any value), then the AFNI splash screen will
+not be displayed when the program starts.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

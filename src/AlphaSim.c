@@ -14,6 +14,8 @@
   Mod:     Corrected problem: attempt to close a file which was not open.
   Date:    21 June 1999
 
+  Mod:     Corrected problem with count overflow.
+  Date:    30 July 1999
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -25,7 +27,7 @@
 
 #define PROGRAM_NAME "AlphaSim"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "21 June 1999"              /* date of last program mod */
+#define PROGRAM_DATE "30 July 1999"              /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1006,11 +1008,14 @@ void threshold_data (int nx, int ny, int nz, float * fim,
 
 
   /*----- update sums -----*/
-  *count += nxyz;
-  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+  if (*count < 1.0e+09)
     {
-      *sum += fim[ixyz];
-      *sumsq += fim[ixyz] * fim[ixyz];
+      *count += nxyz;
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  *sum += fim[ixyz];
+	  *sumsq += fim[ixyz] * fim[ixyz];
+	}
     }
 
 

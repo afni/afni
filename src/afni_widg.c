@@ -27,6 +27,15 @@
 #endif
 #include "dbtrace.h"
 
+#ifdef AFNI_DEBUG
+#  define REPORT_PROGRESS(str)  /* nada */
+#else
+#  define REPORT_PROGRESS(str) (printf(str),fflush(stdout))
+#endif
+
+#define REFRESH \
+  do{ XmUpdateDisplay(im3d->vwid->top_shell); REPORT_PROGRESS("."); } while(0)
+
 /*---------------------------------------------------------------------
    Make all the rest of the widgets for a Three_D_View
    (after the toplevel shell has been created)
@@ -502,9 +511,10 @@ STATUS("creating control panels") ;
 
    /************* call other routines to create rest of widgets  *************/
 
-   AFNI_make_wid1( im3d ) ;
-   AFNI_make_wid2( im3d ) ;
-   AFNI_make_wid3( im3d ) ;
+                            REFRESH ;
+   AFNI_make_wid1( im3d ) ; REFRESH ;
+   AFNI_make_wid2( im3d ) ; REFRESH ;
+   AFNI_make_wid3( im3d ) ; REFRESH ;
 
 #ifdef ALLOW_PLUGINS
    AFNI_plugin_button( im3d ) ; /* 07 Oct 1996 */

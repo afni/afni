@@ -51,6 +51,9 @@ extern void MCW_register_hint( Widget , char * ) ;
 extern void MCW_reghint_children( Widget , char * ) ;
 extern void MCW_hint_toggle(void) ;
 
+extern void MCW_disable_help(void) ; /* 02 Aug 1999 */
+extern void MCW_enable_help (void) ;
+
 extern void MCW_click_help_CB( Widget , XtPointer , XtPointer ) ;
 extern void MCW_register_help( Widget , char * ) ;
 extern void MCW_reghelp_children( Widget , char * ) ;

@@ -752,13 +752,23 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
 }
 #endif
 
+/*=========================================================================
+  The new AFNI main program.
+    02 Aug 1999: Have moved much of the startup into a work process.
+===========================================================================*/
+
+static XtAppContext   MAIN_app ;
+static XtErrorHandler MAIN_old_handler ;
+static Three_D_View * MAIN_im3d ;
+static MCW_DC *       MAIN_dc ;
+static Widget         MAIN_shell ;
+static XtWorkProcId   MAIN_wpid ;
+static int            MAIN_argc ;
+static char **        MAIN_argv ;
+static Boolean        MAIN_workprocess( XtPointer ) ;
+
 int main( int argc , char * argv[] )
 {
-   XtAppContext   app ;
-   XtErrorHandler old_handler ;  /* used for hiding Xt warnings */
-   Three_D_View * im3d ;
-   MCW_DC * dc ;
-   Widget shell ;
    int ii ;
 
 #ifdef CATCH_SIGNALS
@@ -787,6 +797,8 @@ int main( int argc , char * argv[] )
    /*--- help? ---*/
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
+
+   /*--- with a little help from my FRIENDS --*/
 
    srand48((long)time(NULL)) ;  /* initialize random number generator */
 
@@ -825,12 +837,14 @@ int main( int argc , char * argv[] )
 
    REPORT_PROGRESS("Initializing: X11");
 
-   shell = XtVaAppInitialize(
-              &app , "AFNI" , NULL , 0 , &argc , argv , FALLback , NULL ) ;
+   MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
+                                   &argc , argv , FALLback , NULL ) ;
 
-   if( shell == NULL ){
+   if( MAIN_shell == NULL ){
       fprintf(stderr,"\n*** Cannot initialize X11 ***\n") ; exit(1) ;
    }
+
+   MAIN_argc = argc ; MAIN_argv = argv ;
 
    REPORT_PROGRESS(".") ;
 
@@ -841,7 +855,7 @@ int main( int argc , char * argv[] )
 
    if( ! GLOBAL_argopt.skip_afnirc ) AFNI_process_environ(NULL) ;  /* 07 Jun 1999 */
 
-   AFNI_load_defaults( shell ) ;
+   AFNI_load_defaults( MAIN_shell ) ;
 
    if( ! GLOBAL_argopt.skip_afnirc ){          /* this line added 14 Jul 1998 */
       char * home = getenv("HOME") ; char fname[256] ;
@@ -862,7 +876,7 @@ int main( int argc , char * argv[] )
    AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
 
    if( GLOBAL_argopt.xtwarns == False ){
-      old_handler = XtAppSetWarningHandler(app,AFNI_handler) ;  /* turn off */
+      MAIN_old_handler = XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
    }
 
    { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
@@ -877,164 +891,243 @@ int main( int argc , char * argv[] )
                            GLOBAL_library.controller_lock |= (1<<ii) ;
    }
 
-   /*-- now create display context dc --*/
+   /*-- now create first display context: MAIN_dc --*/
 
-   GLOBAL_library.dc = dc =
-        MCW_new_DC( shell , GLOBAL_argopt.ncolor ,
+   GLOBAL_library.dc = MAIN_dc =
+        MCW_new_DC( MAIN_shell , GLOBAL_argopt.ncolor ,
                     INIT_ncolovr , INIT_colovr , INIT_labovr ,
                     GLOBAL_argopt.gamma , GLOBAL_argopt.install_cmap ) ;
 
-   if( dc->depth < 9 && dc->visual_class != TrueColor && GLOBAL_argopt.unique_dcs ){
+   if( MAIN_dc->depth < 9 && MAIN_dc->visual_class != TrueColor && GLOBAL_argopt.unique_dcs ){
       GLOBAL_argopt.unique_dcs = False ;
       REPORT_PROGRESS("[-unique off]") ;
    }
-
-   /*-----------------------------------*/
-   /*--- Create the first controller ---*/
-
-   REPORT_PROGRESS(". Widgets") ;
-
-   im3d = new_AFNI_controller( shell , dc ,
-                               GLOBAL_argopt.read_images ? AFNI_IMAGES_VIEW
-                                                         : AFNI_3DDATA_VIEW ) ;
-
-   GLOBAL_library.controllers[0] = im3d ;
-
-   REPORT_PROGRESS(".") ;
-
-   /*------------------------------------------*/
-   /*--- set up remaining various X11 stuff ---*/
-
-   /* Always turn off Drag-n-Drop (courtesy the Motif FAQ) */
-
-   XtVaSetValues( XmGetXmDisplay(XtDisplay(im3d->vwid->top_shell)) ,
-                     XmNdragInitiatorProtocolStyle , XmDRAG_NONE ,
-                     XmNdragReceiverProtocolStyle  , XmDRAG_NONE ,
-                  NULL ) ;
-
-   /*-----------------------------*/
-   /*--- read the input files! ---*/
-
-   REPORT_PROGRESS(". Input files:") ;
-
-   AFNI_read_inputs( argc , argv ) ;
-
-   if( GLOBAL_library.have_dummy_dataset && im3d->type == AFNI_3DDATA_VIEW )
-      XtSetSensitive( im3d->vwid->prog->clone_pb , False ) ;
-
-   /*--------------------------------------*/
-   /*--- Setup the plugins, if possible ---*/
-
-   GLOBAL_library.registered_0D.num = 0 ;               /* initialize registry */
-   GLOBAL_library.registered_1D.num = 0 ;               /* initialize registry */
-   GLOBAL_library.registered_2D.num = 0 ;               /* initialize registry */
-
-   AFNI_register_0D_function( "Log10" , log10_func ) ;  /* afni.c */
-   AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;  /* afni.c */
-
-   AFNI_register_1D_function( "Median3" , median3_func) ;  /* afni.c */
-   AFNI_register_1D_function( "OSfilt3" , osfilt3_func) ;  /* afni.c */
-
-   AFNI_register_2D_function( "Median9" , median9_box_func ) ;   /* imseq.c */
-   AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;   /* imseq.c */
-   AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;   /* imseq.c */
-
-   AFNI_register_2D_function( "Median21" , median21_box_func ) ;   /* imseq.c */
-   AFNI_register_2D_function( "Winsor21" , winsor21_box_func ) ;   /* imseq.c */
-
-#ifdef ALLOW_PLUGINS
-   if( im3d->type == AFNI_3DDATA_VIEW ){
-      int nplug = 0 ;
-      char str[128] ;
-
-      if( ! GLOBAL_argopt.noplugins ){
-         GLOBAL_library.plugins = PLUG_get_many_plugins() ;
-         AFNI_plugin_button( im3d ) ;
-      }
-
-      if( GLOBAL_library.plugins != NULL ) nplug = GLOBAL_library.plugins->num ;
-      sprintf(str,"\n Plugins       = %d libraries read",nplug) ;
-      REPORT_PROGRESS(str) ;
-
-      if( ! GLOBAL_argopt.noplugouts && ! ALLOW_real_time ){  /* June 1997 */
-
-          AFNI_init_plugouts() ;
-          REPORT_PROGRESS("\n Plugouts      = listening for connections") ;
-      }
-   }
-#endif
 
    /*------------------------------------*/
    /*------- take it away, Goldie -------*/
    /*------------------------------------*/
 
-   /*--- do the initial setup on entering the initial view ---*/
+   MAIN_wpid = XtAppAddWorkProc( MAIN_app, MAIN_workprocess, NULL ) ;
 
-   OPEN_CONTROLLER( im3d ) ;
+   MCW_disable_help() ;
 
-   AFNI_initialize_controller( im3d ) ;  /* decide what to see */
-   AFNI_initialize_view( NULL , im3d ) ; /* set up to see it */
+   XtAppMainLoop(MAIN_app) ;
+   exit(0) ;
+}
+
+/*---------------------------------------------------------------------------------
+   Xt work process to do most of the initialization stuff.
+-----------------------------------------------------------------------------------*/
+
+#define REFRESH XmUpdateDisplay(MAIN_im3d->vwid->top_shell)
+
+static Boolean MAIN_workprocess( XtPointer fred )
+{
+   static int MAIN_calls = 0 ;  /* controls what happens */
+   static int nosplash = 0 ;
+   static double eltime ;
+   int ii ;
+
+   switch( MAIN_calls ){
+
+      default:{
+         if( nosplash ) return True ;
+         if( COX_clock_time() - eltime >= 5.0 ){ AFNI_splashdown(); return True; }
+      }
+      break ;
+
+      /*============================================================================*/
+      case 0:{
+
+#ifdef NO_FRIVOLITIES
+        nosplash = 1 ;
+#else
+        nosplash = (getenv("AFNI_NOSPLASH") != NULL) ;
+#endif
+        if( !nosplash ){ AFNI_splashup(); eltime = COX_clock_time(); }
+      }
+      break ;
+
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+      case 8:
+      case 9:
+      case 10: if( !nosplash) iochan_sleep(1) ; /* waste time to let splash popup */
+      break ;
+
+      /*============================================================================*/
+      case 11:{
+
+        /*-----------------------------------*/
+        /*--- Create the first controller ---*/
+
+        REPORT_PROGRESS(". Widgets") ;
+
+        MCW_enable_help() ;
+
+        MAIN_im3d = new_AFNI_controller( MAIN_shell , MAIN_dc ,
+                                         GLOBAL_argopt.read_images ? AFNI_IMAGES_VIEW
+                                                                   : AFNI_3DDATA_VIEW ) ;
+
+        GLOBAL_library.controllers[0] = MAIN_im3d ;
+
+        REPORT_PROGRESS(".") ;
+
+        /* Always turn off Drag-n-Drop (courtesy the Motif FAQ) */
+
+        XtVaSetValues( XmGetXmDisplay(XtDisplay(MAIN_im3d->vwid->top_shell)) ,
+                          XmNdragInitiatorProtocolStyle , XmDRAG_NONE ,
+                          XmNdragReceiverProtocolStyle  , XmDRAG_NONE ,
+                       NULL ) ;
+      }
+      break ;
+
+      /*============================================================================*/
+      case 12:{
+
+        /*-----------------------------*/
+        /*--- read the input files! ---*/
+
+        REPORT_PROGRESS(". Input files:") ;
+
+        AFNI_read_inputs( MAIN_argc , MAIN_argv ) ;
+
+        if( GLOBAL_library.have_dummy_dataset && MAIN_im3d->type == AFNI_3DDATA_VIEW )
+           XtSetSensitive( MAIN_im3d->vwid->prog->clone_pb , False ) ;
+      }
+      break ;
+
+      /*============================================================================*/
+      case 13:{
+
+        /*--------------------------------------*/
+        /*--- Setup the plugins, if possible ---*/
+
+        GLOBAL_library.registered_0D.num = 0 ;               /* initialize registry */
+        GLOBAL_library.registered_1D.num = 0 ;               /* initialize registry */
+        GLOBAL_library.registered_2D.num = 0 ;               /* initialize registry */
+
+        AFNI_register_0D_function( "Log10" , log10_func ) ;  /* afni.c */
+        AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;  /* afni.c */
+
+        AFNI_register_1D_function( "Median3" , median3_func) ;  /* afni.c */
+        AFNI_register_1D_function( "OSfilt3" , osfilt3_func) ;  /* afni.c */
+
+        AFNI_register_2D_function( "Median9" , median9_box_func ) ;   /* imseq.c */
+        AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;   /* imseq.c */
+        AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;   /* imseq.c */
+
+        AFNI_register_2D_function( "Median21" , median21_box_func ) ;   /* imseq.c */
+        AFNI_register_2D_function( "Winsor21" , winsor21_box_func ) ;   /* imseq.c */
+
+#ifdef ALLOW_PLUGINS
+        if( MAIN_im3d->type == AFNI_3DDATA_VIEW ){
+           int nplug = 0 ;
+           char str[128] ;
+
+           if( ! GLOBAL_argopt.noplugins ){
+              GLOBAL_library.plugins = PLUG_get_many_plugins() ;
+              AFNI_plugin_button( MAIN_im3d ) ;
+           }
+
+           if( GLOBAL_library.plugins != NULL ) nplug = GLOBAL_library.plugins->num ;
+           sprintf(str,"\n Plugins       = %d libraries read",nplug) ;
+           REPORT_PROGRESS(str) ;
+
+           if( ! GLOBAL_argopt.noplugouts && ! ALLOW_real_time ){  /* June 1997 */
+
+               AFNI_init_plugouts() ;
+               REPORT_PROGRESS("\n Plugouts      = listening for connections") ;
+           }
+        }
+#endif
+      }
+      break ;
+
+      /*============================================================================*/
+      case 14:{
+
+        /*--- do the initial setup on entering the initial view ---*/
+
+        OPEN_CONTROLLER( MAIN_im3d ) ;
+
+        AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
+        AFNI_initialize_view( NULL , MAIN_im3d ) ; /* set up to see it */
 
 #if 0
-   if( GLOBAL_argopt.xtwarns == False )
-      (void) XtAppSetWarningHandler(app,old_handler) ;  /* turn back on */
+        if( GLOBAL_argopt.xtwarns == False )
+           (void) XtAppSetWarningHandler(MAIN_app,MAIN_old_handler) ;  /* turn back on */
 #endif
 
-   /*--- Go! ---*/
+        /*--- Go! ---*/
 
-   MCW_help_CB( im3d->vwid->top_shell,NULL,NULL ) ;  /* initialize help */
+        MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ) ;  /* initialize help */
 
-   { char str[64] ;
-     sprintf(str,"\n -orient       = %s", GLOBAL_library.cord.orcode ) ;
-     REPORT_PROGRESS(str) ;
-   }
+        { char str[64] ;
+          sprintf(str,"\n -orient       = %s", GLOBAL_library.cord.orcode ) ;
+          REPORT_PROGRESS(str) ;
+        }
 
-   { char * hh = getenv("AFNI_HINTS") ;
-     GLOBAL_library.hints_on = 1 ;
-     if( hh != NULL && ( strncmp(hh,"NO" ,2)==0 ||
-                         strncmp(hh,"no" ,2)==0 ||
-                         strncmp(hh,"No" ,2)==0 ||
-                         strncmp(hh,"OFF",3)==0 ||
-                         strncmp(hh,"off",3)==0 ||
-                         strncmp(hh,"Off",3)==0   ) ){
+        { char * hh = getenv("AFNI_HINTS") ;
+          GLOBAL_library.hints_on = 1 ;
+          if( hh != NULL && ( strncmp(hh,"NO" ,2)==0 ||
+                              strncmp(hh,"no" ,2)==0 ||
+                              strncmp(hh,"No" ,2)==0 ||
+                              strncmp(hh,"OFF",3)==0 ||
+                              strncmp(hh,"off",3)==0 ||
+                              strncmp(hh,"Off",3)==0   ) ){
 
-        MCW_hint_toggle() ;
-        GLOBAL_library.hints_on = 0 ;
-      }
+             MCW_hint_toggle() ;
+             GLOBAL_library.hints_on = 0 ;
+           }
 
 #ifdef TOGGLES_ATLAST
-      if( im3d->vwid->dmode->misc_hints_pb != NULL )
-         MCW_set_bbox( im3d->vwid->dmode->misc_hints_bbox ,
-                       GLOBAL_library.hints_on ) ;
+           if( MAIN_im3d->vwid->dmode->misc_hints_pb != NULL )
+              MCW_set_bbox( MAIN_im3d->vwid->dmode->misc_hints_bbox ,
+                            GLOBAL_library.hints_on ) ;
+#endif
+        }
+
+        /* Feb 1998: setup write compression from environment */
+        /*           (read de-compression always works)       */
+
+        ii = THD_enviro_write_compression() ;
+        if( ii >= 0 && ii <= COMPRESS_LASTCODE ){
+           char str[64] ;
+           sprintf(str,"\n compression   = %s", COMPRESS_enviro[ii]) ;
+           REPORT_PROGRESS(str) ;
+        }
+
+        /* 09 Oct 1998: show the image display handedness */
+
+        if( GLOBAL_argopt.left_is_left )
+           REPORT_PROGRESS("\n image display = Left is on the Left") ;
+        else
+           REPORT_PROGRESS("\n image display = Left is on the Right") ;
+
+        if( ALLOW_real_time > 0 )
+           REPORT_PROGRESS("\nRT: realtime plugin is active") ;
+
+        (void) XtAppAddTimeOut( MAIN_app , 1234 , AFNI_startup_timeout_CB , MAIN_im3d ) ;
+
+        REPORT_PROGRESS("\n") ;
+      }
+      break ;
+
+      /*============================================================================*/
+#if 0
+      case 15:{
+      }
+      break ;
 #endif
    }
 
-   /* Feb 1998: setup write compression from environment */
-   /*           (read de-compression always works)       */
-
-   ii = THD_enviro_write_compression() ;
-   if( ii >= 0 && ii <= COMPRESS_LASTCODE ){
-      char str[64] ;
-      sprintf(str,"\n compression   = %s", COMPRESS_enviro[ii]) ;
-      REPORT_PROGRESS(str) ;
-   }
-
-   /* 09 Oct 1998: show the image display handedness */
-
-   if( GLOBAL_argopt.left_is_left )
-      REPORT_PROGRESS("\n image display = Left is on the Left") ;
-   else
-      REPORT_PROGRESS("\n image display = Left is on the Right") ;
-
-   if( ALLOW_real_time > 0 )
-      REPORT_PROGRESS("\nRT: realtime plugin is active") ;
-
-   (void) XtAppAddTimeOut( app , 1234 , AFNI_startup_timeout_CB , im3d ) ;
-
-   REPORT_PROGRESS("\n") ;
-
-   XtAppMainLoop(app) ;
-   exit(0) ;
+   MAIN_calls++ ; return False ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1447,7 +1540,7 @@ ENTRY("AFNI_read_images") ;
    if( ! AFNI_GOOD_DTYPE(datum) )
       FatalError("*** Illegal datum type found ***") ;
 
-   dsize = mri_datum_size(datum) ;
+   dsize = mri_datum_size( (MRI_TYPE) datum) ;
    bar   = (char *) malloc( dsize * nx*ny*nz ) ;
    if( bar == NULL ){
       fprintf(stderr,"\n** Can't malloc memory for image input!\a\n") ;
@@ -2351,12 +2444,16 @@ ENTRY("AFNI_read_inputs") ;
         if( qlist != NULL ){ DESTROY_SARR(dlist) ; dlist = qlist ; }
       }
 
+      REFRESH ;
+
       /* read each session, set parents, put into session list */
 
       num_ss = dlist->num ;
       for( id=0 ; id < num_ss ; id++ ){
          dname  = dlist->ar[id] ;                /* try to read datasets from */
          new_ss = THD_init_session( dname ) ;    /* this directory name       */
+
+         REFRESH ;
 
          if( new_ss != NULL && new_ss->num_anat > 0 ){  /* got something? */
 
@@ -2616,6 +2713,8 @@ ENTRY("AFNI_read_inputs") ;
       /*** read all timeseries files from all directories ***/
 
       GLOBAL_library.timeseries = THD_get_many_timeseries( dlist ) ;
+
+      REFRESH ;
 
       if( GLOBAL_library.timeseries == NULL )
          INIT_IMARR(GLOBAL_library.timeseries) ;

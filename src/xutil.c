@@ -522,6 +522,11 @@ void MCW_click_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*------------------------------------------------------------------------*/
 /*------------------------------------------------------------------------*/
+
+static int disable_helps = 0 ;                     /* 02 Aug 1999 */
+void MCW_disable_help(void){ disable_helps = 1 ; }
+void MCW_enable_help (void){ disable_helps = 0 ; }
+
 #ifdef DONT_USE_HINTS
 void MCW_register_hint( Widget w , char * msg ) { return ; }
 void MCW_reghint_children( Widget w , char * msg ) { return ; }
@@ -566,6 +571,7 @@ void MCW_hint_toggle(void)
 
 void MCW_register_hint( Widget w , char * msg )
 {
+   if( disable_helps ) return ;
    if( w == NULL || msg == NULL || clueless == 1 || !XtIsWidget(w) ) return ;
 
    if( clueless == -1 ){
@@ -614,6 +620,7 @@ void MCW_reghint_children( Widget w , char * msg )
    Widget * children=NULL ;
    int  num_children=0 , ic ;
 
+   if( disable_helps ) return ;
    if( w == NULL || msg == NULL || clueless == 1 || !XtIsWidget(w) ) return ;
 
    XtVaGetValues( w , XmNchildren    , &children ,
@@ -633,6 +640,7 @@ void MCW_reghint_children( Widget w , char * msg )
 
 void MCW_register_help( Widget w , char * msg )
 {
+   if( disable_helps ) return ;
    if( w == NULL || msg == NULL ) return ;
    XtAddCallback( w , XmNhelpCallback , MCW_help_CB , msg ) ;
    return ;
@@ -643,6 +651,7 @@ void MCW_reghelp_children( Widget w , char * msg )
    Widget * children ;
    int  num_children , ic ;
 
+   if( disable_helps ) return ;
    if( w == NULL || msg == NULL ) return ;
 
    XtVaGetValues( w , XmNchildren    , &children ,

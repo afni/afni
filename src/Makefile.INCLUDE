@@ -16,7 +16,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_pcor.o afni_pcor_float.o          \
             pbar.o afni_graph.o afni_plugin.o     \
             parser.o parser_int.o afni_plugout.o   \
-            afni_setup.o afni_receive.o mcw_graf.o  \
+            afni_setup.o afni_receive.o mcw_graf.o afni_splash.o \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -100,6 +100,9 @@ impdif:impdif.c
 
 float_scan:float_scan.c
 	$(CC) -o float_scan float_scan.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+
+to26:to26.c
+	$(CC) -o to26 to26.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 imupsam:imupsam.c
 	$(CC) -o imupsam imupsam.c $(IFLAGS) $(LFLAGS) $(LLIBS)

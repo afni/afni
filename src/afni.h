@@ -877,6 +877,9 @@ typedef struct {
 extern void AFNI_parse_args( int argc , char * argv[] );
 extern void FatalError(char * str);
 
+extern void AFNI_splashup  (void) ;  /* 02 Aug 1999 */
+extern void AFNI_splashdown(void) ;
+
 extern void AFNI_quit_CB           ( Widget wcall , XtPointer cd , XtPointer cbs );
 extern void AFNI_quit_timeout_CB   ( XtPointer , XtIntervalId * ) ;
 extern void AFNI_startup_timeout_CB( XtPointer , XtIntervalId * ) ;
