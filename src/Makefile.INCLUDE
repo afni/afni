@@ -595,7 +595,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_delete.o thd_forcemalloc.o thd_loaddblk.o thd_writedblk.o \
            thd_dsetdblk.o thd_get1D.o thd_manydset.o thd_writedset.o    \
            thd_dsetinsess.o  thd_idcode.o thd_opendset.o thd_zblock.o  \
-           thd_dsetinslist.o thd_info.o thd_purgedblk.o               \
+           thd_dsetinslist.o thd_info.o thd_purgedblk.o thd_http.o    \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \

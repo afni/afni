@@ -410,6 +410,7 @@ void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
       DSET_unload(dset) ; DSET_anyize(dset) ;
       if( dset_changed ){
          MCW_invert_widget(quit_pb) ;
+         THD_load_statistics( dset ) ;
          PLUTO_dset_redisplay( dset ) ;
          MCW_invert_widget(quit_pb) ;
       }
@@ -1029,7 +1030,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                (void) MCW_popup_message( im3d->vwid->top_shell ,
                                            "Controller grid was altered!\n"
                                            "Editor was forced to quit.\n"
-                                           "Unsaved changes were lost." ,
+                                           "Any un-Saved changes were lost." ,
                                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
             }
          }

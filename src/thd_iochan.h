@@ -139,4 +139,10 @@ extern double COX_cpu_time(void) ;   /* return total cpu time used in seconds */
          iochan_clearcheck( (ic) , (ms) ) ;          \
     } while(0)
 
+/*---------------------------------------------------------------------------*/
+
+extern IOCHAN * open_URL_hpf( char * host, int port, char * file, int msec ) ;
+extern IOCHAN * open_URL( char * url, int msec ) ;
+extern int      read_URL( char * url, int msec , char ** data ) ;
+
 #endif

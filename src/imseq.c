@@ -2355,14 +2355,9 @@ DPR(" .. ButtonPress") ;
          bx  = event->x ;
          by  = event->y ;
          but = event->button ;
-         if( seq->wimage_width <= 0 ){
-            MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
-            seq->wimage_width = width ;
-            seq->wimage_height = height ;
-         } else {
-            width  = seq->wimage_width ;
-            height = seq->wimage_height ;
-         }
+         MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
+         seq->wimage_width = width ;
+         seq->wimage_height = height ;
 
          MCW_discard_events( w , ButtonPressMask ) ;
 
@@ -2395,6 +2390,7 @@ DPR(" .. ButtonPress") ;
 
                } else if( w == seq->wimage && seq->status->send_CB != NULL ){
 
+                  seq->wimage_width = -1 ;
                   ISQ_mapxy( seq , bx,by , &imx,&imy,&nim ) ;
                   cbs.reason = isqCR_buttonpress ;
                   cbs.event  = ev ;
@@ -2525,6 +2521,7 @@ void ISQ_button2_EV( Widget w , XtPointer client_data ,
          /* find where this point is in original images --
             if it is illegal, quit this mockery of a travesty of a sham */
 
+         seq->wimage_width = -1 ;
          ISQ_mapxy( seq , bx,by , &xim,&yim,&zim ) ;
          if( xim < 0 || yim < 0 || zim < 0 || zim >= seq->status->num_total ){
             seq->button2_active = 0 ;         /* disallow button2 stuff */
@@ -2593,6 +2590,7 @@ void ISQ_button2_EV( Widget w , XtPointer client_data ,
             in the original image grid --
             but only save points that are in the same image as the 1st point */
 
+         seq->wimage_width = -1 ;
          ISQ_mapxy( seq , bxsav[0] , bysav[0] , &xim,&yim,&zim ) ;
          nim = zim ; xyout[0] = xim ; xyout[1] = yim ; nout = 1 ;
          for( ii=1 ; ii < nsav ; ii++ ){
