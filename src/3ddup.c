@@ -1,5 +1,4 @@
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 /***** This program makes a "duplicate" of a dataset, which is
        nothing more than something that is warped from the parent

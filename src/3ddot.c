@@ -1,4 +1,4 @@
-#include "3ddata.h"
+#include "mrilib.h"
 #include <string.h>
 
 double DSET_cor( THD_3dim_dataset * xset , THD_3dim_dataset * yset ) ;

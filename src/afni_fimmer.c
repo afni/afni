@@ -1,7 +1,7 @@
 #undef MAIN
 
 #include "afni.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
@@ -18,15 +18,17 @@ int AFNI_ts_in_library( MRI_IMAGE * tsim )
 {
    int its ;
 
+ENTRY("AFNI_ts_in_library") ;
+
    if( GLOBAL_library.timeseries != NULL         &&
       IMARR_COUNT(GLOBAL_library.timeseries) > 0 && tsim != NULL ){
 
       for( its=0 ; its < IMARR_COUNT(GLOBAL_library.timeseries) ; its++ )
          if( tsim == IMARR_SUBIMAGE(GLOBAL_library.timeseries,its) )
-            return its ;
+            RETURN(its) ;
    }
 
-   return -1 ;
+   RETURN(-1) ;
 }
 
 /*--------------------------------------------------------------------*/

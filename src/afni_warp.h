@@ -1,7 +1,7 @@
 #ifndef _AFNI_WARP_HEADER_
 #define _AFNI_WARP_HEADER_
 
-#include "3ddata.h"
+#include "mrilib.h"
 
 /** external routine for freeing memory in THD_load_datablock **/
 

@@ -27,8 +27,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 static EDIT_options HI_edopt ;
 

@@ -457,6 +457,15 @@ fflush(stdout) ;
                      = newseq->given_xbar
                      = newseq->sized_xbar = NULL ;
 
+   /* Feb 1998: button2 drawing stuff */
+
+   newseq->button2_enabled  = 0 ;
+   newseq->button2_active   = 0 ;
+   newseq->button2_pixel    = dc->ovc->pixov_greenest ;
+   newseq->button2_drawmode = BUTTON2_OPENPOLY ;
+   newseq->wimage_width     = -1 ;
+   newseq->wimage_height    = -1 ;
+
    /* initialize image statistics */
 
    newseq->imstat = (ISQ_indiv_statistics *)
@@ -2267,7 +2276,8 @@ DPR("  -- putting sized_xbar to screen");
 }
 
 /*-----------------------------------------------------------------------
-   Handle all events in an imseq drawing area widget (image or bar)
+   Handle all events in an imseq drawing area widget (image or bar).
+   Feb 1998: Button2 events are passed to their own handler.
 -------------------------------------------------------------------------*/
 
 void ISQ_drawing_EV( Widget w , XtPointer client_data ,
@@ -2313,6 +2323,10 @@ DPRI(" .. Expose; count=",event->count) ;
 
 DPR(" .. KeyPress") ;
 
+         /* while Button2 is active, nothing else is allowed */
+
+         if( seq->button2_active ){ XBell(seq->dc->display,100); return; }
+
          buf[0] = '\0' ;
          XLookupString( event , buf , 32 , &ks , &status ) ;
 
@@ -2341,16 +2355,26 @@ DPR(" .. ButtonPress") ;
          bx  = event->x ;
          by  = event->y ;
          but = event->button ;
-         MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
+         if( seq->wimage_width <= 0 ){
+            MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
+            seq->wimage_width = width ;
+            seq->wimage_height = height ;
+         } else {
+            width  = seq->wimage_width ;
+            height = seq->wimage_height ;
+         }
 
          MCW_discard_events( w , ButtonPressMask ) ;
 
          switch( but ){
 
-            case Button2:
             case Button3:
             case Button1:{
                int imx,imy,nim;
+
+               /* while Button2 is active, nothing else is allowed */
+
+               if( seq->button2_active ){ XBell(seq->dc->display,100); return; }
 
                if( w == seq->wimage && but == Button3 &&
                    (event->state & (ShiftMask|ControlMask|Mod1Mask)) ){
@@ -2387,6 +2411,16 @@ DPR(" .. ButtonPress") ;
             }
             break ;
 
+            /* pass this event to the separate handler, if allowed */
+
+            case Button2:{
+               if( seq->button2_enabled && w == seq->wimage )
+                  ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
+               else
+                  { XBell(seq->dc->display,100); return; }
+            }
+            break ;
+
             default: break ;
          }
       }
@@ -2418,6 +2452,8 @@ fflush(stdout) ;
                 (event->width  != seq->sized_xim->width ) ||
                 (event->height != seq->sized_xim->height)   ){
 
+               seq->wimage_width = seq->wimage_height = -1 ; /* Feb 1998 */
+
                KILL_2ndXIM( seq->given_xim , seq->sized_xim ) ;
                ISQ_show_image( seq ) ;
             }
@@ -2441,6 +2477,178 @@ fflush(stdout) ;
 
    } /* end of switch ev->type */
 
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   Handle Button2 events in the image window -- Feb 1998
+-------------------------------------------------------------------------*/
+
+#define NPTS_MAX 4095  /* max # points in a single button2 operation */
+
+void ISQ_button2_EV( Widget w , XtPointer client_data ,
+                     XEvent * ev , Boolean * continue_to_dispatch )
+{
+   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   ISQ_cbs cbs ;
+   static int nsav ;
+   static int * bxsav=NULL , *bysav=NULL , *xyout=NULL ;
+
+   /* check for legality */
+
+   if( !ISQ_REALZ(seq) || !seq->button2_enabled || w != seq->wimage ) return ;
+
+   switch( ev->type ){
+
+      /*----- take button press -----*/
+
+      case ButtonPress:{
+         XButtonEvent * event = (XButtonEvent *) ev ;
+         int bx,by , but , xim,yim,zim ;
+
+         but = event->button ; if( but != Button2 ) return ;
+
+         seq->button2_active = 1 ;  /* allow other button2 stuff to happen */
+
+         /* 1st time in: allocate space to save points */
+
+         if( bxsav == NULL ){
+            bxsav = (int *) malloc( sizeof(int) * (NPTS_MAX+1) ) ;
+            bysav = (int *) malloc( sizeof(int) * (NPTS_MAX+1) ) ;
+         }
+
+         /* save this point */
+
+         bx = event->x ; by = event->y ;
+         bxsav[0] = bx ; bysav[0] = by ; nsav = 1 ;
+
+         /* find where this point is in original images --
+            if it is illegal, quit this mockery of a travesty of a sham */
+
+         ISQ_mapxy( seq , bx,by , &xim,&yim,&zim ) ;
+         if( xim < 0 || yim < 0 || zim < 0 || zim >= seq->status->num_total ){
+            seq->button2_active = 0 ;         /* disallow button2 stuff */
+            XBell( seq->dc->display , 100 ) ; /* express our displeasure */
+            return ;
+         }
+
+         /* draw this point */
+
+         if( seq->button2_drawmode != BUTTON2_NODRAW ){
+            DC_fg_colorpix( seq->dc , seq->button2_pixel ) ;
+            XDrawPoint( seq->dc->display , XtWindow(seq->wimage) ,
+                        seq->dc->myGC , bx,by ) ;
+         }
+      }
+      break ;
+
+      /*----- take button release -----*/
+
+      case ButtonRelease:{
+         XButtonEvent * event = (XButtonEvent *) ev ;
+         int bx,by ;
+         int ii,nout , nim , xim,yim,zim ;
+
+         /* check for legality  */
+
+         if( !seq->button2_active || event->button != Button2 ) return ;
+
+         bx = event->x ; by = event->y ;  /* where did it happen? */
+
+         /* if a new point, save it and draw it */
+
+         if( bx != bxsav[nsav-1] || by != bysav[nsav-1] ){
+
+            if( seq->button2_drawmode == BUTTON2_POINTS )
+               XDrawPoint( seq->dc->display , XtWindow(seq->wimage) ,
+                           seq->dc->myGC , bx,by ) ;
+            else if( seq->button2_drawmode != BUTTON2_NODRAW )
+               XDrawLine( seq->dc->display , XtWindow(seq->wimage) ,
+                          seq->dc->myGC , bxsav[nsav-1],bysav[nsav-1],bx,by ) ;
+
+            bxsav[nsav] = bx ; bysav[nsav] = by ;
+            if( nsav < NPTS_MAX ) nsav++ ;
+         }
+
+         /* this is the last point in this sequence --
+            if we are drawing closed polygon, then close it now */
+
+         if( seq->button2_drawmode == BUTTON2_CLOSEDPOLY && nsav > 2 ){
+            XDrawLine( seq->dc->display , XtWindow(seq->wimage) ,
+                       seq->dc->myGC , bxsav[nsav-1],bysav[nsav-1] ,
+                                       bxsav[0]     ,bysav[0]       ) ;
+
+            /* and add the 1st point to the list again */
+
+            bxsav[nsav] = bxsav[0] ; bysav[nsav] = bysav[0] ;
+            if( nsav < NPTS_MAX ) nsav++ ;
+         }
+
+         /* 1st time here: make space for output list */
+
+         if( xyout == NULL )
+            xyout = (int *) malloc( sizeof(int) * 2*NPTS_MAX ) ;
+
+         /* now assemble output list of (x,y) pairs,
+            in the original image grid --
+            but only save points that are in the same image as the 1st point */
+
+         ISQ_mapxy( seq , bxsav[0] , bysav[0] , &xim,&yim,&zim ) ;
+         nim = zim ; xyout[0] = xim ; xyout[1] = yim ; nout = 1 ;
+         for( ii=1 ; ii < nsav ; ii++ ){
+            ISQ_mapxy( seq , bxsav[ii] , bysav[ii] , &xim,&yim,&zim ) ;
+            if( zim == nim && xim >= 0 && yim >= 0 ){
+               xyout[2*nout] = xim ; xyout[2*nout+1] = yim ;
+               nout++ ;
+            }
+         }
+
+         /* send to the almighty AFNI */
+
+         cbs.reason   = isqCR_button2_points ;
+         cbs.event    = ev ;
+         cbs.key      = ii ;                 /* number of points */
+         cbs.nim      = nim ;                /* z coord */
+         cbs.userdata = (XtPointer) xyout ;  /* x & y coords */
+         seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+
+         seq->button2_active = 0 ;  /* disallow button2 stuff */
+      }
+      break ;
+
+      /*----- take motion events:
+              this is minimal so as to keep up with mouse movements -----*/
+
+      case MotionNotify:{
+         XMotionEvent * event = (XMotionEvent *) ev ;
+         int bx,by ;
+
+         /* check for legality */
+
+         if( !seq->button2_active || (event->state & Button2Mask) == 0 ) return ;
+
+         /* if point is redundant with last one, skip it */
+
+         bx = event->x ; by = event->y ;
+         if( bx == bxsav[nsav-1] && by == bysav[nsav-1] ) return ;
+
+         /* draw point or line to point */
+
+         if( seq->button2_drawmode == BUTTON2_POINTS )
+            XDrawPoint( seq->dc->display , XtWindow(seq->wimage) ,
+                        seq->dc->myGC , bx,by ) ;
+         else if( seq->button2_drawmode != BUTTON2_NODRAW )
+            XDrawLine( seq->dc->display , XtWindow(seq->wimage) ,
+                       seq->dc->myGC , bxsav[nsav-1],bysav[nsav-1],bx,by ) ;
+
+         /* save it */
+
+         bxsav[nsav] = bx ; bysav[nsav] = by ;
+         if( nsav < NPTS_MAX ) nsav++ ;
+      }
+      break ;
+
+   }
    return ;
 }
 
@@ -3240,6 +3448,15 @@ void ISQ_but_cnorm_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 *    isqDR_periodicmont (int) tells whether to use periodic montages
 
+*    isqDR_button2_enable  (ignored) tells to enable processing of Button2 events
+*    isqDR_button2_disable (ignored) tells to disable such processing
+*    isqDR_button2_pixel   (Pixel)   use argument for button2 drawing color
+*    isqDR_button2_mode    (int)     tells how to draw; the argument is
+                              BUTTON2_OPENPOLY   == open polygon
+                              BUTTON2_CLOSEDPOLY == closed polygon
+                              BUTTON2_POINTS     == only draw points
+                              BUTTON2_NODRAW     == don't draw anything
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -3259,6 +3476,62 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
          return False ;
       }
       break ;
+
+      /*------- button2 stuff -------*/
+
+      case isqDR_button2_pixel:{
+         seq->button2_pixel = (Pixel) drive_data ;
+         return True ;
+      }
+
+      case isqDR_button2_mode:{
+         seq->button2_drawmode = (int) drive_data ;
+         return True ;
+      }
+
+      case isqDR_button2_enable:{
+         if( seq->status->send_CB == NULL ) return False ;  /* makes no sense */
+         if( seq->button2_enabled )         return True ;   /* already on */
+
+         XtInsertEventHandler(
+              seq->wimage ,         /* handle events in image */
+
+               0
+               | ButtonReleaseMask  /* button releases (only #2 is used) */
+               | Button2MotionMask  /* motion while #2 is down */
+              ,
+              FALSE ,               /* nonmaskable events? */
+              ISQ_button2_EV ,      /* handler routine */
+              (XtPointer) seq ,     /* client data */
+              XtListTail            /* last in queue */
+         ) ;
+
+         seq->button2_enabled = 1 ;
+         seq->button2_active  = 0 ;
+         return True ;
+      }
+
+      case isqDR_button2_disable:{
+         if( seq->status->send_CB == NULL ) return False ;  /* makes no sense */
+         if( !seq->button2_enabled )        return True ;   /* already off */
+
+         XtRemoveEventHandler(
+              seq->wimage ,         /* unhandle events in image */
+
+               0
+               | ButtonReleaseMask  /* button releases (only #2 is used) */
+               | Button2MotionMask  /* motion while #2 is down */
+              ,
+              TRUE ,                /* nonmaskable events? */
+              ISQ_button2_EV ,      /* handler routine */
+              (XtPointer) seq       /* client data */
+         ) ;
+
+         seq->button2_enabled = seq->button2_active = 0 ;
+         return True ;
+      }
+
+      /*------- montage stuff -------*/
 
       case isqDR_periodicmont:{
         int per = ((int) drive_data) != 0 ;
@@ -4032,7 +4305,8 @@ void ISQ_montage_CB( Widget w, XtPointer client_data, XtPointer call_data )
    MCW_reghint_children( seq->mont_gapcolor_av->wrowcol ,
                          "Border color" ) ;
 
-   for( ib=0 ; ib < NUM_MONT_ACT ; ib++ ) MONT_act[ib].data = (XtPointer) seq ;
+   for( ib=0 ; ib < NUM_MONT_ACT ; ib++ )
+      MONT_act[ib].data = (XtPointer) seq ;
 
    (void) MCW_action_area( wrc , MONT_act , NUM_MONT_ACT ) ;
 
@@ -4424,7 +4698,14 @@ DPR("ISQ_mapxy") ;
 
    /* get actual (display) image sizes */
 
-   MCW_widget_geom( seq->wimage , &win_wide , &win_high , NULL,NULL ) ;
+   if( seq->wimage_width <= 0 ){
+      MCW_widget_geom( seq->wimage , &win_wide , &win_high , NULL,NULL ) ;
+      seq->wimage_width  = win_wide ;
+      seq->wimage_height = win_high ;
+   } else {
+      win_wide = seq->wimage_width ;
+      win_high = seq->wimage_height ;
+   }
 
    /* convert actual coordinates input to
       equivalent coordinates in the original (montaged) image */

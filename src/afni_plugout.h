@@ -6,7 +6,6 @@ void AFNI_init_plugouts( void ) ;  /* prototype */
 #ifdef ALLOW_PLUGINS
 
 #include "afni.h"
-#include "iochan.h"
 #include <ctype.h>
 #include <unistd.h>
 

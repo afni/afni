@@ -13,8 +13,7 @@
   is not allowed.
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 #if 0
 #  define DB(sss,str) printf("%s %s\n",sss,str)

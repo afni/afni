@@ -2,12 +2,11 @@
 #define _AFNI_HEADER_
 
 #include "imseq.h"
-#include "3ddata.h"
 #include "xutil.h"
 #include "pbar.h"
 #include "afni_graph.h"
 #include "afni_pcor.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -116,7 +115,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "14 Feb 1998      "
+#define RELEASE "04 Feb 1998      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -211,6 +210,14 @@ typedef struct {
       XmString old_range_label , autorange_label ;
 
       char     anat_val[32] , func_val[32] , thr_val[32] ;
+
+      /** Feb 1998: stuff for the "receive" modules **/
+
+      gen_func * receiver ;
+      void *     receiver_data ;
+      int        receiver_mask ;
+      int        drawing_enabled , drawing_mode ;
+      Pixel      drawing_pixel ;
 } AFNI_view_info ;
 
 #define SAVE_VPT(iqq)                           \
@@ -463,7 +470,7 @@ typedef struct {
       Widget         misc_voxind_pb ;
       Widget         misc_hints_pb ;
       Widget         misc_anat_info_pb , misc_func_info_pb ;
-      Widget         misc_newstuff_pb ;
+      Widget         misc_newstuff_pb , misc_tracing_pb ;
 } AFNI_datamode_widgets ;
 
 /*---*/
@@ -507,8 +514,6 @@ typedef struct {
 extern void AFNI_hidden_CB    ( Widget , XtPointer , XtPointer );
 extern void AFNI_hidden_EV    ( Widget , XtPointer , XEvent * , Boolean * ) ;
 extern void AFNI_hidden_pts_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
-
-extern void AFNI_misc_CB      ( Widget , XtPointer , XtPointer );
 
 #ifdef USE_SONNETS
 extern void AFNI_sonnet_CB    ( Widget , XtPointer , XtPointer );
@@ -1028,8 +1033,83 @@ extern void AFNI_copy_statistics( THD_3dim_dataset * , THD_3dim_dataset * ) ;
 
 extern void AFNI_lock_button( Three_D_View * ) ;
 extern void AFNI_misc_button( Three_D_View * ) ;
+extern void AFNI_misc_CB    ( Widget , XtPointer , XtPointer );
 
 extern void AFNI_add_timeseries( MRI_IMAGE * ) ;
+
+/*----------------------------------------------------------------*/
+/*----- stuff for dataset drawing, etc. (see afni_receive.c) -----*/
+
+/* coordinate converters */
+
+extern void AFNI_ijk_to_xyz( THD_3dim_dataset * ,
+                             int,int,int, float *,float *,float *) ;
+
+extern void AFNI_xyz_to_ijk( THD_3dim_dataset * ,
+                             float,float,float , int *,int *,int *) ;
+
+extern void AFNI_xyz_to_dicomm( THD_3dim_dataset * ,
+                                float,float,float , float *,float *,float *) ;
+
+extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
+                                float,float,float , float *,float *,float *) ;
+
+
+/* masks for input to AFNI_receive_init */
+
+#define RECEIVE_DRAWING_MASK    1
+#define RECEIVE_VIEWPOINT_MASK  2
+#define RECEIVE_OVERLAY_MASK    4
+#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 )
+
+/* codes for input to AFNI_receive_control */
+
+#define DRAWING_LINES           BUTTON2_OPENPOLY
+#define DRAWING_FILL            BUTTON2_CLOSEDPOLY
+#define DRAWING_POINTS          BUTTON2_POINTS
+#define DRAWING_NODRAW          BUTTON2_NODRAW
+
+#ifdef MAIN
+  char * DRAWING_strings[] = { "Lines" , "Filled" , "Points" , "No Draw" } ;
+#else
+  extern char * DRAWING_strings[] ;
+#endif
+
+#define DRAWING_OVCINDEX        11
+#define DRAWING_X11PIXEL        12
+#define DRAWING_STARTUP         18
+#define DRAWING_SHUTDOWN        19
+
+#define VIEWPOINT_STARTUP       28
+#define VIEWPOINT_SHUTDOWN      29
+
+#define OVERLAY_STARTUP         38
+#define OVERLAY_SHUTDOWN        39
+
+#define EVERYTHING_SHUTDOWN    666
+
+/* whys for input to the receiver routine */
+
+#define RECEIVE_POINTS         101
+#define RECEIVE_VIEWPOINT      102
+#define RECEIVE_OVERLAY        103
+#define RECEIVE_CLOSURE        104
+#define RECEIVE_ALTERATION     105
+
+/* modes for the process_drawing routine */
+
+#define SINGLE_MODE           1000
+#define PLANAR_MODE           2000
+#define THREED_MODE           3000
+#define SPECIAL_MODE        100000
+
+extern void AFNI_toggle_drawing ( Three_D_View *, int ) ;
+extern void AFNI_process_drawing( Three_D_View *, int,int, int *,int *,int * ) ;
+extern int AFNI_receive_init    ( Three_D_View *, int, gen_func * , void * ) ;
+extern int AFNI_receive_control ( Three_D_View *, int, void * ) ;
+
+extern void AFNI_3d_linefill( int  ,int * ,int * ,int * ,
+                              int *,int **,int **,int ** ) ;
 
 /*-----------------------------------------------------------*/
 /*----------------- data for Talairach To -------------------*/

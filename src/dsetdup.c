@@ -1,4 +1,4 @@
-#include "3ddata.h"
+#include "mrilib.h"
 
 /***** This program makes a "duplicate" of a dataset, which is
        nothing more than something that is warped from the parent
@@ -255,6 +255,8 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
    new_dset->dblk->natr        = new_dset->dblk->natr_alloc  = 0 ;
    new_dset->dblk->atr         = NULL ;
    new_dset->dblk->parent      = (XtPointer) new_dset ;
+
+   DBLK_unlock(new_dset->dblk) ;
 
    new_dset->dblk->diskptr               = myXtNew( THD_diskptr ) ;
    new_dset->dblk->diskptr->type         = DISKPTR_TYPE ;

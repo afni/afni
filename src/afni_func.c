@@ -338,7 +338,9 @@ void AFNI_setup_inten_pbar( Three_D_View * im3d )
   MCW_pbar * pbar ;
   int np , i , jm , lcol ;
 
-  if( ! IM3D_VALID(im3d) ) return ;
+ENTRY("AFNI_setup_inten_pbar") ;
+
+  if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
   pbar = im3d->vwid->func->inten_pbar ;
   jm   = pbar->mode ;
@@ -368,6 +370,7 @@ void AFNI_setup_inten_pbar( Three_D_View * im3d )
   for( i=0 ; i <  np ; i++ ) pbar->ov_index[i] = pbar->ovin_save[np][i][jm] ;
 
   pbar->update_me = 1 ;
+  EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------
@@ -521,6 +524,8 @@ ENTRY("AFNI_follower_dataset") ;
    new_dset->dblk->atr         = NULL ;
    new_dset->dblk->parent      = (XtPointer) new_dset ;
    THD_init_datablock_labels( new_dset->dblk ) ; /* 30 Nov 1997 */
+
+   DSET_unlock(new_dset) ;  /* Feb 1998 */
 
    new_dset->dblk->diskptr               = myXtNew( THD_diskptr ) ;
    new_dset->dblk->diskptr->type         = DISKPTR_TYPE ;
@@ -1360,6 +1365,15 @@ STATUS("defaulted anatomy underlay") ;
           SHOW_AFNI_READY ;
       }
    }
+
+   /* Feb 1998: if a receiver is open
+                send it a message that something has altered */
+
+   if( im3d->vinfo->receiver != NULL ){
+      im3d->vinfo->receiver( RECEIVE_ALTERATION , 0 , NULL ,
+                             im3d->vinfo->receiver_data ) ;
+   }
+
    EXRETURN ;
 }
 
@@ -3087,7 +3101,7 @@ Boolean AFNI_refashion_dataset( Three_D_View * im3d ,
    THD_datablock * dblk  = dset->dblk ;
    THD_diskptr   * dkptr = dset->dblk->diskptr ;
    Boolean good ;
-   int npix , nx,ny,nz,nv , kk , ival , code , nzv , dsiz , isfunc ;
+   int npix , nx,ny,nz,nv , kk , ival , code , nzv , dsiz , isfunc , cmode ;
    MRI_IMAGE * im ;
    void * imar ;
    FILE * far ;
@@ -3148,19 +3162,11 @@ ENTRY("AFNI_refashion_dataset") ;
    STATUS("wrote output header file") ;
 
    /* purge the datablock that now exists,
-      then delete the file on disk that now exists (if any)
-   */
+      then delete the file on disk that now exists (if any) */
 
+   DSET_unlock( dset ) ; /* Feb 1998 */
    PURGE_DSET( dset ) ;
-
-   if( THD_is_file(dkptr->brick_name) ){
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"unlinking old brick file %s",dkptr->brick_name) ;
-  STATUS(str) ; sleep(1) ; }
-#endif
-      unlink( dkptr->brick_name ) ;
-   }
+   COMPRESS_unlink(dkptr->brick_name) ;
 
    /* refashion its brick data structure,
       which requires first saving in a temporary
@@ -3195,7 +3201,8 @@ ENTRY("AFNI_refashion_dataset") ;
 
    /*-- open output file --*/
 
-   far = fopen( dkptr->brick_name , "w" ) ;
+   cmode = THD_get_write_compression() ;
+   far = COMPRESS_fopen_write( dkptr->brick_name , cmode ) ;
    if( far == NULL ){
       fprintf(stderr,
         "\a\n*** cannot open output file %s\n",dkptr->brick_name) ;
@@ -3236,8 +3243,8 @@ STATUS("have new image") ;
 
          if( im == NULL ){
             fprintf(stderr,"\a\n*** failure to compute dataset slice %d\n",kk) ;
-            fclose(far) ;
-            unlink( dkptr->brick_name ) ;
+            COMPRESS_fclose(far) ;
+            COMPRESS_unlink( dkptr->brick_name ) ;
             if( picturize ) UNPICTURIZE ;
 #ifndef DONT_USE_METER
             MCW_popdown_meter(meter) ;
@@ -3259,8 +3266,8 @@ STATUS("have new image") ;
          if( code != npix ){
             fprintf(stderr,
               "\a\n*** failure to write dataset slice %d (is disk full?)\n",kk) ;
-            fclose(far) ;
-            unlink( dkptr->brick_name ) ;
+            COMPRESS_fclose(far) ;
+            COMPRESS_unlink( dkptr->brick_name ) ;
             if( picturize ) UNPICTURIZE ;
 #ifndef DONT_USE_METER
             MCW_popdown_meter(meter) ;
@@ -3294,10 +3301,7 @@ STATUS("have new image") ;
 
    /*--------------------- done!!! ---------------------*/
 
-#if 0
-   fsync(fileno(far)) ;
-#endif
-   fclose(far) ;
+   COMPRESS_fclose(far) ;
    STATUS("output file closed") ;
 
    if( picturize ) PICTURIZE(mcw_pixmap) ;
@@ -3311,6 +3315,8 @@ STATUS("have new image") ;
 #if MMAP_THRESHOLD > 0
    dblk->malloc_type   = (dblk->total_bytes > MMAP_THRESHOLD)
                          ? DATABLOCK_MEM_MMAP : DATABLOCK_MEM_MALLOC ;
+
+   if( cmode >= 0 ) dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
 #else
    dblk->malloc_type   = DATABLOCK_MEM_MALLOC ;
 #endif
@@ -3895,6 +3901,8 @@ char * AFNI_bucket_label_CB( MCW_arrowval * av , XtPointer cd )
    static char * lfmt[3] = { "#%1d %-14.14s" , "#%2d %-14.14s" , "#%3d %-14.14s"  } ;
    static char * rfmt[3] = { "%-14.14s #%1d" , "%-14.14s #%2d" , "%-14.14s #%3d"  } ;
 
+ENTRY("AFNI_bucket_label_CB") ;
+
    if( ISVALID_3DIM_DATASET(dset) ){
 
 #ifdef USE_RIGHT_BUCK_LABELS
@@ -3916,7 +3924,7 @@ char * AFNI_bucket_label_CB( MCW_arrowval * av , XtPointer cd )
    else
       sprintf(blab," #%d ",av->ival) ;
 
-   return blab ;
+   RETURN(blab) ;
 }
 
 /*---------------------------------------------------------------
@@ -3931,7 +3939,7 @@ void AFNI_misc_CB( Widget w , XtPointer cd , XtPointer cbs )
 
 ENTRY("AFNI_misc_CB") ;
 
-   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || w == NULL ) EXRETURN ;
 
    if( w == im3d->vwid->dmode->misc_voxind_pb ){
       im3d->vinfo->show_voxind = ! im3d->vinfo->show_voxind ;
@@ -3980,6 +3988,12 @@ ENTRY("AFNI_misc_CB") ;
 
       free(inf) ;
    }
+
+#if defined(USE_TRACING) && !defined(PRINT_TRACING)
+   else if( w == im3d->vwid->dmode->misc_tracing_pb ){
+      DBG_trace = ! DBG_trace ;
+   }
+#endif
 
    /****----- Get Outta Here -----****/
 

@@ -11,12 +11,12 @@ MINDOCS  = README*
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
-            afni_slice_short.o afni_slice_float.o     \
-            afni_slice_byte.o  afni_slice_complex.o    \
-            afni_pcor.o afni_pcor_float.o editvol.o     \
-            pbar.o afni_graph.o afni_plugin.o            \
-            parser.o parser_int.o iochan.o afni_plugout.o \
-            3dmaker.o afni_setup.o                         \
+            afni_slice_short.o afni_slice_float.o    \
+            afni_slice_byte.o  afni_slice_complex.o \
+            afni_pcor.o afni_pcor_float.o          \
+            pbar.o afni_graph.o afni_plugin.o     \
+            parser.o parser_int.o afni_plugout.o \
+            afni_setup.o afni_receive.o         \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -33,13 +33,14 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt bzip2 3dnoise \
-           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna
+           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
+           2dImReg
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
                   p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
-                  waver 3dnewid 3dcalc ccalc imcalc bzip2 \
+                  waver 3dnewid 3dcalc ccalc imcalc bzip2 2dImReg \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna
 
 all:libmri.a programs
@@ -156,38 +157,37 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o dsetdup dsetdup.o $(LFLAGS) $(LLIBS)
 
-3ddup:3ddup.o editvol.o
+3ddup:3ddup.o
 	$(RM) $@
-	$(CC) -o 3ddup 3ddup.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3ddup 3ddup.o $(LFLAGS) $(LLIBS)
 
 3dnvals:3dnvals.o
 	$(RM) $@
 	$(CC) -o 3dnvals 3dnvals.o $(LFLAGS) $(LLIBS)
 
-3dproject:3dproject.o editvol.o
+3dproject:3dproject.o
 	$(RM) $@
-	$(CC) -o 3dproject 3dproject.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dproject 3dproject.o $(LFLAGS) $(LLIBS)
 
 3dinfo:3dinfo.o
 	$(RM) $@
 	$(CC) -o 3dinfo 3dinfo.o $(LFLAGS) $(LLIBS)
 
-3drefit:3drefit.o editvol.o
+3drefit:3drefit.o
 	$(RM) $@
-	$(CC) -o 3drefit 3drefit.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3drefit 3drefit.o $(LFLAGS) $(LLIBS)
 
-3dbucket:3dbucket.o editvol.o
+3dbucket:3dbucket.o
 	$(RM) $@
-	$(CC) -o 3dbucket 3dbucket.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dbucket 3dbucket.o $(LFLAGS) $(LLIBS)
 
 from3d:from3d.o
 	$(RM) $@
 	$(CC) -o from3d from3d.o $(LFLAGS) $(LLIBS)
 
-3dfim:3dfim.o afni_pcor_float.o editvol.o ts.o
+3dfim:3dfim.o afni_pcor_float.o ts.o
 	$(RM) $@
-	$(CC) -o 3dfim 3dfim.o ts.o afni_pcor_float.o \
-                       editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dfim 3dfim.o ts.o afni_pcor_float.o $(LFLAGS) $(LLIBS)
 
 3T_toafni:3T_toafni.o
 	$(RM) $@
@@ -209,91 +209,90 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o nsize nsize.o $(LFLAGS) $(LLIBS)
 
-3dclust:3dclust.o editvol.o
+3dclust:3dclust.o
 	$(RM) $@
-	$(CC) -o 3dclust 3dclust.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dclust 3dclust.o $(LFLAGS) $(LLIBS)
 
-3dhistog:3dhistog.o editvol.o
+3dhistog:3dhistog.o
 	$(RM) $@
-	$(CC) -o 3dhistog 3dhistog.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dhistog 3dhistog.o $(LFLAGS) $(LLIBS)
 
-3dmerge:3dmerge.o editvol.o
+3dmerge:3dmerge.o
 	$(RM) $@
-	$(CC) -o 3dmerge 3dmerge.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dmerge 3dmerge.o $(LFLAGS) $(LLIBS)
 
-3dcalc:3dcalc.o editvol.o parser.o parser_int.o
+3dcalc:3dcalc.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dcalc 3dcalc.o editvol.o parser.o parser_int.o \
+	$(CC) -o 3dcalc 3dcalc.o parser.o parser_int.o \
               $(LFLAGS) -lf2c $(LLIBS)
 
-d3dmerge:3dmerge.c editvol.c editvol.h
+d3dmerge:3dmerge.c
 	$(RM) $@
-	$(CCD) -o d3dmerge 3dmerge.c editvol.c $(LFLAGS) $(LLIBS)
+	$(CCD) -o d3dmerge 3dmerge.c $(LFLAGS) $(LLIBS)
 
-3dttest:3dttest.o editvol.o
+3dttest:3dttest.o
 	$(RM) $@
-	$(CC) -o 3dttest 3dttest.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dttest 3dttest.o $(LFLAGS) $(LLIBS)
 
-3dpc:3dpc.o editvol.o
+3dpc:3dpc.o
 	$(RM) $@
-	$(CC) -o 3dpc 3dpc.o editvol.o $(LFLAGS) $(LLAPACK) $(LLIBS)
+	$(CC) -o 3dpc 3dpc.o $(LFLAGS) $(LLAPACK) $(LLIBS)
 
-3ddot:3ddot.o editvol.o
+3ddot:3ddot.o
 	$(RM) $@
-	$(CC) -o 3ddot 3ddot.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3ddot 3ddot.o $(LFLAGS) $(LLIBS)
 
-3dANOVA:3dANOVA.o editvol.o
+3dANOVA:3dANOVA.o
 	$(RM) $@
-	$(CC) -o 3dANOVA 3dANOVA.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dANOVA 3dANOVA.o $(LFLAGS) $(LLIBS)
 
-3dANOVA2:3dANOVA2.o editvol.o
+3dANOVA2:3dANOVA2.o
 	$(RM) $@
-	$(CC) -o 3dANOVA2 3dANOVA2.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dANOVA2 3dANOVA2.o $(LFLAGS) $(LLIBS)
 
-3dANOVA3:3dANOVA3.o editvol.o
+3dANOVA3:3dANOVA3.o
 	$(RM) $@
-	$(CC) -o 3dANOVA3 3dANOVA3.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dANOVA3 3dANOVA3.o $(LFLAGS) $(LLIBS)
 
-3dNLfim:3dNLfim.o editvol.o
+3dNLfim:3dNLfim.o
 	$(RM) $@
-	$(CC) -o 3dNLfim 3dNLfim.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dNLfim 3dNLfim.o $(LFLAGS) $(LLIBS)
 
-3dTSgen:3dTSgen.o editvol.o
+3dTSgen:3dTSgen.o
 	$(RM) $@
-	$(CC) -o 3dTSgen 3dTSgen.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dTSgen 3dTSgen.o $(LFLAGS) $(LLIBS)
 
-AlphaSim:AlphaSim.o editvol.o
+AlphaSim:AlphaSim.o
 	$(RM) $@
-	$(CC) -o AlphaSim AlphaSim.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
 
-3dFWHM:3dFWHM.o editvol.o
+3dFWHM:3dFWHM.o
 	$(RM) $@
-	$(CC) -o 3dFWHM 3dFWHM.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dFWHM 3dFWHM.o $(LFLAGS) $(LLIBS)
 
-3dMannWhitney:3dMannWhitney.o editvol.o
+3dMannWhitney:3dMannWhitney.o
 	$(RM) $@
-	$(CC) -o 3dMannWhitney 3dMannWhitney.o editvol.o \
-                        $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dMannWhitney 3dMannWhitney.o $(LFLAGS) $(LLIBS)
 
-3dWilcoxon:3dWilcoxon.o editvol.o
+3dWilcoxon:3dWilcoxon.o
 	$(RM) $@
-	$(CC) -o 3dWilcoxon 3dWilcoxon.o editvol.o \
-                        $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dWilcoxon 3dWilcoxon.o $(LFLAGS) $(LLIBS)
 
-3dKruskalWallis:3dKruskalWallis.o editvol.o
+3dKruskalWallis:3dKruskalWallis.o
 	$(RM) $@
-	$(CC) -o 3dKruskalWallis 3dKruskalWallis.o editvol.o \
-                        $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dKruskalWallis 3dKruskalWallis.o $(LFLAGS) $(LLIBS)
 
-3dFriedman:3dFriedman.o editvol.o
+3dFriedman:3dFriedman.o
 	$(RM) $@
-	$(CC) -o 3dFriedman 3dFriedman.o editvol.o \
-                        $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dFriedman 3dFriedman.o $(LFLAGS) $(LLIBS)
 
-3dRegAna:3dRegAna.o editvol.o
+3dRegAna:3dRegAna.o
 	$(RM) $@
-	$(CC) -o 3dRegAna 3dRegAna.o editvol.o \
-                        $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dRegAna 3dRegAna.o $(LFLAGS) $(LLIBS)
+
+2dImReg:2dImReg.o
+	$(RM) $@
+	$(CC) -o 2dImReg 2dImReg.o $(LFLAGS) $(LLIBS)
 
 waver:waver.o
 	$(RM) $@
@@ -311,20 +310,20 @@ dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
       dafni_slice_complex.o  dafni_pcor_float.o  LiteClue.o    \
       afni.c afni_func.c afni_widg.c afni_warp.c afni_fimmer.c \
       pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_setup.c  \
-      afni_pcor.c afni_pcor_update.c editvol.c afni_plugin.c 3dmaker.c  \
-      parser.c parser_int.c iochan.c afni_plugout.c afni_plugout.c
+      afni_pcor.c afni_pcor_update.c afni_plugin.c afni_receive.c \
+      parser.c parser_int.c afni_plugout.c afni_plugout.c
 	$(CCD) -o dafni $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE \
                 afni.c afni_func.c afni_widg.c afni_warp.c afni_graph.c \
                 dafni_slice_short.o dafni_slice_float.o  LiteClue.o \
                 dafni_slice_byte.o  dafni_slice_complex.o afni_fimmer.c \
-                dafni_pcor_float.o editvol.c parser.c parser_int.c iochan.c \
+                dafni_pcor_float.o parser.c parser_int.c \
                 pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_pcor.c \
-                afni_plugin.c 3dmaker.c afni_plugout.c afni_setup.c \
+                afni_plugin.c afni_plugout.c afni_setup.c afni_receive.c \
                 $(PLFLAGS) -lf2c $(LLIBS)
 	$(RM) afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o afni_pcor.o \
               pbar.o display.o imseq.o bbox.o xim.o xutil.o \
-              parser.o parser_int.o iochan.o afni_plugout.o afni_setup.o \
-              dafni_pcor_float.o editvol.o afni_graph.o afni_plugin.o 3dmaker.o \
+              parser.o parser_int.o afni_plugout.o afni_setup.o \
+              dafni_pcor_float.o afni_graph.o afni_plugin.o afni_receive.o \
               dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
               dafni_slice_complex.o
 
@@ -454,9 +453,9 @@ colari:colari.o
 	$(RM) $@
 	$(CC) -o colari colari.o $(LFLAGS) $(LLIBS)
 
-iotest:iotest.o iochan.o
+iotest:iotest.o
 	$(RM) $@
-	$(CC) -o iotest iotest.o iochan.o $(LFLAGS) $(LLIBS)
+	$(CC) -o iotest iotest.o $(LFLAGS) $(LLIBS)
 
 clean:
 	$(RM) *.o
@@ -493,6 +492,14 @@ src.tgz:
 	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm moveup README* AFNI.* \
               dist* 3d*.lib ./SRC
 	$(TAR) cf - ./SRC | $(GZIP) -9v > src.tgz
+	$(RM) -r ./SRC
+
+src.bz2:
+	$(RM) $@
+	$(MKDIR) ./SRC
+	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm moveup README* AFNI.* \
+              dist* 3d*.lib ./SRC
+	$(TAR) cf - ./SRC | bzip2 -9v > src.bz2
 	$(RM) -r ./SRC
 
 epv.tgz:
@@ -532,15 +539,12 @@ afni_warp.o:afni_warp.h 3ddata.h machdep.h
 afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h machdep.h
 afni_fimmer.o:afni_graph.h afni.h machdep.h
 afni_plugin.o:afni_plugin.h 3ddata.h xutil.h afni.h bbox.h afni_warp.h \
-              machdep.h 3dmaker.h display.h
+              machdep.h display.h
 afni_plugout.o:afni_plugin.h afni_plugout.h machdep.h
 afni_setup.o:afni.h afni_setup.h pbar.h
 
-3dmaker.o:3dmaker.h 3ddata.h editvol.h
-
-editvol.o:editvol.h 3ddata.h
-3dclust.o:editvol.h 3ddata.h
-3dmerge.o:editvol.h 3ddata.h
+3dclust.o:3ddata.h
+3dmerge.o:3ddata.h
 pbar.o:pbar.h machdep.h
 bbox.o:bbox.h xutil.h
 xutil.o:xutil.h
@@ -550,11 +554,10 @@ xim.o:xim.h display.h mrilib.h
 
 ts.o:ts.h
 to3d.o:to3d.h
-iochan.o:iochan.h
 
-3dbucket.o:3ddata.h editvol.h
+3dbucket.o:3ddata.h
 
-afni_plugout.o:afni_plugout.h iochan.h afni_plugin.h
+afni_plugout.o:afni_plugout.h afni_plugin.h
 
 ###################################################################
 # make the mri library
@@ -584,23 +587,32 @@ CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_78.o cdf_79.o cdf_80.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
-           thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o   \
-           thd_bstats.o thd_fdbrick.o thd_initdkptr.o thd_statpval.o  \
+           thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
+           thd_bstats.o thd_fdbrick.o thd_initdkptr.o thd_statpval.o \
            thd_compress.o thd_fdto1D.o thd_initprefix.o thd_timeof.o  \
            thd_coords.o thd_fdto2D.o thd_initsess.o thd_warps.o        \
            thd_countb.o thd_filestuff.o thd_linecount.o thd_writeatr.o  \
            thd_delete.o thd_forcemalloc.o thd_loaddblk.o thd_writedblk.o \
            thd_dsetdblk.o thd_get1D.o thd_manydset.o thd_writedset.o    \
            thd_dsetinsess.o  thd_idcode.o thd_opendset.o thd_zblock.o  \
-           thd_dsetinslist.o thd_info.o thd_purgedblk.o
+           thd_dsetinslist.o thd_info.o thd_purgedblk.o               \
+           thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o
 
-libmri.a:mrilib.h 3ddata.h thd.h $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS)
+EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
+           edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
+           edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
+           edt_scl2max.o edt_substbrick.o edt_volamax.o
+
+libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS)
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS)
+	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS)
 	$(RANLIB) libmri.a
+
+### Dependencies for above
 
 thd_compress.o:thd_compress.h
 mcw_glob.o:mcw_glob.h
+thd_iochan.o:thd_iochan.h
 
 ###################################################################
 # Plugin stuff
@@ -609,12 +621,13 @@ mcw_glob.o:mcw_glob.h
 
 SO = $(PLUGIN_SUFFIX)
 
-plugins:plug_clust.$(SO)   plug_copy.$(SO)     plug_rename.$(SO) \
-        plug_3ddot.$(SO)   plug_power.$(SO)    plug_stats.$(SO)  \
-        plug_lsqfit.$(SO)  plug_imreg.$(SO)    plug_edit.$(SO)   \
-        plug_nlfit.$(SO)   plug_realtime.$(SO)                   \
-        plug_coorder.$(SO) plug_3Ddump.$(SO)                     \
-        models 3ddata.h
+plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO) \
+        plug_3ddot.$(SO)    plug_power.$(SO)    plug_stats.$(SO)  \
+        plug_lsqfit.$(SO)   plug_imreg.$(SO)    plug_edit.$(SO)   \
+        plug_nlfit.$(SO)    plug_realtime.$(SO) plug_delay.$(SO)  \
+        plug_coorder.$(SO)  plug_3Ddump.$(SO)   plug_4Ddump.$(SO) \
+        plug_compress.$(SO) plug_drawdset.$(SO)                   \
+        models
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
         model_null.$(SO) \
@@ -641,18 +654,18 @@ libcdf.$(SO):cdflib.h $(CDF_OBJS)
 	$(RM) $@
 	$(LD) $(PLUGIN_LFLAGS) -o libcdf.$(SO) $(CDF_OBJS)
 
-plug_realtime.$(SO):plug_realtime.c iochan.h
+plug_realtime.$(SO):plug_realtime.c
 	$(RM) $@
 	$(PLUGIN_CC) -c plug_realtime.c $(IFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_realtime.$(SO) plug_realtime.o
 
-epsim:epsim.o iochan.o
+epsim:epsim.o
 	$(RM) $@
-	$(CC) -o epsim epsim.o iochan.o $(LFLAGS) $(LLIBS)
+	$(CC) -o epsim epsim.o $(LFLAGS) $(LLIBS)
 
-plugout_tt:plugout_tt.o iochan.o
+plugout_tt:plugout_tt.o
 	$(RM) $@
-	$(CC) -o plugout_tt plugout_tt.o iochan.o $(LFLAGS) $(LLIBS)
+	$(CC) -o plugout_tt plugout_tt.o $(LFLAGS) $(LLIBS)
 
 ######################################################################
 # Stuff that was originally in Fortran
@@ -707,3 +720,6 @@ colcalc:parser.o colcalc.o
 
 imcalc:imcalc.o parser.o parser_int.o
 	$(CC) -o imcalc imcalc.o parser.o parser_int.o $(LFLAGS) -lf2c $(LLIBS)
+
+#-------------------------------------------------------------------------------
+#include Makefile.DEPENDS

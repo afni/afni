@@ -1,4 +1,4 @@
-#include "3ddata.h"
+#include "mrilib.h"
 #include "thd.h"
 
 
@@ -22,10 +22,8 @@ void THD_force_malloc_type( THD_datablock * blk , int mem_type )
       new_type = mem_type ;
    }
 
-#ifdef ALLOW_COMPRESS
    if( COMPRESS_filecode(blk->diskptr->brick_name) >= 0 )
       new_type = DATABLOCK_MEM_MALLOC ;
-#endif
 
    if( blk->malloc_type == new_type ) return ;
    (void) THD_purge_datablock( blk , blk->malloc_type ) ;

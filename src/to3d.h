@@ -1,11 +1,10 @@
 #ifndef _MCW_TO3D_HEADER_
 #define _MCW_TO3D_HEADER_
 
-#include "3ddata.h"
+#include "mrilib.h"
 #include "imseq.h"
 #include "killer.h"
 #include "afni_warp.h"
-#include "mrilib.h"
 #include "mcw_glob.h"
 
 #include <Xm/SeparatoG.h>

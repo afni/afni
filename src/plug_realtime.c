@@ -1,5 +1,4 @@
 #include "afni.h"
-#include "iochan.h"
 #include "trusted_hosts.h"
 
 #define TCP_CONTROL "tcp:*:7954"      /* control channel specification */

@@ -1,4 +1,4 @@
-#include "3ddata.h"
+#include "mrilib.h"
 #include "thd.h"
 
 
@@ -12,7 +12,8 @@ ENTRY("THD_purge_datablock") ;
    /*-- sanity checks --*/
 
    if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ) return False ;
-   if( (blk->malloc_type & mem_type) == 0 ) return False ;
+   if( (blk->malloc_type & mem_type) == 0 )             return False ;
+   if( DBLK_LOCKED(blk) )                               return False ;
 
    /*-- free the data space --*/
 

@@ -1,5 +1,4 @@
-#include "3ddata.h"
-#include "iochan.h"
+#include "mrilib.h"
 
 #define FatalError(str) \
    ( fprintf(stderr,"\nEPsim error: %s\n",(str)) , exit(1) )

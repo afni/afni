@@ -1,4 +1,4 @@
-#include "iochan.h"
+#include "thd_iochan.h"
 
 #define WDEL 1
 #define RDEL 1

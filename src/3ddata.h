@@ -21,10 +21,7 @@
 #include "machdep.h"
 #include "mrilib.h"
 
-#define ALLOW_COMPRESSOR
-#ifdef  ALLOW_COMPRESSOR
-#  include "thd_compress.h"
-#endif
+#include "thd_compress.h"
 
 #ifndef myXtFree
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
@@ -767,6 +764,7 @@ typedef struct {
 
       int    total_bytes ;    /* totality of data storage needed */
       int    malloc_type ;    /* memory allocation method */
+      int    locked ;         /* Feb 1998: locked in memory (un-purgeable) */
 
       THD_diskptr * diskptr ; /* where the data is on disk (if anywhere!) */
 
@@ -778,6 +776,14 @@ typedef struct {
       KILL_list kl ;
       XtPointer parent ;
 } THD_datablock ;
+
+#define DBLK_mallocize(db) THD_force_malloc_type((db),DATABLOCK_MEM_MALLOC)
+#define DBLK_mmapize(db)   THD_force_malloc_type((db),DATABLOCK_MEM_MMAP)
+#define DBLK_anyize(db)    THD_force_malloc_type((db),DATABLOCK_MEM_ANY)
+
+#define DBLK_lock(db)   ((db)->locked = 1)
+#define DBLK_unlock(db) ((db)->locked = 0)
+#define DBLK_LOCKED(db) ((db)->locked)
 
 extern void THD_delete_datablock         ( THD_datablock * ) ;
 extern void THD_init_datablock_brick     ( THD_datablock * , int , void * ) ;
@@ -1469,6 +1475,19 @@ static char * ANAT_prefixstr[] = {
  ANAT_BUCK_PREFIX , ANAT_MAPC_PREFIX
 } ;
 
+/* Feb 1998: put all together */
+
+static char * DSET_prefixstr[NUM_DSET_TYPES] = {
+   FUNC_FIM_PREFIX , FUNC_THR_PREFIX , FUNC_COR_PREFIX ,
+   FUNC_TT_PREFIX  , FUNC_FT_PREFIX  ,
+   FUNC_ZT_PREFIX  , FUNC_CT_PREFIX  , FUNC_BT_PREFIX  ,
+   FUNC_BN_PREFIX  , FUNC_GT_PREFIX  , FUNC_PT_PREFIX  , FUNC_BUCK_PREFIX ,
+   ANAT_SPGR_PREFIX , ANAT_FSE_PREFIX   , ANAT_EPI_PREFIX  , ANAT_MRAN_PREFIX ,
+   ANAT_CT_PREFIX   , ANAT_SPECT_PREFIX , ANAT_PET_PREFIX  ,
+   ANAT_MRA_PREFIX  , ANAT_BMAP_PREFIX  , ANAT_DIFF_PREFIX , ANAT_OMRI_PREFIX ,
+   ANAT_BUCK_PREFIX
+} ;
+
 static int ANAT_nvals[]     = { 1,1,1,1,1,1,1,1,1,1,1,1 , 1 } ;
 static int ANAT_ival_zero[] = { 0,0,0,0,0,0,0,0,0,0,0,0 , 0 } ;
 
@@ -1561,13 +1580,10 @@ typedef struct THD_3dim_dataset {
 #define DSET_ONDISK(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
                           (ds)->dblk->diskptr->storage_mode!=STORAGE_UNDEFINED )
 
-#ifdef ALLOW_COMPRESSOR
-#  define DSET_COMPRESSED(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
-                                (ds)->dblk->diskptr != NULL          && \
-                                COMPRESS_filecode((ds)->dblk->diskptr->brick_name) >= 0 )
-#else
-#  define DSET_COMPRESSED(ds) 0
-#endif
+#define DSET_COMPRESSED(ds)                  \
+   ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
+     (ds)->dblk->diskptr != NULL          && \
+     COMPRESS_filecode((ds)->dblk->diskptr->brick_name) >= 0 )
 
 #define PURGE_DSET(ds)                                  \
  do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )  \
@@ -1629,6 +1645,10 @@ typedef struct THD_3dim_dataset {
 #define DSET_NVALS(ds)           ( (ds)->dblk->nvals )
 
 #define DSET_NVOX(ds) ( (ds)->daxes->nxx * (ds)->daxes->nyy * (ds)->daxes->nzz )
+
+#define DSET_NX(ds) ((ds)->daxes->nxx)
+#define DSET_NY(ds) ((ds)->daxes->nyy)
+#define DSET_NZ(ds) ((ds)->daxes->nzz)
 
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
                              (ds)->wod_flag == False  && DSET_NUM_TIMES(ds) > 1 && \
@@ -1735,6 +1755,13 @@ static char tmp_dblab[8] ;
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
 #define DSET_LOADED(ds) ( THD_count_databricks((ds)->dblk) == DSET_NVALS(ds) )
+
+#define DSET_lock(ds)      DBLK_lock((ds)->dblk)       /* Feb 1998 */
+#define DSET_unlock(ds)    DBLK_unlock((ds)->dblk)
+#define DSET_LOCKED(ds)    DBLK_LOCKED((ds)->dblk)
+#define DSET_mallocize(ds) DBLK_mallocize((ds)->dblk)
+#define DSET_mmapize(ds)   DBLK_mmapize((ds)->dblk)
+#define DSET_anyize(ds)    DBLK_anyize((ds)->dblk)
 
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
@@ -2034,6 +2061,9 @@ extern Boolean THD_write_3dim_dataset( char *,char * ,
 
 extern Boolean THD_write_datablock( THD_datablock * , Boolean ) ;
 extern Boolean THD_write_atr( THD_datablock * ) ;
+extern void THD_set_write_compression( int mm ) ;
+extern int THD_enviro_write_compression(void) ;
+extern int THD_get_write_compression(void) ;
 
 extern Boolean THD_load_datablock ( THD_datablock * , generic_func * ) ;
 extern Boolean THD_purge_datablock( THD_datablock * , int ) ;

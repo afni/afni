@@ -54,8 +54,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 #include "matrix.h"
 #include "simplex.h"

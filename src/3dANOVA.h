@@ -40,7 +40,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "editvol.h"
+#include "mrilib.h"
 
 /*** HP-UX ***/
 #ifdef HP

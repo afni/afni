@@ -51,8 +51,7 @@ voxels per original voxel
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 static EDIT_options CL_edopt ;
 

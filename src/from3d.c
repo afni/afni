@@ -13,7 +13,7 @@
   is not allowed.
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
-#include "3ddata.h"
+#include "mrilib.h"
 
 #define FatalError(str) \
    ( fprintf(stderr,"\nError: %s\n\r try 'from3d -help'\n",(str)) , exit(1) )

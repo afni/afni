@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "editvol.h"
+#include "mrilib.h"
 
 struct NLFIT_MODEL_array ; /* incomplete definition */
 

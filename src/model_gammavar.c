@@ -5,6 +5,11 @@
   File:     model_gammavar.c
   Author:   B. Douglas Ward
   Date:     29 May 1997
+
+  Mod:      Tests for illegal parameter values.  Also, changed default
+            constraint values.
+  Date:     2 February 1998
+
 */
 
 
@@ -57,8 +62,8 @@ MODEL_interface * initialize_model ()
 
   /*----- minimum and maximum parameter constraints -----*/
   mi->min_constr[0] =    45.0;    mi->max_constr[0] =    75.0;
-  mi->min_constr[1] =  -100.0;    mi->max_constr[1] =   100.0;
-  mi->min_constr[2] =     1.0;    mi->max_constr[2] =    10.0;
+  mi->min_constr[1] =  -200.0;    mi->max_constr[1] =   200.0;
+  mi->min_constr[2] =     0.0;    mi->max_constr[2] =     1.0;
   mi->min_constr[3] =     1.0;    mi->max_constr[3] =   100.0;
   
   /*----- function which implements the model -----*/
@@ -102,7 +107,7 @@ void signal_model
   for (it = 0;  it < ts_length;  it++)
     {
       t = x_array[it][1];
-      if (t < gs[0])
+      if ((t <= gs[0]) || (gs[3] <= 0.0))
 	fval = 0.0;
       else
 	fval = gs[1] * exp( log(t-gs[0]) * gs[2] ) * exp(-(t-gs[0])/gs[3]);

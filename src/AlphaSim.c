@@ -38,8 +38,7 @@
 #define MAX_NAME_LENGTH 80            /* max. strength length for file names */
 #define MAX_CLUSTER_SIZE 1000        /* max. size of cluster for freq. table */
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 
 /*---------------------------------------------------------------------------*/

@@ -9,8 +9,7 @@
 /*********************************************************************/
 #ifdef USE_TRACING
 
-#define DEBUG_MAX_DEPTH 128
-#define DEBUG_MAX_ROUT  128
+#define DEBUG_MAX_DEPTH 1024  /* way too big, but who cares? */
 
 /*---------------------------------------------------------------*/
 #if defined(MALLOC_TRACE) && !defined(USE_GNU_MALLOC)
@@ -45,7 +44,13 @@
 /*---------------------------------------------------------------*/
 #ifdef MAIN
    char * DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
-   volatile int DBG_num = 1 ;
+   int DBG_num = 1 ;
+
+#  ifdef PRINT_TRACING
+     int DBG_trace = 1 ;   /* turn on from start */
+#  else
+     int DBG_trace = 0 ;   /* turn off at start */
+#  endif
 
 #include <signal.h>
 void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
@@ -57,60 +62,66 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
       case SIGPIPE: sname = "SIGPIPE" ; break ;
       case SIGSEGV: sname = "SIGSEGV" ; break ;
       case SIGBUS:  sname = "SIGBUS"  ; break ;
+      case SIGINT:  sname = "SIGINT"  ; break ;
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname) ;
-   if( DBG_num > 0 ){
+   if( DBG_num >= 0 ){
       for( ii=DBG_num-1; ii >= 0 ; ii-- )
          fprintf(stderr,"%*.*s%s\n",ii+1,ii+1," ",DBG_rout[ii]) ;
    } else {
-      fprintf(stderr,"[No debug tracing stack]\n") ;
+      fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;
    }
    fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
    exit(1) ;
 }
 #define DBG_SIGNALS ( signal(SIGPIPE,DBG_sigfunc) , \
                       signal(SIGSEGV,DBG_sigfunc) , \
+                      signal(SIGINT ,DBG_sigfunc) , \
                       signal(SIGBUS ,DBG_sigfunc)  )
 /*---------------------------------------------------------------*/
 #else /* not MAIN */
    extern char * DBG_rout[DEBUG_MAX_DEPTH] ;
-   extern volatile int  DBG_num ;
+   extern int DBG_num ;
+   extern int DBG_trace ;
 #endif /* MAIN */
 /*---------------------------------------------------------------*/
 
+/* macros for entering and exiting a function */
+
+#define DBG_LEADER_IN  "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+#define DBG_LEADER_OUT "-----------------------------------------------------------"
+
+#define ENTRY(rout) do{ static char * rrr = (rout) ;  DBG_rout[DBG_num++] = rrr ; \
+                        if( DBG_trace ){                                         \
+                          printf("%*.*s%s [%d]: ENTRY (file=%s line=%d)\n",     \
+                                 DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num,    \
+                                 __FILE__ , __LINE__ ) ;                      \
+                          TRMOUT ; fflush(stdout) ; } } while(0)
+
+#define DBROUT      DBG_rout[DBG_num-1]
+
+#define DBEXIT      do{ if( DBG_trace ){                                      \
+                          printf("%*.*s%s [%d]: EXIT (file=%s line=%d)\n",     \
+                                 DBG_num,DBG_num,DBG_LEADER_OUT,DBROUT,DBG_num, \
+                                 __FILE__ , __LINE__ );                        \
+                          TRMOUT ; fflush(stdout) ; }                         \
+                        DBG_num = (DBG_num>1) ? DBG_num-1 : 1 ; } while(0)
+
 /*---------------------------------------------------------------*/
 #ifdef PRINT_TRACING
-#  define DBG_LEADER_IN  "+++++++++++++++++++++++++++++++++++++++++++++++"
-#  define DBG_LEADER_OUT "-----------------------------------------------"
-
-#  define ENTRY(rout) ( DBG_rout[DBG_num++] = (rout) , \
-                        printf("%*.*s%s -- ENTRY\n",DBG_num,DBG_num,DBG_LEADER_IN,(rout) ) , \
-                        TRMOUT , fflush(stdout) )
-
-#  define ROUT        (DBG_rout[DBG_num-1])
-
-#  define EXIT        ( printf("%*.*s%s -- EXIT\n",DBG_num,DBG_num,DBG_LEADER_OUT,ROUT) , \
-                        TRMOUT , fflush(stdout) , DBG_num-- )
-
-#  define STATUS(str) (printf("%*.*s%s -- %s\n",DBG_num,DBG_num," ",ROUT,(str)),fflush(stdout))
-
-/*---------------------------------------------------------------*/
-#else /* don't PRINT_TRACING */
-
-#  define ENTRY(rout) ( DBG_rout[DBG_num++] = (rout) , TRMNOT )
-#  define ROUT
-#  define EXIT        ( TRMNOT , DBG_num-- )
-#  define STATUS(str) 
-
-#endif /* PRINT_TRACING */
+# define STATUS(str) \
+     (printf("%*.*s%s -- %s\n",DBG_num,DBG_num," ",DBROUT,(str)),fflush(stdout))
+#else
+# define STATUS(str) /* nada */
+#endif
 /*---------------------------------------------------------------*/
 
 /*********************************************************************/
 #else /* don't USE_TRACING */
 
 #  define ENTRY(rout)
-#  define EXIT
-#  define ROUT
+#  define DBEXIT
+#  define DBROUT
 #  define STATUS(str)
 #  define DBG_SIGNALS
 #  define TRMOUT
@@ -119,8 +130,8 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #endif /* USE_TRACING */
 /*********************************************************************/
 
-#define RETURN(val) do{ EXIT ; return (val) ; } while(0)
-#define EXRETURN    do{ EXIT ; return ; } while(0)
+#define RETURN(val) do{ DBEXIT ; return (val) ; } while(0)
+#define EXRETURN    do{ DBEXIT ; return ; } while(0)
 
 /*---------------------------------------------------------------*/
 #ifdef USE_GNU_MALLOC

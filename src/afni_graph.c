@@ -30,6 +30,7 @@ ENTRY("new_MCW_grapher") ;
    grapher->valid  = 1 ;
 
    grapher->never_drawn = 1 ;
+   grapher->button2_enabled = 0 ;  /* Feb 1998 */
 
    grapher->gx_max = 0 ;
    grapher->gy_max = 0 ;
@@ -338,10 +339,11 @@ ENTRY("new_MCW_grapher") ;
 
    MENU_SLINE(opt_menu) ;
 
-   OPT_MENU_PULLRIGHT(opt_scale_menu,opt_scale_cbut      ,"Scale"   , "Change vertical scale" ) ;
-   OPT_MENU_PULL_BUT( opt_scale_menu,opt_scale_down_pb   ,"Down [-]", "Shrink graph heights"  ) ;
-   OPT_MENU_PULL_BUT( opt_scale_menu,opt_scale_up_pb     ,"Up   [+]", "Increase graph heights") ;
-   OPT_MENU_PULL_BUT( opt_scale_menu,opt_scale_choose_pb ,"Choose"  , "Set vertical scale"    ) ;
+   OPT_MENU_PULLRIGHT(opt_scale_menu,opt_scale_cbut     ,"Scale"   ,"Change vertical scale" );
+   OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_down_pb  ,"Down [-]","Shrink graph heights"  );
+   OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_up_pb    ,"Up   [+]","Increase graph heights");
+   OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_choose_pb,"Choose"  ,"Set vertical scale"    );
+   OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_auto_pb  ,"Auto [a]","Scale automatically"   );
 
    OPT_MENU_PULLRIGHT(opt_mat_menu,opt_mat_cbut      ,"Matrix"  , "Change number of graphs"   ) ;
    OPT_MENU_PULL_BUT( opt_mat_menu,opt_mat_down_pb   ,"Down [m]", "Reduce number of graphs"   ) ;
@@ -949,11 +951,12 @@ ENTRY("GRA_redraw_overlay") ;
    redraw entire graph
 ------------------------------------------------*/
 
-void redraw_graph( MCW_grapher * grapher )
+void redraw_graph( MCW_grapher * grapher , int code )
 {
    int x, y , npoints , www,xxx ;
    int xc = grapher->xc , yc = grapher->yc ;
-   char strp[256] , buf[32] ;
+   char strp[256] , buf[64] ;
+   int xd,yd,zd ;
 
 ENTRY("redraw_graph") ;
 
@@ -964,7 +967,7 @@ ENTRY("redraw_graph") ;
 
    erase_fdw  ( grapher ) ;
    draw_grids ( grapher ) ;
-   plot_graphs( grapher ) ;
+   plot_graphs( grapher , code ) ;
 
    /*---- draw some strings for informative purposes ----*/
 
@@ -998,16 +1001,23 @@ ENTRY("redraw_graph") ;
 
    grapher->xx_text_1 = GL_DLX+5 ;
 
-   sprintf(strp,"X: %d", grapher->xpoint) ;
+   xd = grapher->xpoint ; yd = grapher->ypoint ; zd = grapher->zpoint ;
+#ifndef DONT_MANGLE_XYZ
+   { THD_ivec3 id ;
+     id = THD_fdind_to_3dind( grapher->getaux , TEMP_IVEC3(xd,yd,zd) ) ;
+     xd = id.ijk[0] ; yd = id.ijk[1] ; zd = id.ijk[2] ; }
+#endif
+
+   sprintf(strp,"X: %d", xd) ;
    fd_txt( grapher , GL_DLX+5 , 35, strp) ;
    xxx = DC_text_width(grapher->dc,strp) ;
 
-   sprintf(strp,"Y: %d", grapher->ypoint) ;
+   sprintf(strp,"Y: %d", yd) ;
    fd_txt( grapher , GL_DLX+5 , 21, strp) ;
    www = DC_text_width(grapher->dc,strp) ; xxx = MAX(xxx,www) ;
 
    if( grapher->status->nz > 1 ){
-      sprintf(strp,"Z: %d", grapher->zpoint) ;
+      sprintf(strp,"Z: %d", zd) ;
       fd_txt( grapher , GL_DLX+5 ,  7, strp) ;
       www = DC_text_width(grapher->dc,strp) ; xxx = MAX(xxx,www) ;
    }
@@ -1016,15 +1026,26 @@ ENTRY("redraw_graph") ;
 
    grapher->xx_text_2 = xxx = xxx + GL_DLX + 15 ;
 
-   sprintf (strp,"Grid: %d", grapher->grid_spacing ) ;
+   sprintf(strp,"Grid:%5d", grapher->grid_spacing ) ;
+
+   if( grapher->fscale > 0 ){                        /* 04 Feb 1998: */
+      AV_fval_to_char( grapher->fscale , buf ) ;     /* put scale on graph, too */
+      www = strlen(strp) ;
+      sprintf(strp+www," Scale:%s pix/datum",buf) ;
+   } else if( grapher->fscale < 0 ){
+      AV_fval_to_char( -grapher->fscale , buf ) ;
+      www = strlen(strp) ;
+      sprintf(strp+www," Scale:%s datum/pix",buf) ;
+   }
+
    fd_txt( grapher , xxx , 21, strp) ;
 
    npoints = grapher->status->num_series ;
 
    if( grapher->pin_num < MIN_PIN )          /* 27 Apr 1997 */
-      sprintf(strp, "Num:  %d", npoints) ;
+      sprintf(strp, "Num: %5d", npoints) ;
    else
-      sprintf(strp, "Num:  %d [%d]" , npoints,grapher->pin_num) ;
+      sprintf(strp, "Num: %5d [%d]" , npoints,grapher->pin_num) ;
 
    if( grapher->common_base )            /* 08 Jan 1998 */
       strcat(strp,"  Base: common") ;
@@ -1124,7 +1145,7 @@ ENTRY("init_const") ;
     Plot all graphs to pixmap
 -------------------------------------------------------------*/
 
-void plot_graphs( MCW_grapher * grapher )
+void plot_graphs( MCW_grapher * grapher , int code )
 {
    MRI_IMAGE * tsim ;
    MRI_IMARR * tsimar ;
@@ -1141,6 +1162,10 @@ void plot_graphs( MCW_grapher * grapher )
 
    MRI_IMARR * eximar ;
    int         iex ;
+
+   float nd_bot , nd_top , nd_dif ;                        /* 03 Feb 1998 */
+   int   set_scale = ( (code & PLOTCODE_AUTOSCALE) != 0 ||
+                       grapher->never_drawn ) ;
 
 ENTRY("plot_graphs") ;
 
@@ -1264,6 +1289,10 @@ STATUS("about to assign tuser string") ;
 
 STATUS("finding statistics of time series") ;
 
+   if( set_scale ){
+      nd_bot = WAY_BIG ; nd_top = nd_dif = - WAY_BIG ;  /* 03 Feb 1998 */
+   }
+
    for( ix=0,its=0 ; ix < grapher->mat ; ix++ ){
       for( iy=0 ; iy < grapher->mat ; iy++,its++ ){
          float qbot,qtop ;
@@ -1298,7 +1327,39 @@ STATUS("finding statistics of time series") ;
          qsum  = qsum / (itop-ibot) ; grapher->tmean[ix][iy] = qsum ;
          qsumq = (qsumq - (itop-ibot) * qsum * qsum) / (itop-ibot-1) ;
          grapher->tstd[ix][iy] = (qsumq > 0.0) ? sqrt(qsumq) : 0.0 ;
+
+         if( set_scale ){        /* 03 Feb 1998 */
+            nd_bot = MIN( nd_bot , qbot ) ;
+            nd_top = MAX( nd_top , qtop ) ;
+            nd_dif = MAX( nd_dif , (qtop-qbot) ) ;
+         }
       }
+   }
+
+   /* 03 Feb 1998: set the initial scale factor */
+
+   if( set_scale && nd_bot < nd_top && nd_dif > 0.0 ){
+
+      if( grapher->common_base ){
+         grapher->fscale = 0.9 * grapher->gy / (nd_top-nd_bot) ; /* global range */
+      } else {
+         grapher->fscale = 0.9 * grapher->gy / nd_dif ;          /* biggest range */
+      }
+
+      if( grapher->fscale > 0.0 && grapher->fscale < 1.0 )       /* switcheroo */
+         grapher->fscale = -1.0 / grapher->fscale ;
+
+           if( grapher->fscale > 4.0 )                           /* even value */
+                  grapher->fscale = (int) grapher->fscale ;
+
+      else if( grapher->fscale > 1.0 )
+                  grapher->fscale = 0.5 * ((int)(2.0*grapher->fscale)) ;
+
+      else if( grapher->fscale < -4.0 )
+                  grapher->fscale = -((int)(1.0-grapher->fscale)) ;
+
+      else if( grapher->fscale < -1.0 )
+                  grapher->fscale = -0.5 * ((int)(1.0-2.0*grapher->fscale)) ;
    }
 
    /** find the smallest element in all the time series, if needed **/
@@ -1758,7 +1819,7 @@ void mat_down( MCW_grapher * grapher )
    else if (grapher->mat > grapher->mat_max) grapher->mat = grapher->mat_max;
    if (grapher->mat!= old) {
       init_mat( grapher ) ;
-      redraw_graph( grapher ) ;
+      redraw_graph( grapher , 0 ) ;
    }
    return ;
 }
@@ -1776,7 +1837,7 @@ void mat_up( MCW_grapher * grapher )
    else if (grapher->mat > grapher->mat_max) grapher->mat = grapher->mat_max;
    if (grapher->mat!= old) {
       init_mat(grapher) ;
-      redraw_graph(grapher) ;
+      redraw_graph(grapher,0) ;
    }
    return ;
 }
@@ -1792,7 +1853,7 @@ void grid_down( MCW_grapher * grapher )
    grapher->grid_index--;
    if (grapher->grid_index < 0) grapher->grid_index = 0;
    grapher->grid_spacing = grid_ar[grapher->grid_index] ;
-   redraw_graph(grapher) ;
+   redraw_graph(grapher,0) ;
    return ;
 }
 
@@ -1807,7 +1868,7 @@ void grid_up( MCW_grapher * grapher )
    grapher->grid_index++;
    if (grapher->grid_index >= GRID_MAX) grapher->grid_index = GRID_MAX - 1;
    grapher->grid_spacing = grid_ar[grapher->grid_index] ;
-   redraw_graph(grapher) ;
+   redraw_graph(grapher,0) ;
    return ;
 }
 
@@ -1903,6 +1964,21 @@ STATUS("button press") ;
          if (yloc < 0)                    yloc += grapher->status->ny ;
          if (yloc >= grapher->status->ny) yloc -= grapher->status->ny ;
 
+         /* Feb 1998: button 2 --> send message back to AFNI, maybe */
+
+         if( but == Button2 ){
+            if( grapher->button2_enabled && (bx > GL_DLX) ){
+               GRA_cbs cbs ;
+               cbs.reason = graCR_button2_points ;
+               cbs.xcen   = xloc ;
+               cbs.ycen   = yloc ;
+               cbs.zcen   = grapher->zpoint ;
+               grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+            } else {
+               XBell(XtDisplay(w),100) ;
+            }
+         }
+
          /* button 1 --> move to new square as center of matrix,
                          if it is actually a new center, that is,
                          and if graphing is enabled, and if not off the left edge */
@@ -1913,7 +1989,7 @@ STATUS("button press") ;
 
                grapher->xpoint = xloc ;
                grapher->ypoint = yloc ;
-               redraw_graph( grapher ) ;
+               redraw_graph( grapher , 0 ) ;
                send_newinfo( grapher ) ;
          }
 
@@ -1982,7 +2058,7 @@ STATUS("button press") ;
             else
                XtManageChild(grapher->option_rowcol) ;
 
-            redraw_graph( grapher )  ;
+            redraw_graph( grapher , 0 )  ;
          }
 
          /* Button 3 --> popup statistics of this graph */
@@ -2039,7 +2115,7 @@ STATUS("button press") ;
                 XmMenuPosition( grapher->but3_menu , event ) ; /* where */
                 XtManageChild ( grapher->but3_menu ) ;         /* popup */
             } else {
-               redraw_graph(grapher) ;  /* 11 Nov 1996 */
+               redraw_graph(grapher,0) ;  /* 11 Nov 1996 */
             }
          }
       }
@@ -2118,7 +2194,7 @@ STATUS("allocating new Pixmap") ;
 
    if( redraw ){
       init_mat( grapher ) ;
-      redraw_graph( grapher ) ;
+      redraw_graph( grapher , 0 ) ;
    }
 
    EXRETURN ;
@@ -2132,7 +2208,9 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
 {
    int ii ;
 
-   if( buf[0] == '\0' ) return ;
+ENTRY("GRA_handle_keypress") ;
+
+   if( buf[0] == '\0' ) EXRETURN ;
 
    /*** deal with the key sequence 'N <digits> <Enter>' ***/
 
@@ -2142,7 +2220,7 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
       grapher->key_Nlock = 1 ;
       MCW_alter_widget_cursor( grapher->fdw_graph , -XC_hand2 ,"yellow","blue" ) ;
       grapher->key_lock_sum = 0 ;
-      return ;
+      EXRETURN ;
    }
 
    /* last <Enter> */
@@ -2157,10 +2235,10 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
       MCW_alter_widget_cursor( grapher->fdw_graph , -XC_left_ptr ,"yellow","blue" ) ;
 
       init_mat    ( grapher ) ;
-      redraw_graph( grapher ) ;
+      redraw_graph( grapher , 0 ) ;
       send_newinfo( grapher ) ;
       grapher->key_Nlock = grapher->key_lock_sum = 0 ;
-      return ;
+      EXRETURN ;
    }
 
    /* intermediate <digit> */
@@ -2170,7 +2248,7 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
          ii = buf[0] - 48;
          grapher->key_lock_sum = MIN( 10000, 10*grapher->key_lock_sum + ii ) ;
       }
-      return ;
+      EXRETURN ;
    }
 
    /*-- other keys are single stroke commands --*/
@@ -2183,8 +2261,12 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
       case '+':
          if( buf[0] == '-' ) scale_down( grapher ) ;
          else                scale_up  ( grapher ) ;
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
       break;
+
+      case 'a':
+         redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;  /* 03 Feb 1998 */
+      break ;
 
       case 'm':
       case 'M':
@@ -2204,7 +2286,7 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
 #if 0
       case 'r':
          grapher->grid_color = (grapher->grid_color + 1 ) % grapher->dc->ovc->ncol_ov ;
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
       break;
 #endif
 
@@ -2215,7 +2297,7 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
 
       case 'b':
          grapher->common_base = ! grapher->common_base ;
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
       break ;
 
       case 'S':
@@ -2227,7 +2309,7 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
       case 'L':
          show_grapher_pixmap = ! show_grapher_pixmap ;
          if( grapher->logo_pixmap != XmUNSPECIFIED_PIXMAP )
-            redraw_graph( grapher ) ;
+            redraw_graph( grapher , 0 ) ;
       break ;
 
       case '<':
@@ -2262,7 +2344,7 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
             grapher->zpoint ++ ;
             if( grapher->zpoint >= grapher->status->nz ) grapher->zpoint = 0 ;
          }
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
          send_newinfo( grapher ) ;
       break ;
 
@@ -2321,7 +2403,7 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
       break ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -2332,85 +2414,92 @@ void GRA_opt_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    MCW_grapher * grapher = (MCW_grapher *) client_data ;
 
+ENTRY("GRA_opt_CB") ;
+
    if( w == grapher->opt_scale_down_pb ){
       GRA_handle_keypress( grapher , "-" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_scale_up_pb ){
       GRA_handle_keypress( grapher , "+" , NULL ) ;
-      return ;
+      EXRETURN ;
+   }
+
+   if( w == grapher->opt_scale_auto_pb ){
+      GRA_handle_keypress( grapher , "a" , NULL ) ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_grid_down_pb ){
       GRA_handle_keypress( grapher , "g" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_grid_up_pb ){
       GRA_handle_keypress( grapher , "G" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_slice_down_pb ){
       GRA_handle_keypress( grapher , "z" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_slice_up_pb ){
       GRA_handle_keypress( grapher , "Z" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_mat_down_pb ){
       GRA_handle_keypress( grapher , "m" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_mat_up_pb ){
       GRA_handle_keypress( grapher , "M" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
 #if 0
    if( w == grapher->opt_color_up_pb ){
       GRA_handle_keypress( grapher , "r" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 #endif
 
    if( w == grapher->opt_quit_pb ){
       GRA_handle_keypress( grapher , "q" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_baseline_pb ){
       GRA_handle_keypress( grapher , "b" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_save_pb ){
       GRA_handle_keypress( grapher , "S" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_write_center_pb ){
       GRA_handle_keypress( grapher , "w" , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_write_suffix_pb ){
       MCW_choose_string( grapher->option_mbar ,
                          "'Write Center' Suffix:" , Grapher_Stuff.wcsuffix ,
                          GRA_wcsuffix_choose_CB , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_scale_choose_pb ){
       MCW_choose_integer( grapher->option_mbar , "Scale" ,
                           -9999 , 9999 , (int)(grapher->fscale) ,
                           GRA_scale_choose_CB , (XtPointer) grapher ) ;
-      return ;
+      EXRETURN ;
    }
 
 #ifndef USE_OPTMENUS
@@ -2418,7 +2507,7 @@ void GRA_opt_CB( Widget w , XtPointer client_data , XtPointer call_data )
       MCW_choose_integer( grapher->option_mbar , "Matrix" ,
                           1 , grapher->mat_max , grapher->mat ,
                           GRA_mat_choose_CB , (XtPointer) grapher ) ;
-      return ;
+      EXRETURN ;
    }
 #endif
 
@@ -2426,14 +2515,14 @@ void GRA_opt_CB( Widget w , XtPointer client_data , XtPointer call_data )
       MCW_choose_integer( grapher->option_mbar , "Grid" ,
                           grid_ar[0] , grid_ar[GRID_MAX-1] , grapher->grid_spacing ,
                           GRA_grid_choose_CB , (XtPointer) grapher ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_pin_choose_pb ){   /* 27 Apr 1997 */
       MCW_choose_integer( grapher->option_mbar , "Pin Num" ,
                           0 , MAX_PIN , grapher->pin_num ,
                           GRA_pin_choose_CB , (XtPointer) grapher ) ;
-      return ;
+      EXRETURN ;
    }
 
 #ifndef USE_OPTMENUS
@@ -2441,7 +2530,7 @@ void GRA_opt_CB( Widget w , XtPointer client_data , XtPointer call_data )
       MCW_choose_integer( grapher->option_mbar , "Slice" ,
                           0 , grapher->status->nz - 1 , grapher->zpoint ,
                           GRA_slice_choose_CB , (XtPointer) grapher ) ;
-      return ;
+      EXRETURN ;
    }
 #endif
 
@@ -2450,8 +2539,8 @@ void GRA_opt_CB( Widget w , XtPointer client_data , XtPointer call_data )
    if( w == grapher->opt_xaxis_clear_pb ){
       mri_free( grapher->xax_tsim ) ;
       grapher->xax_tsim = NULL ;
-      redraw_graph( grapher ) ;
-      return ;
+      redraw_graph( grapher , 0 ) ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_xaxis_pick_pb ){
@@ -2465,23 +2554,23 @@ void GRA_opt_CB( Widget w , XtPointer client_data , XtPointer call_data )
                   "No timeseries library\nexists to pick from!" ,
                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
       }
-      return ;
+      EXRETURN ;
    }
 
    if( w == grapher->opt_xaxis_center_pb ){
       if( grapher->cen_tsim != NULL ){
          mri_free( grapher->xax_tsim ) ;
          grapher->xax_tsim = mri_to_float( grapher->cen_tsim ) ;
-         redraw_graph(grapher) ;
+         redraw_graph(grapher,0) ;
       } else {
          XBell(XtDisplay(w),100) ;
       }
-      return ;
+      EXRETURN ;
    }
 
    /** shouldn't get to here, but who knows? **/
 
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -2492,7 +2581,9 @@ void GRA_fixup_xaxis( MCW_grapher * grapher )  /* 09 Jan 1998 */
    float top,bot , fac ;
    float * xxx ;
 
-   if( !GRA_VALID(grapher) || grapher->xax_tsim == NULL ) return ;
+ENTRY("GRA_fixup_xaxis") ;
+
+   if( !GRA_VALID(grapher) || grapher->xax_tsim == NULL ) EXRETURN ;
 
    npt = NPTS(grapher) ; nx = grapher->xax_tsim->nx ; npt = MIN(npt,nx) ;
    xxx = MRI_FLOAT_PTR(grapher->xax_tsim) ;
@@ -2513,9 +2604,9 @@ void GRA_fixup_xaxis( MCW_grapher * grapher )  /* 09 Jan 1998 */
    if( bot >= top ){
       mri_free(grapher->xax_tsim) ;
       grapher->xax_tsim == NULL ;
-      return ;
+      EXRETURN ;
    }
-   if( nover == 0 && fabs(top-1.0) < 0.001 && fabs(bot) < 0.001 ) return ;
+   if( nover == 0 && fabs(top-1.0) < 0.001 && fabs(bot) < 0.001 ) EXRETURN ;
 
    /* scale all of the timeseries */
 
@@ -2524,7 +2615,7 @@ void GRA_fixup_xaxis( MCW_grapher * grapher )  /* 09 Jan 1998 */
       if( xxx[ii] < WAY_BIG ) xxx[ii] = fac * (xxx[ii]-bot) ;
       else                    xxx[ii] = 0.0 ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -2535,17 +2626,19 @@ void GRA_pick_xaxis_CB( Widget wcall , XtPointer cd , MCW_choose_cbs * cbs )
    int its ;
    MRI_IMAGE * tsim ;
 
-   if( !GRA_VALID(grapher) || cbs->reason != mcwCR_timeseries ) return ;
+ENTRY("GRA_pick_xaxis_CB") ;
+
+   if( !GRA_VALID(grapher) || cbs->reason != mcwCR_timeseries ) EXRETURN ;
 
    its = cbs->ival ;
    if( its >= 0 && its < IMARR_COUNT(GLOBAL_library.timeseries) ){
       tsim = IMARR_SUBIMAGE(GLOBAL_library.timeseries,its) ;
       mri_free( grapher->xax_tsim ) ;
       grapher->xax_tsim = mri_to_float(tsim) ;
-      redraw_graph( grapher ) ;
+      redraw_graph( grapher , 0 ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -2556,10 +2649,12 @@ void GRA_wcsuffix_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cb
 {
    int ll , ii ;
 
+ENTRY("GRA_wcsuffix_choose_CB") ;
+
    if( cbs->reason != mcwCR_string ||
        cbs->cval   == NULL         || (ll=strlen(cbs->cval)) == 0 ){
 
-      XBell( XtDisplay(wcaller) , 100 ) ; return ;
+      XBell( XtDisplay(wcaller) , 100 ) ; EXRETURN ;
    }
 
    for( ii=0 ; ii < ll ; ii++ ){
@@ -2567,7 +2662,7 @@ void GRA_wcsuffix_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cb
           isspace(cbs->cval[ii]) ||
           cbs->cval[ii] == '/'     ){
 
-         XBell( XtDisplay(wcaller) , 100 ) ; return ;
+         XBell( XtDisplay(wcaller) , 100 ) ; EXRETURN ;
       }
    }
 
@@ -2581,7 +2676,7 @@ void GRA_wcsuffix_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cb
       Grapher_Stuff.wcsuffix[ll+2] = '\0' ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2594,13 +2689,15 @@ void GRA_mat_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_mat_choose_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
 
    grapher->mat = MIN( grapher->mat_max , cbs->ival ) ;
    init_mat    ( grapher ) ;
-   redraw_graph( grapher ) ;
+   redraw_graph( grapher , 0 ) ;
    send_newinfo( grapher ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2609,11 +2706,13 @@ void GRA_scale_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_scale_choose_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
 
    grapher->fscale = cbs->fval ;
-   redraw_graph( grapher ) ;
-   return ;
+   redraw_graph( grapher , 0 ) ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2622,10 +2721,12 @@ void GRA_grid_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_grid_choose_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
    grapher->grid_spacing = cbs->ival ;
-   redraw_graph(grapher) ;
-   return ;
+   redraw_graph(grapher,0) ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2634,10 +2735,12 @@ void GRA_pin_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_pin_choose_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
    grapher->pin_num = cbs->ival ;
-   redraw_graph(grapher) ;
-   return ;
+   redraw_graph(grapher,0) ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2647,14 +2750,16 @@ void GRA_ggap_CB( MCW_arrowval * cbs , XtPointer cd )  /* 12 Jan 1998 */
    MCW_grapher * grapher = (MCW_grapher *) cd ;
    int gg ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_ggap_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
 
    gg = grapher->ggap ; grapher->ggap = cbs->ival ;
    if( gg != grapher->ggap ){
-      init_mat( grapher ) ; redraw_graph( grapher ) ;
+      init_mat( grapher ) ; redraw_graph( grapher , 0 ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2667,14 +2772,16 @@ void GRA_slice_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_slice_choose_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
 
    grapher->zpoint = cbs->ival ;
    if( grapher->zpoint >= grapher->status->nz )
       grapher->zpoint = grapher->status->nz - 1 ;
-   redraw_graph( grapher ) ;
+   redraw_graph( grapher , 0 ) ;
    send_newinfo( grapher ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2687,7 +2794,9 @@ void GRA_ignore_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs 
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
 
-   if( ! GRA_VALID(grapher) || grapher->status->send_CB == NULL ) return ;
+ENTRY("GRA_ignore_choose_CB") ;
+
+   if( ! GRA_VALID(grapher) || grapher->status->send_CB == NULL ) EXRETURN ;
 
    if( cbs->ival >= 0 && cbs->ival < grapher->status->num_series-1 ){
       GRA_cbs gbs ;
@@ -2696,7 +2805,7 @@ void GRA_ignore_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs 
       gbs.key    = cbs->ival ;
       grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2709,14 +2818,16 @@ void GRA_refread_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs
    int ii ;
    GRA_cbs gbs ;
 
+ENTRY("GRA_refread_choose_CB") ;
+
    if( ! GRA_VALID(grapher)             ||
        grapher->status->send_CB == NULL ||
        cbs->reason != mcwCR_string      ||
-       cbs->cval == NULL                || strlen(cbs->cval) == 0 ) return ;
+       cbs->cval == NULL                || strlen(cbs->cval) == 0 ) EXRETURN ;
 
    tsim = mri_read_ascii( cbs->cval ) ;
    if( tsim == NULL || tsim->ny < 2 ){
-      XBell( grapher->dc->display , 100 ) ; mri_free(tsim) ; return ;
+      XBell( grapher->dc->display , 100 ) ; mri_free(tsim) ; EXRETURN ;
    }
 
    flim = mri_transpose(tsim) ; mri_free(tsim) ;
@@ -2728,7 +2839,7 @@ void GRA_refread_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs
    gbs.userdata = (XtPointer) flim ;
    grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
    mri_free( flim ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------*/
@@ -2758,11 +2869,13 @@ void GRA_refwrite_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cb
    int ii , ll ;
    GRA_cbs gbs ;
 
+ENTRY("GRA_refwrite_choose_CB") ;
+
    if( ! GRA_VALID(grapher)             ||
        grapher->ref_ts == NULL          ||
        IMARR_COUNT(grapher->ref_ts) < 1 ||
        cbs->reason != mcwCR_string      ||
-       cbs->cval == NULL                || (ll=strlen(cbs->cval)) == 0 ) return ;
+       cbs->cval == NULL                || (ll=strlen(cbs->cval)) == 0 ) EXRETURN ;
 
    for( ii=0 ; ii < ll ; ii++ ){
       if( iscntrl(cbs->cval[ii]) || isspace(cbs->cval[ii]) ||
@@ -2773,7 +2886,7 @@ void GRA_refwrite_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cb
           cbs->cval[ii] == '<'   || cbs->cval[ii] == '\''  ||
           cbs->cval[ii] == '['   || cbs->cval[ii] == ']'     ){
 
-         XBell( XtDisplay(wcaller) , 100 ) ; return ;
+         XBell( XtDisplay(wcaller) , 100 ) ; EXRETURN ;
       }
    }
 
@@ -2789,7 +2902,7 @@ void GRA_refwrite_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cb
       gbs.userdata = (XtPointer) IMARR_SUBIMAGE(grapher->ref_ts,0) ;
       grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2841,6 +2954,9 @@ OK   drive_code       drive_data should be
 *    graDR_newlength  (int) set the expected length of time series
                         to be some new value.
 
+*    graDR_button2_enable  (ignored) Turn button2 reporting on
+*    graDR_button2_disable (ignored) and off.
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -2863,6 +2979,18 @@ ENTRY("drive_MCW_grapher") ;
          RETURN( False ) ;
       }
       break ;
+
+      /*------ button2 stuff -----*/
+
+      case graDR_button2_enable:{
+         grapher->button2_enabled = 1 ;
+         RETURN( True ) ;
+      }
+
+      case graDR_button2_disable:{
+         grapher->button2_enabled = 0 ;
+         RETURN( True ) ;
+      }
 
       /*------ set time index -----*/
 
@@ -2893,7 +3021,7 @@ ENTRY("drive_MCW_grapher") ;
 #ifdef USE_OPTMENUS
          GRA_fix_optmenus( grapher ) ;
 #endif
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
          RETURN( True ) ;
       }
       break ;
@@ -2905,11 +3033,11 @@ ENTRY("drive_MCW_grapher") ;
          int new_ignore = (int) drive_data ;
 
 /**
-         if( new_ignore >= 0 && new_ignore < grapher->status->num_series-1 ){
+         if( new_ignore >= 0 && new_ignore < grapher->status->num_series-1 ){}
 **/
          if( new_ignore >= 0 ){
             grapher->init_ignore = new_ignore ;
-            redraw_graph( grapher ) ;
+            redraw_graph( grapher , 0 ) ;
             RETURN( True ) ;
          } else {
             RETURN( False ) ;
@@ -2938,7 +3066,7 @@ STATUS("replacing reference timeseries") ;
             }
          }
 
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
          RETURN( True ) ;
       }
 
@@ -2963,7 +3091,7 @@ STATUS("replacing ort timeseries") ;
             }
          }
 
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
          RETURN( True ) ;
       }
 
@@ -3086,7 +3214,7 @@ STATUS("graDR_redraw") ;
             if( xym[3] >  0 ) grapher->mat    = xym[3] ;
             init_mat(grapher) ;
          }
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
          RETURN( True ) ;
       }
 
@@ -3231,14 +3359,14 @@ ENTRY("GRA_fim_CB") ;
    else if( w == grapher->fmenu->fim_plot_firstref_pb ){
       if( grapher->ref_ts_plotall != 0 ){
          grapher->ref_ts_plotall = 0 ;
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
       }
    }
 
    else if( w == grapher->fmenu->fim_plot_allrefs_pb ){
       if( grapher->ref_ts_plotall == 0 ){
          grapher->ref_ts_plotall = 1 ;
-         redraw_graph( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
       }
    }
 
@@ -3435,7 +3563,9 @@ void GRA_setshift_action_CB( Widget w , XtPointer client_data , XtPointer call_d
    char * wname ;
    int ib , close_window ;
 
-   if( !GRA_REALZ(grapher) || grapher->dialog==NULL ) return ;
+ENTRY("GRA_setshift_action_CB") ;
+
+   if( !GRA_REALZ(grapher) || grapher->dialog==NULL ) EXRETURN ;
 
    wname = XtName(w) ;
 
@@ -3472,7 +3602,7 @@ void GRA_setshift_action_CB( Widget w , XtPointer client_data , XtPointer call_d
       myXtFree( grapher->setshift_inc_av)  ; grapher->setshift_inc_av   = NULL;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 void GRA_doshift( MCW_grapher * grapher )
@@ -3483,7 +3613,9 @@ void GRA_doshift( MCW_grapher * grapher )
    float shinc ;
    GRA_cbs gbs ;
 
-   if( !GRA_VALID(grapher) ) return ;
+ENTRY("GRA_doshift") ;
+
+   if( !GRA_VALID(grapher) ) EXRETURN ;
 
    if( grapher->status->send_CB == NULL                       ||
        grapher->setshift_inc <= 0.0                           ||
@@ -3491,7 +3623,7 @@ void GRA_doshift( MCW_grapher * grapher )
        grapher->ref_ts == NULL                                ||
        IMARR_COUNT(grapher->ref_ts) == 0                        ){
 
-      XBell( grapher->dc->display , 100 ) ; return ;
+      XBell( grapher->dc->display , 100 ) ; EXRETURN ;
    }
 
    tsim = IMARR_SUBIMAGE(grapher->ref_ts,0) ; /* current ref */
@@ -3526,7 +3658,7 @@ void GRA_doshift( MCW_grapher * grapher )
    gbs.userdata = (XtPointer) newim ;
    grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
    mri_free( newim ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------
@@ -3539,6 +3671,8 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
    FIM_menu * fmenu ;
    static char * redcolor = NULL ;
    Widget qbut_menu = NULL ;
+
+ENTRY("AFNI_new_fim_menu") ;
 
    fmenu = myXtNew(FIM_menu) ;
    fmenu->cbfunc = cbfunc ;
@@ -3813,7 +3947,7 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
 
    MCW_set_bbox( fmenu->fimp_opt_bbox , FIM_DEFAULT_MASK ) ;
 
-   return fmenu ;
+   RETURN(fmenu) ;
 }
 
 /*-----------------------------------------------------------------------------
@@ -3834,7 +3968,9 @@ void GRA_transform_CB( MCW_arrowval * av , XtPointer cd )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_transform_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
 
    /** set the 0D transform function pointer **/
 
@@ -3866,8 +4002,8 @@ void GRA_transform_CB( MCW_arrowval * av , XtPointer cd )
       }
    }
 
-   redraw_graph( grapher ) ;
-   return ;
+   redraw_graph( grapher , 0 ) ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------
@@ -3878,9 +4014,11 @@ void GRA_dplot_change_CB( Widget w , XtPointer client_data , XtPointer call_data
 {
    MCW_grapher * grapher = (MCW_grapher *) client_data ;
 
-   if( ! GRA_VALID(grapher) ) return ;
-   redraw_graph( grapher ) ;
-   return ;
+ENTRY("GRA_dplot_change_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
+   redraw_graph( grapher , 0 ) ;
+   EXRETURN ;
 }
 
 #ifdef USE_OPTMENUS
@@ -3893,7 +4031,9 @@ void GRA_fix_optmenus( MCW_grapher * grapher )
 {
    int igtop ;
 
-   if( ! GRA_REALZ(grapher) ) return ;
+ENTRY("GRA_fix_optmenus") ;
+
+   if( ! GRA_REALZ(grapher) ) EXRETURN ;
 
    /** matrix selection **/
 
@@ -3927,15 +4067,16 @@ void GRA_fix_optmenus( MCW_grapher * grapher )
    else
       AV_assign_ival( grapher->fmenu->fim_ignore_choose_av , grapher->init_ignore ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 void GRA_fmenu_av_CB( MCW_arrowval * av , XtPointer cd )
 {
    FIM_menu * fmenu = (FIM_menu *) cd ;
 
+ENTRY("GRA_fmenu_av_CB") ;
    fmenu->cbfunc( av->wrowcol , cd , NULL ) ;
-   return ;
+   EXRETURN ;
 }
 #endif /* USE_OPTMENUS */
 
@@ -3948,7 +4089,9 @@ void GRA_color_CB( MCW_arrowval * av , XtPointer cd )
    MCW_grapher * grapher = (MCW_grapher *) cd ;
    int ii , jj ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_color_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )
       if( av == grapher->opt_color_av[ii] ) break ;
@@ -3956,9 +4099,9 @@ void GRA_color_CB( MCW_arrowval * av , XtPointer cd )
    if( ii < NUM_COLOR_ITEMS ){
       jj = grapher->color_index[ii] ;
       grapher->color_index[ii] = av->ival ;
-      if( jj != grapher->color_index[ii] ) redraw_graph( grapher ) ;
+      if( jj != grapher->color_index[ii] ) redraw_graph( grapher , 0 ) ;
    }
-   return ;
+   EXRETURN ;
 }
 
 void GRA_thick_CB( Widget w , XtPointer cd , XtPointer call_data )
@@ -3966,7 +4109,9 @@ void GRA_thick_CB( Widget w , XtPointer cd , XtPointer call_data )
    MCW_grapher * grapher = (MCW_grapher *) cd ;
    int ii , jj ;
 
-   if( ! GRA_VALID(grapher) ) return ;
+ENTRY("GRA_thick_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )
       if( grapher->opt_thick_bbox[ii] != NULL &&
@@ -3975,8 +4120,8 @@ void GRA_thick_CB( Widget w , XtPointer cd , XtPointer call_data )
    if( ii < NUM_COLOR_ITEMS ){
       jj = grapher->thick_index[ii] ;
       grapher->thick_index[ii] = MCW_val_bbox( grapher->opt_thick_bbox[ii] ) ;
-      if( jj != grapher->thick_index[ii] ) redraw_graph( grapher ) ;
-      return ;
+      if( jj != grapher->thick_index[ii] ) redraw_graph( grapher , 0 ) ;
+      EXRETURN ;
    }
 
    /* 09 Jan 1998 */
@@ -3988,11 +4133,11 @@ void GRA_thick_CB( Widget w , XtPointer cd , XtPointer call_data )
    if( ii < NUM_COLOR_ITEMS ){
       jj = grapher->points_index[ii] ;
       grapher->points_index[ii] = MCW_val_bbox( grapher->opt_points_bbox[ii] ) ;
-      if( jj != grapher->points_index[ii] ) redraw_graph( grapher ) ;
-      return ;
+      if( jj != grapher->points_index[ii] ) redraw_graph( grapher , 0 ) ;
+      EXRETURN ;
    }
 
-   return ;  /* should not be reached */
+   EXRETURN ;  /* should not be reached */
 }
 
 /*--------------------------------------------------------------------------
@@ -4005,12 +4150,14 @@ void GRA_saver_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
    MCW_grapher * grapher = (MCW_grapher *) cd ;
    char * fname , * ppnm ;
 
-   if( ! GRA_REALZ(grapher) ) return ;
+ENTRY("GRA_saver_CB") ;
+
+   if( ! GRA_REALZ(grapher) ) EXRETURN ;
 
    if( cbs->reason != mcwCR_string ||
        cbs->cval   == NULL         || (ll=strlen(cbs->cval)) == 0 ){
 
-      XBell( XtDisplay(wcaller) , 100 ) ; return ;
+      XBell( XtDisplay(wcaller) , 100 ) ; EXRETURN ;
    }
 
    fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
@@ -4026,7 +4173,7 @@ void GRA_saver_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 
    if( ii < ll || ll < 2 || ll > 240 ){
       XBell( XtDisplay(wcaller) , 100 ) ;
-      free( fname ) ; return ;
+      free( fname ) ; EXRETURN ;
    }
 
    ppnm = strstr( fname , ".pnm." ) ;
@@ -4035,7 +4182,7 @@ void GRA_saver_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 
    GRA_file_pixmap( grapher , fname ) ;
    POPDOWN_string_chooser ;
-   free(fname) ; return ;
+   free(fname) ; EXRETURN ;
 }
 
 void GRA_file_pixmap( MCW_grapher * grapher , char * fname )
@@ -4045,23 +4192,25 @@ void GRA_file_pixmap( MCW_grapher * grapher , char * fname )
    MRI_IMAGE * tim ;
    int ii ;
 
-   if( ! GRA_REALZ(grapher) ) return ;
-   if( grapher->fd_pxWind == (Pixmap) 0 ) return ;
+ENTRY("GRA_file_pixmap") ;
+
+   if( ! GRA_REALZ(grapher) ) EXRETURN ;
+   if( grapher->fd_pxWind == (Pixmap) 0 ) EXRETURN ;
 
    ii = XGetGCValues( grapher->dc->display ,
                       grapher->dc->myGC , GCPlaneMask , &gcv ) ;
-   if( ii == 0 ) return ;
+   if( ii == 0 ) EXRETURN ;
 
    xim = XGetImage( grapher->dc->display , grapher->fd_pxWind ,
                     0 , 0 , grapher->fWIDE , grapher->fHIGH ,
                     gcv.plane_mask , ZPixmap ) ;
-   if( xim == NULL ) return ;
+   if( xim == NULL ) EXRETURN ;
 
    tim = XImage_to_mri( grapher->dc , xim ) ;
-   if( tim == NULL ){ MCW_kill_XImage( xim ) ; return ; }
+   if( tim == NULL ){ MCW_kill_XImage( xim ) ; EXRETURN ; }
 
    mri_write_pnm( fname , tim ) ;
    fprintf(stderr,"Writing one PNM image to file %s\n",fname) ;
    mri_free( tim ) ;
-   return ;
+   EXRETURN ;
 }

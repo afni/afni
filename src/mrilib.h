@@ -55,6 +55,8 @@ typedef enum MRI_TYPE {
 static char * MRI_TYPE_name[7] =
   { "byte" , "short" , "int" , "float" , "double" , "complex" , "rgb" } ;
 
+#define MRI_type_name MRI_TYPE_name  /* because I forget */
+
 static float MRI_TYPE_maxval[7] =
   { 255.0 , 32767.0 , 2147483647 , 0.0,0.0,0.0 , 255.0 } ;
 
@@ -533,8 +535,13 @@ extern double poisson_t2p ( double xx , double lambda ) ;
 #include "mcw_glob.h"
 /*------------------------------------------------------------------------*/
 
-/*-----------------  02 Feb 1998: incoroporation of 3ddata ---------------*/
+/*-----------------  02 Feb 1998:
+                     incoroporation of 3ddata, 3dmaker, iochan -----------*/
+                               
 #include "3ddata.h"
+#include "thd_maker.h"
+#include "thd_iochan.h"
+#include "editvol.h"
 /*------------------------------------------------------------------------*/
 
 #endif /* _MCW_MRILIB_HEADER_ */

@@ -1,5 +1,20 @@
+/*---------------------------------------------------------------------------*/
+/*
+  This program creates AFNI "bucket" type datasets.
+
+  File:    3dbucket.c
+  Author:  R. W. Cox
+  Date:    17 December 1997
+
+
+  Mod:     Changes to implement "-glueto" command option. 
+           Also, modified output to preserve sub-brick labels.
+  Author:  B. D. Ward
+  Date:    04 February 1998
+
+*/
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1997 by
+  This software is Copyright 1997, 1998 by
 
             Medical College of Wisconsin
             8701 Watertown Plank Road
@@ -12,8 +27,10 @@
   is not allowed.
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
-#include "3ddata.h"
-#include "editvol.h"
+#define PROGRAM_NAME "3dbucket"                      /* name of this program */
+#define LAST_MOD_DATE "04 February 1998"         /* date of last program mod */
+
+#include "mrilib.h"
 
 #ifndef myXtFree
 #   define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
@@ -27,6 +44,7 @@ static int                      BUCK_nvox  = -1 ;
 static int                      BUCK_dry   = 0 ;
 static int                      BUCK_verb  = 0 ;
 static int                      BUCK_type  = -1 ;
+static int                      BUCK_glue  = 0 ;
 
 static char BUCK_output_prefix[THD_MAX_PREFIX] = "buck" ;
 static char BUCK_session[THD_MAX_NAME]         = "./"   ;
@@ -53,6 +71,8 @@ void BUCK_read_opts( int argc , char * argv[] )
    char * cpt ;
    THD_3dim_dataset * dset ;
    int * svar ;
+   char * str;
+   int ok, ilen, nlen;
 
    INIT_3DARR(BUCK_dsar) ;
    INIT_XTARR(BUCK_subv) ;
@@ -63,6 +83,10 @@ void BUCK_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-prefix",6) == 0 ||
           strncmp(argv[nopt],"-output",6) == 0   ){
+	 if (BUCK_glue){
+            fprintf(stderr,"-prefix and -glueto options are not compatible\n");
+	    exit(1) ;
+	 }	   
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"need argument after -prefix!\n") ; exit(1) ;
@@ -74,6 +98,11 @@ void BUCK_read_opts( int argc , char * argv[] )
       /**** -session directory ****/
 
       if( strncmp(argv[nopt],"-session",6) == 0 ){
+	 if (BUCK_glue){
+            fprintf(stderr,
+		    "-session and -glueto options are not compatible\n");
+	    exit(1) ;
+	 }	   
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"need argument after -session!\n") ; exit(1) ;
@@ -102,6 +131,61 @@ void BUCK_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      if( strncmp(argv[nopt],"-glueto",5) == 0 ){
+	 if( strncmp(BUCK_output_prefix, "buck", 5) != 0 ){
+            fprintf(stderr,"-prefix and -glueto options are not compatible\n");
+	    exit(1) ;
+	 }	   
+	 if( strncmp(BUCK_session, "./", 5) != 0 ){
+            fprintf(stderr,
+		    "-session and -glueto options are not compatible\n");
+	    exit(1) ;
+	 }	   
+	 BUCK_glue = 1 ;
+         nopt++ ;
+         if( nopt >= argc ){
+            fprintf(stderr,"need argument after -glueto!\n") ; exit(1) ;
+         }
+
+	 /*----- Verify that file name ends in View Type -----*/
+	 ok = 1;
+	 nlen = strlen(argv[nopt]);
+	 if (nlen <= 5) ok = 0;
+
+	 if (ok) 
+	   {
+	     for (ilen = 0;  ilen < nlen;  ilen++)
+	       {
+		 str = argv[nopt] + ilen;
+		 if (str[0] == '+') break;
+	       }
+	     if (ilen == nlen)  ok = 0;
+	   }
+	       
+	 if (ok)
+	   {
+	     str = argv[nopt] + ilen + 1;
+	 
+	     for (ii=FIRST_VIEW_TYPE ; ii <= LAST_VIEW_TYPE ; ii++)
+	       if (! strncmp(str,VIEW_codestr[ii],4)) break ;
+	
+	     if( ii > LAST_VIEW_TYPE )  ok = 0;
+	   }
+
+	 if (! ok)
+	   {
+	     fprintf(stderr, 
+	       "File name must end in +orig, +acpc, or +tlrc after -glueto\n");
+	     exit(1);
+	   }
+	 
+	 /*----- Remove View Type from string to make output prefix -----*/ 
+         MCW_strncpy( BUCK_output_prefix , argv[nopt] , ilen+1) ;
+
+	 /*----- Note: no "continue" statement here.  File name will now
+	   be processed as an input dataset -----*/
+      }
+      
       if( argv[nopt][0] == '-' ){
          fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; exit(1) ;
       }
@@ -282,6 +366,9 @@ void BUCK_Syntax(void)
     "\n"
     "     -session dir  = Use 'dir' for the output dataset session directory.\n"
     "                       [default='./'=current working directory]\n"
+    "     -glueto fname = Append bricks to the end of the 'fname' dataset.\n"
+    "                       This command is an alternative to the -prefix \n"
+    "                       and -session commands.                        \n"
     "     -dry          = Execute a 'dry run'; that is, only print out\n"
     "                       what would be done.  This is useful when\n"
     "                       combining sub-bricks from multiple inputs.\n"
@@ -292,8 +379,8 @@ void BUCK_Syntax(void)
     "                       these options is given, the output type is\n"
     "                       determined from the first input type.\n"
     "\n"
-    "Other arguments are taken as input datasets.  A dataset is specified\n"
-    "using one of the forms\n"
+    "Command line arguments after the above are taken as input datasets.\n"
+    "A dataset is specified using one of these forms:\n"
     "   'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.\n"
     "You can also add a sub-brick selection list after the end of the\n"
     "dataset name.  This allows only a subset of the sub-bricks to be\n"
@@ -339,6 +426,11 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * new_dset=NULL , * dset ;
    char buf[256] ;
 
+   /*----- identify program -----*/
+   printf ("\n\nProgram %s \n", PROGRAM_NAME);
+   printf ("Last revision: %s \n\n", LAST_MOD_DATE);
+
+
    /*** read input options ***/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) BUCK_Syntax() ;
@@ -368,10 +460,18 @@ int main( int argc , char * argv[] )
                       ADN_nvals         , new_nvals ,
                     ADN_none ) ;
 
-   if( THD_is_file(DSET_HEADNAME(new_dset)) ){
-      fprintf(stderr,"*** Fatal error: file %s already exists!\n",
-              DSET_HEADNAME(new_dset) ) ;
-      exit(1) ;
+   /* can't re-write existing dataset, unless glueing is used */
+
+   if (! BUCK_glue){
+     if( THD_is_file(DSET_HEADNAME(new_dset)) ){
+       fprintf(stderr,"*** Fatal error: file %s already exists!\n",
+	       DSET_HEADNAME(new_dset) ) ;
+       exit(1) ;
+     }
+   } else {   /* if glueing is used, make the 'new'
+                 dataset have the same idcode as the old one */
+
+      new_dset->idcode = DSUB(0) -> idcode ;  /* copy the struct */
    }
 
    THD_force_malloc_type( new_dset->dblk , DATABLOCK_MEM_MALLOC ) ;
@@ -403,7 +503,12 @@ int main( int argc , char * argv[] )
             EDIT_substitute_brick( new_dset , ivout ,
                                    DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
 
-            sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
+	    /*----- If this sub-brick is from a bucket dataset, 
+	      preserve the label for this sub-brick -----*/
+	    if (dset->func_type == FUNC_BUCK_TYPE)
+	      sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
+	    else
+	      sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
             EDIT_dset_items( new_dset , ADN_brick_label_one+ivout, buf , ADN_none ) ;
 
             sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;

@@ -1,5 +1,4 @@
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 #include <string.h>
 
 /******

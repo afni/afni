@@ -1,5 +1,19 @@
+/*---------------------------------------------------------------------------*/
+/*
+  This program performs editing and/or merging of 3D datasets.
+
+  File:    3dmerge.c
+  Author:  R. W. Cox
+  Date:    
+
+
+  Mod:     Changes to implement "-doall" command option. 
+  Author:  B. D. Ward
+  Date:    04 February 1998
+
+*/
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1994-6 by
+  This software is Copyright 1994-8 by
 
             Medical College of Wisconsin
             8701 Watertown Plank Road
@@ -7,28 +21,21 @@
 
   License is granted to use this program for nonprofit research purposes only.
   It is specifically against the license to use this program for any clinical
-  application.  The Medical College of Wisconsin makes no warranty of usefulness
+  application. The Medical College of Wisconsin makes no warranty of usefulness
   of this program for any particular purpose.  The redistribution of this
   program for a fee, or the derivation of for-profit works from this program
   is not allowed.
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
+#define PROGRAM_NAME "3dmerge"                       /* name of this program */
+#define LAST_MOD_DATE "04 February 1998"         /* date of last program mod */
 
-#define NEED_EDIT_HELP
-#include "editvol.h" 
+#include "mrilib.h" 
 
 #define MAIN
 #define MEGA  1048576  /* 2^20 */
 
 #undef USE_GNU_MALLOC
 #undef MALLOC_TRACE
-
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#  define PRINT_TRACING
-#else
-#  undef  USE_TRACING
-#endif
-#include "dbtrace.h"
 
 #ifndef myXtFree
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
@@ -67,6 +74,7 @@ static int   MRG_datum        = ILLEGAL_TYPE ;
 static int   MRG_thdatum      = ILLEGAL_TYPE ;
 static int   MRG_be_quiet     = 0 ;
 static int   MRG_cflag_gthr   = THFLAG_NONE ;  /* 29 Aug 1996 */
+static int   MRG_doall        = 0;             /* 02 Feb 1998 */
 
 static char  MRG_output_session[THD_MAX_NAME]   = "./" ;
 static char  MRG_output_prefix [THD_MAX_PREFIX] = "mrg" ;
@@ -100,8 +108,6 @@ int MRG_read_opts( int argc , char * argv[] )
    float val ;
    int  ival ;
 
-ENTRY("MRG_read_opts") ;
-
    INIT_EDOPT( &MRG_edopt ) ;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -126,6 +132,13 @@ ENTRY("MRG_read_opts") ;
 
       if( strncmp(argv[nopt],"-keepthr",6) == 0 ){
          MRG_keepthr = 1 ;
+         nopt++ ; continue ;
+      }
+
+      /**** -doall ****/   /* 02 Feb 1998 */
+
+      if( strncmp(argv[nopt],"-doall",6) == 0 ){
+         MRG_doall = 1 ;
          nopt++ ; continue ;
       }
 
@@ -338,7 +351,7 @@ DUMP1 ;
    }
 #endif
 
-   RETURN( nopt );
+   return( nopt );
 }
 
 /*------------------------------------------------------------------*/
@@ -369,6 +382,19 @@ void MRG_Syntax(void)
     "                  combine 2 or more datasets.\n"
     "          N.B.: The -datum option has no effect on the storage of the\n"
     "                  threshold data.  Instead use '-thdatum type'.\n"
+    "\n"
+    "  -doall      = Apply editing and merging options to ALL sub-bricks \n"
+    "                  uniformly in a dataset.\n"
+    "          N.B.: All datasets must have the same number of sub-bricks \n"
+    "                  when using the -doall option. \n"
+    "          N.B.: The threshold specific options (such as -1thresh, \n"
+    "                  -keepthr, -tgfisher, etc.) are not compatible with \n"
+    "                  the -doall command. \n"
+    "          N.B.: All labels and statistical parameters for individual \n"
+    "                  sub-bricks are copied from the first dataset.  It is \n"
+    "                  the responsibility of the user to verify that these \n"
+    "                  are appropriate.  Note that sub-brick auxiliary data \n"
+    "                  can be modified using program 3drefit. \n"
     "\n"
 
     "MERGING OPTIONS APPLIED TO FORM THE OUTPUT DATASET:\n"
@@ -481,7 +507,11 @@ int main( int argc , char * argv[] )
    int   num_fico ;
    int   is_int=1 ;   /* 08 Jan 1998 */
 
-ENTRY("3dmerge MAIN") ;
+   int iv, iv_bot, iv_top;      /* dataset sub-brick indices    02 Feb 1998 */
+
+   /*----- identify program -----*/
+   printf ("\n\nProgram %s \n", PROGRAM_NAME);
+   printf ("Last revision: %s \n\n", LAST_MOD_DATE);
 
    /*** read input options ***/
 
@@ -496,6 +526,35 @@ ENTRY("3dmerge MAIN") ;
    if( first_file < 1 || first_file >= argc ){
       fprintf(stderr,"*** ILLEGAL COMMAND LINE ***\n") ; exit(1) ;
    }
+
+   /*----- check for compatibility of user options -----*/ /* 02 Feb 1998 */
+   if (MRG_doall)
+     { int nerr = 0 ;
+
+       if (MRG_edopt.thtoin > 0)  {
+	 fprintf (stderr, "-thtoin is not compatible with -doall option \n");
+	 nerr++ ;  }
+       if (MRG_edopt.thresh > 0.0)  {
+	 fprintf (stderr, "-1thresh is not compatible with -doall option \n");
+	 nerr++ ;  }
+       if (MRG_edopt.thrfilter_opt > 0)  {
+	 fprintf (stderr, "-t1filter is not compatible with -doall option \n");
+	 nerr++ ;  }
+       if (MRG_edopt.thrblur > 0.0)  {
+	 fprintf (stderr, "-t1blur is not compatible with -doall option \n");
+	 nerr++ ;  }
+       if (MRG_thdatum >= 0)  {
+	 fprintf (stderr, "-thdatum is not compatible with -doall option \n");
+	 nerr++ ;  }
+       if (MRG_keepthr)  {
+	 fprintf (stderr, "-keepthr is not compatible with -doall option \n");
+	 nerr++ ;  }
+       if (MRG_cflag_gthr > 0)  {
+	 fprintf (stderr, "-tgfisher is not compatible with -doall option \n");
+	 nerr++ ;  }
+
+       if( nerr > 0 ) exit(1) ;
+     }
    
    /* check for existence of each input data set. */   /* 09 December 1996 */
    for (file_num = first_file;  file_num < argc;  file_num++)
@@ -554,7 +613,8 @@ ENTRY("3dmerge MAIN") ;
                        ADN_none ) ;
       strcat( new_dset->self_name , "(ED)" ) ;
 
-      if( ! MRG_keepthr && new_dset->dblk->nvals > 1 )
+                                                           /* 02 Feb 1998 */
+      if( (! MRG_keepthr) && (new_dset->dblk->nvals > 1) && (! MRG_doall) )
          EDIT_dset_items( new_dset ,
                              ADN_nvals , 1 ,
                              ADN_func_type , FUNC_FIM_TYPE ,
@@ -580,9 +640,22 @@ ENTRY("3dmerge MAIN") ;
          printf("-- editing input dataset in memory (%.1f MB)",
                 ((double)dset->dblk->total_bytes) / MEGA ) ;
          fflush(stdout) ;
-      } else {
-STATUS("editing input dataset now") ;
       }
+
+
+  /* 02 Feb 1998 */  
+  if (MRG_doall)
+    {  iv_bot = 0;  iv_top = DSET_NVALS(dset);  }
+  else
+    {  iv_bot = DSET_PRINCIPAL_VALUE(dset);  iv_top = iv_bot + 1;  }
+
+  /*----- Iterate over sub-bricks -----*/
+  for (iv = iv_bot;  iv < iv_top;  iv++)
+    {
+      if ((!MRG_be_quiet) && MRG_doall)
+	printf ("Editing sub-brick %d \n", iv);
+
+      MRG_edopt.iv_fim = iv;
 
       EDIT_one_dataset( dset , &MRG_edopt ) ;  /* all the real work */
 
@@ -590,15 +663,22 @@ STATUS("editing input dataset now") ;
 
       /** Coerce the output data type into a new brick, if needed **/
 
+  /* 02 Feb 1998 */
+  if (MRG_doall)
+    {
+      ival = iv;  
+      ii = iv;
+    }
+  else
+    {
       ival = DSET_PRINCIPAL_VALUE(dset) ;
-      ii   = DSET_PRINCIPAL_VALUE(new_dset) ;
+      ii   = DSET_PRINCIPAL_VALUE(new_dset) ; 
+    }
 
       if( input_datum == output_datum ){
 
          /** Attach the brick of the input dataset to the brick of the output.  **/
          /** (This isn't exactly kosher, but we are exiting almost immediately) **/
-
-STATUS("connecting edited input to be output") ;
 
          mri_fix_data_pointer( DSET_ARRAY(dset,ival) , DSET_BRICK(new_dset,ii) ) ;
 
@@ -614,8 +694,6 @@ STATUS("connecting edited input to be output") ;
          if( ! MRG_be_quiet ){
             printf("-- coercing output datum to be %s\n",
                    MRI_TYPE_name[output_datum]);
-         } else {
-STATUS("coercing output brick from edited input brick") ;
          }
 
          efim = DSET_ARRAY(dset,ival) ;
@@ -640,8 +718,6 @@ STATUS("coercing output brick from edited input brick") ;
 
          if( input_thdatum == output_thdatum ){
 
-STATUS("connecting input and output thresholds") ;
-
             mri_fix_data_pointer( DSET_ARRAY(dset,ival),DSET_BRICK(new_dset,ii) ) ;
 
             DSET_BRICK_FACTOR(new_dset,ii) = DSET_BRICK_FACTOR(dset,ival) ;
@@ -652,8 +728,6 @@ STATUS("connecting input and output thresholds") ;
             if( ! MRG_be_quiet ){
                printf("-- coercing threshold datum to be %s\n",
                       MRI_TYPE_name[output_thdatum]);
-            } else {
-STATUS("coercing output threshold brick from input threshold brick") ;
             }
 
             efim = DSET_ARRAY(dset,ival) ;
@@ -714,6 +788,8 @@ STATUS("coercing output threshold brick from input threshold brick") ;
          }
       }
 
+    }  /* iv    End of iteration over sub-bricks */
+
       if( ! MRG_be_quiet )
          printf("-- Writing edited dataset in files\n"
                 "   %s and %s\n",
@@ -744,7 +820,8 @@ STATUS("coercing output threshold brick from input threshold brick") ;
    strcat( new_dset->self_name , "(MG)" ) ;
 
    /* 29 Aug 1996: change the dataset type, depending on the merger type */
-
+   
+ if (! MRG_doall)   /* 02 Feb 1998 */
    switch( MRG_cflag_gthr ){
        default:
           EDIT_dset_items( new_dset , ADN_nvals , 1 , ADN_none ) ;
@@ -766,6 +843,21 @@ STATUS("coercing output threshold brick from input threshold brick") ;
 
    if( ! MRG_be_quiet && MRG_keepthr )
       printf("-- ignoring -keepthr option\n") ;
+
+
+  /* 02 Feb 1998 */  
+  if (MRG_doall)
+    {  iv_bot = 0;  iv_top = DSET_NVALS(dset);  }
+  else
+    {  iv_bot = DSET_PRINCIPAL_VALUE(dset);  iv_top = iv_bot + 1;  }
+
+  /*----- Iterate over sub-bricks -----*/
+  for (iv = iv_bot;  iv < iv_top;  iv++)
+    {
+      if ((!MRG_be_quiet) && MRG_doall)
+	printf ("Editing sub-brick %d \n", iv);
+
+      MRG_edopt.iv_fim = iv;   
 
    /* make space for the merger computations */
 
@@ -792,13 +884,15 @@ STATUS("coercing output threshold brick from input threshold brick") ;
    }
 
    /***--- read datasets, edit them, add them into gfim and gnum ---***/
+   /* 02 Feb 1998 */
+   if (MRG_doall)   { THD_delete_3dim_dataset (dset, False);  dset = NULL; } 
 
    num_dset = 0 ;
    for( file_num=first_file; file_num < argc ; file_num++ ){
 
       /** don't need to re-read 1st dataset **/
 
-      if( file_num > first_file ){
+      if ( (file_num > first_file) || (MRG_doall) ){       /* 02 Feb 1998 */
          dset = THD_open_one_dataset( argv[file_num] ) ;
          if( ! ISVALID_3DIM_DATASET(dset) ){
             fprintf(stderr,"*** cannot open dataset %s\n",argv[file_num]) ; exit(1) ;
@@ -815,7 +909,13 @@ STATUS("coercing output threshold brick from input threshold brick") ;
          exit(1) ;
       }
 
-      if( DSET_NUM_TIMES(dset) > 1 ){                              /* no time     */
+      /* 02 Feb 1998 */
+      if ( (MRG_doall) && (DSET_NVALS(dset) != iv_top) )
+	fprintf (stderr, "*** dataset nvals mismatch at file %s\n",
+		 argv[file_num]);
+
+
+      if( DSET_NUM_TIMES(dset) > 1 && !MRG_doall ){                /* no time     */
          fprintf(stderr,                                           /* dependence! */
                  "*** cannot use time-dependent dataset %s\n",argv[file_num]) ;
          exit(1) ;
@@ -852,7 +952,8 @@ STATUS("coercing output threshold brick from input threshold brick") ;
 
       /* get the control information about this dataset */
 
-      ival  = DSET_PRINCIPAL_VALUE(dset) ;
+      if (MRG_doall)  ival = iv;   /* 02 Feb 1998 */
+      else            ival = DSET_PRINCIPAL_VALUE(dset) ;
       datum = DSET_BRICK_TYPE(dset,ival) ;
 
       if( ! AFNI_GOOD_FUNC_DTYPE(datum) ){
@@ -867,8 +968,6 @@ STATUS("coercing output threshold brick from input threshold brick") ;
       }
 
       /* mess with the input data */
-
-STATUS("loading (and editing?) one dataset") ;
 
       if( MRG_have_edopt )
          EDIT_one_dataset( dset , &MRG_edopt ) ;  /* some real work */
@@ -896,12 +995,6 @@ STATUS("loading (and editing?) one dataset") ;
       /** 08 Jan 1998: check if all inputs are integer types **/
 
       is_int = is_int && (MRI_IS_INT_TYPE(datum) && fimfac == 0.0) ;
-
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"scaling to floats with factor %g",fimfac) ;
-  STATUS(str) ; }
-#endif
 
       EDIT_coerce_scale_type( nxyz , fimfac ,
                               DSET_BRICK_TYPE(dset,ival) , DSET_ARRAY(dset,ival) ,
@@ -936,8 +1029,6 @@ STATUS("loading (and editing?) one dataset") ;
       THD_delete_3dim_dataset( dset , False ) ; dset = NULL ; /* no longer needed */
 
       /*** merge tfim into gfim and gnum ***/
-
-STATUS("merging edited data") ;
 
       if( MRG_cflag_g == CFLAG_MMAX ){
          for( ii=0 ; ii < nxyz ; ii++ ){
@@ -1127,14 +1218,14 @@ STATUS("merging edited data") ;
          dfim = (void *) XtMalloc( sizeof(complex) * nxyz ) ;
          EDIT_coerce_type( nxyz , MRI_float,gfim , MRI_complex,dfim ) ;
          myXtFree( gfim ) ;
-         EDIT_substitute_brick( new_dset , 0 , MRI_complex , dfim ) ;
-         DSET_BRICK_FACTOR(new_dset,0) = 0.0 ;
+         EDIT_substitute_brick( new_dset , ival , MRI_complex , dfim ) ;
+         DSET_BRICK_FACTOR(new_dset,ival) = 0.0 ;
       }
       break ;
 
       case MRI_float:
-         EDIT_substitute_brick( new_dset , 0 , MRI_float , gfim ) ;
-         DSET_BRICK_FACTOR(new_dset,0) = 0.0 ;
+         EDIT_substitute_brick( new_dset , ival , MRI_float , gfim ) ;
+         DSET_BRICK_FACTOR(new_dset,ival) = 0.0 ;
       break ;
 
       case MRI_byte:
@@ -1153,18 +1244,11 @@ STATUS("merging edited data") ;
             fimfac = MRI_TYPE_maxval[output_datum] / gtop ;
          }
 
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"max value in output = %g",gtop) ; STATUS(str) ;
-  sprintf(str,"scaling to %ss with factor %g",MRI_TYPE_name[output_datum],fimfac) ;
-  STATUS(str) ; }
-#endif
-
          dfim = (void *) XtMalloc( mri_datum_size(output_datum) * nxyz ) ;
          EDIT_coerce_scale_type( nxyz,fimfac , MRI_float,gfim , output_datum,dfim ) ;
          myXtFree( gfim ) ;
-         EDIT_substitute_brick( new_dset , 0 , output_datum , dfim ) ;
-         DSET_BRICK_FACTOR(new_dset,0) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
+         EDIT_substitute_brick( new_dset , ival , output_datum , dfim ) ;
+         DSET_BRICK_FACTOR(new_dset,ival) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
       }
       break ;
    }
@@ -1194,6 +1278,9 @@ STATUS("merging edited data") ;
           EDIT_dset_items( new_dset , ADN_func_type,FUNC_THR_TYPE , ADN_none ) ;
       }
    }
+
+ }  /* iv    End of iteration over sub-bricks */
+
 
    /*** write to disk!!! ***/
 

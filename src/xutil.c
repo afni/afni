@@ -157,7 +157,7 @@ void MCW_discard_events( Widget w , int ev_mask )
 {
    XEvent evjunk ;
 
-   if( XtWindow(w) == (Window) NULL ) return ;
+   if( w == NULL || XtWindow(w) == (Window) NULL ) return ;
 
    while( XCheckWindowEvent( XtDisplay(w), XtWindow(w) , ev_mask , &evjunk ) ) ;
    return ;
@@ -203,6 +203,8 @@ Widget MCW_action_area( Widget parent, MCW_action_item * action, int num_act )
 
       XtAddCallback( ww , XmNactivateCallback ,
                      action[ii].func_CB , action[ii].data ) ;
+
+      action[ii].data = (XtPointer) ww ;  /* Feb 1998: save widget */
 
       if( action[ii].help_text != NULL )
          MCW_register_help( ww , action[ii].help_text ) ;

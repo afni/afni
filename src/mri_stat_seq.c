@@ -88,7 +88,7 @@ MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * imin )
 /*** case: make report on results, and reset static data ***/
 
    if( nim < 1 ){
-      fprintf(stderr,"mri_stat_seq: # images input=%d; too small!\n") ;
+      fprintf(stderr,"mri_stat_seq: # images input=%d; too small!\n",nim) ;
       exit(1) ;
    }
 

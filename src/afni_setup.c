@@ -326,28 +326,30 @@ int check_PBAR_palette( PBAR_palette * pp )
 {
    int ii , nn ;
 
-   if( pp == NULL ) return -1 ;
-   if( pp->npane < NPANE_MIN || pp->npane >  NPANE_MAX    ) return -1 ;
-   if( pp->mode  < 0         || pp->mode  >= PANE_MAXMODE ) return -1 ;
+ENTRY("check_PBAR_palette") ;
+
+   if( pp == NULL ) RETURN(-1) ;
+   if( pp->npane < NPANE_MIN || pp->npane >  NPANE_MAX    ) RETURN(-1) ;
+   if( pp->mode  < 0         || pp->mode  >= PANE_MAXMODE ) RETURN(-1) ;
 
    /** val must be all numbers or all ignores -- nothing mixed **/
 
    nn = 0 ;
    for( ii=0 ; ii < pp->npane ; ii++ )
       if( pp->val[ii] == PAL_FIGNORE ) nn++ ;
-   if( nn > 0 && nn != pp->npane ) return -1 ;
+   if( nn > 0 && nn != pp->npane ) RETURN(-1) ;
 
    /** if all numbers, must be ordered **/
 
    if( nn == 0 ){
-      if( pp->val[0] <= 0.0 ) return -1 ;  /* 1st must be positive */
+      if( pp->val[0] <= 0.0 ) RETURN(-1) ;  /* 1st must be positive */
       for( ii=1 ; ii < pp->npane ; ii++ )
-         if( pp->val[ii] >= pp->val[ii-1] ) return -1 ;  /* disordered? */
+         if( pp->val[ii] >= pp->val[ii-1] ) RETURN(-1) ;  /* disordered? */
 
-      if( pp->mode == 1 && pp->val[pp->npane-1] < 0.0 ) return -1 ;
+      if( pp->mode == 1 && pp->val[pp->npane-1] < 0.0 ) RETURN(-1) ;
    }
 
-   return 1 ;
+   RETURN(1) ;
 }
 
 /*------------------------------------------------------------------------------*/
@@ -359,6 +361,8 @@ char * dump_PBAR_palette_table( int verb )
    char s1[32] , s2[32] ;
    PBAR_palette * pp ;
    MCW_DC * dc = GLOBAL_library.dc ;
+
+ENTRY("dump_PBAR_palette_table") ;
 
    nsss = 256 ; sss = (char *) malloc(sizeof(char) * nsss) ;
    sss[0] = '\0' ; nuuu = 0 ;
@@ -384,7 +388,7 @@ char * dump_PBAR_palette_table( int verb )
          sss = (char *) realloc( sss , sizeof(char) * nsss ) ;
       }
       strcat(sss,buf) ; nuuu = strlen(sss) ;
-      return sss ;
+      RETURN(sss) ;
    }
 
    sprintf(buf,"\nPalette Table:\n") ;
@@ -445,8 +449,9 @@ char * dump_PBAR_palette_table( int verb )
       }
       strcat(sss,buf) ; nuuu = strlen(sss) ;
    }
-   return sss ;
+   RETURN(sss) ;
 }
+
 /*------------------------------------------------------------------------------*/
 
 void load_PBAR_palette_array( MCW_pbar * pbar , PBAR_palette_array * par )
@@ -454,7 +459,9 @@ void load_PBAR_palette_array( MCW_pbar * pbar , PBAR_palette_array * par )
    int ii , jj , jm , nn ;
    PBAR_palette * pp ;
 
-   if( pbar == NULL || par == NULL ) return ;
+ENTRY("load_PBAR_palette_array") ;
+
+   if( pbar == NULL || par == NULL ) EXRETURN ;
 
    nn = 0 ;
    for( jj=NPANE_MIN ; jj <= NPANE_MAX ; jj++ ){
@@ -495,7 +502,7 @@ void load_PBAR_palette_array( MCW_pbar * pbar , PBAR_palette_array * par )
       alter_MCW_pbar( pbar , 0 , NULL ) ;
       FIX_SCALE_SIZE(im3d) ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------*/
@@ -630,8 +637,10 @@ void AFNI_palette_av_CB( MCW_arrowval * av , XtPointer cd )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
 
-   if( ! IM3D_VALID(im3d) || GPT == NULL ) return ;
-   if( av->ival < 0 || av->ival >= PALTAB_NUM(GPT) ) return ;
+ENTRY("AFNI_palette_av_CB") ;
+
+   if( ! IM3D_VALID(im3d) || GPT == NULL ) EXRETURN ;
+   if( av->ival < 0 || av->ival >= PALTAB_NUM(GPT) ) EXRETURN ;
 
    load_PBAR_palette_array( im3d->vwid->func->inten_pbar ,
                             PALTAB_ARR(GPT,av->ival)      ) ;
@@ -639,7 +648,7 @@ void AFNI_palette_av_CB( MCW_arrowval * av , XtPointer cd )
    if( im3d->vinfo->func_visible )
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
 
-   return ;
+   EXRETURN ;
 }
 
 void AFNI_finalize_read_palette_CB( Widget w, XtPointer cd, XtPointer cb )
@@ -731,9 +740,11 @@ void AFNI_set_pbar_top_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs 
    double pmax , fac ;
    int ii ;
 
-   if( ! IM3D_OPEN(im3d) ) return ;
+ENTRY("AFNI_set_pbar_top_CB") ;
 
-   pmax  = cbs->fval ; if( pmax <= 0.0 ){ BEEPIT ; return ; }
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   pmax  = cbs->fval ; if( pmax <= 0.0 ){ BEEPIT ; EXRETURN ; }
    pbar  = im3d->vwid->func->inten_pbar ;
    fac   = pmax / pbar->pval[0] ;
 
@@ -744,7 +755,7 @@ void AFNI_set_pbar_top_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs 
    alter_MCW_pbar( pbar , 0 , pval ) ;
    FIX_SCALE_SIZE(im3d) ;
 
-   return ;
+   EXRETURN ;
 }
 
 void AFNI_finalize_write_palette_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
@@ -758,13 +769,15 @@ void AFNI_finalize_write_palette_CB( Widget wcaller , XtPointer cd , MCW_choose_
    int * ovin ;
    float * pval ;
 
+ENTRY("AFNI_finalize_write_palette_CB") ;
+
    if( ! IM3D_OPEN(im3d) || cbs->reason != mcwCR_string ||
-       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ){BEEPIT; return;}
+       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ){BEEPIT; EXRETURN;}
 
    fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
    strcpy( fname , cbs->cval ) ;
 
-   if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); BEEPIT; return;}
+   if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); BEEPIT; EXRETURN;}
 
    ptr = strstr(fname,".pal") ;
    if( ptr == NULL || ptr[4] != '0' ){ strcat(fname,".pal"); ll += 4; }
@@ -774,7 +787,7 @@ void AFNI_finalize_write_palette_CB( Widget wcaller , XtPointer cd , MCW_choose_
       sprintf(buf,"Can't open file\n %s\nfor writing!",fname) ;
       (void) MCW_popup_message( im3d->vwid->func->options_label ,
                                 buf , MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      BEEPIT ; free(fname) ; return ;
+      BEEPIT ; free(fname) ; EXRETURN ;
    } else {
       char buf[512] ;
       sprintf(buf,"\nWriting current palette to file\n %s\n",fname) ;
@@ -817,5 +830,5 @@ void AFNI_finalize_write_palette_CB( Widget wcaller , XtPointer cd , MCW_choose_
       fprintf( fp , "  %f -> %s\n" ,
                pval[ii] , im3d->dc->ovc->label_ov[ovin[ii]] ) ;
 
-   fclose(fp) ; free(fname) ; return ;
+   fclose(fp) ; free(fname) ; EXRETURN ;
 }

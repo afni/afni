@@ -36,15 +36,15 @@
     If using the Makefile that came with AFNI, then
         make plugout_tt
     Otherwise
-        cc -o plugout_tt -O plugout_tt.c iochan.c -I.
+        cc -o plugout_tt -O plugout_tt.c thd_iochan.c -I.
 
-  "iochan.c" contains the routines that do the TCP/IP
+  "thd_iochan.c" contains the routines that do the TCP/IP
   socket and IPC shared memory stuff.
 ****************************************************************/
 
 /***** Header file for communication routines *****/
 
-#include "iochan.h"
+#include "thd_iochan.h"
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/

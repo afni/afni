@@ -1,4 +1,4 @@
-#include "3ddata.h"
+#include "mrilib.h"
 #include "thd.h"
 
 /*---------------------------------------------------------------
@@ -89,15 +89,8 @@ void THD_delete_3dim_dataset( THD_3dim_dataset * dset, Boolean kill_files )
    if( kill_files ){
       THD_diskptr * dkptr = dset->dblk->diskptr ;
 
-      if( THD_is_file(dkptr->header_name) ) unlink( dkptr->header_name ) ;
-
-#ifdef ALLOW_COMPRESSOR
-      { char * fff = COMPRESS_filename(dkptr->brick_name) ;
-        if( THD_is_file(fff) ){ unlink(fff) ; free(fff) ; }
-      }
-#else
-      if( THD_is_file(dkptr->brick_name) ) unlink( dkptr->brick_name ) ;
-#endif
+      unlink( dkptr->header_name ) ;
+      COMPRESS_unlink(dkptr->brick_name) ;
    }
 
    DESTROY_VLIST(dset->pts) ;

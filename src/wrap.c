@@ -1,4 +1,4 @@
-#include "iochan.h"
+#include "thd_iochan.h"
 
 #ifdef SPARKY
 #undef _POSIX_SOURCE

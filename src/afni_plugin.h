@@ -14,12 +14,11 @@
 #include <sys/errno.h>
 #include <sys/times.h>
 #include <limits.h>
+#include <assert.h>   /* for Ziad */
 
 struct AFNI_plugin_array ; /* incomplete definition */
 
 #include "afni.h"
-#include "editvol.h"
-#include "3dmaker.h"
 
 #include <Xm/XmAll.h>
 
@@ -468,6 +467,7 @@ extern int PLUTO_add_dset( PLUGIN_interface *, THD_3dim_dataset *, int ) ;
 extern THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset *, char * ) ;
 
 extern void PLUTO_force_redisplay( void ) ;
+extern void PLUTO_dset_redisplay( THD_3dim_dataset * ) ;
 
 extern int PLUTO_prefix_ok( char * ) ;
 extern int PLUTO_string_index( char * , int , char ** ) ;

@@ -157,6 +157,7 @@ extern void DC_fg_color( MCW_DC * , int ) ;
 extern void DC_bg_color( MCW_DC * , int ) ;
 extern void DC_fg_colortext( MCW_DC * , char * ) ;
 extern void DC_linewidth( MCW_DC * , int ) ;
+extern void DC_fg_colorpix( MCW_DC * , Pixel ) ;
 
 extern void OVC_mostest( MCW_DCOV * ) ;
 

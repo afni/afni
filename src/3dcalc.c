@@ -17,8 +17,7 @@ This program is revised for 3d+time data calculation,
   [Raoqiong Tong, August 1997]
 ----------------------------------------------------------------------------*/
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 #include "parser.h"
 
 #ifndef myXtFree

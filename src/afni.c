@@ -222,6 +222,9 @@ void AFNI_syntax(void)
      "   -xtwarns     Tells afni to show any Xt warning messages that may\n"
      "                  occur; the default is to suppress these messages.\n"
      "   -tbar name   Uses 'name' instead of 'AFNI' in window titlebars.\n"
+#ifdef USE_TRACING
+     "   -trace       Turns routine call tracing on, for debugging purposes.\n"
+#endif
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -306,6 +309,13 @@ ENTRY("AFNI_parse_args") ;
    while( narg < argc ){
 
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
+
+#ifdef USE_TRACING
+      if( strncmp(argv[narg],"-trace",5) == 0 ){
+         DBG_trace = 1 ;
+         narg++ ; continue ;
+      }
+#endif
 
       /*----- -rt option -----*/
 
@@ -701,6 +711,9 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    /*--- help? ---*/
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
+#ifdef USE_TRACING
+   if( argc > 1 && strncmp(argv[1],"-trace",5) == 0 ) DBG_trace = 1 ;
+#endif
 
    srand48((long)time(NULL)) ;  /* initialize random number generator */
 
@@ -868,7 +881,7 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    MCW_help_CB( im3d->vwid->top_shell,NULL,NULL ) ;  /* initialize help */
 
    { char str[64] ;
-     sprintf(str,"\n -orient       = %s\n", GLOBAL_library.cord.orcode ) ;
+     sprintf(str,"\n -orient       = %s", GLOBAL_library.cord.orcode ) ;
      REPORT_PROGRESS(str) ;
    }
 
@@ -882,10 +895,22 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
         MCW_hint_toggle() ;
    }
 
+   /* Feb 1998: setup write compression from environment */
+   /*           (read de-compression always works)       */
+
+   ii = THD_enviro_write_compression() ;
+   if( ii >= 0 && ii <= COMPRESS_LASTCODE ){
+      char str[64] ;
+      sprintf(str,"\n compression   = %s", COMPRESS_enviro[ii]) ;
+      REPORT_PROGRESS(str) ;
+   }
+
    if( ALLOW_real_time > 0 )
       REPORT_PROGRESS("RT: realtime plugin is active\n") ;
 
    (void) XtAppAddTimeOut( app , 1234 , AFNI_startup_timeout_CB , im3d ) ;
+
+   REPORT_PROGRESS("\n") ;
 
    XtAppMainLoop(app) ;
    exit(0) ;
@@ -910,7 +935,9 @@ void AFNI_quit_CB( Widget wcall , XtPointer cd , XtPointer cbs )
    Three_D_View * im3d = (Three_D_View *) cd ;
    XmPushButtonCallbackStruct * pbcbs = (XmPushButtonCallbackStruct *) cbs ;
 
-   if( ! IM3D_OPEN(im3d) ) return ;
+ENTRY("AFNI_quit_CB") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    /* NULL widget --> reset button to lowercase */
 
@@ -921,7 +948,7 @@ void AFNI_quit_CB( Widget wcall , XtPointer cd , XtPointer cbs )
          if( im3d->vwid->picture != NULL && !GLOBAL_argopt.keep_logo )
             PICTURE_OFF( im3d ) ;
       }
-      return ;
+      EXRETURN ;
    }
 
    /* Press of button with Shift or Control key pressed --> Death Now */
@@ -949,7 +976,7 @@ void AFNI_quit_CB( Widget wcall , XtPointer cd , XtPointer cbs )
                XtWidgetToApplicationContext(im3d->vwid->prog->quit_pb) ,
                5000 , AFNI_quit_timeout_CB , im3d ) ;
 
-      return ;
+      EXRETURN ;
    }
 
    /* close window callback OR button already uppercase --> close window */
@@ -965,23 +992,27 @@ void AFNI_quit_CB( Widget wcall , XtPointer cd , XtPointer cbs )
       CLOSE_CONTROLLER(im3d) ;     /* close window */
       AFNI_controller_clonify() ;  /* let other controllers know */
    }
-   return ;
+   EXRETURN ;
 }
 
 void AFNI_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
+ENTRY("AFNI_quit_timeout_CB") ;
    RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
 }
 
 void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
-   MCW_help_CB(NULL,NULL,NULL) ;
 
+ENTRY("AFNI_startup_timeout_CB") ;
+
+   MCW_help_CB(NULL,NULL,NULL) ;
    SHOW_AFNI_READY ;
    RESET_AFNI_QUIT(im3d) ;
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -1192,14 +1223,16 @@ void AFNI_set_valabel( FD_brick * br , int nsl , MRI_IMAGE * im , char * blab )
    Three_D_View * im3d = (Three_D_View *) br->parent ;
    THD_ivec3 ib ;
 
+ENTRY("AFNI_set_valabel") ;
+
    if( ! IM3D_VALID(im3d) || ! im3d->vwid->imag->do_bkgd_lab ||
-       im == NULL         || blab == NULL                      ) return ;
+       im == NULL         || blab == NULL                      ) EXRETURN ;
 
    ib = THD_3dind_to_fdind( br , TEMP_IVEC3( im3d->vinfo->i1 ,
                                              im3d->vinfo->j2 ,
                                              im3d->vinfo->k3  ) ) ;
 
-   if( nsl != ib.ijk[2] ) return ;
+   if( nsl != ib.ijk[2] ) EXRETURN ;
 
    switch( im->kind ){
 
@@ -1237,7 +1270,7 @@ void AFNI_set_valabel( FD_brick * br , int nsl , MRI_IMAGE * im , char * blab )
       }
       break ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -1411,6 +1444,8 @@ ENTRY("AFNI_read_images") ;
    dset->dblk->brick_fac    = NULL ; /* let THD_init_datablock_brick do these */
    dset->dblk->brick_bytes  = NULL ;
    dset->dblk->brick        = NULL ;
+
+   DSET_lock(dset) ;  /* Feb 1998 */
 
    dset->dblk->brick_lab      = NULL ; /* 30 Nov 1997 */
    dset->dblk->brick_keywords = NULL ;
@@ -1701,6 +1736,63 @@ ENTRY("AFNI_seq_send_CB") ;
       }
       break ; /* end of keyboard press */
 
+      /*--- Feb 1998: list of coordinates from button2 drawing ---*/
+
+      case isqCR_button2_points:{
+         int npts = cbs->key , zim = cbs->nim ;
+         int * xyout = (int *) cbs->userdata ;
+         THD_ivec3 id ;
+         int nvec , ii , xim,yim , fixed_plane ;
+         int * xdset , * ydset , * zdset ;
+
+         if( zim >= 0 && zim < br->n3 && npts > 0 ){  /* if input is good */
+
+            /* make space for translated coordinates */
+
+            xdset = (int *) malloc( npts * sizeof(int) ) ;
+            ydset = (int *) malloc( npts * sizeof(int) ) ;
+            zdset = (int *) malloc( npts * sizeof(int) ) ;
+
+            /* translate coordinates to dataset xyz indices,
+               casting out any that are outside the dataset brick */
+
+            nvec = 0 ;
+            for( ii=0 ; ii < npts ; ii++ ){
+               xim = xyout[2*ii] ; yim = xyout[2*ii+1] ;
+
+               /* skip points not in the volume */
+
+               if( xim >= 0 && xim < br->n1 && yim >= 0 && yim < br->n2 ){
+
+                  id = THD_fdind_to_3dind( br , TEMP_IVEC3(xim,yim,zim) );
+                  xdset[nvec] = id.ijk[0] ;
+                  ydset[nvec] = id.ijk[1] ;
+                  zdset[nvec] = id.ijk[2] ;
+
+                  /* skip sequentially duplicate points */
+
+                  if( nvec == 0                    ||
+                      xdset[nvec] != xdset[nvec-1] ||
+                      ydset[nvec] != ydset[nvec-1] ||
+                      zdset[nvec] != zdset[nvec-1]   ) nvec++ ;
+               }
+            }
+
+            /* send coordinates to processing routine */
+
+            fixed_plane = abs(br->a123.ijk[2]) ;
+
+            if( nvec > 0 ) AFNI_process_drawing( im3d ,
+                                                 PLANAR_MODE+fixed_plane ,
+                                                 nvec,xdset,ydset,zdset ) ;
+
+            /* free coordinate memory */
+
+            free(xdset) ; free(ydset) ; free(zdset) ;
+         }
+      }
+      break ; /* end of button2 coordinates */
+
    }  /* end of switch on reason for call */
 
    EXRETURN ;
@@ -1956,6 +2048,31 @@ STATUS("graCR_pickort") ;
          if( new_index != im3d->vinfo->time_index ){
             AV_assign_ival( tav , new_index ) ;
             AFNI_time_index_CB( tav , (XtPointer) im3d ) ;
+         }
+      }
+      break ;
+
+      /*** Feb 1998: user clicked button2 ***/
+
+      case graCR_button2_points:{
+         THD_ivec3 id ;
+         int fixed_plane ;
+
+         if( cbs->xcen >= 0 && cbs->xcen < br->n1 &&
+             cbs->ycen >= 0 && cbs->ycen < br->n2 &&
+             cbs->zcen >= 0 && cbs->zcen < br->n3   ){
+
+            /* translate image to dataset coordinates */
+
+            id = THD_fdind_to_3dind(
+                    br , TEMP_IVEC3(cbs->xcen,cbs->ycen,cbs->zcen) );
+
+            /* send a single point */
+
+            fixed_plane = abs(br->a123.ijk[2]) ;
+
+            AFNI_process_drawing( im3d , SINGLE_MODE + fixed_plane ,
+                                  1, &id.ijk[0], &id.ijk[1], &id.ijk[2] ) ;
          }
       }
       break ;
@@ -2245,40 +2362,54 @@ ENTRY("AFNI_closedown_3dview") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
-   if( im3d->s123 != NULL )
-      drive_MCW_imseq( im3d->s123 , isqDR_destroy , NULL ) ;
+   /* Feb 1998: if a receiver is open,
+                send it a goodbye message,
+                and reset the receive status to the defaults */
 
-   if( im3d->s231 != NULL )
-      drive_MCW_imseq( im3d->s231 , isqDR_destroy , NULL ) ;
+   if( im3d->vinfo->receiver != NULL ){
 
-   if( im3d->s312 != NULL )
-      drive_MCW_imseq( im3d->s312 , isqDR_destroy , NULL ) ;
+      im3d->vinfo->receiver( RECEIVE_CLOSURE , 0 , NULL ,
+                             im3d->vinfo->receiver_data ) ;
 
-   if( im3d->g123 != NULL )
-      drive_MCW_grapher( im3d->g123 , graDR_destroy , NULL ) ;
+      im3d->vinfo->receiver          = NULL ;
+      im3d->vinfo->receiver_data     = NULL ;
+      im3d->vinfo->receiver_mask     = 0 ;
+      im3d->vinfo->drawing_enabled   = 0 ;
+      im3d->vinfo->drawing_mode      = DRAWING_LINES ;
+   }
 
-   if( im3d->g231 != NULL )
-      drive_MCW_grapher( im3d->g231 , graDR_destroy , NULL ) ;
+   /* destroy any viewers attached */
 
-   if( im3d->g312 != NULL )
-      drive_MCW_grapher( im3d->g312 , graDR_destroy , NULL ) ;
+   drive_MCW_imseq( im3d->s123 , isqDR_destroy , NULL ) ;
+   drive_MCW_imseq( im3d->s231 , isqDR_destroy , NULL ) ;
+   drive_MCW_imseq( im3d->s312 , isqDR_destroy , NULL ) ;
 
-   myXtFree(im3d->b123_anat) ; im3d->b123_anat = NULL ;
-   myXtFree(im3d->b231_anat) ; im3d->b231_anat = NULL ;
-   myXtFree(im3d->b312_anat) ; im3d->b312_anat = NULL ;
+   drive_MCW_grapher( im3d->g123 , graDR_destroy , NULL ) ;
+   drive_MCW_grapher( im3d->g231 , graDR_destroy , NULL ) ;
+   drive_MCW_grapher( im3d->g312 , graDR_destroy , NULL ) ;
 
-   myXtFree(im3d->b123_fim)  ; im3d->b123_fim  = NULL ;
-   myXtFree(im3d->b231_fim)  ; im3d->b231_fim  = NULL ;
-   myXtFree(im3d->b312_fim)  ; im3d->b312_fim  = NULL ;
+   /* erase FD bricks */
+
+   myXtFree(im3d->b123_anat) ;
+   myXtFree(im3d->b231_anat) ;
+   myXtFree(im3d->b312_anat) ;
+
+   myXtFree(im3d->b123_fim)  ;
+   myXtFree(im3d->b231_fim)  ;
+   myXtFree(im3d->b312_fim)  ;
 
    im3d->b123_ulay = im3d->b231_ulay = im3d->b312_ulay = NULL ;
 
    if( XtIsManaged(im3d->vwid->view->frame) == True )
       AFNI_controller_panel_CB( NULL , im3d , NULL ) ;
 
+   /* null out montage info */
+
    LOAD_IVEC3(im3d->vinfo->xhairs_ndown,0,0,0) ;
    LOAD_IVEC3(im3d->vinfo->xhairs_nup  ,0,0,0) ;
    LOAD_IVEC3(im3d->vinfo->xhairs_nskip,0,0,0) ;
+
+   /* de-fim */
 
    AFNI_fimmer_setref(im3d,NULL) ; CLEAR_FIMDATA(im3d) ;
 
@@ -2646,6 +2777,8 @@ ENTRY("AFNI_view_xyz_CB") ;
 
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
 
+      AFNI_toggle_drawing( im3d , im3d->vinfo->drawing_enabled ) ;
+
 #ifndef DONT_INSTALL_ICONS
       if( afni48_good ){
          Pixmap pm = XmUNSPECIFIED_PIXMAP ;
@@ -2704,9 +2837,11 @@ ENTRY("AFNI_view_xyz_CB") ;
 void AFNI_lock_enforce_CB( Widget w , XtPointer cd , XtPointer calld )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_lock_enforce_CB") ;
    AFNI_lock_carryout( im3d ) ;
    RESET_AFNI_QUIT(im3d) ;
-   return ;
+   EXRETURN ;
 }
 
 void AFNI_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
@@ -2715,13 +2850,15 @@ void AFNI_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
    Three_D_View * qq3d ;
    int            bval , ii , bold ;
 
-   if( ! IM3D_VALID(im3d) ) return ;
+ENTRY("AFNI_lock_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
    /* get current global setting and compare to changed lock box */
 
    bold = GLOBAL_library.controller_lock ;
    bval = MCW_val_bbox( im3d->vwid->dmode->lock_bbox ) ;
-   if( bval == bold ) return ;                     /* same --> nothing to do */
+   if( bval == bold ) EXRETURN ;                     /* same --> nothing to do */
 
    /* new value --> save in global setting */
 
@@ -2736,7 +2873,7 @@ void AFNI_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
       MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , bval ) ;
    }
    RESET_AFNI_QUIT(im3d) ;
-   return ;
+   EXRETURN ;
 }
 
 void AFNI_lock_clear_CB( Widget w , XtPointer cd , XtPointer calld )
@@ -2744,13 +2881,15 @@ void AFNI_lock_clear_CB( Widget w , XtPointer cd , XtPointer calld )
    Three_D_View * qq3d ;
    int ii ;
 
+ENTRY("AFNI_lock_clear_CB") ;
+
    GLOBAL_library.controller_lock = 0 ;
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
       qq3d = GLOBAL_library.controllers[ii] ;
       if( IM3D_VALID(qq3d) )
          MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , 0 ) ;
    }
-   return ;
+   EXRETURN ;
 }
 
 void AFNI_lock_carryout( Three_D_View * im3d )
@@ -2762,19 +2901,21 @@ void AFNI_lock_carryout( Three_D_View * im3d )
    THD_dataxes * daxes ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
 
+ENTRY("AFNI_lock_carryout") ;
+
    /* first, determine if there is anything to do */
 
    glock = GLOBAL_library.controller_lock ;
 
-   if( busy )                       return ;  /* routine already busy */
-   if( glock == 0 )                 return ;  /* nothing to do */
-   if( !IM3D_OPEN(im3d) )           return ;  /* bad input */
-   if( GLOBAL_library.ignore_lock ) return ;  /* ordered not to do anything */
+   if( busy )                       EXRETURN ;  /* routine already busy */
+   if( glock == 0 )                 EXRETURN ;  /* nothing to do */
+   if( !IM3D_OPEN(im3d) )           EXRETURN ;  /* bad input */
+   if( GLOBAL_library.ignore_lock ) EXRETURN ;  /* ordered not to do anything */
 
-   ii = AFNI_controller_index(im3d) ;         /* which one am I? */
+   ii = AFNI_controller_index(im3d) ;           /* which one am I? */
 
-   if( ii < 0 ) return ;                      /* nobody? bad input! */
-   if( ((1<<ii) & glock) == 0 ) return ; /* input not locked */
+   if( ii < 0 ) EXRETURN ;                      /* nobody? bad input! */
+   if( ((1<<ii) & glock) == 0 ) EXRETURN ;      /* input not locked */
 
    /* something to do? */
 
@@ -2813,7 +2954,7 @@ void AFNI_lock_carryout( Three_D_View * im3d )
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -3011,6 +3152,17 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    if( do_lock )                    /* 11 Nov 1996 */
       AFNI_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
+
+   /** Feb 1998: if desired, send coordinates to receiver **/
+
+   if( new_xyz                       &&
+       im3d->vinfo->receiver != NULL &&
+       (im3d->vinfo->receiver_mask & RECEIVE_VIEWPOINT_MASK) != 0 ){
+
+      im3d->vinfo->receiver( RECEIVE_VIEWPOINT , 3 , new_id.ijk ,
+                             im3d->vinfo->receiver_data ) ;
+
+   }
 
    EXRETURN ;
 }
@@ -3508,19 +3660,25 @@ void AFNI_set_tog( int nset , int ntog , Widget * tog )
 {
    int ib ;
 
+ENTRY("AFNI_set_tog") ;
+
    for( ib=0 ; ib < ntog ; ib++ )
       XmToggleButtonSetState( tog[ib] , ib==nset , False ) ;
+
+   EXRETURN ;
 }
 
 int AFNI_first_tog( int ntog , Widget * tog )
 {
    int ib ;
 
+ENTRY("AFNI_first_tog") ;
+
    for( ib=0 ; ib < ntog ; ib++ )
       if( XmToggleButtonGetState(tog[ib]) ) break ;
 
    if( ib >= ntog ) ib = -1 ;
-   return ib ;
+   RETURN(ib) ;
 }
 
 #if 0
@@ -3783,6 +3941,8 @@ void AFNI_make_ptmask( int size , int gap , AFNI_ovtemplate * tem )
 {
    register int ix , npix=0 , ax ;
 
+ENTRY("AFNI_make_ptmask") ;
+
    for( ix=-size ; ix <= size ; ix++ ){
       PUTPIX(ix,-size) ; CHKPIX ;
       PUTPIX(ix, size) ; CHKPIX ;
@@ -3792,7 +3952,7 @@ void AFNI_make_ptmask( int size , int gap , AFNI_ovtemplate * tem )
    }
 
    tem->numpix = npix ;
-   return;
+   EXRETURN ;
 }
 
 /*========================================================================
@@ -6205,6 +6365,8 @@ STATUS("init new_dblk") ;
    new_dblk->brick       = NULL ;
    THD_init_datablock_brick( new_dblk , -1 , adam_dblk ) ;
 
+   DSET_unlock(new_dset) ;
+
    THD_null_datablock_auxdata( new_dblk ) ;
    THD_copy_datablock_auxdata( adam_dblk , new_dblk ) ; /* 30 Nov 1997 */
 
@@ -6352,6 +6514,8 @@ void AFNI_set_cursor( int cursor_code )
    Three_D_View * im3d ;
    int id ;
 
+ENTRY("AFNI_set_cursor") ;
+
    for( id=0 ; id < MAX_CONTROLLERS ; id++ ){
       im3d = GLOBAL_library.controllers[id] ;
       if( IM3D_OPEN(im3d) ){
@@ -6433,7 +6597,7 @@ void AFNI_set_cursor( int cursor_code )
       }
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /****************************************************************/
@@ -6468,9 +6632,11 @@ void AFNI_load_defaults( Widget w )
    float     pthr[NPANE_MAX+1] ;
    int       pov[NPANE_MAX+1] ;
 
+ENTRY("AFNI_load_defaults") ;
+
    if( w == NULL ){
       fprintf(stderr,"\n*** AFNI_load_defaults: NULL input widget ***\n") ;
-      return ;
+      EXRETURN ;
    }
 
    display = XtDisplay( w ) ;
@@ -6695,7 +6861,7 @@ void AFNI_load_defaults( Widget w )
 
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /********************************************************************/

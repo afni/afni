@@ -628,6 +628,12 @@ void DC_bg_color( MCW_DC * dc , int nov )
    return ;
 }
 
+void DC_fg_colorpix( MCW_DC * dc , Pixel pix )
+{
+   XSetForeground( dc->display , dc->myGC , pix ) ;
+   return ;
+}
+
 void DC_fg_colortext( MCW_DC * dc , char * cname )
 {
    XColor any_col , rgb_col ;

@@ -12,8 +12,7 @@
   is not allowed.
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 void Syntax(char * str)
 {
@@ -583,9 +582,7 @@ int main( int argc , char * argv[] )
          int  old_vtype = dset->view_type ;
          char old_head[THD_MAX_NAME] , old_brik[THD_MAX_NAME] ;
          char new_head[THD_MAX_NAME] , new_brik[THD_MAX_NAME] ;
-#ifdef ALLOW_COMPRESSOR
          int brick_ccode = COMPRESS_filecode( DSET_BRIKNAME(dset) ) ;
-#endif
 
          strcpy(old_head,DSET_HEADNAME(dset)) ;
          strcpy(old_brik,DSET_BRIKNAME(dset)) ;
@@ -597,12 +594,7 @@ int main( int argc , char * argv[] )
          strcpy(new_head,DSET_DIRNAME(dset)) ; strcat(new_head,DSET_HEADNAME(dset)) ;
          strcpy(new_brik,DSET_DIRNAME(dset)) ; strcat(new_brik,DSET_BRIKNAME(dset)) ;
 
-#ifdef ALLOW_COMPRESSOR
-         if( THD_is_file(new_head) || brick_ccode != COMPRESS_NOFILE )
-#else
-         if( THD_is_file(new_head) || THD_is_file(new_brik) )
-#endif
-         {
+         if( THD_is_file(new_head) || brick_ccode != COMPRESS_NOFILE ){
             dset->view_type = old_vtype ;
             THD_init_diskptr_names( dset->dblk->diskptr ,
                                     NULL , NULL , NULL , old_vtype , True ) ;
@@ -610,7 +602,6 @@ int main( int argc , char * argv[] )
                     "  ** Can't change view: would overwrite existing files!\n") ;
          } else {
             rename( old_head , new_head ) ;
-#ifdef ALLOW_COMPRESSOR
             { char * fff = COMPRESS_filename(old_brik) ;
               if( fff != NULL ){
                  char * ggg = malloc( sizeof(char) * (strlen(fff)+32) ) ;
@@ -620,9 +611,6 @@ int main( int argc , char * argv[] )
                  free(fff) ; free(ggg) ;
               }
             }
-#else
-            rename( old_brik , new_brik ) ;
-#endif
             fprintf(stderr,"  -- Changed dataset view type and filenames.\n") ;
          }
       }

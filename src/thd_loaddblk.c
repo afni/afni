@@ -1,4 +1,4 @@
-#include "3ddata.h"
+#include "mrilib.h"
 #include "thd.h"
 
 
@@ -140,11 +140,7 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
       case STORAGE_BY_BRICK:{
          FILE * far ;
 
-#ifdef ALLOW_COMPRESSOR
          far = COMPRESS_fopen_read( dkptr->brick_name ) ;
-#else
-         far = fopen( dkptr->brick_name , "r" ) ;
-#endif
 
          if( far == NULL ){
             for( ibr=0 ; ibr < nv ; ibr++ ){
@@ -169,11 +165,7 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
 #endif
          }
 
-#ifdef ALLOW_COMPRESSOR
          COMPRESS_fclose(far) ;
-#else
-         fclose(far) ;
-#endif
 
          if( id != blk->total_bytes ){
             for( ibr=0 ; ibr < nv ; ibr++ ){

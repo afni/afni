@@ -9,7 +9,7 @@
 # I don't have access to a R5000 or R8000 system -- RWCox.
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -xansi -O2 -DSGI
+CC     = cc -xansi -O2 -DSGI -DUSE_TRACING
 CCMIN  = cc -s
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I.

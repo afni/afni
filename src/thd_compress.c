@@ -1,4 +1,4 @@
-#include "compressor.h"
+#include "thd_compress.h"
 
 /*** check if the file exists on disk
      -- returns 1 if it does, 0 if it does not ***/
@@ -192,4 +192,54 @@ FILE * COMPRESS_fopen_read( char * fname )
 
    free(cmd) ; if( buf != fname ) free(buf) ;
    return fp ;
+}
+
+/*-------------------------------------------------------------
+    open a file for writing, possibly using compresson;
+     mm should be one of the COMPRESS_ codes at the top
+     of file thd_compress.h
+---------------------------------------------------------------*/
+
+FILE * COMPRESS_fopen_write( char * fname , int mm )
+{
+   FILE * fp ;
+   char * buf , * cmd ;
+
+   if( fname == NULL || fname[0] == '\0' ) return NULL ;
+
+   if( mm < 0 ){
+      fp = fopen(fname,"w") ;   /* open it normally */
+      putin_fop_table(fp,0) ;   /* save its open method */
+      return fp ;
+   }
+
+#if 1
+   if( ! COMPRESS_has_suffix(fname,mm) ){
+      buf = malloc( sizeof(char) * (strlen(fname)+16) ) ;
+      strcpy(buf,fname) ; strcat(buf,COMPRESS_suffix[mm]) ;
+   } else {
+      buf = fname ;
+   }
+#else
+   buf = fname ;
+#endif
+
+   cmd = malloc( sizeof(char) * (strlen(buf)+32) ) ;
+   sprintf(cmd,COMPRESS_program[mm],buf) ;
+
+   fp = popen(cmd,"w") ;    /* open a pipe to write the file */
+   putin_fop_table(fp,1) ;  /* save its open method */
+
+   free(cmd) ; if( buf != fname ) free(buf) ;
+   return fp ;
+}
+
+/*----------------------------------------------------------*/
+
+int COMPRESS_unlink( char * fname )
+{
+   char * fff = COMPRESS_filename(fname) ;
+   int     ii = unlink(fff) ;
+   if( fff != NULL ) free(fff) ;
+   return ii ;
 }

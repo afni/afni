@@ -1,6 +1,40 @@
-#include "3ddata.h"
+#include "mrilib.h"
 #include "thd.h"
 
+static int compress_mode = COMPRESS_NOFILE ;
+
+void THD_set_write_compression( int mm )
+{
+   if( mm >= COMPRESS_NONE && mm <= COMPRESS_LASTCODE )
+      compress_mode = mm ;
+   else
+      compress_mode = COMPRESS_NONE ;
+   return ;
+}
+
+int THD_get_write_compression(void)
+{
+   if( compress_mode == COMPRESS_NOFILE ) THD_enviro_write_compression() ;
+   return compress_mode ;
+}
+
+int THD_enviro_write_compression(void)
+{
+   char * hh = getenv("AFNI_COMPRESSOR") ;
+   int ii ;
+
+   compress_mode = COMPRESS_NONE ;
+   if( hh == NULL ) return COMPRESS_NONE ;
+
+   for( ii=0 ; ii <= COMPRESS_LASTCODE ; ii++ ){
+      if( strcmp(hh,COMPRESS_enviro[ii]) == 0 ){
+         compress_mode = ii ;
+         return ii ;
+      }
+   }
+
+   return COMPRESS_NONE ;
+}
 
 /*---------------------------------------------------------------------
    Write a datablock to disk.
@@ -216,13 +250,7 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
 
          /** delete old file, if any **/
 
-#ifdef  ALLOW_COMPRESSOR
-         { char * fff = COMPRESS_filename(dkptr->brick_name) ;
-           if( THD_is_file(fff) ){ unlink(fff) ; free(fff) ; }
-         }
-#else
-         if( THD_is_file(dkptr->brick_name) ) unlink( dkptr->brick_name ) ;
-#endif
+         COMPRESS_unlink( dkptr->brick_name ) ; /* Feb 1998 */
 
          /** create new file **/
 
@@ -236,9 +264,11 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
                            dkptr->directory_name ,
                            dkptr->filecode , DATASET_BRICK_SUFFIX );
 
-      /** COMPRESS not supported for output (yet) **/
+      /** COMPRESS for output added Feb 1998 */
 
-         far = fopen( dkptr->brick_name , "w" ) ;
+         if( compress_mode == COMPRESS_NOFILE ) THD_enviro_write_compression() ;
+
+         far = COMPRESS_fopen_write( dkptr->brick_name , compress_mode ) ;
          if( far == NULL ) WRITE_ERR("cannot open output brick file") ;
 
          /** write each brick out in a separate operation **/
@@ -247,10 +277,10 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
          for( ibr=0 ; ibr < nv ; ibr++ )
             id += fwrite( DBLK_ARRAY(blk,ibr), 1, DBLK_BRICK_BYTES(blk,ibr), far ) ;
 
-#if 0
-         fsync(fileno(far)) ;
-#endif
-         fclose(far) ;
+         COMPRESS_fclose(far) ;
+         if( compress_mode >= 0 ){
+            blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+         }
 
          if( purge_when_done ){
             free( DBLK_ARRAY(blk,0) ) ;

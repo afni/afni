@@ -4,6 +4,40 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+13 February 1998:
+   The new plugin "Draw Dataset" offers a way to interactively edit the
+     values inside a dataset.  It is intended to allow the creation of
+     Volume-of-Interest (VOI) mask datasets.  The only documentation is
+     the 'Help' button within the plugin.  Yet to come -- tools to use
+     VOIs in conjunction with other datasets.
+--------------------------------------------------------------------------
+11 February 1998:
+   AFNI (and other programs) will now also write compressed .BRIK files.
+     This is controlled by the environment variable AFNI_COMPRESSOR.
+     The output compression mode can also be set using the new
+     "BRIK Compression" plugin. See README.compression for the details.
+--------------------------------------------------------------------------
+04 February 1998:
+   AFNI will now select a scale for graphs when it first opens a graph
+     window.  It didn't used to do this, which made things confusing.
+     Also, you can have the auto-scaling redone at any time by using
+     a new button on the Opt->Scale menu, or by typing 'a' in the graph.
+   Sub-graphs can now be spaced apart into separate boxes.  The size
+     of the gap is chosen from the Opt->Colors menu.
+   Graphs can be drawn in symbols, also chosen from the Opt->Colors menu.
+   Graphs can have the x-axis be chosen to be proportional to an arbitrary
+     time series, rather than always be proportional to the time index.
+     This can be used to make a scatterplot of all voxels vs. a given
+     voxel, for example.
+   Graph windows now show the (x,y,z) voxel indices in the same convention
+     that the AFNI controller window uses if the "Voxel Coords?" button
+     is toggled on the "Misc" menu.  [Per the request of MS Beauchamp.]
+   If AFNI is compiled with the -DUSE_TRACING option, then the program
+     will keep track of the routines as they are called.  If a crash
+     occurs, AFNI will attempt to print out the location at which it died.
+   The FIM menu now has an option to allow computation of the percent
+     signal change.
+--------------------------------------------------------------------------
 05 January 1998:
    AFNI will now read compressed .BRIK files.  Programs gzip, compress, or
      bzip2 can be used for the compressor.  AFNI will not write out such

@@ -42,7 +42,7 @@
 #define SO_BIG 33333
 
 #include "afni.h"
-#include "editvol.h"
+#include "mrilib.h"
 #include "ts.h"
 #include "afni_pcor.c"
 

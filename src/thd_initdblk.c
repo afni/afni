@@ -1,6 +1,5 @@
-#include "3ddata.h"
+#include "mrilib.h"
 #include "thd.h"
-
 
 /*----------------------------------------------------------------
   Given a directory name, and a header filename, create a
@@ -18,10 +17,7 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    Boolean ok ;
    char prefix[THD_MAX_NAME] ;
    MRI_IMAGE * qim ;
-
-#ifdef ALLOW_COMPRESSOR
    int brick_ccode ;
-#endif
 
 ENTRY("THD_init_one_datablock") ;
 
@@ -53,6 +49,8 @@ printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
    dblk->brick_keywords = NULL ;
    dblk->brick_statcode = NULL ;
    dblk->brick_stataux  = NULL ;
+
+   DBLK_unlock(dblk) ;  /* Feb 1998 */
 
    INIT_KILL(dblk->kl) ;
 
@@ -123,13 +121,8 @@ printf("  -- atr_rank=%p  atr_dimen=%p  atr_scene=%p\n",
 
    /*-- determine if the BRICK file exists --*/
 
-#ifdef ALLOW_COMPRESSOR
    brick_ccode = COMPRESS_filecode(dkptr->brick_name) ;
-   if( brick_ccode != COMPRESS_NOFILE )
-#else
-   if( THD_is_file(dkptr->brick_name) )
-#endif
-   {
+   if( brick_ccode != COMPRESS_NOFILE ){
        dkptr->storage_mode = STORAGE_BY_BRICK ;
    }
 
@@ -175,9 +168,7 @@ printf("  -- atr_rank=%p  atr_dimen=%p  atr_scene=%p\n",
       dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
 #endif
 
-#ifdef ALLOW_COMPRESSOR
       if( brick_ccode >= 0 ) dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
-#endif
    }
 
    /* 30 Nov 1997: create the labels for sub-bricks */

@@ -31,6 +31,8 @@ static char * COMPRESS_unprogram[]  = { "gzip -dc %s"  ,
                                         "bzip2 -dc %s" ,
                                         "uncompress -c %s" } ;
 
+static char * COMPRESS_enviro[] = { "GZIP" , "BZIP2" , "COMPRESS" } ;
+
 /*---------- prototypes ----------*/
 
 extern int COMPRESS_is_file( char * pathname ) ;
@@ -38,6 +40,9 @@ extern int COMPRESS_has_suffix( char * fname , int mode ) ;
 extern int COMPRESS_filecode( char * fname ) ;
 extern int COMPRESS_fclose( FILE * fp ) ;
 extern FILE * COMPRESS_fopen_read( char * fname ) ;
-extern char * COMPRESS_filename( char * fname ) ;
+extern FILE * COMPRESS_fopen_write( char * fname , int mm ) ;
+
+extern char * COMPRESS_filename( char * fname ) ; /* Feb 1998 */
+extern int COMPRESS_unlink( char * fname ) ;      /* Feb 1998 */
 
 #endif

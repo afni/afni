@@ -53,8 +53,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 #include "matrix.h"
 #include "simplex.h"
@@ -551,7 +550,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*----- initialize the model array -----*/
    model_array = NLFIT_get_many_MODELs ();
    if ((model_array == NULL) || (model_array->num == 0))
+#if 1
+     { PLUTO_report( plint , "Found no models!") ;
+       return NULL ; }
+#else
      NLfit_error ("Unable to locate any models");
+#endif
+
 #if 1
    else
    { char str[64] ;

@@ -43,7 +43,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "editvol.h"
+#include "mrilib.h"
 #include "matrix.h"
 #include "matrix.c"
 

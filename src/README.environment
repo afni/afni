@@ -145,6 +145,17 @@ Hints can be permanently disabled by setting the C macro
 DONT_USE_HINTS in machdep.h and recompiling AFNI.  They can also
 be disabled at runtime by setting AFNI_HINTS to "KILL".
 
+-------------------------
+Variable: AFNI_COMPRESSOR
+-------------------------
+This variable is used to control automatic compression of .BRIK
+files on output.  The legal values are "COMPRESS", "GZIP", and
+"BZIP2".  If AFNI_COMPRESSOR is equal to one of these, then
+all AFNI programs will automatically pass .BRIK data through the
+appropriate compression program as it is written to disk.  Note
+that this will slow down dataset write operations.  For more
+details, see file README.compression.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

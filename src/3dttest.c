@@ -13,7 +13,7 @@
   is not allowed.
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
-#include "editvol.h"
+#include "mrilib.h"
 
 #undef  TTDEBUG
 #undef  USE_PTHRESH

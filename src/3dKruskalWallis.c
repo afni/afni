@@ -38,7 +38,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "editvol.h"
+#include "mrilib.h"
 
 
 typedef struct NP_options

@@ -3736,10 +3736,12 @@ int AFNI_count_controllers(void)
 {
    int ii , cnt ;
 
+ENTRY("AFNI_count_controllers") ;
+
    for( ii=0,cnt=0 ; ii < MAX_CONTROLLERS ; ii++ )
       if( IM3D_OPEN(GLOBAL_library.controllers[ii]) ) cnt++ ;
 
-   return cnt ;
+   RETURN(cnt) ;
 }
 
 /*-------------------------------------------------------------------
@@ -3750,12 +3752,14 @@ int AFNI_controller_index( Three_D_View * im3d )
 {
    int ii ;
 
-   if( ! IM3D_VALID(im3d) ) return -1 ;
+ENTRY("AFNI_controller_index") ;
+
+   if( ! IM3D_VALID(im3d) ) RETURN(-1) ;
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
-      if( GLOBAL_library.controllers[ii] == im3d ) return ii ;
+      if( GLOBAL_library.controllers[ii] == im3d ) RETURN(ii) ;
 
-   return -1 ;
+   RETURN(-1) ;
 }
 
 /*---------------------------------------------------------------------------
@@ -3870,6 +3874,16 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->anat_index        = 0 ;  /* 30 Nov 1997 */
    im3d->vinfo->fim_index         = 0 ;
    im3d->vinfo->thr_index         = 0 ;
+
+
+   /* Feb 1998: receive stuff, including drawing */
+
+   im3d->vinfo->receiver          = NULL ;
+   im3d->vinfo->receiver_mask     = 0 ;
+   im3d->vinfo->receiver_data     = NULL ;
+   im3d->vinfo->drawing_enabled   = 0 ;
+   im3d->vinfo->drawing_mode      = DRAWING_LINES ;
+   im3d->vinfo->drawing_pixel     = 0 ;
 
    /** July 1996: set up the montage crosshair stuff **/
 
@@ -4110,7 +4124,9 @@ ENTRY("AFNI_clone_controller_CB") ;
    SHOW_AFNI_READY ; EXRETURN ;
 }
 
-/*---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------
+   Called to determine if the "New" button should be active
+-------------------------------------------------------------------------*/
 
 void AFNI_controller_clonify(void)
 {
@@ -4151,6 +4167,8 @@ void AFNI_lock_button( Three_D_View * im3d )
       "Lock [K]", "Lock [L]", "Lock [M]", "Lock [N]", "Lock [O]",
       "Lock [P]", "Lock [Q]", "Lock [R]", "Lock [S]", "Lock [T]",
       "Lock [U]", "Lock [V]", "Lock [W]", "Lock [X]", "Lock [Y]", "Lock [Z]" } ;
+
+ENTRY("AFNI_lock_button") ;
 
    wpar = im3d->vwid->dmode->mbar_rowcol ;
 
@@ -4268,7 +4286,7 @@ void AFNI_lock_button( Three_D_View * im3d )
    MCW_register_hint( dmode->lock_enforce_pb , "Make locks work NOW" ) ;
 
    XtManageChild( rc ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------
@@ -4279,6 +4297,8 @@ void AFNI_misc_button( Three_D_View * im3d )
 {
    Widget rc , mbar , menu , cbut , wpar ;
    XmString xstr ;
+
+ENTRY("AFNI_misc_button") ;
 
    wpar = im3d->vwid->dmode->mbar_rowcol ;
 
@@ -4394,6 +4414,8 @@ void AFNI_misc_button( Three_D_View * im3d )
             MCW_register_hint( dmode->misc_hints_pb , "Toggle hints display" ) ;
          }
    }
+#else
+   dmode->misc_hints_pb = NULL ;
 #endif
 
    /*-- pushbuttons to popup info about datasets --*/
@@ -4441,8 +4463,25 @@ void AFNI_misc_button( Three_D_View * im3d )
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_newstuff_pb , "List New Features" ) ;
 
+   /*--- pushbutton to toggle routine tracing ---*/
+#if defined(USE_TRACING) && !defined(PRINT_TRACING)
+   dmode->misc_tracing_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Debug Trace") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_tracing_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_tracing_pb , "Toggle Debug printing" ) ;
+#else
+   dmode->misc_tracing_pb = NULL ;
+#endif
+
    /*--- done ---*/
 
    XtManageChild( rc ) ;
-   return ;
+   EXRETURN ;
 }

@@ -1,4 +1,4 @@
-#include "3ddata.h"
+#include "mrilib.h"
 
 #define NBIN 32768
 static int histo[NBIN] ;

@@ -35,8 +35,7 @@
 #define MAX_NAME_LENGTH 80            /* max. strength length for file names */
 
 
-#include "3ddata.h"
-#include "editvol.h"
+#include "mrilib.h"
 
 
 /*---------------------------------------------------------------------------*/

@@ -18,6 +18,9 @@ static char helpstring[] =
    " Prefix  = Filename prefix to be used for the output dataset."
 ;
 
+#define NFILL 2
+static char * fill_options[NFILL] = { "Data" , "Zero" } ;
+
 /***********************************************************************
    Set up the interface to the user
 ************************************************************************/
@@ -47,6 +50,16 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "Output" , "Output" , TRUE ) ;
    PLUTO_add_string( plint , "Prefix" , 0,NULL , 19 ) ;
 
+   /*-- third line of input: Fill option --*/
+
+   PLUTO_add_option( plint , "Data Fill" , "Data Fill" , FALSE ) ;
+   PLUTO_add_string( plint , "Method" ,  NFILL,fill_options , 0 ) ;
+
+   /*-- fourth line of input: Type option --*/
+
+   PLUTO_add_option( plint , "Dataset" , "Dataset" , FALSE ) ;
+   PLUTO_add_string( plint , "Type" , NUM_DSET_TYPES,DSET_prefixstr , 0 ) ;
+
    return plint ;
 }
 
@@ -56,10 +69,10 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 char * COPY_main( PLUGIN_interface * plint )
 {
-   char * tag , * new_prefix ;
+   char * tag , * new_prefix , * cpt ;
    MCW_idcode * idc ;
    THD_3dim_dataset * dset , * new_dset ;
-   int ival ;
+   int ival , zfill=0 , ftyp=-1 , dtyp=-1 ;
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -84,6 +97,30 @@ char * COPY_main( PLUGIN_interface * plint )
              "COPY_main:  bad prefix\n"
              "**********************"  ;
 
+   tag = PLUTO_get_optiontag(plint) ;
+   while( tag != NULL ){
+
+      if( strcmp(tag,"Data Fill") == 0 ){
+         cpt   = PLUTO_get_string(plint) ;
+         zfill = ( cpt != NULL && strcmp(cpt,fill_options[1]) == 0 ) ;
+      }
+
+      else if( strcmp(tag,"Dataset") == 0 ){
+         cpt  = PLUTO_get_string(plint) ;
+         ftyp = PLUTO_string_index( cpt , NUM_DSET_TYPES,DSET_prefixstr ) ;
+         if( ftyp >= 0 ){
+            if( ftyp <= LAST_FUNC_TYPE ){
+               dtyp = HEAD_FUNC_TYPE ;
+            } else {
+               ftyp -= LAST_FUNC_TYPE ;
+               dtyp  = HEAD_ANAT_TYPE ;
+            }
+         }
+      }
+
+      tag = PLUTO_get_optiontag(plint) ;
+   }
+
    /*------------------------------------------------------*/
    /*---------- At this point, the inputs are OK ----------*/
 
@@ -97,6 +134,25 @@ char * COPY_main( PLUGIN_interface * plint )
               "****************************************"  ;
 
    DSET_unload( dset ) ;  /* unload old one from memory */
+
+   /*--- modify dataset, if desired ---*/
+
+   if( ftyp >= 0 ) EDIT_dset_items( new_dset ,
+                                       ADN_type      , dtyp ,
+                                       ADN_func_type , ftyp ,
+                                    ADN_none ) ;
+
+   if( zfill ){
+      int nvals = DSET_NVALS(new_dset) , ival , nbytes ;
+      void * bp ;
+
+      for( ival=0 ; ival < nvals ; ival++ ){
+         nbytes = DSET_BRICK_BYTES(new_dset,ival) ;  /* how much data */
+         bp     = DSET_BRICK_ARRAY(new_dset,ival) ;  /* brick pointer */
+         EDIT_BRICK_FACTOR(new_dset,ival,0.0) ;      /* brick factor  */
+         memset( bp , 0 , nbytes ) ;
+      }
+   }
 
    ival = PLUTO_add_dset( plint , new_dset , DSET_ACTION_MAKE_CURRENT ) ;
 

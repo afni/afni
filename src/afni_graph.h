@@ -8,7 +8,7 @@
    copied or used for any commercial purpose without explicit permission.
 --------------------------------------------------------------------------*/
 
-#include "3ddata.h"
+#include "mrilib.h"
 #include "display.h"
 #include "xutil.h"
 #include "bbox.h"
@@ -293,6 +293,8 @@ extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;
 
 /**************************************************************/
 
+#define PLOTCODE_AUTOSCALE 1
+
 typedef struct {
    int type , valid ;
 
@@ -347,7 +349,8 @@ typedef struct {
 
    Widget opt_menu , opt_cbut ;
    Widget opt_scale_menu    , opt_scale_cbut  ,
-          opt_scale_down_pb , opt_scale_up_pb , opt_scale_choose_pb ;
+          opt_scale_down_pb , opt_scale_up_pb , opt_scale_choose_pb ,
+          opt_scale_auto_pb ;
    Widget opt_mat_menu      , opt_mat_cbut ,
           opt_mat_down_pb   , opt_mat_up_pb   ;
    Widget opt_grid_menu     , opt_grid_cbut   ,
@@ -402,6 +405,7 @@ typedef struct {
    MCW_DC * dc ;
 
    int never_drawn ;
+   int button2_enabled ;
 
    XtPointer parent ;
 } MCW_grapher ;
@@ -445,6 +449,8 @@ typedef struct {
 
 #define graCR_destroy     7777
 
+#define graCR_button2_points 8801  /* Feb 1998 */
+
 /* The following were stolen from imseq.h, then
    had the serial numbers changed to confuse issue */
 
@@ -465,6 +471,9 @@ typedef struct {
 
 #define graDR_destroy     666
 
+#define graDR_button2_enable  501  /* Feb 1998 */
+#define graDR_button2_disable 502  /* Feb 1998 */
+
 /***-----------------------------------------------------------------------***/
 
 extern MCW_grapher * new_MCW_grapher( MCW_DC * , get_ptr , XtPointer ) ;
@@ -478,7 +487,7 @@ extern void scale_down(MCW_grapher *);
 extern void erase_fdw(MCW_grapher *);
 extern void fd_txt(MCW_grapher *,int,int,char *);
 extern void overlay_txt(MCW_grapher *,int,int,char *);
-extern void plot_graphs(MCW_grapher *);
+extern void plot_graphs(MCW_grapher *, int);
 extern void draw_grids(MCW_grapher *);
 extern void init_mat(MCW_grapher *);
 extern void send_newinfo(MCW_grapher *);
@@ -487,7 +496,7 @@ extern void mat_up(MCW_grapher *);
 extern void grid_down(MCW_grapher *);
 extern void grid_up(MCW_grapher *);
 
-extern void redraw_graph( MCW_grapher * ) ;
+extern void redraw_graph( MCW_grapher * , int ) ;
 extern void init_const( MCW_grapher * ) ;
 
 extern void GRA_small_circle( MCW_grapher * , int,int,int ) ;

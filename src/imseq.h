@@ -22,7 +22,6 @@
 #include <math.h>
 #include <ctype.h>
 
-#include "3ddata.h"
 #include "mrilib.h"
 #include "vecmat.h"
 
@@ -222,6 +221,8 @@ typedef struct {
 #define isqCR_dyminus     304
 #define isqCR_appress     309
 
+#define isqCR_button2_points 501  /* Feb 1998 */
+
 /*------------------------------*/
 
 #ifndef MONT_NMAX
@@ -321,6 +322,10 @@ typedef struct {
 
      int never_drawn ;
 
+     int    button2_enabled , button2_active , button2_drawmode ;
+     Pixel  button2_pixel ;
+     int    wimage_width , wimage_height ;
+
      /*--- data below here should be freed before deletion ---*/
 
      MRI_IMAGE * imim , * ovim ;  /* latest and greatest (already processed) */
@@ -377,6 +382,16 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_onwid          1
 #define isqDR_togwid         2
 
+#define isqDR_button2_enable  501
+#define isqDR_button2_disable 502
+#define isqDR_button2_pixel   503
+#define isqDR_button2_mode    504
+
+#define BUTTON2_OPENPOLY        0
+#define BUTTON2_CLOSEDPOLY      1
+#define BUTTON2_POINTS          2
+#define BUTTON2_NODRAW          3
+
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
 extern Boolean ISQ_setup_new( MCW_imseq * , XtPointer ) ;
@@ -414,6 +429,7 @@ extern void ISQ_but_cnorm_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_disp_act_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void ISQ_drawing_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void ISQ_button2_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 
 extern void ISQ_make_image( MCW_imseq * ) ;
 extern void ISQ_show_image( MCW_imseq * ) ;

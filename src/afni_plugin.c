@@ -797,10 +797,12 @@ int PLUTO_prefix_ok( char * str )
    int ll , ii ;
    THD_slist_find find ;
 
+ENTRY("PLUTO_prefix_ok") ;
+
    /*--- check the string itself for OK-osity ---*/
 
-   if( str == NULL ) return 0 ;
-   ll = strlen( str ) ; if( ll == 0 ) return 0 ;
+   if( str == NULL ) RETURN(0) ;
+   ll = strlen( str ) ; if( ll == 0 ) RETURN(0) ;
 
    for( ii=0 ; ii < ll ; ii++ )
       if( iscntrl(str[ii]) || isspace(str[ii]) ||
@@ -809,14 +811,14 @@ int PLUTO_prefix_ok( char * str )
           str[ii] == '&'   || str[ii] == '|'   ||
           str[ii] == '"'   || str[ii] == '>'   ||
           str[ii] == '<'   || str[ii] == '\''  ||
-          str[ii] == '['   || str[ii] == ']'     ) return 0 ;
+          str[ii] == '['   || str[ii] == ']'     ) RETURN(0) ;
 
    /*--- now see if the prefix already exists in AFNI ---*/
 
    find = THD_dset_in_sessionlist( FIND_PREFIX , str ,
                                    GLOBAL_library.sslist , -1 ) ;
 
-   return (find.dset == NULL) ;
+   RETURN(find.dset == NULL) ;
 }
 
 /*------------------------------------------------------------------------------
@@ -939,7 +941,8 @@ ENTRY("PLUG_setup_widgets") ;
 
    /**** create an action area beneath to hold user control buttons ****/
 
-   for( ib=0 ; ib < NUM_PLUG_ACT ; ib++ ) PLUG_act[ib].data = (XtPointer) plint ;
+   for( ib=0 ; ib < NUM_PLUG_ACT ; ib++ )
+      PLUG_act[ib].data = (XtPointer) plint ;
 
    actar = MCW_action_area( wid->form , PLUG_act ,
                             (plint->helpstring!=NULL) ? NUM_PLUG_ACT
@@ -1642,6 +1645,8 @@ void PLUG_optional_toggle_CB( Widget w , XtPointer cd , XtPointer cbs )
    int ib , zlen ;
    XtPointer xptr ;
 
+ENTRY("PLUG_optional_toggle_CB") ;
+
    /** invert label widget, and switch sensitivity of subvalue widgets **/
 
    if( ow != NULL ){
@@ -1657,7 +1662,7 @@ void PLUG_optional_toggle_CB( Widget w , XtPointer cd , XtPointer cbs )
          if( ow->chtop[ib] != NULL )
             XtSetSensitive( ow->chtop[ib] , !XtIsSensitive(ow->chtop[ib]) ) ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -1843,16 +1848,16 @@ ENTRY("PLUG_freeup_values") ;
 
 char * get_label_from_PLUGIN_interface( PLUGIN_interface * plint )
 {
-
-   if( plint == NULL ) return NULL ;
-   else                return plint->label ;
+ENTRY("get_label_from_PLUGIN_interface") ;
+   if( plint == NULL ) RETURN(NULL) ;
+   else                RETURN(plint->label) ;
 }
 
 char * get_description_from_PLUGIN_interface( PLUGIN_interface * plint )
 {
-
-   if( plint == NULL ) return NULL ;
-   else                return plint->description ;
+ENTRY("get_description_from_PLUGIN_interface") ;
+   if( plint == NULL ) RETURN(NULL) ;
+   else                RETURN(plint->description) ;
 }
 
 /*-----------------------------------------------------------------------
@@ -1865,7 +1870,9 @@ char * get_optiontag_from_PLUGIN_interface( PLUGIN_interface * plint )
    int iopt ;
    PLUGIN_option * opt ;
 
-   if( plint == NULL ) return NULL ;
+ENTRY("get_optiontag_from_PLUGIN_interface") ;
+
+   if( plint == NULL ) RETURN(NULL) ;
 
    iopt = plint->opnum + 1 ;
    while( iopt < plint->option_count ){
@@ -1876,11 +1883,11 @@ char * get_optiontag_from_PLUGIN_interface( PLUGIN_interface * plint )
 
       plint->opnum = iopt-1 ;      /* keep track of which option */
       plint->svnum = 0 ;           /* start at 1st subvalue */
-      return opt->tag ;
+      RETURN(opt->tag) ;
    }
 
    plint->opnum = plint->option_count ;
-   return NULL ;
+   RETURN(NULL) ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1892,15 +1899,17 @@ char * peek_optiontag_from_PLUGIN_interface( PLUGIN_interface * plint )
    int iopt ;
    PLUGIN_option * opt ;
 
-   if( plint == NULL ) return NULL ;
+ENTRY("peek_optiontag_from_PLUGIN_interface") ;
+
+   if( plint == NULL ) RETURN(NULL) ;
 
    iopt = plint->opnum + 1 ;
    while( iopt < plint->option_count ){
       opt = plint->option[iopt++] ;
       if( opt == NULL ) continue ; /* bad? */
-      if( opt->chosen ) return opt->tag ;
+      if( opt->chosen ) RETURN(opt->tag) ;
    }
-   return NULL ;
+   RETURN(NULL) ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1915,16 +1924,18 @@ int peek_callvalue_type_from_PLUGIN_interface( PLUGIN_interface * plint )
    int isv ;
    PLUGIN_option * opt ;
 
-   if( plint == NULL ) return ILLEGAL_TYPE ;
-   if( plint->opnum >= plint->option_count ) return ILLEGAL_TYPE ;
+ENTRY("peek_callvalue_type_from_PLUGIN_interface") ;
+
+   if( plint == NULL ) RETURN(ILLEGAL_TYPE) ;
+   if( plint->opnum >= plint->option_count ) RETURN(ILLEGAL_TYPE) ;
 
    opt = plint->option[ plint->opnum ] ;
-   if( opt == NULL ) return ILLEGAL_TYPE ;
+   if( opt == NULL ) RETURN(ILLEGAL_TYPE) ;
 
    isv = plint->svnum ;
-   if( isv >= opt->subvalue_count ) return ILLEGAL_TYPE ;
+   if( isv >= opt->subvalue_count ) RETURN(ILLEGAL_TYPE) ;
 
-   return opt->subvalue[isv].data_type ;
+   RETURN(opt->subvalue[isv].data_type) ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1948,18 +1959,20 @@ void * get_callvalue_from_PLUGIN_interface( PLUGIN_interface * plint , int type 
    int isv ;
    PLUGIN_option * opt ;
 
-   if( plint == NULL ) return( NULL );
+ENTRY("get_callvalue_from_PLUGIN_interface") ;
+
+   if( plint == NULL ) RETURN( NULL );
 
    opt = plint->option[ plint->opnum ] ;
-   if( opt == NULL ) return( NULL );
+   if( opt == NULL ) RETURN( NULL );
 
    isv = plint->svnum ;
-   if( isv >= opt->subvalue_count ) return( NULL );
+   if( isv >= opt->subvalue_count ) RETURN( NULL );
 
-   if( opt->subvalue[isv].data_type != type ) return( NULL );
+   if( opt->subvalue[isv].data_type != type ) RETURN( NULL );
 
    plint->svnum ++ ;
-   return( opt->callvalue[isv] );
+   RETURN( opt->callvalue[isv] );
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1968,11 +1981,13 @@ MRI_IMAGE * get_timeseries_from_PLUGIN_interface( PLUGIN_interface * plint )
 {
    MRI_IMAGE ** imp ;
 
+ENTRY("get_timeseries_from_PLUGIN_interface") ;
+
    imp = (MRI_IMAGE **)
          get_callvalue_from_PLUGIN_interface(plint,PLUGIN_TIMESERIES_TYPE) ;
 
-   if( imp == NULL ) return NULL ;
-   return *imp ;
+   if( imp == NULL ) RETURN(NULL) ;
+   RETURN(*imp) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1980,25 +1995,28 @@ MRI_IMAGE * get_timeseries_from_PLUGIN_interface( PLUGIN_interface * plint )
 float get_number_from_PLUGIN_interface( PLUGIN_interface * plint )
 {
    float * fp ;
+ENTRY("get_number_from_PLUGIN_interface") ;
    fp = (float *)get_callvalue_from_PLUGIN_interface(plint,PLUGIN_NUMBER_TYPE) ;
-   if( fp == NULL ) return BAD_NUMBER ;
-   return *fp ;
+   if( fp == NULL ) RETURN(BAD_NUMBER) ;
+   RETURN(*fp) ;
 }
 
 /*----------------------------------------------------------------------------*/
 
 char * get_string_from_PLUGIN_interface( PLUGIN_interface * plint )
 {
-   return
-     (char *) get_callvalue_from_PLUGIN_interface(plint,PLUGIN_STRING_TYPE) ;
+ENTRY("get_string_from_PLUGIN_interface") ;
+   RETURN(
+     (char *) get_callvalue_from_PLUGIN_interface(plint,PLUGIN_STRING_TYPE) );
 }
 
 /*----------------------------------------------------------------------------*/
 
 MCW_idcode * get_idcode_from_PLUGIN_interface( PLUGIN_interface * plint )
 {
-   return
-     (MCW_idcode *)get_callvalue_from_PLUGIN_interface(plint,PLUGIN_DATASET_TYPE) ;
+ENTRY("get_idcode_from_PLUGIN_interface") ;
+   RETURN(
+     (MCW_idcode *)get_callvalue_from_PLUGIN_interface(plint,PLUGIN_DATASET_TYPE) );
 }
 
 /*----------------------------------------------------------------------------*/
@@ -2007,11 +2025,13 @@ MCW_idclist * get_idclist_from_PLUGIN_interface( PLUGIN_interface * plint )
 {
    MCW_idclist ** llist ;
 
+ENTRY("get_idclist_from_PLUGIN_interface") ;
+
    llist = (MCW_idclist **)
            get_callvalue_from_PLUGIN_interface(plint,PLUGIN_DATASET_LIST_TYPE) ;
 
-   if( llist != NULL ) return *llist ;
-   return NULL ;
+   if( llist != NULL ) RETURN(*llist) ;
+   RETURN(NULL) ;
 }
 
 /*------------------------------------------------------------------------
@@ -2046,13 +2066,15 @@ void PLUG_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cbs )
    MCW_idcode * old_chosen = NULL ;
    int        * indold = NULL ;
 
+ENTRY("PLUG_choose_dataset_CB") ;
+
    /** find the stuff that is associated with this button **/
 
    XtVaGetValues( w , XmNuserData , &av , NULL ) ;
 
-   if( plint == NULL || av == NULL ) return ;
+   if( plint == NULL || av == NULL ) EXRETURN ;
    sv = av->sv ;
-   if( sv == NULL ) return ;
+   if( sv == NULL ) EXRETURN ;
    im3d = plint->im3d ;
 
    /** Select the datasets **/
@@ -2142,7 +2164,7 @@ void PLUG_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cbs )
       av->dset_choice = -1 ;
       myXtFree(old_chosen) ;
       XBell( XtDisplay(w) , 100 ) ;
-      return ;
+      EXRETURN ;
    }
 
    /*--- 23 Nov 1996: loop over dataset links and patch their titles
@@ -2250,7 +2272,7 @@ void PLUG_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cbs )
    }
 
    myXtFree(indold) ; myXtFree(old_chosen) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2267,10 +2289,12 @@ void PLUG_finalize_dataset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    int id ;
    char str[THD_MAX_NAME] ;
 
+ENTRY("PLUG_finalize_dataset_CB") ;
+
    /** find the stuff that is associated with this button **/
 
    XtVaGetValues( w , XmNuserData , &av , NULL ) ;
-   if( plint == NULL || av == NULL ) return ;
+   if( plint == NULL || av == NULL ) EXRETURN ;
 
    if( ! av->multi ){
       xstr = XmStringCreateLtoR( av->dset_link[cbs->ival].title ,
@@ -2291,7 +2315,7 @@ void PLUG_finalize_dataset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
       for( id=0 ; id < av->nchosen ; id++ ) av->chosen[id] = cbs->ilist[id] ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2304,14 +2328,16 @@ void make_PLUGIN_dataset_link( THD_3dim_dataset * dset ,
    char nam[THD_MAX_NAME] ;
    char * tnam ;
 
+ENTRY("make_PLUGIN_dataset_link") ;
+
    /*-- sanity checks --*/
 
-   if( dsl == NULL ) return ;
+   if( dsl == NULL ) EXRETURN ;
 
    if( ! ISVALID_3DIM_DATASET(dset) ){
       strcpy( dsl->title , "* garbage *" ) ;
       ZERO_IDCODE( dsl->idcode ) ;
-      return ;
+      EXRETURN ;
    }
 
    /*-- make title (cf. AFNI_set_window_titles) --*/
@@ -2325,7 +2351,7 @@ void make_PLUGIN_dataset_link( THD_3dim_dataset * dset ,
 
    dsl->idcode = dset->idcode ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2337,24 +2363,26 @@ int PLUGIN_dset_check( int type_mask , int ctrl_mask , THD_3dim_dataset * dset )
 {
    int itmp ;
 
-   if( ! ISVALID_3DIM_DATASET(dset) ) return 0 ;
+ENTRY("PLUGIN_dset_check") ;
 
-   if( ((1 << dset->func_type) & type_mask) == 0 ) return 0 ;
+   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(0) ;
+
+   if( ((1 << dset->func_type) & type_mask) == 0 ) RETURN(0) ;
 
    itmp = (DSET_NUM_TIMES(dset) > 1) ? DIMEN_4D_MASK : DIMEN_3D_MASK ;
-   if( (itmp & ctrl_mask) == 0 ) return 0 ;
+   if( (itmp & ctrl_mask) == 0 ) RETURN(0) ;
 
-   if( !DSET_INMEMORY(dset) && (ctrl_mask & WARP_ON_DEMAND_MASK) == 0 ) return 0 ;
+   if( !DSET_INMEMORY(dset) && (ctrl_mask & WARP_ON_DEMAND_MASK) == 0 ) RETURN(0) ;
 
    itmp = DSET_PRINCIPAL_VALUE(dset) ;  /* get the type of */
    itmp = DSET_BRICK_TYPE(dset,itmp) ;  /* the "principal" brick */
 
-   if( itmp == MRI_byte    && (ctrl_mask & BRICK_BYTE_MASK)    == 0 ) return 0 ;
-   if( itmp == MRI_short   && (ctrl_mask & BRICK_SHORT_MASK)   == 0 ) return 0 ;
-   if( itmp == MRI_float   && (ctrl_mask & BRICK_FLOAT_MASK)   == 0 ) return 0 ;
-   if( itmp == MRI_complex && (ctrl_mask & BRICK_COMPLEX_MASK) == 0 ) return 0 ;
+   if( itmp == MRI_byte    && (ctrl_mask & BRICK_BYTE_MASK)    == 0 ) RETURN(0) ;
+   if( itmp == MRI_short   && (ctrl_mask & BRICK_SHORT_MASK)   == 0 ) RETURN(0) ;
+   if( itmp == MRI_float   && (ctrl_mask & BRICK_FLOAT_MASK)   == 0 ) RETURN(0) ;
+   if( itmp == MRI_complex && (ctrl_mask & BRICK_COMPLEX_MASK) == 0 ) RETURN(0) ;
 
-   return 1 ;
+   RETURN(1) ;
 }
 
 /*----------------------------------------------------------------------
@@ -2370,13 +2398,15 @@ void PLUG_choose_timeseries_CB( Widget w , XtPointer cd , XtPointer cbs )
    Three_D_View     * im3d ;
    int init_ts ;
 
+ENTRY("PLUG_choose_timeseries_CB") ;
+
    /** find the stuff that is associated with this button **/
 
    XtVaGetValues( w , XmNuserData , &av , NULL ) ;
 
-   if( plint == NULL || av == NULL ) return ;
+   if( plint == NULL || av == NULL ) EXRETURN ;
    sv = av->sv ;
-   if( sv == NULL ) return ;
+   if( sv == NULL ) EXRETURN ;
    im3d = plint->im3d ;
 
    av->tsimar = GLOBAL_library.timeseries ; /* to choose amongst */
@@ -2384,7 +2414,7 @@ void PLUG_choose_timeseries_CB( Widget w , XtPointer cd , XtPointer cbs )
       av->ts_choice = -1 ;
       av->tsim      = NULL ;
       XBell( XtDisplay(w) , 100 ) ;
-      return ;
+      EXRETURN ;
    }
 
    init_ts = AFNI_ts_in_library( av->tsim ) ;
@@ -2393,7 +2423,7 @@ void PLUG_choose_timeseries_CB( Widget w , XtPointer cd , XtPointer cbs )
                           av->tsimar , init_ts ,
                           PLUG_finalize_timeseries_CB , (XtPointer) plint ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2409,10 +2439,12 @@ void PLUG_finalize_timeseries_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    XmString           xstr ;
    int                its ;
 
+ENTRY("PLUG_finalize_timeseries_CB") ;
+
    /** find the stuff that is associated with this button **/
 
    XtVaGetValues( w , XmNuserData , &av , NULL ) ;
-   if( plint == NULL || av == NULL || av->tsimar == NULL ) return ;
+   if( plint == NULL || av == NULL || av->tsimar == NULL ) EXRETURN ;
    if( cbs->reason != mcwCR_timeseries ) EXRETURN ;  /* error */
 
    /** store the choice, and change the widget label **/
@@ -2427,7 +2459,7 @@ void PLUG_finalize_timeseries_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
       XmStringFree( xstr ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /********************************************************************************
@@ -2442,10 +2474,12 @@ void AFNI_plugin_button( Three_D_View * im3d )
    Widget rc , mbar , menu , cbut , pbut , wpar , sep ;
    XmString xstr ;
 
+ENTRY("AFNI_plugin_button") ;
+
    /*-- check inputs for legality --*/
 
    if( exten == NULL      ||
-       ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) return ;
+       ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
 
    /*-- create menu bar --*/
 
@@ -2554,7 +2588,7 @@ void AFNI_plugin_button( Three_D_View * im3d )
    }
 
    XtManageChild( rc ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------
@@ -2670,9 +2704,11 @@ int PLUTO_add_dset( PLUGIN_interface * plint ,
    int iss , vv , id ;
    int make_current = (action_flag & DSET_ACTION_MAKE_CURRENT) ;
 
+ENTRY("PLUTO_add_dset") ;
+
    /** sanity check **/
 
-   if( plint == NULL || ! ISVALID_3DIM_DATASET(dset) ) return 1 ;
+   if( plint == NULL || ! ISVALID_3DIM_DATASET(dset) ) RETURN(1) ;
 
    /** find some indices **/
 
@@ -2687,7 +2723,7 @@ int PLUTO_add_dset( PLUGIN_interface * plint ,
       id = sess->num_anat ;
       if( id >= THD_MAX_SESSION_ANAT ){
          fprintf(stderr,"*** Overflow anat dataset limit ***\n") ;
-         return 1 ;
+         RETURN(1) ;
       }
       sess->anat[id][vv] = dset ;
       (sess->num_anat)++ ;
@@ -2695,13 +2731,13 @@ int PLUTO_add_dset( PLUGIN_interface * plint ,
       id = sess->num_func ;
       if( id >= THD_MAX_SESSION_FUNC ){
          fprintf(stderr,"*** Overflow func dataset limit ***\n") ;
-         return 1 ;
+         RETURN(1) ;
       }
       sess->func[id][vv] = dset ;
       (sess->num_func)++ ;
    } else {
       fprintf(stderr,"*** Bizarre type error in PLUTO_add_dset!\n") ;
-      return 1 ;
+      RETURN(1) ;
    }
 
    /** make sure the dataset is properly fit into the situation **/
@@ -2726,7 +2762,7 @@ int PLUTO_add_dset( PLUGIN_interface * plint ,
    }
 
    THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_ANY ) ;
-   return 0 ;
+   RETURN(0) ;
 }
 
 /*---------------------------------------------------------------------
@@ -2739,9 +2775,11 @@ THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset * dset , char * new_prefix 
    int ival , ityp , nbytes , nvals ;
    void * new_brick , * old_brick ;
 
+ENTRY("PLUTO_copy_dset") ;
+
    /*-- sanity check --*/
 
-   if( ! ISVALID_3DIM_DATASET(dset) ) return NULL ;
+   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(NULL) ;
 
    /*-- make the empty copy --*/
 
@@ -2768,7 +2806,7 @@ THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset * dset , char * new_prefix 
 
       if( new_brick == NULL ){
         THD_delete_3dim_dataset( new_dset , False ) ;
-        return NULL ;
+        RETURN(NULL) ;
       }
 
       EDIT_substitute_brick( new_dset , ival , ityp , new_brick ) ;
@@ -2779,13 +2817,13 @@ THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset * dset , char * new_prefix 
 
       if( old_brick == NULL ){
          THD_delete_3dim_dataset( new_dset , False ) ;
-         return NULL ;
+         RETURN(NULL) ;
       }
 
       memcpy( new_brick , old_brick , nbytes ) ;
    }
 
-   return new_dset ;
+   RETURN(new_dset) ;
 }
 
 /*----------------------------------------------------------------------
@@ -2797,6 +2835,8 @@ void PLUTO_force_redisplay(void)
    Three_D_View * im3d ;
    int ii ;
 
+ENTRY("PLUTO_force_redisplay") ;
+
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
       im3d = GLOBAL_library.controllers[ii] ;
       if( IM3D_OPEN(im3d) ){
@@ -2805,7 +2845,38 @@ void PLUTO_force_redisplay(void)
          AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
       }
    }
-   return ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+   Routine to force AFNI to redisplay controllers that are attached
+   to a given dataset.  (Feb 1998)
+------------------------------------------------------------------------*/
+
+void PLUTO_dset_redisplay( THD_3dim_dataset * dset )
+{
+   Three_D_View * im3d ;
+   int ii ;
+
+ENTRY("PLUTO_dset_redisplay") ;
+
+   if( ! ISVALID_DSET(dset) ) EXRETURN ;
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      im3d = GLOBAL_library.controllers[ii] ;
+      if( ! IM3D_OPEN(im3d) ) continue ;
+
+      if( im3d->anat_now == dset ){
+         im3d->anat_voxwarp->type = ILLEGAL_TYPE ;
+         AFNI_reset_func_range( im3d ) ;
+         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+      } else if( im3d->fim_now == dset ){
+         im3d->fim_voxwarp->type = ILLEGAL_TYPE ;
+         AFNI_reset_func_range( im3d ) ;
+         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+      }
+   }
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -2818,6 +2889,8 @@ void PLUTO_fixup_names(void)
    Three_D_View * im3d ;
    int ii ;
 
+ENTRY("PLUTO_fixup_names") ;
+
    POPDOWN_strlist_chooser ;  /* get rid of any dataset chooser that is open */
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
@@ -2825,7 +2898,7 @@ void PLUTO_fixup_names(void)
       if( IM3D_OPEN(im3d) )
          AFNI_set_window_titles( im3d ) ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2838,7 +2911,9 @@ void PLUTO_popup_worker( PLUGIN_interface * plint , char * mesg , int flag )
    Three_D_View * im3d ;
    int ii ;
 
-   if( mesg == NULL || strlen(mesg) == 0 ) return ;
+ENTRY("PLUTO_popup_worker") ;
+
+   if( mesg == NULL || strlen(mesg) == 0 ) EXRETURN ;
 
    /* find a widget to popup next to */
 
@@ -2864,7 +2939,7 @@ void PLUTO_popup_worker( PLUGIN_interface * plint , char * mesg , int flag )
       fprintf(stderr,"\n%s\a\n",mesg) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 void PLUTO_beep(void)
@@ -2891,30 +2966,36 @@ int PLUTO_string_index( char * target , int num , char * source[] )
 
 void PLUTO_popup_meter( PLUGIN_interface * plint )
 {
+ENTRY("PLUTO_popup_meter") ;
+
    if( plint == NULL             || plint->wid == NULL       ||
-       plint->wid->shell == NULL || plint->wid->meter != NULL  ) return ;
+       plint->wid->shell == NULL || plint->wid->meter != NULL  ) EXRETURN ;
 
    plint->wid->meter = MCW_popup_meter( plint->wid->shell , METER_TOP_WIDE ) ;
-   return ;
+   EXRETURN ;
 }
 
 void PLUTO_popdown_meter( PLUGIN_interface * plint )
 {
+ENTRY("PLUTO_popdown_meter") ;
+
    if( plint == NULL             || plint->wid == NULL       ||
-       plint->wid->shell == NULL || plint->wid->meter == NULL  ) return ;
+       plint->wid->shell == NULL || plint->wid->meter == NULL  ) EXRETURN ;
 
    MCW_popdown_meter( plint->wid->meter ) ;
    plint->wid->meter = NULL ;
-   return ;
+   EXRETURN ;
 }
 
 void PLUTO_set_meter( PLUGIN_interface * plint , int percent )
 {
+ENTRY("PLUTO_set_meter") ;
+
    if( plint == NULL             || plint->wid == NULL       ||
-       plint->wid->shell == NULL || plint->wid->meter == NULL  ) return ;
+       plint->wid->shell == NULL || plint->wid->meter == NULL  ) EXRETURN ;
 
    MCW_set_meter( plint->wid->meter , percent ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2935,13 +3016,15 @@ void * PLUTO_popup_image( void * handle , MRI_IMAGE * im )
 {
    PLUGIN_impopper * imp = (PLUGIN_impopper *) handle ;
 
+ENTRY("PLUTO_popup_image") ;
+
    /*-- input image is NULL ==> popdown, if applicable --*/
 
    if( im == NULL ){
       if( imp != NULL )
          drive_MCW_imseq( imp->seq , isqDR_destroy , NULL ) ;
 
-      return (void *) imp ;
+      RETURN((void *) imp) ;
    }
 
    /*-- input = no popper handle ==> create one --*/
@@ -2974,7 +3057,7 @@ void * PLUTO_popup_image( void * handle , MRI_IMAGE * im )
    drive_MCW_imseq( imp->seq , isqDR_clearstat , NULL ) ;
    drive_MCW_imseq( imp->seq , isqDR_reimage , (XtPointer) 0 ) ;
 
-   return (void *) imp ;
+   RETURN((void *) imp) ;
 }
 
 /*------------------------------------------------------------------
@@ -2986,7 +3069,9 @@ XtPointer PLUGIN_imseq_getim( int n , int type , XtPointer handle )
 {
    PLUGIN_impopper * imp = (PLUGIN_impopper *) handle ;
 
-   if( imp == NULL ) return NULL ;
+ENTRY("PLUGIN_imseq_getim") ;
+
+   if( imp == NULL ) RETURN(NULL) ;
 
    /*--- control info ---*/
 
@@ -3001,12 +3086,12 @@ XtPointer PLUGIN_imseq_getim( int n , int type , XtPointer handle )
       stat->transforms0D = & (GLOBAL_library.registered_0D) ;
       stat->transforms2D = & (GLOBAL_library.registered_2D) ;
 
-      return (XtPointer) stat ;
+      RETURN((XtPointer) stat) ;
    }
 
    /*--- no overlay ---*/
 
-   if( type == isqCR_getoverlay ) return NULL ;
+   if( type == isqCR_getoverlay ) RETURN(NULL) ;
 
    /*--- return a copy of the image
          (since the imseq will delete it when it is done) ---*/
@@ -3014,10 +3099,10 @@ XtPointer PLUGIN_imseq_getim( int n , int type , XtPointer handle )
    if( type == isqCR_getimage || type == isqCR_getqimage ){
       MRI_IMAGE * im = NULL ;
       if( imp->im != NULL ) im = mri_to_mri( imp->im->kind , imp->im ) ;
-      return (XtPointer) im ;
+      RETURN((XtPointer) im) ;
    }
 
-   return NULL ;  /* should not occur, but who knows? */
+   RETURN(NULL) ;  /* should not occur, but who knows? */
 }
 
 /*---------------------------------------------------------------------------
@@ -3045,7 +3130,7 @@ void PLUGIN_seq_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
 
 /*-------------------------------------------------------------------------*/
 
-/*-- 13 Dec 1997: moved guts into 3dmaker.c --*/
+/*-- 13 Dec 1997: moved guts into thd_make*.c --*/
 
 THD_3dim_dataset * PLUTO_4D_to_typed_fim( THD_3dim_dataset * old_dset ,
                                           char * new_prefix , int new_datum ,
@@ -3055,12 +3140,14 @@ THD_3dim_dataset * PLUTO_4D_to_typed_fim( THD_3dim_dataset * old_dset ,
 {
    THD_3dim_dataset * new_dset ;  /* output dataset */
 
-   if( ! PLUTO_prefix_ok(new_prefix) ) return NULL ;
+ENTRY("PLUTO_4D_to_typed_fim") ;
+
+   if( ! PLUTO_prefix_ok(new_prefix) ) RETURN(NULL) ;
 
    new_dset = MAKER_4D_to_typed_fim( old_dset , new_prefix , new_datum ,
                                      ignore , detrend , user_func , user_data ) ;
 
-   return new_dset ;
+   RETURN(new_dset) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3073,12 +3160,14 @@ THD_3dim_dataset * PLUTO_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
 {
    THD_3dim_dataset * new_dset ;  /* output dataset */
 
-   if( ! PLUTO_prefix_ok(new_prefix) ) return NULL ;
+ENTRY("PLUTO_4D_to_typed_fith") ;
+
+   if( ! PLUTO_prefix_ok(new_prefix) ) RETURN(NULL) ;
 
    new_dset = MAKER_4D_to_typed_fith( old_dset , new_prefix , new_datum ,
                                       ignore , detrend , user_func , user_data ) ;
 
-   return new_dset ;
+   RETURN(new_dset) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3092,12 +3181,14 @@ THD_3dim_dataset * PLUTO_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 {
    THD_3dim_dataset * new_dset ;  /* output dataset */
 
-   if( ! PLUTO_prefix_ok(new_prefix) ) return NULL ;
+ENTRY("PLUTO_4D_to_typed_fbuc") ;
+
+   if( ! PLUTO_prefix_ok(new_prefix) ) RETURN(NULL) ;
 
    new_dset = MAKER_4D_to_typed_fbuc( old_dset , new_prefix , new_datum ,
                                       ignore , detrend , nbrik , user_func , user_data ) ;
 
-   return new_dset ;
+   RETURN(new_dset) ;
 }
 
 
@@ -3109,7 +3200,9 @@ static XtWorkProcId wpid ;
 
 void PLUTO_register_workproc( XtWorkProc func , XtPointer data )
 {
-   if( func == NULL ) return ;
+ENTRY("PLUTO_register_workproc") ;
+
+   if( func == NULL ) EXRETURN ;
 
    if( num_workp == 0 ){
       workp = (XtWorkProc *) malloc( sizeof(XtWorkProc) ) ;
@@ -3128,14 +3221,16 @@ void PLUTO_register_workproc( XtWorkProc func , XtPointer data )
 fprintf(stderr,"Now have %d workprocs\n",num_workp) ;
 **/
 
-   return ;
+   EXRETURN ;
 }
 
 void PLUTO_remove_workproc( XtWorkProc func )
 {
    int ii , ngood ;
 
-   if( func == NULL || num_workp == 0 ) return ;
+ENTRY("PLUTO_remove_workproc") ;
+
+   if( func == NULL || num_workp == 0 ) EXRETURN ;
 
    for( ii=0 ; ii < num_workp ; ii++ ){
       if( func == workp[ii] ) workp[ii] = NULL ;
@@ -3153,7 +3248,7 @@ fprintf(stderr,"No workprocs left\n") ;
 fprintf(stderr,"%d workprocs left\n",ngood) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 Boolean PLUG_workprocess( XtPointer fred )
@@ -3234,9 +3329,12 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) startup_lsqfit ,
    (vptr_func *) delayed_lsqfit ,
    (vptr_func *) mri_align_dfspace ,
+   (vptr_func *) EDIT_one_dataset ,
+   (vptr_func *) EDIT_add_brick ,
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){
+  assert(1) ;
   return forced_loads[n] ;
 }
 
@@ -3274,10 +3372,12 @@ THD_3dim_dataset * PLUTO_find_dset( MCW_idcode * idcode )
 {
    THD_slist_find find ;
 
-   if( idcode == NULL || ISZERO_IDCODE(*idcode) ) return NULL ;
+ENTRY("PLUTO_find_dset") ;
+
+   if( idcode == NULL || ISZERO_IDCODE(*idcode) ) RETURN(NULL) ;
 
    find = THD_dset_in_sessionlist( FIND_IDCODE , idcode ,
                                    GLOBAL_library.sslist , -1 ) ;
 
-   return find.dset ;
+   RETURN(find.dset) ;
 }
