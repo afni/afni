@@ -390,6 +390,9 @@ key_t string_to_key( char * key_string )
    for( ii=0 ; key_string[ii] != '\0' ; ii++ )
       sum += ((int)key_string[ii]) << ((ii%3)*8) ;
 
+        if( sum  < 0 ) sum = -sum      ;
+   else if( sum == 0 ) sum = 314159265 ;
+
    return (key_t) sum ;
 }
 
@@ -421,7 +424,11 @@ int shm_create( char * key_string , int size )
 
    key   = string_to_key( key_string ) ;
    shmid = shmget( key , size , 0777 | IPC_CREAT ) ;
-   if( shmid < 0 ) PERROR("Can't create shared memory? shm_create") ;
+   if( shmid < 0 ){
+     PERROR("Can't create shared memory? shm_create") ;
+     if( pron ) fprintf(stderr,"key_string=%s key=%d size=%d\n",
+                        key_string , (int)key , size ) ;
+   }
    return shmid ;
 }
 

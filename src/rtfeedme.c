@@ -141,7 +141,8 @@ void AFNI_start_io( void )
       /* decide name of data channel: it can be TCP/IP or shared memory */
 
       if( AFNI_use_tcp ) sprintf(AFNI_iochan,"tcp:%s:%d",AFNI_host,AFNI_TCP_PORT) ;
-      else               sprintf(AFNI_iochan,"shm:grv:%dM",RT_mega) ;
+      else if( RT_mega ) sprintf(AFNI_iochan,"shm:grv:%dM",RT_mega) ;
+      else               sprintf(AFNI_iochan,"shm:grv:50K") ;  /* 11 Dec 2002 */
 
       strcpy(AFNI_buf,AFNI_iochan) ;     /* tell AFNI where to read data */
       if( AFNI_infocom[0] != '\0' ){
@@ -259,7 +260,8 @@ int main( int argc , char * argv[] )
         "\n"
         "  -buf m      =  When using shared memory, sets the interprocess\n"
         "                 communications buffer to 'm' megabytes.  Has no\n"
-        "                 effect if using TCP/IP.  Default is m = 1.\n"
+        "                 effect if using TCP/IP.  Default is m=1.\n"
+        "                 If you use m=0, then a 50 Kbyte buffer is used.\n"
         "\n"
         "  -verbose    =  Be talkative about actions.\n"
         "  -swap2      =  Swap byte pairs before sending data.\n"
@@ -300,7 +302,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-buf") == 0 ){
          RT_mega = (int) strtod( argv[++iarg] , NULL ) ;
-         if( RT_mega < 1 ){
+         if( RT_mega < 0 ){
             fprintf(stderr,"*** Illegal value after -buf\n") ; exit(1) ;
          }
          iarg++ ; continue ;
