@@ -819,6 +819,7 @@ C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD
+      REAL*8 ARGMAX,ARGNUM
 C
 C  External library functions
 C
@@ -1112,6 +1113,14 @@ C.......................................................................
             ELSE
                R8_EVAL(NEVAL) = 0.D+0
             ENDIF
+         ELSEIF( CNCODE .EQ. 'ARGMAX' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = ARGMAX( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'ARGNUM' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = ARGNUM( NTM , R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1266,6 +1275,7 @@ C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD
+      REAL*8 ARGMAX,ARGNUM
 C
 C  External library functions
 C
@@ -1838,6 +1848,24 @@ C.......................................................................
                ELSE
                   R8_EVAL(IV-IBV,NEVAL) = 0.D+0
                ENDIF
+	    ENDDO
+         ELSEIF( CNCODE .EQ. 'ARGMAX'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = ARGMAX( NTM, SCOP )
+	    ENDDO
+         ELSEIF( CNCODE .EQ. 'ARGNUM'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = ARGNUM( NTM, SCOP )
 	    ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
@@ -2440,6 +2468,45 @@ C
          X(IT) = ABS(X(IT)-TMP)
 100   CONTINUE
       MAD = MEDIAN(N,X)
+      RETURN
+      END
+C
+C
+C
+      FUNCTION ARGMAX(N,X)
+      REAL*8 ARGMAX , X(N) , TMP
+      INTEGER N, I , IT , NZ
+C
+      TMP = X(1)
+      IT  = 1
+      NZ  = 0
+      IF( TMP .EQ. 0.D+00 ) NZ = 1
+      DO 100 I=2,N
+        IF( X(I) .GT. TMP )THEN
+          IT  = I
+          TMP = X(I)
+        ENDIF
+        IF( X(I) .EQ. 0.D+00 ) NZ = NZ+1
+100   CONTINUE
+      IF( NZ .EQ. N )THEN
+        ARGMAX = 0.D+00
+      ELSE
+        ARGMAX = IT
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+      FUNCTION ARGNUM(N,X)
+      REAL*8 ARGNUM , X(N)
+      INTEGER N, I, NZ
+C
+      NZ = 0
+      DO 100 I=1,N
+        IF( X(I) .NE. 0.D+00 ) NZ = NZ+1
+100   CONTINUE
+      ARGNUM = NZ
       RETURN
       END
 C
