@@ -8,7 +8,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset ;
    NI_group *ngr ;
    NI_stream ns_out ;
-   int iarg=1 , dodata=0 ;
+   int iarg=1 , dodata=0 , nout=0 ;
    char strname[256] = "stdout:" ;
 
    /*-- help me if you can --*/
@@ -22,7 +22,7 @@ int main( int argc , char *argv[] )
       " OPTIONS:\n"
       "  -data          == Also put the data into the output (will be huge).\n"
       "  -tcp:host:port == Instead of stdout, send the dataset to a socket.\n"
-      "                    (implies '-dodata' as well)\n"
+      "                    (implies '-data' as well)\n"
       "\n"
       "-- RWCox - Mar 2005\n"
      ) ;
@@ -30,7 +30,7 @@ int main( int argc , char *argv[] )
    }
 
    mainENTRY("3dAFNItoNIML main"); machdep();
-   if( PRINT_TRACING ) enable_mcw_malloc() ;
+   if( PRINT_TRACING ){ STATUS("Enable mcw_malloc()"); enable_mcw_malloc(); }
 
    /*-- read command line options --*/
 
@@ -55,23 +55,34 @@ int main( int argc , char *argv[] )
 
    dset = THD_open_dataset( argv[iarg++] ) ;
    if( dset == NULL ){
-     fprintf(stderr,"** Can't open dataset %s\n",argv[iarg-1]) ;
-     exit(1) ;
+     fprintf(stderr,"** Can't open dataset %s\n",argv[iarg-1]); exit(1);
    }
 
    /*-- convert attributes to NIML --*/
 
-   if( dodata ) DSET_load(dset) ;
+   if( dodata ){
+     DSET_load(dset) ;
+     if( !DSET_LOADED(dset) ){
+       fprintf(stderr,"** Can't load dataset %s\n",argv[iarg-1]); exit(1);
+     }
+   }
+
    switch( dodata ){
      default:
      case 1:
        ngr = THD_dataset_to_niml( dset ) ; /* header and data together */
        DSET_unload(dset) ;
+       if( ngr == NULL ){
+         fprintf(stderr,"** Can't do THD_dataset_to_niml()\n"); exit(1);
+       }
      break ;
 
      case 0:
      case 2:
        ngr = THD_nimlize_dsetatr( dset ) ;      /* header only for now */
+       if( ngr == NULL ){
+         fprintf(stderr,"** Can't do THD_nimlize_dsetatr()\n"); exit(1);
+       }
      break ;
 
      case 3:
@@ -100,7 +111,7 @@ int main( int argc , char *argv[] )
      nn = NI_stream_writecheck( ns_out , 1 ) ;
      if( nn <= 0 ){ fprintf(stderr,"** Can't connect!?\n"); exit(1); }
 
-     if( dodata > 1 ) NI_write_procins( ns_out , "keep_reading" ) ;
+     if( dodata > 1 ) nout += NI_write_procins( ns_out , "keep_reading" ) ;
    }
 
    /*-- if have group element from above, send it now --*/
@@ -108,7 +119,7 @@ int main( int argc , char *argv[] )
    if( ngr != NULL ){
      NI_rename_group( ngr , "AFNI_dataset" ) ;
      NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(dset) ) ;
-     NI_write_element( ns_out , ngr , NI_TEXT_MODE ) ;
+     nout += NI_write_element( ns_out , ngr , NI_TEXT_MODE ) ;
      NI_free_element( ngr ) ;
    }
 
@@ -118,7 +129,7 @@ int main( int argc , char *argv[] )
      int iv ; NI_element *nel ;
      for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
        nel = THD_subbrick_to_niml( dset , iv , SBFLAG_INDEX ) ;
-       if( nel != NULL ) NI_write_element( ns_out , nel , NI_BINARY_MODE ) ;
+       if( nel != NULL ) nout += NI_write_element( ns_out , nel , NI_BINARY_MODE ) ;
        NI_free_element(nel) ;
      }
    }
@@ -126,5 +137,6 @@ int main( int argc , char *argv[] )
    /*-- Ciao baby --*/
 
    NI_stream_closenow( ns_out ) ;
+   fprintf(stderr,"++ Wrote %d bytes\n",nout) ;
    exit(0) ;
 }
