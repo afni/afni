@@ -12,17 +12,16 @@
 
 void machdep()
 {
-
    /*-- force use of mcw_malloc.c functions - 05 Nov 2001 --*/
 
 #ifdef USING_MCW_MALLOC
    if( AFNI_yesenv("AFNI_FORCE_MCW_MALLOC") ) enable_mcw_malloc();
 #endif
 
-   /*-- disable mmap() in malloc() --*/
+   /*-- disable mmap() in malloc() [mostly] --*/
 
 #if defined(LINUX) && defined(M_MMAP_MAX)
-   mallopt( M_MMAP_MAX , 0 ) ;
+   mallopt( M_MMAP_MAX , 1 ) ;
 #endif
 
 }

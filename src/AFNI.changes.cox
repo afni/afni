@@ -3917,3 +3917,8 @@
 20 Aug 2002
  * Modifications to surface controls: hints, help, comments.
  * Added UUID functions to niml.[ch].
+
+21 Aug 2002
+ * Modified niml.c to add NI_mktemp(), and change use of /dev/urandom.
+ * Modified machdep.c to change use of mallopt() for Linux - seems to
+     make big malloc()'s work better (?).
