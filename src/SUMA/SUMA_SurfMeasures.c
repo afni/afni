@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.7 (February 23, 2004)"
+#define VERSION "version 1.7a (February 23, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -195,7 +195,7 @@ int write_output( opts_t * opts, param_t * p )
     float       fvn, fva, fvb;
     float     * fp0, * fp1;
     float     * norms0, * norms1;
-    float       ave_dist;
+    float       ave_dist, fval;
     int         c, fnum, node, nindex;
     int       * fcodes;
     int         skipped = 0;
@@ -313,13 +313,13 @@ ENTRY("write_output");
 		    break;
 
 		case E_SM_N_AVEAREA_A:
-		    fprintf(p->outfp,"  %10s",
-		    MV_format_fval(p->S.narea[0][node]/so0->MF->N_Memb[node]));
+		    fval = 3 * p->S.narea[0][node] / so0->MF->N_Memb[node];
+		    fprintf(p->outfp,"  %10s", MV_format_fval(fval));
 		    break;
 
 		case E_SM_N_AVEAREA_B:
-		    fprintf(p->outfp,"  %10s",
-		    MV_format_fval(p->S.narea[1][node]/so1->MF->N_Memb[node]));
+		    fval = 3 * p->S.narea[1][node] / so1->MF->N_Memb[node];
+		    fprintf(p->outfp,"  %10s", MV_format_fval(fval));
 		    break;
 
 		case E_SM_NTRI:
