@@ -867,7 +867,7 @@ ENTRY("add_string_to_PLUGIN_interface") ;
    if( num_str > 0 ){
       sv->string_range_count = num_str ;
       for( ii=0 ; ii < num_str ; ii++ ){
-         sv->string_range[ii] = XtMalloc( PLUGIN_STRING_SIZE ) ;
+         sv->string_range[ii] = (char*)XtMalloc( PLUGIN_STRING_SIZE ) ;
          MCW_strncpy( sv->string_range[ii] , strlist[ii] , PLUGIN_STRING_SIZE ) ;
       }
       sv->value_default   = defval ;
@@ -879,7 +879,7 @@ ENTRY("add_string_to_PLUGIN_interface") ;
 
       if( strlist != NULL && strlist[0] != NULL ){     /* 19 Jun 2000 */
          sv->string_range_count = -1 ;
-         sv->string_range[0] = XtMalloc( PLUGIN_STRING_SIZE ) ;
+         sv->string_range[0] = (char*)XtMalloc( PLUGIN_STRING_SIZE ) ;
          MCW_strncpy( sv->string_range[0], strlist[0], PLUGIN_STRING_SIZE ) ;
       }
    }

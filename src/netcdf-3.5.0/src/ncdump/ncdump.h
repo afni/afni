@@ -14,8 +14,13 @@
 
 #define  Printf  (void) printf
 
+/* #if !defined(__cplusplus) || !defined(c_plusplus) */
+#if 0
 typedef int boolean;
 enum {false=0, true=1};
+#else
+typedef bool boolean;
+#endif
 
 struct ncdim {			/* dimension */
     char name[NC_MAX_NAME];

@@ -144,7 +144,7 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
                           ATRSIZE_DATASET_DIMENSIONS , atdims ) ;
 
    { int * datum_type ;
-     datum_type = malloc( sizeof(int) * blk->nvals ) ;
+     datum_type = AFMALL(int, sizeof(int) * blk->nvals ) ;
      for( id=0 ; id < blk->nvals ; id++ )
         datum_type[id] = DBLK_BRICK_TYPE(blk,id) ;
      THD_set_int_atr(   blk , ATRNAME_BRICK_TYPES  , blk->nvals , datum_type ) ;

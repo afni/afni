@@ -30,6 +30,9 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
+Revision 1.15  2003/12/16 16:13:12  rhammett
+Cput
+
 Revision 1.14  2003/08/05 17:20:46  rwcox
 Cput
 
@@ -656,7 +659,7 @@ void XcgLiteClueAddWidget(Widget w, Widget watch,  char * text, int size, int op
 	{
 		if (!size)
 			size = strlen(text);
-		obj->text = XtMalloc(size+1);
+		obj->text = (char*) XtMalloc(size+1);
 		memcpy(obj->text, text, size);
 		obj->text[size] = 0;
 		obj->text_size = size;

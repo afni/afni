@@ -15,7 +15,7 @@
 MRI_IMAGE *mri_shift2D_bilinear( MRI_IMAGE *im, float aa, float bb )
 {
    float dx , dy ;
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    MRI_IMARR *impair ;
    float *far , *nar ;
    float xx,yy , fx,fy ;
@@ -43,10 +43,10 @@ ENTRY("mri_shift2D_bilinear") ;
       iim = IMAGE_IN_IMARR(impair,1) ;  FREE_IMARR(impair) ;
       tim = mri_shift2D_bilinear( rim , aa,bb ); mri_free(rim); rim = tim;
       tim = mri_shift2D_bilinear( iim , aa,bb ); mri_free(iim); iim = tim;
-      new = mri_pair_to_complex( rim , iim ) ;
+      newImg = mri_pair_to_complex( rim , iim ) ;
       mri_free(rim) ; mri_free(iim) ;
-      MRI_COPY_AUX(new,im) ;
-      RETURN(new) ;
+      MRI_COPY_AUX(newImg,im) ;
+      RETURN(newImg) ;
    }
 
    /** shift params **/
@@ -63,8 +63,8 @@ ENTRY("mri_shift2D_bilinear") ;
    else                        imfl = mri_to_float( im ) ;
 
    far = MRI_FLOAT_PTR(imfl) ;              /* access to float data */
-   new = mri_new( nx , nx , MRI_float ) ;   /* output image */
-   nar = MRI_FLOAT_PTR(new) ;               /* output image data */
+   newImg = mri_new( nx , nx , MRI_float ) ;   /* output image */
+   nar = MRI_FLOAT_PTR(newImg) ;               /* output image data */
 
    /*** loop over output points and warp to them ***/
 
@@ -103,6 +103,6 @@ ENTRY("mri_shift2D_bilinear") ;
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   MRI_COPY_AUX(new,im) ;
-   RETURN(new) ;
+   MRI_COPY_AUX(newImg,im) ;
+   RETURN(newImg) ;
 }

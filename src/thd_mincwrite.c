@@ -130,7 +130,7 @@ ENTRY("THD_write_minc") ;
 
    /*-- start to create command --*/
 
-   cmd = malloc(65500) ; /* long enough?  */
+   cmd = AFMALL(char, 65500) ; /* long enough?  */
    strcpy(cmd,pg) ;      /* basic command */
 
    /* axes orientation */

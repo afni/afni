@@ -39,7 +39,7 @@ static mincdim read_mincdim( int ncid , char *dname )
    ddd.spacetype[0] = '\0' ;
 
    lll = strlen(fname_err) + strlen(dname) + 4 ;
-   ename = realloc( ename , lll) ;
+   ename = AFREALL(ename, char, lll) ;
    sprintf(ename,"%s:%s",fname_err,dname) ;
 
    /* get ID of this dimension name */
@@ -327,7 +327,7 @@ ENTRY("THD_open_minc") ;
 
    code = nc_inq_attlen( ncid , NC_GLOBAL , "history" , &len ) ;
    if( code == NC_NOERR && len > 0 ){
-      ppp = calloc(1,len+4) ;
+      ppp = AFMALL(char,len+4) ;
       code = nc_get_att_text( ncid , NC_GLOBAL , "history" , ppp ) ;
       if( code == NC_NOERR ){  /* should always happen */
          ppp[len] = '\0' ;
@@ -386,7 +386,7 @@ ENTRY("THD_load_minc") ;
 
    for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
       if( DBLK_ARRAY(dblk,ibr) == NULL ){
-         ptr = calloc( 1,DBLK_BRICK_BYTES(dblk,ibr) ) ;
+         ptr = AFMALL(void, DBLK_BRICK_BYTES(dblk,ibr) ) ;
          mri_fix_data_pointer( ptr ,  DBLK_BRICK(dblk,ibr) ) ;
          if( ptr == NULL ) nbad++ ;
       }

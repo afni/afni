@@ -271,7 +271,7 @@ process_file( char * filename, param_t * p )
 
     if ( fdata == NULL )
     {
-	fdata = calloc( p->length, sizeof(char) );
+	fdata = (char*) calloc( p->length, sizeof(char) );
 	if ( fdata == NULL )
 	{
 	    fprintf( stderr, "failure: cannot allocate %d bytes for data\n",

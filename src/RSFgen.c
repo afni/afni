@@ -369,7 +369,7 @@ void get_options
 	{
 	  nopt++;
 	  if (nopt >= argc)  RSF_error ("need argument after -prefix ");
-	  prefix = malloc (sizeof(char) * THD_MAX_NAME);
+	  prefix = AFMALL(char, sizeof(char) * THD_MAX_NAME);
 	  MTEST (prefix);
 	  strcpy (prefix, argv[nopt]);
 	  nopt++;
@@ -383,7 +383,7 @@ void get_options
 	  markov = 1;
 	  nopt++;
 	  if (nopt >= argc)  RSF_error ("need argument after -markov ");
-	  tpm_file = malloc (sizeof(char) * THD_MAX_NAME);
+	  tpm_file = AFMALL(char, sizeof(char) * THD_MAX_NAME);
 	  MTEST (tpm_file);
 	  strcpy (tpm_file, argv[nopt]);
 	  nopt++;
@@ -410,7 +410,7 @@ void get_options
 	{
 	  nopt++;
 	  if (nopt >= argc)  RSF_error ("need argument after -table ");
-	  table_file = malloc (sizeof(char) * THD_MAX_NAME);
+	  table_file = AFMALL(char, sizeof(char) * THD_MAX_NAME);
 	  MTEST (table_file);
 	  strcpy (table_file, argv[nopt]);
 	  nopt++;

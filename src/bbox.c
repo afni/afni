@@ -2083,11 +2083,11 @@ ENTRY("MCW_choose_multi_strlist") ;
              NULL ) ;
 
    if( label != NULL && label[0] != '\0' ){
-      lbuf = XtMalloc( strlen(label) + 32 ) ;
+      lbuf = (char*)XtMalloc( strlen(label) + 32 ) ;
       sprintf( lbuf , "----Choose %s----\n%s" ,
                (mode == mcwCT_single_mode) ? "One" : "One or More" , label ) ;
    } else {
-      lbuf = XtMalloc( 32 ) ;
+      lbuf = (char*)XtMalloc( 32 ) ;
       sprintf( lbuf , "----Choose %s----",
                (mode == mcwCT_single_mode) ? "One" : "One or More" ) ;
    }
@@ -2341,10 +2341,10 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
              NULL ) ;
 
    if( label != NULL ){
-      lbuf = XtMalloc( strlen(label) + 24 ) ;
+      lbuf = (char*)XtMalloc( strlen(label) + 24 ) ;
       sprintf( lbuf , "----Choose One----\n%s" , label ) ;
    } else {
-      lbuf = XtMalloc( 24 ) ;
+      lbuf = (char*)XtMalloc( 24 ) ;
       sprintf( lbuf , "----Choose One----" ) ;
    }
    xms = XmStringCreateLtoR( lbuf , XmFONTLIST_DEFAULT_TAG ) ;
@@ -2560,11 +2560,11 @@ void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
    /* Label at the top */
 
    if( label != NULL ){
-      lbuf = XtMalloc( strlen(label) + 32 ) ;
+      lbuf = (char*)XtMalloc( strlen(label) + 32 ) ;
       sprintf( lbuf , "----Choose %s----\n%s" ,
                (mode == mcwCT_single_mode) ? "One" : "One or More" , label ) ;
    } else {
-      lbuf = XtMalloc( 32 ) ;
+      lbuf = (char*)XtMalloc( 32 ) ;
       sprintf( lbuf , "----Choose %s----",
                (mode == mcwCT_single_mode) ? "One" : "One or More" ) ;
    }

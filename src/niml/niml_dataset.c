@@ -50,7 +50,7 @@ void * NI_dataset_transpose( void *ndd )
    nvec_new = NI_dataset_vecnum(ndnew) ;
    len_new  = NI_dataset_veclen(ndnew) ;
 
-   ndnew->vec = NI_malloc( sizeof(NI_vector *) * nvec_new ) ;
+   ndnew->vec = NI_malloc(NI_vector*, sizeof(NI_vector *) * nvec_new ) ;
    for( ii=0 ; ii < nvec_new ; ii++ )
      ndnew->vec[ii] = NI_new_vector( tt , len_new ) ;
 

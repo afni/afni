@@ -27,7 +27,7 @@ NI_element * NI_read_file_nohead( char *fname )
    if( ptr != NULL && isalpha(*(ptr+1)) ){
      NI_stream ns ;
      fclose(fp) ;
-     ptr = NI_malloc(strlen(fname)+16) ;
+     ptr = NI_malloc(char, strlen(fname)+16) ;
      sprintf(ptr,"file:%s",fname) ;
      ns = NI_stream_open(ptr,"r") ; NI_free(ptr) ;
      if( ns == NULL ) return NULL ;
@@ -62,7 +62,7 @@ static char * my_fgets( char *buf, int size, FILE *fts, int flags )
      NI_free(qbuf); qbuf = NULL; return NULL;
    }
 
-   if( qbuf == NULL ) qbuf = NI_malloc(LBUF) ;  /* 1st time in */
+   if( qbuf == NULL ) qbuf = NI_malloc(char, LBUF) ;  /* 1st time in */
 
    nbuf  = 0 ;  /* num bytes stored in buf so far */
    cflag = 0 ;  /* flag if we're catenating lines */

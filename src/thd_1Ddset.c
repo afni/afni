@@ -166,7 +166,7 @@ ENTRY("THD_load_1D") ;
 
    for( nbad=iv=0 ; iv < nv ; iv++ ){
      if( DBLK_ARRAY(dblk,iv) == NULL ){
-       bar = malloc( DBLK_BRICK_BYTES(dblk,iv) ) ;
+       bar = AFMALL( float,  DBLK_BRICK_BYTES(dblk,iv) ) ;
        mri_fix_data_pointer( bar ,  DBLK_BRICK(dblk,iv) ) ;
        if( bar == NULL ) nbad++ ;
      }

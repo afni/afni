@@ -1725,7 +1725,7 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
    if( buf == NULL || size < 1 || fts == NULL ) return NULL ;
 
-   if( qbuf == NULL ) qbuf = malloc(LBUF) ;  /* 1st time in */
+   if( qbuf == NULL ) qbuf = AFMALL(char, LBUF) ;  /* 1st time in */
 
    nbuf  = 0 ;  /* num bytes stored in buf so far */
    cflag = 0 ;  /* flag if we're catenating lines */
@@ -1828,7 +1828,7 @@ ENTRY("mri_read_ascii") ;
 
    fts = fopen( fname , "r" ); if( fts == NULL ) RETURN(NULL);
 
-   if( buf == NULL ) buf = malloc(LBUF) ;  /* 20 Jun 2002: 1st time in */
+   if( buf == NULL ) buf = AFMALL( char, LBUF) ;  /* 20 Jun 2002: 1st time in */
 
    /** step 1: read in the first line and see how many numbers are in it
                (skipping lines that are comments or entirely blank)     */

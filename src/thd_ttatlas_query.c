@@ -72,7 +72,7 @@ ENTRY("TT_load_atlas") ;
    /*----- copy path list into local memory -----*/
 
    ll = strlen(epath) ;
-   elocal = malloc( sizeof(char) * (ll+2) ) ;
+   elocal = AFMALL(char, sizeof(char) * (ll+2) ) ;
 
    /*----- put a blank at the end -----*/
 
@@ -253,7 +253,7 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
       sprintf(mylab,"%4.0f mm [%c]",my,(my>=0.0)?'A':'P') ;
       sprintf(mzlab,"%4.0f mm [%c]",mz,(mz< 0.0)?'I':'S') ;
 
-      rbuf = malloc(500) ;
+      rbuf = AFMALL(char, 500) ;
       sprintf(rbuf,"%s\n"
                    "Focus point=%s,%s,%s {T-T Atlas}\n"
                    "           =%s,%s,%s {MNI Brain}\n"
@@ -385,7 +385,7 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
    /*- convert list of labels into one big multi-line string -*/
 
    for( nfind=ii=0 ; ii < sar->num ; ii++ ) nfind += strlen(sar->ar[ii]) ;
-   rbuf = malloc( nfind + 2*sar->num + 32 ) ; rbuf[0] = '\0' ;
+   rbuf = AFMALL(char, nfind + 2*sar->num + 32 ) ; rbuf[0] = '\0' ;
    for( ii=0 ; ii < sar->num ; ii++ ){
       strcat(rbuf,sar->ar[ii]) ; strcat(rbuf,"\n") ;
    }

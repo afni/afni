@@ -16,7 +16,7 @@ int main( int argc , char * argv[] )
    mm = strtol( argv[1] , NULL , 10 ) ;
    if( mm <= 0 ) exit(1) ;
 
-   cc = malloc( mm*1024*1024 ) ;
+   cc = AFMALL( char, mm*1024*1024 ) ;
    printf("Malloc-ed %d Megabytes",mm) ; fflush(stdout) ;
    for( ii=0 ; ii < mm*1024*1024 ; ii++ ) cc[ii] = (char) (ii%128) ;
 

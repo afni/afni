@@ -46,10 +46,10 @@ void NI_register_doer( char *verb , NI_voidfunc *func )
 
    ii = doer_num++ ;
 
-   doer_verb = NI_realloc( doer_verb , sizeof(char *)*doer_num ) ;
+   doer_verb = NI_realloc( doer_verb, char*, sizeof(char *)*doer_num ) ;
    doer_verb[ii] = NI_strdup(verb) ;
 
-   doer_func = NI_realloc( doer_func , sizeof(NI_voidfunc *)*doer_num ) ;
+   doer_func = NI_realloc( doer_func , NI_voidfunc*, sizeof(NI_voidfunc *)*doer_num ) ;
    doer_func[ii] = func ;
    return ;
 }

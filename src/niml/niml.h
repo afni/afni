@@ -465,14 +465,17 @@ void           DIME_destroy_message( DIME_message * ) ;
 /** 18 Nov 2002: replace old malloc functions with new ones **/
 
 #undef NIML_OLD_MALLOC
-#if defined(NIML_OLD_MALLOC) || defined(DONT_USE_MCW_MALLOC)
-  extern void * NI_malloc( size_t ) ;
+#if (defined(NIML_OLD_MALLOC) || defined(DONT_USE_MCW_MALLOC)) && !defined(__cplusplus) && !defined(c_plusplus)
+#define NI_malloc(typ,a) (typ*) old_NI_malloc((a))
+#define NI_realloc(a,typ,b)  (typ*) old_NI_realloc((a),(b))
+
+  extern void * old_NI_malloc( size_t ) ;
   extern void   NI_free( void * ) ;
-  extern void * NI_realloc( void *, size_t ) ;
+  extern void * old_NI_realloc( void *, size_t ) ;
 #else
-#  define NI_malloc(a)     hidden_NI_malloc((a),__FILE__,__LINE__)
+#  define NI_malloc(typ,a)   (typ*) hidden_NI_malloc((a),__FILE__,__LINE__)
 #  define NI_calloc(a,b)   hidden_NI_malloc((a)*(b),__FILE__,__LINE__)
-#  define NI_realloc(a,b)  hidden_NI_realloc((a),(b),__FILE__,__LINE__)
+#  define NI_realloc(a,typ,b) (typ*) hidden_NI_realloc((a),(b),__FILE__,__LINE__)
 #  define NI_free(a)       hidden_NI_free((a),__FILE__,__LINE__)
 
   extern void * hidden_NI_malloc( size_t , char * , int ) ;
@@ -494,7 +497,8 @@ extern int NI_malloc_replace( void *(*um)(size_t)        ,
 
 /*! Make a new block of a given type. */
 
-#define NI_new(typ) ( (typ *)NI_malloc(sizeof(typ)) )   /* 09 Dec 2002 */
+/* #define NI_new(typ) ( (typ *)NI_malloc(sizeof(typ)) )   09 Dec 2002 */
+#define NI_new(typ) ( NI_malloc(typ, sizeof(typ)) )   /* 15 Dec 2003 */
 
 extern char * NI_strncpy( char *, const char *, size_t ) ;
 extern char * NI_strdup( char * ) ;

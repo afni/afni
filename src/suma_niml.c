@@ -31,10 +31,10 @@ NI_element * SUMA_ixyz_to_NIML( int num_ixyz , SUMA_ixyz *ixyz )
 
    /* make the temp columns to be put in the element */
 
-   ic = (int *)   NI_malloc( sizeof(int)   * num_ixyz ) ;
-   xc = (float *) NI_malloc( sizeof(float) * num_ixyz ) ;
-   yc = (float *) NI_malloc( sizeof(float) * num_ixyz ) ;
-   zc = (float *) NI_malloc( sizeof(float) * num_ixyz ) ;
+   ic = NI_malloc(int, sizeof(int)   * num_ixyz ) ;
+   xc = NI_malloc(float, sizeof(float) * num_ixyz ) ;
+   yc = NI_malloc(float, sizeof(float) * num_ixyz ) ;
+   zc = NI_malloc(float, sizeof(float) * num_ixyz ) ;
 
    /* load these columns from the struct array */
 
@@ -94,7 +94,7 @@ int NIML_to_SUMA_ixyz( NI_element *nel , SUMA_ixyz **ixyz )
 
    /* make space for the new structs */
 
-   myixyz = (SUMA_ixyz *) NI_malloc( sizeof(SUMA_ixyz) * num_ixyz ) ;
+   myixyz = NI_malloc(SUMA_ixyz, sizeof(SUMA_ixyz) * num_ixyz ) ;
 
    /* pointers to the data columns in the NI_element */
 

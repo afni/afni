@@ -4365,7 +4365,8 @@ ENTRY("new_AFNI_controller") ;
    /* Feb 1998: receive stuff, including drawing */
    /* Mar 1999: modified to allow for multiple receivers */
 
-   im3d->vinfo->receiver          = malloc(sizeof(AFNI_receiver *)) ;
+   im3d->vinfo->receiver          = AFMALL( AFNI_receiver*, 
+					    sizeof(AFNI_receiver *));
    im3d->vinfo->receiver[0]       = NULL ;
    im3d->vinfo->num_receiver      = 0 ;
    im3d->vinfo->drawing_enabled   = 0 ;

@@ -66,7 +66,7 @@ static char *
 name_path(const char *path)
 {
     const char *cp;
-    char *new;
+    char *newName;
     char *sp;
 
 #ifdef vms
@@ -83,14 +83,14 @@ name_path(const char *path)
       cp = path;
     else			/* skip delimeter */
       cp++;
-    new = (char *) malloc((unsigned) (strlen(cp)+1));
-    if (new == 0) {
+    newName = (char *) malloc((unsigned) (strlen(cp)+1));
+    if (newName == 0) {
 	error("out of memory!");
     }
-    (void) strcpy(new, cp);	/* copy last component of path */
-    if ((sp = strrchr(new, '.')) != NULL)
+    (void) strcpy(newName, cp);	/* copy last component of path */
+    if ((sp = strrchr(newName, '.')) != NULL)
       *sp = '\0';		/* strip off any extension */
-    return new;
+    return newName;
 }
 
 

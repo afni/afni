@@ -24,7 +24,7 @@ NI_element * make_empty_data_element( header_stuff *hs )
 NI_dpr("ENTER make_empty_data_element\n") ;
 #endif
 
-   nel = NI_malloc( sizeof(NI_element) ) ;
+   nel = NI_malloc(NI_element, sizeof(NI_element) ) ;
 
    nel->type = NI_ELEMENT_TYPE ;
 
@@ -98,7 +98,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
         NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
-           nel->vec_axis_delta = NI_malloc(sizeof(float)*nd) ;
+           nel->vec_axis_delta = NI_malloc(float,sizeof(float)*nd) ;
            if( nd > ns ) nd = ns ;
            for( pp=0 ; pp < nd ; pp++ )
              sscanf( sar->str[pp] , "%f" , nel->vec_axis_delta+pp ) ;
@@ -113,7 +113,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
         NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
-           nel->vec_axis_origin = NI_malloc(sizeof(float)*nd) ;
+           nel->vec_axis_origin = NI_malloc(float,sizeof(float)*nd) ;
            if( nd > ns ) nd = ns ;
            for( pp=0 ; pp < nd ; pp++ )
              sscanf( sar->str[pp] , "%f" , nel->vec_axis_origin+pp ) ;
@@ -128,7 +128,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
         NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
-           nel->vec_axis_unit = NI_malloc(sizeof(char *)*nd) ;
+           nel->vec_axis_unit = NI_malloc(char*,sizeof(char *)*nd) ;
            if( nd > ns ) nd = ns ;
            for( pp=0 ; pp < nd ; pp++ )
              nel->vec_axis_unit[pp] = NI_strdup(sar->str[pp]) ;
@@ -143,7 +143,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
         NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
-           nel->vec_axis_label = NI_malloc(sizeof(char *)*nd) ;
+           nel->vec_axis_label = NI_malloc(char*,sizeof(char *)*nd) ;
            if( nd > ns ) nd = ns ;
            for( pp=0 ; pp < nd ; pp++ )
              nel->vec_axis_label[pp] = NI_strdup(sar->str[pp]) ;
@@ -156,26 +156,26 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
      if( nel->vec_num == 0 ){                    /* default type */
         nel->vec_num    = 1 ;
-        nel->vec_typ    = NI_malloc(sizeof(int)) ;
+        nel->vec_typ    = NI_malloc(int,sizeof(int)) ;
         nel->vec_typ[0] = NI_BYTE ;
      }
 
      if( nel->vec_rank == 0 ){                  /* default dimensions */
         nel->vec_len         = 0 ;
         nel->vec_rank        = 1 ;
-        nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
+        nel->vec_axis_len    = NI_malloc(int, sizeof(int)) ;
         nel->vec_axis_len[0] = 1 ;
      }
 
      /* now allocate space for vectors defined above */
 
-     nel->vec = NI_malloc( sizeof(void *)*nel->vec_num ) ;
+     nel->vec = NI_malloc(void*, sizeof(void *)*nel->vec_num ) ;
 
      /* 27 Mar 2003: only allocate space if we know how long they are */
 
      if( nel->vec_len > 0 ){
        for( ii=0 ; ii < nel->vec_num ; ii++ )
-         nel->vec[ii] = NI_malloc(NI_type_size(nel->vec_typ[ii])*nel->vec_len) ;
+         nel->vec[ii] = NI_malloc(void, NI_type_size(nel->vec_typ[ii])*nel->vec_len) ;
      } else {
        for( ii=0 ; ii < nel->vec_num ; ii++ )
          nel->vec[ii] = NULL ;
@@ -200,7 +200,7 @@ NI_group * make_empty_group_element( header_stuff *hs )
 
    if( hs == NULL || hs->name == NULL ) return NULL ;
 
-   ngr = NI_malloc( sizeof(NI_group) ) ;
+   ngr = NI_malloc(NI_group, sizeof(NI_group) ) ;
 
    ngr->type = NI_GROUP_TYPE ;
 
@@ -345,7 +345,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
 
    if( name == NULL || name[0] == '\0' || veclen < 0 ) return NULL ;
 
-   nel = NI_malloc( sizeof(NI_element) ) ;
+   nel = NI_malloc(NI_element, sizeof(NI_element) ) ;
 
    nel->type = NI_ELEMENT_TYPE ;  /* mark as being a data element */
 
@@ -366,7 +366,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
      nel->vec_len         = veclen ;       /* come via NI_add_column */
      nel->vec_filled      = veclen ;
      nel->vec_rank        = 1 ;
-     nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
+     nel->vec_axis_len    = NI_malloc(int, sizeof(int)) ;
      nel->vec_axis_len[0] = veclen ;
    }
 
@@ -412,16 +412,16 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
 
    /* add 1 to the vec_typ array */
 
-   nel->vec_typ     = NI_realloc( nel->vec_typ , sizeof(int)*(nn+1) ) ;
+   nel->vec_typ     = NI_realloc( nel->vec_typ , int, sizeof(int)*(nn+1) ) ;
    nel->vec_typ[nn] = typ ;
 
    /* add 1 element to the vec array, and copy data into it */
 
-   nel->vec = NI_realloc( nel->vec , sizeof(void *)*(nn+1) ) ;
+   nel->vec = NI_realloc( nel->vec , void*, sizeof(void *)*(nn+1) ) ;
    if( arr != NULL )
      nel->vec[nn] = NI_copy_column( rt , nel->vec_len , arr ) ;
    else
-     nel->vec[nn] = NI_malloc( rt->size * nel->vec_len ) ;
+     nel->vec[nn] = NI_malloc(void, rt->size * nel->vec_len ) ;
 
    /* add 1 to the count of vectors */
 
@@ -507,7 +507,7 @@ void NI_insert_value( NI_element *nel, int row, int col, void *dat )
          char **apt = (char **)(cdat+rt->part_off[jj]) ;   /* *apt => data */
          if( *apt != NULL ){
            kk  = ROWTYPE_part_dimen(rt,cdat,jj) * rt->part_rtp[jj]->size ;
-           qpt = NI_malloc(kk) ; memcpy(qpt,*apt,kk) ; *apt = qpt ;
+           qpt = NI_malloc(char, kk) ; memcpy(qpt,*apt,kk) ; *apt = qpt ;
          }
        }
      }
@@ -541,8 +541,8 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
       /* if not, then add a header attribute */
 
       if( nn == nel->attr_num ){
-        nel->attr_lhs = NI_realloc( nel->attr_lhs , sizeof(char *)*(nn+1) ) ;
-        nel->attr_rhs = NI_realloc( nel->attr_rhs , sizeof(char *)*(nn+1) ) ;
+        nel->attr_lhs = NI_realloc( nel->attr_lhs , char*, sizeof(char *)*(nn+1) ) ;
+        nel->attr_rhs = NI_realloc( nel->attr_rhs , char*, sizeof(char *)*(nn+1) ) ;
         nel->attr_num = nn+1 ;
       } else {
         NI_free(nel->attr_lhs[nn]) ;  /* free old attribute */
@@ -561,8 +561,8 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
          if( strcmp(ngr->attr_lhs[nn],attname) == 0 ) break ;
 
       if( nn == ngr->attr_num ){
-        ngr->attr_lhs = NI_realloc( ngr->attr_lhs , sizeof(char *)*(nn+1) ) ;
-        ngr->attr_rhs = NI_realloc( ngr->attr_rhs , sizeof(char *)*(nn+1) ) ;
+        ngr->attr_lhs = NI_realloc( ngr->attr_lhs , char*, sizeof(char *)*(nn+1) ) ;
+        ngr->attr_rhs = NI_realloc( ngr->attr_rhs , char*, sizeof(char *)*(nn+1) ) ;
         ngr->attr_num = nn+1 ;
       } else {
         NI_free(ngr->attr_lhs[nn]) ;
@@ -642,7 +642,7 @@ void NI_set_dimen( NI_element *nel , int rank , int *nd )
    if( ntot != nel->vec_len ) return ;                          /* bad */
 
    nel->vec_rank = rank ;
-   nel->vec_axis_len = NI_realloc( nel->vec_axis_len, sizeof(int)*rank ) ;
+   nel->vec_axis_len = NI_realloc( nel->vec_axis_len, int, sizeof(int)*rank ) ;
    memcpy( nel->vec_axis_len , nd , sizeof(int)*rank ) ;
    return ;
 }
@@ -658,7 +658,7 @@ void NI_set_delta( NI_element *nel , float *del )
    if( nel == NULL       || nel->type != NI_ELEMENT_TYPE ||
        nel->vec_rank < 1 || del == NULL                    ) return ;
 
-   nel->vec_axis_delta = NI_realloc( nel->vec_axis_delta ,
+   nel->vec_axis_delta = NI_realloc( nel->vec_axis_delta , float,
                                      nel->vec_rank * sizeof(float) ) ;
    memcpy( nel->vec_axis_delta , del , nel->vec_rank * sizeof(float) ) ;
    return ;
@@ -675,7 +675,7 @@ void NI_set_origin( NI_element *nel , float *org )
    if( nel == NULL       || nel->type != NI_ELEMENT_TYPE ||
        nel->vec_rank < 1 || org == NULL                    ) return ;
 
-   nel->vec_axis_origin = NI_realloc( nel->vec_axis_origin ,
+   nel->vec_axis_origin = NI_realloc( nel->vec_axis_origin , float,
                                       nel->vec_rank * sizeof(float) ) ;
    memcpy( nel->vec_axis_origin , org , nel->vec_rank * sizeof(float) ) ;
    return ;
@@ -694,7 +694,7 @@ void NI_set_units( NI_element *nel , char **units )
    if( nel == NULL       || nel->type != NI_ELEMENT_TYPE ||
        nel->vec_rank < 1 || units == NULL                  ) return ;
 
-   nel->vec_axis_unit = NI_realloc( nel->vec_axis_unit ,
+   nel->vec_axis_unit = NI_realloc( nel->vec_axis_unit , char*,
                                     nel->vec_rank * sizeof(char *) ) ;
    for( ii=0 ; ii < nel->vec_rank ; ii++ )
       nel->vec_axis_unit[ii] = NI_strdup( units[ii] ) ;
@@ -714,7 +714,7 @@ void NI_set_axes( NI_element *nel , char **ax )
    if( nel == NULL       || nel->type != NI_ELEMENT_TYPE ||
        nel->vec_rank < 1 || ax == NULL                     ) return ;
 
-   nel->vec_axis_label = NI_realloc( nel->vec_axis_label ,
+   nel->vec_axis_label = NI_realloc( nel->vec_axis_label , char*,
                                      nel->vec_rank * sizeof(char *) ) ;
    for( ii=0 ; ii < nel->vec_rank ; ii++ )
       nel->vec_axis_label[ii] = NI_strdup( ax[ii] ) ;
@@ -729,7 +729,7 @@ NI_group * NI_new_group_element(void)
 {
    NI_group *ngr ;
 
-   ngr = NI_malloc( sizeof(NI_group) ) ;
+   ngr = NI_malloc(NI_group, sizeof(NI_group) ) ;
 
    ngr->type = NI_GROUP_TYPE ;
 
@@ -756,9 +756,9 @@ void NI_add_to_group( NI_group *ngr , void *nini )
 
    nn = ngr->part_num ;
 
-   ngr->part_typ     = NI_realloc( ngr->part_typ , sizeof(int)*(nn+1) ) ;
+   ngr->part_typ     = NI_realloc( ngr->part_typ , int, sizeof(int)*(nn+1) ) ;
    ngr->part_typ[nn] = tt ;
-   ngr->part         = NI_realloc( ngr->part , sizeof(void *)*(nn+1) ) ;
+   ngr->part         = NI_realloc( ngr->part , void*, sizeof(void *)*(nn+1) ) ;
    ngr->part[nn]     = nini ;
    ngr->part_num     = nn+1 ;
    return ;

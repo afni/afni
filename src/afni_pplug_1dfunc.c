@@ -109,7 +109,7 @@ PLUGIN_interface * F1D_init(void)
       func0D   = (generic_func **) malloc( sizeof(generic_func *)*num0D ) ;
       for( ii=0 ; ii < num0D ; ii++ ){
          ll = strlen(rlist->labels[ii]) ;
-         funcname[ii+numfunc] = malloc(ll+8) ;
+         funcname[ii+numfunc] = AFMALL(char, ll+8) ;
          strcpy(funcname[ii+numfunc],"0D: ") ;
          strcat(funcname[ii+numfunc],rlist->labels[ii]) ;
 
@@ -125,7 +125,7 @@ PLUGIN_interface * F1D_init(void)
       func1D   = (generic_func **) malloc( sizeof(generic_func *)*num1D ) ;
       for( ii=0 ; ii < num1D ; ii++ ){
          ll = strlen(rlist->labels[ii]) ;
-         funcname[ii+numfunc] = malloc(ll+8) ;
+         funcname[ii+numfunc] = AFMALL(char, ll+8) ;
          strcpy(funcname[ii+numfunc],"1D: ") ;
          strcat(funcname[ii+numfunc],rlist->labels[ii]) ;
 

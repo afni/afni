@@ -50,7 +50,7 @@ int AFNI_logger( char * pname , int argc , char ** argv )
    else           cline = strdup(pname) ;
    if( cline == NULL ) return -1 ;
    cdate = tross_datetime() ;
-   fn = malloc(strlen(eh)+strlen(logfile)+8) ;
+   fn = AFMALL(char,  strlen(eh)+strlen(logfile)+8) ;
    strcpy(fn,eh) ; strcat(fn,"/") ; strcat(fn,logfile) ;
    fp = fopen(fn,"a") ;
    if( fp == NULL ){ free(fn); free(cdate); free(cline); return -1; }

@@ -283,7 +283,7 @@ void get_options
 	{
 	  nopt++;
 	  if (nopt >= argc)  AW_error ("need argument after -prefix ");
-	  option_data->prefix = malloc (sizeof(char)*THD_MAX_PREFIX);
+	  option_data->prefix = AFMALL(char,sizeof(char)*THD_MAX_PREFIX);
 	  MTEST (option_data->prefix);
 	  MCW_strncpy (option_data->prefix, argv[nopt], THD_MAX_PREFIX);
 	  nopt++;

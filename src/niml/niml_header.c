@@ -93,7 +93,7 @@ NI_dpr("ENTER parse_header_stuff: %.*s\n",ndat,dat) ;
 
    if( id >= ndat-1 ) return NULL ;                   /* bad input */
 
-   hs = NI_malloc(sizeof(header_stuff)) ;             /* make output struct */
+   hs = NI_malloc(header_stuff, sizeof(header_stuff)) ;             /* make output struct */
    hs->nattr = hs->empty = 0 ;
    hs->name  = NULL ;
    hs->lhs   = hs->rhs = NULL ;
@@ -107,7 +107,7 @@ NI_dpr("ENTER parse_header_stuff: %.*s\n",ndat,dat) ;
    }
 
    nn = ss.j - ss.i ;                               /* string length */
-   hs->name = NI_malloc(nn+1) ;
+   hs->name = NI_malloc(char, nn+1) ;
    NI_strncpy( hs->name , dat+ss.i , nn+1 ) ;
 
 #ifdef NIML_DEBUG
@@ -150,13 +150,13 @@ NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
 
       /* extend size of attribute arrays */
 
-      hs->lhs = NI_realloc( hs->lhs , sizeof(char *)*(hs->nattr+1) ) ;
-      hs->rhs = NI_realloc( hs->rhs , sizeof(char *)*(hs->nattr+1) ) ;
+      hs->lhs = NI_realloc( hs->lhs , char*, sizeof(char *)*(hs->nattr+1) ) ;
+      hs->rhs = NI_realloc( hs->rhs , char*, sizeof(char *)*(hs->nattr+1) ) ;
 
       /* this is the LHS string */
 
       nn = ss.j - ss.i ;                      /* length of string */
-      hs->lhs[hs->nattr] = NI_malloc(nn+1) ;
+      hs->lhs[hs->nattr] = NI_malloc(char, nn+1) ;
       NI_strncpy( hs->lhs[hs->nattr] , dat+ss.i , nn+1 ) ;
       unescape_inplace( hs->lhs[hs->nattr] ) ;
 
@@ -190,7 +190,7 @@ NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
       /* this is the RHS string */
 
       nn = ss.j - ss.i ;                      /* length of string */
-      hs->rhs[hs->nattr] = NI_malloc(nn+1) ;
+      hs->rhs[hs->nattr] = NI_malloc(char, nn+1) ;
       NI_strncpy( hs->rhs[hs->nattr] , dat+ss.i , nn+1 ) ;
       unescape_inplace( hs->rhs[hs->nattr] ) ;
 
@@ -316,7 +316,7 @@ NI_str_array * NI_decode_string_list( char *ss , char *sep )
 
    if( sep == NULL || sep[0] == '\0' ) sep = "," ;  /* default sep */
 
-   sar = NI_malloc(sizeof(NI_str_array)) ;  /* create output */
+   sar = NI_malloc(NI_str_array, sizeof(NI_str_array)) ;  /* create output */
    sar->num = 0 ; sar->str = NULL ;
 
    /* scan for sub-strings */
@@ -339,13 +339,13 @@ NI_str_array * NI_decode_string_list( char *ss , char *sep )
 
       /* new sub-string runs from ss[jd] to ss[id-1] */
 
-      sar->str = NI_realloc( sar->str , sizeof(char *)*(num+1) ) ;
+      sar->str = NI_realloc( sar->str , char*, sizeof(char *)*(num+1) ) ;
 
       nn = id-jd ;                                   /* length of sub-string */
 #if 0
       while( nn > 0 && isspace(ss[jd+nn-1]) ) nn-- ; /* clip trailing blanks */
 #endif
-      sar->str[num] = NI_malloc(nn+1) ;              /* make output string  */
+      sar->str[num] = NI_malloc(char, nn+1) ;              /* make output string  */
       if( nn > 0 ) memcpy(sar->str[num],ss+jd,nn) ;  /* copy sub-string    */
       sar->str[num++][nn] = '\0' ;                   /* terminate output  */
 
@@ -367,7 +367,7 @@ int_array * decode_dimen_string( char *ds )
 
    if( ds == NULL || ds[0] == '\0' ) return NULL ;
 
-   iar = NI_malloc(sizeof(int_array)) ;  /* create output */
+   iar = NI_malloc(int_array, sizeof(int_array)) ;  /* create output */
    iar->num = 0 ; iar->ar = NULL ;
 
    /* scan string for integers */
@@ -389,7 +389,7 @@ int_array * decode_dimen_string( char *ds )
 
       /* extend output array, store new dimension in it */
 
-      iar->ar = NI_realloc( iar->ar , sizeof(int)*(num+1) ) ;
+      iar->ar = NI_realloc( iar->ar , int, sizeof(int)*(num+1) ) ;
       iar->ar[num++] = jd ;
    } while(1) ;
 
@@ -411,7 +411,7 @@ int_array * decode_type_string( char *ts )
 
    if( ts == NULL || ts[0] == '\0' ) return NULL ;
 
-   iar = NI_malloc(sizeof(int_array)) ;  /* create output */
+   iar = NI_malloc(int_array, sizeof(int_array)) ;  /* create output */
    iar->num = 0 ; iar->ar = NULL ;
 
    /* scan type string to find counts/fields and add to output */
@@ -448,7 +448,7 @@ int_array * decode_type_string( char *ts )
 
       /* extend output array length */
 
-      iar->ar = NI_realloc( iar->ar , sizeof(int)*num ) ;
+      iar->ar = NI_realloc( iar->ar , int, sizeof(int)*num ) ;
 
       /* put values into output array */
 

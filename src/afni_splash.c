@@ -550,7 +550,7 @@ ENTRY("AFNI_find_jpegs") ;
    /*----- copy path list into local memory -----*/
 
    ll = strlen(epath) ;
-   elocal = malloc( sizeof(char) * (ll+2) ) ;
+   elocal = AFMALL( char,  sizeof(char) * (ll+2) ) ;
 
    /*----- put a blank at the end -----*/
 

@@ -262,7 +262,7 @@ void * NI_copy_struct( void *ndd )
        nn->statcode = qq->statcode ;
        nn->param_num = qq->param_num ;
        if( qq->param != NULL ){
-         nn->param = NI_malloc(sizeof(NI_struct *)*nn->param_num) ;
+         nn->param = NI_malloc(NI_struct*, sizeof(NI_struct *)*nn->param_num) ;
          for( ii=0 ; ii < nn->param_num ; ii++ )
            nn->param[ii] = NI_copy_struct( qq->param[ii] ) ; /* recursion */
        } else {
@@ -286,14 +286,14 @@ void * NI_copy_struct( void *ndd )
        nn->vec_typ = qq->vec_typ ;
        if( qq->vec != NULL ){                                /* copy array */
          ii = nn->vec_len * NI_datatype_size(nn->vec_typ) ;
-         nn->vec = NI_malloc(ii) ;
+         nn->vec = NI_malloc(void, ii) ;
          memcpy( nn->vec , qq->vec , ii ) ;
        } else {
          nn->vec = NULL ;
        }
        if( qq->vec_range != NULL ){                          /* copy array */
          ii = 2 * NI_datatype_size(nn->vec_typ) ;
-         nn->vec_range = NI_malloc(ii) ;
+         nn->vec_range = NI_malloc(void, ii) ;
          memcpy( nn->vec_range , qq->vec_range , ii ) ;
        } else {
          nn->vec_range = NULL ;
@@ -308,7 +308,7 @@ void * NI_copy_struct( void *ndd )
        nn->vec_len = qq->vec_len ;
        nn->vec_typ = qq->vec_typ ;
        if( qq->vec != NULL ){                                /* copy array */
-         nn->vec = NI_malloc(sizeof(char *)*nn->vec_len) ;
+         nn->vec = NI_malloc(char*, sizeof(char *)*nn->vec_len) ;
          for( ii=0 ; ii < nn->vec_len ; ii++ )
            nn->vec[ii] = NI_strdup(qq->vec[ii]) ;
        } else {
@@ -324,19 +324,19 @@ void * NI_copy_struct( void *ndd )
        DUPLICATE_STRUCT(NI_points_domain) ;
        nn->num_node = ii = qq->num_node ;
        if( qq->id != NULL ){                                 /* copy array */
-         nn->id = NI_malloc(ii*sizeof(NI_index_t)) ;
+         nn->id = NI_malloc(NI_index_t, ii*sizeof(NI_index_t)) ;
          memcpy( nn->id , qq->id , ii*sizeof(NI_index_t) ) ;
        }
        if( qq->x != NULL ){                                  /* copy array */
-         nn->x = NI_malloc(ii*sizeof(float)) ;
+         nn->x = NI_malloc(float, ii*sizeof(float)) ;
          memcpy( nn->x , qq->x , ii*sizeof(float) ) ;
        }
        if( qq->y != NULL ){                                  /* copy array */
-         nn->y = NI_malloc(ii*sizeof(float)) ;
+         nn->y = NI_malloc(float, ii*sizeof(float)) ;
          memcpy( nn->y , qq->y , ii*sizeof(float) ) ;
        }
        if( qq->z != NULL ){                                  /* copy array */
-         nn->z = NI_malloc(ii*sizeof(float)) ;
+         nn->z = NI_malloc(float, ii*sizeof(float)) ;
          memcpy( nn->z , qq->z , ii*sizeof(float) ) ;
        }
        nn->seq = qq->seq; nn->seqbase = qq->seqbase; nn->sorted = qq->sorted;
@@ -351,7 +351,7 @@ void * NI_copy_struct( void *ndd )
        if( qq->vec != NULL ){
          NI_index_t nv , ii ;
          nv = NI_dataset_vecnum(nn) ;
-         nn->vec = NI_malloc(sizeof(NI_vector *)*nv) ;
+         nn->vec = NI_malloc(NI_vector*, sizeof(NI_vector *)*nv) ;
          for( ii=0 ; ii < nv ; ii++ )
            nn->vec[ii] = NI_copy_struct( qq->vec[ii] ) ;   /* recursion */
        } else {

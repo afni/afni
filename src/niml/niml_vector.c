@@ -26,10 +26,10 @@ void * NI_new_vector( int dtyp , NI_index_t len )
    nv->vec_typ = dtyp ;
 
    if( dtyp != NI_STRING ){
-     nv->vec       = NI_malloc( NI_datatype_size(dtyp) * len ) ;
-     nv->vec_range = NI_malloc( NI_datatype_size(dtyp) * 2   ) ;
+     nv->vec       = NI_malloc(void,  NI_datatype_size(dtyp) * len ) ;
+     nv->vec_range = NI_malloc(void, NI_datatype_size(dtyp) * 2   ) ;
    } else {
-     nv->vec       = NI_malloc( sizeof(char *) * len ) ;
+     nv->vec       = NI_malloc(void, sizeof(char *) * len ) ;
      nv->vec_range = NULL ;  /* string vectors don't use vec_range */
    }
    nv->statistic = NULL ;
@@ -52,7 +52,7 @@ void NI_set_vector_range( void *nvv )
    len = nv->vec_len ; if( len <= 0 ) return ;
 
    if( nv->vec_range == NULL )
-     nv->vec_range = NI_malloc( 2*NI_datatype_size(nv->vec_typ) ) ;
+     nv->vec_range = NI_malloc(void, 2*NI_datatype_size(nv->vec_typ) ) ;
 
    switch( nv->vec_typ ){  /* no default */
 

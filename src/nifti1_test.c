@@ -60,8 +60,8 @@ int main( int argc , char *argv[] )
    if( nim->iname != NULL ) free(nim->iname) ;
 
    ll = strlen(argv[iarg]) ;
-   nim->fname = calloc(1,ll+6) ; strcpy(nim->fname,argv[iarg]) ;
-   nim->iname = calloc(1,ll+6) ; strcpy(nim->iname,argv[iarg]) ;
+   nim->fname = AFMALL(char, ll+6) ; strcpy(nim->fname,argv[iarg]) ;
+   nim->iname = AFMALL(char, ll+6) ; strcpy(nim->iname,argv[iarg]) ;
    if( nim->nifti_type == 1 ){
      strcat(nim->fname,".nii") ;
      strcat(nim->iname,".nii") ;

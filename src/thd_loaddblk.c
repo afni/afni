@@ -353,7 +353,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                if( nbuf < blk->master_bytes[ibr] ){  /* make more space for it */
                  if( buf != NULL ) free(buf) ;
                  nbuf = blk->master_bytes[ibr] ;
-                 buf  = malloc( sizeof(char) * nbuf ) ;
+                 buf  = AFMALL(char, sizeof(char) * nbuf ) ;
                  if( buf == NULL ) break ;
                }
 
@@ -420,7 +420,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
         /* copy filename list into NUL terminated local string */
 
-        flist = malloc(atr->nch+1) ;
+        flist = AFMALL(char, atr->nch+1) ;
         memcpy( flist , atr->ch , atr->nch ) ;
         flist[atr->nch] = '\0' ;
 
@@ -462,7 +462,7 @@ fprintf(stderr,"VOL[%d]: ptr=%s\n",ibr,ptr) ;
             fnam[ibr] = strdup(ptr) ;
           } else {                    /* otherwise, put directory name in front */
             ii = strlen(blk->diskptr->directory_name) + strlen(ptr) ;
-            fnam[ibr] = malloc(ii+1) ; fnam[ibr][0] = '\0' ;
+            fnam[ibr] = AFMALL(char,ii+1) ; fnam[ibr][0] = '\0' ;
             strcat(fnam[ibr],blk->diskptr->directory_name) ;
             strcat(fnam[ibr],ptr) ;
           }
@@ -749,7 +749,7 @@ ENTRY("THD_alloc_datablock") ;
       STATUS("trying to malloc sub-bricks") ;
       for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
         if( DBLK_ARRAY(blk,ibr) == NULL ){
-          ptr = malloc( DBLK_BRICK_BYTES(blk,ibr) ) ;
+          ptr = AFMALL(char, DBLK_BRICK_BYTES(blk,ibr) ) ;
           mri_fix_data_pointer( ptr ,  DBLK_BRICK(blk,ibr) ) ;
           if( ptr == NULL ) nbad++ ;
         }
@@ -785,7 +785,7 @@ ENTRY("THD_alloc_datablock") ;
 
        for( ibr=0 ; ibr < nv ; ibr++ ){
          if( DBLK_ARRAY(blk,ibr) == NULL ){
-           ptr = malloc( DBLK_BRICK_BYTES(blk,ibr) ) ;
+           ptr = AFMALL(char, DBLK_BRICK_BYTES(blk,ibr) ) ;
            mri_fix_data_pointer( ptr ,  DBLK_BRICK(blk,ibr) ) ;
          }
        }

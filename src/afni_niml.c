@@ -442,7 +442,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- set surface filename now ["++LOCK++" ==> keep in memory] --*/
 
-     dset->su_sname[num] = malloc(16+strlen(ag->idcode)) ;
+     dset->su_sname[num] = AFMALL(char, 16+strlen(ag->idcode)) ;
      strcpy(dset->su_sname[num], "++LOCK++ ") ;
      strcat(dset->su_sname[num], ag->idcode ) ;
 

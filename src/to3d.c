@@ -3955,7 +3955,7 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
    /**--- allocate storage for all slices to be input ---**/
 
    dsize  = mri_datum_size( (MRI_TYPE) argopt.datum_all ) ;
-   dbrick = bar = XtMalloc( dsize * nx * ny * nz ) ;
+   dbrick = bar = (char*)XtMalloc( dsize * nx * ny * nz ) ;
    nvoxt  = nx * ny * nz ;
 
 #ifdef AFNI_DEBUG
@@ -5244,7 +5244,7 @@ ENTRY("T3D_poperr") ;
 
    len_needed = strlen(prefix_msg) + strlen(msg) + 2 ;
    if( len_needed > len_total ){
-      total_msg = XtRealloc( total_msg , len_needed ) ;
+      total_msg = (char*)XtRealloc( total_msg , len_needed ) ;
       len_total = len_needed ;
    }
    strcpy( total_msg , prefix_msg ) ;
@@ -5754,7 +5754,7 @@ ENTRY("T3D_check_outliers") ;
      THD_outlier_count( dset , 0.01 , &out_count , &out_ctop ) ;
 
      if( out_count != NULL && out_ctop > 0 ){  /* compute the output message */
-        int iv,nvals=dset->taxis->ntt ; char *msg = malloc(2048+8*nvals) ;
+        int iv,nvals=dset->taxis->ntt ; char *msg = AFMALL(char,2048+8*nvals) ;
 
         strcpy(msg," \nto3d WARNING:\nSignificant outliers detected in these sub-bricks:\n") ;
 
@@ -5791,8 +5791,8 @@ ENTRY("T3D_check_outliers") ;
            fprintf(stderr,"%s\n",msg) ;                        /* print message        */
            if( wset.topshell != NULL && !text && wset.good ){  /* graph outlier count  */
               float *y[2] ;
-              y[0] = malloc(sizeof(float)*nvals) ;
-              y[1] = malloc(sizeof(float)*nvals) ;
+              y[0] = AFMALL(float, sizeof(float)*nvals) ;
+              y[1] = AFMALL(float, sizeof(float)*nvals) ;
               for( iv=0 ; iv < nvals ; iv++ ){
                  y[0][iv] = out_count[iv] ; y[1][iv] = out_ctop ;
               }

@@ -49,6 +49,6 @@ char * xxx_name_to_inet( char * host )
    str = inet_ntoa(*((struct in_addr *)(hostp->h_addr))) ;
    if( str == NULL || str[0] == '\0' ) return NULL ;
 
-   ll = strlen(str) ; iname = malloc(ll+1) ; strcpy(iname,str) ;
+   ll = strlen(str) ; iname = AFMALL(char, ll+1) ; strcpy(iname,str) ;
    return iname ;
 }

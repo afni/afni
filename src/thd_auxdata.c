@@ -171,7 +171,7 @@ void THD_append_datablock_keywords( THD_datablock * dblk , int iv , char * str )
       THD_store_datablock_keywords( dblk , iv , str ) ;
    } else if( str[0] != '\0' ){
       int ll = strlen(dblk->brick_keywords[iv]) + strlen(str) + 6 ;
-      char * cc = XtMalloc( sizeof(char) * ll ) ;
+      char * cc = (char*)XtMalloc( sizeof(char) * ll ) ;
       strcpy(cc,dblk->brick_keywords[iv]) ; strcat(cc," ; ") ; strcat(cc,str) ;
       myXtFree( dblk->brick_keywords[iv] ) ;
       dblk->brick_keywords[iv] = cc ;
@@ -265,7 +265,7 @@ void THD_append_dataset_keywords( THD_3dim_dataset * dset , char * str )
       THD_store_dataset_keywords( dset , str ) ;
    } else if( str[0] != '\0' ){
       int ll = strlen(dset->keywords) + strlen(str) + 6 ;
-      char * cc = XtMalloc( sizeof(char) * ll ) ;
+      char * cc = (char*)XtMalloc( sizeof(char) * ll ) ;
       strcpy(cc,dset->keywords) ; strcat(cc," ; ") ; strcat(cc,str) ;
       myXtFree( dset->keywords ) ;
       dset->keywords = cc ;

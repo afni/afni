@@ -236,7 +236,7 @@ ENTRY("THD_mask_fillin_once") ;
    nx2  = 2*nx  ; nx3  = 3*nx  ; nx4  = 4*nx  ;
    nxy2 = 2*nxy ; nxy3 = 3*nxy ; nxy4 = 4*nxy ;
 
-   nnn = calloc(1,nxyz) ;  /* stores filled in values */
+   nnn = AFMALL(byte, nxyz) ;  /* stores filled in values */
 
    /* loop over voxels */
 
@@ -414,9 +414,9 @@ void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
    nxy = nx*ny ; nxyz = nxy * nz ;
 
    nbest = 0 ;
-   ibest = malloc(sizeof(short)) ;
-   jbest = malloc(sizeof(short)) ;
-   kbest = malloc(sizeof(short)) ;
+   ibest = AFMALL(short, sizeof(short)) ;
+   jbest = AFMALL(short, sizeof(short)) ;
+   kbest = AFMALL(short, sizeof(short)) ;
 
    /*--- scan through array, find nonzero point, build a cluster, ... ---*/
 
@@ -500,7 +500,7 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
    if( mmm == NULL ) return ;
 
-   nnn = calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
+   nnn = (byte*)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
 
    /* mark interior voxels that don't have 17 out of 18 nonzero nbhrs */
 
@@ -595,7 +595,7 @@ void THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
         if( ndil < 1  ) ndil =  1 ;
    else if( ndil > 17 ) ndil = 17 ;
 
-   nnn = calloc(sizeof(byte),nxyz) ;  /* mask of dilated voxels */
+   nnn = (byte*)calloc(sizeof(byte),nxyz) ;  /* mask of dilated voxels */
 
    /* mark exterior voxels neighboring enough interior voxels */
 

@@ -86,22 +86,22 @@ int NI_clock_time(void)
 /*---------------------------------------------------------------------------*/
 /*! Replacement for mktemp(). */
 
-char * NI_mktemp( char *template )
+char * NI_mktemp( char *templ )
 {
    int nt ; char *xx,*uu ; struct stat buf ;
 
-   if( template == NULL || template[0] == '\0' ) return NULL ;
+   if( templ == NULL || templ[0] == '\0' ) return NULL ;
 
-   nt = strlen(template) ;
-   if( nt < 6 ){ template[0] = '\0'; return NULL; }
-   xx = template+(nt-6) ;
-   if( strcmp(xx,"XXXXXX") != 0 ){ template[0] = '\0'; return NULL; }
+   nt = strlen(templ) ;
+   if( nt < 6 ){ templ[0] = '\0'; return NULL; }
+   xx = templ+(nt-6) ;
+   if( strcmp(xx,"XXXXXX") != 0 ){ templ[0] = '\0'; return NULL; }
 
    while(1){
      uu = UUID_idcode() ;
      memcpy( xx , uu , 6 ) ;
-     nt = stat( template , &buf ) ;
-     if( nt != 0 ) return template ;
+     nt = stat( templ , &buf ) ;
+     if( nt != 0 ) return templ ;
    }
 }
 
@@ -142,7 +142,7 @@ char * NI_strdup( char *str )
 {
    int nn ; char *dup ;
    if( str == NULL ) return NULL ;
-   nn = NI_strlen(str); dup = NI_malloc(nn+1); strcpy(dup,str); return dup;
+   nn = NI_strlen(str); dup = NI_malloc(char, nn+1); strcpy(dup,str); return dup;
 }
 
 /*------------------------------------------------------------------------*/
@@ -281,7 +281,7 @@ char * quotize_string( char *str )
    char *out ;
 
    lstr = NI_strlen(str) ;
-   if( lstr == 0 ){ out = NI_malloc(4); strcpy(out,"\"\""); return out; }
+   if( lstr == 0 ){ out = NI_malloc(char, 4); strcpy(out,"\"\""); return out; }
    lout = 4 ;                      /* length of output */
    for( ii=0 ; ii < lstr ; ii++ ){ /* count characters for output */
       switch( str[ii] ){
@@ -300,7 +300,7 @@ char * quotize_string( char *str )
          default: lout++ ; break ;      /* copy all other chars */
       }
    }
-   out = NI_malloc(lout) ;              /* allocate output string */
+   out = NI_malloc(char, lout) ;              /* allocate output string */
    out[0] = '"' ;                       /* opening quote mark */
    for( ii=0,jj=1 ; ii < lstr ; ii++ ){
       switch( str[ii] ){
@@ -348,7 +348,7 @@ char * quotize_string_vector( int num , char **str , char sep )
 
    /* temp array for quotized individual sub-strings */
 
-   qstr = NI_malloc(sizeof(char *)*num) ;
+   qstr = NI_malloc(char*, sizeof(char *)*num) ;
 
    for( ntot=ii=0 ; ii < num ; ii++ ){       /* quotize each input string */
       qstr[ii] = quotize_string( str[ii] ) ;
@@ -357,7 +357,7 @@ char * quotize_string_vector( int num , char **str , char sep )
 
    /* make output, put 1st sub-string into it */
 
-   out = NI_malloc(ntot) ;
+   out = NI_malloc(char, ntot) ;
    strcpy( out , qstr[0] ) ; NI_free(qstr[0]) ;
    for( ii=1 ; ii < num ; ii++ ){
       ll = strlen(out) ;  /* put separator at end of output string, */
@@ -383,9 +383,9 @@ char * quotize_int_vector( int num , int *vec , char sep )
    if( num <= 0 || vec == NULL )
       return quotize_string(NULL) ;
 
-   qstr = NI_malloc(sizeof(char *)*num) ;  /* temp array of strings */
+   qstr = NI_malloc(char*, sizeof(char *)*num) ;  /* temp array of strings */
    for( ii=0 ; ii < num ; ii++ ){
-      qstr[ii] = NI_malloc(16) ;           /* max size of printed int */
+      qstr[ii] = NI_malloc(char, 16) ;           /* max size of printed int */
       sprintf(qstr[ii],"%d",vec[ii]) ;               /* print int */
       for( jj=strlen(qstr[ii])-1 ;                   /* clip */
            jj > 0 && isspace(qstr[ii][jj]) ; jj-- )  /* trailing */
@@ -411,7 +411,7 @@ char * quotize_float_vector( int num , float *vec , char sep )
    if( num <= 0 || vec == NULL )
       return quotize_string(NULL) ;
 
-   qstr = NI_malloc(sizeof(char *)*num) ;
+   qstr = NI_malloc(char*, sizeof(char *)*num) ;
    for( ii=0 ; ii < num ; ii++ ){
       sprintf(fbuf," %12.6g",vec[ii]) ;
       for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) /* skip trailing blanks */

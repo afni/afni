@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 #include "mcw_malloc.h"
-
+#include "Amalloc.h"
 /*--------------------------------------------------------------------------
   24 Jan 2001: Modified heavily to use a hash table instead of a linear
                array to store the data about each allocated block.
@@ -186,7 +186,7 @@ static void * malloc_track( size_t n , char * fn , int ln )
    size_t nn = n + 2*NEXTRA ;
    int ii ;
 
-   fred = malloc(nn) ;
+   fred = AFMALL(char, nn) ;
    if( fred == NULL ){                                     /* real bad news */
       fprintf(stderr,
               "\n*** MCW_malloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
@@ -251,7 +251,7 @@ static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
    probe_track(ip) ;  /* check for integrity before reallocation */
    cfred = ip->pmt ;  /* old address */
 
-   nfred = realloc( cfred , nn ) ;
+   nfred = (char*)realloc( cfred , nn ) ;
    if( nfred == NULL ){                                       /* real bad */
       fprintf(stderr,
               "\n*** MCW_realloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
@@ -544,7 +544,7 @@ void mcw_free( void * fred )
 char * mcw_XtMalloc( Cardinal n , char * fnam , int lnum )
 {
    if( use_tracking ) return (char *) malloc_track(n,fnam,lnum) ;
-   else               return XtMalloc(n) ;
+   else               return (char *)XtMalloc(n) ;
 }
 
 /*-----------------------------------------------------------------
@@ -559,9 +559,9 @@ char * mcw_XtRealloc( char *p, Cardinal n , char * fnam , int lnum )
       return mcw_XtMalloc( n , fnam , lnum ) ;
 
    if( use_tracking && (ip=shift_tracker(p)) != NULL )
-      return realloc_track( ip , n , fnam,lnum ) ;
+      return (char*)realloc_track( ip , n , fnam,lnum ) ;
    else
-      return XtRealloc( p , n ) ;
+      return (char*)XtRealloc( p , n ) ;
 }
 
 /*----------------------------------------------------------------

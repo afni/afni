@@ -31,37 +31,37 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
      pg = THD_find_executable( "cat" ) ;    /* cheap, but works */
      if( pg != NULL ){
-       pnm_filter = malloc(strlen(pg)+32) ;
+       pnm_filter = AFMALL(char, strlen(pg)+32) ;
        sprintf( pnm_filter , "%s %%s" , pg ) ;
      }
 
      pg = THD_find_executable( "djpeg" ) ;
      if( pg != NULL ){
-       jpeg_filter = malloc(strlen(pg)+32) ;
+       jpeg_filter = AFMALL(char, strlen(pg)+32) ;
        sprintf( jpeg_filter , "%s %%s" , pg ) ;
      }
 
      pg = THD_find_executable( "giftopnm" ) ;
      if( pg != NULL ){
-       gif_filter = malloc(strlen(pg)+32) ;
+       gif_filter = AFMALL(char, strlen(pg)+32) ;
        sprintf( gif_filter , "%s %%s" , pg ) ;
      }
 
      pg = THD_find_executable( "tifftopnm" ) ;
      if( pg != NULL ){
-       tiff_filter = malloc(strlen(pg)+32) ;
+       tiff_filter = AFMALL(char, strlen(pg)+32) ;
        sprintf( tiff_filter , "%s %%s" , pg ) ;
      }
 
      pg = THD_find_executable( "bmptoppm" ) ;
      if( pg != NULL ){
-       bmp_filter = malloc(strlen(pg)+32) ;
+       bmp_filter = AFMALL(char, strlen(pg)+32) ;
        sprintf( bmp_filter , "%s %%s" , pg ) ;
      }
 
      pg = THD_find_executable( "pngtopnm" ) ;
      if( pg != NULL ){
-       png_filter = malloc(strlen(pg)+32) ;
+       png_filter = AFMALL(char, strlen(pg)+32) ;
        sprintf( png_filter , "%s %%s" , pg ) ;
      }
    }
@@ -104,14 +104,14 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
    /*--- create the filter for this file and open the pipe ---*/
 
-   pg = malloc(nf+strlen(filt)+32) ;  /* string to hold filter */
+   pg = AFMALL(char, nf+strlen(filt)+32) ;  /* string to hold filter */
    sprintf( pg , filt , fname ) ;
 
    signal( SIGPIPE , SIG_IGN ) ;  /* ignore this signal */
    fp = popen( pg , "r" ) ;
    if( fp == NULL ){ free(pg); return NULL; }  /* bad pipe */
 
-   buf = malloc(QBUF) ;  /* read buffer for initial data from pipe */
+   buf = AFMALL(byte, QBUF) ;  /* read buffer for initial data from pipe */
 
    /*--- read 1st block from pipe ---*/
 

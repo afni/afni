@@ -353,7 +353,7 @@ ENTRY("THD_open_analyze") ;
    /*-- set brick factors (all the same) --*/
 
    if( fac > 0.0 ){
-     float *bf = malloc(sizeof(float)*nt) ;
+     float *bf = AFMALL(float, sizeof(float)*nt) ;
      for( ii=0 ; ii < nt ; ii++ ) bf[ii] = fac ;
      EDIT_dset_items( dset , ADN_brick_fac,bf , ADN_none ) ;
      free(bf) ;
@@ -410,7 +410,7 @@ ENTRY("THD_load_analyze") ;
 
    for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
       if( DBLK_ARRAY(dblk,ibr) == NULL ){
-         ptr = malloc( DBLK_BRICK_BYTES(dblk,ibr) ) ;
+         ptr = AFMALL(void, DBLK_BRICK_BYTES(dblk,ibr) ) ;
          mri_fix_data_pointer( ptr ,  DBLK_BRICK(dblk,ibr) ) ;
          if( ptr == NULL ) nbad++ ;
       }
