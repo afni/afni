@@ -696,6 +696,7 @@ extern void ISQ_slice_proj_CB    ( MCW_arrowval * , XtPointer ) ;
 
 #define ROWGRAPH_MASK  1
 #define SURFGRAPH_MASK 2
+#define GRAYMAP_MASK   4  /* 24 Oct 2003 */
 
 extern void ISQ_rowgraph_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_rowgraph_label( MCW_arrowval * , XtPointer ) ;
