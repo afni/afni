@@ -1,0 +1,57 @@
+# This Makefile is for Mac OSX 10.0 (Darwin)
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp
+CC     = cc -O2 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
+CCVOL  = cc -O2 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
+CCFAST = cc -O3 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
+CCMIN  = cc
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
+LFLAGS = -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress
+PLUGIN_CC     = $(CC) -dynamic -fno-common
+PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /usr/bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /usr/bin/gzip
+LD     = cc
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./macosx_10.1
+LIBDIR = $(INSTALLDIR)
+
+LIBDL = libdl.a
+
+# for dynamic linking
+
+LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm -lmri -ldl -lc
+
+# for static linking to Motif, dynamic to all else
+
+# LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma 
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib
+SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lm 
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+###############################################################
+
+include Makefile.INCLUDE
