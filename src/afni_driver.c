@@ -37,6 +37,10 @@ static int AFNI_drive_geom_graph    ( char *cmd ) ; /* 16 Nov 2001 */
 static int AFNI_drive_add_overlay_color( char *cmd ) ; /* 16 Jan 2003 */
 static int AFNI_drive_set_threshold    ( char *cmd ) ; /* 16 Jan 2003 */
 static int AFNI_drive_set_pbar_number  ( char *cmd ) ; /* 16 Jan 2003 */
+static int AFNI_drive_set_pbar_sign    ( char *cmd ) ; /* 17 Jan 2003 */
+static int AFNI_drive_set_pbar_all     ( char *cmd ) ; /* 17 Jan 2003 */
+static int AFNI_drive_pbar_rotate      ( char *cmd ) ; /* 17 Jan 2003 */
+static int AFNI_set_func_autorange     ( char *cmd ) ; /* 17 Jan 2003 */
 
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
@@ -78,9 +82,13 @@ static AFNI_driver_pair dpair[] = {
  { "SYSTEM"           , AFNI_drive_system            } ,
  { "CHDIR"            , AFNI_drive_chdir             } ,
 
- { "ADD_OVERLAY_COLOR", AFNI_drive_add_overlay_color } ,
- { "SET_THRESHOLD"    , AFNI_drive_set_threshold     } ,
- { "SET_PBAR_NUMBER"  , AFNI_drive_set_pbar_number   } ,
+ { "ADD_OVERLAY_COLOR"  , AFNI_drive_add_overlay_color } ,
+ { "SET_THRESHOLD"      , AFNI_drive_set_threshold     } ,
+ { "SET_PBAR_NUMBER"    , AFNI_drive_set_pbar_number   } ,
+ { "SET_PBAR_SIGN"      , AFNI_drive_set_pbar_sign     } ,
+ { "SET_PBAR_ALL"       , AFNI_drive_set_pbar_all      } ,
+ { "PBAR_ROTATE"        , AFNI_drive_pbar_rotate       } ,
+ { "SET_FUNC_AUTORANGE" , AFNI_set_func_autorange      } ,
 
  { NULL , NULL } } ;
 
@@ -1376,8 +1384,198 @@ ENTRY("AFNI_drive_set_pbar_number") ;
    if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
 
    num = (int) strtod( cmd+dadd , NULL ) ;
-   if( num < 2 ) RETURN(-1) ;
+   if( num < NPANE_MIN || num > NPANE_MAX ) RETURN(-1) ;
    AV_assign_ival( im3d->vwid->func->inten_av , num ) ;
    alter_MCW_pbar( im3d->vwid->func->inten_pbar , num , NULL ) ;
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! SET_PBAR_SIGN [c.]+ OR [c.]-
+    as in "SET_PBAR_SIGN A.+"
+--------------------------------------------------------------------------*/
+
+static int AFNI_drive_set_pbar_sign( char *cmd )
+{
+   int ic , dadd=2 , val ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_drive_set_pbar_sign") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   switch( cmd[dadd] ){
+     default: RETURN(-1) ;
+
+     case 'p':
+     case 'P':
+     case '+': val = 1 ; break ;
+
+     case 's':
+     case 'S':
+     case '-': val = 0 ; break ;
+   }
+
+   MCW_set_bbox( im3d->vwid->func->inten_bbox , val ) ;
+
+   AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
+                       (XtPointer) im3d , NULL ) ;
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! SET_PBAR_ALL [c.]{+|-}num val=color val=color ...
+   "SET_PBAR_ALL A.+5 1.0=yellow 0.5=red 0.05=none -0.05=blue -0.50=cyan"
+---------------------------------------------------------------------------*/
+
+static int AFNI_drive_set_pbar_all( char *cmd )
+{
+   int ic , dadd=2 , npan=0 , pos , nn , ii,jj ;
+   float pval[NPANE_MAX+1] , val ;
+   int   pcol[NPANE_MAX]   , col ;
+   char  str[256] ;
+   MCW_pbar *pbar ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_drive_set_pbar_all") ;
+
+   if( cmd == NULL || strlen(cmd) < 4 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   /* get sign */
+
+   switch( cmd[dadd] ){
+     default: RETURN(-1) ;
+     case '+': pos = 1 ; break ;
+     case '-': pos = 0 ; break ;
+   }
+   dadd++ ;
+
+   /* get number of panes */
+
+   sscanf( cmd+dadd , "%d%n" , &npan , &nn ) ;
+   if( npan < NPANE_MIN || npan > NPANE_MAX ) RETURN(-1) ;
+   dadd += nn ;
+
+   /* get value=colorname array */
+
+   for( ii=0 ; ii < npan ; ii++ ){
+     str[0] = '\0' ; nn = 0 ;
+     sscanf( cmd+dadd , "%f=%255s%n" , &val,str,&nn ) ;
+     if( str[0] == '\0' || nn == 0 ) RETURN(-1) ;  /* can't parse */
+
+     col = DC_find_overlay_color( GLOBAL_library.dc , str ) ;
+     if( col < 0 )                   RETURN(-1) ;  /* bad color name */
+
+     for( jj=0 ; jj < ii ; jj++ )                  /* check ordering */
+       if( pval[jj] <= val )         RETURN(-1) ;
+
+     if( ii > 0 ){                                 /* check size */
+       if( fabs(val) >= pval[0] )    RETURN(-1) ;
+       if( pos && val <= 0.0 )       RETURN(-1) ;
+     } else {
+       if( val <= 0.0 )              RETURN(-1) ;
+     }
+
+     pval[ii] = val ; pcol[ii] = col ;
+     dadd += nn ;
+   }
+   if( pos ) pval[npan] = 0.0 ;        /* set bottom level */
+   else      pval[npan] = -pval[0] ;
+
+   /* now set pbar values */
+
+   pbar = im3d->vwid->func->inten_pbar ;
+
+   im3d->vinfo->use_posfunc = pbar->mode = pos ;
+   MCW_set_bbox( im3d->vwid->func->inten_bbox , pos ) ;
+
+   for( ii=0 ; ii < npan ; ii++ ){
+     pbar->ov_index[ii] = pbar->ovin_save[npan][ii][pos] = pcol[ii] ;
+     PBAR_set_panecolor( pbar , ii , pcol[ii] ) ;
+   }
+
+   AV_assign_ival( im3d->vwid->func->inten_av , npan ) ;
+   alter_MCW_pbar( pbar , npan , pval ) ;
+
+   AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
+                      (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
+                                                      : im3d->vinfo->fim_autorange );
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! PBAR_ROTATE [c.]{+|-}
+   "PBAR_ROTATE A.+"
+---------------------------------------------------------------------------*/
+
+static int AFNI_drive_pbar_rotate( char *cmd )
+{
+   int ic , dadd=2 , nn ;
+   MCW_pbar *pbar ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_drive_pbar_rotate") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   /* get sign */
+
+   switch( cmd[dadd] ){
+     default: RETURN(-1) ;
+     case '+': nn =  1 ; break ;
+     case '-': nn = -1 ; break ;
+   }
+
+   rotate_MCW_pbar( im3d->vwid->func->inten_pbar , nn ) ;
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! SET_FUNC_AUTORANGE [c.]{+|-}
+   "SET_FUNC_AUTORANGE A.+"
+---------------------------------------------------------------------------*/
+
+static int AFNI_set_func_autorange( char *cmd )
+{
+   int ic , dadd=2 , nn ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_set_func_autorange") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   switch( cmd[dadd] ){
+     default: RETURN(-1) ;
+     case '+': nn = 1 ; break ;
+     case '-': nn = 0 ; break ;
+   }
+
+   MCW_set_bbox( im3d->vwid->func->range_bbox , nn ) ;
+   AFNI_range_bbox_CB( im3d->vwid->func->range_bbox->wbut[RANGE_AUTOBUT] ,
+                       im3d , NULL ) ;
    RETURN(0) ;
 }
