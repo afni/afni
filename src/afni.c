@@ -1019,7 +1019,12 @@ int main( int argc , char * argv[] )
 
 #ifdef USE_FRIENDS
    { char * sf = AFNI_get_friend() ;
-     REPORT_PROGRESS( sf ) ; REPORT_PROGRESS( "\n\n" ) ;
+     REPORT_PROGRESS( sf ) ;
+     sf = AFNI_get_date_trivia() ;   /* 25 Nov 2002 */
+     if( sf != NULL ){
+       REPORT_PROGRESS("\nToday is: ") ; REPORT_PROGRESS(sf) ;
+     }
+     REPORT_PROGRESS( "\n\n" ) ;
      if( argc > 1 && strcmp(argv[1],"-friend") == 0 ) exit(0) ;  /* 19 Sep 1998 */
    }
 #endif
