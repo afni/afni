@@ -1119,7 +1119,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_get_cmass.o mri_scale.o mri_write_analyze.o mri_to_rgba.o       \
            mri_rgba_compose.o mri_blur3d.o mri_dicom_hdr.o mri_read_dicom.o    \
            mri_read_stuff.o mri_flip3D.o mri_warp3D.o mri_fromstring.o         \
-           ge4_header.o mri_equal.o mri_scalize.o
+           ge4_header.o mri_equal.o mri_scalize.o mri_isgray.o mri_read_mpeg.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -1159,7 +1159,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o \
            thd_mincwrite.o thd_mnicoords.o thd_strfunc.o                  \
            thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o   \
-           thd_3Ddset.o thd_mattor.o thd_niftiread.o
+           thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o
 
 # these are now included in NIML
 

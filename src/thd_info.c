@@ -117,6 +117,9 @@ ENTRY("THD_dataset_info") ;
 
      case STORAGE_BY_NIFTI:
        outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIFTI file\n") ; break ;
+
+     case STORAGE_BY_MPEG:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    MPEG file\n") ; break ;
    }
 
    /*-- keywords --*/

@@ -920,8 +920,9 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_1D      8  /* 04 Mar 2003 */
 #define STORAGE_BY_3D      9  /* 21 Mar 2003 */
 #define STORAGE_BY_NIFTI  10  /* 28 Aug 2003 */
+#define STORAGE_BY_MPEG   11  /* 03 Dec 2003 */
 
-#define LAST_STORAGE_MODE 10
+#define LAST_STORAGE_MODE 11
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -3127,6 +3128,7 @@ extern THD_3dim_dataset * THD_open_ctfsam( char * ) ;       /* 04 Dec 2002 */
 extern THD_3dim_dataset * THD_open_1D( char * ) ;           /* 04 Mar 2003 */
 extern THD_3dim_dataset * THD_open_3D( char * ) ;           /* 21 Mar 2003 */
 extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
+extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *) ; /* 23 Mar 2001 */
 extern XtPointer_array *  THD_fetch_many_datasets(char *) ;
@@ -3293,6 +3295,7 @@ extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_1D     ( THD_datablock * ) ;         /* 04 Mar 2003 */
 extern void    THD_load_3D     ( THD_datablock * ) ;         /* 21 Mar 2003 */
 extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
+extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)

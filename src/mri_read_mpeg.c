@@ -2,17 +2,46 @@
 
 #define TDIR "m2pAFNI/"
 
+static int first=1 ;
+static char *tmpdir      = NULL ;
+static char *mpeg_filter = NULL ;
+
+/*----------------------------*/
+/*! Setup mpeg reading stuff. */
+
+static void mpeg_setup(void)
+{
+   char *pg ;
+   if( !first ) return ;
+
+   first = 0 ;
+
+   /* get a temporary directory name */
+
+                                   pg = getenv( "TMPDIR" ) ;
+   if( pg == NULL || *pg == '\0' ) pg = getenv( "TEMPDIR" ) ;
+   if( pg == NULL || *pg == '\0' ) pg = "/tmp" ;
+   if( !THD_is_directory(pg) )     pg = "." ;
+   tmpdir = malloc(strlen(pg)+16) ;
+   sprintf( tmpdir , "%s/%s" , pg , TDIR ) ;
+
+   /* find the mpegtoppm executable */
+
+   pg = THD_find_executable( "mpegtoppm" ) ;
+   if( pg != NULL ){
+     mpeg_filter = malloc(strlen(pg)+strlen(tmpdir)+64 ) ;
+     sprintf( mpeg_filter , "%s -prefix %s %%s" , pg , tmpdir ) ;
+   }
+}
+
+/*----------------------------------------------------------*/
 /*! Convert an MPEG file into a set of images.
-    Must have program mpegtoppm in the path.   [03 Dec 2003] */
+    Must have program mpegtoppm in the path.  [03 Dec 2003] */
 
 MRI_IMARR * mri_read_mpeg( char *fname )
 {
-   static int first=1 ;
-   static char *tmpdir      = NULL ;
-   static char *mpeg_filter = NULL ;  /* mpegtoppm  */
-
    char *pg ;
-   int nf , ii , allgray=1 ;
+   int ii , allgray=1 ;
    FILE *fp ;
    MRI_IMAGE *im ;
    MRI_IMARR *imar ;
@@ -21,34 +50,13 @@ MRI_IMARR * mri_read_mpeg( char *fname )
 
    if( fname == NULL || *fname == '\0' ) return NULL ;
 
-   /*--- first time in, setup up filters to PPM format ---*/
-
-   if( first ){
-     first = 0 ;
-
-     /* get a temporary directory name */
-
-                                     pg = getenv( "TMPDIR" ) ;
-     if( pg == NULL || *pg == '\0' ) pg = getenv( "TEMPDIR" ) ;
-     if( pg == NULL || *pg == '\0' ) pg = "/tmp" ;
-     if( !THD_is_directory(pg) )     pg = "." ;
-     tmpdir = malloc(strlen(pg)+16) ;
-     sprintf( tmpdir , "%s/%s" , pg , TDIR ) ;
-
-     /* find the mpegtoppm executable */
-
-     pg = THD_find_executable( "mpegtoppm" ) ;
-     if( pg != NULL ){
-       mpeg_filter = malloc(strlen(pg)+strlen(tmpdir)+64 ) ;
-       sprintf( mpeg_filter , "%s -prefix %s %%s" , pg , tmpdir ) ;
-     }
-   }
+   mpeg_setup() ;
 
    if( mpeg_filter == NULL ) return NULL ;  /* can't filter? */
 
    /*--- create the filter for this file and run it to create .ppm files ---*/
 
-   pg = malloc(nf+strlen(mpeg_filter)+32) ;  /* string to hold filter */
+   pg = malloc(strlen(fname)+strlen(mpeg_filter)+32) ;  /* string to hold filter */
    sprintf( pg , mpeg_filter , fname ) ;
    THD_mkdir( tmpdir ) ;                    /* create the temp directory */
    if( !THD_is_directory(tmpdir) ){ free(pg); return NULL; }  /* can't?  */
@@ -59,15 +67,69 @@ MRI_IMARR * mri_read_mpeg( char *fname )
 
    INIT_IMARR(imar) ;
    for( ii=0 ; ; ii++ ){   /* loop until we fail to read */
-     sprintf( pg , "%s/%06d.ppm" , tmpdir,ii ) ;
+     sprintf( pg , "%s%06d.ppm" , tmpdir,ii ) ;
      im = mri_read_ppm( pg ) ;
      if( im == NULL ) break ;
      allgray = allgray && mri_isgray(im) ;
      remove( pg ) ;
+     ADDTO_IMARR(imar,im) ;
    }
-   remove( tmpdir ) ;
-   free(pg) ;
+   remove( tmpdir ) ; free(pg) ;
 
-   if( IMARR_COUNT(imar) == 0 ){ DESTROY_IMARR(imar); imar = NULL; }
+   /* if all images are grayscale, convert to byte-valued images */
+
+   if( IMARR_COUNT(imar) == 0 ){
+     DESTROY_IMARR(imar);
+     imar = NULL;
+   } else if( allgray || AFNI_yesenv("AFNI_MPEG_GRAYIZE") ){
+     MRI_IMARR *qmar ;
+     INIT_IMARR(qmar) ;
+     for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
+       im = mri_to_byte( IMARR_SUBIM(imar,ii) ) ;
+       ADDTO_IMARR(qmar,im) ;
+       mri_free( IMARR_SUBIM(imar,ii) ) ;
+     }
+     FREE_IMARR(imar) ; imar = qmar ;
+   }
+
    return imar ;
+}
+
+/*----------------------------------------------------------*/
+/*! Count number of images in an MPEG file.
+    Must have program mpegtoppm in the path.  [03 Dec 2003] */
+
+int mri_imcount_mpeg( char *fname )
+{
+   char *pg , **ff ;
+   int ii , nf ;
+
+   /*--- check input for OK-ness ---*/
+
+   if( fname == NULL || *fname == '\0' ) return 0 ;
+
+   mpeg_setup() ;
+
+   if( mpeg_filter == NULL ) return 0 ;  /* can't filter? */
+
+   /*--- create the filter for this file and run it to create .ppm files ---*/
+
+   pg = malloc(strlen(fname)+strlen(mpeg_filter)+32) ;  /* string to hold filter */
+   sprintf( pg , mpeg_filter , fname ) ;
+   THD_mkdir( tmpdir ) ;                 /* create the temp directory */
+   if( !THD_is_directory(tmpdir) ){ free(pg); return 0; }  /* can't?  */
+
+   system( pg ) ;    /* run the command */
+
+   /*-- count files in the temp directory --*/
+
+   sprintf( pg , "%s*.ppm" , tmpdir ) ;
+   MCW_wildcards( pg , &nf , &ff ) ;
+
+   /* delete files from the temp directory */
+
+   for( ii=0 ; ii < nf ; ii++ ) remove( ff[ii] ) ;
+   remove( tmpdir ) ; free(pg) ;
+
+   return nf ;
 }

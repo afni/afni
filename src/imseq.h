@@ -487,7 +487,15 @@ typedef struct MCW_imseq {
      int do_graymap ;                                 /* 24 Oct 2003 */
      MEM_topshell_data * graymap_mtd ;
      Widget wbar_graymap_pb ;
+
+     XtIntervalId timer_id ;                          /* 03 Dec 2003 */
+     int          timer_func, timer_param, timer_delay ;
 } MCW_imseq ;
+
+#define ISQ_TIMERFUNC_INDEX 701
+
+extern void ISQ_timer_CB( XtPointer , XtIntervalId * ) ; /* 03 Dec 2003 */
+extern void ISQ_timer_stop( MCW_imseq * ) ;
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
 extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;

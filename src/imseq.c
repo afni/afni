@@ -1584,6 +1584,8 @@ STATUS("creation: widgets created") ;
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
 
+     newseq->timer_id = 0 ;  /* 03 Dec 2003 */
+
      /*-- labels stuff --*/
 
      iii = 0 ;
@@ -3612,6 +3614,8 @@ ENTRY("ISQ_but_done_CB") ;
       seq->glstat->worker = 0 ;
    }
 
+   ISQ_timer_stop(seq) ;
+
    if( seq->dialog != NULL ) XtDestroyWidget( seq->dialog ) ;  /* 13 Aug 2002 */
 
    ISQ_free_alldata( seq ) ;
@@ -4529,6 +4533,8 @@ DPR(" .. KeyPress") ;
 
          /* discard if a mouse button is also pressed at this time */
 
+         ISQ_timer_stop(seq) ;  /* 03 Dec 2003 */
+
          if( event->state & (Button1Mask|Button2Mask|Button3Mask) ){
            XBell(seq->dc->display,100); EXRETURN;
          }
@@ -4648,6 +4654,26 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
            case 'q':
            case 'Q':{
              ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ;
+             EXRETURN ;
+           }
+           break ;
+
+           /* 03 Dec 2003: advance picture continuously? */
+
+           case 'm':
+           case 'M':{
+             if( seq->button2_enabled ){
+               MCW_popup_message( w, " \n Not when \n"
+                                        " Drawing! \n ", MCW_USER_KILL );
+               XBell(seq->dc->display,100) ;
+             } else if( seq->status->num_total > 1 ){      /* bring it on */
+               seq->timer_func  = ISQ_TIMERFUNC_INDEX ;
+               seq->timer_delay = 1 ;
+               seq->timer_param = (buf[0] == 'm') ? -1 : 1 ;
+               seq->timer_id    =
+                 XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
+                                  seq->timer_delay , ISQ_timer_CB , seq ) ;
+             }
              EXRETURN ;
            }
            break ;
@@ -6750,6 +6776,7 @@ static unsigned char record_bits[] = {
       }
 
       case isqDR_button2_enable:{
+         ISQ_timer_stop(seq) ;
          if( seq->status->send_CB == NULL ) RETURN( False );  /* makes no sense */
          if( seq->button2_enabled )         RETURN( True );   /* already on */
 
@@ -6927,6 +6954,7 @@ static unsigned char record_bits[] = {
       /*------- unrealize! -------*/
 
       case isqDR_unrealize:{
+         ISQ_timer_stop(seq) ;
          if( ISQ_REALZ(seq) ) XtUnrealizeWidget( seq->wtop ) ;
          seq->valid = 1 ;
          RETURN( True );
@@ -7131,6 +7159,7 @@ static unsigned char record_bits[] = {
 
       case isqDR_newseq:{
          Boolean good ;
+         ISQ_timer_stop(seq) ;
          good = ISQ_setup_new( seq , drive_data ) ;
          RETURN( good );
       }
@@ -10372,4 +10401,43 @@ ENTRY("ISQ_pen_bbox_CB") ;
    val = MCW_val_bbox( seq->pen_bbox ) ;
    ISQ_set_cursor_state( seq, (val==0) ? CURSOR_NORMAL : CURSOR_PENCIL ) ;
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Do something every so often. */
+
+void ISQ_timer_CB( XtPointer cd , XtIntervalId *id ) /* 03 Dec 2003 */
+{
+   MCW_imseq *seq = (MCW_imseq *)cd ;
+   int redo = 0 ;
+
+ENTRY("ISQ_timer_CB") ;
+
+   if( !ISQ_REALZ(seq) || seq->timer_id == 0 ) EXRETURN ;
+
+   switch( seq->timer_func ){
+
+     case ISQ_TIMERFUNC_INDEX:{
+       int nn=seq->im_nr , nt=seq->status->num_total ;
+       if( nt > 1 && seq->timer_param != 0 ){
+         nn = (nn+seq->timer_param+nt) % nt ;
+         ISQ_redisplay( seq , nn , isqDR_display ) ;
+         redo = 1 ;
+       }
+     }
+     break ;
+
+   }
+
+   if( redo ) seq->timer_id = XtAppAddTimeOut(
+                               XtWidgetToApplicationContext(seq->wform) ,
+                               seq->timer_delay , ISQ_timer_CB , seq ) ;
+   else       seq->timer_id = 0 ;
+
+   EXRETURN ;
+}
+
+void ISQ_timer_stop( MCW_imseq *seq )
+{
+   if( seq->timer_id > 0 ){ XtRemoveTimeOut(seq->timer_id); seq->timer_id = 0; }
 }

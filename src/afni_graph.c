@@ -2972,28 +2972,29 @@ STATUS(str); }
             redraw_graph( grapher , 0 ) ;
       break ;
 
-      case '<':
-      case '>':
+      case '<': case ',':
+      case '>': case '.':
       case '1':
       case 'l':
          EXRONE(grapher) ;  /* 22 Sep 2000 */
 
-              if( buf[0] == '<' ) ii = grapher->time_index - 1 ;
-         else if( buf[0] == '>' ) ii = grapher->time_index + 1 ;
-         else if( buf[0] == '1' ) ii = 1 ;
-         else if( buf[0] == 'l' ) ii = grapher->status->num_series - 1 ;
+              if( buf[0] == '<' || buf[0] == ',' ) ii = grapher->time_index - 1;
+         else if( buf[0] == '>' || buf[0] == '.' ) ii = grapher->time_index + 1;
+         else if( buf[0] == '1'                  ) ii = 1 ;
+         else if( buf[0] == 'l'                  ) ii = grapher->status->num_series-1;
 
+         ii = (ii+grapher->status->num_series) % grapher->status->num_series ;
          if( ii >= 0 && ii < grapher->status->num_series ){
-            if( grapher->status->send_CB != NULL ){
-               GRA_cbs cbs ;
+           if( grapher->status->send_CB != NULL ){
+             GRA_cbs cbs ;
 
-               cbs.reason = graCR_setindex ;
-               cbs.key    = ii;
-               cbs.event  = NULL ;
-               grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
-            } else {
-               (void) drive_MCW_grapher( grapher , graDR_setindex , (XtPointer) ii) ;
-            }
+             cbs.reason = graCR_setindex ;
+             cbs.key    = ii;
+             cbs.event  = NULL ;
+             grapher->status->send_CB( grapher, grapher->getaux, &cbs ) ;
+           } else {
+             (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)ii) ;
+           }
          }
       break ;
 

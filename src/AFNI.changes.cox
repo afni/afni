@@ -4814,3 +4814,8 @@
  * Modified imseq.c to add AFNI_IMAGE_ZEROCOLOR environment variable.
  * Modified mcw_glob.[ch] to add simple-to-use function MCW_wildcards().
      Used this in afni_splash.c as a test.
+
+03 Dec 2003
+ * Program mpegtoppm.
+ * Read images and datasets from MPEG files.
+ * 'm' and 'M' keys in imseq.c.
