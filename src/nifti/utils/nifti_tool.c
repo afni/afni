@@ -81,8 +81,11 @@ static char g_history[] =
   "   - moved to utils directory\n"
   "   - added simple casts of 3 pointers for -pedantic warnings\n"
   "   - added a doxygen comment for the file\n"
+  "\n"
+  "1.4  02 March 2005 [rickr] - small update\n"
+  "   - no validation in nifti_read_header calls\n"
   "----------------------------------------------------------------------\n";
-static char g_version[] = "version 1.3 (February 23, 2004)";
+static char g_version[] = "version 1.4 (March 02, 2005)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -1025,12 +1028,12 @@ int act_diff_hdrs( nt_opts * opts )
       fprintf(stderr,"-d nifti_1_header diff between %s and %s...\n",
               opts->infiles.list[0], opts->infiles.list[1]);
 
-   /* get the nifiti headers */
+   /* get the nifiti headers (but do not validate them) */
 
-   nhdr0 = nifti_read_header(opts->infiles.list[0], NULL);
+   nhdr0 = nifti_read_header(opts->infiles.list[0], NULL, 0);
    if( ! nhdr0 ) return 1;  /* errors have been printed */
 
-   nhdr1 = nifti_read_header(opts->infiles.list[1], NULL);
+   nhdr1 = nifti_read_header(opts->infiles.list[1], NULL, 0);
    if( ! nhdr1 ){ free(nhdr0); return 1; }
 
    if( g_debug > 1 )
@@ -1159,7 +1162,8 @@ int act_disp_hdrs( nt_opts * opts )
 
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
-      nhdr = nifti_read_header(opts->infiles.list[filenum], NULL);
+      /* do not validate the header structure */
+      nhdr = nifti_read_header(opts->infiles.list[filenum], NULL, 0);
       if( !nhdr ) return 1;  /* errors are printed from library */
                                                                                 
       if( g_debug > 0 )
@@ -1256,7 +1260,8 @@ int act_mod_hdrs( nt_opts * opts )
 
    for( filec = 0; filec < opts->infiles.len; filec++ )
    {
-      nhdr = nifti_read_header(opts->infiles.list[filec], &swap);
+      /* do not validate the header structure */
+      nhdr = nifti_read_header(opts->infiles.list[filec], &swap, 0);
       if( !nhdr ) return 1;
 
       if( g_debug > 1 )
