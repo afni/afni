@@ -42,6 +42,11 @@ This file might be compiled and used by AFNI
   #endif 
 #endif
 
+static int verv[] = { SUMA_VERSION_VECTOR }; 
+float SUMA_LatestVersionNumber(void)
+{
+   return((float)verv[0]/10000.0);
+}
 
 /*!
    Creates a NI elem. to store surface data 
@@ -1181,10 +1186,29 @@ char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow)
    SUMA_RETURN(s);
 }
 
+void SUMA_ShowDset (SUMA_DSET *dset, int detail, FILE *out)
+{
+   static char FuncName[]={"SUMA_ShowDset"};
+   char *si = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!out) out = SUMA_STDERR;
+   
+   si = SUMA_DsetInfo(dset, detail);
+   
+   fprintf(out,"%s\n", si);
+   
+   if (si) SUMA_free(si); si = NULL;
+   
+   SUMA_RETURNe;
+   
+}
 /*!
    \brief Function to return info on SUMA_DSET
    
    - You must free the returned string on your own
+   \sa SUMA_ShowDset
 */
 char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
 {

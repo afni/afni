@@ -7,6 +7,13 @@
    #define SUMA_IDCODE_LENGTH 50
 #endif
 
+#define SUMA_VERSION_VECTOR 25000, 24800, \
+                            24500, -10000 /*!< modify this dude and you must update SUMA_New_Additions_perver 
+                                       in SUMA_help.c. 
+                                       Add to the left of the vector, leave the last value of -10000 untouched
+                                       If you like to think of floating point version numbers,divide by 10000
+                                       This define is stuck here so that non-SUMA DataSet manipulating programs 
+                                       can use it, one hopes*/
 typedef enum { NOPE, YUP} SUMA_Boolean;
 
 typedef enum { SUMA_notypeset = -1, SUMA_byte, SUMA_int, SUMA_float, SUMA_double, SUMA_string} SUMA_VARTYPE;
@@ -423,7 +430,7 @@ NodeDef might be dynamically changed in the overlay plane */
    /* close the stream */  \
    NI_stream_close( m_ns ) ; \
 }
-
+float SUMA_LatestVersionNumber(void);
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);
 SUMA_DSET_TYPE SUMA_Dset_Type (char *Name);
 char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp);
@@ -445,6 +452,7 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
 void SUMA_FreeDset(void *dset);
 SUMA_DSET * SUMA_FindDset (char *idcode_str, DList *DsetList);
 char *SUMA_DsetInfo (SUMA_DSET *dset, int detail);
+void SUMA_ShowDset (SUMA_DSET *dset, int detail, FILE *out);
 char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow);
 SUMA_DSET * SUMA_NewDsetPointer(void);
 SUMA_DSET * SUMA_CreateDsetPointer (  
