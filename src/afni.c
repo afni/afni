@@ -4733,10 +4733,18 @@ ENTRY("AFNI_time_index_CB") ;
 
    if( ISVALID_DSET(im3d->fim_now) &&
        HAS_TIMEAXIS(im3d->fim_now) && !AFNI_noenv("AFNI_SLAVE_FUNCTIME") ){
+
      im3d->vinfo->fim_index = ipx ;
      if( im3d->vinfo->fim_index >= DSET_NVALS(im3d->fim_now) )
        im3d->vinfo->fim_index = DSET_NVALS(im3d->fim_now) - 1 ;
      AV_assign_ival( im3d->vwid->func->fim_buck_av , im3d->vinfo->fim_index ) ;
+
+     if( AFNI_yesenv("AFNI_SLAVE_THRTIME") ){   /* 24 Jan 2005 - RWCox */
+       im3d->vinfo->thr_index = ipx ;
+       if( im3d->vinfo->thr_index >= DSET_NVALS(im3d->fim_now) )
+         im3d->vinfo->thr_index = DSET_NVALS(im3d->fim_now) - 1 ;
+       AV_assign_ival( im3d->vwid->func->thr_buck_av , im3d->vinfo->thr_index ) ;
+     }
    }
 
    im3d->vinfo->tempflag = 1 ;
