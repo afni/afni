@@ -46,6 +46,19 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
       iar = DSET_ARRAY(br->dset,0) ;
       if( iar == NULL ) return NULL ;
    }
+
+   /* 15 Sep 2004: allow for nonconstant datum */
+
+   if( !DSET_datum_constant(br->dset) ){  /* only for stupid users */
+     float *ar ;
+     im = mri_new( nv , 1 , MRI_float ) ; ar = MRI_FLOAT_PTR(im) ;
+     for( ival = 0 ; ival < nv ; ival++ )
+       ar[ival] = THD_get_voxel( br->dset , ind , ival ) ;
+     goto image_done ;
+   }
+
+   /* the older (more efficient) way */
+
    typ = DSET_BRICK_TYPE(br->dset,0) ;
    im  = mri_new( nv , 1 , typ ) ;
 #if 0
@@ -140,6 +153,10 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
       mri_free(im) ; im = qim ;
    }
 
+   /* at this point, the image is ready to ship out;
+      but first, maybe attach a time origin and spacing */
+
+image_done:
    if( br->dset->taxis != NULL ){  /* 21 Oct 1996 */
       float zz , tt ;
 

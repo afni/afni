@@ -33,6 +33,62 @@ int THD_datum_constant( THD_datablock *blk )
    return 1 ;
 }
 
+/*---------------------------------------------------------------*/
+/*! Return a float representation of a given voxel. [15 Sep 2004]
+-----------------------------------------------------------------*/
+
+float THD_get_voxel( THD_3dim_dataset *dset , int ijk , int ival )
+{
+   void *ar ;
+   float val , fac ;
+
+   if( ival < 0 || ival >= DSET_NVALS(dset) ) return 0.0f ;
+   if( ijk < 0  || ijk  >= DSET_NVOX(dset)  ) return 0.0f ;
+
+   ar = DSET_ARRAY(dset,ival) ;
+   if( ar == NULL ){ DSET_load(dset) ; ar = DSET_ARRAY(dset,ival) ; }
+   if( ar == NULL ) return 0.0f ;
+
+   switch( DSET_BRICK_TYPE(dset,ival) ){
+
+     default: return 0.0f ;
+
+     case MRI_byte:
+       val = (float)(((byte *)ar)[ijk])   ; break ;
+     case MRI_short:
+       val = (float)(((short *)ar)[ijk])  ; break ;
+     case MRI_int:
+       val = (float)(((int *)ar)[ijk])    ; break ;
+     case MRI_float:
+       val = (float)(((float *)ar)[ijk])  ; break ;
+     case MRI_double:
+       val = (float)(((double *)ar)[ijk]) ; break ;
+
+     case MRI_complex:{
+       complex c = (((complex *)ar)[ijk]) ;
+       val = sqrt(c.r*c.r+c.i*c.i) ;
+       break ;
+     }
+
+     case MRI_rgb:{
+       rgbyte c = (((rgbyte *)ar)[ijk]) ;
+       val = 0.299f*(float)(c.r) + 0.587f*(float)(c.g) + 0.114f*(float)(c.b) ;
+       break ;
+     }
+
+     case MRI_rgba:{
+       rgba c = (((rgba *)ar)[ijk]) ;
+       val = 0.299f*(float)(c.r) + 0.587f*(float)(c.g) + 0.114f*(float)(c.b) ;
+       val *= 0.00392157f*(float)(c.a) ;
+       break ;
+     }
+   }
+
+   fac = DSET_BRICK_FACTOR(dset,ival) ;
+   if( fac > 0.0f ) val *= fac ;
+   return val ;
+}
+
 /*---------------------------------------------------------------
   18 Oct 2001:
   Put freeup function here, and set it by a function, rather
