@@ -639,14 +639,14 @@ set this YES/NO environment variable to YES.
 ----------------------------------
 Variable: AFNI_NO_ADOPTION_WARNING
 ----------------------------------
-AFNI now prints a warning when it forces a dataset to have an anatomy
+AFNI now can print a warning when it forces a dataset to have an anatomy
 parent dataset (the "forced adoption" function).  This happens when
 there a dataset does not have an anatomy parent encoded into its .HEAD
 file (either via to3d or 3drefit), and there is more than one anatomical
 dataset in the directory that has Talairach transformation markers
-attached.  If you wish to disable this warning, set this YES/NO variable
-to YES.  For more information on this subject, please see
-  http://varda.biophysics.mcw.edu/~cox/afni_faq.html#AnatParent .
+attached.  If you wish to enable this warning, set this YES/NO variable
+to NO.  For more information on this subject, please see
+  http://afni.nimh.nih.gov/afni/afni_faq.shtml#AnatParent .
 
 -----------------------------------
 Variable: AFNI_NO_NEGATIVES_WARNING
