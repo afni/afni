@@ -1,5 +1,5 @@
 
-#define VERSION "version  3.5 (July 22, 2004)"
+#define VERSION "version  3.6 (July 28, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -119,6 +119,10 @@ static char g_history[] =
  "\n"
  "3.5  July 22, 2004  [rickr]\n"
  "  - Fixed bug with test for valid sdata_1D file.\n"
+ "\n"
+ "3.6  July 28, 2004  [rickr]\n"
+ "  - Fixed bug: old change caused the default f_steps to revert to 1,\n"
+ "               now it is set back to 2 (thanks, Kuba).\n"
  "----------------------------------------------------------------------\n";
  
 
@@ -1190,6 +1194,8 @@ ENTRY("get_mappable_surfts");
 */
 int set_smap_opts( opts_t * opts, param_t * p, s2v_opts_t * sopt )
 {
+    int nsurf;
+
 ENTRY("set_smap_opts");
 
     memset( sopt, 0, sizeof(*sopt) );	/* clear the sopt struct */
@@ -1211,8 +1217,18 @@ ENTRY("set_smap_opts");
     sopt->sxyz_ori_gpar = opts->sxyz_ori_gpar;
     sopt->cmask         = p->cmask;
 
-    if ( opts->f_steps <= S2V_F_STEPS_MIN )             /* minimum is 1    */
-	sopt->f_steps = S2V_F_STEPS_MIN;
+    if ( opts->f_steps < S2V_F_STEPS_MIN )             /* minimum is 1    */
+    {
+	/* if f_steps was not given, init to the number of surfaces  - v3.6 */
+	for ( nsurf = 0; nsurf < S2V_MAX_SURFS && opts->snames[nsurf]; nsurf++ )
+	    ;
+	if ( nsurf <= 0 )
+	{
+	    fprintf(stderr,"** error: sso: no input surfaces\n");
+	    RETURN(-1);
+	}
+	sopt->f_steps = nsurf;
+    }
     else
 	sopt->f_steps = opts->f_steps;
 
@@ -2717,12 +2733,14 @@ ENTRY("usage");
 	    "    -f_steps NUM_STEPS     : partition segments\n"
 	    "\n"
 	    "        e.g. -f_steps 10\n"
-	    "        default: -f_steps 2      (the pair of surface nodes)\n"
+	    "        default: -f_steps 2   (or 1, the number of surfaces)\n"
 	    "\n"
 	    "        This option specifies the number of points to divide\n"
 	    "        each line segment into, before mapping the points to the\n"
-	    "        AFNI volume domain.  The default is 2: the actual node\n"
-	    "        pair from the input surfaces.\n"
+	    "        AFNI volume domain.  The default is the number of input\n"
+	    "        surfaces (usually, 2).  The default operation is to have\n"
+	    "        the segment endpoints be the actual surface nodes,\n"
+	    "        unless they are altered with the -f_pX_XX options.\n"
 	    "\n"
 	    "    -f_index TYPE          : index by points or voxels\n"
 	    "\n"
