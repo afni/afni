@@ -136,7 +136,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                 "\n*** failed to malloc %d dataset bricks out of %d - is memory exhausted?\n",
                 nbad,nv ) ;
 #ifdef USING_MCW_MALLOC
-         { char * str = mcw_malloc_status() ;
+         { char * str = MCW_MALLOC_status ;
            if( str != NULL )
              fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
          }
@@ -153,7 +153,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
             if( THD_count_databricks(blk) < nv ){
                fprintf(stderr,"*** cannot free up enough memory\n") ;
 #ifdef USING_MCW_MALLOC
-               { char * str = mcw_malloc_status() ;
+               { char * str = MCW_MALLOC_status ;
                  if( str != NULL )
                    fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
                }
@@ -169,7 +169,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
             } else {
                fprintf(stderr,"*** was able to free up enough memory\n") ;
 #ifdef USING_MCW_MALLOC
-               { char * str = mcw_malloc_status() ;
+               { char * str = MCW_MALLOC_status ;
                  if( str != NULL )
                    fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
                }
