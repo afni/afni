@@ -1942,6 +1942,7 @@ SUMA_Boolean SUMA_ReleaseMessageListElement (DList *list, DListElmt *element)
    \param list (DList *)
    \return ans (DList *) NULL if function succeeds, list if function fails
    
+   ++ list is also freed (Jan. 29 04)
    \sa SUMA_EmptyDestroyList
 */
 DList * SUMA_DestroyList (DList *list) 
@@ -1956,6 +1957,7 @@ DList * SUMA_DestroyList (DList *list)
    }
    
    dlist_destroy(list);
+   if (list) SUMA_free(list);
    SUMA_RETURN (NULL);   
 } 
 
@@ -1965,6 +1967,7 @@ DList * SUMA_DestroyList (DList *list)
    
    \param list (DList *)
    \return ans (DList *) NULL always
+   ++ list is also freed (Jan. 29 04)
    \sa SUMA_DestroyList
 */
 DList * SUMA_EmptyDestroyList (DList *list) 
@@ -1974,6 +1977,7 @@ DList * SUMA_EmptyDestroyList (DList *list)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    dlist_destroy(list);
+   if (list) SUMA_free(list);
    SUMA_RETURN (NULL);   
 } 
 
