@@ -13,7 +13,7 @@
      ftype = datum type of substitute array
      fim   = array of substitute data -- it may be NULL.  If it is not NULL,
              then should contain mri_datum_size(ftype) * nxx*nyy*nzz bytes.
-             If it is NULL, then space will be malloc-ed.
+             If it is NULL, then space will be calloc-ed.
 
    Notes: 1) The original brick (an MRI_IMAGE within an MRI_IMARR) is deleted
              from memory.  A new brick is put in its place.

@@ -989,6 +989,9 @@ extern MRI_IMAGE *mri_warp3D_linear( MRI_IMAGE *, int,int,int ,
 extern MRI_IMAGE *mri_warp3D_NN    ( MRI_IMAGE *, int,int,int ,
                                      void func( float,float,float,
                                                 float *,float *,float *) ) ;
+extern MRI_IMAGE *mri_warp3D       ( MRI_IMAGE *, int,int,int ,
+                                     void func( float,float,float,
+                                                float *,float *,float *) ) ;
 extern void mri_warp3D_method( int ) ;
 extern void mri_warp3D_zerout( int ) ;
 
