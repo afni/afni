@@ -54,5 +54,7 @@ extern doublereal dbesy1_( doublereal * ) ;
 extern doublereal derf_ ( doublereal * ) ;
 extern doublereal derfc_( doublereal * ) ;
 
+extern doublereal unif_( doublereal * ) ;
+
 #endif /* NEED_PARSER_INTERNALS */
 #endif /* _RWCOX_PARSER_HEADER_ */

@@ -1500,6 +1500,7 @@ STATUS("setting brick_fac") ;
 ucode_stuff:
 
 #define MAXUFUN 64  /* should be at least sizeof(int) */
+#define MAXTS   32  /* number of timeseries to process at once */
 
    if( ucode != 0 ){
       MCW_function_list * rlist = &(GLOBAL_library.registered_fim) ;
@@ -1511,6 +1512,8 @@ ucode_stuff:
       MRI_IMAGE * tsim ;
       float     * tsar , * val , ** vbr ;
       short     * sar ;
+      int         nts , jts ;
+      MRI_IMARR * imar ;
 
       /* mark which ones to execute */
 
@@ -1554,19 +1557,24 @@ ucode_stuff:
 
       val = (float *) malloc(sizeof(float)*newbrik) ;
 
-      for( iv=0 ; iv < nvox ; iv++ ){
-         tsim = THD_extract_series( indx[iv] , dset_time , 0 ) ;  /* data */
-         tsar = MRI_FLOAT_PTR(tsim) ;
+      for( iv=0 ; iv < nvox ; iv+=MAXTS ){
+         nts  = MIN( MAXTS , nvox-iv ) ;
+         imar = THD_extract_many_series( nts,indx+iv , dset_time ) ;
 
-         for( uu=0 ; uu < nuse ; uu++ ){
-            ufunc[uu]( ntime , tsar ,                             /* func */
-                       udata[uu] , nbrik[uu] , (void *) val ) ;
+         for( jts=0 ; jts < nts ; jts++ ){
+            tsim = IMARR_SUBIMAGE(imar,jts) ;                     /* data */
+            tsar = MRI_FLOAT_PTR(tsim) ;
 
-            for( it=0 ; it < nbrik[uu] ; it++ )                /* storage */
-               vbr[it+brik1[uu]][iv] = val[it] ;
+            for( uu=0 ; uu < nuse ; uu++ ){
+               ufunc[uu]( ntime , tsar ,                          /* func */
+                          udata[uu] , nbrik[uu] , (void *) val ) ;
+
+               for( it=0 ; it < nbrik[uu] ; it++ )             /* storage */
+                  vbr[it+brik1[uu]][iv+jts] = val[it] ;
+            }
          }
 
-         mri_free(tsim) ;                             /* garbage disposal */
+         DESTROY_IMARR(imar) ;                        /* garbage disposal */
 
 #ifndef DONT_USE_METER
          meter_perc = (int) ( 100.0 * iv / nvox ) ;
@@ -1577,6 +1585,9 @@ ucode_stuff:
 #endif
       }
       free(val) ;  /* no longer needed */
+#ifndef DONT_USE_METER
+      MCW_set_meter( meter , 100 ) ;
+#endif
 
       /* if necessary, make the new dataset now */
 

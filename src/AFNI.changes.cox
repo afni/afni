@@ -2029,3 +2029,11 @@
 03 Feb 2000
  * Modified GRAN() random number generator in parser.f to make it be
      less obviously periodic.
+
+04 Feb 2000
+ * Added IRAN() integer deviate, ERAN() exponential deviate, and LRAN
+     logistic deviate generators to parser.f
+ * Added THD_extract_many_series() function, and used in to speed up the
+     fimfunc work in afni_fimmer.c.
+ * Fixed error in 3dbuc2fim.c, where stat_aux array was not malloc()-ed
+     large enough for the EDIT_dset_items() routine usage.

@@ -817,7 +817,8 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
-     X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE, GRAN,URAN
+     X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
+     X       GRAN,URAN,IRAN,ERAN,LRAN
 C
 C  External library functions
 C
@@ -966,6 +967,15 @@ C.......................................................................
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'URAN' )THEN
             R8_EVAL(NEVAL) = URAN( R8_EVAL(NEVAL) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'IRAN' )THEN
+            R8_EVAL(NEVAL) = IRAN( R8_EVAL(NEVAL) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'ERAN' )THEN
+            R8_EVAL(NEVAL) = ERAN( R8_EVAL(NEVAL) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'LRAN' )THEN
+            R8_EVAL(NEVAL) = LRAN( R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
             IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
@@ -1230,7 +1240,7 @@ C
       REAL*8  R8_EVAL(NVMAX,NUM_ESTACK) , R8VAL(NVMAX,26)
 C
       INTEGER     NEVAL , NCODE , IALPHA , IV,IBV,IVBOT,IVTOP ,
-     X 		  JF,KF, NTM,ITM,JTM
+     X 		  JF, NTM,ITM,JTM
       CHARACTER*8 C8_VAL , CNCODE , C2CODE
       REAL*8      R8_VAL , X , Y
       EQUIVALENCE ( C8_VAL , R8_VAL )
@@ -1242,7 +1252,8 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
-     X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE , GRAN,URAN
+     X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
+     X       GRAN,URAN,IRAN,ERAN,LRAN
 C
 C  External library functions
 C
@@ -1568,6 +1579,21 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'URAN')THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = URAN( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'IRAN')THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = IRAN( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'ERAN')THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = ERAN( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'LRAN')THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = LRAN( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
@@ -2007,6 +2033,9 @@ C
 C
 C
 C
+CCC The UNIF() function is now in parser_int.c,
+CCC where it calls CCC upon the C library to do the dirty work.
+C
 CCC      FUNCTION UNIF( XJUNK )
 CCC      IMPLICIT REAL*8 (A-H,O-Z)
 CCC      PARAMETER ( IA = 99992 , IB = 12345 , IT = 99991 )
@@ -2020,30 +2049,69 @@ CCC      END
 C
 C
 C
-      FUNCTION UNIF( XJUNK )
+CCC      FUNCTION UNIF( XJUNK )
+CCC      IMPLICIT REAL*8 (A-H,O-Z)
+CCCC
+CCCC     FACTOR - INTEGER OF THE FORM 8*K+5 AS CLOSE AS POSSIBLE
+CCCC              TO  2**26 * (SQRT(5)-1)/2     (GOLDEN SECTION)
+CCCC     TWO28  = 2**28  (I.E. 28 SIGNIFICANT BITS FOR DEVIATES)
+CCCC
+CCC      PARAMETER ( FACTOR = 41475557.0D+00 , TWO28 = 268435456.0D+00 )
+CCCC
+CCC      DATA R / 0.D+00 /
+CCCC
+CCCC     RETURNS SAMPLE U FROM THE  0,1 -UNIFORM DISTRIBUTION
+CCCC     BY A MULTIPLICATIVE CONGRUENTIAL GENERATOR OF THE FORM
+CCCC        R := R * FACTOR (MOD 1) .
+CCCC     IN THE FIRST CALL R IS INITIALIZED TO
+CCCC        R := IR / 2**28 ,
+CCCC     WHERE IR MUST BE OF THE FORM  IR = 4*K+1.
+CCCC     THEN R ASSUMES ALL VALUES  0 < (4*K+1)/2**28 < 1 DURING
+CCCC     A FULL PERIOD 2**26 OF SUNIF.
+CCCC+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CCCC
+CCC      IF( R .EQ. 0.D+00 ) R = 4000001.D+00 / TWO28
+CCC      R    = DMOD(R*FACTOR,1.0D+00)
+CCC      UNIF = R
+CCC      RETURN
+CCC      END
+C
+C
+C
+      FUNCTION IRAN( TOP )
+      IMPLICIT REAL*8 (A-H,O-Z)
+      REAL*8 IRAN
+C
+C  Return an integer uniformly distributed among 0..TOP
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      IRAN = DINT( (TOP+1.D+00)*UNIF(0.D+00) )
+      RETURN
+      END
+C
+C
+C
+      FUNCTION ERAN( TOP )
       IMPLICIT REAL*8 (A-H,O-Z)
 C
-C     FACTOR - INTEGER OF THE FORM 8*K+5 AS CLOSE AS POSSIBLE
-C              TO  2**26 * (SQRT(5)-1)/2     (GOLDEN SECTION)
-C     TWO28  = 2**28  (I.E. 28 SIGNIFICANT BITS FOR DEVIATES)
-C
-      PARAMETER ( FACTOR = 41475557.0D+00 , TWO28 = 268435456.0D+00 )
-C
-      DATA R / 0.D+00 /
-C
-C     RETURNS SAMPLE U FROM THE  0,1 -UNIFORM DISTRIBUTION
-C     BY A MULTIPLICATIVE CONGRUENTIAL GENERATOR OF THE FORM
-C        R := R * FACTOR (MOD 1) .
-C     IN THE FIRST CALL R IS INITIALIZED TO
-C        R := IR / 2**28 ,
-C     WHERE IR MUST BE OF THE FORM  IR = 4*K+1.
-C     THEN R ASSUMES ALL VALUES  0 < (4*K+1)/2**28 < 1 DURING
-C     A FULL PERIOD 2**26 OF SUNIF.
+C  Return an exponentially distributed deviate: F(x) = 1-exp(-x/top)
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+100   U1 = UNIF(0.D+00)
+      IF( U1 .LE. 0.D+00 ) GOTO 100
+      ERAN = -TOP*LOG(U1)
+      RETURN
+      END
 C
-      IF( R .EQ. 0.D+00 ) R = 4000001.D+00 / TWO28
-      R    = DMOD(R*FACTOR,1.0D+00)
-      UNIF = R
+C
+C
+      FUNCTION LRAN( TOP )
+      IMPLICIT REAL*8 (A-H,O-Z)
+      REAL*8 LRAN
+C
+C  Return a logistically distributed deviate: F(x) = 1/[1+exp(-x/top)]
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+100   U1 = UNIF(0.D+00)
+      IF( U1 .LE. 0.D+00 .OR. U1 .GE. 1.D+00 ) GOTO 100
+      LRAN = TOP*LOG( 1.D+00/U1 - 1.D+00 )
       RETURN
       END
 C
@@ -2073,8 +2141,7 @@ C
       IF( IP .EQ. 0 )THEN
 100      U1 = UNIF(0.D+00)
          IF( U1 .LE. 0.D+00 ) GOTO 100
-200      U2 = UNIF(0.D+00)
-CCC      IF( U2 .LE. 0.D+00 ) GOTO 200
+         U2 = UNIF(0.D+00)
          GRAN2 = B + S * SQRT(-2.0D+00*LOG(U1)) * SIN(6.2831853D+00*U2)
          IP    = 1
       ELSE

@@ -194,6 +194,13 @@ doublereal derf_ ( doublereal * x )
 doublereal derfc_( doublereal * x )
 { return (doublereal) erfc( (double) *x ) ; }
 
+doublereal unif_( doublereal * x )  /* 04 Feb 2000 */
+{
+   static first=1 ;
+   if( first ){ srand48((long)time(NULL)); first=0; }
+   return (doublereal) drand48() ;
+}
+
 /**** statistic conversion routines ****/
 
 /*--- macros to create functions ---*/

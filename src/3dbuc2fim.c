@@ -435,7 +435,7 @@ int main( int argc , char * argv[] )
 	 
 	 if( FUNC_IS_STAT(kv) ){ /* input sub-brick has stat params */
 	   
-	   int npar = FUNC_need_stat_aux[kv] , lv ;
+	   int npar = MAX_STAT_AUX , lv ;
 	   float * par = (float *) malloc( sizeof(float) * (npar) ) ;
 	   float * sax = DSET_BRICK_STATAUX(dset,jv) ;
 	   for( lv=0 ; lv < npar ; lv++ )
@@ -460,7 +460,7 @@ int main( int argc , char * argv[] )
 	   int npar , lv ;
 	   float * par , * sax ;
 	   kv  = dset->func_type ;
-	   npar = FUNC_need_stat_aux[kv] ;
+	   npar = MAX_STAT_AUX ;
 	   par  = (float *) malloc( sizeof(float) * (npar+2) ) ;
 	   sax  = dset->stat_aux ;
 	   for( lv=0 ; lv < npar ; lv++ )
