@@ -20,6 +20,18 @@
 
 #define V2S_EPSILON		  0.0001
 
+#define V2S_FILE_TYPE_ASCII	  0		/* default */
+#define V2S_FILE_TYPE_NIML	  1
+
+#define V2S_SKIP_NONE		  0
+#define V2S_SKIP_NODES		  1
+#define V2S_SKIP_VOLIND		  2
+#define V2S_SKIP_I		  4
+#define V2S_SKIP_J		  8
+#define V2S_SKIP_K		 16
+#define V2S_SKIP_NVALS		 32
+#define V2S_SKIP_VALS		 64		/* never skip first vals */
+
 #define CHECK_NULL_STR(str) ( str ? str : "(NULL)" )
 
 /* surface to voxel mapping codes, along with command-line strings */
@@ -54,58 +66,83 @@ typedef struct
 /* user options */
 typedef struct
 {
-    char   * gpar_file;			/* AFNI grid parent filename   */
-    char   * out_file;			/* filename for ascii output   */
-    char   * spec_file;			/* surface specification file  */
-    char   * sv_file;			/* AFNI surface volume dataset */
-    char   * cmask_cmd;      		/* 3dcalc style mask command   */
-    char   * map_str;			/* how to map surf(s) to dset  */
-    char   * snames[V2S_MAX_SURFS];	/* list of surfaces to use     */
-    int      no_head;			/* do not write output headers */
-    int      use_norms;			/* use normals for segments    */
-    float    norm_len;			/* signed length of normal     */
-    int      keep_norm_dir;		/* no directional check        */
-    int      debug;			/* level of debug output       */
-    int      dnode;			/* node watched for debug      */
-    char   * f_index_str;		/* node or voxel index type    */
-    int      f_steps;			/* # int steps for mask2 map   */
-    float    f_p1_fr;			/* fractional dist: add to p1  */
-    float    f_pn_fr;			/* fractional dist: add to pn  */
-    float    f_p1_mm;			/* mm distance to add to p1    */
-    float    f_pn_mm;			/* mm distance to add to pn    */
-    oob_t    oob;			/* display info for oob nodes  */
-    oob_t    oom;			/* display info for oom nodes  */
+    char   * gpar_file;			/* AFNI grid parent filename    */
+    char   * outfile_1D;		/* filename for ascii output    */
+    char   * outfile_niml;		/* filename for NIML output     */
+    char   * spec_file;			/* surface specification file   */
+    char   * sv_file;			/* AFNI surface volume dataset  */
+    char   * cmask_cmd;      		/* 3dcalc style mask command    */
+    char   * map_str;			/* how to map surf(s) to dset   */
+    char   * snames[V2S_MAX_SURFS];	/* list of surfaces to use      */
+    int      no_head;			/* do not write output headers  */
+    int      skip_cols;			/* which output columns to skip */
+    int      first_node;		/* skip nodes before this index */
+    int      last_node;	 		/* skip nodes after this index  */
+    int      use_norms;			/* use normals for segments     */
+    float    norm_len;			/* signed length of normal      */
+    int      keep_norm_dir;		/* no directional check         */
+    int      debug;			/* level of debug output        */
+    int      dnode;			/* node watched for debug       */
+    char   * f_index_str;		/* node or voxel index type     */
+    int      f_steps;			/* # int steps for mask2 map    */
+    float    f_p1_fr;			/* fractional dist: add to p1   */
+    float    f_pn_fr;			/* fractional dist: add to pn   */
+    float    f_p1_mm;			/* mm distance to add to p1     */
+    float    f_pn_mm;			/* mm distance to add to pn     */
+    oob_t    oob;			/* display info for oob nodes   */
+    oob_t    oom;			/* display info for oom nodes   */
 } opts_t;
 
 typedef struct
 {
-    int    map;				/* type of mapping from surfs  */
-    int    debug;			/* for printing extra output   */
-    int    dnode;			/* node watched for debug      */
-    int    no_head;			/* do not write output headers */
-    int    use_norms;			/* use normals for segments    */
-    float  norm_len;			/* signed length of normal     */
-    int    keep_norm_dir;		/* no directional check        */
-    int    f_index;			/* node or voxel index type    */
-    int    f_steps;			/* # int steps for mask2 map   */
-    float  f_p1_fr;			/* fractional dist: add to p1  */
-    float  f_pn_fr;			/* fractional dist: add to pn  */
-    float  f_p1_mm;			/* mm distance to add to p1    */
-    float  f_pn_mm;			/* mm distance to add to pn    */
-    byte * cmask;			/* computed mask               */
+    int    map;				/* type of mapping from surfs    */
+    int    debug;			/* for printing extra output     */
+    int    dnode;			/* node watched for debug        */
+    int    no_head;			/* do not write output headers   */
+    int    skip_cols;			/* which output columns to skip  */
+    int    first_node;			/* skip nodes before this index  */
+    int    last_node;	 		/* skip nodes after this index   */
+    int    use_norms;			/* use normals for segments      */
+    float  norm_len;			/* signed length of normal       */
+    int    keep_norm_dir;		/* no directional check          */
+    int    f_index;			/* node or voxel index type      */
+    int    f_steps;			/* # int steps for mask2 map     */
+    float  f_p1_fr;			/* fractional dist: add to p1    */
+    float  f_pn_fr;			/* fractional dist: add to pn    */
+    float  f_p1_mm;			/* mm distance to add to p1      */
+    float  f_pn_mm;			/* mm distance to add to pn      */
+    char * outfile_1D;			/* filename for ascii output     */
+    char * outfile_niml;		/* filename for NIML output      */
+    byte * cmask;			/* computed mask                 */
 } smap_opts_t;
+
+typedef struct
+{
+    int      nalloc;
+    int      nused;
+    int      max_vals;
+    int      memory;
+    int    * nodes;
+    int    * volind;
+    int    * i;
+    int    * j;
+    int    * k;
+    int    * nvals;
+    float ** vals;
+} surf_data_t;
 
 /* computational parameters */
 typedef struct
 {
-    THD_3dim_dataset * gpar;		/* input dataset              */
-    THD_fvec3          f3mm_min;	/* numerical min xyz points   */
-    THD_fvec3          f3mm_max;	/* numerical max xyz points   */
-    FILE             * outfp;		/* out_file FILE stream       */
-    byte             * cmask;		/* computed mask              */
-    int                ncmask;		/* nvox for cmask             */
-    int                ccount;          /* mask size                  */
-    int                nvox;		/* gpar nxyz                  */
+    THD_3dim_dataset * gpar;		/* input dataset               */
+    THD_fvec3          f3mm_min;	/* numerical min xyz points    */
+    THD_fvec3          f3mm_max;	/* numerical max xyz points    */
+    byte             * cmask;		/* computed mask               */
+    int                ncmask;		/* nvox for cmask              */
+    int                ccount;          /* mask size                   */
+    int                nvox;		/* gpar nxyz                   */
+    int                over_steps;      /* vals computed over steps    */
+    surf_data_t        SD;		/* struct for output data      */
     oob_t              oob;		/* display info for oob nodes  */
     oob_t              oom;		/* display info for oom nodes  */
 } param_t;
@@ -141,6 +178,9 @@ typedef struct
 
 /* ---- function prototypes ---- */
 
+int alloc_ints        ( int ** ptr, int length, char * dstr, int debug );
+int alloc_vals_list   (float *** ptr, int length, int width, int debug);
+int alloc_output_mem  ( smap_opts_t * sopt, param_t * p, node_list_t * N );
 int alloc_node_list   ( smap_opts_t * sopt, node_list_t * N, int nsurf);
 int check_datum_type  ( char * datum_str, int default_type );
 int check_map_func    ( char * map_str );
@@ -153,18 +193,28 @@ int disp_param_t      ( char * info, param_t * p );
 int disp_range_3dmm   ( char * info, range_3dmm * dp );
 int disp_range_3dmm_res( char * info, range_3dmm_res * dp );
 int disp_smap_opts_t  ( char * info, smap_opts_t * sopt );
+int disp_surf_data_t  ( char * mesg, surf_data_t * d );
+int disp_surf_vals    ( char * mesg, surf_data_t * sd, int node );
 int dump_surf_3dt     ( smap_opts_t * sopt, param_t * p, node_list_t * N );
 int final_clean_up    ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
        			node_list_t * N );
+int free_output_mem   ( surf_data_t * sd );
 int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug );
 int init_options      ( opts_t * opts, int argc, char * argv [] );
+int init_range_structs( range_3dmm * r3, range_3dmm_res * res3 );
+int init_seg_endpoints( smap_opts_t * sopt, node_list_t * N, range_3dmm * R,
+                        int node );
 int print_default_line( FILE * fp, int max_ind, int node_ind,
 	                int vind, int i, int j, int k, float fval );
 int print_header      ( FILE * outfp, char * surf, char * map, int nvals);
 int read_surf_files   ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec );
 int segment_imarr     ( range_3dmm_res *res, range_3dmm *R, smap_opts_t *sopt );
+int set_all_surf_vals ( param_t * p, int node_ind, int vind,
+                        int i, int j, int k, float fval );
+int check_outfile     ( opts_t * O, param_t * P );
 int set_smap_opts     ( opts_t * opts, param_t * p, smap_opts_t * sopt );
-int set_outfile       ( opts_t * O, param_t * P );
+int set_surf_results  ( param_t *p, smap_opts_t * sopt, node_list_t * N,
+                        range_3dmm_res * r3res, int node, int findex );
 int smd_map_type      ( char * map_str );
 int surf_ave_radius   ( float * rad, SUMA_SurfaceObject * so, int disp );
 int usage             ( char * prog, int level );
@@ -174,6 +224,8 @@ int validate_datasets ( opts_t * opts, param_t * p );
 int validate_options  ( opts_t * opts, param_t * p );
 int validate_surface  ( opts_t * opts, param_t * p );
 int vals_over_steps   ( int map );
+int write_outfile_1D  ( smap_opts_t * sopt, param_t * p, node_list_t * N );
+int write_outfile_niml( smap_opts_t * sopt, param_t * p, node_list_t * N );
 int write_output      ( smap_opts_t * sopt, param_t * p, node_list_t * N );
 
 
