@@ -1583,7 +1583,7 @@ nicat:nicat.o
 libSUMA.a:  
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
-	make -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
+	make -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a packobjs 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'RANLIB=$(RANLIB)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)';	\
@@ -1591,7 +1591,9 @@ libSUMA.a:
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
 	$(CP) SUMA/libSUMA.a ${INSTALLDIR}; \
 	$(CP) SUMA/libSUMA.a ./;	)
-	
+
+###
+#link executables but check for libraries first and create them if needed	
 suma_exec:libSUMA.a libmri.a librickr.a
 	( cd SUMA ;	\
 	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 'INSTALLDIR=$(INSTALLDIR)' \
@@ -1600,10 +1602,7 @@ suma_exec:libSUMA.a libmri.a librickr.a
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'RANLIB=$(RANLIB)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	;	\
-	cd ../	;\
-	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/suma SUMA/MakeColorMap ${INSTALLDIR} ; \
-	$(CP) @SUMA_* ${INSTALLDIR} ;)
+	cd ../	;)
 	 
 suma_clean:
 	$(RM) SUMA/libSUMA.a libSUMA.a	
@@ -1612,4 +1611,28 @@ suma_clean:
 	if [ -f SUMA/MakeColorMap ]; then $(RM) SUMA/MakeColorMap; fi;
 	if [ -f MakeColorMap ]; then $(RM) MakeColorMap; fi;
 
-suma: suma_clean suma_exec
+###
+#Use precompiled libraries, just link SUMA
+suma_link:
+	( cd SUMA ;	\
+	tar -xf $(SUMA_OBJS_ARCHIVE)	;\
+	touch *.a	;\
+	$(CP) libmri.a librickr.a ../	;\
+	$(RM) suma MakeColorMap	;\
+	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 'INSTALLDIR=$(INSTALLDIR)' \
+	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
+	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
+	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
+	'RANLIB=$(RANLIB)' \
+	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	;	\
+	cd ../	;)
+
+###
+#install suma
+suma_install:
+	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
+	$(CP) SUMA/suma SUMA/MakeColorMap ${INSTALLDIR} ; \
+	$(CP) @SUMA_* ${INSTALLDIR} ;)
+	
+suma_full: suma_clean suma_exec suma_install
+suma: suma_link suma_install
