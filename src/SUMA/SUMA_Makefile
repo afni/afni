@@ -25,10 +25,6 @@ else
 INSTALLDIR_SUMA = ../
 endif 
 
-ifndef MKDIR
-MKDIR = /bin/mkdir
-endif
-
 CCOPT = 
 
 SUMALIB = libSUMA.a
@@ -53,6 +49,22 @@ endif
 
 ifndef CP
 CP = cp
+endif
+
+ifndef MV
+MV = /bin/mv
+endif
+
+ifndef TAR
+TAR = /bin/tar
+endif
+
+ifndef RM
+RM = /bin/rm -f
+endif
+
+ifndef MKDIR
+MKDIR = /bin/mkdir
 endif
 
 #that one was tried for static linking. Bad idea. Requires libGL.a which crashes with nvidia driver 
@@ -100,11 +112,13 @@ install:
 	mv suma ${INSTALLDIR_SUMA}
 	mv MakeColorMap ${INSTALLDIR_SUMA} 
 
-packobjs:
-	${CP} ../libmri.a ../librickr.a ./
-	tar -cf $(SUMA_BIN_ARCHIVE) suma MakeColorMap libSUMA.a libmri.a librickr.a	
-	${RM} libmri.a librickr.a
+packbins:
+	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
+	./@SUMA_CreateCompileStamp SUMA_bin/@SUMA_CompileStamp
+	$(CP) -p suma MakeColorMap libSUMA.a SUMA_bin/
+	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
+	${RM} -r SUMA_bin
 	
-all: libSUMA.a suma MakeColorMap packobjs install 
+all: libSUMA.a suma MakeColorMap packbins install 
 
-anew: clean libSUMA.a suma MakeColorMap packobjs install 
+anew: clean libSUMA.a suma MakeColorMap packbins install 

@@ -159,7 +159,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				/* Show/hide the background */
 				sprintf(CommString,"Redisplay|Remix|ToggleBackground~");
 				if (!SUMA_Engine (CommString, &EngineData)) {
-					fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+					fprintf(SUMA_STDERR, "Error SUMA_input: SUMA_Engine call failed.\n");
 				}
 				break;				
 
@@ -168,9 +168,14 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				fprintf(stdout,"Enter name of color file (enter nothing to cancel): ");
 				/*Load colors from file */
 				{int i=0;
-					while ((cbuf = getc(stdin)) != '\n') {
+					while ((cbuf = getc(stdin)) != '\n' && i < SUMA_MAX_STRING_LENGTH-1) {
 						s[i] = cbuf;
 						++ i;
+					}
+					if (i == SUMA_MAX_STRING_LENGTH-1) {
+						fprintf(SUMA_STDERR,"Error %s: Filename should not be longer than %d.\n", FuncName, SUMA_MAX_STRING_LENGTH-1);
+						fflush(stdin);
+						return;
 					}
 					s[i] = '\0';
 					if (!i) return;
@@ -274,32 +279,40 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 
 			case XK_l:
 				{	int i=0;
-					char *endp;
+					char *endp, *strtp;
 					fprintf(SUMA_STDOUT,"Enter XYZ coordinates to look at (enter nothing to cancel):\n");
 					fflush (stdin);
-					while ((cbuf = getc(stdin)) != '\n') {
+					while ((cbuf = getc(stdin)) != '\n' && i < SUMA_MAX_STRING_LENGTH-1) {
 						if (cbuf == ',' || cbuf == '\t') {/* change , and tab  to space*/
 							cbuf = ' ';
 						}
 							s[i] = cbuf;
 							++ i;
 					}
+					if (i == SUMA_MAX_STRING_LENGTH-1) {
+						fprintf(SUMA_STDERR,"Error %s: No more than %d characters are allowed on stdin.\n", FuncName, SUMA_MAX_STRING_LENGTH-1);
+						fflush(stdin);
+						return;
+					}
 					s[i] = '\0';
 					if (!i) return;
 					/* parse s */
-					fv3[0] = strtod(s, &endp);
+					strtp = s;
+					fv3[0] = strtod(strtp, &endp);
 					/*fprintf (SUMA_STDERR, "%s: ERANGE: %d, EDOM %d, errno %d\n", FuncName, ERANGE, EDOM, errno); */
-					if (errno) {
+					if (errno || endp == strtp) {
 						fprintf(SUMA_STDERR,"Error %s: Syntax error.\n", FuncName);
 						return;
 					}
-					fv3[1] = strtod(endp,&endp);
-					if (errno) {
+					strtp = endp;
+					fv3[1] = strtod(strtp,&endp);
+					if (errno || endp == strtp) {
 						fprintf(SUMA_STDERR,"Error %s: Syntax error, second value.\n", FuncName);
 						return;
 					}
-					fv3[2] = strtod(endp,&endp);
-					if (errno) {
+					strtp = endp;
+					fv3[2] = strtod(strtp,&endp);
+					if (errno || endp == strtp) {
 						fprintf(SUMA_STDERR,"Error %s: Syntax error, third value.\n", FuncName);
 						return;
 					}
@@ -730,6 +743,34 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				} 
 				break;
 
+			case XK_F12: /* F12 */
+				/* time display speed */
+				{
+					int i, nd = 20;
+					GLfloat buf; 
+					float delta_t;
+					struct  timeval tti;
+					
+					buf = SUMAg_cSV->light0_position[2];
+					fprintf (SUMA_STDOUT,"%s: Timing Display speed (20 displays): ", FuncName); fflush (SUMA_STDOUT);
+					SUMA_etime (&tti, 0);
+					for (i=0; i< nd-1; ++i) {
+						fprintf (SUMA_STDOUT,"%d\t", i); fflush (SUMA_STDOUT);
+						SUMAg_cSV->light0_position[2] *= -1;
+						glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_cSV->light0_position);
+						/* direct call to display */
+						display(SUMAg_cSV, SUMAg_DOv);
+						/* wait for display */
+						glFinish();
+					}
+					delta_t = SUMA_etime (&tti, 1);
+					SUMAg_cSV->light0_position[2] = buf;
+					glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_cSV->light0_position);
+					postRedisplay();
+					fprintf (SUMA_STDOUT,"Done.\nElapsed time: %f seconds. %.2f displays/second.\n", delta_t, nd/delta_t);
+				} 
+				break;
+			
 			case XK_Home:	
 				/*printf("HOME\n");*/
 				sprintf(CommString, "Redisplay|FOVreset|Home~");
