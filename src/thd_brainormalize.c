@@ -1373,9 +1373,9 @@ ENTRY("mri_brainormalize") ;
    if( AFNI_yesenv("DISTIZE") ){
      byte *ccc = (byte *)calloc(sizeof(byte),nxyz);
      short *ddd ;
-     int kbot=rint(0.4*nz),ktop=rint(0.6*nz) ,
-         jbot=rint(0.4*ny),jtop=rint(0.6*ny) ,
-         ibot=rint(0.4*nx),itop=rint(0.6*nx) ;
+     int kbot=(int)rint(0.45*nz) , ktop=(int)rint(0.65*nz) ,
+         jbot=(int)rint(0.30*ny) , jtop=(int)rint(0.70*ny) ,
+         ibot=(int)rint(0.30*nx) , itop=(int)rint(0.70*nx)  ;
 
      mask = (byte *)malloc( sizeof(byte)*nxyz ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = (sar[ii] > 0) ;
@@ -1399,7 +1399,7 @@ ENTRY("mri_brainormalize") ;
                 if( kk < kbot ) kd = kbot-kk ;
            else if( kk > ktop ) kd = kk-ktop ; else kd = 0 ;
            dijk = id+jd+kd+1 ;
-           ff = (100.0f * ddd[ijk]) / (float)dijk ;
+           ff = (100.0f * ddd[ijk]) / (float)dijk - 98.9f ;
            if( ff > 255.0f ) ff = 255.0f ;
            sar[ijk] = (short)ff ;
          } else {
