@@ -851,13 +851,13 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    \param SO (SUMA_SurfaceObject *) surface object to turn to NI
    \ret  NULL if you input stupid values, NI if you input smart values
 --------------------------------------------------------------------*/
-
+/* #define DOINDEX */ /* uncomment if you want to pass node index along with normals */
 NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_makeNI_SurfINORM"};
-   NI_element *nel;
-   int *ic, ii, ND, id;
-   float *xc, *yc, *zc;
+   NI_element *nel=NULL;
+   int *ic=NULL, ii, ND, id;
+   float *xc=NULL, *yc=NULL, *zc=NULL;
    
    SUMA_ENTRY;
 
@@ -879,12 +879,14 @@ NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO)
    nel = NI_new_data_element( "SUMA_node_normals" , SO->N_Node) ;
    
    /* make the columns to be put in the element */
+   #ifdef DOINDEX   
    ic = (int *)   SUMA_malloc( sizeof(int)   * SO->N_Node ) ;
+   #endif
    xc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
    yc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
    zc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
 
-   if (!nel || !ic || !xc || !yc || !zc) {
+   if (!nel || !xc || !yc || !zc) {
       fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel, ic, xc, yc or zc.\n", FuncName);
       SUMA_RETURN (NULL);
    }
@@ -893,7 +895,9 @@ NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO)
    /* load the columns from the struct array */
    ND = SO->NodeDim;
    for( ii=0 ; ii < SO->N_Node ; ii++ ){
+   #ifdef DOINDEX
       ic[ii] = ii;
+   #endif
       id = ND * ii;
       xc[ii] = SO->NodeNormList[id];
       yc[ii] = SO->NodeNormList[id+1];
@@ -902,7 +906,9 @@ NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO)
 
    /* put columns into element */
 
-   NI_add_column( nel , NI_INT   , ic ) ; SUMA_free(ic) ;
+   #ifdef DOINDEX
+      NI_add_column( nel , NI_INT   , ic ) ; SUMA_free(ic) ; 
+   #endif
    NI_add_column( nel , NI_FLOAT , xc ) ; SUMA_free(xc) ;
    NI_add_column( nel , NI_FLOAT , yc ) ; SUMA_free(yc) ;
    NI_add_column( nel , NI_FLOAT , zc ) ; SUMA_free(zc) ;
