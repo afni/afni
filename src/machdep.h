@@ -116,6 +116,11 @@
 
     DONT_USE_SHM = Set this to disable use of shared memory.
 
+    DISCARD_RESIZE_EXPOSES = Set this if a ConfigureNotify event is
+                             followed by an Expose event on your
+                             systems - this will eliminate duplicate
+                             image redraws in imseq.c.
+
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 
@@ -268,6 +273,7 @@ extern long   strtol() ;
 # define DYNAMIC_LOADING_VIA_DL
 # undef  DONT_UNROLL_FFTS         /* helps a lot */
 # define USE_FLOCK
+# define DISCARD_RESIZE_EXPOSES   /* 15 Aug 2002 */
 #endif
 
 #ifdef CYGWIN
