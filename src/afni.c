@@ -6488,13 +6488,33 @@ STATUS("function") ;
       /*-- access data in dataset im3d->fim_now IF AND ONLY IF
              1) its actual data axes are the same as the wod_daxes
              2) it has actual data
-             3) the user hasn't officially declared for warp-on-demand --*/
+             3) the user hasn't officially declared for warp-on-demand
+             4) the dataset doesn't have a warp to bring it into
+                alignment with the current anat dataset (self_warp)    --*/
 
 STATUS("deciding whether to use function WOD") ;
 
       func_brick_possible =
          EQUIV_DATAXES( im3d->fim_now->daxes , im3d->wod_daxes ) &&   /* 02 Nov 1996 */
          DSET_INMEMORY( im3d->fim_now ) ;
+
+      /*- 27 Aug 2002: see if there is a self_warp from
+                       fim_now back to anat_now; if so, install it;
+                       this is a coordinate-to-coordinate tranformation,
+                       and requires warp-on-demand viewing              -*/
+
+      if( im3d->ss_now->warptable != NULL ){
+        char idkey[256] ;
+        THD_warp *swarp ;
+        sprintf(idkey,"%s,%s",im3d->anat_now->idcode.str,im3d->fim_now->idcode.str) ;
+        swarp = (THD_warp *) findin_Htable( idkey , im3d->ss_now->warptable ) ;
+        if( swarp != NULL ){
+          func_brick_possible = 0 ;      /* require warp-on-demand */
+          im3d->fim_selfwarp  = swarp ;  /* transform from fim to anat coords */
+        }
+      } else {
+        im3d->fim_selfwarp = NULL ;      /* no transform required */
+      }
 
       /*- The Ides of March, 2000: allow switching back to "view brick" -*/
 

@@ -37,11 +37,15 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
 
    /*-- perhaps the MINC way --*/
 
-#ifdef ALLOW_MINC
    if( plen > 4 && strcmp(pathname+plen-4,".mnc") == 0 ){
       return THD_open_minc( pathname ) ;
    }
-#endif
+
+   /*-- perhaps the ANALYZE way --*/
+
+   if( plen > 4 && strcmp(pathname+plen-4,".hdr") == 0 ){
+      return THD_open_analyze( pathname ) ;
+   }
 
    /*-- find directory and last names in the pathname --*/
 

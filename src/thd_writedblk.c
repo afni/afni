@@ -99,6 +99,7 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
    if( ! ISVALID_DATABLOCK(blk) ) return False ;
    if( DBLK_IS_MASTERED(blk) )    return False ;  /* 11 Jan 1999 */
    if( DBLK_IS_MINC(blk) )        return False ;  /* 29 Oct 2001 */
+   if( DBLK_IS_ANALYZE(blk) )     return False ;  /* 27 Aug 2002 */
 
    dkptr = blk->diskptr ;
    if( ! ISVALID_DISKPTR(dkptr) ) WRITE_ERR("illegal file type") ;

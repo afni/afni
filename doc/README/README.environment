@@ -1342,6 +1342,24 @@ The purpose of the warning is just to let the user know that it may be several
 seconds before the dataset is loaded (e.g., before the images appear).  If you
 don't want this warning at all, set this variable to the string "0".
 
+-------------------------------
+Variable: AFNI_ANALYZE_DATASETS
+-------------------------------
+If this YES/NO variable is not set to NO, then ANALYZE-format files with name
+suffix .hdr will be read into the interactive AFNI program at startup, along
+with standard .HEAD/.BRIK datasets.  That is, you have to set this variable
+explicitly to NO if you don't want ANALYZE-format files to be automatically
+recognized by the interactive AFNI program.  This variable does not affect
+the ability of command line programs (3dSomething) to read .hdr input files.
+
+-----------------------------
+Variable: AFNI_ANALYZE_ORIENT
+-----------------------------
+ANALYZE .hdr files do not contain reliable information about the orientation
+of the data volumes.  By default, AFNI assumes that these datasets are
+oriented in LPI order.  You can set this variable to a different default
+order.  See AFNI_ORIENT for details on the 3 letter format for this.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

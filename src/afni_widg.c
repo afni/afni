@@ -4300,6 +4300,8 @@ ENTRY("new_AFNI_controller") ;
    im3d->fim_voxwarp        = myXtNew(THD_warp) ;
    im3d->fim_voxwarp->type  = ILLEGAL_TYPE ;
 
+   im3d->fim_selfwarp       = NULL ;  /* 27 Aug 2002 */
+
    RETURN(im3d) ;
 }
 

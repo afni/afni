@@ -15,6 +15,8 @@ ENTRY("THD_fetch_dset") ;
 
    if( url == NULL || url[0] == '\0' ) RETURN(NULL) ;
 
+   if( STRING_HAS_SUFFIX(url,".hdr") ) RETURN(NULL) ;  /* 27 Aug 2002 */
+
    /*** do we have to add .HEAD? ***/
 
    hp = malloc(sizeof(char)*(strlen(url)+32)) ; strcpy(hp,url) ;

@@ -92,7 +92,6 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    /*-- 29 Oct 2001: MINC input --*/
 
-#ifdef ALLOW_MINC
    if( dkptr->storage_mode == STORAGE_BY_MINC ){
       THD_load_minc( blk ) ;
       ii = THD_count_databricks( blk ) ;
@@ -100,7 +99,14 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       STATUS("can't read MINC file?!") ;
       RETURN( False ) ;
    }
-#endif
+
+   if( dkptr->storage_mode == STORAGE_BY_ANALYZE ){
+      THD_load_analyze( blk ) ;
+      ii = THD_count_databricks( blk ) ;
+      if( ii == blk->nvals ) RETURN( True ) ;
+      STATUS("can't read ANALYZE file?!") ;
+      RETURN( False ) ;
+   }
 
    /*-- allocate data space --*/
 
