@@ -237,6 +237,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          break;
       case SUMA_VEC:
          break;
+      case SUMA_BRAIN_VOYAGER:
+         break;
       default:
          SUMA_error_message(FuncName, "SO_FileType not supported", 0);
          SUMA_RETURN (NULL);
@@ -280,7 +282,31 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          }
 
          break;
+      case SUMA_BRAIN_VOYAGER:
+         if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
+            SUMA_RETURN(NULL);
+         }
+         SO->idcode_str = UNIQ_hashcode((char *)SO_FileName_vp); 
          
+         /* change coordinates to align them with volparent data set, if possible */
+         if (VolParName != NULL) {
+            SO->VolPar = SUMA_VolPar_Attr (VolParName);
+            if (SO->VolPar == NULL) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to load parent volume attributes.\n", FuncName);
+            } else {
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+               else {
+                  SO->SUMA_VolPar_Aligned = YUP;
+                  /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
+               }
+         }
+         } else { 
+            SO->SUMA_VolPar_Aligned = NOPE;
+         }
+         break;
+            
       case SUMA_INVENTOR_GENERIC:
          SO_FileName = (char *)SO_FileName_vp;
          /* You need to split name into path and name ... */
@@ -1783,7 +1809,19 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
       SurfIn = YUP;
       brk = YUP;
    } /* load Ply format surface */
+   
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "BrainVoyager") == 1) {/* load BrainVoyager format surface */
 
+      SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], SUMA_BRAIN_VOYAGER, SUMA_FF_NOT_SPECIFIED, tmpVolParName, debug);
+
+      if (SO == NULL)   {
+         fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
+         SUMA_RETURN(NULL);
+      }
+      SurfIn = YUP;
+      brk = YUP;
+   } /* load Ply format surface */
+   
    if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) {/* load generic inventor format surface */
       if (tmpVolParName != NULL) {
          fprintf(SUMA_STDERR,"Error %s: Sorry, but Parent volumes are not supported for generic inventor surfaces.\n", FuncName);
@@ -3671,16 +3709,14 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          else nalloc = strlen(SO->Name_coord.FileName) \
                      +   strlen(SO->Name_topo.FileName) + 5;
          break;
-      case SUMA_FREE_SURFER:
-         if (MitPath) nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
-         else nalloc = strlen(SO->Name.FileName) + 5;
-         break;
       case SUMA_SUREFIT:
          if (MitPath) nalloc = strlen(SO->Name_coord.Path) + strlen(SO->Name_coord.FileName) \
                            +    strlen(SO->Name_topo.Path) + strlen(SO->Name_topo.FileName) + 5;
          else nalloc = strlen(SO->Name_coord.FileName) \
                      +   strlen(SO->Name_topo.FileName) + 5;
          break;
+      case SUMA_FREE_SURFER:
+      case SUMA_BRAIN_VOYAGER:
       case SUMA_PLY:
          if (MitPath) nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
          else nalloc = strlen(SO->Name.FileName) + 5;
@@ -3700,6 +3736,8 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
    switch (SO->FileType) {
       case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
+      case SUMA_PLY:
+      case SUMA_BRAIN_VOYAGER:
          if (MitPath) sprintf(Name,"%s%s", SO->Name.Path, SO->Name.FileName);
          else sprintf(Name,"%s", SO->Name.FileName);
          break;
@@ -3716,10 +3754,6 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_FT_NOT_SPECIFIED:
       case SUMA_CMAP_SO:
       case SUMA_FT_ERROR:
-         break;
-      case SUMA_PLY:
-         if (MitPath) sprintf(Name,"%s%s", SO->Name.Path, SO->Name.FileName);
-         else sprintf(Name,"%s", SO->Name.FileName);
          break;
    } 
    SUMA_RETURN (Name);
@@ -3739,11 +3773,13 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
       case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
       case SUMA_PLY:
+      case SUMA_BRAIN_VOYAGER:
          if (  SUMA_iswordin (SO->Name.FileName, ".white") || 
                SUMA_iswordin (SO->Name.FileName, ".smoothwm") ||
                SUMA_iswordin (SO->Name.FileName, ".pial") ||
                SUMA_iswordin (SO->Name.FileName, ".orig") ||
-               SUMA_iswordin (SO->Name.FileName, ".fiducial") ) {
+               SUMA_iswordin (SO->Name.FileName, ".fiducial") ||
+               SUMA_iswordin (SO->Name.FileName, "_WM") ) {
             SUMA_RETURN('Y');
          } else {
             SUMA_RETURN('N');
@@ -3755,7 +3791,8 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
                SUMA_iswordin (SO->Name_coord.FileName, ".smoothwm") ||
                SUMA_iswordin (SO->Name_coord.FileName, ".pial") ||
                SUMA_iswordin (SO->Name_coord.FileName, ".orig") ||
-               SUMA_iswordin (SO->Name_coord.FileName, ".fiducial")) {
+               SUMA_iswordin (SO->Name_coord.FileName, ".fiducial") ||
+               SUMA_iswordin (SO->Name.FileName, "_WM") ) {
             SUMA_RETURN('Y');
          } else {
             SUMA_RETURN('N');
@@ -3783,6 +3820,13 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
          if (SUMA_iswordin (SO->Name.FileName, "lh")) {
             SUMA_RETURN(SUMA_LEFT);
          } else if (SUMA_iswordin (SO->Name.FileName, "rh")) {
+                     SUMA_RETURN(SUMA_RIGHT);
+                  }
+         break;
+      case SUMA_BRAIN_VOYAGER:
+         if (SUMA_iswordin (SO->Name.FileName, "_LH")) {
+            SUMA_RETURN(SUMA_LEFT);
+         } else if (SUMA_iswordin (SO->Name.FileName, "_RH")) {
                      SUMA_RETURN(SUMA_RIGHT);
                   }
          break;

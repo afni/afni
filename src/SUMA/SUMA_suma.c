@@ -483,6 +483,18 @@ int main (int argc,char *argv[])
       exit (1);
    }
    
+   /* For some reason, I had to add the glLightfv line below
+   to force the lightflipping done in SUMA_SetupSVforDOs to take place
+   in the A viewer when first opened. I don't know why that is, especially
+   since other controllers would show up lit correctly without this glLightfv line below.
+   To make matters worse, the A controller's light0_position is correctly flipped.
+   It is just that the shading is done as if the position was never flipped. 
+   Actually, without the line below, the first time you hit the F key (to manually flip the light), 
+   nothing changes, that's because the light's position is unflipped, which is supposed to 
+   show the incorrect lighting. You'll have to hit F again to have the lighting correctly flipped 
+   and the shading reflecting it.... ZSS, Aug. 05 04 */
+   glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_SVv[0].light0_position); 
+
    if (Start_niml) {
       if (!list) list = SUMA_CreateList();
       SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_StartListening, SES_Suma, NULL);

@@ -4477,7 +4477,7 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
       SurfPatch -spec ../SurfData/SUMA/DemoSubj_lh.spec -surf_A lh.smoothwm -surf_B lh.pial.asc -hits 3 -input lhpatch.1D.roi 0 1
       answer is 326, 13% different from sum in SM_out.1D's second column (373)... 
       
-   for a single node (must modify SurfPatch code to use 1 for minhits, instead of 3):
+   for a single node (remember change -hits option to 1):
       SurfMeasures -func node_vol -spec ../SurfData/SUMA/DemoSubj_lh.spec -surf_A lh.smoothwm.asc -surf_B lh.pial.asc -nodes_1D lhpatch_1node.1D'[0]' -out_1D SM_out_1node.1D
       SurfPatch -spec ../SurfData/SUMA/DemoSubj_lh.spec -surf_A lh.smoothwm -surf_B lh.pial.asc -hits 1 -input lhpatch_1node.1D 0 1
       (divide answer of 2.219910 by 3 (0.73997), difference at 3rd signifcant digit from SM_out_1node.1D of 0.731866)
