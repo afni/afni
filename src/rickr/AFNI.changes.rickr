@@ -163,3 +163,8 @@
       o RT: also open relevant image window
       o RT: mention starting file in NOTE command
 
+01 May 2003:
+  * modified mcw_glob.c and rickr/l_mcw_glob.c
+	- removed #ifdef around #include <errno.h>
+  * modified imseq.c - added #include <errno.h>
+
