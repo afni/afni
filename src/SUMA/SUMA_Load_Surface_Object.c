@@ -854,7 +854,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 		}
 	
 	/*read until you find not a comment */
-	
+ 
 	/* read the first line, skipping leading space */
 	do {
 		ex = fscanf (sf_file,"%c",&c);

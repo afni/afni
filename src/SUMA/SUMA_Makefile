@@ -90,3 +90,4 @@ install:
 	mv suma ${INSTALLDIR_SUMA}
 	mv MakeColorMap ${INSTALLDIR_SUMA} 
 	
+all: libSUMA.a suma MakeColorMap install
