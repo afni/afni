@@ -26,7 +26,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name,
                                           int N_dov, DList *DsetList);
 SUMA_Boolean SUMA_CompactOverlaysOrder (SUMA_SurfaceObject *SO);
 void SUMA_FreeOverlayListDatum (void *OLDv);
-SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_INODE *Overlay_Inode);
+SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay);
 SUMA_Boolean SUMA_isOverlayOfSO (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Plane);
 int SUMA_GetSmallestForegroundOrder (DList *listop);
 int SUMA_GetLargestBackroundOrder (DList *listop);

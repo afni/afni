@@ -84,12 +84,9 @@
 #define SUMA_MAX_SURF_VIEWERS 6 /*!< Maximum number of surface viewers allowed */
 #define SUMA_N_STANDARD_VIEWS 2/*!< Maximum number of standard views, see SUMA_STANDARD_VIEWS*/
 #define SUMA_DEFAULT_VIEW_FROM 300 /*!< default view from location on Z axis */
-#define SUMA_MAX_NAME_LENGTH 500   /*!< Maximum number of characters in a filename */
-#define SUMA_MAX_DIR_LENGTH 2000    /*!< Maximum number of characters in a directory name */
 #define SUMA_MAX_FP_NAME_LENGTH ( SUMA_MAX_DIR_LENGTH + SUMA_MAX_NAME_LENGTH )
 #define SUMA_MAX_COMMAND_LENGTH      2000/*!< Maximum number of characters in a command string */
 #define SUMA_MAX_LABEL_LENGTH 300 /*!< Maximum number of characters for labeling and naming suma fields and objects */
-#define SUMA_IDCODE_LENGTH 50   /*!< Max. length of idcode_str of all suma objects */
 #define SUMA_MAX_STRING_LENGTH 1000 /*!< Maximum number of characters in a string */ 
 #define SUMA_MAX_COLOR_NAME 50 /*!< Max. length of the name of a color */
 #define SUMA_MAX_NUMBER_NODE_NEIGHB   100 /*!< Maximum number of neighbors any one node can have.
@@ -629,6 +626,11 @@ typedef struct {
 
 /*! structure that containing node's first order neighbors */
 typedef struct {
+   int LinkedPtrType; /*!< Indicates the type of linked pointer */
+   int N_links;   /*!< Number of links to this pointer */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
+
+
    int N_Node; /*!< Number of nodes whose neighbors are listed in this structure */
    int *NodeId; /*!< Id of each node whose neighbors are listed in this structure 
                      *** WARNING: *** A lot of functions do not use this field and assume
@@ -667,6 +669,11 @@ typedef struct {
 
 */
 typedef struct {
+   int LinkedPtrType; /*!< Indicates the type of linked pointer */
+   int N_links;   /*!< Number of links to this pointer */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
+
+   
    int ** EL; /*!< pointer to where the Edge List ( N_EL x 2 ) will be placed
                         each row is an edge, i1 i2 where i1 is always <= i2
                         EL is sorted by row */
@@ -989,21 +996,6 @@ typedef struct {
                                  is set to 0 (No smoothing). */
    SUMA_Boolean WarnClose; /*!< Pops up a window to double check before SUMA quits */
 }SUMA_X_AllView;
-
-/*! filename and path */
-typedef struct {
-   char *Path;
-   char *FileName;
-}SUMA_FileName;
-
-/*! filename, extension and path */
-typedef struct {
-   char *Path;
-   char *FileName;
-   char *FileName_NoExt;
-   char *Ext;
-}SUMA_PARSED_NAME;
-
 
 /*! structure defining a cross hair */
 typedef struct {   
@@ -1345,6 +1337,10 @@ typedef struct {
 /*! structure that contains the output of SUMA_MemberFaceSets function */
 #define SUMA_MemberFaceSets_struct
 typedef struct {
+   int LinkedPtrType; /*!< Indicates the type of linked pointer */
+   int N_links;   /*!< Number of links to this pointer */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
+
    int N_Memb_max;/*!< Maximum number of Facesets any node belonged to*/
    int Nnode; /*! Total number of nodes examined (0..Nnode-1) */
    int **NodeMemberOfFaceSet ; /*!< Nnode x N_Memb_max matrix containing for each row i, the indices of the facesets containing node i*/ 
@@ -1389,9 +1385,6 @@ typedef struct {
 
 typedef struct {
    SUMA_OVERLAYS *Overlay; /*!< pointer to color overlay structures */
-   #ifdef USE_INODE
-   SUMA_INODE *Overlay_Inode; /*!< pointer to Inodes corresponding to each Overlay struct */
-   #endif
 } SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists of SO->Overlays and co */ 
 
 
@@ -1477,20 +1470,11 @@ typedef struct {
    SUMA_Axis *MeshAxis;   /*!< pointer to XYZ axis centered on the surface's centroid */
    
    SUMA_MEMBER_FACE_SETS *MF; /*!< structure containing the facesets containing each node */
-   SUMA_INODE *MF_Inode; /*!< Inode structure for MF*/
    SUMA_NODE_FIRST_NEIGHB *FN; /*!< structure containing the first order neighbors of each node */
-   SUMA_INODE *FN_Inode; /*!< Inode structure for FN */
    SUMA_EDGE_LIST *EL; /*!< structure containing the edge list */
-   SUMA_INODE *EL_Inode; /*!< Inode structure for EL */
-   
    float *PolyArea; /*!< N_FaceSet x 1 vector containing the area of each polygon in FaceSetList */
    SUMA_SURFACE_CURVATURE *SC; /*!< Structure containing the surface curvature info */
    
-   #if 0
-   /* Cx is now a dataset. Use function SUMA_GetCx to retrieve the equivalent of Cx */
-   float *Cx; /*!< vector containing surface convexity at each node */
-   SUMA_INODE *Cx_Inode; /*!< Inode structure for Cx */
-   #endif
    
    /* selection stuff */
    SUMA_Boolean ShowSelectedNode; /*!< flag for an obvious reason */
@@ -1504,9 +1488,6 @@ typedef struct {
    SUMA_VOLPAR *VolPar; /*!< Parent Volume structure */
    
    SUMA_OVERLAYS **Overlays; /*!< vector of pointers to color overlay structures */
-   #ifdef USE_INODE
-   SUMA_INODE **Overlays_Inode; /*!< vector of pointers to Inodes corresponding to each Overlays struct */
-   #endif
    int N_Overlays; /*!< number of pointers to overlay structures */
    
    SUMA_X_SurfCont *SurfCont;/*!< pointer to structure containing surface controller widget structure */

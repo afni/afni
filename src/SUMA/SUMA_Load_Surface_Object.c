@@ -1955,18 +1955,9 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
                   SUMA_RETURN (NOPE);
                } 
-
-               #ifdef USE_INODE
-               /* make an Inode for the overlay */
-               NewColPlane_Inode = SUMA_CreateInode ((void *)NewColPlane, SO->idcode_str);
-               if (!NewColPlane_Inode) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-                  SUMA_RETURN (NOPE);
-               }
-               #endif
                
                /* Add this plane to SO->Overlays */
-               if (!SUMA_AddNewPlane (SO, NewColPlane, NewColPlane_Inode)) {
+               if (!SUMA_AddNewPlane (SO, NewColPlane)) {
                   SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
                   SUMA_FreeOverlayPointer(NewColPlane);
                   SUMA_RETURN (NOPE);
@@ -2251,13 +2242,6 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
                         "Independent lists will\n"
                         "be created." );
          SOinh = NULL;
-      }else if (!SOinh->EL_Inode || !SOinh->FN_Inode){
-         SUMA_SL_Warn(  "Cannot inherit Edge List\n"
-                        "and First Neightbor.\n"
-                        "Cause: NULL inodes.\n"
-                        "Independent lists will\n"
-                        "be created.");
-         SOinh = NULL;
       }else if (SO->N_Node != SOinh->N_Node || SO->N_FaceSet != SOinh->N_FaceSet) {
          SUMA_SL_Warn(  "(IGNORE for surface patches)\n"
                         "Cannot inherit Edge List\n"
@@ -2276,12 +2260,6 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
                         "Independent lists will\n"
                         "be created." );
          SOinh = NULL;
-      }else if (!SOinh->MF_Inode){
-         SUMA_SL_Warn(  "Cannot inherit MemberFaceSet\n"
-                        "Cause: NULL inodes.\n"
-                        "Independent lists will\n"
-                        "be created.");
-         SOinh = NULL;
       }else if (SO->N_Node != SOinh->N_Node || SO->N_FaceSet != SOinh->N_FaceSet) {
          SUMA_SL_Warn(  "(IGNORE for surface patches)\n"
                         "Cannot inherit MemberFaceSet\n"
@@ -2291,7 +2269,6 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
          SOinh = NULL;      
       }
    }
-   
     
    /* prerequisits */
    if (DoCurv) {
@@ -2353,44 +2330,22 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
       if (!SOinh) {
          /* create the edge list, it's nice and dandy */
          if (LocalHead) fprintf(SUMA_STDOUT, "%s: Making Edge list ....\n", FuncName); 
-         SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, debug);
+         SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, debug, SO->idcode_str);
          if (SO->EL == NULL) {
             fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List. Neighbor list will not be created\n", FuncName);
-            SO->EL_Inode = NULL;
          } else {
-            /* create EL_Inode */
-            SO->EL_Inode = SUMA_CreateInode ((void *)SO->EL, SO->idcode_str);
-            if (!SO->EL_Inode) {
-               fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-            }
             if (LocalHead) fprintf(SUMA_STDOUT, "%s: Making Node Neighbor list ....\n", FuncName); 
             /* create the node neighbor list */
-            SO->FN = SUMA_Build_FirstNeighb (SO->EL, SO->N_Node);   
+            SO->FN = SUMA_Build_FirstNeighb (SO->EL, SO->N_Node, SO->idcode_str);   
             if (SO->FN == NULL) {
                fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Build_FirstNeighb.\n", FuncName);
-               SO->FN_Inode = NULL;
             } else {
-               /* create FN_Inode */
-               SO->FN_Inode = SUMA_CreateInode ((void *)SO->FN, SO->idcode_str);
-               if (!SO->FN_Inode) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-               }
-            }
+           }
          }
       } else {
          if (LocalHead) fprintf(SUMA_STDOUT, "%s: Linking Edge List and First Neighbor Lits ...\n", FuncName);
-         SO->EL_Inode = SUMA_CreateInodeLink (SO->EL_Inode, SOinh->EL_Inode);
-         if (!SO->EL_Inode) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
-            SUMA_RETURN (NOPE);
-         }
-         SO->EL = SOinh->EL;
-         SO->FN_Inode = SUMA_CreateInodeLink (SO->FN_Inode, SOinh->FN_Inode);
-         if (!SO->FN_Inode) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
-            SUMA_RETURN (NOPE);
-         }
-         SO->FN = SOinh->FN;   
+         SO->FN = (SUMA_NODE_FIRST_NEIGHB*)SUMA_LinkToPointer((void *)SOinh->FN);
+         SO->EL = (SUMA_EDGE_LIST*)SUMA_LinkToPointer((void *)SOinh->EL);
       }
    }
    
@@ -2491,24 +2446,15 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
       if (!SOinh) {
          /* determine the MemberFaceSets */
          if (LocalHead) fprintf(SUMA_STDOUT, "%s: Determining MemberFaceSets  ...\n", FuncName);
-         SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim);
+         SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim, SO->idcode_str);
          if (SO->MF->NodeMemberOfFaceSet == NULL) {
             fprintf(SUMA_STDERR,"Error %s: Error in SUMA_MemberFaceSets\n", FuncName);
             SUMA_RETURN (NOPE); /* do not free MF, that is done when SO is freed */
          }else {
-            SO->MF_Inode = SUMA_CreateInode ((void *)SO->MF, SO->idcode_str);
-            if (!SO->MF_Inode) {
-               fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-            }
          }
       } else { /* inherit */
          if (LocalHead) fprintf(SUMA_STDOUT, "%s: Linking Member Facesets ...\n", FuncName);
-         SO->MF_Inode  = SUMA_CreateInodeLink (SO->MF_Inode, SOinh->MF_Inode);
-         if (!SO->MF_Inode) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
-            SUMA_RETURN (NOPE);
-         }
-         SO->MF = SOinh->MF;  
+         SO->MF = (SUMA_MEMBER_FACE_SETS*)SUMA_LinkToPointer((void*)SOinh->MF);
       }
    }
 
@@ -2619,7 +2565,7 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
-   exit(0);
+   SUMA_RETURN(0);
 }/* main inspec */
 #endif
 
@@ -2866,7 +2812,7 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
-   exit(0);
+   SUMA_RETURN(0);
    
 }/* main quickspec */
 #endif
@@ -2878,6 +2824,7 @@ void usage_SUMA_SurfaceMetrics ()
    {
       static char FuncName[]={"usage_SUMA_SurfaceMetrics"};
       char * s = NULL;
+      s = SUMA_help_basics();
       printf ( "\n"
                "Usage: SurfaceMetrics <-Metric1> [[-Metric2] ...] <-i_TYPE inSurf> \n"
                "                  [<-sv SurfaceVolume [VolParam for sf surfaces]>]\n"
@@ -2928,7 +2875,9 @@ void usage_SUMA_SurfaceMetrics ()
                "                   See ConvertSurface -help for more info.\n"
                "\n"
                "   -prefix prefix: Use prefix for output files. (default is prefix of inSurf)\n"
-               "\n");
+               "%s"
+               "\n", s);
+      SUMA_free(s); s = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf ( "       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
                "       Mon May 19 15:41:12 EDT 2003\n"
@@ -2937,7 +2886,7 @@ void usage_SUMA_SurfaceMetrics ()
 
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"Main_SUMA_SurfaceMetrics"};
+   static char FuncName[]={"Main_SUMA_SurfaceMetrics"};
    char  *OutName=NULL, *OutPrefix = NULL, *if_name = NULL, 
          *if_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
          *tlrc_name = NULL;
@@ -2955,13 +2904,9 @@ int main (int argc,char *argv[])
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
                   Do_area, Do_edges, LocalHead = NOPE;  
    
+   SUMA_mainENTRY;
    
-	/* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
+	SUMA_STANDALONE_INIT;
    
    if (argc < 4)
        {
@@ -2986,6 +2931,8 @@ int main (int argc,char *argv[])
           exit (1);
 		}
 		
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      
 		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -3440,7 +3387,7 @@ int main (int argc,char *argv[])
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
    
-   return(0);
+   SUMA_RETURN(0);
 } /* Main */
 #endif
 

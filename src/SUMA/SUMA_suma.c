@@ -8,7 +8,6 @@
    
 #include "SUMA_suma.h"
 #include "../afni.h"
-#include <signal.h>
 
 /* CODE */
 
@@ -20,25 +19,6 @@ int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
 SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
-
-void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
-{
-   char * sname ;
-   static volatile int fff=0 ;
-   if( fff ) _exit(1) ; else fff = 1 ;
-   switch(sig){
-      default:      sname = "unknown" ; break ;
-      case SIGINT:  sname = "SIGINT"  ; break ;
-      case SIGPIPE: sname = "SIGPIPE" ; break ;
-      case SIGSEGV: sname = "SIGSEGV" ; break ;
-      case SIGBUS:  sname = "SIGBUS"  ; break ;
-      case SIGTERM: sname = "SIGTERM" ; break ;
-   }
-   fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
-   TRACEBACK ;
-   fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
-   exit(1) ;
-}
 
 #ifdef SUMA_DISASTER
 /*!
@@ -83,6 +63,9 @@ int * SUMA_disaster(void)
 void SUMA_usage ()
    
   {/*Usage*/
+          char *sb = NULL;
+          
+          sb = SUMA_help_basics();
           printf ("\nUsage:  SUMA \n   -spec <Spec file> \n"
                   "                     [-sv <SurfVol>] [-ah AfniHost]\n\n"     
 			         "   -spec <Spec file>: File containing surface specification. \n"     
@@ -106,14 +89,7 @@ void SUMA_usage ()
                   "                     setting AfniHost to 127.0.0.1\n"
                   "   [-niml]: Start listening for NIML-formatted elements.\n"     
 			         "   [-dev]: Allow access to options that are not well polished for consuption.\n"     
-                  "   [-trace]: Turns on In/Out debug and Memory tracing.\n"
-                  "             For speeding up the tracing log, I recommend \n"
-                  "             you redirect stdout to a file when using this option:\n"
-                  "             suma -spec lh.spec -sv ... > TraceFile\n"
-                  "             This option replaces the old -iodbg and -memdbg.\n"
-                  "   [-TRACE]: Turns on extreme tracing.\n"
-                  "   [-nomall]: Turn off memory tracing.\n"
-                  "   [-yesmall]: Turn on memory tracing (default).\n"
+                  "%s"
                   /*"   [-iodbg] Trun on the In/Out debug info from the start.\n"
 			         "   [-memdbg] Turn on the memory tracing from the start.\n" */    
                   "   [-visuals] Shows the available glxvisuals and exits.\n"
@@ -127,7 +103,8 @@ void SUMA_usage ()
                   "   inside SUMA's window.\n"     
 			         "   For more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n"
                   "\n"     
-			         "   If you can't get help here, please get help somewhere.\n");
+			         "   If you can't get help here, please get help somewhere.\n", sb);
+                  SUMA_free(sb);
 			 SUMA_Version(NULL);
 			 printf ("\n" 
                   "\n    Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n\n");
@@ -191,24 +168,9 @@ int main (int argc,char *argv[])
    
 	/* allocate space for CommonFields structure */
 	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
-   
-   /* install signal handler, shamelessly copied from AFNI) */
-   signal(SIGINT ,SUMA_sigfunc) ;   
-   signal(SIGBUS ,SUMA_sigfunc) ;
-   signal(SIGSEGV,SUMA_sigfunc) ;
-   signal(SIGTERM,SUMA_sigfunc) ;
-
-   SUMA_process_environ();
-   
-   SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
-   SUMAg_CF->scm = SUMA_Build_Color_maps();
+   SUMA_STANDALONE_INIT;
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
-   SUMA_ParseInput_basics (argv, argc);
    if (argc < 2)
        {
           SUMA_usage ();
@@ -283,15 +245,8 @@ int main (int argc,char *argv[])
          */
 		}
       
-      if (  !brk && (
-            (strcmp(argv[kar], "-trace") == 0) ||
-            (strcmp(argv[kar], "-TRACE") == 0) ||
-            (strcmp(argv[kar], "-nomall") == 0) ||
-            (strcmp(argv[kar], "-yesmall") == 0)  )
-            ) {
-			/* dealt with in SUMA_ParseInput_basics */
-			brk = YUP;
-		}
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      
       #if 0
       if (  !brk && (strcmp(argv[kar], "-trace") == 0)) {
 			fprintf(SUMA_STDERR,"Warning %s: SUMA running in trace mode.\n", FuncName);
@@ -591,7 +546,7 @@ int main (int argc,char *argv[])
 	if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) SUMA_error_message(FuncName,"DO Cleanup Failed!",1);
 	if (!SUMA_Free_SurfaceViewer_Struct_Vect (SUMAg_SVv, SUMA_MAX_SURF_VIEWERS)) SUMA_error_message(FuncName,"SUMAg_SVv Cleanup Failed!",1);
 	if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-  return 0;             /* ANSI C requires main to return int. */
+  SUMA_RETURN(0);             /* ANSI C requires main to return int. */
 }/* Main */ 
 
 

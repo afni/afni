@@ -1840,67 +1840,36 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (SO->N_Overlays) {
       /* freeing color overlays */
       for (i=0; i < SO->N_Overlays; ++i) {
-         #ifdef USE_INODE
-         SUMA_ReleaseOverlay(SO->Overlays[i] , SO->Overlays_Inode[i]);
-         SO->Overlays_Inode[i] = NULL;
-         #else
          SUMA_FreeOverlayPointer (SO->Overlays[i]);
-         #endif
          SO->Overlays[i] = NULL;
       }
       SO->N_Overlays = 0;
    }
    /*Now free the vector of pointers */
    SUMA_free(SO->Overlays);
-   #ifdef USE_INODE
-   SUMA_free(SO->Overlays_Inode);
-   #endif
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing FN\n", FuncName);
 
    /* freeing FN,  make sure that there are no links to FN*/
-   if (SO->FN_Inode || SO->FN) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
-      if (SUMA_ReleaseLink(SO->FN_Inode)) { 
-         /* some links are left, do not free memory */
-      } else {
-         if (SO->FN) {
-            if (!SUMA_Free_FirstNeighb (SO->FN)) {
+   if (SO->FN) {
+      if (!SUMA_Free_FirstNeighb (SO->FN)) {
                fprintf(SUMA_STDERR,"Error SUMA_Free_Surface_Object : Failed to free SO->FN");
-            }
-         }
-         /* now free SO->FN_Inode */
-         if (SO->FN_Inode) SUMA_free(SO->FN_Inode);
       }
+      SO->FN = NULL;
    }
-   SO->FN = NULL;
-   SO->FN_Inode = NULL;
+   
    /* freeing Label */
    if (SO->Label) SUMA_free(SO->Label);
    
    /* freeing EL,  make sure that there are no links to EL*/
-   if (SO->EL_Inode || SO->EL){ /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
-      if (SUMA_ReleaseLink(SO->EL_Inode)) { 
-         /* some links are left, do not free memory */
-      } else {
-         if (SO->EL) SUMA_free_Edge_List (SO->EL);
-         /* now free SO->EL_Inode */
-         if (SO->EL_Inode) SUMA_free(SO->EL_Inode);
-      }
+   if (SO->EL) {
+      SUMA_free_Edge_List (SO->EL);
    }
    SO->EL = NULL;
-   SO->EL_Inode = NULL;
-
-   if (SO->MF_Inode || SO->MF){ /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
-      if (SUMA_ReleaseLink(SO->MF_Inode)) { 
-         /* some links are left, do not free memory */
-      } else {
-         if (SO->MF) SUMA_Free_MemberFaceSets (SO->MF);
-         /* now free SO->MF_Inode */
-         if (SO->MF_Inode) SUMA_free(SO->MF_Inode);
-      }
+   
+   if (SO->MF){ 
+      SUMA_Free_MemberFaceSets (SO->MF);
+      SO->MF = NULL;
    }
-   SO->MF = NULL;
-   SO->MF_Inode = NULL;
-
    if (SO->SurfCont) SUMA_FreeSurfContStruct(SO->SurfCont);
    
    if (SO) SUMA_free(SO);
@@ -2374,17 +2343,10 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Label = NULL;
       SO[i].EmbedDim = 3;
       SO[i].MF = NULL;
-      SO[i].MF_Inode = NULL;
       SO[i].FN = NULL;
-      SO[i].FN_Inode = NULL;
       SO[i].EL = NULL;
-      SO[i].EL_Inode = NULL;
       SO[i].PolyArea = NULL;
       SO[i].SC = NULL;
-      #if 0 /* no longer a part of SO */
-      SO[i].Cx = NULL;
-      SO[i].Cx_Inode = NULL;
-      #endif
       SO[i].VolPar = NULL;
       SO[i].NodeList = NULL; 
       SO[i].FaceSetList = NULL; 
@@ -2396,15 +2358,9 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].glar_NodeNormList = NULL; 
       /* create vector of pointers */
       SO[i].Overlays = (SUMA_OVERLAYS **) SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
-      #ifdef USE_INODE
-      SO[i].Overlays_Inode = (SUMA_INODE **) SUMA_malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 
-      #endif
       /* fill pointers with NULL */
       for (j=0; j < SUMA_MAX_OVERLAYS; ++j) {
          SO[i].Overlays[j] = NULL;
-         #ifdef USE_INODE
-         SO[i].Overlays_Inode[j] = NULL;
-         #endif
       }
       SO[i].N_Overlays = 0;
       SO[i].SentToAfni = NOPE;

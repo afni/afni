@@ -294,7 +294,7 @@ Side effects :
    
    
 ***/
-SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr , int FaceDim)
+SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr , int FaceDim, char *ownerid)
 {/*SUMA_MemberFaceSets*/
    static char FuncName[]={"SUMA_MemberFaceSets"}; 
    SUMA_MEMBER_FACE_SETS *RetStrct;
@@ -305,6 +305,10 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr
 
    NP = FaceDim;
    RetStrct = (SUMA_MEMBER_FACE_SETS *)SUMA_malloc(sizeof(SUMA_MEMBER_FACE_SETS));
+   RetStrct->N_links = 0;
+   if (ownerid) sprintf(RetStrct->owner_id, "%s", ownerid);
+   else RetStrct->owner_id[0] = '\0';
+   RetStrct->LinkedPtrType = SUMA_LINKED_MEMB_FACE_TYPE;
    
    RetStrct->N_Memb_max = RetStrct->Nnode = 0;
    RetStrct->N_Memb = NULL;
@@ -374,9 +378,17 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr
 SUMA_Boolean SUMA_Free_MemberFaceSets (SUMA_MEMBER_FACE_SETS *MF)
 {
    static char FuncName[]={"SUMA_Free_MemberFaceSets"};
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-
+   if (!MF) { SUMA_RETURN (YUP); }
+   if (MF->N_links) {
+      SUMA_LH("Just a link release");
+      MF = (SUMA_MEMBER_FACE_SETS *)SUMA_UnlinkFromPointer((void *)MF);
+      SUMA_RETURN (YUP);
+   }
+   
+   SUMA_LH("No more links, here we go");
    if (MF->NodeMemberOfFaceSet) SUMA_free2D((char **)MF->NodeMemberOfFaceSet, MF->Nnode);
    if (MF->N_Memb) SUMA_free(MF->N_Memb);
    if (MF) SUMA_free(MF);

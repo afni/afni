@@ -260,7 +260,7 @@ int main (int argc,char *argv[])
   if (!FullOnly) {
     /* get the Node member structure */
     fprintf(SUMA_STDOUT, "%s: Computing MemberFaceSets... \n", FuncName);
-    Memb = SUMA_MemberFaceSets (SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, 3);
+    Memb = SUMA_MemberFaceSets (SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, 3, SO2->idcode_str);
     if (Memb->NodeMemberOfFaceSet == NULL) {
       fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_MemberFaceSets. \n", FuncName);
       exit(1);

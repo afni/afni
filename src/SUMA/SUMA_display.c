@@ -2350,20 +2350,12 @@ void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData)
       if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
          /* you must check for both conditions because by default 
          all viewers are initialized to isShaded = NOPE, even before they are ever opened */
-         #ifdef USE_SUMA_MALLOC
-         if (w != SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace]) {
-            XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 
-               SUMAg_CF->MemTrace, NOPE);
-         }
-         #else
          XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 
             SUMAg_CF->MemTrace, NOPE);
          if (SUMAg_CF->MemTrace) {
             /* can't turn it off */
              XtSetSensitive (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 0);
          }
-         #endif
-         
       }
    }
    

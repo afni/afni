@@ -1286,7 +1286,7 @@ void SUMA_MakeColorMap_usage ()
    {
       static char FuncName[]={"SUMA_MakeColorMap_usage"};
       char * s = NULL;
-      
+      s = SUMA_help_basics();
       fprintf (SUMA_STDOUT, "\n"
                             "Usage1: \n"
                             "MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n"
@@ -1352,7 +1352,9 @@ void SUMA_MakeColorMap_usage ()
                             "1- run afni\n2- Define Function --> right click on Inten (over colorbar) \n"
                             "   --> Read in palette (choose TestPalette.pal)\n"
                             "3- set the #colors chooser (below colorbar) to 20 (the number of colors in \n"
-                            "   TestPalette.pal).\n");
+                            "   TestPalette.pal).\n"
+                            "%s",s);
+      SUMA_free(s); s = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       fprintf (SUMA_STDOUT, "    Ziad S. Saad & Rick R. Reynolds SSCC/NIMH/NIH ziad@nih.gov    Tue Apr 23 14:14:48 EDT 2002\n\n");
    
@@ -1360,8 +1362,8 @@ void SUMA_MakeColorMap_usage ()
  
 int main (int argc,char *argv[])
 {/* Main */
-   char  FuncName[]={"MakeColorMap"}, 
-         *FidName = NULL, *Prfx = NULL, h[9], *StdType=NULL; 
+   static char  FuncName[]={"MakeColorMap"};
+   char  *FidName = NULL, *Prfx = NULL, h[9], *StdType=NULL; 
    int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL;
    float **Fid=NULL, **M=NULL;
    MRI_IMAGE *im = NULL;
@@ -1370,14 +1372,10 @@ int main (int argc,char *argv[])
                   Usage1, Usage2, Usage3, LocalHead = NOPE;
    SUMA_COLOR_MAP *SM=NULL;
       
-   /* allocate space for CommonFields structure and initialize debug*/
-   SUMAg_CF = SUMA_Create_CommonFields ();
-   if (SUMAg_CF == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-      exit(1);
-   }
+   SUMA_mainENTRY;
    
-   SUMA_INOUT_NOTIFY_OFF;
+   SUMA_STANDALONE_INIT;
+
    
    if (argc < 2) {
       SUMA_MakeColorMap_usage();
@@ -1397,6 +1395,9 @@ int main (int argc,char *argv[])
           SUMA_MakeColorMap_usage();
          exit (1);
       }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+     
       if (!brk && (strcmp(argv[kar], "-v") == 0))
       {
          LocalHead = NOPE;
@@ -1639,7 +1640,9 @@ int main (int argc,char *argv[])
    }
    if (SM) SUMA_Free_ColorMap(SM);
    
-   exit (0);
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) { SUMA_SL_Err("Failed to free commonfields."); }
+   
+   SUMA_RETURN (0);
 }   
 #endif
 
@@ -1670,6 +1673,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    Opt = Sover->OptScl;
    
    if (!Sover->cmapname) { SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE); }
+   if (!SUMAg_CF->scm) { SUMA_SL_Err("NULL scm"); SUMA_RETURN(NOPE); }
    icmap = SUMA_Find_ColorMap ( Sover->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
    if (icmap < 0) { SUMA_SL_Err("Failed to find ColMap"); SUMA_RETURN(NOPE); }
    ColMap = SUMAg_CF->scm->CMv[icmap];
@@ -2864,6 +2868,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
    {
       static char FuncName[]={"SUMA_ScaleToMap_usage"};
       char * s = NULL;
+      s = SUMA_help_basics();
       fprintf (SUMA_STDOUT,   "\nUsage:  ScaleToMap <-input IntFile icol vcol>  \n"
                               "    [-cmap MapType] [-cmapfile Mapfile] [-cmapdb Palfile] [-frf] \n"
                               "    [-clp/-perc_clp clp0 clp1] [-apr/-anr range]\n"
@@ -3007,8 +3012,9 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                               "       This option is for debugging and sanity checks.\n"    
                               "    -showdb: (optional) print the colors and colormaps of AFNI\n"
                               "       along with any loaded from the file Palfile.\n"    
-                              "    -ionot: (optional) not for the faint of heart\n"
-                              "\n");                        
+                              "%s"
+                              "\n", s);
+      SUMA_free(s); s = NULL;                        
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       fprintf (SUMA_STDOUT,   "    Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
                               "      July 31/02 \n"
@@ -3017,7 +3023,8 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
 
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"ScaleToMap"}, *IntName = NULL, *Prfx, h[9], *CmapFileName = NULL, *dbfile = NULL, *MapName=NULL; 
+   static char FuncName[]={"ScaleToMap"};
+   char *IntName = NULL, *Prfx, h[9], *CmapFileName = NULL, *dbfile = NULL, *MapName=NULL; 
    MRI_IMAGE *im = NULL;
    float *far=NULL;
    int N_V, N_Int, kar, k, ii, i, icol=-1, vcol=-1, Sgn, interpmode, k3;
@@ -3037,6 +3044,9 @@ int main (int argc,char *argv[])
    int imap, isPmap, isNmap;
    SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_mainENTRY;
+   
+   #if 0
    /* allocate space for CommonFields structure and initialize debug*/
    SUMAg_CF = SUMA_Create_CommonFields ();
    if (SUMAg_CF == NULL) {
@@ -3051,6 +3061,9 @@ int main (int argc,char *argv[])
       exit(1);
    }
    SUMA_INOUT_NOTIFY_OFF;
+   #else
+   SUMA_STANDALONE_INIT;
+   #endif
    
    /* this is placed down here to */
    /* 
@@ -3086,21 +3099,26 @@ int main (int argc,char *argv[])
    while (kar < argc) { /* loop accross command ine options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-          SUMA_ScaleToMap_usage();
+         SUMA_ScaleToMap_usage();
          exit (1);
       }
       
-      if (strcmp(argv[kar], "-verb") == 0) {
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      
+      if (!brk && strcmp(argv[kar], "-verb") == 0) {
          LocalHead = YUP;
          brk = YUP;
       }
       
-      if (strcmp(argv[kar], "-ionot") == 0) {
+      if (!brk && strcmp(argv[kar], "-ionot") == 0) {
+         SUMA_SL_Err("-ionot is obsolete. \n"
+                     "Use -trace option.");
+         exit (1);
          SUMA_INOUT_NOTIFY_ON;
          brk = YUP;
       }
       
-      if (strcmp(argv[kar], "-msk_zero") == 0) {
+      if (!brk && strcmp(argv[kar], "-msk_zero") == 0) {
          MaskZero = YUP;
          brk = YUP;
       }
@@ -3378,6 +3396,10 @@ int main (int argc,char *argv[])
          }
       }
    #else
+      if (!SUMAg_CF->scm) {
+         fprintf (SUMA_STDERR,"Error %s: NULL AFNI standard colors.\n", FuncName);
+         exit(1);
+      }
       SAC = SUMAg_CF->scm;
       /* are there database files to read */
       if (dbfile) {
@@ -3659,9 +3681,9 @@ int main (int argc,char *argv[])
    #else
       SAC = NULL; /* freeing is done in SUMAg_CF */
    #endif
-   SUMA_Free_CommonFields(SUMAg_CF);
+   SUMA_Free_CommonFields(SUMAg_CF); 
    
-   exit (0);
+   SUMA_RETURN (0);
 }   
 
 #endif
@@ -3805,13 +3827,10 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
       SUMA_RETURN (NULL);
    }
    
-   #ifdef USE_INODE
-   #else
    Sover->N_links = 0;
    if (ownerid) sprintf(Sover->owner_id, "%s", ownerid);
    else Sover->owner_id[0] = '\0';
    Sover->LinkedPtrType = SUMA_LINKED_OVERLAY_TYPE;
-   #endif
    
    /* make a link to dset */
    SUMA_LH("Linking to Dset");
@@ -4504,13 +4523,9 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int
    SS = SUMA_StringAppend (SS,stmp);
    for (i=0; i < N_Overlays; ++i) {
       if (Overlays[i]) {
-         #ifdef USE_INODE
-         SS = SUMA_StringAppend_va (SS, "Using stupid inode system\n");
-         #else
          SS = SUMA_StringAppend_va (SS, "N_links = %d\n", Overlays[i]->N_links);
          SS = SUMA_StringAppend_va (SS, "LinkedPtrType = %d\n", Overlays[i]->LinkedPtrType);
          SS = SUMA_StringAppend_va (SS, "owner_id = %s\n",  Overlays[i]->owner_id);
-         #endif
          NodeDef = COLP_NODEDEF(Overlays[i]);
          N_NodeDef = COLP_N_NODEDEF(Overlays[i]);
          N_Alloc = COLP_N_ALLOC(Overlays[i]);
@@ -4670,9 +4685,6 @@ DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
       SUMA_LH("In Loop");
          OvD = (SUMA_OVERLAY_LIST_DATUM *)SUMA_malloc(sizeof(SUMA_OVERLAY_LIST_DATUM));
          OvD->Overlay = SO->Overlays[i];
-         #ifdef USE_INODE
-         OvD->Overlay_Inode = SO->Overlays_Inode[i];
-         #endif
          if (!OvD->Overlay) {
             SUMA_LH("NULL Overlay");
          }
@@ -5065,9 +5077,8 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
 /*!
    \brief Adds a new plane to SO->Overlays. 
    If plane exists, you get an error message
-   Overlay_Inode is only used if #ifdef USE_INODE
 */
-SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_INODE *Overlay_Inode)
+SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay)
 {
    static char FuncName[]={"SUMA_AddNewPlane"};
    DList *ForeList=NULL, *BackList = NULL;
@@ -5081,12 +5092,6 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
       SUMA_S_Err("You sent me NULLS!");
       SUMA_RETURN (NOPE);
    }
-   #ifdef USE_INODE
-      if (!Overlay_Inode) {
-      SUMA_S_Err("You sent me NULLS!");
-      SUMA_RETURN (NOPE);
-   }
-   #endif
    if (SUMA_isOverlayOfSO(SO, Overlay)) {
       SUMA_S_Err("Plane exists in SO->Overlays.");
       SUMA_RETURN (NOPE);
@@ -5117,9 +5122,6 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    SUMA_LH("Adding to list...");
    OvD = (SUMA_OVERLAY_LIST_DATUM *) SUMA_malloc(sizeof(SUMA_OVERLAY_LIST_DATUM));
    OvD->Overlay = Overlay;
-   #ifdef USE_INODE
-   OvD->Overlay_Inode = Overlay_Inode;
-   #endif
    
    if (Overlay->BrightMod) {
       SUMA_LH("Back dude...");
@@ -5134,9 +5136,6 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    SUMA_LH("Out dude...");
    /* place the Overlay plane and its inode in SO */
    SO->Overlays[SO->N_Overlays] = Overlay;
-   #ifdef USE_INODE   
-   SO->Overlays_Inode[SO->N_Overlays] = Overlay_Inode;
-   #endif
    /* Now increment the number of overlays to be in SO */
    ++SO->N_Overlays;
    
@@ -5210,7 +5209,6 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
    int i, OverInd = -1, i_max, wrn_cnt = 0, i3 = 0, N_NodeDef = -1, *NodeDef = NULL;
    SUMA_SurfaceObject *SO2 = NULL;
    SUMA_OVERLAYS *Overlay=NULL;
-   SUMA_INODE *Overlay_Inode = NULL;
    SUMA_DSET *dset = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5255,14 +5253,6 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
             SUMA_RETURN(NOPE);
          } 
          
-         #ifdef USE_INODE
-         /* make an Inode for the overlay */
-         Overlay_Inode = SUMA_CreateInode ((void *)Overlay, SO->idcode_str);
-         if (!Overlay_Inode) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-            SUMA_RETURN(NOPE);
-         }
-         #endif
          
          /* set up some defaults for the overlap plane */
          Overlay->Show = sopd->Show;
@@ -5272,7 +5262,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          OverInd = SO->N_Overlays; 
 
          /* Add this plane to SO->Overlays */
-         if (!SUMA_AddNewPlane (SO, Overlay, Overlay_Inode)) {
+         if (!SUMA_AddNewPlane (SO, Overlay)) {
             SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
             SUMA_FreeOverlayPointer(Overlay);
             SUMA_RETURN (NOPE);
@@ -5411,18 +5401,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
                /* surfaces related and not identical, check on colorplanes */
                if (!SUMA_Fetch_OverlayPointer (SO2->Overlays, SO2->N_Overlays, Name, &OverInd)) {
                   /* color plane not found, link to that of SO */
-                  #ifdef USE_INODE
-                  SO2->Overlays_Inode[SO2->N_Overlays] = SUMA_CreateInodeLink (SO2->Overlays_Inode[SO2->N_Overlays],\
-                         SO->Overlays_Inode[SO->N_Overlays-1]);
-                  if (!SO2->Overlays_Inode[SO2->N_Overlays]) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
-                     SUMA_RETURN(NOPE);
-                  }
-                  /* now copy the actual overlay plane pointer */
-                  SO2->Overlays[SO2->N_Overlays] = SO->Overlays[SO->N_Overlays-1]; 
-                  #else
                   SO2->Overlays[SO2->N_Overlays] = (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO->Overlays[SO->N_Overlays-1]);
-                  #endif
                   /*setup the defaults */
                   SO2->Overlays[SO2->N_Overlays]->Show = YUP;
                   SO2->Overlays[SO2->N_Overlays]->GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;

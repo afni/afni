@@ -814,19 +814,12 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    /* check the winding ? */
    if (DoWind) {
       if (LocalHead) fprintf(SUMA_STDOUT, "%s: Making Edge list ....\n", FuncName); 
-      SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, 0);
+      SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, 0, SO->idcode_str);
       if (SO->EL == NULL) {
          fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List. Neighbor list will not be created\n", FuncName);
          SUMA_Free_Surface_Object (SO);
          SUMA_RETURN (NULL);
       } else {
-         if (LocalHead) fprintf(SUMA_STDOUT, "%s: Creating inode for %s....\n", FuncName, SO->idcode_str); 
-         /* you also need to create EL_Inode with EL */
-         SO->EL_Inode = SUMA_CreateInode ((void *)SO->EL, SO->idcode_str);
-         if (!SO->EL_Inode) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-         }
-         if (LocalHead) fprintf(SUMA_STDOUT, "%s: Creating inode DONE....\n", FuncName); 
       }
       
       if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 0)) {
@@ -839,16 +832,12 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
       }
       /* determine the MemberFaceSets */
       if (LocalHead) fprintf(SUMA_STDOUT, "%s: Determining MemberFaceSets  ...\n", FuncName);
-      SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim);
+      SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim, SO->idcode_str);
       if (SO->MF->NodeMemberOfFaceSet == NULL) {
          fprintf(SUMA_STDERR,"Error %s: Error in SUMA_MemberFaceSets\n", FuncName);
          SUMA_Free_Surface_Object (SO); /* that takes care of freeing leftovers in MF */
          SUMA_RETURN (NULL);
       }else { /* create Inode to avoid whining upon cleanup */
-         SO->MF_Inode = SUMA_CreateInode ((void *)SO->MF, SO->idcode_str);
-         if (!SO->MF_Inode) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-         }
       }
       
       
@@ -861,18 +850,13 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
 
    /*create first neighbor list*/
    if ( SO->EL && SO->N_Node )
-      firstNeighb = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node);
+      firstNeighb = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node, SO->idcode_str);
 
-   if (!DoWind) SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList);
-   SO->FN = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node);
+   if (!DoWind) SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, SO->idcode_str);
+   SO->FN = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node, SO->idcode_str);
    if(SO->FN==NULL) {
       fprintf(SUMA_STDERR, "Error %s: Failed in creating neighb list.\n", FuncName);
    } else {
-      /* create FN_Inode */
-      SO->FN_Inode = SUMA_CreateInode ((void *)SO->FN, SO->idcode_str);
-      if (!SO->FN_Inode) {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-      }
    }
    SUMA_RETURN (SO);
 }
@@ -2311,7 +2295,7 @@ int main (int argc, char *argv[])
 
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
-   exit(0);
+   SUMA_RETURN(0);
   
 }/* main SUMA_CreateIcosahedron*/
 #endif
@@ -2602,7 +2586,7 @@ int main (int argc, char *argv[])
    if ( surfaces_orig[1]->EL==NULL) 
       SUMA_SurfaceMetrics(surfaces_orig[1], "EdgeList", NULL);
    if ( surfaces_orig[1]->EL && surfaces_orig[1]->N_Node) 
-      surfaces_orig[1]->FN = SUMA_Build_FirstNeighb( surfaces_orig[1]->EL, surfaces_orig[1]->N_Node);
+      surfaces_orig[1]->FN = SUMA_Build_FirstNeighb( surfaces_orig[1]->EL, surfaces_orig[1]->N_Node, surfaces_orig[1]->idcode_str);
    if ( surfaces_orig[1]->FN==NULL || surfaces_orig[1]->EL==NULL ) {
       fprintf(SUMA_STDERR, "Error %s: Failed in acquired Surface Metrics.\n", FuncName);
       if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
@@ -2670,7 +2654,7 @@ int main (int argc, char *argv[])
 
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
-   exit(0);
+   SUMA_RETURN(0);
   
 }/* main SUMA_Map_SurfacetoSurface*/
 #endif
@@ -3362,7 +3346,7 @@ int main (int argc, char *argv[])
          if ( surfaces_orig[id]->EL==NULL) 
             SUMA_SurfaceMetrics(surfaces_orig[id], "EdgeList", NULL);
          if ( surfaces_orig[id]->EL && surfaces_orig[id]->N_Node) 
-            surfaces_orig[id]->FN = SUMA_Build_FirstNeighb( surfaces_orig[id]->EL, surfaces_orig[id]->N_Node);
+            surfaces_orig[id]->FN = SUMA_Build_FirstNeighb( surfaces_orig[id]->EL, surfaces_orig[id]->N_Node, surfaces_orig[id]->idcode_str);
          if ( surfaces_orig[id]->FN==NULL || surfaces_orig[id]->EL==NULL ) {
             fprintf(SUMA_STDERR, "Error %s: Failed in acquired Surface Metrics.\n", FuncName);
             if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
@@ -3473,7 +3457,7 @@ int main (int argc, char *argv[])
    
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    
-   exit(0);
+   SUMA_RETURN(0);
    
 }/* main SUMA_MapIcosahedron*/
 #endif

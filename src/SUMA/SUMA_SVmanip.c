@@ -1443,7 +1443,11 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->InOut_Level = 0;
    cf->MemTrace = NOPE;
    #ifdef USE_SUMA_MALLOC
+   SUMA_SL_Err("NO LONGER SUPPORTED");
+   return(NULL);
    cf->Mem = SUMA_Create_MemTrace();
+   #else
+   cf->Mem = NULL;
    #endif
    
    eee = getenv("SUMA_AFNI_TCP_PORT");
@@ -1551,6 +1555,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->MessageList = SUMA_CreateMessageList ();
    #ifdef USE_SUMA_MALLOC
+   SUMA_SL_Err("NO LONGER SUPPORTED");
+   return(NULL);
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    #endif
    cf->ROI_mode = NOPE;
@@ -1808,6 +1814,7 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
 }
 
 /*! free SUMA_CommonFields 
+NOTE: the SUMA_CommonFields * itself is not freed. You'll have to free it manually with free function;
 \sa SUMA_Create_CommonFields
 */
 SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
@@ -1818,24 +1825,30 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    /* do not use commonfields related stuff here for obvious reasons */
    if (cf->GroupList) {
       for (i=0; i< cf->N_Group; ++i) if (cf->GroupList[i]) SUMA_free(cf->GroupList[i]);
-      SUMA_free(cf->GroupList);
+      SUMA_free(cf->GroupList); cf->GroupList = NULL;
    }
-   if (cf->ROI_CM) SUMA_Free_ColorMap(cf->ROI_CM); /* free the colormap */
-   if (cf->X->FileSelectDlg) SUMA_FreeFileSelectionDialogStruct(cf->X->FileSelectDlg);
-   if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont);
-   if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI);
-   if (cf->X->N_ForeSmooth_prmpt) SUMA_FreePromptDialogStruct (cf->X->N_ForeSmooth_prmpt);
-   if (cf->X) free(cf->X);
-   if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList);
-   if (cf->scm) cf->scm = SUMA_DestroyAfniColors (cf->scm);
+   if (cf->ROI_CM) SUMA_Free_ColorMap(cf->ROI_CM); /* free the colormap */ cf->ROI_CM = NULL;
+   if (cf->X->FileSelectDlg) SUMA_FreeFileSelectionDialogStruct(cf->X->FileSelectDlg); cf->X->FileSelectDlg = NULL;
+   if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont); cf->X->SumaCont = NULL;
+   if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI); cf->X->DrawROI = NULL;
+   if (cf->X->N_ForeSmooth_prmpt) SUMA_FreePromptDialogStruct (cf->X->N_ForeSmooth_prmpt); cf->X->N_ForeSmooth_prmpt = NULL;
+   if (cf->X) free(cf->X); cf->X = NULL;
+   if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList); cf->MessageList = NULL;
+   if (cf->scm) cf->scm = SUMA_DestroyAfniColors (cf->scm); cf->scm = NULL;
    if (cf->DsetList) {
       dlist_destroy(cf->DsetList); 
       SUMA_free(cf->DsetList); cf->DsetList = NULL;
    }
    #ifdef USE_SUMA_MALLOC
-   if (cf->Mem) SUMA_Free_MemTrace (cf->Mem); /* always free this right before the end */
+   SUMA_SL_Err("NO LONGER SUPPORTED");
+   return(NOPE);
+   if (cf->Mem) SUMA_Free_MemTrace (cf->Mem); cf->Mem = NULL;/* always free this right before the end */
    #endif
-   if (cf) free(cf);
+   
+   /* if (cf) free(cf); */ /* don't free this stupid pointer since it is used
+                        when main returns with SUMA_RETURN. 
+                        It is not quite a leak since the OS will clean it up
+                        after exit Thu Apr  8 2004*/
    
    return (YUP);
 }
@@ -1882,7 +1895,8 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    }
    
    #ifdef USE_SUMA_MALLOC
-      /* dunno what to show here ... */
+      SUMA_SL_Err("NO LONGER SUPPORTED");
+      SUMA_RETURN(NULL);
    #else 
       SS = SUMA_StringAppend_va(SS,"   DBG_trace = %d\n", DBG_trace);
       SS = SUMA_StringAppend_va(SS,"   InOut_Notify = %d\n", cf->InOut_Notify);
