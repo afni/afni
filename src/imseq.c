@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>       /* 01 May 2003 - rickr */
 #include <X11/keysym.h>  /* 24 Jan 2003 */
 
 #undef IMSEQ_DEBUG
@@ -4733,12 +4734,8 @@ DPR(" .. ButtonPress") ;
 
                /*-- 09 Oct 1999: if ordered, enforce aspect --*/
 
-#ifndef ENFORCE_ASPECT
                hh = my_getenv("AFNI_ENFORCE_ASPECT") ;  /* 21 Jun 2000 */
                enforce_aspect = YESSISH(hh) ;
-#else
-               enforce_aspect = 1 ;                     /* 29 Apr 2003 */
-#endif
 
                if( enforce_aspect && !seq->opt.free_aspect )
                   ISQ_reset_dimen( seq , seq->last_width_mm , seq->last_height_mm ) ;

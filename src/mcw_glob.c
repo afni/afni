@@ -4,7 +4,9 @@
              -- added routines MCW_*_expand at end
 ***************************************************************************/
 
+/* #ifdef CYGWIN   rickr - 2003 May 01 */
 #include <errno.h>
+/* #endif */
 
 /*
  * Copyright (c) 1989 The Regents of the University of California.
