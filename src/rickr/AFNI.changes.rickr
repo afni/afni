@@ -93,3 +93,6 @@
       - rickr/Makefile now compiles Imon.c and l_mcw_glob.c
         with -DDONT_USE_MCW_MALLOC
 
+14 January 2003:
+  * update 3dresample to clear warp info before writing to disk
+
