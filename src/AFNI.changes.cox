@@ -3570,4 +3570,5 @@
  * Modified imseq.c ISQ_show_zoom() function to discard old zoomed image if
      the pixmap had to be re-created.
  * Modified mri_dup.c to do 3x RGB upsample in special function, too.
- * Modified imseq.c to do panning when Shift+Button1 is pressed.
+ * Modified imseq.c to do panning with Button1 when the new 'pan' button
+     is on - the "old" arrowpad buttons have been excised.

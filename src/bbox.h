@@ -365,6 +365,7 @@ extern void AP_timer_CB( XtPointer , XtIntervalId * ) ;
         if( exp ) MCW_expose_widget(ap->wform) ;        \
    } } while(0)
 
+#if 0
 #define AP_MANGLIZE(ap)                                   \
   do{ if( ap != NULL ){                                   \
          XtUnmanageChild( ap->wbut[4] ) ;                 \
@@ -393,5 +394,6 @@ extern void AP_timer_CB( XtPointer , XtIntervalId * ) ;
                         XmNrightPosition  , 6 , NULL ) ;  \
          XtManageChild( ap->wform ) ;                     \
   } } while(0)
+#endif
 
 #endif /* _MCW_BBOX_HEADER_ */
