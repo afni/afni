@@ -4104,3 +4104,6 @@
  * Modified imseq.c to save temporary files for animated GIF or MPEG
      output with a random suffix, to avoid collisions if 2 copies
      of AFNI (or aiv) are running.
+ * Modified niml.[ch] to allow definiton of "NI_rowtypes" to make it easier
+     to deal with structs (with all fixed length elements, alas).
+ * Modified nids.[ch] to deal with vectors of arbitrary NI_rowtype.

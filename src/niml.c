@@ -55,6 +55,13 @@ typedef struct { int num; int *ar; } int_array ;
 
 typedef struct { int num; char **str;} str_array ;
 
+#define delete_str_array(sar)                \
+  do{ int pp ;                               \
+      for( pp=0 ; pp < (sar)->num ; pp++ )   \
+        NI_free( (sar)->str[pp] );           \
+      NI_free((sar)->str) ; NI_free(sar) ;   \
+  } while(0)
+
 /****************************************************************************/
 
 /* Prototypes for internal functions. */
@@ -2447,7 +2454,7 @@ static str_array * decode_string_list( char *ss , char *sep )
 
       while( id < lss && strchr(sep,ss[id]) == NULL ) id++ ;
 
-      /* sub-string to save runs from ss[jd] to ss[id-1] */
+      /* sub-string runs from ss[jd] to ss[id-1] */
 
       sar->str = NI_realloc( sar->str , sizeof(char)*(num+1) ) ;
 
@@ -9433,3 +9440,254 @@ void qsort_intint( int n , int * a , int * ia )
 }
 
 #endif  /* NIML_OLD_MALLOC or DONT_USE_MCW_MALLOC */
+
+/**************************************************************************/
+/**** Stuff for defining row types from strings.  RWCox - 09 Dec 2002. ****/
+/**************************************************************************/
+
+/*--------------------------------------------------------------------------*/
+
+/* These typedefs are used to find the byte alignment
+   the compiler imposes on the 'fixed' types supported by NIML. */
+
+typedef struct { char a; byte    b; } qvzw_byte    ;
+typedef struct { char a; short   b; } qvzw_short   ;
+typedef struct { char a; int     b; } qvzw_int     ;
+typedef struct { char a; float   b; } qvzw_float   ;
+typedef struct { char a; double  b; } qvzw_double  ;
+typedef struct { char a; complex b; } qvzw_complex ;
+typedef struct { char a; rgb     b; } qvzw_rgb     ;
+typedef struct { char a; rgba    b; } qvzw_rgba    ;
+
+static int   type_alignment[NI_NUM_FIXED_TYPES] ;
+static int   type_size     [NI_NUM_FIXED_TYPES] ;
+static char *type_name     [NI_NUM_FIXED_TYPES] = {
+  "byte" , "short" , "int" , "float" , "double" , "complex" , "rgb" , "rgba"
+} ;
+
+/*! The table of user-defined rowtypes. */
+
+static Htable *rowtype_table = NULL ;
+
+/*! Used to set the code for each new user-defined type. */
+
+#define ROWTYPE_BASE_CODE (1001-NI_NUM_FIXED_TYPES)
+
+/*! Register a rowtype into the table, both by name and by integer code. */
+
+#define ROWTYPE_register(rr)                               \
+ do{ char ts[16] ;                                         \
+     if( rowtype_table == NULL ) setup_fixed_types() ;     \
+     addto_Htable( (rr)->name , (rr) , rowtype_table ) ;   \
+     sprintf(ts,"%06d",(rr)->code) ;                       \
+     addto_Htable( ts , (rr) , rowtype_table ) ;           \
+ } while(0)
+
+/*--------------------------------------------------------------------------*/
+/*! Setup the alignment of fixed NI types inside a struct (depends on CPU). */
+
+static void setup_fixed_types(void)
+{
+   NI_rowtype *rt ;
+   int ii ;
+
+   if( rowtype_table != NULL ) return ;  /* don't run this twice */
+
+   type_alignment[NI_BYTE   ] = offsetof(qvzw_byte   ,b) ;
+   type_alignment[NI_SHORT  ] = offsetof(qvzw_short  ,b) ;
+   type_alignment[NI_INT    ] = offsetof(qvzw_int    ,b) ;
+   type_alignment[NI_FLOAT  ] = offsetof(qvzw_float  ,b) ;
+   type_alignment[NI_DOUBLE ] = offsetof(qvzw_double ,b) ;
+   type_alignment[NI_COMPLEX] = offsetof(qvzw_complex,b) ;
+   type_alignment[NI_RGB    ] = offsetof(qvzw_rgb    ,b) ;
+   type_alignment[NI_RGBA   ] = offsetof(qvzw_rgba   ,b) ;
+
+   type_size[NI_BYTE   ] = sizeof(byte   ) ;
+   type_size[NI_SHORT  ] = sizeof(short  ) ;
+   type_size[NI_INT    ] = sizeof(int    ) ;
+   type_size[NI_FLOAT  ] = sizeof(float  ) ;
+   type_size[NI_DOUBLE ] = sizeof(double ) ;
+   type_size[NI_COMPLEX] = sizeof(complex) ;
+   type_size[NI_RGB    ] = sizeof(rgb    ) ;
+   type_size[NI_RGBA   ] = sizeof(rgba   ) ;
+
+   /* initialize the rowtype table with the fixed types */
+
+   rowtype_table = new_Htable(13) ;
+
+   for( ii=0 ; ii < NI_NUM_FIXED_TYPES ; ii++ ){
+     rt               = NI_new( NI_rowtype ) ;
+     rt->code         = ii ;
+     rt->size         = type_size[ii] ;
+     rt->name         = strdup(type_name[ii]) ;
+     rt->userdef      = strdup(type_name[ii]) ;
+     rt->part_num     = 1 ;
+     rt->part_typ     = NI_malloc(sizeof(int)) ;
+     rt->part_typ[0]  = ii ;
+     rt->part_off     = NI_malloc(sizeof(int)) ;
+     rt->part_off[0]  = 0 ;
+     ROWTYPE_register( rt ) ;
+   }
+}
+
+/*--------------------------------------------------------------------------*/
+
+int NI_rowtype_define( char *tname , char *tdef )
+{
+   NI_rowtype *rt , *qt ;
+   int ii,jj , id,jd,nn ;
+   str_array *sar ;
+   char *tp ;
+
+   /* check inputs */
+
+   if( tname == NULL || *tname == '\0' ||
+       tdef  == NULL || *tdef  == '\0' || !isalpha(*tname) ) return -1 ;
+
+   /* create Htable of fixed types, if not already defined */
+
+   if( rowtype_table == NULL ) setup_fixed_types() ;
+
+   /* see if type name already defined */
+
+   rt = NI_rowtype_find_name( tname ) ;
+   if( rt != NULL ) return -1 ;
+
+   /* break defining string into components */
+
+   sar = decode_string_list( tdef , ",;" ) ;
+
+   if( sar == NULL || sar->num < 1 ){ NI_free(sar); return -1; }
+
+   /* make the type rowtype */
+
+   rt = NI_new( NI_rowtype ) ;
+   rt->code = ROWTYPE_BASE_CODE + sizeof_Htable(rowtype_table)/2 ;
+   rt->name = strdup( tname ) ;
+   rt->userdef = strdup( tdef ) ;
+
+   /* loop over components, loading the new rt with their parts */
+
+   for( ii=0 ; ii < sar->num ; ii++ ){
+
+     tp = sar->str[ii] ;
+
+     /* get count in front, if present, into jd */
+
+     if( isdigit(tp[0]) ){ /* a count */
+       jd = nn = 0 ;
+       sscanf( tp , "%d%n" , &jd , &nn ) ;   /* get the count */
+       if( jd <= 0 || nn <= 0 ){             /* shouldn't happen */
+         delete_rowtype(rt); delete_str_array(sar); return -1 ;
+       }
+       id = nn ;                   /* skip count prefix characters */
+       if( tp[id] == '*' ) id++ ;  /* allow for "3*float" */
+     } else {
+       jd = 1 ; id = 0 ;           /* default count of 1 */
+     }
+
+     /* get the type */
+
+     qt = NI_rowtype_find_name( tp+id ) ;
+     if( qt == NULL ){
+       delete_rowtype(rt); delete_str_array(sar); return -1 ;
+     }
+
+     /* add jd copies of the parts from this component type */
+
+     nn = jd * qt->part_num ;
+
+     rt->part_typ = NI_realloc( rt->part_typ , sizeof(int)*(rt->part_num+nn) ) ;
+
+     for( jj=0 ; jj < nn ; jj++ )
+       rt->part_typ[rt->part_num + jj] = qt->part_typ[jj % qt->part_num] ;
+
+     rt->part_num += nn ;  /* have more parts now */
+
+   } /* end of loop over components */
+
+   delete_str_array(sar) ;
+
+   /* now loop over parts (fixed types), and calculate the offsets */
+
+   rt->part_off = NI_malloc( sizeof(int) * rt->part_num ) ;
+
+   id              = type_alignment[ rt->part_typ[0] ] ; /* largest alignment */
+   rt->part_off[0] = 0 ;
+   for( ii=1 ; ii < rt->part_num ; ii++ ){
+     nn = type_size     [ rt->part_typ[ii-1] ] ;  /* # bytes in previous part */
+     jd = rt->part_off  [ ii-1               ] ;  /* offset of previous part */
+     jj = type_alignment[ rt->part_typ[ii]   ] ;  /* how to align this part */
+
+     if( jj > id ) id = jj ;
+
+     nn += jd ;                                   /* next free byte;       */
+     if( jj > 1 ){                                /* must move it up if    */
+       jd = nn % jj ;                             /* not on exact multiple */
+       if( jd > 0 ) nn += (jj-jd) ;               /* of jj bytes alignment */
+     }
+     rt->part_off[ii] = nn ;
+   }
+
+   ii = rt->part_num - 1 ;
+   nn = type_size   [ rt->part_typ[ii] ] ;  /* # bytes in last part */
+   jd = rt->part_off[ ii               ] ;  /* offset of last part */
+   jj = id ;
+
+   nn += jd ;                               /* next byte after last part */
+   if( jj > 1 ){
+     jd = nn % jj ;
+     if( jd > 0 ) nn += (jj-jd) ;
+   }
+   rt->size = nn ;                          /* size of entire struct */
+
+   /* save this in the table of rowtypes,
+      and return the numerical code for this new type */
+
+printf("NI_rowtype_define: %s %s\n",tname,tdef) ;
+printf("  code     = %d\n",rt->code) ;
+printf("  size     = %d\n",rt->size) ;
+printf("  part_num = %d\n",rt->part_num) ;
+
+printf("  part_typ = " ) ;
+for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_typ[ii]) ;
+printf("\n") ;
+
+printf("  part_off = " ) ;
+for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_off[ii]) ;
+printf("\n") ;
+
+   ROWTYPE_register(rt) ; return rt->code ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Find a rowtype by its name. */
+
+NI_rowtype * NI_rowtype_find_name( char *nn )
+{
+   if( rowtype_table == NULL ) setup_fixed_types() ;
+   return (NI_rowtype *) findin_Htable(nn,rowtype_table) ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Find a rowtype by its integer code. */
+
+NI_rowtype * NI_rowtype_find_code( int nn )
+{
+   char ts[16] ;
+   if( rowtype_table == NULL ) setup_fixed_types() ;
+   sprintf(ts,"%06d",nn) ;
+   return (NI_rowtype *) findin_Htable(ts,rowtype_table) ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Given a rowtype name, find its integer code.
+    Returns -1 if the name isn't found in the rowtype table.
+----------------------------------------------------------------------*/
+
+int NI_rowtype_name_to_code( char *nn )
+{
+   NI_rowtype *rt = NI_rowtype_find_name( nn ) ;
+   if( rt != NULL ) return rt->code ;
+   return -1 ;
+}

@@ -416,8 +416,9 @@ extern void * NIDS_dataset_transpose( void * ) ;
  ( (tt) >= NIDS_VECTOR_TYPE && (tt) <= NIDS_STRING_VECTOR_TYPE )
 
 #define NIDS_patch_vector_type(nn)                              \
- do{ if( NIDS_is_vector_type((nn)->type) )                      \
-       (nn)->type = NIDS_VECTOR_TYPE + (nn)->vec_type + 1 ;     \
+ do{ if( NIDS_is_vector_type((nn)->type) &&                     \
+         NIDS_is_builtin_type((nn)->vec_typ) )                  \
+       (nn)->type = NIDS_VECTOR_TYPE + (nn)->vec_typ + 1 ;      \
  } while(0)
 
 #define NIDS_RECT_DOMAIN_TYPE     6660201
@@ -444,6 +445,14 @@ extern void * NIDS_dataset_transpose( void * ) ;
 #define NIDS_STAT_NORMAL     11   /* mean, variance */
 #define NIDS_STAT_FTEST_NONC 12   /* 2 DOF, noncentrality */
 #define NIDS_STAT_CHISQ_NONC 13   /* DOF, noncentrality */
+#define NIDS_STAT_LOGISTIC   14   /* location, scale */
+#define NIDS_STAT_LAPLACE    15   /* location, scale */
+#define NIDS_STAT_UNIFORM    16   /* start, end */
+#define NIDS_STAT_TTEST_NONC 17   /* DOF, noncentrality */
+#define NIDS_STAT_WEIBULL    18   /* location, scale, power */
+#define NIDS_STAT_CHI        19   /* DOF */
+#define NIDS_STAT_INVGAUSS   20   /* mu, lambda */
+#define NIDS_STAT_EXTVAL     21   /* location, scale */
 
 /*--- Data type codes (0..8 match niml.h; 0..7 match AFNI's mrilib.h) ---*/
 
@@ -462,6 +471,9 @@ extern void * NIDS_dataset_transpose( void * ) ;
 
 #define NIDS_FIRST_DATATYPE  NIDS_BYTE
 #define NIDS_LAST_DATATYPE   NIDS_STRING
+
+#define NIDS_is_builtin_type(t)                                \
+  ( (t) >= NIDS_FIRST_DATATYPE && (t) <= NIDS_LAST_DATATYPE )
 
 extern int NIDS_datatype_size( int ) ;
 

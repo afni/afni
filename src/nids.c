@@ -13,16 +13,23 @@
 int NIDS_datatype_size( int dtyp )
 {
    switch( dtyp ){
-    case NIDS_BYTE:        return sizeof(byte);
-    case NIDS_SHORT:       return sizeof(short);
-    case NIDS_INT:         return sizeof(int);
-    case NIDS_FLOAT:       return sizeof(float);
-    case NIDS_DOUBLE:      return sizeof(double);
-    case NIDS_COMPLEX:     return sizeof(complex);
-    case NIDS_RGB:         return sizeof(rgb);
-    case NIDS_RGBA:        return sizeof(rgba);
+     case NIDS_BYTE:        return sizeof(byte);
+     case NIDS_SHORT:       return sizeof(short);
+     case NIDS_INT:         return sizeof(int);
+     case NIDS_FLOAT:       return sizeof(float);
+     case NIDS_DOUBLE:      return sizeof(double);
+     case NIDS_COMPLEX:     return sizeof(complex);
+     case NIDS_RGB:         return sizeof(rgb);
+     case NIDS_RGBA:        return sizeof(rgba);
+     case NIDS_STRING:      return 0 ;           /* not fixed in size */
+
+     default:{
+       NI_rowtype *rt = NI_rowtype_find_code(dtyp) ;
+       if( rt != NULL ) return rt->size ;
+     }
+     return 0 ;
   }
-  return 0;
+  return 0 ;  /* unreachable */
 }
 
 /*-----------------------------------------------------------*/
@@ -403,13 +410,18 @@ void * NIDS_new_vector( int dtyp , NIDS_index_t len )
 {
    NIDS_vector *nv ;
    NIDS_index_t ii ;
+   int siz ;
 
    if( len <= 0 ) return NULL ;
-   if( dtyp < NIDS_FIRST_DATATYPE ||
-       dtyp > NIDS_LAST_DATATYPE    ) return NULL ;
+
+   siz = NIDS_datatype_size( dtyp ) ;
+   if( dtyp != NIDS_STRING && siz <= 0 ) return NULL ;
 
    nv = NIDS_new(NIDS_vector) ;
-   nv->type    = NIDS_VECTOR_TYPE + dtyp + 1 ;  /* type patched */
+   if( NIDS_is_builtin_type(dtyp) )
+     nv->type  = NIDS_VECTOR_TYPE + dtyp + 1 ;  /* type patched */
+   else
+     nv->type  = NIDS_VECTOR_TYPE ;             /* generic type */
    nv->vec_typ = dtyp ;
 
    if( dtyp != NIDS_STRING ){
@@ -479,7 +491,7 @@ void * NIDS_dataset_transpose( void *ndd )
 
    /* copy data from old vectors to new vectors */
 
-   if( tt != NIDS_STRING ){                      /* copy numbers */
+   if( tt != NIDS_STRING ){                      /* copy fixed length content */
 
      char *vnew , *vold ;
      for( ii=0 ; ii < nvec_new ; ii++ ){
@@ -519,9 +531,10 @@ void NIDS_set_vector_range( void *nvv )
    NIDS_vector *nv = (NIDS_vector *)nvv ;
    NIDS_index_t len, ii ;
 
-   if( nv == NULL                     ||
-       !NIDS_is_vector_type(nv->type) ||
-       nv->vec_typ == NIDS_STRING       ) return ;
+   if( nv == NULL                         ||
+       !NIDS_is_vector_type(nv->type)     ||
+       !NIDS_is_builtin_type(nv->vec_typ) ||
+       nv->vec_typ == NIDS_STRING           ) return ;
 
    len = nv->vec_len ; if( len <= 0 ) return ;
 
