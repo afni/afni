@@ -853,6 +853,7 @@ if(PRINT_TRACING)
          /* first time thru: load data from dataset */
 
          if( nnow == 0 ){
+            float fac ;
             switch( dtyp ){
                case MRI_short:{
                   short * dar = (short *) DSET_ARRAY(dset_time,it) ;
@@ -872,6 +873,9 @@ if(PRINT_TRACING)
                }
                break ;
             }
+            fac = DSET_BRICK_FACTOR(dset_time,it) ;  /* 21 Jul 2004: Ooopsie. */
+            if( fac > 0.0 )
+              for( iv=0 ; iv < nvox ; iv++ ) vval[iv] *= fac ;
          }
 
          /* process the data update */
