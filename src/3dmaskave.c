@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*-----------
@@ -23,6 +23,10 @@ int main( int argc , char * argv[] )
    int indump = 0 ;                           /* 19 Aug 1999 */
    int pslice=-1 , qslice=-1 , nxy,nz ;       /* 15 Sep 1999 */
    int quiet=0 ;                              /* 23 Nov 1999 */
+
+   int medianit = 0 ;                         /* 06 Jul 2003 */
+   float *exar ;                              /* 06 Jul 2003 */
+   char *sname = "Average" ;                  /* 06 Jul 2003 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskave [options] dataset\n"
@@ -62,6 +66,8 @@ int main( int argc , char * argv[] )
              "\n"
              "  -sigma       Means to compute the standard deviation as well\n"
              "                 as the mean.\n"
+             "  -median      Means to compute the median instead of the mean.\n"
+             "                 ('-sigma' is meaningless if you use '-median'.)\n"
              "  -dump        Means to print out all the voxel values that\n"
              "                 go into the average.\n"
              "  -udump       Means to print out all the voxel values that\n"
@@ -206,8 +212,15 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
+      if( strncmp(argv[narg],"-median",5) == 0 ){
+         medianit = 1 ;
+         narg++ ; continue ;
+      }
+
       fprintf(stderr,"*** Unknown option: %s\n",argv[narg]) ; exit(1) ;
    }
+
+   if( medianit ){ sigmait = 0; sname = "Median"; }
 
    /* should have one more argument */
 
@@ -391,6 +404,8 @@ int main( int argc , char * argv[] )
       div_bot = div ; div_top = div+1 ;
    }
 
+   exar = (float *) malloc( sizeof(float) * mcount ) ; /* 06 Jul 2003 */
+
    for( iv=div_bot ; iv < div_top ; iv++ ){
 
       switch( DSET_BRICK_TYPE(input_dset,iv) ){
@@ -425,16 +440,17 @@ int main( int argc , char * argv[] )
             }
 
             for( ii=mc=0 ; ii < nvox ; ii++ )
-               if( GOOD(ii) ){ sum += bar[ii] ; mc++ ; }
+               if( GOOD(ii) ){ sum += bar[ii] ; exar[mc++] = bar[ii] ; }
             if( mc > 0 ) sum = sum / mc ;
 
             if( sigmait && mc > 1 ){
                for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ) sigma += SQR(bar[ii]-sum) ;
                sigma = mfac * sqrt( sigma/(mc-1) ) ;
             }
+            if( medianit ) sum = qmed_float( mc , exar ) ;
             sum = mfac * sum ;
 
-            if( dumpit ) printf("+++ Average = %g",sum) ;
+            if( dumpit ) printf("+++ %s = %g",sname,sum) ;
             else         printf("%g",sum) ;
 
             if( sigmait ){
@@ -469,16 +485,17 @@ int main( int argc , char * argv[] )
             }
 
             for( ii=mc=0 ; ii < nvox ; ii++ )
-               if( GOOD(ii) ){ sum += bar[ii] ; mc++ ; }
+               if( GOOD(ii) ){ sum += bar[ii] ; exar[mc++] = bar[ii] ; }
             if( mc > 0 ) sum = sum / mc ;
 
             if( sigmait && mc > 1 ){
                for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ) sigma += SQR(bar[ii]-sum) ;
                sigma = mfac * sqrt( sigma/(mc-1) ) ;
             }
+            if( medianit ) sum = qmed_float( mc , exar ) ;
             sum = mfac * sum ;
 
-            if( dumpit ) printf("+++ Average = %g",sum) ;
+            if( dumpit ) printf("+++ %s = %g",sname,sum) ;
             else         printf("%g",sum) ;
 
             if( sigmait ){
@@ -513,16 +530,17 @@ int main( int argc , char * argv[] )
             }
 
             for( ii=mc=0 ; ii < nvox ; ii++ )
-               if( GOOD(ii) ){ sum += bar[ii] ; mc++ ; }
+               if( GOOD(ii) ){ sum += bar[ii] ; exar[mc++] = bar[ii] ; }
             if( mc > 0 ) sum = sum / mc ;
 
             if( sigmait && mc > 1 ){
                for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ) sigma += SQR(bar[ii]-sum) ;
                sigma = mfac * sqrt( sigma/(mc-1) ) ;
             }
+            if( medianit ) sum = qmed_float( mc , exar ) ;
             sum = mfac * sum ;
 
-            if( dumpit ) printf("+++ Average = %g",sum) ;
+            if( dumpit ) printf("+++ %s = %g",sname,sum) ;
             else         printf("%g",sum) ;
 
             if( sigmait ){
@@ -535,5 +553,6 @@ int main( int argc , char * argv[] )
          break ;
       }
    }
+   free(exar) ; DSET_delete(input_dset) ;
    exit(0) ;
 }
