@@ -168,7 +168,7 @@ STATUS("create initial palettes") ;
 
             if( str[0] != '[' ){                     /* found a palette label */
                strcpy(label,str) ;
-               if( !THD_filename_pure(label) ){
+               if( !THD_filename_ok(label) ){
                   fprintf(stderr,"\nIn setup file %s, bad palette label: %s.\n",
                           fname,label) ;
                   free(fbuf) ; EXRETURN ;
