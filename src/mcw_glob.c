@@ -756,6 +756,7 @@ globfree(pglob)
    29 July 1996:  Incorporated "glob" functions from tcsh-6.05, rather
                     than rely on system supplying a library.
    30 July 1996:  Extended routine to allow for 3D: type prefixes.
+   10 Feb  2000:  and for 3A: prefixes.
 --------------------------------------------------------------------------*/
 
 void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
@@ -794,11 +795,33 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
          if( ig == 6 ){
             sprintf(fpre , "%s:%d:%d:%d:%d:%d:" , prefix,b1,b2,b3,b4,b5) ;
             lpre = strlen(fpre) ;
+         } else {
+            ig = 0 ;
          }
       }
 
-      if( ig == 6 ) (void) glob( fname , 0 , NULL ,  &gl ) ;  /* 3D: was OK */
-      else          (void) glob( fn    , 0 , NULL ,  &gl ) ;  /*     not OK */
+      if( strlen(fn) > 9 && fn[0] == '3' && fn[1] == 'A' && fn[3] == ':' ){
+         ib = 0 ;
+         prefix[ib++] = '3' ;
+         prefix[ib++] = 'A' ;
+         prefix[ib++] = fn[2] ;
+         prefix[ib++] = '\0' ;
+
+         ig = sscanf( fn+ib , "%d:%d:%d:%s" ,     /* must scan all */
+                      &b1,&b2,&b3, fname ) ;   /* six items OK  */
+
+         /** if have all 4 3A: items, then make a 3A: prefix for output **/
+
+         if( ig == 4 ){
+            sprintf(fpre , "%s:%d:%d:%d:" , prefix,b1,b2,b3) ;
+            lpre = strlen(fpre) ;
+         } else {
+            ig = 0 ;
+         }
+      }
+
+      if( ig > 0 ) (void) glob( fname , 0 , NULL ,  &gl ) ;  /* 3D: was OK */
+      else         (void) glob( fn    , 0 , NULL ,  &gl ) ;  /*     not OK */
 
       /** put each matched string into the output array **/
 
@@ -812,11 +835,11 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
 
          for( ib=0 ; ib < gl.gl_pathc ; ib++ ){
             ilen = strlen( gl.gl_pathv[ib] ) + 1 ;  /* length of this name */
-            if( ig == 6 ) ilen += lpre ;            /* plus 3D: prefix?    */
+            if( ig > 0 ) ilen += lpre ;             /* plus 3D: prefix?    */
 
             gout[ib+gold] = (char *) malloc( sizeof(char) * ilen ) ; /* output! */
 
-            if( ig == 6 ){
+            if( ig > 0 ){
                strcpy( gout[ib+gold] , fpre ) ;             /* 3D: prefix */
                strcat( gout[ib+gold] , gl.gl_pathv[ib] ) ;  /* then name  */
             }

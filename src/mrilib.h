@@ -391,6 +391,7 @@ MRI_IMAGE *mri_new_7D_generic( int nx, int ny, int nz, int nt,
                        (iq)->nu, (iq)->nv, (iq)->nw , (kk) , FALSE )
 
 extern MRI_IMARR * mri_read_3D( char * ) ;
+extern MRI_IMARR * mri_read_3A( char * ) ;
 extern MRI_IMARR * mri_read_file( char * ) ;
 extern int mri_imcount( char * ) ;
 extern MRI_IMARR * mri_read_many_files( int nf , char * fn[] ) ;

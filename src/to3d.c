@@ -86,7 +86,7 @@ void AFNI_handler(char * msg){}
 
 void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
-   char msg[256] ;
+   char msg[512] ;
 
    MCW_help_CB(NULL,NULL,NULL) ;
    MCW_alter_widget_cursor( wset.topshell , -XC_left_ptr , "yellow","blue" ) ;

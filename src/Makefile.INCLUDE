@@ -1094,5 +1094,11 @@ bitvec.o:bitvec.c
 bitvec:bitvec.o
 	$(CC) -o bitvec bitvec.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
+unu.o:unu.c
+	$(CCFAST) -c unu.c $(IFLAGS)
+
+unu:unu.o
+	$(CC) -o unu unu.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

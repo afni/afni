@@ -36,8 +36,8 @@ NAME arg
 TR arg
   This command tells AFNI what the imaging TR is, in seconds. The default
   value, if this command is not given, is 1.0.
- *It is strongly recommended that this command be used, so that the
-  dataset has the correct header information.
+ *It is recommended that this command be used, so that the dataset has
+  the correct header information.  But this command is not required.
 
 ZDELTA dz
   This command tells AFNI the slice thickness, in mm.
@@ -52,6 +52,7 @@ XYFOV xx yy [zz]
  *This command MUST be used to at least to give the sizes of the dataset
   along the x- and y-axes.  If 'zz' is not given, then the ZDELTA command
   is also required.
+ *If 'yy'==0, then it is taken to be the same as 'xx' (square images).
 
 ZFIRST zz[d]
   Specifies the location of the first slice, along the z-axis, in mm.
@@ -84,7 +85,7 @@ XYMATRIX nx ny [nz]
 ZNUM nz
   Specifies the number of pixels along the z-axis (slice direction).
  *This value must be given, either with XYMATRIX or ZNUM.
-  Note that AFNI cannot handle single-slice datasets!
+ *Note that AFNI cannot handle single-slice datasets!
 
 DATUM typ
   Specifies the type of data in the images:
@@ -128,7 +129,8 @@ XYZAXES xcode ycode zcode
 How AFNI reads realtime command and image data
 ==============================================
 This stuff is all carried out in the image source program (e.g., Rx_xpi).
-Most of the current source code is in file ep_afni.c.
+Most of the current source code is in file ep_afni.c, for operation at
+the MCW Bruker 3 Tesla scanner.
 
 Step 1: The image source program opens a TCP/IP socket to the system
         running AFNI, on port 7954 - the realtime AFNI plugin is listening
@@ -236,7 +238,8 @@ host is on the "trust list".  The default trust list is
 
     141.106.106  = any MCW Biophysics computer (we're very trustworthy)
     127.0.0.1    = localhost
-    192.168.0    = private class B networks
+    192.168.0    = private class B networks (this is a reserved set of
+                   addresses that should not be visible to the Internet)
 
 You can add to this list by defining the environment variable as in the
 example below (before starting AFNI):

@@ -444,6 +444,11 @@ MRI_IMARR * mri_read_file( char * fname )
 
       newar = mri_read_3D( new_fname ) ;   /* read from a 3D file */
 
+   } else if( strlen(new_fname) > 9 &&
+              new_fname[0] == '3' && new_fname[1] == 'A' && new_fname[3] == ':' ){
+
+      newar = mri_read_3A( new_fname ) ;
+
    } else {
       newim = mri_read( new_fname ) ;      /* read from a 2D file */
       if( newim == NULL ){ free(new_fname) ; return NULL ; }
@@ -478,7 +483,7 @@ MRI_IMAGE * mri_read_just_one( char * fname )
 int mri_imcount( char * tname )
 {
    int hglobal , himage , nx , ny , nz , ngood ;
-   char fname[256] ;
+   char fname[256]="\0" ;
    char * new_fname ;
 
    if( tname == NULL ) return 0 ;
@@ -528,6 +533,33 @@ int mri_imcount( char * tname )
           nx <= 0   || ny <= 0    || nz <= 0 ||
           strlen(fname) <= 0                       ) return 0 ;
       else                                           return nz ;
+   }
+
+   /*** a 3A filename ***/
+
+   if( strlen(new_fname) > 9 &&
+       new_fname[0] == '3' && new_fname[1] == 'A' && new_fname[3] == ':' ){
+
+      switch( new_fname[2] ){
+
+         default: ngood = 0 ; break ;
+
+         case 's':
+            ngood = sscanf( new_fname, "3As:%d:%d:%d:%s", &nx, &ny, &nz, fname ) ;
+            break ;
+
+         case 'b':
+            ngood = sscanf( new_fname, "3Ab:%d:%d:%d:%s", &nx, &ny, &nz, fname ) ;
+            break ;
+
+         case 'f':
+            ngood = sscanf( new_fname, "3Af:%d:%d:%d:%s", &nx, &ny, &nz, fname ) ;
+            break ;
+      }
+
+      free( new_fname ) ;
+      if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) return 0 ;
+      else                                                                   return nz ;
    }
 
    /*** not a 3D filename ***/
@@ -1051,6 +1083,173 @@ MRI_IMAGE * mri_read_1D( char * fname )
 }
 
 /*---------------------------------------------------------------------------
+  Read in an ASCII file to a float array.
+-----------------------------------------------------------------------------*/
+
+static void read_ascii_floats( char * fname, int * nff , float ** ff )
+{
+   int ii,jj,val , used_tsar , alloc_tsar ;
+   float * tsar ;
+   float ftemp ;
+   FILE * fts ;
+   char buf[LBUF] ;
+   char * ptr ;
+   int  bpos , blen , nrow ;
+
+   /* check inputs */
+
+   if( nff == NULL || ff == NULL ) return ;
+   if( fname == NULL || fname[0] == '\0' ){ *nff=0 ; *ff=NULL ; return ; }
+
+   fts = fopen( fname , "r" ) ;
+   if( fts == NULL ){ *nff=0 ; *ff=NULL ; return ; }
+
+   /* make some space */
+
+   used_tsar  = 0 ;
+   alloc_tsar = INC_TSARSIZE ;
+   tsar       = (float *) malloc( sizeof(float) * alloc_tsar ) ;
+   if( tsar == NULL ){
+      fprintf(stderr,"\n*** malloc fails: read_ascii_floats ***\n"); exit(1);
+   }
+
+   /** read lines, convert to floats, store **/
+
+   nrow = 0 ;
+   while( 1 ){
+      ptr = fgets( buf , LBUF , fts ) ;  /* read */
+      if( ptr == NULL ) break ;          /* failure --> end of data */
+      blen = strlen(buf) ;
+      if( blen <= 0 ) break ;            /* nothing --> end of data */
+
+      for( ii=0 ; ii < blen && isspace(buf[ii]) ; ii++ ) ; /* skip blanks */
+
+      if( ii      == blen ) continue ;    /* skip all blank line */
+      if( buf[ii] == '#'  ) continue ;    /* skip a comment line */
+      if( buf[ii] == '!'  ) continue ;
+
+      /* convert commas to blanks */
+
+      for( jj=ii ; jj < blen ; jj++ ) if( buf[jj] == ',' ) buf[jj] = ' ' ;
+
+      for( bpos=ii ; bpos < blen ; ){
+         val = sscanf( buf+bpos , "%f%n" , &ftemp , &jj ) ;  /* read from string */
+         if( val < 1 ) break ;                               /* bad read? */
+         bpos += jj ;                                        /* start of next read */
+
+         if( used_tsar == alloc_tsar ){
+            alloc_tsar += INC_TSARSIZE ;
+            tsar        = (float *)realloc( tsar,sizeof(float)*alloc_tsar );
+            if( tsar == NULL ){
+               fprintf(stderr,"\n*** realloc fails: read_ascii_floats ***\n"); exit(1);
+            }
+         }
+
+         tsar[used_tsar++] = ftemp ;  /* store input */
+      }
+
+      nrow++ ;                  /* got one more complete row! */
+   }
+   fclose( fts ) ; /* finished with this file! */
+
+   if( used_tsar <= 1 ){ free(tsar) ; *nff=0 ; *ff=NULL ; return ; }
+
+   tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
+   if( tsar == NULL ){
+      fprintf(stderr,"\n*** final realloc fails: read_ascii_floats ***\n"); exit(1);
+   }
+
+   *nff = used_tsar ; *ff  = tsar ; return ;
+}
+
+/*--------------------------------------------------------------
+   Read a pile of images from one ASCII file.
+   Adapted from mri_read_3D - Feb 2000 - RWCox.
+   [N.B.: if this routine is altered, don't forget mri_imcount!]
+----------------------------------------------------------------*/
+
+MRI_IMARR * mri_read_3A( char * tname )
+{
+   int nx , ny , nz , ii , nxyz,nxy , nff ;
+   int ngood , length , kim , datum_type ;
+   char fname[256]="\0" , buf[512] ;
+   MRI_IMARR * newar ;
+   MRI_IMAGE * newim , * flim ;
+   float * ff ;
+
+   /*** get info from 3A tname ***/
+
+   if( tname == NULL || strlen(tname) < 10 ) return NULL ;
+
+   switch( tname[2] ){  /* allow for 3As:, 3Ab:, 3Af: */
+
+      default: ngood = 0 ; break ;
+
+      case 's':
+         ngood = sscanf( tname, "3As:%d:%d:%d:%s", &nx, &ny, &nz, fname ) ;
+         datum_type = MRI_short ;
+         break ;
+
+      case 'b':
+         ngood = sscanf( tname, "3Ab:%d:%d:%d:%s", &nx, &ny, &nz, fname ) ;
+         datum_type = MRI_byte ;
+         break ;
+
+      case 'f':
+         ngood = sscanf( tname, "3Af:%d:%d:%d:%s", &nx, &ny, &nz, fname ) ;
+         datum_type = MRI_float ;
+         break ;
+   }
+
+   if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) return NULL ;
+
+   /* read the input file */
+
+   read_ascii_floats( fname , &nff , &ff ) ;
+
+   if( nff <= 0 || ff == NULL ) return NULL ;
+
+   nxy = nx*ny ; nxyz = nxy*nz ;
+
+   if( nff < nxyz ){
+      fprintf(stderr,
+                "\n** WARNING: %s is too short - padding with %d zeros\n",
+                tname,nxyz-nff) ;
+      ff = (float *) realloc( ff , sizeof(float) * nxyz ) ;
+      for( ii=nff ; ii < nxyz ; ii++ ) ff[ii] = 0.0 ;
+      nff = nxyz ;
+   } else if( nff > nxyz ){
+      fprintf(stderr,
+                "\n** WARNING: %s is too long - truncating off last %d values\n",
+                tname,nff-nxyz) ;
+   }
+
+   /* put the input data into MRI_IMAGEs */
+
+   INIT_IMARR(newar) ;
+
+   for( kim=0 ; kim < nz ; kim++ ){
+      flim = mri_new( nx,ny , MRI_float ) ;
+      memcpy( MRI_FLOAT_PTR(flim) , ff+nxy*kim , sizeof(float)*nxy ) ;
+      switch( datum_type ){
+         case MRI_float: newim = flim                                           ; break ;
+         case MRI_short: newim = mri_to_short(1.0,flim)        ; mri_free(flim) ; break ;
+         case MRI_byte:  newim = mri_to_byte_scl(1.0,0.0,flim) ; mri_free(flim) ; break ;
+      }
+
+      if( nz == 1 ) mri_add_name( fname , newim ) ;
+      else {
+         sprintf( buf , "%s#%d" , fname,kim ) ;
+         mri_add_name( buf , newim ) ;
+      }
+
+      ADDTO_IMARR(newar,newim) ;
+   }
+
+   free(ff) ; return newar ;
+}
+
+/*---------------------------------------------------------------------------
    Stuff to read a file in "delay" mode -- 01 Jan 1997.
 -----------------------------------------------------------------------------*/
 
@@ -1145,6 +1344,11 @@ MRI_IMARR * mri_read_file_delay( char * fname )
    if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' ){
 
       newar = mri_read_3D_delay( new_fname ) ;   /* read from a 3D file */
+
+   } else if( strlen(new_fname) > 9 &&
+              new_fname[0] == '3' && new_fname[1] == 'A' && new_fname[3] == ':' ){
+
+      newar = mri_read_3A( new_fname ) ;
 
    } else {
       newim = mri_read( new_fname ) ;      /* read from a 2D file */

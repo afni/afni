@@ -2042,3 +2042,7 @@
  * Added mcw_malloc_sizeof() to mcw_malloc.[ch], to return the size of
      of a malloc()-ed region, if possible.
  * Added TRUNCATE_IMARR() macro to mrilib.h.
+
+10 Feb 2000
+ * Added 3A.: image formats to allow input of unstructured ASCII files
+     into AFNI programs.  Routines changed in mri_read.c and mcw_glob.c.

@@ -4221,7 +4221,7 @@ ENTRY("AFNI_new_fim_menu") ;
 
       (void) XtVaCreateManagedWidget(
               "dialog" , xmSeparatorWidgetClass , qbut_menu ,
-               XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+               XmNseparatorType , XmDOUBLE_LINE , NULL ) ;
 
       (void) XtVaCreateManagedWidget(
                "dialog" , xmLabelWidgetClass , qbut_menu ,
