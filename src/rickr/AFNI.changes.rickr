@@ -349,3 +349,9 @@
 05 November 2003:
   * modified SUMA_3dVol2Surf.c to include ENTRY() stuff (3dVol2Surf -> v3.7)
 
+07 November 2003:
+  * checked in an initial version of SurfMeasures (v0.2)
+      - this is not a release version (this checkin is for backup)
+      - supported functions are coord_A, coord_B, n_area_A, n_area_B,
+        nodes, node_vol and thick
+
