@@ -16,8 +16,8 @@
 #else
 # define INLINE /*nada*/
 # ifdef HP
-#  pragma INLINE  __MRI_scaler
-#  pragma INLINE  __MRI_rotfunc
+#  pragma INLINE  xxMRI_scaler
+#  pragma INLINE  xxMRI_rotfunc
 # endif
 #endif
 
@@ -28,7 +28,7 @@
 
 static float sx_scale , sy_scale ;  /* global scaler data */
 
-INLINE void __MRI_scaler( float xpr, float ypr, float *xx , float *yy )
+INLINE void xxMRI_scaler( float xpr, float ypr, float *xx , float *yy )
 {
    *xx = sx_scale * xpr ;
    *yy = sy_scale * ypr ;
@@ -91,9 +91,9 @@ MRI_IMAGE *mri_resize( MRI_IMAGE *im , int nxnew , int nynew )
       wtype = MRI_BICUBIC ;
    }
 
-   return mri_warp( im , nnx,nny , wtype , __MRI_scaler ) ;
+   return mri_warp( im , nnx,nny , wtype , xxMRI_scaler ) ;
 #else
-   return mri_warp_bicubic( im , nnx,nny , __MRI_scaler ) ;
+   return mri_warp_bicubic( im , nnx,nny , xxMRI_scaler ) ;
 #endif
 }
 
@@ -107,6 +107,7 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
    float xpr,ypr , xx,yy , fx,fy ;
    int ii,jj, nx,ny , ix,jy ;
    float f_jm1,f_j00,f_jp1,f_jp2 , wt_m1,wt_00,wt_p1,wt_p2 ;
+   float bot,top,val ;  /* 29 Mar 2003 */
 
    nx = im->nx ;  /* input image dimensions, for convenience */
    ny = im->ny ;
@@ -114,15 +115,55 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
    nxnew = (nxnew > 0) ? nxnew : nx ;  /* default output image sizes */
    nynew = (nynew > 0) ? nynew : ny ;
 
-   if( im->kind == MRI_float ){    /* convert input to float, if needed */
-      imfl = im ;
-   } else {
-      imfl = mri_to_float( im ) ;
+   switch( im->kind ){   /* 29 Mar 2003: allow for different input types */
+                         /*              by doing components 1 at a time */
+     case MRI_float:
+       imfl = im ; break ;
+
+     default:
+       imfl = mri_to_float(im) ; break ;
+
+     case MRI_short:{
+       imfl = mri_to_float(im) ;
+       new  = mri_warp_bicubic( imfl , nxnew,nynew , wf ) ;
+       mri_free(imfl) ;
+       imfl = mri_to_mri(MRI_short,new) ;
+       mri_free(new) ; return imfl ;
+     }
+
+     case MRI_byte:{
+       imfl = mri_to_float(im) ;
+       new  = mri_warp_bicubic( imfl , nxnew,nynew , wf ) ;
+       mri_free(imfl) ;
+       imfl = mri_to_mri(MRI_byte,new) ;
+       mri_free(new) ; return imfl ;
+     }
+
+     case MRI_rgb:{
+       MRI_IMARR *imar = mri_rgb_to_3float(im) ;
+       MRI_IMAGE *rim,*gim,*bim ;
+       rim = mri_warp_bicubic( IMARR_SUBIM(imar,0), nxnew,nynew, wf ) ;
+       gim = mri_warp_bicubic( IMARR_SUBIM(imar,1), nxnew,nynew, wf ) ;
+       bim = mri_warp_bicubic( IMARR_SUBIM(imar,2), nxnew,nynew, wf ) ;
+       DESTROY_IMARR(imar) ;
+       new = mri_3to_rgb( rim,gim,bim ) ;
+       mri_free(rim); mri_free(gim); mri_free(bim); return new;
+     }
+
    }
+
+   /* at this point, imfl is in MRI_float format */
+
    far = mri_data_pointer( imfl ) ;  /* easy access to float data */
 
    new = mri_new( nxnew , nynew , MRI_float ) ;   /* output image */
    nar = mri_data_pointer( new ) ;                /* output image data */
+
+   bot = top = far[0] ;                       /* 29 Mar 2003: */
+   for( ii=1 ; ii < new->nvox ; ii++ ){       /* clip output data range */
+          if( far[ii] > top ) top = far[ii] ;
+     else if( far[ii] < bot ) bot = far[ii] ;
+   }
 
    /*** loop over output points and warp to them ***/
 
@@ -167,9 +208,13 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
 
          /* interpolate between y-levels to jy+fy */
 
-         nar[ii+jj*nxnew] = (  P_M1(fy) * f_jm1 + P_00(fy) * f_j00
-                             + P_P1(fy) * f_jp1 + P_P2(fy) * f_jp2 ) / 36.0 ;
+         val = (  P_M1(fy) * f_jm1 + P_00(fy) * f_j00
+                + P_P1(fy) * f_jp1 + P_P2(fy) * f_jp2 ) / 36.0 ;
 
+              if( val > top ) val = top ;  /* 29 Mar 2003 */
+         else if( val < bot ) val = bot ;
+
+         nar[ii+jj*nxnew] = val ;
       }
    }
 
@@ -237,7 +282,7 @@ MRI_IMAGE *mri_warp_bilinear( MRI_IMAGE *im , int nxnew , int nynew ,
 
 static float rot_dx , rot_dy , rot_cph , rot_sph ;    /* global rotfunc data */
 
-INLINE void __MRI_rotfunc( float xpr , float ypr , float *xx , float *yy )
+INLINE void xxMRI_rotfunc( float xpr , float ypr , float *xx , float *yy )
 {
    *xx =  rot_cph * xpr + rot_sph * ypr + rot_dx ;
    *yy = -rot_sph * xpr + rot_cph * ypr + rot_dy ;
@@ -275,7 +320,7 @@ MRI_IMAGE *mri_rotate( MRI_IMAGE *im, float aa, float bb, float phi, float scl )
       rot_sph /= scl ;
    }
 
-   return mri_warp_bicubic( im , nxnew,nynew , __MRI_rotfunc ) ;
+   return mri_warp_bicubic( im , nxnew,nynew , xxMRI_rotfunc ) ;
 }
 
 MRI_IMAGE *mri_rotate_bilinear( MRI_IMAGE *im, float aa, float bb, float phi, float scl )
@@ -301,7 +346,7 @@ MRI_IMAGE *mri_rotate_bilinear( MRI_IMAGE *im, float aa, float bb, float phi, fl
       rot_sph /= scl ;
    }
 
-   return mri_warp_bilinear( im , nxnew,nynew , __MRI_rotfunc ) ;
+   return mri_warp_bilinear( im , nxnew,nynew , xxMRI_rotfunc ) ;
 }
 
 #undef WARP_POINT_ROUTINES
@@ -392,6 +437,6 @@ float mri_rotate_point( MRI_IMAGE *im, float aa, float bb, float phi, float scl 
       rot_sph /= scl ;
    }
 
-   return mri_warp_bicubic_point( im , ix,jy , __MRI_rotfunc ) ;
+   return mri_warp_bicubic_point( im , ix,jy , xxMRI_rotfunc ) ;
 }
 #endif /* WARP_POINT_ROUTINES */
