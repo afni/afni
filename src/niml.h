@@ -12,7 +12,9 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#ifndef TCP_NODELAY
 #include <netinet/tcp.h>
+#endif
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/time.h>

@@ -48,6 +48,8 @@ static void DRAW_3D_expand( int, int *, int *, int *, int, int *, int ** ) ;  /*
 static void DRAW_2D_circle( int, int *, int *, int *, int, int *, int ** ) ;  /* 16 Oct 2002 */
 static void DRAW_3D_sphere( int, int *, int *, int *, int, int *, int ** ) ;  /* 16 Oct 2002 */
 
+static void DRAW_collapsar( int * , int * ) ;                                 /* 21 Oct 2002 */
+
 static PLUGIN_interface * plint = NULL ;
 
 static int infill_mode = 0 ;
@@ -2773,11 +2775,7 @@ fprintf(stderr,"DRAW_3D_sphere: rad=%g  dx=%g idx=%d  dy=%g jdy=%d  dz=%g kdz=%d
 
    xyzn = (int *) malloc( sizeof(int)*np*(kadd+1) ) ;   /* output array */
 
-   /** add points around each input point, culling duplicates **/
-
-   /** [for large spheres, it would be better to sort the xyzn] **/
-   /** [list and then use binary search, this this duplicate  ] **/
-   /** [removal (the 'qq' loop) is by far the slowest part    ] **/
+   /** add points around each input point **/
 
    for( ii=jj=0 ; ii < np ; ii++ ){
      ix = xd[ii] ; jy = yd[ii] ; kz = zd[ii] ;
@@ -2787,15 +2785,60 @@ fprintf(stderr,"DRAW_3D_sphere: rad=%g  dx=%g idx=%d  dy=%g jdy=%d  dz=%g kdz=%d
          ixn = ix+nn[3*kk] ; jyn = jy+nn[3*kk+1] ; kzn = kz+nn[3*kk+2] ;
          if( ixn >= 0 && ixn < nx && jyn >= 0 && jyn < ny && kzn >= 0 && kzn < nz ){
            mm = ixn + jyn*nx + kzn*nxy ;                        /* 3D index */
+#if 0
            if( ii > 0 )
              for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;   /* nada */
            else
              qq = jj ;
            if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
+#else
+           xyzn[jj++] = mm ;                                   /* save 3D index */
+#endif
          }
        }
      }
    }
 
+#if 0
+   DRAW_collapsar( &jj , xyzn ) ;
+#endif
+
    *nfill = jj ; *xyzf = xyzn ; free(nn) ; return ;
 }
+
+/*--------------------------------------------------------------------------------*/
+
+#if 0
+#define STYPE      int
+#define SLT(a,b)   (a<b)
+#define SNAME      intsort
+#include "cs_sort_template.h"
+
+static void DRAW_collapsar( int *npt , int *xyzn )
+{
+   int ii , jj , np ;
+
+   if( npt == NULL || xyzn == NULL ) return ;
+   np = *npt ; if( np <= 1 ) return ;
+
+fprintf(stderr,"sort   xyzn  "); MCHECK;
+
+   qsort_intsort( np , xyzn ) ;
+
+fprintf(stderr,"sorted xyzn  "); MCHECK;
+
+   for( ii=1 ; ii < np ; ii++ )
+     if( xyzn[ii] == xyzn[ii-1] ) break ;
+   if( ii == np ) return ;
+
+   for( jj=ii-1 ; ii < np ; ii++ ){
+     if( xyzn[ii] != xyzn[jj] ) xyzn[++jj] = xyzn[ii] ;
+   }
+
+fprintf(stderr,"cheked xyzn  "); MCHECK;
+
+fprintf(stderr,"jj=%d ii=%d\n",jj,ii) ;
+
+   *npt = jj+1 ; return ;
+}
+#endif
