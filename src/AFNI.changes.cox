@@ -4229,3 +4229,6 @@
  * Added AFNI_DEFAULT_IMSAVE environment variable, for .jpg, .tif, etc.
  * Fixed bug in afni_driver.c SETENV function - space used for putenv() must
      be permanent memory, not temporary!
+
+24 Jan 2003
+ * Added special function key stuff to imseq.c (arrows, PgUp/PgDn).

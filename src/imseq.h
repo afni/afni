@@ -479,6 +479,7 @@ typedef struct MCW_imseq {
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
 extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_crop_pb_CB( Widget, XtPointer, XtPointer ) ;
+extern void ISQ_actually_pan( MCW_imseq * , int , int ) ;
 
 /*--------------------------------------------------------------------*/
 

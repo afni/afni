@@ -7,6 +7,7 @@
 #undef MAIN
 #include "afni_graph.h"
 #include "afni.h"
+#include <X11/keysym.h>  /* 24 Jan 2003 */
 
 static int show_grapher_pixmap = 1 ;
 
@@ -2475,7 +2476,7 @@ STATUS(str) ; }
       case KeyPress:{
          XKeyEvent * event = (XKeyEvent *) ev ;
          char           buf[32] ;
-         KeySym         ks ;
+         KeySym         ks=0 ;
          int            nbuf ;
 
 STATUS("KeyPress event") ;
@@ -2483,11 +2484,20 @@ STATUS("KeyPress event") ;
          if( grapher->fd_pxWind != (Pixmap) 0 ){
             buf[0] = '\0' ;
             nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
+            if( nbuf == 0 ){   /* 24 Jan 2003: special keys */
+              switch(ks){
+                case XK_Left:      buf[0] = '<' ; break ;
+                case XK_Right:     buf[0] = '>' ; break ;
+                case XK_Page_Up:   buf[0] = 'Z' ; break ;
+                case XK_Page_Down: buf[0] = 'z' ; break ;
+              }
+            }
             if( buf[0] != '\0' ) GRA_handle_keypress( grapher , buf , ev ) ;
             else if(PRINT_TRACING){
                char str[256] ;
                sprintf(str,"*** KeyPress was empty!?  nbuf=%d",nbuf) ;
-               STATUS(str) ; }
+               STATUS(str) ;
+            }
          }
       }
       break ;
