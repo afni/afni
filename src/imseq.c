@@ -837,6 +837,10 @@ if( PRINT_TRACING ){
                           | ButtonPressMask     /* button presses */
                           | ExposureMask        /* exposures */
                           | StructureNotifyMask /* resizes */
+#ifdef ALLOW_ZOOM
+                          | Button1MotionMask  /* motion while #1 is down */
+                          | ButtonReleaseMask  /* button releases */
+#endif
                          ,
                          FALSE ,                /* nonmaskable events? */
                          ISQ_drawing_EV ,       /* super-handler! */
@@ -1087,7 +1091,23 @@ if( PRINT_TRACING ){
                       LEADING_RIG  , XmATTACH_WIDGET ,
                       LEADING_WIDGET_RIG , newseq->zoom_sep ,
                     NULL ) ;
-     MCW_reghint_children( newseq->zoom_val_av->wrowcol, "Image zoom level" );
+     MCW_reghelp_children( newseq->zoom_val_av->wrowcol,
+                           "- Images can be zoomed in\n"
+                           "  by a factor of 2, 3, or 4.\n"
+                           "- These 'Z' buttons change\n"
+                           "  the zoom factor up and down.\n"
+                           "- The arrow buttons below are\n"
+                           "  for panning the zoom window.\n"
+                           "- Panning can also be done by\n"
+                           "  pressing the Shift key, then\n"
+                           "  clicking and dragging with\n"
+                           "  Button #1 pressed in\n\n"
+                           "**WARNING: zooming in by 4 can\n"
+                           "  consume so much memory that\n"
+                           "  AFNI or the X11 server will\n"
+                           "  crash.  If this happens, then\n"
+                           "  avoid zooming that much (duh).\n" ) ;
+     MCW_reghint_children( newseq->zoom_val_av->wrowcol, "Image zoom factor" );
      AV_SENSITIZE_DOWN( newseq->zoom_val_av , False ) ;
 
      newseq->zoom_apad = new_MCW_arrowpad( newseq->wform ,
@@ -1101,8 +1121,13 @@ if( PRINT_TRACING ){
                       LEADING_WIDGET_RIG , newseq->zoom_val_av->wrowcol ,
                   NULL ) ;
 
+     MCW_reghelp_children( newseq->zoom_apad->wform ,
+                           "To pan the zoomed image window:\n"
+                           "- You can use these buttons, OR\n"
+                           "- You can drag the image using\n"
+                           "  Button #1 with the Shift key"   ) ;
      MCW_reghint_children( newseq->zoom_apad->wform ,
-                           "Pan zoomed image window" );
+                           "Pan zoomed image = Button1+Shift" );
 
      newseq->zoom_apad->parent = (XtPointer) newseq ;
 
@@ -1119,6 +1144,7 @@ if( PRINT_TRACING ){
      newseq->zoom_pw      = 0 ;
      newseq->zoom_ph      = 0 ;
      newseq->zoom_xim     = NULL ;
+     newseq->zoom_button1 = 0 ;       /* 15 Mar 2002 */
 #endif
 
    /* scale for image number */
@@ -3433,9 +3459,19 @@ ENTRY("ISQ_set_image_number") ;
    RETURN(1) ;
 }
 
+/*-------------------------------------------------------------------------*/
+
+/* 15 Mar 2002: stuff for processing X11 errors */
+
+#ifdef ALLOW_ZOOM
+static volatile int xwasbad ;
+typedef int (*xhandler)(Display *, XErrorEvent *) ;
+static int qhandler( Display *dpy , XErrorEvent *xev ){ xwasbad=1; return 0; }
+#endif
+
 /*-----------------------------------------------------------------------*/
 #ifdef ALLOW_ZOOM
-static void ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
+static int ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
 {
    int iw,ih , zlev=seq->zoom_fac , pw,ph , xoff,yoff , newim=0 ;
 
@@ -3462,9 +3498,23 @@ ENTRY("ISQ_show_zoom") ;
       it will be saved in the seq struct for next time */
 
    if( seq->zoom_pixmap == (Pixmap) 0 ){
+      xhandler old_handler = XSetErrorHandler(qhandler); xwasbad = 0;
+
       seq->zoom_pixmap = XCreatePixmap( seq->dc->display ,
                                         XtWindow(seq->wimage) ,
                                         pw , ph , seq->dc->depth ) ;
+
+      (void) XSetErrorHandler(old_handler) ;
+
+      /* if allocating pixmap failed, exit now */
+
+      if( xwasbad ){
+        fprintf(stderr,"** Can't zoom - out of memory! **\n\a");
+        AV_assign_ival( seq->zoom_val_av , 1 ) ;
+        ISQ_zoom_CB( seq->zoom_val_av , seq ) ;
+        RETURN(-1) ;
+      }
+
       seq->zoom_pw = pw ; seq->zoom_ph = ph ;
       newim++ ;
    }
@@ -3524,7 +3574,7 @@ ENTRY("ISQ_show_zoom") ;
               XtWindow(seq->wimage) , seq->dc->origGC ,
               xoff , yoff , iw,ih , 0,0 ) ;
 
-   EXRETURN ;
+   RETURN(1) ;
 }
 #endif
 
@@ -3558,7 +3608,8 @@ ENTRY("ISQ_show_image") ;
        seq->mont_nx   == 1    &&
        seq->mont_ny   == 1      ){
 
-      ISQ_show_zoom( seq ) ; EXRETURN ;
+      int ss = ISQ_show_zoom( seq ) ;
+      if( ss > 0 ) EXRETURN ;        /* if it failed, fall through */
    }
 #endif
 
@@ -3783,6 +3834,62 @@ ENTRY("ISQ_drawing_EV") ;
 
    switch( ev->type ){
 
+#ifdef ALLOW_ZOOM                            /* 15 Mar 2002 */
+      /*----- button release event -----*/
+
+      case ButtonRelease:{
+         XButtonEvent * event = (XButtonEvent *) ev ;
+
+         if( event->button == Button1 ){  /* turn off panning mode */
+            seq->zoom_button1 = 0 ;
+         }
+      }
+      break ;
+
+      /*----- motion with Button #1 pressed down -----*/
+
+      case MotionNotify:{
+        XMotionEvent * event = (XMotionEvent *) ev ;
+        int bx,by ; float hh,vv , mh,dh , hhold,vvold ;
+
+        /* check for legality */
+
+        if( !seq->zoom_button1              ||
+            seq->zoom_fac == 1              ||
+            seq->zoom_xim == NULL           ||
+            (event->state & Button1Mask)==0   ) EXRETURN ;
+
+        /*-- if here, change panning offset --*/
+
+        mh = (seq->zoom_fac-1.001)/seq->zoom_fac ;  /* max offset    */
+        dh = 0.010/seq->zoom_fac ;                  /* delta offset   */
+        hh=seq->zoom_hor_off ; hhold=hh ;           /* current offsets */
+        vv=seq->zoom_ver_off ; vvold=vv ;
+
+        bx = event->x ;                             /* see if x offset */
+        if( bx > seq->zoom_xp )                     /* must be changed */
+           hh -= dh ; if( hh < 0.0) hh = 0.0 ;
+        else if( bx < seq->zoom_xp )
+           hh += dh ; if( hh > mh ) hh = mh ;
+
+        by = event->y ;                             /* see if y offset */
+        if( by > seq->zoom_yp )                     /* must be changed */
+           vv -= dh ; if( vv < 0.0) vv = 0.0 ;
+        else if( by < seq->zoom_yp )
+           vv += dh ; if( vv > mh ) vv = mh ;
+
+        seq->zoom_xp = bx ; seq->zoom_yp = by ;     /* old xy coords */
+
+        if( vv == vvold && hh == hhold ) EXRETURN ; /* no changes? */
+
+        seq->zoom_hor_off = hh ;                    /* changes! */
+        seq->zoom_ver_off = vv ;
+        ISQ_show_zoom( seq ) ;                      /* redraw */
+        EXRETURN ;
+      }
+      break ;
+#endif
+
       /*----- redraw -----*/
 
       case Expose:{
@@ -3834,9 +3941,9 @@ DPR(" .. KeyPress") ;
          XLookupString( event , buf , 32 , &ks , NULL ) ;
          if( buf[0] == '\0' ) break ;                     /* nada */
 
-         /* 10 Mar 2002: quit if 'q' is pressed */
+         /* 10 Mar 2002: quit if 'q' or 'Q' is pressed */
 
-         if( buf[0] == 'q' ){
+         if( buf[0] == 'q' || buf[0] == 'Q' ){
            ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ; break ;
          }
 
@@ -3878,6 +3985,18 @@ DPR(" .. ButtonPress") ;
          bx  = event->x ;
          by  = event->y ;
          but = event->button ;
+
+#ifdef ALLOW_ZOOM         /* 15 Mar 2002 - turn on panning mode */
+         if( but==Button1 && (event->state&ShiftMask) ){
+            if( seq->zoom_fac > 1 ){
+              seq->zoom_xp = bx; seq->zoom_yp = by; seq->zoom_button1 = 1;
+            } else {
+              XBell(seq->dc->display,100) ;
+            }
+            EXRETURN ;
+         }
+#endif
+
          MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
          seq->wimage_width = width ;
          seq->wimage_height = height ;
@@ -3935,9 +4054,8 @@ DPR(" .. ButtonPress") ;
                 cbs.nim    = nim ;
 
                 if( but == Button1 &&
-                    (event->state & (ShiftMask|ControlMask)) ){
-                                             /* 18 Oct 2001 */
-                   event->button = Button3 ; /* fake Button3 press */
+                    (event->state & ControlMask) ){ /* 18 Oct 2001 */
+                   event->button = Button3 ;        /* fake Button3 press */
                 }
 
                 seq->status->send_CB( seq , seq->getaux , &cbs ) ;
