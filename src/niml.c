@@ -542,7 +542,7 @@ static NI_element * make_empty_data_element( header_stuff *hs )
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
 
-   nel_>vec_filled = 0 ;  /* no data has been filled into vectors */
+   nel->vec_filled = 0 ;  /* no data has been filled into vectors */
 
    if( !hs->empty ){  /* find and process ni_* attributes about vectors */
 
@@ -661,6 +661,26 @@ int NI_type_size( int val )
       case NI_RGBA:     return sizeof(rgba)    ;
       case NI_STRING:   return sizeof(char *)  ;
       case NI_LINE:     return sizeof(char *)  ;
+   }
+   return 0 ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Number of component values of a given integer type code. */
+
+static int NI_type_nval( int val )
+{
+   switch( val ){
+      case NI_BYTE:     return 1 ;
+      case NI_SHORT:    return 1 ;
+      case NI_INT:      return 1 ;
+      case NI_FLOAT:    return 1 ;
+      case NI_DOUBLE:   return 1 ;
+      case NI_COMPLEX:  return 2 ;
+      case NI_RGB:      return 3 ;
+      case NI_RGBA:     return 4 ;
+      case NI_STRING:   return 0 ;
+      case NI_LINE:     return 0 ;
    }
    return 0 ;
 }
@@ -1848,6 +1868,10 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
 /******* Functions to read and write data and group elements. *********/
 /**********************************************************************/
 
+/* prototype */
+
+static int decode_one_double( NI_stream_type *, int *, double * ) ;
+
 /*--------------------------------------------------------------------*/
 /*! Read an element (maybe a group) from the stream.
 
@@ -1871,6 +1895,9 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
    read even in the buffer, or because the input data stream has gone
    bad (i.e., will return no more data ever).  To check for the latter
    case, use NI_stream_readcheck().
+
+   This code does not yet support String or Line input - only the
+   numeric input types are implemented!
 ----------------------------------------------------------------------*/
 
 void * NI_read_element( NI_stream_type *ns )
@@ -1885,7 +1912,7 @@ void * NI_read_element( NI_stream_type *ns )
    /*-- Check if we have any data left over in the buffer,
         or if we at least can read some data from the stream --*/
 
-Restart:                            /* loop back here to retry */
+HeadRestart:                            /* loop back here to retry */
    num_restart++ ;
    if( num_restart > 5 ) return NULL ;  /* don't allow too many loops */
 
@@ -1910,7 +1937,7 @@ Restart:                            /* loop back here to retry */
 
    if( cstart == NULL ){   /* no header start */
       ns->nbuf = 0 ;       /* discard all data in buffer */
-      goto Restart ;       /* try to read more data */
+      goto HeadRestart ;   /* try to get more data */
    }
 
    /*-- If here, we found a start character! --*/
@@ -1920,7 +1947,7 @@ Restart:                            /* loop back here to retry */
    if( nn+1 >= ns->nbuf ){ /* start character is last in buf */
       ns->nbuf   = 1   ;   /* toss out all stuff before '<'  */
       ns->buf[0] = '<' ;
-      goto Restart     ;   /* try to read more data */
+      goto HeadRestart ;   /* try to get more data */
    }
 
    /*-- Now look for a stop character. --*/
@@ -1933,7 +1960,7 @@ Restart:                            /* loop back here to retry */
          memmove( ns->buf , cstart , ns->nbuf-nn ) ;
          ns->nbuf -= nn ;
       }
-      if( ns->nbuf < NI_BUFSIZE ) goto Restart ; /* try to read more data */
+      if( ns->nbuf < NI_BUFSIZE ) goto HeadRestart ; /* try to get more data */
 
       /* If here, then the header is apparently more than 64K long.
          This is unacceptable, and so we will flush all the data
@@ -1943,7 +1970,7 @@ Restart:                            /* loop back here to retry */
          have to deal with its tail. Oh well: life is tough, then you die. */
 
       ns->nbuf = 0 ;
-      goto Restart ;  /* try to read more data */
+      goto HeadRestart ;  /* try to get more data */
    }
 
    /*----- If here, have start and stop characters,
@@ -1961,10 +1988,10 @@ Restart:                            /* loop back here to retry */
       } else {
          ns->nbuf = 0 ;
       }
-      goto Restart ; /* try to read more data */
+      goto HeadRestart ; /* try to get more data */
    }
 
-   /*----- If here, have parsed a header (and will not Restart).
+   /*----- If here, have parsed a header (and will not HeadRestart).
            First, expunge the data bytes that were consumed to make
            the header; that is, we can then start reading data from
            ns->buf[0] .. ns->buf[ns->nbuf-1]                        --*/
@@ -2040,7 +2067,7 @@ Restart:                            /* loop back here to retry */
         /*......................................................*/
 
         case NI_BINARY_MODE:
-         while( row < nel->vel_len ){  /* loop over input rows */
+         while( row < nel->vec_len ){  /* loop over input rows */
 
            /* if not enough data left in buffer for 1 row
               of data, then try to read more data into the buffer */
@@ -2095,67 +2122,105 @@ Restart:                            /* loop back here to retry */
 
         /*......................................................*/
 
-#define IS_USELESS(c) ( isspace(c) || iscntrl(c) )
-
         case NI_TEXT_MODE:{
-         int need_data , epos ;
 
-         while( row < nel->vel_len ){  /* loop over input rows */
+         while( row < nel->vec_len ){  /* loop over input rows */
           for( col=0 ; col < nel->vec_num ; col++ ){ /* over input vectors */
 
-            /* skip useless characters */
+            switch( nel->vec_typ[col] ){
+              default:                    /* unimplemented types */
+              break ;
 
-            while( npos < ns->nbuf && IS_USELESS(ns->buf[npos]) ) npos++ ;
+              case NI_BYTE:{
+                 double val ;
+                 byte *vpt = (byte *) nel->vec[col] ;
+                 nn = decode_one_double( ns , &npos , &val ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 vpt[row] = (byte) val ;
+              }
+              break ;
 
-            /* check if we ran into the closing '<' prematurely */
+              case NI_SHORT:{
+                 double val ;
+                 short *vpt = (short *) nel->vec[col] ;
+                 nn = decode_one_double( ns , &npos , &val ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 vpt[row] = (short) val ;
+              }
+              break ;
 
-            if( npos < ns->nbuf && ns->buf[npos] == '<' ) goto TextEnd ;
+              case NI_INT:{
+                 double val ;
+                 int *vpt = (int *) nel->vec[col] ;
+                 nn = decode_one_double( ns , &npos , &val ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 vpt[row] = (int) val ;
+              }
+              break ;
 
-            /* might loop back here to check if have enough data for a number */
-TextRestart:
-            /* if we need some data, try to get some */
+              case NI_FLOAT:{
+                 double val ;
+                 float *vpt = (float *) nel->vec[col] ;
+                 nn = decode_one_double( ns , &npos , &val ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 vpt[row] = (float) val ;
+              }
+              break ;
 
-            need_data = (ns->nbuf-npos < 2) ; /* need at least 2 bytes */
+              case NI_DOUBLE:{
+                 double val ;
+                 double *vpt = (double *) nel->vec[col] ;
+                 nn = decode_one_double( ns , &npos , &val ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 vpt[row] = (double) val ;
+              }
+              break ;
 
-            /* we also must have a string of non-useless characters
-               delimited by a useless character or by a closing '<' */
+              case NI_COMPLEX:{
+                 double v1,v2 ;
+                 complex *vpt = (complex *) nel->vec[col] ;
+                 nn = decode_one_double( ns , &npos , &v1 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 nn = decode_one_double( ns , &npos , &v2 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 vpt[row].r = (float) v1 ;
+                 vpt[row].i = (float) v2 ;
+              }
+              break ;
 
-            if( !need_data ){  /* so have at least 2 characters */
-               epos=npos+1 ;
-               while( epos < ns->nbuf           &&
-                      ns->buf[epos] != '<'      &&
-                      !IS_USELESS(ns->buf[epos])  ) epos++ ;
+              case NI_RGB:{
+                 double v1,v2,v3 ;
+                 rgb *vpt = (rgb *) nel->vec[col] ;
+                 nn = decode_one_double( ns , &npos , &v1 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 nn = decode_one_double( ns , &npos , &v2 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 nn = decode_one_double( ns , &npos , &v3 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 vpt[row].r = (byte) v1 ;
+                 vpt[row].g = (byte) v2 ;
+                 vpt[row].b = (byte) v3 ;
+              }
+              break ;
 
-               need_data = (epos == ns->nbuf) ; /* need more data */
-
-               if( npos == 0 && need_data ){ /* buffer is full of data */
-                  npos = ns->nbuf ;          /* that isn't delimited,  */
-                  goto TextEnd ;             /* so toss it out & quit. */
-               }
-            }
-
-            if( need_data ){ /* get some more data */
-
-             if( npos > 0 ){  /* discard used-up data in buffer */
-               if( npos < ns->nbuf ){
-                 memmove( ns->buf , ns->buf+npos , ns->nbuf-npos ) ;
-                 ns->nbuf -= npos ;
-               } else {
-                 ns->nbuf = 0 ;  /* all data in buffer is used-up */
-               }
-             }
-             npos = 0 ;  /* read data from start of buffer */
-
-             /* read at least 1 byte,
-                waiting forever if need be (unless the data stream goes bad) */
-
-             nn = NI_stream_fillbuf( ns , 1 , -1 ) ;
-
-             /** WHAT TO DO WITH nn?? **/
-
-            }
-
-            /* here, try to interpret data bytes */
+              case NI_RGBA:{
+                 double v1,v2,v3,v4 ;
+                 rgba *vpt = (rgba *) nel->vec[col] ;
+                 nn = decode_one_double( ns , &npos , &v1 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 nn = decode_one_double( ns , &npos , &v2 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 nn = decode_one_double( ns , &npos , &v3 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 nn = decode_one_double( ns , &npos , &v4 ) ;
+                 if( nn == 0 ) goto TextDone ;
+                 vpt[row].r = (byte) v1 ;
+                 vpt[row].g = (byte) v2 ;
+                 vpt[row].b = (byte) v3 ;
+                 vpt[row].a = (byte) v4 ;
+              }
+              break ;
+            } /* end of switch on type of this data value */
 
           } /* end of loop over vector columns */
          } /* end of loop over vector rows */
@@ -2167,10 +2232,117 @@ TextDone:
 
       } /* end of reading data into the element */
 
-      /*-- now scan for the end-of-element marker </something>,
-           and skip all input bytes up to (and including) the close '>' --*/
+      /*-- At this point, have finished reading into the element
+           vectors, and the next character to process in the
+           NI_stream input buffer is at location index npos.
+
+           Now scan for the end-of-element marker '</something>' and
+           skip all input bytes up to (and including) the final '>'. --*/
 
    } /* end of reading data element */
 
    return NULL ; /* should never be reached */
+}
+
+/*----------------------------------------------------------------------*/
+/*! From the NI_stream, starting at buffer position *inpos, decode
+    one number into *val.  Return value of this function is 1 if
+    we succeeded, 0 if not.  *inpos will be altered to reflect the
+    current buffer position (one after the last character processed)
+    when all is done.
+------------------------------------------------------------------------*/
+
+#undef  NVBUF
+#define NVBUF 127  /* max num chars for one number */
+
+#define IS_USELESS(c) ( isspace(c) || iscntrl(c) )
+
+static int decode_one_double( NI_stream_type *ns, int *inpos, double *val )
+{
+   int npos,epos , num_restart, need_data, nn ;
+   char vbuf[NVBUF+1] ;                    /* number string from buffer */
+
+   /*-- check inputs for goodness --*/
+
+   if( ns == NULL || inpos == NULL || val == NULL ) return 0 ;
+
+   npos = *inpos ;
+
+   /*--- might loop back here to check if have enough data for a number ---*/
+
+   num_restart = 0 ;
+Restart:
+   num_restart++ ;
+   if( num_restart > 19 ){ *inpos=npos; return 0; }  /*** give up ***/
+
+   /*-- advance over useless characters in the buffer --*/
+
+   while( npos < ns->nbuf && IS_USELESS(ns->buf[npos]) ) npos++ ;
+
+   /*-- check if we ran into the closing '<' prematurely --*/
+
+   if( npos < ns->nbuf && ns->buf[npos] == '<' ){ *inpos=npos; return 0; }
+
+   /*-- if we need some data, try to get some --*/
+
+   need_data = (ns->nbuf-npos < 2) ; /* need at least 2 unused bytes */
+
+   /*-- An input value is decoded from a string of non-useless
+        characters delimited by a useless character (or by the
+        element closing '<').
+        Note that the 1st character we are now at is non-useless.
+        Scan forward to see if we have a useless character later. --*/
+
+   if( !need_data ){  /* so have at least 2 characters */
+
+      for( epos=npos+1 ; epos < ns->nbuf ; epos++ )
+        if( ns->buf[epos] == '<' || IS_USELESS(ns->buf[epos]) ) break ;
+
+      /*- epos is either the delimiter position, or the end of data bytes -*/
+
+      need_data = (epos == ns->nbuf) ; /* no delimiter ==> need more data */
+
+      /*- If the string of characters we have is not delimited,
+          and it is too long to be a number, throw out all the
+          data in the buffer and quit.                         -*/
+
+      if( need_data && epos-npos > NVBUF ){ *inpos=ns->nbuf=0; return 0; }
+   }
+
+   /*-- read more data now if it is needed --*/
+
+   if( need_data ){
+
+      if( npos > 0 ){  /* discard used-up data in buffer */
+         if( npos < ns->nbuf ){
+           memmove( ns->buf , ns->buf+npos , ns->nbuf-npos ) ;
+           ns->nbuf -= npos ;
+         } else {
+           ns->nbuf = 0 ;  /* all data in buffer is used-up */
+         }
+         npos = 0 ;  /* scan data from start of buffer */
+       }
+
+       /*- read at least 1 byte,
+           waiting up to 100 ms (unless the data stream goes bad) -*/
+
+       nn = NI_stream_fillbuf( ns , 1 , 100 ) ;
+
+       if( nn >= 0 ) goto Restart ;  /* check if buffer is adequate now */
+
+       /*- if here, the stream went bad.  If there are still
+           data bytes in the stream, we can try to interpret them.
+           Otherwise, must quit without success.                  -*/
+
+       if( ns->nbuf == 0 ){ *inpos=0; return 0; }  /* quitting */
+
+       epos = ns->nbuf ;
+   }
+
+   /*-- if here, try to interpret data bytes npos .. epos-1 --*/
+
+   nn = epos-npos ; if( nn > NVBUF ) nn = NVBUF ;     /* # bytes to read   */
+   memcpy( vbuf, ns->buf+npos, nn ); vbuf[nn] = '\0'; /* put bytes in vbuf */
+   sscanf( vbuf , "%lf" , val ) ;                     /* interpret them    */
+   *inpos = epos ; return 1 ;                         /* retire undefeated */
 }
