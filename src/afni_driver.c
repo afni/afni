@@ -46,6 +46,7 @@ static int AFNI_set_func_visible       ( char *cmd ) ; /* 21 Jan 2003 */
 static int AFNI_set_func_resam         ( char *cmd ) ; /* 21 Jan 2003 */
 static int AFNI_sleeper                ( char *cmd ) ; /* 22 Jan 2003 */
 static int AFNI_setenv                 ( char *cmd ) ; /* 22 Jan 2003 */
+static int AFNI_define_colorscale      ( char *cmd ) ; /* 03 Feb 2003 */
 
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
@@ -101,6 +102,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_FUNC_RESAM"     , AFNI_set_func_resam          } ,
  { "SLEEP"              , AFNI_sleeper                 } ,
  { "SETENV"             , AFNI_setenv                  } ,
+ { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
 
  { NULL , NULL } } ;
 
@@ -1107,8 +1109,7 @@ ENTRY("AFNI_drive_addto_graph_xy") ;
 
 static int AFNI_drive_close_graph_1D( char *cmd )
 {
-  int ii = AFNI_drive_close_graph_xy( cmd ) ;
-  RETURN(ii) ;
+  return AFNI_drive_close_graph_xy( cmd ) ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1530,7 +1531,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
        } else {
          if( val <= 0.0 )              RETURN(-1) ;
        }
-  
+
        pval[ii] = val ; pcol[ii] = col ;
        dadd += nn ;
      }
@@ -1771,10 +1772,10 @@ ENTRY("AFNI_set_func_resam") ;
 static int AFNI_sleeper( char *cmd )
 {
    int ms=-1 ;
-   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+   if( cmd == NULL || strlen(cmd) < 1 ) return(-1) ;
    sscanf( cmd , "%d" , &ms ) ;
    if( ms > 0 ) RWC_sleep( ms ) ;
-   RETURN(0) ;
+   return(0) ;
 }
 
 /*------------------------------------------------------------------*/
@@ -1784,14 +1785,14 @@ static int AFNI_setenv( char *cmd )
 {
    char nam[256]="\0" , val[1024]="\0" , eqn[1280] , *eee ;
 
-   if( cmd == NULL || strlen(cmd) < 3 ) RETURN(-1) ;
+   if( cmd == NULL || strlen(cmd) < 3 ) return(-1) ;
 
    sscanf( cmd , "%255s %1023s" , nam , val ) ;
-   if( nam[0] == '\0' || val[0] == '\0' ) RETURN(-1) ;
+   if( nam[0] == '\0' || val[0] == '\0' ) return(-1) ;
 
    sprintf(eqn,"%s=%s",nam,val) ;
    eee = strdup(eqn) ; putenv(eee) ;
-   RETURN(0) ;
+   return(0) ;
 }
 
 /*------------------------------------------------------------------*/
@@ -1807,5 +1808,46 @@ static int AFNI_redisplay( char *cmd )
       if( ! IM3D_OPEN(qq3d) ) continue ;
       AFNI_set_viewpoint( qq3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
    }
-   RETURN(0) ;
+   return(0) ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! DEFINE_COLORSCALE name num=color num=color ... */
+
+static int AFNI_define_colorscale( char *cmd )
+{
+#define NSBUF 128
+  int ii , neq=0 , nonum=0 ;
+  char name[NSBUF], eqn[NSBUF] , rhs[NSBUF] ;
+  float  val[NPANE_BIG] , fr,fg,fb ;
+  rgbyte col[NPANE_BIG] ;
+
+  name[0] = '\0' ; ii = 0 ;
+  sscanf(cmd,"%127s%n",name,&ii) ;
+  if( *name == '\0' || ii == 0 ) return(-1) ;
+  cmd += ii ;
+
+  /* get lines of form "value = colordef" */
+
+  while( neq < NPANE_BIG ){
+    eqn[0] = '\0' ; ii = 0 ;
+    sscanf(cmd,"%127s%n",eqn,&ii) ;
+    if( *eqn == '\0' || ii == 0 ) break ;   /* exit loop */
+    cmd += ii ;
+    if( neq == 0 && (isalpha(eqn[0]) || eqn[0]=='#') ) nonum = 1 ;
+    rhs[0] = '\0' ; ii = 0 ;
+    if( !nonum ) sscanf(eqn,"%f=%s%n",val+neq,rhs,&ii) ;
+    else         sscanf(eqn,"%s%n"           ,rhs,&ii) ;
+    if( *rhs == '\0' || ii == 0 ) return -1;                    /* bad */
+    ii = DC_parse_color( GLOBAL_library.dc, rhs, &fr,&fg,&fb ) ;
+    if( ii ) return -1;                                         /* bad */
+    col[neq].r = (byte)(255.0*fr+0.5) ;
+    col[neq].g = (byte)(255.0*fg+0.5) ;
+    col[neq].b = (byte)(255.0*fb+0.5) ; neq++ ;
+  }
+
+  if( nonum )                    /* supply numbers, if missing */
+    for( ii=0 ; ii < neq ; ii++ ) val[ii] = neq-ii ;
+
+  PBAR_make_bigmap( name , neq, val, col, GLOBAL_library.dc ); return(0);
 }
