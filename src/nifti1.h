@@ -918,7 +918,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
      c = 0.25 * (R13-R31) / a       => quatern_c
      d = 0.25 * (R21-R12) / a       => quatern_d
 
-   [If a=0 (a 180 degree rotation), alternative formulas are needed.]
+   If a=0 (a 180 degree rotation), alternative formulas are needed.
+   See the nifti1.c function nifti_mat44_to_quatern() for an
+   implementation of the various cases in converting R to [a,b,c,d].
 
    Note that R-transpose (= R-inverse) would lead to the quaternion
    [a,-b,-c,-d].

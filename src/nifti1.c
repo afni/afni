@@ -102,6 +102,15 @@ void          nifti_image_free    ( nifti_image *nim ) ;
 void          nifti_image_infodump( nifti_image *nim ) ;
 void          nifti_image_write   ( nifti_image *nim ) ;
 
+void nifti_mat44_to_quatern( nifti_mat44 R ,
+                             float *qb, float *qc, float *qd,
+                             float *qx, float *qy, float *qz,
+                             float *dx, float *dy, float *dz, float *qfac ) ;
+
+nifti_mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
+                                    float qx, float qy, float qz,
+                                    float dx, float dy, float dz, float qfac );
+
 /*-------------------- Some C convenience macros ----------------------------*/
 
 #undef  swap_2
@@ -232,6 +241,228 @@ char *nifti_intent_string( int ii )
    }
    return "Unknown" ;
 }
+
+/*---------------------------------------------------------------------------*/
+/* Given the quaternion parameters (etc.), compute a transformation matrix.
+   See comments in nifti1.h for details.
+     - qb,qc,qd = quaternion parameters
+     - qx,qy,qz = offset parameters
+     - dx,dy,dz = grid stepsizes (non-negative inputs are set to 1.0)
+     - qfac     = sign of dx step
+   If qx=qy=qz=0, dx=dy=dz=1, then the output is a rotation matrix.
+   For qfac >= 0, the rotation is proper.
+   For qfac <  0, the rotation is improper.
+-----------------------------------------------------------------------------*/
+
+nifti_mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
+                                    float qx, float qy, float qz,
+                                    float dx, float dy, float dz, float qfac )
+{
+   nifti_mat44 R ;
+   double a,b=qb,c=qc,d=qd , xd,yd,zd ;
+
+   /* last row is always [ 0 0 0 1 ] */
+
+   R.m[3][0]=R.m[3][1]=R.m[3][2] = 0.0 ; R.m[3][3]= 1.0 ;
+
+   /* compute a parameter from b,c,d */
+
+   a = 1.0l - (b*b + c*c + d*d) ;
+   if( a < 0.0 ){                      /* weird quaternion input! */
+     a = 1.0l / sqrt(1.0l-a) ;
+     b *= a ; c *= a ; d *= a ;        /* normalize (b,c,d) vector */
+     a = 0.0l ;                        /* a = 0 ==> 180 degree rotation */
+   } else{
+     a = sqrt(a) ;                     /* angle = 2*arccos(a) */
+   }
+
+   /* load rotation matrix, including scaling factors for voxel sizes */
+
+   xd = (dx > 0.0) ? dx : 1.0l ;       /* make sure are positive */
+   yd = (dy > 0.0) ? dy : 1.0l ;
+   zd = (dz > 0.0) ? dz : 1.0l ;
+
+   if( qfac < 0.0 ) xd = -xd ;         /* left handedness? */
+
+   R.m[0][0] =        (a*a+b*b-c*c-d*d) * xd ;
+   R.m[0][1] = 2.0l * (b*c-a*d        ) * yd ;
+   R.m[0][2] = 2.0l * (b*d+a*c        ) * zd ;
+   R.m[1][0] = 2.0l * (b*c+a*d        ) * xd ;
+   R.m[1][1] =        (a*a+c*c-b*b-d*d) * yd ;
+   R.m[1][2] = 2.0l * (c*d-a*b        ) * zd ;
+   R.m[2][0] = 2.0l * (b*d-a*c        ) * xd ;
+   R.m[2][1] = 2.0l * (c*d+a*b        ) * yd ;
+   R.m[2][2] =        (a*a+d*d-c*c-b*b) * zd ;
+
+   /* load offsets */
+
+   R.m[0][3] = qx ; R.m[1][3] = qy ; R.m[2][3] = qz ;
+
+   return R ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Given the 3x4 upper corner of the matrix R, compute the quaternion
+   parameters that fit it.  See comments in nifti1.h for details.
+     - Any NULL pointer on input won't get assigned (e.g., if you don't want
+       dx,dy,dz, just pass NULL in for those pointers).
+     - If the 3 input matrix columns are NOT orthogonal, they will be
+       orthogonalized prior to calculating the parameters.  In this case,
+       applying this function to the inverse of the matrix will NOT give
+       the inverse quaternion.
+     - If the 3 input matrix columns are not linearly independent, you'll
+       just have to take your luck, won't you?
+-----------------------------------------------------------------------------*/
+
+#undef ASSIF
+#define ASSIF(p,v) if( (p) != NULL ) *(p) = (v)
+
+void nifti_mat44_to_quatern( nifti_mat44 R ,
+                             float *qb, float *qc, float *qd,
+                             float *qx, float *qy, float *qz,
+                             float *dx, float *dy, float *dz, float *qfac )
+{
+   double r11,r12,r13 , r21,r22,r23 , r31,r32,r33 ;
+   double xd,yd,zd , a,b,c,d ;
+
+   /* offset outputs are easy */
+
+   ASSIF(qx,R.m[0][3]) ; ASSIF(qy,R.m[1][3]) ; ASSIF(qz,R.m[2][3]) ;
+
+   /* load 3x3 matrix into local variables */
+
+   r11 = R.m[0][0] ; r12 = R.m[0][1] ; r13 = R.m[0][2] ;
+   r21 = R.m[1][0] ; r22 = R.m[1][1] ; r23 = R.m[1][2] ;
+   r31 = R.m[2][0] ; r32 = R.m[2][1] ; r33 = R.m[2][2] ;
+
+   /* compute lengths of each column */
+
+   xd = sqrt( r11*r11 + r21*r21 + r31*r31 ) ;
+   yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;
+   zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
+
+   /* if a length is zero, patch the trouble */
+
+   if( xd == 0.0l ){ r11 = 1.0l ; r21 = r31 = 0.0l ; xd = 1.0l ; }
+   if( yd == 0.0l ){ r22 = 1.0l ; r12 = r32 = 0.0l ; yd = 1.0l ; }
+   if( zd == 0.0l ){ r33 = 1.0l ; r13 = r23 = 0.0l ; zd = 1.0l ; }
+
+   /* assign the output lengths */
+
+   ASSIF(dx,xd) ; ASSIF(dy,yd) ; ASSIF(dz,zd) ;
+
+   /* normalize the columns */
+
+   r11 /= xd ; r21 /= xd ; r31 /= xd ;
+   r12 /= yd ; r22 /= yd ; r32 /= yd ;
+   r13 /= zd ; r23 /= zd ; r33 /= zd ;
+
+   /* orthogonalize column 2 to column 1 */
+
+   xd = r11*r12 + r21*r22 + r31*r32 ;  /* dot product with #1 */
+
+   if( fabs(xd) > 1.e-7l ){            /* not already orthogonal */
+     r12 -= xd*r11 ; r22 -= xd*r21 ; r32 -= xd*r31 ;  /* remove #1 */
+     yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;
+     if( yd > 0.0l ){
+       r12 /= yd ; r22 /= yd ; r32 /= yd ;      /* normalize again */
+     } else {
+               /* 2cd column parallel to 1st
+                  ==> pick some randomish direction
+                      and orthogonalize it to 1st column */
+
+       r12 = .705489l ; r22 = -1.22097l ; r32 = 0.818019l;  /* randomish */
+       yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;            /* normalize */
+       r12 /= yd ; r22 /= yd ; r32 /= yd ;
+       xd = r11*r12 + r21*r22 + r31*r32 ;                    /* dot with #1 */
+       r12 -= xd*r11 ; r22 -= xd*r21 ; r32 -= xd*r31 ;       /* remove #1 */
+       yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;            /* normalize */
+       r12 /= yd ; r22 /= yd ; r32 /= yd ;
+     }
+   }
+
+   /* orthogonalize column 3 to columns 2 and 1 */
+
+   xd = r11*r13 + r21*r23 + r31*r33 ;  /* dot product with #1 */
+   yd = r12*r13 + r22*r23 + r32*r33 ;  /* dot product with #1 */
+
+   if( fabs(xd) > 1.e-7l || fabs(yd) > 1.e-7l ){  /* not already orthog */
+     r13 -= xd*r11+yd*r12 ;                       /* remove #1 and #2 */
+     r23 -= xd*r21+yd*r22 ;
+     r33 -= xd*r31+yd*r32 ;
+     zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
+     if( zd > 0.0l ){
+       r13 /= zd ; r23 /= zd ; r33 /= zd ;      /* normalize again */
+     } else {
+               /* 3rd column is in plane of #1 and #2
+                  ==> pick some randomish direction
+                      and orthogonalize it to #1 and #2 */
+       r13 = .802489l ; r23 = 1.32097l ; r33 = -0.918019l;  /* randomish */
+       zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
+       r13 /= zd ; r23 /= zd ; r33 /= zd ;                   /* normalize */
+       xd = r11*r13 + r21*r23 + r31*r33 ;                    /* dot with #1 */
+       yd = r12*r13 + r22*r23 + r32*r33 ;                    /* dot with #1 */
+       r13 -= xd*r11+yd*r12 ;                           /* remove #1 and #2 */
+       r23 -= xd*r21+yd*r22 ;
+       r33 -= xd*r31+yd*r32 ;
+       zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
+       r13 /= zd ; r23 /= zd ; r33 /= zd ;                   /* normalize */
+     }
+   }
+
+   /*                            [ r11 r12 r13 ]               */
+   /* at this point, the matrix  [ r21 r22 r23 ] is orthogonal */
+   /*                            [ r31 r32 r33 ]               */
+
+   /* compute the determinant to determine if it is proper */
+
+   zd = r11*r22*r33-r11*r32*r23-r21*r12*r33
+       +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;  /* should be -1 or 1 */
+
+   if( zd > 0 ){             /* proper */
+     ASSIF(qfac,1.0) ;
+   } else {                  /* improper ==> flip 1st column */
+     ASSIF(qfac,-1.0) ;
+     r11 = -r11 ; r21 = -r21 ; r31 = -r31 ;
+   }
+
+   /* now, compute quaternion parameters */
+
+   a = r11 + r22 + r33 + 1.0l ;
+
+   if( a > 0.5l ){                /* simplest case */
+     a = 0.5l * sqrt(a) ;
+     b = 0.25l * (r32-r23) / a ;
+     c = 0.25l * (r13-r31) / a ;
+     d = 0.25l * (r21-r12) / a ;
+   } else {                       /* trickier case */
+     xd = 1.0 + r11 - (r22+r33) ;  /* 4*b*b */
+     yd = 1.0 + r22 - (r11+r33) ;  /* 4*c*c */
+     zd = 1.0 + r33 - (r11+r22) ;  /* 4*d*d */
+     if( xd > 1.0 ){
+       b = 0.5l * sqrt(xd) ;
+       c = 0.25l* (r12+r21) / b ;
+       d = 0.25l* (r13+r31) / b ;
+       a = 0.25l* (r32-r23) / b ;
+     } else if( yd > 1.0 ){
+       c = 0.5l * sqrt(yd) ;
+       b = 0.25l* (r12+r21) / c ;
+       d = 0.25l* (r23+r32) / c ;
+       a = 0.25l* (r13-r31) / c ;
+     } else {
+       d = 0.5l * sqrt(zd) ;
+       b = 0.25l* (r13+r31) / d ;
+       c = 0.25l* (r23+r32) / d ;
+       a = 0.25l* (r21-r12) / d ;
+     }
+     if( a < 0.0l ){ b=-b ; c=-c ; d=-d; a=-a; }
+   }
+
+   ASSIF(qb,b) ; ASSIF(qc,c) ; ASSIF(qd,d) ;
+   return ;
+}
+
+#undef ASSIF
 
 /*---------------------------------------------------------------------------*/
 /* Compute the inverse of a bordered 4x4 matrix.
@@ -629,62 +860,42 @@ nifti_image * nifti_image_read( char *hname , int read_data )
 
    /** compute qto_xyz transformation from pixel indexes (i,j,k) to (x,y,z) **/
 
-   /* last row is always [ 0 0 0 1 ] */
-
-   nim->qto_xyz.m[3][0]=nim->qto_xyz.m[3][1]=nim->qto_xyz.m[3][2] = 0.0;
-   nim->qto_xyz.m[3][3]= 1.0 ;
-
    if( !is_nifti || nhdr.qform_code <= 0 ){ /** default transformation **/
 
      nim->qto_xyz.m[0][0] = nim->dx ;  /* grid spacings */
-     nim->qto_xyz.m[1][1] = nim->dy ;
+     nim->qto_xyz.m[1][1] = nim->dy ;  /* along diagonal */
      nim->qto_xyz.m[2][2] = nim->dz ;
+
+     /* off diagonal is zero */
 
      nim->qto_xyz.m[0][1]=nim->qto_xyz.m[0][2]=nim->qto_xyz.m[0][3] = 0.0;
      nim->qto_xyz.m[1][0]=nim->qto_xyz.m[1][2]=nim->qto_xyz.m[1][3] = 0.0;
      nim->qto_xyz.m[2][0]=nim->qto_xyz.m[2][1]=nim->qto_xyz.m[2][3] = 0.0;
 
+     /* last row is always [ 0 0 0 1 ] */
+
+     nim->qto_xyz.m[3][0]=nim->qto_xyz.m[3][1]=nim->qto_xyz.m[3][2] = 0.0;
+     nim->qto_xyz.m[3][3]= 1.0 ;
+
      nim->qform_code = NIFTI_XFORM_UNKNOWN ;
 
    } else {                 /** NIFTI: quaternion-specified transformation **/
 
-     double a,b,c,d , qfac ;
+     nim->quatern_b = FIXED_FLOAT( nhdr.quatern_b ) ;
+     nim->quatern_c = FIXED_FLOAT( nhdr.quatern_c ) ;
+     nim->quatern_d = FIXED_FLOAT( nhdr.quatern_d ) ;
 
-     b = FIXED_FLOAT( nhdr.quatern_b ) ;
-     c = FIXED_FLOAT( nhdr.quatern_c ) ;
-     d = FIXED_FLOAT( nhdr.quatern_d ) ;
-     a = 1.0l - (b*b + c*c + d*d) ;
-     if( a < 0.0 ){                      /* weird quaternion input! */
-       a = 1.0l / sqrt(1.0l-a) ;
-       b *= a ; c *= a ; d *= a ;        /* normalize (b,c,d) vector */
-       a = 0.0l ;                        /* a = 0 ==> 180 degree rotation */
-     } else{
-       a = sqrt(a) ;                     /* angle = 2*arccos(a) */
-     }
+     nim->qoffset_x = FIXED_FLOAT(nhdr.qoffset_x) ;
+     nim->qoffset_y = FIXED_FLOAT(nhdr.qoffset_y) ;
+     nim->qoffset_z = FIXED_FLOAT(nhdr.qoffset_z) ;
 
-     nim->quatern_b = b ; nim->quatern_c = c ; nim->quatern_d = d ;
+     nim->qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
 
-     /* load rotation matrix, including scaling factors for voxel sizes */
-
-     qfac = (nhdr.pixdim[0] < 0.0) ? -1.0l : 1.0l ;  /* left-handedness? */
-
-     nim->qfac = qfac ;
-
-     nim->qto_xyz.m[0][0] = (a*a+b*b-c*c-d*d) * nim->dx * qfac ;
-     nim->qto_xyz.m[0][1] = (b*c-a*d        ) * nim->dy * 2.0l ;
-     nim->qto_xyz.m[0][2] = (b*d+a*c        ) * nim->dz * 2.0l ;
-     nim->qto_xyz.m[1][0] = (b*c+a*d        ) * nim->dx * qfac ;
-     nim->qto_xyz.m[1][1] = (a*a+c*c-b*b-d*d) * nim->dy * 2.0l ;
-     nim->qto_xyz.m[1][2] = (c*d-a*b        ) * nim->dz * 2.0l ;
-     nim->qto_xyz.m[2][0] = (b*d-a*c        ) * nim->dx * qfac ;
-     nim->qto_xyz.m[2][1] = (c*d+a*b        ) * nim->dy * 2.0l ;
-     nim->qto_xyz.m[2][2] = (a*a+d*d-c*c-b*b) * nim->dz * 2.0l ;
-
-     /* load offsets */
-
-     nim->qoffset_x = nim->qto_xyz.m[0][3] = FIXED_FLOAT(nhdr.qoffset_x) ;
-     nim->qoffset_y = nim->qto_xyz.m[0][3] = FIXED_FLOAT(nhdr.qoffset_y) ;
-     nim->qoffset_z = nim->qto_xyz.m[2][3] = FIXED_FLOAT(nhdr.qoffset_z) ;
+     nim->qto_xyz = nifti_quatern_to_mat44(
+                      nim->quatern_b, nim->quatern_c, nim->quatern_c,
+                      nim->qoffset_x, nim->qoffset_y, nim->qoffset_z,
+                      nim->dx       , nim->dy       , nim->dz       ,
+                      nim->qfac                                      ) ;
 
      nim->qform_code = nhdr.qform_code ;
    }
@@ -715,6 +926,8 @@ nifti_image * nifti_image_read( char *hname , int read_data )
      nim->sto_xyz.m[2][1] = nhdr.srow_z[1] ;
      nim->sto_xyz.m[2][2] = nhdr.srow_z[2] ;
      nim->sto_xyz.m[2][3] = nhdr.srow_z[3] ;
+
+     /* last row is always [ 0 0 0 1 ] */
 
      nim->sto_xyz.m[3][0]=nim->sto_xyz.m[3][1]=nim->sto_xyz.m[3][2] = 0.0;
      nim->sto_xyz.m[3][3]= 1.0 ;
@@ -1174,23 +1387,4 @@ void nifti_image_write( nifti_image *nim )
 
    nim->swapsize = 0 ;  /* don't swap if we read back in */
    return ;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-
-int main( int argc , char *argv[] )
-{
-   nifti_image *nim ;
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: nifti1 infile [outfile]\n") ;
-     printf("sizeof(nifti_1_header)=%d\n",sizeof(nifti_1_header)) ;
-     exit(0) ;
-   }
-
-   nim = nifti_image_read( argv[1] , 1 ) ;
-   if( nim == NULL ) exit(1) ;
-   nifti_image_infodump( nim ) ;
-   exit(0) ;
 }
