@@ -65,13 +65,20 @@ static char g_history[] =
   "   - made 'quiet' output more quiet (no description on output)\n"
   "   - made hdr and nim_fields arrays global, so do not pass in main()\n"
   "   - return (from main()) after first act_diff() difference\n"
+  "\n"
+  "1.2  9 February 2005 [rickr] - minor\n"
+  "   - defined a local NTL_FERR macro (so it does not come from nifti1_io.h)\n"
+  "   - added new set_byte_order parameter to nifti_set_filenames\n"
   "----------------------------------------------------------------------\n";
-static char g_version[] = "version 1.1 (January 14, 2004)";
+static char g_version[] = "version 1.2a (February 9, 2004)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
 #include "nifti1_io.h"
 #include "nifti_tool.h"
+
+#define NTL_FERR(func,msg,file)                                      \
+            fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)
 
 /* these are effectively constant, and are built only for verification */
 field_s g_hdr_fields[NT_HDR_NUM_FIELDS];    /* nifti_1_header fields */
@@ -882,7 +889,8 @@ int act_add_exts( nt_opts * opts )
       }
 
       if( opts->prefix &&
-          nifti_set_filenames(nim,opts->prefix,!opts->overwrite) ){
+          nifti_set_filenames(nim, opts->prefix, !opts->overwrite, 1) )
+      {
          nifti_image_free(nim);
          return 1;
       }
@@ -961,7 +969,7 @@ int act_rm_ext( nt_opts * opts )
       }
 
       if( opts->prefix &&
-          nifti_set_filenames(nim,opts->prefix,!opts->overwrite) ){
+          nifti_set_filenames(nim, opts->prefix, !opts->overwrite, 1) ){
          nifti_image_free(nim);
          return 1;
       }
@@ -1263,9 +1271,9 @@ int act_mod_hdrs( nt_opts * opts )
                     opts->infiles.list[filec]);
             return 1;
          }
-         if( nifti_set_filenames(nim,opts->prefix,1) )
+         if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
-            LNI_FERR(func,"failed to set prefix for new file: ",opts->prefix);
+            NTL_FERR(func,"failed to set prefix for new file: ",opts->prefix);
             nifti_image_free(nim);
             return 1;
          }
@@ -1319,9 +1327,9 @@ int act_mod_nims( nt_opts * opts )
 
       /* possibly duplicate the current dataset before writing new header */
       if( opts->prefix )
-         if( nifti_set_filenames(nim,opts->prefix,1) )
+         if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
-            LNI_FERR(func,"failed to set prefix for new file: ",opts->prefix);
+            NTL_FERR(func,"failed to set prefix for new file: ",opts->prefix);
             nifti_image_free(nim);
             return 1;
          }
@@ -1346,13 +1354,13 @@ int write_hdr_to_file( nifti_1_header * nhdr, char * fname )
 
    fp = znzopen(fname,"r+b",nifti_is_gzfile(fname));
    if( znz_isnull(fp) ){
-      LNI_FERR(func, "failed to re-open mod file", fname);
+      NTL_FERR(func, "failed to re-open mod file", fname);
       return 1;
    }
 
    bytes = znzwrite(nhdr, 1, sizeof(nifti_1_header), fp);
    if( bytes != sizeof(nifti_1_header)){
-      LNI_FERR(func, "failed to write nifti_1_header to file",fname);
+      NTL_FERR(func, "failed to write nifti_1_header to file",fname);
       fprintf(stderr,"  - wrote %d of %d bytes\n",
               (int)bytes,(int)sizeof(nifti_1_header));
       rv = 1;
