@@ -153,7 +153,7 @@ typedef enum { SE_Empty,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
                SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, SE_SaveViewFileSelection, SE_LoadSegDO,
-               SE_OpenDsetFileSelection,
+               SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, 
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -304,7 +304,8 @@ typedef enum {   SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Stan
                                                                   Keep in sync with SUMA_N_STANDARD_VIEWS*/
 typedef enum {   SUMA_No_Lock, SUMA_I_Lock, SUMA_XYZ_Lock, SUMA_N_Lock_Types}  SUMA_LINK_TYPES; /*!< types of viewer linking. Keep SUMA_N_Lock_Types at the end, it is used to keep track of the number of types*/
                                                                  
-typedef enum {  SWP_TOP_RIGHT, /*!< Position to the top right of reference */
+typedef enum {  SWP_DONT_CARE,
+                SWP_TOP_RIGHT, /*!< Position to the top right of reference */
                 SWP_BOTTOM_RIGHT_CORNER, 
                 SWP_TOP_LEFT,
                 SWP_POINTER, /*!< Position centered to the pointer */
@@ -1003,6 +1004,7 @@ typedef struct {
    Widget Int_tb; /* Toggle buttons for intensity, threshold and brightness toys */
    Widget Thr_tb;
    Widget Brt_tb;
+   Widget CmapLoad_pb;
    int AutoIntRange;
    int AutoBrtRange;
 }SUMA_X_SurfCont;

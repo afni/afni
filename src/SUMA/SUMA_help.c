@@ -215,18 +215,21 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
    
    SS = SUMA_StringAppend (SS, 
-      "\nKeyboard Controls\n");
-   SS = SUMA_StringAppend (SS, 
-      "     r: record image of colormap.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+h: this help message\n\n");
-   SS = SUMA_StringAppend (SS, 
+      "\nKeyboard Controls\n"
+      "     r: record image of colormap.\n"
+      "\n"
+      "     Ctrl+h: this help message\n"
+      "\n"
       "     Z: Zoom in.\n"
-      "        Maximum zoom in shows 2 colors in the map\n");
-   SS = SUMA_StringAppend (SS, 
+      "        Maximum zoom in shows 2 colors in the map\n"
       "     z: Zoom out.\n"
-      "        Minimum zoom in shows all colors in the map\n\n");
-   
+      "        Minimum zoom in shows all colors in the map\n"
+      "\n"
+      "     Up/Down arrows: move colormap up/down.\n"
+      "\n"
+      "     Home: Reset zoom and translation parameters\n"
+      "\n");
+      
    SS = SUMA_StringAppend (SS, 
       "\nCmap properties\n");
    s = SUMA_ColorMapVec_Info(&ColMap, 1, 1);
@@ -623,7 +626,7 @@ char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
    char *s = NULL;
    int i;
    SUMA_STRING *SS = NULL;
-   int verv[] = { 24800, 24500, -10000}; /* modify this dude and you must update SUMA_New_Additions_perver  
+   int verv[] = { 25000, 24800, 24500, -10000}; /* modify this dude and you must update SUMA_New_Additions_perver  
                                        Add to the left of the vector, leave the last value of -10000 untouched
                                        If you like to think of floating point version numbers,divide by 10000*/
    
@@ -715,6 +718,28 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + \n");
          break; 
          */
+      case 25000:
+         SS = SUMA_StringAppend_va(SS, 
+            "++ SUMA version %.4f, June 10 2004\n", (float)ver/10000.0); if (StampOnly) break;
+         SS = SUMA_StringAppend(SS, 
+            "Modifications:\n"
+            "  + SUMA's surface controller 'ctrl+s' has been\n"
+            "    vastly improved. \n"
+            "    Of note are the following features:\n"
+            "     - interactive color mapping\n"
+            "     - thresholding controls \n"
+            "     - brightness modulation\n"
+            "     - choice of colormaps\n"
+            "     - coordinate bias (tres tres cool)\n"
+            "     - info on current cross hair location\n"
+            "    Use Bhelp button in the controller for detailed help.\n"
+            "  + 3dVol2Surf can output NIML formatted datasets.\n"
+            "    Options -first_node and -last_node can be used\n"
+            "    to restrict the mapping to a subset of the nodes.\n"
+            "    That is useful if your output file size exceeds 2GB.\n"  
+            );
+         break;
+         
       case 24800:
          SS = SUMA_StringAppend_va(SS, 
             "++ SUMA version %.4f, Jan. 16 2004\n", (float)ver/10000.0); if (StampOnly) break;

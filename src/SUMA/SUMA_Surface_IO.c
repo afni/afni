@@ -3963,7 +3963,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
 
                   answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
                                     stmp, 
-                                    0);
+                                    0, SWP_DONT_CARE);
                   if (LocalHead) fprintf (SUMA_STDERR,"%s: Got %d, You ?\n", FuncName, answer);
                   switch (answer) {
                      case SUMA_YES:
@@ -4665,7 +4665,7 @@ void SUMA_SaveSOascii (char *filename, void *data)
    if (SUMA_filexists (newname)) {
       answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
                                     "Prefix exists, overwrite?", 
-                                    SUMA_NO);
+                                    SUMA_NO, SWP_DONT_CARE);
       if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {
          if (newname) SUMA_free(newname); newname = NULL;
          if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
@@ -4687,7 +4687,7 @@ void SUMA_SaveSOascii (char *filename, void *data)
       if (SUMA_filexists (newname)) {
          answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
                                        "Prefix exists, overwrite?", 
-                                       SUMA_NO);
+                                       SUMA_NO, SWP_DONT_CARE);
          if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {
             if (newname) SUMA_free(newname);newname = NULL;
             if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
@@ -4710,7 +4710,7 @@ void SUMA_SaveSOascii (char *filename, void *data)
       if (SUMA_filexists (newname)) {
          answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
                                        "Prefix exists, overwrite?", 
-                                       SUMA_NO);
+                                       SUMA_NO, SWP_DONT_CARE);
          if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {
             if (newname) SUMA_free(newname);newname = NULL;
             if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;

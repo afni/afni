@@ -507,7 +507,7 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
                static SUMA_Boolean BeepedAlready = NOPE;   
                float tstep = height_two_col / 2 * SO->SurfCont->cmp_ren->FOV/(float)SUMA_CMAP_FOV_INITIAL; 
                SO->SurfCont->cmp_ren->translateVec[1] += tstep ;
-               fprintf(SUMA_STDERR,"%s: translateVec[1] = %f\n", FuncName, SO->SurfCont->cmp_ren->translateVec[1]);
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: translateVec[1] = %f\n", FuncName, SO->SurfCont->cmp_ren->translateVec[1]);
                if (SO->SurfCont->cmp_ren->translateVec[1] >  SUMA_CMAP_HEIGHT - 20) {
                   if (!BeepedAlready) {
                      SUMA_BEEP; BeepedAlready = YUP;
@@ -2349,7 +2349,6 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
    static char FuncName[]={"SUMA_set_cmap_options"};
    SUMA_MenuItem *SwitchInt_Menu = NULL, *SwitchThr_Menu = NULL, *SwitchBrt_Menu = NULL;
    int N_items;
-   SUMA_MenuItem *SwitchCmap_Menu = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2448,6 +2447,9 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          XtManageChild (SO->SurfCont->SwitchIntMenu[0]);
          /* Now destroy the SwitchInt_Menu */
          SwitchInt_Menu = SUMA_FreeMenuVector(SwitchInt_Menu, N_items);
+         /* setup the history to the proper widget */
+         XtVaSetValues( SO->SurfCont->SwitchIntMenu[0], XmNmenuHistory , 
+                        SO->SurfCont->SwitchIntMenu[SO->SurfCont->curColPlane->OptScl->find+1] , NULL ) ; 
       } else {
          SUMA_SL_Err("NULL SwitchInt_Menu");
       }
@@ -2493,6 +2495,9 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          XtManageChild (SO->SurfCont->SwitchThrMenu[0]);
          /* Now destroy the SwitchThr_Menu */
          SwitchThr_Menu = SUMA_FreeMenuVector(SwitchThr_Menu, N_items);
+         /* setup the history to the proper widget */
+         XtVaSetValues( SO->SurfCont->SwitchThrMenu[0], XmNmenuHistory , 
+                        SO->SurfCont->SwitchThrMenu[SO->SurfCont->curColPlane->OptScl->tind+1] , NULL ) ; 
       } else {
          SUMA_SL_Err("NULL SwitchThr_Menu");
       }
@@ -2535,6 +2540,10 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          XtManageChild (SO->SurfCont->SwitchBrtMenu[0]);
          /* Now destroy the SwitchBrt_Menu */
          SwitchBrt_Menu = SUMA_FreeMenuVector(SwitchBrt_Menu, N_items);
+         /* setup the history to the proper widget */
+         XtVaSetValues( SO->SurfCont->SwitchBrtMenu[0], XmNmenuHistory , 
+                        SO->SurfCont->SwitchBrtMenu[SO->SurfCont->curColPlane->OptScl->bind+1] , NULL ) ; 
+ 
       } else {
          SUMA_SL_Err("NULL SwitchBrt_Menu");
       }
@@ -2670,12 +2679,12 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          if (!SO->SurfCont->CoordBiasMenu[SW_CoordBias]) {
                Widget rc = NULL; /* one pass through this block ONLY */
                rc = XtVaCreateWidget ("rowcolumn",
-               xmRowColumnWidgetClass, SO->SurfCont->rccm,
-               XmNpacking, XmPACK_TIGHT, 
-               XmNorientation , XmHORIZONTAL ,
-               XmNmarginHeight, 0 ,
-               XmNmarginWidth , 0 ,
-               NULL);
+                  xmRowColumnWidgetClass, SO->SurfCont->rccm,
+                  XmNpacking, XmPACK_TIGHT, 
+                  XmNorientation , XmHORIZONTAL ,
+                  XmNmarginHeight, 0 ,
+                  XmNmarginWidth , 0 ,
+                  NULL);
                
                SUMA_LH("Forming map mode menu");
                SUMA_BuildMenuReset(0);
@@ -2731,60 +2740,41 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          }
 
          {
-            SUMA_LH("Forming CmapMenu");
-            SwitchCmap_Menu = SUMA_FormSwitchCmapMenuVector(SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps);
-            if (SwitchCmap_Menu) {
-               /*SO->SurfCont->cmapswtch_pb = XtVaCreateManagedWidget ("Switch", 
-                                 xmPushButtonWidgetClass, rcc, 
-                                 NULL);
-               XtAddCallback (SO->SurfCont->cmapswtch_pb, XmNactivateCallback, SUMA_cb_ColMap_Switch, (XtPointer) SO);
-               */
-               if (SO->SurfCont->SwitchCmapMenu) {
-                  SUMA_LH("Freeing old menu");
-                  XtDestroyWidget(SO->SurfCont->SwitchCmapMenu[0]); /*kill the menu widget */
-                  SUMA_free(SO->SurfCont->SwitchCmapMenu);   /* free the vector */
-               }
-               /* create a new one allocate for one more spot for the parent widget. 
-                  (more additions for sub-menus, see how SUMA_BuildMenu works )*/
-               SO->SurfCont->SwitchCmapMenu = (Widget *)SUMA_malloc(sizeof(Widget)*(SUMAg_CF->scm->N_maps+1));  
-               SUMA_BuildMenuReset(10);
-               SO->SurfCont->N_CmapMenu = SUMA_BuildMenu (SO->SurfCont->rccm_swcmap, XmMENU_OPTION, /* populate it */
-                                 "Cmp", '\0', YUP, SwitchCmap_Menu, 
-                                 (void *)SO,  
-                                 "Switch between available color maps. (BHelp for more)", 
-                                 "Switch between available color maps.\n"
-                                 "If the number of colormaps is too large\n"
-                                 "for the menu button, right click over\n"
-                                 "the 'Cmp' label and a chooser with a \n"
-                                 "slider bar will appear.\n", 
-                                 SO->SurfCont->SwitchCmapMenu );
-               XtInsertEventHandler( SO->SurfCont->SwitchCmapMenu[0] ,      /* handle events in optmenu */
-                                 ButtonPressMask ,  /* button presses */
-                                 FALSE ,            /* nonmaskable events? */
-                                 SUMA_optmenu_EV ,  /* handler */
-                                 (XtPointer) SO ,   /* client data */
-                                 XtListTail ) ;
-               XtManageChild (SO->SurfCont->SwitchCmapMenu[0]);
-               /* Now destroy the SwitchInt_Menu */
-               SwitchCmap_Menu = SUMA_FreeMenuVector(SwitchCmap_Menu, SUMAg_CF->scm->N_maps);
-            }
+            SUMA_CreateUpdatableCmapMenu(SO); 
 
             #if 0
-            /* the bias chooser, need to be recreated with new map, not a big deal*/
-            if (SO->SurfCont->CoordBiasMenu[SW_CoordBias]) {
-               XtDestroyWidget(SO->SurfCont->CoordBiasMenu[SW_CoordBias]); 
-               SO->SurfCont->CoordBiasMenu[SW_CoordBias] = NULL;
-            }
-            if (!SO->SurfCont->CoordBiasMenu[SW_CoordBias]) {
-               SUMA_LH("Forming new bias menu");
-               SUMA_BuildMenuReset(0);
-               SUMA_BuildMenu (SO->SurfCont->rccm_swcmap, XmMENU_OPTION, 
-                               NULL, '\0', YUP, CoordBias_Menu, 
-                               (void *)SO,   NULL, NULL, 
-                               SO->SurfCont->CoordBiasMenu);
-               XtManageChild (SO->SurfCont->CoordBiasMenu[SW_CoordBias]);
-            }
+               /* Not any more, menu is now stuck in its own rc */
+               /* the loader, needs to be recreated with colormap menu  */
+               if (SO->SurfCont->CmapLoad_pb) { 
+                  XtDestroyWidget(SO->SurfCont->CmapLoad_pb); 
+                  SO->SurfCont->CmapLoad_pb = NULL;
+               }
             #endif
+            if (!SO->SurfCont->CmapLoad_pb) { 
+               SUMA_LH("Forming CmapLoad button");
+               SO->SurfCont->CmapLoad_pb = XtVaCreateManagedWidget ("New", 
+                                 xmPushButtonWidgetClass, SO->SurfCont->rccm_swcmap, 
+                                 NULL);
+               XtAddCallback (SO->SurfCont->CmapLoad_pb, XmNactivateCallback, SUMA_cb_Cmap_Load, (XtPointer) SO);
+               MCW_register_hint(SO->SurfCont->CmapLoad_pb , "Load new colormap");
+               MCW_register_help(SO->SurfCont->CmapLoad_pb ,   "Load new colormap.\n"
+                                                               "Loaded map will replace a\n"
+                                                               "pre-existing one with the\n"
+                                                               "same name.\n"
+                                                               "\n"
+                                                               "See ScaleToMap -help for \n"
+                                                               "details on the format of \n"
+                                                               "colormap file. The formats\n"
+                                                               "are described in the section\n"
+                                                               "for the option -cmapfile.\n"
+                                                               "\n"
+                                                               "A sample colormap would be:\n"
+                                                               " 0 0 1\n"
+                                                               " 1 1 1\n"
+                                                               " 1 0 0\n"
+                                                               "saved into a cmap file called\n"
+                                                               "cmap_test.1D.cmap");
+            }
          } /* new colormaps */
          if (!XtIsManaged(SO->SurfCont->rccm_swcmap)) XtManageChild (SO->SurfCont->rccm_swcmap); 
       }
@@ -2868,10 +2858,10 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
       
       /* do the initialization */
       
-      if (SO->SurfCont->curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) {
-         XmToggleButtonSetState( SO->SurfCont->AbsThresh_tb, False, NOPE);
-      } else {
+      if (SO->SurfCont->curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN) {
          XmToggleButtonSetState( SO->SurfCont->AbsThresh_tb, True, NOPE);
+      } else {
+         XmToggleButtonSetState( SO->SurfCont->AbsThresh_tb, False, NOPE);
       }
       if (!SO->SurfCont->curColPlane->SymIrange) {
          XmToggleButtonSetState( SO->SurfCont->SymIrange_tb, False, NOPE);
@@ -2945,6 +2935,78 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
    
    if (!XtIsManaged(SO->SurfCont->rcvo)) XtManageChild (SO->SurfCont->rcvo);
    SUMA_FORCE_SCALE_HEIGHT(SO); /* Unfortunately, you need to resize after managing */
+
+   SUMA_RETURNe;
+}
+
+/*!
+   A function to create the cmap selection menu
+   in a manner that can be recreated if the menu
+   contents change. You can call this function
+   repeatedly whenever menu contents change 
+*/
+void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_CreateUpdatableCmapMenu"};
+   static Widget rc = NULL;
+   SUMA_MenuItem *SwitchCmap_Menu = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!rc) { /* first pass, create placement container */
+      rc = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, SO->SurfCont->rccm_swcmap,
+      XmNpacking, XmPACK_TIGHT, 
+      XmNorientation , XmHORIZONTAL ,
+      XmNmarginHeight, 0 ,
+      XmNmarginWidth , 0 ,
+      NULL);   
+   }
+
+   SUMA_LH("Forming CmapMenu");
+   SwitchCmap_Menu = SUMA_FormSwitchCmapMenuVector(SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps);
+   if (SwitchCmap_Menu) {
+      /*SO->SurfCont->cmapswtch_pb = XtVaCreateManagedWidget ("Switch", 
+                        xmPushButtonWidgetClass, rcc, 
+                        NULL);
+      XtAddCallback (SO->SurfCont->cmapswtch_pb, XmNactivateCallback, SUMA_cb_ColMap_Switch, (XtPointer) SO);
+      */
+      if (SO->SurfCont->SwitchCmapMenu) {
+         SUMA_LH("Freeing old menu");
+         XtDestroyWidget(SO->SurfCont->SwitchCmapMenu[0]); /*kill the menu widget */
+         SUMA_free(SO->SurfCont->SwitchCmapMenu);   /* free the vector */
+      }
+      /* create a new one allocate for one more spot for the parent widget. 
+         (more additions for sub-menus, see how SUMA_BuildMenu works )*/
+      SO->SurfCont->SwitchCmapMenu = (Widget *)SUMA_malloc(sizeof(Widget)*(SUMAg_CF->scm->N_maps+1));  
+      SUMA_BuildMenuReset(10);
+      SO->SurfCont->N_CmapMenu = SUMA_BuildMenu (rc, XmMENU_OPTION, /* populate it */
+                        "Cmp", '\0', YUP, SwitchCmap_Menu, 
+                        (void *)SO,  
+                        "Switch between available color maps. (BHelp for more)", 
+                        "Switch between available color maps.\n"
+                        "If the number of colormaps is too large\n"
+                        "for the menu button, right click over\n"
+                        "the 'Cmp' label and a chooser with a \n"
+                        "slider bar will appear.\n"
+                        "\n"
+                        "More help is available via\n"
+                        "ctrl+h while mouse is over the\n"
+                        "colormap.", 
+                        SO->SurfCont->SwitchCmapMenu );
+      XtInsertEventHandler( SO->SurfCont->SwitchCmapMenu[0] ,      /* handle events in optmenu */
+                        ButtonPressMask ,  /* button presses */
+                        FALSE ,            /* nonmaskable events? */
+                        SUMA_optmenu_EV ,  /* handler */
+                        (XtPointer) SO ,   /* client data */
+                        XtListTail ) ;
+      XtManageChild (SO->SurfCont->SwitchCmapMenu[0]);
+      /* Now destroy the SwitchCmap_Menu */
+      SwitchCmap_Menu = SUMA_FreeMenuVector(SwitchCmap_Menu, SUMAg_CF->scm->N_maps);
+   }
+
+   XtManageChild(rc);
 
    SUMA_RETURNe;
 }
@@ -3071,7 +3133,7 @@ SUMA_Boolean SUMA_DsetColSelectList(SUMA_SurfaceObject *SO, int type)
 /*!
    \brief opens a list selection for choosing a color map 
 */
-SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh)
+SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, int bringup)
 {
    static char FuncName[]={"SUMA_CmapSelectList"};
    SUMA_LIST_WIDGET *LW = NULL;
@@ -3123,8 +3185,7 @@ SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh)
       }
    }
    
-   SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE,
-                             LW);
+   if (bringup) SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE, LW);
    
    SUMA_RETURN(YUP);
 }
@@ -3380,7 +3441,7 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
          SUMA_RETURNe;
       }
    } else if (strcmp(XtName(w), "Cmp") == 0){
-      if (!SUMA_CmapSelectList(SO, 0)) {
+      if (!SUMA_CmapSelectList(SO, 0, 1)) {
          SUMA_SLP_Err("Failed to create DsetList");
          SUMA_RETURNe;
       }
@@ -3827,6 +3888,7 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])
    static char FuncName[]={"SUMA_SetScaleRange"};
    int min_v, max_v, scl, dec, cv;
    Widget w ;
+   float ftmp;
    char slabel[100];
    SUMA_Boolean LocalHead = NOPE;
    
@@ -3878,13 +3940,27 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])
       scl = max_v / 1000;
       dec = 1;     
    }
+   
+   #if 0
    /* make sure the current value is not less than the min or greater than the max */
    XtVaGetValues(w, XmNvalue, &cv, NULL);
+   #else
+   /* what was the slider's previous value in this dset ?*/
+   ftmp = SO->SurfCont->curColPlane->OptScl->ThreshRange[0] * pow(10.0, dec);
+   if (ftmp > 0) cv = (int) (ftmp+0.5);
+   else cv = (int) (ftmp-0.5);
+   #endif
+
    if (LocalHead) fprintf (SUMA_STDERR, "%s:\n min %d max %d scalemult %d decimals %d\nCurrent scale value %d\n", 
                   FuncName, min_v, max_v, scl, dec, cv);  
-   if (cv < min_v) cv = min_v;
-   else if (cv > max_v) cv = max_v;
-   
+   if (cv < min_v) {
+      cv = min_v;
+      /* must update threshold value in options structure*/
+      SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = (float)cv / pow(10.0, dec); 
+   } else if (cv > max_v) {
+      cv = max_v;
+      SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = (float)cv / pow(10.0, dec); 
+   }
    /* set the slider bar */
    XtVaSetValues(w,  
             XmNmaximum, max_v, 
@@ -4182,6 +4258,151 @@ SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_SurfaceObject *SO)
    SUMA_RETURN(YUP);
 }
 
+/*!
+   Load Cmap callback 
+   Expect SO in data
+*/
+void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_Cmap_Load"};
+   SUMA_LIST_WIDGET *LW=NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+    
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_OpenCmapFileSelection);
+   if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_vp, (void *)SO,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+   }
+   SUMA_RegisterEngineListCommand (  list, ED,
+                                     SEF_ip, (void *)SO->SurfCont->TopLevelShell,
+                                     SES_Suma, NULL, NOPE,
+                                     SEI_In, NextElm);
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*! Loads a colormap file and adds it to the list of colormaps */
+/*!
+   \brief Loads a Dset file and adds it to the list of datasets
+   
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+*/
+void SUMA_LoadCmapFile (char *filename, void *data)
+{
+   static char FuncName[]={"SUMA_LoadCmapFile"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_OVERLAY_PLANE_DATA sopd;
+   SUMA_IRGB *irgb=NULL;
+   int OverInd = -1, lnp=-1, loc[2];
+   char *np=NULL;
+   int bringup = 0;
+   SUMA_DSET_FORMAT form;
+   DList *list=NULL;
+   SUMA_LIST_WIDGET *LW=NULL;
+   SUMA_COLOR_MAP *Cmap=NULL;
+   SUMA_PARSED_NAME * pn=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
+
+   if (!data) {
+      SUMA_SLP_Err("Null data"); 
+      SUMA_RETURNe;
+   }
+   
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Received request to load %s for surface %s.\n", FuncName, filename, SO->Label);
+   }
+
+   /* find out if file exists and how many values it contains */
+   if (!SUMA_filexists(filename)) {
+      SUMA_SLP_Err("File not found");
+      SUMA_RETURNe;
+   }
+
+   /* take a stab at the format */
+   form = SUMA_GuessFormatFromExtension(filename);
+   
+   /* load the baby */
+   Cmap = NULL;
+   switch (form) {
+      case  SUMA_1D:
+         Cmap = SUMA_Read_Color_Map_1D (filename);
+         if (Cmap == NULL) {
+            SUMA_SLP_Err("Could not load colormap.");
+            SUMA_RETURNe; 
+         }
+         break;
+      case SUMA_ASCII_NIML:
+      case SUMA_BINARY_NIML:
+      case SUMA_NIML:
+         SUMA_SLP_Err("Not ready for this format yet.");
+         break;
+      default:
+         SUMA_SLP_Err(  "Format not recognized.\n"
+                        "I won't try to guess.\n"
+                        "Do use the proper extension.");
+         break;
+   }
+   
+   if (!Cmap) SUMA_RETURNe;
+
+   /* have Cmap, add to dbase */
+
+   /* remove path from name for pretty purposes */
+   pn = SUMA_ParseFname(Cmap->Name);
+   SUMA_STRING_REPLACE(Cmap->Name, pn->FileName_NoExt);
+   SUMA_Free_Parsed_Name(pn); pn = NULL;
+   SUMAg_CF->scm->CMv = SUMA_Add_ColorMap (Cmap, SUMAg_CF->scm->CMv, &(SUMAg_CF->scm->N_maps)); 
+   
+   /* Now you need to close any pre-existing switch Cmap window */
+   bringup = 0;
+   if (SUMAg_CF->X->SwitchCmapLst) {
+      if (SUMAg_CF->X->SwitchCmapLst->toplevel && !SUMAg_CF->X->SwitchCmapLst->isShaded) {
+         /* close that baby */
+         SUMA_cb_CloseSwitchCmap( NULL,  (XtPointer)SUMAg_CF->X->SwitchCmapLst,  NULL);
+         bringup = 1;
+      }
+   }
+   /* refresh the list */
+   SUMA_CmapSelectList(SO, 1, bringup);
+   
+   /* update the menu buttons */
+   SUMA_CreateUpdatableCmapMenu(SO);
+   
+   /* Set the menu button to the current choice */
+   if (!SUMA_SetCmapMenuChoice (SO, Cmap->Name)) {
+      SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
+   }
+
+   /* switch to the recently loaded  cmap */
+   if (!SUMA_SwitchColPlaneCmap(SO, Cmap)) {
+      SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
+   }
+   
+   /* update Lbl fields */
+   SUMA_UpdateNodeLblField(SO);
+
+   SUMA_RETURNe;
+}
 
 #ifdef SUMA_SHOW_CMAP_STAND_ALONE
 

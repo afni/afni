@@ -111,7 +111,7 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call);
 SUMA_MenuItem *SUMA_FormSwitchCmapMenuVector(SUMA_COLOR_MAP **CMv, int N_maps);
 void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, XtPointer call);
 void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call);
-SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int type);
+SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int type, int bringup);
 SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM);
 SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str);
 void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2]);  
@@ -155,6 +155,9 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_da
 void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_data);
+void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_LoadCmapFile (char *filename, void *data);
+void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);
 
          
          

@@ -1827,6 +1827,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->thrstat_lb = NULL;
    SurfCont->cmaptit_lb = NULL;
    SurfCont->cmapswtch_pb = NULL;
+   SurfCont->CmapLoad_pb = NULL;
    SurfCont->SwitchIntMenu = NULL;
    SurfCont->SwitchBrtMenu = NULL;
    SurfCont->SwitchThrMenu = NULL;

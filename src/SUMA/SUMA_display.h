@@ -273,7 +273,7 @@ SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO);
 void SUMA_cb_SetDrawROI_SaveMode(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SetDrawROI_SaveWhat(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data);
-int SUMA_ForceUser_YesNo(Widget parent, char *question, int default_ans);
+int SUMA_ForceUser_YesNo(Widget parent, char *question, int default_ans, SUMA_WINDOW_POSITION pos);
 int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_ans);
 char * SUMA_ClassOf(int c);
 char * SUMA_Format(int n, int w);
@@ -338,7 +338,8 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
 
 #define SUMA_help_help \
    "Click the hand\n"   \
-   "on any button to\n"  \
+   "on any button or \n"\
+   "label, menu, etc. to\n"  \
    "get a little help."
    
 #define SUMA_closeSumaCont_help \

@@ -1441,7 +1441,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
           SUMAg_SVv[ic].X->DOUBLEBUFFER = False;
          }
       } else {
-         SUMA_SL_Note("This is new. Inheriting");
+         SUMA_LH("This is new. Inheriting");
          SUMAg_SVv[ic].X->VISINFO = SUMAg_SVv[0].X->VISINFO;
          SUMAg_SVv[ic].X->DOUBLEBUFFER = SUMAg_SVv[0].X->DOUBLEBUFFER;
       }
@@ -1898,14 +1898,7 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
    
    SUMA_ENTRY;
    
-   #ifdef DARWIN
-      /* Set the focus manually.
-      If you're not using motif widgets, window focus is not managed.
-      You can manage it yourself with XSetInputFocus when the EnterWindowEvent is captured.
-      You don't need to do that however if you link (for some reason) to -lXm.
-      But on the macosx10, -lXm does not help, so we manage the foucs ourselves */
-      XSetInputFocus(XtDisplay(w), XtWindow(w), RevertToPointerRoot, CurrentTime);
-   #endif
+   if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Called, w = %p\n", FuncName, w);
    
 
    /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
@@ -1914,6 +1907,29 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
       fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    }
+
+   #ifdef DARWIN
+      /* Set the focus manually.
+      If you're not using motif widgets, window focus is not managed.
+      You can manage it yourself with XSetInputFocus when the EnterWindowEvent is captured.
+      You don't need to do that however if you link (for some reason) to -lXm.
+      But on the macosx10, -lXm does not help, so we manage the foucs ourselves */
+      /* The downside is that this call seems to be related to a crash on the mac,
+      reported as a complaint coming from X_SetInputFocus.
+      The crash happened when multiple viewers were open and one of them was closed
+      AND suma was set to prompt the user with "Close this viewer?"
+      I tried resetting the focus to a viewer that is not being closed before
+      closing the reviewer as requested by the user but that did not help.
+      It turns out that the problem does not occur if the prompt window does not
+      appear on top of the viewer to be closed. More precisely, if the pointer ends
+      up on top of the viewer just after the prompt window disapears SUMA crashes with the 
+      message: X Error of failed request: BadMatch (invalid parameter attributes) ...
+      The solution is simple, on DARWIN, make sure prompt window appears to the right
+      of the viewer. If the user moves it back over the viewer AND then presses YES to close 
+      the viewer then they will suffer the crash. June 15 04*/
+
+      XSetInputFocus(sv->X->DPY, XtWindow(w), RevertToPointerRoot, CurrentTime);
+   #endif
 
    sv->rdc = SUMA_RDC_X_ENTER_WINDOW;
    
@@ -2911,7 +2927,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
          NULL);
       XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
       MCW_register_help(pb_bhelp , SUMA_help_help ) ;
-      MCW_register_hint(pb_bhelp  , "Coddles the weak." ) ;
+      MCW_register_hint(pb_bhelp  , "Press this button then click on a button/label/menu for more help." ) ;
 
       XtManageChild (pb_bhelp); 
 
@@ -3422,8 +3438,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Load, (XtPointer) SO);
-      MCW_register_hint(pb , "Load a new color plane." ) ;
-      MCW_register_help(pb , "Load a new color plane." ) ;
+      MCW_register_hint(pb , "Load a new color plane (same as ctrl+c)" ) ;
+      MCW_register_help(pb ,  "Load a new color plane.\n"
+                              "(Same as ctrl+c option)." ) ;
       XtManageChild (pb);
       
        
@@ -3480,7 +3497,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);
       XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
       MCW_register_help(pb_bhelp , SUMA_help_help ) ;
-      MCW_register_hint(pb_bhelp  , "Coddles the weak." ) ;
+      MCW_register_hint(pb_bhelp  , "Press this button then click on a button/label/menu for more help." ) ;
 
       XtManageChild (pb_bhelp); 
 
@@ -3805,15 +3822,17 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    if (SO->SurfCont->cmp_ren->cmap_context) {
       if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") == 0) {
          if (XtIsManaged(SO->SurfCont->DsetMap_fr)) {
-            SUMA_LH("An RGB dset, so surface controls to be seen");
+            SUMA_LH("An RGB dset, no surface controls to be seen");
             XtUnmanageChild(SO->SurfCont->DsetMap_fr);
             XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
          }
       } else {
          if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {
-            SUMA_LH("A non RGB dset, surface controls need to be seen");
-            XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
-            XtManageChild(SO->SurfCont->DsetMap_fr);
+            SUMA_LH("A non RGB dset, surface controls need to be seen\nBut only when ColPlane_fr is also shown (frame may be hidden by Dsets button action)");
+            if (XtIsManaged(SO->SurfCont->ColPlane_fr)) {
+               XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
+               XtManageChild(SO->SurfCont->DsetMap_fr);
+            }
          }
          SUMA_cmap_wid_handleRedisplay((XtPointer) SO); 
 
@@ -4199,7 +4218,7 @@ void SUMA_CreateDrawROIWindow(void)
       NULL);
    XtAddCallback (pb, XmNactivateCallback, MCW_click_help_CB, NULL);  
    MCW_register_help(pb , SUMA_help_help ) ;
-   MCW_register_hint(pb , "Coddles the weak." ) ;
+   MCW_register_hint(pb , "Press this button then click on a button/label/menu for more help." ) ;
    XtManageChild (pb);
     
    SUMAg_CF->X->DrawROI->Close_pb = XtVaCreateWidget ("Close", 
@@ -6202,7 +6221,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       NULL);
    XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
    MCW_register_help(pb_bhelp , SUMA_help_help ) ;
-   MCW_register_hint(pb_bhelp  , "Coddles the weak." ) ;
+   MCW_register_hint(pb_bhelp  , "Press this button then click on a button/label/menu for more help." ) ;
    
    XtManageChild (pb_bhelp); 
    
@@ -8869,19 +8888,27 @@ void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data)
    SO = (SUMA_SurfaceObject *)(*curSOp);
    
    if (ncall > 0) {
-      XtUnmanageChild(SO->SurfCont->ColPlane_fr);
+      if (XtIsManaged(SO->SurfCont->ColPlane_fr)) XtUnmanageChild(SO->SurfCont->ColPlane_fr);
       /* if nothing else remains in the parent of ColPlane, then unmanage its parent (rc_right) too. 
        *** Parent of that frame is now rc_left    May 25 04*/
       /*XtUnmanageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
-      XtUnmanageChild(SO->SurfCont->DsetMap_fr);
-      XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
+      if (XtIsManaged(SO->SurfCont->DsetMap_fr)) {
+         XtUnmanageChild(SO->SurfCont->DsetMap_fr);
+         XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
+      }
    } else {
       /* XtManageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
-      XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
-      XtManageChild((Widget)SO->SurfCont->DsetMap_fr);
+      if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") != 0) { /* not an RGB dset */
+         if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {
+            XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
+            XtManageChild((Widget)SO->SurfCont->DsetMap_fr);
+         }
+      }
       XtManageChild((Widget)SO->SurfCont->ColPlane_fr);
       XMapRaised (XtDisplay(SO->SurfCont->ColPlane_fr), XtWindow(SO->SurfCont->TopLevelShell));
    }
+   
+
    ncall *= -1;
    SUMA_RETURNe;
 }
@@ -9102,9 +9129,11 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
 /*!
    \brief create a forced answer dialog YES/NO 
    
+   set pos to SWP_DONT_CARE (recommended) if you don't want to specify where
+   the prompt goes
    \return SUMA_YES SUMA_NO 
 */
-int SUMA_ForceUser_YesNo(Widget parent, char *question, int default_ans)
+int SUMA_ForceUser_YesNo(Widget parent, char *question, int default_ans, SUMA_WINDOW_POSITION pos)
 {
     static char FuncName[]={"SUMA_ForceUser_YesNo"};
     static Widget dialog; /* static to avoid multiple creation */
@@ -9155,7 +9184,9 @@ int SUMA_ForceUser_YesNo(Widget parent, char *question, int default_ans)
    
    XtManageChild (dialog);
    XtPopup (XtParent (dialog), XtGrabNone);
-
+   
+   if (pos != SWP_DONT_CARE) SUMA_PositionWindowRelative(dialog, parent, pos);
+   
    while (answer == SUMA_NO_ANSWER)
      XtAppProcessEvent (SUMAg_CF->X->App, XtIMAll);
 

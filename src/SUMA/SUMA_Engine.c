@@ -402,6 +402,35 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
             break;
          
+         case SE_OpenCmapFileSelection:
+            /* opens the Cmap file selection window. 
+            Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
+            
+            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            
+            /*Load colors from file */
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            if (!EngineData->ip) {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadCmapFile, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        "*.cmap",
+                                                        SUMAg_CF->X->FileSelectDlg);
+            } else {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadCmapFile, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        "*.cmap",
+                                                        SUMAg_CF->X->FileSelectDlg);
+            }
+            
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Cmap File", &SUMAg_CF->X->FileSelectDlg);
+            
+            break;
          case SE_OpenColFileSelection:
             /* opens the color file selection window. 
             Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
