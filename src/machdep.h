@@ -115,6 +115,9 @@ extern int alphasort(struct dirent **, struct dirent **) ;
 # define NO_FRIVOLITIES
 extern int alphasort(struct dirent **, struct dirent **) ;
 
+extern double strtod() ;
+extern long   strtol() ;
+
 /**
 #ifndef S_IFREG
 #  define S_IFREG _IFREG
