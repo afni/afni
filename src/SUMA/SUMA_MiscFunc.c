@@ -1532,6 +1532,7 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
    float bf, **P2, P1orig[3], Uorig[3];
    float m, n, p, q, D, A, B, C;
    int flip, i;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1540,10 +1541,10 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
       SUMA_RETURN (NULL);
    }
    
-   /*
+   if (LocalHead) {
       fprintf (SUMA_STDOUT,"%s: U %f, %f, %f, P1 %f %f %f, d %f\n", FuncName,\
          U[0], U[1], U[2], P1[0], P1[1], P1[2], d);
-   */
+   }
          
    /* store initial values */
    P1orig[0] = P1[0];    
@@ -1573,11 +1574,14 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
       }/*U[1] = 0; */
    }/*U[0] = 0; */
 
-   
-   U[0] /= U[0]; 
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: flip = %d\n", FuncName, flip);
+      
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: U original: %f, %f, %f\n", FuncName, U[0], U[1], U[2]);
    U[1] /= U[0];
    U[2] /= U[0];
-
+   U[0] = 1.0; 
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: U normalized: %f, %f, %f\n", FuncName, U[0], U[1], U[2]);
+   
    /* Now U is clean, calculate P2 */   
    m = U[1];
    n = U[2];
@@ -1585,12 +1589,17 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
    q = P1[1] - m*P1[0];
    p = P1[2] - n*P1[0];
 
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: m=%f n=%f, p=%f, q=%f\n", FuncName, m, n, p, q);
+
    /* Now find P2 */
    A = (1 + n*n + m*m);
    B = -2 * P1[0] + 2 * m * (q - P1[1]) + 2 * n * (p - P1[2]);
    C = P1[0]*P1[0] + (q - P1[1])*(q - P1[1]) + (p - P1[2])*(p - P1[2]) - d*d;
 
    D = B*B - 4*A*C;
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: A=%f B=%f, C=%f, D=%f\n", FuncName, A, B, C, D);
+   
    if (D < 0) {
       fprintf(SUMA_STDERR, "Error %s: Negative Delta.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -1632,20 +1641,35 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
       U[i] = Uorig[i];
    }
 
+   if (LocalHead) {
+      fprintf(SUMA_STDOUT,"%s: P1 = %f, %f, %f\n  ", \
+       FuncName, P1[0], P1[1], P1[2]);
+      fprintf(SUMA_STDOUT,"%s: P2 = %f, %f, %f\n    %f, %f, %f\n", \
+       FuncName, P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+      fprintf(SUMA_STDOUT,"%s: U = %f, %f, %f\n  ", \
+       FuncName, U[0], U[1], U[2]);
+   }
+
+   
    /* make sure 1st point is along the same direction */
    Uorig[0] = P2[0][0] - P1[0]; /* use Uorig, not needed anymore */
    Uorig[1] = P2[0][1] - P1[1];
    Uorig[2] = P2[0][2] - P1[2];
 
-   SUMA_DOTP_VEC(Uorig, P1, bf, 3, float, float)
+   SUMA_DOTP_VEC(Uorig, U, bf, 3, float, float)
+   if (LocalHead) fprintf(SUMA_STDOUT,"%s: Dot product = %f\n", FuncName, bf);
    if (bf < 0) {
-      /* fprintf(SUMA_STDOUT,"Flipping...\n");*/
+      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Flipping at end...\n", FuncName);
       for (i=0; i< 3; ++i) {
          bf = P2[0][i];
          P2[0][i] = P2[1][i]; P2[1][i] = bf;
       }
    }
-
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDOUT,"%s: P2 = %f, %f, %f\n    %f, %f, %f\n", \
+       FuncName, P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+   }
 SUMA_RETURN (P2);
    
 }/*SUMA_Point_At_Distance*/

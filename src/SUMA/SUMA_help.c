@@ -26,7 +26,8 @@ void SUMA_help_message(FILE *Out)
 	 fprintf (Out, "\t  m: momentum, toggle\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  n: bring a node to direct view (does not work yet)\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+n: Open a new surface viewer windows.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  s: Show surface object structures in ShowDO vector.\n");
+	 fprintf (Out, "\t  p: rendering mode (Fill, Line, Points), switch.\n");
+    if (SUMAg_CF->Dev) fprintf (Out, "\t  s: Show surface object structures in ShowDO vector.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  S: Show all surface objects registered in DOv.\n");
 	 fprintf (Out, "\t  t: talk to AFNI, toggle.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  v: Show current surface viewer structure (cSV).\n");

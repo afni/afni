@@ -141,6 +141,14 @@ SUMA_inflate_compare: SUMA_inflate_compare.c
 	$(RM) $@
 	${CC} -DSUMA_inflate_compare_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SUMA_recursion: SUMA_recursion.c
+	$(RM) $@
+	${CC} -DSUMA_recursion_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_map_to_icosa: SUMA_map_to_icosa.c
+	$(RM) $@
+	${CC} -DSUMA_map_to_icosa_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 install:
 	if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
 	mv suma ${INSTALLDIR_SUMA}
