@@ -463,7 +463,7 @@ STATUS("WANT_AFNI_BITMAP") ;
 
       /* 28 Jan 2004: just for fun, background pixmaps for top forms */
 
-      if( afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP && !AFNI_noenv("AFNI_LOGO16") ){
+      if( afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP && AFNI_yesenv("AFNI_LOGO16") ){
         Pixel fg16=ICON_bg, bg16=ICON_fg ; int ic ; char ename[32] ;
         char *fgn[7] = { "red", "blue-cyan", "green", "violet", "orange", "gray70", "yellow" };
 
