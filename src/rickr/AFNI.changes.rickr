@@ -643,3 +643,6 @@
 23 September 2004:
   * modified Makefile.linux_gcc33_64 for static Motif under /usr/X11R6/lib64
 
+28 September 2004:
+  * modified thd_coords.c and 3ddata.h, adding THD_3dmm_to_3dind_no_wod()
+
