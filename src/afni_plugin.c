@@ -3502,11 +3502,36 @@ ENTRY("PLUTO_popup_worker") ;
    EXRETURN ;
 }
 
+/*------------------------------------------------------------------*/
+
 void PLUTO_beep(void)
 {
    XBell( GLOBAL_library.dc->display , 100 ) ;
    return ;
 }
+
+/*------------------------------------------------------------------*/
+
+#include <ctype.h>
+
+static int PLUTO_strncmp( char * aa , char * bb , int nn ) /* 09 Oct 2000 */
+{
+   int ii ;
+
+   if( aa == bb )                 return 0 ;  /* special cases */
+   if( aa == NULL || bb == NULL ) return 1 ;
+
+   for( ii=0 ; ii < nn ; ii++,aa++,bb++ ){
+      if( *aa == '\0'  && *bb == '\0' )  return 0 ; /* got to end all same! */
+      if( *aa == '\0'  || *bb == '\0' )  return 1 ; /* premature end of one */
+      if( isspace(*aa) || isspace(*bb) ) continue ; /* don't compare blanks */
+      if( toupper(*aa) != toupper(*bb) ) return 1 ; /* case insensitive     */
+   }
+
+   return 0 ;                                       /* finished max # chars */
+}
+
+/*------------------------------------------------------------------*/
 
 int PLUTO_string_index( char * target , int num , char * source[] )
 {
@@ -3515,7 +3540,7 @@ int PLUTO_string_index( char * target , int num , char * source[] )
    if( num <= 0 || source == NULL || target == NULL ) return -1 ;
 
    for( ii=0 ; ii < num ; ii++ )
-      if( strncmp(target,source[ii],PLUGIN_STRING_SIZE) == 0 ) return ii ;
+      if( PLUTO_strncmp(target,source[ii],PLUGIN_STRING_SIZE) == 0 ) return ii ;
 
    return -1 ;
 }
@@ -4018,16 +4043,24 @@ static XtWorkProc * workp = NULL ;
 static XtPointer *  datap = NULL ;
 static XtWorkProcId wpid ;
 
+#undef WPDEBUG
+
 void PLUTO_register_workproc( XtWorkProc func , XtPointer data )
 {
 ENTRY("PLUTO_register_workproc") ;
 
-   if( func == NULL ) EXRETURN ;
+   if( func == NULL ){
+      fprintf(stderr,"PLUTO_register_workproc: func=NULL on entry!\n") ;
+      EXRETURN ;
+   }
 
    if( num_workp == 0 ){
       workp = (XtWorkProc *) malloc( sizeof(XtWorkProc) ) ;
       datap = (XtPointer *)  malloc( sizeof(XtPointer) ) ;
       wpid  = XtAppAddWorkProc( PLUTO_Xt_appcontext, PLUG_workprocess, NULL ) ;
+#ifdef WPDEBUG
+      fprintf(stderr,"PLUTO_register_workproc: wpid = %x\n",(int)wpid) ;
+#endif
    } else {
       workp = (XtWorkProc *) realloc( workp, sizeof(XtWorkProc)*(num_workp+1) ) ;
       datap = (XtPointer*)   realloc( datap, sizeof(XtPointer) *(num_workp+1) ) ;
@@ -4037,9 +4070,9 @@ ENTRY("PLUTO_register_workproc") ;
    datap[num_workp] = data ;
    num_workp++ ;
 
-/**
-fprintf(stderr,"Now have %d workprocs\n",num_workp) ;
-**/
+#ifdef WPDEBUG
+fprintf(stderr,"PLUTO_register_workproc: have %d workprocs\n",num_workp) ;
+#endif
 
    EXRETURN ;
 }
@@ -4050,7 +4083,10 @@ void PLUTO_remove_workproc( XtWorkProc func )
 
 ENTRY("PLUTO_remove_workproc") ;
 
-   if( func == NULL || num_workp == 0 ) EXRETURN ;
+   if( func == NULL || num_workp == 0 ){
+      fprintf(stderr,"*** PLUTO_remove_workproc: illegal parameters!\n") ;
+      EXRETURN ;
+   }
 
    for( ii=0 ; ii < num_workp ; ii++ ){
       if( func == workp[ii] ) workp[ii] = NULL ;
@@ -4060,16 +4096,16 @@ ENTRY("PLUTO_remove_workproc") ;
       if( workp[ii] != NULL ) ngood++ ;
 
    if( ngood == 0 ){
-/**
-fprintf(stderr,"No workprocs left\n") ;
-**/
+#ifdef WPDEBUG
+      fprintf(stderr,"PLUTO_remove_workproc: No workprocs left\n") ;
+#endif
       XtRemoveWorkProc( wpid ) ;
       free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
       num_workp = 0 ;
    } else {
-/**
-fprintf(stderr,"%d workprocs left\n",ngood) ;
-**/
+#ifdef WPDEBUG
+      fprintf(stderr,"PLUTO_remove_workproc: %d workprocs left\n",ngood) ;
+#endif
    }
 
    EXRETURN ;
@@ -4079,6 +4115,12 @@ Boolean PLUG_workprocess( XtPointer fred )
 {
    int ii , ngood ;
    Boolean done ;
+
+#ifdef WPDEBUG
+   { static int ncall=0 ;
+     if( (ncall++) % 1000 == 0 )
+       fprintf(stderr,"PLUG_workprocess: entry %d\n",ncall) ; }
+#endif
 
    if( num_workp == 0 ) return True ;
 
@@ -4091,14 +4133,59 @@ Boolean PLUG_workprocess( XtPointer fred )
    }
 
    if( ngood == 0 ){
-/**
-fprintf(stderr,"Found no workprocs left\n") ;
-**/
+#ifdef WPDEBUG
+      fprintf(stderr,"Found no workprocs left\n") ;
+#endif
       free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
       num_workp = 0 ;
       return True ;
    }
    return False ;
+}
+
+/*---------------------------------------------------------------*/
+
+typedef struct {
+  generic_func * func ;
+  XtPointer      cd ;
+} mytimeout ;
+
+static void PLUG_dotimeout_CB( XtPointer cd , XtIntervalId * id )
+{
+   mytimeout * myt = (mytimeout *) cd ;
+
+ENTRY("PLUTO_register_timeout") ;
+
+   if( myt == NULL ) EXRETURN ;  /* bad news */
+
+STATUS("calling user timeout function") ;
+
+   myt->func( myt->cd ) ;
+
+   myXtFree(myt) ; EXRETURN ;
+}
+
+void PLUTO_register_timeout( int msec, generic_func * func, XtPointer cd )
+{
+   mytimeout * myt ;
+
+ENTRY("PLUTO_register_timeout") ;
+
+   if( func == NULL ){
+      fprintf(stderr,"PLUTO_register_timeout: func=NULL on entry!\n") ;
+      EXRETURN ;
+   }
+
+   if( msec < 0 ) msec = 0 ;
+
+   myt       = myXtNew(mytimeout) ;
+   myt->func = func ;
+   myt->cd   = cd ;
+
+   (void) XtAppAddTimeOut( PLUTO_Xt_appcontext , msec ,
+                           PLUG_dotimeout_CB , (XtPointer) myt ) ;
+
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------*/

@@ -354,12 +354,26 @@ void RT_check_info( RT_input * , int ) ;
 #  define GRIM_REAPER /* nada */
 #endif
 
+#define USE_RT_STARTUP
+#ifdef  USE_RT_STARTUP
+/********************** Register a work process **********************/
+
+static void RT_startup( XtPointer junk )
+{
+   PLUTO_register_workproc( RT_worker , NULL ) ;
+   return ;
+}
+#endif
+
 /***********************************************************************
    Set up the interface to the user
+   09 Oct 2000: allow all options to be initialized via the environment
 ************************************************************************/
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
+   char * ept ; /* 09 Oct 2000 */
+
    if( ncall > 0 )         return NULL ;  /* only one interface */
    if( ! ALLOW_real_time ) return NULL ;  /* do nothing if not allowed */
 
@@ -375,25 +389,53 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- 28 Apr 2000: Images Only mode --*/
 
-   PLUTO_add_option( plint , "" , "Mode" , TRUE ) ;
+   ept = getenv("AFNI_REALTIME_Images_Only") ;  /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = PLUTO_string_index( ept , NYESNO , VERB_strings ) ;
+      if( ii >= 0 && ii < NYESNO ) image_mode = ii ;
+   }
+
+   PLUTO_add_option( plint , "" , "Mode" , FALSE ) ;
    PLUTO_add_string( plint , "Images Only" , NYESNO,VERB_strings,image_mode ) ;
 
    /*-- next line of input: Prefix for output dataset --*/
 
+   ept = getenv("AFNI_REALTIME_Root") ;        /* 09 Oct 2000 */
+   if( !THD_filename_ok(ept) ) ept = NULL ;
+   if( ept != NULL ) MCW_strncpy(root,ept,THD_MAX_PREFIX) ;
+
    PLUTO_add_option( plint , "" , "Root" , FALSE ) ;
-   PLUTO_add_string( plint , "Root" , 0,NULL , 19 ) ;
+   PLUTO_add_string( plint , "Root" , 0, (ept!=NULL) ? &ept : NULL , 19 ) ;
 
    /*-- next line of input: Update frequency --*/
+
+   ept = getenv("AFNI_REALTIME_Update") ;      /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = (int) rint(strtod(ept,NULL)) ;
+      if( ii >= 0 && ii <= 19 ) update = ii ;
+   }
 
    PLUTO_add_option( plint , "" , "Update" , FALSE ) ;
    PLUTO_add_number( plint , "Update" , 0,19,0 , update , FALSE ) ;
 
    /*-- next line of input: Function computation --*/
 
+   ept = getenv("AFNI_REALTIME_Function") ;   /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = PLUTO_string_index( ept , NFUNC , FUNC_strings ) ;
+      if( ii >= 0 && ii < NFUNC ) func_code = ii ;
+   }
+
    PLUTO_add_option( plint , "" , "Function" , FALSE ) ;
    PLUTO_add_string( plint , "Function" , NFUNC , FUNC_strings , func_code ) ;
 
    /*-- next line of input: Verbosity flag --*/
+
+   ept = getenv("AFNI_REALTIME_Verbose") ;   /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = PLUTO_string_index( ept , NVERB , VERB_strings ) ;
+      if( ii >= 0 && ii < NVERB ) verbose = ii ;
+   }
 
    PLUTO_add_option( plint , "" , "Verbose" , FALSE ) ;
    PLUTO_add_string( plint , "Verbose" , NVERB , VERB_strings , verbose ) ;
@@ -401,12 +443,48 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 #ifdef ALLOW_REGISTRATION
    /*-- next line of input: registration mode --*/
 
+   ept = getenv("AFNI_REALTIME_Registration") ;  /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = PLUTO_string_index( ept , NREG , REG_strings ) ;
+      if( ii >= 0 && ii < NREG ) regmode = ii ;
+   }
+
+   ept = getenv("AFNI_REALTIME_Base_Image") ;     /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = (int) rint(strtod(ept,NULL)) ;
+      if( ii >= 0 && ii <= 59 ) regtime = ii ;
+   }
+
+   ept = getenv("AFNI_REALTIME_Resampling") ;    /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = PLUTO_string_index( ept , NRESAM , REG_resam_strings ) ;
+      if( ii >= 0 && ii < NRESAM ) reg_resam = ii ;
+   }
+
    PLUTO_add_option( plint , "" , "Registration" , FALSE ) ;
    PLUTO_add_string( plint , "Registration" , NREG , REG_strings , regmode ) ;
    PLUTO_add_number( plint , "Base Image" , 0,59,0 , regtime , FALSE ) ;
    PLUTO_add_string( plint , "Resampling" , NRESAM , REG_resam_strings , reg_resam ) ;
 
    /*-- next line of input: registration graphing --*/
+
+   ept = getenv("AFNI_REALTIME_Graph")  ;  /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = PLUTO_string_index( ept , NGRAPH , GRAPH_strings ) ;
+      if( ii >= 0 && ii < NGRAPH ) reggraph = ii ;
+   }
+
+   ept = getenv("AFNI_REALTIME_NR") ;     /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = (int) rint(strtod(ept,NULL)) ;
+      if( ii >= 5 && ii <= 9999 ) reg_nr = ii ;
+   }
+
+   ept = getenv("AFNI_REALTIME_YR") ;     /* 09 Oct 2000 */
+   if( ept != NULL ){
+      float ff = strtod(ept,NULL) ;
+      if( ff > 0.0 ) reg_yr = ff ;
+   }
 
    PLUTO_add_option( plint , "" , "Graphing" , FALSE ) ;
    PLUTO_add_string( plint , "Graph" , NGRAPH , GRAPH_strings , reggraph ) ;
@@ -416,7 +494,11 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /***** Register a work process *****/
 
+#ifndef USE_RT_STARTUP
    PLUTO_register_workproc( RT_worker , NULL ) ;
+#else
+   PLUTO_register_timeout( 1954 , RT_startup , NULL ) ;
+#endif
 
    /***** go home *****/
 
@@ -440,8 +522,10 @@ char * RT_main( PLUGIN_interface * plint )
 
    /** loop over input from AFNI **/
 
+#if 0                         /* 09 Oct 2000: turn this "feature" off */
 #ifdef ALLOW_REGISTRATION
    regmode = REGMODE_NONE ;   /* no registration if not ordered explicitly */
+#endif
 #endif
 
    while( (tag=PLUTO_get_optiontag(plint)) != NULL ){
@@ -651,6 +735,13 @@ void cleanup_rtinp(void)
 Boolean RT_worker( XtPointer elvis )
 {
    int jj ;
+
+   static int first=1 ;
+
+   if( first ){
+      if( verbose ) fprintf(stderr,"RT: first call to RT_worker()\n") ;
+      first = 0 ;
+   }
 
    /**--------------------------------------------------------------------**/
    /** if we are waiting for a connection, check to see if it is good yet **/

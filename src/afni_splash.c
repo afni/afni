@@ -682,6 +682,7 @@ STATUS("no ***LAYOUT found") ;
 
       MCW_imseq   * isq ;
       MCW_grapher * gra ;
+      int           singleton=0 ;
 
       /*-- determine if this controller is to be active --*/
 
@@ -752,6 +753,8 @@ STATUS("no ***LAYOUT found") ;
                mp[4] = DC_find_overlay_color(GLOBAL_library.controllers[cc]->dc,mcol);
                drive_MCW_imseq( isq , isqDR_setmontage , (XtPointer) mp ) ;
 
+               if( msp == 1 ) singleton++ ;
+
                if(goslow || PRINT_TRACING) sleep(1);
             }
          }
@@ -771,6 +774,15 @@ STATUS("no ***LAYOUT found") ;
          AFNI_splashraise() ;
 
       } /* end of loop over images */
+
+      /* 11 Oct 2000: change crosshairs if any mont spacing=1 */
+
+      if( singleton ){
+         AV_assign_ival( GLOBAL_library.controllers[cc]->vwid->imag->crosshair_av ,
+                         AFNI_XHAIRS_SINGLE ) ;
+         AFNI_crosshair_visible_CB( GLOBAL_library.controllers[cc]->vwid->imag->crosshair_av ,
+                                    GLOBAL_library.controllers[cc] ) ;
+      }
 
       /*-- loop over graphs --*/
 

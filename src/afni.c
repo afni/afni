@@ -108,7 +108,6 @@ static XtErrorHandler MAIN_old_handler ;
 static Three_D_View * MAIN_im3d ;
 static MCW_DC *       MAIN_dc ;
 static Widget         MAIN_shell=NULL ;
-static XtWorkProcId   MAIN_wpid ;
 static int            MAIN_argc ;
 static char **        MAIN_argv ;
 static Boolean        MAIN_workprocess( XtPointer ) ;
@@ -337,12 +336,18 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.dz       = 1.0 ;          /* set up defaults */
    GLOBAL_argopt.dy       = 1.0 ;
    GLOBAL_argopt.ignore   = INIT_ignore ;
-   GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
    GLOBAL_argopt.elide_quality  = 0 ;      /* Dec 1997 */
    GLOBAL_argopt.skip_afnirc    = 0 ;      /* 14 Jul 1998 */
    GLOBAL_argopt.no_frivolities = 0 ;      /* 01 Aug 1998 */
    GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
+
+#if 0
+   GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
+#else                                      /* 09 Oct 2000 */
+   GLOBAL_argopt.allow_rt = AFNI_yesenv("AFNI_REALTIME_Activate") ;
+   GLOBAL_argopt.no_frivolities = (GLOBAL_argopt.allow_rt != 0) ;
+#endif
 
    SESSTRAIL = 1 ;
    env = getenv( "AFNI_SESSTRAIL" ) ;
@@ -472,6 +477,12 @@ ENTRY("AFNI_parse_args") ;
       if( strncmp(argv[narg],"-rt",3) == 0 ){
          GLOBAL_argopt.allow_rt       = -1 ;
          GLOBAL_argopt.no_frivolities = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(argv[narg],"-nort",5) == 0 ){  /* 09 Oct 2000 */
+         GLOBAL_argopt.allow_rt       = 0 ;
+         GLOBAL_argopt.no_frivolities = 0 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -1096,7 +1107,11 @@ int main( int argc , char * argv[] )
    /*------- take it away, Goldie -------*/
    /*------------------------------------*/
 
-   MAIN_wpid = XtAppAddWorkProc( MAIN_app, MAIN_workprocess, NULL ) ;
+#if 0
+   (void) XtAppAddWorkProc( MAIN_app, MAIN_workprocess, NULL ) ;
+#else
+   PLUTO_register_workproc( MAIN_workprocess , NULL ) ;
+#endif
 
    MCW_disable_help() ;
 

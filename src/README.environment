@@ -814,6 +814,49 @@ possible (which still may not be all that fast).
 Using layouts with a window manager that requires user placement
 of new windows (e.g., twm) is a futile exercise.
 
+--------------------------
+Variables: AFNI_REALTIME_*
+--------------------------
+This set of variables allows you to control the initial setup of the
+realtime data acquisition plugin (menu item "RT Options").  Normally,
+this plugin is active only if AFNI is started with the "-rt" command
+line option.  (It will consume CPU time continually as it polls for
+an incoming data connection, which is why you don't want it running
+by default.)  The following variables can be used to initialize the
+plugin's options:
+
+AFNI_REALTIME_Activate = This is a YES/NO variable, and allows you
+                         to have the realtime plugin active without
+                         using the "-rt" command line option.  If
+                         this variable is set to YES, then you can
+                         disable the realtime plugin with "-nort".
+
+These variables are used to set the initial status of the widgets in
+the realtime plugin's control window.  Each one has the same name as
+the labels in the control window, with blanks replaced by underscores.
+The values to set for these variables are exact copies of the inputs
+you would specify interactively (again, with blanks replaced by
+underscores).  For details as to the meaning of these options, see
+the plugin's Help window.
+
+AFNI_REALTIME_Images_Only  = "No" or "Yes"
+AFNI_REALTIME_Root         = name for datasets to be created
+AFNI_REALTIME_Update       = an integer from 0 to 19
+AFNI_REALTIME_Function     = "None" or "FIM"
+AFNI_REALTIME_Verbose      = "No", "Yes", or "Very"
+AFNI_REALTIME_Registration = "None", "2D:_realtime", "2D:_at_end",
+                             "3D:_realtime", "3D:_at_end",
+                             or "3D:_estimate"
+AFNI_REALTIME_Base_Image   = an integer from 0 to 59
+AFNI_REALTIME_Resampling   = "Cubic", "Quintic", "Heptic", "Fourier",
+                             or "Hept+Four"
+AFNI_REALTIME_Graph        = "No", "Yes", or "Realtime"
+AFNI_REALTIME_NR           = an integer from 5 to 9999
+AFNI_REALTIME_YR           = a floating point number from 0.1 to 10.0
+
+For more information about how the realtime plugin works, read the
+file README.realtime.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

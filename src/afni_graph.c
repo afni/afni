@@ -3514,7 +3514,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ (all else remains the same) -----*/
 
       case graDR_newlength:{
-         int new_length = (int) drive_data ;
+         int new_length = (int) drive_data , ii ;
 
 #ifdef GRAPHER_ALLOW_ONE
          if( new_length < 1 || new_length > MAX_PIN ) RETURN( False ) ;
@@ -3524,13 +3524,18 @@ ENTRY("drive_MCW_grapher") ;
 
          grapher->pin_num = new_length ;   /* 27 Apr 1997 */
 
+         if( grapher->pin_num >= MIN_PIN ){   /* 11 Oct 2000 */
+            for( ii=GRID_MAX-1 ; ii > 0 ; ii-- ) if( grid_ar[ii] <= grapher->pin_num / 3 ) break ;
+            grapher->grid_index = ii ;
+            grapher->grid_spacing = grid_ar[ii] ;
+         }
+
 #ifdef USE_OPTMENUS
          GRA_fix_optmenus( grapher ) ;
 #endif
          redraw_graph( grapher , 0 ) ;
          RETURN( True ) ;
       }
-
 
       /*------ set ignore count -----*/
 

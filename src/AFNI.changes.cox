@@ -2320,3 +2320,23 @@
  * Put most of the work of 3dZeropad.c into function thd_zeropad.c
      instead.
  * Added plug_zeropad.c.
+
+09 Oct 2000
+ * Enabled startup of RT plugin, and control of all options, via
+     environment variables AFNI_REALTIME_Something.
+ * Modified PLUTO_string_index() in afni_plugin.c to ignore blanks
+     and case.
+
+11 Oct 2000
+ * Replaced XtAppAddWorkProcess in afni.c with PLUTO_register_workproc,
+     since on Mandrake 7.01, dual P-III, XFree86 4.01 system, the
+     realtime plugin workprocess doesn't start properly (some
+     interaction with the startup workprocess, which does not occur
+     on other systems).
+ * Modified afni_splash.c to change controller crosshairs to Single
+     mode if montage spacing is 1.
+ * Modified afni_graph.c to change grid when program alters pin_num
+     (but not when user does directly).
+ * Modifed plug_realtime.c to start work process after a timeout.
+ * Added PLUTO_register_timeout() afni_plugin.[ch], to execute a
+     function after a given number of ms.
