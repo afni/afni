@@ -602,16 +602,18 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_Load_Group:
             /* Does not need a sv 
                expects  a pointer to .spec filename in cp, 
+                        if cp is NULL then it will look for a spec structure pointer in iv (sorry, ran out of places...) 
                         a VolumeParent name in vp,
                         the indices of the viewers to register the surfaces with in iv15. 
                         and the number of viewers specified in iv15 in i.
                         Surfaces are registered with all i viewers in iv15*/
             
             if (EngineData->cp_Dest != NextComCode || EngineData->vp_Dest != NextComCode 
-               || EngineData->iv15_Dest != NextComCode || EngineData->i_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n%d %d %d %d\n", \
+               || EngineData->iv15_Dest != NextComCode || EngineData->i_Dest != NextComCode
+               || EngineData->ip_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n%d %d %d %d %d\n", \
                   FuncName, NextCom, NextComCode, EngineData->cp_Dest, EngineData->vp_Dest, 
-                  EngineData->iv15_Dest, EngineData->i_Dest);
+                  EngineData->iv15_Dest, EngineData->i_Dest , EngineData->ip_Dest);
                break;
             } 
             {
@@ -621,13 +623,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                VolParName = (char *)EngineData->vp;
                specfilename = EngineData->cp;
                
-               /* Load The spec file */
-		         if (LocalHead) fprintf (SUMA_STDERR, "%s: Reading Spec File ...\n", FuncName);
-               if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
-			         fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile.\n", FuncName);
-			         exit(1);
-		         }	
-
+               if (specfilename) {
+                  /* Load The spec file */
+		            if (LocalHead) fprintf (SUMA_STDERR, "%s: Reading Spec File ...\n", FuncName);
+                  if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
+			            fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile.\n", FuncName);
+			            exit(1);
+		            }	
+               } else {
+                  if (!EngineData->ip) {
+                     fprintf(SUMA_STDERR,"Error %s: Nothing in iv, nothing to do !\n", FuncName); exit(1);
+                  }
+                  Spec = *((SUMA_SurfSpecFile *)EngineData->ip); /* STOPPED HERE, nothing is sent in iv YET */
+               }
 		         /* make sure only one group was read in */
 		         if (Spec.N_Groups != 1) {
 			         fprintf(SUMA_STDERR,"Error %s: One and only one group of surfaces is allowed at the moment (%d found).\n", FuncName, Spec.N_Groups);

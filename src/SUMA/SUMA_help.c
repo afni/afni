@@ -121,6 +121,8 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    Fixed ROI drawing trace on OSX.\n"
             "    Added geodesic distance measurements in ROI drawing\n"
             "    controller."
+            "    Suma can read surfaces specified on command line.\n"
+            "    Fixed bug reading AFNI generated niml files.\n"
             "  + ConvertSurface:\n"
             "    Option -make_consistent added to make the winding\n"
             "    of the mesh consistent.  \n"
@@ -504,7 +506,7 @@ char * SUMA_help_message_Info(void)
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     d: Show all DO objects in DOv.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     Alt+e: Look for OpenGL errors.\n\n"); 
+      "     Ctrl+e: Look for OpenGL errors.\n\n"); 
    SS = SUMA_StringAppend (SS, 
       "     F: Flip light position between +z and -z.\n");
    SS = SUMA_StringAppend (SS, 

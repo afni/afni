@@ -8,6 +8,7 @@ typedef struct {
 }  SUMA_OFFSET_LL_DATUM;
 
 
+SUMA_SurfaceObject *SUMA_Patch2Surf(float *NodeList, int N_NodeList, int *PatchFaces, int N_PatchFaces, int PatchDim);
 SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes, 
                               int *Full_FaceSetList, int N_Full_FaceSetList, 
                               SUMA_MEMBER_FACE_SETS *Memb, int MinHits);
