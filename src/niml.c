@@ -5,7 +5,7 @@
 /****************************************************************************/
 
 /*--------------------------------------------------------------------------*/
-/*! Allocate memory (actually is calloc). */
+/*! Allocate memory (actually uses calloc); calls exit() if it fails. */
 
 void * NI_malloc( size_t len )
 {
@@ -17,7 +17,7 @@ void * NI_malloc( size_t len )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Free memory. */
+/*! Free memory; NULL pointer is just ignored. */
 
 void NI_free( void *p )
 {
@@ -25,19 +25,19 @@ void NI_free( void *p )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Reallocate memory. */
+/*! Reallocate memory; calls exit() if it fails. */
 
 void * NI_realloc( void *p , size_t len )
 {
    void *q = realloc( p , len ) ;
-   if( q == NULL ){
+   if( q == NULL && len > 0 ){
       fprintf(stderr,"NI_realloc() fails.\n"); exit(1);
    }
    return q ;
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Like strncpy, but better. */
+/*! Like strncpy, but better (result always ends in NUL character). */
 
 char * NI_strncpy( char *dest , const char *src , size_t n )
 {
@@ -68,7 +68,7 @@ static int string_index( char *targ , int nstr , char *str[] )
 void NI_sleep( int msec )
 {
    struct timeval tv ;
-   if( msec <= 0 ) return ;
+   if( msec <= 0 ) return ;             /* can't wait into the past */
    tv.tv_sec  = msec/1000 ;
    tv.tv_usec = (msec%1000)*1000 ;
    select( 1 , NULL,NULL,NULL , &tv ) ;
@@ -78,7 +78,7 @@ void NI_sleep( int msec )
 /*--------------------------------------------------------------------------*/
 /*! Return the file length (-1 if file not found). */
 
-static long NI_filesize( char *pathname )
+long NI_filesize( char *pathname )
 {
    static struct stat buf ; int ii ;
 
@@ -88,7 +88,11 @@ static long NI_filesize( char *pathname )
 }
 
 /*---------------------------------------------------------------*/
-/*! Return time elapsed since first call to this routine (msec). */
+/*! Return time elapsed since first call to this routine (msec).
+    Note this will overflow an int after 24+ days.  You probably
+    don't want to use this if the program will be running
+    continuously for such a long time.
+-----------------------------------------------------------------*/
 
 int NI_clock_time(void)
 {
@@ -114,9 +118,80 @@ int NI_clock_time(void)
                 +(new_tval.tv_usec - old_tval.tv_usec)*0.001 + 0.5 ) ;
 }
 
-/****************************************************************************/
-/************************* Byte ordering functions **************************/
-/****************************************************************************/
+/*------------------------------------------------------------------------*/
+/*! Un-escape a string inplace.
+
+      &lt;   ->  <
+      &gt;   ->  >
+      &quot; ->  "
+      &apos; ->  '
+      &amp;  ->  &
+
+    Return value is number of replacements made.
+--------------------------------------------------------------------------*/
+
+static int unescape_inplace( char *str )
+{
+   int ii,jj , nn,ll ;
+
+   if( str == NULL ) return 0 ;                /* no string? */
+   ll = strlen(str) ;  if( ll < 4 ) return 0 ; /* too short */
+   if( memchr(str,'&',ll) == NULL ) return 0 ; /* no '&' in string */
+   if( memchr(str,';',ll) == NULL ) return 0 ; /* no ';' in string */
+
+   /* scan for escapes: &something; */
+
+   for( ii=jj=nn=0 ; ii<ll ; ii++,jj++ ){ /* scan at ii; put results in at jj */
+
+      if( str[ii] == '&' ){  /* start of escape? */
+
+              if( ii+3 < ll        &&
+                  str[ii+1] == 'l' &&
+                  str[ii+2] == 't' &&
+                  str[ii+3] == ';'   ){ str[jj] = '<' ; ii += 3 ; nn++ ; }
+
+         else if( ii+3 < ll        &&
+                  str[ii+1] == 'g' &&
+                  str[ii+2] == 't' &&
+                  str[ii+3] == ';'   ){ str[jj] = '>' ; ii += 3 ; nn++ ; }
+
+         else if( ii+5 < ll        &&
+                  str[ii+1] == 'q' &&
+                  str[ii+2] == 'u' &&
+                  str[ii+3] == 'o' &&
+                  str[ii+4] == 't' &&
+                  str[ii+5] == ';'   ){ str[jj] = '"' ; ii += 5 ; nn++ ; }
+
+         else if( ii+5 < ll        &&
+                  str[ii+1] == 'a' &&
+                  str[ii+2] == 'p' &&
+                  str[ii+3] == 'o' &&
+                  str[ii+4] == 's' &&
+                  str[ii+5] == ';'   ){ str[jj] = '\'' ; ii += 5 ; nn++ ; }
+
+         else if( ii+4 < ll        &&
+                  str[ii+1] == 'a' &&
+                  str[ii+2] == 'm' &&
+                  str[ii+3] == 'p' &&
+                  str[ii+4] == ';'   ){ str[jj] = '&' ; ii += 4 ; nn++ ; }
+
+         /* didn't start a recognized escape, so just copy as normal */
+
+         else if( jj < ii )           { str[jj] = str[ii] ; }
+
+      }  /* was a normal character */
+
+         else if( jj < ii )           { str[jj] = str[ii] ; }
+   }
+
+   if( jj < ll ) str[jj] = '\0' ; /* end string properly */
+
+   return nn ;
+}
+
+/*************************************************************************/
+/************************ Byte ordering functions ************************/
+/*************************************************************************/
 
 /*---------------------------------------------------------------*/
 /*! Find the byte order on this system. */
@@ -143,9 +218,7 @@ static void NI_swap2( int n , void *ar )
    register unsigned char tt ;
 
    for( ii=0 ; ii < n ; ii++ ){
-      tt       = tb[ii].a ;
-      tb[ii].a = tb[ii].b ;
-      tb[ii].b = tt ;
+      tt = tb[ii].a ; tb[ii].a = tb[ii].b ; tb[ii].b = tt ;
    }
    return ;
 }
@@ -162,13 +235,8 @@ static void NI_swap4( int n , void *ar )
    register unsigned char tt , uu ;
 
    for( ii=0 ; ii < n ; ii++ ){
-      tt       = tb[ii].a ;
-      tb[ii].a = tb[ii].d ;
-      tb[ii].d = tt ;
-
-      uu       = tb[ii].b ;
-      tb[ii].b = tb[ii].c ;
-      tb[ii].c = uu ;
+      tt = tb[ii].a ; tb[ii].a = tb[ii].d ; tb[ii].d = tt ;
+      uu = tb[ii].b ; tb[ii].b = tb[ii].c ; tb[ii].c = uu ;
    }
    return ;
 }
@@ -185,21 +253,10 @@ static void NI_swap8( int n , void *ar )
    register unsigned char tt , uu , vv , ww ;
 
    for( ii=0 ; ii < n ; ii++ ){
-      tt       = tb[ii].a ;
-      tb[ii].a = tb[ii].h ;
-      tb[ii].h = tt ;
-
-      uu       = tb[ii].b ;
-      tb[ii].b = tb[ii].g ;
-      tb[ii].g = uu ;
-
-      vv       = tb[ii].c ;
-      tb[ii].c = tb[ii].f ;
-      tb[ii].f = vv ;
-
-      ww       = tb[ii].d ;
-      tb[ii].d = tb[ii].e ;
-      tb[ii].e = ww ;
+      tt = tb[ii].a ; tb[ii].a = tb[ii].h ; tb[ii].h = tt ;
+      uu = tb[ii].b ; tb[ii].b = tb[ii].g ; tb[ii].g = uu ;
+      vv = tb[ii].c ; tb[ii].c = tb[ii].f ; tb[ii].f = vv ;
+      ww = tb[ii].d ; tb[ii].d = tb[ii].e ; tb[ii].e = ww ;
    }
    return ;
 }
@@ -224,6 +281,17 @@ static void destroy_header_stuff( header_stuff *hs )
 }
 
 /*-------------------------------------------------------------------------*/
+/*! Characters allowed inside unquoted strings. */
+
+#define IS_STRING_CHAR(c) ( isgraph(c) && !isspace(c) &&  \
+                            (c) != '>' && (c) != '/'  &&  \
+                            (c) != '='                  )
+
+/*! Defines what we consider a quoting character. */
+
+#define IS_QUOTE_CHAR(c)  ( (c) == '"' || (c) == '\'' )
+
+/*-------------------------------------------------------------------------*/
 /*! Find an isolated string in the input array of char.
 
     nst = start position
@@ -232,19 +300,19 @@ static void destroy_header_stuff( header_stuff *hs )
 
     Return value is an intpair with the .i component indicating the
     start position of the string in the data and the .j indicating
-    the byte after the end of the string.  If the .i component is
+    the byte AFTER the end of the string.  If the .i component is
     negative, then no string was found.
 ---------------------------------------------------------------------------*/
 
 static intpair find_string( int nst, int nch, char *ch )
 {
-   intpair ans = {-1,-1} ;
+   intpair ans = {-1,-1} ;  /* default answer ==> nothing found */
    int ii,jj ;
    char quot ;
 
    if( nst >= nch || nch < 2 || ch == NULL ) return ans;        /* bad input */
 
-   for( ii=nst ; ii<nch && !IS_START_CHAR(ch[ii]) ; ii++ ) ;/* skip to start */
+   for( ii=nst; ii<nch && !IS_STRING_CHAR(ch[ii]); ii++ ) ; /* skip to start */
 
    if( ii >= nch ) return ans ;                                 /* bad input */
 
@@ -261,7 +329,7 @@ static intpair find_string( int nst, int nch, char *ch )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Parse into strings a <header and=its attributes="OK">.
+/*! Parse into strings a <header and=its attributes="stuff">.
 
     ndat  = number of data bytes
     dat   = data bytes
@@ -337,6 +405,7 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
       nn = ss.j - ss.i ;                      /* length of string */
       hs->lhs[hs->nattr] = NI_malloc(nn+1) ;
       NI_strncpy( hs->lhs[hs->nattr] , dat+ss.i , nn+1 ) ;
+      unescape_inplace( hs->lhs[hs->nattr] ) ;
 
       hs->rhs[hs->nattr] = NULL ;             /* in case there is no RHS */
 
@@ -360,12 +429,14 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
       nn = ss.j - ss.i ;                      /* length of string */
       hs->rhs[hs->nattr] = NI_malloc(nn+1) ;
       NI_strncpy( hs->rhs[hs->nattr] , dat+ss.i , nn+1 ) ;
+      unescape_inplace( hs->rhs[hs->nattr] ) ;
 
       (hs->nattr)++ ;                  /* increment attribute count */
 
       /* start scanning for next string at location id */
 
-      id = ss.j ; if( IS_QUOTE_CHAR(dat[id]) ) id++ ;
+      id = ss.j ;
+      if( IS_QUOTE_CHAR(dat[id]) ) id++ ;  /* skip closing quote */
 
    } /* end of loop over input */
 
@@ -508,7 +579,7 @@ static intarray * decode_type_string( char *ts )
 
     The data vectors will have space allocated, but they will be
     filled with all zero bytes.  If the header was "empty" (ended in
-    "/>"), then no vectors will be allocated.
+    "/>"), then no vectors will be allocated, and nel->vec_num=0.
 -------------------------------------------------------------------------*/
 
 static NI_element * make_empty_data_element( header_stuff *hs )
@@ -632,7 +703,7 @@ static NI_group * make_empty_group_element( header_stuff *hs )
 /*-------------------------------------------------------------------------*/
 /*! Name for a given integer type code.  Return value is to static string. */
 
-char * NI_type_name( int val )
+char * NI_type_name( int tval )
 {
    static char *NI_names[NI_NUM_TYPES] =
     { "byte"  , "short"  , "int"     ,
@@ -641,16 +712,16 @@ char * NI_type_name( int val )
       "Rgba"
     } ;
 
-   if( val < 0 || val >= NI_NUM_TYPES ) return NULL ;
-   return NI_names[val] ;
+   if( tval < 0 || tval >= NI_NUM_TYPES ) return NULL ;
+   return NI_names[tval] ;
 }
 
 /*-------------------------------------------------------------------------*/
 /*! Byte size of a given integer type code. */
 
-int NI_type_size( int val )
+int NI_type_size( int tval )
 {
-   switch( val ){
+   switch( tval ){
       case NI_BYTE:     return sizeof(byte)    ;
       case NI_SHORT:    return sizeof(short)   ;
       case NI_INT:      return sizeof(int)     ;
@@ -665,12 +736,13 @@ int NI_type_size( int val )
    return 0 ;
 }
 
+#if 0
 /*-------------------------------------------------------------------------*/
 /*! Number of component values of a given integer type code. */
 
-static int NI_type_nval( int val )
+static int NI_type_nval( int tval )
 {
-   switch( val ){
+   switch( tval ){
       case NI_BYTE:     return 1 ;
       case NI_SHORT:    return 1 ;
       case NI_INT:      return 1 ;
@@ -684,6 +756,7 @@ static int NI_type_nval( int val )
    }
    return 0 ;
 }
+#endif
 
 /*----------------------------------------------------------------------*/
 /*! Return the size in bytes of one row in a data element. */
@@ -750,7 +823,7 @@ void NI_free_element( void *nini )
 
    if( tt < 0 ) return ; /* bad input */
 
-   /* erase contents of data element */
+   /*-- erase contents of data element --*/
 
    if( tt == NI_ELEMENT_TYPE ){
       NI_element *nel = (NI_element *) nini ;
@@ -768,7 +841,7 @@ void NI_free_element( void *nini )
       NI_free( nel->vec ) ;
       NI_free( nel ) ;
 
-   /* erase contents of group element */
+   /*-- erase contents of group element --*/
 
    } else if( tt == NI_GROUP_TYPE ){
       NI_group *ngr = (NI_group *) nini ;
@@ -966,6 +1039,123 @@ void NI_add_to_group( NI_group *ngr , void *nini )
    return ;
 }
 
+/*-----------------------------------------------------------------------*/
+/*! Fill one row of an element with some data bytes (numeric only). */
+
+static void NI_fill_vector_row( NI_element *nel , int row , char *buf )
+{
+   int bpos=0 , col ;
+   char tmp[16] ;  /* We copy into here from buf, then into the vector. */
+                   /* The reason for this is to ensure proper byte     */
+                   /* alignment for the assignment into the vector.   */
+
+   /* check inputs for stupidity */
+
+   if( nel->type != NI_ELEMENT_TYPE ||
+       row       <  0               ||
+       row       >= nel->vec_len    || buf == NULL ) return ;
+
+   /* loop over columns, taking the requisite number of
+      bytes from buf and stuffing them into the vectors */
+
+   for( col=0 ; col < nel->vec_num ; col++ ){
+     switch( nel->vec_typ[col] ){
+       default:                     /* unimplemented types */
+       break ;                      /* (STRING and LINE)  */
+
+       case NI_BYTE:{
+         byte *vpt = (byte *) nel->vec[col] ;
+         byte *bpt = (byte *) tmp ;
+         memcpy(tmp,buf+bpos,sizeof(byte)) ;
+         vpt[row]  = *bpt ; bpos += sizeof(byte) ;
+       }
+       break ;
+
+       case NI_SHORT:{
+         short *vpt = (short *) nel->vec[col] ;
+         short *bpt = (short *) tmp ;
+         memcpy(tmp,buf+bpos,sizeof(short)) ;
+         vpt[row]  = *bpt ; bpos += sizeof(short) ;
+       }
+       break ;
+
+       case NI_INT:{
+         int *vpt = (int *) nel->vec[col] ;
+         int *bpt = (int *) tmp ;
+         memcpy(tmp,buf+bpos,sizeof(int)) ;
+         vpt[row]  = *bpt ; bpos += sizeof(int) ;
+       }
+       break ;
+
+       case NI_FLOAT:{
+         float *vpt = (float *) nel->vec[col] ;
+         float *bpt = (float *) tmp ;
+         memcpy(tmp,buf+bpos,sizeof(float)) ;
+         vpt[row]  = *bpt ; bpos += sizeof(float) ;
+       }
+       break ;
+
+       case NI_DOUBLE:{
+         double *vpt = (double *) nel->vec[col] ;
+         double *bpt = (double *) tmp ;
+         memcpy(tmp,buf+bpos,sizeof(double)) ;
+         vpt[row]  = *bpt ; bpos += sizeof(double) ;
+       }
+       break ;
+
+       case NI_COMPLEX:{
+         complex *vpt = (complex *) nel->vec[col] ;
+         complex *bpt = (complex *) tmp ;
+         memcpy(tmp,buf+bpos,sizeof(complex)) ;
+         vpt[row]  = *bpt ; bpos += sizeof(complex) ;
+       }
+       break ;
+
+       case NI_RGB:{
+         rgb *vpt = (rgb *) nel->vec[col] ;
+         rgb *bpt = (rgb *) tmp ;
+         memcpy(tmp,buf+bpos,sizeof(rgb)) ;
+         vpt[row]  = *bpt ; bpos += sizeof(rgb) ;
+       }
+       break ;
+
+       case NI_RGBA:{
+         rgba *vpt = (rgba *) nel->vec[col] ;
+         rgba *bpt = (rgba *) tmp ;
+         memcpy(tmp,buf+bpos,sizeof(rgba)) ;
+         vpt[row]  = *bpt ; bpos += sizeof(rgba) ;
+       }
+       break ;
+     }
+   }
+   return ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Swap bytes for an array of type code tval. */
+
+void NI_swap_vector( int tval , int nvec , void *vec )
+{
+   /* check inputs for stupidity */
+
+   if( nvec <= 0 || vec == NULL ) return ;
+
+   switch( tval ){
+
+      default:  break ;   /* nothing to do */
+
+      case NI_SHORT:    NI_swap2( nvec , vec ) ; break ;
+
+      case NI_INT:
+      case NI_FLOAT:    NI_swap4( nvec , vec ) ; break ;
+
+      case NI_DOUBLE:   NI_swap8( nvec , vec ) ; break ;
+
+      case NI_COMPLEX:  NI_swap4( 2*nvec, vec) ; break ;
+   }
+   return ;
+}
+
 /*************************************************************************/
 /********************* Functions for NIML I/O ****************************/
 /*** See http://www.manualy.sk/sock-faq/unix-socket-faq.html for info. ***/
@@ -1091,7 +1281,6 @@ static int tcp_writecheck( int sd , int msec )
 
 static void tcp_set_cutoff( int sd )
 {
-
    if( sd < 0 ) return ;  /* bad input */
 
 #if 1
@@ -1668,13 +1857,14 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
 /*!  Send nbytes of data from buffer down the NI_stream.
 
   Return value is the number of bytes actually sent, or is -1 if some error
-  occurs.
+  occurs (which means that the NI_stream is bad).
 
   tcp: We use blocking sends, so that all the data should be sent properly
        unless the connection to the other end fails for some reason
        (e.g., the planet explodes in a fiery cataclysm of annihilation).
 
   file: Everything should be written, unless the filesystem fills up.
+        If nothing at all gets written, -1 is returned.
 ------------------------------------------------------------------------------*/
 
 int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
@@ -1714,6 +1904,7 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
      case NI_FILE_TYPE:
        nsent = fwrite( buffer , 1 , nbytes , ns->fp ) ;
        if( nsent < nbytes ) PERROR("NI_stream_write(fwrite)") ;
+       if( nsent == 0 ) nsent = -1 ;
        return nsent ;
    }
 
@@ -1733,7 +1924,8 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
    if any data is available.
 
    For file: streams, this function simply tries to read from the file.
-   Whether or not it succeeds, it will return immediately.
+   Whether or not it succeeds, it will return immediately. It should
+   never return -1; if it returns 0, this means end-of-file.
 ---------------------------------------------------------------------------*/
 
 int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
@@ -1761,7 +1953,6 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
      case NI_FILE_TYPE:
        ii = fread( buffer , 1 , nbytes , ns->fp ) ;
-       if( ii == -1 ) PERROR("NI_stream_read(fread)") ;
        return ii ;
    }
 
@@ -1769,7 +1960,8 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Try to fill up the stream's input buffer.
+/*! Try to fill up the stream's input buffer.  Don't call this function
+    until NI_stream_goodcheck() is 1.
 
     minread = Minimum number of bytes to read.
               Will wait until we get at least this many,
@@ -1789,7 +1981,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
 static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 {
-   int nn , ii , ntot=0 , ngood=0 ;
+   int nn , ii , ntot=0 , ngood=0 , mwait=0 ;
    int start_msec = NI_clock_time() ;
 
    if( NI_stream_goodcheck(ns,0) <= 0 ) return -1 ; /* bad input */
@@ -1802,11 +1994,11 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
    while(1){
 
-      ngood = NI_stream_readcheck(ns,0) ; /* check if data can be read */
+      ngood = NI_stream_readcheck(ns,mwait); /* check if data can be read */
 
-      if( ngood < 0 ) break ;             /* data stream gone bad, so exit */
+      if( ngood < 0 ) break ;                /* data stream gone bad, so exit */
 
-      if( ngood > 0 ){                    /* we can read! */
+      if( ngood > 0 ){                       /* we can read! */
 
          ii = NI_stream_read( ns, ns->buf+ns->nbuf, NI_BUFSIZE-ns->nbuf ) ;
 
@@ -1834,7 +2026,7 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
       /* otherwise, sleep a little bit before trying again */
 
-      NI_sleep(5) ;
+      mwait = 5 ;
    }
 
    /* if didn't get any data, and
@@ -1868,9 +2060,10 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
 /******* Functions to read and write data and group elements. *********/
 /**********************************************************************/
 
-/* prototype */
+/* internal prototypes */
 
 static int decode_one_double( NI_stream_type *, int *, double * ) ;
+static void scan_for_trailer( NI_stream_type * , int ) ;
 
 /*--------------------------------------------------------------------*/
 /*! Read an element (maybe a group) from the stream.
@@ -1902,16 +2095,14 @@ static int decode_one_double( NI_stream_type *, int *, double * ) ;
 
 void * NI_read_element( NI_stream_type *ns )
 {
-   NI_element *nel ;
-   int ii , nn , nhs ;
+   int ii,nn,nhs , num_restart ;
    char *cstart , *cstop ;
    header_stuff *hs ;
-
-   int num_restart=0 ;
 
    /*-- Check if we have any data left over in the buffer,
         or if we at least can read some data from the stream --*/
 
+   num_restart = 0 ;
 HeadRestart:                            /* loop back here to retry */
    num_restart++ ;
    if( num_restart > 5 ) return NULL ;  /* don't allow too many loops */
@@ -1944,9 +2135,19 @@ HeadRestart:                            /* loop back here to retry */
 
    nn = cstart - ns->buf ; /* index of start character in buf */
 
-   if( nn+1 >= ns->nbuf ){ /* start character is last in buf */
-      ns->nbuf   = 1   ;   /* toss out all stuff before '<'  */
-      ns->buf[0] = '<' ;
+   if( nn+4 > ns->nbuf ){ /* start character is too close to end of buf */
+      if( nn > 0 ){
+        memmove( ns->buf , cstart , ns->nbuf-nn ) ;  /* toss stuff prior */
+        ns->nbuf -= nn ;                             /* to the '<' */
+      }
+      goto HeadRestart ;   /* try to get more data */
+   }
+
+   /*-- Check if next character is '/' (should never be, but who knows?) --*/
+
+   if( ns->buf[nn+1] == '/' ){  /* must discard; restart search for true '<' */
+      memmove( ns->buf , cstart+2 , ns->nbuf-(nn+2) ) ;
+      ns->nbuf -= (nn+2) ;
       goto HeadRestart ;   /* try to get more data */
    }
 
@@ -1983,7 +2184,7 @@ HeadRestart:                            /* loop back here to retry */
       ii = cstop - ns->buf ;   /* index of stop character */
 
       if( ii+1 < ns->nbuf ){   /* destroy all data at or below '>' */
-         memmove( ns->buf , cstop+1 , ns->nbuf-ii-1 ) ;
+         memmove( ns->buf , cstop+1 , ns->nbuf-(ii+1) ) ;
          ns->nbuf -= (ii+1) ;
       } else {
          ns->nbuf = 0 ;
@@ -1997,8 +2198,8 @@ HeadRestart:                            /* loop back here to retry */
            ns->buf[0] .. ns->buf[ns->nbuf-1]                        --*/
 
    if( nn+nhs < ns->nbuf ){
-      memmove( ns->buf , ns->buf+nn+nhs , ns->nbuf-nn-nhs ) ;
-      ns->nbuf -= (nhs+nn) ;
+      memmove( ns->buf , ns->buf+nn+nhs , ns->nbuf-(nn+nhs) ) ;
+      ns->nbuf -= (nn+nhs) ;
    } else {
       ns->nbuf = 0 ;
    }
@@ -2008,16 +2209,22 @@ HeadRestart:                            /* loop back here to retry */
    if( strcmp(hs->name,"ni_group") == 0 ){  /*--- a group element ---*/
 
       NI_group *ngr = make_empty_group_element( hs ) ;
+      void *nini ;
+
       destroy_header_stuff( hs ) ;
 
       /* we now have to read the elements within the group */
+
+      /* and we are done (after we skip the trailer) */
+
+      return ngr ;
 
    } /* end of reading group element */
 
    else { /*---------------------- a data element -------------------*/
 
       NI_element *nel = make_empty_data_element( hs ) ;
-      int form , swap , nball , nbrow , row,col,npos ;
+      int form, swap, nbrow , row,col,npos ;
       destroy_header_stuff( hs ) ;
 
       if( nel == NULL          ||     /* nel == NULL should never happen. */
@@ -2058,7 +2265,6 @@ HeadRestart:                            /* loop back here to retry */
       row  = 0 ;  /* next index in vectors to fill */
 
       nbrow = NI_element_rowsize( nel ) ;  /* how much data for one row */
-      nball = nbrow * nel->vec_len ;       /* how much data total */
 
       switch( form ){
 
@@ -2081,8 +2287,8 @@ HeadRestart:                            /* loop back here to retry */
                } else {
                  ns->nbuf = 0 ;  /* all data in buffer is used-up */
                }
+               npos = 0 ;  /* read data from start of buffer */
              }
-             npos = 0 ;  /* read data from start of buffer */
 
              /* now read at least enough to fill one data row,
                 waiting forever if need be (or until the stream goes bad) */
@@ -2103,7 +2309,7 @@ HeadRestart:                            /* loop back here to retry */
                ns->nbuf = 0 ;  /* buffer is all used-up now */
 
                nel->vec_filled = row ;  /* record how much we got */
-               return nel ;             /* and slink home */
+               goto BinaryDone ;        /* and break out of loop */
              }
            }
 
@@ -2116,6 +2322,7 @@ HeadRestart:                            /* loop back here to retry */
 
          } /* end of loop over vector rows */
 
+BinaryDone:
          nel->vec_filled = row ;  /* how many rows were filled above */
 
         break ;  /* end of binary input */
@@ -2127,9 +2334,13 @@ HeadRestart:                            /* loop back here to retry */
          while( row < nel->vec_len ){  /* loop over input rows */
           for( col=0 ; col < nel->vec_num ; col++ ){ /* over input vectors */
 
+            /* decode one value from input, according to its type */
+
             switch( nel->vec_typ[col] ){
               default:                    /* unimplemented types */
-              break ;
+              break ;                     /* (String and Line)   */
+
+              /* only numeric types are implemented so far */
 
               case NI_BYTE:{
                  double val ;
@@ -2234,10 +2445,23 @@ TextDone:
 
       /*-- At this point, have finished reading into the element
            vectors, and the next character to process in the
-           NI_stream input buffer is at location index npos.
+           NI_stream input buffer is at location index npos.     --*/
 
-           Now scan for the end-of-element marker '</something>' and
+      /*-- Now swap bytes, if needed. --*/
+
+      if( swap ){
+       for( col=0 ; col < nel->vec_num ; col++ )
+         NI_swap_vector( nel->vec_typ[col], nel->vec_len, nel->vec[col] ) ;
+      }
+
+      /*-- Now scan for the end-of-element marker '</something>' and
            skip all input bytes up to (and including) the final '>'. --*/
+
+      scan_for_trailer( ns , npos ) ;
+
+      /*-- And are done with the input stream and the data element! --*/
+
+      return nel ;
 
    } /* end of reading data element */
 
@@ -2262,7 +2486,7 @@ static int decode_one_double( NI_stream_type *ns, int *inpos, double *val )
    int npos,epos , num_restart, need_data, nn ;
    char vbuf[NVBUF+1] ;                    /* number string from buffer */
 
-   /*-- check inputs for goodness --*/
+   /*-- check inputs for stupidness --*/
 
    if( ns == NULL || inpos == NULL || val == NULL ) return 0 ;
 
@@ -2345,4 +2569,83 @@ Restart:
    memcpy( vbuf, ns->buf+npos, nn ); vbuf[nn] = '\0'; /* put bytes in vbuf */
    sscanf( vbuf , "%lf" , val ) ;                     /* interpret them    */
    *inpos = epos ; return 1 ;                         /* retire undefeated */
+}
+
+/*----------------------------------------------------------------------*/
+/*! Scan stream for an element trailer: '</something>', starting
+    at location qpos.
+    Return with the stream buffer set so that the byte after the
+    closing '>' is the ns->buf[0] byte.
+------------------------------------------------------------------------*/
+
+static void scan_for_trailer( NI_stream_type *ns , int qpos )
+{
+   int num_restart, nn, npos=qpos, need_data ;
+   char goal='<' ;
+
+   if( ns == NULL ) return ;  /* bad input */
+
+   num_restart = 0 ;
+TailRestart:                            /* loop back here to retry */
+   num_restart++ ;
+   if( num_restart > 19 ) return ;      /* don't allow too many loops */
+
+   /*-- skip ahead to find goal in the buffer --*/
+
+   while( npos < ns->nbuf && ns->buf[npos] != goal ) npos++ ;
+
+   /*-- if our goal is the closing '>' and we found it, exit! --*/
+
+   if( npos < ns->nbuf && goal == '>' ){
+      if( npos+1 < ns->nbuf ){
+        memmove( ns->buf , ns->buf+(npos+1) , ns->nbuf-(npos+1) ) ;
+        ns->nbuf -= (npos+1) ;
+      } else {
+        ns->nbuf = 0 ;
+      }
+      return ;
+   }
+
+   /*-- if our goal is the closing '>',
+         then we didn't find it, so we need more data;
+        if our goal is the opening '<',
+         then we need more data if we didn't find it or
+         if we found it at the very last byte of the buffer --*/
+
+   need_data ==   (goal == '>')                         ||
+                ( (goal == '<') && npos >= ns->nbuf-1 )
+
+   /*-- if we don't need data here,
+        then our goal must be '<' and we have at least 1 extra byte;
+        now check if that byte is a '/'; if it isn't, this is a bogus
+        trailer; in either case, skip over the 2 bytes and scan again --*/
+
+   if( !need_data ){
+      if( ns->buf[npos+1] == '/' )   /* Found the '</', so set  */
+         goal = '>'                  /* the goal to find the '>' */
+
+      npos += 2 ;                    /* skip over '<' and whatever */
+      goto TailRestart ;             /* and scan the buffer again */
+   }
+
+   /*-- if we are here, we need more data before scanning again --*/
+
+   if( npos < ns->nbuf ){
+     memmove( ns->buf , ns->buf+npos , ns->nbuf-npos ) ;
+     ns->nbuf -= npos ;
+   } else {
+     ns->nbuf = 0 ;
+   }
+   npos = 0 ;
+
+   /*- read at least 1 byte,
+       waiting up to 100 ms (unless the data stream goes bad) -*/
+
+   nn = NI_stream_fillbuf( ns , 1 , 100 ) ;
+
+   if( nn >= 0 ) goto TailRestart ; /* scan some more */
+
+   /*-- if here, the stream went bad, so exit --*/
+
+   ns->nbuf = 0 ; return ;
 }

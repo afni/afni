@@ -1,34 +1,19 @@
-#include "mrilib.h"
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 
-int main( int argc , char ** argv )
+#define IS_STRING_CHAR(c) ( isgraph(c) && !isspace(c) &&  \
+                            (c) != '>' && (c) != '/'  &&  \
+                            (c) != '='                  )
+
+int main( int argc , char *argv[] )
 {
-   int npt , ii , nx ;
-   float *pol , *azi , *xyz , *wt , wtsum=0.0 ;
-   MRI_IMAGE *imxyz ;
+   int ii,ll ;
 
-   imxyz = mri_read_ascii( argv[1] ) ;
-   if( imxyz == NULL ) exit(1) ;
-   npt = imxyz->ny ; nx = imxyz->nx ;
-   xyz = MRI_FLOAT_PTR(imxyz) ;
+   if( argc < 2 ) exit(0) ;
 
-   if( nx == 2 ){
-      pol = (float *)malloc(sizeof(float)*npt) ;
-      azi = (float *)malloc(sizeof(float)*npt) ;
-      for( ii=0 ; ii < npt ; ii++ ){
-         pol[ii] = xyz[2*ii  ] ;
-         azi[ii] = xyz[2*ii+1] ;
-      }
-      ii = sphere_voronoi_angles( npt , pol,azi , &wt ) ;
-      free(pol) ; free(azi) ;
-   } else {
-      ii = sphere_voronoi_vectors( npt , xyz , &wt ) ;
-   }
-   if( ii == 0 ) exit(1) ;
-
-   for( ii=0 ; ii < npt ; ii++ ){
-      wtsum += wt[ii] ;
-      printf("point %2d = %g\n",ii,wt[ii]) ;
-   }
-   printf("wtsum = %g\n",wtsum) ;
+   ll = strlen(argv[1]) ;
+   for( ii=0 ; ii < ll ; ii++ )
+      printf("%c %d\n",argv[1][ii],IS_STRING_CHAR(argv[1][ii])) ;
    exit(0) ;
 }

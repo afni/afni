@@ -49,18 +49,6 @@ typedef struct { int i,j ; } intpair ;
 
 typedef struct { int num; int *ar; } intarray ;
 
-/*! Characters allowed inside unquoted strings. */
-
-#define IS_STRING_CHAR(c) ( isgraph(c) && !isspace(c) &&  \
-                            (c) != '>' && (c) != '/'  &&  \
-                            (c) != '='                  )
-
-#define IS_QUOTE_CHAR(c)  ( (c) == '"' || (c) == '\'' )
-
-/*! Characters that can start a string. */
-
-#define IS_START_CHAR(c)  ( IS_STRING_CHAR(c) || IS_QUOTE_CHAR(c) )
-
 /* Macros for data type codes. */
 
 #define NI_BYTE        0
