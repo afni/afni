@@ -23,6 +23,8 @@ extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;  
 #endif
 
+static int UseOffsets2;
+
 void SUMA_FreeClustDatum (void * data)
 {
    static char FuncName[]={"SUMA_FreeClustDatum"};
@@ -103,7 +105,11 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(int dothisnode, SUMA_CLUST_DATUM
    static int ncall;
    int il, jl, neighb;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   DList *offlist = NULL;
+   DListElmt *elm = NULL;
+   SUMA_OFFSET_LL_DATUM *dat=NULL;
+   int NewClust = 0;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    ++ncall;
@@ -125,8 +131,10 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(int dothisnode, SUMA_CLUST_DATUM
          SUMA_free(Clust); Clust = NULL;
          SUMA_RETURN(NULL);  
       }
+      NewClust = 1;
       if (LocalHead) fprintf (SUMA_STDERR,"%s: New Cluster     %p, with node %d\n", FuncName, Clust, dothisnode);
    } else { 
+      NewClust = 0;
       Clust = AddToThisClust; 
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Reusing Cluster %p, with node %d\n", FuncName, Clust, dothisnode);
    }
@@ -145,24 +153,79 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(int dothisnode, SUMA_CLUST_DATUM
    /* mark it as assigned, an reduce the number of nodes left to assign*/
    ToBeAssigned[dothisnode] = 0; --(*N_TobeAssigned);
    
-   if (*N_TobeAssigned) {
-      /* look in its vicinity - bad memory usage due to recursive calls*/
-      OffS = SUMA_Initialize_getoffsets (SO->N_Node);
-      SUMA_getoffsets2 (dothisnode, SO, Opt->DistLim, OffS, NULL, 0);
-
-      /* search to see if any are to be assigned */
-      for (il=1; il<OffS->N_layers; ++il) { /* starting at layer 1, layer 0 is the node itself */
-         for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
-            neighb = OffS->layers[il].NodesInLayer[jl];
-            if (ToBeAssigned[neighb] && OffS->OffVect[neighb] <= Opt->DistLim) {
-                  /* take that node into the cluster */
-                  SUMA_Build_Cluster_From_Node( neighb, Clust, ToBeAssigned, N_TobeAssigned, NodeArea, SO, Opt); 
+   if (UseOffsets2) {
+      /* Tres bad memory utilization due to recursive calls */
+      if (*N_TobeAssigned) {
+         /* look in its vicinity - bad memory usage due to recursive calls*/
+         OffS = SUMA_Initialize_getoffsets (SO->N_Node);
+         SUMA_getoffsets2 (dothisnode, SO, Opt->DistLim, OffS, NULL, 0);
+         #if 0
+         if (NewClust) {
+            FILE *fid=NULL;
+            char *s=NULL, tmp[50];
+            fid = fopen("offsets2.1D", "w"); 
+            if (!fid) {
+               SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
+            } else {
+               s = SUMA_ShowOffset_Info(OffS, 0);
+               if (s) { fprintf(fid,"%s\n", s);  SUMA_free(s); s = NULL;}
+               fclose(fid);
+            }      
+         }
+         #endif
+         /* search to see if any are to be assigned */
+         for (il=1; il<OffS->N_layers; ++il) { /* starting at layer 1, layer 0 is the node itself */
+            for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
+               neighb = OffS->layers[il].NodesInLayer[jl];
+               if (ToBeAssigned[neighb] && OffS->OffVect[neighb] <= Opt->DistLim) {
+                     /* take that node into the cluster */
+                     SUMA_Build_Cluster_From_Node( neighb, Clust, ToBeAssigned, N_TobeAssigned, NodeArea, SO, Opt); 
+               }
             }
          }
+         /* free this OffS structure (Note you can't recycle the same structure because you are using many
+         OffS at one because of recursive calls */
+         if (OffS) SUMA_Free_getoffsets(OffS); OffS = NULL;
       }
-      /* free this OffS structure (Note you can't recycle the same structure because you are using many
-      OffS at one because of recursive calls */
-      if (OffS) SUMA_Free_getoffsets(OffS); OffS = NULL;
+   } else { 
+      if (*N_TobeAssigned) {
+         /* look in its vicinity */
+         if (!(offlist = SUMA_getoffsets_ll (dothisnode, SO, Opt->DistLim, NULL, 0))) {
+            SUMA_SL_Err("Failed to get offsets.\nNo cleanup done.");
+            SUMA_RETURN(NULL);
+         }
+         #if 0
+         if (NewClust) {
+            FILE *fid=NULL;
+            char *s=NULL, tmp[50];
+            fid = fopen("offsets_ll.1D", "w"); 
+            if (!fid) {
+               SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
+            } else {
+               s = SUMA_ShowOffset_ll_Info(offlist, 0);
+               if (s) { fprintf(fid,"%s\n", s);  SUMA_free(s); s = NULL;}
+               fclose(fid);
+            }      
+         }
+         #endif
+
+         /* search to see if any are to be assigned, start at layer 1*/
+         elm = dlist_head(offlist);
+         dat = (SUMA_OFFSET_LL_DATUM *)elm->data;
+         if (dat->layer != 0) {
+            SUMA_SL_Err("Unexpected non zero layer for first element.");
+            SUMA_RETURN(NULL);
+         }
+         do {
+            elm = elm->next;
+            dat = (SUMA_OFFSET_LL_DATUM *)elm->data;
+            neighb = dat->ni;
+            if (ToBeAssigned[neighb] && dat->off <= Opt->DistLim) {
+               /* take that node into the cluster */
+               SUMA_Build_Cluster_From_Node( neighb, Clust, ToBeAssigned, N_TobeAssigned, NodeArea, SO, Opt); 
+            }      
+         } while (elm != dlist_tail(offlist));  
+      }      
    }
    
    SUMA_RETURN(Clust);
@@ -707,6 +770,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    Opt->SortMode = SUMA_SORT_CLUST_NOT_SET;
    for (i=0; i<SURFCLUST_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
+   UseOffsets2 = 0;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -716,6 +780,16 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 		}
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      
+      if (!brk && (strcmp(argv[kar], "-O2") == 0)) {
+         UseOffsets2 = 1;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-Oll") == 0)) {
+         UseOffsets2 = 0;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
@@ -841,6 +915,9 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    
    if (Opt->SortMode == SUMA_SORT_CLUST_NOT_SET) { Opt->SortMode = SUMA_SORT_CLUST_BY_AREA; }
    
+   if (UseOffsets2) { SUMA_S_Note("Using Offsets2"); }
+   else  { SUMA_S_Note("Using Offsets_ll"); } 
+   
    SUMA_RETURN(Opt);
 }
 
@@ -860,7 +937,7 @@ int main (int argc,char *argv[])
    float *NodeArea = NULL;
    FILE *clustout=NULL;
    char *ClustOutName = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
 	SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
@@ -916,7 +993,11 @@ int main (int argc,char *argv[])
                                  "and is of the specified\n"
                                  "format."); 
                exit(1); }
-
+   if (!SUMA_OKassign(dset, SO)) {
+      SUMA_SL_Err("Failed to assign data set to surface.");
+      exit(1);
+   }
+   if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
    /* get the node index column */
    ni = SUMA_GetNodeDef(dset);
    N_ni = SDEST_VECLEN(dset);

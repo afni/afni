@@ -442,6 +442,7 @@ float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO)
    \sa SUMA_AddNodeToLayer
    \sa SUMA_Free_getoffsets
    \sa SUMA_Initialize_getoffsets
+   \sa SUMA_getoffsets_ll
 
 
 
@@ -523,19 +524,20 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
       AllDone = YUP; /* assume that this would be the last layer */
       for (il=0; il < OffS->layers[LayInd - 1].N_NodesInLayer; ++il) { /* go over all nodes in previous layer */
          n_il =  OffS->layers[LayInd - 1].NodesInLayer[il]; /* node from previous layer */
-         
          for (jne=0; jne < SO->FN->N_Neighb[n_il]; ++jne) { /* go over all the neighbours of node n_il */
             n_jne = SO->FN->FirstNeighb[n_il][jne];        /* node that is an immediate neighbor to n_il */
-            
             if (OffS->LayerVect[n_jne] < 0) { /* node is not assigned to a layer yet */
                OffS->LayerVect[n_jne] =  LayInd;    /* assign new layer index to node */
                OffS->OffVect[n_jne] = 0.0;          /* reset its distance from node n */
                SUMA_AddNodeToLayer (n_jne, LayInd, OffS);   /* add the node to the nodes in the layer */
-               minSeg = 100000.0; n_prec = -1; Seg = 0.0;
+               minSeg = 100000.0;
+               n_prec = -1; 
+               Seg = 0.0;
                SegPres = 0.0;
                for (k=0; k < SO->FN->N_Neighb[n_jne]; ++k) { /* calculate shortest distance of node to any precursor */  
                   n_k = SO->FN->FirstNeighb[n_jne][k];
                   if (OffS->LayerVect[n_k] == LayInd - 1) { /* this neighbor is a part of the previous layer, good */
+                     if (n_prec < 0) n_prec = SO->FN->FirstNeighb[n_jne][0];
                      a = &(SO->NodeList[3*n_k]); b = &(SO->NodeList[3*n_jne]);
                      /* this is the slow part, too many redundant computations. 
                         Computation time is cut by a factor > 2 if Seg was set to a constant
@@ -574,11 +576,173 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
          } /* for jne */
       
       } /* for il */    
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: On to layer %d\n", FuncName, LayInd);
       ++LayInd;
    } /* while AllDone */
    
    SUMA_RETURN(YUP);
+}
+
+void SUMA_Free_Offset_ll_Datum(void *data)
+{
+   static char FuncName[]={"SUMA_Free_Offset_ll_Datum"};
+   SUMA_OFFSET_LL_DATUM *dt;
+   
+   SUMA_ENTRY;
+   
+   if (data) {
+      dt = (SUMA_OFFSET_LL_DATUM *)data; 
+      SUMA_free(dt);
+   }
+   
+   SUMA_RETURNe;
+}   
+
+SUMA_OFFSET_LL_DATUM *SUMA_New_Offset_ll_Datum(int n, int layer)
+{
+   static char FuncName[]={"SUMA_New_Offset_ll_Datum"};
+   SUMA_OFFSET_LL_DATUM * datum = NULL;
+   
+   SUMA_ENTRY;
+   
+   datum = (SUMA_OFFSET_LL_DATUM *)SUMA_malloc(sizeof(SUMA_OFFSET_LL_DATUM));
+   datum->ni = n;
+   datum->layer = layer;
+   datum->off = -1.0;
+   
+   SUMA_RETURN(datum);
+}
+#define SUMA_BEGINNING_OF_LAYER(list, LayInd, Elm) {   \
+   SUMA_OFFSET_LL_DATUM * m_dat = NULL; \
+   DListElmt *m_Elm = NULL;   \
+   do {  \
+     if (m_Elm) m_Elm = m_Elm->next;   \
+     else m_Elm =  dlist_head(list); \
+     m_dat = (SUMA_OFFSET_LL_DATUM *)m_Elm->data; \
+   } while(m_dat->layer != LayInd && m_Elm != dlist_tail(list));   \
+   if (m_dat->layer != LayInd) Elm = NULL;  \
+   else Elm = m_Elm; \
+} 
+#define SUMA_FIND_ELMENT_FOR_NODE(list, n_jne, Elm){  \
+   SUMA_OFFSET_LL_DATUM * m_dat = NULL; \
+   DListElmt *m_Elm = NULL;   \
+   do {  \
+     if (m_Elm) m_Elm = m_Elm->next;   \
+     else m_Elm =  dlist_head(list); \
+     m_dat = (SUMA_OFFSET_LL_DATUM *)m_Elm->data; \
+   } while(m_dat->ni != n_jne && m_Elm != dlist_tail(list));   \
+   if (m_dat->ni != n_jne) Elm = NULL;  \
+   else Elm = m_Elm; \
+}
+DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *CoverThisNode, int N_CoverThisNode) 
+{
+   static char FuncName[]={"SUMA_getoffsets_ll"};
+   int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0;
+   float Off_tmp, Seg, *a, *b, minSeg, SegPres; /*! *** SegPres added Jul 08 04, ZSS bug before ... */
+   SUMA_Boolean Visit = NOPE;
+   SUMA_Boolean AllDone = NOPE;
+   SUMA_OFFSET_LL_DATUM * n_dat = NULL, *dat = NULL, *dat_nk = NULL, *dat_prec = NULL, *dat_ne=NULL;
+   DList *list = NULL;
+   DListElmt *elm = NULL, *elm_prec = NULL, *elm_ne=NULL, *elm_nk=NULL;
+   static SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   
+   /* create the list */
+   SUMA_LH("Initializing list ...");
+   list = (DList *)SUMA_malloc(sizeof(DList));
+   dlist_init(list, SUMA_Free_Offset_ll_Datum);
+   
+   /* setup 0th layer */
+   SUMA_LH("New OffsetDatum");
+   n_dat = SUMA_New_Offset_ll_Datum(n, 0);
+   n_dat->off = 0.0;   /* n is at a distance 0.0 from itself */
+   dlist_ins_next(list, dlist_tail(list), (void*)n_dat);
+   
+   if (CoverThisNode) { 
+      if (CoverThisNode[n]) {
+         CoverThisNode[n] = 0; --N_CoverThisNode;
+      }
+   }
+   LayInd = 1;  /* index of next layer to build */
+   AllDone = NOPE;
+   while (!AllDone) {
+      AllDone = YUP; /* assume that this would be the last layer */
+      elm = NULL;
+         do {
+            if (!elm) { SUMA_BEGINNING_OF_LAYER(list, (LayInd-1), elm); }
+            else elm = elm->next;
+            if (!elm) {
+               SUMA_SL_Err("Could not find beginning of layer!");
+               SUMA_RETURN(NULL);
+            }
+            dat = (SUMA_OFFSET_LL_DATUM *)elm->data;
+            if (dat->layer == LayInd -1) {
+               n_il = dat->ni;
+               for (jne=0; jne < SO->FN->N_Neighb[n_il]; ++jne) { /* go over all the neighbours of node n_il */
+                  n_jne = SO->FN->FirstNeighb[n_il][jne];        /* node that is an immediate neighbor to n_il */
+                  SUMA_FIND_ELMENT_FOR_NODE(list, n_jne, elm_ne);
+                  if (!elm_ne) { /* node not in any layer */
+                     dat_ne = SUMA_New_Offset_ll_Datum(n_jne, LayInd); /* create an element for it */
+                     dat_ne->off = 0.0;
+                     dlist_ins_next(list, dlist_tail(list), (void*)dat_ne);
+                     minSeg = 100000.0;
+                     n_prec = -1; 
+                     Seg = 0.0;
+                     SegPres = 0.0;
+                     for (k=0; k < SO->FN->N_Neighb[n_jne]; ++k) { /* calculate shortest distance of node to any precursor */  
+                        n_k = SO->FN->FirstNeighb[n_jne][k];
+                        SUMA_FIND_ELMENT_FOR_NODE(list, n_k, elm_nk); 
+                        if (n_prec < 0 && elm_nk) { 
+                           n_prec = n_k; elm_prec = elm_nk; 
+                           dat_prec = (SUMA_OFFSET_LL_DATUM *)elm_prec->data;
+                        }
+                        if (elm_nk) {
+                           dat_nk = (SUMA_OFFSET_LL_DATUM *)elm_nk->data;
+                           if (dat_nk->layer == LayInd - 1) { /* this neighbor is a part of the previous layer, good */
+                              a = &(SO->NodeList[3*n_k]); b = &(SO->NodeList[3*n_jne]);
+                              /* this is the slow part, too many redundant computations. 
+                                 Computation time is cut by a factor > 2 if Seg was set to a constant
+                                 However, attempts at accessing pre-calculated segment lengths
+                                 proved to be slower. See Comments in function help*/
+                              SUMA_SEG_LENGTH_SQ (a, b, Seg);                    
+                              if (dat_prec->off + Seg < minSeg) {
+                                 minSeg = Seg + dat_prec->off;
+                                 SegPres = Seg;
+                                 n_prec = n_k;
+                                 elm_prec = elm_nk;
+                                 dat_prec = dat_nk;
+                              }
+                           }
+                        } /* if elm_nk */
+                     }/* for k */
+                     if (n_prec < 0) { /* bad news */
+                        SUMA_SL_Crit("No precursor found for node.");
+                        SUMA_RETURN(NULL);
+                     } else {
+                        dat_ne->off = dat_prec->off + sqrt(SegPres); SegPres = 0.0;
+                        if (!CoverThisNode) {
+                           if (dat_ne->off < lim) { /* must go at least one more layer */
+                              AllDone = NOPE;
+                           }
+                        } else {
+                           if (CoverThisNode[n_jne]) {
+                              CoverThisNode[n_jne] = 0; --N_CoverThisNode;
+                           }
+                           if (N_CoverThisNode > 0) {
+                              AllDone = NOPE;
+                           }
+                        }
+                     }
+                  } /* if elm_ne */
+               } /* for jne */
+            } /* dat->layer == LayInd */
+         }  while (dat->layer == (LayInd-1) && elm != dlist_tail(list));
+      
+      ++LayInd;
+   } /* while AllDone */
+   
+   SUMA_RETURN(list);
 }
 
 typedef struct {
@@ -1883,6 +2047,77 @@ SUMA_Boolean SUMA_GetOffset2Offset (SUMA_GET_OFFSET_STRUCT *GOS, SUMA_OFFSET_STR
    SUMA_RETURN(YUP);
 }
 
+char * SUMA_ShowOffset_Info (SUMA_GET_OFFSET_STRUCT *OffS, int detail)
+{
+   static char FuncName[]={"SUMA_ShowOffset_Info"};
+   SUMA_STRING *SS = NULL;
+   int ii, *ltmp=NULL, *imap = NULL;
+   char *s=NULL;   
+
+   SUMA_ENTRY;
+
+   SS = SUMA_StringAppend (NULL, NULL);
+
+   if (!OffS) {
+      SS = SUMA_StringAppend (SS,"#NULL offset structure.\n");
+   } else {
+      SS = SUMA_StringAppend_va (SS,"#Node Offsets (graph distance) from node %d\n", OffS->layers[0].NodesInLayer[0]);
+      SS = SUMA_StringAppend_va (SS,"#Column 0 = Node index\n"
+                                    "#column 1 = Neighborhood layer\n"
+                                    "#Column 2 = Distance from node %d\n", OffS->layers[0].NodesInLayer[0]);
+      ltmp = (int *)SUMA_malloc(OffS->N_Nodes*sizeof(int)); /* make a copy to avoid disturbinh OffS's contents*/
+      if (!ltmp) {
+         SUMA_SL_Crit("Failed to allocate for ltmp");
+         SUMA_RETURN(NULL);
+      }
+      for (ii=0; ii<OffS->N_Nodes; ++ii) ltmp[ii] = OffS->LayerVect[ii]; 
+      imap = SUMA_z_dqsort(ltmp,OffS->N_Nodes); 
+      for (ii=0; ii<OffS->N_Nodes; ++ii) {
+         if (OffS->LayerVect[imap[ii]] >= 0) {
+            SS = SUMA_StringAppend_va (SS,"%6d\t%6d\t%f\n", imap[ii], OffS->LayerVect[imap[ii]], OffS->OffVect[imap[ii]]);
+         }
+      }
+   }
+   if (ltmp) SUMA_free(ltmp); ltmp = NULL;
+   if (imap) SUMA_free(imap); imap = NULL;
+   SUMA_SS2S(SS,s);
+
+   SUMA_RETURN(s);
+}
+
+char * SUMA_ShowOffset_ll_Info (DList *list, int detail)
+{
+   static char FuncName[]={"SUMA_ShowOffset_ll_Info"};
+   SUMA_STRING *SS = NULL;
+   DListElmt *elm = NULL;
+   SUMA_OFFSET_LL_DATUM *dat=NULL;
+   int ii;
+   char *s=NULL;   
+
+   SUMA_ENTRY;
+
+   SS = SUMA_StringAppend (NULL, NULL);
+
+   if (!list) {
+      SS = SUMA_StringAppend (SS,"#NULL offset list.\n");
+   } else {
+      do {
+         if (!elm) elm = dlist_head(list); 
+         else elm = elm->next;
+         dat = (SUMA_OFFSET_LL_DATUM *)elm->data;
+         if (elm == dlist_head(list)) {
+            SS = SUMA_StringAppend_va (SS,"#Node Offsets (graph distance) from node %d\n", dat->ni);
+            SS = SUMA_StringAppend_va (SS,"#Column 0 = Node index\n"
+                                       "#column 1 = Neighborhood layer\n"
+                                       "#Column 2 = Distance from node %d\n", dat->ni);
+         }
+         SS = SUMA_StringAppend_va (SS,"%6d\t%6d\t%f\n", dat->ni, dat->layer, dat->off);
+      } while (elm != dlist_tail(list));
+   }
+   SUMA_SS2S(SS,s);
+
+   SUMA_RETURN(s);
+}
 
 /*!
    \brief creates a vector of node neighbors structures such that:

@@ -1,5 +1,13 @@
 #ifndef SUMA_GEOMCOMP_INCLUDED
 #define SUMA_GEOMCOMP_INCLUDED
+
+typedef struct {
+   int ni;
+   int layer;
+   float off; 
+}  SUMA_OFFSET_LL_DATUM;
+
+
 SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes, 
                               int *Full_FaceSetList, int N_Full_FaceSetList, 
                               SUMA_MEMBER_FACE_SETS *Memb, int MinHits);
@@ -29,6 +37,7 @@ SUMA_CONTOUR_EDGES *SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_N
 SUMA_Boolean SUMA_ShowPatch (SUMA_PATCH *Patch, FILE *Out) ;
 SUMA_Boolean SUMA_getoffsets  (int n, SUMA_SurfaceObject *SO, float *Off, float lim);
 SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GET_OFFSET_STRUCT *OffS, int * CoverThisNode, int N_CoverThisNode);
+DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *CoverThisNode, int N_CoverThisNode);
 SUMA_GET_OFFSET_STRUCT *SUMA_Initialize_getoffsets (int N_Node);
 SUMA_Boolean SUMA_AddNodeToLayer (int n, int LayInd, SUMA_GET_OFFSET_STRUCT *OffS);
 SUMA_GET_OFFSET_STRUCT * SUMA_Free_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS);
@@ -68,6 +77,8 @@ float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float Offestl
                               int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
                               SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_GetOffset2Offset (SUMA_GET_OFFSET_STRUCT *GOS, SUMA_OFFSET_STRUCT *OS);
+char * SUMA_ShowOffset_ll_Info (DList *list, int detail);
+char * SUMA_ShowOffset_Info (SUMA_GET_OFFSET_STRUCT *OffS, int detail);
 
 
 
