@@ -3086,7 +3086,7 @@ ENTRY("AFNI_rescan_all_CB") ;
            before trying this.  On the other hand, if the user is that
            stupid, bad things will probably have happened to him already
            (like being unable to open dataset files, or being unable to
-           tie his shoes correctly).
+           tie his shoes correctly, or being named Mike Beauchamp).
 ------------------------------------------------------------------------*/
 
 static int AFNI_rescan_session_OLD( int sss )  /* the old way */
@@ -3102,6 +3102,8 @@ ENTRY("AFNI_rescan_session_OLD") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; RETURN(0) ; }
+
+fprintf(stderr,"Enter AFNI_rescan_session_OLD on session index %d\n",sss) ;
 
    /*--- sanity checks ---*/
 
@@ -3320,6 +3322,8 @@ ENTRY("AFNI_rescan_session_NEW") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT; RETURN(0); }
+
+fprintf(stderr,"Enter AFNI_rescan_session_NEW on session index %d\n",sss) ;
 
    /*--- sanity checks ---*/
 
