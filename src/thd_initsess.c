@@ -234,6 +234,10 @@ ENTRY("THD_init_session") ;
    if( !AFNI_noenv("AFNI_ANALYZE_DATASETS") ){
      char *ename[2] , **fn_anlz ;
      int num_anlz , ii , nee ;
+#ifdef ALLOW_FSL_FEAT
+     int feat_exf=-1 , feat_hrs=-1 , feat_std=-1 ;
+     int feat_na_start=sess->num_anat , feat_nf_start=sess->num_func ;
+#endif
 
      STATUS("looking for ANALYZE files") ;
 
@@ -265,6 +269,11 @@ ENTRY("THD_init_session") ;
             iview = dset->view_type ;
             sess->anat[na][iview] = dset ;
             (sess->num_anat)++ ;
+#ifdef ALLOW_FSL_FEAT
+                 if( strcmp(DSET_PREFIX(dset),"example_func.hdr") == 0 ) feat_exf = na;
+            else if( strcmp(DSET_PREFIX(dset),"highres.hdr")      == 0 ) feat_hrs = na;
+            else if( strcmp(DSET_PREFIX(dset),"standard.hdr")     == 0 ) feat_std = na;
+#endif
          } else if( ISFUNC(dset) ){
             int nf = sess->num_func ;
             if( nf >= THD_MAX_SESSION_FUNC ){
@@ -284,7 +293,85 @@ ENTRY("THD_init_session") ;
             THD_delete_3dim_dataset( dset , False ) ;
          }
        } /* end of loop over files */
-       MCW_free_expand( num_anlz , fn_anlz ) ;
+
+       MCW_free_expand( num_anlz , fn_anlz ) ;  /* free file list */
+
+       /* now read in linear mappings (.mat files) for FSL FEAT */
+
+#ifdef ALLOW_FSL_FEAT
+       if( feat_exf >= 0                      &&
+           sess->num_func - feat_nf_start > 0 &&
+           (feat_hrs >= 0 || feat_std >= 0)     ){  /* found FEAT files */
+
+         THD_3dim_dataset *dset_exf=NULL, *dset_hrs=NULL, *dset_std=NULL ;
+         char fnam[THD_MAX_NAME] ;
+         FILE *fp ;
+         float a11,a12,a13,s1 , a21,a22,a23,s2 , a31,a32,a33,s3 ;
+         THD_warp *warp_exf_hrs=NULL , *warp_exf_std=NULL ;
+
+                             dset_exf = sess->anat[feat_exf][0] ;
+         if( feat_hrs >= 0 ) dset_hrs = sess->anat[feat_hrs][0] ;
+         if( feat_std >= 0 ) dset_std = sess->anat[feat_std][0] ;
+
+         /* try to find the warp from EPI to highres */
+
+         if( dset_hrs != NULL ){
+           strcpy(fnam,sess->sessname) ; strcat(fnam,"example_func2highres.mat") ;
+           fp = fopen(fnam,"r") ;
+           if( fp != NULL ){
+             ii = fscanf(fp,"%f%f%f%f %f%f%f%f %f%f%f%f" ,
+                         &a11,&a12,&a13,&s1 , &a21,&a22,&a23,&s2 ,
+                                              &a31,&a32,&a33,&s3   ) ;
+             if( ii == 12 )
+               warp_exf_hrs = AFNI_make_affwarp( a11,a12,a13,s1 ,
+                                                 a21,a22,a23,s2 ,
+                                                 a31,a32,a33,s3   ) ;
+             fclose(fp) ;
+           }
+         }
+
+         /* try to find the warp from EPI to standard */
+
+         if( dset_std != NULL ){
+           strcpy(fnam,sess->sessname) ; strcat(fnam,"example_func2standard.mat") ;
+           fp = fopen(fnam,"r") ;
+           if( fp != NULL ){
+             ii = fscanf(fp,"%f%f%f%f %f%f%f%f %f%f%f%f" ,
+                         &a11,&a12,&a13,&s1 , &a21,&a22,&a23,&s2 ,
+                                              &a31,&a32,&a33,&s3   ) ;
+             if( ii == 12 )
+               warp_exf_std = AFNI_make_affwarp( a11,a12,a13,s1 ,
+                                                 a21,a22,a23,s2 ,
+                                                 a31,a32,a33,s3   ) ;
+             fclose(fp) ;
+           }
+         }
+
+         /* if we have these warps,
+            then build a hashtable describing their use in
+            transforming funcs (in exf coords) to hrs and std coords */
+
+         if( warp_exf_hrs != NULL || warp_exf_std != NULL ){
+
+           sess->warptable = new_Htable(0) ;  /* default size */
+
+           if( warp_exf_hrs != NULL ){
+             for( ii=feat_nf_start ; ii < sess->num_func ; ii++ ){
+               sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->func[ii][0]->idcode.str) ;
+               addto_Htable( fnam , warp_exf_hrs , sess->warptable ) ;
+             }
+           }
+
+           if( warp_exf_std != NULL ){
+             for( ii=feat_nf_start ; ii < sess->num_func ; ii++ ){
+               sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->func[ii][0]->idcode.str) ;
+               addto_Htable( fnam , warp_exf_std , sess->warptable ) ;
+             }
+           }
+         } /* end of making warptable */
+       } /* end of FEATing */
+#endif
+
      } /* end of if we found ANALYZE files */
    }
 
