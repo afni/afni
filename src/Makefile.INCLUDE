@@ -1249,13 +1249,18 @@ qhull:
 
 #######
 
+eis_bakvec.o:
+	( cd eispack/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
+
+#######
+
 netcdf_attr.o:
 	( cd netcdf-3.5.0/src ;                           \
           FC=""  ; export FC  ; F90=""   ; export F90 ;   \
           CXX="" ; export CXX ; CC="${CCMIN}";export CC;  \
           $(RM) config.cache config.log config.status ;   \
           ./configure ; make libsrc/all ;                 \
-	  $(CP) libsrc/netcdf.h  ../.. ;                  \
+          $(CP) libsrc/netcdf.h  ../.. ;                  \
           $(MV) libsrc/attr.o    ../../netcdf_attr.o    ; \
           $(MV) libsrc/dim.o     ../../netcdf_dim.o     ; \
           $(MV) libsrc/error.o   ../../netcdf_error.o   ; \
