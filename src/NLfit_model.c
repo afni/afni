@@ -158,8 +158,9 @@ NLFIT_MODEL * NLFIT_read_MODEL( char * fname )
 
    /*----- find the required symbols -----*/
    /*..... 13 Sep 2001: add _ for Mac OS X [RWCox] .....*/
+   /*..... 30 Oct 2003: remove it for OS X 10.3    .....*/
 
-#ifndef DARWIN
+#ifndef NEED_UNDERSCORE
    DYNAMIC_SYMBOL(model->libhandle, "initialize_model" , 
 		  model->libinit_func );
 #else

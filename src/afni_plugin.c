@@ -170,8 +170,9 @@ if(PRINT_TRACING)
 
    /*----- find the required symbol -----*/
    /*..... 13 Sep 2001: add _ for stupid Darwin .....*/
+   /*..... 30 Oct 2003: remove for OS X 10.3    .....*/
 
-#ifndef DARWIN
+#ifndef NEED_UNDERSCORE
    DYNAMIC_SYMBOL(plin->libhandle, "PLUGIN_init" , plin->libinit_func );
 #else
    DYNAMIC_SYMBOL(plin->libhandle,"_PLUGIN_init" , plin->libinit_func );
