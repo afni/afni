@@ -152,7 +152,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetLis
 					RetStrct.Node_NormList[i][1] /= N_Memb[i];
 					RetStrct.Node_NormList[i][2] /= N_Memb[i];
 					/* normalize */
-					nrm = sqrtf(RetStrct.Node_NormList[i][0]*RetStrct.Node_NormList[i][0] + RetStrct.Node_NormList[i][1]*RetStrct.Node_NormList[i][1] + RetStrct.Node_NormList[i][2]*RetStrct.Node_NormList[i][2]); 
+					nrm = sqrt(RetStrct.Node_NormList[i][0]*RetStrct.Node_NormList[i][0] + RetStrct.Node_NormList[i][1]*RetStrct.Node_NormList[i][1] + RetStrct.Node_NormList[i][2]*RetStrct.Node_NormList[i][2]); 
 					RetStrct.Node_NormList[i][0] /= nrm;
 					RetStrct.Node_NormList[i][1] /= nrm;
 					RetStrct.Node_NormList[i][2] /= nrm;

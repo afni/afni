@@ -1771,58 +1771,60 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
 		   
 		/* call the appropriate macro to add the overlay */
 		if (Full && Glob && Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity ...\n", FuncName);*/
+			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FGL_AR4op ...\n", FuncName);*/
 			
-			SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity(\
+			/* This macro used to be called: SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
+			but name was too long for some compilers */
+			SUMA_RGB_FGL_AR4op(\
 			Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, isColored);			
 		}
 		
 		if (!Full && Glob && Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity ...\n", FuncName);*/
-			
-			SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity(\
+			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PGL_AR4op ...\n", FuncName);*/
+			/* This macro used to be called: SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity */
+			SUMA_RGB_PGL_AR4op(\
 			Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity,  N_Node);
 		}
 		
 		if (Full && !Glob && Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity...\n", FuncName);*/
-			
-			SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity(\
+			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FnGL_AR4op...\n", FuncName);*/
+			/* This macro used to be called: SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity */
+			SUMA_RGB_FnGL_AR4op(\
 			Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->LocalOpacity, isColored);			
 		}
 		
 		if (!Full && !Glob && Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity ...\n", FuncName);*/
-			
-			SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity(\
+			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PnGL_AR4op ...\n", FuncName);*/
+			/* This macro used to be called: SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity*/
+			SUMA_RGB_PnGL_AR4op(\
 			Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->LocalOpacity, N_Node);
 		}
 		
 		if (Full && !Glob && !Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity ...\n", FuncName);*/
-			
-			SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity(\
+			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FnGnL_AR4op ...\n", FuncName);*/
+			/* This macro used to be called: SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity*/
+			SUMA_RGB_FnGnL_AR4op(\
 			Overlays[i]->ColMat, glcolar, N_Node, isColored);			
 		}
 		
 		if (!Full && !Glob && !Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity ...\n", FuncName);*/
-			
-			SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity(\
+			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PnGnL_AR4op ...\n", FuncName);*/
+			/* This macro used to be called: SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity */
+			SUMA_RGB_PnGnL_AR4op(\
 			Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, N_Node);
 		}
 		
 		if (Full && Glob && !Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity...\n", FuncName);*/
-			
-			SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity(\
+			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FGnL_AR4op...\n", FuncName);*/
+			/* This macro used to be called: SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity*/
+			SUMA_RGB_FGnL_AR4op(\
 			Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, isColored);
 		}
 		 
 		if (!Full && Glob && !Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity...\n", FuncName);*/
-			
-			SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity(\
+			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_PGnL_AR4op...\n", FuncName);*/
+			/* This macro used to be called: SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity*/
+			SUMA_RGB_PGnL_AR4op(\
 			Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
 		}
 	}

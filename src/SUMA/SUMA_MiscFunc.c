@@ -865,7 +865,7 @@ SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_r
 					t1 = XYZ[k][1] - S_cent[1];	
 					t2 = XYZ[k][2] - S_cent[2];	
 
-					ta = sqrtf (t0 * t0 + t1 * t1 + t2 * t2);
+					ta = sqrt (t0 * t0 + t1 * t1 + t2 * t2);
 					
 					if (ta <= S_rad)
 						{
@@ -884,7 +884,7 @@ SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_r
 					t1 = XYZ[k][1] - S_cent[1];	
 					t2 = XYZ[k][2] - S_cent[2];	
 
-					ta = sqrtf (t0 * t0 + t1 * t1 + t2 * t2);
+					ta = sqrt (t0 * t0 + t1 * t1 + t2 * t2);
 					
 					if (ta < S_rad)
 						{
@@ -1898,7 +1898,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, i
 							MTI->d = dii;
 							MTI->inodeminlocal = 2;
 						}
-						MTI->d = (float)sqrtf((double)MTI->d);
+						MTI->d = (float)sqrt((double)MTI->d);
 					}
 					if (MTI->t[iface] > tmax) {
 						tmax = MTI->t[iface];
@@ -1954,7 +1954,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, i
 							MTI->d = dii;
 							MTI->inodeminlocal = 2;
 						}
-						MTI->d = (float)sqrtf((double)MTI->d);
+						MTI->d = (float)sqrt((double)MTI->d);
 						MTI->inodemin = FaceSetList[iface][MTI->inodeminlocal];
 					}
 					if (MTI->t[iface] > tmax) {
@@ -3717,7 +3717,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 					mMi[1][0] = Mi[2][1]; mMi[1][1] = Mi[2][2]; 
 					
 					/*compute c ( = cos(theta) ) & s ( = sin(theta) )from the Givens rotation to null out the bottom left element of the non zero minor mMi*/
-					mg = sqrtf(mMi[0][0]*mMi[0][0] + mMi[1][0]*mMi[1][0]);
+					mg = sqrt(mMi[0][0]*mMi[0][0] + mMi[1][0]*mMi[1][0]);
 					c = mMi[0][0] / mg;
 					s = mMi[1][0] / mg;
 					/* rotate mMi */
@@ -3836,10 +3836,10 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 	
 	#ifndef TAUBIN_Householder
 		/* generic algorithm */
-		mNi = sqrtf(Ni[0] * Ni[0] + Ni[1] * Ni[1] + Ni[2] * Ni[2]);
+		mNi = sqrt(Ni[0] * Ni[0] + Ni[1] * Ni[1] + Ni[2] * Ni[2]);
 		for (ii=0; ii < 3; ++ii) 
 			b[ii] = Ni[ii] + mNi * e[ii];
-		mb = sqrtf(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
+		mb = sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
 
 		if (mb == 0) {
 			fprintf (SUMA_STDERR,"Error %s: mb = 0\n",FuncName);
@@ -3849,7 +3849,7 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 		b[0] /= mb; b[1] /= mb; b[2] /= mb;
 	#else
 		/* Taubin's algorithm Estimating the tensor of curvature of a surface from a polyhedral approximation */ 
-		/* calculate difference and sum vectors with their norms (save sqrtf for later) */
+		/* calculate difference and sum vectors with their norms (save sqrt for later) */
 		
 		d[0] = e[0] - Ni[0]; d[1] = e[1] - Ni[1]; d[2] = e[2] - Ni[2]; 
 		nd = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
@@ -3863,14 +3863,14 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 		}
 		
 		if (nd > ns) {
-			nd = sqrtf(nd);
+			nd = sqrt(nd);
 			b[0] = d[0] / nd;
 			b[1] = d[1] / nd;
 			b[2] = d[2] / nd;
 			/*Q(:,1) will be equal to -Ni*/
 			
 		} else {
-			ns = sqrtf(ns);
+			ns = sqrt(ns);
 			b[0] = s[0] / ns;
 			b[1] = s[1] / ns;
 			b[2] = s[2] / ns;
@@ -3946,7 +3946,7 @@ float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB
 			d = NNL[i][0] * NL[in][0] + NNL[i][1] * NL[in][1] + NNL[i][2] * NL[in][2] + D ;
 			
 			/* calculate the distance between node i and it's neighbor */
-			dij = sqrtf( (NL[in][0] - NL[i][0]) * (NL[in][0] - NL[i][0]) + (NL[in][1] - NL[i][1]) * (NL[in][1] - NL[i][1]) + (NL[in][2] - NL[i][2]) * (NL[in][2] - NL[i][2]));
+			dij = sqrt( (NL[in][0] - NL[i][0]) * (NL[in][0] - NL[i][0]) + (NL[in][1] - NL[i][1]) * (NL[in][1] - NL[i][1]) + (NL[in][2] - NL[i][2]) * (NL[in][2] - NL[i][2]));
 			
 			/* assuming normals are normalized d is the cosine of the angle between the two vectors */
 			/* if d > 0, then angle is > 0..90 degrees */
