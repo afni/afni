@@ -1616,7 +1616,7 @@ typedef struct {
                            of the nodes on the surface. It is illegal to have this if Overlays != NULL */ 
    GLfloat *glar_NodeNormList;    /*!< pointer to the 1D NodeNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
    
-   SUMA_Boolean ShowMeshAxis; /*!< flag to show Mesh Axis if it is created */
+   int ShowMeshAxis; /*!< flag to show Mesh Axis if it is created */
    SUMA_Axis *MeshAxis;   /*!< pointer to XYZ axis  */
    
    SUMA_MEMBER_FACE_SETS *MF; /*!< structure containing the facesets containing each node */

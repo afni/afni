@@ -1186,15 +1186,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /*printf("F2\n");*/
             {
                int *do_id, n_do_id;
-               /*SUMA_SurfaceObject *ptr_tmp;*/
                ++sv->ShowWorldAxis; sv->ShowWorldAxis = sv->ShowWorldAxis % SUMA_N_WAX_OPTIONS; 
                sv->ShowMeshAxis = 0; /* used to be = !sv->ShowMeshAxis; ,  Turned off Oct 15 04 , in favor or WorldAxis */
                do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv, SO_type, &n_do_id);
                if (n_do_id) {
                   while (n_do_id) {
-                     /*ptr_tmp = (SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP;
-                     ptr_tmp->ShowMeshAxis = sv->ShowMeshAxis;*/
-                     ((SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP)->ShowMeshAxis = sv->ShowMeshAxis;
+                    ((SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP)->ShowMeshAxis = sv->ShowMeshAxis;
                      --n_do_id;
                   }
                   SUMA_free(do_id);

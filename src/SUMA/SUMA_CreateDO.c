@@ -634,7 +634,7 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
          Ax->idcode_str = NULL;
       } else {
          Ax->Name = (char *)SUMA_calloc (strlen(Name)+1, sizeof(char));
-         Ax->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
+         Ax->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH+1, sizeof(char));
          if (Ax->Name == NULL) {
             fprintf(SUMA_STDERR,"Error %s: Failed to allocate for Ax->Name.\n", \
                FuncName);
@@ -708,10 +708,14 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    float MinDims[3], MaxDims[3];
    int i, j, Nvis, *Vis_IDs=NULL;
    SUMA_SurfaceObject *cso=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
+   if (!Ax) {
+      SUMA_SL_Err("NULL Ax!");
+      SUMA_RETURNe;
+   }
    
    Ax->Stipple = SUMA_SOLID_LINE;
    Ax->XYZspan[0]= Ax->XYZspan[1]= Ax->XYZspan[2]= 100.0;
@@ -754,7 +758,7 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
       Ax->BR[1][0] = MinDims[1]; Ax->BR[1][1] = MaxDims[1];
       Ax->BR[2][0] = MinDims[2]; Ax->BR[2][1] = MaxDims[2];
    }
-   SUMA_free(Vis_IDs);
+   if (Vis_IDs) SUMA_free(Vis_IDs);
    
    SUMA_RETURNe;
 }
@@ -1126,6 +1130,10 @@ SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    
    SUMA_ENTRY;
    
+   if (!Ax) {
+      SUMA_SL_Err("Null Axis!");
+      SUMA_RETURN(NOPE);
+   }
    
    glLineWidth(Ax->LineWidth);
    switch (Ax->Stipple) {
@@ -1282,7 +1290,6 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
       
    SUMA_ENTRY;
          
-         glBegin(GL_LINES);
          glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
          glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
          
@@ -1298,6 +1305,7 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Z axis\n", FuncName); 
    } else { SUMA_S_Err("Major bobo."); SUMA_RETURN(NOPE); }
             
+         glBegin(GL_LINES);
    /* draw the line */
    glVertex3f(ASIp->P1[0], ASIp->P1[1], ASIp->P1[2]);
    glVertex3f(ASIp->P2[0], ASIp->P2[1], ASIp->P2[2]);
