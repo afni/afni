@@ -33,12 +33,6 @@ static void * handle = NULL ;
 #define USE_WRITING     /* 26 Feb 2001 */
 static int do_write=2 ;
 
-static int    num_splash  =0 ;   /* 26 Nov 2003 */
-static char **fname_splash=NULL ;
-
-static int    num_face  = 0 ;    /* 28 Mar 2003 */
-static char **fname_face=NULL ;
-
 static int AFNI_find_jpegs( char *, char ***) ;  /* 26 Nov 2003 */
 
 /*----------------------------------------------------------------------------*/
@@ -105,6 +99,11 @@ void AFNI_splashup(void)
    int   sxx,syy ;
    char * sen ;
    static int ncall=0 , nov , dnov , nm=-1 ;
+   static int    num_splash  =0 ;   /* 26 Nov 2003 */
+   static int    first_splash=-1 ;
+   static char **fname_splash=NULL ;
+   static int    num_face  = 0 ;    /* 28 Mar 2003 */
+   static char **fname_face=NULL ;
 
 ENTRY("AFNI_splashup") ;
 
@@ -119,6 +118,12 @@ ENTRY("AFNI_splashup") ;
       if( ncall == 0 ){
         num_face   = AFNI_find_jpegs( "face_"   , &fname_face   ) ;
         num_splash = AFNI_find_jpegs( "splash_" , &fname_splash ) ;
+        if( num_splash > 0 ){
+          int np ;
+          for( np=0 ; np < num_splash ; np++ )
+            if( strstr(fname_splash[np],"sscc") != NULL ) break ;
+          if( np < num_splash ) first_splash = np ;
+        }
       }
 
       /* create basic splash image */
@@ -186,17 +191,16 @@ ENTRY("AFNI_splashup") ;
 
       /* possibly replace the splash image at the top [26 Nov 2003] */
 
-      if( ncall > 0 && num_splash > 0 &&
+      if( (ncall > 0 || first_splash >= 0) && num_splash > 0 &&
           (ncall <= num_splash  || ((lrand48() >> 8 ) % 7) != 0) ){
 
-        static int np=-1 ;
+        static int np=-1 , dp ;
         if( np < 0 ){
-          for( np=0 ; np < num_splash ; np++ )
-            if( strstr(fname_splash[np],"sscc") != NULL ) break ;
-          if( np == num_splash ) np = (lrand48() >> 8) % num_splash ;
-        }
-        else
-          np = (np+1)%(num_splash) ;
+          np = (first_splash >= 0) ? first_splash
+                                   : (lrand48() >> 8) % num_splash ;
+          dp = 2*((lrand48() >> 8)%2)-1 ;  /* -1 or +1 */
+        } else
+          np = (np+dp)%(num_splash) ;
         imov = mri_read( fname_splash[np] ) ;
         if( imov != NULL ){
           reload_DC_colordef( GLOBAL_library.dc ) ;
