@@ -155,39 +155,41 @@ int_triple THD_orient_guess( MRI_IMAGE *imm )
           "ni  = %d  nj  = %d  nk  = %d\n",
           (int)ff , icm,jcm,kcm , ni,nj,nk ) ;
 
-   /* compute asymmetry measures about CM voxel */
+   /** compute asymmetry measures about CM voxel **/
 
 #define BAR(i,j,k) bar[(i)+(j)*nx+(k)*nxy]
 
    axx = 0.0 ;
    for( ix=1 ; ix <= ni ; ix++ ){
      im = icm-ix ; ip = icm+ix ;
-     for( kz=0 ; kz < nz ; kz++ ){
-       for( jy=0 ; jy < ny ; jy++ )
+     for( kz=kcm-nk ; kz <= kcm+nk ; kz++ ){
+       for( jy=jcm-nj ; jy <= jcm+nj ; jy++ )
          axx += abs(BAR(ip,jy,kz) - BAR(im,jy,kz)) ;
      }
    }
-   axx /= (itop*ny*nz) ; printf("axx = %g\n",axx) ;
+   axx /= (ni*nj*nk) ; printf("axx = %g\n",axx) ;
 
    ayy = 0.0 ;
    for( jy=1 ; jy <= nj ; jy++ ){
      jm = jcm-jy ; jp = jcm+jy ;
-     for( kz=0 ; kz < nz ; kz++ ){
-       for( ix=0 ; ix < nx ; ix++ )
+     for( kz=kcm-nk ; kz <= kcm+nk ; kz++ ){
+       for( ix=icm-ni ; ix <= icm+ni ; ix++ )
          ayy += abs(BAR(ix,jp,kz) - BAR(ix,jm,kz)) ;
      }
    }
-   ayy /= (jtop*nx*nz) ; printf("ayy = %g\n",ayy) ;
+   ayy /= (ni*nj*nk) ; printf("ayy = %g\n",ayy) ;
 
    azz = 0.0 ;
    for( kz=1 ; kz <= nk ; kz++ ){
      km = kcm-kz ; kp = kcm+kz ;
-     for( jy=0 ; jy < ny ; jy++ ){
-       for( ix=0 ; ix < nx ; ix++ )
+     for( jy=jcm-nj ; jy <= jcm+nj ; jy++ ){
+       for( ix=icm-ni ; ix <= icm+ni ; ix++ )
          azz += abs(BAR(ix,jy,kp) - BAR(ix,jy,km)) ;
      }
    }
-   azz /= (ktop*nx*ny) ; printf("azz = %g\n",azz) ;
+   azz /= (ni*nj*nk) ; printf("azz = %g\n",azz) ;
+
+   /** least asymettric is L-R direction **/
 
    if( axx < ayy ){
      if( axx < azz ) d_LR = 1 ;
@@ -203,6 +205,40 @@ int_triple THD_orient_guess( MRI_IMAGE *imm )
    arr[1] /= ff ;
    arr[2] /= ff ;
    printf("a ratios = %g  %g  %g\n",arr[0],arr[1],arr[2]) ;
+
+   /** find asymmetry measures in 1/2 spaces perp to L-R **/
+
+   switch( d_LR ){
+
+     case 3:{  /* L-R is z-axis */
+       float axx_jp=0.0, axx_jm=0.0, ayy_ip=0.0, ayy_im=0.0 ;
+       for( ix=1 ; ix <= ni ; ix++ ){
+         im = icm-ix ; ip = icm+ix ;
+         for( kz=kcm-nk ; kz <= kcm+nk ; kz++ ){
+           for( jy=1 ; jy <= nj ; jy++ ){
+             axx_jp += abs(BAR(ip,jcm+jy,kz) - BAR(im,jcm+jy,kz)) ;
+             axx_jm += abs(BAR(ip,jcm-jy,kz) - BAR(im,jcm-jy,kz)) ;
+           }
+         }
+       }
+       for( jy=1 ; jy <= nj ; jy++ ){
+         jm = jcm-jy ; jp = jcm+jy ;
+         for( kz=kcm-nk ; kz <= kcm+nk ; kz++ ){
+           for( ix=1 ; ix <= ni ; ix++ ){
+             ayy_ip += abs(BAR(icm+ix,jp,kz) - BAR(icm+ix,jm,kz)) ;
+             ayy_im += abs(BAR(icm-ix,jp,kz) - BAR(icm-ix,jm,kz)) ;
+           }
+         }
+       }
+       axx_jp /= (ni*nj*nk) ; axx_jm /= (ni*nj*nk) ;
+       ayy_ip /= (ni*nj*nk) ; ayy_im /= (ni*nj*nk) ;
+
+       printf("axx_jp=%g  axx_jm=%g  ayy_ip=%g  ayy_im=%g\n",
+               axx_jp,axx_jm , ayy_ip,ayy_im ) ;
+     } /* end of case 3 */
+     break ;
+
+   }
 
    return it ;
 }
