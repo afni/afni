@@ -9,7 +9,18 @@
    
 #include "SUMA_suma.h"
 
-extern SUMA_CommonFields *SUMAg_CF; 
+#ifdef SUMA_SurfNorm_STAND_ALONE
+   /* these global variables must be declared even if they will not be used by this main */
+   SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+   SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+   int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+   SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+   int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+   SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
+#else
+   extern SUMA_CommonFields *SUMAg_CF; 
+#endif
+
 
 /* CODE */
    
@@ -379,7 +390,7 @@ int main (int argc,char *argv[])
 }/* Main */
 #endif
 
-#ifdef TEST_SUMA_SurfNorm
+#ifdef SUMA_SurfNorm_STAND_ALONE
 void usage ()
    
   {/*Usage*/
@@ -391,14 +402,23 @@ void usage ()
    
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_SurfNorm-Main-"}; 
    SUMA_SURF_NORM RetStrct;
 	int nface, nnode;
 	int *FaceSetList;
 	float *NodeList;
-	
-   /* initialize Main function name for verbose output */
-   sprintf (FuncName,"SUMA_SurfNorm-Main-");
+	SUMA_Boolean LocalHead = NOPE;
+   
+	/* allocate space for CommonFields structure */
+	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
+   
+   SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
+   
    
    
    if (argc < 3)

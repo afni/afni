@@ -113,7 +113,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 	if (LocalHead) fprintf (SUMA_STDOUT,"%s: performing glClear ...\n", FuncName);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
 	
- 	if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName);
+   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName);
   	glMatrixMode (GL_PROJECTION);
    glLoadIdentity ();
    gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
@@ -969,3 +969,60 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 }
 
 /* ------------------------------------------------------------------------------------------------------------*/
+
+/*!
+   Purpose: Takes a the x,y positions of the cursor and sets the Pick0 and Pick1 values in sv 
+   \param sv (*SUMA_SurfaceViewer)
+   \param x (int) mouse coordinate
+   \param y (int)
+   \return YUP/NOPE
+   \sa SUMA_input, button3 pick
+*/
+SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y)
+{
+   static char FuncName[]={"SUMA_GetSelectionLine"};
+   GLfloat rotationMatrix[4][4];
+	GLint viewport[4];
+	GLdouble mvmatrix[16], projmatrix[16];
+	GLint realy; /* OpenGL y coordinate position */
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	/* go through the ModelView transforms as you would in display since the modelview matrix is popped
+	after each display call */
+	SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glTranslatef (sv->GVS[sv->StdView].translateVec[0], sv->GVS[sv->StdView].translateVec[1], 0.0);
+	glTranslatef (sv->GVS[sv->StdView].RotaCenter[0], sv->GVS[sv->StdView].RotaCenter[1], sv->GVS[sv->StdView].RotaCenter[2]);
+	glMultMatrixf(&rotationMatrix[0][0]);
+	glTranslatef (-sv->GVS[sv->StdView].RotaCenter[0], -sv->GVS[sv->StdView].RotaCenter[1], -sv->GVS[sv->StdView].RotaCenter[2]);
+
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+	glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
+	/* viewport[3] is height of window in pixels */
+	realy = viewport[3] - (GLint)y -1;
+
+	if (LocalHead) fprintf (SUMA_STDOUT, "%s: Coordinates at cursor are (%4d, %4d)\n", FuncName, x, realy);
+
+	/* set the pick points at both ends of the clip planes */
+	gluUnProject((GLdouble)x, (GLdouble)realy, 0.0,\
+		mvmatrix, projmatrix, viewport, \
+		&(sv->Pick0[0]), &(sv->Pick0[1]), &(sv->Pick0[2]));
+	/*fprintf (SUMA_STDOUT, "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",\
+		(sv->Pick0[0]), (sv->Pick0[1]), (sv->Pick0[2]));*/
+
+	gluUnProject((GLdouble)x, (GLdouble)realy, 1.0,\
+		mvmatrix, projmatrix, viewport, \
+		&(sv->Pick1[0]), &(sv->Pick1[1]), &(sv->Pick1[2]));
+	/*fprintf (SUMA_STDOUT, "World Coords at z=1.0 (far clip plane) are (%f, %f, %f)\n",\
+		(sv->Pick1[0]), (sv->Pick1[1]), (sv->Pick1[2]));*/
+
+	glPopMatrix();
+
+   SUMA_RETURN (YUP);
+}
+
+
