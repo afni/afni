@@ -3381,7 +3381,7 @@ void RT_finish_dataset( RT_input * rtin )
          "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
 
       char *ttl = malloc( strlen(DSET_FILECODE(rtin->dset[0])) + 32 ) ;
-      strcpy(ttl,"\noesc ") ;
+      strcpy(ttl,"\\noesc ") ;
       strcat(ttl,DSET_FILECODE(rtin->dset[0])) ;
       if( rtin->reg_mode == REGMODE_3D_ESTIM ) strcat(ttl," [Estimate]") ;
 
@@ -3790,7 +3790,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
             "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
 
          char *ttl = malloc( strlen(DSET_FILECODE(rtin->dset[0])) + 32 ) ;
-         strcpy(ttl,"\noesc ") ;
+         strcpy(ttl,"\\noesc ") ;
          strcat(ttl,DSET_FILECODE(rtin->dset[0])) ;
          if( rtin->reg_mode == REGMODE_3D_ESTIM ) strcat(ttl," [Estimate]") ;
 
