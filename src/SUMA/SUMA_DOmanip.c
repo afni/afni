@@ -1,4 +1,3 @@
-#include "SUMA_gen_include.h"
 #include "SUMA_suma.h"
 
 /*! functions dealing with Drawable Object Manipulation */

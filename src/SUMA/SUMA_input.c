@@ -23,6 +23,10 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 	static char ssource[]={"suma"};
 	int it, ii, iv3[3];
 	float **fm, fv3[3], fv15[15];
+	XKeyEvent Kev;
+	XButtonEvent Bev;
+	XMotionEvent Mev;
+	
 	/*float ft;
 	int **im, iv15[15];*/ /* keep unused variables undeclared to quite compiler */
 	
@@ -32,13 +36,35 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 		return;
 	}
 
-	/*fprintf(SUMA_STDERR,"%s: Gimme some presses %d, type %d, keypress %d\n", FuncName, \
-	(XKeyEvent *) cd->event->xkey.state, cd->event->type, KeyPress); */
-  switch (cd->event->type) { /* switch event type */
+	Kev = (XKeyEvent) cd->event->xkey;
+	Bev = (XButtonEvent) cd->event->xbutton;
+	Mev = (XMotionEvent) cd->event->xmotion;
+	
+	/* a sample keypresses */
+	#if 0
+		if (Kev.state & ShiftMask) {
+			fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);
+		}else if (Kev.state & ControlMask){
+			fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);
+		}else if (Kev.state & Mod1Mask){
+			fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);
+		}else if (Kev.state & Mod2Mask){
+			fprintf (SUMA_STDERR,"%s: Mod2 down\n", FuncName);
+		}else if (Kev.state & Mod3Mask){
+			fprintf (SUMA_STDERR,"%s: Mod3 down\n", FuncName);
+		}else if (Kev.state & Mod4Mask){
+			fprintf (SUMA_STDERR,"%s: Mod4 down\n", FuncName);
+		}else if (Kev.state & Mod5Mask){
+			fprintf (SUMA_STDERR,"%s: Mod5 down\n", FuncName);
+		}else {
+			/*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
+		}
+	#endif
+	
+  switch (Kev.type) { /* switch event type */
   case KeyPress:
 		xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
-		/*fprintf(SUMA_STDERR,"\nState %d KeyCode %d pressed %d (%c), xls %d \n", 
-				(XKeyEvent *) cd->event->xkey.state, (XKeyEvent *) cd->event->xkey.keycode, keysym, keysym, xls); */
+		
 		/* XK_* are found in keysymdef.h */ 
 		switch (keysym) { /* keysym */
       	case XK_space:   /* The spacebar. */
@@ -678,89 +704,86 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 
 			case XK_Left:	/*KEY_LEFT:*/
 				/*fprintf(stdout,"Left Key\n");*/
-				switch ((int)(XKeyEvent *) cd->event->xkey.state) {
-					case ShiftMask:
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] -= (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
-						/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
-						postRedisplay();
-						break;
-
-					case ControlMask:
-						break;
-
-					case Mod1Mask:
-						break;
-					default:
-							trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
-							ArrowDeltaRot, 0.0, /* first point */
-							-ArrowDeltaRot, 0.0); /* ending x,y */
-						add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = -2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
-						postRedisplay();
-						break;
+				if (Kev.state & ShiftMask) {
+					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] -= (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
+					postRedisplay();
+				}else if (Kev.state & ControlMask){
+					/*ffprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
+					
+				}else if (Kev.state & Mod1Mask) {
+					/*ffprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+				}else {
+					/*ffprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
+					trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
+						ArrowDeltaRot, 0.0, /* first point */
+						-ArrowDeltaRot, 0.0); /* ending x,y */
+					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = -2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
+					postRedisplay();
 				}
+					
 				break;
 
 			case XK_Right:	/*KEY_RIGHT: */
 				/*printf("Right Key\n");*/
-				switch ((int)(XKeyEvent *) cd->event->xkey.state) {
-					case ShiftMask:
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
-						/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
-						postRedisplay();
-						break;
-
-					case ControlMask:
-						break;
-
-					case Mod1Mask:
-						break;
-
-					default:
-						trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
-							-ArrowDeltaRot, 0.0, /* first point */
-							ArrowDeltaRot, 0.0); /* ending x,y */
-						add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
-						postRedisplay();
-						break;
+				if (Kev.state & ShiftMask) {
+					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
+					postRedisplay();
+				}else if (Kev.state & ControlMask){
+					/*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
+					
+				}else if (Kev.state & Mod1Mask) {
+					/*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+				}else {
+					/*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
+					trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
+						-ArrowDeltaRot, 0.0, /* first point */
+						ArrowDeltaRot, 0.0); /* ending x,y */
+					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
+					postRedisplay();
 				}
 				break;
 
 			case XK_Down:	/*KEY_DOWN*/
 				/*printf("Down Key\n");*/
-				switch ((int)(XKeyEvent *) cd->event->xkey.state) {
-					case ShiftMask:
-						/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += 0;*/
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -=  (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
-						postRedisplay();
-						break;
-					case ControlMask:
-						break;
-					case Mod1Mask:
-						break;
-					default:
-						trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
-							0.0, ArrowDeltaRot, /* first point */
-							0.0, -ArrowDeltaRot); /* ending x,y */
-						/*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");
-						fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
-						add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-						/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = -2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
-						postRedisplay();
-						break;
+				if (Kev.state & ShiftMask) {
+					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += 0;*/
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -=  (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+					postRedisplay();
+				}else if (Kev.state & ControlMask){
+					/*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
+					
+				}else if (Kev.state & Mod1Mask) {
+					/*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+				}else {
+					/*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
+					trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
+						0.0, ArrowDeltaRot, /* first point */
+						0.0, -ArrowDeltaRot); /* ending x,y */
+					/*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");
+					fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
+					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = -2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
+					postRedisplay();
 				}
+				
 				break;
 
 			case XK_Up: /*KEY_UP*/
 				/*printf("Up Key\n");*/
-				switch ((int)(XKeyEvent *) cd->event->xkey.state) {
-					case ShiftMask:
-						#ifdef USELESS_BLOCK
+				if (Kev.state & ShiftMask) {
+					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+					#ifdef USELESS_BLOCK
 						/* This shows how to have momentum work for arrow translation. But that is largely useless
 						because the object  quickly disappears from view */
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
@@ -769,28 +792,30 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0; /* if you do not turn these back to 0 then the surface will quickly go out of sight if momentum is turned on */
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = 0;
-						#endif
-						/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += 0;*/
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] +=  (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
-						postRedisplay();
-						break;
-					case ControlMask:
-						break;
-					case Mod1Mask:
-						break;
-					default:
-						trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
+					#endif
+					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += 0;*/
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] +=  (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+					postRedisplay();
+				}else if (Kev.state & ControlMask){
+					/*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
+					
+				}else if (Kev.state & Mod1Mask) {
+					/*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+				}else {
+					/*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
+					trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
 						0.0, -ArrowDeltaRot, /* first point */
 						0.0, ArrowDeltaRot); /* ending x,y */
-						/*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");
-						fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
-						add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-						/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
-						postRedisplay();
-						break;
+					/*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");
+					fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
+					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
+					postRedisplay();
+						
 				}
+				
 				break;
 
 			default:
@@ -800,415 +825,335 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 	break;
 	
 	case ButtonPress:
-	 	/*fprintf(stdout,"In ButtonPress\n");*/
-	 	/*fprintf(stdout, "\nButton Press button: %d, state %d ", (XButtonEvent *)cd->event->xbutton.button, (XButtonEvent *)cd->event->xbutton.state);
-	 	fprintf(stdout, "x=%d, y=%d\n", (XButtonEvent *)cd->event->xbutton.x, (XButtonEvent *)cd->event->xbutton.y);*/
-		switch ((int)(XButtonEvent *)cd->event->xbutton.button) { /* switch type of button Press */
-			case 1:
-				switch ((int)(XButtonEvent *)cd->event->xbutton.state) {
-					case 0:
-						/*fprintf(stdout,"Button 1 down, plain jane\n");*/
-						/* setup initial spinning conditions */
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX = (int)(XButtonEvent *)cd->event->xbutton.x;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY = (int)(XButtonEvent *)cd->event->xbutton.y;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
-						break;
-					case ShiftMask:
-						/*fprintf(stdout,"Button 1, + Shift\n");*/
-						break;
-					case Button2Mask:
-						/* When pressing both 1&2, Button 2 gets the first mention so you would want to negate its effects when you want to record both buttons events */
-						/*fprintf(stdout,"Buttons 1& 2 simultaneously\n");*/
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin = (float)(int)(XMotionEvent *)cd->event->xbutton.y;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 0;
-						break;
+	 	/*fprintf(stdout,"In ButtonPress\n");		*/
+		switch (Bev.button) { /* switch type of button Press */
+			case Button1:
+				if (Bev.state & Button2Mask) {
+					/* setup initial zooming conditions */
+					/*fprintf(SUMA_STDERR,"%s: Button 1 &2 down. New\n", FuncName); */
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin = (float)(int)(XMotionEvent *)cd->event->xbutton.y;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 0;	
+				}else {
+					/*fprintf(SUMA_STDERR,"%s: Button 1 down. New\n", FuncName);*/
+					/* setup initial spinning conditions */
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX = (int)(XButtonEvent *)cd->event->xbutton.x;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY = (int)(XButtonEvent *)cd->event->xbutton.y;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;	
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX = (int)(XButtonEvent *)cd->event->xbutton.x;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY = (int)(XButtonEvent *)cd->event->xbutton.y;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
 				}
 				break;
-			case 2:
-				switch ((int)(XButtonEvent *)cd->event->xbutton.state) {
-					case 0:
-						/*fprintf(stdout,"Button 2 down, plain jane\n");*/
-						/* setup initial translation conditions */
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = 0;
-						break;
-					case ShiftMask:
-						/*fprintf(stdout,"Button 2, + Shift\n");*/
-						break;
-				}
+				
+			case Button2:
+					/*fprintf(stdout,"Button 2 down, plain jane\n");*/
+					/* setup initial translation conditions */
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = 0;
 				break;
-			case 3:
-				switch ((int)(XButtonEvent *)cd->event->xbutton.state) {
-					case 0:
-						/*fprintf(stdout,"Button 3 down, plain jane\n");*/
-						/* Report on coordinates */
-						if (SUMA_ShownSOs(SUMAg_cSV, SUMAg_DOv, NULL) == 0) { /* no surfaces, break */
+				
+			case Button3:
+					/*fprintf(stdout,"Button 3 down, plain jane\n");*/
+					/* Report on coordinates */
+					if (SUMA_ShownSOs(SUMAg_cSV, SUMAg_DOv, NULL) == 0) { /* no surfaces, break */
+						break;
+					}
+					if (SUMA_ShownSOs(SUMAg_cSV, SUMAg_DOv, NULL) == 1) /* only one surface object can be displayed when picking */
+					{/* report on coordinates, within case 0 */
+						GLfloat rotationMatrix[4][4];
+						GLint viewport[4];
+						GLdouble mvmatrix[16], projmatrix[16];
+						GLint realy; /* OpenGL y coordinate position */
+						int x, y;
+
+						x = (int)(XButtonEvent *)cd->event->xbutton.x;
+						y = (int)(XButtonEvent *)cd->event->xbutton.y;
+
+						/* go through the ModelView transforms as you would in display since the modelview matrix is popped
+						after each display call */
+						build_rotmatrix(rotationMatrix, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+						glMatrixMode(GL_MODELVIEW);
+						glPushMatrix();
+						glTranslatef (SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1], 0.0);
+						glTranslatef (SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[2]);
+						glMultMatrixf(&rotationMatrix[0][0]);
+						glTranslatef (-SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[0], -SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[1], -SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[2]);
+
+						glGetIntegerv(GL_VIEWPORT, viewport);
+						glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+						glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
+						/* viewport[3] is height of window in pixels */
+						realy = viewport[3] - (GLint)y -1;
+
+						/*fprintf (SUMA_STDOUT, "Coordinates at cursor are (%4d, %4d)\n", x, realy);*/
+
+						/* set the pick points at both ends of the clip planes */
+						gluUnProject((GLdouble)x, (GLdouble)realy, 0.0,\
+							mvmatrix, projmatrix, viewport, \
+							&(SUMAg_cSV->Pick0[0]), &(SUMAg_cSV->Pick0[1]), &(SUMAg_cSV->Pick0[2]));
+						/*fprintf (SUMA_STDOUT, "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",\
+							(SUMAg_cSV->Pick0[0]), (SUMAg_cSV->Pick0[1]), (SUMAg_cSV->Pick0[2]));*/
+
+						gluUnProject((GLdouble)x, (GLdouble)realy, 1.0,\
+							mvmatrix, projmatrix, viewport, \
+							&(SUMAg_cSV->Pick1[0]), &(SUMAg_cSV->Pick1[1]), &(SUMAg_cSV->Pick1[2]));
+						/*fprintf (SUMA_STDOUT, "World Coords at z=1.0 (far clip plane) are (%f, %f, %f)\n",\
+							(SUMAg_cSV->Pick1[0]), (SUMAg_cSV->Pick1[1]), (SUMAg_cSV->Pick1[2]));*/
+
+						glPopMatrix();
+
+						/* do the intersection on the surface object in focus */
+						if (SUMAg_cSV->Focus_SO_ID < 0)
+						{
+							fprintf(SUMA_STDERR,"Error %s: SUMAg_cSV->Focus_SO_ID is not set.\nNo intersection will be computed.\n", FuncName);
 							break;
 						}
-						if (SUMA_ShownSOs(SUMAg_cSV, SUMAg_DOv, NULL) == 1) /* only one surface object can be displayed when picking */
-						{/* report on coordinates, within case 0 */
-							GLfloat rotationMatrix[4][4];
-							GLint viewport[4];
-							GLdouble mvmatrix[16], projmatrix[16];
-							GLint realy; /* OpenGL y coordinate position */
-							int x, y;
-							
-							x = (int)(XButtonEvent *)cd->event->xbutton.x;
-							y = (int)(XButtonEvent *)cd->event->xbutton.y;
-							
-							/* go through the ModelView transforms as you would in display since the modelview matrix is popped
-							after each display call */
-							build_rotmatrix(rotationMatrix, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-							glMatrixMode(GL_MODELVIEW);
-							glPushMatrix();
-							glTranslatef (SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1], 0.0);
-							glTranslatef (SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[2]);
-							glMultMatrixf(&rotationMatrix[0][0]);
-							glTranslatef (-SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[0], -SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[1], -SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[2]);
-							
-							glGetIntegerv(GL_VIEWPORT, viewport);
-							glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
-							glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
-							/* viewport[3] is height of window in pixels */
-							realy = viewport[3] - (GLint)y -1;
-							
-							/*fprintf (SUMA_STDOUT, "Coordinates at cursor are (%4d, %4d)\n", x, realy);*/
-							
-							/* set the pick points at both ends of the clip planes */
-							gluUnProject((GLdouble)x, (GLdouble)realy, 0.0,\
-								mvmatrix, projmatrix, viewport, \
-								&(SUMAg_cSV->Pick0[0]), &(SUMAg_cSV->Pick0[1]), &(SUMAg_cSV->Pick0[2]));
-							/*fprintf (SUMA_STDOUT, "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",\
-								(SUMAg_cSV->Pick0[0]), (SUMAg_cSV->Pick0[1]), (SUMAg_cSV->Pick0[2]));*/
-							
-							gluUnProject((GLdouble)x, (GLdouble)realy, 1.0,\
-								mvmatrix, projmatrix, viewport, \
-								&(SUMAg_cSV->Pick1[0]), &(SUMAg_cSV->Pick1[1]), &(SUMAg_cSV->Pick1[2]));
-							/*fprintf (SUMA_STDOUT, "World Coords at z=1.0 (far clip plane) are (%f, %f, %f)\n",\
-								(SUMAg_cSV->Pick1[0]), (SUMAg_cSV->Pick1[1]), (SUMAg_cSV->Pick1[2]));*/
-							
-							glPopMatrix();
-							
-							/* do the intersection on the surface object in focus */
-							if (SUMAg_cSV->Focus_SO_ID < 0)
-							{
-								fprintf(SUMA_STDERR,"Error %s: SUMAg_cSV->Focus_SO_ID is not set.\nNo intersection will be computed.\n", FuncName);
-								break;
-							}
-							
-							
-							{/* determine intersection */
-								SUMA_SurfaceObject *SO;
-								float P0f[3], P1f[3];
-								SO = (SUMA_SurfaceObject *)SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP;
-								P0f[0] = SUMAg_cSV->Pick0[0];
-								P0f[1] = SUMAg_cSV->Pick0[1];
-								P0f[2] = SUMAg_cSV->Pick0[2];
-								P1f[0] = SUMAg_cSV->Pick1[0];
-								P1f[1] = SUMAg_cSV->Pick1[1];
-								P1f[2] = SUMAg_cSV->Pick1[2];
-								
-								#ifdef SUMA_LOCAL_FIND_CLOSE_NODES /* snippet of code that may be useful in the future */
-								{/* locate the nodes closest to the line */
-									/* calculate the distance of the nodes to the line */
-									int  i2min, *Indx;
-									float *d2, d2min;
-							
-									d2 = (float *)calloc(SO->N_Node, sizeof(float));
-									if (d2 == NULL) {
-										fprintf(SUMA_STDERR, "Error %s: Could not allocate for d2\n", FuncName);
-										break;
-									}
-									if (!SUMA_Point_To_Line_Distance (SO->NodeList, SO->N_Node, P0f, P1f, d2, &d2min, &i2min)) {
-										fprintf(SUMA_STDERR, "Error %s: SUMA_Point_To_Line_Distance Failed\n", FuncName);
-										break;
-									}
-									free(do_id);
-									/* report some results */
-									fprintf (SUMA_STDOUT, "Node [%d] %f, %f, %f was closest (%f mm) to line\n", \
-										i2min, SO->NodeList[i2min][0], SO->NodeList[i2min][1], SO->NodeList[i2min][2], sqrt(d2min));
-									/* sort the distances to the line and find the closest 50 nodes */
-									Indx = SUMA_z_qsort ( d2 , SO->N_Node );	
-									/* from the closest nodes, find the one that is closest to P0f (that would be closest to the user) that should be the node of choice */
-									/* a better way to do this is to find the polygon that is pierced by the line and highlight the node closest to the line in that
-									polygon. And in case there are multiple polygons pierced, choose the one that is closest to P0f. This way, you are guaranteed to 
-									get the correct node */
 
-									/* prepare EngineData to points cetered on closest node (poor man's method for now)*/
-									fv15[0] = SO->NodeList[i2min][0];
-									fv15[1] = SO->NodeList[i2min][1];
-									fv15[2] = SO->NodeList[i2min][2];
 
-									fv15[3] = 5.0;
-									fv15[4] = 5.0;
-									fv15[5] = 5.0;
-									
-									/* register fv15 with EngineData */
-									sprintf(sfield,"fv15");
-									sprintf(sdestination,"HighlightNodes");
-									if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
-										fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-										break;
-									}					
+						{/* determine intersection */
+							SUMA_SurfaceObject *SO;
+							float P0f[3], P1f[3];
+							SO = (SUMA_SurfaceObject *)SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP;
+							P0f[0] = SUMAg_cSV->Pick0[0];
+							P0f[1] = SUMAg_cSV->Pick0[1];
+							P0f[2] = SUMAg_cSV->Pick0[2];
+							P1f[0] = SUMAg_cSV->Pick1[0];
+							P1f[1] = SUMAg_cSV->Pick1[1];
+							P1f[2] = SUMAg_cSV->Pick1[2];
 
-									/*make call to SUMA_Engine */
-									sprintf(CommString,"Redisplay|HighlightNodes~");
-									if (!SUMA_Engine (CommString, &EngineData)) {
-										fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-									}
-									/* done with d2, and others, free them */
-									if (d2 != NULL) free(d2);
-									free (Indx);
-								}/* locate the nodes closest to the line */
-								#endif
-								
-								/* Now the FaceSetIntersection game */
-								{/* FaceSet Intersection */
-									SUMA_MT_INTERSECT_TRIANGLE *MTI;
+							#ifdef SUMA_LOCAL_FIND_CLOSE_NODES /* snippet of code that may be useful in the future */
+							{/* locate the nodes closest to the line */
+								/* calculate the distance of the nodes to the line */
+								int  i2min, *Indx;
+								float *d2, d2min;
 
-									if (SO->FaceSetDim != 3) {
-										fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle only works for triangular meshes.\n", FuncName);
-									} else {
-										MTI = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet);
-										if (MTI == NULL) {
-											fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
-										}else {
-											/*
-											if (!SUMA_Show_MT_intersect_triangle(MTI, NULL)) {
-												fprintf(SUMA_STDERR,"Error %s: SUMA_Show_MT_intersect_triangle failed.\n", FuncName);
-											} 
-											*/
-											/* Mark intersection Facsets */
-												if (MTI->N_hits) {
-													/* print nodes about the closets faceset*/
-													fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
-													fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
-													fprintf(SUMA_STDOUT, "%d, %d, %d\n", \
-													SO->FaceSetList[MTI->ifacemin][0], SO->FaceSetList[MTI->ifacemin][1],SO->FaceSetList[MTI->ifacemin][2]);
-													
-													fprintf (SUMA_STDOUT,"Coordinates of Nodes forming closest FaceSet:\n");
-													for (it=0; it < 3; ++it) { 
-														fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][0],\
-																											SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][1],\
-																											SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][2]);
-													}
-													fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-													#ifdef SUMA_LOCAL_COLORINTERSECTION
-													EngineData.N_rows = 3;
-													EngineData.N_cols = 4;
-													fm = (float **)SUMA_allocate2D(EngineData.N_rows, EngineData.N_cols, (sizeof(float)));
-													fm[0][0] = SO->FaceSetList[MTI->ifacemin][0];
-													fm[0][1] = 0.0; fm[0][2] = 1.0; fm[0][3] = 1.0; 
-													fm[1][0] = SO->FaceSetList[MTI->ifacemin][1];
-													fm[1][1] = 0.0; fm[1][2] = 1.0; fm[1][3] = 1.0; 
-													fm[2][0] = SO->FaceSetList[MTI->ifacemin][2];
-													fm[2][1] = 0.0; fm[2][2] = 1.0; fm[2][3] = 1.0; 
-													/* register fm with EngineData */
-														sprintf(sfield,"fm");
-														sprintf(sdestination,"SetNodeColor");
-														if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fm, sdestination, ssource, YUP)) {
-															fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-															break;
-														}
+								d2 = (float *)calloc(SO->N_Node, sizeof(float));
+								if (d2 == NULL) {
+									fprintf(SUMA_STDERR, "Error %s: Could not allocate for d2\n", FuncName);
+									break;
+								}
+								if (!SUMA_Point_To_Line_Distance (SO->NodeList, SO->N_Node, P0f, P1f, d2, &d2min, &i2min)) {
+									fprintf(SUMA_STDERR, "Error %s: SUMA_Point_To_Line_Distance Failed\n", FuncName);
+									break;
+								}
+								free(do_id);
+								/* report some results */
+								fprintf (SUMA_STDOUT, "Node [%d] %f, %f, %f was closest (%f mm) to line\n", \
+									i2min, SO->NodeList[i2min][0], SO->NodeList[i2min][1], SO->NodeList[i2min][2], sqrt(d2min));
+								/* sort the distances to the line and find the closest 50 nodes */
+								Indx = SUMA_z_qsort ( d2 , SO->N_Node );	
+								/* from the closest nodes, find the one that is closest to P0f (that would be closest to the user) that should be the node of choice */
+								/* a better way to do this is to find the polygon that is pierced by the line and highlight the node closest to the line in that
+								polygon. And in case there are multiple polygons pierced, choose the one that is closest to P0f. This way, you are guaranteed to 
+								get the correct node */
 
-													sprintf(CommString,"SetNodeColor~");
-													if (!SUMA_Engine (CommString, &EngineData)) {
-														fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-													}
-													
-													/* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
-													if (fm) SUMA_free2D ((char **)fm, EngineData.N_rows);
+								/* prepare EngineData to points cetered on closest node (poor man's method for now)*/
+								fv15[0] = SO->NodeList[i2min][0];
+								fv15[1] = SO->NodeList[i2min][1];
+								fv15[2] = SO->NodeList[i2min][2];
 
-													#endif
-													
-													/* Set the Nodeselection at the closest node */
-													it = MTI->inodemin;
-													sprintf(sfield,"i");
-													sprintf(sdestination,"SetSelectedNode");
-													if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-														fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-														break;
-													}
-													sprintf(CommString,"Redisplay|SetSelectedNode~");
-													if (!SUMA_Engine (CommString, &EngineData)) {
-														fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-													}
-													
-													/* Set the FaceSetselection */
-													it = MTI->ifacemin;
-													sprintf(sfield,"i");
-													sprintf(sdestination,"SetSelectedFaceSet");
-													if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-														fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-														break;
-													}
-													sprintf(CommString,"SetSelectedFaceSet~");
-													if (!SUMA_Engine (CommString, &EngineData)) {
-														fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-													}
-													/* Now set the cross hair position at the intersection*/
-													sprintf(sfield,"fv3");
-													sprintf(sdestination,"SetCrossHair");
-													if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)MTI->P, sdestination, ssource,NOPE)) {
-														fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-														break;
-													}
-													sprintf(CommString,"SetCrossHair~");
-													if (!SUMA_Engine (CommString, &EngineData)) {
-														fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-													}
-													
-													/* attach the cross hair to the selected surface */
-													iv3[0] = SUMA_findDO(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-													iv3[1] = MTI->inodemin;
-													sprintf(sfield,"iv3");
-													sprintf(sdestination,"BindCrossHair");
-													if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(iv3), sdestination, ssource, NOPE)) {
-														fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-														break;
-													}
-													sprintf(CommString,"Redisplay|BindCrossHair~");
-													if (!SUMA_Engine (CommString, &EngineData)) {
-														fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-													}
+								fv15[3] = 5.0;
+								fv15[4] = 5.0;
+								fv15[5] = 5.0;
 
+								/* register fv15 with EngineData */
+								sprintf(sfield,"fv15");
+								sprintf(sdestination,"HighlightNodes");
+								if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
+									fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+									break;
+								}					
+
+								/*make call to SUMA_Engine */
+								sprintf(CommString,"Redisplay|HighlightNodes~");
+								if (!SUMA_Engine (CommString, &EngineData)) {
+									fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+								}
+								/* done with d2, and others, free them */
+								if (d2 != NULL) free(d2);
+								free (Indx);
+							}/* locate the nodes closest to the line */
+							#endif
+
+							/* Now the FaceSetIntersection game */
+							{/* FaceSet Intersection */
+								SUMA_MT_INTERSECT_TRIANGLE *MTI;
+
+								if (SO->FaceSetDim != 3) {
+									fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle only works for triangular meshes.\n", FuncName);
+								} else {
+									MTI = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet);
+									if (MTI == NULL) {
+										fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
+									}else {
+										/*
+										if (!SUMA_Show_MT_intersect_triangle(MTI, NULL)) {
+											fprintf(SUMA_STDERR,"Error %s: SUMA_Show_MT_intersect_triangle failed.\n", FuncName);
+										} 
+										*/
+										/* Mark intersection Facsets */
+											if (MTI->N_hits) {
+												/* print nodes about the closets faceset*/
+												fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+												fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
+												fprintf(SUMA_STDOUT, "%d, %d, %d\n", \
+												SO->FaceSetList[MTI->ifacemin][0], SO->FaceSetList[MTI->ifacemin][1],SO->FaceSetList[MTI->ifacemin][2]);
+
+												fprintf (SUMA_STDOUT,"Coordinates of Nodes forming closest FaceSet:\n");
+												for (it=0; it < 3; ++it) { 
+													fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][0],\
+																										SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][1],\
+																										SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][2]);
 												}
-												/* clear MTI */
-												if (!SUMA_Free_MT_intersect_triangle(MTI)) 
-													fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
-										}
+												fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+												#ifdef SUMA_LOCAL_COLORINTERSECTION
+												EngineData.N_rows = 3;
+												EngineData.N_cols = 4;
+												fm = (float **)SUMA_allocate2D(EngineData.N_rows, EngineData.N_cols, (sizeof(float)));
+												fm[0][0] = SO->FaceSetList[MTI->ifacemin][0];
+												fm[0][1] = 0.0; fm[0][2] = 1.0; fm[0][3] = 1.0; 
+												fm[1][0] = SO->FaceSetList[MTI->ifacemin][1];
+												fm[1][1] = 0.0; fm[1][2] = 1.0; fm[1][3] = 1.0; 
+												fm[2][0] = SO->FaceSetList[MTI->ifacemin][2];
+												fm[2][1] = 0.0; fm[2][2] = 1.0; fm[2][3] = 1.0; 
+												/* register fm with EngineData */
+													sprintf(sfield,"fm");
+													sprintf(sdestination,"SetNodeColor");
+													if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fm, sdestination, ssource, YUP)) {
+														fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+														break;
+													}
+
+												sprintf(CommString,"SetNodeColor~");
+												if (!SUMA_Engine (CommString, &EngineData)) {
+													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+												}
+
+												/* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
+												if (fm) SUMA_free2D ((char **)fm, EngineData.N_rows);
+
+												#endif
+
+												/* Set the Nodeselection at the closest node */
+												it = MTI->inodemin;
+												sprintf(sfield,"i");
+												sprintf(sdestination,"SetSelectedNode");
+												if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
+													fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+													break;
+												}
+												sprintf(CommString,"Redisplay|SetSelectedNode~");
+												if (!SUMA_Engine (CommString, &EngineData)) {
+													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+												}
+
+												/* Set the FaceSetselection */
+												it = MTI->ifacemin;
+												sprintf(sfield,"i");
+												sprintf(sdestination,"SetSelectedFaceSet");
+												if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
+													fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+													break;
+												}
+												sprintf(CommString,"SetSelectedFaceSet~");
+												if (!SUMA_Engine (CommString, &EngineData)) {
+													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+												}
+												/* Now set the cross hair position at the intersection*/
+												sprintf(sfield,"fv3");
+												sprintf(sdestination,"SetCrossHair");
+												if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)MTI->P, sdestination, ssource,NOPE)) {
+													fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+													break;
+												}
+												sprintf(CommString,"SetCrossHair~");
+												if (!SUMA_Engine (CommString, &EngineData)) {
+													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+												}
+
+												/* attach the cross hair to the selected surface */
+												iv3[0] = SUMA_findDO(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+												iv3[1] = MTI->inodemin;
+												sprintf(sfield,"iv3");
+												sprintf(sdestination,"BindCrossHair");
+												if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(iv3), sdestination, ssource, NOPE)) {
+													fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+													break;
+												}
+												sprintf(CommString,"Redisplay|BindCrossHair~");
+												if (!SUMA_Engine (CommString, &EngineData)) {
+													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+												}
+
+											}
+											/* clear MTI */
+											if (!SUMA_Free_MT_intersect_triangle(MTI)) 
+												fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
 									}
-								}/* FaceSet Intersection */	
-							}/* determine intersection */
-						}/* report on coordinates, within case 0 */
-						else {
-							fprintf(SUMA_STDERR,"Error %s: Cannot pick when more than one Surface Object is displayed.\nThis can be implemented if needed, please complain to the author.(ziad@nih.gov)\n", FuncName); 
-							break;
-						}												
+								}
+							}/* FaceSet Intersection */	
+						}/* determine intersection */
+					}/* report on coordinates, within case 0 */
+					else {
+						fprintf(SUMA_STDERR,"Error %s: Cannot pick when more than one Surface Object is displayed.\nThis can be implemented if needed, please complain to the author.(ziad@nih.gov)\n", FuncName); 
 						break;
-					case ShiftMask:
-						fprintf(stdout,"Button 3, + Shift\n");
-						break;
-				}
+					}												
 				break;
 		} /* switch type of button Press */
 		break;
+		
 	case ButtonRelease:
-		/* THIS EVENT IS NOT BEING REPORTED, IT MUST BE REGISTERED SOMEWHERE */
-		/*fprintf(stdout,"In ButtonRelease\n");
-	 	fprintf(stdout, "\nButton Press button: %d, state %d ", (XButtonEvent *)cd->event->xbutton.button, (XButtonEvent *)cd->event->xbutton.state);
-	 	fprintf(stdout, "x=%d, y=%d\n", (XButtonEvent *)cd->event->xbutton.x, (XButtonEvent *)cd->event->xbutton.y);*/
-		switch ((int)(XButtonEvent *)cd->event->xbutton.button) { /* switch type of button Press */
-			case 1:
-				switch ((int)(XButtonEvent *)cd->event->xbutton.state) {
-					case 0:
-						/*fprintf(stdout,"Button 1 up, plain jane\n");*/
-					   /* End of spinning */
-						break;
-					case ShiftMask:
-						/*fprintf(stdout,"Button 1 up, + Shift\n");*/
-						break;
-					case Button2Mask:
-						/* When pressing both 1&2, Button 2 gets the first mention so you would want to negate its effects when you want to record both buttons events */
-						/*fprintf(stdout,"Buttons 1& 2 simultaneously\n");*/
-						break;
-				}
-				break;
-			case 2:
-				switch ((int)(XButtonEvent *)cd->event->xbutton.state) {
-					case 0:
-						/*fprintf(stdout,"Button 2 up, plain jane\n");*/
-						/* End of translation */
-						break;
-					case ShiftMask:
-						/*fprintf(stdout,"Button 2 up, + Shift\n");*/
-						break;
-				}
-				break;
-			case 3:
-				switch ((int)(XButtonEvent *)cd->event->xbutton.state) {
-					case 0:
-						fprintf(stdout,"\nButton 3 up, plain jane\n");
-						break;
-					case ShiftMask:
-						/*fprintf(stdout,"Button 2 up, + Shift\n");*/
-						break;
-				}
-				break;
-			}/* switch type of button Press */
+		/*fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName); */
 		break;
+		
 	case MotionNotify:
-	 	/*fprintf(stdout,"In MotionNotify\n");
-		fprintf(stdout, "\nMOTION Button Motion state, Key State %d %d: x=%d, y=%d\n",\
-		(XMotionEvent *)cd->event->xbutton.state, (XKeyEvent *)cd->event->xkey.state, \
-		(XMotionEvent *)cd->event->xbutton.x, (XMotionEvent *)cd->event->xbutton.y); */
-		/* Other masks you can use, ControlMask,LockMask,Mod1..5Mask Mod1Mask is for alt, 
-		but I do not know what Mod2..5 are for */
-		switch ((int)((XMotionEvent *)cd->event->xbutton.state)) { /* switch type of button motion */
-			case NO_BUTTON_MOTION:	/* No button motion */
-				/*fprintf (stdout, "\nNo button motion \n");*/
-				break;
-			case Button1Mask:	/* button 1 motion, reports a 256*/ 
-				/*fprintf (stdout, "\nbutton 1 motion %d\n", Button1Mask);*/
-				/* spinning mode */
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = ((int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX);
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = ((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY);
-				/*fprintf(stdout,"\nspinBeginX %d spinBeginY %d\nspinDeltaX %d spinDeltaY %d\nWindWidth %d WindHeight %d\n", \
-								SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY, SUMAg_cSV->WindWidth, SUMAg_cSV->WindHeight);*/
-				if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX || SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY){
-					trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
-						(float)(2*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX - SUMAg_cSV->WindWidth)/(float)SUMAg_cSV->WindWidth, (float)(SUMAg_cSV->WindHeight - 2*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY)/(float)SUMAg_cSV->WindHeight,
-				 		(float)(2*(int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->WindWidth)/(float)SUMAg_cSV->WindWidth, (float)(SUMAg_cSV->WindHeight - 2*(int)(XMotionEvent *)cd->event->xbutton.y)/(float)SUMAg_cSV->WindHeight); /* comput the increment Quat */
-					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
-					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
-					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-					postRedisplay();
-				}
+	 	/*fprintf(stdout,"In MotionNotify\n"); */
+		if ((Mev.state & Button1MotionMask) && (Mev.state & Button2MotionMask)) {
+			/*fprintf(SUMA_STDERR,"%s: In motion, Butt1 & Butt2\n", FuncName);*/
+			SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 1.0 + (float)((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin)/MOUSE_ZOOM_FACT;
+			if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta > 2.0) SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 2.0;
+			else if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta < 0.5) SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 0.5;
+			SUMAg_cSV->FOV[SUMAg_cSV->iState] /= SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta;
+			if (SUMAg_cSV->FOV[SUMAg_cSV->iState] < FOV_MIN) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MIN;
+			else if (SUMAg_cSV->FOV[SUMAg_cSV->iState] > FOV_MAX) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MAX;
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin = (float)(int)(XMotionEvent *)cd->event->xbutton.y;
+				/*fprintf(stdout, "FOV zoom Delta = %f=n", SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta);*/
+			postRedisplay();			
+		} else if(Mev.state & Button1MotionMask) {
+			/*fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
+			/* spinning mode */
+			SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = ((int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX);
+			SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = ((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY);
+			/*fprintf(stdout,"\nspinBeginX %d spinBeginY %d\nspinDeltaX %d spinDeltaY %d\nWindWidth %d WindHeight %d\n", \
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY, SUMAg_cSV->WindWidth, SUMAg_cSV->WindHeight);*/
+			if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX || SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY){
+				trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
+					(float)(2*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX - SUMAg_cSV->WindWidth)/(float)SUMAg_cSV->WindWidth, (float)(SUMAg_cSV->WindHeight - 2*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY)/(float)SUMAg_cSV->WindHeight,
+				 	(float)(2*(int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->WindWidth)/(float)SUMAg_cSV->WindWidth, (float)(SUMAg_cSV->WindHeight - 2*(int)(XMotionEvent *)cd->event->xbutton.y)/(float)SUMAg_cSV->WindHeight); /* comput the increment Quat */
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
+				add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+				postRedisplay();
+			}
+		
+		}else if(Mev.state & Button2MotionMask) { 
+			/* fprintf(SUMA_STDERR,"%s: In motion, Butt2 \n", FuncName);*/
+			SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = (float)((int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX)/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+			SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = -(float)((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY)/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+			if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX || SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY){
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX;
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
+				postRedisplay();
+			}
 				
-				break;
-			case Button2Mask: /* button 2 motion, reports a 512*/
-				/*fprintf (stdout, "\nbutton 2 motion \n");*/
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = (float)((int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX)/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = -(float)((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY)/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
-				if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX || SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY){
-					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX;
-					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
-					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
-					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
-					postRedisplay();
-				}
-				break;
-			case Button3Mask: /* button 3 motion, reports a 1024*/
-				/*fprintf (stdout, "\nbutton 3 motion \n");*/
-				break;
-			case Button1Mask+Button2Mask: /* buttons 1 & 2 motion, reports a 256+512 */
-				/*fprintf (stdout, "\nbuttons 1+2 motion \n");*/
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 1.0 + (float)((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin)/MOUSE_ZOOM_FACT;
-				if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta > 2.0) SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 2.0;
-				else if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta < 0.5) SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 0.5;
-				SUMAg_cSV->FOV[SUMAg_cSV->iState] /= SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta;
-				if (SUMAg_cSV->FOV[SUMAg_cSV->iState] < FOV_MIN) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MIN;
-				else if (SUMAg_cSV->FOV[SUMAg_cSV->iState] > FOV_MAX) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MAX;
-					SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin = (float)(int)(XMotionEvent *)cd->event->xbutton.y;
-					/*fprintf(stdout, "FOV zoom Delta = %f=n", SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta);*/
-					postRedisplay();			
-				break;
-			case NO_BUTTON_MOTION+ShiftMask:
-				/*fprintf (stdout, "\nNo button motion + Shift\n");*/
-				break;
-			case Button1Mask+ShiftMask:
-				/*fprintf (stdout, "\nbutton 1 motion + Shift\n");*/
-				break;
-			case NO_BUTTON_MOTION+ShiftMask+ControlMask:
-				/*fprintf (stdout, "\nNo button motion + Shift + Control\n");*/
-				break;
-			case Button1Mask+ShiftMask+ControlMask:
-				/*fprintf (stdout, "\nbutton 1 motion + Shift + Control\n");*/
-				break;				
-		} /* switch type of button motion */
+		}
+		
 		break;
   }/* switch event type */
 }

@@ -2,7 +2,6 @@
     
 /* Header FILES */
    
-#include "SUMA_gen_include.h"
 #include "SUMA_suma.h"
 
 /*#define  DO_SCALE_RANGE	*//*!< scale node coordinates to 0 <--> 100. DO NOT USE IT, OBSOLETE*/
