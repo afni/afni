@@ -178,18 +178,27 @@ void mri_dicom_nohex( int ii )
 
 /****************************************************************/
 
+static int rwc_vm=0 ;                     /* 28 Oct 2002 */
+
+void mri_dicom_setvm( int vv )
+{
+  rwc_vm = vv ;
+}
+
+/****************************************************************/
+
 static int rwc_fd ;  /* 10 Sep 2002 */
 
 char * mri_dicom_header( char *fname )
 {
     DCM_OBJECT * object;
     CONDITION cond;
-    CTNBOOLEAN verbose = FALSE,
+    CTNBOOLEAN verbose = FALSE ,
                exitFlag = FALSE,
                formatFlag = FALSE;
     unsigned long
         options = DCM_ORDERLITTLEENDIAN;
-    long vmLimit = 0;
+    long vmLimit = rwc_vm ;             /* 28 Oct 2002 */
     LST_HEAD* fileNames = 0;
     UTL_FILEITEM* p = NULL;
 
@@ -200,6 +209,10 @@ ENTRY("mri_dicom_header") ;
     if( fname == NULL ) RETURN(NULL) ;
 
     RWC_set_endianosity() ;
+
+    { char *eee = getenv("AFNI_TRACE") ;
+      if( eee!=NULL && (*eee=='y' || *eee=='Y') ) verbose = TRUE ;
+    }
 
     DCM_Debug(verbose);
 
@@ -2362,15 +2375,17 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 	    (void) LST_Position(&groupItem->elementList, (void *)elementItem);
 	while (elementItem != NULL) {
 #ifdef MACOS
-	    (void) RWC_printf("%04x %04x %8ld ",
+	    (void) RWC_printf("%04x %04x %8ld [%-8lu] ",
 			  DCM_TAG_GROUP(elementItem->element.tag),
 			  DCM_TAG_ELEMENT(elementItem->element.tag),
-			  elementItem->element.length);
+			  elementItem->element.length ,
+                          (unsigned long) elementItem->element.data_offset );
 #else
-	    (void) RWC_printf("%04x %04x %8d ",
+	    (void) RWC_printf("%04x %04x %8d [%-8lu] ",
 			  DCM_TAG_GROUP(elementItem->element.tag),
 			  DCM_TAG_ELEMENT(elementItem->element.tag),
-			  elementItem->element.length);
+			  elementItem->element.length ,
+                          (unsigned long) elementItem->element.data_offset );
 #endif
 
             if( (rwc_opt & RWC_NONAME_MASK) == 0 )
@@ -2443,12 +2458,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 		    sq = (void *)LST_Head(&elementItem->element.d.sq);
 		    if (sq != NULL)
 			(void) LST_Position(&elementItem->element.d.sq, (void *)sq);
-		    RWC_printf("DCM Dump Sequence\n");
+		    RWC_printf("DCM Dump SEQUENCE\n");
 		    while (sq != NULL) {
 			(void) DCM_DumpElements(&sq->object, vm);
 			sq = (void *)LST_Next(&elementItem->element.d.sq);
 		    }
-		    RWC_printf("DCM Dump Sequence Complete\n");
+		    RWC_printf("DCM Dump SEQUENCE Complete\n");
 		    break;
 		case DCM_ST:
 		    stringLength = MIN(sizeof(scratch) - 1, elementItem->element.length);
@@ -2481,23 +2496,28 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 			     elementItem->element.length / sizeof(U32), vm);
 #endif
 		    break;
-		case DCM_US:
-                    if( (rwc_opt & RWC_NOHEX_MASK) == 0 )
-		      (void) RWC_printf("%4x %d\n", *elementItem->element.d.us,
-		          		  *elementItem->element.d.us);
-                    else
-		      (void) RWC_printf(" %d\n", *elementItem->element.d.us ) ;
+		case DCM_US:{
+                    int nel = elementItem->element.length / sizeof(unsigned short) , rr ;
+                    for( rr=0 ; rr < nel ; rr++ ){
+                     if( (rwc_opt & RWC_NOHEX_MASK) == 0 )
+		       (void) RWC_printf("%4x %d", elementItem->element.d.us[rr],
+		          		           elementItem->element.d.us[rr]);
+                     else
+		       (void) RWC_printf(" %d", elementItem->element.d.us[rr] ) ;
+                    }
+                    RWC_printf("\n") ;
 
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
 				       elementItem->element.length / sizeof(unsigned short), vm);
+                    }
 		    break;
 		case DCM_OB:
 		case DCM_UN:
 		    dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
-			       elementItem->element.length , 8);
+			       elementItem->element.length , MAX(rwc_vm,8));
 		    break;
 
 		case DCM_OT:
@@ -2639,14 +2659,14 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 		    sq = (void *)LST_Head(&elementItem->element.d.sq);
 		    if (sq != NULL)
 			(void) LST_Position(&elementItem->element.d.sq, (void *)sq);
-		    RWC_printf("%sDCM Dump Sequence\n", prefix);
+		    RWC_printf("%sDCM Dump SEQUENCE\n", prefix);
 		    strcpy(localPrefix, prefix);
 		    strcat(localPrefix, " ");
 		    while (sq != NULL) {
 			(void) DCM_FormatElements(&sq->object, vm, localPrefix);
 			sq = (void *)LST_Next(&elementItem->element.d.sq);
 		    }
-		    RWC_printf("%sDCM Dump Sequence Complete\n", prefix);
+		    RWC_printf("%sDCM Dump SEQUENCE Complete\n", prefix);
 		    break;
 		case DCM_ST:
 		    stringLength = MIN(sizeof(scratch) - 1, elementItem->element.length);
@@ -6735,6 +6755,7 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
 	(void) DCM_CloseObject((DCM_OBJECT **) object);
 	return cond;
     }
+    (*elementItem)->element.data_offset = 0 ;      /* RWCox */
     if (pixelFlag) {
 	if (fileFlag)
 	    *remainOpenFlag = TRUE;
@@ -6752,6 +6773,8 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
 
                     pxl_off = lseek( fd , 0 , SEEK_CUR ) ;
                     pxl_len = (*elementItem)->element.length ;
+
+                    (*elementItem)->element.data_offset = pxl_off ;   /* RWCox */
 
 		    (void) lseek(fd,
 				 (off_t) (*elementItem)->element.length,
@@ -6784,6 +6807,7 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
     } else {
 	if (fileFlag) {
 	    if (fd != -1) {
+                (*elementItem)->element.data_offset = lseek(fd,0,SEEK_CUR);  /* RWCox */
 		nBytes = read(fd, (*elementItem)->element.d.ot,
 			      (int) (*elementItem)->element.length);
 	    } else {
@@ -6945,6 +6969,8 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
     CONDITION flag;
     CTNBOOLEAN allowRepeatElements = FALSE;
 
+ENTRY("readFile1") ;
+
     ptr = callerBuf;
     if (ptr != NULL)
 	fileFlag = FALSE;
@@ -6997,7 +7023,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 
     cond = DCM_CreateObject(callerObject, opt);
     if (cond != DCM_NORMAL)
-	return cond;
+	RETURN( cond ) ;
 
     object = (PRIVATE_OBJECT **) callerObject;
     if (fileFlag)
@@ -7021,7 +7047,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	flag = readPreamble(name, &ptr, fd, &size, fileOffset, knownLength,
 			    object, scannedLength);
 	if (flag != DCM_NORMAL)
-	    goto abort;
+	    { STATUS("readPreamble fails"); goto abort; }
     }
     while (!done) {
 	flag = readGroupElement(name, &ptr, fd, &size, fileOffset, knownLength,
@@ -7030,7 +7056,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	if (flag == DCM_STREAMCOMPLETE)
 	    break;
 	else if (flag != DCM_NORMAL)
-	    goto abort;
+	    { STATUS("readGroupElement fails"); goto abort; }
 #if 0
 	if (e.tag == DCM_MAKETAG(0x003a, 0x1000)) {
 	    fprintf(stderr, "Found waveform\n");
@@ -7040,7 +7066,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 			    byteOrder, explicitVR, acceptVRMismatch, object,
 			    scannedLength, &e);
 	if (flag != DCM_NORMAL)
-	    goto abort;
+	    { STATUS("readVRLength fails"); goto abort; }
 
 	if ((e.representation == DCM_UN) &&
 	    (e.length == DCM_UNSPECIFIEDLENGTH)) {
@@ -7049,15 +7075,15 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 #ifndef SMM
 	if ((e.tag == DCM_DLMITEMDELIMITATIONITEM) ||
 	    (e.tag == DCM_DLMSEQUENCEDELIMITATIONITEM)) {
-	    return DCM_NORMAL;
+	    RETURN( DCM_NORMAL) ;
 	}
 #else
 	if (e.tag == DCM_DLMITEMDELIMITATIONITEM) {
 	    (*object)->objectSize -= 8;
-	    return DCM_NORMAL;
+	    RETURN( DCM_NORMAL );
 	}
 	if (e.tag == DCM_DLMSEQUENCEDELIMITATIONITEM)
-	    return DCM_NORMAL;
+	    RETURN( DCM_NORMAL );
 #endif
 
 	if (e.representation == DCM_SQ) {
@@ -7070,7 +7096,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 				convertFlag, object, &scannedSequenceLength,
 				&e, &elementItem);
 	    if (flag != DCM_NORMAL)
-		goto abort;
+		{ STATUS("readSequence fails"); goto abort; }
 	    if (size != (long) DCM_UNSPECIFIEDLENGTH)
 		size -= scannedSequenceLength;
 	    if (scannedLength != NULL)
@@ -7083,7 +7109,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 			    remainOpenFlag, convertFlag,
 			    object, scannedLength, &e, &elementItem);
 	    if (flag != DCM_NORMAL)
-		goto abort;
+		{ STATUS("readData fails"); goto abort; }
 	}
 	computeVM(object, &elementItem->element);
 
@@ -7093,13 +7119,13 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 		CTN_FREE(elementItem);
 		continue;
 	    } else {
-		return cond;
+		RETURN( cond ) ;
 	    }
 	}
 
 	cond = handleGroupItem(object, &groupItem, DCM_TAG_GROUP(e.tag));
 	if (cond != DCM_NORMAL)
-	     /* goto abort; ASG */ return cond;
+	     /* goto abort; ASG */ RETURN( cond );
 
 	if (DCM_TAG_ELEMENT(e.tag) != 0x0000) {
 	    groupItem->baseLength += 8 + elementItem->paddedDataLength;
@@ -7116,9 +7142,9 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	    cond = LST_Enqueue(&groupItem->elementList, (void *)elementItem);
 	    if (cond != LST_NORMAL) {
 		(void) DCM_CloseObject(callerObject);
-		return COND_PushCondition(DCM_LISTFAILURE,
+		RETURN( COND_PushCondition(DCM_LISTFAILURE,
 					  DCM_Message(DCM_LISTFAILURE),
-					  "readFile");
+					  "readFile") );
 	    }
 	    cond = updateObjectType(object, &elementItem->element);	/* repair */
 
@@ -7176,10 +7202,10 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	    groupItem = (void *)LST_Next(&(*object)->groupList);
 	}
     }
-    return DCM_NORMAL;
+    RETURN( DCM_NORMAL );
 
 abort:
-    return flag;
+    RETURN (flag);
 }
 
 /* locateElement
@@ -7477,6 +7503,7 @@ static void
 dumpSS(short *ss, long vm)
 {
     long index = 0;
+    RWC_printf("decimal SS:") ;
     while (index < vm) {
 	RWC_printf("%7d ", *(ss++));
 	if ((++index) % 8 == 0)
@@ -7489,6 +7516,7 @@ static void
 dumpSL(S32 * sl, long vm)
 {
     long index = 0;
+    RWC_printf("decimal SL:") ;
     while (index < vm) {
 	RWC_printf("%7d ", *(sl++));
 	if ((++index) % 8 == 0)
@@ -7501,6 +7529,7 @@ static void
 dumpUS(unsigned short *us, long vm)
 {
     long index = 0;
+    RWC_printf("decimal US:") ;
     while (index < vm) {
 	RWC_printf("%7d ", *(us++));
 	if ((++index) % 8 == 0)
@@ -7512,6 +7541,7 @@ static void
 dumpUL(U32 * ul, long vm)
 {
     long index = 0;
+    RWC_printf("decimal UL:") ;
     while (index < vm) {
 	RWC_printf("%7d ", *(ul++));
 	if ((++index) % 8 == 0)
@@ -7523,12 +7553,13 @@ static void
 dumpOB(unsigned char* c, long vm)
 {
   long index = 0;
+  RWC_printf("hex OB:") ;
   while (index < vm) {
     RWC_printf("%02x ", *(c++));
     if ((++index) % 8 == 0)
       RWC_printf("\n");
   }
-  RWC_printf("\n");
+  if( index%8 != 0 ) RWC_printf("\n");
 }
 
 static void
@@ -7539,7 +7570,6 @@ dumpBinaryData(void *d, DCM_VALUEREPRESENTATION vr, long vm,
 
     if (vm <= 1)
 	return;
-
 
     switch (vr) {
     case DCM_SL:

@@ -556,7 +556,7 @@ ENTRY("T3D_create_widgets") ;
                       "x voxel\nsize (mm)" ,        /* label */
                       MCW_AV_downup ,               /* arrows */
                       1 ,                           /* min */
-                      1000 ,                        /* max */
+                      9999 ,                        /* max */
                       (int)(100*user_inputs.xsize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
@@ -581,7 +581,7 @@ ENTRY("T3D_create_widgets") ;
                       "y voxel\nsize (mm)" ,        /* label */
                       MCW_AV_downup ,               /* arrows */
                       1 ,                           /* min */
-                      4000 ,                        /* max */
+                      9999 ,                        /* max */
                       (int)(100*user_inputs.ysize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
@@ -603,7 +603,7 @@ ENTRY("T3D_create_widgets") ;
                       "z voxel\nsize (mm)" ,        /* label */
                       MCW_AV_downup ,               /* arrows */
                       1 ,                           /* min */
-                      4000 ,                        /* max */
+                      9999 ,                        /* max */
                       (int)(100*user_inputs.zsize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
@@ -626,7 +626,7 @@ ENTRY("T3D_create_widgets") ;
                         "z voxel\nspacing  " ,            /* label */
                         MCW_AV_downup ,                   /* arrows */
                         1 ,                               /* min */
-                        4000 ,                            /* max */
+                        9999 ,                            /* max */
                         (int)(100*user_inputs.zspacing),  /* init */
                         MCW_AV_editext ,                  /* text */
                         2 ,                               /* decimals */
@@ -649,7 +649,7 @@ ENTRY("T3D_create_widgets") ;
                       "Field of\nview (mm)" ,    /* label */
                       MCW_AV_downup ,            /* arrows */
                       1 ,                        /* min */
-                      10000 ,                    /* max */
+                      99999 ,                    /* max */
                       (int)(10*user_inputs.fov), /* init */
                       MCW_AV_editext ,           /* text */
                       1 ,                        /* decimals */
@@ -827,8 +827,8 @@ ENTRY("T3D_create_widgets") ;
                         wset.topform ,                  /* parent */
                         "x origin (mm)\n[left edge]" ,  /* label */
                         MCW_AV_downup ,                 /* arrows */
-                       -50000 ,                         /* min */
-                        50000 ,                         /* max */
+                       -99999 ,                         /* min */
+                        99999 ,                         /* max */
                         (int)(100*user_inputs.xorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */
@@ -861,8 +861,8 @@ ENTRY("T3D_create_widgets") ;
                         wset.topform ,                  /* parent */
                         "y origin (mm)\n[top edge]" ,   /* label */
                         MCW_AV_downup ,                 /* arrows */
-                       -50000 ,                         /* min */
-                        50000 ,                         /* max */
+                       -99999 ,                         /* min */
+                        99999 ,                         /* max */
                         (int)(100*user_inputs.yorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */
@@ -896,8 +896,8 @@ ENTRY("T3D_create_widgets") ;
                         wset.topform ,                  /* parent */
                         "z origin (mm)\n[slice 0]" ,    /* label */
                         MCW_AV_downup ,                 /* arrows */
-                       -50000 ,                         /* min */
-                        50000 ,                         /* max */
+                       -99999 ,                         /* min */
+                        99999 ,                         /* max */
                         (int)(100*user_inputs.zorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */

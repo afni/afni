@@ -11,6 +11,7 @@ int main(int argc, char **argv)
             "OPTIONS:\n"
             " -hex    = include hexadecimal printout for integer values\n"
             " -noname = don't include element names in the printout\n"
+            " -v n    = dump n words of binary data also\n"
             "\n"
             "Based on program dcm_dump_file from the RSNA, developed at\n"
             "the Mallinckrodt Institute of Radiology.  See the source\n"
@@ -18,6 +19,8 @@ int main(int argc, char **argv)
            );
      exit(0);
    }
+
+   mainENTRY("dicom_hdr main") ; machdep() ;
 
    mri_dicom_nohex( 1 ) ;
 
@@ -31,6 +34,13 @@ int main(int argc, char **argv)
        mri_dicom_noname(1) ; iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-v") == 0 ){
+       int vv = strtol( argv[++iarg] , NULL , 10 ) ;
+       if( vv > 0 ) mri_dicom_setvm( vv ) ;
+       else         fprintf(stderr,"*** Illegal value after -v!\n") ;
+       iarg++ ; continue ;
+     }
+
      fprintf(stderr,"*** Unknown option: %s\n",argv[iarg]) ; iarg++ ;
    }
 
@@ -38,7 +48,9 @@ int main(int argc, char **argv)
      if( ii > iarg )
        printf("---------------------------------------------------------------\n");
 
+STATUS("calling funct mri_dicom_header()") ;
      ppp = mri_dicom_header( argv[ii] ) ;
+STATUS("returned from mri_dicom_header()") ;
      if( ppp != NULL ){
        off_t poff ; unsigned int plen ;
        printf("%s",ppp) ; free(ppp) ;
