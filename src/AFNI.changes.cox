@@ -3507,3 +3507,7 @@
      Then modified mri_read.c to set this field if it auto-swaps the
      image on input.  Then modified to3d.c to skip doing -2swap/-4swap
      on such images.
+
+08 Mar 2002
+ * Modified afni_graph.c and afni.c to add 2 environment variables to
+     let user set the initial graph baseline parameters.

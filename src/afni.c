@@ -4202,19 +4202,22 @@ STATUS("opening a graph window") ;
 
 STATUS("realizing new grapher") ;
 
-       drive_MCW_grapher( gr , graDR_realize , NULL ) ;
-
        /* 07 Aug 2001: set global baseline level, if possible */
 
        if( ISVALID_STATISTIC(brnew->dset->stats) ){
-          float vbot=WAY_BIG ; int ii ;
-          for( ii=0 ; ii < brnew->dset->stats->nbstat ; ii++ )
+         char *eee = getenv( "AFNI_GRAPH_GLOBALBASE" ) ;  /* 08 Mar 2002 */
+         if( eee == NULL ){                               /* skip this? */
+           float vbot=WAY_BIG ; int ii ;
+           for( ii=0 ; ii < brnew->dset->stats->nbstat ; ii++ )
              if( ISVALID_BSTAT(brnew->dset->stats->bstat[ii]) )
-                vbot = MIN( vbot , brnew->dset->stats->bstat[ii].min ) ;
+               vbot = MIN( vbot , brnew->dset->stats->bstat[ii].min ) ;
 
-          if( vbot < WAY_BIG )
-            drive_MCW_grapher( gr, graDR_setglobalbaseline, (XtPointer)&vbot );
+           if( vbot < WAY_BIG )
+             drive_MCW_grapher( gr, graDR_setglobalbaseline, (XtPointer)&vbot );
+         }
        }
+
+       drive_MCW_grapher( gr , graDR_realize , NULL ) ;
 
        *gnew = gr ;
        (*gnew)->parent = (XtPointer) im3d ;
