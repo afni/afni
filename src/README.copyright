@@ -44,6 +44,11 @@
   other institutions are released under the GPL and OCL (respectively),
   but copyright may be retained by them or their institutions.
 
+  The Talairach Daemon data are incorporated with permission from
+  the Research Imaging Center at the University of Texas Health Sciences
+  Center at San Antonio.  Thanks go to Drs. Jack Lancaster and Peter Fox
+  for sharing this database.
+
   The CDF library routines were developed at the University of Texas
   M.D. Anderson Cancer Center, and have been placed into the public domain.
   See the file "cdflib.txt" for more details.

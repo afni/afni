@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1998-2001, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   Plugin to calculate the deconvolution of a measured 3d+time dataset
@@ -90,8 +96,11 @@
            at a multiple of the 1/TR rate.
   Date:    02 January 2001 
 
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+  Mod:     Increased maximum degree of polynomial ort.
+  Date:    16 May 2001
+
+  Mod:     Removed automatic override of NFirst option.
+  Date:    08 June 2001
 
 */
 
@@ -100,7 +109,7 @@
 #define PROGRAM_NAME    "plug_deconvolve"            /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "02 Jan 2001"     /* date of latest program revision */
+#define PROGRAM_LATEST  "21 June 2001"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -140,8 +149,8 @@ void DC_error (char * message)
 static char helpstring[] =
    " Purpose: Control DC_Fit, DC_Err, and DC_IRF  Deconvolution Functions.  \n"
    "                                                                        \n"
-   " Control:     Baseline  = 'Constant', 'Linear', or 'Quadratic'          \n"
-   "                           Is baseline 'a', 'a+bt', or 'a+bt+ct^2' ?    \n"
+   " Control:     Baseline  = 'Constant', 'Linear', 'Quadratic',            \n"
+   "                          'Cubic', 'Quartic', or 'Quintic'              \n"
    "              NFirst    = Number of first time series point to use.     \n"
    "              NLast     = Number of last time series point to use.      \n"
    "              IRF Label = Which stimulus to use for generating IRF plot.\n"
@@ -175,8 +184,9 @@ static char helpstring[] =
 
 /*------- Strings for baseline control ------*/
 
-#define NBASE 3
-static char * baseline_strings[NBASE] = {"Constant", "Linear", "Quadratic"};
+#define NBASE 6
+static char * baseline_strings[NBASE] = {"Constant", "Linear", "Quadratic",
+					 "Cubic", "Quartic", "Quintic" };
 
 /*--------------- prototypes for internal routines ---------------*/
 
@@ -496,7 +506,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*----- Parameters -----*/
    PLUTO_add_option (plint, "Control", "Control", TRUE);
    PLUTO_add_string (plint, "Baseline", NBASE, baseline_strings, 1);
-   PLUTO_add_number (plint, "NFirst", 0, 32767, 0, 0, TRUE);
+   PLUTO_add_number (plint, "NFirst", -1, 32767, 0, -1, TRUE);
    PLUTO_add_number (plint, "NLast",  0, 32767, 0, 32767,  TRUE);
    PLUTO_add_string( plint, "IRF Label",    0, NULL, 1);
 
@@ -958,9 +968,10 @@ int calculate_results
   /*----- Create list of good (usable) data points -----*/
   good_list = (int *) malloc (sizeof(int) * nt);  MTEST (good_list);
   NFirst = plug_NFirst;
-  for (is = 0;  is < num_stimts;  is++)
-    if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])  
-      NFirst = (max_lag[is]+nptr[is]-1)/nptr[is];
+  if (NFirst < 0)
+    for (is = 0;  is < num_stimts;  is++)
+      if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])  
+	NFirst = (max_lag[is]+nptr[is]-1)/nptr[is];
   NLast = plug_NLast;   
 
   N = 0;

@@ -46,12 +46,6 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
       return False ;
    }
 
-   /* 25 April 1998: byte order issues */
-
-   if( dkptr->byte_order <= 0 ) dkptr->byte_order = native_order ;
-   if( dkptr->byte_order != native_order || no_mmap )
-      blk->malloc_type = DATABLOCK_MEM_MALLOC ;
-
    /*-- allocate data space --*/
 
    nx = dkptr->dimsizes[0] ;
@@ -60,6 +54,22 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
    nv = dkptr->nvals       ;  nxyzv = nxyz * nv ; ntot = blk->total_bytes ;
 
    if( DBLK_IS_MASTERED(blk) )                  /* 11 Jan 1999 */
+      blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+
+   /* 25 April 1998: byte order issues */
+
+   if( dkptr->byte_order <= 0 ) dkptr->byte_order = native_order ;
+
+      /* 05 Jul 2001: if all sub-bricks are bytes,
+                      mark dataset as being in native order */
+
+   if( dkptr->byte_order != native_order ){
+      for( ii=0 ; ii < nv ; ii++ )
+         if( DBLK_BRICK_TYPE(blk,ii) != MRI_byte ) break ;
+      if( ii == nv ) dkptr->byte_order = native_order ;
+   }
+
+   if( dkptr->byte_order != native_order || no_mmap )
       blk->malloc_type = DATABLOCK_MEM_MALLOC ;
 
    /** set up space for bricks via malloc **/

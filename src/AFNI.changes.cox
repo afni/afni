@@ -2768,7 +2768,7 @@
 20 Apr 2001
  * Added "addto_args" to a bunch of programs, to let them use the '-@'
      command line switch.
- * Added called to machdep() in a bunch of programs.
+ * Added call to machdep() in a bunch of programs.
 
 23 Apr 2001
  * Modified imseq.c to draw "EMTPY IMAGE" string into image window if
@@ -2854,3 +2854,40 @@
  * Fixed a bug in 3dUndump.c where it checked the wrong value against
      the z coordinate bounds - it would report illegal inputs when
      the (x,y,z) values were in fact legal.
+
+26 Jun 2001
+ * Added function THD_is_executable() in thd_filestuff.c.
+ * Added thd_getpathprogs.c to get list of all executables in the path.
+
+27 Jun 2001
+ * Added ability to save images in various formats (.jpg, .gif, etc.)
+     to imseq.[ch], using external programs such as ppmtogif, etc.
+
+29 Jun 2001
+ * Added program strblast.c to blast strings out of image files.
+ * Modified 3dclust.c to use THD_open_dataset() instead of
+     THD_open_one_dataset().
+
+03 Jul 2001
+ * Modified imseq.c to correct usage of pnmtotiff, which is NOT the
+     same as ppm2tiff (first one writes to stdout, second to a file
+     named on the command line).
+
+05 Jul 2001
+ * Modified afni.[ch] to include CM's from Talairach Daemon database,
+     and re-enabled the long-dormant "Talairach to" button.
+ * Added option "-nosum" to 3dclust.c.
+ * Modified thd_loaddblk.c to skip byte order tests if all sub-bricks
+     have byte datum.
+
+06 Jul 2001
+ * Modified 3dUndump.c to print a message if a voxel is written to
+     more than once.
+ * Added Doug Ward's changes to 3dDeconvolve.c, 3dConvolve.c, etc.
+
+09 Jul 2001
+ * Modified AFNI_transform_vector() in afni.c to use anat_parent
+     transformations if the datasets aren't directly related.
+ * Used this to modify the "Talairach to" feature (AFNI_talto_CB() in afni.c)
+     to allow jumping even if the dataset is not in Talairach view, but just
+     has a way of transforming the vector to Talairach view.

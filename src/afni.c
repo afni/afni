@@ -6061,10 +6061,10 @@ STATUS(" -- processing points in this dataset") ;
 STATUS(" -- managing talairach_to button") ;
 
    if( im3d->vwid->imag->pop_talto_pb != NULL ){
-      if( im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE )
-         XtManageChild( im3d->vwid->imag->pop_talto_pb ) ;
+      if( CAN_TALTO(im3d) )
+         XtSetSensitive( im3d->vwid->imag->pop_talto_pb , True ) ;
       else
-         XtUnmanageChild( im3d->vwid->imag->pop_talto_pb ) ;
+         XtSetSensitive( im3d->vwid->imag->pop_talto_pb , False ) ;
    }
 #endif /* USE_TALAIRACH_TO */
 
@@ -6116,11 +6116,14 @@ THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * old_dset ,
                                  THD_fvec3 old_fv ,
                                  THD_3dim_dataset * new_dset  )
 {
-   if( old_dset == NULL || old_dset == new_dset ) return old_fv ;
+   if( old_dset==NULL || new_dset==NULL || old_dset==new_dset ) return old_fv ;
 
    if( old_dset == new_dset->warp_parent ){
+
       return AFNI_forward_warp_vector( new_dset->warp , old_fv ) ;
+
    } else if( old_dset->warp_parent == new_dset ){
+
       return AFNI_backward_warp_vector( old_dset->warp , old_fv ) ;
 
    } else if( old_dset->warp_parent == new_dset->warp_parent &&
@@ -6131,7 +6134,31 @@ THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * old_dset ,
       return   AFNI_forward_warp_vector ( new_dset->warp , par_fv ) ;
    }
 
-   return old_fv ;  /* default is no change */
+   /*-- 09 Jul 2001:
+        If old_dset is in +tlrc/+acpc and new_dset is in +orig,
+        see if can find anat_parent to do the job for us --*/
+
+   if( new_dset->view_type   == VIEW_ORIGINAL_TYPE &&
+       old_dset->view_type   != VIEW_ORIGINAL_TYPE &&
+       old_dset->anat_parent != NULL               &&
+       old_dset->anat_parent->warp_parent != NULL      ){
+
+      return AFNI_backward_warp_vector( old_dset->anat_parent->warp , old_fv ) ;
+   }
+
+   /*-- If old_dset is +orig and new_dset is +tlrc/+acpc, try anat_parent --*/
+
+   if( old_dset->view_type   == VIEW_ORIGINAL_TYPE &&
+       new_dset->view_type   != VIEW_ORIGINAL_TYPE &&
+       new_dset->anat_parent != NULL               &&
+       new_dset->anat_parent->warp_parent != NULL      ){
+
+      return AFNI_forward_warp_vector( new_dset->anat_parent->warp , old_fv ) ;
+   }
+
+   /*-- default is no change --*/
+
+   return old_fv ;
 }
 
 /*------------------------------------------------------------------------
@@ -6568,7 +6595,8 @@ ENTRY("AFNI_imag_pop_CB") ;
          TTO_labeled = 1 ;
       }
       if( ISQ_REALZ(seq) )
-         MCW_choose_strlist( seq->wbar , NULL ,
+         MCW_choose_strlist( seq->wbar ,
+                             "Brain Structure (from San Antonio Talairach Daemon)" ,
                              TTO_COUNT , TTO_current , TTO_labels ,
                              AFNI_talto_CB , (XtPointer) im3d ) ;
    }
@@ -6593,7 +6621,7 @@ void AFNI_talto_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    THD_dataxes  * daxes ;
    float xx,yy,zz ;
    int nn , ii,jj,kk ;
-   THD_fvec3 fv ; THD_ivec3 iv ;
+   THD_fvec3 fv,tv ; THD_ivec3 iv ;
 
 ENTRY("AFNI_talto_CB") ;
 
@@ -6601,8 +6629,8 @@ ENTRY("AFNI_talto_CB") ;
 
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
 
-   if( im3d->vinfo->view_type != VIEW_TALAIRACH_TYPE ||
-       cbs->reason != mcwCR_integer                    ){
+   if( !CAN_TALTO(im3d)             ||
+       cbs->reason != mcwCR_integer   ){
 
       POPDOWN_strlist_chooser ;
       XBell( im3d->dc->display , 100 ) ;
@@ -6619,7 +6647,16 @@ ENTRY("AFNI_talto_CB") ;
 
    LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
 
-   fv = THD_dicomm_to_3dmm( im3d->anat_now , TEMP_FVEC3(xx,yy,zz) ) ;
+   LOAD_FVEC3(tv,xx,yy,zz) ; /* Talairach coords */
+
+   /* 09 Jul 2001: if not now viewing in Talairach coordinates,
+                   then transform vector to Talairach coordinates */
+
+   if( im3d->anat_now->view_type != VIEW_TALAIRACH_TYPE )
+      tv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
+                                  tv , im3d->anat_now ) ;
+
+   fv = THD_dicomm_to_3dmm( im3d->anat_now , tv ) ;
    iv = THD_3dmm_to_3dind ( im3d->anat_now , fv ) ;
    ii = iv.ijk[0] ; jj = iv.ijk[1] ; kk = iv.ijk[2] ;
 

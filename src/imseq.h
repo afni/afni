@@ -27,6 +27,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <signal.h>
 
 #include "mrilib.h"
 #include "vecmat.h"
@@ -160,6 +161,8 @@ typedef struct {
           save_nsize , save_pnm , save_one , improc_code , cx_code ;
 
       XtPointer parent , aux ;
+
+      int save_filter ;  /* 27 Jun 2001 */
 } ISQ_options ;
 
 #define ISQ_OPT_EQUAL(opta,optb)                    \
@@ -187,6 +190,7 @@ typedef struct {
                                  (opt).cx_code     = ISQ_CX_MAG ;       \
                                  (opt).parent      = NULL ;             \
                                  (opt).aux         = NULL ;             \
+                                 (opt).save_filter = -1   ;             \
                                } while(0)
 
 /*------------- statistics for image display scaling -------------*/
@@ -634,6 +638,7 @@ void ISQ_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void ISQ_record_button( MCW_imseq * ) ;
 extern void ISQ_record_CB( Widget,XtPointer,XtPointer ) ;
+extern void ISQ_butsave_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
 
 extern void ISQ_record_open( MCW_imseq * ) ;
 extern void ISQ_record_update( MCW_imseq * , int ) ;

@@ -207,6 +207,101 @@ static char ** ISQ_bb_allhint[] = {
 } ;
 /*************************************************************************/
 
+/*------ 27 Jun 2001: external programs that may be of use ------*/
+
+static char ** ppmto_filter  = NULL ;
+static char ** ppmto_suffix  = NULL ;
+static int   * ppmto_bval    = NULL ;
+static int     ppmto_num     = -1 ;
+
+#define ADDTO_PPMTO(pnam,suff,bbb)                                       \
+  do{ ppmto_filter = (char **) realloc( ppmto_filter ,                   \
+                                        sizeof(char *)*(ppmto_num+1) ) ; \
+      ppmto_suffix = (char **) realloc( ppmto_suffix  ,                  \
+                                        sizeof(char *)*(ppmto_num+1) ) ; \
+      ppmto_bval   = (int *)   realloc( ppmto_bval    ,                  \
+                                        sizeof(int)   *(ppmto_num+1) ) ; \
+      ppmto_filter[ppmto_num] = (pnam) ;                                 \
+      ppmto_suffix[ppmto_num] = (suff) ;                                 \
+      ppmto_bval  [ppmto_num] = (bbb)  ; ppmto_num++ ; } while(0)
+
+/*---- setup programs as filters: ppm stdin to some output file ----*/
+
+static void ISQ_setup_ppmto_filters(void)
+{
+   char *pg , *pg2 , *str ;
+   int bv ;
+
+   ppmto_num = 0 ; bv = ISQ_SAV_ONE ;
+
+   pg = THD_find_executable( "cat" ) ;
+   if( pg != NULL ){
+      str = malloc(strlen(pg)+32) ;
+      sprintf(str,"%s > %%s",pg) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"ppm",bv) ;
+   }
+
+   pg = THD_find_executable( "cjpeg" ) ;
+   if( pg != NULL ){
+      str = malloc(strlen(pg)+32) ;
+      sprintf(str,"%s -quality 95 > %%s",pg) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv) ;
+   }
+
+   pg  = THD_find_executable( "ppmtogif" ) ;
+   pg2 = THD_find_executable( "ppmquant" ) ;
+   if( pg != NULL && pg2 != NULL ){
+      str = malloc(strlen(pg)+strlen(pg2)+32) ;
+      sprintf(str,"%s 255 | %s > %%s",pg2,pg) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"gif",bv) ;
+   }
+
+   pg = THD_find_executable( "ppm2tiff" ) ;
+   if( pg != NULL ){
+      str = malloc(strlen(pg)+32) ;
+      sprintf(str,"%s %%s",pg) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
+   } else {                                     /* 03 Jul 2001:      */
+      pg = THD_find_executable( "pnmtotiff" ) ; /* must use ppm2tiff */
+      if( pg != NULL ){                         /* and pnmtotiff     */
+         str = malloc(strlen(pg)+32) ;          /* differently       */
+         sprintf(str,"%s > %%s",pg) ;
+         bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
+      }
+   }
+
+   pg  = THD_find_executable( "ppmtobmp" ) ;
+   pg2 = THD_find_executable( "ppmquant" ) ;
+   if( pg != NULL && pg2 != NULL ){
+      str = malloc(strlen(pg)+strlen(pg2)+32) ;
+      sprintf(str,"%s 255 | %s -windows > %%s",pg2,pg) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
+   }
+
+   pg = THD_find_executable( "pnmtops" ) ;
+   if( pg != NULL ){
+      str = malloc(strlen(pg)+32) ;
+      sprintf(str,"%s -noturn > %%s",pg) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"eps",bv) ;
+   }
+
+   pg2 = THD_find_executable( "epstopdf" ) ;
+   if( pg2 != NULL ){
+      str = malloc(strlen(pg)+strlen(pg2)+32) ;
+      sprintf(str,"%s -noturn | %s --filter > %%s",pg,pg2) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"pdf",bv) ;
+   }
+
+   pg = THD_find_executable( "pnmtopng" ) ;
+   if( pg != NULL ){
+      str = malloc(strlen(pg)+32) ;
+      sprintf(str,"%s -compression 9 > %%s",pg) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"png",bv) ;
+   }
+
+   return ;
+}
+
 /*-------------------------------------------------------------------------
   routine to create a new window for displaying an image sequence:
 
@@ -262,11 +357,17 @@ static char * ISQ_save_label_bg  = "Save:bkg" ;
 static char * ISQ_save_label_all = "Save:pnm" ;
 static char * ISQ_save_label_one = "Save:one" ;
 
-#define SET_SAVE_LABEL(seq) \
-   MCW_set_widget_label( (seq)->wbut_bot[NBUT_SAVE] ,             \
-                         (seq)->opt.save_pnm ? ISQ_save_label_all \
-                        :(seq)->opt.save_one ? ISQ_save_label_one \
-                                             : ISQ_save_label_bg )
+#define SET_SAVE_LABEL(seq)                                               \
+  do{ if( (seq)->opt.save_filter < 0 ){                                   \
+         MCW_set_widget_label( (seq)->wbut_bot[NBUT_SAVE] ,               \
+                               (seq)->opt.save_pnm ? ISQ_save_label_all   \
+                              :(seq)->opt.save_one ? ISQ_save_label_one   \
+                                                   : ISQ_save_label_bg ); \
+      }else{                                                              \
+         char sl[16] ;                                                    \
+         sprintf(sl,"Save.%.3s",ppmto_suffix[(seq)->opt.save_filter]) ;   \
+         MCW_set_widget_label( (seq)->wbut_bot[NBUT_SAVE] , sl ) ;        \
+      } } while(0)
 
 static const ISQ_bdef ISQ_but_rig_def[NBUTTON_RIG] = {
      { "Colr" , ISQ_but_color_CB } ,
@@ -388,6 +489,42 @@ MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
 ENTRY("open_MCW_imseq") ;
 
 #define ERREX { myXtFree(newseq) ; XBell(dc->display,100) ; RETURN(NULL) ; }
+
+   /*- 27 Jun 2001: setup filters for saving images -*/
+
+   if( ppmto_num < 0 ){
+      ISQ_setup_ppmto_filters() ;  /* get filter program names */
+
+      if( ppmto_num > 0 ){         /* modify Save button box setup */
+
+         int nbut_old     = ISQ_dispbb[NTOG_SAV].nbut , qq,pp ;
+         char ** lbut_old = ISQ_dispbb[NTOG_SAV].lbut ;
+         char ** help_old = ISQ_bb_allhelp[NTOG_SAV] ;
+         char ** hint_old = ISQ_bb_allhint[NTOG_SAV] ;
+
+         ISQ_dispbb[NTOG_SAV].nbut += ppmto_num ;
+         ISQ_dispbb[NTOG_SAV].lbut  = (char **) malloc(sizeof(char *)
+                                                       *ISQ_dispbb[NTOG_SAV].nbut);
+         for( qq=0 ; qq < nbut_old ; qq++ )
+            ISQ_dispbb[NTOG_SAV].lbut[qq] = lbut_old[qq] ;
+         for( pp=0 ; pp < ppmto_num ; pp++,qq++ ){
+            ISQ_dispbb[NTOG_SAV].lbut[qq] = malloc(32) ;
+            sprintf(ISQ_dispbb[NTOG_SAV].lbut[qq] ,
+                    "Save to .%.3s(s)" , ppmto_suffix[pp] ) ;
+         }
+
+         ISQ_bb_allhelp[NTOG_SAV] = (char **) malloc(sizeof(char *)
+                                                     *ISQ_dispbb[NTOG_SAV].nbut);
+         ISQ_bb_allhint[NTOG_SAV] = (char **) malloc(sizeof(char *)
+                                                     *ISQ_dispbb[NTOG_SAV].nbut);
+         for( qq=0 ; qq < nbut_old ; qq++ ){
+            ISQ_bb_allhelp[NTOG_SAV][qq] = help_old[qq] ;
+            ISQ_bb_allhint[NTOG_SAV][qq] = hint_old[qq] ;
+         }
+         for( pp=0 ; pp < ppmto_num ; pp++,qq++ )
+            ISQ_bb_allhelp[NTOG_SAV][qq] = ISQ_bb_allhint[NTOG_SAV][qq] = NULL ;
+      }
+   }
 
    newseq = (MCW_imseq *) XtMalloc( sizeof(MCW_imseq) ) ;  /* new structure */
 
@@ -697,6 +834,17 @@ if( PRINT_TRACING ){
       MCW_register_hint( newseq->wbut_bot[ii] , ISQ_but_bot_hint[ii] ) ;
    }
    SET_SAVE_LABEL(newseq) ;
+
+   /* 27 Jun 2001: popup menu for Save: button */
+
+   if( ppmto_num > 0 )
+     XtInsertEventHandler( newseq->wbut_bot[NBUT_SAVE] ,
+                           ButtonPressMask ,    /* button presses */
+                           FALSE ,              /* nonmaskable events? */
+                           ISQ_butsave_EV ,     /* handler */
+                           (XtPointer) newseq , /* client data */
+                           XtListTail           /* last in queue */
+                          ) ;
 
    /* 24 Apr 2001: initialize recording stuff */
 
@@ -2088,7 +2236,75 @@ ENTRY("ISQ_saver_CB") ;
       }
 #endif
 
-      if( flim->kind == MRI_rgb ){      /* 11 Feb 1998: write color image */
+      /*-- 27 Jun 2001: write through a filter? --*/
+
+      if( seq->opt.save_filter >= 0 ){
+         char filt[512] ; int ff=seq->opt.save_filter ; FILE *fp ;
+         MRI_IMAGE * ovim=NULL ;
+         int nx , ny , npix , pc ;
+
+         /* process given image to make the grayscale index */
+
+         seq->set_orim = 0 ;
+         tim  = flim ;
+         flim = ISQ_process_mri( kf , seq , tim ) ;
+         if( tim != flim ) KILL_1MRI( tim ) ;
+
+         nx = flim->nx ; ny = flim->ny ; npix = flim->nx * flim->ny ;
+
+         /* get overlay and flip it */
+
+         if( !ISQ_SKIP_OVERLAY(seq) ){
+            tim = (MRI_IMAGE *) seq->getim( kf,isqCR_getoverlay,seq->getaux) ;
+            if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
+               KILL_1MRI(tim) ;
+            }
+            if( tim != NULL )
+               ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, tim );
+            if( tim != ovim ) KILL_1MRI(tim) ;
+         }
+
+         /* perform overlay onto flim */
+
+         if( ovim != NULL ){
+            tim = flim ;
+            flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity ) ;
+            if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
+            else              { KILL_1MRI(tim) ; }
+            mri_free( ovim ) ;
+         }
+
+         /* write the output file */
+
+         if( kf == seq->saver_from )
+            printf("writing %d x %d .%s files",nx,ny,ppmto_suffix[ff]) ;
+         else if( kf%10 == 5 )
+            printf("." ) ;
+         fflush(stdout) ;
+
+         /* if needed, convert from indices to color */
+
+         if( flim->kind == MRI_short ){
+            tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
+            mri_free(flim) ; flim = tim ;
+         }
+
+         sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
+         sprintf( filt , ppmto_filter[ff] , fname ) ;
+         signal( SIGPIPE , SIG_IGN ) ;
+         fp = popen( filt , "w" ) ;
+         if( fp == NULL ){
+            fprintf(stderr,"** Can't open output filter %s\n",filt) ;
+            break ;  /* exit loop over files */
+         }
+
+         fprintf(fp,"P6\n%d %d\n255\n" , nx,ny ) ;
+         fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
+         pc = pclose(fp) ;
+         if( pc == -1 ) perror("Error in image output pipe") ;
+      }
+
+      else if( flim->kind == MRI_rgb ){ /* 11 Feb 1998: write color image */
                                         /*              directly as PPM   */
          if( kf == seq->saver_from )
             printf("writing %d x %d RGB images",flim->nx,flim->ny) ;
@@ -3645,6 +3861,17 @@ ENTRY("ISQ_disp_options") ;
       seq->opt.save_nsize  = ( bval[NTOG_SAV] & ISQ_SAV_NSIZE ) != 0 ;
       seq->opt.save_pnm    = ( bval[NTOG_SAV] & ISQ_SAV_PNM   ) != 0 ;
       seq->opt.save_one    = ( bval[NTOG_SAV] & ISQ_SAV_ONE   ) != 0 ;
+
+      seq->opt.save_filter = -1 ;
+      if( bval[NTOG_SAV] > ISQ_SAV_ONE && ppmto_num > 0 ){  /* 27 Jun 2001 */
+         int ii ;
+         for( ii=0 ; ii < ppmto_num ; ii++ ){
+            if( bval[NTOG_SAV] == ppmto_bval[ii] ){
+               seq->opt.save_filter = ii ; break ;
+            }
+         }
+      }
+
       SET_SAVE_LABEL(seq) ;
 
       seq->opt.improc_code = bval[NTOG_IMP] ;
@@ -3685,6 +3912,9 @@ ENTRY("ISQ_disp_options") ;
       bval[NTOG_SAV] = ( (seq->opt.save_nsize)? ISQ_SAV_NSIZE : 0 )
                       +( (seq->opt.save_pnm)  ? ISQ_SAV_PNM   : 0 )
                       +( (seq->opt.save_one)  ? ISQ_SAV_ONE   : 0 ) ;
+
+      if( seq->opt.save_filter >= 0 && ppmto_num > 0 )       /* 27 Jun 2001 */
+         bval[NTOG_SAV] = ppmto_bval[seq->opt.save_filter] ;
 
       bval[NTOG_IMP] = seq->opt.improc_code ;
 
@@ -4228,7 +4458,29 @@ static unsigned char record_bits[] = {
 
          seq->opt.save_one = False ;
          seq->opt.save_pnm = False ;
+         seq->opt.save_filter = -1 ;  /* 27 Jun 2001 */
          SET_SAVE_LABEL(seq) ;
+
+         /* 27 Jun 2001: change help on Save: */
+
+         MCW_unregister_help( seq->wbut_bot[NBUT_DISP] ) ;
+         if( ppmto_num > 0 ){
+           MCW_register_help( seq->wbut_bot[NBUT_SAVE] ,
+                                "Save controls:\n"
+                                " Press with Button 1 (left) to save images\n"
+                                " Press with Button 3 (right) to change the\n"
+                                "   format of the saved images"
+                            ) ;
+           MCW_register_hint( seq->wbut_bot[NBUT_SAVE] ,
+                              "Button 3 => change save format" ) ;
+         } else {
+           MCW_register_help( seq->wbut_bot[NBUT_SAVE] ,
+                                "Save controls:\n"
+                                " Press with Button 1 (left) to\n"
+                                " in the PNM format save images"  ) ;
+           MCW_register_hint( seq->wbut_bot[NBUT_SAVE] ,
+                              "Save images as PNM" ) ;
+         }
 
          /* change Disp to Kill */
 
@@ -4315,6 +4567,7 @@ static unsigned char record_bits[] = {
             seq->opt.save_nsize  = 0 ;
             seq->opt.save_pnm    = 0 ;
             seq->opt.save_one    = 1 ;
+            seq->opt.save_filter = -1 ; /* 27 Jun 2001 */
             SET_SAVE_LABEL(seq) ;
          }
 
@@ -5403,6 +5656,7 @@ ENTRY("ISQ_montage_action_CB") ;
             seq->opt.save_nsize  = 0 ;
             seq->opt.save_pnm    = 0 ;
             seq->opt.save_one    = 1 ;
+            seq->opt.save_filter = -1 ; /* 27 Jun 2001 */
             SET_SAVE_LABEL(seq) ;
          }
       break ;
@@ -6953,6 +7207,70 @@ ENTRY("ISQ_record_kill_CB") ;
    ISQ_redisplay( seq , -1 , isqDR_display ) ;  /* show the empty image */
 
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------
+   Handle the Button 3 popup on a recorder's Save: button
+-----------------------------------------------------------------------*/
+
+void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
+                                       MCW_choose_cbs * cbs   )
+{
+   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   int pp ;
+
+   if( !ISQ_REALZ(seq)               ||
+       cbs->reason != mcwCR_integer  ||
+       seq->dialog_starter==NBUT_DISP  ){  /* bad things */
+
+      XBell(XtDisplay(w),100); POPDOWN_strlist_chooser ; return ;
+   }
+
+   seq->opt.save_nsize  = seq->opt.save_pnm = seq->opt.save_one = 0 ;
+
+   pp = cbs->ival ;
+   if( pp == 0 || pp > ppmto_num ) seq->opt.save_filter = -1 ;
+   else                            seq->opt.save_filter = pp-1 ;
+
+   SET_SAVE_LABEL(seq) ; return ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void ISQ_butsave_EV( Widget w , XtPointer client_data ,
+                     XEvent * ev , Boolean * continue_to_dispatch )
+{
+   MCW_imseq * seq = (MCW_imseq *) client_data ;
+
+   if( !ISQ_REALZ(seq) ) return ;
+
+   switch( ev->type ){
+      case ButtonPress:{
+         XButtonEvent * event = (XButtonEvent *) ev ;
+         if( event->button == Button3 ){
+            char **strlist ; int pp ;
+            if( seq->dialog_starter==NBUT_DISP ){XBell(XtDisplay(w),100); return; }
+            strlist = (char **) malloc(sizeof(char *)*(ppmto_num+1)) ;
+            strlist[0] = "Save:bkg" ;
+            for( pp=0 ; pp < ppmto_num ; pp++ ){
+               strlist[pp+1] = malloc(16) ;
+               sprintf(strlist[pp+1],"Save.%.3s",ppmto_suffix[pp]) ;
+            }
+            MCW_choose_strlist( w , "Image Save format" ,
+                                ppmto_num+1 ,
+                                (seq->opt.save_filter < 0)
+                                 ? 0 :seq->opt.save_filter+1 ,
+                                strlist ,
+                                ISQ_butsave_choice_CB , (XtPointer) seq ) ;
+            free(strlist) ;
+         } else if( event->button == Button2 ){
+            MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
+            XBell(XtDisplay(w),100) ;
+         }
+      }
+      break ;
+   }
+   return ;
 }
 
 /*======================================================================*/

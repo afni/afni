@@ -392,6 +392,9 @@ extern int mri_write_raw( char * , MRI_IMAGE * ) ;       /* 05 Jan 2000 */
 extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
 extern int mri_write_1D( char * , MRI_IMAGE * ) ;        /* 16 Nov 1999 */
 
+extern int setup_mri_write_angif( void ) ;               /* 28 Jun 2001 */
+extern int mri_write_angif( char *, MRI_IMARR * ) ;
+
 extern MRI_IMAGE *mri_new_vol      ( int,int,int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_new_vol_empty( int,int,int , MRI_TYPE ) ;
 

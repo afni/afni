@@ -4196,6 +4196,7 @@ void REND_open_imseq( void )
      ISQ_DEFAULT_OPT(opt) ;
      opt.save_one = False ;  /* change to Save:bkg */
      opt.save_pnm = False ;
+     opt.save_filter = -1 ;  /* 27 Jun 2001 */
      drive_MCW_imseq( imseq , isqDR_options      , (XtPointer) &opt ) ;
      drive_MCW_imseq( imseq , isqDR_periodicmont , (XtPointer) 0    ) ;
    }

@@ -2139,6 +2139,11 @@ extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
 extern THD_string_array * THD_get_wildcard_filenames( char * ) ;
 
+extern THD_string_array * THD_get_all_executables( char * ) ;    /* 26 Jun 2001 */
+extern THD_string_array * THD_getpathprogs( THD_string_array * );
+extern int THD_is_executable( char * pathname ) ;
+extern char * THD_find_executable( char * ) ;
+
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;
 
@@ -2398,6 +2403,7 @@ extern void * THD_get_dset_row( THD_3dim_dataset *, int, int, int,int,int ) ;
 extern void THD_put_dset_row( THD_3dim_dataset *, int,
                               int, int,int,int, void * row ) ;
 extern int THD_dataset_rowfillin( THD_3dim_dataset *, int, int, int ) ;
+extern int THD_dataset_zfillin( THD_3dim_dataset *, int, int, int ) ; /* 03 Jul 2001 */
 
 /*------------------------------------------------------------------*/
 /*-- October 1998: routines for 3D volume rotation and alignment. --*/

@@ -42,6 +42,15 @@ int THD_is_directory( char * pathname )
    ii = (buf.st_mode & S_IFDIR) != 0 ; return ii ;
 }
 
+int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
+{
+   static struct stat buf ; int ii ;
+
+   if( pathname == NULL ) return 0 ;
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
+   ii = (buf.st_mode & S_IXOTH) != 0 ; return ii ;
+}
+
 int THD_equiv_files( char * path1 , char * path2 )
 {
    static struct stat buf1 , buf2 ; int ii ;

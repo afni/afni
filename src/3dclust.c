@@ -114,7 +114,7 @@ int main( int argc , char * argv[] )
       printf ("Author:  %s \n", PROGRAM_AUTHOR); 
       printf ("Date:    %s \n", PROGRAM_DATE);
       printf ("\n");
-      fprintf(stderr,
+      printf(
           "Simple-minded Cluster Detection in 3D Datasets\n"
           "Usage: 3dclust [editing options] [-summarize] [-verbose] rmm vmul dset ...\n"
           "  where rmm  = cluster connection radius (mm);\n"
@@ -127,6 +127,7 @@ int main( int argc , char * argv[] )
           "     abs. value) for calculation of the mean and SEM \n"
           "  The -summarize option will write out only the total\n"
           "     nonzero voxel count and volume for each dataset.\n"
+          "  The -nosum option will suppress printout of the totals.\n"
           "  The -verbose option prints out a progress report (to stderr)\n"
           "     as the computations proceed.\n"
           "  The -quiet option suppresses all non-essential output. \n"
@@ -190,7 +191,7 @@ int main( int argc , char * argv[] )
    dset = NULL ;
    for( iarg=nopt ; iarg < argc ; iarg++ ){
       if( dset != NULL ) THD_delete_3dim_dataset( dset , False ) ; /* flush old   */
-      dset = THD_open_one_dataset( argv[iarg] ) ;                  /* open new    */
+      dset = THD_open_dataset( argv[iarg] ) ;                      /* open new    */
       if( dset == NULL ){                                          /* failed?     */
          fprintf(stderr,"*** Warning: skipping dataset %s\n",argv[iarg]) ;
          continue ;
@@ -247,7 +248,7 @@ int main( int argc , char * argv[] )
       /*-- print report header --*/
   if( !CL_quiet ){
 
-      if( !CL_summarize ){
+      if( CL_summarize != 1 ){
          printf( "\n"
           "Cluster report for file %s\n"
 #if 0
@@ -343,7 +344,7 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
 
       if( clar->num_clu < 1000 ){
          SORT_CLARR(clar) ;
-      } else if( !CL_summarize ){
+      } else if( CL_summarize != 1 ){
          printf("*** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n") ;
       }
       ndet = 0 ;
@@ -435,7 +436,7 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
 	 else
 	   sem = 0.0;
 
-         if( !CL_summarize ){
+         if( CL_summarize != 1 ){
            MCW_fc7(mean, buf1) ;
            MCW_fc7(msmax,buf2) ;
            MCW_fc7(sem  ,buf3) ;
@@ -472,12 +473,12 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
      glxxsum /= glmmsum ; glyysum /= glmmsum ; glzzsum /= glmmsum ;
 
       /* MSB 11/1/96 Modified so that mean and SEM would print in correct column */
-      if( CL_summarize )
+      if( CL_summarize == 1 )
 	 {   if( !CL_quiet )
 	         printf( "------  -----  -----  ----- -------- -------- \n");
 		printf("%6.0f  %5.1f  %5.1f  %5.1f %8.1f %6.3f\n" , vol_total, glxxsum, glyysum, glzzsum, glmean, sem ) ;
       }
-	 else if( ndet > 1  )
+	 else if( ndet > 1 && CL_summarize != -1 )
 	{
           MCW_fc7(glmean ,buf1) ;
           MCW_fc7(sem    ,buf3) ;
@@ -548,24 +549,28 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-summarize",5) == 0 ){
          CL_summarize = 1 ;
-         nopt++ ;
-         continue ;
+         nopt++ ; continue ;
+      }
+
+      /**** -nosum [05 Jul 2001] ****/
+
+      if( strncmp(argv[nopt],"-nosum",6) == 0 ){
+         CL_summarize = -1 ;
+         nopt++ ; continue ;
       }
 
       /**** -verbose ****/
 
       if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          CL_verbose = CL_edopt.verbose = 1 ;
-         nopt++ ;
-         continue ;
+         nopt++ ; continue ;
       }
 
       /**** -quiet ****/
 
       if( strncmp(argv[nopt],"-quiet",5) == 0 ){
          CL_quiet = 1 ;
-	    nopt++ ;
-         continue ;
+         nopt++ ; continue ;
       }
 
       /**** -orient code ****/
@@ -579,8 +584,7 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-noabs",6) == 0 ){
          CL_noabs = 1 ;
-         nopt++ ;
-         continue ;
+         nopt++ ; continue ;
       }
 
       /**** unknown switch ****/

@@ -34,6 +34,9 @@
   Mod:     Added -pseed option for permutation of stimulus labels.
   Date:    27 April 2001
 
+  Mod:     Changes to eliminate constraints on number of stimulus time series.
+  Date:    11 May 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -41,7 +44,7 @@
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "06 July 1999"    /* date of initial program release */
-#define PROGRAM_LATEST "27 April 2001"    /* date of latest program revision */
+#define PROGRAM_LATEST "11 May 2001"      /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -58,18 +61,15 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Global variables and constants.
+  Global variables.
 */
-
-#define MAX_STIM 50            /* max. number of stimulus time series */
-#define MAX_STRING_LENGTH 80   /* max. length of input string */
 
 
 int NT = 0;             /* length of stimulus time series */
 int nt = 0;             /* length of simple time series (block length = 1) */
 int num_stimts = 0;     /* number of input stimuli (experimental conditions) */
-int num_reps[MAX_STIM]; /* number of repetitions for each stimulus */
-int nblock[MAX_STIM];   /* block length for each stimulus */
+int * num_reps = NULL;  /* number of repetitions for each stimulus */
+int * nblock = NULL;    /* block length for each stimulus */
 int expand = 0;         /* flag to expand the array for block type design */
 long seed = 1234567;    /* random number seed */
 long pseed = 0;         /* stimulus permutation random number seed */
@@ -162,7 +162,7 @@ void get_options
   int ival;                         /* integer input */
   float fval;                       /* float input */
   long lval;                        /* long integer input */
-  char message[MAX_STRING_LENGTH];  /* error message */
+  char message[THD_MAX_NAME];       /* error message */
   int i;
 
 
@@ -197,6 +197,19 @@ void get_options
 	  if (ival <= 0)
 	    RSF_error ("illegal argument after -num_stimts ");
 	  num_stimts = ival;
+
+	  /*----- Initialize repetition number array -----*/
+	  num_reps = (int *) malloc (sizeof(int) * num_stimts);
+	  MTEST (num_reps);
+	  for (i = 0;  i < num_stimts;  i++)
+	    num_reps[i] = 0;
+
+	  /*----- Initialize block length array -----*/
+	  nblock = (int *) malloc (sizeof(int) * num_stimts);
+	  MTEST (nblock);
+	  for (i = 0;  i < num_stimts;  i++)
+	    nblock[i] = 1;
+
 	  nopt++;
 	  continue;
 	}
@@ -285,7 +298,7 @@ void get_options
 	{
 	  nopt++;
 	  if (nopt >= argc)  RSF_error ("need argument after -prefix ");
-	  prefix = malloc (sizeof(char) * MAX_STRING_LENGTH);
+	  prefix = malloc (sizeof(char) * THD_MAX_NAME);
 	  MTEST (prefix);
 	  strcpy (prefix, argv[nopt]);
 	  nopt++;
@@ -299,7 +312,7 @@ void get_options
 	  markov = 1;
 	  nopt++;
 	  if (nopt >= argc)  RSF_error ("need argument after -markov ");
-	  tpm_file = malloc (sizeof(char) * MAX_STRING_LENGTH);
+	  tpm_file = malloc (sizeof(char) * THD_MAX_NAME);
 	  MTEST (tpm_file);
 	  strcpy (tpm_file, argv[nopt]);
 	  nopt++;
@@ -363,16 +376,6 @@ void initialize
   int i, total;
 
 
-  /*----- Initialize repetition number array -----*/
-  for (i = 0;  i < MAX_STIM;  i++)
-    num_reps[i] = 0;
-
-
-  /*----- Initialize block length array -----*/
-  for (i = 0;  i < MAX_STIM;  i++)
-    nblock[i] = 1;
-
-
   /*----- Get command line inputs -----*/
   get_options (argc, argv);
 
@@ -415,7 +418,7 @@ void markov_array (int * design)
   int it, is, isprev;
   float prob, cumprob;
   matrix tpm;
-  char message[MAX_STRING_LENGTH];  /* error message */
+  char message[THD_MAX_NAME];  /* error message */
 
 
   matrix_initialize (&tpm);
@@ -728,7 +731,7 @@ void write_many_ts (char * filename, int * design)
 
 void write_results (int * design)
 {
-  char filename[80];
+  char filename[THD_MAX_NAME];
   int * array;
   int is, i;
 

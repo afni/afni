@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*-- these macros stolen from file thd.h --*/
@@ -135,7 +135,7 @@ int main( int argc , char * argv[] )
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   machdep() ; 
+   machdep() ;
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -502,9 +502,21 @@ int main( int argc , char * argv[] )
 
          ijk = ii + jj*nx + kk*nx*ny ;
          switch( datum ){
-            case MRI_float: fbr[ijk] = vv               ; break ;
-            case MRI_short: sbr[ijk] = (short) rint(vv) ; break ;
-            case MRI_byte:  bbr[ijk] = (byte)  rint(vv) ; break ;
+            case MRI_float:
+               if( fbr[ijk] != fval_float )
+                  fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+               fbr[ijk] = vv ;
+            break ;
+            case MRI_short:
+               if( sbr[ijk] != fval_short )
+                  fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+               sbr[ijk] = (short) rint(vv) ;
+            break ;
+            case MRI_byte:
+               if( bbr[ijk] != fval_byte )
+                  fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+               bbr[ijk] = (byte) rint(vv) ;
+            break ;
          }
 
       } /* end of loop over input lines */
@@ -516,6 +528,7 @@ int main( int argc , char * argv[] )
    } /* end of loop over input files */
 
    fprintf(stderr,"+++ Writing results to dataset %s\n",DSET_FILECODE(dset)) ;
+   tross_Make_History( "3dUndump" , argc,argv , dset ) ;
    DSET_write(dset) ;
    exit(0) ;
 }

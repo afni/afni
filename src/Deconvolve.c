@@ -58,6 +58,11 @@
            at a multiple of the 1/TR rate.
   Date:    02 January 2001 
 
+  Mod:     Changes to eliminate constraints on number of stimulus time series,
+           number of regressors, number of GLT's, and number of GLT linear 
+           constraints.
+  Date:    10 May 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -190,7 +195,7 @@ int init_regression_analysis
 )
 
 {
-  int plist[MAX_XVARS];       /* list of model parameters */
+  int * plist = NULL;         /* list of model parameters */
   int ip, it;                 /* parameter indices */
   int is, js;                 /* stimulus indices */ 
   int jm;                     /* lag index */
@@ -203,6 +208,7 @@ int init_regression_analysis
 
 
   /*----- Initialize matrices for the baseline model -----*/
+  plist = (int *) malloc (sizeof(int) * p);   MTEST(plist);
   for (ip = 0;  ip < q;  ip++)
     plist[ip] = ip;
   ok = calc_matrices (xdata, q, plist, x_base, &xtxinv_temp, xtxinvxt_base);
@@ -248,6 +254,7 @@ int init_regression_analysis
   /*----- Destroy matrix -----*/
   matrix_destroy (&xtxinv_temp);
 
+  if (plist != NULL) { free(plist);  plist = NULL; }
 
   return (1);
 }
