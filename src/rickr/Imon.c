@@ -1,8 +1,13 @@
 
-#define IFM_VERSION "version 2.3 (February, 2003)"
+#define IFM_VERSION "version 2.4 (February, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.4  February 18, 2003
+ *   - added DRIVE_AFNI command to open a graph window
+ *   - added -drive_afni option
+ *   - added NOTE command to append Imon command to any new dataset
  *
  * 2.3  February 14, 2003
  *   - added -start_file option
@@ -50,8 +55,7 @@
  * todo:
  *
  * - check for missing first slice
- * - DRIVE_AFNI
- * - notes: specify where this data came from
+ * - add axes offsets
  *----------------------------------------------------------------------
 */
 
@@ -1003,6 +1007,17 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		errors++;
 	    }
 	}
+	else if ( ! strncmp( argv[ac], "-drive_afni", 6 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -drive_afni COMMAND\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    p->opts.drive_cmd = argv[ac];
+	}
 	else if ( ! strncmp( argv[ac], "-nice", 4 ) )
 	{
 	    if ( ++ac >= argc )
@@ -1122,6 +1137,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     if ( dir_expansion_form( p->opts.start_dir, &p->glob_dir ) != 0 )
 	return 2;
+
+    /* save command arguments to add as a NOTE to any AFNI datasets */
+    p->opts.argv = argv;
+    p->opts.argc = argc;
 
     if ( gD.level > 1 )
     {
@@ -1608,10 +1627,13 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
     printf( "opts_t struct at %p :\n"
 	    "   start_file        = %s\n"
 	    "   start_dir         = %s\n"
+	    "   drive_cmd         = %s\n"
+	    "   (argv, argc)      = (%p, %d)\n"
 	    "   (nt, nice, debug) = (%d, %d, %d)\n"
 	    "   (rt, swap)        = (%d, %d)\n"
 	    "   host              = %s\n",
 	    opt, opt->start_file, opt->start_dir,
+	    opt->drive_cmd, opt->argv, opt->argc,
 	    opt->nt, opt->nice, opt->debug,
 	    opt->rt, opt->swap, opt->host );
 
@@ -1802,6 +1824,19 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "        Note also that the '-host HOSTNAME' option is not required\n"
 	  "        if afni is running on the same machine.\n"
+	  "\n"
+	  "    -drive_afni CMND   : send 'drive afni' command, CMND\n"
+	  "\n"
+	  "        e.g.  -drive_afni 'OPEN_WINDOW axialimage'\n"
+	  "\n"
+	  "        This option is used to pass CMND to afni as a DRIVE_AFNI\n"
+	  "        command.  For example, 'OPEN_WINDOW axialimage' will open\n"
+	  "        such an axial view window on the afni controller.\n"
+	  "\n"
+	  "        Note: the command 'CMND' must be given in quotes, so that\n"
+	  "        the shell will send it as a single parameter.\n"
+	  "\n"
+	  "        See README.driver for more details.\n"
 	  "\n"
 	  "    -host HOSTNAME     : specify the host for afni communication\n"
 	  "\n"

@@ -342,7 +342,7 @@ int ART_init_AC_struct( ART_comm * ac )
 */
 int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 {
-    char tbuf[256];		/* temporary buffer for adding to buf */
+    char tbuf[ART_TBUF_LEN];	      /* temporary buffer for adding to buf */
     int  rv;
 
     if ( (ac == NULL) || (v == NULL) )
@@ -389,9 +389,61 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 			   v->geh.orients[0], v->geh.orients[1],
 			   v->geh.orients[2], v->geh.orients[3],
 			   v->geh.orients[4], v->geh.orients[5] );
-    ART_ADD_TO_BUF( ac->buf, tbuf );	/* tbuf has "XYZAXES..." */
+    ART_ADD_TO_BUF( ac->buf, tbuf );
 
-    /* rcr - add axes offsets, drive afni commands, notes */
+    /* DRIVE_AFNI interface */
+    {
+	char * graph_win;			/* graph window to open */
+	char   o4 = v->geh.orients[4];		/* note last axis       */
+	int    nt = ac->param->opts.nt;		/* note user defined nt */
+
+	if ( (o4 == 'R') || (o4 == 'r') || (o4 == 'L') || (o4 == 'l') )
+	    graph_win = "sagittalgraph";
+	else if ( (o4 == 'I') || (o4 == 'i') || (o4 == 'S') || (o4 == 's') )
+	    graph_win = "axialgraph";
+	else
+	    graph_win = "coronalgraph";
+
+	if ( nt > 0 )
+	    sprintf(tbuf, "DRIVE_AFNI OPEN_WINDOW %s pinnum=%d", graph_win, nt);
+	else
+	    sprintf(tbuf, "DRIVE_AFNI OPEN_WINDOW %s", graph_win );
+
+	if ( ac->param->opts.drive_cmd != NULL )
+	{
+	    strcat( tbuf, " " );
+	    strcat( tbuf, ac->param->opts.drive_cmd );
+	}
+
+	ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
+    /* NOTE interface - add a note to the dataset: the actual Imon command */
+    {
+	int count, len, tot_len;
+
+	sprintf( tbuf, "NOTE created by the command :" );
+	tot_len = strlen( tbuf );
+
+	for ( count = 0; count < ac->param->opts.argc; count++ )
+	{
+	    len = strlen( ac->param->opts.argv[count] );
+
+	    /* are we out of space? */
+	    if ( tot_len + len + 5 >= ART_TBUF_LEN )
+	    {
+		strcat( tbuf, " ..." );
+		break;
+	    }
+
+	    strcat( tbuf, " " );
+	    strcat( tbuf, ac->param->opts.argv[count] );
+	}
+	
+	ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
+    /* rcr - add axes offsets? ...*/
 
     if ( debug > 1 )
 	fprintf( stderr, "++ dataset control info for afni:\n   %s", ac->buf );
@@ -414,16 +466,22 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 }
 
 
-/*****************************************************************************
+/*----------------------------------------------------------------------
  * Function to be called to make sure the AFNI data channels get closed.
- *****************************************************************************/
+ *----------------------------------------------------------------------
+*/
 void ART_exit( void )
 {
-    iochan_close(gAC.ioc);
+    static int been_here = 0;		/* on an error, we may come back */
 
-    fprintf( stderr, "ART_exit: closing afni control channel\n" );
+    if ( been_here == 0 )
+    {
+	iochan_close(gAC.ioc);
+	fprintf( stderr, "ART_exit: closing afni control channel\n" );
+	been_here = 1;
+    }
 
-    return ;
+    return;
 }
 
 

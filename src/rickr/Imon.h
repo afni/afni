@@ -70,6 +70,9 @@ typedef struct  /* user options */
 {
     char           * start_file;    /* user-specified starting file     */
     char           * start_dir;     /* user input starting directory    */
+    char           * drive_cmd;     /* DRIVE_AFNI command to send       */
+    char	  ** argv;	    /* passed to the program            */
+    int              argc;
     int              nt;            /* user input time points per run   */
     int              nice;          /* nice offset (must be >= 0)       */
     int              debug;         /* debug level                      */

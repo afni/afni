@@ -22,6 +22,7 @@
 #define ART_COMMAND_MARKER_LEN  30
 
 #define ART_NAME_LEN           128
+#define ART_TBUF_LEN           512
 
 #define ART_ADD_TO_BUF(dest,src) ( strcat(dest,src), strcat(dest,"\n") )
 
