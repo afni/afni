@@ -312,6 +312,8 @@ if(PRINT_TRACING)
       if( ii < 1 || id < 1 ) break ;                      /* none --> end of work */
       epos += id ;                                        /* char after last scanned */
 
+      if( !THD_is_directory(ename) ) continue ;           /* 21 May 2002 -rcr */
+
       /* 02 Feb 2002: did we check this one already? */
 
       for( ii=0 ; ii < qlist->num ; ii++ )

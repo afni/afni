@@ -84,6 +84,8 @@ ENTRY("THD_get_many_timeseries") ;
             ename[ii]  = '/' ; ename[ii+1] = '\0' ;
          }
 
+         if( !THD_is_directory(ename) ) continue ;  /* 21 May 2002 - rcr */
+
          /* 02 Feb 2002: check if scanned this directory before */
 
          for( ii=0 ; ii < qlist->num ; ii++ )
