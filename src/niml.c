@@ -5485,6 +5485,8 @@ fprintf(stderr,"NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" 
       NI_sleep(1); goto HeadRestart;                      /* try again */
    }
 
+fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
+
    /* ns->buf[ns->npos] = opening '<' ; ns->buf[nn-1] = closing '>' */
 
    /* see if we found '<>', which is illegal,
@@ -5500,6 +5502,7 @@ fprintf(stderr,"NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" 
    hs = parse_header_stuff( nn - ns->npos , ns->buf + ns->npos , &nhs ) ;
 
    if( hs == NULL ){  /* something bad happened there */
+fprintf(stderr,"NIML: read bad element header!\n") ;
       ns->npos = nn; reset_buffer(ns); /* toss the '<..>', try again */
       goto HeadRestart ;
    }
@@ -6448,15 +6451,19 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    /* ADDOUT = after writing, add byte count if OK, else quit */
    /* AF     = thing to do if ADDOUT is quitting */
 
+fprintf(stderr,"NIML: enter NI_write_element\n") ;
+
 #undef  AF
 #define AF     0
-#define ADDOUT if(nout<0){AF;return -1;} else ntot += nout
+#define ADDOUT if(nout<0){AF;fprintf(stderr,"NIML: write abort!\n");return -1;} else ntot+=nout
 
    if( ns == NULL ) return -1 ;
 
    if( ns->bad ){                        /* socket that hasn't connected yet */
+fprintf(stderr,"NIML: write socket not connected\n") ;
       jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
       if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
+fprintf(stderr,"      write socket now connected\n") ;
    } else {                              /* check if good ns has gone bad */
       jj = NI_stream_writecheck(ns,1) ;
       if( jj < 0 ) return -1 ;
