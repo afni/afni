@@ -4239,3 +4239,6 @@
 
 28 Jan 2003
  * Modified thd_ctfread.c to correct nx,ny,nz calculation for SAM images.
+ * Modified afni.c to do the time lock properly when the anat has no
+     time axis but the func does.
+ * Modified 3dcopy.c to work with copying non-AFNI datasets.
