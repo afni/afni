@@ -1,8 +1,8 @@
 #include "mrilib.h"
 
-/*---------------------------------------------------------------------
-  Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox
-  (Compare to thd_makemask.c)
+/*---------------------------------------------------------------------*/
+/*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
+    (compare to thd_makemask.c)
 -----------------------------------------------------------------------*/
 
 byte * THD_automask( THD_3dim_dataset * dset )
@@ -77,5 +77,104 @@ ENTRY("THD_automask") ;
    DESTROY_CLARR(clar) ;
 #endif
 
+   /* 19 Apr 2002: fill in small holes */
+
+#if 1
+   (void) THD_mask_fillin_completely( nx,ny,nz, mmm , 1 ) ;
+#endif
+
    RETURN(mmm) ;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Fill in a byte mask.  Filling is done by looking to each side
+    (plus/minus) of a non-filled voxel, and seeing if there is a
+    filled voxel on both sides.  This looking is done parallel to
+    the x-, y-, and z-axes, out to distance nside voxels.
+    - nx,ny,nz = dimensions of mask
+    - mmm      = mask itself (will be altered)
+    - nside    = width of fill in look to each side
+    - Return value is number of filled in voxels
+-----------------------------------------------------------------------*/
+
+int THD_mask_fillin_once( int nx, int ny, int nz, byte *mmm, int nside )
+{
+   int ii,jj,kk , nsx,nsy,nsz , nxy,nxyz , iv,jv,kv,ll , nfill ;
+   byte *nnn ;
+
+ENTRY("THD_mask_fillin_once") ;
+
+   if( mmm == NULL || nside <= 0 ) RETURN(0) ;
+
+   nsx = (nx-1)/2 ; if( nsx > nside ) nsx = nside ;
+   nsy = (ny-1)/2 ; if( nsy > nside ) nsy = nside ;
+   nsz = (nz-1)/2 ; if( nsz > nside ) nsz = nside ;
+
+   if( nsx == 0 && nsy == 0 && nsz == 0 ) RETURN(0) ;
+
+   nxy = nx*ny ; nxyz = nxy*nz ; nfill = 0 ;
+
+   nnn = calloc(1,nxyz) ;  /* stores filled in values */
+
+   /* loop over voxels */
+
+   for( kk=nsz ; kk < nz-nsz ; kk++ ){
+     kv = kk*nxy ;
+     for( jj=nsy ; jj < ny-nsy ; jj++ ){
+       jv = jj*nx + kv ;
+       for( ii=nsx ; ii < nx-nsx ; ii++ ){
+         iv = ii+jv ;
+         if( mmm[iv] ) continue ;     /* already filled */
+
+         /* check in +x direction, then -x if +x hits */
+
+         for( ll=1 ; ll <= nsx ; ll++ ) if( mmm[iv+ll] ) break ;
+         if( ll <= nsx ){
+           for( ll=1 ; ll <= nsx ; ll++ ) if( mmm[iv-ll] ) break ;
+           if( ll <= nsx ){ nnn[iv] = 1 ; nfill++ ; continue ; }
+         }
+
+         /* check in +y direction, then -y if +y hits */
+
+         for( ll=1 ; ll <= nsy ; ll++ ) if( mmm[iv+ll*nx] ) break ;
+         if( ll <= nsy ){
+           for( ll=1 ; ll <= nsy ; ll++ ) if( mmm[iv-ll*nx] ) break ;
+           if( ll <= nsy ){ nnn[iv] = 1 ; nfill++ ; continue ; }
+         }
+
+         /* check in +z direction, then -z if +z hits */
+
+         for( ll=1 ; ll <= nsz ; ll++ ) if( mmm[iv+ll*nxy] ) break ;
+         if( ll <= nsz ){
+           for( ll=1 ; ll <= nsz ; ll++ ) if( mmm[iv-ll*nxy] ) break ;
+           if( ll <= nsz ){ nnn[iv] = 1 ; nfill++ ; continue ; }
+         }
+   } } }
+
+   /* copy fills back into mmm */
+
+   if( nfill > 0 ){
+     for( iv=0 ; iv < nxyz ; iv++ ) if( nnn[iv] ) mmm[iv] = 1 ;
+   }
+
+   free(nnn) ; RETURN(nfill) ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Fill in a byte mask, repeatedly until it doesn't fill any more.
+    Return value is number of voxels filled.
+------------------------------------------------------------------------*/
+
+int THD_mask_fillin_completely( int nx, int ny, int nz, byte *mmm, int nside )
+{
+   int nfill=0 , kfill ;
+
+ENTRY("THD_mask_fillin_completely") ;
+
+   do{
+      kfill = THD_mask_fillin_once( nx,ny,nz , mmm , nside ) ;
+      nfill += kfill ;
+   } while( kfill > 0 ) ;
+
+   return nfill ;
 }

@@ -3668,7 +3668,11 @@
  * Modified afni_sumafunc.c to allow for MRI_rgb fim overlays.
 
 18 Apr 2002
- * Modified thd_autmask.c to erode/dilate the result, so as to clip off
+ * Modified thd_automask.c to erode/dilate the result, so as to clip off
      tenuously connected blobs.
  * Modified edt_clust.c to make MCW_erode_clusters() return void, not
      void *, since it doesn't actually return anything.
+
+19 Apr 2002
+ * Modified thd_automask.c to have fill in functions.
+ * Modified 3dAutomask.c to have -fillin option.

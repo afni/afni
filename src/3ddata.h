@@ -3222,6 +3222,9 @@ extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_countmask( int , byte * ) ;
 extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
 
+extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 2002 */
+extern int THD_mask_fillin_oncei     ( int,int,int, byte *, int ) ;
+
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;        /* 12 Aug 2001 */
 extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;
 
