@@ -498,6 +498,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
                }
+            } if (Kev.state & Mod1Mask){ /* alt + l */
+               /* register cross hair XYZ with ED */
+               if (!list) list = SUMA_CreateList();
+               ED = SUMA_InitializeEngineListData (SE_SetLookAt);
+               if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_fv3, (void *)sv->Ch->c, 
+                                                      SES_Suma, (void *)sv, NOPE, 
+                                                      SEI_Head, NULL )) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                  SUMA_RETURNe;
+               }
+               if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+               }   
             } else {
                sv->X->LookAt_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "X,Y,Z coordinates to look at:", 
                                                       "0,0,0",
