@@ -285,9 +285,10 @@ void NI_free_element( void *nini )
 
       /* 14 Feb 2003: NI_free_column() will also free var dim arrays */
 
-      for( ii=0 ; ii < nel->vec_num ; ii++ )
-         NI_free_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
-                         nel->vec_len , nel->vec[ii]             ) ;
+      if( nel->vec != NULL )
+        for( ii=0 ; ii < nel->vec_num ; ii++ )
+           NI_free_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
+                           nel->vec_len , nel->vec[ii]             ) ;
 
       NI_free( nel->vec_typ  ) ;
       NI_free( nel->vec ) ;
@@ -312,8 +313,10 @@ void NI_free_element( void *nini )
       NI_free( ngr->attr_lhs ) ;
       NI_free( ngr->attr_rhs ) ;
 
-      for( ii=0 ; ii < ngr->part_num ; ii++ )
-         NI_free_element( ngr->part[ii] ) ;     /* recursion */
+      if( ngr->part != NULL ){
+        for( ii=0 ; ii < ngr->part_num ; ii++ )
+           NI_free_element( ngr->part[ii] ) ;     /* recursion */
+      }
 
       NI_free( ngr->part_typ ) ;
       NI_free( ngr->part ) ;

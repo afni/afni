@@ -4825,3 +4825,6 @@
 
 05 Dec 2003
  * Some tweaks to mpegtoppm and mri_read_mpeg.
+ * Fixed bug in niml/niml_element.c -- NI_free_element() would fail if
+     nel->vec was NULL.
+ * Similar problem in thd_3Ddset.c.
