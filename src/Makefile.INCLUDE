@@ -1103,7 +1103,8 @@ birn_plugins: plug_stavg.$(SO)
 kummer_plugins: plug_reorder.$(SO)
 
 rickr_plugins: plug_roiedit.$(SO) plug_hemisub.$(SO) \
-               plug_maskcalc.$(SO) plug_maxima.$(SO)
+               plug_maskcalc.$(SO) plug_maxima.$(SO) \
+               plug_crender.$(SO)
 
 tross_plugins: plug_fourier.$(SO)
 
