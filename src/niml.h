@@ -168,6 +168,7 @@ typedef struct {
 #define NI_FILE_TYPE   2
 #define NI_STRING_TYPE 3
 #define NI_REMOTE_TYPE 4  /* http: or ftp: */
+#define NI_FD_TYPE     5
 
 #define TCP_WAIT_ACCEPT   7
 #define TCP_WAIT_CONNECT  8

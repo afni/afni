@@ -72,6 +72,7 @@ void NI_sleep( int msec )
 
 /*---------------------------------------------------------------*/
 /*! Return time elapsed since first call to this routine (msec).
+
     Note this will overflow an int after 24+ days.  You probably
     don't want to use this if the program will be running
     continuously for such a long time.
@@ -107,6 +108,7 @@ int NI_clock_time(void)
 
 /*--------------------------------------------------------------------------*/
 /*! Like strncpy, but better (result always ends in NUL char).
+
     If dest is NULL, does nothing.  If src is NULL, put a NUL char
     in dest[0].
 ----------------------------------------------------------------------------*/
@@ -159,11 +161,11 @@ static int string_index( char *targ, int nstr, char *str[] )
 /*------------------------------------------------------------------------*/
 /*! Un-escape a C string inplace.  (This can be done since the replacement
     is always smaller than the input.)  Escapes recognized are:
-      *  &lt;   ->  <
-      *  &gt;   ->  >
-      *  &quot; ->  "
-      *  &apos; ->  '
-      *  &amp;  ->  &
+      -  &lt;   ->  <
+      -  &gt;   ->  >
+      -  &quot; ->  "
+      -  &apos; ->  '
+      -  &amp;  ->  &
     Also replace CR LF pair (Microsoft), or CR alone (Macintosh) with
     LF (Unix), per the XML standard.
     Return value is number of replacements made.
@@ -585,20 +587,22 @@ static void load_decode_table(void)
 /*----------------------------------------------------------------------*/
 /*! Convert base64-encoded array to a binary array (decoding).
 
-   Inputs: nb64 = number of bytes in b64
-            b64 = array of base64 encoding bytes
-                  values not in the base64 encoding set will be skipped
+   Inputs:
+    - nb64 = number of bytes in b64
+    - b64  = array of base64 encoding bytes
+             - values not in the base64 encoding set will be skipped
 
-   Outputs: *nbin = number of binary bytes [*nbin==0 flags an error]
-             *bin = pointer to newly malloc()-ed space with bytes
+   Outputs:
+    - *nbin = number of binary bytes [*nbin==0 flags an error]
+    -  *bin = pointer to newly malloc()-ed space with bytes
 
    Example:
-     byte *b64 , *bin ;
-     int  nb64 , nbin=0 ;
-     --load b64 and nb64 somehow--
-     B64_to_binary( nb64,b64 , &nbin, &bin ) ;
-     if( nbin == 0 ){ --failure-- }
-     else           { --bin[0..nbin-1] is decoded data-- }
+     -  byte *b64 , *bin ;
+     -  int  nb64 , nbin=0 ;
+     -  **load b64 and nb64 somehow**
+     -  B64_to_binary( nb64,b64 , &nbin, &bin ) ;
+     -  if( nbin == 0 ){ **failure** }
+     -  else           { **bin[0..nbin-1] is decoded data** }
 ------------------------------------------------------------------------*/
 
 void B64_to_binary( int nb64 , byte *b64 , int *nbin , byte **bin )
@@ -677,13 +681,13 @@ void B64_to_binary( int nb64 , byte *b64 , int *nbin , byte **bin )
    the output is not a C string.
 
    Example:
-     byte *b64 , *bin ;
-     int  nb64=0 , nbin ;
-     --load bin and nbin somehow--
-     B64_to_base64( nbin,bin , &nb64,&b64 ) ;
-     if( nb64 == 0 ){ --failure-- }
-     else           { --b64[0..nb64-1] is encoded data--
-                      printf("%.*s\n",nb64,b64) ;       }
+     -  byte *b64 , *bin ;
+     -  int  nb64=0 , nbin ;
+     -  **load bin and nbin somehow**
+     -  B64_to_base64( nbin,bin , &nb64,&b64 ) ;
+     -  if( nb64 == 0 ){ **failure** }
+     -  else           { **b64[0..nb64-1] is encoded data**
+                         printf("%.*s\n",nb64,b64) ;       }
 ------------------------------------------------------------------------*/
 
 void B64_to_base64( int nbin , byte *bin , int *nb64 , byte **b64 )
@@ -1265,8 +1269,8 @@ char * MD5_B64_string( char *string )
 /*----------------------------------------------------------------------------*/
 /*! Return the MD5 hash of a file as a Base64 string, instead of a hex
     string.
-    * strlen(result) is 22 instead of 32
-    * result is malloc()-ed and should be free()-d when appropriate
+    - strlen(result) is 22 instead of 32
+    - result is malloc()-ed and should be free()-d when appropriate
 ------------------------------------------------------------------------------*/
 
 char * MD5_B64_file(char *filename)
@@ -1301,7 +1305,8 @@ char * MD5_B64_file(char *filename)
 /*! Return a globally unique identifier (I hope).  This is a malloc()-ed
   string of length <= 31 (plus the NUL byte; the whole thing will fit
   into a char[32] array).  The output does not contain any '/'s, so
-  it could be used as a temporary filename.
+  it could be used as a temporary filename.  Repeated calls to this
+  function should never return the same string.
 
   Method: Generate a string from the system identfier information and
           the current time of day. MD5 hash this to a 128 byte code.
@@ -1437,8 +1442,8 @@ static void setup_tmpdir(void)
    }
 }
 
-/*---------------------------------------------------------------------
-  Open an "http://" URL in host, port, and filename pieces.
+/*---------------------------------------------------------------------*/
+/*! Open an "http://" URL in host, port, and filename pieces.
   Wait up to msec milliseconds for network functions to occur.
   If an error occurs, return NULL, otherwise the caller can read
   from this NI_stream.
@@ -1471,16 +1476,18 @@ static NI_stream_type * open_URL_hpf( char *host, int port,
    return ns ;
 }
 
-/*----------------------------------------------------------------------
-  Open an "http://" URL and prepare to read it (but the caller must
-  actually do the reading).  If NULL is returned, an error occurred.
-------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------*/
 
 #define HTTP     "http://"
 #define HTTPLEN  7
 
 #define FTP      "ftp://"
 #define FTPLEN   6
+
+/*----------------------------------------------------------------------*/
+/*! Open an "http://" URL and prepare to read it (but the caller must
+  actually do the reading).  If NULL is returned, an error occurred.
+------------------------------------------------------------------------*/
 
 static NI_stream_type * open_URL_http( char *url , int msec )
 {
@@ -1516,8 +1523,13 @@ static NI_stream_type * open_URL_http( char *url , int msec )
   return ns ;
 }
 
-/*---------------------------------------------------------------
-  Read an "http://" URL, with network waits of up to msec
+
+/*---------------------------------------------------------------*/
+
+#define QBUF 4096
+
+/*---------------------------------------------------------------*/
+/*! Read an "http://" URL, with network waits of up to msec
   milliseconds allowed.  Returns number of bytes read -- if this
   is > 0, then *data will be a pointer to malloc-ed bytes holding
   the contents of the file.
@@ -1528,8 +1540,6 @@ static NI_stream_type * open_URL_http( char *url , int msec )
   uncompressed file.  If the file is not compressed, then input
   is directly to memory and no temporary files are used.
 -----------------------------------------------------------------*/
-
-#define QBUF 4096
 
 static int read_URL_http( char *url , int msec , char **data )
 {
@@ -1673,8 +1683,8 @@ void NI_set_URL_ftp_ident( char *name , char *pwd )
 }
 #endif
 
-/*---------------------------------------------------------------------
-  Reads an "ftp://" URL, similarly to read_URL_http above;
+/*---------------------------------------------------------------------*/
+/*! Reads an "ftp://" URL, similarly to read_URL_http above;
   however, staging is always done through a temporary file.
   This function works simply by creating/running a script file to
   run the command line ftp program.  Clumsy, but simpler than
@@ -1784,17 +1794,17 @@ static int read_URL_ftp( char *url , char **data )
    *data = buf ; return( nuse );
 }
 
-/*-------------------------------------------------------------------
-   Read a URL (ftp:// or http://) into memory.  The return value
+/*-------------------------------------------------------------------*/
+/*! Read a URL (ftp:// or http://) into memory.  The return value
    is the number of bytes read, and *data points to the data.
    If the return value is negative, then something bad happened.
 
    Example:
-     int nn ;
-     char *data ;
-     nn = NI_read_URL( "http://zork.ork/oog" , &data ) ;
-     if( nn <= 0 ){ --failure-- }
-     else         { --data[0..nn-1] can be used for something-- }
+     -  int nn ;
+     -  char *data ;
+     -  nn = NI_read_URL( "http://zork.ork/oog" , &data ) ;
+     -  if( nn <= 0 ){ **failure** }
+     -  else         { **data[0..nn-1] can be used for something** }
 ---------------------------------------------------------------------*/
 
 int NI_read_URL( char *url , char **data )
@@ -1815,18 +1825,18 @@ int NI_read_URL( char *url , char **data )
    return( -1 );
 }
 
-/*------------------------------------------------------------------
-  Read a URL and save it to disk in tmpdir.  The filename
+/*------------------------------------------------------------------*/
+/*! Read a URL and save it to disk in tmpdir.  The filename
   it is saved in is returned in the malloc-ed space *tname.
   The byte count is the return value of the function;
   if <= 0, then an error transpired (and *tname is not set).
 
   Example:
-    int nn ;
-    char *tname ;
-    nn = NI_read_URL_tmpdir( "ftp://whoople.oog/zorkon" , &tname ) ;
-    if( nn <= 0 ){ --failure-- }
-    else         { --you can read file tname at your leisure-- }
+    -  int nn ;
+    -  char *tname ;
+    -  nn = NI_read_URL_tmpdir( "ftp://whoople.oog/zorkon" , &tname ) ;
+    -  if( nn <= 0 ){ **failure** }
+    -  else         { **you can read file tname at your leisure** }
 --------------------------------------------------------------------*/
 
 int NI_read_URL_tmpdir( char *url , char **tname )
@@ -1883,10 +1893,11 @@ int NI_byteorder(void)
 }
 
 /*---------------------------------------------------------------*/
+typedef struct { unsigned char a,b ; } twobytes ;
+
+/*---------------------------------------------------------------*/
 /*! Swap arrays of 2 bytes (shorts).
 -----------------------------------------------------------------*/
-
-typedef struct { unsigned char a,b ; } twobytes ;
 
 void NI_swap2( int n , void *ar )
 {
@@ -1901,10 +1912,11 @@ void NI_swap2( int n , void *ar )
 }
 
 /*---------------------------------------------------------------*/
+typedef struct { unsigned char a,b,c,d ; } fourbytes ;
+
+/*---------------------------------------------------------------*/
 /*! Swap arrays of 4 bytes (ints or floats).
 -----------------------------------------------------------------*/
-
-typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 
 void NI_swap4( int n , void *ar )
 {
@@ -1920,10 +1932,11 @@ void NI_swap4( int n , void *ar )
 }
 
 /*---------------------------------------------------------------*/
+typedef struct { unsigned char a,b,c,d , e,f,g,h ; } eightbytes ;
+
+/*---------------------------------------------------------------*/
 /*! Swap arrays of 8 bytes (doubles or 64 bit ints).
 -----------------------------------------------------------------*/
-
-typedef struct { unsigned char a,b,c,d , e,f,g,h ; } eightbytes ;
 
 void NI_swap8( int n , void *ar )
 {
@@ -1974,9 +1987,9 @@ static void destroy_header_stuff( header_stuff *hs )
 /*-------------------------------------------------------------------------*/
 /*! Find an isolated string in the input array of char.
 
-    nst = start position
-    nch = total number of data bytes
-    ch  = array of data bytes
+    - nst = start position
+    - nch = total number of data bytes
+    - ch  = array of data bytes
 
     Return value is an intpair with the .i component indicating the
     start position of the string in the data and the .j indicating
@@ -2015,10 +2028,10 @@ fprintf(stderr,"  find_string: nst=%d nch=%d\n",nst,nch) ;
 /*--------------------------------------------------------------------------*/
 /*! Parse into strings a <header and=its attributes="stuff">.
 
-    ndat  = number of data bytes
-    dat   = data bytes
+    - ndat   = number of data bytes input
+    - dat    = data bytes input
+    - *nused = output number of bytes consumed (=index of byte after the closing '>').
 
-   *nused = number of bytes consumed (=index of byte after the closing '>').
     Return value is a pointer to a header_stuff struct;
     if NULL is returned, something real bad happened (and *nused won't
     be assigned).
@@ -2234,10 +2247,10 @@ static intpair decode_type_field( char *tf )
 /*--------------------------------------------------------------------*/
 /*! Decode a single string into a bunch of strings, separated
     by characters from the list in sep.
-    Passing sep in as NULL means to use "," as the separator.
-    In each sub-string, leading and trailing blanks will be excised.
-    This can result in 0 length strings (e.g., "1,,2," will result
-    in the second and fourth output strings having 0 length).
+    - Passing sep in as NULL means to use "," as the separator.
+    - In each sub-string, leading and trailing blanks will be excised.
+    - This can result in 0 length strings (e.g., "1,,2," will result
+    - in the second and fourth output strings having 0 length).
 ----------------------------------------------------------------------*/
 
 static str_array * decode_string_list( char *ss , char *sep )
@@ -2421,9 +2434,10 @@ static char ** typedef_dim = NULL ; /*!< Dimens of typedefs. */
 
 /*--------------------------------------------------------------------*/
 /*! Implement typedef-ing.
-      name = name string for new type
-      type = type string for new type
-      dimen= dimen string for new type (can be NULL)
+      - name = name string for new type
+      - type = type string for new type
+      - dimen= dimen string for new type (can be NULL)
+
     The routine will fail (silently) if name or type is NULL, or
     if name is the same as an existing typedef name, or if the
     type string is indecipherable.
@@ -2833,10 +2847,11 @@ int NI_type_size( int tval )
 
 #if 0
 /*----------------------------------------------------------------------*/
+static int typesize[NI_NUM_TYPES] ;
+
+/*----------------------------------------------------------------------*/
 /*! Static table to store byte sizes of NIML types.
 ------------------------------------------------------------------------*/
-
-static int typesize[NI_NUM_TYPES] ;
 
 /*! Function to initialize static NIML type size table. */
 
@@ -2915,8 +2930,8 @@ int NI_element_allsize( NI_element *nel )
 /*-----------------------------------------------------------------------*/
 /*! Return the type of something that points to a NI element.
 
-    The input should be a pointer to a NI_element or a NI_group.
-    The return value is NI_ELEMENT_TYPE, NI_GROUP_TYPE, or -1.
+    - The input should be a pointer to a NI_element or a NI_group.
+    - The return value is NI_ELEMENT_TYPE, NI_GROUP_TYPE, or -1.
 -------------------------------------------------------------------------*/
 
 int NI_element_type( void *nini )
@@ -3002,9 +3017,9 @@ void NI_free_element( void *nini )
 /*-----------------------------------------------------------------------*/
 /*! Create a new data element.
 
-    name   = string name for header.
-    veclen = size of vectors (ni_dimen); set this to zero for "empty"
-             elements (those with only headers, no data).
+    - name   = string name for header.
+    - veclen = size of vectors (ni_dimen); set this to zero for "empty"
+               elements (those with only headers, no data).
 
     Return is NULL if inputs are stupid.
 -------------------------------------------------------------------------*/
@@ -3066,9 +3081,9 @@ NI_element * NI_new_data_element( char *name , int veclen )
 /*-----------------------------------------------------------------------*/
 /*! Define the rowmap for inserting/retrieving a struct from a
     data element, using ARrays as input.
-     * nrow = number of data fields in a row
-     * typ[i] = type code for the i-th field, i=0..nrow-1 (e.g., NI_FLOAT)
-     * off[i] = byte offset into struct for i-th field
+     - nrow = number of data fields in a row
+     - typ[i] = type code for the i-th field, i=0..nrow-1 (e.g., NI_FLOAT)
+     - off[i] = byte offset into struct for i-th field
 -------------------------------------------------------------------------*/
 
 void NI_define_rowmap_AR( NI_element *nel, int nrow, int *typ, int *off )
@@ -3127,18 +3142,18 @@ void NI_define_rowmap_AR( NI_element *nel, int nrow, int *typ, int *off )
     NI_define_rowmap_VA(nel,typ1,off1,typ2,off2,-1);
     This function works simply by building temp arrays with the
     typ and off arguments, then calls NI_define_rowmap_AR().
-     * typ = type code (-1 signals end of argument list)
-     * off = byte offset into struct (should be >= 0)
+     - typ = type code (-1 signals end of argument list)
+     - off = byte offset into struct (should be >= 0)
 
     Example:
-     typedef struct { float ff; short ss; char *SS; } zork ;
-     zork zzz = { 1.3 , -3 , "Puff the Magic Dragon" } ;
-     NI_element *nel = NI_new_data_element( "bythesea" , -1 ) ;
-     NI_define_rowmap_VA( nel ,
-                           NI_FLOAT , offsetof(zork,ff) ,
-                           NI_SHORT , offsetof(zork,ss) ,
-                           NI_STRING, offsetof(zork,SS) , -1 ) ;
-     NI_add_row( nel , &zzz ) ;
+     -  typedef struct { float ff; short ss; char *SS; } zork ;
+     -  zork zzz = { 1.3 , -3 , "Puff the Magic Dragon" } ;
+     -  NI_element *nel = NI_new_data_element( "bythesea" , -1 ) ;
+     -  NI_define_rowmap_VA( nel ,
+     -                       NI_FLOAT , offsetof(zork,ff) ,
+     -                       NI_SHORT , offsetof(zork,ss) ,
+     -                       NI_STRING, offsetof(zork,SS) , -1 ) ;
+     -  NI_add_row( nel , &zzz ) ;
 
     Note that when the "char *SS" field is copied out of the struct
     into the data element by NI_add_row(), that function will actually
@@ -3336,10 +3351,10 @@ fprintf(stderr," copying from vpt to ddd\n") ;
 /*-----------------------------------------------------------------------*/
 /*! Add a vector (column) of data to a data element.
 
-    nel = data element to modify
-    typ = type code of data (e.g., NI_FLOAT)
-    arr = pointer to data values - must be an array of length veclen
-          from NI_new_data_element()
+    - nel = data element to modify
+    - typ = type code of data (e.g., NI_FLOAT)
+    - arr = pointer to data values - must be an array of length veclen
+            from NI_new_data_element()
 
     The data array is copied into the element.  If the element was
     specified with veclen=0, then this function will do nothing.
@@ -3804,16 +3819,16 @@ static int nosigpipe = 0 ;
 *********************************************************************/
 
 /*-------------------------------------------------------------------*/
-/*!  See if the given socket (sd) is ready to read.
+/*!  See if the given socket (file descriptor sd) is ready to read.
 
    msec is the number of milliseconds to wait:
-     zero ==> no waiting
-     < 0  ==> wait until something happens (not recommended)
+     -  zero ==> no waiting
+     -  < 0  ==> wait until something happens (not recommended)
 
-   Return values are
-     -1 = some error occured (socket closed at other end?)
-      0 = socket is not ready to read
-      1 = socket has data
+   Return values are:
+     -  -1 = some error occured (socket closed at other end?)
+     -  0  = socket is not ready to read
+     -  1  = socket has data
 ---------------------------------------------------------------------*/
 
 static int tcp_readcheck( int sd , int msec )
@@ -3840,16 +3855,16 @@ static int tcp_readcheck( int sd , int msec )
 }
 
 /*-------------------------------------------------------------------*/
-/*! See if the given socket is ready to write.
+/*! See if the given socket (file descriptor sd) is ready to write.
 
     msec = max amount of time to wait, in milliseconds.
-     zero ==> no waiting
-     < 0  ==> wait until something happens (not recommended)
+     -  zero ==> no waiting
+     -  < 0  ==> wait until something happens (not recommended)
 
    Return values are
-     -1 = some error occured (socket closed at other end?)
-      0 = socket is not ready to write
-      1 = OK to write to socket
+     -  -1 = some error occured (socket closed at other end?)
+     -   0 = socket is not ready to write
+     -   1 = OK to write to socket
 ---------------------------------------------------------------------*/
 
 static int tcp_writecheck( int sd , int msec )
@@ -4173,7 +4188,7 @@ static int hostname_dotted( char *hnam )
 static void add_trusted_host( char *hnam )
 {
    char *hh=NULL ;
-   int nh,ii ;
+   int ii ;
 
    if( hnam == NULL || hnam[0] == '\0' ) return ;
 
@@ -4181,7 +4196,7 @@ static void add_trusted_host( char *hnam )
       hh = NI_hostname_to_inet( hnam ) ;  /* so do a lookup on it */
       if( hh == NULL ) return ;           /* failed? */
 
-   } else if( nh > HSIZE-1 ){         /* something bad? */
+   } else if( strlen(hnam) > HSIZE-1 ){   /* something bad? */
       return ;
    } else {
       hh = hnam ;                     /* store dotted number */
@@ -4283,28 +4298,34 @@ int NI_trust_host( char *hostid )
   name = "http://hostname/filename" to read data from a Web site
   name = "ftp://hostname/filename"  to read data from an FTP site
 
+  name = "fd:integer" to read or write data from a pre-opened
+         file descriptor (returned by the open() or fileno() functions).
+         For example, "fd:1" is used to write to stdout directly.
+         When an "fd:" stream is closed, nothing is actually done;
+         closing the file is the responsibility of the application.
+
   mode = "w" to open a stream for writing
-           * tcp: host must be specified ("w" is for a tcp client)
-           *file: filename is opened in write mode (and will be
+           - tcp: host must be specified ("w" is for a tcp client)
+           - file: filename is opened in write mode (and will be
                   overwritten if already exists)
-           * str: data will be written to a buffer in the NI_stream
+           - str: data will be written to a buffer in the NI_stream
                   struct; you can later access this buffer with the
                   function NI_stream_getbuf().
-           * You can't open "http:" or "ftp:" streams for writing.
+           - You can't open "http:" or "ftp:" streams for writing.
 
   mode = "r" to open a stream for reading
-           * tcp: host is ignored (but must be present);
+           - tcp: host is ignored (but must be present);
                   ("r" is for a tcp server)
-           *file: filename is opened in read mode
-           * str: characters after the colon are the source of
+           - file: filename is opened in read mode
+           - str: characters after the colon are the source of
                   the input data (will be copied to internal buffer);
                   OR, you can later set the internal buffer string
                   later with function NI_stream_setbuf().
-           * ftp: The remote files are fetched and loaded into
-            http: memory.  After that, these streams operate
+           - ftp: or http: The remote files are fetched and loaded into
+                  memory.  After that, these streams operate
                   pretty much the same as str: streams.
 
-  For a file: or str: stream, you can either read from or write to the
+  For a file:, fd:, or str: stream, you can either read from or write to the
   stream, but not both.  For a tcp: stream, once it is connected, you
   can both read and write.
 
@@ -4453,6 +4474,38 @@ NI_stream NI_stream_open( char *name , char *mode )
          ns->fsize = NI_filesize( fname ) ;  /* if we are reading  */
       else
          ns->fsize = -1 ;
+
+      return ns ;
+   }
+
+   /***** fd: very similar to a file, but we don't have to open it *****/
+
+   if( strncmp(name,"fd:",3) == 0 ){
+      int fd=-1 ; FILE *fp ;
+
+      sscanf(name+3,"%d",&fd) ;
+      if( fd < 0 ) return NULL ;   /* bad integer */
+      fp = fdopen( fd , do_create ? "wb"     /* always in binary mode */
+                                  : "rb" ) ;
+      if( fp == NULL ) return NULL ;
+
+      /** initialize NI_stream_type output **/
+
+      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+
+      ns->type     = NI_FD_TYPE;     /* what kind is this? */
+      ns->nbuf     = 0 ;             /* buffer is empty    */
+      ns->npos     = 0 ;             /* scan starts at 0   */
+      ns->fp       = fp ;
+      ns->io_mode  = do_create ? NI_OUTPUT_MODE
+                               : NI_INPUT_MODE  ;
+      ns->bad      = 0 ;
+
+      ns->buf      = NI_malloc(NI_BUFSIZE) ;
+      ns->bufsize  = NI_BUFSIZE ;
+
+      NI_strncpy( ns->name , name , 255 ) ;
+      ns->fsize = -1 ;
 
       return ns ;
    }
@@ -4625,9 +4678,9 @@ void NI_stream_setbuf( NI_stream_type *ns , char *str )
    Returns 1 if ready; 0 if not (but may become good later);
    -1 if an error occurs.
    Possible -1 errors are:
-     * ns was connected to a socket, and now has become disconnected
-     * ns is passed in as NULL (bad user, bad bad bad)
-     * ns is reading a file or a string, and we are already at its end
+     - ns was connected to a socket, and now has become disconnected
+     - ns is passed in as NULL (bad user, bad bad bad)
+     - ns is reading a file or a string, and we are already at its end
    The only case in which 0 is returned is if the NI_stream is a
    socket (tcp:) and the socket is waiting for a connection from
    the other end.  This is also the only case in which input parameter
@@ -4653,6 +4706,9 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
            return NI_stream_readcheck(ns,0) ;   /* input mode */
         else
            return 1 ;                           /* output mode */
+
+      case NI_FD_TYPE:
+           return 1 ;                           /* no way to check */
 
       /** String I/O **/
 
@@ -4734,6 +4790,7 @@ void NI_stream_close( NI_stream_type *ns )
 
    switch( ns->type ){
 
+      case NI_FD_TYPE:
       case NI_REMOTE_TYPE:
       case NI_STRING_TYPE:   /* nothing to do */
       break ;
@@ -4757,8 +4814,8 @@ void NI_stream_close( NI_stream_type *ns )
   available.  If msec < 0, this routine will wait nearly forever.
   The return value is 1 if data is ready, 0 if not;
   -1 will be returned if some unrecoverable error is detected:
-    tcp: the socket connection was dropped
-   file: you have reached the end of the file, and are still trying to read.
+    - tcp: the socket connection was dropped
+    - file: you have reached the end of the file, and are still trying to read.
 -----------------------------------------------------------------------------*/
 
 int NI_stream_readcheck( NI_stream_type *ns , int msec )
@@ -4779,6 +4836,12 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
         ii = tcp_alivecheck( ns->sd ) ;        /* see if it is still open  */
         if( !ii ) return -1 ;                  /* if not open, error exit  */
         ii = tcp_readcheck( ns->sd , msec ) ;  /* see if any data is there */
+        return ii ;
+
+      /** fd: ==> use select, as in tcp: **/
+
+      case NI_FD_TYPE:
+        ii = tcp_readcheck( fileno(ns->fp) , msec ) ;
         return ii ;
 
       /** file: ==> check current file position and length of file **/
@@ -4819,9 +4882,9 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
   be allowable.  If msec < 0, this routine will wait nearly forever.
   The return value is 1 if data can be sent, 0 if not;
   -1 will be returned if some unrecoverable error is detected:
-    tcp: the socket closed down at the other end
-   file: this should never happen, unless you try to write to
-         a readonly NI_stream
+    - tcp: the socket closed down at the other end
+    - file: this should never happen, unless you try to write to
+            a readonly NI_stream
 -----------------------------------------------------------------------------*/
 
 int NI_stream_writecheck( NI_stream_type *ns , int msec )
@@ -4840,6 +4903,11 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
            if( ii != 1 ) return ii ;           /* if still not good, exit */
         }
         return tcp_writecheck(ns->sd,msec) ;   /* check if we can write bytes */
+
+      /** fd: ==> use select, as in tcp: **/
+
+      case NI_FD_TYPE:
+        return tcp_writecheck( fileno(ns->fp) , msec ) ;
 
       /** file: ==> if the file was opened in write mode **/
 
@@ -4867,16 +4935,14 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
   Return value is the number of bytes actually sent, or is -1 if some error
   occurs (which means that the NI_stream is bad).
 
-  tcp: We use blocking sends, so that all the data should be sent properly
-       unless the connection to the other end fails for some reason
-       (e.g., the planet explodes in a fiery cataclysm of annihilation).
-
- file: Everything should be written, unless the filesystem fills up.
-       If nothing at all gets written, -1 is returned.
-
-  str: Everything will be written, or the program will crash.
-       Do not include the NUL byte at the end of the string in
-       the nbytes count.
+  - tcp: We use blocking sends, so that all the data should be sent properly
+          unless the connection to the other end fails for some reason
+          (e.g., the planet explodes in a fiery cataclysm of annihilation).
+  - file: Everything should be written, unless the filesystem fills up.
+          If nothing at all gets written, -1 is returned.
+  - str: Everything will be written, or the program will crash.
+          Do not include the NUL byte at the end of the string in
+          the nbytes count.
 ------------------------------------------------------------------------------*/
 
 int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
@@ -4911,6 +4977,7 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
      /** file: ==> just fwrite **/
 
+     case NI_FD_TYPE:
      case NI_FILE_TYPE:
        nsent = fwrite( buffer , 1 , nbytes , ns->fp ) ;
        if( nsent < nbytes ) PERROR("NI_stream_write(fwrite)") ;
@@ -4982,6 +5049,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
      /** file: just use fread **/
 
+     case NI_FD_TYPE:
      case NI_FILE_TYPE:
        if( ns->fp == NULL || ns->io_mode == NI_OUTPUT_MODE ) return -1 ;
        ii = fread( buffer , 1 , nbytes , ns->fp ) ;
@@ -5007,12 +5075,12 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 /*! Try to fill up the stream's input buffer.
     Don't call this function until NI_stream_goodcheck() is 1!
 
-    minread = Minimum number of bytes to read.
+  - minread = Minimum number of bytes to read.
               Will wait until we get at least this many,
               until the stream is bad or the buffer is full.
               If minread=0, then may read nothing (but will try).
 
-    msec    = Maximum amount of time to wait to satisfy minread,
+  - msec    = Maximum amount of time to wait to satisfy minread,
               in milliseconds.  If msec<0, will wait nearly forever.
               If msec=0, will return after 1st read attempt, even
               if nothing was obtained.
@@ -5944,10 +6012,10 @@ static void reset_buffer( NI_stream_type *ns )
 
     If the return value is -1, then we couldn't find a '<stuff>' string.
     This may be due to:
-      * there is no '<...>' in the buffer, and we can't read from
+      - there is no '<...>' in the buffer, and we can't read from
          the input stream; call NI_readcheck(ns,0) to confirm this
-      * time ran out (alas)
-      * The '<...' part filled the entire buffer (64K).  In this case,
+      - time ran out (alas)
+      - The '<...' part filled the entire buffer (64K).  In this case,
          all the input buffer is thrown away - we don't support
          headers or trailers this long!
 ------------------------------------------------------------------------*/
@@ -6058,10 +6126,11 @@ fprintf(stderr,"  scan_for_angles: case (c)\n") ;
 /*-----------------------------------------------------------------*/
 /*! Set the binary threshold size for NI_write_element.
 
-    If a data element takes up more than 'size' bytes, then it
+  - If a data element takes up more than 'size' bytes, then it
     will be written in binary form, otherwise in text form.
-    If size=0, then all elements are written in binary.
-    If size<0, then all elements are written in text.
+  - If size=0, then all elements are written in binary.
+  - If size<0, then all elements are written in text.
+
     This function only affects what happens when you write
     data elements.  Reading is controlled by the contents of
     each element header (i.e., the ni_form attribute).
@@ -6093,7 +6162,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    int  nwbuf , ii,jj,row,col , tt=NI_element_type(nini) , ntot=0,nout ;
 
    char *bbuf , *cbuf ;  /* base64 stuff */
-   int   bb   ,  cc   ;
+   int   bb=0 ,  cc=0 ;
 
    /* ADDOUT = after writing, add byte count if OK, else quit */
    /* AF     = thing to do if ADDOUT is quitting */
