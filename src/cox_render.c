@@ -568,9 +568,9 @@ fprintf(stderr,"warp: aii=%g  aij=%g\n"
 
    sl = (byte *) malloc(mab) ;  /* will hold extracted sheared slice */
 
-   /* create all zero output image */
+   /* create all zero output image (now done by mri_new) */
 
-   bim = mri_new(ma,mb,MRI_rgb); rgb = MRI_RGB_PTR(bim); memset(rgb,0,3*mab);
+   bim = mri_new(ma,mb,MRI_rgb); rgb = MRI_RGB_PTR(bim);
 
    /* prepare for projections of different types */
 
