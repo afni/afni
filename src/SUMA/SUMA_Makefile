@@ -2,7 +2,7 @@
 
 #These normally come from AFNI's makefile, if you're running make without using afni's makefile, you need to set some variables
 ifndef CEXTRA
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp
 WARNOPT = -Wall -Wno-unused-variable
 endif
 
@@ -15,11 +15,21 @@ ifeq ($(CC),gcc)
 #can't use ndef with CC because it's always defined
 else
 #add the option -DSUMA_MOTIF_GLXAREA if you want to use libMesaGLwM.a instead of libMesaGLw.a
-CC = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CC_G5  = -O3 -funroll-loops -fstrict-aliasing -fsched-interblock               \
+         -falign-loops=32 -falign-jumps=16 -falign-functions=16                \
+         -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural   \
+         -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL                     \
+         -mtune=G5 -mcpu=G5 -mpowerpc64 -fPIC
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp
+CCFAST = cc $(CC_G5) -DDARWIN -DNO_GAMMA $(CEXTRA)
+# CCFAST = cc -O2 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
+CC     = $(CCFAST)
 endif
 
 ifndef INSTALLDIR
-INSTALLDIR_SUMA = /home/ziad/abin
+INSTALLDIR_SUMA = /Users/ziad/abin
 else
 #send suma to one directory back and let Makefile.INCLUDE move it to INSTALLDIR
 INSTALLDIR_SUMA = ../
@@ -29,16 +39,16 @@ CCOPT =
 
 ifndef SUMA_INCLUDE_PATH
 #Don't prepend -Igts/src -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include/  here since only one program needs them
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -Igts/src -I/sw/include/glib-1.2 -I/sw/lib/glib/include
 endif
 ifndef SUMA_LINK_PATH
-SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib -L/sw/lib
 endif
 ifndef SUMA_LINK_LIB
 #No need for those unless you are using SUMA_MOTIF_GLXAREA
 #-lMesaGLwM lXm 
 #Don't append -lglib here because it is only needed in one program so far
-SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lm
+SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lmri -lm -lmx -lglib -bind_at_load
 endif
 
 ifndef SUMA_BIN_ARCHIVE
@@ -54,7 +64,7 @@ MV = /bin/mv
 endif
 
 ifndef TAR
-TAR = /bin/tar
+TAR = /sw/bin/tar
 endif
 
 ifndef RM

@@ -255,9 +255,11 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       
       SV->ShowEyeAxis = 1;
       SV->ShowMeshAxis = 0;      /* Turned off Oct 15 04 in favor of WorldAxis */
-      SV->ShowWorldAxis = SUMA_THREE_WAX;
+      SV->ShowWorldAxis = SUMA_NO_WAX;
+      
       
       SV->WAx = SUMA_Alloc_Axis ("Viewer World Axis");
+
       if (SV->WAx == NULL) {
          fprintf(SUMA_STDERR,"Error %s: Error Allocating axis\n", FuncName);
          SUMA_RETURN(NULL);

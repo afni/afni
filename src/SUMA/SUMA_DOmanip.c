@@ -558,8 +558,9 @@ N contains the number of elements found
 */
 int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N)
 {
-   int *do_id, i;
    static char FuncName[]={"SUMA_GetDO_Type"};
+   int *do_id, i;
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
 
