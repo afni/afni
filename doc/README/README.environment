@@ -2096,6 +2096,14 @@ If this YES/NO variable is set to YES, then the GLT matrices generated
 in 3dDeconvolve by the "-gltsym" option will be printed to the screen
 when the program starts up.
 
+---------------------------
+Variable: AFNI_TITLE_LABEL2 (editable)
+---------------------------
+If this YES/NO variable is YES, then the AFNI window titlebars will show
+the 'label2' field from the AFNI dataset .HEAD file, rather than the
+dataset filename.  If the label2 field is set to a nontrivial value,
+that is.  You can set the label2 field with the 3drefit command.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
