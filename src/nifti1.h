@@ -1038,25 +1038,29 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 /* MRI-SPECIFIC SPATIAL AND TEMPORAL INFORMATION:
    ---------------------------------------------
    A few fields are provided to store some extra information
-   that is sometimes important for FMRI time series datasets.
+   that is sometimes important when storing the image data
+   from an FMRI time series experiment.  (After processing such
+   data into statistical images, these fields are not likely
+   to be useful.)
 
-    freq_dim  = These fields encode which spatial dimension (1,2, or 3)
-    phase_dim = corresponds to which acquisition dimension for MRI data.
-    slice_dim = Examples:
+  { freq_dim  } = These fields encode which spatial dimension (1,2, or 3)
+  { phase_dim } = corresponds to which acquisition dimension for MRI data.
+  { slice_dim } =
+    Examples:
       Rectangular scan multi-slice EPI:
-        freq_dim = 1  phase_dim = 2  slice_dim = 3
+        freq_dim = 1  phase_dim = 2  slice_dim = 3  (or some permutation)
       Spiral scan multi-slice EPI:
         freq_dim = phase_dim = 0  slice_dim = 3
         since the concepts of frequency- and phase-encoding directions
         don't apply to spiral scan
 
-    slice_duration = If this is positive, and if slice_dim is nonzero,
-                     indicates the amount of time used to acquire ALL
-                     the slices. This value can be less than
-                     pixdim[slice_dim] with the clustered acquisition
-                     methods, for example.
-             
-    slice_code = If this is nonzero, and if slice_dim is nonzero, and
+    slice_duration = If this is positive, AND if slice_dim is nonzero,
+                     indicates the amount of time used to acquire 1 slice.
+                     slice_duration*dim[slice_dim] can be less than
+                     pixdim[slice_dim] with a clustered acquisition
+                     method, for example.
+
+    slice_code = If this is nonzero, AND if slice_dim is nonzero, AND
                  if slice_duration is positive, indicates the timing
                  pattern of the slice acquisition.  The following codes
                  are defined:
@@ -1064,17 +1068,28 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                    NIFTI_SLICE_SEQ_DEC
                    NIFTI_SLICE_ALT_INC
                    NIFTI_SLICE_ALT_DEC
-    slice_start
-    slice_end
- slice
- index   SEQ_INC SEQ_DEC ALT_INC ALT_DEC
-   6  --
-   5  --   4
-   4  --   3
-   3  --   2
-   2  --   1
-   1  --   0
-   0  --    
+  { slice_start } = Indicates the start and end of the slice acquisition
+  { slice_end   } = pattern, when slice_code is nonzero.  These values
+                    are present to allow for the possible addition of
+                    "padded" slices at either end of the volume, which
+                    don't fit into the slice timing pattern.  If there
+                    are no padding slices, then slice_start=0 and
+                    slice_end=dim[slice_dim]-1 are the correct values.
+
+  The following table indicates the slice timing pattern, relative to
+  time=0 for the first slice acquired, for some sample cases.  Here,
+  dim[slice_dim]=7 (there are 7 slices, labeled 0..6), slice_duration=0.1,
+  and slice_start=1, slice_end=5 (1 padded slice on each end).
+
+    slice
+    index   SEQ_INC SEQ_DEC ALT_INC ALT_DEC
+      6  --   n/a     n/a     n/a     n/a     n/a = not applicable
+      5  --   0.4     0.0     0.2     0.0           (slice time offset
+      4  --   0.3     0.1     0.4     0.3            doesn't apply to
+      3  --   0.2     0.2     0.1     0.1            slices outside range
+      2  --   0.1     0.3     0.3     0.4            slice_start..slice_end)
+      1  --   0.0     0.4     0.0     0.2
+      0  --   n/a     n/a     n/a     n/a
 
 -----------------------------------------------------------------------------*/
 
