@@ -1,0 +1,2662 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Object class</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><LINK
+REL="PREVIOUS"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><LINK
+REL="NEXT"
+TITLE="Container classes"
+HREF="gts-container-classes.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="c2560.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c2560.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-container-classes.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-OBJECT-CLASS"
+></A
+>Object class</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN2571"
+></A
+><H2
+>Name</H2
+>Object class&nbsp;--&nbsp;parent class for all GTS objects.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN2574"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-object-class.html#GTS-CLASS-NAME-LENGTH-CAPS"
+>GTS_CLASS_NAME_LENGTH</A
+>
+#define     <A
+HREF="gts-object-class.html#GTS-OBJECT-CLASS-CAPS"
+>GTS_OBJECT_CLASS</A
+>                (klass)
+#define     <A
+HREF="gts-object-class.html#GTS-OBJECT-CAPS"
+>GTS_OBJECT</A
+>                      (obj)
+#define     <A
+HREF="gts-object-class.html#GTS-IS-OBJECT-CAPS"
+>GTS_IS_OBJECT</A
+>                   (obj)
+#define     <A
+HREF="gts-object-class.html#GTS-OBJECT-CLASS-CAST-CAPS"
+>GTS_OBJECT_CLASS_CAST</A
+>           (objklass, type, klass)
+#define     <A
+HREF="gts-object-class.html#GTS-OBJECT-CAST-CAPS"
+>GTS_OBJECT_CAST</A
+>                 (obj, type, klass)
+#define     <A
+HREF="gts-object-class.html#GTS-OBJECT-FLAGS-CAPS"
+>GTS_OBJECT_FLAGS</A
+>                (obj)
+#define     <A
+HREF="gts-object-class.html#GTS-OBJECT-SET-FLAGS-CAPS"
+>GTS_OBJECT_SET_FLAGS</A
+>            (obj,flag)
+#define     <A
+HREF="gts-object-class.html#GTS-OBJECT-UNSET-FLAGS-CAPS"
+>GTS_OBJECT_UNSET_FLAGS</A
+>          (obj,flag)
+#define     <A
+HREF="gts-object-class.html#GTS-OBJECT-DESTROYED-CAPS"
+>GTS_OBJECT_DESTROYED</A
+>            (obj)
+
+struct      <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>;
+struct      <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>;
+struct      <A
+HREF="gts-object-class.html#GTSOBJECTCLASSINFO"
+>GtsObjectClassInfo</A
+>;
+void        (<A
+HREF="gts-object-class.html#GTSOBJECTCLASSINITFUNC"
+>*GtsObjectClassInitFunc</A
+>)       (<A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *objclass);
+void        (<A
+HREF="gts-object-class.html#GTSOBJECTINITFUNC"
+>*GtsObjectInitFunc</A
+>)            (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *obj);
+void        (<A
+HREF="gts-object-class.html#GTSARGSETFUNC"
+>*GtsArgSetFunc</A
+>)                (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *obj);
+void        (<A
+HREF="gts-object-class.html#GTSARGGETFUNC"
+>*GtsArgGetFunc</A
+>)                (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *obj);
+enum        <A
+HREF="gts-object-class.html#GTSOBJECTFLAGS"
+>GtsObjectFlags</A
+>;
+struct      <A
+HREF="gts-object-class.html#GTSCOLOR"
+>GtsColor</A
+>;
+
+<A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>* <A
+HREF="gts-object-class.html"
+>gts_object_class</A
+>            (void);
+<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    <A
+HREF="gts-object-class.html#GTS-OBJECT-CLASS-NEW"
+>gts_object_class_new</A
+>            (<A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *parent_class,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECTCLASSINFO"
+>GtsObjectClassInfo</A
+> *info);
+<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    <A
+HREF="gts-object-class.html#GTS-OBJECT-CLASS-CHECK-CAST"
+>gts_object_class_check_cast</A
+>     (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> klass,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> from);
+<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    <A
+HREF="gts-object-class.html#GTS-OBJECT-CLASS-IS-FROM-CLASS"
+>gts_object_class_is_from_class</A
+>  (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> klass,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> from);
+<A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>* <A
+HREF="gts-object-class.html#GTS-OBJECT-CLASS-FROM-NAME"
+>gts_object_class_from_name</A
+>  (<GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *name);
+<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>*  <A
+HREF="gts-object-class.html#GTS-OBJECT-NEW"
+>gts_object_new</A
+>                  (<A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *klass);
+void        <A
+HREF="gts-object-class.html#GTS-OBJECT-INIT"
+>gts_object_init</A
+>                 (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *klass);
+<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>*  <A
+HREF="gts-object-class.html#GTS-OBJECT-CLONE"
+>gts_object_clone</A
+>                (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object);
+void        <A
+HREF="gts-object-class.html#GTS-OBJECT-ATTRIBUTES"
+>gts_object_attributes</A
+>           (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *from);
+<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    <A
+HREF="gts-object-class.html#GTS-OBJECT-CHECK-CAST"
+>gts_object_check_cast</A
+>           (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> object,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> klass);
+<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    <A
+HREF="gts-object-class.html#GTS-OBJECT-IS-FROM-CLASS"
+>gts_object_is_from_class</A
+>        (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> object,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> klass);
+void        <A
+HREF="gts-object-class.html#GTS-OBJECT-RESET-RESERVED"
+>gts_object_reset_reserved</A
+>       (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object);
+void        <A
+HREF="gts-object-class.html#GTS-OBJECT-DESTROY"
+>gts_object_destroy</A
+>              (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object);
+void        <A
+HREF="gts-object-class.html#GTS-FINALIZE"
+>gts_finalize</A
+>                    (void);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN2642"
+></A
+><H2
+>Description</H2
+><P
+>All GTS objects are derived from this base class. Objects of any class can be constructed using the <A
+HREF="gts-object-class.html#GTS-OBJECT-NEW"
+>gts_object_new</A
+>() function and destroyed using the <A
+HREF="gts-object-class.html#GTS-OBJECT-DESTROY"
+>gts_object_destroy</A
+>() function. Default virtual methods include <GTKDOCLINK
+HREF="READ"
+>read</GTKDOCLINK
+>() and <GTKDOCLINK
+HREF="WRITE"
+>write</GTKDOCLINK
+>() functions which can be used to read or write associated objects attributes from or to GTS geometrical files.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN2649"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2651"
+></A
+><H3
+><A
+NAME="GTS-CLASS-NAME-LENGTH-CAPS"
+></A
+>GTS_CLASS_NAME_LENGTH</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_CLASS_NAME_LENGTH 40</PRE
+><P
+>Maximum class name length for <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2657"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CLASS-CAPS"
+></A
+>GTS_OBJECT_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_OBJECT_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2665"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2671"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CAPS"
+></A
+>GTS_OBJECT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_OBJECT(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2679"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2685"
+></A
+><H3
+><A
+NAME="GTS-IS-OBJECT-CAPS"
+></A
+>GTS_IS_OBJECT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_OBJECT(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2695"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2700"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CLASS-CAST-CAPS"
+></A
+>GTS_OBJECT_CLASS_CAST()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_OBJECT_CLASS_CAST(objklass, type, klass)</PRE
+><P
+>This macro is used to define casting macros for object classes. You should need it only when writing new object class functions.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2706"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>objklass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2712"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>type</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The class type to cast <VAR
+CLASS="PARAMETER"
+>objklass</VAR
+> to (example: GtsObjectClass).</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2718"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>the class to cast <VAR
+CLASS="PARAMETER"
+>objklass</VAR
+> to (example: <A
+HREF="gts-object-class.html"
+>gts_object_class</A
+>()).
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2725"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CAST-CAPS"
+></A
+>GTS_OBJECT_CAST()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_OBJECT_CAST(obj, type, klass)</PRE
+><P
+>This macro is used to define casting macros for object. You should need it only when writing new object functions.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2731"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2737"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>type</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>the object type to cast <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to (example: GtsObject).</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2743"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>the object class to cast <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to (example: <GTKDOCLINK
+HREF="GTS-OBJECT"
+>gts_object</GTKDOCLINK
+>()).
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2750"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-FLAGS-CAPS"
+></A
+>GTS_OBJECT_FLAGS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_OBJECT_FLAGS(obj)             (GTS_OBJECT (obj)-&gt;flags)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2756"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2761"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-SET-FLAGS-CAPS"
+></A
+>GTS_OBJECT_SET_FLAGS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_OBJECT_SET_FLAGS(obj,flag)	  G_STMT_START{ (GTS_OBJECT_FLAGS (obj) |= (flag)); }G_STMT_END</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2767"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2772"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>flag</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2777"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-UNSET-FLAGS-CAPS"
+></A
+>GTS_OBJECT_UNSET_FLAGS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_OBJECT_UNSET_FLAGS(obj,flag)  G_STMT_START{ (GTS_OBJECT_FLAGS (obj) &amp;= ~(flag)); }G_STMT_END</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2783"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2788"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>flag</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2793"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-DESTROYED-CAPS"
+></A
+>GTS_OBJECT_DESTROYED()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_OBJECT_DESTROYED(obj)         ((GTS_OBJECT_FLAGS (obj) &amp; GTS_DESTROYED) != 0)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2799"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2804"
+></A
+><H3
+><A
+NAME="GTSOBJECTCLASS"
+></A
+>struct GtsObjectClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsObjectClass {
+
+  GtsObjectClassInfo info;
+  GtsObjectClass * parent_class;
+
+  void        (* clone)      (GtsObject *, GtsObject *);
+  void        (* destroy)    (GtsObject *);
+  void        (* read)       (GtsObject **, GtsFile *);
+  void        (* write)      (GtsObject *, FILE *);
+  GtsColor    (* color)      (GtsObject *);
+  void        (* attributes) (GtsObject *, GtsObject *);
+};</PRE
+><P
+>The base object class structure. All the virtual functions <VAR
+CLASS="PARAMETER"
+>clone</VAR
+>, <VAR
+CLASS="PARAMETER"
+>destroy</VAR
+>, <VAR
+CLASS="PARAMETER"
+>read</VAR
+> and <VAR
+CLASS="PARAMETER"
+>write</VAR
+> can be overloaded. The default <VAR
+CLASS="PARAMETER"
+>read</VAR
+> and <VAR
+CLASS="PARAMETER"
+>write</VAR
+> methods are undefined. The default <VAR
+CLASS="PARAMETER"
+>clone</VAR
+> method just copies the object structure. The default <VAR
+CLASS="PARAMETER"
+>destroy</VAR
+> method frees the memory allocated for a given object structure.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2817"
+></A
+><H3
+><A
+NAME="GTSOBJECT"
+></A
+>struct GtsObject</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsObject {
+
+  GtsObjectClass * klass;
+
+  gpointer reserved;
+  guint32 flags;
+};</PRE
+><P
+>The base object structure.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2823"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>klass</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The object class.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2829"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>reserved</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Used internally by the library.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2835"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT32"
+>guint32</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>flags</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Used internally.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2841"
+></A
+><H3
+><A
+NAME="GTSOBJECTCLASSINFO"
+></A
+>struct GtsObjectClassInfo</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsObjectClassInfo {
+
+  gchar name[GTS_CLASS_NAME_LENGTH];
+  guint object_size;
+  guint class_size;
+  GtsObjectClassInitFunc class_init_func;
+  GtsObjectInitFunc object_init_func;
+  GtsArgSetFunc arg_set_func;
+  GtsArgGetFunc arg_get_func;
+};</PRE
+><P
+>Informations about a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>, including name, size of the object structure to be allocated when constructing the object, size of the object class structure to be allocated when instanciating the object class, class initialization function, object initialization function.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2847"
+></A
+><H3
+><A
+NAME="GTSOBJECTCLASSINITFUNC"
+></A
+>GtsObjectClassInitFunc ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        (*GtsObjectClassInitFunc)       (<A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *objclass);</PRE
+><P
+>A function to call to initialize an object class.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2854"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>objclass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> to be initialized.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2860"
+></A
+><H3
+><A
+NAME="GTSOBJECTINITFUNC"
+></A
+>GtsObjectInitFunc ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        (*GtsObjectInitFunc)            (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *obj);</PRE
+><P
+>A function to call to initialize an object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2867"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2873"
+></A
+><H3
+><A
+NAME="GTSARGSETFUNC"
+></A
+>GtsArgSetFunc ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        (*GtsArgSetFunc)                (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *obj);</PRE
+><P
+>Defined for future use.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2880"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2886"
+></A
+><H3
+><A
+NAME="GTSARGGETFUNC"
+></A
+>GtsArgGetFunc ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        (*GtsArgGetFunc)                (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *obj);</PRE
+><P
+>Defined for future use.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2893"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2899"
+></A
+><H3
+><A
+NAME="GTSOBJECTFLAGS"
+></A
+>enum GtsObjectFlags</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>typedef enum
+{
+  GTS_DESTROYED         = 1 &lt;&lt; 0,
+  GTS_USER_FLAG         = 1 /* user flags start from here */
+} GtsObjectFlags;</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2904"
+></A
+><H3
+><A
+NAME="GTSCOLOR"
+></A
+>struct GtsColor</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsColor {
+
+  gfloat r, g, b;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2909"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CLASS"
+></A
+>gts_object_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>* gts_object_class            (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2917"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2923"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CLASS-NEW"
+></A
+>gts_object_class_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    gts_object_class_new            (<A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *parent_class,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECTCLASSINFO"
+>GtsObjectClassInfo</A
+> *info);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2933"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>parent_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2939"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>info</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASSINFO"
+>GtsObjectClassInfo</A
+>, description of the new class to create.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2945"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> derived from <VAR
+CLASS="PARAMETER"
+>parent_class</VAR
+> and described by
+<VAR
+CLASS="PARAMETER"
+>info</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2953"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CLASS-CHECK-CAST"
+></A
+>gts_object_class_check_cast ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    gts_object_class_check_cast     (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> klass,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> from);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2963"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2969"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>from</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2975"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> while emitting warnings if <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> is not derived from
+<VAR
+CLASS="PARAMETER"
+>from</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2983"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CLASS-IS-FROM-CLASS"
+></A
+>gts_object_class_is_from_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    gts_object_class_is_from_class  (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> klass,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> from);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2993"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2999"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>from</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3005"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> if <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> is equal to <VAR
+CLASS="PARAMETER"
+>from</VAR
+> or if <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> is derived
+from <VAR
+CLASS="PARAMETER"
+>from</VAR
+>, <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3016"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CLASS-FROM-NAME"
+></A
+>gts_object_class_from_name ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>* gts_object_class_from_name  (<GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *name);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3025"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>name</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the name of a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3031"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> with name <VAR
+CLASS="PARAMETER"
+>name</VAR
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if it hasn't been 
+instantiated yet.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3039"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-NEW"
+></A
+>gts_object_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>*  gts_object_new                  (<A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *klass);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3048"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3054"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new initialized object of class <VAR
+CLASS="PARAMETER"
+>klass</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3060"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-INIT"
+></A
+>gts_object_init ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_object_init                 (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+> *klass);</PRE
+><P
+>Calls the init method of <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> with <VAR
+CLASS="PARAMETER"
+>object</VAR
+> as argument. This is done 
+recursively in the correct order (from the base class to the top). You
+should rarely need this function as it is called automatically by the
+constructor for each class.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3071"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>object</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3077"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3083"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CLONE"
+></A
+>gts_object_clone ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>*  gts_object_clone                (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object);</PRE
+><P
+>Calls the clone method of <VAR
+CLASS="PARAMETER"
+>object</VAR
+>. The call to this function will fail
+if no clone method exists for the given object.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3093"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>object</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3099"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new object clone of <VAR
+CLASS="PARAMETER"
+>object</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3105"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-ATTRIBUTES"
+></A
+>gts_object_attributes ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_object_attributes           (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *from);</PRE
+><P
+>Calls the <GTKDOCLINK
+HREF="ATTRIBUTES"
+>attributes</GTKDOCLINK
+>() method of <VAR
+CLASS="PARAMETER"
+>object</VAR
+> using <VAR
+CLASS="PARAMETER"
+>from</VAR
+> as source.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3117"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>object</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3123"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>from</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3129"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-CHECK-CAST"
+></A
+>gts_object_check_cast ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    gts_object_check_cast           (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> object,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> klass);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3139"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>object</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3145"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3151"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="PARAMETER"
+>object</VAR
+> while emitting warnings if <VAR
+CLASS="PARAMETER"
+>object</VAR
+> is not of class <VAR
+CLASS="PARAMETER"
+>klass</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3159"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-IS-FROM-CLASS"
+></A
+>gts_object_is_from_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    gts_object_is_from_class        (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> object,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> klass);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3169"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>object</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3175"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3181"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="PARAMETER"
+>object</VAR
+> if <VAR
+CLASS="PARAMETER"
+>object</VAR
+> is of class <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> or of a class derived from
+<VAR
+CLASS="PARAMETER"
+>klass</VAR
+>, <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3191"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-RESET-RESERVED"
+></A
+>gts_object_reset_reserved ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_object_reset_reserved       (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object);</PRE
+><P
+>Reset the reserved field of <VAR
+CLASS="PARAMETER"
+>object</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3200"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>object</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3206"
+></A
+><H3
+><A
+NAME="GTS-OBJECT-DESTROY"
+></A
+>gts_object_destroy ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_object_destroy              (<A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *object);</PRE
+><P
+>Calls the destroy method of <VAR
+CLASS="PARAMETER"
+>object</VAR
+>, freeing all memory allocated for it.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3215"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>object</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3221"
+></A
+><H3
+><A
+NAME="GTS-FINALIZE"
+></A
+>gts_finalize ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_finalize                    (void);</PRE
+><P
+>Free all the memory allocated by the object system of GTS. No other
+GTS function can be called after this function has been called.</P
+><P
+></P
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="c2560.html"
+><B
+>&lt;&lt;&lt;&nbsp;Geometrical Object Hierarchy</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-container-classes.html"
+><B
+>Container classes&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

@@ -1,0 +1,1419 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Faces</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><LINK
+REL="PREVIOUS"
+TITLE="Triangles"
+HREF="gts-triangles.html"><LINK
+REL="NEXT"
+TITLE="Surfaces"
+HREF="gts-surfaces.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-triangles.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c2560.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-surfaces.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-FACES"
+></A
+>Faces</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN7451"
+></A
+><H2
+>Name</H2
+>Faces&nbsp;--&nbsp;face object and related functions.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN7454"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-faces.html#GTS-FACE-CLASS-CAPS"
+>GTS_FACE_CLASS</A
+>                  (klass)
+#define     <A
+HREF="gts-faces.html#GTS-FACE-CAPS"
+>GTS_FACE</A
+>                        (obj)
+#define     <A
+HREF="gts-faces.html#GTS-IS-FACE-CAPS"
+>GTS_IS_FACE</A
+>                     (obj)
+struct      <A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+>;
+struct      <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>;
+
+<A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+>* <A
+HREF="gts-faces.html#GTS-FACE-CLASS"
+>gts_face_class</A
+>                (void);
+<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>*    <A
+HREF="gts-faces.html#GTS-FACE-NEW"
+>gts_face_new</A
+>                    (<A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+> *klass,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e1,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e2,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e3);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-faces.html#GTS-FACE-HAS-PARENT-SURFACE"
+>gts_face_has_parent_surface</A
+>     (<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-faces.html#GTS-FACE-NEIGHBOR-NUMBER"
+>gts_face_neighbor_number</A
+>        (<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-faces.html#GTS-FACE-NEIGHBORS"
+>gts_face_neighbors</A
+>              (<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);
+void        <A
+HREF="gts-faces.html#GTS-FACE-FOREACH-NEIGHBOR"
+>gts_face_foreach_neighbor</A
+>       (<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-faces.html#GTS-FACES-FROM-EDGES"
+>gts_faces_from_edges</A
+>            (<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *edges,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN7491"
+></A
+><H2
+>Description</H2
+><P
+>Faces are derived from <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>. A collection of faces defined a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN7496"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7498"
+></A
+><H3
+><A
+NAME="GTS-FACE-CLASS-CAPS"
+></A
+>GTS_FACE_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_FACE_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7506"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7512"
+></A
+><H3
+><A
+NAME="GTS-FACE-CAPS"
+></A
+>GTS_FACE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_FACE(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7520"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7526"
+></A
+><H3
+><A
+NAME="GTS-IS-FACE-CAPS"
+></A
+>GTS_IS_FACE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_FACE(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7536"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7541"
+></A
+><H3
+><A
+NAME="GTSFACECLASS"
+></A
+>struct GtsFaceClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsFaceClass {
+
+  GtsTriangleClass parent_class;
+};</PRE
+><P
+>The face class derived from <A
+HREF="gts-triangles.html#GTSTRIANGLECLASS"
+>GtsTriangleClass</A
+>.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7547"
+></A
+><H3
+><A
+NAME="GTSFACE"
+></A
+>struct GtsFace</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsFace {
+
+  GtsTriangle triangle;
+
+  GSList * surfaces;
+};</PRE
+><P
+>The face object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7553"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> <CODE
+CLASS="STRUCTFIELD"
+>triangle</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7559"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *<CODE
+CLASS="STRUCTFIELD"
+>surfaces</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>A list of <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> using this face.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7566"
+></A
+><H3
+><A
+NAME="GTS-FACE-CLASS"
+></A
+>gts_face_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+>* gts_face_class                (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7574"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7580"
+></A
+><H3
+><A
+NAME="GTS-FACE-NEW"
+></A
+>gts_face_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>*    gts_face_new                    (<A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+> *klass,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e1,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e2,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e3);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7592"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-faces.html#GTSFACECLASS"
+>GtsFaceClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7598"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7604"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7610"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e3</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7616"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> using <VAR
+CLASS="PARAMETER"
+>e1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>e2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>e3</VAR
+> as edges.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7625"
+></A
+><H3
+><A
+NAME="GTS-FACE-HAS-PARENT-SURFACE"
+></A
+>gts_face_has_parent_surface ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_face_has_parent_surface     (<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7635"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7641"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7647"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>f</VAR
+> belongs to <VAR
+CLASS="PARAMETER"
+>s</VAR
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7656"
+></A
+><H3
+><A
+NAME="GTS-FACE-NEIGHBOR-NUMBER"
+></A
+>gts_face_neighbor_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_face_neighbor_number        (<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7666"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7672"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7679"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of faces neighbors of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> and belonging to <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7686"
+></A
+><H3
+><A
+NAME="GTS-FACE-NEIGHBORS"
+></A
+>gts_face_neighbors ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_face_neighbors              (<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7696"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7702"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7709"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of unique <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> neighbors of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> and belonging to <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7717"
+></A
+><H3
+><A
+NAME="GTS-FACE-FOREACH-NEIGHBOR"
+></A
+>gts_face_foreach_neighbor ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_face_foreach_neighbor       (<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>Calls <VAR
+CLASS="PARAMETER"
+>func</VAR
+> for each neighbor of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> belonging to <VAR
+CLASS="PARAMETER"
+>s</VAR
+> (if not <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>).</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7732"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7738"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7745"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7751"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to pass to <VAR
+CLASS="PARAMETER"
+>func</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN7757"
+></A
+><H3
+><A
+NAME="GTS-FACES-FROM-EDGES"
+></A
+>gts_faces_from_edges ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_faces_from_edges            (<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *edges,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+>Builds a list of unique faces which belong to <VAR
+CLASS="PARAMETER"
+>s</VAR
+> and have
+one of their edges in <VAR
+CLASS="PARAMETER"
+>edges</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7769"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>edges</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7775"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN7782"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the list of faces.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-triangles.html"
+><B
+>&lt;&lt;&lt;&nbsp;Triangles</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-surfaces.html"
+><B
+>Surfaces&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

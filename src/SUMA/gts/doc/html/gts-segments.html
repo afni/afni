@@ -1,0 +1,1568 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Segments</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><LINK
+REL="PREVIOUS"
+TITLE="Vertices"
+HREF="gts-vertices.html"><LINK
+REL="NEXT"
+TITLE="Edges"
+HREF="gts-edges.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-vertices.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c2560.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-edges.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-SEGMENTS"
+></A
+>Segments</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN5347"
+></A
+><H2
+>Name</H2
+>Segments&nbsp;--&nbsp;segment object and related functions.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN5350"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-segments.html#GTS-SEGMENT-CLASS-CAPS"
+>GTS_SEGMENT_CLASS</A
+>               (klass)
+#define     <A
+HREF="gts-segments.html#GTS-SEGMENT-CAPS"
+>GTS_SEGMENT</A
+>                     (obj)
+#define     <A
+HREF="gts-segments.html#GTS-IS-SEGMENT-CAPS"
+>GTS_IS_SEGMENT</A
+>                  (obj)
+struct      <A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+>;
+struct      <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>;
+
+<A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+>* <A
+HREF="gts-segments.html#GTS-SEGMENT-CLASS"
+>gts_segment_class</A
+>          (void);
+<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>* <A
+HREF="gts-segments.html#GTS-SEGMENT-NEW"
+>gts_segment_new</A
+>                 (<A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+> *klass,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v1,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v2);
+#define     <A
+HREF="gts-segments.html#GTS-SEGMENTS-ARE-IDENTICAL"
+>gts_segments_are_identical</A
+>      (s1, s2)
+<A
+HREF="gts-points.html#GTSINTERSECT"
+>GtsIntersect</A
+> <A
+HREF="gts-segments.html#GTS-SEGMENTS-ARE-INTERSECTING"
+>gts_segments_are_intersecting</A
+>  (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s1,
+                                             <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s2);
+<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>* <A
+HREF="gts-segments.html#GTS-SEGMENT-IS-DUPLICATE"
+>gts_segment_is_duplicate</A
+>        (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-segments.html#GTS-SEGMENT-IS-OK"
+>gts_segment_is_ok</A
+>               (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s);
+#define     <A
+HREF="gts-segments.html#GTS-SEGMENT-CONNECT"
+>gts_segment_connect</A
+>             (s, e1, e2)
+#define     <A
+HREF="gts-segments.html#GTS-SEGMENTS-TOUCH"
+>gts_segments_touch</A
+>              (s1, s2)
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-segments.html#GTS-SEGMENTS-FROM-VERTICES"
+>gts_segments_from_vertices</A
+>      (<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *vertices);
+<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>*  <A
+HREF="gts-segments.html#GTS-SEGMENT-MIDVERTEX"
+>gts_segment_midvertex</A
+>           (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *klass);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN5385"
+></A
+><H2
+>Description</H2
+><P
+>Segments are defined by their two <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>. They are not oriented.</P
+><P
+>When destroying a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>, all the vertices not used by another edge are also destroyed. This default behaviour can be changed punctually by setting the global variable gts_allow_floating_vertices to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+>. You must not forget to set this variable back to <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> as all the algorithms of GTS assume the default behaviour.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN5393"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5395"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-CLASS-CAPS"
+></A
+>GTS_SEGMENT_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_SEGMENT_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5403"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5409"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-CAPS"
+></A
+>GTS_SEGMENT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_SEGMENT(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5417"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5423"
+></A
+><H3
+><A
+NAME="GTS-IS-SEGMENT-CAPS"
+></A
+>GTS_IS_SEGMENT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_SEGMENT(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a descendant of <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5433"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5438"
+></A
+><H3
+><A
+NAME="GTSSEGMENTCLASS"
+></A
+>struct GtsSegmentClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsSegmentClass {
+
+  GtsObjectClass parent_class;
+};</PRE
+><P
+>The segment class. No virtual functions are assiocated.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5443"
+></A
+><H3
+><A
+NAME="GTSSEGMENT"
+></A
+>struct GtsSegment</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsSegment {
+
+  GtsObject object;
+
+  GtsVertex * v1;
+  GtsVertex * v2;
+};</PRE
+><P
+>The segment object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5449"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> <CODE
+CLASS="STRUCTFIELD"
+>object</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5455"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>v1</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>First endpoint of the segment.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5461"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>v2</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Second endpoint of the segment.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5467"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-CLASS"
+></A
+>gts_segment_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+>* gts_segment_class          (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5475"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5481"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-NEW"
+></A
+>gts_segment_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>* gts_segment_new                 (<A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+> *klass,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v1,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5492"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENTCLASS"
+>GtsSegmentClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5498"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5504"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> different from <VAR
+CLASS="PARAMETER"
+>v1</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5511"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> linking <VAR
+CLASS="PARAMETER"
+>v1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>v2</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5519"
+></A
+><H3
+><A
+NAME="GTS-SEGMENTS-ARE-IDENTICAL"
+></A
+>gts_segments_are_identical()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_segments_are_identical(s1, s2)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>s1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>s2</VAR
+> link the same vertices, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5529"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5535"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>another <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5541"
+></A
+><H3
+><A
+NAME="GTS-SEGMENTS-ARE-INTERSECTING"
+></A
+>gts_segments_are_intersecting ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-points.html#GTSINTERSECT"
+>GtsIntersect</A
+> gts_segments_are_intersecting  (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s1,
+                                             <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5551"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5557"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5563"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>GTS_IN</VAR
+> if <VAR
+CLASS="PARAMETER"
+>s1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>s2</VAR
+> are intersecting, <VAR
+CLASS="LITERAL"
+>GTS_ON</VAR
+> if one of the
+endpoints of <VAR
+CLASS="PARAMETER"
+>s1</VAR
+> (resp. <VAR
+CLASS="PARAMETER"
+>s2</VAR
+>) lies on <VAR
+CLASS="PARAMETER"
+>s2</VAR
+> (resp. <VAR
+CLASS="PARAMETER"
+>s1</VAR
+>), <VAR
+CLASS="LITERAL"
+>GTS_OUT</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5577"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-IS-DUPLICATE"
+></A
+>gts_segment_is_duplicate ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>* gts_segment_is_duplicate        (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5586"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5592"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the first <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> different from <VAR
+CLASS="PARAMETER"
+>s</VAR
+> which shares the
+same endpoints or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if there is none.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5600"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-IS-OK"
+></A
+>gts_segment_is_ok ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_segment_is_ok               (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5609"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5615"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>s</VAR
+> is not degenerate (i.e. <VAR
+CLASS="PARAMETER"
+>s</VAR
+>-&gt;v1 != <VAR
+CLASS="PARAMETER"
+>s</VAR
+>-&gt;v2) and not 
+duplicate, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5625"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-CONNECT"
+></A
+>gts_segment_connect()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_segment_connect(s, e1, e2)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>s</VAR
+> connects <VAR
+CLASS="PARAMETER"
+>e1</VAR
+> with <VAR
+CLASS="PARAMETER"
+>e2</VAR
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5636"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5642"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5648"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>another <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5654"
+></A
+><H3
+><A
+NAME="GTS-SEGMENTS-TOUCH"
+></A
+>gts_segments_touch()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_segments_touch(s1, s2)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5660"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5665"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5670"
+></A
+><H3
+><A
+NAME="GTS-SEGMENTS-FROM-VERTICES"
+></A
+>gts_segments_from_vertices ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_segments_from_vertices      (<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *vertices);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5679"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vertices</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5685"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of unique <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> which have one of their vertices in 
+<VAR
+CLASS="PARAMETER"
+>vertices</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5692"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-MIDVERTEX"
+></A
+>gts_segment_midvertex ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>*  gts_segment_midvertex           (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *klass);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5702"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5708"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> to be used for the new vertex.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5714"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>, midvertex of <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-vertices.html"
+><B
+>&lt;&lt;&lt;&nbsp;Vertices</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-edges.html"
+><B
+>Edges&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

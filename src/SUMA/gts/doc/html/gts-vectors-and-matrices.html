@@ -1,0 +1,3709 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Vectors and matrices</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Basic Macros, functions and data structures"
+HREF="c4.html"><LINK
+REL="PREVIOUS"
+TITLE="First In First Out heaps"
+HREF="gts-first-in-first-out-heaps.html"><LINK
+REL="NEXT"
+TITLE="Simple statistics"
+HREF="gts-simple-statistics.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-first-in-first-out-heaps.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c4.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-simple-statistics.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-VECTORS-AND-MATRICES"
+></A
+>Vectors and matrices</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN1003"
+></A
+><H2
+>Name</H2
+>Vectors and matrices&nbsp;--&nbsp;simple operations on vectors and matrices.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN1006"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+typedef     <A
+HREF="gts-vectors-and-matrices.html#GTSVECTOR[3]"
+>GtsVector[3]</A
+>;
+typedef     <A
+HREF="gts-vectors-and-matrices.html#GTSVECTOR4[4]"
+>GtsVector4[4]</A
+>;
+
+#define     <A
+HREF="gts-vectors-and-matrices.html#GTS-VECTOR-INIT"
+>gts_vector_init</A
+>                 (v, p1, p2)
+#define     <A
+HREF="gts-vectors-and-matrices.html#GTS-VECTOR-SCALAR"
+>gts_vector_scalar</A
+>               (v1, v2)
+#define     <A
+HREF="gts-vectors-and-matrices.html#GTS-VECTOR-CROSS"
+>gts_vector_cross</A
+>                (C,A,B)
+#define     <A
+HREF="gts-vectors-and-matrices.html#GTS-VECTOR-NORM"
+>gts_vector_norm</A
+>                 (v)
+#define     <A
+HREF="gts-vectors-and-matrices.html#GTS-VECTOR-NORMALIZE"
+>gts_vector_normalize</A
+>            (v)
+void        <A
+HREF="gts-vectors-and-matrices.html#GTS-VECTOR-PRINT"
+>gts_vector_print</A
+>                (<GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> v,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fptr);
+void        <A
+HREF="gts-vectors-and-matrices.html#GTS-VECTOR4-PRINT"
+>gts_vector4_print</A
+>               (<GTKDOCLINK
+HREF="GTSVECTOR4"
+>GtsVector4</GTKDOCLINK
+> v,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fptr);
+
+typedef     <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>;
+
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-NEW"
+>gts_matrix_new</A
+>                  (<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a00,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a01,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a02,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a03,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a10,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a11,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a12,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a13,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a20,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a21,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a22,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a23,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a30,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a31,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a32,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a33);
+void        <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-ASSIGN"
+>gts_matrix_assign</A
+>               (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a00,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a01,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a02,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a03,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a10,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a11,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a12,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a13,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a20,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a21,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a22,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a23,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a30,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a31,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a32,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a33);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-ZERO"
+>gts_matrix_zero</A
+>                 (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-IDENTITY"
+>gts_matrix_identity</A
+>             (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-PROJECTION"
+>gts_matrix_projection</A
+>           (<A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-SCALE"
+>gts_matrix_scale</A
+>                (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> s);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-TRANSLATE"
+>gts_matrix_translate</A
+>            (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> t);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-ROTATE"
+>gts_matrix_rotate</A
+>               (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> r,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> angle);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-TRANSPOSE"
+>gts_matrix_transpose</A
+>            (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-DETERMINANT"
+>gts_matrix_determinant</A
+>          (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-INVERSE"
+>gts_matrix_inverse</A
+>              (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX3-INVERSE"
+>gts_matrix3_inverse</A
+>             (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);
+<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-PRODUCT"
+>gts_matrix_product</A
+>              (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m1,
+                                             <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m2);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-COMPATIBLE-ROW"
+>gts_matrix_compatible_row</A
+>       (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *A,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> b,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> n,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> A1,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> b1);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-QUADRATIC-OPTIMIZATION"
+>gts_matrix_quadratic_optimization</A
+>
+                                            (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *A,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> b,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> n,
+                                             <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *H,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> c);
+void        <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-PRINT"
+>gts_matrix_print</A
+>                (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fptr);
+void        <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-DESTROY"
+>gts_matrix_destroy</A
+>              (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN1116"
+></A
+><H2
+>Description</H2
+><P
+>The functions described in this section allow to perform simple transformations on point coordinates. In particular projection onto a plane passing through the vertices of a given triangle or quadratic optimization problems.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN1119"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1121"
+></A
+><H3
+><A
+NAME="GTSVECTOR[3]"
+></A
+>GtsVector[3]</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>typedef gdouble                  GtsVector[3];</PRE
+><P
+>A <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> is just an array of three coordinates.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1127"
+></A
+><H3
+><A
+NAME="GTSVECTOR4[4]"
+></A
+>GtsVector4[4]</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>typedef gdouble                  GtsVector4[4];</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1132"
+></A
+><H3
+><A
+NAME="GTS-VECTOR-INIT"
+></A
+>gts_vector_init()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_vector_init(v, p1, p2)</PRE
+><P
+>Given two points <VAR
+CLASS="PARAMETER"
+>p1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p2</VAR
+>, fills <VAR
+CLASS="PARAMETER"
+>v</VAR
+> with the coordinates of vector <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>-&#62;<VAR
+CLASS="PARAMETER"
+>p2</VAR
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1143"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1149"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1155"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>another <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1161"
+></A
+><H3
+><A
+NAME="GTS-VECTOR-SCALAR"
+></A
+>gts_vector_scalar()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_vector_scalar(v1, v2)</PRE
+><P
+>Given two vectors <VAR
+CLASS="PARAMETER"
+>v1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>v2</VAR
+> evaluates to the scalar product <VAR
+CLASS="PARAMETER"
+>v1</VAR
+>.<VAR
+CLASS="PARAMETER"
+>v2</VAR
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1171"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1177"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>another <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1183"
+></A
+><H3
+><A
+NAME="GTS-VECTOR-CROSS"
+></A
+>gts_vector_cross()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_vector_cross(C,A,B)</PRE
+><P
+>Given two vectors <VAR
+CLASS="PARAMETER"
+>A</VAR
+> and <VAR
+CLASS="PARAMETER"
+>B</VAR
+> fills <VAR
+CLASS="PARAMETER"
+>C</VAR
+> with the coordinates of the cross-product <VAR
+CLASS="PARAMETER"
+>A</VAR
+>^<VAR
+CLASS="PARAMETER"
+>B</VAR
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1194"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>C</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1200"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>A</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>another <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1206"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>B</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>and another.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1211"
+></A
+><H3
+><A
+NAME="GTS-VECTOR-NORM"
+></A
+>gts_vector_norm()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_vector_norm(v)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1217"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1222"
+></A
+><H3
+><A
+NAME="GTS-VECTOR-NORMALIZE"
+></A
+>gts_vector_normalize()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_vector_normalize(v)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1228"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1233"
+></A
+><H3
+><A
+NAME="GTS-VECTOR-PRINT"
+></A
+>gts_vector_print ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_vector_print                (<GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> v,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fptr);</PRE
+><P
+>Print <VAR
+CLASS="PARAMETER"
+>s</VAR
+> to file <VAR
+CLASS="PARAMETER"
+>fptr</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1244"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1250"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fptr</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a file descriptor.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1255"
+></A
+><H3
+><A
+NAME="GTS-VECTOR4-PRINT"
+></A
+>gts_vector4_print ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_vector4_print               (<GTKDOCLINK
+HREF="GTSVECTOR4"
+>GtsVector4</GTKDOCLINK
+> v,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fptr);</PRE
+><P
+>Print <VAR
+CLASS="PARAMETER"
+>v</VAR
+> to file <VAR
+CLASS="PARAMETER"
+>fptr</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1266"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <GTKDOCLINK
+HREF="GTSVECTOR4"
+>GtsVector4</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1272"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fptr</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a file descriptor.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1277"
+></A
+><H3
+><A
+NAME="GTSMATRIX"
+></A
+>GtsMatrix</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>typedef GtsVector4               GtsMatrix;</PRE
+><P
+>A <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> is a 3x3 matrix.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1283"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-NEW"
+></A
+>gts_matrix_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_new                  (<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a00,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a01,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a02,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a03,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a10,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a11,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a12,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a13,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a20,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a21,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a22,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a23,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a30,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a31,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a32,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a33);</PRE
+><P
+>Allocates memory and initializes a new <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1308"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a00</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [0][0].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1313"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a01</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [0][1].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1318"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a02</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [0][2].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1323"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a03</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [0][3].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1328"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a10</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [1][0].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1333"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a11</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [1][1].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1338"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a12</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [1][2].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1343"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a13</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [1][3].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1348"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a20</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [2][0].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1353"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a21</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [2][1].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1358"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a22</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [2][2].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1363"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a23</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [2][3].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1368"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a30</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [3][0].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1373"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a31</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [3][1].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1378"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a32</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [3][2].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1383"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a33</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [3][3].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1388"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer to the newly created <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1394"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-ASSIGN"
+></A
+>gts_matrix_assign ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_matrix_assign               (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a00,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a01,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a02,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a03,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a10,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a11,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a12,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a13,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a20,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a21,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a22,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a23,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a30,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a31,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a32,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> a33);</PRE
+><P
+>Set values of matrix elements.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1418"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1424"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a00</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [0][0].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1429"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a01</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [0][1].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1434"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a02</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [0][2].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1439"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a03</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [0][3].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1444"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a10</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [1][0].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1449"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a11</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [1][1].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1454"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a12</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [1][2].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1459"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a13</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [1][3].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1464"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a20</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [2][0].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1469"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a21</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [2][1].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1474"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a22</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [2][2].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1479"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a23</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [2][3].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1484"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a30</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [3][0].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1489"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a31</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [3][1].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1494"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a32</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [3][2].</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1499"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a33</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> element [3][3].</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1504"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-ZERO"
+></A
+>gts_matrix_zero ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_zero                 (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+><P
+>Initializes <VAR
+CLASS="PARAMETER"
+>m</VAR
+> to zeros. Allocates a matrix if <VAR
+CLASS="PARAMETER"
+>m</VAR
+> is <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1516"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> or $NULL.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1522"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the zero'ed matrix.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1527"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-IDENTITY"
+></A
+>gts_matrix_identity ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_identity             (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+><P
+>Initializes <VAR
+CLASS="PARAMETER"
+>m</VAR
+> to an identity matrix. Allocates a matrix if <VAR
+CLASS="PARAMETER"
+>m</VAR
+> is <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1539"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1546"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the identity matrix.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1551"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-PROJECTION"
+></A
+>gts_matrix_projection ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_projection           (<A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);</PRE
+><P
+>Creates a new <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> representing the projection onto a plane of normal
+given by <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1562"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1568"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer to the newly created <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1574"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-SCALE"
+></A
+>gts_matrix_scale ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_scale                (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> s);</PRE
+><P
+>Initializes <VAR
+CLASS="PARAMETER"
+>m</VAR
+> to a scaling matrix for <VAR
+CLASS="PARAMETER"
+>s</VAR
+>. Allocates a matrix if <VAR
+CLASS="PARAMETER"
+>m</VAR
+>
+is <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1588"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1595"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the scaling vector.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1600"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the scaling matrix.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1605"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-TRANSLATE"
+></A
+>gts_matrix_translate ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_translate            (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> t);</PRE
+><P
+>Initializes <VAR
+CLASS="PARAMETER"
+>m</VAR
+> to a translation matrix for <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.  Allocates a new
+matrix if <VAR
+CLASS="PARAMETER"
+>m</VAR
+> is <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1619"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1626"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the translation vector.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1631"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the translation matix.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1636"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-ROTATE"
+></A
+>gts_matrix_rotate ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_rotate               (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> r,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> angle);</PRE
+><P
+>Initializes <VAR
+CLASS="PARAMETER"
+>m</VAR
+> to a rotation matrix around <VAR
+CLASS="PARAMETER"
+>r</VAR
+> by <VAR
+CLASS="PARAMETER"
+>angle</VAR
+>.
+Allocates a new matrix if <VAR
+CLASS="PARAMETER"
+>m</VAR
+> is <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1652"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1659"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>r</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the rotation axis.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1664"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>angle</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the angle (in radians) to rotate by.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1669"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the rotation matrix.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1674"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-TRANSPOSE"
+></A
+>gts_matrix_transpose ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_transpose            (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1683"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1689"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer to a newly created <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> transposed of <VAR
+CLASS="PARAMETER"
+>m</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1696"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-DETERMINANT"
+></A
+>gts_matrix_determinant ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_matrix_determinant          (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1705"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1711"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the value of det(<VAR
+CLASS="PARAMETER"
+>m</VAR
+>).</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1717"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-INVERSE"
+></A
+>gts_matrix_inverse ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_inverse              (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1726"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1732"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer to a newly created <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> inverse of <VAR
+CLASS="PARAMETER"
+>m</VAR
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>
+if <VAR
+CLASS="PARAMETER"
+>m</VAR
+> is not invertible.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1741"
+></A
+><H3
+><A
+NAME="GTS-MATRIX3-INVERSE"
+></A
+>gts_matrix3_inverse ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix3_inverse             (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1750"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a 3x3 <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1756"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer to a newly created 3x3 <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> inverse of <VAR
+CLASS="PARAMETER"
+>m</VAR
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>
+if <VAR
+CLASS="PARAMETER"
+>m</VAR
+> is not invertible.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1765"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-PRODUCT"
+></A
+>gts_matrix_product ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>*  gts_matrix_product              (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m1,
+                                             <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1775"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1781"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1787"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>, product of <VAR
+CLASS="PARAMETER"
+>m1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>m2</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1795"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-COMPATIBLE-ROW"
+></A
+>gts_matrix_compatible_row ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_matrix_compatible_row       (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *A,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> b,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> n,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> A1,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> b1);</PRE
+><P
+>Given a system of <VAR
+CLASS="PARAMETER"
+>n</VAR
+> constraints <VAR
+CLASS="PARAMETER"
+>A</VAR
+>.x=<VAR
+CLASS="PARAMETER"
+>b</VAR
+> adds to it the compatible
+constraints defined by <VAR
+CLASS="PARAMETER"
+>A1</VAR
+>.x=<VAR
+CLASS="PARAMETER"
+>b1</VAR
+>. The compatibility is determined
+by insuring that the resulting system is well-conditioned (see
+Lindstrom and Turk (1998, 1999)).</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1813"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>A</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1819"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>b</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1825"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of previous constraints of <VAR
+CLASS="PARAMETER"
+>A</VAR
+>.x=<VAR
+CLASS="PARAMETER"
+>b</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1832"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>A1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1838"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>b1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1844"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of constraints of the resulting system.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1849"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-QUADRATIC-OPTIMIZATION"
+></A
+>gts_matrix_quadratic_optimization ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_matrix_quadratic_optimization
+                                            (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *A,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> b,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> n,
+                                             <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *H,
+                                             <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> c);</PRE
+><P
+>Solve a quadratic optimization problem: Given a quadratic objective function
+f which can be written as: f(x) = x^t.<VAR
+CLASS="PARAMETER"
+>H</VAR
+>.x + <VAR
+CLASS="PARAMETER"
+>c</VAR
+>^t.x + k, where <VAR
+CLASS="PARAMETER"
+>H</VAR
+> is the 
+symmetric positive definite Hessian of f and k is a constant, find the
+minimum of f subject to the set of <VAR
+CLASS="PARAMETER"
+>n</VAR
+> prior linear constraints, defined by
+the first <VAR
+CLASS="PARAMETER"
+>n</VAR
+> rows of <VAR
+CLASS="PARAMETER"
+>A</VAR
+> and <VAR
+CLASS="PARAMETER"
+>b</VAR
+> (<VAR
+CLASS="PARAMETER"
+>A</VAR
+>.x = <VAR
+CLASS="PARAMETER"
+>b</VAR
+>). The new constraints given by
+the minimization are added to <VAR
+CLASS="PARAMETER"
+>A</VAR
+> and <VAR
+CLASS="PARAMETER"
+>b</VAR
+> only if they are linearly
+independent as determined by <A
+HREF="gts-vectors-and-matrices.html#GTS-MATRIX-COMPATIBLE-ROW"
+>gts_matrix_compatible_row</A
+>().</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1874"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>A</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1880"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>b</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1886"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of constraints (must be smaller than 3).</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1891"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>H</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a symmetric positive definite Hessian.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1896"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>c</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1902"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the new number of constraints defined by <VAR
+CLASS="PARAMETER"
+>A</VAR
+> and <VAR
+CLASS="PARAMETER"
+>b</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1909"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-PRINT"
+></A
+>gts_matrix_print ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_matrix_print                (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fptr);</PRE
+><P
+>Print <VAR
+CLASS="PARAMETER"
+>m</VAR
+> to file <VAR
+CLASS="PARAMETER"
+>fptr</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1920"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1926"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fptr</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a file descriptor.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN1931"
+></A
+><H3
+><A
+NAME="GTS-MATRIX-DESTROY"
+></A
+>gts_matrix_destroy ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_matrix_destroy              (<A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+><P
+>Free all the memory allocated for <VAR
+CLASS="PARAMETER"
+>m</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN1940"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-first-in-first-out-heaps.html"
+><B
+>&lt;&lt;&lt;&nbsp;First In First Out heaps</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-simple-statistics.html"
+><B
+>Simple statistics&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

@@ -1,0 +1,96 @@
+## Makefile for building the gts dlls with Microsoft C
+## Modified by M J Loehr from GLIB makefile.msc
+## Use: nmake -f makefile.msc install
+
+# Change this to wherever you want to install the DLLs. This directory
+# should be in your PATH.
+BIN = C:\bin
+
+################################################################
+
+# Nothing much configurable below
+
+# No general LDFLAGS needed
+LDFLAGS = /link
+INSTALL = copy
+CP = copy
+RM = del
+CC = cl
+
+GTS_VER = 0.7
+
+CFLAGS = -I. -DHAVE_CONFIG_H -G5 -GF -Ox -W3 -MD -nologo
+
+all : \
+	config.h \
+	gts-$(GTS_VER).dll
+
+install : all
+	$(INSTALL) gts-$(GTS_VER).dll $(BIN)
+
+gts_OBJECTS = \
+	object.obj \
+	point.obj \
+	vertex.obj \
+	segment.obj \
+	edge.obj \
+	triangle.obj \
+	face.obj \
+	kdtree.obj \
+	bbtree.obj \
+	misc.obj \
+	predicates.obj \
+	heap.obj \
+	eheap.obj \
+	fifo.obj \
+	matrix.obj \
+	surface.obj \
+	stripe.obj \
+	vopt.obj \
+	refine.obj \
+	iso.obj \
+	split.obj \
+	psurface.obj \
+	hsurface.obj \
+	cdt.obj \
+	boolean.obj \
+	named.obj \
+	oocs.obj \
+	container.obj \
+	graph.obj \
+	pgraph.obj \
+	partition.obj \
+	isotetra.obj \
+	curvature.obj
+
+gts-$(GTS_VER).dll : $(gts_OBJECTS) gts.def
+	$(CC) $(CFLAGS) -LD -Fegts-$(GTS_VER).dll $(gts_OBJECTS) glib-1.3.lib user32.lib advapi32.lib wsock32.lib $(LDFLAGS) /def:gts.def
+
+config.h: config.h.win32
+	$(CP) config.h.win32 config.h
+
+predicates.obj: predicates.c predicates_init.h predicates.h
+	$(CC) $(CFLAGS) -GD -c -DGTS_COMPILATION -DG_LOG_DOMAIN=\"Gts\" predicates.c
+
+predicates_init.h: predicates_init
+	predicates_init > predicates_init.h
+
+predicates_init: predicates_init.c
+	$(CC) $(CFLAGS) predicates_init.c -o predicates_init
+
+.c.obj:
+	$(CC) $(CFLAGS) -GD -c -DGTS_COMPILATION -DG_LOG_DOMAIN=\"Gts\" $<
+
+clean:
+	$(RM) config.h
+	$(RM) *.obj
+	$(RM) *.dll
+	$(RM) *.lib
+	$(RM) *.err
+	$(RM) *.map
+	$(RM) *.sym
+	$(RM) *.exp
+	$(RM) *.lk1
+	$(RM) *.mk1
+	$(RM) *.pdb
+	$(RM) *.ilk

@@ -1,0 +1,1012 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Hierarchical vertex split</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Progressive and Hierarchical surfaces"
+HREF="c13239.html"><LINK
+REL="PREVIOUS"
+TITLE="Progressive surfaces"
+HREF="gts-progressive-surfaces.html"><LINK
+REL="NEXT"
+TITLE="Hierarchical surfaces"
+HREF="gts-hierarchical-surfaces.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-progressive-surfaces.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c13239.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-hierarchical-surfaces.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-HIERARCHICAL-VERTEX-SPLIT"
+></A
+>Hierarchical vertex split</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN14246"
+></A
+><H2
+>Name</H2
+>Hierarchical vertex split&nbsp;--&nbsp;hierarchical extension of the vertex split.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN14249"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-hierarchical-vertex-split.html#GTS-HSPLIT-CLASS-CAPS"
+>GTS_HSPLIT_CLASS</A
+>                (klass)
+#define     <A
+HREF="gts-hierarchical-vertex-split.html#GTS-HSPLIT-CAPS"
+>GTS_HSPLIT</A
+>                      (obj)
+#define     <A
+HREF="gts-hierarchical-vertex-split.html#GTS-IS-HSPLIT-CAPS"
+>GTS_IS_HSPLIT</A
+>                   (obj)
+struct      <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+>;
+struct      <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>;
+
+<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+>* <A
+HREF="gts-hierarchical-vertex-split.html#GTS-HSPLIT-CLASS"
+>gts_hsplit_class</A
+>            (void);
+<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>*  <A
+HREF="gts-hierarchical-vertex-split.html#GTS-HSPLIT-NEW"
+>gts_hsplit_new</A
+>                  (<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+> *klass,
+                                             <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> *vs);
+void        <A
+HREF="gts-hierarchical-vertex-split.html#GTS-HSPLIT-COLLAPSE"
+>gts_hsplit_collapse</A
+>             (<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+> *hs,
+                                             <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+> *hsurface);
+void        <A
+HREF="gts-hierarchical-vertex-split.html#GTS-HSPLIT-EXPAND"
+>gts_hsplit_expand</A
+>               (<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+> *hs,
+                                             <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+> *hsurface);
+void        <A
+HREF="gts-hierarchical-vertex-split.html#GTS-HSPLIT-FORCE-EXPAND"
+>gts_hsplit_force_expand</A
+>         (<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+> *hs,
+                                             <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+> *hsurface);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN14272"
+></A
+><H2
+>Description</H2
+><P
+>Hierarchical vertex splits are the building blocks of hierarchical surfaces. They are derived from <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> objects but add pointers to their parents in the vertex split tree and information on the state (collapsed or expanded) of their children.</P
+><P
+>Together with <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> fields these informations allow to manage any valid sequence of expansions or collapses.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN14278"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14280"
+></A
+><H3
+><A
+NAME="GTS-HSPLIT-CLASS-CAPS"
+></A
+>GTS_HSPLIT_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_HSPLIT_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14288"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14294"
+></A
+><H3
+><A
+NAME="GTS-HSPLIT-CAPS"
+></A
+>GTS_HSPLIT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_HSPLIT(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14302"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14308"
+></A
+><H3
+><A
+NAME="GTS-IS-HSPLIT-CAPS"
+></A
+>GTS_IS_HSPLIT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_HSPLIT(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14318"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14323"
+></A
+><H3
+><A
+NAME="GTSHSPLITCLASS"
+></A
+>struct GtsHSplitClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsHSplitClass {
+
+  GtsSplitClass parent_class;
+};</PRE
+><P
+>The hierarchical split vertex class derived from <A
+HREF="gts-vertex-split.html#GTSSPLITCLASS"
+>GtsSplitClass</A
+>.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14329"
+></A
+><H3
+><A
+NAME="GTSHSPLIT"
+></A
+>struct GtsHSplit</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsHSplit {
+
+  GtsSplit split;
+
+  GtsEHeapPair * index;
+  GtsHSplit * parent;
+  guint nchild;
+};</PRE
+><P
+>The hierarchical split vertex object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14335"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> <CODE
+CLASS="STRUCTFIELD"
+>split</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14341"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>index</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Used when managing priority heaps for vertex split and collapse.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14347"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>parent</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Parent of this hierarchical split vertex in the split vertex tree.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14353"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>nchild</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Number of expanded children of this vertex split (0, 1, or 2).&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14359"
+></A
+><H3
+><A
+NAME="GTS-HSPLIT-CLASS"
+></A
+>gts_hsplit_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+>* gts_hsplit_class            (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14367"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14373"
+></A
+><H3
+><A
+NAME="GTS-HSPLIT-NEW"
+></A
+>gts_hsplit_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>*  gts_hsplit_new                  (<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+> *klass,
+                                             <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> *vs);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14383"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLITCLASS"
+>GtsHSplitClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14389"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vs</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14395"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>, hierarchical extension of <VAR
+CLASS="PARAMETER"
+>vs</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14402"
+></A
+><H3
+><A
+NAME="GTS-HSPLIT-COLLAPSE"
+></A
+>gts_hsplit_collapse ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_hsplit_collapse             (<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+> *hs,
+                                             <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+> *hsurface);</PRE
+><P
+>Collapses the <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> defined by <VAR
+CLASS="PARAMETER"
+>hs</VAR
+>, updates the expandable and
+collapsable priority heaps of <VAR
+CLASS="PARAMETER"
+>hsurface</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14414"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>hs</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14420"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>hsurface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14426"
+></A
+><H3
+><A
+NAME="GTS-HSPLIT-EXPAND"
+></A
+>gts_hsplit_expand ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_hsplit_expand               (<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+> *hs,
+                                             <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+> *hsurface);</PRE
+><P
+>Expands the <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> defined by <VAR
+CLASS="PARAMETER"
+>hs</VAR
+> (which must be expandable)
+and updates the priority heaps of <VAR
+CLASS="PARAMETER"
+>hsurface</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14438"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>hs</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14444"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>hsurface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14450"
+></A
+><H3
+><A
+NAME="GTS-HSPLIT-FORCE-EXPAND"
+></A
+>gts_hsplit_force_expand ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_hsplit_force_expand         (<A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+> *hs,
+                                             <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+> *hsurface);</PRE
+><P
+>Forces the expansion of <VAR
+CLASS="PARAMETER"
+>hs</VAR
+> by first expanding all its dependencies not
+already expanded.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14460"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>hs</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-hierarchical-vertex-split.html#GTSHSPLIT"
+>GtsHSplit</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14466"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>hsurface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-hierarchical-surfaces.html#GTSHSURFACE"
+>GtsHSurface</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-progressive-surfaces.html"
+><B
+>&lt;&lt;&lt;&nbsp;Progressive surfaces</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-hierarchical-surfaces.html"
+><B
+>Hierarchical surfaces&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

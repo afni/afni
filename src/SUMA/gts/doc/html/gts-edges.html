@@ -1,0 +1,2559 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Edges</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><LINK
+REL="PREVIOUS"
+TITLE="Segments"
+HREF="gts-segments.html"><LINK
+REL="NEXT"
+TITLE="Triangles"
+HREF="gts-triangles.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-segments.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c2560.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-triangles.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-EDGES"
+></A
+>Edges</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN5726"
+></A
+><H2
+>Name</H2
+>Edges&nbsp;--&nbsp;edge object and related functions.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN5729"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-edges.html#GTS-EDGE-CLASS-CAPS"
+>GTS_EDGE_CLASS</A
+>                  (klass)
+#define     <A
+HREF="gts-edges.html#GTS-EDGE-CAPS"
+>GTS_EDGE</A
+>                        (obj)
+#define     <A
+HREF="gts-edges.html#GTS-IS-EDGE-CAPS"
+>GTS_IS_EDGE</A
+>                     (obj)
+struct      <A
+HREF="gts-edges.html#GTSEDGECLASS"
+>GtsEdgeClass</A
+>;
+struct      <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>;
+
+<A
+HREF="gts-edges.html#GTSEDGECLASS"
+>GtsEdgeClass</A
+>* <A
+HREF="gts-edges.html#GTS-EDGE-CLASS"
+>gts_edge_class</A
+>                (void);
+<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>*    <A
+HREF="gts-edges.html#GTS-EDGE-NEW"
+>gts_edge_new</A
+>                    (<A
+HREF="gts-edges.html#GTSEDGECLASS"
+>GtsEdgeClass</A
+> *klass,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v1,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v2);
+void        <A
+HREF="gts-edges.html#GTS-EDGE-REPLACE"
+>gts_edge_replace</A
+>                (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *with);
+#define     <A
+HREF="gts-edges.html#GTS-EDGE-IS-UNATTACHED"
+>gts_edge_is_unattached</A
+>          (s)
+<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>*    <A
+HREF="gts-edges.html#GTS-EDGE-IS-DUPLICATE"
+>gts_edge_is_duplicate</A
+>           (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);
+<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>*    <A
+HREF="gts-edges.html#GTS-EDGE-HAS-PARENT-SURFACE"
+>gts_edge_has_parent_surface</A
+>     (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);
+<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>*    <A
+HREF="gts-edges.html#GTS-EDGE-HAS-ANY-PARENT-SURFACE"
+>gts_edge_has_any_parent_surface</A
+> (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);
+<A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>*    <A
+HREF="gts-edges.html#GTS-EDGE-IS-BOUNDARY"
+>gts_edge_is_boundary</A
+>            (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-edges.html#GTS-EDGE-IS-CONTACT"
+>gts_edge_is_contact</A
+>             (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-edges.html#GTS-EDGE-BELONGS-TO-TETRAHEDRON"
+>gts_edge_belongs_to_tetrahedron</A
+> (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-edges.html#GTS-EDGE-FACE-NUMBER"
+>gts_edge_face_number</A
+>            (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-edges.html#GTS-EDGE-MANIFOLD-FACES"
+>gts_edge_manifold_faces</A
+>         (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> **f1,
+                                             <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> **f2);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    (<A
+HREF="gts-edges.html#GTSENCROACHFUNC"
+>*GtsEncroachFunc</A
+>)              (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>*  <A
+HREF="gts-edges.html#GTS-EDGE-IS-ENCROACHED"
+>gts_edge_is_encroached</A
+>          (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-edges.html#GTSENCROACHFUNC"
+>GtsEncroachFunc</A
+> encroaches,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+<GTKDOCLINK
+HREF="GLIST"
+>GList</GTKDOCLINK
+>*      <A
+HREF="gts-edges.html#GTS-EDGES-MERGE"
+>gts_edges_merge</A
+>                 (<GTKDOCLINK
+HREF="GLIST"
+>GList</GTKDOCLINK
+> *edges);
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-edges.html#GTS-EDGES-FROM-VERTICES"
+>gts_edges_from_vertices</A
+>         (<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *vertices,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *parent);
+void        <A
+HREF="gts-edges.html#GTS-EDGE-SWAP"
+>gts_edge_swap</A
+>                   (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN5800"
+></A
+><H2
+>Description</H2
+><P
+>Edges are derived from <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>. They are used to define <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN5805"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5807"
+></A
+><H3
+><A
+NAME="GTS-EDGE-CLASS-CAPS"
+></A
+>GTS_EDGE_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_EDGE_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-edges.html#GTSEDGECLASS"
+>GtsEdgeClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5815"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5821"
+></A
+><H3
+><A
+NAME="GTS-EDGE-CAPS"
+></A
+>GTS_EDGE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_EDGE(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5829"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5835"
+></A
+><H3
+><A
+NAME="GTS-IS-EDGE-CAPS"
+></A
+>GTS_IS_EDGE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_EDGE(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5845"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5850"
+></A
+><H3
+><A
+NAME="GTSEDGECLASS"
+></A
+>struct GtsEdgeClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsEdgeClass {
+
+  GtsSegmentClass parent_class;
+};</PRE
+><P
+>The edge class. No virtual function associated.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5855"
+></A
+><H3
+><A
+NAME="GTSEDGE"
+></A
+>struct GtsEdge</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsEdge {
+
+  GtsSegment segment;
+
+  GSList * triangles;
+};</PRE
+><P
+>The edge object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5861"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> <CODE
+CLASS="STRUCTFIELD"
+>segment</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5867"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *<CODE
+CLASS="STRUCTFIELD"
+>triangles</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>List of <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> using this edge.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5874"
+></A
+><H3
+><A
+NAME="GTS-EDGE-CLASS"
+></A
+>gts_edge_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-edges.html#GTSEDGECLASS"
+>GtsEdgeClass</A
+>* gts_edge_class                (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5882"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-edges.html#GTSEDGECLASS"
+>GtsEdgeClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5888"
+></A
+><H3
+><A
+NAME="GTS-EDGE-NEW"
+></A
+>gts_edge_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>*    gts_edge_new                    (<A
+HREF="gts-edges.html#GTSEDGECLASS"
+>GtsEdgeClass</A
+> *klass,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v1,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5899"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGECLASS"
+>GtsEdgeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5905"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5911"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5917"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> linking <VAR
+CLASS="PARAMETER"
+>v1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>v2</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5925"
+></A
+><H3
+><A
+NAME="GTS-EDGE-REPLACE"
+></A
+>gts_edge_replace ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_edge_replace                (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *with);</PRE
+><P
+>Replaces <VAR
+CLASS="PARAMETER"
+>e</VAR
+> with <VAR
+CLASS="PARAMETER"
+>with</VAR
+>. For each triangle which uses <VAR
+CLASS="PARAMETER"
+>e</VAR
+> as an
+edge, <VAR
+CLASS="PARAMETER"
+>e</VAR
+> is replaced with <VAR
+CLASS="PARAMETER"
+>with</VAR
+>. The <VAR
+CLASS="PARAMETER"
+>with</VAR
+>-&gt;triangles list is
+updated appropriately and the <VAR
+CLASS="PARAMETER"
+>e</VAR
+>-&gt;triangles list is freed and set
+to <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5942"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5948"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>with</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5954"
+></A
+><H3
+><A
+NAME="GTS-EDGE-IS-UNATTACHED"
+></A
+>gts_edge_is_unattached()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define       gts_edge_is_unattached(s) ((s)-&gt;triangles == NULL ? TRUE : FALSE)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if no triangles uses <VAR
+CLASS="PARAMETER"
+>s</VAR
+> as an edge, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5963"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5969"
+></A
+><H3
+><A
+NAME="GTS-EDGE-IS-DUPLICATE"
+></A
+>gts_edge_is_duplicate ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>*    gts_edge_is_duplicate           (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5978"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5984"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the first <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> different from <VAR
+CLASS="PARAMETER"
+>e</VAR
+> which shares the
+same endpoints or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if there is none.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5992"
+></A
+><H3
+><A
+NAME="GTS-EDGE-HAS-PARENT-SURFACE"
+></A
+>gts_edge_has_parent_surface ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>*    gts_edge_has_parent_surface     (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6002"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6008"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6014"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> of <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> having <VAR
+CLASS="PARAMETER"
+>e</VAR
+> as an edge, <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6023"
+></A
+><H3
+><A
+NAME="GTS-EDGE-HAS-ANY-PARENT-SURFACE"
+></A
+>gts_edge_has_any_parent_surface ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>*    gts_edge_has_any_parent_surface (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6032"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6038"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if <VAR
+CLASS="PARAMETER"
+>e</VAR
+> is not an edge of any triangle or if all the
+faces having <VAR
+CLASS="PARAMETER"
+>e</VAR
+> has an edge do not belong to any surface,
+a <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> belonging to a surface and having <VAR
+CLASS="PARAMETER"
+>e</VAR
+> as an edge.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6048"
+></A
+><H3
+><A
+NAME="GTS-EDGE-IS-BOUNDARY"
+></A
+>gts_edge_is_boundary ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>*    gts_edge_is_boundary            (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6058"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6064"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6071"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the unique <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> (which belongs to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+>) and which
+has <VAR
+CLASS="PARAMETER"
+>e</VAR
+> as an edge (i.e. <VAR
+CLASS="PARAMETER"
+>e</VAR
+> is a boundary edge (of <VAR
+CLASS="PARAMETER"
+>surface</VAR
+>)) or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> 
+if there is more than one or no faces (belonging to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+>) and
+with <VAR
+CLASS="PARAMETER"
+>e</VAR
+> as an edge.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6084"
+></A
+><H3
+><A
+NAME="GTS-EDGE-IS-CONTACT"
+></A
+>gts_edge_is_contact ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_edge_is_contact             (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6093"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.  </P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6099"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of sets of connected triangles sharing <VAR
+CLASS="PARAMETER"
+>e</VAR
+> as a
+contact edge.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6105"
+></A
+><H3
+><A
+NAME="GTS-EDGE-BELONGS-TO-TETRAHEDRON"
+></A
+>gts_edge_belongs_to_tetrahedron ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_edge_belongs_to_tetrahedron (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6114"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6120"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>e</VAR
+> is used by faces forming a tetrahedron, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+>
+otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6128"
+></A
+><H3
+><A
+NAME="GTS-EDGE-FACE-NUMBER"
+></A
+>gts_edge_face_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_edge_face_number            (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6138"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6144"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6150"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of faces using <VAR
+CLASS="PARAMETER"
+>e</VAR
+> and belonging to <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6157"
+></A
+><H3
+><A
+NAME="GTS-EDGE-MANIFOLD-FACES"
+></A
+>gts_edge_manifold_faces ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_edge_manifold_faces         (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> **f1,
+                                             <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> **f2);</PRE
+><P
+>If <VAR
+CLASS="PARAMETER"
+>e</VAR
+> is a manifold edge of surface <VAR
+CLASS="PARAMETER"
+>s</VAR
+>, fills <VAR
+CLASS="PARAMETER"
+>f1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>f2</VAR
+> with the
+faces belonging to <VAR
+CLASS="PARAMETER"
+>s</VAR
+> and sharing <VAR
+CLASS="PARAMETER"
+>e</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6175"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6181"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6187"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> pointer for first face.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6192"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> pointer for second face.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6197"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>e</VAR
+> is a manifold edge, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6205"
+></A
+><H3
+><A
+NAME="GTSENCROACHFUNC"
+></A
+>GtsEncroachFunc ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    (*GtsEncroachFunc)              (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6216"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6221"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6226"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6231"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6236"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6241"
+></A
+><H3
+><A
+NAME="GTS-EDGE-IS-ENCROACHED"
+></A
+>gts_edge_is_encroached ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>*  gts_edge_is_encroached          (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-edges.html#GTSENCROACHFUNC"
+>GtsEncroachFunc</A
+> encroaches,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6253"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6259"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> describing a (constrained) Delaunay triangulation.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6265"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>encroaches</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSENCROACHFUNC"
+>GtsEncroachFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6271"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>encroaches</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6277"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> belonging to <VAR
+CLASS="PARAMETER"
+>s</VAR
+> and encroaching upon <VAR
+CLASS="PARAMETER"
+>e</VAR
+>
+(as defined by <VAR
+CLASS="PARAMETER"
+>encroaches</VAR
+>) or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if there is none.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6287"
+></A
+><H3
+><A
+NAME="GTS-EDGES-MERGE"
+></A
+>gts_edges_merge ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GLIST"
+>GList</GTKDOCLINK
+>*      gts_edges_merge                 (<GTKDOCLINK
+HREF="GLIST"
+>GList</GTKDOCLINK
+> *edges);</PRE
+><P
+>For each edge in <VAR
+CLASS="PARAMETER"
+>edges</VAR
+> check if it is duplicated (as
+returned by <A
+HREF="gts-edges.html#GTS-EDGE-IS-DUPLICATE"
+>gts_edge_is_duplicate</A
+>()). If it is replace it by its
+duplicate, destroy it and remove it from the list.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6298"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>edges</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6304"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the updated <VAR
+CLASS="PARAMETER"
+>edges</VAR
+> list.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6310"
+></A
+><H3
+><A
+NAME="GTS-EDGES-FROM-VERTICES"
+></A
+>gts_edges_from_vertices ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_edges_from_vertices         (<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *vertices,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *parent);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6320"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vertices</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6326"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>parent</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6332"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of unique <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> which have one of their vertices in 
+<VAR
+CLASS="PARAMETER"
+>vertices</VAR
+> and are used by a face of <VAR
+CLASS="PARAMETER"
+>parent</VAR
+>. </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN6340"
+></A
+><H3
+><A
+NAME="GTS-EDGE-SWAP"
+></A
+>gts_edge_swap ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_edge_swap                   (<A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+>Performs an "edge swap" on the two triangles sharing <VAR
+CLASS="PARAMETER"
+>e</VAR
+> and
+belonging to <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6351"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN6357"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-segments.html"
+><B
+>&lt;&lt;&lt;&nbsp;Segments</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-triangles.html"
+><B
+>Triangles&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

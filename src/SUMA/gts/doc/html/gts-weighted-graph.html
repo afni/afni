@@ -1,0 +1,1372 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Weighted graph</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Graph and operations on graphs"
+HREF="c14807.html"><LINK
+REL="PREVIOUS"
+TITLE="Graph class"
+HREF="gts-graph-class.html"><LINK
+REL="NEXT"
+TITLE="Progressive graph"
+HREF="gts-progressive-graph.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-graph-class.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c14807.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-progressive-graph.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-WEIGHTED-GRAPH"
+></A
+>Weighted graph</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN16065"
+></A
+><H2
+>Name</H2
+>Weighted graph&nbsp;--&nbsp;</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN16068"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-weighted-graph.html#GTS-WGEDGE-CLASS-CAPS"
+>GTS_WGEDGE_CLASS</A
+>                (klass)
+#define     <A
+HREF="gts-weighted-graph.html#GTS-WGEDGE-CAPS"
+>GTS_WGEDGE</A
+>                      (obj)
+#define     <A
+HREF="gts-weighted-graph.html#GTS-IS-WGEDGE-CAPS"
+>GTS_IS_WGEDGE</A
+>                   (obj)
+struct      <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+>;
+struct      <A
+HREF="gts-weighted-graph.html#GTSWGEDGE"
+>GtsWGEdge</A
+>;
+
+<A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+>* <A
+HREF="gts-weighted-graph.html#GTS-WGEDGE-CLASS"
+>gts_wgedge_class</A
+>            (void);
+<A
+HREF="gts-weighted-graph.html#GTSWGEDGE"
+>GtsWGEdge</A
+>*  <A
+HREF="gts-weighted-graph.html#GTS-WGEDGE-NEW"
+>gts_wgedge_new</A
+>                  (<A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n1,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n2,
+                                             <GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+> weight);
+
+#define     <A
+HREF="gts-weighted-graph.html#GTS-WGNODE-CLASS-CAPS"
+>GTS_WGNODE_CLASS</A
+>                (klass)
+#define     <A
+HREF="gts-weighted-graph.html#GTS-WGNODE-CAPS"
+>GTS_WGNODE</A
+>                      (obj)
+#define     <A
+HREF="gts-weighted-graph.html#GTS-IS-WGNODE-CAPS"
+>GTS_IS_WGNODE</A
+>                   (obj)
+struct      <A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+>;
+struct      <A
+HREF="gts-weighted-graph.html#GTSWGNODE"
+>GtsWGNode</A
+>;
+
+<A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+>* <A
+HREF="gts-weighted-graph.html#GTS-WGNODE-CLASS"
+>gts_wgnode_class</A
+>            (void);
+<A
+HREF="gts-weighted-graph.html#GTSWGNODE"
+>GtsWGNode</A
+>*  <A
+HREF="gts-weighted-graph.html#GTS-WGNODE-NEW"
+>gts_wgnode_new</A
+>                  (<A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+> *klass,
+                                             <GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+> weight);
+
+#define     <A
+HREF="gts-weighted-graph.html#GTS-WGRAPH-CLASS-CAPS"
+>GTS_WGRAPH_CLASS</A
+>                (klass)
+#define     <A
+HREF="gts-weighted-graph.html#GTS-WGRAPH-CAPS"
+>GTS_WGRAPH</A
+>                      (obj)
+#define     <A
+HREF="gts-weighted-graph.html#GTS-IS-WGRAPH-CAPS"
+>GTS_IS_WGRAPH</A
+>                   (obj)
+struct      <A
+HREF="gts-weighted-graph.html#GTSWGRAPHCLASS"
+>GtsWGraphClass</A
+>;
+struct      <A
+HREF="gts-weighted-graph.html#GTSWGRAPH"
+>GtsWGraph</A
+>;
+
+<A
+HREF="gts-weighted-graph.html#GTSWGRAPHCLASS"
+>GtsWGraphClass</A
+>* <A
+HREF="gts-weighted-graph.html#GTS-WGRAPH-CLASS"
+>gts_wgraph_class</A
+>            (void);
+<GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      <A
+HREF="gts-weighted-graph.html#GTS-WGRAPH-WEIGHT-MAX"
+>gts_wgraph_weight_max</A
+>           (<A
+HREF="gts-weighted-graph.html#GTSWGRAPH"
+>GtsWGraph</A
+> *wg);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN16105"
+></A
+><H2
+>Description</H2
+><P
+></P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN16108"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16110"
+></A
+><H3
+><A
+NAME="GTS-WGEDGE-CLASS-CAPS"
+></A
+>GTS_WGEDGE_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_WGEDGE_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16116"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16121"
+></A
+><H3
+><A
+NAME="GTS-WGEDGE-CAPS"
+></A
+>GTS_WGEDGE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_WGEDGE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16127"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16132"
+></A
+><H3
+><A
+NAME="GTS-IS-WGEDGE-CAPS"
+></A
+>GTS_IS_WGEDGE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_WGEDGE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16138"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16143"
+></A
+><H3
+><A
+NAME="GTSWGEDGECLASS"
+></A
+>struct GtsWGEdgeClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsWGEdgeClass {
+
+  GtsGEdgeClass parent_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16148"
+></A
+><H3
+><A
+NAME="GTSWGEDGE"
+></A
+>struct GtsWGEdge</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsWGEdge {
+
+  GtsGEdge gedge;
+
+  gfloat weight;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16153"
+></A
+><H3
+><A
+NAME="GTS-WGEDGE-CLASS"
+></A
+>gts_wgedge_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+>* gts_wgedge_class            (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16161"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16167"
+></A
+><H3
+><A
+NAME="GTS-WGEDGE-NEW"
+></A
+>gts_wgedge_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-weighted-graph.html#GTSWGEDGE"
+>GtsWGEdge</A
+>*  gts_wgedge_new                  (<A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n1,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n2,
+                                             <GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+> weight);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16179"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16185"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16191"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16197"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>weight</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the weight of the new edge.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16202"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-weighted-graph.html#GTSWGEDGE"
+>GtsWGEdge</A
+> of weight <VAR
+CLASS="PARAMETER"
+>weight</VAR
+> linking <VAR
+CLASS="PARAMETER"
+>n1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>n2</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16211"
+></A
+><H3
+><A
+NAME="GTS-WGNODE-CLASS-CAPS"
+></A
+>GTS_WGNODE_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_WGNODE_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16217"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16222"
+></A
+><H3
+><A
+NAME="GTS-WGNODE-CAPS"
+></A
+>GTS_WGNODE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_WGNODE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16228"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16233"
+></A
+><H3
+><A
+NAME="GTS-IS-WGNODE-CAPS"
+></A
+>GTS_IS_WGNODE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_WGNODE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16239"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16244"
+></A
+><H3
+><A
+NAME="GTSWGNODECLASS"
+></A
+>struct GtsWGNodeClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsWGNodeClass {
+
+  GtsGNodeClass parent_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16249"
+></A
+><H3
+><A
+NAME="GTSWGNODE"
+></A
+>struct GtsWGNode</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsWGNode {
+
+  GtsGNode node;
+  
+  gfloat weight;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16254"
+></A
+><H3
+><A
+NAME="GTS-WGNODE-CLASS"
+></A
+>gts_wgnode_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+>* gts_wgnode_class            (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16262"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16268"
+></A
+><H3
+><A
+NAME="GTS-WGNODE-NEW"
+></A
+>gts_wgnode_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-weighted-graph.html#GTSWGNODE"
+>GtsWGNode</A
+>*  gts_wgnode_new                  (<A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+> *klass,
+                                             <GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+> weight);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16278"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16284"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>weight</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the weight of the <A
+HREF="gts-weighted-graph.html#GTSWGNODE"
+>GtsWGNode</A
+> to create.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16290"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-weighted-graph.html#GTSWGNODE"
+>GtsWGNode</A
+> of weight <VAR
+CLASS="PARAMETER"
+>weight</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16297"
+></A
+><H3
+><A
+NAME="GTS-WGRAPH-CLASS-CAPS"
+></A
+>GTS_WGRAPH_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_WGRAPH_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16303"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16308"
+></A
+><H3
+><A
+NAME="GTS-WGRAPH-CAPS"
+></A
+>GTS_WGRAPH()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_WGRAPH(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16314"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16319"
+></A
+><H3
+><A
+NAME="GTS-IS-WGRAPH-CAPS"
+></A
+>GTS_IS_WGRAPH()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_WGRAPH(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16325"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16330"
+></A
+><H3
+><A
+NAME="GTSWGRAPHCLASS"
+></A
+>struct GtsWGraphClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsWGraphClass {
+
+  GtsGraphClass parent_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16335"
+></A
+><H3
+><A
+NAME="GTSWGRAPH"
+></A
+>struct GtsWGraph</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsWGraph {
+
+  GtsGraph graph;
+
+  gfloat weight;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16340"
+></A
+><H3
+><A
+NAME="GTS-WGRAPH-CLASS"
+></A
+>gts_wgraph_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-weighted-graph.html#GTSWGRAPHCLASS"
+>GtsWGraphClass</A
+>* gts_wgraph_class            (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16348"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-weighted-graph.html#GTSWGRAPHCLASS"
+>GtsWGraphClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16354"
+></A
+><H3
+><A
+NAME="GTS-WGRAPH-WEIGHT-MAX"
+></A
+>gts_wgraph_weight_max ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      gts_wgraph_weight_max           (<A
+HREF="gts-weighted-graph.html#GTSWGRAPH"
+>GtsWGraph</A
+> *wg);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16363"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>wg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-weighted-graph.html#GTSWGRAPH"
+>GtsWGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16369"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the maximum weight of any vertices belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-graph-class.html"
+><B
+>&lt;&lt;&lt;&nbsp;Graph class</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-progressive-graph.html"
+><B
+>Progressive graph&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

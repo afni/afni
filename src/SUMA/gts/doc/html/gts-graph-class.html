@@ -1,0 +1,4913 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Graph class</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Graph and operations on graphs"
+HREF="c14807.html"><LINK
+REL="PREVIOUS"
+TITLE="Graph and operations on graphs"
+HREF="c14807.html"><LINK
+REL="NEXT"
+TITLE="Weighted graph"
+HREF="gts-weighted-graph.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="c14807.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c14807.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-weighted-graph.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-GRAPH-CLASS"
+></A
+>Graph class</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN14814"
+></A
+><H2
+>Name</H2
+>Graph class&nbsp;--&nbsp;</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN14817"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-graph-class.html#GTS-GNODE-CLASS-CAPS"
+>GTS_GNODE_CLASS</A
+>                 (klass)
+#define     <A
+HREF="gts-graph-class.html#GTS-GNODE-CAPS"
+>GTS_GNODE</A
+>                       (obj)
+#define     <A
+HREF="gts-graph-class.html#GTS-IS-GNODE-CAPS"
+>GTS_IS_GNODE</A
+>                    (obj)
+#define     <A
+HREF="gts-graph-class.html#GTS-GNODE-NEIGHBOR-CAPS"
+>GTS_GNODE_NEIGHBOR</A
+>              (n,e)
+struct      <A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+>;
+struct      <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>;
+
+<A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+>* <A
+HREF="gts-graph-class.html#GTS-GNODE-CLASS"
+>gts_gnode_class</A
+>              (void);
+<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>*   <A
+HREF="gts-graph-class.html#GTS-GNODE-NEW"
+>gts_gnode_new</A
+>                   (<A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+> *klass);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-graph-class.html#GTS-GNODE-DEGREE"
+>gts_gnode_degree</A
+>                (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);
+void        <A
+HREF="gts-graph-class.html#GTS-GNODE-FOREACH-EDGE"
+>gts_gnode_foreach_edge</A
+>          (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+void        <A
+HREF="gts-graph-class.html#GTS-GNODE-FOREACH-NEIGHBOR"
+>gts_gnode_foreach_neighbor</A
+>      (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+<GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      <A
+HREF="gts-graph-class.html#GTS-GNODE-WEIGHT"
+>gts_gnode_weight</A
+>                (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n);
+<GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      <A
+HREF="gts-graph-class.html#GTS-GNODE-MOVE-COST"
+>gts_gnode_move_cost</A
+>             (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *src,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *dst);
+
+#define     <A
+HREF="gts-graph-class.html#GTS-GEDGE-CLASS-CAPS"
+>GTS_GEDGE_CLASS</A
+>                 (klass)
+#define     <A
+HREF="gts-graph-class.html#GTS-GEDGE-CAPS"
+>GTS_GEDGE</A
+>                       (obj)
+#define     <A
+HREF="gts-graph-class.html#GTS-IS-GEDGE-CAPS"
+>GTS_IS_GEDGE</A
+>                    (obj)
+struct      <A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+>;
+struct      <A
+HREF="gts-graph-class.html#GTSGEDGE"
+>GtsGEdge</A
+>;
+
+<A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+>* <A
+HREF="gts-graph-class.html#GTS-GEDGE-CLASS"
+>gts_gedge_class</A
+>              (void);
+<A
+HREF="gts-graph-class.html#GTSGEDGE"
+>GtsGEdge</A
+>*   <A
+HREF="gts-graph-class.html#GTS-GEDGE-NEW"
+>gts_gedge_new</A
+>                   (<A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n1,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n2);
+<GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      <A
+HREF="gts-graph-class.html#GTS-GEDGE-WEIGHT"
+>gts_gedge_weight</A
+>                (<A
+HREF="gts-graph-class.html#GTSGEDGE"
+>GtsGEdge</A
+> *e);
+#define     <A
+HREF="gts-graph-class.html#GTS-GEDGE-CONNECTS"
+>gts_gedge_connects</A
+>              (e, a1, a2)
+
+#define     <A
+HREF="gts-graph-class.html#GTS-GRAPH-CLASS-CAPS"
+>GTS_GRAPH_CLASS</A
+>                 (klass)
+#define     <A
+HREF="gts-graph-class.html#GTS-GRAPH-CAPS"
+>GTS_GRAPH</A
+>                       (obj)
+#define     <A
+HREF="gts-graph-class.html#GTS-IS-GRAPH-CAPS"
+>GTS_IS_GRAPH</A
+>                    (obj)
+struct      <A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+>;
+struct      <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>;
+
+<A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+>* <A
+HREF="gts-graph-class.html"
+>gts_graph_class</A
+>              (void);
+<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>*   <A
+HREF="gts-graph-class.html#GTS-GRAPH-NEW"
+>gts_graph_new</A
+>                   (<A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+> *node_class,
+                                             <A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+> *edge_class);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-graph-class.html#GTS-GRAPH-READ"
+>gts_graph_read</A
+>                  (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *fp);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-graph-class.html#GTS-GRAPH-READ-JOSTLE"
+>gts_graph_read_jostle</A
+>           (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *fp);
+void        <A
+HREF="gts-graph-class.html#GTS-GRAPH-WRITE"
+>gts_graph_write</A
+>                 (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fp);
+void        <A
+HREF="gts-graph-class.html#GTS-GRAPH-WRITE-DOT"
+>gts_graph_write_dot</A
+>             (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fp);
+void        <A
+HREF="gts-graph-class.html#GTS-GRAPH-PRINT-STATS"
+>gts_graph_print_stats</A
+>           (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fp);
+void        <A
+HREF="gts-graph-class.html#GTS-GRAPH-FOREACH-EDGE"
+>gts_graph_foreach_edge</A
+>          (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+struct      <A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+>;
+enum        <A
+HREF="gts-graph-class.html#GTSTRAVERSETYPE"
+>GtsTraverseType</A
+>;
+<A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+>* <A
+HREF="gts-graph-class.html#GTS-GRAPH-TRAVERSE-NEW"
+>gts_graph_traverse_new</A
+>    (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSTRAVERSETYPE"
+>GtsTraverseType</A
+> type,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> reinit);
+<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>*   <A
+HREF="gts-graph-class.html#GTS-GRAPH-TRAVERSE-NEXT"
+>gts_graph_traverse_next</A
+>         (<A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+> *t);
+<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>*   <A
+HREF="gts-graph-class.html#GTS-GRAPH-TRAVERSE-WHAT-NEXT"
+>gts_graph_traverse_what_next</A
+>    (<A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+> *t);
+void        <A
+HREF="gts-graph-class.html#GTS-GRAPH-TRAVERSE-DESTROY"
+>gts_graph_traverse_destroy</A
+>      (<A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+> *t);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-graph-class.html#GTS-GRAPH-EDGES-CUT"
+>gts_graph_edges_cut</A
+>             (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);
+<GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      <A
+HREF="gts-graph-class.html#GTS-GRAPH-EDGES-CUT-WEIGHT"
+>gts_graph_edges_cut_weight</A
+>      (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-graph-class.html#GTS-GRAPH-DISTANCE-SUM"
+>gts_graph_distance_sum</A
+>          (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *center);
+<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>*   <A
+HREF="gts-graph-class.html#GTS-GRAPH-FARTHEST"
+>gts_graph_farthest</A
+>              (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *gnodes);
+<GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      <A
+HREF="gts-graph-class.html#GTS-GRAPH-WEIGHT"
+>gts_graph_weight</A
+>                (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);
+
+#define     <A
+HREF="gts-graph-class.html#GTS-FNODE-CLASS-CAPS"
+>GTS_FNODE_CLASS</A
+>                 (klass)
+#define     <A
+HREF="gts-graph-class.html#GTS-FNODE-CAPS"
+>GTS_FNODE</A
+>                       (obj)
+#define     <A
+HREF="gts-graph-class.html#GTS-IS-FNODE-CAPS"
+>GTS_IS_FNODE</A
+>                    (obj)
+struct      <A
+HREF="gts-graph-class.html#GTSFNODE"
+>GtsFNode</A
+>;
+struct      <A
+HREF="gts-graph-class.html#GTSFNODECLASS"
+>GtsFNodeClass</A
+>;
+
+<A
+HREF="gts-graph-class.html#GTSFNODECLASS"
+>GtsFNodeClass</A
+>* <A
+HREF="gts-graph-class.html#GTS-FNODE-CLASS"
+>gts_fnode_class</A
+>              (void);
+<A
+HREF="gts-graph-class.html#GTSFNODE"
+>GtsFNode</A
+>*   <A
+HREF="gts-graph-class.html#GTS-FNODE-NEW"
+>gts_fnode_new</A
+>                   (<A
+HREF="gts-graph-class.html#GTSFNODECLASS"
+>GtsFNodeClass</A
+> *klass,
+                                             <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f);
+
+<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>*   <A
+HREF="gts-graph-class.html#GTS-SURFACE-GRAPH-NEW"
+>gts_surface_graph_new</A
+>           (<A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+> *klass,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);
+<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>* <A
+HREF="gts-graph-class.html#GTS-SURFACE-GRAPH-SURFACE"
+>gts_surface_graph_surface</A
+>       (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *surface_graph,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);
+<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>*   <A
+HREF="gts-graph-class.html#GTS-SEGMENTS-GRAPH-NEW"
+>gts_segments_graph_new</A
+>          (<A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+> *klass,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *segments);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN14958"
+></A
+><H2
+>Description</H2
+><P
+></P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN14961"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14963"
+></A
+><H3
+><A
+NAME="GTS-GNODE-CLASS-CAPS"
+></A
+>GTS_GNODE_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_GNODE_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14969"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14974"
+></A
+><H3
+><A
+NAME="GTS-GNODE-CAPS"
+></A
+>GTS_GNODE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_GNODE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14980"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14985"
+></A
+><H3
+><A
+NAME="GTS-IS-GNODE-CAPS"
+></A
+>GTS_IS_GNODE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_GNODE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14991"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14996"
+></A
+><H3
+><A
+NAME="GTS-GNODE-NEIGHBOR-CAPS"
+></A
+>GTS_GNODE_NEIGHBOR()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_GNODE_NEIGHBOR(n,e)   (GTS_GEDGE (e)-&gt;n1 == n ? GTS_GEDGE (e)-&gt;n2 : GTS_GEDGE (e)-&gt;n2 == n ? GTS_GEDGE (e)-&gt;n1 : NULL)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15002"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15007"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15012"
+></A
+><H3
+><A
+NAME="GTSGNODECLASS"
+></A
+>struct GtsGNodeClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGNodeClass {
+
+  GtsSListContainerClass parent_class;
+
+  gfloat (* weight) (GtsGNode *);
+  void   (* write)  (GtsGNode *, FILE *);
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15017"
+></A
+><H3
+><A
+NAME="GTSGNODE"
+></A
+>struct GtsGNode</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGNode {
+
+  GtsSListContainer container;
+
+  guint level;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15022"
+></A
+><H3
+><A
+NAME="GTS-GNODE-CLASS"
+></A
+>gts_gnode_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+>* gts_gnode_class              (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15030"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15036"
+></A
+><H3
+><A
+NAME="GTS-GNODE-NEW"
+></A
+>gts_gnode_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>*   gts_gnode_new                   (<A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+> *klass);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15045"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15051"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15057"
+></A
+><H3
+><A
+NAME="GTS-GNODE-DEGREE"
+></A
+>gts_gnode_degree ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_gnode_degree                (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15067"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15073"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15080"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of neighbors of <VAR
+CLASS="PARAMETER"
+>n</VAR
+> (belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+> if <VAR
+CLASS="PARAMETER"
+>g</VAR
+> is not <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>).</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15089"
+></A
+><H3
+><A
+NAME="GTS-GNODE-FOREACH-EDGE"
+></A
+>gts_gnode_foreach_edge ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_gnode_foreach_edge          (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>Calls <VAR
+CLASS="PARAMETER"
+>func</VAR
+> for each <A
+HREF="gts-graph-class.html#GTSGEDGE"
+>GtsGEdge</A
+> connecting <VAR
+CLASS="PARAMETER"
+>n</VAR
+> to another <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>
+(belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+> if <VAR
+CLASS="PARAMETER"
+>g</VAR
+> is not <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15107"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15113"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15120"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15126"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>func</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15132"
+></A
+><H3
+><A
+NAME="GTS-GNODE-FOREACH-NEIGHBOR"
+></A
+>gts_gnode_foreach_neighbor ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_gnode_foreach_neighbor      (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>Calls <VAR
+CLASS="PARAMETER"
+>func</VAR
+> for each neighbor <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> of <VAR
+CLASS="PARAMETER"
+>n</VAR
+> (belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+> if
+<VAR
+CLASS="PARAMETER"
+>g</VAR
+> is not <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15149"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15155"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15162"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15168"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>func</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15174"
+></A
+><H3
+><A
+NAME="GTS-GNODE-WEIGHT"
+></A
+>gts_gnode_weight ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      gts_gnode_weight                (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15183"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15189"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the weight of <VAR
+CLASS="PARAMETER"
+>n</VAR
+> as defined by the <GTKDOCLINK
+HREF="WEIGHT"
+>weight</GTKDOCLINK
+>() method of the
+<A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15197"
+></A
+><H3
+><A
+NAME="GTS-GNODE-MOVE-COST"
+></A
+>gts_gnode_move_cost ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      gts_gnode_move_cost             (<A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *src,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *dst);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15208"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15214"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>src</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> containing <VAR
+CLASS="PARAMETER"
+>n</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15221"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>dst</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15227"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the cost (increase in the sum of the weights of the edges cut) of
+moving <VAR
+CLASS="PARAMETER"
+>n</VAR
+> from <VAR
+CLASS="PARAMETER"
+>src</VAR
+> to <VAR
+CLASS="PARAMETER"
+>dst</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15235"
+></A
+><H3
+><A
+NAME="GTS-GEDGE-CLASS-CAPS"
+></A
+>GTS_GEDGE_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_GEDGE_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15241"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15246"
+></A
+><H3
+><A
+NAME="GTS-GEDGE-CAPS"
+></A
+>GTS_GEDGE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_GEDGE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15252"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15257"
+></A
+><H3
+><A
+NAME="GTS-IS-GEDGE-CAPS"
+></A
+>GTS_IS_GEDGE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_GEDGE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15263"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15268"
+></A
+><H3
+><A
+NAME="GTSGEDGECLASS"
+></A
+>struct GtsGEdgeClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGEdgeClass {
+
+  GtsContaineeClass parent_class;
+
+  GtsGEdge * (* link)   (GtsGEdge * e, GtsGNode * n1, GtsGNode * n2);
+  gfloat     (* weight) (GtsGEdge * e);
+  void       (* write)  (GtsGEdge * e, FILE * fp);
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15273"
+></A
+><H3
+><A
+NAME="GTSGEDGE"
+></A
+>struct GtsGEdge</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGEdge {
+
+  GtsContainee containee;
+
+  GtsGNode * n1;
+  GtsGNode * n2;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15278"
+></A
+><H3
+><A
+NAME="GTS-GEDGE-CLASS"
+></A
+>gts_gedge_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+>* gts_gedge_class              (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15286"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15292"
+></A
+><H3
+><A
+NAME="GTS-GEDGE-NEW"
+></A
+>gts_gedge_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGEDGE"
+>GtsGEdge</A
+>*   gts_gedge_new                   (<A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n1,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15303"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15309"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15315"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15321"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-graph-class.html#GTSGEDGE"
+>GtsGEdge</A
+> linking <VAR
+CLASS="PARAMETER"
+>n1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>n2</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15329"
+></A
+><H3
+><A
+NAME="GTS-GEDGE-WEIGHT"
+></A
+>gts_gedge_weight ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      gts_gedge_weight                (<A
+HREF="gts-graph-class.html#GTSGEDGE"
+>GtsGEdge</A
+> *e);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15338"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGEDGE"
+>GtsGEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15344"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the weight of edge <VAR
+CLASS="PARAMETER"
+>e</VAR
+> as defined by the <GTKDOCLINK
+HREF="WEIGHT"
+>weight</GTKDOCLINK
+>() method of
+<A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15352"
+></A
+><H3
+><A
+NAME="GTS-GEDGE-CONNECTS"
+></A
+>gts_gedge_connects()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_gedge_connects(e, a1, a2)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15358"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15363"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15368"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15373"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-CLASS-CAPS"
+></A
+>GTS_GRAPH_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_GRAPH_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15379"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15384"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-CAPS"
+></A
+>GTS_GRAPH()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_GRAPH(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15390"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15395"
+></A
+><H3
+><A
+NAME="GTS-IS-GRAPH-CAPS"
+></A
+>GTS_IS_GRAPH()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_GRAPH(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15401"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15406"
+></A
+><H3
+><A
+NAME="GTSGRAPHCLASS"
+></A
+>struct GtsGraphClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGraphClass {
+
+  GtsHashContainerClass parent_class;
+
+  gfloat (* weight) (GtsGraph *);
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15411"
+></A
+><H3
+><A
+NAME="GTSGRAPH"
+></A
+>struct GtsGraph</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGraph {
+
+  GtsHashContainer object;
+
+  GtsGNodeClass * node_class;
+  GtsGEdgeClass * edge_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15416"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-CLASS"
+></A
+>gts_graph_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+>* gts_graph_class              (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15424"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15430"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-NEW"
+></A
+>gts_graph_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>*   gts_graph_new                   (<A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+> *node_class,
+                                             <A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+> *edge_class);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15441"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15447"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>node_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODECLASS"
+>GtsGNodeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15453"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>edge_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGEDGECLASS"
+>GtsGEdgeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15459"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> using <VAR
+CLASS="PARAMETER"
+>node_class</VAR
+> and <VAR
+CLASS="PARAMETER"
+>edge_class</VAR
+> as node types.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15467"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-READ"
+></A
+>gts_graph_read ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_graph_read                  (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *fp);</PRE
+><P
+>Adds to <VAR
+CLASS="PARAMETER"
+>g</VAR
+> the data read from <VAR
+CLASS="PARAMETER"
+>fp</VAR
+>. The format of the file pointed
+to by <VAR
+CLASS="PARAMETER"
+>fp</VAR
+> is as described in <A
+HREF="gts-graph-class.html#GTS-GRAPH-WRITE"
+>gts_graph_write</A
+>().</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15481"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15487"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fp</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15493"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> 0 if successful or the line number at which the parsing
+stopped in case of error (in which case the <VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>fp</VAR
+> is set).</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15500"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-READ-JOSTLE"
+></A
+>gts_graph_read_jostle ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_graph_read_jostle           (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *fp);</PRE
+><P
+>Adds to <VAR
+CLASS="PARAMETER"
+>g</VAR
+> the nodes and edges defined in the file pointed to by
+<VAR
+CLASS="PARAMETER"
+>fp</VAR
+>. This file must use the Jostle "graph" ASCII format.  
+The nodes created are of type <GTKDOCLINK
+HREF="GTSNGNODE"
+>GtsNGNode</GTKDOCLINK
+> and their identities are the
+line number at which they appear in <VAR
+CLASS="PARAMETER"
+>fp</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15514"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15520"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fp</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15526"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> 0 if the lecture was successful, the line number at which
+an error occured otherwise (in which case the <VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>fp</VAR
+>
+is set).  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15533"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-WRITE"
+></A
+>gts_graph_write ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_graph_write                 (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fp);</PRE
+><P
+>Writes in the file <VAR
+CLASS="PARAMETER"
+>fp</VAR
+> an ASCII representation of <VAR
+CLASS="PARAMETER"
+>g</VAR
+>. The file
+format is as follows. </P
+><P
+>All the lines beginning with <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-COMMENTS-CAPS"
+>GTS_COMMENTS</A
+> are ignored. The first line
+contains two unsigned integers separated by spaces. The first
+integer is the number of nodes, nn, the second is the number of
+edges, ne.</P
+><P
+>Follows nn lines containing node description.
+Follows ne lines containing the two indices (starting
+from one) of the nodes of each edge.</P
+><P
+>The format described above is the least common denominator to all
+GTS files.  Consistent with an object-oriented approach, the GTS
+file format is extensible. Each of the lines of the file can be
+extended with user-specific attributes accessible through the
+<GTKDOCLINK
+HREF="READ"
+>read</GTKDOCLINK
+>() and <GTKDOCLINK
+HREF="WRITE"
+>write</GTKDOCLINK
+>() virtual methods of each of the objects written
+(graph, nodes or edges). When read with different object classes,
+these extra attributes are just ignored.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15550"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15556"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fp</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a file pointer.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15561"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-WRITE-DOT"
+></A
+>gts_graph_write_dot ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_graph_write_dot             (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fp);</PRE
+><P
+>Writes in the file <VAR
+CLASS="PARAMETER"
+>fp</VAR
+> an ASCII representation of <VAR
+CLASS="PARAMETER"
+>g</VAR
+> in the dot format of
+AT&amp;T Bell Labs.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15572"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15578"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fp</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a file pointer.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15583"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-PRINT-STATS"
+></A
+>gts_graph_print_stats ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_graph_print_stats           (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fp);</PRE
+><P
+>Writes to <VAR
+CLASS="PARAMETER"
+>fp</VAR
+> a summary of the properties of <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15594"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15600"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fp</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a file pointer.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15605"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-FOREACH-EDGE"
+></A
+>gts_graph_foreach_edge ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_graph_foreach_edge          (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>Calls <VAR
+CLASS="PARAMETER"
+>func</VAR
+> for each <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> of <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15618"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15624"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15630"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>func</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15636"
+></A
+><H3
+><A
+NAME="GTSGRAPHTRAVERSE"
+></A
+>struct GtsGraphTraverse</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGraphTraverse;</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15641"
+></A
+><H3
+><A
+NAME="GTSTRAVERSETYPE"
+></A
+>enum GtsTraverseType</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>typedef enum   { GTS_BREADTH_FIRST
+               }   GtsTraverseType;</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15646"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-TRAVERSE-NEW"
+></A
+>gts_graph_traverse_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+>* gts_graph_traverse_new    (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-graph-class.html#GTSTRAVERSETYPE"
+>GtsTraverseType</A
+> type,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> reinit);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15658"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15664"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15671"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>type</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the type of traversal.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15676"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>reinit</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> if <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+>, the traversal is reinitialized.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15682"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+> initialized for the traversal of
+<VAR
+CLASS="PARAMETER"
+>g</VAR
+> of type <VAR
+CLASS="PARAMETER"
+>type</VAR
+>, starting from <VAR
+CLASS="PARAMETER"
+>n</VAR
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15691"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-TRAVERSE-NEXT"
+></A
+>gts_graph_traverse_next ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>*   gts_graph_traverse_next         (<A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+> *t);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15700"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15706"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the next <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> of the traversal defined by <VAR
+CLASS="PARAMETER"
+>t</VAR
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>
+if the traversal is complete.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15714"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-TRAVERSE-WHAT-NEXT"
+></A
+>gts_graph_traverse_what_next ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>*   gts_graph_traverse_what_next    (<A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+> *t);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15723"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15729"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the next <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> of the traversal defined by <VAR
+CLASS="PARAMETER"
+>t</VAR
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>
+if the traversal is complete but without advancing the traversal.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15737"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-TRAVERSE-DESTROY"
+></A
+>gts_graph_traverse_destroy ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_graph_traverse_destroy      (<A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+> *t);</PRE
+><P
+>Frees all the memory allocated for <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15746"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPHTRAVERSE"
+>GtsGraphTraverse</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15752"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-EDGES-CUT"
+></A
+>gts_graph_edges_cut ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_graph_edges_cut             (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15761"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15767"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of edges of <VAR
+CLASS="PARAMETER"
+>g</VAR
+> connecting nodes belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+>
+to nodes not belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15775"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-EDGES-CUT-WEIGHT"
+></A
+>gts_graph_edges_cut_weight ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      gts_graph_edges_cut_weight      (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15784"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15790"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the sum of the weights of the edges of <VAR
+CLASS="PARAMETER"
+>g</VAR
+> connecting nodes
+belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+> to nodes not belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15798"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-DISTANCE-SUM"
+></A
+>gts_graph_distance_sum ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_graph_distance_sum          (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *center);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15808"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15814"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>center</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> of <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15821"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the sum of the distances between all the other <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>
+of <VAR
+CLASS="PARAMETER"
+>g</VAR
+> and <VAR
+CLASS="PARAMETER"
+>center</VAR
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15829"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-FARTHEST"
+></A
+>gts_graph_farthest ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>*   gts_graph_farthest              (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *gnodes);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15839"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15845"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>gnodes</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15852"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> belonging to <VAR
+CLASS="PARAMETER"
+>g</VAR
+> and farthest from all the nodes in
+<VAR
+CLASS="PARAMETER"
+>gnodes</VAR
+> (hmmm, definition of "farthest"?).</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15860"
+></A
+><H3
+><A
+NAME="GTS-GRAPH-WEIGHT"
+></A
+>gts_graph_weight ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GFLOAT"
+>gfloat</GTKDOCLINK
+>      gts_graph_weight                (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15869"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15875"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the weight of graph <VAR
+CLASS="PARAMETER"
+>g</VAR
+> as defined by the <GTKDOCLINK
+HREF="WEIGHT"
+>weight</GTKDOCLINK
+>() method
+of <A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+>. </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15883"
+></A
+><H3
+><A
+NAME="GTS-FNODE-CLASS-CAPS"
+></A
+>GTS_FNODE_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_FNODE_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15889"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15894"
+></A
+><H3
+><A
+NAME="GTS-FNODE-CAPS"
+></A
+>GTS_FNODE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_FNODE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15900"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15905"
+></A
+><H3
+><A
+NAME="GTS-IS-FNODE-CAPS"
+></A
+>GTS_IS_FNODE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_FNODE(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15911"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15916"
+></A
+><H3
+><A
+NAME="GTSFNODE"
+></A
+>struct GtsFNode</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsFNode {
+
+  GtsGNode node;
+
+  GtsFace * f;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15921"
+></A
+><H3
+><A
+NAME="GTSFNODECLASS"
+></A
+>struct GtsFNodeClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsFNodeClass {
+
+  GtsGNodeClass parent_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15926"
+></A
+><H3
+><A
+NAME="GTS-FNODE-CLASS"
+></A
+>gts_fnode_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSFNODECLASS"
+>GtsFNodeClass</A
+>* gts_fnode_class              (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15934"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-graph-class.html#GTSFNODECLASS"
+>GtsFNodeClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15940"
+></A
+><H3
+><A
+NAME="GTS-FNODE-NEW"
+></A
+>gts_fnode_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSFNODE"
+>GtsFNode</A
+>*   gts_fnode_new                   (<A
+HREF="gts-graph-class.html#GTSFNODECLASS"
+>GtsFNodeClass</A
+> *klass,
+                                             <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> *f);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15950"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSFNODECLASS"
+>GtsFNodeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15956"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15962"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-graph-class.html#GTSFNODE"
+>GtsFNode</A
+> associated with face <VAR
+CLASS="PARAMETER"
+>f</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN15969"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-GRAPH-NEW"
+></A
+>gts_surface_graph_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>*   gts_surface_graph_new           (<A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+> *klass,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15979"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15985"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN15991"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> representing the connectivity of the faces
+of <VAR
+CLASS="PARAMETER"
+>s</VAR
+>. This graph uses <GTKDOCLINK
+HREF="GTSFGNODE"
+>GtsFGNode</GTKDOCLINK
+> as nodes which allows to store
+the dependencies between nodes and faces of <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16000"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-GRAPH-SURFACE"
+></A
+>gts_surface_graph_surface ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>* gts_surface_graph_surface       (<A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *surface_graph,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16010"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface_graph</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> using <GTKDOCLINK
+HREF="GTSFGNODE"
+>GtsFGNode</GTKDOCLINK
+> as nodes.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16017"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16023"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> using the same classes as <VAR
+CLASS="PARAMETER"
+>s</VAR
+> and
+composed of the faces defined by <VAR
+CLASS="PARAMETER"
+>surface_graph</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16031"
+></A
+><H3
+><A
+NAME="GTS-SEGMENTS-GRAPH-NEW"
+></A
+>gts_segments_graph_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>*   gts_segments_graph_new          (<A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+> *klass,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *segments);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16041"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPHCLASS"
+>GtsGraphClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16047"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>segments</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16053"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> representing the connectivity of the segments
+in <VAR
+CLASS="PARAMETER"
+>segments</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="c14807.html"
+><B
+>&lt;&lt;&lt;&nbsp;Graph and operations on graphs</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-weighted-graph.html"
+><B
+>Weighted graph&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

@@ -1,0 +1,2366 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Progressive surfaces</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Progressive and Hierarchical surfaces"
+HREF="c13239.html"><LINK
+REL="PREVIOUS"
+TITLE="Vertex split"
+HREF="gts-vertex-split.html"><LINK
+REL="NEXT"
+TITLE="Hierarchical vertex split"
+HREF="gts-hierarchical-vertex-split.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-vertex-split.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c13239.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-hierarchical-vertex-split.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-PROGRESSIVE-SURFACES"
+></A
+>Progressive surfaces</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN13656"
+></A
+><H2
+>Name</H2
+>Progressive surfaces&nbsp;--&nbsp;continuous level-of-detail for surfaces.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN13659"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-CLASS-CAPS"
+>GTS_PSURFACE_CLASS</A
+>              (klass)
+#define     <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-CAPS"
+>GTS_PSURFACE</A
+>                    (obj)
+#define     <A
+HREF="gts-progressive-surfaces.html#GTS-IS-PSURFACE-CAPS"
+>GTS_IS_PSURFACE</A
+>                 (obj)
+#define     <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-IS-CLOSED-CAPS"
+>GTS_PSURFACE_IS_CLOSED</A
+>          (ps)
+struct      <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+>;
+struct      <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>;
+
+<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+>* <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-CLASS"
+>gts_psurface_class</A
+>        (void);
+<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>* <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-NEW"
+>gts_psurface_new</A
+>               (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+> *klass,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-vertex-split.html#GTSSPLITCLASS"
+>GtsSplitClass</A
+> *split_class,
+                                             <A
+HREF="gts-extended-binary-heaps.html#GTSKEYFUNC"
+>GtsKeyFunc</A
+> cost_func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> cost_data,
+                                             <A
+HREF="gts-surface-simplification-and-refinement.html#GTSCOARSENFUNC"
+>GtsCoarsenFunc</A
+> coarsen_func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> coarsen_data,
+                                             <A
+HREF="gts-surface-simplification-and-refinement.html#GTSSTOPFUNC"
+>GtsStopFunc</A
+> stop_func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> stop_data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> minangle);
+<A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>*   <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-ADD-VERTEX"
+>gts_psurface_add_vertex</A
+>         (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);
+<A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>*   <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-REMOVE-VERTEX"
+>gts_psurface_remove_vertex</A
+>      (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);
+void        <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-SET-VERTEX-NUMBER"
+>gts_psurface_set_vertex_number</A
+>  (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> n);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-GET-VERTEX-NUMBER"
+>gts_psurface_get_vertex_number</A
+>  (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-MIN-VERTEX-NUMBER"
+>gts_psurface_min_vertex_number</A
+>  (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-MAX-VERTEX-NUMBER"
+>gts_psurface_max_vertex_number</A
+>  (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);
+void        <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-FOREACH-VERTEX"
+>gts_psurface_foreach_vertex</A
+>     (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>* <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-OPEN"
+>gts_psurface_open</A
+>              (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+> *klass,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-vertex-split.html#GTSSPLITCLASS"
+>GtsSplitClass</A
+> *split_class,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);
+<A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>*   <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-READ-VERTEX"
+>gts_psurface_read_vertex</A
+>        (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *fp);
+void        <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-CLOSE"
+>gts_psurface_close</A
+>              (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);
+void        <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-WRITE"
+>gts_psurface_write</A
+>              (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fptr);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN13719"
+></A
+><H2
+>Description</H2
+><P
+>Progressive surfaces allow you to control precisely and continuously the level of detail of a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>. They are built off-line by storing the sequence of edge collapses performed during surface simplification (see <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-NEW"
+>gts_psurface_new</A
+>()). Fast traversal of the pre-built sequence allow on-line selection of the required level of detail.</P
+><P
+>Using the <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-WRITE"
+>gts_psurface_write</A
+>() function a text representation of a progressive surface can be written to a file, pipe or socket. This text representation allows the progressive transmission of a surface, starting with the coarsest representation and progressively refining it as data is read or received (see <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-OPEN"
+>gts_psurface_open</A
+>(), <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-READ-VERTEX"
+>gts_psurface_read_vertex</A
+>() and <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-CLOSE"
+>gts_psurface_close</A
+>() for details).</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN13729"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13731"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-CLASS-CAPS"
+></A
+>GTS_PSURFACE_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_PSURFACE_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13739"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13745"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-CAPS"
+></A
+>GTS_PSURFACE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_PSURFACE(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13753"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13759"
+></A
+><H3
+><A
+NAME="GTS-IS-PSURFACE-CAPS"
+></A
+>GTS_IS_PSURFACE()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_PSURFACE(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13769"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13774"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-IS-CLOSED-CAPS"
+></A
+>GTS_PSURFACE_IS_CLOSED()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_PSURFACE_IS_CLOSED(ps)  (!(ps)-&gt;vertices)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>ps</VAR
+> has not been created with <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-OPEN"
+>gts_psurface_open</A
+>() or if
+it has been closed using <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-CLOSE"
+>gts_psurface_close</A
+>().</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13784"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13790"
+></A
+><H3
+><A
+NAME="GTSPSURFACECLASS"
+></A
+>struct GtsPSurfaceClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsPSurfaceClass {
+
+  GtsObjectClass parent_class;
+};</PRE
+><P
+>The progressive surface class derived from <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13796"
+></A
+><H3
+><A
+NAME="GTSPSURFACE"
+></A
+>struct GtsPSurface</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsPSurface {
+
+  GtsObject object;
+
+  GtsSurface * s;
+  GPtrArray * split;
+  GtsSplitClass * split_class;
+  guint pos, min;
+
+  GPtrArray * vertices;
+  GPtrArray * faces;
+};</PRE
+><P
+>The progressive surface object.
+
+ derived from <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+>. The field <VAR
+CLASS="PARAMETER"
+>s</VAR
+> is the <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> being refined or coarsened by operations on the progressive surface. All the other fields must be considered private and accessed only through the following functions.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13805"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> <CODE
+CLASS="STRUCTFIELD"
+>object</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13811"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>s</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> being refined or coarsened by operations on the progressive surface.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13818"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GPTRARRAY"
+>GPtrArray</GTKDOCLINK
+> *<CODE
+CLASS="STRUCTFIELD"
+>split</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13824"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-vertex-split.html#GTSSPLITCLASS"
+>GtsSplitClass</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>split_class</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13830"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>pos</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13836"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>min</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13842"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GPTRARRAY"
+>GPtrArray</GTKDOCLINK
+> *<CODE
+CLASS="STRUCTFIELD"
+>vertices</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13848"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GPTRARRAY"
+>GPtrArray</GTKDOCLINK
+> *<CODE
+CLASS="STRUCTFIELD"
+>faces</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13854"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-CLASS"
+></A
+>gts_psurface_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+>* gts_psurface_class        (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13862"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13868"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-NEW"
+></A
+>gts_psurface_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>* gts_psurface_new               (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+> *klass,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-vertex-split.html#GTSSPLITCLASS"
+>GtsSplitClass</A
+> *split_class,
+                                             <A
+HREF="gts-extended-binary-heaps.html#GTSKEYFUNC"
+>GtsKeyFunc</A
+> cost_func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> cost_data,
+                                             <A
+HREF="gts-surface-simplification-and-refinement.html#GTSCOARSENFUNC"
+>GtsCoarsenFunc</A
+> coarsen_func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> coarsen_data,
+                                             <A
+HREF="gts-surface-simplification-and-refinement.html#GTSSTOPFUNC"
+>GtsStopFunc</A
+> stop_func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> stop_data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> minangle);</PRE
+><P
+>This function works in exactly the same way as the
+<A
+HREF="gts-surface-simplification-and-refinement.html#GTS-SURFACE-COARSEN"
+>gts_surface_coarsen</A
+>() function, except that the history of edge
+collapse is saved in an array of <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> objects. This allows for
+dynamic continuous multiresolution control of the input <VAR
+CLASS="PARAMETER"
+>surface</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13889"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13895"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13901"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>split_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertex-split.html#GTSSPLITCLASS"
+>GtsSplitClass</A
+> to use for the new progressive surface.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13907"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>cost_func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> cost function for the edge collapse algorithm.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13912"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>cost_data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> data to pass to <VAR
+CLASS="PARAMETER"
+>cost_func</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13918"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>coarsen_func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the function returning the vertex replacement for the edge 
+collapse.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13923"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>coarsen_data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> data to pass to <VAR
+CLASS="PARAMETER"
+>coarsen_func</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13929"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>stop_func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the function to call to decide whether to stop the coarsening
+process.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13934"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>stop_data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> data to pass to <VAR
+CLASS="PARAMETER"
+>stop_func</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13940"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>minangle</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the minimum angle allowable between two neighboring triangles. 
+This is used to avoid introducing folds in the mesh during simplification.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13945"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new progressive surface.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13950"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-ADD-VERTEX"
+></A
+>gts_psurface_add_vertex ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>*   gts_psurface_add_vertex         (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);</PRE
+><P
+>Adds a vertex to the progressive surface <VAR
+CLASS="PARAMETER"
+>ps</VAR
+> by expanding the next
+available <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13961"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13967"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the expanded <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if all the <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> have already
+been expanded.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN13975"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-REMOVE-VERTEX"
+></A
+>gts_psurface_remove_vertex ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>*   gts_psurface_remove_vertex      (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);</PRE
+><P
+>Removes one vertex from the progressive surface <VAR
+CLASS="PARAMETER"
+>ps</VAR
+> by collapsing the first
+available <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13986"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN13992"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the collapsed <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if all the <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> have already
+been collapsed.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14000"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-SET-VERTEX-NUMBER"
+></A
+>gts_psurface_set_vertex_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_psurface_set_vertex_number  (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> n);</PRE
+><P
+>Performs the required number of collapses or expansions to set the number
+of vertices of <VAR
+CLASS="PARAMETER"
+>ps</VAR
+> to <VAR
+CLASS="PARAMETER"
+>n</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14011"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14017"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a number of vertices.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14022"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-GET-VERTEX-NUMBER"
+></A
+>gts_psurface_get_vertex_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_psurface_get_vertex_number  (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14031"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14037"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the current number of vertices of <VAR
+CLASS="PARAMETER"
+>ps</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14043"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-MIN-VERTEX-NUMBER"
+></A
+>gts_psurface_min_vertex_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_psurface_min_vertex_number  (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14052"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14058"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the minimum number of vertices of <VAR
+CLASS="PARAMETER"
+>ps</VAR
+> i.e. the number of vertices
+if all the <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> were collapsed.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14065"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-MAX-VERTEX-NUMBER"
+></A
+>gts_psurface_max_vertex_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_psurface_max_vertex_number  (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14074"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14080"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the maximum number of vertices of <VAR
+CLASS="PARAMETER"
+>ps</VAR
+> i.e. the number of vertices
+if all the <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> were expanded.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14087"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-FOREACH-VERTEX"
+></A
+>gts_psurface_foreach_vertex ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_psurface_foreach_vertex     (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>Calls <VAR
+CLASS="PARAMETER"
+>func</VAR
+> for each (potential) vertex of <VAR
+CLASS="PARAMETER"
+>ps</VAR
+>, whether actually used
+or not. The vertices are called in the order they were created during the
+edge collapse operation.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14099"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14105"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a function to call for each vertex of <VAR
+CLASS="PARAMETER"
+>ps</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14111"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> data to be passed to <VAR
+CLASS="PARAMETER"
+>func</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14117"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-OPEN"
+></A
+>gts_psurface_open ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>* gts_psurface_open              (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+> *klass,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-vertex-split.html#GTSSPLITCLASS"
+>GtsSplitClass</A
+> *split_class,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);</PRE
+><P
+>Creates a new <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> prepared for input from the file <VAR
+CLASS="PARAMETER"
+>f</VAR
+> 
+containing a valid GTS representation of a progressive surface. The initial
+shape of the progressive surface is loaded into <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.</P
+><P
+>Before being usable as such this progressive surface must be closed using
+<A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-CLOSE"
+>gts_psurface_close</A
+>(). While open however, the functions
+<A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-GET-VERTEX-NUMBER"
+>gts_psurface_get_vertex_number</A
+>(), <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-MIN-VERTEX-NUMBER"
+>gts_psurface_min_vertex_number</A
+>() and
+<A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-MAX-VERTEX-NUMBER"
+>gts_psurface_max_vertex_number</A
+>() can still be used.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14137"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACECLASS"
+>GtsPSurfaceClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14143"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14149"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>split_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertex-split.html#GTSSPLITCLASS"
+>GtsSplitClass</A
+> to use for the <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14156"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14162"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if there was a format error while
+reading the file, in which case <VAR
+CLASS="PARAMETER"
+>f</VAR
+> contains information about the error.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14170"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-READ-VERTEX"
+></A
+>gts_psurface_read_vertex ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+>*   gts_psurface_read_vertex        (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *fp);</PRE
+><P
+>Reads in one vertex split operation from <VAR
+CLASS="PARAMETER"
+>fp</VAR
+> and performs the expansion.</P
+><P
+>If an error occurs while reading the file, the <VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>fp</VAR
+> is set.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14184"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> prealably created with <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-OPEN"
+>gts_psurface_open</A
+>().</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14191"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fp</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14197"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the newly created <A
+HREF="gts-vertex-split.html#GTSSPLIT"
+>GtsSplit</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if no vertex split could be
+read from <VAR
+CLASS="PARAMETER"
+>fp</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14205"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-CLOSE"
+></A
+>gts_psurface_close ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_psurface_close              (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps);</PRE
+><P
+>Closes a progressive surface.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14213"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> prealably created with <A
+HREF="gts-progressive-surfaces.html#GTS-PSURFACE-OPEN"
+>gts_psurface_open</A
+>().</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN14220"
+></A
+><H3
+><A
+NAME="GTS-PSURFACE-WRITE"
+></A
+>gts_psurface_write ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_psurface_write              (<A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+> *ps,
+                                             <GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fptr);</PRE
+><P
+>Writes to <VAR
+CLASS="PARAMETER"
+>fptr</VAR
+> a GTS progressive surface description.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14230"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ps</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-surfaces.html#GTSPSURFACE"
+>GtsPSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN14236"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fptr</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a file pointer.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-vertex-split.html"
+><B
+>&lt;&lt;&lt;&nbsp;Vertex split</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-hierarchical-vertex-split.html"
+><B
+>Hierarchical vertex split&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

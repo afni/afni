@@ -1,0 +1,2337 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Vertices</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><LINK
+REL="PREVIOUS"
+TITLE="Points"
+HREF="gts-points.html"><LINK
+REL="NEXT"
+TITLE="Segments"
+HREF="gts-segments.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-points.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c2560.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-segments.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-VERTICES"
+></A
+>Vertices</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN4763"
+></A
+><H2
+>Name</H2
+>Vertices&nbsp;--&nbsp;vertex object and related functions.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN4766"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-vertices.html#GTS-VERTEX-CLASS-CAPS"
+>GTS_VERTEX_CLASS</A
+>                (klass)
+#define     <A
+HREF="gts-vertices.html#GTS-VERTEX-CAPS"
+>GTS_VERTEX</A
+>                      (obj)
+#define     <A
+HREF="gts-vertices.html#GTS-IS-VERTEX-CAPS"
+>GTS_IS_VERTEX</A
+>                   (obj)
+struct      <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+>;
+struct      <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>;
+
+<A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+>* <A
+HREF="gts-vertices.html#GTS-VERTEX-CLASS"
+>gts_vertex_class</A
+>            (void);
+<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>*  <A
+HREF="gts-vertices.html#GTS-VERTEX-NEW"
+>gts_vertex_new</A
+>                  (<A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *klass,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> x,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> y,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> z);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-vertices.html#GTS-VERTEX-IS-UNATTACHED"
+>gts_vertex_is_unattached</A
+>        (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-vertices.html#GTS-VERTEX-IS-BOUNDARY"
+>gts_vertex_is_boundary</A
+>          (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-vertices.html#GTS-VERTEX-IS-CONTACT"
+>gts_vertex_is_contact</A
+>           (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> sever);
+<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>* <A
+HREF="gts-vertices.html#GTS-VERTICES-ARE-CONNECTED"
+>gts_vertices_are_connected</A
+>      (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v1,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v2);
+void        <A
+HREF="gts-vertices.html#GTS-VERTEX-REPLACE"
+>gts_vertex_replace</A
+>              (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *with);
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-vertices.html#GTS-VERTEX-NEIGHBORS"
+>gts_vertex_neighbors</A
+>            (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *list,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-vertices.html#GTS-VERTEX-TRIANGLES"
+>gts_vertex_triangles</A
+>            (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *list);
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-vertices.html#GTS-VERTEX-FACES"
+>gts_vertex_faces</A
+>                (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *list);
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-vertices.html#GTS-VERTEX-FAN-ORIENTED"
+>gts_vertex_fan_oriented</A
+>         (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-vertices.html#GTS-VERTEX-ENCROACHES-EDGE"
+>gts_vertex_encroaches_edge</A
+>      (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-vertices.html#GTS-VERTICES-FROM-SEGMENTS"
+>gts_vertices_from_segments</A
+>      (<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *segments);
+<GTKDOCLINK
+HREF="GLIST"
+>GList</GTKDOCLINK
+>*      <A
+HREF="gts-vertices.html#GTS-VERTICES-MERGE"
+>gts_vertices_merge</A
+>              (<GTKDOCLINK
+HREF="GLIST"
+>GList</GTKDOCLINK
+> *vertices,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> epsilon);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN4829"
+></A
+><H2
+>Description</H2
+><P
+>Vertices are points used as endpoints of <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>. They are derived from <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN4834"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4836"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-CLASS-CAPS"
+></A
+>GTS_VERTEX_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_VERTEX_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4844"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4850"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-CAPS"
+></A
+>GTS_VERTEX()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_VERTEX(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4858"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4864"
+></A
+><H3
+><A
+NAME="GTS-IS-VERTEX-CAPS"
+></A
+>GTS_IS_VERTEX()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_VERTEX(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a descendant of <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4874"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4879"
+></A
+><H3
+><A
+NAME="GTSVERTEXCLASS"
+></A
+>struct GtsVertexClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsVertexClass {
+
+  GtsPointClass parent_class;
+
+  void        (* intersection_attributes) (GtsVertex *, 
+					   GtsObject *, 
+					   GtsObject *);
+};</PRE
+><P
+>The vertex class. No virtual functions are associated.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4884"
+></A
+><H3
+><A
+NAME="GTSVERTEX"
+></A
+>struct GtsVertex</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsVertex {
+
+  GtsPoint p;
+  
+  GSList * segments;
+};</PRE
+><P
+>The vertex object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4890"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> <CODE
+CLASS="STRUCTFIELD"
+>p</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4896"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *<CODE
+CLASS="STRUCTFIELD"
+>segments</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Contains all the <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> using this vertex as one of their endpoints.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4903"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-CLASS"
+></A
+>gts_vertex_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+>* gts_vertex_class            (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4911"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4917"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-NEW"
+></A
+>gts_vertex_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>*  gts_vertex_new                  (<A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *klass,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> x,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> y,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> z);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4929"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4935"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>x</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the x-coordinate of the vertex to create.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4940"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>y</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the y-coordinate of the vertex to create.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4945"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>z</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the y-coordinate of the vertex to create.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4950"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> with <VAR
+CLASS="PARAMETER"
+>x</VAR
+>, <VAR
+CLASS="PARAMETER"
+>y</VAR
+> and <VAR
+CLASS="PARAMETER"
+>z</VAR
+> as coordinates.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4959"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-IS-UNATTACHED"
+></A
+>gts_vertex_is_unattached ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_vertex_is_unattached        (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4968"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4974"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>v</VAR
+> is not the endpoint of any <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>, 
+<VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4983"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-IS-BOUNDARY"
+></A
+>gts_vertex_is_boundary ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_vertex_is_boundary          (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4993"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4999"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5006"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>v</VAR
+> is used by a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> boundary of <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> as
+determined by <A
+HREF="gts-edges.html#GTS-EDGE-IS-BOUNDARY"
+>gts_edge_is_boundary</A
+>(), <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5017"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-IS-CONTACT"
+></A
+>gts_vertex_is_contact ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_vertex_is_contact           (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> sever);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5027"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.  </P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5033"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>sever</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> if <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> and if <VAR
+CLASS="PARAMETER"
+>v</VAR
+> is a contact vertex between two or more
+sets of connected triangles replaces it with as many vertices,
+clones of <VAR
+CLASS="PARAMETER"
+>v</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5041"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of sets of connected triangles sharing <VAR
+CLASS="PARAMETER"
+>v</VAR
+> as a
+contact vertex.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5047"
+></A
+><H3
+><A
+NAME="GTS-VERTICES-ARE-CONNECTED"
+></A
+>gts_vertices_are_connected ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>* gts_vertices_are_connected      (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v1,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5057"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5063"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5069"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> if <VAR
+CLASS="PARAMETER"
+>v1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>v2</VAR
+> are the vertices of the same <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>
+this segment else <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5078"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-REPLACE"
+></A
+>gts_vertex_replace ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_vertex_replace              (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *with);</PRE
+><P
+>Replaces vertex <VAR
+CLASS="PARAMETER"
+>v</VAR
+> with vertex <VAR
+CLASS="PARAMETER"
+>with</VAR
+>. <VAR
+CLASS="PARAMETER"
+>v</VAR
+> and <VAR
+CLASS="PARAMETER"
+>with</VAR
+> must be
+different.  All the <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> which have <VAR
+CLASS="PARAMETER"
+>v</VAR
+> has one of their
+vertices are updated.  The segments list of vertex <VAR
+CLASS="PARAMETER"
+>v</VAR
+> is freed and
+<VAR
+CLASS="PARAMETER"
+>v</VAR
+>-&gt;segments is set to <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5096"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5102"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>with</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5108"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-NEIGHBORS"
+></A
+>gts_vertex_neighbors ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_vertex_neighbors            (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *list,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);</PRE
+><P
+>Adds to <VAR
+CLASS="PARAMETER"
+>list</VAR
+> all the <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> connected to <VAR
+CLASS="PARAMETER"
+>v</VAR
+> by a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> and not
+already in <VAR
+CLASS="PARAMETER"
+>list</VAR
+>. If <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> is not <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> only the vertices connected to
+<VAR
+CLASS="PARAMETER"
+>v</VAR
+> by an edge belonging to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> are considered.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5128"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5134"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>list</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5140"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5147"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the new list of unique <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5153"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-TRIANGLES"
+></A
+>gts_vertex_triangles ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_vertex_triangles            (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *list);</PRE
+><P
+>Adds all the <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> which share <VAR
+CLASS="PARAMETER"
+>v</VAR
+> as a vertex and do not
+already belong to <VAR
+CLASS="PARAMETER"
+>list</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5166"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5172"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>list</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5178"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the new list of unique <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> which share <VAR
+CLASS="PARAMETER"
+>v</VAR
+> as a
+vertex.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5185"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-FACES"
+></A
+>gts_vertex_faces ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_vertex_faces                (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *list);</PRE
+><P
+>Adds all the <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> belonging to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> (if not <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>) which share 
+<VAR
+CLASS="PARAMETER"
+>v</VAR
+> as a vertex and do not already belong to <VAR
+CLASS="PARAMETER"
+>list</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5201"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5207"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5214"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>list</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5220"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the new list of unique <A
+HREF="gts-faces.html#GTSFACE"
+>GtsFace</A
+> belonging to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> 
+which share <VAR
+CLASS="PARAMETER"
+>v</VAR
+> as a vertex.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5228"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-FAN-ORIENTED"
+></A
+>gts_vertex_fan_oriented ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_vertex_fan_oriented         (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5238"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5244"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5250"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> describing in counterclockwise order the 
+boundary of the fan of summit <VAR
+CLASS="PARAMETER"
+>v</VAR
+>, the faces of the fan belonging to 
+<VAR
+CLASS="PARAMETER"
+>surface</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5258"
+></A
+><H3
+><A
+NAME="GTS-VERTEX-ENCROACHES-EDGE"
+></A
+>gts_vertex_encroaches_edge ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_vertex_encroaches_edge      (<A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *v,
+                                             <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> *e);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5268"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>v</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5274"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>e</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5280"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>v</VAR
+> is strictly contained in the diametral circle of <VAR
+CLASS="PARAMETER"
+>e</VAR
+>,
+<VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5289"
+></A
+><H3
+><A
+NAME="GTS-VERTICES-FROM-SEGMENTS"
+></A
+>gts_vertices_from_segments ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_vertices_from_segments      (<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *segments);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5298"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>segments</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5304"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>, vertices of a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> in <VAR
+CLASS="PARAMETER"
+>segments</VAR
+>.
+Each element in the list is unique (no duplicates).</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN5312"
+></A
+><H3
+><A
+NAME="GTS-VERTICES-MERGE"
+></A
+>gts_vertices_merge ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GLIST"
+>GList</GTKDOCLINK
+>*      gts_vertices_merge              (<GTKDOCLINK
+HREF="GLIST"
+>GList</GTKDOCLINK
+> *vertices,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> epsilon);</PRE
+><P
+>For each vertex v in <VAR
+CLASS="PARAMETER"
+>vertices</VAR
+> look if there are any vertex of
+<VAR
+CLASS="PARAMETER"
+>vertices</VAR
+> contained in a box centered on v of size 2*<VAR
+CLASS="PARAMETER"
+>epsilon</VAR
+>. If
+there are, replace them with v (using <A
+HREF="gts-vertices.html#GTS-VERTEX-REPLACE"
+>gts_vertex_replace</A
+>()),
+destroy them and remove them from list.  This is done efficiently
+using Kd-Trees.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5326"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vertices</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5332"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>epsilon</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> half the size of the bounding box to consider for each vertex.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN5337"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the updated list of vertices.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-points.html"
+><B
+>&lt;&lt;&lt;&nbsp;Points</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-segments.html"
+><B
+>Segments&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

@@ -1,0 +1,1941 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Out-of-core simplification</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Surface operations"
+HREF="c10572.html"><LINK
+REL="PREVIOUS"
+TITLE="Surface simplification and refinement"
+HREF="gts-surface-simplification-and-refinement.html"><LINK
+REL="NEXT"
+TITLE="Isosurfaces from 3D functions"
+HREF="gts-isosurfaces-from-3d-functions.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-surface-simplification-and-refinement.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c10572.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-isosurfaces-from-3d-functions.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-OUT-OF-CORE-SIMPLIFICATION"
+></A
+>Out-of-core simplification</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN11480"
+></A
+><H2
+>Name</H2
+>Out-of-core simplification&nbsp;--&nbsp;objects for simplification based on vertex clustering.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN11483"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-CLASS-CAPS"
+>GTS_CLUSTER_CLASS</A
+>               (klass)
+#define     <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-CAPS"
+>GTS_CLUSTER</A
+>                     (obj)
+#define     <A
+HREF="gts-out-of-core-simplification.html#GTS-IS-CLUSTER-CAPS"
+>GTS_IS_CLUSTER</A
+>                  (obj)
+struct      <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>;
+struct      <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>;
+struct      <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERID"
+>GtsClusterId</A
+>;
+
+<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>* <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-CLASS"
+>gts_cluster_class</A
+>          (void);
+<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>* <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-NEW"
+>gts_cluster_new</A
+>                 (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+> *klass,
+                                             <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERID"
+>GtsClusterId</A
+> id,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *vklass);
+void        <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-ADD"
+>gts_cluster_add</A
+>                 (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+> *c,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+void        <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-UPDATE"
+>gts_cluster_update</A
+>              (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+> *c);
+
+#define     <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-CLASS-CAPS"
+>GTS_CLUSTER_GRID_CLASS</A
+>          (klass)
+#define     <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-CAPS"
+>GTS_CLUSTER_GRID</A
+>                (obj)
+#define     <A
+HREF="gts-out-of-core-simplification.html#GTS-IS-CLUSTER-GRID-CAPS"
+>GTS_IS_CLUSTER_GRID</A
+>             (obj)
+struct      <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+>;
+struct      <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+>;
+
+<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+>* <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-CLASS"
+>gts_cluster_grid_class</A
+> (void);
+<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+>* <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-NEW"
+>gts_cluster_grid_new</A
+>        (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+> *klass,
+                                             <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+> *cluster_class,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-bounding-boxes-trees.html#GTSBBOX"
+>GtsBBox</A
+> *bbox,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> delta);
+void        <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-ADD-TRIANGLE"
+>gts_cluster_grid_add_triangle</A
+>   (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+> *cluster_grid,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+<A
+HREF="gts-simple-statistics.html#GTSRANGE"
+>GtsRange</A
+>    <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-UPDATE"
+>gts_cluster_grid_update</A
+>         (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+> *cluster_grid);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN11528"
+></A
+><H2
+>Description</H2
+><P
+>Using vertex clusters and vertex cluster grids it is easy to design out-of-core algorithms for surface simplification. This approach has been detailed in a recent paper by Lindstrom and Turk ("Out-of-core simplification of large polygonal models", 2000).</P
+><P
+>Vertex clusters are just groups of vertices collapsed into a single vertex. The position of this single representative vertex can be derived with different techniques. The default GTS implementation <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+> just takes the average of the positions of the vertices in a given cluster as the representative position. Clusters are created using <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-NEW"
+>gts_cluster_new</A
+>(). The cluster is initially empty and the position of the representative vertex is set to the origin. Vertices are added using <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-ADD"
+>gts_cluster_add</A
+>() which calls the <GTKDOCLINK
+HREF="ADD"
+>add</GTKDOCLINK
+>() virtual method of <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>. Once all the vertices have been added <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-UPDATE"
+>gts_cluster_update</A
+>() computes the position of the representative vertex.</P
+><P
+>Clusters are grouped using the <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+> object which is just an implementation of the hash-table based regular grid of Lindstrom and Turk. This regular grid is created using <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-NEW"
+>gts_cluster_grid_new</A
+>(). Once created triangles of the surface to be simplified can be added using <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-ADD-TRIANGLE"
+>gts_cluster_grid_add_triangle</A
+>() which adds the vertices of the triangle to the <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+> they belong to and adds the corresponding faces to the simplified surface. After all the triangles of the original surface have been added the position of the representative vertex of all the vertex clusters is computed using <A
+HREF="gts-out-of-core-simplification.html#GTS-CLUSTER-GRID-UPDATE"
+>gts_cluster_grid_update</A
+>(). The simplified surface is then complete and the cluster grid can be destroyed using <A
+HREF="gts-object-class.html#GTS-OBJECT-DESTROY"
+>gts_object_destroy</A
+>().</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN11545"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11547"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-CLASS-CAPS"
+></A
+>GTS_CLUSTER_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_CLUSTER_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11555"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11561"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-CAPS"
+></A
+>GTS_CLUSTER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_CLUSTER(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11569"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11575"
+></A
+><H3
+><A
+NAME="GTS-IS-CLUSTER-CAPS"
+></A
+>GTS_IS_CLUSTER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_CLUSTER(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11585"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11590"
+></A
+><H3
+><A
+NAME="GTSCLUSTERCLASS"
+></A
+>struct GtsClusterClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsClusterClass {
+
+  GtsObjectClass parent_class;
+
+  void (* add) (GtsCluster * c, GtsPoint * p, gpointer data);
+  void (* update) (GtsCluster * c);
+};</PRE
+><P
+>The cluster class derived from <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>. Virtual function <VAR
+CLASS="PARAMETER"
+>add</VAR
+> adds point <VAR
+CLASS="PARAMETER"
+>p</VAR
+> to the cluster while passing user-data <VAR
+CLASS="PARAMETER"
+>data</VAR
+>. Virtual function <VAR
+CLASS="PARAMETER"
+>update</VAR
+> computes the position of the representative vertex.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11600"
+></A
+><H3
+><A
+NAME="GTSCLUSTER"
+></A
+>struct GtsCluster</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsCluster {
+
+  GtsObject parent;
+
+  GtsClusterId id;
+  GtsVertex * v;
+  guint n;
+};</PRE
+><P
+>The cluster object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11606"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> <CODE
+CLASS="STRUCTFIELD"
+>parent</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11612"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERID"
+>GtsClusterId</A
+> <CODE
+CLASS="STRUCTFIELD"
+>id</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Unique identifier.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11618"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>v</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+><A
+HREF="gts-vertices.html#GTSVERTEX"
+>GtsVertex</A
+> representative of all the vertices in the cluster.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11625"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>n</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Number of vertices added to the cluster.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11631"
+></A
+><H3
+><A
+NAME="GTSCLUSTERID"
+></A
+>struct GtsClusterId</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsClusterId {
+
+  guint x, y, z;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11636"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-CLASS"
+></A
+>gts_cluster_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>* gts_cluster_class          (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11644"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11650"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-NEW"
+></A
+>gts_cluster_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>* gts_cluster_new                 (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+> *klass,
+                                             <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERID"
+>GtsClusterId</A
+> id,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *vklass);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11661"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11667"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>id</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the id of the new cluster.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11672"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vklass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> for the representative vertex of the cluster.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11678"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11684"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-ADD"
+></A
+>gts_cluster_add ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_cluster_add                 (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+> *c,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>Adds point <VAR
+CLASS="PARAMETER"
+>p</VAR
+> to cluster <VAR
+CLASS="PARAMETER"
+>c</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11696"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>c</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11702"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11708"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> data to pass to the <GTKDOCLINK
+HREF="ADD"
+>add</GTKDOCLINK
+>() virtual method of <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11715"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-UPDATE"
+></A
+>gts_cluster_update ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_cluster_update              (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+> *c);</PRE
+><P
+>Updates the position of the vertex representative of all the
+vertices added to <VAR
+CLASS="PARAMETER"
+>c</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11724"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>c</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11730"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-GRID-CLASS-CAPS"
+></A
+>GTS_CLUSTER_GRID_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_CLUSTER_GRID_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11738"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11744"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-GRID-CAPS"
+></A
+>GTS_CLUSTER_GRID()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_CLUSTER_GRID(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11752"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11758"
+></A
+><H3
+><A
+NAME="GTS-IS-CLUSTER-GRID-CAPS"
+></A
+>GTS_IS_CLUSTER_GRID()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_CLUSTER_GRID(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTER"
+>GtsCluster</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11768"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11773"
+></A
+><H3
+><A
+NAME="GTSCLUSTERGRIDCLASS"
+></A
+>struct GtsClusterGridClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsClusterGridClass {
+
+  GtsObjectClass parent_class;
+};</PRE
+><P
+>The cluster grid class derived from <A
+HREF="gts-object-class.html#GTSOBJECTCLASS"
+>GtsObjectClass</A
+>.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11779"
+></A
+><H3
+><A
+NAME="GTSCLUSTERGRID"
+></A
+>struct GtsClusterGrid</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsClusterGrid {
+
+  GtsObject parent;
+
+  GtsSurface * surface;
+  GtsBBox * bbox;
+  GtsVector size;
+
+  GtsClusterClass * cluster_class;
+  GHashTable * clusters;
+};</PRE
+><P
+>The cluster grid object. </P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11785"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> <CODE
+CLASS="STRUCTFIELD"
+>parent</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11791"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>surface</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Surface being simplified.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11797"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-bounding-boxes-trees.html#GTSBBOX"
+>GtsBBox</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>bbox</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Bounding box of the original surface.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11803"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GTSVECTOR"
+>GtsVector</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>size</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Size of the simplification grid.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11809"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>cluster_class</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Private.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11815"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GHASHTABLE"
+>GHashTable</GTKDOCLINK
+> *<CODE
+CLASS="STRUCTFIELD"
+>clusters</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Private.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11821"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-GRID-CLASS"
+></A
+>gts_cluster_grid_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+>* gts_cluster_grid_class (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11829"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11835"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-GRID-NEW"
+></A
+>gts_cluster_grid_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+>* gts_cluster_grid_new        (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+> *klass,
+                                             <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERCLASS"
+>GtsClusterClass</A
+> *cluster_class,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s,
+                                             <A
+HREF="gts-bounding-boxes-trees.html#GTSBBOX"
+>GtsBBox</A
+> *bbox,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> delta);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11848"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRIDCLASS"
+>GtsClusterGridClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11854"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>cluster_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the klass to be used for the vertex clusters.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11859"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the simplified surface.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11864"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>bbox</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> bounding box of the surface to be simplified.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11869"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>delta</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the size of one grid cell of the simplification grid.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11874"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11880"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-GRID-ADD-TRIANGLE"
+></A
+>gts_cluster_grid_add_triangle ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_cluster_grid_add_triangle   (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+> *cluster_grid,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>Adds the triangle defined by <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+> to the respective clusters
+of <VAR
+CLASS="PARAMETER"
+>cluster_grid</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11896"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>cluster_grid</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11902"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11908"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11914"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p3</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11920"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to pass to the cluster <GTKDOCLINK
+HREF="ADD"
+>add</GTKDOCLINK
+>() method.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN11926"
+></A
+><H3
+><A
+NAME="GTS-CLUSTER-GRID-UPDATE"
+></A
+>gts_cluster_grid_update ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-simple-statistics.html#GTSRANGE"
+>GtsRange</A
+>    gts_cluster_grid_update         (<A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+> *cluster_grid);</PRE
+><P
+>Updates the representative vertices of all the clusters of <VAR
+CLASS="PARAMETER"
+>cluster_grid</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11936"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>cluster_grid</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-out-of-core-simplification.html#GTSCLUSTERGRID"
+>GtsClusterGrid</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN11942"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-simple-statistics.html#GTSRANGE"
+>GtsRange</A
+> describing the statistics for the number of vertices
+added to each cluster of <VAR
+CLASS="PARAMETER"
+>cluster_grid</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-surface-simplification-and-refinement.html"
+><B
+>&lt;&lt;&lt;&nbsp;Surface simplification and refinement</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-isosurfaces-from-3d-functions.html"
+><B
+>Isosurfaces from 3D functions&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>
