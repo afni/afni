@@ -8999,7 +8999,8 @@ ENTRY("ISQ_graymap_draw") ;
    /* make a plot in memory */
 
    mp = plot_ts_mem( nxx,xar, ny,0,yar, "Data Value",
-                     (ny == 1) ? "Gray Level" : "Gray Level/Histogram" ,
+                     (ny == 1) ? "Gray Level"
+                               : "Gray Level\\red/Histogram\\black" ,
                      NULL,NULL ) ;
    free(xar); free(yar[0]); if( ny == 2 ) free(yar[1]) ;
    if( mp == NULL ){

@@ -234,7 +234,6 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    /*-- setup to plot --*/
 
    create_memplot_surely( "tsplot" , 1.3 ) ;
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    set_thick_memplot( 0.5*THIK ) ;
 
    /*-- plot labels, if any --*/
@@ -247,16 +246,19 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
 
    /* x-axis label? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_xxx) )
       plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , lab_xxx , 16 , 0 , 0 ) ;
 
    /* y-axis label? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_yyy) )
       plotpak_pwritf( xobot-0.10 , 0.5*(yobot+yotop) , lab_yyy , 16 , 90 , 0 ) ;
 
    /* label at top? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_top) )
       plotpak_pwritf( xobot+0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
 
@@ -285,6 +287,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
 
       /* plot axes */
 
+      set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
       plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
       plotpak_periml( nnax,mmax , nnay,mmay ) ;
 
@@ -345,6 +348,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
          else if( mmay == 2 ) mmay = 4 ;
          else if( mmay == 3 ) mmay = 6 ;
 
+         set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
          plotpak_perimm( nnax,mmax , nnay,mmay , (jj==0) ? 1 : 3 ) ;
          if( ylo[jj] < 0.0 && yhi[jj] > 0.0 ){
             plotpak_setlin(5) ;
@@ -488,7 +492,6 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    /*-- setup to plot --*/
 
    create_memplot_surely( "Tsplot" , 1.3 ) ;
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    set_thick_memplot( 0.5*THIK ) ;
 
    /*-- plot labels, if any --*/
@@ -501,16 +504,19 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
    /* x-axis label? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_xxx) )
       plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , lab_xxx , 16 , 0 , 0 ) ;
 
    /* y-axis label? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_yyy) )
       plotpak_pwritf( xobot-0.10 , 0.5*(yobot+yotop) , lab_yyy , 16 , 90 , 0 ) ;
 
    /* label at top? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_top) )
       plotpak_pwritf( xobot+0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
 
@@ -543,6 +549,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
       /* plot axes */
 
+      set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
       plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
       plotpak_periml( nnax,mmax , nnay,mmay ) ;
 
@@ -585,7 +592,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
          plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ybot,ytop , 1 ) ;
-
+         set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
          plotpak_perimm( nnax,mmax , nnay,mmay , (jj==0) ? 1 : 3 ) ;
          if( ybot < 0.0 && ytop > 0.0 ){
             plotpak_setlin(5) ;
