@@ -113,7 +113,9 @@ ENTRY("AFNI_driver") ;
 /*-----------------------------------------------------------------
   Convert a controller code ("A", etc.) to an index.
   * Returns -1 if the index is illegal.
-  * Note that a legal index may not have an active controller.
+  * Returns -1 if the next character in the code string is NOT
+     a NUL or a '.'.
+  * Note that a legal index might not have an active controller.
   * Controller #i is pointed to by GLOBAL_library.controllers[i],
     for i=0..MAX_CONTROLLERS-1; cf. AFNI_rescan_controller().
 -------------------------------------------------------------------*/
@@ -122,7 +124,8 @@ int AFNI_controller_code_to_index( char *code )
 {
    int ic ;
 ENTRY("AFNI_controller_code_to_index") ;
-   if( code == NULL ) RETURN(-1) ;
+   if( code    == NULL || *code   == '\0' ) RETURN(-1) ;
+   if( code[1] != '\0' && code[1] != '.'  ) RETURN(-1) ; /* 06 Aug 2002 */
    ic = *code - 'A' ;
    if( ic < 0 || ic >= MAX_CONTROLLERS ) ic = -1 ;
    RETURN(ic) ;
@@ -370,6 +373,7 @@ ENTRY("AFNI_drive_open_window") ;
           AFNI_view_xyz_CB( im3d->vwid->imag->graph_zxy_pb, im3d, NULL ) ;
           gra = im3d->g312 ;
    }
+   XmUpdateDisplay( im3d->vwid->top_shell ) ;
 
    /* find geom=..., if present */
 
@@ -457,6 +461,7 @@ ENTRY("AFNI_drive_open_window") ;
 
    /*-- finito --*/
 
+   XmUpdateDisplay( im3d->vwid->top_shell ) ;
    RETURN(0) ;
 }
 
@@ -512,6 +517,7 @@ ENTRY("AFNI_drive_close_window") ;
    else
           RETURN(-1) ;
 
+   XmUpdateDisplay( im3d->vwid->top_shell ) ;
    RETURN(0) ;
 }
 
@@ -584,6 +590,7 @@ ENTRY("AFNI_drive_open_plugin") ;
                       XmNx , gxx , XmNy , gyy , NULL ) ;
    }
 
+   XmUpdateDisplay( im3d->vwid->top_shell ) ;
    RETURN(0) ;
 }
 #endif
