@@ -1476,6 +1476,13 @@ an image viewer window.  The units are 100ths of seconds; the default value
 is 20 (= 5 frames per second).
 
 -----------------------------
+Variable: AFNI_MPEG_FRAMERATE
+-----------------------------
+This value sets the frame rate (per second) of the MPEG-1 output animation
+from the image viewer window.  The legal values allowed by MPEG-1 are
+24, 25, 30, 50, and 60; 24 is the default.
+
+-----------------------------
 Variable: AFNI_STARTUP_SCRIPT
 -----------------------------
 If this is set, this is the name of an AFNI Script to run when AFNI first
