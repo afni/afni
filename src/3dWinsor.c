@@ -13,7 +13,7 @@ int main( int argc , char * argv[] )
    float irad=1.5 ;
    int nrep=1 , cbot=-1,ctop=-1 ;
    char * prefix = "winsor" ;
-   int keepzero = 0 ;
+   int keepzero = 0 , clipval = 0;
    int iarg ;
    THD_3dim_dataset * inset , * outset ;
 
@@ -38,6 +38,7 @@ int main( int argc , char * argv[] )
              "                less than abs(n) voxels change\n"
              "\n"
              " -keepzero  = don't filter voxels that are zero\n"
+             " -clip xx   = set voxels at or below 'xx' to zero\n"
              "\n"
              " -prefix pp = use 'pp' as the prefix for the output\n"
              "                dataset [default pp='winsor']\n"
@@ -51,6 +52,11 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-clip") == 0 ){
+         clipval = strtol(argv[++iarg],NULL,10) ;
+         iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-keepzero") == 0 ){
          keepzero = 1 ;
@@ -126,7 +132,7 @@ int main( int argc , char * argv[] )
 
    /*-- compute output --*/
 
-   outset = WINsorize( inset, nrep, cbot, ctop, irad, prefix, keepzero ) ;
+   outset = WINsorize( inset, nrep, cbot, ctop, irad, prefix, keepzero,clipval ) ;
 
    if( outset == NULL ){
       fprintf(stderr,"*** Can't compute Winsor filter!\n"); exit(1);

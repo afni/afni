@@ -341,8 +341,8 @@ static void ISQ_setup_ppmto_filters(void)
 
    /*-- write a PDF file (God only knows why) --*/
 
-   pg2 = THD_find_executable( "epstopdf" ) ;
-   if( pg2 != NULL ){
+   pg2 = THD_find_executable( "epstopdf" ) ;   /* 19 Oct 2001:  */
+   if( pg != NULL && pg2 != NULL ){            /* check pg!=NULL */
       str = malloc(strlen(pg)+strlen(pg2)+32) ;
       sprintf(str,"%s -noturn | %s --filter > %%s",pg,pg2) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"pdf",bv) ;
@@ -3555,7 +3555,7 @@ DPR(" .. ButtonPress") ;
 
          if( w == seq->wbar ){          /* moved here 18 Oct 2001 */
             event->button = Button3 ;                  /* fakeout */
-            XmMenuPosition( seq->wbar_menu , ev ) ;    /* where */
+            XmMenuPosition( seq->wbar_menu , event ) ; /* where */
             XtManageChild ( seq->wbar_menu ) ;         /* popup */
             EXRETURN ;
          }

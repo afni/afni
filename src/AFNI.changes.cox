@@ -3217,3 +3217,12 @@
        - afni_setup.c for Inten menu
        - afni_func.c for Hidden menu (in logo square)
        - plug_render.c for Inten menu and Xhair menu (latter is Button 2)
+
+19 Oct 2001
+ * Fixed bug in imseq.c: if pnmtops was NOT found but epstopdf WAS found,
+     then the program would crash (this is the Ben Xu memorial bug).
+ * Modified thd_winsor.c and 3dWinsor.c to have new "-clip" option.
+
+22 Oct 2001
+ * Fixed bug in 3dvolreg.c about -twopass weight brick (noted by
+     William Gandler of the NIH).

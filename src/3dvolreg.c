@@ -474,7 +474,7 @@ int main( int argc , char *argv[] )
          ee = abs(sy) ; nybot = ee ; nytop = ny-ee ;
          ee = abs(sz) ; nzbot = ee ; nztop = nz-ee ;
 
-         for( kk=nztop ; kk < nztop ; kk++ )
+         for( kk=nzbot ; kk < nztop ; kk++ )
             for( jj=nybot ; jj < nytop ; jj++ )
                for( ii=nxbot ; ii < nxtop ; ii++ )
                   QAR(ii,jj,kk) += FAR(ii-sx,jj-sy,kk-sz) ;

@@ -2608,7 +2608,7 @@ extern THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * ,
                                                    THD_linear_mapping *  ) ;
 
 extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
-                                     int, int, int, float, char *, int ) ;
+                                     int, int, int, float, char *, int,int ) ;
 
 #define ZPAD_EMPTY (1<<0)
 #define ZPAD_PURGE (1<<1)

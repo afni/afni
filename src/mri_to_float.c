@@ -13,9 +13,9 @@ MRI_IMAGE *mri_to_float( MRI_IMAGE *oldim )
    MRI_IMAGE *newim ;
    register int ii , npix ;
 
-WHOAMI ; IMHEADER(oldim) ;
+ENTRY("mri_to_float") ;
 
-   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+   if( oldim == NULL ) RETURN( NULL ) ;  /* 09 Feb 1999 */
 
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
@@ -68,7 +68,7 @@ WHOAMI ; IMHEADER(oldim) ;
    }
 
    MRI_COPY_AUX(newim,oldim) ;
-   return newim ;
+   RETURN( newim );
 }
 
 MRI_IMAGE *mri_scale_to_float( float scl , MRI_IMAGE *oldim )

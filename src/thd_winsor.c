@@ -15,7 +15,8 @@ void qsort_sh( int n , short * a ) ;  /* at end of file */
 
 THD_3dim_dataset * WINsorize( THD_3dim_dataset * inset ,
                               int nrep , int cbot , int ctop ,
-                              float irad , char * prefix , int keep_zero )
+                              float irad , char * prefix ,
+                              int keep_zero , int clipval )
 {
    THD_3dim_dataset * outset ;
    short *shin , *shout , *di,*dj,*dk , *tmp , val,nval ;
@@ -87,6 +88,9 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset * inset ,
             for( ii=0 ; ii < nx ; ii++ ){
 
                val = shin[ii+jj*nx+kk*nxy] ;            /* current voxel */
+
+               if( clipval > 0 && val <= clipval )      /* 19 Oct 2001 */
+                  val = shout[ii+jj*nx+kk*nxy] = 0 ;
 
                if( keep_zero && val == 0 ) continue ;   /* don't filter 0 */
 

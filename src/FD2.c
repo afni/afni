@@ -8,6 +8,11 @@
 
 #define CONTRAST_CHANGE_STEP 15000/* larger step => slower change AJ 11.1.96 */
 
+/*** setup macros for Cox modifications ***/
+
+#undef RWCOX
+#include "RWCox.h"
+
 #define ASC_NUL '\0'
 
 #ifndef COPYRIGHT_STRING
@@ -27,9 +32,6 @@
 #include "mrilib.h"
 #include "overfim.h"
 #include "pcor.h"
-
-#undef RWCOX
-#include "RWCox.h"
 
 #define INC_ALLIM 8
 
@@ -471,7 +473,7 @@ unsigned long   fcol, bcol;
 Font            mfont;
 XFontStruct     *afinfo, *mfinfo;
 Visual          *theVisual;
-XImage          *theImage, *expImage, *theBelt, *expBelt, *tstImage;
+XImage          *theImage, *expImage, *theBelt, *expBelt;
 int             eWIDE, eHIGH, aWIDE, eW, eH, iWIDE, iHIGH;
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -609,8 +611,6 @@ typedef struct { unsigned short r;
 int           AJ_PseudoColor = 1; /* as original pseudocolor max 12 bpp FD2 */
                                   /* reg. colors 0-207, 208-223 std colors, */
                                   /* 224-255 fim colors */
-short int     imx_RGB[IM_ARR];
-short int     belt_ar_RGB[BELT_A];
 AJ_rgb_str    AJ_rgb[MCOLORS];    /* local lookup RGB array */
 unsigned long AJ_RGB[MCOLORS];    /* local lookup machine color packed array */
 int           bperpix=8, border;
@@ -1355,7 +1355,7 @@ STATUS("creating image window") ;
          pixels, ucolors))) FatalError ("XAllocColorCells problem. AJ");
    }
    else {
-      if ( (AJ_init_RGB(theDisp, CMap, theVisual)) )
+      if ( (AJ_init_RGB()) )
          FatalError ("AJ_init_RGB problem. AJ");;
       AJ_make_STDcol(Solid_color, NUM_STD_COLORS);
    }
@@ -3072,7 +3072,7 @@ STATUS("ENTER CreateMainWindow") ;
    int        Width, Hight, last;
    char      *Image;
    XImage    *image;
-   byte      *a8, *i8;
+   byte      *a8, *i8, *m8;
    unsigned short *a16, *i16;
    unsigned long  *a32, *i32;
  
@@ -3102,12 +3102,13 @@ STATUS("ENTER CreateMainWindow") ;
       break ;
  
       case 24:
-         a8  = (byte *) image->data;
-         i32 = (unsigned long *) AJ_RGB;
+         a8 = (byte *) image->data;
+         i8 = (byte *) AJ_RGB;
          for (i=0; i < last; i++) {
-            *a8++ =  i32[im_arr[k]] & 0xff;
-            *a8++ = (i32[im_arr[k]] >> 8 ) & 0xff;
-            *a8++ = (i32[im_arr[k++]] >> 16) & 0xff;
+            m8 =  i8 + im_arr[k++] * 3;
+            *a8++ = *m8++;
+            *a8++ = *m8++;
+            *a8++ = *m8++;
          }
       break ;
 
@@ -3641,7 +3642,7 @@ STATUS("ENTER Put_image") ;
 /* ---------------------------------- */   /* RGB version */
 {
    register int   i, k, last;
-   byte      *a8, *i8;
+   byte      *a8, *i8, *m8;
    unsigned short *a16, *i16;
    unsigned long  *a32, *i32;
  
@@ -3661,12 +3662,13 @@ STATUS("ENTER Put_image") ;
       break ;
  
       case 24:
-         a8  = (byte *) Image->data;
-         i32 = (unsigned long *) AJ_RGB;
+         a8 = (byte *) Image->data;
+         i8 = (byte *) AJ_RGB;
          for (i=0; i < last; i++) {
-            *a8++ =  i32[im_arr[k]] & 0xff;
-            *a8++ = (i32[im_arr[k]] >> 8 ) & 0xff;
-            *a8++ = (i32[im_arr[k++]] >> 16) & 0xff;
+            m8 =  i8 + im_arr[k++] * 3;
+            *a8++ = *m8++;
+            *a8++ = *m8++;
+            *a8++ = *m8++;
          }
       break ;
 
@@ -7497,8 +7499,10 @@ void add_extra_color(r, g, b, ind)
    else {
       switch( bperpix ) {
          case 32:
-         case 24:
             cH = (char *) &AJ_RGB[ind + NCOLORS - 1];
+         case 24:
+            a8 = (byte *) AJ_RGB;
+            cH = a8 + (ind + NCOLORS - 1) * 3;
          break;
          case 16:
             a16 = (short *) AJ_RGB;
@@ -7679,7 +7683,6 @@ int check_color( cname )
       case 24:
         if (border == MSBFirst)
            for( i=0 ; i < nc ; i++ ){
-             *ip++ = 0;
              *ip++ = (xcol[i]>>16) & 0xff ;
              *ip++ = (xcol[i]>>8)  & 0xff ;
              *ip++ =  xcol[i]      & 0xff ;
@@ -7689,7 +7692,6 @@ int check_color( cname )
              *ip++ =  xcol[i]      & 0xff ;
              *ip++ = (xcol[i]>>8)  & 0xff ;
              *ip++ = (xcol[i]>>16) & 0xff ;
-             *ip++ = 0;
            }
       break ;
 
@@ -7727,8 +7729,11 @@ int check_color( cname )
  
    switch( bperpix ) {
       case 32:
-      case 24:
          cH = (char *) &AJ_RGB[NCOLORS];
+      break;
+      case 24:
+         a8 = (byte *) AJ_RGB;
+         cH = a8 + NCOLORS * 3;
       break;
       case 16:
          a16 = (short *) AJ_RGB;
@@ -7753,7 +7758,8 @@ int check_color( cname )
    AJ_init_RGB()
 /* ------------- */
 {
-
+   int i;
+   XImage *tstImage;
    tstImage = XCreateImage(theDisp, theVisual, Planes, ZPixmap,
                            0, NULL, 16, 16, 32, 0);
    if ( tstImage == NULL ) return 1;
