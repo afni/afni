@@ -3606,3 +3606,8 @@
 25 Mar 2002
  * Modified imseq.c to crop saved zoomed images if ordered by environment
      variable AFNI_CROP_ZOOMSAVE.
+
+26 Mar 2002
+ * Modified imseq.c to save zoomed images in filtered Save many code as well
+     (including animations).  Also set "Save to .ppm" as the default save mode,
+     if possible.
