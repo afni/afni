@@ -199,4 +199,6 @@ void RWC_destroy_nullify_cancel( Widget, void ** ) ;
  do{ if( XtIsManaged(w) ) XtUnmanageChild(w);            \
      else                 XtManageChild(w); } while(0) /* 21 Sep 2001 */
 
+extern void RWC_drag_rectangle( Widget, int, int, int *, int * ) ; /* 12 Jun 2002 */
+
 #endif /* _MCW_XUTIL_HEADER_ */

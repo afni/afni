@@ -1635,3 +1635,80 @@ void RWC_destroy_nullify_cancel( Widget w, void **p )
      XtRemoveCallback( w, XmNdestroyCallback, RWC_destroy_nullify_CB, p ) ;
    return ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+static RWC_draw_rect( Display *dis, Window win, GC gc, int x1,int y1,int x2,int y2 )
+{
+  int xb,yb , xt,yt ;
+  unsigned int short w,h ;
+
+  if( x1 < x2 ){ xb=x1; xt=x2; } else { xb=x2; xt=x1; }
+  if( y1 < y2 ){ yb=y1; yt=y2; } else { yb=y2; yt=y1; }
+  w = xt-xb ; h = yt-yb ;
+  if( w || h )
+    XDrawRectangle( dis,win,gc , xb,yb,w,h ) ;
+  else
+    XDrawPoint( dis,win,gc , xb,yb ) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
+{
+   Display *dis ;
+   Window win , rW,cW ;
+   int grab , xold,yold , x,y, rx,ry , first=1 ;
+   unsigned int mask , bmask=Button1Mask|Button2Mask|Button3Mask ;
+   XGCValues  gcv;
+   GC         myGC ;
+
+   /** make a GC for invert drawing **/
+
+   gcv.function = GXinvert ;
+   myGC         = XtGetGC( w , GCFunction , &gcv ) ;
+
+   /** grab the pointer (so no one else gets events from it),
+       and confine it to the window in question              **/
+
+   dis = XtDisplay(w) ; win = XtWindow(w) ;
+
+   grab = !XGrabPointer(dis, win, False, 0, GrabModeAsync,
+                        GrabModeAsync, win, None, (Time)CurrentTime);
+
+   xold = x1 ; yold = y1 ;  /* current location of pointer */
+
+   /** loop and find out where the pointer is, while button is down **/
+
+   while( XQueryPointer(dis,win,&rW,&cW,&rx,&ry,&x,&y,&mask) ){
+
+     /* check if all buttons are released */
+
+     if( !(mask & bmask) ) break ;  /* done */
+
+     /* pointer now at (x,y) in the window */
+
+     /* if it has moved, redraw rectangle */
+
+     if( x != xold || y != yold ){
+
+       if( !first )  /* undraw old rectangle */
+         RWC_draw_rect( dis,win,myGC , x1,y1 , xold,yold ) ;
+
+       /* draw new rectangle */
+
+       RWC_draw_rect( dis,win,myGC , x1,y1 , x,y ) ;
+       xold = x ; yold = y ; first = 0 ;
+     }
+   }
+
+   if( !first )  /* undraw old rectangle */
+     RWC_draw_rect( dis,win,myGC , x1,y1 , xold,yold ) ;
+
+   /* clean up */
+
+   XtReleaseGC( w , myGC ) ;
+   if (grab) XUngrabPointer(dis, (Time)CurrentTime) ;
+
+   *x2 = xold ; *y2 = yold ;  /* output values */
+}

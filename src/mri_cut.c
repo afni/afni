@@ -44,6 +44,7 @@ MRI_IMAGE * mri_cut_2D( MRI_IMAGE * im , int xa, int xb, int ya, int yb )
       memcpy( orow , irow , xps ) ;         /* copy input to output */
    }
 
+   MRI_COPY_AUX(qim,im) ;
    return qim ;
 }
 
@@ -87,5 +88,6 @@ MRI_IMAGE * mri_cut_3D( MRI_IMAGE * im ,
      }
    }
 
+   MRI_COPY_AUX(qim,im) ;
    return qim ;
 }
