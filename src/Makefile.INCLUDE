@@ -1221,6 +1221,15 @@ f2c.tgz:
 	$(TAR) cf - ./f2cdir | $(GZIP) -9v > f2c.tgz
 
 #######
+# dlcompat
+
+dlcompat:
+	( cd dlcompat ; \
+	  make libdl.a clean ; \
+          $(CP) libdl.a dlfcn.h .. ;
+          ranlib libdl.a ; )
+
+#######
 # plotting library
 
 libcoxplot.a:coxplot.h
