@@ -337,3 +337,7 @@
   * modified SUMA_3dSurf2Vol.c to call the new SUMA_LoadSpec_eng()   (-> v2.1)
   * modified rickr/r_idisp.c to handle new ALLOW_DATASET_VLIST macro (-> v1.3)
 
+21 October 2003:
+  * modified SUMA_3dVol2Surf.c to complete the -f_keep_surf_order option
+    (-> v3.6)
+
