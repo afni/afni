@@ -145,6 +145,14 @@ SUMA_CreateIcosahedron: SUMA_SphericalMapping.c
 	$(RM) $@
 	${CC} -DSUMA_CreateIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SUMA_Map_SurfacetoSurface: SUMA_SphericalMapping.c
+	$(RM) $@
+	${CC} -DSUMA_Map_SurfacetoSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_MapIcosahedron: SUMA_SphericalMapping.c
+	$(RM) $@
+	${CC} -DSUMA_MapIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 SUMA_SurfNorm: SUMA_SurfNorm.c
 	$(RM) $@
 	${CC} -DSUMA_SurfNorm_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -164,6 +172,6 @@ packbins:
 	
 all: libSUMA.a mainobj suma MakeColorMap packbins install 
 
-standalones: SUMA_CreateIcosahedron SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer SUMA_ScaleToMap MakeColorMap SUMA_compare_surfaces SUMA_inflate_compare
+standalones: SUMA_CreateIcosahedron SUMA_Map_SurfacetoSurface SUMA_MapIcosahedron SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer SUMA_ScaleToMap MakeColorMap SUMA_compare_surfaces SUMA_inflate_compare
  
 anew: clean libSUMA.a mainobj suma MakeColorMap packbins install 

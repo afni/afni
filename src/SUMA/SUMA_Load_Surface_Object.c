@@ -899,7 +899,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
          brk = NOPE;
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) {/* load surefit surface */
-            SF_name = SUMA_malloc(sizeof(SUMA_SFname));
+            SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
             sprintf(SF_name->name_coord,"%s", Spec->SureFitCoord[i]); ;
             sprintf(SF_name->name_topo,"%s", Spec->SureFitTopo[i]); 
             if (!strlen(Spec->SureFitVolParam[i])) { /* initialize to empty string */
@@ -1156,7 +1156,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
          
          brk = NOPE;
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) {/* load surefit surface */
-            SF_name = SUMA_malloc(sizeof(SUMA_SFname));
+            SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
             sprintf(SF_name->name_coord,"%s", Spec->SureFitCoord[i]); ;
             sprintf(SF_name->name_topo,"%s", Spec->SureFitTopo[i]); 
             if (!strlen(Spec->SureFitVolParam[i])) { /* initialize to empty string */
