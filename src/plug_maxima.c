@@ -12,15 +12,7 @@
 */
 
 /*----------------------------------------------------------------------
- * history:
- *
- * 2004 Feb 20 [rickr]
- *   - added ENTRY/RETURN calls to most functions
- *   - do not process last plane in find_local_maxima()
- *   - allow any anat or func dataset of type short
- *   - added a sub-brick selector
- *   - note that dist and radius are in voxels
- *   - output coordinates in RAI mm format
+ * history:  the history is maintained in the global helpstring
  *----------------------------------------------------------------------
 */
 
@@ -39,6 +31,7 @@ char * MAXIMA_main( PLUGIN_interface * );
 
 char               grMessage[ R_MESSAGE_L ];
 static char      * grStyle[] = { "Sort-n-Remove", "Weighted-Average" };
+static char      * grSvals[] = { "1 (default)", "1 to N", "N to 1" };
 static char      * grNY[]    = { "No", "Yes" };
 
 static char        helpstring[] =
@@ -46,51 +39,75 @@ static char        helpstring[] =
     "\n"
     "This plugin reads a functional dataset and locates any relative extrema\n"
     "(maximums or minimums, depending on the user option).  A _relative_\n"
-    "maximum is a point that is greater than all neighbors.  The output from\n"
-    "this proces can be text based (and sent to the command-line window) and\n"
-    "it can be a unit BRIK, where the locations of the extrema are set.\n"
+    "maximum is a point that is greater than all neighbors (not necessarily\n"
+    "greater than all other values in the sub-brick).  The output from this\n"
+    "process can be text based (sent to the terminal window) and it can be a\n"
+    "mask (integral) dataset, where the locations of the extrema are set.\n"
     "\n"
-    "When writing a BRIK, it is often useful to set a sphere around each\n"
-    "extrema, not just use single points.  This makes viewing those locations\n"
-    "much more reasonable.\n"
+    "When writing a dataset, it is often useful to set a sphere around each\n"
+    "extrema, not to just set individual voxels.  This makes viewing those\n"
+    "locations much more reasonable.  Also, if the 'Sphere Values' option is\n"
+    "set to 'N to 1', the sphere around the most extreme voxel will get the\n"
+    "value N, giving it the 'top' color in afni (and so on, down to 1).\n"
     "\n"
     "Notes : The only required option is the input dataset.\n"
+    "        Input datasets must be of type short.\n"
     "        All distances are in voxel units.\n"
     "\n"
     "                        ***  Options  ***\n"
     "\n"
-    "Input        - functional dataset to locate extrema within\n"
+    "-----  Input:  -----\n"
     "\n"
-    "Output       - prefix for an output functional dataset\n"
+    "   Dataset   - dataset to locate extrema within\n"
+    "\n"
+    "   Sub-brick - sub-brick index of volume to locate extrema within\n"
+    "\n"
+    "-----  Output Dset:  -----\n"
+    "\n"
+    "   Prefix    - prefix for an output functional dataset\n"
     "\n"
     "               This dataset may be viewed as a mask.  Its set points\n"
     "               will correspond to any selected extrema.  The \"Output\n"
     "               Size\" option will change those points to spheres.\n"
     "\n"
-    "Threshold    - provides a cutoff value for extrema\n"
+    "   Values    - values to fill output spheres with\n"
+    "\n"
+    "               1 (default) - fill all spheres with the value 1\n"
+    "               1 to N      - fill sphere of most extreme point with 1,\n"
+    "                             the next with 2, and so on\n"
+    "               N to 1      - fill sphere of most extreme point with N,\n"
+    "                             the next with N-1, etc., perhaps matching\n"
+    "                             Overlay coloring better\n"
+    "\n"
+    "-----  Threshold:  -----\n"
+    "\n"
+    "   Cutoff    - provides a cutoff value for extrema\n"
     "\n"
     "               Extrema not meeting this cutoff will not be considered.\n"
     "               Note that if the \"Neg Extrema\" option is applied, the\n"
     "               user will generally want a negative threshold.\n"
     "\n"
-    "Separation   - minimum acceptable distance between extrema\n"
+    "-----  Separation:  -----\n"
+    "\n"
+    "   Distance  - minimum acceptable distance between extrema\n"
     "\n"
     "               Less significant extrema which are too close to more\n"
     "               significant extrema will be discounted in some way.\n"
     "               This option works with the \"Neighbor Style\" option.\n"
     "\n"
-    "Output Size  - output mask radius around set points\n"
+    "               Note that the distance is in voxels, not mm.\n"
+    "\n"
+    "-----  Output Size:  -----\n"
+    "\n"
+    "   Radius    - output mask radius around set points\n"
     "\n"
     "               If the user wants the output BRIK to consist of spheres\n"
     "               centered around extrema points, this option can be used\n"
     "               to set the radius for those spheres.\n"
     "\n"
-    "Neg Extrema  - search for negative extrema (minima)\n"
+    "-----  Neighbor:  -----\n"
     "\n"
-    "               This will search for the minima of the dataset.\n"
-    "               Note that a negative threshold may be desired.\n"
-    "\n"
-    "Neighbor     - technique for handling clustered extrema\n"
+    "   Style     - technique for handling clustered extrema\n"
     "\n"
     "               If extrema are not as far apart as is specified by the\n"
     "               \"Separation\" option, the Neighbor (Style) option\n"
@@ -105,7 +122,14 @@ static char        helpstring[] =
     "                  extrema.  Set the current extrema to the center of\n"
     "                  mass of all extrema within the Separation radius.\n"
     "\n"
-    "True Max     - do not consider extrema with an equal valued neighbor\n"
+    "-----  Params:  -----\n"
+    "\n"
+    "   Neg Extr  - search for negative extrema (minima)\n"
+    "\n"
+    "               This will search for the minima of the dataset.\n"
+    "               Note that a negative threshold may be desired.\n"
+    "\n"
+    "   True Max  - do not consider extrema with an equal valued neighbor\n"
     "\n"
     "               As a default points may be considered extrema, even if\n"
     "               they have a neighbor of the same value.  Setting this\n"
@@ -114,9 +138,27 @@ static char        helpstring[] =
     "               Note that with this set, extrema locations that have\n"
     "               more than one voxel at the maximal value are ignored.\n"
     "\n"
-    "No Text Out  - do not display the extrma points as text\n"
+    "-----  Output Text:  -----\n"
     "\n"
-    "Author: (the lamented) R Reynolds\n"
+    "   No Text  - do not display the extrma points as text\n"
+    "\n"
+    "   Debug    - how much extra information to output to the terminal\n"
+    "\n"
+    "-----  Output Coords:  -----\n"
+    "\n"
+    "   Dicom    - Yes/No: whether to display output in Dicom orientation\n"
+    "\n"
+    "              In Dicom orientation, the output is RAI, meaning right,\n"
+    "              anterior and inferior are negative coordinates, and they\n"
+    "              are printed in that order (RL, then AP, then IS).\n"
+    "\n"
+    "              If this option is set to NO, the dataset orientation is\n"
+    "              used, whichever of the 48 it happens to be.\n"
+    "\n"
+    "              Note that in either case, the output orientation is\n"
+    "              printed above the results, in the terminal window.\n"
+    "\n"
+    "Author: (the hopefully-no-longer-lamented) R Reynolds\n"
     "\n"
     "History:\n"
     "\n"
@@ -136,6 +178,9 @@ static char        helpstring[] =
     "    - removed unused variables\n"
     "    - true_max update in find_local_maxima()\n"
     "    - added check for warp-on-demand failure\n"
+    "\n"
+    "  14 Feb 2005 [rickr]\n"
+    "    - added the 'Sphere Values' and 'Dicom Coords' options\n"
    ;
 
 
@@ -173,9 +218,12 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- second line of input: prefix for output dataset --*/
 
-   PLUTO_add_option( plint, "Output" , "prefix" , FALSE );
-   PLUTO_add_hint( plint, "option: choose dataset prefix for output" );
+   PLUTO_add_option( plint, "Output Dset" , "prefix" , FALSE );
+   PLUTO_add_hint( plint, "options for the creation of an output dataset");
    PLUTO_add_string( plint, "Prefix", 0 , NULL, 19 );
+   PLUTO_add_hint( plint, "option: choose dataset prefix for output" );
+   PLUTO_add_string( plint, "Sphere Values", 3 , grSvals, 0 );
+   PLUTO_add_hint( plint, "option: choose value style for output spheres" );
 
    /*-- third line of input: cutoff option --*/
 
@@ -204,7 +252,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- seventh line of input: negatives and true max options --*/
 
-   PLUTO_add_option( plint, "params" , "params" , FALSE ) ;
+   PLUTO_add_option( plint, "Params" , "params" , FALSE ) ;
    PLUTO_add_hint( plint, "options: negative extrema and true max" );
    PLUTO_add_string( plint, "Neg Extrema", 2, grNY, 0 );
    PLUTO_add_hint( plint, "search for negative extrema, not positive" );
@@ -213,12 +261,18 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- eighth line of input: true_max option --*/
 
-   PLUTO_add_option( plint, "output" , "output" , FALSE ) ;
+   PLUTO_add_option( plint, "Output Text" , "output" , FALSE ) ;
    PLUTO_add_hint( plint, "options: no output text, debug level" );
    PLUTO_add_string( plint, "No Text Out", 2, grNY, 0 );
    PLUTO_add_hint( plint, "do not output extrema as text (to terminal)" );
    PLUTO_add_number( plint, "Debug Level", 0, 4, 0, 0, 0 );
    PLUTO_add_hint( plint, "search for negative extrema, not positive" );
+
+   /*-- ninth line of input: dicom_coords option --*/
+
+   PLUTO_add_option( plint, "Output Coords" , "dicom_coords" , FALSE ) ;
+   PLUTO_add_hint( plint, "option: output coordinates in Dicom format" );
+   PLUTO_add_string( plint, "Dicom Coords", 2, grNY, 1 );
 
    return plint;
 }
@@ -273,6 +327,7 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
     float              cutoff = 0.0, min_dist = 0.0, out_rad = 0.0;
     int                negatives = 0, quiet = 0, true_max = 0, opcnt = 0;
     int                val, debug = 0, style = MAX_SORT_N_REMOVE_STYLE, sb;
+    int                sval_style = 0, dicom_coords = 1;
 
 ENTRY("process_args");
     /* get AFNI inputs */
@@ -317,6 +372,7 @@ ENTRY("process_args");
 		RETURN( "-------------------------\n"
 		        "options : bad file prefix\n"
 			"-------------------------");
+            sval_style = PLUTO_string_index(PLUTO_get_string(plint),3,grSvals);
 	}
 	else if ( ! strcmp( optag, "cutoff" ) )
 	{
@@ -370,6 +426,12 @@ ENTRY("process_args");
 	    debug = PLUTO_get_number( plint );          /* Debug Level */
 	    
 	}
+	else if ( ! strcmp( optag, "dicom_coords" ) )
+	{
+	    str = PLUTO_get_string( plint );		/* Neg Extrema */
+	    val = PLUTO_string_index(str, 2, grNY);
+	    if ( val == 0 ) dicom_coords = 0;
+	}
 	else	/* illegal option? */
 	{
 	    sprintf( grMessage, "Error: pa_00\n"
@@ -396,15 +458,17 @@ ENTRY("process_args");
                "----------------------------------");
 
     /* now fill any remaining parameters */
-    M->cutoff     = cutoff / A->factor[0];
-    M->min_dist   = min_dist;
-    M->out_rad    = out_rad;
+    M->sval_style   = sval_style;
+    M->cutoff       = cutoff / A->factor[0];
+    M->min_dist     = min_dist;
+    M->out_rad      = out_rad;
 
-    M->negatives  = negatives;
-    M->ngbr_style = style;
-    M->quiet      = quiet;
-    M->true_max   = true_max;
-    M->debug      = debug;
+    M->negatives    = negatives;
+    M->ngbr_style   = style;
+    M->quiet        = quiet;
+    M->true_max     = true_max;
+    M->dicom_coords = dicom_coords;
+    M->debug        = debug;
 
     if ( M->debug > 0 )
     {
@@ -517,6 +581,7 @@ ENTRY("show_maxima_s");
         "func_type     : %d\n"
 
         "outfile       : %s\n"
+        "sval_style    : %d\n"
 
         "cutoff        : %f\n"
         "min_dist      : %f\n"
@@ -527,6 +592,7 @@ ENTRY("show_maxima_s");
         "overwrite     : %d\n"
         "quiet         : %d\n"
         "true_max      : %d\n"
+        "dicom_coords  : %d\n"
         "debug         : %d\n"
         "------------------------------\n",
 
@@ -535,10 +601,10 @@ ENTRY("show_maxima_s");
         M->P.plist, M->P.used, M->P.M,
         M->extrema_count,
         M->data_type, M->adn_type, M->func_type,
-        M->outfile,
+        M->outfile, M->sval_style,
         M->cutoff, M->min_dist, M->out_rad,
         M->negatives, M->ngbr_style, M->overwrite,
-	M->quiet, M->true_max, M->debug
+	M->quiet, M->true_max, M->dicom_coords, M->debug
     );
 
     EXRETURN;
@@ -800,7 +866,7 @@ ENTRY("add_point_to_list");
 static int
 apply_fill_radius( maxima_s * M )
 {
-    int    count;
+    int    count, outval;
     int    x, y, z;
     int  * iptr;
 
@@ -808,9 +874,13 @@ ENTRY("apply_fill_radius");
 
     for ( count = 0, iptr = M->P.plist; count < M->P.used; count++, iptr++ )
     {
+        outval = (M->sval_style == 0) ? MAX_MASK_FILL_VAL :
+                 (M->sval_style == 1) ? (count+1)         :
+                 (M->P.used - count);
+
 	if ( M->out_rad < 1.0 )
 	{
-	    M->result[ *iptr ] = MAX_MASK_FILL_VAL;
+	    M->result[ *iptr ] = outval;
 	    continue;
 	}
 
@@ -818,7 +888,7 @@ ENTRY("apply_fill_radius");
 	y = ( *iptr % M->nxy ) / M->nx;
 	z =   *iptr / M->nxy;
 
-	radial_fill( x, y, z, M );
+	radial_fill( x, y, z, M, outval );
     }
 
     RETURN(1);
@@ -832,7 +902,7 @@ ENTRY("apply_fill_radius");
 **----------------------------------------------------------------------
 */
 static int
-radial_fill( int X, int Y, int Z, maxima_s * M )
+radial_fill( int X, int Y, int Z, maxima_s * M, int val )
 {
     int xmin, xmax, ymin, ymax, zmin, zmax;
     int yc, zc, xrad, yrad, yrad2;
@@ -870,7 +940,7 @@ ENTRY("radial_fill");
 		sptr = optr + xbase;
 
                 if ( ! *sptr )
-		    *sptr = MAX_MASK_FILL_VAL;
+		    *sptr = val;
 	    }
         }
     }
@@ -1102,25 +1172,24 @@ display_coords( r_afni_s * A, maxima_s * M )
 {
     THD_fvec3 f3;
     THD_ivec3 i3;
-    float   xmin = M->dset->daxes->xxmin;
-    float   xlen = M->dset->daxes->xxmax - xmin;
-    float   ymin = M->dset->daxes->yymin;
-    float   ylen = M->dset->daxes->yymax - ymin;
-    float   zmin = M->dset->daxes->zzmin;
-    float   zlen = M->dset->daxes->zzmax - zmin;
     float   prod, factor = A->factor[0];
     short * optr;
     short * mptr;
     int   * iptr;
     int     X, Y, Z, count;
-    int     xm1 = M->nx - 1, ym1 = M->ny - 1, zm1 = M->nz - 1;
 
     point_list_s * P = &M->P;
 
 ENTRY("display_coords");
 
     printf( "---------------------------------------------\n" );
-    printf( "RAI mm coordinates:\n\n" );
+    if ( M->dicom_coords )
+        printf( "RAI mm coordinates:\n\n" );
+    else
+        printf( "%c%c%c mm coordinates:\n\n",
+                ORIENT_typestr[M->dset->daxes->xxorient][0],
+                ORIENT_typestr[M->dset->daxes->yyorient][0],
+                ORIENT_typestr[M->dset->daxes->zzorient][0] );
 
     for ( count = 0, iptr = P->plist; count < P->used; count++, iptr++ )
     {
@@ -1129,22 +1198,23 @@ ENTRY("display_coords");
 	Z =  *iptr / M->nxy;
 	i3.ijk[0] = X;  i3.ijk[1] = Y;  i3.ijk[2] = Z;
 	f3 = THD_3dind_to_3dmm(M->dset, i3);
-	f3 = THD_3dmm_to_dicomm(M->dset, f3);
+        if ( M->dicom_coords )
+            f3 = THD_3dmm_to_dicomm(M->dset, f3);
 
 	optr   = M->sdata  + *iptr;
 	mptr   = M->result + *iptr;
     
 	if ( factor == 1 )
 	{
-	    /* do dicom coordinates from ijk, instead */
-	    printf( "(%.2f  %.2f  %.2f) : val = %d\n",
+	    /* do dicom coordinates from ijk, if requested */
+	    printf( "(%7.2f  %7.2f  %7.2f) : val = %d\n",
 		    f3.xyz[0], f3.xyz[1], f3.xyz[2], *optr );
 	}
 	else
 	{
 	    prod = *optr * factor;
 
-	    printf( "(%.2f  %.2f  %.2f) : val = %f\n",
+	    printf( "(%7.2f  %7.2f  %7.2f) : val = %f\n",
 		    f3.xyz[0], f3.xyz[1], f3.xyz[2], prod );
 	}
     }
