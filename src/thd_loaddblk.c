@@ -108,6 +108,22 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       RETURN( False ) ;
    }
 
+   if( dkptr->storage_mode == STORAGE_BY_CTFMRI ){  /* 04 Dec 2002 */
+      THD_load_ctfmri( blk ) ;
+      ii = THD_count_databricks( blk ) ;
+      if( ii == blk->nvals ) RETURN( True ) ;
+      STATUS("can't read CTF MRI file?!") ;
+      RETURN( False ) ;
+   }
+
+   if( dkptr->storage_mode == STORAGE_BY_CTFSAM ){  /* 04 Dec 2002 */
+      THD_load_ctfsam( blk ) ;
+      ii = THD_count_databricks( blk ) ;
+      if( ii == blk->nvals ) RETURN( True ) ;
+      STATUS("can't read CTF SAM file?!") ;
+      RETURN( False ) ;
+   }
+
    /*-- allocate data space --*/
 
    nx = dkptr->dimsizes[0] ;

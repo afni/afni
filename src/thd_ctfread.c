@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "thd.h"
 
 /*******************************************************************/
 /* Stuff to read CTF MRI and SAM datasets from the NIH MEG system. */
@@ -145,7 +146,7 @@ THD_3dim_dataset * THD_open_ctfmri( char *fname )
    Version_2_Header hh ;
    int ii,nn , swap ;
    THD_3dim_dataset *dset=NULL ;
-   char prefix[THD_MAX_PREFIX] , *ppp , tname[12] ;
+   char prefix[THD_MAX_PREFIX] , *ppp , tname[12] , ori[4] ;
    THD_ivec3 nxyz , orixyz ;
    THD_fvec3 dxyz , orgxyz ;
    int iview ;
@@ -299,12 +300,17 @@ ENTRY("THD_open_ctfmri") ;
    /* set orientation:
       for now, assume (based on 1 sample) that data is stored in ASL or ASR order */
 
-   oxx = 'A' ;          /* x is A-P */
-   oyy = 'S' ;          /* y is S-I */
+   ori[0] = 'A' ;          /* x is A-P */
+   ori[1] = 'S' ;          /* y is S-I */
 
    /* determine if z is L-R or R-L from position of markers */
 
-   ozz = (hh.headModel.LeftEar_Sag <= hh.headModel.RightEar_Sag) ? 'L' : 'R' ;
+   ori[2] = (hh.headModel.LeftEar_Sag <= hh.headModel.RightEar_Sag) ? 'L' : 'R' ;
+
+   oxx = ORCODE(ori[0]); oyy = ORCODE(ori[1]); ozz = ORCODE(ori[2]);
+   if( !OR3OK(oxx,oyy,ozz) ){
+     oxx = ORI_A2P_TYPE; oyy = ORI_S2I_TYPE; ozz = ORI_L2R_TYPE;   /** ASL? **/
+   }
 
    orixyz.ijk[0] = oxx ; orixyz.ijk[1] = oyy ; orixyz.ijk[2] = ozz ;
 
@@ -313,7 +319,7 @@ ENTRY("THD_open_ctfmri") ;
        R-L is positive and L-R is negative,
        I-S is positive and S-I is negative.       */
 
-   switch( oxx ){
+   switch( ori[0] ){
      case 'A':  dx =  hh.mmPerPixel_coronal ; xorg = hh.headOrigin_coronal ; break ;
      case 'P':  dx = -hh.mmPerPixel_coronal ; xorg = hh.headOrigin_coronal ; break ;
      case 'R':  dx =  hh.mmPerPixel_sagittal; xorg = hh.headOrigin_sagittal; break ;
@@ -321,7 +327,7 @@ ENTRY("THD_open_ctfmri") ;
      case 'I':  dx =  hh.mmPerPixel_axial   ; xorg = hh.headOrigin_axial   ; break ;
      case 'S':  dx = -hh.mmPerPixel_axial   ; xorg = hh.headOrigin_axial   ; break ;
    }
-   switch( oyy ){
+   switch( ori[1] ){
      case 'A':  dy =  hh.mmPerPixel_coronal ; yorg = hh.headOrigin_coronal ; break ;
      case 'P':  dy = -hh.mmPerPixel_coronal ; yorg = hh.headOrigin_coronal ; break ;
      case 'R':  dy =  hh.mmPerPixel_sagittal; yorg = hh.headOrigin_sagittal; break ;
@@ -329,7 +335,7 @@ ENTRY("THD_open_ctfmri") ;
      case 'I':  dy =  hh.mmPerPixel_axial   ; yorg = hh.headOrigin_axial   ; break ;
      case 'S':  dy = -hh.mmPerPixel_axial   ; yorg = hh.headOrigin_axial   ; break ;
    }
-   switch( ozz ){
+   switch( ori[2] ){
      case 'A':  dz =  hh.mmPerPixel_coronal ; zorg = hh.headOrigin_coronal ; break ;
      case 'P':  dz = -hh.mmPerPixel_coronal ; zorg = hh.headOrigin_coronal ; break ;
      case 'R':  dz =  hh.mmPerPixel_sagittal; zorg = hh.headOrigin_sagittal; break ;
@@ -392,11 +398,97 @@ ENTRY("THD_open_ctfmri") ;
    dset->dblk->diskptr->storage_mode = STORAGE_BY_CTFMRI ;
    strcpy( dset->dblk->diskptr->brick_name , fname ) ;
 
+   /*-- add a set of tags for MEG fiducial points, if present --*/
+
+   if( hh.headModel.LeftEar_Sag != hh.headModel.RightEar_Sag ){
+     THD_usertaglist *tagset = myXtNew(THD_usertaglist) ;
+     int nas_ii,nas_jj,nas_kk , lft_ii,lft_jj,lft_kk , rgt_ii,rgt_jj,rgt_kk ;
+     THD_fvec3 fv ; THD_ivec3 iv ;
+
+     tagset->num = 3 ;
+     TAGLIST_SETLABEL( tagset , "CTF MEG Fiducials" ) ;
+
+     /* load voxel indexes into dataset of the 3 tag points;
+        note we have to permute these into the dataset axes order */
+
+     switch( ori[0] ){
+       case 'P':
+       case 'A':  nas_ii = hh.headModel.Nasion_Cor ;
+                  lft_ii = hh.headModel.LeftEar_Cor ;
+                  rgt_ii = hh.headModel.RightEar_Cor ; break ;
+       case 'R':
+       case 'L':  nas_ii = hh.headModel.Nasion_Sag ;
+                  lft_ii = hh.headModel.LeftEar_Sag ;
+                  rgt_ii = hh.headModel.RightEar_Sag ; break ;
+       case 'I':
+       case 'S':  nas_ii = hh.headModel.Nasion_Axi ;
+                  lft_ii = hh.headModel.LeftEar_Axi ;
+                  rgt_ii = hh.headModel.RightEar_Axi ; break ;
+     }
+     switch( ori[1] ){
+       case 'P':
+       case 'A':  nas_jj = hh.headModel.Nasion_Cor ;
+                  lft_jj = hh.headModel.LeftEar_Cor ;
+                  rgt_jj = hh.headModel.RightEar_Cor ; break ;
+       case 'R':
+       case 'L':  nas_jj = hh.headModel.Nasion_Sag ;
+                  lft_jj = hh.headModel.LeftEar_Sag ;
+                  rgt_jj = hh.headModel.RightEar_Sag ; break ;
+       case 'I':
+       case 'S':  nas_jj = hh.headModel.Nasion_Axi ;
+                  lft_jj = hh.headModel.LeftEar_Axi ;
+                  rgt_jj = hh.headModel.RightEar_Axi ; break ;
+     }
+     switch( ori[2] ){
+       case 'P':
+       case 'A':  nas_kk = hh.headModel.Nasion_Cor ;
+                  lft_kk = hh.headModel.LeftEar_Cor ;
+                  rgt_kk = hh.headModel.RightEar_Cor ; break ;
+       case 'R':
+       case 'L':  nas_kk = hh.headModel.Nasion_Sag ;
+                  lft_kk = hh.headModel.LeftEar_Sag ;
+                  rgt_kk = hh.headModel.RightEar_Sag ; break ;
+       case 'I':
+       case 'S':  nas_kk = hh.headModel.Nasion_Axi ;
+                  lft_kk = hh.headModel.LeftEar_Axi ;
+                  rgt_kk = hh.headModel.RightEar_Axi ; break ;
+     }
+
+     TAG_SETLABEL( tagset->tag[0] , "Nasion" ) ;
+     LOAD_IVEC3( iv , nas_ii,nas_jj,nas_kk ) ;  /* compute DICOM  */
+     fv = THD_3dind_to_3dmm( dset , iv ) ;      /* coordinates of */
+     fv = THD_3dmm_to_dicomm( dset , fv ) ;     /* this point     */
+     UNLOAD_FVEC3( fv , tagset->tag[0].x , tagset->tag[0].y , tagset->tag[0].z ) ;
+     tagset->tag[0].val = 0.0 ;
+     tagset->tag[0].ti  = 0 ;
+     tagset->tag[0].set = 1 ;
+
+     TAG_SETLABEL( tagset->tag[1] , "Left Ear" ) ;
+     LOAD_IVEC3( iv , lft_ii,lft_jj,lft_kk ) ;
+     fv = THD_3dind_to_3dmm( dset , iv ) ;
+     fv = THD_3dmm_to_dicomm( dset , fv ) ;
+     UNLOAD_FVEC3( fv , tagset->tag[1].x , tagset->tag[1].y , tagset->tag[1].z ) ;
+     tagset->tag[1].val = 0.0 ;
+     tagset->tag[1].ti  = 0 ;
+     tagset->tag[1].set = 1 ;
+
+     TAG_SETLABEL( tagset->tag[2] , "Right Ear" ) ;
+     LOAD_IVEC3( iv , rgt_ii,rgt_jj,rgt_kk ) ;
+     fv = THD_3dind_to_3dmm( dset , iv ) ;
+     fv = THD_3dmm_to_dicomm( dset , fv ) ;
+     UNLOAD_FVEC3( fv , tagset->tag[2].x , tagset->tag[2].y , tagset->tag[2].z ) ;
+     tagset->tag[2].val = 0.0 ;
+     tagset->tag[2].ti  = 0 ;
+     tagset->tag[2].set = 1 ;
+
+     dset->tagset = tagset ;
+   }
+
    RETURN(dset) ;
 }
 
 /*------------------------------------------------------------------*/
-/*! Actually load data from a CTF MRI file.
+/*! Actually load data from a CTF MRI file into a dataset.
     Adapted from THD_load_analyze().
 --------------------------------------------------------------------*/
 
@@ -417,7 +509,7 @@ ENTRY("THD_load_ctfmri") ;
 
    dkptr = dblk->diskptr ;
 
-   /* open and position file at start of data */
+   /* open and position file at start of data (after header) */
 
    fp = fopen( dkptr->brick_name , "rb" ) ;  /* .img file */
    if( fp == NULL ) EXRETURN ;
@@ -426,9 +518,9 @@ ENTRY("THD_load_ctfmri") ;
    /*-- allocate space for data --*/
 
    nx = dkptr->dimsizes[0] ;
-   ny = dkptr->dimsizes[1] ;  nxy   = nx * ny   ;
-   nz = dkptr->dimsizes[2] ;  nxyz  = nxy * nz  ;
-   nv = dkptr->nvals       ;  nxyzv = nxyz * nv ;
+   ny = dkptr->dimsizes[1] ; nxy   = nx * ny   ;
+   nz = dkptr->dimsizes[2] ; nxyz  = nxy * nz  ;
+   nv = dkptr->nvals       ; nxyzv = nxyz * nv ;
 
    dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
 
@@ -479,6 +571,7 @@ ENTRY("THD_load_ctfmri") ;
    EXRETURN ;
 }
 
+/*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_open_ctfsam( char *fname ){ return NULL; }

@@ -49,6 +49,15 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
       return THD_open_analyze( pathname ) ;
    }
 
+   /*-- perhaps the CTF way [04 Dec 2002] --*/
+
+   if( plen > 4 && strcmp(pathname+plen-4,".mri") == 0 ){
+      return THD_open_ctfmri( pathname ) ;
+   }
+   if( plen > 4 && strcmp(pathname+plen-4,".svl") == 0 ){
+      return THD_open_ctfsam( pathname ) ;
+   }
+
    /*-- find directory and last names in the pathname --*/
 
    for( ii=plen-1 ; ii >= 0 ; ii-- ) if( pathname[ii] == '/' ) break ;

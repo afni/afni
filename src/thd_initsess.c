@@ -575,6 +575,66 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
      } /* end of if we found ANALYZE files */
    }
 
+   /*-- 04 Dec 2002: try to read CTF .mri and .svl "datasets" --*/
+
+   if( !AFNI_noenv("AFNI_CTF_DATASETS") ){
+     char *ename[2] , **fn_ctf , *eee ;
+     int num_ctf , ii ;
+
+     STATUS("looking for CTF files") ;
+
+     ename[0] = malloc(THD_MAX_NAME) ;
+     ename[1] = malloc(THD_MAX_NAME) ;
+     strcpy(ename[0],sess->sessname) ; strcat(ename[0],"*.mri") ;
+     strcpy(ename[1],sess->sessname) ; strcat(ename[1],"*.svl") ;
+     MCW_file_expand( 2,ename , &num_ctf,&fn_ctf ) ;  /* find files */
+     free(ename[0]) ; free(ename[1]) ;
+
+     if( num_ctf > 0 ){                               /* got some files! */
+       STATUS("opening CTF files") ;
+       for( ii=0 ; ii < num_ctf ; ii++ ){             /* loop over files */
+
+         if( strstr(fn_ctf[ii],".mri") != NULL )      /* try to read: */
+           dset = THD_open_ctfmri( fn_ctf[ii] ) ;     /*   as MRI */
+         else if( strstr(fn_ctf[ii],".svl") != NULL )
+           dset = THD_open_ctfsam( fn_ctf[ii] ) ;     /*   as SAM */
+
+         if( !ISVALID_DSET(dset) ) continue ;         /* doesn't read? */
+         if( ISANAT(dset) ){
+            int na = sess->num_anat ;
+            if( na >= THD_MAX_SESSION_ANAT ){
+               fprintf(stderr,
+                 "\n*** Session %s anat table overflow with dataset %s ***\n",
+                 sessname , fn_ctf[ii] ) ;
+               THD_delete_3dim_dataset( dset , False ) ;
+               break ; /* out of for loop */
+            }
+            iview = dset->view_type ;
+            sess->anat[na][iview] = dset ;
+            (sess->num_anat)++ ;
+         } else if( ISFUNC(dset) ){
+            int nf = sess->num_func ;
+            if( nf >= THD_MAX_SESSION_FUNC ){
+               fprintf(stderr,
+                 "\n*** Session %s func table overflow with dataset %s ***\n",
+                 sessname , fn_ctf[ii] ) ;
+               THD_delete_3dim_dataset( dset , False ) ;
+               break ; /* out of for loop */
+            }
+            iview = dset->view_type ;
+            sess->func[nf][iview] = dset ;
+            (sess->num_func)++ ;
+         } else {                                      /* should never happen */
+            fprintf(stderr,
+                    "\n*** Session %s: malformed dataset %s\n",
+                    sessname , fn_ctf[ii] ) ;
+            THD_delete_3dim_dataset( dset , False ) ;
+         }
+       } /* end of loop over files */
+       MCW_free_expand( num_ctf , fn_ctf ) ;
+     } /* end of if we found CTF files */
+   }
+
    /*-- done! --*/
 
    if( sess->num_anat == 0 && sess->num_func == 0 ){

@@ -4085,3 +4085,8 @@
 03 Dec 2002
  * Modified niml.c to use setsockopt() to change socket buffer sizes only
      if getsockopt() says they are too small.
+
+04 Dec 2002
+ * Added thd_ctfread.c to read CTF MRI files as datasets.
+ * Modified thd_initsess.s, thd_opendset.c, thd_loaddblk.c, 3ddata.h to
+     use the CTF functions.

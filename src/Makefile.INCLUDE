@@ -1103,7 +1103,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o     \
            thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o \
            thd_mincwrite.o thd_mnicoords.o thd_strfunc.o                  \
-           thd_analyzeread.o
+           thd_analyzeread.o thd_ctfread.o
 
 # these are now included in niml.o
 

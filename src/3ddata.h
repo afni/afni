@@ -909,6 +909,8 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_MINC    3
 #define STORAGE_BY_VOLUMES 4  /* 20 Jun 2002 */
 #define STORAGE_BY_ANALYZE 5
+#define STORAGE_BY_CTFMRI  6  /* 04 Dec 2002 */
+#define STORAGE_BY_CTFSAM  7
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -3012,6 +3014,8 @@ extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
 extern THD_3dim_dataset * THD_open_minc( char * ) ;         /* 29 Oct 2001 */
 extern THD_3dim_dataset * THD_open_analyze( char * ) ;      /* 27 Aug 2002 */
+extern THD_3dim_dataset * THD_open_ctfmri( char * ) ;       /* 04 Dec 2002 */
+extern THD_3dim_dataset * THD_open_ctfsam( char * ) ;       /* 04 Dec 2002 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *); /* 23 Mar 2001 */
 extern XtPointer_array *  THD_fetch_many_datasets(char *);
@@ -3130,6 +3134,8 @@ extern void    THD_force_malloc_type( THD_datablock * , int ) ;
 extern int     THD_count_databricks( THD_datablock * dblk ) ;
 extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
 extern void    THD_load_analyze( THD_datablock * ) ;         /* 27 Aug 2002 */
+extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
+extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)
