@@ -1,6 +1,5 @@
 # Makefile for ncdump(1).
 #
-# $Id$
 
 include ../macros.make
 

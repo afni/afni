@@ -1,6 +1,5 @@
 # Makefile for netCDF (semi)exhaustive FORTRAN test.
 #
-# $Id$
 
 include ../macros.make
 

@@ -1,4 +1,3 @@
-# $Id$
 #
 #	Development Makefile for netcdf c++ interface
 #

@@ -1,6 +1,5 @@
 # Makefile for netCDF (semi)exhaustive test.
 #
-# $Id$
 
 include ../macros.make
 # CC = cc -fullwarn -woff 1498,1692

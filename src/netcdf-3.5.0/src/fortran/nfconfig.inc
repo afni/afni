@@ -1,6 +1,3 @@
-#if 0
-    $Id$ 
-#endif
 
 
 #ifndef UD_NETCDF_CPP_INC

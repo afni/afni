@@ -21,7 +21,6 @@
  *	they handle IEEE subnormals properly, and their "n" versions
  *	operate speedily on arrays.
  */
-/* $Id$ */
 
 /*
  * An external data representation interface.

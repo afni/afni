@@ -1,4 +1,3 @@
-# $Id$
 
 # The purpose of this file is to contain common make(1) rules.
 # It should be processed by every execution of the that utility.

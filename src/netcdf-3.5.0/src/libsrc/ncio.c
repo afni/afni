@@ -1,6 +1,3 @@
-/*
- * $Id$
- */
 
 #if defined(_CRAY)
 #   include "ffio.c"
