@@ -305,3 +305,6 @@
 23 September 2003:
   * modifited SUMA_3dVol2Surf.c: added help for -no_header option
 
+01 October 2003:
+  * modified SUMA_3dVol2Surf.c: added -oom_value option and help example
+
