@@ -1,5 +1,12 @@
 #include "mrilib.h"
 
+#define USE_MCLUST
+
+#ifdef USE_MCLUST
+static void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
+static void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
+#endif
+
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
     (compare to thd_makemask.c)
@@ -40,6 +47,9 @@ ENTRY("THD_automask") ;
 
    nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
 
+#ifdef USE_MCLUST
+   THD_mask_clust( nx,ny,nz, mmm ) ;
+#else
    clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
                              MRI_byte , mmm , 1.01   ) ;
 
@@ -60,6 +70,7 @@ ENTRY("THD_automask") ;
    MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
 
    DESTROY_CLARR(clar) ;
+#endif /* USE_MCLUST */
 
    /* 18 Apr 2002: now erode the resulting volume
                    (to break off any thinly attached pieces) */
@@ -69,6 +80,9 @@ ENTRY("THD_automask") ;
 
    /* now recluster it, and again keep only the largest survivor */
 
+#ifdef USE_MCLUST
+   THD_mask_clust( nx,ny,nz, mmm ) ;
+#else
    clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
                              MRI_byte , mmm , 1.01   ) ;
 
@@ -87,6 +101,7 @@ ENTRY("THD_automask") ;
    MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
 
    DESTROY_CLARR(clar) ;
+#endif /* USE_MCLUST */
 
 #if 1
    /* 19 Apr 2002: fill in small holes */
@@ -106,6 +121,9 @@ ENTRY("THD_automask") ;
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
 
+#ifdef USE_MCLUST
+   THD_mask_clust( nx,ny,nz, mmm ) ;
+#else
    /* get the clusters of what were 0's */
 
    clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
@@ -130,6 +148,7 @@ ENTRY("THD_automask") ;
    }
 
    DESTROY_CLARR(clar) ;
+#endif
 
    /* and re-invert mask */
 
@@ -230,3 +249,145 @@ ENTRY("THD_mask_fillin_completely") ;
 
    return nfill ;
 }
+
+/*------------------------------------------------------------------*/
+
+#ifdef USE_MCLUST
+# define DALL 1024
+# define CPUT(i,j,k)                                            \
+  do{ ijk = THREE_TO_IJK(i,j,k,nx,nxy) ;                        \
+      if( mmm[ijk] ){                                           \
+        if( nnow == nall ){                                     \
+          nall += DALL ;                                        \
+          inow = (short *) realloc(inow,sizeof(short)*nall) ;   \
+          jnow = (short *) realloc(jnow,sizeof(short)*nall) ;   \
+          know = (short *) realloc(know,sizeof(short)*nall) ;   \
+        }                                                       \
+        inow[nnow] = i ; jnow[nnow] = j ; know[nnow] = k ;      \
+        nnow++ ; mmm[ijk] = 0 ;                                 \
+      } } while(0)
+
+/*------------------------------------------------------------------*/
+/*! Find the biggest cluster of nonzeros in the byte mask mmm.
+--------------------------------------------------------------------*/
+
+static void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
+{
+   int ii,jj,kk, icl ,  nxy,nxyz , ijk , ijk_last , mnum ;
+   int ip,jp,kp , im,jm,km ;
+   int nbest ; short *ibest, *jbest , *kbest ;
+   int nnow  ; short *inow , *jnow  , *know  ; int nall ;
+
+   if( mmm == NULL ) return ;
+
+   nxy = nx*ny ; nxyz = nxy * nz ;
+
+   nbest = 0 ;
+   ibest = malloc(sizeof(short)) ;
+   jbest = malloc(sizeof(short)) ;
+   kbest = malloc(sizeof(short)) ;
+
+   /*--- scan through array, find nonzero point, build a cluster, ... ---*/
+
+   ijk_last = 0 ;
+   while(1) {
+     /* find next nonzero point */
+
+     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( mmm[ijk] ) break ;
+     if( ijk == nxyz ) break ;  /* didn't find any! */
+
+     ijk_last = ijk+1 ;         /* start here next time */
+
+     /* init current cluster list with this point */
+
+     nall = DALL ;
+     inow = (short *) malloc(sizeof(short)*DALL) ;
+     jnow = (short *) malloc(sizeof(short)*DALL) ;
+     know = (short *) malloc(sizeof(short)*DALL) ;
+     IJK_TO_THREE(ijk, inow[0],jnow[0],know[0] , nx,nxy) ;
+     nnow = 1 ;
+     mmm[ijk] = 0 ;             /* clear found point */
+
+     /*--
+        for each point in cluster:
+           check neighboring points for nonzero entries in mmm
+           enter those into cluster
+           continue until end of cluster is reached
+             (note that cluster is expanding as we progress)
+     --*/
+
+     for( icl=0 ; icl < nnow ; icl++ ){
+        ii = inow[icl] ; jj = jnow[icl] ; kk = know[icl] ;
+        im = ii-1      ; jm = jj-1      ; km = kk-1 ;
+        ip = ii+1      ; jp = jj+1      ; kp = kk+1 ;
+
+        if( im >= 0 ) CPUT(im,jj,kk) ;
+        if( ip < nx ) CPUT(ip,jj,kk) ;
+        if( jm >= 0 ) CPUT(ii,jm,kk) ;
+        if( jp < ny ) CPUT(ii,jp,kk) ;
+        if( km >= 0 ) CPUT(ii,jj,km) ;
+        if( kp < nz ) CPUT(ii,jj,kp) ;
+     }
+
+     /* see if new cluster is larger than best yet */
+
+     if( nnow > nbest ){   /* new is bigger */
+       free(ibest) ; free(jbest) ; free(kbest) ;
+       nbest = nnow ; ibest = inow ;
+       jbest = jnow ; kbest = know ;
+     } else {              /* old is bigger */
+       free(inow) ; free(jnow) ; free(know) ;
+     }
+
+   } /* loop ends when all nonzero points are clustered */
+
+   /* put 1's back in at all points in best cluster */
+
+   for( icl=0 ; icl < nbest ; icl++ ){
+      ijk = THREE_TO_IJK(ibest[icl],jbest[icl],kbest[icl],nx,nxy) ;
+      mmm[ijk] = 1 ;
+   }
+   free(ibest) ; free(jbest) ; free(kbest) ;
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
+{
+   int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
+   int nxy=nx*ny , nxyz=nxy*nz ;
+   byte *nnn ;
+
+   if( mmm == NULL ) return ;
+
+   nnn = calloc(sizeof(byte),nxyz) ;
+
+   for( kk=1 ; kk < nz-1 ; kk++ ){
+    km = (kk-1)*nxy ; kp = (kk+1)*nxy ; kz = kk*nxy ;
+    for( jj=1 ; jj < ny-1 ; jj++ ){
+     jm = (jj-1)*nx ; jp = (jj+1)*nx ; jy = jj*nx ;
+     for( ii=1 ; ii < nx-1 ; ii++ ){
+       if( mmm[ii+jy+kz] ){           /* count nonzero nbhrs */
+         im = ii-1 ; ip = ii+1 ;
+         num =  mmm[im+jy+km]
+              + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
+              + mmm[ip+jy+km]
+              + mmm[im+jm+kz] + mmm[im+jy+kz] + mmm[im+jp+kz]
+              + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
+              + mmm[ip+jm+kz] + mmm[ip+jy+kz] + mmm[ip+jp+kz]
+              + mmm[im+jy+kp]
+              + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
+              + mmm[ip+jy+kp]
+         if( num < 16 ) nnn[ii+jy+kz] = 1 ;  /* mark to erode */
+       }
+   } } }
+
+   for( ii=0 ; ii < nxyz ; ii++ )            /* actually erode */
+     if( nnn[ii] ) mmm[ii] = 0 ;
+
+   /* re-dilate eroded voxels that are next to survivors */
+
+}
+#endif /* USE_MCLUST */

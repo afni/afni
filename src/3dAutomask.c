@@ -83,7 +83,7 @@ int main( int argc , char * argv[] )
    /* 18 Apr 2002: print voxel count */
 
    nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
-   fprintf(stderr,"++ %d voxels in the mask\n",nmask) ;
+   fprintf(stderr,"++ %d voxels in the mask [out of %d]\n",nmask,DSET_NVOX(dset)) ;
    if( nmask == 0 ){
       fprintf(stderr,"** Quitting without saving mask\n"); exit(1);
    }
