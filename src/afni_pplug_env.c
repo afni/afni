@@ -331,6 +331,12 @@ PLUGIN_interface * ENV_init(void)
                    "Set image viewers to use 3D global data range min-to-max?" ,
                    NUM_yesno_list , yesno_list , ENV_globalrange  ) ;
 
+   /* 19 Nov 2003 */
+
+   ENV_add_numeric( "AFNI_DRAW_UNDOSIZE" ,
+                    "Megabytes allowed for Drawing Undo" ,
+                    1 , 999 , 0 , 6 , NULL ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
