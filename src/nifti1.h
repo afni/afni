@@ -55,12 +55,12 @@
    other purposes, since the ANALYZE 7.5 format describes this substructure
    as "not required".
 
-   NIFTI-1 FLAG (MAGIC NUMBERS):
+   NIFTI-1 FLAG (MAGIC STRINGS):
    ----------------------------
    To flag such a struct as being conformant to the NIFTI-1 spec, the last 4
-   bytes of the header must be either the C String "ni1" or
-   "n1+"; in hexadecimal, the 4 bytes
-     6E 69 31 00   or   6E 31 2B 00
+   bytes of the header must be either the C String "ni1" or "n+1";
+   in hexadecimal, the 4 bytes
+     6E 69 31 00   or   6E 2B 31 00
    (in any future version of this format, the '1' will be upgraded to '2',
    etc.).  Normally, such a "magic number" or flag goes at the start of the
    file, but trying to avoid clobbering widely-used ANALYZE 7.5 fields led to
@@ -68,7 +68,7 @@
    (Matthew 20:16).
 
    If a NIFTI-aware program reads a header file that is NOT marked with a
-   NIFTI magic number, then it should treat the header as an ANALYZE 7.5
+   NIFTI magic string, then it should treat the header as an ANALYZE 7.5
    structure.  For convenience, that header struct declaration is also
    given in this file (at the very end).  To disable it's inclusion, define
    the macro DONT_INCLUDE_ANALYZE_STRUCT before including this file.
@@ -78,7 +78,7 @@
    "ni1" means that the image data is stored in the ".img" file corresponding
    to the header file (starting at file offset 0).
 
-   "n1+" means that the image data is stored in the same file as the header
+   "n+1" means that the image data is stored in the same file as the header
    information.  We recommend that the combined header+data filename suffix
    be ".nii".  When the dataset is stored in one file, the first byte of image
    data is stored at byte location (int)vox_offset in this combined file.
@@ -110,9 +110,9 @@
      sizeof(int) == sizeof(float) == 4 ;  sizeof(short) == 2
 -----------------------------------------------------------------------------*/
 
-                        /*-----------------------*/  /*----------------------*/
+                        /*************************/  /************************/
 struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
-                        /*-----------------------*/  /*----------------------*/
+                        /*************************/  /************************/
 
                                            /*--- was header_key substruct ---*/
  int   sizeof_hdr;    /*!< MUST be 348           */  /* int sizeof_hdr;      */
@@ -139,7 +139,10 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  float vox_offset;    /*!< Offset into .nii file */  /* float vox_offset;    */
  float scl_slope ;    /*!< Data scaling: slope.  */  /* float funused1;      */
  float scl_inter ;    /*!< Data scaling: offset. */  /* float funused2;      */
- float funused3 ;     /*!< ++UNUSED++            */  /* float funused3;      */
+ char  xyz_units ;    /*!< Units of spatial axes */  /* float funused3;      */
+ char  time_units ;   /*!< Units of time axis.   */
+ char  cunused1 ;     /*!< ++UNUSED++            */
+ char  cunused2 ;     /*!< ++UNUSED++            */
  float cal_max;       /*!< Max display intensity */  /* float cal_max;       */
  float cal_min;       /*!< Min display intensity */  /* float cal_min;       */
  float compressed;    /*!< ++UNUSED++            */  /* float compressed;    */
@@ -167,7 +170,7 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
 
  char intent_name[16];/*!< 'name' or meaning of data.  */
 
- char magic[4] ;      /*!< MUST be "ni1\0" or "n1+\0". */
+ char magic[4] ;      /*!< MUST be "ni1\0" or "n+1\0". */
 
 } ;                   /**** 348 bytes total ****/
 
@@ -184,7 +187,9 @@ typedef struct nifti_1_header nifti_1_header ;
               - also see the discussion of intent_code, far below
 
      pixdim[i] = voxel width along dimension #i, i=1..dim[0] (positive)
-                 (cf. ORIENTATION section below for use of pixdim[0])
+                 (cf. ORIENTATION section below for use of pixdim[0]);
+                 the units of pixdim can be specified with the xyz_units
+                 and time_units field (also described far below).
 
    Number of bits per voxel value is in bitpix, which MUST correspond with
    the datatype field.  The total number of bytes in the image data is
@@ -194,7 +199,7 @@ typedef struct nifti_1_header nifti_1_header ;
 /*---------------------------------------------------------------------------*/
 /* DATA STORAGE:
    ------------
-   If the magic field is "n1+", then the voxel data is stored in the
+   If the magic field is "n+1", then the voxel data is stored in the
    same file as the header.  In this case, the voxel data starts at offset
    (int)vox_offset into the header file.  Thus, vox_offset==348.0 means that
    the data starts immediately after the NIFTI-1 header.  If vox_offset is
@@ -210,7 +215,7 @@ typedef struct nifti_1_header nifti_1_header ;
 
    When storing NIFTI-1 datasets in pairs of files, it is customary to name
    the files in the pattern "name.hdr" and "name.img", as in ANALYZE 7.5.
-   When storing in a single file ("n1+"), the file name should be in
+   When storing in a single file ("n+1"), the file name should be in
    the form "name.nii" (the ".nft" and ".nif" suffixes are already taken;
    cf. http://www.icdatamaster.com/n.html ).
 
@@ -260,6 +265,8 @@ typedef struct nifti_1_header nifti_1_header ;
       above cal_max as white.
     - Colors "black" and "white", of course, may refer to any scalar display
       scheme (e.g., a color lookup table specified via aux_file).
+    - cal_min and cal_max only make sense when applied to scalar-valued
+      datasets (i.e., intent_vector == 0).
 -----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -341,7 +348,7 @@ typedef struct nifti_1_header nifti_1_header ;
 #define NIFTI_TYPE_FLOAT128     1536
                                        /*! 128 bit complex = 2 64 bit floats. */
 #define NIFTI_TYPE_COMPLEX128   1792
-                                       /*! 256 bit complex = 2 128 bit floats. */
+                                       /*! 256 bit complex = 2 128 bit floats */
 #define NIFTI_TYPE_COMPLEX256   2048
 
                      /*-------- sample typedefs for complicated types ---*/
@@ -417,7 +424,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    and conventions are provided for storing other complex data types.
 
    The intent_name field provides space for a 15 character (plus 0 byte)
-   'name' for the type of data stored. Examples:
+   'name' string for the type of data stored. Examples:
     - intent_code == NIFTI_INTENT_ESTIMATE; intent_name == "T1";
        could be used to signify that the voxel values are estimates of the
        NMR parameter T1.
@@ -448,7 +455,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
             Functions to compute with many of the distributions
             below can be found in the CDF library from U Texas.
 
-            Formulas for and discussion of these distributions
+            Formulas for and discussions of these distributions
             can be found in the following books:
 
               [U] Univariate Discrete Distributions,
@@ -606,12 +613,30 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
  /*! To store an M x N matrix at each voxel:
        - intent_vector must be nonzero
-       - intent_code must be NIFTI_INTENT_MATRIX
+       - intent_code must be NIFTI_INTENT_GENMATRIX
        - dim[ dim[0] ] must be M*N
        - intent_p1 must be M (in float format)
-       - intent_p2 must be N (ditto)             */
+       - intent_p2 must be N (ditto)
+       - the matrix values A[i][[j] are stored in row-order:
+         - A[0][0] A[0][1] ... A[0][N-1]
+         - A[1][0] A[1][1] ... A[1][N-1]
+         - etc., until
+         - A[M-1][0] A[M-1][1] ... A[M-1][N-1]        */
 
-#define NIFTI_INTENT_MATRIX    1004
+#define NIFTI_INTENT_GENMATRIX 1004
+
+ /*! To store an NxN symmetric matrix at each voxel:
+       - intent_vector must be nonzero
+       - intent_code must be NIFTI_INTENT_SYMMATRIX
+       - dim[ dim[0] ] must be N*(N+1)/2
+       - intent_p1 must be N (in float format)
+       - the matrix values A[i][[j] are stored in row-order:
+         - A[0][0]
+         - A[1][0] A[1][1]
+         - A[2][0] A[2][1] A[2][2]
+         - etc.: row-by-row                           */
+
+#define NIFTI_INTENT_SYMMATRIX 1005
 
  /*! To signify that the vector value at each voxel is to be taken
      as a displacement field:
@@ -620,7 +645,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
        - dim[ dim[0] ] must be the dimensionality of the displacment
          (e.g., 3 for spatial displacement, 2 for in-plane)          */
 
-#define NIFTI_INTENT_DISPVECT  1005
+#define NIFTI_INTENT_DISPVECT  1006
 
  /*! To signify that the vector value at each voxel is really a
      spatial coordinate (e.g., the vertices or nodes of a surface mesh):
@@ -630,9 +655,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
        - dim[1] must be the number of points
        - dim[2] must be the dimensionality of space (e.g., 3 => 3D space).
        - intent_name may describe the object these points come from
-         (e.g., "pial", "gray/white" , "EEG").                            */
+         (e.g., "pial", "gray/white" , "EEG", "MEG").                   */
 
-#define NIFTI_INTENT_POINTSET  1006
+#define NIFTI_INTENT_POINTSET  1007
 
  /*! To signify that the vector value at each voxel is really a triple
      of indexes (e.g., forming a triangle) from a pointset dataset:
@@ -644,45 +669,12 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
        - datatype should be an integer type (preferably DT_INT32)
        - the data values are indexes (0,1,...) into a pointset dataset. */
 
-#define NIFTI_INTENT_TRIANGLE  1007
+#define NIFTI_INTENT_TRIANGLE  1008
 
  /*! To signify that the data values are a measure of curvature,
      set intent_code = NIFTI_INTENT_CURVATURE.                   */
 
-#define NIFTI_INTENT_CURVATURE 1008
-
- /*! To attach a variable length list of data values to each node,
-     two sub-datasets can be used.  The 1st one is the length of
-     each list (1 integer value per node):
-       - intent_vector must be zero
-       - intent_code must be NIFTI_INTENT_LISTLENGTH
-       - dim[] is set up as desired
-       - datatype should be an integer type (preferable DT_INT32)
-       - head_ref must be the index of the header for the sub-dataset
-         that contains the actual data values list
-       - each voxel/node data value in the 1st sub-dataset is the number
-         of data values in the 2nd sub-dataset that are attached to this
-         particular voxel/node
-     The 2nd sub-dataset contains the data values
-       - intent_vector may be zero or nonzero
-       - intent_code must be NIFTI_INTENT_LISTDATA
-       - dim[0] = 1 if intent_code==0, or dim[0] = 2 if intent_code!=0
-       - dim[1] = total number of data values, which must be the sum of
-         all the list lengths from the 1st sub-dataset
-       - datatype is arbitrary
-       - head_ref must be the index of the list length sub-dataset
-       - define N    = number of voxels/nodes in list length sub-dataset
-                L[i] = list length of voxel/node number i
-                P[0] = 0
-                P[i] = P[i-1] + L[i] for i=1,2,...,N-1
-         then the data values for voxel/node number i are stored in the
-         2nd sub-dataset in array locations P[i]..P[i]+L[i] if L[i] > 0.
-     Potential surface applications of this scheme:
-       - storing the list of edges attached to each surface node
-       - storing the list of triangles attached to each surface node    */
-
-#define NIFTI_INTENT_LISTLENGTH 1009
-#define NIFTI_INTENT_LISTDATA   1010
+#define NIFTI_INTENT_CURVATURE 1009
 
 /*---------------------------------------------------------------------------*/
 /* 3D IMAGE (VOLUME) ORIENTATION AND LOCATION IN SPACE:
@@ -921,6 +913,43 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_XFORM_MNI_152      4
 
 /*---------------------------------------------------------------------------*/
+/* SPATIAL AND TEMPORAL DIMENSIONS:
+   -------------------------------
+   The codes below can be used in xyz_units and time_units to indicate
+   the units of pixdim.
+
+   If time_units is not zero, this indicates that the last dimension
+   (or next-to-last, if intent_vector is nonzero) of the data array should
+   be considered to be a time axis.  The following situations are the
+   most likely to occur:
+  - dim[0]=3, intent_vector=0, time_axis=0 ==> 3D spatial grid
+  - dim[0]=2, intent_vector=0, time_axis=0 ==> 2D slice
+  - dim[0]=4, intent_vector=0, time_axis>0 ==> 3D grid plus time
+  - dim[0]=3, intent_vector=0, time_axis>0 ==> 2D slice plus time
+  - dim[0]=4, intent_vector=1, time_axis=0 ==> 3D grid w/ vector data
+  - dim[0]=3, intent_vector=1, time_axis=0 ==> 2D slice w/ vector data
+  - dim[0]=5, intent_vector=1, time_axis>0 ==> 3D grid + time w/ vector data
+  - dim[0]=4, intent_vector=1, time_axis>0 ==> 2D slice + time w/ vector data
+-----------------------------------------------------------------------------*/
+
+                               /*! NIFTI code for unspecified units.
+#define NIFTI_UNITS_UNKNOWN 0
+                               /*! NIFTI code for meters. */
+#define NIFTI_UNITS_METER   1
+                               /*! NIFTI code for millimeters. */
+#define NIFTI_UNITS_MM      2
+                               /*! NIFTI code for micrometers. */
+#define NIFTI_UNITS_MICRON  3
+                               /*! NIFTI code for seconds. */
+#define NIFTI_UNITS_SEC     8
+                               /*! NIFTI code for milliseconds. */
+#define NIFTI_UNITS_MSEC    9
+                               /*! NIFTI code for microseconds. */
+#define NIFTI_UNITS_USEC   10
+                               /*! NIFTI code for Hertz. */
+#define NIFTI_UNITS_HZ     11
+
+/*---------------------------------------------------------------------------*/
 /* UNUSED FIELDS:
    Some of the ANALYZE 7.5 fields marked as ++UNUSED++ may need to be set
    to particular values for compatibility with other programs.  The issue
@@ -946,26 +975,20 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 /*.................*/
 /*! Given a nifti_1_header struct, check if it has a good magic number.
-    Returns 1 if magic is good, 0 if it is not.                         */
+    Returns NIFTI version number (1..9) if magic is good, 0 if it is not. */
 
-#define NIFTI_GOOD_MAGIC(h)                                                 \
-   ( (h).magic[0]=='n' && (h).magic[3]=='\0' &&                             \
-     (( (h).magic[1]>='1' && (h).magic[1]<='9' && (h).magic[2]=='+' ) ||    \
-      ( (h).magic[1]=='i' && (h).magic[2]>='1' && (h).magic[2]<='9' )   ))
-
-/*.................*/
-/*! Given a nifti_1_header_struct, returns the version (1..9) or 0. */
-
-#define NIFTI_VERSION(h)                                                    \
- (  ( (h).magic[1]>='1' && (h).magic[1]<='9' ) ? (h).magic[1]-'0'           \
-  : ( (h).magic[2]>='1' && (h).magic[2]<='9' ) ? (h).magic[2]-'0' : 0 )     \
+#define NIFTI_VERSION(h)                               \
+ ( ( (h).magic[0]=='n' && (h).magic[3]=='\0'    &&     \
+     ( (h).magic[1]=='i' || (h).magic[1]=='+' ) &&     \
+     ( (h).magic[2]>='1' && (h).magic[2]<='9' )   )    \
+ ? (h).magic[2]-'0' : 0 )
 
 /*.................*/
 /*! Check if a nifti_1_header struct says if the data is stored in the
     same file or in a separate file.  Returns 1 if the data is in the same
     file as the header, 0 if it is not.                                   */
 
-#define NIFTI_ONEFILE(h) ( (h).magic[2] == '+' && (int)(h).vox_offset >= 348 )
+#define NIFTI_ONEFILE(h) ( (h).magic[1] == '+' && (int)(h).vox_offset >= 348 )
 
 /*.................*/
 /*! Check if a nifti_1_header struct needs to be byte swapped.
