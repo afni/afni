@@ -2063,7 +2063,8 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
 /* internal prototypes */
 
 static int decode_one_double( NI_stream_type *, int *, double * ) ;
-static void scan_for_trailer( NI_stream_type * , int ) ;
+static int scan_for_angles( NI_stream_type *, int, int ) ;
+static void reset_buffer( NI_stream_type *, int ) ;
 
 /*--------------------------------------------------------------------*/
 /*! Read an element (maybe a group) from the stream.
@@ -2099,97 +2100,34 @@ void * NI_read_element( NI_stream_type *ns )
    char *cstart , *cstop ;
    header_stuff *hs ;
 
-   /*-- Check if we have any data left over in the buffer,
-        or if we at least can read some data from the stream --*/
+   if( ns == NULL ) return NULL ;  /* bad input */
+
+   /*-- Try to find the element header --*/
 
    num_restart = 0 ;
 HeadRestart:                            /* loop back here to retry */
    num_restart++ ;
-   if( num_restart > 5 ) return NULL ;  /* don't allow too many loops */
+   if( num_restart > 9 ) return NULL ;  /* don't allow too many loops */
 
-   nn = NI_stream_readcheck(ns,0) ; /* check if data can be read */
+   nn = scan_for_angles( ns , 0 , 1 ) ; /* look for '<stuff>' */
 
-   /*-- Minimum element is "<a/>", which is 4 bytes long --*/
+   if( nn < 0 ) return NULL ;           /* found nothing */
 
-   if( ns->nbuf < 4 && nn <= 0  ) return NULL ; /* no data */
+   /* see if we found '<>', which is illegal,
+      or a trailer '</stuff>', which is also illegal (here) */
 
-   /*-- Read some data, if there is any space for it --*/
-
-   if( ns->nbuf < NI_BUFSIZE && nn > 0 ){
-      ii = NI_stream_read( ns, ns->buf + ns->nbuf, NI_BUFSIZE - ns->nbuf ) ;
-      if( ii > 0 ) ns->nbuf += ii ; /* buffer is longer now */
+   if( nn <= 1 || ns->buf[1] == '/' ){
+      reset_buffer( ns , nn+1 ) ;       /* toss the '<..>', try again */
+      goto HeadRestart ;
    }
 
-   if( ns->nbuf < 4 ) return NULL ; /* not enough data yet */
+   /*----- Parse the header data and prepare to make an element! -----*/
 
-   /*-- Check buffer for header start character --*/
-
-   cstart = memchr( ns->buf , '<' , ns->nbuf ) ;
-
-   if( cstart == NULL ){   /* no header start */
-      ns->nbuf = 0 ;       /* discard all data in buffer */
-      goto HeadRestart ;   /* try to get more data */
-   }
-
-   /*-- If here, we found a start character! --*/
-
-   nn = cstart - ns->buf ; /* index of start character in buf */
-
-   if( nn+4 > ns->nbuf ){ /* start character is too close to end of buf */
-      if( nn > 0 ){
-        memmove( ns->buf , cstart , ns->nbuf-nn ) ;  /* toss stuff prior */
-        ns->nbuf -= nn ;                             /* to the '<' */
-      }
-      goto HeadRestart ;   /* try to get more data */
-   }
-
-   /*-- Check if next character is '/' (should never be, but who knows?) --*/
-
-   if( ns->buf[nn+1] == '/' ){  /* must discard; restart search for true '<' */
-      memmove( ns->buf , cstart+2 , ns->nbuf-(nn+2) ) ;
-      ns->nbuf -= (nn+2) ;
-      goto HeadRestart ;   /* try to get more data */
-   }
-
-   /*-- Now look for a stop character. --*/
-
-   cstop = memchr( cstart+1 , '>' , ns->nbuf-nn-1 ) ;
-
-   if( cstop == NULL ){    /* no stop character */
-
-      if( nn > 0 ){        /* shift data so '<' is buf[0] */
-         memmove( ns->buf , cstart , ns->nbuf-nn ) ;
-         ns->nbuf -= nn ;
-      }
-      if( ns->nbuf < NI_BUFSIZE ) goto HeadRestart ; /* try to get more data */
-
-      /* If here, then the header is apparently more than 64K long.
-         This is unacceptable, and so we will flush all the data
-         and try again.  However, something bad will probably happen
-         if there really is an element that has such a large header,
-         since we just cut off the start of that header, and now will
-         have to deal with its tail. Oh well: life is tough, then you die. */
-
-      ns->nbuf = 0 ;
-      goto HeadRestart ;  /* try to get more data */
-   }
-
-   /*----- If here, have start and stop characters,
-           so parse the header data and prepare to make an element! -----*/
-
-   hs = parse_header_stuff( ns->nbuf-nn , cstart , &nhs ) ;
+   hs = parse_header_stuff( ns->nbuf , ns->buf , &nhs ) ;
 
    if( hs == NULL ){  /* something bad happened there */
-
-      ii = cstop - ns->buf ;   /* index of stop character */
-
-      if( ii+1 < ns->nbuf ){   /* destroy all data at or below '>' */
-         memmove( ns->buf , cstop+1 , ns->nbuf-(ii+1) ) ;
-         ns->nbuf -= (ii+1) ;
-      } else {
-         ns->nbuf = 0 ;
-      }
-      goto HeadRestart ; /* try to get more data */
+      reset_buffer( ns , nn+1 ) ;  /* toss the '<...>', try again */
+      goto HeadRestart ;
    }
 
    /*----- If here, have parsed a header (and will not HeadRestart).
@@ -2197,12 +2135,7 @@ HeadRestart:                            /* loop back here to retry */
            the header; that is, we can then start reading data from
            ns->buf[0] .. ns->buf[ns->nbuf-1]                        --*/
 
-   if( nn+nhs < ns->nbuf ){
-      memmove( ns->buf , ns->buf+nn+nhs , ns->nbuf-(nn+nhs) ) ;
-      ns->nbuf -= (nn+nhs) ;
-   } else {
-      ns->nbuf = 0 ;
-   }
+   reset_buffer( ns , nhs ) ;
 
    /*--------------- Now make an element of some kind ---------------*/
 
@@ -2450,14 +2383,30 @@ TextDone:
       /*-- Now swap bytes, if needed. --*/
 
       if( swap ){
-       for( col=0 ; col < nel->vec_num ; col++ )
-         NI_swap_vector( nel->vec_typ[col], nel->vec_len, nel->vec[col] ) ;
+        for( col=0 ; col < nel->vec_num ; col++ )
+          NI_swap_vector( nel->vec_typ[col], nel->vec_len, nel->vec[col] ) ;
       }
 
       /*-- Now scan for the end-of-element marker '</something>' and
            skip all input bytes up to (and including) the final '>'. --*/
 
-      scan_for_trailer( ns , npos ) ;
+      num_restart = 0 ;
+TailRestart:
+      num_restart++ ;
+
+      if( num_restart < 99 ){
+         int is_tail ;
+
+         nn = scan_for_angles( ns , npos , 10 ) ;  /* find '<...>' */
+
+         if( nn <= 0 ){                     /* didn't find '<...>' */
+            goto TailRestart ;
+         }
+
+         is_tail = ( ns->buf[1] == '/' ) ;
+         reset_buffer( ns , nn+1 ) ;
+         if( !is_tail ) goto TailRestart ;
+      }
 
       /*-- And are done with the input stream and the data element! --*/
 
@@ -2572,80 +2521,109 @@ Restart:
 }
 
 /*----------------------------------------------------------------------*/
-/*! Scan stream for an element trailer: '</something>', starting
-    at location qpos.
-    Return with the stream buffer set so that the byte after the
-    closing '>' is the ns->buf[0] byte.
+/*! Reset the unscanned bytes in the buffer to start at position 0
+    instead of position npos.
 ------------------------------------------------------------------------*/
 
-static void scan_for_trailer( NI_stream_type *ns , int qpos )
+static void reset_buffer( NI_stream_type *ns , int npos )
 {
-   int num_restart, nn, npos=qpos, need_data ;
+   if( ns == NULL || npos <= 0 || ns->nbuf <= 0 ) return ;
+
+   if( npos < ns->nbuf ){
+      memmove( ns->buf , ns->buf+npos , ns->nbuf-npos ) ;
+      ns->nbuf -= npos ;
+   } else {
+      ns->nbuf = 0 ;  /* all data in buffer is used up */
+   }
+}
+
+/*----------------------------------------------------------------------*/
+/*! Scan stream for an element header or trailer:'<characters>',
+    starting at byte offset qpos, and waiting msec milliseconds.
+
+    Returns with the stream buffer set so that the opening '<' is at
+    ns->buf[0] and the closing '>' is at ns->buf[q], where q is this
+    function's return value.
+
+    If the return value is -1, then we couldn't find a '<stuff>' string.
+    This may be due to:
+      * there is no '<...>' in the buffer, and we can't read from
+         the input stream; call NI_readcheck() to confirm this
+      * time ran out (alas)
+      * The '<...' part filled the entire buffer (64K).  In this case,
+         all the input buffer is thrown away - we don't support
+         headers or trailers this long!
+------------------------------------------------------------------------*/
+
+static int scan_for_angles( NI_stream_type *ns, int qpos, int msec )
+{
+   int nn, npos=qpos, need_data , num_restart=0 ;
    char goal='<' ;
+   int start_time = NI_clock_time() , mleft , nbmin ;
 
-   if( ns == NULL ) return ;  /* bad input */
+   if( ns == NULL || npos < 0 ) return -1 ;  /* bad input */
 
-   num_restart = 0 ;
-TailRestart:                            /* loop back here to retry */
+        if( msec <  0 ) msec = 999999999 ;   /* a long time (11+ days) */
+   else if( msec == 0 ) msec = 1 ;           /* allow a little waiting */
+
+   /*-- Will loop back here if we have to re-read/re-scan --*/
+
+Restart:                            /* loop back here to retry */
    num_restart++ ;
-   if( num_restart > 19 ) return ;      /* don't allow too many loops */
+   mleft = msec - (NI_clock_time()-start_time) ;
+   if( num_restart > 3 && mleft <= 0 ){          /* failure */
+      reset_buffer(ns,npos) ; return -1 ;
+   }
 
    /*-- skip ahead to find goal in the buffer --*/
 
    while( npos < ns->nbuf && ns->buf[npos] != goal ) npos++ ;
 
-   /*-- if our goal is the closing '>' and we found it, exit! --*/
+   /*-- if we found our goal, do something about it --*/
 
-   if( npos < ns->nbuf && goal == '>' ){
-      if( npos+1 < ns->nbuf ){
-        memmove( ns->buf , ns->buf+(npos+1) , ns->nbuf-(npos+1) ) ;
-        ns->nbuf -= (npos+1) ;
-      } else {
-        ns->nbuf = 0 ;
-      }
-      return ;
+   if( npos < ns->nbuf ){
+
+     /*-- if our goal was the closing '>', we are done! --*/
+
+     if( goal == '>' ) return npos ;  /* will be positive */
+
+     /*-- if here, our goal was the opening '<';
+          move that byte to ns->buf[0],
+          reset npos and the goal, and scan again --*/
+
+      reset_buffer(ns,npos) ;
+      npos = 0     ;
+      goal = '>'   ;
+      goto Restart ;
    }
 
-   /*-- if our goal is the closing '>',
-         then we didn't find it, so we need more data;
-        if our goal is the opening '<',
-         then we need more data if we didn't find it or
-         if we found it at the very last byte of the buffer --*/
+   /*-- if we get to here, we didn't find our goal:
+        (a) if the goal was the opening '<', then throw
+             away all data in the buffer, and get some more data
+        (b) if the goal was the closing '>', then we need more data
+            in the buffer, but need to keep the existing data
+        (c) UNLESS the buffer is full (64K)
+             - in that case, the universe ends right here and now --*/
 
-   need_data ==   (goal == '>')                         ||
-                ( (goal == '<') && npos >= ns->nbuf-1 )
-
-   /*-- if we don't need data here,
-        then our goal must be '<' and we have at least 1 extra byte;
-        now check if that byte is a '/'; if it isn't, this is a bogus
-        trailer; in either case, skip over the 2 bytes and scan again --*/
-
-   if( !need_data ){
-      if( ns->buf[npos+1] == '/' )   /* Found the '</', so set  */
-         goal = '>'                  /* the goal to find the '>' */
-
-      npos += 2 ;                    /* skip over '<' and whatever */
-      goto TailRestart ;             /* and scan the buffer again */
+   if( goal == '<' ){                    /* case (a) */
+      ns->nbuf = npos = 0 ;
+   } else if( ns->nbuf == NI_BUFSIZE ){  /* case (c) */
+      ns->nbuf = 0 ; return -1 ;
    }
 
    /*-- if we are here, we need more data before scanning again --*/
 
-   if( npos < ns->nbuf ){
-     memmove( ns->buf , ns->buf+npos , ns->nbuf-npos ) ;
-     ns->nbuf -= npos ;
-   } else {
-     ns->nbuf = 0 ;
-   }
-   npos = 0 ;
+   /*- read at least nbmin bytes,
+       waiting up to mleft ms (unless the data stream goes bad) -*/
 
-   /*- read at least 1 byte,
-       waiting up to 100 ms (unless the data stream goes bad) -*/
+   if( mleft <= 0 ) mleft = 1 ;
+   nbmin = (goal == '<') ? 3 : 1 ;
 
-   nn = NI_stream_fillbuf( ns , 1 , 100 ) ;
+   nn = NI_stream_fillbuf( ns , nbmin , mleft ) ;
 
-   if( nn >= 0 ) goto TailRestart ; /* scan some more */
+   if( nn >= 0 ) goto Restart ; /* scan some more */
 
    /*-- if here, the stream went bad, so exit --*/
 
-   ns->nbuf = 0 ; return ;
+   ns->nbuf = 0 ; return -1 ;
 }
