@@ -13,7 +13,7 @@ int main( int argc , char *argv[] )
    char *ccc ;
 
    if( argc < 2 ){
-      printf("Usage: nimltest [-b fname] [-w] streamspec\n");exit(0);
+      printf("Usage: nimltest [-bB fname] [-w] streamspec\n");exit(0);
    }
 
 #if 0

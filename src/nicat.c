@@ -7,8 +7,8 @@
 int main( int argc , char *argv[] )
 {
    NI_stream ns ;
-   char lbuf[NBUF] , *bbb ;
-   int nn , nl=0;
+   char lbuf[NBUF] ;
+   int nn , nl=0 , jj , ntot=0 ;
 
    if( argc < 2 ){
       fprintf(stderr,"Usage: nicat [-r] streamspec\n");exit(0);
@@ -28,20 +28,16 @@ int main( int argc , char *argv[] )
        fprintf(stderr,".") ;
      }
      while(1){
-       bbb = fgets( lbuf , NBUF , stdin ) ; if( bbb == NULL ) break ;
-#if 0
-       do{ nn = NI_stream_writecheck(ns,1) ; } while(nn==0) ;
-       if( nn == -1 ){ fprintf(stderr,"NI_stream_writecheck fails\n");break;}
-#endif
-       nn = NI_stream_write( ns , lbuf , strlen(lbuf) ) ;
+       jj = fread(lbuf,1,NBUF,stdin) ; if( jj <= 0 ) break ;
+       nn = NI_stream_write( ns , lbuf , jj ) ;
        if( nn < 0 ){
           fprintf(stderr,"NI_stream_write fails\n"); break ;
-       } else if( nn < strlen(lbuf) ){
-          fprintf(stderr,"nl=%d: wrote %d/%d bytes\n",nl,nn,strlen(lbuf)) ;
+       } else if( nn < jj ){
+          fprintf(stderr,"nl=%d: wrote %d/%d bytes\n",nl,nn,jj) ;
        }
-       nl++ ;
+       nl++ ; ntot += jj ;
      }
-     fprintf(stderr,"Wrote %d lines of text to %s\n",nl,argv[1]) ;
+     fprintf(stderr,"Wrote %d bytes in %d operations to %s\n",ntot,nl,argv[1]) ;
      sleep(1) ; exit(0) ;
    }
 
