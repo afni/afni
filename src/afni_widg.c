@@ -919,52 +919,55 @@ STATUS("making imag->rowcol") ;
 
    /*--- 12 Mar 2004: coordinate order popup menu ---*/
 
-   imag->crosshair_menu =
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+    imag->crosshair_menu =
       XmCreatePopupMenu( imag->crosshair_label  , "menu" , NULL , 0 ) ;
 
-   SAVEUNDERIZE(XtParent(imag->crosshair_menu)) ;
-   VISIBILIZE_WHEN_MAPPED(imag->crosshair_menu) ;
+    SAVEUNDERIZE(XtParent(imag->crosshair_menu)) ;
+    VISIBILIZE_WHEN_MAPPED(imag->crosshair_menu) ;
 
-   XtInsertEventHandler( imag->crosshair_label , /* handle events in label */
-                            ButtonPressMask ,    /* button presses */
-                            FALSE ,              /* nonmaskable events? */
-                            AFNI_crosshair_EV ,  /* handler */
-                            (XtPointer) im3d ,   /* client data */
-                            XtListTail           /* last in queue */
-                        ) ;
+    XtInsertEventHandler( imag->crosshair_label , /* handle events in label */
+                             ButtonPressMask ,    /* button presses */
+                             FALSE ,              /* nonmaskable events? */
+                             AFNI_crosshair_EV ,  /* handler */
+                             (XtPointer) im3d ,   /* client data */
+                             XtListTail           /* last in queue */
+                         ) ;
 
-   (void) XtVaCreateManagedWidget(
-            "menu" , xmLabelWidgetClass , imag->crosshair_menu ,
-               LABEL_ARG("-Set Coord Order-") ,
-               XmNrecomputeSize , False ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
+    (void) XtVaCreateManagedWidget(
+             "menu" , xmLabelWidgetClass , imag->crosshair_menu ,
+                LABEL_ARG("-Set Coord Order-") ,
+                XmNrecomputeSize , False ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
 
-   (void) XtVaCreateManagedWidget(
-            "menu" , xmSeparatorWidgetClass , imag->crosshair_menu ,
-             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+    (void) XtVaCreateManagedWidget(
+             "menu" , xmSeparatorWidgetClass , imag->crosshair_menu ,
+              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
-   imag->crosshair_dicom_pb =
-      XtVaCreateManagedWidget(
-         "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
-            LABEL_ARG(" RAI=DICOM order") ,
-            XmNmarginHeight , 0 ,
-            XmNtraversalOn , False ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-   XtAddCallback( imag->crosshair_dicom_pb , XmNactivateCallback ,
-                  AFNI_crosshair_pop_CB , im3d ) ;
+    imag->crosshair_dicom_pb =
+       XtVaCreateManagedWidget(
+          "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
+             LABEL_ARG(" RAI=DICOM order") ,
+             XmNmarginHeight , 0 ,
+             XmNtraversalOn , False ,
+             XmNinitialResourcesPersistent , False ,
+          NULL ) ;
+    XtAddCallback( imag->crosshair_dicom_pb , XmNactivateCallback ,
+                   AFNI_crosshair_pop_CB , im3d ) ;
 
-   imag->crosshair_spm_pb =
-      XtVaCreateManagedWidget(
-         "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
-            LABEL_ARG(" LPI=SPM order") ,
-            XmNmarginHeight , 0 ,
-            XmNtraversalOn , False ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-   XtAddCallback( imag->crosshair_spm_pb , XmNactivateCallback ,
-                  AFNI_crosshair_pop_CB , im3d ) ;
+    imag->crosshair_spm_pb =
+       XtVaCreateManagedWidget(
+          "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
+             LABEL_ARG(" LPI=SPM order") ,
+             XmNmarginHeight , 0 ,
+             XmNtraversalOn , False ,
+             XmNinitialResourcesPersistent , False ,
+          NULL ) ;
+    XtAddCallback( imag->crosshair_spm_pb , XmNactivateCallback ,
+                   AFNI_crosshair_pop_CB , im3d ) ;
+
+   } /*- end of crosshair_label popup menu -*/
 
    /*--- 01 Jan 1997: horizontal rowcol for crosshair stuff ---*/
 
