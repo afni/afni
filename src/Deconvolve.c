@@ -75,6 +75,11 @@
            coefficients.  Display of t-stats and p-values for individual linear
            constraints within a GLT.
   Date:    29 January 2002
+
+  Mod:     Allow user to specify which input stimulus functions are part of
+           the baseline model.
+  Date:    02 May 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -93,7 +98,7 @@
 int init_indep_var_matrix 
 (
   int p,                      /* number of parameters in the full model */   
-  int q,                      /* number of parameters in the baseline model */ 
+  int qp,                     /* number of poly. trend baseline parameters */
   int polort,                 /* degree of polynomial for baseline model */
   int nt,                     /* number of images in input 3d+time dataset */
   int N,                      /* total number of images used in the analysis */
@@ -150,7 +155,7 @@ int init_indep_var_matrix
 
   /*----- Set up columns of X matrix corresponding to 
           time delayed versions of the input stimulus -----*/
-  m = q;
+  m = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
       if (stim_length[is] < nt*nptr[is])
@@ -192,8 +197,9 @@ int init_indep_var_matrix
 int init_regression_analysis 
 (
   int p,                      /* number of parameters in full model */
-  int q,                      /* number of parameters in baseline model */
+  int qp,                     /* number of poly. trend baseline parameters */
   int num_stimts,             /* number of stimulus time series */
+  int * baseline,             /* flag for stim function in baseline model */ 
   int * min_lag,              /* minimum time delay for impulse response */ 
   int * max_lag,              /* maximum time delay for impulse response */
   matrix xdata,               /* independent variable matrix */
@@ -210,7 +216,7 @@ int init_regression_analysis
   int * plist = NULL;         /* list of model parameters */
   int ip, it;                 /* parameter indices */
   int is, js;                 /* stimulus indices */ 
-  int jm;                     /* lag index */
+  int im, jm;                 /* lag index */
   int ok;                     /* flag for successful matrix calculation */
   matrix xtxinv_temp;         /* intermediate results */
 
@@ -221,21 +227,34 @@ int init_regression_analysis
 
   /*----- Initialize matrices for the baseline model -----*/
   plist = (int *) malloc (sizeof(int) * p);   MTEST(plist);
-  for (ip = 0;  ip < q;  ip++)
+  for (ip = 0;  ip < qp;  ip++)
     plist[ip] = ip;
-  ok = calc_matrices (xdata, q, plist, x_base, &xtxinv_temp, xtxinvxt_base);
+  it = ip = qp;    
+  for (is = 0;  is < num_stimts;  is++)
+    {
+      for (im = min_lag[is];  im <= max_lag[is];  im++)
+	{
+	  if (baseline[is])
+	    {
+	      plist[ip] = it;
+	      ip++;
+	    }
+	  it++;
+	}
+    }
+  ok = calc_matrices (xdata, ip, plist, x_base, &xtxinv_temp, xtxinvxt_base);
   if (!ok)  { matrix_destroy (&xtxinv_temp);  return (0); };
 
 
   /*----- Initialize matrices for stimulus functions -----*/
   for (is = 0;  is < num_stimts;  is++)
     {
-      for (ip = 0;  ip < q;  ip++)
+      for (ip = 0;  ip < qp;  ip++)
 	{
 	  plist[ip] = ip;
 	}
 
-      it = ip = q;
+      it = ip = qp;
       
       for (js = 0;  js < num_stimts;  js++)
 	{
@@ -573,13 +592,15 @@ static char sbuf[256];
 void report_results 
 (
   int N,                      /* number of usable data points */
-  int p,                      /* number of parameters in the full model */
-  int q,                      /* number of parameters in the baseline model */
+  int qp,                     /* number of poly. trend baseline parameters */
+  int q,                      /* number of baseline model parameters */
+  int p,                      /* number of full model parameters */
   int polort,                 /* degree of polynomial for baseline model */
   int * block_list,           /* list of block (run) starting points */
   int num_blocks,             /* number of blocks (runs) */
   int num_stimts,             /* number of stimulus time series */
   char ** stim_label,         /* label for each stimulus */
+  int * baseline,             /* flag for stim function in baseline model */ 
   int * min_lag,              /* minimum time delay for impulse response */ 
   int * max_lag,              /* maximum time delay for impulse response */ 
   vector coef,                /* regression parameters */
@@ -626,7 +647,7 @@ void report_results
     {
       sprintf (sbuf, "\nBaseline: \n");
       if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
-      for (m=0;  m < q;  m++)
+      for (m=0;  m < qp;  m++)
 	{
 	  sprintf (sbuf, "t^%d   coef = %10.4f    ", m, coef.elts[m]);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
@@ -663,10 +684,13 @@ void report_results
     
 
   /*----- Statistical results for stimulus response -----*/
-  m = q;
+  m = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
-      sprintf (sbuf, "\nStimulus: %s \n", stim_label[is]);
+      if (baseline[is])
+	sprintf (sbuf, "\nBaseline: %s \n", stim_label[is]);	
+      else
+	sprintf (sbuf, "\nStimulus: %s \n", stim_label[is]);
       if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
       for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
 	{

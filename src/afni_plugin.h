@@ -122,7 +122,8 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 #define PLUGIN_MAX_STRING_RANGE     34  /* isn't this enough? */
 #endif
 
-#define PLUGIN_MAX_SUBVALUES         6  /* isn't this enough? */
+#define PLUGIN_MAX_SUBVALUES         7  /* isn't this enough? */
+                                        /*  -- Nope --  03 May 2002 [BDWard] */
 
 /* data type codes (not all are implemented yet!) */
 
