@@ -139,6 +139,20 @@ MRI_IMAGE * FD_brick_to_mri( int kslice , int ival , FD_brick * br )
       }
       break ;
 
+      case MRI_rgb:{                                           /* 15 Apr 2002 */
+         register rgbyte * ar  = (rgbyte *) MRI_RGB_PTR(im) ;
+         register rgbyte * bar = (rgbyte *) iar ;
+
+         di = br->d1 ; dj = br->d2 ;  /* strides */
+         ei = br->e1 ; ej = br->e2 ;  /* final indices */
+         base = br->start + kslice * br->d3 ;
+
+         pp = 0 ;
+         for( jj=0 ; jj != ej ; jj += dj )
+            for( ii=0 ; ii != ei ; ii += di ) ar[pp++] = bar[ii+(jj+base)] ;
+      }
+      break ;
+
    }
 
    if( DSET_BRICK_FACTOR(br->dset,ival) != 0.0 ){

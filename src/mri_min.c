@@ -47,9 +47,21 @@ WHOAMI ; IMHEADER(im) ;
             float_min = MIN( float_min , CSQR(im->im.complex_data[ii]) ) ;
          return sqrt(float_min) ;
 
+      case MRI_rgb:{
+         byte *rgb = im->im.rgb_data ;
+         double val , bot=255.9 ;
+         for( ii=0 ; ii < npix ; ii++ ){  /* scale to brightness */
+            val =  0.299 * rgb[3*ii]      /* between 0 and 255     */
+                 + 0.587 * rgb[3*ii+1]
+                 + 0.114 * rgb[3*ii+2] ;
+            if( val < bot ) bot = val ;
+         }
+         return bot ;
+      }
+
       default:
          fprintf( stderr , "mri_min:  unknown image kind\n" ) ;
-         MRI_FATAL_ERROR ;
+      break ;
    }
    return 0 ;
 }

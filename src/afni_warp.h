@@ -21,13 +21,14 @@ extern MRI_IMAGE * AFNI_slice_flip(int,int,int,int,int,int, THD_3dim_dataset *);
 
 /* macro to test data type for OK-ness with slicing and dicing routines */
 
-#define AFNI_GOOD_DTYPE(dt) ((dt)==MRI_short || (dt)==MRI_float  || \
-                             (dt)==MRI_byte  || (dt)==MRI_complex  )
+#define AFNI_GOOD_DTYPE(dt) ((dt)==MRI_short || (dt)==MRI_float   || \
+                             (dt)==MRI_byte  || (dt)==MRI_complex || \
+                             (dt)==MRI_rgb                            )
 
 /* macro to test data type for OK-ness with functional processing routines */
 
-#define AFNI_GOOD_FUNC_DTYPE(dt) ((dt)==MRI_short ||                 \
-                                  (dt)==MRI_float || (dt)==MRI_byte )
+#define AFNI_GOOD_FUNC_DTYPE(dt) ((dt)==MRI_short || (dt)==MRI_rgb || \
+                                  (dt)==MRI_float || (dt)==MRI_byte    )
 
 /*---------------------------------------------------------------------*/
 /* There should be one set of routines for each legal datum type above */

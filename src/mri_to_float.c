@@ -62,6 +62,16 @@ ENTRY("mri_to_float") ;
       }
       break ;
 
+      case MRI_rgba:{                         /* 15 Apr 2002 */
+         byte  * rgb = (byte *) MRI_RGBA_PTR(oldim) ;
+         float * far = MRI_FLOAT_PTR(newim) ;
+         for( ii=0 ; ii < npix ; ii++ )       /* scale to brightness */
+            far[ii] =  0.299 * rgb[4*ii]      /* between 0 and 255     */
+                     + 0.587 * rgb[4*ii+1]
+                     + 0.114 * rgb[4*ii+2] ;
+      }
+      break ;
+
       default:
          fprintf( stderr , "mri_to_float:  unrecognized image kind\n" ) ;
          MRI_FATAL_ERROR ;

@@ -44,6 +44,17 @@ WHOAMI ; IMHEADER(oldim) ;
 
    switch( oldim->kind ){
 
+      case MRI_rgb:{
+         byte *rgb = oldim->im.rgb_data ;
+         float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale ;
+
+         for( ii=0 ; ii < npix ; ii++ )
+            newim->im.short_data[ii] = (short)(  rfac * rgb[3*ii]
+                                               + gfac * rgb[3*ii+1]
+                                               + bfac * rgb[3*ii+2] ) ;
+      }
+      break ;
+
       case MRI_byte:
          if( scale != 1.0 )
             for( ii=0 ; ii < npix ; ii++ )
@@ -134,7 +145,7 @@ WHOAMI ; IMHEADER(oldim) ;
 
    if( scl == 0 ){  /* compute scaling to make [min..max] -> [0..lev] */
 
-      imin = (oldim->kind == MRI_complex) ? (0) : mri_min( oldim ) ;
+      imin = (oldim->kind==MRI_complex || oldim->kind==MRI_rgb) ? (0) : mri_min(oldim) ;
       imax = mri_max( oldim ) ;
       imax = (imax <= imin) ? imin+1 : imax ;
 
@@ -149,6 +160,16 @@ WHOAMI ; IMHEADER(oldim) ;
    ar = mri_data_pointer( newim ) ;  /* fast access to data */
 
    switch( oldim->kind ){
+
+      case MRI_rgb:{
+	 register byte * rgb = mri_data_pointer(oldim) ;
+         float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale ;
+         for( ii=0 ; ii < npix ; ii++ )
+            ar[ii] = (short) (  rfac * rgb[3*ii]
+                              + gfac * rgb[3*ii+1]
+                              + bfac * rgb[3*ii+2] ) ;
+      }
+      break ;
 
       case MRI_byte:{
 	 register byte * oar = mri_data_pointer(oldim) ;

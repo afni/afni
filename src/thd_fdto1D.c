@@ -12,6 +12,8 @@
     from a previously set up FD_brick structure.
   ixyz = spatial index of desired voxel (in brick coordinates)
        = ix + jy * n1 + kz * n1*n2
+  Return value is an image of the type of the dataset (assumed
+  uniform).
 -----------------------------------------------------------------*/
 
 MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
@@ -46,7 +48,9 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
    }
    typ = DSET_BRICK_TYPE(br->dset,0) ;
    im  = mri_new( nv , 1 , typ ) ;
+#if 0
    mri_zero_image(im) ;             /* 18 Oct 2001 */
+#endif
 
    switch( typ ){
 
@@ -103,6 +107,26 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
          complex * ar  = MRI_COMPLEX_PTR(im) , * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (complex *) DSET_ARRAY(br->dset,ival) ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
+         }
+      }
+      break ;
+
+      /* 15 Apr 2002: RGB types */
+
+      case MRI_rgb:{
+         rgbyte *ar  = (rgbyte *) MRI_RGB_PTR(im) , *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (rgbyte *) DSET_ARRAY(br->dset,ival) ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
+         }
+      }
+      break ;
+
+      case MRI_rgba:{
+         rgba *ar  = (rgba *) MRI_RGBA_PTR(im) , *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (rgba *) DSET_ARRAY(br->dset,ival) ;
             if( bar != NULL ) ar[ival] = bar[ind] ;
          }
       }
