@@ -289,6 +289,8 @@ typedef struct {
    char * buf2 ;     /* 2nd internal buffer [after buf1] */
    int  * bstart2 ;
    int  * bend2 ;
+
+   int goodcheck_time ;   /*!< NI_clock_time() of last SHM_goodcheck() */
  } SHMioc ;
 
 #else  /* DONT_USE_SHM */
@@ -323,14 +325,16 @@ typedef struct {
 
    int bin_thresh ;  /*!< Threshold size for binary write. */
 
-   int nbuf ;              /*!< Number of bytes left in buf. */
-   int npos ;              /*!< Index of next unscanned byte in buf. */
-   int bufsize ;           /*!< Length of buf array. */
-   char *buf ;             /*!< I/O buffer (may be NULL). */
+   int nbuf ;             /*!< Number of bytes left in buf. */
+   int npos ;             /*!< Index of next unscanned byte in buf. */
+   int bufsize ;          /*!< Length of buf array. */
+   char *buf ;            /*!< I/O buffer (may be NULL). */
 
-   SHMioc *shmioc ;        /*!< for NI_SHM_TYPE only */
+   SHMioc *shmioc ;       /*!< for NI_SHM_TYPE only */
 
-   char orig_name[256] ;   /*!< original (input) name when opened */
+   char orig_name[256] ;  /*!< original (input) name when opened */
+
+   int goodcheck_time ;   /*!< NI_clock_time() of last NI_stream_goodcheck() */
 } NI_stream_type ;
 #endif
 
