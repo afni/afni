@@ -98,7 +98,7 @@ int SUMA_isNumString (char *s, void *p)
       }
    }
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: string now:%s:\n", FuncName, s);
+   if (LocalHead) fprintf (stderr, "%s: string now:%s:\n", FuncName, s);
    
    /* parse s */
    strtp = s;
@@ -107,7 +107,7 @@ int SUMA_isNumString (char *s, void *p)
    eos = 0;
    while (!eos) {
       d = strtod(strtp, &endp);
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
+      if (LocalHead) fprintf (stderr, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
       
 
       if (endp == strtp && *endp=='\0') { 
@@ -118,7 +118,7 @@ int SUMA_isNumString (char *s, void *p)
       }
    }
    
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Read %d/%d values.\n", FuncName, nd,N);
+   if (LocalHead) fprintf (stderr,"%s: Read %d/%d values.\n", FuncName, nd,N);
    if (N != nd) {
       SUMA_RETURN(0);
    } else {
@@ -168,7 +168,7 @@ int SUMA_StringToNum (char *s, float *fv, int N)
       }
    }
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: string now:%s:\n", FuncName, s);
+   if (LocalHead) fprintf (stderr, "%s: string now:%s:\n", FuncName, s);
    
    /* parse s */
    strtp = s;
@@ -177,7 +177,7 @@ int SUMA_StringToNum (char *s, float *fv, int N)
    eos = 0;
    while (!eos) {
       d = strtod(strtp, &endp);
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
+      if (LocalHead) fprintf (stderr, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
       
       if (endp == strtp && *endp=='\0') { 
          eos = 1;
@@ -188,7 +188,7 @@ int SUMA_StringToNum (char *s, float *fv, int N)
       }
    }
    
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Read %d/%d values.\n", FuncName, nd, N);
+   if (LocalHead) fprintf (stderr,"%s: Read %d/%d values.\n", FuncName, nd, N);
    
    SUMA_RETURN(nd);
    

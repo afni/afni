@@ -125,12 +125,16 @@ void SUMA_ParseInput_basics (char *argv[], int argc)
       #ifdef USE_SUMA_MALLOC
 
       #else
-         if (Doiotrace == 2) { DBG_trace = 2; } 
+         #ifdef USE_TRACING
+            if (Doiotrace == 2) { DBG_trace = 2; } 
+         #endif
       #endif
    #else
-      /* for afni use */
-      DBG_trace = Doiotrace;
-      if (Domemtrace) {  mcw_malloc_enable(); }
+      #ifdef USE_TRACING
+         /* for afni use */
+         DBG_trace = Doiotrace;
+         if (Domemtrace) {  mcw_malloc_enable(); }
+      #endif
    #endif
    
    return;
@@ -306,6 +310,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetSOinFocus")) SUMA_RETURN(SE_SetSOinFocus);
    if (!strcmp(Scom,"LoadViewFileSelection")) SUMA_RETURN(SE_LoadViewFileSelection);
    if (!strcmp(Scom,"SaveViewFileSelection")) SUMA_RETURN(SE_SaveViewFileSelection);
+   if (!strcmp(Scom,"LoadSegDO")) SUMA_RETURN(SE_LoadSegDO);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -481,6 +486,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("LoadViewFileSelection"); 
       case SE_SaveViewFileSelection:
          SUMA_RETURN("SaveViewFileSelection"); 
+      case SE_LoadSegDO:
+         SUMA_RETURN("LoadSegDO");    
       /*case SE_:
          SUMA_RETURN("");      */
       default:        
@@ -960,6 +967,10 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
       /* adding fields to EngineData, check for errors */
       Refill = YUP;
       /* Src and Srcp should be the same as before */
+      if (!Element) {
+         SUMA_SL_Err("NULL element with SEI_In");
+         SUMA_RETURN(NULL);
+      }
       Old_ED = (SUMA_EngineData *)Element->data;
       if (Old_ED != EngineData) {
          fprintf (SUMA_STDERR, "Error %s: EngineData is different from initializing call for Element.\n", FuncName);

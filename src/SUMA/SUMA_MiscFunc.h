@@ -62,40 +62,56 @@ used linear pointer storage methods making for inefficient searching
       #define SUMA_malloc(a) mcw_malloc((a),__FILE__,__LINE__)
       #define SUMA_calloc(a,b) mcw_calloc((a),(b),__FILE__,__LINE__)
       #define SUMA_realloc(a,b) mcw_realloc((a),(b),__FILE__,__LINE__)
+      #define SUMA_MEMTRACE_ON {}
+      #define SUMA_MEMTRACE_OFF {}
+      #define SUMA_MEMTRACE_TOGGLE {}
    #else
       #define SUMA_malloc(a) mcw_malloc((a))
-      #define SUMA_calloc(a,b) mcw_calloc((a))
+      #define SUMA_calloc(a,b) mcw_calloc((a),(b))
       #define SUMA_realloc(a,b) mcw_realloc((a),(b))
+      #define SUMA_MEMTRACE_ON {\
+         enable_mcw_malloc() ;   \
+         SUMAg_CF->MemTrace = YUP;  \
+      }
+      #define SUMA_MEMTRACE_OFF {   /* No such thing */ }
+      #define SUMA_MEMTRACE_TOGGLE {   \
+         if (!SUMAg_CF->MemTrace) { \
+            SUMAg_CF->MemTrace = YUP; \
+            enable_mcw_malloc() ;   \
+         }  \
+      }
    #endif
    #define SUMA_ENTRY ENTRY(FuncName)
    #define SUMA_RETURN RETURN
    #define SUMA_RETURNe EXRETURN
    #define SUMA_mainENTRY mainENTRY(FuncName)
    #include "../mcw_malloc.h"
-   #define SUMA_INOUT_NOTIFY_ON {\
-      SUMAg_CF->InOut_Notify = YUP; \
-      DBG_trace = 1;\
-   }
-   #define SUMA_INOUT_NOTIFY_OFF {\
-      SUMAg_CF->InOut_Notify = NOPE; \
-      DBG_trace = 0; \
-   }
-   #define SUMA_INOUT_NOTIFY_TOGGLE {\
-      SUMAg_CF->InOut_Notify = !SUMAg_CF->InOut_Notify; \
-      if (!DBG_trace) DBG_trace = 1;  \
-      else DBG_trace = 0;  \
-   }
-   #define SUMA_MEMTRACE_ON {\
-      enable_mcw_malloc() ;   \
-      SUMAg_CF->MemTrace = YUP;  \
-   }
-   #define SUMA_MEMTRACE_OFF {   /* No such thing */ }
-   #define SUMA_MEMTRACE_TOGGLE {   \
-      if (!SUMAg_CF->MemTrace) { \
-         SUMAg_CF->MemTrace = YUP; \
-         enable_mcw_malloc() ;   \
-      }  \
-   }
+   
+   #ifdef USE_TRACING
+      #define SUMA_INOUT_NOTIFY_ON {\
+         SUMAg_CF->InOut_Notify = YUP; \
+         DBG_trace = 1;\
+      }
+      #define SUMA_INOUT_NOTIFY_OFF {\
+         SUMAg_CF->InOut_Notify = NOPE; \
+         DBG_trace = 0; \
+      }
+      #define SUMA_INOUT_NOTIFY_TOGGLE {\
+         SUMAg_CF->InOut_Notify = !SUMAg_CF->InOut_Notify; \
+         if (!DBG_trace) DBG_trace = 1;  \
+         else DBG_trace = 0;  \
+      }
+   #else
+      #define SUMA_INOUT_NOTIFY_ON {\
+         SUMAg_CF->InOut_Notify = YUP; \
+      }
+      #define SUMA_INOUT_NOTIFY_OFF {\
+         SUMAg_CF->InOut_Notify = NOPE; \
+      }
+      #define SUMA_INOUT_NOTIFY_TOGGLE {\
+         SUMAg_CF->InOut_Notify = !SUMAg_CF->InOut_Notify; \
+      }
+   #endif
 #endif
       
 void* SUMA_free_fn(const char *CallingFunc, void *ptr);
