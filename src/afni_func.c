@@ -5038,6 +5038,27 @@ ENTRY("AFNI_hidden_EV") ;
       }
       break ;
 
+      /*----- take key press [09 Sep 2002] -----*/
+
+      case KeyPress:{
+         XKeyEvent * event = (XKeyEvent *) ev ;
+         char           buf[32] ;
+         KeySym         ks ;
+         int            nbuf ;
+
+         buf[0] = '\0' ;
+         nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
+
+         switch( buf[0] ){
+           case 'Q':
+             exit(0) ;                         /* Death Now! */
+
+           case 'q':
+             AFNI_quit_CB( w , im3d, NULL ) ;  /* Close just this controller */
+           break ;
+         }
+      }
+      break ;
    }
 
    EXRETURN ;
