@@ -541,3 +541,8 @@
   * modified edt_dsetitems.c: THD_deplus_prefix() to remove only the basic
     three extensions: +orig, +acpc, +tlrc (blame Shruti)
 
+18 May 2004:
+  * modified SUMA_3dVol2Surf.[ch] (-> v5.0)
+      - allow niml output via '-out_niml'
+      - accept '-first_node' and '-last_node' options for restricted output
+

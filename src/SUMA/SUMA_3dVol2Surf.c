@@ -1,5 +1,5 @@
 
-#define VERSION "version  4.5 (April 07, 2004)"
+#define VERSION "version  5.0 (May 18, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -170,6 +170,12 @@ static char g_history[] =
     "\n"
     "4.5  April 07, 2004  [rickr]\n"
     "  - fixed inconsistency in check_norm_dirs(), default dirs reversed\n"
+    "\n"
+    "5.0  May 18, 2004  [rickr]\n"
+    "  - added '-out_niml' option for niml output\n"
+    "  - added '-first_node' and '-last_node' option for limited output\n"
+    "  - made major additions for memory handling of output data\n"
+    "    (went from 'print as you go' to 'store and output at end')\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -254,6 +260,7 @@ int main( int argc , char * argv[] )
 */
 int write_output ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 {
+    int rv;
 ENTRY("write_output");
 
     if ( sopt == NULL || p == NULL || N == NULL )
@@ -263,36 +270,32 @@ ENTRY("write_output");
 	RETURN(-1);
     }
 
-    switch (sopt->map)
+    if ( sopt->map == E_SMAP_INVALID )
     {
-	case E_SMAP_AVE:
-	case E_SMAP_MASK:
-	case E_SMAP_MAX:
-	case E_SMAP_MAX_ABS:
-	case E_SMAP_MIDPT:
-	case E_SMAP_MIN:
-	case E_SMAP_SEG_VALS:
-	case E_SMAP_MEDIAN:
-	case E_SMAP_MODE:
-	{
-	    dump_surf_3dt( sopt, p, N );
-	    break;
-	}
-
-	case E_SMAP_COUNT:
-	case E_SMAP_MASK2:
-	{
-	    fprintf( stderr, "** function '%s' coming soon ...\n",
-		     g_smap_names[sopt->map] );
-	    break;
-	}
-
-	default:
-	    fprintf( stderr, "** smd_n2v: unknown map %d\n", sopt->map );
-	    break;
+	fprintf(stderr,"** v2s wo: invalid map %d\n", sopt->map);
+	RETURN(-1);
     }
 
-    RETURN(0);
+    if ( alloc_output_mem( sopt, p, N ) )
+	RETURN(-1);
+
+    if ( sopt->debug > 1 )
+	disp_param_t( "-- post alloc_output_mem : ", p );
+
+    rv = dump_surf_3dt( sopt, p, N );
+
+    if ( sopt->debug > 1 )
+	disp_surf_data_t( "-- post surf creation : ", &p->SD);
+
+    if ( !rv && sopt->outfile_1D )
+	rv = write_outfile_1D(sopt, p, N);
+
+    if ( !rv && sopt->outfile_niml )	/* do this last, and free surf data */
+	rv = write_outfile_niml(sopt, p, N);
+
+    free_output_mem( &p->SD );
+
+    RETURN(rv);
 }
 
 
@@ -319,7 +322,7 @@ ENTRY("dump_surf_3dt");
     }
 
     /* one last precaution */
-    if ( N->depth < 1 || N->nnodes <= 0 || sopt->f_steps < 1 )
+    if ( N->depth < 1 || N->nnodes <= sopt->last_node || sopt->f_steps < 1 )
     {
 	fprintf( stderr, "** bad setup for mapping (%d,%d,%d)\n",
 		 N->depth, N->nnodes, sopt->f_steps );
@@ -328,73 +331,41 @@ ENTRY("dump_surf_3dt");
 
     subs = DSET_NVALS(p->gpar);
 
-    if ( ! sopt->no_head )
-    {
-	if ( vals_over_steps(sopt->map) )
-	    print_header(p->outfp, N->labels[0], g_smap_names[sopt->map],
-		         sopt->f_steps);
-	else 
-	    print_header(p->outfp, N->labels[0], g_smap_names[sopt->map], subs);
-    }
-
     min_dist = 9999.9;						/* v2.3 */
     max_dist = -1.0;
     oobc     = 0; 			  /* init out-of-bounds counter */
     oomc     = 0; 			  /* init out-of-mask counter   */
 
-    /* prepare range structs */
-    r3mm.dset          = p->gpar;
-    r3mm.debug         = 0;
-
-    r3mm_res.ims.num   = 0;
-    r3mm_res.ims.nall  = 0;
-    r3mm_res.ims.imarr = NULL;
-    r3mm_res.i3arr     = NULL;
+    init_range_structs( &r3mm, &r3mm_res );		    /* to empty */
+    r3mm.dset = p->gpar;
 
     /* note, NodeList elements are in dicomm mm orientation */
 
-    for ( nindex = 0; nindex < N->nnodes; nindex++ )
+    for ( nindex = sopt->first_node; nindex <= sopt->last_node; nindex++ )
     {
 	/* init default max for oob and oom cases */
-	max_index = vals_over_steps(sopt->map) ? sopt->f_steps : subs;
+	max_index = p->over_steps ? sopt->f_steps : subs;
 
-	/* note the endpoints */
-	if ( sopt->use_norms )
-	{
-	    /* first apply normals, then transform to current 3dmm */
-	    r3mm.p1 = N->nodes[nindex];
-	    directed_dist(r3mm.pn.xyz, r3mm.p1.xyz,
-		          N->norms[0]+3*nindex, sopt->norm_len);
-
-	    r3mm.p1 = THD_dicomm_to_3dmm(p->gpar, r3mm.p1);
-	    r3mm.pn = THD_dicomm_to_3dmm(p->gpar, r3mm.pn);
-	}
-	else
-	{
-	    r3mm.p1 = THD_dicomm_to_3dmm(p->gpar, N->nodes[nindex]);
-
-	    if ( N->depth > 1 )
-		r3mm.pn = THD_dicomm_to_3dmm(p->gpar,
-			  N->nodes[nindex+N->nnodes]);
-	    else
-		r3mm.pn = r3mm.p1;
-	}
-
-	/* make any user-defined ajustments */
+	init_seg_endpoints(sopt, N, &r3mm, nindex);    /* segment endpoints */
 	v2s_adjust_endpts( sopt, &r3mm.p1, &r3mm.pn );
+
+  	if ( r3mm.debug )
+	    r3mm.debug = 0;
+
+	if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
+	    r3mm.debug = sopt->debug;
 
 	/* if either point is outside our dataset, skip the pair   v2.3 */
 	if ( f3mm_out_of_bounds( &r3mm.p1, &p->f3mm_min, &p->f3mm_max ) ||
 	     f3mm_out_of_bounds( &r3mm.pn, &p->f3mm_min, &p->f3mm_max ) )
 	{
 	    oobc++;
-
-	    /* if user requests, display default info */
 	    if ( p->oob.show )
-		print_default_line( p->outfp, max_index, nindex,
-			p->oob.index, p->oob.index, p->oob.index, p->oob.index, 
-			p->oob.value );
-
+		if ( set_all_surf_vals( p, nindex, p->oob.index, p->oob.index,
+		      p->oob.index, p->oob.index, p->oob.value) )
+		    RETURN(1);
+	    if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
+		disp_surf_vals("-- debug node, out-of-bounds : ", &p->SD, -1);
 	    continue;
 	}
 
@@ -402,69 +373,27 @@ ENTRY("dump_surf_3dt");
 	if ( dist < min_dist ) min_dist = dist;
 	if ( dist > max_dist ) max_dist = dist;
 
-	if ( sopt->debug > 0 )
-	{
-	    if ( nindex == sopt->dnode )
-	    {
-		fprintf(stderr,"-- debug node: %d\n", nindex );
-		r3mm.debug = sopt->debug;
-	    }
-	    else if ( r3mm.debug )
-		r3mm.debug = 0;
-	}
-
 	if ( segment_imarr( &r3mm_res, &r3mm, sopt ) != 0 )
 	    continue;
 
 	if ( r3mm_res.ims.num == 0 )	/* any good voxels in the bunch? */
 	{
 	    oomc++;
-
-	    /* if user requests, display default info */
 	    if ( p->oom.show )
-		print_default_line( p->outfp, max_index, nindex,
-			r3mm_res.ifirst, r3mm_res.i3first.ijk[0],
-			r3mm_res.i3first.ijk[1], r3mm_res.i3first.ijk[2],
-			p->oom.value );
+		if ( set_all_surf_vals( p, nindex, r3mm_res.ifirst,
+			r3mm_res.i3first.ijk[0], r3mm_res.i3first.ijk[1],
+			r3mm_res.i3first.ijk[2], p->oom.value ) )
+		    RETURN(1);
+	    if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
+		disp_surf_vals("-- debug node, out-of-mask : ", &p->SD, -1);
 	    continue;
 	}
 
 	/* get element 0, just for the findex */
 	(void)v2s_apply_filter(&r3mm_res, sopt, 0, &findex);
 
-	/* now get 3D and 1D coordinates */
-	i3 = r3mm_res.i3arr[findex];
-	index1d = i3.ijk[0] + DSET_NX(r3mm.dset) *
-	    	 (i3.ijk[1] + DSET_NY(r3mm.dset) * i3.ijk[2] );
-
-	/* output surface, volume, ijk indices and nvoxels*/
-	fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d     %3d",
-	         nindex, index1d,
-		 i3.ijk[0], i3.ijk[1], i3.ijk[2], r3mm_res.ims.num);
-
-	/* Hey, these numbers are why I'm writing the program, woohoo! */
-	/* Decide to print over steps or sub-bricks.                   */
-	max_index = vals_over_steps(sopt->map) ? r3mm_res.ims.num : subs;
-
-	for ( index = 0; index < max_index; index++ )
-	    fprintf( p->outfp, "  %10s",
-		MV_format_fval(v2s_apply_filter(&r3mm_res,sopt,index,NULL)));
-
-	/* possibly fill line with default if by steps and short */
-	if ( vals_over_steps(sopt->map) && (max_index < sopt->f_steps) )
-	    for ( index = max_index; index < sopt->f_steps; index++ )
-		fprintf(p->outfp, "  %10s", MV_format_fval(0.0));
-	fputc( '\n', p->outfp );
-
-	if ( (sopt->debug > 1) && (nindex == sopt->dnode) )
-	{
-	    fprintf(stderr, "-- nindex, findex, index1d = %d, %d, %d\n",
-		    nindex, findex, index1d );
-	    if ( sopt->use_norms )
-		fprintf(stderr,"-- normal %f, %f, %f\n", N->norms[0][3*nindex],
-			N->norms[0][3*nindex+1], N->norms[0][3*nindex+2]);
-	    disp_mri_imarr( "++ raw data: ", &r3mm_res.ims );
-	}
+	if ( set_surf_results(p, sopt, N, &r3mm_res, nindex, findex) )
+	    RETURN(-1);
 
 	/* clean up the MRI_IMARR struct, but don't free imarr */
 	for ( sub = 0; sub < r3mm_res.ims.num; sub++ )
@@ -480,7 +409,7 @@ ENTRY("dump_surf_3dt");
 	fprintf( stderr, "-- node pair dist (min,max) = (%f,%f)\n",
 		 min_dist, max_dist );
 	fprintf( stderr, "-- out-of-bounds, o-o-mask counts : %d, %d (of %d)\n",
-		 oobc,oomc,N->nnodes);
+		 oobc, oomc, sopt->last_node - sopt->first_node + 1);
     }
 
     /* now we can free the imarr and voxel lists */
@@ -490,6 +419,209 @@ ENTRY("dump_surf_3dt");
 	free(r3mm_res.i3arr);
 	r3mm_res.ims.nall = 0;
     }
+
+    RETURN(0);
+}
+
+
+/***********************************************************************
+ * set_surf_results
+ ***********************************************************************
+*/
+int set_surf_results(param_t *p, smap_opts_t * sopt, node_list_t * N,
+		     range_3dmm_res * r3res, int node, int findex)
+{
+    surf_data_t * sd;
+    int           i, j, k, volind;
+    int           c, max_index;
+ENTRY("set_surf_results");
+
+    sd = &p->SD;
+
+    if ( sd->nused >= sd->nalloc )
+    {
+	fprintf(stderr,"** ssr: nused (%d) >= nalloc (%d)!\n",
+		sd->nused, sd->nalloc);
+	RETURN(1);
+    }
+
+    i = r3res->i3arr[findex].ijk[0];
+    j = r3res->i3arr[findex].ijk[1];
+    k = r3res->i3arr[findex].ijk[2];
+
+    /* now get 3D and 1D coordinates */
+    volind = i + DSET_NX(p->gpar) * (j + DSET_NY(p->gpar) * k );
+
+    /* set everything but the values */
+    sd->nodes[sd->nused]  = node;
+    sd->volind[sd->nused] = volind;
+    sd->i[sd->nused]      = i;
+    sd->j[sd->nused]      = j;
+    sd->k[sd->nused]      = k;
+    sd->nvals[sd->nused]  = r3res->ims.num;
+
+    max_index = p->over_steps ? r3res->ims.num : DSET_NVALS(p->gpar);
+    for ( c = 0; c < max_index; c++ )
+	sd->vals[c][sd->nused] = v2s_apply_filter(r3res, sopt, c, NULL);
+
+    /* possibly fill line with default if by steps and short */
+    if ( max_index < sd->max_vals )
+	for ( c = max_index; c < sd->max_vals; c++ )
+	    sd->vals[c][sd->nused] = 0.0;
+
+    if ( (sopt->debug > 1) && (node == sopt->dnode) )
+    {
+	fprintf(stderr, "-- debug: node, findex, vol_index = %d, %d, %d\n",
+		node, findex, volind );
+	if ( sopt->use_norms )
+	    fprintf(stderr,"-- normal %f, %f, %f\n", N->norms[0][3*node],
+		    N->norms[0][3*node+1], N->norms[0][3*node+2]);
+	disp_mri_imarr( "++ raw data: ", &r3res->ims );
+    }
+
+    sd->nused++;
+
+    RETURN(0);
+}
+
+
+/***********************************************************************
+ * set_all_surf_vals
+ * return 0 on success
+ ***********************************************************************
+*/
+int set_all_surf_vals( param_t * p, int node_ind, int vind,
+ 		       int i, int j, int k, float fval )
+{
+    surf_data_t * sd;
+    int           c, nused;
+
+ENTRY("set_all_surf_vals");
+
+    sd    = &p->SD;
+    nused = sd->nused;
+
+    if ( nused >= sd->nalloc )
+    {
+	fprintf(stderr,"** sasv: nused=%d >= nalloc=%d!\n", nused, sd->nalloc);
+	RETURN(1);
+    }
+
+    sd->nodes[nused]  = node_ind;
+    sd->volind[nused] = vind;
+    sd->i[nused]      = i;
+    sd->j[nused]      = j;
+    sd->k[nused]      = k;
+    sd->nvals[nused]  = sd->max_vals;
+
+    for ( c = 0; c < sd->max_vals; c++ )
+	sd->vals[c][nused] = fval;
+
+    sd->nused++;
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * write_outfile_niml		- write results to niml file
+ *                              - free data pointers as we go
+ *----------------------------------------------------------------------
+*/
+int write_outfile_niml ( smap_opts_t * sopt, param_t * p, node_list_t * N )
+{
+    static char   v2s_name[] = "3dVol2Surf_dataset";
+    NI_element  * nel = NULL;
+    NI_stream     ns;
+    surf_data_t * sd;
+    char        * ni_name;
+    int           c;
+
+ENTRY("write_outfile_niml");
+
+    if ( !sopt->outfile_niml ) RETURN(0);
+
+    sd = &p->SD;
+
+    /* do not add these columns to a niml dataset - free them first */
+    free(sd->volind); sd->volind = NULL;
+    free(sd->i);      sd->i      = NULL;
+    free(sd->j);      sd->j      = NULL;
+    free(sd->k);      sd->k      = NULL;
+    free(sd->nvals);  sd->nvals  = NULL;
+
+    nel = NI_new_data_element( v2s_name, sd->nused );
+    if ( !nel )
+    {
+	fprintf(stderr,"** file NI_new_data_element, n = '%s', len = %d\n",
+		v2s_name, sd->nused);
+	RETURN(1);
+    }
+
+    ni_name = (char *)calloc(strlen(sopt->outfile_niml)+6, sizeof(char));
+    if ( !ni_name ) { fprintf(stderr,"** ni_name failed\n"); RETURN(1); }
+    sprintf(ni_name, "file:%s", sopt->outfile_niml);
+
+    ns = NI_stream_open(ni_name, "w");
+
+    NI_add_column(nel,NI_INT,sd->nodes);  free(sd->nodes);  sd->nodes  = NULL;
+
+    for ( c = 0; c < sd->max_vals; c++ )
+    {
+	NI_add_column(nel, NI_FLOAT, sd->vals[c]);
+	free(sd->vals[c]);
+	sd->vals[c] = NULL;
+    }
+    free(sd->vals);
+    sd->vals = NULL;
+
+    if ( NI_write_element(ns, nel, NI_BINARY_MODE) < 0 )
+    {
+	fprintf(stderr,"** NI_write_element failed for: '%s'\n", ni_name);
+	RETURN(1);
+    }
+
+    NI_free_element( nel );
+    NI_stream_close( ns );
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * write_outfile_1D		- write results to 1D file
+ *----------------------------------------------------------------------
+*/
+int write_outfile_1D ( smap_opts_t * sopt, param_t * p, node_list_t * N )
+{
+    surf_data_t * sd;
+    FILE        * fp;
+    int           rv = 0, c, c2;
+ENTRY("write_outfile_1D");
+
+    fp = fopen( sopt->outfile_1D, "w" );
+    if ( fp == NULL )
+    {
+	fprintf( stderr, "** failure to open '%s' for writing\n",
+		 sopt->outfile_1D );
+	RETURN(-1);
+    }
+
+    sd = &p->SD;
+
+    if ( ! sopt->no_head )
+	print_header(fp, N->labels[0], g_smap_names[sopt->map], sd->max_vals);
+
+    for ( c = 0; c < sd->nused; c++ )
+    {
+	fprintf(fp, "  %8d   %8d   %3d  %3d  %3d     %3d", sd->nodes[c],
+		sd->volind[c], sd->i[c], sd->j[c], sd->k[c], sd->nvals[c]);
+	for ( c2 = 0; c2 < sd->max_vals; c2++ )
+	    fprintf(fp, "  %10s", MV_format_fval(sd->vals[c2][c]));
+	fputc('\n', fp);
+    }
+
+    fclose(fp);
 
     RETURN(0);
 }
@@ -1013,6 +1145,17 @@ ENTRY("set_smap_opts");
     sopt->debug         = opts->debug;
     sopt->dnode         = opts->dnode;
     sopt->no_head       = opts->no_head;
+    sopt->skip_cols     = opts->skip_cols;
+
+    sopt->first_node    = opts->first_node > 0 ? opts->first_node : 0;
+    sopt->last_node     = opts->last_node  > 0 ? opts->last_node  : 0;
+    if ( sopt->first_node > sopt->last_node )
+    {
+	fprintf(stderr, "** error: -first_node (%d) > -last_node (%d)\n",
+		sopt->first_node, sopt->last_node);
+	RETURN(1);
+    }
+
     sopt->use_norms     = opts->use_norms;
     sopt->norm_len      = opts->norm_len;
     sopt->keep_norm_dir = opts->keep_norm_dir;
@@ -1032,10 +1175,12 @@ ENTRY("set_smap_opts");
     sopt->f_kso = opts->f_kso;
 #endif
 
-    sopt->f_p1_fr = opts->f_p1_fr;         /* copy fractions & distances */
-    sopt->f_pn_fr = opts->f_pn_fr;
-    sopt->f_p1_mm = opts->f_p1_mm;
-    sopt->f_pn_mm = opts->f_pn_mm;
+    sopt->f_p1_fr      = opts->f_p1_fr;      /* copy fractions & distances */
+    sopt->f_pn_fr      = opts->f_pn_fr;
+    sopt->f_p1_mm      = opts->f_p1_mm;
+    sopt->f_pn_mm      = opts->f_pn_mm;
+    sopt->outfile_1D   = opts->outfile_1D;
+    sopt->outfile_niml = opts->outfile_niml;
 
     sopt->cmask = p->cmask;
 
@@ -1079,6 +1224,8 @@ ENTRY("set_smap_opts");
 	RETURN(-1);
     }
 
+    p->over_steps = vals_over_steps(sopt->map);
+
     if ( opts->debug > 0 )
 	disp_smap_opts_t( "++ smap opts set :", sopt );
 
@@ -1093,19 +1240,28 @@ ENTRY("set_smap_opts");
 int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
 		     node_list_t * N )
 {
+ENTRY("final_clean_up");
+
+    if ( opts->debug > 2 ) fprintf(stderr,"-- freeing nodes\n");
     if (N->nodes)   free(N->nodes);
+    if ( opts->debug > 2 ) fprintf(stderr,"-- freeing labels\n");
     if (N->labels)  free(N->labels);
 
+    if ( opts->debug > 2 ) fprintf(stderr,"-- freeing DOV\n");
     if ( ( SUMAg_DOv != NULL ) &&
 	 ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 ) )
 	fprintf(stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
 
+    if ( opts->debug > 2 ) fprintf(stderr,"-- freeing SVSV\n");
     if ( ( SUMAg_SVv != NULL ) &&
 	 ( SUMA_Free_SurfaceViewer_Struct_Vect(SUMAg_SVv, SUMAg_N_SVv) == 0 ) )
 	fprintf( stderr, "** failed SUMA_Free_SurfaceViewer_Struct_Vect()\n" );
 
+    if ( opts->debug > 2 ) fprintf(stderr,"-- freeing CF\n");
     if ( ( SUMAg_CF != NULL ) && ( SUMA_Free_CommonFields(SUMAg_CF) == 0 ) )
 	fprintf( stderr, "** failed SUMA_Free_CommonFields()\n" );
+
+    if ( opts->debug > 1 ) fprintf(stderr,"-- freeing complete\n");
 
     RETURN(0);
 }
@@ -1216,18 +1372,19 @@ ENTRY("init_options");
 
     /* clear out the options structure */
     memset( opts, 0, sizeof( opts_t) );
-    opts->gpar_file   = NULL;
-    opts->out_file    = NULL;
-    opts->spec_file   = NULL;
-    opts->sv_file     = NULL;
-    opts->cmask_cmd   = NULL;
-    opts->map_str     = NULL;
-    opts->snames[0]   = NULL;
-    opts->snames[1]   = NULL;
-    opts->f_index_str = NULL;
+    opts->gpar_file    = NULL;
+    opts->outfile_1D   = NULL;
+    opts->outfile_niml = NULL;
+    opts->spec_file    = NULL;
+    opts->sv_file      = NULL;
+    opts->cmask_cmd    = NULL;
+    opts->map_str      = NULL;
+    opts->snames[0]    = NULL;
+    opts->snames[1]    = NULL;
+    opts->f_index_str  = NULL;
 
-    opts->norm_len    = 1.0;		/* init to 1.0 millimeter    */
-    opts->dnode       = -1;		/* init to something invalid */
+    opts->norm_len     = 1.0;		/* init to 1.0 millimeter    */
+    opts->dnode        = -1;		/* init to something invalid */
 
     for ( ac = 1; ac < argc; ac++ )
     {
@@ -1346,6 +1503,17 @@ ENTRY("init_options");
 
 	    opts->f_steps = atoi(argv[++ac]);
 	}
+	else if ( ! strncmp(argv[ac], "-first_node", 11) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -first_node NODE_INDEX\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		RETURN(-1);
+	    }
+
+	    opts->first_node = atoi(argv[++ac]);
+	}
 	else if ( ! strncmp(argv[ac], "-help", 5) )
 	{
 	    usage( PROG_NAME, V2S_USE_LONG );
@@ -1355,10 +1523,6 @@ ENTRY("init_options");
 	{
 	    usage( PROG_NAME, V2S_USE_HIST );
 	    RETURN(-1);
-	}
-	else if ( ! strncmp(argv[ac], "-keep_norm_dir", 14) )
-	{
-	    opts->keep_norm_dir = 1;
 	}
 	else if ( ! strncmp(argv[ac], "-grid_parent", 5) ||
 		  ! strncmp(argv[ac], "-inset", 6)       ||
@@ -1372,6 +1536,21 @@ ENTRY("init_options");
 	    }
 
 	    opts->gpar_file = argv[++ac];
+	}
+	else if ( ! strncmp(argv[ac], "-keep_norm_dir", 14) )
+	{
+	    opts->keep_norm_dir = 1;
+	}
+	else if ( ! strncmp(argv[ac], "-last_node", 11) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -last_node NODE_INDEX\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		RETURN(-1);
+	    }
+
+	    opts->last_node = atoi(argv[++ac]);
 	}
 	else if ( ! strncmp(argv[ac], "-map_func", 4) )  /* mapping function */
 	{
@@ -1443,7 +1622,18 @@ ENTRY("init_options");
 		RETURN(-1);
 	    }
 
-            opts->out_file = argv[++ac];
+            opts->outfile_1D = argv[++ac];
+	}
+	else if ( ! strncmp(argv[ac], "-out_niml", 7) )
+	{
+	    if ( (ac+1) >= argc )
+            {
+		fputs( "option usage: -out_niml OUTPUT_FILE\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		RETURN(-1);
+	    }
+
+            opts->outfile_niml = argv[++ac];
 	}
 	else if ( ! strncmp(argv[ac], "-spec", 3) )
 	{
@@ -1519,8 +1709,11 @@ ENTRY("validate_options");
 
     memset( p, 0, sizeof(*p) );
     p->gpar  = NULL;
-    p->outfp = NULL;
     p->cmask = NULL;
+
+    p->SD.nodes = p->SD.volind = p->SD.i = p->SD.j = p->SD.k = NULL;
+    p->SD.nvals = NULL;
+    p->SD.vals  = NULL;
 
     if ( opts->debug > 0 )
     {
@@ -1530,6 +1723,12 @@ ENTRY("validate_options");
 
     if ( check_map_func( opts->map_str ) == E_SMAP_INVALID )
 	RETURN(-1);
+
+    if ( !opts->outfile_1D && !opts->outfile_niml )
+    {
+	fprintf( stderr, "** missing '-out_1D OUTPUT_FILE' option\n" );
+	RETURN(-1);
+    }
 
     if ( opts->spec_file == NULL )
     {
@@ -1563,7 +1762,7 @@ ENTRY("validate_options");
 	RETURN(-1);
     }
 
-    if ( set_outfile( opts, p ) != 0 )
+    if ( check_outfile( opts, p ) != 0 )
 	RETURN(-1);
 
     if ( validate_datasets( opts, p ) != 0 )
@@ -1586,38 +1785,28 @@ ENTRY("validate_options");
 
 
 /*----------------------------------------------------------------------
- * decide where the output goes
+ * be sure the output file does not already exist
  *----------------------------------------------------------------------
 */
-int set_outfile( opts_t * opts, param_t * p )
+int check_outfile( opts_t * opts, param_t * p )
 {
-ENTRY("set_outfile");
+ENTRY("check_outfile");
 
     if ( opts == NULL || p == NULL )
 	RETURN(-1);
 
-    if ( opts->out_file == NULL )
-	p->outfp = stdout;
-    else if ( strcmp( opts->out_file, "stdout" ) == 0 )
-	p->outfp = stdout;
-    else if ( strcmp( opts->out_file, "stderr" ) == 0 )
-	p->outfp = stderr;
-    else
+    if ( THD_is_file(opts->outfile_1D) )
     {
-	if ( THD_is_file(opts->out_file) )
-	{
-	    fprintf( stderr, "** output file '%s' already exists\n",
-		     opts->out_file );
-	    RETURN(-1);
-	}
+	fprintf(stderr, "** output file '%s' already exists\n",
+		opts->outfile_1D);
+	RETURN(-1);
+    }
 
-	p->outfp = fopen( opts->out_file, "w" );
-	if ( p->outfp == NULL )
-	{
-	    fprintf( stderr, "** failure to open '%s' for writing\n",
-		     opts->out_file );
-	    RETURN(-1);
-	}
+    if ( THD_is_file(opts->outfile_niml) )
+    {
+	fprintf(stderr, "** output file '%s' already exists\n",
+		opts->outfile_niml);
+	RETURN(-1);
     }
 
     RETURN(0);
@@ -1858,7 +2047,10 @@ ENTRY("usage");
             "\n"
             "Note: surface A corresponds to the required '-surf_A' argument,\n"
             "      while surface B corresponds to '-surf_B'.\n"
-            "\n"
+            "\n",
+	    prog, prog);
+
+	printf(
             "By default, this segment only consists of the endpoints, NA and\n"
             "NB (the actual nodes on the two surfaces).  However the number\n"
             "of evenly spaced points along the segment may be specified with\n"
@@ -1889,6 +2081,9 @@ ENTRY("usage");
 	    "    seg_vals  : output _all_ volume values over the segment (one\n"
 	    "                sub-brick only)\n"
 	    "\n"
+	    );
+
+	printf(
 	    "  --------------------------------------------------\n"
 	    "\n"
 	    "  examples:\n"
@@ -1919,556 +2114,581 @@ ENTRY("usage");
 	    "       -map_func     mask                                     \\\n"
 	    "       -debug        2                                        \\\n"
 	    "       -dnode        1874                                     \\\n"
-	    "       -out_1D       fred_epi_vals.1D\n"
+	    "       -out_niml     fred_epi_vals.niml\n"
 	    "\n"
-	    "    3. Given a pair of related surfaces, for each node pair,\n"
-	    "       break the connected line segment into 10 points, and\n"
-	    "       compute the average dataset value over those points.\n"
-	    "       Since the index is nodes, each of the 10 points will be\n"
-	    "       part of the average.  This could be changed so that only\n"
-	    "       values from distinct volume nodes are considered (by\n"
-	    "       changing the -f_index from nodes to voxels).  Restrict\n"
-	    "       input voxels to those implied by the -cmask option\n"
-	    "       Output is one average value per sub-brick (per surface\n"
-	    "       node).\n"
-	    "\n"
-	    "    %s                                                \\\n"
-	    "       -spec         fred2.spec                               \\\n"
-	    "       -surf_A       smoothwm                                 \\\n"
-	    "       -surf_B       pial                                     \\\n"
-	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_func+orig                           \\\n"
-	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
-	    "       -map_func     ave                                      \\\n"
-	    "       -f_steps      10                                       \\\n"
-	    "       -f_index      nodes                                    \\\n"
-	    "       -out_1D       fred_func_ave.1D\n"
-	    "\n"
-	    "    4. Similar to example 3, but each of the node pair segments\n"
-	    "       has grown by 10%% on the inside of the first surface,\n"
-	    "       and 20%% on the outside of the second.  This is a 30%%\n"
-	    "       increase in the length of each segment.  To shorten the\n"
-	    "       node pair segment, use a '+' sign for p1 and a '-' sign\n"
-	    "       for pn.\n"
-	    "       As an interesting side note, '-f_p1_fr 0.5 -f_pn_fr -0.5'\n"
-	    "       would give a zero length vector identical to that of the\n"
-	    "       'midpoint' filter.\n"
-	    "\n"
-	    "    %s                                                \\\n"
-	    "       -spec         fred2.spec                               \\\n"
-	    "       -surf_A       smoothwm                                 \\\n"
-	    "       -surf_B       pial                                     \\\n"
-	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_func+orig                           \\\n"
-	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
-	    "       -map_func     ave                                      \\\n"
-	    "       -f_steps      10                                       \\\n"
-	    "       -f_index      voxels                                   \\\n"
-	    "       -f_p1_fr      -0.1                                     \\\n"
-	    "       -f_pn_fr      0.2                                      \\\n"
-	    "       -out_1D       fred_func_ave2.1D\n"
-	    "\n"
-	    "    5. Similar to example 3, instead of computing the average\n"
-	    "       across each segment (one average per sub-brick), output\n"
-	    "       the volume value at _every_ point across the segment.\n"
-	    "       The output here would be 'f_steps' values per node pair,\n"
-	    "       though the output could again be restricted to unique\n"
-	    "       voxels along each segment with '-f_index voxels'.\n"
-	    "       Note that only sub-brick 0 will be considered here.\n"
-	    "\n"
-	    "    %s                                                \\\n"
-	    "       -spec         fred2.spec                               \\\n"
-	    "       -surf_A       smoothwm                                 \\\n"
-	    "       -surf_B       pial                                     \\\n"
-	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_func+orig                           \\\n"
-	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
-	    "       -map_func     seg_vals                                 \\\n"
-	    "       -f_steps      10                                       \\\n"
-	    "       -f_index      nodes                                    \\\n"
-	    "       -out_1D       fred_func_segvals_10.1D\n"
-	    "\n"
+            "    3. Given a pair of related surfaces, for each node pair,\n"
+            "       break the connected line segment into 10 points, and\n"
+            "       compute the average dataset value over those points.\n"
+            "       Since the index is nodes, each of the 10 points will be\n"
+            "       part of the average.  This could be changed so that only\n"
+            "       values from distinct volume nodes are considered (by\n"
+            "       changing the -f_index from nodes to voxels).  Restrict\n"
+            "       input voxels to those implied by the -cmask option\n"
+            "       Output is one average value per sub-brick (per surface\n"
+            "       node).\n"
+            "\n"
+            "    %s                                                \\\n"
+            "       -spec         fred2.spec                               \\\n"
+            "       -surf_A       smoothwm                                 \\\n"
+            "       -surf_B       pial                                     \\\n"
+            "       -sv           fred_anat+orig                           \\\n"
+            "       -grid_parent  fred_func+orig                           \\\n"
+            "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+            "       -map_func     ave                                      \\\n"
+            "       -f_steps      10                                       \\\n"
+            "       -f_index      nodes                                    \\\n"
+            "       -out_niml     fred_func_ave.niml\n"
+            "\n"
+            "    4. Similar to example 3, but each of the node pair segments\n"
+            "       has grown by 10%% on the inside of the first surface,\n"
+            "       and 20%% on the outside of the second.  This is a 30%%\n"
+            "       increase in the length of each segment.  To shorten the\n"
+            "       node pair segment, use a '+' sign for p1 and a '-' sign\n"
+            "       for pn.\n"
+            "       As an interesting side note, '-f_p1_fr 0.5 -f_pn_fr -0.5'\n"
+            "       would give a zero length vector identical to that of the\n"
+            "       'midpoint' filter.\n"
+            "\n"
+            "    %s                                                \\\n"
+            "       -spec         fred2.spec                               \\\n"
+            "       -surf_A       smoothwm                                 \\\n"
+            "       -surf_B       pial                                     \\\n"
+            "       -sv           fred_anat+orig                           \\\n"
+            "       -grid_parent  fred_func+orig                           \\\n"
+            "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+            "       -map_func     ave                                      \\\n"
+            "       -f_steps      10                                       \\\n"
+            "       -f_index      voxels                                   \\\n"
+            "       -f_p1_fr      -0.1                                     \\\n"
+            "       -f_pn_fr      0.2                                      \\\n"
+            "       -out_niml     fred_func_ave2.niml\n"
+            "\n"
+            "    5. Similar to example 3, instead of computing the average\n"
+            "       across each segment (one average per sub-brick), output\n"
+            "       the volume value at _every_ point across the segment.\n"
+            "       The output here would be 'f_steps' values per node pair,\n"
+            "       though the output could again be restricted to unique\n"
+            "       voxels along each segment with '-f_index voxels'.\n"
+            "       Note that only sub-brick 0 will be considered here.\n"
+            "\n"
+            "    %s                                                \\\n"
+            "       -spec         fred2.spec                               \\\n"
+            "       -surf_A       smoothwm                                 \\\n"
+            "       -surf_B       pial                                     \\\n"
+            "       -sv           fred_anat+orig                           \\\n"
+            "       -grid_parent  fred_func+orig                           \\\n"
+            "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+            "       -map_func     seg_vals                                 \\\n"
+            "       -f_steps      10                                       \\\n"
+            "       -f_index      nodes                                    \\\n"
+            "       -out_niml     fred_func_segvals_10.niml\n"
+            "\n"
             "    6. Similar to example 5, but make sure there is output for\n"
             "       every node pair in the surfaces.  Since it is expected\n"
             "       that some nodes are out of bounds (meaning that they lie\n"
-	    "       outside the domain defined by the grid parent dataset),\n"
-	    "       the '-oob_value' option is added to include a default\n"
-	    "       value of 0.0 in such cases.  And since it is expected\n"
-	    "       that some node pairs are \"out of mask\" (meaning that\n"
-	    "       their resulting segment lies entirely outside the cmask),\n"
-	    "       the '-oom_value' was added to output the same default\n"
-	    "       value of 0.0.\n"
-	    "\n"
-	    "    %s                                                \\\n"
-	    "       -spec         fred2.spec                               \\\n"
-	    "       -surf_A       smoothwm                                 \\\n"
-	    "       -surf_B       pial                                     \\\n"
-	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_func+orig                           \\\n"
-	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
-	    "       -map_func     seg_vals                                 \\\n"
-	    "       -f_steps      10                                       \\\n"
-	    "       -f_index      nodes                                    \\\n"
-	    "       -oob_value    0.0                                      \\\n"
-	    "       -oom_value    0.0                                      \\\n"
-	    "       -out_1D       fred_func_segvals_10_all.1D\n"
-	    "\n"
-	    "    7. This is a basic example of calculating the average along\n"
-	    "       each segment, but where the segment is produced by only\n"
-	    "       one surface, along with its set of surface normals.  The\n"
-	    "       segments will be 2.5 mm in length.\n"
-	    "\n"
-	    "    %s                                                \\\n"
-	    "       -spec         fred2.spec                               \\\n"
-	    "       -surf_A       smoothwm                                 \\\n"
-	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_anat+orig                           \\\n"
-	    "       -use_norms                                             \\\n"
-	    "       -norm_len     2.5                                      \\\n"
-	    "       -map_func     ave                                      \\\n"
-	    "       -f_steps      10                                       \\\n"
-	    "       -f_index      nodes                                    \\\n"
-	    "       -out_1D       fred_anat_norm_ave.2.5.1D\n"
-	    "\n"
-	    "  --------------------------------------------------\n"
-	    "\n"
-	    "  REQUIRED COMMAND ARGUMENTS:\n"
-	    "\n"
-	    "    -spec SPEC_FILE        : SUMA spec file\n"
-	    "\n"
-	    "        e.g. -spec fred.spec\n"
-	    "\n"
-	    "        The surface specification file contains the list of\n"
-	    "        mappable surfaces that are used.\n"
-	    "\n"
-	    "        See @SUMA_Make_Spec_FS and @SUMA_Make_Spec_SF.\n"
-	    "\n"
-	    "    -surf_A SURF_NAME      : name of surface A (from spec file)\n"
-	    "    -surf_B SURF_NAME      : name of surface B (from spec file)\n"
-	    "\n"
-	    "        e.g. -surf_A smoothwm\n"
-	    "        e.g. -surf_A lh.smoothwm\n"
-	    "        e.g. -surf_B lh.pial\n"
-	    "\n"
-	    "        This is used to specify which surface(s) will be used by\n"
-	    "        the program.  The '-surf_A' parameter is required, as it\n"
-	    "        specifies the first surface, whereas since '-surf_B' is\n"
-	    "        used to specify an optional second surface, it is not\n"
-	    "        required.\n"
-	    "\n"
-	    "        Note that any need for '-surf_B' may be fulfilled using\n"
-	    "        the '-use_norms' option.\n"
-	    "\n"
-	    "        Note that any name provided must be in the spec file,\n"
-	    "        uniquely matching the name of a surface node file (such\n"
-	    "        as lh.smoothwm.asc, for example).  Note that if both\n"
-	    "        hemispheres are represented in the spec file, then there\n"
-	    "        may be both lh.pial.asc and rh.pial.asc, for instance.\n"
-	    "        In such a case, 'pial' would not uniquely determine a\n"
-	    "        a surface, but the name 'lh.pial' would.\n"
-	    "\n"
-	    "    -sv SURFACE_VOLUME     : AFNI volume dataset\n"
-	    "\n"
-	    "        e.g. -sv fred_anat+orig\n"
-	    "\n"
-	    "        This is the AFNI dataset that the surface is mapped to.\n"
-	    "        This dataset is used for the initial surface node to xyz\n"
-	    "        coordinate mapping, in the Dicom orientation.\n"
-	    "\n"
-	    "    -grid_parent AFNI_DSET : AFNI volume dataset\n"
-	    "\n"
-	    "        e.g. -grid_parent fred_function+orig\n"
-	    "\n"
-	    "        This dataset is used as a grid and orientation master\n"
-	    "        for the output (i.e. it defines the volume domain).\n"
-	    "        It is also the source of the output data values.\n"
-	    "\n"
-	    "    -map_func MAP_FUNC     : filter for values along the segment\n"
-	    "\n"
-	    "        e.g. -map_func ave\n"
-	    "        e.g. -map_func ave -f_steps 10\n"
-	    "        e.g. -map_func ave -f_steps 10 -f_index nodes\n"
-	    "\n"
-	    "        The current mapping function for 1 surface is:\n"
-	    "\n"
-	    "          mask     : For each surface xyz location, output the\n"
-	    "                     dataset values of each sub-brick.\n"
-	    "\n"
-	    "        Most mapping functions are defined for 2 related input\n"
-	    "        surfaces (such as white/grey boundary and pial).  For\n"
-	    "        each node pair, the function will be performed on the\n"
-	    "        values from the 'grid parent dataset', and along the\n"
-	    "        segment connecting the nodes.\n"
-	    "\n"
-	    "          ave      : Output the average of the dataset values\n"
-	    "                     along the segment.\n"
-	    "\n"
-	    "          max      : Output the maximum dataset value along the\n"
-	    "                     connecting segment.\n"
-	    "\n"
-	    "          max_abs  : Output the dataset value with the maximum\n"
-	    "                     absolute value along the segment.\n"
-	    "\n"
-	    "          median   : Output the median of the dataset values\n"
-	    "                     along the connecting segment.\n"
-	    "\n"
-	    "          midpoint : Output the dataset value with xyz\n"
-	    "                     coordinates at the midpoint of the nodes.\n"
-	    "\n"
-	    "          min      : Output the minimum dataset value along the\n"
-	    "                     connecting segment.\n"
-	    "\n"
-	    "          mode     : Output the mode of the dataset values along\n"
-	    "                     the connecting segment.\n"
-	    "\n"
-	    "          seg_vals : Output all of the dataset values along the\n"
-	    "                     connecting segment.  Here, only sub-brick\n"
-	    "                     number 0 will be considered.\n"
-	    "\n"
-	    "  ------------------------------\n"
-	    "\n"
-	    "  options specific to functions on 2 surfaces:\n"
-	    "\n"
-	    "          -f_steps NUM_STEPS :\n"
-	    "\n"
-	    "                     Use this option to specify the number of\n"
-	    "                     evenly spaced points along each segment.\n"
-	    "                     The default is 2 (i.e. just use the two\n"
-	    "                     surface nodes as endpoints).\n"
-	    "\n"
-	    "                     e.g.     -f_steps 10\n"
-	    "                     default: -f_steps 2\n"
-	    "\n"
-	    "          -f_index TYPE :\n"
-	    "\n"
-	    "                     This option specifies whether to use all\n"
-	    "                     segment point values in the filter (using\n"
-	    "                     the 'nodes' TYPE), or to use only those\n"
-	    "                     corresponding to unique volume voxels (by\n"
-	    "                     using the 'voxel' TYPE).\n"
-	    "\n"
-	    "                     For instance, when taking the average along\n"
-	    "                     one node pair segment using 10 node steps,\n"
-	    "                     perhaps 3 of those nodes may occupy one\n"
-	    "                     particular voxel.  In this case, does the\n"
-	    "                     user want the voxel counted only once, or 3\n"
-	    "                     times?  Each way makes sense.\n"
-	    "                     \n"
-	    "                     Note that this will only make sense when\n"
-	    "                     used along with the '-f_steps' option.\n"
-	    "                     \n"
-	    "                     Possible values are \"nodes\", \"voxels\".\n"
-	    "                     The default value is voxels.  So each voxel\n"
-	    "                     along a segment will be counted only once.\n"
-	    "                     \n"
-	    "                     e.g.  -f_index nodes\n"
-	    "                     e.g.  -f_index voxels\n"
-	    "                     default: -f_index voxels\n"
-	    "\n"
-	    "          -f_keep_surf_order :\n"
-	    "\n"
-	    "                     Depreciated.\n"
-	    "\n"
-	    "                     See required arguments -surf_A and -surf_B,\n"
-	    "                     above.\n"
-	    "\n"
-	    "          Note: The following -f_pX_XX options are used to alter\n"
-	    "                the lengths and locations of the computational\n"
-	    "                segments.  Recall that by default, segments are\n"
-	    "                defined using the node pair coordinates as\n"
-	    "                endpoints.  And the direction from p1 to pn is\n"
-	    "                from the inner surface to the outer surface.\n"
-	    "\n"
-	    "          -f_p1_mm DISTANCE :\n"
-	    "\n"
-	    "                     This option is used to specify a distance\n"
-	    "                     in millimeters to add to the first point of\n"
-	    "                     each line segment (in the direction of the\n"
-	    "                     second point).  DISTANCE can be negative\n"
-	    "                     (which would set p1 to be farther from pn\n"
-	    "                     than before).\n"
-	    "\n"
-	    "                     For example, if a computation is over the\n"
-	    "                     grey matter (from the white matter surface\n"
-	    "                     to the pial), and it is wished to increase\n"
-	    "                     the range by 1mm, set this DISTANCE to -1.0\n"
-	    "                     and the DISTANCE in -f_pn_mm to 1.0.\n"
-	    "\n"
-	    "                     e.g.  -f_p1_mm -1.0\n"
-	    "                     e.g.  -f_p1_mm -1.0 -f_pn_mm 1.0\n"
-	    "\n"
-	    "          -f_pn_mm DISTANCE :\n"
-	    "\n"
-	    "                     Similar to -f_p1_mm, this option is used\n"
-	    "                     to specify a distance in millimeters to add\n"
-	    "                     to the second point of each line segment.\n"
-	    "                     Note that this is in the same direction as\n"
-	    "                     above, from point p1 to point pn.\n"
-	    "                     \n"
-	    "                     So a positive DISTANCE, for this option,\n"
-	    "                     would set pn to be farther from p1 than\n"
-	    "                     before, and a negative DISTANCE would set\n"
-	    "                     it to be closer.\n"
-	    "\n"
-	    "                     e.g.  -f_pn_mm 1.0\n"
-	    "                     e.g.  -f_p1_mm -1.0 -f_pn_mm 1.0\n"
-	    "\n"
-	    "          -f_p1_fr FRACTION :\n"
-	    "\n"
-	    "                     Like the -f_pX_mm options above, this\n"
-	    "                     is used to specify a change to point p1, in\n"
-	    "                     the direction of point pn, but the change\n"
-	    "                     is a fraction of the original distance,\n"
-	    "                     not a pure change in millimeters.\n"
-	    "                     \n"
-	    "                     For example, suppose one wishes to do a\n"
-	    "                     computation based on the segments spanning\n"
-	    "                     the grey matter, but to add 20%% to either\n"
-	    "                     side.  Then use -0.2 and 0.2:\n"
-	    "\n"
-	    "                     e.g.  -f_p1_fr -0.2\n"
-	    "                     e.g.  -f_p1_fr -0.2 -f_pn_fr 0.2\n"
-	    "\n"
-	    "          -f_pn_fr FRACTION :\n"
-	    "\n"
-	    "                     See -f_p1_fr above.  Note again that the\n"
-	    "                     FRACTION is in the direction from p1 to pn.\n"
-	    "                     So to extend the segment past pn, this\n"
-	    "                     FRACTION will be positive (and to reduce\n"
-	    "                     the segment back toward p1, this -f_pn_fr\n"
-	    "                     FRACTION will be negative).\n"
-	    "\n"
-	    "                     e.g.  -f_pn_fr 0.2\n"
-	    "                     e.g.  -f_p1_fr -0.2 -f_pn_fr 0.2\n"
-	    "\n"
-	    "                     Just for entertainment, one could reverse\n"
-	    "                     the order that the segment points are\n"
-	    "                     considered by adjusting p1 to be pn, and\n"
-	    "                     pn to be p1.  This could be done by adding\n"
-	    "                     a fraction of 1.0 to p1 and by subtracting\n"
-	    "                     a fraction of 1.0 from pn.\n"
-	    "\n"
-	    "                     e.g.  -f_p1_fr 1.0 -f_pn_fr -1.0\n"
-	    "\n"
-	    "  ------------------------------\n"
-	    "\n"
-	    "  options specific to use of normals:\n"
-	    "\n"
-	    "    Notes:\n"
-	    "\n"
-	    "      o Using a single surface with its normals for segment\n"
-	    "        creation can be done in lieu of using two surfaces.\n"
-	    "\n"
-	    "      o Normals at surface nodes are defined by the average of\n"
-	    "        the normals of the triangles including the given node.\n"
-	    "\n"
-	    "      o The default normals have a consistent direction, but it\n"
-	    "        may be opposite of what is should be.  For this reason,\n"
-	    "        the direction is verified by default, and may be negated\n"
-	    "        internally.  See the '-keep_norm_dir' option for more\n"
-	    "        information.\n"
-	    "\n"
-	    "    -use_norms             : use normals for second surface\n"
-	    "\n"
-	    "        Segments are usually defined by connecting corresponding\n"
-	    "        node pairs from two surfaces.  With this options the\n"
-	    "        user can use one surface, along with its normals, to\n"
-	    "        define the segments.\n"
-	    "\n"
-	    "        By default, each segment will be 1.0 millimeter long, in\n"
-	    "        the direction of the normal.  The '-norm_len' option\n"
-	    "        can be used to alter this default action.\n"
-	    "\n"
-	    "    -keep_norm_dir         : keep the direction of the normals\n"
-	    "\n"
-	    "        Normal directions are verified by checking that the\n"
-	    "        normals of the outermost 6 points point away from the\n"
-	    "        center of mass.  If they point inward instead, then\n"
-	    "        they are negated.\n"
-	    "\n"
-	    "        This option will override the directional check, and\n"
-	    "        use the normals as they come.\n"
-	    "\n"
-	    "    -norm_len LENGTH       : use LENGTH for node normals\n"
-	    "\n"
-	    "        e.g.     -norm_len  3.0\n"
-	    "        e.g.     -norm_len -3.0\n"
-	    "        default: -norm_len  1.0\n"
-	    "\n"
-	    "        For use with the '-use_norms' option, this allows the\n"
-	    "        user to specify a directed distance to use for segments\n"
-	    "        based on the normals.  So for each node on a surface,\n"
-	    "        the computation segment will be from the node, in the\n"
-	    "        direction of the normal, a signed distance of LENGTH.\n"
-	    "\n"
-	    "        A negative LENGTH means to use the opposite direction\n"
-	    "        from the normal.\n"
-	    "\n"
-	    "        The '-surf_B' option is not allowed with the use of\n"
-	    "        normals.\n"
-	    "\n"
-	    "  ------------------------------\n"
-	    "\n"
-	    "  general options:\n"
-	    "\n"
-	    "    -cmask MASK_COMMAND    : (optional) command for dataset mask\n"
-	    "\n"
-	    "        e.g. -cmask '-a fred_func+orig[2] -expr step(a-0.8)'\n"
-	    "\n"
-	    "        This option will produce a mask to be applied to the\n"
-	    "        input AFNI dataset.  Note that this mask should form a\n"
-	    "        single sub-brick.\n"
-	    "\n"
-	    "        This option follows the style of 3dmaskdump (since the\n"
-	    "        code for it was, uh, borrowed from there (thanks Bob!)).\n"
-	    "\n"
-	    "        See '3dmaskdump -help' for more information.\n"
-	    "\n"
-	    "    -debug LEVEL           :  (optional) verbose output\n"
-	    "\n"
-	    "        e.g. -debug 2\n"
-	    "\n"
-	    "        This option is used to print out status information \n"
-	    "        during the execution of the program.  Current levels are\n"
-	    "        from 0 to 5.\n"
-	    "\n"
-	    "    -dnode NODE_NUM        :  (optional) node for debug\n"
-	    "\n"
-	    "        e.g. -dnode 1874\n"
-	    "\n"
-	    "        This option is used to print out status information \n"
-	    "        for node NODE_NUM.\n"
-	    "\n"
-	    "    -help                  : show this help\n"
-	    "\n"
-	    "        If you can't get help here, please get help somewhere.\n"
-	    "\n"
-	    "    -hist                  : show revision history\n"
-	    "\n"
-	    "        Display module history over time.\n"
-	    "\n"
-	    "    -no_headers            : do not output column headers\n"
-	    "\n"
-	    "        Column header lines all begin with the '#' character.\n"
-	    "        With the '-no_headers' option, these lines will not be\n"
-	    "        output.\n"
-	    "\n"
-	    "    -oob_index INDEX_NUM   : specify default index for oob nodes\n"
-	    "\n"
-	    "        e.g.     -oob_index -1\n"
-	    "        default: -oob_index  0\n"
-	    "\n"
-	    "        By default, nodes which lie outside the box defined by\n"
-	    "        the -grid_parent dataset are considered out of bounds,\n"
-	    "        and are skipped.  If an out of bounds index is provided,\n"
-	    "        or an out of bounds value is provided, such nodes will\n"
-	    "        not be skipped, and will have indices and values output,\n"
-	    "        according to the -oob_index and -oob_value options.\n"
-	    "        \n"
-	    "        This INDEX_NUM will be used for the 1dindex field, along\n"
-	    "        with the i, j and k indices.\n"
-	    "        \n"
-	    "\n"
-	    "    -oob_value VALUE       : specify default value for oob nodes\n"
-	    "\n"
-	    "        e.g.     -oob_value -999.0\n"
-	    "        default: -oob_value    0.0\n"
-	    "\n"
-	    "        See -oob_index, above.\n"
-	    "        \n"
-	    "        VALUE will be output for nodes which are out of bounds.\n"
-	    "\n"
-	    "    -oom_value VALUE       : specify default value for oom nodes\n"
-	    "\n"
-	    "        e.g. -oom_value -999.0\n"
-	    "        e.g. -oom_value    0.0\n"
-	    "\n"
-	    "        By default, node pairs defining a segment which gets\n"
-	    "        completely obscured by a command-line mask (see -cmask)\n"
-	    "        are considered \"out of mask\", and are skipped.\n"
-	    "\n"
-	    "        If an out of mask value is provided, such nodes will not\n"
-	    "        be skipped.  The output indices will come from the first\n"
-	    "        segment point, mapped to the AFNI volume.  All output vN\n"
-	    "        values will be the VALUE provided with this option.\n"
-	    "\n"
-	    "        This option is meaningless without a '-cmask' option.\n"
-	    "\n"
-	    "    -out_1D OUTPUT_FILE    : specify a 1D file for the output\n"
-	    "\n"
-	    "        e.g. -out_1D mask_values_over_dataset.1D\n"
-	    "        e.g. -out_1D stderr\n"
-	    "        default: write to stdout\n"
-	    "\n"
-	    "        This is where the user will specify which file they want\n"
-	    "        the output to be written to.  Note that the output file\n"
-	    "        should not yet exist.\n"
-	    "\n"
-	    "        Two special (valid) cases are stdout and stderr, either\n"
-	    "        of which may be specified.\n"
-	    "\n"
-	    "    -version               : show version information\n"
-	    "\n"
-	    "        Show version and compile date.\n"
-	    "\n"
-	    "  --------------------------------------------------\n"
-	    "\n"
-	    "Output from the program defaults to 1D format, in ascii text.\n"
-	    "For each node (pair) that results in output, there will be one\n"
-	    "line, consisting of:\n"
-	    "\n"
-	    "    node    : the index of the current node (or node pair)\n"
-	    "\n"
-	    "    1dindex : the global index of the AFNI voxel used for output\n"
-	    "\n"
-	    "              Note that for some filters (min, max, midpoint,\n"
-	    "              median and mode) there is a specific location (and\n"
-	    "              therefore voxel) that the result comes from.  It\n"
-	    "              will be accurate (though median may come from one\n"
-	    "              of two voxels that are averaged).\n"
-	    "\n"
-	    "              For filters without a well-defined source (such as\n"
-	    "              average or seg_vals), the 1dindex will come from\n"
-	    "              the first point on the corresponding segment.\n"
-	    "\n"
-	    "    i j k   : the i j k indices matching 1dindex\n"
-	    "\n"
-	    "              These indices are based on the orientation of the\n"
-	    "              grid parent dataset.\n"
-	    "\n"
-	    "    vals    : the number of segment values applied to the filter\n"
-	    "\n"
-	    "              Note that when -f_index is 'nodes', this will\n"
-	    "              always be the same as -f_steps, except when using\n"
-	    "              the -cmask option.  In that case, along a single \n"
-	    "              segment, some points may be in the mask, and some\n"
-	    "              may not.\n"
-	    "\n"
-	    "              When -f_index is 'voxels' and -f_steps is used,\n"
-	    "              vals will often be much smaller than -f_steps.\n"
-	    "              This is because many segment points may in a\n"
-	    "              single voxel.\n"
-	    "\n"
-	    "    v0, ... : the requested output values\n"
-	    "\n"
-	    "              These are the filtered values, usually one per\n"
-	    "              AFNI sub-brick.  For example, if the -map_func\n"
-	    "              is 'ave', then there will be one segment-based\n"
-	    "              average output per sub-brick of the grid parent.\n"
-	    "\n"
-	    "              In the case of the 'seg_vals' filter, however,\n"
-	    "              there will be one output value per segment point\n"
-	    "              (possibly further restricted to voxels).  Since\n"
-	    "              output is not designed for a matrix of values,\n"
-	    "              'seg_vals' is restricted to a single sub-brick.\n"
-	    "\n"
-	    "\n"
-	    "  Author: R. Reynolds  - %s\n"
-	    "\n"
-	    "                (many thanks to Z. Saad and R.W. Cox)\n"
+            "       outside the domain defined by the grid parent dataset),\n"
+            "       the '-oob_value' option is added to include a default\n"
+            "       value of 0.0 in such cases.  And since it is expected\n"
+            "       that some node pairs are \"out of mask\" (meaning that\n"
+            "       their resulting segment lies entirely outside the cmask),\n"
+            "       the '-oom_value' was added to output the same default\n"
+            "       value of 0.0.\n"
+            "\n"
+            "    %s                                                \\\n"
+            "       -spec         fred2.spec                               \\\n"
+            "       -surf_A       smoothwm                                 \\\n"
+            "       -surf_B       pial                                     \\\n"
+            "       -sv           fred_anat+orig                           \\\n"
+            "       -grid_parent  fred_func+orig                           \\\n"
+            "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+            "       -map_func     seg_vals                                 \\\n"
+            "       -f_steps      10                                       \\\n"
+            "       -f_index      nodes                                    \\\n"
+            "       -oob_value    0.0                                      \\\n"
+            "       -oom_value    0.0                                      \\\n"
+            "       -out_niml     fred_func_segvals_10_all.niml\n"
+            "\n"
+            "    7. This is a basic example of calculating the average along\n"
+            "       each segment, but where the segment is produced by only\n"
+            "       one surface, along with its set of surface normals.  The\n"
+            "       segments will be 2.5 mm in length.\n"
+            "\n"
+            "    %s                                                \\\n"
+            "       -spec         fred2.spec                               \\\n"
+            "       -surf_A       smoothwm                                 \\\n"
+            "       -sv           fred_anat+orig                           \\\n"
+            "       -grid_parent  fred_anat+orig                           \\\n"
+            "       -use_norms                                             \\\n"
+            "       -norm_len     2.5                                      \\\n"
+            "       -map_func     ave                                      \\\n"
+            "       -f_steps      10                                       \\\n"
+            "       -f_index      nodes                                    \\\n"
+            "       -out_niml     fred_anat_norm_ave.2.5.niml\n"
+            "\n"
+	    "  --------------------------------------------------\n",
+	    prog, prog, prog, prog, prog, prog, prog );
+
+	printf(
+	    "\n"
+            "  REQUIRED COMMAND ARGUMENTS:\n"
+            "\n"
+            "    -spec SPEC_FILE        : SUMA spec file\n"
+            "\n"
+            "        e.g. -spec fred.spec\n"
+            "\n"
+            "        The surface specification file contains the list of\n"
+            "        mappable surfaces that are used.\n"
+            "\n"
+            "        See @SUMA_Make_Spec_FS and @SUMA_Make_Spec_SF.\n"
+            "\n"
+            "    -surf_A SURF_NAME      : name of surface A (from spec file)\n"
+            "    -surf_B SURF_NAME      : name of surface B (from spec file)\n"
+            "\n"
+            "        e.g. -surf_A smoothwm\n"
+            "        e.g. -surf_A lh.smoothwm\n"
+            "        e.g. -surf_B lh.pial\n"
+            "\n"
+            "        This is used to specify which surface(s) will be used by\n"
+            "        the program.  The '-surf_A' parameter is required, as it\n"
+            "        specifies the first surface, whereas since '-surf_B' is\n"
+            "        used to specify an optional second surface, it is not\n"
+            "        required.\n"
+            "\n"
+            "        Note that any need for '-surf_B' may be fulfilled using\n"
+            "        the '-use_norms' option.\n"
+            "\n"
+            "        Note that any name provided must be in the spec file,\n"
+            "        uniquely matching the name of a surface node file (such\n"
+            "        as lh.smoothwm.asc, for example).  Note that if both\n"
+            "        hemispheres are represented in the spec file, then there\n"
+            "        may be both lh.pial.asc and rh.pial.asc, for instance.\n"
+            "        In such a case, 'pial' would not uniquely determine a\n"
+            "        a surface, but the name 'lh.pial' would.\n"
+            "\n"
+            "    -sv SURFACE_VOLUME     : AFNI volume dataset\n"
+            "\n"
+            "        e.g. -sv fred_anat+orig\n"
+            "\n"
+            "        This is the AFNI dataset that the surface is mapped to.\n"
+            "        This dataset is used for the initial surface node to xyz\n"
+            "        coordinate mapping, in the Dicom orientation.\n"
+            "\n"
+            "    -grid_parent AFNI_DSET : AFNI volume dataset\n"
+            "\n"
+            "        e.g. -grid_parent fred_function+orig\n"
+            "\n"
+            "        This dataset is used as a grid and orientation master\n"
+            "        for the output (i.e. it defines the volume domain).\n"
+            "        It is also the source of the output data values.\n"
+            "\n"
+            "    -map_func MAP_FUNC     : filter for values along the segment\n"
+            "\n"
+            "        e.g. -map_func ave\n"
+            "        e.g. -map_func ave -f_steps 10\n"
+            "        e.g. -map_func ave -f_steps 10 -f_index nodes\n"
+            "\n"
+            "        The current mapping function for 1 surface is:\n"
+            "\n"
+            "          mask     : For each surface xyz location, output the\n"
+            "                     dataset values of each sub-brick.\n"
+            "\n"
+            "        Most mapping functions are defined for 2 related input\n"
+            "        surfaces (such as white/grey boundary and pial).  For\n"
+            "        each node pair, the function will be performed on the\n"
+            "        values from the 'grid parent dataset', and along the\n"
+            "        segment connecting the nodes.\n"
+            "\n"
+            "          ave      : Output the average of the dataset values\n"
+            "                     along the segment.\n"
+            "\n"
+            "          max      : Output the maximum dataset value along the\n"
+            "                     connecting segment.\n"
+            "\n"
+            "          max_abs  : Output the dataset value with the maximum\n"
+            "                     absolute value along the segment.\n"
+            "\n"
+            "          median   : Output the median of the dataset values\n"
+            "                     along the connecting segment.\n"
+            "\n"
+            "          midpoint : Output the dataset value with xyz\n"
+            "                     coordinates at the midpoint of the nodes.\n"
+            "\n"
+            "          min      : Output the minimum dataset value along the\n"
+            "                     connecting segment.\n"
+            "\n"
+            "          mode     : Output the mode of the dataset values along\n"
+            "                     the connecting segment.\n"
+            "\n"
+            "          seg_vals : Output all of the dataset values along the\n"
+            "                     connecting segment.  Here, only sub-brick\n"
+            "                     number 0 will be considered.\n"
+            "\n"
+            "  ------------------------------\n"
+            "\n"
+            "  options specific to functions on 2 surfaces:\n"
+            "\n"
+            "          -f_steps NUM_STEPS :\n"
+            "\n"
+            "                     Use this option to specify the number of\n"
+            "                     evenly spaced points along each segment.\n"
+            "                     The default is 2 (i.e. just use the two\n"
+            "                     surface nodes as endpoints).\n"
+            "\n"
+            "                     e.g.     -f_steps 10\n"
+            "                     default: -f_steps 2\n"
+            "\n"
+            "          -f_index TYPE :\n"
+            "\n"
+            "                     This option specifies whether to use all\n"
+            "                     segment point values in the filter (using\n"
+            "                     the 'nodes' TYPE), or to use only those\n"
+            "                     corresponding to unique volume voxels (by\n"
+            "                     using the 'voxel' TYPE).\n"
+            "\n"
+            "                     For instance, when taking the average along\n"
+            "                     one node pair segment using 10 node steps,\n"
+            "                     perhaps 3 of those nodes may occupy one\n"
+            "                     particular voxel.  In this case, does the\n"
+            "                     user want the voxel counted only once, or 3\n"            "                     times?  Each way makes sense.\n"
+            "                     \n"
+            "                     Note that this will only make sense when\n"
+            "                     used along with the '-f_steps' option.\n"
+            "                     \n"
+            "                     Possible values are \"nodes\", \"voxels\".\n"
+            "                     The default value is voxels.  So each voxel\n"
+            "                     along a segment will be counted only once.\n"
+            "                     \n"
+            "                     e.g.  -f_index nodes\n"
+            "                     e.g.  -f_index voxels\n"
+            "                     default: -f_index voxels\n"
+            "\n"
+            "          -f_keep_surf_order :\n"
+            "\n"
+            "                     Depreciated.\n"
+            "\n"
+            "                     See required arguments -surf_A and -surf_B,\n"
+            "                     above.\n"
+            "\n"
+            "          Note: The following -f_pX_XX options are used to alter\n"
+            "                the lengths and locations of the computational\n"
+            "                segments.  Recall that by default, segments are\n"
+            "                defined using the node pair coordinates as\n"
+            "                endpoints.  And the direction from p1 to pn is\n"
+            "                from the inner surface to the outer surface.\n"
+            "\n"
+            "          -f_p1_mm DISTANCE :\n"
+            "\n"
+            "                     This option is used to specify a distance\n"
+            "                     in millimeters to add to the first point of\n"
+            "                     each line segment (in the direction of the\n"
+            "                     second point).  DISTANCE can be negative\n"
+            "                     (which would set p1 to be farther from pn\n"
+            "                     than before).\n"
+            "\n"
+            "                     For example, if a computation is over the\n"
+            "                     grey matter (from the white matter surface\n"
+            "                     to the pial), and it is wished to increase\n"
+            "                     the range by 1mm, set this DISTANCE to -1.0\n"
+            "                     and the DISTANCE in -f_pn_mm to 1.0.\n"
+            "\n"
+            "                     e.g.  -f_p1_mm -1.0\n"
+            "                     e.g.  -f_p1_mm -1.0 -f_pn_mm 1.0\n"
+            "\n"
+            "          -f_pn_mm DISTANCE :\n"
+            "\n"
+            "                     Similar to -f_p1_mm, this option is used\n"
+            "                     to specify a distance in millimeters to add\n"
+            "                     to the second point of each line segment.\n"
+            "                     Note that this is in the same direction as\n"
+            "                     above, from point p1 to point pn.\n"
+            "                     \n"
+            "                     So a positive DISTANCE, for this option,\n"
+            "                     would set pn to be farther from p1 than\n"
+            "                     before, and a negative DISTANCE would set\n"
+            "                     it to be closer.\n"
+            "\n"
+            "                     e.g.  -f_pn_mm 1.0\n"
+            "                     e.g.  -f_p1_mm -1.0 -f_pn_mm 1.0\n"
+            "\n"
+            "          -f_p1_fr FRACTION :\n"
+            "\n"
+            "                     Like the -f_pX_mm options above, this\n"
+            "                     is used to specify a change to point p1, in\n"
+            "                     the direction of point pn, but the change\n"
+            "                     is a fraction of the original distance,\n"
+            "                     not a pure change in millimeters.\n"
+            "                     \n"
+            "                     For example, suppose one wishes to do a\n"
+            "                     computation based on the segments spanning\n"
+            "                     the grey matter, but to add 20%% to either\n"
+            "                     side.  Then use -0.2 and 0.2:\n"
+            "\n"
+            "                     e.g.  -f_p1_fr -0.2\n"
+            "                     e.g.  -f_p1_fr -0.2 -f_pn_fr 0.2\n"
+            "\n"
+            "          -f_pn_fr FRACTION :\n"
+            "\n"
+            "                     See -f_p1_fr above.  Note again that the\n"
+            "                     FRACTION is in the direction from p1 to pn.\n"
+            "                     So to extend the segment past pn, this\n"
+            "                     FRACTION will be positive (and to reduce\n"
+            "                     the segment back toward p1, this -f_pn_fr\n"
+            "                     FRACTION will be negative).\n"
+            "\n"
+            "                     e.g.  -f_pn_fr 0.2\n"
+            "                     e.g.  -f_p1_fr -0.2 -f_pn_fr 0.2\n"
+            "\n"
+            "                     Just for entertainment, one could reverse\n"
+            "                     the order that the segment points are\n"
+            "                     considered by adjusting p1 to be pn, and\n"
+            "                     pn to be p1.  This could be done by adding\n"
+            "                     a fraction of 1.0 to p1 and by subtracting\n"
+            "                     a fraction of 1.0 from pn.\n"
+            "\n"
+            "                     e.g.  -f_p1_fr 1.0 -f_pn_fr -1.0\n"
+            "\n"
+            "  ------------------------------\n"
+	);
+
+	printf(
+            "\n"
+            "  options specific to use of normals:\n"
+            "\n"
+            "    Notes:\n"
+            "\n"
+            "      o Using a single surface with its normals for segment\n"
+            "        creation can be done in lieu of using two surfaces.\n"
+            "\n"
+            "      o Normals at surface nodes are defined by the average of\n"
+            "        the normals of the triangles including the given node.\n"
+            "\n"
+            "      o The default normals have a consistent direction, but it\n"
+            "        may be opposite of what is should be.  For this reason,\n"
+            "        the direction is verified by default, and may be negated\n"
+            "        internally.  See the '-keep_norm_dir' option for more\n"
+            "        information.\n"
+            "\n"
+            "    -use_norms             : use normals for second surface\n"
+            "\n"
+            "        Segments are usually defined by connecting corresponding\n"
+            "        node pairs from two surfaces.  With this options the\n"
+            "        user can use one surface, along with its normals, to\n"
+            "        define the segments.\n"
+            "\n"
+            "        By default, each segment will be 1.0 millimeter long, in\n"
+            "        the direction of the normal.  The '-norm_len' option\n"
+            "        can be used to alter this default action.\n"
+            "\n"
+            "    -keep_norm_dir         : keep the direction of the normals\n"
+            "\n"
+            "        Normal directions are verified by checking that the\n"
+            "        normals of the outermost 6 points point away from the\n"
+            "        center of mass.  If they point inward instead, then\n"
+            "        they are negated.\n"
+            "\n"
+            "        This option will override the directional check, and\n"
+            "        use the normals as they come.\n"
+            "\n"
+            "    -norm_len LENGTH       : use LENGTH for node normals\n"
+            "\n"
+            "        e.g.     -norm_len  3.0\n"
+            "        e.g.     -norm_len -3.0\n"
+            "        default: -norm_len  1.0\n"
+            "\n"
+            "        For use with the '-use_norms' option, this allows the\n"
+            "        user to specify a directed distance to use for segments\n"
+            "        based on the normals.  So for each node on a surface,\n"
+            "        the computation segment will be from the node, in the\n"
+            "        direction of the normal, a signed distance of LENGTH.\n"
+            "\n"
+            "        A negative LENGTH means to use the opposite direction\n"
+            "        from the normal.\n"
+            "\n"
+            "        The '-surf_B' option is not allowed with the use of\n"
+            "        normals.\n"
+            "\n"
+            "  ------------------------------\n"
+            "\n"
+            "  general options:\n"
+            "\n"
+            "    -cmask MASK_COMMAND    : (optional) command for dataset mask\n"
+            "\n"
+            "        e.g. -cmask '-a fred_func+orig[2] -expr step(a-0.8)'\n"
+            "\n"
+            "        This option will produce a mask to be applied to the\n"
+            "        input AFNI dataset.  Note that this mask should form a\n"
+            "        single sub-brick.\n"
+            "\n"
+            "        This option follows the style of 3dmaskdump (since the\n"
+            "        code for it was, uh, borrowed from there (thanks Bob!)).\n"
+            "\n"
+            "        See '3dmaskdump -help' for more information.\n"
+            "\n"
+            "    -debug LEVEL           :  (optional) verbose output\n"
+            "\n"
+            "        e.g. -debug 2\n"
+            "\n"
+            "        This option is used to print out status information \n"
+            "        during the execution of the program.  Current levels are\n"
+            "        from 0 to 5.\n"
+            "\n"
+            "    -dnode NODE_NUM        :  (optional) node for debug\n"
+            "\n"
+            "        e.g. -dnode 1874\n"
+            "\n"
+            "        This option is used to print out status information \n"
+            "        for node NODE_NUM.\n"
+            "\n"
+            "    -help                  : show this help\n"
+            "\n"
+            "        If you can't get help here, please get help somewhere.\n"
+            "\n"
+            "    -hist                  : show revision history\n"
+            "\n"
+            "        Display module history over time.\n"
+            "\n"
+            "    -no_headers            : do not output column headers\n"
+            "\n"
+            "        Column header lines all begin with the '#' character.\n"
+            "        With the '-no_headers' option, these lines will not be\n"
+            "        output.\n"
+            "\n"
+            "    -oob_index INDEX_NUM   : specify default index for oob nodes\n"
+            "\n"
+            "        e.g.     -oob_index -1\n"
+            "        default: -oob_index  0\n"
+            "\n"
+            "        By default, nodes which lie outside the box defined by\n"
+            "        the -grid_parent dataset are considered out of bounds,\n"
+            "        and are skipped.  If an out of bounds index is provided,\n"
+            "        or an out of bounds value is provided, such nodes will\n"
+            "        not be skipped, and will have indices and values output,\n"
+            "        according to the -oob_index and -oob_value options.\n"
+            "        \n"
+            "        This INDEX_NUM will be used for the 1dindex field, along\n"
+            "        with the i, j and k indices.\n"
+            "        \n"
+            "\n"
+            "    -oob_value VALUE       : specify default value for oob nodes\n"
+            "\n"
+            "        e.g.     -oob_value -999.0\n"
+            "        default: -oob_value    0.0\n"
+            "\n"
+            "        See -oob_index, above.\n"
+            "        \n"
+            "        VALUE will be output for nodes which are out of bounds.\n"
+            "\n"
+            "    -oom_value VALUE       : specify default value for oom nodes\n"
+            "\n"
+            "        e.g. -oom_value -999.0\n"
+            "        e.g. -oom_value    0.0\n"
+            "\n"
+            "        By default, node pairs defining a segment which gets\n"
+            "        completely obscured by a command-line mask (see -cmask)\n"
+            "        are considered \"out of mask\", and are skipped.\n"
+            "\n"
+            "        If an out of mask value is provided, such nodes will not\n"
+            "        be skipped.  The output indices will come from the first\n"
+            "        segment point, mapped to the AFNI volume.  All output vN\n"
+            "        values will be the VALUE provided with this option.\n"
+            "\n"
+            "        This option is meaningless without a '-cmask' option.\n"
+            "\n"
+            "    -out_1D OUTPUT_FILE    : specify a 1D file for the output\n"
+            "\n"
+            "        e.g. -out_1D mask_values_over_dataset.1D\n"
+            "\n"
+            "        This is where the user will specify which file they want\n"
+            "        the output to be written to.  In this case, the output\n"
+            "        will be in readable, column-formatted ASCII text.\n"
+            "\n"
+            "        Note : the output file should not yet exist.\n"
+            "             : -out_1D or -out_niml must be used\n"
+            "\n"
+            "    -out_niml OUTPUT_FILE  : specify a niml file for the output\n"
+            "\n"
+            "        e.g. -out_niml mask_values_over_dataset.niml\n"
+            "\n"
+            "        The user may use this option to get output in the form\n"
+            "        of a niml element, with binary data.  The output will\n"
+            "        contain (binary) columns of the form:\n"
+            "\n"
+            "            node_index  value_0  value_1  value_2  ...\n"
+            "\n"
+            "        A major difference between 1D output and niml output is\n"
+            "        that the value_0 column number will be 6 in the 1D case,\n"
+            "        but will be 2 in the niml case.  The index columns will\n"
+            "        not be used for niml output.\n"
+            "\n"
+            "        Note : the output file should not yet exist.\n"
+            "             : -out_1D or -out_niml must be used\n"
+            "\n"
+            "    -version               : show version information\n"
+            "\n"
+            "        Show version and compile date.\n"
+            "\n"
+            "  --------------------------------------------------\n"
+            "\n"
+            "Output from the program defaults to 1D format, in ascii text.\n"
+            "For each node (pair) that results in output, there will be one\n"
+            "line, consisting of:\n"
+            "\n"
+            "    node    : the index of the current node (or node pair)\n"
+            "\n"
+            "    1dindex : the global index of the AFNI voxel used for output\n"
+            "\n"
+            "              Note that for some filters (min, max, midpoint,\n"
+            "              median and mode) there is a specific location (and\n"
+            "              therefore voxel) that the result comes from.  It\n"
+            "              will be accurate (though median may come from one\n"
+            "              of two voxels that are averaged).\n"
+            "\n"
+            "              For filters without a well-defined source (such as\n"
+            "              average or seg_vals), the 1dindex will come from\n"
+            "              the first point on the corresponding segment.\n"
+            "\n"
+            "              Note: this will _not_ be output in the niml case.\n"
+            "\n"
+            "    i j k   : the i j k indices matching 1dindex\n"
+            "\n"
+            "              These indices are based on the orientation of the\n"
+            "              grid parent dataset.\n"
+            "\n"
+            "              Note: these will _not_ be output in the niml case.\n"
+            "\n"
+            "    vals    : the number of segment values applied to the filter\n"
+            "\n"
+            "              Note that when -f_index is 'nodes', this will\n"
+            "              always be the same as -f_steps, except when using\n"
+            "              the -cmask option.  In that case, along a single \n"
+            "              segment, some points may be in the mask, and some\n"
+            "              may not.\n"
+            "\n"
+            "              When -f_index is 'voxels' and -f_steps is used,\n"
+            "              vals will often be much smaller than -f_steps.\n"
+            "              This is because many segment points may in a\n"
+            "              single voxel.\n"
+            "\n"
+            "              Note: this will _not_ be output in the niml case.\n"
+            "\n"
+            "    v0, ... : the requested output values\n"
+            "\n"
+            "              These are the filtered values, usually one per\n"
+            "              AFNI sub-brick.  For example, if the -map_func\n"
+            "              is 'ave', then there will be one segment-based\n"
+            "              average output per sub-brick of the grid parent.\n"
+            "\n"
+            "              In the case of the 'seg_vals' filter, however,\n"
+            "              there will be one output value per segment point\n"
+            "              (possibly further restricted to voxels).  Since\n"
+            "              output is not designed for a matrix of values,\n"
+            "              'seg_vals' is restricted to a single sub-brick.\n"
+            "\n"
+            "\n"
+            "  Author: R. Reynolds  - %s\n"
+            "\n"
+            "                (many thanks to Z. Saad and R.W. Cox)\n"
 	    "\n",
-	    prog, prog,
-	    prog, prog, prog, prog, prog, prog, prog,
 	    VERSION );
     }
     else if ( level == V2S_USE_HIST )
@@ -3096,6 +3316,217 @@ ENTRY("surf_ave_radius");
 
 
 /*----------------------------------------------------------------------
+ * init_seg_endpoints              - initialize segment endpoints
+ *----------------------------------------------------------------------
+*/
+int init_seg_endpoints ( smap_opts_t * sopt, node_list_t * N, range_3dmm * R,
+	 		 int node )
+{
+ENTRY("init_seg_endpoints");
+
+    /* note the endpoints */
+    if ( sopt->use_norms )
+    {
+	/* first apply normals, then transform to current 3dmm */
+	R->p1 = N->nodes[node];
+	directed_dist(R->pn.xyz, R->p1.xyz, N->norms[0]+3*node, sopt->norm_len);
+
+	R->p1 = THD_dicomm_to_3dmm(R->dset, R->p1);
+	R->pn = THD_dicomm_to_3dmm(R->dset, R->pn);
+    }
+    else
+    {
+	R->p1 = THD_dicomm_to_3dmm(R->dset, N->nodes[node]);
+
+	if ( N->depth > 1 )
+	    R->pn = THD_dicomm_to_3dmm(R->dset, N->nodes[node+N->nnodes]);
+	else
+	    R->pn = R->p1;
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * init_range_structs
+ *----------------------------------------------------------------------
+*/
+int init_range_structs( range_3dmm * r3, range_3dmm_res * res3 )
+{
+ENTRY("init_range_structs");
+
+    r3->dset        = NULL;
+    r3->debug       = 0;
+
+    res3->ims.num   = 0;
+    res3->ims.nall  = 0;
+    res3->ims.imarr = NULL;
+    res3->i3arr     = NULL;
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * free_output_mem  - free contents of surf_data_t struct
+ *----------------------------------------------------------------------
+*/
+int free_output_mem( surf_data_t * sd )
+{
+    int c;
+
+ENTRY("free_output_mem");
+
+    if (sd->nodes)  { free(sd->nodes);   sd->nodes  = NULL; }
+    if (sd->volind) { free(sd->volind);  sd->volind = NULL; }
+    if (sd->i)      { free(sd->i);       sd->i      = NULL; }
+    if (sd->j)      { free(sd->j);       sd->j      = NULL; }
+    if (sd->k)      { free(sd->k);       sd->k      = NULL; }
+    if (sd->nvals)  { free(sd->nvals);   sd->nvals  = NULL; }
+
+    if (sd->vals)
+    {
+        for ( c = 0; c < sd->max_vals; c++ )
+	    if ( sd->vals[c] ) { free(sd->vals[c]);  sd->vals[c] = NULL; }
+
+	free(sd->vals);
+	sd->vals = NULL;
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * alloc_output_mem  - for output surface dataset
+ *----------------------------------------------------------------------
+*/
+int alloc_output_mem( smap_opts_t * sopt, param_t * p, node_list_t * N )
+{
+    surf_data_t * sd;
+    int           rv = 0, mem;
+
+ENTRY("allocate_output_mem");
+
+    if ( sopt->first_node > N->nnodes )
+    {
+ 	fprintf(stderr,"** -first_node (%d) > #nodes (%d)\n",
+		sopt->first_node, N->nnodes);
+	RETURN(1);
+    }
+
+    if ( sopt->first_node <  0         ) sopt->first_node = 0;
+    if ( sopt->first_node >= N->nnodes ) sopt->first_node = N->nnodes-1;
+    if ( sopt->last_node  == 0         ) sopt->last_node  = N->nnodes-1;
+    if ( sopt->last_node  >= N->nnodes ) sopt->last_node  = N->nnodes-1;
+
+    p->SD.nalloc   = sopt->last_node - sopt->first_node + 1;
+    p->SD.nused    = 0;
+    p->SD.max_vals = p->over_steps ? sopt->f_steps : DSET_NVALS(p->gpar);
+    p->SD.memory   = 0;
+
+    sd   = &p->SD;  /* just for typing... */
+
+    /* first, compute the memory needed for one row */
+    mem = 0;
+    if ( !(sopt->skip_cols & V2S_SKIP_NODES ) ) mem += sizeof(int);
+    if ( !(sopt->skip_cols & V2S_SKIP_VOLIND) ) mem += sizeof(int);
+    if ( !(sopt->skip_cols & V2S_SKIP_I     ) ) mem += sizeof(int);
+    if ( !(sopt->skip_cols & V2S_SKIP_J     ) ) mem += sizeof(int);
+    if ( !(sopt->skip_cols & V2S_SKIP_K     ) ) mem += sizeof(int);
+    if ( !(sopt->skip_cols & V2S_SKIP_NVALS ) ) mem += sizeof(int);
+
+    /* now note the actual output values */
+    if ( !(sopt->skip_cols & V2S_SKIP_VALS  ) ) mem += sizeof(float);
+    else                         mem += sd->max_vals * sizeof(float);
+
+    mem *= sd->nalloc;  /* and multiply by the height of each column */
+    p->SD.memory = mem;
+
+    if ( sopt->debug > 0 )
+	fprintf(stderr,"++ allocating memory for results: %d bytes\n", mem);
+
+    /* okay, this time let's allocate something... */
+
+    if ( ! (sopt->skip_cols & V2S_SKIP_NODES) )
+        rv = alloc_ints(&sd->nodes, sd->nalloc, "nodes", sopt->debug);
+
+    if ( ! rv && ! (sopt->skip_cols & V2S_SKIP_VOLIND) )
+        rv = alloc_ints(&sd->volind, sd->nalloc, "volind", sopt->debug);
+
+    if ( ! rv && ! (sopt->skip_cols & V2S_SKIP_I) )
+        rv = alloc_ints(&sd->i, sd->nalloc, "i", sopt->debug);
+
+    if ( ! rv && ! (sopt->skip_cols & V2S_SKIP_J) )
+        rv = alloc_ints(&sd->j, sd->nalloc, "j", sopt->debug);
+
+    if ( ! rv && ! (sopt->skip_cols & V2S_SKIP_K) )
+        rv = alloc_ints(&sd->k, sd->nalloc, "k", sopt->debug);
+
+    if ( ! rv && ! (sopt->skip_cols & V2S_SKIP_NVALS) )
+        rv = alloc_ints(&sd->nvals, sd->nalloc, "nvals", sopt->debug);
+
+    if ( ! rv && ! (sopt->skip_cols & V2S_SKIP_NVALS) )
+	rv = alloc_vals_list(&sd->vals, sd->nalloc, sd->max_vals, sopt->debug);
+    else
+	rv = alloc_vals_list(&sd->vals, sd->nalloc, 1, sopt->debug);
+
+    RETURN(rv);
+}
+
+
+/*----------------------------------------------------------------------
+ * alloc_vals_list  - allocate 2D array for surface data values
+ *----------------------------------------------------------------------
+*/
+int alloc_vals_list(float *** ptr, int length, int width, int debug)
+{
+    int c;
+
+ENTRY("alloc_vals_list");
+
+    *ptr = (float **)malloc(width * sizeof(float *));
+    if ( !*ptr )
+	fprintf(stderr,"** avl: failed to alloc %d floats pointers\n", width);
+
+    for ( c = 0; c < width; c++ )
+    {
+	(*ptr)[c] = (float *)malloc(length * sizeof(float));
+	if ( (*ptr)[c] == NULL )
+	    fprintf(stderr,"** avl: failed to alloc %d floats (# %d of %d)\n",
+		    length, c, width);
+    }
+
+    if ( debug > 1 )
+	fprintf(stderr,"-- alloc'd %d x %d floats for surf data\n",
+		width, length);
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * alloc_ints  - allocate 1D array of ints
+ *----------------------------------------------------------------------
+*/
+int alloc_ints( int ** ptr, int length, char * dstr, int debug )
+{
+ENTRY("alloc_ints");
+
+    *ptr = (int *)malloc(length * sizeof(int));
+    if ( ! *ptr )
+    {
+	fprintf(stderr,"** ai: failed to alloc %d ints for '%s'\n",length,dstr);
+	RETURN(1);
+    }
+    if ( debug > 1 )
+	fprintf(stderr,"-- ai: alloc'd %d ints for '%s'\n", length, dstr);
+
+    RETURN(0);
+}
+
+/*----------------------------------------------------------------------
  * disp_param_t  -  display the contents of the param_t struct
  *----------------------------------------------------------------------
 */
@@ -3114,18 +3545,29 @@ ENTRY("disp_param_t");
 
     fprintf(stderr,
 	    "param_t struct at %p :\n"
-	    "    gpar  : vcheck  = %p : %s\n"
-	    "    f3mm_min (xyz)  = (%f, %f, %f)\n"
-	    "    f3mm_max (xyz)  = (%f, %f, %f)\n"
-	    "    outfp, cmask    = %p : %p\n"
-	    "    ncmask, ccount  = %d, %d\n"
-	    "    nvox            = %d\n"
+	    "    gpar  : vcheck   = %p : %s\n"
+	    "    f3mm_min (xyz)   = (%f, %f, %f)\n"
+	    "    f3mm_max (xyz)   = (%f, %f, %f)\n"
+	    "    cmask            = %p\n"
+	    "    ncmask, ccount   = %d, %d\n"
+	    "    nvox, over_steps = %d, %d\n"
 	    , p,
 	    p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
 	    p->f3mm_min.xyz[0], p->f3mm_min.xyz[1], p->f3mm_min.xyz[2], 
 	    p->f3mm_max.xyz[0], p->f3mm_max.xyz[1], p->f3mm_max.xyz[2], 
-	    p->outfp, p->cmask, p->ncmask, p->ccount, p->nvox
+	    p->cmask, p->ncmask, p->ccount, p->nvox, p->over_steps
 	    );
+
+    fprintf(stderr,"surf_data_t struct at %p\n"
+	    "    nalloc, nused    = %d, %d\n"
+	    "    max_vals, memory = %d, %d\n"
+	    "    nodes, volind    = %p, %p\n"
+	    "    i, j, k          = %p, %p, %p\n"
+	    "    nvals, vals      = %p, %p\n"
+	    , &p->SD,
+	    p->SD.nalloc, p->SD.nused, p->SD.max_vals, p->SD.memory,
+	    p->SD.nodes, p->SD.volind, p->SD.i, p->SD.j, p->SD.k,
+	    p->SD.nvals, p->SD.vals);
 
     RETURN(0);
 }
@@ -3150,28 +3592,31 @@ ENTRY("disp_opts_t");
 
     fprintf(stderr,
 	    "options struct at %p :\n"
-	    "    gpar_file           = %s\n"
-	    "    out_file            = %s\n"
-	    "    spec_file           = %s\n"
-	    "    sv_file             = %s\n"
-	    "    cmask_cmd           = %s\n"
-	    "    map_str             = %s\n"
-	    "    snames[0,1]         = %s, %s\n"
-	    "    no_head             = %d\n"
-	    "    use_norms, norm_len = %d, %f\n"
-	    "    keep_norm_dir       = %d\n"
-	    "    debug, dnode        = %d, %d\n"
-	    "    f_index_str         = %s\n"
-	    "    f_steps             = %d\n"
-	    "    f_p1_fr, f_pn_fr    = %f, %f\n"
-	    "    f_p1_mm, f_pn_mm    = %f, %f\n"
+	    "    gpar_file             = %s\n"
+	    "    outfile_1D            = %s\n"
+	    "    outfile_niml          = %s\n"
+	    "    spec_file             = %s\n"
+	    "    sv_file               = %s\n"
+	    "    cmask_cmd             = %s\n"
+	    "    map_str               = %s\n"
+	    "    snames[0,1]           = %s, %s\n"
+	    "    no_head               = %d\n"
+	    "    first_node, last_node = %d, %d\n"
+	    "    use_norms, norm_len   = %d, %f\n"
+	    "    keep_norm_dir         = %d\n"
+	    "    debug, dnode          = %d, %d\n"
+	    "    f_index_str           = %s\n"
+	    "    f_steps               = %d\n"
+	    "    f_p1_fr, f_pn_fr      = %f, %f\n"
+	    "    f_p1_mm, f_pn_mm      = %f, %f\n"
 	    , opts,
-	    CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->out_file),
+	    CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->outfile_1D),
+	    CHECK_NULL_STR(opts->outfile_niml),
 	    CHECK_NULL_STR(opts->spec_file), CHECK_NULL_STR(opts->sv_file),
 	    CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
 	    CHECK_NULL_STR(opts->snames[0]), CHECK_NULL_STR(opts->snames[1]),
-	    opts->no_head, opts->use_norms, opts->norm_len, opts->keep_norm_dir,
-	    opts->debug, opts->dnode,
+	    opts->no_head, opts->first_node, opts->last_node, opts->use_norms,
+	    opts->norm_len, opts->keep_norm_dir, opts->debug, opts->dnode,
 	    CHECK_NULL_STR(opts->f_index_str), opts->f_steps,
 	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
 	    );
@@ -3198,20 +3643,27 @@ ENTRY("disp_smap_opts_t");
     }
 
     fprintf(stderr,
-	    "smap_opts_t struct at %p :\n"
-	    "    map, debug, dnode   = %d, %d, %d\n"
-	    "    no_head             = %d\n"
-	    "    use_norms, norm_len = %d, %f\n"
-	    "    keep_norm_dir       = %d\n"
-	    "    f_index, f_steps    = %d, %d\n"
-	    "    f_p1_fr, f_pn_fr    = %f, %f\n"
-	    "    f_p1_mm, f_pn_mm    = %f, %f\n"
-	    "    cmask               = %p\n"
+	    "smap_opts_t struct at %p  :\n"
+	    "    map, debug, dnode     = %d, %d, %d\n"
+	    "    no_head, skip_cols    = %d, %d\n"
+	    "    first_node, last_node = %d, %d\n"
+	    "    use_norms, norm_len   = %d, %f\n"
+	    "    keep_norm_dir         = %d\n"
+	    "    f_index, f_steps      = %d, %d\n"
+	    "    f_p1_fr, f_pn_fr      = %f, %f\n"
+	    "    f_p1_mm, f_pn_mm      = %f, %f\n"
+	    "    outfile_1D            = %s\n"
+	    "    outfile_niml          = %s\n"
+	    "    cmask                 = %p\n"
 	    , sopt,
-	    sopt->map, sopt->debug, sopt->dnode, sopt->no_head,
+	    sopt->map, sopt->debug, sopt->dnode,
+	    sopt->no_head, sopt->skip_cols,
+	    sopt->first_node, sopt->last_node,
 	    sopt->use_norms, sopt->norm_len, sopt->keep_norm_dir,
 	    sopt->f_index, sopt->f_steps,
 	    sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm,
+	    CHECK_NULL_STR(sopt->outfile_1D),
+	    CHECK_NULL_STR(sopt->outfile_niml),
 	    sopt->cmask
 	    );
 
@@ -3381,6 +3833,63 @@ ENTRY("disp_fvec");
 	fprintf(stderr, "  %f", f[c]);
 
     fputc('\n', stderr);
+
+    RETURN(0);
+}
+
+
+/***********************************************************************
+ * disp_surf_vals
+ ***********************************************************************
+*/
+int disp_surf_vals( char * mesg, surf_data_t * sd, int node )
+{
+    int index, c;
+
+ENTRY("disp_surf_vals");
+
+    if ( mesg ) fputs( mesg, stderr );
+    if ( sd->nused < 1 )
+    {
+	fprintf(stderr,"** no surf nodes defined\n");
+	RETURN(-1);
+    }
+
+    index = (node >= 0) ? node : sd->nodes[sd->nused - 1];
+
+    fprintf(stderr, "surf_data_t vals for sd_index %d, node %d :\n"
+		    "    volind, (i, j, k) = %d, (%d, %d, %d)\n"
+		    "    nvals: values...  = %d:  ",
+		    index, sd->nodes[index],
+		    sd->volind[index], sd->i[index], sd->j[index], sd->k[index],
+		    sd->nvals[index]);
+
+    for ( c = 0; c < sd->max_vals; c++ )
+	fprintf(stderr,"%s  ", MV_format_fval(sd->vals[c][index]));
+    fputc('\n', stderr);
+
+    RETURN(0);
+}
+
+
+/***********************************************************************
+ * disp_surf_data_t
+ ***********************************************************************
+*/
+int disp_surf_data_t( char * mesg, surf_data_t * d )
+{
+ENTRY("disp_surf_data_t");
+
+    if ( mesg ) fputs( mesg, stderr );
+
+    fprintf(stderr, "surf_data_t @ %p\n"
+		    "    nalloc, nused    = %d, %d\n"
+		    "    max_vals, memory = %d, %d\n"
+		    "    nodes, volind    = %p, %p\n"
+		    "    i, j, k          = %p, %p, %p\n"
+		    "    nvals, vals      = %p, %p\n",
+	    	    d, d->nalloc, d->nused, d->max_vals, d->memory,
+		    d->nodes, d->volind, d->i, d->j, d->k, d->nvals, d->vals);
 
     RETURN(0);
 }
