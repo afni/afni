@@ -1,5 +1,5 @@
 
-#define VERSION "version 4.1 (February 10, 2004)"
+#define VERSION "version  4.1 (February 10, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -945,6 +945,10 @@ ENTRY("get_mappable_surfs");
 	    if ( debug )
 		fprintf(stderr,"-- surf #%d '%s', anat not correct, skipping\n",
 			socount, CHECK_NULL_STR(so->Label));
+            if ( debug > 1 )
+                fprintf(stderr,"** consider adding the following to the "
+                               "surface definition in the spec file:\n"
+                               "       Anatomical = Y\n");
 	    continue;
 	}
 
