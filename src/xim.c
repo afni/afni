@@ -14,6 +14,8 @@
 /*********************************************************************/
 
 /*------------------------------------------------------------------------*/
+/*! Free an XImage created by mri_to_XImage() or its kin.
+--------------------------------------------------------------------------*/
 
 void MCW_kill_XImage( XImage * image )
 {
@@ -27,10 +29,10 @@ ENTRY("MCW_kill_XImage") ;
    EXRETURN ;
 }
 
-/*-------------------------------------------------------------------------
-  Create an XImage from an MRI_IMAGE of shorts:
-    values >= 0 draw from the "image" palette
-    values <  0 draw from the "overlay" palette (stored in dc)
+/*-------------------------------------------------------------------------*/
+/*! Create an XImage from an MRI_IMAGE of shorts or rgbs:
+    - values >= 0 draw from the "image" palette
+    - values <  0 draw from the "overlay" palette (stored in dc)
 ---------------------------------------------------------------------------*/
 
 XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
@@ -188,10 +190,10 @@ ENTRY("mri_to_XImage") ;
    RETURN( ximage ) ;
 }
 
-/*--------------------------------------------------------------------------
-   Input:  an XImage of one size
-   Output: an XImage of another size
-   method: nearest neighbor resampling
+/*--------------------------------------------------------------------------*/
+/*! - Input:  an XImage of one size
+    - Output: an XImage of another size
+    - method: nearest neighbor resampling
 ----------------------------------------------------------------------------*/
 
 XImage * resize_XImage( MCW_DC * dc , XImage * image ,
@@ -332,15 +334,15 @@ ENTRY("resize_XImage") ;
    RETURN( emage ) ;
 }
 
-/*---------------------------------------------------------------------------
-   input  = XImage (with Pixel values from dc)
-   output = RGB or Grayscale image
-   code   = mask of values indicating optional processing:
+/*---------------------------------------------------------------------------*/
+/*! - input  = XImage (with Pixel values from dc)
+    - output = RGB or Grayscale image
+    - code   = mask of values indicating optional processing:
 
-            (code & X2M_USE_CMAP) != 0 means use the entire colormap
+          - (code & X2M_USE_CMAP) != 0 means use the entire colormap
                                   == 0 means use only Pixels in dc
 
-            (code & X2M_FORCE_RGB)!= 0 means output is always RGB format
+          - (code & X2M_FORCE_RGB)!= 0 means output is always RGB format
                                   == 0 means output might be byte format
                                        (grayscale) if all pixels are gray
 -----------------------------------------------------------------------------*/
@@ -493,9 +495,9 @@ fprintf(stderr,
    RETURN( outim ) ;
 }
 
-/*-----------------------------------------------------------------------
-   Convert an array of X11 Pixel values to an XImage for display.
-   Adapted from mri_to_XImage by RWCox -- 11 Feb 1999
+/*-----------------------------------------------------------------------*/
+/*  Convert an array of X11 Pixel values to an XImage for display.
+    Adapted from mri_to_XImage by RWCox -- 11 Feb 1999
 -------------------------------------------------------------------------*/
 
 XImage * pixar_to_XImage( MCW_DC * dc, int nx, int ny, Pixel * par )
@@ -640,6 +642,10 @@ static INLINE Pixel tc_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
 static XImage * rgb_to_XImage_simple( MCW_DC *, MRI_IMAGE * ) ;
 static XImage * rgb_to_XImage_clever( MCW_DC *, MRI_IMAGE * ) ;
 
+/*----------------------------------------------------------------------------*/
+/*! Convert an MRI_IMAGE of rgb values to an XImage for display.
+------------------------------------------------------------------------------*/
+
 XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
 {
    switch( dc->visual_class ){
@@ -650,7 +656,7 @@ XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Convert an MRI_IMAGE of rgb bytes to an XImage (TrueColor visual)
+/*! Convert an MRI_IMAGE of rgb bytes to an XImage (TrueColor visual only)
 ------------------------------------------------------------------------------*/
 
 static XImage * rgb_to_XImage_simple( MCW_DC * dc , MRI_IMAGE * im )
@@ -687,7 +693,7 @@ static XImage * rgb_to_XImage_clever( MCW_DC * dc , MRI_IMAGE * im )
 {
    int nxy , ii , c ;
    byte * rgb , r,g,b ;
-   Pixel * par , p ;
+   Pixel * par , p=0 ;
    XImage * xim ;
    int * col_ar , * ii_ar ;
 

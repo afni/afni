@@ -302,7 +302,8 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
 
    GLOBAL_argopt.enable_suma    = 1 ;      /* 29 Aug 2001 */
-   GLOBAL_argopt.yes_niml       = 1 ;      /* 28 Feb 2002 */
+
+   GLOBAL_argopt.yes_niml       = AFNI_yesenv("AFNI_NIML_START") ;
 
 #if 0
    GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
