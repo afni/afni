@@ -708,6 +708,10 @@ viewing mode you are using (warped from a brick, or data directly
 extracted from a brick), since the "Define Datamode" control panel
 will not always be open.
 
+08 Aug 2003: I have modified the way these variables are treated in
+AFNI so that they now default to the "YES" behavior.  If you don't
+want this, you have to explicitly set them to "NO" from this day forth.
+
 ----------------
 Variable: TMPDIR
 ----------------

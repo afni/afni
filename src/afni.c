@@ -6646,7 +6646,7 @@ ENTRY("AFNI_setup_viewing") ;
    if( anat_brick_possible         &&
        im3d->vinfo->force_anat_wod &&
        im3d->vinfo->tempflag == 0  &&
-       AFNI_yesenv("AFNI_VIEW_ANAT_BRICK") ){
+       !AFNI_noenv("AFNI_VIEW_ANAT_BRICK") ){
 
 STATUS("setting anatmode_bbox back to 'View Anat Data Brick'") ;
       im3d->vinfo->force_anat_wod = 0 ;
@@ -6696,7 +6696,7 @@ STATUS("setting anatmode_bbox back to 'View Anat Data Brick'") ;
    /*-----------------------------------------------------*/
    /*--- set up the func w-o-d axes and viewing bricks ---*/
 
-   if( ISVALID_3DIM_DATASET( im3d->fim_now ) ){  /* that is, if we have func */
+   if( ISVALID_3DIM_DATASET(im3d->fim_now) ){  /* that is, if we have func */
 
 STATUS("function brick setup") ;
 
@@ -6725,10 +6725,13 @@ STATUS("deciding whether to use function WOD") ;
 
       /*- The Ides of March, 2000: allow switching back to "view brick" -*/
 
-      if( func_brick_possible          &&
-          im3d->vinfo->force_func_wod  &&
-          im3d->vinfo->tempflag == 0   &&
-          AFNI_yesenv("AFNI_VIEW_FUNC_BRICK") ){
+
+      if( func_brick_possible                          &&
+          ( ( im3d->vinfo->force_func_wod  &&
+              im3d->vinfo->tempflag == 0   &&
+              !AFNI_noenv("AFNI_VIEW_FUNC_BRICK") ) ||
+            ( !im3d->anat_wod_flag         &&              /* 08 Aug 2003 */
+              im3d->anat_now == im3d->fim_now     )   ) ){
 
 STATUS("setting funcmode_bbox back to 'View Func Data Brick'") ;
          im3d->vinfo->force_func_wod = 0 ;
@@ -6737,10 +6740,10 @@ STATUS("setting funcmode_bbox back to 'View Func Data Brick'") ;
 
       if( func_brick_possible && ! im3d->vinfo->force_func_wod ){
 STATUS("not forcing function WOD") ;
-         im3d->fim_wod_flag = False ;   /* 02 Nov 1996 */
+        im3d->fim_wod_flag = False ;   /* 02 Nov 1996 */
       } else {
 STATUS("forcing function WOD") ;
-         im3d->fim_wod_flag = True ;   /* 02 Nov 1996 */
+        im3d->fim_wod_flag = True ;    /* 02 Nov 1996 */
       }
 
       LOAD_FUNC_VIEW(im3d) ;  /* 02 Nov 1996 */
