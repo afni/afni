@@ -22,13 +22,22 @@ floatvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *str 
 
    if( nlast < 0 ) return NULL ;  /* bad input */
 
+   /* check if have anything to scan for */
+
+   if( nrang < 1 || rang == NULL || str == NULL || *str == '\0' ) return NULL ;
+
+   /* check if input line is a comment */
+
+   for( ii=0 ; str[ii] != '\0' && isspace(str[ii]) ; ii++ ) ;  /*nada*/
+
+   if( str[ii] == '\0' ||                   /* all blank */
+       str[ii] == '#'  ||                   /* starts with "#" */
+      (str[ii] == '/' && str[ii+1] == '/')  /* starts with "//" */
+   ) return NULL ;
+
    fv     = (floatvec *)malloc(sizeof(floatvec)) ;    /* create empty output */
    fv->nar = nlast+1 ;
    fv->ar  = (float *)calloc(sizeof(float),nlast+1) ;
-
-   /* check if have anything to scan for */
-
-   if( nrang < 1 || rang == NULL || str == NULL || *str == '\0' ) return fv ;
 
    /* find largest ntop value (for the MCW_get_intlist call) */
 

@@ -156,7 +156,7 @@ int string_index( char *targ, int nstr, char *str[] )
    if( nstr < 1 || str == NULL || targ == NULL ) return -1 ;
 
    for( ii=0 ; ii < nstr ; ii++ )
-      if( str[ii] != NULL && strcmp(str[ii],targ) == 0 ) return ii ;
+     if( str[ii] != NULL && strcmp(str[ii],targ) == 0 ) return ii ;
 
    return -1 ;
 }
@@ -446,7 +446,7 @@ int NI_is_name( char *str )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Find a 'trailing name in a pathname.
+/*! Find a trailing name in a pathname.
 
    For example, for fname = "/bob/cox/is/the/author/of/NIML",
      - the lev=0 trailing name is "NIML",

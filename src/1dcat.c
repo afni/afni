@@ -34,6 +34,11 @@ int main( int argc , char * argv[] )
    nim = argc-1 ;
    inim = (MRI_IMAGE **) malloc( sizeof(MRI_IMAGE *) * nim ) ;
    for( jj=0 ; jj < nim ; jj++ ){
+#if 0
+      if( AFNI_yesenv("ragged") )
+        inim[jj] = mri_read_ascii_ragged( argv[jj+1] , 1.e+38 ) ;
+      else
+#endif
       inim[jj] = mri_read_1D( argv[jj+1] ) ;
       if( inim[jj] == NULL ){
          fprintf(stderr,"** Can't read input file %s\n",argv[jj+1]) ;
