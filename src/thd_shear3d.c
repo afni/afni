@@ -448,8 +448,20 @@ MCW_3shear shear_best( THD_dmat33 *q , THD_dfvec3 *xyzdel )
    int ii , jbest ;
    double val , best ;
 
-   if( DMAT_TRACE(*q) >= 2.99999 ){   /* 24 Feb 2004: input = identity matrix */
+   double dsum,esum ;   /* 29 Feb 2004 */
+
+   dsum = DMAT_TRACE(*q) ;
+   esum = fabs(q->mat[0][1]) + fabs(q->mat[0][2])
+         +fabs(q->mat[1][0]) + fabs(q->mat[1][2])
+         +fabs(q->mat[2][0]) + fabs(q->mat[2][1]) ;
+
+   if( dsum >= 2.99999 && esum/dsum < 1.e-6 ){
      MCW_3shear shr ; double dx=xyzdel->xyz[0], dy=xyzdel->xyz[1], dz=xyzdel->xyz[2] ;
+#if 0
+     if( MRILIB_verbose ){
+       fprintf(stderr,"shear_best: matrix=I?\n"); DUMP_DMAT33("matrix",*q);
+     }
+#endif
      shr.ax[3]=0; shr.scl[3][0]=1.0; shr.scl[3][1]=0.0; shr.scl[3][2]=0.0; shr.sft[3]=dx;
      shr.ax[2]=2; shr.scl[2][2]=1.0; shr.scl[2][0]=0.0; shr.scl[2][1]=0.0; shr.sft[2]=dz;
      shr.ax[1]=1; shr.scl[1][1]=1.0; shr.scl[1][0]=0.0; shr.scl[1][2]=0.0; shr.sft[1]=dy;
@@ -600,6 +612,10 @@ MCW_3shear rot_to_shear( int ax1 , double th1 ,
 
    shr.flip0 = flip0 ; shr.flip1 = flip1 ;
 
+#if 0
+   if( MRILIB_verbose ) DUMP_3SHEAR("rot_to_shear",shr) ;
+#endif
+
    return shr ;
 }
 
@@ -678,6 +694,10 @@ MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec ,
    }
 
    shr.flip0 = flip0 ; shr.flip1 = flip1 ;
+
+#if 0
+   if( MRILIB_verbose ) DUMP_3SHEAR("rot_to_shear",shr) ;
+#endif
 
    return shr ;
 }

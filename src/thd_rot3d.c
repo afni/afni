@@ -411,7 +411,8 @@ fprintf(stderr,"  xdel=%g  ydel=%g  zdel=%g\n",xdel,ydel,zdel) ;
    }
 
 #if 0
-   DUMP_3SHEAR("Computed shear",shr) ;
+   if( MRILIB_verbose )
+     DUMP_3SHEAR("Computed shear",shr) ;
 #endif
 
 #ifdef CLIPIT
@@ -527,7 +528,8 @@ void THD_rota_vol_matvec( int   nx   , int   ny   , int   nz   ,
    }
 
 #if 0
-   DUMP_3SHEAR("Computed shear",shr) ;
+   if( MRILIB_verbose )
+     DUMP_3SHEAR("Computed shear",shr) ;
 #endif
 
 #ifdef CLIPIT
