@@ -1388,27 +1388,48 @@ This YES/NO variable is designed to patch a flaw in some DICOM files, where
 the "Spacing Between Slices" attribute is erroneously set to the gap between
 the slices, rather than the center-to-center slice distance specified in
 the DICOM standard.  If this variable is set to YES, then the "Slice Thickness"
-attribute will be added to "Spacing Between Slices" to get the z voxel size.
+attribute will always be added to "Spacing Between Slices" to get the z voxel
+size (assuming both attributes are present in the DICOM file).
 
 To check if a DICOM file has this problem, you can read it into to3d with
-the command "to3d suspect_file_name".  A warning will be printed if attribute
-"Spacing Between Slices" is less than attribute "Slice Thickness".  Another
-way to check is with a command like so
+the command "to3d suspect_file_name".  A warning will be printed to the
+terminal window if attribute "Spacing Between Slices" is less than
+attribute "Slice Thickness".  Another way to check is with a command like so
 
   dicom_hdr suspect_file_name | grep "Slice"
 
 then check if the "Spacing Between Slices" and "Slice Thickness" values are
 correct for the given acquisition.  We have only seen this problem in GE
-generated DICOM files, but that doesn't mean it can't occur elsewhere.
-
-If this variable is not set at all, then if "Spacing Between Slices" is found
-and is less than 0.99 times "Slice Thickness", it will be treated as a gap;
-that is, the z voxel size will again be set to "Spacing Between Slices" +
-"Slice Thickness" if "Spacing Between Slices" < 0.99*"Slice Thickness".
+generated DICOM files, but that doesn't mean it won't occur elsewhere.
 
 If this variable is set to NO, then this patchup will never be made.
-The voxel size will be set to the larger of "Spacing Between Slices" and
-"Slice Thickness", if both are present.
+The z voxel size will be set to "Spacing Between Slices" if present,
+otherwise to "Slice Thickness".  This may be needed for some Phillips pulse
+sequences, which can report "Spacing Between Slices" < "Slice Thickness".
+In such a case, if this variable is not set, the wrong z voxel size will
+be assigned!
+
+If this variable is not set at all, AND if "Spacing Between Slices" is less
+less than 0.99 times "Slice Thickness", it will be treated as a gap;
+that is, the z voxel size will again be set to "Spacing Between Slices" +
+"Slice Thickness" if "Spacing Between Slices" < 0.99*"Slice Thickness".
+Otherwise, the z voxel size will be set to the larger of
+"Spacing Between Slices" and "Slice Thickness".
+
+N.B.: "YES", "NO", and "not set" have 3 different sets of behavior!
+      In the summary below, if a variable isn't set, treat it as zero:
+
+  YES     => dz = Thickness + Spacing
+  NO      => dz = Spacing if present, otherwise Thickness
+  not set => if( Spacing > 0 && Spacing < 0.99*Thickness )
+               dz = Thickness + Spacing
+             else
+               dz = MAX( Thickness , Spacing )
+
+If neither variable is set, then dz=1 mm, which is probably wrong.
+
+Sorry about this complexity, but the situation with various manufacturers
+is complicated and murky.
 
 ---------------------------------------------------
 Variables: AFNI_DICOM_RESCALE and AFNI_DICOM_WINDOW

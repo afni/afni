@@ -4873,3 +4873,8 @@
 12 Jan 2004
  * Modified imseq.c to draw graymap in histogram style.  Also added
      "ent=" entropy value to numerical range display.
+
+13 Jan 2004
+ * Modified mri_read_dicom.c to alter operation of AFNI_SLICE_SPACING_IS_GAP
+     so that "NO" means use the Spacing attribute even if it is smaller than
+     the Thickness attribute.  Seems to be needed for Phillips MRV.
