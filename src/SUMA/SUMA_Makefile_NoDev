@@ -167,6 +167,8 @@ install:
 	@if [ -f 3dSurf2Vol ]; then mv 3dSurf2Vol ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
+	@if [ -f ConvertSurface ]; then mv ConvertSurface ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfaceMetrics ]; then mv SurfaceMetrics ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -191,6 +193,9 @@ packbins:
 	@if [ -f 3dSurf2Vol ]; then $(CP) -p 3dSurf2Vol SUMA_bin/; fi;
 	@if [ -f SUMA_glxdino ]; then $(CP) -p SUMA_glxdino SUMA_bin/; fi;
 	@if [ -f SUMA_pixmap2eps ]; then $(CP) -p SUMA_pixmap2eps SUMA_bin/; fi;	
+	@if [ -f ConvertSurface ]; then $(CP) -p ConvertSurface SUMA_bin/; fi;	
+	@if [ -f SurfaceMetrics ]; then $(CP) -p SurfaceMetrics SUMA_bin/; fi;	
+
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
 	
