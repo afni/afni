@@ -170,5 +170,12 @@
       (vval) = fp((typ1)(arg1),(typ2)(arg2),(typ3)(arg3),(typ4)(arg4)) ;            \
  } while(0)
 
+/*----------------------------------------------------------------------------------*/
+#define AFNI_CALL_VOID_7ARG(func,typ1,arg1,typ2,arg2,typ3,arg3,typ4,arg4,typ5,arg5,typ6,arg6,typ7,arg7) \
+ do{ void (*fp)(typ1,typ2,typ3,typ4,typ5,typ6,typ7) = (void (*)(typ1,typ2,typ3,typ4,typ5,typ6,typ7))(func) ;      \
+     if( fp != NULL )                                                               \
+      fp((typ1)(arg1),(typ2)(arg2),(typ3)(arg3),(typ4)(arg4),(typ5)(arg5),(typ6)(arg6),(typ7)(arg7)) ;            \
+ } while(0)
+
 /******************************************************************************/
 #endif /* _AFNI_AMALLOC_HEADER_ */
