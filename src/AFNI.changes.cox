@@ -1954,3 +1954,7 @@
  * Added "Set All" and "Set Defaults" buttons to FIM+ menu in afni_graph.[ch].
  * Removed contents of file README.changes.
  * Abbreviated "Cannot find ..." error messages in thd_reconpar.c.
+ * Added total dataset count report to afni.c input routine.
+
+05 Jan 2000
+ * Changed default AFNI_SPLASHTIME to 1.0 seconds in afni.c.

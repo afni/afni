@@ -453,7 +453,7 @@ dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
       afni.c afni_func.c afni_widg.c afni_warp.c afni_fimmer.c \
       pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_setup.c  \
       afni_pcor.c afni_pcor_update.c afni_plugin.c afni_receive.c \
-      parser.c parser_int.c afni_plugout.c afni_plugout.c newstuff.hhh
+      parser.c parser_int.c afni_plugout.c afni_plugout.c
 	$(CCD) -o dafni $(IFLAGS) \
                 afni.c afni_func.c afni_widg.c afni_warp.c afni_graph.c \
                 dafni_slice_short.o dafni_slice_float.o  LiteClue.o \
@@ -714,7 +714,7 @@ afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
 
 afni_splash.o:afni_splash.h
 
-afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h newstuff.hhh
+afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h
 afni_widg.o:imseq.h 3ddata.h xutil.h pbar.h afni.h mcw.h machdep.h
 afni_warp.o:afni_warp.h 3ddata.h machdep.h
 afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h machdep.h

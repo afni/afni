@@ -4041,8 +4041,6 @@ ENTRY("AFNI_bucket_label_CB") ;
   Callback for all actions in the misc menu
 -----------------------------------------------------------------*/
 
-#include "newstuff.hhh"
-
 void AFNI_misc_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
@@ -4109,20 +4107,13 @@ STATUS("got func info") ;
    }
 
    else if( w == im3d->vwid->dmode->misc_newstuff_pb ){
-      char * inf ;
-      int lsum=8 , ii ;
-
-      for( ii=0 ; ii < NUM_newstuff ; ii++ )
-         lsum += strlen( newstuff[ii] ) ;
-
-      inf = (char *) malloc(sizeof(char)*lsum) ; inf[0] = '\0' ;
-      for( ii=0 ; ii < NUM_newstuff ; ii++ )
-         strcat( inf , newstuff[ii] ) ;
-
-      (void) new_MCW_textwin( im3d->vwid->imag->topper ,
-                              inf , TEXT_READONLY ) ;
-
-      free(inf) ;
+      (void) MCW_popup_message( im3d->vwid->imag->topper ,
+                                 " \n"
+                                 "This function has been discontinued.  Instead, see\n"
+                                 " http://varda.biophysics.mcw.edu/~cox/afni_latest.html\n"
+                                 "for information about changes to the AFNI package.\n"
+                                 "                              -- Bob Cox, January 2000\n" ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
 
    else if( w == im3d->vwid->dmode->misc_purge_pb ){

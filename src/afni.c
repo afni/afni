@@ -1040,10 +1040,14 @@ static Boolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
    static int nosplash = 0 ;
-   static double eltime , max_splash=5.0 ;
+   static double eltime , max_splash=1.0 ;
    int ii ;
 
    switch( MAIN_calls ){
+
+      /*============================================================================
+         This code is executed at the end (when MAIN_calls gets too big).
+        ============================================================================*/
 
       default:{
          if( nosplash ) return True ;
@@ -1051,7 +1055,10 @@ static Boolean MAIN_workprocess( XtPointer fred )
       }
       break ;
 
-      /*============================================================================*/
+      /*============================================================================
+         Stuff to popup the AFNI splash screen (see afni_splash.[ch]).
+        ============================================================================*/
+
       case 0:{
 
 #ifdef NO_FRIVOLITIES
@@ -1080,13 +1087,13 @@ static Boolean MAIN_workprocess( XtPointer fred )
       case 10: if( !nosplash) iochan_sleep(1) ; /* waste time to let splash popup */
       break ;
 
-      /*============================================================================*/
+      /*============================================================================
+         Next, create the first AFNI controller window.
+        ============================================================================*/
+
       case 11:{
 
         int do_images ;                           /* 19 Oct 1999 */
-
-        /*-----------------------------------*/
-        /*--- Create the first controller ---*/
 
         REPORT_PROGRESS(". Widgets") ;
 
@@ -1111,11 +1118,11 @@ static Boolean MAIN_workprocess( XtPointer fred )
       }
       break ;
 
-      /*============================================================================*/
-      case 12:{
+      /*============================================================================
+         Next, read the input files (may take a while).
+        ============================================================================*/
 
-        /*-----------------------------*/
-        /*--- read the input files! ---*/
+      case 12:{
 
         REPORT_PROGRESS(". Input files:") ;
 
@@ -1126,11 +1133,11 @@ static Boolean MAIN_workprocess( XtPointer fred )
       }
       break ;
 
-      /*============================================================================*/
-      case 13:{
+      /*============================================================================
+         Next, setup the plugins, etc.
+        ============================================================================*/
 
-        /*--------------------------------------*/
-        /*--- Setup the plugins, if possible ---*/
+      case 13:{
 
         GLOBAL_library.registered_0D.num = 0 ;               /* initialize registry */
         GLOBAL_library.registered_1D.num = 0 ;               /* initialize registry */
@@ -1177,10 +1184,11 @@ static Boolean MAIN_workprocess( XtPointer fred )
       }
       break ;
 
-      /*============================================================================*/
-      case 14:{
+      /*============================================================================
+         Next, do the initial setup on entering the initial view.
+        ============================================================================*/
 
-        /*--- do the initial setup on entering the initial view ---*/
+      case 14:{
 
         OPEN_CONTROLLER( MAIN_im3d ) ;
 
@@ -1192,7 +1200,7 @@ static Boolean MAIN_workprocess( XtPointer fred )
            (void) XtAppSetWarningHandler(MAIN_app,MAIN_old_handler) ;  /* turn back on */
 #endif
 
-        /*--- Go! ---*/
+        /*--- Other small and quick startup stuff before AFNI can go ---*/
 
         MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ) ;  /* initialize help */
 
@@ -1201,7 +1209,7 @@ static Boolean MAIN_workprocess( XtPointer fred )
           REPORT_PROGRESS(str) ;
         }
 
-        { char * hh = getenv("AFNI_HINTS") ;
+        { char * hh = getenv("AFNI_HINTS") ;                  /* initialize hints */
           GLOBAL_library.hints_on = 1 ;
           if( hh != NULL && ( strncmp(hh,"NO" ,2)==0 ||
                               strncmp(hh,"no" ,2)==0 ||
@@ -1241,6 +1249,9 @@ static Boolean MAIN_workprocess( XtPointer fred )
         if( ALLOW_real_time > 0 )
            REPORT_PROGRESS("\nRT: realtime plugin is active") ;
 
+        /* this function will be called 1.234 seconds from now to finalize
+           anything else that needs fixing up once AFNI is fully started   */
+
         (void) XtAppAddTimeOut( MAIN_app , 1234 , AFNI_startup_timeout_CB , MAIN_im3d ) ;
 
         REPORT_PROGRESS("\n") ;
@@ -1249,7 +1260,7 @@ static Boolean MAIN_workprocess( XtPointer fred )
 
       /*============================================================================*/
 #if 0
-      case 15:{
+      case 15:{  /* not used at present, but ready to be added when needed */
       }
       break ;
 #endif
@@ -1313,7 +1324,7 @@ ENTRY("AFNI_quit_CB") ;
       im3d->vwid->prog->quit_first = False ;
       if( im3d->vwid->picture != NULL ) PICTURE_ON( im3d ) ;
 
-      /* if not repressed in 5 seconds, will reset to lowercase */
+      /* if not re-pressed in 5 seconds, will reset to lowercase */
 
       (void) XtAppAddTimeOut(
                XtWidgetToApplicationContext(im3d->vwid->prog->quit_pb) ,
@@ -1339,6 +1350,11 @@ ENTRY("AFNI_quit_CB") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------
+  Timeout routine to change 'DONE' button label back to 'done'
+  after 5 seconds have passed.
+------------------------------------------------------------------------*/
+
 void AFNI_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
@@ -1347,17 +1363,24 @@ ENTRY("AFNI_quit_timeout_CB") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------
+  This function is called about 1 s after AFNI startup is completed.
+  It's original purpose was to make sure that the help window was
+  popped down - the help initializing routine does this, too, but
+  it didn't work properly on the old Tektronix X-terminal at MCW.
+  Thus, the timeout - waiting a little made things work OK.
+------------------------------------------------------------------------*/
+
 void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
 
 ENTRY("AFNI_startup_timeout_CB") ;
 
-   MCW_help_CB(NULL,NULL,NULL) ;
+   MCW_help_CB(NULL,NULL,NULL) ;  /* make sure help window is popped down */
    SHOW_AFNI_READY ;
    RESET_AFNI_QUIT(im3d) ;
-
-   MPROBE ;
+   MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
 }
 
@@ -2606,6 +2629,7 @@ ENTRY("AFNI_read_inputs") ;
       THD_string_array * flist , * dlist=NULL ;
       char * dname ;
       THD_session * new_ss ;
+      int num_dsets=0 ;      /* 04 Jan 2000 */
 
       num_ss  = argc - GLOBAL_argopt.first_file_arg ;
       no_args = (num_ss < 1) ;
@@ -2690,6 +2714,8 @@ if(PRINT_TRACING)
                 GLOBAL_library.sslist->num_sess ,
                 new_ss->sessname ,
                 new_ss->num_anat , new_ss->num_func ) ;
+
+            num_dsets += (new_ss->num_anat + new_ss->num_func) ;  /* 04 Jan 2000 */
 
             REPORT_PROGRESS(str) ;
 
@@ -2921,6 +2947,11 @@ if(PRINT_TRACING)
 #endif
 
          PARENTIZE( new_ss->anat[0][0] , NULL ) ;
+
+      } else {  /* 04 Jan 2000: show total number of datasets */
+
+         sprintf(str,"\n dataset count = %d" , num_dsets ) ;
+         REPORT_PROGRESS(str) ;
       }
 
       /*** read all timeseries files from all directories ***/

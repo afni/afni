@@ -12,24 +12,24 @@
 ------------------------------------------------------------------*/
 
 #ifdef OMIT_DATASET_IDCODES
-# define IFNOANAT(ds)                                           \
-   if( needed && (ds)->anat_parent == NULL )                    \
-      fprintf(stderr, "\n** Can't find anat parent %s of %s\n", \
+# define IFNOANAT(ds)                                         \
+   if( needed && (ds)->anat_parent == NULL )                  \
+      fprintf(stderr, "\n** Can't find anat parent %s of %s", \
              (ds)->anat_parent_name , DSET_HEADNAME(ds) )
 
 # define IFNOWARP(ds)                                             \
    if( needed && (ds)->warp_parent == NULL && ! DSET_ONDISK(ds) ) \
-      fprintf(stderr, "\n** Can't find warp parent %s of %s\n",   \
+      fprintf(stderr, "\n** Can't find warp parent %s of %s",     \
              (ds)->warp_parent_name , DSET_HEADNAME(ds) )
 #else
 # define IFNOANAT(ds)                                           \
    if( needed && (ds)->anat_parent == NULL )                    \
-      fprintf(stderr, "\n** Can't find anat parent %s of %s\n", \
+      fprintf(stderr, "\n** Can't find anat parent %s of %s",   \
              (ds)->anat_parent_idcode.str , DSET_HEADNAME(ds) )
 
 # define IFNOWARP(ds)                                             \
    if( needed && (ds)->warp_parent == NULL && ! DSET_ONDISK(ds) ) \
-      fprintf(stderr, "\n** Can't find warp parent %s of %s\n",   \
+      fprintf(stderr, "\n** Can't find warp parent %s of %s",     \
              (ds)->warp_parent_idcode.str , DSET_HEADNAME(ds) )
 #endif
 
