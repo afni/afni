@@ -3661,6 +3661,7 @@ typedef struct {
    MRI_warp3D_param_def *param ;
    float scale_init , scale_out ;
    float delfac , tolfac ;
+   float twoblur ;
 
    int regmode , verb , max_iter , num_iter , wtproc ;
    int xedge , yedge , zedge ;
@@ -3673,11 +3674,11 @@ typedef struct {
 
    /*- below here is not to be touched by the user! -*/
 
+   int        nfree ;
    MRI_IMAGE *imww ;
    MRI_IMAGE *imap ;
    MRI_IMAGE *imps ;
    MRI_IMAGE *imsk ;
-   int        nfree ;
 
 } MRI_warp3D_align_basis ;
 
