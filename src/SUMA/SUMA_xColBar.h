@@ -290,6 +290,23 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);
 #define SUMA_SurfContHelp_DsetView  \
    "View (ON)/Hide Dset node colors."
 
+#define SUMA_SurfContHelp_DsetViewOne  \
+   "If ON, view only the selected\n"\
+   "Dset's colors. No mixing of colors in the\n"\
+   "foreground stack is done.\n"   \
+   "\n"  \
+   "If OFF, then mix the color planes\n"  \
+   "in the foreground stack.\n"  \
+   "\n"  \
+   "This option makes it easy to view \n" \
+   "one Dset's colors at a time without\n"   \
+   "having to worry about color mixing,\n"   \
+   "opacity, and stacking order.\n" \
+   "\n"  \
+   "Needless to say, options such as\n" \
+   "'Ord:' and 'Opa:' in this panel are \n" \
+   "of little use when this button is ON."
+
 #define SUMA_SurfContHelp_DsetSwitch   \
    "Switch between datasets."
 
