@@ -3665,14 +3665,15 @@ if(PRINT_TRACING)
          if( new_ss == NULL ){ /* 28 Aug 2003 */
            qd = dss->num_dsset ;
            if( qd < THD_MAX_SESSION_SIZE ){
-fprintf(stderr,"trying to read %s as dataset\n",dname) ;
              THD_3dim_dataset *dset = THD_open_dataset( dname ) ;
              if( dset != NULL ){
-fprintf(stderr,"  -- it worked!\n") ;
                dss->dsset[qd][dset->view_type] = dset ;
                dss->num_dsset ++ ;
+             } else {
+               fprintf(stderr,
+                       "\n** Couldn't open %s as session OR as dataset!" ,
+                       dname ) ;
              }
-else fprintf(stderr,"  -- it failed!\n") ;
            }
          }
 
@@ -3728,9 +3729,10 @@ else fprintf(stderr,"  -- it failed!\n") ;
       /* 28 Aug 2003: if have dataset in session dss, use it */
 
       if( dss->num_dsset > 0 ){
-        if( GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION )
+        if( GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
           GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = dss ;
-        else {
+          num_dsets += dss->num_dsset ;
+        } else {
           fprintf(stderr,"\n** Can't use command line datasets: session overflow!\n") ;
           free(dss) ;
         }
