@@ -4770,3 +4770,12 @@
 
 30 Oct 2003
  * Some changes (f2cdir/ and afni_plugin.c) for Mac OS X 10.3 compilation.
+
+04 Nov 2003
+ * Modified imseq.c to move crosshair focus on Button1 release, rather than
+     press.  This makes the graylevel change via Button1 motion not have
+     the annoying focus change side effect.
+ * Modified afni.c, etc., to implement new environment variables
+     AFNI_IMAGE_MINTOMAX and AFNI_IMAGE_GLOBALRANGE.
+ * Modified afni_plugin.[ch] to allow plugins to change the "Run" button
+     labels to something else.
