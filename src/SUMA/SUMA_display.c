@@ -2510,6 +2510,8 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
    }
    
+   SUMA_Init_SurfCont_SurfParam(SO);
+
    if (SO->SurfCont->PosRef != sv->X->TOPLEVEL) {
       SO->SurfCont->PosRef = sv->X->TOPLEVEL;
       SUMA_PositionWindowRelative (SO->SurfCont->TopLevelShell, SO->SurfCont->PosRef, SWP_TOP_RIGHT);   
@@ -3085,7 +3087,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       } else {
          sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
       }
-      label = XtVaCreateManagedWidget (slabel, 
+      SO->SurfCont->SurfInfo_label = XtVaCreateManagedWidget (slabel, 
                xmLabelWidgetClass, rc,
                NULL);
 
@@ -3392,6 +3394,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    
    SUMA_free (slabel);
    
+   /* initialize the left side (no need here, that's done in SUMA_cb_viewSurfaceCont)*/
+   /* SUMA_Init_SurfCont_SurfParam(SO); */
+   
    /* initialize the ColorPlane frame if possible 
    Do it here rather than above because scale goes crazy 
    when parent widgets are being resized*/
@@ -3433,6 +3438,99 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
     
    SUMA_RETURNe;
 
+}
+
+/*!
+   \brief updates the left side of Surface Controller
+*/
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_Init_SurfCont_SurfParam"};
+   char *slabel = NULL, *Name;
+   int i, imenu;
+   Widget *w=NULL, whist=NULL;
+   XmString string;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* initialize the title of the window */
+   slabel = (char *)SUMA_malloc (sizeof(char) * (strlen(SO->Label) + 100));
+   if (strlen(SO->Label) > 40) {
+      char *tmpstr=NULL;
+      tmpstr = SUMA_truncate_string(SO->Label, 40);
+      if (tmpstr) { 
+         sprintf(slabel,"[%s] Surface Controller", tmpstr);
+         free(tmpstr); tmpstr=NULL;
+      }
+   } else {
+      sprintf(slabel,"[%s] Surface Controller", SO->Label);
+   }
+   SUMA_LH("Setting title");
+   XtVaSetValues(SO->SurfCont->TopLevelShell, XtNtitle, slabel, NULL);
+   
+   /* initialize the string before the more button */
+      /*put a label containing the surface name, number of nodes and number of facesets */
+      if (strlen(SO->Label) > 40) {
+         char tmpchar = SO->Label[40];
+         SO->Label[40] = '\0';
+         sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
+         SO->Label[40] = tmpchar;
+      } else {
+         sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
+      }
+      SUMA_LH("Setting label");
+      string = XmStringCreateLocalized (slabel);
+      XtVaSetValues(SO->SurfCont->SurfInfo_label, XmNlabelString, string, NULL);
+      XmStringFree (string);
+   
+   /* Can't do much with the SurfInfo button,
+   You can only have on Info shell/LocalDomainParent
+   at a time */
+   
+   SUMA_LH("Setting RenderMode");
+   /* set the correct RenderMode for that surface */
+   imenu = -1;
+   switch (SO->PolyMode) {
+      case SRM_ViewerDefault:
+         imenu = SW_SurfCont_RenderViewerDefault;
+         break;
+      case SRM_Fill:
+         imenu = SW_SurfCont_RenderFill;
+         break;
+      case SRM_Line:
+         imenu = SW_SurfCont_RenderLine;
+         break;
+      case SRM_Points:
+         imenu = SW_SurfCont_RenderPoints;
+         break;
+      default: 
+         fprintf (SUMA_STDERR, "Error %s: Unexpected something.\n", FuncName);
+         break;
+   }
+   /* look for name of widget with imenu for call data. This is overkill but its fun */
+   i = 0;
+   Name = NULL;
+   while (&(RenderMode_Menu[i])) {
+      if ((int)RenderMode_Menu[i].callback_data == imenu) {
+         Name = RenderMode_Menu[i].label;
+         if (LocalHead) fprintf (SUMA_STDERR,"Looking for %s\n", Name);
+         /* now we know what the name of the button needed is, look for it*/
+         w = SO->SurfCont->RenderModeMenu;
+         for (i=0; i< SW_N_SurfCont_Render; ++i) {
+            if (LocalHead) fprintf (SUMA_STDERR,"I have %s\n", XtName(w[i]));
+            if (strcmp(Name, XtName(w[i])) == 0) {
+               SUMA_LH("Match!");
+               XtVaSetValues(  w[0], XmNmenuHistory , w[i] , NULL ) ;  
+               SUMA_RETURN(YUP);
+           }
+         }
+      }
+      ++i;
+   }
+   
+    
+   SUMA_RETURN(YUP);
 }
 
 /*!
@@ -3607,7 +3705,7 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO)
          SOi = (SUMA_SurfaceObject *)SUMAg_DOv[i].OP;
          if (SOi != SO && SUMA_isRelated (SOi, SO, 1)) { /* do this for kins of the 1st order */
             if (SOi->SurfCont) {
-               if (SOi->SurfCont->ColPlane_fr && SOi->SurfCont->curColPlane == SO->SurfCont->curColPlane) {
+               if (SOi->SurfCont != SO->SurfCont && SOi->SurfCont->ColPlane_fr && SOi->SurfCont->curColPlane == SO->SurfCont->curColPlane) {
                   SUMA_InitializeColPlaneShell(SOi, SOi->SurfCont->curColPlane);
                }
             }
@@ -6172,10 +6270,10 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
    
    #if 1
    if (s) {
-      TextShell =  SUMA_CreateTestShellStruct (SUMA_ViewerInfo_open, (void *)sv, 
+      TextShell =  SUMA_CreateTextShellStruct (SUMA_ViewerInfo_open, (void *)sv, 
                                                SUMA_ViewerInfo_destroyed, (void *)sv);
       if (!TextShell) {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
          SUMA_RETURNe;
       }
       sprintf(stmp, "[%c] Viewer Info", 65+isv);
@@ -6252,10 +6350,10 @@ void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData)
    s = SUMA_CommonFieldsInfo (SUMAg_CF, 1);
    
    if (s) {
-      TextShell =  SUMA_CreateTestShellStruct (SUMA_SumaInfo_open, NULL, 
+      TextShell =  SUMA_CreateTextShellStruct (SUMA_SumaInfo_open, NULL, 
                                                SUMA_SumaInfo_destroyed, NULL);
       if (!TextShell) {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
          SUMA_RETURNe;
       }
       SUMAg_CF->X->SumaCont->SumaInfo_TextShell = SUMA_CreateTextShell(s, "SUMA", TextShell);
@@ -6333,10 +6431,10 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    s = SUMA_SurfaceObject_Info (SO, SUMAg_CF->DsetList);
    
    if (s) {
-      TextShell =  SUMA_CreateTestShellStruct (SUMA_SurfInfo_open, (void *)SO, 
+      TextShell =  SUMA_CreateTextShellStruct (SUMA_SurfInfo_open, (void *)SO, 
                                                SUMA_SurfInfo_destroyed, (void *)SO);
       if (!TextShell) {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
          SUMA_RETURNe;
       }
       SO->SurfCont->SurfInfo_TextShell = SUMA_CreateTextShell(s, SO->Label, TextShell);
@@ -6409,7 +6507,7 @@ void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd)
 
 /*!
    \brief Creates the structure used to pass widget and options back and forth from SUMA_CreateTextShell
-   TextShellStruct = SUMA_CreateTestShellStruct (void (*opencallback)(void *data), void *opendata, 
+   TextShellStruct = SUMA_CreateTextShellStruct (void (*opencallback)(void *data), void *opendata, 
                                                             void (*closecallback)(void*data), void *closedata);
                                                             
    - callbacks and their data are stored in their respective fields in TextShellStruct
@@ -6417,10 +6515,10 @@ void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd)
    
 */
 
-SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTestShellStruct (void (*opencallback)(void *data), void *opendata, 
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (void (*opencallback)(void *data), void *opendata, 
                                                             void (*closecallback)(void*data), void *closedata)
 {
-   static char FuncName[] = {"SUMA_CreateTestShellStruct"};
+   static char FuncName[] = {"SUMA_CreateTextShellStruct"};
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
    
    SUMA_ENTRY;
@@ -6451,7 +6549,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTestShellStruct (void (*opencallback)
       if TextShell->toplevel then only the log message is updated, otherwise the window is created.
    \return TextShell (SUMA_CreateTextShell *) same structure sent to function but with widgets fields filled. 
    
-   \sa SUMA_CreateTestShellStruct
+   \sa SUMA_CreateTextShellStruct
    
    - based on example SUMA_search_text from "Motif Programming Manual"
    see copyright notice in beginning of SUMA_display.c

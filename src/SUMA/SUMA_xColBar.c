@@ -416,6 +416,10 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
    /* You must use the line below if you are calling this function on the fly */
    /* SUMA_FORCE_SCALE_HEIGHT(SO);  */
    
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
+   
    SUMA_RETURNe;
 }
 
@@ -450,6 +454,9 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    /* sad as it is */
    SUMA_FORCE_SCALE_HEIGHT(SO); 
 
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 
 }
@@ -490,6 +497,9 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    
    SUMA_RemixRedisplay(SO);
 
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 }
 
@@ -535,6 +545,9 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    
    SUMA_RemixRedisplay(SO);
 
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 }
 
@@ -570,6 +583,9 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
    
    SUMA_RemixRedisplay(SO);
    
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 }
 /*! 
@@ -606,6 +622,9 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
          SUMA_cb_CloseSwitchCmap( w,  (XtPointer)SUMAg_CF->X->SwitchCmapLst,  call);
    }
    
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 }
 
@@ -638,6 +657,9 @@ void SUMA_cb_SwithInt_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_ColorizePlane(SO->SurfCont->curColPlane);
    SUMA_RemixRedisplay(SO);
    
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 }
 
@@ -668,6 +690,9 @@ void SUMA_cb_SwithThr_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_ColorizePlane(SO->SurfCont->curColPlane);
    SUMA_RemixRedisplay(SO);
    
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 }
 
@@ -698,6 +723,9 @@ void SUMA_cb_SwithBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
    SUMA_ColorizePlane(SO->SurfCont->curColPlane);
    SUMA_RemixRedisplay(SO);
    
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 }
 
@@ -783,6 +811,9 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, XtPointer call_d
       SUMA_ColorizePlane(SO->SurfCont->curColPlane);
       SUMA_RemixRedisplay(SO);
    }
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
    SUMA_RETURNe;
 }
 

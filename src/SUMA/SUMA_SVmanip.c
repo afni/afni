@@ -1774,16 +1774,25 @@ void *SUMA_FreeViewContStruct (SUMA_X_ViewCont *ViewCont)
    \return SUMA_X_SurfCont *
    
 */
-SUMA_X_SurfCont *SUMA_CreateSurfContStruct (void) 
+SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str) 
 {
    static char FuncName[]={"SUMA_CreateSurfContStruct"};
    SUMA_X_SurfCont *SurfCont = NULL;
    
+   
    /* do not use commonfields related stuff here for obvious reasons */
    SurfCont = (SUMA_X_SurfCont *)malloc(sizeof(SUMA_X_SurfCont));
+   
+   /* take care of linking fields */
+   if (idcode_str) sprintf(SurfCont->owner_id, "%s", idcode_str);
+   else SurfCont->owner_id[0] = '\0';
+   SurfCont->N_links = 0;
+   SurfCont->LinkedPtrType = SUMA_LINKED_SURFCONT_TYPE;
+   
    SurfCont->ColPlane_fr = NULL;
    SurfCont->TopLevelShell = NULL;
    SurfCont->SurfInfo_pb = NULL;
+   SurfCont->SurfInfo_label = NULL;
    SurfCont->SurfInfo_TextShell = NULL;
    SurfCont->ColPlaneOrder = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->ColPlaneOpacity = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
@@ -1840,6 +1849,12 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    /* do not use commonfields related stuff here for obvious reasons */
    if (!SurfCont) return(NULL);
    
+   if (SurfCont->N_links) {
+      SurfCont = (SUMA_X_SurfCont*)SUMA_UnlinkFromPointer((void *)SurfCont);
+      return (NULL);
+   }
+   
+   /* no more links, go for it */
    if (SurfCont->ColPlaneOrder) free (SurfCont->ColPlaneOrder);
    if (SurfCont->ColPlaneOpacity) free (SurfCont->ColPlaneOpacity);
    if (SurfCont->ColPlaneDimFact) free (SurfCont->ColPlaneDimFact);

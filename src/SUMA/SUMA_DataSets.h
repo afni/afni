@@ -135,6 +135,7 @@ typedef enum { SUMA_NO_PTR_TYPE,
                SUMA_LINKED_OVERLAY_TYPE, /*!< For pointers to SUMA_OVERLAYS */
                SUMA_LINKED_ND_FRST_NEI_TYPE, /*!< For pointers to SUMA_NODE_FIRST_NEIGHB*/
                SUMA_LINKED_MEMB_FACE_TYPE, /*!< For pointers to SUMA_MEMBER_FACE_SETS*/
+               SUMA_LINKED_SURFCONT_TYPE, /*!< For pointers to SUMA_X_SurfCont*/
                SUMA_N_LINKED_PTR_TYPES } SUMA_LINKED_PTR_TYPES;
 /*!   
    Structure to track copies of a certain pointer.
