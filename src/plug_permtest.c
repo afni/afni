@@ -1,6 +1,6 @@
 /*plug_permtest.c - AFNI plugin that applies a permutation test to a 3D+time
   dataset to create a fizt dataset.
-  Copyright (c) 2000 Matthew Belmonte
+  Copyright (c) 2000 - 2002 Matthew Belmonte
 
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public License
@@ -39,11 +39,15 @@
 		: -THD_pval_to_stat(2.0*(p), FUNC_ZT_TYPE, (float *)0))
 
 static char help[] =
-  "This plugin implements a permutation test [Efron 1982], applied to fMRI\n"
-  "data as described by Locascio [1997].  (Other features of Locascio's\n"
-  "algorithm, which handle motion correction, are not implemented here.)  The\n"
-  "permutation test avoids the pitfall of over-correcting for multiple tests,\n"
-  "since it implicitly takes into account spatial correlations in the data.\n\n"
+  "This plugin implements a permutation test, a nonparametric statistical\n"
+  "method that avoids the pitfall of over-correcting for multiple comparisons\n"
+  "since it implicitly takes into account spatial correlations in the data.\n"
+  "If you use this software, please take a moment to send mail to the author,\n"
+  "belmonte@mit.edu, and cite the following paper in your report:\n\n"
+
+  "Matthew Belmonte and Deborah Yurgelun-Todd, `Permutation Testing Made\n"
+  "Practical for Functional Magnetic Resonance Image Analysis',\n"
+  "IEEE Transactions on Medical Imaging 20(3):243-248 (March 2001).\n\n"
 
 "USAGE\n\n"
 
@@ -69,8 +73,7 @@ static char help[] =
   "activated.  (Note that the slider in the `Define Function' panel will\n"
   "have no effect below this value.)  You should avoid setting this value\n"
   "very high, lest the Phase 3 algorithm run out of substitute points in too\n"
-  "many cases (for an explanation of substitutes, see the ALGORITHM section\n"
-  "below).\n\n"
+  "many cases (for an explanation of substitutes, see the article cited above).\n\n"
 
   "`two-tailed', `one-tailed positive', and `one-tailed negative' select the\n"
   "tail(s) of interest.  Exactly one of these options must be selected.\n\n"
@@ -89,21 +92,17 @@ static char help[] =
   "MIT Student Information Processing Board, supported by a grant from the\n"
   "National Alliance for Autism Research.\n\n"
 
-"VERSION\n\n"
+"REVISION HISTORY\n\n"
 
-  "1.1   (14 June 2001)   (cosmetic changes only)\n\n"
+  "1.2  19 December 2002  fixed a dtree bug that caused a rare crash in phase 3\n"
+  "1.1  14 June 2001      cosmetic changes only\n"
+  "1.0  4 January 2001    initial release\n\n"
 
 "SEE ALSO\n\n"
 
   "Threshold Plugin\n"
   "Draw Dataset Plugin\n"
-  "(These normally are applied before the permutation test.)\n\n"
-
-"REFERENCE\n\n"
-
-  "Matthew Belmonte and Deborah Yurgelun-Todd, `Permutation Testing Made\n"
-  "Practical for Functional Magnetic Resonance Image Analysis',\n"
-  "IEEE Transactions on Medical Imaging 20(3):243-248 (March 2001).",
+  "(These normally are applied before the permutation test.)",
 
 	    hint[] = "compute FIM with permutation test",
 	    input_label[] = "Input",
@@ -266,15 +265,14 @@ int order;
   putchar('\n');
   }
 
-/*Check that the size fields of a dtree are consistent with each other and with
-  the structure of the tree.*/
-int dtree_check_sizes(t)
+/*slave routine to dtree_check_sizes()*/
+int rcsv_dtree_check_sizes(t)
 DNODE *t;
   {
   int s;
   if(t)
     {
-    s = 1+dtree_check_sizes(t->corr_lchild)+dtree_check_sizes(t->corr_rchild);
+    s = 1+rcsv_dtree_check_sizes(t->corr_lchild)+rcsv_dtree_check_sizes(t->corr_rchild);
     if(s != t->size)
       {
       printf("%lx->size = %d should be %d\n", (long)t, t->size, s);
@@ -283,6 +281,14 @@ DNODE *t;
     return(t->size);
     }
   return 0;
+  }
+
+/*Check that the size fields of a dtree are consistent with each other and with
+  the structure of the tree.*/
+int dtree_check_sizes(t)
+DTREE *t;
+  {
+  return(rcsv_dtree_check_sizes(t->corr_root));
   }
 
 /*slave routine to dtree_circtest()*/
@@ -328,11 +334,50 @@ int order;
   mark = calloc(n, 1);
   if(mark)
     {
-    rcsv_dtree_check((order? t->coord_root: t->corr_root), t->mem, mark, n, order);
+    rcsv_dtree_circtest((order? t->coord_root: t->corr_root), t->mem, mark, n, order);
     free(mark);
     }
   else
     fprintf(stderr, "dtree_circtest: couldn't calloc mark\n");
+  }
+
+/*slave routine to dtree_check_parent_pointers()*/
+int rcsv_dtree_check_parent_pointers(t)
+DNODE *t;
+  {
+  int bad;
+  bad = 0;
+  while(t != (DNODE *)0)
+    {
+    if(t->corr_lchild)
+      {
+      if(t->corr_lchild->corr_parent != t)
+	{
+	printf("%lx->corr_lchild = %lx, but %lx->corr_parent = %lx\n",
+	  (long)t, (long)(t->corr_lchild), (long)(t->corr_lchild),
+	  (long)(t->corr_lchild->corr_parent));
+	bad = 1;
+	}
+      if(rcsv_dtree_check_parent_pointers(t->corr_lchild)) bad = 1;
+      }
+    if((t->corr_rchild) && (t->corr_rchild->corr_parent != t))
+      {
+      printf("%lx->corr_rchild = %lx, but %lx->corr_parent = %lx\n",
+	(long)t, (long)(t->corr_rchild), (long)(t->corr_rchild),
+	(long)(t->corr_rchild->corr_parent));
+      bad = 1;
+      }
+    t = t->corr_rchild;
+    }
+  return bad;
+  }
+
+/*Verify that the corr_parent fields inside t are consistent with the
+  corr_lchild and corr_rchild fields.*/
+int dtree_check_parent_pointers(t)
+DTREE *t;
+  {
+  return(rcsv_dtree_check_parent_pointers(t->corr_root));
   }
 
 /*Print hex dump of an IEEE double-precision floating-point number, MSB first.*/
@@ -551,14 +596,15 @@ CLIST *clist;
 
 static int num_coords_exhausted;
 
-/*node points to a coord_lchild, coord_rchild, or coord_root field that is to be
-  unlinked from its children.*/
+/*p points to a coord_lchild, coord_rchild, or coord_root field that is to be
+  unlinked from its coord children and its corr children and corr parent within
+  the tree t.*/
 void dtree_unlink_node(t, p)
 DTREE *t;
 DNODE **p;
   {
   register DNODE **q;
-  DNODE *node, *nodep;
+  DNODE *node, *parent, *temp;
   node = *p;
   if(node->coord_lchild == (DNODE *)0)
     *p = node->coord_rchild;
@@ -584,8 +630,8 @@ DNODE **p;
   tree, using a procedure analogous to that which was implemented above for the
   coord tree.  First, decrement the size counts from the current position back
   to the corr root:*/
-  for(nodep = node->corr_parent; nodep != (DNODE *)0; nodep = nodep->corr_parent)
-    nodep->size--;
+  for(parent = node->corr_parent; parent != (DNODE *)0; parent = parent->corr_parent)
+    parent->size--;
 /*Make p point to the link that leads into the subtree rooted at node.*/
   p = ((node->corr_parent == (DNODE *)0)? &(t->corr_root):
 	(node == node->corr_parent->corr_lchild)?
@@ -616,17 +662,18 @@ DNODE **p;
     if(node->corr_rchild)
       node->corr_rchild->corr_parent = *q;
     *p = *q;
+    parent = (*q)->corr_parent;
     (*q)->corr_parent = node->corr_parent;
     if(q != &(node->corr_lchild))
       {
-      DNODE *temp, *temp_parent;
+  /*If the left subtree of the rightmost node is non-null, promote it to fill
+    the place that has just been vacated by the promoted rightmost node.*/
       temp = (*q)->corr_lchild;
-      temp_parent = (*q)->corr_parent;
       (*q)->corr_lchild = node->corr_lchild;
       node->corr_lchild->corr_parent = *q;
       *q = temp;
       if(temp)
-	temp->corr_parent = temp_parent;
+	temp->corr_parent = parent;
       }
     (*p)->size = 1
 	+ ((*p)->corr_lchild? (*p)->corr_lchild->size: 0)

@@ -250,8 +250,9 @@ ENTRY("mri_read") ;
              /*   xyz[0..2] = top left hand corner of image     (TLHC)   */
              /*   xyz[3..5] = top right hand corner of image    (TRHC)   */
              /*   xyz[6..8] = bottom right hand corner of image (BRHC)   */
-             /* GEMS coordinate orientation here is LPI                  */
-             /* Orientation is saved into global string MRILIB_orients   */
+             /* GEMS coordinate orientation here is LPI.                 */
+             /* Orientation is saved into global string MRILIB_orients.  */
+             /* N.B.: AFNI coordinates are RAI orientation.              */
 
              fseek( imfile , hdroff+154 , SEEK_SET ) ;
              fread( xyz , 4,9 , imfile ) ;
@@ -865,9 +866,10 @@ ENTRY("mri_read_3D") ;
            - I.*   (GEMS) format
            - PGM format
            - PPM format
+           - GIF, TIFF, JPEG, BMP, PNG formats (thru filters)
            - List of ASCII numbers
            - pre-defined 2D file size in mri_read()
-           - "Cox MRI" (if this is what you yave, god help you, no one else can)
+           - "Cox MRI" (if this is what you have, God help you, no one else can)
 
    \return A pointer to an array of 2D images.  If nothing
            could be read, NULL is returned.
@@ -881,44 +883,54 @@ MRI_IMARR * mri_read_file( char * fname )
 
 ENTRY("mri_read_file") ;
 
+   /* convert fname to new_fname, based on environment */
+
    new_fname = imsized_fname( fname ) ;
    if( new_fname == NULL ) RETURN( NULL );
 
-   if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' ){
+   /* input method is based on filename */
 
-      newar = mri_read_3D( new_fname ) ;   /* read from a 3D file */
+   if( strlen(new_fname) > 9 &&
+       new_fname[0] == '3'   &&
+       new_fname[1] == 'D'   &&
+      (new_fname[2] == ':' || new_fname[3] == ':') ){
+
+      newar = mri_read_3D( new_fname ) ;   /* read from a 3D: file */
 
    } else if( strlen(new_fname) > 9 &&
               new_fname[0] == '3' && new_fname[1] == 'A' && new_fname[3] == ':' ){
 
-      newar = mri_read_3A( new_fname ) ;
+      newar = mri_read_3A( new_fname ) ;   /* from a 3A: file */
 
    } else if( strstr(new_fname,".hdr") != NULL ||
               strstr(new_fname,".HDR") != NULL   ){  /* 05 Feb 2001 */
 
-      newar = mri_read_analyze75( new_fname ) ;
+      newar = mri_read_analyze75( new_fname ) ;      /* ANALYZE .hdr/.img filepair */
 
    } else if( strstr(new_fname,".ima") != NULL ||
               strstr(new_fname,".IMA") != NULL   ){  /* 12 Mar 2001 */
 
-      newar = mri_read_siemens( new_fname ) ;
+      newar = mri_read_siemens( new_fname ) ;        /* Siemens file */
 
-   } else if( strncmp(new_fname,"I.",2) == 0    ||
+   } else if( strncmp(new_fname,"I.",2) == 0    ||  /* GE I.* files */
               strstr(new_fname,"/I.")   != NULL ||
-              strstr(new_fname,".ppm")  != NULL ||
+              strstr(new_fname,".ppm")  != NULL ||  /* raw PPM or PGM files */
               strstr(new_fname,".pgm")  != NULL ||
-              strstr(new_fname,".pnm")  != NULL   ){ /* 05 Nov 2002 */
+              strstr(new_fname,".pnm")  != NULL ||
+              strstr(new_fname,".PPM")  != NULL ||
+              strstr(new_fname,".PNM")  != NULL ||
+              strstr(new_fname,".PGM")  != NULL   ){ /* 05 Nov 2002 */
 
-      newim = mri_read( new_fname ) ;      /* read from a 2D file */
+      newim = mri_read( new_fname ) ;      /* read from a 2D file with 1 slice */
       if( newim != NULL ){
         INIT_IMARR(newar) ;
         ADDTO_IMARR(newar,newim) ;
       }
 
-   } else if( strstr(new_fname,".jpg" ) != NULL ||
-              strstr(new_fname,".JPG" ) != NULL ||
-              strstr(new_fname,".jpeg") != NULL ||
-              strstr(new_fname,".JPEG") != NULL ||
+   } else if( strstr(new_fname,".jpg" ) != NULL ||  /* various formats  */
+              strstr(new_fname,".JPG" ) != NULL ||  /* that we convert  */
+              strstr(new_fname,".jpeg") != NULL ||  /* to PPG/PGM using */
+              strstr(new_fname,".JPEG") != NULL ||  /* external filters */
               strstr(new_fname,".gif" ) != NULL ||
               strstr(new_fname,".GIF" ) != NULL ||
               strstr(new_fname,".tif" ) != NULL ||
@@ -938,21 +950,23 @@ ENTRY("mri_read_file") ;
 
    }
 
-   /* failed?  try DICOM format */
+   /** failed to read anything?  try DICOM format (doesn't have a fixed suffix) **/
 
    if( newar == NULL ){
 
       newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
 
-      if( newar == NULL ){   /* DICOM failed */
-        newim = mri_read( new_fname ) ;      /* read from a 2D file */
-        if( newim == NULL ){ free(new_fname) ; RETURN( NULL ); }
+      /** if DICOM failed, try a 2D slice file, hope for the best **/
+
+      if( newar == NULL ){
+        newim = mri_read( new_fname ) ;
+        if( newim == NULL ){ free(new_fname); RETURN( NULL ); }  /* give up */
         INIT_IMARR(newar) ;
         ADDTO_IMARR(newar,newim) ;
       }
    }
 
-   free(new_fname) ;
+   free(new_fname) ;  /* done with the mangled filename */
 
    /* 07 Mar 2002: add fname to the images, if needed */
 
@@ -2645,9 +2659,9 @@ ENTRY("mri_read_siemens") ;
    /*-- get image dimensions, etc --*/
 
    if( swap ){
-      swap_8(&(head.FOVRow));
-      swap_8(&(head.FOVColumn));
-      swap_8(&(head.SliceThickness));
+     swap_8(&(head.FOVRow));
+     swap_8(&(head.FOVColumn));
+     swap_8(&(head.SliceThickness));
    }
    dx = head.FOVRow    / imagesize ;
    dy = head.FOVColumn / imagesize ;
@@ -2662,8 +2676,8 @@ ENTRY("mri_read_siemens") ;
    MRILIB_orients[4] = head.OrientationSet1Back[0] ;
    MRILIB_orients[5] = head.OrientationSet2Front[0];
    for (i=0; i<6; i++) {
-      if (MRILIB_orients[i]=='H') MRILIB_orients[i]='S';
-      if (MRILIB_orients[i]=='F') MRILIB_orients[i]='I';
+     if (MRILIB_orients[i]=='H') MRILIB_orients[i]='S';
+     if (MRILIB_orients[i]=='F') MRILIB_orients[i]='I';
    }
    MRILIB_orients[6] = '\0' ;
    MRILIB_zoff = fabs(strtod(head.TextSlicePosition,NULL)) ; use_MRILIB_zoff = 1 ;

@@ -2,16 +2,18 @@
 
 int main(int argc, char **argv)
 {
-   char *ppp ; int ii, iarg=1 ;
+   char *ppp , *sin ; int ii, iarg=1 , do_sin=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: dicom_hdr [options] fname [...]\n"
             "Prints information from the DICOM file 'fname' to stdout.\n"
             "\n"
             "OPTIONS:\n"
-            " -hex    = include hexadecimal printout for integer values\n"
-            " -noname = don't include element names in the printout\n"
-            " -v n    = dump n words of binary data also\n"
+            " -hex     = include hexadecimal printout for integer values\n"
+            " -noname  = don't include element names in the printout\n"
+            " -sexinfo = dump Siemens EXtra INFO text, if present\n"
+            "             AND if this is a Siemens Mosaic file\n"
+            " -v n     = dump n words of binary data also\n"
             "\n"
             "Based on program dcm_dump_file from the RSNA, developed at\n"
             "the Mallinckrodt Institute of Radiology.  See the source\n"
@@ -51,6 +53,10 @@ int main(int argc, char **argv)
 
    while( argv[iarg][0] == '-' ){
 
+     if( strcmp(argv[iarg],"-sexinfo") == 0 ){  /* 23 Dec 2002 */
+       do_sin++ ; iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-hex") == 0 ){
        mri_dicom_nohex(0) ; iarg++ ; continue ;
      }
@@ -84,6 +90,16 @@ STATUS("returned from mri_dicom_header()") ;
          printf("Pixel array offset = %u (bytes)\n"
                 "Pixel array length = %u (bytes)\n" ,
                 (unsigned int)poff , plen ) ;
+       if( do_sin ){
+         (void) mri_imcount_dicom( argv[ii] ) ;
+         sin = mri_dicom_sexinfo() ;
+         if( sin ){
+           printf("................... Siemens Extra Info [0029 1020] ...................\n"
+                  "%s\n" , sin ) ;
+         } else {
+           printf("........... Siemens Extra Info [0029 1020] = NOT PRESENT .............\n");
+         }
+       }
      } else {
        printf("***\n*** ERROR: can't open %s as a DICOM file!\n***\n",argv[ii]) ;
      }
