@@ -436,7 +436,7 @@ mat33 mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
 
 float mat33_determ( mat33 R )   /* determinant of 3x3 matrix */
 {
-   double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
+   double r11,r12,r13,r21,r22,r23,r31,r32,r33 ;
                                                        /** INPUT MATRIX: **/
    r11 = R.m[0][0]; r12 = R.m[0][1]; r13 = R.m[0][2];  /* [ r11 r12 r13 ] */
    r21 = R.m[1][0]; r22 = R.m[1][1]; r23 = R.m[1][2];  /* [ r21 r22 r23 ] */
@@ -728,10 +728,8 @@ nifti_image *nifti_image_read( char *hname , int read_data )
    struct nifti_1_header nhdr ;
    nifti_image *nim ;
    FILE *fp ;
-   int   ii , doswap , hlen, ilen, ioff ;
-   int   nx,ny,nz,nt,nu,nv,nw , ndim,nvox , ntot ;
+   int   ii , doswap , hlen, ilen, ioff , ndim,nvox ;
    int   is_nifti , is_onefile ;
-   float dx,dy,dz,dt,du,dv,dw ;
    short ss ;
    char *iname=NULL , buf[16] ;
 
@@ -1157,7 +1155,7 @@ void nifti_image_write( nifti_image *nim )
          free(nim->iname) ; nim->iname = NULL ;
        }
        if( nim->iname == NULL ){
-         int ll = strlen(nim->fname) ; char *cc ;
+         int ll = strlen(nim->fname) ;
          nim->iname = calloc(1,ll+5) ;
          strcpy(nim->iname,nim->fname) ;
          if( ll > 4 ) strcpy(nim->iname+ll-4,".img") ; /* create .img filename */
