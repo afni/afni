@@ -483,17 +483,7 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
    glClearColor (sv->clear_color[0], sv->clear_color[1],sv->clear_color[2],sv->clear_color[3]);
    glShadeModel (GL_SMOOTH);
 
-   switch (sv->PolyMode) {
-      case 0:
-         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-         break;
-      case 1:
-         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-         break;
-      case 2:
-         glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-         break;
-   }
+   SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
    
       
    /* Set the material properties*/
@@ -884,6 +874,25 @@ SUMA_MenuItem Help_menu[] = {
    {NULL},
 };
 
+SUMA_MenuItem RenderMode_Menu[] = {
+   {  "Viewer", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetRenderMode, (XtPointer) SW_SurfCont_RenderViewerDefault, NULL},
+      
+   {  "Fill", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetRenderMode, (XtPointer) SW_SurfCont_RenderFill, NULL},
+   
+   {  "Line", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetRenderMode, (XtPointer) SW_SurfCont_RenderLine, NULL},
+    
+   {  "Points", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetRenderMode, (XtPointer) SW_SurfCont_RenderPoints, NULL},
+        
+   {NULL},
+};
 
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 {
@@ -2056,7 +2065,7 @@ void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData)
 */
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
-   Widget tl, pb, form, DispFrame, SurfFrame;
+   Widget tl, pb, form, DispFrame, SurfFrame, RenderSetFrame;
    Display *dpy;
    SUMA_SurfaceObject *SO;
    char *slabel; 
@@ -2161,6 +2170,39 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XtManageChild (SurfFrame);
    }  
    
+   { /* rendering mode and transparency level */
+      Widget rc, label;
+     
+      /* put a frame */
+      RenderSetFrame = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, form,
+         XmNleftAttachment , XmATTACH_FORM ,
+         XmNtopAttachment  , XmATTACH_WIDGET ,
+         XmNtopWidget, SurfFrame,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+      
+      /* row column  */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, RenderSetFrame,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      /* rendering menu option */
+      SO->SurfCont->RenderModeMenu[SW_SurfCont_Render] = SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                                 "RenderMode", '\0', YUP, RenderMode_Menu, 
+                                 (void *)SO, SO->SurfCont->RenderModeMenu );
+      XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
+      
+      XtManageChild (rc);
+      XtManageChild (RenderSetFrame);
+   }
+   
    { /*s close and help buttons */
       Widget rc, pb_close, pb_bhelp;
       
@@ -2169,7 +2211,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          xmFrameWidgetClass, form,
          XmNleftAttachment , XmATTACH_FORM ,
          XmNtopAttachment  , XmATTACH_WIDGET ,
-         XmNtopWidget, SurfFrame,
+         XmNtopWidget, RenderSetFrame,
          XmNshadowType , XmSHADOW_ETCHED_IN ,
          XmNshadowThickness , 5 ,
          XmNtraversalOn , False ,
@@ -3205,6 +3247,72 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
    XtFree (search_pat);
 }
 
+/*!
+   \brief sets the rendering mode of a surface 
+   
+   - expects a SUMA_MenuCallBackData * in  client_data
+   with SO as client_data->ContID and Menubutton in callback_data->ContID
+*/
+void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetRenderMode"};
+   DList *list = NULL;
+   DListElmt *Elmnt = NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   int imenu = 0;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* get the surface object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   SO = (SUMA_SurfaceObject *)datap->ContID;
+   imenu = (int)datap->callback_data; 
+   
+   switch (imenu) {
+      case SW_SurfCont_RenderViewerDefault:
+         imenu = SRM_ViewerDefault;
+         break;
+      case SW_SurfCont_RenderFill:
+         imenu = SRM_Fill;
+         break;
+      case SW_SurfCont_RenderLine:
+         imenu = SRM_Line;
+         break;
+      case SW_SurfCont_RenderPoints:
+         imenu = SRM_Points;
+         break;
+      default: 
+         fprintf (SUMA_STDERR, "Error %s: Unexpected widget index.\n", FuncName);
+         break;
+   }
+   
+   
+   /* make a call to SUMA_Engine */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaWidget, NULL);   
+   ED = SUMA_InitializeEngineListData (SE_SetRenderMode);
+   Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_i, (void *)&imenu,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL);
+   if (!SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)SO,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_In, Elmnt)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", FuncName);
+      SUMA_RETURNe;                                     
+   }
+   
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
+      SUMA_RETURNe;    
+   }
+   
+   SUMA_RETURNe;
+}
 /*!
    \brief pops a SUMA message
 */

@@ -207,7 +207,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->N_VSv = 0;
       SV->LastNonMapStateID = -1;
       
-      SV->PolyMode = 0;
+      SV->PolyMode = SRM_Fill;
       
       #if SUMA_BACKFACE_CULL
          SV->BF_Cull = YUP;

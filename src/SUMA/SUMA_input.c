@@ -716,18 +716,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_p:
-             sv->PolyMode = ((sv->PolyMode+1) % 3);
-             switch (sv->PolyMode) {
-               case 0:
-                  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                  break;
-               case 1:
-                  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                  break;
-               case 2:
-                  glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-                  break;
-            }
+            sv->PolyMode = ((sv->PolyMode+1) % 3);
+            SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
             SUMA_postRedisplay(w, clientData, callData);
             break;
 

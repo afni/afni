@@ -96,6 +96,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       NextCom = SUMA_CommandString (NextComCode);
       if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
+         case SE_SetRenderMode:
+            { /* sets the rendering mode of a surface, expects SO in vp and rendering mode in i*/
+               SO = (SUMA_SurfaceObject *)EngineData->vp;
+               SO->PolyMode = EngineData->i;                  
+            }  
+            break;
+            
          case SE_UpdateLog:
             /* Updates the Log window if it is open */
             {

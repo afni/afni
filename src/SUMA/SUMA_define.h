@@ -131,7 +131,7 @@ typedef enum { SE_Empty,
                SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
-               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog,
+               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -166,6 +166,7 @@ typedef enum { SUMA_ROI_NodeGroup, SUMA_ROI_EdgeGroup, SUMA_ROI_FaceGroup } SUMA
 
 typedef enum { SXR_default, SXR_NP, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /* flags for different X resources */
 
+typedef enum { SRM_ViewerDefault, SRM_Fill, SRM_Line, SRM_Points , SRM_N_RenderModes} SUMA_RENDER_MODES; /*!< flags for various rendering modes */
 
 #define SUMA_N_STANDARD_VIEWS  2 /*!< number of useful views enumerated in SUMA_STANDARD_VIEWS */
 typedef enum {   SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standard viewing modes. These are used to decide what viewing parameters to carry on when switching states 
@@ -383,6 +384,7 @@ typedef struct {
    Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
    Widget SurfInfo_pb; /*!< More info push button */
    SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing widgets and options of the surface info text shell */
+   Widget RenderModeMenu[SRM_N_RenderModes]; /*!< vector of widgets controlling the rendering mode menu */
 }SUMA_X_SurfCont;
 
 typedef struct {
@@ -422,6 +424,12 @@ typedef enum { SW_Help,
                SW_N_Help } SUMA_WIDGET_INDEX_HELP; /*!< Indices to widgets under Help menu.
                                                          Make sure you begin with SW_View and end
                                                          with SW_N_View */                                                   
+typedef enum { SW_SurfCont_Render,
+               SW_SurfCont_RenderViewerDefault, SW_SurfCont_RenderFill, SW_SurfCont_RenderLine, SW_SurfCont_RenderPoints, 
+               SW_N_SurfCont_Render } SUMA_WIDGET_INDEX_SURFCONT_RENDER; /*!< Indices to widgets in SurfaceController under
+                                                                           RenderMode */
+               
+               
 /*! structure containg X vars for surface viewers*/
 typedef struct {
    Display *DPY; /*!< display of toplevel widget */
@@ -613,8 +621,12 @@ typedef struct {
    int WindHeight;   /*!< Height of window */
    float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
    
-   int PolyMode; /*!< polygon viewing mode, 0, filled, 1, outline, 0, points */
    SUMA_Boolean BF_Cull; /*!< flag for backface culling */
+   SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points
+                                    There is a similar field for each surface object to 
+                                    allow independent control for each surface. If the rendering mode
+                                    is specified for a certain surface, it takes precedence over the
+                                    one specified here*/
 
    float Back_Modfact; /*!< Factor to apply when modulating foreground color with background intensity
                            background does not modulate foreground, 
@@ -626,7 +638,7 @@ typedef struct {
    GLfloat light1_position[4]; /*!< Light 1 position: 1st 3 vals --> direction of light. Last value is 0 -->  directional light*/
    
    GLfloat clear_color[4]; /*!< viewer background color */
-   
+      
    SUMA_Boolean Open; /*! Viewer visible to the human eye */
    int ShowEyeAxis ; /*!< ShowEyeAxis */
    int ShowMeshAxis; /*!< ShowEyeAxis */
@@ -844,6 +856,8 @@ typedef struct {
    SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume data sets ?*/
    SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/
    SUMA_Boolean SentToAfni; /*!< YUP if the surface has been niml-sent to AFNI */
+
+   SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points */
    
    int N_Node; /*!< Number of nodes in the SO */
    int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 is used for now, with flat surfaces having z = 0*/
