@@ -91,9 +91,9 @@ void AFNI_thr_scale_drag_CB( Widget w, XtPointer client_data, XtPointer call_dat
 
 ENTRY("AFNI_thr_scale_drag CB") ;
 
-   if( IM3D_VALID(im3d)                        &&
-       ISVALID_3DIM_DATASET(im3d->fim_now)     &&
-       FUNC_HAVE_PVAL(im3d->fim_now->func_type)   ){
+   if( IM3D_OPEN(im3d)                     &&
+       ISVALID_3DIM_DATASET(im3d->fim_now) &&
+       FUNC_HAVE_PVAL(DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->fim_index)) ){
 
       fff = THR_FACTOR * cbs->value ;
       if( fff >= 0.0 && fff <= 1.0 ) im3d->vinfo->func_threshold = fff ;
@@ -993,7 +993,7 @@ STATUS("bad im_fim->kind!") ;
            fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
 
          if( simult_thr ){
-           int   thresh = im3d->vinfo->func_threshold
+           float thresh = im3d->vinfo->func_threshold
                         * im3d->vinfo->func_thresh_top / scale_thr ;
            short * ar_thr = MRI_SHORT_PTR(im_thr) ;
            for( ii=0 ; ii < npix ; ii++ ){
@@ -1026,8 +1026,8 @@ STATUS("bad im_fim->kind!") ;
                                                   : 0.0                          ;
 
          if( simult_thr ){
-           int  thresh = im3d->vinfo->func_threshold
-                        * im3d->vinfo->func_thresh_top / scale_thr ;
+           float thresh = im3d->vinfo->func_threshold
+                         * im3d->vinfo->func_thresh_top / scale_thr ;
            byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
 
            for( ii=0 ; ii < npix ; ii++ ){
@@ -1091,7 +1091,7 @@ STATUS("bad im_fim->kind!") ;
      switch( im_thr->kind ){
 
        case MRI_short:{
-         int   thresh = im3d->vinfo->func_threshold
+         float thresh = im3d->vinfo->func_threshold
                       * im3d->vinfo->func_thresh_top / scale_thr ;
          short * ar_thr = MRI_SHORT_PTR(im_thr) ;
 
@@ -1101,8 +1101,8 @@ STATUS("bad im_fim->kind!") ;
        break ;
 
        case MRI_byte:{
-         int  thresh = im3d->vinfo->func_threshold
-                     * im3d->vinfo->func_thresh_top / scale_thr ;
+         float thresh = im3d->vinfo->func_threshold
+                      * im3d->vinfo->func_thresh_top / scale_thr ;
          byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ )
@@ -1226,7 +1226,7 @@ ENTRY("AFNI_newfunc_overlay") ;
      switch( im_thr->kind ){
 
        case MRI_short:{
-         int thr = (int) thresh ;
+         float thr = thresh ;
          short * ar_thr = MRI_SHORT_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ ){
@@ -1237,7 +1237,7 @@ ENTRY("AFNI_newfunc_overlay") ;
        break ;
 
        case MRI_byte:{
-         int thr = (int) thresh ;
+         float thr = thresh ;
          byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ )
@@ -4447,7 +4447,8 @@ ENTRY("AFNI_bucket_CB") ;
        doit = (iv != im3d->vinfo->anat_index) ;
        im3d->vinfo->anat_index = iv ;
        redisplay = REDISPLAY_ALL ;
-       if( doit ) AV_assign_ival( im3d->vwid->imag->time_index_av , iv ) ;
+       if( doit && im3d->vinfo->time_on )
+         AV_assign_ival( im3d->vwid->imag->time_index_av , iv ) ;
      }
    }
 
@@ -4459,6 +4460,8 @@ ENTRY("AFNI_bucket_CB") ;
        doit = (iv != im3d->vinfo->fim_index) ;
        im3d->vinfo->fim_index = iv ;
        redisplay = REDISPLAY_OVERLAY ;
+       if( doit && im3d->vinfo->time_on && DSET_NUM_TIMES(im3d->anat_now) == 1 )
+         AV_assign_ival( im3d->vwid->imag->time_index_av , iv ) ;
      }
    }
 

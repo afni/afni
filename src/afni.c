@@ -7439,8 +7439,6 @@ STATUS("closing function") ;
 
          CLOSE_PANEL(im3d,func) ;
       } else {
-         Boolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
-         Boolean have_thr = have_fim && FUNC_HAVE_THR(im3d->fim_now->func_type) ;
 
 STATUS("opening function" ) ;
 

@@ -165,9 +165,9 @@ void Syntax(char * str)
    printf("         type  Description  PARAMETERS\n"
           "         ----  -----------  ----------------------------------------\n" ) ;
    for( ii=FIRST_FUNC_TYPE ; ii <= LAST_FUNC_TYPE ; ii++ ){
-      if( FUNC_IS_STAT(ii) )
-         printf("         %4s  %-11.11s  %s\n",
-                FUNC_prefixstr[ii] , FUNC_typestr[ii]+6 , FUNC_label_stat_aux[ii] ) ;
+     if( FUNC_IS_STAT(ii) )
+       printf("         %4s  %-11.11s  %s\n",
+              FUNC_prefixstr[ii] , FUNC_typestr[ii]+6 , FUNC_label_stat_aux[ii] ) ;
    }
    printf(
     "\n"

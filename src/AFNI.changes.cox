@@ -4668,4 +4668,9 @@
 
 30 Jul 2003
  * Modified plug_nudge.c to add NN interpolation option.
- * Modified THD_open_3dcalc() to make dataset directory "./" after it is read in.
+ * Modified THD_open_3dcalc() to make dataset directory "./" after it is input,
+     so that EDIT_empty_copy() of it will not put new dataset into /tmp.
+ * Modified afni_func.c and afni_sumafunc.c to threshold byte and short
+     overlays in float rather than int.
+ * Modified FUNC_IS_STAT() and FUNC_HAVE_PVAL() macros in 3ddata.h to return 1
+     only if the code supplied corresponds to a valid statistic code.
