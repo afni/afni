@@ -216,8 +216,8 @@ switch NF
 	      intensity_new = [intensity(1:4), intensity(6)];    % Throw out those four which do not exist for nesting.
 	      dfterm_new = [dfterm(1:4)', dfterm(6)'];
 	      tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
-         msdenom = [msterm(3), msterm(6), mse, msterm(6), mse];
-	      dfdenom = [dfterm(3), dfterm(6), dfe, dfterm(6), dfe];
+         msdenom = [msterm(3), msterm(6), mse, msterm(6), mse,0,0];  % pad 2 extra 0's for potential complaints
+	      dfdenom = [dfterm(3), dfterm(6), dfe, dfterm(6), dfe,0,0];
 				
       case 4,  % 5 terms: 1 A; 2 B; 3 C(A); 4 (AB), 5  BC(A)
          msterm_new = [msterm(1:4), msterm(6)];   % Throw out those four which do not exist for nesting: AC and ABC.
@@ -225,7 +225,7 @@ switch NF
 	      dfterm_new = [dfterm(1:4)', dfterm(6)'];
 	      tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
          msdenom = [msterm(4), mse, msterm(6), mse, mse,0,0];  % 2 extra 0's are for error-prone problem down below for contrasts
-	      dfdenom = [dfterm(4), dfe, dfterm(6), dfe, dfe];	
+	      dfdenom = [dfterm(4), dfe, dfterm(6), dfe, dfe,0,0];	
    end			
 
    case  4,
@@ -244,7 +244,7 @@ switch NF
 	    intensity_new = [intensity(1:6), intensity(8:11), intensity(14)];    % Throw out those four which do not exist for nesting.
 	    dfterm_new = [dfterm(1:6)', dfterm(8:11)', dfterm(14)'];
 	    tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
-            msdenom = [msterm(4), msterm(9), msterm(10), mse, msterm(9), msterm(10), msterm(14), mse, mse, msterm(14), mse];
+       msdenom = [msterm(4), msterm(9), msterm(10), mse, msterm(9), msterm(10), msterm(14), mse, mse, msterm(14), mse];
 	    dfdenom = [dfterm(4), dfterm(9), dfterm(10), dfe, dfterm(9), dfterm(10), dfterm(14), dfe, dfe, dfterm(14), dfe];
 	 case 4,
 	    msterm_new = [msterm(1:6), msterm(8:11), msterm(14)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
@@ -252,7 +252,7 @@ switch NF
 	    dfterm_new = [dfterm(1:6)', dfterm(8:11)', dfterm(14)'];
 	    tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
 	    msdenom = [msterm(6), msterm(8), mse, msterm(10), msterm(11), mse, mse, msterm(14), mse, mse, mse];  % denominator MS
-   	    dfdenom = [dfterm(6), dfterm(8), dfe, dfterm(10), dfterm(11), dfe, dfe, dfterm(14), dfe, dfe, dfe];  % denominator DF
+   	 dfdenom = [dfterm(6), dfterm(8), dfe, dfterm(10), dfterm(11), dfe, dfe, dfterm(14), dfe, dfe, dfe];  % denominator DF
 	 case 5, % only 9 terms in nesting case without AD, BD, ABD, ACD, BCD and ABCD: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 7 (BC); 8 (CD); 9 (ABC)
 	    msterm_new = [msterm(1:6), msterm(8), msterm(10:11)];   % Throw out those four which do not exist for nesting: AD, BD, ABD, ACD, BCD and ABCD.
 	    intensity_new = [intensity(1:6), intensity(8), intensity(10:11)];    % Throw out those 6 which do not exist for nesting.
@@ -260,7 +260,7 @@ switch NF
 	    tnames_new = [tnames(1:6); tnames(8); tnames(10:11)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
 	    msdenom = [msterm(4), msterm(4), msterm(10), mse, msterm(4), msterm(10), msterm(10), mse, msterm(10),0,0,0,0,0,0];  
 	    % denominator MS: 6 extra 0's are for error-prone problem down below for contrasts
-   	    dfdenom = [dfterm(4), dfterm(4), dfterm(10), dfe, dfterm(4), dfterm(10), dfterm(10), dfe, dfterm(10)];  % denominator DF				 
+   	 dfdenom = [dfterm(4), dfterm(4), dfterm(10), dfe, dfterm(4), dfterm(10), dfterm(10), dfe, dfterm(10),0,0,0,0,0,0];  % denominator DF				 
    end	% Close switch dsgn
 end  % Close swtich NF
 
