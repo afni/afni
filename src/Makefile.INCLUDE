@@ -34,7 +34,7 @@ MISC    = AFNI.Xdefaults AFNI.afnirc 3d*.lib gmovie*
 ## AFNI package, but included because they are useful.  Some of
 ## them are Open Source programs, not from the AFNI group at all.
 
-EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv
+EXTRAS   = cjpeg djpeg whirlgif mpeg_encode mpegtoppm myget Xphace rmz aiv
 
 ## This list is the core AFNI package:
 ## other programs are experimental and/or outsiders.
@@ -974,7 +974,7 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./afni_src
 	$(CP) -r coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
-	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir dlcompat ./afni_src
+	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir dlcompat ./afni_src
 	$(CP) -r netcdf-3.5.0 jpeg-6b niml ./afni_src
 	$(CP) -r SUMA rickr faces poems ni_test_? ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
@@ -1557,6 +1557,13 @@ mpeg_encode:
 	( cd mpeg_encodedir ; \
 	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ; \
 	  $(MV) mpeg_encode .. ; )
+
+#######
+# 03 Dec 2003 - for even more fun
+
+mpegtoppm:
+	( cd mpegtoppm_dir ; \
+	  ./configure ; make ; mv doc/sample2 ../mpegtoppm ; make clean ; )
 
 #######
 # 11 Sep 2002 - for fun

@@ -337,6 +337,10 @@ PLUGIN_interface * ENV_init(void)
                     "Megabytes allowed for Drawing Undo" ,
                     1 , 999 , 0 , 6 , NULL ) ;
 
+#if !defined(NO_FRIVOLITIES) && defined(DARWIN)
+   ENV_add_yesno( "AFNI_SPEECH" , "Allow speech synthesis?" ) ; /* 03 Dec 2003 */
+#endif
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
