@@ -1,96 +1,101 @@
 
-#define IFM_VERSION "version 3.1 (September 02, 2003)"
+#define IFM_VERSION "version 3.2 (January 13, 2004)"
 
-/*----------------------------------------------------------------------
- * history:
- *
- * 3.1 September 02, 2003
- *   - Add option '-od OUTPUT_DIRECTORY' for the GERT_Reco2 case.
- *
- * 3.0 August 20, 2003
- *   - It seems that the GE scanners may write the files for a volume
- *     out of order.  To handle that possibility, volume_match() will
- *     re-test any volume for error conditions (separated by sleep()).
- *     Errors will be reported only if they persist (i.e. the scanner
- *     is not still working on the volume).
- *
- * 2.11 August 14, 2003
- *   - added '-quit' option
- *   - changed CHECK_NULL_STR() output to (NULL) (to see when used)
- *   - change exit status to 0 (why the heck did I use 1??)
- *   - allow I.* or i.* filename expansions
- *
- * 2.10 August 5, 2003
- *   - added '-sp SLICE_PATTERN' option (see spat and opts.sp)
- *
- * 2.9  July 27, 2003
- *   - wrap unknown printed strings in NULL check
- *   - only print newer files in debug check
- *
- * 2.8  June 27, 2003
- *   - BYTEORDER is now operational in plug_realtime
- *   - implemented -rev_byte_order option
- *
- * 2.7  June 25, 2003
- *   - added axes offsets (see xorg and realtime.c: XYZFIRST)
- *
- * 2.6  March 25, 2003
- *   - added -GERT_Reco2 option
- *   - RT: only send good volumes to afni
- *   - RT: added -rev_byte_order option
- *   - RT: also open relevant image window
- *   - RT: mention starting file in NOTE command
- *
- * 2.5  February 20, 2003
- *   - deal better with missing first slice of first volume
- *   - make each DRIVE_AFNI command separate
- *
- * 2.4  February 18, 2003
- *   - added DRIVE_AFNI command to open a graph window
- *   - added -drive_afni option
- *   - added NOTE command to append Imon command to any new dataset
- *
- * 2.3  February 14, 2003
- *   - added -start_file option
- *   - created opts_t struct for user options
- *
- * 2.2  February 2, 2003
- *   - allow IFM_MAX_GE_FAILURES file reading failures
- *
- * 2.1  January 27, 2003
- *   - added '-nt VOLUMES_PER_RUN' option (for checking stalled runs)
- *
- * 2.0  January 15, 2003
- *   - rtfeedme feature
- *       o added -rt   option: pass data to afni as collected
- *       o added -host option: specify afni host for real-time
- *       o added -swap option: byte swap pairs before sending to afni
- *       o created realtime.[ch] for all RT processing functions
- *       o (see gAC struct and ART_ functions)
- *   - actually read and store images (to be sent to afni)
- *   - moved function declarations to Imon.c (from Imon.h)
- *
- * 1.3  December 13, 2002
- *   - compile as standalone (include mcw_glob, but not mcw_malloc)
- *   - added l_THD_filesize (local copy of THD_filesize)
- *   - removed dependance on mrilib.h and r_idisp.h
- *
- * 1.2  November 27, 2002
- *   - after N idle mid-run TRs, print warning message
- *   - added '-nice INCR' option
- *   - added BEEP on error
- *   - replaced '-status' with '-quiet', so '-debug 1' is default
- *   - no fatal error during volume search, try to recover
- *   - display that the user should use <ctrl-c> to quit
- *   - adjust globbing to be "...[0-9][02468]?/I.*"  (or w/[13579])
- *
- * 1.1  November 27, 2002
- *   - renamed from Hfile to Imon (I-file monitor)
- *
- * 1.0  November 21, 2002
- *   - initial release
- *----------------------------------------------------------------------
-*/
+static char g_history[] =
+    "----------------------------------------------------------------------\n"
+    " history:\n"
+    "\n"
+    " 1.0  November 21, 2002\n"
+    "   - initial release\n"
+    "\n"
+    " 1.1  November 27, 2002\n"
+    "   - renamed from Hfile to Imon (I-file monitor)\n"
+    "\n"
+    " 1.2  November 27, 2002\n"
+    "   - after N idle mid-run TRs, print warning message\n"
+    "   - added '-nice INCR' option\n"
+    "   - added BEEP on error\n"
+    "   - replaced '-status' with '-quiet', so '-debug 1' is default\n"
+    "   - no fatal error during volume search, try to recover\n"
+    "   - display that the user should use <ctrl-c> to quit\n"
+    "   - adjust globbing to be '...[0-9][02468]?/I.*'  (or w/[13579])\n"
+    "\n"
+    " 1.3  December 13, 2002\n"
+    "   - compile as standalone (include mcw_glob, but not mcw_malloc)\n"
+    "   - added l_THD_filesize (local copy of THD_filesize)\n"
+    "   - removed dependance on mrilib.h and r_idisp.h\n"
+    "\n"
+    " 2.0  January 15, 2003\n"
+    "   - rtfeedme feature\n"
+    "       o added -rt   option: pass data to afni as collected\n"
+    "       o added -host option: specify afni host for real-time\n"
+    "       o added -swap option: byte swap pairs before sending to afni\n"
+    "       o created realtime.[ch] for all RT processing functions\n"
+    "       o (see gAC struct and ART_ functions)\n"
+    "   - actually read and store images (to be sent to afni)\n"
+    "   - moved function declarations to Imon.c (from Imon.h)\n"
+    "\n"
+    " 2.1  January 27, 2003\n"
+    "   - added '-nt VOLUMES_PER_RUN' option (for checking stalled runs)\n"
+    "\n"
+    " 2.2  February 2, 2003\n"
+    "   - allow IFM_MAX_GE_FAILURES file reading failures\n"
+    "\n"
+    " 2.3  February 14, 2003\n"
+    "   - added -start_file option\n"
+    "   - created opts_t struct for user options\n"
+    "\n"
+    " 2.4  February 18, 2003\n"
+    "   - added DRIVE_AFNI command to open a graph window\n"
+    "   - added -drive_afni option\n"
+    "   - added NOTE command to append Imon command to any new dataset\n"
+    "\n"
+    " 2.5  February 20, 2003\n"
+    "   - deal better with missing first slice of first volume\n"
+    "   - make each DRIVE_AFNI command separate\n"
+    "\n"
+    " 2.6  March 25, 2003\n"
+    "   - added -GERT_Reco2 option\n"
+    "   - RT: only send good volumes to afni\n"
+    "   - RT: added -rev_byte_order option\n"
+    "   - RT: also open relevant image window\n"
+    "   - RT: mention starting file in NOTE command\n"
+    "\n"
+    " 2.7  June 25, 2003\n"
+    "   - added axes offsets (see xorg and realtime.c: XYZFIRST)\n"
+    "\n"
+    " 2.8  June 27, 2003\n"
+    "   - BYTEORDER is now operational in plug_realtime\n"
+    "   - implemented -rev_byte_order option\n"
+    "\n"
+    " 2.9  July 27, 2003\n"
+    "   - wrap unknown printed strings in NULL check\n"
+    "   - only print newer files in debug check\n"
+    "\n"
+    " 2.10 August 5, 2003\n"
+    "   - added '-sp SLICE_PATTERN' option (see spat and opts.sp)\n"
+    "\n"
+    " 2.11 August 14, 2003\n"
+    "   - added '-quit' option\n"
+    "   - changed CHECK_NULL_STR() output to (NULL) (to see when used)\n"
+    "   - change exit status to 0 (why the heck did I use 1??)\n"
+    "   - allow I.* or i.* filename expansions\n"
+    "\n"
+    " 3.0 August 20, 2003\n"
+    "   - It seems that the GE scanners may write the files for a volume\n"
+    "     out of order.  To handle that possibility, volume_match() will\n"
+    "     re-test any volume for error conditions (separated by sleep()).\n"
+    "     Errors will be reported only if they persist (i.e. the scanner\n"
+    "     is not still working on the volume).\n"
+    "\n"
+    " 3.1 September 02, 2003\n"
+    "   - Add option '-od OUTPUT_DIRECTORY' for the GERT_Reco2 case.\n"
+    "\n"
+    " 3.2 January 13, 2004\n"
+    "   - added '-zorder ORDER' option to specify slice timing in the\n"
+    "     real-time mode (the real-time default is now 'alt')\n"
+    "   - added '-hist' option for history display\n"
+    "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
  * todo:
@@ -1143,12 +1148,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	if ( ! strncmp( argv[ac], "-help", 5 ) )
-	{
-	    usage( IFM_PROG_NAME, IFM_USE_LONG );
-	    return 1;
-	}
-	else if ( ! strncmp( argv[ac], "-debug", 4 ) )
+	if ( ! strncmp( argv[ac], "-debug", 4 ) )
 	{
 	    if ( ++ac >= argc )
 	    {
@@ -1180,6 +1180,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	else if ( ! strncmp( argv[ac], "-GERT_Reco2", 7 ) )
 	{
 	    p->opts.gert_reco = 1;	/* output script at the end */
+	}
+	else if ( ! strncmp( argv[ac], "-help", 5 ) )
+	{
+	    usage( IFM_PROG_NAME, IFM_USE_LONG );
+	    return 1;
+	}
+	else if ( ! strncmp( argv[ac], "-hist", 5 ) )
+	{
+	    usage( IFM_PROG_NAME, IFM_USE_HIST );
+	    return 1;
 	}
 	else if ( ! strncmp( argv[ac], "-nice", 4 ) )
 	{
@@ -1306,6 +1316,17 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	    A->swap = 1;		/* do byte swapping before sending  */
 	    p->opts.swap = 1;		/* just note the user option        */
 	}
+	else if ( ! strncmp( argv[ac], "-zorder", 6 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -zorder ORDER\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    A->zorder = argv[ac];
+	}
 	else
 	{
 	    fprintf( stderr, "error: invalid option <%s>\n\n", argv[ac] );
@@ -1333,6 +1354,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		 "cannot both be used\n");
 	usage( IFM_PROG_NAME, IFM_USE_SHORT );
 	return 1;
+    }
+
+    if ( A->zorder )
+    {
+	if ( strcmp(A->zorder, "alt") && strcmp(A->zorder, "seq") )
+	{
+	    fprintf(stderr,"** order '%s' is invalid for '-zorder' option,\n"
+		    "   must be either 'alt' or 'seq'\n", A->zorder);
+	    return -1;
+	}
     }
 
     /* done processing argument list */
@@ -2115,6 +2146,23 @@ static int usage ( char * prog, int level )
 	  "           If for some reason the user wishes to reverse the order\n"
 	  "           from what is detected, '-rev_byte_order' can be used.\n"
 	  "\n"
+	  "    -zorder ORDER     : slice order over time\n"
+	  "\n"
+	  "        e.g. -zorder alt\n"
+	  "        e.g. -zorder seq\n"
+	  "        the default is 'alt'\n"
+	  "\n"
+	  "        This options allows the user to alter the slice\n"
+	  "        acquisition order in real-time mode, simliar to the slice\n"
+	  "        pattern of the '-sp' option.  The main differences are:\n"
+	  "            o  only two choices are presently available\n"
+	  "            o  the syntax is intentionally different (from that\n"
+	  "               of 'to3d' or the '-sp' option)\n"
+	  "\n"
+	  "        ORDER values:\n"
+	  "            alt   : alternating in the Z direction (over time)\n"
+	  "            seq   : sequential in the Z direction (over time)\n"
+	  "\n"
 	  "  ---------------------------------------------------------------\n"
 	  "  other options:\n"
 	  "\n"
@@ -2125,6 +2173,8 @@ static int usage ( char * prog, int level )
 	  "        the '-quiet' option is equivalent to '-debug 0'\n"
 	  "\n"
 	  "    -help              : show this help information\n"
+	  "\n"
+	  "    -hist              : display a history of program changes\n"
 	  "\n"
 	  "    -nice INCREMENT    : adjust the nice value for the process\n"
 	  "\n"
@@ -2212,6 +2262,11 @@ static int usage ( char * prog, int level )
 	  IFM_VERSION
 	);
 
+	return 0;
+    }
+    else if ( level == IFM_USE_HIST )
+    {
+	fputs( g_history, stdout );
 	return 0;
     }
     else if ( level == IFM_USE_VERSION )

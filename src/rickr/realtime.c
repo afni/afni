@@ -9,10 +9,7 @@
 extern ART_comm  gAC;
 
 /*----------------------------------------------------------------------
- * history:
- *
- * 2.9   2003 July 27
- *   - apply CHECK_NULL_STR to questionable print statements
+ * history:  see 'Imon -hist'
  *----------------------------------------------------------------------
 */
 
@@ -345,6 +342,7 @@ int ART_init_AC_struct( ART_comm * ac )
     ac->mode        = 0;
     ac->use_tcp     = 1;
     ac->swap        = 0;
+    ac->zorder      = NULL;
     strcpy( ac->host, "localhost" );
     ac->ioc_name[0] = '\0';
     ac->ioc         = NULL;
@@ -380,6 +378,13 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     strcpy( tbuf, "ACQUISITION_TYPE 2D+zt" );
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
+    /* slice order */
+    if ( ac->zorder )
+	sprintf( tbuf, "ZORDER %s", ac->zorder);
+    else
+	strcpy( tbuf, "ZORDER alt" );
+    ART_ADD_TO_BUF( ac->buf, tbuf );
+
     /* volume time step */
     sprintf( tbuf, "TR %f", v->geh.tr );
     ART_ADD_TO_BUF( ac->buf, tbuf );
@@ -396,10 +401,6 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     /* data type - no mrilib.h, and don't duplicate MRI_TYPE_name list */
     strcpy( tbuf, "DATUM short" );
-    ART_ADD_TO_BUF( ac->buf, tbuf );
-
-    /* slice order */
-    strcpy( tbuf, "ZORDER seq" );
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
     /* axes orientations */
@@ -582,12 +583,13 @@ int ART_idisp_ART_comm( char * info, ART_comm * ac )
 	    "   (state, mode)   = (%d, %d)\n"
 	    "   (use_tcp, swap) = (%d, %d)\n"
 	    "   byte_order      = %d\n"
+	    "   zorder          = %s\n"
 	    "   host            = %s\n"
 	    "   ioc_name        = %s\n"
 	    "   (ioc, param)    = (0x%p, 0x%p)\n",
 	    ac, ac->state, ac->mode, ac->use_tcp, ac->swap, ac->byte_order,
-	    CHECK_NULL_STR(ac->host), CHECK_NULL_STR(ac->ioc_name),
-	    ac->ioc, ac->param );
+	    CHECK_NULL_STR(ac->zorder), CHECK_NULL_STR(ac->host),
+	    CHECK_NULL_STR(ac->ioc_name), ac->ioc, ac->param );
 
     return 0;
 }
