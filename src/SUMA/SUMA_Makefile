@@ -1,5 +1,6 @@
 #
 
+
 #These normally come from AFNI's makefile, if you're running make without using afni's makefile, you need to set some variables
 ifndef CEXTRA
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
