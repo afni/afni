@@ -114,12 +114,14 @@ int cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 
    if( kode != 0 ){
      free(x) ;
+#if 0
      switch( kode ){
        case 1: fprintf(stderr,"** cl1_solve ERROR: no feasible solution!\n"); break;
        case 2: fprintf(stderr,"** cl1_solve ERROR: rounding errors!\n")     ; break;
        case 3: fprintf(stderr,"** cl1_solve ERROR: max iterations!\n")      ; break;
       default: fprintf(stderr,"** cl1_solve ERROR: unknown problem!\n")     ; break;
      }
+#endif
      return (int)kode ;
    }
 
