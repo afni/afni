@@ -2134,3 +2134,7 @@
      This happens if the FIM Bkg Thresh is too high.  Also modified
      afni.c to allow this value to be initialize to 0 (before, 1% was the
      minimum).
+
+12 May 2000
+ * Incorporated NLfim changes from Doug Ward, to include calculation
+     of R**2, per my request.

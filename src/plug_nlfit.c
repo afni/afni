@@ -26,6 +26,12 @@
              to be a constant.
    Date:     08 February 2000
 
+   Mod:      Changes for output of R^2 (coefficient of multiple determination),
+             and standard deviation of residuals from full model fit.
+	     Added global variable calc_tstats.
+             Also, added screen display of p-values.
+   Date:     10 May 2000
+
 */
 
 
@@ -38,7 +44,7 @@
 
 #define PROGRAM_NAME "plug_nlfit"                    /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "08 February 2000"          /* date of last program mod */
+#define PROGRAM_DATE "10 May 2000"               /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -69,6 +75,7 @@
 static float DELT = 1.0;   /* default */
 static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
 static float dsTR = 0.0 ;  /* TR of the input file */
+
 
 /***********************************************************************
   Plugin to provide nonlinear least squares fitting 1D function for graphs
@@ -452,6 +459,7 @@ float *  nlfit
   float * tpar_full = NULL;    /* t-statistic of parameters in full model */
   float freg;                  /* f-statistic for the full regression model */
   float rmsreg;                /* rms for the full regression model */
+  float rsqr;                  /* R^2 (coef. of multiple determination) */
   float smax;                  /* signed maximum of signal */
   float tmax;                  /* epoch of signed maximum of signal */
   float pmax;                  /* percentage change due to signal */
@@ -494,14 +502,14 @@ float *  nlfit
 		   min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
 		   ts_length, x_array,
 		   par_rdcd, sse_rdcd, par_full, sse_full,
-		   &rmsreg, &freg, &smax, &tmax, &pmax, &area, &parea,
+		   &rmsreg, &freg, &rsqr, &smax, &tmax, &pmax, &area, &parea,
 		   tpar_full);
 
 
   /*----- report results for this voxel -----*/
   report_results (nname, sname, r, p, npname, spname, ts_length,
 		  par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
-		  rmsreg, freg, smax, tmax, pmax, area, parea, label);
+		  rmsreg, freg, rsqr, smax, tmax, pmax, area, parea, label);
   printf ("\nVoxel Results: \n");
   printf ("%s \n", *label);
   

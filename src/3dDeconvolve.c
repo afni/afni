@@ -104,6 +104,8 @@
   Mod:     Modified matrix_file_read to use mri_read_ascii routine.
   Date:    12 January 2000
 
+  Mod:     Added test for missing stim function time series file name.
+  Date:    08 May 2000
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -114,7 +116,7 @@
 
 #define PROGRAM_NAME "3dDeconvolve"                  /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "12 January 2000"           /* date of last program mod */
+#define PROGRAM_DATE "08 May 2000"               /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -815,7 +817,12 @@ float * read_time_series
   float * ts_data;         /* input time series data */
 
 
-  /*----- First, check file name for column index -----*/
+  /*----- First, check for empty filename -----*/
+  if (ts_filename == NULL)
+    DC_error ("Missing input time series file name");
+
+
+  /*----- Check file name for column index -----*/
   cpt = strstr (ts_filename, "[");
   if (cpt == NULL)
     {

@@ -12,6 +12,12 @@
   Mod:      Added novar flag to eliminate unnecessary calculations.
   Date:     13 July 1999
 
+  Mod:      Changes for output of R^2 (coefficient of multiple determination),
+            and standard deviation of residuals from full model fit.
+	    Added global variable calc_tstats.
+	    Also, added screen display of p-values.
+  Date:     10 May 2000
+
 */
 
 
@@ -34,6 +40,8 @@
 /*---------------- global data -------------------*/
 static char lbuf[4096] ;  
 static char sbuf[256] ;
+
+static int calc_tstats = 0;   /* set to 1 for calculating t-stats */
 
 
 /*---------------------------------------------------------------------------*/
@@ -290,6 +298,7 @@ void analyze_results
   float sse_full,         /* error sum of squares for the full model */
   float * rmsreg,         /* root-mean-square for the full regression model */
   float * freg,           /* f-statistic for the full regression model */
+  float * rsqr,           /* R^2 (coef. of multiple determination) */
   float * smax,           /* signed maximum of signal */
   float * tmax,           /* epoch of signed maximum of signal */
   float * pmax,           /* percentage change due to signal */
@@ -320,6 +329,7 @@ void report_results
   float * tpar_full,       /* t-statistic of the parameters in full model */
   float rmsreg,            /* root-mean-square for the full regression model */
   float freg,              /* f-statistic for the full regression model */
+  float rsqr,              /* R^2 (coef. of multiple determination) */
   float smax,              /* signed maximum of signal */
   float tmax,              /* epoch of signed maximum of signal */
   float pmax,              /* percentage change due to signal */

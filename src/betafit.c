@@ -12,7 +12,7 @@
      bi7[4] = d(bi7[1])/db = (I11*I00-I10*I01)/I00**2
      bi7[5] = d(bi7[2])/da = (I11*I00-I10*I01)/I00**2
      bi7[6] = d(bi7[2])/db = (I02*I00-I01**2)/I00**2
-   The integrals are calculated by transforming to y=a*ln(xc/a), and
+   The integrals are calculated by transforming to y=a*ln(xc/x), and
    then using Gauss-Laguerre quadrature:
 
    Int( x**(a-1)*(1-x)**(b-1) * f(x) , x=0..xc )

@@ -29,6 +29,10 @@
   Mod:      Added functions column_to_vector and matrix_extract_rows.
   Date:     21 April 2000
 
+  Mod:      Added test for missing matrix file name.
+  Date:     08 May 2000
+
+
 */
 
 
@@ -168,6 +172,10 @@ void matrix_file_write (char * filename, matrix m)
   FILE * outfile = NULL;
 
 
+  /*----- First, check for empty file name -----*/
+  if (filename == NULL)  matrix_error ("Missing matrix file name");
+
+
   outfile = fopen (filename, "w");
 
   rows = m.rows;
@@ -229,6 +237,10 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 			      -- used to read ASCII file */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   char message [80];       /* error message */
+
+
+  /*----- First, check for empty file name -----*/
+  if (filename == NULL)  matrix_error ("Missing matrix file name");
 
 
   /*----- Read the matrix file -----*/

@@ -27,6 +27,12 @@
             to be a constant.
   Date:     08 February 2000
 
+  Mod:      Changes for output of R^2 (coefficient of multiple determination),
+            and standard deviation of residuals from full model fit.
+	    Added global variable calc_tstats.
+	    Also, added screen display of p-values.
+  Date:     10 May 2000
+
 */
 
 
@@ -960,6 +966,39 @@ void calc_partial_derivatives
 
 /*---------------------------------------------------------------------------*/
 /*
+  Calculate the coefficient of multiple determination R^2.
+*/
+
+float calc_rsqr 
+(
+  float ssef,                 /* error sum of squares from full model */
+  float sser                  /* error sum of squares from reduced model */
+)
+
+{
+  const float EPSILON = 1.0e-5;     /* protection against divide by zero */
+  float rsqr;                       /* coeff. of multiple determination R^2  */
+
+
+  /*----- coefficient of multiple determination R^2 -----*/
+  if (sser < EPSILON)
+    rsqr = 0.0;
+  else
+    rsqr = (sser - ssef) / sser;
+
+
+  /*----- Limit range of values for R^2 -----*/
+  if (rsqr < 0.0)   rsqr = 0.0;
+  if (rsqr > 1.0)   rsqr = 1.0;
+
+
+  /*----- Return coefficient of multiple determination R^2 -----*/
+  return (rsqr);
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Perform additional calculations following the least squares parameter
   estimates.
 */
@@ -983,6 +1022,7 @@ void analyze_results
   float sse_full,         /* error sum of squares for the full model */
   float * rmsreg,         /* root-mean-square for the full regression model */
   float * freg,           /* f-statistic for the full regression model */
+  float * rsqr,           /* R^2 (coef. of multiple determination) */
   float * smax,           /* signed maximum of signal */
   float * tmax,           /* epoch of signed maximum of signal */
   float * pmax,           /* percentage change due to signal */
@@ -999,9 +1039,7 @@ void analyze_results
   int df_full;                   /* degrees of freedom for full model */
   float mse_full;                /* MSE for full model */
   float mse_reg;                 /* MSE for the regression */
-  matrix d, dt, dtd, dtdinv;     /* matrices used for calc. of covariance */
   int ok;                        /* boolean for successful matrix inversion */
-  float stddev;                  /* est. std. dev. for a parameter */
   float * y_array = NULL;        /* estimated signal time series */
   float * base_array = NULL;     /* baseline time series */
   float barea;                   /* area under baseline */
@@ -1011,11 +1049,19 @@ void analyze_results
 
   /*----- initialization -----*/
   dimension = r + p;
-  df_rdcd = ts_length - r;
-  df_full = ts_length - dimension;
+  *rmsreg = *freg = *rsqr = *smax = *tmax = *pmax = *area = *parea = 0.0;
+  for (ip = 0;  ip < dimension;  ip++)
+    tpar_full[ip] = 0.0;
+
+
+  /*----- check for insufficient variation in the data -----*/
+  if (novar)  return;
 
 
   /*----- Adjust dof if constraints force a parameter to be a constant -----*/
+  df_rdcd = ts_length - r;
+  df_full = ts_length - dimension;
+
   for (ip = 0;  ip < r;  ip++)
     if (min_nconstr[ip] == max_nconstr[ip])
       {
@@ -1027,15 +1073,6 @@ void analyze_results
     if (min_sconstr[ip] == max_sconstr[ip])
       df_full++;
 
-
-  /*----- check for insufficient variation in the data -----*/
-  if (novar)
-    {
-      *rmsreg = *freg = *smax = *tmax = *pmax = *area = *parea = 0.0;
-      for (ip = 0;  ip < dimension;  ip++)
-	tpar_full[ip] = 0.0;
-      return;
-    }
 
   /*----- MSE for full model -----*/
   mse_full = sse_full / df_full;
@@ -1055,6 +1092,9 @@ void analyze_results
 
   /*----- root-mean-square error for the regression -----*/
   *rmsreg = sqrt(mse_full);
+
+  /*----- R^2 (coefficient of multiple determination) -----*/
+  *rsqr = calc_rsqr (sse_full, sse_rdcd);
 
   /*----- generate time series corresponding to the signal model -----*/
   y_array = (float *) malloc (sizeof(float) * (ts_length));
@@ -1145,45 +1185,80 @@ void analyze_results
   free (y_array);      y_array = NULL;
 
 
-  /*----- initialize matrices -----*/
-  matrix_initialize (&d);
-  matrix_initialize (&dt);
-  matrix_initialize (&dtd);
-  matrix_initialize (&dtdinv);
+  /*----- Calculate t-statistics? -----*/
+  if (calc_tstats)
+    {
+      float stddev;                 /* est. std. dev. for a parameter */
+      matrix d, dt, dtd, dtdinv;    /* matrices used for calc. of covariance */
 
-  /*----- calculate the matrix of partial derivatives D -----*/
-  matrix_create (ts_length, dimension, &d);
-  calc_partial_derivatives (nmodel, smodel, r, p, min_nconstr, max_nconstr, 
-			    min_sconstr, max_sconstr, 
-			    ts_length, x_array, par_full, d);
+      /*----- initialize matrices -----*/
+      matrix_initialize (&d);
+      matrix_initialize (&dt);
+      matrix_initialize (&dtd);
+      matrix_initialize (&dtdinv);
+      
+      /*----- calculate the matrix of partial derivatives D -----*/
+      matrix_create (ts_length, dimension, &d);
+      calc_partial_derivatives (nmodel, smodel, r, p, 
+				min_nconstr, max_nconstr, 
+				min_sconstr, max_sconstr, 
+				ts_length, x_array, par_full, d);
+      
+      /*----- calculate variance-covariance matrix -----*/
+      matrix_transpose (d, &dt);
+      matrix_multiply (dt, d, &dtd);
+      ok = matrix_inverse (dtd, &dtdinv);
+      if (ok)
+	for (ip = 0;  ip < dimension;  ip++)
+	  {
+	    stddev = sqrt((sse_full/(df_full)) * dtdinv.elts[ip][ip]);
+	    if (stddev > EPSILON)
+	      tpar_full[ip] = par_full[ip] / stddev;
+	    else
+	      tpar_full[ip] = 0.0;
+	  }
+      else
+	for (ip = 0;  ip < dimension;  ip++)
+	  {
+	    tpar_full[ip] = 0.0;
+	  }
+      
+      
+      /*----- dispose of matrices -----*/
+      matrix_destroy (&dtdinv);
+      matrix_destroy (&dtd);
+      matrix_destroy (&dt); 
+      matrix_destroy (&d);
 
-  /*----- calculate variance-covariance matrix -----*/
-  matrix_transpose (d, &dt);
-  matrix_multiply (dt, d, &dtd);
-  ok = matrix_inverse (dtd, &dtdinv);
-  if (ok)
-    for (ip = 0;  ip < dimension;  ip++)
-      {
-	stddev = sqrt((sse_full/(df_full)) * dtdinv.elts[ip][ip]);
-	if (stddev > EPSILON)
-	    tpar_full[ip] = par_full[ip] / stddev;
-	else
-	  tpar_full[ip] = 0.0;
-      }
-  else
-    for (ip = 0;  ip < dimension;  ip++)
-      {
-	tpar_full[ip] = 0.0;
-      }
-    
+    }  /* if (calc_tstats) */    
 
-  /*----- dispose of matrices -----*/
-  matrix_destroy (&dtdinv);
-  matrix_destroy (&dtd);
-  matrix_destroy (&dt); 
-  matrix_destroy (&d);    
 }
 
+
+/*---------------------------------------------------------------------------*/
+/*
+  Convert F-value to p-value.  
+  This routine was copied from: mri_stats.c
+*/
+
+
+double fstat_t2p( double ff , double dofnum , double dofden )
+{
+   int which , status ;
+   double p , q , f , dfn , dfd , bound ;
+
+   which  = 1 ;
+   p      = 0.0 ;
+   q      = 0.0 ;
+   f      = ff ;
+   dfn    = dofnum ;
+   dfd    = dofden ;
+
+   cdff( &which , &p , &q , &f , &dfn , &dfd , &status , &bound ) ;
+
+   if( status == 0 ) return q ;
+   else              return 1.0 ;
+}
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -1204,8 +1279,9 @@ void report_results
   float * par_full,        /* estimated parameters for the full model */
   float sse_full,          /* error sum of squares for the full model */
   float * tpar_full,       /* t-statistic of the parameters in full model */
-  float rmsreg,            /* root-mean-square for the full regression model */
+  float rmsreg,            /* root-mean-square error for the full model */
   float freg,              /* f-statistic for the full regression model */
+  float rsqr,              /* R^2 (coef. of multiple determination) */
   float smax,              /* signed maximum of signal */
   float tmax,              /* epoch of signed maximum of signal */
   float pmax,              /* percentage change due to signal */
@@ -1216,6 +1292,7 @@ void report_results
 
 {
   int ip;                  /* parameter index */
+  double pvalue;
 
 
   /*----- create label if desired by calling program -----*/
@@ -1259,15 +1336,19 @@ void report_results
   sprintf (sbuf,   "Signal PArea = %12.3f \n", parea);
   strcat (lbuf, sbuf);
 
-
   sprintf (sbuf, "\nRMSE Rdcd = %8.3f \n", sqrt(sse_rdcd/(ts_length-r)));
   strcat (lbuf, sbuf);
   sprintf (sbuf, "RMSE Full = %8.3f \n", sqrt(sse_full/(ts_length-r-p)));
   strcat (lbuf, sbuf);
 	    
-  sprintf (sbuf, "F(Full Model) = %8.3f \n", freg);
+  sprintf (sbuf, "\nR^2       = %7.3f \n", rsqr);
   strcat (lbuf, sbuf);
-
+  sprintf (sbuf, "F[%2d,%3d] = %7.3f \n", p, ts_length-r-p, freg);
+  strcat (lbuf, sbuf);
+  pvalue = fstat_t2p ( (double) freg, (double) p, (double) ts_length-r-p);
+  sprintf (sbuf, "p-value   = %e  \n", pvalue);
+  strcat (lbuf, sbuf);
+ 
 
   /*----- send address of lbuf back in what label points to -----*/
   *label = lbuf;

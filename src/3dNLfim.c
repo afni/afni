@@ -46,6 +46,12 @@
              to be a constant.
    Date:     08 February 2000
 
+   Mod:      Changes for output of R^2 (coefficient of multiple determination),
+             and standard deviation of residuals from full model fit.
+	     Added global variable calc_tstats.
+             Also, added screen display of p-values.
+   Date:     10 May 2000
+
 */
 
 
@@ -58,7 +64,7 @@
 
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "08 February 2000"          /* date of last program mod */
+#define PROGRAM_DATE "10 May 2000"               /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -94,7 +100,6 @@ static float DELT = 1.0;   /* default */
 static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
 static float dsTR = 0.0 ;  /* TR of the input file */
 
-
 static char * commandline = NULL ;         /* command line for history notes */
 
 
@@ -115,13 +120,12 @@ void display_help_menu()
      "Usage:                                                                \n"
      "3dNLfim                                                               \n"
      "-input fname       fname = filename of 3d + time data file for input  \n"
-     "[-inTR]            set the TR of the created timeseries to be the TR  \n"
-     "                     of the prototype dataset                         \n"
-     "                     [The default is to compute with TR = 1.]         \n"
-     "                     [The model functions are called for a  ]         \n"
-     "                     [time grid of 0, TR, 2*TR, 3*TR, ....  ]         \n"
      "-ignore num        num   = skip this number of initial images in the  \n"
      "                     time series for regresion analysis; default = 3  \n"
+     "[-inTR]            set delt = TR of the input 3d+time dataset         \n"
+     "                     [The default is to compute with delt = 1.0 ]     \n"
+     "                     [The model functions are calculated using a      \n"
+     "                      time grid of: 0, delt, 2*delt, 3*delt, ... ]    \n"
      "[-time fname]      fname = ASCII file containing each time point      \n"
      "                     in the time series. Defaults to even spacing     \n"
      "                     given by TR (this option overrides -inTR).       \n"
@@ -143,6 +147,9 @@ void display_help_menu()
      "The following commands generate individual AFNI 2 sub-brick datasets: \n"
      "                                                                      \n"
      "[-freg fname]      perform f-test for significance of the regression; \n"
+     "                     output 'fift' is written to prefix filename fname\n"
+     "[-frsqr fname]     calculate R^2 (coef. of multiple determination);   \n"
+     "                     store along with f-test for regression;          \n"
      "                     output 'fift' is written to prefix filename fname\n"
      "[-fsmax fname]     estimate signed maximum of signal; store along     \n"
      "                     with f-test for regression; output 'fift' is     \n"
@@ -188,9 +195,11 @@ void display_help_menu()
      "[-brick m area label]      area between signal and baseline           \n"
      "[-brick m parea label]     signed area between signal and baseline    \n"
      "                             as percent of baseline area              \n"
-     "[-brick m fstat label]     F-stat for significance of the regression  \n"
      "[-brick m tscoef k label]  t-stat for kth signal parameter coefficient\n"
      "[-brick m tncoef k label]  t-stat for kth noise parameter coefficient \n"
+     "[-brick m resid label]     std. dev. of the full model fit residuals  \n"
+     "[-brick m rsqr  label]     R^2 (coefficient of multiple determination)\n"
+     "[-brick m fstat label]     F-stat for significance of the regression  \n"
      "                                                                      \n"
      "                                                                      \n"
      "The following commands write the time series fit for each voxel       \n"
@@ -239,6 +248,7 @@ void initialize_options
   char ** input_filename,     /* file name of input 3d+time dataset */
   char ** tfilename,          /* file name for time point series */  
   char ** freg_filename,      /* file name for regression f-statistics */
+  char ** frsqr_filename,     /* file name for R^2 statistics */
   char *** fncoef_filename,   /* file name for noise model parameters */
   char *** fscoef_filename,   /* file name for signal model parameters */
   char *** tncoef_filename,   /* file name for noise model t-statistics */
@@ -266,60 +276,49 @@ void initialize_options
 
 
   /*----- allocate memory for noise parameter names -----*/
-  *npname = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
-  if (*npname == NULL)  
-    NLfit_error ("Unable to allocate memory for noise parameter names");
+  *npname = (char **) malloc (sizeof(char *) * MAX_PARAMETERS); 
+  MTEST (*npname);  
   for (ip = 0;  ip < MAX_PARAMETERS;  ip++)
     {
       (*npname)[ip] = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-      if ((*npname)[ip] == NULL)  
-	NLfit_error ("Unable to allocate memory for noise parameter names");
+      MTEST ((*npname)[ip]);  
     }
 
 
   /*----- allocate memory for signal parameter names -----*/
   *spname = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
-  if (*spname == NULL)  
-    NLfit_error ("Unable to allocate memory for signal parameter names");
+  MTEST (*spname);  
   for (ip = 0;  ip < MAX_PARAMETERS;  ip++)
     {
       (*spname)[ip] = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-      if ((*spname)[ip] == NULL)  
-	NLfit_error ("Unable to allocate memory for signal parameter names");
+      MTEST ((*spname)[ip]);  
     }
   
 
   /*----- allocate memory for parameter constraints -----*/
   *min_nconstr = (float *) malloc (sizeof(float) * MAX_PARAMETERS);
-  if (*min_nconstr == NULL)  
-    NLfit_error ("Unable to allocate memory for min_nconstr");
+  MTEST (*min_nconstr);  
   *max_nconstr = (float *) malloc (sizeof(float) * MAX_PARAMETERS);
-  if (*max_nconstr == NULL)
-    NLfit_error ("Unable to allocate memory for max_nconstr");
+  MTEST (*max_nconstr);
   *min_sconstr = (float *) malloc (sizeof(float) * MAX_PARAMETERS);
-  if (*min_sconstr == NULL)  
-    NLfit_error ("Unable to allocate memory for min_sconstr");
+  MTEST (*min_sconstr);  
   *max_sconstr = (float *) malloc (sizeof(float) * MAX_PARAMETERS);
-  if (*max_sconstr == NULL)
-    NLfit_error ("Unable to allocate memory for max_sconstr");
+  MTEST (*max_sconstr);
 
 
   /*----- allocate memory space and initialize pointers for filenames -----*/
   *input_filename = NULL;
   *tfilename = NULL;
   *freg_filename = NULL;  
+  *frsqr_filename = NULL;
   *fncoef_filename = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
-  if (*fncoef_filename == NULL)
-    NLfit_error ("Unable to allocate memory for fncoef_filename");
+  MTEST (*fncoef_filename);
   *fscoef_filename = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
-  if (*fscoef_filename == NULL)
-    NLfit_error ("Unable to allocate memory for fscoef_filename");
+  MTEST (*fscoef_filename);
   *tncoef_filename = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
-  if (*tncoef_filename == NULL)
-    NLfit_error ("Unable to allocate memory for tncoef_filename");
+  MTEST (*tncoef_filename);
   *tscoef_filename = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
-  if (*tscoef_filename == NULL)
-    NLfit_error ("Unable to allocate memory for tscoef_filename");
+  MTEST (*tscoef_filename);
   for (ip = 0;  ip < MAX_PARAMETERS;  ip++)
     {
       (*fncoef_filename)[ip] = NULL;
@@ -371,6 +370,7 @@ void get_options
   char ** input_filename,     /* file name of input 3d+time dataset */
   char ** tfilename,          /* file name for time point series */  
   char ** freg_filename,      /* file name for regression f-statistics */
+  char ** frsqr_filename,     /* file name for R^2 statistics */
   char ** fsmax_filename,     /* file name for signal signed maximum */
   char ** ftmax_filename,     /* file name for time of signed maximum */
   char ** fpmax_filename,     /* file name for max. percentage change */
@@ -404,7 +404,7 @@ void get_options
 
   
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
+  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
   
   
   /*----- initialize the model array -----*/
@@ -417,7 +417,7 @@ void get_options
 		      min_nconstr, max_nconstr, min_sconstr, max_sconstr, nabs,
 		      nrand, nbest, rms_min, fdisp, 
 		      input_filename, tfilename, freg_filename, 
-		      fncoef_filename, fscoef_filename,
+		      frsqr_filename, fncoef_filename, fscoef_filename,
 		      tncoef_filename, tscoef_filename,
 		      sfit_filename, snfit_filename, option_data); 
 
@@ -427,13 +427,12 @@ void get_options
     {
 
       /*-----   -input filename   -----*/
-      if (strncmp(argv[nopt], "-input", 6) == 0)
+      if (strcmp(argv[nopt], "-input") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -input ");
 	  *input_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*input_filename == NULL)
-	    NLfit_error ("Unable to allocate memory for input_filename");
+	  MTEST (*input_filename);
 	  strcpy (*input_filename, argv[nopt]);
 	  *dset_time = THD_open_one_dataset (*input_filename);
 	  if ((*dset_time) == NULL)  
@@ -459,13 +458,13 @@ void get_options
 
       /*----- 22 July 1998: the -inTR option -----*/
 
-      if( strncmp(argv[nopt],"-inTR",5) == 0 ){
+      if( strcmp(argv[nopt],"-inTR") == 0 ){
          inTR = 1 ;
          nopt++ ; continue ;
       }
 
       /*-----   -ignore num  -----*/
-      if (strncmp(argv[nopt], "-ignore", 7) == 0)
+      if (strcmp(argv[nopt], "-ignore") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -ignore ");
@@ -478,13 +477,12 @@ void get_options
 	}
       
       /*-----   -time filename   -----*/
-      if (strncmp(argv[nopt], "-time", 5) == 0)
+      if (strcmp(argv[nopt], "-time") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -time ");
 	  *tfilename = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*tfilename == NULL)
-	    NLfit_error ("-time:  Unable to allocate memory for tfilename");
+	  MTEST (*tfilename);
 	  strcpy (*tfilename, argv[nopt]);
 	  nopt++;
 	  continue;
@@ -492,13 +490,12 @@ void get_options
       
       
       /*-----   -signal slabel  -----*/
-      if (strncmp(argv[nopt], "-signal", 7) == 0)
+      if (strcmp(argv[nopt], "-signal") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -signal ");
 	  *sname = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*sname == NULL)
-	    NLfit_error ("Unable to allocate memory for signal model name");
+	  MTEST (*sname);
 	  strcpy (*sname, argv[nopt]);
 	  initialize_signal_model (model_array, *sname, 
 				   smodel, p, *spname,
@@ -509,13 +506,12 @@ void get_options
       
       
       /*-----   -noise nlabel  -----*/
-      if (strncmp(argv[nopt], "-noise", 6) == 0)
+      if (strcmp(argv[nopt], "-noise") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -noise ");
 	  *nname = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*nname == NULL)
-	    NLfit_error ("Unable to allocate memory for noise model name");
+	  MTEST (*nname);
 	  strcpy (*nname, argv[nopt]);
 	  initialize_noise_model (model_array, *nname, 
 				  nmodel, r, *npname,
@@ -531,7 +527,7 @@ void get_options
       
       
       /*-----   -sconstr k min max  -----*/
-      if (strncmp(argv[nopt], "-sconstr", 8) == 0)
+      if (strcmp(argv[nopt], "-sconstr") == 0)
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -sconstr ");
@@ -554,7 +550,7 @@ void get_options
       
       
       /*-----   -nconstr k min max  -----*/
-      if (strncmp(argv[nopt], "-nconstr", 8) == 0)
+      if (strcmp(argv[nopt], "-nconstr") == 0)
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -nconstr ");
@@ -577,7 +573,7 @@ void get_options
       
       
       /*-----   -nabs  -----*/
-      if (strncmp(argv[nopt], "-nabs", 6) == 0)
+      if (strcmp(argv[nopt], "-nabs") == 0)
 	{
 	  *nabs = 1;
 	  nopt++;
@@ -586,7 +582,7 @@ void get_options
       
       
       /*-----   -nrand n  -----*/
-      if (strncmp(argv[nopt], "-nrand", 6) == 0)
+      if (strcmp(argv[nopt], "-nrand") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -nrand ");
@@ -600,7 +596,7 @@ void get_options
       
       
       /*-----   -nbest n  -----*/
-      if (strncmp(argv[nopt], "-nbest", 6) == 0)
+      if (strcmp(argv[nopt], "-nbest") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -nbest ");
@@ -614,7 +610,7 @@ void get_options
       
       
       /*-----   -rmsmin r  -----*/
-      if (strncmp(argv[nopt], "-rmsmin", 7) == 0)
+      if (strcmp(argv[nopt], "-rmsmin") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -rmsmin ");
@@ -628,7 +624,7 @@ void get_options
       
 
        /*-----   -fdisp fval   -----*/
-      if (strncmp(argv[nopt], "-fdisp", 6) == 0)
+      if (strcmp(argv[nopt], "-fdisp") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -fdisp ");
@@ -640,27 +636,38 @@ void get_options
       
 
        /*-----   -freg filename   -----*/
-      if (strncmp(argv[nopt], "-freg", 5) == 0)
+      if (strcmp(argv[nopt], "-freg") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -freg ");
 	  *freg_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*freg_filename == NULL)
-	    NLfit_error ("Unable to allocate memory for freg_filename");
+	  MTEST (*freg_filename);
 	  strcpy (*freg_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
       
 
+       /*-----   -frsqr filename   -----*/
+      if (strcmp(argv[nopt], "-frsqr") == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  NLfit_error ("need argument after -frsqr ");
+	  *frsqr_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  MTEST (*frsqr_filename);
+	  strcpy (*frsqr_filename, argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+      
+
        /*-----   -fsmax filename   -----*/
-      if (strncmp(argv[nopt], "-fsmax", 6) == 0)
+      if (strcmp(argv[nopt], "-fsmax") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -fsmax ");
 	  *fsmax_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*fsmax_filename == NULL)
-	    NLfit_error ("Unable to allocate memory for fsmax_filename");
+	  MTEST (*fsmax_filename);
 	  strcpy (*fsmax_filename, argv[nopt]);
 	  nopt++;
 	  continue;
@@ -668,13 +675,12 @@ void get_options
       
 
        /*-----   -ftmax filename   -----*/
-      if (strncmp(argv[nopt], "-ftmax", 6) == 0)
+      if (strcmp(argv[nopt], "-ftmax") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -ftmax ");
 	  *ftmax_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*ftmax_filename == NULL)
-	    NLfit_error ("Unable to allocate memory for ftmax_filename");
+	  MTEST (*ftmax_filename);
 	  strcpy (*ftmax_filename, argv[nopt]);
 	  nopt++;
 	  continue;
@@ -682,13 +688,12 @@ void get_options
       
 
       /*-----   -fpmax filename   -----*/
-      if (strncmp(argv[nopt], "-fpmax", 6) == 0)
+      if (strcmp(argv[nopt], "-fpmax") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -fpmax ");
 	  *fpmax_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*fpmax_filename == NULL)
-	    NLfit_error ("Unable to allocate memory for fpmax_filename");
+	  MTEST (*fpmax_filename);
 	  strcpy (*fpmax_filename, argv[nopt]);
 	  nopt++;
 	  continue;
@@ -696,13 +701,12 @@ void get_options
       
 
       /*-----   -farea filename   -----*/
-      if (strncmp(argv[nopt], "-farea", 6) == 0)
+      if (strcmp(argv[nopt], "-farea") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -farea ");
 	  *farea_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*farea_filename == NULL)
-	    NLfit_error ("Unable to allocate memory for farea_filename");
+	  MTEST (*farea_filename);
 	  strcpy (*farea_filename, argv[nopt]);
 	  nopt++;
 	  continue;
@@ -710,13 +714,12 @@ void get_options
       
 
       /*-----   -fparea filename   -----*/
-      if (strncmp(argv[nopt], "-fparea", 6) == 0)
+      if (strcmp(argv[nopt], "-fparea") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -fparea ");
 	  *fparea_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (*fparea_filename == NULL)
-	    NLfit_error ("Unable to allocate memory for fparea_filename");
+	  MTEST (*fparea_filename);
 	  strcpy (*fparea_filename, argv[nopt]);
 	  nopt++;
 	  continue;
@@ -724,7 +727,7 @@ void get_options
       
 
       /*-----   -fscoef k filename   -----*/
-      if (strncmp(argv[nopt], "-fscoef", 7) == 0)
+      if (strcmp(argv[nopt], "-fscoef") == 0)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  NLfit_error ("need 2 arguments after -fscoef ");
@@ -735,8 +738,7 @@ void get_options
 	  nopt++;
 
 	  (*fscoef_filename)[index] = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if ((*fscoef_filename)[index] == NULL)
-	    NLfit_error ("Unable to allocate memory for fscoef_filename");
+	  MTEST ((*fscoef_filename)[index]);
 	  strcpy ((*fscoef_filename)[index], argv[nopt]);
 
 	  nopt++;
@@ -745,7 +747,7 @@ void get_options
       
 
       /*-----   -fncoef k filename   -----*/
-      if (strncmp(argv[nopt], "-fncoef", 7) == 0)
+      if (strcmp(argv[nopt], "-fncoef") == 0)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  NLfit_error ("need 2 arguments after -fncoef ");
@@ -756,8 +758,7 @@ void get_options
 	  nopt++;
 
 	  (*fncoef_filename)[index] = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if ((*fncoef_filename)[index] == NULL)
-	    NLfit_error ("Unable to allocate memory for fncoef_filename");
+	  MTEST ((*fncoef_filename)[index]);
 	  strcpy ((*fncoef_filename)[index], argv[nopt]);
 
 	  nopt++;
@@ -766,7 +767,7 @@ void get_options
       
 
       /*-----   -tscoef k filename   -----*/
-      if (strncmp(argv[nopt], "-tscoef", 7) == 0)
+      if (strcmp(argv[nopt], "-tscoef") == 0)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  NLfit_error ("need 2 arguments after -tscoef ");
@@ -777,9 +778,10 @@ void get_options
 	  nopt++;
 
 	  (*tscoef_filename)[index] = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if ((*tscoef_filename)[index] == NULL)
-	    NLfit_error ("Unable to allocate memory for tscoef_filename");
+	  MTEST ((*tscoef_filename)[index]);
 	  strcpy ((*tscoef_filename)[index], argv[nopt]);
+
+	  calc_tstats = 1;
 
 	  nopt++;
 	  continue;
@@ -787,7 +789,7 @@ void get_options
       
 
       /*-----   -tncoef k filename   -----*/
-      if (strncmp(argv[nopt], "-tncoef", 7) == 0)
+      if (strcmp(argv[nopt], "-tncoef") == 0)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  NLfit_error ("need 2 arguments after -tncoef ");
@@ -798,9 +800,10 @@ void get_options
 	  nopt++;
 
 	  (*tncoef_filename)[index] = malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if ((*tncoef_filename)[index] == NULL)
-	    NLfit_error ("Unable to allocate memory for tncoef_filename");
+	  MTEST ((*tncoef_filename)[index]);
 	  strcpy ((*tncoef_filename)[index], argv[nopt]);
+
+	  calc_tstats = 1;
 
 	  nopt++;
 	  continue;
@@ -808,7 +811,7 @@ void get_options
       
       
       /*----- -bucket n prefixname -----*/
-      if (strncmp(argv[nopt], "-bucket", 7) == 0)
+      if (strcmp(argv[nopt], "-bucket") == 0)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  NLfit_error ("need 2 arguments after -bucket ");
@@ -819,32 +822,35 @@ void get_options
 
 	  option_data->bucket_filename = 
 	    malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (option_data->bucket_filename == NULL)
-	    NLfit_error ("Unable to allocate memory for bucket_filename");
+	  MTEST (option_data->bucket_filename);
 	  strcpy (option_data->bucket_filename, argv[nopt]);
 	  
 	  /*----- set number of sub-bricks in the bucket -----*/
 	  if (ival == 0)
-	    nbricks = (*p) + (*r) + 6;
+	    nbricks = (*p) + (*r) + 8;
 	  else
 	    nbricks = ival;
 	  option_data->numbricks = nbricks;
 	  
 	  /*----- allocate memory and initialize bucket dataset options -----*/
 	  option_data->brick_type = malloc (sizeof(int) * nbricks);
+	  MTEST (option_data->brick_type);
 	  option_data->brick_coef = malloc (sizeof(int) * nbricks);
+	  MTEST (option_data->brick_coef);
 	  option_data->brick_label = malloc (sizeof(char *) * nbricks);
+	  MTEST (option_data->brick_label);
 	  for (ibrick = 0;  ibrick < nbricks;  ibrick++)
 	    {
 	      option_data->brick_type[ibrick] = -1;
 	      option_data->brick_coef[ibrick] = -1;
 	      option_data->brick_label[ibrick] = 
 		malloc (sizeof(char) * MAX_NAME_LENGTH);
+	      MTEST (option_data->brick_label[ibrick]);
 	    }
 	  
 
 	  if (ival == 0)   
-	    /*----- throw  (almost) everything into the bucket -----*/
+	    /*----- throw (almost) everything into the bucket -----*/
 	    {
 	      for (ibrick = 0;  ibrick < (*r);  ibrick++)
 		{
@@ -884,7 +890,17 @@ void get_options
 	      ibrick++;
 	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 	      option_data->brick_coef[ibrick] = ibrick;
-	      strcpy (option_data->brick_label[ibrick], "Signal % Area");	      
+	      strcpy (option_data->brick_label[ibrick], "Signal % Area"); 
+	      
+	      ibrick++;
+	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
+	      option_data->brick_coef[ibrick] = ibrick;
+	      strcpy (option_data->brick_label[ibrick], "Sigma Resid"); 
+	      
+	      ibrick++;
+	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
+	      option_data->brick_coef[ibrick] = ibrick;
+	      strcpy (option_data->brick_label[ibrick], "R^2"); 
 	      
 	      ibrick++;
 	      option_data->brick_type[ibrick] = FUNC_FT_TYPE;
@@ -899,7 +915,7 @@ void get_options
 
 
       /*----- -brick m type k label -----*/
-      if (strncmp(argv[nopt], "-brick", 6) == 0)
+      if (strcmp(argv[nopt], "-brick") == 0)
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  
@@ -909,7 +925,7 @@ void get_options
 	    NLfit_error ("illegal argument after -brick ");
 	  nopt++;
 
-	  if (strncmp(argv[nopt], "scoef", 4) == 0)
+	  if (strcmp(argv[nopt], "scoef") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 
@@ -925,7 +941,7 @@ void get_options
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]); 
 	    }
 
-	  else if (strncmp(argv[nopt], "ncoef", 4) == 0)
+	  else if (strcmp(argv[nopt], "ncoef") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 
@@ -941,7 +957,7 @@ void get_options
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]); 
 	    }
 
-	  else if (strncmp(argv[nopt], "tmax", 4) == 0)
+	  else if (strcmp(argv[nopt], "tmax") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 	      option_data->brick_coef[ibrick] = (*r) + (*p);
@@ -951,7 +967,7 @@ void get_options
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
 	    }
 
-	  else if (strncmp(argv[nopt], "smax", 4) == 0)
+	  else if (strcmp(argv[nopt], "smax") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 	      option_data->brick_coef[ibrick] = (*r) + (*p) + 1;
@@ -961,7 +977,7 @@ void get_options
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
 	    }
 
-	  else if (strncmp(argv[nopt], "psmax", 4) == 0)
+	  else if (strcmp(argv[nopt], "psmax") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 	      option_data->brick_coef[ibrick] = (*r) + (*p) + 2;
@@ -971,7 +987,7 @@ void get_options
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
 	    }
 
-	  else if (strncmp(argv[nopt], "area", 4) == 0)
+	  else if (strcmp(argv[nopt], "area") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 	      option_data->brick_coef[ibrick] = (*r) + (*p) + 3;
@@ -981,7 +997,7 @@ void get_options
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
 	    }
 
-	  else if (strncmp(argv[nopt], "parea", 4) == 0)
+	  else if (strcmp(argv[nopt], "parea") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 	      option_data->brick_coef[ibrick] = (*r) + (*p) + 4;
@@ -991,9 +1007,9 @@ void get_options
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
 	    }
 
-	  else if (strncmp(argv[nopt], "fstat", 4) == 0)
+	  else if (strcmp(argv[nopt], "resid") == 0)
 	    {
-	      option_data->brick_type[ibrick] = FUNC_FT_TYPE;
+	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
 	      option_data->brick_coef[ibrick] = (*r) + (*p) + 5;
 	      nopt++;
 	      if (nopt >= argc)  
@@ -1001,7 +1017,27 @@ void get_options
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
 	    }
 
-	  else if (strncmp(argv[nopt], "tscoef", 4) == 0)
+	  else if (strcmp(argv[nopt], "rsqr") == 0)
+	    {
+	      option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
+	      option_data->brick_coef[ibrick] = (*r) + (*p) + 6;
+	      nopt++;
+	      if (nopt >= argc)  
+		NLfit_error ("need more arguments after -brick ");
+	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
+	    }
+
+	  else if (strcmp(argv[nopt], "fstat") == 0)
+	    {
+	      option_data->brick_type[ibrick] = FUNC_FT_TYPE;
+	      option_data->brick_coef[ibrick] = (*r) + (*p) + 7;
+	      nopt++;
+	      if (nopt >= argc)  
+		NLfit_error ("need more arguments after -brick ");
+	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
+	    }
+
+	  else if (strcmp(argv[nopt], "tscoef") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_TT_TYPE;
 
@@ -1014,10 +1050,12 @@ void get_options
 	      nopt++;
 	      if (nopt >= argc)  
 		NLfit_error ("need more arguments after -brick ");
-	      strcpy (option_data->brick_label[ibrick], argv[nopt]); 
+	      strcpy (option_data->brick_label[ibrick], argv[nopt]);
+ 
+	      calc_tstats = 1;
 	    }
 
-	  else if (strncmp(argv[nopt], "tncoef", 4) == 0)
+	  else if (strcmp(argv[nopt], "tncoef") == 0)
 	    {
 	      option_data->brick_type[ibrick] = FUNC_TT_TYPE;
 
@@ -1031,6 +1069,8 @@ void get_options
 	      if (nopt >= argc)  
 		NLfit_error ("need more arguments after -brick ");
 	      strcpy (option_data->brick_label[ibrick], argv[nopt]); 
+ 
+	      calc_tstats = 1;
 	    }
 
 	  else  NLfit_error ("unable to interpret options after -brick ");
@@ -1041,7 +1081,7 @@ void get_options
      
 
        /*-----   -sfit filename   -----*/
-      if (strncmp(argv[nopt], "-sfit", 5) == 0)
+      if (strcmp(argv[nopt], "-sfit") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -sfit ");
@@ -1054,7 +1094,7 @@ void get_options
 
       
        /*-----   -snfit filename   -----*/
-      if (strncmp(argv[nopt], "-snfit", 6) == 0)
+      if (strcmp(argv[nopt], "-snfit") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  NLfit_error ("need argument after -snfit ");
@@ -1137,6 +1177,7 @@ void check_one_output_file
 void check_output_files 
 (
   char * freg_filename,         /* file name for regression f-statistics */
+  char * frsqr_filename,        /* file name for R^2 statistics */
   char * fsmax_filename,        /* file name for signal signed maximum */
   char * ftmax_filename,        /* file name for epoch of signed maximum */
   char * fpmax_filename,        /* file name for max. percentage change */
@@ -1157,6 +1198,9 @@ void check_output_files
   
   if (freg_filename != NULL)   
     check_one_output_file (dset_time, freg_filename);
+  
+  if (frsqr_filename != NULL)   
+    check_one_output_file (dset_time, frsqr_filename);
   
   if (fsmax_filename != NULL)   
     check_one_output_file (dset_time, fsmax_filename);
@@ -1215,6 +1259,7 @@ void check_for_valid_inputs
   int  nbest,             /* number of random vectors to keep */
 
   char * freg_filename,         /* file name for regression f-statistics */
+  char * frsqr_filename,        /* file name for R^2 statistics */
   char * fsmax_filename,        /* file name for signal signed maximum */
   char * ftmax_filename,        /* file name for epoch of signed maximum */
   char * fpmax_filename,        /* file name for max. percentage change */
@@ -1249,7 +1294,8 @@ void check_for_valid_inputs
 
 
   /*----- check whether any of the output files already exist -----*/
-  check_output_files (freg_filename, fsmax_filename, ftmax_filename,
+  check_output_files (freg_filename, frsqr_filename, 
+		      fsmax_filename, ftmax_filename,
 		      fpmax_filename, farea_filename, fparea_filename,
 		      fncoef_filename, fscoef_filename,
 		      tncoef_filename, tscoef_filename, bucket_filename, 
@@ -1289,6 +1335,7 @@ void initialize_program
   char ** input_filename,     /* file name of input 3d+time dataset */
   char ** tfilename,          /* file name for time point series */  
   char ** freg_filename,      /* file name for regression f-statistics */
+  char ** frsqr_filename,     /* file name for R^2 statistics */
   char ** fsmax_filename,     /* file name for signal signed maximum */
   char ** ftmax_filename,     /* file name for time of signed maximum */
   char ** fpmax_filename,     /* file name for max. percentage change */
@@ -1312,8 +1359,9 @@ void initialize_program
   float ** par_full,       /* estimated parameters for the full model */
   float ** tpar_full,      /* t-statistic of the parameters in full model */
 
-  float ** rmsreg_vol,     /* root-mean-square for the full regression model */
+  float ** rmsreg_vol,     /* root-mean-square error for the full model */
   float ** freg_vol,       /* f-statistic for the full regression model */
+  float ** rsqr_vol,       /* R^2 volume data */
   float ** smax_vol,       /* volume of signed maximum of signal */
   float ** tmax_vol,       /* volume of epoch of signed maximum of signal */
   float ** pmax_vol,       /* max. percentage change due to signal */
@@ -1349,8 +1397,8 @@ void initialize_program
 	      r, p, npname, spname, 
 	      min_nconstr, max_nconstr, min_sconstr, max_sconstr, nabs, 
 	      nrand, nbest, rms_min, fdisp, input_filename, tfilename, 
-	      freg_filename, fsmax_filename, ftmax_filename, 
-	      fpmax_filename, farea_filename, fparea_filename, 
+	      freg_filename, frsqr_filename, fsmax_filename, 
+	      ftmax_filename, fpmax_filename, farea_filename, fparea_filename, 
 	      fncoef_filename, fscoef_filename,
 	      tncoef_filename, tscoef_filename, sfit_filename, snfit_filename,
 	      dset_time, nxyz, ts_length, option_data);
@@ -1359,7 +1407,8 @@ void initialize_program
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (*r, *p, *min_nconstr, *max_nconstr, 
 			  *min_sconstr, *max_sconstr, *nrand, *nbest, 
-			  *freg_filename, *fsmax_filename, *ftmax_filename,
+			  *freg_filename, *frsqr_filename, 
+			  *fsmax_filename, *ftmax_filename,
 			  *fpmax_filename, *farea_filename, *fparea_filename,
 			  *fncoef_filename, *fscoef_filename, 
 			  *tncoef_filename, *tscoef_filename, 
@@ -1370,19 +1419,16 @@ void initialize_program
   /*----- allocate space for input time series -----*/
   *ts_length = *ts_length - *ignore;
   *ts_array = (float *) malloc (sizeof(float) * (*ts_length));
-  if (*ts_array == NULL)
-    NLfit_error ("Unable to allocate memory for ts_array");
+  MTEST (*ts_array);
 
   
   /*----- allocate space for independent variable matrix -----*/
   *x_array = (float **) malloc (sizeof(float *) * (*ts_length));
-  if (*x_array == NULL)
-    NLfit_error ("Unable to allocate memory for x_array");
+  MTEST (*x_array);
   for (it = 0;  it < (*ts_length);  it++)
     {
       (*x_array)[it] = (float *) malloc (sizeof(float) * 3);
-      if ((*x_array)[it] == NULL)
-	NLfit_error ("Unable to allocate memory for x_array[it]");
+      MTEST ((*x_array)[it]);
     }
 
     
@@ -1421,72 +1467,66 @@ void initialize_program
   
   /*----- allocate memory space for parameters -----*/
   dimension = (*r) + (*p);
-  *par_rdcd = (float *) malloc (sizeof(float) * dimension);
-  if (*par_rdcd == NULL)
-    NLfit_error ("Unable to allocate memory for par_rdcd");
-  *par_full = (float *) malloc (sizeof(float) * dimension);
-  if (*par_full == NULL)
-    NLfit_error ("Unable to allocate memory for par_full");
-  *tpar_full = (float *) malloc (sizeof(float) * dimension);
-  if (*tpar_full == NULL)
-    NLfit_error ("Unable to allocate memory for tpar_full");
+  *par_rdcd = (float *) malloc (sizeof(float) * dimension);  
+  MTEST (*par_rdcd);
+  *par_full = (float *) malloc (sizeof(float) * dimension);  
+  MTEST (*par_full);
+  *tpar_full = (float *) malloc (sizeof(float) * dimension); 
+  MTEST (*tpar_full);
 
 
   /*----- allocate memory space for volume data -----*/
   *freg_vol = (float *) malloc (sizeof(float) * (*nxyz));
-  if (*freg_vol == NULL)
-    NLfit_error ("Unable to allocate memory for freg_vol");
+  MTEST (*freg_vol);
 
-  if (*freg_filename != NULL)
+  if ((*freg_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *rmsreg_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      if (*rmsreg_vol == NULL)
-	NLfit_error ("Unable to allocate memory for rmsreg_vol");
+      MTEST (*rmsreg_vol);
+    }
+
+  if ((*frsqr_filename != NULL) || (option_data->bucket_filename != NULL))
+    {
+      *rsqr_vol = (float *) malloc (sizeof(float) * (*nxyz));
+      MTEST (*rsqr_vol);
     }
 
   if ((*fsmax_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *smax_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      if (*smax_vol == NULL)
-	NLfit_error ("Unable to allocate memory for smax_vol");
+      MTEST (*smax_vol);
     }
 
   if ((*ftmax_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *tmax_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      if (*tmax_vol == NULL)
-	NLfit_error ("Unable to allocate memory for tmax_vol");
+      MTEST (*tmax_vol);
     }
 
   
   if ((*fpmax_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *pmax_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      if (*pmax_vol == NULL)
-	NLfit_error ("Unable to allocate memory for pmax_vol");
+      MTEST (*pmax_vol);
     }
 
   if ((*farea_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *area_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      if (*area_vol == NULL)
-	NLfit_error ("Unable to allocate memory for area_vol");
+      MTEST (*area_vol);
     }
 
   if ((*fparea_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *parea_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      if (*parea_vol == NULL)
-	NLfit_error ("Unable to allocate memory for parea_vol");
+      MTEST (*parea_vol);
     }
 
   
   *ncoef_vol = (float **) malloc (sizeof(float *) * (*r));
-  if (*ncoef_vol == NULL)
-    NLfit_error ("Unable to allocate memory for ncoef_vol");
+  MTEST (*ncoef_vol);
   *tncoef_vol = (float **) malloc (sizeof(float *) * (*r));
-  if (*tncoef_vol == NULL)
-    NLfit_error ("Unable to allocate memory for tncoef_vol");
+  MTEST (*tncoef_vol);
 
   for (ip = 0;  ip < (*r);  ip++)
     {
@@ -1494,8 +1534,7 @@ void initialize_program
 	  || (option_data->bucket_filename != NULL))
 	{
 	  (*ncoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));
-	  if ((*ncoef_vol)[ip] == NULL)
-	    NLfit_error ("Unable to allocate memory for ncoef_vol[ip]");
+	  MTEST ((*ncoef_vol)[ip]);
 	}
       else
 	(*ncoef_vol)[ip] = NULL;
@@ -1504,8 +1543,7 @@ void initialize_program
 	  || (option_data->bucket_filename != NULL))
 	{
 	  (*tncoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));      
-	  if ((*tncoef_vol)[ip] == NULL)
-	    NLfit_error ("Unable to allocate memory for tncoef_vol[ip]");
+	  MTEST ((*tncoef_vol)[ip]);
 	}
       else
 	(*tncoef_vol)[ip] = NULL;
@@ -1513,11 +1551,9 @@ void initialize_program
   
 
   *scoef_vol = (float **) malloc (sizeof(float *) * (*p));
-  if (*scoef_vol == NULL)
-    NLfit_error ("Unable to allocate memory for scoef_vol");
+  MTEST (*scoef_vol);
   *tscoef_vol = (float **) malloc (sizeof(float *) * (*p));
-  if (*tscoef_vol == NULL)
-    NLfit_error ("Unable to allocate memory for tscoef_vol");
+  MTEST (*tscoef_vol);
 
   for (ip = 0;  ip < (*p);  ip++)
     {
@@ -1525,8 +1561,7 @@ void initialize_program
 	  || (option_data->bucket_filename != NULL))
 	{
 	  (*scoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));
-	  if ((*scoef_vol)[ip] == NULL)
-	    NLfit_error ("Unable to allocate memory for scoef_vol[ip]");
+	  MTEST ((*scoef_vol)[ip]);
 	}
       else
 	(*scoef_vol)[ip] = NULL;
@@ -1535,8 +1570,7 @@ void initialize_program
 	  || (option_data->bucket_filename != NULL))
 	{
 	  (*tscoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));      
-	  if ((*tscoef_vol)[ip] == NULL)
-	    NLfit_error ("Unable to allocate memory for tscoef_vol[ip]");
+	  MTEST ((*tscoef_vol)[ip]);
 	}
       else
 	(*tscoef_vol)[ip] = NULL;
@@ -1650,8 +1684,9 @@ void save_results
   float ** x_array,        /* independent variable matrix */
   float * par_full,        /* estimated parameters for the full model */
   float * tpar_full,       /* t-statistic of the parameters in full model */
-  float rmsreg,            /* root-mean-square for the full regression model */
+  float rmsreg,            /* root-mean-square error for the full model */
   float freg,              /* f-statistic for the full regression model */
+  float rsqr,              /* R^2 (coef. of multiple determination) */
   float smax,              /* signed maximum of signal */
   float tmax,              /* epoch of signed maximum of signal */
   float pmax,              /* percentage change due to signal */
@@ -1660,6 +1695,7 @@ void save_results
   
   float * rmsreg_vol,      /* root-mean-square for the full regression model */
   float * freg_vol,        /* f-statistic for the full regression model */
+  float * rsqr_vol,        /* R^2 volume data */
   float * smax_vol,        /* signed maximum of signal volume data */
   float * tmax_vol,        /* epoch of signed maximum volume data */
   float * pmax_vol,        /* percentage change in signal volume data */
@@ -1681,8 +1717,9 @@ void save_results
 
 
   /*----- save regression results into volume data -----*/ 
-  if (freg_vol != NULL)  freg_vol[iv] = freg;
+  if (freg_vol != NULL)    freg_vol[iv] = freg;
   if (rmsreg_vol != NULL)  rmsreg_vol[iv] = rmsreg;
+  if (rsqr_vol != NULL)    rsqr_vol[iv] = rsqr;
 
   /*----- save signed maximum and epoch of signed maximum of signal -----*/
   if (smax_vol != NULL)  smax_vol[iv] = smax;
@@ -1966,8 +2003,9 @@ void write_bucket_data
   int  nxyz,              /* number of voxels in image */
   int  n,                 /* length of time series data */  
 
-  float * rmsreg_vol,     /* root-mean-square for the full regression model */
+  float * rmsreg_vol,     /* root-mean-square error for the full model */
   float * freg_vol,       /* f-statistic for the full regression model */
+  float * rsqr_vol,       /* R^2 volume data */
   float * smax_vol,       /* signed maximum of signal volume data */
   float * tmax_vol,       /* epoch of signed maximum volume data */
   float * pmax_vol,       /* percentage change in signal volume data */
@@ -2090,6 +2128,10 @@ void write_bucket_data
 	    volume = area_vol;
 	  else if (brick_coef == p+q+4)
 	    volume = parea_vol;
+	  else if (brick_coef == p+q+5)
+	    volume = rmsreg_vol;
+	  else if (brick_coef == p+q+6)
+	    volume = rsqr_vol;
 	}
       else  if (brick_type == FUNC_TT_TYPE)
 	{	
@@ -2274,8 +2316,9 @@ void output_results
   int  nxyz,              /* number of voxels in image */
   int  ts_length,         /* length of time series data */  
 
-  float * rmsreg_vol,     /* root-mean-square for the full regression model */
+  float * rmsreg_vol,     /* root-mean-square error for the full model */
   float * freg_vol,       /* f-statistic for the full regression model */
+  float * rsqr_vol,       /* R^2 volume data */
   float * smax_vol,       /* signed maximum of signal volume data */
   float * tmax_vol,       /* epoch of signed maximum volume data */
   float * pmax_vol,       /* percentage change in signal volume data */
@@ -2290,6 +2333,7 @@ void output_results
 
   char * input_filename,     /* file name of input 3d+time dataset */
   char * freg_filename,      /* file name for f-statistics */
+  char * frsqr_filename,     /* file name for R^2 statistics */
   char * fsmax_filename,     /* file name for signal signed maximum */
   char * ftmax_filename,     /* file name for time of signed maximum */
   char * fpmax_filename,     /* file name for percentage signal change */
@@ -2333,16 +2377,22 @@ void output_results
 
   /*----- write the bucket dataset -----*/
   if (option_data->numbricks > 0)
-    write_bucket_data (r, p, numdof, dendof, nxyz, ts_length, 
-		  rmsreg_vol, freg_vol, smax_vol, tmax_vol, pmax_vol, area_vol,
-		  parea_vol, ncoef_vol, scoef_vol, tncoef_vol, tscoef_vol,
-		  input_filename, option_data);
+    write_bucket_data (r, p, numdof, dendof, nxyz, ts_length, rmsreg_vol, 
+		       freg_vol, rsqr_vol, smax_vol, tmax_vol, pmax_vol, 
+		       area_vol, parea_vol, ncoef_vol, scoef_vol, 
+		       tncoef_vol, tscoef_vol, input_filename, option_data);
 
 
   /*----- write out the f-statistics for the regression -----*/
   if (freg_filename != NULL)
     write_afni_data (input_filename, nxyz, freg_filename, 
 		     rmsreg_vol, freg_vol, numdof, dendof); 
+
+
+  /*----- write out the R^2 (coefficient of multiple determination) -----*/
+  if (frsqr_filename != NULL)
+    write_afni_data (input_filename, nxyz, frsqr_filename, 
+		     rsqr_vol, freg_vol, numdof, dendof); 
 
 
   /*----- write out the signed maximum of signal estimates -----*/
@@ -2441,8 +2491,9 @@ void terminate_program
   float ** min_sconstr,   /* min parameter constraints for signal model */
   float ** max_sconstr,   /* max parameter constraints for signal model */
 
-  float ** rmsreg_vol,        /* rms for the full regression model */
+  float ** rmsreg_vol,        /* rms error for the full regression model */
   float ** freg_vol,          /* f-statistic for the full regression model */
+  float ** rsqr_vol,          /* R^2 volume data */
   float ** smax_vol,          /* signed max. of signal volume data */
   float ** tmax_vol,          /* epoch of signed max. volume data */
   float ** pmax_vol,          /* percentage change in signal volume data */
@@ -2457,6 +2508,7 @@ void terminate_program
 
   char ** input_filename,     /* file name of input 3d+time dataset */
   char ** freg_filename,      /* file name for regression f-statistics */
+  char ** frsqr_filename,     /* file name for R^2 statistics */
   char ** fsmax_filename,     /* file name for signal signed maximum */
   char ** ftmax_filename,     /* file name for epoch of signed maximum */
   char ** fpmax_filename,     /* file name for percentage signal change */
@@ -2503,9 +2555,11 @@ void terminate_program
 
   /*----- deallocate memory space for filenames -----*/
   if (*input_filename != NULL)  
-    { free (*input_filename);  *input_filename = NULL; }
+    { free (*input_filename);   *input_filename = NULL; }
   if (*freg_filename != NULL)
-    { free (*freg_filename);   *freg_filename = NULL; }
+    { free (*freg_filename);    *freg_filename = NULL; }
+  if (*frsqr_filename != NULL)
+    { free (*frsqr_filename);   *frsqr_filename = NULL; }
   if (*fsmax_filename != NULL)
     { free (*fsmax_filename);   *fsmax_filename = NULL; }
   if (*ftmax_filename != NULL)
@@ -2562,13 +2616,14 @@ void terminate_program
 
 
   /*----- deallocate space for volume data -----*/
-  if (*rmsreg_vol != NULL)  { free (*rmsreg_vol);  *rmsreg_vol = NULL; }
-  if (*freg_vol != NULL)    { free (*freg_vol);    *freg_vol = NULL; } 
-  if (*smax_vol != NULL)    { free (*smax_vol);    *smax_vol = NULL; } 
-  if (*tmax_vol != NULL)    { free (*tmax_vol);    *tmax_vol = NULL; } 
-  if (*pmax_vol != NULL)    { free (*pmax_vol);    *pmax_vol = NULL; } 
-  if (*area_vol != NULL)    { free (*area_vol);    *area_vol = NULL; } 
-  if (*parea_vol != NULL)   { free (*parea_vol);   *parea_vol = NULL; } 
+  if (*rmsreg_vol != NULL)   { free (*rmsreg_vol);  *rmsreg_vol = NULL; }
+  if (*freg_vol   != NULL)   { free (*freg_vol);    *freg_vol = NULL; } 
+  if (*rsqr_vol   != NULL)   { free (*rsqr_vol);    *rsqr_vol = NULL; } 
+  if (*smax_vol   != NULL)   { free (*smax_vol);    *smax_vol = NULL; } 
+  if (*tmax_vol   != NULL)   { free (*tmax_vol);    *tmax_vol = NULL; } 
+  if (*pmax_vol   != NULL)   { free (*pmax_vol);    *pmax_vol = NULL; } 
+  if (*area_vol   != NULL)   { free (*area_vol);    *area_vol = NULL; } 
+  if (*parea_vol  != NULL)   { free (*parea_vol);   *parea_vol = NULL; } 
 
   if (*ncoef_vol != NULL)
     {
@@ -2666,7 +2721,8 @@ int main
   float sse_full;              /* error sum of squares for the full model */
   float * tpar_full = NULL;    /* t-statistic of parameters in full model */
   float freg;                  /* f-statistic for the full regression model */
-  float rmsreg;                /* rms for the full regression model */
+  float rmsreg;                /* rms error for the full regression model */
+  float rsqr;                  /* R^2 (coef. of multiple determination) */
   float smax;                  /* signed maximum of signal */
   float tmax;                  /* epoch of signed maximum of signal */
   float pmax;                  /* percentage change due to signal */
@@ -2676,8 +2732,9 @@ int main
   float * max_sconstr = NULL;  /* max parameter constraints for signal model */
 
   /*----- declare output volume data -----*/
-  float * rmsreg_vol = NULL;    /* rms for the full regression model */
+  float * rmsreg_vol = NULL;    /* rms error for the full regression model */
   float * freg_vol = NULL;      /* f-statistic for the full regression model */
+  float * rsqr_vol = NULL;      /* R^2 volume data */
   float * smax_vol = NULL;      /* signed max. of signal volume data */
   float * tmax_vol = NULL;      /* epoch of signed max. volume data */
   float * pmax_vol = NULL;      /* max. percentage change due to signal */
@@ -2694,6 +2751,7 @@ int main
   char * input_filename = NULL;   /* file name of input 3d+time dataset */
   char * tfilename = NULL;        /* file name of time points */
   char * freg_filename = NULL;    /* file name for regression f-statistics */
+  char * frsqr_filename= NULL;    /* file name for R^2 statistics */
   char * fsmax_filename = NULL;   /* file name for signal signed maximum */
   char * ftmax_filename = NULL;   /* file name for time of signed maximum */
   char * fpmax_filename = NULL;   /* file name for max. percentage change */
@@ -2724,13 +2782,15 @@ int main
 		      &r, &p, &npname, &spname,
 		      &min_nconstr, &max_nconstr, &min_sconstr, &max_sconstr,
 		      &nabs, &nrand, &nbest, &rms_min, &fdisp, 
-		      &input_filename, &tfilename, &freg_filename, 
+		      &input_filename, &tfilename, 
+		      &freg_filename, &frsqr_filename,
 		      &fsmax_filename, &ftmax_filename, &fpmax_filename,
 		      &farea_filename, &fparea_filename, &fncoef_filename,
 		      &fscoef_filename, &tncoef_filename, &tscoef_filename,
 		      &sfit_filename, &snfit_filename, 
 		      &dset_time, &nxyz, &ts_length, &x_array, &ts_array, 
-		      &par_rdcd, &par_full, &tpar_full, &rmsreg_vol, &freg_vol,
+		      &par_rdcd, &par_full, &tpar_full, 
+		      &rmsreg_vol, &freg_vol, &rsqr_vol,
 		      &smax_vol, &tmax_vol, &pmax_vol, &area_vol, &parea_vol, 
 		      &ncoef_vol, &scoef_vol, &tncoef_vol, &tscoef_vol,
 		      &sfit_vol, &snfit_vol, &option_data);
@@ -2761,16 +2821,17 @@ int main
 		       min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
 		       ts_length, x_array,
 		       par_rdcd, sse_rdcd, par_full, sse_full,
-		       &rmsreg, &freg, &smax, &tmax, &pmax, &area, &parea,
-		       tpar_full);
+		       &rmsreg, &freg, &rsqr, &smax, &tmax, &pmax, 
+		       &area, &parea, tpar_full);
 
 
       /*----- report results for this voxel -----*/
       if (freg >= fdisp)
 	{
 	  report_results (nname, sname, r, p, npname, spname, ts_length,
-		      par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
-		      rmsreg, freg, smax, tmax, pmax, area, parea, &label);
+			  par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
+			  rmsreg, freg, rsqr, smax, tmax, pmax, 
+			  area, parea, &label);
 	  printf ("\n\nVoxel #%d\n", iv);
 	  printf ("%s \n", label);
 	}
@@ -2778,10 +2839,11 @@ int main
 
       /*----- save results for this voxel into volume data -----*/
       save_results (iv, nmodel, smodel, r, p, novar, ts_length, x_array, 
-		    par_full, tpar_full, rmsreg, freg, smax, tmax, pmax, area,
-		    parea, rmsreg_vol, freg_vol, smax_vol, tmax_vol, pmax_vol, 
-		    area_vol, parea_vol,ncoef_vol, scoef_vol, 
-		    tncoef_vol, tscoef_vol, sfit_vol, snfit_vol);
+		    par_full, tpar_full, rmsreg, freg, rsqr, smax, 
+		    tmax, pmax, area, parea, rmsreg_vol, 
+		    freg_vol, rsqr_vol, smax_vol, 
+		    tmax_vol, pmax_vol, area_vol, parea_vol,ncoef_vol, 
+		    scoef_vol, tncoef_vol, tscoef_vol, sfit_vol, snfit_vol);
     }
 
 
@@ -2791,12 +2853,12 @@ int main
 
   /*----- write requested output files -----*/
   output_results (r, p, min_nconstr, max_nconstr, min_sconstr, max_sconstr,
-		  nxyz, ts_length, rmsreg_vol, freg_vol, 
+		  nxyz, ts_length, rmsreg_vol, freg_vol, rsqr_vol, 
 		  smax_vol, tmax_vol, pmax_vol, area_vol, parea_vol, 
 		  ncoef_vol, scoef_vol, tncoef_vol, tscoef_vol, 
 		  sfit_vol, snfit_vol,
-		  input_filename, freg_filename, 
-		  fsmax_filename, ftmax_filename, 
+		  input_filename, freg_filename, frsqr_filename,
+ 		  fsmax_filename, ftmax_filename, 
 		  fpmax_filename, farea_filename, fparea_filename, 
 		  fncoef_filename, fscoef_filename, 
 		  tncoef_filename, tscoef_filename, 
@@ -2807,10 +2869,12 @@ int main
   terminate_program (r, p, ts_length, &x_array, &ts_array, 
 		     &nname, &npname, &par_rdcd, &min_nconstr, &max_nconstr, 
 		     &sname, &spname, &par_full, &tpar_full, 
-		     &min_sconstr, &max_sconstr, &rmsreg_vol, &freg_vol, 
+		     &min_sconstr, &max_sconstr, 
+		     &rmsreg_vol, &freg_vol, &rsqr_vol, 
 		     &smax_vol, &tmax_vol, &pmax_vol, &area_vol, &parea_vol,
 		     &ncoef_vol, &scoef_vol, &tncoef_vol, &tscoef_vol,
-		     &sfit_vol, &snfit_vol, &input_filename, &freg_filename, 
+		     &sfit_vol, &snfit_vol, &input_filename, 
+		     &freg_filename, &frsqr_filename, 
 		     &fsmax_filename, &ftmax_filename, 
 		     &fpmax_filename, &farea_filename, &fparea_filename,
 		     &fncoef_filename, &fscoef_filename, 
