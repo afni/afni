@@ -20,15 +20,19 @@ void THD_set_write_compression( int mm )
    return ;
 }
 
+/*---------------------------------------------------------------------*/
+
 int THD_get_write_compression(void)
 {
    if( compress_mode == COMPRESS_NOFILE ) THD_enviro_write_compression() ;
    return compress_mode ;
 }
 
+/*---------------------------------------------------------------------*/
+
 int THD_enviro_write_compression(void)
 {
-   char * hh = my_getenv("AFNI_COMPRESSOR") ;
+   char *hh = my_getenv("AFNI_COMPRESSOR") ;
    int ii ;
 
    compress_mode = COMPRESS_NONE ;
@@ -58,9 +62,11 @@ void THD_set_write_order( int mm )
    return ;
 }
 
+/*---------------------------------------------------------------------*/
+
 void THD_enviro_write_order(void)
 {
-   char * hh = my_getenv("AFNI_BYTEORDER") ;
+   char *hh = my_getenv("AFNI_BYTEORDER") ;
 
    if( hh == NULL ){ output_order = -1 ; return ; }
 
@@ -69,6 +75,8 @@ void THD_enviro_write_order(void)
 
    output_order = -1 ; return ;
 }
+
+/*---------------------------------------------------------------------*/
 
 int THD_get_write_order(void)
 {
@@ -79,19 +87,22 @@ int THD_get_write_order(void)
                              : native_order ;
 }
 
-/*---------------------------------------------------------------------
-   Write a datablock to disk.
-   Returns True if OK, False if an error.
-   [see also AFNI_refashion_dataset]
+/*---------------------------------------------------------------------*/
+/*! Write an AFNI datablock to disk in the .HEAD/.BRIK format:
+     - Returns True if OK, False if an error.
+     - See also AFNI_refashion_dataset.
+     - All attributes must now be set prior to calling this,
+       via function THD_set_dataset_attributes().
+     - The one exception to the above rule is the BYTEORDER attribute.
 -----------------------------------------------------------------------*/
 
-Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
+Boolean THD_write_datablock( THD_datablock *blk , Boolean write_brick )
 {
-   THD_diskptr * dkptr ;
+   THD_diskptr *dkptr ;
    Boolean good ;
    int id , nx , ny , nz , nv , nxy , nxyz , ibr , nb ;
    int atrank[ATRSIZE_DATASET_RANK] , atdims[ATRSIZE_DATASET_DIMENSIONS] ;
-   MRI_IMAGE * im ;
+   MRI_IMAGE *im ;
    int save_order ;
 
    /*-- sanity checks --*/
@@ -126,129 +137,6 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
               dkptr->directory_name) ;
          return False ;
       }
-   }
-
-   /*-- write attributes (first, set those stored in the diskptr or dblk ) --*/
-
-   atrank[0] = dkptr->rank ;
-   atrank[1] = dkptr->nvals ;
-   for( id=2 ; id < ATRSIZE_DATASET_RANK ; id++ ) atrank[id] = 0 ;
-
-   THD_set_int_atr( blk , ATRNAME_DATASET_RANK ,
-                          ATRSIZE_DATASET_RANK , atrank ) ;
-
-   for( id=0 ; id < ATRSIZE_DATASET_DIMENSIONS ; id++ )
-      atdims[id] = (id < dkptr->rank) ? dkptr->dimsizes[id] : 0 ;
-
-   THD_set_int_atr( blk , ATRNAME_DATASET_DIMENSIONS ,
-                          ATRSIZE_DATASET_DIMENSIONS , atdims ) ;
-
-   { int * datum_type ;
-     datum_type = AFMALL(int, sizeof(int) * blk->nvals ) ;
-     for( id=0 ; id < blk->nvals ; id++ )
-        datum_type[id] = DBLK_BRICK_TYPE(blk,id) ;
-     THD_set_int_atr(   blk , ATRNAME_BRICK_TYPES  , blk->nvals , datum_type ) ;
-     free( datum_type ) ;
-   }
-   THD_set_float_atr( blk , ATRNAME_BRICK_FLTFAC , blk->nvals , blk->brick_fac ) ;
-
-   /** 30 Nov 1997: write out brick labels **/
-
-   if( blk->brick_lab != NULL ){
-
-      int ibr , nch , ipos , ll ;
-      char * car ;
-
-      for( ibr=0,nch=0 ; ibr < blk->nvals ; ibr++ )   /* total length  */
-         nch += strlen(blk->brick_lab[ibr]) + 1 ;     /* of all labels */
-
-      car = (char *) malloc( sizeof(char) * nch ) ;   /* space for all labels */
-
-      for( ibr=0,ipos=0 ; ibr < blk->nvals ; ibr++ ){   /* put all labels */
-         ll = strlen(blk->brick_lab[ibr]) + 1 ;         /* together       */
-         memcpy( car+ipos , blk->brick_lab[ibr] , ll ) ;
-         ipos += ll ;
-      }
-
-      THD_set_char_atr( blk , ATRNAME_BRICK_LABS , nch , car ) ;
-      free(car) ;
-   } else {
-      THD_erase_one_atr( blk , ATRNAME_BRICK_LABS ) ;
-   }
-
-   /** and write out brick keywords **/
-
-   if( blk->brick_keywords != NULL ){
-
-      int ibr , nch , ipos , ll ;
-      char * car ;
-
-      for( ibr=0,nch=0 ; ibr < blk->nvals ; ibr++ ){
-         if( blk->brick_keywords[ibr] != NULL )
-            nch += strlen(blk->brick_keywords[ibr]) + 1 ;
-         else
-            nch += 1 ;
-      }
-
-      car = (char *) malloc( sizeof(char) * nch ) ;
-
-      for( ibr=0,ipos=0 ; ibr < blk->nvals ; ibr++ ){
-         if( blk->brick_keywords[ibr] != NULL ){
-            ll = strlen(blk->brick_keywords[ibr]) + 1 ;
-            memcpy( car+ipos , blk->brick_keywords[ibr] , ll ) ;
-            ipos += ll ;
-         } else {
-            car[ipos++] = '\0' ;
-         }
-      }
-
-      THD_set_char_atr( blk , ATRNAME_BRICK_KEYWORDS , nch , car ) ;
-      free(car) ;
-   } else {
-      THD_erase_one_atr( blk , ATRNAME_BRICK_KEYWORDS ) ;
-   }
-
-
-   /* and write out brick stataux parameters */
-
-   if( blk->brick_statcode != NULL &&    /* write out brick stataux */
-       blk->brick_stataux  != NULL   ){  /* stuff, if it exists.    */
-
-      int ibr , nfl , jv , ipos , iv ;
-      float * far ;
-
-      for( ibr=0,nfl=0 ; ibr < blk->nvals ; ibr++ ){    /* compute total */
-         jv = blk->brick_statcode[ibr] ;                /* space needed  */
-         if( FUNC_IS_STAT(jv) ) nfl += FUNC_need_stat_aux[jv] + 3 ;
-      }
-
-      if( nfl > 0 ){
-         far = (float *) malloc( sizeof(float) * nfl ) ;
-
-         for( ibr=0,ipos=0 ; ibr < blk->nvals ; ibr++ ){
-            jv = blk->brick_statcode[ibr] ;
-            if( FUNC_IS_STAT(jv) ){
-               far[ipos++] = ibr ;                      /* save index */
-               far[ipos++] = jv ;                       /* save statcode */
-               far[ipos++] = FUNC_need_stat_aux[jv] ;   /* save # of params */
-
-               if( blk->brick_stataux[ibr] != NULL ){   /* if have params, save */
-                  for( iv=0 ; iv < FUNC_need_stat_aux[jv] ; iv++ )
-                     far[ipos++] = blk->brick_stataux[ibr][iv] ;
-               } else {                                 /* should never be used */
-                  for( iv=0 ; iv < FUNC_need_stat_aux[jv] ; iv++ )
-                     far[ipos++] = 0.0 ;
-               }
-            }
-         }
-
-         THD_set_float_atr( blk , ATRNAME_BRICK_STATAUX , nfl , far ) ;
-         free(far) ;
-      } else {
-         THD_erase_one_atr( blk , ATRNAME_BRICK_STATAUX ) ;
-      }
-   } else {
-      THD_erase_one_atr( blk , ATRNAME_BRICK_STATAUX ) ;
    }
 
    /* 25 April 1998: deal with byte order issues */
@@ -313,14 +201,14 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
       default: WRITE_ERR("illegal storage_mode!") ; break ;
 
       case STORAGE_BY_BRICK:{
-         FILE * far ;
+         FILE *far ;
          Boolean purge_when_done = False , ok ;
          int force_gzip=0 , csave ;
 
          /** if we have a mmap-ed file, copy into RAM **/
 
          if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
-            char * bnew , * bold ;
+            char *bnew , *bold ;
             int offset ;
 
             bnew = (char *) malloc( nb ) ;  /* work space */

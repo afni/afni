@@ -38,15 +38,15 @@
 
 /*---------------------------------------*/
 /*! Number of streams on which to listen */
-#define NUM_NIML   1
+#define NUM_NIML   2                        /* 09 Mar 2005: increased to 2 */
 
 /*--------------------------------------*/
 /*! Array of streams on which to listen */
 
 static NI_stream_type *ns_listen[NUM_NIML] ;
 
-/*------------------------*/
-/*! Array of stream names */
+/*--------------------------------*/
+/*! Array of stream names to open */
 
 static char ns_name[NUM_NIML][64] ;
 
@@ -97,7 +97,16 @@ static int g_show_as_popup = 0 ;     /* 04 Jan 2005 [rickr] */
 #define SUMA_TCP_PORT 53211
 #endif
 
-#define EPS 0.01
+/*-----------------------------------------------------*/
+/* Stuff for an extra NIML port for non-SUMA programs. */
+
+#ifndef NIML_TCP_FIRST_PORT
+#define NIML_TCP_FIRST_PORT 53212
+#endif
+
+/*-----------------------------------------------------*/
+
+#define EPS 0.01  /* threshold for coordinate changes */
 
 /*--------------------------------------------------------*/
 /*! local structure types for organizing surfaces and LDPs */
@@ -182,7 +191,7 @@ STATUS("called AFNI_niml_atexit") ;
 
 void AFNI_init_niml( void )
 {
-   int cc ;
+   int cc , ii ;
 
 ENTRY("AFNI_init_niml") ;
 
@@ -203,6 +212,13 @@ ENTRY("AFNI_init_niml") ;
    cc = GLOBAL_argopt.port_niml ;
    if( cc < 1024 || cc > 65535 ) cc = SUMA_TCP_PORT ;
    sprintf( ns_name[0] , "tcp:host:%d" , cc ) ;
+
+   /* 09 Mar 2005: add extra ports */
+
+   cc = AFNI_numenv( "AFNI_NIML_FIRST_PORT" ) ;
+   if( cc < 1024 || cc > 65535 ) cc = NIML_TCP_FIRST_PORT ;
+   for( ii=1 ; ii < NUM_NIML ; ii++ )
+     sprintf( ns_name[ii] , "tcp:host:%d" , (cc+ii-1) ) ;
 
    /* initialize all receive keys (cf. afni_receive.c) */
 
@@ -239,6 +255,7 @@ ENTRY("AFNI_init_niml") ;
    NI_register_doer( "DRIVE_AFNI" , AFNI_niml_driver ) ;
 
    /* 04 Jan 2005 [rickr]: check for AFNI_SHOW_SURF_POPUPS */
+
    if( AFNI_yesenv("AFNI_SHOW_SURF_POPUPS") ) g_show_as_popup = 1 ;
 
    /* and we're off to see the wizard */
