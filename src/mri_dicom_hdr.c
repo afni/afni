@@ -203,18 +203,23 @@ ENTRY("mri_dicom_header") ;
 
     RWC_clear_pbuf() ; pxl_len = 0 ; pxl_off = 0 ;
 
+STATUS(fname) ;
     cond = DCM_OpenFile(fname, options, &object);
     if (cond != DCM_NORMAL && ((options & DCM_PART10FILE) == 0)) {
+STATUS("DCM_OpenFile open failed; try again as Part 10") ;
       (void) DCM_CloseObject(&object);
       (void) COND_PopCondition(TRUE);
       cond = DCM_OpenFile(fname, options | DCM_PART10FILE, &object);
     }
     if (cond == DCM_NORMAL) {
+STATUS("DCM_OpenFile is good") ;
        RWC_printf("DICOM File: %s\n", fname);
        if (formatFlag)
          cond = DCM_FormatElements(&object, vmLimit, "");
        else
          cond = DCM_DumpElements(&object, vmLimit);
+    } else {
+STATUS("DCM_OpenFile failed") ;
     }
     (void) DCM_CloseObject(&object);
     (void) COND_PopCondition(TRUE);
@@ -961,10 +966,12 @@ DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject)
     CTNBOOLEAN
 	remainFileOpen = FALSE;	/* Leave file open after parse ? */
 
+ENTRY("DCM_OpenFile") ;
+
     if ((opt & (DCM_ORDERMASK | DCM_FILEFORMATMASK)) == 0)
-	return COND_PushCondition(DCM_ILLEGALOPTION,
+	RETURN(COND_PushCondition(DCM_ILLEGALOPTION,
 			       DCM_Message(DCM_ILLEGALOPTION), "Byte order",
-				  "DCM_OpenFile");
+				  "DCM_OpenFile"));
 
 #ifdef _MSC_VER
     fd = open(name, O_RDONLY | O_BINARY);
@@ -985,21 +992,21 @@ DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject)
 #endif
     }
     if (fd < 0) {
-	return COND_PushCondition(DCM_FILEOPENFAILED,
+	RETURN(COND_PushCondition(DCM_FILEOPENFAILED,
 				  DCM_Message(DCM_FILEOPENFAILED), name,
-				  "DCM_OpenFile");
+				  "DCM_OpenFile"));
     }
     size = fileSize(fd);
     if (size <= 0)
-	return DCM_FILEACCESSERROR;
+	RETURN(DCM_FILEACCESSERROR);
 
     if ((opt & DCM_LENGTHTOENDMASK) == DCM_USELENGTHTOEND) {
 	cond = readLengthToEnd(fd, name,
 			       opt & (~DCM_LENGTHTOENDMASK), &lengthToEnd);
 	if (cond != DCM_NORMAL) {
 	    (void) close(fd);
-	    return COND_PushCondition(DCM_FILEOPENFAILED,
-		     DCM_Message(DCM_FILEOPENFAILED), name, "DCM_OpenFile");
+	    RETURN(COND_PushCondition(DCM_FILEOPENFAILED,
+		     DCM_Message(DCM_FILEOPENFAILED), name, "DCM_OpenFile"));
 	}
 	size = lengthToEnd;
 	fileOffset = 24;
@@ -1016,10 +1023,10 @@ DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject)
     if (cond != DCM_NORMAL) {
 	if (debug)
 	    DCM_DumpElements(callerObject, 1);
-	return COND_PushCondition(DCM_FILEOPENFAILED,
-		     DCM_Message(DCM_FILEOPENFAILED), name, "DCM_OpenFile");
+	RETURN(COND_PushCondition(DCM_FILEOPENFAILED,
+		     DCM_Message(DCM_FILEOPENFAILED), name, "DCM_OpenFile"));
     } else
-	return DCM_NORMAL;
+	RETURN(DCM_NORMAL);
 }
 
 CONDITION
