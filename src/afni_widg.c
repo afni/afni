@@ -3967,6 +3967,7 @@ STATUS("making prog->rowcol") ;
                             XtListTail           /* last in queue */
                           ) ;
 
+#if 0
       /**--- pullright menu for points ---**/
 
       prog->hidden_pts_menu =
@@ -4056,17 +4057,45 @@ STATUS("making prog->rowcol") ;
                      AFNI_hidden_CB , im3d ) ;
 
       /*---- END OF PTS STUFF ----*/
+#endif
 
-      /*-----------------------------------*/
-      /*-- pushbutton for sonnet display --*/
-      /*-----------------------------------*/
+      /*---- Various Poetry Options ----*/
+
+      xstr = XmStringCreateLtoR( "---- Poetry ----" , XmFONTLIST_DEFAULT_TAG ) ;
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmLabelWidgetClass , prog->hidden_menu ,
+                  XmNlabelString , xstr ,
+                  XmNrecomputeSize , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XmStringFree(xstr) ;
+
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
+                  XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+      /*----------*/
+
+      prog->hidden_mission_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Mission Statement") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_mission_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+
+      /*----------*/
 
 #ifdef USE_SONNETS
       if( ! NO_frivolities ){
          prog->hidden_sonnet_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("Sonnet") ,
+                  LABEL_ARG("Shakespeare") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , False ,
                   XmNinitialResourcesPersistent , False ,
@@ -4077,15 +4106,17 @@ STATUS("making prog->rowcol") ;
       }
 #endif
 
-      prog->hidden_mission_pb =
+      /*----------*/
+
+      prog->hidden_gamberi_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("Mission") ,
+                  LABEL_ARG("Gamberi Cattivi") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , False ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
-      XtAddCallback( prog->hidden_mission_pb , XmNactivateCallback ,
+      XtAddCallback( prog->hidden_gamberi_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
 
     } /* if prog->hidden_menu isn't NULL */
