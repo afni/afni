@@ -3583,14 +3583,17 @@ int main (int argc,char *argv[])
                                        FuncName, etime_GetOffset, SO->N_Node, 
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
-            /* write out the results */
+            
+            #if 0
+            /* writing is now done below ... */
             fileout = fopen(Opt->out_name, "w");
             if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, YUP);
             else SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, NOPE);
             fclose(fileout); fileout = NULL;
 
-            if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;
             if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
+            #endif
+            if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;
          }
          break;
          
@@ -3801,7 +3804,7 @@ int main (int argc,char *argv[])
    /* write out the filtered geometry. Should not be executed for data smoothing */
    if (Opt->surf_out) {
       if (!dsmooth) {
-         SUMA_SL_Err("NULL dsmooth. Either failed to smooth or logical error.");
+         SUMA_SL_Err("NULL dsmooth for geometry smoothing. Either failed to smooth or logical error.");
          exit(1);
       }
        
@@ -3847,13 +3850,12 @@ int main (int argc,char *argv[])
       }
    } else {
       if (!dsmooth) {
-         SUMA_SL_Err("NULL dsmooth. Either failed to smooth or logical error.");
+         SUMA_SL_Err("NULL dsmooth for data smoothing. Either failed to smooth or logical error.");
          exit(1);
       }      
-      /* write out the results */
       fileout = fopen(Opt->out_name, "w");
-      if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1, d_order, fileout, YUP);
-      else SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1, d_order, fileout, NOPE);
+      if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, YUP);
+      else SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, NOPE);
       fclose(fileout); fileout = NULL;
    }
 
