@@ -5832,15 +5832,28 @@ void NI_stream_close( NI_stream_type *ns )
 }
 
 /*---------------------------------------------------------------------------*/
+/*!  Check if the NI_stream has data read to be read, or has data stored
+     in its internal buffer.  Return values are as in NI_stream_readcheck().
+-----------------------------------------------------------------------------*/
+
+int NI_stream_hasinput( NI_stream_type *ns , int msec )
+{
+   int ii ;
+
+   if( ns->npos < ns->nbuf ) return 1 ;
+   return NI_stream_readcheck( ns , msec ) ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*!  Check if the NI_stream is ready to have data read out of it.
 
   If not, the routine will wait up to msec milliseconds for data to be
   available.  If msec < 0, this routine will wait nearly forever.
-  The return value is 1 if data is ready, 0 if not;
-  -1 will be returned if some unrecoverable error is detected:
-    - tcp: the socket connection was dropped
-    - shm: the other process died or detached the segment
-    - file: you have reached the end of the file, and are still trying to read.
+  The return value is 1 if data is ready, 0 if not; -1 will be returned
+  if some unrecoverable error is detected:
+   - tcp: the socket connection was dropped
+   - shm: the other process died or detached the segment
+   - file: you have reached the end of the file, and are still trying to read.
 -----------------------------------------------------------------------------*/
 
 int NI_stream_readcheck( NI_stream_type *ns , int msec )
@@ -6278,7 +6291,7 @@ static void reset_buffer( NI_stream_type * ) ;
    bad (i.e., will return no more data ever).  To check for the latter
    case, use NI_stream_readcheck().
 
-   This code does not yet Line input.
+   This code does not yet grok Line input.
 ----------------------------------------------------------------------*/
 
 void * NI_read_element( NI_stream_type *ns , int msec )
@@ -7166,7 +7179,7 @@ static int scan_for_angles( NI_stream_type *ns, int msec )
    int nn, epos, need_data, num_restart ;
    char goal ;
    int start_time = NI_clock_time() , mleft , nbmin ;
-   int caseb=0 ;
+   int caseb=0 ;  /* 1 => force rescan even if time is up */
 
    if( ns == NULL ) return -1 ;  /* bad input */
 
@@ -7196,7 +7209,7 @@ NI_dpr("  scan_for_angles: npos=%d epos=%d nbuf=%d buffer=%.*s\n",
         ns->npos,epos,ns->nbuf,ns->nbuf-ns->npos,ns->buf+ns->npos ) ;
 #endif
 
-   /*-- skip ahead to find goal in the buffer --*/
+   /*-- scan ahead to find goal in the buffer --*/
 
    while( epos < ns->nbuf && ns->buf[epos] != goal ) epos++ ;
 
@@ -7218,7 +7231,7 @@ NI_dpr("  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
 
       ns->npos = epos ;  /* mark where we found '<' */
       goal     = '>'  ;  /* the new goal */
-      caseb    = 1    ;
+      caseb    = 1    ;  /* force rescan, even if time is up */
       goto Restart    ;  /* scan again! */
    }
 
@@ -7259,7 +7272,9 @@ NI_dpr("  scan_for_angles: case (c)\n") ;
 
    nn = NI_stream_fillbuf( ns , nbmin , mleft ) ;
 
-   if( nn >= 0 ) goto Restart ; /* scan some more */
+   if( nn >= nbmin ) caseb = 1 ;    /* got new data => force rescan */
+
+   if( nn >= 0     ) goto Restart ; /* scan some more for the goal */
 
    /*-- if here, the stream went bad, so exit --*/
 

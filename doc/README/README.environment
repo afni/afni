@@ -767,6 +767,10 @@ be chosen randomly for display when the splash window is popped up.
     when AFNI first starts.
 [2] In fact, your PGMFILE images can be color (PPM format), IF they
     are exactly 436 pixels wide and 140 deep.
+[3] A file in the AFNI_PLUGINPATH whose name matches the wildcard
+    "afnisplash*.ppm" (and is 436x140) will also be read in to the
+    splash window.  A few such files are distributed with the AFNI
+    binaries.
 
 ------------------------
 Variable: AFNI_PBAR_IMXY (editable)
