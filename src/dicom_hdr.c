@@ -9,17 +9,17 @@ int main(int argc, char **argv)
             "Prints information from the DICOM file 'fname' to stdout.\n"
             "\n"
             "OPTIONS:\n"
-            " -hex     = include hexadecimal printout for integer values\n"
-            " -noname  = don't include element names in the printout\n"
-            " -sexinfo = dump Siemens EXtra INFO text, if present\n"
-            "             AND if this is a Siemens Mosaic file\n"
-            " -v n     = dump n words of binary data also\n"
+            " -hex     = Include hexadecimal printout for integer values.\n"
+            " -noname  = Don't include element names in the printout.\n"
+            " -sexinfo = Dump Siemens EXtra INFO text (0029 1020), if present\n"
+            "             (can be VERY lengthy).\n"
+            " -v n     = Dump n words of binary data also.\n"
             "\n"
             "Based on program dcm_dump_file from the RSNA, developed at\n"
             "the Mallinckrodt Institute of Radiology.  See the source\n"
             "code file mri_dicom_hdr.c for their Copyright and license.\n"
             "\n"
-            "SAMPLE OUTPUT LINES:\n"
+            "SOME SAMPLE OUTPUT LINES:\n"
             "\n"
             "0028 0010      2 [1234   ] //              IMG Rows// 512\n"
             "0028 0011      2 [1244   ] //           IMG Columns// 512\n"
@@ -42,7 +42,7 @@ int main(int argc, char **argv)
             "* In the example above, we have a 512x512 image with 0.488281 mm pixels,\n"
             "   with 12 bits (stored in 16 bits) per pixel.\n"
             "* For vastly more detail on DICOM standard, you can start with the\n"
-            "   documents at ftp://afni.nimh.nih.gov/dicom/\n"
+            "   documents at ftp://afni.nimh.nih.gov/dicom/ (1000+ pages of PDF).\n"
            );
      exit(0);
    }
@@ -91,7 +91,7 @@ STATUS("returned from mri_dicom_header()") ;
                 "Pixel array length = %u (bytes)\n" ,
                 (unsigned int)poff , plen ) ;
        if( do_sin ){
-         (void) mri_imcount_dicom( argv[ii] ) ;
+         (void) mri_imcount_dicom( argv[ii] ) ;  /* only to get the sexinfo */
          sin = mri_dicom_sexinfo() ;
          if( sin ){
            printf("................... Siemens Extra Info [0029 1020] ...................\n"

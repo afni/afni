@@ -4167,3 +4167,7 @@
  * Modified mri_read_dicom.c to use Rescale and Window tags, if turned on
      by the relevant environment variables.
  * Modified aiv.c to use globbing on input filenames.
+
+24 Dec 2002
+ * Modified mri_read_dicom.c to save Siemens extra info string even if
+     file isn't a mosaic.
