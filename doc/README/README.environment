@@ -1713,6 +1713,23 @@ Variable: AFNI_1D_TIME_TR
 If this is set, and AFNI_1D_TIME is YES, then this determines the TR (in
 seconds) of a .1D file read in as an AFNI dataset.
 
+--------------------------
+Variable: AFNI_MAX_OPTMENU (editable)
+--------------------------
+This variable (default=255) sets the maximum number of entries allowed
+in an AFNI "option menu" -- these are the buttons that popup a menu
+of values from which to choose, and which also let you popup a text
+list chooser by right-clicking in the menu's label.  (Example: the
+sub-brick option menus "Anat", "Func", "Thr" on the "Define Function"
+control panel.)
+
+Some computer systems may crash when an option menu gets too big.
+That's why there is a default limit in AFNI of 255 entries.  However,
+if you have a bucket dataset with more than 255 sub-bricks, this makes
+it impossible to view the later data volumes.  If this problem arises,
+you can try setting this environment variable to a larger limit (e.g.,
+99999 would take care of all currently imaginable cases).
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
