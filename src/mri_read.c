@@ -3202,7 +3202,9 @@ MRI_IMARR * mri_read_file_delay( char * fname )
    new_fname = imsized_fname( fname ) ;
    if( new_fname == NULL ) return NULL ;
 
-   if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' ){
+   if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' &&
+       (new_fname[2] == ':' || new_fname[3] == ':') ){
+                               /* check for ':', too   3 Jan 2005 [rickr] */
 
       newar = mri_read_3D_delay( new_fname ) ;   /* read from a 3D file, later */
 
