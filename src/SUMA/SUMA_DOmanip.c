@@ -345,9 +345,9 @@ SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free
 }
 
 /*!
-Register a DO with surface viewer ShowDO vector 
+Register a DO with surface viewer RegisteredDO vector 
 if dov_id is present in cSV, nothing is done
-if not found then dov_id is registered at the end of cSV->ShowDO 
+if not found then dov_id is registered at the end of cSV->RegisteredDO 
 
 When a DO is registered, a ColorList is created if the DO is a surface object.
 and N_DO is updated
@@ -363,13 +363,13 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    /* check to see if dov_id exists */
    i = 0;
    while (i < cSV->N_DO) {
-      if (cSV->ShowDO[i] == dov_id) {
+      if (cSV->RegisteredDO[i] == dov_id) {
          /* found do nothing, return */
          SUMA_RETURN(YUP);
       }
       ++i;
    }
-   cSV->ShowDO[cSV->N_DO] = dov_id;
+   cSV->RegisteredDO[cSV->N_DO] = dov_id;
    cSV->N_DO += 1;
    
    /* Now add the ColorList, if DO is a surface object */
@@ -386,9 +386,9 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
          FuncName, cSV->ColList[0].idcode_str, cSV->N_ColList);
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: ShowDO is now:\n", FuncName);
+      fprintf (SUMA_STDERR,"%s: RegisteredDO is now:\n", FuncName);
       for (i=0; i< cSV->N_DO; ++i) {
-         fprintf(SUMA_STDERR,"ShowDO[%d] = %d\t", i, cSV->ShowDO[i]);
+         fprintf(SUMA_STDERR,"RegisteredDO[%d] = %d\t", i, cSV->RegisteredDO[i]);
       }
       fprintf(SUMA_STDERR,"\n");
    }
@@ -399,8 +399,8 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    SUMA_RETURN(YUP); 
 }
 /*!
-remove DO with I.D. dov_id from ShowDO list of that current viewer
-removal of dov_id element is done by replacing it with the last entry in ShowDO
+remove DO with I.D. dov_id from RegisteredDO list of that current viewer
+removal of dov_id element is done by replacing it with the last entry in RegisteredDO
 list. If not found, nothing happens.
 */
 SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
@@ -414,11 +414,11 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    /* check to see if dov_id exists */
    i = 0;
    while (i < cSV->N_DO) {
-      if (cSV->ShowDO[i] == dov_id) {
+      if (cSV->RegisteredDO[i] == dov_id) {
          /* found, replace it by the last in the list */
-         cSV->ShowDO[i] = cSV->ShowDO[cSV->N_DO-1];
+         cSV->RegisteredDO[i] = cSV->RegisteredDO[cSV->N_DO-1];
          /*remove the last element of the list */
-         cSV->ShowDO[cSV->N_DO-1] = 0;
+         cSV->RegisteredDO[cSV->N_DO-1] = 0;
          cSV->N_DO -= 1; 
          
          /* empty the ColorList for this surface */
@@ -433,9 +433,9 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
          }
          
          if (LocalHead) {
-            fprintf (SUMA_STDERR,"%s: ShowDO is now:\n", FuncName);
+            fprintf (SUMA_STDERR,"%s: RegisteredDO is now:\n", FuncName);
             for (i=0; i< cSV->N_DO; ++i) {
-               fprintf(SUMA_STDERR,"ShowDO[%d] = %d\t", i, cSV->ShowDO[i]);
+               fprintf(SUMA_STDERR,"RegisteredDO[%d] = %d\t", i, cSV->RegisteredDO[i]);
             }
             fprintf(SUMA_STDERR,"\n");
          }
@@ -451,9 +451,9 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    /* Not found, nothing happens */
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: ShowDO is now:\n", FuncName);
+      fprintf (SUMA_STDERR,"%s: RegisteredDO is now:\n", FuncName);
       for (i=0; i< cSV->N_DO; ++i) {
-         fprintf(SUMA_STDERR,"ShowDO[%d] = %d\t", i, cSV->ShowDO[i]);
+         fprintf(SUMA_STDERR,"RegisteredDO[%d] = %d\t", i, cSV->RegisteredDO[i]);
       }
       fprintf(SUMA_STDERR,"\n");
    }

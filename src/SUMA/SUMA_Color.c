@@ -347,8 +347,13 @@ void SUMA_MakeColorMap_usage ()
       fprintf (SUMA_STDOUT, "\t -nc N: Total number of colors in the color map.\n");
       fprintf (SUMA_STDOUT, "\t -sl: (optional, default is NO) if used, the last color in the Fiducial list is omitted.\n");
       fprintf (SUMA_STDOUT, "\t\t This is useful in creating cyclical color maps.\n");
-      fprintf (SUMA_STDOUT, "\n\33[1mCommon options to both usages:\33[0m\n");
-      fprintf (SUMA_STDOUT, "\t -ah prefix: (optional, default is RGB values in decimal form)\n");
+      fprintf (SUMA_STDOUT, "\n\33[1mUsage3: \33[0m MakeColorMap <-std MapName>\n");
+      fprintf (SUMA_STDOUT, "\t Returns one of SUMA's standard colormaps. Choose from:\n");
+      fprintf (SUMA_STDOUT, "\t rgybr20, ngray20, gray20, bw20, bgyr19, \n");
+      fprintf (SUMA_STDOUT, "\t matlab_default_bgyr64, roi128, roi64\n");
+      fprintf (SUMA_STDOUT, "\n\33[1mCommon options to all usages:\33[0m\n");
+      fprintf (SUMA_STDOUT, "\t -ah prefix: (optional, Afni Hex format.\n");
+      fprintf (SUMA_STDOUT, "\t              default is RGB values in decimal form)\n");
       fprintf (SUMA_STDOUT, "\t\t use this option if you want a color map formatted to fit in AFNI's .afnirc file.\n");
       fprintf (SUMA_STDOUT, "\t\t the colormap is written out as \n\t\tprefix_01 = #xxxxxxx \n\t\tprefix_02 = #xxxxxxx\n\t\t etc...\n"); 
       /* that's not a useful option, both versions will be written out */
@@ -368,6 +373,7 @@ void SUMA_MakeColorMap_usage ()
       fprintf (SUMA_STDOUT, "\t1 0 0\n\t0 1 0\n\t0 0 1\n\t1 1 0\n\t1 0 0\n\n");
       fprintf (SUMA_STDOUT, "\tThe following command will generate the RGB colormap in decimal form:\n");
       fprintf (SUMA_STDOUT, "\tMakeColorMap -f FidCol -sl -nc 20 \n\n");
+      fprintf (SUMA_STDOUT, "Example Usage 3: MakeColorMap -std ngray20 \n\n");
       fprintf (SUMA_STDOUT, "To read in a new colormap into AFNI, either paste the contents of TestPalette.pal\n");
       fprintf (SUMA_STDOUT, "in your .afnirc file or read the .pal file using AFNI as follows:\n");
       fprintf (SUMA_STDOUT, "1- run afni\n2- Define Function --> right click on Inten (over colorbar) --> Read in palette (choose TestPalette.pal)\n");
@@ -378,13 +384,15 @@ void SUMA_MakeColorMap_usage ()
  
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"SUMA_MakeColorMap-main"}, *FidName = NULL, *Prfx = NULL, h[9]; 
-   int Ncols = 0, N_Fid, kar, i, ifact, *Nind = NULL;
-   float **Fid, **M;
+   char  FuncName[]={"MakeColorMap"}, 
+         *FidName = NULL, *Prfx = NULL, h[9], *StdType=NULL; 
+   int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL;
+   float **Fid=NULL, **M=NULL;
    MRI_IMAGE *im = NULL;
    float *far=NULL;
-   SUMA_Boolean brk, SkipLast, AfniHex, PosMap, Usage1, Usage2, LocalHead = NOPE;
-   SUMA_COLOR_MAP *SM;
+   SUMA_Boolean   brk, SkipLast, AfniHex, PosMap, 
+                  Usage1, Usage2, Usage3, LocalHead = NOPE;
+   SUMA_COLOR_MAP *SM=NULL;
       
    /* allocate space for CommonFields structure and initialize debug*/
    SUMAg_CF = SUMA_Create_CommonFields ();
@@ -394,7 +402,7 @@ int main (int argc,char *argv[])
    }
    SUMAg_CF->InOut_Notify = NOPE;
    
-   if (argc < 3) {
+   if (argc < 2) {
       SUMA_MakeColorMap_usage();
       exit (1);
    }
@@ -406,6 +414,7 @@ int main (int argc,char *argv[])
    PosMap = NOPE;
    Usage1 = NOPE;
    Usage2 = NOPE;
+   Usage3 = NOPE;
    while (kar < argc) { /* loop accross command ine options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           SUMA_MakeColorMap_usage();
@@ -464,6 +473,18 @@ int main (int argc,char *argv[])
          brk = YUP;
       }      
       
+      if (!brk && (strcmp(argv[kar], "-std") == 0))
+      {
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need argument after -std ");
+            exit (1);
+         }
+         StdType = argv[kar];
+         Usage3 = YUP; 
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-sl") == 0))
       {
          SkipLast = YUP;         
@@ -489,29 +510,37 @@ int main (int argc,char *argv[])
    }/* loop accross command ine options */
    
    /* check input */
-   if (Usage1 && Usage2) {
-      fprintf (SUMA_STDERR,"Error %s: Mixing options from both usage modes.\n", FuncName);
+   if ( (Usage1 && Usage2) || (Usage1 && Usage3) || (Usage2 && Usage3)) {
+      fprintf (SUMA_STDERR,"Error %s: Mixing options from multiple usage modes.\n", FuncName);
       exit(1);
    }
-      
-   if (!SUMA_filexists (FidName)) {
-      fprintf (SUMA_STDERR,"Error %s: File %s could not be found.\n", FuncName, FidName);
+   
+   if (!Usage1 && !Usage2 && !Usage3) {
+      fprintf (SUMA_STDERR,"Error %s: One of these options must be used:\n-f -fn or -std.\n", FuncName);
       exit(1);
+   }
+   
+   if (Usage1 || Usage2) {
+      if (!SUMA_filexists (FidName)) {
+         fprintf (SUMA_STDERR,"Error %s: File %s could not be found.\n", FuncName, FidName);
+         exit(1);
+      }
+      
+      /* read the fiducials file */
+      im = mri_read_1D (FidName);
+      if (!im) {
+         SUMA_S_Err("Failed to read file");
+         exit(1);
+      }
+
+      far = MRI_FLOAT_PTR(im);
+      N_Fid = im->nx * im->ny;
    }
 
    if (PosMap) {
       fprintf (SUMA_STDERR,"\nWarning %s: -pos option is obsolete.\n", FuncName);
    }
    
-   /* read the fiducials file */
-   im = mri_read_1D (FidName);
-   if (!im) {
-      SUMA_S_Err("Failed to read file");
-      exit(1);
-   }
-   
-   far = MRI_FLOAT_PTR(im);
-   N_Fid = im->nx * im->ny;
    
    /* allocate for fiducials */
    if (Usage1) {
@@ -539,7 +568,8 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,"Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
          exit(1);
       }
-   } else { /* second usage */
+   } 
+   if (Usage2) { /* second usage */
       if (N_Fid % 4) {
          fprintf (SUMA_STDERR,"Error %s: Not all rows in %s appear to have RGB N quadruplets.\n", FuncName, FidName);
          exit (1);
@@ -570,10 +600,19 @@ int main (int argc,char *argv[])
       Ncols = SM->N_Col;
    }
    
+   if (Usage3) { /* third usage */
+      SM = SUMA_GetStandardMap (SUMA_StandardMapCode(StdType));
+      if (SM == NULL) {
+         fprintf (SUMA_STDERR,"Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
+         exit(1);
+      }
+      Ncols = SM->N_Col;
+   }
+   
    M = SM->M;
 
-   if (AfniHex && Ncols > 100) {
-         fprintf (SUMA_STDERR,"Error %s: Cannot write a colormap of more than 100 colors in Afni's hex format.\n", FuncName);
+   if (AfniHex && Ncols > 200) {
+         fprintf (SUMA_STDERR,"Error %s: Cannot write a colormap of more than 200 colors in Afni's hex format.\n", FuncName);
          exit(1);
       }
 
@@ -852,6 +891,92 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
 
 }
 
+/*!
+   \brief Returns the ascii name of a Suma standard map.
+   
+   \param mapcode (SUMA_STANDARD_CMAP)
+   \param N_col (int *) to contain the number of colors in the map
+         -1 if no map was found
+   \return ans (char *) ascii version of mapcode
+   
+   \sa SUMA_StandardMapCode
+*/ 
+char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col)
+{
+   static char FuncName[]={"SUMA_StandardMapName"};
+   
+   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   
+   *N_col = -1;
+   switch (mapcode) {
+      case SUMA_CMAP_ERROR:
+         SUMA_RETURN("Error");
+         break;
+      case SUMA_CMAP_UNDEFINED:
+         SUMA_RETURN("Undefined");
+         break;
+      case SUMA_CMAP_RGYBR20:
+         *N_col = 20;
+         SUMA_RETURN("rgybr20");
+         break;
+      case SUMA_CMAP_nGRAY20:
+         *N_col = 20;
+         SUMA_RETURN("ngray20");
+         break;
+      case SUMA_CMAP_GRAY20:
+         *N_col = 20;
+         SUMA_RETURN("gray20");
+         break;
+      case SUMA_CMAP_BW20:
+         *N_col = 20;
+         SUMA_RETURN("bw20");
+         break;
+      case SUMA_CMAP_BGYR19:
+         *N_col = 19;
+         SUMA_RETURN("bgyr19");
+         break;
+      case SUMA_CMAP_MATLAB_DEF_BGYR64:
+         *N_col = 64;
+         SUMA_RETURN("matlab_default_bgyr64");
+         break;
+      case SUMA_CMAP_ROI128:
+         *N_col = 128;
+         SUMA_RETURN("roi128");
+         break;
+      case SUMA_CMAP_ROI64:
+         *N_col = 64;
+         SUMA_RETURN("roi64");
+         break;
+      default:
+         SUMA_RETURN("Cowabonga");
+         break;
+   }
+}
+
+/*!
+   \brief Returns the code corresponding to a colormap name
+   
+   \sa SUMA_StandardMapName
+*/
+SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name)
+{
+   static char FuncName[]={"SUMA_StandardMapCode"};
+   
+   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   if (!Name) SUMA_RETURN(SUMA_CMAP_ERROR);
+   if (!strcmp(Name, "Undefined")) SUMA_RETURN(SUMA_CMAP_UNDEFINED);
+   if (!strcmp(Name, "rgybr20")) SUMA_RETURN(SUMA_CMAP_RGYBR20);
+   if (!strcmp(Name, "ngray20")) SUMA_RETURN(SUMA_CMAP_nGRAY20);
+   if (!strcmp(Name, "gray20")) SUMA_RETURN(SUMA_CMAP_GRAY20);
+   if (!strcmp(Name, "bw20")) SUMA_RETURN(SUMA_CMAP_BW20);
+   if (!strcmp(Name, "bgyr19")) SUMA_RETURN(SUMA_CMAP_BGYR19);
+   if (!strcmp(Name, "matlab_default_bgyr64")) SUMA_RETURN(SUMA_CMAP_MATLAB_DEF_BGYR64);
+   if (!strcmp(Name, "roi64")) SUMA_RETURN(SUMA_CMAP_ROI64);
+   if (!strcmp(Name, "roi128")) SUMA_RETURN(SUMA_CMAP_ROI128);
+   /* if (!strcmp(Name, "")) SUMA_RETURN(); */
+   SUMA_RETURN(SUMA_CMAP_ERROR);
+}
+
 /*! 
    Returns one of a bunch of standard SUMA colormaps
    CM = SUMA_GetStandardMap (mapname);
@@ -863,24 +988,22 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
       SUMA_CMAP_nGRAY20
       SUMA_CMAP_BW20
       SUMA_CMAP_MATLAB_DEF_BGYR64
-   \ret CM (SUMA_COLOR_MAP*) color map structure (NULL in case of error)
+   \return CM (SUMA_COLOR_MAP*) color map structure (NULL in case of error)
 */
 
-SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
-   {   static char FuncName[]={"SUMA_GetStandardMap"};
+SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
+{     static char FuncName[]={"SUMA_GetStandardMap"};
       float **Fiducials;
-      int k;
+      int k, nc;
       int *Nind;
       int Ncols, NFid;
       SUMA_COLOR_MAP * CM;
       
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
-      switch (mapname) {
+      switch (mapcode) {
          case SUMA_CMAP_RGYBR20:
-            {
-               char Name[]={"RGBYR20"};
-               
+            {               
                Fiducials = (float **)SUMA_allocate2D(5, 3, sizeof(float));
                if (!Fiducials) {
                   fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
@@ -895,7 +1018,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; ++k;/* Red */
 
                /* generate 20 colors colormap */
-               CM = SUMA_MakeColorMap (Fiducials, k, 20, YUP, Name);
+               CM = SUMA_MakeColorMap (Fiducials, k, 20, YUP, SUMA_StandardMapName(mapcode,&nc));
                /* free Fiducials */
                SUMA_free2D((char **)Fiducials, k);
                
@@ -907,8 +1030,6 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
             }
          case SUMA_CMAP_BGYR19:
             {
-               char Name[]={"BGYR19"};
-               
                Fiducials = (float **)SUMA_allocate2D(4, 3, sizeof(float));
                if (!Fiducials) {
                   fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
@@ -922,7 +1043,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; ++k;/* Red */
 
                /* generate 20 colors colormap */
-               CM = SUMA_MakeColorMap (Fiducials, k, 19, NOPE, Name);
+               CM = SUMA_MakeColorMap (Fiducials, k, 19, NOPE, SUMA_StandardMapName(mapcode,&nc));
                /* free Fiducials */
                SUMA_free2D((char **)Fiducials, k);
                
@@ -932,11 +1053,9 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                }
                break;
             }
-         
+                     
          case SUMA_CMAP_GRAY20:
             {
-               char Name[]={"GRAY20"};
-               
                Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
                if (!Fiducials) {
                   fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
@@ -948,7 +1067,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.8; ++k;/* 0.8 gray */
 
                /* generate 20 colors colormap */
-               CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, Name);
+               CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, SUMA_StandardMapName(mapcode,&nc));
                /* free Fiducials */
                SUMA_free2D((char **)Fiducials, k);
                
@@ -961,8 +1080,6 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
             
          case SUMA_CMAP_nGRAY20:
             {
-               char Name[]={"nGRAY20"};
-               
                Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
                if (!Fiducials) {
                   fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
@@ -974,7 +1091,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 0.3; ++k;/* 0.3 gray */
 
                /* generate 20 colors colormap */
-               CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, Name);
+               CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, SUMA_StandardMapName(mapcode,&nc));
                /* free Fiducials */
                SUMA_free2D((char **)Fiducials, k);
                
@@ -987,8 +1104,6 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
             
          case SUMA_CMAP_BW20:
             {
-               char Name[]={"BW20"};
-               
                Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
                if (!Fiducials) {
                   fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
@@ -1000,7 +1115,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                Fiducials[k][0] = Fiducials[k][1] = Fiducials[k][2] = 1.0; ++k;/* white */
 
                /* generate 20 colors colormap */
-               CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, Name);
+               CM = SUMA_MakeColorMap (Fiducials, k, 20, NOPE, SUMA_StandardMapName(mapcode,&nc));
                /* free Fiducials */
                SUMA_free2D((char **)Fiducials, k);
                
@@ -1013,7 +1128,6 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
             case SUMA_CMAP_MATLAB_DEF_BGYR64:
             {
                /* default matlab color map */
-               char Name[]={"MATLAB_DEF_BGYR64"};
                Ncols = 64;
                NFid = 10;
                
@@ -1039,7 +1153,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                Fiducials[k][0] = 0.5625; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 63; ++k;
                
                /* generate 20 colors colormap */
-               CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, Name);
+               CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, SUMA_StandardMapName(mapcode,&nc));
                
                /* free Fiducials & Nind*/
                SUMA_free2D((char **)Fiducials, k);
@@ -1052,6 +1166,85 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
                break;
             
             }
+         
+         case SUMA_CMAP_ROI128:
+            {
+               /* a large colormap for lots of ROI drawing */
+               Ncols = 128;
+               NFid = 6;
+               
+               Fiducials = (float **)SUMA_allocate2D(NFid, 3, sizeof(float));
+               Nind = (int *) SUMA_calloc (NFid, sizeof (int));
+               
+               if (!Fiducials || !Nind) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+                  SUMA_RETURN (NULL);
+               }
+               
+               /* create the fiducial colors */
+               k = 0;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 0; ++k; 
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 25; ++k;
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; Nind[k] = 50; ++k;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 75; ++k;
+               Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; Nind[k] = 100; ++k;
+               Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; Nind[k] = 127; ++k;
+               
+               
+               /* generate colormap */
+               CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, SUMA_StandardMapName(mapcode,&nc));
+               
+               /* free Fiducials & Nind*/
+               SUMA_free2D((char **)Fiducials, k);
+               SUMA_free(Nind);
+               
+               if (!CM) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
+                  SUMA_RETURN (NULL);   
+               }
+               break;
+            
+            }
+         
+         case SUMA_CMAP_ROI64:
+            {
+               /* a large colormap for lots of ROI drawing */
+               Ncols = 64;
+               NFid = 6;
+               
+               Fiducials = (float **)SUMA_allocate2D(NFid, 3, sizeof(float));
+               Nind = (int *) SUMA_calloc (NFid, sizeof (int));
+               
+               if (!Fiducials || !Nind) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+                  SUMA_RETURN (NULL);
+               }
+               
+               /* create the fiducial colors */
+               k = 0;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 0; ++k; 
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 12; ++k;
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; Nind[k] = 25; ++k;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 33; ++k;
+               Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; Nind[k] = 50; ++k;
+               Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; Nind[k] = 63; ++k;
+               
+               
+               /* generate colormap */
+               CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, SUMA_StandardMapName(mapcode,&nc));
+               
+               /* free Fiducials & Nind*/
+               SUMA_free2D((char **)Fiducials, k);
+               SUMA_free(Nind);
+               
+               if (!CM) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
+                  SUMA_RETURN (NULL);   
+               }
+               break;
+            
+            }
+            
          default:
             fprintf (SUMA_STDERR,"Error %s: Unrecognized color map name.\n", FuncName);
             SUMA_RETURN (NULL);
@@ -2690,8 +2883,10 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+      SUMA_LH("Fetching Overlay Pointer");
       /* if plane exists use it, else create a new one on the mappable surface */
       if (!SUMA_Fetch_OverlayPointer (SO->Overlays, SO->N_Overlays, Name, &OverInd)) {
+         SUMA_LH("pointer not found");
          /* overlay plane not found, create a new one on the mappable surface*/
          if (!SUMA_isINHmappable(SO)) {
             if (sopd->Source == SES_Afni) {
@@ -2731,6 +2926,8 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          }
 
          
+      }else {
+         SUMA_LH("Pointer found");
       }
       
       if (LocalHead) fprintf (SUMA_STDERR, "%s: OverInd = %d, Loading colors to Overlay Plane...\n", FuncName, OverInd);

@@ -103,7 +103,7 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
 char *SUMA_copy_string(char *buf);
 char * SUMA_append_string(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
-                                    char *Spc, int wichTofree);
+                                    char *Spc, int whichTofree);
 
 
 

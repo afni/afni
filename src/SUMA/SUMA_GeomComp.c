@@ -178,7 +178,7 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
    for (i=0; i < N_Node; ++i) isNode[Nodes[i]] = YUP;
    
    Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, SO->N_FaceSet, SO->MF, 2);
-   SUMA_ShowPatch (Patch,NULL);
+   if (LocalHead) SUMA_ShowPatch (Patch,NULL);
    
    if (Patch->N_FaceSet) {
       SEL = SUMA_Make_Edge_List (Patch->FaceSetList, Patch->N_FaceSet, SO->N_Node, SO->NodeList);

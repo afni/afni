@@ -39,7 +39,12 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int Firs
 void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_mask, int seed, int *N_Visited);
 SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, int *N_ROI);
 SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, int *N_ROI);
-SUMA_Boolean SUMA_Paint_SO_ROIplanes (SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_do);
+SUMA_Boolean SUMA_Paint_SO_ROIplanes (SUMA_SurfaceObject *SO, 
+                                       SUMA_DO* dov, int N_do, 
+                                       SUMA_Boolean *MakeNel,
+                                       NI_element ***nelvp, int *N_nelv);
+SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO, 
+                                       SUMA_DO* dov, int N_do);
 void SUMA_Free_ROI_PlaneData (void *da);
 DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov);
 int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique);

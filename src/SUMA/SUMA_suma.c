@@ -30,8 +30,10 @@ void SUMA_usage ()
 			 printf ("\n\t                 the current experiment's anatomical volume (using @SUMA_AlignToExperiment).\n");
 			 printf ("\n\t                 This parameter is optional but linking to AFNI is impossible without it.\n");
 			 printf ("\n\t[-ah <AfniHost>]: Name (or IP address) of the computer running AFNI. This parameter is \n");
-			 printf ("\n\t                  optional, the default is localhost.\n");
-			 /*
+			 printf ("\n\t                  optional, the default is localhost. \n");
+          printf ("\n\t                  When both AFNI and SUMA are on the same computer, you can turn shared \n");
+          printf ("\n\t                  memory communication off by explicitly setting AfniHost to 127.0.0.1\n");
+   		 /*
 			 printf ("\n\t[-dev]: This option will give access to options that are not well polished for consuption.\n");
 			 printf ("\n\t        \n");
 			 printf ("\n\t[-iodbg] This option will trun on the In/Out debug info from the getgo.\n");

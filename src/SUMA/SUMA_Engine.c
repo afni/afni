@@ -167,13 +167,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
                                                         SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
                                                         NULL, NULL,
-                                                        NULL,
+                                                        "*.col",
                                                         SUMAg_CF->X->FileSelectDlg);
             } else {
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
                                                         SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
                                                         NULL, NULL,
-                                                        NULL,
+                                                        "*.col",
                                                         SUMAg_CF->X->FileSelectDlg);
             }
             
@@ -199,7 +199,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv,  SUMAg_N_DOv); 
                }
                if (!DrawnROI) { /* none found on focus surface, check other surfaces in this viewer */
-                  N_SOlist = SUMA_ShownSOs(sv, SUMAg_DOv, SOlist);
+                  N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);
                   if (N_SOlist) {
                      it = 0;
                      do {
@@ -454,10 +454,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            SUMAg_CF->Connected = !SUMAg_CF->Connected;
                            break ;
                         }
-                        fprintf (SUMA_STDERR, "%s: Trying shared memory...\n", FuncName);
-                        if( strstr( SUMAg_CF->NimlAfniStream , "tcp:localhost:" ) != NULL ) {
-                           if (!NI_stream_reopen( SUMAg_CF->ns , "shm:WeLikeElvis:1M" )) {
-                              fprintf (SUMA_STDERR, "Warning %s: Shared memory communcation failed.\n", FuncName);
+                        if (!strcmp(SUMAg_CF->AfniHostName,"localhost")) { /* only try shared memory when 
+                                                                              AfniHostName is localhost */
+                           fprintf (SUMA_STDERR, "%s: Trying shared memory...\n", FuncName);
+                           if( strstr( SUMAg_CF->NimlAfniStream , "tcp:localhost:" ) != NULL ) {
+                              if (!NI_stream_reopen( SUMAg_CF->ns , "shm:WeLikeElvis:1M" )) {
+                                 fprintf (SUMA_STDERR, "Warning %s: Shared memory communcation failed.\n", FuncName);
+                              }
                            }
                         }
                         /*   SUMAg_CF->ns = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
@@ -558,8 +561,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects nothing in EngineData */
             /* send to afni surfaces that can be sent even if they have been sent already */
             for (ii=0; ii<sv->N_DO; ++ii) {
-               if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
-                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
+               if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
+                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->RegisteredDO[ii]].OP);
                   if (SO->SentToAfni) SO->SentToAfni = NOPE;
                }
             }
@@ -603,7 +606,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      break;
                   }
                   /* send surface nel */
-                  fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ", FuncName) ;
+                  if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ", FuncName) ;
                   nn = NI_write_element( SUMAg_CF->ns , nel , NI_BINARY_MODE ) ;
 
                   if( nn < 0 ){
@@ -650,9 +653,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                int CommonState = -1;
                
                for (ii=0; ii<sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
+                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
                      if (CommonState < 0) {
-                        SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
+                        SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->RegisteredDO[ii]].OP);
                         SO->ShowSelectedNode = !SO->ShowSelectedNode;
                         CommonState = SO->ShowSelectedNode;
                         fprintf(SUMA_STDOUT,"SO->ShowSelectedNode = %d\n", SO->ShowSelectedNode);
@@ -688,8 +691,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects nothing ! */
             { int CommonState = -1;
                for (ii=0; ii<sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
-                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
+                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
+                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->RegisteredDO[ii]].OP);
                      if (CommonState < 0) { /* first surface, set the common state */
                         SO->ShowSelectedFaceSet = !SO->ShowSelectedFaceSet;
                         CommonState = SO->ShowSelectedFaceSet;
@@ -878,7 +881,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               if (LocalHead) fprintf (SUMA_STDERR, "%s: Try to I lock viewer %d to node %d.\n", FuncName, i, sv->Ch->NodeID);
                               
                               /* determine the list of shown surfaces */
-                              N_SOlist = SUMA_ShownSOs(svi, SUMAg_DOv, SOlist);
+                              N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, SOlist);
 
                               /* first find the surface that the cross hair is bound to */
                               if (sv->Ch->SurfaceID < 0) {
@@ -1381,7 +1384,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 }
 
 /*!
-   ans = SUMA_ShownSOs (sv, dov, SO_IDs);
+   ans = SUMA_RegisteredSOs (sv, dov, SO_IDs);
    gets the IDs (indices into dov) and number of the Surface Objects shown in sv
    \param sv (SUMA_SurfaceViewer *) the surface viewer structure
    \param dov (SUMA_DO *) the Displayable Objects vector (accessible to sv)
@@ -1390,17 +1393,57 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    \ret ans (int) the number of SOs shown in SV
    Still confused ? read the code for the function, it is shorter than the documentation.
 */
-int SUMA_ShownSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
+int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 {
-   static char FuncName[]={"SUMA_ShownSOs"};
+   static char FuncName[]={"SUMA_RegisteredSOs"};
    int i, k = 0;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    for (i=0; i< sv->N_DO; ++i) {
-      if (SUMA_isSO(dov[sv->ShowDO[i]])) {
-         if (SO_IDs != NULL) SO_IDs[k] = sv->ShowDO[i];
+      if (SUMA_isSO(dov[sv->RegisteredDO[i]])) {
+         if (SO_IDs != NULL) SO_IDs[k] = sv->RegisteredDO[i];
          ++k;
+      }
+   }
+
+   SUMA_RETURN (k);
+}
+/*!
+   ans = SUMA_VisibleSOs (sv, dov, SO_IDs);
+   gets the IDs (indices into dov) and number of the Surface Objects 
+         registered with sv and with the SO->Side matching sv->ShowRight/
+         sv->ShowLeft
+   \param sv (SUMA_SurfaceViewer *) the surface viewer structure
+   \param dov (SUMA_DO *) the Displayable Objects vector (accessible to sv)
+   \param SO_IDs (int *) pre-allocated integer vector that will contain the IDs of the SO shown in sv
+         send NULL if you do not care for it and all you'll get is ans
+   \ret ans (int) the number of SOs shown in SV
+   Still confused ? read the code for the function, it is shorter than the documentation.
+*/
+int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
+{
+   static char FuncName[]={"SUMA_VisibleSOs"};
+   SUMA_SurfaceObject *SO=NULL;
+   int i, k = 0;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   for (i=0; i< sv->N_DO; ++i) {
+      if (SUMA_isSO(dov[sv->RegisteredDO[i]])) {
+         SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+         if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR ) {
+            if (SO_IDs) {
+               SO_IDs[k] = sv->RegisteredDO[i];
+            }
+            ++k;
+         } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
+                      (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
+            if (SO_IDs) {
+               SO_IDs[k] = sv->RegisteredDO[i];
+            }
+            ++k;
+         }
       }
    }
 
@@ -1508,7 +1551,7 @@ int SUMA_NextSO (SUMA_DO *dov, int n_dov, char *idcode, SUMA_SurfaceObject *SOnx
 }
 
 /*! 
-   Replaces one surface in ShowDO with another 
+   Replaces one surface in RegisteredDO with another 
 
 */
 SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, SUMA_SurfaceViewer *sv)
@@ -1522,7 +1565,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   /* unregister the current surface from ShowDO */
+   /* unregister the current surface from RegisteredDO */
    /*fprintf(SUMA_STDERR,"%s: Unregistering DOv[%d]...\n", FuncName, SOcurID);*/
    if (!SUMA_UnRegisterDO(SOcurID, sv)) {
       fprintf(SUMA_STDERR,"Error %s: Failed to UnRegisterDO.\n", FuncName);
@@ -1532,7 +1575,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    /* set the focus ID to the current surface */
    sv->Focus_SO_ID = SOnxtID;
 
-   /* register the new surface in ShowDO */
+   /* register the new surface in RegisteredDO */
    /*fprintf(SUMA_STDERR,"%s: Registering DOv[%d]...\n", FuncName, sv->Focus_SO_ID); */
    if (!SUMA_RegisterDO(sv->Focus_SO_ID, sv)) {
       fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
@@ -1891,10 +1934,10 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    for (i=0; i< sv->N_DO; ++i) {
-      if (dov[sv->ShowDO[i]].ObjectType == AO_type) {
-         AO = (SUMA_Axis *)(dov[sv->ShowDO[i]].OP);
+      if (dov[sv->RegisteredDO[i]].ObjectType == AO_type) {
+         AO = (SUMA_Axis *)(dov[sv->RegisteredDO[i]].OP);
          if (strcmp(AO->Name, "Eye Axis") == 0) {
-            k = sv->ShowDO[i];
+            k = sv->RegisteredDO[i];
             ++cnt;
          }
       }

@@ -156,6 +156,7 @@ void SUMA_Free_Axis (SUMA_Axis *Ax)
 void SUMA_EyeAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv)
 {
    static char FuncName[]={"SUMA_EyeAxisStandard"};
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -506,14 +507,16 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                            ++N_ROId;
                         }
                      } else { /* non segment type Drawn ROI */
-                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_NodeGroup);
-                           for (ii=0; ii < ROId->N_n; ++ii) {
-                              id = 3 * ROId->nPath[ii];
-                              glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                              glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
-                           }
-
+                           #if 0 
+                              /* it is too much to fill with spheres... */
+                              glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_NodeGroup);
+                              for (ii=0; ii < ROId->N_n; ++ii) {
+                                 id = 3 * ROId->nPath[ii];
+                                 glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
+                                 gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                                 glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                              }
+                           #endif
                      }
                   } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
                } else {
@@ -527,7 +530,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                      int id1cont, id2cont, icont;
                      /* Draw the contour */
                      glLineWidth(6);
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, D_ROI->FillColor);
                      
                      for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                         SUMA_LH("Drawing contour ...");
@@ -641,35 +644,101 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
 }         
 
 /*!
+   \brief A wrapper for SUMA_Paint_SO_ROIplanes
+   
+   Notification of afni is done if requested 
+*/
+SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO, 
+                                       SUMA_DO* dov, int N_do)
+{
+   static char FuncName[]={"SUMA_Paint_SO_ROIplanes_w"};
+   NI_element **nelv=NULL;
+   int N_nelv = 0, ii=0;
+   SUMA_Boolean CreateNel, LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   CreateNel = SUMAg_CF->ROI2afni;
+   if (!SUMA_Paint_SO_ROIplanes (SO, SUMAg_DOv, SUMAg_N_DOv,
+                                 &CreateNel,
+                                 &nelv, &N_nelv)) {
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (SUMAg_CF->ROI2afni != CreateNel) {
+      /* it was turned off in the function */
+      SUMAg_CF->ROI2afni = CreateNel;
+      if (SUMAg_CF->X->DrawROI) {
+         XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, SUMAg_CF->ROI2afni, NOPE);
+      }
+   }
+   
+   if (SUMAg_CF->ROI2afni) {
+      SUMA_LH("Should send nels to AFNI...");
+      if (N_nelv) {
+         for (ii=0; ii < N_nelv; ++ii) {
+            SUMA_LH("Send this nel to AFNI.");
+            SUMA_ShowNel(nelv[ii]);
+            if (NI_write_element( SUMAg_CF->ns , nelv[ii] , NI_BINARY_MODE ) < 0) {
+               SUMA_SLP_Err("NI_write_element failed.");
+            }
+            SUMA_LH("Free this nel.");
+            NI_free_element(nelv[ii]) ; nelv[ii] = NULL;
+         }
+         SUMA_LH("Now free nelv");
+         SUMA_free(nelv);nelv = NULL;
+      }
+   }
+   
+   SUMA_RETURN(YUP);
+   
+}
+
+/*!
    \brief Where real men draw their ROIs
    
    - First the function creates a list
    of the various ROI planes on SO
    - For each plane
       - Fill them up with ROIs nodes, do mixing if necessary
+      - If CreateNel is YUP, a NI data set of the type
+       SUMA_NODE_ROI is created for each color plane.
+       These data sets are meant to be sent to AFNI in realtime.
+       You will have to free nelvp
    
    
 */
-SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO, 
-                                       SUMA_DO* dov, int N_do)
+SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO, 
+                                       SUMA_DO* dov, int N_do, 
+                                       SUMA_Boolean *CreateNel,
+                                       NI_element ***nelvp, int *N_nelvp)
 {
    static char FuncName[]={"SUMA_Paint_SO_ROIplanes"};
    DList * ROIPlaneList = NULL;
    SUMA_ROI_PLANE *Plane = NULL;
-   int *N_ColHist = NULL, *ivect = NULL, *Nodes=NULL;
+   int *N_ColHist = NULL, *ivect = NULL, *Nodes=NULL, *ilab=NULL, *labvect=NULL;
    float *r=NULL, *g=NULL, *b=NULL, *rvect=NULL, *gvect=NULL, *bvect=NULL;
-   int i, ii, N_NewNode, istore, OverInd=-1, inode, i_D_ROI, LastOfPreSeg, N_Nodes=0;
+   float FillColor[3];
+   int i, ii, N_NewNode = 0, istore, OverInd=-1, inode, i_D_ROI, LastOfPreSeg, N_Nodes=0;
    SUMA_OVERLAY_PLANE_DATA sopd;
    DListElmt *NextPlaneElm = NULL, *NextROIElm = NULL, *NextElm=NULL;
    SUMA_DRAWN_ROI *D_ROI = NULL;
    SUMA_ROI_DATUM *ROId=NULL;
+   NI_element **nelv = NULL;
+   SUMA_STANDARD_CMAP mapcode;
    SUMA_Boolean Unique = NOPE, LocalHead = NOPE;
             
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
+   SUMA_LH("Called");
+   /* select the color map */
+   mapcode = SUMA_CMAP_ROI128;
+   
    /* intilialize list */
    ROIPlaneList = SUMA_Addto_ROIplane_List (NULL, NULL, 0);
-   
    /* go through all ROIs and place each under its ROI plane */
    for (i=0; i < N_do; ++i) {
       switch (dov[i].ObjectType) { /* case Object Type */
@@ -683,17 +752,40 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
       if (D_ROI && SUMA_isdROIrelated (D_ROI, SO)) {
          /* found one, put it in list if useful */
          if (D_ROI->ROIstrokelist) {
-            if (dlist_size(D_ROI->ROIstrokelist)) {
                SUMA_LH("Adding plane");
                /* add it to plane list */
+               /* Add the plane, even if it has no strokes in it. 
+               Otherwise, the last undo will have no effect on the 
+               paint job. Bug fix Wed Jun 11 11:04:08 EDT 2003*/
                ROIPlaneList = SUMA_Addto_ROIplane_List ( ROIPlaneList,
                                                          dov, i);
                                                          
-            }
          }
       
       }
    }   
+   
+   if (*CreateNel && !nelvp) {
+      SUMA_SLP_Err("nelvp is null!\n"
+                   "Turning ROIlink Off.");
+      *CreateNel = NOPE;
+   }
+   if (*CreateNel && !SUMAg_CF->Connected) {
+      SUMA_SLP_Err(  "You are not connected\n"
+                     "to AFNI. Turning \n"
+                     "ROIlink Off.");
+      *CreateNel = NOPE;
+   }
+   
+   if (*CreateNel) { 
+      /* user wants ni elements to sent to AFNI */
+      nelv = (NI_element **) SUMA_calloc(dlist_size(ROIPlaneList), sizeof(NI_element *));
+      if (!nelv) {
+         SUMA_SLP_Err("Failed to allocate\nfor nelv.");
+         SUMA_RETURN(NOPE);
+      }
+      *N_nelvp = dlist_size(ROIPlaneList);
+   }
    
    /* For each ROI plane */
    NextPlaneElm = NULL;
@@ -712,7 +804,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
       r = (float *)SUMA_malloc (SO->N_Node*sizeof(float));
       g = (float *)SUMA_malloc (SO->N_Node*sizeof(float));
       b = (float *)SUMA_malloc (SO->N_Node*sizeof(float));
-      if (!N_ColHist || !r || !g || !b) {
+      if (*CreateNel) ilab = (int *) SUMA_calloc(SO->N_Node, sizeof (int));
+      if (!N_ColHist || !r || !g || !b || (*CreateNel && !ilab)) {
          SUMA_SLP_Crit( "Failed to allocate.\n"
                         "for N_ColHist, r, g or b.");
          SUMA_RETURN(NOPE);
@@ -731,6 +824,45 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
                                  FuncName,  i_D_ROI, N_do);  
          D_ROI = (SUMA_DRAWN_ROI *) dov[i_D_ROI].OP;
          
+         /* Set the fillcolor */
+         if (D_ROI->ColorByLabel) {
+            if (!SUMAg_CF->ROI_CM) {
+               if (!(SUMAg_CF->ROI_CM = SUMA_GetStandardMap (mapcode))) {
+                  SUMA_SLP_Err( "Failed to create\n"
+                                 "color map. Reverting\n"
+                                 "to FillColors");
+                  D_ROI->ColorByLabel = NOPE;
+               }
+            }
+         } 
+         
+         /* make sure Color ByLabel is possible */
+         if (D_ROI->ColorByLabel) {
+            if (D_ROI->iLabel < 0 || D_ROI->iLabel >= SUMAg_CF->ROI_CM->N_Col) {
+               SUMA_SLP_Err(  "ROI iLabel < 0 or \n"
+                              "higher than the number\n"
+                              "of colors in the map.\n"
+                              "Reverting to FillColors");
+               D_ROI->ColorByLabel = NOPE;
+            }
+         }
+         
+         if (D_ROI->ColorByLabel) {
+            if (D_ROI->iLabel < 0 || D_ROI->iLabel >= SUMAg_CF->ROI_CM->N_Col) {
+               SUMA_SLP_Err(  "ROI iLabel < 0 or \n"
+                              "higher than the number\n"
+                              "of colors in the map.\n"
+                              "Reverting to FillColors");
+               D_ROI->ColorByLabel = NOPE;
+            }
+            /* coloring for ROIs is straight forward, index based */
+            D_ROI->FillColor[0] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][0];
+            D_ROI->FillColor[1] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][1];
+            D_ROI->FillColor[2] = SUMAg_CF->ROI_CM->M[D_ROI->iLabel][2];
+         } else {
+            SUMA_COPY_VEC (D_ROI->FillColor, FillColor, 3,float, float);
+         }
+         
          /* now for each node in the DrawnROI, add its color */
          N_Nodes = 0;
          Unique = YUP; /* This is to eliminate redundant nodes 
@@ -746,12 +878,16 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
                   r[inode] = D_ROI->FillColor[0];
                   g[inode] = D_ROI->FillColor[1];
                   b[inode] = D_ROI->FillColor[2];
+                  if (*CreateNel) ilab[inode] = D_ROI->iLabel;
                   ++N_NewNode;
                } else { /* already used up color, add new color */
                   SUMA_LH("Revisiting Color");
                   r[inode] = r[inode] + D_ROI->FillColor[0];
                   g[inode] = g[inode] + D_ROI->FillColor[1];
                   b[inode] = b[inode] + D_ROI->FillColor[2];
+                  if (*CreateNel) {
+                     /* IGNORE repeats for the same node for now */
+                  }
                }
                ++N_ColHist[inode];
             }
@@ -766,7 +902,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
       rvect = (float *)SUMA_malloc(N_NewNode * sizeof(float));
       gvect = (float *)SUMA_malloc(N_NewNode * sizeof(float));
       bvect = (float *)SUMA_malloc(N_NewNode * sizeof(float));
-      if (!ivect || !rvect || !gvect || !bvect) {
+      if (*CreateNel) labvect = (int *)SUMA_malloc(N_NewNode * sizeof(int));
+      if (!ivect || !rvect || !gvect || !bvect || (*CreateNel && !labvect)) {
          SUMA_SLP_Crit( "Failed to allocate.\n"
                         "for *vect family");
          SUMA_RETURN(NOPE);
@@ -797,6 +934,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
             rvect[istore] = r[ii];
             gvect[istore] = g[ii];
             bvect[istore] = b[ii];
+            if (*CreateNel) labvect[istore] = ilab[ii];
             ++istore;
          }
       }
@@ -809,9 +947,9 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
       SUMA_free(r); 
       SUMA_free(g); 
       SUMA_free(b);
+      if (*CreateNel) SUMA_free(ilab);
       
-
-      /* put the colors in a color plane */
+   /* put the colors in a color plane */
       sopd.N = N_NewNode;
       sopd.Type = SOPT_ifff;
       sopd.Source = SES_Suma;
@@ -825,12 +963,76 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
       sopd.b = (void *)bvect;
       sopd.a = NULL;
 
+      SUMA_LH("Calling SUMA_iRGB_to_OverlayPointer");
       if (!SUMA_iRGB_to_OverlayPointer (SO, Plane->name, &sopd, &OverInd, dov, N_do)) {
          SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
          SUMA_RETURN(NOPE);
       }      
+      SUMA_LH("Returned SUMA_iRGB_to_OverlayPointer");
       
+      if (*CreateNel) {
+         NI_element *nel = NULL;
+         char *TargetVol=NULL;
+         
+         /* form the nel for this plane */
+         nel = SUMA_NewNel ( SUMA_NODE_ROI, /* one of SUMA_DSET_TYPE */
+                       SO->MapRef_idcode_str, /* idcode of Domain Parent */
+                       NULL, /* idcode of geometry parent, not useful here*/
+                       N_NewNode); /* Number of elements */
+         
+         if (!nel) {
+            SUMA_SLP_Err("Failed in SUMA_NewNel");
+            SUMA_RETURN(NOPE);
+         }
+         
+         if (N_NewNode) {
+            /* Add the index column */
+            SUMA_LH("Adding index column...");
+            if (!SUMA_AddNelCol (nel, SUMA_NODE_INDEX, (void *)ivect, NULL, 1)) {
+               SUMA_SL_Err("Failed in SUMA_AddNelCol");
+               SUMA_RETURN(NOPE);
+            }
+
+            /* Add the label column */
+            SUMA_LH("Adding label column...");
+            if (!SUMA_AddNelCol (nel, SUMA_NODE_ILABEL, (void *)labvect, NULL, 1)) {
+               SUMA_SL_Err("Failed in SUMA_AddNelCol");
+               SUMA_RETURN(NOPE);
+            }
+         }
+         
+         /* What is the target volume for this nel */
+         TargetVol = SUMA_append_replace_string(SO->Group, Plane->name, "-", 0); 
+         NI_set_attribute (nel, "target_volume", TargetVol);
+         free(TargetVol);
+         
+         /* which colormap was used */
+         NI_set_attribute (nel, "color_map", SUMAg_CF->ROI_CM->Name);
+         
+         /* what is the volume parent ? This one will act as a gridparent 
+            for the functional data set*/
+         NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
+         
+         nelv[i] = nel; nel = NULL;
+         
+         /* DO NOT FREE ivect, it is used in sopd */
+         SUMA_free(labvect);
+      }
+      
+   } 
+   
+   if (!dlist_size(ROIPlaneList)) {
+      SUMA_SLP_Err(  "Flow error\n"
+                     "You are not expected\n"
+                     "to land here." );
+      N_NewNode = 0;
+      ivect = NULL; 
+      rvect = NULL;
+      gvect = NULL;
+      bvect = NULL;
+      if (*CreateNel) labvect = NULL;  
    }
+   
       
    SUMA_LH("Destroying list");
    /* destroy plane list */
@@ -841,6 +1043,10 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SetRemixFlag.\n", FuncName);
       SUMA_RETURN(NOPE);
    }   
+   
+   if (*CreateNel) {
+      *nelvp = nelv;
+   }
    
    /* should be cool, now return */   
    SUMA_RETURN(YUP);
@@ -1598,7 +1804,25 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
          sprintf (stmp,"Label: %s\n", SO->Label);
          SS = SUMA_StringAppend (SS,stmp);
       }
-
+      
+      switch (SO->Side) {
+         case SUMA_SIDE_ERROR:
+            SS = SUMA_StringAppend (SS,"Error in side specification\n");
+            break;
+         case SUMA_NO_SIDE:
+            SS = SUMA_StringAppend (SS,"No side specified.\n");
+            break;
+         case SUMA_LEFT:
+            SS = SUMA_StringAppend (SS,"Left hemisphere.\n");
+            break;
+         case SUMA_RIGHT:
+            SS = SUMA_StringAppend (SS,"Right hemisphere.\n");
+            break;
+         default:
+            SS = SUMA_StringAppend (SS,"Chimchunga.\n");
+            break;
+      }
+      
       switch (SO->FileType) {
          case SUMA_SUREFIT:
             sprintf (stmp,"SureFit surface.\n");
@@ -2053,6 +2277,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].VOLREG_APPLIED = NOPE;
       SO[i].SurfCont = SUMA_CreateSurfContStruct();
       SO[i].PolyMode = SRM_ViewerDefault;
+      SO[i].Show = YUP;
+      SO[i].Side = SUMA_NO_SIDE;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */
@@ -2215,6 +2441,7 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING
    D_ROI->StackPos = NULL;
    
    D_ROI->iLabel = ilabel;
+   D_ROI->ColorByLabel = YUP;
    
    ++ROI_index;
    SUMA_RETURN (D_ROI);

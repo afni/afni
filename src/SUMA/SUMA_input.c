@@ -88,6 +88,44 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       
       /* XK_* are found in keysymdef.h */ 
       switch (keysym) { /* keysym */
+         case XK_bracketleft: /* The left bracket */
+            /* toggle showing left hemispheres */
+            {
+               #if 0
+               int Registered_IDs[SUMAg_N_DOv], N_RegisteredSOs, k;
+               SUMA_SurfaceObject *SO = NULL;
+
+                  N_RegisteredSOs = SUMA_RegisteredSOs (sv, SUMAg_DOv, Registered_IDs);
+                  for (k=0; k< N_RegisteredSOs; ++k) {
+                     SO = (SUMA_SurfaceObject *)SUMAg_DOv[Registered_IDs[k]].OP;
+                     if (SO->Side == SUMA_LEFT) SO->Show = !SO->Show;
+                  }
+               #endif
+               sv->ShowLeft = !sv->ShowLeft;
+            }
+            SUMA_UpdateViewerTitle(sv);   
+            SUMA_postRedisplay(w, clientData, callData);
+            break;
+         
+         case XK_bracketright: /* The left bracket */
+            /* toggle showing left hemispheres */
+            {
+               #if 0
+               int Registered_IDs[SUMAg_N_DOv], N_RegisteredSOs, k;
+               SUMA_SurfaceObject *SO = NULL;
+
+                  N_RegisteredSOs = SUMA_RegisteredSOs (sv, SUMAg_DOv, Registered_IDs);
+                  for (k=0; k< N_RegisteredSOs; ++k) {
+                     SO = (SUMA_SurfaceObject *)SUMAg_DOv[Registered_IDs[k]].OP;
+                     if (SO->Side == SUMA_RIGHT) SO->Show = !SO->Show;
+                  }
+               #endif
+               sv->ShowRight = !sv->ShowRight;
+            }
+            SUMA_UpdateViewerTitle(sv);   
+            SUMA_postRedisplay(w, clientData, callData);
+            break;
+                    
          case XK_space:   /* The spacebar. */
             /* toggle between state containing mapping reference of SO in focus and other view */
             {
@@ -176,8 +214,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_SurfaceObject *SO = NULL;
 
                for (ii=0; ii< sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
-                     SO = (SUMA_SurfaceObject*)SUMAg_DOv[sv->ShowDO[ii]].OP;
+                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
+                     SO = (SUMA_SurfaceObject*)SUMAg_DOv[sv->RegisteredDO[ii]].OP;
                      /* remix colors */
                      glar_ColorList = SUMA_GetColorList (sv, SO->idcode_str);
                      if (!glar_ColorList) {
@@ -721,8 +759,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                #if 0
                /** Feb 03/03 No longer in use.*/
                for (ii=0; ii< sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) 
-                     SUMA_Print_Surface_Object((SUMA_SurfaceObject*)SUMAg_DOv[sv->ShowDO[ii]].OP, stdout);
+                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) 
+                     SUMA_Print_Surface_Object((SUMA_SurfaceObject*)SUMAg_DOv[sv->RegisteredDO[ii]].OP, stdout);
                }
                #endif
             }
@@ -1451,7 +1489,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }  
                   
                   
-                  ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
+                  ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
                   if (ii == 0) { /* no surfaces, break */
                      break;
                   }
@@ -1670,7 +1708,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             
             if (SUMAg_CF->ROI_mode && sv->Focus_SO_ID >= 0 && sv->BS) {
                /* ROI drawing mode */
-               ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
+               ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
                if (ii == 0) { /* no surfaces, break */
                   break;
                }
@@ -1788,7 +1826,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    P1f[1] = sv->Pick1[1];
    P1f[2] = sv->Pick1[2];
    
-   N_SOlist = SUMA_ShownSOs(sv, dov, SOlist);
+   N_SOlist = SUMA_VisibleSOs(sv, dov, SOlist);
    imin = -1;
    dmin = 10000000.0;
    for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
@@ -2438,11 +2476,29 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
       case SUMA_BSA_FillArea:
          SUMA_BS_FIRST_SURF_NODE(sv->BS, FirstSurfNode, ft, El);
          fprintf (SUMA_STDERR, "%s: Should be filling from node %d\n", FuncName, FirstSurfNode);
+         
          /* create the mask from ROIs on this surface */
-         ROI_Mask = SUMA_Build_Mask_AllROI (SUMAg_DOv, SUMAg_N_DOv, SO, NULL, &N_ROI_Mask);
+         switch (SUMAg_CF->ROI_FillMode) {
+            case SUMA_ROI_FILL_TO_ALLROI:
+               ROI_Mask = SUMA_Build_Mask_AllROI (SUMAg_DOv, SUMAg_N_DOv, SO, NULL, &N_ROI_Mask);
+               break;
+            case SUMA_ROI_FILL_TO_THISROI:
+               ROI_Mask = (int *)SUMA_calloc (SO->N_Node, sizeof(int));
+               if (!ROI_Mask) {
+                  SUMA_SLP_Crit("Failed to allocate");
+                  SUMA_RETURN(DrawnROI);
+               }
+               SUMA_Build_Mask_DrawnROI (DrawnROI, ROI_Mask);
+               break;
+            default:
+               SUMA_SLP_Err("No such mode.");
+               SUMA_RETURN(DrawnROI);
+               break;
+         }
+               
          /* Now fill it up */
          ROIfill = SUMA_FillToMask (SO, ROI_Mask, FirstSurfNode);
-         if (ROI_Mask) SUMA_free(ROI_Mask);
+         if (ROI_Mask) SUMA_free(ROI_Mask); ROI_Mask = NULL;
          if (!ROIfill) {
             SUMA_SLP_Err("Failed to fill area:\nPerhaps seed on edge\nor nothing to fill.");
             SUMA_RETURN(DrawnROI);
@@ -2507,11 +2563,10 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
    }      
    
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes (SO, SUMAg_DOv, SUMAg_N_DOv)) {
-      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+   if (!SUMA_Paint_SO_ROIplanes_w (SO, SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURN(DrawnROI);
    }
-
    
    SUMA_RETURN(DrawnROI);
 }

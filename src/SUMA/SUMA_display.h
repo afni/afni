@@ -146,6 +146,7 @@ void SUMA_CreateDrawROIWindow(void);
 SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
 SUMA_Boolean SUMA_OpenDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
 void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_Save (Widget w, XtPointer data, XtPointer client_data);
@@ -251,6 +252,9 @@ int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead);
 
 #define SUMA_DrawROI_DrawROIMode_help\
    "Toggles ROI drawing mode"
+
+#define SUMA_DrawROI_AfniLink_help\
+   "Toggles Afni Link for ROI drawing"
 
 #define SUMA_DrawROI_Save_help \
    "Save the Drawn ROI"
