@@ -85,7 +85,7 @@ ENTRY("THD_init_session") ;
       all_anat = ISANAT(dset_arr->ar[0]) ;
       all_func = ISFUNC(dset_arr->ar[0]) ;
 
-      if( !all_anat && !all_func ){
+      if( !all_anat && !all_func ){  /* should never happen! */
          fprintf(stderr,
             "\n*** THD_init_session: %s - illegal dataset types encountered ***\n",
             sessname ) ;
