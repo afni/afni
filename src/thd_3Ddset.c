@@ -32,6 +32,8 @@ ENTRY("THD_open_3D") ;
    ns = NI_stream_open( ppp , "r" ) ; free(ppp) ;
    if( ns == NULL ) RETURN(NULL) ;
 
+STATUS("reading header") ;
+
    NI_read_header_only(1) ;
    nel = NI_read_element(ns,333); NI_stream_close(ns);
    NI_read_header_only(0) ;
@@ -49,13 +51,14 @@ ENTRY("THD_open_3D") ;
      NI_free_element(nel) ; RETURN(NULL) ;
    }
 
+STATUS("checking header") ;
+
    /*-- check column types to make sure they are all numeric --*/
    /*   [AFNI doesn't like String or compound type datasets]   */
 
    for( ii=0 ; ii < nel->vec_num ; ii++ ){
-     if( !NI_IS_NUMERIC_TYPE(nel->vec_typ[ii]) ||
-         nel->vec[ii] == NULL                    ){
 
+     if( !NI_IS_NUMERIC_TYPE(nel->vec_typ[ii]) ){
        fprintf(stderr,"** 3D file %s isn't numeric!\n",pathname) ;
        NI_free_element(nel) ; RETURN(NULL) ;
      }
@@ -63,14 +66,20 @@ ENTRY("THD_open_3D") ;
 
    /*-- now have good data element ==> make a dataset --*/
 
+STATUS("making dataset") ;
+
    dset = EDIT_empty_copy(NULL) ;  /* default dataset */
 
    /* set prefix from input filename */
+
+STATUS("setting prefix") ;
 
    ppp = THD_trailname(pathname,0) ;              /* strip directory */
    NI_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;  /* to make prefix */
 
    /* set grid sizes from element header */
+
+STATUS("setting grid sizes") ;
 
    nxyz.ijk[0] = nel->vec_len ; nxyz.ijk[1] = nxyz.ijk[2] = 1 ;
    if( nel->vec_axis_len != NULL ){
@@ -81,6 +90,8 @@ ENTRY("THD_open_3D") ;
 
    /* set grid spacings */
 
+STATUS("setting grid spacings") ;
+
    dxyz.xyz[0] = dxyz.xyz[1] = dxyz.xyz[2] = 1.0 ;
    if( nel->vec_axis_delta != NULL ){
      if( nel->vec_rank >= 1) dxyz.xyz[0] = nel->vec_axis_delta[0] ;
@@ -90,6 +101,8 @@ ENTRY("THD_open_3D") ;
 
    /* set grid origins */
 
+STATUS("setting grid origins") ;
+
    orgxyz.xyz[0] = orgxyz.xyz[1] = orgxyz.xyz[2] = 0.0 ;
    if( nel->vec_axis_origin != NULL ){
      if( nel->vec_rank >= 1) orgxyz.xyz[0] = nel->vec_axis_origin[0] ;
@@ -98,6 +111,8 @@ ENTRY("THD_open_3D") ;
    }
 
    /* set grid orientations (default is RAI) */
+
+STATUS("setting grid orientation") ;
 
    { char orcx='R', orcy='A', orcz='I' ;
      int oxx,oyy,ozz ;
@@ -120,6 +135,8 @@ ENTRY("THD_open_3D") ;
 
    /* set idcode from element, or take random default one */
 
+STATUS("setting idcode") ;
+
    ppp = NI_get_attribute( nel , "ni_idcode" ) ;
    if( ppp != NULL && *ppp != '\0' ){
      NI_strncpy( dset->idcode.str , ppp , MCW_IDSIZE ) ;
@@ -131,6 +148,8 @@ ENTRY("THD_open_3D") ;
    }
 
    /* now modify the default dataset */
+
+STATUS("Editing dataset") ;
 
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
@@ -147,6 +166,8 @@ ENTRY("THD_open_3D") ;
 
    dset->dblk->diskptr->storage_mode = STORAGE_BY_3D ;
    NI_strncpy( dset->dblk->diskptr->brick_name , pathname , THD_MAX_NAME ) ;
+
+STATUS("checking for statistics") ;
 
    /*-- see if we have any statistics bricks --*/
 
@@ -177,6 +198,8 @@ ENTRY("THD_open_3D") ;
    }
 
    /*-- purge the NIML data element and return the new dataset --*/
+
+STATUS("freeing element") ;
 
    NI_free_element( nel ) ;
    RETURN(dset) ;
