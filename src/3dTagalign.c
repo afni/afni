@@ -19,7 +19,7 @@ int main( int argc , char * argv[] )
 {
    THD_dfvec3 *xx , *yy , dv ;
    int nvec , ii,jj, iarg ;
-   THD_dvecmat rt ;
+   THD_dvecmat rt , rtinv ;
    THD_dmat33  pp,ppt , rr ;
    THD_dfvec3  tt ;
 
@@ -86,6 +86,9 @@ int main( int argc , char * argv[] )
              "                   rotation matrix (3 parameters).  The '-affine'\n"
              "                   option says to fit [R] as a general matrix\n"
              "                   (9 parameters).\n"
+             "           N.B.: An affine transformation can rotate, rescale, and\n"
+             "                   shear the volume.  Be sure to look at the dataset\n"
+             "                   before and after to make sure things are OK.\n"
              "\n"
              " -prefix pp    = Use 'pp' as the prefix for the output dataset.\n"
              "                   [default = 'tagalign']\n"
@@ -95,10 +98,12 @@ int main( int argc , char * argv[] )
              "                   '-matvec' is used, the mfile will be written.\n"
              "\n"
              "Nota Bene:\n"
-             "  The output dataset is rotated/shifted using the equivalent of the\n"
-             "  options '-clipit -Fourier' for 3drotate.\n"
+             "* The output dataset is rotated/shifted using the equivalent of the\n"
+             "   options '-clipit -heptic' for 3drotate.\n"
+             "* If -3dWarp is on, then cubic interpolation is used.\n"
              "\n"
-             "Author: RWCox - 16 Jul 2000 (etc.)\n"
+             "Author: RWCox - 16 Jul 2000\n"
+             "        RWCox - 21 Apr 2003: added -3dWarp and -affine stuff\n"
             ) ;
       exit(0) ;
    }
@@ -291,13 +296,14 @@ int main( int argc , char * argv[] )
    dsum = sqrt(dsum/nvec) ;
    fprintf(stderr,"++ RMS distance between tags before = %.2f mm\n" , dsum ) ;
 
-   /*-- compute best rotation + translation --*/
+   /*-- compute best transformation from mset to dset coords --*/
 
-   if( !use_affine ){
+   if( !use_affine )
      rt = DLSQ_rot_trans( nvec , yy , xx , ww ) ;  /* in thd_rot3d.c */
-   } else {
-     rt = DLSQ_affine   ( nvec , xx , yy ) ;       /* 21 Apr 2003 */
-   }
+   else
+     rt = DLSQ_affine   ( nvec , yy , xx ) ;       /* 21 Apr 2003 */
+
+   rtinv = INV_DVECMAT(rt) ;
 
    /*-- check for floating point legality --*/
 
@@ -448,7 +454,7 @@ int main( int argc , char * argv[] )
      nval = DSET_NVALS(dset) ;
      fvol = (float *) malloc( sizeof(float) * nvox ) ;
 
-     THD_rota_method( MRI_FOURIER ) ;
+     THD_rota_method( MRI_HEPTIC ) ;
      clipit = 1 ;
 
      for( ival=0 ; ival < nval ; ival++ ){
@@ -520,8 +526,15 @@ int main( int argc , char * argv[] )
      THD_3dim_dataset *oset ;
      THD_vecmat tran ;
 
+#if 0
      DFVEC3_TO_FVEC3( rt.vv , tran.vv ) ;
      DMAT_TO_MAT    ( rt.mm , tran.mm ) ;
+#else
+     DFVEC3_TO_FVEC3( rtinv.vv , tran.vv ) ;
+     DMAT_TO_MAT    ( rtinv.mm , tran.mm ) ;
+#endif
+
+     mri_warp3D_method( MRI_CUBIC ) ;
      oset = THD_warp3D_affine( dset, tran, mset, prefix, 0, WARP3D_NEWDSET ) ;
      if( oset == NULL ){
        fprintf(stderr,"** ERROR: THD_warp3D() fails!\n"); exit(1);
@@ -536,7 +549,38 @@ int main( int argc , char * argv[] )
      UNLOAD_DFVEC3(rt.vv,matar[3],matar[7],matar[11]) ;
      THD_set_atr( oset->dblk, "TAGALIGN_MATVEC", ATR_FLOAT_TYPE, 12, matar ) ;
 
-   }
+     /*-- if desired, keep old tagset --*/
+
+     if( keeptags ){
+        THD_dfvec3 rv ;
+
+        oset->tagset = myXtNew(THD_usertaglist) ;
+        *(oset->tagset) = *(dset->tagset) ;
+
+        dsum = 0.0 ;
+        for( jj=ii=0 ; ii < TAGLIST_COUNT(oset->tagset) ; ii++ ){
+          if( TAG_SET(TAGLIST_SUBTAG(oset->tagset,ii)) ){
+            rv = DMATVEC( rt.mm , yy[jj] ) ;
+            rv = ADD_DFVEC3( rt.vv , rv ) ;
+
+            dv    = SUB_DFVEC3( xx[jj] , rv ) ;
+            dsum += dv.xyz[0]*dv.xyz[0] + dv.xyz[1]*dv.xyz[1]
+                                        + dv.xyz[2]*dv.xyz[2] ;
+
+            UNLOAD_DFVEC3( rv , TAG_X( TAGLIST_SUBTAG(oset->tagset,ii) ) ,
+                                TAG_Y( TAGLIST_SUBTAG(oset->tagset,ii) ) ,
+                                TAG_Z( TAGLIST_SUBTAG(oset->tagset,ii) )  ) ;
+
+            jj++ ;
+          }
+        }
+        dsum = sqrt(dsum/nvec) ;
+        fprintf(stderr,"++ RMS distance between tags after  = %.2f mm\n" , dsum ) ;
+     }
+
+     DSET_write(oset) ;
+
+   } /* end of 3dWarp-like work */
 
    exit(0) ;
 }
