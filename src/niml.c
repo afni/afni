@@ -390,8 +390,8 @@ static char * quotize_string( char *str )
 
          case '\'': memcpy(out+jj,"&apos;",6) ; jj+=6 ; break ;
 
-         case CR:   memcpy(out+jj,"&#x0d;",5) ; jj+=6 ; break ;  /* 15 Oct 2002 */
-         case LF:   memcpy(out+jj,"&#x0a;",5) ; jj+=6 ; break ;
+         case CR:   memcpy(out+jj,"&#x0d;",6) ; jj+=6 ; break ;  /* 15 Oct 2002 */
+         case LF:   memcpy(out+jj,"&#x0a;",6) ; jj+=6 ; break ;
       }
    }
    out[jj++] = '"'  ;  /* closing quote mark */
@@ -6278,7 +6278,7 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
 /*! Send a string (without the NUL byte) down the NI_stream. [15 Oct 2002]
 ------------------------------------------------------------------------------*/
 
-INLINE int NI_stream_writestring( NI_stream_type *ns , char *str )
+static int NI_stream_writestring( NI_stream_type *ns , char *str )
 {
    if( str == NULL ) return -1 ;
    return NI_stream_write( ns , str , strlen(str) ) ;
@@ -7693,10 +7693,10 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       if( jj < 0 ) return -1 ;
    }
 
-   if( ns->type == NI_STRING_TYPE )      /* string output must be in text mode */
+   if( ns->type == NI_STRING_TYPE )      /* string output only in text mode */
       tmode = NI_TEXT_MODE ;
 
-   /*------------------ write a group element ------------------*/
+   /*-- 15 Oct 2002: write attributes with lots of space, or little --*/
 
    att_prefix = (att_mode == NI_ATTMODE_SPACED) ? "\n   "
                                                 : " "    ;
@@ -7707,12 +7707,14 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
    att_trail  = (att_mode == NI_ATTMODE_SPACED) ? "\n"
                                                 : " "    ;
 
+   /*------------------ write a group element ------------------*/
+
    if( tt == NI_GROUP_TYPE ){
       NI_group *ngr = (NI_group *) nini ;
 
       /*- group header -*/
 
-      nout = NI_stream_write( ns , "<ni_group" , 9 ) ;
+      nout = NI_stream_writestring( ns , "<ni_group" ) ;
       ADDOUT ;
 
       /*- attributes -*/
@@ -7738,7 +7740,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          ADDOUT ;
       }
 
-      /*- close header -*/
+      /*- close group header -*/
 
       nout = NI_stream_writestring( ns , att_trail ) ;
       ADDOUT ;
@@ -7890,47 +7892,47 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 #endif
          }
 
-         /* ni_delta ??? */
+         /* ni_delta */
 
          if( nel->vec_axis_delta != NULL ){
-            strcpy(att," ni_delta=") ;
+            sprintf(att,"%sni_delta%s",att_prefix,att_equals) ;
             qtt = quotize_float_vector( nel->vec_rank ,
                                         nel->vec_axis_delta , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_write( ns , att , strlen(att) ) ;
+            nout = NI_stream_writestring( ns , att ) ;
             ADDOUT ;
          }
 
          /* ni_origin */
 
          if( nel->vec_axis_origin != NULL ){
-            strcpy(att," ni_origin=") ;
+            sprintf(att,"%sni_origin%s",att_prefix,att_equals) ;
             qtt = quotize_float_vector( nel->vec_rank ,
                                         nel->vec_axis_origin , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_write( ns , att , strlen(att) ) ;
+            nout = NI_stream_writestring( ns , att ) ;
             ADDOUT ;
          }
 
          /* ni_units */
 
          if( nel->vec_axis_unit != NULL ){
-            strcpy(att," ni_units=") ;
+            sprintf(att,"%sni_units%s",att_prefix,att_equals) ;
             qtt = quotize_string_vector( nel->vec_rank ,
                                          nel->vec_axis_unit , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_write( ns , att , strlen(att) ) ;
+            nout = NI_stream_writestring( ns , att ) ;
             ADDOUT ;
          }
 
          /* ni_axes */
 
          if( nel->vec_axis_label != NULL ){
-            strcpy(att," ni_axes=") ;
+            sprintf(att,"%sni_axes%s",att_prefix,att_equals) ;
             qtt = quotize_string_vector( nel->vec_rank ,
                                          nel->vec_axis_label , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_write( ns , att , strlen(att) ) ;
+            nout = NI_stream_writestring( ns , att ) ;
             ADDOUT ;
          }
 
@@ -7956,7 +7958,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
          /* do the work */
 
-         strcpy(att," ") ;
+         strcpy(att,att_prefix) ;
 
          if( NI_is_name(nel->attr_lhs[ii]) ){
            strcat(att,nel->attr_lhs[ii]) ;
@@ -7967,11 +7969,11 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
          jj = NI_strlen( nel->attr_rhs[ii] ) ;
          if( jj > 0 ){
-            strcat(att,"=") ;
+            strcat(att,att_equals) ;
             qtt = quotize_string( nel->attr_rhs[ii] ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
          }
-         nout = NI_stream_write( ns , att , strlen(att) ) ;
+         nout = NI_stream_writestring( ns , att ) ;
          ADDOUT ;
       }
 
@@ -7987,7 +7989,9 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
           nel->vec_typ == NULL ||
           nel->vec     == NULL   ){
 
-        nout = NI_stream_write( ns , "/>\n" , 3 ) ;
+        nout = NI_stream_writestring( ns , att_trail ) ;
+        ADDOUT ;
+        nout = NI_stream_writestring( ns , "/>\n" ) ;
         ADDOUT ;
         return ntot ;                 /* done with empty element */
       }
@@ -8019,7 +8023,9 @@ NI_dpr("NI_write_element: nwbuf=%d\n",nwbuf) ;
          break ;
       }
 
-      nout = NI_stream_write( ns , btt , strlen(btt) ) ;
+      nout = NI_stream_writestring( ns , att_trail ) ;
+      ADDOUT ;
+      nout = NI_stream_writestring( ns , btt ) ;
       ADDOUT ;
 
       /* allocate output buffer */
@@ -8248,7 +8254,7 @@ NI_dpr(" ! wbuf=%s[%d] tmode=%d\n",wbuf,strlen(wbuf),tmode) ;
 #ifdef NIML_DEBUG
 NI_dpr("  and writing it [%d]\n",strlen(wbuf) ) ;
 #endif
-            nout = NI_stream_write( ns , wbuf , strlen(wbuf) ) ;
+            nout = NI_stream_writestring( ns , wbuf ) ;
             ADDOUT ;
           break ;
 
@@ -8321,17 +8327,22 @@ NI_dpr("  and writing it [%d]\n",strlen(wbuf) ) ;
 
       /*- write element trailer -*/
 
-      nout = NI_stream_write( ns , " </" , 3 ) ;
+#if 0
+      nout = NI_stream_writestring( ns , att_trail ) ;
       ADDOUT ;
-      nout = NI_stream_write( ns , nel->name , strlen(nel->name) ) ;
+#endif
+      nout = NI_stream_writestring( ns , "</" ) ;
       ADDOUT ;
-      nout = NI_stream_write( ns , ">\n\n" , 3 ) ;
+      nout = NI_stream_writestring( ns , nel->name ) ;
+      ADDOUT ;
+      nout = NI_stream_writestring( ns , ">\n\n" ) ;
       ADDOUT ;
 
       /* 06 Mar 2002: hack hack hack */
       /* 11 Jun 2002: more hack hack hack */
+      /* 15 Oct 2002: un-hack hack hack */
 
-#define USE_MINOUT
+#undef  USE_MINOUT
 #ifdef  USE_MINOUT
       if( ns->type == NI_TCP_TYPE ){
         char *eee = getenv("NIML_TCP_MINOUT") ;

@@ -7,6 +7,7 @@ void NIML_to_stderr( void *nini )
    NI_stream ns_err ;
    ns_err = NI_stream_open( "fd:2" , "w" ) ;
    if( ns_err != NULL ){
+     NI_set_attribute_mode( NI_ATTMODE_SPACED ) ;
      NI_write_element( ns_err , nini , NI_TEXT_MODE ) ;
      NI_stream_close( ns_err ) ;
    }
@@ -24,7 +25,7 @@ int main( int argc , char *argv[] )
       fprintf(stderr,"Usage: niccc streamspec\n");exit(0);
    }
 
-   ns = NI_stream_open( argv[1], "w" ) ;
+   ns = NI_stream_open( argv[1], "r" ) ;
    if( ns == NULL ){
       fprintf(stderr,"*** niccc: NI_stream_open fails\n") ; exit(1) ;
    }
