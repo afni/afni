@@ -449,7 +449,7 @@ if (NF == 4),
 	       fprintf(2,'Halted: Ctrl+c to exit'); pause;	
 	 end
 %		end
-	 LC.t3(i).value = Contr.ord3.cnt(i).vec * y0;   % intensity for this 2nd order contrast
+	 LC.t3(i).value = Contr.ord3.cnt(i).vec * y0;   % intensity for this 3rd order contrast
 	 tmp = what*Contr.ord3.cnt(i).scalar;
 	 if (tmp > 0), LC.t3(i).t = LC.t3(i).value/sqrt(tmp); end
       end

@@ -129,8 +129,9 @@ while flg == 0,
 	if (unbalanced.yes == 1),	
       fprintf('\nTwo unbalanced designs are currently allowed: When random factor (subject) is nested within another factor A,');
    	fprintf('\neach level of factor A contains a unique and unequal number of subjects - ')
-	   fprintf('\n(1) 3-way ANOVA type 3: BXC(A)');
-	   fprintf('\n(2) 4-way ANOVA type 3: BXCXD(A)')
+		fprintf('\n(1) 3-way ANOVA type 1: AXBXC');
+	   fprintf('\n(2) 3-way ANOVA type 3: BXC(A)');
+	   fprintf('\n(3) 4-way ANOVA type 3: BXCXD(A)')
 	   if (input('\nDoes your unbalanced design belong to either of the above types? (1 - Yes; 0 - No) ') == 0);
 		   while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
 		end	
@@ -156,7 +157,26 @@ end
 flg = 0;
 ntot = 1;
 
-if (unbalanced.yes == 1),    % Try 4-way design 3 first
+if (unbalanced.yes == 1),    
+
+if (NF == 3 & dsgn == 1),  % Basically for 3-way ANCOVA: This loop is the same as balanced. Maybe also for 4-way ANCOVA?
+   for (i=1:1:NF),
+	   fprintf('\nLabel for No. %i ', i);
+		FL(i).expr = input('factor: ', 's');     % Factor Label i
+      fprintf(2,'How many levels does factor %c (%s) ', 64+i, FL(i).expr);
+	   FL(i).N_level = input('have? ');
+	   if (isnumeric(FL(i).N_level) == 0 | isempty(FL(i).N_level)),
+	      flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
+	   else flg = 1; end
+	   for (j=1:1:FL(i).N_level),
+	      fprintf('Label for No. %i level of factor %c (%s)', j, 64+i, FL(i).expr);
+		   FL(i).level(j).expr = input(' is: ', 's');
+	   end
+      sz(i) = FL(i).N_level;    % number of levels of factor i
+      ntot = ntot * FL(i).N_level;  %total number of combinations
+   end
+end
+
 
 if (((NF == 3 | NF == 4) & dsgn == 3)),	
 %   if (unbalanced.type == 1),
@@ -218,10 +238,12 @@ end
 
 end  % if (unbalanced)
 
-fprintf(2,'\nEnter the number of observations per cell (treatment or factor level combination)');
-FL(NF+1).N_level =  input(': ');
-ntot = ntot * FL(NF+1).N_level;    %total number of factor combinations including repeats
-sz(NF+1) = FL(NF+1).N_level;   
+if ~(NF == 3 & dsgn == 1),
+fprintf(2,'\nEnter the sample size (number of observations) per cell');
+FL(NF+1).N_level =  input(': ');  % Should it be changed to a different name instead of FL???
+ntot = ntot * FL(NF+1).N_level;    % total number of factor combinations including repeats
+sz(NF+1) = FL(NF+1).N_level; 
+end  
 
 % Running ANOCVA?
 flg = 0;
@@ -254,7 +276,7 @@ if (cov.do),
       flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', cov.FN);
    else flg = 1; 
 	   [cov.vec, count] = fscanf(fid0, '%f');
-	   if (count ~= ntot), % Check length of the 1D file
+	   if (count ~= ntot & ~(NF == 3 & dsgn == 1)), % Check length of the 1D file
 	      fprintf(2, '\nError: The column length of the covariate has to equal to the total number of input files!\n'); 
 			fprintf(2,'Halted: Ctrl+c to exit'); pause;
 	   end
@@ -273,7 +295,7 @@ end
 %end
 
 fprintf('\nAll input files are supposed to contain only one subbrik.\n');
-file_format = 1;  
+file_format = 1;  % Ignore that file_format = 0 now since it leads to too much trouble
 
 if (file_format == 0),
    flg = 0;
@@ -288,7 +310,7 @@ if (file_format == 0),
 	end	
 end
 
-if (file_format == 1),
+if (file_format == 1 & ~(NF == 3 & dsgn == 1)),
    fprintf(2,'\nThere should be totally %i input files. \n', ntot);	
 	corr = input('Correct? (1 - Yes; 0 - No) ');
 	if (corr == 0),
@@ -303,6 +325,56 @@ GP = cell(NF, ntot);    %creat a cell array to reflect the structure of all the 
 if (file_format == 1),
    
    if (unbalanced.yes == 1),    % Try 4-way design 3 first
+	
+	if ((NF == 3 & dsgn == 1)),  % Meant for 3-way ANCOVA with unequal sample size
+	   FI = 0; % File index
+		flg = 0;
+		ntot = input('Total number of input files: ');
+		if (isnumeric(ntot) == 0 | isempty(ntot)),
+ 	      flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
+ 	   else flg = 1;
+      end
+		for (ii = 1:1:FL(1).N_level),		   
+   	   for (jj = 1:1:FL(2).N_level),		      
+   	      for (kk = 1:1:FL(3).N_level),
+				   fprintf (2,'\nFor factor %c (%s) at level %i (%s),', 64+1, FL(1).expr, ii, FL(1).level(ii).expr);
+					fprintf (2,'\n    factor %c (%s) at level %i (%s),', 64+2, FL(2).expr, jj, FL(2).level(jj).expr);
+					fprintf (2,'\n    factor %c (%s) at level %i (%s),', 64+3, FL(3).expr, kk, FL(3).level(kk).expr);
+					sz = input('\nsample size is: ');
+					fprintf (2,'\nProvide those %i input files:\n', sz);					
+					for (rr = 1:1:sz),
+						FI = FI + 1;
+						GP(1, FI) = {FL(1).level(ii).expr};
+						GP(2, FI) = {FL(2).level(jj).expr};
+						GP(3, FI) = {FL(3).level(kk).expr};
+						
+						flg = 0;	
+						while flg == 0,
+						   fprintf (2,'No. %i file ', rr);
+							file(FI).nm = input('is: ', 's');
+							fid = fopen (file(FI).nm,'r');	
+							if (fid == -1), flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(FI).nm);
+							else flg = 1; fclose (fid);	end
+							if isempty(strfind(file(FI).nm, 'tlrc')) == 0
+					         format = 'tlrc';
+					      elseif isempty(strfind(file(FI).nm, 'orig')) == 0
+					         format = 'orig';
+					      else 	
+					         while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
+						      fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					      end
+						end
+						
+					end % for (rr = 1:1:sz)
+				end % for (kk = 1:1:FL(3).N_level)
+			end % for (jj = 1:1:FL(2).N_level)
+		end % for (ii = 1:1:FL(1).N_level)
+		if (ntot == FI), fprintf (2,'\n%i input files have been read in. \n', FI);
+		else fprintf(2,'Error: Total number of files do not match up. \n'); 
+		while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+		end
+		
+   end % if ((NF == 3 & dsgn == 1))							
 	
 	if ((NF == 3 & dsgn == 3)),	
       acc = 0;
@@ -326,10 +398,18 @@ if (file_format == 1),
                end
 	            fprintf('\tat repeat %i \n', r);
    	         file(FI).nm = input('is: ', 's');	
-	            fid = fopen (file(i).nm,'r');	
+	            fid = fopen (file(FI).nm,'r');	
                if (fid == -1),
-   	            flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(i).nm);
+   	            flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(FI).nm);
                else flg = 1; fclose (fid);	end
+					if isempty(strfind(file(FI).nm, 'tlrc')) == 0
+					   format = 'tlrc';
+					elseif isempty(strfind(file(FI).nm, 'orig')) == 0
+					   format = 'orig';
+					else 	
+					   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
+						fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					end					
             end
 				end % for (r = 1:1:FL(NF+1).N_level),	
  			
@@ -369,6 +449,15 @@ if (file_format == 1),
                if (fid == -1),
    	            flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(i).nm);
                else flg = 1; fclose (fid);	end
+					
+					if isempty(strfind(file(FI).nm, 'tlrc')) == 0
+					   format = 'tlrc';
+					elseif isempty(strfind(file(FI).nm, 'orig')) == 0
+					   format = 'orig';
+					else 	
+					   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
+						fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					end					
             end
 				end % for (r = 1:1:FL(NF+1).N_level),	
  			
@@ -407,6 +496,15 @@ if (file_format == 1),
          if (fid == -1),
    	      flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(i).nm);
          else flg = 1; fclose (fid);	end
+			
+			if isempty(strfind(file(i).nm, 'tlrc')) == 0
+			   format = 'tlrc';
+			elseif isempty(strfind(file(i).nm, 'orig')) == 0
+			   format = 'orig';
+			else 	
+			while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
+				fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+			end					
       end	
    end
 	end % if (unbalanced.yes == 1),
@@ -539,7 +637,7 @@ end	% if (file_format == 0),
 flg = 0;
 while flg == 0,
    OutFN = input('\nOutput file name (in bucket format): ', 's');
-   OutFull = sprintf('%s+tlrc.HEAD', OutFN);
+   OutFull = sprintf('%s+%s.HEAD', OutFN, format);
    fid2 = fopen(OutFull,'r');
    if (fid2 ~= -1),
       flg = 0; fprintf(2,'Error: File %s exists already. Please give another name. \n', OutFN);
@@ -778,14 +876,14 @@ cov.marker = 10000;  % temporary solution when no covariate exists in PreProc.m
 if (cov.do),
    switch NF
 	   case 1,
-		   NF = 2;
+		   NF = 2;   % 1-ay ANCOVA
 			dsgn = 1;	
 		case 2,
-		   NF = 3;
+		   NF = 3;   % 2-ay ANCOVA
 			if (dsgn == 1), dsgn = 1; end
 			if (dsgn == 3), dsgn = 2; end
 		case 3,
-		   NF = 4;
+		   NF = 4;   % 3-ay ANCOVA
 			if (dsgn == 1), dsgn = 1; end
 			if (dsgn == 2), dsgn = 2; end
 			if (dsgn == 3), dsgn = 3; end			
@@ -794,7 +892,7 @@ end
 
 for (i = 1:1:NF),
    if (i == NF & cov.do),
-	   group(NF) = {cov.vec'};
+	   group(NF) = {cov.vec'};    % Convert the cloumn into one row
       varnames(NF) = {cov.label};
    else
       group(i) = {GP(i,:)};
@@ -949,7 +1047,7 @@ t0 = clock;
 [err, FileInfo] = BrikInfo(file(1).nm); 
 slices = FileInfo.DATASET_DIMENSIONS(3);    % Get the number of slices along Z axis from file header
 
-fprintf(1,'\nTotal slices along Z axis: %i.', slices);
+fprintf(1,'\nTotal slices along Z axis: %i', slices);
 fprintf(1,'\nRunning analysis on slice:\n');
 
 for (sn = 1:1:slices),
@@ -1208,7 +1306,7 @@ for (sn = 1:1:slices),
    Opt.Prefix = sprintf('%s', OutFN);
    Opt.NoCheck = 0;
    Opt.Scale = 1;
-   Opt.View = '+tlrc';
+   Opt.View = sprintf('+%s', format);
 
    Info.TYPESTRING = '3DIM_HEAD_FUNC'; 
    %Info.DATASET_RANK(2) = 2*N_Brik;    % Number of subbriks

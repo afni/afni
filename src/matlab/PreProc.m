@@ -69,18 +69,26 @@ for j=1:ng   % for each factor
    nlevels = size(gnj,1);     % levels for this factor
    dfvar(j) = nlevels - 1;    % D. F. for this factor
 
-   if (unbalanced.yes == 0),	
-   if (cov.do & j==cov.marker)        
-	   gdum{j} = gj;
-      dfvar(j) = 1;           % D. F. = 1
-      vconstr{j} = zeros(0,1);
-%     vmean{j} = 1;		
-   else
-      gdum{j} = idummy(gij, 3);
-      vconstr{j} = idummy(1:nlevels)';
-%     vmean{j} = ones(1,nlevels) / nlevels;  % array (1Xnlevels) of one ones, but vmean is never used in the code!!!!!!!!!1
-	end
-	else gdum{j} = idummy(gij, 3);  % Unbalanced designs	
+   if (unbalanced.yes == 0),	% balanced
+      if (cov.do & j==cov.marker)        
+	      gdum{j} = gj;
+         dfvar(j) = 1;           % D. F. = 1
+         vconstr{j} = zeros(0,1);
+%        vmean{j} = 1;		
+      else
+         gdum{j} = idummy(gij, 3);
+         vconstr{j} = idummy(1:nlevels)';
+%        vmean{j} = ones(1,nlevels) / nlevels;  % array (1Xnlevels) of one ones, but vmean is never used in the code!!!!!!!!!1
+	   end
+	else % Unbalanced designs	
+	   if (cov.do & j==cov.marker)        
+	      gdum{j} = gj;
+         dfvar(j) = 1;           % D. F. = 1
+         vconstr{j} = zeros(0,1);
+%        vmean{j} = 1;		
+      else
+		   gdum{j} = idummy(gij, 3);
+		end	  
 	end % if (unbalanced.yes == 0): Only for balanced designs
 		
 end
@@ -335,15 +343,15 @@ if (Contr.do == 1),
 
    % for every design
    if (Contr.ord1.tot > 0),		% 1st order contrasts   
-      [err, Contr] = ContrVec(1, n, NF, dmat, Contr, FL, num_col);
+      [err, Contr] = ContrVec(1, n, NF, group, dmat, Contr, FL, num_col);
    end   % if (Contr1.tot > 0)
 
    if (NF > 1 & Contr.ord2.tot > 0),  % 2nd order contrasts   
-      [err, Contr] = ContrVec(2, n, NF, dmat, Contr, FL, num_col);
+      [err, Contr] = ContrVec(2, n, NF, group, dmat, Contr, FL, num_col);
    end   % if (Contr2.tot > 0)
 
    if (NF > 2 & Contr.ord3.tot > 0),  % 3rd order contrasts   
-      [err, Contr] = ContrVec(3, n, NF, dmat, Contr, FL, num_col);
+      [err, Contr] = ContrVec(3, n, NF, group, dmat, Contr, FL, num_col);
    end   % if (Contr3.tot > 0)
 
 end % if (Contr.do == 1)
