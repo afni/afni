@@ -134,7 +134,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.523"
+#define VERSION "2.52e"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
