@@ -19,7 +19,7 @@ ENTRY("THD_automask") ;
 
    /* median at each voxel */
 
-   medim    = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL);
+   medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL);
 
    /* clip value to excise small stuff */
 
@@ -27,11 +27,11 @@ ENTRY("THD_automask") ;
 
    /* create mask of values above clip value */
 
-   nvox     = medim->nvox ;
-   mar      = MRI_FLOAT_PTR(medim) ;
-   mmm      = (byte *) calloc( sizeof(byte)*nvox , 1 ) ;
+   nvox = medim->nvox ;
+   mar  = MRI_FLOAT_PTR(medim) ;
+   mmm  = (byte *) calloc( sizeof(byte)*nvox , 1 ) ;
    for( nmm=ii=0 ; ii < nvox ; ii++ )
-      if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
+     if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
 
    mri_free(medim) ;
    if( nmm == 0 ) RETURN(mmm) ;  /* should not happen */
@@ -61,7 +61,8 @@ ENTRY("THD_automask") ;
 
    DESTROY_CLARR(clar) ;
 
-   /* 18 Apr 2002: now erode the resulting volume */
+   /* 18 Apr 2002: now erode the resulting volume
+                   (to break off any thinly attached pieces) */
 
    MCW_erode_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
                        MRI_byte,mmm , 1.42 , 0.90 , 1 ) ;
@@ -73,13 +74,15 @@ ENTRY("THD_automask") ;
 
    if( clar == NULL ) RETURN(mmm) ; /* should not happen */
 
-   /* find largest cluster */
+   /* find largest cluster (again) */
 
    for( nmm=iclu=kclu=0 ; iclu < clar->num_clu ; iclu++ ){
      if( clar->clar[iclu]->num_pt > nmm ){
        nmm = clar->clar[iclu]->num_pt; kclu = iclu;
      }
    }
+
+   /* put back into volume (again) */
 
    MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
 
@@ -118,9 +121,13 @@ ENTRY("THD_automask") ;
      }
    }
 
-   /* put this cluster back into the mask volume (yet again) */
+   /* put all clusters at least 20% of the largest one back in */
 
-   MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
+   nmm = rint(0.2*nmm) ;
+   for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
+     if( clar->clar[iclu]->num_pt >= nmm )
+       MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[iclu] ) ;
+   }
 
    DESTROY_CLARR(clar) ;
 

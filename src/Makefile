@@ -28,7 +28,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = /home/ziad/abin
+INSTALLDIR = $(HOME)/abin
 LIBDIR = $(INSTALLDIR)
 
 
