@@ -6,8 +6,8 @@ CCVOL  = cc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
 CCFAST = $(CC)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I.
-LFLAGS = -s -L.
+IFLAGS = -I. -I/usr/Motif-2.1/include
+LFLAGS = -s -L. -L/usr/Motif-2.1/lib
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared
