@@ -57,3 +57,10 @@
   * modified thd_opendset.c so that HEAD/BRIK are okay in directory names
     (see 'fname' and 'offset' in THD_open_one_dataset())
 
+26 September 2002:
+  * modified plug_crender.c
+      - calculate and draw crosshairs directly
+      - added debugging interface (access via 'dh' in opacity box)
+  * modified cox_render.[ch] - pass rotation matrix pointer to CREN_render()
+  * modified testcox.c - pass NULL to CREN_render() for rotation matrix pointer
+
