@@ -27,6 +27,7 @@ static THD_3dim_dataset * VL_dset = NULL ;
 static char VL_prefix[256] = "volreg" ;
 static int  VL_verbose     = 0 ;
 static char VL_dfile[256]  = "\0" ;
+static char VL_1Dfile[256] = "\0" ;  /* 14 Apr 2000 */
 
 static int VL_maxite = 9 ;
 static float VL_dxy  = 0.05 ;  /* voxels */
@@ -370,7 +371,7 @@ int main( int argc , char *argv[] )
       FILE * fp ;
 
       if( THD_is_file(VL_dfile) )
-         fprintf(stderr,"** Warning: will overwrite file %s\n",VL_dfile) ;
+         fprintf(stderr,"** Warning: overwriting file %s\n",VL_dfile) ;
 
       fp = fopen( VL_dfile , "w" ) ;
       for( kim=0 ; kim < imcount ; kim++ )
@@ -378,6 +379,20 @@ int main( int argc , char *argv[] )
                  kim , roll[kim], pitch[kim], yaw[kim],
                        dx[kim], dy[kim], dz[kim],
                        rmsold[kim] , rmsnew[kim]  ) ;
+      fclose(fp) ;
+   }
+
+   if( VL_1Dfile[0] != '\0' ){  /* 14 Apr 2000 */
+      FILE * fp ;
+
+      if( THD_is_file(VL_1Dfile) )
+         fprintf(stderr,"** Warning: overwriting file %s\n",VL_1Dfile) ;
+
+      fp = fopen( VL_1Dfile , "w" ) ;
+      for( kim=0 ; kim < imcount ; kim++ )
+         fprintf(fp , "%7.3f %7.3f %7.3f %7.3f %7.3f %7.3f\n" ,
+                 roll[kim], pitch[kim], yaw[kim],
+                 dx[kim]  , dy[kim]   , dz[kim]  ) ;
       fclose(fp) ;
    }
 
@@ -435,7 +450,17 @@ void VL_syntax(void)
     "       N.B.: The motion parameters are those needed to bring the sub-brick\n"
     "             back into alignment with the base.  In 3drotate, it is as if\n"
     "             the following options were applied to each input sub-brick:\n"
-    "                -rotate <roll>I <pitch>R <yaw>A  -ashift <dS>S <dL]>L <dP]>P\n"
+    "              -rotate <roll>I <pitch>R <yaw>A  -ashift <dS>S <dL]>L <dP]>P\n"
+    "\n"
+    "  -1Dfile ename   Save the motion parameters ONLY in file 'ename'.\n"
+    "                    The output is in 6 ASCII formatted columns:\n"
+    "\n"
+    "                    roll pitch yaw dS  dL  dP\n"
+    "\n"
+    "                  This file can be used in FIM as an 'ort', to detrend\n"
+    "                  the data against correlation with the movements.\n"
+    "                  This type of analysis can be useful in removing\n"
+    "                  errors made in the interpolation.\n"
     "\n"
     " Algorithm: Iterated linearized weighted least squares to make each\n"
     "              sub-brick as like as possible to the base brick.\n"
@@ -588,6 +613,13 @@ void VL_command_line(void)
 
       if( strncmp(Argv[Iarg],"-dfile",4) == 0 ){
          strcpy( VL_dfile , Argv[++Iarg] ) ;
+         Iarg++ ; continue ;
+      }
+
+      /** -1Dfile [14 Apr 2000] **/
+
+      if( strncmp(Argv[Iarg],"-1Dfile",4) == 0 ){
+         strcpy( VL_1Dfile , Argv[++Iarg] ) ;
          Iarg++ ; continue ;
       }
 

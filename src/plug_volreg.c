@@ -30,9 +30,15 @@ static char helpstring[] =
   "   Basis:      Dataset = Dataset from which to take base brick\n"
   "                         [if not selected, uses input dataset]\n"
   "\n"
-  "   Outputs:    Dfile = If not blank, name of file in which to\n"
-  "                       save estimated movement parameters;\n"
+  "   Outputs:    dfile = If not blank, name of file in which to\n"
+  "                       save estimated movement parameters plus\n"
+  "                       before-and-after residuals;\n"
   "                       see '3dvolreg -help' for details\n"
+  "              1Dfile = If not blank, name of file in which to save\n"
+  "                       ONLY the estimated movement parameters;\n"
+  "                       this file will also be added to the AFNI\n"
+  "                       timeseries list, so that it can be used\n"
+  "                       as an 'ort' with FIM.\n"
   "               Graph = If 'Yes', will plot the estimated movement\n"
   "                       parameters when the registration is done.\n"
   "\n"
@@ -71,6 +77,7 @@ static int         VL_graph  = 0 ;
 static MRI_IMAGE * VL_imbase = NULL ;
 
 static char VL_dfile[256]  = "\0" ;
+static char VL_1Dfile[256] = "\0" ;              /* 14 Apr 2000 */
 static char VL_prefix[THD_MAX_PREFIX] = "\0" ;
 
 static THD_3dim_dataset * VL_dset = NULL ;
@@ -168,7 +175,15 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "Outputs" , "Outputs" , FALSE ) ;
 
    PLUTO_add_string( plint ,
-                     "Dfile" ,  /* label next to textfield */
+                     "dfile" ,   /* label next to textfield */
+                     0,NULL ,    /* no fixed strings to choose among */
+                     19          /* 19 spaces for typing in value */
+                   ) ;
+
+   /* 14 Apr 2000: add 1Dfile */
+
+   PLUTO_add_string( plint ,
+                     "1Dfile" ,  /* label next to textfield */
                      0,NULL ,    /* no fixed strings to choose among */
                      19          /* 19 spaces for typing in value */
                    ) ;
@@ -311,6 +326,7 @@ char * VOLREG_main( PLUGIN_interface * plint )
 
    VL_imbase   = NULL ;
    VL_dfile[0] = '\0' ;
+   VL_1Dfile[0]= '\0' ;  /* 14 Apr 2000 */
    VL_graph    = 0 ;
 
    while( 1 ){
@@ -353,8 +369,18 @@ char * VOLREG_main( PLUGIN_interface * plint )
          if( str != NULL && str[0] != '\0' ){
             if( THD_filename_ok(str) ) strcpy( VL_dfile , str ) ;
             else                       return "*************************\n"
-                                              "Dfile name not acceptable\n"
+                                              "dfile name not acceptable\n"
                                               "*************************"  ;
+         }
+
+         /* 14 Apr 2000: get 1Dfile */
+
+         str = PLUTO_get_string(plint) ;
+         if( str != NULL && str[0] != '\0' ){
+            if( THD_filename_ok(str) ) strcpy( VL_1Dfile , str ) ;
+            else                       return "**************************\n"
+                                              "1Dfile name not acceptable\n"
+                                              "**************************"  ;
          }
 
          str      = PLUTO_get_string(plint) ;
@@ -600,7 +626,7 @@ char * VOLREG_main( PLUGIN_interface * plint )
 
       if( THD_is_file(VL_dfile) )
          PLUTO_popup_transient( plint , "** Warning:\n"
-                                        "** Overwriting Dfile" ) ;
+                                        "** Overwriting dfile" ) ;
 
       fp = fopen( VL_dfile , "w" ) ;
       for( kim=0 ; kim < imcount ; kim++ )
@@ -608,6 +634,38 @@ char * VOLREG_main( PLUGIN_interface * plint )
                  kim , roll[kim], pitch[kim], yaw[kim],
                        dx[kim], dy[kim], dz[kim], rmsold[kim] , rmsnew[kim]  ) ;
       fclose(fp) ;
+   }
+
+   if( VL_1Dfile[0] != '\0' ){  /* 14 Apr 2000 */
+      FILE * fp ;
+      char fn[256] ;
+      MRI_IMAGE * tsim ;
+      float * tsar ;
+
+      strcpy(fn,VL_1Dfile) ;
+      if( strstr(VL_1Dfile,"1D") == NULL ) strcat(fn,".1D") ;
+      
+      if( THD_is_file(fn) )
+         PLUTO_popup_transient( plint , "** Warning:\n"
+                                        "** Overwriting 1Dfile" ) ;
+
+      tsim = mri_new( imcount , 6 , MRI_float ) ;
+      tsar = MRI_FLOAT_PTR(tsim) ;
+      fp = fopen( fn , "w" ) ;
+      for( kim=0 ; kim < imcount ; kim++ ){
+         fprintf(fp , "%7.3f %7.3f %7.3f %7.3f %7.3f %7.3f\n" ,
+                 roll[kim], pitch[kim], yaw[kim],
+                 dx[kim]  , dy[kim]   , dz[kim]  ) ;
+         tsar[0*imcount+kim] = roll[kim] ;
+         tsar[1*imcount+kim] = pitch[kim] ;
+         tsar[2*imcount+kim] = yaw[kim] ;
+         tsar[3*imcount+kim] = dx[kim] ;
+         tsar[4*imcount+kim] = dy[kim] ;
+         tsar[5*imcount+kim] = dz[kim] ;
+      }
+      fclose(fp) ;
+      PLUTO_register_timeseries( fn , tsim ) ;
+      mri_free(tsim) ;
    }
 
    /*-- graph --*/

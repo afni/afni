@@ -2099,3 +2099,7 @@
      (using the saved ID code string).  Also, made the threshold slider
      change when the script changes the threshold value (forgot this
      visual detail before).
+
+14 Apr 2000
+ * Added options -1Dfile to 3dvolreg.c and plug_volreg.c to save movement
+     parameters to a 1D file for later ortologizing.
