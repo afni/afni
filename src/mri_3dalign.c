@@ -235,7 +235,7 @@ ENTRY("mri_3dalign_setup") ;
       MRI_5blur_inplace_3D( imww ) ;  /* 07 Jun 2002 */
 #endif
 
-      if( verbose) fprintf(stderr,":") ;
+      if( verbose ) fprintf(stderr,":") ;
 
       clip  = 0.025 * mri_max(imww) ;
       for( ii=0 ; ii < nxyz ; ii++ ) if( f[ii] < clip ) f[ii] = 0.0 ;
@@ -257,7 +257,7 @@ ENTRY("mri_3dalign_setup") ;
 #else
         MRI_5blur_inplace_3D( imww ) ;  /* 07 Jun 2002 */
 #endif
-        if( verbose) fprintf(stderr,":") ;
+        if( verbose ) fprintf(stderr,":") ;
         clip  = 0.025 * mri_max(imww) ;
         for( ii=0 ; ii < nxyz ; ii++ ) if( f[ii] < clip ) f[ii] = 0.0 ;
       }
@@ -355,14 +355,15 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,"  initializing d/d(th1)") ;
 
    delta = 2.0*delfac/( cim->nx + cim->ny + cim->nz ) ;
+   if( verbose ) fprintf(stderr,"[delta=%g]",delta) ;
 
    pim = THD_rota3D( cim , ax1,delta , ax2,0.0 , ax3,0.0 ,
                      dcode , 0.0 , 0.0 , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    mim = THD_rota3D( cim , ax1,-delta , ax2,0.0 , ax3,0.0 ,
                      dcode , 0.0 , 0.0 , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
    delta = 0.5 * DFAC / delta ;
@@ -378,14 +379,15 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,"  initializing d/d(th2)") ;
 
    delta = 2.0*delfac/( cim->nx + cim->ny + cim->nz ) ;
+   if( verbose ) fprintf(stderr,"[delta=%g]",delta) ;
 
    pim = THD_rota3D( cim , ax1,0.0 , ax2,delta , ax3,0.0 ,
                      dcode , 0.0 , 0.0 , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    mim = THD_rota3D( cim , ax1,0.0 , ax2,-delta , ax3,0.0 ,
                      dcode , 0.0 , 0.0 , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
    delta = 0.5 * DFAC / delta ;
@@ -401,14 +403,15 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,"  initializing d/d(th3)") ;
 
    delta = 2.0*delfac/( cim->nx + cim->ny + cim->nz ) ;
+   if( verbose ) fprintf(stderr,"[delta=%g]",delta) ;
 
    pim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,delta ,
                      dcode , 0.0 , 0.0 , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    mim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,-delta ,
                      dcode , 0.0 , 0.0 , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
    delta = 0.5 * DFAC / delta ;
@@ -424,14 +427,15 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,"  initializing d/dx") ;
 
    delta = delfac * dx ;
+   if( verbose ) fprintf(stderr,"[delta=%g]",delta) ;
 
    pim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
                      dcode , delta , 0.0 , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    mim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
                      dcode , -delta , 0.0 , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
    delta = 0.5 / delta ;
@@ -447,14 +451,15 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,"  initializing d/dy") ;
 
    delta = delfac * dy ;
+   if( verbose ) fprintf(stderr,"[delta=%g]",delta) ;
 
    pim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
                      dcode , 0.0 , delta , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    mim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
                      dcode , 0.0 , -delta , 0.0 ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
    delta = 0.5 / delta ;
@@ -470,14 +475,15 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,"  initializing d/dz") ;
 
    delta = delfac * dz ;
+   if( verbose ) fprintf(stderr,"[delta=%g]",delta) ;
 
    pim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
                      dcode , 0.0 , 0.0 , delta ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    mim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
                      dcode , 0.0 , 0.0 , -delta ) ;
-   if( verbose) fprintf(stderr,":") ;
+   if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
    delta = 0.5 / delta ;

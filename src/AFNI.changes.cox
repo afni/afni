@@ -4968,3 +4968,6 @@
  * Fixed bug in thd_sheard3d.c, when input matrix to rot_to_shear_matvec()
      is identity, could get a bad shear.  In this case, just manually put
      the correct shear into place.
+
+29 Feb 2004
+ * Re-fixed the thd_shear3d.c bug of 24 Feb 2004, since it was wrong.
