@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.5 <Jan 07, 2004>"
+#define VERSION "Version 1.6 <March 04, 2004>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -43,24 +43,28 @@ static char g_history[] =
  "----------------------------------------------------------------------\n"
  " history:\n"
  "\n"
- " 1.5  January 07, 2004\n"
- "   - added suggestion of 3dfractionize to -help output\n"
- "   - added '-hist' option\n"
- "\n"
- " 1.4  July 27, 2003\n"
- "   - wrap unknown printed strings in NULL check\n"
- "\n"
- " 1.3  January 14, 2003\n"
- "   - clear warp information before writing to disk (fix uncommon problem)\n"
- "\n"
- " 1.2  July 29, 2002\n"
- "   - no change here, but updated r_new_resam_dset() for view type\n"
+ " 1.0  May 23, 2002\n"
+ "   - initial release\n"
  "\n"
  " 1.1  July 2, 2002\n"
  "   - modified to fully align new data set grid to that of the master\n"
  "\n"
- " 1.0  May 23, 2002\n"
- "   - initial release\n"
+ " 1.2  July 29, 2002\n"
+ "   - no change here, but updated r_new_resam_dset() for view type\n"
+ "\n"
+ " 1.3  January 14, 2003\n"
+ "   - clear warp information before writing to disk (fix uncommon problem)\n"
+ "\n"
+ " 1.4  July 27, 2003\n"
+ "   - wrap unknown printed strings in NULL check\n"
+ "\n"
+ " 1.5  January 07, 2004\n"
+ "   - added suggestion of 3dfractionize to -help output\n"
+ "   - added '-hist' option\n"
+ "\n"
+ " 1.6  March 04, 2004\n"
+ "   - added check for RESAM_shortstr[] (to catch NN and Bk modes)\n"
+ "   - reversed order of history: recent at the bottom\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -565,6 +569,8 @@ int resam_str2mode ( char * modestr )
     for (mode = FIRST_RESAM_TYPE; mode <= LAST_RESAM_TYPE; mode++ )
     {
 	if ( ! strncmp( modestr, RESAM_typestr[mode], 2 ) )
+	    return mode;
+	else if ( ! strncmp( modestr, RESAM_shortstr[mode], 2 ) )
 	    return mode;
     }
 
