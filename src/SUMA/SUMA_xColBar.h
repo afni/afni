@@ -151,6 +151,8 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_SurfaceObject *SO);
+void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
 
          
          
