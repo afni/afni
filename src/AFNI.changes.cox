@@ -2059,3 +2059,9 @@
 
 06 Mar 2000
  * Added -sagittal, -coronal switches to 3daxialize.c.
+
+07 Mar 2000
+ * Modified plug_realtime.c, to reject nzz=1 datasets, print out better
+     error messages, etc.
+ * Modified rtfeedme.c to have -nzfake option, for testing the above.
+ * Modified jp_afni.c to get orientations correct for Signa realtime.

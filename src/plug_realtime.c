@@ -6,7 +6,11 @@
 ******************************************************************************/
 
 #include "dbtrace.h"
-#define VMCHECK do{ if(verbose == 2) MCHECK; } while(0)
+#if 0
+# define VMCHECK do{ if(verbose == 2) MCHECK; } while(0)
+#else
+# define VMCHECK /* nada */
+#endif
 
 #define TCP_CONTROL "tcp:*:7954"      /* control channel specification */
 #define INFO_SIZE  (16*1024)          /* change this ==> change SHM_CHILD below */
@@ -214,7 +218,7 @@ static char helpstring[] =
 /** variables encoding the state of options from the plugin interface **/
 
 static char root[THD_MAX_PREFIX] = "rt." ;  /* default prefix */
-static int  update               = 10 ;     /* default update frequency */
+static int  update               = 1  ;     /* default update frequency */
 
 #define NFUNC  2
 static char * FUNC_strings[NFUNC] = { "None" , "FIM" } ;
@@ -297,6 +301,7 @@ void RT_process_image( RT_input * ) ;
 void RT_finish_dataset( RT_input * ) ;
 void RT_tell_afni( RT_input * , int ) ;
 void RT_start_child( RT_input * ) ;
+void RT_check_info( RT_input * , int ) ;
 
 #ifdef ALLOW_REGISTRATION
   void RT_registration_2D_atend( RT_input * rtin ) ;
@@ -352,7 +357,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*-- second line of input: Update frequency --*/
 
    PLUTO_add_option( plint , "" , "Update" , FALSE ) ;
-   PLUTO_add_number( plint , "Update" , 0,59,0 , update , FALSE ) ;
+   PLUTO_add_number( plint , "Update" , 0,19,0 , update , FALSE ) ;
 
    /*-- third line of input: Function computation --*/
 
@@ -588,7 +593,7 @@ void cleanup_rtinp(void)
 #endif
 
    free(rtinp) ; rtinp = NULL ;                 /* destroy data structure */
-   ioc_control = NULL ;                          /* ready to listen again */
+   ioc_control = NULL ;                         /* ready to listen again */
    GRIM_REAPER ;                               /* reap dead child, if any */
 }
 
@@ -634,7 +639,7 @@ Boolean RT_worker( XtPointer elvis )
          VMCHECK ;
          RT_finish_dataset( rtinp ) ;  /* then we can finish it */
       } else {
-         fprintf(stderr,"RT: data channel closed dataset was fully defined!\a\n") ;
+         fprintf(stderr,"RT: data channel closed before dataset was fully defined!\a\n") ;
       }
 
       CLEANUP ; return False ;
@@ -713,7 +718,12 @@ Boolean RT_worker( XtPointer elvis )
             then all the setup info should be OK.  if not, quit */
 
          if( ! rtinp->no_data && ! rtinp->info_ok ){
-            fprintf(stderr,"RT: child info was incomplete!\a\n") ;
+            fprintf(stderr,"RT: child info was incomplete or erroneous!\a\n") ;
+            RT_check_info( rtinp , 1 ) ;
+            PLUTO_beep() ;
+            PLUTO_popup_transient( plint , " \n"
+                                           "      Heads down!\n"
+                                           "Realtime header was bad!\n" ) ;
             CLEANUP ; return FALSE ;
          }
 
@@ -835,7 +845,8 @@ Boolean RT_worker( XtPointer elvis )
       }
 
       if( verbose == 2 )
-         fprintf(stderr,"RT: processed %d bytes of header info from data channel\n",jj) ;
+         fprintf(stderr,
+                 "RT: processed %d bytes of header info from data channel\n",jj) ;
       VMCHECK ;
 
       rtinp->no_data = 0 ;  /* can't say we never received data */
@@ -845,6 +856,11 @@ Boolean RT_worker( XtPointer elvis )
 
       if( rtinp->child_info == 0 && ! rtinp->info_ok ){
          fprintf(stderr,"RT: image header info was incomplete!\a\n") ;
+         RT_check_info( rtinp , 1 ) ;
+         PLUTO_beep() ;
+         PLUTO_popup_transient( plint , " \n"
+                                        "      Heads down!\n"
+                                        "Realtime header was bad!\n" ) ;
          CLEANUP ; return FALSE ;
       }
    }
@@ -1251,6 +1267,60 @@ int RT_acquire_info( char * command )
    free(info) ; IOCHAN_CLOSE(ioc) ; _exit(0) ;     /** END OF CHILD PROCESS **/
 }                                                  /**************************/
 
+/****************************************************************************
+   Check the realtime input structure for OK-ness, and set its internal flag.
+   If if it bad, and prt isn't 0, print a message about the error(s).
+*****************************************************************************/
+
+#define EPR(s) fprintf(stderr,"RT: HEADER DATA ERROR - %s\a\n",(s))
+
+#define OR3OK(x,y,z) ( ((x)&6) + ((y)&6) + ((z)&6) == 6 )
+
+void RT_check_info( RT_input * rtin , int prt )
+{
+   if( rtin == NULL ) return ;
+
+   rtin->info_ok = ( rtin->dtype > 0 )                            &&
+                   ( THD_filename_ok(rtin->prefix) )              &&
+                   ( strlen(rtin->prefix) < THD_MAX_PREFIX )      &&
+                   ( rtin->tr > 0 )                               &&
+                   ( rtin->dzz > 0 || rtin->zzfov > 0 )           &&
+                   ( rtin->xxfov > 0 )                            &&
+                   ( rtin->yyfov > 0 )                            &&
+                   ( rtin->nxx > 1 )                              &&
+                   ( rtin->nyy > 1 )                              &&
+                   ( rtin->nzz > 1 )                              &&
+                   ( AFNI_GOOD_DTYPE(rtin->datum) )               &&
+                   ( rtin->zorder > 0 )                           &&
+                   ( rtin->orcxx >= 0 )                           &&
+                   ( rtin->orcyy >= 0 )                           &&
+                   ( rtin->orczz >= 0 )                           &&
+                   ( OR3OK(rtin->orcxx,rtin->orcyy,rtin->orczz) )    ;
+
+   if( rtin->info_ok || !prt ) return ;  /* if good, or if no print */
+
+   /* print error messages */
+
+   if( !(rtin->dtype > 0)                            ) EPR("Bad acquisition type") ;
+   if( !(THD_filename_ok(rtin->prefix))              ) EPR("Bad prefix") ;
+   if( !(strlen(rtin->prefix) < THD_MAX_PREFIX)      ) EPR("Overlong prefix") ;
+   if( !(rtin->tr > 0)                               ) EPR("TR is not positive") ;
+   if( !(rtin->dzz > 0 || rtin->zzfov > 0)           ) EPR("Slice thickness not positive") ;
+   if( !(rtin->xxfov > 0)                            ) EPR("x-FOV not positive") ;
+   if( !(rtin->yyfov > 0)                            ) EPR("y-FOV not positive") ;
+   if( !(rtin->nxx > 1)                              ) EPR("Image x-dimen not > 1") ;
+   if( !(rtin->nyy > 1)                              ) EPR("Image y-dimen not > 1") ;
+   if( !(rtin->nzz > 1)                              ) EPR("Slice count (z-dimen) not > 1") ;
+   if( !(AFNI_GOOD_DTYPE(rtin->datum))               ) EPR("Bad datum") ;
+   if( !(rtin->zorder > 0)                           ) EPR("Slice ordering illegal") ;
+   if( !(rtin->orcxx >= 0)                           ) EPR("x-orientation illegal") ;
+   if( !(rtin->orcyy >= 0)                           ) EPR("y-orientation illegal") ;
+   if( !(rtin->orczz >= 0)                           ) EPR("z-orientation illegal") ;
+   if( !(OR3OK(rtin->orcxx,rtin->orcyy,rtin->orczz)) ) EPR("Inconsistent xyz-orientations") ;
+
+   return ;
+}
+
 /*---------------------------------------------------------------------------
    Process command strings in the buffer, up to the first '\0' character.
    Returns the number of characters processed, which will be one more than
@@ -1378,7 +1448,10 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          if( xval > 0 ){
             rtin->nxx = xval ;
             rtin->nyy = (yval > 0) ? yval : xval ;
-            if( zval > 0 ) rtin->nzz = zval ;
+            if( zval > 0 ){
+               rtin->nzz = zval ;
+               if( rtin->nzz < 2 ) fprintf(stderr,"RT: # slices = 1!\a\n") ;
+            }
          } else
                 BADNEWS ;
          if( verbose == 2 )
@@ -1394,7 +1467,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          }
          else
               BADNEWS ;
-         if( verbose == 2 )
+         if( verbose == 2 && rtin->nzz > 1 )
             fprintf(stderr,"RT: # slices = %d\n",rtin->nzz) ;
          VMCHECK ;
 
@@ -1442,8 +1515,6 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
          sscanf( buf , "XYZAXES %31s %31s %31s" , xstr,ystr,zstr ) ;
 
-#define OR3OK(x,y,z) ( ((x)&6) + ((y)&6) + ((z)&6) == 6 )
-
          for( ii=0 ; ii < 6 ; ii++ ){
             if( strcmp(xstr,ORIENT_shortstr[ii]) == 0 ||
                 strcmp(xstr,ORIENT_typestr[ii])  == 0 ||
@@ -1472,22 +1543,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
    /** now, determine if enough information exists to create a dataset **/
 
-   rtin->info_ok = ( rtin->dtype > 0 )                            &&
-                   ( THD_filename_ok(rtin->prefix) )              &&
-                   ( strlen(rtin->prefix) < THD_MAX_PREFIX )      &&
-                   ( rtin->tr > 0 )                               &&
-                   ( rtin->dzz > 0 || rtin->zzfov > 0 )           &&
-                   ( rtin->xxfov > 0 )                            &&
-                   ( rtin->yyfov > 0 )                            &&
-                   ( rtin->nxx > 0 )                              &&
-                   ( rtin->nyy > 0 )                              &&
-                   ( rtin->nzz > 0 )                              &&
-                   ( AFNI_GOOD_DTYPE(rtin->datum) )               &&
-                   ( rtin->zorder > 0 )                           &&
-                   ( rtin->orcxx >= 0 )                           &&
-                   ( rtin->orcyy >= 0 )                           &&
-                   ( rtin->orczz >= 0 )                           &&
-                   ( OR3OK(rtin->orcxx,rtin->orcyy,rtin->orczz) )    ;
+   RT_check_info( rtin , 0 ) ;
 
    /** if possible, now compute the number of bytes in each input image **/
 

@@ -335,7 +335,7 @@ d3dmerge:3dmerge.c
 
 3dUniformize:3dUniformize.o
 	$(RM) $@
-	$(CC) -o 3dUniformize 3dUniformize.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dUniformize 3dUniformize.o $(PLFLAGS) $(LLIBS)
 
 3dpc:3dpc.o
 	$(RM) $@

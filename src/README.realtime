@@ -7,7 +7,7 @@ construct a dataset from the images.  This information is sent to AFNI
 as a series of command strings.  A sample set of command strings is
 given below:
 
-   ACQUISITION_TYPE 2d+zt
+   ACQUISITION_TYPE 2D+zt
    TR 5.0
    XYFOV 240.0 240.0 112.0
    ZNUM 16
@@ -23,7 +23,7 @@ command strings and their arguments is:
 
 ACQUISITION_TYPE arg
   This command tells AFNI how the image data will be formatted:
-    arg = 2d+z   -> a single 3D volume, one slice at a time
+    arg = 2D+z   -> a single 3D volume, one slice at a time
           2D+zt  -> multiple 3D volumes, one slice at a time [the default]
           3D     -> a single 3D volume, all at once
           3D+t   -> multiple 3D volumes, one full volume at a time

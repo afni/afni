@@ -203,7 +203,7 @@ void AFNI_start_io( void )
 
 int main( int argc , char * argv[] )
 {
-   int iarg=1 , ii,tt,kk , nbytes , nbslice , ntran ;
+   int iarg=1 , ii,tt,kk , nbytes , nbslice , ntran , nzfake=0 ;
    char * bar , * qar , * sar ;
    double start_time , left_time , xtime ;
 
@@ -233,6 +233,8 @@ int main( int argc , char * argv[] )
         "\n"
         "  -verbose    =  Be talkative about actions.\n"
         "  -swap2      =  Swap byte pairs before sending data.\n"
+        "\n"
+        "  -nzfake nz  =  Send 'nz' as the value of nzz (for debugging).\n"
       ) ;
       exit(0) ;
    }
@@ -240,6 +242,11 @@ int main( int argc , char * argv[] )
    /*-- scan arguments --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-nzfake") == 0 ){
+         nzfake = (int) strtod( argv[++iarg] , NULL ) ;
+         iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-buf") == 0 ){
          RT_mega = (int) strtod( argv[++iarg] , NULL ) ;
@@ -355,10 +362,18 @@ int main( int argc , char * argv[] )
 
    /*** Matrix sizes ***/
 
-   sprintf( RT_com , "XYMATRIX %d %d %d" , DSET_NX(RT_dset) ,
-                                           DSET_NY(RT_dset) ,
-                                           DSET_NZ(RT_dset)  ) ;
-   ADDTO_BUF ;
+   if( nzfake <= 0 ){
+      sprintf( RT_com , "XYMATRIX %d %d %d" , DSET_NX(RT_dset) ,
+                                              DSET_NY(RT_dset) ,
+                                              DSET_NZ(RT_dset)  ) ;
+      ADDTO_BUF ;
+   } else {
+      sprintf( RT_com , "XYMATRIX %d %d" , DSET_NX(RT_dset) ,
+                                           DSET_NY(RT_dset)  ) ;
+      ADDTO_BUF ;
+      sprintf( RT_com , "ZNUM %d" , nzfake ) ;
+      ADDTO_BUF ;
+   }
 
    /*** Data type ***/
 

@@ -13,10 +13,9 @@
   Mod:     Added changes for incorporating History notes.
   Date:    09 September 1999
 
-  Mod:     Correction to initialization in center of mass calculation.
-  Date:    11 February 2000
-
-
+  Mod:     Interface changes for new estpdf.c
+  Date:    28 January 2000
+  
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -26,7 +25,7 @@
 
 #define PROGRAM_NAME "3dIntracranial"                /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
-#define PROGRAM_DATE "11 February 2000"          /* date of last program mod */
+#define PROGRAM_DATE "28 January 2000"           /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -68,7 +67,7 @@ void SI_error (char * message)
   Include source code.
 */
 
-#include "estpdf.c"                    /* code for PDF estimation */
+#include "estpdf3.c"                    /* code for PDF estimation */
 #include "Intracranial.c"              /* code for intracranial segmentation */
 
 
@@ -320,6 +319,11 @@ void initialize_program
 {
   float parameters [DIMENSION];    /* parameters for PDF estimation */
   Boolean ok = TRUE;               /* flag for successful PDF estimation */
+  int nxyz;
+  short * sfim;
+  int ixyz, icount;
+  short * rfim;
+  int lower_cutoff = 25;
 
 
   /*----- save command line for history notes -----*/
@@ -334,9 +338,27 @@ void initialize_program
   verify_inputs();
 
 
+  /*----- Initialize local variables -----*/
+  if (anat == NULL)  SI_error ("Unable to read anat dataset");
+  nxyz = DSET_NX(anat) * DSET_NY(anat) * DSET_NZ(anat);
+  sfim  = (short *) DSET_BRICK_ARRAY(anat,0) ;
+  if (sfim == NULL)  SI_error ("Unable to read anat dataset");
+  rfim = (short *) malloc (sizeof(short) * nxyz);   MTEST (rfim);
+
+
+  /*----- Just use voxels whose intensity is above the lower cutoff -----*/
+  icount = 0;
+  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+    if (sfim[ixyz] > lower_cutoff)
+      {
+	rfim[icount] = sfim[ixyz];
+	icount++;
+      }
+  printf ("%d voxels above lower cutoff = %d \n", icount, lower_cutoff);
+
+
   /*----- Get PDF estimate and set voxel intensity limits -----*/
-  if (min_val_int || max_val_int)  ok = estpdf (parameters);
-  if (!ok)  SI_error ("Unable to perform PDF estimation ");
+  if (min_val_int || max_val_int)  estpdf_short (icount, rfim, parameters);
   if (min_val_int)  min_val_float = parameters[4] - 2.0*parameters[5];
   if (max_val_int)  max_val_float = parameters[7] + 2.0*parameters[8];
   

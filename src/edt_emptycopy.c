@@ -14,7 +14,7 @@
 
 /*****************  New routines for AFNI-96  ***************************/
 
-#define DUMMY_NAME "Elvis"
+#define DUMMY_NAME "zyxt"  /* 07 Mar 2000: changed from Elvis */
 
 /*--------------------------------------------------------------------
   Routine to make a dataset that is an empty copy of an input dataset.

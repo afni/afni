@@ -9,7 +9,20 @@
   Mod:     Correction to rand_normal
   Date:    15 September 1999
 
+  Mod:     Added routine rand_initialize.
+  Date:    28 January 2000
 */
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Initialize the random number generator.
+*/
+
+void rand_initialize (long int seedval)
+{
+  srand48 (seedval);
+}
 
 
 /*---------------------------------------------------------------------------*/
