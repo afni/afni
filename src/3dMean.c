@@ -11,7 +11,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * inset , * outset ;
    int nx,ny,nz,nxyz,nval , ii,kk , nopt=1, nsum=0 ;
    char * prefix = "mean" ;
-   int datum = -1 , verb = 0 ;
+   int datum=-1 , verb=0 , do_sum=0 , do_sqr=0 ;
    float ** sum , fsum ;
    int fscale=0 , gscale=0 , nscale=0 ;
 
@@ -31,6 +31,9 @@ int main( int argc , char * argv[] )
              "                  to get the same scaling factor.\n"
              "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
              "\n"
+             "  -sqr        = Average the squares, instead of the values.\n"
+             "  -sum        = Just take the sum (don't divide by number of datasets).\n"
+             "\n"
              "N.B.: All input datasets must have the same number of voxels along\n"
              "       each axis (x,y,z,t).\n"
              "    * At least 2 input datasets are required.\n"
@@ -41,9 +44,25 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
+
+   machdep() ; 
+   { int new_argc ; char ** new_argv ;
+     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
+
    /*-- command line options --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcmp(argv[nopt],"-sum") == 0 ){
+         do_sum = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-sqr") == 0 ){
+         do_sqr = 1 ; nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ){
@@ -185,25 +204,37 @@ int main( int argc , char * argv[] )
 
             case MRI_float:{
                float * pp = (float *) DSET_ARRAY(inset,kk) ;
-               float fac = DSET_BRICK_FACTOR(inset,kk) ;
+               float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
                if( fac == 0.0 ) fac = 1.0 ;
-               for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
+               if( do_sqr )
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+               else
+                  for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
             }
             break ;
 
             case MRI_short:{
                short * pp = (short *) DSET_ARRAY(inset,kk) ;
-               float fac = DSET_BRICK_FACTOR(inset,kk) ;
+               float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
                if( fac == 0.0 ) fac = 1.0 ;
-               for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
+               if( do_sqr )
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+               else
+                  for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
             }
             break ;
 
             case MRI_byte:{
                byte * pp = (byte *) DSET_ARRAY(inset,kk) ;
-               float fac = DSET_BRICK_FACTOR(inset,kk) ;
+               float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
                if( fac == 0.0 ) fac = 1.0 ;
-               for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
+               if( do_sqr )
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+               else
+                  for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
             }
             break ;
          }
@@ -214,9 +245,11 @@ int main( int argc , char * argv[] )
 
    /*-- fill up output dataset --*/
 
-   fsum = 1.0 / nsum ;
-   for( kk=0 ; kk < nval ; kk++ )
-       for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] *= fsum ;
+   if( !do_sum ){
+      fsum = 1.0 / nsum ;
+      for( kk=0 ; kk < nval ; kk++ )
+          for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] *= fsum ;
+   }
 
    switch( datum ){
 

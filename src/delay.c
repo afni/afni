@@ -304,6 +304,65 @@ float sign (float x)
 
 /*---------------------------------------------------------------------------*/
 
+int Read_part_file_delay (float *x,
+					char *f_name,
+					int a,
+					int b)
+   
+    { 
+     
+     int cnt=0,ex,line_num;
+     float buf;
+     FILE*file_in;
+     
+     file_in = fopen (f_name,"r");
+     if (file_in == NULL) {
+            printf ("\aCould not open %s \n",f_name);
+           printf ("Exiting @ Read_file function\n");
+            exit (0);
+         }
+     
+     if (a > b || a==0) {
+     				printf ("\a\n\33[1mError in (from , to) line numbers\n\33\[0m");
+     				printf ("Exiting @Read_part_file function \n");
+     				exit (0);
+     		   }
+     
+     line_num = 1;	
+     if (a == 1) {
+     			ex = fscanf (file_in,"%f",&x[cnt]);	
+     			++cnt;
+     			}				   	
+      else  ex = fscanf (file_in,"%f",&buf);					   	
+     ++line_num;
+     while (ex != EOF && line_num <= b)
+      {
+        if (line_num >=a && line_num <=b) 
+        {
+         ex = fscanf (file_in,"%f",&x[cnt]);
+         ++cnt;
+         if (ex == EOF) --cnt;
+         }
+        else 
+        {
+         ex = fscanf (file_in,"%f",&buf);
+         }
+        ++line_num;
+        
+      }
+      
+      if (ex == EOF) 
+      	{
+      	    --line_num;
+      		printf ("\n\33[1mEOF reached before line \33[0m%d\n",b);
+      		printf ("Only %d lines were read, from line %d to %d\n",cnt,a,line_num-1);
+      	}
+      
+      fclose (file_in);
+      return (cnt);  							     
+   }
+
+
 
 
 /*---------------------------------------------------------------------------*/

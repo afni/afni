@@ -330,7 +330,6 @@ int main( int argc , char * argv[] )
    printf ("\n\nProgram %s \n", PROGRAM_NAME);
    printf ("Last revision: %s \n\n", LAST_MOD_DATE);
 
-
    /*** read input options ***/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) B2F_Syntax() ;

@@ -367,6 +367,13 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ) PC_syntax(NULL) ;
 
+   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
+
+   { int new_argc ; char ** new_argv ;
+     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
+
    PC_read_opts( argc , argv ) ;
 
    /*-- get dimensions --*/

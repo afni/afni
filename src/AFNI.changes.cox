@@ -2745,3 +2745,27 @@
  * Added "Rota" buttons to afni_widg.c and plug_render.c, to rotate
      the colors on the pbars.
  * Added range hints to the pbar in afni_func.c and plug_render.c.
+
+03 Apr 2001
+ * Modified xim.[ch] to add a "force rgb" option to function XImage_to_mri(),
+     so that one can always be sure of getting a MRI_rgb image (and so be
+     sure of writing a PPM file with mri_write_pnm()).  Modified imseq.c and
+     afni_graph.c to fit the new usage.
+
+10 Apr 2001
+ * Fixed a bug in 3dvolreg.c, where the "-base dset" option used a
+     sub-brick index "bb" that was no longer initialized (bug reported
+     by Tom Ross of MCW).
+
+18 Apr 2001
+ * Added some more printouts to 3dcalc.c and thd_loaddblk.c when malloc()
+     fails on dataset input.
+ * Added "-sum" and "-sqr" options to 3dMean.c.
+ * Added program 1dsum.c.
+ * Added machdep.c to do machine-dependent runtime startup (supplementing
+     machine-dependent compiletime stuff in machdep.h).
+
+22 Apr 2001
+ * Added "addto_args" to a bunch of programs, to let them use the '-@'
+     command line switch.
+ * Added called to machdep() in a bunch of programs.

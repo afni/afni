@@ -204,6 +204,13 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
 
+   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
+
+   { int new_argc ; char ** new_argv ;
+     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
+
    while( iarg < argc && argv[iarg][0] == '-' ){
 
 #if 0

@@ -412,6 +412,7 @@ int main(int argc, char *argv[])
       helpMessage();
       exit(1);
     }
+
   while((narg < argc) && (argv[narg][0] == '-'))
     {
       if (strcmp(argv[narg], "-prefix") == 0)

@@ -2843,6 +2843,14 @@ int main
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
 
+   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
+
+   machdep() ; 
+   { int new_argc ; char ** new_argv ;
+     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
+
    
   /*----- program initialization -----*/
   initialize_program (argc, argv, &ignore, 

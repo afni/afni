@@ -92,6 +92,7 @@ int main (int argc, char * argv[]) {
       delnotes[i] = 0;
    }
 
+
         /* Loop over arguements and pull out what we need */
         while( narg < argc && argv[narg][0] == '-' ){
 

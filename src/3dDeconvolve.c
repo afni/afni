@@ -441,6 +441,7 @@ void get_options
 
 
   /*-- addto the arglist, if user wants to --*/
+  machdep() ;
   { int new_argc ; char ** new_argv ;
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -3432,6 +3433,7 @@ int main
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
+  machdep() ; /* RWCox: 20 Apr 2001 */
 
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &dset_time, &mask_dset, 

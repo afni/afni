@@ -42,7 +42,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
            3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
-           3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount
+           3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -56,7 +56,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot    \
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+      \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
-                  ent16 3dRowFillin 1dgrayplot 3dToutcount
+                  ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum
 
 SCRIPTS = @4Daverage  @CommandGlobb  @GetAfniPrefix  @NoExt  @UpdateAfni  @pnmtopng
 
@@ -707,6 +707,10 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o 1dcat 1dcat.o $(LFLAGS) $(LLIBS)
 
+1dsum:1dsum.o
+	$(RM) $@
+	$(CC) -o 1dsum 1dsum.o $(LFLAGS) $(LLIBS)
+
 1dnorm:1dnorm.o
 	$(RM) $@
 	$(CC) -o 1dnorm 1dnorm.o $(LFLAGS) $(LLIBS)
@@ -765,9 +769,13 @@ clean:
 cleaner:
 	$(RM) *.a $(PROGRAMS)
 
+#backup:
+#	ssh afni chmod -R u+w /home/rwcox/AFNI_BACKUP
+#	scp -prq * afni:/home/rwcox/AFNI_BACKUP
+
 backup:
-	ssh afni chmod -R u+w /home/rwcox/BACKUP
-	scp -prq * afni:/home/rwcox/BACKUP
+	chmod -R u+w /net/afni/home2/AFNI/BACKUP/
+	cp -pr * /net/afni/home2/AFNI/BACKUP
 
 backtape:
 	$(TAR) cvf $(TAPE) ../AFNI98/
@@ -945,7 +953,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
 
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
-           cs_sort_fv.o cs_laguerre.o
+           cs_sort_fv.o cs_laguerre.o machdep.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \

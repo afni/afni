@@ -484,8 +484,12 @@ void CALC_read_opts( int argc , char * argv[] )
 
          /* read data from disk */
 
-         if( CALC_verbose )
-            fprintf(stderr,"  ++ Reading dataset %s\n",argv[nopt-1]) ;
+         if( CALC_verbose ){
+            int iv , nb ;
+            for( iv=nb=0 ; iv < DSET_NVALS(dset) ; iv++ )
+               nb += DSET_BRICK_BYTES(dset,iv) ;
+            fprintf(stderr,"  ++ Reading dataset %s (%d bytes)\n",argv[nopt-1],nb);
+         }
 
          THD_load_datablock( dset->dblk , NULL ) ;
          if( ! DSET_LOADED(dset) ){
@@ -915,9 +919,19 @@ int main( int argc , char * argv[] )
    int   iii,jjj,kkk , nx,nxy ;
    THD_dataxes * daxes ;
 
+   /** do machine dependent fixups **/
+   machdep() ;
+
    /*** read input options ***/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) CALC_Syntax() ;
+
+   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
+
+   { int new_argc ; char ** new_argv ;
+     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
 
    for (ii=0; ii<26; ii++) ntime[ii] = 0 ;
 

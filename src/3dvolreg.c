@@ -108,8 +108,15 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){ VL_syntax() ; exit(0); }
 
-mainENTRY("3dvolreg main") ;
-/*** enable_mcw_malloc() ; ***/
+mainENTRY("3dvolreg main") ; machdep() ;
+
+   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
+
+   { int new_argc ; char ** new_argv ;
+     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
+
 
    Argc = argc ; Argv = argv ; Iarg = 1 ;
    VL_command_line() ;
@@ -1425,7 +1432,14 @@ void VL_command_line(void)
           bdx = fabs(DSET_DX(VL_bset)) ;  /* save for comparison later */
           bdy = fabs(DSET_DY(VL_bset)) ;  /* (14 Sep 2000)            */
           bdz = fabs(DSET_DZ(VL_bset)) ;
-          VL_imbase = mri_to_float( DSET_BRICK(VL_bset,bb) ) ;  /* copy this */
+
+          /* 10 Apr 2001: Tom Ross noticed that the "bb" which
+                          used to be here as the brick selector
+                          was no longer defined, and should be
+                          replaced by 0, which I just did -- RWCox
+                                                       |
+                                                       v           */
+          VL_imbase = mri_to_float( DSET_BRICK(VL_bset,0) ) ;   /* copy this */
 
           VL_bxorg = VL_bset->daxes->xxorg ;                    /* 08 Dec 2000 */
           VL_byorg = VL_bset->daxes->yyorg ;

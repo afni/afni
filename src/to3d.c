@@ -136,6 +136,7 @@ int main( int argc , char * argv[] )
    Boolean        all_good ;
 
 mainENTRY("to3d:main") ;
+   machdep() ; /* RWCox: 20 Apr 2001 */
 
    /* read the user data from the command line, if any */
 
@@ -164,6 +165,13 @@ mainENTRY("to3d:main") ;
    /* read the inputs */
 
    printf("to3d: 2D slices into 3D datasets for AFNI, by RW Cox\n") ;
+
+   /*-- 20 Apr 2001: addto the arglist, if user wants to --*/
+
+   { int new_argc ; char ** new_argv ;
+     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+   }
 
    Argc = argc ;
    Argv = argv ;

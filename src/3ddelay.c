@@ -186,7 +186,8 @@ void display_help_menu()
 	"3ddelay                                                                 \n"
 	"-input fname       fname = filename of input 3d+time dataset           \n"
 	"-ideal_file rname  rname = input ideal time series file name           \n"
-	"   The length of the reference time series is lnum - fnum + 1          \n"
+	"   The length of the reference time series should be equal to           \n"
+	"     that of the 3d+time data set. \n"
 	"     The reference time series vector is stored in an ascii file.        \n"
 	"     The programs assumes that there is one value per line and that all  \n"
 	"     values in the file are part of the reference vector.                \n"
@@ -1099,7 +1100,7 @@ void check_for_valid_inputs
   int NFirst;              /* first image from input 3d+time dataset to use */
   int NLast;               /* last image from input 3d+time dataset to use */
   int N;                   /* number of usable time points */
-
+	int lncheck;
 
   /*----- Initialize local variables -----*/
   if (option_data->input1D_filename != NULL)
@@ -1153,8 +1154,16 @@ void check_for_valid_inputs
 	option_data->rvec = (float *)    malloc (sizeof(float) * option_data->ln+1);       MTEST (option_data->rvec);
 
   /*------- Load Reference Time Series ------------------*/
-  Read_file (option_data->rvec, option_data->ideal_filename[0] ,option_data->ln);
- 
+  lncheck = float_file_size (option_data->ideal_filename[0]);
+  if (lncheck != nt)
+  	{
+		printf("Error: Reference filename contains %d values.\n %d values were expected.\n", lncheck, nt);
+		exit (0);
+	}
+  
+	Read_part_file_delay (option_data->rvec, option_data->ideal_filename[0], option_data->NFirst + 1,option_data->NLast + 1);  
+
+	 
   /* --- decide on the bucket name ----*/ 
 	if (option_data->bucket_filename == NULL)
 	{
@@ -2278,7 +2287,6 @@ int main
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
 
-  
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &dset_time, &mask_dset, 
 		      &fmri_data, &fmri_length, 

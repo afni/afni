@@ -17,7 +17,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
 {
    THD_diskptr * dkptr ;
    int id , offset ;
-   int nx,ny,nz , nxy,nxyz,nxyzv , nv,vv , ii , ntot , ibr ;
+   int nx,ny,nz , nxy,nxyz,nxyzv , nv,vv , ii , ntot , ibr , nbad ;
    char * ptr ;
    MRI_IMAGE * im ;
 
@@ -68,16 +68,22 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
 
       /** malloc space for each brick separately **/
 
-      for( ibr=0 ; ibr < nv ; ibr++ ){
+      for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
          if( DBLK_ARRAY(blk,ibr) == NULL ){
             ptr = malloc( DBLK_BRICK_BYTES(blk,ibr) ) ;
             mri_fix_data_pointer( ptr ,  DBLK_BRICK(blk,ibr) ) ;
+            if( ptr == NULL ) nbad++ ;
          }
       }
 
-      if( THD_count_databricks(blk) < nv ){
+      if( nbad > 0 ){
          fprintf(stderr,
-                "\n*** failure to malloc dataset memory - is memory exhausted?\n") ;
+                "\n*** failed to malloc %d dataset bricks out of %d - is memory exhausted?\n",
+                nbad,nv ) ;
+#ifdef USING_MCW_MALLOC
+         { char * str = mcw_malloc_status() ;
+           if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str);}
+#endif
          if( freeup != NULL ){  /* try to free some space? */
             freeup() ;
             for( ibr=0 ; ibr < nv ; ibr++ ){
@@ -88,9 +94,17 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
             }
             if( THD_count_databricks(blk) < nv ){
                fprintf(stderr,"*** cannot free up enough memory\n") ;
+#ifdef USING_MCW_MALLOC
+               { char * str = mcw_malloc_status() ;
+                 if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str);}
+#endif
                return False ;
             } else {
                fprintf(stderr,"*** was able to free up enough memory\n") ;
+#ifdef USING_MCW_MALLOC
+               { char * str = mcw_malloc_status() ;
+                 if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str);}
+#endif
             }
          } else {
             return False ;
