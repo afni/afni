@@ -7004,7 +7004,7 @@ basis_expansion * basis_parser( char *sym )
 
    /*--- SPMG ---*/
 
-   } else if( strcmp(scp,"SPMG") == 0 ){
+   } else if( strncmp(scp,"SPMG",4) == 0 ){
 
      be->nfunc = 2 ;
      be->tbot  = 0.0f ; be->ttop = 25.0f ;
