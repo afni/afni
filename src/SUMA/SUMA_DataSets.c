@@ -841,11 +841,15 @@ SUMA_DSET * SUMA_FindDset (char *idcode, DList *DsetList)
       if (!el) el = dlist_head(DsetList);
       else el = dlist_next(el);
       dset = (SUMA_DSET *)el->data;
-      if (dset->nel) {
-         dsetid = NI_get_attribute(dset->nel, "idcode");
-         if (dsetid) {
-            if (!strcmp(dsetid, idcode))  dsetf = dset; /* match */
-         } 
+      if (!dset) {
+         SUMA_SLP_Err("Unexpected NULL dset element in list!\nPlease report this occurrence to ziad@nih.gov."); 
+      } else {   
+         if (dset->nel) {
+            dsetid = NI_get_attribute(dset->nel, "idcode");
+            if (dsetid) {
+               if (!strcmp(dsetid, idcode))  dsetf = dset; /* match */
+            } 
+         }
       } 
    } while ( (el != dlist_tail(DsetList)) && !dsetf ); 
    SUMA_RETURN(dsetf);
@@ -1497,7 +1501,7 @@ int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
    
    if (!dset || node < 0 || (N_Node >=0 && node >= N_Node)) {
       /* turn this warning off once you confirm that Shane's bug is gone */
-      SUMA_S_Warn("Strange input, returning -1.");
+      if (LocalHead) SUMA_S_Warn("Strange input, returning -1.");
       SUMA_RETURN(-1);
    }
    
@@ -2079,6 +2083,7 @@ void usage_ConverDset()
             "              where TYPE is one of:\n"
             "           niml_asc (or niml): for ASCII niml format.\n"
             "           niml_bi:            for BINARY niml format.\n"
+            "           1D:                 for AFNI's 1D ascii format.\n"
             "     -input DSET: Input dataset to be converted.\n"
             "  Optional parameters:\n"
             "     -i_TYPE: TYPE of input datasets\n"

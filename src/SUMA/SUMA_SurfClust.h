@@ -38,11 +38,12 @@ typedef struct {
    int minnode;
    int maxnode;
    int centralnode;
+   int weightedcentralnode;
    /* int rank; */  /* completely useless ... rank is inferred from order in list! */
 } SUMA_CLUST_DATUM;
 
-SUMA_Boolean SUMA_Show_SurfClust_list(DList *list, FILE *Out, int detail); 
-char *SUMA_Show_SurfClust_list_Info(DList *list, int detail); 
+SUMA_Boolean SUMA_Show_SurfClust_list(DList *list, FILE *Out, int detail, char *params); 
+char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params); 
 void SUMA_FreeClustDatum (void * data);
 DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni, 
                            int dothisnode, SUMA_SURFCLUST_OPTIONS *Opt, 
@@ -51,10 +52,12 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni,
 SUMA_DSET *SUMA_SurfClust_list_2_Dset(SUMA_SurfaceObject *SO, 
                      DList *list, SUMA_Boolean FullList, char *leName);
 float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO);
-int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int WeightByValue, int UseSurfDst);
+int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int UseSurfDst);
 SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(int dothisnode, SUMA_CLUST_DATUM *AddToThisClust, 
                                                 float *ToBeAssigned, int *N_TobeAssigned, float *NodeArea,
                                                 SUMA_SurfaceObject *SO, SUMA_SURFCLUST_OPTIONS *Opt);
-
+SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode, 
+                                                            float *ToBeAssigned, int *N_TobeAssigned, float *NodeArea,
+                                                            SUMA_SurfaceObject *SO, SUMA_SURFCLUST_OPTIONS *Opt   );
 
 #endif
