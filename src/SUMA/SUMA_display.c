@@ -403,12 +403,15 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
 
 void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont)
 {
-	#ifdef DARWIN
-		/* Set the focus manually, needed on macosx10 or when -lXm is not used */
-		XSetInputFocus(XtDisplay(w), XtWindow(w), RevertToPointerRoot, CurrentTime);
-
-	#endif
 	/*fprintf(stdout,"\nEntering Window\n");*/
+	#ifdef DARWIN
+		/* Set the focus manually.
+		If you're not using motif widgets, window focus is not managed.
+		You can manage it yourself with XSetInputFocus when the EnterWindowEvent is captured.
+		You don't need to do that however if you link (for some reason) to -lXm.
+		But on the macosx10, -lXm does not help, so we manage the foucs ourselves */
+		XSetInputFocus(XtDisplay(w), XtWindow(w), RevertToPointerRoot, CurrentTime);
+	#endif
 	return;
 }
 
