@@ -648,6 +648,12 @@ int main( int argc , char * argv[] )
                      threshold,gx0,gx1) ;
              cer = ((float)(gx0+gx1))/(wt[0]+wt[1]) ;
              fprintf(hf,"# CER = %.3f%%\n",100.0*cer) ;
+#if 0
+           } else {                                     /* 15 Nov 2004 */
+             fprintf(hf,"# Overlaps: None\n") ;
+             threshold = 0.5*(mu_bot+mu_top) ;
+             cer       = MIN(gmcount,wmcount)/(gmcount+wmcount) ;
+#endif
            }
          }
 

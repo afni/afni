@@ -264,6 +264,17 @@ static char *  ppmto_jpg75_filter = NULL ;  /* 27 Mar 2002 */
                         (pnam) , (suff) ) ;                              \
   } while(0)
 
+  /** 16 Nov 2004: warning messages when can't find Save filters? **/
+
+#define CANT_FIND(nm,fm)                                                 \
+ do{ if( !AFNI_noenv("AFNI_IMSAVE_WARNINGS") ){                          \
+      if( ncant == 0 )                                                   \
+       fprintf(stderr,"\n++++++++ IMAGE SAVE SETUP WARNINGS ++++++++\n");\
+      fprintf(stderr,                                                    \
+              "++ Can't find program %s for Save to %s\n",(nm),(fm)) ;   \
+     } ncant++ ;                                                         \
+ } while(0)
+
 /*---- setup programs as filters: ppm stdin to some output file ----*/
 
 static void ISQ_setup_ppmto_filters(void)
@@ -271,6 +282,7 @@ static void ISQ_setup_ppmto_filters(void)
    char *pg , *pg2 , *str , *eee ;
    int bv ;
    int dbg ;
+   int ncant=0 , need_netpbm=0 ;  /* 16 Nov 2004 */
 
    ppmto_num = 0 ; bv = ISQ_SAV_PNM ;
 
@@ -297,7 +309,9 @@ static void ISQ_setup_ppmto_filters(void)
          if( dbg ) fprintf(stderr,"IMSAVE: animation filter '%s' for suffix '%s'\n",
                            str , "mpg" ) ;
       }
+      else CANT_FIND("mpeg_encode","MPEG-1") ;
    }
+   else CANT_FIND("cat","PPM") ;  /* this is the end of the world! */
 
    /*-- write JPEG --*/
 
@@ -312,6 +326,7 @@ static void ISQ_setup_ppmto_filters(void)
       ppmto_jpg75_filter = AFMALL( char, strlen(pg)+32);
       sprintf(ppmto_jpg75_filter,"%s -quality 80 > %%s",pg) ;
    }
+   else CANT_FIND("cjpeg","JPEG") ;
 
    /*-- write GIF --*/
 
@@ -358,7 +373,10 @@ static void ISQ_setup_ppmto_filters(void)
                               str , "gif" ) ;
          }
       }
+      if( ppmto_agif_filter == NULL )
+        CANT_FIND("gifsicle OR whirlgif","Animated GIF") ;
    }
+   else { CANT_FIND("ppmtogif AND/OR ppmquant","GIF"); need_netpbm++; }
 
    /*-- write TIFF --*/
 
@@ -370,10 +388,11 @@ static void ISQ_setup_ppmto_filters(void)
    } else {                                     /* 03 Jul 2001:      */
       pg = THD_find_executable( "pnmtotiff" ) ; /* must use ppm2tiff */
       if( pg != NULL ){                         /* and pnmtotiff     */
-         str = AFMALL( char, strlen(pg)+32) ;          /* differently       */
+         str = AFMALL( char, strlen(pg)+32) ;   /* differently       */
          sprintf(str,"%s > %%s",pg) ;
          bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
       }
+      else { CANT_FIND("ppm2tiff OR pnmtotiff","TIFF"); need_netpbm++; }
    }
 
    /*-- write Windows BMP --*/
@@ -387,11 +406,13 @@ static void ISQ_setup_ppmto_filters(void)
         sprintf(str,"%s 255 | %s -windows > %%s",pg2,pg) ;
         bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
      }
+     else { CANT_FIND("ppmtobmp AND/OR ppmquant","BMP"); need_netpbm++; }
    } else if( pg != NULL ){                   /* 21 Feb 2003: don't quantize */
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -bpp 24 -windows > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
    }
+   else { CANT_FIND("ppmtobmp","BMP"); need_netpbm++; }
 
    /*-- write Encapsulated PostScript --*/
 
@@ -401,6 +422,7 @@ static void ISQ_setup_ppmto_filters(void)
       sprintf(str,"%s -noturn > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"eps",bv) ;
    }
+   else { CANT_FIND("pnmtops","EPS"); need_netpbm++; }
 
    /*-- write a PDF file (God only knows why) --*/
 
@@ -410,6 +432,7 @@ static void ISQ_setup_ppmto_filters(void)
       sprintf(str,"%s -noturn | %s --filter > %%s",pg,pg2) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"pdf",bv) ;
    }
+   else CANT_FIND("pnmtops AND/OR epstopdf","PDF") ;
 
    /*-- Write a PNG file (again, query God) --*/
 
@@ -418,6 +441,21 @@ static void ISQ_setup_ppmto_filters(void)
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -compression 9 > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"png",bv) ;
+   }
+   else { CANT_FIND("pnmtopng","PNG"); need_netpbm; }
+
+   /*-- 16 Nov 2004: more warnings? --*/
+
+   if( !AFNI_noenv("AFNI_IMSAVE_WARNINGS") && ncant > 0 ){
+     if( need_netpbm > 0 )
+       fprintf(stderr,
+               "++ Some of the missing image Save programs are in\n"
+               "    the netpbm software package, which is freeware.\n" ) ;
+
+     fprintf(stderr,
+               "++ To disable these warnings, set environment\n"
+               "    variable AFNI_IMSAVE_WARNINGS to 'NO'.\n"
+               "+++++++++++++++++++++++++++++++++++++++++++\n" ) ;
    }
 
    return ;
