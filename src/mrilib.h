@@ -630,6 +630,7 @@ extern MRI_IMAGE * mri_1D_fromstring( char * ) ;         /* 28 Apr 2003 */
 
 extern int setup_mri_write_angif( void ) ;               /* 28 Jun 2001 */
 extern int mri_write_angif( char *, MRI_IMARR * ) ;
+extern MRI_IMAGE * mri_colorsetup( int,int,int,int ) ;   /* 05 Oct 2004 */
 
 extern MRI_IMAGE *mri_new_vol      ( int,int,int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_new_vol_empty( int,int,int , MRI_TYPE ) ;

@@ -5218,3 +5218,7 @@
  * Used the above in thd_fdto1D.c to deal with returning time series from
      datasets with mismatched sub-brick types.
  * Also, print a warning for such datasets in thd_initdblk.c.
+
+05 Oct 2004
+ * Modified imseq.c to write animated GIF files with a fixed colormap,
+     to avoid color flashing when (e.g.) rotating a volume rendering.
