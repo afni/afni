@@ -117,7 +117,7 @@ int mri_imcount_mpeg( char *fname )
 
    if( fname == NULL || *fname == '\0' ) return 0 ;
    ii = mri_filesize(fname) ;
-   if( ii <= 0 ) return NULL ;
+   if( ii <= 0 ) return 0 ;
 
    mpeg_setup() ;
 
