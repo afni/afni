@@ -4020,7 +4020,7 @@ char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
 			}			
  			else 
  				{
- 					fprintf (SUMA_STDERR, "Error SUMA_pad_str: Wrong opt paramter, only (0,1) allowed\n", FuncName);
+ 					fprintf (SUMA_STDERR, "Error %s: Wrong opt paramter, only (0,1) allowed\n", FuncName);
  					free (strp);
 					free (buf1);
 					return (NULL);

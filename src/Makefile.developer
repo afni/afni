@@ -32,6 +32,13 @@ LIBDIR     = $(HOME)/abin
 
 LLIBS  = -lmri -lXm -lXt -lX11 -lm -ldl -lc
 
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma (NO STATIC LINKING OF GL libs)
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
+SUMA_LINK_LIB = -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lcurses -lm 
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 ###############################################################
 # Stuff used with the central repository in RCS
 

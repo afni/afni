@@ -49,6 +49,13 @@ LLIBS = -lmri -ldl -lm -lc       \
         /usr/X11R6/lib/libICE.a  \
         /usr/X11R6/lib/libX11.a
 
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma (NO STATIC LINKING OF GL libs)
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
+SUMA_LINK_LIB = -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lcurses -lm 
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 ###############################################################
 
 include Makefile.INCLUDE
