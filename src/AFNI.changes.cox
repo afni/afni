@@ -4283,3 +4283,4 @@
  * Modified to3d.c to deal with double input images (to be converted to floats).
      Also changed mri_read.c, mcw_glob.c, mri_swapbytes.c, 3ddata.h to add
      a "3Dd:" input format for reading doubles from arbitrary files.
+ * Added some new default colorscales to pbar.c.
