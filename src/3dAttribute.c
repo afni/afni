@@ -108,7 +108,14 @@ void atr_print( ATR_any * atr )
          memcpy(str,aa->ch,aa->nch) ; str[aa->nch] = '\0' ;
          eee = tross_Expand_String(str) ;
          if( do_name ) printf("%s = ",aa->name) ;
-         printf("%s\n",eee) ;
+         if( eee != NULL ){
+            printf("%s\n",eee) ; free(eee) ;
+         } else if( str[0] != '\0' ){
+            printf("%s\n",str) ;
+         } else {
+            printf("(null)\n") ;
+         }
+         free(str) ;
       }
       return ;
    }

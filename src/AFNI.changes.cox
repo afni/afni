@@ -2776,3 +2776,9 @@
 
 24 Apr 2001
  * Added "record" capability to imseq.[ch].
+
+25 Apr 2001
+ * Modified imseq.c recording a little.
+ * Fixed a bug in 3dAttribute.c in which the tross_Expand_string()
+     result might be NULL, in which case printing it would crash
+     on some systems.  Also, free()-ed the data from that call.

@@ -292,6 +292,7 @@ static char * ISQ_but_bot_help[NBUTTON_BOT] = {
    "The type of save operation is indicated on the button label, and\n"
    "is selected from the 'Disp' button options window.\n"
    " :bkg = Will save only the background image data values\n"
+   "        (in a recorder window, the background image IS in color)\n"
    " :pnm = Will save the actual displayed image in color (PNM format)\n"
    " :one = Will save just the single frame displayed on the screen\n"
    "        using the PNM format\n"
@@ -2534,11 +2535,13 @@ ENTRY("ISQ_redisplay") ;
 
       switch( seq->record_method ){
          default:
-         case RECORD_METHOD_AFTEREND:    pos = 987654321; meth =  1; break;
-         case RECORD_METHOD_BEFORESTART: pos =  0       ; meth = -1; break;
-         case RECORD_METHOD_INSERT_MM:   pos = -1       ; meth = -1; break;
-         case RECORD_METHOD_INSERT_PP:   pos = -1       ; meth =  1; break;
-         case RECORD_METHOD_OVERWRITE:   pos = -1       ; meth =  0; break;
+         case RECORD_METHOD_AFTEREND:     pos = 987654321; meth =  1; break;
+         case RECORD_METHOD_BEFORESTART:  pos =  0       ; meth = -1; break;
+         case RECORD_METHOD_INSERT_MM:    pos = -1       ; meth = -1; break;
+         case RECORD_METHOD_INSERT_PP:    pos = -1       ; meth =  1; break;
+         case RECORD_METHOD_OVERWRITE:    pos = -1       ; meth =  0; break;
+         case RECORD_METHOD_OVERWRITE_MM: pos = -2       ; meth =  0; break;
+         case RECORD_METHOD_OVERWRITE_PP: pos = -3       ; meth =  0; break;
       }
 
       /* put it there */
@@ -4162,9 +4165,48 @@ ENTRY("drive_MCW_imseq") ;
 
       case isqDR_record_mode:{
          int ii ;
+         static Pixmap record_pixmap = XmUNSPECIFIED_PIXMAP ;
+#define record_width 64
+#define record_height 32
+static unsigned char record_bits[] = {
+   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x81, 0x0f, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x81, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x81, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x81, 0x40, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x02, 0x81, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+   0x81, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x81, 0x40, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x02, 0x81, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+   0x81, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x81, 0x10, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x02, 0x81, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+   0x81, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x81, 0x10, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x02, 0x81, 0x10, 0x70, 0x00, 0xe0, 0xf0, 0x01, 0x02,
+   0x81, 0x20, 0x8c, 0xf0, 0x10, 0x21, 0xe2, 0x03, 0x81, 0x20, 0x02, 0x09,
+   0x09, 0x22, 0x12, 0x02, 0x81, 0x20, 0x02, 0x09, 0x08, 0x22, 0x10, 0x02,
+   0x81, 0x20, 0xfe, 0x09, 0x08, 0x22, 0x10, 0x02, 0x81, 0x40, 0x02, 0x08,
+   0x08, 0x22, 0x10, 0x02, 0x81, 0x40, 0x02, 0x08, 0x08, 0x22, 0x10, 0x02,
+   0x81, 0x40, 0x02, 0x08, 0x08, 0x22, 0x10, 0x02, 0x81, 0x40, 0x02, 0x08,
+   0x08, 0x22, 0x10, 0x02, 0x81, 0x40, 0x04, 0x11, 0x11, 0x21, 0x20, 0x02,
+   0x81, 0x40, 0xf8, 0xe0, 0xe0, 0x20, 0xc0, 0x01, 0x01, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00};
 
          if( seq->record_mode ) RETURN( False ) ;  /* already on */
          seq->record_mode = 1 ;
+
+         /* create background pixmap */
+
+         if( record_pixmap == XmUNSPECIFIED_PIXMAP )
+            record_pixmap = XCreatePixmapFromBitmapData(
+                              seq->dc->display ,
+                              RootWindowOfScreen(seq->dc->screen) ,
+                              record_bits, record_width, record_height ,
+                              seq->dc->ovc->pixov_brightest ,
+                              seq->dc->ovc->pixov_darkest ,
+                              DefaultDepthOfScreen(seq->dc->screen) ) ;
+
+         XtVaSetValues( seq->wform, XmNbackgroundPixmap, record_pixmap, NULL ) ;
 
          /* disable various widgets */
 
@@ -4199,6 +4241,12 @@ ENTRY("drive_MCW_imseq") ;
          MCW_set_widget_label( seq->wbut_bot[NBUT_DISP] , "Kill" ) ;
          MCW_unregister_help( seq->wbut_bot[NBUT_DISP] ) ;
          MCW_register_hint( seq->wbut_bot[NBUT_DISP] , "Erase current image" ) ;
+         MCW_register_help( seq->wbut_bot[NBUT_DISP] ,
+                            "Erase the current image in the recorded sequence.\n"
+                            "If not later overwritten, this image will NOT\n"
+                            "be saved when you use Save:bkg to write the image\n"
+                            "sequence to disk.\n"
+                           ) ;
 
          /* attach Done to Save (since Mont is now hidden) */
 
@@ -6523,6 +6571,8 @@ ENTRY("ISQ_record_button") ;
                       " Insert --    = insert before current sequence position\n"
                       " Insert ++    = insert after current sequence position\n"
                       " OverWrite    = replace current sequence position\n"
+                      " -- OverWrite = replace image before current position\n"
+                      " ++ OverWrite = replace image after current position\n"
                       "\n"
                       "---- HINTS and NOTES ----\n"
                       "\n"
@@ -6530,15 +6580,21 @@ ENTRY("ISQ_record_button") ;
                       "   control panel before recording images.\n"
                       "* The recording window is like a dataset image\n"
                       "   viewing window with most controls removed.\n"
+                      "   The slider moves between recorded images, rather\n"
+                      "   than between slices.\n"
                       "* The new 'Kill' button in the recording window lets\n"
                       "   you erase one image from the recorded sequence.\n"
+                      "   Erased images, if not overwritten, will NOT be\n"
+                      "   saved to disk.\n"
                       "* Use 'Save:bkg' in the recording window to save the\n"
                       "   sequence of recorded images to disk in PPM format.\n"
+                      "   The recorded images are in color, and will be saved\n"
+                      "   in color (despite the :bkg label on the Save button).\n"
                       "* You may want to use set 'Warp Anat on Demand' on\n"
                       "   the Datamode control panel to force the display\n"
                       "   voxels to be cubical.  Otherwise, the saved image\n"
                       "   pixels will have the same aspect ratio as the voxels\n"
-                      "   in the dataset, which may not be square.\n"
+                      "   in the dataset, which may not be square!\n"
                      ) ;
 
    /*-- top of menu = a label to click on that does nothing at all --*/
@@ -6560,11 +6616,13 @@ ENTRY("ISQ_record_button") ;
    /*-- menu toggles switches --*/
 
    {  static char * status_label[3] = { "Off" , "Next One" , "Stay On" } ;
-      static char * method_label[5] = { "After End"    ,
+      static char * method_label[7] = { "After End"    ,
                                         "Before Start" ,
                                         "Insert --"    ,
                                         "Insert ++"    ,
-                                        "OverWrite"     } ;
+                                        "OverWrite"    ,
+                                        "-- OverWrite" ,
+                                        "++ OverWrite"   } ;
 
       seq->record_status_bbox =
          new_MCW_bbox( menu , 3,status_label ,
@@ -6578,7 +6636,7 @@ ENTRY("ISQ_record_button") ;
                NULL ) ;
 
       seq->record_method_bbox =
-         new_MCW_bbox( menu , 5,method_label ,
+         new_MCW_bbox( menu , 7,method_label ,
                        MCW_BB_radio_one , MCW_BB_noframe ,
                        ISQ_record_CB , (XtPointer) seq ) ;
       seq->record_method = RECORD_METHOD_AFTEREND ;
@@ -6630,7 +6688,12 @@ ENTRY("ISQ_record_CB") ;
   with method meth: -1 => insert before pos
                     +1 => insert after pos
                      0 => overwrite pos
-  If pos < 0, this means use the current recorder position.
+  If pos < 0, then it means
+                    -1 => current position
+                    -2 => before current position
+                    -3 => after current position
+  If pos >= 0, then it is an index into the recorded image sequence.
+  If it is past the end of the sequence, then it means the end.
   The recorder is left positioned at the new image.
 ------------------------------------------------------------------------*/
 
@@ -6665,8 +6728,11 @@ ENTRY("ISQ_record_addim") ;
    opos = pos ;
    if( opos < 0 ){  /* need current position of recorder */
 
-      if( seq->record_imseq != NULL )
+      if( seq->record_imseq != NULL ){
          drive_MCW_imseq( seq->record_imseq, isqDR_getimnr, (XtPointer)&opos );
+              if( pos == -2 && opos > 0                                ) opos--;
+         else if( pos == -3 && opos < IMARR_COUNT(seq->record_imarr)-1 ) opos++;
+      }
       else
          opos = -1 ; /* special case */
 
@@ -6692,8 +6758,8 @@ ENTRY("ISQ_record_addim") ;
    } else {  /* overwrite image */
 
       bot = opos ;
-      mri_free( IMARR_SUBIM(seq->record_imarr,bot) ) ;
-      IMARR_SUBIM(seq->record_imarr,bot) = tim ;
+      mri_free( IMARR_SUBIM(seq->record_imarr,bot) ) ; /* out with the old */
+      IMARR_SUBIM(seq->record_imarr,bot) = tim ;       /* in with the new */
    }
 
    /* at this point, we put the new image into location bot in the array */
