@@ -1071,15 +1071,16 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
          /* skip "special" attributes */
 
-         if( strcmp(nel->attr_lhs[ii],"ni_form")   == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_type")   == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_dimen")  == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_veclen") == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_vecnum") == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_delta")  == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_origin") == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_units")  == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_axes")   == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_form")     == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_type")     == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_dimen")    == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_veclen")   == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_vecnum")   == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_delta")    == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_origin")   == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_units")    == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_axes")     == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_datasize") == 0 ) continue ; /* 13 Apr 2004 */
 
          kk = NI_strlen( nel->attr_rhs[ii] ) ;
 
