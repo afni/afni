@@ -188,9 +188,11 @@ nifti_image *nifti_image_from_ascii( char *str, int * bytes_read ) ;
 size_t       nifti_get_volsize(nifti_image *nim) ;
 
 /* basic file operations */
-int          is_nifti_file( char *hname ) ;
-char *       nifti_find_file_extension( char * name ) ;
-int          nifti_validfilename(char* fname) ;
+char * nifti_makehdrname  (char * prefix, int nifti_type, int check, int comp);
+char * nifti_makeimgname  (char * prefix, int nifti_type, int check, int comp);
+int    is_nifti_file      (char *hname);
+char * nifti_find_file_extension(char * name);
+int    nifti_validfilename(char* fname);
 
 int          disp_nifti_1_header( char * info, nifti_1_header * hp ) ;
 void         nifti_set_debug_level( int level ) ;
@@ -215,8 +217,8 @@ mat44 make_orthog_mat44( float r11, float r12, float r13 ,
                          float r21, float r22, float r23 ,
                          float r31, float r32, float r33  ) ;
 
-int   unescape_string( char *str ) ;  /* string utility functions */
-char *escapize_string( char *str ) ;
+static int   unescape_string( char *str ) ;  /* string utility functions */
+static char *escapize_string( char *str ) ;
 
 int short_order(void) ;              /* CPU byte order */
 
@@ -241,14 +243,16 @@ int    nifti_is_gzfile   (char* fname);
 char * nifti_makebasename(char* fname);
 
 /* extension routines */
+static int  valid_nifti_extensions(nifti_image *nim);
 static int  nifti_read_extensions( nifti_image *nim, znzFile fp, int remain );
 static int  nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,
                                        int remain, znzFile fp );
 static int  nifti_add_exten_to_list( nifti1_extension *  new_ext,
                                      nifti1_extension ** list, int new_length );
 static int  nifti_write_extensions(znzFile fp, nifti_image *nim);
-static int  nifti_valid_extension(nifti_image *nim, int size,int code, int rem);
+static int  nifti_check_extension(nifti_image *nim, int size,int code, int rem);
 static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
+
 
 /* NBL routines */
 static int  nifti_load_NBL_bricks(nifti_image * nim , int * slist, int * sindex,
@@ -265,8 +269,8 @@ static int int_force_positive( int * list, int nel );
 /* internal I/O routines */
 static znzFile nifti_image_write_hdr_img(nifti_image *nim , int write_data , 
                                          char* opts);
-static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data , 
-                         char* opts, znzFile *imgfile, nifti_brick_list * NBL );
+static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts , 
+                         char* opts, znzFile imgfile, nifti_brick_list * NBL );
 static znzFile nifti_image_open(char *hname , char *opts , nifti_image **nim);
 static znzFile nifti_image_load_prep( nifti_image *nim );
 static size_t nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot,
@@ -279,6 +283,8 @@ static size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes);
 static int          has_ascii_header( znzFile fp ) ;
 static nifti_image *read_ascii_image( znzFile fp, char *fname, int flen,
                                       int read_data ) ;
+static znzFile nifti_write_ascii_image(nifti_image *nim, nifti_brick_list * NBL,
+                                    char *opts, int write_data, int leave_open);
 
 
 /* other routines */
