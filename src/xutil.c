@@ -1666,8 +1666,9 @@ ENTRY("RWC_xineramize") ;
 void RWC_destroy_nullify_CB( Widget w, XtPointer xp, XtPointer cd )
 {
    void ** p = (void **) xp ;
+ENTRY("RWC_destroy_nullify_CB") ;
    if( p != NULL ) *p = NULL ;
-   return ;
+   EXRETURN ;
 }
 
 void RWC_destroy_nullify( Widget w, void **p )
