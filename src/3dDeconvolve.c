@@ -382,6 +382,8 @@ static int show_singvals = 0 ;
 
 /*---------- Typedefs for basis function expansions of the IRF ----------*/
 
+#include "parser.h"   /* for EXPR, et cetera */
+
 /***** Search for 'basis_' to find all stuff related to this *****/
 
 #define USE_BASIS   /*** for Deconvolve.c ***/
@@ -404,6 +406,7 @@ typedef struct {
   int nfunc , pbot ;
   float tbot,ttop ;
   basis_func *bfunc ;
+  char *name ;
 } basis_expansion ;
 
 /** Prototypes for some basis expansion functions appearing (much) later. **/
@@ -428,10 +431,31 @@ static MRI_IMAGE       **basis_vect  = NULL ; /* vectors generated from above */
 static float             basis_TR    = 1.0f ; /* data time step in seconds */
 static int               basis_count = 0    ; /* any -stim_times inputs? */
 static float             basis_dtout = 0.0f ; /* IRF time step in seconds */
+static float             irc_dt      = 0.0f ;
 
 static int               basis_need_mse = 0 ; /* need MSE volume */
 
 #define basis_filler 3.e+33 /* filler in basis_times for missing entries */
+
+/*...........................................................................*/
+
+typedef struct {           /** structure to hold one -IRC_times stuff **/
+  int npar , pbot ;
+  float *ww ;              /* [npar] */
+  float scale_fac ;        /* fixed multiplier */
+  int denom_flag ;         /* what to put in denominator? */
+  char *name ;
+} basis_irc ;
+
+typedef struct { float a,b ; } floatpair ;
+
+#define denom_BASELINE (1)
+
+static int num_irc     = 0    ;  /* number of IRCs */
+static basis_irc **irc = NULL ;  /* array of IRCs */
+
+floatpair evaluate_irc( basis_irc *birc , vector coef ,
+                        float base , float mse , matrix cvar ) ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -612,6 +636,10 @@ void display_help_menu()
     "                       by the matrix contained in file gltname         \n"
     "[-glt_label k glabel]  glabel = label for kth general linear test      \n"
     "[-gltsym gltname]    Read the GLT with symbolic names from the file    \n"
+    "                                                                       \n"
+    "[-TR_irc dt]                                                           \n"
+    "   Use 'dt' as the stepsize for computation of integrals in -IRC_times \n"
+    "   options.  Default is to use value given in '-TR_times'.             \n"
     "                                                                       \n"
     "**** Options for output 3d+time datasets:                              \n"
     "[-iresp k iprefix]   iprefix = prefix of 3d+time output dataset which  \n"
@@ -1219,6 +1247,18 @@ void get_options
         nopt++ ; continue ;
       }
 
+      /*-----  -TR_irc irc_dt [08 Sep 2004]  -----*/
+      if( strcmp(argv[nopt],"-TR_irc") == 0 ){
+        nopt++ ;
+        if( nopt >= argc ) DC_error("need argument after -TR_irc") ;
+        sscanf( argv[nopt] , "%f" , &irc_dt ) ;
+        if( basis_dtout <= 0.0f ){
+          fprintf(stderr,"** ERROR: -TR_irc '%s' is illegal\n",argv[nopt]) ;
+          exit(1) ;
+        }
+        nopt++ ; continue ;
+      }
+
       /*-----  -stim_times k sname rtype [10 Aug 2004]  -----*/
       if( strcmp(argv[nopt],"-stim_times") == 0 ){
         nopt++ ;
@@ -1692,6 +1732,8 @@ void get_options
   for( k=0 ; k < option_data->num_stimts ; k++ ){
 
     if( basis_stim[k] != NULL ){    /* -stim_times input */
+
+      basis_stim[k]->name = strdup( option_data->stim_label[k] ) ;
 
       if( option_data->sresp_filename[k] != NULL ) basis_need_mse = 1 ;
 
@@ -3771,6 +3813,7 @@ void calculate_results
 
   { int m , npar , j ;        /* 31 Aug 2004 (RWCox) */
     register double sum ;
+    float mmax ;
 
     Xcol_inbase = (int *)  calloc(sizeof(int)  ,p) ;
     Xcol_mean   = (float *)calloc(sizeof(float),p) ;
@@ -3786,10 +3829,19 @@ void calculate_results
       m += npar ;
     }
 
+    mmax = 0.0f ;
     for( j=0 ; j < p ; j++ ){   /* compute mean of each column */
       sum = 0.0l ;
       for( i=0 ; i < X.rows ; i++ ) sum += X.elts[i][j] ;
       Xcol_mean[j] = (float)(sum/X.rows) ;
+      if( Xcol_inbase[j] && fabs(Xcol_mean[j]) > mmax )  /* find largest */
+        mmax = fabs(Xcol_mean[j]) ;             /* mean of baseline cols */
+    }
+
+    if( mmax > 0.0f ){    /* mark baseline cols that have nontrivial means */
+      mmax *= 9.99e-6 ;
+      for( j=0 ; j < p ; j++ )
+        if( Xcol_inbase[j] && fabs(Xcol_mean[j]) > mmax ) Xcol_inbase[j] = 2 ;
     }
   }
 
@@ -6954,12 +7006,9 @@ static float basis_legendre( float x, float bot, float top, float n, void *q )
 
 
 /*--------------------------------------------------------------------------*/
-#define USE_EXPR
-#ifdef USE_EXPR
-# include "parser.h"
-# define ITT 19
-# define IXX 23
-# define IZZ 25
+#define ITT 19
+#define IXX 23
+#define IZZ 25
 
 /*------------------------------------------------------*/
 /*! Basis function given by a user-supplied expression. */
@@ -6976,7 +7025,6 @@ static float basis_expr( float x, float bot, float top, float dtinv, void *q )
    val = PARSER_evaluate_one( pc , atoz ) ;
    return (float)val ;
 }
-#endif
 
 /*--------------------------------------------------------------------------*/
 /* Take a string and generate a basis expansion structure from it.
@@ -6996,6 +7044,7 @@ basis_expansion * basis_parser( char *sym )
    if( cpt != NULL ){ *cpt = '\0' ; cpt++ ; } /* cut string there */
 
    be = (basis_expansion *)malloc(sizeof(basis_expansion)) ;
+   be->name = NULL ;   /* will be fixed later */
 
    /*--- GAM(b,c) ---*/
 
@@ -7211,7 +7260,6 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[0].b = bot ;
      be->bfunc[0].c = 0.0f ;
 
-#ifdef USE_EXPR
    /*--- EXPR(bot,top) exp1 exp2 ... ---*/
 
    } else if( strcmp(scp,"EXPR") == 0 ){   /* 28 Aug 2004 */
@@ -7267,7 +7315,6 @@ basis_expansion * basis_parser( char *sym )
      PARSER_set_printout(0) ;
 
      NI_delete_str_array(sar) ;
-#endif
 
    /*--- NO MORE BASIS FUNCTION CHOICES ---*/
 
@@ -7558,7 +7605,52 @@ float baseline_mean( vector coef )  /* 31 Aug 2004 */
 
    sum = 0.0l ;
    for( jj=0 ; jj < nParam ; jj++ )
-     if( Xcol_inbase[jj] ) sum += coef.elts[jj] * Xcol_mean[jj] ;
+     if( Xcol_inbase[jj] == 2 ) sum += coef.elts[jj] * Xcol_mean[jj] ;
 
    return (float)sum ;
+}
+
+/*----------------------------------------------------------------------*/
+
+#if 0
+typedef struct {           /** structure to hold one -IRC_times stuff **/
+  int npar , pbot ;
+  float *ww ;              /* [npar] */
+  float scale_fac ;        /* fixed multiplier */
+  int denom_flag ;         /* what to put in denominator? */
+  char *name ;
+} basis_irc ;
+#endif
+
+floatpair evaluate_irc( basis_irc *birc , vector coef ,
+                        float base , float mse , matrix cvar )
+{
+   floatpair vt={0.0f,0.0f} ;
+   int ii,jj, np, pb ;
+   double asum , bsum ;
+   float *ww ;
+
+   np = birc->npar ;
+   pb = birc->pbot ;
+   ww = birc->ww ;
+
+   asum = 0.0l ;
+   for( ii=0 ; ii < np ; ii++ )
+     asum += coef.elts[pb+ii] * ww[ii] ;
+
+   bsum = 0.0l ;
+   for( ii=0 ; ii < np ; ii++ )
+     for( jj=0 ; jj < np ; jj++ )
+       bsum += cvar.elts[pb+ii][pb+jj] * ww[ii] * ww[jj] ;
+
+   bsum *= mse ;  /* variance estimate */
+
+   if( bsum > 0.0l ) vt.b = asum / sqrt(bsum) ;  /* t statistic */
+
+   vt.a = (float)(asum * birc->scale_fac) ;
+   if( birc->denom_flag && denom_BASELINE ){
+     if( base == 0.0f ) vt.a  = 0.0f ;
+     else               vt.a /= base ;
+   }
+   return vt ;
 }
