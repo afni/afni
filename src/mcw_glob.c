@@ -159,6 +159,15 @@ static	void	 qprintf	__P((Char *));
 #define	M_SET		META('[')
 #define	ismeta(c)	(((c)&M_META) != 0)
 
+#ifdef SOLARIS_DIRENT_PATCH
+struct  dirent {
+     ino_t            d_ino;
+     off_t            d_off;
+     unsigned short        d_reclen;
+     char             d_name[1];
+};
+#endif
+
 /*
  * Need to dodge two kernel bugs:
  * opendir("") != opendir(".")
@@ -533,7 +542,12 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
     struct dirent *dp;
     int     err;
     Char m_not = (pglob->gl_flags & GLOB_ALTNOT) ? M_ALTNOT : M_NOT;
-    char cpathbuf[MAXPATHLEN], *ptr;;
+    char cpathbuf[MAXPATHLEN], *ptr;
+#ifdef SOLARIS_DIRENT_PATCH
+    /* declaration of vars used in the solaris-patch */
+    char dname[255];
+    int ii;
+#endif
 
     *pathend = EOS;
     errno = 0;
@@ -556,10 +570,28 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
 	register unsigned char *sc;
 	register Char *dc;
 
+#ifdef SOLARIS_DIRENT_PATCH
+	/**********
+	begin patch
+	**********/
+	for (ii = -2 ; dp->d_name[ii] != '\0' ; ++ii) {
+	  dname[ii+2] = dp->d_name[ii];
+	}
+        dname[ii+2] = '\0';
+	/**********
+	end patch
+	now use dname for dp->d_name
+	**********/
+
 	/* initial DOT must be matched literally */
+	if (dname[0] == DOT && *pattern != DOT)
+	    continue;
+	for (sc = (unsigned char *) dname, dc = pathend; 
+#else
 	if (dp->d_name[0] == DOT && *pattern != DOT)
 	    continue;
 	for (sc = (unsigned char *) dp->d_name, dc = pathend; 
+#endif
 	     (*dc++ = *sc++) != '\0';)
 	    continue;
 	if (match(pathend, pattern, restpattern, (int) m_not) == no_match) {

@@ -1671,6 +1671,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
          else
             strcat(seq->saver_prefix,"pnm") ;
 
+         reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , 1 ) ;
          if( tim != NULL ){
             printf("Writing one PNM image to file %s\n",seq->saver_prefix) ;

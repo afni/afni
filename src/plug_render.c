@@ -2425,7 +2425,7 @@ void REND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    if( render_handle != NULL ){
       destroy_MREN_renderer(render_handle) ; render_handle = NULL ;
    }
-   FREE_VOLUMES ;
+   FREE_VOLUMES ; INVALIDATE_OVERLAY ;
 
    /* accept this dataset */
 
@@ -2515,6 +2515,8 @@ void REND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    /* accept this dataset */
 
+   FREE_VOLUMES ; INVALIDATE_OVERLAY ;
+
    oset      = func_dset ;
    func_dset = qset ;
 
@@ -2531,7 +2533,7 @@ void REND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
                       func_color_ival ,         /* new inival */
                       0 ,                       /* new decim? */
                       REND_choose_av_label_CB , /* text routine */
-                      func_dset                      /* text data */
+                      func_dset                 /* text data */
                     ) ;
 
    AV_SENSITIZE( wfunc_color_av , (DSET_NVALS(func_dset) > 1) ) ;
@@ -2545,7 +2547,7 @@ void REND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
                       func_thresh_ival ,        /* new inival */
                       0 ,                       /* new decim? */
                       REND_choose_av_label_CB , /* text routine */
-                      func_dset                      /* text data */
+                      func_dset                 /* text data */
                     ) ;
 
    AV_SENSITIZE( wfunc_thresh_av , (DSET_NVALS(func_dset) > 1) ) ;
@@ -2908,13 +2910,13 @@ int REND_cutout_state_changed(void)
 {
    int ii ;
 
+   if( current_cutout_state.opacity_scale != old_cutout_state.opacity_scale ) return 1;
+
    if( current_cutout_state.num != old_cutout_state.num ) return 1 ;
    if( current_cutout_state.num == 0                    ) return 0 ;
 
    if( current_cutout_state.num > 1 &&
        (current_cutout_state.logic != old_cutout_state.logic) ) return 1 ;
-
-   if( current_cutout_state.opacity_scale != old_cutout_state.opacity_scale ) return 1 ;
 
    for( ii=0 ; ii < current_cutout_state.num ; ii++ ){
       if( current_cutout_state.type[ii] != old_cutout_state.type[ii] ) return 1 ;

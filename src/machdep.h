@@ -70,6 +70,17 @@
                           ability to track and debug the use of
                           malloc-ed memory space.)
 
+    SOLARIS_DIRENT_PATCH = if this is set, then a patch for the
+                           difference between Sun's "dirent" functions
+                           and everbody else's is used in the file
+                           mcw_glob.c -- this seems to be necessary
+                           on Solaris 2.6 systems in order to get the
+                           AFNI file reading software to work.
+                           (This patch was supplied by Christoph Losert
+                           of the Institut fuer Radiologische Diagnostik,
+                           Munchen, and has not been tested at MCW due to
+                           the absence of any Sun workstations to play with.)
+
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 
