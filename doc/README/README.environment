@@ -1685,6 +1685,16 @@ will save snapfiles with names like "Elvis_000666.ppm".  You can view snapfiles
 with the "aiv" ("AFNI Image Viewer") utility, the "xv" program, or many other
 Unix utilities.
 
+-------------------------------
+Variable: AFNI_STARTUP_WARNINGS
+-------------------------------
+When the interactive AFNI program starts, it may pop up warnings about the
+programming environment for which it was compiled.  At this time, there are
+two such warning messages possible:
+  LessTiff: AFNI will work with LessTif, but works better with Motif.
+  Button-3: On Solaris 2.8, Button-3 popup menus don't work quite properly.
+If you are tired of seeing these messages, set AFNI_STARTUP_WARNINGS to NO.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
