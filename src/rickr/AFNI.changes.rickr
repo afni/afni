@@ -323,5 +323,5 @@
   * modified plug_roiedit.[ch]: old/new -> Bold/Bnew for C++ compilation
 
 08 October 2003:
-  * modified @SUMA_AlignToExperiment to use tcsh instead of csh (for goto)
+  * modified @SUMA_AlignToExperiment to use tcsh instead of csh (for $#)
 
