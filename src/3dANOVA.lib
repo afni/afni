@@ -707,9 +707,17 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
       strcat (command_str, " ");
       strcat (command_str, DSET_HEADNAME(new_dset));
 
-      if( use_1D_filenames ){            /* 14 Mar 2003 - RWCox */
-        int ll = strlen(command_str) ;
-        command_str[ll-10] = '\0' ; strcat(command_str,".1D") ;
+      switch( use_1D_filenames ){  /* 14 Mar 2003 - RWCox */
+        default: break ;
+
+        case 1:
+        case 3:{ int ll = strlen(command_str) ;
+                 command_str[ll-10] = '\0' ;  strcat(command_str,".") ;
+                 if( use_1D_filenames == 1 )  strcat(command_str,"1") ;
+                 else                         strcat(command_str,"3") ;
+                                              strcat(command_str,"D") ;
+        }
+        break ;
       }
 }
 
@@ -726,11 +734,37 @@ void remove_dataset (THD_3dim_dataset * new_dset, char * filename)
 		   ADN_prefix, filename,
 		   ADN_none);
 
-  if (ISVALID_3DIM_DATASET(new_dset))
-    { 
-      remove (DSET_HEADNAME(new_dset));
-      remove (DSET_BRIKNAME(new_dset));
-    }
+  if( !ISVALID_DSET(new_dset) ) return ;
+
+#if 0
+  fprintf(stderr,"remove_dataset(%s): ",filename) ;
+#endif
+
+   switch( use_1D_filenames ){  /* 14 Mar 2003 - RWCox */
+     default:
+       remove (DSET_HEADNAME(new_dset));
+       remove (DSET_BRIKNAME(new_dset));
+#if 0
+       fprintf(stderr,"%s ",DSET_HEADNAME(new_dset)) ;
+       fprintf(stderr,"%s\n",DSET_BRIKNAME(new_dset)) ;
+#endif
+
+     case 1:
+     case 3:{
+       char *fname=strdup(DSET_BRIKNAME(new_dset)); int ll=strlen(fname);
+       if( ll > 10 && strstr(fname,".BRIK") != NULL ){
+         fname[ll-10] = '\0' ;        strcat(fname,".") ;
+         if( use_1D_filenames == 1 )  strcat(fname,"1") ;
+         else                         strcat(fname,"3") ;
+                                      strcat(fname,"D") ;
+       }
+#if 0
+       fprintf(stderr,"%s\n",fname);
+#endif
+       remove(fname) ; free(fname) ;
+     }
+     break ;
+   }
 
 }
 

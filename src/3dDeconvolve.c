@@ -1,16 +1,12 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1998-2002, and are released under the Gnu General Public
+   of Wisconsin, 1998-2003, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-#if 1             /* set this to 0 to disable multiple gets */
-#define USE_GET   /* RWCox: extract multiple timeseries at once for speed */
-#endif
-
 /*---------------------------------------------------------------------------*/
 /*
-  Program to calculate the deconvolution of a measured 3d+time dataset
+  Program to calculate the deconvolution of a measurement 3d+time dataset
   with a specified input stimulus time series.  This program will also
   perform multiple linear regression using multiple input stimulus time
   series. Output consists of an AFNI 'bucket' type dataset containing the
@@ -234,6 +230,10 @@
 
   Mod:     If FLOATIZE is defined, uses floats instead of doubles -- RWCox.
   Date:    03 Mar 2003 (triple trinity day)
+
+  Mod:     Added -quiet option to suppress initial screen output.
+  Date:    12 March 2003
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -246,11 +246,15 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "03 March 2003"       /* latest program revision date*/
+#define PROGRAM_LATEST  "18 March 2003"       /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
 #define RA_error DC_error
+
+#if 1             /* set this to 0 to disable multiple gets */
+#define USE_GET   /* RWCox: extract multiple timeseries at once for speed */
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -275,6 +279,7 @@ typedef struct DC_options
   int N;                   /* number of usable data points from input data */
   int polort;              /* degree of polynomial for baseline model */
   float rms_min;           /* minimum rms error to reject reduced model */
+  int quiet;               /* flag to suppress screen output */  
   int progress;            /* print periodic progress reports */
   float fdisp;             /* minimum f-statistic for display */ 
   char * input_filename;   /* input 3d+time dataset */
@@ -334,14 +339,30 @@ void DC_error (char * message)
 
 
 /*---------------------------------------------------------------------------*/
+  
+void identify_software ()
+{
+    
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+  printf ("\n");
+}
+
+/*---------------------------------------------------------------------------*/
 /*
   Routine to display 3dDeconvolve help menu.
 */
 
 void display_help_menu()
 {
+  identify_software();
+
   printf (
-"Program to calculate the deconvolution of a measured 3d+time dataset       \n"
+"Program to calculate the deconvolution of a measurement 3d+time dataset    \n"
 "with a specified input stimulus time series.  This program will also       \n"
 "perform multiple linear regression using multiple input stimulus time      \n"
 "series. Output consists of an AFNI 'bucket' type dataset containing the    \n"
@@ -353,6 +374,8 @@ void display_help_menu()
     "                                                                       \n"
     "Usage:                                                                 \n"
     PROGRAM_NAME "\n"
+    "                                                                       \n"
+    "     Input data and control options:                                   \n"
     "-input fname         fname = filename of 3d+time input dataset         \n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
     "[-nodata]            Evaluate experimental design only (no input data) \n"
@@ -366,11 +389,8 @@ void display_help_menu()
     "[-polort pnum]       pnum = degree of polynomial corresponding to the  \n"
     "                       null hypothesis  (default: pnum = 1)            \n"
     "[-rmsmin r]          r = minimum rms error to reject reduced model     \n"
-    "[-xout]              flag to write X and inv(X'X) matrices to screen   \n"
-    "[-progress n]        Write progress report every n voxels              \n"
-    "[-fdisp fval]        Write (to screen) results for those voxels        \n"
-    "                       whose F-statistic is > fval                     \n"
     "                                                                       \n"
+    "     Input stimulus options:                                           \n"
     "-num_stimts num      num = number of input stimulus time series        \n"
     "                       (0 <= num)   (default: num = 0)                 \n"
     "-stim_file k sname   sname = filename of kth time series input stimulus\n"
@@ -384,34 +404,32 @@ void display_help_menu()
     "                       Note: This option requires 0 slice offset times \n"
     "                       (default: p = 1)                                \n"
     "                                                                       \n"
+    "     General linear test (GLT) options:                                \n"
     "-num_glt num         num = number of general linear tests              \n"
     "                       (0 <= num)   (default: num = 0)                 \n"
     "[-glt s gltname]     Perform s simultaneous linear tests, as specified \n"
     "                       by the matrix contained in file gltname         \n"
     "[-glt_label k glabel]  glabel = label for kth general linear test      \n"
     "                                                                       \n"
+    "     Options for output 3d+time datasets:                              \n"
     "[-iresp k iprefix]   iprefix = prefix of 3d+time output dataset which  \n"
     "                       will contain the kth estimated impulse response \n"
-    "                                                                       \n"
     "[-tshift]            Use cubic spline interpolation to time shift the  \n"
-    "                     estimated impulse response function, in order to  \n"
-    "                     correct for differences in slice acquisition      \n"
-    "                     times. Note that this effects only the 3d+time    \n"
-    "                     output dataset generated by the -iresp option.    \n"
-    "                                                                       \n"
+    "                       estimated impulse response function, in order to\n"
+    "                       correct for differences in slice acquisition    \n"
+    "                       times. Note that this effects only the 3d+time  \n"
+    "                       output dataset generated by the -iresp option.  \n"
     "[-sresp k sprefix]   sprefix = prefix of 3d+time output dataset which  \n"
     "                       will contain the standard deviations of the     \n"
     "                       kth impulse response function parameters        \n"
-    "                                                                       \n"
     "[-fitts  fprefix]    fprefix = prefix of 3d+time output dataset which  \n"
     "                       will contain the (full model) time series fit   \n"
     "                       to the input data                               \n"
-    "                                                                       \n"
     "[-errts  eprefix]    eprefix = prefix of 3d+time output dataset which  \n"
     "                       will contain the residual error time series     \n"
     "                       from the full model fit to the input data       \n"
     "                                                                       \n"
-    "  The following options control the contents of the bucket dataset:    \n"
+    "     Options to control the contents of the output bucket dataset:     \n"
     "[-fout]            Flag to output the F-statistics                     \n"
     "[-rout]            Flag to output the R^2 statistics                   \n"
     "[-tout]            Flag to output the t-statistics                     \n"
@@ -422,11 +440,17 @@ void display_help_menu()
     "                     (and associated statistics)                       \n"
     "[-full_first]      Flag to specify that the full model statistics will \n"
     "                     appear first in the bucket dataset output         \n"
-    "                                                                       \n"
     "[-bucket bprefix]  Create one AFNI 'bucket' dataset containing various \n"
-    "                   parameters of interest, such as the F-statistic for \n"
-    "                   significance of the estimated impulse response.     \n"
-    "                   Output 'bucket' dataset is written to prefixname.   \n"
+    "                     parameters of interest, such as the estimated IRF \n"
+    "                     coefficients, and full model fit statistics.      \n"
+    "                     Output 'bucket' dataset is written to bprefix.    \n"
+    "                                                                       \n"
+    "     The following options control the screen output only:             \n"
+    "[-quiet]             Flag to suppress initial screen output            \n"
+    "[-xout]              Flag to write X and inv(X'X) matrices to screen   \n"
+    "[-progress n]        Write statistical results for every nth voxel     \n"
+    "[-fdisp fval]        Write statistical results for those voxels        \n"
+    "                       whose full model F-statistic is > fval          \n"
     );
 
     printf("\n"
@@ -457,7 +481,6 @@ void initialize_options
   int is;                     /* input stimulus time series index */
 
 
-
   /*----- Initialize default values -----*/
   option_data->nxyz     = -1;
   option_data->nt       = -1;
@@ -466,6 +489,7 @@ void initialize_options
   option_data->N        = 0;
   option_data->polort   = 1;
   option_data->rms_min  = 0.0;
+  option_data->quiet    = 0;
   option_data->progress = 0;
   option_data->fdisp    = -1.0;
   option_data->nodata   = 0;
@@ -474,7 +498,6 @@ void initialize_options
   option_data->qp       = 0;
   option_data->nbricks  = 0;
   
-
   /*----- Initialize stimulus options -----*/
   option_data->num_stimts = 0;
   option_data->stim_filename = NULL;
@@ -503,7 +526,6 @@ void initialize_options
   option_data->nocout = 0;
   option_data->full_first = 0;
 
-
   /*----- Initialize character strings -----*/
   option_data->input_filename = NULL;
   option_data->mask_filename = NULL;  
@@ -513,8 +535,6 @@ void initialize_options
   option_data->bucket_filename = NULL;
   option_data->fitts_filename = NULL;
   option_data->errts_filename = NULL;
-
-
 
 }
 
@@ -785,6 +805,15 @@ void get_options
 	  continue;
 	}
 
+
+      /*-----   -quiet   -----*/
+      if (strcmp(argv[nopt], "-quiet") == 0)
+	{
+	  option_data->quiet = 1;
+	  nopt++;
+	  continue;
+	}
+      
       
       /*-----   -progress n  -----*/
       if (strcmp(argv[nopt], "-progress") == 0)
@@ -2268,6 +2297,10 @@ void initialize_program
   get_options (argc, argv, *option_data);
 
 
+  /*----- Identify software -----*/
+  if (!(*option_data)->quiet)  identify_software();
+
+
   /*----- Read input data -----*/
   read_input_data (*option_data, dset_time, mask_vol, fmri_data, fmri_length,
 		   censor_array, censor_length, block_list, num_blocks, 
@@ -3251,8 +3284,9 @@ void write_ts_array
 
 
   /*----- write afni data set -----*/
-  printf ("--- Writing 3d+time dataset into %s\n",
-	  new_dset->dblk->diskptr->header_name);
+  if (!  option_data->quiet)
+    printf ("--- Writing 3d+time dataset into %s\n",
+	    new_dset->dblk->diskptr->header_name);
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
@@ -3664,8 +3698,8 @@ void write_bucket_data
 
 
   /*----- write bucket data set -----*/
-  printf("Writing `bucket' dataset ");
-  printf("into %s\n", DSET_HEADNAME(new_dset));
+  if (! option_data->quiet)
+    printf("Writing `bucket' dataset into %s\n",  DSET_HEADNAME(new_dset));
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
@@ -4064,15 +4098,6 @@ int main
 
   float ** fitts_vol = NULL;   /* volumes for full model fit to input data */
   float ** errts_vol = NULL;   /* volumes for residual errors */
-
-  
-  /*----- Identify software -----*/
-  printf ("\n\n");
-  printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
-  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
-  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
-  printf ("\n");
 
 
   /*----- Program initialization -----*/

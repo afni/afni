@@ -7,6 +7,10 @@
 #include "mrilib.h"
 #include "thd.h"
 
+static int use_3D_format = 0 ;
+
+void THD_use_3D_format( int uu ){ use_3D_format = uu; }
+
 /*----------------------------------------------------------------
    this routine writes all the data from the dataset into the
    datablock attributes, then writes the datablock to disk
@@ -50,8 +54,6 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
 
    if( DSET_IS_1D(dset) ||
        ( DSET_NY(dset)==1 && DSET_NZ(dset)==1 ) ){            /* 04 Mar 2003 */
-
-     if( !write_brick ) return False ;   /* 1D files always have data */
 
      THD_write_1D( new_sessname , new_prefixname , dset ) ;
      return True ;
@@ -357,14 +359,9 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
 #undef NFPER
 #undef TF
 
-#if 0
-   /*******************************************************/
-   /*----- all attributes now set; change filenames? -----*/
-
-   THD_init_diskptr_names( blk->diskptr ,
-                           new_sessname , NULL , new_prefixname ,
-                           dset->view_type , True ) ;
-#endif
+   if( DSET_IS_3D(dset) || use_3D_format ){                   /* 21 Mar 2003 */
+     THD_write_3D( NULL, NULL, dset ) ; return True ;
+   }
 
    /*----- write datablock to disk -----*/
 

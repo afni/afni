@@ -149,7 +149,8 @@ int main (int argc, char * argv[]) {
    if( dset == NULL          ) Error_Exit("Cannot open dataset") ; 
    if( DSET_IS_MINC(dset)    ) Error_Exit("Cannot use MINC dataset") ;
    if( DSET_IS_ANALYZE(dset) ) Error_Exit("Cannot use ANALYZE dataset") ;
-   if( DSET_IS_1D(dset)      ) Error_Exit("Cannot use 1D dataset") ;
+   if( DSET_IS_1D(dset)      ) Error_Exit("Cannot use .1D dataset") ;
+   if( DSET_IS_3D(dset)      ) Error_Exit("Cannot use .3D dataset") ;
    if( DSET_IS_CTFMRI(dset)  ) Error_Exit("Cannot use CTF dataset") ;
    if( DSET_IS_CTFSAM(dset)  ) Error_Exit("Cannot use CTF dataset") ;
 

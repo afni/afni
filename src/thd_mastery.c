@@ -47,7 +47,8 @@ THD_3dim_dataset * THD_open_dataset( char * pathname )
       return dset ;
    }
 
-   /*-- 04 Mar 2003: allow input of .1D files --*/
+   /*-- 04 Mar 2003: allow input of .1D files   --*/
+   /*--              which deals with [] itself --*/
 
    if( strstr(pathname,".1D") != NULL ){
       dset = THD_open_1D( pathname ) ;

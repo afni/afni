@@ -44,6 +44,12 @@
 
   Mod:      Allow matrices and vectors with zero rows and columns. 
   Date:     26 February 2002
+
+  Mod:      Corrected errors in vector_multiply and vector_multiply_subtract 
+            routines that would produce segmentation fault for certain input 
+	    matrices.
+  Date:     18 March 2003
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -911,8 +917,12 @@ void vector_multiply (matrix a, vector b, vector * c)
   bb = b.elts ;
   for (i = 0;  i < rows;  i++)
     {
-      sum = 0.0 ; aa = a.elts[i] ;
-      for (j = 0;  j < cols;  j++) sum += aa[j] * bb[j] ;
+      sum = 0.0 ; 
+      if (cols > 0)   /* 18 Mar 2003 */
+	{
+	  aa = a.elts[i] ;
+	  for (j = 0;  j < cols;  j++) sum += aa[j] * bb[j] ;
+	}
       c->elts[i] = sum ;
     }
 }
@@ -950,8 +960,12 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   qsum = 0.0 ; bb = b.elts ;
   for (i = 0;  i < rows;  i++)
     {
-      sum = c.elts[i] ; aa = a.elts[i] ;
-      for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
+      sum = c.elts[i] ; 
+      if (cols > 0)   /* 18 Mar 2003 */
+	{
+	  aa = a.elts[i] ;
+	  for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
+	}
       d->elts[i] = sum ; qsum += sum*sum ;
     }
   return qsum ;  /* 26 Feb 2003 */

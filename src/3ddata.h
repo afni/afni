@@ -904,6 +904,9 @@ static THD_warp tempA_warp ;
   type, but that is history.  Data either isn't stored
   (i.e., is warped-on-demand), or is stored in one big
   brick file.
+
+  Later: OK, now we have more than one type.  However, type #1
+         was never implemented (the ill-fated STORAGE_BY_SLICES).
 ***/
 
 #define STORAGE_UNDEFINED  0
@@ -914,6 +917,9 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_CTFMRI  6  /* 04 Dec 2002 */
 #define STORAGE_BY_CTFSAM  7
 #define STORAGE_BY_1D      8  /* 04 Mar 2003 */
+#define STORAGE_BY_3D      9  /* 21 Mar 2003 */
+
+#define LAST_STORAGE_MODE  9
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -1748,6 +1754,9 @@ static char * FUNC_descriptor[] = {
   FUNC_BUCK_DESCRIPTOR
 } ;
 
+#define AFNI_FIRST_STATCODE FUNC_COR_TYPE
+#define AFNI_LAST_STATCODE  FUNC_PT_TYPE
+
 static int FUNC_nvals[]    = {  1, 2,2,2,2,2,2,2,2,2,2, 1 } ; /* # in each dataset */
 static int FUNC_ival_fim[] = {  0, 0,0,0,0,0,0,0,0,0,0, 0 } ; /* index of fim      */
 
@@ -2141,11 +2150,22 @@ typedef struct THD_3dim_dataset {
 #define DBLK_IS_1D(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) &&     \
                          (db)->diskptr->storage_mode == STORAGE_BY_1D )
 
+/*! Determine if datablock db is stored in a 3D file on disk */
+
+#define DBLK_IS_3D(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) &&     \
+                         (db)->diskptr->storage_mode == STORAGE_BY_3D )
+
 /*! Determine if dataset ds is stored in a 1D file on disk */
 
 #define DSET_IS_1D(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&           \
                          ISVALID_DISKPTR((ds)->dblk->diskptr) &&                   \
                          (ds)->dblk->diskptr->storage_mode == STORAGE_BY_1D )
+
+/*! Determine if dataset ds is stored in a 3D file on disk */
+
+#define DSET_IS_3D(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&           \
+                         ISVALID_DISKPTR((ds)->dblk->diskptr) &&                   \
+                         (ds)->dblk->diskptr->storage_mode == STORAGE_BY_3D )
 
 /*! Determine if datablock db is stored by volume files rather than 1 big BRIK */
 
@@ -3056,10 +3076,13 @@ extern THD_3dim_dataset * THD_open_analyze( char * ) ;      /* 27 Aug 2002 */
 extern THD_3dim_dataset * THD_open_ctfmri( char * ) ;       /* 04 Dec 2002 */
 extern THD_3dim_dataset * THD_open_ctfsam( char * ) ;       /* 04 Dec 2002 */
 extern THD_3dim_dataset * THD_open_1D( char * ) ;           /* 04 Mar 2003 */
+extern THD_3dim_dataset * THD_open_3D( char * ) ;           /* 21 Mar 2003 */
 
-extern THD_3dim_dataset * THD_fetch_dataset      (char *); /* 23 Mar 2001 */
-extern XtPointer_array *  THD_fetch_many_datasets(char *);
-extern MRI_IMAGE *        THD_fetch_1D           (char *); /* 26 Mar 2001 */
+extern THD_3dim_dataset * THD_fetch_dataset      (char *) ; /* 23 Mar 2001 */
+extern XtPointer_array *  THD_fetch_many_datasets(char *) ;
+extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
+
+extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 
 extern int * MCW_get_intlist( int , char * ) ;
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
@@ -3151,6 +3174,8 @@ extern THD_3dim_dataset_array *
 extern Boolean THD_write_3dim_dataset( char *,char * ,
                                        THD_3dim_dataset * , Boolean );
 
+extern void THD_use_3D_format( int ) ;  /* 21 Mar 2003 */
+
 extern Boolean THD_write_datablock( THD_datablock * , Boolean ) ;
 extern Boolean THD_write_atr( THD_datablock * ) ;
 extern void THD_set_write_compression( int mm ) ;
@@ -3177,6 +3202,7 @@ extern void    THD_load_analyze( THD_datablock * ) ;         /* 27 Aug 2002 */
 extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_1D     ( THD_datablock * ) ;         /* 04 Mar 2003 */
+extern void    THD_load_3D     ( THD_datablock * ) ;         /* 21 Mar 2003 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)
@@ -3187,6 +3213,7 @@ extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 extern int THD_write_minc( char *, THD_3dim_dataset * , int ) ; /* 11 Apr 2002 */
 
 extern void THD_write_1D ( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
+extern void THD_write_3D ( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */
 
 extern void THD_reconcile_parents( THD_sessionlist * ) ;
 extern THD_slist_find THD_dset_in_sessionlist( int,void *, THD_sessionlist *, int ) ;

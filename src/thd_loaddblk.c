@@ -132,6 +132,14 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       RETURN( False ) ;
    }
 
+   if( dkptr->storage_mode == STORAGE_BY_3D ){      /* 21 Mar 2003 */
+      THD_load_3D( blk ) ;
+      ii = THD_count_databricks( blk ) ;
+      if( ii == blk->nvals ) RETURN( True ) ;
+      STATUS("can't read 1D dataset file?!") ;
+      RETURN( False ) ;
+   }
+
    /*-- allocate data space --*/
 
    nx = dkptr->dimsizes[0] ;

@@ -273,7 +273,7 @@ int NI_rowtype_define( char *tname , char *tdef )
 {
    NI_rowtype *rt , *qt ;
    int ii,jj , id,jd,kd,isdim,nn , almax,cbase,np,pb , last_size ;
-   str_array *sar ;
+   NI_str_array *sar ;
    char *tp,*sp,*bp , str[256] ;
 
    /*-- check inputs --*/
@@ -293,7 +293,7 @@ int NI_rowtype_define( char *tname , char *tdef )
 
    /*-- break defining string into components --*/
 
-   sar = decode_string_list( tdef , ",;" ) ;
+   sar = NI_decode_string_list( tdef , ",;" ) ;
 
    if( sar == NULL || sar->num < 1 ){
      NI_free(sar) ; ERREX("illegal definition") ;
@@ -316,7 +316,7 @@ int NI_rowtype_define( char *tname , char *tdef )
      tp = sar->str[ii] ;
      id = 0 ; kd = strlen(tp) ; /* type name of part will be in tp[id..kd-1] */
      if( kd == 0 ){
-      delete_rowtype(rt); delete_str_array(sar); ERREX("empty component name?");
+      delete_rowtype(rt); NI_delete_str_array(sar); ERREX("empty component name?");
      }
 
      /* get count, if present, into jd */
@@ -327,7 +327,7 @@ int NI_rowtype_define( char *tname , char *tdef )
      if( sp != NULL || bp != NULL ){            /*** a count is present ***/
 
        if( sp != NULL && bp != NULL ){          /* can't have both forms! */
-        delete_rowtype(rt); delete_str_array(sar); ERREX("two repeat counts?");
+        delete_rowtype(rt); NI_delete_str_array(sar); ERREX("two repeat counts?");
        }
 
        if( sp != NULL ){                        /* format: count*type */
@@ -343,17 +343,17 @@ int NI_rowtype_define( char *tname , char *tdef )
          isdim = 0 ;
          sscanf( tp+nn , "%d" , &jd ) ;
          if( jd <= 0 ){
-          delete_rowtype(rt); delete_str_array(sar); ERREX("bad repeat number");
+          delete_rowtype(rt); NI_delete_str_array(sar); ERREX("bad repeat number");
          }
        } else {                                 /* count is a #reference */
          isdim = 1 ;
          sscanf( tp+nn+1 , "%d" , &jd ) ;       /* ref must be to index */
          if( jd <= 0 || jd > ii ){              /* before this component */
-           delete_rowtype(rt); delete_str_array(sar); ERREX("bad #index");
+           delete_rowtype(rt); NI_delete_str_array(sar); ERREX("bad #index");
          }
          if( rt->comp_typ[jd-1] != NI_INT ||    /* ref must be to an int */
              rt->comp_dim[jd-1] >= 0        ){  /* of fixed dim (1 int) */
-           delete_rowtype(rt); delete_str_array(sar); ERREX("non-int #index");
+           delete_rowtype(rt); NI_delete_str_array(sar); ERREX("non-int #index");
          }
        }
      } else {
@@ -363,13 +363,13 @@ int NI_rowtype_define( char *tname , char *tdef )
      /* get the type of this component from its name */
 
      if( kd-id < 1 || kd-id > 255 ){
-      delete_rowtype(rt); delete_str_array(sar); ERREX("toolong component name");
+      delete_rowtype(rt); NI_delete_str_array(sar); ERREX("toolong component name");
      }
 
      NI_strncpy( str , tp+id , kd-id+1 ) ;  /* copy component name into str */
      qt = NI_rowtype_find_name( str ) ;     /* look it up in the table */
      if( qt == NULL ){
-       delete_rowtype(rt); delete_str_array(sar); ERREX("bad component type");
+       delete_rowtype(rt); NI_delete_str_array(sar); ERREX("bad component type");
      }
 
      if( !isdim ){  /*** fixed count: add jd copies of this component type ***/
@@ -395,7 +395,7 @@ int NI_rowtype_define( char *tname , char *tdef )
        /* but can't have a var dim array of var dim arrays! */
 
        if( ROWTYPE_is_varsize(qt) ){
-         delete_rowtype(rt); delete_str_array(sar);
+         delete_rowtype(rt); NI_delete_str_array(sar);
          ERREX("variable dim array must have fixed dim type");
        }
 
@@ -414,7 +414,7 @@ int NI_rowtype_define( char *tname , char *tdef )
 
    } /* end of loop over components */
 
-   delete_str_array(sar) ;                  /* done with this string array */
+   NI_delete_str_array(sar) ;                  /* done with this string array */
 
    if( rt->part_num == 0 ){ delete_rowtype(rt); ERREX("no components?"); }
 

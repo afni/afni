@@ -60,7 +60,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI \
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom                \
-           3dDeconvolve_f 3dAnhist                                          \
+           3dDeconvolve_f 3dAnhist 3dAFNIto3D                               \
            $(EXTRAS) Imon
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
@@ -414,6 +414,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dAFNItoMINC 3dAFNItoMINC.o $(LFLAGS) $(LLIBS)
 
+3dAFNIto3D:3dAFNIto3D.o
+	$(RM) $@
+	$(CC) -o 3dAFNIto3D 3dAFNIto3D.o $(LFLAGS) $(LLIBS)
+
 3dAFNItoANALYZE:3dAFNItoANALYZE.o
 	$(RM) $@
 	$(CC) -o 3dAFNItoANALYZE 3dAFNItoANALYZE.o $(LFLAGS) $(LLIBS)
@@ -611,6 +615,12 @@ rtfeedme:rtfeedme.o
 3dFDR:3dFDR.o
 	$(RM) $@
 	$(CC) -o 3dFDR 3dFDR.o $(LFLAGS) $(LLIBS)
+
+3dANOVA.o: 3dANOVA.lib
+
+3dANOVA2.o:3dANOVA.lib
+
+3dANOVA3.o:3dANOVA.lib
 
 3dANOVA:3dANOVA.o
 	$(RM) $@
@@ -1122,7 +1132,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o     \
            thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o \
            thd_mincwrite.o thd_mnicoords.o thd_strfunc.o                  \
-           thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o
+           thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o   \
+           thd_3Ddset.o
 
 # these are now included in NIML
 

@@ -4455,3 +4455,19 @@
      with the "# ..." line format for header/trailer fields.  Also
      modified thd_1Ddset.c to write .1D dataset files out in this
      format.
+
+21 Mar 2003
+ * Added thd_3Ddset.c to read AFNI datasets from NIML-formatted
+     .3D files.  Corresponding changes to 3ddata.h, etc.
+ * Changes from Doug Ward:
+   1) Program 3dDeconvolve:  Added -quiet option to suppress screen output. 
+   2) Plugin Deconvolve:  Additional input error protection for -censor and 
+      -concat options.  These options could cause afni to crash if the input
+      files were not set up correctly.
+   3) Program RSFgen:  Added -table option, to generate random permutations of 
+      the rows of an input column or table of numbers.  Useful for randomization
+      studies of statistical thresholds, about which more later.
+   4) Libraries matrix.c and matrix_f.c:  The recently added/modified matrix 
+      routines vector_multiply and vector_multiply_subtract would produce a 
+      segmentation fault for certain input matrices (e.g., null baseline model).  
+      This has now been corrected (hopefully).

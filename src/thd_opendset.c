@@ -64,6 +64,10 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
       dset = THD_open_1D( pathname ) ;
       if( dset != NULL ) return dset ;
    }
+   if( strstr(pathname,".3D") != NULL ){   /* 21 Mar 2003 */
+      dset = THD_open_3D( pathname ) ;
+      if( dset != NULL ) return dset ;
+   }
 
    /*-- find directory and last names in the pathname --*/
 

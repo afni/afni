@@ -116,6 +116,7 @@ ENTRY("THD_delete_3dim_dataset") ;
    if( DSET_IS_VOLUMES(dset) ) kill_files = False ;  /* 20 Jun 2002 */
    if( DSET_IS_ANALYZE(dset) ) kill_files = False ;  /* 27 Aug 2002 */
    if( DSET_IS_1D(dset)      ) kill_files = False ;
+   if( DSET_IS_3D(dset)      ) kill_files = False ;
    if( DSET_IS_CTFMRI(dset)  ) kill_files = False ;
    if( DSET_IS_CTFSAM(dset)  ) kill_files = False ;
 

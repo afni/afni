@@ -42,17 +42,6 @@ typedef struct { int i,j ; } intpair ;
 
 typedef struct { int num; int *ar; } int_array ;
 
-/*! An array of strings, each allocated with NI_malloc(). */
-
-typedef struct { int num; char **str;} str_array ;
-
-#define delete_str_array(sar)                \
-  do{ int pp ;                               \
-      for( pp=0 ; pp < (sar)->num ; pp++ )   \
-        NI_free( (sar)->str[pp] );           \
-      NI_free((sar)->str) ; NI_free(sar) ;   \
-  } while(0)
-
 /****************************************************************************/
 
 extern void NI_stream_close_keep( NI_stream_type * ,int ) ;
@@ -161,7 +150,6 @@ extern void destroy_header_stuff( header_stuff *hs ) ;
 extern intpair find_string( int nst, int nch, char *ch ) ;
 extern header_stuff * parse_header_stuff( int ndat, char *dat, int *nused ) ;
 extern intpair decode_type_field( char *tf ) ;
-extern str_array * decode_string_list( char *ss , char *sep ) ;
 extern int_array * decode_dimen_string( char *ds ) ;
 extern int_array * decode_type_string( char *ts ) ;
 extern char NI_type_char( int typ ) ;
