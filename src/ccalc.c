@@ -12,21 +12,65 @@ int main( int argc , char * argv[] )
    PARSER_code * pcode ;
    char expr[200] , * cexp ;
    double atoz[26] , value ;
-   int ii , kvar ;
-
-   if( argc > 1 && strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: ccalc\n"
-             "Interactive numerical calculator, using the same\n"
-             "expression syntax as 3dcalc.  Mostly for playing.\n" ) ;
-      exit(0) ;
+   int ii , kvar, kar, brk ;
+   int DoOnce;
+   
+   DoOnce = 0;
+   
+   kar = 1;
+   brk = 0;
+   DoOnce = 0; /* flag used to indicate that program is running in batch or command line modes */ 
+   expr[0] = '\0';
+   
+   while (kar < argc) { 
+      if (strcmp(argv[1],"-help") == 0 ){
+         printf("Usage: ccalc [-eval <expr>]\n"
+                "With no command line parameters:\n"
+                "Interactive numerical calculator, using the same\n"
+                "expression syntax as 3dcalc.  Mostly for playing.\n" 
+                "With -eval <expr> option:\n"
+                "Calculates expr and quits. \n"
+                "Do not use variables in expr.\n"
+                "Example: ccalc -eval '3 + 5 * sin(22)' \n"
+                "or: ccalc -eval 3 +5 '*' 'sin(22)'\n") ;
+         exit(0) ;
+      }
+      
+      if (!brk && strcmp(argv[1],"-eval") == 0) {
+         ++kar;
+         if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -eval ");
+				exit (1);
+			}
+         /* anything after eval gets put inot an expression */
+         while (kar < argc)  {
+            sprintf(expr,"%s %s", expr, argv[kar]); 
+            ++ kar;
+         }
+         /* fprintf (stdout, "%s\n", expr);*/
+         DoOnce = 1;
+         brk = 1;
+      }
+ 		
+      if (!brk) {
+			fprintf (stderr,"Error: Option %s not understood. Try -help for usage\n", argv[kar]);
+			exit (1);
+		} else {	
+			brk = 0;
+			kar ++;
+		}
+		
    }
-
+   
    for( ii=0 ; ii < 25 ; ii++ ) atoz[ii] = 0.0 ;
 
    do{
-      printf("calc> ") ; fflush(stdout) ;
-      gets(expr) ;
-      if( strlen(expr) == 0 ) continue ;
+      if (!DoOnce){
+         printf("calc> ") ; fflush(stdout) ;
+         gets(expr) ;
+      }
+      
+      if( strlen(expr) == 0) continue ;
       if( strcmp(expr,"quit") == 0 ) exit(0) ;
 
       if( strstr(expr,"=") != NULL ){
@@ -40,7 +84,8 @@ int main( int argc , char * argv[] )
       pcode = PARSER_generate_code( cexp ) ;
       if( pcode == NULL ){
          printf("parser error!\n") ; fflush(stdout) ;
-         continue ;
+         if (!DoOnce) continue ; 
+            else exit(1);
       }
 
 #if 0
@@ -50,12 +95,17 @@ int main( int argc , char * argv[] )
 
       value = PARSER_evaluate_one( pcode , atoz ) ; free(pcode) ;
 
-      if( kvar >= 0 && kvar < 26 ){
-        printf("%c", kvar+'A' ) ;
-        atoz[kvar] = value ;
+      if (!DoOnce) {
+         if( kvar >= 0 && kvar < 26 ){
+           printf("%c", kvar+'A' ) ;
+           atoz[kvar] = value ;
+         } else {
+           printf(" ") ;
+         }
+         printf(" = %g\n",value) ; fflush(stdout) ;
       } else {
-        printf(" ") ;
+         printf("%g\n",value) ; 
+         exit (0);
       }
-      printf(" = %g\n",value) ; fflush(stdout) ;
    } while(1) ;
 }
