@@ -1,5 +1,5 @@
 
-#define IFM_VERSION "version 2.9 (Julyne 27, 2003)"
+#define IFM_VERSION "version 2.9 (July 27, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
