@@ -870,8 +870,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    of sform_code; for example, for the Talairach coordinate system,
    (0,0,0) corresponds to the Anterior Commissure.
 
-   QUATERNION REPRESENATION OF ROTATION MATRIX (METHOD 2)
-   ------------------------------------------------------
+   QUATERNION REPRESENTATION OF ROTATION MATRIX (METHOD 2)
+   -------------------------------------------------------
    The orientation of the (x,y,z) axes relative to the (i,j,k) axes
    in 3D space is specified using a unit quaternion [a,b,c,d], where
    a*a+b*b+c*c+d*d=1.  The (b,c,d) values are all that is needed, since
