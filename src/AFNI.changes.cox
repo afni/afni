@@ -3887,3 +3887,6 @@
  * Added plugin plug_L1fit.c to provide a L1 analog to plug_lsqfit.c.
  * Modified 3dToutcount.c to use cl1_solve to remove trends before
      outlier-ing.
+
+08 Aug 2002
+ * Added color save/load to afni_ttren.c.
