@@ -21,6 +21,11 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_niml.o afni_sumafunc.o afni_slice_rgbyte.o        \
             $(IMOBJS)
 
+AFWARPOBJS = afni_warp.o afni_slice_byte.o afni_slice_short.o      \
+             afni_slice_float.o afni_slice_complex.o               \
+             afni_slice_rgbyte.o
+
+
 T3OBJS  = to3d.o $(IMOBJS)
 
 MISC    = AFNI.Xdefaults AFNI.afnirc 3d*.lib gmovie*
@@ -1275,6 +1280,15 @@ librickr.a:
 	make librickr.a clean 'RM=$(RM)' 'CC=$(CC)'			\
 			      'RANLIB=$(RANLIB)' 'IFLAGS=$(IFLAGS)' ;	\
 	$(MV) librickr.a .. ; )
+
+#######
+# rickr programs
+
+3dreorient: librickr.a libmri.a $(AFWARPOBJS)
+	( cd rickr ; 							\
+	make 3dreorient 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        \
+	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;				\
+	$(MV) 3dreorient .. ; )
 
 #######
 # surface library (not currently used)
