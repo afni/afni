@@ -665,6 +665,24 @@ STATUS("making imag->rowcol") ;
       imag->pop_jumpto_ijk_pb = NULL ;
    }
 
+   /*--- mnito button in menu [01 May 2002] ---*/
+
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+      imag->pop_mnito_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("Jump to (MNI)") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+      XtAddCallback( imag->pop_mnito_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
+   } else {
+      imag->pop_mnito_pb = NULL ;
+   }
+
    /*--- sumato button in menu ---*/
 
    if( im3d->type == AFNI_3DDATA_VIEW ){

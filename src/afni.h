@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.45k"
+#define VERSION "2.45l"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "30 Apr 2002      "
+#define RELEASE "01 May 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -352,6 +352,7 @@ typedef struct {
       MCW_textwin * pop_whereami_twin ;
 
       Widget pop_sumato_pb ;
+      Widget pop_mnito_pb ;  /* 01 May 2002 */
 } AFNI_imaging_widgets ;
 
 /*---*/
@@ -1080,6 +1081,7 @@ extern int  AFNI_jumpto_dicom        ( Three_D_View * , float, float, float  ) ;
 extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
 extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_sumato_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void AFNI_mnito_CB            ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void AFNI_fimmer_pickref_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_pickort_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
