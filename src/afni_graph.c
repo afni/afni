@@ -1592,14 +1592,14 @@ STATUS("about to perform 0D transformation") ;
          /* 08 Nov 1996: double plotting, too */
 
          if( grapher->transform1D_func != NULL ){
-            MRI_IMAGE * qim ;
+            MRI_IMAGE * qim ;                /* image to be transformed */
 
             if( dplot ){                      /* copy and save original */
-               qim = mri_to_float(tsim) ;     /* if double plot is on  */
+               qim = mri_to_float(tsim) ;       /* if double plot is on */
                ADDTO_IMARR(dplot_imar,qim) ;
             }
             else
-               qim = tsim ;                   /* transform original */
+               qim = tsim ;                 /* transform original image */
 
 STATUS("about to perform 1D transformation") ;
 
@@ -1618,7 +1618,7 @@ STATUS("about to perform 1D transformation") ;
 #endif
             }
 
-            if( ! (grapher->transform1D_flags & PROCESS_MRI_IMAGE) ){  /* older code:i  */
+            if( ! (grapher->transform1D_flags & PROCESS_MRI_IMAGE) ){  /* older code:   */
                                                                        /* process image */
               if( ! (grapher->transform1D_flags & RETURNS_STRING) ){   /* contents only */
                  grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
@@ -1631,7 +1631,7 @@ STATUS("about to perform 1D transformation") ;
                    grapher->tuser[ix][iy] = XtNewString(quser) ;
               }
             } else {                           /* 28 Mar 2002: process MRI_IMAGE struct */
-
+                                                                            /* in place */
               if( ! (grapher->transform1D_flags & RETURNS_STRING) ){
                  grapher->transform1D_func( qim ) ;
               } else {
@@ -1642,7 +1642,11 @@ STATUS("about to perform 1D transformation") ;
               }
             }
 
-         }
+            /* At this point, qim is transformed;
+               if dplot is on, then it is saved in dplot_imar;
+               if dplot is off, then qim == tsim, and it will be saved in tsimar, below */
+
+         } /* end of transform1D */
 
          /* put this (possibly transformed) image on the list of those to plot */
 
@@ -1911,13 +1915,14 @@ STATUS("starting time series graph loop") ;
          /* 08 Nov 1996: double plot?  Duplicate the above drawing code! */
          /* 07 Aug 2001: old method was DPLOT_OVERLAY,
                          new method is  DPLOT_PLUSMINUS */
-         /* 29 Mar 2002: allow multiple time series (dsim->ny >1) */
+         /* 29 Mar 2002: allow multiple time series (dsim->ny > 1) */
 
          if( dplot ){
             int dny , id ;
             dsim = IMARR_SUBIMAGE(dplot_imar,its) ;
             if( dsim == NULL || dsim->nx < 2 ) continue ;  /* skip */
             dsar = MRI_FLOAT_PTR(dsim) ;
+            tsar = MRI_FLOAT_PTR(tsim) ;   /* 25 Feb 2003: reset this */
             itop = NPTS(grapher) ;
             itop = npoints = MIN( itop , dsim->nx ) ;
 
@@ -2014,7 +2019,7 @@ STATUS("starting time series graph loop") ;
              }
 
              dsar += dsim->nx ;                        /* 29 Mar 2002 */
-            } /* end of loop over multiple plots */
+            } /* end of loop over multiple dplots */
 
             DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
             DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
