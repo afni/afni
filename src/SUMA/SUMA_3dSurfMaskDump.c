@@ -52,6 +52,7 @@
  *
  * 2.3  July 21, 2003
  *   - fixed problem with nodes outside grid_par dataset
+ *   - added min/max distance info
  *
  * 2.2  June 19, 2003
  *   - added -m2_index INDEX_TYPE option (to index across nodes, too)
