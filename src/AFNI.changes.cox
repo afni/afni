@@ -3764,3 +3764,7 @@
 
 31 May 2002
  * Adapted shm stuff from thd_iochan.c to niml.c.
+
+04 Jun 2002
+ * Modified 3dAutomask.c to print out how many planes are cut off in the
+     the mask.

@@ -72,7 +72,9 @@ int main( int argc , char * argv[] )
    DSET_load(dset) ;
    if( !DSET_LOADED(dset) ){ fprintf(stderr,"** CAN'T load dataset\n");exit(1); }
 
-   mask = THD_automask( dset ) ;  /* all the work */
+   /*** do all the real work now ***/
+
+   mask = THD_automask( dset ) ;
 
    if( mask == NULL ){ fprintf(stderr,"** Can't make mask!\n"); exit(1); }
 
@@ -97,6 +99,54 @@ int main( int argc , char * argv[] )
    }
 #endif
 
+   /** 04 Jun 2002: print cut plane report **/
+
+   { int nx=DSET_NX(dset), ny=DSET_NY(dset), nz=DSET_NZ(dset), nxy=nx*ny ;
+     int ii,jj,kk ;
+
+     for( ii=0 ; ii < nx ; ii++ )
+       for( kk=0 ; kk < nz ; kk++ )
+         for( jj=0 ; jj < ny ; jj++ )
+           if( mask[ii+jj*nx+kk*nxy] ) goto CP5 ;
+     CP5: fprintf(stderr,"++ first %3d x-planes are zero [from %c]\n",
+                  ii,ORIENT_tinystr[dset->daxes->xxorient][0]) ;
+
+     for( ii=nx-1 ; ii >= 0 ; ii-- )
+       for( kk=0 ; kk < nz ; kk++ )
+         for( jj=0 ; jj < ny ; jj++ )
+           if( mask[ii+jj*nx+kk*nxy] ) goto CP6 ;
+     CP6: fprintf(stderr,"++ last  %3d x-planes are zero [from %c]\n",
+                  nx-1-ii,ORIENT_tinystr[dset->daxes->xxorient][1]) ;
+
+     for( jj=0 ; jj < ny ; jj++ )
+       for( kk=0 ; kk < nz ; kk++ )
+         for( ii=0 ; ii < nx ; ii++ )
+           if( mask[ii+jj*nx+kk*nxy] ) goto CP3 ;
+     CP3: fprintf(stderr,"++ first %3d y-planes are zero [from %c]\n",
+                  jj,ORIENT_tinystr[dset->daxes->yyorient][0]) ;
+
+     for( jj=ny-1 ; jj >= 0 ; jj-- )
+       for( kk=0 ; kk < nz ; kk++ )
+         for( ii=0 ; ii < nx ; ii++ )
+           if( mask[ii+jj*nx+kk*nxy] ) goto CP4 ;
+     CP4: fprintf(stderr,"++ last  %3d y-planes are zero [from %c]\n",
+                  ny-1-jj,ORIENT_tinystr[dset->daxes->yyorient][1]) ;
+
+     for( kk=0 ; kk < nz ; kk++ )
+       for( jj=0 ; jj < ny ; jj++ )
+         for( ii=0 ; ii < nx ; ii++ )
+           if( mask[ii+jj*nx+kk*nxy] ) goto CP1 ;
+     CP1: fprintf(stderr,"++ first %3d z-planes are zero [from %c]\n",
+                  kk,ORIENT_tinystr[dset->daxes->zzorient][0]) ;
+
+     for( kk=nz-1 ; kk >= 0 ; kk-- )
+       for( jj=0 ; jj < ny ; jj++ )
+         for( ii=0 ; ii < nx ; ii++ )
+           if( mask[ii+jj*nx+kk*nxy] ) goto CP2 ;
+     CP2: fprintf(stderr,"++ last  %3d z-planes are zero [from %c]\n",
+                  nz-1-kk,ORIENT_tinystr[dset->daxes->zzorient][1]) ;
+   }
+
    /* create output dataset */
 
    mset = EDIT_empty_copy( dset ) ;
@@ -115,6 +165,7 @@ int main( int argc , char * argv[] )
    tross_Copy_History( dset , mset ) ;
    tross_Make_History( "3dAutomask", argc,argv, mset ) ;
 
+   fprintf(stderr,"++ Writing mask dataset to %s\n",DSET_HEADNAME(mset)) ;
    DSET_write( mset ) ;
    exit(0) ;
 }

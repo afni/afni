@@ -128,6 +128,8 @@ typedef struct {
    int    part_num ;   /*!< Number of parts within this group. */
    int   *part_typ ;   /*!< Type of each part (element or group). */
    void **part ;       /*!< Pointer to each part. */
+
+   char  *name ;       /*!< Name (default="ni_group") - 03 Jun 2002 */
 } NI_group ;
 #endif
 
@@ -294,6 +296,7 @@ extern char * NI_get_attribute( void *, char * ) ;
 
 extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;
+extern void NI_rename_group( NI_group *, char * ) ;  /* 03 Jun 2002 */
 
 extern void NI_swap_vector( int, int, void * ) ;
 
