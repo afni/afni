@@ -23,6 +23,7 @@
 
 char MRILIB_orients[8] = "\0" ;  /* 12 Mar 2001 */
 float MRILIB_zoff      = 0.0 ;
+float MRILIB_tr        = 0.0 ;   /* 03 Dec 2001 */
 
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
@@ -54,15 +55,50 @@ typedef struct {
 static MCW_imsize imsize[MAX_MCW_IMSIZE] ;
 static int MCW_imsize_good = -1 ;           /* < 0 ==> must initialize */
 
-/*-----------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
 
-/************************************************************************/
+static void swap_4(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1, b2, b3;
+
+   b0 = *pntr; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
+   *pntr = b3; *(pntr+1) = b2; *(pntr+2) = b1; *(pntr+3) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+static void swap_8(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1, b2, b3;
+   unsigned char b4, b5, b6, b7;
+
+   b0 = *pntr    ; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
+   b4 = *(pntr+4); b5 = *(pntr+5); b6 = *(pntr+6); b7 = *(pntr+7);
+
+   *pntr     = b7; *(pntr+1) = b6; *(pntr+2) = b5; *(pntr+3) = b4;
+   *(pntr+4) = b3; *(pntr+5) = b2; *(pntr+6) = b1; *(pntr+7) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+static void swap_2(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1;
+
+   b0 = *pntr; b1 = *(pntr+1);
+   *pntr = b1; *(pntr+1) = b0;
+}
+
+/******************************************************************/
 
 MRI_IMAGE *mri_read( char *fname )
 {
    FILE      *imfile ;
    MRI_IMAGE *im ;
-   int       length , skip=0 ;
+   int       length , skip=0 , swap=0 ;
    void      *data ;
 
 WHOAMI ;
@@ -74,7 +110,149 @@ WHOAMI ;
    }
 
    fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
-   length = ftell( imfile ) ;
+   length = ftell( imfile ) ;         /* (the AJ way) */
+
+   /*--- 03 Dec 2001: check for GEMS format file "IMGF"   ---*/
+   /*[[[ Information herein from Medical Image Format FAQ ]]]*/
+
+   { char str[5]="AFNI" ;
+     int nx , ny , bpp , cflag , hdroff ;
+     rewind(imfile) ; fread(str,1,4,imfile) ;      /* check for "IMGF" */
+
+     if( str[0]=='I' && str[1]=='M' && str[2]=='G' && str[3]=='F' ){
+
+       fread( &skip , 4,1, imfile ) ;  /* read next 5 ints */
+       fread( &nx   , 4,1, imfile ) ;
+       fread( &ny   , 4,1, imfile ) ;
+       fread( &bpp  , 4,1, imfile ) ;
+       fread( &cflag, 4,1, imfile ) ;
+
+       if( nx < 0 || nx > 8192 ){      /* maybe have to byte swap 5 ints */
+         swap = 1 ;
+         swap_4(&skip); swap_4(&nx); swap_4(&ny); swap_4(&bpp); swap_4(&cflag);
+         if( nx < 0 || nx > 8192 || ny < 0 || ny > 8192 ) goto The_Old_Way ;
+         if( skip < 0 || skip >= length )                 goto The_Old_Way ;
+         if( bpp != 16 || cflag != 1 )                    goto The_Old_Way ;
+       }
+
+       /* make image space */
+
+       im = mri_new( nx , ny , MRI_short ) ;
+
+       /* try to read image auxiliary data as well (not mandatory) */
+
+       length = fseek( imfile , 148L , SEEK_SET ) ; /* magic GEMS offset */
+       if( length == 0 ){
+          fread( &hdroff , 4,1 , imfile ) ;  /* location of image header */
+          if( swap ) swap_4(&hdroff) ;
+          if( hdroff > 0 ){                  /* read from image header */
+             float dx,dy,dz , xyz[9] , zz ; int itr , ii,jj,kk ;
+             static int nzoff=0 ;
+             static float zoff ;
+
+             /* voxel grid sizes */
+
+             fseek( imfile , hdroff+26 , SEEK_SET ) ;
+             fread( &dz , 4,1 , imfile ) ;
+
+             fseek( imfile , hdroff+50 , SEEK_SET ) ;
+             fread( &dx , 4,1 , imfile ) ;
+             fread( &dy , 4,1 , imfile ) ;
+
+             if( swap ){ swap_4(&dx); swap_4(&dy); swap_4(&dz); }
+
+             if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
+               im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
+             }
+
+             /* grid orientation: from 3 sets of LPI corner coordinates */
+
+             fseek( imfile , hdroff+154 , SEEK_SET ) ;
+             fread( xyz , 4,9 , imfile ) ;
+             if( swap ) swap_fourbytes(9,xyz) ;
+
+             /* x-axis orientation */
+
+             dx = fabs(xyz[3]-xyz[0]) ; ii = 1 ;
+             dy = fabs(xyz[4]-xyz[1]) ; if( dy > dx ){ ii=2; dx=dy; }
+             dz = fabs(xyz[5]-xyz[2]) ; if( dz > dx ){ ii=3;        }
+             dx = xyz[ii+2]-xyz[ii-1] ; if( dx < 0. ){ ii = -ii;    }
+             switch( ii ){
+               case  1: MRILIB_orients[0] = 'L'; MRILIB_orients[1] = 'R'; break;
+               case -1: MRILIB_orients[0] = 'R'; MRILIB_orients[1] = 'L'; break;
+               case  2: MRILIB_orients[0] = 'P'; MRILIB_orients[1] = 'A'; break;
+               case -2: MRILIB_orients[0] = 'A'; MRILIB_orients[1] = 'P'; break;
+               case  3: MRILIB_orients[0] = 'I'; MRILIB_orients[1] = 'S'; break;
+               case -3: MRILIB_orients[0] = 'S'; MRILIB_orients[1] = 'I'; break;
+               default: MRILIB_orients[0] ='\0'; MRILIB_orients[1] ='\0'; break;
+             }
+
+             /* y-axis orientation */
+
+             dx = fabs(xyz[6]-xyz[3]) ; jj = 1 ;
+             dy = fabs(xyz[7]-xyz[4]) ; if( dy > dx ){ jj=2; dx=dy; }
+             dz = fabs(xyz[8]-xyz[5]) ; if( dz > dx ){ jj=3;        }
+             dx = xyz[jj+5]-xyz[jj+2] ; if( dx < 0. ){ jj = -jj;    }
+             switch( jj ){
+               case  1: MRILIB_orients[2] = 'L'; MRILIB_orients[3] = 'R'; break;
+               case -1: MRILIB_orients[2] = 'R'; MRILIB_orients[3] = 'L'; break;
+               case  2: MRILIB_orients[2] = 'P'; MRILIB_orients[3] = 'A'; break;
+               case -2: MRILIB_orients[2] = 'A'; MRILIB_orients[3] = 'P'; break;
+               case  3: MRILIB_orients[2] = 'I'; MRILIB_orients[3] = 'S'; break;
+               case -3: MRILIB_orients[2] = 'S'; MRILIB_orients[3] = 'I'; break;
+               default: MRILIB_orients[2] ='\0'; MRILIB_orients[3] ='\0'; break;
+             }
+
+             MRILIB_orients[6] = '\0' ;
+
+             kk = 6 - abs(ii)-abs(jj) ; zz = xyz[kk-1] ;
+
+             /* z-axis requires 2 images in a row -*/
+
+             if( nzoff == 0 ){  /* from 1st GEMS image */
+
+               zoff = zz ;
+               MRILIB_orients[4] = MRILIB_orients[5] = '\0' ;
+
+             } else if( nzoff == 1 ){   /* from 2nd GEMS image */
+
+               float qoff = zz - zoff ;  /* vive la difference */
+               if( qoff < 0 ) kk = -kk ;
+               switch( kk ){
+                case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
+                case -1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
+                case  2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
+                case -2: MRILIB_orients[4] = 'A'; MRILIB_orients[5] = 'P'; break;
+                case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
+                case -3: MRILIB_orients[4] = 'S'; MRILIB_orients[5] = 'I'; break;
+                default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
+               }
+
+               MRILIB_zoff = zoff ;
+               if( kk == 1 || kk == 2 || kk == 3 ) MRILIB_zoff = -MRILIB_zoff ;
+             }
+             nzoff++ ;  /* 3rd and later images don't count */
+
+             /* TR */
+
+             fseek( imfile , hdroff+194 , SEEK_SET ) ;
+             fread( &itr , 4,1 , imfile ) ;
+             if( swap ) swap_4(&itr) ;
+             MRILIB_tr = im->dt = 1.0e-6 * itr ;
+          }
+       } /* end of trying to read image header */
+
+       goto Ready_To_Roll ;  /* skip to the reading place */
+     }
+   }
+
+   /*--- OK , do it the old way ---*/
+
+The_Old_Way:
+
+#if 0
+   MRILIB_orients[0] = '\0' ; MRILIB_zoff = MRILIB_tr = 0.0 ;  /* 03 Dec 2001 */
+#endif
 
    switch( length ){
 
@@ -163,6 +341,10 @@ WHOAMI ;
          return NULL ;
    }
 
+   /*-- Actually read the data from disk --*/
+
+Ready_To_Roll:
+
    data = mri_data_pointer( im ) ;
 
    length = fseek( imfile , skip , SEEK_SET ) ;
@@ -182,6 +364,17 @@ WHOAMI ;
    }
 
    mri_add_name( fname , im ) ;
+
+   /*-- 03 Dec 2001: maybe need to swap bytes --*/
+
+   if( swap ){
+     switch( im->pixel_size ){
+       default: break ;
+       case 2:  swap_twobytes (   im->nvox, data ) ; break ;  /* short */
+       case 4:  swap_fourbytes(   im->nvox, data ) ; break ;  /* int, float */
+       case 8:  swap_fourbytes( 2*im->nvox, data ) ; break ;  /* complex */
+     }
+   }
 
    return im ;
 }
@@ -1370,43 +1563,6 @@ MRI_IMARR * mri_read_3A( char * tname )
 -----------------------------------------------------------------------------*/
 
 #include "mayo_analyze.h"
-
-/*---------------------------------------------------------------*/
-
-static void swap_4(void *ppp)
-{
-   unsigned char *pntr = (unsigned char *) ppp ;
-   unsigned char b0, b1, b2, b3;
-
-   b0 = *pntr; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
-   *pntr = b3; *(pntr+1) = b2; *(pntr+2) = b1; *(pntr+3) = b0;
-}
-
-/*---------------------------------------------------------------*/
-
-static void swap_8(void *ppp)
-{
-   unsigned char *pntr = (unsigned char *) ppp ;
-   unsigned char b0, b1, b2, b3;
-   unsigned char b4, b5, b6, b7;
-
-   b0 = *pntr    ; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
-   b4 = *(pntr+4); b5 = *(pntr+5); b6 = *(pntr+6); b7 = *(pntr+7);
-
-   *pntr     = b7; *(pntr+1) = b6; *(pntr+2) = b5; *(pntr+3) = b4;
-   *(pntr+4) = b3; *(pntr+5) = b2; *(pntr+6) = b1; *(pntr+7) = b0;
-}
-
-/*---------------------------------------------------------------*/
-
-static void swap_2(void *ppp)
-{
-   unsigned char *pntr = (unsigned char *) ppp ;
-   unsigned char b0, b1;
-
-   b0 = *pntr; b1 = *(pntr+1);
-   *pntr = b1; *(pntr+1) = b0;
-}
 
 /*---------------------------------------------------------------*/
 

@@ -3359,5 +3359,10 @@
 
 29 Nov 2001
  * mri_write_analyze() function to write an MRI_IMAGE to Analyze files.
- * 3DAFNItoANALYZE program to write a dataset to Analyze files.
+ * 3dAFNItoANALYZE program to write a dataset to Analyze files.
  * Added -prefix option to 3dclust.c.
+
+03 Dec 2001
+ * Changes to mri_read() in mri_read.c to understand GEMS headers.
+ * Changes to to3d.c to understand the GEMS header stuff, including
+      a default TR (if user supplies TR=0).

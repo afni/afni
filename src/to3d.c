@@ -269,11 +269,11 @@ QQQ("main1");
           user_inputs.xorient == user_inputs.yorient &&
           user_inputs.xorient == user_inputs.zorient   ){
 
-         char acod ;
+         char acod ; int icod ;
 
-         acod = toupper(MRILIB_orients[0]) ; user_inputs.xorient = ORCODE(acod) ;
-         acod = toupper(MRILIB_orients[2]) ; user_inputs.yorient = ORCODE(acod) ;
-         acod = toupper(MRILIB_orients[4]) ; user_inputs.zorient = ORCODE(acod) ;
+         acod=toupper(MRILIB_orients[0]); icod=ORCODE(acod); if(icod >= 0) user_inputs.xorient=icod;
+         acod=toupper(MRILIB_orients[2]); icod=ORCODE(acod); if(icod >= 0) user_inputs.yorient=icod;
+         acod=toupper(MRILIB_orients[4]); icod=ORCODE(acod); if(icod >= 0) user_inputs.zorient=icod;
 
          if( MRILIB_zoff != 0.0 ){
             user_inputs.zorigin = MRILIB_zoff ;
@@ -299,6 +299,21 @@ QQQ("main1");
                + (user_inputs.yincode > 0) + (user_inputs.zincode > 0) ;
 
       if( iii > 0 && iii < 3 ) all_good = False ;
+   }
+
+   /* 03 Dec 2001: MRILIB_tr may have TR */
+
+   if( user_inputs.ntt > 1 && MRILIB_tr > 0.0 ){
+      if( user_inputs.TR <= 0.0 ){
+         user_inputs.TR = MRILIB_tr ; user_inputs.tunits = UNITS_SEC_TYPE ;
+         printf("Setting TR=%g from image header\n",MRILIB_tr) ;
+      } else {
+         printf("Command line TR=%g ; Images TR=%g\n",user_inputs.TR,MRILIB_tr) ;
+      }
+   }
+   if( user_inputs.ntt > 1 && user_inputs.TR <= 0.0 ){
+      printf("Setting TR=1 by default\n") ;
+      user_inputs.TR = 1.0 ; user_inputs.tunits = UNITS_SEC_TYPE ;
    }
 
    if( all_good && !user_inputs.nosave ){      /* done! */
@@ -2604,7 +2619,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          if( nzz < NZBOT ){
             fprintf(stderr,"Illegal value of nz after -time: option\n") ; nerr++ ;
          }
-         if( TR <= 0.0 ){
+         if( TR < 0.0 ){
             fprintf(stderr,"Illegal value of TR after -time: option\n") ; nerr++ ;
          }
          if( nerr > 0 ){
