@@ -86,7 +86,7 @@ typedef struct { byte r,g,b,a ; } rgba ;  /* 24 Aug 2001 */
 
 typedef enum MRI_TYPE {
          MRI_byte , MRI_short  , MRI_int  ,
-        MRI_float , MRI_double , MRI_complex , MRI_rgb } MRI_TYPE ;
+        MRI_float , MRI_double , MRI_complex , MRI_rgb , MRI_rgba } MRI_TYPE ;
 
 #define MRI_KIND MRI_TYPE ;   /* to alleviate stupidity */
 #define MRI_type MRI_TYPE ;
@@ -94,12 +94,12 @@ typedef enum MRI_TYPE {
 
 /*! The last MRI_TYPE yet defined. */
 
-#define LAST_MRI_TYPE 6
+#define LAST_MRI_TYPE 7
 
 /*! String names for MRI_TYPE. */
 
-static char * MRI_TYPE_name[7] =
-  { "byte" , "short" , "int" , "float" , "double" , "complex" , "rgb" } ;
+static char * MRI_TYPE_name[8] =
+  { "byte", "short", "int", "float", "double", "complex", "rgb", "RGBA" } ;
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 
@@ -174,6 +174,7 @@ typedef union MRI_DATA {
          double   *double_data ;
          complex  *complex_data ;
          byte     *rgb_data ;      /* Apr 1996: not well supported yet */
+         rgba     *rgba_data ;     /* Mar 2002 */
 } MRI_DATA ;
 
 /** Mar 1996: Extended to images up to 7D;
@@ -302,6 +303,7 @@ typedef struct MRI_IMAGE {
 #define MRI_DOUBLE_PTR(iq)  ((iq)->im.double_data)
 #define MRI_COMPLEX_PTR(iq) ((iq)->im.complex_data)
 #define MRI_RGB_PTR(iq)     ((iq)->im.rgb_data)
+#define MRI_RGBA_PTR(iq)    ((iq)->im.rgba_data)
 
 #define MRI_BYTE_2D(iq,ix,jy)    MRI_BYTE_PTR(iq)[(ix)+(jy)*(iq)->nx]
 #define MRI_SHORT_2D(iq,ix,jy)   MRI_SHORT_PTR(iq)[(ix)+(jy)*(iq)->nx]
@@ -639,6 +641,8 @@ extern MRI_IMARR * mri_rgb_to_3float( MRI_IMAGE * ) ;
 extern MRI_IMARR * mri_rgb_to_3byte( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
+
+extern MRI_IMAGE * mri_to_rgba( MRI_IMAGE * ) ;  /* 20 Mar 2002 */
 
 extern MRI_IMAGE *mri_pair_to_complex( MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMARR *mri_complex_to_pair( MRI_IMAGE * ) ;

@@ -25,6 +25,7 @@ void *mri_data_pointer( MRI_IMAGE *im )
       case MRI_double: data = im->im.double_data ; break ;
       case MRI_complex:data = im->im.complex_data; break ;
       case MRI_rgb:    data = im->im.rgb_data    ; break ;
+      case MRI_rgba:   data = im->im.rgba_data   ; break ;
       default:         data = NULL               ; break ;
    }
    return data ;
@@ -41,6 +42,7 @@ void mri_fix_data_pointer( void * ptr , MRI_IMAGE *im )
       case MRI_double: im->im.double_data = (double *)  ptr; break ;
       case MRI_complex:im->im.complex_data= (complex *) ptr; break ;
       case MRI_rgb:    im->im.byte_data   = (byte *)    ptr; break ;
+      case MRI_rgba:   im->im.rgba_data   = (rgba *)    ptr; break ;
    }
    return ;
 }
@@ -70,6 +72,7 @@ int mri_datum_size( MRI_TYPE typ )
       case MRI_double:  return sizeof(double) ;
       case MRI_complex: return sizeof(complex) ;
       case MRI_rgb:     return 3*sizeof(byte) ;
+      case MRI_rgba:    return sizeof(rgba) ;
       default:          return 0 ;
    }
 }

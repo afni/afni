@@ -133,6 +133,14 @@ MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im )
       }
       break ;
 
+      case MRI_rgba:{
+         register rgba * inar = MRI_RGBA_PTR(im) ;
+         register rgba * flar = MRI_RGBA_PTR(flim) ;
+         for( i2=s2 ; i2 != e2 ; i2 += d2 )
+            for( i1=s1 ; i1 != e1 ; i1 += d1 ) flar[jb++] = inar[i2+i1] ;
+      }
+      break ;
+
       case MRI_float:{
          register float * inar = MRI_FLOAT_PTR(im) ;
          register float * flar = MRI_FLOAT_PTR(flim) ;

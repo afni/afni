@@ -288,6 +288,12 @@ PLUGIN_interface * ENV_init(void)
                    "Turn on the Define Function dataset value label?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
+   /* 22 Mar 2002 */
+
+   ENV_add_string( "AFNI_CROSSHAIR_LINES" ,
+                   "Draw crosshairs with lines, not overlay voxels?" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;

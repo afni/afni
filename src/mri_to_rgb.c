@@ -42,6 +42,14 @@ WHOAMI ; IMHEADER(oldim) ;
          memcpy( rgb , MRI_RGB_PTR(oldim) , 3*npix ) ;
       break ;
 
+      case MRI_rgba:
+         for( ii=0 ; ii < npix ; ii++ ){
+            rgb[3*ii]   = oldim->im.rgba_data[ii].r ;
+            rgb[3*ii+1] = oldim->im.rgba_data[ii].g ;
+            rgb[3*ii+2] = oldim->im.rgba_data[ii].b ;
+         }
+      break ;
+
       default:
          fprintf(stderr,"mri_to_rgb:  unrecognized image conversion %d\n",oldim->kind) ;
          return NULL ;

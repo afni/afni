@@ -123,12 +123,16 @@ static char * AFNI_funcmode_bbox_label[2] =
    "LR+AP:  display crosshairs only parallel\n"  \
    "         to the L-R and A-P axes [etc.]\n\n" \
    "N.B.: When a slice has an image viewer\n"    \
-   "  and a grapher open at the same time,\n"    \
-   "  then a 'frame' will be drawn around\n"     \
-   "  the voxels being graphed.  In Single\n"    \
-   "  crosshair mode, only this frame will\n"    \
-   "  be drawn.  In Multi mode, the actual\n"    \
-   "  crosshairs will also be drawn."
+   " and a grapher open at the same time,\n"     \
+   " then a 'frame' will be drawn around\n"      \
+   " the voxels being graphed.  In Single\n"     \
+   " crosshair mode, only this frame will\n"     \
+   " be drawn.  In Multi mode, the actual\n"     \
+   " crosshairs will also be drawn.\n"           \
+   "N.B.: You can set AFNI_CROSSHAIR_LINES\n"    \
+   " in Datamode->Misc->Edit Environment\n"      \
+   " to have crosshairs drawn as thin lines\n"   \
+   " rather than as overlaid voxels."
 
 #define AFNI_crosshair_color_help \
    "Controls the\n"               \

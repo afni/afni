@@ -1650,7 +1650,11 @@ ENTRY("ISQ_zoom_av_CB") ;
 
    /* must redisplay image totally */
 
+   if( zlev > 1 ) MCW_invert_widget( av->wlabel ) ;  /* 22 Mar 2002 */
+
    ISQ_redisplay( seq , -1 , isqDR_display ) ;
+
+   if( zlev > 1 ) MCW_invert_widget( av->wlabel ) ;  /* 22 Mar 2002 */
 
    EXRETURN ;
 }
@@ -3876,7 +3880,7 @@ ENTRY("ISQ_drawing_EV") ;
         /*-- if here, change panning offset --*/
 
         mh = (seq->zoom_fac-1.001)/seq->zoom_fac ;  /* max offset    */
-        dh = 0.010/seq->zoom_fac ;                  /* delta offset   */
+        dh = 0.020/seq->zoom_fac ;                  /* delta offset   */
         hh=seq->zoom_hor_off ; hhold=hh ;           /* current offsets */
         vv=seq->zoom_ver_off ; vvold=vv ;
 

@@ -62,6 +62,11 @@ MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE * oldim )
       case MRI_rgb:
          newim = mri_to_rgb( oldim ) ; /* 11 Feb 1999 */
       break ;
+
+      case MRI_rgba:
+         newim = mri_to_rgba( oldim ) ; /* 20 Mar 2002 */
+      break ;
+
   }
   return newim ;
 }

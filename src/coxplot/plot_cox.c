@@ -144,6 +144,9 @@ int nline_active_memplot(void)
 
 void set_color_memplot( float r , float g , float b )
 {
+   if( r > 1.0 || g > 1.0 || b > 1.0 ){        /* 22 Mar 2002:     */
+      r /= 255.0 ; g /= 255.0 ; b /= 255.0 ;   /* allow for 0..255 */
+   }
    if( r < 0.0 ) r = 0.0 ; else if ( r > 1.0 ) r = 1.0 ;
    if( g < 0.0 ) g = 0.0 ; else if ( g > 1.0 ) g = 1.0 ;
    if( b < 0.0 ) b = 0.0 ; else if ( b > 1.0 ) b = 1.0 ;
