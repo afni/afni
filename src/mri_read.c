@@ -2102,7 +2102,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
    }
 
-   floatize = AFNI_yesenv("AFNI_ANALYZE_FLOATIZE") ; /* 28 Nov 2001 */
+   floatize = (fac != 0.0 || AFNI_yesenv("AFNI_ANALYZE_FLOATIZE")) ; /* 28 Nov 2001 */
 
    /* get data type into mrilib MRI_* form */
 
@@ -2209,8 +2209,6 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       /* 27 Nov 2001: scale image? */
 
       if( fac != 0.0 ) mri_scale_inplace( fac , newim ) ;
-
-      newim->dv = fac ;  /* 24 Jun 2002: save scale factor */
    }
 
    fclose(fp) ; return newar ;
@@ -2285,7 +2283,7 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
       if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
    }
 
-   floatize = AFNI_yesenv("AFNI_ANALYZE_FLOATIZE") ; /* 28 Nov 2001 */
+   floatize = (fac != 0.0 || AFNI_yesenv("AFNI_ANALYZE_FLOATIZE")) ; /* 28 Nov 2001 */
 
    /* get data type into mrilib MRI_* form */
 
@@ -2390,8 +2388,6 @@ MRI_IMARR * mri_read3D_analyze75( char * hname )
       /* 27 Nov 2001: scale image? */
 
       if( fac != 0.0 ) mri_scale_inplace( fac , newim ) ;
-
-      newim->dv = fac ;  /* 24 Jun 2002: save scale factor */
    }
 
    fclose(fp) ; return newar ;

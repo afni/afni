@@ -8407,7 +8407,7 @@ static INLINE UINT hashkey( char *str )
 ----------------------------------------------------------*/
 
 #undef  HASH_STR
-#define HASH_STR(ss) ((strlen(ss) < 22) ? strdup(ss) : MD5_B64_string(ss))
+#define HASH_STR(ss) ((strlen(ss) < 25) ? strdup(ss) : MD5_B64_string(ss))
 
 /*-------------------------------------------------------*/
 /*! Create a new Htable, with len slots.
