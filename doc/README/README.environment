@@ -1465,6 +1465,12 @@ button "Datamode->Misc->Run Script".  As a 'secret' option, if you enter
 a line containing a blank in the the filename dialog, that line will be
 executed as a single command, rather than be used as a script filename.
 
+------------------------------
+Variable: AFNI_DEFAULT_OPACITY
+------------------------------
+This should be set to an integer from 1..9, and controls the default opacity
+setting for the color overlay in image viewer windows.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
