@@ -777,7 +777,7 @@ Boolean RT_worker( XtPointer elvis )
          if( rtinp->func_dset != NULL )
             THD_write_3dim_dataset( NULL,NULL , rtinp->func_dset , True ) ;
 
-         THD_set_write_compression(cmode) ;
+         THD_set_write_compression(cmode) ;  sync() ; /* 08 Mar 2000: sync disk */
          SHOW_AFNI_READY ;
 
          rtinp->last_nvol    = rtinp->nvol ;
@@ -2362,7 +2362,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
       AFNI_make_descendants( GLOBAL_library.sslist ) ;
       THD_force_malloc_type( rtin->dset->dblk , DATABLOCK_MEM_ANY ) ;
 
-      AFNI_purge_unused_dsets() ;
+      AFNI_purge_unused_dsets() ; sync() ;  /* 08 Mar 2000: sync disk */
       SHOW_AFNI_READY ;
    }
 

@@ -617,6 +617,49 @@ This is needed when the X11 server says that it supports it, but actually
 does not implement it correctly - this is a problem on the Xsgi server
 running under IRIX 6.5.3 on R4400 machines.
 
+------------------------------
+Variable: AFNI_VIEW_ANAT_BRICK
+          AFNI_VIEW_FUNC_BRICK
+------------------------------
+One of the (very few) confusing parts of AFNI is the "warp-on-demand"
+viewing of transformed datasets (e.g., in the +tlrc coordinate system).
+This allows you to look at slices taken from transformed volumes without
+actually computing and storing the entire transformed dataset.  This
+viewing mode is controlled by from the "Define Datamode" control panel.
+When an anatomical dataset has a +tlrc.BRIK file, then you can choose
+between "View Anat Data Brick" and "Warp Anat on Demand"; when there
+is no +tlrc.BRIK file for the dataset, then only "Warp Anat on Demand"
+is possible.
+
+If you switch the Talairach view when the current anat dataset does
+not have a +tlrc.BRIK file, then the "Warp Anat on Demand" mode will
+be turned on.  If you then switch to a dataset that does have a
++tlrc.BRIK file, "Warp Anat on Demand" will still be turned on,
+although the "View Anat Data Brick" option will be enabled.
+
+If you set the environment variable AFNI_VIEW_ANAT_BRICK (to anything),
+then "View Anat Data Brick" will be turned on whenever possible after
+switching datasets.  Similarly, setting AFNI_VIEW_FUNC_BRICK will
+engage "View Func Data Brick" whenever possible (when the BRIK file
+exists and its grid spacing matches the anatomical grid spacing).
+Note that switching any dataset (func or anat) triggers the same
+routine, and will set either or both "View Brick" modes on.  When
+these environment variables are present, the only way to switch to
+"Warp" mode when "View Brick" mode is possible is to do it manually
+(by clicking on the toggle button) when you want this.
+
+When you use one of the drawing plugins ("Draw Dataset" or "Gyrus Finder"),
+you must operate directly on the dataset BRIK.  For this reason, it is
+important to be in "View Data Brick" mode on these occasions.  Setting
+these variables is one way to ensure that this will happen whenever
+possible.
+
+When AFNI is in "Warp Anat on Demand" mode, the word "{warp}" will
+appear in the windows' titlebars.  This provides a reminder of the
+viewing mode you are using (warped from a brick, or data directly
+extracted from a brick), since the "Define Datamode" control panel
+will not always be open.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

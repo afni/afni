@@ -3412,6 +3412,7 @@ ENTRY("AFNI_time_index_CB") ;
       im3d->vinfo->time_index = ipx ;
    }
 
+   im3d->vinfo->tempflag = 1 ;
    AFNI_modify_viewing( im3d , False ) ;
 
    AFNI_time_lock_carryout( im3d ) ;  /* 03 Nov 1998 */
@@ -4805,6 +4806,7 @@ ENTRY("AFNI_resam_vox_av_CB") ;
    if( av == im3d->vwid->dmode->resam_vox_av ){
       im3d->vinfo->resam_vox = av->fval ;
       SHOW_AFNI_PAUSE ;
+      im3d->vinfo->tempflag = 1 ;
       AFNI_modify_viewing( im3d , True ) ;  /* redisplay */
       SHOW_AFNI_READY ;
    }
@@ -5242,6 +5244,17 @@ ENTRY("AFNI_setup_viewing") ;
 
    anat_brick_possible = DSET_INMEMORY(im3d->anat_now) ;
 
+   /*- The Ides of March, 2000: allow switching back to "view brick" -*/
+
+   if( anat_brick_possible                    &&
+       im3d->vinfo->force_anat_wod            &&
+       im3d->vinfo->tempflag == 0             &&
+       getenv("AFNI_VIEW_ANAT_BRICK") != NULL    ){
+
+      im3d->vinfo->force_anat_wod = 0 ;
+      MCW_set_bbox( im3d->vwid->dmode->anatmode_bbox , DMODE_BRICK_BVAL ) ;
+   }
+
    im3d->anat_wod_flag = ( im3d->vinfo->force_anat_wod ||       /* 02 Nov 1996 */
                            !anat_brick_possible          ) ;
 
@@ -5296,6 +5309,17 @@ STATUS("deciding whether to use function WOD") ;
       func_brick_possible =
          EQUIV_DATAXES( im3d->fim_now->daxes , im3d->wod_daxes ) &&   /* 02 Nov 1996 */
          DSET_INMEMORY( im3d->fim_now ) ;
+
+      /*- The Ides of March, 2000: allow switching back to "view brick" -*/
+
+      if( func_brick_possible                    &&
+          im3d->vinfo->force_func_wod            &&
+          im3d->vinfo->tempflag == 0             &&
+          getenv("AFNI_VIEW_FUNC_BRICK") != NULL    ){
+
+         im3d->vinfo->force_func_wod = 0 ;
+         MCW_set_bbox( im3d->vwid->dmode->funcmode_bbox , DMODE_BRICK_BVAL ) ;
+      }
 
       if( func_brick_possible && ! im3d->vinfo->force_func_wod ){
 STATUS("not forcing function WOD") ;
@@ -5728,6 +5752,8 @@ STATUS(" -- turning time index control off") ;
    /*--- attach to viewing windows (if any) ---*/
 
    AFNI_underlay_CB( NULL , (XtPointer) im3d , NULL ) ;
+
+   im3d->vinfo->tempflag = 0 ;
    EXRETURN ;
 }
 

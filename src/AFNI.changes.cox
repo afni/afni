@@ -2065,3 +2065,13 @@
      error messages, etc.
  * Modified rtfeedme.c to have -nzfake option, for testing the above.
  * Modified jp_afni.c to get orientations correct for Signa realtime.
+
+08 Mar 2000
+ * Added sync() to plug_realtime.c after writing datasets.
+
+15 Mar 2000
+ * Added AFNI_VIEW_ANAT_BRICK and AFNI_VIEW_FUNC_BRICK environment
+     variables to afni.c to force switching back to "view brick"
+     mode when switching datasets.
+ * Added "{warp}" string to titlebar when "Warp Anat on Demand" mode
+     is engaged.

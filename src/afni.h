@@ -120,12 +120,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.25h"
+#define VERSION "2.25i"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "02 March 2000    "
+#define RELEASE "17 March 2000    "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -249,6 +249,8 @@ typedef struct {
       Pixel            drawing_pixel ;
 
       int writeownsize ; /* 01 Aug 1999 */
+
+      int tempflag ;     /* 15 Mar 2000: for quick communication of state */
 
 } AFNI_view_info ;
 

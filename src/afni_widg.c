@@ -3914,6 +3914,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->fim_index         = 0 ;
    im3d->vinfo->thr_index         = 0 ;
 
+   im3d->vinfo->tempflag          = 0 ;  /* 15 Mar 2000 */
 
    /* Feb 1998: receive stuff, including drawing */
    /* Mar 1999: modified to allow for multiple receivers */

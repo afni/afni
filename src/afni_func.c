@@ -1260,6 +1260,7 @@ STATUS("set anat_resam_mode") ;
    }
 
    SHOW_AFNI_PAUSE ;
+   im3d->vinfo->tempflag = 1 ;
    AFNI_modify_viewing( im3d , False ) ;  /* redisplay */
    SHOW_AFNI_READY ;
    RESET_AFNI_QUIT(im3d) ;
@@ -1502,7 +1503,12 @@ ENTRY("AFNI_set_window_titles") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   sprintf(ttl , "%s%s: " , AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
+   if( im3d->anat_wod_flag )
+      sprintf(ttl , "{warp} %s%s: " ,
+              AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
+   else
+      sprintf(ttl , "%s%s: " ,
+              AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
 
    strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
    strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
@@ -2693,6 +2699,7 @@ ENTRY("AFNI_anatmode_CB") ;
    if( new_val != old_val ){
       im3d->vinfo->force_anat_wod = new_val ;
       SHOW_AFNI_PAUSE ;
+      im3d->vinfo->tempflag = 1 ;           /* 15 Mar 2000 */
       AFNI_modify_viewing( im3d , True ) ;  /* redisplay */
       SHOW_AFNI_READY ;
    }
@@ -2723,6 +2730,7 @@ ENTRY("AFNI_funcmode_CB") ;
    if( new_val != old_val ){
       im3d->vinfo->force_func_wod = new_val ;
       SHOW_AFNI_PAUSE ;
+      im3d->vinfo->tempflag = 1 ;           /* 15 Mar 2000 */
       AFNI_modify_viewing( im3d , True ) ;  /* redisplay */
       SHOW_AFNI_READY ;
    }
@@ -3996,6 +4004,7 @@ ENTRY("AFNI_anat_bucket_CB") ;
 
    if( doit ){
       SHOW_AFNI_PAUSE ;
+      im3d->vinfo->tempflag = 1 ;
       AFNI_setup_viewing( im3d , False ) ;
       AFNI_set_viewpoint( im3d , -1,-1,-1 , redisplay ) ; /* redraw */
       SHOW_AFNI_READY ;

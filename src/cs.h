@@ -37,4 +37,8 @@ extern void addto_args( int , char ** , int * , char *** ) ;
 extern void append_string_to_args ( char *, int, char **, int *, char *** ) ;
 extern void prepend_string_to_args( char *, int, char **, int *, char *** ) ;
 
+/***** Misc stuff *****/
+
+extern void get_laguerre_table( int , double ** , double ** ) ;  /* 12 Mar 2000 */
+
 #endif
