@@ -482,6 +482,10 @@ typedef struct MCW_imseq {
 
      int last_bx,last_by ;                            /* 23 Oct 2003 */
      int cmap_changed ;
+
+     int do_graymap ;                                 /* 24 Oct 2003 */
+     MEM_topshell_data * graymap_mtd ;
+     Widget wbar_graymap_pb ;
 } MCW_imseq ;
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
@@ -697,6 +701,9 @@ extern void ISQ_rowgraph_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_rowgraph_label( MCW_arrowval * , XtPointer ) ;
 extern void ISQ_rowgraph_draw( MCW_imseq * seq ) ;
 extern void ISQ_rowgraph_mtdkill( MEM_topshell_data * mp ) ;
+
+extern void ISQ_graymap_draw( MCW_imseq * seq ) ;           /* 24 Oct 2003 */
+extern void ISQ_graymap_mtdkill( MEM_topshell_data * mp ) ;
 
 extern void ISQ_surfgraph_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_surfgraph_label( MCW_arrowval * , XtPointer ) ;

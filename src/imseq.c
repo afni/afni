@@ -1529,6 +1529,9 @@ STATUS("creation: widgets created") ;
    newseq->rowgraph_num = 0 ;
    newseq->rowgraph_mtd = NULL ;
 
+   newseq->graymap_mtd  = NULL ;       /* 24 Oct 2003 */
+   newseq->cmap_changed = 0 ;
+
 #define DEFAULT_THETA  55.0
 #define DEFAULT_PHI   285.0
 
@@ -1563,6 +1566,15 @@ STATUS("creation: widgets created") ;
                                              MCW_BB_check , MCW_BB_noframe ,
                                              ISQ_wbar_plots_CB , (XtPointer)newseq ) ;
      MCW_set_bbox( newseq->wbar_plots_bbox , 1 ) ;
+
+     newseq->wbar_graymap_pb =
+        XtVaCreateManagedWidget(
+           "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+              LABEL_ARG("Display Graymap Plot") ,
+              XmNtraversalOn , False ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+     XtAddCallback( newseq->wbar_graymap_pb, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
 
      (void) XtVaCreateManagedWidget( "imseq",
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
@@ -3665,6 +3677,11 @@ ENTRY("ISQ_free_alldata") ;
       plotkill_topshell( seq->surfgraph_mtd ) ;
    }
 
+   if( seq->graymap_mtd != NULL ){                 /* 24 Oct 2003 */
+     seq->graymap_mtd->killfunc = NULL ;
+     plotkill_topshell( seq->graymap_mtd ) ;
+   }
+
 #if 0
    myXtFree(seq->status) ;                         /* 05 Feb 2000 */
 #endif
@@ -3809,6 +3826,8 @@ ENTRY("ISQ_redisplay") ;
    ISQ_show_image( seq ) ;
    ISQ_rowgraph_draw( seq ) ;
    ISQ_surfgraph_draw( seq ) ;  /* 21 Jan 1999 */
+
+   if( seq->graymap_mtd != NULL ) ISQ_graymap_draw( seq ) ; /* 24 Oct 2003 */
 
    /* 24 Apr 2001: handle image recording */
 
@@ -7292,20 +7311,24 @@ ENTRY("ISQ_wbar_menu_CB") ;
                          NULL , ISQ_set_rng_CB , seq ) ;
    }
 
-   if( w == seq->wbar_zer_but ){
+   else if( w == seq->wbar_zer_but ){
       MCW_choose_ovcolor( seq->wimage , seq->dc , seq->zer_color ,
                           ISQ_set_zcol_CB , seq ) ;
    }
 
-   if( w == seq->wbar_flat_but ){
+   else if( w == seq->wbar_flat_but ){
       MCW_choose_string( seq->wimage , "Flatten range: bot top" ,
                          NULL , ISQ_set_flat_CB , seq ) ;
    }
 
-   if( w == seq->wbar_sharp_but ){
+   else if( w == seq->wbar_sharp_but ){
       MCW_choose_integer( seq->wimage , "Sharpen Factor" ,
                           1 , 9 , (int)(10*seq->sharp_fac) ,
                           ISQ_set_sharp_CB , seq ) ;
+   }
+
+   else if( w == seq->wbar_graymap_pb ){   /* 24 Oct 2003 */
+     ISQ_graymap_draw( seq ) ;
    }
 
    EXRETURN ;
@@ -8529,7 +8552,8 @@ ENTRY("ISQ_rowgraph_draw") ;
    if( seq->status->send_CB != NULL )
       seq->status->send_CB( seq , seq->getaux , &cbs ) ;
    if( cbs.xim < 0 || cbs.yim < 0 ){
-      fprintf(stderr,"*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
+      fprintf(stderr,
+       "*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
       EXRETURN ;  /* bad result */
    }
    ISQ_unflipxy( seq , &(cbs.xim) , &(cbs.yim) ) ;
@@ -8627,6 +8651,71 @@ ENTRY("ISQ_rowgraph_mtdkill") ;
 
    AV_assign_ival( seq->rowgraph_av , 0 ) ;
    seq->rowgraph_num = 0 ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void ISQ_graymap_mtdkill( MEM_topshell_data *mp )  /* 24 Oct 2003 */
+{
+   MCW_imseq *seq ;
+
+ENTRY("ISQ_graymap_mtdkill") ;
+
+   if( mp == NULL ) EXRETURN ;
+   seq = (MCW_imseq *) mp->userdata ;
+   if( ISQ_VALID(seq) ) seq->graymap_mtd = NULL ;
+   EXRETURN ;
+}
+
+void ISQ_graymap_draw( MCW_imseq *seq )  /* 24 Oct 2003 */
+{
+   MEM_plotdata *mp ;
+   int ix , nx ;
+   float *yar , *xar , dx ;
+
+ENTRY("ISQ_graymap_draw") ;
+
+   if( !ISQ_REALZ(seq) || seq->dc->use_xcol_im ) EXRETURN ;  /* error */
+
+   /* make float arrays with grayscales and data range */
+
+   nx  = seq->dc->ncol_im ;
+   dx  = (seq->bartop - seq->barbot) / (nx-1) ; if( dx == 0.0 ) EXRETURN ;
+   yar = (float *) malloc( sizeof(float)*nx ) ;
+   xar = (float *) malloc( sizeof(float)*nx ) ;
+   for( ix=0 ; ix < nx ; ix++ ){
+     xar[ix] = seq->barbot + dx*ix ;
+     yar[ix] = seq->dc->xint_im[ix] ;
+     if( yar[ix] < 0.0 ) yar[ix] = 0.0 ;
+     else {
+       yar[ix] *= (255.0/65280.0) ; if( yar[ix] > 255.0 ) yar[ix] = 255.0 ;
+     }
+   }
+
+   /* make a plot in memory */
+
+   mp = plot_ts_mem( nx,xar, 1,0,&yar, "Data Value", "Gray Level", NULL,NULL ) ;
+   free(xar); free(yar);
+   if( mp == NULL ){
+     fprintf(stderr,"*** error in ISQ_graymap_draw: can't make plot_ts_mem\n") ;
+     EXRETURN ;  /* error */
+   }
+
+   /* if there is a plot window open, plot into it, otherwise open a new window */
+
+   if( seq->graymap_mtd != NULL ){
+
+      MTD_replace_plotdata( seq->graymap_mtd , mp ) ;
+      redraw_topshell( seq->graymap_mtd ) ;
+
+   } else {  /* make a new plot window */
+
+      seq->graymap_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_graymap_mtdkill ) ;
+      if( seq->graymap_mtd == NULL ){ delete_memplot(mp); EXRETURN; }
+      seq->graymap_mtd->userdata = (void *) seq ;
+   }
+
    EXRETURN ;
 }
 
