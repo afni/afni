@@ -10,7 +10,7 @@ static THD_3dim_dataset * RT_dset = NULL ;
 static float              RT_dt   = 0.0 ;
 static int                RT_3D   = 0 ;
 static int                RT_swap2= 0 ;
-static char               RT_buf[8192] , RT_com[256] ;
+static char               RT_buf[16384] , RT_com[512] ;
 static int                RT_mega = 1 ;
 
 /*=============================================================================*/
@@ -208,6 +208,8 @@ int main( int argc , char * argv[] )
    int iarg=1 , ii,tt,kk , nbytes , nbslice , ntran , nzfake=0 ;
    char * bar , * qar , * sar ;
    double start_time , left_time , xtime ;
+   char * drive_afni[128] ;
+   int   ndrive=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
@@ -237,6 +239,8 @@ int main( int argc , char * argv[] )
         "  -swap2      =  Swap byte pairs before sending data.\n"
         "\n"
         "  -nzfake nz  =  Send 'nz' as the value of nzz (for debugging).\n"
+        "\n"
+        "  -drive cmd  =  Send 'cmd' as a DRIVE_AFNI command.\n"
       ) ;
       exit(0) ;
    }
@@ -246,6 +250,11 @@ int main( int argc , char * argv[] )
    /*-- scan arguments --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-drive") == 0 ){   /* 30 Jul 2002 */
+         drive_afni[ndrive++] = argv[++iarg] ;
+         iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-nzfake") == 0 ){
          nzfake = (int) strtod( argv[++iarg] , NULL ) ;
@@ -398,6 +407,13 @@ int main( int argc , char * argv[] )
             ORIENT_shortstr[ RT_dset->daxes->yyorient ] ,
             ORIENT_shortstr[ RT_dset->daxes->zzorient ]  ) ;
    ADDTO_BUF ;
+
+   /*** DRIVE_AFNI commands ***/
+
+   for( ii=0 ; ii < ndrive ; ii++ ){
+     sprintf( RT_com , "DRIVE_AFNI %s" , drive_afni[ii] ) ;
+     ADDTO_BUF ;
+   }
 
    /*** send to AFNI ***/
 
