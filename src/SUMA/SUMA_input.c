@@ -2227,7 +2227,7 @@ void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   if (!XAllocNamedColor (sv->X->DPY, DefaultColormapOfScreen (XtScreen (sv->X->GLXAREA)),
+   if (!XAllocNamedColor (sv->X->DPY, sv->X->CMAP,
       Color, &col, &unused)) {
       fprintf (SUMA_STDERR, "Error %s: Can't allocate for %s color.\n", FuncName, Color);
       SUMA_RETURNe;  

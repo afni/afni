@@ -1749,6 +1749,34 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
 
+###
+#run make all in SUMA directory, USE FOR DEVELOPMENT ONLY	
+suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
+	( cd SUMA ;	\
+	make -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
+	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
+	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
+	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
+	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'RANLIB=$(RANLIB)' \
+	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
+	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
+	cd ../	;)
+
+###
+#run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY	
+suma_anew:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
+	( cd SUMA ;	\
+	make -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
+	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
+	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
+	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
+	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'RANLIB=$(RANLIB)' \
+	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
+	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
+	cd ../	;)
+
 suma_clean:
 	$(RM) SUMA/libSUMA.a libSUMA.a	
 	if [ -f SUMA/suma ]; then $(RM) SUMA/suma; fi;
