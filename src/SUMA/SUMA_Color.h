@@ -38,6 +38,9 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data);
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO); 
 void SUMA_RefreshColorPlaneList (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov);
+SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name);
+char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col);
+
 
 
 

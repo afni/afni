@@ -2298,10 +2298,10 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    }
    
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes (
+   if (!SUMA_Paint_SO_ROIplanes_w (
             SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, 
             SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
-      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURNe;
    }
    

@@ -186,7 +186,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                if (LocalHead) fprintf (SUMA_STDERR,"%s: Searching displayed surfaces.\n", FuncName);
                Found = NOPE;
                i = 0;
-               N_SOlist = SUMA_ShownSOs(svi, SUMAg_DOv, SOlist);
+               N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, SOlist);
                while (i < N_SOlist && !Found) { 
                   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);
                   if (strcmp(nel_surfidcode, SO->MapRef_idcode_str) == 0) {

@@ -1334,7 +1334,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
             }
             
             /* new surface loaded, do the deeds */
-            /* assign its Group and State */
+            /* assign its Group and State and Side*/
             SO->Group = (char *)SUMA_calloc(strlen(Spec->Group[i])+1, sizeof(char));
             SO->State = (char *)SUMA_calloc(strlen(Spec->State[i])+1, sizeof(char));
             if (Spec->SurfaceLabel[i][0] == '\0') {
@@ -1352,6 +1352,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
                SO->Label = strcpy(SO->Label, Spec->SurfaceLabel[i]);
             }
             
+            
             if (!SO->Group || !SO->State || !SO->Label) {
                fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
                SUMA_RETURN (NOPE);
@@ -1359,6 +1360,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
             SO->Group = strcpy(SO->Group, Spec->Group[i]);
             SO->State = strcpy(SO->State, Spec->State[i]);
             SO->EmbedDim = Spec->EmbedDim[i];
+            SO->Side = SUMA_GuessSide (SO);
             
             /* Create a Mesh Axis for the surface */
             SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis");
@@ -1369,7 +1371,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
             /* Change the defaults of Mesh axis to fit standard  */
             SUMA_MeshAxisStandard (SO->MeshAxis, SO);
             /*turn on the viewing for the axis */
-            SO->ShowMeshAxis = YUP;
+            SO->ShowMeshAxis = NOPE;
 
             /* Store it into dov */
             if (!SUMA_AddDO(dov, N_dov, (void *)SO,  SO_type, SUMA_LOCAL)) {
@@ -1516,6 +1518,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
             SO->Group = strcpy(SO->Group, Spec->Group[i]);
             SO->State = strcpy(SO->State, Spec->State[i]);
             SO->EmbedDim = Spec->EmbedDim[i];
+            SO->Side = SUMA_GuessSide (SO);
 
             /* Create a Mesh Axis for the surface */
             SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis");
@@ -1526,7 +1529,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
             /* Change the defaults of Mesh axis to fit standard  */
             SUMA_MeshAxisStandard (SO->MeshAxis, SO);
             /*turn on the viewing for the axis */
-            SO->ShowMeshAxis = YUP;
+            SO->ShowMeshAxis = NOPE;
 
             /* Store it into dov */
             if (!SUMA_AddDO(dov, N_dov, (void *)SO,  SO_type, SUMA_LOCAL)) {
@@ -2612,4 +2615,52 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
    } 
    SUMA_RETURN (Name);
    
+}
+
+SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_GuessSide"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   switch (SO->FileType) {
+      case SUMA_INVENTOR_GENERIC:
+         break;
+      case SUMA_FREE_SURFER:
+         if (SUMA_iswordin (SO->Name.FileName, "lh")) {
+            SUMA_RETURN(SUMA_LEFT);
+         } else if (SUMA_iswordin (SO->Name.FileName, "rh")) {
+                     SUMA_RETURN(SUMA_RIGHT);
+                  }
+         break;
+      case SUMA_SUREFIT:
+         if (SUMA_iswordin (SO->Name_coord.FileName, "left")) {
+            SUMA_RETURN(SUMA_LEFT);
+         } else if (SUMA_iswordin (SO->Name_coord.FileName, "right")) {
+                        SUMA_RETURN(SUMA_RIGHT);
+                  }
+         break;
+      case SUMA_VEC:
+         if (SUMA_iswordin (SO->Name_coord.FileName, "lh") ||
+             SUMA_iswordin (SO->Name_coord.FileName, "left")) {
+               SUMA_RETURN(SUMA_LEFT);
+         } else if (SUMA_iswordin (SO->Name_coord.FileName, "rh") ||
+                     SUMA_iswordin (SO->Name_coord.FileName, "right")) {
+                     SUMA_RETURN(SUMA_RIGHT);
+               }
+         break;
+      case SUMA_FT_NOT_SPECIFIED:
+         break;
+      case SUMA_PLY:
+         if (SUMA_iswordin (SO->Name.FileName, "lh") ||
+             SUMA_iswordin (SO->Name.FileName, "left")) {
+               SUMA_RETURN(SUMA_LEFT);
+         } else if (SUMA_iswordin (SO->Name.FileName, "rh") ||
+                  SUMA_iswordin (SO->Name.FileName, "right")) { 
+                     SUMA_RETURN(SUMA_RIGHT);
+               }
+         break;
+   } 
+   
+   SUMA_RETURN (SUMA_NO_SIDE);
 }

@@ -162,9 +162,9 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       
       SV->Open = NOPE;
       
-      SV->ShowDO = (int *)SUMA_calloc( SUMA_MAX_DISPLAYABLE_OBJECTS, sizeof(int));
-      if (SV->ShowDO == NULL) {
-         fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to SUMA_malloc SV->ShowDO\n");
+      SV->RegisteredDO = (int *)SUMA_calloc( SUMA_MAX_DISPLAYABLE_OBJECTS, sizeof(int));
+      if (SV->RegisteredDO == NULL) {
+         fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to SUMA_malloc SV->RegisteredDO\n");
          SUMA_RETURN (NULL);
       }
       SV->N_DO = 0; /* Nothing is registered with the viewer yet */
@@ -235,6 +235,10 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->ResetGLStateVariables = YUP;
       
       SV->BS = NULL;
+      
+      SV->ShowRight = YUP;
+      SV->ShowLeft = YUP;
+      
    }
    SUMA_RETURN (SVv);
 }
@@ -256,7 +260,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
    if (SV->X->HighlightBox_prmpt) SUMA_FreePromptDialogStruct (SV->X->HighlightBox_prmpt);
    if (SV->X->ViewCont) SUMA_FreeViewContStruct(SV->X->ViewCont);
    if (SV->X) SUMA_free(SV->X);
-   if (SV->ShowDO) SUMA_free(SV->ShowDO);
+   if (SV->RegisteredDO) SUMA_free(SV->RegisteredDO);
    if (SV->VSv) {
       for (i=0; i < SV->N_VSv; ++i) {
          if (!SUMA_Free_ViewState (&(SV->VSv[i]))) {
@@ -494,7 +498,7 @@ SUMA_Boolean SUMA_EmptyColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
 
 /*!
    ans = SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv)
-   Set Remix flags for all surfaces in sv->ShowDO regardless of their relationship.
+   Set Remix flags for all surfaces in sv->RegisteredDO regardless of their relationship.
    This is useful when you change the settings for background color modulation and the like.
    \param sv (SUMA_SurfaceViewer *) pointer to surface viewer 
    \return ans (SUMA_Boolean) YUP/NOPE
@@ -518,7 +522,7 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv)
 
 /*!
    ans = SUMA_SetLocalRemixFlag (char *idcode_str, SUMA_SurfaceViewer *sv);
-   Search ShowDO for sv and if a Surface in ShowDO is related 
+   Search RegisteredDO for sv and if a Surface in RegisteredDO is related 
    to DO_idcode_str then its remix flag is set to yes.
    
    \param idcode_str (char *) IDcode of the surface that had its colorplanes modified
@@ -550,9 +554,9 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *sv
    }
    SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP;
    
-   /* search for relatives in ShowDO */
+   /* search for relatives in RegisteredDO */
    for (k=0; k < sv->N_DO; ++k) {
-      SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[sv->ShowDO[k]].OP;
+      SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[sv->RegisteredDO[k]].OP;
       if (SUMA_isRelated (SO1, SO2)) {
          /* related, set flag for remixing SO2 */
          kk = 0;
@@ -578,7 +582,7 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *sv
 
 /*!
    ans = SUMA_SetRemixFlag (char *idcode_str, SUMA_SurfaceViewer *SVv, int N_SVv);
-   Search ShowDO for each Surface Viewer and if a Surface in ShowDO is related 
+   Search RegisteredDO for each Surface Viewer and if a Surface in RegisteredDO is related 
    to DO_idcode_str then its remix flag is set to yes.
    
    \param idcode_str (char *) IDcode of the surface that had its colorplanes modified
@@ -623,10 +627,10 @@ SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, in
    for (i=0; i < N_SVv; ++i) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Searching viewer %d.\n", FuncName, i);
       sv = &(SVv[i]);
-      /* search for relatives in ShowDO */
+      /* search for relatives in RegisteredDO */
       for (k=0; k < sv->N_DO; ++k) {
-         if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[k]])) {
-            SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[sv->ShowDO[k]].OP;
+         if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[k]])) {
+            SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[sv->RegisteredDO[k]].OP;
             if (SUMA_isRelated (SO1, SO2)) {
                /* related, set flag for remixing SO2 */
                kk = 0;
@@ -650,7 +654,7 @@ SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, in
    SUMA_RETURN (YUP);
 }
 /*!
-Updates the View Center and view from of SV based on the contents of ShowDO
+Updates the View Center and view from of SV based on the contents of RegisteredDO
 */
 
 SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
@@ -669,7 +673,7 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_d
    
    i = 0;
    while (i < SV->N_DO) {
-      do_id = SV->ShowDO[i];
+      do_id = SV->RegisteredDO[i];
       switch (dov[do_id].ObjectType) {
          case SO_type:
             so_op = (SUMA_SurfaceObject *)dov[do_id].OP;
@@ -714,7 +718,7 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_d
    
 }
 /*!
-Updates the Rotation Center of SV based on the contents of ShowDO
+Updates the Rotation Center of SV based on the contents of RegisteredDO
 */
 SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
 {
@@ -732,7 +736,7 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
    
    i = 0;
    while (i < SV->N_DO) {
-      do_id = SV->ShowDO[i];
+      do_id = SV->RegisteredDO[i];
       switch (dov[do_id].ObjectType) {
          case SO_type:
             so_op = (SUMA_SurfaceObject *)dov[do_id].OP;
@@ -774,6 +778,10 @@ void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
    
    fprintf(Out,"\nSV contents:\n");
    fprintf(Out,"\tverbose = %d\n", SV->verbose);
+   if (SV->ShowLeft) fprintf(Out,"\tShow Left = YES\n");
+   else fprintf(Out,"\tShow Left = NO\n");
+   if (SV->ShowRight) fprintf(Out,"\tShow Right = YES\n");
+   else fprintf(Out,"\tShow Right = NO\n");
    fprintf(Out,"\tAspect = %f\n", SV->Aspect);
    fprintf(Out,"\tViewFrom = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFrom[0], SV->GVS[SV->StdView].ViewFrom[1], SV->GVS[SV->StdView].ViewFrom[2]);
    fprintf(Out,"\tViewFromOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFromOrig[0], SV->GVS[SV->StdView].ViewFromOrig[1], SV->GVS[SV->StdView].ViewFromOrig[2]);
@@ -803,9 +811,9 @@ void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
    fprintf(Out,"\tPolyMode %d\n", SV->PolyMode);
    
    fprintf(Out,"\tN_DO = %d\n", SV->N_DO);
-   fprintf(Out,"\tShowDO = [");
+   fprintf(Out,"\tRegisteredDO = [");
    for (i=0; i< SV->N_DO; ++i)
-      fprintf(Out,"%d, ", SV->ShowDO[i]);
+      fprintf(Out,"%d, ", SV->RegisteredDO[i]);
    fprintf(Out,"]\n");
    if (SV->X == NULL) fprintf(Out,"\tX struct is NULL!\n");
    else {
@@ -861,9 +869,9 @@ SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out)
    
    if (VS->Hist) {
       if (VS->Hist->N_DO) {
-         fprintf(Out,"\tHist->N_DO = %d\nHist->ShowDO: ", VS->Hist->N_DO);
+         fprintf(Out,"\tHist->N_DO = %d\nHist->RegisteredDO: ", VS->Hist->N_DO);
          for (i=0; i < VS->Hist->N_DO; ++i) {
-            fprintf(Out,"\t%d, ", VS->Hist->ShowDO[i]);
+            fprintf(Out,"\t%d, ", VS->Hist->RegisteredDO[i]);
          }
       }
    } else {
@@ -888,7 +896,7 @@ SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void)
       fprintf(SUMA_STDERR,"Error %s: Could not allocate for vsh.\n", FuncName);
       SUMA_RETURN (NULL);
    }
-   vsh->ShowDO = NULL;
+   vsh->RegisteredDO = NULL;
    vsh->N_DO = 0;
    SUMA_RETURN (vsh);
 }   
@@ -899,7 +907,7 @@ SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (vsh == NULL) SUMA_RETURN (YUP);
-   if (vsh->ShowDO) SUMA_free(vsh->ShowDO);
+   if (vsh->RegisteredDO) SUMA_free(vsh->RegisteredDO);
    if (vsh) SUMA_free(vsh);
    SUMA_RETURN (YUP);
 }
@@ -1161,6 +1169,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    }
    if (LocalHead) fprintf(SUMA_STDERR, "%s: roi_type code = %d\n", FuncName, cf->nimlROI_Datum_type) ;
    
+   cf->ROI_CM = NULL;
+   cf->ROI_FillMode = SUMA_ROI_FILL_TO_THISROI;
+   cf->ROI2afni = YUP;
    return (cf);
 
 }
@@ -1363,7 +1374,7 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->ColPlaneOrder) free (SurfCont->ColPlaneOrder);
    if (SurfCont->ColPlaneOpacity) free (SurfCont->ColPlaneOpacity);
    if (SurfCont->SwitchColPlanelst) SUMA_FreeScrolledList (SurfCont->SwitchColPlanelst);
-
+   
    if (SurfCont) free(SurfCont);
    return (NULL);
 }
@@ -1377,6 +1388,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    
    /* do not use commonfields related stuff here for obvious reasons */
    
+   if (cf->ROI_CM) SUMA_Free_ColorMap(cf->ROI_CM); /* free the colormap */
    if (cf->X->FileSelectDlg) SUMA_FreeFileSelectionDialogStruct(cf->X->FileSelectDlg);
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont);
    if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI);
@@ -1629,10 +1641,10 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
 {  
    static char FuncName[]={"SUMA_UpdateViewerTitle"};
    int isv, i, N_SOlist, nalloc;  
-   char slabel[30];   
+   char slabel[30], sside[30];   
    SUMA_SurfaceObject *SO = NULL;   
    int SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];   
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LeftSide, RightSide, LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1647,17 +1659,32 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    if (isv >= 0) sprintf(slabel,"[%c] SUMA", 65+isv); 
    else sprintf(slabel,"[DOH] SUMA"); 
    
-   N_SOlist = SUMA_ShownSOs(sv, SUMAg_DOv, SOlist);   
+   N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);   
    
    i = 0; 
    nalloc = 0;  
+   LeftSide = NOPE;
+   RightSide = NOPE;
    while (i < N_SOlist) {   
-      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[0]].OP);   
+      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);   
       if (SO->Label) { 
          nalloc +=  (strlen(SO->Label)+5);  
-      }  
+      }
+      if (SO->Side == SUMA_LEFT && sv->ShowLeft) {
+         SUMA_LH("Left found");
+         LeftSide = YUP;
+      } else if (SO->Side == SUMA_RIGHT && sv->ShowRight) { 
+         SUMA_LH("Right found");
+         RightSide = YUP;  
+      }
+      
       ++i;   
    }
+   
+   if (LeftSide && RightSide) sprintf(sside, "LR");
+   else if (LeftSide && !RightSide) sprintf(sside, "L-");
+   else if (!LeftSide && RightSide) sprintf(sside, "-R");
+   else sprintf(sside, "--");
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d surface models.\n", FuncName, N_SOlist);
    
@@ -1669,7 +1696,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
       while (i < N_SOlist) {   
          SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);   
          if (!i)  {
-            sprintf (sv->X->Title,"%s:%s", slabel, SO->Label); 
+            sprintf (sv->X->Title,"%s:%s:%s", slabel, sside, SO->Label); 
          } else {
             sv->X->Title = strcat (sv->X->Title, " & ");
             sv->X->Title = strcat (sv->X->Title, SO->Label); 

@@ -264,6 +264,7 @@ SUMA_postRedisplay(Widget w,
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 {   
    int i;
+   SUMA_SurfaceObject *SO=NULL;
    GLfloat rotationMatrix[4][4];
    static char FuncName[]={"SUMA_display"};
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
@@ -304,17 +305,17 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    glLoadIdentity ();
    gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
 
-   /* cycle through csv->ShowDO and display those things that have a fixed CoordType*/
+   /* cycle through csv->RegisteredDO and display those things that have a fixed CoordType*/
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Creating objects with fixed coordinates ...\n", FuncName);
    i = 0;
    while (i < csv->N_DO) {
-      if (dov[csv->ShowDO[i]].CoordType == SUMA_SCREEN) {
-         switch (dov[csv->ShowDO[i]].ObjectType) {
+      if (dov[csv->RegisteredDO[i]].CoordType == SUMA_SCREEN) {
+         switch (dov[csv->RegisteredDO[i]].ObjectType) {
             case SO_type:
                break;
             case AO_type:
                if (csv->ShowEyeAxis){
-                  if (!SUMA_DrawAxis ((SUMA_Axis*)dov[csv->ShowDO[i]].OP)) {
+                  if (!SUMA_DrawAxis ((SUMA_Axis*)dov[csv->RegisteredDO[i]].OP)) {
                      fprintf(SUMA_STDERR,"Error %s: Could not display EYE AXIS\n", FuncName);
                   }
                }
@@ -328,7 +329,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                /* those are drawn by SUMA_DrawMesh */
                break;
             case LS_type:
-               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->ShowDO[i]].OP)) {
+               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
                }
                break;
@@ -352,18 +353,25 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    glMultMatrixf(&rotationMatrix[0][0]);
    glTranslatef (-csv->GVS[csv->StdView].RotaCenter[0], -csv->GVS[csv->StdView].RotaCenter[1], -csv->GVS[csv->StdView].RotaCenter[2]);
 
-   /* cycle through csv->ShowDO and display those things that have a Local CoordType*/
+   /* cycle through csv->RegisteredDO and display those things that have a Local CoordType*/
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Creating objects with local coordinates ...\n", FuncName);
    i = 0;
    while (i < csv->N_DO) {
-      if (dov[csv->ShowDO[i]].CoordType == SUMA_LOCAL) {
-         switch (dov[csv->ShowDO[i]].ObjectType) {
+      if (dov[csv->RegisteredDO[i]].CoordType == SUMA_LOCAL) {
+         switch (dov[csv->RegisteredDO[i]].ObjectType) {
             case SO_type:
-               SUMA_DrawMesh((SUMA_SurfaceObject *)dov[csv->ShowDO[i]].OP, csv); /* create the surface */
+               SO = (SUMA_SurfaceObject *)dov[csv->RegisteredDO[i]].OP;
+               if (SO->Show) {
+                  if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) || 
+                        (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
+                        SO->Side == SUMA_NO_SIDE) {
+                        SUMA_DrawMesh(SO, csv); /* create the surface */
+                  }
+               }
                break;
             case AO_type:
                if (csv->ShowMeshAxis) {
-                  if (!SUMA_DrawAxis ((SUMA_Axis*)dov[csv->ShowDO[i]].OP)) {
+                  if (!SUMA_DrawAxis ((SUMA_Axis*)dov[csv->RegisteredDO[i]].OP)) {
                      fprintf(stderr,"display error: Could not display Mesh AXIS\n");
                   }
                }
@@ -377,7 +385,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                /* those are drawn by SUMA_DrawMesh */
                break;
             case LS_type:
-               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->ShowDO[i]].OP)) {
+               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
                }
                break;
@@ -2822,6 +2830,22 @@ void SUMA_CreateDrawROIWindow(void)
    /* set the toggle button's select color */
    SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->DrawROImode_tb);
    
+   /* Put a toggle button for real time communication with AFNI */
+   SUMAg_CF->X->DrawROI->AfniLink_tb = XtVaCreateManagedWidget("Afni Link", 
+      xmToggleButtonGadgetClass, rc, NULL);
+   /* can the link be on ? */
+   if (SUMAg_CF->Connected) SUMAg_CF->ROI2afni = YUP;
+   else SUMAg_CF->ROI2afni = NOPE;
+   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, SUMAg_CF->ROI2afni, NOPE);
+   XtAddCallback (SUMAg_CF->X->DrawROI->AfniLink_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_AfniLink_toggled, 
+                  NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->AfniLink_tb , SUMA_DrawROI_AfniLink_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->AfniLink_tb , "Toggles Link to Afni" ) ;
+
+   /* set the toggle button's select color */
+   SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->AfniLink_tb);
+   
    /* manage rc */
    XtManageChild (rc);
    
@@ -3605,8 +3629,9 @@ void SUMA_DrawROI_NewValue (void *data)
    static char FuncName[]={"SUMA_DrawROI_NewValue"};
    SUMA_ARROW_TEXT_FIELD *AF=NULL;
    SUMA_DRAWN_ROI *DrawnROI=NULL;
-   SUMA_Boolean LocalHead = NOPE;
    static int ErrCnt=0;
+   DList *list=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -3629,6 +3654,29 @@ void SUMA_DrawROI_NewValue (void *data)
       AF->value = (float)DrawnROI->iLabel;
       SUMA_ATF_SetString (AF); 
    }
+   
+   /* if your colors are based on the label, you've got work to do*/
+   if (DrawnROI->ColorByLabel) {
+      SUMA_SurfaceObject *SO=NULL;
+      /* Now update the Paint job on the ROI plane */
+      SO = SUMA_findSOp_inDOv (DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+      if (!SO) {
+         SUMA_SLP_Err(  "Failed to find parent surface\n"
+                        "No color for you!");
+         SUMA_RETURNe;
+      }
+      if (!SUMA_Paint_SO_ROIplanes_w (SO, SUMAg_DOv, SUMAg_N_DOv)) {
+         SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
+         SUMA_RETURNe;
+      }
+
+      if (!list) list = SUMA_CreateList ();
+      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaWidget, NULL);
+      if (!SUMA_Engine (&list)) {
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
+         SUMA_RETURNe;    
+      }
+   }   
    SUMA_RETURNe;
 }
 
@@ -4004,6 +4052,32 @@ void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
    SUMA_RETURNe;
 
 }
+
+/*!
+   \brief Toggles the Afni link mode
+*/
+void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_AfniLink_toggled"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMAg_CF->ROI2afni = !SUMAg_CF->ROI2afni;
+   
+   /* make sure that is OK */
+   if (SUMAg_CF->ROI2afni && !SUMAg_CF->Connected) {
+      SUMAg_CF->ROI2afni = NOPE;
+      
+      SUMA_SLP_Err(  "Cannot link to Afni.\n"
+                     "No connection found.");
+      XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, SUMAg_CF->ROI2afni, NOPE);
+   }
+      
+   SUMA_RETURNe;
+
+}
+
+
 
 /*! 
    \brief handles a selection from switch ColPlane 
@@ -5462,10 +5536,16 @@ void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data)
       SUMAg_CF->X->DrawROI->curDrawnROI->StackPos = tmp;
    }
 
+   if (dlist_size(SUMAg_CF->X->DrawROI->curDrawnROI->ROIstrokelist)) {
+      SUMA_LH("Not empty ROIstrokelist");
+   }else {
+      SUMA_LH(" empty ROIstrokelist");
+   }
+   
    /* do the paint thing */
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes (SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
-      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+   if (!SUMA_Paint_SO_ROIplanes_w (SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURNe;
    } 
 
@@ -5510,8 +5590,8 @@ void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data)
 
    /* do the paint thing */
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes (SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
-      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+   if (!SUMA_Paint_SO_ROIplanes_w (SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURNe;
    } 
 
@@ -5642,8 +5722,8 @@ void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data)
    SO = SUMA_findSOp_inDOv(DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes (SO, SUMAg_DOv, SUMAg_N_DOv)) {
-      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+   if (!SUMA_Paint_SO_ROIplanes_w (SO, SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURNe;
    }
    
@@ -5723,9 +5803,9 @@ void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
    if (PlaneName) SUMA_free(PlaneName);
    
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes (
+   if (!SUMA_Paint_SO_ROIplanes_w (
          SO, SUMAg_DOv, SUMAg_N_DOv)) {
-      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURNe;
    }
 
@@ -5947,8 +6027,8 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
    }
 
    
-   if (NewX >= ScrW) NewX = 10;
-   if (NewY >= ScrH) NewY = 10;
+   if (NewX >= ScrW) NewX = 50;
+   if (NewY >= ScrH) NewY = 50;
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Positioning window at %d %d\n", FuncName, NewX, NewY);
    XtVaSetValues (New,

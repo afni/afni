@@ -115,6 +115,7 @@
                                          you'll get many reports from the function making it difficult to see other messages. */
 #define SUMA_WORKPROC_IO_NOTIFY 0  /*!< Same as above but for SUMA_workprocess */
                                     
+typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
 typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_YES_ALL, SUMA_NO_ALL, SUMA_WHAT_THE_HELL } SUMA_QUESTION_DIALOG_ANSWER; /* DO NOT CHANGE THE ORDER OF THE FIRST 4 */
 
 typedef enum  { SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC } SUMA_SO_File_Type;
@@ -231,9 +232,9 @@ typedef struct {
 }  SUMA_OVERLAY_PLANE_DATA; /*!< This is a conveninence structure meant to carry data required to fill a color plane. 
                                  \sa SUMA_OVERLAYS*/
 
-typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
+typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
                SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
-               SUMA_CMAP_MATLAB_DEF_BGYR64} SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
+               SUMA_CMAP_MATLAB_DEF_BGYR64, SUMA_CMAP_ROI64, SUMA_CMAP_ROI128 } SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
 
 typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI_DRAWING_STATUS;
 
@@ -280,6 +281,11 @@ typedef enum { SAP_Do,
                SAP_Undo,
                SAP_Redo,
             } SUMA_ACTION_POLARITY;               
+
+typedef enum {
+   SUMA_ROI_FILL_TO_ALLROI, /*!< Fill until you encounter a node part of any ROI */
+   SUMA_ROI_FILL_TO_THISROI, /*!< Fill until you encounter a node part of this ROI */
+}SUMA_ROI_FILL_MODES; 
 
 typedef struct {
    SUMA_ACTION_RESULT (*ActionFunction)(void *ActionData, SUMA_ACTION_POLARITY Pol); /*!< The function to call for performing the action */
@@ -419,6 +425,9 @@ typedef struct {
    float EdgeColor[3];  /*!< RGB edge color */
    int EdgeThickness;   /*!< thickness of edge */
    int iLabel; /*!< An integer value, another way to represent a Label */
+   SUMA_Boolean ColorByLabel; /*!< flag indicating that ROI node colors should
+                                   be based on the value in iLabel and not the 
+                                   one specified in FillColor */
    SUMA_ROI_DRAWING_STATUS DrawStatus; /*!< Status of the ROI being drawn, finished, being drawn, being edited, etc. */
 
    DList *ROIstrokelist;   /*!< a doubly linked list with the data element being a (void *)SUMA_ROI_DATUM * */
@@ -759,6 +768,7 @@ typedef struct {
 typedef struct {
    Widget AppShell; /*!< AppShell widget for the DrawROI window*/ 
    Widget DrawROImode_tb; /*!< widget for toggling draw ROI mode */
+   Widget AfniLink_tb; /*!< widget for toggling link to Afni */
    Widget ParentLabel_lb; /*!< widget for specifying a label for the parent surface */ 
    Widget Redo_pb;
    Widget Undo_pb;
@@ -904,7 +914,7 @@ typedef struct {
 /* structure defining the former state of a surface viewer window */
 typedef struct {
    int N_DO;      /*!< Total number of surface objects registered with the viewer */
-   int *ShowDO;    /*!< ShowSO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
+   int *RegisteredDO;    /*!< ShowSO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
    float ViewFrom[3]; /*!< Location of observer's eyes */
    float ViewFromOrig[3]; /*!< Original Location of observer's eyes */
    float ViewCenter[3];   /*!< Center of observer's gaze */
@@ -921,7 +931,7 @@ typedef struct {
    char *Name; /*!< The name of the viewing state, fiducial, inflated, etc .. */
    int *MembSOs; /*!< Indices into DOv of SOs that are members of the viewing state */
    int N_MembSOs; /*!< Number of members in MembSOs. Only SOs that are in MembSOs can
-                     be placed into ShowDO of the viewer in a particular viewing state.*/                  
+                     be placed into RegisteredDO of the viewer in a particular viewing state.*/                  
    SUMA_ViewState_Hist *Hist; /*!< Pointer to structure containing various parameter settings for that viewing state */            
 } SUMA_ViewState;
 
@@ -1003,15 +1013,18 @@ typedef struct {
 /*! structure defining the state of a viewer window */
 typedef struct {
    int N_DO;      /*!< Total number of surface objects registered with the viewer */
-   int *ShowDO;    /*!< ShowDO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
+   int *RegisteredDO;    /*!< RegisteredDO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
    
-   SUMA_COLORLIST_STRUCT *ColList; /*!< pointer to structures containing NodeColorLists for surfaces listed in ShowDO */
+   SUMA_Boolean ShowLeft; /*!< Show left side surfaces */
+   SUMA_Boolean ShowRight; /*!< Show right side surfaces */
+   
+   SUMA_COLORLIST_STRUCT *ColList; /*!< pointer to structures containing NodeColorLists for surfaces listed in RegisteredDO */
    int N_ColList; /*!< Number of structures in ColList */
    
    SUMA_STANDARD_VIEWS StdView; /*!< viewing mode, for 2D or 3D */
    SUMA_GEOMVIEW_STRUCT *GVS; /*! pointer to structures containing geometric viewing settings */
    int N_GVS; /*!< Number of different geometric viewing structures */
-
+   
    short verbose;   /*!< Verbosity of viewer */
 
    SUMA_X *X; /*!< structure containing X widget midgets */
@@ -1217,6 +1230,7 @@ typedef struct {
 typedef struct {
    SUMA_SO_File_Type FileType; /*!< Type of Surface file */
    SUMA_SO_File_Format FileFormat; /*!< Format of Surface file ascii or binary*/
+   SUMA_SO_SIDE Side; /*!< Left/right */
    
    SUMA_FileName Name; /*!< Directory and Name of surface object file (SO) */
    SUMA_FileName Name_coord; /*!< Directory and Name of surface coordinate file (for SureFit files) */
@@ -1227,7 +1241,8 @@ typedef struct {
    SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume data sets ?*/
    SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/
    SUMA_Boolean SentToAfni; /*!< YUP if the surface has been niml-sent to AFNI */
-
+   SUMA_Boolean Show; /*!< YUP then the surface is visible in the viewer. Not used that much I'd say*/
+   
    SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points */
    
    int N_Node; /*!< Number of nodes in the SO */
@@ -1391,6 +1406,7 @@ typedef struct {
    char *Source;  /*!< source of message, usually calling function */
 }  SUMA_MessageData;
 
+
 /*! structure containing information global to all surface viewers */
 typedef struct {
    char AfniHostName[SUMA_MAX_NAME_LENGTH]; /*!< name or ipaddress of afni host maximum allowed name is 20 chars less than allocated for, see SUMA_Assign_AfniHostName*/ 
@@ -1420,6 +1436,9 @@ typedef struct {
    SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
    DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
    SUMA_Boolean ROI_mode; /*!< Flag specifying that SUMA is in ROI drawing mode */
+   SUMA_COLOR_MAP *ROI_CM; /*!< Color map used to map an ROI's index to a color */
+   SUMA_ROI_FILL_MODES ROI_FillMode; /*!< flag indicating how to fill a closed contour */
+   SUMA_Boolean ROI2afni; /*!< Send ROIs to afni as you draw them*/
    int nimlROI_Datum_type; /*!< the code for nimlROI_Datum_type */
 } SUMA_CommonFields;
 

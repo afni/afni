@@ -805,10 +805,10 @@ int main (int argc,char *argv[])
             int j, *iv, N_i;
             float *fp;
             
-            iv = SUMA_GetColIndex (SUMA_NODE_G, &N_i);
+            iv = SUMA_GetColIndex (nel, SUMA_NODE_G, &N_i);
             if (!iv) {
                fprintf (stderr,"Error %s: Failed to find column.\n"
-                           , FuncName, stmp);
+                           , FuncName);
             } else {
          
                fp = (float *)nel->vec[iv[0]]; /* I know we only have one 
