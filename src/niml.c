@@ -2977,8 +2977,8 @@ char * NI_type_name( int tval )
    static char *NI_names[NI_NUM_TYPES] =
     { "byte"  , "short"  , "int"     ,
       "float" , "double" , "complex" ,
-      "rgb"   , "String" , "Line"    ,
-      "Rgba"
+      "rgb"   , "Rgba"   , "String"  ,
+      "Line"  ,
     } ;
 
    if( tval < 0 || tval >= NI_NUM_TYPES ) return NULL ;
