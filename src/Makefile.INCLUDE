@@ -767,13 +767,13 @@ afni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 
 ### End of reslicing routines
 
-SHOWOFF = NO
+# SHOWOFF = -DSHOWOFF=NO
 
 ### The star of the show
 
 afni.o:afni.c
 	$(RM) $@
-	$(CC) -c afni.c $(IFLAGS) -DSHOWOFF=$(SHOWOFF)
+	$(CC) -c afni.c $(IFLAGS) $(SHOWOFF)
 
 afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h niml.h
 	$(RM) $@
