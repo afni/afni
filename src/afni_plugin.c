@@ -225,12 +225,13 @@ if(PRINT_TRACING)
 
 /*--------------------------------------------------------------------
    Routine to read in all plugins in the desired list of directories
+   29 Mar 2001: pname = argv[0] = potential program name
 ----------------------------------------------------------------------*/
 
-AFNI_plugin_array * PLUG_get_many_plugins(void)
+AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
 {
    char * epath , * elocal , * eee ;
-   char ename[THD_MAX_NAME] , efake[]="/usr/local/lib/afni:./" ;
+   char ename[THD_MAX_NAME] , efake[]="./" ;
    AFNI_plugin_array * outar , * tmpar ;
    int epos , ll , ii , id ;
 
@@ -245,6 +246,14 @@ ENTRY("PLUG_get_many_plugins") ;
 
    if( epath == NULL )
       epath = getenv("PATH") ;             /* try another name? */
+
+   if( epath == NULL && pname != NULL && pname[0] != '\0' ){ /* 29 Mar 2001: */
+      char *ep = strdup(pname) ;                             /* get the path  */
+      char *tp = THD_trailname(ep,0) ;                       /* to the program */
+      *tp = '\0' ;
+      if( strlen(ep) > 0 ) epath = ep ;    /* got some path */
+      else                 free(ep) ;      /* got zipperoni */
+   }
 
    if( epath == NULL ) epath = efake ;     /* put in a fake path instead? */
 

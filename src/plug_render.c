@@ -408,6 +408,7 @@ static Widget wfunc_choices_rowcol , wfunc_choices_label ,
 
 static Widget wfunc_range_label ;
 static MCW_arrowval * wfunc_opacity_av , * wfunc_range_av ;
+static MCW_arrowval * wfunc_range_rotate_av ; /* 30 Mar 2001 */
 static MCW_bbox * wfunc_see_overlay_bbox , * wfunc_cut_overlay_bbox ,
                 * wfunc_kill_clusters_bbox , * wfunc_range_bbox ;
 static MCW_arrowval * wfunc_clusters_rmm_av , * wfunc_clusters_vmul_av ;
@@ -5129,10 +5130,20 @@ void REND_func_widgets(void)
    XmStringFree(xstr) ;
  }
 
+   /*--- 30 Mar 2001: put next 2 things in a horizontal rowcol ---*/
+
+   wqqq = XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , wfunc_range_rowcol ,
+            XmNorientation , XmHORIZONTAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ; 
+
    /*--- arrowval to provide user control for pbar scaling ---*/
 
    wfunc_range_av =
-      new_MCW_arrowval( wfunc_range_rowcol ,  /* parent */
+      new_MCW_arrowval( wqqq               ,  /* parent */
                         NULL ,                /* label */
                         MCW_AV_downup ,       /* arrow directions */
                         0  ,                  /* min value */
@@ -5146,6 +5157,16 @@ void REND_func_widgets(void)
                      ) ;
    AV_SENSITIZE( wfunc_range_av , False ) ;
 
+   /*--- 30 Mar 2001: rotate pbar ---*/
+ 
+   wfunc_range_rotate_av = new_MCW_arrowval(
+                             wqqq , "Rota" ,
+                             MCW_AV_downup , 0,0,0 ,
+                             MCW_AV_notext , 0 ,
+                             AFNI_range_rotate_av_CB , (XtPointer) wfunc_color_pbar ,
+                             NULL,NULL ) ;
+ 
+   XtManageChild( wqqq ) ;
    XtManageChild( wfunc_range_rowcol ) ;
    XtManageChild( wfunc_range_frame ) ;
 
@@ -5451,6 +5472,8 @@ void REND_range_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
    func_range = (newauto) ? (func_autorange)
                           : (wfunc_range_av->fval) ;
 
+   AFNI_hintize_pbar( wfunc_color_pbar , func_range ) ; /* 30 Mar 2001 */
+
    AV_SENSITIZE( wfunc_range_av , ! newauto ) ;
 
    INVALIDATE_OVERLAY ;
@@ -5465,6 +5488,8 @@ void REND_range_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
 void REND_range_av_CB( MCW_arrowval * av , XtPointer cd )
 {
    func_range = av->fval ;
+
+   AFNI_hintize_pbar( wfunc_color_pbar , func_range ) ; /* 30 Mar 2001 */
 
    INVALIDATE_OVERLAY ;
    return ;
@@ -5503,6 +5528,8 @@ void REND_color_pbar_CB( MCW_pbar * pbar , XtPointer cd , int reason )
 {
    FIX_SCALE_SIZE ;
    INVALIDATE_OVERLAY ;
+
+   AFNI_hintize_pbar( wfunc_color_pbar , func_range ) ; /* 30 Mar 2001 */
    return ;
 }
 

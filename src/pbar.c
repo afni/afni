@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "pbar.h"
 
 /*----------------------------------------------------------------------
@@ -259,6 +259,43 @@ void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
    if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar , pbar->pb_data , pbCR_COLOR ) ;
    return ;
+}
+
+/*--------------------------------------------------------------------------
+   Rotate the colors in a pbar by n locations (+ or -) -- 30 Mar 2001
+----------------------------------------------------------------------------*/
+
+void rotate_MCW_pbar( MCW_pbar * pbar , int n )
+{
+   int ip , iov[NPANE_MAX] , np , kov , jm ;
+   Widget w ;
+   MCW_DC * dc ;
+
+ENTRY("rotate_MCW_pbar") ;
+
+   if( pbar == NULL || n == 0 ) EXRETURN ;
+   dc = pbar->dc ;
+   np = pbar->num_panes ;
+   jm = pbar->mode ;
+   while( n < 0 ) n += np ;  /* make n positive */
+   for( ip=0 ; ip < np ; ip++ ) iov[ip] = pbar->ov_index[ip] ;
+
+   for( ip=0 ; ip < np ; ip++ ){
+      kov = iov[ (ip+n)%np ] ;  /* new overlay index for ip-th pane */
+      w   = pbar->panes[ip] ;
+      if( kov > 0 && kov < dc->ovc->ncol_ov ){
+         XtVaSetValues( w , XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP , NULL ) ;
+         MCW_set_widget_bg( w , NULL , dc->ovc->pix_ov[kov] ) ;
+      } else {
+         XtVaSetValues( w , XmNbackgroundPixmap , check_pixmap , NULL ) ;
+      }
+      pbar->ovin_save[pbar->num_panes][ip][jm] =
+                            pbar->ov_index[ip] = kov ;
+   }
+
+   if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar , pbar->pb_data , pbCR_COLOR ) ;
+
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------

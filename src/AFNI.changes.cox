@@ -2740,3 +2740,8 @@
 26 Mar 2001
  * Modified afni_func.c, afni_widg.c to add a "Read Web" button.
  * Modified thd_fetchdset.c to allow fetch of *.1D files as well.
+
+30 Mar 2001
+ * Added "Rota" buttons to afni_widg.c and plug_render.c, to rotate
+     the colors on the pbars.
+ * Added range hints to the pbar in afni_func.c and plug_render.c.

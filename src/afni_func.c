@@ -303,6 +303,37 @@ if(PRINT_TRACING)
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------
+   30 Mar 2001: add range hints to the pbar
+-----------------------------------------------------------------------------*/
+
+void AFNI_hintize_pbar( MCW_pbar * pbar ,  float fac )
+{
+   int ip , np ;
+   Widget w ;
+   char sbot[16],stop[16] , hint[64] , *sb,*st ;
+   float bot , top ;
+
+ENTRY("AFNI_hintize_pbar") ;
+
+   if( pbar == NULL || fac == 0.0 ) EXRETURN ;  /* bad */
+
+   np = pbar->num_panes ;
+   for( ip=0 ; ip < np ; ip++ ){
+      w   = pbar->panes[ip] ;          /* the widget for the ip-th pane */
+      top = pbar->pval[ip]   * fac ;   /* scaled top value */
+      bot = pbar->pval[ip+1] * fac ;   /* scaled bot value */
+      AV_fval_to_char( bot , sbot ) ;  /* convert to a nice string */
+      AV_fval_to_char( top , stop ) ;
+      sb = (sbot[0] == ' ') ? sbot+1 : sbot ;  /* skip leading blanks */
+      st = (stop[0] == ' ') ? stop+1 : stop ;
+      sprintf(hint,"%s .. %s",sb,st) ;         /* create hint */
+      MCW_register_hint( w , hint ) ;          /* send to hint system */
+   }
+
+   EXRETURN ;
+}
+
 /*----------------------------------------------------------------------------
   called when the pbar for the intensity mapping is adjusted
   (thresholds or colors)
@@ -311,6 +342,7 @@ if(PRINT_TRACING)
 void AFNI_inten_pbar_CB( MCW_pbar * pbar , XtPointer cd , int reason )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
+   float fac ;
 
 ENTRY("AFNI_inten_pbar_CB") ;
 
@@ -319,7 +351,29 @@ ENTRY("AFNI_inten_pbar_CB") ;
    if( im3d->vinfo->func_visible )
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
 
+   AFNI_hintize_pbar( pbar ,
+                      (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
+                                                      : im3d->vinfo->fim_autorange ) ;
+
    FIX_SCALE_SIZE(im3d) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------
+  30 Mar 2001: rotate the colors on the pbar
+-------------------------------------------------------------------------------*/
+
+void AFNI_range_rotate_av_CB( MCW_arrowval * av , XtPointer cd )
+{
+   MCW_pbar * pbar = (MCW_pbar *) cd ;
+   int ddd ;
+
+ENTRY("AFNI_range_rotate_av_CB") ;
+
+   if( av->fval > av->old_fval ) ddd = +1 ;
+   else                          ddd = -1 ;
+
+   rotate_MCW_pbar( pbar , ddd ) ;
    EXRETURN ;
 }
 
@@ -3983,6 +4037,10 @@ ENTRY("AFNI_range_bbox_CB") ;
       im3d->vinfo->fim_range = (new_auto) ? (im3d->vinfo->fim_autorange)
                                           : (im3d->vwid->func->range_av->fval) ;
 
+      AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
+                         (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
+                                                         : im3d->vinfo->fim_autorange );
+
       AV_SENSITIZE( im3d->vwid->func->range_av , ! new_auto ) ;
 
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
@@ -4006,6 +4064,9 @@ ENTRY("AFNI_range_av_CB") ;
    im3d->vinfo->fim_range = av->fval ;
    AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
 
+   AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
+                      (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
+                                                      : im3d->vinfo->fim_autorange );
    EXRETURN ;
 }
 

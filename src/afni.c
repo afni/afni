@@ -1241,7 +1241,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
            char str[128] ;
 
            if( ! GLOBAL_argopt.noplugins ){
-              GLOBAL_library.plugins = PLUG_get_many_plugins() ;
+              GLOBAL_library.plugins = PLUG_get_many_plugins( MAIN_argv[0] ) ;
               AFNI_plugin_button( MAIN_im3d ) ;
            }
 

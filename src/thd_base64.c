@@ -54,8 +54,8 @@ static void load_decode_table(void)
 {
     int i;
     if( dtable_mode == 2 ) return ;
-    for (i = 0  ; i < 255 ; i++) dtable[i] = 0x80;
-    for (i = 'A'; i <= 'Z'; i++) dtable[i] = 0 + (i - 'A');
+    for (i = 0  ; i < 255 ; i++) dtable[i] = 0x80;             /* bad */
+    for (i = 'A'; i <= 'Z'; i++) dtable[i] =  0 + (i - 'A');
     for (i = 'a'; i <= 'z'; i++) dtable[i] = 26 + (i - 'a');
     for (i = '0'; i <= '9'; i++) dtable[i] = 52 + (i - '0');
     dtable['+'] = 62; dtable['/'] = 63; dtable['='] = 0; dtable_mode = 2 ;

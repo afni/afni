@@ -471,7 +471,7 @@ typedef struct AFNI_plugin_array {
 
 extern AFNI_plugin_array * PLUG_get_all_plugins( char * dname ) ;
 extern AFNI_plugin *       PLUG_read_plugin( char * fname ) ;
-extern AFNI_plugin_array * PLUG_get_many_plugins(void) ;
+extern AFNI_plugin_array * PLUG_get_many_plugins(char *) ;
 
 extern void PLUG_setup_widgets( PLUGIN_interface *, MCW_DC * ) ;
 

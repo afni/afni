@@ -125,12 +125,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.29d"
+#define VERSION "2.29e"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "23 Mar 2001      "
+#define RELEASE "01 Apr 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -473,6 +473,8 @@ typedef struct {
 #endif
 
       Widget bkgd_lab ;
+
+      MCW_arrowval * range_rotate_av ;  /* 30 Mar 2001 */
 } AFNI_function_widgets ;
 
 #define PBAR_MODEBUT  0
@@ -1138,6 +1140,9 @@ extern void AFNI_range_av_CB  ( MCW_arrowval * , XtPointer ) ;
 extern void AFNI_inten_bbox_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_wrap_bbox_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_xhall_bbox_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void AFNI_range_rotate_av_CB( MCW_arrowval *, XtPointer ); /* 30 Mar 2001 */
+extern void AFNI_hintize_pbar( MCW_pbar * ,  float ) ;            /* 30 Mar 2001 */
 
 extern void AFNI_reset_func_range( Three_D_View * ) ;
 

@@ -81,4 +81,6 @@ void update_MCW_pbar( MCW_pbar * ) ;
 
 MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar *,int,int ) ; /* 15 Jun 2000 */
 
+void rotate_MCW_pbar( MCW_pbar * , int ) ; /* 30 Mar 2001 */
+
 #endif

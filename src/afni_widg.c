@@ -1520,6 +1520,7 @@ STATUS("making view->rowcol") ;
 void AFNI_make_wid2( Three_D_View * im3d )
 {
    int ii ;
+   Widget hrc ;  /* 30 Mar 2001 */
 
 ENTRY("AFNI_make_wid2") ;
 
@@ -2799,11 +2800,21 @@ STATUS("making func->rowcol") ;
 
    ADDTO_KILL(im3d->kl,func->range_bbox) ;
 
+   /*--- 30 Mar 2001: put the next 2 things in a horizontal rowcol ---*/
+
+   hrc = XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->range_rowcol ,
+            XmNorientation , XmHORIZONTAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
    /*--- arrowval to provide user control for pbar scaling ---*/
 
    func->range_av =
       new_MCW_arrowval(
-         func->range_rowcol ,              /* parent */
+         hrc ,                             /* parent */
          NULL ,                            /* label */
          MCW_AV_downup ,                   /* arrow directions */
          0  ,                              /* min value */
@@ -2829,6 +2840,27 @@ STATUS("making func->rowcol") ;
    ADDTO_KILL(im3d->kl,func->range_av) ;
 
    AV_SENSITIZE( func->range_av , ! im3d->vinfo->use_autorange ) ;
+
+   /*--- 30 Mar 2001: rotate pbar ---*/
+
+   func->range_rotate_av = new_MCW_arrowval(
+                             hrc , "Rota" ,
+                             MCW_AV_downup , 0,0,0 ,
+                             MCW_AV_notext , 0 ,
+                             AFNI_range_rotate_av_CB , (XtPointer) func->inten_pbar ,
+                             NULL,NULL ) ;
+
+   func->range_rotate_av->parent = (XtPointer) im3d ;
+
+   MCW_reghelp_children( func->range_rotate_av->wrowcol ,
+                         "Rotate the colors on\n"
+                         "the 'pbar' up or down." ) ;
+   MCW_reghint_children( func->range_rotate_av->wrowcol ,
+                         "Rotate pbar colors" ) ;
+
+   ADDTO_KILL(im3d->kl,func->range_rotate_av) ;
+
+   XtManageChild( hrc ) ;
 
 #ifdef USE_FUNC_FIM
    /*--- fim execution controls ---*/
