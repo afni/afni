@@ -918,7 +918,7 @@ typedef struct {                 /* windows and widgets */
 } MCW_interruptables ;
 
 #ifndef MAX_CONTROLLERS
-#define MAX_CONTROLLERS 5
+#define MAX_CONTROLLERS 9  /* 12 Nov 2002: increased from 5, per MSB */
 #endif
 
 /*-------------- Here there be global variables.  So shoot me. --------------*/
