@@ -2055,7 +2055,7 @@ typedef struct THD_3dim_dataset {
 
 /*! Determine if nn is a head dataset type code. */
 
-#define ISHEADTYPE(nn) ( (nn) == HEAD_ANAT_TYPE || (nn) == HEAD_FUNC_TYPE )
+#define ISHEADTYPE(nn) ( (nn) == HEAD_ANAT_TYPE || (nn) == HEAD_FUNC_TYPE )  /* 09 Aug 2002: ==ugh */
 
 /*! Determine if dset is a head dataset (vs. non-head). */
 
