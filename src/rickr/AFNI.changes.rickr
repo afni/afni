@@ -518,5 +518,7 @@
   * modified rickr/Makefile, for building serial_helper
 
 01 April 2004:
-  * modified rickr/serial_helper.c (-> v1.1), adding a little more help
-
+  * modified rickr/serial_helper.c (-> v1.2)
+      - adding a little more help
+      - checking for bad options
+      
