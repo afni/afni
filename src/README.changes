@@ -4,6 +4,13 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+21 Jan 1999:
+   The 'Disp' control box on an image viewing window now has a new
+     'SurfGraph' control, which allows the display of the image data
+     as a wiremesh surface plot.
+   The new program '3dpc' is available to compute principal components
+     from sets of AFNI bricks.
+--------------------------------------------------------------------------
 03 Jan 1999:
    The 'Disp' control box on an image viewing window now has a new
      'RowGraphs' control, which allows the display of x-y line graphs

@@ -934,6 +934,16 @@ fflush(stdout) ;
    newseq->rowgraph_num = 0 ;
    newseq->rowgraph_mtd = NULL ;
 
+#define DEFAULT_THETA  55.0
+#define DEFAULT_PHI   285.0
+
+   newseq->surfgraph_av    = NULL ;    /* 21 Jan 1999 */
+   newseq->surfgraph_num   = 0    ;
+   newseq->surfgraph_mtd   = NULL ;
+   newseq->surfgraph_theta = DEFAULT_THETA ;
+   newseq->surfgraph_phi   = DEFAULT_PHI   ;
+   newseq->surfgraph_arrowpad = NULL ;
+
    newseq->parent = NULL ;
    return newseq ;
 }
@@ -1119,7 +1129,7 @@ DPR("ISQ_make_image");
 
       seq->last_image_type = tim->kind ;
 
-      seq->set_orim = seq->need_orim ;  /* 30 Dec 1998 */
+      seq->set_orim = (seq->need_orim != 0) ;  /* 30 Dec 1998 */
       seq->imim = im = ISQ_process_mri( seq->im_nr , seq , tim ) ;
       KILL_1MRI(tim) ;
       seq->set_orim = 0 ;
@@ -1982,20 +1992,26 @@ DPR("ISQ_free_alldata");
 
    for( ib=0 ; ib < NARROW ; ib++ ) myXtFree( seq->arrow[ib] ) ;
 
-   myXtFree( seq->arrowpad ) ;
-
-   myXtFree( seq->mont_across_av )   ;
-   myXtFree( seq->mont_down_av )     ;
-   myXtFree( seq->mont_skip_av )     ;
-   myXtFree( seq->mont_gap_av )      ;
-   myXtFree( seq->mont_gapcolor_av ) ;
-   myXtFree( seq->transform0D_av )   ; /* 30 Oct 1996 */
-   myXtFree( seq->transform2D_av )   ;
-   myXtFree( seq->rowgraph_av )      ; /* 30 Dec 1998 */
+   myXtFree( seq->arrowpad )           ;
+   myXtFree( seq->mont_across_av )     ;
+   myXtFree( seq->mont_down_av )       ;
+   myXtFree( seq->mont_skip_av )       ;
+   myXtFree( seq->mont_gap_av )        ;
+   myXtFree( seq->mont_gapcolor_av )   ;
+   myXtFree( seq->transform0D_av )     ; /* 30 Oct 1996 */
+   myXtFree( seq->transform2D_av )     ;
+   myXtFree( seq->rowgraph_av )        ; /* 30 Dec 1998 */
+   myXtFree( seq->surfgraph_av )       ; /* 21 Jan 1999 */
+   myXtFree( seq->surfgraph_arrowpad ) ;
 
    if( seq->rowgraph_mtd != NULL ){                /* 30 Dec 1998 */
       seq->rowgraph_mtd->killfunc = NULL ;
       plotkill_topshell( seq->rowgraph_mtd ) ;
+   }
+
+   if( seq->surfgraph_mtd != NULL ){               /* 21 Jan 1999 */
+      seq->surfgraph_mtd->killfunc = NULL ;
+      plotkill_topshell( seq->surfgraph_mtd ) ;
    }
 
    return ;
@@ -2118,6 +2134,7 @@ printf("imseq: ISQ_redisplay n=%d type=%d nrold=%d recur_flg=%d\n",n,type,nrold,
 
    ISQ_show_image( seq ) ;
    ISQ_rowgraph_draw( seq ) ;
+   ISQ_surfgraph_draw( seq ) ;  /* 21 Jan 1999 */
 
    if( RECUR ) recur_flg = FALSE ;
 
@@ -2839,6 +2856,45 @@ DPR("ISQ_but_disp_CB");
             nav++ ;
          }
 
+         /* 21 Jan 1999: surfgraph */
+
+         if( nav > 0 && seq->status->send_CB != NULL ){
+            (void) XtVaCreateManagedWidget(
+                     "menu" , xmSeparatorWidgetClass , rcboxes ,
+                        XmNseparatorType , XmSINGLE_LINE ,
+                        XmNinitialResourcesPersistent , False ,
+                     NULL ) ;
+
+            seq->surfgraph_av =
+               new_MCW_optmenu( rcboxes , "SurfGraph" ,
+                                0 , SURFGRAPH_MAX , seq->surfgraph_num , 0 ,
+                                ISQ_surfgraph_CB , (XtPointer) seq ,
+                                ISQ_surfgraph_label , NULL ) ;
+
+            MCW_reghelp_children( seq->surfgraph_av->wrowcol ,
+                                  "The SurfGraph is a wiremesh plot of the\n"
+                                  "underlay (grayscale) image intensity vs.\n"
+                                  "x and y.  Use the arrows in the SurfGraph\n"
+                                  "window to rotate the viewpoint; use the\n"
+                                  "middle button between the arrows to reset\n"
+                                  "the viewpoint to the default orientation.\n"
+                                  "\n"
+                                  "N.B.: The plotting routine may produce some\n"
+                                  "        erroneous vertical lines on occasion.\n"
+                                  "      The color 'UK Flag' marker indicates\n"
+                                  "        crosshair focus point.  It is drawn\n"
+                                  "        on top of the surface at the end, and\n"
+                                  "        so is always visible, even if it should\n"
+                                  "        be hidden behind the surface; that is,\n"
+                                  "        it shines through, no matter what.\n"
+                                  "      The color marker can be turned off with\n"
+                                  "        the 'No Overlay' button."
+                                 ) ;
+            MCW_reghint_children( seq->surfgraph_av->wrowcol ,
+                                  "Plot wiremesh surface?" ) ;
+            nav++ ;
+         }
+
          /* final separator */
 
          if( nav ) (void) XtVaCreateManagedWidget(
@@ -2978,6 +3034,7 @@ void ISQ_disp_act_CB( Widget w, XtPointer client_data, XtPointer call_data )
       myXtFree( seq->transform0D_av ) ;
       myXtFree( seq->transform2D_av ) ;
       myXtFree( seq->rowgraph_av )    ;
+      myXtFree( seq->surfgraph_av )   ;  /* 21 Jan 1999 */
    }
 
    if( new_opt )
@@ -4638,7 +4695,7 @@ DPR("ISQ_make_montage");
 
 DPRI(" Getting montage underlay",nim) ;
 
-         seq->set_orim = (seq->need_orim && nim == seq->im_nr) ;  /* 30 Dec 1998 */
+         seq->set_orim = (seq->need_orim != 0 && nim == seq->im_nr) ;  /* 30 Dec 1998 */
          tim = ISQ_manufacture_one( nim , 0 , seq ) ;
          seq->set_orim = 0 ;                    /* 30 Dec 1998 */
          ADDTO_IMARR(mar,tim) ;
@@ -4996,8 +5053,9 @@ void ISQ_rowgraph_CB( MCW_arrowval * av , XtPointer cd )
 
    seq->rowgraph_num = av->ival ;
 
-   seq->need_orim = (seq->rowgraph_num > 0) ;
-   if( ! seq->need_orim ) KILL_1MRI(seq->orim) ;
+   if( seq->rowgraph_num > 0 ) seq->need_orim |=  ROWGRAPH_MASK ;
+   else                        seq->need_orim &= ~ROWGRAPH_MASK ;
+   if( seq->need_orim == 0 ) KILL_1MRI(seq->orim) ;
 
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    return ;
@@ -5071,7 +5129,7 @@ void ISQ_rowgraph_draw( MCW_imseq * seq )
 
    } else {  /* make a new plot window */
 
-      seq->rowgraph_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_mtd_killfunc ) ;
+      seq->rowgraph_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_rowgraph_mtdkill ) ;
 
       if( seq->rowgraph_mtd == NULL ){ delete_memplot( mp ); return; }
 
@@ -5081,7 +5139,7 @@ void ISQ_rowgraph_draw( MCW_imseq * seq )
    return ;
 }
 
-void ISQ_mtd_killfunc( MEM_topshell_data * mp )
+void ISQ_rowgraph_mtdkill( MEM_topshell_data * mp )
 {
    MCW_imseq * seq ;
 
@@ -5090,6 +5148,271 @@ void ISQ_mtd_killfunc( MEM_topshell_data * mp )
 
    seq->rowgraph_mtd = NULL ;
    return ;
+}
+
+/*-----------------------------------------------------------------------
+   21 Jan 1999: Handle the surface graph stuff
+-------------------------------------------------------------------------*/
+
+char * ISQ_surfgraph_label( MCW_arrowval * av , XtPointer cd )
+{
+   if( av->ival <= 0 ) return "No"  ;
+   else                return "Yes" ;
+}
+
+/*--- called when the user changes the SurfGraph menu button ---*/
+
+void ISQ_surfgraph_CB( MCW_arrowval * av , XtPointer cd )
+{
+   MCW_imseq * seq = (MCW_imseq *) cd ;
+
+   if( ! ISQ_VALID(seq) ) return ;                /* bad input */
+   if( av->ival == seq->surfgraph_num ) return ;  /* nothing changed */
+
+   seq->surfgraph_num = av->ival ;
+
+   if( seq->surfgraph_num > 0 ) seq->need_orim |=  SURFGRAPH_MASK ;
+   else                         seq->need_orim &= ~SURFGRAPH_MASK ;
+   if( seq->need_orim == 0 ) KILL_1MRI(seq->orim) ;
+
+   ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
+   return ;
+}
+
+/*--- called to redraw the surface graph ---*/
+
+void ISQ_surfgraph_draw( MCW_imseq * seq )
+{
+   MEM_plotdata * mp ;
+   ISQ_cbs cbs ;
+   int ix , jy ;
+
+   if( ! ISQ_REALZ(seq) ) return ;  /* error */
+
+   /* marked for no graph? */
+
+   if( seq->surfgraph_num == 0 ){
+      if( seq->surfgraph_mtd != NULL ){
+         plotkill_topshell( seq->surfgraph_mtd ) ;
+         seq->surfgraph_mtd = NULL ;
+      }
+      return ;
+   }
+
+   if( seq->orim == NULL ){
+      fprintf(stderr,"*** error in ISQ_surfgraph_draw: orim = NULL!\n") ;
+      return ;  /* no original image data == error */
+   }
+
+   /* find current location */
+
+   if( seq->opt.no_overlay ){
+      ix = jy = -1 ;
+   } else {
+      cbs.reason = isqCR_getxynim ;
+      cbs.xim = cbs.yim = cbs.nim = -666 ;
+      seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+      if( cbs.xim < 0 || cbs.yim < 0 ){
+         fprintf(stderr,"*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
+         return ;  /* bad result */
+      }
+      ISQ_unflipxy( seq , &(cbs.xim) , &(cbs.yim) ) ;
+      ix = cbs.xim ; jy = cbs.yim ;
+   }
+
+   /* plot the data */
+
+   mp = plot_image_surface( seq->orim ,
+                            seq->surfgraph_theta , seq->surfgraph_phi ,
+                            ix , jy ) ;
+   if( mp == NULL ) return ;
+
+   /* if there is a plot window open, plot into it, otherwise open a new window */
+
+   if( seq->surfgraph_mtd != NULL ){
+
+      MTD_replace_plotdata( seq->surfgraph_mtd , mp ) ;
+      redraw_topshell( seq->surfgraph_mtd ) ;
+
+   } else {  /* make a new plot window */
+
+      seq->surfgraph_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_surfgraph_mtdkill ) ;
+
+      if( seq->surfgraph_mtd == NULL ){ delete_memplot( mp ); return; }
+
+      seq->surfgraph_mtd->userdata = (void *) seq ;
+
+      /* add an arrowpad to it (lower right corner) */
+
+      seq->surfgraph_arrowpad = new_MCW_arrowpad( seq->surfgraph_mtd->form ,
+                                                  ISQ_surfgraph_arrowpad_CB ,
+                                                  (XtPointer) seq ) ;
+
+      XtUnmanageChild( seq->surfgraph_arrowpad->wform ) ;
+
+      XtVaSetValues( seq->surfgraph_arrowpad->wform ,
+                        XmNbottomAttachment , XmATTACH_FORM ,
+                        XmNrightAttachment  , XmATTACH_FORM ,
+                        XmNleftAttachment   , XmATTACH_NONE ,
+                        XmNtopAttachment    , XmATTACH_NONE ,
+                        XmNwidth            , 60 ,
+                        XmNheight           , 60 ,
+                     NULL ) ;
+
+      MCW_set_widget_bg( seq->surfgraph_arrowpad->wform , "white" , 0 ) ;
+
+      XtManageChild( seq->surfgraph_arrowpad->wform ) ;
+
+      seq->surfgraph_arrowpad->parent = (XtPointer) seq ;
+      seq->surfgraph_arrowpad->fastdelay = MCW_AV_longdelay ;
+   }
+
+   return ;
+}
+
+/*--- called when the user kills the surface graph window ---*/
+
+void ISQ_surfgraph_mtdkill( MEM_topshell_data * mp )
+{
+   MCW_imseq * seq ;
+
+   if( mp == NULL ) return ;
+   seq = (MCW_imseq *) mp->userdata ; if( ! ISQ_VALID(seq) ) return ;
+
+   seq->surfgraph_mtd   = NULL ;
+   seq->surfgraph_theta = DEFAULT_THETA  ;
+   seq->surfgraph_phi   = DEFAULT_PHI ;
+   myXtFree( seq->surfgraph_arrowpad ) ;
+   return ;
+}
+
+/*--- actually draws an image to a wiremesh, in memory ---*/
+
+MEM_plotdata * plot_image_surface( MRI_IMAGE * im ,
+                                   float theta , float phi , int ix , int jy )
+{
+   MRI_IMAGE * fim , * qim ;
+   MEM_plotdata * mp ;
+   float * x , * y , * z ;
+   float  dx ,  dy , zbot,ztop ;
+   int ii , jj , nx , ny , nxy ;
+   char str[128] ;
+
+   if( im == NULL ) return NULL ;
+
+   /*-- setup to plot --*/
+
+   nx = im->nx ; ny = im->ny ;
+   if( nx < 3 || ny < 3 ) return NULL ;
+
+   for( jj=0 ; jj < 1000 ; jj++ ){
+      sprintf( str , "imsurf#%03d" , jj ) ;
+      ii = create_memplot( str , 1.1 ) ;
+      if( ii == 0 ) break ;
+   }
+   if( jj == 1000 ) return NULL ;
+
+   dx = im->dx ; if( dx <= 0.0 ) dx = 1.0 ;
+   dy = im->dy ; if( dy <= 0.0 ) dy = 1.0 ;
+
+   x = (float *) malloc( sizeof(float) * nx ) ;
+   for( ii=0 ; ii < nx ; ii++ ) x[ii] = ii * dx ;
+
+   y = (float *) malloc( sizeof(float) * ny ) ;
+   for( ii=0 ; ii < ny ; ii++ ) y[ii] = ii * dy ;
+
+   /*-- scale image data --*/
+
+   qim = mri_flippo( MRI_ROT_180 , 1 , im ) ;
+   fim = mri_to_float(qim) ; z = MRI_FLOAT_PTR(fim) ; mri_free(qim) ;
+   nxy = nx * ny ; zbot = ztop = z[0] ;
+   for( ii=1 ; ii < nxy ; ii++ ){
+           if( z[ii] < zbot ) zbot = z[ii] ;
+      else if( z[ii] > ztop ) ztop = z[ii] ;
+   }
+   ztop = ztop - zbot ;
+   if( ztop > 0.0 ){
+      ztop = sqrt( x[nx-1] * y[ny-1] ) / ztop ;
+      for( ii=0 ; ii < nxy ; ii++ ) z[ii] = (z[ii]-zbot) * ztop ;
+   }
+
+   /*-- plot surface --*/
+
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   set_thick_memplot( 0.0 ) ;
+   plotpak_srface( x , y , z , nx , ny , theta, phi ) ;
+
+   /*-- plot a * at the selected point (if it is in range) --*/
+
+   if( ix >= 0 && ix < nx && jy >= 0 && jy < ny ){
+      real xi,yi,zi ; float xt,yt,zt , xtp,ytp,ztp ;
+      ii = 1 ;
+      xi = x[ix] ; yi = y[ny-1-jy] ; zi = z[ix+(ny-1-jy)*nx] ;
+      (void) trn32s_( &xi , &yi , &zi ,
+                      (real *)(&xt) , (real *)(&yt) , (real *)(&zt) ,
+                      (integer *)(&ii) ) ;
+
+#undef  THIK
+#define THIK 0.003
+
+      dx = 0.016 * x[nx-1] ; dy = 0.016 * y[ny-1] ; dx = MAX(dx,dy) ;
+      xi = x[ix]+dx ; yi = y[ny-1-jy]+dx ; zi = z[ix+(ny-1-jy)*nx] ;
+      (void) trn32s_( &xi , &yi , &zi ,
+                      (real *)(&xtp) , (real *)(&ytp) , (real *)(&ztp) ,
+                      (integer *)(&ii) ) ;
+      dx = fabs(xtp-xt) ; dy = fabs(ytp-yt) ; dx = MAX(dx,dy) ;
+
+      set_color_memplot( 0.8 , 0.0 , 0.2 ) ;
+      set_thick_memplot( THIK ) ;
+      plotpak_line( xt-dx , yt    , xt+dx , yt    ) ; /* - stroke */
+      plotpak_line( xt    , yt-dx , xt    , yt+dx ) ; /* | stroke */
+      plotpak_line( xt-dx , yt-dx , xt+dx , yt+dx ) ; /* / stroke */
+      plotpak_line( xt+dx , yt-dx , xt-dx , yt+dx ) ; /* \ stroke */
+      set_color_memplot( 0.2 , 0.0 , 0.8 ) ;
+      plotpak_line( xt+dx , yt-dx , xt+dx , yt+dx ) ; /* box around outside */
+      plotpak_line( xt+dx , yt+dx , xt-dx , yt+dx ) ;
+      plotpak_line( xt-dx , yt+dx , xt-dx , yt-dx ) ;
+      plotpak_line( xt-dx , yt-dx , xt+dx , yt-dx ) ;
+      set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+      set_thick_memplot( 0.0 ) ;
+   }
+
+   free(x); free(y) ; mri_free(fim);
+
+   plotpak_set( 0.0,1.0 , 0.0,1.0 , 0.0,1.0 , 0.0,1.0 , 1 ) ;
+   sprintf(str,"\\theta=%.0f\\degree   \\phi=%.0f\\degree",theta,phi) ;
+   plotpak_pwritf( 1.099 , 0.97 , str, 19 , 0 , 1 ) ;
+
+   mp = get_active_memplot() ; return mp ;
+}
+
+/*--- called when the user presses a surface graph arrowpad button ---*/
+
+void ISQ_surfgraph_arrowpad_CB( MCW_arrowpad * apad , XtPointer client_data )
+{
+   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   XButtonEvent * xev = (XButtonEvent *) &(apad->xev) ;
+   float step = 10.0 ;
+
+   if( ! ISQ_REALZ(seq) ) return ;  /* error */
+
+   if( ( xev->type == ButtonPress ||
+         xev->type == ButtonRelease ) &&
+       (xev->state & (ShiftMask | ControlMask)) ) step = 90.0 ;
+
+   switch( apad->which_pressed ){
+      case AP_MID:   seq->surfgraph_theta = DEFAULT_THETA ;
+                     seq->surfgraph_phi   = DEFAULT_PHI   ; break ;
+
+      case AP_DOWN:  seq->surfgraph_theta += step ; break ;
+      case AP_UP:    seq->surfgraph_theta -= step ; break ;
+      case AP_LEFT:  seq->surfgraph_phi   += step ; break ;
+      case AP_RIGHT: seq->surfgraph_phi   -= step ; break ;
+
+      default:                                      return ;
+   }
+
+   ISQ_surfgraph_draw( seq ) ; return ;
 }
 
 /************************************************************************/
@@ -5206,6 +5529,62 @@ void winsor9_box_func( int nx , int ny , double dx, double dy, float * ar )
       isort_float( 9 , aa ) ;
            if( ar[nx-1+joff] < aa[2] ) ar[nx-1+joff] = aa[2] ;
       else if( ar[nx-1+joff] > aa[6] ) ar[nx-1+joff] = aa[6] ;
+   }
+   return ;
+}
+
+void osfilt9_box_func( int nx , int ny , double dx, double dy, float * ar )
+{
+   int ii , jj , nxy , joff ;
+   float aa[9] ;
+   float * ajj , * ajm , * ajp ;
+
+   if( nx < 3 || ny < 3 ) return ;
+
+   /** make space and copy input into it **/
+
+   nxy = nx * ny ;
+   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
+   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+
+   /** process copy of input back into the input array **/
+
+   for( jj=0 ; jj < ny ; jj++ ){
+
+      joff = jj * nx ;      /* offset into this row */
+      ajj  = atemp + joff ; /* pointer to this row */
+
+      ajm  = (jj==0   ) ? ajj : ajj-nx ;  /* pointer to last row */
+      ajp  = (jj==ny-1) ? ajj : ajj+nx ;  /* pointer to next row */
+
+      /* do interior points of this row */
+
+#undef  OSUM
+#define OSUM(a,b,c,d,e) ( 0.1*((a)+(e)) + 0.2*((b)+(d)) + 0.4*(c) )
+
+      for( ii=1 ; ii < nx-1 ; ii++ ){
+         aa[0] = ajm[ii-1] ; aa[1] = ajm[ii] ; aa[2] = ajm[ii+1] ;
+         aa[3] = ajj[ii-1] ; aa[4] = ajj[ii] ; aa[5] = ajj[ii+1] ;
+         aa[6] = ajp[ii-1] ; aa[7] = ajp[ii] ; aa[8] = ajp[ii+1] ;
+         isort_float( 9 , aa ) ;
+         ar[ii+joff] = OSUM( aa[2],aa[3],aa[4],aa[5],aa[6] ) ;
+      }
+
+      /* do leading edge point (ii=0) */
+
+      aa[0] = ajm[0] ; aa[1] = ajm[0] ; aa[2] = ajm[1] ;
+      aa[3] = ajj[0] ; aa[4] = ajj[0] ; aa[5] = ajj[1] ;
+      aa[6] = ajp[0] ; aa[7] = ajp[0] ; aa[8] = ajp[1] ;
+      isort_float( 9 , aa ) ;
+      ar[joff] = OSUM( aa[2],aa[3],aa[4],aa[5],aa[6] ) ;
+
+      /* do trailing edge point (ii=nx-1) */
+
+      aa[0] = ajm[nx-2] ; aa[1] = ajm[nx-1] ; aa[2] = ajm[nx-1] ;
+      aa[3] = ajj[nx-2] ; aa[4] = ajj[nx-1] ; aa[5] = ajj[nx-1] ;
+      aa[6] = ajp[nx-2] ; aa[7] = ajp[nx-1] ; aa[8] = ajp[nx-1] ;
+      isort_float( 9 , aa ) ;
+      ar[nx-1+joff] = OSUM( aa[2],aa[3],aa[4],aa[5],aa[6] ) ;
    }
    return ;
 }

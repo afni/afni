@@ -152,7 +152,7 @@ extern void set_X11_background( Display * , Window ,
    memplot_to_X11_sef( (d),(w) , get_active_memplot() , 0,0,1 )
 
 typedef struct {
-   Widget top , dial , wtf , drawing ;
+   Widget top , dial , wtf , drawing , form ;
    int valid ;
    MEM_plotdata * mp ;
    void * userdata ;

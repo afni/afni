@@ -593,6 +593,8 @@ void MCW_register_hint( Widget w , char * msg )
                                           NULL);
       }
       if( liteClue == NULL ) return ;
+
+      XtVaSetValues( liteClue , XmNsaveUnder , True , NULL ) ;  /* 22 Jan 1999 */
    }
 
    /*-- attach the hint to the widget, if it is a widget --*/
