@@ -4428,3 +4428,9 @@
 
 18 Mar 2003
  * Fixed 1dplot.c -stdin option to work again (oops).
+
+19 Mar 2003
+ * Modified 3dAFNItoANALYZE.c to add -orient option.
+ * Added mri_flip3D.c to flip 3D images around.
+ * Added thd_getorient.c to get axis direction in a dataset for
+     a given orientation code.

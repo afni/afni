@@ -1324,6 +1324,8 @@ typedef struct {
 
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
+int THD_get_axis_direction( THD_dataxes *, int ) ; /* 19 Mar 2003 */
+
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
 
