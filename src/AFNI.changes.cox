@@ -3833,3 +3833,8 @@
 14 Jul 2002
  * Removed the dicomm<->surefit functions from Vecwarp.c since they are now
      in libmri.a via afni_suma.c, and the Sun compiler doesn't like this.
+
+15 Jul 2002
+ * Added mri_dicom_hdr.c and dicom_hdr.c - function and program to read/print
+     DICOM header info.  Adapted from dcm_dump_file.c from RSNA, per the
+     suggestion of Jack Lancaster.
