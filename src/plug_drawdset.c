@@ -45,6 +45,9 @@ void DRAW_saveas_finalize_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 static void DRAW_2D_expand( int, int *, int *, int *, int, int *, int ** ) ;  /* 07 Oct 2002 */
 static void DRAW_3D_expand( int, int *, int *, int *, int, int *, int ** ) ;  /* 07 Oct 2002 */
 
+static void DRAW_2D_circle( int, int *, int *, int *, int, int *, int ** ) ;  /* 16 Oct 2002 */
+static void DRAW_3D_sphere( int, int *, int *, int *, int, int *, int ** ) ;  /* 16 Oct 2002 */
+
 static PLUGIN_interface * plint = NULL ;
 
 static int infill_mode = 0 ;
@@ -80,6 +83,19 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 static Widget shell=NULL , rowcol , info_lab , choose_pb ;
 static Widget done_pb , undo_pb , help_pb , quit_pb , save_pb , saveas_pb ;
 static MCW_arrowval * value_av , * color_av , * mode_av ;
+static MCW_arrowval * rad_av ;                         /* 16 Oct 2002 */
+
+#if 0
+# define ENABLE_rad_av \
+   AV_SENSITIZE( rad_av , (mode_ival >= FIRST_RAD_MODE && mode_ival <= LAST_RAD_MODE) )
+#else
+# define ENABLE_rad_av                                                   \
+   do{ if( mode_ival >= FIRST_RAD_MODE && mode_ival <= LAST_RAD_MODE )  \
+         XtManageChild( rad_av->wrowcol ) ;                             \
+       else                                                             \
+         XtUnmanageChild( rad_av->wrowcol ) ;                           \
+   } while(0)
+#endif
 
 static MCW_arrowval * fillin_dir_av , * fillin_gap_av ; /* 19 Mar 2001 */
 static Widget fillin_doit_pb ;
@@ -150,11 +166,17 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *, int,int,int ) ;
 #define MODE_3D_NN6     19
 #define MODE_3D_5x5     20   /* 08 Oct 2002 */
 
+#define MODE_2D_CIRC    21   /* 16 Oct 2002 */
+#define MODE_3D_SPHR    22   /* 16 Oct 2002 */
+
 #define FIRST_2D_MODE   MODE_2D_NN1
 #define LAST_2D_MODE    MODE_2D_NN5
 
 #define FIRST_3D_MODE   MODE_3D_NN1
 #define LAST_3D_MODE    MODE_3D_5x5
+
+#define FIRST_RAD_MODE  MODE_2D_CIRC
+#define LAST_RAD_MODE   MODE_3D_SPHR
 
 static char * mode_strings[] = {
   "Open Curve"       ,                 /* MODE_CURVE      */
@@ -179,13 +201,17 @@ static char * mode_strings[] = {
   "*3D Nbhd: 4th NN" ,
   "*3D Nbhd: 5th NN" ,
   "*3D Nbhd: 6th NN" ,
-  "*3D Nbhd: 5x5x5"
+  "*3D Nbhd: 5x5x5"  ,
+
+  " 2D Circle"       ,                 /* 16 Oct 2002 */
+  " 3D Sphere"
 } ;
 
 static int  mode_width[] = {    /* 08 Oct 2002: line width for button2 drawing */
   2,2 , 0,0,0,0,0,0 , 2 ,
   3,3,5,5,7 ,
-  3,3,3,5,5,5,5
+  3,3,3,5,5,5,5 ,
+  2,2
 } ;
 
 static int    mode_ints[] = {
@@ -195,6 +221,7 @@ static int    mode_ints[] = {
   DRAWING_FILL   ,
   DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  ,
   DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  ,
+  DRAWING_LINES  , DRAWING_LINES  ,
   DRAWING_LINES  , DRAWING_LINES
 } ;
 
@@ -524,46 +551,91 @@ void DRAW_make_widgets(void)
    MCW_reghint_children( color_av->wrowcol , "Used when button 2 is drawing" ) ;
 
    /*** arrowval to choose drawing mode ***/
+   /*-- 16 Oct 2002: put in a horiz rowcol, and add rad_av button --*/
 
-   mode_av = new_MCW_optmenu( rowcol , "Drawing Mode  " ,
+   { Widget rc ;
+
+     rc = XtVaCreateWidget( "AFNI" , xmRowColumnWidgetClass , rowcol ,
+                       XmNpacking      , XmPACK_TIGHT ,
+                       XmNorientation  , XmHORIZONTAL ,
+                       XmNmarginHeight , 0 ,
+                       XmNmarginWidth  , 0 ,
+                       XmNspacing      , 0 ,
+                       XmNinitialResourcesPersistent , False ,
+                       XmNtraversalOn , False ,
+                    NULL ) ;
+
+     mode_av = new_MCW_optmenu( rc , "Drawing Mode  " ,
                               0 , NUM_modes-1 , mode_ival,0 ,
                               DRAW_mode_CB , NULL ,
                               MCW_av_substring_CB , mode_strings ) ;
 
-   MCW_reghelp_children( mode_av->wrowcol ,
-                         "Use this to set the way in which\n"
-                         "drawing pixels on the screen is\n"
-                         "used to select dataset voxels:\n"
-                         "Open Curve      = voxels picked along lines drawn;\n"
-                         "Closed Curve    = voxels forming a closed curve\n"
-                         "Points          = only voxels at X11 notify pixels;\n"
-                         "Flood->Value    = flood fill from the chosen point\n"
-                         "                   out to points = Drawing Value\n"
-                         "Flood->Nonzero  = flood fill from chosen point out\n"
-                         "                   to any nonzero point\n"
-                         "Flood->Zero     = flood fill from chosen point out\n"
-                         "                   to any zero point\n"
-                         "Zero->Value     = flood fill with zeros until the\n"
-                         "                   Drawing Value is hit\n"
-                         "Flood->Val/Zero = flood fill from the chosen point\n"
-                         "                   until the Drawing Value OR zero\n"
-                         "                   is hit\n"
-                         "Filled Curve    = fill inside of closed curve with\n"
-                         "                   Drawing Value\n"
-                         "\n"
-                         "2D Nbhd         = like Open Curve, but fills in around\n"
-                         "                   the in-plane neighborhood of each\n"
-                         "                   point 'x' with the patterns:\n"
-                         "                        5 4 3 4 5\n"
-                         "                        4 2 1 2 4\n"
-                         "                        3 1 x 1 3\n"
-                         "                        4 2 1 2 4\n"
-                         "                        5 4 3 4 5\n"
-                         "                   where the number indicates the\n"
-                         "                   Nearest Neighbor order of the\n"
-                         "                   points nearby 'x'.\n"
-                       ) ;
-   MCW_reghint_children( mode_av->wrowcol , "How voxels are chosen") ;
+     MCW_reghelp_children( mode_av->wrowcol ,
+                           "Use this to set the way in which\n"
+                           "drawing pixels on the screen is\n"
+                           "used to select dataset voxels:\n"
+                           "Open Curve      = voxels picked along lines drawn;\n"
+                           "Closed Curve    = voxels forming a closed curve\n"
+                           "Points          = only voxels at X11 notify pixels;\n"
+                           "Flood->Value    = flood fill from the chosen point\n"
+                           "                   out to points = Drawing Value\n"
+                           "Flood->Nonzero  = flood fill from chosen point out\n"
+                           "                   to any nonzero point\n"
+                           "Flood->Zero     = flood fill from chosen point out\n"
+                           "                   to any zero point\n"
+                           "Zero->Value     = flood fill with zeros until the\n"
+                           "                   Drawing Value is hit\n"
+                           "Flood->Val/Zero = flood fill from the chosen point\n"
+                           "                   until the Drawing Value OR zero\n"
+                           "                   is hit\n"
+                           "Filled Curve    = fill inside of closed curve with\n"
+                           "                   Drawing Value\n"
+                           "\n"
+                           "2D Nbhd         = like Open Curve, but fills in around\n"
+                           "                   the in-plane neighborhood of each\n"
+                           "                   drawn point 'x' with the patterns:\n"
+                           "                        5 4 3 4 5\n"
+                           "                        4 2 1 2 4\n"
+                           "                        3 1 x 1 3\n"
+                           "                        4 2 1 2 4\n"
+                           "                        5 4 3 4 5\n"
+                           "                   where the number indicates the\n"
+                           "                   Nearest Neighbor order of the\n"
+                           "                   points nearby 'x'.\n"
+                           "3D Nbhd         = Similar, but in 3D (out-of-plane)\n"
+                           "\n"
+                           "2D Circle       = Draw a circle of given Radius\n"
+                           "3D Sphere       = Draw a sphere of given Radius\n"
+                         ) ;
+     MCW_reghint_children( mode_av->wrowcol , "How voxels are chosen") ;
+
+     /** 16 Oct 2002: radius chooser **/
+
+     rad_av = new_MCW_arrowval( rc             ,    /* parent */
+                                "R"            ,    /* label */
+                                MCW_AV_downup  ,    /* arrow directions */
+                                1              ,    /* min value (0.1 mm from decim) */
+                                999            ,    /* max value (99.9 mm) */
+                                40             ,    /* init value */
+                                MCW_AV_editext ,    /* input/output text display */
+                                1              ,    /* decimal shift */
+                                NULL           ,    /* routine to call when button */
+                                NULL           ,    /* is pressed, and its data */
+                                NULL,NULL           /* no special display */
+                              ) ;
+     XtVaSetValues( rad_av->wtext   , XmNcolumns , 5 , NULL ) ;
+     MCW_reghint_children( rad_av->wrowcol , "Radius of Circles and Spheres" ) ;
+     MCW_reghelp_children( rad_av->wrowcol ,
+                            " \n"
+                            "Sets the radius (in mm) of the 2D Circle\n"
+                            "or 3D Sphere drawing modes.  Voxels whose\n"
+                            "center-to-center distance is <= this value\n"
+                            "will be filled in.\n"
+                          ) ;
+     ENABLE_rad_av ;   /* turn it on or off */
+
+     XtManageChild(rc) ;
+   }
 
    /*** 19 Mar 2001: stuff for linear fillin ***/
 
@@ -1056,6 +1128,11 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "                  K=5  r=sqrt(5)  [e.g., (+2,+1, 0)]\n"
   "                  K=6  r=sqrt(6)  [e.g., (+2,+1,+1)]\n"
   "                5x5x5  fills out the 5x5x5 cube about each drawn point.\n"
+  "        * '2D Circle' and '3D Sphere' draw in-plane circles and 3D spheres\n"
+  "            about each drawn point 'x'.  The radius (in mm) is set using\n"
+  "            the 'R' chooser that becomes active when one of these drawing\n"
+  "            modes is selected.  These drawing modes use the actual voxel\n"
+  "            sizes in the dataset, unlike the 'Nbhd' modes described above.\n"
   "\n"
   "Step 5) Draw something in an image window.\n"
   "        * Drawing is done using mouse button 2.\n"
@@ -1487,6 +1564,10 @@ void DRAW_mode_CB( MCW_arrowval * av , XtPointer cd )
                             (void *) mode_width[mode_ival]     ) ;
    }
 
+   /* 16 Oct 2002: turn rad_av (radius) on if mode needs it */
+
+   ENABLE_rad_av ;
+
    return ;
 }
 
@@ -1537,7 +1618,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
               (mode_ival != MODE_FLOOD_VZ  )  &&
               (mode_ival != MODE_FILLED    ))   ){
 
-            /* 07 Oct 2002: expand set of points? */
+            /* 07 Oct 2002: expand set of points using a mask? */
 
             if( plane != 0 && mode_ival >= FIRST_2D_MODE && mode_ival <= LAST_2D_MODE ){
               int nfill=0, *xyzf=NULL ;
@@ -1555,6 +1636,27 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
               if( nfill > 0 && xyzf != NULL ){
                 DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
                 free(xyzf) ;
+              }
+
+            /* 16 Oct 2002: expand geometrically (circle or sphere)? */
+
+            } else if( plane != 0 && mode_ival >= FIRST_RAD_MODE && mode_ival <= LAST_RAD_MODE ){
+              int nfill=0, *xyzf=NULL ;
+
+              switch( mode_ival ){
+                case MODE_2D_CIRC:
+                  DRAW_2D_circle( np , xd,yd,zd , plane , &nfill , &xyzf ) ;
+                break ;
+                case MODE_3D_SPHR:
+                  DRAW_3D_sphere( np , xd,yd,zd , plane , &nfill , &xyzf ) ;
+                break ;
+              }
+
+              if( nfill > 0 && xyzf != NULL ){
+                DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
+                free(xyzf) ;
+              } else {
+                DRAW_into_dataset( np , xd,yd,zd , NULL ) ;
               }
 
             } else {                                        /* the old way:     */
@@ -1856,7 +1958,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
     will be the source of the data.
 ----------------------------------------------------------------------------*/
 
-int DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * var )
+int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
 {
    int   ityp = DSET_BRICK_TYPE(dset,0) ;
    float bfac = DSET_BRICK_FACTOR(dset,0) ;
@@ -2494,8 +2596,8 @@ static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
                             {-2,-1,-2} , {-2,-1, 2} ,
                             { 2,-1,-2} , { 2,-1, 2} ,
 
-                            {-2,-2,-2} , {-2,-2, 2} ,  /* r**2 = 12 [corners] */
-                            {-2, 2,-2} , {-2, 2, 2} ,
+                            {-2,-2,-2} , {-2,-2, 2} ,  /* r**2 = 12          */
+                            {-2, 2,-2} , {-2, 2, 2} ,  /* [corners of 5x5x5] */
                             { 2,-2,-2} , { 2,-2, 2} ,
                             { 2, 2,-2} , { 2, 2, 2}
                           } ;
@@ -2517,7 +2619,7 @@ static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
      if( ix >= 0 && ix < nx && jy >= 0 && jy < ny && kz >= 0 && kz <= nz ){
        xyzn[jj++] = ix + jy*nx + kz*nxy ;                       /* load 3D index */
        for( kk=0 ; kk < kadd ; kk++ ){
-         ixn = ix+nn[kk][0] ; jyn = jy+nn[kk][1] ; kzn=kz+nn[kk][2] ;
+         ixn = ix+nn[kk][0] ; jyn = jy+nn[kk][1] ; kzn = kz+nn[kk][2] ;
          if( ixn >= 0 && ixn < nx && jyn >= 0 && jyn < ny && kzn >= 0 && kzn < nz ){
            mm = ixn + jyn*nx + kzn*nxy ;                        /* 3D index */
            for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
@@ -2528,4 +2630,156 @@ static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
    }
 
    *nfill = jj ; *xyzf  = xyzn ; return ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/*! Expand set of points in 2D plane, in a circle.  RWCox - 16 Oct 2002.
+-------------------------------------------------------------------------------*/
+
+static void DRAW_2D_circle( int np, int *xd, int *yd, int *zd, int plane ,
+                            int *nfill , int **xyzf )
+{
+   int base , di,dj , itop,jtop,nij , xx,yy,zz , ix,jy , *ip,*jp ;
+   int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) , nxy = nx*ny ;
+   int kadd , ii,jj,kk , ixn,jyn , mm,qq ;
+   int nnew , *xyzn ;
+
+   float dx = fabs(DSET_DX(dset)) ;
+   float dy = fabs(DSET_DY(dset)) ;
+   float dz = fabs(DSET_DZ(dset)) ;
+   float rad= rad_av->fval ;
+   float fdi,fdj , xq,yq,radq ;
+   int idx , jdy , *nn ;
+
+   /* check inputs */
+
+   if( np <= 0 || xd == NULL || yd == NULL || zd == NULL ) return ;
+   if( nfill == NULL || xyzf == NULL )                     return ;
+
+   /* compute stuff for which plane we are in:
+       1 -> yz , 2 -> xz , 3 -> xy            */
+
+   xx = xd[0] ; yy = yd[0] ; zz = zd[0] ;
+   switch(plane){
+     case 1: base=xx    ; di=nx; dj=nxy; itop=ny; jtop=nz; ip=yd; jp=zd; fdi=dy; fdj=dz; break;
+     case 2: base=yy*nx ; di=1 ; dj=nxy; itop=nx; jtop=nz; ip=xd; jp=zd; fdi=dx; fdj=dz; break;
+     case 3: base=zz*nxy; di=1 ; dj=nx ; itop=nx; jtop=ny; ip=xd; jp=yd; fdi=dx; fdj=dy; break;
+     default: return ;  /* bad input */
+   }
+
+   idx = rad / fdi ; jdy = rad / fdj ;
+   if( idx < 1 && jdy < 1 ) return ;       /* circle smaller than in-plane voxel */
+
+   /* make incremental mask */
+
+   radq = 1.001*rad*rad ;
+   nn   = (int *) malloc( sizeof(int)*(2*idx+1)*(2*jdy+1)*2 ) ;
+   kadd = 0 ;
+   for( jj=-jdy ; jj <= jdy ; jj++ ){
+     yq = (jj*fdj)*(jj*fdj) ;
+     for( ii=-idx ; ii <= idx ; ii++ ){
+       xq = (ii*fdi)*(ii*fdi) + yq ;
+       if( xq <= radq && xq > 0.0 ){
+         nn[2*kadd]   = ii ;
+         nn[2*kadd+1] = jj ;
+         kadd++ ;
+       }
+     }
+   }
+
+   xyzn = (int *) malloc( sizeof(int)*np*(kadd+1) ) ;   /* output array */
+
+   /** add points around each input point, culling duplicates **/
+
+   for( ii=jj=0 ; ii < np ; ii++ ){
+     ix = ip[ii] ; jy = jp[ii] ;                                /* drawn point 2D index */
+     if( ix >= 0 && ix < itop && jy >= 0 && jy < jtop ){
+       xyzn[jj++] = base + ix*di + jy*dj ;                      /* load 3D index */
+       for( kk=0 ; kk < kadd ; kk++ ){
+         ixn = ix+nn[2*kk] ; jyn = jy+nn[2*kk+1] ;              /* nbhd pt 2D index */
+         if( ixn >= 0 && ixn < itop && jyn >= 0 && jyn < jtop ){
+           mm = base + ixn*di + jyn*dj ;                        /* 3D index */
+           for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
+           if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
+         }
+       }
+     }
+   }
+
+   *nfill = jj ; *xyzf = xyzn ; free(nn) ; return ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/*! Expand set of points in 3D, in a sphere.  RWCox - 16 Oct 2002.
+-------------------------------------------------------------------------------*/
+
+static void DRAW_3D_sphere( int np, int *xd, int *yd, int *zd, int plane ,
+                            int *nfill , int **xyzf )
+{
+   int ix,jy,kz ;
+   int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) , nxy = nx*ny ;
+   int kadd , ii,jj,kk , ixn,jyn,kzn , mm,qq ;
+   int nnew , *xyzn ;
+
+   float dx = fabs(DSET_DX(dset)) ;
+   float dy = fabs(DSET_DY(dset)) ;
+   float dz = fabs(DSET_DZ(dset)) ;
+   float rad= rad_av->fval ;
+   float xq,yq,zq,radq ;
+   int idx , jdy , kdz , *nn ;
+
+   /* check inputs */
+
+   if( np <= 0 || xd == NULL || yd == NULL || zd == NULL ) return ;
+   if( nfill == NULL || xyzf == NULL )                     return ;
+
+   idx = rad/dx ; jdy = rad/dy ; kdz = rad/dz ;
+   if( idx < 1 && jdy < 1 && kdz < 1 ) return ;   /* sphere smaller than voxel */
+
+#if 0
+fprintf(stderr,"DRAW_3D_sphere: rad=%g  dx=%g idx=%d  dy=%g jdy=%d  dz=%g kdz=%d\n",
+        rad,dx,idx,dy,jdy,dz,kdz ) ;
+#endif
+
+   /* make incremental mask */
+
+   radq = 1.001*rad*rad ;
+   nn   = (int *) malloc( sizeof(int)*(2*idx+1)*(2*jdy+1)*(2*kdz+1)*3 ) ;
+   kadd = 0 ;
+   for( kk=-kdz ; kk <= kdz ; kk++ ){
+     zq = (kk*dz)*(kk*dz) ;
+     for( jj=-jdy ; jj <= jdy ; jj++ ){
+       yq = zq + (jj*dy)*(jj*dy) ;
+       for( ii=-idx ; ii <= idx ; ii++ ){
+         xq = yq + (ii*dx)*(ii*dx) ;
+         if( xq <= radq && xq > 0.0 ){
+           nn[3*kadd]   = ii ;
+           nn[3*kadd+1] = jj ;
+           nn[3*kadd+2] = kk ;
+           kadd++ ;
+         }
+       }
+     }
+   }
+
+   xyzn = (int *) malloc( sizeof(int)*np*(kadd+1) ) ;   /* output array */
+
+   /** add points around each input point, culling duplicates **/
+
+   for( ii=jj=0 ; ii < np ; ii++ ){
+     ix = xd[ii] ; jy = yd[ii] ; kz = zd[ii] ;
+     if( ix >= 0 && ix < nx && jy >= 0 && jy < ny && kz >= 0 && kz <= nz ){
+       xyzn[jj++] = ix + jy*nx + kz*nxy ;                       /* load 3D index */
+       for( kk=0 ; kk < kadd ; kk++ ){
+         ixn = ix+nn[3*kk] ; jyn = jy+nn[3*kk+1] ; kzn = kz+nn[3*kk+2] ;
+         if( ixn >= 0 && ixn < nx && jyn >= 0 && jyn < ny && kzn >= 0 && kzn < nz ){
+           mm = ixn + jyn*nx + kzn*nxy ;                        /* 3D index */
+           for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
+           if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
+         }
+       }
+     }
+   }
+
+   *nfill = jj ; *xyzf = xyzn ; free(nn) ; return ;
 }
