@@ -1021,8 +1021,10 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 #ifdef SUMA_ScaleToMap_STAND_ALONE
 	void SUMA_ScaleToMap_usage ()
 	{
-		fprintf (SUMA_STDOUT, "\n\33[1mUsage: \33[0m SUMA_ScaleToMap <-f IntVect> [-cmap MapType] [-clp/-perc_clp clp0 clp1] [-msk msk0 msk1] [-msk_col R G B] [-br BrightFact] [-h/-help]\n");
-		fprintf (SUMA_STDOUT, "\t -f IntVect:  Intensity Vector file in ascii file, one value per node. \n");
+		fprintf (SUMA_STDOUT, "\n\33[1mUsage: \33[0m SUMA_ScaleToMap <-v/-iv IntFile>  [-cmap MapType] [-clp/-perc_clp clp0 clp1] [-msk msk0 msk1] [-msk_col R G B] [-br BrightFact] [-h/-help]\n");
+		fprintf (SUMA_STDOUT, "\t -v IntFile:  Node value vector in ascii file, one node value per line. \n");
+		fprintf (SUMA_STDOUT, "\t -iv IntFile:  Node index and value Matrix in ascii file, node index and one node value per line. \n");
+		fprintf (SUMA_STDOUT, "\t -v and -iv are mutually exclusive.\n");
 		fprintf (SUMA_STDOUT, "\t -cmap MapType: (optional, default RGYBR20) choose one of the standard colormaps available with SUMA.\n");
 		fprintf (SUMA_STDOUT, "\t\t RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BGYR64\n");
 		fprintf (SUMA_STDOUT, "\t -clp/-perc_clp clp0 clp1: (optional, default no clipping) clips values in IntVect.\n");
@@ -1036,21 +1038,19 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 		fprintf (SUMA_STDOUT, "\t\t of the colormap and the mask color.\n");
 		fprintf (SUMA_STDOUT, "\t -h or -help: displays this help message.\n");
 		fprintf (SUMA_STDOUT, "\n");
-		fprintf (SUMA_STDOUT, "Example: Creating a color mapping of node values in NodeVal\n");
-		fprintf (SUMA_STDOUT, "\nThe file NodeVal contains the following:\n");
 		/*fprintf (SUMA_STDOUT, "\t To Compile:\n gcc  -DSUMA_ScaleToMap_STAND_ALONE -Wall -Wno-unused-variable -o SUMA_ScaleToMap SUMA_Color.c SUMA_lib.a libmri.a  -I/usr/X11R6/include -I./ -lm\n");*/
-		fprintf (SUMA_STDOUT, "\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tTue Apr 23 14:14:48 EDT 2002\n\n");
+		fprintf (SUMA_STDOUT, "\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tJuly 31/02\n\n");
 	}
 
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"SUMA_ScaleToMap-main"}, *IntName, *Prfx, h[9]; 
-	int N_V, N_Int, kar, k;
-	int Vminloc, Vmaxloc;
+   char FuncName[]={"SUMA_ScaleToMap-main"}, *IntName = NULL, *Prfx, h[9]; 
+	int N_V, N_Va, N_Int, kar, k, ii;
+	int Vminloc, Vmaxloc, *iV = NULL;
 	float Vmin, Vmax, brfact;
-	float *V, *Vsort;
+	float *V = NULL, *Vsort = NULL,  *Va = NULL;
 	float ClipRange[2], MaskColor[3], MaskRange[2];
-	SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip;
+	SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip, Vopt, iVopt;
 	SUMA_Boolean brk;
 	SUMA_COLOR_MAP *CM;
 	SUMA_SCALE_TO_MAP_OPT * OptScl;
@@ -1062,6 +1062,15 @@ int main (int argc,char *argv[])
       exit (1);
 	}
 	
+	/* allocate space for CommonFields structure and initialize debug*/
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+	
+	SUMAg_CF->InOut_Notify = NOPE;
+
 	kar = 1;
 	brfact = 1; /* the brightness factor */
 	MaskColor[0] = MaskColor[1] = MaskColor[2] = 0.3;
@@ -1069,6 +1078,8 @@ int main (int argc,char *argv[])
 	ApplyPercClip = NOPE;
 	ApplyMask = NOPE;
 	setMaskCol = NOPE;
+	Vopt = NOPE;
+	iVopt = NOPE;
 	MapType = SUMA_CMAP_RGYBR20;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -1078,16 +1089,27 @@ int main (int argc,char *argv[])
          exit (1);
 		}
 		
-		if (!brk && (strcmp(argv[kar], "-f") == 0)) {
+		if (!brk && (strcmp(argv[kar], "-v") == 0)) {
 			kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -f ");
+		  		fprintf (SUMA_STDERR, "need argument after -v ");
 				exit (1);
 			}
 			IntName = argv[kar];
-
+			Vopt = YUP;
 			brk = YUP;
 		}		
+		
+		if (!brk && (strcmp(argv[kar], "-iv") == 0)) {
+			kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -iv ");
+				exit (1);
+			}
+			IntName = argv[kar];
+			iVopt = YUP;
+			brk = YUP;
+		}	
 		
 		if (!brk && (strcmp(argv[kar], "-br") == 0)) {
 			kar ++;
@@ -1178,7 +1200,7 @@ int main (int argc,char *argv[])
 		}
 		
 	}/* loop accross command ine options */
-
+	
 	/* check input */
 	if (!SUMA_filexists (IntName)) {
 		fprintf (SUMA_STDERR,"Error %s: File %s could not be found.\n", FuncName, IntName);
@@ -1189,9 +1211,14 @@ int main (int argc,char *argv[])
 		fprintf (SUMA_STDERR,"Error %s: Simultaneous use of -clp and -perc_clp. You should be punished.\n", FuncName);
 		exit(1);
 	}
-
-	N_V =  SUMA_float_file_size(IntName);
-	if (N_V < 1) {
+	
+	if (iVopt && Vopt) {
+		fprintf (SUMA_STDERR,"Error %s: Simultaneous use of -v and -iv. You should be ashamed of yourself.\n", FuncName);
+		exit(1);
+	}
+	
+	N_Va =  SUMA_float_file_size(IntName);
+	if (N_Va < 1) {
 		fprintf (SUMA_STDERR,"Error %s: File %s could not be read or is badly formatted.\n", FuncName, IntName);
 		exit (1);
 	}
@@ -1206,36 +1233,44 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
 	
-	/* allocate space for CommonFields structure and initialize debug*/
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
-	SUMAg_CF->InOut_Notify = NOPE;
-
 	/* if you decide to have two values per column */
-	#ifdef TWO_VALS
-		if (N_V % 2) {
-			fprintf (SUMA_STDERR,"Error %s: Not all rows in %s appear to 2 values.\n", FuncName, IntName);
+	if (iVopt && (N_Va % 2)) {
+			fprintf (SUMA_STDERR,"Error %s: Number of values in %s not divisible by 2.\n", FuncName, IntName);
 			exit (1);
 		}
-	#endif
 	
 	/* allocate for Nodes */
-	V = (float *) calloc (N_V, sizeof(float));
-	if (!V) {
-		fprintf (SUMA_STDERR,"Error %s: Could not allocate for V.\n", FuncName);
+	Va = (float *) calloc (N_Va, sizeof(float));
+	if (!Va) {
+		fprintf (SUMA_STDERR,"Error %s: Could not allocate for Va.\n", FuncName);
 		exit(1);
+	}
+	SUMA_Read_file (Va, IntName, N_Va);
+	
+	if (Vopt) {
+		V = Va;
+		N_V = N_Va;
+	} else {
+		N_V = N_Va/2;
+		V = (float *) calloc (N_V, sizeof(float));
+		iV = (int *) calloc (N_V, sizeof(int));
+		if (!V || !iV) {
+			fprintf (SUMA_STDERR,"Error %s: Could not allocate for V or iV.\n", FuncName);
+			exit(1);
+		}
+		k = 0;
+		for (ii=0; ii < N_V; ++ii) {
+			iV[ii] = (int)Va[k]; ++k;
+			V[ii] = Va[k]; ++k;
+		}
 	}
 	
 	/* read values per node */
-	SUMA_Read_file (V, IntName, N_V);
-	/*SUMA_disp_vect (V, 10);*/
+	/* SUMA_disp_vect (V, 10); */
 	
 	/* find the min/max of V */
 	SUMA_MIN_MAX_VEC(V, N_V, Vmin, Vmax, Vminloc, Vmaxloc)
-	fprintf (SUMA_STDERR,"%s: Vmin=%f, Vmax = %f\n", FuncName, Vmin, Vmax);
+	/* fprintf (SUMA_STDERR,"%s: Vmin=%f, Vmax = %f\n", FuncName, Vmin, Vmax);*/ 
 	
 	/* figure out the range if PercRange is used */
 	if (ApplyPercClip) {
@@ -1300,11 +1335,19 @@ int main (int argc,char *argv[])
 	/* Now write the colored vector back to disk */
 	
 	for (k=0; k < N_V; ++k) {
-		fprintf (SUMA_STDOUT, "%d %f %f %f\n", k, SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
+		if (Vopt) {
+			fprintf (SUMA_STDOUT, "%d %f %f %f\n", k, SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
+		} else {
+			fprintf (SUMA_STDOUT, "%d %f %f %f\n", iV[k], SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
+		}
 	}
 	
 	/* freeing time */
-	if (V) free(V);
+	if (Va) free(Va);
+	if (iVopt){
+		if (V) free (V);
+		if (iV) free (iV);
+	}
 	if (CM) SUMA_Free_ColorMap (CM);
  	if (OptScl) free(OptScl);
 	if (SV) SUMA_Free_ColorScaledVect (SV);

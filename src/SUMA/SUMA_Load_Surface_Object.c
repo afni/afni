@@ -8,7 +8,13 @@
 	#define DO_SCALE 319.7	/*!< scale node coordinates by specified factor. Useful for tesscon coordinate system in iv files*/
 #endif
 
-extern SUMA_CommonFields *SUMAg_CF; 
+#ifdef SUMA_Read_SpecFile_STAND_ALONE
+	SUMA_CommonFields *SUMAg_CF;
+#elif defined SUMA_Load_Surface_Object_STAND_ALONE
+	SUMA_CommonFields *SUMAg_CF;
+#else 
+	extern SUMA_CommonFields *SUMAg_CF; 
+#endif
 
 /* CODE */
    
@@ -1214,7 +1220,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					SUMA_RETURN (NOPE);
 				}
 				
-				fprintf(SUMA_STDOUT,"Warning %s: Found SurfaceVolume in Spec File, Name must include path to volume", FuncName);
+				fprintf(SUMA_STDOUT,"Warning %s: Found SurfaceVolume in Spec File, Name must include path to volume.\n", FuncName);
 				
 				sprintf(Spec->VolParName[Spec->N_Surfs-1], "%s",  stmp2);
 				

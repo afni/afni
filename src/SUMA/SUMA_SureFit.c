@@ -1,7 +1,11 @@
 
 #include "SUMA_suma.h"
- 
-extern SUMA_CommonFields *SUMAg_CF; 
+
+#ifdef SUMA_SureFit_STAND_ALONE
+	SUMA_CommonFields *SUMAg_CF; 
+#else
+	extern SUMA_CommonFields *SUMAg_CF; 
+#endif
    
 /* CODE */
    
