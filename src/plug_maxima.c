@@ -16,7 +16,11 @@
  *
  * 2004 Feb 20 [rickr]
  *   - added ENTRY/RETURN calls to most functions
- *   _ do not process last plane in find_local_maxima()
+ *   - do not process last plane in find_local_maxima()
+ *   - allow any anat or func dataset of type short
+ *   - added a sub-brick selector
+ *   - note that dist and radius are in voxels
+ *   - output coordinates in dicom mm format
  *----------------------------------------------------------------------
 */
 
@@ -111,8 +115,9 @@ static char        helpstring[] =
     "\n"
     "No Text Out  - do not display the extrma points as text\n"
     "\n"
-    "\n"
     "Author: (the lamented) R Reynolds\n"
+    "\n"
+    "Updated: 2004 Feb 20 [rickr]\n"
    ;
 
 
@@ -143,8 +148,10 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint, "Input" , "Input" , TRUE );
    PLUTO_add_hint( plint, "choose dataset for input" );
-   PLUTO_add_dataset(plint, "Dataset" , 0 /* no anat */, FUNC_FIM_MASK,
-                                         DIMEN_3D_MASK | BRICK_SHORT_MASK );
+   PLUTO_add_dataset(plint, "Dataset" , ANAT_ALL_MASK , FUNC_ALL_MASK, 
+                                         DIMEN_ALL_MASK | BRICK_SHORT_MASK );
+   PLUTO_add_number( plint , "Sub-brick" , 0,9999,0 , 0,1 ) ; /* new [rickr] */
+
 
    /*-- second line of input: prefix for output dataset --*/
 
@@ -162,14 +169,14 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint, "Separation" , "min_dist" , FALSE ) ;
    PLUTO_add_hint( plint, "option: choose a minimum distance between extrema" );
-   PLUTO_add_number( plint, "Distance", 0, 1000, 1, 80, 1 );
+   PLUTO_add_number( plint, "Distance(vox)", 0, 1000, 1, 80, 1 );
 
    /*-- fifth line of input: out_rad option --*/
 
    PLUTO_add_option( plint, "Output Size" , "out_rad" , FALSE ) ;
    PLUTO_add_hint( plint, "option: choose a spherical radius around extrema "
 			  "points in mask" );
-   PLUTO_add_number( plint, "Radius", 0, 1000, 1, 50, 1 );
+   PLUTO_add_number( plint, "Radius(vox)", 0, 1000, 1, 50, 1 );
 
    /*-- sixth line of input: negatives option --*/
 
@@ -246,7 +253,7 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
     char             * optag, * infile = NULL, * outfile = NULL, * style_str;
     float              cutoff = 0.0, min_dist = 0.0, out_rad = 0.0;
     int                negatives = 0, quiet = 0, true_max = 0, opcnt = 0;
-    int                style = MAX_SORT_N_REMOVE_STYLE;
+    int                style = MAX_SORT_N_REMOVE_STYLE, sb;
 
 ENTRY("process_args");
     /* get AFNI inputs */
@@ -269,6 +276,13 @@ ENTRY("process_args");
 	RETURN("-----------------------------\n"
                "arguments : bad input dataset\n"
                "-----------------------------");
+
+    sb = (int)PLUTO_get_number( plint );	/* 2004 Feb 20 [rickr] */
+    if ( sb >= DSET_NVALS(dset) || sb < 0 )
+	RETURN("--------------------------\n"
+               "arguments : bad sub-brick \n"
+               "--------------------------");
+    A->sub_brick = sb;
 
     DSET_load( dset );
 
@@ -682,7 +696,7 @@ ENTRY("add_point_to_list");
     }
     else if ( P->used == P->M )
     {
-	P->M = P->M * 2;
+	P->M = P->M + 100;
 
 	if ( ( P->plist = (int *)realloc( P->plist, P->M*sizeof(int))) == NULL )
 	{
@@ -1006,6 +1020,8 @@ ENTRY("write_results");
 static int
 display_coords( r_afni_s * A, maxima_s * M )
 {
+    THD_fvec3 f3;
+    THD_ivec3 i3;
     float   xmin = M->dset->daxes->xxmin;
     float   xlen = M->dset->daxes->xxmax - xmin;
     float   ymin = M->dset->daxes->yymin;
@@ -1025,33 +1041,46 @@ ENTRY("display_coords");
 
 
     printf( "---------------------------------------------\n" );
+    printf( "Dicom coordinates:\n\n" );
 
     for ( count = 0, iptr = P->plist; count < P->used; count++, iptr++ )
     {
 	X =  *iptr % M->nx;
 	Y = (*iptr % M->nxy) / M->nx;
 	Z =  *iptr / M->nxy;
+	i3.ijk[0] = X;  i3.ijk[1] = Y;  i3.ijk[2] = Z;
+	f3 = THD_3dind_to_3dmm(M->dset, i3);
+	f3 = THD_3dmm_to_dicomm(M->dset, f3);
 
 	optr   = M->sdata  + *iptr;
 	mptr   = M->result + *iptr;
     
 	if ( factor == 1 )
 	{
-	    printf( "(%4d,%4d,%4d) : val = %d\n",
+	    /* do dicom coordinates from ijk, instead */
+	    printf( "(%.2f  %.2f  %.2f) : val = %d\n",
+		    f3.xyz[0], f3.xyz[1], f3.xyz[2], *optr );
+
+/*     printf( "(%4d,%4d,%4d) : val = %d\n",
 		(int)(xmin)+(int)(xlen*X/xm1),
 		(int)(ymin)+(int)(ylen*Y/ym1),
 		(int)(zmin)+(int)(zlen*Z/zm1),
 		*optr );
+*/
 	}
 	else
 	{
 	    prod = *optr * factor;
 
-	    printf( "(%4d,%4d,%4d) : val = %f\n",
+	    printf( "(%.2f  %.2f  %.2f) : val = %f\n",
+		    f3.xyz[0], f3.xyz[1], f3.xyz[2], prod );
+
+/*	    printf( "(%4d,%4d,%4d) : val = %f\n",
 		(int)(xmin)+(int)(xlen*X/xm1),
 		(int)(ymin)+(int)(ylen*Y/ym1),
 		(int)(zmin)+(int)(zlen*Z/zm1),
 		prod );
+*/
 	}
     }
 
@@ -1221,13 +1250,13 @@ ENTRY("r_set_afni_s_from_dset");
         RETURN(0);
     }
 
-    A->dset[ A->num_dsets ] = dset;
-    A->simage[ A->num_dsets ] = ( short * )DSET_ARRAY( dset, 0 );
+    A->dset[ 0 ] = dset;                 /* rickr - use sub-brick */
+    A->simage[ 0 ] = ( short * )DSET_ARRAY( dset, A->sub_brick );
 
-    if ( ( A->factor[ A->num_dsets ] = DSET_BRICK_FACTOR( dset, 0 ) ) == 0.0 )
-        A->factor[ A->num_dsets ] = 1.0;
+    if ((A->factor[0] = DSET_BRICK_FACTOR(dset, A->sub_brick)) == 0.0 )
+        A->factor[0] = 1.0;
 
-    A->subs  [ A->num_dsets ] = DSET_NVALS( dset );
+    A->subs  [ 0 ] = DSET_NVALS( dset );
 
     A->nx   = dset->daxes->nxx;
     A->ny   = dset->daxes->nyy;
@@ -1239,9 +1268,9 @@ ENTRY("r_set_afni_s_from_dset");
         int     count;
         short * sptr;
         float * fptr;
-        float   factor = A->factor[ A->num_dsets ];   /* just for speed */
+        float   factor = A->factor[ 0 ];   /* just for speed */
 
-        if ( ( A->fimage[ A->num_dsets ] =
+        if ( ( A->fimage[ 0 ] =
                 ( float * )calloc( A->nvox, sizeof( float ) ) ) == NULL )
         {
             sprintf( grMessage, "Error: rsasfd_10\n"
@@ -1251,8 +1280,8 @@ ENTRY("r_set_afni_s_from_dset");
             RETURN(0);
         }
 
-        fptr = A->fimage[ A->num_dsets ];
-        sptr = A->simage[ A->num_dsets ];
+        fptr = A->fimage[ 0 ];
+        sptr = A->simage[ 0 ];
         for ( count = 0; count < A->nvox; count++ )
             *fptr++ = *sptr++ * factor;
     }
@@ -1299,7 +1328,7 @@ ENTRY("free_memory");
     if ( A->want_floats && A->fimage[0] )
 	free( A->fimage[0] );
 
-    if ( M->result )
+    if ( M->result && !M->outfile[0] )
 	free( M->result );
 
     if ( M->P.plist )
