@@ -5,14 +5,12 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 #undef  AFNI_DEBUG
 #undef  CLUST_DEBUG
 #define STATUS(x) /* nada */
 #define ENTRY(x)  /* nada */
 #define EXRETURN  return
 #define RETURN(x) return(x)
-
 
 /*********** find the largest value in a volume of data ***********/
 
@@ -54,6 +52,17 @@ ENTRY("MCW_vol_amax") ;
          max = fabs(ffar[0]) ;
          for( ii=1 ; ii < nxyz ; ii++ ){
             val = fabs(ffar[ii]) ; if( val > max ) max = val ;
+         }
+         RETURN ((float) max) ;
+      }
+      break ;
+
+      case MRI_double:{
+         register double * dfar = (double *) fim ;
+         register double max , val ;
+         max = fabs(dfar[0]) ;
+         for( ii=1 ; ii < nxyz ; ii++ ){
+            val = fabs(dfar[ii]) ; if( val > max ) max = val ;
          }
          RETURN ((float) max) ;
       }

@@ -1015,25 +1015,10 @@ fflush(stdout) ;
    if( xp != xx || yp != yy )
       XtVaSetValues( seq->wtop , XmNx , xp , XmNy , yp , NULL ) ;
 
-   /* if there is a dialog, move it too */
+   /* if there is a dialog, move it too [modified 05 Jan 1999] */
 
-   if( seq->dialog != NULL && XtIsRealized( seq->dialog ) ){
-
-      int dw,dh,dx,dy ;  /* geometry of dialog */
-
-      MCW_widget_geom( seq->dialog , &dw,&dh,&dx,&dy ) ;
-      MCW_widget_geom( seq->wtop   , &wx,&hy,&xx,&yy ) ;
-
-      xp = xx+wx+8 ;
-      if( xp+dw > seq->dc->width ) xp = seq->dc->width - dw ;
-      if( xp    < 0 )              xp = 0 ;
-
-      yp = yy+8 ;
-      if( yp+dh > seq->dc->height ) yp = seq->dc->height - dh ;
-      if( yp    < 0 )               yp = 0 ;
-
-      XtVaSetValues( seq->dialog , XmNx , xp , XmNy , yp , NULL ) ;
-   }
+   if( seq->dialog != NULL && XtIsRealized( seq->dialog ) )
+      ISQ_place_dialog( seq ) ;
 
    return ;
 }
@@ -2697,7 +2682,7 @@ void ISQ_button2_EV( Widget w , XtPointer client_data ,
 void ISQ_but_disp_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    MCW_imseq * seq = (MCW_imseq *) client_data ;
-   int ib , wx,hy,xx,yy ;
+   int ib ;
    Widget rctop , rcboxes ;
 
    if( ! ISQ_REALZ(seq) || seq->dialog != NULL ) return ;
@@ -2708,16 +2693,10 @@ DPR("ISQ_but_disp_CB");
       if( ISQ_but_bot_dial[ib] == True )          /* that also want to */
         SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
-   MCW_widget_geom( seq->wtop , &wx,&hy,&xx,&yy ) ;  /* geometry of shell */
-
    seq->dialog = XtVaCreatePopupShell(
                     "menu" , xmDialogShellWidgetClass , seq->wtop ,
                        XmNtitle , "Display Options" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
-
-                       XmNx , xx+wx+8 ,    /* put off right edge */
-                       XmNy , yy+1    ,
-
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
@@ -2903,6 +2882,8 @@ DPR("ISQ_but_disp_CB");
 
    XtManageChild( rctop ) ;
 
+   ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
+
    XtPopup( seq->dialog , XtGrabNone ) ;
 
    ISQ_disp_options( seq , False ) ;  /* set toggles from option list */
@@ -2913,6 +2894,32 @@ DPR("ISQ_but_disp_CB");
    ISQ_but_done_reset( seq ) ;
    return ;
 }
+
+/*-----------------------------------------------------------------------
+   05 Jan 1999: place the dialog near the image window
+-------------------------------------------------------------------------*/
+
+void ISQ_place_dialog( MCW_imseq * seq )
+{
+   int dw,dh,dx,dy , xp,yp , wx,hy,xx,yy ;
+
+   if( !ISQ_REALZ(seq) || seq->dialog==NULL ) return ;
+
+   MCW_widget_geom( seq->wtop   , &wx,&hy,&xx,&yy ) ;  /* geometry of shell */
+   MCW_widget_geom( seq->dialog , &dw,&dh,&dx,&dy ) ;  /* of dialog */
+
+   xp = xx+wx+8 ;
+   if( xp+dw > seq->dc->width ) xp = xx-dw-8 ;
+   if( xp    < 0 )              xp = 0 ;
+
+   yp = yy-4 ;
+   if( yp+dh > seq->dc->height ) yp = seq->dc->height - dh ;
+   if( yp    < 0 )               yp = 0 ;
+
+   XtVaSetValues( seq->dialog , XmNx , xp , XmNy , yp , NULL ) ;
+   return ;
+}
+
 
 /*-----------------------------------------------------------------------
   Callback for button and toggle actions in the display dialog
@@ -4219,7 +4226,7 @@ static MCW_action_item MONT_act[NUM_MONT_ACT] = {
 void ISQ_montage_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    MCW_imseq * seq = (MCW_imseq *) client_data ;
-   int ib , wx,hy,xx,yy ;
+   int ib ;
    Widget wrc ;
 
    if( ! ISQ_REALZ(seq) || seq->dialog != NULL ) return ;
@@ -4228,16 +4235,10 @@ void ISQ_montage_CB( Widget w, XtPointer client_data, XtPointer call_data )
       if( ISQ_but_bot_dial[ib] == True )          /* that also want to */
         SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
-   MCW_widget_geom( seq->wtop , &wx,&hy,&xx,&yy ) ;  /* geometry of shell */
-
    seq->dialog = XtVaCreatePopupShell(
                     "menu" , xmDialogShellWidgetClass , seq->wtop ,
                        XmNtitle , "Montage" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
-
-                       XmNx , xx+wx+8 ,    /* put off right edge */
-                       XmNy , yy+1    ,
-
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
@@ -4404,6 +4405,7 @@ void ISQ_montage_CB( Widget w, XtPointer client_data, XtPointer call_data )
    (void) MCW_action_area( wrc , MONT_act , NUM_MONT_ACT ) ;
 
    XtManageChild( wrc ) ;
+   ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
    XtPopup( seq->dialog , XtGrabNone ) ;
    MCW_alter_widget_cursor( seq->dialog , -XC_left_ptr ,"yellow","blue" ) ;
    ISQ_but_done_reset( seq ) ;

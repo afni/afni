@@ -343,7 +343,8 @@ typedef struct {
    int xFD , yFD , gx,gy , xc,yc ;
    int grid_color , common_base , init_ignore ;
    float fscale ;
-   int pin_num ;            /* 27 Apr 1997 */
+   int pin_num ;      /* 27 Apr 1997 */
+   int HorZ ;         /* 05 Jan 1999 */
 
    int key_Nlock , key_lock_sum ;
    int time_index ;
@@ -380,6 +381,7 @@ typedef struct {
    Widget opt_grid_menu     , opt_grid_cbut   ,
           opt_grid_down_pb  , opt_grid_up_pb  ,
           opt_grid_choose_pb , opt_pin_choose_pb ;
+   Widget opt_grid_HorZ_pb ;                      /* 05 Jan 1999 */
    Widget opt_slice_menu    , opt_slice_cbut  ,
           opt_slice_down_pb , opt_slice_up_pb ;
 
@@ -573,6 +575,8 @@ extern void GRA_file_pixmap( MCW_grapher * , char * ) ;
 
 extern void GRA_fixup_xaxis( MCW_grapher * ) ;
 extern void GRA_pick_xaxis_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+
+extern void GRA_mapmenu_CB( Widget , XtPointer , XtPointer ) ;
 
 /***-----------------------------------------------------------------------***/
 #endif

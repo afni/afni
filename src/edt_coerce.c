@@ -5,7 +5,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 #undef  AFNI_DEBUG
 #undef  CLUST_DEBUG
 #define STATUS(x) /* nada */
@@ -37,6 +36,7 @@ void EDIT_coerce_type( int nxyz , int itype,void *ivol , int otype,void *ovol )
    short   * sin , * sout ;
    float   * fin , * fout ;
    byte    * bin , * bout ;
+   double  * din , * dout ;  /* 10 Jan 1999 */
 
 ENTRY("EDIT_coerce_type") ;
 #ifdef AFNI_DEBUG
@@ -46,7 +46,6 @@ ENTRY("EDIT_coerce_type") ;
   STATUS(str) ; }
 #endif
 
-
    if( nxyz <= 0 || ivol == NULL || ovol == NULL ) EXRETURN ;
 
    switch( itype ){
@@ -55,6 +54,7 @@ ENTRY("EDIT_coerce_type") ;
       case MRI_short  :  sin = (short   *) ivol ; break ;
       case MRI_float  :  fin = (float   *) ivol ; break ;
       case MRI_byte   :  bin = (byte    *) ivol ; break ;
+      case MRI_double :  din = (double  *) ivol ; break ;
    }
    switch( otype ){
       default: EXRETURN ;
@@ -62,6 +62,7 @@ ENTRY("EDIT_coerce_type") ;
       case MRI_short  :  sout = (short   *) ovol ; break ;
       case MRI_float  :  fout = (float   *) ovol ; break ;
       case MRI_byte   :  bout = (byte    *) ovol ; break ;
+      case MRI_double :  dout = (double  *) ovol ; break ;
    }
 
    switch( otype ){
@@ -75,6 +76,9 @@ ENTRY("EDIT_coerce_type") ;
                EXRETURN ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fin[ii]) ;
+               EXRETURN ;
+            case MRI_double:   /* inputs are doubles */
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(din[ii]) ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = bin[ii] ;
@@ -95,11 +99,36 @@ ENTRY("EDIT_coerce_type") ;
             case MRI_float:   /* inputs are floats */
                memcpy( fout , fin , sizeof(float)*nxyz ) ;
                EXRETURN ;
+            case MRI_double:    /* inputs are doubles */
+               for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = din[ii] ;
+               EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = bin[ii] ;
                EXRETURN ;
             case MRI_complex:    /* inputs are complex */
                for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = CABS(cin[ii]) ;
+               EXRETURN ;
+         }
+         EXRETURN ;
+
+      /*** outputs are doubles ***/
+
+      case MRI_double:
+         switch( itype ){
+            case MRI_short:   /* inputs are shorts */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = sin[ii] ;
+               EXRETURN ;
+            case MRI_float:   /* inputs are floats */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = fin[ii] ;
+               EXRETURN ;
+            case MRI_double:   /* inputs are doubles */
+               memcpy( dout , din , sizeof(double)*nxyz ) ;
+               EXRETURN ;
+            case MRI_byte:    /* inputs are bytes */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = bin[ii] ;
+               EXRETURN ;
+            case MRI_complex:    /* inputs are complex */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = CABS(cin[ii]) ;
                EXRETURN ;
          }
          EXRETURN ;
@@ -113,6 +142,9 @@ ENTRY("EDIT_coerce_type") ;
                EXRETURN ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ ) bout[ii] = FLOAT_TO_BYTE(fin[ii]) ;
+               EXRETURN ;
+            case MRI_double:   /* inputs are doubles */
+               for( ii=0 ; ii < nxyz ; ii++ ) bout[ii] = FLOAT_TO_BYTE(din[ii]) ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                memcpy( bout , bin , sizeof(byte)*nxyz ) ;
@@ -137,6 +169,10 @@ ENTRY("EDIT_coerce_type") ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ )
                   cout[ii].r = fin[ii] , cout[ii].i = 0.0 ;
+               EXRETURN ;
+            case MRI_double:   /* inputs are doubles */
+               for( ii=0 ; ii < nxyz ; ii++ )
+                  cout[ii].r = din[ii] , cout[ii].i = 0.0 ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ )
@@ -171,6 +207,7 @@ void EDIT_coerce_scale_type( int nxyz , float scl ,
    short   * sin , * sout ;
    float   * fin , * fout ;
    byte    * bin , * bout ;
+   double  * din , * dout ;   /* 11 Jan 1999 */
 
 ENTRY("EDIT_coerce_scale_type") ;
 #ifdef AFNI_DEBUG
@@ -193,6 +230,7 @@ ENTRY("EDIT_coerce_scale_type") ;
       case MRI_short  :  sin = (short   *) ivol ; break ;
       case MRI_float  :  fin = (float   *) ivol ; break ;
       case MRI_byte   :  bin = (byte    *) ivol ; break ;
+      case MRI_double :  din = (double  *) ivol ; break ;
    }
    switch( otype ){
       default: EXRETURN ;
@@ -200,6 +238,7 @@ ENTRY("EDIT_coerce_scale_type") ;
       case MRI_short  :  sout = (short   *) ovol ; break ;
       case MRI_float  :  fout = (float   *) ovol ; break ;
       case MRI_byte   :  bout = (byte    *) ovol ; break ;
+      case MRI_double :  dout = (double  *) ovol ; break ;
    }
 
    switch( otype ){
@@ -213,6 +252,9 @@ ENTRY("EDIT_coerce_scale_type") ;
                EXRETURN ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fac*fin[ii]) ;
+               EXRETURN ;
+            case MRI_double:   /* inputs are double */
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fac*din[ii]) ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fac*bin[ii]) ;
@@ -233,11 +275,36 @@ ENTRY("EDIT_coerce_scale_type") ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = fac*fin[ii] ;
                EXRETURN ;
+            case MRI_double:   /* inputs are doubles */
+               for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = fac*din[ii] ;
+               EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = fac*bin[ii] ;
                EXRETURN ;
             case MRI_complex:    /* inputs are complex */
                for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = fac*CABS(cin[ii]) ;
+               EXRETURN ;
+         }
+         EXRETURN ;
+
+      /*** outputs are doubles ***/
+
+      case MRI_double:
+         switch( itype ){
+            case MRI_short:   /* inputs are shorts */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = fac*sin[ii] ;
+               EXRETURN ;
+            case MRI_float:   /* inputs are floats */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = fac*fin[ii] ;
+               EXRETURN ;
+            case MRI_double:   /* inputs are doubles */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = fac*din[ii] ;
+               EXRETURN ;
+            case MRI_byte:    /* inputs are bytes */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = fac*bin[ii] ;
+               EXRETURN ;
+            case MRI_complex:    /* inputs are complex */
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = fac*CABS(cin[ii]) ;
                EXRETURN ;
          }
          EXRETURN ;
@@ -254,6 +321,11 @@ ENTRY("EDIT_coerce_scale_type") ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ ){
                   val = fac*fin[ii] ; bout[ii] = FLOAT_TO_BYTE(val) ;
+               }
+               EXRETURN ;
+            case MRI_double:   /* inputs are doubles */
+               for( ii=0 ; ii < nxyz ; ii++ ){
+                  val = fac*din[ii] ; bout[ii] = FLOAT_TO_BYTE(val) ;
                }
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
@@ -281,6 +353,10 @@ ENTRY("EDIT_coerce_scale_type") ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ )
                   cout[ii].r = fac*fin[ii] , cout[ii].i = 0.0 ;
+               EXRETURN ;
+            case MRI_double:   /* inputs are doubles */
+               for( ii=0 ; ii < nxyz ; ii++ )
+                  cout[ii].r = fac*din[ii] , cout[ii].i = 0.0 ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ )

@@ -4,13 +4,18 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
-30 Dec 1998:
+03 Jan 1999:
    The 'Disp' control box on an image viewing window now has a new
      'RowGraphs' control, which allows the display of x-y line graphs
      of the underlay (grayscale) image intensity across rows of the image.
    The 'Xhairs' menu now allows you to display crosshairs only along
      selected axes (e.g., 'LR+AP' means only show crosshair lines that
      are parallel to the L-R and A-P axes, but not the I-S axis).
+   The environment variable AFNI_ALWAYS_LOCK allows you to have new
+     AFNI controllers locked together when they are created.
+   The graph windows in AFNI now can have a horizontal grid line drawn
+     at the y=0 level; this is toggled on and off with the 'h' key,
+     or from an item on the Opt->Grid submenu.
 --------------------------------------------------------------------------
 16 Nov 1998:
    3D (volumetric) registration is now available in the '3dvolreg' program

@@ -824,6 +824,14 @@ void DC_linewidth( MCW_DC * dc , int lw )
    return ;
 }
 
+void DC_linestyle( MCW_DC * dc , int lw )
+{
+   XGCValues gcv ;
+   gcv.line_style = lw ;
+   XChangeGC( dc->display , dc->myGC , GCLineStyle , &gcv ) ;
+   return ;
+}
+
 /*-------------------------------------------------------------------------
  May 1996: save the indices of the darkest and brightest overlays
  Dec 1997: moved into a separate routine

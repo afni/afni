@@ -265,6 +265,11 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CC) -o 3dttest 3dttest.o $(LFLAGS) $(LLIBS)
 
+# Warning: compiling 3dpc requires the presence of
+#          the Lapack library, not distributed with AFNI
+
+LLAPACK = -Llapack -Lblas -lf2c
+
 3dpc:3dpc.o
 	$(RM) $@
 	$(CC) -o 3dpc 3dpc.o $(LFLAGS) $(LLAPACK) $(LLIBS)

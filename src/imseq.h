@@ -463,6 +463,8 @@ extern void ISQ_but_color_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_but_cswap_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_but_cnorm_CB( Widget , XtPointer , XtPointer ) ;
 
+extern void ISQ_place_dialog( MCW_imseq * ) ;  /* 05 Jan 1999 */
+
 #undef REQUIRE_TWO_DONES
 #ifdef REQUIRE_TWO_DONES
    extern void ISQ_but_done_reset( MCW_imseq * ) ;

@@ -190,6 +190,10 @@ extern void DC_fg_colortext( MCW_DC * , char * ) ;
 extern void DC_linewidth( MCW_DC * , int ) ;
 extern void DC_fg_colorpix( MCW_DC * , Pixel ) ;
 
+extern void DC_linestyle( MCW_DC * , int ) ;
+#define DC_solid_line(ddcc)  DC_linestyle((ddcc),LineSolid)
+#define DC_dashed_line(ddcc) DC_linestyle((ddcc),LineOnOffDash)
+
 extern void OVC_mostest( MCW_DCOV * ) ;
 
 extern void DC_set_image_colors( MCW_DC * ) ;  /* 22 Aug 1998 */

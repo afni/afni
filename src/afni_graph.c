@@ -293,6 +293,7 @@ ENTRY("new_MCW_grapher") ;
       MCW_register_hint( grapher -> wname , hhh ) ;
 
    /** macro to create a new opt pullright menu **/
+   /** 07 Jan 1999: added the mapCallback to fix position **/
 
 #define OPT_MENU_PULLRIGHT(wmenu,wcbut,label,hhh)                      \
    grapher -> wmenu =                                                  \
@@ -305,7 +306,8 @@ ENTRY("new_MCW_grapher") ;
           XmNtraversalOn , False ,                                     \
           XmNinitialResourcesPersistent , False ,                      \
        NULL ) ;                                                        \
-   MCW_register_hint( grapher -> wcbut , hhh ) ;
+   MCW_register_hint( grapher -> wcbut , hhh ) ;                       \
+   XtAddCallback( grapher -> wmenu, XmNmapCallback, GRA_mapmenu_CB, NULL ) ;
 
    /** macro to create a new button on a pullright menu **/
 
@@ -360,11 +362,12 @@ ENTRY("new_MCW_grapher") ;
    OPT_MENU_PULL_BUT( opt_mat_menu,opt_mat_choose_pb ,"Choose" , "Set number of graphs" ) ;
 #endif
 
-   OPT_MENU_PULLRIGHT(opt_grid_menu,opt_grid_cbut      ,"Grid"    , "Change vertical grid spacing" ) ;
-   OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_down_pb   ,"Down [g]", "Reduce vertical grid spacing" ) ;
-   OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_up_pb     ,"Up   [G]", "Increase vertical grid spacing" ) ;
-   OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_choose_pb ,"Choose"  , "Set vertical grid spacing" ) ;
-   OPT_MENU_PULL_BUT( opt_grid_menu,opt_pin_choose_pb  ,"Pin Num" , "Fix length of graph window" ) ;  /* 27 Apr 1997 */
+   OPT_MENU_PULLRIGHT(opt_grid_menu,opt_grid_cbut     ,"Grid"    , "Change vertical grid spacing" ) ;
+   OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_down_pb  ,"Down [g]", "Reduce vertical grid spacing" ) ;
+   OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_up_pb    ,"Up   [G]", "Increase vertical grid spacing" ) ;
+   OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_choose_pb,"Choose"  , "Set vertical grid spacing" ) ;
+   OPT_MENU_PULL_BUT( opt_grid_menu,opt_pin_choose_pb ,"Pin Num" , "Fix length of graph window" ) ;  /* 27 Apr 1997 */
+   OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_HorZ_pb  ,"HorZ [h]", "Horizontal line at Zero" ) ; /* 05 Jan 1999 */
 
    OPT_MENU_PULLRIGHT(opt_slice_menu,opt_slice_cbut      ,"Slice"   , "Change slice"  ) ;
    OPT_MENU_PULL_BUT( opt_slice_menu,opt_slice_down_pb   ,"Down [z]", "Decrement slice" ) ;
@@ -1400,7 +1403,7 @@ STATUS("starting time series graph loop") ;
       for( iy=0 ; iy < grapher->mat ; iy++,its++ ){
 
          tsim = IMARR_SUBIMAGE(tsimar,its) ;
-         if( tsim == NULL || tsim->nx < 2 ) continue ;  /* skip */
+         if( tsim == NULL || tsim->nx < 2 ) continue ; /* skip this graph */
          tsar = MRI_FLOAT_PTR(tsim) ;
          itop = NPTS(grapher) ;
          itop = npoints = MIN( itop , tsim->nx ) ;
@@ -1529,6 +1532,26 @@ STATUS("starting time series graph loop") ;
 
             DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
             DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
+         }
+
+         /* 05 Jan 1999: plot horizontal line through zero, if desired and needed */
+
+         if( grapher->HorZ && grapher->pmin[ix][iy] < 0.0 && grapher->pmax[ix][iy] > 0.0 ){
+            DC_fg_color ( grapher->dc , GRID_COLOR(grapher) ) ;
+            DC_linewidth( grapher->dc , GRID_THICK(grapher) ) ;
+            DC_dashed_line( grapher->dc ) ;
+
+            ftemp = grapher->fscale ;
+                 if( ftemp == 0.0 ) ftemp =  1.0 ;
+            else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
+
+            XDrawLine( grapher->dc->display , grapher->fd_pxWind , grapher->dc->myGC ,
+                       (int) xoff                , (int)(yoff + tsbot * ftemp) ,
+                       (int)(xoff + grapher->gx) , (int)(yoff + tsbot * ftemp)  ) ;
+
+            DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
+            DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
+            DC_solid_line( grapher->dc ) ;
          }
 
       } /* end of loop over y */
@@ -1896,11 +1919,18 @@ void GRA_drawing_EV( Widget w , XtPointer client_data ,
 ENTRY("GRA_drawing_EV") ;
 
    if( ! GRA_REALZ(grapher) ){
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"unrealized grapher! Event type = %d",(int)ev->type) ;
-  STATUS(str) ; }
-#endif
+if(PRINT_TRACING){
+char str[256] ;
+sprintf(str,"unrealized grapher! Event type = %d",(int)ev->type) ;
+STATUS(str) ; }
+      EXRETURN ;
+   }
+
+   if( grapher->valid == 666 ){  /* 06 Jan 1999 */
+if(PRINT_TRACING){
+char str[256] ;
+sprintf(str,"dying grapher! Event type = %d",(int)ev->type) ;
+STATUS(str) ; }
       EXRETURN ;
    }
 
@@ -1911,19 +1941,26 @@ ENTRY("GRA_drawing_EV") ;
       case Expose:{
          XExposeEvent * event = (XExposeEvent *) ev ;
 
-STATUS("Expose event") ;
+if(PRINT_TRACING){
+char str[256] ;
+sprintf(str,"Expose event with count = %d",event->count) ;
+STATUS(str) ; }
 
          /**
              With the first expose, create the new pixmap.
              For subsequent ones, just redraw the non-pixmap (overlay) stuff.
+
+             06 Jan 1999: check event count
          **/
 
-         if( grapher->fd_pxWind == (Pixmap) 0 ){
-            int width , height ;
-            MCW_widget_geom( grapher->draw_fd , &width , &height , NULL,NULL ) ;
-            GRA_new_pixmap( grapher , width , height , 1 ) ;
-         } else {
-            GRA_redraw_overlay( grapher ) ;
+         if( event->count == 0 ){
+            if( grapher->fd_pxWind == (Pixmap) 0 ){
+               int width , height ;
+               MCW_widget_geom( grapher->draw_fd , &width , &height , NULL,NULL ) ;
+               GRA_new_pixmap( grapher , width , height , 1 ) ;
+            } else {
+               GRA_redraw_overlay( grapher ) ;
+            }
          }
       }
       break ;
@@ -2295,6 +2332,11 @@ ENTRY("GRA_handle_keypress") ;
          grid_up( grapher ) ;
       break;
 
+      case 'h':   /* 05 Jan 1999 */
+         grapher->HorZ = ! grapher->HorZ ;
+         redraw_graph( grapher , 0 ) ;
+      break ;
+
 #if 0
       case 'r':
          grapher->grid_color = (grapher->grid_color + 1 ) % grapher->dc->ovc->ncol_ov ;
@@ -2419,6 +2461,19 @@ ENTRY("GRA_handle_keypress") ;
 }
 
 /*--------------------------------------------------------------------------
+   06 Jan 1999: handle death after a timeout.
+----------------------------------------------------------------------------*/
+
+void GRA_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
+{
+   MCW_grapher * grapher = (MCW_grapher *) client_data ;
+
+ENTRY("GRA_quit_timeout_CB") ;
+   GRA_handle_keypress( grapher , "q" , NULL ) ;
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------
    Handle buttons from the opt menu
 ----------------------------------------------------------------------------*/
 
@@ -2453,6 +2508,11 @@ ENTRY("GRA_opt_CB") ;
       EXRETURN ;
    }
 
+   if( w == grapher->opt_grid_HorZ_pb ){     /* 05 Jan 1999 */
+      GRA_handle_keypress( grapher , "h" , NULL ) ;
+      EXRETURN ;
+   }
+
    if( w == grapher->opt_slice_down_pb ){
       GRA_handle_keypress( grapher , "z" , NULL ) ;
       EXRETURN ;
@@ -2481,7 +2541,14 @@ ENTRY("GRA_opt_CB") ;
 #endif
 
    if( w == grapher->opt_quit_pb ){
+#if 0
       GRA_handle_keypress( grapher , "q" , NULL ) ;
+#else
+STATUS("User pressed Done button: starting timeout") ;
+      grapher->valid = 666 ;
+      (void) XtAppAddTimeOut( XtWidgetToApplicationContext(w) ,
+                              50 , GRA_quit_timeout_CB , grapher ) ;
+#endif
       EXRETURN ;
    }
 
@@ -3819,6 +3886,7 @@ ENTRY("AFNI_new_fim_menu") ;
                      cbfunc , (XtPointer) fmenu ) ;
 
    /** macro to create a new fim pullright menu **/
+   /** 07 Jan 1999: added the mapCallback to fix position **/
 
 #define FIM_MENU_PULLRIGHT(wmenu,wcbut,label)                      \
    fmenu -> wmenu =                                                \
@@ -3830,7 +3898,8 @@ ENTRY("AFNI_new_fim_menu") ;
           XmNsubMenuId , fmenu -> wmenu ,                          \
           XmNtraversalOn , False ,                                 \
           XmNinitialResourcesPersistent , False ,                  \
-       NULL ) ;
+       NULL ) ;                                                    \
+   XtAddCallback( fmenu -> wmenu, XmNmapCallback, GRA_mapmenu_CB, NULL ) ;
 
    /** macro to create a new button on a pullright menu **/
 
@@ -3867,6 +3936,7 @@ ENTRY("AFNI_new_fim_menu") ;
                          XmNinitialResourcesPersistent , False , NULL ) ; \
       XtAddCallback( fmenu -> wname , XmNactivateCallback ,               \
                      cbfunc , (XtPointer) fmenu ) ;                       \
+      XtAddCallback( qbut_menu, XmNmapCallback, GRA_mapmenu_CB, NULL ) ;  \
  } while(0)
 
    /*** top of menu = a label to click on that does nothing at all ***/
@@ -4233,5 +4303,33 @@ ENTRY("GRA_file_pixmap") ;
    mri_write_pnm( fname , tim ) ;
    fprintf(stderr,"Writing one PNM image to file %s\n",fname) ;
    mri_free( tim ) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------
+   07 Jan 1999: change location of newly popped up menu
+-------------------------------------------------------------------------------*/
+
+void GRA_mapmenu_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   int ww,hh,xx,yy ;
+   int pw,ph,px,py ;
+
+ENTRY("GRA_mapmenu_CB") ;
+
+ MCW_widget_geom( w                     , &ww,&hh , &xx,&yy ) ;
+ MCW_widget_geom( XtParent(XtParent(w)) , &pw,&ph , &px,&py ) ;
+
+if(PRINT_TRACING){
+ char str[256] ;
+ sprintf(str,"menu:   width=%d height=%d x=%d y=%d",ww,hh,xx,yy) ; STATUS(str) ;
+ sprintf(str,"parent: width=%d height=%d x=%d y=%d",pw,ph,px,py) ; STATUS(str) ; }
+
+   pw = pw >> 3 ;
+   if( ! ( xx > px+7*pw || xx+ww < px+pw ) ){
+      STATUS("moving menu") ;
+      xx = px - ww ;  if( xx < 0 ) xx = 0 ;
+      XtVaSetValues( w , XmNx , xx , NULL ) ;
+   }
    EXRETURN ;
 }

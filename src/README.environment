@@ -222,7 +222,7 @@ It all depends on the printer software setup you have.  To send the
 output into GhostView
   setenv AFNI_PSPRINT "ghostview -landscape -"
 
-In the (far distant) future, other windows (e.g., image and graph
+In the (very far distant) future, other windows (e.g., image and graph
 displays) may get the ability to print to a PostScript file or printer.
 
 ---------------------------
@@ -233,6 +233,15 @@ the left side of the subject on the left side of the window.  The default
 mode is to display the right side of the subject on the left side of
 the window - the radiology convention.  This "handedness" can also be
 controlled with the "-flipim" and "-noflipim" command line options to afni.
+
+--------------------------
+Variable: AFNI_ALWAYS_LOCK
+--------------------------
+Setting this variable (to anything) tells afni to start up with all
+the controller windows locked together.  If you mostly use multiple
+controllers to view datasets in unison, then this will be useful.
+Notice that the Time Lock feature is not automatically enabled
+by this -- you must still actuate it manually.
 
 =================================
 | Robert W. Cox, PhD            |

@@ -806,6 +806,11 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    GLOBAL_library.controller_lock = 0 ; ENABLE_LOCK ;
    GLOBAL_library.time_lock = 0 ;                      /* 03 Nov 1998 */
 
+   { char * lenv = getenv("AFNI_ALWAYS_LOCK") ;
+     if( lenv != NULL ) for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+                           GLOBAL_library.controller_lock |= (1<<ii) ;
+   }
+
 #ifdef ALLOW_PLUGINS
    GLOBAL_library.plugins  = NULL ;
 #endif
@@ -2773,7 +2778,6 @@ ENTRY("AFNI_time_lock_change_CB") ;
    }
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
-
 }
 
 /*------------------------------------------------------------------------*/
@@ -2795,6 +2799,7 @@ ENTRY("AFNI_time_lock_carryout") ;
    if( glock == 0 )                 EXRETURN ;  /* nothing to do */
    if( !IM3D_OPEN(im3d) )           EXRETURN ;  /* bad input */
    if( GLOBAL_library.ignore_lock ) EXRETURN ;  /* ordered not to do anything */
+   if( ! GLOBAL_library.time_lock ) EXRETURN ;  /* don't lock time */
 
    ii = AFNI_controller_index(im3d) ;           /* which one am I? */
 
