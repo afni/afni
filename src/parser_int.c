@@ -52,6 +52,44 @@ double PARSER_evaluate_one( PARSER_code * pc , double atoz[] )
 }
 
 /*----------------------------------------------------------------------
+   Return 1 if the given code uses the symbol given by the
+   first character of sym, otherwise return 0 - 15 Sep 1999 - RWCox.
+------------------------------------------------------------------------*/
+
+#include <ctype.h>
+
+int PARSER_has_symbol( char * sym , PARSER_code * pc )
+{
+   int hh ;
+   char sss[8] ;
+   integer num_code ;
+
+   if( !isalpha(sym[0]) ) return 0 ;          /* not alphabetic */
+
+   sss[0] = toupper(sym[0]) ; sss[1] = '\0' ; /* uppercase it */
+
+   num_code = (integer) pc->num_code ;
+
+   hh = (int) hassym_( sss , &num_code , pc->c_code ,
+                       (ftnlen) 8 , (ftnlen) 8       ) ;
+
+   return hh ;
+}
+
+void PARSER_mark_symbols( PARSER_code * pc , int * sl )
+{
+   int ii ;
+   static char abet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+
+   if( pc == NULL || sl == NULL ) return ;
+
+   for( ii=0 ; ii < 26 ; ii++ )
+      sl[ii] = PARSER_has_symbol( abet+ii , pc ) ;
+
+   return ;
+}
+
+/*----------------------------------------------------------------------
    pc    = code to evaluate expression
    atoz  = double * [26] containing values for variables A..Z
    nv    = length of vectors

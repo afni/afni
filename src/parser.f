@@ -767,6 +767,36 @@ C.......................................................................
 C
 C
 C
+      FUNCTION HASSYM( SYM , NUM_CODE , C_CODE )
+      IMPLICIT NONE
+C
+      INTEGER HASSYM
+      CHARACTER*8 SYM
+      INTEGER     NUM_CODE
+      CHARACTER*8 C_CODE(*)
+C
+      INTEGER NCODE
+      CHARACTER*1 SSS
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+      HASSYM = 0
+      IF( NUM_CODE .LE. 0 ) RETURN
+      SSS = SYM(1:1)
+C
+      DO 1000 NCODE=1,NUM_CODE
+         IF( C_CODE(NCODE) .EQ. 'PUSHSYM' )THEN
+            IF( C_CODE(NCODE+1)(1:1) .EQ. SSS )THEN
+               HASSYM = 1
+               RETURN
+            ENDIF
+         ENDIF
+1000  CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
       FUNCTION PAREVAL( NUM_CODE , C_CODE , R8VAL )
       IMPLICIT NONE
 C

@@ -30,6 +30,11 @@ int main( int argc , char * argv[] )
          continue ;
       }
 
+#if 0
+      if( PARSER_has_symbol( "I" , pcode ) )
+         printf("  [contains symbol I]\n") ;
+#endif
+
       value = PARSER_evaluate_one( pcode , atoz ) ; free(pcode) ;
 
       if( kvar >= 0 && kvar < 26 ){

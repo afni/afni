@@ -1137,6 +1137,52 @@ L200:
 
 
 
+integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen 
+	sym_len, ftnlen c_code_len)
+{
+    /* System generated locals */
+    integer ret_val, i__1;
+
+    /* Builtin functions */
+    integer s_cmp(char *, char *, ftnlen, ftnlen);
+
+    /* Local variables */
+    static integer ncode;
+    static char sss[1];
+
+
+
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
+
+    /* Parameter adjustments */
+    c_code__ -= 8;
+
+    /* Function Body */
+    ret_val = 0;
+    if (*num_code__ <= 0) {
+	return ret_val;
+    }
+    *(unsigned char *)sss = *(unsigned char *)sym;
+
+    i__1 = *num_code__;
+    for (ncode = 1; ncode <= i__1; ++ncode) {
+	if (s_cmp(c_code__ + (ncode << 3), "PUSHSYM", 8L, 7L) == 0) {
+	    if (*(unsigned char *)&c_code__[(ncode + 1) * 8] == *(unsigned 
+		    char *)sss) {
+		ret_val = 1;
+		return ret_val;
+	    }
+	}
+/* L1000: */
+    }
+
+    return ret_val;
+} /* hassym_ */
+
+
+
+
 doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val, 
 	ftnlen c_code_len)
 {
@@ -3145,10 +3191,10 @@ doublereal dbesk1_(doublereal *x)
     integer s_wsfe(cilist *), e_wsfe(void);
 
     /* Fortran I/O blocks */
-    static cilist io___86 = { 0, 6, 0, fmt_999, 0 };
+    static cilist io___88 = { 0, 6, 0, fmt_999, 0 };
 
 
-    s_wsfe(&io___86);
+    s_wsfe(&io___88);
     e_wsfe();
     return 0;
 } /* qqqerr_ */

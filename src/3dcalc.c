@@ -42,6 +42,14 @@ static int                ntime_max = 0 ;
 static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
 static int                CALC_gscale = 0 ;  /* 01 Apr 1999 */
 
+static int                CALC_has_sym[26] ; /* 15 Sep 1999 */
+#define HAS_I  CALC_has_sym[ 8]
+#define HAS_J  CALC_has_sym[ 9]
+#define HAS_K  CALC_has_sym[10]
+#define HAS_X  CALC_has_sym[23]
+#define HAS_Y  CALC_has_sym[24]
+#define HAS_Z  CALC_has_sym[25]
+
 static THD_3dim_dataset *  CALC_dset[26] ;
 static int                 CALC_type[26] ;
 static byte **             CALC_byte[26] ;
@@ -183,6 +191,7 @@ void CALC_read_opts( int argc , char * argv[] )
          if( CALC_code == NULL ){
             fprintf(stderr,"illegal expression!\n") ; exit(1) ;
          }
+         PARSER_mark_symbols( CALC_code , CALC_has_sym ) ;
          continue ;
       }
 
@@ -731,32 +740,38 @@ int main( int argc , char * argv[] )
 
               switch( ids ){
                  case 23:     /* x */
-                    for( jj=jbot ; jj < jtop ; jj++ )
+                    if( HAS_X )
+                     for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = daxes->xxorg + (jj%nx) * daxes->xxdel ;
                  break ;
 
                  case 24:     /* y */
-                    for( jj=jbot ; jj < jtop ; jj++ )
+                    if( HAS_Y )
+                     for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = daxes->yyorg + ((jj%nxy)/nx) * daxes->yydel ;
                  break ;
 
                  case 25:     /* z */
-                    for( jj=jbot ; jj < jtop ; jj++ )
+                    if( HAS_Z )
+                     for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = daxes->zzorg + (jj/nxy) * daxes->zzdel ;
                  break ;
 
                  case 8:     /* i */
-                    for( jj=jbot ; jj < jtop ; jj++ )
+                    if( HAS_I )
+                     for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = (jj%nx) ;
                  break ;
 
                  case 9:     /* j */
-                    for( jj=jbot ; jj < jtop ; jj++ )
+                    if( HAS_J )
+                     for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = ((jj%nxy)/nx) ;
                  break ;
 
                  case 10:    /* k */
-                    for( jj=jbot ; jj < jtop ; jj++ )
+                    if( HAS_K )
+                     for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = (jj/nxy) ;
                  break ;
                }
