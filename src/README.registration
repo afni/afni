@@ -224,7 +224,7 @@ BAD: rotating statistical maps (SPMs) | GOOD: EPI values are linear (about) in
 
 [No doubt I'll think of more good/bad tradeoffs someday.]
 
-An third method is to time shift all 3D+time datasets to the same origin, prior
+A third method is to time shift all 3D+time datasets to the same origin, prior
 to registration.  This has the drawback that it deals with aliased higher
 frequency signals (e.g., the heartbeat) improperly.  It has the positive feature
 that it eliminates the annoying time-offsets as soon as possible, so you don't

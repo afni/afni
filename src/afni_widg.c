@@ -4315,6 +4315,12 @@ ENTRY("AFNI_initialize_controller") ;
    sprintf(ttl , "%sAFNI" , AFNI_controller_label(im3d) ) ;
    XtVaSetValues( im3d->vwid->top_shell , XmNiconName , ttl , NULL ) ;
 
+   /* 06 Dec 2001: cool cursor stuff */
+
+   WAIT_for_window(im3d->vwid->top_shell) ;
+   POPUP_cursorize( im3d->vwid->func->inten_label ) ;
+   POPUP_cursorize( im3d->vwid->picture ) ;
+
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }

@@ -50,22 +50,27 @@ static void swap_2(void *ppp)
 int main( int argc , char *argv[] )
 {
    FILE *imfile ;
-   int  length , skip , swap , gg ;
+   int  length , skip , swap=0 , gg ;
    char orients[8] , str[8] ;
-   int nx , ny , bpp , cflag , hdroff ;
+   int nx , ny , bpp , cflag , hdroff , stamp=0 , iarg=1 ;
 
    /*------ help? ------*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: ge_header file ...\n"
+     printf("Usage: ge_header [-stamp] file ...\n"
             "Prints out information from the GE image header of each file.\n"
+            "Options:\n"
+            " -stamp: print out the date/time stamp information\n"
            ) ;
      exit(0) ;
    }
 
+   if( strcmp(argv[iarg],"-stamp") == 0 ){ stamp++ ; iarg++ ; }
+   if( strcmp(argv[iarg],"-stamp") == 0 ){ stamp++ ; iarg++ ; }
+
    /*----- loop over input files -----*/
 
-   for( gg=1 ; gg < argc ; gg++ ){
+   for( gg=iarg ; gg < argc ; gg++ ){
 
      imfile = fopen( argv[gg] , "r" ) ;
      if( imfile == NULL ){
@@ -229,9 +234,39 @@ int main( int argc , char *argv[] )
 
            printf("\n") ;
 
+           /*-- date/time stamp */
+
+           if( stamp > 0 ){
+             int dt1 , dt2 ; short in1,in2 ;
+             fseek( imfile , hdroff+10 , SEEK_SET ) ;
+             fread( &in1 , 2,1 , imfile ) ;
+             fread( &in2 , 2,1 , imfile ) ;
+             fread( &dt1 , 4,1 , imfile ) ;
+             fread( &dt2 , 4,1 , imfile ) ;
+             if( swap ){ swap_4(&dt1);swap_4(&dt2);swap_2(&in1);swap_2(&in2); }
+             printf(" image date/time stamps=%d,%d series#=%d im#=%d\n",dt1,dt2,in1,in2) ;
+           } /* end of philately */
+
          } /* end of actually reading image header */
 
        } /* end of trying to read image header */
+
+       /* maybe read series header */
+
+       if( stamp > 1 ){
+         int dt1 , dt2 ; short in1,in2 ;
+         fseek( imfile , 140L , SEEK_SET ) ;
+         fread( &hdroff , 4,1 , imfile ) ;  /* location of series header */
+         if( swap ) swap_4(&hdroff) ;
+         if( hdroff > 0 ){
+           fseek( imfile , hdroff+10 , SEEK_SET ) ;
+           fread( &in1 , 2,1 , imfile ) ;
+           fread( &dt1 , 4,1 , imfile ) ;
+           fread( &dt2 , 4,1 , imfile ) ;
+           if( swap ){ swap_4(&dt1);swap_4(&dt2);swap_2(&in1); }
+           printf(" series date/time stamps=%d,%d series#=%d\n",dt1,dt2,in1) ;
+         }
+       } /* end of series header */
 
        /*****************************************************************
          To actually read image data, do something like this:

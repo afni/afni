@@ -840,8 +840,11 @@ extern int AFNI_controller_index( Three_D_View * ) ;
 
 extern char * AFNI_get_friend(void) ;  /* 26 Feb 2001 */
 
-#define OPEN_CONTROLLER(iq) \
- ( XtRealizeWidget((iq)->vwid->top_shell), AFNI_startup_3dview(iq), (iq)->opened = 1 )
+#define OPEN_CONTROLLER(iq)                                  \
+ do{ XtRealizeWidget((iq)->vwid->top_shell) ;                \
+     while(XtWindow((iq)->vwid->top_shell)==(Window)NULL) ;  \
+     AFNI_startup_3dview(iq); (iq)->opened = 1;              \
+ } while(0)
 
 #define CLOSE_CONTROLLER(iq) \
  ( AFNI_closedown_3dview(iq), XtUnrealizeWidget((iq)->vwid->top_shell), (iq)->opened = 0 )

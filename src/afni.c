@@ -8458,31 +8458,31 @@ ENTRY("AFNI_set_cursor") ;
             default:
             case AFNI_DEFAULT_CURSOR:
                MCW_alter_widget_cursor( im3d->vwid->top_shell ,
-                                        -XC_left_ptr , "yellow","blue" ) ;
+                                        -XC_top_left_arrow , "yellow","blue" ) ;
 
                if( ISQ_REALZ(im3d->s123) )
                   MCW_alter_widget_cursor( im3d->s123->wtop ,
-                                           -XC_left_ptr , "yellow","blue" ) ;
+                                           -XC_top_left_arrow , "yellow","blue" ) ;
 
                if( ISQ_REALZ(im3d->s231) )
                   MCW_alter_widget_cursor( im3d->s231->wtop ,
-                                           -XC_left_ptr , "yellow","blue" ) ;
+                                           -XC_top_left_arrow , "yellow","blue" ) ;
 
                if( ISQ_REALZ(im3d->s312) )
                   MCW_alter_widget_cursor( im3d->s312->wtop ,
-                                           -XC_left_ptr , "yellow","blue" ) ;
+                                           -XC_top_left_arrow , "yellow","blue" ) ;
 
                if( GRA_REALZ(im3d->g123) )
                   MCW_alter_widget_cursor( im3d->g123->fdw_graph ,
-                                           -XC_left_ptr , "yellow","blue" ) ;
+                                           -XC_top_left_arrow , "yellow","blue" ) ;
 
                if( GRA_REALZ(im3d->g231) )
                   MCW_alter_widget_cursor( im3d->g231->fdw_graph ,
-                                           -XC_left_ptr , "yellow","blue" ) ;
+                                           -XC_top_left_arrow , "yellow","blue" ) ;
 
                if( GRA_REALZ(im3d->g312) )
                   MCW_alter_widget_cursor( im3d->g312->fdw_graph ,
-                                           -XC_left_ptr , "yellow","blue" ) ;
+                                           -XC_top_left_arrow , "yellow","blue" ) ;
 
                if( im3d->vinfo->inverted_pause ){
                   im3d->vinfo->inverted_pause = False ;

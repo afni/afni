@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "thd.h"
 #define MAIN
 
 /*****************************************************************************
@@ -24,10 +25,11 @@ int main( int argc , char * argv[] )
    FILE * far ;
    THD_datablock * old_dblk , * new_dblk ;
    char new_prefix[THD_MAX_PREFIX] = "axialize" ;
-   int verbose = 0 , nim , pim ;
+   int verbose = 0 , nim , pim=2 ;
    int native_order , save_order ;  /* 23 Nov 1999 */
 
-   int axord=0 ;  /* 06 Mar 2000 */
+   int axord=0 ;          /* 06 Mar 2000 */
+   char orients[4]="\0" ; /* 07 Dec 2001 */
 
    /*- sanity check -*/
 
@@ -40,26 +42,64 @@ int main( int argc , char * argv[] )
              "         be used with the AFNI volume rendering plugin.\n"
              "\n"
              "Options:\n"
-             " -prefix ppp = Use 'ppp' as the prefix for the new dataset.\n"
+             " -prefix ppp  = Use 'ppp' as the prefix for the new dataset.\n"
              "               [default = 'axialize']\n"
-             " -verbose    = Print out a progress pacifier.\n"
+             " -verb        = Print out a progress report.\n"
              "\n"
-             " -axial      = Do axial slice order [default]\n"
-             " -sagittal   = Do sagittal slice order\n"
-             " -coronal    = Do coronal slice order\n"
+             "The following options determine the order/orientation\n"
+             "in which the slices will be written to the dataset:\n"
+             " -sagittal    = Do sagittal slice order [-orient ASL]\n"
+             " -coronal     = Do coronal slice order  [-orient RSA]\n"
+             " -axial       = Do axial slice order    [-orient RAI]\n"
+             "                 This is the default AFNI axial order, and\n"
+             "                 is the one currently required by the\n"
+             "                 volume rendering plugin; this is also\n"
+             "                 the default orientation output by this\n"
+             "                 program (hence the program's name).\n"
+             "\n"
+             " -orient code = Orientation code for output.\n"
+             "                The code must be 3 letters, one each from the\n"
+             "                pairs {R,L} {A,P} {I,S}.  The first letter gives\n"
+             "                the orientation of the x-axis, the second the\n"
+             "                orientation of the y-axis, the third the z-axis:\n"
+             "                 R = Right-to-left         L = Left-to-right\n"
+             "                 A = Anterior-to-posterior P = Posterior-to-anterior\n"
+             "                 I = Inferior-to-superior  S = Superior-to-inferior\n"
+             "                If you give an illegal code (e.g., 'LPR'), then\n"
+             "                the program will print a message and stop.\n"
+             "          N.B.: 'Neurological order' is -orient LPI\n"
             ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-
       exit(0) ;
    }
 
    mainENTRY("3daxialize main"); machdep(); AFNI_logger("3daxialize",argc,argv);
 
-   /*- options -*/
+   /*- scan options -*/
 
    iarg = 1 ;
    while( argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-orient") == 0 ){    /* 07 Dec 2001 */
+         int xx,yy,zz ;
+         MCW_strncpy(orients,argv[++iarg],4) ;
+         if( strlen(orients) != 3 ){
+           fprintf(stderr,"** Bad code after -orient: not 3 characters long\n");
+           exit(1);
+         }
+         xx = ORCODE(orients[0]) ;
+         yy = ORCODE(orients[1]) ; zz = ORCODE(orients[2]) ;
+         if( xx < 0 || yy < 0 || zz < 0 ){
+           fprintf(stderr,"** Bad code after -orient: illegal characters\n");
+           exit(1);
+         }
+         if( !OR3OK(xx,yy,zz) ){
+           fprintf(stderr,"** Bad code after -orient: dependent axes\n");
+           exit(1);
+         }
+         axord = -1 ; iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-axial") == 0 ){     /* 06 Mar 2000 */
          axord = 0 ; iarg++ ; continue ;
@@ -106,7 +146,14 @@ int main( int argc , char * argv[] )
 
    /* use FD bricks for axial, sagittal, coronal displays as basis */
 
-   fbr = THD_setup_bricks( old_dset ) ; brax = fbr[axord] ;
+   if( axord >= 0 ){
+      fbr = THD_setup_bricks( old_dset ) ; brax = fbr[axord] ;
+   } else {
+      brax = THD_oriented_brick( old_dset , orients ) ;
+      if( brax == NULL ){
+         fprintf(stderr,"** Can't use -orient code: %s\n",orients); exit(1);
+      }
+   }
 
    new_dset = EDIT_empty_copy( old_dset ) ;
 
@@ -120,17 +167,25 @@ int main( int argc , char * argv[] )
    /* orientation codes for each axis */
 
    switch( axord ){  /* 06 Mar 2000 */
-      default:
+
+      case -1:{
+         int xx=ORCODE(orients[0]) ,
+             yy=ORCODE(orients[1]) , zz=ORCODE(orients[2]) ;
+
+         LOAD_IVEC3( iv_xyzorient , xx,yy,zz ) ;
+      }
+      break ;
+
       case 0:
-       LOAD_IVEC3( iv_xyzorient , ORI_R2L_TYPE, ORI_A2P_TYPE, ORI_I2S_TYPE ) ;
+       LOAD_IVEC3( iv_xyzorient, ORI_R2L_TYPE, ORI_A2P_TYPE, ORI_I2S_TYPE ) ;
       break ;
 
       case 1:
-       LOAD_IVEC3( iv_xyzorient , ORI_A2P_TYPE, ORI_S2I_TYPE, ORI_L2R_TYPE ) ;
+       LOAD_IVEC3( iv_xyzorient, ORI_A2P_TYPE, ORI_S2I_TYPE, ORI_L2R_TYPE ) ;
       break ;
 
       case 2:
-       LOAD_IVEC3( iv_xyzorient , ORI_R2L_TYPE, ORI_S2I_TYPE, ORI_A2P_TYPE ) ;
+       LOAD_IVEC3( iv_xyzorient, ORI_R2L_TYPE, ORI_S2I_TYPE, ORI_A2P_TYPE ) ;
       break ;
    }
 

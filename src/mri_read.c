@@ -283,6 +283,10 @@ The_Old_Way:
 
    switch( length ){
 
+      case 512:    /* raw 16x16 short -- RWCox: 06 Dec 2001 */
+         im = mri_new( 16 , 16 , MRI_short ) ;
+         break ;
+
       case 2048:   /* raw 32x32 short -- RWCox: 19 Sep 2000 */
          im = mri_new( 32 , 32 , MRI_short ) ;
          break ;

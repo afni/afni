@@ -2192,6 +2192,8 @@ extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
 extern THD_string_array * THD_get_wildcard_filenames( char * ) ;
 
+extern time_t THD_file_mtime( char * ) ; /* 05 Dec 2001 */
+
 extern THD_string_array * THD_get_all_executables( char * ) ;    /* 26 Jun 2001 */
 extern THD_string_array * THD_getpathprogs( THD_string_array * );
 extern int THD_is_executable( char * pathname ) ;
@@ -2462,6 +2464,8 @@ extern THD_fvec3 THD_fdfind_to_3dfind( FD_brick *, THD_fvec3) ; /* 30 Aug 2001 *
 extern THD_fvec3 THD_3dfind_to_fdfind( FD_brick *, THD_fvec3) ;
 
 extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
+
+extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 2001 */
 
 extern int thd_floatscan  ( int , float *   ) ; /* 30 Jul 1999 */
 extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */

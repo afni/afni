@@ -55,6 +55,15 @@ extern Visual * MCW_get_visual( Widget ) ;
 extern void MCW_set_widget_cursor( Widget,int ) ;
 extern void MCW_alter_widget_cursor( Widget,int , char * , char * ) ;
 
+#define WAIT_for_window(w)                                           \
+   while( XtWindow(w) == (Window) NULL )
+
+#define POPUP_cursorize(w)                                           \
+   MCW_alter_widget_cursor( (w), -XC_left_ptr,"yellow","blue" )
+
+#define POPUP_uncursorize(w)                                         \
+   MCW_alter_widget_cursor( (w), -XC_top_left_arrow,"yellow","blue" )
+
 extern void MCW_register_hint( Widget , char * ) ;
 extern void MCW_reghint_children( Widget , char * ) ;
 extern void MCW_hint_toggle(void) ;

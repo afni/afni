@@ -240,6 +240,8 @@ ENTRY("AFNI_splashup") ;
       drive_MCW_imseq( ppp->seq , isqDR_reimage   , (XtPointer) 0            ) ;
 #endif
 
+      POPUP_uncursorize( ppp->seq->wimage ) ; /* 07 Dec 2001 */
+
       /* some super-frivolities */
 
       if( !first ){

@@ -799,7 +799,7 @@ if(PRINT_TRACING)
 STATUS("realizing widgets") ;
    XtRealizeWidget( grapher->fdw_graph ) ;
 
-   while( XtWindow(grapher->form_tmp) == (Window) NULL ) ; /* wait */
+   WAIT_for_window(grapher->form_tmp) ;
 
    XtVaSetValues( grapher->option_rowcol ,
                     XmNleftAttachment   , XmATTACH_NONE ,
@@ -810,7 +810,7 @@ STATUS("realizing widgets") ;
    XMapRaised( XtDisplay(grapher->option_rowcol) ,
                XtWindow(grapher->option_rowcol)   ) ;
 
-   MCW_alter_widget_cursor( grapher->fdw_graph , -XC_left_ptr ,"yellow","blue" ) ;
+   MCW_alter_widget_cursor( grapher->fdw_graph , -XC_top_left_arrow ,"yellow","blue" ) ;
 
    grapher->valid = 2 ;
 #ifdef USE_OPTMENUS
@@ -2709,7 +2709,7 @@ STATUS(str); }
       if( grapher->key_lock_sum > 0 )
          grapher->mat = MIN( grapher->mat_max , grapher->key_lock_sum ) ;
 
-      MCW_alter_widget_cursor( grapher->fdw_graph , -XC_left_ptr ,"yellow","blue" ) ;
+      MCW_alter_widget_cursor( grapher->fdw_graph , -XC_top_left_arrow ,"yellow","blue" ) ;
 
       init_mat    ( grapher ) ;
       redraw_graph( grapher , 0 ) ;
@@ -3676,7 +3676,8 @@ ENTRY("drive_MCW_grapher") ;
          grapher->pin_num = new_length ;   /* 27 Apr 1997 */
 
          if( grapher->pin_num >= MIN_PIN ){   /* 11 Oct 2000 */
-            for( ii=GRID_MAX-1 ; ii > 0 ; ii-- ) if( grid_ar[ii] <= grapher->pin_num / 3 ) break ;
+            for( ii=GRID_MAX-1 ; ii > 0 ; ii-- )
+              if( grid_ar[ii] <= grapher->pin_num / 3 ) break ;
             grapher->grid_index = ii ;
             grapher->grid_spacing = grid_ar[ii] ;
          }
@@ -3832,7 +3833,8 @@ STATUS("replacing ort timeseries") ;
             grapher->valid = 2 ;
 
             XtRealizeWidget( grapher->fdw_graph ) ;
-            while( XtWindow(grapher->fdw_graph) == (Window) NULL ) ; /* wait */
+
+            WAIT_for_window(grapher->fdw_graph) ;
 
             /* 29 Sep 2000: next 2 lines of code are for the Form change */
 
@@ -3845,8 +3847,10 @@ STATUS("replacing ort timeseries") ;
             XMapRaised( XtDisplay(grapher->option_rowcol) ,
                         XtWindow(grapher->option_rowcol)   ) ;
 
-            MCW_alter_widget_cursor(grapher->fdw_graph,-XC_left_ptr,
+            MCW_alter_widget_cursor(grapher->fdw_graph,-XC_top_left_arrow,
                                                        "yellow","blue") ;
+            if( !ISONE(grapher) )
+              POPUP_cursorize( grapher->draw_fd ) ;  /* 07 Dec 2001 */
 
             MCW_widget_geom( grapher->draw_fd , &width , &height , NULL,NULL ) ;
             GRA_new_pixmap( grapher , width , height , 0 ) ;
@@ -3887,6 +3891,12 @@ STATUS("replacing ort timeseries") ;
 #ifdef USE_OPTMENUS
          GRA_fix_optmenus( grapher ) ;
 #endif
+
+        if( ISONE(grapher) )                        /* 07 Dec 2001 */
+          POPUP_uncursorize( grapher->draw_fd ) ;
+        else
+          POPUP_cursorize( grapher->draw_fd ) ;
+
          RETURN( True ) ;
       }
 
@@ -4295,7 +4305,7 @@ ENTRY("GRA_setshift_startup") ;
    XtManageChild( wrc ) ;
    XtPopup( grapher->dialog , XtGrabNone ) ;
    RWC_visibilize_widget( grapher->dialog ) ; /* 09 Nov 1999 */
-   MCW_alter_widget_cursor( grapher->dialog , -XC_left_ptr ,"yellow","blue" ) ;
+   MCW_alter_widget_cursor( grapher->dialog , -XC_top_left_arrow ,"yellow","blue" ) ;
    EXRETURN ;
 }
 

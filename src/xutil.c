@@ -416,7 +416,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
       the reason for this stuff is that this routine is likely to be
       called by a long computation that won't return control to Xt   */
 
-   while( XtWindow(wlab) == (Window) NULL ) ;          /* wait for window  */
+   WAIT_for_window(wlab) ;
    XSync( XtDisplay(wlab) , False ) ;
 #if 0
    XMaskEvent( XtDisplay(wlab) , ExposureMask , &ev ) ;/* wait for expose  */

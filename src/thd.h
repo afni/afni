@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_THDSOURCE_HEADER_
 #define _MCW_THDSOURCE_HEADER_
 
@@ -21,10 +21,13 @@
 #define WRITE_ERR(str) \
   { fprintf(stderr,"*** Datablock write error: %s\n",str); return False; }
 
-#define ORCODE(aa) \
-  ( (aa)=='R' ? ORI_R2L_TYPE : (aa)=='L' ? ORI_L2R_TYPE : \
-    (aa)=='P' ? ORI_P2A_TYPE : (aa)=='A' ? ORI_A2P_TYPE : \
-    (aa)=='I' ? ORI_I2S_TYPE : (aa)=='S' ? ORI_S2I_TYPE : ILLEGAL_TYPE )
+#define ORCODE(aa)                         \
+  ( ((aa)=='R'||(aa)=='r') ? ORI_R2L_TYPE  \
+   :((aa)=='L'||(aa)=='l') ? ORI_L2R_TYPE  \
+   :((aa)=='P'||(aa)=='p') ? ORI_P2A_TYPE  \
+   :((aa)=='A'||(aa)=='a') ? ORI_A2P_TYPE  \
+   :((aa)=='I'||(aa)=='i') ? ORI_I2S_TYPE  \
+   :((aa)=='S'||(aa)=='s') ? ORI_S2I_TYPE : ILLEGAL_TYPE )
 
 #define OR3OK(x,y,z) ( ((x)&6) + ((y)&6) + ((z)&6) == 6 )
 

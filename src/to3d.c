@@ -99,9 +99,9 @@ static char * FALLback[] =
 
 void AFNI_handler(char * msg){}
 
-#define CURSOR_normalize                                                    \
-  do{ MCW_alter_widget_cursor(wset.topshell,-XC_left_ptr,"yellow","blue") ; \
-      XSync( XtDisplay(wset.topshell), False ) ;                            \
+#define CURSOR_normalize                                                          \
+  do{ MCW_alter_widget_cursor(wset.topshell,-XC_top_left_arrow,"yellow","blue") ; \
+      XSync( XtDisplay(wset.topshell), False ) ;                                  \
       XmUpdateDisplay( wset.topshell ) ; } while(0)
 
 #define CURSOR_watchize                                \

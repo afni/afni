@@ -1550,6 +1550,10 @@ void REND_make_widgets(void)
    XtManageChild(top_rowcol) ;
    XtRealizeWidget(shell) ;      /* will not be mapped */
 
+   WAIT_for_window(shell) ;
+   POPUP_cursorize(wfunc_color_label) ;
+   POPUP_cursorize(xhair_bbox->wbut[0]) ;
+
    /*** 12 July 1999: make the overlay widgets now, instead of later ***/
 
    REND_func_widgets() ;
@@ -4277,6 +4281,8 @@ void REND_open_imseq( void )
    /* make it popup */
 
    drive_MCW_imseq( imseq , isqDR_realize, NULL ) ;
+
+   POPUP_uncursorize( imseq->wimage ) ; /* 07 Dec 2001 */
 
    drive_MCW_imseq( imseq , isqDR_title, "AFNI Renderings" ) ;
 

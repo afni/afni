@@ -7,6 +7,15 @@
 #include "mrilib.h"
 #include "thd.h"
 
+time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
+{
+   static struct stat buf ; int ii ;
+
+   if( pathname == NULL ) return 0 ;
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
+   return buf.st_mtime ;
+}
+
 int THD_is_file( char * pathname )
 {
    static struct stat buf ; int ii ;

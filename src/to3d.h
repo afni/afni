@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_TO3D_HEADER_
 #define _MCW_TO3D_HEADER_
 
@@ -65,10 +65,13 @@ typedef struct {
 #define INCODE_FOV   100
 #define INCODE_SLAB  200
 
-#define ORCODE(aa) \
-  ( (aa)=='R' ? ORI_R2L_TYPE : (aa)=='L' ? ORI_L2R_TYPE : \
-    (aa)=='P' ? ORI_P2A_TYPE : (aa)=='A' ? ORI_A2P_TYPE : \
-    (aa)=='I' ? ORI_I2S_TYPE : (aa)=='S' ? ORI_S2I_TYPE : ILLEGAL_TYPE )
+#define ORCODE(aa)                         \
+  ( ((aa)=='R'||(aa)=='r') ? ORI_R2L_TYPE  \
+   :((aa)=='L'||(aa)=='l') ? ORI_L2R_TYPE  \
+   :((aa)=='P'||(aa)=='p') ? ORI_P2A_TYPE  \
+   :((aa)=='A'||(aa)=='a') ? ORI_A2P_TYPE  \
+   :((aa)=='I'||(aa)=='i') ? ORI_I2S_TYPE  \
+   :((aa)=='S'||(aa)=='s') ? ORI_S2I_TYPE : ILLEGAL_TYPE )
 
 typedef struct {
    Widget topshell , topform ;

@@ -3371,3 +3371,11 @@
  * Cleaned up mri_read.c and to3d.c a little.
  * Got some small changes to 3dIntracranial.c from Doug Ward (-nosmooth).
  * New program ge_header.c prints out GEMS header information.
+
+07 Dec 2001
+ * Modified 3daxialize.c to allow arbitrary orientation of output
+      (-orient option).  Also changes to ORCODE() macro in thd.h
+      and to3d.h, and added new function to thd_fdbrick.c.
+ * Modified imseq.c, afni_widg.c, afni.c, afni_graph.c, plug_render.c
+      and xutil.h to change cursor slightly when it moves over a
+      window that has a hidden Button-3 popup menu.

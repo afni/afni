@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -87,6 +87,95 @@ FD_brick ** THD_setup_bricks( THD_3dim_dataset * dset )
    strcpy( br[2]->namecode , "Coronal" ) ;
 
    return br ;
+}
+
+/*----------------------------------------------------------------------
+  07 Dec 2001 - orient an FD brick in any legal way
+                (e.g., orients = "RAI" for standard axial)
+------------------------------------------------------------------------*/
+
+FD_brick * THD_oriented_brick( THD_3dim_dataset *dset , char *orients )
+{
+   int r2l=0 , a2p=0 , i2s=0 , xx,yy,zz , pp=0,qq=0,rr=0 ;
+   THD_dataxes *daxes ;
+   FD_brick *br ;
+
+ENTRY("THD_oriented_brick") ;
+
+   if( !ISVALID_DSET(dset) ||
+       orients == NULL     ||
+       strlen(orients) < 3   ) RETURN(NULL) ;
+
+   daxes = CURRENT_DAXES(dset) ;
+   if( !ISVALID_DATAXES(daxes) ) RETURN(NULL) ;
+
+   xx = ORCODE( orients[0] ) ;
+   yy = ORCODE( orients[1] ) ;
+   zz = ORCODE( orients[2] ) ;
+   if( !OR3OK(xx,yy,zz) ) RETURN(NULL) ;
+
+   /*----- create FD_bricks for viewing purposes -----*/
+
+   switch( daxes->xxorient ){
+      case ORI_R2L_TYPE: r2l =  1 ; break ;
+      case ORI_L2R_TYPE: r2l = -1 ; break ;
+      case ORI_P2A_TYPE: a2p = -1 ; break ;
+      case ORI_A2P_TYPE: a2p =  1 ; break ;
+      case ORI_I2S_TYPE: i2s =  1 ; break ;
+      case ORI_S2I_TYPE: i2s = -1 ; break ;
+   }
+
+   switch( daxes->yyorient ){
+      case ORI_R2L_TYPE: r2l =  2 ; break ;
+      case ORI_L2R_TYPE: r2l = -2 ; break ;
+      case ORI_P2A_TYPE: a2p = -2 ; break ;
+      case ORI_A2P_TYPE: a2p =  2 ; break ;
+      case ORI_I2S_TYPE: i2s =  2 ; break ;
+      case ORI_S2I_TYPE: i2s = -2 ; break ;
+   }
+
+   switch( daxes->zzorient ){
+      case ORI_R2L_TYPE: r2l =  3 ; break ;
+      case ORI_L2R_TYPE: r2l = -3 ; break ;
+      case ORI_P2A_TYPE: a2p = -3 ; break ;
+      case ORI_A2P_TYPE: a2p =  3 ; break ;
+      case ORI_I2S_TYPE: i2s =  3 ; break ;
+      case ORI_S2I_TYPE: i2s = -3 ; break ;
+   }
+
+   if( r2l==0 || a2p==0 || i2s==0 ) RETURN(NULL) ;
+
+   switch( xx ){
+      case ORI_R2L_TYPE: pp =  r2l ; break ;
+      case ORI_L2R_TYPE: pp = -r2l ; break ;
+      case ORI_P2A_TYPE: pp = -a2p ; break ;
+      case ORI_A2P_TYPE: pp =  a2p ; break ;
+      case ORI_I2S_TYPE: pp =  i2s ; break ;
+      case ORI_S2I_TYPE: pp = -i2s ; break ;
+   }
+
+   switch( yy ){
+      case ORI_R2L_TYPE: qq =  r2l ; break ;
+      case ORI_L2R_TYPE: qq = -r2l ; break ;
+      case ORI_P2A_TYPE: qq = -a2p ; break ;
+      case ORI_A2P_TYPE: qq =  a2p ; break ;
+      case ORI_I2S_TYPE: qq =  i2s ; break ;
+      case ORI_S2I_TYPE: qq = -i2s ; break ;
+   }
+
+   switch( zz ){
+      case ORI_R2L_TYPE: rr =  r2l ; break ;
+      case ORI_L2R_TYPE: rr = -r2l ; break ;
+      case ORI_P2A_TYPE: rr = -a2p ; break ;
+      case ORI_A2P_TYPE: rr =  a2p ; break ;
+      case ORI_I2S_TYPE: rr =  i2s ; break ;
+      case ORI_S2I_TYPE: rr = -i2s ; break ;
+   }
+
+   if( pp==0 || qq==0 || rr==0 ) RETURN(NULL) ;
+
+   br = THD_3dim_dataset_to_brick(dset,pp,qq,rr) ;
+   RETURN(br) ;
 }
 
 /*======================================================================
