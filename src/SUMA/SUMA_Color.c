@@ -1035,6 +1035,8 @@ int SUMA_Find_ColorMap ( char *Name, SUMA_COLOR_MAP **CMv, int N_maps, int sgn)
    R G B are float values between 0 and 1.0 specifying the R G B colors
    frac is the fraction of the color map assigned to each color. These 
         are the same numbers shown to the right of the colormap in AFNI
+      Sept 22 04: you can specify integer values between 0 and 255 for 
+      the RGB values if you wish 
    
    The colormap files are specified in the order adopted in AFNI's palette files
    The last row in the file is the first color (bottom color) in the map. 
@@ -1045,6 +1047,7 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    static char FuncName[]={"SUMA_Read_Color_Map_1D"};
    MRI_IMAGE *im = NULL;
    float *far=NULL;
+   float ColSum;
    int i=0;
    SUMA_COLOR_MAP* SM = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1088,25 +1091,34 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    
    
    far = MRI_FLOAT_PTR(im);
-
+   
+   ColSum = 0;
    if (im->ny == 4) {
       SM->Sgn = 1;
       for (i=0; i < im->nx; ++i) {
-         SM->M[SM->N_Col - i - 1][0] = far[i];
-         SM->M[SM->N_Col - i - 1][1] = far[i+im->nx];
-         SM->M[SM->N_Col - i - 1][2] = far[i+2*im->nx];
+         SM->M[SM->N_Col - i - 1][0] = far[i]; ColSum += far[i];
+         SM->M[SM->N_Col - i - 1][1] = far[i+im->nx]; ColSum += far[i+im->nx];
+         SM->M[SM->N_Col - i - 1][2] = far[i+2*im->nx]; ColSum += far[i+2*im->nx];
          SM->frac[SM->N_Col - i - 1] = far[i+3*im->nx];
          if (SM->frac[SM->N_Col - i - 1] < 0.0) SM->Sgn = -1;
       }
    } else {
       SM->Sgn = 0;
       for (i=0; i < im->nx; ++i) {
-         SM->M[SM->N_Col - i - 1][0] = far[i];
-         SM->M[SM->N_Col - i - 1][1] = far[i+im->nx];
-         SM->M[SM->N_Col - i - 1][2] = far[i+2*im->nx];
+         SM->M[SM->N_Col - i - 1][0] = far[i]; ColSum += far[i];
+         SM->M[SM->N_Col - i - 1][1] = far[i+im->nx]; ColSum += far[i+im->nx];
+         SM->M[SM->N_Col - i - 1][2] = far[i+2*im->nx]; ColSum += far[i+2*im->nx];
       }
    }
-
+   
+   ColSum = ColSum / (3.0 *  SM->N_Col);
+   if (ColSum > 1) {
+      /* looks like colormap values are between 0 and 255 */
+      for (i=0; i < SM->N_Col; ++i) {
+         SM->M[i][0] /= 255.0; SM->M[i][1] /= 255.0;  SM->M[i][2] /= 255.0;
+      }
+   }
+   
    /* check on craziness in frac */
    if (SM->frac && SM->N_Col > 1) {
       for (i=0; i < im->nx-1; ++i) {

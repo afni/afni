@@ -1422,7 +1422,7 @@ int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node)
    
    /* last resort, assume that data are ordered properly (see commented out section above)*/
    if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
-      if (!(WarnCount % 25 - 1)) {
+      if (0 && !(WarnCount % 25 - 1)) {
          SUMA_SLP_Warn( "Assuming ith row of data\n"
                      "corresponds to node i.\n"
                      "You'll get trash if this is not true.\n"
@@ -1491,7 +1491,7 @@ int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
    
    /* last resort, assume that data are ordered properly (see commented out section above)*/
    if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
-      if (!(WarnCount % 25 - 1)) {
+      if (0 && !(WarnCount % 25 - 1)) {
          SUMA_SLP_Warn( "Assuming ith row of data\n"
                      "corresponds to node i.\n"
                      "You'll get trash if this is not true.\n"
