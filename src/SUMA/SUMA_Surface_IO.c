@@ -1349,21 +1349,27 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
             
    SO->Name = SUMA_StripPath(f_name);
    
-    /* print out the properties we got, for debugging */
-    for (j = 0; j < nprops; j++)
-      fprintf (SUMA_STDERR, "%s property %s\n", FuncName, plist[j]->name);
+   /* print out the properties we got, for debugging */
+      if (LocalHead) {
+         for (j = 0; j < nprops; j++)
+            fprintf (SUMA_STDERR, "%s property %s\n", FuncName, plist[j]->name);
+      }
    }
 
    /* grab and print out the comments in the file */
    comments = ply_get_comments (ply, &num_comments);
-   for (i = 0; i < num_comments; i++)
-    fprintf (SUMA_STDERR, "%s comment = '%s'\n", FuncName, comments[i]);
-
+   if (LocalHead) {   
+      for (i = 0; i < num_comments; i++)
+         fprintf (SUMA_STDERR, "%s comment = '%s'\n", FuncName, comments[i]);
+   }
+   
    /* grab and print out the object information */
    obj_info = ply_get_obj_info (ply, &num_obj_info);
-   for (i = 0; i < num_obj_info; i++)
-    fprintf (SUMA_STDERR, "%s obj_info = '%s'\n", FuncName, obj_info[i]);
-
+   if (LocalHead) {   
+      for (i = 0; i < num_obj_info; i++)
+         fprintf (SUMA_STDERR, "%s obj_info = '%s'\n", FuncName, obj_info[i]);
+   }
+   
    /* free the allocations necessary for vertex and facesetlists */
    for (j = 0; j < SO->N_FaceSet; j++) {
       SUMA_free(flist[j]);

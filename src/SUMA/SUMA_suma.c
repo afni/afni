@@ -7,6 +7,7 @@
 /* Header FILES */
    
 #include "SUMA_suma.h"
+#include "../afni.h"
 
 /* CODE */
 
@@ -17,6 +18,7 @@ int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
 SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
+
 
 void SUMA_usage ()
    
@@ -332,7 +334,7 @@ int main (int argc,char *argv[])
 		}
 		
 		/* load the surfaces specified in the specs file, one by one*/			
-		if (!SUMA_LoadSpec (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName)) {
+		if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName, 0)) {
 			fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
 			exit(1);
 		}

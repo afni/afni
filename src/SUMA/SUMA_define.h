@@ -87,6 +87,7 @@
 #define SUMA_MAX_LABEL_LENGTH 100 /*!< Maximum number of characters for labeling and naming suma fields and objects */
 #define SUMA_IDCODE_LENGTH 50   /*!< Max. length of idcode_str of all suma objects */
 #define SUMA_MAX_STRING_LENGTH 1000 /*!< Maximum number of characters in a string */ 
+#define SUMA_MAX_COLOR_NAME 50 /*!< Max. length of the name of a color */
 #define SUMA_MAX_NUMBER_NODE_NEIGHB   100 /*!< Maximum number of neighbors any one node can have.
                                           Used to be 50 but that was not enough for a few
                                           funky FS surfaces. ZSS Mon Mar 24 16:14:12 EST 2003*/
@@ -313,6 +314,14 @@ typedef struct {
 typedef struct {
    float ** M; /*!< N_Col x 3 matrix of R G B values (0..1) */
    int N_Col; /*!< number of colors in the color map */
+   float *frac; /*!< N_col x 1 vector containing the fraction of scale 
+                     assigned to each color, these are
+                     the values shown on the right of the colorbar in 
+                     AFNI.
+                     This field is NULL if the map is linear*/
+   int Sgn; /*!         +1  colormap is positive ranging (a la afni)  
+                         0  field is not set
+                         -1 colormap is negative ranging (a la afni)*/
    char *Name; /*!< Name of colormap */
 } SUMA_COLOR_MAP;
 
@@ -346,6 +355,15 @@ typedef struct {
                               In other obscure words, if YUP then plane is part of background.*/  
 } SUMA_OVERLAYS;
 
+
+typedef enum { SUMA_UNDEFINED_MODE, 
+               SUMA_DIRECT, /*!< no interpolation on the colormap, node value is typecast to int and directly used
+                                      to access color map */
+               SUMA_NO_INTERP,   /*!< no interpolation on the colormap (like in afni with paned colormaps) but ranging
+                                       is applied */  
+               SUMA_INTERP       /*!< interpolation on the colormap, SUMA's default */
+            } SUMA_COLORMAP_INTERP_MODE;
+
 /*! a structure holding the options for the function SUMA_ScaleToMap 
 \sa SUMA_ScaleToMapOptInit to allocate and initialize such a structure 
 to free this structure use the free function
@@ -357,6 +375,9 @@ typedef struct {
    SUMA_Boolean ApplyClip; /*!< if YUP then values that range clipping using Range is applied */
    float ClipRange[2]; /*!< nodes with values <= Range[0] are given the first color in the color map, values >= Range[1] get the last color in the map */
    float BrightFact; /*!< a brightness factor to apply to the color map. This factor is applied to the colors in the colormap and the mask colors*/
+   SUMA_COLORMAP_INTERP_MODE interpmode; /*!< If YUP then no interpolation is done between colors of the colormap.
+                              AFNI does not interpolate colors when using the paned colormaps.
+                              The default in SUMA is NOPE, i.e. interpolation is performed*/
 } SUMA_SCALE_TO_MAP_OPT;
 
 /*! structure containing the color mapping of a vector */
@@ -1560,4 +1581,26 @@ typedef struct {
    SUMA_SurfaceObject *SO;
    SUMA_SurfaceViewer *sv;
 } SUMA_SAVESO_STRUCT;
+
+/*!
+   Structure containing a named color 
+*/
+typedef struct {
+   float r;
+   float g;
+   float b;
+   float a;
+   char Name[SUMA_MAX_COLOR_NAME];
+} SUMA_RGB_NAME;
+
+/*!
+   Structure containing the colormaps used by AFNI 
+*/
+typedef struct {
+   SUMA_COLOR_MAP **CMv;   /* a vector of pointers to colormap structures */
+   int N_maps;             /* the number of colormaps in CMv */
+   SUMA_RGB_NAME *Cv;      /* a vector of RGB_Name structures containing the named colors used by AFNI */
+   int N_cols;             /* the number of defined colors in Cv */
+} SUMA_AFNI_COLORS;
+
 #endif

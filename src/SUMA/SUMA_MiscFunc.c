@@ -3783,15 +3783,21 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
       i += lu;
    }
    
-   if ( debug )
-      fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
-   if (SEL->min_N_Hosts == 1 || SEL->max_N_Hosts == 1) {
-      fprintf(SUMA_STDERR,"Warning %s: You have edges that form a border in the surface.\n", FuncName);
+   {
+      int winedonce = 0;
+      if (SEL->min_N_Hosts == 1 || SEL->max_N_Hosts == 1) {
+         winedonce = 1;
+         fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+         fprintf(SUMA_STDERR,"Warning %s: You have edges that form a border in the surface.\n", FuncName);
+      }
+      if (SEL->min_N_Hosts > 2 || SEL->max_N_Hosts > 2) {
+         winedonce = 1;
+         fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+         fprintf(SUMA_STDERR,"Warning %s: You have edges that belong to more than two triangles. Bad for analysis assuming surface is a 2-manifold..\n", FuncName);
+      }
+      if (debug && !winedonce) 
+         fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
    }
-   if (SEL->min_N_Hosts > 2 || SEL->max_N_Hosts > 2) {
-      fprintf(SUMA_STDERR,"Warning %s: You have edges that belong to more than two triangles. Bad for analysis assuming surface is a 2-manifold..\n", FuncName);
-   }
-   
    #if 0
       fprintf(SUMA_STDERR,"%s:(ELindex) Node1 Node2 | FlipVal Triangle N_hosts\n", FuncName); 
       for (i=0; i < SEL->N_EL; ++i) {

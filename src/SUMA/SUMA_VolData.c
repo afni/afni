@@ -58,7 +58,8 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	THD_3dim_dataset *dset;
 	int ii;
 	MCW_idcode idcode;
-		
+	SUMA_Boolean LocalHead = NOPE;
+   	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	/* read the header of the parent volume */
@@ -110,6 +111,10 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	VP->yyorient = dset->daxes->yyorient;
 	VP->zzorient = dset->daxes->zzorient;
 
+   if (LocalHead) {      
+      fprintf (SUMA_STDERR,"%s: dset->idcode_str = %s\n", FuncName, dset->idcode.str);
+      fprintf (SUMA_STDERR,"%s: VP->idcode_str = %s\n", FuncName, VP->idcode_str);
+   }
 	/* Get the tagalign matrix if possible*/
    atr = THD_find_float_atr( dset->dblk , "TAGALIGN_MATVEC" ) ;
 	if (atr == NULL) {

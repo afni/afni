@@ -1288,6 +1288,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 /* - appended _eng to engine function name             20 Oct 2003 [rickr]
  * - added debug parameter
  * - only output non-error info when debug flag is set
+ * - debug level 1, slight detail, level 2 more detail
 */
 /*! 
    Loads the surfaces specified in Spec and stores them in DOv
@@ -1311,10 +1312,10 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
    for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
       /*locate and load all Mappable surfaces */
       if (SUMA_iswordin(Spec->MappingRef[i],"SAME") == 1) { /* Mappable surfaces */
-         if ( debug ) {
+         if ( debug || 1) { /* turned this back on as a pacifier */
 	    fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
 	    fprintf (SUMA_STDERR,
-		     "Surface #%d (directly mappable), loading ...\n",i);
+		     "Surface #%d/%d(directly mappable), loading ...\n",i, Spec->N_Surfs );
 	 }
 
          if (Spec->VolParName[i][0] != '\0') {
@@ -1630,10 +1631,10 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
       }
 
       if (SUMA_iswordin(Spec->MappingRef[i],"SAME") != 1) { /* Non Mappable surfaces */
-	 if ( debug ) {
+	 if ( debug  || 1) { /* turned this back on as a pacifier */
             fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
             fprintf (SUMA_STDERR,
-		     "Surface #%d (mappable via MappingRef), loading ...\n",i);
+		     "Surface #%d/%d (mappable via MappingRef), loading ...\n",i, Spec->N_Surfs);
 	 }
          
          brk = NOPE;
@@ -2158,7 +2159,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
                if (N_smooth > 1) {
                   SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, N_smooth);
                } else {
-                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, 2);
+                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, 5);
                }
             }   
          }

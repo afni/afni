@@ -1347,21 +1347,17 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
     SUMA_RETURNe;
 }
 
-Colormap
-SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
+Colormap SUMA_getShareableColormap_Eng (XVisualInfo * vi, Display *dpy) 
 {
    Status status;
    XStandardColormap *standardCmaps;
-   Colormap cmap;
    int i, numCmaps;
-   XVisualInfo * vi;
+   Colormap cmap;
    SUMA_Boolean LocalHead = NOPE;
-   static char FuncName[]={"SUMA_getShareableColormap"};
+   static char FuncName[]={"SUMA_getShareableColormap_Eng"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   vi = csv->X->VISINFO;
-   
    /* Be lazy; using DirectColor too involved for this example. */
 #if defined(__cplusplus) || defined(c_plusplus)
    if (vi->c_class != TrueColor) {
@@ -1377,12 +1373,12 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
 
    /* If no standard colormap but TrueColor, just make an
      unshared one. */
-   status = XmuLookupStandardColormap(csv->X->DPY, vi->screen, vi->visualid,
+   status = XmuLookupStandardColormap(dpy, vi->screen, vi->visualid,
     vi->depth, XA_RGB_DEFAULT_MAP,
     False,              /* Replace. */
     True);              /* Retain. */
    if (status == 1) {
-    status = XGetRGBColormaps(csv->X->DPY, RootWindow(csv->X->DPY, vi->screen),
+    status = XGetRGBColormaps(dpy, RootWindow(dpy, vi->screen),
       &standardCmaps, &numCmaps, XA_RGB_DEFAULT_MAP);
     if (status == 1)
       for (i = 0; i < numCmaps; i++)
@@ -1392,9 +1388,20 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
           SUMA_RETURN(cmap);
         }
    }
-   cmap = XCreateColormap(csv->X->DPY, RootWindow(csv->X->DPY, vi->screen), vi->visual, AllocNone);
+  cmap = XCreateColormap(dpy, RootWindow(dpy, vi->screen), vi->visual, AllocNone);
 
   SUMA_RETURN(cmap);
+
+}
+Colormap
+SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
+{
+   SUMA_Boolean LocalHead = NOPE;
+   static char FuncName[]={"SUMA_getShareableColormap"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_RETURN(SUMA_getShareableColormap_Eng(csv->X->VISINFO, csv->X->DPY));
 }
 
 void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont)
