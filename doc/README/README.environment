@@ -1805,7 +1805,19 @@ Variable: AFNI_SPEECH
 ---------------------
 If this YES/NO variable is set to NO, then the AFNI speech synthesis
 is disabled.  At the current time (Nov 2003), only the Mac OS X
-version of AFNI uses speech synthesis in any way.
+version of AFNI uses speech synthesis in any way.  And that's just
+for fun.
+
+------------------------------
+Variable: AFNI_IMAGE_ZEROCOLOR
+------------------------------
+This variable, if set to the string name of one of the colors in the
+color chooser menus (e.g., "Black"), will result in voxels whose value
+is 0 being set to this color in the slice viewing windows (except when
+viewing RGB images).  The main function is to avoid having to use the
+"Choose Zero Color" menu all the time, especially when you use the "Swap"
+feature to invert the grayscale map (e.g., to make a T2 weighted image
+look sort of like a T1 weighted image).
 
 =============================================
 | Robert W Cox, PhD                         |
