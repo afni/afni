@@ -116,7 +116,7 @@ MakeColorMap: SUMA_Color.c
 	$(RM) $@
 	${CC} -DSUMA_MakeColorMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} $< ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-SUMA_ScaleToMap: SUMA_Color.c
+ScaleToMap: SUMA_Color.c
 	$(RM) $@
 	${CC} -DSUMA_ScaleToMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} $< ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
@@ -199,7 +199,7 @@ packbins:
 all: libSUMA.a mainobj suma install 
 
 standalones: SUMA_CreateIcosahedron SUMA_Map_SurfacetoSurface SUMA_MapIcosahedron SUMA_SureFit \
-SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer SUMA_ScaleToMap MakeColorMap \
+SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer ScaleToMap MakeColorMap \
 SUMA_compare_surfaces SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName SUMA_ConvertSurface \
 3dSurfMaskDump
 
