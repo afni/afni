@@ -4347,7 +4347,10 @@ static char * AFNI_image_help =
  "Button 3: Pop up image menu\n\n"
  "Shift/Ctrl/Alt + Button 3\n"
  "will open up the Disp/Mont/Save\n"
- "control panels, respectively." ;
+ "control panels, respectively.\n\n"
+ "q = close window (quit)\n"
+ "z = zoom out  Z = zoom in\n"
+ "p = toggle panning" ;
 
 static char * AFNI_arrowpad_help =
    "Click arrows to scroll crosshair position\n"
