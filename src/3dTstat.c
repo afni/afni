@@ -359,7 +359,11 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 		       *(ts_det[ii] - ts_det[ii-1]);
            den = den + ts_det[ii] * ts_det[ii];
          }
-         val[meth_index] = num/den ;
+         if (den == 0) {
+           val[meth_index] = 0 ;
+         } else {
+           val[meth_index] = num/den ;
+         }
       }
       break ;
 
