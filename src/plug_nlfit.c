@@ -21,7 +21,11 @@
 
    Mod:      Added novar flag to eliminate unnecessary calculations.
    Date:     13 July 1999
-       
+
+   Mod:      Adjust F-statistics if parameter constraints force a parameter
+             to be a constant.
+   Date:     08 February 2000
+
 */
 
 
@@ -34,7 +38,7 @@
 
 #define PROGRAM_NAME "plug_nlfit"                    /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "13 July 1999"              /* date of last program mod */
+#define PROGRAM_DATE "08 February 2000"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 

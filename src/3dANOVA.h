@@ -31,6 +31,11 @@
    Mod:     Replaced dataset input code with calls to THD_open_dataset,
             to allow operator selection of individual sub-bricks for input.
    Date:    02 December 1999
+
+   Mod:     Increased maximum number of user requested means, differences, 
+            and contrasts.
+   Date:    31 January 2000
+
 */
 
 
@@ -82,9 +87,9 @@ static char * commandline = NULL ;         /* command line for history notes */
 
 #define MAX_LEVELS 100           /* max. number of factor levels */  
 #define MAX_OBSERVATIONS 100     /* max. number of observations per cell */
-#define MAX_MEANS 10             /* max. number of user requested means */
-#define MAX_DIFFS 10             /* max. number of user requested diffs. */
-#define MAX_CONTR 10             /* max. number of user requested contrasts */
+#define MAX_MEANS 20             /* max. number of user requested means */
+#define MAX_DIFFS 20             /* max. number of user requested diffs. */
+#define MAX_CONTR 20             /* max. number of user requested contrasts */
 #define MAX_NAME_LENGTH 80       /* max. strength length for file names */ 
 
 

@@ -6,9 +6,13 @@
   Author:  B. Douglas Ward
   Date:    04 June 1999
 
+  Mod:     Correction to initialization in center of mass calculation.
+  Date:    11 February 2000
+
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
+
 
 */
 
@@ -173,7 +177,7 @@ void center_of_mass (int * cx, int * cy, int * cz)
 
 
   /*----- Sum over all voxels -----*/
-  sumx = 0.0;   sumy = 0.0;   sumz = 0.0;
+  sum = 0.0;   sumx = 0.0;   sumy = 0.0;   sumz = 0.0;
   for (kz = 0;  kz < nz;  kz++)
     for (jy = 0;  jy < ny;  jy++)
       for (ix = 0;  ix < nx;  ix++)

@@ -42,6 +42,10 @@
    Mod:      Added changes for incorporating History notes.
    Date:     09 September 1999
 
+   Mod:      Adjust F-statistics if parameter constraints force a parameter
+             to be a constant.
+   Date:     08 February 2000
+
 */
 
 
@@ -54,7 +58,7 @@
 
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "09 September 1999"         /* date of last program mod */
+#define PROGRAM_DATE "08 February 2000"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1957,6 +1961,8 @@ void write_bucket_data
 (
   int q,                  /* number of parameters in the noise model */
   int p,                  /* number of parameters in the signal model */
+  int numdof,             /* numerator dof for F-statistic */
+  int dendof,             /* denominator dof for F-statistic */
   int  nxyz,              /* number of voxels in image */
   int  n,                 /* length of time series data */  
 
@@ -2091,12 +2097,12 @@ void write_bucket_data
 	    volume = tncoef_vol[brick_coef];
 	  else if (brick_coef < p+q)
 	    volume = tscoef_vol[brick_coef-q];
-	  EDIT_BRICK_TO_FITT (new_dset, ib, n - dimension);
+	  EDIT_BRICK_TO_FITT (new_dset, ib, dendof);
 	}
       else  if (brick_type == FUNC_FT_TYPE)
 	{
 	  volume = freg_vol;
-	  EDIT_BRICK_TO_FIFT (new_dset, ib, p, n - dimension);
+	  EDIT_BRICK_TO_FIFT (new_dset, ib, numdof, dendof);
 	}
 
       /*----- allocate memory for output sub-brick -----*/
@@ -2261,6 +2267,10 @@ void output_results
 (
   int r,                  /* number of parameters in the noise model */
   int p,                  /* number of parameters in the signal model */
+  float * min_nconstr,    /* minimum parameter constraints for noise model */
+  float * max_nconstr,    /* maximum parameter constraints for noise model */
+  float * min_sconstr,    /* minimum parameter constraints for signal model */
+  float * max_sconstr,    /* maximum parameter constraints for signal model */
   int  nxyz,              /* number of voxels in image */
   int  ts_length,         /* length of time series data */  
 
@@ -2302,12 +2312,28 @@ void output_results
   int numdof, dendof;     /* numerator and denominator degrees of freedom */
 
 
+  /*----- Initialization -----*/
   dimension = r + p;
+  numdof = p;
+  dendof = ts_length - dimension;
+
+
+  /*----- Adjust dof if constraints force a parameter to be a constant -----*/
+  for (ip = 0;  ip < r;  ip++)
+    if (min_nconstr[ip] == max_nconstr[ip])
+      dendof++;
+
+  for (ip = 0;  ip < p;  ip++)
+    if (min_sconstr[ip] == max_sconstr[ip])
+      {
+	numdof--;
+	dendof++;
+      }
 
 
   /*----- write the bucket dataset -----*/
   if (option_data->numbricks > 0)
-    write_bucket_data (r, p, nxyz, ts_length, 
+    write_bucket_data (r, p, numdof, dendof, nxyz, ts_length, 
 		  rmsreg_vol, freg_vol, smax_vol, tmax_vol, pmax_vol, area_vol,
 		  parea_vol, ncoef_vol, scoef_vol, tncoef_vol, tscoef_vol,
 		  input_filename, option_data);
@@ -2315,81 +2341,50 @@ void output_results
 
   /*----- write out the f-statistics for the regression -----*/
   if (freg_filename != NULL)
-    {
-      numdof = p;
-      dendof = ts_length - dimension;
-      write_afni_data (input_filename, nxyz, freg_filename, 
-		       rmsreg_vol, freg_vol, numdof, dendof); 
-    }
+    write_afni_data (input_filename, nxyz, freg_filename, 
+		     rmsreg_vol, freg_vol, numdof, dendof); 
 
 
   /*----- write out the signed maximum of signal estimates -----*/
   if (fsmax_filename != NULL)
-    {
-      numdof = p;
-      dendof = ts_length - dimension;
-      write_afni_data (input_filename, nxyz, fsmax_filename, 
-		       smax_vol, freg_vol, numdof, dendof); 
-    }
-
+    write_afni_data (input_filename, nxyz, fsmax_filename, 
+		     smax_vol, freg_vol, numdof, dendof); 
+  
 
   /*----- write out the epoch of signed maximum of signal estimates -----*/
   if (ftmax_filename != NULL)
-    {
-      numdof = p;
-      dendof = ts_length - dimension;
-      write_afni_data (input_filename, nxyz, ftmax_filename, 
-		       tmax_vol, freg_vol, numdof, dendof); 
-    }
+    write_afni_data (input_filename, nxyz, ftmax_filename, 
+		     tmax_vol, freg_vol, numdof, dendof); 
 
 
   /*----- write out the max. percentage change due to signal -----*/
   if (fpmax_filename != NULL)
-    {
-      numdof = p;
-      dendof = ts_length - dimension;
-      write_afni_data (input_filename, nxyz, fpmax_filename, 
-		       pmax_vol, freg_vol, numdof, dendof); 
-    }
+    write_afni_data (input_filename, nxyz, fpmax_filename, 
+		     pmax_vol, freg_vol, numdof, dendof); 
 
 
   /*----- write out the area between the signal and baseline -----*/
   if (farea_filename != NULL)
-    {
-      numdof = p;
-      dendof = ts_length - dimension;
-      write_afni_data (input_filename, nxyz, farea_filename, 
-		       area_vol, freg_vol, numdof, dendof); 
-    }
+    write_afni_data (input_filename, nxyz, farea_filename, 
+		     area_vol, freg_vol, numdof, dendof); 
 
 
   /*----- write out the percentage area between the signal and baseline -----*/
   if (fparea_filename != NULL)
-    {
-      numdof = p;
-      dendof = ts_length - dimension;
-      write_afni_data (input_filename, nxyz, fparea_filename, 
-		       parea_vol, freg_vol, numdof, dendof); 
-    }
+    write_afni_data (input_filename, nxyz, fparea_filename, 
+		     parea_vol, freg_vol, numdof, dendof); 
 
 
   /*----- write noise model parameters -----*/
   for (ip = 0;  ip < r;  ip++)
     {
       if (tncoef_filename[ip] != NULL)
-	{
-	  numdof = ts_length - dimension;
-	  dendof = 0;
-	  write_afni_data (input_filename, nxyz, tncoef_filename[ip], 
-			   ncoef_vol[ip], tncoef_vol[ip], numdof, dendof); 
-	}
+	write_afni_data (input_filename, nxyz, tncoef_filename[ip], 
+			 ncoef_vol[ip], tncoef_vol[ip], dendof, 0); 
+
       if (fncoef_filename[ip] != NULL)
-	{
-	  numdof = p;
-	  dendof = ts_length - dimension;
-	  write_afni_data (input_filename, nxyz, fncoef_filename[ip], 
-			   ncoef_vol[ip], freg_vol, numdof, dendof); 
-	}
+	write_afni_data (input_filename, nxyz, fncoef_filename[ip], 
+			 ncoef_vol[ip], freg_vol, numdof, dendof); 
     }
 
 
@@ -2397,19 +2392,12 @@ void output_results
   for (ip = 0;  ip < p;  ip++)
     {
       if (tscoef_filename[ip] != NULL)
-	{
-	  numdof = ts_length - dimension;
-	  dendof = 0;
-	  write_afni_data (input_filename, nxyz, tscoef_filename[ip], 
-			   scoef_vol[ip], tscoef_vol[ip], numdof, dendof); 
-	}
+	write_afni_data (input_filename, nxyz, tscoef_filename[ip], 
+			 scoef_vol[ip], tscoef_vol[ip], dendof, 0); 
+
       if (fscoef_filename[ip] != NULL)
-	{
-	  numdof = p;
-	  dendof = ts_length - dimension;
-	  write_afni_data (input_filename, nxyz, fscoef_filename[ip], 
-			   scoef_vol[ip], freg_vol, numdof, dendof); 
-	}
+	write_afni_data (input_filename, nxyz, fscoef_filename[ip], 
+			 scoef_vol[ip], freg_vol, numdof, dendof); 
     }
 
 
@@ -2802,7 +2790,8 @@ int main
 
 
   /*----- write requested output files -----*/
-  output_results (r, p, nxyz, ts_length, rmsreg_vol, freg_vol, 
+  output_results (r, p, min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+		  nxyz, ts_length, rmsreg_vol, freg_vol, 
 		  smax_vol, tmax_vol, pmax_vol, area_vol, parea_vol, 
 		  ncoef_vol, scoef_vol, tncoef_vol, tscoef_vol, 
 		  sfit_vol, snfit_vol,

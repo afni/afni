@@ -16,6 +16,12 @@
   Mod:     Added -force option, and some checks related to it.
   Date:    13 Dec 1999 - RW Cox
 
+  Mod:     Added 'data parent' sub-brick selector.  Also, allow operator to
+           specify separate resampling modes for the functional sub-bricks
+	   and the threshold sub-bricks.
+  Date:    25 February 2000
+ 
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 */
@@ -24,7 +30,7 @@
 
 #define PROGRAM_NAME "adwarp.c"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "13 December 1999"          /* date of last program mod */
+#define PROGRAM_DATE "25 February 2000"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -96,10 +102,9 @@ typedef struct adwarp_options
   
   float dxyz;                    /* grid spacing in output dataset (mm) */
 
-  int resam_mode;                /* resampling mode */
-  int anat_resam_mode;           /*    separate resampling modes */
-  int thr_resam_mode;            /*    are not used              */
-  int func_resam_mode;           /*    at this time              */
+  int anat_resam_mode;           /* anatomical dataset resampling mode */
+  int thr_resam_mode;            /* threshold sub-brick resampling mode */
+  int func_resam_mode;           /* functional sub-brick resampling mode */
 
   int verbose ;                  /* RWCox: 06 Apr 1999 */
   int force   ;                  /* RWCox: 13 Dec 1999 */
@@ -129,45 +134,59 @@ void display_help_menu()
    int ii ;
 
 
-   printf("Usage: adwarp [options]\n"
-          "Resamples a 'data parent' dataset to the grid defined by an\n"
-          "'anat parent' dataset.  The anat parent dataset must contain\n"
-          "in its .HEAD file the coordinate transformation (warp) needed\n"
-          "to bring the data parent dataset to the output grid.  This\n"
-          "program provides a batch implementation of the interactive\n"
-          "AFNI 'Write' buttons, one dataset at a time.\n"
-          "\n"
-          "  Example: adwarp -apar anat+tlrc -dpar func+orig\n"
-          "\n"
-          "  This will create dataset func+tlrc (.HEAD and .BRIK).\n"
-          "\n"
-          "Options (so to speak):\n"
-          "----------------------\n"
-          "-apar aset  = Set the anat parent dataset to 'aset'.  This\n"
-          "                is a nonoptional option (must be present).\n"
-          "\n"
-          "-dpar dset  = Set the data parent dataset to 'dset'.  This\n"
-          "                is a nonoptional option (must be present).\n"
-          "\n"
-          "-prefix ppp = Set the prefix for the output dataset to 'ppp'.\n"
-          "                The default is the prefix of 'dset'.\n"
-          "\n"
-          "-dxyz ddd   = Set the grid spacing in the output datset to\n"
-          "                'ddd' mm.  The default is 1 mm.\n"
-          "\n"
-          "-verbose    = Print out progress reports.\n"
-          "-force      = Write out result even if it means deleting\n"
-          "                an existing dataset.  The default is not\n"
-          "                to overwrite.\n"
-          "\n"
-          "-resam rrr  = Set the resampling mode to 'rrr', which must be\n"
-          "                one of the following [default is %s]:\n" ,
-          RESAM_shortstr[1]
-   ) ;
-
+   printf
+     ("Usage: adwarp [options]\n"
+      "Resamples a 'data parent' dataset to the grid defined by an\n"
+      "'anat parent' dataset.  The anat parent dataset must contain\n"
+      "in its .HEAD file the coordinate transformation (warp) needed\n"
+      "to bring the data parent dataset to the output grid.  This\n"
+      "program provides a batch implementation of the interactive\n"
+      "AFNI 'Write' buttons, one dataset at a time.\n"
+      "\n"
+      "  Example: adwarp -apar anat+tlrc -dpar func+orig\n"
+      "\n"
+      "  This will create dataset func+tlrc (.HEAD and .BRIK).\n"
+      "\n"
+      "Options (so to speak):\n"
+      "----------------------\n"
+      "-apar aset  = Set the anat parent dataset to 'aset'.  This\n"
+      "                is a nonoptional option (must be present).\n"
+      "\n"
+      "-dpar dset  = Set the data parent dataset to 'dset'.  This\n"
+      "                is a nonoptional option (must be present).\n"
+      "              Note: dset may contain a sub-brick selector,\n"
+      "              e.g.,  -dpar 'dset+orig[2,5,7]'             \n"
+      "\n"
+      "-prefix ppp = Set the prefix for the output dataset to 'ppp'.\n"
+      "                The default is the prefix of 'dset'.\n"
+      "\n"
+      "-dxyz ddd   = Set the grid spacing in the output datset to\n"
+      "                'ddd' mm.  The default is 1 mm.\n"
+      "\n"
+      "-verbose    = Print out progress reports.\n"
+      "-force      = Write out result even if it means deleting\n"
+      "                an existing dataset.  The default is not\n"
+      "                to overwrite.\n"
+      "\n"
+      "-resam rrr  = Set resampling mode to 'rrr' for all sub-bricks\n"
+      "                     --- OR ---                              \n"
+      "-thr   rrr  = Set resampling mode to 'rrr' for threshold sub-bricks\n"
+      "-func  rrr  = Set resampling mode to 'rrr' for functional sub-bricks\n"
+      "\n"
+      "The resampling mode 'rrr' must be one of the following:\n" 
+      ) ;
+   
    for( ii=0 ; ii <= LAST_RESAM_TYPE ; ii++ )
       printf("                 %s = %s\n", RESAM_shortstr[ii],RESAM_typestr[ii] ) ;
 
+
+   printf
+     (      
+      "\n"
+      "NOTE:  The default resampling mode is %s for all sub-bricks. \n" ,
+      RESAM_shortstr[1]
+      ) ;
+   
    exit(0) ;
 }
 
@@ -185,7 +204,10 @@ void initialize_options (adwarp_options * option_data)
   option_data->prefix = NULL;
   
   option_data->dxyz = 1.0;
-  option_data->resam_mode = 1;
+
+  option_data->anat_resam_mode = 1;           
+  option_data->thr_resam_mode  = 1;            
+  option_data->func_resam_mode = 1;           
 
   option_data->verbose = 0 ;  /* 06 Apr 1999 */
   option_data->force   = 0 ;  /* 13 Dec 1999 */
@@ -241,7 +263,7 @@ void get_options
 	{
 	  nopt++;
 	  if (nopt >= argc)  AW_error ("need argument after -dpar ");
-	  option_data->dset = THD_open_one_dataset (argv[nopt]);
+	  option_data->dset = THD_open_dataset (argv[nopt]);
 	  if (! ISVALID_3DIM_DATASET(option_data->dset)) 
 	    AW_error ("Cannot read data parent dataset.\n") ;
 	  nopt++;
@@ -295,7 +317,43 @@ void get_options
 	      ival = ii;
 	  if ((ival < 0) || (ival > LAST_RESAM_TYPE))
 	    AW_error ("illegal argument after -resam ");
-	  option_data->resam_mode = ival;
+	  option_data->anat_resam_mode = ival;
+	  option_data->thr_resam_mode  = ival;
+	  option_data->func_resam_mode = ival;
+	  nopt++;
+	  continue;
+	}
+      
+
+      /*-----   -thr rrr  -----*/
+      if (strncmp(argv[nopt], "-thr", 4) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  AW_error ("need argument after -thr ");
+	  ival = -1;
+	  for( ii=0 ; ii <= LAST_RESAM_TYPE ; ii++ )
+	    if (strncmp(argv[nopt], RESAM_shortstr[ii], 2) == 0)
+	      ival = ii;
+	  if ((ival < 0) || (ival > LAST_RESAM_TYPE))
+	    AW_error ("illegal argument after -thr ");
+	  option_data->thr_resam_mode  = ival;
+	  nopt++;
+	  continue;
+	}
+      
+
+      /*-----   -func rrr  -----*/
+      if (strncmp(argv[nopt], "-func", 5) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  AW_error ("need argument after -func ");
+	  ival = -1;
+	  for( ii=0 ; ii <= LAST_RESAM_TYPE ; ii++ )
+	    if (strncmp(argv[nopt], RESAM_shortstr[ii], 2) == 0)
+	      ival = ii;
+	  if ((ival < 0) || (ival > LAST_RESAM_TYPE))
+	    AW_error ("illegal argument after -func ");
+	  option_data->func_resam_mode  = ival;
 	  nopt++;
 	  continue;
 	}
@@ -335,11 +393,6 @@ void get_options
       }
   }
 
-
-  /*----- Set various resampling modes -----*/
-  option_data->anat_resam_mode = option_data->resam_mode;
-  option_data->thr_resam_mode  = option_data->resam_mode;
-  option_data->func_resam_mode = option_data->resam_mode;
 
 }
 

@@ -13,6 +13,9 @@
   Mod:     Added changes for incorporating History notes.
   Date:    09 September 1999
 
+  Mod:     Correction to initialization in center of mass calculation.
+  Date:    11 February 2000
+
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -23,7 +26,7 @@
 
 #define PROGRAM_NAME "3dIntracranial"                /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
-#define PROGRAM_DATE "09 September 1999"         /* date of last program mod */
+#define PROGRAM_DATE "11 February 2000"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 /*

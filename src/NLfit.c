@@ -23,6 +23,10 @@
   Mod:      Added novar flag to eliminate unnecessary calculations.
   Date:     13 July 1999
 
+  Mod:      Adjust F-statistics if parameter constraints force a parameter
+            to be a constant.
+  Date:     08 February 2000
+
 */
 
 
@@ -1010,6 +1014,20 @@ void analyze_results
   df_rdcd = ts_length - r;
   df_full = ts_length - dimension;
 
+
+  /*----- Adjust dof if constraints force a parameter to be a constant -----*/
+  for (ip = 0;  ip < r;  ip++)
+    if (min_nconstr[ip] == max_nconstr[ip])
+      {
+	df_rdcd++;
+	df_full++;
+      }
+
+  for (ip = 0;  ip < p;  ip++)
+    if (min_sconstr[ip] == max_sconstr[ip])
+      df_full++;
+
+
   /*----- check for insufficient variation in the data -----*/
   if (novar)
     {
@@ -1146,7 +1164,7 @@ void analyze_results
   if (ok)
     for (ip = 0;  ip < dimension;  ip++)
       {
-	stddev = sqrt((sse_full/(ts_length-dimension)) * dtdinv.elts[ip][ip]);
+	stddev = sqrt((sse_full/(df_full)) * dtdinv.elts[ip][ip]);
 	if (stddev > EPSILON)
 	    tpar_full[ip] = par_full[ip] / stddev;
 	else
