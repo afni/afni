@@ -36,7 +36,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
            2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat \
            3drotate 3dvolreg 3dpc 3dstrip 3dfractionize 1dplot adwarp imupsam \
-           3dIntracranial
+           3dIntracranial 24swap
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -45,7 +45,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot \
-                  3dIntracranial
+                  3dIntracranial 24swap
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
@@ -106,6 +106,9 @@ imupsam:imupsam.c
 
 4swap:4swap.c
 	$(CC) -o 4swap 4swap.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+
+24swap:24swap.c
+	$(CC) -o 24swap 24swap.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 crao:crao.o
 	$(CC) -o crao crao.o $(LFLAGS) $(LLIBS)
