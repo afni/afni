@@ -1083,6 +1083,22 @@ be truncated to 0 in the scaled image if it is not "floatized".
 (Conversion to floats will only be done to byte, short, and int
 image types.)
 
+---------------------------------
+Variable: AFNI_ANALYZE_ORIGINATOR
+---------------------------------
+If this YES/NO variable is set to YES, then AFNI will attempt
+to read and use the ORIGINATOR field in a Mayo Analyze file
+to set the origin of the pixel space in AFNI.  This origin
+can be used directly by several programs--the main AFNI viewer,
+and all of the 3dxxxx programs, including especially 3dcopy,
+which is the preferred way to convert an Analyze format file
+to an AFNI native file.
+This variable will also force 3dAFNItoANALYZE to write the
+ORIGINATOR field into the output Analyze file based on the
+input AFNI file's origin information.
+The ORIGINATOR field should be compatible with SPM in most
+cases, but please verify this.
+
 --------------------------
 Variable: AFNI_START_SMALL
 --------------------------
