@@ -862,36 +862,6 @@ afni98.tgz:
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
 
-src.tgz:
-	$(RM) $@
-	$(MKDIR) ./SRC
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup moveAFNI* README* AFNI.* \
-              dist* 3d*.lib gmovie $(SCRIPTS) ./SRC
-	$(TAR) cf - ./SRC | $(GZIP) -9v > src.tgz
-	$(RM) -r ./SRC
-
-src.bz2:
-	$(RM) $@
-	$(MKDIR) ./SRC
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup moveAFNI* README* AFNI.* \
-              3d*.lib $(SCRIPTS) ./SRC
-	$(RM) ./SRC/cdf_*.c ./SRC/eis_*.c
-	$(TAR) cf - ./SRC | bzip2 -9v > src.bz2
-	$(RM) -r ./SRC
-
-epv.tgz:
-	$(TAR) cf - ./epv | $(GZIP) -9v > epv.tgz
-
-TLv.tgz:
-	$(TAR) cf - ./TLv | $(GZIP) -9v > TLv.tgz
-
-mydoc.tgz:
-	$(RM) $@
-	$(MKDIR) ./MYDOC
-	$(CP) $(MYDOCS) ./MYDOC
-	$(TAR) cf - ./MYDOC | $(GZIP) -9v > mydoc.tgz
-	$(RM) -r ./MYDOC
-
 afnidoc.tgz:
 	$(RM) $@
 	$(MKDIR) ./AFNIDOC
