@@ -1,0 +1,14 @@
+#!/bin/tcsh
+
+if( $#argv < 1 || "$1" == "-help" )then
+   echo "Usage: Ctag label [files]"
+   echo "Write a version string tag to all CVS files here and below."
+   echo "The tag is the output of the command 'date +label_%Y_%m_%d_%H:%M'"
+   echo "Where the label is input on the command line."
+   echo "You should check in (i.e., 'Cput .') before using this."
+   exit 0
+endif
+
+set ttt = `date +${1}_%Y_%m_%d_%H:%M`
+
+echo "WOULD DO THIS: cvs tag -R $ttt $argv[2-]"
