@@ -18,9 +18,11 @@ void THD_check_idcodes( THD_sessionlist * ssl )
    THD_session * sess ;
    THD_3dim_dataset * dset , ** dsl ;
 
+ENTRY("THD_check_idcodes") ;
+
    /*-- sanity check --*/
 
-   if( ! ISVALID_SESSIONLIST(ssl) || ssl->num_sess <= 0 ) return ;
+   if( ! ISVALID_SESSIONLIST(ssl) || ssl->num_sess <= 0 ) EXRETURN ;
 
    /*-- count number of datasets --*/
 
@@ -76,5 +78,5 @@ void THD_check_idcodes( THD_sessionlist * ssl )
 
    if( iss > 0 ) fprintf(stderr,"\n") ;
 
-   free(dsl) ; return ;
+   free(dsl) ; EXRETURN ;
 }
