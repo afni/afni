@@ -81,6 +81,7 @@ switch NF
 	fprintf('\n\t        usually called 2-way design with A and B varying within subject. Notice: It is inappropriate to');
 	fprintf('\n\t        run any constrast tests including mean estimates and differences for factor C with this design type.\n');
 	fprintf('\n\tType 3: Mixed design BXC(A)              - A and B are fixed while C (usually subject) is random and nested within A.\n');
+	fprintf('\n\tType 4: Mixed design BXC(A)              - Fixed factor C is nested within fixed factor C while B (usually subject) is random.\n');
 
    case 4,
    fprintf('\nAvailabe design types:\n');
@@ -99,9 +100,9 @@ end
 
 flg = 0;
 while flg == 0,
-   dsgn = input('\nChoose design type (1, 2, 3, 4, 5, ...): ');
+   dsgn = input('\nChoose design type (1, 2, 3, 4, 5): ');
    if (isnumeric(dsgn) == 0 | isempty(dsgn)),
-	   flg = 0; fprintf(2,'Error: the input is not a number. Please try it again.\n');
+	   flg = 0; fprintf(2,'Error: input is not a number. Please try it again.\n');
 	   else flg = 1;
    end
 end
@@ -883,7 +884,7 @@ switch NF
 	case 2,
 	   
 	case 3,
-	   if (dsgn == 3), N_Brik = 5; end
+	   if (dsgn == 3 | dsgn == 4), N_Brik = 5; end
 				
 	case 4,
       if (dsgn == 3 | dsgn == 4), N_Brik = 11; end
@@ -891,7 +892,7 @@ switch NF
 end
 
 %Voxel independent stuff
-[err, Qd, s, termname, nterms, sindices, dfbothSS, modw, modwo, tnames, dfterm, dfe, Contr] = PreProc(ntot, NF, group, varnames, FL, Contr, dsgn, cov, unbalanced);
+[err, Qd, s, termname, nterms, sindices, dfbothSS, modw, modwo, tnames, dfterm, dfe, Contr] = PreProc(ntot, NF, group, varnames, FL, Contr, cov, unbalanced);
 %[err, Qd, s, termname, nterms, sindices, dfbothSS, modw, modwo, tnames, dfterm, dfe, Contr] = PreProc(ntot, NF, group, varnames, FL, Contr, dsgn, cov);
 
 %Use Ziad's function BrikLoad to load all 'ntot' of datasets in a column format
@@ -1062,14 +1063,14 @@ for (sn = 1:1:slices),
 
    if ((NF == 3) & Contr.ord2.tot > 0),
    for (i = 1:1:Contr.ord2.tot),
-		   switch Contr.ord2.cnt(i).idx1
+		   switch Contr.ord2.cnt(i).idx1   % 1st factor whose level is fixed
 		   case 1,
-			   switch Contr.ord2.cnt(i).idx2
+			   switch Contr.ord2.cnt(i).idx2    % 2nd factor whose level is fixed
 				   case 2, Contr.ord2.df(i) = dfdenom(4);  % MSAB
 					case 3, Contr.ord2.df(i) = dfdenom(5) * (dsgn == 1 | dsgn == 2);  % MSAC
 				end	
 			case 2,
-			   if (Contr.ord2.cnt(i).idx2 == 3), Contr.ord2.df(i) = dfdenom(6) * (dsgn == 1 | dsgn == 2) + dfdenom(5) * (dsgn == 3);  % MSBC
+			   if (Contr.ord2.cnt(i).idx2 == 3), Contr.ord2.df(i) = dfdenom(6) * (dsgn == 1 | dsgn == 2) + dfdenom(5) * (dsgn == 3 | dsgn == 4);  % MSBC
 				else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
 				end		   
 			case 3,

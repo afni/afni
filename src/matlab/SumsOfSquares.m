@@ -123,7 +123,7 @@ switch NF
 			case 2,  % 7 terms: 1 (A); 2 (B); 3 (C); 4 (AB), 5 (AC), 6 BC, 7 ABC				
 				fstat = repmat(0, [1 N_Brik]);   % same as fstat = repmat(0, [1 N_Brik]);
 				
-			case 3,  % BXC(A): only 5 terms - 1 (A); 2 (B); 3 (C); 4 (AB), 5 BC
+			case {3, 4,} % BXC(A): only 5 terms - 1 (A); 2 (B); 3 C(A); 4 (AB), 5 BC(A)
 				fstat = repmat(0, [1 N_Brik]); 
 				
 				%dftmp = dfterm(1) + 1;
@@ -133,7 +133,7 @@ switch NF
 				
 				ssterm(6) = ssterm(6) + ssterm(7);   % SSBC(A) = SSC + SSAC
 				dfterm(6) = dfterm(6) + dfterm(7);
-				
+								
 		end  % switch dsgn	
 
    case 4,
@@ -224,6 +224,14 @@ switch NF
 	         tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
             msdenom = [msterm(3), msterm(6), mse, msterm(6), mse];
 	         dfdenom = [dfterm(3), dfterm(6), dfe, dfterm(6), dfe];
+				
+			case 4,  % 5 terms: 1 A; 2 B; 3 C(A); 4 (AB), 5  BC(A)
+            msterm_new = [msterm(1:4), msterm(6)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
+	         intensity_new = [intensity(1:4), intensity(6)];    % Throw out those four which do not exist for nesting.
+				dfterm_new = [dfterm(1:4)', dfterm(6)'];
+	         tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+            msdenom = [msterm(4), mse, msterm(6), mse, mse];
+	         dfdenom = [dfterm(4), dfe, dfterm(6), dfe, dfe];	
 	   end			
 
    case  4,
@@ -258,7 +266,7 @@ switch NF
 	         tnames_new = [tnames(1:6); tnames(8), tnames(10:11)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
 	         msdenom = [msterm(4), msterm(4), msterm(10), mse, msterm(4), msterm(10), msterm(10), mse, msterm(10)];  % denominator MS
    	      dfdenom = [dfterm(4), dfterm(4), dfterm(10), dfe, dfterm(4), dfterm(10), dfterm(10), dfe, dfterm(10)];  % denominator DF				
-	   end	% Close swtich dsgn
+	   end	% Close switch dsgn
 end  % Close swtich NF
 
 
@@ -334,7 +342,7 @@ if (Contr.ord2.tot > 0),    % 7 terms: 1 (A); 2 (B); 3 (C); 4 (AB), 5 (AC), 6 BC
 				end	
 			case 2,
 			   if (Contr.ord2.cnt(i).idx2 == 3),
-				   what = msdenom(6) * (dsgn == 1 | dsgn == 2) + msdenom(5)* (dsgn == 3);  % MSBC
+				   what = msdenom(6) * (dsgn == 1 | dsgn == 2) + msdenom(5)* (dsgn == 3 | dsgn == 4);  % MSBC
 				else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
 				end		   
 		   end %switch Contr.ord2.cnt(i).idx1
