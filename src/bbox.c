@@ -2024,7 +2024,7 @@ static MCW_action_item TSC_act[] = {
        chosen timeseries in tsarr.  The "imval" be the pointer to the
        chosen timeseries itself.  Do NOT mri_free this, since it will just be a
        pointer to the correct entry in tsarr (which should not be modified
-       during the lifetime of this popup!).
+       by any other code during the lifetime of this popup!).
 
    This routine is coded in such a way that only one chooser will be
    active at a time (per application).  This is a deliberate choice.

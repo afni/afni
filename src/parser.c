@@ -2134,27 +2134,27 @@ L1000:
 /* ...............................................................
 ........ */
 	} else if (s_cmp(cncode, "AND", 8L, 3L) == 0) {
+	    ntm = (integer) r8_eval__[(neval << 6) - 64];
+	    neval -= ntm;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		ntm = (integer) r8_eval__[iv - ibv + (neval << 6) - 65];
-		neval -= ntm;
 		r8_eval__[iv - ibv + (neval << 6) - 65] = land_(&ntm, &
 			r8_eval__[iv - ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "OR", 8L, 2L) == 0) {
+	    ntm = (integer) r8_eval__[(neval << 6) - 64];
+	    neval -= ntm;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		ntm = (integer) r8_eval__[iv - ibv + (neval << 6) - 65];
-		neval -= ntm;
 		r8_eval__[iv - ibv + (neval << 6) - 65] = lor_(&ntm, &
 			r8_eval__[iv - ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "MOFN", 8L, 4L) == 0) {
+	    ntm = (integer) r8_eval__[(neval << 6) - 64];
+	    neval -= ntm;
+	    --ntm;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		ntm = (integer) r8_eval__[iv - ibv + (neval << 6) - 65];
-		neval -= ntm;
-		--ntm;
 		itm = (integer) r8_eval__[iv - ibv + (neval << 6) - 65];
 		r8_eval__[iv - ibv + (neval << 6) - 65] = lmofn_(&itm, &ntm, &
 			r8_eval__[iv - ibv + (neval + 1 << 6) - 65]);

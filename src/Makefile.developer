@@ -49,7 +49,7 @@ RCSFILES = *.c *.h *.f *.xbm Makefile.* README* *.tex AFNI.Xdef*
 
 checkin:
 	chmod u+w $(RCSFILES)
-	ci -q -l -t"AFNI" -m"AFNI" $(RCSFILES)
+	ci -l -t"AFNI" -m"AFNI" $(RCSFILES)
 
 putaway:
 	chmod u+w $(RCSFILES)

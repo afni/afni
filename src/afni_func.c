@@ -1430,7 +1430,7 @@ static char * dset_choice[] = { "Session" , "Anatomy" , "Function" } ;
 
 /** max size of strings in the list **/
 
-#define STRLIST_SIZE (THD_MAX_PREFIX+32)
+#define STRLIST_SIZE (THD_MAX_PREFIX+64)
 
 void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
 {

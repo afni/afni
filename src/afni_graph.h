@@ -1,3 +1,5 @@
+#ifndef _AFNI_HEADER_GRAPH_
+#define _AFNI_HEADER_GRAPH_
 /*------------------------------------------------------------------------
    Copyright 1993-1996, Medical College of Wisconsin.
 --------------------------------------------------------------------------
@@ -228,18 +230,21 @@ extern int INIT_GR_boxes_thick ,
 
 static char * gr_color_label[NUM_COLOR_ITEMS] = {
   "Boxes " , "BackG " , "Grid  " , "Text  " ,
-  "Data  " , "Ideal " , "Ort   " , "Ignore" ,
-  "Dplot "
+  "Data  " , "Ideal " , "Ort   " , "Ignore" , "Dplot "
 } ;
 
 static int gr_setup_default = 1 ;
 static int gr_color_default[NUM_COLOR_ITEMS] ;
 static int gr_thick_default[NUM_COLOR_ITEMS] ;
 
+static int gr_points_default[NUM_COLOR_ITEMS] = {
+  -1 , -1 , -1 , -1 ,
+   0 , -1 , -1 , -1 , 0
+} ;
+
 static int gr_color_start[NUM_COLOR_ITEMS] = {
   1 , 1 , 0 , 1 ,
-  1 , 1 , 1 , 1 ,
-  1
+  1 , 1 , 1 , 1 , 1
 } ;
 
 #define GRA_COLOR(cd)                                              \
@@ -261,6 +266,16 @@ static int gr_color_start[NUM_COLOR_ITEMS] = {
 #define ORT_THICK(gr)    ((gr)->thick_index[6] * THICKKK )
 #define IGNORE_THICK(gr) ((gr)->thick_index[7] * THICKKK )
 #define DPLOT_THICK(gr)  ((gr)->thick_index[8] * THICKKK )
+
+#define FG_POINTS(gr)     ((gr)->points_index[0])
+#define BG_POINTS(gr)     ((gr)->points_index[1])
+#define GRID_POINTS(gr)   ((gr)->points_index[2])
+#define TEXT_POINTS(gr)   ((gr)->points_index[3])
+#define DATA_POINTS(gr)   ((gr)->points_index[4])
+#define IDEAL_POINTS(gr)  ((gr)->points_index[5])
+#define ORT_POINTS(gr)    ((gr)->points_index[6])
+#define IGNORE_POINTS(gr) ((gr)->points_index[7])
+#define DPLOT_POINTS(gr)  ((gr)->points_index[8])
 
 extern void GRA_color_CB( MCW_arrowval * , XtPointer ) ;
 extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;
@@ -296,9 +311,10 @@ typedef struct {
    int key_Nlock , key_lock_sum ;
    int time_index ;
 
-   int        ncen_line ;
+   int        ncen_line , nncen ;
    XPoint    * cen_line ;
    MRI_IMAGE * cen_tsim ;
+   MRI_IMAGE * xax_tsim ;  /* 09 Jan 1998 */
 
    int xx_text_1 , xx_text_2 ;
 
@@ -324,19 +340,29 @@ typedef struct {
    Widget opt_mat_menu      , opt_mat_cbut ,
           opt_mat_down_pb   , opt_mat_up_pb   ;
    Widget opt_grid_menu     , opt_grid_cbut   ,
-          opt_grid_down_pb  , opt_grid_up_pb  , opt_grid_choose_pb , opt_pin_choose_pb ;
+          opt_grid_down_pb  , opt_grid_up_pb  ,
+          opt_grid_choose_pb , opt_pin_choose_pb ;
    Widget opt_slice_menu    , opt_slice_cbut  ,
           opt_slice_down_pb , opt_slice_up_pb ;
 
    Widget opt_colors_menu , opt_colors_cbut ;
    MCW_arrowval * opt_color_av[NUM_COLOR_ITEMS] ;
    MCW_bbox     * opt_thick_bbox[NUM_COLOR_ITEMS] ;
+   MCW_bbox     * opt_points_bbox[NUM_COLOR_ITEMS] ;
    int color_index[NUM_COLOR_ITEMS] ;
    int thick_index[NUM_COLOR_ITEMS] ;
+   int points_index[NUM_COLOR_ITEMS] ;
+
+   MCW_arrowval * opt_ggap_av ; /* 12 Jan 1998 */
+   int ggap ;
 
    Widget opt_color_up_pb   , opt_baseline_pb , opt_save_pb ,
           opt_write_center_pb , opt_write_suffix_pb ;
    Widget opt_quit_pb ;
+
+   Widget opt_xaxis_menu , opt_xaxis_cbut ,        /* 09 Jan 1998 */
+          opt_xaxis_pick_pb , opt_xaxis_center_pb ,
+          opt_xaxis_clear_pb ;
 
 #ifdef USE_OPTMENUS
    MCW_arrowval * opt_mat_choose_av , * opt_slice_choose_av ;
@@ -492,6 +518,8 @@ extern void GRA_setshift_action_CB( Widget , XtPointer , XtPointer ) ;
 extern void GRA_transform_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * GRA_transform_label( MCW_arrowval * , XtPointer ) ;
 
+extern void GRA_ggap_CB( MCW_arrowval * , XtPointer ) ;
+
 extern FIM_menu * AFNI_new_fim_menu( Widget , XtCallbackProc , int ) ;
 
 extern void GRA_redraw_overlay( MCW_grapher * ) ;
@@ -501,4 +529,8 @@ extern void GRA_dplot_change_CB( Widget , XtPointer , XtPointer ) ;
 extern void GRA_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_file_pixmap( MCW_grapher * , char * ) ;
 
+extern void GRA_fixup_xaxis( MCW_grapher * ) ;
+extern void GRA_pick_xaxis_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+
 /***-----------------------------------------------------------------------***/
+#endif

@@ -1467,22 +1467,22 @@ C.......................................................................
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'AND'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
             DO IV=IVBOT,IVTOP
-               NTM   = R8_EVAL(IV-IBV, NEVAL)
-               NEVAL = NEVAL - NTM
                R8_EVAL(IV-IBV,NEVAL) = LAND( NTM,R8_EVAL(IV-IBV,NEVAL))
 	    ENDDO
          ELSEIF( CNCODE .EQ. 'OR'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
             DO IV=IVBOT,IVTOP
-               NTM   = R8_EVAL(IV-IBV, NEVAL)
-               NEVAL = NEVAL - NTM
   	       R8_EVAL(IV-IBV,NEVAL) = LOR( NTM, R8_EVAL(IV-IBV,NEVAL))
 	    ENDDO
          ELSEIF( CNCODE .EQ. 'MOFN'  )THEN
+            NTM   = R8_EVAL(1,NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
             DO IV=IVBOT,IVTOP
-               NTM   = R8_EVAL(IV-IBV,NEVAL)
-               NEVAL = NEVAL - NTM
-               NTM   = NTM - 1
                ITM   = R8_EVAL(IV-IBV,NEVAL)
                R8_EVAL(IV-IBV,NEVAL)=
      X			LMOFN(ITM,NTM,R8_EVAL(IV-IBV,NEVAL+1))

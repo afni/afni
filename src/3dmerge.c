@@ -479,6 +479,7 @@ int main( int argc , char * argv[] )
 
    float thr_stataux[MAX_STAT_AUX] ;
    int   num_fico ;
+   int   is_int=1 ;   /* 08 Jan 1998 */
 
 ENTRY("3dmerge MAIN") ;
 
@@ -892,6 +893,10 @@ STATUS("loading (and editing?) one dataset") ;
          first_datum  = datum  ;
       }
 
+      /** 08 Jan 1998: check if all inputs are integer types **/
+
+      is_int = is_int && (MRI_IS_INT_TYPE(datum) && fimfac == 0.0) ;
+
 #ifdef AFNI_DEBUG
 { char str[256] ;
   sprintf(str,"scaling to floats with factor %g",fimfac) ;
@@ -1011,6 +1016,21 @@ STATUS("merging edited data") ;
          if( gnum[ii] < MRG_hits_g ) { gfim[ii] = 0 ; gnum[ii] = 0 ; }
    }
 
+   /*** decide if the output is to be stored as integers ***/
+   /*   [at this point, is_int is true if all]
+         inputs were integers and unscaled.  ] 08 Jan 1998 */
+
+   switch( MRG_cflag_g ){
+      default:          is_int = 0 ; break ;   /* not allowed */
+
+      case CFLAG_COUNT: is_int = 1 ; break ;   /* it IS an integer */
+
+      case CFLAG_MMAX:                         /* if all inputs */
+      case CFLAG_SMAX:                         /* are integers, */
+      case CFLAG_AMAX:                         /* then one of these */
+      case CFLAG_ORDER: break ;                /* will be integer also */
+   }
+
    /*** do the averaging as ordered ***/
 
    switch( MRG_cflag_g ){
@@ -1126,11 +1146,11 @@ STATUS("merging edited data") ;
 
          if( MRG_cflag_g == CFLAG_FISHER ){
             fimfac = FUNC_COR_SCALE_SHORT ;
-         } else if( output_datum == first_datum && first_fimfac > 0.0 ){
-            fimfac = 1.0 / first_fimfac ;
+         } else if( gtop == 0.0 ||           /* 08 Jan 1998 */
+                    (is_int && gtop <= MRI_TYPE_maxval[output_datum]) ){
+            fimfac = 0.0 ;
          } else {
-            fimfac = (gtop > MRI_TYPE_maxval[output_datum] || gtop <= 1.0 )
-                     ? MRI_TYPE_maxval[output_datum]/ gtop : 0.0 ;
+            fimfac = MRI_TYPE_maxval[output_datum] / gtop ;
          }
 
 #ifdef AFNI_DEBUG

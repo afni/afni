@@ -40,14 +40,14 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 #define THD_MAX_NAME      256
 #define THD_MAX_LABEL     38
-#define THD_MAX_PREFIX     (39+1)  /* must be more than THD_MAX_LABEL */
+#define THD_MAX_PREFIX     (49+1)  /* must be more than THD_MAX_LABEL */
 #define THD_MAX_VIEWCODE   (4+1)
 #define THD_MAX_SUFFIX     (4+1)
 #define THD_MAX_FILECODE   (THD_MAX_PREFIX+THD_MAX_VIEWCODE)
 
 #define THD_DEFAULT_LABEL "Elvis Lives"
 
-#define THD_MAX_SESSION_ANAT   64
+#define THD_MAX_SESSION_ANAT  128
 #define THD_MAX_SESSION_FUNC  128
 #define THD_MAX_NUM_SESSION    32
 
