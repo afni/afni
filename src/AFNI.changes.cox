@@ -3646,3 +3646,8 @@
  * New program 3dAFNItoMINC.c, and new function thd_mincwrite.c.
  * Fixed bug in thd_mincread.c: it formerly scaled float inputs, which
      apparently is wrong.
+
+15 Apr 2002
+ * Changes to afni.c, afni_func.c, afni_slice.c, afni_warp.c, etc., to allow
+     MRI_rgb-valued datasets.  These can be created in to3d from ppm input
+     files.

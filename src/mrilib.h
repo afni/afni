@@ -92,6 +92,8 @@ typedef enum MRI_TYPE {
 #define MRI_type MRI_TYPE ;
 #define MRI_kind MRI_TYPE ;
 
+#define MRI_rgbyte MRI_rgb
+
 /*! The last MRI_TYPE yet defined. */
 
 #define LAST_MRI_TYPE 7

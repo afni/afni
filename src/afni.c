@@ -2193,7 +2193,7 @@ if(PRINT_TRACING)
 
            if( AFNI_yesenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
 
-           if( im->kind != MRI_complex ){
+           if( im->kind != MRI_complex && im->kind != MRI_rgb ){
               char qbuf[32] = "bg =" ;
               strcat(qbuf,buf) ; strcpy(buf,qbuf) ;
            }
@@ -2273,6 +2273,14 @@ ENTRY("AFNI_set_valabel") ;
          blab[iblab++] = 'I' ; blab[iblab++] = '\0' ;
       }
       break ;
+
+      case MRI_rgb:{
+         byte *rgb = MRI_RGB_PTR(im) ;
+         int ii = ib.ijk[0] + im->nx * ib.ijk[1] ;
+         sprintf(blab,"(%d,%d,%d)",(int)rgb[3*ii],(int)rgb[3*ii+1],(int)rgb[3*ii+2]) ;
+      }
+      break ;
+
    }
    EXRETURN ;
 }
@@ -5144,6 +5152,7 @@ if(PRINT_TRACING)
    if( im3d->vinfo->func_visible ){
       br_fim = UNDERLAY_TO_OVERLAY(im3d,br) ;
       fov    = AFNI_func_overlay( n , br_fim ) ;
+      if( fov != NULL && fov->kind == MRI_rgb ) return fov ;  /* 15 Apr 2002 */
    }
 
    /*----- 25 Jul 2001: get TT atlas overlay, if desired and possible -----*/

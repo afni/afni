@@ -186,6 +186,12 @@ STATUS("scaling slice to floats") ;
                                 (complex *) bar , (complex *) sar         ) ;
             RETURN(newim) ;
          }
+
+         case MRI_rgb:{
+            AFNI_br2sl_rgbyte( nxx,nyy,nzz , fixed_axis,fixed_index ,
+                                (rgbyte *) bar , (rgbyte *) sar         ) ;
+            RETURN(newim) ;
+         }
       }
    } /* end of if on dataset brick existing */
 
@@ -777,6 +783,97 @@ STATUS("scaling slice to floats") ;
          }
          break ;
       }
+
+      /**************************** rgb ****************************/
+#undef  DTYPE
+#undef  LMAP_XNAME
+#undef  LMAP_YNAME
+#undef  LMAP_ZNAME
+#undef  CUBIC_CLIP
+#define DTYPE      rgbyte
+#define LMAP_XNAME TWO_TWO(AFNI_lmap_to_xslice_,DTYPE)
+#define LMAP_YNAME TWO_TWO(AFNI_lmap_to_yslice_,DTYPE)
+#define LMAP_ZNAME TWO_TWO(AFNI_lmap_to_zslice_,DTYPE)
+
+      case TWO_TWO(MRI_,DTYPE):
+      switch( fixed_axis ){
+
+         case 1:{
+
+            switch( dset->vox_warp->type ){
+
+               case WARP_AFFINE_TYPE:{
+                  LMAP_XNAME( &(dset->vox_warp->rig_bod.warp) ,
+                              resam_mode ,
+                              parent_dset->daxes ,
+                              (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
+               }
+               RETURN(newim) ;
+
+               case WARP_TALAIRACH_12_TYPE:{
+                  int iw ;
+                  for( iw=0 ; iw < 12 ; iw++ )
+                     LMAP_XNAME( &(dset->vox_warp->tal_12.warp[iw]) ,
+                                 resam_mode ,
+                                 parent_dset->daxes ,
+                                 (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
+                  }
+               }
+               RETURN(newim) ;
+         }
+         break ;
+
+         case 2:{
+
+            switch( dset->vox_warp->type ){
+
+               case WARP_AFFINE_TYPE:{
+                  LMAP_YNAME( &(dset->vox_warp->rig_bod.warp) ,
+                              resam_mode ,
+                              parent_dset->daxes ,
+                              (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
+               }
+               RETURN(newim) ;
+
+               case WARP_TALAIRACH_12_TYPE:{
+                  int iw ;
+                  for( iw=0 ; iw < 12 ; iw++ )
+                     LMAP_YNAME( &(dset->vox_warp->tal_12.warp[iw]) ,
+                                 resam_mode ,
+                                 parent_dset->daxes ,
+                                 (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
+                  }
+               }
+               RETURN(newim) ;
+         }
+         break ;
+
+         case 3:{
+
+            switch( dset->vox_warp->type ){
+
+               case WARP_AFFINE_TYPE:{
+                  LMAP_ZNAME( &(dset->vox_warp->rig_bod.warp) ,
+                              resam_mode ,
+                              parent_dset->daxes ,
+                              (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
+               }
+               RETURN(newim) ;
+
+               case WARP_TALAIRACH_12_TYPE:{
+                  int iw ;
+                  for( iw=0 ; iw < 12 ; iw++ )
+                     LMAP_ZNAME( &(dset->vox_warp->tal_12.warp[iw]) ,
+                                 resam_mode ,
+                                 parent_dset->daxes ,
+                                 (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
+                  }
+               }
+               RETURN(newim) ;
+         }
+         break ;
+      }
+
       /**************************** DONE ****************************/
 #undef  DTYPE
 #undef  LMAP_XNAME

@@ -18,7 +18,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o   \
             afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o    \
             afni_ttren.o afni_pplug_1dfunc.o afni_driver.o         \
-            afni_niml.o afni_sumafunc.o                            \
+            afni_niml.o afni_sumafunc.o afni_slice_rgbyte.o        \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -317,11 +317,11 @@ dsetdup:dsetdup.o
 	$(CC) -o 3dcopy 3dcopy.o $(LFLAGS) $(LLIBS)
 
 3daxialize:3daxialize.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
-           afni_slice_float.o afni_slice_complex.o
+           afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o
 	$(RM) $@
 	$(CC) -o 3daxialize 3daxialize.o afni_warp.o afni_slice_byte.o \
                  afni_slice_short.o afni_slice_float.o afni_slice_complex.o \
-                 $(LFLAGS) $(LLIBS)
+                 afni_slice_rgbyte.o $(LFLAGS) $(LLIBS)
 
 3dfractionize:3dfractionize.o
 	$(RM) $@
@@ -637,11 +637,11 @@ AlphaSim:AlphaSim.o
 	$(CC) -o 3dExtrema 3dExtrema.o $(LFLAGS) $(LLIBS)
 
 adwarp:adwarp.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
-                afni_slice_float.o  afni_slice_complex.o
+                afni_slice_float.o  afni_slice_complex.o afni_slice_rgbyte.o
 	$(RM) $@
 	$(CC) -o adwarp adwarp.o afni_warp.o afni_slice_byte.o \
 	         afni_slice_short.o afni_slice_float.o afni_slice_complex.o \
-	         $(LFLAGS) $(LLIBS)
+	         afni_slice_rgbyte.o $(LFLAGS) $(LLIBS)
 
 2dImReg:2dImReg.o
 	$(RM) $@
@@ -690,6 +690,11 @@ afni_slice_complex.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
 	$(CC) -c -DDTYPE=complex afni_slice.c $(IFLAGS)
 	$(MV) afni_slice.o afni_slice_complex.o
+
+afni_slice_rgbyte.o:3ddata.h afni_slice.c afni_warp.h
+	$(RM) $@
+	$(CC) -c -DDTYPE=rgbyte afni_slice.c $(IFLAGS)
+	$(MV) afni_slice.o afni_slice_rgbyte.o
 
 afni_pcor_byte.o:afni_pcor.h afni_pcor_update.c
 	$(RM) $@

@@ -118,6 +118,19 @@ THD_brick_stats THD_get_brick_stats( MRI_IMAGE * im )
          bot = top = 0.0 ;
       break ;
 
+      case MRI_rgb:{
+         register byte * ar = (byte *) br ; register float val ;
+         bot = top = 0 ;
+         for( ii=0 ; ii < nvox ; ii++ ){      /* scale to brightness */
+            val =  0.299 * ar[3*ii]           /* between 0 and 255     */
+                 + 0.587 * ar[3*ii+1]
+                 + 0.114 * ar[3*ii+2] ;
+                 if( bot > val ) bot = val ;
+            else if( top < val ) top = val ;
+         }
+      }
+      break ;
+
       case MRI_byte:{
          register byte * ar = (byte *) br ;
          bot = top = ar[0] ;

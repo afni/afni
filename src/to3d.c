@@ -2778,6 +2778,8 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
             argopt.datum_all = MRI_complex ;
          } else if( strcmp(Argv[nopt],"byte") == 0 ){
             argopt.datum_all = MRI_byte ;
+         } else if( strcmp(Argv[nopt],"rgb") == 0 ){
+            argopt.datum_all = MRI_rgb ;
          } else {
             char buf[256] ;
             sprintf(buf,"-datum of type '%s' is not supported in AFNI!",
@@ -3884,16 +3886,18 @@ printf("T3D_read_images: mri_imcount totals nz=%d\n",nz) ;
 
    if( argopt.datum_all < 0 ){
       switch( im->kind ){
-         case MRI_byte:     argopt.datum_all = MRI_byte  ; break ;
+         case MRI_byte:     argopt.datum_all = MRI_byte    ; break ;
 
          default:
-         case MRI_short:    argopt.datum_all = MRI_short ; break ;
+         case MRI_short:    argopt.datum_all = MRI_short   ; break ;
 
          case MRI_int:
          case MRI_double:
-         case MRI_float:    argopt.datum_all = MRI_float ; break ;
+         case MRI_float:    argopt.datum_all = MRI_float   ; break ;
 
          case MRI_complex:  argopt.datum_all = MRI_complex ; break ;
+
+         case MRI_rgb:      argopt.datum_all = MRI_rgb     ; break ;
       }
    }
 
@@ -4098,6 +4102,12 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
                   }
                }
                break ;  /* end of conversion to complexes */
+
+               case MRI_rgb:{             /** convert to RGB **/
+                  shim = mri_to_rgb( im ) ;
+                  KILL_1MRI(im) ;
+               }
+               break ;
 
             }
          }  /**-- end of conversion: desired image is in shim --**/

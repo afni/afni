@@ -1086,6 +1086,11 @@ STATUS("couldn't get Func image!") ;
       KILL_1MRI(im_thr) ; RETURN(NULL) ;
    }
 
+   if( im_fim->kind == MRI_rgb ){                   /* 15 Apr 2002 */
+      if( im_thr != im_fim ) KILL_1MRI(im_thr) ;
+      RETURN(im_fim) ;
+   }
+
    if( ! AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ||
        ( im_thr != NULL && ! AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ) ){
 
