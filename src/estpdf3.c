@@ -18,7 +18,14 @@
 
   Mod:     Extensive restructuring of the code.
   Date:    28 January 2000
+
+  Mod:     USE_QUIET (RWCox)
+  Date:    16 Apr 2003
 */
+
+#ifndef USE_QUIET  /* 16 Apr 2003 */
+# define quiet 0
+#endif
 
 
 /*---------------------------------------------------------------------------*/
@@ -107,10 +114,12 @@ void estpdf_short_initialize
     }
 
 
-  printf ("\nInitial PDF estimates: \n");
-  printf ("Lower Bnd = %8.3f   Upper Bnd  = %8.3f \n", 
-	  p.lower_bnd, p.upper_bnd);
-  printf ("Gray Peak = %8.3f   White Peak = %8.3f \n", *gpeak, *wpeak);
+  if( !quiet ){
+   printf ("\nInitial PDF estimates: \n");
+   printf ("Lower Bnd = %8.3f   Upper Bnd  = %8.3f \n", 
+	   p.lower_bnd, p.upper_bnd);
+   printf ("Gray Peak = %8.3f   White Peak = %8.3f \n", *gpeak, *wpeak);
+  }
 
 
   PDF_destroy (&ps);
@@ -175,10 +184,12 @@ void estpdf_float_initialize
     }
 
 
-  printf ("\nInitial PDF estimates: \n");
-  printf ("Lower Bnd = %8.3f   Upper Bnd  = %8.3f \n", 
-	  p.lower_bnd, p.upper_bnd);
-  printf ("Gray Peak = %8.3f   White Peak = %8.3f \n", *gpeak, *wpeak);
+  if( !quiet ){
+    printf ("\nInitial PDF estimates: \n");
+    printf ("Lower Bnd = %8.3f   Upper Bnd  = %8.3f \n", 
+	    p.lower_bnd, p.upper_bnd);
+    printf ("Gray Peak = %8.3f   White Peak = %8.3f \n", *gpeak, *wpeak);
+  }
 
 
   PDF_destroy (&ps);
@@ -403,17 +414,19 @@ void output_pdf_results (float * vertex, float sse)
   wmean  = vertex[7];
   wsigma = vertex[8];
 
-  printf ("\nProbability Density Function Estimates: \n");
-  printf ("Background Coef      = %f \n", b);
-  printf ("Background Mean      = %f \n", bmean);
-  printf ("Background Std Dev   = %f \n", bsigma);
-  printf ("Gray Matter Coef     = %f \n", g);
-  printf ("Gray Matter Mean     = %f \n", gmean);
-  printf ("Gray Matter Std Dev  = %f \n", gsigma);
-  printf ("White Matter Coef    = %f \n", w);
-  printf ("White Matter Mean    = %f \n", wmean);
-  printf ("White Matter Std Dev = %f \n", wsigma);
-  printf ("\nrmse = %f \n", sqrt (sse / p.nbin ));
+  if( !quiet ){
+   printf ("\nProbability Density Function Estimates: \n");
+   printf ("Background Coef      = %f \n", b);
+   printf ("Background Mean      = %f \n", bmean);
+   printf ("Background Std Dev   = %f \n", bsigma);
+   printf ("Gray Matter Coef     = %f \n", g);
+   printf ("Gray Matter Mean     = %f \n", gmean);
+   printf ("Gray Matter Std Dev  = %f \n", gsigma);
+   printf ("White Matter Coef    = %f \n", w);
+   printf ("White Matter Mean    = %f \n", wmean);
+   printf ("White Matter Std Dev = %f \n", wsigma);
+   printf ("\nrmse = %f \n", sqrt (sse / p.nbin ));
+  }
 
 }
 
@@ -431,7 +444,8 @@ void estpdf_short (int nxyz, short * sfim, float * parameters)
 
 
   /*----- Progress report -----*/
-  printf ("\nEstimating PDF of voxel intensities \n");
+  if( !quiet )
+   printf ("\nEstimating PDF of voxel intensities \n");
 
   
   /*----- Initialization for PDF estimation -----*/
@@ -471,7 +485,8 @@ void estpdf_float (int nxyz, float * ffim, int nbin, float * parameters)
 
 
   /*----- Progress report -----*/
-  printf ("\nEstimating PDF of voxel intensities \n");
+  if( !quiet )
+   printf ("\nEstimating PDF of voxel intensities \n");
 
   
   /*----- Initialization for PDF estimation -----*/

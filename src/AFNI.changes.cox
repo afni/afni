@@ -4503,4 +4503,5 @@
 
 16 Apr 2003
  * Modified 3dUniformize.c to allow byte-valued datasets, and added to standard
-     distributions.
+     distributions.  Also modified estpdf3.c and pdf.c to obey the global
+     "quiet" variable, if the USE_QUIET macro is defined.

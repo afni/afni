@@ -45,6 +45,7 @@ char * commandline = NULL ;                /* command line for history notes */
 
 int input_datum = MRI_short ;              /* 16 Apr 2003 - RWCox */
 int quiet       = 0 ;                      /* ditto */
+#define USE_QUIET
  
 typedef struct UN_options
 { 
@@ -229,7 +230,7 @@ void get_options
       if (strncmp(argv[nopt], "-quiet", 6) == 0)
 	{
 	  option_data->quiet = TRUE;
-          quiet = 1 ;                    /* 16 Apr 2003 */
+          quiet = 1 ;                /* 16 Apr 2003 */
 	  nopt++;
 	  continue;
 	}
@@ -781,8 +782,11 @@ void estimate_field (UN_options * option_data,
   /*----- Estimate pdf for resampled data -----*/
   PDF_initialize (&p);
   PDF_float_to_pdf (rpts, vr, nbin, &p);
-  sprintf (filename, "p%d.1D", iter);
-  PDF_write_file (filename, p);
+
+  if( !quiet ){
+   sprintf (filename, "p%d.1D", iter);
+   PDF_write_file (filename, p);
+  }
 
 
   /*----- Estimate gross field distortion -----*/
@@ -801,13 +805,17 @@ void estimate_field (UN_options * option_data,
       /*----- Estimate pdf for perturbed image ur -----*/
       estpdf_float (rpts, ur, nbin, parameters);
       PDF_sprint ("p", p);
-      sprintf (filename, "p%d.1D", iter);
-      PDF_write_file (filename, p);
+      if( !quiet ){
+       sprintf (filename, "p%d.1D", iter);
+       PDF_write_file (filename, p);
+      }
 
       /*----- Sharpen the pdf and produce modified image wr -----*/
       create_map (p, parameters, vtou);
-      sprintf (filename, "vtou%d.1D", iter);
-      ts_write (filename, p.nbin, vtou);
+      if( !quiet ){
+       sprintf (filename, "vtou%d.1D", iter);
+       ts_write (filename, p.nbin, vtou);
+      }
       map_vtou (p, rpts, ur, vtou, wr);
 
       /*----- Estimate smooth distortion field fs -----*/
@@ -1075,14 +1083,20 @@ int main
   short * sfim = NULL;                 /* output uniformized image */
 
 
+  { int ii ;                           /* 16 Apr 2003 */
+    for( ii=1 ; ii < argc ; ii++ ){
+      if( strcmp(argv[ii],"-quiet") == 0 ){ quiet = 1; break; }
+    }
+  }
+
   /*----- Identify software -----*/
   if( !quiet ){
-    printf ("\n\n");
-    printf ("Program: %s \n", PROGRAM_NAME);
-    printf ("Author:  %s \n", PROGRAM_AUTHOR);
-    printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
-    printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
-    printf ("\n");
+   printf ("\n\n");
+   printf ("Program: %s \n", PROGRAM_NAME);
+   printf ("Author:  %s \n", PROGRAM_AUTHOR);
+   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+   printf ("\n");
   }
 
   
