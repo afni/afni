@@ -96,7 +96,7 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 }
 
 
-/*! \def SUMA_MIN_VEC(a,nel)
+/*! \def SUMA_MIN_VEC(a,nel, amin)
 \brief SUMA_MIN_VEC macro for minimum
 	a pointer to vector
 	nel number of elements in vector

@@ -1101,262 +1101,24 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 				
 			case Button3:
 					/*fprintf(stdout,"Button 3 down, plain jane\n");*/
-					/* Report on coordinates */
-					if (SUMA_ShownSOs(sv, SUMAg_DOv, NULL) == 0) { /* no surfaces, break */
+					ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
+               
+               if (ii == 0) { /* no surfaces, break */
 						break;
 					}
-					if (SUMA_ShownSOs(sv, SUMAg_DOv, NULL) == 1) /* only one surface object can be displayed when picking */
-					{/* report on coordinates, within case 0 */
-						GLfloat rotationMatrix[4][4];
-						GLint viewport[4];
-						GLdouble mvmatrix[16], projmatrix[16];
-						GLint realy; /* OpenGL y coordinate position */
-						int x, y;
-
-						x = (int)Bev.x;
-						y = (int)Bev.y;
-
-						/* go through the ModelView transforms as you would in display since the modelview matrix is popped
-						after each display call */
-						SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
-						glMatrixMode(GL_MODELVIEW);
-						glPushMatrix();
-						glTranslatef (sv->GVS[sv->StdView].translateVec[0], sv->GVS[sv->StdView].translateVec[1], 0.0);
-						glTranslatef (sv->GVS[sv->StdView].RotaCenter[0], sv->GVS[sv->StdView].RotaCenter[1], sv->GVS[sv->StdView].RotaCenter[2]);
-						glMultMatrixf(&rotationMatrix[0][0]);
-						glTranslatef (-sv->GVS[sv->StdView].RotaCenter[0], -sv->GVS[sv->StdView].RotaCenter[1], -sv->GVS[sv->StdView].RotaCenter[2]);
-
-						glGetIntegerv(GL_VIEWPORT, viewport);
-						glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
-						glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
-						/* viewport[3] is height of window in pixels */
-						realy = viewport[3] - (GLint)y -1;
-
-						/*fprintf (SUMA_STDOUT, "Coordinates at cursor are (%4d, %4d)\n", x, realy);*/
-
-						/* set the pick points at both ends of the clip planes */
-						gluUnProject((GLdouble)x, (GLdouble)realy, 0.0,\
-							mvmatrix, projmatrix, viewport, \
-							&(sv->Pick0[0]), &(sv->Pick0[1]), &(sv->Pick0[2]));
-						/*fprintf (SUMA_STDOUT, "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",\
-							(sv->Pick0[0]), (sv->Pick0[1]), (sv->Pick0[2]));*/
-
-						gluUnProject((GLdouble)x, (GLdouble)realy, 1.0,\
-							mvmatrix, projmatrix, viewport, \
-							&(sv->Pick1[0]), &(sv->Pick1[1]), &(sv->Pick1[2]));
-						/*fprintf (SUMA_STDOUT, "World Coords at z=1.0 (far clip plane) are (%f, %f, %f)\n",\
-							(sv->Pick1[0]), (sv->Pick1[1]), (sv->Pick1[2]));*/
-
-						glPopMatrix();
-
-						/* do the intersection on the surface object in focus */
-						if (sv->Focus_SO_ID < 0)
-						{
-							fprintf(SUMA_STDERR,"Error %s: sv->Focus_SO_ID is not set.\nNo intersection will be computed.\n", FuncName);
-							break;
-						}
+               
+					if (!SUMA_GetSelectionLine (sv, (int)Bev.x, (int)Bev.y)) {
+                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_GetSelectionLine.\n", FuncName);
+                  break;
+               } 
 
 
-						{/* determine intersection */
-							SUMA_SurfaceObject *SO;
-							float P0f[3], P1f[3];
-							SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-							P0f[0] = sv->Pick0[0];
-							P0f[1] = sv->Pick0[1];
-							P0f[2] = sv->Pick0[2];
-							P1f[0] = sv->Pick1[0];
-							P1f[1] = sv->Pick1[1];
-							P1f[2] = sv->Pick1[2];
+               /* perform the intersection calcluation and mark the surface */
+               if (!SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv)) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MarkLineSurfaceIntersect.\n", FuncName);
+                  break;
+               }
 
-							#ifdef SUMA_LOCAL_FIND_CLOSE_NODES /* snippet of code that may be useful in the future */
-							{/* locate the nodes closest to the line */
-								/* calculate the distance of the nodes to the line */
-								int  i2min, *Indx;
-								float *d2, d2min;
-
-								d2 = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
-								if (d2 == NULL) {
-									fprintf(SUMA_STDERR, "Error %s: Could not allocate for d2\n", FuncName);
-									break;
-								}
-								if (!SUMA_Point_To_Line_Distance (SO->NodeList, SO->N_Node, P0f, P1f, d2, &d2min, &i2min)) {
-									fprintf(SUMA_STDERR, "Error %s: SUMA_Point_To_Line_Distance Failed\n", FuncName);
-									break;
-								}
-								SUMA_free(do_id);
-								/* report some results */
-								id = SO->NodeDim * i2min;
-								fprintf (SUMA_STDOUT, "Node [%d] %f, %f, %f was closest (%f mm) to line\n", \
-									i2min, SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2], sqrt(d2min));
-								/* sort the distances to the line and find the closest 50 nodes */
-								Indx = SUMA_z_qsort ( d2 , SO->N_Node );	
-								/* from the closest nodes, find the one that is closest to P0f (that would be closest to the user) that should be the node of choice */
-								/* a better way to do this is to find the polygon that is pierced by the line and highlight the node closest to the line in that
-								polygon. And in case there are multiple polygons pierced, choose the one that is closest to P0f. This way, you are guaranteed to 
-								get the correct node */
-
-								/* prepare EngineData to points cetered on closest node (poor man's method for now)*/
-								fv15[0] = SO->NodeList[id];
-								fv15[1] = SO->NodeList[id+1];
-								fv15[2] = SO->NodeList[id+2];
-
-								fv15[3] = 5.0;
-								fv15[4] = 5.0;
-								fv15[5] = 5.0;
-
-								/* register fv15 with EngineData */
-								sprintf(sfield,"fv15");
-								sprintf(sdestination,"HighlightNodes");
-								if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
-									fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-									break;
-								}					
-
-								/*make call to SUMA_Engine */
-								sprintf(CommString,"Redisplay|HighlightNodes~");
-								if (!SUMA_Engine (CommString, &EngineData, sv)) {
-									fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-								}
-								/* done with d2, and others, free them */
-								if (d2 != NULL) SUMA_free(d2);
-								SUMA_free(Indx);
-							}/* locate the nodes closest to the line */
-							#endif
-
-							/* Now the FaceSetIntersection game */
-							{/* FaceSet Intersection */
-								SUMA_MT_INTERSECT_TRIANGLE *MTI;
-								NP = SO->FaceSetDim;
-								if (SO->FaceSetDim != 3) {
-									fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle only works for triangular meshes.\n", FuncName);
-								} else {
-									
-									float delta_t_tmp; struct timeval tt_tmp; 
-  									SUMA_etime (&tt_tmp, 0);
-									 
-									MTI = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet);
-									
-									delta_t_tmp = SUMA_etime (&tt_tmp, 1);
-									if (LocalHead) fprintf (SUMA_STDERR, "Local Debug %s: Intersection took %f seconds.\n", FuncName, delta_t_tmp);
-									
-									if (MTI == NULL) {
-										fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
-									}else {
-										/*
-										if (!SUMA_Show_MT_intersect_triangle(MTI, NULL)) {
-											fprintf(SUMA_STDERR,"Error %s: SUMA_Show_MT_intersect_triangle failed.\n", FuncName);
-										} 
-										*/
-										/* Mark intersection Facsets */
-											if (MTI->N_hits) {
-												ip = NP * MTI->ifacemin;
-												/* print nodes about the closets faceset*/
-												fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
-												fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
-												fprintf(SUMA_STDOUT, "%d, %d, %d\n", \
-												SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
-
-												fprintf (SUMA_STDOUT,"Coordinates of Nodes forming closest FaceSet:\n");
-												for (it=0; it < 3; ++it) { 
-													
-													id = SO->NodeDim * SO->FaceSetList[ip+it];
-													fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[id],\
-																										SO->NodeList[id+1],\
-																										SO->NodeList[id+2]);
-												}
-												fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-												#ifdef SUMA_LOCAL_COLORINTERSECTION
-												EngineData.N_rows = 3;
-												EngineData.N_cols = 4;
-												fm = (float **)SUMA_allocate2D(EngineData.N_rows, EngineData.N_cols, (sizeof(float)));
-												fm[0][0] = SO->FaceSetList[ip];
-												fm[0][1] = 0.0; fm[0][2] = 1.0; fm[0][3] = 1.0; 
-												fm[1][0] = SO->FaceSetList[ip+1];
-												fm[1][1] = 0.0; fm[1][2] = 1.0; fm[1][3] = 1.0; 
-												fm[2][0] = SO->FaceSetList[ip+2];
-												fm[2][1] = 0.0; fm[2][2] = 1.0; fm[2][3] = 1.0; 
-												/* register fm with EngineData */
-													sprintf(sfield,"fm");
-													sprintf(sdestination,"SetNodeColor");
-													if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fm, sdestination, ssource, YUP)) {
-														fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-														break;
-													}
-
-												sprintf(CommString,"SetNodeColor~");
-												if (!SUMA_Engine (CommString, &EngineData, sv)) {
-													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-												}
-
-												/* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
-												if (fm) SUMA_free2D ((char **)fm, EngineData.N_rows);
-
-												#endif
-
-												/* Set the Nodeselection at the closest node */
-												it = MTI->inodemin;
-												sprintf(sfield,"i");
-												sprintf(sdestination,"SetSelectedNode");
-												if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-													fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-													break;
-												}
-												sprintf(CommString,"Redisplay|SetSelectedNode~");
-												if (!SUMA_Engine (CommString, &EngineData, sv)) {
-													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-												}
-
-												/* Set the FaceSetselection */
-												it = MTI->ifacemin;
-												sprintf(sfield,"i");
-												sprintf(sdestination,"SetSelectedFaceSet");
-												if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-													fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-													break;
-												}
-												sprintf(CommString,"SetSelectedFaceSet~");
-												if (!SUMA_Engine (CommString, &EngineData, sv)) {
-													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-												}
-												/* Now set the cross hair position at the intersection*/
-												sprintf(sfield,"fv3");
-												sprintf(sdestination,"SetCrossHair");
-												if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)MTI->P, sdestination, ssource,NOPE)) {
-													fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-													break;
-												}
-												sprintf(CommString,"SetCrossHair~");
-												if (!SUMA_Engine (CommString, &EngineData, sv)) {
-													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-												}
-
-												/* attach the cross hair to the selected surface */
-												iv3[0] = SUMA_findDO(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-												iv3[1] = MTI->inodemin;
-												sprintf(sfield,"iv3");
-												sprintf(sdestination,"BindCrossHair");
-												if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(iv3), sdestination, ssource, NOPE)) {
-													fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-													break;
-												}
-												sprintf(CommString,"Redisplay|BindCrossHair~");
-												if (!SUMA_Engine (CommString, &EngineData, sv)) {
-													fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-												}
-
-											}
-											/* clear MTI */
-											if (!SUMA_Free_MT_intersect_triangle(MTI)) 
-												fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
-									}
-								}
-							}/* FaceSet Intersection */	
-						}/* determine intersection */
-					}/* report on coordinates, within case 0 */
-					else {
-						fprintf(SUMA_STDERR,"Error %s: Cannot pick when more than one Surface Object is displayed.\nThis can be implemented if needed, please complain to the author.(ziad@nih.gov)\n", FuncName); 
-						break;
-					}												
 				break;
 		} /* switch type of button Press */
 		break;
@@ -1464,3 +1226,177 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
 }
 
  
+/*!
+   Determines the intersection between ]sv->Pick0 sv->Pick1[ and SO
+   Highlights the intersected faceset, node and updates cross hair location 
+   This used to be part of Button3's code in SUMA_input
+   ans = SUMA_MarkLineSurfaceIntersect (sv, dov);
+   \param sv (SUMA_SurfaceViewer *) surface viewer pointer
+   \param dov (SUMA_DO *) displayable object vector pointer
+   \ret ans (YUP/NOPE)
+   
+   also requires SUMAg_DOv and SUMAg_N_DOv
+*/
+SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
+{/* determine intersection */
+	float P0f[3], P1f[3];
+   SUMA_Boolean LocalHead = NOPE;
+   static char FuncName[]={"SUMA_MarkLineSurfaceIntersect"};
+   int NP; 
+	SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL, *MTIi = NULL;
+	float delta_t_tmp, dmin; 
+   struct timeval tt_tmp; 
+   int ip, it, id, iv3[3], ii, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], imin;
+   char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
+   static char ssource[]={"suma"};
+	SUMA_EngineData EngineData; /* Do not free EngineData, only its contents*/
+   SUMA_SurfaceObject *SO = NULL;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	/* initialize EngineData */
+	if (!SUMA_InitializeEngineData (&EngineData)) {
+		fprintf(SUMA_STDERR,"Error %s: Failed to initialize EngineData\n", FuncName);
+		SUMA_RETURN (NOPE);
+	}
+
+	P0f[0] = sv->Pick0[0];
+	P0f[1] = sv->Pick0[1];
+	P0f[2] = sv->Pick0[2];
+	P1f[0] = sv->Pick1[0];
+	P1f[1] = sv->Pick1[1];
+	P1f[2] = sv->Pick1[2];
+   
+   N_SOlist = SUMA_ShownSOs(sv, dov, SOlist);
+   imin = -1;
+   dmin = 10000000.0;
+   for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: working %d/%d shown surfaces ...\n", FuncName, ii, N_SOlist);
+      SO = (SUMA_SurfaceObject *)dov[SOlist[ii]].OP;
+	   if (SO->FaceSetDim != 3) {
+		   fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle only works for triangular meshes.\n", FuncName);
+	   } else {
+
+  		   SUMA_etime (&tt_tmp, 0);
+
+		   MTIi = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet);
+
+		   delta_t_tmp = SUMA_etime (&tt_tmp, 1);
+		   if (LocalHead) fprintf (SUMA_STDERR, "Local Debug %s: Intersection took %f seconds.\n", FuncName, delta_t_tmp);
+
+		   if (MTIi == NULL) {
+			   fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
+            SUMA_RETURN (NOPE);
+		   }
+         
+         if (MTIi->N_hits) { /* decide on the closest surface to the clicking point */
+            if (MTIi->t[MTIi->ifacemin] < dmin) {
+               if (LocalHead) fprintf (SUMA_STDERR, "%s: A minimum for surface %d.\n", FuncName, ii);
+               dmin = MTIi->t[MTIi->ifacemin];
+               imin = SOlist[ii];
+               MTI = MTIi;
+            }else {     
+               /* not good, toss it away */
+               if (LocalHead) fprintf (SUMA_STDERR, "%s: ii=%d freeing MTIi...\n", FuncName, ii);
+               if (!SUMA_Free_MT_intersect_triangle(MTIi)) 
+				     fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
+               MTIi = NULL;
+            }
+         }else {
+            /* not good, toss it away */
+           if (LocalHead) fprintf (SUMA_STDERR, "%s: ii=%d freeing MTIi no hits...\n", FuncName, ii);
+           if (!SUMA_Free_MT_intersect_triangle(MTIi)) 
+				   fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
+           MTIi = NULL;
+        }
+      }
+    } 
+
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Closest surface is indexed %d in DOv.\n", FuncName, imin);
+      
+   /* Mark intersection Facsets */
+	if (imin >= 0) {
+      sv->Focus_SO_ID = imin;
+	   SO = (SUMA_SurfaceObject *)dov[imin].OP;
+	   NP = SO->FaceSetDim;
+		ip = NP * MTI->ifacemin;
+		/* print nodes about the closets faceset*/
+		fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+      fprintf(SUMA_STDOUT, "Selected surface %s (Focus_SO_ID # %d).\n", SO->Label, sv->Focus_SO_ID);
+		fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
+		fprintf(SUMA_STDOUT, "%d, %d, %d\n", \
+		SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
+
+		fprintf (SUMA_STDOUT,"Coordinates of Nodes forming closest FaceSet:\n");
+		for (it=0; it < 3; ++it) { 
+
+			id = SO->NodeDim * SO->FaceSetList[ip+it];
+			fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[id],\
+																SO->NodeList[id+1],\
+																SO->NodeList[id+2]);
+		}
+		fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+
+		/* Set the Nodeselection at the closest node */
+		it = MTI->inodemin;
+		sprintf(sfield,"i");
+		sprintf(sdestination,"SetSelectedNode");
+		if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
+			fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+			SUMA_RETURN (NOPE);
+		}
+		sprintf(CommString,"Redisplay|SetSelectedNode~");
+		if (!SUMA_Engine (CommString, &EngineData, sv)) {
+			fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+         SUMA_RETURN (NOPE);
+		}
+
+		/* Set the FaceSetselection */
+		it = MTI->ifacemin;
+		sprintf(sfield,"i");
+		sprintf(sdestination,"SetSelectedFaceSet");
+		if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
+			fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+			SUMA_RETURN (NOPE);
+		}
+		sprintf(CommString,"SetSelectedFaceSet~");
+		if (!SUMA_Engine (CommString, &EngineData, sv)) {
+			fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+         SUMA_RETURN (NOPE);
+		}
+		/* Now set the cross hair position at the intersection*/
+		sprintf(sfield,"fv3");
+		sprintf(sdestination,"SetCrossHair");
+		if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)MTI->P, sdestination, ssource,NOPE)) {
+			fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+			SUMA_RETURN (NOPE);
+		}
+		sprintf(CommString,"SetCrossHair~");
+		if (!SUMA_Engine (CommString, &EngineData, sv)) {
+			fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+		}
+
+		/* attach the cross hair to the selected surface */
+		iv3[0] = SUMA_findDO(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+		iv3[1] = MTI->inodemin;
+		sprintf(sfield,"iv3");
+		sprintf(sdestination,"BindCrossHair");
+		if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(iv3), sdestination, ssource, NOPE)) {
+			fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+			SUMA_RETURN (NOPE);
+		}
+		sprintf(CommString,"Redisplay|BindCrossHair~");
+		if (!SUMA_Engine (CommString, &EngineData, sv)) {
+			fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+         SUMA_RETURN (NOPE);
+		}
+
+	} 
+	/* clear MTI */
+	if (MTI) {
+      if (!SUMA_Free_MT_intersect_triangle(MTI)) 
+		   fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
+   }
+
+   SUMA_RETURN (YUP);
+}/* determine intersection */

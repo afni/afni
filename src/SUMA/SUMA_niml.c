@@ -113,12 +113,12 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 	char CommString[SUMA_MAX_COMMAND_LENGTH], *nel_surfidcode;
 	char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100], ssource[100];
 	float **fm, dimfact,  *XYZ;
-	int i, *inel, I_C = -1, iv3[3];
+	int i, *inel, I_C = -1, iv3[3], dest_SO_ID = -1, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
 	byte *r, *g, *b;
 	static char FuncName[]={"SUMA_process_NIML_data"};
-	SUMA_Boolean Empty_irgba = NOPE, LocalHead = NOPE;
-	
-	SUMA_SurfaceObject *SO;
+	SUMA_Boolean Empty_irgba = NOPE, LocalHead = YUP, Found = NOPE;
+	SUMA_SurfaceObject *SO = NULL;
+   
 	/*int it;
 	float fv3[3], fv15[15];*/
 	/*float ft;
@@ -126,9 +126,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-  	/* retrieve the Surface Object in Focus*/
-		SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
-		
 
 	/* initialize EngineData */
 	if (!SUMA_InitializeEngineData (&EngineData)) {
@@ -156,8 +153,42 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 					nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
 	}
 	
+
    /*--- CrossHair XYZ ---*/
 	if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0) {/* SUMA_crosshair_xyz */
+		/* look for the surface idcode */
+	   nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
+		if (nel_surfidcode == NULL) {
+			if (LocalHead) fprintf(SUMA_STDERR,"%s: surface_idcode missing in nel, using sv->Focus_SO_ID.\n", FuncName);
+		   dest_SO_ID = sv->Focus_SO_ID; /* default */
+      } else {
+         /* first try to find out if one of the displayd surfaces has a parent equal to nel_surfidcode */
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Searching displayed surfaces.\n", FuncName);
+         Found = NOPE;
+         i = 0;
+         N_SOlist = SUMA_ShownSOs(sv, SUMAg_DOv, SOlist);
+         while (i < N_SOlist && !Found) { 
+            SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);
+            if (strcmp(nel_surfidcode, SO->MapRef_idcode_str) == 0) {
+               Found = YUP;
+               dest_SO_ID = SOlist[i];
+            }
+            ++i;
+         }
+         /* if not found, look for any DO */
+         if (!Found) {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: None of the displayed surfaces (or their parents) match nel_surfidcode. Trying all of DOv...\n", FuncName);
+            dest_SO_ID = SUMA_findDO (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
+            if (dest_SO_ID < 0) {
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: nel idcode is not found in DOv.\n", FuncName);            
+               dest_SO_ID = sv->Focus_SO_ID; 
+            } else { /* good, set SO accordingly */
+ 			      if (LocalHead) fprintf(SUMA_STDOUT,"%s: DOv[%d] Matched idcode\n", FuncName, dest_SO_ID);
+            }
+         }
+		}
+      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
+
      /*-- check element for suitability --*/
      if( nel->vec_len    < 1 || nel->vec_filled <  1) {  /* empty element?             */
 			fprintf(SUMA_STDERR,"%s: Empty crosshair xyz.\n", FuncName);
@@ -185,7 +216,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 			fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\nLoose Crosshair\n", FuncName);
 			iv3[0] = -1;
 		} else {
-			iv3[0] = sv->Focus_SO_ID;
+			iv3[0] = dest_SO_ID;
 		}
 		iv3[1] = -1; /* nothing at the monent for a node based link, from afni */
 		
@@ -229,23 +260,45 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 		}
 	  
 	  /* show me nel */
-	  if (LocalHead) SUMA_nel_stdout (nel);
+	  /* if (LocalHead) SUMA_nel_stdout (nel); */
 	  
-		/* make sure that the Surface idcode corresponds to the one in focus */
+		/* look for the surface idcode */
 	   nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
 		if (nel_surfidcode == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\n", FuncName);
 			SUMA_RETURN(NOPE);
 		} else {
-			if (strcmp(nel_surfidcode, SO->MapRef_idcode_str) != 0) {
-				fprintf(SUMA_STDERR,"Error %s: surface_idcode in nel not equal to SO->MapRef_idcode_str.\n", FuncName);
-				SUMA_RETURN(NOPE);
-			} else {
-				if (LocalHead) fprintf(SUMA_STDOUT,"%s: Matching surface idcode\n", FuncName);
-			}
+         /* first try to find out if one of the displayd surfaces has a parent equal to nel_surfidcode */
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Searching displayed surfaces.\n", FuncName);
+         Found = NOPE;
+         i = 0;
+         N_SOlist = SUMA_ShownSOs(sv, SUMAg_DOv, SOlist);
+         while (i < N_SOlist && !Found) { 
+            SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);
+            if (strcmp(nel_surfidcode, SO->MapRef_idcode_str) == 0) {
+               Found = YUP;
+               dest_SO_ID = SOlist[i];
+            }
+            ++i;
+         }
+         /* if not found, look for any DO */
+         if (!Found) {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: None of the displayed surfaces (or their parents) match nel_surfidcode. Trying all of DOv...\n", FuncName);
+            dest_SO_ID = SUMA_findDO (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
+            if (dest_SO_ID < 0) {
+               fprintf(SUMA_STDERR,"Error %s: nel idcode is not found in DOv.\n", FuncName);
+               SUMA_RETURN(NOPE);
+            } else {
+ 			      if (LocalHead) fprintf(SUMA_STDOUT,"%s: DOv[%d] Matched idcode\n", FuncName, dest_SO_ID);
+            }
+         }
 		}
 	  
-	   /* store the node colors */
+      /* Now choose the SO in question */
+      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
+	   
+      
+      /* store the node colors */
 
 		#ifdef OLD_FUNC_OVERLAY		
 			/*Prep EngineData and fm*/

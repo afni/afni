@@ -2,8 +2,6 @@
 #define SUMA_PROTOTYPE_INCLUDED
 
 /* functions that have yet to be prototyped in a particular spot */
-void SUMA_momentum(XtPointer clientData, XtIntervalId *id);
-Boolean SUMA_spin(XtPointer clientData);
 void SUMA_mapStateChanged(Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData);
 void SUMA_help(void);
