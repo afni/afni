@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.2 <July, 2002>"
+#define VERSION "Version 1.3 <January, 2003>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -42,11 +42,15 @@
 /*----------------------------------------------------------------------
  * history:
  *
- * 1.1  July 2, 2002
- *   - modified to fully align new data set grid to that of the master
+ * 1.3  January 14, 2003
+ *   - clear warp information before writing to disk (fix uncommon problem)
+ *   - use RESAM_shortstr for comparison in resam_str2mode
  *
  * 1.2  July 29, 2002
  *   - no change here, but updated r_new_resam_dset() for view type
+ *
+ * 1.1  July 2, 2002
+ *   - modified to fully align new data set grid to that of the master
  *----------------------------------------------------------------------
 */
 
@@ -526,7 +530,7 @@ int resam_str2mode ( char * modestr )
 
     for (mode = FIRST_RESAM_TYPE; mode <= LAST_RESAM_TYPE; mode++ )
     {
-	if ( ! strncmp( modestr, RESAM_typestr[mode], 2 ) )
+	if ( ! strncmp( modestr, RESAM_shortstr[mode], 2 ) )
 	    return mode;
     }
 
@@ -551,6 +555,11 @@ int write_results ( THD_3dim_dataset * dout, options_t * opts,
     /* set number of time-axis slices to 0 */
     if( DSET_NUM_TTOFF(dout) > 0 )
 	EDIT_dset_items( dout, ADN_nsl, 0, ADN_none );
+
+    /* since we are writing data to disk, clear warp info */
+    ZERO_IDCODE( dout->warp_parent_idcode );
+    dout->warp_parent_name[0] = '\0';
+    dout->warp = NULL;
 
     /* add to old history */
     tross_Copy_History( opts->dset , dout );
