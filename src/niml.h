@@ -230,6 +230,8 @@ extern void NI_define_rowmap_VA( NI_element *, ... ) ;
 extern void NI_add_row( NI_element *, void * ) ;
 extern void NI_get_row( NI_element *, int, void * ) ;
 
+extern void NI_add_many_rows( NI_element *, int,int, void * ) ;
+
 /** I/O functions **/
 
 extern NI_stream NI_stream_open( char *, char * ) ;

@@ -1,12 +1,20 @@
 #include "niml.h"
 
+/********************************************
+  Timing test for NIML element creation:
+    - load 1 row at a time
+    - load all rows at a time
+    - load by columns
+*********************************************/
+
 typedef struct {      /* a location in space */
   int id ;
   float x,y,z ;
 } AGNI_nod ;
 
-NI_element * AGNI_nod_to_NIML_col( int num_nod , AGNI_nod *nod ) ;
-NI_element * AGNI_nod_to_NIML_row( int num_nod , AGNI_nod *nod ) ;
+NI_element * AGNI_nod_to_NIML_col ( int num_nod , AGNI_nod *nod ) ;
+NI_element * AGNI_nod_to_NIML_row ( int num_nod , AGNI_nod *nod ) ;
+NI_element * AGNI_nod_to_NIML_rows( int num_nod , AGNI_nod *nod ) ;
 
 int main( int argc , char *argv[] )
 {
@@ -33,42 +41,39 @@ int main( int argc , char *argv[] )
    /* put nodes into a NIML data element */
 
    ct = NI_clock_time() ;  /* start timer */
-
    nel = AGNI_nod_to_NIML_row( nn , nod ) ;
-
-   /* how long did that take */
-
-   printf("Clock time for %d nodes by rows = %d ms\n",nn,NI_clock_time()-ct) ;
-
-   /* print out element, if not too big */
-
+   fprintf(stderr,"Clock time for %d nodes by row = %d ms\n",nn,NI_clock_time()-ct) ;
    if( nn < 10 ){
      ns = NI_stream_open( "fd:1" , "w" ) ;
-     if( ns == NULL ){ printf("Can't open fd:1\n"); exit(1); }
+     if( ns == NULL ){ fprintf(stderr,"Can't open fd:1\n"); exit(1); }
      nb = NI_write_element( ns , nel , NI_TEXT_MODE ) ;
-     fprintf(stderr,"num bytes=%d\n",nb) ;
+     fprintf(stderr,"num bytes=%d\n\n",nb) ;
    }
    NI_free_element(nel) ;
 
    /* put nodes into a NIML data element */
 
    ct = NI_clock_time() ;  /* start timer */
-
-   nel = AGNI_nod_to_NIML_col( nn , nod ) ;
-
-   /* how long did that take */
-
-   printf("Clock time for %d nodes by cols = %d ms\n",nn,NI_clock_time()-ct) ;
-
-   /* print out element, if not too big */
-
+   nel = AGNI_nod_to_NIML_rows( nn , nod ) ;
+   fprintf(stderr,"Clock time for %d nodes by rows = %d ms\n",nn,NI_clock_time()-ct) ;
    if( nn < 10 ){
      nb = NI_write_element( ns , nel , NI_TEXT_MODE ) ;
-     fprintf(stderr,"num bytes=%d\n",nb) ;
+     fprintf(stderr,"num bytes=%d\n\n",nb) ;
    }
    NI_free_element(nel) ;
 
-   printf("\n*** That's all folks ***\n") ;
+   /* put nodes into a NIML data element */
+
+   ct = NI_clock_time() ;  /* start timer */
+   nel = AGNI_nod_to_NIML_col( nn , nod ) ;
+   fprintf(stderr,"Clock time for %d nodes by col = %d ms\n",nn,NI_clock_time()-ct) ;
+   if( nn < 10 ){
+     nb = NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+     fprintf(stderr,"num bytes=%d\n\n",nb) ;
+   }
+   NI_free_element(nel) ;
+
+   fprintf(stderr,"\n*** That's all folks ***\n") ;
    exit(0) ;
 }
 
@@ -146,6 +151,34 @@ NI_element * AGNI_nod_to_NIML_col( int num_nod , AGNI_nod *nod )
    NI_add_column( nel , NI_FLOAT , xc ) ; free(xc) ;
    NI_add_column( nel , NI_FLOAT , yc ) ; free(yc) ;
    NI_add_column( nel , NI_FLOAT , zc ) ; free(zc) ;
+
+   return nel ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Make a NIML data element from an array of AGNI_nod structs.
+    Return value is NULL if you input stupid values.
+--------------------------------------------------------------------*/
+
+NI_element * AGNI_nod_to_NIML_rows( int num_nod , AGNI_nod *nod )
+{
+   NI_element *nel ;
+   int ii ;
+   int *ic ; float *xc,*yc,*zc ;
+
+   /* check inputs for sanity */
+
+   if( num_nod < 1 || nod == NULL ) return NULL ;
+
+   nel = NI_new_data_element( "surfixyz" , -1 ) ;
+
+   NI_define_rowmap_VA( nel ,
+                          NI_INT   , offsetof(AGNI_nod,id) ,
+                          NI_FLOAT , offsetof(AGNI_nod,x)  ,
+                          NI_FLOAT , offsetof(AGNI_nod,y)  ,
+                          NI_FLOAT , offsetof(AGNI_nod,z)  , -1 ) ;
+
+   NI_add_many_rows( nel , num_nod , sizeof(AGNI_nod) , nod ) ;
 
    return nel ;
 }

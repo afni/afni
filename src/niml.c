@@ -3273,11 +3273,22 @@ fprintf(stderr,"           duplicated string:%s; stored at eee=%p\n",eee,eee) ;
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Get a row from a data element into a struct.  You must have defined
-    the mapping from the struct to the columns using NI_define_rowmap_??
-    before this.  Strings in the element will be duplicated with
-    strdup and the pointers to the duplicates will be put into the
-    struct.
+/*! Get a row from a data element into a struct, pre-allocated by the
+    caller.  You must have defined the mapping from the struct to the
+    columns using NI_define_rowmap_?? before this.  Strings in the
+    element will be duplicated with strdup and the pointers to the
+    duplicates will be put into the struct.
+
+    Example:
+     -  NI_element *nel ;  ** get this from NI_read_element()? **
+     -  int ii , nrow=nel->vec_len ;
+     -  typedef struct { int i; float x,y; } IXY ;
+     -  IXY *zzz = malloc(sizeof(IXY)*nrow) ;
+     -  NI_define_rowmap_VA( nel ,
+     -                       NI_INT   , offsetof(IXY,i) ,
+     -                       NI_FLOAT , offsetof(IXY,x) ,
+     -                       NI_FLOAT , offsetof(IXY,y) , -1 ) ;
+     -  for( ii=0 ; ii < nrow ; ii++ ) NI_get_row(nel,ii,zzz+ii) ;
 -------------------------------------------------------------------------*/
 
 void NI_get_row( NI_element *nel , int rr , void *datin )
@@ -3345,6 +3356,92 @@ fprintf(stderr," copying from vpt to ddd\n") ;
       memcpy( ddd, vpt , ll ) ;  /* copy bytes from element to ddd */
    }
 
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Add many rows to a data element from an array of structs.
+    You must have defined the mapping from the struct to the columns
+    using NI_define_rowmap_?? before this.
+  - The datin pointer should to point to the start
+    of the struct array from which the data bytes will be extracted.
+  - The stride parameter is the step size in bytes from one struct
+    to the next in datin.  This would usually be sizeof() applied to
+    one element of the struct type, as in the example below.
+
+  Example:
+     -  typedef struct { int i; float x,y; } IXY ;
+     -  int nrow=300 ;
+     -  IXY *zzz = malloc(sizeof(IXY)*nrow) ;
+     -  NI_element *nel ;
+     -  ** Do something to fill zzz[ii] for ii=0..nrow-1 **
+     -  nel = NI_new_data_element( "node2D" , -1 ) ;
+     -  NI_define_rowmap_VA( nel ,
+     -                       NI_INT   , offsetof(IXY,i) ,
+     -                       NI_FLOAT , offsetof(IXY,x) ,
+     -                       NI_FLOAT , offsetof(IXY,y) , -1 ) ;
+     -  NI_add_many_rows( nel, nrow, sizeof(IXY), zzz ) ;
+-------------------------------------------------------------------------*/
+
+void NI_add_many_rows( NI_element *nel, int nrow, int stride, void *datin )
+{
+   int ii,rr,ll, typ, rrnew, kk ;
+   char *vpt , *ddd , *eee , *dat=(char *)datin ;
+
+   /* check inputs */
+
+   if( nel             == NULL            ||
+       nel->type       != NI_ELEMENT_TYPE ||
+       nel->rowmap_num <= 0               ||
+       nrow            <= 0               ||
+       stride          <= 0               ||
+       dat             == NULL              ) return ;
+
+   if( nrow == 1 ){ NI_add_row(nel,datin); return; }
+
+   rr    = nel->vec_len ;  /* number of rows we currently have */
+   rrnew = rr + nrow ;     /* number of rows we will have */
+
+   /* loop over columns */
+
+   for( ii=0 ; ii < nel->vec_num ; ii++ ){
+
+      /* extend size of this column */
+
+      ll  = nel->rowmap_siz[ii] ; /* size of one column element */
+      typ = nel->vec_typ[ii] ;    /* type code of column element */
+
+      nel->vec[ii] = NI_realloc( nel->vec[ii] , rrnew*ll ) ;
+
+      /* loop over new rows */
+
+      for( kk=0 ; kk < nrow ; kk++ ){
+
+        /* pointer to space to which to copy */
+
+        vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
+
+        /* pointer to space in struct to copy from */
+
+        ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
+
+        /* If the data is actually a string, then
+           ddd points to the char * that points to the string.
+           So we have to duplicate that string, then save
+           the pointer to the duplicate in the element.
+           Confused?  So am I.  This requires thinking, which is hard work */
+
+        if( typ == NI_STRING || typ == NI_LINE ){
+           char *ppp ;
+           memcpy(&ppp,ddd,ll) ;   /* ppp is the pointer to the string */
+           eee = NI_strdup(ppp);   /* duplicate string from struct */
+           ddd = (char *)(&eee);   /* we want to save address of duplicate */
+        }
+        memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
+      }
+   }
+
+   nel->vec_len = nel->vec_axis_len[0] = rrnew ;  /* vectors now longer */
    return ;
 }
 
@@ -4293,16 +4390,22 @@ int NI_trust_host( char *hostid )
 
   name = "file:filename" to open a file for I/O.
 
-  name = "str:" to read/write data from a string
+  name = "str:" to read/write data from/to a string
 
   name = "http://hostname/filename" to read data from a Web site
   name = "ftp://hostname/filename"  to read data from an FTP site
 
   name = "fd:integer" to read or write data from a pre-opened
-         file descriptor (returned by the open() or fileno() functions).
-         For example, "fd:1" is used to write to stdout directly.
-         When an "fd:" stream is closed, nothing is actually done;
-         closing the file is the responsibility of the application.
+         file descriptor (returned by the open() function).
+           - For example, "fd:1" is used to write to stdout directly.
+           - When an "fd:" stream is closed, nothing is actually done;
+             closing the descriptor is the responsibility of the application.
+           - Descriptors 0,1,2 use stdin, stdout, and stderr, respectively.
+           - All other descriptors use fdopen() to open a FILE stream
+             and then treat the result like file:.  This means that if
+             the descriptor comes from fileno() on a previously opened
+             FILE stream, you will have trouble if you mix I/O to this
+             stream with NI_stream_read()/NI_stream_write().
 
   mode = "w" to open a stream for writing
            - tcp: host must be specified ("w" is for a tcp client)
@@ -4310,7 +4413,9 @@ int NI_trust_host( char *hostid )
                   overwritten if already exists)
            - str: data will be written to a buffer in the NI_stream
                   struct; you can later access this buffer with the
-                  function NI_stream_getbuf().
+                  function NI_stream_getbuf(), and clear it with
+                  NI_stream_clearbuf().
+           - You can't open "fd:0" (stdin) for reading
            - You can't open "http:" or "ftp:" streams for writing.
 
   mode = "r" to open a stream for reading
@@ -4321,32 +4426,35 @@ int NI_trust_host( char *hostid )
                   the input data (will be copied to internal buffer);
                   OR, you can later set the internal buffer string
                   later with function NI_stream_setbuf().
-           - ftp: or http: The remote files are fetched and loaded into
+           - You can't open "fd:1" or "fd:2" (stdout or stderr) for reading.
+           - ftp:/http: The remote files are fetched and loaded into
                   memory.  After that, these streams operate
-                  pretty much the same as str: streams.
+                  pretty much the same as str: streams for reading.
 
   For a file:, fd:, or str: stream, you can either read from or write to the
-  stream, but not both.  For a tcp: stream, once it is connected, you
-  can both read and write.
+  stream, but not both, depending on how you opened it.  For a tcp: stream,
+  once it is connected, you can both read and write.  The asymmetry in tcp:
+  streams only comes at the opening (one process must make the call by
+  using "w" and one must listen for the call by using "r").
 
-  The inputs "host" (for tcp:) and "filename" (for file:) are
-  limited to a maximum of 127 bytes.  For str:, there is no
-  limit for the "r" stream (but clearly you can't have any NUL
-  bytes in there).
+  The inputs "host" (for tcp:) and "filename" (for file:) are limited to a
+  maximum of 127 bytes.  For str:, there is no limit for the "r" stream
+  (but clearly you can't have any NUL bytes in there).
 
   Since opening a socket requires sychronizing two processes,
   you can't read or write to a tcp: stream immediately.  Instead
   you have to check if it is "good" first.  This can be done using
   the function NI_stream_goodcheck().
 
-  After an tcp: "r" stream is good, then the string ns->name
+  After a tcp: "r" stream is good, then the string ns->name
   contains the IP address of the connecting host, in "dot" form
   (e.g., "201.202.203.204"); here, "ns" is the NI_stream returned
-  by this routine.
+  by this routine.  You can use the NI_add_trusted_host() function
+  to set a list of IP addresses from which the NIML library will accept
+  connections.  Systems not on the trusted list will have their sockets
+  closed immediately after the connection is accepted.
 
   For a file: stream, ns->name contains the filename.
-
-  For a str: stream, ns->name contains a stupid string.
 ------------------------------------------------------------------------*/
 
 NI_stream NI_stream_open( char *name , char *mode )
@@ -4485,9 +4593,28 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       sscanf(name+3,"%d",&fd) ;
       if( fd < 0 ) return NULL ;   /* bad integer */
-      fp = fdopen( fd , do_create ? "wb"     /* always in binary mode */
-                                  : "rb" ) ;
-      if( fp == NULL ) return NULL ;
+
+      switch( fd ){
+        default:
+          fp = fdopen( fd , do_create ? "wb" : "rb" ) ;
+          if( fp == NULL ) return NULL ;
+        break ;
+
+        case 0:
+          fp = stdin ;
+          if( do_create ) return NULL ;
+        break ;
+
+        case 1:
+          fp = stdout ;
+          if( !do_create ) return NULL ;
+        break ;
+
+        case 2:
+          fp = stderr ;
+          if( !do_create ) return NULL ;
+        break ;
+      }
 
       /** initialize NI_stream_type output **/
 
@@ -4979,9 +5106,16 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
      case NI_FD_TYPE:
      case NI_FILE_TYPE:
+#if 0
+fprintf(stderr,"about to write %d bytes\n",nbytes) ;
+#endif
        nsent = fwrite( buffer , 1 , nbytes , ns->fp ) ;
        if( nsent < nbytes ) PERROR("NI_stream_write(fwrite)") ;
+#if 0
+fprintf(stderr,"actually wrote %d bytes\n",nsent) ;
+#endif
        if( nsent == 0 ) nsent = -1 ;
+       fflush(ns->fp) ;
        return nsent ;
 
      /** str: ==> append to buffer in stream struct **/
@@ -6476,6 +6610,9 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
          case NI_TEXT_MODE:
             btt = ">\n" ;                             /* add a newline */
             nwbuf = 5*NI_element_rowsize(nel) + 16 ;  /* text buffer  */
+#if 0
+fprintf(stderr,"nwbuf=%d\n",nwbuf) ;
+#endif
          break ;
 
          case NI_BINARY_MODE:
@@ -6512,6 +6649,9 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       /*- loop over output rows and write results -*/
 
       for( row=0 ; row < nel->vec_len ; row++ ){
+#if 0
+fprintf(stderr,"start write of row %d:",row) ;
+#endif
 
         /* initialize this row's output */
 
@@ -6525,12 +6665,18 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
         /* write data for this row into wbuf */
 
         for( col=0 ; col < nel->vec_num ; col++ ){
+#if 0
+fprintf(stderr," %d[%d]",col,nel->vec_typ[col]) ;
+#endif
 
          switch( tmode ){
 
           /*----- encode one value to output, according to its type -----*/
           case NI_TEXT_MODE:{
            jj = strlen(wbuf) ;
+#if 0
+fprintf(stderr,"[jj=%d]",jj);
+#endif
            switch( nel->vec_typ[col] ){
             default:                    /* Line is unimplemented */
             break ;
@@ -6564,6 +6710,9 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
             case NI_INT:{
               int *vpt = (int *) nel->vec[col] ;
+#if 0
+fprintf(stderr,"[int=%d]",vpt[row]) ;
+#endif
               sprintf(wbuf+jj," %d",vpt[row]) ;
             }
             break ;
@@ -6590,6 +6739,9 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
             case NI_FLOAT:{
               float *vpt = (float *) nel->vec[col] ;
               char fbuf[32] ; int ff ;
+#if 0
+fprintf(stderr,"[float=%g]",vpt[row]) ;
+#endif
               sprintf(fbuf," %12.6g",vpt[row]) ;
               for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
               for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
@@ -6692,12 +6844,18 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
          } /* end of switch on tmode */
         } /* end of loop over columns */
+#if 0
+fprintf(stderr," ! wbuf=%s[%d] tmode=%d\n",wbuf,strlen(wbuf),tmode) ;
+#endif
 
         /*- actually write this row of data out -*/
 
         switch( tmode ){
           case NI_TEXT_MODE:     /* each row is on a separate line */
             strcat(wbuf,"\n") ;
+#if 0
+fprintf(stderr,"  and writing it [%d]\n",strlen(wbuf) ) ;
+#endif
             nout = NI_stream_write( ns , wbuf , strlen(wbuf) ) ;
             ADDOUT ;
           break ;
