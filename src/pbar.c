@@ -275,17 +275,36 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
    MCW_pbar *pbar = (MCW_pbar *) cd ;
    XButtonEvent *bev = (XButtonEvent *) ev ;
 
-   if( bev->button == Button2 ){
+#if 0
+   if( bev->button == Button2 )
      XUngrabPointer( bev->display , CurrentTime ) ;
-     return ;
-   }
-   if( pbar == NULL || !pbar->bigmode || bev->button != Button3 ) return ;
+#endif
 
-   MCW_choose_strlist( w , "Choose Color Bar" ,
-                       bigmap_num ,
-                       pbar->bigmap_index ,
-                       bigmap_name ,
-                       PBAR_bigmap_finalize , cd ) ;
+   if( pbar == NULL || !pbar->bigmode ) return ;
+
+   switch( bev->button ){
+     case Button3:
+       MCW_choose_strlist( w , "Choose Color Field" ,
+                           bigmap_num ,
+                           pbar->bigmap_index ,
+                           bigmap_name ,
+                           PBAR_bigmap_finalize , cd ) ;
+     break ;
+
+     case Button2:{
+       int hh , ii ;
+       MCW_widget_geom( pbar->panes[0] , NULL,&hh , NULL,NULL ) ;
+       ii = (int)( ((NPANE_BIG-1.0)*bev->y)/(hh-1) + 0.5 ) ;
+       fprintf(stderr,"Color[%03d]: R=%03d G=%03d B=%03d #%02x%02x%02x\n",
+               ii , (int)pbar->bigcolor[ii].r          ,
+                    (int)pbar->bigcolor[ii].g          ,
+                    (int)pbar->bigcolor[ii].b          ,
+                    (unsigned int)pbar->bigcolor[ii].r ,
+                    (unsigned int)pbar->bigcolor[ii].g ,
+                    (unsigned int)pbar->bigcolor[ii].b  ) ;
+     }
+     break ;
+   }
    return ;
 }
 
