@@ -8457,32 +8457,25 @@ ENTRY("AFNI_set_cursor") ;
 
             default:
             case AFNI_DEFAULT_CURSOR:
-               MCW_alter_widget_cursor( im3d->vwid->top_shell ,
-                                        -XC_top_left_arrow , "yellow","blue" ) ;
+               NORMAL_cursorize( im3d->vwid->top_shell ) ;
 
                if( ISQ_REALZ(im3d->s123) )
-                  MCW_alter_widget_cursor( im3d->s123->wtop ,
-                                           -XC_top_left_arrow , "yellow","blue" ) ;
+                  NORMAL_cursorize( im3d->s123->wtop ) ;
 
                if( ISQ_REALZ(im3d->s231) )
-                  MCW_alter_widget_cursor( im3d->s231->wtop ,
-                                           -XC_top_left_arrow , "yellow","blue" ) ;
+                  NORMAL_cursorize( im3d->s231->wtop ) ;
 
                if( ISQ_REALZ(im3d->s312) )
-                  MCW_alter_widget_cursor( im3d->s312->wtop ,
-                                           -XC_top_left_arrow , "yellow","blue" ) ;
+                  NORMAL_cursorize( im3d->s312->wtop ) ;
 
                if( GRA_REALZ(im3d->g123) )
-                  MCW_alter_widget_cursor( im3d->g123->fdw_graph ,
-                                           -XC_top_left_arrow , "yellow","blue" ) ;
+                  NORMAL_cursorize( im3d->g123->fdw_graph ) ;
 
                if( GRA_REALZ(im3d->g231) )
-                  MCW_alter_widget_cursor( im3d->g231->fdw_graph ,
-                                           -XC_top_left_arrow , "yellow","blue" ) ;
+                  NORMAL_cursorize( im3d->g231->fdw_graph ) ;
 
                if( GRA_REALZ(im3d->g312) )
-                  MCW_alter_widget_cursor( im3d->g312->fdw_graph ,
-                                           -XC_top_left_arrow , "yellow","blue" ) ;
+                  NORMAL_cursorize( im3d->g312->fdw_graph ) ;
 
                if( im3d->vinfo->inverted_pause ){
                   im3d->vinfo->inverted_pause = False ;
@@ -8495,25 +8488,25 @@ ENTRY("AFNI_set_cursor") ;
                break ;
 
             case AFNI_WAITING_CURSOR:
-               MCW_set_widget_cursor( im3d->vwid->top_shell , -XC_watch ) ;
+               WATCH_cursorize( im3d->vwid->top_shell ) ;
 
                if( ISQ_REALZ(im3d->s123) )
-                  MCW_set_widget_cursor( im3d->s123->wtop , -XC_watch ) ;
+                  WATCH_cursorize( im3d->s123->wtop ) ;
 
                if( ISQ_REALZ(im3d->s231) )
-                  MCW_set_widget_cursor( im3d->s231->wtop , -XC_watch ) ;
+                  WATCH_cursorize( im3d->s231->wtop ) ;
 
                if( ISQ_REALZ(im3d->s312) )
-                  MCW_set_widget_cursor( im3d->s312->wtop , -XC_watch ) ;
+                  WATCH_cursorize( im3d->s312->wtop ) ;
 
                if( GRA_REALZ(im3d->g123) )
-                  MCW_set_widget_cursor( im3d->g123->fdw_graph , -XC_watch ) ;
+                  WATCH_cursorize( im3d->g123->fdw_graph ) ;
 
                if( GRA_REALZ(im3d->g231) )
-                  MCW_set_widget_cursor( im3d->g231->fdw_graph , -XC_watch ) ;
+                  WATCH_cursorize( im3d->g231->fdw_graph ) ;
 
                if( GRA_REALZ(im3d->g312) )
-                  MCW_set_widget_cursor( im3d->g312->fdw_graph , -XC_watch ) ;
+                  WATCH_cursorize( im3d->g312->fdw_graph ) ;
 
                if( ! im3d->vinfo->inverted_pause ){
                   im3d->vinfo->inverted_pause = True ;

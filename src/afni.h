@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.33d"
+#define VERSION "2.33q"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "27 Nov 2001      "
+#define RELEASE "07 Dec 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -810,6 +810,8 @@ typedef struct {
 
       KILL_list kl ;
       XtPointer parent ;
+
+      int brand_new ;                           /* 07 Dec 2001 */
 } Three_D_View ;
 
 /* 02 Nov 1996: macro to load current viewing data into current datasets */

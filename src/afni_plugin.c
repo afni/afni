@@ -3453,8 +3453,6 @@ STATUS("calling plugin") ;
                        XmNtitle     , ttl , /* top of window */
                        XmNiconName  , ttl , /* label on icon */
                     NULL ) ;
-
-     PLUTO_cursorize( plint->wid->shell ) ;
    }
 
    /*-- if possible, find where this popup should go --*/
@@ -3486,6 +3484,7 @@ STATUS("popping up interface") ;
 
    XtMapWidget( wpop ) ;
    RWC_visibilize_widget( wpop ) ; /* 27 Sep 2000 */
+   PLUTO_cursorize( plint->wid->shell ) ;
    EXRETURN ;
 }
 

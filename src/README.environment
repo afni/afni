@@ -1049,6 +1049,17 @@ be truncated to 0 in the scaled image if it is not "floatized".
 (Conversion to floats will only be done to byte, short, and int
 image types.)
 
+--------------------------
+Variable: AFNI_START_SMALL
+--------------------------
+If this YES/NO variable is set to YES, then when AFNI starts, it will
+look for the smallest datasets in the first session, and choose these
+as its starting point.  This can be useful if you also use the layout
+feature to pop open an image window on startup; in that case, if the
+default starting dataset (the first alphabetical) is huge, you won't
+see anything while the program reads all of into memory before displaying
+the first image.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

@@ -4058,6 +4058,8 @@ ENTRY("new_AFNI_controller") ;
    im3d->dc     = dc ;
    im3d->vinfo  = myXtNew( AFNI_view_info ); ADDTO_KILL(im3d->kl,im3d->vinfo);
 
+   im3d->brand_new = 1 ; /* 07 Dec 2001 */
+
    im3d->fimdata = myXtNew( AFNI_fimmer_type ); ADDTO_KILL(im3d->kl,im3d->fimdata);
    CLEAR_FIMDATA(im3d) ;
 
@@ -4192,6 +4194,23 @@ ENTRY("new_AFNI_controller") ;
    RETURN(im3d) ;
 }
 
+/*---------------------------------------------------------------*/
+
+static float DSET_bigness( THD_3dim_dataset *dset ) /* 07 Dec 2001 */
+{
+   float bb ;
+
+   if( !DSET_ONDISK(dset) ) return -1 ;
+
+   bb =  DSET_NVOX(dset)
+       * DSET_NVALS(dset)
+       * mri_datum_size(DSET_BRICK_TYPE(dset,0)) ;
+
+   if( DSET_COMPRESSED(dset) || DSET_IS_MINC(dset) ) bb *= 1.5 ;
+
+   return bb ;
+}
+
 /*---------------------------------------------------------------
    Set up the controller with some data to view!
 -----------------------------------------------------------------*/
@@ -4233,6 +4252,23 @@ ENTRY("AFNI_initialize_controller") ;
                  "\n*** AFNI_initialize_controller: illegal initial session ***\n") ;
          EXIT(1) ;
       }
+   }
+
+   /* 07 Dec 2001: find "smallest" datasets */
+
+   if( im3d->brand_new && AFNI_yesenv("AFNI_START_SMALL") ){
+      int jj,jb=0 ; float bb,mm ;
+      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_anat ; jj++ ){
+         bb = DSET_bigness(im3d->ss_now->anat[jj][0]) ;
+         if( bb > 0 && bb < mm ){ mm = bb; jb = jj; }
+      }
+      im3d->vinfo->anat_num = jb ;
+
+      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_func ; jj++ ){
+         bb = DSET_bigness(im3d->ss_now->func[jj][0]) ;
+         if( bb > 0 && bb < mm ){ mm = bb; jb = jj; }
+      }
+      im3d->vinfo->func_num = jb ;
    }
 
    /* copy pointers from this session into the controller for fast access */

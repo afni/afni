@@ -810,7 +810,7 @@ STATUS("realizing widgets") ;
    XMapRaised( XtDisplay(grapher->option_rowcol) ,
                XtWindow(grapher->option_rowcol)   ) ;
 
-   MCW_alter_widget_cursor( grapher->fdw_graph , -XC_top_left_arrow ,"yellow","blue" ) ;
+   NORMAL_cursorize( grapher->fdw_graph ) ;
 
    grapher->valid = 2 ;
 #ifdef USE_OPTMENUS
@@ -2695,7 +2695,8 @@ STATUS(str); }
 
    if( grapher->key_Nlock==0 && buf[0]=='N' ){
       grapher->key_Nlock = 1 ;
-      MCW_alter_widget_cursor( grapher->fdw_graph , -XC_hand2 ,"yellow","blue" ) ;
+      HAND_cursorize( grapher->fdw_graph ) ;
+      HAND_cursorize( grapher->draw_fd ) ;
       grapher->key_lock_sum = 0 ;
       EXRETURN ;
    }
@@ -2709,7 +2710,11 @@ STATUS(str); }
       if( grapher->key_lock_sum > 0 )
          grapher->mat = MIN( grapher->mat_max , grapher->key_lock_sum ) ;
 
-      MCW_alter_widget_cursor( grapher->fdw_graph , -XC_top_left_arrow ,"yellow","blue" ) ;
+      NORMAL_cursorize( grapher->fdw_graph ) ;
+      if( ISONE(grapher) )
+        NORMAL_cursorize( grapher->draw_fd ) ;
+      else
+        POPUP_cursorize( grapher->draw_fd ) ;
 
       init_mat    ( grapher ) ;
       redraw_graph( grapher , 0 ) ;
@@ -3847,10 +3852,12 @@ STATUS("replacing ort timeseries") ;
             XMapRaised( XtDisplay(grapher->option_rowcol) ,
                         XtWindow(grapher->option_rowcol)   ) ;
 
-            MCW_alter_widget_cursor(grapher->fdw_graph,-XC_top_left_arrow,
-                                                       "yellow","blue") ;
-            if( !ISONE(grapher) )
-              POPUP_cursorize( grapher->draw_fd ) ;  /* 07 Dec 2001 */
+            NORMAL_cursorize( grapher->fdw_graph ) ;
+
+            if( ISONE(grapher) )
+              NORMAL_cursorize( grapher->draw_fd ) ;  /* 07 Dec 2001 */
+            else
+              POPUP_cursorize( grapher->draw_fd ) ;
 
             MCW_widget_geom( grapher->draw_fd , &width , &height , NULL,NULL ) ;
             GRA_new_pixmap( grapher , width , height , 0 ) ;
@@ -3893,7 +3900,7 @@ STATUS("replacing ort timeseries") ;
 #endif
 
         if( ISONE(grapher) )                        /* 07 Dec 2001 */
-          POPUP_uncursorize( grapher->draw_fd ) ;
+          NORMAL_cursorize( grapher->draw_fd ) ;
         else
           POPUP_cursorize( grapher->draw_fd ) ;
 
@@ -4305,7 +4312,7 @@ ENTRY("GRA_setshift_startup") ;
    XtManageChild( wrc ) ;
    XtPopup( grapher->dialog , XtGrabNone ) ;
    RWC_visibilize_widget( grapher->dialog ) ; /* 09 Nov 1999 */
-   MCW_alter_widget_cursor( grapher->dialog , -XC_top_left_arrow ,"yellow","blue" ) ;
+   NORMAL_cursorize( grapher->dialog ) ;
    EXRETURN ;
 }
 

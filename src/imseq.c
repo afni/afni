@@ -1228,7 +1228,7 @@ STATUS("creation: widgets created") ;
    XtRealizeWidget( newseq->wtop ) ;
    newseq->valid = 2 ;  /* mark this structure as ready to roll */
 
-   MCW_alter_widget_cursor( newseq->wtop , -XC_top_left_arrow ,"yellow","blue" ) ;
+   NORMAL_cursorize( newseq->wtop ) ;
 
 #else
    newseq->valid = 1 ;  /* mark this structure as valid */
@@ -4209,7 +4209,7 @@ ENTRY("ISQ_but_disp_CB") ;
    ISQ_disp_options( seq , False ) ;  /* set toggles from option list */
    seq->save_opt = seq->opt ;         /* for use with Reset button */
 
-   MCW_alter_widget_cursor( seq->dialog , -XC_top_left_arrow ,"yellow","blue" ) ;
+   NORMAL_cursorize( seq->dialog ) ;
 
    ISQ_but_done_reset( seq ) ;
    EXRETURN ;
@@ -4482,10 +4482,10 @@ ENTRY("ISQ_statify_all") ;
 
    XBell( seq->dc->display , 100 ) ;
 
-   MCW_set_widget_cursor( seq->wtop , -XC_watch ) ;
-   MCW_set_widget_cursor( wmsg      , -XC_watch ) ;
+   WATCH_cursorize( seq->wtop ) ;
+   WATCH_cursorize( wmsg ) ;
    if( seq->dialog != NULL )
-      MCW_set_widget_cursor( seq->dialog , -XC_watch ) ;
+      WATCH_cursorize( seq->dialog ) ;
 
    XFlush( seq->dc->display ) ;
 
@@ -4505,9 +4505,9 @@ ENTRY("ISQ_statify_all") ;
 
    XtDestroyWidget( wmsg ) ;
 
-   MCW_alter_widget_cursor( seq->wtop , -XC_top_left_arrow ,"yellow","blue" ) ;
+   NORMAL_cursorize( seq->wtop ) ;
    if( seq->dialog != NULL )
-      MCW_alter_widget_cursor( seq->dialog , -XC_top_left_arrow ,"yellow","blue" ) ;
+      NORMAL_cursorize( seq->dialog ) ;
 
    EXRETURN;
 }
@@ -5435,7 +5435,7 @@ static unsigned char record_bits[] = {
          if( ! ISQ_REALZ(seq) ){
             XtRealizeWidget( seq->wtop ) ;
             WAIT_for_window( seq->wtop ) ;
-            MCW_alter_widget_cursor( seq->wtop , -XC_top_left_arrow ,"yellow","blue") ;
+            NORMAL_cursorize( seq->wtop ) ;
             POPUP_cursorize( seq->wimage ) ;
             POPUP_cursorize( seq->wbar ) ;
             POPUP_cursorize( seq->wbut_bot[NBUT_SAVE] ) ;
@@ -6174,7 +6174,7 @@ ENTRY("ISQ_montage_CB") ;
    XtManageChild( wrc ) ;
    ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
    XtPopup( seq->dialog , XtGrabNone ) ;
-   MCW_alter_widget_cursor( seq->dialog , -XC_top_left_arrow ,"yellow","blue" ) ;
+   NORMAL_cursorize( seq->dialog ) ;
    ISQ_but_done_reset( seq ) ;
    EXRETURN ;
 }
@@ -7769,8 +7769,8 @@ ENTRY("ISQ_record_open") ;
 
    drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
 
-   POPUP_uncursorize( seq->wimage ) ; /* 07 Dec 2001 */
-   POPUP_uncursorize( seq->wbar ) ;
+   NORMAL_cursorize( seq->wimage ) ; /* 07 Dec 2001 */
+   NORMAL_cursorize( seq->wbar ) ;
 
    EXRETURN ;
 }

@@ -388,7 +388,7 @@ ENTRY("TTRR_setup_widgets") ;
    XtManageChild( toprc ) ;
    XtRealizeWidget( ttc->shell ) ;
 
-   MCW_set_widget_cursor( ttc->shell , -XC_watch ) ;  /* passification */
+   WATCH_cursorize( ttc->shell ) ;
    XmUpdateDisplay( ttc->shell ) ;
 
    /*** set size ***/

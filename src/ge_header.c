@@ -138,7 +138,7 @@ int main( int argc , char *argv[] )
          fread( &hdroff , 4,1 , imfile ) ;  /* location of image header */
          if( swap ) swap_4(&hdroff) ;
          if( hdroff > 0 ){                  /* read from image header */
-           float dx,dy,dz , xyz[9] , zz , tr ; int itr , ii,jj,kk ;
+           float dx,dy,dz, xyz[9], xx,yy,zz, tr ; int itr, ii,jj,kk ;
 
            /*-- get voxel grid sizes --*/
 
@@ -212,8 +212,11 @@ int main( int argc , char *argv[] )
                                         /* (can't tell orientation from 1 slice) */
 
            zz = xyz[kk-1] ;             /* z-coordinate of this slice */
+           xx = xyz[abs(ii)-1] ;
+           yy = xyz[abs(jj)-1] ;
 
-           printf(" slice offset=%g orient=%s", zz,orients ) ;
+           printf(" z offset=%g orient=%s xoff=%g yoff=%g",
+                  zz,orients,xx,yy ) ;
 
            /*-- get TR in seconds --*/
 
@@ -221,14 +224,14 @@ int main( int argc , char *argv[] )
            fread( &itr , 4,1 , imfile ) ; /* note itr is an int */
            if( swap ) swap_4(&itr) ;
            tr = 1.0e-6 * itr ;            /* itr is in microsec */
-           printf(" TR=%g(s)",tr) ;
+           printf(" TR=%gs",tr) ;
 
            /*-- get TE in milliseconds --*/
 
            fseek( imfile , hdroff+202 , SEEK_SET ) ;
            fread( &itr , 4,1 , imfile ) ; /* itr is an int, in microsec */
            if( swap ) swap_4(&itr) ;
-           printf(" TE=%g(ms)",1.0e-3*itr) ;
+           printf(" TE=%gms",1.0e-3*itr) ;
 
            /*-- end of image header printouts --*/
 

@@ -404,8 +404,7 @@ extern char * peek_optiontag_from_PLUGIN_interface     ( PLUGIN_interface * ) ;
 #define BAD_NUMBER        (-31416.666)
 #define PLUTO_BAD_NUMBER  BAD_NUMBER
 
-#define PLUTO_cursorize(w) \
-   MCW_alter_widget_cursor( (w), -XC_left_ptr, "yellow","blue" )
+#define PLUTO_cursorize(w)  NORMAL_cursorize(w)
 
 /**************************************************************************/
 /***** Define data structures to hold control information for plugins *****/

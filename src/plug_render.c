@@ -1551,7 +1551,6 @@ void REND_make_widgets(void)
    XtRealizeWidget(shell) ;      /* will not be mapped */
 
    WAIT_for_window(shell) ;
-   POPUP_cursorize(wfunc_color_label) ;
    POPUP_cursorize(xhair_bbox->wbut[0]) ;
 
    /*** 12 July 1999: make the overlay widgets now, instead of later ***/
@@ -4282,7 +4281,7 @@ void REND_open_imseq( void )
 
    drive_MCW_imseq( imseq , isqDR_realize, NULL ) ;
 
-   POPUP_uncursorize( imseq->wimage ) ; /* 07 Dec 2001 */
+   NORMAL_cursorize( imseq->wimage ) ; /* 07 Dec 2001 */
 
    drive_MCW_imseq( imseq , isqDR_title, "AFNI Renderings" ) ;
 
@@ -5357,6 +5356,8 @@ void REND_open_func_CB( Widget w, XtPointer client_data, XtPointer call_data )
                               50,fixscale,NULL ) ; /* 09 May 2001 */
 #endif
       REND_init_cmap() ;                    /* setup the colormap */
+
+      POPUP_cursorize(wfunc_color_label) ;
    }
 
    MCW_invert_widget(wfunc_open_pb) ;       /* a flag */

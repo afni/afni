@@ -3379,3 +3379,6 @@
  * Modified imseq.c, afni_widg.c, afni.c, afni_graph.c, plug_render.c
       and xutil.h to change cursor slightly when it moves over a
       window that has a hidden Button-3 popup menu.
+ * Modified 3dTstat.c to have NOD (no-detrend) versions of -stdev
+      and -cvar.
+ * Modified afni_widg.c to implement AFNI_START_SMALL.

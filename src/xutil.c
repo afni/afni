@@ -444,6 +444,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
 #endif
 
    RWC_visibilize(wmsg) ;  /* 27 Sep 2000 */
+   NORMAL_cursorize(wmsg) ;
    return wmsg ;
 }
 
@@ -859,6 +860,7 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
    XtPopup( wpop , XtGrabNone ) ;
    RWC_visibilize(wpop) ;  /* 27 Sep 2000 */
+   NORMAL_cursorize(wpop) ;
    return ;
 }
 
@@ -1227,6 +1229,8 @@ MCW_textwin * new_MCW_textwin_2001( Widget wpar, char * msg, int type,
    XtVaSetValues( tw->wshell, XmNx,xpr , XmNy,ypr , NULL ) ;
 
    tw->shell_width = swid ; tw->shell_height = shi ; /* 10 Jul 2001 */
+
+   NORMAL_cursorize( tw->wshell ) ;
    return tw ;
 }
 

@@ -2060,7 +2060,7 @@ void AFNI_add_interruptable( Widget w )
 
    XFree( wchild ) ;  /* return this to Xlib */
 
-   MCW_alter_widget_cursor( w , -XC_top_left_arrow , "yellow","blue" ) ; /* set cursor */
+   NORMAL_cursorize( w) ;
 
    return ;
 }

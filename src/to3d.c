@@ -99,13 +99,13 @@ static char * FALLback[] =
 
 void AFNI_handler(char * msg){}
 
-#define CURSOR_normalize                                                          \
-  do{ MCW_alter_widget_cursor(wset.topshell,-XC_top_left_arrow,"yellow","blue") ; \
-      XSync( XtDisplay(wset.topshell), False ) ;                                  \
+#define CURSOR_normalize                               \
+  do{ NORMAL_cursorize(wset.topshell) ;                \
+      XSync( XtDisplay(wset.topshell), False ) ;       \
       XmUpdateDisplay( wset.topshell ) ; } while(0)
 
 #define CURSOR_watchize                                \
-  do{ MCW_set_widget_cursor(wset.topshell,-XC_watch) ; \
+  do{ WATCH_cursorize(wset.topshell) ;                 \
       XSync( XtDisplay(wset.topshell), False ) ;       \
       XmUpdateDisplay( wset.topshell ) ; } while(0)
 
@@ -4377,6 +4377,7 @@ void T3D_open_view_CB( Widget w ,
 
    wset.seq = open_MCW_imseq( wset.dc , T3D_getim , br ) ;
    drive_MCW_imseq( wset.seq,isqDR_realize , NULL ) ;
+   NORMAL_cursorize( wset.seq->wimage ) ;                       /* 07 Dec 2001 */
 
    drive_MCW_imseq(wset.seq,isqDR_getimnr, (XtPointer) &nim ) ;
    drive_MCW_imseq(wset.seq,isqDR_title  , (XtPointer) imnames->ar[nim] ) ;
@@ -4615,7 +4616,7 @@ QQQ("save_file1");
                                    "*  statistics *\n"
                                    "***************" ,
                                 MCW_CALLER_KILL ) ;
-      MCW_set_widget_cursor( wmsg , -XC_watch ) ;
+      WATCH_cursorize( wmsg ) ;
       XFlush( XtDisplay(wmsg) ) ;
    } else {
       wmsg = NULL ;
@@ -4669,7 +4670,7 @@ QQQ("save_file9");
                                    "*  disk operation  *\n"
                                    "********************" ,
                                 MCW_CALLER_KILL ) ;
-      MCW_set_widget_cursor( wmsg , -XC_watch ) ;
+      WATCH_cursorize( wmsg ) ;
       XFlush( XtDisplay(wmsg) ) ;
    } else {
       wmsg = NULL ;

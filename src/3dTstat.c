@@ -22,6 +22,7 @@
 static int meth                    = METH_MEAN ;
 static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
+static int detrend                 = 1 ;
 
 static void STATS_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
@@ -30,13 +31,14 @@ static void STATS_tsfunc( double tzero , double tdelta ,
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
-   int nopt , detrend=1 ;
+   int nopt ;
 
    /*----- Read command line -----*/
 
    if( argc < 2 ){
       printf("Usage: 3dTstat [options] dataset\n"
-             "Computes a voxel-wise statistic for a 3D+time dataset\n"
+             "Computes a single voxel-wise statistic for a 3D+time dataset\n"
+             "(if you want more than one of these, run 3dTstat more than once).\n"
              "\n"
              "Options:\n"
              " -mean   = compute mean of input voxels [DEFAULT]\n"
@@ -46,11 +48,14 @@ int main( int argc , char * argv[] )
              "             [      the slope has been removed]\n"
              " -cvar   = compute coefficient of variation of input\n"
              "             voxels = stdev/fabs(mean)\n"
+             "   **N.B.: You can add NOD to the end of the above 2\n"
+             "           options to turn off detrending, as in\n"
+             "             -stdevNOD or -cvarNOD\n"
              "\n"
              " -MAD    = compute MAD (median absolute deviation) of\n"
              "             input voxels = median(|voxel-median(voxel)|)\n"
              "             [N.B.: the trend is NOT removed for this]\n"
-             " -median = compute median of input voxels [undetrended]\n"
+             " -median = compute median of input voxels  [undetrended]\n"
              " -min    = compute minimum of input voxels [undetrended]\n"
              " -max    = compute maximum of input voxels [undetrended]\n"
              "\n"
@@ -103,6 +108,18 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-cvar") == 0 ){
          meth = METH_CVAR ; detrend = 1 ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-stdevNOD") == 0 ||
+          strcmp(argv[nopt],"-sigmaNOD") == 0   ){  /* 07 Dec 2001 */
+
+         meth = METH_SIGMA ; detrend = 0 ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-cvarNOD") == 0 ){     /* 07 Dec 2001 */
+         meth = METH_CVAR ; detrend = 0 ;
          nopt++ ; continue ;
       }
 
@@ -210,9 +227,10 @@ int main( int argc , char * argv[] )
    Function that does the real work
 ***********************************************************************/
 
-static void STATS_tsfunc( double tzero , double tdelta ,
-                   int npts , float ts[] , double ts_mean , double ts_slope ,
-                   void * ud , float * val )
+static void STATS_tsfunc( double tzero, double tdelta ,
+                          int npts, float ts[],
+                          double ts_mean, double ts_slope,
+                          void * ud, float * val          )
 {
    static int nvox , ncall ;
 
@@ -248,7 +266,12 @@ static void STATS_tsfunc( double tzero , double tdelta ,
          register double sum ;
 
          sum = 0.0 ;
-         for( ii=0 ; ii < npts ; ii++ ) sum += ts[ii] * ts[ii] ;
+         if( detrend ){
+           for( ii=0 ; ii < npts ; ii++ ) sum += ts[ii] * ts[ii] ;
+         } else {
+           for( ii=0 ; ii < npts ; ii++ ) sum += (ts[ii]-ts_mean)
+                                                *(ts[ii]-ts_mean) ;
+         }
 
          sum = sqrt( sum/(npts-1) ) ;
 

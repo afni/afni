@@ -24,6 +24,8 @@
 char MRILIB_orients[8] = "\0" ;  /* 12 Mar 2001 */
 float MRILIB_zoff      = 0.0 ;
 float MRILIB_tr        = 0.0 ;   /* 03 Dec 2001 */
+float MRILIB_xoff      = 0.0 ;   /* 07 Dec 2001 */
+float MRILIB_yoff      = 0.0 ;
 
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
@@ -255,6 +257,11 @@ WHOAMI ;
 
                MRILIB_zoff = zoff ;
                if( kk == 1 || kk == 2 || kk == 3 ) MRILIB_zoff = -MRILIB_zoff ;
+
+               MRILIB_xoff = xyz[abs(ii)-1] ;  /* 07 Dec 2001 */
+               MRILIB_yoff = xyz[abs(jj)-1] ;
+               if( ii == 1 || ii == 2 || ii == 3 ) MRILIB_xoff = -MRILIB_xoff ;
+               if( jj == 1 || jj == 2 || jj == 3 ) MRILIB_yoff = -MRILIB_yoff ;
              }
              nzoff++ ;  /* 3rd and later images don't count for z-orientation */
 

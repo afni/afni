@@ -14,6 +14,8 @@
 extern char MRILIB_orients[] ;          /* 12 Mar 2001 */
 extern float MRILIB_zoff ;              /* global variables from mri_read.c */
 extern float MRILIB_tr ;                /* 03 Dec 2001 */
+extern float MRILIB_xoff ;              /* 07 Dec 2001 */
+extern float MRILIB_yoff ;
 
 #define CLEAR_MRILIB_globals \
  do{ MRILIB_orients[0]='\0'; MRILIB_zoff=MRILIB_tr=0.0; } while(0)

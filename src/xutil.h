@@ -58,11 +58,25 @@ extern void MCW_alter_widget_cursor( Widget,int , char * , char * ) ;
 #define WAIT_for_window(w)                                           \
    while( XtWindow(w) == (Window) NULL )
 
-#define POPUP_cursorize(w)                                           \
-   MCW_alter_widget_cursor( (w), -XC_left_ptr,"yellow","blue" )
+#define POPUP_cursorize(w)                                        \
+ do{ if( (w) != (Widget)NULL && XtWindow(w) != (Window)NULL )      \
+      MCW_alter_widget_cursor( (w), -XC_left_ptr,"yellow","blue" ); \
+ } while(0)
 
-#define POPUP_uncursorize(w)                                         \
-   MCW_alter_widget_cursor( (w), -XC_top_left_arrow,"yellow","blue" )
+#define NORMAL_cursorize(w)                                            \
+ do{ if( (w) != (Widget)NULL && XtWindow(w) != (Window)NULL )           \
+   MCW_alter_widget_cursor( (w), -XC_top_left_arrow,"#ffcc00","blue" ) ; \
+ } while(0)
+
+#define WATCH_cursorize(w)                                     \
+ do{ if( (w) != (Widget)NULL && XtWindow(w) != (Window)NULL )  \
+      MCW_set_widget_cursor( (w) , -XC_watch ) ;               \
+ } while(0)
+
+#define HAND_cursorize(w)                                      \
+ do{ if( (w) != (Widget)NULL && XtWindow(w) != (Window)NULL )  \
+      MCW_set_widget_cursor( (w) , -XC_hand2 ) ;               \
+ } while(0)
 
 extern void MCW_register_hint( Widget , char * ) ;
 extern void MCW_reghint_children( Widget , char * ) ;
