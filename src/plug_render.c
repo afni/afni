@@ -4772,6 +4772,10 @@ void REND_func_widgets(void)
    XtVaSetValues( wfunc_thr_scale , XmNuserData , (XtPointer) sel_height , NULL ) ;
 #endif
 
+#ifdef USING_LESSTIF
+   XtVaSetValues( wfunc_thr_scale , XmNwidth,20 , NULL ) ;
+#endif
+
    XtAddCallback( wfunc_thr_scale , XmNvalueChangedCallback ,
                   REND_thr_scale_CB , NULL ) ;
 
@@ -5340,10 +5344,15 @@ void REND_init_cmap(void)
                improperly when the Define Function panel is opened!
 --------------------------------------------------------------------------*/
 
-#if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
+#ifdef FIX_SCALE_SIZE_LATER
 static void fixscale( XtPointer client_data , XtIntervalId * id )
 {
    FIX_SCALE_SIZE ;
+
+#ifdef USING_LESSTIF
+   XtVaSetValues( wfunc_thr_scale , XmNwidth,40 , NULL ) ;
+#endif
+
 }
 #endif
 
@@ -5365,7 +5374,7 @@ void REND_open_func_CB( Widget w, XtPointer client_data, XtPointer call_data )
       XtManageChild(wfunc_frame) ;
       update_MCW_pbar( wfunc_color_pbar ) ; /* may need to be redrawn */
       FIX_SCALE_SIZE ;
-#if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
+#ifdef FIX_SCALE_SIZE_LATER
       (void) XtAppAddTimeOut( XtWidgetToApplicationContext(wfunc_frame),
                               50,fixscale,NULL ) ; /* 09 May 2001 */
 #endif

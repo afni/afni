@@ -6616,11 +6616,15 @@ THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
                improperly when the Define Function panel is opened!
 --------------------------------------------------------------------------*/
 
-#if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
+#ifdef FIX_SCALE_SIZE_LATER
 static void fixscale( XtPointer client_data , XtIntervalId * id )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
    FIX_SCALE_SIZE(im3d) ;
+
+#ifdef USING_LESSTIF
+   XtVaSetValues( im3d->vwid->func->thr_scale , XmNwidth,20 , NULL ) ;
+#endif
 }
 #endif
 
@@ -6762,6 +6766,7 @@ STATUS("opening function" ) ;
          XtUnmanageChild( im3d->vwid->func->options_rowcol ) ;
 #endif
 
+
          OPEN_PANEL(im3d,func) ;
 
 #ifdef REMANAGE_FUNC
@@ -6774,7 +6779,7 @@ STATUS("opening function" ) ;
          update_MCW_pbar( im3d->vwid->func->inten_pbar ) ;
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
 
-#if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
+#ifdef FIX_SCALE_SIZE_LATER
         (void) XtAppAddTimeOut( MAIN_app,50,fixscale,im3d ) ; /* 09 May 2001 */
 #endif
 

@@ -2160,6 +2160,10 @@ STATUS("making func->rowcol") ;
                   NULL ) ;
 #endif
 
+#ifdef USING_LESSTIF
+   XtVaSetValues( func->thr_scale , XmNwidth,20 , NULL ) ;
+#endif
+
 #ifdef FIX_SCALE_VALUE_PROBLEM
    for( iqqq=0 ; iqqq < strlen(thr_str) ; iqqq++ ){
       zork[0] = thr_str[iqqq] ; zork[1] = '\0' ;

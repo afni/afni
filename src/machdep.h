@@ -43,6 +43,10 @@
                               threshold scale resizes itself whenever
                               the pbar is touched
 
+    FIX_SCALE_SIZE_LATER   = if this is ALSO defined, then the
+                             FIX_SCALE_SIZE_PROBLEM is applied after a
+                             time delay
+
     SCANDIR_WANT_CONST = if #define-d, says that the "scandir" library
                           routine wants "const" arguments -- setting this
                           flag will avoid some stupid compiler warnings
@@ -226,6 +230,7 @@ extern long   strtol() ;
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define dirent direct
 # define FIX_SCALE_SIZE_PROBLEM
+# define FIX_SCALE_SIZE_LATER
 # define DONT_INSTALL_ICONS
 # define DYNAMIC_LOADING_VIA_DL
 # define USE_LOCKF
@@ -274,12 +279,14 @@ extern long   strtol() ;
 # define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
 # define MMAP_THRESHOLD -1        /* no mmap-ing */
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
-# define BOXUP_SCALE              /* looks nicer */
+/**# define BOXUP_SCALE**/              /* looks nicer */
 # define NO_DYNAMIC_LOADING
 # undef  DONT_UNROLL_FFTS         /* helps a lot */
 # define DONT_USE_STRPTIME
 # define NO_FRIVOLITIES
 # define USING_LESSTIF            /* try to avoid some bugs */
+# define FIX_SCALE_SIZE_PROBLEM
+# define FIX_SCALE_SIZE_LATER
 #endif
 
 /* SCO UDK under Unixware 7 -- contributed by Jason Bacon */
