@@ -1669,7 +1669,8 @@ SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension(char *Name)
    if (!Name) { SUMA_SL_Err("NULL Name"); SUMA_RETURN(form); }
    if (SUMA_isExtension(Name, ".niml.dset")) form = SUMA_NIML;
    if (SUMA_isExtension(Name, ".1D.dset")) form = SUMA_1D;
-    
+   if (SUMA_isExtension(Name, ".niml.cmap")) form = SUMA_NIML;
+   if (SUMA_isExtension(Name, ".1D.cmap")) form = SUMA_1D; 
    SUMA_RETURN(form);
 }
 /*!

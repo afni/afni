@@ -283,6 +283,7 @@ typedef struct {
 /*!
    Frees so, if not NULL
    copies sn into so, takes care of so's allocation
+   Does not free sn
 */
 #define SUMA_STRING_REPLACE(so, sn) {  \
    if (so) SUMA_free(so);  \

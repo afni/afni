@@ -187,7 +187,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /* control mask and escape is grabbed by gnome window manager .... */
             if (Kev.state & ShiftMask){/* kill all */
                if( SUMAg_CF->X->WarnClose) {
-                  if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close All Viewers?", SUMA_YES) != SUMA_YES) {
+                  if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close All Viewers?", SUMA_YES, SWP_DONT_CARE) != SUMA_YES) {
                      break;   
                   }
                } 
@@ -195,9 +195,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                exit(0);
             }else { 
                if( SUMAg_CF->X->WarnClose) {
-                  if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close This Viewer?", SUMA_YES) != SUMA_YES) {
-                     break;   
-                  }
+                  #ifdef DARWIN
+                     if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, 
+                                             "Close This Viewer?\n"
+                                             "OS-X users: If answering YES,\n"
+                                             "this prompt should not lie \n"
+                                             "over viewer to be closed.\n"
+                                             "Blame Bill Gates for this bug.",
+                                              SUMA_YES, SWP_TOP_RIGHT) != SUMA_YES) {
+                        break;   
+                     }
+                  #else
+                     if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close This Viewer?", SUMA_YES, SWP_DONT_CARE) != SUMA_YES) {
+                        break;   
+                     }
+                  #endif
                }
                SUMA_ButtClose_pushed (w, clientData, callData);
             }

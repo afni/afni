@@ -3009,7 +3009,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->bind = 0;
    Opt->UseThr = NOPE;
    {
-      char *eee = getenv("SUMA_AbsThresh_tbold");
+      char *eee = getenv("SUMA_AbsThreshold");
       if (eee) {
          if (strcmp(eee,"NO") == 0) Opt->ThrMode = SUMA_LESS_THAN;
          else if (strcmp(eee,"YES") == 0) Opt->ThrMode = SUMA_ABS_LESS_THAN;
@@ -6478,7 +6478,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    if (!dset) { SUMA_SLP_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of a supported\n"
-                                 "format."); exit(1); }
+                                 "format."); SUMA_RETURNe; }
    
    if (LocalHead) {
       char *si = NULL;
