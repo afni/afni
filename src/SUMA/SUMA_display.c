@@ -975,6 +975,7 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
    CBp->callback_data = callback_data (that is passed in items);
    This allows you to create multiple versions 
    of the same menu and still be able to dissociate between them.
+   \param hint, help (char *) strings for hints and bhelps...(NULL for nothing)
    \param MenuWidgets (Widget *) pointer to a vector that will contain widgets created.
          MenuWidgets[0] is the menu or cascade widgets, MenuWidgets[1]..MenuWidgets[N_wid-1]
          would contain the button and separator widgets specified in items
@@ -1010,7 +1011,9 @@ void SUMA_BuildMenuReset(int n_max)
 
 int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, 
                      char menu_mnemonic, SUMA_Boolean tear_off, SUMA_MenuItem *items, 
-                     void *ContID, Widget *MenuWidgets )
+                     void *ContID, 
+                     char *hint, char *help,
+                     Widget *MenuWidgets )
 {
    static char FuncName[]={"SUMA_BuildMenu"};
    char nlabel[300];
@@ -1032,6 +1035,7 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
      SUMA_RETURN(-1);
    }
    
+
    if (tear_off)
      XtVaSetValues (menu, XmNtearOffModel, XmTEAR_OFF_ENABLED, NULL);
 
@@ -1039,7 +1043,7 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
    if (menu_type == XmMENU_PULLDOWN) {
      str = XmStringCreateLocalized (menu_title);
      cascade = XtVaCreateManagedWidget (menu_title,
-         xmCascadeButtonGadgetClass, parent,
+         xmCascadeButtonWidgetClass, parent,
          XmNsubMenuId,   menu,
          XmNlabelString, str,
          XmNmnemonic,    menu_mnemonic,
@@ -1071,6 +1075,10 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
    /* hide your jewel */
    if (menu_type == XmMENU_POPUP) {  MenuWidgets[i_wid] = menu; }
    else { MenuWidgets[i_wid] = cascade; } 
+   
+   if (hint) MCW_register_hint(MenuWidgets[i_wid], hint);
+   if (help) MCW_reghelp_children(MenuWidgets[i_wid], help);
+   
    ++i_wid;
    
    /* Now add the menu items */
@@ -1088,7 +1096,7 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
          else {
              if (LocalHead) fprintf (SUMA_STDERR, "%s: Going for sub-menu.\n", FuncName);
              SUMA_BuildMenu (menu, XmMENU_PULLDOWN, items[i].label, 
-                 items[i].mnemonic, tear_off, items[i].subitems, ContID, MenuWidgets);
+                 items[i].mnemonic, tear_off, items[i].subitems, ContID, hint, help, MenuWidgets);
          }
      else {
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating widgets MenuWidgets[%d]\n", FuncName, (int)items[i].callback_data);
@@ -1127,7 +1135,7 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
       }
 
       if (items[i].class == &xmToggleButtonWidgetClass ||
-              items[i].class == &xmToggleButtonGadgetClass) {
+              items[i].class == &xmToggleButtonWidgetClass) {
          Pixel fg_pix;
          XtVaGetValues (MenuWidgets[i_wid], XmNforeground, &fg_pix, NULL);
          XtVaSetValues (MenuWidgets[i_wid], XmNselectColor, fg_pix, NULL); 
@@ -1143,7 +1151,7 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
          CBp->ContID = ContID;
          XtAddCallback (MenuWidgets[i_wid],
              (items[i].class == &xmToggleButtonWidgetClass ||
-              items[i].class == &xmToggleButtonGadgetClass) ?
+              items[i].class == &xmToggleButtonWidgetClass) ?
                  XmNvalueChangedCallback : /* ToggleButton class */
                  XmNactivateCallback,      /* PushButton class */
              items[i].callback, (XtPointer)CBp);
@@ -1449,27 +1457,31 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          
          /* create File Menu */
          SUMA_BuildMenuReset(0);
-         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
-                                 "File", 'F', YUP, File_menu, \
-                                 (void *)ic, SUMAg_SVv[ic].X->FileMenu );
+         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
+                                 "File", 'F', YUP, File_menu, 
+                                 (void *)ic, NULL, NULL,  
+                                 SUMAg_SVv[ic].X->FileMenu );
          
          /* create View Menu */
          SUMA_BuildMenuReset(0);
-         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
-                                 "View", 'V', YUP, View_menu, \
-                                 (void *)ic, SUMAg_SVv[ic].X->ViewMenu );
+         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
+                                 "View", 'V', YUP, View_menu, 
+                                 (void *)ic, NULL, NULL,  
+                                 SUMAg_SVv[ic].X->ViewMenu );
          
          /* create Tools Menu */
          SUMA_BuildMenuReset(0);
-         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
-                                 "Tools", 'T', YUP, Tools_menu, \
-                                 (void *)ic, SUMAg_SVv[ic].X->ToolsMenu );
+         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
+                                 "Tools", 'T', YUP, Tools_menu, 
+                                 (void *)ic, NULL, NULL,  
+                                 SUMAg_SVv[ic].X->ToolsMenu );
          
          /* create Help Menu */
          SUMA_BuildMenuReset(0);
-         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
-                                 "Help", 'H', YUP, Help_menu, \
-                                 (void *)ic, SUMAg_SVv[ic].X->HelpMenu );
+         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
+                                 "Help", 'H', YUP, Help_menu,
+                                 (void *)ic, NULL, NULL,  
+                                 SUMAg_SVv[ic].X->HelpMenu );
          
          XtVaSetValues (menubar, XmNmenuHelpWidget, SUMAg_SVv[ic].X->HelpMenu[SW_Help], NULL);
                                  
@@ -2871,7 +2883,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       /* ugly, useless */
       /* this one requires Motif 1.2 or newer */
       XtVaCreateManagedWidget ("Disp. Cont.",
-            xmLabelGadgetClass, QuitFrame, 
+            xmLabelWidgetClass, QuitFrame, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
@@ -3083,7 +3095,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL); 
       
       XtVaCreateManagedWidget ("Surface Properties",
-            xmLabelGadgetClass, SurfFrame, 
+            xmLabelWidgetClass, SurfFrame, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
@@ -3158,7 +3170,16 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SUMA_BuildMenuReset(0);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
                                  "RenderMode", '\0', YUP, RenderMode_Menu, 
-                                 (void *)(SO->SurfCont->curSOp), SO->SurfCont->RenderModeMenu );
+                                 (void *)(SO->SurfCont->curSOp), 
+                                 "Choose the rendering mode for this surface.",
+                                 "Choose the rendering mode for this surface.\n"
+                                 "   Viewer: Surface's rendering mode is set\n"
+                                 "           by the viewer's setting which can\n"
+                                 "           be changed with the 'p' option.\n"
+                                 "   Fill:   Shaded rendering mode.\n"
+                                 "   Line:   Mesh rendering mode.\n"
+                                 "   Points: Points rendering mode.\n", 
+                                 SO->SurfCont->RenderModeMenu );
       XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
       
       pb = XtVaCreateWidget ("Dsets", 
@@ -3186,7 +3207,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL); 
       
       XtVaCreateManagedWidget ("Xhair Info",
-            xmLabelGadgetClass, SO->SurfCont->Xhair_fr, 
+            xmLabelWidgetClass, SO->SurfCont->Xhair_fr, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
@@ -3223,7 +3244,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL); 
       
       XtVaCreateManagedWidget ("Dset Mapping",
-            xmLabelGadgetClass, SO->SurfCont->DsetMap_fr, 
+            xmLabelWidgetClass, SO->SurfCont->DsetMap_fr, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
@@ -3258,7 +3279,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL); 
       
       XtVaCreateManagedWidget ("Dset Controls",
-            xmLabelGadgetClass, SO->SurfCont->ColPlane_fr, 
+            xmLabelWidgetClass, SO->SurfCont->ColPlane_fr, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
@@ -3313,6 +3334,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            2, SUMA_int,
                            NOPE,
                            SUMA_ColPlane_NewOrder, (void *)SO,
+                           SUMA_SurfCont_ColPlaneOrder_hint, SUMA_SurfCont_ColPlaneOrder_help,
                            SO->SurfCont->ColPlaneOrder);
                              
       SUMA_CreateArrowField ( rc, "Opa:",
@@ -3320,7 +3342,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            3, SUMA_float,
                            NOPE,
                            SUMA_ColPlane_NewOpacity, (void *)SO,
+                           SUMA_SurfCont_ColPlaneOpacity_hint, SUMA_SurfCont_ColPlaneOpacity_help,
                            SO->SurfCont->ColPlaneOpacity);
+
       /* manage  rc */
       XtManageChild (rc);
       
@@ -3335,17 +3359,18 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            1, 0.1, 1, 0.1,
                            3, SUMA_float,
                            YUP,
-                           SUMA_ColPlane_NewDimFact, (void *)SO,
+                           SUMA_ColPlane_NewDimFact, (void *)SO, 
+                           SUMA_SurfCont_ColPlaneDim_hint, SUMA_SurfCont_ColPlaneDim_help,
                            SO->SurfCont->ColPlaneDimFact);
-
+           
       SO->SurfCont->ColPlaneShow_tb = XtVaCreateManagedWidget("view", 
-            xmToggleButtonGadgetClass, rc, NULL);
+            xmToggleButtonWidgetClass, rc, NULL);
       XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, YUP, NOPE);
       XtAddCallback (SO->SurfCont->ColPlaneShow_tb, 
                   XmNvalueChangedCallback, SUMA_cb_ColPlaneShow_toggled, SO);
                   
-      MCW_register_help(SO->SurfCont->ColPlaneShow_tb , SUMA_DrawROI_ColPlaneShow_help ) ;
-      MCW_register_hint(SO->SurfCont->ColPlaneShow_tb , "Hides the colorplane." ) ;
+      MCW_register_help(SO->SurfCont->ColPlaneShow_tb , SUMA_SurfCont_ColPlaneShow_help ) ;
+      MCW_register_hint(SO->SurfCont->ColPlaneShow_tb , "Shows/Hides Dset." ) ;
       SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShow_tb);
            
       /* manage  rc */
@@ -3428,7 +3453,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          
       /* this one requires Motif 1.2 or newer */
          XtVaCreateManagedWidget ("Disp. Cont.",
-            xmLabelGadgetClass, DispFrame, 
+            xmLabelWidgetClass, DispFrame, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
@@ -3777,7 +3802,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    SUMA_Init_SurfCont_CrossHair(SO);
    
    /* set the colormap */
-   if (SO->SurfCont->cmap_context) {
+   if (SO->SurfCont->cmp_ren->cmap_context) {
       if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") == 0) {
          if (XtIsManaged(SO->SurfCont->DsetMap_fr)) {
             SUMA_LH("An RGB dset, so surface controls to be seen");
@@ -3897,7 +3922,7 @@ void SUMA_CreateDrawROIWindow(void)
       NULL); 
    
    XtVaCreateManagedWidget ("ROI",
-      xmLabelGadgetClass, frame, 
+      xmLabelWidgetClass, frame, 
       XmNchildType, XmFRAME_TITLE_CHILD,
       XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
       NULL);
@@ -3907,8 +3932,8 @@ void SUMA_CreateDrawROIWindow(void)
    rcv = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, frame,
          XmNorientation , XmVERTICAL ,
-         XmNmarginHeight, SUMA_MARGIN ,
-         XmNmarginWidth , SUMA_MARGIN ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
          NULL);
          
    /* row column for the parent surface name */
@@ -3916,8 +3941,8 @@ void SUMA_CreateDrawROIWindow(void)
          xmRowColumnWidgetClass, rcv,
          XmNpacking, XmPACK_TIGHT, 
          XmNorientation , XmHORIZONTAL ,
-         XmNmarginHeight, SUMA_MARGIN ,
-         XmNmarginWidth , SUMA_MARGIN ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
          NULL);
    
    /*put a label containing the ROI's parent surface name */
@@ -3934,8 +3959,8 @@ void SUMA_CreateDrawROIWindow(void)
          xmRowColumnWidgetClass, rcv,
          XmNpacking, XmPACK_TIGHT, 
          XmNorientation , XmHORIZONTAL ,
-         XmNmarginHeight, SUMA_MARGIN ,
-         XmNmarginWidth , SUMA_MARGIN ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
          NULL);
 
    /*put a toggle button for the DrawROI more */
@@ -3944,7 +3969,7 @@ void SUMA_CreateDrawROIWindow(void)
    /* make a call to change the cursor */
    SUMA_UpdateAllViewerCursor(); 
    SUMAg_CF->X->DrawROI->DrawROImode_tb = XtVaCreateManagedWidget("Draw Mode", 
-      xmToggleButtonGadgetClass, rc, NULL);
+      xmToggleButtonWidgetClass, rc, NULL);
    XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, SUMAg_CF->ROI_mode, NOPE);
    XtAddCallback (SUMAg_CF->X->DrawROI->DrawROImode_tb, 
                   XmNvalueChangedCallback, SUMA_cb_DrawROImode_toggled, 
@@ -3957,7 +3982,7 @@ void SUMA_CreateDrawROIWindow(void)
    
    /*put a toggle button for the Pen mode */
    SUMAg_CF->X->DrawROI->Penmode_tb = XtVaCreateManagedWidget("Pen", 
-      xmToggleButtonGadgetClass, rc, NULL);
+      xmToggleButtonWidgetClass, rc, NULL);
    XmToggleButtonSetState (SUMAg_CF->X->DrawROI->Penmode_tb, SUMAg_CF->Pen_mode, NOPE);
    XtAddCallback (SUMAg_CF->X->DrawROI->Penmode_tb, 
                   XmNvalueChangedCallback, SUMA_cb_DrawROIPen_toggled, 
@@ -3974,7 +3999,7 @@ void SUMA_CreateDrawROIWindow(void)
    
    /* Put a toggle button for real time communication with AFNI */
    SUMAg_CF->X->DrawROI->AfniLink_tb = XtVaCreateManagedWidget("Afni Link", 
-      xmToggleButtonGadgetClass, rc, NULL);
+      xmToggleButtonWidgetClass, rc, NULL);
    
    #if 0
    /* can the link be on ? */
@@ -4001,11 +4026,14 @@ void SUMA_CreateDrawROIWindow(void)
       xmRowColumnWidgetClass, rcv,
       XmNpacking, XmPACK_TIGHT, 
       XmNorientation , XmHORIZONTAL ,
+      XmNmarginHeight, 0 ,
+      XmNmarginWidth , 0 ,
       NULL);
    
    
    SUMA_CreateTextField ( rc, "Label:",
                            6, SUMA_DrawROI_NewLabel,
+                           NULL, NULL,
                            SUMAg_CF->X->DrawROI->ROIlbl);
                              
    SUMA_CreateArrowField ( rc, "Value:",
@@ -4013,6 +4041,7 @@ void SUMA_CreateDrawROIWindow(void)
                            3, SUMA_int,
                            NOPE,
                            SUMA_DrawROI_NewValue, NULL,
+                           NULL, NULL,
                            SUMAg_CF->X->DrawROI->ROIval);
    /* manage  rc */
    XtManageChild (rc);
@@ -4148,14 +4177,16 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                NULL, '\0', YUP, DrawROI_SaveMode_Menu, 
-                               "Frm.",  SUMAg_CF->X->DrawROI->SaveModeMenu);
+                               "Frm.", NULL, NULL, 
+                               SUMAg_CF->X->DrawROI->SaveModeMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu[SW_DrawROI_SaveMode]);
       
    /* Saving what ? */
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                NULL, '\0', YUP, DrawROI_SaveWhat_Menu, 
-                               "What",  SUMAg_CF->X->DrawROI->SaveWhatMenu);
+                               "What", NULL, NULL,   
+                               SUMAg_CF->X->DrawROI->SaveWhatMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveWhatMenu[SW_DrawROI_SaveWhat]);
       
 
@@ -4655,6 +4686,8 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
    \param NewValueCallback(void *data) (void *) Function to call when there is a new value in town. 
    \param cb_data (void *) data to send to callback.
                            if NULL data is actually the AF structure pointer itself.
+   \param hint (char *) if NULL, no hint
+   \param help (char *) if NULL no help
    \param AF (SUMA_ARROW_TEXT_FIELD *) structure defining the arrow field.                        
    - AF must be pre-allocated, of course. Its fields are initialized by the values passed to the function
 */
@@ -4663,6 +4696,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
                               int cwidth, SUMA_VARTYPE type,
                               SUMA_Boolean wrap,
                               void (*NewValueCallback)(void *data), void *cb_data,
+                              char *hint, char *help,
                               SUMA_ARROW_TEXT_FIELD *AF)
 {
    static char FuncName[]={"SUMA_CreateArrowField"};
@@ -4689,36 +4723,45 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
       XmNpacking, XmPACK_TIGHT, 
       XmNorientation , XmHORIZONTAL ,
       NULL);
+   if (hint) MCW_register_hint( AF->rc , hint);
+   if (help) MCW_register_help( AF->rc , help);
    
    if (label) {
       AF->label =  XtVaCreateManagedWidget (label,
-         xmLabelGadgetClass, AF->rc, 
+         xmLabelWidgetClass, AF->rc, 
          XmNmarginHeight, 0,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
+
    }else {
       AF->label = NULL;
    }
 
    AF->up = XtVaCreateManagedWidget ("arrow_up",
-         xmArrowButtonGadgetClass, AF->rc,
+         xmArrowButtonWidgetClass, AF->rc,
          XmNarrowDirection,   XmARROW_UP,
          XmNmarginHeight, 0,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
+   /* No need for hints, they come from daddy if (hint) MCW_register_hint( AF->up , hint); */
+   if (help) MCW_register_help( AF->up , help);
+
    XtVaSetValues (AF->up, XmNuserData, (XtPointer)AF, NULL);
    XtAddCallback (AF->up, XmNarmCallback, SUMA_ATF_start_stop, (XtPointer)1);
    XtAddCallback (AF->up, XmNdisarmCallback, SUMA_ATF_start_stop, (XtPointer)1);
 
    AF->down = XtVaCreateManagedWidget ("arrow_dn",
-      xmArrowButtonGadgetClass, AF->rc,
+      xmArrowButtonWidgetClass, AF->rc,
       XmNarrowDirection,   XmARROW_DOWN,
       XmNmarginHeight, 0,
       XmNmarginTop, 0,
       XmNmarginBottom, 0,
       NULL);
+   /* No need for hints, they come from daddy if (hint) MCW_register_hint( AF->up , hint); */
+   if (help) MCW_register_help( AF->down , help);
+
    XtVaSetValues (AF->down, XmNuserData, (XtPointer)AF, NULL);
    XtAddCallback (AF->down, XmNarmCallback, SUMA_ATF_start_stop, (XtPointer)-1);
    XtAddCallback (AF->down, XmNdisarmCallback, SUMA_ATF_start_stop, (XtPointer)-1);
@@ -4732,6 +4775,9 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
       XmNmarginTop, 0,
       XmNmarginBottom, 0,
       NULL);
+   if (hint) MCW_register_hint( AF->textfield , hint);
+   if (help) MCW_register_help( AF->textfield , help);
+   
    XtAddCallback (AF->textfield, XmNactivateCallback, SUMA_ATF_cb_label_change, (XtPointer)AF);
    XtAddCallback (AF->textfield, XmNmodifyVerifyCallback, SUMA_ATF_cb_label_Modify, (XtPointer)AF);
    
@@ -4754,6 +4800,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
 void SUMA_CreateTextField ( Widget pw, char *label,
                               int cwidth, 
                               void (*NewValueCallback)(void *data),
+                              char *hint, char *help,
                               SUMA_ARROW_TEXT_FIELD *AF)
 {
    static char FuncName[]={"SUMA_ATF_cb_label_Modify"};
@@ -4777,14 +4824,18 @@ void SUMA_CreateTextField ( Widget pw, char *label,
       XmNpacking, XmPACK_TIGHT, 
       XmNorientation , XmHORIZONTAL ,
       NULL);
+   if (hint) MCW_register_hint( AF->label , hint);
+   if (help) MCW_register_help( AF->label , help);
 
    if (label) {
       AF->label =  XtVaCreateManagedWidget (label,
-         xmLabelGadgetClass, AF->rc, 
+         xmLabelWidgetClass, AF->rc, 
          XmNmarginHeight, 0,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
+      /* No need for hints, they come from daddy if (hint) MCW_register_hint( AF->up , hint); */
+      if (help) MCW_register_help( AF->label , help);
    }else {
       AF->label = NULL;
    }
@@ -4794,9 +4845,13 @@ void SUMA_CreateTextField ( Widget pw, char *label,
       XmNuserData, (XtPointer)AF,
       XmNvalue, "0",
       XmNcolumns, AF->cwidth,
+      XmNmarginHeight, 0,
       XmNmarginTop, 0,
       XmNmarginBottom, 0,
       NULL);
+   if (hint) MCW_register_hint( AF->textfield , hint);
+   if (help) MCW_register_help( AF->textfield , help);
+   
    XtAddCallback (AF->textfield, XmNactivateCallback, SUMA_ATF_cb_label_change, (XtPointer)AF);
    XtAddCallback (AF->textfield, XmNmodifyVerifyCallback, SUMA_ATF_cb_label_Modify, (XtPointer)AF);
    
@@ -5971,7 +6026,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
    
       /* this one requires Motif 1.2 or newer */
       XtVaCreateManagedWidget ("Lock",
-         xmLabelGadgetClass, LockFrame, 
+         xmLabelWidgetClass, LockFrame, 
          XmNchildType, XmFRAME_TITLE_CHILD,
          XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
          NULL);
@@ -5997,7 +6052,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
          
       sprintf(stmp,"%c", 65+i);
       w = XtVaCreateManagedWidget (stmp,
-         xmLabelGadgetClass, rc_m,
+         xmLabelWidgetClass, rc_m,
          NULL);
 
       SUMAg_CF->X->SumaCont->Lock_rbg->rb[i] = XtVaCreateWidget("radiobox",
@@ -6011,19 +6066,19 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       tmpfac = SUMAg_CF->X->SumaCont->Lock_rbg->N_but;
        
       SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i] = XtVaCreateManagedWidget("-", 
-      xmToggleButtonGadgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
+      xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
       XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i], 
                      XmNvalueChangedCallback, SUMA_cb_XHlock_toggled, 
                      (XtPointer)(tmpfac*i));
        
       SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+1] = XtVaCreateManagedWidget("i", 
-      xmToggleButtonGadgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
+      xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
       XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+1], 
                      XmNvalueChangedCallback, SUMA_cb_XHlock_toggled,  
                      (XtPointer)(tmpfac*i+1));
       
       SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+2] = XtVaCreateManagedWidget("c", 
-      xmToggleButtonGadgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
+      xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->rb[i], NULL);
       XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->tb[tmpfac*i+2], 
                      XmNvalueChangedCallback, SUMA_cb_XHlock_toggled,  
                      (XtPointer)(tmpfac*i+2));
@@ -6064,7 +6119,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
          NULL);
          
    w = XtVaCreateManagedWidget ("All",
-      xmLabelGadgetClass, rc_m,
+      xmLabelWidgetClass, rc_m,
       NULL);
 
    SUMAg_CF->X->SumaCont->Lock_rbg->arb = XtVaCreateWidget("radiobox",
@@ -6076,19 +6131,19 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       NULL);
 
    SUMAg_CF->X->SumaCont->Lock_rbg->atb[0] = XtVaCreateManagedWidget("-", 
-   xmToggleButtonGadgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->arb, NULL);
+   xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->arb, NULL);
    XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->atb[0], 
                   XmNvalueChangedCallback, SUMA_cb_XHalock_toggled, 
                   (XtPointer)(0));
 
    SUMAg_CF->X->SumaCont->Lock_rbg->atb[1] = XtVaCreateManagedWidget("i", 
-   xmToggleButtonGadgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->arb, NULL);
+   xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->arb, NULL);
    XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->atb[1], 
                   XmNvalueChangedCallback, SUMA_cb_XHalock_toggled,  
                   (XtPointer)(1));
 
    SUMAg_CF->X->SumaCont->Lock_rbg->atb[2] = XtVaCreateManagedWidget("c", 
-   xmToggleButtonGadgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->arb, NULL);
+   xmToggleButtonWidgetClass, SUMAg_CF->X->SumaCont->Lock_rbg->arb, NULL);
    XtAddCallback (SUMAg_CF->X->SumaCont->Lock_rbg->atb[2], 
                   XmNvalueChangedCallback, SUMA_cb_XHalock_toggled,  
                   (XtPointer)(2));
@@ -6104,7 +6159,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
    XtVaCreateManagedWidget ("sep", xmSeparatorGadgetClass, rc_m, NULL);
       
    SUMAg_CF->X->SumaCont->LockAllView_tb = XtVaCreateManagedWidget("v", 
-      xmToggleButtonGadgetClass, rc_m, NULL);
+      xmToggleButtonWidgetClass, rc_m, NULL);
    XtAddCallback (SUMAg_CF->X->SumaCont->LockAllView_tb, XmNvalueChangedCallback, SUMA_cb_XHaviewlock_toggled, NULL);
    
    /* a frame to put the Close button in */
@@ -6870,7 +6925,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
         XmNorientation,  XmHORIZONTAL,
         NULL);
       XtVaCreateManagedWidget ("Search Pattern:",
-        xmLabelGadgetClass, rowcol_h, NULL);
+        xmLabelWidgetClass, rowcol_h, NULL);
 
       TextShell->search_w = XtVaCreateManagedWidget ("SUMA_search_text",
         xmTextFieldWidgetClass, rowcol_h, NULL);
@@ -8015,7 +8070,7 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
       */
       rc = XtVaCreateWidget ("control_area", xmRowColumnWidgetClass, prmpt->pane, NULL);
       string = XmStringCreateLocalized (prmpt->label);
-      XtVaCreateManagedWidget ("label", xmLabelGadgetClass, rc,
+      XtVaCreateManagedWidget ("label", xmLabelWidgetClass, rc,
         XmNlabelString,    string,
         NULL);
       XmStringFree (string);

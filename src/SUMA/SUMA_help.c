@@ -28,6 +28,32 @@ void SUMA_Help_destroyed (void *p)
    
    SUMA_RETURNe;
 }
+/*!
+   \brief function called when help window is open
+*/
+void SUMA_Help_Cmap_open (void *p)
+{
+   static char FuncName[]={"SUMA_Help_Cmap_open"};
+
+   SUMA_ENTRY;
+   /* nothing to do here */
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief function called when help window is destroyed
+*/
+void SUMA_Help_Cmap_destroyed (void *p)
+{
+   static char FuncName[]={"SUMA_Help_Cmap_destroyed"};
+   
+   SUMA_ENTRY;
+
+   SUMAg_CF->X->Help_Cmap_TextShell = NULL;
+   
+   SUMA_RETURNe;
+}
 
 /*!
    \brief function called when Message window is open
@@ -173,6 +199,47 @@ char * SUMA_sources_Info(void)
    SUMA_SS2S(SS,s);
    
    SUMA_RETURN (s);
+}
+
+char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
+{
+   static char FuncName[]={"SUMA_help_message_Info"};
+   char stmp[1000], *s = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+
+   s = SUMA_New_Additions (0, 1);
+   SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+   
+   SS = SUMA_StringAppend (SS, 
+      "\nKeyboard Controls\n");
+   SS = SUMA_StringAppend (SS, 
+      "     r: record image of colormap.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "     Ctrl+h: this help message\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "     Z: Zoom in.\n"
+      "        Maximum zoom in shows 2 colors in the map\n");
+   SS = SUMA_StringAppend (SS, 
+      "     z: Zoom out.\n"
+      "        Minimum zoom in shows all colors in the map\n\n");
+   
+   SS = SUMA_StringAppend (SS, 
+      "\nCmap properties\n");
+   s = SUMA_ColorMapVec_Info(&ColMap, 1, 1);
+   SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN (s);
+
 }
 
 char * SUMA_help_message_Info(void)

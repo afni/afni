@@ -538,6 +538,38 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
             break;
+         case SE_Help_Cmap:
+            /* opens Cmap help window, needs Cmap in vp*/
+            {
+               char *s = NULL;
+               SUMA_COLOR_MAP *Cmp;
+               if (EngineData->vp_Dest != NextComCode) {
+                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                     FuncName, NextCom, NextComCode);
+                  break;
+               } 
+               Cmp = (SUMA_COLOR_MAP *)EngineData->vp;
+               if (SUMAg_CF->X->Help_Cmap_TextShell) { /* just raise it */
+                     XRaiseWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->Help_Cmap_TextShell->toplevel));
+                     break;
+               }
+                  
+               s = SUMA_help_Cmap_message_Info(Cmp);
+               if (!s) {
+                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_help_Cmap_message_Info.\n", FuncName);
+                  break;
+               }else {
+                  TextShell =  SUMA_CreateTextShellStruct (SUMA_Help_Cmap_open, NULL, 
+                                                           SUMA_Help_Cmap_destroyed, NULL);
+                  if (!TextShell) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
+                     break;
+                  }
+                  SUMAg_CF->X->Help_Cmap_TextShell = SUMA_CreateTextShell(s, "SUMA Colormap help", TextShell);
+                  SUMA_free(s);   
+               }
+            }
+            break;
          case SE_Load_Group:
             /* Does not need a sv 
                expects  a pointer to .spec filename in cp, 
@@ -1523,7 +1555,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   /* locate the closest node and store it's id in EngineData*/
                   SUMA_MIN_LOC_VEC (IB.d, IB.nIsIn, ft, it);
                   
-                  /* XYZ and normal of the closets to the center */
+                  /* XYZ and normal of the closest to the center */
                   #ifdef STUFF
                      /* This is not being used and if it is to be used, EngineData should 
                      not be set manually */

@@ -90,6 +90,17 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float 
       ++i;
    }
    
+   SUMA_LH("Bounding Box");
+   /* Calculate Min, Max, Mean */
+   SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
+     
+   SO->Center[0] /= SO->N_Node;
+   SO->Center[1] /= SO->N_Node;
+   SO->Center[2] /= SO->N_Node;
+
+   SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );
+   SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);
+   
    SUMA_LH("Filling up surface facesetlist.");
    /* fill up triangles */
    i = 0;   /* color index */

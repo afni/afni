@@ -100,12 +100,12 @@ void SUMA_cmap_wid_graphicsInit (Widget w, XtPointer clientData, XtPointer call)
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURNe; }
    
    XtVaGetValues(w, GLwNvisualInfo, &SUMAg_cVISINFO, NULL);
-   SO->SurfCont->cmap_context = glXCreateContext(XtDisplay(w), SUMAg_cVISINFO,
+   SO->SurfCont->cmp_ren->cmap_context = glXCreateContext(XtDisplay(w), SUMAg_cVISINFO,
             0,                  /* No sharing. */
             True);              /* Direct rendering if possible. */
    
    /* Setup OpenGL state. */
-   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), SO->SurfCont->cmap_context)) {
+   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), SO->SurfCont->cmp_ren->cmap_context)) {
       fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
    }
    
@@ -240,7 +240,6 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    GLfloat rotationMatrix[4][4];
    float currentQuat[]={0.0, 0.0, 0.0, 1.0};
    GLfloat clear_color[] = { 0.8, 0.8, 0.8, 0.0};
-   GLfloat translateVec[]={0.0, 0.0, 0.0};
    GLfloat RotaCenter[]={0.0, 0.0, 0.0};
    SUMA_COLOR_MAP *Cmap = NULL;
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
@@ -258,17 +257,17 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: performing glClear ...\n", FuncName);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
    
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\nFOV_initial=%f\n", FuncName, SUMA_CMAP_FOV_INITIAL);
+   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\nFOV=%f\n", FuncName, SUMA_CMAP_FOV_INITIAL);
    glMatrixMode (GL_PROJECTION);
    glLoadIdentity ();
-   gluPerspective(SUMA_CMAP_FOV_INITIAL, (double)SUMA_CMAP_WIDTH/SUMA_CMAP_HEIGHT, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
+   gluPerspective(SO->SurfCont->cmp_ren->FOV, (double)SUMA_CMAP_WIDTH/SUMA_CMAP_HEIGHT, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
 
    glMatrixMode(GL_MODELVIEW);
    glPushMatrix();
+   glTranslatef (SO->SurfCont->cmp_ren->translateVec[0], SO->SurfCont->cmp_ren->translateVec[1], SO->SurfCont->cmp_ren->translateVec[2] );
    if (0){
    SUMA_SL_Note("no need for shananigans\n"
                   "But to illustrate ...\n");
-   glTranslatef (translateVec[0], translateVec[1], translateVec[2] );
    glTranslatef (RotaCenter[0], RotaCenter[1], RotaCenter[2]);
    glMultMatrixf(&rotationMatrix[0][0]);
    glTranslatef (-RotaCenter[0], -RotaCenter[1], -RotaCenter[2]);
@@ -287,12 +286,12 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Flushing or swapping ...\n", FuncName);
    
    if (SUMAg_SVv[0].X->DOUBLEBUFFER)
-      glXSwapBuffers(XtDisplay(SO->SurfCont->cmap_wid), XtWindow(SO->SurfCont->cmap_wid));
+      glXSwapBuffers(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), XtWindow(SO->SurfCont->cmp_ren->cmap_wid));
    else  
       glFlush();
 
    /* Avoid indirect rendering latency from queuing. */
-   if (!glXIsDirect(XtDisplay(SO->SurfCont->cmap_wid), SO->SurfCont->cmap_context))
+   if (!glXIsDirect(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), SO->SurfCont->cmp_ren->cmap_context))
       glFinish();
 
    SUMA_RETURNe;
@@ -312,7 +311,7 @@ Boolean SUMA_cmap_wid_handleRedisplay(XtPointer clientData)
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NOPE); }
    
    SUMA_LH("Making cmap_wid current");
-   if (!glXMakeCurrent(XtDisplay(SO->SurfCont->cmap_wid), XtWindow(SO->SurfCont->cmap_wid), SO->SurfCont->cmap_context)) {
+   if (!glXMakeCurrent(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), XtWindow(SO->SurfCont->cmp_ren->cmap_wid), SO->SurfCont->cmp_ren->cmap_context)) {
       fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
    }
    
@@ -378,19 +377,248 @@ void SUMA_cmap_wid_resize(Widget w, XtPointer clientData, XtPointer call)
    SUMA_RETURNe;
 }
 
-void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer call)
+void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
 {
    static char FuncName[]={"SUMA_cmap_wid_input"};
+   GLwDrawingAreaCallbackStruct *cd;
+   KeySym keysym;
+   XKeyEvent Kev;
+   XButtonEvent Bev;
+   XMotionEvent Mev;
+   char buffer[10], cbuf = '\0', cbuf2='\0';
    SUMA_SurfaceObject *SO=NULL;
+   int xls;
+   static Time B1time = 0;
+   static int pButton, mButton, rButton;
+   static SUMA_Boolean DoubleClick = NOPE;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL; 
+   static float height_two_col, width;
+   int ncol;
+   SUMA_COLOR_MAP *ColMap = NULL;
+   static float fov_lim = -1.0;
+   static SUMA_SurfaceObject *SOcmap=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+    
    SUMA_ENTRY;
    
    SUMA_LH("called");
-   SO = (SUMA_SurfaceObject *)clientData;
+   SO = (SUMA_SurfaceObject *)clientData;             /* THIS SO is for the main surface, NOT THE colormap's */
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURNe; }
    
-   SUMA_RETURNe;
+   ColMap = SUMA_CmapOfPlane (SO->SurfCont->curColPlane );
+   if (!ColMap) { SUMA_SL_Err("No Cmap"); SUMA_RETURNe; };
+   if (ColMap->SO != SOcmap) {
+      SUMA_LH("New colormap SO");
+      /* calculate FOV limit for zooming in */
+      SOcmap = ColMap->SO;
+      ncol = SOcmap->N_FaceSet / 2;
+      height_two_col = (SOcmap->MaxDims[1] - SOcmap->MinDims[1]) / (float)ncol * 2.0; /* no need to show more than 2 cols */
+      width = (SOcmap->MaxDims[0] - SOcmap->MinDims[0]);
+      fov_lim = 2.0 * atan( (double)height_two_col / ( 2.0 * (double)SUMA_CMAP_VIEW_FROM ) ) * 180 / SUMA_PI; 
+      if (LocalHead) {
+         SUMA_Print_Surface_Object(SOcmap, NULL);
+         fprintf(SUMA_STDERR,"%s: ncol=%d, height = %f, height of 2 col =%f, width=%f, d = %d, fov_lim = %f\n", 
+            FuncName, ncol, (SOcmap->MaxDims[1] - SOcmap->MinDims[1]), height_two_col,  width, SUMA_CMAP_VIEW_FROM, fov_lim);
+      }
+   }  
+
+   /* make sure the color map is the current context */
+   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), SO->SurfCont->cmp_ren->cmap_context)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n ", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* get the callData pointer */
+   cd = (GLwDrawingAreaCallbackStruct *) callData;
+
+   Kev = (XKeyEvent) cd->event->xkey;
+   Bev = (XButtonEvent) cd->event->xbutton;
+   Mev = (XMotionEvent) cd->event->xmotion;
+   
+   switch (Kev.type) { /* switch event type */
+   case KeyPress:
+      xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
+      
+      /* XK_* are found in keysymdef.h */ 
+      switch (keysym) { /* keysym */
+         case XK_r:
+            {
+               GLvoid *pixels;
+               SUMA_LH("Recording");
+               pixels = SUMA_grabPixels(1, SUMA_CMAP_WIDTH, SUMA_CMAP_HEIGHT);
+               if (pixels) {
+                 ISQ_snapsave (SUMA_CMAP_WIDTH, -SUMA_CMAP_HEIGHT, (unsigned char *)pixels, SO->SurfCont->cmp_ren->cmap_wid ); 
+                 SUMA_free(pixels);
+               }else {
+                  SUMA_SLP_Err("Failed to record image.");
+               }
+            }
+            break;
+         case XK_h:
+            if (Kev.state & ControlMask){
+              if (!list) list = SUMA_CreateList();
+              ED = SUMA_InitializeEngineListData (SE_Help_Cmap);
+              SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)ColMap,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL); 
+              if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+              }    
+            }
+            break;
+         case XK_Z:
+            {
+               static SUMA_Boolean BeepedAlready = NOPE;
+               SO->SurfCont->cmp_ren->FOV /= FOV_IN_FACT; 
+               if (SO->SurfCont->cmp_ren->FOV < fov_lim) { 
+                  if (!BeepedAlready) {
+                     SUMA_BEEP; BeepedAlready = YUP;
+                  }
+                  SO->SurfCont->cmp_ren->FOV = fov_lim; 
+               } else BeepedAlready = NOPE;
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Zoom in FOV = %f\n", FuncName, SO->SurfCont->cmp_ren->FOV);
+               SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+            }
+            break;
+
+         case XK_z:
+            {
+               static SUMA_Boolean BeepedAlready = NOPE;
+               SO->SurfCont->cmp_ren->FOV /= FOV_OUT_FACT; 
+               if (SO->SurfCont->cmp_ren->FOV > SUMA_CMAP_FOV_INITIAL) { 
+                  if (!BeepedAlready) {
+                     SUMA_BEEP; BeepedAlready = YUP;
+                  }
+                  SO->SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL; 
+               } else BeepedAlready = NOPE;
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Zoom out FOV = %f\n", FuncName, SO->SurfCont->cmp_ren->FOV);
+               SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+            }
+            break;
+         case XK_Home:   
+            SO->SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL;
+            SO->SurfCont->cmp_ren->translateVec[0] = SO->SurfCont->cmp_ren->translateVec[1] = SO->SurfCont->cmp_ren->translateVec[2] = 0.0;
+            SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+            break;
+         case XK_Up:   /*KEY_UP:*/
+            {
+               static SUMA_Boolean BeepedAlready = NOPE;   
+               float tstep = height_two_col / 2 * SO->SurfCont->cmp_ren->FOV/(float)SUMA_CMAP_FOV_INITIAL; 
+               SO->SurfCont->cmp_ren->translateVec[1] += tstep ;
+               fprintf(SUMA_STDERR,"%s: translateVec[1] = %f\n", FuncName, SO->SurfCont->cmp_ren->translateVec[1]);
+               if (SO->SurfCont->cmp_ren->translateVec[1] >  SUMA_CMAP_HEIGHT - 20) {
+                  if (!BeepedAlready) {
+                     SUMA_BEEP; BeepedAlready = YUP;
+                  }
+                     SO->SurfCont->cmp_ren->translateVec[1] -= tstep; 
+               } else BeepedAlready = NOPE;
+               SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+            }
+            break;
+         case XK_Down:   /*KEY_DOWN:*/
+            {
+               static SUMA_Boolean BeepedAlready = NOPE;  
+               float tstep = height_two_col / 2 * SO->SurfCont->cmp_ren->FOV/(float)SUMA_CMAP_FOV_INITIAL; 
+               SO->SurfCont->cmp_ren->translateVec[1] -=  tstep;
+               if (SO->SurfCont->cmp_ren->translateVec[1] <  -SUMA_CMAP_HEIGHT + 20) {
+                  if (!BeepedAlready) {
+                     SUMA_BEEP; BeepedAlready = YUP;
+                  }
+                     SO->SurfCont->cmp_ren->translateVec[1] += tstep; 
+               } else BeepedAlready = NOPE;
+               SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+            }
+            break;
+         
+      } /* keysym */
+   break;
+   
+   case ButtonPress:
+      if (LocalHead) fprintf(stdout,"In ButtonPress\n");      
+      pButton = Bev.button;
+      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+         if (pButton == Button1) pButton = Button3;
+         else if (pButton == Button3) pButton = Button1;
+      }
+     
+     /* trap for double click */
+      if (Bev.time - B1time < SUMA_DOUBLE_CLICK_MAX_DELAY) {
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Double click.\n", FuncName);
+         DoubleClick = YUP;
+      } else {
+         DoubleClick = NOPE;
+      }
+      B1time = Bev.time; 
+            
+      switch (pButton) { /* switch type of button Press */
+         case Button1:
+            break;
+         default:
+            break;
+      } /* switch type of button Press */
+      break;
+      
+   case ButtonRelease:
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName); 
+      rButton = Bev.button;
+      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+         if (rButton == Button1) rButton = Button3;
+         else if (rButton == Button3) rButton = Button1;
+      }
+      switch (rButton) { /* switch type of button Press */
+         case Button3:
+            break;
+         default:
+            break;
+      } /* switch type of button Press */
+      break;
+      
+   case MotionNotify:
+      if (LocalHead) fprintf(stdout,"In MotionNotify\n"); 
+      if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+        if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+            mButton = SUMA_Button_12_Motion;
+         } else if(Mev.state & Button3MotionMask) {
+            mButton = SUMA_Button_1_Motion;
+         }else if(Mev.state & Button2MotionMask) { 
+            mButton = SUMA_Button_2_Motion;
+         }else if(Mev.state & Button1MotionMask) { 
+            mButton = SUMA_Button_3_Motion;
+         }else {
+            break;
+         } 
+      } else {
+         if (((Mev.state & Button1MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+            mButton = SUMA_Button_12_Motion;
+         } else if(Mev.state & Button1MotionMask) {
+            mButton = SUMA_Button_1_Motion;
+         }else if(Mev.state & Button2MotionMask) { 
+            mButton = SUMA_Button_2_Motion;
+         } else if(Mev.state & Button3MotionMask) { 
+            mButton = SUMA_Button_3_Motion;
+         }else {
+            break;
+         }
+      }
+      
+      switch (mButton) {
+         case SUMA_Button_12_Motion:
+         case SUMA_Button_2_Shift_Motion:
+            break;
+         default:
+            break;
+      }
+      
+      
+      break;
+  }/* switch event type */
+
+  /* set up flag to make sure sv regains context */
+  SUMA_SiSi_I_Insist();
+   
+  SUMA_RETURNe;
 }
 
 void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
@@ -1543,7 +1771,10 @@ void SUMA_CreateTable(  Widget parent,
                                                    XmNmarginTop, 0,
                                                    XmNmarginBottom, 0, 
                                                    NULL);
-
+               if (col_help || col_hint || row_help || row_hint)  
+                  MCW_register_help( TF->cells[n], "Hints and help messages\n"
+                                                   "are attached to table's\n"
+                                                   "column and row titles."  ) ;
                if (TF->cwidth[j] > 0) {  XtVaSetValues(TF->cells[n], XmNcolumns, TF->cwidth[j], NULL); }
                if (!TF->editable) { 
                   SUMA_SetCellEditMode(TF, i, j, 0);
@@ -2195,7 +2426,24 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "I", '\0', YUP, SwitchInt_Menu, 
-                           (void *)SO, SO->SurfCont->SwitchIntMenu );
+                           (void *)SO, 
+                           "Select Intensity (I) column", 
+                           "Select Intensity (I) column.\n"
+                           "Use this menu to select\n"
+                           "which column in the\n"
+                           "dataset (Dset) should be \n"
+                           "used for an Intensity (I)\n"
+                           "measure.\n\n"
+                           "I values are the ones that \n"
+                           "get colored by the colormap.\n\n"
+                           "No coloring is done if the\n"
+                           "'v' button on the right is\n"
+                           "turned off.\n\n"
+                           "I value for the selected node\n"
+                           "is shown in the 'Val' table\n"
+                           "of the 'Xhair Info' section \n"
+                           "on the left.",
+                           SO->SurfCont->SwitchIntMenu );
          if (LocalHead) SUMA_ShowMeTheChildren(SO->SurfCont->SwitchIntMenu[0]);
          XtManageChild (SO->SurfCont->SwitchIntMenu[0]);
          /* Now destroy the SwitchInt_Menu */
@@ -2217,7 +2465,31 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          SUMA_BuildMenuReset(13);         
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "T", '\0', YUP, SwitchThr_Menu, 
-                           (void *)SO, SO->SurfCont->SwitchThrMenu );
+                           (void *)SO,  
+                           "Select Threshold (T) column", 
+                           "Select Threshold (T) column.\n"
+                           "Use this menu to select\n"
+                           "which column in the\n"
+                           "dataset (Dset) should be \n"
+                           "used for a Threshold (T)\n"
+                           "measure.\n\n"
+                           "T values are the ones used \n"
+                           "to determine if a node \n"
+                           "gets colored based on its\n"
+                           "I value.\n\n"
+                           "A node n is not colored if:\n"
+                           "    T(n)   < Tscale   \n"
+                           "or if '|T|' option below\n"
+                           "is turned ON.\n"
+                           "  | T(n) | < Tscale .\n\n"
+                           "Thresholding is not applied\n"
+                           "when the 'v' button on the \n"
+                           "right is turned off.\n\n"
+                           "T(n) for the selected node n\n"
+                           "is shown in the 'Val'\n"
+                           "table of the 'Xhair Info'\n"
+                           "section on the left.\n" ,    
+                           SO->SurfCont->SwitchThrMenu );
          XtManageChild (SO->SurfCont->SwitchThrMenu[0]);
          /* Now destroy the SwitchThr_Menu */
          SwitchThr_Menu = SUMA_FreeMenuVector(SwitchThr_Menu, N_items);
@@ -2238,7 +2510,28 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "B", '\0', YUP, SwitchBrt_Menu, 
-                           (void *)SO, SO->SurfCont->SwitchBrtMenu );
+                           (void *)SO,  
+                           "Select Brightness (B) column", 
+                           "Select Brightness (B) column.\n"
+                           "Use this menu to select\n"
+                           "which column in the\n"
+                           "dataset (Dset) should be \n"
+                           "used for color Brightness (B)\n"
+                           "modulation.\n\n"
+                           "B values are the ones used \n"
+                           "to control the brightness of\n"
+                           "a node's color.\n\n"
+                           "Brightness modulation is\n"
+                           "controlled by ranges in the\n"
+                           "'B' cells of the table below.\n\n"
+                           "Brightness modulation is not\n"
+                           "applied when the 'v' button on \n"
+                           "the right is turned off.\n\n"
+                           "B(n) for the selected node n\n"
+                           "is shown in the 'Val'\n"
+                           "table of the 'Xhair Info'\n"
+                           "section on the left.\n", 
+                           SO->SurfCont->SwitchBrtMenu );
          XtManageChild (SO->SurfCont->SwitchBrtMenu[0]);
          /* Now destroy the SwitchBrt_Menu */
          SwitchBrt_Menu = SUMA_FreeMenuVector(SwitchBrt_Menu, N_items);
@@ -2250,19 +2543,24 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
      /* put the toggle buttons */
          if (!SO->SurfCont->Int_tb) {
             SO->SurfCont->Int_tb = XtVaCreateManagedWidget("v", 
-               xmToggleButtonGadgetClass, SO->SurfCont->rcsw_v2, NULL);
+               xmToggleButtonWidgetClass, SO->SurfCont->rcsw_v2, NULL);
             XtAddCallback (SO->SurfCont->Int_tb, 
                   XmNvalueChangedCallback, SUMA_cb_SwithInt_toggled, SO);
+            MCW_register_hint(SO->SurfCont->Int_tb,   "View (ON)/Hide Dset node colors");
+            MCW_register_help(SO->SurfCont->Int_tb,   "View (ON)/Hide Dset node colors.");
+
             SUMA_SET_SELECT_COLOR(SO->SurfCont->Int_tb);
          } 
          XmToggleButtonSetState (SO->SurfCont->Int_tb, SO->SurfCont->curColPlane->Show, NOPE);
          
          if (!SO->SurfCont->Thr_tb) {
             SO->SurfCont->Thr_tb = XtVaCreateManagedWidget("v", 
-               xmToggleButtonGadgetClass, SO->SurfCont->rcsw_v2, NULL);
+               xmToggleButtonWidgetClass, SO->SurfCont->rcsw_v2, NULL);
             XtAddCallback (SO->SurfCont->Thr_tb, 
                   XmNvalueChangedCallback, SUMA_cb_SwithThr_toggled, SO);
             SUMA_SET_SELECT_COLOR(SO->SurfCont->Thr_tb);
+            MCW_register_hint(SO->SurfCont->Thr_tb,   "Apply (ON)/Ignore thresholding");
+            MCW_register_help(SO->SurfCont->Thr_tb,   "Apply (ON)/Ignore thresholding");
          }
          if (SO->SurfCont->curColPlane->OptScl->tind >=0) {
             XmToggleButtonSetState (SO->SurfCont->Thr_tb, SO->SurfCont->curColPlane->OptScl->UseThr, NOPE);
@@ -2272,10 +2570,12 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          
          if (!SO->SurfCont->Brt_tb) {
             SO->SurfCont->Brt_tb = XtVaCreateManagedWidget("v", 
-               xmToggleButtonGadgetClass, SO->SurfCont->rcsw_v2, NULL);
+               xmToggleButtonWidgetClass, SO->SurfCont->rcsw_v2, NULL);
             XtAddCallback (SO->SurfCont->Brt_tb, 
                      XmNvalueChangedCallback, SUMA_cb_SwithBrt_toggled, SO);
             SUMA_SET_SELECT_COLOR(SO->SurfCont->Brt_tb);
+            MCW_register_hint(SO->SurfCont->Thr_tb,   "View (ON)/Ignore brightness modulation");
+            MCW_register_help(SO->SurfCont->Thr_tb,   "View (ON)/Ignore brightness modulation");
          }
          if (SO->SurfCont->curColPlane->OptScl->bind >=0) {
             XmToggleButtonSetState (SO->SurfCont->Brt_tb, SO->SurfCont->curColPlane->OptScl->UseBrt, NOPE);
@@ -2307,21 +2607,22 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "Values in the intensity data \n"
                            "that are less than Min are colored\n"
                            "by the first (bottom) color of the \n"
-                           "colormap. Values larger than Max \n"
-                           "are mapped to the top color.\n"
-                           "***Note: Left click locks ranges\n"
-                           "         from automatic resetting.\n"
-                           "         Right click resets values\n"
-                           "         to full range in data.\n",
+                           "colormap. \n"
+                           "Values larger than Max are mapped \n"
+                           "to the top color.\n\n"
+                           "Left click locks ranges\n"
+                           "from automatic resetting.\n\n"
+                           "Right click resets values\n"
+                           "to full range in data.\n",
                            "Brightness modulation clipping range.\n"
                            "Values in the brightness data are\n"
                            "clipped to the Min to Max range before\n"
                            "calculating their modulation factor\n"
-                           "(see next row).\n"
-                           "***Note: Left click locks ranges\n"
-                           "         from automatic resetting.\n"
-                           "         Right click resets values\n"
-                           "         to full range in data.\n", 
+                           "(see next table row).\n\n"
+                           "Left click locks ranges\n"
+                           "from automatic resetting.\n\n"
+                           "Right click resets values\n"
+                           "to full range in data.\n\n", 
                            "Brightness modulation factor range.\n"
                            "Brightness modulation values, after\n"
                            "clipping per the values in the row above,\n"
@@ -2330,11 +2631,13 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "Coordinate bias range.\n"
                            "Coordinates of nodes that are mapped\n"
                            "to the colormap can have a bias added\n"
-                           "to their coordinates. Nodes mapped to\n"
-                           "the first color of the map have the\n"
-                           "minimum bias value, nodes mapped to \n"
-                           "the last color have recieve the \n"
-                           "maximum bias. Nodes not mapped will \n"
+                           "to their coordinates. \n\n"
+                           "Nodes mapped to the first color of \n"
+                           "the map receive the minimum bias and\n"
+                           "nodes mapped to the last color receive\n"
+                           "the maximum bias. \n\n"
+                           "Nodes not colored, because of \n"
+                           "thresholding for example, will \n"
                            "have no bias applied.", NULL};
       if (!SO->SurfCont->rccm) {
          SO->SurfCont->rccm = XtVaCreateWidget ("rowcolumn",
@@ -2378,14 +2681,39 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                SUMA_BuildMenuReset(0);
                SUMA_BuildMenu ( rc, XmMENU_OPTION, 
                                "Col", '\0', YUP, CmapMode_Menu, 
-                               (void *)SO,  SO->SurfCont->CmapModeMenu);
+                               (void *)SO,  
+                               "Switch between color mapping modes.", 
+                               "Switch between color mapping modes.\n"
+                               "Int: Interpolate linearly between\n"
+                               "     colors in colormap\n"
+                               "NN : Use the nearest color in the\n"
+                               "     colormap. \n"
+                               "Dir: Use intensity values as indices\n"
+                               "     into the colormap.\n"
+                               "     In Dir mode, the intensity \n"
+                               "     clipping range is of no use.\n",
+                               SO->SurfCont->CmapModeMenu);
                XtManageChild (SO->SurfCont->CmapModeMenu[SW_CmapMode]);
                
                SUMA_LH("Forming new bias menu");
                SUMA_BuildMenuReset(0);
                SUMA_BuildMenu ( rc, XmMENU_OPTION, 
                                "Bias", '\0', YUP, CoordBias_Menu, 
-                               (void *)SO,  SO->SurfCont->CoordBiasMenu);
+                               (void *)SO, 
+                               "Coordinate bias direction", 
+                               "Coordinate bias direction.\n"
+                               "   -: No bias thank you\n"
+                               "   x: X coord bias\n"
+                               "   y: Y coord bias\n"
+                               "   z: Z coord bias\n"
+                               "   n: bias along node's normal\n\n"
+                               "See more info in Bhelp for\n"
+                               "'C' table entry above.\n\n"
+                               "This option will produce\n"
+                               "'Extremely Cool' images \n"
+                               "that are best appreciated \n"
+                               "with Chuck E. Weiss' music.\n" , 
+                               SO->SurfCont->CoordBiasMenu);
                XtManageChild (SO->SurfCont->CoordBiasMenu[SW_CoordBias]);
                
                XtManageChild(rc);
@@ -2422,7 +2750,14 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                SUMA_BuildMenuReset(10);
                SO->SurfCont->N_CmapMenu = SUMA_BuildMenu (SO->SurfCont->rccm_swcmap, XmMENU_OPTION, /* populate it */
                                  "Cmp", '\0', YUP, SwitchCmap_Menu, 
-                                 (void *)SO, SO->SurfCont->SwitchCmapMenu );
+                                 (void *)SO,  
+                                 "Switch between available color maps. (BHelp for more)", 
+                                 "Switch between available color maps.\n"
+                                 "If the number of colormaps is too large\n"
+                                 "for the menu button, right click over\n"
+                                 "the 'Cmp' label and a chooser with a \n"
+                                 "slider bar will appear.\n", 
+                                 SO->SurfCont->SwitchCmapMenu );
                XtInsertEventHandler( SO->SurfCont->SwitchCmapMenu[0] ,      /* handle events in optmenu */
                                  ButtonPressMask ,  /* button presses */
                                  FALSE ,            /* nonmaskable events? */
@@ -2445,7 +2780,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                SUMA_BuildMenuReset(0);
                SUMA_BuildMenu (SO->SurfCont->rccm_swcmap, XmMENU_OPTION, 
                                NULL, '\0', YUP, CoordBias_Menu, 
-                               (void *)SO,  SO->SurfCont->CoordBiasMenu);
+                               (void *)SO,   NULL, NULL, 
+                               SO->SurfCont->CoordBiasMenu);
                XtManageChild (SO->SurfCont->CoordBiasMenu[SW_CoordBias]);
             }
             #endif
@@ -2470,26 +2806,62 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                NULL);
          /* create the absolute threshold toggle button */
          SO->SurfCont->AbsThresh_tb = XtVaCreateManagedWidget("|T|", 
-               xmToggleButtonGadgetClass, rc, 
+               xmToggleButtonWidgetClass, rc, 
                NULL);
          XtAddCallback (SO->SurfCont->AbsThresh_tb, 
                XmNvalueChangedCallback, SUMA_cb_AbsThresh_tb_toggled, SO);
+         MCW_register_hint(SO->SurfCont->AbsThresh_tb , "Absolute threshold ON/OFF");
+         MCW_register_help(SO->SurfCont->AbsThresh_tb ,  "Toggle Absolute thresholding.\n"
+                                                         "OFF: Mask node color for\n"
+                                                         "     nodes that have:  \n"
+                                                         "     T(n) < Tscale\n"
+                                                         "ON:  Mask node color for\n"
+                                                         "     nodes that have:\n"
+                                                         "     | T(n) | < Tscale\n" 
+                                                         "where:\n"
+                                                         "Tscale is the value set by\n"
+                                                         "       the threshold scale.\n"
+                                                         "T(n) is the node value in the \n"
+                                                         "     selected threshold column (T).\n"
+                                                         "     this value is seen in the \n"
+                                                         "     second cell of the 'Value'\n"
+                                                         "     table on the left side.\n"
+                                                         );
+         
          SUMA_SET_SELECT_COLOR(SO->SurfCont->AbsThresh_tb);
          
          /* create the symmetric range toggle button */
          SO->SurfCont->SymIrange_tb = XtVaCreateManagedWidget("sym I", 
-               xmToggleButtonGadgetClass, rc, NULL);
+               xmToggleButtonWidgetClass, rc, NULL);
          XtAddCallback (SO->SurfCont->SymIrange_tb, 
                XmNvalueChangedCallback, SUMA_cb_SymIrange_tb_toggled, SO);
-         
+         MCW_register_hint(SO->SurfCont->SymIrange_tb, "Intensity range symmetry about 0 ");
+         MCW_register_help(SO->SurfCont->SymIrange_tb,   "Toggle Intensity range symmetry\n"
+                                                         "about 0. \n"
+                                                         "ON : Intensity clipping range\n"
+                                                         "     is forced to go from \n"
+                                                         "     -val to val\n"
+                                                         "     This allows you to mimic\n"
+                                                         "     AFNI's ranging mode.\n" 
+                                                         "OFF: Intensity clipping range\n"
+                                                         "     can be set to your liking."
+                                                         );
          SUMA_SET_SELECT_COLOR(SO->SurfCont->SymIrange_tb);
          
          /* add a button for zero masking */
          SO->SurfCont->ShowZero_tb = XtVaCreateManagedWidget("shw 0", 
-               xmToggleButtonGadgetClass, rc, NULL);
+               xmToggleButtonWidgetClass, rc, NULL);
          XtAddCallback (SO->SurfCont->ShowZero_tb, 
                XmNvalueChangedCallback, SUMA_cb_ShowZero_tb_toggled, SO);
-         
+         MCW_register_hint(SO->SurfCont->ShowZero_tb,   "Color masking of nodes with intensity = 0 ");
+         MCW_register_help(SO->SurfCont->ShowZero_tb,    "Toggle color masking of nodes \n"
+                                                         "with intensity = 0 \n"
+                                                         "ON : 0 intensities are mapped\n"
+                                                         "     to the colormap as any\n"
+                                                         "     other values.\n" 
+                                                         "OFF: 0 intensities are masked,\n"
+                                                         "     a la AFNI"
+                                                         );
          SUMA_SET_SELECT_COLOR(SO->SurfCont->ShowZero_tb);
          XtManageChild (rc);
       }
@@ -2903,6 +3275,10 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM)
          SUMA_RETURN(NOPE);
    }
    
+   /* reset zoom and translation vectors */
+   SO->SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL;
+   SO->SurfCont->cmp_ren->translateVec[0] = SO->SurfCont->cmp_ren->translateVec[1] = SO->SurfCont->cmp_ren->translateVec[2] = 0.0;
+
    /* update the color map display */
    SUMA_cmap_wid_postRedisplay(NULL, (XtPointer)SO, NULL);
                
@@ -3278,7 +3654,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
          NULL);
       
       /* open me a glxarea */
-      SO->SurfCont->cmap_wid = XtVaCreateManagedWidget("glxarea",
+      SO->SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
                                           glwDrawingAreaWidgetClass, rcc2,
                                           GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
                                           XtNcolormap, SUMAg_SVv[0].X->CMAP,
@@ -3289,10 +3665,10 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
       XtManageChild (rcc2);
       
       /* add me some callbacks */
-      XtAddCallback(SO->SurfCont->cmap_wid, GLwNginitCallback, SUMA_cmap_wid_graphicsInit, (XtPointer )SO);
-      XtAddCallback(SO->SurfCont->cmap_wid, GLwNexposeCallback, SUMA_cmap_wid_expose, (XtPointer )SO);
-      XtAddCallback(SO->SurfCont->cmap_wid, GLwNresizeCallback, SUMA_cmap_wid_resize, (XtPointer )SO);
-      XtAddCallback(SO->SurfCont->cmap_wid, GLwNinputCallback, SUMA_cmap_wid_input, (XtPointer )SO);
+      XtAddCallback(SO->SurfCont->cmp_ren->cmap_wid, GLwNginitCallback, SUMA_cmap_wid_graphicsInit, (XtPointer )SO);
+      XtAddCallback(SO->SurfCont->cmp_ren->cmap_wid, GLwNexposeCallback, SUMA_cmap_wid_expose, (XtPointer )SO);
+      XtAddCallback(SO->SurfCont->cmp_ren->cmap_wid, GLwNresizeCallback, SUMA_cmap_wid_resize, (XtPointer )SO);
+      XtAddCallback(SO->SurfCont->cmp_ren->cmap_wid, GLwNinputCallback, SUMA_cmap_wid_input, (XtPointer )SO);
       
       XtManageChild (rcc);
    }  /* the colorbar */

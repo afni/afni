@@ -2653,7 +2653,11 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    
    /* go through and clip values in V to those specified in the range */
    if (Opt->ApplyClip) {
-      SUMA_LH("Applying Clip");
+      SUMA_LH( "Applying Clip \n"
+               "(This one's not used in\n"
+               " interactive mode anymore \n"
+               " because clipping is handled \n"
+               " in the colormapping part)");
       for (i=0; i < N_V; ++i) {
          if (!SV->isMasked[i]) { /* don't waist time on masked stuff */
             if (V[i] > Opt->IntRange[0]) { 
@@ -2694,16 +2698,24 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    
    /* is the colormap non-linear ? */
    if (ColMap->frac) {
-      /* linearize color map */
-      SUMA_LH("Linearizing colormap ...");
-      NewMap = YUP;
-      if (ColMap->frac[0] > 0 && ColMap->Sgn == -1) {
-         SUMA_S_Warn ("Color map fractions are positive with Sgn flag = -1");
+      if (Opt->interpmode == SUMA_NO_INTERP || Opt->interpmode == SUMA_INTERP) {
+         /* linearize color map */
+         SUMA_LH("Linearizing colormap ...");
+         NewMap = YUP;
+         if (ColMap->frac[0] > 0 && ColMap->Sgn == -1) {
+            SUMA_S_Warn ("Color map fractions are positive with Sgn flag = -1");
+         }
+         if (ColMap->frac[0] < 0 && ColMap->Sgn == 1) {
+            SUMA_S_Warn ("Color map fractions are negative with Sgn flag = 1");
+         }
+         ColMap = SUMA_Linearize_Color_Map (ColMap, -1);
+      } else {
+         if (Opt->interpmode != SUMA_DIRECT) {
+            SUMA_SL_Err("Not expected interpmode.");
+            /* Do nothing to the colormap, direct mapping mode in gear */
+            NewMap = NOPE;
+         }
       }
-      if (ColMap->frac[0] < 0 && ColMap->Sgn == 1) {
-         SUMA_S_Warn ("Color map fractions are negative with Sgn flag = 1");
-      }
-      ColMap = SUMA_Linearize_Color_Map (ColMap, -1);
    }else {
       SUMA_LH("NO Linearizing of colormap deemed necessary...");
       NewMap = NOPE;
@@ -2822,7 +2834,9 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       }
    } else {
       /* direct color mapping */
-      SUMA_LH("Direct colormapping");
+      SUMA_LH( "Direct colormapping.\n"
+               "Opt->IntRange values are \n"
+               "meaningless" );
       if (Opt->interpmode != SUMA_DIRECT) {
          fprintf (SUMA_STDOUT,"Error %s: Logic error, should never get here with Opt->interpmode != SUMA_DIRECT\n", FuncName);
          SUMA_RETURN(NOPE);
