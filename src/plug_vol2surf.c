@@ -48,9 +48,10 @@ static char g_help[] =
     "   use normals?  : segments are formed from each node from surface A\n"
     "                   along its normal, and of length 'norm len'\n"
     "   norm len      : this will be the length of each segment\n"
-    "   norm dir?     : choose whether to keep the normal directions that are\n"
-    "                   computed by SUMA, or to re-compute them, based on the\n"
-    "                   surface limits and its center of mass\n"
+    "   norm dir      : choose what to do with the normal directions:\n"
+    "                     check   : let vol2surf try to decide\n"
+    "                     keep    : keep the default directions\n"
+    "                     reverse : reverse the default directions\n"
     " \n"
     " offsets:\n"
     " \n"
@@ -103,15 +104,20 @@ static char g_help[] =
     "   History:\n"
     " \n"
     "   1.0  9 September 2004 [rickr]\n"
-    "     - initial version\n";
+    "     - initial version\n"
+    " \n"
+    "   1.1  16 September 2004 [rickr]\n"
+    "     - init gp_index to -1 (set it in afni)\n"
+    "     - allow the user to keep or reverse normal directions\n"
+	;
 
 #define P_MAP_NAMES_NVALS      12	/* should match enum for global maps */
 #define P_NY_NVALS              2
-#define P_KEEP_NVALS            2
+#define P_KEEP_NVALS            3
 #define P_STEP_NVALS            2
 
 static char * gp_ny_list[]   = { "no", "yes" };
-static char * gp_keep_list[] = { "keep", "check" };
+static char * gp_keep_list[] = { "check", "keep", "reverse" };
 static char * gp_step_list[] = { "voxel", "node" };
 
 typedef struct
@@ -275,6 +281,7 @@ ENTRY("init_plugin_opts");
     g->vpo->surfA = -1;
     g->vpo->surfB = -1;
 
+    g->vpo->sopt.gp_index      = -1;
     g->vpo->sopt.dnode         = -1;
     g->vpo->sopt.outfile_1D    = NULL;
     g->vpo->sopt.outfile_niml  = NULL;
@@ -387,8 +394,10 @@ ENTRY("process_args");
 		sopt->norm_len = PLUTO_get_number(plint);
 
 		str = PLUTO_get_string(plint);
-		if ( PLUTO_string_index(str, P_KEEP_NVALS, gp_keep_list) != 0 )
-		    sopt->keep_norm_dir = 1;
+		val = PLUTO_string_index(str, P_KEEP_NVALS, gp_keep_list);
+		if      ( val == 1 ) sopt->norm_dir = V2S_NORM_KEEP;
+		else if ( val == 2 ) sopt->norm_dir = V2S_NORM_REVERSE;
+		else                 sopt->norm_dir = V2S_NORM_DEFAULT;
 	    }
 	}
 	else if ( ! strcmp(tag, "offsets") )
