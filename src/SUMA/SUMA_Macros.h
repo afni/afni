@@ -894,306 +894,6 @@ WARNING: The input data vectors are not cast to the type of s.
       }\
    }
    
-   /*!
-      SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4 
-      copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      Full means that N is equal to all the nodes in the surface
-      NoGlob means no global factor is applied to the color values
-      NoLocal means no local factor (per node) is applied to the color values
-      
-      SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4(RGBmat, glcolar, N, add)   
-      RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
-      add (SUMA_Boolean) flag indicating that new color is added to previous value in glcolar
-   */
-   
-   #define SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4(RGBmat, glcolar, nrgb, add) {\
-      int m_I, m_I4 = 0; \
-      if (!add) {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
-            ++m_I4;\
-         }\
-      } else {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            glcolar[m_I4] += RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] += RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] += RGBmat[m_I][2]; ++m_I4;\
-            ++m_I4;\
-         }\
-      }\
-   }
-   
-   /*!
-      SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4 
-      copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      Full means that N is equal to all the nodes in the surface
-      Glob means a global factor is applied to the color values
-      NoLocal means no local factor (per node) is applied to the color values
-      
-      SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4(RGBmat, glcolar, N, fact, add)   
-      RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
-      fact (float) a factor applied to each color R, G, B values in the entire list
-      add (SUMA_Boolean) flag indicating that new color is added to previous value in glcolar
-   */
-   
-   #define SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4(RGBmat, glcolar, nrgb, fact, add) {\
-      int m_I, m_I4 = 0; \
-      if (!add) {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            glcolar[m_I4] = fact * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] = fact * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] = fact * RGBmat[m_I][2]; ++m_I4;\
-            ++m_I4;\
-         }\
-      }else {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            glcolar[m_I4] += fact * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] += fact * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] += fact * RGBmat[m_I][2]; ++m_I4;\
-            ++m_I4;\
-         }\
-      }\
-   }
-   
-   /*!
-      SUMA_RGBmat_FullGlobLoc2_GLCOLAR4 
-      copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      Full means that N is equal to all the nodes in the surface
-      Glob means a global factor is applied to the color values
-      Local means a local factor (per node) is applied to the color values
-      
-      SUMA_RGBmat_FullGlobLoc2_GLCOLAR4(RGBmat, glcolar, N, fact, locfact, add)   
-      RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
-      fact (float) a factor applied to each color R, G, B values in the entire list
-      locfact (float *) a N x 1 vector of factors applied to their respective nodes 
-      add (SUMA_Boolean) flag indicating that new color is added to previous value in glcolar
-   */
-   
-   #define SUMA_RGBmat_FullGlobLoc2_GLCOLAR4(RGBmat, glcolar, nrgb, fact, locfact, add) {\
-      int m_I, m_I4 = 0; \
-      if (!add) {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
-            ++m_I4;\
-         }\
-      } else {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
-            ++m_I4;\
-         }\
-      }\
-   }
-   
-   /*!
-      SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4 
-      copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      Full means that N is equal to all the nodes in the surface
-      NoGlob means no global factor is applied to the color values
-      Local means a local factor (per node) is applied to the color values
-      
-      SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4(RGBmat, glcolar, N, locfact, add)   
-      RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
-      locfact (float *) a N x 1 vector of factors applied to their respective nodes 
-      add (SUMA_Boolean) flag indicating that new color is added to previous value in glcolar
-   */
-   
-   #define SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4(RGBmat, glcolar, nrgb, locfact, add) {\
-      int m_I, m_I4 = 0; \
-      if (!add) {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
-            ++m_I4;\
-         }\
-      } else {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
-            ++m_I4;\
-         }\
-      }\
-   }
-   
-   /*!
-      SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4 
-      copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      Part means that colors are specified for some of the nodes only N < N_Nodes
-      NoGlob means no global factor is applied to the color values
-      NoLocal means no local factor (per node) is applied to the color values
-      
-      SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, N, isColored, add, N_Nodes)   
-      RGBmat (float **) N x 3 matrix of RGB values
-      NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
-      isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
-      when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      add (SUMA_Boolean) flag indicating that new color is added to previous value in glcolar
-   */
-   
-   #define SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, nrgb, isColored, add, N_Node) {\
-      int m_I, m_I4 = 0; \
-      if (!add) {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (NodeId[m_I] < N_Node) {\
-               m_I4 = 4*NodeId[m_I]; \
-               glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
-               glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
-               glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
-               isColored[NodeId[m_I]] = YUP;\
-            }\
-         }\
-      } else {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (NodeId[m_I] < N_Node) {\
-               m_I4 = 4*NodeId[m_I]; \
-               glcolar[m_I4] += RGBmat[m_I][0]; ++m_I4;\
-               glcolar[m_I4] += RGBmat[m_I][1]; ++m_I4;\
-               glcolar[m_I4] += RGBmat[m_I][2]; ++m_I4;\
-               isColored[NodeId[m_I]] = YUP;\
-            }\
-         }\
-      }\
-   }
-   
-   /*!
-      SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4 
-      copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      Part means that colors are specified for some of the nodes only N < N_Nodes
-      NoGlob means a global factor is applied to the color values
-      NoLocal means no local factor (per node) is applied to the color values
-      
-      SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, N, isColored, fact, N_Nodes)   
-      RGBmat (float **) N x 3 matrix of RGB values
-      NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
-      isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
-      when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      fact (float) a factor applied to each color R, G, B values in the entire list
-      add (SUMA_Boolean) flag indicating that new color is added to previous value in glcolar
-   */
-   
-   #define SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, nrgb, isColored, fact, add, N_Node) {\
-      int m_I, m_I4 = 0, m_II; \
-      if (!add) {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (NodeId[m_I] < N_Node) {\
-               m_I4 = 4*NodeId[m_I]; \
-               glcolar[m_I4] = fact * RGBmat[m_I][0]; ++m_I4;\
-               glcolar[m_I4] = fact * RGBmat[m_I][1]; ++m_I4;\
-               glcolar[m_I4] = fact * RGBmat[m_I][2]; ++m_I4;\
-               isColored[NodeId[m_I]] = YUP;\
-            }\
-         }\
-      } else {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (NodeId[m_I] < N_Node) {\
-               m_I4 = 4*NodeId[m_I]; \
-               glcolar[m_I4] += fact * RGBmat[m_I][0]; ++m_I4;\
-               glcolar[m_I4] += fact * RGBmat[m_I][1]; ++m_I4;\
-               glcolar[m_I4] += fact * RGBmat[m_I][2]; ++m_I4;\
-               isColored[NodeId[m_I]] = YUP;\
-            }\
-         }\
-      }\
-   }
-   
-   /*!
-      SUMA_RGBmat_PartGlobLoc2_GLCOLAR4 
-      copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      Part means that colors are specified for some of the nodes only N < N_Nodes
-      NoGlob means a global factor is applied to the color values
-      NoLocal means a local factor (per node) is applied to the color values
-      
-      SUMA_RGBmat_PartGlobaLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, N, isColored, fact, locfact, add, N_Nodes)   
-      RGBmat (float **) N x 3 matrix of RGB values
-      NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
-      isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
-      when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      fact (float) a factor applied to each color R, G, B values in the entire list
-      locfact (float *)  N x 1 vector of factors applied to their respective nodes 
-      add (SUMA_Boolean) flag indicating that new color is added to previous value in glcolar
-   */
-   
-   #define SUMA_RGBmat_PartGlobLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, nrgb, isColored, fact, locfact, add, N_Node) {\
-      int m_I, m_I4 = 0; \
-      if (!add) {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (NodeId[m_I] < N_Node) {\
-               m_I4 = 4*NodeId[m_I]; \
-               glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
-               glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
-               glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
-               isColored[NodeId[m_I]] = YUP;\
-            }\
-         }\
-      } else {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (NodeId[m_I] < N_Node) {\
-               m_I4 = 4*NodeId[m_I]; \
-               glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
-               glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
-               glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
-               isColored[NodeId[m_I]] = YUP;\
-            }\
-         }\
-      }\
-   }
-   
-   /*!
-      SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4 
-      copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      Part means that colors are specified for some of the nodes only N < N_Nodes
-      NoGlob means no global factor is applied to the color values
-      NoLocal means a local factor (per node) is applied to the color values
-      
-      SUMA_RGBmat_PartNoGlobaLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, N, isColored, locfact, add, N_Nodes)   
-      RGBmat (float **) N x 3 matrix of RGB values
-      NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
-      isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
-      when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      locfact (float *)  N x 1 vector of factors applied to their respective nodes 
-      add (SUMA_Boolean) flag indicating that new color is added to previous value in glcolar
-      
-   */
-   
-   #define SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4(RGBmat, NodeId, glcolar, nrgb, isColored,  locfact, add, N_Node) {\
-      int m_I, m_I4 = 0; \
-      if (!add) {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (NodeId[m_I] < N_Node) {\
-               m_I4 = 4*NodeId[m_I]; \
-               glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
-               glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
-               glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
-               isColored[NodeId[m_I]] = YUP;\
-            }\
-         }\
-      }else {\
-         for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (NodeId[m_I] < N_Node) {\
-               m_I4 = 4*NodeId[m_I]; \
-               glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
-               glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
-               glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
-               isColored[NodeId[m_I]] = YUP;\
-            }\
-         }\
-      }\
-   }
    
    /*! 
       SUMA_FillBlanks_GLCOLAR4
@@ -1222,8 +922,8 @@ WARNING: The input data vectors are not cast to the type of s.
       SUMA_RGB_FnGnL_AR4op_opacity 
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       F (Full) means that N is equal to all the nodes in the surface
-      nG (NoGlob) means no global factor is applied to the color values
-      nL (NoLocal) means no local factor (per node) is applied to the color values
+      nG (NoGlob) means no opacity is applied to the color values (fully opaque)
+      nL (NoLocal) means no local gain (per node) is applied to the color values
       
       SUMA_RGB_FnGnL_AR4op(RGBmat, glcolar, N, add)   
       RGBmat (float **) N x 3 matrix of RGB values
@@ -1248,26 +948,32 @@ WARNING: The input data vectors are not cast to the type of s.
       SUMA_RGB_FGnL_AR4op 
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       F (Full) means that N is equal to all the nodes in the surface
-      G (Glob) means a global factor is applied to the color values
-      nL (NoLocal) means no local factor (per node) is applied to the color values
+      G (Glob) means an opacity is applied to the color values
+      nL (NoLocal) means no local gain (per node) is applied to the color values
       
-      SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, N, fact, add)   
+      SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, N, opacity, add)   
       RGBmat (float **) N x 3 matrix of RGB values
       glcolar (GLfloat *) (4 N) x 1 vector 
-      fact (float) a factor applied to each color R, G, B values in the entire list
+      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
+            to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
-      if fact is < 0 then no color mixing is done. 
    */
    
-   #define SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, nrgb, fact, isColored) {\
+   #define SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, nrgb, opacity, isColored) {\
       int m_I, m_I4 = 0; \
       float m_of;\
-      m_of = 1-fact;\
+      m_of = 1-opacity;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            isColored[m_I] = YUP;\
-            glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][2]; ++m_I4;\
+            if (isColored[m_I]) {   \
+               glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][0]; ++m_I4;\
+               glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][1]; ++m_I4;\
+               glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][2]; ++m_I4;\
+            } else { /* not yet colored */\
+               glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+               glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+               glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
+               isColored[m_I] = YUP;\
+            }  \
             ++m_I4;\
          }\
    }
@@ -1279,27 +985,34 @@ WARNING: The input data vectors are not cast to the type of s.
       SUMA_RGB_FGL_AR4op 
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       F (Full) means that N is equal to all the nodes in the surface
-      G (Glob) means a global factor is applied to the color values
-      L (Local) means a local factor (per node) is applied to the color values
+      G (Glob) means an opacity is applied to the color values
+      L (Local) means a local gain (per node) is applied to the color values
       
-      SUMA_RGB_FGL_AR4op(RGBmat, glcolar, N, fact, locfact, add)   
+      SUMA_RGB_FGL_AR4op(RGBmat, glcolar, N, opacity, locgain, add)   
       RGBmat (float **) N x 3 matrix of RGB values
       glcolar (GLfloat *) (4 N) x 1 vector 
-      fact (float) a factor applied to each color R, G, B values in the entire list
-      locfact (float *) a N x 1 vector of factors applied to their respective nodes 
+      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
+            to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
+      locgain (float *) a N x 1 vector of gains applied to their respective nodes 
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
    */
    
-   #define SUMA_RGB_FGL_AR4op(RGBmat, glcolar, nrgb, fact, locfact, isColored) {\
+   #define SUMA_RGB_FGL_AR4op(RGBmat, glcolar, nrgb, opacity, locgain, isColored) {\
       int m_I, m_I4 = 0; \
       float m_of, m_of2;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            isColored[m_I] = YUP;\
-            m_of = locfact[m_I] * fact; \
-            m_of2 = (1-m_of);\
-            glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][2]; ++m_I4;\
+            if (isColored[m_I]) {   \
+               m_of = locgain[m_I] * opacity; \
+               m_of2 = (1-opacity);\
+               glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; ++m_I4;\
+               glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; ++m_I4;\
+               glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][2]; ++m_I4;\
+            }  else { /* not yet colored */\
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][0]; ++m_I4;\
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][1]; ++m_I4;\
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][2]; ++m_I4;\
+               isColored[m_I] = YUP;\
+            }  \
             ++m_I4;\
          }\
    }
@@ -1310,25 +1023,24 @@ WARNING: The input data vectors are not cast to the type of s.
       SUMA_RGB_FnGL_AR4op 
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       F (Full) means that N is equal to all the nodes in the surface
-      nG (NoGlob) means no global factor is applied to the color values
-      L (Local) means a local factor (per node) is applied to the color values
+      nG (NoGlob) means no opacity is applied to the color values (fully opaque)
+      L (Local) means a local gain (per node) is applied to the color values
       
-      SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, N, locfact, add)   
+      SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, N, locgain, add)   
       RGBmat (float **) N x 3 matrix of RGB values
       glcolar (GLfloat *) (4 N) x 1 vector 
-      locfact (float *) a N x 1 vector of factors applied to their respective nodes 
+      locgain (float *) a N x 1 vector of gains applied to their respective nodes 
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
    */
    
-   #define SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, nrgb, locfact, isColored) {\
+   #define SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, nrgb, locgain, isColored) {\
       int m_I, m_I4 = 0; \
       float m_of;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
+            glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][0]; ++m_I4;\
+            glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][1]; ++m_I4;\
+            glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][2]; ++m_I4;\
             isColored[m_I] = YUP;\
-            m_of = 1-locfact[m_I];\
-            glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
-            glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
-            glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
             ++m_I4;\
          }\
    }
@@ -1338,8 +1050,8 @@ WARNING: The input data vectors are not cast to the type of s.
       SUMA_RGB_PnGnL_AR4op 
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       P (Part) means that colors are specified for some of the nodes only N < N_Nodes
-      nG (NoGlob) means no global factor is applied to the color values
-      nL (NoLocal) means no local factor (per node) is applied to the color values
+      nG (NoGlob) means no opacity is applied to the color values (fully opaque)
+      nL (NoLocal) means no local gain (per node) is applied to the color values
       
       SUMA_RGB_PnGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, N_Nodes)   
       RGBmat (float **) N x 3 matrix of RGB values
@@ -1367,37 +1079,38 @@ WARNING: The input data vectors are not cast to the type of s.
       SUMA_RGB_PGnL_AR4op 
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       P (Part) means that colors are specified for some of the nodes only N < N_Nodes
-      G (Glob) means a global factor is applied to the color values
-      nL (NoLocal) means no local factor (per node) is applied to the color values
+      G (Glob) means an opacity is applied to the color values
+      nL (NoLocal) means no local gain (per node) is applied to the color values
       
-      SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, fact, N_Nodes)   
+      SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, opacity, N_Nodes)   
       RGBmat (float **) N x 3 matrix of RGB values
       NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
       glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      fact (float) a factor applied to each color R, G, B values in the entire list
+      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
+            to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
    */
    
-   #define SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, fact, N_Node) {\
+   #define SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, N_Node) {\
       int m_I, m_I4 = 0, m_II; \
       float m_of;\
-      m_of = 1 - fact;\
+      m_of = 1 - opacity;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
+            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
                if (NodeId[m_I] < N_Node) {\
                   m_I4 = 4*NodeId[m_I]; \
-                  glcolar[m_I4] = fact * RGBmat[m_I][0]; ++m_I4;\
-                  glcolar[m_I4] = fact * RGBmat[m_I][1]; ++m_I4;\
-                  glcolar[m_I4] = fact * RGBmat[m_I][2]; ++m_I4;\
+                  glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+                  glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+                  glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
                   isColored[NodeId[m_I]] = YUP;\
                }\
             }else {/* mixing to be done */\
                if (NodeId[m_I] < N_Node) {\
                   m_I4 = 4*NodeId[m_I]; \
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][0]; ++m_I4;\
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][1]; ++m_I4;\
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + fact * RGBmat[m_I][2]; ++m_I4;\
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][0]; ++m_I4;\
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][1]; ++m_I4;\
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][2]; ++m_I4;\
                }\
             }\
          }\
@@ -1409,37 +1122,37 @@ WARNING: The input data vectors are not cast to the type of s.
       SUMA_RGB_PGL_AR4op 
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       P (Part) means that colors are specified for some of the nodes only N < N_Nodes
-      G (Glob) means a global factor is applied to the color values
-      L (Local) means a local factor (per node) is applied to the color values
+      G (Glob) means an opacity is applied to the color values
+      L (Local) means a local gain (per node) is applied to the color values
       
-      SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, fact, locfact, add, N_Nodes)   
+      SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, opacity, locgain, add, N_Nodes)   
       RGBmat (float **) N x 3 matrix of RGB values
       NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
       glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      fact (float) a factor applied to each color R, G, B values in the entire list
-      locfact (float *)  N x 1 vector of factors applied to their respective nodes 
+      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
+            to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
+      locgain (float *)  N x 1 vector of gains applied to their respective nodes 
    */
    
-   #define SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, fact, locfact, N_Node) {\
+   #define SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, locgain, N_Node) {\
       int m_I, m_I4 = 0; \
       float m_of, m_of2;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
             if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
                if (NodeId[m_I] < N_Node) {\
                   m_I4 = 4*NodeId[m_I]; \
-                  m_of = (locfact[m_I] * fact);\
-                  glcolar[m_I4] = m_of * RGBmat[m_I][0]; ++m_I4;\
-                  glcolar[m_I4] = m_of * RGBmat[m_I][1]; ++m_I4;\
-                  glcolar[m_I4] = m_of * RGBmat[m_I][2]; ++m_I4;\
+                  glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][0]; ++m_I4;\
+                  glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][1]; ++m_I4;\
+                  glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][2]; ++m_I4;\
                   isColored[NodeId[m_I]] = YUP;\
                }\
             }else { /* mixing to be done */\
                if (NodeId[m_I] < N_Node) {\
                   m_I4 = 4*NodeId[m_I]; \
-                  m_of = (locfact[m_I] * fact);\
-                  m_of2 = (1 - m_of);\
+                  m_of = (locgain[m_I] * opacity);\
+                  m_of2 = (1 - opacity);\
                   glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; ++m_I4;\
                   glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; ++m_I4;\
                   glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][2]; ++m_I4;\
@@ -1453,39 +1166,29 @@ WARNING: The input data vectors are not cast to the type of s.
       SUMA_RGB_PnGL_AR4op 
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       P (Part) means that colors are specified for some of the nodes only N < N_Nodes
-      nG (NoGlob) means no global factor is applied to the color values
-      L (Local) means a local factor (per node) is applied to the color values
+      nG (NoGlob) means no opacity is applied to the color values (fully opaque)
+      L (Local) means a local gain (per node) is applied to the color values
       
-      SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, locfact, add, N_Nodes)   
+      SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, locgain, add, N_Nodes)   
       RGBmat (float **) N x 3 matrix of RGB values
       NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
       glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      locfact (float *)  N x 1 vector of opacities applied to their respective nodes 
+      locgain (float *)  N x 1 vector of gains applied to their respective nodes 
       
    */
    
-   #define SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored,  locfact, N_Node) {\
+   #define SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored,  locgain, N_Node) {\
       int m_I, m_I4 = 0; \
       float m_of;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
-               if (NodeId[m_I] < N_Node) {\
-                  m_I4 = 4*NodeId[m_I]; \
-                  glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
-                  glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
-                  glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
-                  isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else { /* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
-                  m_I4 = 4*NodeId[m_I]; \
-                  m_of = 1 - locfact[m_I];\
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
-               }\
+            if (NodeId[m_I] < N_Node) {\
+               m_I4 = 4*NodeId[m_I]; \
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][0]; ++m_I4;\
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][1]; ++m_I4;\
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][2]; ++m_I4;\
+               isColored[NodeId[m_I]] = YUP;\
             }\
          }\
    }

@@ -278,6 +278,123 @@ SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax)
    SUMA_RETURN (YUP);
 }
 
+/*!
+   \brief find ROIs created on SO. ROIs created on a relative of SO will not be 
+   returned. 
+   \param SO (SUMA_SurfaceObject *)SO
+   \param dov (SUMA_DO*) displayable objects vector
+   \param N_do (int) number of displayable objects
+   \param N_ROI (int *) to hold the number of DrawnROIs found
+   \return ROIv (SUMA_DRAWN_ROI **) vector of SUMA_DRAWN_ROI * 
+      such that ROIv[i]->Parent_idcode_str = SO->idcode_str
+    
+   - free  ROIv with SUMA_free(ROIv);
+     
+   \sa SUMA_Find_ROIrelatedtoSO 
+*/
+SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, int *N_ROI)
+{
+   static char FuncName[]={"SUMA_Find_ROIonSO"};
+   SUMA_DRAWN_ROI **ROIv=NULL;
+   SUMA_DRAWN_ROI *D_ROI = NULL;
+   int i, roi_cnt=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   *N_ROI = -1;
+   
+   /* allocate for maximum */
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_malloc(sizeof(SUMA_DRAWN_ROI *)*N_do);
+   if (!ROIv) {
+      SUMA_SL_Crit("Failed to allocate for ROIv");
+      SUMA_RETURN(NULL);
+   }
+   
+   roi_cnt=0;
+   for (i=0; i < N_do; ++i) {
+      if (dov[i].ObjectType == ROIdO_type) {
+         D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+         if (!strncmp(D_ROI->Parent_idcode_str, SO->idcode_str, strlen(SO->idcode_str))) {
+            SUMA_LH("Found an ROI");
+            ROIv[roi_cnt] = D_ROI;
+            ++roi_cnt;
+         }
+      }
+      if (dov[i].ObjectType == ROIO_type) {
+         SUMA_SL_Warn("ROIO_types are being ignored.");
+      }
+   }
+   
+   /* realloc */
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_realloc(ROIv, sizeof(SUMA_DRAWN_ROI *)*roi_cnt);
+   if (!ROIv) {
+      SUMA_SL_Crit("Failed to reallocate for ROIv");
+      SUMA_RETURN(NULL);
+   }
+   *N_ROI = roi_cnt;
+   
+   SUMA_RETURN(ROIv);
+}
+
+/*!
+   \brief find ROIs related to SO. ROIs created on a relative of SO will be returned. 
+   \param SO (SUMA_SurfaceObject *)SO
+   \param dov (SUMA_DO*) displayable objects vector
+   \param N_do (int) number of displayable objects
+   \param N_ROI (int *) to hold the number of DrawnROIs found
+   \return ROIv (SUMA_DRAWN_ROI **) vector of SUMA_DRAWN_ROI * 
+      such that ROIv[i]->Parent_idcode_str = SO->idcode_str
+    
+   - free  ROIv with SUMA_free(ROIv);
+
+   \sa SUMA_Find_ROIonSO
+*/
+SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, int *N_ROI)
+{
+   static char FuncName[]={"SUMA_Find_ROIrelatedtoSO"};
+   SUMA_DRAWN_ROI **ROIv=NULL;
+   SUMA_DRAWN_ROI *D_ROI = NULL;
+   int i, roi_cnt=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   *N_ROI = -1;
+   
+   /* allocate for maximum */
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_malloc(sizeof(SUMA_DRAWN_ROI *)*N_do);
+   if (!ROIv) {
+      SUMA_SL_Crit("Failed to allocate for ROIv");
+      SUMA_RETURN(NULL);
+   }
+   
+   roi_cnt=0;
+   for (i=0; i < N_do; ++i) {
+      if (dov[i].ObjectType == ROIdO_type) {
+         D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+         if (SUMA_isdROIrelated (D_ROI, SO)) {
+            SUMA_LH("Found an ROI");
+            ROIv[roi_cnt] = D_ROI;
+            ++roi_cnt;
+         }
+      }
+      if (dov[i].ObjectType == ROIO_type) {
+         SUMA_SL_Warn("ROIO_types are being ignored.");
+      }
+   }
+   
+   /* realloc */
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_realloc(ROIv, sizeof(SUMA_DRAWN_ROI *)*roi_cnt);
+   if (!ROIv) {
+      SUMA_SL_Crit("Failed to reallocate for ROIv");
+      SUMA_RETURN(NULL);
+   }
+   *N_ROI = roi_cnt;
+   
+   SUMA_RETURN(ROIv);
+}
+
 /*! Create the ROIs for a particular surface */
 SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
 {
@@ -297,7 +414,9 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   
+   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
+   glEnable(GL_COLOR_MATERIAL);
    for (i=0; i < N_do; ++i) {
       switch (dov[i].ObjectType) { /* case Object Type */
          case ROIdO_type:
@@ -484,6 +603,8 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
             break;
       }/* case Object Type */
    }
+   glDisable(GL_COLOR_MATERIAL);
+
 
    SUMA_RETURN (YUP);
 }         
@@ -781,10 +902,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          break;
       
       case ARRAY:
-         if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in drawing ROI objects.\n", FuncName);
-         }
-         
          /* Draw Axis */
          if (SurfObj->MeshAxis && SurfObj->ShowMeshAxis)   {
             if (!SUMA_DrawAxis (SurfObj->MeshAxis)) {
@@ -840,6 +957,10 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          /*fprintf(stdout, "Out SUMA_DrawMesh, ARRAY mode\n");*/
          
          glDisable(GL_COLOR_MATERIAL);
+         
+         if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in drawing ROI objects.\n", FuncName);
+         }
          
          break;
 
@@ -1693,6 +1814,7 @@ SUMA_ROI_DATUM * SUMA_AllocROIDatum (void)
    ROId->N_n = ROId->N_t = 0;
    ROId->nDistance = ROId->tDistance = 0.0;
    ROId->Type = SUMA_ROI_Undefined;
+   ROId->action = SUMA_BSA_Undefined;
    SUMA_RETURN (ROId);
 }
 
@@ -2093,10 +2215,10 @@ void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_
 SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nseed) 
 {
    static char FuncName[]={"SUMA_FillToMask"};
-   SUMA_Boolean LocalHead = YUP;
    SUMA_ROI_DATUM *ROIfill = NULL;
    int *Visited = NULL;
    int N_Visited = 0, i, nnext;
+   SUMA_Boolean LocalHead = NOPE;
    
    /* register at the first call only */
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);

@@ -1099,6 +1099,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    static char FuncName[]={"SUMA_Create_CommonFields"};
    SUMA_CommonFields *cf;
    int i;
+   SUMA_Boolean LocalHead = NOPE;
    
    /* This is the function that creates the debugging flags, do not use them here */
    cf = NULL;
@@ -1130,7 +1131,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X = (SUMA_X_AllView *)malloc(sizeof(SUMA_X_AllView));
    if (!cf->X) {
      fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
-     SUMA_RETURN (NULL); 
+     return (NULL); 
    }
    cf->X->SumaCont = SUMA_CreateSumaContStruct();
    cf->X->DrawROI = SUMA_CreateDrawROIStruct();
@@ -1142,6 +1143,14 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->MessageList = SUMA_CreateMessageList ();
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    cf->ROI_mode = NOPE;
+   
+   cf->nimlROI_Datum_type = NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
+   if (cf->nimlROI_Datum_type < 0) {
+      fprintf(SUMA_STDERR,"Error %s: Failed defining niml code.", FuncName);
+      return(NULL);
+   }
+   if (LocalHead) fprintf(SUMA_STDERR, "%s: roi_type code = %d\n", FuncName, cf->nimlROI_Datum_type) ;
+   
    return (cf);
 
 }
@@ -1210,6 +1219,8 @@ SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void)
    DrawROI->curDrawnROI = NULL;  /* DO NOT FREE THIS POINTER */
    DrawROI->SwitchROIlst = NULL;
    DrawROI->Delete_first = YUP;
+   DrawROI->SaveMode = SW_DrawROI_SaveMode1D;
+   DrawROI->SaveWhat = SW_DrawROI_SaveWhatThis;
    return (DrawROI);
 }
 
@@ -1611,7 +1622,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    char slabel[30];   
    SUMA_SurfaceObject *SO = NULL;   
    int SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];   
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 

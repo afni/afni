@@ -1291,6 +1291,7 @@ void VL_command_line(void)
          else if( strcmp(str,"quintic") == 0 ) VL_final = MRI_QUINTIC ;
          else if( strcmp(str,"heptic")  == 0 ) VL_final = MRI_HEPTIC ;
          else if( strcmp(str,"Fourier") == 0 ) VL_final = MRI_FOURIER ;
+         else if( strcmp(str,"NN") == 0 ) VL_final = MRI_NN ; /** Added by ZSS: Wed Apr  2 2003 **/
          else {
             fprintf(stderr,"** Illegal mode after -final\n"); exit(1);
          }
@@ -1368,7 +1369,7 @@ void VL_command_line(void)
          VL_resam = MRI_LINEAR ;
          Iarg++ ; continue ;
       }
-
+            
       /** -cubic **/
 
       if( strncmp(Argv[Iarg],"-cubic",4) == 0 ||

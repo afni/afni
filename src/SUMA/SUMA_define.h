@@ -137,6 +137,7 @@ typedef enum { SE_Empty,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
+               SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -192,6 +193,15 @@ typedef enum { SW_SurfCont_Render,
                SW_SurfCont_RenderViewerDefault, SW_SurfCont_RenderFill, SW_SurfCont_RenderLine, SW_SurfCont_RenderPoints, 
                SW_N_SurfCont_Render } SUMA_WIDGET_INDEX_SURFCONT_RENDER; /*!< Indices to widgets in SurfaceController under
                                                                            RenderMode */
+typedef enum { SW_DrawROI_SaveMode,
+               SW_DrawROI_SaveMode1D, SW_DrawROI_SaveModeNIML, 
+               SW_N_DrawROI_SaveMode } SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE; /*!< Indices to widgets in DrawROI under
+                                                                           SavingMode */
+typedef enum { SW_DrawROI_SaveWhat,
+               SW_DrawROI_SaveWhatThis, SW_DrawROI_SaveWhatRelated, 
+               SW_N_DrawROI_SaveWhat } SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT; /*!< Indices to widgets in DrawROI under
+                                                                           SavingWhat */
+                                                                           
 
 typedef struct {
    int *i;  /*!< node index */
@@ -365,6 +375,9 @@ typedef struct {
    int *tPath; /*!< Vector of N triangle indices. These triangles must be connected to each other */
    float tDistance; /*!< distance from the first node to the last taken along the surface (geodesic)*/
    float nDistance; /*!< distance from the first node to the last by summing the length of segments between nodes */
+   SUMA_BRUSH_STROKE_ACTION action; /*!< a record of the action that went with this datum. 
+                                       This field is used to recreate the ROI drawing history from a saved
+                                       niml file */
 } SUMA_ROI_DATUM; /*!< elementary datum of a drawn ROI */
 
 /*! 
@@ -376,6 +389,8 @@ SUMA_NIML_ROI_DATUM to SUMA_NIML_NODE_ROI_DATUM
 Will the file niml.h no longer be in afni_src directory ?
 */
 typedef struct {
+   int action; /*!< action taken with this datum, see same field in SUMA_ROI_DATUM */
+   int Type; /*!< describes the type of the DrawnROI datum (see SUMA_ROI_TYPE) */
    int N_n; 
    int *nPath;
 /* int Type;
@@ -403,14 +418,25 @@ typedef struct {
 } SUMA_DRAWN_ROI;
 
 typedef struct {
-   int Type; 
+   int Type;         /*!< The final type of the DrawnROI, see SUMA_ROI_DRAWING_TYPE*/
    char *idcode_str;
    char *Parent_idcode_str;
    char *Label;
    int iLabel;
    SUMA_NIML_ROI_DATUM *ROI_datum; /*! a vector of ROI data (a multitude of ROI datum) */
    int N_ROI_datum;
-} SUMA_NIML_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that can be used by niml. */
+} SUMA_NIML_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that can be used by niml.
+                           Fields are a reflection of those in SUMA_DRAWN_ROI*/
+typedef struct {
+   int Type;         /*!< The final type of the DrawnROI, see SUMA_ROI_DRAWING_TYPE*/
+   char *idcode_str;
+   char *Parent_idcode_str;
+   char *Label;
+   int *iNode; /*!< A node's index */
+   int *iLabel; /*!< A node's value */
+   int N; /*!< NUmber of elements in iNode and iLabel */
+} SUMA_1D_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that can be used by 1D functions.
+                     Fields are a reflection of those in SUMA_DRAWN_ROI*/
 
 typedef struct {
    SUMA_ROI_DATUM *ROId;
@@ -743,6 +769,10 @@ typedef struct {
    SUMA_DRAWN_ROI *curDrawnROI; /*!< A pointer to the DrawnROI structure currently in use by window.
                                     This is a copy of another pointer, NEVER FREE IT*/
    SUMA_LIST_WIDGET *SwitchROIlst; /*!< a structure containing widgets and options for the switch ROI list */
+   int SaveWhat;  /*!< option for determining what ROI to save, acceptable values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT */
+   int SaveMode;  /*!< option for determining format of ROI to save, acceptable values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
+   Widget SaveModeMenu[SW_N_DrawROI_SaveMode]; /*!< set of widgets for SaveMode menu */
+   Widget SaveWhatMenu[SW_N_DrawROI_SaveWhat]; /*!< set of widgets for SaveWhat menu */
 } SUMA_X_DrawROI;
 
                
@@ -1379,7 +1409,7 @@ typedef struct {
    SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
    DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
    SUMA_Boolean ROI_mode; /*!< Flag specifying that SUMA is in ROI drawing mode */
-
+   int nimlROI_Datum_type; /*!< the code for nimlROI_Datum_type */
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */
@@ -1470,6 +1500,9 @@ typedef struct {
                         
 } SUMA_SURF_PLANE_INTERSECT;
 
+
+
+
 /*! Structure to contain the path between one node and the next. The path is defined in terms of the previous one, plus an edge from
 the previous to the current */
 typedef struct {
@@ -1478,5 +1511,6 @@ typedef struct {
    int order; /*!< Path order to node. A path order of i means i segments are needed to reach node from the starting node. 0 for starting node*/
    void *Previous; /*!< pointer to path leading up to the previous node. NULL for starting node. This pointer is to be typecast to SUMA_DIJKSTRA_PATH_CHAIN **/
 } SUMA_DIJKSTRA_PATH_CHAIN;
+
 
 #endif

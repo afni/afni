@@ -1209,7 +1209,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
          /* check if surface read was unique 
             it's inefficient to check after the surface is read, but idcode is generated in the read routine 
             and users should not be making this mistake too often */
-            if (SUMA_existDO (SO->idcode_str, dov, *N_dov)) {
+            if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
                fprintf(SUMA_STDERR,"Error %s: Surface %d is specifed more than once, multiple copies ignored.\n", FuncName, i);
                /* free SO */
                if (!SUMA_Free_Surface_Object (SO)) {
@@ -1459,7 +1459,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
          /* check if surface read was unique 
             it's inefficient to check after the surface is read, but idcode is generated in the read routine 
             and users should not be making this mistake too often */
-            if (SUMA_existDO (SO->idcode_str, dov, *N_dov)) {
+            if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
                fprintf(SUMA_STDERR,"Error %s: Surface %d is specifed more than once, multiple copies ignored.\n", FuncName, i);
                /* free SO */
                if (!SUMA_Free_Surface_Object (SO)) {
@@ -1538,7 +1538,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
                   }
                if (ifound >= 0) { /* found */
                   /*fprintf (SUMA_STDERR,"ifound = %d, i = %d\nSpec->MappingRef[i]:->%s<-\n", ifound, i, Spec->MappingRef[i]);*/
-                  if (!SUMA_existDO (Spec->IDcode[ifound], dov, *N_dov)) {
+                  if (!SUMA_existSO (Spec->IDcode[ifound], dov, *N_dov)) {
                      fprintf(SUMA_STDERR,"MappingRef unavailable, that should not happen here.\n");
                      SO->MapRef_idcode_str = NULL;
                   } else {

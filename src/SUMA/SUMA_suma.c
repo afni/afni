@@ -95,6 +95,7 @@ int main (int argc,char *argv[])
    DListElmt *Element= NULL;
    int iv15[15], N_iv15;
    SUMA_Boolean LocalHead = NOPE;
+   
     
    if (argc < 3)
        {
@@ -112,14 +113,14 @@ int main (int argc,char *argv[])
 	}
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
-  /* initialize Volume Parent and AfniHostName to nothing */
+   /* initialize Volume Parent and AfniHostName to nothing */
 	VolParName = NULL;
 	AfniHostName = NULL; 
 	
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 	
-	/* read in the surfaces */
+	/* Work the options */
 	kar = 1;
 	brk = NOPE;
 	SurfIn = NOPE;
@@ -199,7 +200,6 @@ int main (int argc,char *argv[])
 		
 	}/* loop accross command ine options */
 
-	
 	if (specfilename == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: No spec filename specified.\n", FuncName);
 		exit(1);

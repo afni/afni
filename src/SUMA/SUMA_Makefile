@@ -193,24 +193,25 @@ libply.a:
 	  $(CP) -p $@ .. ; )
    
 install:
-	if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
-	if [ -f suma ]; then mv suma ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_CreateIcosahedron ]; then mv SUMA_CreateIcosahedron ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_Map_SurfacetoSurface ]; then mv SUMA_Map_SurfacetoSurface ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_MapIcosahedron ]; then mv SUMA_MapIcosahedron ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_SureFit ]; then mv SUMA_SureFit ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_Load_Surface_Object ]; then mv SUMA_Load_Surface_Object ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_Read_SpecFile ]; then mv SUMA_Read_SpecFile ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_FreeSurfer ]; then mv SUMA_FreeSurfer ${INSTALLDIR_SUMA}; fi;
-	if [ -f ScaleToMap ]; then mv ScaleToMap ${INSTALLDIR_SUMA}; fi;
-	if [ -f MakeColorMap ]; then mv MakeColorMap ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_compare_surfaces ]; then mv SUMA_compare_surfaces ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_inflate_compare ]; then mv SUMA_inflate_compare ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_Ply_Read ]; then mv SUMA_Ply_Read ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_ParseName ]; then mv SUMA_ParseName ${INSTALLDIR_SUMA}; fi;
-	if [ -f 3dSurfMaskDump ]; then mv 3dSurfMaskDump ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
+	@echo Installing Binaries...
+	@if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
+	@if [ -f suma ]; then mv suma ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_CreateIcosahedron ]; then mv SUMA_CreateIcosahedron ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_Map_SurfacetoSurface ]; then mv SUMA_Map_SurfacetoSurface ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_MapIcosahedron ]; then mv SUMA_MapIcosahedron ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_SureFit ]; then mv SUMA_SureFit ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_Load_Surface_Object ]; then mv SUMA_Load_Surface_Object ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_Read_SpecFile ]; then mv SUMA_Read_SpecFile ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_FreeSurfer ]; then mv SUMA_FreeSurfer ${INSTALLDIR_SUMA}; fi;
+	@if [ -f ScaleToMap ]; then mv ScaleToMap ${INSTALLDIR_SUMA}; fi;
+	@if [ -f MakeColorMap ]; then mv MakeColorMap ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_compare_surfaces ]; then mv SUMA_compare_surfaces ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_inflate_compare ]; then mv SUMA_inflate_compare ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_Ply_Read ]; then mv SUMA_Ply_Read ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_ParseName ]; then mv SUMA_ParseName ${INSTALLDIR_SUMA}; fi;
+	@if [ -f 3dSurfMaskDump ]; then mv 3dSurfMaskDump ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
