@@ -5270,3 +5270,8 @@
 
 20 Dec 2004
  * Modified afni_func.c to allow user to threshold RGB-valued overlays.
+
+21 Dec 2004
+ * Modified afni_func.c to allow dataset 'label2' field to be displayed in
+    window titlebars, instead of filenames.  Also affected: afni_pplug_env.c
+    and 3drefit.c (to let user change label2 field).

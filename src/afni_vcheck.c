@@ -29,7 +29,7 @@ int main( int argc , char * argv[] )
       if( fp == NULL ){
          fprintf(stderr,"** Failed to open %s!\n",VERSION_FILE); EXIT(1);
       }
-      fprintf( fp , "%s\n%s\n" , VERSION , RELEASE ) ;
+      fprintf( fp , "%s\n%s\n" , VERSION , "no date given" ) ;
       fclose(fp) ;
       fprintf(stderr,"Wrote out %s\n",VERSION_FILE) ;
       exit(0) ;
@@ -52,8 +52,7 @@ int main( int argc , char * argv[] )
    /*-- internal information --*/
 
    printf("This program was compiled with the following settings:\n"
-          "  Version ID   = %s\n"
-          "  Release date = %s\n" , VERSION , RELEASE ) ;
+          "  Version ID   = %s\n" , VERSION ) ;
 
    fprintf(stderr,"++ now fetching %s",VERSION_URL) ;
 
@@ -66,11 +65,10 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Error in fetch!\n"); EXIT(1);
    }
 
-   sscanf( vbuf , "%127s %127s %127s %127s" , vv , r1,r2,r3 ) ;
+   sscanf( vbuf , "%127s" , vv ) ;
 
    printf("Latest version listed at AFNI web site:\n"
-          "  Version ID   = %s\n"
-          "  Release date = %s %s %s\n" , vv , r1,r2,r3 ) ;
+          "  Version ID   = %s\n" , vv ) ;
 
    exit(0) ;
 }
