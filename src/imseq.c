@@ -3064,12 +3064,12 @@ ENTRY("ISQ_saver_CB") ;
            sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
            sprintf( filt , ppmto_filter[ff] , fname ) ;
          } else if( DO_AGIF(seq) ){                    /* use the gif filter */
-           sprintf( fname, "%s%s.%04d.gif" , seq->saver_prefix,tsuf, kf) ;
+           sprintf( fname, "%s%s.%05d.gif" , seq->saver_prefix,tsuf, kf) ;
            sprintf( filt , ppmto_gif_filter , fname ) ;
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
          } else if( DO_MPEG(seq) ){                    /* use the ppm filter */
-           sprintf( fname, "%s%s.%04d.ppm" , seq->saver_prefix,tsuf, kf) ;
+           sprintf( fname, "%s%s.%05d.ppm" , seq->saver_prefix,tsuf, kf) ;
            sprintf( filt , ppmto_ppm_filter , fname ) ;
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
@@ -3164,7 +3164,7 @@ ENTRY("ISQ_saver_CB") ;
                           "BSEARCH_ALG       SIMPLE\n"
                           "REFERENCE_FRAME   ORIGINAL\n"
                           "INPUT\n"
-                          "%s%s.*.ppm [%04d-%04d]\n"
+                          "%s%s.*.ppm [%05d-%05d]\n"
                           "END_INPUT\n"
                        , oof , pattrn , qscale ,
                          seq->saver_prefix,tsuf,seq->saver_from,seq->saver_to ) ;

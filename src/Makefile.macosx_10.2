@@ -37,15 +37,11 @@ LIBDL = libdl.a
 
 LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm -lmri -ldl -lc
 
-# for static linking to Motif, dynamic to all else
-
-# LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
-
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
 SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib
-SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lm 
+SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lm -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 
