@@ -8,7 +8,6 @@
 #endif
 #include "dbtrace.h"
 
-
 /*-------------------------------------------------------------------
    This routine is also used by the macros
       AFNI_SEE_FUNC_ON and AFNI_SEE_FUNC_OFF
@@ -537,6 +536,7 @@ ENTRY("AFNI_follower_dataset") ;
    new_dset->dblk->diskptr->nvals        = data_parent->dblk->nvals ;
    new_dset->dblk->diskptr->rank         = 3 ;
    new_dset->dblk->diskptr->storage_mode = STORAGE_UNDEFINED ;
+   new_dset->dblk->diskptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
    new_dset->dblk->diskptr->dimsizes[0]  = new_dset->daxes->nxx ;
    new_dset->dblk->diskptr->dimsizes[1]  = new_dset->daxes->nyy ;
    new_dset->dblk->diskptr->dimsizes[2]  = new_dset->daxes->nzz ;
@@ -3914,8 +3914,14 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
       char * inf = THD_dataset_info( im3d->anat_now , 0 ) ;
       if( inf != NULL ){
-         (void) new_MCW_textwin( im3d->vwid->imag->topper ,
-                                 inf , TEXT_READONLY ) ;
+         if( DSET_ARRAY(im3d->anat_now,0) == NULL ){
+            inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
+         } else if( im3d->anat_now->dblk->malloc_type == DATABLOCK_MEM_MALLOC ){
+            inf = THD_zzprintf( inf , "\n*** Loaded into memory using malloc.\n") ;
+         } else if( im3d->anat_now->dblk->malloc_type == DATABLOCK_MEM_MMAP ){
+            inf = THD_zzprintf( inf , "\n*** Loaded into memory using mmap.\n") ;
+         }
+         (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
          free(inf) ;
       } else
          XBell( im3d->dc->display , 100 ) ;
@@ -3924,8 +3930,14 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
       char * inf = THD_dataset_info( im3d->fim_now , 0 ) ;
       if( inf != NULL ){
-         (void) new_MCW_textwin( im3d->vwid->imag->topper ,
-                                 inf , TEXT_READONLY ) ;
+         if( DSET_ARRAY(im3d->fim_now,0) == NULL ){
+            inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
+         } else if( im3d->fim_now->dblk->malloc_type == DATABLOCK_MEM_MALLOC ){
+            inf = THD_zzprintf( inf , "\n*** Loaded into memory using malloc.\n") ;
+         } else if( im3d->fim_now->dblk->malloc_type == DATABLOCK_MEM_MMAP ){
+            inf = THD_zzprintf( inf , "\n*** Loaded into memory using mmap.\n") ;
+         }
+         (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
          free(inf) ;
       } else
          XBell( im3d->dc->display , 100 ) ;
@@ -3949,7 +3961,7 @@ ENTRY("AFNI_misc_CB") ;
    }
 
    else if( w == im3d->vwid->dmode->misc_purge_pb ){
-      AFNI_purge_unused_dsets() ;
+      AFNI_purge_dsets( 1 ) ;
    }
 
 #if defined(USE_TRACING) && !defined(PRINT_TRACING)

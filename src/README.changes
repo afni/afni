@@ -4,6 +4,19 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+25 April 1998:
+   AFNI now can store the byte order for short-valued datasets in the
+     .HEAD file.  It will then compare that order to the CPU order,
+     and if necessary, swap the bytes as it read the .BRIK file into
+     memory.  This is intended to make it simpler to use AFNI datasets
+     in a clustered enviroment with different types of computers.
+   Plugin 'ROI Average' does pretty much the same thing as program
+     3dmaskave, so that you can now get ROI statistics interactively.
+   Program '3dcalc' can now take as input a time series file '*.1D'
+     in place of a dataset.  This is treated as a 3D+time dataset with
+     all the voxel values at a given time being identical.  See the
+     output of '3dcalc -help' for more details.
+--------------------------------------------------------------------------
 20 March 1998:
    Program '3dmaskave' can produce statistics of a VOI from within a
      dataset, using a mask dataset created by the Draw Dataset plugin.

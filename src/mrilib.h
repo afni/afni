@@ -505,6 +505,23 @@ extern void mri_2dalign_cleanup( MRI_2dalign_basis * ) ;
 
 extern MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im ) ;
 
+/*---------------------------------------------------------------------*/
+/*--------- 22 April 1998: byte order routines (mri_order.c) ----------*/
+
+#define LSB_FIRST      1
+#define MSB_FIRST      2
+#define NATIVE_ORDER  -1
+
+#define ORDER_LEN        9
+#define LSB_FIRST_STRING "LSB_FIRST"
+#define MSB_FIRST_STRING "MSB_FIRST"
+#define NATIVE_STRING    "NATIVE_ORDER"
+
+extern int mri_short_order(void) ;
+extern int mri_int_order(void) ;
+extern void mri_swap2( int , short * ) ;
+extern void mri_swap4( int , int * ) ;
+
 /************************ Statistics routines *************************/
 
 /**

@@ -675,6 +675,9 @@ typedef struct {
       int rank , nvals , dimsizes[THD_MAX_RANK] ;
       int storage_mode ;                   /* one of the STORAGE_ codes  */
 
+                                           /* 25 April 1998:         */
+      int byte_order ;                     /* LSB_FIRST or MSB_FIRST */
+
       char prefix[THD_MAX_PREFIX] ;        /* filenames on disk will be  */
       char viewcode[THD_MAX_VIEWCODE] ;    /* formed from filecode.*     */
       char filecode[THD_MAX_FILECODE] ;    /* filecode = prefix+viewcode */
@@ -683,6 +686,8 @@ typedef struct {
       char header_name[THD_MAX_NAME] ;     /* contains attributes */
       char brick_name[THD_MAX_NAME] ;      /* THIS contains data */
 } THD_diskptr ;
+
+#define ATRNAME_BYTEORDER "BYTEORDER_STRING"
 
 extern void THD_delete_diskptr( THD_diskptr * ) ;
 
@@ -1598,6 +1603,8 @@ typedef struct THD_3dim_dataset {
 #define DBLK_BRICK_TYPE(db,iv) (DBLK_BRICK((db),(iv))->kind)
 #define DSET_BRICK_TYPE(ds,iv) DBLK_BRICK_TYPE((ds)->dblk,(iv))
 
+#define DBLK_BRICK_NVOX(db,iv) (DBLK_BRICK((db),(iv))->nvox)
+
 #define DBLK_ARRAY(db,iv) mri_data_pointer( DBLK_BRICK((db),(iv)) )
 #define DSET_ARRAY(ds,iv) DBLK_ARRAY((ds)->dblk,(iv))
 
@@ -1637,6 +1644,11 @@ typedef struct THD_3dim_dataset {
 #define DSET_SESSNAME DSET_DIRNAME
 
 #define DSET_IDCODE(ds) (&((ds)->idcode))
+
+/* 25 April 1998 */
+
+#define DBLK_BYTEORDER(db)  ((db)->diskptr->byte_order)
+#define DSET_BYTEORDER(ds)  DBLK_BYTEORDER((ds)->dblk)
 
 /** macros for time-dependent datasets **/
 
@@ -2031,6 +2043,7 @@ extern void THD_set_atr( THD_datablock * , char * , int,int, void * ) ;
 extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
 extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
 extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
+extern char * THD_zzprintf( char * sss , char * fmt , ... ) ;
 
 extern void THD_set_float_atr( THD_datablock * , char * , int , float * ) ;
 extern void THD_set_int_atr  ( THD_datablock * , char * , int , int   * ) ;
@@ -2064,6 +2077,10 @@ extern Boolean THD_write_atr( THD_datablock * ) ;
 extern void THD_set_write_compression( int mm ) ;
 extern int THD_enviro_write_compression(void) ;
 extern int THD_get_write_compression(void) ;
+
+extern void THD_set_write_order( int ) ;
+extern void THD_enviro_write_order(void) ;
+extern int THD_get_write_order(void) ;
 
 extern int TRUST_host(char *) ;
 #define OKHOST(hh) TRUST_host(hh) ;

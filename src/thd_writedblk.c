@@ -1,6 +1,8 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*---------------------------------------------------------------------*/
+
 static int compress_mode = COMPRESS_NOFILE ;
 
 void THD_set_write_compression( int mm )
@@ -36,6 +38,41 @@ int THD_enviro_write_compression(void)
    return COMPRESS_NONE ;
 }
 
+/*---------------------------------------------------------------------*/
+
+static int native_order = -1 ;
+static int output_order = -1 ;
+
+void THD_set_write_order( int mm )
+{
+   if( mm == LSB_FIRST || mm == MSB_FIRST )
+      output_order = mm ;
+   else
+      output_order = -1 ;
+   return ;
+}
+
+void THD_enviro_write_order(void)
+{
+   char * hh = getenv("AFNI_BYTEORDER") ;
+
+   if( hh == NULL ){ output_order = -1 ; return ; }
+
+   if( strcmp(hh,LSB_FIRST_STRING) == 0 ){ output_order = LSB_FIRST; return; }
+   if( strcmp(hh,MSB_FIRST_STRING) == 0 ){ output_order = MSB_FIRST; return; }
+
+   output_order = -1 ; return ;
+}
+
+int THD_get_write_order(void)
+{
+   if( native_order < 0 ) native_order = mri_short_order() ;
+   if( output_order < 0 ) THD_enviro_write_order() ;
+
+   return (output_order > 0) ? output_order
+                             : native_order ;
+}
+
 /*---------------------------------------------------------------------
    Write a datablock to disk.
    Returns True if OK, False if an error.
@@ -49,6 +86,7 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
    int id , nx , ny , nz , nv , nxy , nxyz , ibr , nb ;
    int atrank[ATRSIZE_DATASET_RANK] , atdims[ATRSIZE_DATASET_DIMENSIONS] ;
    MRI_IMAGE * im ;
+   int save_order ;
 
    /*-- sanity checks --*/
 
@@ -188,6 +226,24 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
       }
    }
 
+   /* 25 April 1998: deal with byte order issues */
+
+   if( native_order < 0 ){                /* initialization */
+      native_order = mri_short_order() ;
+      if( output_order < 0 ) THD_enviro_write_order() ;
+   }
+   if( dkptr->byte_order <= 0 ) dkptr->byte_order = native_order ;
+   save_order = (output_order > 0) ? output_order
+                                   : dkptr->byte_order ;
+
+   if( save_order != LSB_FIRST && save_order != MSB_FIRST )
+      save_order = native_order ;
+
+   if( save_order == LSB_FIRST )
+      THD_set_string_atr( blk , ATRNAME_BYTEORDER , LSB_FIRST_STRING ) ;
+   else if( save_order == MSB_FIRST )
+      THD_set_string_atr( blk , ATRNAME_BYTEORDER , MSB_FIRST_STRING ) ;
+
    /*-- actually write attributes to disk --*/
 
    good = THD_write_atr( blk ) ;
@@ -239,6 +295,8 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
             memcpy( bnew , bold , nb ) ;    /* make a copy,    */
             munmap( (void *) bold , nb ) ;  /* then unmap file */
 
+            /* fix sub-brick pointers */
+
             offset = 0 ;
             for( ibr=0 ; ibr < nv ; ibr++ ){
                mri_fix_data_pointer( (void *)(bnew+offset) , DBLK_BRICK(blk,ibr) ) ;
@@ -247,6 +305,8 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
 
             purge_when_done = True ;
          }
+
+         if( save_order != native_order ) purge_when_done = True ;
 
          /** delete old file, if any **/
 
@@ -274,18 +334,37 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
          /** write each brick out in a separate operation **/
 
          id = 0 ;
-         for( ibr=0 ; ibr < nv ; ibr++ )
-            id += fwrite( DBLK_ARRAY(blk,ibr), 1, DBLK_BRICK_BYTES(blk,ibr), far ) ;
+         for( ibr=0 ; ibr < nv ; ibr++ ){
 
-         COMPRESS_fclose(far) ;
-         if( compress_mode >= 0 ){
-            blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+            if( save_order != native_order ){       /* 25 April 1998 */
+               switch( DBLK_BRICK_TYPE(blk,ibr) ){
+                  case MRI_short:
+                     mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
+                  break ;
+
+                  case MRI_int:
+                     mri_swap4( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
+                  break ;
+               }
+            }
+
+            id += fwrite( DBLK_ARRAY(blk,ibr), 1, DBLK_BRICK_BYTES(blk,ibr), far ) ;
          }
 
+         COMPRESS_fclose(far) ;
+
          if( purge_when_done ){
-            free( DBLK_ARRAY(blk,0) ) ;
-            for( ibr=0 ; ibr < nv ; ibr++ )
-               mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
+            if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
+               free( DBLK_ARRAY(blk,0) ) ;
+               for( ibr=0 ; ibr < nv ; ibr++ )
+                  mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
+            } else {
+               THD_purge_datablock( blk , DATABLOCK_MEM_MALLOC ) ;
+            }
+         }
+
+         if( compress_mode >= 0 || save_order != native_order ){
+            blk->malloc_type = DATABLOCK_MEM_MALLOC ;
          }
 
          if( id != blk->total_bytes )

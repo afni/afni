@@ -1429,6 +1429,7 @@ ENTRY("AFNI_read_images") ;
    dset->dblk->diskptr->dimsizes[1]  = ny ;
    dset->dblk->diskptr->dimsizes[2]  = nz ;
    dset->dblk->diskptr->storage_mode = STORAGE_UNDEFINED ;
+   dset->dblk->diskptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
 
    EMPTY_STRING(dset->dblk->diskptr->prefix) ;
    EMPTY_STRING(dset->dblk->diskptr->viewcode) ;
@@ -4001,10 +4002,15 @@ ENTRY("AFNI_switchview_CB") ;
 }
 
 /*--------------------------------------------------------
-  Routine to clear out unused datasets
+  Routines to clear out datasets
 ----------------------------------------------------------*/
 
 void AFNI_purge_unused_dsets(void)
+{
+   AFNI_purge_dsets( 0 ) ;
+}
+
+void AFNI_purge_dsets( int doall )
 {
    int icc , iss , idd , ivv ;
    Three_D_View * im3d ;
@@ -4012,7 +4018,7 @@ void AFNI_purge_unused_dsets(void)
    THD_sessionlist * ssl = GLOBAL_library.sslist ;
    THD_3dim_dataset * dset ;
 
-ENTRY("AFNI_purge_unused_dsets") ;
+ENTRY("AFNI_purge_dsets") ;
 
    /*-- sanity check --*/
 
@@ -4030,6 +4036,7 @@ ENTRY("AFNI_purge_unused_dsets") ;
 
             dset = sess->anat[idd][ivv] ;
             if( dset == NULL ) continue ;
+            if( doall ){ PURGE_DSET(dset) ; continue ; }
 
             /*-- for each controller now running --*/
 
@@ -4040,10 +4047,7 @@ ENTRY("AFNI_purge_unused_dsets") ;
             }
 
             /*-- if didn't find it, purge it --*/
-            if( icc == MAX_CONTROLLERS ){
-STATUS(dset->dblk->diskptr->header_name) ;
-               PURGE_DSET( dset ) ;
-            }
+            if( icc == MAX_CONTROLLERS ){ PURGE_DSET(dset) ; }
          }
       }
 
@@ -4054,6 +4058,7 @@ STATUS(dset->dblk->diskptr->header_name) ;
 
             dset = sess->func[idd][ivv] ;
             if( dset == NULL ) continue ;
+            if( doall ){ PURGE_DSET(dset) ; continue ; }
 
             /*-- for each controller now running --*/
 
@@ -4064,10 +4069,7 @@ STATUS(dset->dblk->diskptr->header_name) ;
             }
 
             /*-- if didn't find it, purge it --*/
-            if( icc == MAX_CONTROLLERS ){
-STATUS(dset->dblk->diskptr->header_name) ;
-               PURGE_DSET( dset ) ;
-            }
+            if( icc == MAX_CONTROLLERS ){ PURGE_DSET(dset) ; }
          }
       }
 
@@ -6358,6 +6360,8 @@ STATUS("init new_dkptr") ;
    new_dkptr->dimsizes[1]  = new_ny ;
    new_dkptr->dimsizes[2]  = new_nz ;
    new_dkptr->storage_mode = STORAGE_UNDEFINED ;
+   new_dkptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
+
    THD_init_diskptr_names( new_dkptr ,
                            parent_dkptr->directory_name, NULL, parent_dkptr->prefix ,
                            new_dset->view_type , True ) ;

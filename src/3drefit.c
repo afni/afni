@@ -86,6 +86,12 @@ void Syntax(char * str)
     "                  to use '-view'.  If you copy the files and then use\n"
     "                  '-view', don't forget to use '-newid' as well!\n"
     "\n"
+    "  -byteorder bbb  Sets the byte order string in the header.\n"
+    "                  Allowable values for 'bbb' are:\n"
+    "                     LSB_FIRST   MSB_FIRST   NATIVE_ORDER\n"
+    "                  Note that this does not change the .BRIK file!\n"
+    "                  This is done by programs 2swap and 4swap.\n"
+    "\n"
     "  -appkey ll      Appends the string 'll' to the keyword list for the\n"
     "                  whole dataset.\n"
     "  -repkey ll      Replaces the keyword list for the dataset with the\n"
@@ -157,6 +163,7 @@ int main( int argc , char * argv[] )
    int new_markers= 0 ;
    int new_view   = 0 ; int vtype ;
    int new_key    = 0 ; char * key ;
+   int new_byte_order = 0 ;          /* 25 April 1998 */
    char str[256] ;
    int  iarg , ii ;
 
@@ -178,6 +185,25 @@ int main( int argc , char * argv[] )
 #if 0
       if( strcmp(argv[iarg],"-v") == 0 ){ verbose = 1 ; iarg++ ; continue ; }
 #endif
+
+      /*----- -byteorder option [25 April 1998] -----*/
+
+      if( strncmp(argv[iarg],"-byteorder",7) == 0 ){
+         if( iarg+1 >= argc )
+            Syntax("need 1 argument after -byteorder!") ;
+
+         iarg++ ;
+         if( strcmp(argv[iarg],LSB_FIRST_STRING) == 0 )
+            new_byte_order = LSB_FIRST ;
+         else if( strcmp(argv[iarg],MSB_FIRST_STRING) == 0 )
+            new_byte_order = MSB_FIRST ;
+         else if( strcmp(argv[iarg],NATIVE_STRING) == 0 )
+            new_byte_order = mri_short_order() ;
+         else
+            Syntax("illegal argument after -byteorder!") ;
+
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
 
       /*----- -sublabel option -----*/
 
@@ -494,6 +520,11 @@ int main( int argc , char * argv[] )
       }
       fprintf(stderr,"Processing dataset %s\n",argv[iarg]) ;
 
+      /* 25 April 1998 */
+
+      if( new_byte_order > 0 )
+         dset->dblk->diskptr->byte_order = new_byte_order ;
+
       daxes = dset->daxes ;
 
       if( new_orient ){
@@ -505,7 +536,6 @@ int main( int argc , char * argv[] )
       if( !new_xorg ) xorg = fabs(daxes->xxorg) ;
       if( !new_yorg ) yorg = fabs(daxes->yyorg) ;
       if( !new_zorg ) zorg = fabs(daxes->zzorg) ;
-
 
       if( !new_xdel ) xdel = fabs(daxes->xxdel) ;
       if( !new_ydel ) ydel = fabs(daxes->yydel) ;
@@ -564,7 +594,7 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"  ** can't change 3D+time dataset to new type:\n") ;
             fprintf(stderr,"     new type has more than one value per voxel!\n") ;
          } else if( dset->taxis == NULL && nvals != dset->dblk->nvals &&
-                    ((dtype==HEAD_FUNC_TYPE && ftype!=FUNC_BUCK_TYPE)||  
+                    ((dtype==HEAD_FUNC_TYPE && ftype!=FUNC_BUCK_TYPE)|| 
                      (dtype==HEAD_ANAT_TYPE && ftype!=ANAT_BUCK_TYPE)  ) ){
 
             fprintf(stderr,"  ** can't change dataset to new type:\n") ;

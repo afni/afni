@@ -6,6 +6,9 @@
   datablock that corresponds (return NULL if impossible).
 ------------------------------------------------------------------*/
 
+static int native_order = -1 ;
+static int no_mmap      = -1 ;
+
 THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
 {
    THD_datablock     * dblk ;
@@ -20,6 +23,14 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    int brick_ccode ;
 
 ENTRY("THD_init_one_datablock") ;
+
+   if( native_order < 0 ) native_order = mri_short_order() ;
+   if( no_mmap < 0 ){
+      char * hh = getenv("AFNI_NOMMAP") ;
+      if( hh == NULL ) no_mmap = 0 ;
+      else             no_mmap = (strcmp(hh,"YES") == 0) ;
+   }
+
 
    /*-- sanity check --*/
 
@@ -57,6 +68,7 @@ printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
    dblk->diskptr       = dkptr = myXtNew( THD_diskptr ) ;
    dkptr->type         = DISKPTR_TYPE ;
    dkptr->storage_mode = STORAGE_UNDEFINED ;
+   dkptr->byte_order   = native_order ;  /* 25 April 1998 */
 
    ADDTO_KILL(dblk->kl,dkptr) ;
 
@@ -157,6 +169,20 @@ printf("  -- atr_rank=%p  atr_dimen=%p  atr_scene=%p\n",
       THD_init_datablock_brick( dblk , atr_btype->nin , atr_btype->in ) ;
    }
 
+   /* 25 April 1998: check if the byte order is stored inside */
+
+   atr_labs = THD_find_string_atr( dblk , ATRNAME_BYTEORDER ) ;
+   if( atr_labs != NULL && atr_labs->nch > 0 ){
+
+      if( strncmp(atr_labs->ch,LSB_FIRST_STRING,ORDER_LEN) == 0 )
+         dkptr->byte_order = LSB_FIRST ;
+      else if( strncmp(atr_labs->ch,MSB_FIRST_STRING,ORDER_LEN) == 0 )
+         dkptr->byte_order = MSB_FIRST ;
+      else
+         fprintf(stderr,"*** Unknown %s found in dataset %s\n",
+                 ATRNAME_BYTEORDER , headname ) ;
+   }
+
    /* if the data is not on disk, the flag remains at DATABLOCK_MEM_UNDEFINED,
       otherwise the flag says how the memory for the bricks is to be created. */
 
@@ -168,7 +194,13 @@ printf("  -- atr_rank=%p  atr_dimen=%p  atr_scene=%p\n",
       dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
 #endif
 
-      if( brick_ccode >= 0 ) dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
+      /* must be malloc-ed if:
+            data is compressed,
+            data is not in native byte order, or
+            user explicity forbids use of mmap   */
+
+      if( brick_ccode >= 0 || dkptr->byte_order != native_order || no_mmap )
+         dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
    }
 
    /* 30 Nov 1997: create the labels for sub-bricks */

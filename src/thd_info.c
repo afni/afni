@@ -1,7 +1,6 @@
 #include "mrilib.h"
 #include "thd.h"
 
-
 /*--------------------------------------------------------------------
    Inline version of 3dinfo.  You must free() the output string
    when done with it.
@@ -9,7 +8,7 @@
 
 #include <stdarg.h>
 
-static char * zzprintf( char * sss , char * fmt , ... ) ;
+char * THD_zzprintf( char * sss , char * fmt , ... ) ;
 
 char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
 {
@@ -32,46 +31,66 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
 
    daxes = dset->daxes ;
 
-   outbuf = zzprintf(outbuf,"Dataset File:    %s\n" , DSET_FILECODE(dset) ) ;
+   outbuf = THD_zzprintf(outbuf,"Dataset File:    %s\n" , DSET_FILECODE(dset) ) ;
 
 #ifndef OMIT_DATASET_IDCODES
-    outbuf = zzprintf(outbuf,"Identifier Code: %s  Creation Date: %s\n" ,
+    outbuf = THD_zzprintf(outbuf,"Identifier Code: %s  Creation Date: %s\n" ,
              dset->idcode.str , dset->idcode.date ) ;
 #endif
 
    if( ISANAT(dset) ){
-      outbuf = zzprintf(outbuf,"Dataset Type:    %s (-%s)\n",
+      outbuf = THD_zzprintf(outbuf,"Dataset Type:    %s (-%s)\n",
                 ANAT_typestr[dset->func_type] , ANAT_prefixstr[dset->func_type] ) ;
    } else {
-      outbuf = zzprintf(outbuf,"Dataset Type:    %s (-%s)\n",
+      outbuf = THD_zzprintf(outbuf,"Dataset Type:    %s (-%s)\n",
                 FUNC_typestr[dset->func_type] , FUNC_prefixstr[dset->func_type] ) ;
+   }
+
+   /* 25 April 1998: do byte order stuff */
+
+   switch( DSET_BYTEORDER(dset) ){
+      case LSB_FIRST:
+         outbuf = THD_zzprintf(outbuf,"Byte Order:      %s" , LSB_FIRST_STRING) ;
+      break ;
+      case MSB_FIRST:
+         outbuf = THD_zzprintf(outbuf,"Byte Order:      %s" , MSB_FIRST_STRING) ;
+      break ;
+   }
+   kv = mri_short_order() ;
+   switch( kv ){
+      case LSB_FIRST:
+         outbuf = THD_zzprintf(outbuf," [this CPU native = %s]\n" , LSB_FIRST_STRING) ;
+      break ;
+      case MSB_FIRST:
+         outbuf = THD_zzprintf(outbuf," [this CPU native = %s]\n" , MSB_FIRST_STRING) ;
+      break ;
    }
 
    cpt = DSET_KEYWORDS(dset) ;
    if( cpt != NULL && cpt[0] != '\0' )
-      outbuf = zzprintf(outbuf,"Keywords:        %s\n" , cpt ) ;
+      outbuf = THD_zzprintf(outbuf,"Keywords:        %s\n" , cpt ) ;
 
 #ifdef OMIT_DATASET_IDCODES
    if( strlen(dset->anat_parent_name) > 0 )
-      outbuf = zzprintf(outbuf,"Anatomy Parent:  %s\n" , dset->anat_parent_name ) ;
+      outbuf = THD_zzprintf(outbuf,"Anatomy Parent:  %s\n" , dset->anat_parent_name ) ;
 
    if( strlen(dset->warp_parent_name) > 0 )
-      outbuf = zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
+      outbuf = THD_zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
 #else
    if( ! ISZERO_IDCODE(dset->anat_parent_idcode) )
-      outbuf = zzprintf(outbuf,"Anatomy Parent:  %s [%s]\n" ,
+      outbuf = THD_zzprintf(outbuf,"Anatomy Parent:  %s [%s]\n" ,
                 dset->anat_parent_name , dset->anat_parent_idcode.str ) ;
    else if( strlen(dset->anat_parent_name) > 0 )
-      outbuf = zzprintf(outbuf,"Anatomy Parent:  %s\n" , dset->anat_parent_name ) ;
+      outbuf = THD_zzprintf(outbuf,"Anatomy Parent:  %s\n" , dset->anat_parent_name ) ;
 
    if( ! ISZERO_IDCODE(dset->warp_parent_idcode) )
-      outbuf = zzprintf(outbuf,"Warp Parent:     %s [%s]\n" ,
+      outbuf = THD_zzprintf(outbuf,"Warp Parent:     %s [%s]\n" ,
                  dset->warp_parent_name , dset->warp_parent_idcode.str) ;
    else if( strlen(dset->warp_parent_name) > 0 )
-      outbuf = zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
+      outbuf = THD_zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
 #endif
 
-   outbuf = zzprintf(outbuf,
+   outbuf = THD_zzprintf(outbuf,
       "Data Axes Orientation:\n"
       "  first  (x) = %s\n"
       "  second (y) = %s\n"
@@ -105,7 +124,7 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
    n2 = DAXES_NUM(daxes,daxes->yyorient) ;
    n3 = DAXES_NUM(daxes,daxes->zzorient) ;
 
-   outbuf = zzprintf(outbuf,
+   outbuf = THD_zzprintf(outbuf,
       "R-to-L extent: %9.3f %s -to- %9.3f %s -step- %9.3f mm [%3d voxels]\n"
       "A-to-P extent: %9.3f %s -to- %9.3f %s -step- %9.3f mm [%3d voxels]\n"
       "I-to-S extent: %9.3f %s -to- %9.3f %s -step- %9.3f mm [%3d voxels]\n" ,
@@ -116,26 +135,26 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
    ntimes   = DSET_NUM_TIMES(dset) ;
    nval_per = DSET_NVALS_PER_TIME(dset) ;
    if( ntimes > 1 ){
-      outbuf = zzprintf(outbuf,
+      outbuf = THD_zzprintf(outbuf,
          "Number of time steps = %d  Number of values at each pixel = %d\n",
          ntimes , nval_per ) ;
 
-      outbuf = zzprintf(outbuf, "Time step = %.3f (%s)" ,
+      outbuf = THD_zzprintf(outbuf, "Time step = %.3f (%s)" ,
                  dset->taxis->ttdel ,
                  UNITS_TYPE_LABEL(dset->taxis->units_type) ) ;
       if( dset->taxis->nsl > 0 )
-        outbuf = zzprintf(outbuf,"  Number time-offset slices = %d  Thickness = %.3f",
+        outbuf = THD_zzprintf(outbuf,"  Number time-offset slices = %d  Thickness = %.3f",
                   dset->taxis->nsl , fabs(dset->taxis->dz_sl) ) ;
-      outbuf = zzprintf(outbuf,"\n") ;
+      outbuf = THD_zzprintf(outbuf,"\n") ;
 
       if( verbose && dset->taxis->nsl > 0 ){
-         outbuf = zzprintf(outbuf,"Time-offsets per slice:") ;
+         outbuf = THD_zzprintf(outbuf,"Time-offsets per slice:") ;
          for( ival=0 ; ival < dset->taxis->nsl ; ival++ )
-           outbuf = zzprintf(outbuf, " %.3f" , dset->taxis->toff_sl[ival] ) ;
-         outbuf = zzprintf(outbuf,"\n") ;
+           outbuf = THD_zzprintf(outbuf, " %.3f" , dset->taxis->toff_sl[ival] ) ;
+         outbuf = THD_zzprintf(outbuf,"\n") ;
       }
    } else {
-      outbuf = zzprintf(outbuf,
+      outbuf = THD_zzprintf(outbuf,
            "Number of values stored at each pixel = %d\n" , nval_per ) ;
    }
 
@@ -167,41 +186,41 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
       } else {
          sprintf( str+nstr , "\n") ;
       }
-      outbuf = zzprintf(outbuf,"%s",str) ;
+      outbuf = THD_zzprintf(outbuf,"%s",str) ;
 
       /** 30 Nov 1997: print sub-brick stat params **/
 
       kv = DSET_BRICK_STATCODE(dset,ival) ;
       if( FUNC_IS_STAT(kv) ){
-         outbuf = zzprintf(outbuf,"     statcode = %s",FUNC_prefixstr[kv] ) ;
+         outbuf = THD_zzprintf(outbuf,"     statcode = %s",FUNC_prefixstr[kv] ) ;
          npar = FUNC_need_stat_aux[kv] ;
          if( npar > 0 ){
-            outbuf = zzprintf(outbuf,";  statpar =") ;
+            outbuf = THD_zzprintf(outbuf,";  statpar =") ;
             for( kv=0 ; kv < npar ; kv++ )
-               outbuf = zzprintf(outbuf," %g",DSET_BRICK_STATPAR(dset,ival,kv)) ;
+               outbuf = THD_zzprintf(outbuf," %g",DSET_BRICK_STATPAR(dset,ival,kv)) ;
          }
-         outbuf = zzprintf(outbuf,"\n") ;
+         outbuf = THD_zzprintf(outbuf,"\n") ;
       }
 
       cpt = DSET_BRICK_KEYWORDS(dset,ival) ;
       if( cpt != NULL && cpt[0] != '\0' )
-         outbuf = zzprintf(outbuf,"     keywords = %s\n",cpt) ;
+         outbuf = THD_zzprintf(outbuf,"     keywords = %s\n",cpt) ;
    }
 
    /** print out dataset global statistical parameters **/
 
    if( ISFUNC(dset) && FUNC_need_stat_aux[dset->func_type] > 0 ){
-      outbuf = zzprintf(outbuf,"Auxiliary functional statistical parameters:\n %s\n",
+      outbuf = THD_zzprintf(outbuf,"Auxiliary functional statistical parameters:\n %s\n",
              FUNC_label_stat_aux[dset->func_type] ) ;
       for( ival=0 ; ival < FUNC_need_stat_aux[dset->func_type] ; ival++ )
-         outbuf = zzprintf(outbuf," %g",dset->stat_aux[ival]) ;
-      outbuf = zzprintf(outbuf,"\n") ;
+         outbuf = THD_zzprintf(outbuf," %g",dset->stat_aux[ival]) ;
+      outbuf = THD_zzprintf(outbuf,"\n") ;
    }
 
    return outbuf ;
 }
 
-char * zzprintf( char * sss , char * fmt , ... )
+char * THD_zzprintf( char * sss , char * fmt , ... )
 {
    static char sbuf[2048] ;
    char * zz ;

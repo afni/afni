@@ -153,8 +153,55 @@ files on output.  The legal values are "COMPRESS", "GZIP", and
 "BZIP2".  If AFNI_COMPRESSOR is equal to one of these, then
 all AFNI programs will automatically pass .BRIK data through the
 appropriate compression program as it is written to disk.  Note
-that this will slow down dataset write operations.  For more
-details, see file README.compression.
+that this will slow down dataset write operations.  Note also
+that compressed datasets cannot be mapped directly from disk
+into memory ('mmap'), but must occupy actual memory (RAM).
+For more details, see file README.compression.
+
+------------------------
+Variable: AFNI_BYTEORDER
+------------------------
+This variable is used to control the byte order for output files.
+If you use it, the two legal values are "LSB_FIRST" and "MSB_FIRST".
+If you don't use it, the default order on your CPU will be used.
+The main purpose of this would be if you were using a mixture of
+CPU types reading shared disks (i.e., using NFS).  If the majority
+of the systems were MSB_FIRST (e.g., SGI, HP, Sun), but there were
+a few LSB_FIRST systems (e.g., Intel, DEC Alpha), then you might
+want to do 'setenv AFNI_BYTEORDER MSB_FIRST' on all of the MSB_FIRST
+systems to make sure that the datasets that they write out are
+readable by the other computers.
+
+Note that AFNI programs can now check the .HEAD file for the byte
+order of a dataset, and will swap the bytes on input, if needed.
+If you wish to mark all of the datasets on a given system as
+being in a particular order, the following command should work:
+
+ find /top/dir -name \*.HEAD -exec 3drefit -byteorder NATIVE_ORDER {} \;
+
+Here, '/top/dir' is the name of the top level directory under
+which you wish to search for AFNI datasets.  The string NATIVE_ORDER
+means to set all datasets to the CPU default order, which is probably
+what you are using now.  (You can use the program 'byteorder' to
+find out the native byte ordering of your CPU.)
+
+---------------------
+Variable: AFNI_NOMMAP
+---------------------
+This variable can be used to turn off the mmap feature by which AFNI
+can load datasets into memory using the map-file-to-memory functionality
+of Unix.  (Dataset .BRIK files will only be mmap-ed if they are not
+compressed and are in the native byte order of the CPU.)  On some
+systems, mmap doesn't seem to work very well (e.g., Linux 1.2.13).
+You can disable mmap by 'setenv AFNI_NOMMAP YES'.
+
+The penalty for disabling mmap is that all datasets must be loaded
+into actual RAM.  AFNI does not have the ability to load a dataset
+only partially, so if a 20 Megabyte .BRIK file is accessed, all of
+it will be loaded into RAM.  With mmap, the Unix operating system will
+decide how much of the file to load.  In this way, it is possible to
+deal with more files than you have swap space on your computer
+(since .BRIK files are mmap-ed in readonly mode).
 
 =================================
 | Robert W. Cox, PhD            |

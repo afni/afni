@@ -3661,6 +3661,7 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    dkptr->dimsizes[1]  = ny ;
    dkptr->dimsizes[2]  = nz ;
    dkptr->storage_mode = STORAGE_BY_BRICK ;
+   dkptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
    EMPTY_STRING(dkptr->prefix) ;
    EMPTY_STRING(dkptr->viewcode) ;
    EMPTY_STRING(dkptr->filecode) ;

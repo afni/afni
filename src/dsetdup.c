@@ -263,6 +263,7 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
    new_dset->dblk->diskptr->nvals        = parent->dblk->nvals ;
    new_dset->dblk->diskptr->rank         = 3 ;
    new_dset->dblk->diskptr->storage_mode = STORAGE_UNDEFINED ;
+   new_dset->dblk->diskptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
    new_dset->dblk->diskptr->dimsizes[0]  = new_dset->daxes->nxx ;
    new_dset->dblk->diskptr->dimsizes[1]  = new_dset->daxes->nyy ;
    new_dset->dblk->diskptr->dimsizes[2]  = new_dset->daxes->nzz ;

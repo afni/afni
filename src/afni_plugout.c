@@ -80,8 +80,11 @@ ENTRY("AFNI_plugout_workproc") ;
          }
          fprintf(stderr,"\n") ;
          if( ioc_control == NULL ){
-            fprintf(stderr,"PO: can't listen for control channel!\a\n") ;
-            RETURN(True) ;
+#if 0
+            iochan_sleep(10*VLONG_DELAY) ;
+            fprintf(stderr,"PO: trouble listening for control channel!\n") ;
+            RETURN(False) ;
+#endif
          }
       }
       opcount++ ;
@@ -178,7 +181,7 @@ ENTRY("AFNI_plugout_workproc") ;
 
    /* if all plugouts are deceased, free their array */
 
-   if( ngood == 0 ){ npout = 0 ; free(pout) ; pout = NULL ; }
+   if( ngood == 0 && pout != NULL ){ npout = 0 ; free(pout) ; pout = NULL ; }
 
    /* if nothing happened, take a short nap */
 

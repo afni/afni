@@ -34,7 +34,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt bzip2 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-           2dImReg 3dmaskave 3dbuc2fim
+           2dImReg 3dmaskave 3dbuc2fim byteorder
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -65,6 +65,9 @@ newstuff.hhh:quotize README.changes
 
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
+
+byteorder:byteorder.o
+	$(CC) -o byteorder byteorder.o $(LFLAGS) $(LLIBS)
 
 3dbuc2fim:3dbuc2fim.o
 	$(CC) -o 3dbuc2fim 3dbuc2fim.o $(LFLAGS) $(LLIBS)
@@ -579,7 +582,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o \
            mri_add_name.o mri_histog.o mri_nsize.o mri_lsqfit.o mri_sobel.o \
            csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o \
-           mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o
+           mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -751,6 +754,9 @@ colcalc:parser.o colcalc.o
 
 imcalc:imcalc.o parser.o parser_int.o
 	$(CC) -o imcalc imcalc.o parser.o parser_int.o $(LFLAGS) -lf2c $(LLIBS)
+
+myget:myget.o
+	$(CC) -o myget myget.o $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

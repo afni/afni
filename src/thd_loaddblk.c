@@ -1,6 +1,8 @@
 #include "mrilib.h"
 #include "thd.h"
 
+static int native_order = -1 ;
+static int no_mmap      = -1 ;
 
 /*---------------------------------------------------------------*/
 
@@ -13,6 +15,13 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
    MRI_IMAGE * im ;
 
 ENTRY("THD_load_datablock") ;
+
+   if( native_order < 0 ) native_order = mri_short_order() ;
+   if( no_mmap < 0 ){
+      char * hh = getenv("AFNI_NOMMAP") ;
+      if( hh == NULL ) no_mmap = 0 ;
+      else             no_mmap = (strcmp(hh,"YES") == 0) ;
+   }
 
    /*-- sanity checks --*/
 
@@ -31,6 +40,12 @@ ENTRY("THD_load_datablock") ;
       fprintf(stderr,"\n*** Cannot read non 3D datablocks ***\n") ;
       return False ;
    }
+
+   /* 25 April 1998: byte order issues */
+
+   if( dkptr->byte_order <= 0 ) dkptr->byte_order = native_order ;
+   if( dkptr->byte_order != native_order || no_mmap )
+      blk->malloc_type = DATABLOCK_MEM_MALLOC ;
 
    /*-- allocate data space --*/
 
@@ -178,6 +193,22 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
                     dkptr->brick_name , blk->total_bytes , id ) ;
             perror("*** Unix error message") ;
             return False ;
+         }
+
+         /* 25 April 1998: check and fix byte ordering */
+
+         if( dkptr->byte_order != native_order ){
+            for( ibr=0 ; ibr < nv ; ibr++ ){
+               switch( DBLK_BRICK_TYPE(blk,ibr) ){
+                  case MRI_short:
+                     mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
+                  break ;
+
+                  case MRI_int:
+                     mri_swap4( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
+                  break ;
+               }
+            }
          }
 
 #if defined(THD_DEBUG)

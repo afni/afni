@@ -89,6 +89,7 @@ THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * old_dset )
    new_dkptr->rank         = 3 ;
    new_dkptr->nvals        = new_nvals ;
    new_dkptr->storage_mode = STORAGE_BY_BRICK ;
+   new_dkptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
    if( old_good ){
       new_dkptr->dimsizes[0]  = old_dset->daxes->nxx ;
       new_dkptr->dimsizes[1]  = old_dset->daxes->nyy ;
