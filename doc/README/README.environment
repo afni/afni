@@ -1396,6 +1396,22 @@ way to check is with a command like so
 then check if the "Spacing Between Slices" and "Slice Thickness" values are
 correct for the given acquisition.
 
+---------------------------------------------------
+Variables: AFNI_DICOM_RESCALE and AFNI_DICOM_WINDOW
+---------------------------------------------------
+DICOM image files can contain rescaling and windowing "tags".  If present,
+these values indicate to affinely modify the values stored in the file.
+As far as I can tell, "rescale" means that the values should always be
+modified, whereas "window" means the values should be modified for display
+purposes.  If both are present, the rescale comes before window.  These
+two YES/NO environment variables control whether the AFNI image input
+functions (used in to3d) should apply the rescale and window tags.
+
+It is my impression from the laconic, terse, and opaque DICOM manual that
+window tags are intended for display purposes only, and that they aren't
+needed for signal processing.  But you'll have to decide.  I don't have
+much experience with DICOM data.
+
 -----------------------
 Variable: IDCODE_PREFIX
 -----------------------
