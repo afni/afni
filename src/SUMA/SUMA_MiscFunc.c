@@ -1974,7 +1974,18 @@ int compare_SUMA_Z_QSORT_INT (SUMA_Z_QSORT_INT *a, SUMA_Z_QSORT_INT *b )
       /* this will never be reached but it will shut the compiler up */
       return (0);
    }
-   
+    
+
+int SUMA_compare_int (int *a, int *b )
+{/*SUMA_compare_int*/
+ 	if (*a < *b)
+		return (-1);
+	else if (*a == *b)
+		return (0);
+	else
+		return (1);
+	
+}/*SUMA_compare_int*/
    
 /*!**
    
@@ -2343,6 +2354,170 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
           dest[0]=v1[0]-v2[0]; \
           dest[1]=v1[1]-v2[1]; \
           dest[2]=v1[2]-v2[2]; 
+
+/*
+\brief This function is a stripped down version of SUMA_MT_intersect_triangle. It is meant to
+work faster when few triangles are to be tested. 
+
+ans = SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, d, closest_vert);
+
+\param   P0 (float *) 3x1 containing XYZ of point 0
+\param   P1 (float *) 3x1 containing XYZ of point 1
+\param   vert0 (float *) 3x1 containing XYZ of first node in triangle.
+\param   vert1 (float *) 3x1 containing XYZ of second node in triangle.
+\param   vert2 (float *) 3x1 containing XYZ of third node in triangle.
+\param   iP (float *) 3x1 vector containing XYZ of point of itnersection of P0-P1 with the triangle
+\param   d (float *) 3x1 vector containing distance from iP to each of the vertices forming the triangle.
+\param   closest_vert (int *) index of node (0, 1 or 2) closest to iP
+         d[*closest_vert] is the smallest of d[0], d[1] and d[2]
+\return  ans (SUMA_Boolean) YUP (intersects)/NOPE (does not intersect)
+         
+         NOTE: iP, d and closest_vert are not touched by this function if P0-P1 does not
+         intersect the triangle.
+         NOTE: If you do not care for iP, d and closest_vert, pass NULL, NULL, NULL as their pointers
+
+// DELETE THIS SECTION WHEN BRENNA IS DONE WITH IT
+
+   // sample code for using this function to find out if P0-P1 hits a triangle. 
+   // Nref is the index of the closest node on the mesh that is mapped to a sphere.
+
+   If you are using the SUMA_SurfaceObject structure, follow this example:
+   Say you want to test if triangle (T) is intersected by the line passing through P0 and P1:
+   The vertices of T are indexed: 
+   ivert0 = SO->FaceSetList[3T]; 
+   ivert1 = SO->FaceSetList[3T+1];
+   ivert2 = SO->FaceSetList[3T+2];
+   For vert0, use SO->NodeList[ivert0]
+   For vert1, use SO->NodeList[ivert1]
+   For vert2, use SO->NodeList[ivert2]
+    
+   
+   float P0[3], P1[3], iP[3], d[3];
+   int closest_vert, ivert1, ivert2, Nref;  
+   SUMA_Boolean Found;
+   int cnt;
+   
+   Found = NOPE; // flag for exiting when a triangle has been intersected
+   cnt = 0;
+   cntmax = SO->FN->N_Neighb[Nref] - 1;
+   // NOTE: This assumes that FN->NodeId is monotonically increasing from 0 to N_Node -1
+   while (!Found && cnt < cntmax) {
+      //ivert0 = Nref;
+      ivert1 = SO->FN->FirstNeighb[Nref][cnt];
+      ivert2 = SO->FN->FirstNeighb[Nref][cnt+1];
+      if (SUMA_MT_isIntersect_Triangle (P0, P1, SO->NodeList[Nref], SO->NodeList[ivert1], SO->NodeList[ivert2], iP, d, &closest_vert)) Found = YUP;
+      ++cnt;
+   }
+   if (!Found) {
+      // last triangle to check
+      ivert1 = SO->FN->FirstNeighb[Nref][cntmax];
+      ivert2 = SO->FN->FirstNeighb[Nref][0];
+      if (SUMA_MT_isIntersect_Triangle (P0, P1, SO->NodeList[Nref], SO->NodeList[ivert1], SO->NodeList[ivert2], iP, d, &closest_vert)) Found = YUP;
+   }
+   if (!Found) {
+      fprintf (SUMA_STDERR, "Error %s: No triangle containing node %d was intersected by P0-P1.\n", 
+         FuncName, Nref);
+   }else {
+      fprintf (SUMA_STDERR, "%s: P0-P1 intersects the triangle formed by nodes indexed (%d %d %d) at location iP (%f %f %f)\n", 
+         FuncName, Nref, ivert1, ivert2, iP[0], iP[1], iP[2]);
+      fprintf (SUMA_STDERR, "%s: The distance from iP to each of the nodes is: (%f %f %f).iP is closest to vert%d\n", 
+         FuncName, d[0], d[1], d[2], closest_vert);
+   }
+   
+   
+   
+   
+   \sa SUMA_MT_intersect_triangle
+*/
+
+SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, float *vert1, float *vert2, float *iP, float *d, int *closest_vert)
+{  static char FuncName[]={"SUMA_MT_isIntersect_Triangle"};
+   double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
+   double det,inv_det, u, v, t;
+   double dir[3], dirn, orig[3];
+   SUMA_Boolean hit = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /* direction from two points */
+   orig[0] = (double)P0[0];
+   orig[1] = (double)P0[1];
+   orig[2] = (double)P0[2];
+   
+   dir[0] = (double)P1[0] - orig[0];
+   dir[1] = (double)P1[1] - orig[1];
+   dir[2] = (double)P1[2] - orig[2];
+   dirn = sqrt(dir[0]*dir[0]+dir[1]*dir[1]+dir[2]*dir[2]);
+   dir[0] /= dirn;
+   dir[1] /= dirn;
+   dir[2] /= dirn;
+
+   /* find vectors for two edges sharing vert0 */
+   SUMA_MT_SUB(edge1, vert1, vert0);
+   SUMA_MT_SUB(edge2, vert2, vert0);
+
+   /* begin calculating determinant - also used to calculate U parameter */
+   SUMA_MT_CROSS(pvec, dir, edge2);
+
+   /* if determinant is near zero, ray lies in plane of triangle */
+   det = SUMA_MT_DOT(edge1, pvec);
+   
+   hit = NOPE;
+   
+      if (det > -SUMA_MT_EPSILON && det < SUMA_MT_EPSILON) {
+         /* no hit, will return below */
+      } else {
+         inv_det = 1.0 / det;
+
+         /* calculate distance from vert0 to ray origin */
+         SUMA_MT_SUB(tvec, orig, vert0);
+
+         /* calculate U parameter and test bounds */
+         u = SUMA_MT_DOT(tvec, pvec) * inv_det;
+         if (u < 0.0 || u > 1.0) {
+            /* no hit, will return below */
+         } else {
+            /* prepare to test V parameter */
+            SUMA_MT_CROSS(qvec, tvec, edge1);
+
+            /* calculate V parameter and test bounds */
+            v = SUMA_MT_DOT(dir, qvec) * inv_det;
+            if (v < 0.0 || u + v > 1.0) {
+                /* no hit, will return below */
+            } else {
+               hit = YUP;
+               
+               if (iP) {
+                  /* calculate t, ray intersects triangle */
+                  t = SUMA_MT_DOT(edge2, qvec) * inv_det;         
+
+                  /* calculate the location of the intersection (iP) in XYZ coords */
+                  iP[0] = vert0[0] + u * (vert1[0] - vert0[0] ) + v * (vert2[0] - vert0[0] );
+                  iP[1] = vert0[1] + u * (vert1[1] - vert0[1] ) + v * (vert2[1] - vert0[1] );
+                  iP[2] = vert0[2] + u * (vert1[2] - vert0[2] ) + v * (vert2[2] - vert0[2] );
+                  /* find out which node is closest to P */
+                  d[0] = (vert0[0] - iP[0])*(vert0[0] - iP[0]) + (vert0[1] - iP[1])*(vert0[1] - iP[1]) + (vert0[2] - iP[2])*(vert0[2] - iP[2]);
+                  *closest_vert = 0;
+                  d[1] = (vert1[0] - iP[0])*(vert1[0] - iP[0]) + (vert1[1] - iP[1])*(vert1[1] - iP[1]) + (vert1[2] - iP[2])*(vert1[2] - iP[2]);
+                  if (d[1] < d[*closest_vert]) {
+                     *closest_vert = 1;
+                  }
+                  d[2] = (vert2[0] - iP[0])*(vert2[0] - iP[0]) + (vert2[1] - iP[1])*(vert2[1] - iP[1]) + (vert2[2] - iP[2])*(vert2[2] - iP[2]);
+                  if (d[2] < d[*closest_vert]) {
+                     *closest_vert = 2;
+                  }
+                  d[0] = (float)sqrt((double)d[0]);
+                  d[1] = (float)sqrt((double)d[1]);
+                  d[2] = (float)sqrt((double)d[2]);
+               }
+
+            }
+         }
+      }
+   
+   SUMA_RETURN (hit);
+}
+
 /*!
 
 SUMA_MT_INTERSECT_TRIANGLE *
@@ -2847,12 +3022,109 @@ SUMA_Boolean   SUMA_mattoquat (float **mat, float *q)
 typedef enum {SUMA_NO_NEIGHB, SUMA_NO_MORE_TO_VISIT, SUMA_VISITED_ALL, SUMA_BAD_SEED} SUMA_TAKE_A_HIKE;
 
 /*!
+   \brief This function determines which triangle, if any is formed by the specified nodes
+   Tri = SUMA_wichTri (EL, n1, n2, n3);
+   \param EL (SUMA_EDGE_LIST *) structure to edge list
+   \param n1 (int) first node 
+   \param n2 (int) second node
+   \param n3 (int) third node
+   \return Tri index of triangle containing n1, n2 and n3
+         -1 if no such triangle was found 
+
+*/
+int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3)
+{
+   static char FuncName[]={"SUMA_whichTri"};
+   int IncTri_E1[100], IncTri_E2[100], N_IncTri_E1 = 0, N_IncTri_E2 = 0, i, j, Tri= -1;
+   SUMA_Boolean Found = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /* find incident triangles to n1-n2 edge */
+   if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+   
+   /* find incident triangles to n1-n3 edge */
+   if (!SUMA_Get_Incident(n1, n3, EL, IncTri_E2, &N_IncTri_E2)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+   
+   /* check that we did not go overboard */
+   if (N_IncTri_E1 > 99 || N_IncTri_E2 > 99 ) {
+      fprintf (SUMA_STDERR,"Error %s: Exceeded preallocated space.\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+
+   /* find triangle incident to both edges */
+   i=0;
+   Found = NOPE;
+   while (i < N_IncTri_E1 && !Found) {
+      j = 0;
+      while (j < N_IncTri_E2 && !Found) {
+         if (IncTri_E2[j] == IncTri_E1[i]) { 
+            Found = YUP;
+            Tri = IncTri_E2[j];
+         }
+         ++j;
+      }
+      ++i;
+   }
+   
+   if (!Found) SUMA_RETURN (-1);
+   
+   SUMA_RETURN (Tri);
+}
+
+/*! 
+   \brief   This function determines how many nodes two triangles share.
+   N_cn = SUMA_isTriLinked (T, t, cn);
+   \param T (int *) a b c nodes forming the reference triangle 
+   \param t (int *) d c b (or whatever combination you choose, c b d for example)
+   \param cn (int *) vector of three elements to contain the indices of nodes 
+         common to the two triangles when the function returns.
+   \return N_cn (int) number of common nodes. Values in cn beyond N_cn - 1 are undefined.
+   
+*/
+int SUMA_isTriLinked (int*T, int *t, int *cn)
+{
+   static char FuncName[]={"SUMA_isTriLinked"};
+   int ic, in;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   ic = 0;   /* common node index*/
+   in = 0; /* number of node searched in T */
+   while (ic < 2 && in < 3) {
+      if (t[0] == T[in]) {
+         cn[ic] = t[0]; 
+         ++ic;
+      }else {
+         if (t[1] == T[in]) {
+            cn[ic] = t[1]; 
+            ++ic;
+         }else {
+            if (t[2] == T[in]) {
+               cn[ic] = t[2]; 
+               ++ic;
+            }
+         }
+      }
+      ++in; /* look for next node */
+   }
+   
+   SUMA_RETURN (ic);
+}
+
+/*!
    This function compares the winding of two triangles, determines their consistency
    and corrects it.
    
    \param T (int *) a b c nodes forming the reference triangle 
    \param t (int *) d c b (or whatever combination you choose, c b d for example)
-   \ret 1: Consistent
+   \return 1: Consistent
        -1: Inconsisten
         0: less than 2 nodes shared
 */
@@ -3157,6 +3429,37 @@ SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *vi
 }
 
 /*!
+   SUMA_Show_Edge_List (SEL, File *Out)
+   \param SEL (SUMA_EDGE_LIST *)
+   \param Out (FILE *) file pointer or stdout if Out is NULL 
+*/
+void SUMA_Show_Edge_List (SUMA_EDGE_LIST *EL, FILE *Out)
+{
+   static char FuncName[]={"SUMA_Show_Edge_List"};
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (Out == NULL) Out = stdout;
+   
+   fprintf(Out,"\nEL contents:\n");
+   fprintf(Out,"i-\t[EL[i][0] EL[i][1]]\t[ELps[i][0] ELps[i][1] ELps[i][2] ELps[i][3]]\n");
+   for (i=0; i < EL->N_EL; ++i) {
+      fprintf(Out,"%d-\t[%d %d]\t[%d %d %d %d]\n", 
+               i, EL->EL[i][0], EL->EL[i][1], EL->ELps[i][0], EL->ELps[i][1], EL->ELps[i][2], EL->ELps[i][3]);
+   
+   }
+   fprintf(Out,"\nTriLimb contents:\n");
+   fprintf(Out,"ti-\t[Edge1 Edge2 Edge3]\n");
+   for (i=0; i < EL->N_EL/3; ++i) { 
+      fprintf(Out,"t%d-\t[%d %d %d]\n",
+         i, EL->Tri_limb[i][0], EL->Tri_limb[i][1],EL->Tri_limb[i][2]);
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
    SUMA_free_Edge_List (SEL)
    \param SEL (SUMA_EDGE_LIST *)
    
@@ -3176,25 +3479,34 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
 }
 
 /*! 
-   ans = SUMA_Make_Edge_List (FL, N_FL, N_Node);
+   ans = SUMA_Make_Edge_List (FL, N_FL, N_Node, NodeList);
    
    This function creates a list of all the edges making up the FaceSets
    \param FL (int *) FaceSetList vector (was matrix, prior to SUMA 1.2 ( N_FL x 3)
    \param N_FL (int) number of facesets (triangles) in FL
    \param N_Node (int) number of nodes forming the mesh
-   
+   \param NodeList (float *) vector containing XYZ of each node. This was added to compute
+                             the length of each edge.
    \ret ans (SUMA_EDGE_LIST *) NULL/failure or the following fields
        EL (int **) sorted edge list
        ELps (int **) edge list properties
+       Le (float *) length of each edge in EL. Since EL can have multiple edges,
+                    which are shared by different triangles, Le would also have
+                    duplicate length values. This is tolerated for efficiency of
+                    indexing.
       N_EL    (int)  Number of edges
       see SUMA_define.h for more info
       
-   to free    ans, use SUMA_free_Edge_List                
+   to free    ans, use SUMA_free_Edge_List
+   
+   DO NOT MODIFY WHAT THIS FUNCTION RETURNS without serious thought.
+   Complicated functions depend on it.                
 */
-SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node)
+SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *NodeList)
 {
    static char FuncName[]={"SUMA_Make_Edge_List"};
-   int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur;
+   int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur, in1, in2;
+   float dx, dy, dz;
    SUMA_EDGE_LIST *SEL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -3205,7 +3517,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node)
    SEL->N_EL = 3 * N_FL;
    SEL->EL = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); /* edge list */
    SEL->ELloc = (int *)SUMA_calloc(N_Node, sizeof(int));
-   
+   SEL->Le = (float *) SUMA_calloc (SEL->N_EL, sizeof(float)); /* length of each edge */
    ELp = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); /* edge property list */
                                                          /* 1st column, 1 = is flipped from orientation in triangle, -1 as present in triangle 
                                                               2nd column, index of triangle (FaceSet) that edge is a part of */    
@@ -3240,7 +3552,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node)
          ELp[ie][0] = -1; /* NO flip happened */
       }
       ELp[ie][1] = i; /* FaceSetMember */
-      
+
       /* second edge, 1->2*/
       ie += 1;
       if (FL[ip+1] > FL[ip+2]) {
@@ -3306,7 +3618,15 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node)
       }
    #endif
    
-
+   /* calculate the length of each edge */
+   for (ie=0; ie < SEL->N_EL; ++ie) {
+      in1 = 3 * SEL->EL[ie][0]; in2 = 3 * SEL->EL[ie][1];
+      dx = (NodeList[in2] - NodeList[in1]);
+      dy = (NodeList[in2+1] - NodeList[in1+1]);
+      dz = (NodeList[in2+2] - NodeList[in1+2]);
+      SEL->Le[ie] = (float) sqrt (  dx * dx + dy * dy + dz * dz );
+   }
+   
    /* free unsorted ELp */
    if (ELp) SUMA_free2D((char **)ELp, SEL->N_EL);
    ELp = NULL;
@@ -3376,6 +3696,80 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node)
    }
 
    SUMA_RETURN (SEL);
+}
+
+/*! 
+   \brief finds the index of an edge in EL of an edge formed by nodes n1 n2 and belonging to triangle Tri
+   eloc = SUMA_FindEdgeInTri (EL, int n1, int n2, int Tri);
+   \param EL (SUMA_EDGE_LIST *) Pointer to edge list structure
+   \param n1 (int) index of node 1
+   \param n2 (int) index of node 2
+   \param Tri (int) index of triangle containing the edge you are looking for
+   \return eloc (int) index into EL of edge formed by nodes n1, n2 and belonging to Tri
+            -1 if no edge is found.
+*/
+int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri) 
+{
+   static char FuncName[]={"SUMA_FindEdgeInTri"};
+   int eloc;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* make sure n1 is smallest*/
+   if (n2 < n1) {
+      eloc = n2; 
+      n2 = n1; 
+      n1 = eloc;
+   }
+   
+   /* first location of edge starting with n1 */
+   eloc = EL->ELloc[n1];
+   
+   /* from there on, look for first occurence of n2 and Tri for hosting triangle*/
+   do {
+      if (EL->EL[eloc][1] == n2 && EL->ELps[eloc][1] == Tri) SUMA_RETURN (eloc);
+      ++eloc;
+   } while (eloc < EL->N_EL && EL->EL[eloc][0] == n1); 
+   
+   /* not found */
+   SUMA_RETURN (-1);
+}
+
+
+/*! 
+   \brief finds the first occurence in EL of an edge formed by nodes n1 n2
+   eloc = SUMA_FindEdge (EL, int n1, int n2);
+   \param EL (SUMA_EDGE_LIST *) Pointer to edge list structure
+   \param n1 (int) index of node 1
+   \param n2 (int) index of node 2
+   \return eloc (int) index into EL of first occurence of edge formed by nodes n1, n2
+            -1 if no edge is found.
+*/
+int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2) 
+{
+   static char FuncName[]={"SUMA_FindEdge"};
+   int eloc;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* make sure n1 is smallest*/
+   if (n2 < n1) {
+      eloc = n2; 
+      n2 = n1; 
+      n1 = eloc;
+   }
+   
+   /* first location of edge starting with n1 */
+   eloc = EL->ELloc[n1];
+   
+   /* from there on, look for first occurence of n2 */
+   do {
+      if (EL->EL[eloc][1] == n2) SUMA_RETURN (eloc);
+      ++eloc;
+   } while (eloc < EL->N_EL && EL->EL[eloc][0] == n1); 
+   
+   /* not found */
+   SUMA_RETURN (-1);
 }
 
 /*! finds triangles incident to an edge 
@@ -3727,7 +4121,7 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL)
 void usage ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_MakeConsistent <FaceSetList file>\n");
+          printf ("\n\33[1mUsage: \33[0m SUMA_MakeConsistent <FaceSetList file> <NodeList file>\n");
           printf ("To compile: \ngcc -DSUMA_MakeConsistent_STANDALONE -Wall -o SUMA_MakeConsistent SUMA_MiscFunc.c ");
           printf ("SUMA_lib.a libmri.a -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib \n");
           printf ("-lm -lGL -lGLU -lGLw -lXmu -lXm -lXt -lXext -lX11 -lMesaGLw -lMesaGLwM \n");
@@ -3738,7 +4132,8 @@ void usage ()
 int main (int argc,char *argv[])
 {/* Main */
    char FuncName[100]; 
-   int *FL, N_FL, i, ip;
+   float *NodeList;
+   int *FL, N_FL, i, ip, N_Node;
    SUMA_EDGE_LIST *SEL;
    
    /* initialize Main function name for verbose output */
@@ -3752,15 +4147,19 @@ int main (int argc,char *argv[])
        }
    
    N_FL = SUMA_float_file_size(argv[1]);
+   N_Node = SUMA_float_file_size(argv[2]);
    
    N_FL = N_FL / 3;
    FL = (int *)SUMA_calloc(N_FL * 3, sizeof(int));
    
-   SUMA_Read_dfile (argv[1], FL,  N_FL * 3);
+   N_Node = N_Node / 3;
+   NodeList = (float *)SUMA_calloc(N_Node *3, sizeof(float));
    
+   SUMA_Read_dfile (argv[1], FL,  N_FL * 3);
+   SUMA_Read_file (argv[2], NodeList, N_Node *3);
    
    /* make the edge list */
-   SEL = SUMA_Make_Edge_List (FL, N_FL);
+   SEL = SUMA_Make_Edge_List (FL, N_FL, N_Node, NodeList);
    if (SEL == NULL) {
       fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List.\n", FuncName);
       return (NOPE);
@@ -4767,3 +5166,179 @@ int SUMA_ReadNumStdin (float *fv, int nv)
    SUMA_RETURN(nvr);
 }
             
+/***
+ 
+File : SUMA_Find_inIntVect.c
+Author : Ziad Saad
+Date : Thu Nov 12 21:57:12 CST 1998
+ 
+Purpose : 
+ 
+ 
+ 
+Input paramters : 
+   x      int *      :   vector containing integer values
+   xsz   int      :   number of elements in x
+   val   int      :   value to look for
+   nValLocation   int *      :   integer containing the number of points in the SUMA_RETURNed vector
+ 
+ 
+Usage : 
+   ValLocation   = SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation)
+ 
+ 
+Returns : 
+   ValLocation   int * :
+   
+   a pointer to a vector of integers that contains the indices into x where val was found
+   the vector contains *nValLocation elements
+   
+ 
+ 
+Support : 
+ 
+ 
+ 
+Side effects : 
+   The function does not use any fast searching mechanisms, might want to make it faster in 
+   the future (use binary searches and such)
+ 
+ 
+***/
+int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation)
+{/*SUMA_Find_inIntVect*/
+   int k, *tmp, *ValLocation;
+   static char FuncName[]={"SUMA_Find_inIntVect"};
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* allocate the maximum  space for ValLocation */
+   tmp = (int *) SUMA_calloc(xsz,sizeof(int));
+
+   *nValLocation = 0;
+   for (k = 0 ; k < xsz ; ++k)
+   {
+      if (x[k] == val)
+         {
+            tmp[*nValLocation] = k;
+            ++*nValLocation;
+         }
+
+   }
+
+   if (!*nValLocation)
+      {
+         SUMA_free (tmp);
+         SUMA_RETURN (NULL);
+      }
+
+   /* Now, allocate just enough space for the SUMA_RETURNing vector */
+      ValLocation = (int *) SUMA_calloc(*nValLocation,sizeof(int));
+   /*copy the data into ValLocation*/
+      SUMA_SCALE_VEC(tmp,ValLocation,1,*nValLocation,int,int);
+   /* get rid of big array */
+      SUMA_free(tmp);
+
+   SUMA_RETURN (ValLocation);
+
+}/*SUMA_Find_inIntVect*/
+
+/***
+ 
+File : SUMA_UniqueInt.c
+Author : Ziad Saad
+Date : Fri Nov 13 16:07:23 CST 1998
+ 
+Purpose : 
+ 
+ 
+ 
+Input paramters : 
+   x      int *      : a pointer to a vector of integers
+   xsz   int       : a scalar indicating the number of elements in x
+   kunq  int *      : a pointer to an integer that will tell you the number 
+                  of unique elements in x (length of kunq)
+   Sorted   int   : a falg indicating whether x is sorted or not
+                     if x is sorted, use 1 otherwise use 0
+                    
+ 
+ 
+Usage : 
+      xunq = SUMA_UniqueInt (int *x, int xsz, int *kunq, int Sorted );
+ 
+ 
+Returns : 
+   xunq   int *   : a pointer to the vector containing the unique values of x
+ 
+ 
+Support : 
+ 
+ 
+ 
+Side effects : 
+ 
+ 
+ 
+***/
+int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted )
+{/*SUMA_UniqueInt*/
+   int *xtmp, *xunq, k ,*x;
+   SUMA_Boolean LocalHead = YUP;
+   static char FuncName[]={"SUMA_UniqueInt"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   *kunq = 0;
+
+   if (!xsz)
+    {
+      SUMA_RETURN(NULL);
+   }
+   if (!Sorted)
+    {/* must sort y , put in a new location so that y is not disturbed*/
+      x = (int *)SUMA_calloc(xsz, sizeof(int));
+      if (!x)
+         {
+            fprintf (SUMA_STDERR,"Error %s: Failed to allocate for x.", FuncName);
+            SUMA_RETURN (NULL);
+         }
+      for (k=0; k < xsz; ++k)
+         x[k] = y[k];
+      qsort(x,xsz,sizeof(int), (int(*) (const void *, const void *)) SUMA_compare_int);
+   }
+   else
+      x = y;
+
+   if (!xsz)   /* Nothing sent ! */
+    SUMA_RETURN (NULL);
+
+   xtmp = (int *) SUMA_calloc(xsz,sizeof(int));
+   if (xtmp == NULL)
+    {
+      fprintf (SUMA_STDERR,"Error %s: Could not allocate memory", FuncName);
+      SUMA_RETURN (NULL);
+   }
+
+   *kunq = 0;
+   xtmp[0] = x[0];
+   for (k=1;k<xsz;++k)
+    {
+      if ((x[k] != x[k - 1]))
+         {
+            ++*kunq;
+            xtmp[*kunq] = x[k];   
+         }
+   }
+   ++*kunq;
+   /* get rid of extra space allocated */
+   xunq = (int *) SUMA_calloc(*kunq,sizeof(int));
+   SUMA_COPY_VEC(xtmp,xunq,*kunq,int,int);
+
+   SUMA_free(xtmp); 
+
+   if (!Sorted)
+      SUMA_free (x);
+
+   SUMA_RETURN (xunq);
+}/*SUMA_UniqueInt*/
+

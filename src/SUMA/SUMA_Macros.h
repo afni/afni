@@ -1,6 +1,14 @@
 #ifndef SUMA_MACROSm_INCLUDED
 #define SUMA_MACROSm_INCLUDED
 
+#define IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
+
+#define IS_POS(a)   ( ((a) >= 0) ? 1 : 0 )
+
+#define IS_STRICT_NEG(a)   ( ((a) < 0) ? 1 : 0 )
+
+#define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
+
 #define SUMA_DBG_IN_NOTIFY(m_fname) { \
    int m_i;\
    ++SUMAg_CF->InOut_Level;   \
@@ -140,7 +148,7 @@ Bruce Kimball, Paul Embree and Bruce Kimble
    } \
 }
 
-/*! \def SUMA_MIN_LOC_VEC(a,nel)
+/*! \def SUMA_MIN_LOC_VEC(a,nel, amin, minloc)
 \brief SUMA_MIN_VEC macro for minimum identification and location
    a pointer to vector
    nel (int) number of elements in vector

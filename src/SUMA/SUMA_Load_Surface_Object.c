@@ -243,8 +243,9 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
    } /* SO_FileType*/
 
    /* Calculate Min, Max, Mean */
+   
    SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
-
+     
    SO->Center[0] /= SO->N_Node;
    SO->Center[1] /= SO->N_Node;
    SO->Center[2] /= SO->N_Node;
@@ -1468,7 +1469,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
       if (!SOinh) {
          /* create the edge list, it's nice and dandy */
          fprintf(SUMA_STDOUT, "%s: Making Edge list ....\n", FuncName); 
-         SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, SO->N_Node);
+         SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList);
          if (SO->EL == NULL) {
             fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List. Neighbor list will not be created\n", FuncName);
             SO->EL_Inode = NULL;

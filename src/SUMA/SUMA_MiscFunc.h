@@ -25,12 +25,14 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
 int *SUMA_z_dqsort (int *x , int nx );
 int *SUMA_z_dqsort_nsc (int *x , int nx );
 int *SUMA_z_qsort (float *x , int nx );
+int SUMA_compare_int (int *a, int *b );
 void SUMA_disp_dmat (int **v,int nr, int nc , int SpcOpt);
 void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt);
 void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt);
 void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt);
 void SUMA_disp_dvect (int *v,int l);
 void SUMA_disp_vect (float *v,int l);
+SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, float *vert1, float *vert2, float *iP, float *d, int *closest_vert);
 SUMA_MT_INTERSECT_TRIANGLE *SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet);
 SUMA_Boolean SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI);
 SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FILE *Out);
@@ -42,9 +44,10 @@ int SUMA_float_file_size (char *f_name);
 int SUMA_Read_2Dfile (char *f_name, float **x,  int n_rows, int n_cols);
 int SUMA_Read_2Ddfile (char *f_name, int **x, int n_rows, int n_cols);
 SUMA_Boolean SUMA_MakeConsistent (int *FaceSetList, int N_FaceSet, SUMA_EDGE_LIST *SEL);
-SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FaceSetList, int N_FaceSet, int N_Node);
+SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FaceSetList, int N_FaceSet, int N_Node, float *NodeList);
 void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL);
 int SUMA_isConsistent (int *T, int *t);
+int SUMA_isTriLinked (int*T, int *t, int *cn);
 SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_allocate_FaceSet_Edge_Neighb (int N_FaceSet);
 SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, int N_EL);
 float * SUMA_SmoothAttr_Neighb (float *attr,  int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn);
@@ -59,7 +62,13 @@ int SUMA_Read_file (float *x,char *f_name,int n_points);
 int SUMA_Read_dfile (int *x,char *f_name,int n_points);
 char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt);
 int SUMA_ReadNumStdin (float *fv, int nv);
-
+int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation);
+int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted );
+void SUMA_Show_Edge_List (SUMA_EDGE_LIST *SEL, FILE *Out);
+int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2);
+int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri); 
+int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3);
+SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident);
 
 
 #endif

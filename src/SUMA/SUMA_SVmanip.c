@@ -6,6 +6,37 @@ extern int SUMAg_N_DOv;
 extern SUMA_DO *SUMAg_DOv;
 
 /* This is used to hold the functions that manipulate SV, Surface Viewer Structures */
+/*! 
+\brief returns a string corresponding to the link type
+
+SUMA_Boolean SUMA_LockEnum_LockType (SUMA_LINK_TYPES i, char *Name);
+\param i (SUMA_LINK_TYPES) see enum type in SUMA_define.h
+\param Name (char *) a preallocated character string (no more than 50 chars)
+\return YUP/NOPE OK, error
+*/
+SUMA_Boolean SUMA_LockEnum_LockType (SUMA_LINK_TYPES i, char *Name)
+{
+   static char FuncName[]={"SUMA_LockEnum_LockType"};
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);   
+   
+   switch (i) {
+      case SUMA_No_Lock:
+         sprintf (Name, "No Lock");
+         break;
+      case SUMA_I_Lock:
+         sprintf (Name, "Index Lock");
+         break;
+      case SUMA_XYZ_Lock:
+         sprintf (Name, "XYZ Lock");
+         break;
+      default:
+         sprintf (Name, "?");
+         SUMA_RETURN (NOPE);
+         
+   }
+   
+   SUMA_RETURN (YUP);
+}
 /*!
 Create a SurfaceViewer data structure
 */
@@ -1068,6 +1099,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    for (i=0; i<SUMA_MAX_SURF_VIEWERS; ++i) {
       cf->Locked[i] = SUMA_I_Lock;
    }
+   
+   cf->SwapButtons_1_3 = SUMA_SWAP_BUTTONS_1_3;
    
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    return (cf);

@@ -68,34 +68,62 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             /* calculate the transform required to bring the new look at location to the current one */
             {
                float ulook_old[3], ulook_new[3];
+               int Step = 10, iStep;
+               float fracUp, fracDown;
+              
                ulook_old[0] = sv->GVS[sv->StdView].ViewFrom[0] - sv->GVS[sv->StdView].ViewCenter[0];
                ulook_old[1] = sv->GVS[sv->StdView].ViewFrom[1] - sv->GVS[sv->StdView].ViewCenter[1];
                ulook_old[2] = sv->GVS[sv->StdView].ViewFrom[2] - sv->GVS[sv->StdView].ViewCenter[2];
-               ulook_new[0] = EngineData->fv3[0]- sv->GVS[sv->StdView].ViewCenter[0];
-               ulook_new[1] = EngineData->fv3[1]- sv->GVS[sv->StdView].ViewCenter[1];
-               ulook_new[2] = EngineData->fv3[2]- sv->GVS[sv->StdView].ViewCenter[2];
+               ulook_new[0] = ulook_new[1] = ulook_new[2] = 0.0;
                fm = (float **)SUMA_allocate2D(4,4,sizeof(float));
-               if (fm == NULL) {
-                  fprintf (SUMA_STDERR,"Error %s: Failed to allocate fm.\n",FuncName);
-                  break;
-               }
-               if (!SUMA_FromToRotation (ulook_new, ulook_old, fm)) {
-                  fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_FromToRotation.\n",FuncName);
-                  break;
-               }
-               /* Register m with EngineData and send it to SetRotMatrix */
-               sprintf(sfield,"fm");
-               sprintf(sdestination,"SetRotMatrix");
-               EngineData->N_cols = 4;
-               EngineData->N_rows = 4;
-               if (!SUMA_RegisterEngineData (EngineData, sfield, (void *)fm, sdestination, ssource, NOPE)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                  break;
+               
+               for (iStep = 1; iStep <= Step; ++iStep) {
+                  fprintf (SUMA_STDERR,"%d\n", iStep);
+                  fracUp = (float)(iStep)/(float)Step;
+                  fracDown = (float)(Step - iStep)/(float)Step;
+                  ulook_new[0] = (EngineData->fv3[0] * fracUp + sv->GVS[sv->StdView].ViewFrom[0] * fracDown) \
+                                 - sv->GVS[sv->StdView].ViewCenter[0];
+                  ulook_new[1] = (EngineData->fv3[1] * fracUp + sv->GVS[sv->StdView].ViewFrom[1] * fracDown) \
+                                 - sv->GVS[sv->StdView].ViewCenter[1];
+                  ulook_new[2] = (EngineData->fv3[2] * fracUp + sv->GVS[sv->StdView].ViewFrom[2] * fracDown) \
+                                 - sv->GVS[sv->StdView].ViewCenter[2];
+                  if (fm == NULL) {
+                     fprintf (SUMA_STDERR,"Error %s: Failed to allocate fm.\n",FuncName);
+                     break;
+                  }
+                  if (!SUMA_FromToRotation (ulook_new, ulook_old, fm)) {
+                     fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_FromToRotation.\n",FuncName);
+                     break;
+                  }
+                  /* Register m with EngineData and send it to SetRotMatrix */
+                  sprintf(sfield,"fm");
+                  sprintf(sdestination,"SetRotMatrix");
+                  EngineData->N_cols = 4;
+                  EngineData->N_rows = 4;
+                  if (!SUMA_RegisterEngineData (EngineData, sfield, (void *)fm, sdestination, ssource, NOPE)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                     break;
+                  }
+                  /* register a call to SetRotMatrix */
+                  #if 0
+                     /* you can simply add the command to the queue here, you must force SUMA to execute */
+                     sprintf(tmpcom,"Redisplay|SetRotMatrix");
+                     SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);
+                  #else
+                     /* you want to set the Rotation Matrix but not you redisplay call should be to ReidsplayNow
+                     If you use Redisplay instead, you will not see the motion because all the calls will be rendered
+                     once */
+                     sprintf(tmpcom,"RedisplayNow|SetRotMatrix~");
+                     if (!SUMA_Engine (tmpcom, EngineData, sv)) {
+                        fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+                     }  
+                     /* free fm for next call */         
+                     if (!SUMA_ReleaseEngineData (EngineData, sdestination)) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed to Release EngineData \n", FuncName);
+                     }
+                  #endif
                }
                SUMA_free2D((char **)fm, 4);
-               /* register a call to SetRotMatrix */
-               sprintf(tmpcom,"Redisplay|SetRotMatrix");
-               SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);
             }
             break;
          
@@ -556,6 +584,13 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             if (LocalHead) fprintf (SUMA_STDOUT," Done\n");
             break;
          
+         case SE_RedisplayNow:
+            /*call handle redisplay immediately to one specific viewer*/
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Redisplaying NOW ...", FuncName);
+            SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+            if (LocalHead) fprintf (SUMA_STDOUT," Done\n");
+            break;
+            
          case SE_ResetOpenGLState:
             /* reset OPEN GL's state variables */
             /* expects the surface viewer pointer in vp */

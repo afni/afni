@@ -230,6 +230,16 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
             fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, could not free surface\n");
          }
          break;
+      case ROIdO_type:
+         if (!SUMA_freeDrawnROI ((SUMA_DRAWN_ROI *)dov->OP)) {
+            fprintf(SUMA_STDERR,"Error SUMA_freeDrawnROI, could not free  ROI.\n");
+         }
+         break;
+      case ROIO_type:
+         if (!SUMA_freeROI ((SUMA_ROI *)dov->OP)) {
+            fprintf(SUMA_STDERR,"Error SUMA_freeROI, could not free  ROI.\n");
+         }
+         break;
       case AO_type:
          fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free AO objects\n");
          break;
@@ -660,5 +670,89 @@ SUMA_Boolean SUMA_isSO (SUMA_DO DO)
    if (DO.ObjectType == SO_type) {
       SUMA_RETURN (YUP);
    }
+   SUMA_RETURN (NOPE);
+}
+
+/*!
+\brief Returns an ROI that is related to SO and is in InCreation (being actively drawn) DrawStatus 
+ There should only be one ROI in creation at any one time for a group of related surfaces. 
+ 
+ ROI = SUMA_FetchROI_InCreation (SO,  dov,  N_dov);
+ 
+ \param SO (SUMA_SurfaceObject *) pointer to surface object
+ \param dov (SUMA_DO *) pointer to vector of DOs (typically SUMAg_DOv)
+ \param N_dov (int) number of elements in dov
+ \return ROI (SUMA_DRAWN_ROI *) pointer to ROI object, NULL if no such object is found.
+ 
+*/
+SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov, int N_dov) 
+{
+   int i;
+   SUMA_DRAWN_ROI *ROI = NULL;
+   static char FuncName[]={"SUMA_FetchROI_InCreation"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   for (i=0; i < N_dov; ++i) {
+      if (dov[i].ObjectType == ROIdO_type) {
+         ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+         if (ROI->DrawStatus == SUMA_ROI_InCreation) {
+            if (SUMA_isdROIrelated (ROI, SO)) {
+               /* found an ROI, should be the only one, return */
+               SUMA_RETURN (ROI);
+            }
+         }
+      }
+   }
+   SUMA_RETURN (NULL);
+}
+
+/*!
+\brief Returns YUP if dROI->Parent_idcode_str is the same as SO->idcode_str or SO->MapRef_idcode_str.
+NOPE otherwise
+
+ans = SUMA_isdROIrelated (dROI, SO);
+
+\param ROI (SUMA_DRAWN_ROI *) pointer to drawn ROI
+\param SO (SUMA_SurfaceObject *) pointer to surface object
+\return ans (SUMA_Boolean) YUP/NOPE
+
+*/
+SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_isdROIrelated"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (  (strcmp (SO->MapRef_idcode_str, ROI->Parent_idcode_str) == 0) \
+      || (strcmp (SO->idcode_str, ROI->Parent_idcode_str) == 0)) {
+      SUMA_RETURN (YUP);
+   }
+
+   SUMA_RETURN (NOPE);
+}
+
+/*!
+\brief Returns YUP if ROI->Parent_idcode_str is the same as SO->idcode_str or SO->MapRef_idcode_str.
+NOPE otherwise
+
+ans = SUMA_isROIrelated (ROI, SO);
+
+\param ROI (SUMA_ROI *) pointer to ROI
+\param SO (SUMA_SurfaceObject *) pointer to surface object
+\return ans (SUMA_Boolean) YUP/NOPE
+
+*/
+SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_isROIrelated"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (  (strcmp (SO->MapRef_idcode_str, ROI->Parent_idcode_str) == 0) \
+      || (strcmp (SO->idcode_str, ROI->Parent_idcode_str) == 0)) {
+      SUMA_RETURN (YUP);
+   }
+
    SUMA_RETURN (NOPE);
 }
