@@ -3360,6 +3360,8 @@ STATUS("no args: using ./") ;
          }
       }
 
+      if( dlist->num < 1 ) ADDTO_SARR(dlist,"./") ;  /* just in case */
+
       /** 09 Sep 1998: eliminate duplicates from the directory list **/
 
       { THD_string_array * qlist ;
@@ -3496,8 +3498,8 @@ if(PRINT_TRACING)
          new_ss->type   = SESSION_TYPE ;
          new_ss->parent = NULL ;
          BLANK_SESSION(new_ss) ;
-         strcpy( new_ss->sessname , snam ) ; /* pretend the dummy session */
-         strcpy( new_ss->lastname , snam ) ; /* is the first argv directory */
+         MCW_strncpy( new_ss->sessname , snam , THD_MAX_NAME ) ; /* pretend dummy session */
+         MCW_strncpy( new_ss->lastname , snam , THD_MAX_NAME ) ; /* is first argv directory */
          GLOBAL_library.sslist->num_sess   = 1 ;
          GLOBAL_library.sslist->ssar[0]    = new_ss ;
          GLOBAL_library.have_dummy_dataset = 1 ;
@@ -3701,20 +3703,21 @@ STATUS("reading timeseries files") ;
          then, make any datasets that don't exist but logically
          descend from the warp and anatomy parents just assigned */
 
-STATUS("checking idcodes for duplicates") ;
+      if( !GLOBAL_library.have_dummy_dataset ){
 
-      THD_check_idcodes( GLOBAL_library.sslist ) ;     /* 08 Jun 1999 */
+        STATUS("checking idcodes for duplicates") ;
+        THD_check_idcodes( GLOBAL_library.sslist ) ;     /* 08 Jun 1999 */
 
-STATUS("reconciling parent pointers") ;
+        STATUS("reconciling parent pointers") ;
+        THD_reconcile_parents( GLOBAL_library.sslist ) ;
 
-      THD_reconcile_parents( GLOBAL_library.sslist ) ; /* parents from .HEAD files */
+        STATUS("forcible adoption of unparented datasets") ;
+        for( id=0 ; id < GLOBAL_library.sslist->num_sess ; id++ ){ /* functions w/o parents, */
+          new_ss = GLOBAL_library.sslist->ssar[id] ;               /* forcibly get one */
+          AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
+       }
 
-STATUS("forcible adoption of unparented datasets") ;
-
-      for( id=0 ; id < GLOBAL_library.sslist->num_sess ; id++ ){  /* functions w/o parents, */
-         new_ss = GLOBAL_library.sslist->ssar[id] ;               /* forcibly get one */
-         AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
-      }
+      } /* end of if don't have dummy dataset */
 
       if( GLOBAL_library.session != NULL )
          AFNI_force_adoption( GLOBAL_library.session , GLOBAL_argopt.warp_4D ) ;
