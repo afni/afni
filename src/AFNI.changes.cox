@@ -3589,3 +3589,7 @@
      are busy.  This is to prevent an endless series of error messages
      when 2 AFNIs are running at once.
  * Modified afni.c to add option "-noniml".
+
+18 Mar 2002
+ * Modified afni.c to make it necessary to use -niml or AFNI_NIML_START to
+     have NIML listening activated from the beginning.

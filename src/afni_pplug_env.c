@@ -282,6 +282,12 @@ PLUGIN_interface * ENV_init(void)
                    "Keep 'pan' turned on in image viewers?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
+   /* 18 Mar 2002 */
+
+   ENV_add_string( "AFNI_VALUE_LABEL" ,
+                   "Turn on the Define Function dataset value label?" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
