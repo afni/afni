@@ -4044,21 +4044,20 @@ void attach_sub_brick
 {
   const float EPSILON = 1.0e-10;
   float factor;             /* factor is new scale factor for sub-brick #ib */
+  short *sbr ;
 
 
   /*----- allocate memory for output sub-brick -----*/
-  bar[ibrick]  = (short *) malloc (sizeof(short) * nxyz);
-  MTEST (bar[ibrick]);
-  factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-				      MRI_short, bar[ibrick]);
+  sbr = (short *) malloc (sizeof(short) * nxyz);
+  MTEST (sbr);
+  factor = EDIT_coerce_autoscale_new(nxyz, MRI_float,volume, MRI_short,sbr);
 
   if (factor < EPSILON)  factor = 0.0;
-  else factor = 1.0 / factor;
-
+  else                   factor = 1.0 / factor;
 
   /*----- edit the sub-brick -----*/
   EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
-  EDIT_BRICK_FACTOR (new_dset, ibrick, factor);
+  EDIT_BRICK_FACTOR(new_dset, ibrick, factor);
 
   if (brick_type == FUNC_TT_TYPE)
     EDIT_BRICK_TO_FITT (new_dset, ibrick, dof);
@@ -4066,9 +4065,9 @@ void attach_sub_brick
     EDIT_BRICK_TO_FIFT (new_dset, ibrick, ndof, ddof);
 
 
-  /*----- attach bar[ib] to be sub-brick #ibrick -----*/
-  EDIT_substitute_brick (new_dset, ibrick, MRI_short, bar[ibrick]);
-
+  /*----- attach sbr to be sub-brick #ibrick -----*/
+  EDIT_substitute_brick (new_dset, ibrick, MRI_short, sbr);
+  if( bar != NULL ) bar[ibrick] = sbr ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4310,7 +4309,7 @@ void write_bucket_data
               if( coef_dset != NULL ){
                 cbuck++ ;
                 attach_sub_brick( coef_dset , cbuck , volume , nxyz ,
-				  brick_type, brick_label, 0, 0, 0, bar);
+				  brick_type, brick_label, 0, 0, 0, NULL);
               }
 	
 	      /*----- Baseline t-stat -----*/
@@ -4362,7 +4361,7 @@ void write_bucket_data
                   if( coef_dset != NULL ){
                     cbuck++ ;
                     attach_sub_brick( coef_dset , cbuck , volume , nxyz ,
-				      brick_type, brick_label, 0, 0, 0, bar);
+				      brick_type, brick_label, 0, 0, 0, NULL);
                   }
 	
 		  /*----- Stimulus t-stat -----*/
@@ -4696,7 +4695,7 @@ void output_results
 
 
 /*---------------------------------------------------------------------------*/
-
+#if 0
 void terminate_program
 (
   DC_options ** option_data,         /* deconvolution algorithm options */
@@ -4878,6 +4877,7 @@ void terminate_program
     }
 
 }
+#endif
 
 
 /*---------------------------------------------------------------------------*/
@@ -4982,11 +4982,13 @@ int main
 		    fitts_vol, errts_vol);
 
 
+#if 0
   /*----- Terminate program -----*/
   terminate_program (&option_data, &stimulus, &glt_cmat, &coef_vol, &scoef_vol,
  		     &tcoef_vol, &fpart_vol, &rpart_vol, & mse_vol, &ffull_vol,
 		     &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
  		     &glt_rstat_vol, &fitts_vol, &errts_vol);
+#endif
 
   if( proc_use_jobs == 1 && verb ){ /* output requested - 2003.08.15 [rickr] */
     fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time());
@@ -5701,7 +5703,6 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
    THD_3dim_dataset *dset_time , *dset_coef, *dset_buck ;
    int nt , np , ii, nxyz, tout,rout,fout, ixyz,novar,view ;
    char *buck_prefix , *buck_name ;
-   short **bar ;
    char brick_label[THD_MAX_NAME] ;
 
    float *ts_array = NULL; /* array of measured data for one voxel */
@@ -6079,7 +6080,6 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
    tross_Make_History( PROGRAM_NAME , argc , argv , dset_buck ) ;
 
    nbuck = DSET_NVALS(dset_buck) ;
-   bar   = (short **)calloc( sizeof(short *) , nbuck ) ;
 
    /*** attach sub-bricks to output ***/
 
@@ -6089,14 +6089,14 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
        sprintf( brick_label , "%s LC[%d] coef" , glt_label[iglt], ilc ) ;
        volume = glt_coef_vol[iglt][ilc];
        attach_sub_brick( dset_buck, ivol, volume, nxyz,
-                         FUNC_FIM_TYPE, brick_label, 0, 0, 0, bar);
+                         FUNC_FIM_TYPE, brick_label, 0, 0, 0, NULL);
        free((void *)volume) ; ivol++ ;
 
        if( tout ){
          sprintf( brick_label , "%s LC[%d] t-st" , glt_label[iglt], ilc ) ;
          volume = glt_tcoef_vol[iglt][ilc];
          attach_sub_brick( dset_buck, ivol, volume, nxyz,
-                           FUNC_TT_TYPE, brick_label, nt-np, 0, 0, bar);
+                           FUNC_TT_TYPE, brick_label, nt-np, 0, 0, NULL);
          free((void *)volume) ; ivol++ ;
        }
      }
@@ -6105,7 +6105,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
        sprintf( brick_label , "%s R^2" , glt_label[iglt] ) ;
        volume = glt_rstat_vol[iglt];
        attach_sub_brick( dset_buck, ivol, volume, nxyz,
-                         FUNC_THR_TYPE, brick_label, 0, 0, 0, bar);
+                         FUNC_THR_TYPE, brick_label, 0, 0, 0, NULL);
        free((void *)volume) ; ivol++ ;
      }
 
@@ -6113,7 +6113,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
        sprintf( brick_label , "%s F-stat" , glt_label[iglt] ) ;
        volume = glt_fstat_vol[iglt];
        attach_sub_brick( dset_buck, ivol, volume, nxyz,
-                         FUNC_FT_TYPE, brick_label, 0, glt_rows[iglt], nt-np, bar);
+                         FUNC_FT_TYPE, brick_label, 0, glt_rows[iglt], nt-np, NULL);
        free((void *)volume) ; ivol++ ;
      }
    }  /** End loop over general linear tests **/
