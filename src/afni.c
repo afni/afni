@@ -1609,6 +1609,21 @@ ENTRY("AFNI_startup_timeout_CB") ;
      fprintf(stderr,"*** WARNING: -np was given, but NIML is turned off.\n") ;
    }
 
+   /* 13 Jan 2002: Check if LessTif was used for this AFNI */
+
+#ifdef LESSTIF_VERSION
+    (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
+                                 " \n"
+                                 "*** WARNING:                ***\n"
+                                 "*** This  copy of AFNI  was ***\n"
+                                 "*** built using the LessTif ***\n"
+                                 "*** library.  You will find ***\n"
+                                 "*** problems;  AFNI is best ***\n"
+                                 "*** when built using  Motif ***\n"
+                                 "*** or OpenMotif!           ***\n" ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
+#endif
+
    /* 21 Nov 2002: check the AFNI version */
 
    AFNI_version_check() ; /* does nada if AFNI_start_version_check() not called */
