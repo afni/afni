@@ -511,7 +511,7 @@ void display_help_menu()
             "             J=1 is normal (single process) operation.\n"
             "             The maximum allowed value of J is %d.\n"
             "         * For more information on parallelizing, see\n"
-            "             http://afni.nimh.nih.gov/afni/parallize.html\n"
+            "             http://afni.nimh.nih.gov/afni/parallize.html \n"
             "         * Use -mask to get more speed; cf. 3dAutomask.\n"
           , PROC_MAX ) ;
 #endif
