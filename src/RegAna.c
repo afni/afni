@@ -514,30 +514,22 @@ void calc_tcoef
     {
       /*----- Calculate standard deviation for regression parameters -----*/
       var = mse * xtxinv.elts[i][i];
-      if (var <= 0.0)
-	stddev = 0.0;
-      else
-	stddev = sqrt (var);
+      if (var <= 0.0) stddev = 0.0;
+      else            stddev = sqrt (var);
       scoef->elts[i] = stddev;
 
 
       /*----- Calculate t-statistic for regression parameters -----*/
       num = coef.elts[i];
-      if (num > MAXT*stddev)
-	tstat = MAXT;
-      else
-	if (num < -MAXT*stddev)
-	  tstat = -MAXT;
-	else
-	  if (stddev < EPSILON)
-	    tstat = 0.0;
-	  else
-	    tstat = num / stddev;
+           if (num >  MAXT*stddev) tstat = MAXT;
+      else if (num < -MAXT*stddev) tstat = -MAXT;
+	   else if (stddev < EPSILON)   tstat = 0.0;
+	   else                         tstat = num / stddev;
 
 
       /*----- Limit range of values for t-statistic -----*/
       if (tstat < -MAXT)  tstat = -MAXT;
-      if (tstat > MAXT)   tstat = MAXT;
+      if (tstat >  MAXT)  tstat = MAXT;
       
       tcoef->elts[i] = tstat;
     }
