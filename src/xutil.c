@@ -336,11 +336,11 @@ Widget MCW_action_area( Widget parent, MCW_action_item * action, int num_act )
       message automatically killed after 30 seconds.
 --------------------------------------------------------------------*/
 
-Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
+Widget MCW_popup_message( Widget wparent , char *msg , int msg_type )
 {
    Widget wmsg , wlab ;
    int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr ;
-   Screen * scr ;
+   Screen *scr ;
    XEvent ev ;
 
 ENTRY("MCW_popup_message") ;
@@ -402,16 +402,29 @@ ENTRY("MCW_popup_message") ;
       break ;
 
       default:
-      case MCW_USER_KILL:
+      case MCW_USER_KILL:{
+         static int first=1 ; char *mmsg = msg ;     /* 'first' stuff  */
+         if( first ){                                /* on 06 Apr 2004 */
+           if( !AFNI_noenv("AFNI_CLICK_MESSAGE") ){
+             mmsg = (char *) malloc(strlen(msg)+99) ;
+             strcpy(mmsg,msg) ;
+             strcat(mmsg,"\n [---------------] "
+                         "\n [ Click in Text ] "
+                         "\n [ to Pop Down!! ]\n" ) ;
+           }
+         }
 
          wlab = XtVaCreateManagedWidget(
                   "help" , xmPushButtonWidgetClass , wmsg ,
-                     XtVaTypedArg,XmNlabelString,XmRString,msg,strlen(msg)+1,
+                     XtVaTypedArg,XmNlabelString,XmRString,mmsg,strlen(msg)+1,
                      XmNalignment , XmALIGNMENT_BEGINNING ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
 
+         if( mmsg != msg ){ free((void *)mmsg); first = 0; }
+
          XtAddCallback( wlab , XmNactivateCallback , MCW_message_CB , NULL ) ;
+      }
       break ;
    }
 

@@ -28,88 +28,6 @@ static int mask_count( int nvox , byte *mmm )
 #undef  DALL
 #define DALL 4096  /* Allocation size for cluster arrays */
 
-/*! Put (i,j) into the current cluster, if it is nonzero. */
-
-#undef  CPUT
-#define CPUT(i,j)                                                     \
-  do{ ijk = (i)+(j)*nx ;                                              \
-      if( mmm[ijk] ){                                                 \
-        if( nnow == nall ){ /* increase array lengths */              \
-          nall += DALL ;                                              \
-          inow = (short *) realloc((void *)inow,sizeof(short)*nall) ; \
-          jnow = (short *) realloc((void *)jnow,sizeof(short)*nall) ; \
-        }                                                             \
-        inow[nnow] = (i) ; jnow[nnow] = (j) ;                         \
-        nnow++ ; mmm[ijk] = 0 ;                                       \
-      } } while(0)
-
-/*------------------------------------------------------------------*/
-/*! Count the biggest cluster of nonzeros in the 2D array.
-    Array will be zeroed out in the process.
---------------------------------------------------------------------*/
-
-static int bigclustsize2D( int nx , int ny , byte *mmm )
-{
-   int ii,jj, icl ,  nxy , ijk , ijk_last ;
-   int ip,jp , im,jm ;
-   int nbest , nnow , nall ;
-   short *inow , *jnow  ;
-
-   if( nx < 2 || ny < 2 || mmm == NULL ) return 0 ;
-
-   nxy = nx*ny ;
-
-   nbest = 0 ;
-   nall  = 8 ;                                    /* # allocated pts */
-   inow  = (short *) malloc(sizeof(short)*nall) ; /* coords of pts */
-   jnow  = (short *) malloc(sizeof(short)*nall) ;
-
-   /*--- scan through array, find nonzero point, build a cluster, ... ---*/
-
-   ijk_last = 0 ;
-   while(1) {
-     /* find next nonzero point */
-
-     for( ijk=ijk_last ; ijk < nxy ; ijk++ ) if( mmm[ijk] ) break ;
-     if( ijk == nxy ) break ;  /* didn't find any! */
-
-     ijk_last = ijk+1 ;         /* start here next time */
-
-     /* init current cluster list with this point */
-
-     mmm[ijk] = 0 ;                                /* clear found point */
-     nnow     = 1 ;                                /* # pts in cluster */
-     inow[0]  = ijk % nx ;
-     jnow[0]  = ijk / nx ;
-
-     /*--
-        for each point in cluster:
-           check 4 neighboring points for nonzero entries in mmm
-           enter those into cluster (and clear them in mmm)
-           continue until end of cluster is reached
-           (note that cluster size nnow is expanding as we progress)
-     --*/
-
-     for( icl=0 ; icl < nnow ; icl++ ){
-       ii = inow[icl] ; jj = jnow[icl] ;
-       im = ii-1      ; jm = jj-1      ;
-       ip = ii+1      ; jp = jj+1      ;
-
-       if( im >= 0 ) CPUT(im,jj) ;
-       if( ip < nx ) CPUT(ip,jj) ;
-       if( jm >= 0 ) CPUT(ii,jm) ;
-       if( jp < ny ) CPUT(ii,jp) ;
-     }
-
-     /* see if now cluster is larger than best yet */
-
-     if( nnow > nbest ) nbest = nnow ;
-
-   } /* loop ends when all nonzero points are clustered */
-
-   free((void *)inow) ; free((void *)jnow) ; return nbest ;
-}
-
 /*--------------------------------------------------------------------------*/
 /*! Put (i,j,k) into the current cluster, if it is nonzero. */
 
@@ -442,7 +360,7 @@ ENTRY("mri_short2mask") ;
 
    nx = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
-   cvec = get_octant_clips( im , 0.45 ) ;
+   cvec = get_octant_clips( im , 0.40 ) ;
    if( cvec.clip_000 < 0.0 ) RETURN(NULL) ;
 
    /* create mask, clipping at a level that varies spatially */
@@ -468,6 +386,11 @@ ENTRY("mri_short2mask") ;
 
    if( verb ) fprintf(stderr,"++ mri_short2mask: filling in holes\n") ;
 
+#if 1
+   (void) THD_mask_fillin_once( nx,ny,nz , mask , 2 ) ;
+          THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
+          THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
+#else
    for( kk=1 ; kk < nz-1 ; kk++ ){
     for( jj=1 ; jj < ny-1 ; jj++ ){
      for( ii=1 ; ii < nx-1 ; ii++ ){
@@ -477,22 +400,30 @@ ENTRY("mri_short2mask") ;
             mask[IJK(ii,jj,kk+1)] &&  mask[IJK(ii,jj,kk-1)]   )
          mask[IJK(ii,jj,kk)] = 1 ;
    }}}
+#endif
 
    RETURN(mask) ;
 }
 
 /*======================================================================*/
 
+#define CMTOP
+
 #define XCM    0.0   /* center of mass of output dataset goes here */
 #define YCM   20.0
-#define ZCM    0.0
+
+#ifdef CMTOP
+# define ZCM  20.0
+#else
+# define ZCM   0.0
+#endif
 
 #define XORG -83.0   /* the box for the master dataset grid */
 #define YORG -89.0
 #define ZORG -82.0
 #define NX   167
 #define NY   212
-#define NZ   173
+#define NZ   175
 #define DXYZ   1.0
 
 /*----------------------------------------------------------------------*/
@@ -521,9 +452,9 @@ MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor )
 {
    MRI_IMAGE *sim , *tim ;
    short *sar , sval ;
-   int ii,jj,kk,ijk , nx,ny,nz,nxy,nxyz ;
+   int ii,jj,kk,ijk,ktop,kbot , nx,ny,nz,nxy,nxyz ;
    float val , icm,jcm,kcm,sum , dx,dy,dz ;
-   byte *mask , *mmm ;
+   byte *mask ;
    int *zcount , z1,z2,z3 ;
 
 ENTRY("mri_brainormalize") ;
@@ -610,13 +541,10 @@ ENTRY("mri_brainormalize") ;
           slices in a row with "a lot" of stuff
         zero out all stuff out above that slice */
 
-   mmm    = (byte *) malloc( sizeof(byte)*nxy ) ;  /* slice mask */
    zcount = (int *)  malloc( sizeof(int) *nz  ) ;  /* slice counts */
    for( kk=nz-1 ; kk >= 0 ; kk-- ){
-     memcpy( mmm , mask + kk*nxy , sizeof(byte)*nxy ) ;
-     zcount[kk] = bigclustsize2D(nx,ny,mmm) ;
+     zcount[kk] = mask_count( nxy , mask+kk*nxy ) ;
    }
-   free((void *)mmm) ;
 
    if( verb ){
      fprintf(stderr,"++mri_brainormalize: zcount from top slice #%d\n",nz-1) ;
@@ -629,9 +557,9 @@ ENTRY("mri_brainormalize") ;
 
    /* search down for topmost slice that meets the criterion */
 
-   z1 = (int)(0.01*nxy) ;
-   z2 = (int)(0.02*nxy) ;
-   z3 = (int)(0.03*nxy) ;
+   z1 = (int)(0.010*nxy) ;
+   z2 = (int)(0.015*nxy) ;
+   z3 = (int)(0.020*nxy) ;
    for( kk=nz-1 ; kk > 2 ; kk-- )
      if( zcount[kk] >= z1 && zcount[kk-1] >= z2 && zcount[kk-2] >= z3 ) break ;
 
@@ -640,15 +568,16 @@ ENTRY("mri_brainormalize") ;
 
    /* zero out all above the slice we just found */
 
-   if( kk < nz-1 ){
+   ktop = kk ;
+   if( ktop < nz-1 ){
      if( verb )
-       fprintf(stderr,"++mri_brainormalize: top clip above slice %d\n",kk) ;
-     memset( mask+(kk+1)*nxy , 0 , nxy*(nz-1-kk)*sizeof(byte) ) ;
+       fprintf(stderr,"++mri_brainormalize: top clip above slice %d\n",ktop) ;
+     memset( mask+(ktop+1)*nxy , 0 , nxy*(nz-1-ktop)*sizeof(byte) ) ;
    }
 
-   /* find slice index 161 mm below that slice */
+   /* find slice index 165 mm below that slice */
 
-   jj  = (int)rint( kk-161.0/dz ) ;
+   jj = (int)rint( ktop-165.0/dz ) ;
    if( jj >= 0 ){
      if( verb )
        fprintf(stderr,"++mri_brainormalize: bot clip below slice %d\n",jj) ;
@@ -661,14 +590,20 @@ ENTRY("mri_brainormalize") ;
    /* apply mask to image (will also remove any negative values) */
 
    if( verb )
-     fprintf(stderr,"++mri_brainormalize: applying mask to image; %d/%d\n",kk,nxyz) ;
+     fprintf(stderr,"++mri_brainormalize: applying mask to image; %d\n",kk) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
    free((void *)mask) ;
 
    /* compute CM of masked image (indexes, not mm) */
 
    icm = jcm = kcm = sum = 0.0 ;
-   for( ijk=kk=0 ; kk < nz ; kk++ ){
+#ifndef CMTOP
+   kbot = 0 ;
+   ktop = nz-1 ;
+#else
+   kbot = (int)rint( ktop-110.0/dz ); if( kbot < 0 ) kbot = 0;
+#endif
+   for( ijk=kbot*nxy,kk=kbot ; kk <= ktop ; kk++ ){
     for( jj=0 ; jj < ny ; jj++ ){
      for( ii=0 ; ii < nx ; ii++,ijk++ ){
        val = (float)sar[ijk] ;

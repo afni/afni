@@ -1973,9 +1973,21 @@ the time index will change both the underlay and overlay sub-bricks.  If
 you want the time index control to change ONLY the underlay sub-brick,
 then set this variable to NO.
 
------------------------------
+----------------------------
+Variable: AFNI_CLICK_MESSAGE
+----------------------------
+If this veriable is set to NO, then the string
+  [---------------]
+  [ Click in Text ]
+  [ to Pop Down!! ]
+will NOT be appended to the very first popup message window that AFNI
+creates.  This message was added because some people do not realize
+that the way to get rid of these popups (before they vanish on their
+own after 30 seconds) is to click in them.  You know who you are.
+
+------------------------------------
 Variable: AFNI_REALTIME_MP_HOST_PORT (editable)
------------------------------
+------------------------------------
 When this variable is set, the realtime plugin will attempt to open a tcp
 socket to the corresponding host and port, and will send the six registration
 correction parameters for each 3D volume received by the plugin.  This applies
