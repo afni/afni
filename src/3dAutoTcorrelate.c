@@ -50,9 +50,12 @@ int main( int argc , char *argv[] )
              " * The output dataset is anatomical bucket type of shorts.\n"
              " * The output file might be gigantic and you might run out\n"
              "    of memory running this program.  Use at your own risk!\n"
-             " * This is a quick hack for Peter Bandettini.  Now pay up.\n"
+             " * The program prints out an estimate of its memory usage\n"
+             "    when it starts.  It also prints out a progress 'meter'\n"
+             "    of 1 dot per 10 output sub-bricks.\n"
+             " * This is a quick hack for Peter Bandettini. Now pay up.\n"
              "\n"
-             "-- RWCox - Jan 2002\n"
+             "-- RWCox - Jan 31 2002\n"
             ) ;
       exit(0) ;
    }
@@ -132,10 +135,6 @@ int main( int argc , char *argv[] )
       nmask = nvox ;
    }
 
-   { float nb = 2.0e-6 * (float)(nmask) * DSET_NVOX(xset) ;
-     fprintf(stderr,"++ Memory/disk space to be used = %.1f Mbytes\n",nb) ;
-   }
-
    /*-- create output dataset --*/
 
    cset = EDIT_empty_copy( xset ) ;
@@ -153,6 +152,11 @@ int main( int argc , char *argv[] )
       exit(1) ;
    }
 
+   { float nb = (   cset->dblk->total_bytes
+                  + xset->dblk->total_bytes ) / (1024.0*1024.0) ;
+     fprintf(stderr,"++ Memory required = %.1f Mbytes\n",nb) ;
+   }
+
    tross_Make_History( "3dAutoTcorrelate" , argc,argv , cset ) ;
 
    /* loop over voxels, correlate */
@@ -162,7 +166,8 @@ int main( int argc , char *argv[] )
 
       if( mmm != NULL && mmm[ii] == 0 ) continue ; /* skip it */
 
-      fprintf(stderr,".") ;  /* progress meter */
+      if( kout > 0 && kout%10 == 0 )
+         fprintf(stderr,kout%100==0?":":".") ;           /* progress meter*/
 
       /* create and modify output brick */
 
