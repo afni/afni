@@ -1,6 +1,14 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 1.2  May 06, 2003  (will go to 2.0 after more changes are made)
+ *   - added interface for reading GEMS 4.x formatted image files
+ *   - added corresponding options -ge4_all, -ge4_image, -ge4_series
+ *   - added options to display raw numeric data:
+ *       disp_int2, disp_int4, disp_real4
+ *   - changed local version of l_THD_filesize to THD_filesize, as
+ *     the ge4_ functions may get that from mrilib.
+ *
  * 1.1  February 26, 2003
  *   - added -quiet option
  *   - use dynamic allocation for data to read
@@ -33,6 +41,12 @@
  *        -ge_uv17             diplay the value of the uv17 variable
  *        -ge_run              diplay the run number - same as uv17
  *
+ *     GEMS 4.x options
+ *
+ *        -ge4_all             display GEMS 4.x series and image headers
+ *        -ge4_series          display GEMS 4.x series header
+ *        -ge4_image           display GEMS 4.x image header
+ *
  *     raw ascii options:
  *
  *        -length   LENGTH     number of bytes to display/modify
@@ -40,7 +54,13 @@
  *        -mod_type TYPE       specify modification with a value or string
  *        -offset   OFFSET     display/modify from OFFSET bytes into files
  *        -quiet               do not display header info with output
- *        -swap_bytes          should we use byte swapping for numbers
+ *
+ *     numeric options:
+ *
+ *        -disp_int2           display data as 2-byte integers
+ *        -disp_int4           display data as 4-byte integers
+ *        -disp_real4          display data as 4-byte floats
+ *        -swap_bytes          use byte swapping for numbers
  *
  * examples:
  * 
@@ -50,10 +70,19 @@
  *    file_tool -ge_run -infiles I.?42
  *    file_tool -offset 100 -length 32 -infiles file1 file2
  *    file_tool -offset 100 -length 32 -quiet -infiles file1 file2
+ *    file_tool -disp_int2 -swap -offset 1024 -length 16 -infiles file3
  *    file_tool -mod_data "hi there" -offset 2515 -length 8 -infiles I.*
  *    file_tool -debug 1 -mod_data x -mod_type val -offset 2515 \
  *              -length 21 -infiles I.*
  *----------------------------------------------------------------------
+*/
+
+/* ----------------------------------------------------------------------
+ * todo:
+ *
+ * - add option '-help_ge4'
+ * - add more ge4 output, and only display one variable per output line
+ * ----------------------------------------------------------------------
 */
 
 #include <stdio.h>
@@ -65,6 +94,7 @@
 #include <unistd.h>
 
 #include "file_tool.h"
+#include "ge4_header.h"
 
 char g_rep_output_data[MAX_STR_LEN];	/* in case user doesn't pass it in */
 
@@ -99,37 +129,99 @@ int main ( int argc, char * argv[] )
 int
 attack_files( param_t * p )
 {
-    ge_header_info   H;
-    ge_extras        E;
-    char           * filename;
-    int              fc, rv;
+    int fc, rv;
 
     for ( fc = 0; fc < p->num_files; fc++ )
     {
-	filename = p->flist[fc];
-
 	if ( p->ge_disp )
 	{
-	    if ( (rv = read_ge_header( filename, &H, &E) ) != 0 )
-	    {
-		printf( "%s : GE header failure\n", filename );
-		continue;
-	    }
-
-	    if ( (p->debug > 1) || (p->ge_disp & GE_HEADER) )
-		r_idisp_ge_header_info( filename, &H );
-	    if ( (p->debug > 1) || (p->ge_disp & GE_EXTRAS ) )
-		r_idisp_ge_extras( filename, &E );
-
-	    if ( p->ge_disp & GE_UV17 )
-		printf( "%s : run # %d\n", filename, H.uv17 );
+	    if ( (rv = process_ge( p->flist[fc], p )) != 0 )
+		return rv;
 	}
-	else if ( ( rv = process_file( filename, p) ) != 0 )
+	else if ( p->ge4_disp )
+	{
+	    if ( (rv = process_ge4( p->flist[fc], p )) != 0 )
+		return rv;
+	}
+	else if ( ( rv = process_file( p->flist[fc], p) ) != 0 )
 	    return rv;
     }
 
     return 0;
 }
+
+
+/*------------------------------------------------------------
+ * Run the relevant GEMS 4.x processing functions.
+ *------------------------------------------------------------
+*/
+int
+process_ge4( char * filename, param_t * p )
+{
+    ge4_header H;
+    int        rv;
+
+    memset( &H, 0, sizeof(H) );
+
+    rv = read_ge4_header( filename, &H );
+
+    if ( rv != 0 )
+    {
+	if ( p->ge4_disp )	/* then display the bad result */
+	{
+	    printf( "%s : GEMS 4.x header failure : %d\n", filename, rv );
+	    return 0;
+	}
+	else			/* else just return it */
+	    return -1;
+    }
+
+    if ( (p->debug > 1) || (p->ge4_disp & GE4_DISP_SERIES) )
+	idisp_ge4_series_header( filename, &H.ser_h );
+
+    if ( (p->debug > 1) || (p->ge4_disp & GE4_DISP_IMAGE) )
+	idisp_ge4_image_header( filename, &H.im_h );
+
+    return 0;
+}
+
+
+/*------------------------------------------------------------
+ * Run the relevant GE processing functions.
+ *------------------------------------------------------------
+*/
+int
+process_ge( char * filename, param_t * p )
+{
+    ge_header_info H;
+    ge_extras      E;
+    int            rv;
+
+    rv = read_ge_header( filename, &H, &E );
+
+    if ( rv != 0 )
+    {
+	if ( p->ge_disp )  /* if we are here to display - state results */
+	{
+	    printf( "%s : GE header failure : %d\n", filename, rv );
+	    return 0;  /* don't fail out */
+	}
+	else
+	    return -1;     /* else, just return the results */
+    }
+
+    if ( (p->debug > 1) || (p->ge_disp & GE_HEADER) )
+	r_idisp_ge_header_info( filename, &H );
+
+    if ( (p->debug > 1) || (p->ge_disp & GE_EXTRAS ) )
+	r_idisp_ge_extras( filename, &E );
+
+    if ( p->ge_disp & GE_UV17 )
+	printf( "%s : run # %d\n", filename, H.uv17 );
+
+    return 0;
+}
+
 
 /*------------------------------------------------------------
  * Do the processing for the given file:
@@ -182,18 +274,29 @@ process_file( char * filename, param_t * p )
 	return -1;
     }
 
+    /* display file contents */
     if ( !p->modify || p->debug )
     {
-	if ( ! p->quiet )
+	if ( ! p->quiet && ! p->ndisp )
 	    printf( "<%s> : '", filename );
-	if ( (nbytes = fwrite( fdata, 1, p->length, stdout )) != p->length )
+
+	/* handle the numeric display */
+	if ( p->ndisp )
+	{
+	    if ( disp_numeric_data( fdata, p, stdout ) )
+	    {
+		fclose( fp );
+		return -1;
+	    }
+	}
+	else if ( (nbytes = fwrite(fdata, 1, p->length, stdout)) != p->length )
 	{
 	    fprintf( stderr, "\nfailure: wrote only %d of %d bytes to '%s'\n",
 		     nbytes, p->length, "stdout" );
 	    fclose( fp );
 	    return -1;
 	}
-	if ( ! p->quiet )
+	if ( ! p->quiet && ! p->ndisp )
 	    puts( "'" );	/* single quote plus newline */
     }
 
@@ -289,6 +392,18 @@ set_params( param_t * p, int argc, char * argv[] )
 	 	fprintf( stderr, "invalid debug level <%d>\n", p->debug );
 		return -1;
 	    }
+	}
+	else if ( ! strncmp(argv[ac], "-disp_int2", 10 ) )
+  	{
+	    p->ndisp |= NDISP_INT2;
+	}
+	else if ( ! strncmp(argv[ac], "-disp_int4", 10 ) )
+  	{
+	    p->ndisp |= NDISP_INT4;
+	}
+	else if ( ! strncmp(argv[ac], "-disp_real4", 11 ) )
+  	{
+	    p->ndisp |= NDISP_REAL4;
 	}
 	else if ( ! strncmp(argv[ac], "-mod_data", 6 ) )
   	{
@@ -410,6 +525,19 @@ set_params( param_t * p, int argc, char * argv[] )
   	{
 	    p->ge_disp |= GE_UV17;
 	}
+	/* continue with GEMS 4.x info displays */
+	else if ( ! strncmp(argv[ac], "-ge4_all", 7 ) )
+  	{
+	    p->ge4_disp |= GE4_DISP_ALL;
+	}
+	else if ( ! strncmp(argv[ac], "-ge4_image", 7 ) )
+  	{
+	    p->ge4_disp |= GE4_DISP_IMAGE;
+	}
+	else if ( ! strncmp(argv[ac], "-ge4_series", 7 ) )
+  	{
+	    p->ge4_disp |= GE4_DISP_SERIES;
+	}
 	/* finish with bad option */
 	else
 	{
@@ -427,7 +555,8 @@ set_params( param_t * p, int argc, char * argv[] )
 	return -1;
     }
 
-    if ( p->ge_disp )		/* if only displaying GE data, we're done */
+    /* if only displaying GE data, no further check are necessary */
+    if ( p->ge_disp || p->ge4_disp )
 	return 0;
 
     /* now do all other tests for displaying/modifying generic file data */
@@ -588,6 +717,10 @@ help_full( char * prog )
 	"\n"
 	"      %s -ge_all -infiles I.100\n"
 	"\n"
+	"    o display GEMS 4.x series and image headers for file I.100:\n"
+	"\n"
+	"      %s -ge4_all -infiles I.100\n"
+	"\n"
 	"    o display run numbers for every 100th I-file in this directory\n"
 	"\n"
 	"      %s -ge_uv17 -infiles I.?42\n"
@@ -596,6 +729,10 @@ help_full( char * prog )
 	"    o display the 32 characters located 100 bytes into each file:\n"
 	"\n"
 	"      %s -offset 100 -length 32 -infiles file1 file2\n"
+	"\n"
+	"    o display the 8 4-byte reals located 100 bytes into each file:\n"
+	"\n"
+	"      %s -disp_real4 -offset 100 -length 32 -infiles file1 file2\n"
 	"\n"
 	"    o in each file, change the 8 characters at 2515 to 'hi there':\n"
 	"\n"
@@ -643,6 +780,12 @@ help_full( char * prog )
 	"      -ge_uv17         : display the value of uv17 (the run #)\n"
 	"      -ge_run          : (same as -ge_uv17)\n"
 	"\n"
+	"  GEMS 4.x info options:\n"
+	"\n"
+	"      -ge4_all         : display GEMS 4.x series and image headers\n"
+	"      -ge4_image       : display GEMS 4.x image header\n"
+	"      -ge4_series      : display GEMS 4.x series header\n"
+	"\n"
 	"  raw ascii options:\n"
 	"\n"
 	"    -length LENGTH     : specify the number of bytes to print/modify\n"
@@ -677,7 +820,18 @@ help_full( char * prog )
 	"\n"
 	"    -quiet             : do not output header information\n"
 	"\n"
-	"    -swap_bytes        : should we use byte-swapping on numbers\n"
+	"  numeric options:\n"
+	"\n"
+	"    -disp_int2         : display 2-byte integers\n"
+	"                       : e.g. -disp_int2\n"
+	"\n"
+	"    -disp_int4         : display 4-byte integers\n"
+	"                       : e.g. -disp_int4\n"
+	"\n"
+	"    -disp_real4        : display 4-byte real numbers\n"
+	"                       : e.g. -disp_real4\n"
+	"\n"
+	"    -swap_bytes        : use byte-swapping on numbers\n"
 	"                       : e.g. -swap_bytes\n"
 	"\n"
 	"          If this option is used, then byte swapping is done on any\n"
@@ -685,6 +839,7 @@ help_full( char * prog )
 	"\n"
 	"  - R Reynolds, version: %s, compiled: %s\n"
 	"\n",
+	prog, prog,
 	prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
         VERSION, __DATE__
         );
@@ -707,9 +862,24 @@ swap_4( void * ptr )		/* destructive */
    return 0;
 }
 
-/* stolen from Ifile.c and modified ... */
+/*------------------------------------------------------------
+ * Reverse the order of the 2 bytes at this address.
+ *------------------------------------------------------------
+*/
+int
+swap_2( void * ptr )		/* destructive */
+{
+   unsigned char * addr = ptr;
+
+   addr[0] ^= addr[1]; addr[1] ^= addr[0]; addr[0] ^= addr[1];
+
+   return 0;
+}
+
 /******************************************************************/
 /*** Return info from a GEMS IMGF file into user-supplied struct **/
+
+/* stolen from Ifile.c and modified ... */
 
 int
 read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
@@ -725,7 +895,7 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
    if( pathname    == NULL ||
        pathname[0] == '\0'   ) return -1; /* bad */
 
-   length = l_THD_filesize( pathname ) ;
+   length = THD_filesize( pathname ) ;
    if( length < 1024 ) return -1;         /* bad */
 
    imfile = fopen( pathname , "r" ) ;
@@ -897,23 +1067,89 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
 
 /*------------------------------------------------------------
  *  Return the size of the file.
- *  The function name is intended to almost match that taken
- *  from the code in Ifile.c.
  *------------------------------------------------------------
 */
-long
-l_THD_filesize ( char * pathname )
+unsigned long
+THD_filesize ( char * pathname )
 {
     struct stat buf;
 
-    if ( pathname == NULL )
+    if ( pathname == NULL || *pathname == '\0' )
 	return -1;
 
     if ( stat( pathname, &buf ) != 0 )
 	return -1;
 
-    return (long)buf.st_size;
+    return (unsigned long)buf.st_size;
 }
+
+/*------------------------------------------------------------
+ *  Just output raw numbers from the starting location,
+ *  swapping bytes (if requested).
+ *------------------------------------------------------------
+*/
+int
+disp_numeric_data( char * data, param_t * p, FILE * fp )
+{
+    int c;
+
+    if ( data == NULL || fp == NULL )
+    {
+	fprintf( stderr, "** error: bad params to DND '%p,%p'\n", data, fp );
+	return -1;
+    }
+
+    if ( p->length <= 0 || p->ndisp == 0 )
+	return 0;
+
+    /* print out shorts */
+    if ( p->ndisp & NDISP_INT2 )
+    {
+	short * sp = (short *)data;
+
+	fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+	for ( c = 0; c < p->length/2; c++, sp++ )
+	{
+	    if ( p->swap )
+		swap_2( sp );
+	    fprintf( fp, "%d ", *sp );
+	}
+	fputc( '\n', fp );
+    }
+
+    /* print out ints */
+    if ( p->ndisp & NDISP_INT4 )
+    {
+	int * ip = (int *)data;
+
+	fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+	for ( c = 0; c < p->length/4; c++, ip++ )
+	{
+	    if ( p->swap )
+		swap_4( ip );
+	    fprintf( fp, "%d ", *ip );
+	}
+	fputc( '\n', fp );
+    }
+
+    /* print out floats */
+    if ( p->ndisp & NDISP_REAL4 )
+    {
+	float * rp = (float *)data;
+
+	fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+	for ( c = 0; c < p->length/4; c++, rp++ )
+	{
+	    if ( p->swap )
+		swap_4( rp );
+	    fprintf( fp, "%f ", *rp );
+	}
+	fputc( '\n', fp );
+    }
+
+    return 0;
+}
+
 
 /*------------------------------------------------------------
  *  Display the contents of the param_t struct.
@@ -925,23 +1161,17 @@ disp_param_data( param_t * p )
     if ( ! p )
 	return -1;
 
-    printf( "num_files    : %d\n"
-	    "flist        : %p\n"
-	    "debug        : %d\n"
-	    "data_len     : %d\n"
-	    "ge_disp      : %x\n"
+    printf( "num_files, flist         : %d, %p\n"
+	    "debug, data_len          : %d, %d\n"
+	    "ge_disp, ge4_disp, ndisp : 0x%x, 0x%x, 0x%x\n"
             "\n"
-	    "swap         : %d\n"
-	    "modify       : %d\n"
-	    "mod_type     : %d\n"
-	    "offset       : %ld\n"
-	    "length       : %d\n"
-	    "quiet        : %d\n"
-	    "mod_data     : %s\n"
+	    "swap, modify, mod_type   : %d, %d, %d\n"
+	    "offset, length, quiet    : %ld, %d, %d\n"
+	    "mod_data                 : %s\n"
 	    "\n",
-	    p->num_files, p->flist, p->debug, p->data_len, p->ge_disp,
-	    p->swap, p->modify, p->mod_type, p->offset, p->length, p->quiet,
-	    p->mod_data
+	    p->num_files, p->flist, p->debug, p->data_len,
+	    p->ge_disp, p->ge4_disp, p->ndisp, p->swap, p->modify,
+	    p->mod_type, p->offset, p->length, p->quiet, p->mod_data
 	  );
 
     if ( p->debug > 1 )
@@ -956,6 +1186,7 @@ disp_param_data( param_t * p )
 
     return 0;
 }
+
 
 /*------------------------------------------------------------
  *  Display the contents of the ge_extras struct.
@@ -973,7 +1204,7 @@ r_idisp_ge_extras( char * info, ge_extras * E )
         return -1;
     }
 
-    printf( "ge_extras at %p :\n"
+    printf( " ge_extras at %p :\n"
 	    "    bpp              = %d\n"
 	    "    cflag            = %d\n"
 	    "    hdroff           = %d\n"
@@ -1006,7 +1237,7 @@ r_idisp_ge_header_info( char * info, ge_header_info * I )
         return -1;
     }
 
-    printf( "ge_header_info at %p :\n"
+    printf( " ge_header_info at %p :\n"
 	    "    good        = %d\n"
 	    "    (nx,ny)     = (%d,%d)\n"
 	    "    uv17        = %d\n"

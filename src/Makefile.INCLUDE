@@ -1407,7 +1407,7 @@ librickr.a:
 	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
 	$(MV) 3dresample .. ; )
 
-file_tool:
+file_tool: ge4_header.o
 	( cd rickr ;                                                    \
 	make file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'         \
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
