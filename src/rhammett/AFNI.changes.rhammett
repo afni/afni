@@ -32,4 +32,17 @@ XX Dec 2003
    * modified 3dTstat.c to add option to calculate the Durbin-Watson
      statistic (which measures first-order autocorrelation of data
      in time).
-
+11 Mar 2004
+   * modified several files to allow proper reading and writing of
+     the SPM Analyze coordinate space origin field
+16 Jun 2004
+   * modified 3dTstat.c to allow a statistical method to return
+     multiple values (that is, multiple sub-BRIKS in the output
+     data set).
+   * modified 3dTstat.c to generate an arbitrary-length autocorrelation
+     vector
+   * modified 3dTstat.c to generate an arbitrary-order autoregression
+     coefficient vector
+10 Aug 2004
+   * modified mri_read.c to check input files for the dicom magic number
+     before processing based on file name.
