@@ -33,3 +33,7 @@
       r_new_resam_dset()
   * modified @SUMA_AlignToExperiment, removing '-zeropad' argument when
       running program 3dresample
+
+15 July 2002:
+  * added @SUMA_Make_Spec_SF and @make_stim_file to SCRIPTS in Makefile.INCLUDE
+
