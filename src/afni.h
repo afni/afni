@@ -1344,8 +1344,9 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define RECEIVE_TTATLAS_MASK     32   /* 12 Jul 2001 */
 #define RECEIVE_REDISPLAY_MASK   64   /* 04 Mar 2002 */
 #define RECEIVE_FUNCDISPLAY_MASK 128  /* 05 Mar 2002 */
+#define RECEIVE_TIMEINDEX_MASK   256  /* 29 Jan 2003 */
 
-#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 )
+#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 )
 
 /* codes for input to AFNI_receive_control */
 
@@ -1387,6 +1388,9 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define TTATLAS_STARTUP         68   /* 11 Jul 2001 */
 #define TTATLAS_SHUTDOWN        69
 
+#define TIMEINDEX_STARTUP       98   /* 29 Jan 2003 */
+#define TIMEINDEX_SHUTDOWN      99
+
 #define EVERYTHING_SHUTDOWN    666
 
 /* whys for input to the receiver routine */
@@ -1401,6 +1405,7 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define RECEIVE_TTATLAS        108  /* 12 Jul 2001 */
 #define RECEIVE_REDISPLAY      109  /* 04 Mar 2002 */
 #define RECEIVE_FUNCDISPLAY    110  /* 04 Mar 2002 */
+#define RECEIVE_TIMEINDEX      111  /* 29 Jan 2003 */
 
 /* modes for the process_drawing routine */
 
@@ -1422,6 +1427,7 @@ extern void AFNI_process_drawing    ( Three_D_View *, int,int, int *,int *,int *
 extern void AFNI_process_ttatlas    ( Three_D_View * ) ;
 extern void AFNI_process_redisplay  ( Three_D_View * ) ; /* 04 Mar 2002 */
 extern void AFNI_process_funcdisplay( Three_D_View * ) ; /* 05 Mar 2002 */
+extern void AFNI_process_timeindex  ( Three_D_View * ) ; /* 29 Jan 2003 */
 
 extern void AFNI_do_bkgd_lab( Three_D_View * ) ;         /* 08 Mar 2002 */
 

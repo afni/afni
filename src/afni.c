@@ -4540,6 +4540,8 @@ ENTRY("AFNI_time_index_CB") ;
      AFNI_process_funcdisplay( im3d ) ;       /* notify receivers */
 
    AFNI_time_lock_carryout( im3d ) ;  /* 03 Nov 1998 */
+   AFNI_process_timeindex ( im3d ) ;  /* 29 Jan 2003 */
+
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }
@@ -7122,6 +7124,7 @@ STATUS(" -- turning time index control on") ;
       if( im3d->vinfo->time_index > tav->imax ){
          im3d->vinfo->time_index = tav->imax ;
          AV_assign_ival( tav , tav->imax ) ;
+         AFNI_process_timeindex(im3d) ;       /* 29 Jan 2003 */
       }
    } else {
 STATUS(" -- turning time index control off") ;
