@@ -32,14 +32,14 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt \
-           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegana
+           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
                   p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
                   waver 3dnewid 3dcalc ccalc imcalc \
-                  3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegana
+                  3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna
 
 all:libmri.a programs
 
