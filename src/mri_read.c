@@ -570,46 +570,46 @@ ENTRY( "mri_read_ge4" );
 
     if ( filename == NULL )
     {
-	fprintf( stderr, "** mri_read_ge4 - missing filename\n" );
-	RETURN( NULL );
+        fprintf( stderr, "** mri_read_ge4 - missing filename\n" );
+        RETURN( NULL );
     }
 
     /* try to read image file - return with image */
     if ( ge4_read_header( &H, filename, True ) != 0 )
-	RETURN( NULL );
+        RETURN( NULL );
 
     /* these dimensions are fixed */
     if ( (im = mri_new(256, 256, MRI_short)) == NULL )
     {
-	free(H.image);
-	RETURN( NULL );
+        free(H.image);
+        RETURN( NULL );
     }
 
     /* fill im struct with data from H */
-    im->zo = H.im_h.im_loc;		     /* this may well be incorrect */
+    im->zo = H.im_h.im_loc;        /* this may well be incorrect */
     im->dt = H.im_h.tr;
     im->was_swapped = H.swap;
 
     if ( ( H.ser_h.fov >    1.0      ) &&
-	 ( H.ser_h.fov < 1000.0      ) &&
-	 ( H.ser_h.scan_mat_x >    0 ) &&
-	 ( H.ser_h.scan_mat_x < 1000 ) &&
-	 ( H.ser_h.scan_mat_y >    0 ) &&
-	 ( H.ser_h.scan_mat_y < 1000 ) )
+         ( H.ser_h.fov < 1000.0      ) &&
+         ( H.ser_h.scan_mat_x >    0 ) &&
+         ( H.ser_h.scan_mat_x < 1000 ) &&
+         ( H.ser_h.scan_mat_y >    0 ) &&
+         ( H.ser_h.scan_mat_y < 1000 ) )
     {
-	/* attempt to set dx, dy and dz from these */
+        /* attempt to set dx, dy and dz from these */
 
-	im->dx = 2 * H.ser_h.fov / H.ser_h.scan_mat_x;
-	im->dy = im->dx;
-	im->dz = 2 * H.ser_h.fov / H.ser_h.scan_mat_y;
-	im->dw = 1;
+        im->dx = 2 * H.ser_h.fov / H.ser_h.scan_mat_x;
+        im->dy = im->dx;
+        im->dz = 2 * H.ser_h.fov / H.ser_h.scan_mat_y;
+        im->dw = 1;
     }
 
     memcpy( mri_data_pointer(im), H.image, H.im_bytes );
 
     mri_add_name( filename, im );
 
-    free(H.image);	           /* your services are no longer required */
+    free(H.image);        /* your services are no longer required */
 
     RETURN( im );
 }
@@ -1029,7 +1029,7 @@ ENTRY("mri_read_file") ;
       newim = mri_read( new_fname ) ;      /* read from a 2D file with 1 slice */
 
       if ( newim == NULL )                 /* GEMS 4.x - 03 Jun 2003 [rickr] */
-	  newim = mri_read_ge4( new_fname ) ;
+         newim = mri_read_ge4( new_fname ) ;
 
       if( newim != NULL ){
         INIT_IMARR(newar) ;
@@ -1084,7 +1084,7 @@ ENTRY("mri_read_file") ;
 
       if ( !AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
         newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
-      }	
+      }
 
       /** if DICOM failed, try a 2D slice file, hope for the best **/
 
@@ -1094,10 +1094,10 @@ ENTRY("mri_read_file") ;
         INIT_IMARR(newar) ;
         ADDTO_IMARR(newar,newim) ;
       }
-      
+
       if ( (newar == NULL) && AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
         newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
-      }	
+      }
    }
 
    free(new_fname) ;  /* done with the mangled filename */
@@ -1741,6 +1741,8 @@ ENTRY("mri_read_ppm") ;
      - skips blank or comment lines
      - skips leading and trailing whitespace
      - catenates lines that end in '\' (replacing '\' with ' ')
+     - returns duplicate of last line if first 2
+        nonblank input characters are "" [20 Jul 2004]
 -----------------------------------------------------------------*/
 
 static char * my_fgets( char *buf , int size , FILE *fts )
@@ -1748,6 +1750,12 @@ static char * my_fgets( char *buf , int size , FILE *fts )
    char *ptr ;
    int nbuf , ll,ii , cflag ;
    char *qbuf ;
+   static char *lastbuf = NULL ;   /* 20 Jul 2004 */
+   static int  nlastbuf = 0 ;
+
+   if( buf == NULL && lastbuf != NULL ){    /* 20 Jul 2004 */
+     free((void *)lastbuf); lastbuf = NULL; nlastbuf = 0 ;
+   }
 
    if( buf == NULL || size < 1 || fts == NULL ) return NULL ;
 
@@ -1769,6 +1777,15 @@ static char * my_fgets( char *buf , int size , FILE *fts )
      /* skip entirely blank lines, unless we are catenating */
 
      if( *ptr == '\0' ){ if(cflag) break; else continue; }
+
+     /* if a duplicate is requested, return it now [20 Jul 2004] */
+
+     if( *ptr == '"' && *(ptr+1) == '"' && nlastbuf > 0 && nbuf == 0 ){
+       ll = strlen(lastbuf) ; if( ll >= size ) ll = size-1 ;
+       memcpy(buf,lastbuf,ll-1) ; buf[ll] = '\0' ;
+       free((void *)qbuf) ;
+       return buf ;
+     }
 
      /* skip comment lines (even if we are catenating) */
 
@@ -1800,10 +1817,77 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
    free((void *)qbuf) ;  /* 08 Jul 2004 */
 
+   /* make a copy of result in lastbuf [20 Jul 2004] */
+
+   ll = strlen(buf) ;
+   if( ll+1 > nlastbuf ){
+     nlastbuf = ll+2 ; lastbuf = (char *)realloc((void *)lastbuf,nlastbuf) ;
+   }
+   memcpy(lastbuf,buf,ll+1) ;
+
    /* and we is done */
 
    if( nbuf > 0 ) return buf ;      /* return what we read already */
    return NULL ;                    /* signal of failure get data  */
+}
+
+/*---------------------------------------------------------------*/
+typedef struct {
+  int   nar ;
+  float *ar ;
+} floatvec ;
+
+#define KILL_floatvec(fv)                      \
+  do{ if( (fv)->ar != NULL ) free((fv)->ar);   \
+      free(fv);                                \
+  } while(0)
+
+/*--------------------------------------------------------------*/
+/*! Decode a line buffer into an array of floats.               */
+
+floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
+{
+   floatvec *fv=NULL ;
+   int blen, bpos, ncol, ii, count ;
+   char sep, vbuf[64] ;
+   float val ;
+
+   if( buf == NULL || *buf == '\0' ) return fv ;
+
+   blen = strlen(buf) ;
+   ncol = 0 ;
+
+   /* convert commas to blanks */
+
+   for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' ) buf[ii] = ' ' ;
+
+   fv = (floatvec *)malloc(sizeof(floatvec)) ;
+   fv->nar = 0 ;
+   fv->ar  = (float *)NULL ;
+
+   for( bpos=0 ; bpos < blen ; ){
+     /* skip to next nonblank character */
+
+     for( ; bpos < blen && (isspace(buf[bpos])||buf[bpos]==',') ; bpos++ ) ; /* nada */
+     if( bpos == blen ) break ;    /* end of line */
+
+     sscanf( buf+bpos , "%63s" , vbuf ) ;
+
+     val = 0.0 ; count = 1 ;
+     if( strstr(vbuf,"@") != NULL || strstr(vbuf,"*") != NULL ){
+       sscanf( vbuf , "%d%c%f" , &count , &sep , &val ) ;
+       if( count < 1 ) count = 1 ;
+     } else {
+       sscanf( vbuf , "%f" , &val ) ;
+     }
+
+     fv->ar = (float *)realloc( (void *)fv->ar , sizeof(float)*(fv->nar+count) ) ;
+     for( ii=0 ; ii < count ; ii++ ) fv->ar[ii+fv->nar] = val ;
+     fv->nar += count ;
+     bpos += strlen(vbuf) ;
+   }
+
+   return fv ;
 }
 
 /*---------------------------------------------------------------*/
@@ -1843,6 +1927,9 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    int  ncol , bpos , blen , nrow ;
    static char *buf=NULL ;            /* 20 Jun 2002: make a ptr */
 
+   floatvec *fvec ;                   /* 20 Jul 2004 */
+   int incts ;
+
 ENTRY("mri_read_ascii") ;
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
@@ -1861,9 +1948,18 @@ ENTRY("mri_read_ascii") ;
    /** step 1: read in the first line and see how many numbers are in it
                (skipping lines that are comments or entirely blank)     */
 
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset lastbuf [20 Jul 2004] */
    ptr = my_fgets( buf , LBUF , fts ) ;
    if( ptr==NULL || *ptr=='\0' ){ fclose(fts); RETURN(NULL); }  /* bad read? */
 
+#if 1
+   fvec = decode_linebuf( buf ) ;           /* 20 Jul 2004 */
+   if( fvec == NULL || fvec->nar == 0 ){
+     if( fvec != NULL ) KILL_floatvec(fvec) ;
+     fclose(fts) ; RETURN(NULL) ;
+   }
+   ncol = fvec->nar ; KILL_floatvec(fvec) ;
+#else
    blen = strlen(buf) ;
    bpos = 0 ;
    ncol = 0 ;
@@ -1875,13 +1971,15 @@ ENTRY("mri_read_ascii") ;
      ncol++; bpos += jj;
    } while( bpos < blen ) ;
    if( ncol == 0 ){ fclose(fts); RETURN(NULL); } /* couldn't read? */
+#endif
 
    /** At this point, ncol is the number of floats to be read from each line **/
 
    rewind( fts ) ;  /* will start over */
 
+   incts      = MAX(INC_TSARSIZE,ncol) ;
    used_tsar  = 0 ;
-   alloc_tsar = INC_TSARSIZE ;
+   alloc_tsar = incts ;
    tsar       = (float *) malloc( sizeof(float) * alloc_tsar ) ;
    if( tsar == NULL ){
       fprintf(stderr,"\n*** malloc error in mri_read_ascii ***\n"); EXIT(1);
@@ -1894,6 +1992,25 @@ ENTRY("mri_read_ascii") ;
      ptr = my_fgets( buf , LBUF , fts ) ;  /* read */
      if( ptr==NULL || *ptr=='\0' ) break ; /* failure --> end of data */
 
+#if 1
+     fvec = decode_linebuf( buf ) ;
+     if( fvec == NULL ) break ;
+     if( fvec->nar == 0 ){ KILL_floatvec(fvec); break; }
+
+     if( used_tsar + ncol >= alloc_tsar ){
+        alloc_tsar += incts ;
+        tsar        = (float *)realloc( (void *)tsar,sizeof(float)*alloc_tsar );
+        if( tsar == NULL ){
+          fprintf(stderr,"\n*** realloc error in mri_read_ascii ***\n"); EXIT(1);
+        }
+     }
+     for( ii=0 ; ii < fvec->nar && ii < ncol ; ii++ )
+       tsar[used_tsar+ii] = fvec->ar[ii] ;
+     for( ; ii < ncol ; ii++ )
+       tsar[used_tsar+ii] = 0.0 ;
+     used_tsar += ncol ;
+     KILL_floatvec(fvec) ;
+#else
      blen = strlen(buf) ;
 
      /* convert commas to blanks */
@@ -1917,10 +2034,12 @@ ENTRY("mri_read_ascii") ;
      }
 
      if( ii != ncol ) break ;  /* didn't get all of them? */
+#endif
 
      nrow++ ;                  /* got one more complete row! */
    }
    fclose( fts ) ; /* finished with this file! */
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset lastbuf [20 Jul 2004] */
 
    if( used_tsar <= 1 ){ free(tsar); RETURN(NULL); }
 
@@ -3046,10 +3165,9 @@ MRI_IMARR * mri_read_file_delay( char * fname )
    /* failed thus far?  try DICOM, unless user has requested DICOM last */
    /* 05 May 2003 added option to try DICOM last         KRH          */
 
-      
    if ((newar == NULL) && !AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
      newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
-   }	
+   }
 
    /* failed again?  try mri_read() for 1 image */
 
@@ -3059,10 +3177,10 @@ MRI_IMARR * mri_read_file_delay( char * fname )
       INIT_IMARR(newar) ;
       ADDTO_IMARR(newar,newim) ;
    }
-   
+
    if ( (newar == NULL) && AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
      newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
-   }	
+   }
 
    free(new_fname) ;
    return newar ;
