@@ -978,8 +978,13 @@ void vector_multiply (matrix a, vector b, vector * c)
   register double *bb , *aa ;
   register double sum ;
 
-  if (a.cols != b.dim)
-    matrix_error ("Incompatible dimensions for vector multiplication");
+  if (a.cols != b.dim){
+    char str[444] ;
+    sprintf(str,
+            "Incompatible dimensions for vector multiplication: %dx%d X %d",
+            a.rows,a.cols,b.dim ) ;
+    matrix_error(str) ;
+  }
 
   rows = a.rows;
   cols = a.cols;
