@@ -2506,7 +2506,10 @@ static void DRAW_2D_expand( int np, int *xd, int *yd, int *zd, int plane ,
          ixn = ix+nn[kk][0] ; jyn = jy+nn[kk][1] ;              /* nbhd pt 2D index */
          if( ixn >= 0 && ixn < itop && jyn >= 0 && jyn < jtop ){
            mm = base + ixn*di + jyn*dj ;                        /* 3D index */
-           for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
+           if( ii > 0 )
+             for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;   /* nada */
+           else
+             qq = jj ;
            if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
          }
        }
@@ -2622,7 +2625,10 @@ static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
          ixn = ix+nn[kk][0] ; jyn = jy+nn[kk][1] ; kzn = kz+nn[kk][2] ;
          if( ixn >= 0 && ixn < nx && jyn >= 0 && jyn < ny && kzn >= 0 && kzn < nz ){
            mm = ixn + jyn*nx + kzn*nxy ;                        /* 3D index */
-           for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
+           if( ii > 0 )
+             for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;   /* nada */
+           else
+             qq = jj ;
            if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
          }
        }
