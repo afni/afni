@@ -401,7 +401,7 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_C
    float *refNodeList = NULL, sksearch = 15;
    float U[3], Un;
    int  nx, nxy, n_stp;
-   SUMA_Boolean DoDbg=NOPE;
+   SUMA_Boolean DoDbg=NOPE, Send_buf;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -412,8 +412,11 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_C
    nxy = nx * DSET_NY(Opt->in_vol);   
    
    kth_buf = cs->kth;
-      
-   
+   Send_buf = cs->Send;
+   if (!Opt->send_hull) {
+      cs->Send = NOPE;
+   }   
+
    NewCoord = (float *)SUMA_malloc(3*SO->N_Node*sizeof(float));
    if (!NewCoord) {
       SUMA_SL_Crit("Could not allocate for temp vector.");
@@ -460,11 +463,11 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_C
          SO->NodeList = NewCoord; 
          NewCoord = tmpptr;
          tmpptr = NULL;
-
+         
          cs->kth = 1;  /*make sure all gets sent at this stage */
          dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                     0.6307, -.6732, SO->NodeList,
-                                    8, 3, SUMA_ROW_MAJOR, dsmooth, cs);    
+                                    8, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL);    
          memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
          cs->kth = kth_buf; 
          
@@ -480,6 +483,7 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_C
       Done = 1;
    } while (!Done);         
    
+   cs->Send = Send_buf;
 
    if (undershish) SUMA_free(undershish); undershish = NULL;
    if (refNodeList) SUMA_free(refNodeList); refNodeList = NULL;
@@ -1115,12 +1119,14 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
 int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs) 
 {
    static char FuncName[]={"SUMA_Reposition_Touchup"};
+   byte *fmask=NULL;
    int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0;   
    float MinMax_over[2], MinMax[2], MinMax_dist[2], MinMax_over_dist[2], Means[3], tb; 
    float U[3], Un, *a, P2[2][3], *norm, shft, *b; 
    float *touchup=NULL, **wgt=NULL, *dsmooth=NULL; 
    int nstp, stillmoving, kth_buf;
    float stp, *csmooth=NULL, *shftvec=NULL, *targetloc=NULL;
+   SUMA_Boolean Send_buf;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1206,7 +1212,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
          dsmooth = touchup; touchup = NULL;  
       }  
       /* add the changes */   
-      #if 1 /* sudden jump, but that causes intersections */ 
+      #if 1 /* sudden jump, Fast and furious but that causes intersections */ 
       for (in=0; in<SO->N_Node; ++in) {   
          a = &(SO->NodeList[3*in]);   
          if (1 || !SUMA_IS_EYE_ZONE(a,SO->Center)) { 
@@ -1222,7 +1228,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
             }
          }
       }  
-      #else /* smooth operator */
+      #else /* smooth operator, slow as hell, does not reach far enough */
       /* first figure out where each node is to go: */
       shftvec = (float *)SUMA_calloc( SO->N_Node, sizeof(float));
       targetloc = (float *)SUMA_malloc(3 * SO->N_Node * sizeof(float));
@@ -1232,6 +1238,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
          if (1 || !SUMA_IS_EYE_ZONE(a,SO->Center)) { 
             if (a[2] - SO->Center[2] > 10 )  shft = touchup[in]; /* no smooth baby for top where bumpy sulci can occur */ 
             else shft = dsmooth[in];   
+            shft = SUMA_MIN_PAIR(shft, limtouch);
             if (shft) { 
                shftvec[in] = shft;
                norm = &(SO->NodeNormList[3*in]); 
@@ -1242,11 +1249,13 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
          }
       }
       /* now move slowly towards target, only move those nodes that are to be shifted */
+      fmask = (byte *)SUMA_calloc(SO->N_Node , sizeof(byte));
       stp = 1; /* incremental step in mm */
       nstp = 0;
       do {
          stillmoving = 0;
          for (in=0; in<SO->N_Node; ++in) {  
+            fmask[in] = 0;
             a = &(SO->NodeList[3*in]); 
             b = &(targetloc[3*in]);
             if (shftvec[in]) {
@@ -1258,18 +1267,26 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
                   shft = stp;
                   stillmoving = 1;
                }
-               SUMA_POINT_AT_DISTANCE(U, a, shft, P2);   
-               SO->NodeList[3*in] = P2[0][0]; SO->NodeList[3*in+1] = P2[0][1]; SO->NodeList[3*in+2] = P2[0][2];         
+               /* fprintf(SUMA_STDERR,"%s:\n node %d shft=%f\nU=[%f %f %f]\n", FuncName, in, shft, U[0], U[1], U[2]); */
+               if (shft) { 
+                  SUMA_POINT_AT_DISTANCE(U, a, shft, P2);   
+                  SO->NodeList[3*in] = P2[0][0]; SO->NodeList[3*in+1] = P2[0][1]; SO->NodeList[3*in+2] = P2[0][2];
+                  fmask[in] = 1; /* filter the one that moves */
+               }         
             }
          }
-         if (0) {/* filter the surface */
+            Send_buf = cs->Send;
+            cs->Send = NOPE;
             kth_buf = cs->kth;
             cs->kth = 1;  /*make sure all gets sent at this stage */
+         if (1) {/* filter the surface */
             fprintf (SUMA_STDERR,"%s: Touchup smoothing.\n", FuncName);
             csmooth = SUMA_Taubin_Smooth( SO, NULL,
                                           0.6307, -.6732, SO->NodeList,
-                                          10, 3, SUMA_ROW_MAJOR, csmooth, cs);    
+                                          20, 3, SUMA_ROW_MAJOR, csmooth, cs, fmask);    
             memcpy((void*)SO->NodeList, (void *)csmooth, SO->N_Node * 3 * sizeof(float));
+         }      
+            cs->Send = Send_buf;
             SUMA_RECOMPUTE_NORMALS(SO);
             if (cs->Send) {
                if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
@@ -1277,12 +1294,12 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
                }
             }
             cs->kth = kth_buf;
-         }      
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Touchup pass %d complete.\n", FuncName, nstp);    
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Touchup pass %d complete.\n", FuncName, nstp);  
          ++nstp;
       } while (stillmoving && nstp < 60);
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Stopped growth stillmoving = %d, nstp = %d\n", FuncName, stillmoving, nstp);
-      #endif  
+      #endif 
+      if (fmask) SUMA_free(fmask); fmask = NULL; 
       if (shftvec) SUMA_free(shftvec); shftvec = NULL;
       if (targetloc) SUMA_free(targetloc); targetloc = NULL;
       if (touchup) SUMA_free(touchup); touchup = NULL;   

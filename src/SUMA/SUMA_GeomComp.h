@@ -60,7 +60,8 @@ SUMA_Boolean SUMA_Taubin_Smooth_Coef (float k, float *l, float *m);
 float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
                             float lambda, float mu, float *fin, 
                             int N_iter, int vpn, SUMA_INDEXING_ORDER d_order,
-                            float *fout_user, SUMA_COMM_STRUCT *cs);
+                            float *fout_user, SUMA_COMM_STRUCT *cs,
+                            byte *nmask);
 NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup);
 NI_element * SUMA_Mesh_IJK2Mesh_IJK_nel (SUMA_SurfaceObject *SO, int *val, SUMA_Boolean cleanup, SUMA_DSET_TYPE dtype);
 SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void *data, SUMA_DSET_TYPE dtype, int action);
