@@ -34,6 +34,8 @@ extern void  qmedmad_float( int,float *,float *,float * ) ; /* 08 Mar 2001 */
 
 extern void symeig_double( int , double * , double * ) ;
 extern void symeigval_double( int , double * , double * ) ;
+extern void svd_double( int, int, double *, double *, double *, double * ) ;
+extern void svd_float ( int, int, float *, float *, float *, float * ) ;
 
 /***** Argument list mangling *****/
 

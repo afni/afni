@@ -9,9 +9,9 @@
 
 static doublereal c_b47 = 1.;
 
-/* Subroutine */ int svd_(integer *nm, integer *m, integer *n, doublereal *a, 
-	doublereal *w, logical *matu, doublereal *u, logical *matv, 
-	doublereal *v, integer *ierr, doublereal *rv1)
+/* Subroutine */ int svd_(integer *m, integer *n, integer *lda, doublereal *a,
+	 doublereal *w, logical *matu, integer *ldu, doublereal *u, logical *
+	matv, integer *ldv, doublereal *v, integer *ierr, doublereal *rv1)
 {
     /* System generated locals */
     integer a_dim1, a_offset, u_dim1, u_offset, v_dim1, v_offset, i__1, i__2, 
@@ -32,85 +32,89 @@ static doublereal c_b47 = 1.;
 
 
 
-/*     THIS SUBROUTINE IS A TRANSLATION OF THE ALGOL PROCEDURE SVD, */
-/*     NUM. MATH. 14, 403-420(1970) BY GOLUB AND REINSCH. */
-/*     HANDBOOK FOR AUTO. COMP., VOL II-LINEAR ALGEBRA, 134-151(1971). */
+/*     this subroutine is a translation of the algol procedure svd, */
+/*     num. math. 14, 403-420(1970) by golub and reinsch. */
+/*     handbook for auto. comp., vol ii-linear algebra, 134-151(1971). */
 
-/*     THIS SUBROUTINE DETERMINES THE SINGULAR VALUE DECOMPOSITION */
-/*          T */
-/*     A=USV  OF A REAL M BY N RECTANGULAR MATRIX.  HOUSEHOLDER */
-/*     BIDIAGONALIZATION AND A VARIANT OF THE QR ALGORITHM ARE USED. */
+/*     this subroutine determines the singular value decomposition */
+/*          t */
+/*     a=usv  of a real m by n rectangular matrix.  householder */
+/*     bidiagonalization and a variant of the qr algorithm are used. */
 
-/*     ON INPUT */
+/*     on input */
 
-/*        NM MUST BE SET TO THE ROW DIMENSION OF TWO-DIMENSIONAL */
-/*          ARRAY PARAMETERS AS DECLARED IN THE CALLING PROGRAM */
-/*          DIMENSION STATEMENT.  NOTE THAT NM MUST BE AT LEAST */
-/*          AS LARGE AS THE MAXIMUM OF M AND N. */
+/*        nm must be set to the row dimension of two-dimensional */
+/*          array parameters as declared in the calling program */
+/*          dimension statement.  note that nm must be at least */
+/*          as large as the maximum of m and n. */
 
-/*        M IS THE NUMBER OF ROWS OF A (AND U). */
+/*        m is the number of rows of a (and u). */
 
-/*        N IS THE NUMBER OF COLUMNS OF A (AND U) AND THE ORDER OF V. */
+/*        n is the number of columns of a, u, and v */
 
-/*        A CONTAINS THE RECTANGULAR INPUT MATRIX TO BE DECOMPOSED. */
+/*        a contains the rectangular input matrix to be decomposed. */
 
-/*        MATU SHOULD BE SET TO .TRUE. IF THE U MATRIX IN THE */
-/*          DECOMPOSITION IS DESIRED, AND TO .FALSE. OTHERWISE. */
+/*        matu should be set to .true. if the u matrix in the */
+/*          decomposition is desired, and to .false. otherwise. */
 
-/*        MATV SHOULD BE SET TO .TRUE. IF THE V MATRIX IN THE */
-/*          DECOMPOSITION IS DESIRED, AND TO .FALSE. OTHERWISE. */
+/*        matv should be set to .true. if the v matrix in the */
+/*          decomposition is desired, and to .false. otherwise. */
 
-/*     ON OUTPUT */
+/*        lda, ldu, ldv: are the leading dimensions of matrices */
+/*          a, u, and v (respectively);  must have */
+/*           lda >= m ; ldu >= m ; ldv >= n */
 
-/*        A IS UNALTERED (UNLESS OVERWRITTEN BY U OR V). */
+/*     on output */
 
-/*        W CONTAINS THE N (NON-NEGATIVE) SINGULAR VALUES OF A (THE */
-/*          DIAGONAL ELEMENTS OF S).  THEY ARE UNORDERED.  IF AN */
-/*          ERROR EXIT IS MADE, THE SINGULAR VALUES SHOULD BE CORRECT */
-/*          FOR INDICES IERR+1,IERR+2,...,N. */
+/*        a is unaltered (unless overwritten by u or v). */
 
-/*        U CONTAINS THE MATRIX U (ORTHOGONAL COLUMN VECTORS) OF THE */
-/*          DECOMPOSITION IF MATU HAS BEEN SET TO .TRUE.  OTHERWISE */
-/*          U IS USED AS A TEMPORARY ARRAY.  U MAY COINCIDE WITH A. */
-/*          IF AN ERROR EXIT IS MADE, THE COLUMNS OF U CORRESPONDING */
-/*          TO INDICES OF CORRECT SINGULAR VALUES SHOULD BE CORRECT. */
+/*        w contains the n (non-negative) singular values of a (the */
+/*          diagonal elements of s).  they are unordered.  if an */
+/*          error exit is made, the singular values should be correct */
+/*          for indices ierr+1,ierr+2,...,n. */
 
-/*        V CONTAINS THE MATRIX V (ORTHOGONAL) OF THE DECOMPOSITION IF */
-/*          MATV HAS BEEN SET TO .TRUE.  OTHERWISE V IS NOT REFERENCED. */
-/*          V MAY ALSO COINCIDE WITH A IF U IS NOT NEEDED.  IF AN ERROR */
-/*          EXIT IS MADE, THE COLUMNS OF V CORRESPONDING TO INDICES OF */
-/*          CORRECT SINGULAR VALUES SHOULD BE CORRECT. */
+/*        u contains the matrix u (orthogonal column vectors) of the */
+/*          decomposition if matu has been set to .true.  otherwise */
+/*          u is used as a temporary array.  u may coincide with a. */
+/*          if an error exit is made, the columns of u corresponding */
+/*          to indices of correct singular values should be correct. */
 
-/*        IERR IS SET TO */
-/*          ZERO       FOR NORMAL RETURN, */
-/*          K          IF THE K-TH SINGULAR VALUE HAS NOT BEEN */
-/*                     DETERMINED AFTER 30 ITERATIONS. */
+/*        v contains the matrix v (orthogonal) of the decomposition if */
+/*          matv has been set to .true.  otherwise v is not referenced. */
+/*          v may also coincide with a if u is not needed.  if an error */
+/*          exit is made, the columns of v corresponding to indices of */
+/*          correct singular values should be correct. */
 
-/*        RV1 IS A TEMPORARY STORAGE ARRAY. */
+/*        ierr is set to */
+/*          zero       for normal return, */
+/*          k          if the k-th singular value has not been */
+/*                     determined after 30 iterations. */
 
-/*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
+/*        rv1 is a temporary storage array. */
 
-/*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     calls pythag for  dsqrt(a*a + b*b) . */
+
+/*     questions and comments should be directed to burton s. garbow, */
+/*     mathematics and computer science div, argonne national laboratory 
 */
 
-/*     THIS VERSION DATED AUGUST 1983. */
+/*     this version dated august 1983. */
 
 /*     ------------------------------------------------------------------ 
 */
 
     /* Parameter adjustments */
     --rv1;
-    v_dim1 = *nm;
-    v_offset = v_dim1 + 1;
-    v -= v_offset;
-    u_dim1 = *nm;
-    u_offset = u_dim1 + 1;
-    u -= u_offset;
     --w;
-    a_dim1 = *nm;
+    a_dim1 = *lda;
     a_offset = a_dim1 + 1;
     a -= a_offset;
+    u_dim1 = *ldu;
+    u_offset = u_dim1 + 1;
+    u -= u_offset;
+    v_dim1 = *ldv;
+    v_offset = v_dim1 + 1;
+    if( v != (doublereal *)0 ) v -= v_offset;
 
     /* Function Body */
     *ierr = 0;
@@ -124,7 +128,7 @@ static doublereal c_b47 = 1.;
 /* L100: */
 	}
     }
-/*     .......... HOUSEHOLDER REDUCTION TO BIDIAGONAL FORM .......... */
+/*     .......... householder reduction to bidiagonal form .......... */
     g = 0.;
     scale = 0.;
     x = 0.;
@@ -269,11 +273,11 @@ L290:
 	x = max(d__3,d__4);
 /* L300: */
     }
-/*     .......... ACCUMULATION OF RIGHT-HAND TRANSFORMATIONS .......... */
+/*     .......... accumulation of right-hand transformations .......... */
     if (! (*matv)) {
 	goto L410;
     }
-/*     .......... FOR I=N STEP -1 UNTIL 1 DO -- .......... */
+/*     .......... for i=n step -1 until 1 do -- .......... */
     i__2 = *n;
     for (ii = 1; ii <= i__2; ++ii) {
 	i__ = *n + 1 - ii;
@@ -286,7 +290,7 @@ L290:
 
 	i__1 = *n;
 	for (j = l; j <= i__1; ++j) {
-/*     .......... DOUBLE DIVISION AVOIDS POSSIBLE UNDERFLOW ......
+/*     .......... double division avoids possible underflow ......
 .... */
 /* L320: */
 	    v[j + i__ * v_dim1] = u[i__ + j * u_dim1] / u[i__ + l * u_dim1] / 
@@ -324,12 +328,12 @@ L390:
 	l = i__;
 /* L400: */
     }
-/*     .......... ACCUMULATION OF LEFT-HAND TRANSFORMATIONS .......... */
+/*     .......... accumulation of left-hand transformations .......... */
 L410:
     if (! (*matu)) {
 	goto L510;
     }
-/*     ..........FOR I=MIN(M,N) STEP -1 UNTIL 1 DO -- .......... */
+/*     ..........for i=min(m,n) step -1 until 1 do -- .......... */
     mn = *n;
     if (*m < *n) {
 	mn = *m;
@@ -367,7 +371,7 @@ L430:
 /* L440: */
 		s += u[k + i__ * u_dim1] * u[k + j * u_dim1];
 	    }
-/*     .......... DOUBLE DIVISION AVOIDS POSSIBLE UNDERFLOW ......
+/*     .......... double division avoids possible underflow ......
 .... */
 	    f = s / u[i__ + i__ * u_dim1] / g;
 
@@ -398,17 +402,17 @@ L490:
 	u[i__ + i__ * u_dim1] += 1.;
 /* L500: */
     }
-/*     .......... DIAGONALIZATION OF THE BIDIAGONAL FORM .......... */
+/*     .......... diagonalization of the bidiagonal form .......... */
 L510:
     tst1 = x;
-/*     .......... FOR K=N STEP -1 UNTIL 1 DO -- .......... */
+/*     .......... for k=n step -1 until 1 do -- .......... */
     i__2 = *n;
     for (kk = 1; kk <= i__2; ++kk) {
 	k1 = *n - kk;
 	k = k1 + 1;
 	its = 0;
-/*     .......... TEST FOR SPLITTING. */
-/*                FOR L=K STEP -1 UNTIL 1 DO -- .......... */
+/*     .......... test for splitting. */
+/*                for l=k step -1 until 1 do -- .......... */
 L520:
 	i__1 = k;
 	for (ll = 1; ll <= i__1; ++ll) {
@@ -418,15 +422,15 @@ L520:
 	    if (tst2 == tst1) {
 		goto L565;
 	    }
-/*     .......... RV1(1) IS ALWAYS ZERO, SO THERE IS NO EXIT */
-/*                THROUGH THE BOTTOM OF THE LOOP .......... */
+/*     .......... rv1(1) is always zero, so there is no exit */
+/*                through the bottom of the loop .......... */
 	    tst2 = tst1 + (d__1 = w[l1], abs(d__1));
 	    if (tst2 == tst1) {
 		goto L540;
 	    }
 /* L530: */
 	}
-/*     .......... CANCELLATION OF RV1(L) IF L GREATER THAN 1 .........
+/*     .......... cancellation of rv1(l) if l greater than 1 .........
 . */
 L540:
 	c__ = 0.;
@@ -461,13 +465,13 @@ L540:
 L560:
 	    ;
 	}
-/*     .......... TEST FOR CONVERGENCE .......... */
+/*     .......... test for convergence .......... */
 L565:
 	z__ = w[k];
 	if (l == k) {
 	    goto L650;
 	}
-/*     .......... SHIFT FROM BOTTOM 2 BY 2 MINOR .......... */
+/*     .......... shift from bottom 2 by 2 minor .......... */
 	if (its == 30) {
 	    goto L1000;
 	}
@@ -479,7 +483,7 @@ L565:
 	f = ((g + z__) / h__ * ((g - z__) / y) + y / h__ - h__ / y) * .5;
 	g = pythag_(&f, &c_b47);
 	f = x - z__ / x * z__ + h__ / x * (y / (f + d_sign(&g, &f)) - h__);
-/*     .......... NEXT QR TRANSFORMATION .......... */
+/*     .......... next qr transformation .......... */
 	c__ = 1.;
 	s = 1.;
 
@@ -514,7 +518,7 @@ L565:
 L575:
 	    z__ = pythag_(&f, &h__);
 	    w[i1] = z__;
-/*     .......... ROTATION CAN BE ARBITRARY IF Z IS ZERO .........
+/*     .......... rotation can be arbitrary if z is zero .........
 . */
 	    if (z__ == 0.) {
 		goto L580;
@@ -545,12 +549,12 @@ L600:
 	rv1[k] = f;
 	w[k] = x;
 	goto L520;
-/*     .......... CONVERGENCE .......... */
+/*     .......... convergence .......... */
 L650:
 	if (z__ >= 0.) {
 	    goto L700;
 	}
-/*     .......... W(K) IS MADE NON-NEGATIVE .......... */
+/*     .......... w(k) is made non-negative .......... */
 	w[k] = -z__;
 	if (! (*matv)) {
 	    goto L700;
@@ -567,8 +571,8 @@ L700:
     }
 
     goto L1001;
-/*     .......... SET ERROR -- NO CONVERGENCE TO A */
-/*                SINGULAR VALUE AFTER 30 ITERATIONS .......... */
+/*     .......... set error -- no convergence to a */
+/*                singular value after 30 iterations .......... */
 L1000:
     *ierr = k;
 L1001:
