@@ -11,7 +11,7 @@ extern int SUMAg_N_SVv;
 /*!
    This function Links one Inode to another.
    This is different from CreateInode in that no new node is being allocated for, only a link is created.
-   SUMA_CreateInodeLink (SUMA_INODE * FromIN, SUMA_Inode *ToIN)
+   SUMA_CreateInodeLink (SUMA_INODE * FromIN, SUMA_INODE *ToIN)
    
    FromIN = SUMA_CreateInodeLink (FromIN, ToIN);
    
@@ -1150,84 +1150,3 @@ int SUMA_Build_Mask_DrawnROI (SUMA_DRAWN_ROI *D_ROI, int *Mask)
    SUMA_RETURN (N_added);
 }
 
-/*!
-   \brief Loads a color plane file and adds it to a surface's list of colorplanes
-   
-   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
-*/
-void SUMA_LoadColorPlaneFile (char *filename, void *data)
-{
-   static char FuncName[]={"SUMA_LoadColorPlaneFile"};
-   SUMA_SurfaceObject *SO = NULL;
-   int ntot;
-   SUMA_OVERLAY_PLANE_DATA sopd;
-   SUMA_IRGB *irgb=NULL;
-   int OverInd = -1;
-   DList *list=NULL;
-   SUMA_Boolean LocalHead=YUP;
-      
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
-   SO = (SUMA_SurfaceObject *)data;
-   
-   if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: Received request to load %s for surface %s.\n", FuncName, filename, SO->Label);
-   }
-
-   /* find out if file exists and how many values it contains */
-   ntot = SUMA_float_file_size (filename);
-   if (ntot < 0) {
-      fprintf(SUMA_STDERR,"Error %s: filename %s could not be open.\n", FuncName, filename);
-      SUMA_RETURNe;
-   }
-
-   /* make sure it's a full matrix */
-   if ((ntot % 4)) {
-      fprintf(stderr,"Error %s: file %s contains %d values, not divisible by ncols %d.\n", FuncName, filename, ntot, 4);
-      SUMA_RETURNe;
-   }
-
-
-   irgb = SUMA_Read_IRGB_file(filename, ntot / 4);
-   if (!irgb) {
-      SUMA_SLP_Err("Failed to read file.");
-      SUMA_RETURNe;
-   }
-
-   sopd.N = irgb->N;
-   sopd.Type = SOPT_ifff;
-   sopd.Source = SES_Suma;
-   sopd.GlobalOpacity = 0.3;
-   sopd.BrightMod = NOPE;
-   sopd.Show = YUP;
-   /* dim colors from maximum intensity to preserve surface shape highlights, division by 255 is to scale color values between 1 and 0 */
-   sopd.DimFact = 0.5;
-   sopd.i = (void *)irgb->i;
-   sopd.r = (void *)irgb->r;
-   sopd.g = (void *)irgb->g;
-   sopd.b = (void *)irgb->b;
-   sopd.a = NULL;
-
-   if (!SUMA_iRGB_to_OverlayPointer (SO, filename, &sopd, &OverInd, SUMAg_DOv, SUMAg_N_DOv)) {
-      SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
-      SUMA_RETURNe;
-   }
-
-   /* values were copied, dump structure */
-   irgb = SUMA_Free_IRGB(irgb);  
-
-   /* remix colors for all viewers displaying related surfaces */
-   if (!SUMA_SetRemixFlag(SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
-      SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
-      SUMA_RETURNe;
-   }
-
-   if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL);
-   if (!SUMA_Engine (&list)) {
-      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
-   }  
-               
-
-   SUMA_RETURNe;
-}

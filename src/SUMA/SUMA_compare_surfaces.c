@@ -25,7 +25,7 @@ Purpose : Two determine the min distance between nodes on one surface to faces o
 
 int main (int argc,char *argv[])
 {
-  static char FuncName[]={"SUMA_compare_surfaces_direction"}; 
+  static char FuncName[]={"SUMA_compare_surfaces"}; 
   SUMA_SurfSpecFile Spec;
   char *specfilename = NULL;
   int kar, id;
@@ -106,7 +106,7 @@ int main (int argc,char *argv[])
 	fprintf (SUMA_STDERR, "need argument after -sv1");
 	exit (1);
       }
-      // Vol1Parent_FileName = argv[kar];
+      Vol1Parent_FileName = argv[kar];
       brk = YUP;
     }
     if (!brk && (strcmp(argv[kar], "-sv2")) == 0) {
@@ -115,7 +115,7 @@ int main (int argc,char *argv[])
 	fprintf (SUMA_STDERR, "need argument after -sv2");
 	exit (1);
       }
-      //Vol2Parent_FileName = argv[kar];
+      Vol2Parent_FileName = argv[kar];
       brk = YUP;
     }
     if (!brk && (strcmp(argv[kar], "-prefix")) == 0) {
@@ -210,9 +210,7 @@ int main (int argc,char *argv[])
   if (fout == NULL) { /* form default name */
     sprintf(fout, "%s_%s_%s_%s_%s",hemi,tag1,state1,tag2,state2);
 
-    //sprintf(distancefilename, "%s_%s_%s_%s_%s.dist",hemi,tag1,state1,tag2,state2);
-    //sprintf(colorfilename, "%s_%s_%s_%s_%s.col",hemi,tag1,state1,tag2,state2);
-  }
+     }
     sprintf (colorfilename, "%s.col", fout);
     sprintf (distancefilename, "%s.dist", fout);
    
@@ -279,7 +277,7 @@ int main (int argc,char *argv[])
    
    
    /* add some noise to surface 2 */
-   for (i = 0; i < SO2->N_Node; i ++)
+   /*  for (i = 0; i < SO2->N_Node; i ++)
      {
        id = SO2->NodeDim*i;
        SO2->NodeList[id] += 0.0002;
@@ -287,15 +285,7 @@ int main (int argc,char *argv[])
        SO2->NodeList[id+2] -= 0.0004;
      }
      
-   /* for (i = 0; i < SN1.N_Face; i ++)
-     {
-       id = SO1->NodeDim*i;
-       fprintf(SUMA_STDERR,"surf normal %d: %f  %f %f\n", i ,SN1.FaceNormList[id], SN1.FaceNormList[id+1], SN1.FaceNormList[id+2]);
-     };
-   
    */
- 
-    
     
   /* Take each node in the SO1-> Nodelist and its corresponding SN1->NodeNormList.  This is the normalized normal vector to the node on the first surface.
      So each node is P0.  P1 is computed as some point along the normal vector to that node.  Lets say P0 is P1 + 20 mm along the normal. 

@@ -36,6 +36,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_Boolean ROI_mode; 
    static SUMA_Boolean DoubleClick = NOPE;
    DList *list = NULL;
+   DListElmt *NextElm= NULL;
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
@@ -236,12 +237,25 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;            
 
          case XK_c:
-            /*Load colors from file */
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadColorPlaneFile, (void *)(SUMAg_DOv[sv->Focus_SO_ID].OP),
-                                                        NULL, NULL,
-                                                        SUMAg_CF->X->FileSelectDlg);
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Not used yet", SUMAg_CF->X->FileSelectDlg);
+            if (!list) list = SUMA_CreateList();
+            ED = SUMA_InitializeEngineListData (SE_OpenColFileSelection);
+            if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_vp, (void *)(SUMAg_DOv[sv->Focus_SO_ID].OP),
+                                                   SES_Suma, (void *)sv, NOPE,
+                                                   SEI_Head, NULL))) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            }
+            
+            if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_ip, sv->X->TOPLEVEL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, NextElm)) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            }  
+            
+            if (!SUMA_Engine (&list)) {
+               fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
             
             break;
              
@@ -685,7 +699,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_p:
-            sv->PolyMode = ((sv->PolyMode+1) % 3);
+            sv->PolyMode = ((sv->PolyMode+1) % SRM_N_RenderModes);
+            if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
+            
             SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
             SUMA_postRedisplay(w, clientData, callData);
             break;

@@ -1087,6 +1087,8 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Axis *EyeAxis;
    SUMA_SFname *SF_name;
+   SUMA_OVERLAYS *NewColPlane=NULL;
+   SUMA_INODE *NewColPlane_Inode = NULL;
    SUMA_Boolean brk, SurfIn=NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1277,42 +1279,33 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
 
                /* create an overlay plane */
-               SO->Overlays[SO->N_Overlays] = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity");
-               if (!SO->Overlays[SO->N_Overlays]) {
+               NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity");
+               if (!NewColPlane) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
                   SUMA_RETURN (NOPE);
                } 
 
                /* make an Inode for the overlay */
-               SO->Overlays_Inode[SO->N_Overlays] = SUMA_CreateInode ((void *)SO->Overlays[SO->N_Overlays], SO->idcode_str);
-               if (!SO->Overlays_Inode[SO->N_Overlays]) {
+               NewColPlane_Inode = SUMA_CreateInode ((void *)NewColPlane, SO->idcode_str);
+               if (!NewColPlane_Inode) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
                   SUMA_RETURN (NOPE);
                }
 
                /* Now place the color map in the Coloroverlay structure */
-               SO->Overlays[SO->N_Overlays]->ColMat = SV->cM; SV->cM = NULL; /* this way the color matrix will not be freed */
-               SO->Overlays[SO->N_Overlays]->N_NodeDef = SO->N_Node;
-               SO->Overlays[SO->N_Overlays]->GlobalOpacity = SUMA_CONVEXITY_COLORPLANE_OPACITY;
-               SO->Overlays[SO->N_Overlays]->Show = YUP;
-               SO->Overlays[SO->N_Overlays]->BrightMod = YUP;
-               SO->N_Overlays ++;
+               NewColPlane->ColMat = SV->cM; SV->cM = NULL; /* this way the color matrix will not be freed */
+               NewColPlane->N_NodeDef = SO->N_Node;
+               NewColPlane->GlobalOpacity = SUMA_CONVEXITY_COLORPLANE_OPACITY;
+               NewColPlane->Show = YUP;
+               NewColPlane->BrightMod = YUP;
 
-               /* set this color plane to be 0 */
-               if (!SUMA_SetPlaneOrder (SO->Overlays, SO->N_Overlays, "Convexity", 0)) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetPlaneOrder\n", FuncName);
+               /* Add this plane to SO->Overlays */
+               if (!SUMA_AddNewPlane (SO, NewColPlane, NewColPlane_Inode)) {
+                  SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
+                  SUMA_FreeOverlayPointer(NewColPlane);
                   SUMA_RETURN (NOPE);
                }
 
-               /* That is no longer of use here glar_ColorList depends on settings of the viewer */
-               #if 0
-                  /* Now run the function that turns overlay planes to a colormatrix */
-                  if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, \
-                     YUP, YUP, NOPE)) {
-                     fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
-                     SUMA_RETURN (NOPE);
-                  }
-               #endif
                
                /* free */
                if (Vsort) SUMA_free(Vsort);

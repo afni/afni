@@ -951,15 +951,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (SO->N_Overlays) {
       /* freeing color overlays */
       for (i=0; i <    SO->N_Overlays; ++i) {
-         if (SO->Overlays_Inode[i] || SO->Overlays[i]) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
-            if (SUMA_ReleaseLink(SO->Overlays_Inode[i])) { 
-               /* some links are left, do not free memory */
-            } else {
-               fprintf (SUMA_STDERR,"%s: Overlays[%d] is free of links, freeing allocated memory ...\n", FuncName, i);
-               if (SO->Overlays[i]) SUMA_FreeOverlayPointer (SO->Overlays[i]);
-               SUMA_free(SO->Overlays_Inode[i]); 
-            }
-         }
+         SUMA_ReleaseOverlay(SO->Overlays[i] , SO->Overlays_Inode[i]);
          SO->Overlays[i] = NULL;
          SO->Overlays_Inode[i] = NULL;
       }

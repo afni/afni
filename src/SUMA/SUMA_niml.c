@@ -132,7 +132,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    static char FuncName[]={"SUMA_process_NIML_data"};
    float **fm, dimfact,  *XYZ;
    byte *r, *g, *b;
-   SUMA_Boolean Empty_irgba = NOPE, LocalHead = YUP, Found = NOPE;
+   SUMA_Boolean Empty_irgba = NOPE, LocalHead = NOPE, Found = NOPE;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfaceViewer *svi = NULL;
    SUMA_OVERLAYS * tmpptr; 
@@ -761,3 +761,176 @@ Boolean SUMA_workprocess( XtPointer fred )
 }
 
 /*---------------------------------------------------------------*/
+
+/*!
+   \brief A function to take a SUMA_DRAWN_ROI struct and return an equivalent
+   SUMA_NIML_DRAWN_ROI struct. 
+   
+   - Do not free SUMA_NIML_DRAWN_ROI manually, many of its fields are 
+   pointer copies of values in SUMA_DRAWN_ROI.
+   
+   \sa SUMA_Free_NIMLDrawROI
+*/
+SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawROI (SUMA_DRAWN_ROI *ROI)
+{
+   static char FuncName[]={"SUMA_DrawnROI_to_NIMLDrawROI"};
+   SUMA_NIML_DRAWN_ROI *nimlROI=NULL;
+   SUMA_ROI_DATUM *ROI_Datum=NULL;
+   DListElmt *Elm = NULL;
+   int i = -1;
+   SUMA_Boolean LocalHead = YUP;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!ROI) {
+      SUMA_SL_Err("Null ROI");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* allocate for nimlROI */
+   nimlROI = (SUMA_NIML_DRAWN_ROI *)SUMA_malloc(sizeof(SUMA_NIML_DRAWN_ROI));
+   
+   nimlROI->Type = (int)ROI->Type;
+   nimlROI->idcode_str = ROI->idcode_str;
+   nimlROI->Parent_idcode_str = ROI->Parent_idcode_str;
+   nimlROI->Label = ROI->Label;
+   nimlROI->iLabel = ROI->iLabel;
+   nimlROI->N_ROI_datum = dlist_size(ROI->ROIstrokelist);
+   if (!nimlROI->N_ROI_datum) {
+      nimlROI->ROI_datum = NULL;
+      SUMA_RETURN(nimlROI);
+   }
+   nimlROI->ROI_datum = (SUMA_NIML_ROI_DATUM *)SUMA_malloc(sizeof(SUMA_NIML_ROI_DATUM));
+
+   /* now fill the ROI_datum structures */
+   Elm = NULL;
+   i = 0;
+   do {
+      if (!Elm) Elm = dlist_head(ROI->ROIstrokelist);
+      else Elm = Elm->next;
+      ROI_Datum = (SUMA_ROI_DATUM *)Elm->data;
+      nimlROI->ROI_datum[i].N_n = ROI_Datum->N_n;
+      nimlROI->ROI_datum[i].nPath = ROI_Datum->nPath;
+/*    nimlROI->ROI_datum[i].Type = ROI_Datum->Type;
+      nimlROI->ROI_datum[i].N_t = ROI_Datum->N_t;
+      nimlROI->ROI_datum[i].tPath = ROI_Datum->tPath; */
+      ++i;
+   } while (Elm != dlist_tail(ROI->ROIstrokelist));
+   
+   SUMA_RETURN(nimlROI);
+}
+
+/*!
+   \brief frees a nimlROI structure. These structures are created by
+    the likes of SUMA_DrawnROI_to_NIMLDrawROI
+    
+    \sa SUMA_DrawnROI_to_NIMLDrawROI
+*/
+SUMA_NIML_DRAWN_ROI * SUMA_Free_NIMLDrawROI (SUMA_NIML_DRAWN_ROI *nimlROI)
+{
+   static char FuncName[]={"SUMA_Free_NIMLDrawROI"};
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!nimlROI) SUMA_RETURN(NULL);
+   
+   if (nimlROI->ROI_datum) SUMA_free(nimlROI->ROI_datum);
+   SUMA_free(nimlROI);
+   
+   SUMA_RETURN(NULL);
+}
+
+/*********************** End Temporary functions *********************/
+void * my_malloc( size_t n )
+{
+  void *p = malloc(n) ;
+  fprintf(stderr,"my_malloc(%d) ==> %p\n",(int)n,p) ;
+  return p ;
+}
+
+void * my_realloc( void *p , size_t n )
+{
+  void *q = realloc(p,n) ;
+  fprintf(stderr,"my_realloc(%p,%d) ==> %p\n",p,(int)n,q) ;
+  return q ;
+}
+
+void my_free( void *p )
+{
+  fprintf(stderr,"my_free(%p)\n",p) ;
+  free(p) ;
+}
+
+/*********************** End Temporary functions *********************/
+/*!
+   \brief writes a SUMA_DRAWN_ROI * to disk in NIML format
+*/
+
+SUMA_Boolean SUMA_Save_DrawnROI_NIML (SUMA_DRAWN_ROI *ROI, char *filename) 
+{
+   static char FuncName[]={"SUMA_Save_DrawnROI_NIML"};
+   char stmp[20];
+   int i;
+   static int nimlROI_Datum_type = -1;
+   NI_element *nel ;
+   NI_stream ns ;
+   SUMA_NIML_DRAWN_ROI *niml_ROI = NULL;
+   SUMA_Boolean LocalHead = YUP;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* NI_malloc_replace( my_malloc, my_realloc, my_free ) ; */
+   
+   /* define struct to store elements */
+   if (nimlROI_Datum_type < 0) { /* first call, intitialize */
+      nimlROI_Datum_type = NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int[#1]");
+   }
+   if (nimlROI_Datum_type < 0) {
+      SUMA_SL_Err("Bad niml type code");
+      SUMA_RETURN(NOPE);
+   }
+   if (LocalHead) fprintf(SUMA_STDERR, "roi_type code = %d\n", nimlROI_Datum_type) ;
+
+   /* Transform the ROI to niml friendly structure */
+   if (!(niml_ROI = SUMA_DrawnROI_to_NIMLDrawROI (ROI))) {
+      SUMA_SL_Err("NULL niml_ROI!");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* Now create a ni element */
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Creating new element of %d segments\n", FuncName, niml_ROI->N_ROI_datum);
+   nel = NI_new_data_element("A_drawn_ROI",  niml_ROI->N_ROI_datum);
+   
+   for (i=0; i<niml_ROI->N_ROI_datum; ++i) {
+      SUMA_LH("Adding columns...");
+      NI_add_column( nel , nimlROI_Datum_type, &(niml_ROI->ROI_datum[i]) );
+   }
+   
+   SUMA_LH("Setting attributes...");
+   NI_set_attribute (nel, "idcode_str", niml_ROI->idcode_str);
+   NI_set_attribute (nel, "Parent_idcode_str", niml_ROI->Parent_idcode_str);
+   NI_set_attribute (nel, "Label", niml_ROI->Label);
+   sprintf(stmp,"%d", niml_ROI->iLabel);
+   NI_set_attribute (nel, "iLabel", stmp);
+   sprintf(stmp,"%d", niml_ROI->Type);
+   NI_set_attribute (nel, "Type", stmp);
+   
+   if (LocalHead) SUMA_nel_stdout (nel);
+
+   /* Now write the element */
+   SUMA_LH ("Writing element to stderr");
+   ns = NI_stream_open( "fd:1" , "w" ) ;
+   if (NI_write_element( ns , nel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG ) < 0) {
+      SUMA_SL_Err("Badness, failed to write nel");
+   } 
+   NI_stream_close( ns ) ; 
+   
+   /* free nel */
+   NI_free_element(nel) ; nel = NULL;
+   
+   /* free the niml_ROI structure */
+   niml_ROI = SUMA_Free_NIMLDrawROI (niml_ROI);
+   
+   SUMA_RETURN(YUP);
+}

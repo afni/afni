@@ -46,7 +46,6 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_dov, SUMA_SurfaceObject *SO, i
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SUMA_Boolean SortByLabel); 
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT *str);
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void);
-void SUMA_LoadColorPlaneFile (char *filename, void *data);
 
 /*!
    \brief SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded)
@@ -65,6 +64,26 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data);
       }  \
    }  \
 }  
+
+/*!
+   \brief SUMA_IS_SWITCH_COL_PLANE_SHADED(SO, Shaded)
+   Shaded is YUP unless the Switch Col plane window is currently open.
+*/
+#define SUMA_IS_SWITCH_COL_PLANE_SHADED(SO, Shaded)   \
+{  \
+   Shaded = YUP;  \
+   if (SO) {   \
+      if (SO->SurfCont) {\
+         if (SO->SurfCont->SwitchColPlanelst) {\
+            if (!SO->SurfCont->SwitchColPlanelst->isShaded) {\
+               Shaded = NOPE;  \
+            }  \
+         }  \
+      }  \
+   }  \
+}  
+
+
 
 
 

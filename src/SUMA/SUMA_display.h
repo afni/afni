@@ -155,7 +155,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
                               float value, float vmin, float vmax, float vstep,
                               int cwidth, SUMA_VARTYPE type,
                               SUMA_Boolean wrap,
-                              void (*NewValueCallback)(void * data),
+                              void (*NewValueCallback)(void * data), void *cb_data,
                               SUMA_ARROW_TEXT_FIELD *AF);
 void SUMA_CreateTextField ( Widget pw, char *label,
                               int cwidth, 
@@ -182,9 +182,9 @@ SUMA_LIST_WIDGET * SUMA_FreeScrolledList (SUMA_LIST_WIDGET *LW);
 SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (char *Label, int SelectPolicy, 
                                                 SUMA_Boolean RemoveDups, SUMA_Boolean ShowSorted,
                                                 Widget PosRef, SUMA_WINDOW_POSITION Pos,
-                                                void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata),
-                                                void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata),
-                                                void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata));
+                                                void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata), void *DefaultData,
+                                                void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata), void *SelectData,
+                                                void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata), void *CloseListData);
 void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partial, 
                                   SUMA_LIST_WIDGET *LW);
 void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data);
@@ -219,6 +219,17 @@ void SUMA_PromptActivate_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_PromptUnmap_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt);
 void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_ColPlane_NewOrder (void *data);
+void SUMA_ColPlane_NewOpacity (void *data);
+void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_SurfCont_SwitchColPlane(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
+SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ColPlane);
+SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO);
+
 
 
 
@@ -288,5 +299,8 @@ void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data);
    "Opens a dialog with detailed\n" \
    "information about the surface\n"\
    "object.\n"
+
+#define SUMA_DrawROI_ColPlaneShow_help   \
+   "Shows/Hides the colorplane."
    
 #endif

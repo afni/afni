@@ -44,7 +44,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    float ft, **fm, fv15[15];
    XtPointer elvis=NULL;
    NI_element *nel;
-   SUMA_Boolean Found, LocalHead = YUP;
+   SUMA_Boolean Found, LocalHead = NOPE;
    SUMA_SurfaceViewer *svi;
    SUMA_SurfaceViewer *sv = NULL;
    static char Command[]={"OBSOLETE-since:Thu Jan 23 16:55:03 EST 2003"};
@@ -96,6 +96,34 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       NextCom = SUMA_CommandString (NextComCode);
       if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
+         case SE_OpenColFileSelection:
+            /* opens the color file selection window. 
+            Expect SO in vp and a position reference widget typecast to ip, the latter can be null.*/
+            
+            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            
+            /*Load colors from file */
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            if (!EngineData->ip) {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        SUMAg_CF->X->FileSelectDlg);
+            } else {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        SUMAg_CF->X->FileSelectDlg);
+            }
+            
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Node Color File", SUMAg_CF->X->FileSelectDlg);
+            
+            break;
+            
          case SE_OpenDrawROI:
             /* opens the DrawROI window, expects a surface viewer pointer in EngineData->Srcp*/
             {
