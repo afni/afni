@@ -112,13 +112,21 @@ char * AFNI_get_friend(void)
 
 typedef struct { int mon,day; char *label; } mday ;
 
-/*! The data trivia array. */
+
+/*! max # trivia elements allowed per date */
+
+#define NTMAX 9
+
+/*! The date trivia array. */
 
 static mday holiday[] = {
    {JAN, 1,"Anniversary of Emancipation Proclamation"                } ,
+   {JAN, 1,"New Year's Day"                                          } ,
+   {JAN, 1,"Lorenzo de Medici's birthday"                            } ,
+   {JAN, 1,"Paul Revere's birthday"                                  } ,
    {JAN, 2,"Isaac Asimov's birthday"                                 } ,
    {JAN, 3,"John Ronald Reuel Tolkien's birthday"                    } ,
-   {JAN, 4,"Isaac Newton's birthday"                                 } ,
+   {JAN, 3,"Anniversary of Battle of Princeton"                      } ,
    {JAN, 5,"King Juan Carlos I's birthday"                           } ,
    {JAN, 6,"Sherlock Holmes' birthday"                               } ,
    {JAN, 7,"Millard Fillmore's birthday"                             } ,
@@ -157,6 +165,7 @@ static mday holiday[] = {
    {FEB,28,"Linus Pauling's birthday"                                } ,
    {FEB,29,"Herman Hollerith's birthday"                             } ,
    {MAR, 1,"Frederic Chopin's birthday"                              } ,
+   {MAR, 1,"Santiago Ramon y Cajal's birthday"                       } ,
    {MAR, 2,"Samuel Houston's birthday"                               } ,
    {MAR, 3,"Georg Cantor's birthday"                                 } ,
    {MAR, 5,"Anniversary of Boston Massacre"                          } ,
@@ -310,35 +319,77 @@ static mday holiday[] = {
    {NOV,24,"Baruch Spinoza's birthday"                               } ,
    {NOV,25,"Pope John XXIII's birthday"                              } ,
    {NOV,26,"Anniversary of Casablanca's debut"                       } ,
-   {NOV,27,"Start of First Crusade"                                  } ,
+   {NOV,27,"Anniversary of First Crusade's start"                    } ,
+   {NOV,27,"Chaim Weizmann's birthday"                               } ,
+   {NOV,27,"Aleksander Dubcek's birthday"                            } ,
    {NOV,28,"William Blake's birthday"                                } ,
    {NOV,29,"Clive Staples Lewis's birthday"                          } ,
+   {NOV,29,"Jacques Chirac's birthday"                               } ,
+   {NOV,30,"Samuel Clemens' birthday"                                } ,
    {NOV,30,"Winston Churchill's birthday"                            } ,
+   {NOV,30,"Barbados Independence Day"                               } ,
    {DEC, 1,"Anniversary of Rosa Parks' arrest"                       } ,
+   {DEC, 1,"Woody Allen's birthday"                                  } ,
    {DEC, 2,"Anniversary of Monroe Doctrine"                          } ,
+   {DEC, 2,"Georges Seurat's birthday"                               } ,
+   {DEC, 2,"Anniversary of coronation of Napoleon"                   } ,
+   {DEC, 3,"Joseph Konrad's birthday"                                } ,
    {DEC, 3,"Anniversary of Galileo's telescope"                      } ,
    {DEC, 4,"Crazy Horse's birthday"                                  } ,
+   {DEC, 5,"Anniversary of Prohibition's end"                        } ,
    {DEC, 5,"George Armstrong Custer's birthday"                      } ,
+   {DEC, 5,"Werner Karl Heisenberg's birthday"                       } ,
    {DEC, 6,"Spanish Constitution Day"                                } ,
+   {DEC, 6,"Finland Independence Day"                                } ,
    {DEC, 7,"Anniversary of attack on Pearl Harbor"                   } ,
+   {DEC, 9,"John Milton's birthday"                                  } ,
+   {DEC, 9,"Anniversary of Lech Walesa's election"                   } ,
    {DEC,10,"Ada Lovelace's birthday"                                 } ,
+   {DEC,10,"Anniversary of Spanish-American War's end"               } ,
+   {DEC,10,"Anniversary of Grateful Dead's first concert"            } ,
+   {DEC,10,"Emily Dickinson's birthday"                              } ,
+   {DEC,11,"Robert Koch's birthday"                                  } ,
    {DEC,11,"Aleksander Solzhenitsyn's birthday"                      } ,
+   {DEC,11,"Max Born's birthday"                                     } ,
    {DEC,12,"Frank Sinatra's birthday"                                } ,
+   {DEC,12,"William Lloyd Garrison's birthday"                       } ,
+   {DEC,12,"Edvard Munch's birthday"                                 } ,
    {DEC,14,"Tycho Brahe's birthday"                                  } ,
+   {DEC,14,"Nostradamus's birthday"                                  } ,
+   {DEC,14,"Jimmy Doolittle's birthday"                              } ,
    {DEC,15,"Anniversary of adoption of US Bill of Rights"            } ,
+   {DEC,15,"Anniversary of Gone With the Wind debut"                 } ,
    {DEC,16,"Anniversary of Boston Tea Party"                         } ,
+   {DEC,16,"Jane Austen's birthday"                                  } ,
+   {DEC,16,"Arthur C Clarke's birthday"                              } ,
    {DEC,17,"Anniversary of Wright brother's flight"                  } ,
+   {DEC,17,"Roman Saturnalia!"                                       } ,
    {DEC,19,"William Pitt's (younger) birthday"                       } ,
    {DEC,20,"Robert Menzies' birthday"                                } ,
+   {DEC,20,"Anniversary of Louisiana Purchase"                       } ,
    {DEC,21,"Anniversary of Pilgrim's landing"                        } ,
+   {DEC,21,"Thomas Becket's birthday"                                } ,
+   {DEC,21,"Jan Lukasiewicz' birthday"                               } ,
    {DEC,22,"Srinivasa Ramanujan's birthday"                          } ,
-   {DEC,23,"Akihito's birthday"                                      } ,
+   {DEC,23,"Emperoro Akihito's birthday"                             } ,
    {DEC,24,"Adam Mickiewicz's birthday"                              } ,
+   {DEC,24,"Ignatius Loyola's birthday"                              } ,
+   {DEC,24,"Kit Carson's birthday"                                   } ,
    {DEC,25,"Christmas Day"                                           } ,
+   {DEC,25,"Isaac Newton's birthday"                                 } ,
+   {DEC,25,"Clara Barton's birthday"                                 } ,
+   {DEC,25,"Rod Serling's birthday"                                  } ,
+   {DEC,25,"Anwar Sadat's birthday"                                  } ,
+   {DEC,26,"Charles Babbage birthday"                                } ,
    {DEC,26,"Boxing Day"                                              } ,
    {DEC,27,"Johannes Kepler's birthday"                              } ,
+   {DEC,27,"Louis Pasteur's birthday"                                } ,
+   {DEC,28,"Arthur Eddington's birthday"                             } ,
    {DEC,28,"John von Neumann's birthday"                             } ,
+   {DEC,28,"Linus Torvalds' birthday"                                } ,
    {DEC,30,"Tiger Woods' birthday"                                   } ,
+   {DEC,30,"Rudyard Kipling's birthday"                              } ,
+   {DEC,31,"New Year's Eve"                                          } ,
    {DEC,31,"George Marshall's birthday"                              } ,
 
  {0,0,NULL} } ;  /* the last element, a flag to stop searching */
@@ -350,16 +401,24 @@ char * AFNI_get_date_trivia(void)
 {
    time_t tt ;
    struct tm *lt ;
-   int ii ;
+   int ii , ntar ;
+   char *tar[NTMAX] ;
 
    tt = time(NULL) ;         /* seconds since 01 Jan 1970 */
    lt = localtime( &tt ) ;   /* break into pieces */
 
    /* find this month and day in the trivial list, if present */
 
-   for( ii=0 ; holiday[ii].day != 0 ; ii++ )
+   for( ii=ntar=0 ; ntar < NTMAX && holiday[ii].day != 0 ; ii++ )
      if( holiday[ii].mon == lt->tm_mon+1 && holiday[ii].day == lt->tm_mday )
-       return holiday[ii].label ;
+       tar[ntar++] = holiday[ii].label ;
+
+   if( ntar == 1 ){
+     return tar[0] ;
+   } else if( ntar > 1 ){
+     ii = (lrand48()>>8) % ntar ;
+     return tar[ii] ;
+   }
 
    /* default trivia */
 
