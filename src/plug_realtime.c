@@ -67,6 +67,7 @@
 	       * modified yar[] logic in RT_registration_3D_realtime() to
 	             pass the registration parameters before adjusting the
 	             base pointers for plot_ts_addto()                       **/
+/** 02 Apr 2004: move RT_mp_comm_close() from last plot check  [tross/rickr] **/
 
 
 /**************************************************************************/
@@ -3726,11 +3727,11 @@ void RT_finish_dataset( RT_input * rtin )
                    "reps" , NULL , ttl , nar , NULL ) ;
 
       free(ttl) ;
-
-      /* close the tcp connection */
-      if ( rtin->mp_tcp_use )
-	  RT_mp_comm_close( rtin );
    }
+
+   /* close any open tcp connection */
+   if ( rtin->mp_tcp_use )
+      RT_mp_comm_close( rtin );
 
    /* if we have a parser expression, free it */
    if ( rtin->p_code )
