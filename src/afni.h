@@ -119,12 +119,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.25 "
+#define VERSION "2.25a"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "04 January 2000  "
+#define RELEASE "11 January 2000  "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -515,7 +515,7 @@ typedef struct {
       Widget         misc_voxind_pb ;
       Widget         misc_hints_pb ;
       Widget         misc_anat_info_pb , misc_func_info_pb ;
-      Widget         misc_newstuff_pb, misc_purge_pb, misc_tracing_pb,
+      Widget         misc_vcheck_pb, misc_purge_pb, misc_tracing_pb,
                      misc_showmalloc_pb , misc_dumpmalloc_pb ;
 
       MCW_bbox     * time_lock_bbox ;  /* 03 Nov 1998 */

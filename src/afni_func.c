@@ -4049,10 +4049,14 @@ ENTRY("AFNI_misc_CB") ;
 
    if( ! IM3D_OPEN(im3d) || w == NULL ) EXRETURN ;
 
+   /*.........................................................*/
+
    if( w == im3d->vwid->dmode->misc_voxind_pb ){
-      im3d->vinfo->show_voxind = MCW_val_bbox(im3d->vwid->dmode->misc_voxind_bbox) ;
+      im3d->vinfo->show_voxind = MCW_val_bbox(im3d->vwid->dmode->misc_voxind_bbox);
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
    }
+
+   /*.........................................................*/
 
 #ifndef DONT_USE_HINTS
    else if( w == im3d->vwid->dmode->misc_hints_pb ){
@@ -4068,6 +4072,8 @@ ENTRY("AFNI_misc_CB") ;
       }
    }
 #endif
+
+   /*.........................................................*/
 
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
       char * inf ;
@@ -4086,6 +4092,8 @@ STATUS("getting anat info") ;
       } else
          XBell( im3d->dc->display , 100 ) ;
    }
+
+   /*.........................................................*/
 
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
       char * inf ;
@@ -4106,19 +4114,41 @@ STATUS("got func info") ;
          XBell( im3d->dc->display , 100 ) ;
    }
 
-   else if( w == im3d->vwid->dmode->misc_newstuff_pb ){
-      (void) MCW_popup_message( im3d->vwid->imag->topper ,
-                                 " \n"
-                                 "This function has been discontinued.  Instead, see\n"
-                                 " http://varda.biophysics.mcw.edu/~cox/afni_latest.html\n"
-                                 "for information about changes to the AFNI package.\n"
-                                 "                              -- Bob Cox, January 2000\n" ,
-                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   /*.........................................................*/
+
+   else if( w == im3d->vwid->dmode->misc_vcheck_pb ){  /* 11 Jan 2000 */
+      FILE * fp = popen( "afni_vcheck" , "r" ) ;
+      if( fp == NULL ){
+         (void)  MCW_popup_message( im3d->vwid->imag->topper ,
+                                     " \n"
+                                     "* Cannot execute *\n"
+                                     "* afni_vcheck!   *\n" ,
+                                    MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         XBell( im3d->dc->display , 100 ) ;
+      } else {
+#define ISIZE 1024
+         char * info=(char *)malloc(sizeof(char)*ISIZE) ; int ninfo ;
+         strcpy(info," \n     Output of Program afni_vcheck  \n"
+                        "   ---------------------------------\n \n"   ) ;
+         ninfo = strlen(info) ;
+         while( fgets(info+ninfo,ISIZE-ninfo,fp) != NULL ){
+            ninfo = strlen(info) ;
+            if( ninfo >= ISIZE-2 ) break ;
+         }
+         pclose(fp) ;
+         (void) MCW_popup_message( im3d->vwid->imag->topper , info ,
+                                   MCW_USER_KILL | MCW_TIMER_KILL   ) ;
+         free(info) ;
+      }
    }
+
+   /*.........................................................*/
 
    else if( w == im3d->vwid->dmode->misc_purge_pb ){
       AFNI_purge_dsets( 1 ) ;
    }
+
+   /*.........................................................*/
 
 #ifdef USE_TRACING
    else if( w == im3d->vwid->dmode->misc_tracing_pb ){
@@ -4131,6 +4161,8 @@ STATUS("got func info") ;
    }
 #endif
 
+   /*.........................................................*/
+
 #ifdef USING_MCW_MALLOC   /* 07 Mar 1999 */
    else if( MCW_MALLOC_enabled && w == im3d->vwid->dmode->misc_showmalloc_pb ){
       MCHECK ;
@@ -4141,11 +4173,15 @@ STATUS("got func info") ;
    }
 #endif
 
+   /*.........................................................*/
+
 #ifdef USE_WRITEOWNSIZE
    else if( w == im3d->vwid->dmode->misc_writeownsize_pb ){
       im3d->vinfo->writeownsize = MCW_val_bbox( im3d->vwid->dmode->misc_writeownsize_bbox ) ;
    }
 #endif
+
+   /*.........................................................*/
 
    /****----- Get Outta Here -----****/
 

@@ -4432,7 +4432,7 @@ ENTRY("AFNI_misc_button") ;
 #endif
                              " Anat Info         = Show 3dinfo output\n"
                              " Func Info         = for current datasets\n"
-                             " New Stuff         = List new features\n"
+                             " Version Check     = Check AFNI version\n"
                              " Purge Memory      = Of dataset BRIKs\n"
 #ifdef USE_TRACING
                              " Debug=MODE        = Set debug mode to\n"
@@ -4555,17 +4555,17 @@ ENTRY("AFNI_misc_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   dmode->misc_newstuff_pb =
+   dmode->misc_vcheck_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("New Stuff") ,
+               LABEL_ARG("Version Check") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-   XtAddCallback( dmode->misc_newstuff_pb , XmNactivateCallback ,
+   XtAddCallback( dmode->misc_vcheck_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_newstuff_pb , "List New Features" ) ;
+   MCW_register_hint( dmode->misc_vcheck_pb , "List New Features" ) ;
 
    /*--- pushbutton to purge unused datasets ---*/
 
@@ -4579,7 +4579,7 @@ ENTRY("AFNI_misc_button") ;
             NULL ) ;
    XtAddCallback( dmode->misc_purge_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_newstuff_pb , "Purge unused datasets" ) ;
+   MCW_register_hint( dmode->misc_purge_pb , "Purge unused datasets" ) ;
 
    /*--- pushbutton to toggle routine tracing ---*/
 

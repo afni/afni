@@ -243,9 +243,9 @@ typedef struct {                                     /* store the status */
 
 CUTOUT_state current_cutout_state , old_cutout_state ;
 
-void REND_load_cutout_state(void) ;                  /* load from widgets */
-int REND_cutout_state_changed(void) ;                /* has it changed? */
-void REND_cutout_blobs(void) ;                       /* actually do the cutouts */
+void REND_load_cutout_state(void) ;                /* load from widgets */
+int REND_cutout_state_changed(void) ;              /* has it changed? */
+void REND_cutout_blobs(MRI_IMAGE *) ;              /* actually do cutouts */
 
 static char * mustdo_bbox_label[1] = { "Must Do" } ;
 
@@ -1904,12 +1904,12 @@ void REND_reload_dataset(void)
       byte * gar , * opar , * ovar ;
       int nvox = grim->nvox , ii ;
 
+      if( ovim == NULL ) REND_reload_func_dset() ;
+
       if( num_cutouts > 0 && !func_cut_overlay ){  /* do cutouts NOW if not */
-         REND_cutout_blobs() ;                     /* to be done to overlay */
+         REND_cutout_blobs(opim) ;                 /* to be done to overlay */
          cutdone = 1 ;
       }
-
-      if( ovim == NULL ) REND_reload_func_dset() ;
 
       ovar = MRI_BYTE_PTR(ovim) ;
 
@@ -1959,7 +1959,12 @@ void REND_reload_dataset(void)
 
    /*--- Other piddling details ---*/
 
-   if( num_cutouts > 0 && !cutdone ) REND_cutout_blobs()  ; /* cutouts hit overlay */
+   if( num_cutouts > 0 && !cutdone ){    /* if cutouts hit overlay */
+      REND_cutout_blobs(opim)  ;
+      if( func_showthru && opim_showthru != NULL )
+         REND_cutout_blobs(opim_showthru) ;
+   }
+
    if( xhair_flag                  ) REND_xhair_overlay() ;
 
    MCW_invert_widget(reload_pb) ;  /* turn the signal off */
@@ -3611,9 +3616,11 @@ void REND_cutout_set_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------
    Actually do the cutouts in the opacity brick
+   11 Jan 2000: modified to pass opacity image in, rather
+                than use the global opim
 ----------------------------------------------------------------------*/
 
-void REND_cutout_blobs(void)
+void REND_cutout_blobs( MRI_IMAGE * oppim )
 {
    int ii,jj,kk , nx,ny,nz,nxy,nxyz , cc , typ , ncc,logic,nmust,nand,mus ;
    int ibot,itop , jbot,jtop , kbot,ktop ;
@@ -3624,7 +3631,7 @@ void REND_cutout_blobs(void)
 
    ncc   = current_cutout_state.num ;
    logic = current_cutout_state.logic ;
-   if( ncc < 1 || opim == NULL ) return ;      /* error */
+   if( ncc < 1 || oppim == NULL ) return ;      /* error */
 
    /* find out if the logic is effectively "OR" */
 
@@ -3638,10 +3645,10 @@ void REND_cutout_blobs(void)
 
    /* initialize */
 
-   oar = MRI_BYTE_PTR(opim) ; if( oar == NULL ) return ;
-   nx  = opim->nx ;
-   ny  = opim->ny ; nxy  = nx * ny ;
-   nz  = opim->nz ; nxyz = nxy * nz ;
+   oar = MRI_BYTE_PTR(oppim) ; if( oar == NULL ) return ;
+   nx  = oppim->nx ;
+   ny  = oppim->ny ; nxy  = nx * ny ;
+   nz  = oppim->nz ; nxyz = nxy * nz ;
 
    if( logic == CUTOUT_AND ){
       gar = (byte *) malloc( sizeof(byte) * nxyz ) ;  /* counts of hits */
@@ -3871,8 +3878,8 @@ void REND_cutout_blobs(void)
             byte * ovar ;
             float adx=fabs(dx) , ady=fabs(dy) , adz=fabs(dz) ;
 
-            if( ovim == NULL ) REND_reload_func_dset() ;
-            ovar = MRI_BYTE_PTR(ovim) ;
+            if( ovim == NULL ) REND_reload_func_dset() ; /* get the global */
+            ovar = MRI_BYTE_PTR(ovim) ;                  /* overlay image */
 
             if( par < adx && par < ady && par < adz ){   /* no dilation */
 

@@ -1973,3 +1973,9 @@
      control the compositing of ShowThru images.
  * Added program afni_vcheck.c, to check the AFNI version against the
      master copy back at the central AFNI web site.
+
+11 Jan 2000
+ * Replace "New Stuff" button under the Misc menu with "Version Check",
+     which just runs afni_vcheck and puts the output into a popup.
+ * Modified plug_render.c to make Cutout Overlay work properly with
+     ShowThru.
