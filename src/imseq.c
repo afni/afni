@@ -14,6 +14,11 @@
 #include "xutil.h"
 #include "xim.h"
 
+#if 0                   /* used to debug only this file */
+# undef  DBG_trace
+# define DBG_trace 2
+#endif
+
 #define DPR(st) STATUS(st)
 #define DPRI(st,ijk) \
   if(PRINT_TRACING){ char str[256]; sprintf(str,"%s %d",st,ijk); STATUS(str); }
@@ -4170,8 +4175,8 @@ DPRI(" .. Expose; count=",event->count) ;
 #if 0
          MCW_discard_events( w , ExposureMask );
 #endif
-         if( event->count == 0 ){
-            if( w == seq->wimage ){         /* 25 Sep 2000: check for hidden resizes */
+         if( event->count == 0 ){      /* don't bother if more Expose to come */
+            if( w == seq->wimage ){    /* 25 Sep 2000: check for hidden resizes */
                int nx,ny ;
                MCW_widget_geom( seq->wimage , &nx , &ny , NULL,NULL ) ;
 
@@ -4422,13 +4427,16 @@ DPR(" .. ButtonPress") ;
   STATUS(str) ;
  }
 
-         /* simply delete the XImage sized to the window;
-            redisplay will then automatically size it when called */
+         /* For some systems, a ConfigureNotify is followed
+            by one or more Expose-s.  We can discard these now. */
 
-#if 0
+#ifdef DISCARD_RESIZE_EXPOSES
          XSync( XtDisplay(w) , False ) ;
          MCW_discard_events( w , ExposureMask ) ;
 #endif
+
+         /* simply delete the XImage sized to the window;
+            redisplay will then automatically size it when called */
 
          if( w == seq->wimage ){
 
