@@ -560,3 +560,6 @@
 21 June 2004:
   * modified SUMA_3dSurf2Vol.[ch] (-> v3.4): fixed -surf_xyz_1D option
 
+06 July 2004:
+  * modified 3dROIstats - added min/max/nzminmax
+
