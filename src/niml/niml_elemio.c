@@ -129,9 +129,9 @@ NI_dpr("NI_read_element: parsing putative header\n") ;
    hs = parse_header_stuff( nn - ns->npos , ns->buf + ns->npos , &nhs ) ;
 
    if( hs == NULL ){  /* something bad happened there */
-      fprintf(stderr,"NI_read_element: bad element header found!\n") ;
-      ns->npos = nn; NI_reset_buffer(ns); /* toss the '<..>', try again */
-      goto HeadRestart ;
+     fprintf(stderr,"NI_read_element: bad element header found!\n") ;
+     ns->npos = nn; NI_reset_buffer(ns); /* toss the '<..>', try again */
+     goto HeadRestart ;
    }
 
    /*----- If here, have parsed a header (and will not HeadRestart).
@@ -178,17 +178,17 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
          if( mleft < 0 ) mleft = 0 ;
 
          if( nn <= 0 ){  /* didn't find it */
-            if( NI_stream_readcheck(ns,0) < 0 ) break ;  /* real bad */
-            if( num_restart > 1 && mleft == 0 ) break ;  /* time's up */
-            num_restart++ ;
-            continue ;        /* try again (but not forever) */
+           if( NI_stream_readcheck(ns,0) < 0 ) break ;  /* real bad */
+           if( num_restart > 1 && mleft == 0 ) break ;  /* time's up */
+           num_restart++ ;
+           continue ;        /* try again (but not forever) */
          }
 
          /* check if we found a trailer element '</stuff>' */
 
          if( ns->buf[ns->npos+1] == '/' ){  /* trailer */
-            ns->npos = nn ;                 /* so end the group */
-            break ;
+           ns->npos = nn ;                 /* so end the group */
+           break ;
          }
 
          /* not a trailer, so try to make an element out of it */
@@ -783,7 +783,7 @@ char * NI_type_name( int code )
 /*------------------------------------------------------------------------*/
 /*! Write an element (data or group) to a stream.
     Return value is number of bytes written to the stream.
-    If return is -1, something bad happened.  You should check
+    If return is -1, something bad happened.  You should then check
     the stream with NI_stream_goodcheck(), for example.
 
     If the stream is temporarily unable to write (e.g., the socket
@@ -1123,7 +1123,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
         nout = NI_stream_writestring( ns , "/>\n" ) ; ADDOUT ;
 
 #ifdef NIML_DEBUG
-        fprintf(stderr,"NI_write_element: empty element '%s' had %d total bytes\n",nel->name,ntot) ;
+  NI_dpr("NI_write_element: empty element '%s' had %d total bytes\n",nel->name,ntot) ;
 #endif
         return ntot ;                 /* done with empty element */
       }
@@ -1159,7 +1159,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
         ADDOUT ;
       }
 #ifdef NIML_DEBUG
-      else fprintf(stderr,"NI_write_element: header_only case\n") ;
+      else NI_dpr("NI_write_element: header_only case\n") ;
 #endif
 
       /*- write element trailer -*/
@@ -1170,7 +1170,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       nout = NI_stream_writestring( ns , ">\n\n" ) ; ADDOUT ;
 
 #ifdef NIML_DEBUG
-      fprintf(stderr,"NI_write_element: data element '%s' had %d total bytes\n",nel->name,ntot) ;
+  NI_dpr("NI_write_element: data element '%s' had %d total bytes\n",nel->name,ntot) ;
 #endif
       return ntot ;
 

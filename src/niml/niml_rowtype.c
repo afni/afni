@@ -1039,13 +1039,13 @@ int NI_write_columns( NI_stream_type *ns,
 
    /*-- check stream --*/
 
-   if( ns->bad ){                       /* not connected yet? */
-     jj = NI_stream_goodcheck(ns,66) ;  /* try to connect it */
-     if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
+   if( ns->bad ){                        /* not connected yet? */
+     jj = NI_stream_goodcheck(ns,666) ;  /* try to connect it */
+     if( jj < 1 ) return jj ;            /* 0 is nothing yet, -1 is death */
    }
 #if 1
-   jj = NI_stream_writecheck(ns,66) ;
-   if( jj < 0 ) return jj ;
+   jj = NI_stream_writecheck(ns,666) ;
+   if( jj < 0 ) return jj ;              /* only exit if stream is actually bad */
 #endif
 
    if( ns->type == NI_STRING_TYPE )  /* output to string buffer ==> text mode */
@@ -1213,7 +1213,7 @@ int NI_write_columns( NI_stream_type *ns,
        case NI_BINARY_MODE:   /* jj bytes of binary in wbuf */
          nout = NI_stream_write( ns , wbuf , jj ) ;
 #ifdef NIML_DEBUG
-if( nout != jj ) fprintf(stderr,"NI_write_columns: col#%d sends %d bytes; nout=%d\n",col,jj,nout) ;
+if( nout != jj ) NI_dpr("NI_write_columns: col#%d sends %d bytes; nout=%d\n",col,jj,nout) ;
 #endif
          ADDOUT ;
        break ;
@@ -1354,12 +1354,12 @@ NI_dpr("ENTER NI_read_columns\n") ;
 
    /*-- check stream --*/
 
-   if( ns->bad ){                       /* not connected yet? */
-     jj = NI_stream_goodcheck(ns,66) ;  /* try to connect it */
-     if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
+   if( ns->bad ){                        /* not connected yet? */
+     jj = NI_stream_goodcheck(ns,666) ;  /* try to connect it */
+     if( jj < 1 ) return jj ;            /* 0 is nothing yet, -1 is death */
    }
-   jj = NI_stream_hasinput(ns,66) ;     /* any data to be had? */
-   if( jj < 1 ) return jj ;             /* nope? then vamoose! */
+   jj = NI_stream_hasinput(ns,666) ;     /* any data to be had? */
+   if( jj < 0 ) return jj ;              /* only exit if stream is actually bad */
 
    /* create array of NI_rowtype for columns, etc. */
 

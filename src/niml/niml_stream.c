@@ -8,14 +8,25 @@
 /*! To print a system error message. */
 
 #undef  PERROR
-#define PERROR(x) perror(x)
+
+#ifdef NIML_DEBUG
+# define PERROR(x) perror(x)
+#else
+# define PERROR(x)
+#endif
 
 #include <signal.h>
+#include <fcntl.h>
 
 /*! For tcp - indicates that SIGPIPE is ignored;
     will be set the first time tcp_send is called. */
 
 static int nosigpipe = 0 ;
+
+/*! For tcp - indicates that the SIGURG handler is installed;
+    will be set the first time a TCP socket is created.       */
+
+static int sigurg = 0 ;  /* 02 Jan 2004 */
 
 /*! How to close a socket, given the descriptor ss. */
 
@@ -43,6 +54,101 @@ static int nosigpipe = 0 ;
 
 #define NEXTDMS(dm) MIN(1.1*(dm)+1.01,66.0)
 
+/*-------------------------------------------------------------------*/
+/*! List of currently open streams. */
+
+static int           num_open_streams = 0 ;
+static NI_stream_type ** open_streams = NULL ;
+
+/*-------------------------------------------------------------------*/
+/*! Add a stream to the open list. */
+
+static void add_open_stream( NI_stream_type *ns )
+{
+   int nn = num_open_streams ;
+
+   if( ns == NULL ) return ;  /* bad input */
+
+   open_streams = (NI_stream_type **)realloc( (void *)open_streams ,
+                                              sizeof(NI_stream_type *)*(nn+1) );
+
+   open_streams[nn] = ns ; num_open_streams++ ; return ;
+}
+
+/*-------------------------------------------------------------------*/
+/*! Remove a stream from the open list. */
+
+static void remove_open_stream( NI_stream_type *ns )
+{
+   int nn = num_open_streams , ii,jj ;
+
+   if( nn <= 0 || ns == NULL ) return ;  /* bad input */
+
+   for( ii=0 ; ii < nn ; ii++ )          /* find input */
+     if( open_streams[ii] == ns ) break ;
+   if( ii == nn ) return ;               /* not found!? */
+
+   for( jj=ii+1 ; jj < nn ; jj++ )       /* move those above down */
+     open_streams[jj-1] = open_streams[jj] ;
+
+   open_streams[nn-1] = NULL ; num_open_streams-- ; return ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Signal handler for SIGURG -- for incoming OOB data on a socket.
+    We just close the NI_stream that the socket is attached to.     */
+
+static void tcp_sigurg_handler( int sig )
+{
+   int nn = num_open_streams , ii , sd,sdtop ;
+   NI_stream_type *ns ;
+   fd_set efds ;
+   struct timeval tv ;
+   static volatile int busy=0 ;
+
+   if( sig != SIGURG         ||
+       busy                  ||
+       num_open_streams <= 0 || open_streams == NULL ) return ;
+
+   busy = 1 ;  /* prevent recursion! */
+
+   /* find largest socket descriptor in list of streams,
+      and make list of all open socket descriptors in streams */
+
+   FD_ZERO(&efds) ; sdtop = -1 ;
+   for( ii=0 ; ii < nn ; ii++ ){
+     if( open_streams[ii]       != NULL             &&
+         open_streams[ii]->bad  != MARKED_FOR_DEATH &&
+         open_streams[ii]->type == NI_TCP_TYPE      &&
+         open_streams[ii]->sd   >= 0                  ){
+
+       FD_SET( open_streams[ii]->sd , &efds ) ;
+       if( open_streams[ii]->sd > sdtop ) sdtop = open_streams[ii]->sd;
+     }
+   }
+   if( sdtop < 0 ){ busy=0 ; return; }   /* no sockets found? */
+
+   /* do a select to find which socket has an exceptional condition */
+
+   tv.tv_sec  = 0 ;
+   tv.tv_usec = 666 ;
+   ii = select(sdtop+1, NULL, NULL, &efds, &tv) ;  /* check it */
+   if( ii <= 0 ){ busy=0 ; return; }   /* no sockets found? */
+
+   /* loop over found sockets and close their streams */
+
+   for( ii=0 ; ii < nn ; ii++ ){
+     if( open_streams[ii] != NULL && open_streams[ii]->type == NI_TCP_TYPE ){
+       if( FD_ISSET( open_streams[ii]->sd , &efds ) ){
+         CLOSEDOWN( open_streams[ii]->sd ) ;
+         open_streams[ii]->bad = MARKED_FOR_DEATH ;
+       }
+     }
+   }
+
+   busy=0 ; return ;
+}
+
 /********************************************************************
   Routines to manipulate TCP/IP stream sockets.
 *********************************************************************/
@@ -55,9 +161,9 @@ static int nosigpipe = 0 ;
      -  < 0  ==> wait until something happens (not recommended)
 
    Return values are:
-     -  -1 = some error occured (socket closed at other end?)
-     -  0  = socket is not ready to read
-     -  1  = socket has data
+     - -1 = some error occured (socket closed at other end?)
+     -  0 = socket is not ready to read
+     -  1 = socket has data
 ---------------------------------------------------------------------*/
 
 static int tcp_readcheck( int sd , int msec )
@@ -71,11 +177,11 @@ static int tcp_readcheck( int sd , int msec )
    FD_ZERO(&rfds) ; FD_SET(sd, &rfds) ;         /* check only sd */
 
    if( msec >= 0 ){                             /* set timer */
-      tv.tv_sec  = msec/1000 ;
-      tv.tv_usec = (msec%1000)*1000 ;
-      tvp        = &tv ;
+     tv.tv_sec  = msec/1000 ;
+     tv.tv_usec = (msec%1000)*1000 ;
+     tvp        = &tv ;
    } else {
-      tvp        = NULL ;                       /* forever */
+     tvp        = NULL ;                        /* forever */
    }
 
    ii = select(sd+1, &rfds, NULL, NULL, tvp) ;  /* check it */
@@ -91,30 +197,30 @@ static int tcp_readcheck( int sd , int msec )
      -  < 0  ==> wait until something happens (not recommended)
 
    Return values are
-     -  -1 = some error occured (socket closed at other end?)
-     -   0 = socket is not ready to write
-     -   1 = OK to write to socket
+     - -1 = some error occured (socket closed at other end?)
+     -  0 = socket is not ready to write
+     -  1 = OK to write to socket
 ---------------------------------------------------------------------*/
 
 static int tcp_writecheck( int sd , int msec )
 {
    int ii ;
    fd_set wfds ;
-   struct timeval tv , * tvp ;
+   struct timeval tv , *tvp ;
 
    if( sd < 0 ) return -1 ;                     /* bad socket id */
 
    FD_ZERO(&wfds) ; FD_SET(sd, &wfds) ;         /* check only sd */
 
    if( msec >= 0 ){                             /* set timer */
-      tv.tv_sec  = msec/1000 ;
-      tv.tv_usec = (msec%1000)*1000 ;
-      tvp        = &tv ;
+     tv.tv_sec  = msec/1000 ;
+     tv.tv_usec = (msec%1000)*1000 ;
+     tvp        = &tv ;
    } else {
-      tvp        = NULL ;                       /* forever */
+     tvp        = NULL ;                        /* forever */
    }
 
-   ii = select(sd+1, NULL , &wfds, NULL, tvp) ;  /* check it */
+   ii = select(sd+1, NULL , &wfds, NULL, tvp);  /* check it */
    if( ii == -1 ) PERROR( "tcp_writecheck(select)" ) ;
    return ii ;
 }
@@ -382,9 +488,9 @@ static int tcp_accept( int sd , char **hostname , char **hostaddr )
    str = inet_ntoa( pin.sin_addr ) ;
 
    if( !NI_trust_host(str) ){
-      fprintf(stderr,"\n** ILLEGAL attempt to connect from host %s\n",str) ;
-      CLOSEDOWN( sd_new ) ;
-      return -1 ;
+     fprintf(stderr,"\n** ILLEGAL attempt to connect from host %s\n",str) ;
+     CLOSEDOWN( sd_new ) ;
+     return -1 ;
    }
 
    if( hostaddr != NULL ) *hostaddr = NI_strdup(str) ;
@@ -918,8 +1024,10 @@ static int SHM_goodcheck( SHMioc * ioc , int msec )
    if( ioc->bad == 0 ){
      ii = SHM_alivecheck(ioc->id) ;
      if( ii <= 0 ){                            /* has died */
-        fprintf(stderr,"++ Shared memory connection %s has gone bad!\n",
-                       ioc->name ) ;
+#ifdef NIML_DEBUG
+        NI_dpr("++ Shared memory connection %s has gone bad!\n",
+               ioc->name ) ;
+#endif
         shmdt( ioc->shmbuf ) ; ioc->bad = SHM_IS_DEAD ;
         shmctl( ioc->id , IPC_RMID , NULL ) ; return -1 ;
      }
@@ -1003,10 +1111,10 @@ static int SHM_readcheck( SHMioc *ioc , int msec )
    /** check if the SHMioc is good **/
 
    ii = SHM_goodcheck(ioc,0) ;
-   if( ii == -1 ) return -1 ;            /* some error */
-   if( ii == 0  ){                       /* not good yet */
-      ii = SHM_goodcheck(ioc,msec) ;     /* so wait for it to get good */
-      if( ii <= 0 ) return ii ;          /* if still not good, exit */
+   if( ii == -1 ) return -1 ;           /* some error */
+   if( ii == 0  ){                      /* not good yet */
+     ii = SHM_goodcheck(ioc,msec) ;     /* so wait for it to get good */
+     if( ii <= 0 ) return ii ;          /* if still not good, exit */
    }
 
    /** choose buffer from which to read **/
@@ -1063,10 +1171,10 @@ static int SHM_writecheck( SHMioc *ioc , int msec )
    /** check if the SHMioc is good **/
 
    ii = SHM_goodcheck(ioc,0) ;
-   if( ii == -1 ) return -1 ;         /* some error */
-   if( ii == 0  ){                    /* not good yet */
-      ii = SHM_goodcheck(ioc,msec) ;  /* so wait for it to get good */
-      if( ii <= 0 ) return ii ;       /* if still not good, exit */
+   if( ii == -1 ) return -1 ;        /* some error */
+   if( ii == 0  ){                   /* not good yet */
+     ii = SHM_goodcheck(ioc,msec) ;  /* so wait for it to get good */
+     if( ii <= 0 ) return ii ;       /* if still not good, exit */
    }
 
    /** choose buffer to which to write **/
@@ -1091,11 +1199,11 @@ static int SHM_writecheck( SHMioc *ioc , int msec )
    if( msec < 0 ) msec = 999999999 ;      /* a long time (11+ days) */
 
    for( ms=0 ; ms < msec ; ms += dms ){
-      nread  = (*bend - *bstart + bsize + 1) % bsize ;
-      nwrite = bsize - 1 - nread ;
-      if( nwrite > 0 ) return nwrite ;
-      dms = NEXTDMS(dms) ; dms = MIN(dms,msec-ms) ; NI_sleep(dms) ;
-      ii = SHM_goodcheck(ioc,0) ; if( ii == -1 ) return -1 ;
+     nread  = (*bend - *bstart + bsize + 1) % bsize ;
+     nwrite = bsize - 1 - nread ;
+     if( nwrite > 0 ) return nwrite ;
+     dms = NEXTDMS(dms) ; dms = MIN(dms,msec-ms) ; NI_sleep(dms) ;
+     ii = SHM_goodcheck(ioc,0) ; if( ii == -1 ) return -1 ;
    }
    nread  = (*bend - *bstart + bsize + 1) % bsize ;
    nwrite = bsize - 1 - nread ;
@@ -1479,40 +1587,51 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       ns->bin_thresh = -1 ;     /* write in text mode */
 
+      /* 02 Jan 2004: setup SIGURG handler for OOB data reception. */
+
+      if( !sigurg ){ signal(SIGURG,tcp_sigurg_handler); sigurg = 1; }
+
       /** attach to incoming call "r" **/
 
       if( do_accept ){
          ns->io_mode = NI_INPUT_MODE ;
          ns->sd = tcp_listen( port ) ;                   /* set up to listen  */
          if( ns->sd < 0 ){                               /* error? must die!  */
-            NI_free(ns->buf); NI_free(ns); return NULL;
+           NI_free(ns->buf); NI_free(ns); return NULL;
          }
          ns->bad = TCP_WAIT_ACCEPT ;                     /* not connected yet */
          ii = tcp_readcheck(ns->sd,1) ;                  /* see if ready      */
          if( ii > 0 ){                                   /* if socket ready:  */
-            jj = tcp_accept( ns->sd , NULL,&hend ) ;     /* accept connection */
-            if( jj >= 0 ){                               /* if accept worked  */
-               CLOSEDOWN( ns->sd ) ;                     /* close old socket  */
-               NI_strncpy(ns->name,hend,256) ;           /* put IP into name  */
-               NI_free(hend); ns->bad = 0; ns->sd = jj;  /* and ready to go!  */
-            }
+           jj = tcp_accept( ns->sd , NULL,&hend ) ;      /* accept connection */
+           if( jj >= 0 ){                                /* if accept worked  */
+             CLOSEDOWN( ns->sd ) ;                       /* close old socket  */
+             NI_strncpy(ns->name,hend,256) ;             /* put IP into name  */
+             NI_free(hend); ns->bad = 0; ns->sd = jj ;   /* and ready to go!  */
+             fcntl( ns->sd, F_SETOWN, (int)getpid() ) ;  /* 02 Jan 2004 */
+           }
          }
+
+         add_open_stream(ns) ;   /* 02 Jan 2004 */
          return ns ;
       }
 
       /** place an outgoing call "w" **/
 
       if( do_create ){
-         struct hostent *hostp ;
-         ns->io_mode = NI_OUTPUT_MODE ;
-         hostp = gethostbyname(host) ;                   /* lookup host on net */
-         if( hostp == NULL ){                            /* fails? must die!   */
-            NI_free(ns->buf); NI_free(ns); return NULL;
-         }
-         ns->sd  = tcp_connect( host , port ) ;          /* connect to host    */
-         ns->bad = (ns->sd < 0) ? TCP_WAIT_CONNECT : 0 ; /* fails? must wait   */
-         NI_strncpy(ns->name,host,256) ;                 /* save the host name */
-         return ns ;
+        struct hostent *hostp ;
+        ns->io_mode = NI_OUTPUT_MODE ;
+        hostp = gethostbyname(host) ;                   /* lookup host on net */
+        if( hostp == NULL ){                            /* fails? must die!   */
+          NI_free(ns->buf); NI_free(ns); return NULL;
+        }
+        ns->sd  = tcp_connect( host , port ) ;          /* connect to host    */
+        ns->bad = (ns->sd < 0) ? TCP_WAIT_CONNECT : 0 ; /* fails? must wait   */
+        NI_strncpy(ns->name,host,256) ;                 /* save the host name */
+        if( ns->sd >= 0 )
+          fcntl( ns->sd, F_SETOWN, (int)getpid() ) ;    /* 02 Jan 2004 */
+
+        add_open_stream(ns) ;   /* 02 Jan 2004 */
+        return ns ;
       }
       return NULL ;  /* should never be reached */
    }
@@ -1547,6 +1666,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
+      add_open_stream(ns) ;  /* 02 Jan 2004 */
       return ns ;
    }
 #endif /* DONT_USE_SHM */
@@ -1591,6 +1711,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       else
          ns->fsize = -1 ;
 
+      add_open_stream(ns) ;  /* 02 Jan 2004 */
       return ns ;
    }
 
@@ -1650,6 +1771,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       ns->fsize = -1 ;
 
+      add_open_stream(ns) ;  /* 02 Jan 2004 */
       return ns ;
    }
 
@@ -1688,6 +1810,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
+      add_open_stream(ns) ;  /* 02 Jan 2004 */
       return ns ;
    }
 
@@ -1720,6 +1843,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
+      add_open_stream(ns) ;  /* 02 Jan 2004 */
       return ns ;
    }
 
@@ -1728,7 +1852,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
 /*---------------------------------------------------------------------------*/
 /*! Re-open a NI_stream on a different channel.  This is only possible
-    if the input stream (ns) is tcp: type.
+    if the input original stream (ns) is tcp: type.
      - The new stream (nname) can be of the form "tcp::port",
        which will reopen the stream to the same host on the new port.
      - Or the new stream can be of the form "shm:key:size1+size2",
@@ -1773,16 +1897,16 @@ int NI_stream_reopen( NI_stream_type *ns , char *nname )
    } else if( strncmp(nname,"shm:" ,4) == 0 ){            /* new is shm:? */
       char *eee = getenv("AFNI_NOSHM") ;                  /* 06 Jun 2003 */
       if( eee != NULL && toupper(*eee) == 'Y' ){          /* shm: is disabled */
-        fprintf(stderr,"** NIML shm: is disabled\n");
+        fprintf(stderr,"** NI_stream_reopen: shm is disabled\n");
         return 0 ;
       }
       if( strstr(ns->orig_name,":localhost:") == NULL ){  /* can't do shm: */
-        fprintf(stderr,"** NIML shm: not localhost!\n");  /* but on localhost */
+        fprintf(stderr,"** NI_stream_reopen: shm not localhost!\n");  /* but on localhost */
         return 0 ;
       }
 #endif
    } else {
-     fprintf(stderr,"** NIML reopen: illegal input '%s'\n",nname);
+     fprintf(stderr,"** NI_stream_reopen: illegal input '%s'\n",nname);
      return 0 ;                                           /* bad new name */
    }
 
@@ -1793,12 +1917,12 @@ NI_dpr("NI_stream_reopen: waiting for original connection to be good\n") ;
    /* wait for existing stream to be connected */
 
    for( kk=0 ; kk < 10 ; kk++ ){
-      jj = NI_stream_goodcheck( ns , 1000 ) ;   /* wait 1 sec */
-      if( jj > 0 ) break;                       /* good :-) */
-      if( kk == 0 )
-        fprintf(stderr,"Waiting for socket connection") ;
-      else
-        fprintf(stderr,".") ;
+     jj = NI_stream_goodcheck( ns , 1000 ) ;   /* wait 1 sec */
+     if( jj > 0 ) break;                       /* good :-) */
+     if( kk == 0 )
+       fprintf(stderr,"++ NI_stream_reopen: Waiting for socket connection") ;
+     else
+       fprintf(stderr,".") ;
    }
    if( kk == 10 ){ fprintf(stderr," *Failed*\n"); return 0; }
    if( kk >  0  )  fprintf(stderr," *Good*\n") ;
@@ -1833,7 +1957,7 @@ NI_dpr("NI_stream_reopen: sending message %s",msg) ;
 
    jj = NI_stream_write( ns , msg , kk ) ;
    if( jj < kk ){
-     NI_stream_close(nsnew) ; return 0 ;  /* bad write! */
+     NI_stream_closenow(nsnew) ; return 0 ;  /* bad write! */
    }
 
    /* now wait for other program to open the new stream */
@@ -1844,7 +1968,7 @@ NI_dpr("NI_stream_reopen: waiting for new stream to be good\n") ;
 
    jj = NI_stream_goodcheck( nsnew , 5000 ) ;  /* wait 5 sec */
    if( jj <= 0 ){
-     NI_stream_close(nsnew) ; return 0 ;  /* never got good */
+     NI_stream_closenow(nsnew) ; return 0 ;  /* never got good */
    }
 
    /* if here, new stream is ready:
@@ -2057,42 +2181,43 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
       case NI_FILE_TYPE:
         if( ns->fp == NULL ) return -1 ;        /* should never happen */
         if( ns->io_mode == NI_INPUT_MODE )
-           return NI_stream_readcheck(ns,0) ;   /* input mode */
+          return NI_stream_readcheck(ns,0) ;    /* input mode */
         else
-           return 1 ;                           /* output mode */
+          return 1 ;                            /* output mode */
 
       case NI_FD_TYPE:
-           return 1 ;                           /* no way to check */
+          return 1 ;                            /* no way to check */
 
       /** String I/O **/
 
       case NI_STRING_TYPE:
         if( ns->io_mode == NI_INPUT_MODE )
-           return NI_stream_readcheck(ns,0) ;   /* input mode */
+          return NI_stream_readcheck(ns,0) ;    /* input mode */
         else
-           return 1 ;                           /* output mode */
+          return 1 ;                            /* output mode */
 
       /** remote Web input */
 
       case NI_REMOTE_TYPE:
         if( ns->io_mode == NI_INPUT_MODE )
-           return NI_stream_readcheck(ns,0) ;   /* input mode */
+          return NI_stream_readcheck(ns,0) ;    /* input mode */
         else
-           return -1 ;                          /* output mode */
+          return -1 ;                           /* output mode */
 
       /** Socket I/O **/
 
       case NI_TCP_TYPE:
         if( ns->bad == 0 ){  /** if good before, then check if is still good **/
-           int ich = 1 ;
-           ich = tcp_alivecheck(ns->sd) ;
+          int ich ;
+          ich = tcp_alivecheck(ns->sd) ;
 
-           if( ich == 0 )  /* 17 Jun 2003 */
-             fprintf(stderr,"++ Socket %s (port %d) has gone bad!\n",
-                     ns->name, ns->port ) ;
+#ifdef NIML_DEBUG
+          if( ich == 0 )  /* 17 Jun 2003 */
+            NI_dpr("++ Socket %s (port %d) has gone bad!\n",ns->name,ns->port);
+#endif
 
-           if( ich == 0 ) return -1 ;
-           return 1 ;
+          if( ich == 0 ) return -1 ;
+          return 1 ;
         }
 
         /** wasn't good before, so check if that condition has changed **/
@@ -2100,32 +2225,35 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
         /** TCP/IP waiting to accept call from another host **/
 
         if( ns->bad == TCP_WAIT_ACCEPT ){
-           ii = tcp_readcheck(ns->sd,msec) ;             /* see if ready      */
-           if( ii > 0 ){                                 /* if socket ready:  */
-              jj = tcp_accept( ns->sd , NULL,&bbb ) ;    /* accept connection */
-              if( jj >= 0 ){                             /* if accept worked  */
-                 CLOSEDOWN( ns->sd ) ;                   /* close old socket  */
-                 NI_strncpy(ns->name,bbb,256) ;          /* put IP into name  */
-                 NI_free(bbb); ns->bad = 0; ns->sd = jj; /* and ready to go!  */
-              }
-           }
+          ii = tcp_readcheck(ns->sd,msec) ;             /* see if ready      */
+          if( ii > 0 ){                                 /* if socket ready:  */
+            jj = tcp_accept( ns->sd , NULL,&bbb ) ;     /* accept connection */
+            if( jj >= 0 ){                              /* if accept worked  */
+              CLOSEDOWN( ns->sd ) ;                     /* close old socket  */
+              NI_strncpy(ns->name,bbb,256) ;            /* put IP into name  */
+              NI_free(bbb); ns->bad = 0; ns->sd = jj;   /* and ready to go!  */
+              fcntl( ns->sd, F_SETOWN, (int)getpid() ); /* 02 Jan 2004 */
+            }
+          }
         }
 
         /** TCP/IP waiting to connect call to another host **/
 
         else if( ns->bad == TCP_WAIT_CONNECT ){
-           int dms=0 , ms ;
+          int dms=0 , ms ;
 
-           if( msec < 0 ) msec = 999999999 ;        /* a long time (11+ days) */
-           for( ms=0 ; ms < msec ; ms += dms ){
-             ns->sd = tcp_connect( ns->name , ns->port );  /* try to connect  */
-             if( ns->sd >= 0 ) break ;                     /* worked? get out */
-             dms = NEXTDMS(dms); dms = MIN(dms,msec-ms); NI_sleep(dms);
-           }
-           if( ns->sd < 0 )                                  /* one last try? */
-             ns->sd  = tcp_connect( ns->name , ns->port ) ;
+          if( msec < 0 ) msec = 999999999 ;        /* a long time (11+ days) */
+          for( ms=0 ; ms < msec ; ms += dms ){
+            ns->sd = tcp_connect( ns->name , ns->port );  /* try to connect  */
+            if( ns->sd >= 0 ) break ;                     /* worked? get out */
+            dms = NEXTDMS(dms); dms = MIN(dms,msec-ms); NI_sleep(dms);
+          }
+          if( ns->sd < 0 )                                  /* one last try? */
+            ns->sd  = tcp_connect( ns->name , ns->port ) ;
 
-           if( ns->sd >= 0 ) ns->bad = 0 ;                   /* succeeded?    */
+          if( ns->sd >= 0 ) ns->bad = 0 ;                   /* succeeded?    */
+          if( ns->sd >= 0 )
+            fcntl( ns->sd, F_SETOWN, (int)getpid() );         /* 02 Jan 2004 */
         }
 
         /** see if it turned from bad to good **/
@@ -2143,7 +2271,14 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 
 void NI_stream_close_keep( NI_stream_type *ns , int flag )
 {
-   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return ;
+   if( ns == NULL ) return ;
+
+   if( ns->bad == MARKED_FOR_DEATH ){
+     if( ns->buf != NULL ){ NI_free(ns->buf); ns->buf = NULL;}
+     return ;
+   }
+
+   remove_open_stream( ns ) ;  /* 02 Jan 2004 */
 
    /*-- 20 Dec 2002: write a farewell message to the other end? --*/
 
@@ -2152,7 +2287,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
        NI_stream_writecheck(ns,1) > 0                          ){
 
      NI_stream_writestring( ns , "<ni_do ni_verb='close_this' />\n" ) ;
-     NI_sleep(1) ;  /* give it some time to read the message */
+     NI_sleep(1) ;  /* give it a moment to read the message */
    }
 
    /*-- mechanics of closing for different stream types --*/
@@ -2178,7 +2313,11 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
       break ;
 
       case NI_TCP_TYPE:
-        if( ns->sd >= 0 ) CLOSEDOWN(ns->sd) ;  /* close socket */
+        if( ns->sd >= 0 ){
+          tcp_send( ns->sd , "X" , 1 , MSG_OOB ) ;   /* 02 Jan 2004 */
+          NI_sleep(1) ;
+          CLOSEDOWN(ns->sd) ;  /* close socket */
+        }
       break ;
    }
 
@@ -2198,6 +2337,15 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
 void NI_stream_close( NI_stream_type *ns )
 {
    NI_stream_close_keep(ns,1) ; NI_free(ns) ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Close a NI_stream without sending a "close_this"
+    message to the other end of the stream.         */
+
+void NI_stream_closenow( NI_stream_type *ns )
+{
+   NI_stream_close_keep(ns,0) ; NI_free(ns) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2250,8 +2398,8 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
         ii = NI_stream_goodcheck(ns,0) ;       /* check if it is connected */
         if( ii == -1 ) return -1 ;             /* some error */
         if( ii == 0  ){                        /* not good yet */
-           ii = NI_stream_goodcheck(ns,msec) ; /* so wait for it to get good */
-           if( ii != 1 ) return ii ;           /* if still not good, exit */
+          ii = NI_stream_goodcheck(ns,msec) ;  /* so wait for it to get good */
+          if( ii != 1 ) return ii ;            /* if still not good, exit */
         }
         ii = tcp_alivecheck( ns->sd ) ;        /* see if it is still open  */
         if( !ii ) return -1 ;                  /* if not open, error exit  */
@@ -2325,12 +2473,15 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
       /** tcp: ==> uses the Unix "select" mechanism **/
 
       case NI_TCP_TYPE:
-        ii = NI_stream_goodcheck(ns,0) ;
-        if( ii == -1 ) return -1 ;             /* some error */
-        if( ii == 0  ){                        /* not good yet */
-           ii = NI_stream_goodcheck(ns,msec);  /* so wait for it to get good */
-           if( ii != 1 ) return ii ;           /* if still not good, exit */
+        if( ns->bad ){                         /* not marked as good */
+          ii = NI_stream_goodcheck(ns,0) ;     /* check if has become good */
+          if( ii == -1 ) return -1 ;           /* some error when checking */
+          if( ii == 0  ){                      /* not good yet, */
+            ii = NI_stream_goodcheck(ns,msec); /* so wait for it to get good */
+            if( ii != 1 ) return ii ;          /* if still not good, exit */
+          }
         }
+                                               /* socket is good, so */
         return tcp_writecheck(ns->sd,msec) ;   /* check if we can write bytes */
 
       /** fd: ==> use select, as in tcp: **/
