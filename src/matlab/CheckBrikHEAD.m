@@ -224,13 +224,13 @@ end
 		end
 
 		if (isfield(Info, 'TAGSET_NUM') & isfield(Info, 'TAGSET_FLOATS')),
-			if (length(Info.TAGSET_FLOATS) ~= (TAGSET_NUM(1) .* TAGSET_NUM(2)) ),
+			if (length(Info.TAGSET_FLOATS) ~= (Info.TAGSET_NUM(1) .* Info.TAGSET_NUM(2)) ),   % Ask Ziad about this later
 				err = 1; ErrMessage = sprintf('Error %s: Length of TAGSET_FLOATS must equal TAGSET_NUM(1) * TAGSET_NUM(2).', FuncName); errordlg(ErrMessage); return;	
 			end
 		end
 
 		if (isfield(Info, 'TAGSET_NUM') & isfield(Info, 'TAGSET_LABELS')),
-			if (WordCount(Info.TAGSET_LABELS, '~') ~= TAGSET_NUM(1)),
+			if (WordCount(Info.TAGSET_LABELS, '~') ~= Info.TAGSET_NUM(1)),   % Ask Ziad later
 				err = 1; ErrMessage = sprintf('Error %s: TAGSET_LABELS must contain TAGSET_NUM(1) ~ delimited strings.', FuncName); errordlg(ErrMessage); return;	
 			end
 		end
