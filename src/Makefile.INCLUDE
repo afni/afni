@@ -915,6 +915,8 @@ install_lib: $(LIBDIR)
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
        afni_graph.h afni_setup.h machdep.h
 
+debugtrace.o:debugtrace.h
+
 afni_vcheck.o:afni.h
 
 afni_splash.o:afni_splash.h imseq.h

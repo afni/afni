@@ -913,7 +913,7 @@ int main( int argc , char * argv[] )
    machdep() ; /* RWCox: 20 Apr 2001 */
 
 #ifdef CATCH_SIGNALS
-   signal(SIGINT ,AFNI_sigfunc) ;   /* may be superseded by DBG_SIGNALS below */
+   signal(SIGINT ,AFNI_sigfunc) ;   /* may be superseded by mainENTRY below */
    signal(SIGBUS ,AFNI_sigfunc) ;
    signal(SIGSEGV,AFNI_sigfunc) ;
    signal(SIGTERM,AFNI_sigfunc) ;

@@ -789,6 +789,23 @@ static void optmenu_EV( Widget w , XtPointer cd ,
    char *slab=NULL ;
    XmString xstr ;
 
+   /*-- Attempt to fix a Motif problem with Button 2
+        when the optmenu is itself in a popup menu.
+        The pointer grab is never released, so the
+        X server is effectively frozen forever (or
+        until the afni process is SIGTERM-ed). Here,
+        if we see Button 2, then we manually ungrab
+        the pointer.  This has the side-effect of
+        popping down the popup menu.  If the optmenu
+        is NOT in a popup menu, it has no side effect. --*/
+
+   if( bev->button == Button2 ){
+      XUngrabPointer( bev->display , CurrentTime ) ;
+      return ;
+   }
+
+   /*-- start of actual work --*/
+
 ENTRY("optmenu_EV") ;
 
    /** sanity checks **/

@@ -3365,9 +3365,13 @@ void REND_xhair_EV( Widget w , XtPointer cd ,
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
          if( event->button == Button3 || event->button == Button2 ){
-            allow_MCW_optmenu_popup(1) ;
+#if 0
+            allow_MCW_optmenu_popup(0) ;
+#endif
             MCW_choose_ovcolor( w,dc , xhair_ovc , REND_xhair_ovc_CB,NULL ) ;
+#if 0
             allow_MCW_optmenu_popup(1) ;
+#endif
          }
       }
       break ;
@@ -4838,7 +4842,9 @@ void REND_func_widgets(void)
                             XtListTail           /* last in queue */
                           ) ;
 
+#if 0
    allow_MCW_optmenu_popup(0) ;  /* 12 Dec 2001 */
+#endif
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , wfunc_pbar_menu ,
@@ -4947,7 +4953,9 @@ void REND_func_widgets(void)
       XtUnmanageChild( wfunc_pbar_palette_av->wrowcol ) ;
    }
 
+#if 0
    allow_MCW_optmenu_popup(1) ;  /* 12 Dec 2001 */
+#endif
 
    /**-- Color pbar to control intensity-to-color mapping --**/
 

@@ -3392,3 +3392,10 @@
       environment variable AFNI_MENU_COLSIZE.
  * Modified bbox.c to allow user to use Button-3 to popup a list chooser
       for optmenus.
+
+13 Dec 2001
+ * Modified bbox.c to do XUngrabPointer if user presses Button-2 to try
+      to popup a list chooser for optmenus.  If the optmenu is inside a
+      popup menu, Motif never does an XUngrabPointer, thus freezing the
+      X server until afni is killed from outside.  This seems to avoid
+      that problem.

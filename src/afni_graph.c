@@ -216,7 +216,9 @@ ENTRY("new_MCW_grapher") ;
             XmNbottomAttachment , XmATTACH_FORM ,
          NULL ) ;
 
-   allow_MCW_optmenu_popup( 1 ) ;  /* 12 Dec 2001 */
+#if 0
+   allow_MCW_optmenu_popup( 0 ) ;  /* 12 Dec 2001 */
+#endif
 
    /*------------------------*/
    /*--- FIM Menu Buttons ---*/
@@ -744,7 +746,9 @@ ENTRY("new_MCW_grapher") ;
 
    XtManageChild( grapher->option_rowcol ) ;
 
+#if 0
    allow_MCW_optmenu_popup( 1 ) ;  /* 12 Dec 2001 */
+#endif
 
    /** initialize the internal parameters **/
 

@@ -2270,7 +2270,9 @@ STATUS("making func->rowcol") ;
                             XtListTail           /* last in queue */
                           ) ;
 
-   allow_MCW_optmenu_popup(1) ;  /* 12 Dec 2001 */
+#if 0
+   allow_MCW_optmenu_popup(0) ;  /* 12 Dec 2001 */
+#endif
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , func->pbar_menu ,
@@ -2463,7 +2465,9 @@ STATUS("making func->rowcol") ;
    func->pbar_transform2D_index = 0 ;
    func->pbar_transform2D_func  = NULL ;
 
+#if 0
    allow_MCW_optmenu_popup(1) ;  /* 12 Dec 2001 */
+#endif
 
    /**-- Color pbar to control intensity-to-color mapping --**/
 
