@@ -12,7 +12,7 @@
 -------------------------------------------------------------------------*/
 
 #define MAX_TAG_LABEL  40
-#define MAX_TAG_NUM   100
+#define MAX_TAG_NUM   666
 
 typedef struct {
    int   set , ti ;
