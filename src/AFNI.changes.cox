@@ -1985,3 +1985,8 @@
      function to afni_plugin.[ch].
  * Fixed error in setup of Range choosers in plug_histog.c - they
      were initialized to incorrect values.
+
+19 Jan 2000
+ * Modified to3d.c to count and report number of negative voxels when
+     the input images are shorts - this is to provide a check for the
+     need for byte-swapping.

@@ -26,6 +26,8 @@ static char *  dbrick = NULL ;  /* global image data array */
 static int     geomparent_loaded = 0 ;
 static int     geometry_loaded   = 0 ;
 
+static int     negative_shorts   = 0 ;  /* 19 Jan 2000 */
+
 #ifdef AFNI_DEBUG
 #  define QQQ(str) (printf("to3d: %s\n",str),fflush(stdout))
 #else
@@ -85,6 +87,22 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    MCW_help_CB(NULL,NULL,NULL) ;
    MCW_alter_widget_cursor( wset.topshell , -XC_left_ptr , "yellow","blue" ) ;
+
+   if( negative_shorts ){  /* 19 Jan 2000 */
+      char msg[256] ;
+
+      sprintf(msg , " \n"
+                    " WARNING: %d negative voxels were\n"
+                    "          read in images of shorts.\n"
+                    "          It is possible the input\n"
+                    "          images need byte-swapping.\n \n"
+                    " ** I recommend that you View Images **\n" ,
+              negative_shorts ) ;
+      
+      (void) MCW_popup_message( wset.anatomy_parent_label , msg ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
+
 }
 
 /*-----------------------------------------------------------------------*/
@@ -130,6 +148,11 @@ int main( int argc , char * argv[] )
 
    T3D_initialize_user_data() ;
    T3D_read_images() ;
+
+   if( negative_shorts )
+      printf("WARNING: %d negative voxels were read in images of shorts.\n"
+             "         It is possible the input images need byte-swapping.\n",
+             negative_shorts ) ;
 
 QQQ("main1");
 
@@ -3397,7 +3420,7 @@ void T3D_read_images(void)
    int   nonshort_num=0 , nonfloat_num=0 , noncomplex_num=0 , nonbyte_num=0 ;
    int     gnim ;
    char ** gname ;
-   int time_dep , ltt,kzz , ntt,nzz ;
+   int time_dep , ltt,kzz , ntt,nzz , nvoxt ;
    int nfloat_err=0 ;  /* 14 Sep 1999 */
 
 #ifdef AFNI_DEBUG
@@ -3507,6 +3530,7 @@ printf("T3D_read_images: mri_imcount totals nz=%d\n",nz) ;
 
    dsize  = mri_datum_size( (MRI_TYPE) argopt.datum_all ) ;
    dbrick = bar = XtMalloc( dsize * nx * ny * nz ) ;
+   nvoxt  = nx * ny * nz ;
 
 #ifdef AFNI_DEBUG
 printf("T3D_read_images: first file (%s) has nx=%d ny=%d #im=%d\n",
@@ -3721,6 +3745,14 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
              nfloat_err) ;
 
    MCW_free_expand( gnim , gname ) ;
+
+   /**-- 19 Jan 2000: check inputs shorts for negativity --**/
+
+   if( argopt.datum_all == MRI_short ){
+      short * sar = (short *) dbrick ;
+      for( ii=0 ; ii < nvoxt ; ii++ )
+         if( sar[ii] < 0 ) negative_shorts++ ;
+   }
 
    /**--- print conversion information ---**/
 
