@@ -82,6 +82,10 @@ static char * license[] = {
    "  by R Rivest, and so are derived from the RSA Data Security, Inc MD5\n" ,
    "  Message-Digest Algorithm.  See file \"thd_md5.c\" for the RSA Copyright\n" ,
    "  notice.\n" ,
+   "\n"
+   "  The mpegtoppm program is based upon code from the libmpeg2 project:\n"
+   "    http://libmpeg2.sourceforge.net\n"
+   "  This project is also released under the GPL.\n"
    "\n" ,
    "  The sonnets of William Shakespeare are not copyrighted.  At that time --\n" ,
    "  the most creative literary period in history -- there was no copyright.\n" ,
