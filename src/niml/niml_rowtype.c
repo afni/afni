@@ -148,6 +148,9 @@ static void setup_basic_types(void)
      rt->part_dim    = NI_malloc(sizeof(int)) ;
      rt->part_dim[0] = -1 ;                     /* fixed size part */
 
+     rt->part_rtp    = NI_malloc(sizeof(NI_rowtype *)) ;
+     rt->part_rtp[0] = rt ;
+
      ROWTYPE_register( rt ) ;
    }
 
@@ -186,6 +189,9 @@ static void setup_basic_types(void)
    rt->part_dim    = NI_malloc(sizeof(int)) ;
    rt->part_dim[0] = -1 ;
 
+   rt->part_rtp    = NI_malloc(sizeof(NI_rowtype *)) ;
+   rt->part_rtp[0] = rt ;
+
    ROWTYPE_register( rt ) ;
 
    if( ROWTYPE_debug )
@@ -203,8 +209,9 @@ static void setup_basic_types(void)
 /*--------------------------------------------------------------------------*/
 /* Define a NI_rowtype, which is an expression of a C struct type (with
    some restrictions).
-    - tname = name to call this thing
-    - tdef = definition of the type
+    - tname = Name to call this thing (must be unique and can't be one
+              of the builtin types listed below).
+    - tdef = Definition of the type:
        - A list of type names ('components') separated by commas.
        - A type name is one of the NIML basic types
          ("byte", "short", "int", "float", "double", "complex", "rgb", "rgba"),
@@ -215,7 +222,7 @@ static void setup_basic_types(void)
        - A type name may be preceded/appended by an integer count,
          as in "int,4*float" or "int,float[4]".
        - Variable dimension arrays may be defined, IF the size of the
-         array is an int component of this new rowtype that occurs before
+         array is an int component of this new rowtype which occurs before
          the array definition:
            - "int,float[#1]" defines the second component to be
              a float array whose length is given by the value of
@@ -247,12 +254,6 @@ static void setup_basic_types(void)
    The return value is a positive integer code which can be used to
    identify this NI_rowtype (the tname string can also be used for
    this purpose).  If -1 is returned, something bad transpired.
-
-   The NI_rowtype keeps track of the offsets of each field in these
-   putative structs.  For example, you can define a rowmap for
-   packing/unpacking structs to/from NI_elements using a function like
-     - NI_define_rowmap_from_rowtype_code( nel , code ) ;
-     - NI_define_rowmap_from_rowtype_name( nel , tname) ;
 ----------------------------------------------------------------------------*/
 
 int NI_rowtype_define( char *tname , char *tdef )
@@ -409,6 +410,8 @@ int NI_rowtype_define( char *tname , char *tdef )
    rt->part_dim = NI_malloc( sizeof(int) * rt->part_num ) ;
    rt->part_siz = NI_malloc( sizeof(int) * rt->part_num ) ;
 
+   rt->part_rtp = NI_malloc( sizeof(NI_rowtype *) * rt->part_num ) ;
+
    almax = 1 ;  /* will be largest type_alignment of any part */
    cbase = 0 ;  /* base offset into struct for next component */
    id    = 0 ;  /* part number we are about to work on */
@@ -424,15 +427,19 @@ int NI_rowtype_define( char *tname , char *tdef )
          if( jd > 0 ) cbase += (pointer_alignment-jd) ;
        }
 
-       /* note that this is the only case where a part_typ
+       /* Note that this is the only case where a part_typ
           might end up as a derived type - normally, part_typ
-          will be a builtin type code (NI_BYTE .. NI_STRING)  */
+          will be a builtin type code (NI_BYTE .. NI_STRING).
+          Note the limitation that the type of variable dim
+          arrays be a fixed size type.                        */
 
        rt->part_typ[id] = rt->comp_typ[ii] ;
        rt->part_off[id] = cbase ;
        rt->part_siz[id] = pointer_size ;
+       rt->part_rtp[id] = NI_rowtype_find_code( rt->part_typ[id] ) ;
 
-       /* count the number of parts before the dimension component into kd */
+       /* count number of parts before the dimension component into kd */
+       /* so we can store the part index of this dimension component   */
 
        for( jd=kd=0 ; jd < rt->comp_dim[ii] ; jd++ ){
          if( rt->comp_dim[jd] >= 0 ){   /* this component is a pointer itself */
@@ -466,11 +473,12 @@ int NI_rowtype_define( char *tname , char *tdef )
        rt->part_typ[id] = qt->part_typ[0] ;  /* first part from component */
        rt->part_off[id] = cbase ;             /* goes at the current base */
        rt->part_dim[id] = -1 ;   /* 1st part cannot be variable dim array */
+       rt->part_rtp[id] = NI_rowtype_find_code( rt->part_typ[id] ) ;
 
-       kd = type_alignment[ rt->part_typ[id] ] ;     /* alignment of part */
+       kd = rt->part_rtp[id]->algn ;                 /* alignment of part */
        if( kd > almax ) almax = kd ;   /* keep track of largest alignment */
 
-       last_size = type_size[ rt->part_typ[id] ] ;    /* size of 1st part */
+       last_size = rt->part_rtp[id]->size ;           /* size of 1st part */
        rt->part_siz[id] = last_size ;
 
        id++ ;  /* prepare to add next part */
@@ -480,12 +488,13 @@ int NI_rowtype_define( char *tname , char *tdef )
        for( jj=1 ; jj < np ; jj++,id++ ){
 
          rt->part_typ[id] = qt->part_typ[jj] ;     /* type of new part      */
+         rt->part_rtp[id] = NI_rowtype_find_code( rt->part_typ[id] ) ;
 
          if( qt->part_dim[jj] < 0 ){        /******* fixed size part       **/
 
-           nn = last_size                        ; /* # bytes in last part  */
-           jd = rt->part_off  [id-1            ] ; /* offset of last part   */
-           kd = type_alignment[rt->part_typ[id]] ; /* how to align new part */
+           nn = last_size ;                        /* # bytes in last part  */
+           jd = rt->part_off[id-1] ;               /* offset of last part   */
+           kd = rt->part_rtp[id]->algn ;           /* how to align new part */
            if( kd > almax ) almax = kd ; /* keep track of largest alignment */
 
            nn += jd ;  /* next available byte = sum of last offset and size */
@@ -496,14 +505,14 @@ int NI_rowtype_define( char *tname , char *tdef )
            rt->part_off[id] = nn ;
            rt->part_dim[id] = -1 ;               /* mark as fixed size part */
 
-           last_size = type_size[rt->part_typ[id]] ;   /* size of this part */
+           last_size = rt->part_rtp[id]->size ;        /* size of this part */
            rt->part_siz[id] = last_size ;
 
          } else {                           /***** variable dim array part **/
 
            nn = last_size ;
            jd = rt->part_off[id-1] ;
-           kd = pointer_alignment ;
+           kd = pointer_alignment ;        /* we are storing a pointer here */
            if( kd > almax ) almax = kd ;
            nn += jd ;
            if( kd > 1 ){
@@ -533,7 +542,7 @@ int NI_rowtype_define( char *tname , char *tdef )
 
    } /* end of loop over components */
 
-   /* now compute the overall size of this new rowtype;
+   /* now compute the overall size of this new rowtype:
       at this point,
       cbase = next byte offset available after last part;
       this would be the size, but may have to be pushed
@@ -544,7 +553,9 @@ int NI_rowtype_define( char *tname , char *tdef )
      jd = cbase % rt->algn ;
      if( jd > 0 ) cbase += (rt->algn-jd) ;
    }
-   rt->size = cbase ;
+   rt->size = cbase ;  /* this size is the sizeof(struct),
+                          and doesn't include var dim arrays or
+                          Strings, just the pointers to those things */
 
    /* 26 Dec 2002: Compute the sum of the part sizes
                    (zero if this has variable size arrays).
@@ -728,28 +739,19 @@ int NI_rowtype_vsize( NI_rowtype *rt , void *dpt )
    if( rt->psiz > 0 ) return rt->psiz ; /* fixed size struct */
    if( dat == NULL  ) return 0 ;        /* var size struct with no data? */
 
-#if 0
-fprintf(stderr,"NI_rowtype_vsize:\n") ;
-#endif
-
-   /* loop over parts, adding up sizes */
+   /* loop over parts, adding up part sizes,
+      including var dim arrays and String parts */
 
    for( ii=ss=0 ; ii < rt->part_num ; ii++ ){
-     if( rt->part_typ[ii] == NI_STRING ){      /* string is special */
+     if( rt->part_typ[ii] == NI_STRING ){      /* String is special */
        char *str = *((char **)((dat) + (rt)->part_off[ii])) ;
        ss += NI_strlen(str) ;
      } else if( rt->part_dim[ii] < 0 ){        /* 1 fixed size type */
-#if 0
-fprintf(stderr,"  part %d is fixed: siz=%d\n",ii,rt->part_siz[ii]) ;
-#endif
        ss += rt->part_siz[ii] ;
      } else {                                  /* var dim array */
        jj = ROWTYPE_part_dimen(rt,dat,ii) ;    /* array size */
-#if 0
-fprintf(stderr,"  part %d is vardim[%d]: one=%d\n",ii,jj,NI_rowtype_code_to_size(rt->part_typ[ii])) ;
-#endif
-       ss += jj * NI_rowtype_code_to_size(rt->part_typ[ii]) ;
-     }
+       ss += jj * rt->part_rtp[ii]->psiz ;     /* size of all parts */
+     }                                         /* in var dim array */
    }
 
    return ss ;
@@ -761,28 +763,19 @@ fprintf(stderr,"  part %d is vardim[%d]: one=%d\n",ii,jj,NI_rowtype_code_to_size
     or NI_STRING.
 ---------------------------------------------------------------------------*/
 
-void NI_val_to_text( int typ , char *dpt , char *wbuf )
+void NI_val_to_text( NI_rowtype *rt , char *dpt , char *wbuf )
 {
-   int jj ;
+   int jj = strlen(wbuf) ;
 
-   if( dpt == NULL || wbuf == NULL ) return ;
-   jj = strlen(wbuf) ;
-
-#if 0
-fprintf(stderr," NI_val_to_text: typ=%d dpt=%p\n",typ,dpt) ;
-#endif
-
-   switch( typ ){
+   switch( rt->code ){
 
      /*-- a derived type (will not contain var dim arrays) --*/
 
      default:{
-       char *vpt = dpt ;
-       NI_rowtype *rt = NI_rowtype_find_code(typ) ;
        if( rt != NULL ){
          int ii ;
-         for( ii=0 ; ii < rt->part_num ; ii++ )
-           NI_val_to_text( rt->part_typ[ii] , vpt + rt->part_off[ii] , wbuf ) ;
+         for( ii=0 ; ii < rt->part_num ; ii++ )   /* recursion */
+           NI_val_to_text( rt->part_rtp[ii] , dpt + rt->part_off[ii] , wbuf ) ;
        }
      }
      break ;
@@ -874,41 +867,33 @@ fprintf(stderr," NI_val_to_text: typ=%d dpt=%p\n",typ,dpt) ;
     typ must be a fixed size type code, or NI_STRING.
 ---------------------------------------------------------------------------*/
 
-void NI_multival_to_text( int typ , int nv , char *dpt , char *wbuf )
+void NI_multival_to_text( NI_rowtype *rt , int nv , char *dpt , char *wbuf )
 {
-   int ii , jj=NI_rowtype_code_to_size(typ) ;
-
-#if 0
-fprintf(stderr,"NI_multival_to_text: typ=%d nv=%d jj=%d dpt=%p\n",typ,nv,jj,dpt) ;
-#endif
-
-   if( jj <= 0 ) return ;  /* bad */
+   int ii , jj=rt->size ;
 
    for( ii=0 ; ii < nv ; ii++ )
-     NI_val_to_text( typ , dpt+ii*jj , wbuf ) ;
+     NI_val_to_text( rt , dpt+ii*jj , wbuf ) ;
 }
 
 /*-------------------------------------------------------------------------*/
-/*! Copy 1 fixed size type value in binary format to the wbuf.
+/*! Copy 1 fixed size type (no String or var dim array here) value in
+    binary format to the wbuf.
     Return value is number of bytes written.  Note that only data
     bytes are written, not any padding between elements.
 ---------------------------------------------------------------------------*/
 
-int NI_val_to_binary( int typ , char *dpt , char *wbuf )
+int NI_val_to_binary( NI_rowtype *rt , char *dpt , char *wbuf )
 {
-   int jj=0 ;
+   int jj=0 ;  /* will be return value */
 
-   if( ROWTYPE_is_builtin_code(typ) ){    /* builtin type */
-     jj = type_size[typ] ;
+   if( ROWTYPE_is_builtin_code(rt->code) ){    /* builtin type */
+     jj = type_size[rt->code] ;
      memcpy(wbuf,dpt,jj) ;
-   } else {                               /* derived type */
-     NI_rowtype *rt = NI_rowtype_find_code(typ) ;
+   } else if( rt->psiz > 0 ){      /* derived fixed size type */
      int ii ;
-     if( rt != NULL && rt->psiz > 0 ){
-       for( ii=0 ; ii < rt->part_num ; ii++ ){
-         memcpy(wbuf+jj,dpt+rt->part_off[ii],rt->part_siz[ii]) ;
-         jj += rt->part_siz[ii] ;
-       }
+     for( ii=0 ; ii < rt->part_num ; ii++ ){
+       memcpy(wbuf+jj,dpt+rt->part_off[ii],rt->part_siz[ii]) ;
+       jj += rt->part_siz[ii] ;
      }
    }
    return jj ;
@@ -919,20 +904,17 @@ int NI_val_to_binary( int typ , char *dpt , char *wbuf )
     Return value is number of bytes written.
 ---------------------------------------------------------------------------*/
 
-int NI_multival_to_binary( int typ , int nv , char *dpt , char *wbuf )
+int NI_multival_to_binary( NI_rowtype *rt , int nv , char *dpt , char *wbuf )
 {
    int jj=0 ;
 
-   if( ROWTYPE_is_builtin_code(typ) ){   /* builtin type is easy */
-     jj = nv * type_size[typ] ;
+   if( ROWTYPE_is_builtin_code(rt->code) ){   /* builtin type is easy */
+     jj = nv * type_size[rt->code] ;
      memcpy(wbuf,dpt,jj);
-   } else {                              /* derived type is harder */
-     NI_rowtype *rt = NI_rowtype_find_code(typ) ;
+   } else if( rt->psiz > 0 ){               /* derived type is harder */
      int ii ;
-     if( rt != NULL && rt->psiz > 0 ){
-       for( ii=0 ; ii < nv ; ii++ )
-         jj += NI_val_to_binary( typ , dpt+(ii*rt->size) , wbuf+jj ) ;
-     }
+     for( ii=0 ; ii < nv ; ii++ )
+       jj += NI_val_to_binary( rt , dpt+(ii*rt->size) , wbuf+jj ) ;
    }
    return jj ;
 }
@@ -1063,13 +1045,13 @@ int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
          switch( tmode ){      /*-- output method (text or binary) --*/
 
            case NI_TEXT_MODE:         /*-- sprintf value to output --*/
-             NI_val_to_text( rt->part_typ[ii],
+             NI_val_to_text( rt->part_rtp[ii],
                              ptr+rt->part_off[ii], wbuf ) ;
            break ;
 
            case NI_BASE64_MODE:       /*-- memcpy values to output --*/
            case NI_BINARY_MODE:
-             jj += NI_val_to_binary( rt->part_typ[ii],
+             jj += NI_val_to_binary( rt->part_rtp[ii],
                                      ptr+rt->part_off[ii], wbuf+jj ) ;
            break ;
          }
@@ -1083,12 +1065,12 @@ int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
          if( dim > 0 && *apt != NULL ){
            switch( tmode ){
              case NI_TEXT_MODE:
-               NI_multival_to_text( rt->part_typ[ii] , dim ,
+               NI_multival_to_text( rt->part_rtp[ii] , dim ,
                                     *apt , wbuf ) ;
              break ;
              case NI_BASE64_MODE:
              case NI_BINARY_MODE:
-               jj += NI_multival_to_binary( rt->part_typ[ii] , dim ,
+               jj += NI_multival_to_binary( rt->part_rtp[ii] , dim ,
                                             *apt , wbuf+jj ) ;
              break ;
            }
