@@ -6744,7 +6744,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
           nel->vec_typ == NULL ||
           nel->vec     == NULL   ){
 
-        nout = NI_stream_write( ns , "/>" , 2 ) ;
+        nout = NI_stream_write( ns , "/>\n" , 3 ) ;
         ADDOUT ;
         return ntot ;                 /* done with empty element */
       }
