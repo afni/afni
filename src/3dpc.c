@@ -22,6 +22,7 @@ static int PC_do_float   = 0 ; /* shorts are the default */
 static char ** PC_dsname = NULL ; /* dataset names */
 static int     PC_dsnum  = 0    ; /* number of them */
 static int     PC_brnum  = 0    ; /* number of bricks */
+static int     PC_1ddum  = 0    ; /* number of dummies for 1D files */
 
 #define PC_lprin_calc PC_brnum
 
@@ -134,6 +135,16 @@ void PC_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      /**** -1ddum # ****/
+
+      if( strncmp(argv[nopt],"-1ddum",6) == 0 ){
+         nopt++ ;
+         if( nopt >= argc ) PC_syntax("need argument after -1ddum!") ;
+         PC_1ddum = strtol( argv[nopt] , NULL , 10 ) ;
+         if( PC_1ddum < 0 ) PC_syntax("value after -1ddum is illegal!") ;
+         nopt++ ; continue ;
+      }
+
       /**** unknown switch ****/
 
       fprintf(stderr,"\n*** unrecognized option %s\n",argv[nopt]) ;
@@ -210,20 +221,28 @@ void PC_read_opts( int argc , char * argv[] )
          PC_brickdata[nn] = (float *) malloc( sizeof(float) * nxyz ) ;
 
          if( PC_brickdata[nn] == NULL )
-            PC_syntax("*** can't allocate intermediate storage") ;
+            PC_syntax("*** can't malloc intermediate storage") ;
 
          EDIT_coerce_type( nxyz , DSET_BRICK_TYPE(PC_dset[kk],mm) ,
                                   DSET_ARRAY(PC_dset[kk],mm) ,
                            MRI_float , PC_brickdata[nn] ) ;
 
+         DSET_unload_one( PC_dset[kk] , mm ) ;
+
          if( ! PC_be_quiet ){ printf("."); fflush(stdout); }
       }
 
-      DSET_unload( PC_dset[kk] ) ;  /* don't need dataset's data anymore */
+      if( kk == 0 ){
+         DSET_unload( PC_dset[kk] ) ;  /* don't need dataset's data anymore */
+      } else {
+         DSET_delete( PC_dset[kk] ) ;  /* don't need this at all anymore */
+         PC_dset[kk] = NULL ;
+      }
 
    }
    if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
 
+   free( PC_dsname ) ; PC_dsname = NULL ;
    return ;
 }
 
@@ -251,11 +270,15 @@ void PC_syntax(char * msg)
     "                    it can't be more than the number of input bricks\n"
     "                    [default = all of them = number of input bricks]\n"
     "  -prefix pname = Name for output dataset (will be a bucket type);\n"
-    "                    also, the eigen-timeseries will be in 'pc'.1D\n"
-    "                    (all of them) and in 'pcNN.1D' for eigenvalue\n"
+    "                    also, the eigen-timeseries will be in 'pname'.1D\n"
+    "                    (all of them) and in 'pnameNN.1D' for eigenvalue\n"
     "                    #NN individually (NN=00 .. 'sss'-1, corresponding\n"
     "                    to the brick index in the output dataset)\n"
-    "                    [default prefix = 'pc']\n"
+    "                    [default value of pname = 'pc']\n"
+    "  -1ddum ddd    = Add 'ddd' dummy lines to the top of each *.1D file.\n"
+    "                    These lines will have the value 999999, and can\n"
+    "                    be used to align the files appropriately.\n"
+    "                    [default value of ddd = 0]\n"
     "  -verbose      = Print progress reports during the computations\n"
     "  -float        = Save eigen-bricks as floats\n"
     "                    [default = shorts, scaled so that |max|=10000]\n"
@@ -268,10 +291,10 @@ void PC_syntax(char * msg)
 
 int main( int argc , char * argv[] )
 {
-   int nx,ny,nz , nxyz , ii,jj,ll , nn,mm , npos,nneg ;
+   int nx,ny,nz , nxyz , ii,jj,ll , nn,mm,mmmm , npos,nneg ;
    float fmax , ftem ;
    THD_3dim_dataset * dset , * new_dset ;
-   double * dsdev ;
+   double * dsdev = NULL ;
    float  * fout , * perc ;
    short  * bout  ;
    register float  sum ;
@@ -312,6 +335,9 @@ int main( int argc , char * argv[] )
    aa     = (double *) malloc( sizeof(double) * adim * adim ) ; /* matrix */
    wout   = (double *) malloc( sizeof(double) * adim ) ;        /* evals  */
 
+   if( aa == NULL || wout == NULL )
+      PC_syntax("can't malloc space for covariance matrix") ;
+
 #ifdef USE_LAPACK
    il     = adim + 1 - PC_lprin_calc ;	/* lowest index */
    iu     = adim ;			/* upper index */
@@ -321,9 +347,10 @@ int main( int argc , char * argv[] )
    work   = (double *) malloc( sizeof(double) * lwork ) ;
    iwork  = (int *)    malloc( sizeof(int) * 6 * adim ) ;
    ifail  = (int *)    malloc( sizeof(int) * adim ) ;
-#endif
 
-   dsdev  = (double *) malloc( sizeof(double) * mm ) ; /* brick stdev */
+   if( zout == NULL || work == NULL || iwork == NULL || ifail == NULL )
+      PC_syntax("can't malloc eigen workspace") ;
+#endif
 
    /*-- remove means, if ordered --*/
 
@@ -408,6 +435,8 @@ int main( int argc , char * argv[] )
    if( PC_normalize ){
       if( ! PC_be_quiet ){ printf("--- normalizing covariance"); fflush(stdout); }
 
+      dsdev = (double *) malloc( sizeof(double) * mm ) ; /* brick stdev */
+
       for( jj=0 ; jj < mm ; jj++ ) dsdev[jj] = sqrt( AA(jj,jj) ) ;
 
       for( jj=0 ; jj < mm ; jj++ )
@@ -450,8 +479,8 @@ int main( int argc , char * argv[] )
       if( info < 0 ) exit(1) ;
    }
 #else
-   symeig_double( mm , aa , wout ) ;
-   zout = aa ;
+   symeig_double( mm , aa , wout ) ;  /* eigenvectors go over aa  */
+   zout = aa ;                        /* eigenvalues go into wout */
 #endif
 
    if( ! PC_be_quiet ) printf("\n") ;
@@ -543,16 +572,20 @@ int main( int argc , char * argv[] )
    free(fout) ;
 
    DSET_write(new_dset) ;
+   DSET_delete(new_dset) ;
    if( ! PC_be_quiet ){ printf("!\n") ; fflush(stdout); }
 
    /*-- write eigenvectors also --*/
 
-   vecim = mri_new( PC_lprin_save , mm , MRI_float ) ;
+   mmmm  = mm + PC_1ddum ;
+   vecim = mri_new( PC_lprin_save , mmmm , MRI_float ) ;
    fout  = MRI_FLOAT_PTR(vecim) ;
    for( jj=0 ; jj < PC_lprin_save ; jj++ ){
       ll = PC_lprin_calc - 1-jj ;
+      for( ii=0 ; ii < PC_1ddum ; ii++ )
+         fout[jj + ii*PC_lprin_save] = 999999.0 ;
       for( ii=0 ; ii < mm ; ii++ )
-         fout[jj + ii*PC_lprin_save] = VV(ii,ll) ;
+         fout[jj + (ii+PC_1ddum)*PC_lprin_save] = VV(ii,ll) ;
    }
    sprintf(vname,"%s.1D",PC_prefix) ;
    mri_write_ascii( vname, vecim ) ;
@@ -560,19 +593,20 @@ int main( int argc , char * argv[] )
 
    for( jj=0 ; jj < PC_lprin_save ; jj++ ){
       ll = PC_lprin_calc - 1-jj ;
-      vecim = mri_new( 1 , mm , MRI_float ) ;
+      vecim = mri_new( 1 , mmmm , MRI_float ) ;
       fout  = MRI_FLOAT_PTR(vecim) ;
-      for( ii=0 ; ii < mm ; ii++ ) fout[ii] = VV(ii,ll) ;
+      for( ii=0 ; ii < PC_1ddum ; ii++ ) fout[ii] = 999999.0 ;
+      for( ii=0 ; ii < mm ; ii++ ) fout[ii+PC_1ddum] = VV(ii,ll) ;
       sprintf(vname,"%s%02d.1D",PC_prefix,jj) ;
       mri_write_ascii( vname, vecim ) ;
       mri_free(vecim) ;
    }
 
 #if 0
-   free(PC_dsname) ; free(PC_dset) ;
+   free(PC_dset) ;
    for( ii=0 ; ii < mm ; ii++ ) free(PC_brickdata[ii]) ;
    free(PC_brickdata) ;
-   free(aa) ; free(wout) ; free(dsdev) ;
+   free(aa) ; free(wout) ; free(perc) ; if( dsdev!=NULL ) free(dsdev) ;
 #endif
 
    exit(0) ;

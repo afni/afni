@@ -1,7 +1,7 @@
 
-    ***** Welcome to the world of MCW AFNI, version 2.20 *****
+    ***** Welcome to the world of MCW AFNI, version 2.21 *****
     *****  Robert W. Cox, Medical College of Wisconsin   *****
-    *****                  August 1998                   *****
+    *****                  January 1999                  *****
 
 The documentation for MCW AFNI is in the following files:
 
@@ -49,8 +49,7 @@ is afni98.tgz.  To uncompress this, the following commands should work:
 
    gzip -dc afni98.tgz | tar xf -
    cd ./AFNI98
-   -- follow the instructions in the README file
-   -- (which are similar to the instructions below)
+   -- follow the instructions in the README file (e.g., these instructions)
 
 The PostScript documentation is unpacked with
 

@@ -164,8 +164,8 @@ double fstat_p2t( double pp , double dofnum , double dofden )
    double p , q , f , dfn , dfd , bound ;
 
    which  = 2 ;
-   p      = pp ;
-   q      = 1.0 - p ;
+   p      = 1.0 - pp ;  /* 20 Jan 1999: p and q were switched! */
+   q      = pp ;
    f      = 0.0 ;
    dfn    = dofnum ;
    dfd    = dofden ;
