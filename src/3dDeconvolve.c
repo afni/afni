@@ -821,9 +821,10 @@ void initialize_stim_options
 {
   int is;                     /* input stimulus time series index */
 
+ENTRY("initialize_stim_options") ;
 
   /*----- Set number of input stimulus time series -----*/
-  if (num_stimts <= 0)  return;
+  if (num_stimts <= 0)  EXRETURN ;
   else  option_data->num_stimts = num_stimts;
 
 
@@ -872,6 +873,7 @@ void initialize_stim_options
       basis_vect [is] = NULL ;
     }
 
+   EXRETURN ;
 }
 
 
@@ -889,9 +891,11 @@ void initialize_glt_options
 {
   int iglt;                   /* glt index */
 
+ENTRY("initialize_glt_options") ;
+
 
   /*----- Set number of general linear tests -----*/
-  if (num_glt <= 0)  return;
+  if (num_glt <= 0)  EXRETURN ;
   else  option_data->num_glt = num_glt;
 
 
@@ -915,6 +919,7 @@ void initialize_glt_options
     }
 
 
+   EXRETURN ;
 }
 
 
@@ -1803,6 +1808,8 @@ float * read_time_series
   float * ts_data = NULL;  /* input time series data */
 
 
+ENTRY("read_time_series") ;
+
   /*----- First, check for empty filename -----*/
   if (ts_filename == NULL)
     DC_error ("Missing input time series file name");
@@ -1833,7 +1840,7 @@ float * read_time_series
 
   mri_free (flim);  flim = NULL;
 
-  return (ts_data);
+  RETURN (ts_data);
 }
 
 
@@ -1874,6 +1881,8 @@ void read_input_data
   int num_glt;             /* number of general linear tests */
   int iglt;                /* general linear test index */
 
+
+ENTRY("read_input_data") ;
 
   /*----- Initialize local variables -----*/
   num_stimts = option_data->num_stimts;
@@ -2292,6 +2301,7 @@ for( ii=0 ; ii < nt ; ii++ ){
 	}
     }
 
+   EXRETURN ;
 }
 
 
@@ -2317,6 +2327,8 @@ void remove_zero_stimfns
   int iglt;                /* general linear test index */
   int all_zero;            /* boolean for stim function contains all zeros */
 
+
+ENTRY("remove_zero_stimfns") ;
 
   /*----- Initialize local variables -----*/
   num_stimts = option_data->num_stimts;
@@ -2380,6 +2392,7 @@ void remove_zero_stimfns
 	is++;
     }
 
+  EXRETURN ;
 }
 
 
@@ -2980,6 +2993,8 @@ void allocate_memory
   int ibot,itop ;
 
 
+ENTRY("allocate_memory") ;
+
   /*----- Initialize local variables -----*/
   nxyz = option_data->nxyz;
   num_stimts = option_data->num_stimts;
@@ -3151,6 +3166,8 @@ void allocate_memory
 #ifdef PROC_MAX
   if( proc_numjob > 1 ) proc_finalize_shm_volumes() ;  /* RWCox */
 #endif
+
+  EXRETURN ;
 }
 
 
@@ -3198,6 +3215,8 @@ void initialize_program
 {
   int iglt;                  /* general linear test index */
 
+ENTRY("initialize_program") ;
+
 
   /*----- Allocate memory -----*/
   *option_data = (DC_options *) malloc (sizeof(DC_options));
@@ -3210,7 +3229,7 @@ void initialize_program
   /*----- Identify software -----*/
   if (!(*option_data)->quiet)  identify_software();
 
-  if( xrestore ) return ;  /* 26 Jul 2004 - special operations to do! */
+  if( xrestore ) EXRETURN ;  /* 26 Jul 2004 - special operations to do! */
 
   /*----- Tell the user if he is being foolish -----*/
   if( !(*option_data)->quiet &&
@@ -3247,6 +3266,7 @@ void initialize_program
 		     glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
 		     fitts_vol, errts_vol);
 
+  EXRETURN ;
 }
 
 
@@ -3625,6 +3645,8 @@ void calculate_results
 
   int vstep ;                  /* interval progress meter dots */
 
+
+ENTRY("calculate_results") ;
 
   /*----- Initialize local variables -----*/
   nodata = option_data->nodata;
@@ -4176,6 +4198,8 @@ void calculate_results
   if (ts_array != NULL)  { free (ts_array);  ts_array = NULL; }
   if (fitts != NULL)     { free (fitts);     fitts    = NULL; }
   if (errts != NULL)     { free (errts);     errts    = NULL; }
+
+  EXRETURN ;
 }
 
 
@@ -4195,6 +4219,8 @@ float EDIT_coerce_autoscale_new( int nxyz ,
 {
   float fac=0.0 , top ;
 
+ENTRY("EDIT_coerce_autoscale_new") ;
+
   if( MRI_IS_INT_TYPE(otype) ){
     top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
     if (top == 0.0)  fac = 0.0;
@@ -4202,7 +4228,7 @@ float EDIT_coerce_autoscale_new( int nxyz ,
   }
 
   EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
-  return ( fac );
+  RETURN ( fac );
 }
 
 
@@ -4531,6 +4557,8 @@ void attach_sub_brick
   float factor;             /* factor is new scale factor for sub-brick #ib */
   short *sbr ;
 
+ENTRY("attach_sub_brick") ;
+
 
   /*----- allocate memory for output sub-brick -----*/
   sbr = (short *) malloc (sizeof(short) * nxyz);
@@ -4553,6 +4581,8 @@ void attach_sub_brick
   /*----- attach sbr to be sub-brick #ibrick -----*/
   EDIT_substitute_brick (new_dset, ibrick, MRI_short, sbr);
   if( bar != NULL ) bar[ibrick] = sbr ;
+
+  EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -5402,6 +5432,7 @@ void terminate_program
 
 
 /*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 
 int main
 (
@@ -5462,6 +5493,11 @@ int main
     exit(0) ;
   }
 #endif
+
+#ifdef USING_MCW_MALLOC
+   enable_mcw_malloc() ;
+#endif
+   mainENTRY("3dDeconvolve main") ;
 
   /*----- start the elapsed time counter -----*/
   (void) COX_clock_time() ;
@@ -6657,6 +6693,8 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
 {
    int ii,jj ;
 
+ENTRY("read_glt_matrix") ;
+
    if( *nrows > 0 ){    /* standard read of numbers from a file*/
 
      matrix_file_read( fname , *nrows , ncol , cmat , 1 ) ;  /* mri_read_1D */
@@ -6727,7 +6765,7 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
                ii+1 , fname ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/

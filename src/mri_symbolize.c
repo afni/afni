@@ -21,11 +21,13 @@ floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *s
    char qname[64] , *qstr , *qpt , *qls ;
    float fac ;
 
-   if( nlast < 0 ) return NULL ;  /* bad input */
+ENTRY("SYM_expand_ranges") ;
+
+   if( nlast < 0 ) RETURN(NULL) ;  /* bad input */
 
    /* check if have anything to scan for */
 
-   if( nrang < 1 || rang == NULL || str == NULL || *str == '\0' ) return NULL ;
+   if( nrang < 1 || rang == NULL || str == NULL || *str == '\0' ) RETURN(NULL) ;
 
    /* check if input line is a comment */
 
@@ -34,7 +36,7 @@ floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *s
    if( str[ii] == '\0' ||                   /* all blank */
        str[ii] == '#'  ||                   /* starts with "#" */
       (str[ii] == '/' && str[ii+1] == '/')  /* starts with "//" */
-   ) return NULL ;
+   ) RETURN(NULL) ;
 
    fv     = (floatvec *)malloc(sizeof(floatvec)) ;    /* create empty output */
    fv->nar = nlast+1 ;
@@ -47,7 +49,7 @@ floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *s
      fvv  = (floatvecvec *)malloc(sizeof(floatvecvec)) ;
      fvv->nvec = 1 ;
      fvv->fvar = fv ;
-     return fvv ;
+     RETURN(fvv) ;
    }
 
    /* scan each chunk */
@@ -153,5 +155,5 @@ floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *s
      KILL_floatvec(fv) ;
    }
 
-   return fvv ;
+   RETURN(fvv) ;
 }
