@@ -870,9 +870,14 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
    vi = csv->X->VISINFO;
    
    /* Be lazy; using DirectColor too involved for this example. */
+#if defined(__cplusplus) || defined(c_plusplus)
+   if (vi->c_class != TrueColor)
+    XtAppError(SUMAg_CF->X->App, "no support for non-TrueColor visual");
+#else 
    if (vi->class != TrueColor)
     XtAppError(SUMAg_CF->X->App, "no support for non-TrueColor visual");
-   
+#endif
+
    /* If no standard colormap but TrueColor, just make an
      unshared one. */
    status = XmuLookupStandardColormap(csv->X->DPY, vi->screen, vi->visualid,
