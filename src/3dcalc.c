@@ -521,6 +521,34 @@ void CALC_read_opts( int argc , char * argv[] )
             exit(1) ;
          }
 
+         if( !DSET_datum_constant(dset) ){   /* 29 May 2003 */
+           float *far ;
+
+           fprintf(stderr,"++ dataset %s has sub-bricks with different types\n",argv[nopt-1]);
+           fprintf(stderr,"   ==> converting all sub-bricks to floats") ;
+
+           DSET_mallocize(dset) ; DSET_load(dset) ;
+           if( ! DSET_LOADED(dset) ){
+             fprintf(stderr,"\n** can't load %s from disk!\n",argv[nopt-1]); exit(1);
+           }
+
+           for( ii=0 ; ii < ntime[ival] ; ii++ ){
+             if( DSET_BRICK_TYPE(dset,ii) != MRI_float ){
+               fprintf(stderr,".") ;
+               far = malloc( sizeof(float) * nxyz ) ;
+               if( far == NULL ){
+                 fprintf(stderr,"\n** can't malloc space for conversion!\n"); exit(1);
+               }
+               EDIT_coerce_scale_type( nxyz , DSET_BRICK_FACTOR(dset,ii) ,
+                                       DSET_BRICK_TYPE(dset,ii) , DSET_ARRAY(dset,ii) ,
+                                       MRI_float , far ) ;
+               EDIT_substitute_brick( dset , ii , MRI_float , far ) ;
+               DSET_BRICK_FACTOR(dset,ii) = 0.0 ;
+             }
+           }
+           fprintf(stderr,"\n") ;
+         }
+
          CALC_type[ival] = DSET_BRICK_TYPE(dset,isub) ;
          CALC_dset[ival] = dset ;
 
@@ -546,12 +574,13 @@ void CALC_read_opts( int argc , char * argv[] )
             fprintf(stderr,"  ++ Reading dataset %s (%d bytes)\n",argv[nopt-1],nb);
          }
 
-         THD_load_datablock( dset->dblk ) ;
          if( ! DSET_LOADED(dset) ){
-            fprintf(stderr,"*** Can't read data brick for dataset %s\n",argv[nopt-1]) ;
-            exit(1) ;
+           THD_load_datablock( dset->dblk ) ;
+           if( ! DSET_LOADED(dset) ){
+             fprintf(stderr,"*** Can't read data brick for dataset %s\n",argv[nopt-1]) ;
+             exit(1) ;
+           }
          }
-
          /* set pointers for actual dataset arrays */
 
          switch (CALC_type[ival]) {

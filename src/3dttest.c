@@ -399,8 +399,6 @@ void TT_syntax(char * msg)
     "      By default, the output dataset function values will be shorts if the\n"
     "      first input dataset is byte- or short-valued; otherwise they will be\n"
     "      floats.  This behavior may be overridden using the -datum option.\n"
-    "      However, the t-statistic at each voxel will be always be\n"
-    "      stored as a short integer that is 1000 times the actual t-value.\n"
    ) ;
    printf("\n" MASTER_SHORTHELP_STRING ) ;
    exit(0) ;
@@ -419,13 +417,17 @@ int main( int argc , char * argv[] )
          dd,tt,q1,q2 , f1,f2 , tt_max=0.0 ;
    THD_3dim_dataset * dset=NULL , * new_dset=NULL , * qset=NULL ;
    float * av1 , * av2 , * sd1 , * sd2 , * ffim , * gfim ;
+
+   void  * vsp ;
    short * tsp , * tsar ;   /* output t-statistic */
+   float * fsp , * fsar ;
+
    void  * vdif ;           /* output mean difference */
    short * sdif , * sdar ;  /* (in various formats) */
    float * fdif , * fdar ;
+
    void  * vfim ;
    char  cbuf[THD_MAX_NAME] ;
-   int   ibuf[32] ;
    float fbuf[MAX_STAT_AUX] , fimfac , fimfacinv ;
    int   output_datum ;
    int   piece_size ;
@@ -498,8 +500,6 @@ printf("*** making empty dataset\n") ;
 printf(" ** datum = %s\n",MRI_TYPE_name[output_datum]) ;
 #endif
 
-   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
-
    iv = EDIT_dset_items( new_dset ,
                            ADN_prefix , TT_prefix ,
                            ADN_label1 , TT_prefix ,
@@ -508,7 +508,7 @@ printf(" ** datum = %s\n",MRI_TYPE_name[output_datum]) ;
                            ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
                            ADN_func_type , FUNC_TT_TYPE ,
                            ADN_nvals , FUNC_nvals[FUNC_TT_TYPE] ,
-                           ADN_datum_array , ibuf ,
+                           ADN_datum_all , output_datum ,
                          ADN_none ) ;
 
    if( iv > 0 ){
@@ -546,7 +546,7 @@ printf("*** deleting exemplar dataset\n") ;
    else if( TT_set1 != NULL ) npiece += 2.0 ;
 
    npiece += mri_datum_size(output_datum) / (float) sizeof(float) ;
-   npiece += mri_datum_size(MRI_short)    / (float) sizeof(float) ;
+   npiece += mri_datum_size(output_datum) / (float) sizeof(float) ;
 
    piece_size = TT_workmem * MEGA / ( npiece * sizeof(float) ) ;
    if( piece_size > nxyz ) piece_size = nxyz ;
@@ -576,8 +576,8 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
       num1 = 0 ;
    }
 
-   vdif = (void *)  malloc( mri_datum_size(output_datum) * nxyz ) ; MTEST(vdif) ;
-   tsp  = (short *) malloc( sizeof(short) * nxyz )                ; MTEST(tsp)  ;
+   vdif = (void *) malloc( mri_datum_size(output_datum) * nxyz ) ; MTEST(vdif) ;
+   vsp  = (void *) malloc( mri_datum_size(output_datum) * nxyz ) ; MTEST(vsp)  ;
 
    /* 27 Dec 2002: make DOF dataset (if prefix is given, and unpooled is on) */
 
@@ -619,15 +619,15 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
    }
 
    mri_fix_data_pointer( vdif , DSET_BRICK(new_dset,0) ) ;  /* attach bricks */
-   mri_fix_data_pointer( tsp  , DSET_BRICK(new_dset,1) ) ;  /* to new dataset */
+   mri_fix_data_pointer( vsp  , DSET_BRICK(new_dset,1) ) ;  /* to new dataset */
 
    switch( output_datum ){
-      default: fprintf(stderr,"Illegal input data type %s!\n",
-                       MRI_TYPE_name[output_datum] ) ;
+      default: fprintf(stderr,"Illegal input data type %d = %s!\n",
+                       output_datum , MRI_TYPE_name[output_datum] ) ;
       exit(1) ;
 
-      case MRI_short: sdif = (short *) vdif ; break ;
-      case MRI_float: fdif = (float *) vdif ; break ;
+      case MRI_short: sdif = (short *) vdif ; tsp = (short *) vsp ; break ;
+      case MRI_float: fdif = (float *) vdif ; fsp = (float *) vsp ; break ;
    }
 
    num2_inv = 1.0 / num2 ;  num2m1_inv = 1.0 / (num2-1) ;
@@ -825,10 +825,15 @@ printf(" ** forming mean and sigma of set1\n") ;
          printf(" ** computing t-tests next\n") ;
 #endif
 
-      tsar = tsp + fim_offset ;  /* pointers into output t-statistic array */
       switch( output_datum ){
-         case MRI_short:  sdar = sdif + fim_offset ; break ;  /* if fim is shorts */
-         case MRI_float:  fdar = fdif + fim_offset ; break ;  /* if fim is floats */
+         case MRI_short:                                      /* if fim is shorts */
+           sdar = sdif + fim_offset ;
+           tsar = tsp  + fim_offset ;    /* pointer into output t-statistic array */
+         break ;
+         case MRI_float:                                      /* if fim is floats */
+           fdar = fdif + fim_offset ;
+           fsar = fsp  + fim_offset ;
+         break ;
       }
 
       /** macro to assign difference value to correct type of array **/
@@ -848,12 +853,22 @@ printf(" ** forming mean and sigma of set1\n") ;
             if( sd2[ii] > 0.0 ){
                num_tt++ ;
                tt       = dd / (f2 * sd2[ii]) ;
-               tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
-                                      : (tt<-TOP_TT) ? (-TOP_SS)
-                                                     : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
+               switch( output_datum ){
+                 case MRI_short:
+                   tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
+                                          : (tt<-TOP_TT) ? (-TOP_SS)
+                                                         : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
+                 break ;
+                 case MRI_float:
+                   fsar[ii] = tt ;
+                 break ;
+               }
                tt = fabs(tt) ; if( tt > tt_max ) tt_max = tt ;
             } else {
-               tsar[ii] = 0 ;
+               switch( output_datum ){
+                 case MRI_short: tsar[ii] = 0 ; break ;
+                 case MRI_float: fsar[ii] = 0 ; break ;
+               }
             }
          }
 
@@ -871,12 +886,22 @@ printf(" ** paired or bval test: num_tt = %d\n",num_tt) ;
             if( q1 > 0.0 ){
                num_tt++ ;
                tt       = dd / sqrt(q1) ;
-               tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
-                                      : (tt<-TOP_TT) ? (-TOP_SS)
-                                                     : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
+               switch( output_datum ){
+                 case MRI_short:
+                   tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
+                                          : (tt<-TOP_TT) ? (-TOP_SS)
+                                                         : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
+                 break ;
+                 case MRI_float:
+                   fsar[ii] = tt ;
+                 break ;
+               }
                tt = fabs(tt) ; if( tt > tt_max ) tt_max = tt ;
             } else {
-               tsar[ii] = 0 ;
+               switch( output_datum ){
+                 case MRI_short: tsar[ii] = 0 ; break ;
+                 case MRI_float: fsar[ii] = 0 ; break ;
+               }
             }
          }
 
@@ -896,16 +921,26 @@ printf(" ** pooled test: num_tt = %d\n",num_tt) ;
             if( q1>0.0 && q2>0.0 ){               /* have positive variances? */
                num_tt++ ;
                tt       = dd / sqrt(q1+q2) ;
-               tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
-                                      : (tt<-TOP_TT) ? (-TOP_SS)
-                                                     : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
+               switch( output_datum ){
+                 case MRI_short:
+                   tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
+                                          : (tt<-TOP_TT) ? (-TOP_SS)
+                                                         : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
+                 break ;
+                 case MRI_float:
+                   fsar[ii] = tt ;
+                 break ;
+               }
                tt = fabs(tt) ; if( tt > tt_max ) tt_max = tt ;
 
                if( dofar != NULL )                             /* 27 Dec 2002 */
                  dofar[ii] =  (q1+q2)*(q1+q2)
                             / (num1m1_inv*q1*q1 + num2m1_inv*q2*q2) ;
             } else {
-               tsar[ii] = 0 ;
+               switch( output_datum ){
+                 case MRI_short: tsar[ii] = 0 ; break ;
+                 case MRI_float: fsar[ii] = 0 ; break ;
+               }
                if( dofar != NULL ) dofar[ii] = 1.0 ;           /* 27 Dec 2002 */
             }
          }
@@ -950,8 +985,8 @@ printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
    for( ii=1 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
    (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
 
-   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
-   fbuf[1] = 1.0 / FUNC_TT_SCALE_SHORT ;
+   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac                    : 0.0 ;
+   fbuf[1] = (output_datum == MRI_short                  ) ? 1.0 / FUNC_TT_SCALE_SHORT : 0.0 ;
    (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
    THD_load_statistics( new_dset ) ;
