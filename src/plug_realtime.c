@@ -1045,7 +1045,7 @@ Boolean RT_worker( XtPointer elvis )
 
       /** read initial stuff from the data channel **/
 
-      fprintf(stderr,"RT: receiving first data") ; fflush(stderr) ;
+      fprintf(stderr,"RT: receiving image metadata") ; fflush(stderr) ;
 
       nb = iochan_recv( rtinp->ioc_data , rtinp->buf , RT_NBUF ) ;
 
