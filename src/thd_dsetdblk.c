@@ -688,9 +688,9 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
          if any error was flagged, kill this dataset and return nothing ---*/
 
    if( dset_ok == False ){
-      fprintf(stderr,"PURGING dataset %s from memory\n",dset->self_name) ;
+      fprintf(stderr,"PURGING dataset %s from memory\n",DSET_HEADNAME(dset)) ;
       THD_delete_3dim_dataset( dset , False ) ;
-      dset = NULL ;
+      RETURN(NULL) ;
    }
 
 #ifndef OMIT_DATASET_IDCODES
@@ -703,8 +703,10 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    }
 #endif
 
-   DSET_NULL_SUMA(dset) ;     /* clean surface map stuff */
-   SUMA_get_surfname(dset) ;  /* set the surface filename */
+   if( dset != NULL ){
+     DSET_NULL_SUMA(dset) ;     /* clean surface map stuff */
+     SUMA_get_surfname(dset) ;  /* set the surface filename */
+   }
 
    RETURN( dset );
 }

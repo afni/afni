@@ -84,8 +84,12 @@
 
    char * DBG_labels[3] = { "Trace=OFF " , "Trace=LOW " , "Trace=HIGH" } ;
 
+   char last_status[1024] = "\0" ;  /* 22 Apr 2002 */
+
 void DBG_traceback(void)
 { int tt ;
+  if( last_status[0] != '\0' )
+    fprintf(stderr,"Last STATUS: %s\n",last_status) ;
   for( tt=DBG_num-1; tt >= 1 ; tt-- )
     fprintf(stderr,"%*.*s%s\n",tt+1,tt+1," ",DBG_rout[tt]) ;
 }
@@ -96,18 +100,20 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    static volatile int fff=0 ;
    if( fff ) _exit(1); else fff=1 ;
    switch(sig){
-      default:      sname = "unknown" ; break ;
-      case SIGPIPE: sname = "SIGPIPE" ; break ;
-      case SIGSEGV: sname = "SIGSEGV" ; break ;
-      case SIGBUS:  sname = "SIGBUS"  ; break ;
-      case SIGINT:  sname = "SIGINT"  ; break ;
+     default:      sname = "unknown" ; break ;
+     case SIGPIPE: sname = "SIGPIPE" ; break ;
+     case SIGSEGV: sname = "SIGSEGV" ; break ;
+     case SIGBUS:  sname = "SIGBUS"  ; break ;
+     case SIGINT:  sname = "SIGINT"  ; break ;
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname) ;
+   if( last_status[0] != '\0' )
+     fprintf(stderr,"Last STATUS: %s\n",last_status) ;
    if( DBG_num >= 0 ){
-      for( ii=DBG_num-1; ii >= 0 ; ii-- )
-         fprintf(stderr,"%*.*s%s\n",ii+1,ii+1," ",DBG_rout[ii]) ;
+     for( ii=DBG_num-1; ii >= 0 ; ii-- )
+       fprintf(stderr,"%*.*s%s\n",ii+1,ii+1," ",DBG_rout[ii]) ;
    } else {
-      fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;
+     fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;
    }
    fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
    MPROBE ; exit(1) ;
@@ -124,6 +130,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    extern char * DBG_labels[3] ;
    extern void DBG_sigfunc(int) ;
    extern void DBG_traceback(void) ;
+   extern char last_status[1024] ;
 #endif /* _DEBUGTRACE_MAIN_ */
 
 #define DBG_SIGNALS ( signal(SIGPIPE,DBG_sigfunc) , \
@@ -142,16 +149,20 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
                           printf("%*.*s%s [%d]: ENTRY (file=%s line=%d)\n",     \
                                  DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num,    \
                                  __FILE__ , __LINE__ ) ;                      \
-                          MCHECK ; fflush(stdout) ; } } while(0)
+                          MCHECK ; fflush(stdout) ; }                        \
+                        last_status[0] = '\0' ;                             \
+                    } while(0)
 
 #define DBROUT      DBG_rout[DBG_num-1]
 
 #define DBEXIT      do{ if( DBG_trace ){                                      \
                           printf("%*.*s%s [%d]: EXIT (file=%s line=%d)\n",     \
                                  DBG_num,DBG_num,DBG_LEADER_OUT,DBROUT,DBG_num, \
-                                 __FILE__ , __LINE__ );                        \
-                          MCHECK ; fflush(stdout) ; }                         \
-                        DBG_num = (DBG_num>1) ? DBG_num-1 : 1 ; } while(0)
+                                 __FILE__ , __LINE__ );                         \
+                          MCHECK ; fflush(stdout) ; }                           \
+                        DBG_num = (DBG_num>1) ? DBG_num-1 : 1 ;                 \
+                        last_status[0] = '\0' ;                                 \
+                    } while(0)
 
 #define mainENTRY(rout)                                            \
   do{ char *e=getenv("AFNI_TRACE");                                \
@@ -164,7 +175,9 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #define STATUS(str)                                               \
   do{ if(PRINT_TRACING){                                           \
         printf("%*.*s%s -- %s\n",DBG_num,DBG_num," ",DBROUT,(str)); \
-        fflush(stdout) ; } } while(0)
+        fflush(stdout) ; }                                           \
+      strncpy(last_status,str,1023); last_status[1023]='\0';          \
+  } while(0)
 
 /*********************************************************************/
 #else /* don't USE_TRACING */

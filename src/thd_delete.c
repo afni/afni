@@ -24,7 +24,9 @@ void THD_delete_datablock( THD_datablock * dblk )
 {
    int ibr ;
 
-   if( ! ISVALID_DATABLOCK(dblk) ) return ;
+ENTRY("THD_delete_datablock") ;
+
+   if( ! ISVALID_DATABLOCK(dblk) ) EXRETURN ;
 
    /** free the actual brick data (method depends on how it is stored) **/
 
@@ -32,6 +34,7 @@ void THD_delete_datablock( THD_datablock * dblk )
       switch( dblk->malloc_type ){
 
          default:
+STATUS("count bricks") ;
             ibr = THD_count_databricks( dblk ) ;
             if( ibr > 0 )
                fprintf(stderr,
@@ -41,20 +44,26 @@ void THD_delete_datablock( THD_datablock * dblk )
          break ;
 
          case DATABLOCK_MEM_MALLOC:
+STATUS("destroy imarr") ;
             DESTROY_IMARR( dblk->brick ) ;
          break ;
 
          case DATABLOCK_MEM_MMAP:
+STATUS("unmap memory") ;
             if( DBLK_ARRAY(dblk,0) != NULL )
                munmap( DBLK_ARRAY(dblk,0) , dblk->total_bytes ) ;
+STATUS("clear imarr pointers") ;
             for( ibr=0 ; ibr < dblk->brick->num ; ibr++ )
                mri_clear_data_pointer( DBLK_BRICK(dblk,ibr) ) ;
+STATUS("destroy imarr") ;
             DESTROY_IMARR( dblk->brick ) ;
          break ;
       }
    }
 
    /** free the other information **/
+
+STATUS("free brick_ stuff") ;
 
    myXtFree( dblk->brick_fac ) ;
    myXtFree( dblk->brick_bytes ) ;
@@ -83,8 +92,14 @@ void THD_delete_datablock( THD_datablock * dblk )
    }
 
    THD_delete_diskptr( dblk->diskptr ) ;
+
+STATUS("KILL_KILL") ;
    KILL_KILL( dblk->kl ) ;
+
+STATUS("free attributes") ;
    myXtFree( dblk->atr ) ;    /* not on the kill list */
+
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -93,25 +108,34 @@ void THD_delete_datablock( THD_datablock * dblk )
 
 void THD_delete_3dim_dataset( THD_3dim_dataset * dset, Boolean kill_files )
 {
-   if( ! ISVALID_3DIM_DATASET(dset) ) return ;
+ENTRY("THD_delete_3dim_dataset") ;
+
+   if( ! ISVALID_3DIM_DATASET(dset) ) EXRETURN ;
 
    if( DSET_IS_MINC(dset) ) kill_files = False ;  /* 29 Oct 2001 */
 
    if( kill_files ){
       THD_diskptr * dkptr = dset->dblk->diskptr ;
 
+STATUS("killing files") ;
       unlink( dkptr->header_name ) ;
       COMPRESS_unlink(dkptr->brick_name) ;
    }
 
+STATUS("destroy vlist") ;
    DESTROY_VLIST(dset->pts) ;
 
    if( ISVALID_TIMEAXIS(dset->taxis) ){
+STATUS("destroy taxis") ;
       myXtFree( dset->taxis->toff_sl ) ;
       myXtFree( dset->taxis ) ;
    }
 
    myXtFree( dset->merger_list ) ;
    THD_delete_datablock( dset->dblk ) ;
+
+STATUS("KILL_KILL") ;
    KILL_KILL( dset->kl ) ;
+
+   EXRETURN ;
 }
