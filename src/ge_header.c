@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+/*****    Compilation:  cc -o ge_header ge_header.c -lm     ******/
+
 /*---------------------------------------------------------------*/
 
 static void swap_4(void *ppp)

@@ -131,9 +131,9 @@ WHOAMI ;
          swap = 1 ;
          swap_4(&skip); swap_4(&nx); swap_4(&ny); swap_4(&bpp); swap_4(&cflag);
          if( nx < 0 || nx > 8192 || ny < 0 || ny > 8192 ) goto The_Old_Way ;
-         if( skip < 0 || skip >= length )                 goto The_Old_Way ;
-         if( bpp != 16 || cflag != 1 )                    goto The_Old_Way ;
        }
+       if( skip < 0  || skip  >= length )                 goto The_Old_Way ;
+       if( bpp != 16 || cflag != 1      )                 goto The_Old_Way ;
 
        /* make image space */
 
@@ -150,7 +150,7 @@ WHOAMI ;
              static int nzoff=0 ;
              static float zoff ;
 
-             /* voxel grid sizes */
+             /* get voxel grid sizes */
 
              fseek( imfile , hdroff+26 , SEEK_SET ) ;
              fread( &dz , 4,1 , imfile ) ;
@@ -161,17 +161,27 @@ WHOAMI ;
 
              if( swap ){ swap_4(&dx); swap_4(&dy); swap_4(&dz); }
 
+             /* save into image header */
+
              if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
                im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
              }
 
-             /* grid orientation: from 3 sets of LPI corner coordinates */
+             /* grid orientation: from 3 sets of LPI corner coordinates: */
+             /*   xyz[0..2] = top left hand corner of image     (TLHC)   */
+             /*   xyz[3..5] = top right hand corner of image    (TRHC)   */
+             /*   xyz[6..8] = bottom right hand corner of image (BRHC)   */
+             /* GEMS coordinate orientation here is LPI                  */
+             /* Orientation is saved into global string MRILIB_orients   */
 
              fseek( imfile , hdroff+154 , SEEK_SET ) ;
              fread( xyz , 4,9 , imfile ) ;
              if( swap ) swap_fourbytes(9,xyz) ;
 
              /* x-axis orientation */
+             /* ii determines which spatial direction is x-axis  */
+             /* and is the direction that has the biggest change */
+             /* between the TLHC and TRHC                        */
 
              dx = fabs(xyz[3]-xyz[0]) ; ii = 1 ;
              dy = fabs(xyz[4]-xyz[1]) ; if( dy > dx ){ ii=2; dx=dy; }
@@ -188,6 +198,9 @@ WHOAMI ;
              }
 
              /* y-axis orientation */
+             /* jj determines which spatial direction is y-axis  */
+             /* and is the direction that has the biggest change */
+             /* between the BRHC and TRHC                        */
 
              dx = fabs(xyz[6]-xyz[3]) ; jj = 1 ;
              dy = fabs(xyz[7]-xyz[4]) ; if( dy > dx ){ jj=2; dx=dy; }
@@ -203,21 +216,28 @@ WHOAMI ;
                default: MRILIB_orients[2] ='\0'; MRILIB_orients[3] ='\0'; break;
              }
 
-             MRILIB_orients[6] = '\0' ;
+             MRILIB_orients[6] = '\0' ;   /* terminate orientation string */
 
-             kk = 6 - abs(ii)-abs(jj) ; zz = xyz[kk-1] ;
+             kk = 6 - abs(ii)-abs(jj) ;   /* which spatial direction is z-axis */
+                                          /* where 1=L-R, 2=P-A, 3=I-S */
+             zz = xyz[kk-1] ;             /* z-coordinate of this slice */
 
-             /* z-axis requires 2 images in a row -*/
+             /* getting orientation of z-axis requires 2 images in a row -*/
 
              if( nzoff == 0 ){  /* from 1st GEMS image */
 
-               zoff = zz ;
-               MRILIB_orients[4] = MRILIB_orients[5] = '\0' ;
+               zoff = zz ;      /* save this for 2nd image calculation */
+               switch( kk ){    /* may be changed on second image */
+                case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
+                case  2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
+                case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
+                default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
+               }
 
              } else if( nzoff == 1 ){   /* from 2nd GEMS image */
 
                float qoff = zz - zoff ;  /* vive la difference */
-               if( qoff < 0 ) kk = -kk ;
+               if( qoff < 0 ) kk = -kk ; /* kk determines z-axis orientation */
                switch( kk ){
                 case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
                 case -1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
@@ -228,25 +248,31 @@ WHOAMI ;
                 default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
                }
 
+               /* save spatial offset of first slice         */
+               /* [this is positive in the direction of the] */
+               /* [-z axis, so may need to change its sign ] */
+
                MRILIB_zoff = zoff ;
                if( kk == 1 || kk == 2 || kk == 3 ) MRILIB_zoff = -MRILIB_zoff ;
              }
-             nzoff++ ;  /* 3rd and later images don't count */
+             nzoff++ ;  /* 3rd and later images don't count for z-orientation */
 
-             /* TR */
+             /* get TR, save into global variable */
 
-             fseek( imfile , hdroff+194 , SEEK_SET ) ;
-             fread( &itr , 4,1 , imfile ) ;
-             if( swap ) swap_4(&itr) ;
-             MRILIB_tr = im->dt = 1.0e-6 * itr ;
+             if( MRILIB_tr <= 0.0 ){
+               fseek( imfile , hdroff+194 , SEEK_SET ) ;
+               fread( &itr , 4,1 , imfile ) ;
+               if( swap ) swap_4(&itr) ;
+               MRILIB_tr = im->dt = 1.0e-6 * itr ;
+             }
           }
        } /* end of trying to read image header */
 
        goto Ready_To_Roll ;  /* skip to the reading place */
      }
-   }
+   } /* end of GEMS */
 
-   /*--- OK , do it the old way ---*/
+   /*--- OK, do it the old way ---*/
 
 The_Old_Way:
 

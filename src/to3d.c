@@ -305,14 +305,21 @@ QQQ("main1");
 
    if( user_inputs.ntt > 1 && MRILIB_tr > 0.0 ){
       if( user_inputs.TR <= 0.0 ){
-         user_inputs.TR = MRILIB_tr ; user_inputs.tunits = UNITS_SEC_TYPE ;
-         printf("Setting TR=%g from image header\n",MRILIB_tr) ;
+         int ii ;
+         user_inputs.TR     = MRILIB_tr ;
+         user_inputs.tunits = UNITS_SEC_TYPE ;
+         for( ii=0 ; ii < user_inputs.nzz ; ii++ ){
+            user_inputs.tpattern[ii] *= MRILIB_tr ;
+         }
+         printf("Setting TR=%gs from image header\n",MRILIB_tr) ;
+
       } else {
-         printf("Command line TR=%g ; Images TR=%g\n",user_inputs.TR,MRILIB_tr) ;
+         printf("Command line TR=%g%s ; Images TR=%gs\n",
+                user_inputs.TR,UNITS_TYPE_LABEL(user_inputs.tunits),MRILIB_tr) ;
       }
    }
    if( user_inputs.ntt > 1 && user_inputs.TR <= 0.0 ){
-      printf("Setting TR=1 by default\n") ;
+      printf("Setting TR=1s by default\n") ;
       user_inputs.TR = 1.0 ; user_inputs.tunits = UNITS_SEC_TYPE ;
    }
 
@@ -2629,12 +2636,14 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          user_inputs.tpattern = (float *) malloc( sizeof(float) * nzz ) ;
          for( ii=0 ; ii < nzz ; ii++ ) user_inputs.tpattern[ii] = 0.0 ;
 
-         tframe = TR / nzz ;  /* time per slice */
-
          user_inputs.ntt      = ntt ;
          user_inputs.nzz      = nzz ;
          user_inputs.t_then_z = t_then_z ;
          user_inputs.TR       = TR ;
+
+         if( TR == 0.0 ){ TR = 1.0; user_inputs.tunits = UNITS_SEC_TYPE; }
+
+         tframe = TR / nzz ;  /* time per slice */
 
          if( nzz > 1 && tpattern[0] == '@' ){
             FILE * fp ;
@@ -2946,7 +2955,7 @@ void Syntax()
     "\n"
     "    Notes:\n"
     "      * Time-dependent functional datasets are not yet supported by\n"
-    "          to3d or any other GPL AFNI package software.  For many users,\n"
+    "          to3d or any other AFNI package software.  For many users,\n"
     "          the proper dataset type for these datasets is '-epan'.\n"
     "      * Time-dependent datasets with more than one value per time point\n"
     "          (e.g., 'fith', 'fico', 'fitt') are also not allowed by to3d.\n"
@@ -2954,7 +2963,7 @@ void Syntax()
     "          subdivide the data slices, you will have to use the @filename\n"
     "          form for tpattern, unless 'simult' or 'zero' is acceptable.\n"
     "      * At this time, the value of 'tpattern' is not actually used in\n"
-    "          any GPL AFNI program.  The values are stored in the dataset\n"
+    "          any AFNI program.  The values are stored in the dataset\n"
     "          .HEAD files, and will be used in the future.\n"
     "      * The values set on the command line can't be altered interactively.\n"
     "      * The units of TR can be specified by the command line options below:\n"
@@ -3063,69 +3072,79 @@ void Syntax()
     "\n"
     "The 'raw pgm' image format is also supported; it reads data into 'byte' images.\n"
     "\n"
-    "ANALYZE (TM) .hdr/.img files can now be read - give the .hdr filename on\n"
-    "the command line.  The program will detect if byte-swapping is needed on\n"
-    "these images, and can also set the voxel grid sizes from the first .hdr file.\n"
-    "If the 'funused1' field in the .hdr is positive, it will be used to scale the\n"
-    "input values.  If the environment variable AFNI_ANALYZE_FLOATIZE is YES, then\n"
-    ".img files will be converted to floats on input.\n"
+    "* ANALYZE (TM) .hdr/.img files can now be read - give the .hdr filename on\n"
+    "  the command line.  The program will detect if byte-swapping is needed on\n"
+    "  these images, and can also set the voxel grid sizes from the first .hdr file.\n"
+    "  If the 'funused1' field in the .hdr is positive, it will be used to scale the\n"
+    "  input values.  If the environment variable AFNI_ANALYZE_FLOATIZE is YES, then\n"
+    "  .img files will be converted to floats on input.\n"
     "\n"
-    "Siemens .ima image files can now be read.  The program will detect if\n"
-    "byte-swapping is needed on these images, and can also set voxel grid\n"
-    "sizes and orientations (correctly, I hope).\n"
-    " * Some Siemens .ima files seems to have their EPI slices stored in\n"
-    "   spatial order, and some in acquisition (interleaved) order.  This\n"
-    "   program doesn't try to figure this out.  You can use the command\n"
-    "   line option '-sinter' to tell the program to assume that the images\n"
-    "   in a single .ima file are interleaved; for example, if there are\n"
-    "   7 images in a file, then without -sinter, the program will assume\n"
-    "   their order is '0 1 2 3 4 5 6'; with -sinter, the program will\n"
-    "   assume their order is '0 2 4 6 1 3 5' (here, the number refers\n"
-    "   to the slice location in space).\n"
+    "* Siemens .ima image files can now be read.  The program will detect if\n"
+    "  byte-swapping is needed on these images, and can also set voxel grid\n"
+    "  sizes and orientations (correctly, I hope).\n"
+    "* Some Siemens .ima files seems to have their EPI slices stored in\n"
+    "  spatial order, and some in acquisition (interleaved) order.  This\n"
+    "  program doesn't try to figure this out.  You can use the command\n"
+    "  line option '-sinter' to tell the program to assume that the images\n"
+    "  in a single .ima file are interleaved; for example, if there are\n"
+    "  7 images in a file, then without -sinter, the program will assume\n"
+    "  their order is '0 1 2 3 4 5 6'; with -sinter, the program will\n"
+    "  assume their order is '0 2 4 6 1 3 5' (here, the number refers\n"
+    "  to the slice location in space).\n"
     "\n"
-    "  NOTES:\n"
-    "   * Not all GPL AFNI programs support all datum types.  Shorts and\n"
-    "       floats are safest. (See the '-datum' option below.)\n"
-    "   * If '-datum short' is used or implied, then int, float, and complex\n"
-    "       data will be scaled to fit into a 16 bit integer.  If the '-gsfac'\n"
-    "       option below is NOT used, then each slice will be SEPARATELY\n"
-    "       scaled according to the following choice:\n"
-    "       (a) If the slice values all fall in the range -32767 .. 32767,\n"
-    "           then no scaling is performed.\n"
-    "       (b) Otherwise, the image values are scaled to lie in the range\n"
-    "           0 .. 10000 (original slice min -> 0, original max -> 10000).\n"
-    "       This latter option is almost surely not what you want!  Therefore,\n"
-    "       if you use the 3Di:, 3Df:, or 3Dc: input methods and store the\n"
-    "       data as shorts, I suggest you supply a global scaling factor.\n"
-    "       Similar remarks apply to '-datum byte' scaling, with even more force.\n"
-    "   * To3d now incoporates POSIX filename 'globbing', which means that\n"
-    "       you can input filenames using 'escaped wildcards', and then to3d\n"
-    "       will internally do the expansion to the list of files.  This is\n"
-    "       only desirable because some systems limit the number of command-line\n"
-    "       arguments to a program.  It is possible that you would wish to input\n"
-    "       more slice files than your computer supports.  For example,\n"
-    "           to3d exp.?.*\n"
-    "       might overflow the system command line limitations.  The way to do\n"
-    "       this using internal globbing would be\n"
-    "           to3d exp.\\?.\\*\n"
-    "       where the \\ characters indicate to pass the wildcards ? and *\n"
-    "       through to the program, rather than expand them in the shell.\n"
-    "       (a) Note that if you choose to use this feature, ALL wildcards in\n"
-    "           a filename must be escaped with \\ or NONE must be escaped.\n"
-    "       (b) Using the C shell, it is possible to turn off shell globbing\n"
-    "           by using the command 'set noglob' -- if you do this, then you\n"
-    "           do not need to use the \\ character to escape the wildcards.\n"
-    "       (c) Internal globbing of 3D: file specifiers is supported in to3d.\n"
-    "           For example, '3D:0:0:64:64:100:sl.\\*' could be used to input\n"
-    "           a series of 64x64x100 files with names 'sl.01', 'sl.02' ....\n"
-    "           This type of expansion is specific to to3d; the shell will not\n"
-    "           properly expand such 3D: file specifications.\n"
-    "       (d) In the C shell (csh or tcsh), you can use forward single 'quotes'\n"
-    "           to prevent shell expansion of the wildcards, as in the command\n"
-    "               to3d '3D:0:0:64:64:100:sl.*'\n"
-    "     The globbing code is adapted from software developed by the\n"
-    "     University of California, Berkeley, and is copyrighted by the\n"
-    "     Regents of the University of California (see file mcw_glob.c).\n"
+    "* GE I.* (IMGF) 16-bit files can now be read.  The program will detect\n"
+    "  if byte-swapping is needed on these images, and can also set voxel\n"
+    "  grid sizes and orientations.  It can also detect the TR in the\n"
+    "  image header.  If you wish to rely on this TR, you can set TR=0\n"
+    "  in the -time:zt or -time:tz option.\n"
+    "* If you use the image header's TR and also use @filename for the\n"
+    "  tpattern, then the values in the tpattern file should be fractions\n"
+    "  of the true TR; they will be  multiplied by the true TR once it is\n"
+    "  read from the image header.\n"
+    "\n"
+    " NOTES:\n"
+    "  * Not all AFNI programs support all datum types.  Shorts and\n"
+    "      floats are safest. (See the '-datum' option below.)\n"
+    "  * If '-datum short' is used or implied, then int, float, and complex\n"
+    "      data will be scaled to fit into a 16 bit integer.  If the '-gsfac'\n"
+    "      option below is NOT used, then each slice will be SEPARATELY\n"
+    "      scaled according to the following choice:\n"
+    "      (a) If the slice values all fall in the range -32767 .. 32767,\n"
+    "          then no scaling is performed.\n"
+    "      (b) Otherwise, the image values are scaled to lie in the range\n"
+    "          0 .. 10000 (original slice min -> 0, original max -> 10000).\n"
+    "      This latter option is almost surely not what you want!  Therefore,\n"
+    "      if you use the 3Di:, 3Df:, or 3Dc: input methods and store the\n"
+    "      data as shorts, I suggest you supply a global scaling factor.\n"
+    "      Similar remarks apply to '-datum byte' scaling, with even more force.\n"
+    "  * To3d now incoporates POSIX filename 'globbing', which means that\n"
+    "      you can input filenames using 'escaped wildcards', and then to3d\n"
+    "      will internally do the expansion to the list of files.  This is\n"
+    "      only desirable because some systems limit the number of command-line\n"
+    "      arguments to a program.  It is possible that you would wish to input\n"
+    "      more slice files than your computer supports.  For example,\n"
+    "          to3d exp.?.*\n"
+    "      might overflow the system command line limitations.  The way to do\n"
+    "      this using internal globbing would be\n"
+    "          to3d exp.\\?.\\*\n"
+    "      where the \\ characters indicate to pass the wildcards ? and *\n"
+    "      through to the program, rather than expand them in the shell.\n"
+    "      (a) Note that if you choose to use this feature, ALL wildcards in\n"
+    "          a filename must be escaped with \\ or NONE must be escaped.\n"
+    "      (b) Using the C shell, it is possible to turn off shell globbing\n"
+    "          by using the command 'set noglob' -- if you do this, then you\n"
+    "          do not need to use the \\ character to escape the wildcards.\n"
+    "      (c) Internal globbing of 3D: file specifiers is supported in to3d.\n"
+    "          For example, '3D:0:0:64:64:100:sl.\\*' could be used to input\n"
+    "          a series of 64x64x100 files with names 'sl.01', 'sl.02' ....\n"
+    "          This type of expansion is specific to to3d; the shell will not\n"
+    "          properly expand such 3D: file specifications.\n"
+    "      (d) In the C shell (csh or tcsh), you can use forward single 'quotes'\n"
+    "          to prevent shell expansion of the wildcards, as in the command\n"
+    "              to3d '3D:0:0:64:64:100:sl.*'\n"
+    "    The globbing code is adapted from software developed by the\n"
+    "    University of California, Berkeley, and is copyrighted by the\n"
+    "    Regents of the University of California (see file mcw_glob.c).\n"
     "\n"
     "  -2swap\n"
     "     This option will force all input 2 byte images to be byte-swapped\n"
