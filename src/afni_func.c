@@ -103,15 +103,15 @@ void AFNI_thr_scale_drag_CB( Widget w, XtPointer client_data, XtPointer call_dat
 
 ENTRY("AFNI_thr_scale_drag CB") ;
 
-   if( IM3D_OPEN(im3d)                     &&
-       ISVALID_3DIM_DATASET(im3d->fim_now) &&
-       FUNC_HAVE_PVAL(DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index)) ){
+   if( IM3D_OPEN(im3d) && ISVALID_3DIM_DATASET(im3d->fim_now) ){
 
       fff = THR_FACTOR * cbs->value ;
       if( fff >= 0.0 && fff <= 1.0 ) im3d->vinfo->func_threshold = fff ;
 
       FIX_SCALE_VALUE(im3d) ;
-      AFNI_set_thr_pval( im3d ) ;
+      if( FUNC_HAVE_PVAL(DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index)) )
+        AFNI_set_thr_pval( im3d ) ;
+
       AFNI_thrdrag_lock_carryout( im3d ) ; /* 10 Feb 2004 */
    }
    EXRETURN ;
