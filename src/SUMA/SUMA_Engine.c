@@ -1223,6 +1223,67 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 }
 
 /*!
+\brief ans = SUMA_OpenGLStateReset (dov, N_dov, sv);
+Used when going from one surface viewer to another. The OpenGL state variables 
+need to be reset when moving from one viewer to the next. Otherwise you risk having 
+unpredictable results the first time you do something in one viewer after you'd been
+in another. 
+This function is a stripped down version of SUMA_SwitchState and should 
+be followed by a call to SUMA_postRedisplay for all the changes to take effect.
+Do not try executing all the commands in SUMA_display that affect the modelview 
+matrix and the projection matrix without calling for a display the changes will not take effect.
+
+\param dov (SUMA_DO *) Pointer to vector of displayable objects, typically SUMAg_DOv
+\param N_dov (int) number of elements in dov, typically SUMAg_N_DOv
+\param sv (SUMA_SurfaceViewer *) viewer making the request.
+\return YUP/NOPE Good/Bad
+
+*/
+SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_OpenGLStateReset"};
+   SUMA_Axis *EyeAxis;
+   int EyeAxis_ID, I_C, OverInd, ND, id;
+   char CommString[100];
+   SUMA_EngineData ED;
+   int  i, j, jmax, prec_ID;
+   SUMA_SurfaceObject *SO_nxt, *SO_prec;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);   
+   
+   #if 0
+   /* modify the rotation center */
+   if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* set the viewing points */
+   if (!SUMA_UpdateViewPoint(sv, dov, N_dov)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   #endif
+   
+   /* This is all that is needed, the others above do not need to be updated at this stage*/
+   
+   /* Change the defaults of the eye axis to fit standard EyeAxis */
+   EyeAxis_ID = SUMA_GetEyeAxis (sv, dov);
+
+   if (EyeAxis_ID < 0) {
+      fprintf(SUMA_STDERR,"Error %s: No Eye Axis. %d\n", FuncName, EyeAxis_ID);
+   } else {
+      EyeAxis = (SUMA_Axis *)(dov[EyeAxis_ID].OP);
+      SUMA_EyeAxisStandard (EyeAxis, sv);
+   }
+   
+   /* You still need to call SUMA_display via SUMA_postRedisplay but that is done after this function returns */ 
+
+   SUMA_RETURN (YUP);
+}
+
+/*!
    EyeAxisID = SUMA_GetEyeAxis (sv, dov);
    gets the ID (indices into dov) of the Eye Axis in sv
    \param sv (SUMA_SurfaceViewer *) the surface viewer structure

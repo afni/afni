@@ -8,6 +8,7 @@ int SUMA_NextSO (SUMA_DO *dov, int n_dov, char *idcode, SUMA_SurfaceObject *SOnx
 int SUMA_NextState(SUMA_SurfaceViewer *sv);
 int SUMA_PrevState(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, int nxtstateID);
+SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, SUMA_SurfaceViewer *sv);
 int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov);
 float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, int *I_C);
