@@ -1067,17 +1067,23 @@ void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
        zero out mask above that slice and also more than 160 mm below
    (d) apply mask to image volume
    (e) resample to master dataset grid, with CM at (0,20,0)
+   \param imout_origp (MRI_IMAGE **) a contraption by ZSS to return a SpatNormed
+   version that will eventually be rewritten in im's orientation. Pass NULL if
+   you want nothing to do with it.
 ------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor )
+MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor, MRI_IMAGE **imout_origp )
 {
    MRI_IMAGE *sim , *tim , *bim ;
    short *sar , sval ;
    int ii,jj,kk,ijk,ktop,kbot , nx,ny,nz,nxy,nxyz ;
    float val , icm,jcm,kcm,sum , dx,dy,dz ;
    byte *mask , *bar ;
+   float sim_dx, sim_dy, sim_dz, sim_xo, sim_yo, sim_zo;
+   int sim_nx, sim_ny, sim_nz;
    int *zcount , *hist,*gist , z1,z2,z3 ;
-
+   MRI_IMAGE *imout_orig = NULL;
+   
 ENTRY("mri_brainormalize") ;
 
    if( im == NULL || xxor < 0 || xxor > LAST_ORIENT_TYPE ||
@@ -1144,7 +1150,12 @@ ENTRY("mri_brainormalize") ;
    dx = fabs(sim->dx) ; if( dx == 0.0 ) dx = 1.0 ;
    dy = fabs(sim->dy) ; if( dy == 0.0 ) dy = 1.0 ;
    dz = fabs(sim->dz) ; if( dz == 0.0 ) dz = 1.0 ;
-
+   
+   /* save some info to create an output image with the same number of slices as original image*/
+   sim_dx = sim->dx; sim_dy = sim->dy; sim_dz = sim->dz;
+   sim_xo = 0.0; sim_yo = 0.0; sim_zo = 0.0;  /* origins are added after this function returns.*/
+   sim_nx = sim->nx; sim_ny = sim->ny; sim_nz = sim->nz; 
+   
    if( verb ) fprintf(stderr,"++mri_brainormalize: making mask\n") ;
    mask = mri_short2mask( sim ) ;
 
@@ -1258,7 +1269,7 @@ ENTRY("mri_brainormalize") ;
    tim->xo = THD_BN_XORG ;
    tim->yo = THD_BN_YORG ;
    tim->zo = THD_BN_ZORG ;
-
+   
    nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
    sar = MRI_SHORT_PTR(tim) ;
 
@@ -1489,6 +1500,16 @@ ENTRY("mri_brainormalize") ;
      free((void *)mask); free((void *)ccc);
    }
 
+   /* create a spat norm of the original volume ZSS */
+   if (imout_origp) {
+      mri_warp3D_method( MRI_NN ) ;
+      if (1 && verb) fprintf(stderr,"thd_brainormalize (ZSS):\n n: %d %d %d\n d: %f %f %f\n o: %f %f %f\n ", sim_nx, sim_ny, sim_nz, sim_dx, sim_dy, sim_dz, sim_xo, sim_yo, sim_zo);
+      imout_orig = mri_warp3D( tim, sim_nx, sim_ny, sim_nz, ijk_invwarp );
+      imout_orig->dx = sim_dx; imout_orig->dy = sim_dy; imout_orig->dz = sim_dz; 
+      imout_orig->xo = sim_xo; imout_orig->yo = sim_yo; imout_orig->zo = sim_zo; 
+      *imout_origp = imout_orig;
+   }
+   
    /*-- convert output to bytes --*/
 
    bim = mri_new_conforming( tim , MRI_byte ) ;

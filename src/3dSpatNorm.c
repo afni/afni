@@ -1,13 +1,14 @@
 #include "mrilib.h"
+#include "rickr/r_new_resam_dset.h"
 
 int main( int argc , char *argv[] )
 {
-   MRI_IMAGE *imin, *imout ;
-   THD_3dim_dataset *iset, *oset ;
+   MRI_IMAGE *imin, *imout , *imout_orig;
+   THD_3dim_dataset *iset, *oset , *ooset;
    char *prefix = "SpatNorm" ;
-   int iarg , verb=0 ;
+   int iarg , verb=0, OrigSpace = 0 ;
    THD_ivec3 orixyz , nxyz ;
-   THD_fvec3 dxyz , orgxyz ;
+   THD_fvec3 dxyz , orgxyz, originRAIfv, fv2;
 
 
    /*--- get help here or get help somewhere ---*/
@@ -17,6 +18,7 @@ int main( int argc , char *argv[] )
             "\n"
             "Options:\n"
             "  -prefix ppp = Write output dataset using 'ppp' for the prefix.\n"
+            "  -orig_space = Write output dataset using the same grid as dataset.\n"
             "  -verb       = Write out progress reports\n"
            ) ;
      exit(0) ;
@@ -25,6 +27,7 @@ int main( int argc , char *argv[] )
    /*--- options ---*/
 
    iarg = 1 ;
+   OrigSpace = 0;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      /* -prefix */
@@ -47,7 +50,11 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-verb",5) == 0 ){
        verb++ ; iarg++ ; continue ;
      }
-
+     
+     if( strncmp(argv[iarg],"-orig_space",10) == 0 ){
+       OrigSpace = 1 ; iarg++ ; continue ;
+     }
+     
      fprintf(stderr,"**ERROR: %s is unknown option!\n",argv[iarg]) ;
      exit(1) ;
    }
@@ -77,7 +84,25 @@ int main( int argc , char *argv[] )
    imin->dx = fabs(iset->daxes->xxdel) ;
    imin->dy = fabs(iset->daxes->yydel) ;
    imin->dz = fabs(iset->daxes->zzdel) ;
+   
+   /* me needs the origin of this dset in RAI world */
+   LOAD_FVEC3(originRAIfv , iset->daxes->xxorg , iset->daxes->yyorg , iset->daxes->zzorg) ;
+   originRAIfv = THD_3dmm_to_dicomm( iset , originRAIfv ) ;
 
+   LOAD_FVEC3(fv2 , iset->daxes->xxorg + (iset->daxes->nxx-1)*iset->daxes->xxdel ,
+                    iset->daxes->yyorg + (iset->daxes->nyy-1)*iset->daxes->yydel ,
+                    iset->daxes->zzorg + (iset->daxes->nzz-1)*iset->daxes->zzdel  ) ;
+   fv2 = THD_3dmm_to_dicomm( iset , fv2 ) ;
+
+   if( originRAIfv.xyz[0] > fv2.xyz[0] ) { float tf; tf = originRAIfv.xyz[0]; originRAIfv.xyz[0] = fv2.xyz[0]; fv2.xyz[0] = tf; } 
+   if( originRAIfv.xyz[1] > fv2.xyz[1] ) { float tf; tf = originRAIfv.xyz[1]; originRAIfv.xyz[1] = fv2.xyz[1]; fv2.xyz[1] = tf; }
+   if( originRAIfv.xyz[2] > fv2.xyz[2] ) { float tf; tf = originRAIfv.xyz[2]; originRAIfv.xyz[2] = fv2.xyz[2]; fv2.xyz[2] = tf; }
+   
+   if (1 && verb) {
+      fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n", originRAIfv.xyz[0], originRAIfv.xyz[1], originRAIfv.xyz[2]);
+   }
+   
+   
    DSET_unload( iset ) ;  /* don't need this data no more */
 
    /*-- convert image to shorts, if appropriate --*/
@@ -92,15 +117,30 @@ int main( int argc , char *argv[] )
    /*--- normalize image spatially ---*/
 
    mri_brainormalize_verbose( verb ) ;
-   imout = mri_brainormalize( imin , iset->daxes->xxorient,
+   if (OrigSpace) {
+      imout = mri_brainormalize( imin , iset->daxes->xxorient,
                                      iset->daxes->yyorient,
-                                     iset->daxes->zzorient ) ;
+                                     iset->daxes->zzorient , &imout_orig) ;
+   } else {
+      imout = mri_brainormalize( imin , iset->daxes->xxorient,
+                                     iset->daxes->yyorient,
+                                     iset->daxes->zzorient , NULL) ;
+   }
    mri_free( imin ) ;
 
    if( imout == NULL ){
      fprintf(stderr,"**ERROR: normalization fails!?\n"); exit(1);
    }
-
+   
+   if (OrigSpace) {
+      if( verb ) fprintf(stderr,"++3dSpatNorm: Output in Orignal space\n") ;
+      mri_free( imout ) ;
+      imout = imout_orig; imout->xo = originRAIfv.xyz[0]; imout->yo = originRAIfv.xyz[1]; imout->zo = originRAIfv.xyz[2]; 
+      imout_orig = NULL;
+   } else {
+      if( verb ) fprintf(stderr,"++3dSpatNorm: Output in SpatNorm space\n") ;
+   }
+   
 #if 0
    if( AFNI_yesenv("WATERSHED") ){
      imin = mri_watershedize( imout , 0.10 ) ;
@@ -109,6 +149,8 @@ int main( int argc , char *argv[] )
 #endif
 
    /*--- create output dataset ---*/
+   if( verb )
+     fprintf(stderr,"++3dSpatNorm: Creating output dset\n") ;
 
    oset = EDIT_empty_copy( NULL ) ;
 
@@ -120,6 +162,8 @@ int main( int argc , char *argv[] )
    LOAD_FVEC3( orgxyz , imout->xo    , imout->yo    , imout->zo    ) ;
    LOAD_IVEC3( orixyz , ORI_R2L_TYPE , ORI_A2P_TYPE , ORI_I2S_TYPE ) ;
 
+   if( verb )
+     fprintf(stderr,"++3dSpatNorm: EDIT_dset_items\n") ;
    EDIT_dset_items( oset ,
                       ADN_prefix      , prefix ,
                       ADN_datum_all   , imout->kind ,
@@ -133,11 +177,24 @@ int main( int argc , char *argv[] )
                       ADN_func_type   , ANAT_BUCK_TYPE ,
                     ADN_none ) ;
 
+   if( verb )
+     fprintf(stderr,"++3dSpatNorm: EDIT_substitute_brick\n") ;
    EDIT_substitute_brick( oset , 0 , imout->kind , mri_data_pointer(imout) ) ;
+
+   if (OrigSpace) {
+      if( verb )
+         fprintf(stderr,"++3dSpatNorm: Changing orientation from RAI\n") ;
+      ooset = r_new_resam_dset ( oset, iset,	0,	0,	0,	NULL, MRI_NN, NULL);
+      if (!ooset) {
+         fprintf(stderr,"**ERROR: Failed to reslice!?\n"); exit(1);
+      }
+      DSET_delete(oset); oset = ooset; ooset = NULL;
+   }
 
    if( verb )
      fprintf(stderr,"++3dSpatNorm: writing dataset with prefix=%s\n",prefix) ;
-
+   
    DSET_write(oset) ;
+   
    exit(0) ;
 }

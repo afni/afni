@@ -499,7 +499,7 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_C
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_StretchToFitLeCerveau"};
-   int it=0, in=0, ii, Npass, Done, ShishMax, i_diffmax, kth_buf;
+   int it=0,it0 = 0, in=0, ii, Npass, Done, ShishMax, i_diffmax, kth_buf, nit;
    float mnc[3], s[3], sn[3], st[3], dp, threshclip, lztfac,
          nsn, rmin, rmax, E, F, su1, su2, su3, su4,  
          r, u1[3], u2[3], u3[3], u[3],
@@ -509,6 +509,9 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
          *overshish = NULL, *undershish = NULL, diffmax;
    float *tmpptr, *NewCoord = NULL, f3, f4, lZt, *dsmooth = NULL;
    float *refNodeList = NULL, *OrigNodeList=NULL;
+   double MaxExp;
+   int keepgoing=0;
+   double pastarea, curarea, darea;
    FILE *OutNodeFile = NULL;
    SUMA_Boolean DoDbg=NOPE;
    SUMA_Boolean LocalHead = NOPE;
@@ -576,15 +579,19 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
    }
    memcpy((void*)OrigNodeList, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
    
-   Npass = 0;   Done = 0;
+   pastarea = 0.0; curarea = 0.0; darea = 0.0;
+   Npass = 0;   Done = 0; nit = Opt->N_it; it0 = 0;
    do {
       if (Opt->debug > 1) fprintf(SUMA_STDERR,"%s: Pass #%d\n", FuncName, Npass);
-      for (it=0; it < Opt->N_it; ++it) {
+      MaxExp = 0.0; /* maximum expansion of any node */
+      for (it=it0; it < nit; ++it) {
          SUMA_MEAN_SEGMENT_LENGTH(SO, l);
          if (LocalHead && !(it % 50)) fprintf (SUMA_STDERR,"%s: Iteration %d, l = %f . SO->Center = %f, %f, %f...\n", FuncName, it, l, SO->Center[0], SO->Center[1], SO->Center[2]);
          if (Opt->var_lzt) {
-            lztfac = SUMA_MAX_PAIR(0.2, (1.2* (float)it / (float)Opt->N_it));   /* make things expand quickly in the beginning, to help escape large sections of csf close to outer surface, then tighten grip towards the end*/
+            if (it <= Opt->N_it) lztfac = SUMA_MAX_PAIR(0.2, (1.2* (float)it / (float)Opt->N_it));  /* make things expand quickly in the beginning, to help escape large sections of csf close to outer surface, then tighten grip towards the end*/
+            else lztfac = 1.2;
          } else lztfac = 1.0;
+         MaxExp = 0.0; /* maximum expansion of any node */
          for (in=0; in<SO->N_Node; ++in) {
             SUMA_MEAN_NEIGHB_COORD(SO, in, mnc);
             n = &(SO->NodeList[3*in]);
@@ -604,8 +611,10 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
             
             if (n[2] - SO->Center[2] < -25) { lZt = SUMA_MAX_PAIR (Opt->bot_lztclip, (Opt->ztv[in] * lztfac)); } /* clip lZt at no less than 0.5 for lowest sections, 
                                                                                                          otherwise you might go down to the dumps */
-            else { lZt = Opt->ztv[in] * lztfac; if (lZt > 1) lZt = 0.999; }
+            else { lZt = Opt->ztv[in] * lztfac;  }
 
+            if (lZt > 1) lZt = 0.999;
+            
             tb = (Imax - t2) * lZt + t2; 
             f3 = 2.0 * (Imin - tb) / (Imax - t2 );
 
@@ -699,6 +708,7 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
 
             }
             NewCoord[3*in] = n[0] + u[0]; NewCoord[3*in+1] = n[1] + u[1]; NewCoord[3*in+2] = n[2] + u[2];       
+            MaxExp = SUMA_MAX_PAIR (MaxExp, ( sqrt(u[0]*u[0]+u[1]*u[1]+u[2]*u[2]) ) );
             DoDbg = NOPE;
          } /* loop over number of nodes */
          /* swap vectors */
@@ -722,7 +732,26 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
          }
 
       } /* loop over number of iterations */
-      Done = 1;
+      if (MaxExp > 0.5) {
+         /* Now, if you still have expansion, continue */
+         if (!pastarea) { /* first time around, calculate area */
+            pastarea = SUMA_Mesh_Area(SO, NULL, -1);
+            keepgoing = 1;
+         }else {
+            curarea = SUMA_Mesh_Area(SO, NULL, -1);
+            darea = ( curarea - pastarea ) / pastarea; 
+            if (SUMA_ABS(darea) > 0.1) {
+               keepgoing = 1;
+            } else { 
+               keepgoing = 0;
+            }
+         }
+         if (keepgoing) {
+            it0 = nit; nit = nit + 100;
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: \n MaxExp = %f, darea = %f, going for more...\n", FuncName, MaxExp, darea);
+            Done = 0;
+         } else Done = 1;
+      } else Done = 1;
    } while (!Done);
       
    
@@ -893,7 +922,7 @@ byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar
                            3: voxel is in box containing triangle and is on the side opposite to the normal 
                            See SUMA_SURF_GRID_INTERSECT_OPTIONS for the various possible values
 */
-short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole)
+short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole, THD_3dim_dataset *fillmaskset)
 {
    static char FuncName[]={"SUMA_SurfGridIntersect"};
    short *isin=NULL;
@@ -902,6 +931,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
    float MaxDims[3], MinDims[3], SOCenter[3];
    int nn, nijk, nx, ny, nz, nxy, nxyz, nf, n1, n2, n3, nn3, *voxelsijk=NULL, N_alloc, en;
    int N_inbox, nt, nt3, ijkseed, N_in;
+   byte *fillmaskvec=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -999,22 +1029,47 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       /* hide the mask values that are outside the surface */
       for (nt=0; nt<nxyz; ++nt) { if (ijkout[nt]) isin[nt] = 0; }
       
+     if (fillmaskset) {
+                  fillmaskvec = (byte *)SUMA_malloc(nx*ny*nz*sizeof(byte));
+                  if (!fillmaskvec) { SUMA_SL_Crit("Failed to allocate fillmaskvec"); }
+                  /* is this value 0 in the fillmaskset */
+                  EDIT_coerce_scale_type( nx*ny*nz , DSET_BRICK_FACTOR(fillmaskset,0) ,
+                           DSET_BRICK_TYPE(fillmaskset,0), DSET_ARRAY(fillmaskset, 0) ,      /* input  */
+                           MRI_byte               , fillmaskvec  ) ;   /* output */
+      }
+      
       /* get the mask */
       inmask = SUMA_FillToVoxelMask(ijkmask, ijkseed, nx, ny, nz, &N_in, NULL); 
       if (!inmask) {
          SUMA_SL_Err("Failed to FillToVoxelMask!");
       } else {
          if (fillhole) { /* not a good idea to keep in SUMA_FillToVoxelMask */
+            byte *inmask_prefill=NULL;
+            
+            /* keep track of original inmask */
+            inmask_prefill = (byte *)SUMA_calloc(nx * ny * nz , sizeof(byte));
+            memcpy ((void*)inmask_prefill, (void *)inmask, nx * ny * nz * sizeof(byte));
+
             if (LocalHead) fprintf(SUMA_STDERR,"%s:\n filling small holes %d...\n", FuncName, fillhole);
             /* fill in any isolated holes in mask */
             (void) THD_mask_fillin_once( nx,ny,nz , inmask , fillhole ) ;  /* thd_automask.c */
+            /* remove filled holes that overlap with 0 values in mask */
+            if (fillmaskvec) {
+               for (nt=0; nt<nxyz; ++nt) {
+                  if (inmask_prefill[nt] == 0 && inmask[nt] == 1 && fillmaskvec[nt] == 0) { /* if a voxel was not in mask before filling, then was filled as a hole but it is zero in the original dset, then fill it not */
+                     inmask[nt] = 0;
+                     if (LocalHead) fprintf(SUMA_STDERR,"%s: Shutting fill at %d\n", FuncName, nt);
+                  }
+               }
+            }
+            SUMA_free(inmask_prefill); inmask_prefill = NULL;
          }
          /* flag it */
          for (nt=0; nt<nxyz; ++nt) {
             if (inmask[nt] && !isin[nt]) {
                /* it would be nice to fill this value only if the intensity in the spat normed volume is not 0 
                The problem is that you have to transform coordinates back from this dataset back to the spatnormed set*/
-               isin[nt] = SUMA_INSIDE_SURFACE;
+                  isin[nt] = SUMA_INSIDE_SURFACE;
             }
          }
       }
@@ -1035,7 +1090,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
    \sa   SUMA_SURF_GRID_INTERSECT_OPTIONS for the various possible values
  
 */   
-short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole) 
+short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole, THD_3dim_dataset *fillmaskset) 
 {
    static char FuncName[]={"SUMA_FindVoxelsInSurface"};
    short *isin = NULL;
@@ -1092,7 +1147,7 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
                                          hdim[0], hdim[1], hdim[2]);
    
    /* Find the voxels that intersect the surface */
-   isin = SUMA_SurfGridIntersect (SO, tmpXYZ, VolPar, &N_in, fillhole);               
+   isin = SUMA_SurfGridIntersect (SO, tmpXYZ, VolPar, &N_in, fillhole, fillmaskset);               
 
    *N_inp = N_in;
    #if MSK_DBG

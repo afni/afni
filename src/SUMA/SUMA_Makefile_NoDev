@@ -2,7 +2,7 @@
 
 MAKE = make
 SUMALIB = libSUMA.a
-AFNILIB = -lmrix -lcoxplot -lf2c -lmri -lrickr
+AFNILIB = -lrickr -lmrix -lcoxplot -lf2c -lmri 
 MAINCODE = SUMA
 SUMALIBLIST = libSUMA.a libglut.a libply.a 
 
@@ -34,6 +34,10 @@ AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o ../afni_fimmer.
 				../afni_niml.o ../afni_sumafunc.o ../afni_slice_rgbyte.o        	\
 				../afni_version.o
 
+AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
+				../afni_slice_float.o ../afni_slice_complex.o               \
+				../afni_slice_rgbyte.o
+             
 AFNI_3dOBJS = ../parser.o ../parser_int.o
 SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
@@ -193,7 +197,7 @@ ConvexHull: SUMA_ConvexHull.c
 
 3dSkullStrip: SUMA_3dSkullStrip.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_BrainWrap_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_3dSkullStrip.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED -DSUMA_BrainWrap_STANDALONE ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dSkullStrip.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
        
