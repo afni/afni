@@ -263,7 +263,7 @@ switch NF
 			   msterm_new = [msterm(1:6), msterm(8), msterm(10:11)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
 	         intensity_new = [intensity(1:6), intensity(8), intensity(10:11)];    % Throw out those four which do not exist for nesting.
 				dfterm_new = [dfterm(1:6)', dfterm(8), dfterm(10:11)'];
-	         tnames_new = [tnames(1:6); tnames(8), tnames(10:11)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+	         tnames_new = [tnames(1:6); tnames(8); tnames(10:11)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
 	         msdenom = [msterm(4), msterm(4), msterm(10), mse, msterm(4), msterm(10), msterm(10), mse, msterm(10)];  % denominator MS
    	      dfdenom = [dfterm(4), dfterm(4), dfterm(10), dfe, dfterm(4), dfterm(10), dfterm(10), dfe, dfterm(10)];  % denominator DF				
 	   end	% Close switch dsgn
