@@ -1395,7 +1395,10 @@ if( PRINT_TRACING ){
 
    MCW_register_help( newseq->wbar ,
                       "Use Button 3 to popup\n"
-                      "a display control menu"  ) ;
+                      "a display control menu\n"
+                      "\n"
+                      "Use Button 1 to enforce\n"
+                      "image aspect ratio"       ) ;
 
 #ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
    newseq->wbar_menu = XmCreatePopupMenu( newseq->wscale, "imseq",NULL,0 ) ;
@@ -4670,10 +4673,16 @@ DPR(" .. ButtonPress") ;
          /* button press in the wbar => popup menu */
 
          if( w == seq->wbar ){          /* moved here 18 Oct 2001 */
-            event->button = Button3 ;                  /* fakeout */
-            XmMenuPosition( seq->wbar_menu , event ) ; /* where */
-            XtManageChild ( seq->wbar_menu ) ;         /* popup */
-            EXRETURN ;
+           if( event->button == Button1 ){ /* 21 Oct 2003 */
+             ISQ_reset_dimen( seq, seq->last_width_mm, seq->last_height_mm ) ;
+           } else if( event->button == Button3 ){
+             XmMenuPosition( seq->wbar_menu , event ) ; /* where */
+             XtManageChild ( seq->wbar_menu ) ;         /* popup */
+           }
+#if 0
+           else XUngrabPointer( event->display , CurrentTime ) ;
+#endif
+           EXRETURN ;
          }
 
          /* below here, button press was in the image */
@@ -4815,20 +4824,26 @@ DPR(" .. ButtonPress") ;
                 (event->width  != seq->sized_xim->width ) ||
                 (event->height != seq->sized_xim->height)   ){
 
-               int enforce_aspect ;  /* 09 Oct 1999 */
-               char * hh ;
-
                seq->wimage_width = seq->wimage_height = -1 ; /* Feb 1998 */
 
                KILL_2ndXIM( seq->given_xim , seq->sized_xim ) ;
 
                /*-- 09 Oct 1999: if ordered, enforce aspect --*/
+               /*-- 21 Oct 2003: only if it's been a while  --*/
 
-               hh = my_getenv("AFNI_ENFORCE_ASPECT") ;  /* 21 Jun 2000 */
-               enforce_aspect = YESSISH(hh) ;
+#if 0
+fprintf(stderr,"ConfigureNotify: width=%d height=%d\n",event->width,event->height);
+#endif
 
-               if( enforce_aspect && !seq->opt.free_aspect )
-                  ISQ_reset_dimen( seq , seq->last_width_mm , seq->last_height_mm ) ;
+               if( AFNI_yesenv("AFNI_ENFORCE_ASPECT") && !seq->opt.free_aspect ){
+                 static int last_time=0 ; int now_time=NI_clock_time() ;
+                 if( now_time == 0 || now_time-last_time > 33 ) 
+                   ISQ_reset_dimen( seq, seq->last_width_mm, seq->last_height_mm ) ;
+#if 0
+else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
+#endif
+                 last_time = now_time ;
+               }
 
                /*-- now show the image in the new window size --*/
 
