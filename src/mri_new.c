@@ -73,6 +73,8 @@ ENTRY("mri_new_7D_generic") ;
    newim->xo = newim->yo = newim->zo =
    newim->to = newim->uo = newim->vo = newim->wo = 0.0 ;  /* default offsets */
 
+   newim->was_swapped = 0 ;  /* 07 Mar 2002 - flag that bytes were swapped */
+
 #ifdef USE_MRI_LABELS
    newim->xlab[0] = '\0' ;          /* default labels */
    newim->ylab[0] = '\0' ;

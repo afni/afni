@@ -3493,3 +3493,17 @@
  * Fixed a small problem with thd_info.c (damn you, Jim Haxby).
  * Incorporated a few more 3dDeconvolve changes from Doug Ward.
  * First cut at putting niml.[ch] into AFNI, along with afni_niml.c.
+
+06 Mar 2002
+ * Many changes over the last few weeks to include NIML support for
+     talking to Ziad Saad's SUMA program.
+
+07 Mar 2002
+ * Modified afni_graph.c (and afni_pplug_env.c) to make Button3 popup
+     text info window be a scrollable textwin rather than a menu popup
+     if the number of lines is too long; "too long" is defined by new
+     environment variable AFNI_GRAPH_TEXTLIMIT.
+ * Modified mrilib.h to add field "was_swapped" to MRI_IMAGE struct.
+     Then modified mri_read.c to set this field if it auto-swaps the
+     image on input.  Then modified to3d.c to skip doing -2swap/-4swap
+     on such images.

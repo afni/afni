@@ -479,6 +479,8 @@ Ready_To_Roll:
        case 4:  swap_fourbytes(   im->nvox, data ) ; break ;  /* int, float */
        case 8:  swap_fourbytes( 2*im->nvox, data ) ; break ;  /* complex */
      }
+
+     im->was_swapped = 1 ;  /* 07 Mar 2002 */
    }
 
    return im ;
@@ -781,7 +783,10 @@ MRI_IMARR * mri_read_3D( char * tname )
       newim  = mri_new( nx , ny , datum_type ) ;
       imar   = mri_data_pointer( newim ) ;
       length = fread( imar , datum_len , nx * ny , imfile ) ;
-      if( swap ) mri_swapbytes( newim ) ;
+      if( swap ){
+         mri_swapbytes( newim ) ;
+         newim->was_swapped = 1 ;  /* 07 Mar 2002 */
+      }
 
       if( nz == 1 ) mri_add_name( fname , newim ) ;
       else {
@@ -853,6 +858,18 @@ MRI_IMARR * mri_read_file( char * fname )
       ADDTO_IMARR(newar,newim) ;
    }
    free(new_fname) ;
+
+   /* 07 Mar 2002: add fname to the images, if needed */
+
+   if( newar != NULL && newar->num > 0 ){
+     int ii ;
+     for( ii=0 ; ii < newar->num ; ii++ ){
+       newim = IMARR_SUBIM(newar,ii) ;
+       if( newim != NULL && newim->fname == NULL )
+          newim->fname = strdup(fname) ;
+     }
+   }
+
    return newar ;
 }
 
@@ -2034,12 +2051,13 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       length = fread( imar , datum_len , nx * ny , fp ) ;
 
       if( doswap ){
-         switch( datum_len ){
-            default: break ;
-            case 2:  swap_twobytes (   nx*ny , imar ) ; break ;  /* short */
-            case 4:  swap_fourbytes(   nx*ny , imar ) ; break ;  /* int, float */
-            case 8:  swap_fourbytes( 2*nx*ny , imar ) ; break ;  /* complex */
-         }
+        switch( datum_len ){
+          default: break ;
+          case 2:  swap_twobytes (   nx*ny , imar ) ; break ;  /* short */
+          case 4:  swap_fourbytes(   nx*ny , imar ) ; break ;  /* int, float */
+          case 8:  swap_fourbytes( 2*nx*ny , imar ) ; break ;  /* complex */
+        }
+        newim->was_swapped = 1 ;  /* 07 Mar 2002 */
       }
 
       /* 28 Nov 2001: convert to floats? */
@@ -2282,6 +2300,8 @@ MRI_IMARR * mri_read_siemens( char * hname )
          newim = mri_new( imagesize , imagesize , MRI_short ) ;
          nar   = MRI_SHORT_PTR( newim ) ;
 
+         if( swap ) newim->was_swapped = 1 ; /* 07 Mar 2002 */
+
          for( j=0 ; j < imagesize ; j++ )    /* row in sub-image */
            memcpy( nar+j*imagesize ,
                    imar+xx*imagesize+(j+yy*imagesize)*nxx , 2*imagesize ) ;
@@ -2391,7 +2411,10 @@ void mri_input_delay( MRI_IMAGE * im )
 
    /** swap bytes, if so marked **/
 
-   if( (im->fondisk & BSWAP_DELAY) ) mri_swapbytes( im ) ;
+   if( (im->fondisk & BSWAP_DELAY) ){
+      mri_swapbytes( im ) ;
+      im->was_swapped = 1 ;  /* 07 Mar 2002 */
+   }
 
    /** mark as already read from disk **/
 

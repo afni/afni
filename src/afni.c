@@ -3892,7 +3892,7 @@ ENTRY("AFNI_time_lock_carryout") ;
 
    /* first, determine if there is anything to do */
 
-   glock = GLOBAL_library.controller_lock ;
+   glock = GLOBAL_library.controller_lock ;     /* not a handgun */
 
    if( busy )                       EXRETURN ;  /* routine already busy */
    if( glock == 0 )                 EXRETURN ;  /* nothing to do */
@@ -3923,12 +3923,12 @@ ENTRY("AFNI_time_lock_carryout") ;
 
       if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
-         qq_index = qq3d->vinfo->time_index ;                /* old index */
-         qq_top   = DSET_NUM_TIMES(qq3d->anat_now) ;         /* range allowed */
+         qq_index = qq3d->vinfo->time_index ;           /* old index */
+         qq_top   = DSET_NUM_TIMES(qq3d->anat_now) ;    /* range allowed */
 
          if( qq_top > 1 && qq_index != new_index ){
             tav = qq3d->vwid->imag->time_index_av ;
-            AV_assign_ival( tav , new_index ) ;              /* will check range */
+            AV_assign_ival( tav , new_index ) ;         /* will check range */
             if( tav->ival != qq_index )
                AFNI_time_index_CB( tav , (XtPointer) qq3d ) ;
          }
@@ -3952,15 +3952,17 @@ ENTRY("AFNI_time_index_CB") ;
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
    ipx = av->ival ;
-   if( ipx >= im3d->vinfo->top_index )
+   if( ipx >= im3d->vinfo->top_index )    /* don't let index be too big */
       ipx = im3d->vinfo->top_index - 1 ;
 
-   if( im3d->vinfo->time_index != ipx ){
-      im3d->vinfo->time_index = ipx ;
-   }
+   im3d->vinfo->time_index = ipx ;        /* change time index */
 
    im3d->vinfo->tempflag = 1 ;
-   AFNI_modify_viewing( im3d , False ) ;
+   AFNI_modify_viewing( im3d , False ) ;  /* setup new bricks to view */
+
+   if( ISVALID_DSET(im3d->fim_now)       &&   /* if time index on */
+       DSET_NUM_TIMES(im3d->fim_now) > 1   )  /* function changed */
+     AFNI_process_funcdisplay( im3d ) ;       /* notify receivers */
 
    AFNI_time_lock_carryout( im3d ) ;  /* 03 Nov 1998 */
    RESET_AFNI_QUIT(im3d) ;
