@@ -3728,7 +3728,8 @@ void SUMA_ColPlane_NewOrder (void *data)
    char sbuf[SUMA_MAX_LABEL_LENGTH];
    SUMA_SurfaceObject *SO=NULL;
    int Old_Order = -1, i, iMove, NetMove;
-   SUMA_Boolean Shaded, Decent, LocalHead = NOPE;
+   SUMA_Boolean Shaded, Decent; 
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -3738,7 +3739,7 @@ void SUMA_ColPlane_NewOrder (void *data)
    if (SO->SurfCont->curColPlane->PlaneOrder == (int)SO->SurfCont->ColPlaneOrder->value) SUMA_RETURNe;
    
    /* Now show the new order */
-   SUMA_Print_PlaneOrder(SO, NULL);
+   if (LocalHead) SUMA_Print_PlaneOrder(SO, NULL);
    
 
    /* Now figure out the direction of the arrow presses */
@@ -3783,7 +3784,7 @@ void SUMA_ColPlane_NewOrder (void *data)
    
    SUMA_LH("Out");
    /* Now show the new order */
-   SUMA_Print_PlaneOrder(SO, NULL);
+   if(LocalHead) SUMA_Print_PlaneOrder(SO, NULL);
    
    /* refresh the switch list */
    SUMA_IS_SWITCH_COL_PLANE_SHADED(SO, Shaded);
@@ -3935,10 +3936,10 @@ void SUMA_ATF_change_value(XtPointer client_data, XtIntervalId *id)
    if (AF->wrap) SUMA_WRAP_VALUE(AF->value, AF->min, AF->max);
    
    /* round to the tolerance */
-   fprintf (SUMA_STDERR, "%s: Pre Tolerance %f\n", FuncName, AF->value);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Pre Tolerance %f\n", FuncName, AF->value);
    /* if no negs allowed, take absolute value. Round off errors can cause AF->value to show -0.00000001 or something ugly like that*/
    if (AF->min >= 0.0 && AF->value < 0.0) AF->value = 0.0;
-   fprintf (SUMA_STDERR, "%s: Post Tolerance %f\n", FuncName, AF->value);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Post Tolerance %f\n", FuncName, AF->value);
 
    SUMA_ATF_SetString (AF);
 

@@ -121,6 +121,7 @@ SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
 
    \param IN (SUMA_INODE *) pointer to SUMA_INODE structure
    \ret ans (int) value of IN->N_link
+   
    \sa SUMA_AddLink
 */
 int SUMA_ReleaseLink (SUMA_INODE * IN) 
@@ -130,7 +131,10 @@ int SUMA_ReleaseLink (SUMA_INODE * IN)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (!IN) {
-      fprintf (SUMA_STDERR,"Error %s: Inode is null. Returning -1.\n", FuncName);
+      /* This typically happens when A link was never created in the first place.
+      It used to be an error message but now it is just a warning because some
+      programs compute things like SO->Cx without creating an inode with it ...*/
+      fprintf (SUMA_STDERR,"Warning %s: Inode is null. Returning -1.\n", FuncName);
       SUMA_RETURN(-1);
    }
    if (!IN->N_link) {

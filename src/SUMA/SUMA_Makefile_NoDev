@@ -172,8 +172,25 @@ packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
 	chmod u+x ./@SUMA_CreateCompileStamp
 	./@SUMA_CreateCompileStamp SUMA_bin/@SUMA_CompileStamp
-	$(CP) -p suma MakeColorMap libSUMA.a ScaleToMap 3dVol2Surf  \
-		 3dSurf2Vol SUMA_bin/
+	@if [ -f suma ]; then $(CP) -p suma SUMA_bin/; fi;
+	@if [ -f SUMA_CreateIcosahedron ]; then $(CP) -p SUMA_CreateIcosahedron SUMA_bin/; fi;
+	@if [ -f SUMA_Map_SurfacetoSurface ]; then $(CP) -p SUMA_Map_SurfacetoSurface SUMA_bin/; fi;
+	@if [ -f SUMA_MapIcosahedron ]; then $(CP) -p SUMA_MapIcosahedron SUMA_bin/; fi;
+	@if [ -f SUMA_SureFit ]; then $(CP) -p SUMA_SureFit SUMA_bin/; fi;
+	@if [ -f SUMA_Load_Surface_Object ]; then $(CP) -p SUMA_Load_Surface_Object SUMA_bin/; fi;
+	@if [ -f SUMA_Read_SpecFile ]; then $(CP) -p SUMA_Read_SpecFile SUMA_bin/; fi;
+	@if [ -f SUMA_FreeSurfer ]; then $(CP) -p SUMA_FreeSurfer SUMA_bin/; fi;
+	@if [ -f ScaleToMap ]; then $(CP) -p ScaleToMap SUMA_bin/; fi;
+	@if [ -f MakeColorMap ]; then $(CP) -p MakeColorMap SUMA_bin/; fi;
+	@if [ -f ROI2dataset ]; then $(CP) -p ROI2dataset SUMA_bin/; fi;
+	@if [ -f CompareSurfaces ]; then $(CP) -p CompareSurfaces SUMA_bin/; fi;
+	@if [ -f SUMA_inflate_compare ]; then $(CP) -p SUMA_inflate_compare SUMA_bin/; fi;
+	@if [ -f SUMA_Ply_Read ]; then $(CP) -p SUMA_Ply_Read SUMA_bin/; fi;
+	@if [ -f SUMA_ParseName ]; then $(CP) -p SUMA_ParseName SUMA_bin/; fi;
+	@if [ -f 3dVol2Surf ]; then $(CP) -p 3dVol2Surf SUMA_bin/; fi;
+	@if [ -f 3dSurf2Vol ]; then $(CP) -p 3dSurf2Vol SUMA_bin/; fi;
+	@if [ -f SUMA_glxdino ]; then $(CP) -p SUMA_glxdino SUMA_bin/; fi;
+	@if [ -f SUMA_pixmap2eps ]; then $(CP) -p SUMA_pixmap2eps SUMA_bin/; fi;	
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
 	

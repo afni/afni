@@ -44,7 +44,8 @@ int main (int argc,char *argv[])
   /* other variables */
   int i,j,k;
   int num_nodes1;
-  int num_nodes2;  
+  int num_nodes2;
+  int onenode = -1, istart = -1, istop = -1, FailedDistance = -1; 
   float P0[3];
   float delta_t; 
   float P1[3];
@@ -75,7 +76,7 @@ int main (int argc,char *argv[])
   float B_dim[3];
   char *fout = NULL, *fname=NULL;
   SUMA_EDGE_LIST *SEL = NULL;
-  SUMA_Boolean KeepMTI = YUP;
+  SUMA_Boolean KeepMTI = YUP, Partial = NOPE, SkipConsistent = NOPE;
 
   if (argc < 7) {
     cmp_surf_usage();
@@ -93,13 +94,20 @@ int main (int argc,char *argv[])
   kar = 1;
   brk = NOPE;
   SurfIn = NOPE;
-
+   Partial = NOPE;
+   SkipConsistent = NOPE;
   while (kar < argc) {
     /* loop accross command line options */
     if ((strcmp(argv[kar], "-h") == 0) || (strcmp(argv[kar], "-help") == 0)) {
       cmp_surf_usage ();
       exit (1);
     }
+   
+   if (!brk && (strcmp(argv[kar], "-nocons") == 0)) {
+      SkipConsistent = YUP;
+      brk = YUP;
+   }
+           
     if (!brk && (strcmp(argv[kar], "-sv1")) == 0) {
       kar ++;
       if (kar >= argc) {
@@ -145,6 +153,39 @@ int main (int argc,char *argv[])
       specfilename = argv[kar];
       brk = YUP;
     }
+    
+    if (!brk && (strcmp(argv[kar], "-onenode")) == 0) {
+      if (Partial) {
+         fprintf (SUMA_STDERR, "-onenode is incompatible with -noderange");
+	      exit (1);
+      }
+      kar ++;
+      if (kar >= argc) {
+	fprintf (SUMA_STDERR, "need argument after -onenode");
+	exit (1);
+	   }
+      istart = atoi(argv[kar]);
+      istop = istart;
+      Partial = YUP;
+      brk = YUP;
+    }
+    
+    if (!brk && (strcmp(argv[kar], "-noderange")) == 0) {
+      if (Partial) {
+         fprintf (SUMA_STDERR, "-noderange is incompatible with -onenode");
+	      exit (1);
+      }
+      kar ++;
+      if (kar+1 >= argc) {
+	fprintf (SUMA_STDERR, "need 2 arguments after -noderange");
+	exit (1);
+	   }
+      istart = atoi(argv[kar]); kar ++;
+      istop = atoi(argv[kar]);
+      Partial = YUP;
+      brk = YUP;
+    }
+    
     
     if (!brk) {
       fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
@@ -259,10 +300,14 @@ int main (int argc,char *argv[])
   
 
   SEL = SUMA_Make_Edge_List (SO1->FaceSetList, SO1->N_FaceSet, SO1->N_Node,SO1->NodeList); 
-  if (SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SEL) == YUP)
-    fprintf(SUMA_STDERR,"faces are consistent\n");
-  else
-    fprintf(SUMA_STDERR,"faces are not consistent\n");
+  if (SkipConsistent) {
+   fprintf (SUMA_STDERR,"Skipping consistency check.\n");
+  } else {
+     if (SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SEL) == YUP)
+       fprintf(SUMA_STDERR,"faces are consistent\n");
+     else
+       fprintf(SUMA_STDERR,"faces are not consistent\n");
+  }
  
  SEL = SUMA_Make_Edge_List (SO2->FaceSetList, SO2->N_FaceSet, SO2->N_Node,SO2->NodeList); 
   if (SUMA_MakeConsistent (SO2->FaceSetList, SO2->N_FaceSet, SEL) == YUP)
@@ -301,7 +346,25 @@ int main (int argc,char *argv[])
   /* *****YOU SHOULD ALLOCATE FOR triangle that is done in the function****** triangle = SUMA_malloc(sizeof(SUMA_MT_INTERSECT_TRIANGLE)); */
   /* for each node on the first surface do the following */
   SUMA_etime (&tt, 0);
-  for (i = 0; i < SO1->N_Node; i++) {
+  
+   if (!Partial){
+      istart = 0;
+      istop = SO1->N_Node-1;
+   } else {
+      if (istart > istop) {
+         fprintf (SUMA_STDERR,"Error %s: starting node %d > stopping node %d\n", 
+           FuncName, istart, istop);
+         exit(1);
+      }
+      if (istart < 0 || istop > SO1->N_Node-1) {
+         fprintf (SUMA_STDERR,"Error %s: starting node %d is either < 0 or stopping node > %d (N_Node -1)\n", 
+           FuncName, onenode, SO1->N_Node-1);
+         exit(1);
+      }
+   }
+  
+  FailedDistance = 0; 
+  for (i = istart; i <= istop; i++) {
     id = SO1->NodeDim * i;
     P0[0] = SO1->NodeList[id];
     P0[1] = SO1->NodeList[id+1];
@@ -312,77 +375,94 @@ int main (int argc,char *argv[])
     N0[2] = SN1.NodeNormList[id+2];
 
     Points = SUMA_Point_At_Distance(N0, P0, 100);
-    P1[0] = Points[0][0];
-    P1[1] = Points[0][1];
-    P1[2] = Points[0][2];
-    P2[0] = Points[1][0];
-    P2[1] = Points[1][1];
-    P2[2] = Points[1][2];
-   
-    fprintf(segfile1,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
-    
-    /* now determine the distance along normal */
-    triangle = SUMA_MT_intersect_triangle(P0,P1, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, triangle);
-    /* fprintf(SUMA_STDERR,"number of hits for node %d : %d\n", i,triangle->N_hits); */ 
-    if (triangle->N_hits ==0) {
+   if (Points) {
+      P1[0] = Points[0][0];
+      P1[1] = Points[0][1];
+      P1[2] = Points[0][2];
+      P2[0] = Points[1][0];
+      P2[1] = Points[1][1];
+      P2[2] = Points[1][2];
+      SUMA_free2D((char **)Points, 2);
+      
+      /* now determine the distance along normal */
+      triangle = SUMA_MT_intersect_triangle(P0,P1, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, triangle);
+      /* fprintf(SUMA_STDERR,"number of hits for node %d : %d\n", i,triangle->N_hits); */ 
+      if (triangle->N_hits ==0) {
       fprintf(SUMA_STDERR, "Could not find hit for node %d in either direction.\n", i);
       fprintf(segfile3,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
-      distance[i] = 0;
-    }
-    else {
+      distance[i] = 0.0;
+      }
+      else {
       fprintf(trianglesfile,"distance for surf 1 node %d:\n",i);
       for (k = 0; k < triangle->N_el; k++) {
-	if (triangle->isHit[k] == YUP)
-	  fprintf(trianglesfile, "hit %d: %f (%f, %f)\n",k,triangle->t[k], triangle->u[k], triangle->v[k]);
+      if (triangle->isHit[k] == YUP)
+      fprintf(trianglesfile, "hit %d: %f (%f, %f)\n",k,triangle->t[k], triangle->u[k], triangle->v[k]);
       }
       //distance[i] = sqrtf(pow(triangle->P[0]-P0[0],2)+pow(triangle->P[1]-P0[1],2)+pow(triangle->P[2]-P0[2],2));
       distance[i] = triangle->t[triangle->ifacemin];
       fprintf(segfile2,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
-    }
+      }
+
+      if (!KeepMTI) triangle = SUMA_Free_MT_intersect_triangle(triangle); 
     
-    if (!KeepMTI) triangle = SUMA_Free_MT_intersect_triangle(triangle); 
-    
+   } else {
+      ++FailedDistance;
+      fprintf(SUMA_STDERR, "\nWarning %s (#%d):\nFailed to find point at a distance for node %d\n"
+                           "Setting distance to 0.0\n", FuncName, FailedDistance, i);
+      P1[0] = P1[1] = P1[2] = P2[0] = P2[1] = P2[2] = 0.0;
+      distance[i] = 0.0; 
+   }
+
+   fprintf(segfile1,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
+
     if (!(i%100)) {
       delta_t = SUMA_etime(&tt, 1);
       fprintf (SUMA_STDERR, " [%d]/[%d] %.2f/100%% completed. Dt = %.2f min done of %.2f min total\r" ,  i, num_nodes1, (float)i / num_nodes1 * 100, delta_t/60, delta_t/i * num_nodes1/60);
-    }      
+    }
+   
+   if (Partial) {
+      /* output distance to screen */
+      fprintf(SUMA_STDERR, "\nDistance at node %d is %f\n", i, distance[i]);
+   } 
+        
   }
+  
 
  
-   
-  /* write out the distance file */
-  if((distancefile = fopen(distancefilename, "w"))==NULL) {
-    fprintf(SUMA_STDERR, "Could not open file distance.txt.\n");
-    exit(1);
-  }
-  else {  
-    for (i=0; i < num_nodes1; ++i) {
-      fprintf (distancefile,"%d\t%f\n", i, distance[i]);
-    }
-    fclose (distancefile);
-  }
   
-  /* output this distance as a color file */
-  MyColMap = SUMA_GetStandardMap(SUMA_CMAP_MATLAB_DEF_BYR64);
-  MyOpt = SUMA_ScaleToMapOptInit();
-  MySV = SUMA_Create_ColorScaledVect(num_nodes1);
-  mindistance = minimum(num_nodes1, distance);
-  maxdistance = maximum(num_nodes1, distance);
-  SUMA_ScaleToMap(distance,num_nodes1,mindistance, maxdistance, MyColMap,MyOpt,MySV);
+     /* write out the distance file */
+     if((distancefile = fopen(distancefilename, "w"))==NULL) {
+       fprintf(SUMA_STDERR, "Could not open file distance.txt.\n");
+       exit(1);
+     }
+     else {  
+       for (i=0; i < num_nodes1; ++i) {
+         fprintf (distancefile,"%d\t%f\n", i, distance[i]);
+       }
+       fclose (distancefile);
+     }
 
-  
-  /* write out the distance color file */
-  if((colorfile = fopen(colorfilename, "w"))==NULL) {
-    fprintf(SUMA_STDERR, "Could not open file distance.col.\n");
-    exit(1);
-  }
-  else {
-    for (i=0; i < num_nodes1; ++i) {
-      fprintf (colorfile,"%d\t%f\t%f\t%f\n", i, MySV->cM[i][0], MySV->cM[i][1], MySV->cM[i][2]);
-    }
-    fclose (colorfile);
-  }
-  
+     /* output this distance as a color file */
+     MyColMap = SUMA_GetStandardMap(SUMA_CMAP_MATLAB_DEF_BYR64);
+     MyOpt = SUMA_ScaleToMapOptInit();
+     MySV = SUMA_Create_ColorScaledVect(num_nodes1);
+     mindistance = minimum(num_nodes1, distance);
+     maxdistance = maximum(num_nodes1, distance);
+     SUMA_ScaleToMap(distance,num_nodes1,mindistance, maxdistance, MyColMap,MyOpt,MySV);
+
+
+     /* write out the distance color file */
+     if((colorfile = fopen(colorfilename, "w"))==NULL) {
+       fprintf(SUMA_STDERR, "Could not open file distance.col.\n");
+       exit(1);
+     }
+     else {
+       for (i=0; i < num_nodes1; ++i) {
+         fprintf (colorfile,"%d\t%f\t%f\t%f\n", i, MySV->cM[i][0], MySV->cM[i][1], MySV->cM[i][2]);
+       }
+       fclose (colorfile);
+     }
+
   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
   
   if (fname) SUMA_free(fname);
@@ -403,9 +483,17 @@ void cmp_surf_usage ()
   printf ("\n\t-hemi <left or right>: specify the hemisphere being processed \n");
   printf ("\n\t-sv1 <volume parent BRIK>:volume parent BRIK for first surface \n");
   printf ("\n\t-sv2 <volume parent BRIK>:volume parent BRIK for second surface \n");
+  printf ("\nOptional parameters:\n");
   printf ("\n\t[-prefix <fileprefix>]: Prefix for distance and node color output files.\n");
-  printf ("\t                 This option is optional. Existing file will not be overwritten.\n");
-
+  printf ("\t                        Existing file will not be overwritten.\n");
+  printf ("\n\t[-onenode <index>]: output results for node index only. \n");
+  printf ("\t                    This option is for debugging.\n");
+  printf ("\n\t[-noderange <istart> <istop>]: output results from node istart to node istop only. \n");
+  printf ("\t                               This option is for debugging.\n");
+  printf ("\n\tNOTE: -noderange and -onenode are mutually exclusive\n");
+  printf ("\n\t[-nocons]: Skip mesh orientation consistency check.\n"
+          "\t           This speeds up the start time so it is useful\n"
+          "\t           for debugging runs.\n");
   /*
     printf ("\n\t[-dev]: This option will give access to options that are not well polished for consumption.\n");
     printf ("\n\t        \n");

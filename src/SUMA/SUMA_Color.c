@@ -355,7 +355,7 @@ void SUMA_MakeColorMap_usage ()
       fprintf (SUMA_STDOUT, "MakeColorMap <-std MapName>\n");
       fprintf (SUMA_STDOUT, "\t Returns one of SUMA's standard colormaps. Choose from:\n");
       fprintf (SUMA_STDOUT, "\t rgybr20, ngray20, gray20, bw20, bgyr19, \n");
-      fprintf (SUMA_STDOUT, "\t matlab_default_bgyr64, roi128, roi64\n");
+      fprintf (SUMA_STDOUT, "\t matlab_default_byr64, roi128, roi64\n");
       fprintf (SUMA_STDOUT, "\n\33[1mCommon options to all usages:\33[0m\n");
       fprintf (SUMA_STDOUT, "\t -ah prefix: (optional, Afni Hex format.\n");
       fprintf (SUMA_STDOUT, "\t              default is RGB values in decimal form)\n");
@@ -1333,7 +1333,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                               "\t    Use -input option instead.\n");
       fprintf (SUMA_STDOUT,   "\t -cmap MapType: (optional, default RGYBR20) \n"
                               "\t    choose one of the standard colormaps available with SUMA:\n"
-                              "\t    RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BGYR64, \n"
+                              "\t    RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BYR64, \n"
                               "\t    ROI64, ROI128\n");
       fprintf (SUMA_STDOUT,   "\t -clp/-perc_clp clp0 clp1: (optional, default no clipping)\n"
                               "\t    clips values in IntVect. if -clp is used then values in vcol\n"

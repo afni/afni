@@ -124,6 +124,8 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "\t  l: look at point\n");
    SS = SUMA_StringAppend (SS, 
+      "\t  Alt+l: look at cross hair\n");
+   SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+l: Switch locking mode for all viewers \n"
       "\t          between: No Lock, Index Lock and \n"
       "\t          XYZ Lock. The switching is order is \n"

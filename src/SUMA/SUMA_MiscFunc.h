@@ -75,6 +75,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
 SUMA_Boolean SUMA_Householder (float *Ni, float **Q);
 void SUMA_Free_SURFACE_CURVATURE (SUMA_SURFACE_CURVATURE *SC);
 float * SUMA_Convexity (float *NodeList, int N_Node, float *NodeNormList, SUMA_NODE_FIRST_NEIGHB *FN);
+float * SUMA_Convexity_Engine (float *NodeList, int N_Node, float *NodeNormList, SUMA_NODE_FIRST_NEIGHB *FN, char *Fname);
 int SUMA_Read_file (float *x,char *f_name,int n_points);
 int SUMA_Read_dfile (int *x,char *f_name,int n_points);
 char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt);

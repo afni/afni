@@ -28,6 +28,125 @@ extern SUMA_CommonFields *SUMAg_CF;
 
 float ep = 1e-4; /* this represents the smallest coordinate difference to be expected between neighboring nodes. Do not make it too small or else you will get round off errors. It is reassigned in SUMA_MakeIcosahedron, becoming dependent upon the recursion depth.  (Assigned here in case SUMA_binTesselate used without SUMA_CreateIcosahedron) Talk to Brenna Argall for details. */
 
+/*!
+   \brief A function to test if a spherical surface is indeed spherical
+   SUMA_SphereQuality (SUMA_SurfaceObject *SO)
+   
+   This function does not do a whole lot.
+   it calculates the absolute deviation between
+   the distance of each node from SO->Center (d) and the average (davg)
+      abs (d - davg) 
+   The function also computes the convexity at each node. 
+   These two measures give you an idea of how 
+   much the surface deviates from a sphere but it won't 
+   pinpoint topological errors, such as folds that cause trouble
+   during backwarping.
+   
+*/
+SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_SphereQuality"};
+   float *dist = NULL, mdist, *Cx=NULL, Center[3];
+   int i, i3, *isortdist = NULL, *isortconv = NULL;
+   FILE *fid;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SO) {
+      SUMA_SL_Err("NULL SO");
+      SUMA_RETURN(NOPE);
+   }
+   
+   #if 0
+   Center[0] = Center[1] = Center[2] = 0.0;
+   for (i=0; i<SO->N_Node; ++i) {
+      i3 = 3*i;
+      Center[0] +=SO->NodeList[i3];
+      Center[1] +=SO->NodeList[i3+1];
+      Center[2] +=SO->NodeList[i3+2];
+   }
+   Center[0] /= (float)SO->N_Node;
+   Center[1] /= (float)SO->N_Node;
+   Center[2] /= (float)SO->N_Node;
+   
+   fprintf (SUMA_STDERR,"%s:\nThis Center - SO->Center = [%f, %f, %f]\n", 
+                     FuncName, Center[0] - SO->Center[0], Center[1] - SO->Center[1],
+                     Center[2] - SO->Center[2]);
+   #endif                  
+   
+   dist = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+   mdist = 0.0;
+   for (i=0; i<SO->N_Node; ++i) {
+      i3 = 3*i;
+      dist[i] =   sqrt ( pow((double)(SO->NodeList[i3]   - SO->Center[0]), 2.0) +
+                         pow((double)(SO->NodeList[i3+1] - SO->Center[1]), 2.0) +
+                         pow((double)(SO->NodeList[i3+2] - SO->Center[2]), 2.0) );
+      mdist += dist[i];
+   }
+   mdist /= (float)SO->N_Node;
+   
+   /* calculate the difference from mdist */
+   for (i=0; i<SO->N_Node; ++i) dist[i] = fabs(dist[i] - mdist);
+   
+   if (LocalHead) {
+      fid = fopen("Unsorted_dist", "w");
+      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, dist[i]);
+      fclose(fid);
+   }
+   /* Now sort that */ 
+   isortdist = SUMA_z_qsort ( dist , SO->N_Node  );
+   
+   if (!SO->Cx) {
+      if (!SUMA_SurfaceMetrics (SO, "Convexity", NULL)) {
+         fprintf (SUMA_STDERR,"Error %s:\nFailed in SUMA_SurfaceMetrics.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+   }
+   
+   if (LocalHead) {
+      fid = fopen("Unsorted_Conv", "w");
+      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, SO->Cx[i]);
+      fclose(fid);
+   } 
+   
+   /* Now sort that too, but first copy it because you don' want to sort
+   SO->Cx in case it gets used later on*/ 
+   Cx = (float *)SUMA_calloc( SO->N_Node, sizeof(float));
+   for (i=0; i < SO->N_Node; ++i) Cx[i] = SO->Cx[i];
+   
+   isortconv = SUMA_z_qsort ( Cx , SO->N_Node  );
+   
+   /* report */
+   fprintf (SUMA_STDERR,"%s: Reporting on Spheriosity of %s\n", FuncName, SO->Label);
+   fprintf (SUMA_STDERR,"Mean distance from center (estimated radius): %f\n", mdist);
+   fprintf (SUMA_STDERR,"Largest 10 absolute departures from estimated radius:\n");
+   for (i=SO->N_Node-1; i > SO->N_Node - 10; --i) {
+      fprintf (SUMA_STDERR,"dist @ %d: %f\n", isortdist[i], dist[i]);
+   }
+   for (i=SO->N_Node-1; i > SO->N_Node - 10; --i) {
+      fprintf (SUMA_STDERR,"conv @ %d: %f\n", isortdist[i], Cx[i]);
+   }
+   
+   if (LocalHead) {
+      fid = fopen("Sorted_dist", "w");
+      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, dist[i]);
+      fclose(fid);
+   }
+   
+   if (LocalHead) {
+      fid = fopen("Sorted_convt", "w");
+      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, Cx[i]);
+      fclose(fid);
+   }
+      
+   if (isortdist) SUMA_free(isortdist);
+   if (isortconv) SUMA_free(isortconv);
+   if (dist) SUMA_free(dist);
+   if (Cx) SUMA_free(Cx);
+   
+   SUMA_RETURN(YUP);
+}
 
 /*!
   SUMA_binTesselate(nodeList, triList, nCtr, tCtr, recDepth, depth, n1, n2, n3);
@@ -372,8 +491,9 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    float *icosaNode=NULL;
    SUMA_SURF_NORM SN;
    SUMA_NODE_FIRST_NEIGHB *firstNeighb=NULL;
-   SUMA_Boolean LocalHead = NOPE, DoWind = YUP;
+   SUMA_Boolean DoWind = YUP;
    int n=0, m=0, in=0;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -2031,6 +2151,13 @@ void SUMA_MapIcosahedron_usage ()
    printf ("\n\tcol: a colorfile of the second surface (optional). \n");
    printf ("\n\tnumIt: number of smoothing interations (optional, default none).\n");
    printf ("\n\tfout: prefix for output files.\n\t  (optional, default MapIco)\n");
+   printf ( "\n\t[-sph_check]: Run tests for checking the spherical surface (sphere.asc)\n"
+            "\t             The program exits after the checks.\n"
+            "\t             This option is for debugging FreeSurfer surfaces only.\n");
+   printf ( "\n\t[-sphreg_check]: Run tests for checking the spherical surface (sphere.reg.asc)\n"
+            "\t             The program exits after the checks.\n"
+            "\t             This option is for debugging FreeSurfer surfaces only.\n");
+   printf ( "\n\t-sph_check and -sphreg_check are mutually exclusive.\n");
    printf ("\n\t-verb: indicate whether to include original surfaces and icosahedron in out spec file.\n\t  (optional, default does not)\n");
    printf ("\n\t*Note: Enter -1 for recDepth or linDepth to let program choose to best approximate number of nodes in specFile.\n");
    printf ("\n\t    Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n\t\t\t Fri Sept 20 14:23:42 EST 2002\n\n");
@@ -2060,7 +2187,7 @@ int main (int argc, char *argv[])
    SUMA_SurfSpecFile brainSpec;  
    SUMA_SurfaceObject *sphrSurf=NULL, *inflSurf=NULL, *smwmSurf=NULL, *icoSurf=NULL;
    SUMA_SurfaceObject *sphrNoRegSurf=NULL, *whiteSurf=NULL, *pialSurf=NULL;
-   char *brainSpecFile=NULL, *sphrFile=NULL, *inflFile=NULL, *smwmFile=NULL;
+   char *brainSpecFile=NULL, *sphrFile=NULL, *inflFile=NULL, *smwmFile=NULL, *OutName = NULL;
    char *whiteFile=NULL, *pialFile=NULL, *sphrNoRegFile=NULL, *sphrColFileNm=NULL;
    SUMA_SFname *sphrFile_SF=NULL, *inflFile_SF=NULL, *smwmFile_SF=NULL;       //for surefit surfaces
    SUMA_SFname *whiteFile_SF=NULL, *sphrNoRegFile_SF=NULL, *pialFile_SF=NULL;
@@ -2070,7 +2197,8 @@ int main (int argc, char *argv[])
    float *smweight=NULL, lambda=0, mu=0, deltaX=0, deltaY=0, deltaZ=0, delta=0;
    struct  timeval start_time;
    float etime_MapSurface;
-   
+   SUMA_Boolean CheckSphereReg,CheckSphere;
+    
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
@@ -2095,6 +2223,9 @@ int main (int argc, char *argv[])
    verb = NOPE;
    kar = 1;
    brk = NOPE;
+   CheckSphere = NOPE;
+   CheckSphereReg = NOPE;
+
    while (kar < argc) { /* loop accross command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_MapIcosahedron_usage ();
@@ -2105,7 +2236,7 @@ int main (int argc, char *argv[])
          {
             kar ++;
             if (kar >= argc)  {
-               fprintf (SUMA_STDERR, "need argument after -spec ");
+               fprintf (SUMA_STDERR, "need argument after -spec \n");
                exit (1);
             }
             brainSpecFile = argv[kar];
@@ -2115,7 +2246,7 @@ int main (int argc, char *argv[])
          {
             kar ++;
             if (kar >= argc)  {
-               fprintf (SUMA_STDERR, "need argument after -c ");
+               fprintf (SUMA_STDERR, "need argument after -c \n");
                exit (1);
             }
             sphrColFileNm = argv[kar];
@@ -2126,7 +2257,7 @@ int main (int argc, char *argv[])
          {
             kar ++;
             if (kar >= argc)  {
-               fprintf (SUMA_STDERR, "need argument after -rd ");
+               fprintf (SUMA_STDERR, "need argument after -rd \n");
                exit (1);
             }
             depth = atoi(argv[kar]);
@@ -2138,7 +2269,7 @@ int main (int argc, char *argv[])
          {
             kar ++;
             if (kar >= argc)  {
-               fprintf (SUMA_STDERR, "need argument after -ld ");
+               fprintf (SUMA_STDERR, "need argument after -ld \n");
                exit (1);
             }
             depth = atoi(argv[kar]);
@@ -2149,7 +2280,7 @@ int main (int argc, char *argv[])
          {
             kar ++;
             if (kar >= argc)  {
-               fprintf (SUMA_STDERR, "need argument after -it ");
+               fprintf (SUMA_STDERR, "need argument after -it \n");
                exit (1);
             }
             smooth = YUP;
@@ -2161,7 +2292,27 @@ int main (int argc, char *argv[])
             verb = YUP;
             brk = YUP;
 
+         }
+      if (!brk && (strcmp(argv[kar], "-sphreg_check") == 0 ))
+         {
+            if (CheckSphere) {
+               fprintf (SUMA_STDERR, "-sphreg_check & -sph_check are mutually exclusive.\n");
+               exit (1);
+            }
+            CheckSphereReg = YUP;
+            brk = YUP;
+
          }      
+      if (!brk && (strcmp(argv[kar], "-sph_check") == 0 ))
+         {
+            if (CheckSphereReg) {
+               fprintf (SUMA_STDERR, "-sphreg_check & -sph_check are mutually exclusive.\n");
+               exit (1);
+            }
+            CheckSphere = YUP;
+            brk = YUP;
+
+         } 
       if (!brk && strcmp(argv[kar], "-prefix") == 0)
          {
             kar ++;
@@ -2219,13 +2370,17 @@ int main (int argc, char *argv[])
       exit(1);
    }
   
-
    /** load surfaces */
-
+   if (CheckSphere) {
+      fprintf(SUMA_STDERR,"%s:\n:Checking sphere surface only.\n", FuncName);
+   }else if (CheckSphereReg) {
+      fprintf(SUMA_STDERR,"%s:\n:Checking sphere.reg surface only.\n", FuncName);
+   }
+   
    for (i=0; i<brainSpec.N_States; ++i) {
     
       /**reg sphere*/
-      if (SUMA_iswordin( brainSpec.State[i], "sphere.reg") ==1) {
+      if (SUMA_iswordin( brainSpec.State[i], "sphere.reg") ==1 && !CheckSphere) {
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
             sphrFile = brainSpec.FreeSurferSurface[i];
             sphrSurf = SUMA_Load_Surface_Object( sphrFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
@@ -2239,11 +2394,27 @@ int main (int argc, char *argv[])
                sphrSurf = SUMA_Load_Surface_Object( sphrFile_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             }
          }
-         SUMA_SurfaceMetrics(sphrSurf, "EdgeList, MemberFace", NULL);
+         /* Check on spheriosity of surface */
+         if (CheckSphereReg) {
+            SUMA_SurfaceMetrics(sphrSurf, "EdgeList, MemberFace", NULL);
+            sphrSurf->Label = SUMA_SurfaceFileName(sphrSurf, NOPE);
+            OutName = SUMA_append_string (sphrSurf->Label, "_Conv_detail.1D");
+            sphrSurf->Cx = SUMA_Convexity_Engine ( sphrSurf->NodeList, sphrSurf->N_Node, 
+                                                   sphrSurf->NodeNormList, sphrSurf->FN, OutName);
+            if (sphrSurf) SUMA_SphereQuality (sphrSurf);
+            fprintf(SUMA_STDERR, "%s:\nExiting after SUMA_SphereQuality (sphrSurf)\n", FuncName);
+            if (sphrSurf) SUMA_Free_Surface_Object (sphrSurf);
+            if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+            if (OutName) free(OutName);
+            exit(0);
+         } else {
+            SUMA_SurfaceMetrics(sphrSurf, "EdgeList, MemberFace", NULL);
+         }   
+
       }
       /**sphere*/
       if ( SUMA_iswordin( brainSpec.State[i], "sphere") == 1 &&
-           SUMA_iswordin( brainSpec.State[i], "sphere.reg") == 0) {
+           SUMA_iswordin( brainSpec.State[i], "sphere.reg") == 0 && !CheckSphereReg) {
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
             sphrNoRegFile = brainSpec.FreeSurferSurface[i];
             sphrNoRegSurf = SUMA_Load_Surface_Object(sphrNoRegFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
@@ -2257,9 +2428,23 @@ int main (int argc, char *argv[])
                sphrNoRegSurf = SUMA_Load_Surface_Object( sphrNoRegFile_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             }
          }
+         /* Check on spheriosity of surface */
+         if (CheckSphere) {
+            sphrNoRegSurf->Label = SUMA_SurfaceFileName(sphrNoRegSurf, NOPE);
+            SUMA_SurfaceMetrics(sphrNoRegSurf, "EdgeList, MemberFace", NULL);
+            OutName = SUMA_append_string (sphrNoRegSurf->Label, "_Conv_detail.1D");
+            sphrNoRegSurf->Cx = SUMA_Convexity_Engine (sphrNoRegSurf->NodeList, sphrNoRegSurf->N_Node, 
+                                                       sphrNoRegSurf->NodeNormList, sphrNoRegSurf->FN, OutName);
+            if (sphrNoRegSurf) SUMA_SphereQuality (sphrNoRegSurf);
+            fprintf(SUMA_STDERR, "%s:\nExiting after SUMA_SphereQuality (sphrNoRegSurf)\n", FuncName);
+            if (sphrNoRegSurf) SUMA_Free_Surface_Object (sphrNoRegSurf);
+            if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+            if (OutName) free(OutName);
+            exit(0);
+         }
       }
       /**inflated*/
-      if (SUMA_iswordin( brainSpec.State[i], "inflated") ==1) {
+      if ((SUMA_iswordin( brainSpec.State[i], "inflated") ==1) && !CheckSphere && !CheckSphereReg) {
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
             inflFile = brainSpec.FreeSurferSurface[i];
             inflSurf = SUMA_Load_Surface_Object( inflFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
@@ -2274,8 +2459,9 @@ int main (int argc, char *argv[])
             }
          }
       }
+      
       /**pial*/
-      if (SUMA_iswordin( brainSpec.State[i], "pial") ==1) {
+      if ((SUMA_iswordin( brainSpec.State[i], "pial") ==1) && !CheckSphere && !CheckSphereReg){
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
             pialFile = brainSpec.FreeSurferSurface[i];
             pialSurf = SUMA_Load_Surface_Object(pialFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
@@ -2291,7 +2477,7 @@ int main (int argc, char *argv[])
          }
       }
       /**smoothwm*/
-      if (SUMA_iswordin( brainSpec.State[i], "smoothwm") ==1) {
+      if ((SUMA_iswordin( brainSpec.State[i], "smoothwm") ==1) && !CheckSphere && !CheckSphereReg){
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
             smwmFile = brainSpec.FreeSurferSurface[i];
             smwmSurf = SUMA_Load_Surface_Object(smwmFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
@@ -2307,7 +2493,7 @@ int main (int argc, char *argv[])
          }
       }
       /**white*/
-      if (SUMA_iswordin( brainSpec.State[i], "white") ==1) {
+      if ((SUMA_iswordin( brainSpec.State[i], "white") ==1) && !CheckSphere && !CheckSphereReg) {
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
             whiteFile = brainSpec.FreeSurferSurface[i];
             whiteSurf = SUMA_Load_Surface_Object(whiteFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
@@ -2348,7 +2534,7 @@ int main (int argc, char *argv[])
       fprintf(SUMA_STDERR, "Error %s: Surfaces differ in node number. Exiting.\n", FuncName);
       exit(1);
    }
-
+   
    /**prepare for writing spec file*/
    if ( verb ) {
       surfaces = (SUMA_SpecSurfInfo *)SUMA_calloc(2*brainSpec.N_States+1, sizeof(SUMA_SpecSurfInfo));
@@ -2762,7 +2948,7 @@ int main (int argc, char *argv[])
       SUMA_Free_Surface_Object (sphrNoRegSurf);
    }
    /* fprintf(SUMA_STDERR, "poo13\n"); */
-
+SUMA_Free_Surface_Object (whiteSurf);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
    exit(0);

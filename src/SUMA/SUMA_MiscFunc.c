@@ -1724,7 +1724,7 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
 {/*SUMA_Point_At_Distance*/
    static char FuncName[]={"SUMA_Point_At_Distance"}; 
    float bf, **P2, P1orig[3], Uorig[3];
-   float m, n, p, q, D, A, B, C;
+   float m, n, p, q, D, A, B, C, epsi = 0.0001;
    int flip, i;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1751,13 +1751,13 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
    
    /* normalize U such that U(0) = 1 */
    flip = 0;
-   if (U[0] == 0) { /* must flip X with some other coordinate */
-      if (U[1] != 0) {/*U[1] != 0; */
+   if (fabs(U[0]) < epsi) { /* must flip X with some other coordinate */
+      if (fabs(U[1]) > epsi) {/*U[1] != 0; */
          U[0] = U[1]; U[1] = 0;
          bf = P1[0]; P1[0] = P1[1]; P1[1] = bf;
          flip = 1;
       } else {   /*U[1] = 0; */
-         if (U[2] != 0) { /* U[2] != 0 */
+         if (fabs(U[2]) > epsi) { /* U[2] != 0 */
             U[0] = U[2]; U[2] = 0;
             bf = P1[0]; P1[0] = P1[2]; P1[2] = bf;
             flip = 2;
@@ -1795,8 +1795,14 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
    if (LocalHead) fprintf (SUMA_STDERR, "%s: A=%f B=%f, C=%f, D=%f\n", FuncName, A, B, C, D);
    
    if (D < 0) {
-      fprintf(SUMA_STDERR, "Error %s: Negative Delta.\n", FuncName);
-      SUMA_RETURN (NULL);
+      fprintf(SUMA_STDERR, "Error %s: Negative Delta: %f.\n"
+                           "Input values were: \n"
+                           "U :[%f %f %f]\n"
+                           "P1:[%f %f %f]\n"
+                           "d :[%f]\n"
+                           , FuncName, D, Uorig[0], Uorig[1], Uorig[2], 
+                           P1orig[0], P1orig[1], P1orig[2], d);
+      SUMA_RETURN(NULL);
    }
 
    P2 = (float **)SUMA_allocate2D(2,3, sizeof(float));
@@ -5254,7 +5260,6 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 
    SUMA_RETURN (YUP);   
 }
-
 /*! 
    C = SUMA_Convexity (NodeList, N_Node, NodeNormList, FN)
 
@@ -5274,12 +5279,48 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
    Use it wisely. 
      
    The Normals are assumed to be unit vectors
+   
+   Aug 14 03
+   This function actually calls SUMA_Convexity_Engine with NULL for DetailFile parameter.
+   See SUMA_Convexity_Engine
 */
-float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN)
+
+float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN) 
 {
    static char FuncName[]={"SUMA_Convexity"};
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   float *C=NULL;
+   
+   C = SUMA_Convexity_Engine (NL, N_N, NNL, FN, NULL);
+   
+   SUMA_RETURN(C);
+   
+}
+/*!
+   \brief float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN, char *DetailFile)
+   This function does the computations for SUMA_Convexity with the additional option of outputing detailed results
+   to an ASCII file for debugging.
+   
+   See documentation for SUMA_Convexity for all parameters except DetailFile
+   \param DetailFile (char *) if not NULL, then you'll get an output file named by DetailFile
+                              with debugging info:
+                              i  n  d1 d1ij d1/d1ij .. dn dnij dn/dnij
+                                 where i is node index
+                                 n = FN->N_Neighb[i]
+                                 d1 and d1ij are the distances (read the function 
+                                 for details... 
+                                 The matlab function ProcessConv_detail is used
+                                 to parse the contents of DetailFile
+                                 Make sure changes made to this file are reflected in
+                                 that function.
+                              NOTE: Pre-existing files will get overwritten.
+*/             
+float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN, char *DetailFile)
+{
+   static char FuncName[]={"SUMA_Convexity_Engine"};
    float *C, d, D, dij;
-   int i, j, in, id, ind, ND;
+   int i, j, jj, in, id, ind, ND;
+   FILE *fid;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -5293,14 +5334,21 @@ float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *
       SUMA_RETURN (C);
    }
    
-   ND = 3;
+
+   if (DetailFile) {
+      fprintf (SUMA_STDERR,"%s:\nSaving curvature Info to %s.\n", FuncName, DetailFile);
+      fid = fopen(DetailFile,"w");
+   }
    
+   ND = 3;
    for (i=0; i < N_N; ++i) {
       id = ND * i;
       /* the plane at node i, having normal [NNL(id), NNL(id+1), NNL(id+2)] (id = 3*i) has the equation A X + B Y + C Z + D = 0
       NNL[id] NL[id]  + NNL[id+1] NNL[id+1]  + NNL[id+2] NL[id+2] + D = 0 */
       
       D = -NNL[id] * NL[id] - NNL[id+1] * NL[id+1] - NNL[id+2] * NL[id+2];
+      
+      if (DetailFile) fprintf(fid,"%d\t%d\t", i, FN->N_Neighb[i]);
       
       for (j=0; j < FN->N_Neighb[i]; ++j) {
          /* find the distance between the neighboring node j and the tangent plane at i 
@@ -5321,14 +5369,24 @@ float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *
          use distances normalized by length of segment ij to account for differences in segment length */
           
          C[i] += d/dij;
+         
+         if (DetailFile) fprintf(fid,"%f\t%f\t%f\t", d, dij, d/dij);
+         
+      }
+      
+      if (DetailFile) {
+         /* fill with -1 until you reach FN->N_Neighb_max */
+         for (jj=FN->N_Neighb[i]; jj < FN->N_Neighb_max; ++jj) fprintf(fid,"-1\t-1\t-1\t");
+         fprintf(fid,"\n");
       }
    
    }
    
-   /* Now write the results to disk just for debugging */
+   if (DetailFile) fclose (fid);  /* close previous file */
+   
    #if 0
    {
-      FILE *fid;
+      /* Now write the results to disk just for debugging */
       fprintf(SUMA_STDOUT,"%s: Writing convexity to Conv.txt ...", FuncName);
       fid = fopen("Conv.txt","w");
       for (i=0; i < N_N; ++i) {
