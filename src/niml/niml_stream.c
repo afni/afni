@@ -2503,6 +2503,7 @@ NI_dpr("ENTER NI_stream_read\n") ;
      case NI_TCP_TYPE:
        ii = NI_stream_goodcheck(ns,1) ; if( ii != 1 ) return ii ;
 #if 0
+       /* wait 'till we can read fer shur */
        do{ ii=tcp_readcheck(ns->sd,1); } while( ii==0 ) ;
        if( ii < 0 ) return -1 ;
 #endif

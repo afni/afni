@@ -37,7 +37,7 @@ int main( int argc , char *argv[] )
       while(1){
         nn = NI_stream_writecheck( ns , 400 ) ;
         if( nn == 1 ){ fprintf(stderr,"\n") ; break ; }
-        if( nn <  0 ){ fprintf(stderr,"BAD\n"); exit(1) ; }
+        if( nn <  0 ){ fprintf(stderr,"BAD writecheck\n"); exit(1) ; }
         fprintf(stderr,".") ;
       }
       while(1){
@@ -78,7 +78,7 @@ int main( int argc , char *argv[] )
    while(1){
       nn = NI_stream_goodcheck( ns , 400 ) ;
       if( nn == 1 ){ fprintf(stderr,"\n") ; break ; }
-      if( nn <  0 ){ fprintf(stderr,"BAD\n"); exit(1) ; }
+      if( nn <  0 ){ fprintf(stderr,"BAD goodcheck\n"); exit(1) ; }
       fprintf(stderr,".") ;
    }
 

@@ -1292,11 +1292,17 @@ int NI_write_columns( NI_stream_type *ns,
       - col_num    = number of columns to read (1,2,...)
       - col_typ[i] = type code for column #i (i=0..col_num-1)
       - col_len    = number of elements in each column
+         - col_len can be 0, which means read data until the end-of-input
+         - end-of-input is end-of-stream, or '<' in NI_TEXT_MODE
       - col_dpt[i] = pointer to data in column #i
          - col_dpt can't be NULL
          - but if col_dpt[i] is NULL, it will be NI_malloc()-ed
          - if col_dpt[i] isn't NULL, it must point to space big
            enough to hold the input (col_num * fixed size of rowtype #i)
+         - if col_len==0 on input:
+            - then col_dpt[i] should be NULL for i=0..col_num-1
+            - this function will NI_malloc() to fit the amount of data scanned
+            - if col_dpt[i]!=NULL with col_len==0, then function returns -1
       - tmode is one of
          - NI_TEXT_MODE   ==> ASCII input
             - text mode is required if any rowtype component is a String
@@ -1330,13 +1336,14 @@ int NI_read_columns( NI_stream_type *ns,
    int ltend = (flags & NI_LTEND_MASK) != 0 ;
    int swap  = (flags & NI_SWAP_MASK)  != 0 ;
    int ReadFlag ;
+   int open_ended = (col_len==0) , row_top ;  /* 27 Mar 2003 */
 
 # undef  FREEUP
 # define FREEUP do{ NI_free(rt); NI_free(vsiz); NI_free(fsiz); } while(0)
 
    /*-- check inputs --*/
 
-   if( col_num <= 0 || col_len <= 0                       ) return  0 ;
+   if( col_num <= 0 || col_len <  0                       ) return  0 ;
    if( ns == NULL   || col_typ == NULL || col_dat == NULL ) return -1 ;
 
    /*-- check stream --*/
@@ -1353,6 +1360,7 @@ int NI_read_columns( NI_stream_type *ns,
    rt   = NI_malloc( sizeof(NI_rowtype *) * col_num ) ;
    vsiz = NI_malloc( sizeof(int)          * col_num ) ;
    fsiz = NI_malloc( sizeof(int)          * col_num ) ;
+   if( open_ended ) col_len = 1 ;
    for( col=0 ; col < col_num ; col++ ){
 
      rt[col] = NI_rowtype_find_code( col_typ[col] ) ;
@@ -1366,17 +1374,23 @@ int NI_read_columns( NI_stream_type *ns,
 
      /* setup data array for this column */
 
-     if( col_dat[col] == NULL )
+     if( col_dat[col] == NULL ){
        col_dat[col] = NI_malloc( fsiz[col]*col_len ) ; /* make space */
-     else
+     } else {
+       if( open_ended ){ FREEUP; return -1; }
        memset( col_dat[col], 0 , fsiz[col]*col_len ) ; /* set space to 0 */
+     }
    }
 
    /*-- Special (and fast) case:
         one compact (no padding) fixed-size rowtype,
         and binary input ==> can read all data direct from stream at once --*/
 
-   if( col_num == 1 && fsiz[0] == rt[0]->psiz && tmode == NI_BINARY_MODE ){
+   if( col_num == 1              &&
+       fsiz[0] == rt[0]->psiz    &&    /* struct size == data size */
+       tmode   == NI_BINARY_MODE &&
+       !open_ended                 ){
+
      nin = NI_stream_readbuf( ns , col_dat[0] , fsiz[0]*col_len ) ;
      if( nin < fsiz[0] ){ FREEUP; return (nin >= 0) ? 0 : -1 ; }  /* bad */
      nin = nin / fsiz[0] ;  /* number of rows finished */
@@ -1395,8 +1409,22 @@ int NI_read_columns( NI_stream_type *ns,
 
    /*-- OK, have to read the hard ways --*/
 
-   for( row=0 ; row < col_len ; row++ ){             /* loop over rows */
+   if( open_ended ) row_top = 1999999999 ;   /* 27 Mar 2003 */
+
+   for( row=0 ; row < row_top ; row++ ){                  /* loop over rows */
                                                           /* until all done */
+
+     /* 27 Mar 2003: maybe need to extend length of columns */
+
+     if( open_ended && row >= col_len ){
+       jj = (int)(1.2*col_len+32) ;
+       for( col=0 ; col < col_num ; col++ ){
+         col_dat[col] = NI_realloc( col_dat[col] , fsiz[col]*jj ) ;
+         memset( col_dat[col]+fsiz[col]*col_len, 0 , fsiz[col]*(jj-col_len) ) ;
+       }
+       col_len = jj ;
+     }
+
      /* loop over columns, read into struct */
 
      for( col=0 ; col < col_num ; col++ ){
@@ -1407,9 +1435,19 @@ int NI_read_columns( NI_stream_type *ns,
      if( !nn ) break ;                             /* some ReadFun() failed */
    }
 
-   if( row == 0 ){ FREEUP; return -1; }  /* didn't finish any rows */
+   if( row == 0 ){                                /* didn't finish any rows */
+     if( open_ended ){
+       for( col=0 ; col < col_num ; col++ ) NI_free(col_dat[col]) ;
+     }
+     FREEUP; return -1;
+   }
 
-   nin = row ;  /* number of rows finished */
+   nin = row ;                                   /* number of rows finished */
+
+   if( open_ended && nin < col_len ){                   /* truncate columns */
+     for( col=0 ; col < col_num ; col++ )
+       col_dat[col] = NI_realloc( col_dat[col] , fsiz[col]*nin ) ;
+   }
 
    /*-- Have read all data; byte swap if needed, then get outta here --*/
 
@@ -1428,8 +1466,9 @@ ReadFinality:
     - Note that String (aka NI_STRING) parts are illegal here.
     - Return value is 1 if all was OK, 0 if something bad happened.
     - Parameter swap indicates that the data coming in needs to be
-      byte-swapped.  This is ONLY used to byte-swap the dimension for
-      var-dimen arrays.
+      byte-swapped.
+      - This is ONLY used to byte-swap the dimension for var-dimen arrays.
+      - Actual byte-swapping of the data is done in NI_swap_column().
 ---------------------------------------------------------------------------*/
 
 int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )

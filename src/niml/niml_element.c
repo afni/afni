@@ -3,11 +3,14 @@
 /*-----------------------------------------------------------------------*/
 /*! Construct an empty data element from a header.
 
-    The data vectors will have space allocated, but they will be
-    filled with all zero bytes.  If the header was "empty" (ended in
-    "/>"), then no vectors will be allocated, and nel->vec_num=0.
-    This function is used by NI_read_element() to create the
-    data element after the header has been parsed.
+    - The data vectors will have space allocated, but they will be
+      filled with all zero bytes.
+    - If the header was "empty" (ended in "/>"), then no vectors will
+      be allocated, and nel->vec_num=0.
+    - This function is used by NI_read_element() to create the
+      data element after the header has been parsed.
+    - 27 Mar 2003: modified to allow vec_len=0, indicating vector
+      length to be inferred from amount of data
 -------------------------------------------------------------------------*/
 
 NI_element * make_empty_data_element( header_stuff *hs )
@@ -56,7 +59,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
    if( !hs->empty ){  /* find and process ni_* attributes about vectors */
 
-     /* ni_type attribute */
+     /* ni_type attribute: set types of vectors */
 
      ii = string_index( "ni_type" , nel->attr_num , nel->attr_lhs ) ;
 
@@ -69,7 +72,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
        }
      }
 
-     /* ni_dimen attribute */
+     /* ni_dimen attribute: set vector length and rank */
 
      ii = string_index( "ni_dimen" , nel->attr_num , nel->attr_lhs ) ;
 
@@ -82,13 +85,16 @@ NI_dpr("ENTER make_empty_data_element\n") ;
            nel->vec_len      = qq ;      /* length of vectors */
            nel->vec_rank     = nd ;      /* number of dimensions */
            nel->vec_axis_len = dar->ar ; /* array of dimension lengths */
+           NI_free(dar) ;                /* just the struct shell */
+           if( nel->vec_len == 0 )       /* 27 Mar 2003 */
+             nel->vec_rank = 1 ;
         }
      }
 
-     /* if we had ni_dimen, also use ni_delta */
+     /* if we had ni_dimen, also try ni_delta */
 
      ii = string_index( "ni_delta" , nel->attr_num , nel->attr_lhs ) ;
-     if( ii >= 0 && nel->vec_len > 0 ){
+     if( ii >= 0 && nel->vec_rank > 0 ){
         NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
@@ -100,10 +106,10 @@ NI_dpr("ENTER make_empty_data_element\n") ;
         }
      }
 
-     /* if we had ni_dimen, also use ni_origin */
+     /* if we had ni_dimen, also try ni_origin */
 
      ii = string_index( "ni_origin" , nel->attr_num , nel->attr_lhs ) ;
-     if( ii >= 0 && nel->vec_len > 0 ){
+     if( ii >= 0 && nel->vec_rank > 0 ){
         NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
@@ -115,10 +121,10 @@ NI_dpr("ENTER make_empty_data_element\n") ;
         }
      }
 
-     /* if we had ni_dimen, also use ni_units */
+     /* if we had ni_dimen, also try ni_units */
 
      ii = string_index( "ni_units" , nel->attr_num , nel->attr_lhs ) ;
-     if( ii >= 0 && nel->vec_len > 0 ){
+     if( ii >= 0 && nel->vec_rank > 0 ){
         NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
@@ -130,10 +136,10 @@ NI_dpr("ENTER make_empty_data_element\n") ;
         }
      }
 
-     /* if we had ni_dimen, also use ni_axes */
+     /* if we had ni_dimen, also try ni_axes */
 
      ii = string_index( "ni_axes" , nel->attr_num , nel->attr_lhs ) ;
-     if( ii >= 0 && nel->vec_len > 0 ){
+     if( ii >= 0 && nel->vec_rank > 0 ){
         NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
@@ -146,13 +152,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
      }
 
      /* supply vector parameters if none was given */
-
-     if( nel->vec_len == 0 ){                    /* default dimensions */
-        nel->vec_len         = 1 ;
-        nel->vec_rank        = 1 ;
-        nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
-        nel->vec_axis_len[0] = 1 ;
-     }
+     /* (remember, we DON'T have an empty element) */
 
      if( nel->vec_num == 0 ){                    /* default type */
         nel->vec_num    = 1 ;
@@ -160,12 +160,26 @@ NI_dpr("ENTER make_empty_data_element\n") ;
         nel->vec_typ[0] = NI_BYTE ;
      }
 
+     if( nel->vec_rank == 0 ){                  /* default dimensions */
+        nel->vec_len         = 0 ;
+        nel->vec_rank        = 1 ;
+        nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
+        nel->vec_axis_len[0] = 1 ;
+     }
+
      /* now allocate space for vectors defined above */
 
      nel->vec = NI_malloc( sizeof(void *)*nel->vec_num ) ;
 
-     for( ii=0 ; ii < nel->vec_num ; ii++ )
-       nel->vec[ii] = NI_malloc(NI_type_size(nel->vec_typ[ii])*nel->vec_len) ;
+     /* 27 Mar 2003: only allocate space if we know how long they are */
+
+     if( nel->vec_len > 0 ){
+       for( ii=0 ; ii < nel->vec_num ; ii++ )
+         nel->vec[ii] = NI_malloc(NI_type_size(nel->vec_typ[ii])*nel->vec_len) ;
+     } else {
+       for( ii=0 ; ii < nel->vec_num ; ii++ )
+         nel->vec[ii] = NULL ;
+     }
 
    } /* end of processing non-empty header stuff */
 
@@ -218,64 +232,9 @@ NI_group * make_empty_group_element( header_stuff *hs )
 
 int NI_type_size( int tval )
 {
-#if 0                   /* OLD code, removed 13 Feb 2003 */
-   switch( tval ){
-      case NI_BYTE:     return sizeof(byte)    ;
-      case NI_SHORT:    return sizeof(short)   ;
-      case NI_INT:      return sizeof(int)     ;
-      case NI_FLOAT:    return sizeof(float)   ;
-      case NI_DOUBLE:   return sizeof(double)  ;
-      case NI_COMPLEX:  return sizeof(complex) ;
-      case NI_RGB:      return sizeof(rgb)     ;
-      case NI_RGBA:     return sizeof(rgba)    ;
-      case NI_STRING:   return sizeof(char *)  ;
-   }
-   return 0 ;
-#else
    int ii = NI_rowtype_code_to_size( tval ) ;
    return (ii > 0) ? ii : 0 ;
-#endif
 }
-
-#ifndef USE_NEW_IOFUN
-/*----------------------------------------------------------------------*/
-/*! Return the size in bytes of one row in a data element.
-    Note that this will only included the "fixed" size of the
-    data, not any space for var dim arrays.
-------------------------------------------------------------------------*/
-
-int NI_element_rowsize( NI_element *nel )
-{
-   int ii , nb ;
-
-   if( nel == NULL                  ||
-       nel->type != NI_ELEMENT_TYPE ||
-       nel->vec_num < 1             ||
-       nel->vec_typ == NULL           ) return 0 ;  /* bad input */
-
-   for( ii=nb=0 ; ii < nel->vec_num ; ii++ )
-      nb += NI_type_size( nel->vec_typ[ii] ) ;
-
-   return nb ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Return the size of all the rows in a data element.
-    Note that this will only included the "fixed" size of the
-    data, not any space for var dim arrays.
-------------------------------------------------------------------------*/
-
-int NI_element_allsize( NI_element *nel )
-{
-   if( nel == NULL                  ||
-       nel->type != NI_ELEMENT_TYPE ||
-       nel->vec_num < 1             ||
-       nel->vec_len < 1             ||
-       nel->vec_typ == NULL           ) return 0 ;  /* bad input */
-
-   return (nel->vec_len * NI_element_rowsize(nel)) ;
-}
-#endif  /* USE_NEW_IOFUN */
 
 /*************************************************************************/
 /********** Functions to create NIML data and group elements *************/
@@ -728,126 +687,3 @@ void NI_rename_group( NI_group *ngr , char *nam )
    ngr->name = NI_strdup(nam) ;
    return ;
 }
-
-#ifndef USE_NEW_IOFUN
-/*-----------------------------------------------------------------------*/
-/*! Fill one row of an element with some data bytes (numeric only).
--------------------------------------------------------------------------*/
-
-void NI_fill_vector_row( NI_element *nel , int row , char *buf )
-{
-   int bpos=0 , col ;
-   char tmp[16] ;  /* We copy into here from buf, then into the vector. */
-                   /* The reason for this is to ensure proper byte     */
-                   /* alignment for the assignment into the vector.   */
-
-   /* check inputs for stupidity */
-
-   if( nel->type != NI_ELEMENT_TYPE ||
-       row       <  0               ||
-       row       >= nel->vec_len    || buf == NULL ) return ;
-
-   /* loop over columns, taking the requisite number of
-      bytes from buf and stuffing them into the vectors */
-
-   for( col=0 ; col < nel->vec_num ; col++ ){
-     switch( nel->vec_typ[col] ){
-       default:                     /* unimplemented types */
-       break ;                      /* (STRING and LINE)  */
-
-       case NI_BYTE:{
-         byte *vpt = (byte *) nel->vec[col] ;
-         byte *bpt = (byte *) tmp ;
-         memcpy(tmp,buf+bpos,sizeof(byte)) ;
-         vpt[row]  = *bpt ; bpos += sizeof(byte) ;
-       }
-       break ;
-
-       case NI_SHORT:{
-         short *vpt = (short *) nel->vec[col] ;
-         short *bpt = (short *) tmp ;
-         memcpy(tmp,buf+bpos,sizeof(short)) ;
-         vpt[row]  = *bpt ; bpos += sizeof(short) ;
-       }
-       break ;
-
-       case NI_INT:{
-         int *vpt = (int *) nel->vec[col] ;
-         int *bpt = (int *) tmp ;
-         memcpy(tmp,buf+bpos,sizeof(int)) ;
-         vpt[row]  = *bpt ; bpos += sizeof(int) ;
-       }
-       break ;
-
-       case NI_FLOAT:{
-         float *vpt = (float *) nel->vec[col] ;
-         float *bpt = (float *) tmp ;
-         memcpy(tmp,buf+bpos,sizeof(float)) ;
-         vpt[row]  = *bpt ; bpos += sizeof(float) ;
-       }
-       break ;
-
-       case NI_DOUBLE:{
-         double *vpt = (double *) nel->vec[col] ;
-         double *bpt = (double *) tmp ;
-         memcpy(tmp,buf+bpos,sizeof(double)) ;
-         vpt[row]  = *bpt ; bpos += sizeof(double) ;
-       }
-       break ;
-
-       case NI_COMPLEX:{
-         complex *vpt = (complex *) nel->vec[col] ;
-         complex *bpt = (complex *) tmp ;
-         memcpy(tmp,buf+bpos,sizeof(complex)) ;
-         vpt[row]  = *bpt ; bpos += sizeof(complex) ;
-       }
-       break ;
-
-       case NI_RGB:{
-         rgb *vpt = (rgb *) nel->vec[col] ;
-         rgb *bpt = (rgb *) tmp ;
-         memcpy(tmp,buf+bpos,sizeof(rgb)) ;
-         vpt[row]  = *bpt ; bpos += sizeof(rgb) ;
-       }
-       break ;
-
-       case NI_RGBA:{
-         rgba *vpt = (rgba *) nel->vec[col] ;
-         rgba *bpt = (rgba *) tmp ;
-         memcpy(tmp,buf+bpos,sizeof(rgba)) ;
-         vpt[row]  = *bpt ; bpos += sizeof(rgba) ;
-       }
-       break ;
-     }
-   }
-   return ;
-}
-#endif  /* USE_NEW_IOFUN */
-
-#ifndef USE_NEW_IOFUN
-/*------------------------------------------------------------------*/
-/*! Swap bytes for an array of type code tval.
---------------------------------------------------------------------*/
-
-void NI_swap_vector( int tval , int nvec , void *vec )
-{
-   /* check inputs for stupidity */
-
-   if( nvec <= 0 || vec == NULL ) return ;
-
-   switch( tval ){
-
-      default:  break ;   /* nothing to do */
-
-      case NI_SHORT:    NI_swap2( nvec , vec ) ; break ;
-
-      case NI_INT:
-      case NI_FLOAT:    NI_swap4( nvec , vec ) ; break ;
-
-      case NI_DOUBLE:   NI_swap8( nvec , vec ) ; break ;
-
-      case NI_COMPLEX:  NI_swap4( 2*nvec, vec) ; break ;
-   }
-   return ;
-}
-#endif  /* USE_NEW_IOFUN */
