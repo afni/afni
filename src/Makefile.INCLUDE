@@ -1575,6 +1575,10 @@ nicat:nicat.o
 	$(RM) $@
 	$(CC) -o nicat nicat.o $(LFLAGS) $(LLIBS)
 
+niccc:niccc.o
+	$(RM) $@
+	$(CC) -o niccc niccc.o $(LFLAGS) $(LLIBS)
+
 #-------------------------------------------------------------------------------
 
 #############

@@ -1,6 +1,30 @@
 #include "niml.h"
 
 /****************************************************************************/
+/************************** Debugging stuff (duh) ***************************/
+/****************************************************************************/
+
+/*** Debug printout will only be enable if NIML_DEBUG
+     is defined here, AND if environment variable NIML_DEBUG
+     is also set to a filename (special case: or to the string "stderr"). ***/
+
+#define NIML_DEBUG
+
+#ifdef NIML_DEBUG
+  static FILE *dfp = NULL ;           /* debug file pointer */
+
+# include <stdarg.h>
+  void NI_dpr( char *fmt , ... )      /* print debug stuff */
+  {
+    va_list vararg_ptr ;
+    if( dfp == NULL ) return ;        /* printing turned off? */
+    va_start( vararg_ptr , fmt ) ;
+    vfprintf(dfp,fmt,vararg_ptr) ;    /* printing */
+    fflush(dfp); va_end(vararg_ptr);  /* cleanup */
+  }
+#endif
+
+/****************************************************************************/
 /******************** typedefs used only internally *************************/
 /****************************************************************************/
 
@@ -14,7 +38,7 @@ typedef struct {
    char **rhs ;           /*!< Right-hand-sides of attributes (may be NULL). */
 } header_stuff ;
 
-/*! A pair of integers. */
+/*! A pair of integers (what did you think it was?). */
 
 typedef struct { int i,j ; } intpair ;
 
@@ -29,8 +53,6 @@ typedef struct { int num; char **str;} str_array ;
 /****************************************************************************/
 /*********************** NIML Utility functions *****************************/
 /****************************************************************************/
-
-static FILE *dfp = NULL ;
 
 /*--------------------------------------------------------------------------*/
 /*! Allocate memory (actually uses calloc); calls exit() if it fails.
@@ -2039,8 +2061,8 @@ static intpair find_string( int nst, int nch, char *ch )
    int ii,jj ;
    char quot ;
 
-#if 0
-fprintf(stderr,"  find_string: nst=%d nch=%d\n",nst,nch) ;
+#ifdef NIML_DEBUG
+NI_dpr("  ENTER find_string: nst=%d nch=%d\n",nst,nch) ;
 #endif
 
    if( nst >= nch || nch < 2 || ch == NULL ) return ans;        /* bad input */
@@ -2066,7 +2088,7 @@ fprintf(stderr,"  find_string: nst=%d nch=%d\n",nst,nch) ;
 
     - ndat   = number of data bytes input
     - dat    = data bytes input
-    - *nused = output number of bytes consumed (=index of byte after the closing '>').
+    - *nused = output number of bytes consumed (=index of byte AFTER the closing '>').
 
     Return value is a pointer to a header_stuff struct;
     if NULL is returned, something real bad happened (and *nused won't
@@ -2081,8 +2103,8 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
 
    if( ndat < 2 || dat == NULL ) return NULL ;        /* bad input */
 
-#if 0
-fprintf(stderr,"Enter parse_header_stuff: %.*s\n",ndat,dat) ;
+#ifdef NIML_DEBUG
+NI_dpr("ENTER parse_header_stuff: %.*s\n",ndat,dat) ;
 #endif
 
    for( id=0 ; id < ndat && dat[id] != '<' ; id++ ) ; /* skip to opening */
@@ -2106,8 +2128,8 @@ fprintf(stderr,"Enter parse_header_stuff: %.*s\n",ndat,dat) ;
    hs->name = NI_malloc(nn+1) ;
    NI_strncpy( hs->name , dat+ss.i , nn+1 ) ;
 
-#if 0
-fprintf(stderr,"  name = %s\n",hs->name) ;
+#ifdef NIML_DEBUG
+NI_dpr("   parse_header_stuff: name = %s\n",hs->name) ;
 #endif
 
    /* start scanning for next string at location id */
@@ -2118,8 +2140,8 @@ fprintf(stderr,"  name = %s\n",hs->name) ;
 
    while(1){
 
-#if 0
-fprintf(stderr,"  scan start at id=%d\n",id) ;
+#ifdef NIML_DEBUG
+NI_dpr("   parse_header_stuff: scan start at id=%d\n",id) ;
 #endif
 
       for( ; id < ndat && isspace(dat[id]) ; id++ ) ; /* skip blanks */
@@ -2140,8 +2162,8 @@ fprintf(stderr,"  scan start at id=%d\n",id) ;
 
       if( ss.i < 0 || ss.j <= ss.i ) break ; /* didn't find a string */
 
-#if 0
-fprintf(stderr,"  next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
+#ifdef NIML_DEBUG
+NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
 #endif
 
       /* extend size of attribute arrays */
@@ -2176,8 +2198,8 @@ fprintf(stderr,"  next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
 
       if( ss.i < 0 || ss.j <= ss.i ) break ; /* didn't find a string */
 
-#if 0
-fprintf(stderr,"  next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
+#ifdef NIML_DEBUG
+NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
 #endif
 
       /* this is the RHS string */
@@ -2626,6 +2648,10 @@ static NI_element * make_empty_data_element( header_stuff *hs )
 
    if( hs == NULL || hs->name == NULL ) return NULL ;
 
+#ifdef NIML_DEBUG
+NI_dpr("ENTER make_empty_data_element\n") ;
+#endif
+
    nel = NI_malloc( sizeof(NI_element) ) ;
 
    nel->type = NI_ELEMENT_TYPE ;
@@ -2694,8 +2720,8 @@ static NI_element * make_empty_data_element( header_stuff *hs )
            nel->vec_len      = qq ;      /* length of vectors */
            nel->vec_rank     = nd ;      /* number of dimensions */
            nel->vec_axis_len = dar->ar ; /* array of dimension lengths */
-#if 0
-fprintf(stderr,"ni_dimen: nd=%d qq=%d\n",nd,qq) ;
+#ifdef NIML_DEBUG
+NI_dpr("  ni_dimen: nd=%d qq=%d\n",nd,qq) ;
 #endif
         }
      }
@@ -3276,24 +3302,24 @@ void NI_add_row( NI_element *nel , void *datin )
 
       if( typ == NI_STRING || typ == NI_LINE ){
          char *ppp ;
-#if 0
-fprintf(stderr,"NI_add_row duplicating string:  dat=%p ddd=%p ll=%d\n",dat,ddd,ll) ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_add_row duplicating string:  dat=%p ddd=%p ll=%d\n",dat,ddd,ll) ;
 #endif
          memcpy(&ppp,ddd,ll) ;      /* ppp is the pointer to the string */
          eee = NI_strdup(ppp);      /* duplicate string from struct */
-#if 0
-fprintf(stderr,"           duplicated string:%s; stored at eee=%p\n",eee,eee) ;
+#ifdef NIML_DEBUG
+NI_dpr("           duplicated string:%s; stored at eee=%p\n",eee,eee) ;
 #endif
          ddd = (char *)(&eee);      /* we want to save address of duplicate */
       }
 
       memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
 
-#if 0
-      if( typ == NI_STRING || typ == NI_LINE ){
-         char *ppp ; memcpy(&ppp,vpt,ll) ;
-         fprintf(stderr,"      vpt as a char *=%p\n",ppp) ;
-      }
+#ifdef NIML_DEBUG
+if( typ == NI_STRING || typ == NI_LINE ){
+  char *ppp ; memcpy(&ppp,vpt,ll) ;
+  NI_dpr("      vpt as a char *=%p\n",ppp) ;
+}
 #endif
 
    }
@@ -3335,8 +3361,8 @@ void NI_get_row( NI_element *nel , int rr , void *datin )
        rr              >= nel->vec_len    ||
        dat             == NULL              ) return ;
 
-#if 0
-fprintf(stderr,"Enter NI_get_row with rr=%d\n",rr) ;
+#ifdef NIML_DEBUG
+NI_dpr("ENTER NI_get_row with rr=%d\n",rr) ;
 #endif
 
    /* loop over columns */
@@ -3346,24 +3372,24 @@ fprintf(stderr,"Enter NI_get_row with rr=%d\n",rr) ;
       ll  = nel->rowmap_siz[ii] ; /* size of this column element */
       typ = nel->vec_typ[ii] ;    /* type code of column element */
 
-#if 0
-fprintf(stderr,"  ii=%d ll=%d typ=%d off=%d\n",ii,ll,typ,nel->rowmap_off[ii]) ;
+#ifdef NIML_DEBUG
+NI_dpr("  ii=%d ll=%d typ=%d off=%d\n",ii,ll,typ,nel->rowmap_off[ii]) ;
 #endif
 
       /* pointer to space in element where data lives */
 
       vpt = (char *)(nel->vec[ii]) + rr*ll ;
 
-#if 0
-fprintf(stderr,"  vpt=%p ",vpt) ;
+#ifdef NIML_DEBUG
+NI_dpr("  vpt=%p ",vpt) ;
 #endif
 
       /* pointer to space in struct to copy into */
 
       ddd = (char *)(dat + nel->rowmap_off[ii]) ;
 
-#if 0
-fprintf(stderr,"  ddd=%p ",ddd) ;
+#ifdef NIML_DEBUG
+NI_dpr("  ddd=%p ",ddd) ;
 #endif
 
       /* if the data is actually a string,
@@ -3376,12 +3402,12 @@ fprintf(stderr,"  ddd=%p ",ddd) ;
          memcpy(&ppp,vpt,ll) ;      /* ppp is the pointer to the string */
          eee = NI_strdup(ppp);      /* duplicate string from element */
          vpt = (char *)(&eee);      /* we want to save address of duplicate */
-#if 0
-fprintf(stderr,"  vpt=%p ",vpt) ;
+#ifdef NIML_DEBUG
+NI_dpr("  vpt=%p ",vpt) ;
 #endif
       }
-#if 0
-fprintf(stderr," copying from vpt to ddd\n") ;
+#ifdef NIML_DEBUG
+NI_dpr(" copying from vpt to ddd\n") ;
 #endif
       memcpy( ddd, vpt , ll ) ;  /* copy bytes from element to ddd */
    }
@@ -5277,6 +5303,19 @@ NI_stream NI_stream_open( char *name , char *mode )
    NI_stream_type *ns ;
    int do_create , do_accept ;
 
+   /** perhaps initialize debug output **/
+
+#ifdef NIML_DEBUG
+   if( dfp == NULL ){
+     char *eee = getenv("NIML_DEBUG") ;
+     if( eee != NULL ){
+       dfp = (strcmp(eee,"stderr")==0) ? stderr : fopen(eee,"w") ;
+       if( dfp == NULL ){ dfp = stderr; eee = "stderr [defaulted]"; }
+       fprintf(stderr,"NIML: debug output to %s\n",eee) ;
+     }
+   }
+#endif
+
    /** check if inputs are reasonable **/
 
    if( NI_strlen(name) < 4 ) return NULL ;
@@ -5960,6 +5999,10 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
    if( nbytes == 0 ) return 0 ;  /* that was easy */
 
+#ifdef NIML_DEBUG
+NI_dpr("ENTER NI_stream_write\n") ;
+#endif
+
    if( ns->type != NI_TCP_TYPE ){
      ii = NI_stream_writecheck(ns,1) ; /* check if stream is still OK */
      if( ii < 0 ) return ii ;          /* if not, vamoose the ranch  */
@@ -5999,13 +6042,13 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
      case NI_FD_TYPE:
      case NI_FILE_TYPE:
-#if 0
-fprintf(stderr,"about to write %d bytes\n",nbytes) ;
+#ifdef NIML_DEBUG
+NI_dpr("  file: about to write %d bytes\n",nbytes) ;
 #endif
        nsent = fwrite( buffer , 1 , nbytes , ns->fp ) ;
        if( nsent < nbytes ) PERROR("NI_stream_write(fwrite)") ;
-#if 0
-fprintf(stderr,"actually wrote %d bytes\n",nsent) ;
+#ifdef NIML_DEBUG
+NI_dpr("  file: actually wrote %d bytes\n",nsent) ;
 #endif
        if( nsent == 0 ) nsent = -1 ;
        fflush(ns->fp) ;
@@ -6014,15 +6057,15 @@ fprintf(stderr,"actually wrote %d bytes\n",nsent) ;
      /** str: ==> append to buffer in stream struct **/
 
      case NI_STRING_TYPE:
-#if 0
-fprintf(stderr,"NI_stream_write str: input=%s\n",ns->buf) ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_stream_write str: input=%s\n",ns->buf) ;
 #endif
         ns->buf = NI_realloc( ns->buf , ns->bufsize+nbytes ) ;
         memcpy( ns->buf+ns->nbuf , buffer , nbytes ) ;
         ns->nbuf    += nbytes ; ns->buf[ns->nbuf] = '\0' ;
         ns->bufsize += nbytes ;
-#if 0
-fprintf(stderr,"NI_stream_write str: output=%s\n",ns->buf) ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_stream_write str: output=%s\n",ns->buf) ;
 #endif
         return nbytes ;
 
@@ -6065,6 +6108,10 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
    if( nbytes == 0 ) return 0 ;
 
+#ifdef NIML_DEBUG
+NI_dpr("ENTER NI_stream_read\n") ;
+#endif
+
    switch( ns->type ){
 
 #ifndef DONT_USE_SHM
@@ -6083,11 +6130,8 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
        errno = 0 ;
        ii = tcp_recv( ns->sd , buffer , nbytes , 0 ) ;
        if( ii == -1 || errno != 0 ) PERROR("NI_stream_read(recv)") ;
-#if 0
-if( dfp != NULL ){
-fprintf(dfp,"\n*** NI_stream_read got %d/%d bytes ***\n",ii,nbytes) ;
-if( ii > 0 ) fprintf(dfp,"%.*s\n***\n",ii,buffer) ;
-}
+#ifdef NIML_DEBUG
+NI_dpr("  tcp: got %d/%d bytes ***\n",ii,nbytes) ;
 #endif
        return ii ;
 
@@ -6246,6 +6290,10 @@ void * NI_read_element( NI_stream_type *ns , int msec )
 
    if( ns == NULL ) return NULL ;  /* bad input */
 
+#ifdef NIML_DEBUG
+NI_dpr("ENTER NI_read_element\n") ;
+#endif
+
    if( msec < 0 ) msec = 999999999 ;  /* a long time (11+ days) */
 
    /* if we have a socket that hasn't connected,
@@ -6264,9 +6312,8 @@ HeadRestart:                            /* loop back here to retry */
    mleft = msec - (NI_clock_time()-start_time) ;      /* time left */
    if( num_restart > 1 && mleft <= 0 ) return NULL ;  /* don't allow too many loops */
 
-#if 0
-NI_sleep(500) ;
-fprintf(stderr,"NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" ,
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" ,
                num_restart ) ;
 #endif
 
@@ -6279,8 +6326,8 @@ fprintf(stderr,"NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" 
       NI_sleep(1); goto HeadRestart;                      /* try again */
    }
 
-#if 0
-fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: found '<'\n") ;
 #endif
 
    /* ns->buf[ns->npos] = opening '<' ; ns->buf[nn-1] = closing '>' */
@@ -6290,10 +6337,17 @@ fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
 
    if( nn - ns->npos <= 2 || ns->buf[ns->npos+1] == '/' ){
       ns->npos = nn; reset_buffer(ns); /* toss the '<..>', try again */
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: illegal header found? skipping\n") ;
+#endif
       goto HeadRestart ;
    }
 
    /*----- Parse the header data and prepare to make an element! -----*/
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: parsing putative header\n") ;
+#endif
 
    hs = parse_header_stuff( nn - ns->npos , ns->buf + ns->npos , &nhs ) ;
 
@@ -6309,6 +6363,10 @@ fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
            ns->buf[ns->npos] .. ns->buf[ns->nbuf-1]                 --*/
 
    ns->npos = nn ;
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: header parsed successfully\n") ;
+#endif
 
    /*--------------- Now make an element of some kind ---------------*/
 
@@ -6330,9 +6388,8 @@ fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
       num_restart = 0 ;
       while(1){           /* loop to find an element */
 
-#if 0
-NI_sleep(500) ;
-fprintf(stderr,"NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
                num_restart ) ;
 #endif
 
@@ -6411,7 +6468,14 @@ fprintf(stderr,"NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
           nel->vec_len == 0    ||     /* These other cases are indication */
           nel->vec_num == 0    ||     /* that this is an 'empty' element. */
           nel->vec_typ == NULL ||     /* ==> The header is all there is.  */
-          nel->vec     == NULL   ) return nel ;
+          nel->vec     == NULL   ){
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: returning empty element\n") ;
+#endif
+
+        return nel ;
+      }
 
       /*-- If here, must read data from the buffer into nel->vec --*/
 
@@ -6470,8 +6534,8 @@ fprintf(stderr,"NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
 
            num_reread = 0 ;
 Base64Reread:
-#if 0
-fprintf(stderr,"b64: Reread at row=%d num_reread=%d\n",row,num_reread) ;
+#ifdef NIML_DEBUG
+NI_dpr("b64: Reread at row=%d num_reread=%d\n",row,num_reread) ;
 #endif
            num_reread++ ; if( num_reread > 4 ) goto Base64Done ;
 
@@ -6489,8 +6553,8 @@ fprintf(stderr,"b64: Reread at row=%d num_reread=%d\n",row,num_reread) ;
 
              bpos = 4 - ns->nbuf ; if( bpos <= 0 ) bpos = 1 ;
 
-#if 0
-fprintf(stderr,"b64: reading extra data\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("b64: reading extra data\n") ;
 #endif
 
              (void) NI_stream_fillbuf( ns , bpos , 6666 ) ;
@@ -6518,8 +6582,8 @@ fprintf(stderr,"b64: reading extra data\n") ;
              /* get next valid base64 character into w;
                 if we hit the end token '<' first, quit;
                 if we hit the end of the buffer first, need more data */
-#if 0
-fprintf(stderr,"b64: bpos=%d bb=%d\n",bpos,bb) ;
+#ifdef NIML_DEBUG
+NI_dpr("b64: bpos=%d bb=%d\n",bpos,bb) ;
 #endif
              w = ns->buf[bpos++] ;
              while( !B64_goodchar(w) && w != '<' && bpos < ns->nbuf )
@@ -6527,8 +6591,8 @@ fprintf(stderr,"b64: bpos=%d bb=%d\n",bpos,bb) ;
              ns->npos = bpos-1 ;  /* if we have to reread, will start here */
              if( w == '<' ){ goto Base64Done; }
              if( bpos == ns->nbuf ){ goto Base64Reread; }
-#if 0
-fprintf(stderr,"b64: bpos=%d w=%c\n",bpos,w) ;
+#ifdef NIML_DEBUG
+NI_dpr("b64: bpos=%d w=%c\n",bpos,w) ;
 #endif
              /* repeat to fill x */
 
@@ -6538,8 +6602,8 @@ fprintf(stderr,"b64: bpos=%d w=%c\n",bpos,w) ;
              if( x == '<' ){ ns->npos = bpos-1; goto Base64Done; }
              if( bpos == ns->nbuf ){ goto Base64Reread; }
 
-#if 0
-fprintf(stderr,"b64: bpos=%d x=%c\n",bpos,x) ;
+#ifdef NIML_DEBUG
+NI_dpr("b64: bpos=%d x=%c\n",bpos,x) ;
 #endif
 
              /* repeat to fill y */
@@ -6550,8 +6614,8 @@ fprintf(stderr,"b64: bpos=%d x=%c\n",bpos,x) ;
              if( y == '<' ){ ns->npos = bpos-1; goto Base64Done; }
              if( bpos == ns->nbuf ){ goto Base64Reread; }
 
-#if 0
-fprintf(stderr,"b64: bpos=%d y=%c\n",bpos,y) ;
+#ifdef NIML_DEBUG
+NI_dpr("b64: bpos=%d y=%c\n",bpos,y) ;
 #endif
 
              /* repeat to fill z */
@@ -6562,8 +6626,8 @@ fprintf(stderr,"b64: bpos=%d y=%c\n",bpos,y) ;
              if( z == '<' ){ ns->npos = bpos-1; goto Base64Done; }
              if( bpos == ns->nbuf ){ goto Base64Reread; }
 
-#if 0
-fprintf(stderr,"b64: bpos=%d z=%c\n",bpos,z) ;
+#ifdef NIML_DEBUG
+NI_dpr("b64: bpos=%d z=%c\n",bpos,z) ;
 #endif
 
              /* at this point, have w,x,y,z to decode */
@@ -6585,8 +6649,8 @@ fprintf(stderr,"b64: bpos=%d z=%c\n",bpos,z) ;
 
            } while( bb < nbrow ) ;  /* loop to fill output buffer */
 
-#if 0
-fprintf(stderr,"b64: decoded row=%d with bb=%d\n",row,bb) ;
+#ifdef NIML_DEBUG
+NI_dpr("b64: decoded row=%d with bb=%d\n",row,bb) ;
 #endif
 
            /* if we've not filled a full row,
@@ -6669,13 +6733,10 @@ BinaryDone:
         /*......................................................*/
 
         case NI_TEXT_MODE:{
-#if 0
-dfp = fopen("niml.out","w") ;
-#endif
 
          while( row < nel->vec_len ){  /* loop over input rows */
-#if 0
-fprintf(dfp,"ROW=%d",row) ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: ROW=%d",row) ;
 #endif
           for( col=0 ; col < nel->vec_num ; col++ ){ /* over input vectors */
 
@@ -6721,8 +6782,8 @@ fprintf(dfp,"ROW=%d",row) ;
                  nn = decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (int) val ;
-#if 0
-fprintf(dfp," [%d]=%d",col,vpt[row]) ;
+#ifdef NIML_DEBUG
+NI_dpr(" [%d]=%d",col,vpt[row]) ;
 #endif
               }
               break ;
@@ -6733,8 +6794,8 @@ fprintf(dfp," [%d]=%d",col,vpt[row]) ;
                  nn = decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (float) val ;
-#if 0
-fprintf(dfp," [%d]=%f",col,vpt[row]) ;
+#ifdef NIML_DEBUG
+NI_dpr(" [%d]=%f",col,vpt[row]) ;
 #endif
               }
               break ;
@@ -6795,17 +6856,14 @@ fprintf(dfp," [%d]=%f",col,vpt[row]) ;
             } /* end of switch on type of this data value */
 
           } /* end of loop over vector columns */
-#if 0
-fprintf(dfp,"\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("\n") ;
 #endif
           row++ ;
          } /* end of loop over vector rows */
 
 TextDone:
          nel->vec_filled = row ;  /* how many rows were filled above */
-#if 0
-fclose(dfp);dfp=NULL ;
-#endif
         }
         break ;  /* end of text input */
 
@@ -6832,9 +6890,8 @@ TailRestart:
       if( num_restart < 99 ){  /* don't loop forever, dude */
          int is_tail ;
 
-#if 0
-NI_sleep(100) ;
-fprintf(stderr,"NI_read_element: TailRestart scan_for_angles; num_restart=%d\n" ,
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: TailRestart scan_for_angles; num_restart=%d\n" ,
                num_restart ) ;
 #endif
 
@@ -6862,6 +6919,10 @@ fprintf(stderr,"NI_read_element: TailRestart scan_for_angles; num_restart=%d\n" 
       }
 
       /*-- And are done with the input stream and the data element! --*/
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: returning filled data element\n") ;
+#endif
 
       return nel ;
 
@@ -6901,8 +6962,8 @@ Restart:
    num_restart++ ;
    if( num_restart > 19 ) return 0 ;  /*** give up ***/
 
-#if 0
-fprintf(dfp," {restart: npos=%d nbuf=%d}",ns->npos,ns->nbuf) ;
+#ifdef NIML_DEBUG
+NI_dpr(" {restart: npos=%d nbuf=%d}",ns->npos,ns->nbuf) ;
 #endif
 
    /*-- advance over useless characters in the buffer --*/
@@ -6926,9 +6987,9 @@ fprintf(dfp," {restart: npos=%d nbuf=%d}",ns->npos,ns->nbuf) ;
 
    if( !need_data ){  /* so have at least 2 characters */
 
-#if 0
+#ifdef NIML_DEBUG
 nn = ns->nbuf-ns->npos ; if( nn > 19 ) nn = 19 ;
-fprintf(dfp," {buf=%.*s}" , nn , ns->buf+ns->npos ) ;
+NI_dpr(" {buf=%.*s}" , nn , ns->buf+ns->npos ) ;
 #endif
 
       for( epos=ns->npos+1 ; epos < ns->nbuf ; epos++ )
@@ -6938,8 +6999,8 @@ fprintf(dfp," {buf=%.*s}" , nn , ns->buf+ns->npos ) ;
 
       need_data = (epos == ns->nbuf) ; /* no delimiter ==> need more data */
 
-#if 0
-if( need_data ) fprintf(dfp," {eob}") ;
+#ifdef NIML_DEBUG
+if( need_data ) NI_dpr(" {eob}") ;
 #endif
 
       /*- If the string of characters we have is not delimited,
@@ -6958,8 +7019,8 @@ if( need_data ) fprintf(dfp," {eob}") ;
       /*- read at least 1 byte,
           waiting up to 666 ms (unless the data stream goes bad) -*/
 
-#if 0
-fprintf(dfp," {read}") ;
+#ifdef NIML_DEBUG
+NI_dpr(" {fill buf}") ;
 #endif
       nn = NI_stream_fillbuf( ns , 1 , 666 ) ;
 
@@ -7095,7 +7156,7 @@ static void reset_buffer( NI_stream_type *ns )
       - there is no '<...>' in the buffer, and we can't read from
          the input stream; call NI_readcheck(ns,0) to confirm this
       - time ran out (alas)
-      - The '<...' part filled the entire buffer (64K).  In this case,
+      - The '<...' part filled the entire buffer space.  In this case,
          all the input buffer is thrown away - we don't support
          headers or trailers this long!
 ------------------------------------------------------------------------*/
@@ -7105,6 +7166,7 @@ static int scan_for_angles( NI_stream_type *ns, int msec )
    int nn, epos, need_data, num_restart ;
    char goal ;
    int start_time = NI_clock_time() , mleft , nbmin ;
+   int caseb=0 ;
 
    if( ns == NULL ) return -1 ;  /* bad input */
 
@@ -7120,18 +7182,17 @@ Restart:                                       /* loop back here to retry */
    num_restart++ ;
    mleft = msec - (NI_clock_time()-start_time) ;             /* time left */
 
-   if( num_restart > 3 && mleft <= 0 ){                        /* failure */
+   if( num_restart > 3 && mleft <= 0 && !caseb ){              /* failure */
       reset_buffer(ns) ;                               /* and out of time */
-#if 0
-fprintf(stderr,"  scan_for_angles: out of time\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles: out of time!\n") ;
 #endif
       return -1 ;
    }
 
-#if 0
-NI_sleep(500) ;
+#ifdef NIML_DEBUG
 if( ns->npos < ns->nbuf )
-fprintf(stderr,"  scan_for_angles: npos=%d epos=%d nbuf=%d buffer=%.*s\n",
+NI_dpr("  scan_for_angles: npos=%d epos=%d nbuf=%d buffer=%.*s\n",
         ns->npos,epos,ns->nbuf,ns->nbuf-ns->npos,ns->buf+ns->npos ) ;
 #endif
 
@@ -7143,8 +7204,8 @@ fprintf(stderr,"  scan_for_angles: npos=%d epos=%d nbuf=%d buffer=%.*s\n",
 
    if( epos < ns->nbuf ){
 
-#if 0
-fprintf(stderr,"  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
 #endif
 
      /*-- if our goal was the closing '>', we are done! --*/
@@ -7157,6 +7218,7 @@ fprintf(stderr,"  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
 
       ns->npos = epos ;  /* mark where we found '<' */
       goal     = '>'  ;  /* the new goal */
+      caseb    = 1    ;
       goto Restart    ;  /* scan again! */
    }
 
@@ -7169,20 +7231,22 @@ fprintf(stderr,"  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
              - in this case, the universe ends right here and now --*/
 
    if( goal == '<' ){                    /* case (a) */
-#if 0
-fprintf(stderr,"  scan_for_angles: case (a)\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles: case (a)\n") ;
 #endif
-      ns->nbuf = ns->npos = epos = 0 ;
+      ns->nbuf = ns->npos = epos = 0 ; caseb = 0 ;
+
    } else if( ns->nbuf < ns->bufsize ){  /* case (b) */
-#if 0
-fprintf(stderr,"  scan_for_angles: case (b)\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles: case (b)\n") ;
 #endif
-      reset_buffer(ns) ; epos = 0 ;
+      reset_buffer(ns) ; epos = 0 ; caseb = 1 ;
+
    } else {                              /* case (c) */
-#if 0
-fprintf(stderr,"  scan_for_angles: case (c)\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles: case (c)\n") ;
 #endif
-      ns->nbuf = 0 ; return -1 ;
+      ns->nbuf = 0 ; return -1 ;         /* death of Universe! */
    }
 
    /*-- if we are here, we need more data before scanning again --*/
@@ -7247,8 +7311,8 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    /* ADDOUT = after writing, add byte count if OK, else quit */
    /* AF     = thing to do if ADDOUT is quitting */
 
-#if 0
-fprintf(stderr,"NIML: enter NI_write_element\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("ENTER NI_write_element\n") ;
 #endif
 
 #undef  AF
@@ -7258,13 +7322,13 @@ fprintf(stderr,"NIML: enter NI_write_element\n") ;
    if( ns == NULL ) return -1 ;
 
    if( ns->bad ){                        /* socket that hasn't connected yet */
-#if 0
-fprintf(stderr,"NIML: write socket not connected\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_write_element: write socket not connected\n") ;
 #endif
       jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
       if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
-#if 0
-fprintf(stderr,"      write socket now connected\n") ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_write_element: write socket now connected\n") ;
 #endif
    } else {                              /* check if good ns has gone bad */
       jj = NI_stream_writecheck(ns,1) ;
@@ -7568,8 +7632,8 @@ fprintf(stderr,"      write socket now connected\n") ;
          case NI_TEXT_MODE:
             btt = ">\n" ;                             /* add a newline */
             nwbuf = 5*NI_element_rowsize(nel) + 16 ;  /* text buffer  */
-#if 0
-fprintf(stderr,"nwbuf=%d\n",nwbuf) ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_write_element: nwbuf=%d\n",nwbuf) ;
 #endif
          break ;
 
@@ -7607,8 +7671,8 @@ fprintf(stderr,"nwbuf=%d\n",nwbuf) ;
       /*- loop over output rows and write results -*/
 
       for( row=0 ; row < nel->vec_len ; row++ ){
-#if 0
-fprintf(stderr,"start write of row %d:",row) ;
+#ifdef NIML_DEBUG
+NI_dpr("  start write of row %d:",row) ;
 #endif
 
         /* initialize this row's output */
@@ -7623,8 +7687,8 @@ fprintf(stderr,"start write of row %d:",row) ;
         /* write data for this row into wbuf */
 
         for( col=0 ; col < nel->vec_num ; col++ ){
-#if 0
-fprintf(stderr," %d[%d]",col,nel->vec_typ[col]) ;
+#ifdef NIML_DEBUG
+NI_dpr(" %d[%d]",col,nel->vec_typ[col]) ;
 #endif
 
          switch( tmode ){
@@ -7632,8 +7696,8 @@ fprintf(stderr," %d[%d]",col,nel->vec_typ[col]) ;
           /*----- encode one value to output, according to its type -----*/
           case NI_TEXT_MODE:{
            jj = strlen(wbuf) ;
-#if 0
-fprintf(stderr,"[jj=%d]",jj);
+#ifdef NIML_DEBUG
+NI_dpr("[jj=%d]",jj);
 #endif
            switch( nel->vec_typ[col] ){
             default:                    /* Line is unimplemented */
@@ -7668,8 +7732,8 @@ fprintf(stderr,"[jj=%d]",jj);
 
             case NI_INT:{
               int *vpt = (int *) nel->vec[col] ;
-#if 0
-fprintf(stderr,"[int=%d]",vpt[row]) ;
+#ifdef NIML_DEBUG
+NI_dpr("[int=%d]",vpt[row]) ;
 #endif
               sprintf(wbuf+jj," %d",vpt[row]) ;
             }
@@ -7697,8 +7761,8 @@ fprintf(stderr,"[int=%d]",vpt[row]) ;
             case NI_FLOAT:{
               float *vpt = (float *) nel->vec[col] ;
               char fbuf[32] ; int ff ;
-#if 0
-fprintf(stderr,"[float=%g]",vpt[row]) ;
+#ifdef NIML_DEBUG
+NI_dpr("[float=%g]",vpt[row]) ;
 #endif
               sprintf(fbuf," %12.6g",vpt[row]) ;
               for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
@@ -7802,8 +7866,8 @@ fprintf(stderr,"[float=%g]",vpt[row]) ;
 
          } /* end of switch on tmode */
         } /* end of loop over columns */
-#if 0
-fprintf(stderr," ! wbuf=%s[%d] tmode=%d\n",wbuf,strlen(wbuf),tmode) ;
+#ifdef NIML_DEBUG
+NI_dpr(" ! wbuf=%s[%d] tmode=%d\n",wbuf,strlen(wbuf),tmode) ;
 #endif
 
         /*- actually write this row of data out -*/
@@ -7811,8 +7875,8 @@ fprintf(stderr," ! wbuf=%s[%d] tmode=%d\n",wbuf,strlen(wbuf),tmode) ;
         switch( tmode ){
           case NI_TEXT_MODE:     /* each row is on a separate line */
             strcat(wbuf,"\n") ;
-#if 0
-fprintf(stderr,"  and writing it [%d]\n",strlen(wbuf) ) ;
+#ifdef NIML_DEBUG
+NI_dpr("  and writing it [%d]\n",strlen(wbuf) ) ;
 #endif
             nout = NI_stream_write( ns , wbuf , strlen(wbuf) ) ;
             ADDOUT ;
@@ -7901,7 +7965,7 @@ fprintf(stderr,"  and writing it [%d]\n",strlen(wbuf) ) ;
 #ifdef  USE_MINOUT
       if( ns->type == NI_TCP_TYPE ){
         char *eee = getenv("NIML_TCP_MINOUT") ;
-        int minout=1024 , nn ;
+        int minout=128 , nn ;
         if( eee != NULL ){
            nn = strtol( eee , NULL , 10 ) ;
            if( nn >= 0 ) minout = nn ;
@@ -7909,8 +7973,8 @@ fprintf(stderr,"  and writing it [%d]\n",strlen(wbuf) ) ;
         nn = minout-ntot ;
         if( nn > 0 ){
           char *str = calloc(1,nn+16) ;
-#if 0
-fprintf(stderr,"NI_write_element: adding %d blanks\n",nn) ;
+#ifdef NIML_DEBUG
+NI_dpr("NI_write_element: adding %d blanks\n",nn) ;
 #endif
           sprintf(str,"%*.*s\n",nn,nn," ") ;
           NI_stream_write( ns , str , strlen(str) ) ;
