@@ -624,6 +624,7 @@ void AFNI_faceup(void)   /* 17 Dec 2004 */
 {
    MRI_IMAGE *im , *fim ;
    int ii , nx,ny , nxdown,nxup , nydown,nyup ;
+   int ctold,ctnew,mmss , ddss ;
 
 ENTRY("AFNI_faceup") ;
 
@@ -632,6 +633,10 @@ ENTRY("AFNI_faceup") ;
      num_face = AFNI_find_jpegs( "face_" , &fname_face ) ;
      if( num_face <= 0 ){ BEEPIT; EXRETURN; }
    }
+
+   ctold = NI_clock_time() ;
+
+   ddss = 15000 / num_face ; if( ddss > 100 ) ddss = 100 ;  /* 27 Dec 2004 */
 
    for( ii=0 ; ii < num_face ; ii++ ){
      im = mri_read_stuff( fname_face[ii] ) ;
@@ -667,6 +672,11 @@ ENTRY("AFNI_faceup") ;
        PLUTO_imseq_addto( face_phan , fim ) ;
      }
      mri_free(fim) ;
+
+     ctnew = NI_clock_time() ;      /* show 1 image every ddss ms [27 Dec 2004] */
+     mmss  = ddss - (ctnew-ctold) ;
+     ctold = ctnew ;
+     NI_sleep(mmss) ;
    }
    if( face_phan != NULL ){
      PLUTO_imseq_retitle( face_phan , "Faces of AFNI" ) ;
