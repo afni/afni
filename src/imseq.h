@@ -589,6 +589,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_button2_width   505
 
 #define isqDR_ignore_redraws  521
+#define isqDR_keypress        522  /* 18 Feb 2005 */
 
 #define BUTTON2_OPENPOLY        0
 #define BUTTON2_CLOSEDPOLY      1
@@ -776,5 +777,7 @@ extern void ISQ_cropper( MCW_imseq *, XButtonEvent *) ; /* 17 Jun 2002 */
 
 extern void ISQ_snapshot( Widget w ) ;                 /* 18 Jun 2003 */
 extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
+
+extern int ISQ_handle_keypress( MCW_imseq * , unsigned long ); /* 18 Feb 2005 */
 
 #endif /* _MCW_IMSEQ_HEADER_ */

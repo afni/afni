@@ -1,4 +1,5 @@
 #include "afni.h"
+#include <X11/keysym.h>
 
 /*******************************************************************
   Functions to drive AFNI user-interface stuff from plugouts, etc.
@@ -488,6 +489,7 @@ ENTRY("AFNI_drive_open_window") ;
    /* find geom=..., if present */
 
    cpt = strstr(cmd,"geom=") ;
+   if( cpt == NULL ) cpt = strstr(cmd,"geom:") ;
    if( cpt != NULL )
      AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
 
@@ -505,6 +507,7 @@ ENTRY("AFNI_drive_open_window") ;
       /* image fraction */
 
       cpt = strstr(cmd,"ifrac=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"ifrac:") ;
       if( cpt != NULL ){
          float ifrac = strtod( cpt+6 , NULL ) ;
          if( ifrac >= FRAC_MIN && ifrac <= 1.0 )
@@ -514,6 +517,7 @@ ENTRY("AFNI_drive_open_window") ;
       /* montage */
 
       cpt = strstr(cmd,"mont=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"mont:") ;
       if( cpt != NULL ){
          int mww=-1 , mhh=-1 , msp=-1 , mgap=-1 , nn ;
          char mcol[128] = "\0" ;
@@ -540,10 +544,42 @@ ENTRY("AFNI_drive_open_window") ;
       /* opacity [21 Jan 2003] */
 
       cpt = strstr(cmd,"opacity=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"opacity:") ;
       if( cpt != NULL ){
         int opaval = -1 ;
         sscanf( cpt+8 , "%d" , &opaval ) ;
         drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer) opaval ) ;
+      }
+
+      /* keypress [18 Feb 2005] */
+
+      cpt = strstr(cmd,"keypress=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"keypress:") ;
+      if( cpt != NULL ){
+        unsigned long key ;
+        cpt += 9 ;
+        if( *cpt == '\'' || *cpt == '\"' ) cpt++ ;
+             if( strncmp(cpt,"XK_Left"     , 7) == 0 ) key = XK_Left     ;
+        else if( strncmp(cpt,"XK_Right"    , 8) == 0 ) key = XK_Right    ;
+        else if( strncmp(cpt,"XK_Down"     , 7) == 0 ) key = XK_Down     ;
+        else if( strncmp(cpt,"XK_Up"       , 5) == 0 ) key = XK_Up       ;
+        else if( strncmp(cpt,"XK_Page_Up"  ,10) == 0 ) key = XK_Page_Up  ;
+        else if( strncmp(cpt,"XK_Page_Down",12) == 0 ) key = XK_Page_Down;
+        else if( strncmp(cpt,"XK_Delete"   , 9) == 0 ) key = XK_Delete   ;
+        else if( strncmp(cpt,"XK_Home"     , 7) == 0 ) key = XK_Home     ;
+        else if( strncmp(cpt,"XK_F2"       , 5) == 0 ) key = XK_F2       ;
+        else if( strncmp(cpt,"XK_F3"       , 5) == 0 ) key = XK_F3       ;
+        else if( strncmp(cpt,"XK_F4"       , 5) == 0 ) key = XK_F4       ;
+        else if( strncmp(cpt,"XK_F5"       , 5) == 0 ) key = XK_F5       ;
+        else if( strncmp(cpt,"XK_F6"       , 5) == 0 ) key = XK_F6       ;
+        else if( strncmp(cpt,"XK_F7"       , 5) == 0 ) key = XK_F7       ;
+        else if( strncmp(cpt,"XK_F8"       , 5) == 0 ) key = XK_F8       ;
+        else if( strncmp(cpt,"XK_F9"       , 5) == 0 ) key = XK_F9       ;
+        else if( strncmp(cpt,"XK_F10"      , 6) == 0 ) key = XK_F10      ;
+        else if( strncmp(cpt,"XK_F11"      , 6) == 0 ) key = XK_F11      ;
+        else if( strncmp(cpt,"XK_F12"      , 6) == 0 ) key = XK_F12      ;
+        else                                           key = *cpt        ;
+        ISQ_handle_keypress( isq , key ) ;
       }
 
    /*--- opened a graph viewer: maybe modify it ---*/
@@ -560,6 +596,7 @@ ENTRY("AFNI_drive_open_window") ;
       /* matrix */
 
       cpt = strstr(cmd,"matrix=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"matrix:") ;
       if( cpt != NULL ){
         int mat = (int) strtod( cpt+7 , NULL ) ;
         if( mat > 0 )
@@ -569,7 +606,9 @@ ENTRY("AFNI_drive_open_window") ;
       /* pinnum OR pintop */
 
       cpt = strstr(cmd,"pinnum=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"pinnum:") ;
       if( cpt == NULL ) cpt = strstr(cmd,"pintop=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"pintop:") ;
       if( cpt != NULL ){
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn >= MIN_PIN )
@@ -579,6 +618,7 @@ ENTRY("AFNI_drive_open_window") ;
       /* pinbot [19 Mar 2004] */
 
       cpt = strstr(cmd,"pinbot=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"pinbot:") ;
       if( cpt != NULL ){
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn > 0 )
@@ -592,6 +632,25 @@ ENTRY("AFNI_drive_open_window") ;
         XIconifyWindow( XtDisplay(gra->fdw_graph) ,
                          XtWindow(gra->fdw_graph)  ,
                          gra->dc->screen_num   ) ;
+      }
+
+      /* keypress [18 Feb 2005] */
+
+      cpt = strstr(cmd,"keypress=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"keypress:") ;
+      if( cpt != NULL ){
+        char buf[2] ;
+        cpt += 9 ;
+        if( *cpt == '\'' || *cpt == '\"' ) cpt++ ;
+             if( strncmp(cpt,"XK_Left" ,7) == 0 ) buf[0] = '<'  ;
+        else if( strncmp(cpt,"XK_Right",8) == 0 ) buf[0] = '>'  ;
+        else if( strncmp(cpt,"XK_Down" ,7) == 0 ) buf[0] = 'Z'  ;
+        else if( strncmp(cpt,"XK_Up"   ,5) == 0 ) buf[0] = 'z'  ;
+        else                                      buf[0] = *cpt ;
+        if( buf[0] == 'N' ) buf[0] = '\0' ;  /* bad key for this */
+        buf[1] = '\0' ;
+        GRA_timer_stop( gra ) ;
+        GRA_handle_keypress( gra , buf , NULL ) ;
       }
 
 
@@ -734,6 +793,7 @@ ENTRY("AFNI_drive_open_plugin") ;
    /* find geom=..., if present */
 
    cpt = strstr(cmd,"geom=") ;
+   if( cpt == NULL ) cpt = strstr(cmd,"geom:") ;
    if( cpt != NULL )
       AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
 
@@ -896,6 +956,7 @@ ENTRY("AFNI_drive_geom_graph") ;
    gxy = Graph_xy_list[ig] ;
 
    cpt = strstr(cmd,"geom=") ;
+   if( cpt == NULL ) cpt = strstr(cmd,"geom:") ;
    if( cpt == NULL || strlen(cpt) < 7 ) RETURN(-1) ;
 
    AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
@@ -1684,6 +1745,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      flip = ( strstr(cmd+dadd,"FLIP") != NULL ) ;
 
      cpt = strstr(cmd+dadd,"ROTA=") ;
+     if( cpt == NULL ) cpt = strstr(cmd+dadd,"ROTA:") ;
      if( cpt != NULL ) sscanf(cpt+5,"%d",&rota) ;
    }
 
