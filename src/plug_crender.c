@@ -7781,9 +7781,10 @@ ENTRY( "RCREND_read_exec_CB" );
       if( str[0]=='\0' || qq==0 || nu==0 ) goto Finished ;                \
     } while(0)
 
-#define GETSTR                                                             \
-  do{ GETSSS ;                                                             \
-      while(str[0]=='!' || (str[0]=='/' && str[1]=='/')){EOLSKIP; GETSSS;} \
+#define GETSTR                                                            \
+  do{ GETSSS ;                                                            \
+      while(str[0]=='!' || (str[0]=='/' && str[1]=='/') ||                \
+            (str[0]=='#' && str[1]=='\0') ){EOLSKIP; GETSSS;}             \
     } while(0)
 
 #define GETEQN                                         \

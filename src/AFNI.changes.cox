@@ -4764,3 +4764,6 @@
 
 28 Oct 2003
  * Changes to thd_automask.c and 3dAutomask.c to implement -eclip option.
+
+29 Oct 2003
+ * Allow "# " as a comment in .afnirc -- changes to afni_setup.c GETSTR macro.
