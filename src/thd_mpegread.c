@@ -46,7 +46,7 @@ ENTRY("THD_open_mpeg") ;
    if( nx < 2 || ny < 2 ) RETURN(NULL) ;
 
    eee = getenv("AFNI_MPEG_DATASETS") ;
-   if( eee == NULL ) eee = "TIME" ;
+   if( eee == NULL ) eee = "SPACE" ;
    switch( toupper(*eee) ){
      default:
      case 'T': nz = 1   ; nt = nim ; break ;
