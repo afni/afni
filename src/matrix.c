@@ -55,9 +55,20 @@
 
   Mod:      'ipr' added to matrix_print() function.
   Date:     03 Aug 2004 - RWCox
+
+  Mod:      Added USE_SCSLBLAS stuff for SGI Altix.
+  Date:     01 Mar 2005
 */
 
+#undef DOTP
+#undef VSUB
+#if defined(USE_SCSLBLAS)                            /** SGI **/
+# include <scsl_blas.h>
+# define DOTP(n,x,y,z) *(z)=ddot(n,x,1,y,1)
+# define VSUB(n,x,y,z) (memcpy(z,x,sizeof(double)*n),daxpy(n,-1.0,y,1,z,1))
+#endif
 
+/*---------------------------------------------------------------------------*/
 static double flops=0.0l ;
 double get_matrix_flops(void){ return flops; }
 
@@ -975,8 +986,14 @@ void vector_multiply (matrix a, vector b, vector * c)
 {
   register int rows, cols;
   register int i, j;
-  register double *bb , *aa ;
+  register double *bb ;
   register double sum ;
+#ifdef DOTP
+  register double **aa , *cc ;
+#else
+  register double *aa ;
+#endif
+
 
   if (a.cols != b.dim){
     char str[444] ;
@@ -997,6 +1014,16 @@ void vector_multiply (matrix a, vector b, vector * c)
   }
 
   bb = b.elts ;
+
+#ifdef DOTP
+  aa = a.elts ; cc = c->elts ;
+  i = rows%2 ;
+  if( i == 1 ) DOTP(cols,aa[0],bb,cc) ;
+  for( ; i < rows ; i+=2 ){
+    DOTP(cols,aa[i]  ,bb,cc+i    ) ;
+    DOTP(cols,aa[i+1],bb,cc+(i+1)) ;
+  }
+#else
 
 #ifdef UNROLL_VECMUL
   if( cols%2 == 0 ){              /* even number of cols */
@@ -1022,6 +1049,8 @@ void vector_multiply (matrix a, vector b, vector * c)
     }
 #endif /* UNROLL_VECMUL */
 
+#endif /* DOTP */
+
     flops += 2.0l*rows*cols ;
 }
 
@@ -1035,9 +1064,13 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 {
   register int rows, cols;
   register int i, j;
-  register double qsum ;
-  register double *aa,*bb ;
-  register double sum ;
+  register double *bb ;
+#ifdef DOTP
+  double qsum,sum , **aa , *dd,*cc,*ee ;
+#else
+  register double qsum,sum, *aa ;
+#endif
+
 
   if (a.cols != b.dim || a.rows != c.dim )
     matrix_error ("Incompatible dimensions for vector multiplication-subtraction");
@@ -1057,6 +1090,20 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   }
 
   qsum = 0.0 ; bb = b.elts ;
+
+#ifdef DOTP
+  aa = a.elts ; dd = d->elts ; cc = c.elts ;
+  ee = (double *)malloc(sizeof(double)*rows) ;
+  i  = rows%2 ;
+  if( i == 1 ) DOTP(cols,aa[0],bb,ee) ;
+  for( ; i < rows ; i+=2 ){
+    DOTP(cols,aa[i]  ,bb,ee+i    ) ;
+    DOTP(cols,aa[i+1],bb,ee+(i+1)) ;
+  }
+  VSUB(rows,cc,ee,dd) ;
+  DOTP(rows,dd,dd,&qsum) ;
+  free((void *)ee) ;
+#else
 
 #ifdef UNROLL_VECMUL
   if( cols%2 == 0 ){                   /* even number */
@@ -1081,6 +1128,8 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
     d->elts[i] = sum ; qsum += sum*sum ;
   }
 #endif /* UNROLL_VECMUL */
+
+#endif /* DOTP */
 
   flops += 2.0l*rows*(cols+1) ;
 
