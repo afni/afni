@@ -601,6 +601,7 @@ SUMA_expose(Widget w,
   SUMA_SurfaceViewer *sv;
   SUMA_Boolean LocalHead = NOPE;
   
+   SUMA_LH("Called");
   /*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/ /* No need for that, done in display */
   
   
@@ -625,9 +626,12 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
    static char FuncName[]={"SUMA_mapStateChanged"};
    int isv;
    SUMA_SurfaceViewer *sv;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   
+   SUMA_LH("Called");
+   
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV(w, sv, isv);
    if (isv < 0) {

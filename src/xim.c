@@ -780,7 +780,9 @@ ENTRY("SNAP_grab_image") ;
      if( win == (Window)0 )                  RETURN(NULL) ;
 
      while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
-     XRaiseWindow( dc->display , XtWindow(wpar) ) ;    /* make it visible */
+     /*** Raise the window and SUMA will redisplay
+       entering an infernal loop. ZSS Mon Jun 30/03 */ 
+     /* XRaiseWindow( dc->display , XtWindow(wpar) ) ; */    /* make it visible */
      XFlush( dc->display ) ;
      XmUpdateDisplay( w ) ;
      if( !MCW_widget_visible(w) )            RETURN(NULL) ;
