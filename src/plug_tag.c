@@ -14,30 +14,32 @@
 
 /*-- prototypes --*/
 
-char * TAG_main( PLUGIN_interface * ) ;
+static char * TAG_main( PLUGIN_interface * ) ;
 
-void TAG_make_widgets(void) ;
+static void TAG_make_widgets(void) ;
 
-void TAG_dset_CB    ( Widget , XtPointer , XtPointer ) ;
-void TAG_quit_CB    ( Widget , XtPointer , XtPointer ) ;
-void TAG_help_CB    ( Widget , XtPointer , XtPointer ) ;
-void TAG_set_CB     ( Widget , XtPointer , XtPointer ) ;
-void TAG_clear_CB   ( Widget , XtPointer , XtPointer ) ;
-void TAG_done_CB    ( Widget , XtPointer , XtPointer ) ;
-void TAG_tog_CB     ( Widget , XtPointer , XtPointer ) ;
-void TAG_read_CB    ( Widget , XtPointer , XtPointer ) ;
-void TAG_write_CB   ( Widget , XtPointer , XtPointer ) ;
-void TAG_copy_CB    ( Widget , XtPointer , XtPointer ) ;
-void TAG_save_CB    ( Widget , XtPointer , XtPointer ) ;
-void TAG_clearall_CB( Widget , XtPointer , XtPointer ) ;
-void TAG_add_CB     ( Widget , XtPointer , XtPointer ) ;
-void TAG_delete_CB  ( Widget , XtPointer , XtPointer ) ;
-void TAG_relabel_CB ( Widget , XtPointer , XtPointer ) ;
-void TAG_beep_CB    ( Widget , XtPointer , XtPointer ) ;
+static void TAG_dset_CB    ( Widget , XtPointer , XtPointer ) ;
+static void TAG_quit_CB    ( Widget , XtPointer , XtPointer ) ;
+static void TAG_help_CB    ( Widget , XtPointer , XtPointer ) ;
+static void TAG_set_CB     ( Widget , XtPointer , XtPointer ) ;
+static void TAG_clear_CB   ( Widget , XtPointer , XtPointer ) ;
+static void TAG_done_CB    ( Widget , XtPointer , XtPointer ) ;
+static void TAG_tog_CB     ( Widget , XtPointer , XtPointer ) ;
+static void TAG_read_CB    ( Widget , XtPointer , XtPointer ) ;
+static void TAG_write_CB   ( Widget , XtPointer , XtPointer ) ;
+static void TAG_copy_CB    ( Widget , XtPointer , XtPointer ) ;
+static void TAG_save_CB    ( Widget , XtPointer , XtPointer ) ;
+static void TAG_clearall_CB( Widget , XtPointer , XtPointer ) ;
+static void TAG_add_CB     ( Widget , XtPointer , XtPointer ) ;
+static void TAG_delete_CB  ( Widget , XtPointer , XtPointer ) ;
+static void TAG_relabel_CB ( Widget , XtPointer , XtPointer ) ;
+static void TAG_beep_CB    ( Widget , XtPointer , XtPointer ) ;
 
-void TAG_value_CB ( MCW_arrowval * , XtPointer ) ;
-void TAG_columnize(void) ;
-void TAG_reset_widgets(void) ;
+static void TAG_value_CB ( MCW_arrowval * , XtPointer ) ;
+static void TAG_columnize(void) ;
+static void TAG_reset_widgets(void) ;
+
+static void TAG_onoff( int ) ;
 
 /*-- Widgets for the user interface --*/
 
@@ -66,8 +68,6 @@ static Widget * onoff_wid[] = {
    &read_pb , &write_pb , &copy_pb     , &save_pb , &done_pb   ,
    &set_pb  , &clear_pb , &clearall_pb ,
    NULL } ;
-
-void TAG_onoff( int ) ;
 
 #define DSET_ON  SENSITIZE(dset_pb,True)
 #define DSET_OFF do{ if( dset != NULL ) SENSITIZE(dset_pb,False) ; } while(0)
@@ -110,7 +110,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 /*--------------------------------------------------------------------------*/
 
-char * TAG_main( PLUGIN_interface * plint )
+static char * TAG_main( PLUGIN_interface * plint )
 {
    int ii ;
    XmString xstr ;
@@ -243,7 +243,7 @@ static MCW_action_item TAG_actor2[NACT2] = {
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_make_widgets(void)
+static void TAG_make_widgets(void)
 {
    XmString xstr ;
    char tlab[MAX_TAG_LABEL] ;
@@ -612,7 +612,7 @@ void TAG_make_widgets(void)
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_redraw(void)
+static void TAG_redraw(void)
 {
    if( dset == NULL ) return ;
 
@@ -626,7 +626,7 @@ void TAG_redraw(void)
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    if( editor_open ){
       if( dset != NULL && dset->tagset != NULL ){
@@ -642,7 +642,7 @@ void TAG_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_value_CB( MCW_arrowval * av , XtPointer cd )
+static void TAG_value_CB( MCW_arrowval * av , XtPointer cd )
 {
    value_int   = av->ival ;
    value_float = av->fval ;
@@ -653,7 +653,7 @@ void TAG_value_CB( MCW_arrowval * av , XtPointer cd )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_columnize(void)
+static void TAG_columnize(void)
 {
    int nc = (tognum < 21) ? 1 : 2 ;
    XtVaSetValues( workwin , XmNnumColumns , nc , NULL ) ;
@@ -671,7 +671,7 @@ void TAG_columnize(void)
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_add_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_add_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    if( !IM3D_OPEN(im3d) ){ BEEPIT ; TAG_quit_CB(NULL,NULL,NULL) ; return ; }
 
@@ -690,7 +690,7 @@ void TAG_add_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_delete_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_delete_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    if( !IM3D_OPEN(im3d) ){ BEEPIT ; TAG_quit_CB(NULL,NULL,NULL) ; return ; }
 
@@ -708,7 +708,7 @@ void TAG_delete_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_set_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_set_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    int ii = active_tog ;
 
@@ -735,7 +735,7 @@ void TAG_set_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_clear_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_clear_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    int ii=active_tog , oldset ;
 
@@ -758,7 +758,7 @@ void TAG_clear_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_clearall_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_clearall_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    int ii , oldset=0 ;
 
@@ -778,7 +778,7 @@ void TAG_clearall_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_relabel_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_relabel_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    char * str=get_PLUGIN_strval(label_strav) ;
    int ii=active_tog , ll,kk,nn ;
@@ -816,7 +816,7 @@ void TAG_relabel_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_tog_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_tog_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    int ii ;
 
@@ -842,7 +842,7 @@ void TAG_tog_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_write_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_write_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    char * str=get_PLUGIN_strval(file_strav) , * cpt ;
    int ii , jj , ltop ;
@@ -922,7 +922,7 @@ void TAG_write_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_reset_widgets(void)
+static void TAG_reset_widgets(void)
 {
    int ii ;
    XmString xstr ;
@@ -956,7 +956,7 @@ void TAG_reset_widgets(void)
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_read_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_read_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    char * str=get_PLUGIN_strval(file_strav) , * cpt , buf[256] , quote ;
    int ii , jj , ntog , lbuf , kk ;
@@ -1073,7 +1073,7 @@ void TAG_read_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_get_dset_CB( int num, THD_3dim_dataset ** dslist, void * cd )
+static void TAG_get_dset_CB( int num, THD_3dim_dataset ** dslist, void * cd )
 {
    char str[256] , * tnam ;
    XmString xstr ;
@@ -1123,12 +1123,12 @@ void TAG_get_dset_CB( int num, THD_3dim_dataset ** dslist, void * cd )
 
 /*--------------------------------------------------------------------------*/
 
-int TAG_check_dataset( THD_3dim_dataset * qset, void * cd )
+static int TAG_check_dataset( THD_3dim_dataset * qset, void * cd )
 {
    return ISANAT(qset) ;
 }
 
-int TAG_check_copyset( THD_3dim_dataset * qset, void * cd )
+static int TAG_check_copyset( THD_3dim_dataset * qset, void * cd )
 {
    return ( ISANAT(qset)         && !EQUIV_DSETS(qset,dset) &&
             qset->tagset != NULL && qset->tagset->num > 0      ) ;
@@ -1136,7 +1136,7 @@ int TAG_check_copyset( THD_3dim_dataset * qset, void * cd )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_dset_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_dset_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    /*-- sanity checks --*/
 
@@ -1152,7 +1152,7 @@ void TAG_dset_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    if( !IM3D_OPEN(im3d) ){ BEEPIT ; TAG_quit_CB(NULL,NULL,NULL) ; return ; }
 
@@ -1173,7 +1173,7 @@ void TAG_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_onoff( int on )
+static void TAG_onoff( int on )
 {
    Boolean sen ;
    int ii ;
@@ -1188,7 +1188,7 @@ void TAG_onoff( int on )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    TAG_save_CB(NULL,NULL,NULL) ; dset = NULL ;
    TAG_quit_CB(NULL,NULL,NULL) ;
@@ -1197,7 +1197,7 @@ void TAG_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_get_copy_CB( int num, THD_3dim_dataset ** dslist, void * cd )
+static void TAG_get_copy_CB( int num, THD_3dim_dataset ** dslist, void * cd )
 {
    char str[256] , * tnam ;
    THD_3dim_dataset * qset ;
@@ -1223,7 +1223,7 @@ void TAG_get_copy_CB( int num, THD_3dim_dataset ** dslist, void * cd )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_copy_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_copy_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    /*-- sanity checks --*/
 
@@ -1239,7 +1239,7 @@ void TAG_copy_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*--------------------------------------------------------------------------*/
 
-void TAG_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    (void ) new_MCW_textwin( help_pb ,
 
@@ -1363,7 +1363,7 @@ void TAG_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 #define NMSG 6
 
-void TAG_beep_CB( Widget w, XtPointer client_data, XtPointer call_data )
+static void TAG_beep_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    static int nbeep = 0 ;
    static char * msg[] = { "What did you expect,\na choir of angels?"                ,
