@@ -2923,7 +2923,13 @@ ENTRY("AFNI_do_many_writes") ;
 
          new_daxes.type = DATAXES_TYPE ;
 
-         THD_edit_dataxes( im3d->vinfo->resam_vox , dset->daxes , &new_daxes ) ;
+#ifdef USE_WRITEOWNSIZE
+         if( im3d->vinfo->writeownsize )
+            THD_edit_dataxes( im3d->vinfo->resam_vox , dset->daxes , &new_daxes ) ;
+         else
+#endif
+            THD_edit_dataxes( im3d->vinfo->resam_vox ,
+                              CURRENT_DAXES(im3d->anat_now) , &new_daxes ) ;
 
          resam_mode = (ISFUNC(dset)) ? im3d->vinfo->func_resam_mode
                                      : im3d->vinfo->anat_resam_mode ;
@@ -2991,7 +2997,7 @@ void AFNI_write_dataset_CB( Widget w, XtPointer cd, XtPointer cb )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
    THD_3dim_dataset * dset = NULL ;
-   THD_dataxes      * daxes = NULL ;
+   THD_dataxes        new_daxes ;
    Widget wmsg ;
    int resam_mode ;
    Boolean good , destroy ;
@@ -3062,9 +3068,16 @@ ENTRY("AFNI_write_dataset_CB") ;
 
    LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
-   daxes = CURRENT_DAXES(im3d->anat_now) ;
+   new_daxes.type = DATAXES_TYPE ;
 
-   good = AFNI_refashion_dataset( im3d , dset , daxes , resam_mode ) ;
+#ifdef USE_WRITEOWNSIZE
+   if( im3d->vinfo->writeownsize )
+      THD_edit_dataxes( im3d->vinfo->resam_vox , dset->daxes , &new_daxes ) ;
+   else
+#endif
+      new_daxes = *CURRENT_DAXES(im3d->anat_now) ;
+
+   good = AFNI_refashion_dataset( im3d , dset , &new_daxes , resam_mode ) ;
 
 if(PRINT_TRACING){
 if( good ){
@@ -3975,13 +3988,26 @@ ENTRY("AFNI_misc_CB") ;
    if( ! IM3D_OPEN(im3d) || w == NULL ) EXRETURN ;
 
    if( w == im3d->vwid->dmode->misc_voxind_pb ){
+#ifdef TOGGLES_ATLAST
+      im3d->vinfo->show_voxind = MCW_val_bbox(im3d->vwid->dmode->misc_voxind_bbox) ;
+#else
       im3d->vinfo->show_voxind = ! im3d->vinfo->show_voxind ;
+#endif
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
    }
 
 #ifndef DONT_USE_HINTS
    else if( w == im3d->vwid->dmode->misc_hints_pb ){
+#ifdef TOGGLES_ATLAST
+      int val = MCW_val_bbox(im3d->vwid->dmode->misc_hints_bbox) ;
+      if( val != GLOBAL_library.hints_on ){
+         MCW_hint_toggle() ;
+         GLOBAL_library.hints_on = val ;
+      }
+#else
       MCW_hint_toggle() ;
+      GLOBAL_library.hints_on = ! GLOBAL_library.hints_on ;
+#endif
    }
 #endif
 
@@ -4046,6 +4072,7 @@ STATUS("got func info") ;
 #ifdef USE_TRACING
    else if( w == im3d->vwid->dmode->misc_tracing_pb ){
       DBG_trace = (DBG_trace + 1) % 3 ;  /* Aug 23 1998: cycle between 0,1,2 */
+      MCW_set_widget_label( im3d->vwid->dmode->misc_tracing_pb , DBG_label ) ; /* 01 Aug 1999 */
    }
 #endif
 
@@ -4056,6 +4083,12 @@ STATUS("got func info") ;
 
    else if( MCW_MALLOC_enabled && w == im3d->vwid->dmode->misc_dumpmalloc_pb ){
       mcw_malloc_dump() ;
+   }
+#endif
+
+#ifdef USE_WRITEOWNSIZE
+   else if( w == im3d->vwid->dmode->misc_writeownsize_pb ){
+      im3d->vinfo->writeownsize = MCW_val_bbox( im3d->vwid->dmode->misc_writeownsize_bbox ) ;
    }
 #endif
 

@@ -4389,10 +4389,30 @@ ENTRY("AFNI_misc_button") ;
 
    MCW_register_help( cbut , "Pressing this drops down the menu\n"
                              "of miscellaneous options:\n"
-                             " Voxel Coords? = Show crosshair voxel\n"
-                             "   location in mm or voxel indexes.\n"
-                             " Show Hints?   = Turn popup hints\n"
-                             "    off or on."
+#ifdef USE_WRITEOWNSIZE
+                             " Write=Own size?   = Write dataset using current\n"
+                             "                     anat dimensions, or using\n"
+                             "                     size of dataset in its own\n"
+                             "                     .HEAD file.\n"
+#endif
+                             " Voxel Coords?     = Show crosshair location\n"
+                             "                     in mm or voxel indexes\n"
+#ifndef DONT_USE_HINTS
+                             " Show Hints?       = Turn popup hints\n"
+                             "                     off or on\n"
+#endif
+                             " Anat Info         = Show 3dinfo output\n"
+                             " Func Info         = for current datasets\n"
+                             " New Stuff         = List new features\n"
+                             " Purge Memory      = Of dataset BRIKs\n"
+#ifdef USE_TRACING
+                             " Debug=MODE        = Set debug mode to\n"
+                             "                     next legal setting\n"
+#endif
+#ifdef USING_MCW_MALLOC
+                             " Malloc Summary    = Show memory usage\n"
+                             " Dump Malloc Table = Memory usage to a file"
+#endif
                            ) ;
    MCW_register_hint( cbut , "Miscellaneous options" ) ;
 
@@ -4412,8 +4432,34 @@ ENTRY("AFNI_misc_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
+#ifdef USE_WRITEOWNSIZE
+   /*-- 01 Aug 1999: Toggle for Write dimensions --*/
+
+   { char * blab[1] = { "Write=Own Size?" } ;
+     dmode->misc_writeownsize_bbox = new_MCW_bbox( menu ,
+                                                   1 , blab ,
+                                                   MCW_BB_check , MCW_BB_noframe ,
+                                                   AFNI_misc_CB , (XtPointer)im3d ) ;
+     dmode->misc_writeownsize_pb = dmode->misc_writeownsize_bbox->wbut[0] ;
+   }
+   MCW_register_hint( dmode->misc_writeownsize_pb , "Controls dimensions using Write" ) ;
+#else
+   dmode->misc_writeownsize_pb = NULL ;
+#endif
+
    /*-- pushbutton for voxel index toggle --*/
 
+#ifdef TOGGLES_ATLAST
+   /* 01 Aug 1999: replace pushbutton with toggle button */
+
+   { char * blab[1] = { "Voxel Coords?" } ;
+     dmode->misc_voxind_bbox = new_MCW_bbox( menu ,
+                                             1 , blab ,
+                                             MCW_BB_check , MCW_BB_noframe ,
+                                             AFNI_misc_CB , (XtPointer)im3d ) ;
+     dmode->misc_voxind_pb = dmode->misc_voxind_bbox->wbut[0] ;
+   }
+#else
    dmode->misc_voxind_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , menu ,
@@ -4425,7 +4471,7 @@ ENTRY("AFNI_misc_button") ;
 
    XtAddCallback( dmode->misc_voxind_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
-
+#endif
    MCW_register_hint( dmode->misc_voxind_pb , "Toggle coordinate display" ) ;
 
     /*-- pushbutton to turn hints on and off --*/
@@ -4446,6 +4492,15 @@ ENTRY("AFNI_misc_button") ;
                   NULL ) ;
 
          } else {
+#ifdef TOGGLES_ATLAST
+            { char * blab[1] = { "Show Hints?" } ;
+              dmode->misc_hints_bbox = new_MCW_bbox( menu ,
+                                                     1 , blab ,
+                                                     MCW_BB_check , MCW_BB_noframe ,
+                                                     AFNI_misc_CB , (XtPointer)im3d ) ;
+              dmode->misc_hints_pb = dmode->misc_hints_bbox->wbut[0] ;
+            }
+#else
             dmode->misc_hints_pb =
                XtVaCreateManagedWidget(
                   "dialog" , xmPushButtonWidgetClass , menu ,
@@ -4457,7 +4512,7 @@ ENTRY("AFNI_misc_button") ;
 
             XtAddCallback( dmode->misc_hints_pb , XmNactivateCallback ,
                            AFNI_misc_CB , im3d ) ;
-
+#endif
             MCW_register_hint( dmode->misc_hints_pb , "Toggle hints display" ) ;
          }
    }
@@ -4537,7 +4592,7 @@ ENTRY("AFNI_misc_button") ;
    dmode->misc_tracing_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("Debug Trace++") ,
+               LABEL_ARG( DBG_label ) ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , False ,
                XmNinitialResourcesPersistent , False ,

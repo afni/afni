@@ -990,13 +990,23 @@ int main( int argc , char * argv[] )
    }
 
    { char * hh = getenv("AFNI_HINTS") ;
+     GLOBAL_library.hints_on = 1 ;
      if( hh != NULL && ( strncmp(hh,"NO" ,2)==0 ||
                          strncmp(hh,"no" ,2)==0 ||
                          strncmp(hh,"No" ,2)==0 ||
                          strncmp(hh,"OFF",3)==0 ||
                          strncmp(hh,"off",3)==0 ||
-                         strncmp(hh,"Off",3)==0   ) )
+                         strncmp(hh,"Off",3)==0   ) ){
+
         MCW_hint_toggle() ;
+        GLOBAL_library.hints_on = 0 ;
+      }
+
+#ifdef TOGGLES_ATLAST
+      if( im3d->vwid->dmode->misc_hints_pb != NULL )
+         MCW_set_bbox( im3d->vwid->dmode->misc_hints_bbox ,
+                       GLOBAL_library.hints_on ) ;
+#endif
    }
 
    /* Feb 1998: setup write compression from environment */

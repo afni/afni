@@ -123,7 +123,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "31 July 1999     "
+#define RELEASE "02 August 1999   "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -245,7 +245,12 @@ typedef struct {
       int              num_receiver ;
       int              drawing_enabled , drawing_mode ;
       Pixel            drawing_pixel ;
+
+      int writeownsize ; /* 01 Aug 1999 */
+
 } AFNI_view_info ;
+
+#undef USE_WRITEOWNSIZE  /* 01 Aug 1999 */
 
 #define SAVE_VPT(iqq)                           \
    ( (iqq)->vinfo->i1_old = (iqq)->vinfo->i1 ,  \
@@ -490,6 +495,8 @@ typedef struct {
 #  define FIX_SCALE_VALUE(iqqq) /* nada */
 #endif
 
+#define TOGGLES_ATLAST
+
 typedef struct {
       Widget frame , rowcol ;
 
@@ -512,6 +519,13 @@ typedef struct {
                      misc_showmalloc_pb , misc_dumpmalloc_pb ;
 
       MCW_bbox     * time_lock_bbox ;  /* 03 Nov 1998 */
+
+      Widget         misc_writeownsize_pb ;   /* 01 Aug 1999 */
+      MCW_bbox     * misc_writeownsize_bbox ;
+
+#ifdef TOGGLES_ATLAST
+      MCW_bbox     * misc_voxind_bbox , * misc_hints_bbox ; /* 01 Aug 1999 */
+#endif
 } AFNI_datamode_widgets ;
 
 /*---*/
@@ -825,6 +839,8 @@ typedef struct {
    PBAR_palette_table * gpt ;
 
    int time_lock ;                                /* 03 Nov 1998 */
+
+   int hints_on ;                                 /* 01 Aug 1999 */
 
    float fim_bkthr_perc ;                         /* 02 Jun 1999 */
 

@@ -20,6 +20,8 @@
 
 #define DEBUG_MAX_DEPTH 256  /* way too big, but who cares? */
 
+#define DBG_label DBG_labels[DBG_trace]
+
 /*---------------------------------------------------------------*/
 
 #ifdef DONT_USE_MCW_MALLOC
@@ -42,6 +44,8 @@
    char * DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
    int DBG_num   = 1 ;
    int DBG_trace = 0 ;   /* turn off at start */
+
+   char * DBG_labels[3] = { "Debug=OFF " , "Debug=LOW " , "Debug=HIGH" } ;
 
 #include <signal.h>
 void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
@@ -74,6 +78,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    extern char * DBG_rout[DEBUG_MAX_DEPTH] ;
    extern int DBG_num ;
    extern int DBG_trace ;
+   extern char * DBG_labels[3] ;
 #endif /* MAIN */
 /*---------------------------------------------------------------*/
 
