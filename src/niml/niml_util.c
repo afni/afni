@@ -439,13 +439,9 @@ int NI_is_name( char *str )
 
    if( str == NULL || str[0] == '\0' || !isalpha(str[0]) ) return 0 ;
 
-   ll = NI_strlen(str) ;
-
-   for( ii=0 ; ii < ll ; ii++ ){
-      if( isalnum(str[ii]) || str[ii] == '_' ||
-          str[ii] == '.'   || str[ii] == '-' ||
-          str[ii] == ':'                         ) continue ;
-      return 0 ; /* failure */
+   for( ii=1 ; str[ii] != '\0' ; ii++ ){
+     if( IS_NAME_CHAR(str[ii] ) continue ;   /* this one is OK */
+     return 0 ;                    /* this is bad ==>  failure */
    }
 
    return 1 ;    /* success */
