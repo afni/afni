@@ -4010,3 +4010,7 @@
 17 Oct 2002
  * Modified plug_drawdset.c sphere/circle insertion not to test for duplicate
      insertions from the 1st input point - this speeds things up for large R.
+
+25 Oct 2002
+ * Modified plug_drawdset.c to use sorting to prevent vast numbers of duplicates
+     when inserting large R circles/spheres.
