@@ -784,6 +784,54 @@ unsigned int get_filesize( char *pathname )
 #endif /* USE_STAT */
 
 /*--------------------------------------------------------------------------*/
+/* Determine if this is a NIFTI-formatted file.
+    - returns 0 if file looks like ANALYZE 7.5 [checks sizeof_hdr field]
+    - returns 1 if file marked as NIFTI (header+data in 1 file)
+    - returns 2 if file marked as NIFTI (header+data in 2 files)
+    - returns -1 if it can't tell, file doesn't exist, etc.
+----------------------------------------------------------------------------*/
+
+int is_nifti_file( char *hname )
+{
+   struct nifti_1_header nhdr ;
+   FILE *fp ;
+   int ii ;
+
+   /* bad input name? */
+
+   if( hname == NULL || *hname == '\0' ) return -1 ;
+
+   /* open file */
+
+   fp = fopen( hname , "rb" ) ;
+   if( fp == NULL )                      return -1 ;  /* bad open? */
+
+   /* read header, close file */
+
+   ii = fread( &nhdr , 1 , sizeof(nhdr) , fp ) ;
+   fclose( fp ) ;
+   if( ii < sizeof(nhdr) )               return -1 ;  /* bad read? */
+
+   /* check for NIFTI-ness */
+
+   if( NIFTI_VERSION(nhdr) != 0 ){
+     return ( NIFTI_ONEFILE(nhdr) ) ? 1 : 2 ;
+   }
+
+   /* check for ANALYZE-ness (sizeof_hdr field == 348) */
+
+   ii = nhdr.sizeof_hdr ;
+   if( ii == sizeof(nhdr) ) return 0 ;  /* matches */
+
+   /* try byte-swapping header */
+
+   swap_4(ii) ;
+   if( ii == sizeof(nhdr) ) return 0 ;  /* matches */
+
+   return -1 ;                          /* not good */
+}
+
+/*--------------------------------------------------------------------------*/
 /* Read in a NIFTI-1 or ANALYZE-7.5 file (pair) into a nifti_image struct.
     - Input is .hdr or .nii filename.
     - Return value is NULL if something fails badly.
