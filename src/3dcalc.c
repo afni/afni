@@ -42,13 +42,17 @@ static int                ntime_max = 0 ;
 static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
 static int                CALC_gscale = 0 ;  /* 01 Apr 1999 */
 
-static int                CALC_has_sym[26] ; /* 15 Sep 1999 */
+static int   CALC_has_sym[26] ;                      /* 15 Sep 1999 */
+static char  abet[] = "abcdefghijklmnopqrstuvwxyz" ;
+
 #define HAS_I  CALC_has_sym[ 8]
 #define HAS_J  CALC_has_sym[ 9]
 #define HAS_K  CALC_has_sym[10]
 #define HAS_X  CALC_has_sym[23]
 #define HAS_Y  CALC_has_sym[24]
 #define HAS_Z  CALC_has_sym[25]
+
+#define PREDEFINED_MASK ( (1<<8)|(1<<9)|(1<<10)|(1<<23)|(1<<24)|(1<<25) )
 
 static THD_3dim_dataset *  CALC_dset[26] ;
 static int                 CALC_type[26] ;
@@ -191,7 +195,7 @@ void CALC_read_opts( int argc , char * argv[] )
          if( CALC_code == NULL ){
             fprintf(stderr,"illegal expression!\n") ; exit(1) ;
          }
-         PARSER_mark_symbols( CALC_code , CALC_has_sym ) ;
+         PARSER_mark_symbols( CALC_code , CALC_has_sym ) ; /* 15 Sep 1999 */
          continue ;
       }
 
@@ -369,6 +373,22 @@ DSET_DONE: continue;
               "*** Calculating 3D+time[%d]"
               " dataset from 3D datasets and time series\n" ,
               ntime_max ) ;
+   }
+
+   /* 15 Apr 1999: check if each input dataset is used,
+                   or if an undefined symbol is used.   */
+
+   for (ids=0; ids < 26; ids ++){
+      if( CALC_dset[ids] != NULL && !CALC_has_sym[ids] )
+         fprintf(stderr ,
+                 "--- Warning: dataset %c not used in the expression\n" ,
+                 abet[ids] ) ;
+
+      else if( CALC_dset[ids] == NULL &&
+               CALC_has_sym[ids]      && ((1<<ids) & PREDEFINED_MASK) == 0 )
+         fprintf(stderr ,
+                 "--- Warning: expression symbol %c is used but not defined\n" ,
+                 abet[ids] ) ;
    }
 
    return ;
