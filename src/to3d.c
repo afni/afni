@@ -3948,9 +3948,7 @@ printf("T3D_read_images: first file (%s) has nx=%d ny=%d #im=%d\n",
 
 #ifndef AFNI_DEBUG
    printf("Reading images: ");fflush(stdout);
-
-   kzmod = (nz < 30) ? 1
-                     : (int)(0.035*nz) ;
+   kzmod = (int)(0.0234567*nz)+1 ;                /* 06 Nov 2002 */
 #endif
 
    kz = 0 ; if( time_dep ){ ltt = kzz = 0 ; }
