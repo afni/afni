@@ -50,22 +50,24 @@ MRI_IMARR * mri_read_mpeg( char *fname )
    MRI_IMAGE *im ;
    MRI_IMARR *imar ;
 
+ENTRY("mri_read_mpeg") ;
+
    /*--- check input for OK-ness ---*/
 
-   if( fname == NULL || *fname == '\0' ) return NULL ;
+   if( fname == NULL || *fname == '\0' ) RETURN( NULL );
    ii = mri_filesize(fname) ;
-   if( ii <= 0 ) return NULL ;
+   if( ii <= 0 ) RETURN( NULL );
 
    mpeg_setup() ;
 
-   if( mpeg_filter == NULL ) return NULL ;  /* can't filter? */
+   if( mpeg_filter == NULL ) RETURN( NULL );  /* can't filter? */
 
    /*--- create the filter for this file and run it to create .ppm files ---*/
 
    pg = AFMALL(char, strlen(fname)+strlen(mpeg_filter)+32) ;  /* string to hold filter */
    sprintf( pg , mpeg_filter , fname ) ;
    THD_mkdir( tmpdir ) ;                    /* create the temp directory */
-   if( !THD_is_directory(tmpdir) ){ free(pg); return NULL; }  /* can't?  */
+   if( !THD_is_directory(tmpdir) ){ free(pg); RETURN(NULL); }  /* can't?  */
 
    if( ii > TSIZ ) fprintf(stderr,"++ Decoding file %s",fname) ;
    system( pg ) ;    /* run the command */
@@ -100,7 +102,7 @@ MRI_IMARR * mri_read_mpeg( char *fname )
      FREE_IMARR(imar) ; imar = qmar ;
    }
 
-   return imar ;
+   RETURN( imar );
 }
 
 /*----------------------------------------------------------*/
@@ -113,15 +115,17 @@ int mri_imcount_mpeg( char *fname )
    int ii , nf=0 ;
    FILE *fp ;
 
+ENTRY("mri_imcount_mpeg") ;
+
    /*--- check input for OK-ness ---*/
 
-   if( fname == NULL || *fname == '\0' ) return 0 ;
+   if( fname == NULL || *fname == '\0' ) RETURN( 0 );
    ii = mri_filesize(fname) ;
-   if( ii <= 0 ) return 0 ;
+   if( ii <= 0 ) RETURN( 0 );
 
    mpeg_setup() ;
 
-   if( mpeg_filter == NULL ) return 0 ;  /* can't filter? */
+   if( mpeg_filter == NULL ) RETURN( 0 );  /* can't filter? */
 
    /*--- create the filter for this file and run it to create .ppm files ---*/
 
@@ -131,7 +135,7 @@ int mri_imcount_mpeg( char *fname )
    sprintf( pg , mpeg_filter , fn ) ;
    free(fn) ;
    THD_mkdir( tmpdir ) ;                 /* create the temp directory */
-   if( !THD_is_directory(tmpdir) ){ free(pg); return 0; }  /* can't?  */
+   if( !THD_is_directory(tmpdir) ){ free(pg); RETURN(0); }  /* can't?  */
 
    system( pg ) ;    /* run the command */
 
@@ -141,5 +145,5 @@ int mri_imcount_mpeg( char *fname )
    fp = fopen(pg,"rb") ;
    if( fp != NULL ){ fscanf(fp,"%d",&nf); fclose(fp); remove(pg); }
    remove( tmpdir ) ; free(pg) ;
-   return nf ;
+   RETURN( nf );
 }

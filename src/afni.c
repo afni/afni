@@ -1858,13 +1858,29 @@ STATUS("get status") ;
 
 #define RX 0.2
    if( type == isqCR_getmemplot ){
-     Three_D_View * im3d = (Three_D_View *) br->parent ;
-     int do_surf=(SUMA_ENABLED                   && DSET_HAS_SUMA(br->dset)            );
+     Three_D_View *im3d = (Three_D_View *) br->parent ;
+     int do_surf= SUMA_ENABLED ;
      int do_xhar=(im3d->vinfo->crosshair_visible && AFNI_yesenv("AFNI_CROSSHAIR_LINES"));
-     MEM_plotdata * mp ;
+     MEM_plotdata *mp ;
      AFNI_surface_widgets *swid = im3d->vwid->view->swid ;  /* 19 Aug 2002 */
+     THD_3dim_dataset *suset=br->dset ;                     /* 08 Jan 2004 */
+     THD_dataxes *daxes=CURRENT_DAXES(br->dset) ;
 
      if( !IM3D_OPEN(im3d) )     RETURN(NULL) ;
+     if( !do_surf && !do_xhar ) RETURN(NULL) ;  /* nothing to do */
+
+     /* 08 Jan 2004: check all datasets in this session for surfaces,
+                     if current dataset doesn't have any of them that is */
+
+     do_surf = DSET_HAS_SUMA(suset) ;
+     if( !do_surf ){
+       int vv = im3d->vinfo->view_type , dd ;
+       for( dd=0 ; dd < im3d->ss_now->num_dsset ; dd++ ){
+         suset = im3d->ss_now->dsset[dd][vv] ;
+         if( DSET_HAS_SUMA(suset) ) break ;
+       }
+       do_surf = (dd < im3d->ss_now->num_dsset) ;
+     }
      if( !do_surf && !do_xhar ) RETURN(NULL) ;  /* nothing to do */
 
      /* get ready to plot */
@@ -1881,8 +1897,8 @@ STATUS("creating memplot for image overlay") ;
 
      AFNI_get_xhair_node( im3d , &kbest , &ibest ) ;   /* 24 Feb 2003 */
 
-     for( ks=0 ; ks < br->dset->su_num ; ks++ ){  /* 14 Aug 2002: loop over surfaces */
-      SUMA_surface *ag = br->dset->su_surf[ks] ;
+     for( ks=0 ; ks < suset->su_num ; ks++ ){  /* 14 Aug 2002: loop over surfaces */
+      SUMA_surface *ag = suset->su_surf[ks] ;
       int nn , ii,jj ;
       SUMA_ixyz *nod ;
       THD_ivec3 iv,ivp,ivm ;
@@ -1942,8 +1958,6 @@ STATUS("defining surface drawing parameters") ;
       } else {                                   /* the old way    */
                                                  /* to set colors:  */
         eee = getenv("AFNI_SUMA_BOXCOLOR") ;     /* from environment */
-        if( eee == NULL )
-          eee = getenv("AGNI_OVERLAY_COLOR") ;  /* the old way */
         if( eee != NULL ){
           if( strcmp(eee,"none") == 0 || strcmp(eee,"skip") == 0 )
             skip_boxes = 1 ;                  /* don't do boxes */
@@ -1952,8 +1966,6 @@ STATUS("defining surface drawing parameters") ;
         }
 
         eee = getenv("AFNI_SUMA_LINECOLOR") ;
-        if( eee == NULL )
-          eee = getenv("AGNI_OVERLAY_COLOR") ;  /* the old way */
         if( eee != NULL ){
           if( (strcmp(eee,"none")==0 || strcmp(eee,"skip")==0) )
             skip_lines = 1 ;
@@ -1963,8 +1975,10 @@ STATUS("defining surface drawing parameters") ;
 
         eee = getenv("AFNI_SUMA_BOXSIZE") ;  /* maybe set boxsize? */
         if( eee != NULL ){
-           float val=strtod(eee,NULL) ;
-           if( val > 0.0 ) boxsize = val ;
+          float val=strtod(eee,NULL) ;
+          if( val > 0.0 ) boxsize = val ;
+        } else if( swid != NULL ){
+          boxsize = swid->boxsize_av->ival * 0.1 ;
         }
 
         eee = getenv( "AFNI_SUMA_LINESIZE" ) ; /* maybe set linewidth? */
@@ -1972,6 +1986,8 @@ STATUS("defining surface drawing parameters") ;
           float val = strtod(eee,NULL) ;
           if( val < 0.0 || val > 0.1 ) val = 0.0 ;
           linewidth = val ;
+        } else if( swid != NULL ){
+          linewidth = swid->linewidth_av->ival * 0.002 ;
         }
       }
 
@@ -2049,7 +2065,7 @@ STATUS(" - x plane") ;
             }
           }
          }
-         kkk = 0 ; xyz = xm ; xyzp = xt ; xyzm = xb ;  /* for the triangles/lines below */
+         kkk = 0; xyz = xm; xyzp = xt; xyzm = xb;  /* for the triangles/lines below */
       }
       else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){          /* search y */
          float yb=fvm.xyz[1] , yt=fvp.xyz[1] , ym,yw ;
@@ -2079,7 +2095,7 @@ STATUS(" - y plane") ;
             }
           }
          }
-         kkk = 1 ; xyz = ym ; xyzp = yt ; xyzm = yb ;  /* for the triangles/lines below */
+         kkk = 1; xyz = ym; xyzp = yt; xyzm = yb;  /* for the triangles/lines below */
       }
       else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){          /* search z */
          float zb=fvm.xyz[2] , zt=fvp.xyz[2] , zm,zw ;
@@ -2109,7 +2125,7 @@ STATUS(" - z plane") ;
             }
           }
          }
-         kkk = 2 ; xyz = zm ; xyzp = zt ; xyzm = zb ;  /* for the triangles/lines below */
+         kkk = 2; xyz = zm; xyzp = zt; xyzm = zb;  /* for the triangles/lines below */
       }
 
       /* 10 Mar 2002:
@@ -2201,9 +2217,22 @@ STATUS("drawing triangle lines") ;
             /* transform interpolated points to FD_brick coords */
 
             fvp = THD_dicomm_to_3dmm( br->dset , fvp ) ;
+            if( fvp.xyz[0] < daxes->xxmin ||
+                fvp.xyz[0] > daxes->xxmax ||
+                fvp.xyz[1] < daxes->yymin ||
+                fvp.xyz[1] > daxes->yymax ||
+                fvp.xyz[2] < daxes->zzmin ||
+                fvp.xyz[2] > daxes->zzmax   ) continue ;  /* 08 Jan 2004 */
             fvp = THD_3dmm_to_3dfind( br->dset , fvp ) ;
             fvp = THD_3dfind_to_fdfind( br , fvp ) ;
+
             fvm = THD_dicomm_to_3dmm( br->dset , fvm ) ;
+            if( fvm.xyz[0] < daxes->xxmin ||
+                fvm.xyz[0] > daxes->xxmax ||
+                fvm.xyz[1] < daxes->yymin ||
+                fvm.xyz[1] > daxes->yymax ||
+                fvm.xyz[2] < daxes->zzmin ||
+                fvm.xyz[2] > daxes->zzmax   ) continue ;  /* 08 Jan 2004 */
             fvm = THD_3dmm_to_3dfind( br->dset , fvm ) ;
             fvm = THD_3dfind_to_fdfind( br , fvm ) ;
 

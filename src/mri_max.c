@@ -18,8 +18,6 @@ double mri_max( MRI_IMAGE *im )
    float  float_max  = -1.e+38 ;      /* changed from -9999999.0 */
    double double_max = -1.e+38 ;      /* ditto */
 
-WHOAMI ; IMHEADER(im) ;
-
    npix = im->nvox ;
 
    switch( im->kind ){
@@ -79,8 +77,6 @@ double mri_maxabs( MRI_IMAGE * im )
    int    int_max    = 0 ;
    double double_max = 0.0 ;
 
-WHOAMI ; IMHEADER(im) ;
-
    npix = im->nvox ;
 
    switch( im->kind ){
@@ -132,8 +128,6 @@ double mri_min( MRI_IMAGE *im )
    int    int_min    = 2147483647 ;
    float  float_min  = 1.e+38 ;
    double double_min = 1.e+38 ;
-
-WHOAMI ; IMHEADER(im) ;
 
    npix = im->nvox ;
 

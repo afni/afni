@@ -8,17 +8,19 @@ int mri_equal( MRI_IMAGE *aim , MRI_IMAGE *bim )
    char *aar , *bar ;
    int nn ;
 
-   if( aim == bim )                                return 1 ;
-   if( aim == NULL || bim == NULL )                return 0 ;
+ENTRY("mri_equal") ;
 
-   if( aim->nvox != bim->nvox )                    return 0 ;
-   if( aim->kind != bim->kind )                    return 0 ;
+   if( aim == bim )                                RETURN( 1 );
+   if( aim == NULL || bim == NULL )                RETURN( 0 );
 
-   aar = mri_data_pointer(aim) ; if( aar == NULL ) return 0 ;
-   bar = mri_data_pointer(bim) ; if( bar == NULL ) return 0 ;
+   if( aim->nvox != bim->nvox )                    RETURN( 0 );
+   if( aim->kind != bim->kind )                    RETURN( 0 );
+
+   aar = mri_data_pointer(aim) ; if( aar == NULL ) RETURN( 0 );
+   bar = mri_data_pointer(bim) ; if( bar == NULL ) RETURN( 0 );
 
    nn = memcmp( aar , bar , aim->nvox * aim->pixel_size ) ;
    if( nn != 0 ) nn = 0 ;
    else          nn = 1 ;
-                                                   return nn;
+                                                   RETURN( nn);
 }

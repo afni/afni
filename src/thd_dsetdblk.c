@@ -261,12 +261,12 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    }
 
 #ifdef EXTEND_BBOX
-   daxes->xxmin -= 0.5 * daxes->xxdel ;  /* pushes edges back by 1/2  */
-   daxes->xxmax += 0.5 * daxes->xxdel ;  /* voxel dimensions (the box */
-   daxes->yymin -= 0.5 * daxes->yydel ;  /* defined above is based on */
-   daxes->yymax += 0.5 * daxes->yydel ;  /* voxel centers, not edges) */
-   daxes->zzmin -= 0.5 * daxes->zzdel ;
-   daxes->zzmax += 0.5 * daxes->zzdel ;
+   daxes->xxmin -= 0.5 * fabs(daxes->xxdel) ;  /* pushes edges back by 1/2  */
+   daxes->xxmax += 0.5 * fabs(daxes->xxdel) ;  /* voxel dimensions (the box */
+   daxes->yymin -= 0.5 * fabs(daxes->yydel) ;  /* defined above is based on */
+   daxes->yymax += 0.5 * fabs(daxes->yydel) ;  /* voxel centers, not edges) */
+   daxes->zzmin -= 0.5 * fabs(daxes->zzdel) ;
+   daxes->zzmax += 0.5 * fabs(daxes->zzdel) ;
 #endif
 
    /*----------------------------------------------------------------*/

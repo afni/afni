@@ -21,15 +21,13 @@ MRI_IMAGE * mri_edit_image( float pthr , float power , MRI_IMAGE * imin )
    MRI_IMAGE * imqq ;
    float * flin ;
 
-#ifdef DEBUG
-printf("Entry: mri_edit_image\n") ;
-#endif
+ENTRY("mri_edit_image") ;
 
    imqq = mri_to_float( imin ) ;
    flin = mri_data_pointer( imqq ) ;
    npix = imqq->nvox ;
 
-   if( (power==0.0 || power==1.0) && (pthr==0.0) ) return imqq ;
+   if( (power==0.0 || power==1.0) && (pthr==0.0) ) RETURN(imqq) ;
 
    if( pthr > 0.0 && pthr < 1.0 ){
       register float sum , fa , scl,fmax ;
@@ -64,5 +62,5 @@ printf("Entry: mri_edit_image\n") ;
    }
 
    MRI_COPY_AUX(imqq,imin) ;
-   return imqq ;
+   RETURN(imqq) ;
 }

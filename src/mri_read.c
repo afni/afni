@@ -181,8 +181,6 @@ MRI_IMAGE *mri_read( char *fname )
    int       length , skip=0 , swap=0 ;
    void      *data ;
 
-WHOAMI ;
-
 ENTRY("mri_read") ;
 
    imfile = fopen( fname , "r" ) ;

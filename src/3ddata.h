@@ -2761,9 +2761,9 @@ static char tmp_dblab[8] ;
 */
 
 typedef struct THD_3dim_dataset_array {
-      int num ;                   /*!< Number of datasets stored */
-      int nall ;                  /*!< Number of datasets slots allocated */
-      THD_3dim_dataset ** ar ;    /*!< Array of datasets: [0..num-1] are in use */
+      int num ;                  /*!< Number of datasets stored */
+      int nall ;                 /*!< Number of datasets slots allocated */
+      THD_3dim_dataset **ar ;    /*!< Array of datasets: [0..num-1] are in use */
 } THD_3dim_dataset_array ;
 
 #define INC_3DARR 8
@@ -2841,7 +2841,7 @@ typedef struct {
       char sessname[THD_MAX_NAME] ;   /*!< Name of directory datasets were read from */
       char lastname[THD_MAX_NAME] ;   /*!< Just/the/last/name of the directory */
 
-      THD_3dim_dataset * dsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;  /*!< array of datasets */
+      THD_3dim_dataset *dsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;  /*!< array of datasets */
 
       XtPointer parent ;        /*!< generic pointer to "owner"  */
 

@@ -10311,6 +10311,8 @@ static XtPointer SNAP_imseq_getim( int n, int type, XtPointer handle )
 {
    int ntot = 0 ;
 
+ENTRY("SNAP_imseq_getim") ;
+
    if( snap_imar != NULL ) ntot = IMARR_COUNT(snap_imar) ;
    if( ntot < 1 ) ntot = 1 ;
 
@@ -10330,7 +10332,7 @@ static XtPointer SNAP_imseq_getim( int n, int type, XtPointer handle )
      stat->transforms2D = NULL ;
      stat->slice_proj   = NULL ;
 
-     return (XtPointer) stat ;
+     RETURN( (XtPointer)stat ) ;
    }
 
    /*--- return a copy of an image
@@ -10344,10 +10346,10 @@ static XtPointer SNAP_imseq_getim( int n, int type, XtPointer handle )
        rim = IMARR_SUBIMAGE(snap_imar,n) ;
        im  = mri_copy( rim ) ;
      }
-     return (XtPointer) im ;
+     RETURN( (XtPointer)im );
    }
 
-   return NULL ; /* all other cases */
+   RETURN( NULL ) ; /* all other cases */
 }
 
 /*---------------------------------------------------------------------------
@@ -10372,19 +10374,20 @@ static void SNAP_imseq_send_CB( MCW_imseq *seq, XtPointer handle, ISQ_cbs *cbs )
 
 static void SNAP_make_dc( Widget w )
 {
+ENTRY("SNAP_make_dc") ;
    if( snap_dc == NULL ){
      if( first_dc != NULL ) snap_dc = first_dc ;
      else{
        if( w == (Widget) NULL ){
          fprintf(stderr,"** Can't snapshot/save with NULL widget!\n") ;
-         return ;
+         EXRETURN ;
        }
        (void ) XtAppSetWarningHandler( XtWidgetToApplicationContext(w),
                                        SNAP_warnhandler ) ;
        snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 ) ;
      }
    }
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------*/

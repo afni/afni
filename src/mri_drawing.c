@@ -641,8 +641,10 @@ void ppmd_text(byte *pixels, int cols, int rows,
 
 void mri_drawline( MRI_IMAGE *im, int x0,int y0, int x1,int y1, byte r,byte g,byte b )
 {
-   if( im == NULL || im->kind != MRI_rgb ) return ;
+ENTRY("mri_drawline") ;
+   if( im == NULL || im->kind != MRI_rgb ) EXRETURN ;
    ppmd_line( MRI_RGB_PTR(im), im->nx, im->ny, x0,y0,x1,y1, r,g,b ) ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -651,8 +653,10 @@ void mri_drawfilledrectangle( MRI_IMAGE *im,
                               int x, int y, int width, int height,
                               byte r,byte g,byte b )
 {
-   if( im == NULL || im->kind != MRI_rgb ) return ;
+ENTRY("mri_drawfilledrectangle") ;
+   if( im == NULL || im->kind != MRI_rgb ) EXRETURN ;
    ppmd_filledrectangle( MRI_RGB_PTR(im), im->nx, im->ny, x,y,width,height, r,g,b ) ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -663,7 +667,8 @@ void mri_drawemptyrectangle( MRI_IMAGE *im,
 {
     register int cx, cy, cwidth, cheight, col, row;
 
-    if( im == NULL || im->kind != MRI_rgb ) return ;
+ENTRY("mri_drawemptyrectangle") ;
+    if( im == NULL || im->kind != MRI_rgb ) EXRETURN ;
 
     /* Clip. */
     cx = x; cy = y; cwidth = width; cheight = height;
@@ -676,6 +681,7 @@ void mri_drawemptyrectangle( MRI_IMAGE *im,
     ppmd_line( MRI_RGB_PTR(im),im->nx,im->ny,cx+width,cy       ,cx+width,cy+height,r,g,b);
     ppmd_line( MRI_RGB_PTR(im),im->nx,im->ny,cx+width,cy+height,cx      ,cy+height,r,g,b);
     ppmd_line( MRI_RGB_PTR(im),im->nx,im->ny,cx      ,cy+height,cx      ,cy       ,r,g,b);
+    EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -691,6 +697,8 @@ void mri_drawtext( MRI_IMAGE *im ,
                    int x, int y, int height, int angle, char *s,
                    byte r,byte g,byte b )
 {
-    if( im == NULL || im->kind != MRI_rgb ) return ;
+ENTRY("mri_drawtext") ;
+    if( im == NULL || im->kind != MRI_rgb ) EXRETURN ;
     ppmd_text( MRI_RGB_PTR(im), im->nx,im->ny, x,y,height,angle , s , r,g,b ) ;
+    EXRETURN ;
 }

@@ -11,7 +11,9 @@ void MRI_5blur_inplace_3D( MRI_IMAGE *im )
    int ii,jj,kk , nx,ny,nz , nxy,nxyz , off,top ;
    float *f , *r ;
 
-   if( im == NULL || im->kind != MRI_float ) return ;
+ENTRY("MRI_5blur_inplace_3D") ;
+
+   if( im == NULL || im->kind != MRI_float ) EXRETURN ;
 
    nx = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
    f  = MRI_FLOAT_PTR(im) ;
@@ -88,5 +90,5 @@ void MRI_5blur_inplace_3D( MRI_IMAGE *im )
      free(r) ;
    }
 
-   return ;
+   EXRETURN ;
 }

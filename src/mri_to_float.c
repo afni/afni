@@ -87,9 +87,9 @@ MRI_IMAGE *mri_scale_to_float( float scl , MRI_IMAGE *oldim )
    register int ii , npix ;
    register float fac ;
 
-WHOAMI ; IMHEADER(oldim) ;
+ENTRY("mri_scale_to_float") ;
 
-   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+   if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
    fac   = scl ; if( fac == 0.0 ) fac = 1.0 ;
    newim = mri_new_conforming( oldim , MRI_float ) ;
@@ -153,7 +153,7 @@ WHOAMI ; IMHEADER(oldim) ;
    }
 
    MRI_COPY_AUX(newim,oldim) ;
-   return newim ;
+   RETURN( newim );
 }
 
 /* 13 Dec 1998 */
@@ -165,7 +165,7 @@ MRI_IMAGE * mri_mult_to_float( float * fac , MRI_IMAGE * oldim )
    MRI_IMAGE *newim ;
    register int ii , npix ;
 
-WHOAMI ; IMHEADER(oldim) ;
+ENTRY("mri_mult_to_float") ;
 
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
@@ -208,5 +208,5 @@ WHOAMI ; IMHEADER(oldim) ;
    }
 
    MRI_COPY_AUX(newim,oldim) ;
-   return newim ;
+   RETURN( newim );
 }
