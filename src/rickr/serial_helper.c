@@ -1,4 +1,4 @@
-#define VERSION "1.3 (April 2, 2004)"
+#define VERSION "1.4 (April 7, 2004)"
 
 /*----------------------------------------------------------------------
  * serial_helper.c    - pass data from plug_realtime to serial port
@@ -40,6 +40,9 @@ static char g_history[] =
  " 1.3  April 2, 2004  [tross/rickr]\n"
  "    - set SH_DEF_MIN_FVAL to -12.7\n"
  "    - use -128 as the special value denoting start of serial data\n"
+ "\n"
+ " 1.4  April 7, 2004  [rickr]\n"
+ "    - added 'sys/file.h' for solaris builds (thanks, Vince)\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -52,6 +55,7 @@ static char g_history[] =
 
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/file.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
