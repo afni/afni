@@ -712,7 +712,10 @@ ENTRY("adwarp_refashion_dataset") ;
     STATUS("created subdirectory") ;
   }
 
-  /*-- open output file --*/
+  /*-- open output file --*/ 
+
+  if( option_data->verbose )
+    fprintf(stderr,"++ Opening output file %s\n",dkptr->brick_name) ;
   
   cmode = THD_get_write_compression() ;
   far = COMPRESS_fopen_write( dkptr->brick_name , cmode ) ;
@@ -742,9 +745,8 @@ ENTRY("adwarp_refashion_dataset") ;
   
   for( ival=0 ; ival < nv ; ival++ ){  /* for each sub-brick */
 
-    if( option_data->verbose ){
-       printf("-- Start sub-brick %d",ival) ; fflush(stdout) ;
-    }
+    if( option_data->verbose )
+       fprintf(stderr,"++ Start sub-brick %d",ival) ;
     
     dsiz = mri_datum_size( DSET_BRICK_TYPE(dset,ival) ) ;
     
@@ -763,7 +765,7 @@ ENTRY("adwarp_refashion_dataset") ;
       im = AFNI_dataset_slice( dset , 3 , kk , ival , resam_mode ) ;
 STATUS("have new image") ;
 
-      if( option_data->verbose && kk%7==0 ){ printf("."); fflush(stdout); }
+      if( option_data->verbose && kk%7==0 ) fprintf(stderr,".");
 
       if( im == NULL ){
 	fprintf(stderr,"\a\n*** failure to compute dataset slice %d\n",kk) ;
@@ -803,7 +805,7 @@ STATUS("have new image") ;
 	
     } /* end of loop over kk (z-direction) */
 
-    if( option_data->verbose ){ printf("\n"); fflush(stdout); }
+    if( option_data->verbose ) fprintf(stderr,"\n");
     
     /* restore the correct scaling of this sub-brick */
     
@@ -833,6 +835,7 @@ STATUS("have new image") ;
   
   STATUS("recomputing statistics") ;
   
+  if( option_data->verbose ) fprintf(stderr,"++ Computing statistics\n");
   THD_load_statistics( dset ) ;
   
   STATUS("rewriting header") ;
