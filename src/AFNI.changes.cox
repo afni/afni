@@ -4779,3 +4779,8 @@
      AFNI_IMAGE_MINTOMAX and AFNI_IMAGE_GLOBALRANGE.
  * Modified afni_plugin.[ch] to allow plugins to change the "Run" button
      labels to something else.
+
+05 Nov 2003
+ * Modified imseq.c to auto-popdown graymap plot if it was auto-popupped
+     in the first place.
+ * Also added "Edit Environment" button to image window popup menu.

@@ -352,6 +352,8 @@ typedef struct {
 
       Widget pop_sumato_pb ;
       Widget pop_mnito_pb ;  /* 01 May 2002 */
+
+      Widget pop_environment_pb ; /* 05 Nov 2003 */
 } AFNI_imaging_widgets ;
 
 /*--- 19 Aug 2002: Switch Surface control box ---*/

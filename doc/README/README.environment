@@ -21,9 +21,9 @@ N.B.: Changes to environment variables AFTER you start a program will
       a private copy of the entire set of environment variables when
       it starts.  This is a standard Unix feature, and is not specific
       to AFNI.  Some variables can be set internally in AFNI using
-      the "Edit Environment" control from the "Datamode->Misc" menu.
-      These variable are marked with "(editable)" in the descriptions
-      below.
+      the "Edit Environment" control from the "Datamode->Misc" menu
+      or from the image window Button-3 popup menu.  Such variables
+      are marked with "(editable)" in the descriptions below.
 
 N.B.: Some variables below are described as being of "YES/NO" type.
       This means that they should either be set to the value "YES"
@@ -1794,8 +1794,9 @@ Variable: AFNI_STROKE_AUTOPLOT (editable)
 If this variable is set to YES, then the graymap-versus-data value plot
 (manually controlled by "Display Graymap Plot") is automatically popped
 up when the grayscale mapping is altered by using the stroking feature
-described above.  N.B.: when the 'Draw Dataset' plugin is active, this
-option is turned off.
+described above.  When the stroke is finished, the plot will pop down.
+N.B.: when the 'Draw Dataset' plugin is active, this option is disabled
+temporarily.
 
 -----------------------------
 Variable: AFNI_IMAGE_MINTOMAX (editable)

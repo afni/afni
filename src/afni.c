@@ -7773,15 +7773,15 @@ ENTRY("AFNI_imag_pop_CB") ;
 
    /*-- switch window display mode --*/
 
-   if( w == im3d->vwid->imag->pop_imageonly_pb ){
+   else if( w == im3d->vwid->imag->pop_imageonly_pb ){
       if( ISQ_REALZ(seq) )
          drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_togwid ) ;
    }
 
    /*-- jump to a point --*/
 
-   if( w == im3d->vwid->imag->pop_jumpto_pb &&
-       im3d->type == AFNI_3DDATA_VIEW         ){
+   else if( w == im3d->vwid->imag->pop_jumpto_pb &&
+            im3d->type == AFNI_3DDATA_VIEW         ){
 
       char tbuf[128] ;
 
@@ -7792,8 +7792,8 @@ ENTRY("AFNI_imag_pop_CB") ;
       }
    }
 
-   if( w == im3d->vwid->imag->pop_jumpto_ijk_pb &&
-       im3d->type == AFNI_3DDATA_VIEW             ){
+   else if( w == im3d->vwid->imag->pop_jumpto_ijk_pb &&
+            im3d->type == AFNI_3DDATA_VIEW             ){
 
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter new i j k:" , NULL ,
@@ -7803,8 +7803,8 @@ ENTRY("AFNI_imag_pop_CB") ;
 
    /*-- 01 May 2002: jump to MNI coordinates --*/
 
-   if( w == im3d->vwid->imag->pop_mnito_pb &&
-       im3d->type == AFNI_3DDATA_VIEW        ){
+   else if( w == im3d->vwid->imag->pop_mnito_pb &&
+            im3d->type == AFNI_3DDATA_VIEW        ){
 
       if( ISQ_REALZ(seq) && CAN_TALTO(im3d) ){
          MCW_choose_string( seq->wbar , "Enter MNI x,y,z:" , NULL ,
@@ -7816,9 +7816,9 @@ ENTRY("AFNI_imag_pop_CB") ;
 
    /*-- 06 Mar 2002: jump to a node in a surface --*/
 
-   if( w == im3d->vwid->imag->pop_sumato_pb &&
-       DSET_HAS_SUMA(im3d->anat_now)        &&
-       im3d->type == AFNI_3DDATA_VIEW         ){
+   else if( w == im3d->vwid->imag->pop_sumato_pb &&
+            DSET_HAS_SUMA(im3d->anat_now)        &&
+            im3d->type == AFNI_3DDATA_VIEW         ){
 
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter SUMA node ID:" , NULL ,
@@ -7828,9 +7828,9 @@ ENTRY("AFNI_imag_pop_CB") ;
 
    /*-- jump to a predetermined Talairach anatomical reference point --*/
 
-   if( w == im3d->vwid->imag->pop_talto_pb &&
-       im3d->type == AFNI_3DDATA_VIEW      &&
-       CAN_TALTO(im3d)                       ){
+   else if( w == im3d->vwid->imag->pop_talto_pb &&
+            im3d->type == AFNI_3DDATA_VIEW      &&
+            CAN_TALTO(im3d)                       ){
 
       if( ! TTO_labeled ){  /* initialize labels */
          int ii ;
@@ -7942,7 +7942,16 @@ ENTRY("AFNI_imag_pop_CB") ;
       TTRR_popup( im3d ) ;
    }
 
-   /*--- unmap of the popup itself ---*/
+   /*---- 05 Nov 2003: start the Edit Environment pseudo-plugin ----*/
+
+   else if( w == im3d->vwid->imag->pop_environment_pb &&
+            w != NULL                                   ){
+
+     AFNI_misc_CB( im3d->vwid->dmode->misc_environ_pb ,
+                   (XtPointer) im3d , (XtPointer) NULL ) ;
+   }
+
+   /*--- unmap of the popup itself [elided] ---*/
 
    /*--- exit ---*/
 
