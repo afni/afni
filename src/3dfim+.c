@@ -22,6 +22,9 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
+  Mod:     Add FICO-ness of sub-bricks for Spearman and Quadrant correlation.
+  Date     29 Oct 2004 - RWCox
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -29,7 +32,7 @@
 #define PROGRAM_NAME "3dfim+"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "28 April 2000"   /* date of initial program release */
-#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST  "29 October 2004"  /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1522,14 +1525,22 @@ void write_bucket_data
 	}
       else if (ip == FIM_SpearmanCC)
 	{
+#if 0
 	  brick_type = FUNC_THR_TYPE;
+#else
+	  brick_type = FUNC_COR_TYPE;
+#endif
 	  nsam = N;  nort = q;
 	  if (num_idealts > 1)  nfit = 2;
 	  else                  nfit = 1;
 	} 
       else if (ip == FIM_QuadrantCC)
 	{
+#if 0
 	  brick_type = FUNC_THR_TYPE;
+#else
+	  brick_type = FUNC_COR_TYPE;
+#endif
 	  nsam = N;  nort = q;
 	  if (num_idealts > 1)  nfit = 2;
 	  else                  nfit = 1;
