@@ -3772,3 +3772,4 @@
 
 06 Jun 2002
  * New programs 3dAutobox.c and 3dLRflip.c.
+ * New function mri_cut_3D() in mri_cut.c.
