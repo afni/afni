@@ -40,6 +40,30 @@ void SUMA_RefreshColorPlaneList (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov);
 SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name);
 char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col);
+SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin);
+SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name);
+SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V, 
+                                       float range, SUMA_COLOR_MAP *ColMap, 
+                                       SUMA_SCALE_TO_MAP_OPT *Opt, 
+                                       SUMA_COLOR_SCALED_VECT * SV);
+SUMA_AFNI_COLORS * SUMA_Get_AFNI_Default_Color_Maps ();
+SUMA_COLOR_MAP ** SUMA_Add_ColorMap (SUMA_COLOR_MAP *CM, SUMA_COLOR_MAP **OldCMv, int *N_maps); 
+SUMA_RGB_NAME * SUMA_Add_Color (char *Name, float r, float g, float b, float a, SUMA_RGB_NAME *oCv, int *N_cols);
+char *SUMA_ColorMapVec_Info (SUMA_COLOR_MAP **CMv, int N_maps, int detail);
+char *SUMA_ColorVec_Info (SUMA_RGB_NAME *Cv, int N_cols); 
+void SUMA_Show_ColorMapVec (SUMA_COLOR_MAP **CMv, int N_maps, FILE *Out, int detail);
+void SUMA_Show_ColorVec (SUMA_RGB_NAME *CMv, int N_maps, FILE *Out); 
+int SUMA_Find_ColorMap ( char *Name, SUMA_COLOR_MAP **CMv, int N_maps, int sgn);
+int SUMA_Find_Color ( char *Name, SUMA_RGB_NAME *Cv, int N_cols); 
+SUMA_AFNI_COLORS *SUMA_DestroyAfniColors (SUMA_AFNI_COLORS *SAC);
+SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3]);
+int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC );
+void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM);
+
+
+
+
+
 
 
 

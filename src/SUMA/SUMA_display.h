@@ -85,6 +85,7 @@ String *SUMA_get_fallbackResources ();
 Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
+Colormap SUMA_getShareableColormap_Eng(XVisualInfo * vi, Display *dpy);
 Colormap SUMA_getShareableColormap(SUMA_SurfaceViewer * csv);
 void SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_expose(Widget w, XtPointer clientData, XtPointer call);

@@ -473,7 +473,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
 		         /* load the surfaces specified in the specs file, one by one*/			
 		         if (LocalHead) fprintf (SUMA_STDERR, "%s: Loading Surfaces in Spec File ...\n", FuncName);
-		         if (!SUMA_LoadSpec (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName)) {
+		         if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName, 0)) {
 			         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
 			         exit(1);
 		         }
