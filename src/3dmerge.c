@@ -27,7 +27,7 @@
 ******************************************************************************/
 
 #define PROGRAM_NAME "3dmerge"                    /* name of this program */
-#define LAST_MOD_DATE "11 September 2000"         /* date of last program mod */
+#define LAST_MOD_DATE "15 September 2000"         /* date of last program mod */
 
 #include "mrilib.h"
 #include "parser.h"    /* 09 Aug 2000 */
@@ -82,6 +82,8 @@ static char  MRG_output_label  [THD_MAX_LABEL]  = "\0" ;
 
 static int   MRG_ivfim = -1 ;
 static int   MRG_ivthr = -1 ;
+
+static int   MRG_nscale = 0 ; /* 15 Sep 2000 */
 
 /*--------------------------- prototypes ---------------------------*/
 int MRG_read_opts( int , char ** ) ;
@@ -414,6 +416,15 @@ DUMP2 ;
       }
 #endif
 
+      /**** -nscale [15 Sep 2000] ****/
+
+      if( strcmp(argv[nopt],"-nscale") == 0 ){
+DUMP1 ;
+         MRG_nscale = 1 ;
+         nopt++ ; continue ;
+      }
+
+
       /**** -gmean ****/
 
       if( strncmp(argv[nopt],"-gmean",6) == 0 ){
@@ -673,7 +684,9 @@ void MRG_Syntax(void)
     "                  datum is 'short', then input values are scaled by\n"
     "                  0.0001 and output values by 10000.  This option\n"
     "                  is for merging bricks of correlation coefficients.\n"
-
+    "\n"
+    "  -nscale    = If the output datum is shorts, don't do the scaling\n"
+    "                  to the max range [similar to 3dcalc's -nscale option]\n"
     "\n"
     "MERGING OPERATIONS APPLIED TO THE THRESHOLD DATA:\n"
     " [That is, different ways to combine the thresholds.  If none of these ]\n"
@@ -1616,6 +1629,7 @@ int main( int argc , char * argv[] )
          if( MRG_cflag_g == CFLAG_FISHER ){
             fimfac = FUNC_COR_SCALE_SHORT ;
          } else if( gtop == 0.0 ||           /* 08 Jan 1998 */
+                    MRG_nscale  ||           /* 15 Sep 2000 */
                     (is_int && gtop <= MRI_TYPE_maxval[output_datum]) ){
             fimfac = 0.0 ;
          } else {

@@ -669,6 +669,7 @@ void VL_command_line(void)
    int ii , nxbase , nybase , nerr , basecode ;
    MRI_IMAGE * tim ;
    MRI_IMARR * tarr ;
+   float bdx,bdy,bdz ;
 
    /*** look for options ***/
 
@@ -868,6 +869,9 @@ void VL_command_line(void)
 
           VL_intern = 0 ;   /* not internal to input dataset */
 
+          bdx = fabs(DSET_DX(bset)) ;  /* save for comparison later */
+          bdy = fabs(DSET_DY(bset)) ;  /* (14 Sep 2000)            */
+          bdz = fabs(DSET_DZ(bset)) ;
           VL_imbase = mri_to_float( DSET_BRICK(bset,bb) ) ;  /* copy this */
           DSET_delete( bset ) ;                              /* toss this */
         }
@@ -933,11 +937,13 @@ void VL_command_line(void)
    if( VL_dset == NULL ){
       fprintf(stderr,"*** Can't open dataset %s\n",Argv[Iarg]) ; exit(1) ;
    }
+
    if( VL_imbase == NULL && VL_nbase >= DSET_NVALS(VL_dset) ){
       fprintf(stderr,"*** Dataset %s doesn't have base brick index = %d\n",
               Argv[Iarg] , VL_nbase ) ;
       exit(1) ;
    }
+
    if( VL_imbase != NULL && ( VL_imbase->nx != DSET_NX(VL_dset) ||
                               VL_imbase->ny != DSET_NY(VL_dset) ||
                               VL_imbase->nz != DSET_NZ(VL_dset)   ) ){
@@ -950,6 +956,21 @@ void VL_command_line(void)
                      DSET_NX(VL_dset) , DSET_NY(VL_dset) , DSET_NZ(VL_dset) ) ;
       exit(1) ;
    }
+
+   if( VL_imbase != NULL &&                  /* 14 Sep 2000 */
+      ( fabs(DSET_DX(VL_dset)) != bdx ||
+        fabs(DSET_DY(VL_dset)) != bdy ||
+        fabs(DSET_DZ(VL_dset)) != bdz   ) ){
+
+     fprintf(stderr,"** WARNING:\n"
+                    "** Dataset %s and base have different grid spacings:\n"
+                    "** Dataset: dx=%9.3f  dy=%9.3f  dz=%9.3f\n"
+                    "**    Base: dx=%9.3f  dy=%9.3f  dz=%9.3f\n" ,
+             Argv[Iarg] ,
+             fabs(DSET_DX(VL_dset)),fabs(DSET_DY(VL_dset)),fabs(DSET_DZ(VL_dset)),
+             bdx,bdy,bdz ) ;
+   }
+
    if( VL_imwt != NULL && ( VL_imwt->nx != DSET_NX(VL_dset) ||
                             VL_imwt->ny != DSET_NY(VL_dset) ||
                             VL_imwt->nz != DSET_NZ(VL_dset)   ) ){
@@ -962,6 +983,7 @@ void VL_command_line(void)
                      DSET_NX(VL_dset) , DSET_NY(VL_dset) , DSET_NZ(VL_dset) ) ;
       exit(1) ;
    }
+
    if( VL_intern && DSET_NVALS(VL_dset) == 1 ){
       fprintf(stderr,"*** You can't register a 1 brick dataset to itself!\n") ;
       exit(1) ;
