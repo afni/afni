@@ -27,6 +27,10 @@
 #   define MIN(a,b) (((a)>(b)) ? (b) : (a))
 #endif
 
+#ifndef myXtFree
+#define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
+#endif
+
 /* these macros are to produce RGB intensities (unsigned shorts) */
 
 #define CLIP_INTEN(i)    (((i)<256) ? (256) : ((i)>65280) ? (65280) : (i))

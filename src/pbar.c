@@ -134,13 +134,14 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
       }
 
       pbar->labels[i] =  XtVaCreateWidget(
-                            "XXXXX" , xmLabelWidgetClass , pbar->top ,
+                            " XXXXX" , xmLabelWidgetClass , pbar->top ,
                                XmNrecomputeSize , False ,
-                               XmNx , PANE_WIDTH+PANE_SPACING+2 ,
+                               XmNx , PANE_WIDTH+PANE_SPACING+4 ,
                                XmNy , yy ,
                                XmNborderWidth , 0 ,
                                XmNmarginWidth , 0 ,
                                XmNmarginHeight , 0 ,
+                               XmNalignment , XmALIGNMENT_BEGINNING ,
                                XmNhighlightThickness , 0 ,
                                XmNshadowThickness , 0 ,
                              NULL ) ;
@@ -180,7 +181,18 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
 void PBAR_labelize( float val , char * buf )
 {
-   sprintf(buf,"%5.2f",val) ;
+   float aval = fabs(val) ;
+   char prefix[4] ;
+
+   if( val == 0.0  ){ strcpy(buf," 0") ; return ; }
+
+   if( val > 0.0 ) strcpy(prefix," ") ;
+   else            strcpy(prefix,"-") ;
+
+        if( aval <= 9.994 ) sprintf(buf,"%s%4.2f",prefix,aval) ;
+   else if( aval <= 99.94 ) sprintf(buf,"%s%4.1f",prefix,aval) ;
+   else                     sprintf(buf,"%s%4f"  ,prefix,aval) ;
+   return ;
 }
 
 /*--------------------------------------------------------------------

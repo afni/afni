@@ -379,6 +379,8 @@ typedef struct {
       MCW_arrowval * inten_av ;
       MCW_bbox     * inten_bbox ;
 
+      Widget pbar_menu , pbar_equalize_pb , pbar_readin_pb ;
+
       Widget options_rowcol , options_label ;
       MCW_bbox     * underlay_bbox ;
       MCW_bbox     * functype_bbox ;
@@ -951,6 +953,9 @@ extern void AFNI_thr_scale_drag_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_inten_pbar_CB( MCW_pbar * , XtPointer , int ) ;
 extern void AFNI_inten_av_CB( MCW_arrowval * , XtPointer ) ;
+
+extern void AFNI_pbar_CB( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_pbar_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 
 extern void   AFNI_set_thresh_top( Three_D_View * , float ) ;
 extern char * AFNI_thresh_tlabel_CB( MCW_arrowval * , XtPointer ) ;

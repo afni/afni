@@ -2807,7 +2807,7 @@ void AFNI_set_viewpoint( Three_D_View * im3d ,
                          int xx,int yy,int zz , int redisplay_option )
 {
    int old_i1 , old_j2 , old_k3 , i1,j2,k3 ;
-   int dim1,dim2,dim3 , isq_driver , do_lock ;
+   int dim1,dim2,dim3 , isq_driver , do_lock , new_xyz ;
 
    THD_dataxes * daxes ;
    THD_fvec3 fv ;
@@ -2843,10 +2843,10 @@ ENTRY("AFNI_set_viewpoint") ;
 
    /** determine redisplay mode for image viewers **/
 
-   if( !redisplay_option &&
-       i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) EXRETURN ;
+   new_xyz =
+    do_lock = !( i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) ;  /* 11 Nov 1996 */
 
-   do_lock = !( i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) ;  /* 11 Nov 1996 */
+   if( !redisplay_option && !new_xyz ) EXRETURN ;
 
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
@@ -2896,7 +2896,9 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
-      drive_MCW_grapher( im3d->g123 , graDR_redraw , (XtPointer) xyzm ) ;
+
+      if( redisplay_option == REDISPLAY_ALL || new_xyz )
+         drive_MCW_grapher( im3d->g123 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
    if( im3d->s231 != NULL || im3d->g231 != NULL ){
@@ -2917,7 +2919,9 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
-      drive_MCW_grapher( im3d->g231 , graDR_redraw , (XtPointer) xyzm ) ;
+
+      if( redisplay_option == REDISPLAY_ALL || new_xyz )
+         drive_MCW_grapher( im3d->g231 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
    if( im3d->s312 != NULL || im3d->g312 != NULL ){
@@ -2938,7 +2942,9 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
-      drive_MCW_grapher( im3d->g312 , graDR_redraw , (XtPointer) xyzm ) ;
+
+      if( redisplay_option == REDISPLAY_ALL || new_xyz )
+         drive_MCW_grapher( im3d->g312 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
    im3d->ignore_seq_callbacks = AFNI_IGNORE_NOTHING ;

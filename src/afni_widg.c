@@ -2120,6 +2120,47 @@ ENTRY("AFNI_make_wid2") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+   /**-- 17 Dec 1997: pbar menu hidden on the inten_label --**/
+
+   func->pbar_menu = XmCreatePopupMenu( func->inten_label , "menu" , NULL , 0 ) ;
+
+   XtInsertEventHandler( func->inten_label ,      /* handle events in label */
+
+                               0
+                             | ButtonPressMask   /* button presses */
+                            ,
+                            FALSE ,              /* nonmaskable events? */
+                            AFNI_pbar_EV ,       /* handler */
+                            (XtPointer) im3d ,   /* client data */
+                            XtListTail           /* last in queue */
+                          ) ;
+
+   func->pbar_equalize_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Equalize Spacing") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( func->pbar_equalize_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
+   func->pbar_readin_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Read in colors") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( func->pbar_readin_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
+   /**-- Color pbar to control intensity-to-color mapping --**/
+
    { float pmin , pmax ;  /* posfunc added 3/21/95 */
 
      pmax  = 1.0 ;

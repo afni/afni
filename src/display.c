@@ -13,7 +13,7 @@
 ------------------------------------------------------------------------*/
 
 MCW_DC * MCW_new_DC( Widget wid , int ncol ,
-		     int novr , char * covr[] , char * lovr[] , double gam )
+                     int novr , char * covr[] , char * lovr[] , double gam )
 {
    MCW_DC * dc ;
    int ok , ii ;
@@ -113,20 +113,19 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
    dc->pix_ov[0]   = dc->pix_im[0] ;
    dc->name_ov[0]  = XtNewString("none") ;
    dc->label_ov[0] = dc->name_ov[0] ;
-
-   dc->ncol_ov    = 1 ;
+   dc->ncol_ov     = 1 ;
 
    for( ii=0 ; ii < novr ; ii++ ){
 
      ok = DC_add_overlay_color( dc , covr[ii] , lovr[ii] ) ;
 
      if( ok < 0 )
-	fprintf(stderr,
+        fprintf(stderr,
           "\n*** can't get X11 colormap entry for overlay color %s" , lovr[ii] ) ;
 #ifdef DISPLAY_DEBUG
      else {
-	printf("\n*** overlay color %s has pixel %d at index %d" ,
-		dc->name_ov[ok] , (int)dc->pix_ov[ok] , ok ) ;
+        printf("\n*** overlay color %s has pixel %d at index %d" ,
+               dc->name_ov[ok] , (int)dc->pix_ov[ok] , ok ) ;
         fflush(stdout) ;
      }
 #endif
@@ -357,6 +356,11 @@ Pixel Name_to_color( MCW_DC * dc , char * name )
    and return its index (negative if an error occurred)
 ----------------------------------------------------------------------------*/
 
+#undef USE_OLD_OVCOL  /* 17 Dec 1997 */
+#ifdef USE_OLD_OVCOL
+
+   /** this version uses read-only color cells **/
+
 int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
 {
    int ok , ii ;
@@ -366,17 +370,71 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
 
       ok = XAllocNamedColor( dc->display,dc->colormap,name, &cell,&exact ) ;
       if( ok ){
-	 ii = dc->ncol_ov++ ;  /* new index in overlay color table */
+         ii = dc->ncol_ov++ ;  /* new index in overlay color table */
 
-	 dc->xcol_ov[ii]  = cell ;
-	 dc->pix_ov[ii]   = cell.pixel ;
-	 dc->name_ov[ii]  = XtNewString(name) ;
+         dc->xcol_ov[ii]  = cell ;
+         dc->pix_ov[ii]   = cell.pixel ;
+         dc->name_ov[ii]  = XtNewString(name) ;
          dc->label_ov[ii] = XtNewString(label) ;
          return ii ;
       }
    }
    return -1 ;  /* some error */
 }
+#else
+
+   /** this version uses read-write color cells,
+       and will recycle them if the same label is passed in **/
+
+int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
+{
+   int ii , ok , newcol ;
+   Pixel newpix ;
+   XColor cell ;
+
+   if( name == NULL || strlen(name) == 0 ) return -1 ;  /* error */
+   if( label == NULL ) label = name ;
+
+   /** see if label is already in the table **/
+
+   for( ii=1 ; ii < dc->ncol_ov ; ii++ )
+      if( strcmp(label,dc->label_ov[ii]) == 0 ) break ;
+
+   newcol = (ii == dc->ncol_ov) ;     /** need a new color cell? **/
+   if( ii == dc->ncol_ov ){           /** Yes **/
+      unsigned int nplmsk = 0 ;
+      unsigned long plane_masks[1] ;
+
+      if( ii >= MAX_COLORS ) return -1 ;   /* too many overlay colors! */
+
+      ok = XAllocColorCells( dc->display , dc->colormap ,
+                             True , plane_masks , nplmsk , &newpix , 1 ) ;
+      if( !ok ) return -1 ;                /* couldn't get a new cell */
+      cell.pixel = newpix ;
+   } else {
+      if( strcmp(name,dc->name_ov[ii]) == 0 ) return ii ; /* no change! */
+      cell.pixel = dc->pix_ov[ii] ;
+   }
+
+   ok = XParseColor( dc->display , dc->colormap , name, &cell ) ;
+   if( !ok ) return -1 ;
+
+   if( newcol ){                      /** made a new cell **/
+      dc->ncol_ov++ ;
+   } else {                           /** free old cell stuff **/
+      myXtFree( dc->name_ov[ii] ) ;
+      myXtFree( dc->label_ov[ii] ) ;
+   }
+
+   dc->xcol_ov[ii]  = cell ;          /** save cell info **/
+   dc->pix_ov[ii]   = cell.pixel ;
+   dc->name_ov[ii]  = XtNewString(name) ;
+   dc->label_ov[ii] = XtNewString(label) ;
+
+   XStoreColor( dc->display , dc->colormap , &cell ) ; /** make it work **/
+   return ii ;
+}
+#endif /* USE_OLD_OVCOL */
 
 /*-------------------------------------------------------------------------
   load the tmp? arrays (alas, GLOBAL data, a sin against God and Man)
