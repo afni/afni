@@ -343,8 +343,10 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
    Screen * scr ;
    XEvent ev ;
 
+ENTRY("MCW_popup_message") ;
+
    if( ! XtIsRealized( wparent ) ||
-       msg == NULL               || strlen(msg) == 0 ) return NULL ;
+       msg == NULL               || strlen(msg) == 0 ) RETURN(NULL) ;
 
    /* set position for message box based on parent and screen geometry */
 
@@ -449,7 +451,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
 
    RWC_visibilize(wmsg) ;  /* 27 Sep 2000 */
    NORMAL_cursorize(wmsg) ;
-   return wmsg ;
+   RETURN(wmsg) ;
 }
 
 /*-------------------------------------------------------------------------
@@ -951,7 +953,9 @@ Widget MCW_popup_meter( Widget wparent , int position )
    XEvent ev ;
    Position xroot , yroot ;
 
-   if( wparent == NULL || ! XtIsRealized( wparent ) ) return NULL ;
+ENTRY("MCW_popup_meter") ;
+
+   if( wparent == NULL || ! XtIsRealized( wparent ) ) RETURN(NULL) ;
 
    /* set position parent and screen geometry */
 
@@ -1021,7 +1025,7 @@ Widget MCW_popup_meter( Widget wparent , int position )
 
    XtPopup( wmsg , XtGrabNone ) ;
 
-   return wscal ;
+   RETURN(wscal) ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -1102,9 +1106,11 @@ MCW_textwin * new_MCW_textwin_2001( Widget wpar, char * msg, int type,
    Boolean editable ;
    Arg wa[64] ; int na ;
 
+ENTRY("new_MCW_textwin_2001") ;
+
    /*-- sanity check --*/
 
-   if( ! XtIsRealized(wpar) ) return NULL ;
+   if( ! XtIsRealized(wpar) ) RETURN(NULL) ;
 
    /* set position based on parent and screen geometry */
 
@@ -1255,7 +1261,7 @@ MCW_textwin * new_MCW_textwin_2001( Widget wpar, char * msg, int type,
    tw->shell_width = swid ; tw->shell_height = shi ; /* 10 Jul 2001 */
 
    NORMAL_cursorize( tw->wshell ) ;
-   return tw ;
+   RETURN(tw) ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -1708,6 +1714,8 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
    Colormap cmap ;
    Boolean  good ;
 
+ENTRY("RWC_drag_rectangle") ;
+
    /** make a GC for invert drawing **/
 
    gcv.function = GXinvert ;
@@ -1731,7 +1739,7 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
 
    /* grab fails => exit */
 
-   if( !grab ){ XBell(dis,100); *x2=x1; *y2=y1; return; }
+   if( !grab ){ XBell(dis,100); *x2=x1; *y2=y1; EXRETURN; }
 
    xold = x1 ; yold = y1 ;  /* current location of pointer */
 
@@ -1770,6 +1778,7 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
    if (grab) XUngrabPointer(dis, (Time)CurrentTime) ;
 
    *x2 = xold ; *y2 = yold ;  /* output values */
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------*/

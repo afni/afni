@@ -3,10 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
-
 
 /*----------------------------------------------------------------
   Create an array of associated 3D datasets from an array of
@@ -21,9 +20,11 @@ THD_3dim_dataset_array *
    int id ;
    Boolean dset_ok = True , all_anat , all_func ;
 
+ENTRY("THD_array_3dim_from_block") ;
+
    INIT_3DARR( dset_arr ) ;
 
-   if( blk_arr == NULL || blk_arr->num <= 0 ) return dset_arr ;
+   if( blk_arr == NULL || blk_arr->num <= 0 ) RETURN(dset_arr) ;
 
    for( id=0 ; id < blk_arr->num ; id++ ){
 
@@ -32,7 +33,7 @@ THD_3dim_dataset_array *
       if( dset != NULL ) ADDTO_3DARR( dset_arr , dset ) ;
    }
 
-   if( dset_arr->num <= 0 ) return dset_arr ;
+   if( dset_arr->num <= 0 ) RETURN(dset_arr) ;
 
    /******************************************************/
    /*-- now, check the set of datasets for consistency --*/
@@ -94,5 +95,5 @@ THD_3dim_dataset_array *
    /*-- at last!
         give the caller the list of (nearly) initialized datasets --*/
 
-   return dset_arr ;
+   RETURN(dset_arr) ;
 }

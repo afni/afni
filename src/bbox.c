@@ -31,6 +31,8 @@ MCW_bbox * new_MCW_bbox( Widget parent ,
    Arg wa[30] ;  int na ;
    Pixel  fg_pix ;
 
+ENTRY("new_MCW_bbox") ;
+
    if( num_but <= 0 || num_but >= 32 ){
       fprintf(stderr,"\n*** illegal new_MCW_bbox has %d buttons\n",num_but) ;
       EXIT(1) ;
@@ -124,7 +126,7 @@ MCW_bbox * new_MCW_bbox( Widget parent ,
    XtManageChild( bb->wrowcol ) ;
 
    bb->parent = bb->aux = NULL ;
-   return bb ;
+   RETURN(bb) ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -147,7 +149,9 @@ void MCW_set_bbox( MCW_bbox *bb , int val )
    int     ib ;
    Boolean nset , oset ;
 
-   if( bb == NULL ) return ;  /* 01 Feb 2000 */
+ENTRY("MCW_set_bbox") ;
+
+   if( bb == NULL ) EXRETURN ;  /* 01 Feb 2000 */
    bb->value = val ;
    for( ib=0 ; ib < bb->nbut ; ib++ ){
      nset = ( val & (1<<ib) ) ? (True) : (False) ;
@@ -157,7 +161,7 @@ void MCW_set_bbox( MCW_bbox *bb , int val )
        XmUpdateDisplay( bb->wbut[ib] ) ;
      }
    }
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -224,12 +228,14 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
    MCW_arrowval * av = NULL ;
    int asizx = 20 , asizy = 15 ;  /* arrow sizes */
 
+ENTRY("new_MCW_arrowval") ;
+
    /** July 1996: optmenu capability as a dropin for arrowval **/
 
    if( direc == MCW_AV_optmenu ){
       av = new_MCW_optmenu( parent , label , minval,maxval,inival , decim ,
                             delta_value , delta_data , text_proc , text_data ) ;
-      return av ;
+      RETURN(av) ;
    }
 
    av = myXtNew( MCW_arrowval ) ;
@@ -446,7 +452,7 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
 
    av->parent = av->aux = NULL ;
    av->fstep = 0.0 ;  /* 16 Feb 1999 */
-   return av ;
+   RETURN(av) ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -491,6 +497,8 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
    int nargs , ival ;
    XmString xstr ;
    char * butlabel , * blab ;
+
+ENTRY("new_MCW_optmenu") ;
 
    /** create the menu window **/
 
@@ -617,7 +625,7 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
                            (XtPointer) av ,   /* client data */
                            XtListTail ) ;     /* last in queue */
 
-   return av ;
+   RETURN(av) ;
 }
 
 /*----------------------------------------------------------------------------
@@ -882,6 +890,8 @@ MCW_arrowval * new_MCW_colormenu( Widget parent , char * label , MCW_DC * dc ,
    Widget * children ;
    int  num_children , ic , icol ;
 
+ENTRY("new_MCW_colormenu") ;
+
    av = new_MCW_optmenu( parent , label ,
                          min_col , max_col , ini_col , 0 ,
                          delta_value , delta_data ,
@@ -898,7 +908,7 @@ MCW_arrowval * new_MCW_colormenu( Widget parent , char * label , MCW_DC * dc ,
 
    if( max_col > COLSIZE ) AVOPT_columnize( av , 1+(max_col-1)/COLSIZE ) ;
 
-   return av ;
+   RETURN(av) ;
 }
 
 char * MCW_av_substring_CB( MCW_arrowval * av , XtPointer cd )
@@ -1118,6 +1128,8 @@ char * AV_default_text_CB( MCW_arrowval * av , XtPointer junk )
    return &(buf[0]) ;
 }
 
+/*------------------------------------------------------------------------*/
+
 void AV_fval_to_char( float qval , char * buf )
 {
    float aval = fabs(qval) ;
@@ -1188,12 +1200,16 @@ void AV_fval_to_char( float qval , char * buf )
    return ;
 }
 
+/*------------------------------------------------------------------------*/
+
 char * AV_format_fval( float fval )
 {
    static char buf[32] ;
    AV_fval_to_char( fval , buf ) ;
    return buf ;
 }
+
+/*------------------------------------------------------------------------*/
 
 char * AV_uformat_fval( float fval )
 {
@@ -1444,6 +1460,8 @@ void MCW_choose_ovcolor( Widget wpar , MCW_DC * dc , int ovc_init ,
    Position xx,yy ;
    int ib ;
 
+ENTRY("MCW_choose_ovcolor") ;
+
    /** destructor callback **/
 
    if( wpar == NULL ){
@@ -1452,13 +1470,13 @@ void MCW_choose_ovcolor( Widget wpar , MCW_DC * dc , int ovc_init ,
          XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
          XtDestroyWidget( wpop ) ;
       }
-      wpop = NULL ; return ;
+      wpop = NULL ; EXRETURN ;
    }
 
    if( ! XtIsRealized(wpar) || dc->ovc->ncol_ov < 2 ){  /* illegal call */
       fprintf(stderr,"\n*** illegal call to MCW_choose_ovcolor: %s %d\n",
              XtName(wpar) , dc->ovc->ncol_ov ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( ovc_init < 0 || ovc_init >= dc->ovc->ncol_ov ) ovc_init = 1 ;
@@ -1533,7 +1551,7 @@ void MCW_choose_ovcolor( Widget wpar , MCW_DC * dc , int ovc_init ,
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1563,6 +1581,8 @@ void MCW_choose_integer( Widget wpar , char * label ,
    Position xx,yy ;
    int ib ;
 
+ENTRY("MCW_choose_integer") ;
+
    /** destructor callback **/
 
    if( wpar == NULL ){
@@ -1571,13 +1591,13 @@ void MCW_choose_integer( Widget wpar , char * label ,
          XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
          XtDestroyWidget( wpop ) ;
       }
-      wpop = NULL ; return ;
+      wpop = NULL ; EXRETURN ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
       fprintf(stderr,"\n*** illegal call to MCW_choose_integer: %s\n",
               XtName(wpar) ) ;
-      return ;
+      EXRETURN ;
    }
 
    /*--- if popup widget already exists, destroy it ---*/
@@ -1652,7 +1672,7 @@ void MCW_choose_integer( Widget wpar , char * label ,
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1678,6 +1698,8 @@ MCW_arrowpad * new_MCW_arrowpad( Widget parent ,
    MCW_arrowpad * apad ;
    int asizx = 20 , asizy = 20 ;  /* arrow sizes */
    int iar ;
+
+ENTRY("new_MCW_arrowpad") ;
 
    apad = myXtNew( MCW_arrowpad ) ;
 
@@ -1757,7 +1779,7 @@ MCW_arrowpad * new_MCW_arrowpad( Widget parent ,
    apad->count       = 0 ;
 
    apad->parent = apad->aux = NULL ;
-   return apad ;
+   RETURN(apad) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1870,6 +1892,8 @@ void MCW_choose_string( Widget wpar , char * label ,
    Position xx,yy ;
    int ib , ncol=0 ;
 
+ENTRY("MCW_choose_string") ;
+
    /** destructor callback **/
 
    if( wpar == NULL ){
@@ -1878,15 +1902,15 @@ void MCW_choose_string( Widget wpar , char * label ,
          XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
          XtDestroyWidget( wpop ) ;
       }
-      wpop = NULL ; return ;
+      wpop = NULL ; EXRETURN ;
    }
 
-   if( ! XtIsWidget(wpar) ) return ;
+   if( ! XtIsWidget(wpar) ) EXRETURN ;
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
       fprintf(stderr,"\n*** illegal call to MCW_choose_string: %s\n",
               XtName(wpar) ) ;
-      return ;
+      EXRETURN ;
    }
 
    /*--- if popup widget already exists, destroy it ---*/
@@ -1991,7 +2015,7 @@ void MCW_choose_string( Widget wpar , char * label ,
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2314,6 +2338,8 @@ void MCW_choose_timeseries( Widget wpar , char * label ,
    char pbuf[256] , qbuf[256] ;
    MRI_IMAGE * tsim ;
 
+ENTRY("MCW_choose_timeseries") ;
+
    /** destructor callback **/
 
    if( wpar == NULL ){
@@ -2322,13 +2348,13 @@ void MCW_choose_timeseries( Widget wpar , char * label ,
          XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
          XtDestroyWidget( wpop ) ;
       }
-      wpop = NULL ; return ;
+      wpop = NULL ; EXRETURN ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
       fprintf(stderr,"\n*** illegal call to MCW_choose_timeseries %s\n",
               XtName(wpar) ) ;
-      return ;
+      EXRETURN ;
    }
 
    MCW_set_listmax( wpar ) ;
@@ -2344,7 +2370,7 @@ void MCW_choose_timeseries( Widget wpar , char * label ,
 
    /*--- sanity checks ---*/
 
-   if( tsarr == NULL || tsarr->num == 0 ) return ;
+   if( tsarr == NULL || tsarr->num == 0 ) EXRETURN ;
    num_ts = tsarr->num ;
 
 #ifdef AFNI_DEBUG
@@ -2485,7 +2511,7 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -2537,6 +2563,8 @@ void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
    char * lbuf ;
    int nvisible ;
 
+ENTRY("MCW_choose_multi_editable_strlist") ;
+
    /** destructor callback **/
 
    if( wpar == NULL ){
@@ -2545,13 +2573,13 @@ void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
          XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
          XtDestroyWidget( wpop ) ;
       }
-      wpop = NULL ; return ;
+      wpop = NULL ; EXRETURN ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
       fprintf(stderr,"\n*** illegal call to MCW_choose_strlist %s\n",
               XtName(wpar) ) ;
-      return ;
+      EXRETURN ;
    }
 
    MCW_set_listmax( wpar ) ;
@@ -2783,7 +2811,7 @@ void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2795,7 +2823,9 @@ void MCW_stradd_CB( Widget w, XtPointer client_data, XtPointer call_data )
    int id , nvisible , num_str ;
    XmString xms ;
 
-   if( nstr == NULL || strlen(nstr) == 0 ){ XBell(XtDisplay(w),100); return; }
+ENTRY("MCW_stradd_CB") ;
+
+   if( nstr == NULL || strlen(nstr) == 0 ){ XBell(XtDisplay(w),100); EXRETURN; }
 
    /* see if new string is already in the list */
 
@@ -2825,7 +2855,7 @@ void MCW_stradd_CB( Widget w, XtPointer client_data, XtPointer call_data )
       XmListSelectPos( cd->wchoice , 0 , False ) ; /* select it */
    }
 
-   myXtFree(nstr) ; return ;
+   myXtFree(nstr) ; EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2843,6 +2873,8 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
    static MCW_choose_cbs cbs ;  /* to be passed back to user */
    static int list_dbclick_use = LIST_DBCLICK_UNKNOWN ;
    Boolean clear ;
+
+ENTRY("MCW_choose_CB") ;
 
    /*--- set up what to do for list double clicks ---*/
 
@@ -2865,7 +2897,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
    if( clear && cd->ctype != mcwCT_string ){
       XBell( XtDisplay(cd->wpop) , 100 ) ;
       RWC_XtPopdown( cd->wpop ) ;
-      return ;
+      EXRETURN ;
    }
 
    switch( cd->ctype ){
@@ -2874,7 +2906,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
          XBell( XtDisplay(w) , 100 ) ;
          fprintf(stderr,
                  "\n*** unknown choose type=%d from %s\n" , cd->ctype , wname ) ;
-         return ;
+         EXRETURN ;
 
       case mcwCT_ovcolor:{                       /* color chooser */
          Boolean done , call ;
@@ -2900,7 +2932,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
 #endif
             if( !done ) MCW_invert_widget(w) ;              /* flash */
          }
-         return ;
+         EXRETURN ;
       }
 
       case mcwCT_integer:{                       /* integer chooser */
@@ -2941,7 +2973,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
                   cbs.nilist = pos_count ;             /* number of choices */
                   cbs.ilist  = pos_list ;              /* holds all choices */
                } else {
-                  return ;  /* no choice made */
+                  EXRETURN ;  /* no choice made */
                }
             }
 
@@ -2958,7 +2990,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
             myXtFree(pos_list) ;
          }
-         return ;
+         EXRETURN ;
       }
 
       case mcwCT_string:{                 /* string chooser */
@@ -2966,7 +2998,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
          /* special action: "Clear" button */
 
-         if( clear ){ TEXT_SET( cd->wchoice , "" ) ; return ; }
+         if( clear ){ TEXT_SET( cd->wchoice , "" ) ; EXRETURN ; }
 
          /* find out if called by the text field itself */
 
@@ -3000,7 +3032,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
             myXtFree( cbs.cval ) ; cbs.cval = NULL ;
          }
-         return ;
+         EXRETURN ;
       }
 
       case mcwCT_timeseries:{                       /* timeseries chooser */
@@ -3056,7 +3088,7 @@ printf("MCW_choose_CB: queryed list for choice\n") ;
                 myXtFree(pos_list) ;
             } else {  /* no choice made --> nothing to do! */
                 if( plot ) XBell( XtDisplay(w) , 100 ) ;
-                return ;
+                EXRETURN ;
             }
 
 #ifdef BBOX_DEBUG
@@ -3083,7 +3115,7 @@ printf("MCW_choose_CB: calling user supplied routine\n") ;
                                     MCW_choose_cbs * , &cbs         ) ;
 #endif
                if( flash ) MCW_invert_widget(w) ;              /* flash */
-               return ;
+               EXRETURN ;
             }
 
             if( plot ){
@@ -3097,12 +3129,12 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
 #ifdef DONT_USE_COXPLOT
                (void) MCW_popup_message( w , "Plot not yet\nimplemented." ,
                                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
-               return ;
+               EXRETURN ;
 #else
                if( fim->kind != MRI_float ){
                   (void) MCW_popup_message( w , "Can't plot\nnon-float data!" ,
                                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
-                  return ;
+                  EXRETURN ;
                } else {
                   float ** yar , * far = MRI_FLOAT_PTR(fim) ;
                   char ** nar=NULL ;
@@ -3130,14 +3162,16 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
                      free(nar) ;
                   }
                   free(yar) ;
-                  return ;
+                  EXRETURN ;
                }
 #endif /* DONT_USE_COXPLOT */
             }
 
          }
-         return ;
+         EXRETURN ;
       }
 
    }  /* end of switch on ctype */
+
+   EXRETURN ;  /* unreachable */
 }
