@@ -375,6 +375,11 @@ extern void plotpak_srface( float *, float *, float *, int,int, float,float ) ;
 extern void plotpak_getset( float *xo1,float *xo2 , float *yo1,float *yo2 ,
                             float *xs1,float *xs2 , float *ys1,float *ys2  ) ;
 
+/* 20 Nov 2001: routines to convert between user and memplot coords */
+
+extern void plotpak_zzphys( float x1 , float y1 , float *x2 , float *y2 ) ;
+extern void plotpak_unphys( float x1 , float y1 , float *x2 , float *y2 ) ;
+
 /*----- Commons from PLOTPAK -----*/
 
 #ifdef PLOTPAK_COMMONS

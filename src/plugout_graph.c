@@ -1,43 +1,18 @@
 /******************************************************************
-  Sample plugout program to send AFNI commands that drive the AFNI
-  interface remotely.  Current commands [07 Nov 2001] are
-
-    RESCAN_THIS  Q
-    SET_SESSION  Q.dirname
-    SET_ANATOMY  Q.prefix
-    SET_FUNCTION Q.prefix
-    OPEN_WINDOW  Q.windowname
-    CLOSE_WINDOW Q.windowname
-    QUIT
-
-  where "Q" is the letter for the AFNI controller you are
-  driving (Q=A,B,C,D, or E).  "Q." can be omitted, in which
-  case you are driving controller A.  Other parameters are:
-
-    dirname    = name of directory that AFNI should switch to
-                   (must already be read into AFNI)
-    prefix     = prefix part of dataset name that AFNI should
-                   switch to (must be in the current session)
-    windowname = axialimage OR coronalimage OR sagittalimage
-                 OR axialgraph OR coronalgraph OR sagittalgraph
-
-  Doing OPEN_WINDOW or CLOSE_WINDOW on just the single letter Q
-  will open or close controller Q itself.  However, you cannot
-  use CLOSE_WINDOW to kill AFNI - it won't close the last
-  controller window.
-
+  Sample plugout program to send AFNI graphing commands.
 *******************************************************************/
 
 /***** Header file for communication routines *****/
 
 #include "thd_iochan.h"
+#include <math.h>
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/
 
 static char afni_host[128] = "." ;
 static char afni_name[128] = "\0" ;
-static int  afni_port      = 8099 ;
+static int  afni_port      = 8777 ;
 static int  afni_verbose   = 0 ;  /* print out debug info? */
 
 /***** Prototype *****/
@@ -57,9 +32,8 @@ int main( int argc , char * argv[] )
    /***** See if the pitiful user wants help *****/
 
    if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
-      printf("Usage: plugout_drive [-host name] [-v]\n"
-             "This program connects to AFNI and sends commands\n"
-             "that the user types in over to AFNI to be executed.\n"
+      printf("Usage: plugout_graph [-host name] [-v]\n"
+             "This program connects to AFNI and sends graphing commands.\n"
              "Options:\n"
              "  -host name  Means to connect to AFNI running on the\n"
              "                computer 'name' using TCP/IP.  The default is to\n"
@@ -129,12 +103,12 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
-   /***** Loop and check in with AFNI every 100 msec *****/
+   /***** Loop and check in with AFNI every 33 msec *****/
 
    while( 1 ){
       ii = afni_io() ;        /* commune with AFNI  */
       if( ii < 0 ) exit(0) ;  /* bad trip? then die */
-      iochan_sleep(100) ;     /* perchance to dream */
+      iochan_sleep(33) ;      /* perchance to dream */
    }
 
 }
@@ -195,12 +169,12 @@ int afni_io(void)
       char afni_iocname[128] ;           /* will hold name of I/O channel */
 
       /** Note that the control channel is always a
-          TCP/IP channel to port # 7955 on the AFNI host system **/
+          TCP/IP channel to port # 7957 on the AFNI host system **/
 
       if( strcmp(afni_host,".") == 0 )
-         sprintf( afni_iocname , "tcp:%s:7955" , "localhost" ); /* make name */
+         sprintf( afni_iocname , "tcp:%s:7957" , "localhost" ); /* make name */
       else
-         sprintf( afni_iocname , "tcp:%s:7955" , afni_host ) ;  /* make name */
+         sprintf( afni_iocname , "tcp:%s:7957" , afni_host ) ;  /* make name */
 
       afni_ioc = iochan_init( afni_iocname , "create" ) ;    /* create it */
       if( afni_ioc == NULL ){
@@ -227,7 +201,7 @@ int afni_io(void)
 
       if( ii < 0 ){
          fprintf(stderr,"** Control channel to AFNI failed!\a\n") ;
-         IOCHAN_CLOSE(afni_ioc) ;
+         iochan_set_cutoff(afni_ioc) ; IOCHAN_CLOSE(afni_ioc) ;
          afni_mode = 0 ;
          return -1 ;
       } else if( ii > 0 ){
@@ -268,10 +242,11 @@ int afni_io(void)
             * PONAME means 'use this string for informative messages';
             * IOCHAN means 'use this I/O channel from now on'. **/
 
-      if( afni_name[0] == '\0' ) strcpy(afni_name,"ManOfLaMancha") ;
+      if( afni_name[0] == '\0' ) strcpy(afni_name,"TambourineMan") ;
 
       sprintf( afni_buf , "PONAME %s\n"
-                          "IOCHAN %s" ,
+                          "IOCHAN %s\n"
+                          "NO_ACK"      ,
                afni_name , afni_iocname ) ;
 
       if( afni_verbose )
@@ -286,22 +261,15 @@ int afni_io(void)
 
       if( ii < 0 ){
          fprintf(stderr,"** Transmission of control data to AFNI failed!\a\n") ;
-         IOCHAN_CLOSE(afni_ioc) ;
+         iochan_set_cutoff(afni_ioc) ; IOCHAN_CLOSE(afni_ioc) ;
          afni_mode = 0 ;
          return -1 ;
 
       } else {
 
-         /** wait for the acknowledgment from AFNI, then close channel **/
+         /** close control channel **/
 
-         ii = iochan_recvall( afni_ioc , afni_buf , POACKSIZE ) ;
-         IOCHAN_CLOSE(afni_ioc) ;
-
-         if( ii < 0 || strncmp(afni_buf,"OK!",3) != 0 ){
-            fprintf(stderr,"** AFNI didn't like control information!\a\n") ;
-            afni_mode = 0 ;
-            return -1 ;
-         }
+         iochan_set_cutoff(afni_ioc) ; IOCHAN_CLOSE(afni_ioc) ;
 
          /** now open data channel to AFNI **/
 
@@ -327,7 +295,7 @@ int afni_io(void)
       if( ii < 0 ){
          fprintf(stderr,
                  "** AFNI data channel aborted before any data was sent!\a\n") ;
-         IOCHAN_CLOSE( afni_ioc ) ;
+         iochan_set_cutoff(afni_ioc) ;IOCHAN_CLOSE(afni_ioc) ;
          afni_mode = 0 ;
          return -1 ;
       } else if( ii > 0 ){                     /* ready to go! */
@@ -343,32 +311,54 @@ int afni_io(void)
    /***** See if the user wants to drive AFNI.               *****/
 
    if( afni_mode == AFNI_CONTINUE_MODE ){
-      char cmd_buf[200] , afni_buf[256];
+      static int ncom=-1 , nn ;
+      static double f=2.0 ;
+      double y1,y2,y3 , t ;
+      char afni_buf[256];
 
-      /* get user input */
+      switch( ncom ){
 
-      printf("Enter command: ") ; fflush(stdout) ; fgets(cmd_buf,200,stdin) ;
+         case -1:   /* first time in only */
+            strcpy(afni_buf,"DRIVE_AFNI OPEN_GRAPH_XY bob '' 0 80 '' 3 -1.5 1.5") ;
+            srand48((long)time(NULL)) ;
+            ncom++ ;
+         break ;
 
-      /* make command to AFNI */
+         case 801:
+            strcpy(afni_buf,"DRIVE_AFNI CLEAR_GRAPH_XY bob") ;
+            ncom = 0 ;
+         break ;
 
-      strcpy(afni_buf,"DRIVE_AFNI ") ;
-      strcat(afni_buf,cmd_buf) ;
+         default:
+            t  = 0.1*ncom ; ncom++ ;
+            y1 = cos(t) ;
+            y2 = cos(f*t) ;
+            y3 = y2+0.2*sin(t/7.0)+0.2*(drand48()-0.5) ;
+            sprintf(afni_buf,"DRIVE_AFNI ADDTO_GRAPH_XY bob %g %g %g %g",t,y1,y2,y3) ;
+#if 1
+            f += 0.01*(drand48()-0.5) ;
+#endif
+         break ;
+      }
 
       /* send command to AFNI */
 
-      ii = iochan_sendall( afni_ioc , afni_buf , strlen(afni_buf)+1 ) ;
-
-      if( ii > 0 ){  /* send was OK; wait for acknowledgment */
-         ii = iochan_recvall( afni_ioc , afni_buf , POACKSIZE ) ;
-         if( ii > 0 )
-           printf("++ AFNI response string: %s\n",afni_buf) ;
-      }
+      nn = strlen(afni_buf)+1 ;
+      ii = iochan_sendall( afni_ioc , afni_buf , nn ) ;
 
       if( ii < 0 ){   /* send or acknowledgment failed */
-         fprintf(stderr,"** AFNI data channel aborted!\a\n") ;
-         IOCHAN_CLOSE(afni_ioc) ;
+         char *sss ;
+         fprintf(stderr,"** AFNI data channel failed!\a\n") ;
+         sss = iochan_error_string() ;
+         if( sss != NULL ) fprintf(stderr,"** %s\n",sss) ;
+         iochan_set_cutoff(afni_ioc) ; IOCHAN_CLOSE(afni_ioc) ;
          afni_mode = 0 ;
          return -1 ;
+      } else if( ii < nn ){
+         char *sss ;
+         fprintf(stderr,"++ AFNI data channel full - can't send data!\n") ;
+         sss = iochan_error_string() ;
+         if( sss != NULL ) fprintf(stderr,"++ %s\n",sss) ;
       }
       return 0 ;
    }

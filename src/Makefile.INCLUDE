@@ -1157,6 +1157,10 @@ plugout_drive:plugout_drive.o
 	$(RM) $@
 	$(CC) -o plugout_drive plugout_drive.o $(LFLAGS) $(LLIBS)
 
+plugout_graph:plugout_graph.o
+	$(RM) $@
+	$(CC) -o plugout_graph plugout_graph.o $(LFLAGS) $(LLIBS)
+
 ######################################################################
 # Stuff that was originally in Fortran
 

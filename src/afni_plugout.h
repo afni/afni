@@ -16,7 +16,8 @@ extern int AFNI_have_plugouts( void ) ;   /* 07 Nov 2001 */
 #include <ctype.h>
 #include <unistd.h>
 
-#define TCP_PLUGOUT_CONTROL "tcp:*:7955"   /* TCP/IP control channel for plugouts */
+#define NUM_TCP_CONTROL  5     /* 21 Nov 2001: number of TCP/IP control ports */
+#define BASE_TCP_CONTROL 7955  /* control via ports number 7955 .. 7959       */
 
 #define POACKSIZE       4   /* size of all plugout acknowledgment strings */
 

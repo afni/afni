@@ -7,6 +7,10 @@
 #include "thd_iochan.h"
 #include <errno.h>
 
+static char *error_string=NULL ; /* 21 Nov 2001 */
+
+char *iochan_error_string(void){ return error_string; }
+
 /****************************************************************
   Routines to manipulate IOCHANs, something RWCox invented as
   an abstraction of socket or shmem inter-process communication.
@@ -509,13 +513,22 @@ IOCHAN * iochan_init( char * name , char * mode )
 
    /** check if inputs are reasonable **/
 
-   if( name == NULL || strlen(name) < 6 || strlen(name) > 127 ) return NULL ;
-   if( mode == NULL )                                           return NULL ;
+   error_string = NULL ;
+
+   if( name == NULL || strlen(name) < 6 || strlen(name) > 127 ){
+      error_string = "iochan_init: bad name" ; return NULL ;
+   }
+
+   if( mode == NULL ){
+      error_string = "iochan_init: bad mode" ; return NULL ;
+   }
 
    do_create = (strcmp(mode,"create") == 0 || strcmp(mode,"w") == 0) ;
    do_accept = (strcmp(mode,"accept") == 0 || strcmp(mode,"r") == 0) ;
 
-   if( !do_create && !do_accept ) return NULL ;
+   if( !do_create && !do_accept ){
+      error_string = "iochan_init: bad mode" ; return NULL ;
+   }
 
 #ifdef DEBUG
 fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
@@ -530,14 +543,18 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
       /** find "host" substring **/
 
       hend = strstr( name+4 , ":" ) ;
-      if( hend == NULL || hend-name > 128 ) return NULL ;
+      if( hend == NULL || hend-name > 128 ){
+         error_string = "iochan_init: bad name" ; return NULL ;
+      }
       for( ii=4 ; name[ii] != ':' ; ii++ ) host[ii-4] = name[ii] ;
       host[ii-4] = '\0' ;
 
       /** get "port" number **/
 
       port = strtol( name+ii+1 , NULL , 10 ) ;
-      if( port <= 0 ) return NULL ;
+      if( port <= 0 ){
+         error_string = "iochan_init: bad port" ; return NULL ;
+      }
 
       /** initialize IOCHAN **/
 
@@ -555,7 +572,10 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
       if( do_accept ){
          ioc->whoami = ACCEPTOR ;                         /* 24 June 1997 */
          ioc->id = tcp_listen( port ) ;                   /* set up to listen  */
-         if( ioc->id < 0 ){ free(ioc) ; return NULL ; }   /* error? must die!  */
+         if( ioc->id < 0 ){                               /* error? must die!  */
+            error_string = "iochan_init: tcp_listen fails" ;
+            free(ioc) ; return NULL ;
+         }
          ioc->bad = TCP_WAIT_ACCEPT ;                     /* not connected yet */
          ii = tcp_readcheck(ioc->id,1) ;                  /* see if ready      */
          if( ii > 0 ){                                    /* if socket  ready  */
@@ -575,7 +595,10 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
          struct hostent * hostp ;
          ioc->whoami = CREATOR ;                           /* 24 June 1997 */
          hostp = gethostbyname(host) ;                     /* lookup host on net */
-         if( hostp == NULL ){ free(ioc) ; return NULL ; }  /* fails? must die!   */
+         if( hostp == NULL ){                              /* fails? must die!   */
+             error_string = "iochan_init: gethostbyname fails" ;
+             free(ioc) ; return NULL ;
+         }
          ioc->id  = tcp_connect( host , port ) ;           /* connect to host    */
          ioc->bad = (ioc->id < 0) ? TCP_WAIT_CONNECT : 0 ; /* fails? must wait   */
          strcpy( ioc->name , host ) ;                      /* save the host name */
@@ -593,14 +616,18 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
       /** get keystring **/
 
       kend = strstr( name+4 , ":" ) ;
-      if( kend == NULL || kend-name > 128 ) return NULL ;
+      if( kend == NULL || kend-name > 128 ){
+         error_string = "iochan_init: bad name" ; return NULL ;
+      }
       for( ii=4 ; name[ii] != ':' ; ii++ ) key[ii-4] = name[ii] ;
       key[ii-4] = '\0' ;
 
       /** get size **/
 
       size = strtol( name+ii+1 , &kend , 10 ) ;
-      if( size < 0 || (size == 0 && do_create) ) return NULL ;
+      if( size < 0 || (size == 0 && do_create) ){
+         error_string = "iochan_init: bad size" ; return NULL ;
+      }
            if( *kend == 'K' || *kend == 'k' ){ size *= 1024      ; kend++ ; }
       else if( *kend == 'M' || *kend == 'm' ){ size *= 1024*1024 ; kend++ ; }
 
@@ -608,7 +635,9 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
 
       if( *kend == '+' ){
          size2 = strtol( kend+1 , &kend , 10 ) ;
-         if( size2 < 0 || (size2 == 0 && do_create) ) return NULL ;
+         if( size2 < 0 || (size2 == 0 && do_create) ){
+            error_string = "iochan_init: bad size2" ; return NULL ;
+         }
               if( *kend == 'K' || *kend == 'k' ){ size2 *= 1024      ; kend++ ; }
          else if( *kend == 'M' || *kend == 'm' ){ size2 *= 1024*1024 ; kend++ ; }
 
@@ -629,7 +658,10 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
 
       if( shm2[0] != '\0' ){
          ioc->ioc2 = iochan_init( shm2 , mode ) ;
-         if( ioc->ioc2 == NULL ){ free(ioc) ; return NULL ; }
+         if( ioc->ioc2 == NULL ){
+            error_string = "iochan_init: can't open shm2" ;
+            free(ioc) ; return NULL ;
+         }
 #ifdef DEBUG
          fprintf(stderr,"iochan_init: input=%s shm2=%s\n",name,shm2) ;
 #endif
@@ -653,6 +685,7 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
             char * bbb ;
             bbb = shm_attach( ioc->id ) ;                        /* attach it     */
             if( bbb == NULL ){                                   /* can't? quit   */
+               error_string = "iochan_init: shm_attach fails" ;
                iochan_close(ioc) ; return NULL ;
             }
             ioc->bstart  = (int *) bbb ;                         /* set start,    */
@@ -660,6 +693,7 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
             ioc->buf     = bbb + 2*sizeof(int) ;                 /* after markers */
             ioc->bufsize = shm_size(ioc->id) - 2*sizeof(int) ;   /* get its size  */
             if( ioc->bufsize <= 0 ){                             /* can't? quit   */
+               error_string = "iochan_init: bufsize < 0" ;
                iochan_close(ioc) ; return NULL ;
             }
             ioc->bad = 0 ;                                       /* mark ready    */
@@ -675,10 +709,12 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
          size    = size + 1 ;                                /* extra byte  */
          ioc->id = shm_create( key , size+2*sizeof(int) ) ;  /* create it   */
          if( ioc->id < 0 ){                                  /* can't? quit */
+            error_string = "iochan_init: shm_create fails" ;
             iochan_close(ioc->ioc2) ; free(ioc) ; return NULL ;
          }
          bbb = shm_attach( ioc->id ) ;                       /* attach it   */
          if( bbb == NULL ){                                  /* can't? quit */
+            error_string = "iochan_init: shm_attach fails" ;
             iochan_close(ioc) ; free(ioc) ; return NULL ;
          }
          ioc->bstart    = (int *) bbb ;                      /* init start, */
@@ -725,7 +761,11 @@ int iochan_goodcheck( IOCHAN * ioc , int msec )
 
    /** check inputs for OK-osity **/
 
-   if( ioc == NULL ) return -1 ;
+   error_string = NULL ;
+
+   if( ioc == NULL ){
+      error_string = "iochan_goodcheck: bad input" ; return -1 ;
+   }
 
    /** if it was good before, then check if it is still good **/
 
@@ -740,8 +780,11 @@ int iochan_goodcheck( IOCHAN * ioc , int msec )
             ich = shm_alivecheck(ioc->ioc2->id) ;
       }
 
-      if( ich == 0 ) return -1 ;
-      else           return  1 ;
+      if( ich == 0 ){
+         error_string = "iochan_goodcheck: no longer alive" ; return -1 ;
+      }
+      else
+         return 1 ;
    }
 
    /** wasn't good before, so check if that condition has changed **/
@@ -877,6 +920,8 @@ int iochan_readcheck( IOCHAN * ioc , int msec )
 
    /** check if the IOCHAN is good **/
 
+   error_string = NULL ;
+
    ii = iochan_goodcheck(ioc,0) ;
    if( ii == -1 ) return -1 ;            /* some error */
    if( ii == 0  ){                       /* not good yet */
@@ -888,7 +933,9 @@ int iochan_readcheck( IOCHAN * ioc , int msec )
 
    if( ioc->type == TCP_IOCHAN ){
       ii = tcp_alivecheck( ioc->id ) ; if( !ii ) return -1 ;
-      return tcp_readcheck( ioc->id , msec ) ;
+      ii = tcp_readcheck( ioc->id , msec ) ;
+      if( ii < 0 ) error_string = "iochan_readcheck: socket is bad" ;
+      return ii ;
    }
 
    /** shm: ==> must loop and wait ourselves **/
@@ -960,9 +1007,11 @@ int iochan_clearcheck( IOCHAN * ioc , int msec )
 
    /** check if the IOCHAN is good **/
 
+   error_string = NULL ;
+
    ii = iochan_goodcheck(ioc,0) ;
    if( ii == -1 ) return -1 ;            /* some error */
-   if( ii == 0  ) return  1 ;            /* not good, so is no data */
+   if( ii == 0  ) return  1 ;            /* not good yet, so can be no data */
 
    /** tcp: ==> use the Unix "select" mechanism **/
 
@@ -1007,16 +1056,22 @@ int iochan_writecheck( IOCHAN * ioc , int msec )
 
    /** check if the IOCHAN is good **/
 
+   error_string = NULL ;
+
    ii = iochan_goodcheck(ioc,0) ;
    if( ii == -1 ) return -1 ;            /* some error */
    if( ii == 0  ){                       /* not good yet */
       ii = iochan_goodcheck(ioc,msec) ;  /* so wait for it to get good */
-      if( ii != 1 ) return 0 ;           /* if still not good, exit */
+      if( ii != 1 ) return ii ;          /* if still not good, exit */
    }
 
    /** tcp: ==> just use the Unix "select" mechanism **/
 
-   if( ioc->type == TCP_IOCHAN ) return tcp_writecheck( ioc->id , msec ) ;
+   if( ioc->type == TCP_IOCHAN ){
+      ii = tcp_writecheck( ioc->id , msec ) ;
+      if( ii == -1 ) error_string = "iochan_writecheck: socket not ready" ;
+      return ii ;
+   }
 
    /** shm: ==> must loop and wait ourselves **/
 
@@ -1049,6 +1104,7 @@ int iochan_writecheck( IOCHAN * ioc , int msec )
 /*----------------------------------------------------------------------------
   Send (at most) nbytes of data from buffer down the IOCHAN.  Return value is
   the number of bytes actually sent, or is -1 if some error occurs.
+  (Zero bytes might be sent under some circumstances.)
 
   Tcp: IOCHANs use blocking sends, so that all the data should be
        sent properly unless the connection to the other end fails for some
@@ -1062,14 +1118,33 @@ int iochan_writecheck( IOCHAN * ioc , int msec )
 
 int iochan_send( IOCHAN * ioc , char * buffer , int nbytes )
 {
+   int ii ;
+
    /** check for reasonable inputs **/
 
+   error_string = NULL ;
+
    if( ioc    == NULL || IOC_BAD(ioc) != 0 ||
-       buffer == NULL || nbytes < 0          ) return -1 ;
+       buffer == NULL || nbytes < 0          ){
+
+     error_string = "iochan_send: bad inputs" ; return -1 ;
+   }
 
    if( nbytes == 0 ) return 0 ;
-   if( iochan_goodcheck(ioc,0)  != 1 ) return -1 ;
-   if( iochan_writecheck(ioc,1) <= 0 ) return -1 ;
+
+   ii = iochan_goodcheck(ioc,0) ;
+   if( ii != 1 ){
+      if( error_string == NULL )
+         error_string = "iochan_send: iochan_goodcheck fails" ;
+      return ii ;
+   }
+
+   ii = iochan_writecheck(ioc,1) ;
+   if( ii <= 0 ){
+      if( error_string == NULL )
+         error_string = "iochan_send: iochan_writecheck fails" ;
+      return ii ;
+   }
 
    /** tcp: ==> just use send **/
 
@@ -1079,7 +1154,7 @@ int iochan_send( IOCHAN * ioc , char * buffer , int nbytes )
       if( ioc->sendsize <= 0 || nbytes <= ioc->sendsize ){
          int nsent = send( ioc->id , buffer , nbytes , 0 ) ;
          if( nsent == -1 ) PERROR("tcp send") ;
-         if( nsent == 0 ) nsent = -1 ;
+         if( nsent < 0 ) error_string = "iochan_send: tcp send fails" ;
          return nsent ;
       } else {
          int nsent , ntosend , ntot = 0 ;
@@ -1088,7 +1163,10 @@ int iochan_send( IOCHAN * ioc , char * buffer , int nbytes )
             ntosend = MIN( ioc->sendsize , nbytes-ntot ) ;
             nsent   = send( ioc->id , buffer+ntot , ntosend , 0 ) ;
             if( nsent == -1 ) PERROR("tcp send") ;
-            if( nsent <= 0 ) return ((ntot>0) ? ntot : -1) ;
+            if( nsent <= 0 ){
+               error_string = "iochan_send: tcp send fails" ;
+               return ((ntot>0) ? ntot : nsent) ;
+            }
             ntot += nsent ;
          } while( ntot < nbytes ) ;
          return ntot ;
@@ -1148,16 +1226,25 @@ int iochan_sendall( IOCHAN * ioc , char * buffer , int nbytes )
 {
    int ii , ntot=0 , dms=0 ;
 
+   error_string = NULL ;
+
    /** check for reasonable inputs **/
 
    if( ioc    == NULL || IOC_BAD(ioc) != 0 ||
-       buffer == NULL || nbytes < 0          ) return -1 ;
+       buffer == NULL || nbytes < 0          ){
+
+      error_string = "iochan_sendall: bad inputs" ; return -1 ;
+   }
 
    if( nbytes == 0 ) return 0 ;
 
    while(1){
       ii = iochan_send( ioc , buffer+ntot , nbytes-ntot ); /* send what's left  */
-      if( ii == -1 ) return -1 ;                           /* an error!?        */
+      if( ii == -1 ){                                      /* an error!?        */
+         if( error_string == NULL )
+            error_string = "iochan_sendall: iochan_send fails" ;
+         return -1 ;
+      }
       ntot += ii ;                                         /* total sent so far */
       if( ntot == nbytes ) return nbytes ;                 /* all done!?        */
       dms = NEXTDMS(dms) ; iochan_sleep(dms) ;             /* wait a while      */
@@ -1176,8 +1263,13 @@ int iochan_recv( IOCHAN * ioc , char * buffer , int nbytes )
 {
    /** check for reasonable inputs **/
 
+   error_string = NULL ;
+
    if( ioc    == NULL || IOC_BAD(ioc) != 0 ||
-       buffer == NULL || nbytes < 0          ) return -1 ;
+       buffer == NULL || nbytes < 0          ){
+
+      error_string = "iochan_recv: bad inputs" ; return -1 ;
+   }
 
    if( nbytes == 0 ) return 0 ;
    if( iochan_goodcheck(ioc,0) != 1 ) return -1 ;
@@ -1186,7 +1278,10 @@ int iochan_recv( IOCHAN * ioc , char * buffer , int nbytes )
 
    if( ioc->type == TCP_IOCHAN ){
       int ii = tcp_recv( ioc->id , buffer , nbytes , 0 ) ;
-      if( ii == -1 ) PERROR("tcp recv") ;
+      if( ii == -1 ){
+         PERROR("tcp recv") ;
+         error_string = "iochan_recv: tcp recv fails" ;
+      }
       return ii ;
    }
 
@@ -1237,10 +1332,15 @@ int iochan_recvloop( IOCHAN * ioc , char * buffer , int nbytes )
 {
    int jj , nbuf=0 ;
 
+   error_string = NULL ;
+
    /** check for reasonable inputs **/
 
    if( ioc    == NULL || IOC_BAD(ioc) != 0 ||
-       buffer == NULL || nbytes < 0          ) return -1 ;
+       buffer == NULL || nbytes < 0          ){
+
+      error_string = "iochan_recvloop: bad inputs" ; return -1 ;
+   }
 
    if( iochan_goodcheck(ioc,0) != 1 ) return -1 ;
 
@@ -1271,8 +1371,13 @@ int iochan_recvall( IOCHAN * ioc , char * buffer , int nbytes )
 
    /** check for reasonable inputs **/
 
+   error_string = NULL ;
+
    if( ioc    == NULL || IOC_BAD(ioc) != 0 ||
-       buffer == NULL || nbytes < 0          ) return -1 ;
+       buffer == NULL || nbytes < 0          ){
+
+      error_string = "iochan_recvall: bad inputs" ; return -1 ;
+   }
 
    if( nbytes == 0 ) return 0 ;
 
@@ -1381,7 +1486,7 @@ int iochan_ctl( IOCHAN * ioc , int cmd , int arg )
 static IOCHAN *ioc_kill_1 = NULL ;
 static IOCHAN *ioc_kill_2 = NULL ;
 
-static void iochan_fork_sigfunc(int sig)
+static void iochan_fork_sigfunc(int sig)  /* for when the child dies */
 {
    switch( sig ){
       case SIGTERM:
@@ -1405,8 +1510,8 @@ pid_t iochan_fork_relay( char * name_in , char * name_out )
 {
    pid_t ppid = (pid_t)(-1) ;
    int jj , kk , nbuf ;
-#define MBUF 1048576
-   char * buf ;
+#define MBUF 1048576           /* 1 Megabyte */
+   char * buf , *sss ;
    IOCHAN *ioc_in, *ioc_out ;
 
    if( name_in == NULL || name_out == NULL ) return ppid ;
@@ -1436,6 +1541,8 @@ pid_t iochan_fork_relay( char * name_in , char * name_out )
    if( ioc_out == NULL ){                         /* failed?    */
       iochan_close(ioc_in) ; _exit(1) ;
    }
+
+   /* set signal handler to deal with sudden death situations */
 
    ioc_kill_1 = ioc_in  ;
    ioc_kill_2 = ioc_out ;
@@ -1469,6 +1576,8 @@ pid_t iochan_fork_relay( char * name_in , char * name_out )
       if( jj < 0 ){                                   /* bad news?  */
          if( errno ) perror( "forked readcheck" ) ;
          else        fprintf(stderr,"forked readcheck abort: jj=%d!\n",jj) ;
+         sss = iochan_error_string() ;
+         if( sss != NULL ) fprintf(stderr," ** %s\n",sss) ;
          break ;
       }
       if( jj == 0 ) continue ;                        /* no news    */
@@ -1486,7 +1595,7 @@ pid_t iochan_fork_relay( char * name_in , char * name_out )
          int qq ;
          fprintf(stderr,"forked writecheck repeat:") ;
          for( qq=0 ; qq < 1000 ; qq++ ){
-           if( qq%10 == 0 ) fprintf(stderr," %d",qq+1) ;
+           if( qq%50 == 0 ) fprintf(stderr," %d",qq+1) ;
            kk = iochan_writecheck( ioc_out , 2 ) ;
            if( kk != 0 ) break ;
          }
@@ -1495,12 +1604,16 @@ pid_t iochan_fork_relay( char * name_in , char * name_out )
       if( kk <= 0 ){
          if( errno ) perror( "forked writecheck" ) ;
          else        fprintf(stderr,"forked writecheck abort: kk=%d!\n",kk) ;
+         sss = iochan_error_string() ;
+         if( sss != NULL ) fprintf(stderr," ** %s\n",sss) ;
          break ;
       }
       kk = iochan_sendall( ioc_out , buf , nbuf ) ;   /* send data! */
       if( kk < 0 ){                                   /* bad news?  */
          if( errno ) perror( "forked sendall" ) ;
          else        fprintf(stderr,"forked sendall abort: kk=%d!\n",kk) ;
+         sss = iochan_error_string() ;
+         if( sss != NULL ) fprintf(stderr," ** %s\n",sss) ;
          break ;
       }
 

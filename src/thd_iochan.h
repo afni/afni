@@ -103,6 +103,8 @@ extern int  tcp_listen( int ) ;
 extern int  tcp_alivecheck( int ) ;
 extern void tcp_set_cutoff( int ) ;
 
+extern char *iochan_error_string(void) ;  /* 21 Nov 2001 */
+
 #undef USE_TCP_RECV
 #ifdef USE_TCP_RECV
    extern int tcp_recv( int , void * , int , unsigned int ) ;

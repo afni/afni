@@ -3331,3 +3331,19 @@
  * Modified coxplot/plot_strip.c to add an X at the end of each
       evolving graph.
  * Modified afni_driver.c to have command SET_GRAPH_GEOM.
+
+20 Nov 2001
+ * Modified coxplot/plot_cox.c to have functions to convert between
+      user and memplot coordinates.
+ * Modified afni_driver.c to remove debug print statements, and to
+      add some comments.
+
+21 Nov 2001
+ * Modified thd_iochan.[ch] to set an error string in some functions.
+      This can be retrieved with iochan_error_string().
+ * Modified afni_plugout.[ch] to listen for connections on socket ports
+      7955..7959.
+ * Modified afni_plugout.[ch] to break input command strings from plugouts
+      into substrings (separated by NULs) and execute them all.  This will
+      let AFNI catch up when a plugout races ahead during a dataset read
+      or a window resize, for example.
