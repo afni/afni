@@ -333,6 +333,7 @@
           SUMA_Make_Edge_List, SUMA_FreeSurfer_Read
       - wrote functions with original names to call engines with debug
         flags set
-  * modified SUMA_3dVol2Surf.c to call the new SUMA_LoadSpec_eng()  (-> v3.5)
-  * modified SUMA_3dSurf2Vol.c to call the new SUMA_LoadSpec_eng()  (-> v2.1)
+  * modified SUMA_3dVol2Surf.c to call the new SUMA_LoadSpec_eng()   (-> v3.5)
+  * modified SUMA_3dSurf2Vol.c to call the new SUMA_LoadSpec_eng()   (-> v2.1)
+  * modified rickr/r_idisp.c to handle new ALLOW_DATASET_VLIST macro (-> v1.3)
 

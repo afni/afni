@@ -5,6 +5,9 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 1.3   2003 October 20
+ *   - incorporate ALLOW_DATASET_VLIST check for r_idisp_THD_3dim_dataset
+ *
  * 1.2   2003 July 27
  *   - apply CHECK_NULL_STR() to questionable string prints
  *----------------------------------------------------------------------
@@ -274,8 +277,10 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
             "   -------------------\n"
             "   anat_parent  : %p\n"
             "   stats        : %p\n"
+#ifdef ALLOW_DATASET_VLIST
             "   pts          : %p\n"
             "   pts_original : %d\n"
+#endif
             "   death_mark   : %d\n"
             "   -------------------\n"
 #ifndef OMIT_DATASET_IDCODES
@@ -303,8 +308,11 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
 	    dp, dp->type, dp->view_type, dp->func_type,
             dp->dblk, dp->daxes, dp->wod_daxes, dp->wod_flag,
             dp->taxis, dp->markers, dp->warp_parent, dp->warp, dp->vox_warp,
-	    dp->anat_parent, dp->stats, dp->pts,
-            dp->pts_original, dp->death_mark,
+	    dp->anat_parent, dp->stats,
+#ifdef ALLOW_DATASET_VLIST
+	    dp->pts, dp->pts_original,
+#endif
+	    dp->death_mark,
 #ifndef OMIT_DATASET_IDCODES
             CHECK_NULL_STR(dp->idcode.str),
 	    CHECK_NULL_STR(dp->idcode.date),
