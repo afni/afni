@@ -734,7 +734,7 @@ static void warp_corners( THD_3dim_dataset *inset,
        offsets, even if the input did.
 ----------------------------------------------------------------------------*/
 
-THD_3dim_dataset * THD_warp3D(
+INLINE THD_3dim_dataset * THD_warp3D(
                      THD_3dim_dataset *inset ,
                      void w_in2out(float,float,float,float *,float *,float *),
                      void w_out2in(float,float,float,float *,float *,float *),
@@ -929,4 +929,39 @@ ENTRY("THD_warp3D") ;
 
    THD_load_statistics( outset ) ;
    RETURN( outset ) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static THD_vecmat aff_out2in , aff_in2out ;
+
+static INLINE void afo2i( float  a,float  b,float  c,
+                          float *x,float *y,float *z )
+{
+   THD_fvec3 xxx , yyy ;
+   LOAD_FVEC3( xxx , a,b,c ) ;
+   yyy = VECMAT_VEC( aff_out2in , xxx ) ;
+   UNLOAD_FVEC3( yyy , *x , *y , *z ) ;
+}
+
+static INLINE void afi2o( float  a,float  b,float  c,
+                          float *x,float *y,float *z )
+{
+   THD_fvec3 xxx , yyy ;
+   LOAD_FVEC3( xxx , a,b,c ) ;
+   yyy = VECMAT_VEC( aff_in2out , xxx ) ;
+   UNLOAD_FVEC3( yyy , *x , *y , *z ) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_warp3D_affine(
+                     THD_3dim_dataset *inset ,
+                     THD_vecmat out2in ,
+                     float newdel , char *prefix , int zpad , int flag )
+{
+   aff_out2in = out2in ;
+   aff_in2out = INV_VECMAT(aff_out2in) ;
+
+   return THD_warp3D( inset , afi2o,afo2i , newdel,prefix,zpad,flag ) ;
 }

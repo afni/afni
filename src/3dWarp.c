@@ -255,10 +255,15 @@ int main( int argc , char * argv[] )
 
    /*-- do the heavy lifting --*/
 
-   outset = THD_warp3D( inset ,
-                        warp_dicom_in2out ,
-                        warp_dicom_out2in ,
-                        ddd_newgrid , prefix , zpad , 0 ) ;
+   if( !use_matvec ){
+     outset = THD_warp3D( inset ,
+                          warp_dicom_in2out ,
+                          warp_dicom_out2in ,
+                          ddd_newgrid , prefix , zpad , 0 ) ;
+   } else {
+     outset = THD_warp3D_affine( inset , dicom_out2in ,
+                                 ddd_newgrid , prefix , zpad , 0 ) ;
+   }
 
    if( outset == NULL ){
      fprintf(stderr,"** ERROR: can't perform warp for some reason!\n") ;
