@@ -3676,3 +3676,5 @@
 19 Apr 2002
  * Modified thd_automask.c to have fill in functions.
  * Modified 3dAutomask.c to have -fillin option.
+ * Modified cox_render.c to remove memset() of new image to 0, since
+     mri_new() does this since 01 Nov 2001.
