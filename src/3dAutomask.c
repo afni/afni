@@ -78,8 +78,6 @@ int main( int argc , char * argv[] )
 
    if( mask == NULL ){ fprintf(stderr,"** Can't make mask!\n"); exit(1); }
 
-   DSET_unload( dset ) ;  /* don't need data any more */
-
    /* 18 Apr 2002: print voxel count */
 
    nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
@@ -103,6 +101,14 @@ int main( int argc , char * argv[] )
 
    { int nx=DSET_NX(dset), ny=DSET_NY(dset), nz=DSET_NZ(dset), nxy=nx*ny ;
      int ii,jj,kk ;
+
+#if 1
+     { int xm=-1,xp=-1,ym=-1,yp=-1,zm=-1,zp=-1 ;
+       THD_autobbox( dset , &xm,&xp , &ym,&yp , &zm,&zp ) ;
+       fprintf(stderr,"++ Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
+               xm,xp,ym,yp,zm,zp ) ;
+     }
+#endif
 
      for( ii=0 ; ii < nx ; ii++ )
        for( kk=0 ; kk < nz ; kk++ )
@@ -146,6 +152,8 @@ int main( int argc , char * argv[] )
      CP2: fprintf(stderr,"++ last  %3d z-planes are zero [from %c]\n",
                   nz-1-kk,ORIENT_tinystr[dset->daxes->zzorient][1]) ;
    }
+
+   DSET_unload( dset ) ;  /* don't need data any more */
 
    /* create output dataset */
 

@@ -1,23 +1,12 @@
 #include "mrilib.h"
 
-#define USE_MCLUST
-
-#ifdef USE_MCLUST
 static void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 static void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
-#endif
 
 #define USE_DILATE
-
-#ifdef USE_DILATE
-# define DILATE 1
-#else
-# define DILATE 0
-#endif
-
 #define USE_FILLIN
 
-#define DEBUG
+#undef DEBUG
 
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
@@ -30,9 +19,6 @@ byte * THD_automask( THD_3dim_dataset * dset )
    float clip_val , *mar ;
    byte *mmm = NULL ;
    int nvox , ii , nmm , nx,ny,nz ;
-
-   MCW_cluster_array *clar ;
-   int iclu , kclu ;
 
 ENTRY("THD_automask") ;
 
@@ -52,7 +38,7 @@ fprintf(stderr,"THD_automask: clip_val = %f\n",clip_val) ;
 
    nvox = medim->nvox ;
    mar  = MRI_FLOAT_PTR(medim) ;
-   mmm  = (byte *) calloc( sizeof(byte)*nvox , 1 ) ;
+   mmm  = (byte *) calloc( sizeof(byte), nvox ) ;
    for( nmm=ii=0 ; ii < nvox ; ii++ )
      if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
 
@@ -63,65 +49,16 @@ fprintf(stderr,"THD_automask: clip_val = %f\n",clip_val) ;
 
    nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
 
-#ifdef USE_MCLUST
    THD_mask_clust( nx,ny,nz, mmm ) ;
-#else
-   clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
-                             MRI_byte , mmm , 1.01   ) ;
-
-   /* at this point, all nonzero data in mmm has been transferred to clar */
-
-   if( clar == NULL ) RETURN(mmm) ; /* should not happen */
-
-   /* find largest cluster */
-
-   for( nmm=iclu=kclu=0 ; iclu < clar->num_clu ; iclu++ ){
-     if( clar->clar[iclu]->num_pt > nmm ){
-       nmm = clar->clar[iclu]->num_pt; kclu = iclu;
-     }
-   }
-
-   /* put that cluster back into the volume */
-
-   MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
-
-   DESTROY_CLARR(clar) ;
-#endif /* USE_MCLUST */
 
    /* 18 Apr 2002: now erode the resulting volume
                    (to break off any thinly attached pieces) */
 
-#ifdef USE_MCLUST
    THD_mask_erode( nx,ny,nz, mmm ) ;
-#else
-   MCW_erode_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
-                       MRI_byte,mmm , 1.42 , 0.90 , DILATE ) ;
-#endif
 
    /* now recluster it, and again keep only the largest survivor */
 
-#ifdef USE_MCLUST
    THD_mask_clust( nx,ny,nz, mmm ) ;
-#else
-   clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
-                             MRI_byte , mmm , 1.01   ) ;
-
-   if( clar == NULL ) RETURN(mmm) ; /* should not happen */
-
-   /* find largest cluster (again) */
-
-   for( nmm=iclu=kclu=0 ; iclu < clar->num_clu ; iclu++ ){
-     if( clar->clar[iclu]->num_pt > nmm ){
-       nmm = clar->clar[iclu]->num_pt; kclu = iclu;
-     }
-   }
-
-   /* put back into volume (again) */
-
-   MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
-
-   DESTROY_CLARR(clar) ;
-#endif /* USE_MCLUST */
 
 #ifdef USE_FILLIN
    /* 19 Apr 2002: fill in small holes */
@@ -154,34 +91,7 @@ fprintf(stderr,"THD_automask: clip_val = %f\n",clip_val) ;
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
 
-#ifdef USE_MCLUST
    THD_mask_clust( nx,ny,nz, mmm ) ;
-#else
-   /* get the clusters of what were 0's */
-
-   clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
-                             MRI_byte , mmm , 1.01   ) ;
-
-   if( clar == NULL ) RETURN(mmm) ; /* should not happen */
-
-   /* find the largest cluster (yet again) */
-
-   for( nmm=iclu=kclu=0 ; iclu < clar->num_clu ; iclu++ ){
-     if( clar->clar[iclu]->num_pt > nmm ){
-       nmm = clar->clar[iclu]->num_pt; kclu = iclu;
-     }
-   }
-
-   /* put all clusters at least 20% of the largest one back in */
-
-   nmm = rint(0.2*nmm) ;
-   for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
-     if( clar->clar[iclu]->num_pt >= nmm )
-       MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[iclu] ) ;
-   }
-
-   DESTROY_CLARR(clar) ;
-#endif
 
    /* and re-invert mask */
 
@@ -366,12 +276,11 @@ ENTRY("THD_mask_fillin_completely") ;
       nfill += kfill ;
    } while( kfill > 0 ) ;
 
-   return nfill ;
+   RETURN(nfill) ;
 }
 
 /*------------------------------------------------------------------*/
 
-#ifdef USE_MCLUST
 # define DALL 1024  /* Allocation size for cluster arrays */
 
 /*! Put (i,j,k) into the current cluster, if it is nonzero. */
@@ -563,4 +472,93 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
    return ;
 }
-#endif /* USE_MCLUST */
+
+/*---------------------------------------------------------------------*/
+/*! Find a bounding box for the main cluster of large-ish voxels.
+    [xm..xp] will be box for x index, etc.
+-----------------------------------------------------------------------*/
+
+void THD_autobbox( THD_3dim_dataset *dset ,
+                   int *xm, int *xp , int *ym, int *yp , int *zm, int *zp )
+{
+   MRI_IMAGE *medim ;
+   float clip_val , *mar ;
+   byte *mmm = NULL ;
+   int nvox , ii,jj,kk , nmm , nx,ny,nz,nxy ;
+
+ENTRY("THD_autobbox") ;
+
+   /* find largest component as in first part of THD_automask() */
+
+   medim = THD_median_brick(dset) ; if( medim == NULL ) EXRETURN ;
+
+   clip_val = THD_cliplevel(medim,0.5) ;
+
+   nvox = medim->nvox ;
+   mar  = MRI_FLOAT_PTR(medim) ;
+   mmm  = (byte *) calloc( sizeof(byte) , nvox ) ;
+   for( nmm=ii=0 ; ii < nvox ; ii++ )
+     if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
+
+   mri_free(medim) ;
+   if( nmm == 0 ){ free(mmm); EXRETURN; }
+
+   nx = DSET_NX(dset); ny = DSET_NY(dset); nz = DSET_NZ(dset); nxy = nx*ny;
+
+   THD_mask_clust( nx,ny,nz, mmm ) ;
+   THD_mask_erode( nx,ny,nz, mmm ) ;
+   THD_mask_clust( nx,ny,nz, mmm ) ;
+
+   /* For each plane direction,
+      find the first and last index that have nonzero voxels in that plane */
+
+   if( xm != NULL ){
+     for( ii=0 ; ii < nx ; ii++ )
+       for( kk=0 ; kk < nz ; kk++ )
+         for( jj=0 ; jj < ny ; jj++ )
+           if( mmm[ii+jj*nx+kk*nxy] ) goto CP5 ;
+     CP5: *xm = ii ;
+   }
+
+   if( xp != NULL ){
+     for( ii=nx-1 ; ii >= 0 ; ii-- )
+       for( kk=0 ; kk < nz ; kk++ )
+         for( jj=0 ; jj < ny ; jj++ )
+           if( mmm[ii+jj*nx+kk*nxy] ) goto CP6 ;
+     CP6: *xp = ii ;
+   }
+
+   if( ym != NULL ){
+     for( jj=0 ; jj < ny ; jj++ )
+       for( kk=0 ; kk < nz ; kk++ )
+         for( ii=0 ; ii < nx ; ii++ )
+           if( mmm[ii+jj*nx+kk*nxy] ) goto CP3 ;
+     CP3: *ym = jj ;
+   }
+
+   if( yp != NULL ){
+     for( jj=ny-1 ; jj >= 0 ; jj-- )
+       for( kk=0 ; kk < nz ; kk++ )
+         for( ii=0 ; ii < nx ; ii++ )
+           if( mmm[ii+jj*nx+kk*nxy] ) goto CP4 ;
+     CP4: *yp = jj ;
+   }
+
+   if( zm != NULL ){
+     for( kk=0 ; kk < nz ; kk++ )
+       for( jj=0 ; jj < ny ; jj++ )
+         for( ii=0 ; ii < nx ; ii++ )
+           if( mmm[ii+jj*nx+kk*nxy] ) goto CP1 ;
+     CP1: *zm = kk ;
+   }
+
+   if( zp != NULL ){
+     for( kk=nz-1 ; kk >= 0 ; kk-- )
+       for( jj=0 ; jj < ny ; jj++ )
+         for( ii=0 ; ii < nx ; ii++ )
+           if( mmm[ii+jj*nx+kk*nxy] ) goto CP2 ;
+     CP2: *zp = kk ;
+   }
+
+   free(mmm) ; EXRETURN ;
+}
