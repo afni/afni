@@ -287,7 +287,7 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward, et al."   /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "19 August 2004"      /* latest program revision date*/
+#define PROGRAM_LATEST  "02 March 2005"      /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -552,6 +552,10 @@ void identify_software ()
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
 #ifdef USE_ALTIVEC
   printf ("Compiled with Altivec acceleration for Mac OS X\n") ;
+#elif defined(USE_SUNPERF) && !defined(FLOATIZE)
+  printf ("Compiled with BLAS-1 acceleration for Solaris\n") ;
+#elif defined(USE_SCSLBLAS)
+  printf ("Compiled with BLAS-1 acceleration for SGI Altix\n") ;
 #endif
   printf ("\n");
 }
@@ -4332,7 +4336,7 @@ void cubic_spline
 
       /*----- Calculate vector for cubic spline interpolation -----*/
       for (i = 1;  i < n;  i++)
-	v.elts[i-1] = 6.0 * (yarray[i+1] - 2.0 * yarray[i] + yarray[i-1]);
+	     v.elts[i-1] = 6.0 * (yarray[i+1] - 2.0 * yarray[i] + yarray[i-1]);
       vector_multiply (minv, v, &sv);
 
 
