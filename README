@@ -1,10 +1,10 @@
 
 AFNI directory
 --------------
-backup   = script to backup all non-CVS contents to another directory
-bin/     = holds scripts for CVS usage (does NOT hold AFNI binaries!)
-doc/     = documentation for AFNI
-src/     = source code for AFNI
+backup = script to backup all non-CVS contents to another directory [RWC only]
+bin/   = holds scripts for CVS usage (does NOT hold AFNI binaries!)
+doc/   = documentation for AFNI
+src/   = source code for AFNI
 
 CVS Maintenance Scripts
 -----------------------
