@@ -1,0 +1,351 @@
+#!/bin/csh -f
+
+set VerNum = 3.0
+
+if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$5" == '') then
+        goto USAGE
+endif
+
+
+#check if you're in an afni directory and suggest going back one
+	if ("$cwd:t" == "afni") then
+		echo ""
+		echo "WARNING:"
+		echo "It looks like you're in the afni directory."
+		echo "If your images are not here you'll get an error message from to3d"
+		echo "Usually your data should reside one directory back."
+		echo "If you want to abort this script, hit ctrl+c"
+		echo "Otherwise, hit Enter to Proceed ..."
+		echo ""
+		set junk = $<
+	endif
+
+#count arguments
+set Nargs = $#argv
+set To3Dint = 0
+set UseGp = 0
+set GeomOption = ''
+set Autoto3d = 1
+set KeepPrefix = 0
+set OutCheck = 0
+
+if ($Nargs > 5) then
+	#for the moment this is for interactive mode
+	set cnt = 6
+	while ($cnt <= $Nargs)
+		switch ($argv[$cnt])
+			case -oc:
+				set OutCheck = 1
+				breaksw
+			case -kp:
+				set KeepPrefix = 1
+				breaksw
+			case -i:
+				set To3Dint = 1
+				breaksw
+			case -gp_OBSOLETE:
+				set UseGp = 1
+				@ cnt ++
+				if ($Nargs < $cnt) then
+					echo ""
+					echo "ERROR: You must specify a geometry parent brick name after -gp."
+					echo ""
+				endif
+				#trim then form the name and make sure it exists in the present directory or in the afni directory.
+				set GeomParent = $argv[$cnt]
+				set GeomParent = $GeomParent:r
+				set GeomParent = `echo $GeomParent | sed 's/+orig//'`
+				set GeomParent = "$GeomParent""+orig"
+				if ( -f $GeomParent".HEAD") then
+					#OK, enough now
+				else if (-f afni/$GeomParent".HEAD") then
+					echo ""
+					echo "WARNING:"
+					echo " Found geometry parent $GeomParent in afni directory."
+					echo ""	
+					set GeomParent = "afni/$GeomParent"
+				else
+				  goto NOGEOMPARENT
+				endif
+				set GeomOption = "-geomparent $GeomParent"
+				breaksw
+			default:
+				goto BADOPT 
+				breaksw
+		endsw
+	@ cnt ++
+	end
+endif
+
+	
+set DirN = $1
+set sDir = `count -digits 3 $DirN $DirN`
+set Nloc = $2
+set Nslc = $3
+set Nreps = $4
+set TR = 0
+set BrickRoot = "$5"
+set LogFile = "$cwd/MAPLOG_Panga"
+set aDir = "$cwd/afni"
+set Ntot = `expr $Nslc \* $Nreps`
+set listfile = "$cwd/PangaList"
+
+#make directorie and check for bricks
+	test -d $aDir || mkdir $aDir
+
+#determine the appropriate brickroot
+if ($KeepPrefix == 0) then
+	set loop = 1
+	set found = 1
+	set cnt = 1
+	while ($loop )
+		set cnt_pd = $cnt
+		set BrickPrefix = $BrickRoot"_r"$cnt_pd
+		test -f $aDir/$BrickPrefix'+orig.HEAD' || set found = 0
+		if ($found == 0) then
+			set loop = 0
+		endif
+		@ cnt ++	
+	end	
+	echo "Will use $BrickPrefix for this data set."
+else
+	set BrickPrefix = $BrickRoot
+	echo "Using $BrickPrefix for output data set."
+endif
+
+	test -f $aDir/$BrickPrefix'+orig.HEAD' && goto BRIKINafni
+
+
+RENAMING:
+	set Nimage = 0
+	echo "Forming image list ..."
+	test -d $sDir || goto NOSDIR
+	set NlocPad = `count -digits 3 $Nloc $Nloc`
+	set NimagePad = `count -digits 5 $Nimage $Nimage`
+	echo ""
+	echo "Logfile for $BrickPrefix $cwd `date` (`basename $0` Version $VerNum)" >> $LogFile
+	echo "From $sDir/I.$NlocPad ..."	
+	echo "From $sDir/I.$NlocPad ..." >> $LogFile
+	test -f $listfile && rm -f $listfile
+	set Nremain = `expr $Ntot - $Nimage` #remianing images
+	while ($Nremain > 0)
+		#echo "Nimage $Nimage, Nloc $Nloc, Ntot $Ntot, Nremain $Nremain"
+		if ($Nremain > 999) then
+			#echo 'Full'
+			#echo "in $sDir from $Nloc to 999"
+			count -digit 3 -root $sDir/I. $Nloc 999 >> $listfile
+			set Nimage = `expr $Nimage + 999 - $Nloc + 1`
+			set Nremain = `expr $Ntot - $Nimage`
+			set Nloc = 1
+			set NimagePad = `count -digits 3 $Nimage $Nimage`
+			set NLocPad = `count -digits 3 $Nloc $Nloc`
+			set DirN = `expr $DirN + 20`
+			set sDir = `count -digits 3 $DirN $DirN`
+			test -d $sDir || goto NOSDIR
+			#echo " $sDir ..."
+		else if ($Nremain > 0) then
+			#echo 'Frac'
+			set Nend = `expr $Nremain + $Nloc`
+			@ Nend --  
+			#echo "in $sDir from $Nloc to $Nend"
+			set NendPad = `count -digits 3 $Nend $Nend`
+			count -digit 3 -root $sDir/I. $Nloc $Nend >> $listfile
+			set Nimage = `expr $Nimage + $Nend`
+			set Nremain = `expr $Ntot - $Nimage`
+			#echo $Nimage $Nremain
+		endif
+	end
+	echo " to $sDir/I.$NendPad"
+	echo " to $sDir/I.$NendPad" >> $LogFile	
+	echo "Done with File List. on to To3D ..."
+	echo ""
+	goto TO3D
+
+NOSDIR:
+	echo ""
+	echo "ERROR:\012Directory $sDir not found."
+	echo ""
+	goto ENDALL
+	
+NOGEOMPARENT:
+	echo ""
+	echo "ERROR:\012Geometry parent file $GeomParent not found. Make sure you specify its path along with its name."
+	echo "" 
+	goto ENDALL
+
+TO3D:
+	
+	if (0) then 
+		set SYS = `uname -s`	
+		if ("$SYS" =~ "Linux") then
+			set SwapOpt = "-2swap"
+		else
+			set SwapOpt = ''
+		endif
+	else
+		#to3d now takes care of swapping
+		set SwapOpt = ''
+	endif
+	
+	set OutlierFile = $BrickPrefix'_Outliers.1D'
+	if ($OutCheck == 1) then
+		set OutCheckOpt = "-save_outliers $OutlierFile"
+	else
+		set OutCheckOpt = '-skip_outliers'
+	endif
+	
+	#default params for Coronal images
+	#set DefSize = "-xFOV 120R-L -yFOV 120S-I -zSLAB 20P-A" #pre automation 
+	if ($To3Dint == 1) then	
+		#interactive mode or geometry parent specified
+		set DefSize = '-nosave'
+	else
+		set DefSize = ''
+	endif
+	
+	echo "Now Running: to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR alt+z $DefSize -@ < $listfile"
+	echo ""
+	echo "to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR alt+z $DefSize -@ < $listfile" >> $LogFile
+	      to3d $OutCheckOpt $GeomOption -epan -prefix $BrickPrefix $SwapOpt -time:zt $Nslc $Nreps $TR alt+z $DefSize  -@ < $listfile 
+	
+	
+	test -f $BrickPrefix'+orig.HEAD' || goto NOBRIK
+	mv $BrickPrefix'+orig.HEAD'  $BrickPrefix'+orig.BRIK' $aDir
+	test -f $OutlierFile && mv $OutlierFile $aDir
+	
+	echo 'Done with To3D. '
+	goto AFNI
+
+LOOKFORMISSING:
+	set Nimage = 1
+	echo "Searching for missing image, this takes a while ..."
+	echo "Now in $sDir ..."
+	set NlocPad = `count -digits 3 $Nloc $Nloc`
+	set NimagePad = `count -digits 5 $Nimage $Nimage`
+	while ($Nimage <= $Ntot)
+		if ($Nloc > 999) then
+			set Nloc = 1
+			set DirN = `expr $DirN + 20`
+			set sDir = `count -digits 3 $DirN $DirN`
+			echo "Now in $sDir ..."
+			set NlocPad = `count -digits 3 $Nloc $Nloc`
+			set NimagePad = `count -digits 5 $Nimage $Nimage`
+		endif
+	
+		set NlocPad = `count -digits 3 $Nloc $Nloc`
+		set NimagePad = `count -digits 5 $Nimage $Nimage`
+	
+		test -f $sDir/I.$NlocPad || goto MISSINGFILE
+			
+		@ Nloc ++
+		@ Nimage ++
+	end
+	
+	echo "Done with Missing File Search"
+	goto ENDALL
+
+AFNI:	
+	echo ""
+	echo "READY. \012Either execute:"
+	echo ""
+	echo "cd $aDir"
+	echo "afni &"
+	echo ""
+	echo "Or <rescan this> in afni"
+	echo ""
+	#cd $aDir
+	#afni &
+	#echo 'Done.'
+	goto ENDALL
+
+BADOPT:
+	echo ""
+	echo "ERROR:"
+	echo "Could not understand option $argv[$cnt]."
+	echo ""
+	goto ENDALL
+	
+MISSINGFILE:
+	echo ""
+	echo "ERROR:"
+	echo "Could not find the {$Nimage}th file: $sDir/I.$NlocPad"
+	echo "Only $Nimage images found out of a required total of $Ntot."
+	echo ""
+	echo "Could not find the {$Nimage}th file: $sDir/I.$NlocPad" >> $LogFile
+	echo "Only $Nimage images found out of a required total of $Ntot."
+	echo "" >> $LogFile
+	goto ENDALL
+
+BRIKINafni:
+	echo ""
+	echo "ERROR:"
+	echo "Output Brick $BrickPrefix+orig exists in $aDir."
+	echo "Will not Overwrite."
+	echo ""
+	goto ENDALL
+	 
+NOBRIK:
+	echo ""
+	echo "ERROR:"
+	echo "Output Brick $BrickPrefix+orig was not written to disk."
+	echo ""
+	echo "Output Brick $BrickPrefix+orig was not written to disk."
+	echo "" >> $LogFile	
+	goto ENDALL
+
+USAGE:
+	set DS = `date +%Y`.`date +%m`.`date +%d`
+	echo ""
+	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>  [-kp] [-i] [-oc]" 	
+	echo ""
+	echo "Creates AFNI bricks from RealTime GE EPI series."
+	echo ""
+	echo "This script is designed to run from the directory where the famed RT image directories are copied to."
+	echo "If the data were copied from fim3T-adw using @RTcp, this directory should be something like:"
+	echo "/mnt/arena/03/users/sdc-nfs/Data/RTime/$DS/<PID>/<Exam #>/"
+	echo "" 
+ 	echo "<Dir #> : (eg: 3) The directory number where the first image of the series is stored."
+	echo "<First Image #> : (eg: 19) The number of the first image in the series."
+	echo "<# slices> : (eg: 18) The number of slices making up the imaged volume."
+	echo "<# reps> : (eg: 160) The number of samples in your time series."
+	#echo "<TR im msec> : (eg: 2000) Obvious isn't it ?"
+	echo "<Output Root> : (eg: PolcCw) The prefix for the output brick."
+	echo "                 Bricks are automatically saved into the ./afni directory"
+	echo "                 Unless you use -kp option, bricks are automatically named"
+	echo "                 <Output Root>_r# where # is generated each time you "
+	echo "                 run the script and successfully create a new brick."
+	echo ""
+	echo "Optional Parameters:"
+	echo "-i : Launches to3d in interactive mode. This allows you to double check the automated settings."
+	#echo "     Otherwise a default setting is used. The default would only be a problem if you try to overlay function on anatomy."
+	#echo "-gp <GeomParent>: You can specify a geomparent brick which may have been created with the -i option"
+	#echo "                  If the GeomParent is not found in the current directory, the script looks for it under"
+	#echo "                  ./afni directory before complaining."
+	echo " -kp: Forces @RenamePanga to use the prefix you designate without modification."
+	echo " -oc: Performs outliers check. This is useful to do but it slows to3d down and"
+	echo "  maybe annoying when checking your data while scanning. If you choose -oc, the"
+	echo "  outliers are written to a .1D file and placed in the afni directory."
+	echo ""
+	echo ""
+	echo "A log file (MAPLOG_Panga) is created in the current directory."
+	echo ""
+	echo "Panga: A state of revenge."
+	echo "***********"
+	echo "Dec 4 2001 Changes:"
+	echo "- No longer requires the program pad_str."
+	echo "- Uses to3d to read geometric slice information."
+	echo "- Allows for bypassing the default naming convention."
+	echo "- You need to be running AFNI built after Dec 3 2001 to use this script."
+	echo "- Swapping needs are now determined by to3d."
+	echo "If to3d complains about not being able to determine swapping needs, check the data manually"
+	echo "- Geom parent option (-gp) has been removed."
+	echo "- TR is no longer set from command line, it is obtained from the image headers."
+	echo "Thanks to Jill W., Mike B. and Shruti J. for reporting bugs and testing the scripts."
+	echo "***********"
+	echo ""
+	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>  [-i] [-kp] [-oc]" 	
+	echo ""
+	echo " Version $VerNum   Ziad Saad (ziad@nih.gov) Dec 5 2001   SSCC/LBC/NIMH." 
+ 	goto ENDALL
+
+ENDALL:
