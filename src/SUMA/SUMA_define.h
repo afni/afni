@@ -413,32 +413,46 @@ typedef struct {
 
 /*! structure defining the state of a viewer window */
 typedef struct {
+	int N_DO;		/*!< Total number of surface objects registered with the viewer */
+	int *ShowDO; 	/*!< ShowSO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
+	
 	SUMA_STANDARD_VIEWS StdView; /*!< viewing mode, for 2D or 3D */
 	SUMA_GEOMVIEW_STRUCT *GVS; /*! pointer to structures containing geometric viewing settings */
 	int N_GVS; /*!< Number of different geometric viewing structures */
 
+
 	short verbose;	/*!< Verbosity of viewer */
 
+	SUMA_X *X; /*!< structure containing X widget midgets */
+
 	float Aspect;	/*!< Aspect ratio of the viewer*/
-	SUMA_Boolean Open; /*! Viewer visible to the human eye */
+	int WindWidth;	/*!< Width of window */
+	int WindHeight;	/*!< Height of window */
+	float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
+	
+	int PolyMode; /*!< polygon viewing mode, 0, filled, 1, outline, 0, points */
+	SUMA_Boolean BF_Cull; /*!< flag for backface culling */
+
+	float Back_Modfact; /*!< Factor to apply when modulating foreground color with background intensity
+									background does not modulate foreground, 
+									Color = Fore * avg_Bright * AttenFactor; (w/ 0 <= avg_Bright <=1)
+									a good setting is such that SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
+									 Watch for saturation effects!  */
+
 	GLfloat light0_position[4]; /*!< Light 0 position: 1st 3 vals --> direction of light . Last value is 0 -->  directional light*/
 	GLfloat light1_position[4]; /*!< Light 1 position: 1st 3 vals --> direction of light. Last value is 0 -->  directional light*/
 	
-	int WindWidth;	/*!< Width of window */
-	int WindHeight;	/*!< Height of window */
-	
-	int N_DO;		/*!< Total number of surface objects registered with the viewer */
-	int *ShowDO; 	/*!< ShowSO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
-	
+	SUMA_Boolean Open; /*! Viewer visible to the human eye */
 	int ShowEyeAxis ; /*!< ShowEyeAxis */
 	int ShowMeshAxis; /*!< ShowEyeAxis */
 	int ShowCrossHair; /*!< ShowCrossHair */
+	SUMA_Boolean ShowForeground; 	/*!< Flag for showing/not showing foreground colors */
+	SUMA_Boolean ShowBackground; /*!< Flag for showing/not showing background colors */	
+	
 	
 	int Focus_SO_ID; /*!< index into SUMAg_DOv of the surface currently in focus, -1 for nothing*/
 	int Focus_DO_ID; /*!< index into SUMAg_DOv of the Displayabl Object currently in focus -1 for nothing*/
 	
-	SUMA_X *X; /*!< structure containing X widget midgets */
-
 	GLdouble Pick0[3];	/*!< Click location in World coordinates, at z = 0 (near clip plane)*/
 	GLdouble Pick1[3];	/*!< Click location in World coordinates, at z = 1.0 (far clip plane)*/
 	
@@ -452,19 +466,6 @@ typedef struct {
 	char *State; /*!< The current state of the viewer. This variable should no be freed since it points to locations within VSv*/
 	int iState; /*!< index into VSv corresponding to State */
 	int LastNonMapStateID; /*!< Index into the state in VSv from which a toggle to the mappable state was initiated */ 
-	float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
-	
-	int PolyMode; /*!< polygon viewing mode, 0, filled, 1, outline, 0, points */
-	SUMA_Boolean BF_Cull; /*!< flag for backface culling */
-
-	float Back_Modfact; /*!< Factor to apply when modulating foreground color with background intensity
-									background does not modulate foreground, 
-									Color = Fore * avg_Bright * AttenFactor; (w/ 0 <= avg_Bright <=1)
-									a good setting is such that SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
-									 Watch for saturation effects!  */
-
-	SUMA_Boolean ShowForeground; 	/*!< Flag for showing/not showing foreground colors */
-	SUMA_Boolean ShowBackground; /*!< Flag for showing/not showing background colors */	
 	
 }SUMA_SurfaceViewer;
 
@@ -635,7 +636,7 @@ typedef struct {
 	SUMA_Boolean ShowMeshAxis; /*!< flag to show Mesh Axis if it is created */
 	SUMA_Axis *MeshAxis;	/*!< pointer to XYZ axis centered on the surface's centroid */
 	
-	SUMA_MEMBER_FACE_SETS *MF; /*!< structure containing the facesets representing each node */
+	SUMA_MEMBER_FACE_SETS *MF; /*!< structure containing the facesets containing each node */
 	SUMA_NODE_FIRST_NEIGHB *FN; /*!< structure containing the first order neighbors of each node */
 	SUMA_INODE *FN_Inode; /*!< Inode structure for FN */
 	SUMA_EDGE_LIST *EL; /*!< structure containing the edge list */
@@ -646,8 +647,9 @@ typedef struct {
 	
 	float *Cx; /*!< vector containing surface convexity at each node */
 	SUMA_INODE *Cx_Inode; /*!< Inode structure for Cx */
+	
 	/* selection stuff */
-	SUMA_Boolean ShowSelectedNode; /*!< flag for obvious reasons */
+	SUMA_Boolean ShowSelectedNode; /*!< flag for an obvious reason */
 	int SelectedNode; /*!< index of one selected node, -1 if no node is selected */
 	SUMA_SphereMarker *NodeMarker; /*!< Node Marker object structure*/
 	
