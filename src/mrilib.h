@@ -4,6 +4,14 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*! \mainpage AFNI Source Code Browsing
+
+    AFNI comprises many files, function, macros, typdefs, ....
+    These Web pages are a way to find out more about the code itself.
+    As time goes on, we will be converting more of the comments
+    to the Doxygen format.
+*/
+
 #ifndef _MCW_MRILIB_HEADER_
 #define _MCW_MRILIB_HEADER_
 
