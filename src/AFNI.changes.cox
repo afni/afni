@@ -3769,3 +3769,6 @@
  * Modified 3dAutomask.c to print out how many planes are cut off in the
      the mask.
  * Modified thd_automask.c to be faster.
+
+06 Jun 2002
+ * New programs 3dAutobox.c and 3dLRflip.c.

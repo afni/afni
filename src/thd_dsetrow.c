@@ -6,12 +6,13 @@
   -- 08 Mar 2001 - RWCox
 *****************************************************************************/
 
-/*---------------------------------------------------------------------------
-  Get the number of elements in a row of the dataset in a particular
-  direction, dcode:
-    +1 = x direction  -1 = reversed x direction
-    +2 = y direction  -2 = reversed y direction
-    +3 = z direction  -3 = reversed z direction
+/*---------------------------------------------------------------------------*/
+/*!  Get the number of elements in a row of the dataset in a particular
+  direction given by dcode:
+    -  +1 = x direction  -1 = reversed x direction
+    -  +2 = y direction  -2 = reversed y direction
+    -  +3 = z direction  -3 = reversed z direction
+
   This routine is mostly for the pitiful programmer who can't be bothered
   to do this calculation himself.
 -----------------------------------------------------------------------------*/
@@ -27,8 +28,8 @@ int THD_get_dset_rowcount( THD_3dim_dataset * dset, int dcode )
    return 0 ;                                  /* bad */
 }
 
-/*---------------------------------------------------------------------------
-  Extract a row from a dataset sub-brick in the direction given by dcode.
+/*---------------------------------------------------------------------------*/
+/*! Extract a row from a dataset sub-brick in the direction given by dcode.
   The 3-index of a voxel from the row is in (xx,yy,zz).  The return value
   is a pointer to a malloc()-ed array, whose type is given by
   DSET_BRICK_TYPE(dset,ival) and whose length is given by
@@ -117,9 +118,6 @@ ENTRY("THD_get_dset_row") ;
       }
       break ;
 
-#if 0
-      /*** the following data type is not allowed in AFNI (yet) ***/
-
       case MRI_rgb:{
          byte *rr = (byte *)row , *bb = (byte *)brick ;
          if( dcode > 0 )
@@ -136,7 +134,6 @@ ENTRY("THD_get_dset_row") ;
             }
       }
       break ;
-#endif
    }
 
    RETURN(row) ;
@@ -225,9 +222,6 @@ ENTRY("THD_put_dset_row") ;
       }
       break ;
 
-#if 0
-      /*** the following data type is not allowed in AFNI (yet) ***/
-
       case MRI_rgb:{
          byte *rr = (byte *)row , *bb = (byte *)brick ;
          if( dcode > 0 )
@@ -244,7 +238,6 @@ ENTRY("THD_put_dset_row") ;
             }
       }
       break ;
-#endif
    }
 
    EXRETURN ;
