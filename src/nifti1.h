@@ -921,7 +921,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    is not recommended, and is present mainly for compatibility with
    ANALYZE 7.5 files.
 
-   METHOD 2 (used when qform_code > 0, which should be the "normal case):
+   METHOD 2 (used when qform_code > 0, which should be the "normal" case):
    ---------------------------------------------------------------------
    The (x,y,z) coordinates are given by the pixdim[] scales, a rotation
    matrix, and a shift.  This method is intended to represent
