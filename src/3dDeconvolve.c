@@ -2193,7 +2193,7 @@ void proc_finalize_shm_volumes(void)
                    "** POSSIBLY USEFUL ADVICE:\n"
                    "** Current max shared memory size = %u bytes.\n"
                    "** For information on how to change this, see\n"
-                   "**   http://afni.nimh.nih.gov/afni/parallize.htm\n"
+                   "**   http://afni.nimh.nih.gov/afni/parallize.html \n"
                    "** and also contact your system administrator.\n"
                    , smax ) ;
         }
