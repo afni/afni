@@ -5158,3 +5158,7 @@
 05 Aug 2004
  * Polished up the 3dDeconvolve.c changes.
  * Added "README.environment" text to Datamode->Misc menu in AFNI.
+
+06 Aug 2004
+ * Fixed bug in 3dDeconvolve.c where -cbucket bricks were colliding with
+     -bucket bricks, vi bar[] and attach_sub_brick().
