@@ -4172,6 +4172,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) beta_t2p ,
    (vptr_func *) get_laguerre_table ,
    (vptr_func *) mri_fix_data_pointer ,
+   (vptr_func *) THD_zeropad ,
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){

@@ -2315,3 +2315,8 @@
 01 Oct 2000
  * Wrote program 3dUndump.c (create a dataset from an ASCII list
      of voxels, like an inverse to 3dmaskdump.c).
+
+04 Oct 2000
+ * Put most of the work of 3dZeropad.c into function thd_zeropad.c
+     instead.
+ * Added plug_zeropad.c.

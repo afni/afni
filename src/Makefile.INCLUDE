@@ -860,7 +860,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o  \
            thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o \
            thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_base64.o     \
-           thd_winsor.o
+           thd_winsor.o thd_zeropad.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -918,6 +918,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_render.$(SO)   plug_notes.$(SO)    plug_histog.$(SO)      \
         plug_scatplot.$(SO) plug_nudge.$(SO)    plug_wavelets.$(SO)    \
         plug_second_dataset.$(SO)               plug_betafit.$(SO)     \
+        plug_zeropad.$(SO)                                             \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \

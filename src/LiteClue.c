@@ -30,7 +30,7 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
-Revision 1.6  2000/10/02 16:03:12  cox
+Revision 1.7  2000/10/04 16:09:44  cox
 AFNI
 
 Revision 1.3  1997/11/06 16:26:48  cox

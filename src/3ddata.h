@@ -2423,6 +2423,9 @@ extern THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * ,
 extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
                                      int, int, int, float, char *, int ) ;
 
+extern THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * ,
+                                       int,int,int,int,int,int , char * ) ;
+
 /*--------------------------------------------------------------------------*/
 
 /*--- Stuff for Tom Ross's NOTES ---*/
