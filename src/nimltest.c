@@ -13,7 +13,7 @@ int main( int argc , char *argv[] )
    char *ccc ;
 
    if( argc < 2 ){
-      printf("Usage: nimltest [-bB fname] [-w] [-#] streamspec\n");exit(0);
+      printf("Usage: nimltest [-bB fname] [-w[r]] [-#] streamspec\n");exit(0);
    }
 
 #if 0
@@ -27,10 +27,12 @@ int main( int argc , char *argv[] )
 
    /* writing to a stream? */
 
-   if( strcmp(argv[1],"-w") == 0 ){
+   if( strncmp(argv[1],"-w",2) == 0 ){
       char lbuf[1024] , *bbb ;
+      int raw=(argv[1][2]=='r') ;
       if( argc < 3 ) exit(1) ;
-      ns = NI_stream_open( argv[2] , "w" ) ;
+      nopt = 2 ;
+      ns = NI_stream_open( argv[nopt] , "w" ) ;
       if( ns == NULL ){
          fprintf(stderr,"NI_stream_open fails\n") ; exit(1) ;
       }
@@ -40,12 +42,24 @@ int main( int argc , char *argv[] )
         if( nn <  0 ){ fprintf(stderr,"BAD writecheck\n"); exit(1) ; }
         fprintf(stderr,".") ;
       }
-      while(1){
-        fprintf(stderr,"READY> ") ;
-        bbb = fgets( lbuf , 1024 , stdin ) ; if( bbb == NULL ) exit(0) ;
-        nn = NI_stream_write( ns , lbuf , strlen(lbuf) ) ;
-        if( nn < 0 ){
-           fprintf(stderr,"NI_stream_write fails\n"); exit(1);
+      if( !raw ){
+        while(1){
+          fprintf(stderr,"READY> ") ;
+          bbb = fgets( lbuf , 1024 , stdin ) ; if( bbb == NULL ) exit(0) ;
+          nn = NI_stream_write( ns , lbuf , strlen(lbuf) ) ;
+          if( nn < 0 ){
+             fprintf(stderr,"NI_stream_write fails\n"); exit(1);
+          }
+        }
+      } else {
+        int nbyt ;
+        while(1){
+          nbyt = fread( lbuf , 1,1024 , stdin ) ;
+          if( nbyt <= 0 ) exit(0) ;
+          nn = NI_stream_write( ns , lbuf , nbyt ) ;
+          if( nn < 0 ){
+             fprintf(stderr,"NI_stream_write fails\n"); exit(1);
+          }
         }
       }
    }
