@@ -1868,3 +1868,12 @@
  * Modified plug_render.c to reset func_cmap_set=0 if a render
      handle is destroyed - the colormap wasn't being properly
      reloaded when a new underlay dataset was selected.
+ * Modified SHOWOFF handling in afni.c to always show compilation
+     date no matter what.
+
+01 Dec 1999
+ * Modified afni.c and afni_func.c to turn on XSynchronize if -TRACE
+     option is used (or when DBG_trace gets set to 2).
+ * Fixed bug in afni_func.c AFNI_force_adoption() routine: the
+     PRINT_TRACING output after the dataset scan would crash if no
+     dataset was found.

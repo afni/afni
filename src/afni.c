@@ -108,7 +108,7 @@ static XtAppContext   MAIN_app ;
 static XtErrorHandler MAIN_old_handler ;
 static Three_D_View * MAIN_im3d ;
 static MCW_DC *       MAIN_dc ;
-static Widget         MAIN_shell ;
+static Widget         MAIN_shell=NULL ;
 static XtWorkProcId   MAIN_wpid ;
 static int            MAIN_argc ;
 static char **        MAIN_argv ;
@@ -398,6 +398,8 @@ ENTRY("AFNI_parse_args") ;
       }
       if( strncmp(argv[narg],"-TRACE",5) == 0 ){  /* 23 Aug 1998 */
          DBG_trace = 2 ;
+         if( MAIN_shell != NULL )
+            XSynchronize(XtDisplay(MAIN_shell),TRUE) ; /* 01 Dec 1999 */
          narg++ ; continue ;
       }
 #endif
@@ -887,9 +889,15 @@ int main( int argc , char * argv[] )
 #define SHSH(x)   #x
 #define SHSHSH(x) SHSH(x)
    if( strcmp("NO",SHSHSH(SHOWOFF)) != 0 ){  /* 29 Nov 1999 */
-      char buf[256] ;
-      sprintf(buf,"(Precompiled binary %s: %s)\n",SHSHSH(SHOWOFF),__DATE__) ;
-      REPORT_PROGRESS( buf ) ;
+      REPORT_PROGRESS( "[[Precompiled binary "
+                       SHSHSH(SHOWOFF)
+                       ": "
+                       __DATE__
+                       "]]\n" ) ;
+   } else {
+      REPORT_PROGRESS( "[[Compilation date: "
+                       __DATE__
+                       "]]\n" ) ;
    }
 #undef SHSH
 #undef SHSHSH
@@ -936,6 +944,10 @@ int main( int argc , char * argv[] )
 
    if( MAIN_shell == NULL ){
       fprintf(stderr,"\n*** Cannot initialize X11 ***\n") ; exit(1) ;
+   }
+   if( DBG_trace == 2 ){                           /* 01 Dec 1999 */
+      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
+      STATUS("XSynchronize is enabled") ;
    }
 
    MAIN_argc = argc ; MAIN_argv = argv ;  /* what's left after XtVaAppInit */

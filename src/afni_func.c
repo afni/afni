@@ -797,6 +797,11 @@ ENTRY("AFNI_force_adoption") ;
    /* find a "preferred" parent (one with the most number of markers set) */
 
    for( aa=0 ; aa < ss->num_anat ; aa++ ){
+
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"scanning anat dataset %d for markers\n",aa) ; STATUS(str) ; }
+
       dset = ss->anat[aa][0] ;              /* original view */
 
       if( ISVALID_3DIM_DATASET(dset) &&     /* if a good dataset */
@@ -808,7 +813,7 @@ ENTRY("AFNI_force_adoption") ;
       }
    }
 
-if(PRINT_TRACING)
+if(aset >= 0 && PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"session %s: apref=%d [%s] aset=%d",
           ss->lastname,apref,DSET_HEADNAME(ss->anat[apref][0]),aset) ;
@@ -4091,7 +4096,11 @@ STATUS("got func info") ;
 #ifdef USE_TRACING
    else if( w == im3d->vwid->dmode->misc_tracing_pb ){
       DBG_trace = (DBG_trace + 1) % 3 ;  /* Aug 23 1998: cycle between 0,1,2 */
-      MCW_set_widget_label( im3d->vwid->dmode->misc_tracing_pb , DBG_label ) ; /* 01 Aug 1999 */
+      MCW_set_widget_label( im3d->vwid->dmode->misc_tracing_pb, DBG_label ) ; /* 01 Aug 1999 */
+
+      XSynchronize( im3d->dc->display, (Bool)(DBG_trace==2) ) ; /* 01 Dec 1999 */
+      if( DBG_trace == 2 ) STATUS("XSynchronize enabled") ;
+      else                 STATUS("XSynchronize disabled") ; 
    }
 #endif
 
