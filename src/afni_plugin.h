@@ -290,7 +290,6 @@ typedef struct {
 extern int PLUGIN_dset_check( int,int    , THD_3dim_dataset * ) ;
 extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 
-#define PLUTO_new_interface      new_PLUGIN_interface
 #define PLUTO_add_option         add_option_to_PLUGIN_interface
 #define PLUTO_add_number         add_number_to_PLUGIN_interface
 #define PLUTO_add_string         add_string_to_PLUGIN_interface
@@ -300,8 +299,15 @@ extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 
 extern void PLUTO_add_hint( PLUGIN_interface * , char * ) ;
 
+/* 15 Jun 1999: redo PLUTO_new_interface */
+
+#define PLUTO_new_interface(a,b,c,d,e) new_PLUGIN_interface_1999(a,b,c,d,e,__DATE__)
+
 extern PLUGIN_interface * new_PLUGIN_interface( char *, char *, char *,
                                                 int, cptr_func * ) ;
+
+extern PLUGIN_interface * new_PLUGIN_interface_1999( char *, char *, char *,
+                                                     int, cptr_func * , char * ) ;
 
 extern void add_option_to_PLUGIN_interface( PLUGIN_interface *,
                                             char *, char *, int ) ;

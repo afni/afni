@@ -323,9 +323,29 @@ PLUGIN_interface * new_PLUGIN_interface( char * label , char * description ,
 {
    PLUGIN_interface * plint ;
 
+ENTRY("new_PLUGIN_interface") ;
+
+   plint = new_PLUGIN_interface_1999( label , description , help ,
+                                      call_type , call_func , NULL ) ;
+
+   RETURN(plint) ;
+}
+
+/**** 15 Jun 1999: modified to crosscheck compilation dates ****/
+
+#include <time.h>
+
+PLUGIN_interface * new_PLUGIN_interface_1999( char * label , char * description ,
+                                              char * help ,
+                                              int call_type , cptr_func * call_func ,
+                                              char * compile_date )
+{
+   PLUGIN_interface * plint ;
+   static int num_date_err = 0 ;
+
    /*-- sanity check --*/
 
-ENTRY("new_PLUGIN_interface") ;
+ENTRY("new_PLUGIN_interface_1999") ;
 
    if( label == NULL || strlen(label) == 0 ) RETURN(NULL) ;
 
@@ -359,6 +379,45 @@ ENTRY("new_PLUGIN_interface") ;
       plint->helpstring = NULL ;
    else
       plint->helpstring = XtNewString( help ) ;
+
+   /** 15 Jun 1999 stuff for date checking **/
+
+   if( compile_date == NULL ){
+
+      if( num_date_err == 0 ) fprintf(stderr,"\n") ;
+      fprintf(stderr,
+              "*** Warning: Plugin %-15s was compiled with an earlier version of AFNI\n",
+              label ) ;
+      num_date_err++ ;
+
+#if 0
+#  define AFNI_DATE "Jun 17 1999"  /* for testing purposes */
+#else
+#  define AFNI_DATE __DATE__
+#endif
+
+   } else {
+      struct tm compile_tm  ={0} , date_tm={0} ;
+      time_t    compile_time     , date_time   ;
+      double    date_minus_compile ;
+
+      strptime( compile_date , "%b %d %Y" , &compile_tm ) ; compile_time = mktime( &compile_tm ) ;
+      strptime( AFNI_DATE    , "%b %d %Y" , &date_tm    ) ; date_time    = mktime( &date_tm    ) ;
+      date_minus_compile = difftime( date_time , compile_time ) ;
+
+      if( date_minus_compile > 3600.0 ){
+         if( num_date_err == 0 ) fprintf(stderr,"\n") ;
+         fprintf(stderr,
+                 "\n*** Warning: Plugin %-15s compile date=%s predates AFNI=%s",
+                 label , compile_date , AFNI_DATE ) ;
+         num_date_err++ ;
+      } else if( PRINT_TRACING ){
+         char str[256] ;
+         sprintf(str,"Plugin %-15s compile date=%s  AFNI date=%s  difftime=%g\n",
+                 label , compile_date , AFNI_DATE , date_minus_compile ) ;
+         STATUS(str) ;
+      }
+   }
 
    RETURN(plint) ;
 }
