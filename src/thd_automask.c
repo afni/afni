@@ -1,13 +1,23 @@
 #include "mrilib.h"
 
-#undef USE_MCLUST
+#define USE_MCLUST
 
 #ifdef USE_MCLUST
 static void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 static void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
 #endif
 
-#define DILATE 1
+#define USE_DILATE
+
+#ifdef USE_DILATE
+# define DILATE 1
+#else
+# define DILATE 0
+#endif
+
+#define USE_FILLIN
+
+#define DEBUG
 
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
@@ -33,6 +43,10 @@ ENTRY("THD_automask") ;
    /* clip value to excise small stuff */
 
    clip_val = THD_cliplevel(medim,0.5) ;
+
+#ifdef DEBUG
+fprintf(stderr,"THD_automask: clip_val = %f\n",clip_val) ;
+#endif
 
    /* create mask of values above clip value */
 
@@ -109,14 +123,27 @@ ENTRY("THD_automask") ;
    DESTROY_CLARR(clar) ;
 #endif /* USE_MCLUST */
 
-#if 1
+#ifdef USE_FILLIN
    /* 19 Apr 2002: fill in small holes */
+
+   ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
+   if( ii > 0 ){
+     ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
+     if( ii > 0 ){
+       ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
+     }
+   }
 
    nmm = 1 ;
    ii  = rint(0.016*nx) ; nmm = MAX(nmm,ii) ;
    ii  = rint(0.016*ny) ; nmm = MAX(nmm,ii) ;
    ii  = rint(0.016*nz) ; nmm = MAX(nmm,ii) ;
-   (void) THD_mask_fillin_completely( nx,ny,nz, mmm , nmm ) ;
+
+   if( nmm > 1 || ii > 0 ){
+     for( ii=2 ; ii < nmm ; ii++ )
+       THD_mask_fillin_once( nx,ny,nz , mmm , ii ) ;
+     THD_mask_fillin_completely( nx,ny,nz, mmm , nmm ) ;
+   }
 #endif
 
    /* 28 May 2002:
@@ -178,6 +205,7 @@ int THD_mask_fillin_once( int nx, int ny, int nz, byte *mmm, int nside )
 {
    int ii,jj,kk , nsx,nsy,nsz , nxy,nxyz , iv,jv,kv,ll , nfill ;
    byte *nnn ;
+   int nx2,nx3,nx4 , nxy2,nxy3,nxy4 ;
 
 ENTRY("THD_mask_fillin_once") ;
 
@@ -189,11 +217,21 @@ ENTRY("THD_mask_fillin_once") ;
 
    if( nsx == 0 && nsy == 0 && nsz == 0 ) RETURN(0) ;
 
+#ifdef DEBUG
+   fprintf(stderr,"THD_mask_fillin_once: nsx=%d nsy=%d nsz=%d\n",nsx,nsy,nsz);
+#endif
+
    nxy = nx*ny ; nxyz = nxy*nz ; nfill = 0 ;
+
+   nx2  = 2*nx  ; nx3  = 3*nx  ; nx4  = 4*nx  ;
+   nxy2 = 2*nxy ; nxy3 = 3*nxy ; nxy4 = 4*nxy ;
 
    nnn = calloc(1,nxyz) ;  /* stores filled in values */
 
    /* loop over voxels */
+
+#define FILLVOX                                     \
+ do{ nnn[iv] = 1; nfill++; goto NextVox; } while(0)
 
    for( kk=nsz ; kk < nz-nsz ; kk++ ){
      kv = kk*nxy ;
@@ -205,27 +243,98 @@ ENTRY("THD_mask_fillin_once") ;
 
          /* check in +x direction, then -x if +x hits */
 
-         for( ll=1 ; ll <= nsx ; ll++ ) if( mmm[iv+ll] ) break ;
-         if( ll <= nsx ){
-           for( ll=1 ; ll <= nsx ; ll++ ) if( mmm[iv-ll] ) break ;
-           if( ll <= nsx ){ nnn[iv] = 1 ; nfill++ ; continue ; }
+         switch( nsx ){
+           case 1:
+             if( mmm[iv+1] && mmm[iv-1] ) FILLVOX;
+           break ;
+
+           case 2:
+             if( (mmm[iv+1]||mmm[iv+2]) &&
+                 (mmm[iv-1]||mmm[iv-2])   ) FILLVOX;
+           break ;
+
+           case 3:
+             if( (mmm[iv+1]||mmm[iv+2]||mmm[iv+3]) &&
+                 (mmm[iv-1]||mmm[iv-2]||mmm[iv-3])   ) FILLVOX;
+           break ;
+
+           case 4:
+             if( (mmm[iv+1]||mmm[iv+2]||mmm[iv+3]||mmm[iv+4]) &&
+                 (mmm[iv-1]||mmm[iv-2]||mmm[iv-3]||mmm[iv-4])   ) FILLVOX;
+           break ;
+
+           default:
+             for( ll=1 ; ll <= nsx ; ll++ ) if( mmm[iv+ll] ) break ;
+             if( ll <= nsx ){
+               for( ll=1 ; ll <= nsx ; ll++ ) if( mmm[iv-ll] ) break ;
+               if( ll <= nsx ) FILLVOX;
+             }
+           break ;
          }
 
          /* check in +y direction, then -y if +y hits */
 
-         for( ll=1 ; ll <= nsy ; ll++ ) if( mmm[iv+ll*nx] ) break ;
-         if( ll <= nsy ){
-           for( ll=1 ; ll <= nsy ; ll++ ) if( mmm[iv-ll*nx] ) break ;
-           if( ll <= nsy ){ nnn[iv] = 1 ; nfill++ ; continue ; }
+         switch( nsy ){
+           case 1:
+             if( mmm[iv+nx] && mmm[iv-nx] ) FILLVOX;
+           break ;
+
+           case 2:
+             if( (mmm[iv+nx]||mmm[iv+nx2]) &&
+                 (mmm[iv-nx]||mmm[iv-nx2])   ) FILLVOX;
+           break ;
+
+           case 3:
+             if( (mmm[iv+nx]||mmm[iv+nx2]||mmm[iv+nx3]) &&
+                 (mmm[iv-nx]||mmm[iv-nx2]||mmm[iv-nx3])   ) FILLVOX;
+           break ;
+
+           case 4:
+             if( (mmm[iv+nx]||mmm[iv+nx2]||mmm[iv+nx3]||mmm[iv+nx4]) &&
+                 (mmm[iv-nx]||mmm[iv-nx2]||mmm[iv-nx3]||mmm[iv-nx4])   ) FILLVOX;
+           break ;
+
+           default:
+             for( ll=1 ; ll <= nsy ; ll++ ) if( mmm[iv+ll*nx] ) break ;
+             if( ll <= nsy ){
+               for( ll=1 ; ll <= nsy ; ll++ ) if( mmm[iv-ll*nx] ) break ;
+               if( ll <= nsy ) FILLVOX;
+             }
+           break ;
          }
 
          /* check in +z direction, then -z if +z hits */
 
-         for( ll=1 ; ll <= nsz ; ll++ ) if( mmm[iv+ll*nxy] ) break ;
-         if( ll <= nsz ){
-           for( ll=1 ; ll <= nsz ; ll++ ) if( mmm[iv-ll*nxy] ) break ;
-           if( ll <= nsz ){ nnn[iv] = 1 ; nfill++ ; continue ; }
+         switch( nsz ){
+           case 1:
+             if( mmm[iv+nxy] && mmm[iv-nxy] ) FILLVOX;
+           break ;
+
+           case 2:
+             if( (mmm[iv+nxy]||mmm[iv+nxy2]) &&
+                 (mmm[iv-nxy]||mmm[iv-nxy2])   ) FILLVOX;
+           break ;
+
+           case 3:
+             if( (mmm[iv+nxy]||mmm[iv+nxy2]||mmm[iv+nxy3]) &&
+                 (mmm[iv-nxy]||mmm[iv-nxy2]||mmm[iv-nxy3])   ) FILLVOX;
+           break ;
+
+           case 4:
+             if( (mmm[iv+nxy]||mmm[iv+nxy2]||mmm[iv+nxy3]||mmm[iv+nxy4]) &&
+                 (mmm[iv-nxy]||mmm[iv-nxy2]||mmm[iv-nxy3]||mmm[iv-nxy4])   ) FILLVOX;
+           break ;
+
+           default:
+             for( ll=1 ; ll <= nsz ; ll++ ) if( mmm[iv+ll*nxy] ) break ;
+             if( ll <= nsz ){
+               for( ll=1 ; ll <= nsz ; ll++ ) if( mmm[iv-ll*nxy] ) break ;
+               if( ll <= nsz ) FILLVOX;
+             }
+           break ;
          }
+
+         NextVox:  /* end of loop over ii */
    } } }
 
    /* copy fills back into mmm */
@@ -233,6 +342,10 @@ ENTRY("THD_mask_fillin_once") ;
    if( nfill > 0 ){
      for( iv=0 ; iv < nxyz ; iv++ ) if( nnn[iv] ) mmm[iv] = 1 ;
    }
+
+#ifdef DEBUG
+   fprintf(stderr,"THD_mask_fillin_once: nfill=%d\n",nfill) ;
+#endif
 
    free(nnn) ; RETURN(nfill) ;
 }
@@ -378,15 +491,23 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
    nnn = calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
 
-   /* mark nonzero voxels that don't have 17 out of 18 nonzero nbhrs */
+   /* mark interior voxels that don't have 17 out of 18 nonzero nbhrs */
 
-   for( kk=1 ; kk < nz-1 ; kk++ ){
-    km = (kk-1)*nxy ; kp = (kk+1)*nxy ; kz = kk*nxy ;
-    for( jj=1 ; jj < ny-1 ; jj++ ){
-     jm = (jj-1)*nx ; jp = (jj+1)*nx ; jy = jj*nx ;
-     for( ii=1 ; ii < nx-1 ; ii++ ){
+   for( kk=0 ; kk < nz ; kk++ ){
+    kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
+         if( kk == 0    ) km = kz ;
+    else if( kk == nz-1 ) kp = kz ;
+
+    for( jj=0 ; jj < ny ; jj++ ){
+     jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+          if( jj == 0    ) jm = jy ;
+     else if( jj == ny-1 ) jp = jy ;
+
+     for( ii=0 ; ii < nx ; ii++ ){
        if( mmm[ii+jy+kz] ){           /* count nonzero nbhrs */
          im = ii-1 ; ip = ii+1 ;
+              if( ii == 0    ) im = 0 ;
+         else if( ii == nx-1 ) ip = ii ;
          num =  mmm[im+jy+km]
               + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
               + mmm[ip+jy+km]
@@ -405,13 +526,22 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
    /* re-dilate eroded voxels that are next to survivors */
 
-#if DILATE==1
-   for( kk=1 ; kk < nz-1 ; kk++ ){
-    km = (kk-1)*nxy ; kp = (kk+1)*nxy ; kz = kk*nxy ;
-    for( jj=1 ; jj < ny-1 ; jj++ ){
-     jm = (jj-1)*nx ; jp = (jj+1)*nx ; jy = jj*nx ;
-     for( ii=1 ; ii < nx-1 ; ii++ ){
-       if( nnn[ii+jy+kz] )            /* was eroded */
+#ifdef USE_DILATE
+   for( kk=0 ; kk < nz ; kk++ ){
+    kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
+         if( kk == 0    ) km = kz ;
+    else if( kk == nz-1 ) kp = kz ;
+
+    for( jj=0 ; jj < ny ; jj++ ){
+     jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+          if( jj == 0    ) jm = jy ;
+     else if( jj == ny-1 ) jp = jy ;
+
+     for( ii=0 ; ii < nx ; ii++ ){
+       if( nnn[ii+jy+kz] ){           /* was eroded */
+         im = ii-1 ; ip = ii+1 ;
+              if( ii == 0    ) im = 0 ;
+         else if( ii == nx-1 ) ip = ii ;
          nnn[ii+jy+kz] =              /* see if has any nbhrs */
                mmm[im+jy+km]
             || mmm[ii+jm+km] || mmm[ii+jy+km] || mmm[ii+jp+km]
@@ -422,9 +552,12 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
             || mmm[im+jy+kp]
             || mmm[ii+jm+kp] || mmm[ii+jy+kp] || mmm[ii+jp+kp]
             || mmm[ip+jy+kp] ;
+       }
    } } }
 
-   for( ii=0 ; ii < nxyz ; ii++ )            /* actually un-erode */
+   /* actually do the dilation */
+
+   for( ii=0 ; ii < nxyz ; ii++ )
      if( nnn[ii] ) mmm[ii] = 1 ;
 #endif
 
