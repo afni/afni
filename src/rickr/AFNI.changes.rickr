@@ -410,3 +410,13 @@
         (the default has been changed from 'seq' to 'alt')
       - add '-hist' option
 
+22 January 2004
+  * modified SUMA_3dVol2Surf.[ch]  (-> 3dVol2Surf v3.9)
+      - added use of normals to compute segments, instead of second surface
+        (see options '-use_norms', '-norm_len', '-keep_norm_dir')
+      - reversed order of '-hist' output
+  * modified SUMA_SurfMeasures.[ch] (-> SurfMeasures v1.4)
+      - fixed node coord output error when '-nodes_1D' gets used
+      - added '-sv' option to examples (recommended)
+      - reversed order of '-hist' output
+

@@ -18,6 +18,8 @@
 
 #define V2S_M2_STEPS_DEFAULT      2
 
+#define V2S_EPSILON		  0.0001
+
 #define CHECK_NULL_STR(str) ( str ? str : "(NULL)" )
 
 /* surface to voxel mapping codes, along with command-line strings */
@@ -51,6 +53,9 @@ typedef struct
     char   * map_str;			/* how to map surf(s) to dset  */
     char   * snames[V2S_MAX_SURFS];	/* list of surfaces to use     */
     int      no_head;			/* do not write output headers */
+    int      use_norms;			/* use normals for segments    */
+    float    norm_len;			/* signed length of normal     */
+    int      keep_norm_dir;		/* no directional check        */
     int      debug;			/* level of debug output       */
     int      dnode;			/* node watched for debug      */
     char   * f_index_str;		/* node or voxel index type    */
@@ -69,6 +74,9 @@ typedef struct
     int    debug;			/* for printing extra output   */
     int    dnode;			/* node watched for debug      */
     int    no_head;			/* do not write output headers */
+    int    use_norms;			/* use normals for segments    */
+    float  norm_len;			/* signed length of normal     */
+    int    keep_norm_dir;		/* no directional check        */
     int    f_index;			/* node or voxel index type    */
     int    f_steps;			/* # int steps for mask2 map   */
     float  f_p1_fr;			/* fractional dist: add to p1  */
@@ -99,7 +107,9 @@ typedef struct
     THD_fvec3  * nodes;			/* depth x nnodes in size     */
     int          depth;			/* major axis                 */
     int          nnodes;		/* minor axis                 */
+    float        center[3];		/* centroid of first surface  */
     char      ** labels;		/* #depth labels              */
+    float      * norms[V2S_MAX_SURFS];  /* pointers to normals        */
 } node_list_t;
 
 typedef struct
@@ -125,7 +135,9 @@ typedef struct
 int alloc_node_list   ( smap_opts_t * sopt, node_list_t * N, int nsurf);
 int check_datum_type  ( char * datum_str, int default_type );
 int check_map_func    ( char * map_str );
+int check_norm_dirs   ( smap_opts_t * sopt, node_list_t * N, int surf );
 int create_node_list  ( smap_opts_t * sopt, node_list_t * N );
+int disp_fvec         ( char * info, float * f, int len );
 int disp_mri_imarr    ( char * info, MRI_IMARR * dp );
 int disp_opts_t       ( char * info, opts_t * opts );
 int disp_param_t      ( char * info, param_t * p );
@@ -152,13 +164,15 @@ int validate_datasets ( opts_t * opts, param_t * p );
 int validate_options  ( opts_t * opts, param_t * p );
 int validate_surface  ( opts_t * opts, param_t * p );
 int vals_over_steps   ( int map );
-int write_output      ( smap_opts_t * sopt, opts_t * opts, param_t * p,
-	                node_list_t * N );
+int write_output      ( smap_opts_t * sopt, param_t * p, node_list_t * N );
 
 int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max );
 int set_3dmm_bounds   ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max);
-float dist_f3mm       ( THD_fvec3 * p1, THD_fvec3 * p2 );
-float v2s_apply_filter( range_3dmm_res *rr, smap_opts_t *sopt, int index,
+
+float  directed_dist   ( float * pnew, float * pold, float * dir, float dist );
+float  dist_f3mm       ( THD_fvec3 * p1, THD_fvec3 * p2 );
+double magnitude_f     ( float * p, int length );
+float  v2s_apply_filter( range_3dmm_res *rr, smap_opts_t *sopt, int index,
 			int * findex );
 
 #endif   /* _3dVOL2SURF_H_ */
