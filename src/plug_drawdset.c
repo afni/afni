@@ -110,6 +110,14 @@ typedef struct {
 
 static ttatlas_compendium *ttatlas_list=NULL ;
 
+/* 24 Sep 2001: stuff for Copy on input */
+
+static MCW_bbox *copy_bbox ;
+static MCW_arrowval *copy_mode_av , *copy_type_av , *copy_datum_av ;
+
+void DRAW_copy_bbox_CB( Widget , XtPointer , XtPointer ) ;
+THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *, int,int,int ) ;
+
 /* Other data */
 
 #define MODE_CURVE       0
@@ -156,7 +164,7 @@ static int undo_bufuse = 0 ;     /* number of entries in undo buffer */
 static void * undo_buf = NULL ;  /* stores data to be copied back to dataset */
 static int  * undo_xyz = NULL ;  /* stores voxel indices for copying */
 
-static THD_dataxes dax_save ;    /* save this for later referenc */
+static THD_dataxes dax_save ;    /* save this for later reference */
 
 char * DRAW_main( PLUGIN_interface * plint )
 {
@@ -334,6 +342,73 @@ void DRAW_make_widgets(void)
                       "dataset to edit."
                     ) ;
    MCW_register_hint( choose_pb , "Popup a dataset chooser" ) ;
+
+   /*-- 24 Sep 2001: Copy mode stuff --*/
+
+   { Widget rc ;
+     static char *cbox_label[1]   = { "Copy" } ;
+     static char *cmode_label[2]  = { "Data"  , "Zero" } ;
+     static char *ctype_label[3]  = { "As Is" , "Func" , "Anat" } ;
+     static char *cdatum_label[4] = { "As Is" , "Byte" , "Short" , "Float" } ;
+
+     /*** rowcol to hold Copy widgets ***/
+
+     rc = XtVaCreateWidget( "AFNI" , xmRowColumnWidgetClass , rowcol ,
+                              XmNpacking      , XmPACK_TIGHT ,
+                              XmNorientation  , XmHORIZONTAL ,
+                              XmNmarginHeight , 0 ,
+                              XmNmarginWidth  , 0 ,
+                              XmNspacing      , 0 ,
+                              XmNinitialResourcesPersistent , False ,
+                              XmNtraversalOn , False ,
+                           NULL ) ;
+
+     /*** button box to turn copy mode on or off ***/
+
+     copy_bbox = new_MCW_bbox( rc, 1,cbox_label,
+                               MCW_BB_check,MCW_BB_noframe, DRAW_copy_bbox_CB,NULL ) ;
+
+     MCW_reghint_children( copy_bbox->wrowcol ,
+                           "Make copy of dataset on input" ) ;
+
+     /*** arrowvals to let user choose Copy method ***/
+
+     copy_mode_av = new_MCW_optmenu( rc , NULL ,
+                                     0 , 1 , 1 , 0 , NULL,NULL ,
+                                     MCW_av_substring_CB , cmode_label ) ;
+
+     MCW_reghint_children( copy_mode_av->wrowcol ,
+                           "How to copy values from dataset" ) ;
+
+     copy_type_av = new_MCW_optmenu( rc , NULL ,
+                                     0 , 2 , 0 , 0 , NULL,NULL ,
+                                     MCW_av_substring_CB , ctype_label ) ;
+
+     MCW_reghint_children( copy_type_av->wrowcol ,
+                           "Copy is Functional overlay or Anatomical underlay" ) ;
+
+     copy_datum_av= new_MCW_optmenu( rc , NULL ,
+                                     0 , 3 , 0 , 0 , NULL,NULL ,
+                                     MCW_av_substring_CB , cdatum_label ) ;
+
+     MCW_reghint_children( copy_datum_av->wrowcol ,
+                           "Data storage type for copy" ) ;
+
+     AV_SENSITIZE( copy_mode_av , False ) ;
+     AV_SENSITIZE( copy_type_av , False ) ;
+     AV_SENSITIZE( copy_datum_av, False ) ;
+
+     XtManageChild(rc) ;
+
+   } /* end of Copy mode stuff */
+
+   /*** separator for visual neatness ***/
+
+   (void) XtVaCreateManagedWidget(
+               "AFNI" , xmSeparatorWidgetClass , rowcol ,
+                  XmNseparatorType , XmDOUBLE_LINE ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
 
    /***  arrowval to choose value that is drawn into dataset voxels  ***/
 
@@ -557,6 +632,19 @@ void DRAW_make_widgets(void)
 }
 
 /*-------------------------------------------------------------------
+  Callback for copy_bbox -- 24 Sep 2001 - RWCox
+---------------------------------------------------------------------*/
+
+void DRAW_copy_bbox_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   int sens = (MCW_val_bbox(copy_bbox) != 0);
+   AV_SENSITIZE( copy_mode_av , sens ) ;
+   AV_SENSITIZE( copy_type_av , sens ) ;
+   AV_SENSITIZE( copy_datum_av, sens ) ;
+   return ;
+}
+
+/*-------------------------------------------------------------------
   Callback for done button
 ---------------------------------------------------------------------*/
 
@@ -684,6 +772,29 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "        * Datasets may be copied with the 'Dataset Copy' plugin.\n"
   "            Making an empty dataset with a given geometry can be\n"
   "            done using the 'Zero [One]' option in that plugin.\n"
+  "   [24 Sep 2001]:\n"
+  "        * Datasets may also be copied when chosen by selecting the\n"
+  "            'Copy' toggle.  The choosers to the right of this let\n"
+  "            you control how the input dataset is copied:\n"
+  "            (a)  Data => data value are copied\n"
+  "                 Zero => copy is full of zeros\n"
+  "            (b) As Is => copy is same dataset type as input dataset\n"
+  "                 Func => copy is a functional overlay (fim) dataset\n"
+  "                 Anat => copy is a anatomical underlay dataset\n"
+  "            (c) As Is => copy is stored as input dataset is stored\n"
+  "                 Byte => copy is stored as bytes\n"
+  "                Short => copy is stored as shorts\n"
+  "                Float => copy is stored as floats\n"
+  "                NOTE: you can only change the data storage of the\n"
+  "                      copy from the input if you are using 'Zero';\n"
+  "                      with 'Data', the data storage of the copy will\n"
+  "                      always be made 'As Is'.\n"
+  "            The copy is made when you finalize the dataset choice.\n"
+  "            The copied dataset has the same prefix as the input\n"
+  "            dataset, with the string 'COPY_' prepended.  You can\n"
+  "            alter this name later using the 'Dataset Rename' plugin,\n"
+  "            AFTER the dataset has been Save-d, or with the '3drename'\n"
+  "            program after you exit AFNI.\n"
   "\n"
   "Step 2) Choose a drawing value.\n"
   "        * This is the number that will be placed into the dataset\n"
@@ -748,9 +859,9 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "        * TT Atlas Regions can be loaded into the edited volume.  The\n"
   "            chosen region+hemisphere(s) will be loaded with the current\n"
   "            Drawing Value.  'OverWrite' loading means that all voxels\n"
-  "            from the region will be replaced with the Drawing Value.\n"
+  "            from the TT region will be replaced with the Drawing Value.\n"
   "            'InFill' loading means that only voxels that are currently\n"
-  "            nonzero will be replaced with the Drawing Value.\n"
+  "            zero in the TT region will be replaced with the Drawing Value.\n"
   "           N.B.: TT Atlas regions may not be good representations of\n"
   "                   any given subject's anatomy.  You will probably\n"
   "                   want to edit the mask after doing the loading.\n"
@@ -815,11 +926,16 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "      session.  This can result in the loss of un-Saved edits.\n"
   "  * It is possible to edit the same dataset that you are also viewing\n"
   "      with the 'Render Dataset' plugin.  In this way, you can see a\n"
-  "      3D visualization of your drawing as you do it.\n"
+  "      3D visualization of your drawing as you do it.  You need to turn\n"
+  "      on 'DynaDraw' in the rendering plugin; then, if the dataset you\n"
+  "      are drawing on is the same as the renderer's overlay, each drawing\n"
+  "      action will cause a re-rendering.  This works well if you have\n"
+  "      set the renderer's 'Color Opacity' to 'ShowThru'.\n"
   "  * If you are drawing anatomically-based ROIs, you can only draw every\n"
   "      5th slice (say) and then use program 3dRowFillin to fill in the\n"
   "      inter-slice gaps.\n"
-  "  * Edit at your own risk!  Be careful out there.\n"
+  "  * Edit at your own risk!  You can destroy datasets this way.\n"
+  "    Be careful out there.\n"
   "\n"
   "SUGGESTIONS?\n"
   "  * Please send them to " COXEMAIL "\n"
@@ -982,14 +1098,16 @@ void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
    return ;
 }
 
+/*-----------------------------------------------------------------------------*/
+
 void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 {
-   int id = cbs->ival ;
+   int id=cbs->ival , copied=0 ;
    THD_3dim_dataset * qset ;
    XmString xstr ;
-   char str[256] ;
+   char str[256] , *dtit ;
 
-   /* check for errors */
+   /*-- check for errors --*/
 
    if( ! editor_open ){ POPDOWN_strlist_chooser ; XBell(dc->display,100) ; return ; }
 
@@ -1005,26 +1123,66 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
       XBell(dc->display,100) ; return ;
    }
 
-   /* accept this dataset */
+   /*-- 24 Sep 2001: make a copy of the dataset, if desired --*/
+
+   if( MCW_val_bbox(copy_bbox) != 0 ){
+      THD_3dim_dataset *cset ;
+      int zfill , ftype , dtype ;
+
+      zfill = (copy_mode_av->ival == 1) ;     /* zero fill? */
+
+      switch( copy_type_av->ival ){
+         default: ftype = -1 ; break ;        /* As Is */
+         case 1:  ftype =  1 ; break ;        /* Func  */
+         case 2:  ftype =  2 ; break ;        /* Anat  */
+      }
+
+      switch( copy_datum_av->ival ){
+         default: dtype = -1        ; break ; /* As Is */
+         case 1:  dtype = MRI_byte  ; break ; /* Byte  */
+         case 2:  dtype = MRI_short ; break ; /* Short */
+         case 3:  dtype = MRI_float ; break ; /* Float */
+      }
+
+      cset = DRAW_copy_dset( qset , zfill,ftype,dtype ) ; /* make copy! */
+
+      if( cset == NULL ){                                 /* this is bad */
+         (void) MCW_popup_message( choose_pb ,
+                                     " \n"
+                                     "*** Cannot make copy of input   ***\n"
+                                     "*** dataset for unknown reasons ***\n " ,
+                                   MCW_USER_KILL ) ;
+         XBell(dc->display,100) ; return ;
+      }
+
+      DSET_unload(qset) ;
+      PLUTO_add_dset( plint , cset , DSET_ACTION_MAKE_CURRENT ) ;
+      qset = cset ; copied = 1 ;
+   }
+
+   /*-- accept this dataset --*/
 
    dset = qset ; dset_changed = 0 ; SENSITIZE(save_pb,0) ;
    dax_save = *(dset->daxes) ;
    dset_idc = qset->idcode ;   /* 31 Mar 1999 */
 
-   /* write the informational label */
+   /*-- write the informational label --*/
+
+   if( copied ) dtit = DSET_FILECODE(dset) ;  /* 24 Sep 2001 */
+   else         dtit = dsl[id].title ;
 
    if( DSET_BRICK_FACTOR(dset,0) == 0.0 ){
-      strcpy(str,dsl[id].title) ;
+      strcpy(str,dtit) ;
    } else {
       char abuf[16] ;
       AV_fval_to_char( DSET_BRICK_FACTOR(dset,0) , abuf ) ;
-      sprintf(str,"%s\nbrick factor: %s", dsl[id].title , abuf ) ;
+      sprintf(str,"%s\nbrick factor: %s", dtit , abuf ) ;
    }
    xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
    XmStringFree(xstr) ;
 
-   /* setup AFNI for drawing */
+   /*-- setup AFNI for drawing --*/
 
    if( ! recv_open ){
       recv_key = id = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK   |
@@ -1728,7 +1886,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
      for( ff=ijk=0 ; ijk < nvoxout ; ijk++ )
        if( voxout[ijk] >= VTHRESH ) xd[ff++] = ijk ;
 
-     infill_mode = strcmp(XtName(w),TTATLAS_infill_label) == 0 ;
+     infill_mode = (strcmp(XtName(w),TTATLAS_infill_label) == 0) ;
      ff = DRAW_into_dataset( nftot , xd,NULL,NULL , NULL ) ;
      infill_mode = 0 ;
 
@@ -1745,4 +1903,99 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    free(voxout) ; /* toss trash */
    return ;
+}
+
+/*-----------------------------------------------------------------------
+  Copy a dataset; new prefix is "COPY_" + old prefix.
+    zfill != 0  ==> zero fill
+    ftyp  <= 0  ==> same func type
+    ftyp  == 1  ==> fim
+    ftyp  == 2  ==> anat (omri)
+    dtype <  0  ==> same datum
+    dtype >= 0  ==> new datum (only valid for zfill)
+                          Adapted from plug_copy.c -- 24 Sep 2001 - RWCox
+-------------------------------------------------------------------------*/
+
+THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *dset ,
+                                   int zfill , int ftyp , int dtype )
+{
+   THD_3dim_dataset *new_dset ;
+   char new_prefix[THD_MAX_PREFIX] ;
+   int ival ;
+
+   if( !ISVALID_DSET(dset) ) return NULL ;
+
+   if( strncmp(DSET_PREFIX(dset),"COPY",4) == 0 ) strcpy(new_prefix,"C") ;
+   else                                           strcpy(new_prefix,"COPY_") ;
+   ival = strlen(new_prefix) ;
+   MCW_strncpy(new_prefix+ival,DSET_PREFIX(dset),THD_MAX_PREFIX-ival) ;
+
+   /*-- make a new dataset, somehow --*/
+
+   if( zfill == 0 ){
+      new_dset = PLUTO_copy_dset( dset , new_prefix ) ;  /* full copy */
+      dtype = -1 ;
+   } else {
+      new_dset = EDIT_empty_copy( dset ) ;               /* zero fill */
+      EDIT_dset_items( new_dset, ADN_prefix,new_prefix, ADN_none ) ;
+   }
+
+   if( new_dset == NULL ) return NULL ; /* bad, real bad */
+
+   tross_Copy_History( dset , new_dset ) ;  /* make some History, dude! */
+   { char str[256] ;
+     strcpy(str,"Drawing plugin COPY:") ;
+     if( zfill ) strcat(str," Fill->Zero") ;
+     else        strcat(str," Fill->Data") ;
+          if( ftyp == 1 ) strcat(str," Type->Func") ;
+     else if( ftyp == 2 ) strcat(str," Type->Anat") ;
+     if( dtype >= 0 ){
+       strcat(str," Datum->") ; strcat(str,MRI_TYPE_name[dtype]) ;
+     }
+     tross_Append_History( new_dset , str ) ;
+   }
+
+   /*--- modify new dataset, if desired ---*/
+
+   if( ftyp == 1 )
+      EDIT_dset_items( new_dset ,
+                         ADN_type      , HEAD_FUNC_TYPE ,
+                         ADN_func_type , FUNC_FIM_TYPE  ,
+                       ADN_none ) ;
+   else if( ftyp == 2 )
+      EDIT_dset_items( new_dset ,
+                         ADN_type      , HEAD_ANAT_TYPE ,
+                         ADN_func_type , ANAT_OMRI_TYPE ,
+                       ADN_none ) ;
+
+   if( zfill == 0 ) return new_dset ;  /* done if not zero-filling */
+
+   /*--- change type of data stored? ---*/
+
+   if( dtype >= 0 ) EDIT_dset_items( new_dset ,
+                                       ADN_datum_all, dtype,
+                                     ADN_none ) ;
+   /* zero fill */
+
+   {  int ityp , nbytes , nvals , ival ;
+      void * new_brick , * bp ;
+
+      nvals = DSET_NVALS(new_dset) ;
+
+      for( ival=0 ; ival < nvals ; ival++)             /* get memory for bricks */
+      {                                                /* and zero fill */
+         ityp      = DSET_BRICK_TYPE(new_dset,ival) ;
+         nbytes    = DSET_BRICK_BYTES(new_dset,ival) ; /* how much data */
+         new_brick = malloc( nbytes ) ;
+         EDIT_substitute_brick( new_dset , ival , ityp , new_brick ) ;
+
+         bp = DSET_BRICK_ARRAY(new_dset,ival) ;        /* brick pointer */
+         EDIT_BRICK_FACTOR(new_dset,ival,0.0) ;        /* brick factor  */
+         memset( bp , 0 , nbytes ) ;
+      }
+   }
+
+   /*-- done successfully!!! --*/
+
+   return new_dset ;
 }

@@ -1270,6 +1270,7 @@ STATUS("creation: widgets created") ;
                                        "LowerLeft", "LowerRight",
                                        "UpperMid" , "LowerMid"   } ;
      static char *slabel[5] = { "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
+     char *eee ; int iii ;
 
      (void) XtVaCreateManagedWidget( "dialog",
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
@@ -1291,13 +1292,18 @@ STATUS("creation: widgets created") ;
 
      /*-- labels stuff --*/
 
+     iii = 0 ;
+     eee = getenv("AFNI_IMAGE_LABEL_MODE") ;
+     if( eee != NULL ){
+        iii = strtol(eee,NULL,10) ; if( iii < 0 || iii > 6 ) iii = 1 ;
+     }
      newseq->wbar_label_av =
         new_MCW_arrowval( newseq->wbar_menu ,
                           "Label" ,
                           MCW_AV_optmenu ,      /* option menu style */
                           0 ,                   /* first option */
                           6 ,                   /* last option */
-                          0 ,                   /* initial selection */
+                          iii ,                 /* initial selection */
                           MCW_AV_readtext ,     /* ignored but needed */
                           0 ,                   /* ditto */
                           ISQ_wbar_label_CB ,   /* callback when changed */
@@ -1306,13 +1312,18 @@ STATUS("creation: widgets created") ;
                           alabel                /* data for above */
                         ) ;
 
+     iii = 1 ;
+     eee = getenv("AFNI_IMAGE_LABEL_SIZE") ;
+     if( eee != NULL ){
+        iii = strtol(eee,NULL,10) ; if( iii < 0 || iii > 4 ) iii = 2 ;
+     }
      newseq->wbar_labsz_av =
         new_MCW_arrowval( newseq->wbar_menu ,
                           "Size " ,
                           MCW_AV_optmenu ,      /* option menu style */
                           0 ,                   /* first option */
                           4 ,                   /* last option */
-                          1 ,                   /* initial selection */
+                          iii ,                 /* initial selection */
                           MCW_AV_readtext ,     /* ignored but needed */
                           0 ,                   /* ditto */
                           ISQ_wbar_label_CB ,   /* callback when changed */
@@ -1842,6 +1853,7 @@ MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
    MEM_plotdata *mp ; int ww ; float asp , dd ;
    static int sz[5] = { 20 , 28 , 40 , 56 , 80 } ;  /* sz[j] = 20 * pow(2,0.5*j) */
+   char *eee ; float rr=1.0,gg=1.0,bb=0.8 , sb=0.003 ;
 
 ENTRY("ISQ_plot_label") ;
 
@@ -1853,34 +1865,52 @@ ENTRY("ISQ_plot_label") ;
    asp = 1.0 ;
 #endif
 
+   /* set character size (units = 0.001 of plot width) */
+
    ww = sz[seq->wbar_labsz_av->ival] ;
    if( asp > 1.0 ) ww = (int)(ww/asp+0.5) ;
 
-   dd = 0.0007*ww ;
+   dd = 0.0007*ww ;  /* offset from edge */
 
    create_memplot_surely( "Ilabelplot" , asp ) ;
-   set_color_memplot(1.0,0.9,0.8) ;
    set_thick_memplot(0.0) ;
+
+   /* get the color to plot with */
+
+   eee = getenv("AFNI_IMAGE_LABEL_COLOR") ;
+   if( eee != NULL )
+      DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
+   set_color_memplot(rr,gg,bb) ;
+
+   /* get the setback */
+
+   eee = getenv("AFNI_IMAGE_LABEL_SETBACK") ;
+   if( eee != NULL ){
+      float ss = strtod(eee,NULL) ;
+      if( ss >= 0.0 && ss < 0.5 ) sb = ss ;
+   }
+
+   /* plot the label */
 
    switch( seq->wbar_label_av->ival ){
       default:
       case ISQ_LABEL_UPLF:
-         plotpak_pwritf( 0.003,1.0-dd , lab , ww , 0 , -1 ) ; break ;
+         plotpak_pwritf( sb,1.0-dd-sb , lab , ww , 0 , -1 ) ; break ;
 
       case ISQ_LABEL_UPRT:
-         plotpak_pwritf( asp-0.003,1.0-dd , lab , ww , 0 ,  1 ) ; break ;
+         plotpak_pwritf( asp-sb,1.0-dd-sb , lab , ww , 0 ,  1 ) ; break ;
 
       case ISQ_LABEL_DNLF:
-         plotpak_pwritf( 0.003,dd , lab , ww , 0 , -1 ) ; break ;
+         plotpak_pwritf( sb,dd+sb , lab , ww , 0 , -1 ) ; break ;
 
       case ISQ_LABEL_DNRT:
-         plotpak_pwritf( asp-0.003,dd , lab , ww , 0 ,  1 ) ; break ;
+         plotpak_pwritf( asp-sb,dd+sb , lab , ww , 0 ,  1 ) ; break ;
 
       case ISQ_LABEL_UPMD:
-         plotpak_pwritf( 0.5*asp,1.0-dd , lab , ww , 0 , 0 ) ; break ;
+         plotpak_pwritf( 0.5*asp,1.0-dd-sb , lab , ww , 0 , 0 ) ; break ;
 
       case ISQ_LABEL_DNMD:
-         plotpak_pwritf( 0.5*asp,dd , lab , ww , 0 , 0 ) ; break ;
+         plotpak_pwritf( 0.5*asp,dd+sb , lab , ww , 0 , 0 ) ; break ;
    }
 
    mp = get_active_memplot() ; RETURN(mp) ;

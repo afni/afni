@@ -237,6 +237,19 @@ PLUGIN_interface * ENV_init(void)
                    "Name of host to trust for plugouts and realtime data" ,
                    0,NULL , ENV_trusthost ) ;
 
+   ENV_add_string( "AFNI_IMAGE_LABEL_COLOR" ,
+                   "Name of color for image overlay labels" , /* 21 Sep 2001 */
+                   0,NULL , NULL ) ;
+
+   ENV_add_numeric( "AFNI_IMAGE_LABEL_SETBACK" ,
+                    "Size of setback for image overlay labels" ,
+                    0 , 40 , 3 , 3 , NULL ) ;
+
+   if( AGNI_ENABLED )
+     ENV_add_string( "AGNI_OVERLAY_COLOR" ,
+                     "Name of color for surface overlays" ,   /* 21 Sep 2001 */
+                     0,NULL , NULL ) ;
+
 #ifndef NO_FRIVOLITIES
    ENV_add_string( "AFNI_IMAGE_PGMFILE" ,
                    "Image file for AFNI splash window" ,

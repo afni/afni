@@ -1375,3 +1375,23 @@ void DC_pixel_to_rgb( MCW_DC * dc , Pixel ppp ,
 
    return ;
 }
+
+/*-------------------------------------------------------------------------
+   21 Sep 2001: compute an (r,g,b) triple (floating point, 0..1)
+                for the given color string;
+                return value is 0 for good, 1 for bad
+                (if bad, *rr, *gg, *bb aren't touched)
+---------------------------------------------------------------------------*/
+
+int DC_parse_color( MCW_DC *dc, char *str, float *rr, float *gg, float *bb )
+{
+   XColor cell ; int ok ;
+   ok = XParseColor( dc->display , dc->colormap , str, &cell ) ;
+   if( ok ){
+      *rr = cell.red   / 65536.0 ;
+      *gg = cell.green / 65536.0 ;
+      *bb = cell.blue  / 65536.0 ;
+      return 0 ;
+   }
+   return 1 ;
+}

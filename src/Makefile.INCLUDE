@@ -45,7 +45,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual \
-           3dTcorrelate 3dAnatNudge
+           3dTcorrelate 3dAnatNudge 3dcopy
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -60,7 +60,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+      \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
-                  3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge
+                  3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -268,6 +268,10 @@ dsetdup:dsetdup.o
 3drename:3drename.o
 	$(RM) $@
 	$(CC) -o 3drename 3drename.o $(LFLAGS) $(LLIBS)
+
+3dcopy:3dcopy.o
+	$(RM) $@
+	$(CC) -o 3dcopy 3dcopy.o $(LFLAGS) $(LLIBS)
 
 3daxialize:3daxialize.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
            afni_slice_float.o afni_slice_complex.o

@@ -1562,8 +1562,8 @@ STATUS("get status") ;
       MEM_plotdata * mp ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
-      float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz ;
-      char str[32] ;
+      float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz , rr=1.0,gg=0.8,bb=0.0 ;
+      char str[32] , *eee ;
 
       LOAD_IVEC3(iv,0,0,n+1) ;
       ivp = THD_fdind_to_3dind( br , iv ) ;
@@ -1576,7 +1576,11 @@ STATUS("get status") ;
 
       create_memplot_surely( "AGNI_plot" , 1.0 ) ;
       mp = get_active_memplot() ;
-      set_color_memplot(1.0,0.9,0.0) ; /* yellow-ish */
+
+      eee = getenv("AGNI_OVERLAY_COLOR") ;  /* 21 Sep 2001 */
+      if( eee != NULL )
+         DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
+      set_color_memplot(rr,gg,bb) ;
 
       dxyz = MIN(br->del1,br->del2) ;
       dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;

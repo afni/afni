@@ -3149,3 +3149,18 @@
  * Fixed ISQ_saver_CB() bug in imseq.c: when Save:one was active and images
      were sent to an output filter, they needed to be forced into RGB mode
      even if they were grayscale.
+ * Changes to afni.c and imseq.c to allow label and agni overlay colors to be
+     controlled by environment variables.
+ * Added function DC_parse_color() to display.[ch] to parse a color string into
+     a (float) RGB triple.
+
+23 Sep 2001
+ * Added a setback environment variable to let image label placement be
+     adjusted.
+ * Modified afni_widg.c to load a color pixmap for use with the "wait"
+     picture, if the visual is TrueColor.
+
+24 Sep 2001
+ * New program 3dcopy.c does what it sounds like: copies datasets.
+ * Modified plug_drawdset.c to allow the user to make a copy of a
+     dataset on input.

@@ -330,13 +330,36 @@ STATUS("creating top_form") ;
 
 #ifdef WANT_LOGO_BITMAP
 STATUS("WANT_LOGO_BITMAP") ;
-      if( logo_pixmap == XmUNSPECIFIED_PIXMAP )
-        logo_pixmap = XCreatePixmapFromBitmapData(
-                        XtDisplay(vwid->top_shell) ,
-                        RootWindowOfScreen(XtScreen(vwid->top_shell)) ,
-                        logo_bits , logo_width , logo_height ,
-                        fg_pix , bg_pix ,
-                        DefaultDepthOfScreen(XtScreen(vwid->top_shell)) ) ;
+      if( logo_pixmap == XmUNSPECIFIED_PIXMAP ){
+
+#ifndef NO_FRIVOLITIES
+#include "lll.h"
+        if( im3d->dc->visual_class == TrueColor ){  /* 23 Sep 2001 */
+          MRI_IMAGE *bim ; XImage *xim ;
+          bim = mri_new_vol_empty( lll_width,lll_height,1 , MRI_rgb ) ;
+          mri_fix_data_pointer( lll_rgb , bim ) ;
+          logo_pixmap = XCreatePixmap( im3d->dc->display ,
+                                       RootWindowOfScreen(im3d->dc->screen) ,
+                                       lll_width , lll_height ,
+                                       im3d->dc->planes ) ;
+          xim = rgb_to_XImage( im3d->dc , bim ) ;
+          if( xim != NULL )
+             XPutImage( im3d->dc->display ,
+                        logo_pixmap ,
+                        im3d->dc->origGC ,
+                        xim , 0,0 , 0,0 , lll_width , lll_height ) ;
+          MCW_kill_XImage( xim ); mri_clear_data_pointer(bim); mri_free(bim);
+        }
+#endif
+
+        if( logo_pixmap == XmUNSPECIFIED_PIXMAP )         /* original code */
+          logo_pixmap = XCreatePixmapFromBitmapData(
+                          XtDisplay(vwid->top_shell) ,
+                          RootWindowOfScreen(XtScreen(vwid->top_shell)) ,
+                          logo_bits , logo_width , logo_height ,
+                          fg_pix , bg_pix ,
+                          DefaultDepthOfScreen(XtScreen(vwid->top_shell)) ) ;
+      }
 #endif
 
 #ifdef WANT_AFNI_BITMAP

@@ -259,4 +259,6 @@ extern void DC_pixel_to_rgb( MCW_DC *, Pixel, byte *,byte *,byte * ) ;
 extern Pixel DC_rgb_to_ovpix( MCW_DC *, byte,byte,byte ) ; /* 20 Dec 1999 */
 extern void DC_rgb_to_ovrgb( MCW_DC *, int,int *,int,byte *, byte *, byte *) ;
 
+extern int DC_parse_color( MCW_DC *, char *, float *,float *,float *) ; /* 21 Sep 2001 */
+
 #endif /* _MCW_DISPLAY_HEADER_ */

@@ -485,6 +485,8 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
    nargs = 0 ;
    XtSetArg( args[0] , XmNsubMenuId , wmenu ) ; nargs++ ;
 
+   if( label == NULL ) label = " " ;  /* 24 Sep 2001 */
+
    xstr = XmStringCreateLtoR( label , XmFONTLIST_DEFAULT_TAG ) ;
    XtSetArg( args[1] , XmNlabelString , xstr ) ; nargs++ ;
 
