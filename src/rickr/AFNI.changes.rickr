@@ -953,3 +953,14 @@
 11 Jan 2005:
   * modified afni_niml.c: slist_choose_surfs() check_user_surfs on nsurf == 1
 
+14 Jan 2005: nifti_tool v1.1:
+  * changed all non-error/non-debug output from stderr to stdout
+      note: creates a mis-match between normal output and debug messages
+  * modified act_diff_hdrs and act_diff_nims to do the processing in
+      lower-level functions
+  * added functions diff_hdrs, diff_hdrs_list, diff_nims, diff_nims_list
+  * added function get_field, to return a struct pointer via a fieldname
+  * made 'quiet' output more quiet (no description on output)
+  * made hdr and nim_fields arrays global, so do not pass in main()
+  * return (from main()) after first act_diff() difference
+

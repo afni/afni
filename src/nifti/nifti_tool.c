@@ -54,56 +54,63 @@ static char g_history[] =
   "\n"
   "1.0  07 January 2005 [rickr]\n"
   "   - initial release version\n"
+  "\n"
+  "1.1  14 January 2005 [rickr]\n"
+  "   - changed all non-error/non-debug output from stderr to stdout\n"
+  "       note: creates a mis-match between normal output and debug messages\n"
+  "   - modified act_diff_hdrs and act_diff_nims to do the processing in\n"
+  "       lower-level functions\n"
+  "   - added functions diff_hdrs, diff_hdrs_list, diff_nims, diff_nims_list\n"
+  "   - added function get_field, to return a struct pointer via a fieldname\n"
+  "   - made 'quiet' output more quiet (no description on output)\n"
+  "   - made hdr and nim_fields arrays global, so do not pass in main()\n"
+  "   - return (from main()) after first act_diff() difference\n"
   "----------------------------------------------------------------------\n";
-static char g_version[] = "nifti_tool, version 1.0 (January 7, 2004)";
+static char g_version[] = "version 1.1 (January 14, 2004)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
 #include "nifti1_io.h"
 #include "nifti_tool.h"
 
+/* these are effectively constant, and are built only for verification */
+field_s g_hdr_fields[NT_HDR_NUM_FIELDS];    /* nifti_1_header fields */
+field_s g_nim_fields [NT_NIM_NUM_FIELDS];   /* nifti_image fields    */
 
 int main( int argc, char * argv[] )
 {
-   field_s nhdr_fields[NT_NHDR_NUM_FIELDS];   /* nifti_1_header fields */
-   field_s nim_fields [NT_NIM_NUM_FIELDS];    /* nifti_image fields    */
-
    nt_opts opts;
    int     rv;
 
    if( (rv = process_opts(argc, argv, &opts)) != 0)
       return rv;
 
+   if( (rv = fill_hdr_field_array(g_hdr_fields)) != 0 )
+      return rv;
+
+   if( (rv = fill_nim_field_array(g_nim_fields)) != 0 )
+      return rv;
+
    if( (rv = verify_opts(&opts, argv[0])) != 0 )
-      return rv;
-
-   if( (rv = fill_hdr_field_array(nhdr_fields)) != 0 )
-      return rv;
-
-   if( (rv = fill_nim_field_array(nim_fields)) != 0 )
       return rv;
 
    /* now perform the requested action(s) */
 
    /* perform modifications first, in case we allow multiple actions */
-   if( opts.add_exts && ((rv = act_add_exts  (&opts)) != 0) ) return rv;
-   if( opts.rm_exts  && ((rv = act_rm_ext    (&opts)) != 0) ) return rv;
+   if( opts.add_exts  && ((rv = act_add_exts (&opts)) != 0) ) return rv;
+   if( opts.rm_exts   && ((rv = act_rm_ext   (&opts)) != 0) ) return rv;
 
-   if( opts.mod_hdr && ((rv = act_mod_hdrs (&opts, nhdr_fields)) != 0) )
-      return rv;
-   if( opts.mod_nim && ((rv = act_mod_nims  (&opts, nim_fields))  != 0) )
-      return rv;
+   if( opts.mod_hdr   && ((rv = act_mod_hdrs (&opts)) != 0) ) return rv;
+   if( opts.mod_nim   && ((rv = act_mod_nims (&opts)) != 0) ) return rv;
 
    /* if a diff, return wither a difference exists (like the UNIX command) */
-   if( opts.diff_hdr ) rv = act_diff_hdrs(&opts, nhdr_fields);
-   if( opts.diff_nim  ) return (rv | act_diff_nims(&opts, nim_fields));
+   if( opts.diff_hdr  && ((rv = act_diff_hdrs(&opts)) != 0) ) return rv;
+   if( opts.diff_nim  && ((rv = act_diff_nims(&opts)) != 0) ) return rv;
 
    /* last action type is display */
-   if( opts.disp_exts && ((rv = act_disp_exts (&opts)) != 0) ) return rv;
-   if( opts.disp_hdr  && ((rv = act_disp_hdrs(&opts, nhdr_fields)) != 0) )
-      return rv;
-   if( opts.disp_nim  && ((rv = act_disp_nims (&opts, nim_fields))  != 0) )
-      return rv;
+   if( opts.disp_exts && ((rv = act_disp_exts(&opts)) != 0) ) return rv;
+   if( opts.disp_hdr  && ((rv = act_disp_hdrs(&opts)) != 0) ) return rv;
+   if( opts.disp_nim  && ((rv = act_disp_nims(&opts)) != 0) ) return rv;
 
    return 0;
 }
@@ -158,8 +165,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       {
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-debug");
-         g_debug = opts->debug = atoi(argv[ac]);
-         nifti_set_debug_level(g_debug);
+         opts->debug = atoi(argv[ac]);
       }
       else if( ! strncmp(argv[ac], "-diff_hdr", 8) )
          opts->diff_hdr = 1;
@@ -208,7 +214,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          CHECK_NEXT_OPT(ac, argc, "-prefix");
          opts->prefix = argv[ac];
       }
-      else if( ! strncmp(argv[ac], "-quiet", 2) )
+      else if( ! strncmp(argv[ac], "-quiet", 3) )
          opts->debug = 0;
       else if( ! strncmp(argv[ac], "-rm_ext", 7) )
       {
@@ -231,6 +237,9 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          return 1;
       }
    }
+
+   g_debug = opts->debug;
+   nifti_set_debug_level(g_debug);
 
    if( g_debug > 2 ) disp_nt_opts("options read: ", opts);
 
@@ -384,19 +393,19 @@ int usage(char * prog, int level)
 {
    if( level == USE_SHORT )
    {
-      fprintf(stderr,"usage %s [options] -infiles files...\n", prog);
-      fprintf(stderr,"usage %s -help\n", prog);
+      fprintf(stdout,"usage %s [options] -infiles files...\n", prog);
+      fprintf(stdout,"usage %s -help\n", prog);
    }
    else if( level == USE_FULL )
       use_full("nifti_tool");  /* let's not allow paths in here */
    else if( level == USE_HIST )
-      fputs(g_history, stderr);
+      fputs(g_history, stdout);
    else if( level == USE_FIELD_HDR )
    {
-      field_s nhdr_fields[NT_NHDR_NUM_FIELDS];  /* just do it all here */
+      field_s nhdr_fields[NT_HDR_NUM_FIELDS];  /* just do it all here */
 
       fill_hdr_field_array(nhdr_fields);
-      disp_field_s_list("nifti_1_header: ", nhdr_fields, NT_NHDR_NUM_FIELDS);
+      disp_field_s_list("nifti_1_header: ", nhdr_fields, NT_HDR_NUM_FIELDS);
    }
    else if( level == USE_FIELD_NIM )
    {
@@ -406,9 +415,9 @@ int usage(char * prog, int level)
       disp_field_s_list("nifti_image: ", nim_fields, NT_NIM_NUM_FIELDS);
    }
    else if( level == USE_VERSION )
-      fprintf(stderr, "%s\n", g_version);
+      fprintf(stdout, "%s, %s\n", prog, g_version);
    else
-      fprintf(stderr,"** illegal level for usage(): %d\n", level);
+      fprintf(stdout,"** illegal level for usage(): %d\n", level);
 
    return 1;
 }
@@ -761,8 +770,12 @@ int use_full(char * prog)
    "\n"
    "       e.g.  %s -nifti_hist\n"
    "\n"
-   "  ------------------------------\n",
-   prog, prog, prog, prog, prog, prog, prog );
+   "  ------------------------------\n"
+   "\n"
+   "  R. Reynolds\n"
+   "  compiled: %s\n"
+   "  %s\n\n",
+   prog, prog, prog, prog, prog, prog, prog, __DATE__, g_version );
 
    return 1;
 }
@@ -977,12 +990,10 @@ int act_rm_ext( nt_opts * opts )
  *
  * return: 1 if diffs exist, 0 otherwise
  *----------------------------------------------------------------------*/
-int act_diff_hdrs( nt_opts * opts, field_s * nhdr_fields )
+int act_diff_hdrs( nt_opts * opts )
 {
-   nifti_1_header  * nhdr0, * nhdr1;
-   field_s         * fp;
-   char           ** sptr;
-   int               fnum, diffs = 0, lc;
+   nifti_1_header * nhdr0, * nhdr1;
+   int              diffs = 0;
 
    if( opts->infiles.len != 2 ){
       fprintf(stderr,"** -diff_hdr requires 2 -infiles, have %d\n",
@@ -1003,43 +1014,13 @@ int act_diff_hdrs( nt_opts * opts, field_s * nhdr_fields )
    if( ! nhdr1 ){ free(nhdr0); return 1; }
 
    if( g_debug > 1 )
-      fprintf(stderr,"\nchecking nifti_1_header diffs between '%s' and '%s'\n",
+      fprintf(stderr,"\n-d nifti_1_header diffs between '%s' and '%s'...\n",
               opts->infiles.list[0], opts->infiles.list[1]);
 
-   if( opts->flist.len <= 0 ){   /* do all of the fields */
-      if( g_debug == 0 )  /* quiet case first, shhhhh... */
-         return( diff_field(nhdr_fields, nhdr0, nhdr1, NT_NHDR_NUM_FIELDS) );
-
-      for( fnum = 0, fp = nhdr_fields; fnum < NT_NHDR_NUM_FIELDS; fnum++, fp++ )
-         if( diff_field(fp, nhdr0, nhdr1, 1) ){
-            diffs++;
-            disp_field(NULL, fp, nhdr0, 1, diffs == 1);
-            disp_field(NULL, fp, nhdr1, 1, 0);
-         }
-   }
-   else    /* do the fields in opts->flist */
-   {
-      sptr = opts->flist.list;
-      for( fnum = 0; fnum < opts->flist.len; fnum++ )
-      {
-         fp = nhdr_fields;
-         for( lc = 0; lc < NT_NHDR_NUM_FIELDS; lc++, fp++ )
-            if( strcmp(*sptr, fp->name) == 0 ) break;
-
-         if( lc == NT_NHDR_NUM_FIELDS )
-            fprintf(stderr,"   (field '%s' not found)\n",*sptr);
-         else if( diff_field(fp, nhdr0, nhdr1, 1) )
-         {
-            if( g_debug == 0 ) return 1;  /* quiet mode, diffs exist */
-
-            diffs++;
-            disp_field(NULL, fp, nhdr0, 1, diffs == 1);
-            disp_field(NULL, fp, nhdr1, 1, 0);
-         }
-
-         sptr++;
-      }
-   }
+   if( opts->flist.len <= 0 )
+      diffs = diff_hdrs(nhdr0, nhdr1, g_debug > 0);
+   else
+      diffs = diff_hdrs_list(nhdr0, nhdr1, &opts->flist, g_debug > 0);
 
    if( diffs == 0 && g_debug > 1 )
       fprintf(stderr,"+d no differences found\n");
@@ -1049,7 +1030,7 @@ int act_diff_hdrs( nt_opts * opts, field_s * nhdr_fields )
    free(nhdr0);
    free(nhdr1);
 
-   return 0;
+   return (diffs > 0);
 }
 
 
@@ -1061,12 +1042,10 @@ int act_diff_hdrs( nt_opts * opts, field_s * nhdr_fields )
  *
  * return: 1 if diffs exist, 0 otherwise
  *----------------------------------------------------------------------*/
-int act_diff_nims( nt_opts * opts, field_s * nim_fields )
+int act_diff_nims( nt_opts * opts )
 {
-   nifti_image  * nim0, * nim1;
-   field_s      * fp;
-   char        ** sptr;
-   int            fnum, diffs = 0, lc;
+   nifti_image * nim0, * nim1;
+   int           diffs = 0;
 
    if( opts->infiles.len != 2 ){
       fprintf(stderr,"** -diff_nim requires 2 -infiles, have %d\n",
@@ -1087,43 +1066,13 @@ int act_diff_nims( nt_opts * opts, field_s * nim_fields )
    if( ! nim1 ){ free(nim0); return 1; }
 
    if( g_debug > 1 )
-      fprintf(stderr,"\nchecking for nifti_image diffs between '%s' and '%s'\n",
+      fprintf(stderr,"\n-d nifti_image diffs between '%s' and '%s'...\n",
               opts->infiles.list[0], opts->infiles.list[1]);
 
-   if( opts->flist.len <= 0 ){   /* do all of the fields */
-      if( g_debug == 0 )  /* quiet case first, shhhhh... */
-         return( diff_field(nim_fields, nim0, nim1, NT_NIM_NUM_FIELDS) );
-
-      for( fnum = 0, fp = nim_fields; fnum < NT_NIM_NUM_FIELDS; fnum++, fp++ )
-         if( diff_field(fp, nim0, nim1, 1) ){
-            diffs++;
-            disp_field(NULL, fp, nim0, 1, diffs == 1);
-            disp_field(NULL, fp, nim1, 1, 0);
-         }
-   }
-   else    /* do the fields in opts->flist */
-   {
-      sptr = opts->flist.list;
-      for( fnum = 0; fnum < opts->flist.len; fnum++ )
-      {
-         fp = nim_fields;
-         for( lc = 0; lc < NT_NIM_NUM_FIELDS; lc++, fp++ )
-            if( strcmp(*sptr, fp->name) == 0 ) break;
-
-         if( lc == NT_NIM_NUM_FIELDS )
-            fprintf(stderr,"   (field '%s' not found)\n",*sptr);
-         else if( diff_field(fp, nim0, nim1, 1) )
-         {
-            if( g_debug == 0 ) return 1;  /* quiet mode, diffs exist */
-
-            diffs++;
-            disp_field(NULL, fp, nim0, 1, diffs == 1);
-            disp_field(NULL, fp, nim1, 1, 0);
-         }
-
-         sptr++;
-      }
-   }
+   if( opts->flist.len <= 0 )
+      diffs = diff_nims(nim0, nim1, g_debug > 0);
+   else
+      diffs = diff_nims_list(nim0, nim1, &opts->flist, g_debug > 0);
 
    if( diffs == 0 && g_debug > 1 )
       fprintf(stderr,"+d no differences found\n");
@@ -1133,7 +1082,7 @@ int act_diff_nims( nt_opts * opts, field_s * nim_fields )
    nifti_image_free(nim0);
    nifti_image_free(nim1);
 
-   return 0;
+   return (diffs > 0);
 }
 
 
@@ -1156,7 +1105,7 @@ int act_disp_exts( nt_opts * opts )
       if( !nim ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
-         fprintf(stderr,"header file '%s', num_ext = %d\n",
+         fprintf(stdout,"header file '%s', num_ext = %d\n",
                  nim->fname, nim->num_ext);
       for( ec = 0; ec < nim->num_ext; ec++ )
       {
@@ -1174,16 +1123,15 @@ int act_disp_exts( nt_opts * opts )
 /*----------------------------------------------------------------------
  * for each file, read nifti1_header and display all fields
  *----------------------------------------------------------------------*/
-int act_disp_hdrs( nt_opts * opts, field_s * nhdr_fields )
+int act_disp_hdrs( nt_opts * opts )
 {
    nifti_1_header *  nhdr;
    field_s        *  fnhdr;
    char           ** sptr;
-   int               nfields, filenum, fc, lc;
-   int               show = 1, errors = 0;  /* display errors? */
+   int               nfields, filenum, fc;
 
    /* set the number of fields to display */
-   nfields = opts->flist.len > 0 ? opts->flist.len : NT_NHDR_NUM_FIELDS;
+   nfields = opts->flist.len > 0 ? opts->flist.len : NT_HDR_NUM_FIELDS;
 
    if( g_debug > 2 )
       fprintf(stderr,"-d displaying %d fields for %d nifti datasets...\n",
@@ -1195,37 +1143,25 @@ int act_disp_hdrs( nt_opts * opts, field_s * nhdr_fields )
       if( !nhdr ) return 1;  /* errors are printed from library */
                                                                                 
       if( g_debug > 0 )
-         fprintf(stderr,"\nheader file '%s', num_fields = %d, fields:\n\n",
+         fprintf(stdout,"\nheader file '%s', num_fields = %d, fields:\n\n",
                  opts->infiles.list[filenum], nfields);
 
       if( opts->flist.len <= 0 ) /* then display all fields */
-         disp_field("all fields:\n", nhdr_fields, nhdr, nfields, g_debug > 0);
+         disp_field("all fields:\n", g_hdr_fields, nhdr, nfields, g_debug > 0);
       else  /* print only the requested fields... */
       {
          /* must locate each field before printing it */
          sptr = opts->flist.list;
          for( fc = 0; fc < opts->flist.len; fc++ )
          {
-            fnhdr = nhdr_fields;
-            for( lc = 0; lc < NT_NHDR_NUM_FIELDS; lc++, fnhdr++ )
-               if( strcmp(*sptr,fnhdr->name) == 0 ) break;
-
-            if( lc == NT_NHDR_NUM_FIELDS ) /* then not found */
-            {
-               if( show ) errors++;
-               if( show ) fprintf(stderr,"   (field '%s' not found)\n",*sptr);
-            }
-            else
-               disp_field(NULL, fnhdr, nhdr, 1, g_debug > 0 && fc == 0);
-
+            fnhdr = get_hdr_field(*sptr, filenum == 0);
+            if( fnhdr ) disp_field(NULL, fnhdr, nhdr, 1, g_debug>0 && fc == 0);
             sptr++;
          }
-         if( errors > 0 ) show = 0;   /* same errors will be in each file */
       }
 
       free(nhdr);
    }
-
 
    return 0;
 }
@@ -1234,13 +1170,12 @@ int act_disp_hdrs( nt_opts * opts, field_s * nhdr_fields )
 /*----------------------------------------------------------------------
  * for each file, get nifti_image and display all fields
  *----------------------------------------------------------------------*/
-int act_disp_nims( nt_opts * opts, field_s * nim_fields )
+int act_disp_nims( nt_opts * opts )
 {
    nifti_image *  nim;
    field_s     *  fnim;
    char        ** sptr;
-   int            nfields, filenum, fc, lc;
-   int            show = 1, errors = 0;  /* display errors? */
+   int            nfields, filenum, fc;
 
    /* set the number of fields to display */
    nfields = opts->flist.len > 0 ? opts->flist.len : NT_NIM_NUM_FIELDS;
@@ -1255,32 +1190,21 @@ int act_disp_nims( nt_opts * opts, field_s * nim_fields )
       if( !nim ) return 1;  /* errors are printed from library */
                                                                                 
       if( g_debug > 0 )
-         fprintf(stderr,"\nheader file '%s', num_fields = %d, fields:\n\n",
+         fprintf(stdout,"\nheader file '%s', num_fields = %d, fields:\n\n",
                  nim->fname, nfields);
 
       if( opts->flist.len <= 0 ) /* then display all fields */
-         disp_field("all fields:\n", nim_fields, nim, nfields, g_debug > 0);
+         disp_field("all fields:\n", g_nim_fields, nim, nfields, g_debug > 0);
       else  /* print only the requested fields... */
       {
          /* must locate each field before printing it */
          sptr = opts->flist.list;
          for( fc = 0; fc < opts->flist.len; fc++ )
          {
-            fnim = nim_fields;
-            for( lc = 0; lc < NT_NIM_NUM_FIELDS; lc++, fnim++ )
-               if( strcmp(*sptr,fnim->name) == 0 ) break;
-
-            if( lc == NT_NIM_NUM_FIELDS ) /* then not found */
-            {
-               if( show ) errors++;
-               if( show ) fprintf(stderr,"   (field '%s' not found)\n",*sptr);
-            }
-            else
-               disp_field(NULL, fnim, nim, 1, g_debug > 0 && fc == 0);
-
+            fnim = get_nim_field(*sptr, filenum == 0);
+            if( fnim ) disp_field(NULL, fnim, nim, 1, g_debug > 0 && fc == 0);
             sptr++;
          }
-         if( errors > 0 ) show = 0;   /* same errors will be in each file */
       }
 
       nifti_image_free(nim);
@@ -1297,7 +1221,7 @@ int act_disp_nims( nt_opts * opts, field_s * nim_fields )
  * - else if swapped, swap back
  * - overwrite file header      (allows (danger-of) no evaluation of data)
  *----------------------------------------------------------------------*/
-int act_mod_hdrs( nt_opts * opts, field_s * nhdr_fields )
+int act_mod_hdrs( nt_opts * opts )
 {
    nifti_1_header * nhdr;
    nifti_image    * nim;         /* for reading/writing entire datasets */
@@ -1320,7 +1244,7 @@ int act_mod_hdrs( nt_opts * opts, field_s * nhdr_fields )
                  opts->flist.len, opts->infiles.list[filec]);
 
       /* okay, let's actually trash the data fields */
-      if( modify_all_fields(nhdr, opts, nhdr_fields, NT_NHDR_NUM_FIELDS) )
+      if( modify_all_fields(nhdr, opts, g_hdr_fields, NT_HDR_NUM_FIELDS) )
       {
          free(nhdr);
          return 1;
@@ -1354,7 +1278,7 @@ int act_mod_hdrs( nt_opts * opts, field_s * nhdr_fields )
          swap_nifti_header(nhdr, NIFTI_VERSION(*nhdr));
 
       /* if all is well, overwrite header in fname dataset */
-      (void)write_header_to_file(nhdr, fname); /* errors printed in function */
+      (void)write_hdr_to_file(nhdr, fname); /* errors printed in function */
 
       if( dupname ) free(dupname);
       free(nhdr);
@@ -1367,7 +1291,7 @@ int act_mod_hdrs( nt_opts * opts, field_s * nhdr_fields )
 /*----------------------------------------------------------------------
  * - read image w/data, modify and write
  *----------------------------------------------------------------------*/
-int act_mod_nims( nt_opts * opts, field_s * nim_fields )
+int act_mod_nims( nt_opts * opts )
 {
    nifti_image    * nim;         /* for reading/writing entire datasets */
    int              filec;
@@ -1387,7 +1311,7 @@ int act_mod_nims( nt_opts * opts, field_s * nim_fields )
                  opts->flist.len, opts->infiles.list[filec]);
 
       /* okay, let's actually trash the data fields */
-      if( modify_all_fields(nim, opts, nim_fields, NT_NIM_NUM_FIELDS) )
+      if( modify_all_fields(nim, opts, g_nim_fields, NT_NIM_NUM_FIELDS) )
       {
          nifti_image_free(nim);
          return 1;
@@ -1413,11 +1337,11 @@ int act_mod_nims( nt_opts * opts, field_s * nim_fields )
 /*----------------------------------------------------------------------
  * overwrite nifti_1_header in the given file
  *----------------------------------------------------------------------*/
-int write_header_to_file( nifti_1_header * nhdr, char * fname )
+int write_hdr_to_file( nifti_1_header * nhdr, char * fname )
 {
    znzFile fp;
    size_t  bytes;
-   char    func[] = { "write_header_to_file" };
+   char    func[] = { "write_hdr_to_file" };
    int     rv = 0;
 
    fp = znzopen(fname,"r+b",nifti_is_gzfile(fname));
@@ -1627,7 +1551,7 @@ int fill_hdr_field_array( field_s * nh_fields )
    field_s        * nhf = nh_fields;
    int              rv, errs;
 
-   memset(nhf, 0, NT_NHDR_NUM_FIELDS*sizeof(field_s));
+   memset(nhf, 0, NT_HDR_NUM_FIELDS*sizeof(field_s));
 
    /* this macro takes (TYPE, NAME, NUM) and does:
          fill_field(nhdr, TYPE, NT_OFF(nhdr,NAME), NUM, "NAME");
@@ -1691,11 +1615,11 @@ int fill_hdr_field_array( field_s * nh_fields )
 
    /* failure here is a serious problem */
    if( check_total_size("nifti_1_header test: ", nh_fields,
-                        NT_NHDR_NUM_FIELDS, sizeof(nhdr)) )
+                        NT_HDR_NUM_FIELDS, sizeof(nhdr)) )
       return 1;
 
    if( g_debug > 2 )
-      disp_field_s_list("nh_fields: ", nh_fields, NT_NHDR_NUM_FIELDS);
+      disp_field_s_list("nh_fields: ", nh_fields, NT_HDR_NUM_FIELDS);
 
    return 0;
 }
@@ -1903,15 +1827,15 @@ int disp_field_s_list( char * mesg, field_s * fp, int nfields )
 {
    int c;
 
-   if( mesg ) fputs(mesg, stderr);
+   if( mesg ) fputs(mesg, stdout);
 
-   fprintf(stderr," %d fields:\n"
+   fprintf(stdout," %d fields:\n"
            "   name                  size   len   offset   type\n"
            "   -------------------   ----   ---   ------   --------------\n",
            nfields);
 
    for( c = 0; c < nfields; c++, fp++ )
-      fprintf(stderr,"   %-*s  %4d    %3d   %4d     %-14s\n",
+      fprintf(stdout,"   %-*s  %4d    %3d   %4d     %-14s\n",
                      NT_FIELD_NAME_LEN-1, fp->name, fp->size, fp->len,
                      fp->offset, field_type_str(fp->type));
 
@@ -1931,18 +1855,19 @@ int disp_field(char *mesg, field_s *fieldp, void * str, int nfields, int header)
    int     * intp;
    int       c, ind;
 
-   if( mesg ) fputs(mesg, stderr);
+   if( mesg ) fputs(mesg, stdout);
 
-   if( header ){
-      fprintf(stderr, "  name                offset  nvals  values\n");
-      fprintf(stderr, "  ------------------- ------  -----  ------\n");
+   if( header && g_debug > 0 ){
+      fprintf(stdout, "  name                offset  nvals  values\n");
+      fprintf(stdout, "  ------------------- ------  -----  ------\n");
    }
 
    fp = fieldp;
    for( c = 0; c < nfields; c++, fp++ )
    {
       /* start by displaying the field information */
-      fprintf(stderr, "  %-*.*s %4d    %3d    ",
+      if( g_debug > 0 )
+         fprintf(stdout, "  %-*.*s %4d    %3d    ",
                       NT_FIELD_NAME_LEN-1, NT_FIELD_NAME_LEN-1, fp->name,
                       fp->offset, fp->len);
 
@@ -1950,39 +1875,39 @@ int disp_field(char *mesg, field_s *fieldp, void * str, int nfields, int header)
       switch( fp->type ){
          case DT_UNKNOWN:
          default:
-            fprintf(stderr,"(unknown data type)\n");
+            fprintf(stdout,"(unknown data type)\n");
             break;
 
          case DT_INT8:
             charp = (char *)str + fp->offset;
             for (ind = 0; ind < fp->len; ind++, charp++ )
-               fprintf(stderr,"%d ", *charp);
-            fputc('\n', stderr);
+               fprintf(stdout,"%d ", *charp);
+            fputc('\n', stdout);
             break;
 
          case DT_INT16:
             shortp = (short *)((char *)str + fp->offset);
             for (ind = 0; ind < fp->len; ind++, shortp++ )
-               fprintf(stderr,"%d ", *shortp);
-            fputc('\n', stderr);
+               fprintf(stdout,"%d ", *shortp);
+            fputc('\n', stdout);
             break;
 
          case DT_FLOAT32:
             floatp = (float *)((char *)str + fp->offset);
             for (ind = 0; ind < fp->len; ind++, floatp++ )
-               fprintf(stderr,"%f ", *floatp);
-            fputc('\n', stderr);
+               fprintf(stdout,"%f ", *floatp);
+            fputc('\n', stdout);
             break;
 
          case DT_INT32:
             intp = (int *)((char *)str + fp->offset);
             for (ind = 0; ind < fp->len; ind++, intp++ )
-               fprintf(stderr,"%d ", *intp);
-            fputc('\n', stderr);
+               fprintf(stdout,"%d ", *intp);
+            fputc('\n', stdout);
             break;
 
          case NT_DT_POINTER:
-            fprintf(stderr,"(raw data of unknown type)\n");
+            fprintf(stdout,"(raw data of unknown type)\n");
             break;
 
          case NT_DT_CHAR_PTR:  /* look for string of length <= 40 */
@@ -1993,19 +1918,19 @@ int disp_field(char *mesg, field_s *fieldp, void * str, int nfields, int header)
             /* start by sucking the pointer stored here */
             sp = *(char **)((char *)str + fp->offset);
 
-            if( ! sp ){ fprintf(stderr,"(NULL)\n");  break; }  /* anything? */
+            if( ! sp ){ fprintf(stdout,"(NULL)\n");  break; }  /* anything? */
 
             /* see if we have a printable string here */
             for(len = 0; len <= 40 && *sp && isprint(*sp); len++, sp++ )
                ;
             if( len > 40 )
-               fprintf(stderr,"(apparent long string)\n");
+               fprintf(stdout,"(apparent long string)\n");
             else if ( len == 0 )
-               fprintf(stderr,"(empty string)\n");
+               fprintf(stdout,"(empty string)\n");
             else if( !isprint(*sp) )
-               fprintf(stderr,"(non-printable string)\n");
+               fprintf(stdout,"(non-printable string)\n");
             else  /* woohoo!  a good string */
-               fprintf(stderr,"'%.40s'\n", (char *)str + fp->offset);
+               fprintf(stdout,"'%.40s'\n", (char *)str + fp->offset);
             break;
          }
 
@@ -2018,12 +1943,13 @@ int disp_field(char *mesg, field_s *fieldp, void * str, int nfields, int header)
 
             /* the user may use -disp_exts to display all of them */
             if( extp ) disp_nifti1_extension(NULL, extp);
+            else fprintf(stdout,"(NULL)\n");
             break;
          }
 
          case NT_DT_STRING:
             charp = (char *)str + fp->offset;
-            fprintf(stderr,"%.*s\n", fp->len, charp);
+            fprintf(stdout,"%.*s\n", fp->len, charp);
             break;
       }
    }
@@ -2096,19 +2022,169 @@ int diff_field(field_s *fieldp, void * str0, void * str1, int nfields)
  *----------------------------------------------------------------------*/
 int disp_nifti1_extension(char *mesg, nifti1_extension * ext)
 {
-   if( mesg ) fputs(mesg, stderr);
+   if( mesg ) fputs(mesg, stdout);
 
-   if( !ext ) return 1;
+   if( !ext )
+   {
+      fprintf(stderr,"** no extension to display\n");
+      return 1;
+   }
 
-   fprintf(stderr,"ecode = %d, esize = %d, edata = ",
+   fprintf(stdout,"ecode = %d, esize = %d, edata = ",
            ext->ecode, ext->esize);
 
    if( !ext->edata )
-      fprintf(stderr,"(NULL)\n");
+      fprintf(stdout,"(NULL)\n");
    else if ( ext->ecode == NIFTI_ECODE_AFNI )
-      fprintf(stderr,"%.*s\n", ext->esize-8, (char *)ext->edata);
+      fprintf(stdout,"%.*s\n", ext->esize-8, (char *)ext->edata);
    else
-      fprintf(stderr,"(unknown data type)\n");
+      fprintf(stdout,"(unknown data type)\n");
 
    return 0;
 }
+
+
+/*----------------------------------------------------------------------
+ * return the appropritate pointer into the g_hdr_fields struct
+ *----------------------------------------------------------------------*/
+field_s * get_hdr_field( char * fname, int show_fail )
+{
+   field_s * fp;
+   int       c;
+
+   if( ! fname || *fname == '\0' ) return NULL;
+
+   fp = g_hdr_fields;
+   for( c = 0; c < NT_HDR_NUM_FIELDS; c++, fp++ )
+      if( strcmp(fname, fp->name) == 0 ) break;
+
+   if( c == NT_HDR_NUM_FIELDS )
+   {
+      if( show_fail > 0 )
+         fprintf(stderr,"** get_hdr_field: field not found in hdr: %s\n",fname);
+      return NULL;
+   }
+
+   return fp;
+}
+
+
+/*----------------------------------------------------------------------
+ * return the appropritate pointer into the g_hdr_fields struct
+ *----------------------------------------------------------------------*/
+field_s * get_nim_field( char * fname, int show_fail )
+{
+   field_s * fp;
+   int       c;
+
+   if( ! fname || *fname == '\0' ) return NULL;
+
+   fp = g_nim_fields;
+   for( c = 0; c < NT_NIM_NUM_FIELDS; c++, fp++ )
+      if( strcmp(fname, fp->name) == 0 ) break;
+
+   if( c == NT_NIM_NUM_FIELDS )
+   {
+      if( show_fail > 0 )
+         fprintf(stderr,"** get_nim_field: field not found in hdr: %s\n",fname);
+      return NULL;
+   }
+
+   return fp;
+}
+
+
+/*----------------------------------------------------------------------
+ * return the number of fields that differ
+ *----------------------------------------------------------------------*/
+int diff_hdrs( nifti_1_header * s0, nifti_1_header * s1, int display )
+{
+   field_s * fp = g_hdr_fields;
+   int       c, ndiff = 0;
+
+   for( c = 0; c < NT_HDR_NUM_FIELDS; c++, fp++ )
+      if( diff_field(fp, s0, s1, 1) )
+      {
+         if( display ) disp_field(NULL, fp, s0, 1, ndiff == 0);
+         if( display ) disp_field(NULL, fp, s1, 1, 0);
+         ndiff++;
+      }
+
+   return ndiff;
+}
+
+
+/*----------------------------------------------------------------------
+ * return the number of fields that differ
+ *----------------------------------------------------------------------*/
+int diff_nims( nifti_image * s0, nifti_image * s1, int display )
+{
+   field_s * fp = g_nim_fields;
+   int       c, ndiff = 0;
+
+   for( c = 0; c < NT_NIM_NUM_FIELDS; c++, fp++ )
+      if( diff_field(fp, s0, s1, 1) )
+      {
+         if( display ) disp_field(NULL, fp, s0, 1, ndiff == 0);
+         if( display ) disp_field(NULL, fp, s1, 1, 0);
+         ndiff++;
+      }
+
+   return ndiff;
+}
+
+
+/*----------------------------------------------------------------------
+ * return the number of fields that differ
+ *----------------------------------------------------------------------*/
+int diff_hdrs_list( nifti_1_header * s0, nifti_1_header * s1, str_list * slist,
+                    int display )
+{
+   field_s  * fp;
+   char    ** sptr;
+   int        c, ndiff = 0;
+
+   sptr = slist->list;
+   for( c = 0; c < slist->len; c++ )
+   {
+      fp = get_hdr_field(*sptr, 1);    /* "not found" displayed in func */
+      if( fp && diff_field(fp, s0, s1, 1) )
+      {
+         if( display ) disp_field(NULL, fp, s0, 1, ndiff == 0);
+         if( display ) disp_field(NULL, fp, s1, 1, 0);
+         ndiff++;
+      }
+      sptr++;
+   }
+
+   return ndiff;
+}
+
+
+/*----------------------------------------------------------------------
+ * return the number of fields that differ
+ *----------------------------------------------------------------------*/
+int diff_nims_list( nifti_image * s0, nifti_image * s1, str_list * slist,
+                    int display )
+{
+   field_s  * fp;
+   char    ** sptr;
+   int        c, ndiff = 0;
+
+   sptr = slist->list;
+   for( c = 0; c < slist->len; c++ )
+   {
+      fp = get_nim_field(*sptr, 1);    /* "not found" displayed in func */
+      if( fp && diff_field(fp, s0, s1, 1) )
+      {
+         if( display ) disp_field(NULL, fp, s0, 1, ndiff == 0);
+         if( display ) disp_field(NULL, fp, s1, 1, 0);
+         ndiff++;
+      }
+      sptr++;
+   }
+
+   return ndiff;
+}
+
+
