@@ -20,6 +20,8 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
    THD_3dim_dataset * dset ;
    THD_datablock    * dblk ;
    char * sub ;
+   char * fname ;   /* to skip directory during HEAD/BRIK search in filename */
+   int    offset ;  /*                                 - [rickr 20 Sep 2002] */
 
    /*-- sanity check --*/
 
@@ -57,15 +59,18 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
       strcpy( dirname , pathname ) ;
       dirname[ii+1] = '\0' ;
    }
+   offset = ii + 1 ;  /* offset of file within pathname - rickr [20 Sep 2002] */
 
    /*-- perform surgery on the name to make it a valid .HEAD --*/
 
    strcpy( fullname , pathname ) ;
+   fname = fullname + offset ; /* trailing filename (past directory) - rickr */
 
-   sub = strstr( fullname , DATASET_HEADER_SUFFIX ) ;   /* .HEAD ? */
+   /* (REPLACE) sub = strstr( fullname , DATASET_HEADER_SUFFIX ) ;  * .HEAD ? */
+   sub = strstr( fname , DATASET_HEADER_SUFFIX ) ;   /* .HEAD ?  r:fname */
 
    if( sub == NULL ){                                   /* no! */
-      sub = strstr( fullname , DATASET_BRICK_SUFFIX ) ; /* .BRIK ? */
+      sub = strstr( fname , DATASET_BRICK_SUFFIX ) ; /* .BRIK ?  r:fname */
 
       if( sub == NULL ){                               /* no! */
          ii = strlen(fullname) ;
