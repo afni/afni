@@ -80,14 +80,14 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_IV_FaceSetsextract.c  SUMA_SurfNorm.c SUMA_DOmanip.c SUMA_StripPath.c 	\
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
 		 SUMA_Engine.c SUMA_SureFit.c SUMA_FreeSurfer.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
-		 SUMA_GeomComp.c	
+		 SUMA_GeomComp.c SUMA_SphericalMapping.c	
 SUMA_SRCS_MAIN = SUMA_suma.c
 
 SUMA_OBJS = ${SUMA_SRCS:.c=.o}
 SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
 SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
-		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h
+		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h
 
 #library only
 ${SUMALIB} : ${SUMA_OBJS}
@@ -141,13 +141,9 @@ SUMA_inflate_compare: SUMA_inflate_compare.c
 	$(RM) $@
 	${CC} -DSUMA_inflate_compare_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-SUMA_recursion: SUMA_recursion.c
+SUMA_CreateIcosahedron: SUMA_SphericalMapping.c
 	$(RM) $@
-	${CC} -DSUMA_recursion_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
-
-SUMA_map_to_icosa: SUMA_map_to_icosa.c
-	$(RM) $@
-	${CC} -DSUMA_map_to_icosa_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_CreateIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 install:
 	if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
@@ -164,6 +160,6 @@ packbins:
 	
 all: libSUMA.a mainobj suma MakeColorMap packbins install 
 
-standalones: SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer SUMA_ScaleToMap MakeColorMap SUMA_compare_surfaces SUMA_inflate_compare
+standalones: SUMA_CreateIcosahedron SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer SUMA_ScaleToMap MakeColorMap SUMA_compare_surfaces SUMA_inflate_compare
  
 anew: clean libSUMA.a mainobj suma MakeColorMap packbins install 

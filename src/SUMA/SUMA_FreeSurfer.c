@@ -203,7 +203,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
       /* make sure that the node list does not refer to nodes of an index higher than that in NodeId */
       SUMA_MAX_VEC(FS->NodeId, FS->N_Node, maxamax2); ++maxamax2;
       if (maxamax2 > maxamax) {
-         fprintf(SUMA_STDERR,"Error %s: Found NodeId in the NodeList larger than Ids found in FaceSetList.\n");
+         fprintf(SUMA_STDERR,"Error %s: Found NodeId in the NodeList larger than Ids found in FaceSetList.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
       if (LocalHead) fprintf (SUMA_STDOUT, "%s: Copying NodeList, allocating for new nodelist %dx3 elements...\n", \

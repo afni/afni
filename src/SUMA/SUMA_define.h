@@ -688,6 +688,14 @@ typedef struct {
 					*/		
 
 
+/*! structure containing a mapping of one surface to another*/
+typedef struct {
+   float *NewNodeList; /*!< N_Node x 3 vector containing new mapping of node coordinates */
+   int N_Node; /*!< Number of nodes in NodeList */
+   float *NodeVal; 
+   float *NodeCol;
+   float *NodeDisp;
+} SUMA_SO_map;
 
 /*! structure containing SureFit Surface*/
 typedef struct {

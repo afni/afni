@@ -11,7 +11,7 @@
 #else
    extern SUMA_CommonFields *SUMAg_CF; 
 #endif
-
+ 
 
 /**divides 1 triangle into 4 recursively to recDepth*/
 void SUMA_tesselate(float *nodeList, int *triList, int *nCtr, int *tCtr, int recDepth, int depth, int n1, int n2, int n3)
