@@ -534,3 +534,6 @@
   * modified Makefile.INCLUDE to pass EXTRA_LIBS_2 for serial_helper build
   * modified rickr/Makefile to apply EXTRA_LIBS_2 for Solaris build
 
+13 May 2004:
+  * added -NN help info to 3drotate.c
+
