@@ -101,7 +101,7 @@ SET_FUNC_RANGE [c.]value
     SET_FUNC_RANGE A.0.3333
 
 SET_FUNC_VISIBLE [c.]{+|-}
-  Turns the "See Function" toggle on or off:
+  Turns the "See Overlay" toggle on or off:
     SET_FUNC_VISIBLE A.+
 
 SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
@@ -111,7 +111,7 @@ SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
 
 OPEN_PANEL [c.]Panel_Name
   Opens the specified controller panel, where 'Panel_Name' is one of
-  'Define_Function', 'Define_Datamode', or 'Define_Markers'.  At this time,
+  'Define_Overlay', 'Define_Datamode', or 'Define_Markers'.  At this time,
   there is no way to close a panel.
 
 SYSTEM command string

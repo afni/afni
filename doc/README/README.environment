@@ -1111,8 +1111,8 @@ by AFNI_MENU_COLSIZE.
 Variable: AFNI_GLOBAL_SESSION
 -----------------------------
 This variable, if it exists, is the name of a directory that contains
-"global" datasets - ones that you want to be visible in each "Switch Anatomy"
-or "Switch Function" menu.  Pointers to the datasets read from this directory
+"global" datasets - ones that you want to be visible in each "Switch Underlay"
+or "Switch Overlay" menu.  Pointers to the datasets read from this directory
 will be appended to the dataset list for each directory read from the
 command line.  In the "Switch" choosers, these datasets are marked with
 the character 'G' at the right, and they appear last in the list.
@@ -1126,7 +1126,7 @@ in the global session directory.
 
 When you Switch Sessions and are viewing a global dataset, it is likely that
 you will NOT be viewing the same dataset after the Switch Session.  You will
-have to then Switch Anatomy and/or Switch Function to get back to the same
+have to then Switch Underlay and/or Switch Overlay to get back to the same
 global dataset(s).
 
 If you start AFNI and there are no datasets in the sessions given on the
@@ -1185,7 +1185,7 @@ menu.
 Variable: AFNI_VALUE_LABEL (editable)
 --------------------------
 If this YES/NO variable is set to YES, then the data value label on the
-Define Function control panel will be turned on when only 1 or 2 image
+Define Overlay control panel will be turned on when only 1 or 2 image
 viewer windows are open.  This will consume more CPU time and redrawing
 time than the default, which is that this label is only turned on when
 all 3 image viewer windows are open.  If you are operating X11 remotely
@@ -1682,7 +1682,7 @@ to YES if necessary!
 -----------------------------
 Variable: AFNI_THRESH_BIGSTEP
 -----------------------------
-The AFNI threshold sliders (in the Define Function control panels and the
+The AFNI threshold sliders (in the Define Overlay control panels and the
 Render Dataset plugins) are divided into 10000 steps from bottom to top.
 If you click in the trough or use the PageUp/PageDown keys, the default
 action is to move the slider 10 of the steps at once.  (The up and down
@@ -1734,7 +1734,7 @@ This variable (default=255) sets the maximum number of entries allowed
 in an AFNI "option menu" -- these are the buttons that popup a menu
 of values from which to choose, and which also let you popup a text
 list chooser by right-clicking in the menu's label.  (Example: the
-sub-brick option menus "Anat", "Func", "Thr" on the "Define Function"
+sub-brick option menus "Anat", "Func", "Thr" on the "Define Overlay"
 control panel.)
 
 Some computer systems may crash when an option menu gets too big.
@@ -1918,7 +1918,7 @@ uses some colors of my choosing for this purpose.
 --------------------------
 Variable: AFNI_THRESH_LOCK (editable)
 --------------------------
-This variable can be used to lock the Define Function threshold sliders
+This variable can be used to lock the Define Overlay threshold sliders
 together.  There are three possibilities:
   NO (the default) => each controller's slider is independent
   VALUE            => the numerical value on each slider will be the same
@@ -1935,7 +1935,7 @@ just jump to the final value.
 ------------------------
 Variable: AFNI_PBAR_LOCK (editable)
 ------------------------
-If this variable is set to YES, then the Define Function color bars
+If this variable is set to YES, then the Define Overlay color bars
 (the "pbars") of AFNI controllers that are Lock-ed together will be
 coordinated.  Changes to one locked pbar will be reflected in the
 others immediately.

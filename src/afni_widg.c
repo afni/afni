@@ -82,7 +82,7 @@ static char * AFNI_crosshair_av_label[9] = {  /* modified 31 Dec 1998 */
 
 static char * AFNI_see_marks_bbox_label[1] = { "See Markers" } ;
 
-static char * AFNI_see_func_bbox_label[1] = { "See Function" } ;
+static char * AFNI_see_func_bbox_label[1] = { "See Overlay" } ;
 
 static char * AFNI_wrap_bbox_label[1] = {"Wrap"} ;
 static char * AFNI_xhall_bbox_label[1] = {"X+"} ;
@@ -1544,7 +1544,7 @@ STATUS("making view->rowcol") ;
    view->define_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->func_rowcol ,
-            LABEL_ARG("Define Function") ,
+            LABEL_ARG("Define Overlay") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -3088,7 +3088,7 @@ STATUS("making func->rowcol") ;
 
    MCW_register_help( func->range_label ,
                         "These are the range of values in the\n"
-                        "Anatomy and Functional 3D datasets.\n"
+                        "Underlay and Overlay 3D datasets.\n"
                         "The functional values may be useful\n"
                         "for choosing the Range for the pbar.\n"
                         "[If a dataset is warped from a\n"

@@ -1310,7 +1310,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
         fprintf(gp,"OPEN_WINDOW %c geom=+%d+%d\n" , abet[cc] , gxx,gyy ) ;
 
         if( XtIsManaged(zm3d->vwid->func->frame) )
-          fprintf(gp,"OPEN_PANEL %c.Define_Function\n" , abet[cc] ) ;
+          fprintf(gp,"OPEN_PANEL %c.Define_Overlay\n" , abet[cc] ) ;
 
         fprintf(gp,"SET_THRESHOLD %c.%04d %d\n" , abet[cc] ,
                     (int)(zm3d->vinfo->func_threshold/THR_FACTOR) ,

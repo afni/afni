@@ -137,7 +137,7 @@ SCENE_DATA = Three integer codes describing the dataset type
                     At this time, Anat codes 0..10 are treated identically
                     by all AFNI programs.  Code 11 marks the dataset as a
                     "bucket" type, which is treated differently in the
-                    display; the "Define Function" control panel will have a
+                    display; the "Define Overlay" control panel will have a
                     chooser that allows you to specify which sub-brick from
                     the bucket should be used to make the underlay image.
 
@@ -291,7 +291,7 @@ BRICK_STATS = There should be 2*nvals values here.  For the p-th
               attribute as they write the dataset to disk (e.g., by using
               the DSET_write macro, or by calling THD_load_statistics).
               The main function of this attribute is to provide the display
-              of the dataset numerical ranges on the "Define Function"
+              of the dataset numerical ranges on the "Define Overlay"
               control panel.
 
 BRICK_TYPES = There should be nvals=DATASET_RANK[1] values here.  For
@@ -361,7 +361,7 @@ BRICK_STATAUX = This stores auxiliary statistical information about
            FUNC_GT_TYPE  Gamma             Shape, Scale
            FUNC_PT_TYPE  Poisson           Mean
                 The main function of this attribute is to let the
-                "Define Function" threshold slider show a p-value.
+                "Define Overlay" threshold slider show a p-value.
                 This attribute also allows various other statistical
                 calculations, such as the "-1zscore" option to 3dmerge.
 

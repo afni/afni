@@ -97,7 +97,7 @@ Simplest Method:
 the hi-res anatomical, a transformed BRIK is written to disk (with the
 "Write Anat" button), a copy made, and "draw dataset" performed on the
 duplicate Talairach BRIK to make a mask in Talairach space.
-Next, "Switch Anatomy"/"Talairach View"/"Write Anat" is used to make a
+Next, "Switch Underlay"/"Talairach View"/"Write Anat" is used to make a
 Talairach version of the 3d+time BRIK. Then, "maskave" or "ROI Average" can
 be used to make the average time series.
   Problem: the problem with this method is that a Talairach 3d+time BRIK at
