@@ -2860,17 +2860,24 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
 
 void AFNI_rescan_CB( Widget w, XtPointer cd, XtPointer cb )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd , *qq3d ;
+   int cc ;
 
 ENTRY("AFNI_rescan_CB") ;
 
    SHOW_AFNI_PAUSE ;
    AFNI_rescan_session( im3d->vinfo->sess_num ) ;
-   AFNI_process_dsetchange( im3d ) ;               /* 31 Mar 1999 */
-   SHOW_AFNI_READY ;
 
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
+      qq3d = GLOBAL_library.controllers[cc] ;
+      if( IM3D_OPEN(qq3d) ) AFNI_process_dsetchange( qq3d ) ;
+   }
+
+   SHOW_AFNI_READY ;
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------*/
 
 void AFNI_rescan_all_CB( Widget w, XtPointer cd, XtPointer cb )
 {
@@ -2889,7 +2896,6 @@ ENTRY("AFNI_rescan_all_CB") ;
    }
 
    SHOW_AFNI_READY ;
-
    EXRETURN ;
 }
 
