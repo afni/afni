@@ -1,0 +1,1630 @@
+    ========================================================================
+   ==  These changes start after the release of AFNI 1.99 on 24 July 1996. ==
+   ==  Before that, some stuff was desultorily maintained on paper.        ==
+    ========================================================================
+
+25 July 1996:
+ * Added Button 2 click (time_index += 1 or -= 1) to afni_graph.c
+
+29 July 1996:
+ * Added shadow color changing code to "colormenu" widgets in bbox.c --
+     this gives a little visual feedback when a color is selected.
+ * Used 'glob' routines from tcsh-6.05 to allow filename globbing
+     on non-POSIX systems without the glob routines (like SGIs).
+
+30 July 1996:
+ * Modified MCW_file_expand routine to properly glob files specified
+     in the form 3D:a:b:c:d:e:fname, where only 'fname' will have the
+     wildcards.  To3d help printout now reflects this change.
+ * Used fsync(fileno()) to ensure that writes of .BRIK files are
+     flushed to disk -- in afni_func.c and 3ddata.c.
+ * Don't do shadow color changing in "colormenus" unless the widget is
+     realized, since this causes a BadDrawable error on Linux (Motif 2.0).
+ * Changed most popup widgets to be of class "menu", which means that
+     their background color can now be changed separately.
+ * Changed operation of -R option in afni to limit the levels of recursion.
+     Mostly involved changing the routine THD_get_all_subdirs in 3ddata.c.
+
+31 July 1996:
+ * Changed to3d to prevent creation of 3D+time functional datasets.
+     Modified to3d -help to reflect this, and added 'Nz = %d' to the
+     3D+time information label in the to3d widget panel.
+
+1 August 1996:
+ * Modified imseq.c and afni.c to allow the user to toggle between
+     periodic montages and "no wrap" montages.  Added a toggle button
+     "Wrap" next to the crosshair "Gap" menu.
+ * Modified crosshairs in afni.c so that in "Single" mode with a
+     grapher active, then only the frame showing the graphed voxels
+     is drawn.  In "Multi" mode, both the frame and the crosshairs
+     will be shown.
+
+2 August 1996:
+ * Modified FD2.c to show average pixel value over frame as well as time,
+     when "AvIm" is being used.   Also added 'b' keypress to toggle
+     common baselines for graphs.
+ * Added SEEK_ constants back to mri_read.c, since C compiler on sparky
+     doesn't have them in stdio.h.
+ * Fixed "afni -im" problem with inversion of top_form during waits --
+     the program didn't turn the inversion off correctly.  This error
+     was due to the "dangling else" problem.  The addition of a {}
+     pair fixed it right up.  Moral of the story: don't be stupid.
+
+6 August 1996:
+ * Fixed a bug in afni_slice.c about the new NN code.  The code
+     now doesn't use the "parallel" fast mode unless both the
+     inner and outer axes are parallel.
+ * Fixed a bug in 3ddata.c, where the taxis wasn't properly set on
+     input of a 3D+t dataset if no slice offset data was input.
+     This would cause a crash when trying to delete a dataset.
+ * Added "-warp_4D" switch to afni to allow output of 3D+t datasets
+     in Talairach coordinate.  Consumes huge amounts of disk space
+     and CPU time.
+ * Removed fsync() because of time penalty.
+
+7 August 1996:
+ * Fixed another bug in afni_slice.c about the new NN code.  The
+     allocation macro MAKE_IBIG failed to take into account that
+     the array ib[] index would run from 0.."top", and it only
+     allocated "top" entries, whereas it should do at least "top+1".
+
+                     =========================
+                 ===== Release of AFNI 1.99b =====
+                     =========================
+
+8 August 1996:
+ * Added "-gfisher" option to 3dmerge.c, for purpose of averaging
+     correlation coefficient bricks.  Fixed a bug in this program
+     that took the DSET_BRICK_FACTOR from the input dataset
+     before editing, which is a mistake, since editing might alter
+     this scaling factor.
+ * Changed output format from %14.7g to %13.6g in 3dinfo.c.  This
+     tends to suppress the annoying roundoff error in the scaled
+     statistics report.
+
+9 August 1996:
+ * Fixed scaling bug in editvol.c EDIT_one_dataset's clip code.
+     For shorts scaled to floats, clip values were computed as
+     integers, which gave truncation errors in some cases.  Now,
+     clip values are computed as floats, then converted to
+     integers, with appropriate min- and max-ing.
+ * Also added -1uclip and -2uclip options to EDIT_.  See
+     "3dmerge -help" for information.
+
+13 August 1996:
+ * Altered autoRange and userRange controls (in Define Function
+     control panel) in afni to
+       a) always allow the user to set the range, even for thresholds
+       b) eliminate the inversion to indicate the autoRange is on
+       c) compute the autoRange for thresholds as well as fims
+     These changes also eliminate a bug (feature?) where the user could
+     set "Func=Threshold" (SHOWFUNC_THR), which would formerly disable
+     these controls, then switch to another dataset where they would
+     not properly be re-enabled.
+ * Added function AFNI_rescan_session to afni_func.c, which will close
+     all the datasets in a session, then re-read the session directory
+     to make a new set of datasets.  At present, this is actuated from
+     the "hidden" popup menu.  Tricky points are catching all pointers
+     to datasets that are in the rescanned session, since they will
+     change, and dealing with the case when the user deletes some
+     dataset files.
+
+28 August 1996:
+ * Fixed routine T3D_fix_dataset_dimen() in to3d.c to clear the
+     data brick pointers of the OLD number of bricks, not the
+     NEW number of bricks.  This error caused to3d to crash when
+     going from a dataset type with large nvals to small nvals,
+     since some sub-brick pointers were not being properly cleared.
+     [This error only manifested itself on SGI machines, and
+      was found by Christopher Wiggins.]
+ * Made all routines in mri_write.c return a count of the number
+     of files they successfully wrote out (instead of returning void,
+     as before).  [This change was prompted by Doug Ward.]
+
+29 August 1996:
+ * If a session directory has functions but no anatomies, then
+     afni.c now prints out a warning message instead of just
+     skipping it silently.  [Prompted by Chris Wiggins.]
+ * If a dataset has parent IDCODEs, then the corresponding
+     parent name will not be set in 3ddata.c.  This is to prevent
+     confusion.
+
+1 September 1996:
+ * Moved rescan pushbutton from hidden menu to datamode control panel.
+ * Modified 3dmerge.c to allow merger of thresholds in datasets as
+     well as intensities.  Uses a new '-t*' type of flag -- the only
+     one implemented so far is '-tfico', which requires all inputs
+     to be of the fico dataset type.  See the '-gfisher' merger mode
+     given earlier.
+
+7 September 1996
+ * Modified -tfico option in 3dmerge.c to allow some of the datasets
+     to be of the fith type.  If all of them are fico, then the output
+     will be fico (with degrees-of-freedom parameters summed), otherwise
+     the output will just be fith.
+ * Added "-q" == "be quiet" option to fim2.
+
+30 September 1996:
+ * After several false starts, finally begin creation of plugin code.
+     This is after conversations with Mike Beauchamp and Jay Kummer.
+     Yesterday and today:
+       - afni_plugin.h has interface structures defined;
+       - afni_plugin.c has interface definition routines and
+           widget creation routines;
+       - machdep.h has new #define's to set the type of
+           dynamic library loading to use.
+     Much more to come.
+ * Modified MCW_widget_geom in xutil.h to properly deal with
+     the case of unrealized widgets -- must use XtQueryGeometry
+     instead of XtGetValues.
+
+06 October 1996:
+ * Fixed use of "==" in assignment statement in 3ddata.h.
+ * afni_plugin.c now has
+     - working widget creation and popup routines
+     - plugin callable routines to extract values from
+         user selected options from the interface
+
+07 October 1996:
+ * Changed 3ddata.c to allow use of AFNI_TS_PATH as an alternate
+     to AFNI_TSPATH.  If neither environment variable exists,
+     then the path "./" will be used as a last resort.
+ * Something similar done in afni_plug.c with AFNI_PLUGIN_PATH.
+ * Made the switchview callback in afni.c pop down the strlist
+     chooser.  This is because a plugin interface will only be
+     allowed to choose from current view datasets, and if such
+     a view switch is made, the list of choosable datasets must
+     be modified.  The simplest way to do this is to make the
+     user start the choice process over.
+
+09 October 1996:
+ * Fixed bug in afni_plugin.c that failed to check certain
+     datasets for inclusion in the dataset choosers.
+ * Modified BHelp to include color and border controls.
+ * Incorporated Doug Ward's changed version of editvol.[hc],
+     which adds various cluster editing and volume filtering
+     options to 3dmerge.c (et al.).
+
+11 October 1996:
+ * Fixed (sort of) sizing problem in afni_plugin.c creation
+     of plugin interface windows.
+ * Wrote routine for plugin to load a new dataset into the
+     current session of a controller window.
+
+12 October 1996:
+ * afni_plugin.c changes:
+     - Modified PLUGIN_prefix_ok in afni_plugin.c to check for
+         duplicate prefixes, as well as for illegal characters in
+         the prefix string.
+     - Routine PLUGIN_force_redisplay will make all im3d units
+         redraw their windows.
+     - Routine PLUGIN_copy_dset will copy a dataset, including
+         the bricks.
+     - Added helpstring to the plugin interface, and a "Help"
+         button to popup a plugin-supplied message.
+ * Modified afni to allow separate control of warp-on-demand for
+     anatomy and functional datasets.  When a plugin directly
+     modifies a Talairach dataset brick, for example, then if it
+     is set to warp-on-demand, the display won't be affected,
+     since the program always warps from the +orig brick.  Under
+     the old scheme, if the anat were w-o-d, then the func had
+     to be w-o-d as well.  In the situation where the anat dataset
+     brick does not exist in Talairach coords, then the effect of
+     the plugin would be invisible if the user couldn't force
+     the function to be view-brick independent of the anatomy.
+ * Fixed an old bug in THD_dset_in_sessionlist (3ddata.c) that
+     returned the wrong session index.
+
+14 October 1996:
+ * Fixed bug in 3ddata.h macro FILECODE_TO_PREFIX so that the
+     last '+' in the filecode is used to find the prefix,
+     rather than the first '+'.  This fixes a problem with
+     datasets whose prefix contains a '+' character.
+
+18 October 1996:
+ * Modified mri_read.c so that '# line' comments in pgm files
+     can be read.  This lets AFNI programs read pgm files created
+     from programs like "xv".
+ * Changed plugin callable functions/macros in afni_plugin.[ch]
+     to start with PLUTO (PLugin UTility Operation).
+
+20 October 1996:
+ * Fixed bugs in imseq.c:
+     - During "image processing" of complex images, one reference to
+         input image "im" had not been changed to "lim" (the locally
+         processed copy).
+     - If ISQ_make_image fails, the XImage "seq->given_xim" would
+         be NULL.  This is now detected, and ISQ_show_image won't
+         try to put this NULL image to the screen (which would
+         cause a Segmentation error).
+ * Minor changes to afni_plugin.c:
+     - Added reminder of current "view" at top of plugin dataset chooser.
+     - Added [c] reminder of current controller in plugin shell widget
+         titlebar and icon label strings.
+ * Minor changes to afni_graph.c:
+     - Changed time increment event from Button2 to Shift or Ctrl
+         with Button1.  This is to allow the eventual dedication of
+         Button2 events to plugins.
+
+21 October 1996:
+ * Changed FD_brick_to_timeseries (in 3ddata.c) to scale each element
+     by the brick_fac value appropriate for that time index, rather
+     than by the value for time index = 0.  This is done using the
+     new routine mri_mult_to_float (in mri_to_float.c).
+ * Fixed bug in EDIT_dset_items (editvol.h) that used "float" inputs.
+     Default type promotion (there can be no prototype here) turns all
+     float inputs to doubles, so they must be retrieved this way.
+     Also, fixed error when "ADN_nsl" is passed as zero -- no longer
+     requires a "ADN_toff_sl" array in this special case.  Also made
+     EDERR macro always print a message, even if not in debug mode.
+ * Added DSET_TIMESTEP macro (and others) to 3ddata.h.
+ * Modified PLUTO_add_dset (afni_plugin.c) to allow for other actions
+     when a dataset is set back to AFNI.
+ * Added "progress meter" PLUTO_ functions to afni_plugin.c; also
+     modified the meter code in xutil.c to check if the percent
+     value has changed before trying to update the meter progress.
+ * Added "units_type" to the 3D+time dataset format.  This lets the
+     "time axis" be expressed in milliseconds, seconds, or Hertz.
+     Changes were made to 3ddata.[ch], to3d.c, 3dinfo.c, and editvol.[ch].
+ * Power spectrum plugin "plug_power.c" was made to work today.
+
+22 October 1996:
+ * Added timeseries chooser to afni_plugin.c.
+ * Added ability to apply a function to graph data (e.g., to take the
+     logarithm of each point).  This affected afni.[ch] and afni_graph.[ch].
+ * Fixed a bug in afni_fimmer.c, where routine AFNI_ts_in_library could
+     return the wrong value if the timeseries being searched for was
+     not actually found.
+ * Modified directory scan in 3ddata.c (for timeseries) and afni_plugin.c
+     (for plugins) to skip directories that have already be scanned.
+     This is to avoid the situation where the PATH variable contains
+     duplicate entries.
+
+23 October 1996:
+ * Added Shift/Ctrl/Alt-Button3 simulation of lower tier button presses
+     to imseq.c.
+
+25 October 1996:
+ * Fixed imseq.c routine that re-places the "dialog" window (for Disp
+     and Mont) on the screen when the image is resized -- somehow
+     the code that fixed the problem of forcing the dialog off the
+     edge of the screen lost an "=", and so nothing happened.
+ * Added "i" button to right edge of imseq.c windows -- allows the
+     user to down/up the fraction of the window that the image
+     takes up.
+
+27 October 1996:
+ * Added PLUTO_popup_image() function to afni_plugin.c.  Also used
+     this to provide a "hidden menu" popup of an image of me in
+     afni_func.c.
+
+30 October 1996:
+ * Added ability to apply function to each pixel of a displayed image
+     (cognate to the similar ability in graphs -- see 22 October).
+     This primarily affected imseq.c, but also a few other places.
+ * Added new "fift" dataset type, to deal with F-test sub-bricks.
+     - Incorporated cdflib into mrilib.  This is to use the "cdff"
+         to compute the CDF for the F statistic, in mri_stats.c
+     - Changed the precision of the threshold scale (thr_scale)
+         from 0..99 to 0..999, and correspondingly changed the
+         scaling from the scale to func_threshold from 0.01 to
+         0.001.  Also changed the "decim" factor for the scale.
+
+31 October 1996:
+ * Modified EDIT_substitute_brick in editvol.c to allow the input
+     array "fim" to be NULL.  In that case, the routine will create it.
+     This is a convenience for the user (say, a plugin author).
+
+1 November 1996:
+ * Added routine PLUTO_4D_to_typed_fim to afni_plugin.c.  This takes
+     a user function and a 3D+time dataset, and returns fim dataset,
+     with the user function applied to each voxel timeseries.
+
+2 November 1996:
+ * Fixed a major bug with the multiple controller window ("New"
+     button) extension.  The problem is that the information about
+     how to extract images from a dataset is stored in the dataset,
+     in the "wod_daxes" and "vox_warp" sub-structs.  This causes
+     difficulties when two controllers view the same dataset at
+     different resolutions (e.g., overlay the same function on
+     two different anatomies).  The fix is to put the originals
+     of "wod_daxes", "vox_warp", and "wod_flag" into the controller
+     (im3d) struct itself.  When the dataset is going to be used,
+     then this information is copied into the dataset struct.
+     This is a clumsy fix, but breaks the least code in the
+     afni_warp.c routines for extracting slices from a dataset.
+
+3 November 1996:
+ * Moved functional resample arrowval from the "Define Function"
+     control panel to the "Define Datamode" panel, where it will
+     be close to the analogous control from anatomy.
+ * Added 1D and 2D transformation function registries.  Made up
+     some sample transformation functions (median filtering, etc.).
+ * Added time units appendage to TR in to3d.c.
+
+4 November 1996:
+ * Added "Lock" menu to Datamode panel.  This allows the user to
+     specify that certain controllers have their coordinates locked
+     together, so that jumping around in one dataset can be mirrored
+     by jumps in another.  At this time, the AFNI_transform_vector
+     function does not properly transform vectors from +tlrc coordinates
+     to +orig coordinates (say) if the two datasets are not in the
+     parent/child relationship.  This can be confusing if two such
+     datasets are locked, and they are not in the same "view".
+ * Made pressing Button1 on the AFNI logo in a grapher window also
+     turn off/on the menubar widgets.  This enables a screen dump
+     of a graph without that extraneous stuff being present.
+
+6 November 1996:
+ * Added -unique option to afni.c to allow creation of unique
+     display contexts (MCW_DC's) for each AFNI controller window.
+     (This won't work on 8 bit displays.)  afni.c and afni_widg.c
+     were changed appropriately (and afni.h).
+
+10 November 1996:
+ * Wrote "lsqfit" plugin.  This allows computation of least squares
+     fits to timeseries graphs.  Modified afni_graph.c to allow
+     "Double Plot" to overlay least squares fit graph (or other
+     output of a "Tran 1D") on the data timeseries graph.
+
+12 November 1996:
+ * Fixed bug with multiple displays and the "lock" -- when
+     changing the dataset in an AFNI controller, you don't want
+     the coordinate lock to apply.
+ * Started adding "orts" to AFNI's interactive fimmery.
+
+19 November 1996:
+ * Made afni.c (AFNI_setup_viewing routine) set the FIM-able dataset
+     to the newly activated anatomical, if possible.  In the old
+     version, if you switched anatomies, the FIM-able dataset didn't
+     switch with you.  This was confusing to the uninitiated masses
+     (that is to say, Mike Beauchamp).
+
+21 November 1996:
+ * Incorporated the f2c (Fortran-to-C) convertor into the AFNI96
+     distribution, in a separate directory (f2cdir).  This allows
+     the use of the old "parser.f" routines to compile and execute
+     user created expressions.
+ * Added macro AVOPT_columnize to bbox.h, which allows the setup
+     of an optmenu in a multicolumn layout.  Also setup the "Plugins"
+     button to allow this (when the number of plugins grows past 20).
+
+22 November 1996:
+ * Adapted MCW_choose_strlist (in bbox.c) to allow selection of
+     multiple items from the list.
+
+23 November 1996:
+ * Rearranged Write buttons on Datamode control panel in AFNI.  Added
+     a write "Many" button which lets the user pick lots of datasets
+     to write out, so he can go get a cup of coffee.  Put all 3 Write
+     buttons in a single row.
+ * Added a Rescan All button to allow rescanning of all sessions.  Put
+     both Rescan buttons in a single row.  Also added a "*.1D" rescan
+     button to allow for re-reading of timeseries files.
+ * Attached data type descriptors like [fim] and [epan:3D+t] to the
+     listings in the dataset choosers.
+
+10 December 1996:
+ * Fixed small bugs in parser_int.c, in the utility routines where
+     a pointer to a doublereal wasn't dereferenced before comparing
+     it to zero.
+
+01 January 1997:
+ * Added routines to libmri.a to allow reading in a 3D: image file
+     in "delay" mode -- only the filename and offset into it are
+     stored in the image.  When access to the image is desired,
+     then it will be read from disk.
+ * Added -delay switch to to3d.c to take advantage of this procedure.
+     This prevents duplicate malloc required for huge 3D: file
+     (once for the 3D: input and once for the dataset brick).  People
+     who do all 3D+time input data in one big file have run out of
+     memory otherwise.
+ * Added "++" toggle to allow display of crosshairs in all slices of
+     an AFNI montage.  This is specifically for Jeff Binder.
+ * Added RESET_AFNI_QUIT() calls to a bunch of routines in afni.c.
+
+02 January 1997:
+ * Added mcw_glob.c usage to FD2.c, to allow internal expansion of
+     wildcarded filename.  This overcomes the SGI limit on the
+     number of arguments on the command line.
+
+03 January 1997:
+ * Got program waver.c to work -- generation of an ideal waveform
+     with tunable parameters.
+
+13 January 1997:
+ * Added -subort option to fim2.c -- subtraction of orts from
+     an image time series.
+
+20 January 1997:
+ * Included "#include <string.h>" in mcw_glob.h, to prevent complaints
+     from stupid compilers.
+ * Added Makefile.osf1, from a system at U Maryland.
+ * Added gmovie, a script to create a GIF movie from a bunch of PNM files.
+
+21 January 1997:
+ * Made the "fscale" element in a grapher (afni_graph.[hc]) be a float,
+     so that finer control over graph scaling is possible.
+ * Changed "Scale", "Ignore", and "Matrix" controls in graph window
+     to be optmenus.  Added a routine to allow optmenus to be refitted.
+
+22 January 1997:
+ * Made the control buttons on the image viewers (imseq.c) a little smaller.
+
+30 January 1997:
+ * Added program 3dcalc.c.
+ * Changed STEP function in parser.f to be 1 only for x > 0.
+
+14 February 1997:
+ * Incorporated GNU malloc into afni.c, which will be enabled with
+     the #define-ition of USE_GNU_MALLOC (e.g., in machdep.h).
+ * #define-ing NO_FRIVOLITIES in machdep.h will no disable the
+     picture and sonnets.
+
+16 February 1997:
+ * Incorporated GNU malloc checking into "dafni".  Now checks the
+     status of all malloc-ed blocks on entry and exit to every
+     routine using "ENTRY" and "RETURN" macros.  (Nevertheless,
+     this still doesn't find the bug I'm looking for.)
+ * When a grapher window is being destroyed, its corresponding
+     image window needs to redraw the crosshairs.  This redraw
+     command could cause a crash (for reasons unknown) when
+     the dataset is being changed (that is, the grapher is being
+     trashed because the new dataset does not support graphs).
+     This is fixed in afni.c and afni_func.c so that when a
+     grapher is destroyed due to underlay switching, then the
+     corresponding image redraw commands will be ignored.
+
+18 February 1997:
+ * Added some logical functions (and, or, mofn) to parser.f, and
+     so to 3dcalc.  Also added the -session option, and made the
+     default session = "./".
+
+20 February 1997:
+ * Moved a couple routines in afni_plugin.c outside the
+     "#ifdef ALLOW_PLUGINS ... #endif" code block since they
+     are used in non-plugin-specific parts of AFNI.
+
+23 February 1997:
+ * Wrote plug_imreg.c to do 2D registration on 3D+time datasets.
+ * Modified mri_align.c, imreg.c, and fim2.c to recognize macro
+     ALLOW_DFTIME, if the user wants to compile the ability to
+     do -dftime or -dfspacetime registration.
+
+03 March 1997:
+ * Allow to3d to create 3D+time FIM datasets.  Allow afni to display
+     them as functional overlays.
+ * Add -noplugins option to afni, so that it is possible to skip
+     plugins initialization (also can setenv AFNI_NOPLUGINS).
+ * In to3d.c, if any -[xyz]SLAB or -[xyz]FOV options are used, then
+     require that all 3 axes be given if the dataset is to be
+     written out correctly without opening the interactive window.
+
+04 March 1997:
+ * Added a "Read Sess" button to allow input of a new session into
+     afni.  Also added a function THD_equiv_files to 3ddata.c to
+     allow for checking if 2 filenames are equivalent (point to
+     the same inode on the same disk).
+
+05 March 1997:
+ * Added a dummy dataset to afni.c, so that if there are none when
+     the user starts, he can read them in with the "Read Sess" button.
+ * Added a "Read 1D" button to allow input of timeseries files.
+
+10 March 1997:
+ * Made the "Selection" box in the new file selectors have the
+     "HOTCOLOR" as the background.  This is because of the importance
+     of the contents of this box.
+
+?? March 1997:
+ * Created script files to compile and distribute AFNI binaries
+     on and to various computers.
+
+02 April 1997:
+ * Incorporated the CLAMS library into the internal (MCW only) version
+     of AFNI.
+
+03 April 1997:
+ * Created the "imcalc" program, analogous to 3dcalc, but for 2D images.
+
+21 April 1997:
+ * Started work on "plug_realtime.c", including the "3T_toafni.c"
+     program to extract data from ParaVision and send it into AFNI.
+
+22 April 1997:
+ * Modified registered functions to each have an int flag.  The only
+     flag value used now is bit 0 = RETURNS_STRING.  This can be used
+     in a 1D function (via PLUTO_register_1D_funcstr) to return an
+     extra string that will be displayed in graph's button 3 popup.
+ * Modified the LSQfit plugin to return the fit parameters in the
+     extra string, so that the user can display them.
+
+17 June 1997:
+ * Lots of changes in the last 2 months to make plug_realtime.c work.
+ * Added a menu item to afni_graph.c to allow user to control graph
+     colors and line thicknesses.  The colors can also be initialized
+     from the .Xdefaults file.
+ * Added a menu item to afni_graph.c to allow the graph window to
+     be dumped to an image file.  Had to fix xim.c to allow for
+     the XImage format returned by XGetImage on the graph Pixmap.
+ * Modified imseq.c so that if the user types ".pnm" as the end
+     of the "Save:one" filename, the program won't add another
+     ".pnm" to the end.
+
+18 June 1997:
+ * Had to fix the xim.c routine XImage_to_mri to work correctly
+     with 12 bit Visuals.
+ * Added stuff so that .Xdefaults can initialize the line thicknesses
+     as well as the colors.
+
+25 June 1997:
+ * Made afni_plugout.c and plugout_tt.c -- initial implementations
+     of the "plugout" concept: programs that talk to AFNI using
+     IOCHANs to get T-T coordinates, etc.
+ * Modified iochan.c to allow a socket connection to cutoff
+     abruptly when closed.  This was needed because I found that
+     a socket connection might hang around a while after close,
+     and this would prevent new connections on the same port #.
+     At present, this capability is only used when afni exits.
+ * The plugout code (afni_plugout.c) is an Xt work process.
+     To prevent it soaking up too much CPU time, if nothing
+     happens, it will sleep for 10 msec.  This work process
+     is disabled if the realtime plugin is active.
+
+30 June 1997:
+ * Added routine THD_extract_series and macros PLUTO_extract_series*
+     to get time series from 3D+time datasets.  [per Ziad Saad]
+ * Modified 3ddup.c to allow conversion of 3D+time anatomy into
+     3D+time fim.  This will allow the overlay of EPI time series
+     as "function" onto the corresponding anatomy.
+
+02 July 1997:
+ * Modified imstat.c to work with 3D image files, at least partly.
+
+16 July 1997:
+ * Made -orient option (and AFNI_ORIENT environment) work to change
+     the order in which coordinates are displayed in the afni.c
+     crosshair label.
+
+22 July 1997:
+ * -orient (and AFNI_ORIENT) now work with 3dclust.c.
+ * The "jump to" popup in afni.c now works with the orientation
+     code, so that you can paste coordinates out of 3dclust
+     into to jumpto window.
+
+23 July 1997:
+ * Added 6 new functional dataset types, with thresholds being
+     distributed as follows:
+            normal    chi-square   incomplete-beta
+            binomial  gamma        Poisson
+ * Gave user ability to change range of threshold slider -- before,
+     range was fixed by threshold functional dataset type.
+ * Found problem on Linux (1.2.13) with "dlopen" loading of plugins
+     and models -- seems to have problems at about the 20th library.
+     Not sure what to do about this.
+ * Added routine PLUTO_report to allow a plugin to report status
+     information at startup.
+
+28 July 1997:
+ * Added new utility program "3drefit.c" to allow user to change
+     the axes stored in a dataset header.  This is mostly to
+     fixup errors that may have occured at to3d time.
+ * Added -orient option to to3d.c (not that it is much use).
+ * Fixed bug in 3dinfo.c, for printout of sub-brick scaling
+     factors when no statistics are present in the header.
+
+30 July 1997:
+ * Added ability to include a rotation warp when using 3ddup.
+ * Added ability to include empty markers in 3drefit.
+ * Fixed AFNI_init_warp (in afni.c) where it give the name
+     of the new dataset based on the "adam" dataset, rather
+     than the "parent".  This causes problems when transforming
+     a dataset that is itself warp-on-demand from 3ddup -- the
+     names would be based on the ultimate warp parent, not
+     the derived parent from 3ddup.
+
+1 August 1997:
+ * Added a label in the Define Function control panel to show
+     the crosshair pixel value, if all 3 image windows are
+     open (afni.c, afni_func.c, afni_widg.c).
+ * Made Button3+Modifiers work even if CapsLock or NumLock
+     is pressed (imseq.c).
+ * Added random Shakespearean insults.
+ * Added AFNI_SESSTRAIL (3ddata.c) to control session "lastname".
+
+22 August 1997:
+ * Raoqiong Tong modified parser.f to make the vector evaluation
+     routine work again.
+ * Also fixed 3dcalc.c to work with 3D+time datasets.
+
+26 August 1997:
+ * Oops!  Had to fix the EXP_0D plugin in plug_lsqfit.c because
+     the parser vector evaluation routine was changed.
+
+03 October 1997:
+ * Oops!!  Fixed a bug in mri_align.c, where the fine fit weight
+     image wasn't computed properly.  This affected fim2, imreg,
+     and plug_imreg.
+
+22 October 1997:
+ * Oops**2.  Fixed a bug in the bug fix above.
+
+27 October 1997:
+ * Changed csfft to csfft_cox in all places to avoid conflict
+     with code by AJ.
+
+30 October 1997:
+ * Fixed DXY_THRESH to PHI_THRESH in one line of mri_align.c
+ * Worked on adding popup "hints" to AFNI.
+
+10 November 1997:
+ * Added popup hints to to3d.
+ * Added "Clinical" disclaimer to startup message.
+ * Remove scale hints (afni.c, imseq.c), since they are particularly
+     obnoxious.
+
+12 November 1997:
+ * Added some SPARKY specific header declarations to fix problems
+     with SunOS compiling system (e.g., strtod).
+
+20 November 1997:
+ * Increased buffer sizes in count.c
+ * Added Makefile.sparc5_2.5 for Suns.
+
+21 November 1997:
+ * Allowed brick dimensions to be specified as "120A" or "A120"
+     in to3d.c.  This is to make it consistent with the way
+     scanners print on films.
+
+30 November 1997:
+ * Added the "bucket" types (anat and func) to 3ddata.h, and
+     then modified afni, editvol, etc., to utilize this type
+     of dataset.
+ * Created program 3dbucket.c to put buckets together out of
+     sub-bricks from other datasets.
+ * Modified 3drefit.c to allow changes to bucket sub-brick
+     information.
+
+09 December 1997:
+ * Added a new chooser to let user pick interpolation method
+     for threshold (statistical) sub-bricks.
+ * Fixed CUBIC_CLIP in afni_warp.c -- it was incorrectly
+     placed before the brick_fac scaling, not after.
+ * Removed FIM menu from Define Function control panel.
+
+13 December 1997:
+ * Added new file "3dmaker.c", for routines that make new
+     3D datasets from other datasets.  Moved the guts of
+     the PLUTO_4D_to_typed_* routines into this file.
+ * Also fixed a "float *" inside mallocs to be "float"
+     in a couple of places in these routines.  This should
+     be innocuous, since most CPUs satisfy
+       sizeof(float) <= sizeof(float *)
+
+15 December 1997:
+ * Added "Compute FIM+" to FIM menu.  This saves the best
+     time series index in a new sub-brick.
+ * Added some macros to editvol.h to make changing sub-brick
+     auxiliary values simpler.
+
+17 December 1997:
+ * Modified AFNI_set_viewpoint to skip graph redraw unless
+     REDISPLAY_ALL or unless a new (x,y,z) location is set.
+ * Added menu to the pbar label to allow modification of
+     the colors and spacings.
+ * Modified display.h to allocate overlay colors from
+     read-write cells.  This allows the colors to be
+     redefined.
+
+18 December 1997:
+ * Added -noqual option to AFNI to make it skip quality checks
+     when doing marker transformations.
+ * Added -view option to 3drefit to let it change coordinate
+     systems.
+
+21 December 1997:
+ * Added ability to read in palettes and colors from .afnirc file,
+     and interactively from a user-specified file.  Also allow
+     user to reset the top and spacings on the color pbar.
+ * Modified display.[ch] to put all overlay stuff into a shared
+     struct for all MCW_DCs.  This means that the -unique option
+     will only generate new grayscale colorcells for each controller,
+     but they will now share overlay colors.  This is intended to
+     prevent a problem when users add new colors dynamically
+     from external palette files.  This change affected files:
+       afni_func.c afni_graph.c afni_graph.h afni_setup.c xim.c
+       afni_widg.c bbox.c display.c display.h imseq.c pbar.c
+ * Modified pbar.c to keep the input pval's exactly when calling
+     alter_MCW_pbar -- formerly, after resizing the panes, the
+     values might be altered slightly.
+ * Discovered that 17 Dec 97 change to AFNI_set_viewpoint could
+     make graph not be drawn correctly on startup.  Added
+     "never_drawn" variable to graphs and imseqs to allow
+     this condition to be detected.
+
+22 December 1997:
+ * Removed auto-change of threshold scale for bucket datasets
+     from afni.c.  Also unmanages/remanages this scale when
+     the pbar is being changed, due to horrible visual effects
+     on the SGI machine nimloth (if FIX_SCALE_SIZE_PROBLEM
+     is defined).
+ * Modified pbar.c to store the summed pane heights, and then
+     recompute the value/label only when such a summed height
+     changes.  This prevents the modification of the value/label
+     pairs at other panes when resizing only one pane.
+ * Modified AFNI_bucket_label_CB (afni_func.c) to put the
+     sub-brick index at the left of the option menu label.
+
+26 December 1997:
+ * Fixed bug in palette write-out (afni_setup.c).
+ * Added a scrollable text output utility (xutil.c).  Made
+     the plugin help use it if the help string has many
+     lines (afni_plugin.c).  Added a line counting routine
+     to 3ddata.c
+
+02 January 1998:
+ * Added ability to read compressed .BRIK files to 3ddata.c
+     (gzip -d, bzip2 -d, and uncompress are supported).
+ * Added program "3dnoise" to zero out noise-like regions
+     of nonnegative short datasets.
+ * Modified display of dataset names to include number of
+     points in a 3D+t dataset, and to include a "z" flag
+     to indicate compression of dataset.
+
+05 January 1998:
+ * Added "New Stuff" entry to Misc menu, which just pops up
+     the README.changes file into a readonly text window.
+ * Program "quotize.c" will take a text file and make it
+     into a C array of strings, one line per element.  This
+     is used in afni_func.c to popup the README.changes file,
+     which is put into the file "newstuff.hhh" by quotize and
+     in the Makefile.INCLUDE.
+
+07 January 1998:
+ * Added a routine to editvol.c to do local averaging of a
+     dataset faster than -1filter_mean -- it seems to run
+     about 6 times faster.  This is implemented as
+     -1filter_aver in 3dmerge, so that the older one is
+     still available.  Also modified plug_edit.c to add
+     this option to the Filter menu.
+
+08 January 1998:
+ * Modified scaling for output of 3dmerge.c so that the program
+     detects if all the inputs are integer types (byte or short,
+     unscaled).  If they are, and the merger type is consistent
+     with integer type, then the output will be unscaled, otherwise
+     it will be scaled by a float.
+
+09 January 1998:
+ * Modified afni_graph.[ch] to allow choice of a timeseries to
+     be used to define the x-axis graphing.  Thus, if x(t) is
+     the x-axis timeseries, and yij(t) are the data timeseries,
+     then each graph ij now shows x(t) vs. yij(t) rather than
+     t vs. yij(t).
+ * Also modified the Button 1 press in the central graph to
+     jump to the time index point whose graph point is closest
+     to the button click.
+ * Also allowed data plots to be shown as points instead of
+     lines.  "Points" are drawn using the "_circle" routine
+     ("filled" or "hollow", as the line is "thick" or "thin").
+
+12 January 1998:
+ * Allow a gap between the sub-graph boxes.  This is chosen
+     from the "Colors etc." menu.
+ * Raoqiong Tong fixed a bug in the new parser.f with the
+     AND, OR, and MOFN functions.
+
+14 January 1998:
+ * Modified symbol for current time index in afni_graph.c, so
+     that when data is graphed with points the current point
+     can be distinguished from the graph points.
+
+16 January 1998:
+ * Added "Percent Change" calculation to afni_fimmer.c, and
+     removed the "real-time" update feature from those routines.
+
+01 February 1998:
+ * Modified 3ddata.c to avoid use of "scandir" routine, which caused
+     no end of trouble on Solaris.
+ * Moved the "mcw_glob" routines into libmri.a.  These are used to
+     get filenames from the directory now.
+
+02 February 1998:
+ * Fixed a typo in plug_imreg.c to make the "Fine Blur" parameter
+     scale to FWHM properly.
+ * Broke 3ddata.c into "thd_*.c" routines, and incorporated them
+     into libmri.a.  Also incorporated 3dmaker.c and iochan.c.
+     Files 3ddata.c, 3dmaker.[ch], and iochan.[ch] are no more!
+
+03 February 1998:
+ * Also put editvol.c into "edt_*.c" routines, and thence into
+     librmi.a
+ * Added an "Autoscale" button to graph Opt menu, and also execute
+     the autoscale code when the graph is 1st drawn.
+
+04 February 1998:
+ * Modified dbtrace.h to enable tracing with usual afni run.  This
+     can be turned on/off using the "Misc" menu, or the "-trace"
+     option (if the program is compiled with USE_TRACING).
+
+08 February 1998:
+ * Modified afni_graph.c to display dataset indices in graph window,
+     rather than FD_brick indices.  (See the DONT_MANGLE_XYZ location.)
+ * Modified imseq.[ch], afni_graph.[ch], afni.[ch], and the new
+     file afni_receive.c to allow transmission of mouse Button2
+     data to a calling routine.  Work is in progress -- more later.
+
+13 February 1998:
+ * Released drawing plugin to MCW users.  Includes open and closed
+     curves, filling, and undo.
+ * Also added .BRIK output compression to thd_compress.[ch], and to
+     thd_writedblk.c.
+
+16 March 1998:
+ * Added internal globbing to 'afni -im'.
+ * Modified function AFNI_follower_dataset (afni_func.c) to copy
+     datablock auxiliary data from the data parent, if available.
+ * Modified 3drefit.c to allow -fbuc and -abuc to work no matter
+     how many sub-bricks are present.
+ * Added program 3dmaskave.c to print out averages from dataset
+     sub-bricks, with ROI selected by a mask.
+
+18 March 1998:
+ * Made "ptr" a byte variable rather than char in XImage_to_mri
+     (xim.c) -- this seems to fix a problem on some machines.
+
+20 March 1998:
+ * Fixed EDIT_add_bricklist -- the brick auxiliary data additions
+     would free data that hadn't been allocated.
+ * Modified stuff so that Dummy dataset is not deleted -- this
+     seems to help.  (It only takes up 64K, so the loss is small.)
+
+21 March 1998:
+ * Modified 3dmaskave to allow dumping of all voxels hit by the
+     mask, and to compute the standard deviation also.
+
+24 March 1998:
+ * Modified plug_copy.c to allow creation of a 1 sub-brick zero-filled
+     "copy" -- useful for making mask datasets.
+ * Modified 3dnoise.c for 3D+time datasets, so that a voxel is zeroed
+     only if a majority of time points at that location fall below
+     the cutoff.
+ * Modified plug_drawdset.c to recompute statistics after each edit,
+     no matter what.  Also changed the help message a little.
+ * Wrote plug_maskave.c to do pretty much the same thing as 3dmaskave.c.
+
+17 April 1998:
+ * Modified 3dcalc.c to allow input of *.1D time series in place of datasets.
+
+25 April 1998:
+ * Modified thd_*.c to store byte order (for short and int datasets) in the
+     the .HEAD file.  Then when the file is read in, it will be byte swapped
+     if necessary (which will force it to be malloc-ed, not mmap-ed).
+ * Also modified 3drefit to allow a byte order to be written to the .HEAD
+     file.  Note that this does not affect the .BRIK file.
+ * Added new environment variable AFNI_BYTEORDER to control the byte order
+     of output datasets.  This can be "LSB_FIRST" or "MSB_FIRST".  If not
+     present, this means to use the native order of the CPU.
+ * Added new enviroment variable "AFNI_NOMMAP" to allow suppression of mmap.
+     If the value is "YES", then all datasets will be malloc-ed.
+ * Modified the "Purge Memory" button to purge ALL datasets from memory.
+     Formerly, it only purged the unused ones.
+
+29 April 1998:
+ * At the behest of Ted DeYoe, modified 3dcalc.c (again!) to allow operations
+     on bucket and other multi-brick datasets that aren't 3D+time.
+ * Also modified 3drefit.c to allow conversion of 3D+time into a bucket.
+ * This also required the ability to erase datablock attributes, since
+     they are persistent -- even if the data in the dataset is voided,
+     the attribute will remain to be written to disk.  So a routine
+     THD_erase_one_atr was added.  In files thd_writedset.c and
+     thd_writdblk.c, every attribute that DOESN'T get written now gets
+     erased.  This will still leave extra attributes (perhaps added by
+     a plugin) being persistent, but avoids the attribute "hangover" problem.
+
+30 April 1998:
+ * Modified 3dcalc.c to purge dataset sub-bricks when finished with them,
+     and to allocate output buffer sub-bricks only when needed.  This is
+     to keep memory usage down when using compressed 3D+time datasets.
+ * Also added the -verbose option to 3dcalc.c.
+
+1 May 1998:
+ * Fixed plug_rename.c to work with compressed datasets.  Added a
+     routine COMPRESS_add_suffix to thd_compress.c to facilitate this.
+
+4 May 1998:
+ * Added routine THD_purge_one_brick to thd_purgedblk.c, to allow
+     freeing of one sub-brick from a malloc-ed dataset.  Also
+     defined macro DSET_unload_one(dset,iv).
+
+3 June 1998:
+ * Modified AFNI_make_descendants to allow descendancy to flow
+     from +acpc datasets, not just from +orig datasets.
+     However, this doesn't work just yet, due to warping issues.
+
+5 June 1998:
+ * Modified 3dnoise.c to have option to set noise level on command
+     line, rather than compute it.
+
+9 June 1998:
+ * Modified edt_clust*.c routines to implement -1clust_order option.
+ * Modified 3drefit.c to have -nowarp option.
+
+13 July 1998:
+ * Incorporated Doug Ward's erosion+dilation routines into the
+     clustering modules.
+
+14 July 1998:
+ * Added option -skip_afnirc to allow .afnirc file to be skipped.
+ * Fixed bug in afni_setup.c that didn't manage the palette chooser
+     menu when starting with 0 palettes and then later reading in some.
+ * Fixed bug in plug_copy.c that put the anat type off by 1.  Also
+     made the "Zero [One]" option not make the anat type always be omri.
+ * Fixed bug in parser.f, whereby the vector versions of the boolean
+     functions (or, and, mofn) were evaluated incorrectly.
+
+15 July 1998:
+ * Change afni_pcor.c to remove use of DENEPS test for division
+     in computation of correlation coefficient.
+
+17 July 1998:
+ * Added program imstack.c to stack up a bunch of 2D images into
+     the stupid MGH format.  [For Kathleen Marie Donahue.]
+
+21 July 1998:
+ * Added model_convgamma.c to represent a gamma variate convolved
+     with a reference time series.  The "k" parameter of Doug Ward's
+     model_gammaver.c was modified to be called "amp" here, since the
+     impulse response is reparameterized to have peak value = "amp",
+     rather than "k * (rb/e)**r", which is clumsy.
+ * Modified Doug Ward's NLfit_model.h to ensure that certain routines
+     needed by model functions can be forced to be loaded.
+ * Modified 3dTSgen.c to make the "-ncnstr" and "-scnstr" options
+     recognized, since there is a typo in the manual.
+ * Modified Makefile.INCLUDE for 3dTSgen and 3dNLfim to use the
+     proper dynamic linking load flags $(PLFLAGS), and also to include
+     the proper dependencies.
+
+22 July 1998:
+ * Added routine THD_timeof_vox to thd_timeof.c.  This allows
+     computation of voxel time from voxel index, rather than voxel
+     coordinate.
+ * Removed some redundant code from 3dTSgen.c -- it opened the
+     input dataset twice in a row, and loaded the datablock when
+     there was no need.
+ * Modified 3dTSgen.c, 3dNLfim.c, and plug_nlfit.c to have new "-inTR"
+     option to allow computation of model functions with TR set from
+     the input dataset rather than fixed at TR=1.  Note that if the
+     units of the dataset time axis are msec, they will be converted
+     to sec instead (allowing msec to be used as a unit was a mistake).
+
+27 July 1998:
+ * Fixed a bug in routine suck_file in afni_setup.c, which put the
+     terminating NUL character 1 place too far in the output array.
+ * Wrote program uncomment.c, to remove comments from C files.
+ * Added model_convgamma2a.c.
+ * Modified NLfit.c to generate a fixed set of random samples instead
+     of starting over for each voxel.  Also fixed the algorithm that
+     keeps the best random samples -- it was not always keeping the
+     best one, just some of them.
+
+01 August 1998:
+ * Added copyright information to some .c and .h files.
+ * Modified mri_to_short.c to allow for special case of scale!=1.0.
+ * Modified plug_realtime.c to allow for 2D image alignment.
+     (Continuation of work from April that was unfinished then.)
+     First cut is to do all registration at end of acquisition.
+ * Turned off "frivolities" during a real-time run.
+ * Added the ability to graph points+lines together in afni_graph.c
+     (also see changes of 09 Jan 1998).
+
+06 August 1998:
+ * Added changes to thd_compress.[ch] made by Craig Stark/Paul Reber
+     of UCSD, to allow them to use their custom decompression
+     program "brikcomp".
+ * Added realtime 2D registration to plug_realtime.c.
+ * Modified 3dmaskave.c and plug_maskave.c to allow user to choose
+     a sub-brick of the mask dataset.  plug_maskave.c also now lets
+     the user save the mask average of a 3D+time dataset into the
+     timeseries library (for use as a FIM, for example).  Also
+     fixed an overflow bug in both programs when the mask range
+     is too big for a short or byte dataset.
+
+07 August 1998:
+ * Modified display.[ch] to store extra information about the X11
+     visual.  This isn't used yet, but is preparatory to allowing
+     support for using TrueColor visuals and installed colormaps.
+
+17 August 1998:
+ * Adapted old Fortran PLOTPAK to in-memory plotting, with routines
+     to graph to screen and to PostScript.
+ * Used this to implement the "Plot" button in the timeseries chooser,
+     and to do graphing of the realtime 2D motion parameters.
+
+22 August 1998:
+ * Modified display.c to support TrueColor visuals, and xim.c to
+     support arbitrary byte ordering, plus 3 and 4 bytes/pixel.
+
+23 August 1998:
+ * Modified dbtrace.h and most afni_*.c files to allow not only
+     debug tracing of routine entry/exit, but also the printout
+     of other debugging information that was formerly hidden
+     behind "#ifdef AFNI_DEBUG".
+ * A few more changes to make xim.c work properly with depth=24,
+     which can be either 3 or 4 bytes/pixel.
+
+25 August 1998:
+ * Modified afni_pcor.c change of 15 July 1998 to check denominator
+     vs. DENEPS rather than 0.0.
+
+09 September 1998:
+ * Modified thd_sarr.c to add routine to "normalize" a list of
+     files using the C library routine "realpath" and to cast out
+     duplicate files.
+ * Used this in afni.c and thd_get1D.c.
+ * Also added *.1Dv files to list of allowable 1D extensions in
+     thd_get1D.c.
+ * Doug Ward provided me with the new 3dDeconvolve.c program, as
+     well as some changes to 2dImReg and 3dRegAna.
+
+14 September 1998:
+ * Added "-install" option to afni.c to allow installation of a
+     new X11 Colormap.  Also affected display.[ch], afni_widg.c,
+     imseq.c, afni_graph.c, xutil.[ch], afni_plugin.c, to3d.c,
+     and plug_drawdset.c.
+ * Added "-2swap" and "-4swap" options to to3d.c, to allow data
+     to be byte-swapped on input.  Also added a "Byte Swap" button
+     to do the same thing interactively.
+
+16 September 1998:
+ * Modified 3dmaskave.c to allow selection of dataset sub-brick and
+     dataset value range.
+
+17 September 1998:
+ * Added "-1zscore" option to 3dmerge.c (via edt_onedset.c, etc.).
+ * Also completed the list of "p2t" and "t2p" routines, as well
+     as adding "t2z" routines, in mri_stats.c and thd_statpval.c.
+
+18 September 1998:
+ * Added program cdf.c to provide a command line way to get results
+     from the "t2p", "p2t", and "t2z" routines.
+ * Modified afni_setup.c so that when a .pal file is input, the
+     last newly defined palette becomes the active one in the
+     AFNI controller which read the file in.
+
+22 September 1998:
+ * Added program 3dTcat.c, to catenate multiple 3D+time datasets into
+     one big dataset (and possibly detrend them at the same time).
+     This was adapted from 3dbucket.c
+
+28 September 1998:
+ * Modified edt_onedset.c to correctly deal with clipping a dataset
+     when the clip range is larger than the dataset range, and the
+     datum type is short.
+
+29 September 1998:
+ * Added routine mri_rota_shear() to mri_rota.c to do 2D image rotation
+     using the Paeth shearing method combined with FFTs.
+
+01 October 1998:
+ * Modified mri_rota_shear to double up on FFTs -- speeds it up by
+     about 30%.
+ * Modified mri_align.c and mri_2dalign.c to allow choice of interpolation
+     method at each stage of registration.
+ * Modified imrotate.c, imreg.c, and plug_realtime.c to use the new
+     image alignment methods.
+
+09 October 1998:
+ * Modifed afni.c and thd_fdbrick.c to allow the user to control the
+     image flipping -- that is, to let left be displayed on the left.
+
+16 October 1998:
+ * Released 3dvolreg.c to Tom Ross for beta testing.
+
+21 October 1998:
+ * Added some routines to afni_plugin.c to create/manipulate PLUGIN_strval's
+     [= label + textfield].
+
+26 October 1998:
+ * Finished plug_tag.c, and added tagset to a 3D dataset.  Modified afni.c
+     to allow markers panel to open when there are no markers, so user can
+     control the color of the tags.
+ * Modified mri_max.c to fix the initial values.
+ * Modified 3dvolreg.c and mri_3dalign.c to add a clipping option.
+
+01 November 1998 [about]:
+ * Added realtime 3D registration to plug_realtime.c.
+ * Added quintic interpolation option to thd_rot3d.c and places that use it
+     (3dvolreg.c, mri_3dalign.c, 3drotate.c, and plug_realtime.c).
+
+03 November 1998:
+ * Modified afni.c, afni_widg.c, and afni.h to allow user to lock the time
+     indexes of controllers, as well as the spatial locations.
+
+12 November 1998:
+ * Modified 3dmerge.c to have new -1dindex and -1tindex options.
+
+16 November 1998:
+ * Modified mri_align.c, mri_2dalign.c, and mri_3dalign.c to ensure
+     that the weighting factors are non-negative.
+ * Modified 3dvolreg.c to skip registration on the base volume.
+ * Added plug_volreg.c to do the same job as 3dvolreg.c.
+ * Fixed bug in 3drotate.c that caused -[ab]shift commands without
+     directional suffixes to be converted into zeros.
+
+18 November 1998:
+ * Fixed a bug in plug_power.c in the untangling of FFT coefficients.
+ * Modified afni_slice.c to properly clip short and byte interpolation
+     to avoid overflow.
+
+20 November 1998:
+ * Modified csfft.c to use unrolled routines for FFTs of length 16,
+     32, and 64.  Also added special routines using the fft64 code
+     to do lengths 128 and 256.
+ * Modified mri_3dalign.c and 3dvolreg.c to allow specification of
+     a different interpolation method to be used at the final
+     rotation to the output brick.
+
+23 November 1998:
+ * Fixed a typo in plug_realtime.c and plug_volreg.c that made the
+     choice of "Heptic" use quintic interpolation instead.
+
+27 November 1998:
+ * Fixed some logical errors in 3dmerge.c with interaction of -1dindex,
+     -1doall, and the dataset I/O.
+
+03 December 1998:
+ * Fixed a problem in 3dmerge.c with "-datum float" and the sub-brick
+     scaling factor, when editing one dataset only.
+
+04 December 1998:
+ * Added unrolled fft8() to csfft.c.
+ * Modified thd_rot3d.c to start the FFT size calculation at least
+     at 95% of the actual width rather than 90%.  This reduces the
+     likelihood of wraparound effects.
+
+10 December 1998:
+ * Added a timeout for the child process in plug_realtime.c.
+
+13 December 1998:
+ * Fixed a bug in the dataset -> time series routines that didn't
+     scale properly if some of the brick factors were zero and
+     others were not.  Files affected: mri_to_float.c, thd_dsetto1D.c,
+     thd_fdto1D.c, and thd_initdblk.c.
+
+16 December 1998:
+ * Removed TESTER code from afni_widg.c, and added some STATUS()
+     printouts to trace progress.
+
+17 December 1998:
+ * Modified xutil.c to use XmChangeColor to change the color
+     of a widget (routine MCW_set_widget_bg).
+ * Added some changes by Doug Ward to speed up linear regression
+     calculations.
+
+22 Dec 1998:
+ * Fixed a bug in plug_volreg.c, where the ax? variables were used
+     before they were defined, resulting in the wrong order of output
+     of the estimated movement parameters in the graphs and dfile.
+
+30 Dec 1998:
+ * Added function Winsor9 to the 2D transformations, in imseq.c.
+ * Added RowGraphs to imseq.c, also affecting plot_ts.c (in coxplot)
+     and afni.c.
+
+31 Dec 1998:
+ * Modified afni.c crosshairs to allow display only along certain axes.
+
+03 Jan 1999:
+ * Added routine MCW_widget_visible to xutil.c, and used it in imseq.c
+     and afni_graph.c.
+
+04 Jan 1999:
+ * Fixed the time lock feature in afni.c so that it would not operate
+     if toggled off.  [Oops]
+ * Added AFNI_ALWAYS_LOCK environment feature.
+
+05 Jan 1999:
+ * Modified the way imseq.c places the dialogs (Disp and Mont buttons),
+     so as to reduce the likelihood that some of the dialog will appear
+     offscreen.
+ * Added HorZ ('h') selection to afni_graph.c "Opt->Grid" submenu, which
+     will draw a dashed line at the y=0 level in each sub-graph.
+
+06 Jan 1999:
+ * Modified afni_graph.c to try to avoid crashes when graphing window
+     is closed using "Opt" menu "Done" button.  Seems to be caused
+     by Expose events, but what exactly isn't clear -- happens on
+     SGI systems.  Using the "Done" button now starts a 50 msec timeout
+     before the "q" key is simulated.  Also, the Expose event count
+     is now checked before processing, and only if event->count == 0
+     is any work done.  Why these changes do the job is not obvious.
+
+07 Jan 1999:
+ * Modified afni_graph.c to move placement on screen of the
+     "Opt->Colors Etc." submenu if it ends up placed directly over
+     the "Opt" menu.  This could happen on some versions of Motif
+     when the graph window is up against the right edge of the
+     screen.  A callback is executed when the submenu is mapped,
+     and if it is in a bad location, its XmNx value is changed.
+
+10 Jan 1999:
+ * Modified edt_coerce.c to make EDIT_coerce_type work with doubles.
+
+11 Jan 1999:
+ * Modified the rest of edt_coerce.c and edt_volamax.c to allow doubles.
+ * Added thd_mastery.c, which allows a dataset to be "mastered" on input,
+     so that its bricks are a selection of bricks from a master dataset.
+     Adds the routine THD_open_dataset().  Modified 3ddata.h and a
+     bunch of other functions.
+ * Modified 3dinfo.c, 3dcalc.c, rtfeedme.c, from3d.c, 3drotate.c, and
+     3dvolreg.c, to use the new opening routine, to allow for subset
+     selection.
+
+15 Jan 1999:
+ * Fixed the old 3dpc.c to work with the new AFNI data storage,
+     and to use the EISPACK routines instead of LAPACK (with help
+     from Vinai Roopchansingh).
+ * Made swap4 work with float input datasets as well as int.
+
+19 Jan 1999:
+ * Added "-1ddum" argument to 3dpc.c.
+
+20 Jan 1999:
+ * Fixed bug in mri_stats.c, where the "p2t" conversion was done backwards for
+     the F statistic (p should have been q, and vice-versa).
+
+21 Jan 1999:
+ * Added SurfGraph feature to imseq.c.
+ * Added OSfilt9 to imseq.c and the 2D transformations menu (afni.c).
+ * Modified coxplot/plot_topshell.c to store a handle to the form at the top
+     of the graph window hierarchy.
+ * Modified xutil.c to add the "SaveUnder" property to the hints widget.
+
+24 Jan 1999:
+ * Modified coxplot (coxplot.h, plot_motif.c, plot_x11.c) to use the
+     X11 Double Buffer extension, if HAVE_XDBE is defined.  This makes
+     the redrawing of graphs look much smoother.
+
+25 Jan 1999:
+ * Created the "AREN" routines (aren.[ch]) for volume rendering, on top
+     of VolPack.  Not sure what to do with them yet.
+
+26 Jan 1999:
+ * Fixed bug in initialization and usage of Xdbe library, in coxplot.
+
+27 Jan 1999:
+ * Add "UK Flag" location marker to RowGraphs and SurfGraphs.
+
+29 Jan 1999:
+ * Fixed afni_func.c so that if the user presses "See Function"
+     when there is no function, it turns the toggle button back
+     off.  Formerly, it turned off the internal flag, but didn't
+     change the toggle button state, so that the user was fooled.
+
+30 Jan 1999:
+ * Added "Flood->Zero" and "Zero->Value" options to plug_drawdset.c.
+
+05 Feb 1999:
+ * Added plug_render.c, the first version (grayscale only) of the
+     volume rendering code.
+ * Changed name of AREN to MREN and put it in mri_render.[ch].
+ * Cloned the mcw_graf.[ch] routines out of xv.
+ * Added the coordinate stuff to 3dcalc.c.
+
+07 Feb 1999:
+ * Added new program 3dfractionize.c (per Ziad Saad).
+
+09 Feb 1999:
+ * Changes to imseq.c include putting the colorbar popup menu on
+     ctrl-Button3 if there is only 1 image in the sequence, and
+     changing the sharp-factor arrowval to run from 1-9 instead
+     of 1-99.
+ * Added "MCW_noactext" option to arrowvals (bbox.c), so that
+     the usual actions taken when the user leaves the window
+     are not taken.
+ * Added many features to plug_render.c: automation, cutouts,
+     and accumulation.
+ * Fixed 3drefit.c -view option.
+
+10 Feb 1999:
+ * Added "Expr > 0" cutout to plug_render.c
+ * Added SIND(), COSD(), and TAND() functions to parser.f
+
+11 Feb 1999:
+ * Modified many routines in mri_*.c to deal with MRI_rgb type
+     images, in preparation for modifying imseq.c to deal with such.
+ * Modified display.[ch] to include a "colordef" for conversion
+     between Pixel and RGB triples.
+ * Added routine to xim.c to convert MRI_rgb image to an XImage.
+ * Changed imseq.c to allow MRI_rgb images.
+ * Created program 1dplot.c.
+
+15 February 1999:
+ * Modifed mri_render.c to change the way it deals with color volumes.
+ * Modified plug_render.c to allow for color overlays.
+ * Modified xim.c and display.c to deal with converting a RGB image
+     to an XImage in a more efficient way.
+
+16 February 1999:
+ * Modified bbox.[ch] to allow non-power-of-10 steps in an arrowval,
+     if the av->fstep structure component is modified by the user.
+ * Some minor cosmetic changes to plug_render.c.
+
+18 February 1999:
+ * In plug_render.c:
+   + Replaced 'Remove Isolas' with 'Remove Small Clusters' in plug_render.c;
+   + Added the slant cut planes.
+ * In imseq.c, made it so that closing a rowgraph or surfgraph window
+     turns off the feature.
+
+22 February 1999:
+ * New routine "addto_args" (addto_args.c) used to catenate stdin
+     to the (argc,argv) command line of a program.  Testbed is
+     3dRegAna.c (for D. Emge).
+ * Added "LOCK_ZORDER" command to plug_realtime (for Vinai).
+ * Fixed some bugs in plug_render.c having to do with the "Expr > 0" cutout:
+     + Combination with AND was incorrect (counted ncdone too many times);
+     + Test for evaluation to a pure number was incorrect if there were
+       any leading blanks.
+
+23 February 1999:
+ * Fixed a bug in thd_trusthost.c.
+
+25 Feb 1999:
+ * Added the MEDIAN function to parser.f and 3dcalc.c.
+
+01 Mar 1999:
+ * Added the *_p2t, *_t2p, and *_t2z functions to parser.f, parser_int.c,
+      and 3dcalc.c.
+ * Created ASCII PPM file gmove.ppmap to use in gmovie csh script.
+ * Removed tapering from FFT interpolation in thd_rot3d.c.
+
+03 Mar 1999:
+ * Modified thd_sarr.c to skip the realpath() expansion if the
+     environment variable AFNI_NOREALPATH is set.
+
+06 Mar 1999:
+ * Removed GNU malloc from afni.c and incorporated my own mcw_malloc.[ch]
+     functions/macros.
+
+08 Mar 1999:
+ * More changes to mcw_malloc.[ch].
+ * Added macro FREE_AV() to bbox.h, because I found out that all the places
+     where I used XtFree() on an arrowval would leave the string values
+     (sval) high and dry.
+
+09 Mar 1999:
+ * In refit_MCW_optmenu (bbox.c), found I had to free the av->sval and
+     ->old_sval values, since they were being abandoned.
+ * Added AFNI_NO_MCW_MALLOC environment variable to mcw_malloc.c,
+     to let user turn off these routines.
+
+10 Mar 1999:
+ * In afni_graph.c, added deletion of XImage after XGetImage
+     is used to save the graph window to a file.
+
+12 Mar 1999:
+ * Fixed 2 bugs in plug_render.c:
+     - opacity_scale changed wasn't checked if number of cutouts == 0
+     - didn't invalidate overlay when loading new functional dataset
+
+22 Mar 1999:
+ * Added SOLARIS_DIRENT_PATCH code to mcw_glob.c.
+
+23 Mar 1999:
+ * Added call to reload_DC_colordef in imseq.c so that
+     Save:one works properly after palette adjustment.
+
+26 Mar 1999:
+ * Added a FREE_VOLUMES to plug_render.c after a new anatomical
+     sub-brick is selected.
+
+29 Mar 1999:
+ * Modified afni_receive.c and other places to allow for multiple receivers
+     for an IM3D.
+ * Modified plug_render.c to auto-redraw when it receives notice of a
+     crosshair location move.
+
+30 Mar 1999:
+31 Mar 1999:
+ * Modified afni_receive.c to allow for new types of transmission:
+     DRAWNOTICE = notification that something was drawn
+     DSETCHANGE = notification that dataset pointers may have changed
+                  (needed when rescanning sessions)
+ * afni_receive.c now handles transmission to all the interested
+     viewers using the AFNI_process_* routines within.
+ * Modified plug_drawdset.c to properly recover when rescan is used.
+ * Modified plug_render.c to redraw when DRAWNOTICE is received,
+     and to recover when rescan is used.
+ * Modified 3dcalc.c to scale each output sub-brick to shorts/bytes
+     separately, rather than globally [per request of KMD].
+
+01 April 1999: [hope this isn't an unlucky date!]
+ * Finally centralized the computation of the "[A]" type labels for
+     AFNI controllers in afni_func.c, in the new routine
+     AFNI_controller_label(im3d).  Then modified afni_plugin.c,
+     afni_widg.c, plug_render.c, plug_drawdset.c, and plug_tag.c
+     to use this function.
+
+02 April 1999:
+ * Modified thd_http.c to use directory $TMPDIR if defined, rather
+     than always rely on /tmp.
+ * Also added routines to this file to allow transfer of "ftp://"
+     URLs -- this is done using a shell script running the
+     ftp program.
+
+03 April 1999:
+ * Modified plug_render.c to have the currently active dataset
+     "selected" when the user popups a new dataset chooser.
+ * Removed the non-working rotation feature from 3ddup.c.
+
+05 April 1999:
+ * Modified thd_http.c to allow change of user ident for ftp://
+     access to files.
+ * Tested AFNI with LessTif v.0.89 -- seems to work.
+
+13 April 1999:
+ * Modified mri_read.c to allow 3D: hglobal to be < -1 as
+     long as hglobal+himage >= 0 [per Gary Strangman of MGH].
+ * Added mri_cut.c, function to cut out a sub-image.
+
+14 April 1999:
+ * Modified afni.c to fix the pbar_sgn_* initialization, since
+     it incorrectly checked the thresholds against the range
+     0..1 rather than -1..1 [per Chad Moritz of UW Madison].
+
+15 April 1999:
+ * Modified mri_read.c to also try ppm from mri_read() function.
+ * Modified mri_write.c to write byte files as pgm.
+ * Modified mri_to_rgb.c to have a 1 rgb image -> 3 byte image function,
+     and fixed a bug in the 3 images -> 1 rgb image function.
+ * Added mri_dup.c, to upsample a 2D image; added program imupsam.c
+     to do this function from the command line.
+
+19 April 1999
+ * Modified afni.c, afni.h, afni_widg.c to add "Set All" button
+     to Lock menu.
+
+26 April 1999:
+ * Fixed thd_info.c to report dataset axes dimensions correctly
+     (also fixed DAXES_NUM macro in 3ddata.h).
+ * Put code in plug_render.c that allows non-axial datasets to
+     be rendered -- but disabled it for now.
+ * New program 3daxialize.c will rewrite a dataset with BRIKs
+     into the RAI (axial) orientation.
+
+28 April 1999:
+ * In 3daxialize.c, made sure that the slice-wise time offsets
+     are nulled out.
+
+27 May 1999:
+ * Added an X defaults initializer for the graph ggap.
+
+30 May 1999:
+ * Added a variable polort order to afni.c, afni.h, afni_graph.c,
+     and afni_fimmer.c.
+ * Discovered a bug in afni_pcor.c in the % Change calculation,
+     where the last ort wasn't being used in the baseline estimation.
+
+02 June 1999:
+ * Modified plug_render.c to draw partial crosshair sets like the
+     image viewers.
+ * Modified afni.c to send a "process viewpoint" message when the
+     partial crosshair status changes, so that the renderer will
+     get a notice and be able to redraw itself promptly.
+ * Modified plug_realtime.c to use polort.
+ * Added ability to change FIM background threshold percent (FIM_THR)
+     to afni_graph.[ch], afni.c, afni_fimmer.c, and plug_realtime.c
+
+03 June 1999:
+ * Fixed thd_info.c where it refered to brick labels that might not
+     exist -- now it uses the DSET_BRICK_LAB macro, which always works.
+ * Fixed plug_realtime.c to add brick labels to the FIM dataset.
+
+04 June 1999:
+ * Added ***ENVIRONMENT section to .afnirc file processing: changes to
+     afni_setup.c, and to afni.c to have environment variables setup
+     before other things.
+ * Made AFNI_load_defaults() in afni.c look at environment variable
+     AFNI_name if X11 resource AFNI*name doesn't exist.
+
+07 June 1999:
+ * Fixed bug in edt_onedset.c that always applied the zscore transformation
+     if possible!
+ * Created afni_environ.[ch], which now process the ***ENVIRONMENT section
+     of .afnirc.  Also, in all programs, switched use of getenv() to
+     my_getenv(), which just makes sure that the .afnirc ***ENVIRONMENT has
+     been processed before using getenv().  In this way, the .afnirc setup
+     will be universal.
+
+08 June 1999:
+ * Added MCW_new_idcode() to 3drotate.c -- was producing datasets with identical
+     idcodes, which is terrible!
+ * Added function THD_check_idcodes() [thd_checkidc.c] to allow AFNI to check
+     the idcodes in all datasets for duplicates.
+
+15 June 1999:
+ * Fixed afni_receive.c to return the proper "key" value from function
+      AFNI_receive_init().
+ * Modifed plug_render.c to redisplay func dataset statistics after
+      receiving a drawing notice.
+ * Modified afni_plugin.[ch] to crosscheck each plugin's compilation
+      date with AFNI's, and print a warning if they differ.
+
+17 June 1999:
+ * Added program 24swap.c.
+
+07 July 1999:
+ * Added program 3dTsmooth.c.
+ * Modified afni_plugin.c to skip date crosscheck on systems that don't
+      have the C function strptime().
+ * Added -vnorm option to 3dpc.c.
+
+13 July 1999:
+ * Added "Scripts" option to plug_render.c.
+
+14 July 1999:
+ * Modified "Scripts" in plug_render.c to allow save/restore of grafs.
+     Also modified mcw_graf.[ch].
+
+19 July 1999:
+ * Fixed a bug in 3dcalc.c, where it tested CALC_type[ids] for > 0, whereas
+     it should have been >= 0.  The effect was that 3D+time byte valued
+     datasets were not loaded into the atoz array.
+
+29 July 1999:
+ * Fixed afni_graph.c to drop use of XComposeStatus in call to XLookupString,
+     which was causing trouble on SunOS.
+ * Line 2707 of afni_graph.c also had an "==" for assignment, instead of "=".
+     The effect was a possible failure of the x-axis (xax_tsim) graphing
+     mode.  I don't think this failure ever occured in practice.
+
+30 July 1999:
+ * Added program float_scan.c and function thd_floatscan.c to check
+     floating point files and arrays (respectively) for illegal values
+     (e.g., NaN and Infinity).  Incorporated thd_floatscan() into
+     thd_loaddblk.c (if AFNI_FLOATSCAN is set).
+
+01 Aug 1999:
+ * Changed "Voxel Coords" and "Show Hints" pushbutton on Misc menu to
+     toggle buttons.  Modified afni.h, afni_widg.c, and afni_func.c.
+ * Added a "writeownsize" option to the Misc menu, but then changed
+     my mind and #ifdef-ed it out.
+
+02 Aug 1999:
+ * Added the AFNI splash screen; see afni_splash.[ch].
+
+06 Aug 1999:
+ * Modified afni_plugin.[ch] to allow plugins to set a sequence code,
+     which determines the order in which the plugins appear on the menu.
+ * Received 4 plugins (plug_hemisub, plug_maskcalc, plug_roiedit, plug_maxima)
+     from the estate of Rick Reynolds.
+
+07 Aug 1999:
+ * Added a "[left is left]" or "[left is right]" label to the winfo text
+     in AFNI coronal and axial images displays.  Affected files:
+     imseq.[ch], afni.c.
+ * Removed the non-toggle code leftover from the 01 Aug 1999 changes.
+
+08 Aug 1999:
+ * Added the radix-3 routine to csfft.c.
+09 Aug 1999:
+ * Added the radix-5 routine to csfft.c.
+ * Modified edt_blur.c, thd_rot3d.c, and plug_power.c to use new FFT abilities.
+
+19 Aug 1999:
+ * Added -indump option to 3dmaskave.c.
+ * Added "Jump to (ijk)" button to image window popup: afni.[ch], afni_widg.c.
+
+23 Aug 1999:
+ * Added 1/N scaling option to csfft.c.  Modifed fftcheck.c accordingly.
+
+29 Aug 1999:
+ * Modified count.c to accept a '-scale' option.
+ * Modified Tom Ross's 3dNotes.c software to be a set of routines (thd_notes.c),
+     for eventual use in a plugin.
+
+30 Aug 1999:
+ * Modified afni_fimmer.c to accept an upper limit on the computable
+     percent change.
