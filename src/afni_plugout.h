@@ -47,6 +47,8 @@ extern int AFNI_have_plugouts( void ) ;   /* 07 Nov 2001 */
 #define POMODE_DSET_IJK_DELTA   3
 
 #define POMODE_SURFID_DELTA    21  /* 05 Sep 2001 */
+#define POMODE_UNDERLAY_DELTA  31  /* 11 Jan 2002 */
+#define POMODE_OVERLAY_DELTA   32
 
 typedef struct {
    IOCHAN * ioc ;                  /* how to talk to plugout */
@@ -68,6 +70,9 @@ typedef struct {
    int   surfindex ;        /* 06 Sep 2001 */
 
    int do_ack ;             /* acknowledgements? 06 Sep 2001 */
+
+   THD_3dim_dataset *dset_underlay ;  /* 11 Jan 2002 */
+   THD_3dim_dataset *dset_overlay  ;
 
 } PLUGOUT_spec ;
 

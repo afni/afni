@@ -558,6 +558,28 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
             }
             break ;
 
+            /* 11 Sep 2002 */
+
+            case POMODE_UNDERLAY_DELTA:{
+               if( !EQUIV_DSETS(pp->dset_underlay,im3d->anat_now) &&
+                   ISVALID_DSET(im3d->anat_now)                     ){
+
+                   sprintf( pobuf + npobuf , "UNDERLAY %s\n" ,
+                            DSET_HEADNAME(im3d->anat_now) ) ;
+               }
+            }
+            break ;
+
+            case POMODE_OVERLAY_DELTA:{
+               if( !EQUIV_DSETS(pp->dset_overlay,im3d->fim_now) &&
+                   ISVALID_DSET(im3d->fim_now)                     ){
+
+                   sprintf( pobuf + npobuf , "OVERLAY %s\n" ,
+                            DSET_HEADNAME(im3d->fim_now) ) ;
+               }
+            }
+            break ;
+
 #ifdef ALLOW_AGNI
             case POMODE_SURFID_DELTA:{          /* 05 Sep 2001 */
                int ix , jy , kz , new_xyz ;
@@ -629,6 +651,9 @@ Proust:
    pp->anat_num       = im3d->vinfo->anat_num ;
    pp->func_num       = im3d->vinfo->func_num ;
    pp->func_threshold = im3d->vinfo->func_threshold ;
+
+   pp->dset_underlay  = im3d->anat_now ;
+   pp->dset_overlay   = im3d->fim_now  ;
 
    return(retval) ;
 }
@@ -730,6 +755,16 @@ ENTRY("new_PLUGOUT_spec") ;
          pp->pomode[ pp->npomode ] = POMODE_SURFID_DELTA ;
          pp->npomode ++ ;
 
+      } else if( STARTER("UNDERLAY_DELTA") ){  /* 11 Jan 2002 */
+
+         pp->pomode[ pp->npomode ] = POMODE_UNDERLAY_DELTA ;
+         pp->npomode ++ ;
+
+      } else if( STARTER("OVERLAY_DELTA") ){
+
+         pp->pomode[ pp->npomode ] = POMODE_OVERLAY_DELTA ;
+         pp->npomode ++ ;
+
       } else if( STARTER("NO_ACK") ){        /* 06 Sep 2001 */
 
          pp->do_ack = 0 ;
@@ -777,6 +812,8 @@ ENTRY("new_PLUGOUT_spec") ;
    pp->view_type  = -1 ;
    pp->sess_num   = pp->anat_num = pp->func_num = -1 ;
    pp->func_threshold = -0.987654 ;
+
+   pp->dset_underlay = pp->dset_overlay = NULL ; /* 11 Jan 2002 */
 
    if( verbose )
       fprintf(stderr,"PO: initialization completed successfully.\n") ;

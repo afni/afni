@@ -309,11 +309,13 @@ int afni_io(void)
 
       if( afni_do_ijk ){
          sprintf( afni_buf , "DSET_IJK_DELTA\n"
+                             "UNDERLAY_DELTA\n"
                              "PONAME %s\n"
                              "IOCHAN %s" ,
                   afni_name , afni_iocname ) ;
       } else {
          sprintf( afni_buf , "TT_XYZ_DELTA\n"
+                             "UNDERLAY_DELTA\n"
                              "PONAME %s\n"
                              "IOCHAN %s" ,
                   afni_name , afni_iocname ) ;
@@ -421,6 +423,7 @@ int afni_io(void)
       /** at last! "process" the data from AFNI
                    (in this case, just print it out) **/
 
+#if 0
       if( afni_do_ijk )
          ii = sscanf( afni_buf , "DSET_IJK %d %d %d" , &ix,&jy,&kz ) ;
       else
@@ -439,6 +442,10 @@ int afni_io(void)
          fprintf(stderr,"AFNI sent coords: %9.3f %9.3f %9.3f\n",xx,yy,zz) ;
          PO_ACK_OK(afni_ioc) ;
       }
+#else
+      fprintf(stderr,"AFNI sent data:\n%s\n",afni_buf) ;
+      PO_ACK_OK(afni_ioc) ;
+#endif
    }
 
    return 0 ;
