@@ -3983,3 +3983,7 @@
      latter just to change the help text).
  * Modified 3dTcat.c to use last '+' as marker for '+orig' (etc.)
      rather than 1st.
+
+04 Oct 2002
+ * Took modified plug_deconvolve.c from Doug Ward, to fix bug when baseline
+     is disabled.
