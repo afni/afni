@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include <signal.h>
 
 #undef  QBUF
 #define QBUF 4096

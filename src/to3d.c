@@ -3187,6 +3187,8 @@ void Syntax()
     "You can now create RGB-valued datasets.  Each voxel contains 3 byte values\n"
     "ranging from 0..255.  RGB values may be input to to3d in one of two ways:\n"
     " * Using raw PPM formatted 2D image files.\n"
+    " * Using JPEG formatted 2D files.\n"
+    " * Using TIFF, BMP, GIF, PNG formatted 2D files [if netpbm is installed].\n"
     " * Using the 3Dr: input format, analogous to 3Df:, etc., described above.\n"
     "RGB datasets can be created as functional FIM datasets, or as anatomical\n"
     "datasets:\n"
