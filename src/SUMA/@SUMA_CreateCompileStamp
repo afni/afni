@@ -11,6 +11,11 @@ PREPSTRINGS:
 	set Dir_s = `pwd`
 	set Date_s = `date`
 	echo $Date_s
+   if ( ! -f ../Makefile ) then 
+      #Nothing to do here
+      goto END
+   endif
+   
 	set Param_s = `grep SUMA ../Makefile`
 	
 	echo '#\!/bin/csh -f' > $StampFile
