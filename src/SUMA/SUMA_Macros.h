@@ -99,6 +99,7 @@
    SO->NodeNormList = m_SN.NodeNormList; \
    SO->FaceNormList = m_SN.FaceNormList; \
    SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */\
+   SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList;  \
 }
 
 /*!

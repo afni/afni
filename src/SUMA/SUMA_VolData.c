@@ -4,12 +4,6 @@
 extern SUMA_CommonFields *SUMAg_CF; 
 
 
-THD_fvec3 SUMA_THD_3dfind_to_3dmm( SUMA_SurfaceObject *SO, THD_fvec3 iv );
-THD_fvec3 SUMA_THD_3dind_to_3dmm( SUMA_SurfaceObject *SO, THD_ivec3 iv );
-THD_fvec3 SUMA_THD_3dmm_to_3dfind( SUMA_SurfaceObject *SO , THD_fvec3 fv );
-THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  , THD_fvec3 fv );
-THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO , THD_fvec3 imv );
-THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO , THD_fvec3 dicv );
 
 /*!
 	Returns the attributes of the surface's volume parent 
@@ -387,7 +381,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 					fv = SUMA_THD_3dfind_to_3dmm( SO, iv );
 					
 					/* change mm to RAI coords */
-					iv = SUMA_THD_3dmm_to_dicomm( SO , fv );
+					iv = SUMA_THD_3dmm_to_dicomm( SO->VolPar->xxorient, SO->VolPar->yyorient, SO->VolPar->zzorient,  fv );
 					SO->NodeList[id] = iv.xyz[0];
 					SO->NodeList[id+1] = iv.xyz[1];
 					SO->NodeList[id+2] = iv.xyz[2];
@@ -439,6 +433,12 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
 
+   if (SUMAg_CF->IgnoreVolreg) {
+      SUMA_SL_Note("Ignoring any Volreg or TagAlign transforms present in Surface Volume.\n");
+      SO->VOLREG_APPLIED = NOPE;
+      SUMA_RETURN (YUP);
+   }
+   
    if (SO->VOLREG_APPLIED) {
       fprintf (SUMA_STDERR,"Error %s: Volreg already applied. Nothing done.\n", FuncName);
       SUMA_RETURN (NOPE);
@@ -697,8 +697,7 @@ THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  ,
    N.B.: image distances are oriented the same as Dicom,
          just in a permuted order.
 -----------------------------------------------------------------------*/
-
-THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
+THD_fvec3 SUMA_THD_3dmm_to_dicomm( int xxorient, int yyorient, int zzorient, 
                               THD_fvec3 imv )
 {
 	static char FuncName[]={"SUMA_THD_3dmm_to_dicomm"};   
@@ -709,7 +708,7 @@ THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
 
    xim = imv.xyz[0] ; yim = imv.xyz[1] ; zim = imv.xyz[2] ;
 
-   switch( SO->VolPar->xxorient ){
+   switch( xxorient ){
       case ORI_R2L_TYPE:
       case ORI_L2R_TYPE: xdic = xim ; break ;
       case ORI_P2A_TYPE:
@@ -722,7 +721,7 @@ THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
 			exit (1);
    }
 
-   switch( SO->VolPar->yyorient ){
+   switch( yyorient ){
       case ORI_R2L_TYPE:
       case ORI_L2R_TYPE: xdic = yim ; break ;
       case ORI_P2A_TYPE:
@@ -735,7 +734,7 @@ THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
 			exit (1);
    }
 
-   switch( SO->VolPar->zzorient ){
+   switch( zzorient ){
       case ORI_R2L_TYPE:
       case ORI_L2R_TYPE: xdic = zim ; break ;
       case ORI_P2A_TYPE:

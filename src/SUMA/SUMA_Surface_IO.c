@@ -183,19 +183,78 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_n
 }
 
 /*!
-   \brief A function to take a prefix and turn it into the structure needed
+   \brief Removes the standard extension from a dataset filename
+   \param Name (char *) name 
+   \param form SUMA_DSET_FORMAT
+   \return (char *) no_extension (you have to free that one with SUMA_free)
+*/
+
+char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
+{
+   static char FuncName[]={"SUMA_RemoveSurfNameExtension"};
+   char *noex = NULL, *tmp = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Name) { SUMA_SL_Err("NULL Name"); SUMA_RETURN(NULL); }
+  
+   switch (oType) {
+      case SUMA_SUREFIT:
+         tmp  =  SUMA_Extension(Name, ".coord", YUP);
+         noex  =  SUMA_Extension(tmp, ".topo", YUP); SUMA_free(tmp); tmp = NULL;
+         break;
+      case SUMA_VEC:
+         tmp  =  SUMA_Extension(Name, ".1D.coord", YUP);
+         noex  =  SUMA_Extension(tmp, ".1D.topo", YUP); SUMA_free(tmp); tmp = NULL;
+         break;
+      case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
+         noex  =  SUMA_Extension(Name, ".asc", YUP);
+         break;  
+      case SUMA_PLY:
+         noex  =  SUMA_Extension(Name,".ply" , YUP); 
+         break;  
+      case SUMA_INVENTOR_GENERIC:
+         noex  =  SUMA_Extension(Name,".iv" , YUP); 
+         break;
+      case SUMA_BRAIN_VOYAGER:
+         noex  =  SUMA_Extension(Name,".srf" , YUP); 
+         break;
+      default:
+         /* do nothing, get back fprintf (SUMA_STDERR,"Warning %s: Bad format.\n", FuncName); */
+         noex = SUMA_copy_string(Name);
+         break;
+   }
+   
+   SUMA_RETURN(noex);
+}
+
+/*!
+   \brief A function to take a prefix (or name) and turn it into the structure needed
           by SUMA_Save_Surface_Object   
+   also sets *exists = YUP if completed filename exists on disk. For surfaces requiring
+            two files, *exists = YUP if any of the files exists       
    - free returned pointer with SUMA_free
 */
 
-void * SUMA_Prefix2SurfaceName (char *prefix, char *path, char *vp_name, SUMA_SO_File_Type oType)
+void * SUMA_Prefix2SurfaceName (char *prefix_in, char *path, char *vp_name, SUMA_SO_File_Type oType, SUMA_Boolean *exists)
 {
    static char FuncName[]={"SUMA_Prefix2SurfaceName"};
    SUMA_SFname *SF_name = NULL;
-   char *ppref = NULL;
+   char *ppref = NULL, *prefix=NULL;
    void *SO_name = NULL;
    
    SUMA_ENTRY;
+   
+   if (!prefix_in) {
+      fprintf (SUMA_STDERR,"Error %s: NULL name input\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+   /* trim the prefix if necessary */
+   if (!(prefix = SUMA_RemoveSurfNameExtension (prefix_in, oType))) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to remove extension\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
    
    if (path) {
       if (path[strlen(path)-1] == '/') {
@@ -214,6 +273,8 @@ void * SUMA_Prefix2SurfaceName (char *prefix, char *path, char *vp_name, SUMA_SO
                    "%s.coord", ppref);
          snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
                    "%s.topo", ppref); 
+         if (SUMA_filexists(SF_name->name_topo) || SUMA_filexists(SF_name->name_coord)) *exists = YUP;
+         else *exists = NOPE;
          if (!vp_name) { /* initialize to empty string */
             SF_name->name_param[0] = '\0'; 
          }
@@ -230,22 +291,42 @@ void * SUMA_Prefix2SurfaceName (char *prefix, char *path, char *vp_name, SUMA_SO
                    "%s.1D.coord", ppref);
          snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
                    "%s.1D.topo", ppref); 
+         if (SUMA_filexists(SF_name->name_topo) || SUMA_filexists(SF_name->name_coord)) *exists = YUP;
+         else *exists = NOPE;
          SO_name = (void *)SF_name;
          break;
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
          SO_name = (void *)SUMA_append_string(ppref,".asc"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
          break;  
       case SUMA_PLY:
-         SO_name = (void *)SUMA_append_string(ppref,".ply"); ; 
+         SO_name = (void *)SUMA_append_string(ppref,".ply"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
          break;  
+      case SUMA_BRAIN_VOYAGER:
+         SO_name = (void *)SUMA_append_string(ppref,".srf"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
+         break;
+      case SUMA_INVENTOR_GENERIC:
+         SO_name = (void *)SUMA_append_string(ppref,".iv"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
+         break;
       default:
-         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
-         SUMA_RETURN(NULL);
+         fprintf (SUMA_STDERR,"Error %s: Unknown format.\n", FuncName);
+         SO_name = (void *)SUMA_copy_string(ppref);
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
+         break;
    }
    
    if (ppref) SUMA_free(ppref);
-    
+   if (prefix) SUMA_free(prefix); 
+   
    SUMA_RETURN(SO_name);
 }
    
@@ -2835,7 +2916,7 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
    In its current incarnation, the function does not overwrite a pre-existing file.
       
 */ 
-SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO) 
+SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO) 
 {
    static char FuncName[]={"SUMA_Ply_Write"};
    int i,j;
@@ -2845,7 +2926,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
    float version;
    int nverts ;
    int nfaces ;
-   char *f_name2, *elem_names[] = { "vertex", "face" };/* list of the kinds of elements in the user's object */
+   char *f_name, *f_name2, *elem_names[] = { "vertex", "face" };/* list of the kinds of elements in the user's object */
    int n_elem_names = 2;
    Vertex **verts = NULL;
    Face *faces = NULL;
@@ -2853,20 +2934,16 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
-   if (SUMA_filexists (f_name)) {
-      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n", FuncName, f_name);
+   f_name = SUMA_Extension(f_name_in,".ply" , YUP); 
+   f_name2  = SUMA_append_string(f_name,".ply");
+   if (SUMA_filexists (f_name2)) {
+      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n", FuncName, f_name2);
+      SUMA_free(f_name2);f_name2 = NULL;
+      SUMA_free(f_name);f_name = NULL;
       SUMA_RETURN (NOPE);
-   }else {
-      f_name2 = (char*) SUMA_malloc ((strlen(f_name)+10) * sizeof(char));
-      sprintf(f_name2,"%s.ply", f_name);
-      if (SUMA_filexists (f_name2)) {
-         fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n", FuncName, f_name2);
-         SUMA_free(f_name2);
-         SUMA_RETURN (NOPE);
-      }
-      SUMA_free(f_name2);
    }
-   
+   SUMA_free(f_name2); f_name2 = NULL;
+      
    nverts = SO->N_Node;
    nfaces = SO->N_FaceSet;
    
@@ -2918,13 +2995,13 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
          break;      
       
       default:
-         fprintf (SUMA_STDERR, "Error %s: Unrecognized file type.\n", FuncName);
+         fprintf (SUMA_STDERR, "Error %s: Unrecognized file format.\n", FuncName);
          SUMA_RETURN (NOPE);
          break;  
    }
 
    if (!ply) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to create %s.\n", FuncName, f_name);
+      fprintf (SUMA_STDERR,"Error %s: Failed to create %s.ply\n", FuncName, f_name);
       if (verts) SUMA_free(verts);
       if (faces) SUMA_free(faces);
       SUMA_RETURN (NOPE);
@@ -2964,7 +3041,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
    /* free */
    if (verts) SUMA_free(verts);
    if (faces) SUMA_free(faces);
-   
+   if (f_name) SUMA_free(f_name);
    SUMA_RETURN (YUP);
 }
 
@@ -3220,12 +3297,14 @@ void usage_SUMA_ConvertSurface ()
                   "           Patches in Binary format cannot be read at the moment.\n"
                   "       sf: SureFit surface. \n"
                   "           You must specify the .coord followed by the .topo file.\n"
-                  "       vec (or 1D): Simple ascii matrix format. \n"
+                  "       vec (or 1d): Simple ascii matrix format. \n"
                   "            You must specify the NodeList file followed by the FaceSetList file.\n"
                   "            NodeList contains 3 floats per line, representing X Y Z vertex coordinates.\n"
                   "            FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n"
                   "       ply: PLY format, ascii or binary.\n"
                   "            Only vertex and triangulation info is preserved.\n"
+                  "       bv: BrainVoyager format. \n"
+                  "           Only vertex and triangulation info is preserved.\n"
                   "    -ipar_TYPE ParentSurf specifies the parent surface. Only used\n"
                   "            when -o_fsp is used, see below.\n"
                   "    -o_TYPE outSurf specifies the output surface, TYPE is one of the following:\n"
@@ -3234,7 +3313,7 @@ void usage_SUMA_ConvertSurface ()
                   "            In addition to outSurf, you need to specify\n"
                   "            the name of the parent surface for the patch.\n"
                   "            using the -ipar_TYPE option\n"
-                  "       sf: SureFit surface. (NOT IMPLEMENTED YET)\n"
+                  "       sf: SureFit surface. \n"
                   "           You must specify the .coord followed by the .topo file.\n"
                   "       vec (or 1D): Simple ascii matrix format. \n"
                   "            see help for vec under -i_TYPE options for format specifications.\n"
