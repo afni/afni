@@ -59,7 +59,6 @@ void SUMA_process_environ(void)
    return;
 }
 
-
 /*!
    \brief parse command line arguments for input/output debugging and
    memory debugging. Use no fancies in this function!
@@ -139,6 +138,7 @@ void SUMA_ParseInput_basics (char *argv[], int argc)
    
    return;
 }
+
 
 /*!
    \brief Returns the code for the next command (at the tail of the list).
@@ -815,7 +815,8 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
    
    /* add element at end */
    if (dlist_ins_next (list, dlist_tail(list), (void *)MD) < 0) {
-       fprintf (SUMA_STDERR, "Error %s: Failed to insert element in list.\n", FuncName);
+       fprintf (SUMA_STDERR, "Error %s: Failed to insert message:\n%s from %s in list.\n", 
+         FuncName, MD->Message, MD->Source);
        SUMA_RETURN(NOPE);
    }
    

@@ -1672,7 +1672,7 @@ ENTRY("fill_SUMA_structs");
 	fputs( "-- SUMA_LoadSpec_eng()...\n", stderr );
 
     /* actually load the surface(s) from the spec file */
-    if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug) == 0)
+    if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug, SUMAg_CF->DsetList) == 0)
     {
 	fprintf( stderr, "** error: failed SUMA_LoadSpec_eng(), exiting...\n" );
 	RETURN(-1);

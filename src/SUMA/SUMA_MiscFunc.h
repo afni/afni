@@ -62,13 +62,6 @@ used linear pointer storage methods making for inefficient searching
       #define SUMA_malloc(a) mcw_malloc((a),__FILE__,__LINE__)
       #define SUMA_calloc(a,b) mcw_calloc((a),(b),__FILE__,__LINE__)
       #define SUMA_realloc(a,b) mcw_realloc((a),(b),__FILE__,__LINE__)
-      #define SUMA_MEMTRACE_ON {}
-      #define SUMA_MEMTRACE_OFF {}
-      #define SUMA_MEMTRACE_TOGGLE {}
-   #else
-      #define SUMA_malloc(a) mcw_malloc((a))
-      #define SUMA_calloc(a,b) mcw_calloc((a),(b))
-      #define SUMA_realloc(a,b) mcw_realloc((a),(b))
       #define SUMA_MEMTRACE_ON {\
          enable_mcw_malloc() ;   \
          SUMAg_CF->MemTrace = YUP;  \
@@ -80,6 +73,13 @@ used linear pointer storage methods making for inefficient searching
             enable_mcw_malloc() ;   \
          }  \
       }
+   #else
+      #define SUMA_malloc(a) mcw_malloc((a))
+      #define SUMA_calloc(a,b) mcw_calloc((a),(b))
+      #define SUMA_realloc(a,b) mcw_realloc((a),(b))
+      #define SUMA_MEMTRACE_ON {}
+      #define SUMA_MEMTRACE_OFF {}
+      #define SUMA_MEMTRACE_TOGGLE {}
    #endif
    #define SUMA_ENTRY ENTRY(FuncName)
    #define SUMA_RETURN RETURN
@@ -197,8 +197,6 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2);
 int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri); 
 int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace);
 SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace);
-SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
-SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident);
 SUMA_IRGB *SUMA_Free_IRGB(SUMA_IRGB *irgb);
 SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name);

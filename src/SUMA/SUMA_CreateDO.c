@@ -1072,7 +1072,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
       sopd.a = NULL;
 
       SUMA_LH("Calling SUMA_iRGB_to_OverlayPointer");
-      if (!SUMA_iRGB_to_OverlayPointer (SO, Plane->name, &sopd, &OverInd, dov, N_do)) {
+      if (!SUMA_iRGB_to_OverlayPointer (SO, Plane->name, &sopd, &OverInd, dov, N_do, SUMAg_CF->DsetList)) {
          SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
          SUMA_RETURN(NOPE);
       }      
@@ -1086,7 +1086,9 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          nel = SUMA_NewNel ( SUMA_NODE_ROI, /* one of SUMA_DSET_TYPE */
                        SO->LocalDomainParentID, /* idcode of Domain Parent */
                        NULL, /* idcode of geometry parent, not useful here*/
-                       N_NewNode); /* Number of elements */
+                       N_NewNode,
+                       NULL, 
+                       NULL); /* Number of elements */
          
          if (!nel) {
             SUMA_SLP_Err("Failed in SUMA_NewNel");
@@ -1810,8 +1812,9 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       SUMA_Free_SURFACE_CURVATURE(SO->SC);
    }
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing Cx\n", FuncName);
 
+   #if 0 /* no more Cx inside SO */
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing Cx\n", FuncName);
    /* freeing Cx,  make sure that there are no links to Cx*/
    if (SO->Cx || SO->Cx_Inode) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
       if (SUMA_ReleaseLink(SO->Cx_Inode)) { 
@@ -1819,18 +1822,19 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       } else {
          if (SO->Cx) SUMA_free(SO->Cx);
          /* now free SO->Cx_Inode */
-         SUMA_free(SO->Cx_Inode);
+         if (SO->Cx_Inode) SUMA_free(SO->Cx_Inode);
       }
       SO->Cx = NULL;
       SO->Cx_Inode = NULL;
    } 
+   #endif 
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing overlays\n", FuncName);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing %d overlays\n", FuncName, SO->N_Overlays);
    
    /* freeing overlays */
    if (SO->N_Overlays) {
       /* freeing color overlays */
-      for (i=0; i <    SO->N_Overlays; ++i) {
+      for (i=0; i < SO->N_Overlays; ++i) {
          SUMA_ReleaseOverlay(SO->Overlays[i] , SO->Overlays_Inode[i]);
          SO->Overlays[i] = NULL;
          SO->Overlays_Inode[i] = NULL;
@@ -1854,7 +1858,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
             }
          }
          /* now free SO->FN_Inode */
-         SUMA_free(SO->FN_Inode);
+         if (SO->FN_Inode) SUMA_free(SO->FN_Inode);
       }
    }
    SO->FN = NULL;
@@ -1869,7 +1873,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       } else {
          if (SO->EL) SUMA_free_Edge_List (SO->EL);
          /* now free SO->EL_Inode */
-         SUMA_free(SO->EL_Inode);
+         if (SO->EL_Inode) SUMA_free(SO->EL_Inode);
       }
    }
    SO->EL = NULL;
@@ -1881,7 +1885,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       } else {
          if (SO->MF) SUMA_Free_MemberFaceSets (SO->MF);
          /* now free SO->MF_Inode */
-         SUMA_free(SO->MF_Inode);
+         if (SO->MF_Inode) SUMA_free(SO->MF_Inode);
       }
    }
    SO->MF = NULL;
@@ -1900,12 +1904,13 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    \brief Creates a string containing information about the surface
    
    \param SO (SUMA_SurfaceObject *) pointer to surface object structure
+   \param   DsetList (DList *) List of data sets (used to output convexity info)         
    \return s (char *) pointer to NULL terminated string containing surface info.
    It is your responsability to free it.
    \sa SUMA_Print_Surface_Object
    
 */
-char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
+char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
 {
    static char FuncName[]={"SUMA_SurfaceObject_Info"};
    int MaxShow = 5, i,j, ND = 0, NP = 0, N_max = 10000;
@@ -2236,20 +2241,26 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
       }
       sprintf (stmp,"\n");
       SS = SUMA_StringAppend (SS,stmp);
-
-      if (SO->Cx == NULL) {
-         sprintf (stmp,"SO->Cx = NULL\n\n") ;
-         SS = SUMA_StringAppend (SS,stmp);
-      } else {
-         if (MaxShow > SO->N_Node) MaxShow = SO->N_Node;
-         sprintf (stmp, "SO->Cx, showing %d out of %d elements:\n", MaxShow, SO->N_Node);
-         SS = SUMA_StringAppend (SS,stmp);
-         for (i=0; i < MaxShow ; ++i)   {
-            sprintf (stmp,"\t SO->Cx[%d] = %f\n", i, SO->Cx[i]);
+      
+      if (DsetList) {
+         float *Cx = NULL;
+         Cx = (float *)SUMA_GetCx(SO->idcode_str, DsetList, 0);
+         if (Cx == NULL) {
+            sprintf (stmp,"Cx = NULL\n\n") ;
             SS = SUMA_StringAppend (SS,stmp);
+         } else {
+            if (MaxShow > SO->N_Node) MaxShow = SO->N_Node;
+            sprintf (stmp, "Cx, showing %d out of %d elements:\n", MaxShow, SO->N_Node);
+            SS = SUMA_StringAppend (SS,stmp);
+            for (i=0; i < MaxShow ; ++i)   {
+               sprintf (stmp,"\t Cx[%d] = %f\n", i, Cx[i]);
+               SS = SUMA_StringAppend (SS,stmp);
+            }
          }
+      } else {
+         SS = SUMA_StringAppend (SS, "NULL DsetList, No Cx can be found.\n");
       }
-
+      
       if (SO->N_Overlays) {
          sprintf (stmp,"%d Overlay planes.\n", SO->N_Overlays);
          SS = SUMA_StringAppend (SS,stmp);
@@ -2302,7 +2313,6 @@ Input paramters :
          making the function call. Also, make sure you close it
          afterwards. You can pass a NULL pointer and the output 
          will default to stdout.
-         
 \sa SUMA_Load_Surface_Object  
 \sa SUMA_SurfaceObject_Info      
 ***/
@@ -2315,9 +2325,12 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
    SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
-      
-   s = SUMA_SurfaceObject_Info (SO);
    
+   if (SUMAg_CF)    
+      s = SUMA_SurfaceObject_Info (SO, SUMAg_CF->DsetList);
+   else 
+      s = SUMA_SurfaceObject_Info (SO, NULL);
+      
    if (s) {
       fprintf (Out, "%s", s);
       SUMA_free(s);
@@ -2358,8 +2371,10 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].EL_Inode = NULL;
       SO[i].PolyArea = NULL;
       SO[i].SC = NULL;
+      #if 0 /* no longer a part of SO */
       SO[i].Cx = NULL;
       SO[i].Cx_Inode = NULL;
+      #endif
       SO[i].VolPar = NULL;
       SO[i].NodeList = NULL; 
       SO[i].FaceSetList = NULL; 

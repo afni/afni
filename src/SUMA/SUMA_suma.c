@@ -170,7 +170,7 @@ Side effects :
 ***/
 int main (int argc,char *argv[])
 {/* Main */
-   static char FuncName[]={"SUMA"}; 
+   static char FuncName[]={"suma-main"}; 
 	int kar, i;
 	SUMA_SFname *SF_name;
 	SUMA_Boolean brk, SurfIn;
@@ -205,7 +205,7 @@ int main (int argc,char *argv[])
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
-   SUMAg_CF->scm = SUMA_Get_AFNI_Default_Color_Maps();
+   SUMAg_CF->scm = SUMA_Build_Color_maps();
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
    SUMA_ParseInput_basics (argv, argc);
@@ -544,7 +544,7 @@ int main (int argc,char *argv[])
 		}
 		
 		/* load the surfaces specified in the specs file, one by one*/			
-		if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName, 0)) {
+		if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName, 0, SUMAg_CF->DsetList)) {
 			fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
 			exit(1);
 		}

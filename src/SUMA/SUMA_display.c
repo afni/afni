@@ -375,7 +375,9 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    nel = SUMA_NewNel (  SUMA_VIEWER_SETTING, /* one of SUMA_DSET_TYPE */
                         NULL, /* idcode of Domain Parent */
                         NULL, /* idcode of geometry parent, not useful here*/
-                        0); /* Number of elements */
+                        0,
+                        NULL,
+                        NULL); /* Number of elements */
    if (!nel) {
       SUMA_SL_Err("Failed to create nel.");
       SUMA_RETURNe;
@@ -6142,7 +6144,7 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    }
    
    /* for the string of the surface info */
-   s = SUMA_SurfaceObject_Info (SO);
+   s = SUMA_SurfaceObject_Info (SO, SUMAg_CF->DsetList);
    
    if (s) {
       TextShell =  SUMA_CreateTestShellStruct (SUMA_SurfInfo_open, (void *)SO, 
@@ -6590,7 +6592,7 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_
 void SUMA_PopUpMessage (SUMA_MessageData *MD)
 {
    static char FuncName[]={"SUMA_PopUpMessage"};
-   Widget Parent_w=NULL;
+   Widget Parent_w=NULL, wmsg = NULL;
    int ii;
    
    SUMA_ENTRY;
@@ -6622,21 +6624,25 @@ void SUMA_PopUpMessage (SUMA_MessageData *MD)
    }
    
    if (MD->Action ==  SMA_LogAndPopup) {
+      wmsg = NULL;
       switch (MD->Type) {
          case SMT_Notice:
-            (void)MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
+            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
             break;
          case SMT_Warning:
-            (void)MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
+            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
             break;
          case SMT_Error:
-            (void)MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL);
+            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL);
             break;
          case SMT_Critical:
-            (void)MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_CALLER_KILL);
+            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_CALLER_KILL);
             break;
          default:
             break;
+      }
+      if (wmsg) {
+         SUMA_PositionWindowRelative (wmsg, NULL, SWP_POINTER_OFF);
       }
    }
    
@@ -6873,7 +6879,7 @@ void SUMA_cb_DrawROI_Join (Widget w, XtPointer data, XtPointer client_data)
    
    /* looking good, add the thing */
    ROIstroke->action = SUMA_BSA_JoinEnds;
-   ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); /* this structure is freed in SUMA_DestroyROIActionData */
+   ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
    ROIA->DrawnROI = DrawnROI;
    ROIA->ROId = ROIstroke;
    tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_AddToTailJunctionROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -6916,7 +6922,7 @@ void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data)
    }
    
    /* looking good, add the thing */
-   ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); /* this structure is freed in SUMA_DestroyROIActionData */
+   ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
    ROIA->DrawnROI = DrawnROI;
    ROIA->ROId = NULL;
    tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_FinishedROI, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -7188,20 +7194,30 @@ void SUMA_WidgetResize (Widget New, int width, int height)
    SUMA_PositionWindowRelative ( New,  Ref,  Loc);
    
    \param New (Widget) the widget to place
-   \param Ref (Widget) the widget relative to which New is placed (NULL if you a reposition relative to the pointer)
+   \param Ref (Widget) the widget relative to which New is placed (could pass NULL if positioning relative to pointer)
    \param Loc (SUMA_WINDOW_POSITION) the position of New relative to Ref
 */
 void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION Loc)
 {
    static char FuncName[]={"SUMA_PositionWindowRelative"};
    Position RefX, RefY, NewX, NewY, Dx=5;
-   Dimension RefW, RefH, ScrW, ScrH;
+   Dimension RefW, RefH, ScrW, ScrH, NewW, NewH;
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
    
+   if (!New) { SUMA_RETURNe; }
+   
    ScrW = WidthOfScreen (XtScreen(New));
    ScrH = HeightOfScreen (XtScreen(New));
+   
+   XtVaGetValues (New,           /* get the positions of New */
+         XmNwidth, &NewW,
+         XmNheight, &NewH,
+         XmNx, &NewX,
+         XmNy, &NewY,
+         NULL);
+
    if (Ref) { /* get the positions of Ref */
       XtVaGetValues (Ref,
          XmNwidth, &RefW,
@@ -7240,6 +7256,17 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
             NewY = root_y;
          }
          break;
+      case SWP_POINTER_OFF:
+         {
+            Window root, child;
+            int root_x, root_y, win_x, win_y;
+            unsigned int keys_buttons;
+            XQueryPointer(XtDisplay(New), XtWindow(New), &root, &child, &root_x, &root_y, &win_x, &win_y, &keys_buttons);
+            NewX = root_x - (int)NewW/2;
+            NewY = root_y - (int)NewH + Dx;
+         }
+         break;
+            
       default:
          fprintf (SUMA_STDERR, "Error %s: Option not known.\n", FuncName);
          SUMA_RETURNe;
@@ -7247,8 +7274,8 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
    }
 
    
-   if (NewX >= ScrW) NewX = 50;
-   if (NewY >= ScrH) NewY = 50;
+   if (NewX >= ScrW || NewX < 0) NewX = 50;
+   if (NewY >= ScrH || NewY < 0) NewY = 50;
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Positioning window at %d %d\n", FuncName, NewX, NewY);
    XtVaSetValues (New,

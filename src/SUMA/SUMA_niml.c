@@ -731,8 +731,9 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       sopd.BrightMod = NOPE;
       sopd.Show = YUP;
       /* dim colors from maximum intensity to preserve surface shape highlights, 
-      division by 255 is to scale color values between 1 and 0 */
-      sopd.DimFact = SUMA_DIM_AFNI_COLOR_FACTOR / 255.0;
+      division by is no longer necessary.
+      */
+      sopd.DimFact = SUMA_DIM_AFNI_COLOR_FACTOR;
       if (!Empty_irgba) {
          sopd.i = (void *)nel->vec[0];
          sopd.r = (void *)nel->vec[1];
@@ -745,7 +746,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          sopd.N = 0;
       }
 
-      if (!SUMA_iRGB_to_OverlayPointer (SO, "FuncAfni_0", &sopd, &OverInd, SUMAg_DOv, SUMAg_N_DOv)) {
+      if (!SUMA_iRGB_to_OverlayPointer (SO, "FuncAfni_0", &sopd, &OverInd, SUMAg_DOv, SUMAg_N_DOv, SUMAg_CF->DsetList)) {
          SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
          SUMA_RETURN(NOPE);
       }
@@ -1329,7 +1330,7 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SU
          ROI_Datum->Type = nimlROI->ROI_datum[i].Type;
          ROI_Datum->N_n = nimlROI->ROI_datum[i].N_n;
       if (ForDisplay) { /* create DO/UNDO stack */
-         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *));
+         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT));
          ROIA->DrawnROI = ROI;
          ROIA->ROId = ROI_Datum;
          switch (ROI_Datum->action) {
@@ -1367,7 +1368,7 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SU
    
    if (ForDisplay) {
       /* Saved ROIs are considered finished, put a finish action on the top of the action stack */
-      ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); 
+      ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); 
       ROIA->DrawnROI = ROI;
       ROIA->ROId = NULL;
       tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 

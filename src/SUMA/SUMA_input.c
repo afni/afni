@@ -957,25 +957,27 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_COLOR_SCALED_VECT * SV;
                float ClipRange[2], *Vsort;
                float * attr_sm;
+               float *Cx = NULL;
 
                fprintf(SUMA_STDOUT, "%s: Calculating convexity ...\n", FuncName);
                SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;   
-               if (SO->Cx) {
-                  fprintf(stderr,"Error %s: SO->Cx must be null prior to new assignment\n", FuncName);
+               Cx = (float *)SUMA_GetCx(SO->idcode_str, SUMAg_CF->DsetList, 0);
+               if (Cx) {
+                  fprintf(stderr,"Error %s: Cx must be null prior to new assignment\n", FuncName);
                   break;
                }
-               SO->Cx = SUMA_Convexity   (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->FN);   
-               if (SO->Cx == NULL) {
+               Cx = SUMA_Convexity   (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->FN);   
+               if (Cx == NULL) {
                      fprintf(stderr,"Error %s: Failed in SUMA_Convexity\n", FuncName);
                      break;
                }   
                /* smooth estimate twice */
-               attr_sm = SUMA_SmoothAttr_Neighb (SO->Cx, SO->N_Node, NULL, SO->FN, 1);
+               attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, SO->FN, 1);
                if (attr_sm == NULL) {
                      fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
                      break;
                }   
-               SO->Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, SO->Cx, SO->FN, 1);
+               Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx, SO->FN, 1);
                if (attr_sm) SUMA_free(attr_sm);
 
                fprintf(SUMA_STDOUT, "%s: Use SUMA_ScaleToMap to colorize Conv.txt and display it on surface.\n", FuncName);
@@ -995,7 +997,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /* work the options a bit */
                OptScl->ApplyClip = YUP;
                ClipRange[0] = 5; ClipRange[1] = 95; /* percentile clipping range*/ 
-               Vsort = SUMA_PercRange (SO->Cx, NULL, SO->N_Node, ClipRange, ClipRange); 
+               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, ClipRange, ClipRange); 
                OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
 
                OptScl->BrightFact = 0.4;
@@ -1010,7 +1012,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                   /* finally ! */
                   /*fprintf (SUMA_STDERR,"%s: 1st color in map %f %f %f\n", FuncName, CM->M[0][0], CM->M[0][1],CM->M[0][2]);*/
-                  if (!SUMA_ScaleToMap (SO->Cx, SO->N_Node, Vsort[0], Vsort[SO->N_Node-1], CM, OptScl, SV)) {
+                  if (!SUMA_ScaleToMap (Cx, SO->N_Node, Vsort[0], Vsort[SO->N_Node-1], CM, OptScl, SV)) {
                      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
                      exit(1);
                   }
@@ -1021,16 +1023,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf (SUMA_STDERR,"Error %s: NULL glar_ColorList. BAD.\n", FuncName);
                      break;
                   }  
-                  SUMA_RGBmat_2_GLCOLAR4(SV->cM, glar_ColorList, SO->N_Node);
+                  SUMA_RGBvec_2_GLCOLAR4(SV->cV, glar_ColorList, SO->N_Node);
 
                   /* free */
                   if (Vsort) SUMA_free(Vsort);
                   if (CM) SUMA_Free_ColorMap (CM);
                    if (OptScl) SUMA_free(OptScl);
                   if (SV) SUMA_Free_ColorScaledVect (SV);
-                  if (SO->Cx) {
-                     SUMA_free(SO->Cx);
-                     SO->Cx = NULL;
+                  if (Cx) {
+                     SUMA_free(Cx);
+                     Cx = NULL;
                   }
 
                fprintf(SUMA_STDOUT, "%s: Convexity mapping done ...\n", FuncName);
@@ -2649,7 +2651,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          ROIstroke->action = SUMA_BSA_AppendStroke;
          /*now add the ROIdatum to the list of ROIs */
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Adding ROIStroke to DrawnROI->ROIstrokelist\n", FuncName);
-         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); /* this structure is freed in SUMA_DestroyROIActionData */
+         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
          ROIA->DrawnROI = DrawnROI;
          ROIA->ROId = ROIstroke;
          tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_AddToTailROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -2663,7 +2665,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          /* store the action */
          ROIstroke->action = SUMA_BSA_JoinEnds;
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing path.\n", FuncName);
-         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); /* this structure is freed in SUMA_DestroyROIActionData */
+         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
          ROIA->DrawnROI = DrawnROI;
          ROIA->ROId = ROIstroke;
          tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_AddToTailJunctionROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -2677,7 +2679,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          /* store the action */
          ROIfill->action = SUMA_BSA_FillArea;
          /* Now add ROIdatum to stack */
-         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); /* this structure is freed in SUMA_DestroyROIActionData */
+         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
          ROIA->DrawnROI = DrawnROI;
          ROIA->ROId = ROIfill;
          tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_AddFillROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);

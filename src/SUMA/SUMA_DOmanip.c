@@ -139,7 +139,8 @@ int SUMA_ReleaseLink (SUMA_INODE * IN)
       SUMA_RETURN(-1);
    }
    if (!IN->N_link) {
-      SUMA_RETURN(-1);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: No links. Returning 0.\n", FuncName);
+      SUMA_RETURN(0);
    }
    else {
       IN->N_link--;

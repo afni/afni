@@ -459,7 +459,7 @@ int main (int argc,char *argv[])
      }
      else {
        for (i=0; i < num_nodes1; ++i) {
-         fprintf (colorfile,"%d\t%f\t%f\t%f\n", i, MySV->cM[i][0], MySV->cM[i][1], MySV->cM[i][2]);
+         fprintf (colorfile,"%d\t%f\t%f\t%f\n", i, MySV->cV[3*i  ], MySV->cV[3*i+1], MySV->cV[3*i+2]);
        }
        fclose (colorfile);
      }

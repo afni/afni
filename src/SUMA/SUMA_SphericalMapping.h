@@ -62,6 +62,7 @@ void SUMA_addTri(int *triList, int *ctr, int n1, int n2, int n3);
 
 SUMA_SO_map *SUMA_Create_SO_map (void);
 SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM); 
-SUMA_Boolean SUMA_Show_SO_map (SUMA_SO_map *SOM, FILE *out); 
+SUMA_Boolean SUMA_Show_SO_map  (SUMA_SO_map *SOM, FILE *out); 
+SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot);
 
 #endif

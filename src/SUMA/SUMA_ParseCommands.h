@@ -217,4 +217,18 @@ const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp);
    if (LocalHead) fprintf (SUMA_STDERR, "%s:\n %s\n", FuncName, msg);  \
 }
 
+#define SUMA_SKIP_COMMON_OPTIONS(m_brk, m_kar) {\
+   if (!m_brk &&                                     \
+       ( (strcmp(argv[m_kar], "-memdbg") == 0) ||    \
+         (strcmp(argv[m_kar], "-iodbg") == 0)  ||    \
+         (strcmp(argv[m_kar], "-nomall") == 0) ||    \
+         (strcmp(argv[m_kar], "-yesmall") == 0) ||   \
+         (strcmp(argv[m_kar], "-trace") == 0) ||     \
+         (strcmp(argv[m_kar], "-TRACE") == 0)) ) {   \
+		/* valid options, but already taken care of */  \
+		m_brk = YUP;                                   \
+	}                                               \
+}
+      
+
 #endif

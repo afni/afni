@@ -1022,7 +1022,7 @@ SUMA_Boolean SUMA_Show_FS_ColorTable(SUMA_FS_COLORTABLE *ct, FILE *fout)
    \param ROIout (FILE *)
    \param cmapout (FILE *)
    
-   - If a colormap is found, it is added to SUMAg_CF->scm
+   - If a colormap is found, it should be added to SUMAg_CF->scm
    - Based on code provided by Bruce Fischl
 */
 SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_col, int Showct)
@@ -1227,7 +1227,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
    
    /* package the results for SUMA */
    /* 1- Transform ct to a SUMA_COLOR_MAP (do that BEFORE the free operation above) 
-         The cname field in SUMA_COLOR_MAP was create for that purpose.
+         The cname field in SUMA_COLOR_MAP was created for that purpose.
          First allocate for cmap then use SUMA_copy_string to fill it with 
          the names*/
    /* 2- Create a vector from the labels and create a data set from it */ 
@@ -1816,7 +1816,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 	if (!SUMA_filexists(f_name)) {
 		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
 		SUMA_RETURN (NOPE);
-	}else if ( debug ) {
+	}else if ( debug > 1) {
 		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
 	}
 	
@@ -2819,6 +2819,9 @@ void usage_SUMA_ConvertSurface ()
                   "       If you supply a surface volume, the coordinates of the input surface.\n"
                   "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
                   "        You must also specify a VolParam file for SureFit surfaces.\n"
+                  "    -acpc: Apply acpc transform (which must be in acpc version of \n"
+                  "        SurfaceVolume) to the surface vertex coordinates. \n"
+                  "        This option must be used with the -sv option.\n"
                   "    -tlrc: Apply Talairach transform (which must be in talairach version of \n"
                   "        SurfaceVolume) to the surface vertex coordinates. \n"
                   "        This option must be used with the -sv option.\n"
@@ -2833,7 +2836,18 @@ void usage_SUMA_ConvertSurface ()
                   "        AFNI RAI tlrc coordinates .\n"    
                   "   NOTE: The vertex coordinates coordinates of the input surfaces are only\n"
                   "         transformed if -sv option is used. If you do transform surfaces, \n"
-                  "         take care not to load them into SUMA with another -sv option.\n"); 
+                  "         take care not to load them into SUMA with another -sv option.\n"
+                  "\n"
+                  "    Options for applying arbitrary affine transform:\n"
+                  "    [xyz_new] = [Mr] * [xyz_old - cen] + D + cen\n"
+                  "    -xmat_1D mat: Apply transformation specified in 1D file mat.1D.\n"
+                  "                  to the surface's coordinates.\n"
+                  "                  [mat] = [Mr][D] is of the form:\n"
+                  "                  r11 r12 r13 D1\n"
+                  "                  r21 r22 r23 D2\n"
+                  "                  r31 r32 r33 D3\n"
+                  "    -xcenter x y z: Use vector cen = [x y z]' for rotation center.\n"
+                  "                    Default is cen = [0 0 0]'\n"); 
           s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL; 
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
           exit (0);
@@ -2842,10 +2856,12 @@ void usage_SUMA_ConvertSurface ()
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
-	int kar;
+	int kar, i;
+   float xcen[3], M[3][4];
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
          *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL, 
-         *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL;
+         *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL,
+         *acpc_name=NULL, *xmat_name = NULL;
    SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED, oType = SUMA_FT_NOT_SPECIFIED;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
@@ -2853,7 +2869,7 @@ int main (int argc,char *argv[])
    void *SO_name = NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI ;
+   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat;
    SUMA_Boolean LocalHead = NOPE;
    
 	/* allocate space for CommonFields structure */
@@ -2863,6 +2879,9 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
    
+   /* sets the debuging flags, if any */
+   SUMA_ParseInput_basics(argv, argc);
+
    if (argc < 4)
        {
           usage_SUMA_ConvertSurface ();
@@ -2870,10 +2889,15 @@ int main (int argc,char *argv[])
        }
    
    kar = 1;
+   xmat_name = NULL;
+   xcen[0] = 0.0; xcen[1] = 0.0; xcen[2] = 0.0;
 	brk = NOPE;
+   Docen = NOPE;
+   Doxmat = NOPE;
    Do_tlrc = NOPE;
    Do_mni_RAI = NOPE;
    Do_mni_LPI = NOPE;
+   Do_acpc = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -2881,6 +2905,8 @@ int main (int argc,char *argv[])
           exit (0);
 		}
 		
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      
 		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -2892,10 +2918,34 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-xmat_1D") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D");
+				exit (1);
+			}
+			xmat_name = argv[kar]; 
+         Doxmat = YUP;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-xcenter") == 0)) {
+         kar ++;
+			if (kar+2>= argc)  {
+		  		fprintf (SUMA_STDERR, "need 3 arguments after -xcenter");
+				exit (1);
+			}
+			xcen[0] = atof(argv[kar]); ++kar;
+			xcen[1] = atof(argv[kar]); ++kar;
+			xcen[2] = atof(argv[kar]); 
+         Docen = YUP;
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -i_sf");
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -i_sf");
 				exit (1);
 			}
 			if_name = argv[kar]; kar ++;
@@ -3001,6 +3051,11 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-acpc") == 0)) {
+         Do_acpc = YUP;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-MNI_rai") == 0)) {
          Do_mni_RAI = YUP;
          brk = YUP;
@@ -3063,6 +3118,20 @@ int main (int argc,char *argv[])
       SUMA_SL_Warn ("I hope you know what you're doing.\nThe MNI transform should only be applied to a\nSurface in the AFNI tlrc coordinate space.\n");
    }
    
+   if (Do_acpc && Do_tlrc) {
+      fprintf (SUMA_STDERR,"Error %s: You can't do -tlrc and -acpc simultaneously.\n", FuncName);
+      exit(1);
+   }
+   
+   if ((Doxmat || Docen) && (Do_acpc || Do_tlrc)) {
+      fprintf (SUMA_STDERR,"Error %s: You can't do -tlrc or -acpc with -xmat_1D and -xcenter.\n", FuncName);
+      exit(1);
+   }
+   
+   if ((!Doxmat && Docen)) {
+      fprintf (SUMA_STDERR,"Error %s: You can't use -xcenter without -xmat_1D.\n", FuncName);
+      exit(1);
+   }
    if (oType == SUMA_SUREFIT) {
       if (!of_name2) {
        fprintf (SUMA_STDERR,"Error %s: output SureFit surface incorrectly specified. \n", FuncName);
@@ -3076,7 +3145,8 @@ int main (int argc,char *argv[])
        exit(1);
       }
    }
-
+   
+   
    /* test for existence of input files */
    if (!SUMA_filexists(if_name)) {
       fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
@@ -3089,6 +3159,13 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
+   
+   if (xmat_name) {
+      if (!SUMA_filexists(xmat_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, xmat_name);
+         exit(1);
+      }
+   }
 
    if (sv_name) {
       if (!SUMA_filexists(sv_name)) {
@@ -3097,7 +3174,7 @@ int main (int argc,char *argv[])
       }
    }
    
-   if (Do_tlrc && !sv_name) {
+   if ((Do_tlrc || Do_acpc) && (!sv_name)) {
       fprintf (SUMA_STDERR,"Error %s: -tlrc must be used with -sv option.\n", FuncName);
       exit(1);
    }
@@ -3160,6 +3237,48 @@ int main (int argc,char *argv[])
    }
    
    /* now for the real work */
+   if (Doxmat) {
+      MRI_IMAGE *im = NULL;
+      float *far=NULL;
+      int ncol, nrow;
+      
+      im = mri_read_1D (xmat_name);
+   
+      if (!im) {
+         SUMA_SLP_Err("Failed to read 1D file");
+         exit(1);
+      }
+      far = MRI_FLOAT_PTR(im);
+      ncol = im->nx;
+      nrow = im->ny;
+      if (nrow < 4 ) {
+         SUMA_SL_Err("Mat file must have\n"
+                     "at least 4 columns.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         exit(1);
+      }
+      if (ncol < 3 ) {
+         SUMA_SL_Err("Mat file must have\n"
+                     "at least 3 rows.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         exit(1);
+      }
+      if (nrow > 4) {
+         SUMA_SL_Warn(  "Ignoring entries beyond 4th \n"
+                        "column in transform file.");
+      }
+      if (ncol > 3) {
+         SUMA_SL_Warn(  "Ignoring entries beyond 3rd\n"
+                        "row in transform file.\n");
+      }
+      for (i=0; i < 3; ++i) {
+         M[i][0] = far[i];
+         M[i][1] = far[i+ncol];
+         M[i][2] = far[i+2*ncol];
+         M[i][3] = far[i+3*ncol];
+      } 
+      mri_free(im); im = NULL;
+   }
    /* prepare the name of the surface object to read*/
    switch (iType) {
       case SUMA_SUREFIT:
@@ -3237,7 +3356,41 @@ int main (int argc,char *argv[])
       
    }
    
+   if (Do_acpc) {
+      fprintf (SUMA_STDOUT,"Performing acpc transform...\n");
+
+      /* form the acpc version of the surface volume */
+      acpc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+strlen(SO->VolPar->prefix)+60, sizeof(char));
+      sprintf (acpc_name, "%s%s+acpc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
+      if (!SUMA_filexists(acpc_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, acpc_name);
+         exit(1);
+      }
+      
+      /* read the acpc header */
+      aset = THD_open_dataset(acpc_name) ;
+      if( !ISVALID_DSET(aset) ){
+         fprintf (SUMA_STDERR,"Error %s: %s is not a valid data set.\n", FuncName, acpc_name) ;
+         exit(1);
+      }
+      if( aset->warp == NULL ){
+         fprintf (SUMA_STDERR,"Error %s: acpc_name does not contain an acpc transform.\n", FuncName);
+         exit(1);
+      }
+      
+      warp = aset->warp ;
+      
+      /* now warp the coordinates, one node at a time */
+      if (!SUMA_AFNI_forward_warp_xyz(warp, SO->NodeList, SO->N_Node)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNI_forward_warp_xyz.\n", FuncName);
+         exit(1);
+      }
+
+      
+   }
+   
    if (Do_mni_RAI) {
+      fprintf (SUMA_STDOUT,"Performing MNI_RAI transform...\n");
       /* apply the mni warp */
       if (!SUMA_AFNItlrc_toMNI(SO->NodeList, SO->N_Node, "RAI")) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
@@ -3246,6 +3399,7 @@ int main (int argc,char *argv[])
    }
    
    if (Do_mni_LPI) {
+      fprintf (SUMA_STDOUT,"Performing MNI_LPI transform...\n");
       /* apply the mni warp */
       if (!SUMA_AFNItlrc_toMNI(SO->NodeList, SO->N_Node, "LPI")) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
@@ -3253,7 +3407,21 @@ int main (int argc,char *argv[])
       }
    }
    
-  
+   if (Doxmat) {
+      fprintf (SUMA_STDOUT,"Performing affine transform...\n");
+      if (LocalHead) {
+         for (i=0; i<3 ; ++i) {
+            fprintf (SUMA_STDERR,"M[%d][:] = %f %f %f %f\n", i, M[i][0], M[i][1], M[i][2], M[i][3]);
+         }
+         fprintf (SUMA_STDERR,"Cen[:] %f %f %f\n", xcen[0], xcen[1], xcen[2]);
+      }
+      if (Docen) {
+         if (!SUMA_ApplyAffine (SO->NodeList, SO->N_Node, M, xcen)) { SUMA_SL_Err("Failed to xform coordinates"); exit(1); }
+      } else {
+         if (!SUMA_ApplyAffine (SO->NodeList, SO->N_Node, M, NULL)) { SUMA_SL_Err("Failed to xform coordinates"); exit(1); }
+      }
+   }
+   
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
    
    fprintf (SUMA_STDOUT,"Writing surface...\n");
@@ -4083,7 +4251,9 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
    nel = SUMA_NewNel ( SUMA_NODE_ROI, /* one of SUMA_DSET_TYPE */
                        Parent_idcode_str, /* idcode of Domain Parent */
                        NULL, /* idcode of geometry parent, not useful here*/
-                       N_NodesTotal); /* Number of elements */
+                       N_NodesTotal,/* Number of elements */
+                       NULL,
+                       NULL); 
 
    if (!nel) {
       SUMA_SL_Err("Failed in SUMA_NewNel");
@@ -5079,3 +5249,5 @@ SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *fil
    
    SUMA_RETURN(YUP);
 }
+
+

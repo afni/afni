@@ -12,7 +12,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
 SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname);
 float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float *PercRangeVal);
 SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SUMA_Boolean SkipLast, char *Name);
-SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name);
+SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_DSET *dset);
 SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover);
 SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv, GLfloat *glcolar);
 SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overlays, const char * Name, int * OverInd);
@@ -20,7 +20,10 @@ SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overl
 char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays); 
 SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *ShowOvelays, int N_ShowOverlays, GLfloat *glcolar, int N_Node, SUMA_Boolean *isColored, SUMA_Boolean FILL);
 SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv);
-SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SUMA_OVERLAY_PLANE_DATA *sopd, int *PlaneInd, SUMA_DO *dov, int N_dov);
+SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, 
+                                          SUMA_OVERLAY_PLANE_DATA *sopd, 
+                                          int *PlaneInd, SUMA_DO *dov, 
+                                          int N_dov, DList *DsetList);
 SUMA_Boolean SUMA_CompactOverlaysOrder (SUMA_SurfaceObject *SO);
 void SUMA_FreeOverlayListDatum (void *OLDv);
 SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_INODE *Overlay_Inode);
@@ -59,8 +62,8 @@ SUMA_AFNI_COLORS *SUMA_DestroyAfniColors (SUMA_AFNI_COLORS *SAC);
 SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3]);
 int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC );
 void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM);
-
-
+int SUMA_ColorizePlane (SUMA_OVERLAYS *cp);
+SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void);
 
 
 
