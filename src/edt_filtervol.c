@@ -38,6 +38,7 @@
    BDW  06 March 1997
 
    Added fmask and fexpr: RWCox - 09 Aug 2000
+   Added Winsor filter:   RWCox - 11 Sep 2000
 -----------------------------------------------------------------------------*/
 
 void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
@@ -65,6 +66,9 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    float wtsum ;           /* 09 Aug 2000: stuff for FCFLAG_EXPR */
    float * wt=NULL ;
    PARSER_code * pcode ;
+
+   int nw , nnw , iw ;     /* 11 Sep 2000: Winsor stuff */
+   float * sw=NULL , vw ;
 
    nxy = nx*ny;  nxyz = nxy*nz;
 
@@ -150,6 +154,31 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
       free(pcode) ;
    }
 
+   /* 11 Sep 2000: setup for Winsorizing */
+
+   if( filter_opt > FCFLAG_WINSOR                 &&
+       filter_opt < FCFLAG_WINSOR+FCFLAG_ONE_STEP   ){
+
+      static int first=1 ;
+
+      nw  = filter_opt - FCFLAG_WINSOR ;
+      nnw = mnum - nw ;
+      filter_opt = FCFLAG_WINSOR ;
+
+      if( first || nnw < nw ){
+         fprintf(stderr,"++ Winsor filter: N=%d nw=%d\n",mnum+1,nw) ;
+         first = 0 ;
+         if( nnw < nw ){
+            fprintf(stderr,"** Illegal Winsor parameters - skipping!\n") ;
+            return ;
+         }
+      }
+
+      sw = (float *) malloc(sizeof(float)*(mnum+1)) ;
+
+      fmask = NULL ;  /* must disable mask for Winsor */
+   }
+
    /*--- Allocate space for floating point data ---*/
 
    ffim = (float *) malloc (sizeof(float) * nxyz);
@@ -200,7 +229,11 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
                     smax = mag; npts = 1 ;  break;
                  case FCFLAG_EXPR:
                     sum = wt[0]*mag ; wtsum = wt[0] ; npts = 1 ; break ;
-                 }
+
+                 case FCFLAG_WINSOR:
+                    for( iw=0 ; iw <= mnum ; iw++ ) sw[iw] = mag ;
+                    vw = mag ; break ;
+              }
             }
 
             /*--- Now iterate over the positions in the mask ---*/
@@ -294,6 +327,19 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
                     npts++ ;
                   }
 		break;
+              case FCFLAG_WINSOR:
+		for (jma = 0; jma < mnum; jma++)
+		  {
+		    ii = i + mask->i[jma];
+		    jj = j + mask->j[jma];
+		    kk = k + mask->k[jma];
+		    if (ii < 0   || jj < 0   || kk < 0 ||
+			ii >= nx || jj >= ny || kk >= nz)  continue;
+		    ijkma = THREE_TO_IJK (ii, jj, kk, nx, nxy);
+		    sw[jma+1] = ffim[ijkma];
+                  }
+                  break;
+
 	      default:  break;
 	      }
 
@@ -313,6 +359,14 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
 	      case FCFLAG_MAX:  ffim_out[ijkvox] = max ;  break;
 	      case FCFLAG_AMAX: ffim_out[ijkvox] = amax;  break;
 	      case FCFLAG_SMAX: ffim_out[ijkvox] = smax;  break;
+
+              case FCFLAG_WINSOR:
+                 qsort_float( mnum+1 , sw ) ;
+                 ffim_out[ijkvox] = (vw < sw[nw]) ? sw[nw]
+                                                  : (vw > sw[nnw]) ? sw[nnw]
+                                                                   : vw      ;
+                 break ;
+
 	      default:  break;
 	      }
          }  /* i */
@@ -327,6 +381,7 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    free (ffim);
    free (ffim_out);
    if( wt != NULL ) free(wt) ;
+   if( sw != NULL ) free(sw) ;
 
    return;
 }

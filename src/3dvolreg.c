@@ -22,6 +22,9 @@ static int         VL_clipit = 0 ;    /* 23 Oct 1998 */
 static MRI_IMAGE * VL_imbase = NULL ;
 static MRI_IMAGE * VL_imwt   = NULL ;
 
+static int         VL_twopass= 0 ;    /* 11 Sep 2000 */
+static float       VL_twoblur= 2.0 ;
+
 static THD_3dim_dataset * VL_dset = NULL ;
 
 static char VL_prefix[256] = "volreg" ;
@@ -122,6 +125,12 @@ int main( int argc , char *argv[] )
    float dxbar,dybar,dzbar , rollbar,yawbar,pitchbar ;
    int kim,ii , imcount , iha , ax1,ax2,ax3 , hax1,hax2,hax3 ;
 
+   float *dx_1,*dy_1,*dz_1, *roll_1,*yaw_1,*pitch_1 ;  /* 11 Sep 2000 */
+   int   nx,ny,nz ;
+
+   static char * modes[] = {
+        "-NN" , "-linear" , "-cubic" , "-Fourier" , "-quintic" , "-heptic" } ;
+
    /*-- handle command line options --*/
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){ VL_syntax() ; exit(0); }
@@ -146,14 +155,6 @@ int main( int argc , char *argv[] )
    ax2 = axcode( VL_dset , 'R' ) ; hax2 = ax2 * iha ;  /* pitch */
    ax3 = axcode( VL_dset , 'A' ) ; hax3 = ax3 * iha ;  /* yaw */
 
-   mri_3dalign_params( VL_maxite , VL_dxy , VL_dph , VL_del ,
-                       abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
-
-   mri_3dalign_method( VL_resam , (VL_verbose>1) , 0 , VL_clipit ) ;
-
-   if( VL_final < 0 ) VL_final = VL_resam ;  /* 20 Nov 1998 */
-   mri_3dalign_final_regmode( VL_final ) ;
-
    /*-- create the output dataset --*/
 
    new_dset = EDIT_empty_copy( VL_dset ) ;
@@ -168,7 +169,7 @@ int main( int argc , char *argv[] )
    tross_Copy_History( VL_dset , new_dset ) ;
    tross_Make_History( "3dvolreg" , argc,argv , new_dset ) ;
 
-   /*-- read the input dataset --*/
+   /*-- read the input dataset into memory --*/
 
    if( VL_verbose )
       fprintf(stderr,"++ Reading input dataset %s\n",DSET_BRIKNAME(VL_dset)) ;
@@ -189,6 +190,106 @@ int main( int argc , char *argv[] )
    VL_imbase->dz = fabs( DSET_DZ(VL_dset) ) ;
    imb = MRI_FLOAT_PTR( VL_imbase ) ;          /* need this to compute rms */
 
+   /*--- 11 Sep 2000: if in twopass mode, do the first pass ---*/
+
+   nx = DSET_NX(VL_dset) ; ny = DSET_NY(VL_dset) ; nz = DSET_NZ(VL_dset) ;
+
+   if( VL_twopass ){
+      MRI_IMAGE * tp_base ;
+
+      if( VL_verbose ){
+         fprintf(stderr,"++ Start of first pass alignment on all sub-bricks\n") ;
+         cputim = COX_cpu_time();
+      }
+
+      tp_base = mri_to_float(VL_imbase) ;  /* make a copy, blur it */
+
+      EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
+                           MRI_float , MRI_FLOAT_PTR(tp_base) ,
+                           VL_twoblur,VL_twoblur,VL_twoblur ) ;
+
+      mri_3dalign_params( VL_maxite , VL_dxy , VL_dph , VL_twoblur*VL_del ,
+                          abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
+
+                                              /* no reg | */
+                                              /*        v */
+
+      mri_3dalign_method( MRI_LINEAR , (VL_verbose>1) , 1 , 0 ) ;
+
+      albase = mri_3dalign_setup( tp_base , VL_imwt ) ;
+
+      if( albase == NULL ){
+         fprintf(stderr,
+                 "*** Can't initialize first pass alignment algorithm\n");
+         exit(1);
+      }
+
+      mri_free( tp_base ) ;  /* no longer needed (copied into albase) */
+
+      dx_1    = (float *) malloc( sizeof(float) * imcount ) ;
+      dy_1    = (float *) malloc( sizeof(float) * imcount ) ;
+      dz_1    = (float *) malloc( sizeof(float) * imcount ) ;
+      roll_1  = (float *) malloc( sizeof(float) * imcount ) ;
+      pitch_1 = (float *) malloc( sizeof(float) * imcount ) ;
+      yaw_1   = (float *) malloc( sizeof(float) * imcount ) ;
+
+      /* do alignment on blurred copy of each brick;
+         save parameters for later feed into pass #2 */
+
+      for( kim=0 ; kim < imcount ; kim++ ){
+
+         qim     = DSET_BRICK( VL_dset , kim ) ; /* the sub-brick in question */
+         fim     = mri_to_float( qim ) ;         /* make a float copy */
+         fim->dx = fabs( DSET_DX(VL_dset) ) ;    /* must set voxel dimensions */
+         fim->dy = fabs( DSET_DY(VL_dset) ) ;
+         fim->dz = fabs( DSET_DZ(VL_dset) ) ;
+
+         EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
+                              MRI_float , MRI_FLOAT_PTR(fim) ,
+                              VL_twoblur,VL_twoblur,VL_twoblur ) ;
+
+         if( kim != VL_nbase ){ /* 16 Nov 1998: don't register to base image */
+
+            (void) mri_3dalign_one( albase , fim ,
+                                    roll_1+kim , pitch_1+kim , yaw_1+kim ,
+                                    dx_1  +kim , dy_1   +kim , dz_1 +kim  ) ;
+
+            roll_1[kim]  *= (180.0/PI) ;  /* convert to degrees */
+            pitch_1[kim] *= (180.0/PI) ;
+            yaw_1[kim]   *= (180.0/PI) ;
+
+         } else {
+            roll_1[kim]  =           /* This   */
+             pitch_1[kim] =           /* looks   */
+              yaw_1[kim]   =           /* kind     */
+               dx_1[kim]    =           /* of        */
+                dy_1[kim]    =           /* cool,      */
+                 dz_1[kim]    = 0.0 ;     /* doesn't it? */
+         }
+
+         mri_free(fim) ;
+      }
+
+      mri_3dalign_cleanup( albase ) ;
+
+      if( VL_verbose ){
+         cputim = COX_cpu_time() - cputim ;
+         fprintf(stderr,"++ CPU time for first pass=%.3g s\n" , cputim) ;
+      }
+
+   }  /* end of twopass */
+
+   /*-----------------------------------*/
+   /*-- prepare for (final) alignment --*/
+
+   mri_3dalign_params( VL_maxite , VL_dxy , VL_dph , VL_del ,
+                       abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
+
+   mri_3dalign_method( VL_resam , (VL_verbose>1) , 0 , VL_clipit ) ;
+
+   if( VL_final < 0 ) VL_final = VL_resam ;  /* 20 Nov 1998 */
+   mri_3dalign_final_regmode( VL_final ) ;
+
    albase = mri_3dalign_setup( VL_imbase , VL_imwt ) ;
    if( albase == NULL ){
       fprintf(stderr,"*** Can't initialize base image for alignment\n"); exit(1);
@@ -197,7 +298,10 @@ int main( int argc , char *argv[] )
 
    /*-- loop over sub-bricks and register them --*/
 
-   if( VL_verbose ){ fprintf(stderr,"%d sub-bricks: ",imcount); cputim = COX_cpu_time(); }
+   if( VL_verbose ){
+      fprintf(stderr,"++ Starting final pass on %d sub-bricks: ",imcount);
+      cputim = COX_cpu_time();
+   }
 
    dxbar = dybar = dzbar = rollbar = yawbar = pitchbar = 0.0 ;
 
@@ -214,6 +318,10 @@ int main( int argc , char *argv[] )
       /*-- the actual registration [please bow your head] --*/
 
       if( kim != VL_nbase ){ /* 16 Nov 1998: don't register to base image */
+
+         if( VL_twopass )
+            mri_3dalign_initvals( roll_1[kim] , pitch_1[kim] , yaw_1[kim] ,
+                                  dx_1[kim]   , dy_1[kim]    , dz_1[kim]   ) ;
 
          tim = mri_3dalign_one( albase , fim ,
                                 roll+kim , pitch+kim , yaw+kim ,
@@ -271,12 +379,12 @@ int main( int argc , char *argv[] )
          pitchtop = pitchbot = pitch[kim] ;
          yawtop   = yawbot   = yaw[kim]   ;
       } else {
-         dxtop    = MAX( dxtop    , dx[kim]    ) ; dxbot    = MIN( dxbot    , dx[kim]    ) ;
-         dytop    = MAX( dytop    , dy[kim]    ) ; dybot    = MIN( dybot    , dy[kim]    ) ;
-         dztop    = MAX( dztop    , dz[kim]    ) ; dzbot    = MIN( dzbot    , dz[kim]    ) ;
-         rolltop  = MAX( rolltop  , roll[kim]  ) ; rollbot  = MIN( rollbot  , roll[kim]  ) ;
-         pitchtop = MAX( pitchtop , pitch[kim] ) ; pitchbot = MIN( pitchbot , pitch[kim] ) ;
-         yawtop   = MAX( yawtop   , yaw[kim]   ) ; yawbot   = MIN( yawbot   , yaw[kim]   ) ;
+         dxtop    = MAX(dxtop   ,dx[kim]   ); dxbot    = MIN(dxbot   ,dx[kim]   );
+         dytop    = MAX(dytop   ,dy[kim]   ); dybot    = MIN(dybot   ,dy[kim]   );
+         dztop    = MAX(dztop   ,dz[kim]   ); dzbot    = MIN(dzbot   ,dz[kim]   );
+         rolltop  = MAX(rolltop ,roll[kim] ); rollbot  = MIN(rollbot ,roll[kim] );
+         pitchtop = MAX(pitchtop,pitch[kim]); pitchbot = MIN(pitchbot,pitch[kim]);
+         yawtop   = MAX(yawtop  ,yaw[kim]  ); yawbot   = MIN(yawbot  ,yaw[kim]  );
       }
 
       dxbar   += dx[kim]   ; dybar    += dy[kim]    ; dzbar  += dz[kim]  ;
@@ -301,19 +409,19 @@ int main( int argc , char *argv[] )
       switch( qim->kind ){
 
          case MRI_float:
-            EDIT_substitute_brick( new_dset , kim , MRI_float , MRI_FLOAT_PTR(tim) ) ;
+            EDIT_substitute_brick( new_dset, kim, MRI_float, MRI_FLOAT_PTR(tim) );
             mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
          break ;
 
          case MRI_short:
             fim = mri_to_short(1.0,tim) ; mri_free( tim ) ;
-            EDIT_substitute_brick( new_dset , kim , MRI_short , MRI_SHORT_PTR(fim) ) ;
+            EDIT_substitute_brick( new_dset, kim, MRI_short, MRI_SHORT_PTR(fim) );
             mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
          break ;
 
          case MRI_byte:
             fim = mri_to_byte(tim) ; mri_free( tim ) ;
-            EDIT_substitute_brick( new_dset , kim , MRI_byte , MRI_BYTE_PTR(fim) ) ;
+            EDIT_substitute_brick( new_dset, kim, MRI_byte, MRI_BYTE_PTR(fim) ) ;
             mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
          break ;
 
@@ -335,6 +443,10 @@ int main( int argc , char *argv[] )
 
    mri_3dalign_cleanup( albase ) ;
    DSET_delete( VL_dset ) ;
+   mri_free( VL_imbase ) ;
+   if( VL_twopass ){
+     free(dx_1);free(dy_1);free(dz_1);free(roll_1);free(pitch_1);free(yaw_1);
+   }
 
    /*-- print some summaries (maybe) --*/
 
@@ -360,6 +472,19 @@ int main( int argc , char *argv[] )
               rolltop , pitchtop , yawtop , dxtop , dytop , dztop ) ;
 
       fprintf(stderr,"++ Writing dataset to disk in %s",DSET_HEADNAME(new_dset) ) ;
+   }
+
+   /*-- 12 Sep 2000: add some history? --*/
+
+   if( imcount == 1 ){
+      char * str = NULL ;
+      str = THD_zzprintf( str , "3dvolreg did: %s" , modes[VL_final] ) ;
+      if( VL_clipit ) str = THD_zzprintf( str ," -clipit" ) ;
+      str = THD_zzprintf(str,
+                      " -rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP\n" ,
+                      roll[0],pitch[0],yaw[0], dx[0],dy[0],dz[0]  ) ;
+      tross_Append_History( new_dset , str ) ;
+      free(str) ;
    }
 
    /*-- save new dataset to disk --*/
@@ -399,9 +524,6 @@ int main( int argc , char *argv[] )
    }
 
    if( VL_rotcom ){ /* 04 Sep 2000 */
-      static char * modes[] = {
-           "-NN" , "-linear" , "-cubic" , "-Fourier" , "-quintic" , "-heptic" } ;
-
       printf("\n3drotate fragment%s:\n\n", (imcount > 1)? "s" : "" ) ;
       for( kim=0 ; kim < imcount ; kim++ ){
          printf("3drotate %s" , modes[VL_final] ) ;
@@ -488,27 +610,44 @@ void VL_syntax(void)
     "              This method is useful for finding SMALL MOTIONS ONLY.\n"
     "              See program 3drotate for the volume shift/rotate algorithm.\n"
     "              The following options can be used to control the iterations:\n"
-    "                -maxite     m = allow up to 'm' iterations for convergence\n"
+    "                -maxite     m = Allow up to 'm' iterations for convergence\n"
     "                                  [default = %d].\n"
-    "                -x_thresh   x = iterations converge when maximum movement\n"
+    "                -x_thresh   x = Iterations converge when maximum movement\n"
     "                                  is less than 'x' voxels [default=%f],\n"
-    "                -rot_thresh r = and when maximum rotation is less than\n"
+    "                -rot_thresh r = And when maximum rotation is less than\n"
     "                                  'r' degrees [default=%f].\n"
-    "                -delta      d = distance, in voxel size, used to compute\n"
+    "                -delta      d = Distance, in voxel size, used to compute\n"
     "                                  image derivatives using finite differences\n"
     "                                  [default=%f].\n"
-    "                -final   mode = do the final interpolation using the method\n"
+    "                -final   mode = Do the final interpolation using the method\n"
     "                                  defined by 'mode', which is one of the\n"
     "                                  strings 'cubic', 'quintic', 'heptic', or\n"
     "                                  'Fourier'\n"
     "                                  [default=mode used to estimate parameters].\n"
-    "            -weight 'wset[n]' = set the weighting applyed to each voxel\n"
+    "            -weight 'wset[n]' = Set the weighting applyed to each voxel\n"
     "                                  proportional to the brick specified here\n"
     "                                  [default=smoothed base brick].\n"
+    "                     -twopass = Do two passes of the registration algorithm:\n"
+    "                                 (1) with smoothed base and data bricks, to\n"
+    "                                     get a crude alignment, then\n"
+    "                                 (2) with the input base and data bricks, to\n"
+    "                                     get a fine alignment.\n"
+    "                                This method is useful when aligning high-\n"
+    "                                resolution datasets that may need to be\n"
+    "                                moved more than a few voxels to be aligned.\n"
+    "                  -twoblur bb = 'bb' is the blurring factor for pass 1 of\n"
+    "                                the -twopass registration.  This should be\n"
+    "                                a number >= 2.0 (which is the default).\n"
+    "                                Larger values would be reasonable if pass 1\n"
+    "                                has to move the input dataset a long ways.\n"
+    "                                Use '-verbose -verbose' to check on the\n"
+    "                                iterative progress of the passes.\n"
     "\n"
-    " Warning:   This program can consume large very quantities of memory.\n"
+    " WARNINGS: This program can consume VERY large quantities of memory.\n"
     "            Use of '-verbose -verbose' will show the amount of workspace,\n"
     "            and the steps used in each iteration.\n"
+    "           Always check the results visually to make sure that the program\n"
+    "            wasn't trapped in a 'false optimum'.\n"
 
    , VL_maxite , VL_dxy , VL_dph , VL_del ) ;
    return ;
@@ -575,6 +714,21 @@ void VL_command_line(void)
 
       if( strcmp(Argv[Iarg],"-rotcom") == 0 ){  /* 04 Sep 2000 */
          VL_rotcom++ ;
+         Iarg++ ; continue ;
+      }
+
+      if( strcmp(Argv[Iarg],"-twopass") == 0 ){ /* 11 Sep 2000 */
+         VL_twopass++ ;
+         if( VL_maxite < 10 ) VL_maxite = 50 ;
+         Iarg++ ; continue ;
+      }
+
+      if( strcmp(Argv[Iarg],"-twoblur") == 0 ){ /* 11 Sep 2000 */
+         VL_twoblur = strtod( Argv[++Iarg] , NULL ) ;
+         if( VL_twoblur < 2.0 ){
+            fprintf(stderr,"** ERROR: value after -twoblur is < 2.0\n") ;
+            exit(1) ;
+         }
          Iarg++ ; continue ;
       }
 

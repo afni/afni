@@ -122,12 +122,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.26i"
+#define VERSION "2.27 "
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "01 Sep 2000      "
+#define RELEASE "11 Sep 2000      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -543,6 +543,8 @@ typedef struct {
       Widget         misc_2dchain_pb ;  /* 03 Jul 2000 */
 #endif
 
+      MCW_bbox     * ijk_lock_bbox ;  /* 11 Sep 2000 */
+
 } AFNI_datamode_widgets ;
 
 /*---*/
@@ -882,6 +884,8 @@ typedef struct {
 
    MCW_function_list registered_fim ;             /* 30 Jan 2000 */
 
+   int ijk_lock ;                                 /* 11 Sep 2000 */
+
 } AFNI_library_type ;
 
 #ifdef MAIN
@@ -934,6 +938,8 @@ extern void AFNI_lock_carryout  ( Three_D_View * ) ;
 
 extern void AFNI_time_lock_carryout( Three_D_View * ) ;  /* 03 Nov 1998 */
 extern void AFNI_time_lock_change_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void AFNI_ijk_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 
 extern XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br );
 

@@ -26,8 +26,8 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-#define PROGRAM_NAME "3dmerge"                       /* name of this program */
-#define LAST_MOD_DATE "09 August 2000"         /* date of last program mod */
+#define PROGRAM_NAME "3dmerge"                    /* name of this program */
+#define LAST_MOD_DATE "11 September 2000"         /* date of last program mod */
 
 #include "mrilib.h"
 #include "parser.h"    /* 09 Aug 2000 */
@@ -183,6 +183,30 @@ int MRG_read_opts( int argc , char * argv[] )
          continue ;
       }
 
+      /**** 11 Sep 2000: -1filter_winsor rmm nw ****/
+
+      if( strcmp(argv[nopt],"-1filter_winsor") == 0 ){
+         int nwin ;
+
+         nopt++ ;
+         if( nopt+1 >= argc ){
+            fprintf(stderr,"*** Need 2 arguments after -1filter_winsor\n") ;
+            exit(1) ;
+         }
+         MRG_edopt.filter_rmm  = strtod( argv[nopt++] , NULL ) ;
+         if( MRG_edopt.filter_rmm <= 0.0 ){
+            fprintf(stderr,"*** Illegal rmm value after -1filter_winsor\n");
+            exit(1) ;
+         }
+         nwin = (int) strtod( argv[nopt++] , NULL ) ;
+         if( nwin <= 0 || nwin >= FCFLAG_ONE_STEP ){
+            fprintf(stderr,"*** Illegal nw value after -1filter_winsor\n");
+            exit(1) ;
+         }
+         MRG_edopt.filter_opt = FCFLAG_WINSOR + nwin ;
+         MRG_have_edopt = 1 ; continue ;
+      }
+
       /**** 09 Aug 2000: -1filter_expr rmm expr ****/
 
       if( strncmp(argv[nopt],"-1filter_expr",13) == 0 ){
@@ -245,7 +269,6 @@ int MRG_read_opts( int argc , char * argv[] )
 
          MRG_have_edopt = 1 ; continue ;
       }
-
 
       /**** -quiet ****/
 
@@ -582,7 +605,7 @@ void MRG_Syntax(void)
     "  weighting function for 3D linear filtering:\n"
     "\n"
     "  -1filter_expr rmm expr\n"
-    "     Defines a filter about each voxel of radius 'rmm' millimeters.\n"
+    "     Defines a linear filter about each voxel of radius 'rmm' mm.\n"
     "     The filter weights are proportional to the expression evaluated\n"
     "     at each voxel offset in the rmm neighborhood.  You can use only\n"
     "     these symbols in the expression:\n"
@@ -603,6 +626,25 @@ void MRG_Syntax(void)
     "     get smallish.]  Another example:\n"
     "       -1filter_expr 20.0 'exp(-(x*x+16*y*y+z*z)/36.067)'\n"
     "     which is a non-spherical Gaussian filter.\n"
+    "\n"
+    "  The following option lets you apply a 'Winsor' filter to the data:\n"
+    "\n"
+    "  -1filter_winsor rmm nw\n"
+    "     The data values within the radius rmm of each voxel are sorted.\n"
+    "     Suppose there are 'N' voxels in this group.  We index the\n"
+    "     sorted voxels as s[0] <= s[1] <= ... <= s[N-1], and we call the\n"
+    "     value of the central voxel 'v' (which is also in array s[]).\n"
+    "                 If v < s[nw]    , then v is replaced by s[nw]\n"
+    "       otherwise If v > s[N-1-nw], then v is replace by s[N-1-nw]\n"
+    "       otherwise v is unchanged\n"
+    "     The effect is to increase 'too small' values up to some\n"
+    "     middling range, and to decrease 'too large' values.\n"
+    "     If N is odd, and nw=(N-1)/2, this would be a median filter.\n"
+    "     In practice, I recommend that nw be about N/4; for example,\n"
+    "       -dxyz=1 -1filter_winsor 2.5 19\n"
+    "     is a filter with N=81 that gives nice results.\n"
+    "   N.B.: This option is NOT affected by -1fmask\n"
+    "   N.B.: This option is slow!\n"
     "\n"
     "MERGING OPTIONS APPLIED TO FORM THE OUTPUT DATASET:\n"
     " [That is, different ways to combine results. The]\n"
@@ -836,6 +878,8 @@ int main( int argc , char * argv[] )
    dx = fabs(dset->daxes->xxdel) ;
    dy = fabs(dset->daxes->yydel) ;
    dz = fabs(dset->daxes->zzdel) ;
+
+   if( MRG_edopt.fake_dxyz ) dx = dy = dz = 1.0 ;  /* 11 Sep 2000 */
 
    nice(1) ;  /* slow us down, a little */
 

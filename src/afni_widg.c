@@ -4278,6 +4278,8 @@ void AFNI_lock_button( Three_D_View * im3d )
 
    static char * tlabel[] = { "Time Lock" } ;
 
+   static char * ijklabel[] = { "IJK lock" } ;
+
 ENTRY("AFNI_lock_button") ;
 
    wpar = im3d->vwid->dmode->mbar_rowcol ;
@@ -4376,6 +4378,16 @@ ENTRY("AFNI_lock_button") ;
 
    MCW_reghint_children( dmode->time_lock_bbox->wrowcol ,
                          "Lock time index as well?" ) ;
+
+   dmode->ijk_lock_bbox = new_MCW_bbox( menu ,
+                                        1 , ijklabel ,
+                                        MCW_BB_check , MCW_BB_noframe ,
+                                        AFNI_ijk_lock_change_CB , (XtPointer)im3d ) ;
+
+   MCW_set_bbox( dmode->ijk_lock_bbox , GLOBAL_library.ijk_lock ) ;
+
+   MCW_reghint_children( dmode->ijk_lock_bbox->wrowcol ,
+                         "Lock using voxel indices?" ) ;
 
    /*** pushbuttons ***/
 

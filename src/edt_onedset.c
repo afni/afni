@@ -50,6 +50,7 @@ void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
    int   edit_ivfim    = edopt->iv_fim ;         /* 30 Nov 1997 */
    int   edit_ivthr    = edopt->iv_thr ;         /* 30 Nov 1997 */
    int   verbose       = edopt->verbose ;        /* 01 Nov 1999 */
+   int   fake_dxyz     = edopt->fake_dxyz ;      /* 11 Sep 2000 */
 
    int   edit_clip_unscaled = edopt->clip_unscaled ;  /* 09 Aug 1996 */
 
@@ -201,7 +202,10 @@ ENTRY("EDIT_one_dataset") ;
    nx    = daxes->nxx ; dx = fabs(daxes->xxdel) ;
    ny    = daxes->nyy ; dy = fabs(daxes->yydel) ;
    nz    = daxes->nzz ; dz = fabs(daxes->zzdel) ;
-   nxy   = nx * ny ; nxyz = nxy * nz ; dxyz = dx*dy*dz ;
+
+   if( fake_dxyz ) dx = dy = dz = 1.0 ;  /* 11 Sep 2000 */
+
+   nxy = nx * ny ; nxyz = nxy * nz ; dxyz = dx*dy*dz ;
 
    /*----- copy threshold over intensity? -----*/
 

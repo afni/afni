@@ -197,6 +197,8 @@ typedef struct EDIT_options {
    byte * fmask ;
    char * fexpr ;                 /* 09 Aug 2000 --> filter expression */
 
+   int fake_dxyz ;                /* 11 Sep 2000 -> use dx=dy=dz=1.0? */
+
 } EDIT_options ;
 
 /*--- cluster editing options ---*/   /* 10 Sept 1996 */
@@ -219,6 +221,9 @@ typedef struct EDIT_options {
 
 #define FCFLAG_AVER   66        /*  7 Jan 1998 */
 #define FCFLAG_EXPR   77        /* 09 Aug 2000 */
+
+#define FCFLAG_ONE_STEP 100000
+#define FCFLAG_WINSOR   (2*FCFLAG_ONE_STEP)  /* 11 Sep 2000 */
 
 #define INIT_EDOPT(edopt)              \
       ( (edopt)->thtoin        = 0   , \
@@ -249,6 +254,7 @@ typedef struct EDIT_options {
         (edopt)->nfmask        = 0   , \
         (edopt)->fmask         = NULL, \
         (edopt)->fexpr         = NULL, \
+        (edopt)->fake_dxyz     = 0   , \
        0 )
 
 extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;

@@ -2250,3 +2250,10 @@
 04 Sep 2000
  * Added -rotcom output to 3dvolreg.c (and hidden -linear option).
  * Modified -verbose output of mri_3dalign.c.
+
+11 Sep 2000
+ * Added -dxyz=1 option to edt_*.c, to allow clustering and filtering
+     in 3dmerge.c to use fake values of dx=dy=dz=1.
+ * Added -1filter_winsor to 3dmerge.c and edt_filtervol.c.
+ * Added "IJK lock" to afni.[ch] and afni_widg.c (Lock menu).
+ * Added "-twopass" option to 3dvolreg.c.

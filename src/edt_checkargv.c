@@ -89,6 +89,13 @@ int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt 
       nopt++ ; CHECK_DONE ;
    }
 
+   /**** -dxyz=1 (11 Sep 2000) ****/
+
+   if( strcmp(argv[nopt],"-dxyz=1") == 0 ){
+      edopt->fake_dxyz = 1 ;
+      nopt++ ; CHECK_DONE ;
+   }
+
    /**** -1noneg ****/
 
    if( strncmp(argv[nopt],"-1noneg",6) == 0 ){

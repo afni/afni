@@ -57,8 +57,8 @@ static float init_dx  =0.0 , init_dy  =0.0 , init_dz  =0.0 ;
 void mri_3dalign_initvals( float th1,float th2,float th3 ,
                            float dx ,float dy ,float dz   )
 {
-   init_dth1 = th1 ; init_dth2 = th2 ; init_dth3 = th3 ;
-   init_dx   = dx  ; init_dy   = dy  ; init_dz   = dz  ;
+   init_dth1 = th1 ; init_dth2 = th2 ; init_dth3 = th3 ;  /* degrees */
+   init_dx   = dx  ; init_dy   = dy  ; init_dz   = dz  ;  /* mm      */
 }
 
 /*--------------------------------------------------------------------*/
@@ -341,8 +341,8 @@ MRI_IMAGE * mri_3dalign_one( MRI_3dalign_basis * basis , MRI_IMAGE * im ,
    if( NONZERO_INITVALS ){                                    /* 04 Sep 2000 */
       fit = (float *) malloc(sizeof(float)*7) ;
       fit[0] = 1.0 ;
-      fit[1] = init_dth1 ; fit[2] = init_dth2 ; fit[3] = init_dth3 ;
-      fit[4] = init_dx   ; fit[5] = init_dy   ; fit[6] = init_dz   ;
+      fit[1] = init_dth1; fit[2] = init_dth2; fit[3] = init_dth3; /* degrees */
+      fit[4] = init_dx  ; fit[5] = init_dy  ; fit[6] = init_dz  ; /* mm      */
 
       good = 1 ;
    } else {

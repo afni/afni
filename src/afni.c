@@ -967,6 +967,7 @@ int main( int argc , char * argv[] )
 
    GLOBAL_library.controller_lock = 0 ; ENABLE_LOCK ;
    GLOBAL_library.time_lock = 0 ;                      /* 03 Nov 1998 */
+   GLOBAL_library.ijk_lock  = 0 ;                      /* 11 Sep 2000 */
    SET_FIM_bkthr(10.0) ;                               /* 02 Jun 1999 */
 
    GLOBAL_library.hints_on = 0 ;                       /* 07 Aug 1999 */
@@ -3953,7 +3954,7 @@ void AFNI_lock_carryout( Three_D_View * im3d )
    int ii,jj,kk , cc , glock ;
    THD_fvec3 old_fv , fv ;
    THD_ivec3 iv ;
-   THD_dataxes * daxes ;
+   THD_dataxes * qaxes , * daxes ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
 
 ENTRY("AFNI_lock_carryout") ;
@@ -3980,6 +3981,9 @@ ENTRY("AFNI_lock_carryout") ;
 
    LOAD_FVEC3( old_fv , im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk ) ;
 
+   LOAD_ANAT_VIEW(im3d) ;  /* prepare coordinates */
+   daxes = CURRENT_DAXES(im3d->anat_now) ;
+
    /* loop through other controllers:
         for those that ARE open, ARE NOT the current one,
         and ARE locked, transform the above vector to the
@@ -3992,15 +3996,26 @@ ENTRY("AFNI_lock_carryout") ;
       if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
          LOAD_ANAT_VIEW(qq3d) ;  /* prepare coordinates */
+         qaxes = CURRENT_DAXES(qq3d->anat_now) ;
 
-         fv = AFNI_transform_vector( im3d->anat_now , old_fv , qq3d->anat_now ) ;
-         fv = THD_dicomm_to_3dmm( qq3d->anat_now , fv ) ;
-         iv = THD_3dmm_to_3dind ( qq3d->anat_now , fv ) ;
-         ii = iv.ijk[0] ; jj = iv.ijk[1] ; kk = iv.ijk[2] ;
+         if( !GLOBAL_library.ijk_lock ){  /* xyz coord lock */
 
-         daxes = CURRENT_DAXES(qq3d->anat_now) ;
-         if( ii >= 0 && ii < daxes->nxx &&
-             jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz   ){
+            fv = AFNI_transform_vector( im3d->anat_now, old_fv, qq3d->anat_now ) ;
+            fv = THD_dicomm_to_3dmm( qq3d->anat_now , fv ) ;
+            iv = THD_3dmm_to_3dind ( qq3d->anat_now , fv ) ;
+            ii = iv.ijk[0] ; jj = iv.ijk[1] ; kk = iv.ijk[2] ;
+
+         } else {   /* 11 Sep 2000: ijk index lock */
+
+            ii = im3d->vinfo->i1 * qaxes->nxx / daxes->nxx ;
+            jj = im3d->vinfo->j2 * qaxes->nyy / daxes->nyy ;
+            kk = im3d->vinfo->k3 * qaxes->nzz / daxes->nzz ;
+         }
+
+         /* if have good new ijk coords, jump to them */
+
+         if( ii >= 0 && ii < qaxes->nxx &&
+             jj >= 0 && jj < qaxes->nyy && kk >= 0 && kk < qaxes->nzz   ){
 
             SAVE_VPT(qq3d) ;
             AFNI_set_viewpoint( qq3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
@@ -4009,6 +4024,42 @@ ENTRY("AFNI_lock_carryout") ;
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+    11 Sep 2000: allow locking using ijk instead of xyz
+-------------------------------------------------------------------------*/
+
+void AFNI_ijk_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View * qq3d ;
+   int            bval , ii , bold ;
+
+ENTRY("AFNI_ijk_lock_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   /* get current global setting and compare to changed lock box */
+
+   bold = GLOBAL_library.ijk_lock ;
+   bval = MCW_val_bbox( im3d->vwid->dmode->ijk_lock_bbox ) ;
+   if( bval == bold ) EXRETURN ;                     /* same --> nothing to do */
+
+   /* new value --> save in global setting */
+
+   GLOBAL_library.ijk_lock = bval ;
+
+   /* set all other controller lock boxes to the same value */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      qq3d = GLOBAL_library.controllers[ii] ;
+      if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+
+      MCW_set_bbox( qq3d->vwid->dmode->ijk_lock_bbox , bval ) ;
+   }
+   RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }
 
