@@ -3317,7 +3317,8 @@ void NI_define_rowmap_AR( NI_element *nel, int nrow, int *typ, int *off )
 }
 
 /*-----------------------------------------------------------------------*/
-/* Define a rowmap from a NI_rowtype expression of a struct.
+/*! Define a rowmap in a NI_element from a NI_rowtype expression
+    of a C struct.
     - code = integer code for the NI_rowtype
     - RWCox - 10 Dec 2002
 -------------------------------------------------------------------------*/
@@ -3337,6 +3338,11 @@ void NI_define_rowmap_from_rowtype_code( NI_element *nel, int code )
 }
 
 /*-----------------------------------------------------------------------*/
+/*! Define a rowmap in a NI_element from a NI_rowtype expression
+    of a C struct.
+    - nam = string name for the NI_rowtype
+    - RWCox - 10 Dec 2002
+-------------------------------------------------------------------------*/
 
 void NI_define_rowmap_from_rowtype_name( NI_element *nel, char *nam )
 {
