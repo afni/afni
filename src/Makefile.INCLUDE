@@ -1226,8 +1226,8 @@ f2c.tgz:
 dlcompat:
 	( cd dlcompat ; \
 	  make libdl.a clean ; \
-          $(CP) libdl.a dlfcn.h .. ;
-          ranlib libdl.a ; )
+	  $(CP) libdl.a dlfcn.h .. ;
+	  ranlib libdl.a ; )
 
 #######
 # plotting library
