@@ -98,6 +98,7 @@ int main( int argc , char * argv[] )
             "                     'm' minor tic marks per major division.\n"
             "                     For example:\n"
             "                       -xaxis 0:100:5:20\n"
+            "                     Setting 'n' to 0 means no tic marks or labels.\n"
             "\n"
             " -yaxis b:t:n:m    = Similar to above, for the y-axis.  These\n"
             "                     options override the normal autoscaling\n"
@@ -130,6 +131,9 @@ int main( int argc , char * argv[] )
             "The colors for the line graphs cycle between black, red, green, and\n"
             "blue.  You can alter these colors by setting Unix environment\n"
             "variables of the form AFNI_1DPLOT_COLOR_xx -- cf. README.environment.\n"
+            "You can alter the thickness of the lines by setting the variable\n"
+            "AFNI_1DPLOT_THIK to a value between 0.00 and 0.05 -- the units are\n"
+            "fractions of the page size.\n"
 
             "\n"
             TS_HELP_STRING
@@ -163,7 +167,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[iarg],"-xaxis") == 0 ){   /* 22 Jul 2003 */
        sscanf(argv[++iarg],"%f:%f:%d:%d",&xbot,&xtop,&nnax,&mmax) ;
-       if( xbot >= xtop || nnax < 1 || mmax < 1 ){
+       if( xbot >= xtop || nnax < 0 || mmax < 1 ){
          fprintf(stderr,"** String after -xaxis is illegal!\n"); exit(1);
        }
        plot_ts_xfix( nnax,mmax , xbot,xtop ) ;
@@ -172,7 +176,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[iarg],"-yaxis") == 0 ){   /* 22 Jul 2003 */
        sscanf(argv[++iarg],"%f:%f:%d:%d",&ybot,&ytop,&nnay,&mmay) ;
-       if( ybot >= ytop || nnay < 1 || mmay < 1 ){
+       if( ybot >= ytop || nnay < 0 || mmay < 1 ){
          fprintf(stderr,"** String after -yaxis is illegal!\n"); exit(1);
        }
        plot_ts_yfix( nnay,mmay , ybot,ytop ) ;
