@@ -4347,3 +4347,5 @@
 
 24 Feb 2003
  * Modified afni.c to draw a * in the box of the closest surface node.
+ * Modified 3dhistog.c to print "#" at start of header lines, so that
+     result can be read by mri_read_1D(), etc.
