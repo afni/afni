@@ -247,11 +247,13 @@ libgts.a: ${SUMA_GTS_OBJS}
 	  automake -a ;	\
 	  autoconf ;	\
 	  ./configure	;	\
-     make clean all 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
-     $(RANLIB) src/.libs/$@ ;	\
+	  make ; \
+	  $(RANLIB) src/.libs/$@ ;	\
 	  $(CP) -p src/.libs/$@ .. ; \
-     cd ..	; \
-     ar q libSUMA.a ${SUMA_GTS_OBJS} ; )
+	  cd ..	; \
+	  echo "Adding SUMA's GTS functions to libSUMA.a"	\
+	  ar q libSUMA.a ${SUMA_GTS_OBJS} ; \
+	  $(RANLIB) ${SUMALIB} ; )
      
 libglut.a:
 	( cd GLUT/libglut ;	\
