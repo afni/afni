@@ -182,14 +182,15 @@ int main( int argc , char * argv[] )
                          ADN_prefix    , prefix ,
                          ADN_brick_fac , NULL ,
                          ADN_datum_all , MRI_float ,
+                         ADN_func_type , FUNC_FIM_TYPE ,
                        ADN_none ) ;
 
       if( THD_is_file(DSET_HEADNAME(oset)) ){
          fprintf(stderr,"** ERROR: -save dataset already exists!\n"); exit(1);
       }
 
-      if( ISFUNC(oset) )
-         EDIT_dset_items( oset , ADN_func_type,FUNC_FIM_TYPE , ADN_none ) ;
+      tross_Copy_History( oset , dset ) ;
+      tross_Make_History( "3dToutcount" , argc , argv , oset ) ;
 
       for( iv=0 ; iv < nvals ; iv++ ){
          EDIT_substitute_brick( oset , iv , MRI_float , NULL ) ;

@@ -3895,3 +3895,4 @@
  * Modified imseq.c to destroy dialog widget before imseq top widget.
  * Fixed array overflow by 1 bug in mri_percents.c.
  * Modified mri_read.c to check for .hdr files before DICOM.
+ * Modified 3dToutcount.c to save result as a FIM, and to save history.
