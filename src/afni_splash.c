@@ -135,7 +135,7 @@ ENTRY("AFNI_splashup") ;
       /* Facial overlay: */
       /*  if have face jpegs, use them; else, use builtin faces [28 Mar 2003] */
 
-      imov = NULL ;
+      imov = NULL ; ff = 0 ;
       if( num_face > 0 ){
         static int ddold=-1 ;
         dd = (lrand48() >> 8) % num_face ;
@@ -150,13 +150,13 @@ ENTRY("AFNI_splashup") ;
           imq = mri_resize( imov , nxnew,nynew ) ;
           mri_free(imov) ; imov = imq ;
         }
+        if( imov != NULL ){
+          ff = (strstr(fname_face[dd],"_rwcox") != NULL) ? 2 : 1 ;
+        }
       }
       if( imov == NULL ){  /* if didn't get face jpeg above */
         nov  = (nov+dnov+NOVER) % NOVER ;
         imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
-        ff   = 0 ;
-      } else {
-        ff   = 1 ;
       }
       nxov = imov->nx ; nyov = imov->ny ;
       dd = IXOVER + (MAX_XOVER-nxov)/2 ;
@@ -167,6 +167,7 @@ ENTRY("AFNI_splashup") ;
                                 NC_facetitle,RMAP_facetitle,
                                 RMAP_facetitle,RMAP_facetitle ,
                                 BAR_facetitle ) ;
+        if( ff == 2 ) mri_invert_inplace( imov ) ;
         dd = IXOVER + (MAX_XOVER-imov->nx)/2 ; ee += nyov+1 ;
         mri_overlay_2D( imspl, imov, dd,ee ) ; mri_free(imov) ;
       }
