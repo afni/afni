@@ -108,7 +108,27 @@ suma: SUMA.o
 
 MakeColorMap: SUMA_Color.c
 	$(RM) $@
-	${CC} -DSUMA_MakeColorMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o MakeColorMap SUMA_Color.c ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_MakeColorMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_ScaleToMap: SUMA_Color.c
+	$(RM) $@
+	${CC} -DSUMA_ScaleToMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_FreeSurfer: SUMA_FreeSurfer.c
+	$(RM) $@
+	${CC} -DSUMA_FreeSurfer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_Read_SpecFile: SUMA_Load_Surface_Object.c
+	$(RM) $@
+	${CC} -DSUMA_Read_SpecFile_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_Load_Surface_Object: SUMA_Load_Surface_Object.c
+	$(RM) $@
+	${CC} -DSUMA_Load_Surface_Object_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_SureFit: SUMA_SureFit.c
+	$(RM) $@
+	${CC} -DSUMA_SureFit_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 install:
 	if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
@@ -125,4 +145,6 @@ packbins:
 	
 all: libSUMA.a mainobj suma MakeColorMap packbins install 
 
+standalones: SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer SUMA_ScaleToMap MakeColorMap
+ 
 anew: clean libSUMA.a mainobj suma MakeColorMap packbins install 

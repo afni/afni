@@ -1,4 +1,3 @@
-/*#define STAND_ALONE*/
     
 /* Header FILES */
    
@@ -831,7 +830,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 	SUMA_FileName SpecName;
 	SUMA_Boolean OKread_SurfaceFormat, OKread_SurfaceType, OKread_SureFitTopo, OKread_SureFitCoord;
 	SUMA_Boolean OKread_MappingRef, OKread_SureFitVolParam, OKread_FreeSurferSurface, OKread_InventorSurface;
-	SUMA_Boolean OKread_Group, OKread_State, OKread_EmbedDim;
+	SUMA_Boolean OKread_Group, OKread_State, OKread_EmbedDim, OKread_SurfaceVolume;
 	char DupWarn[]={"Bad format in specfile (you may need a NewSurface line). Duplicate specification of"};
 	char NewSurfWarn[]={"Bad format in specfile. You must start with NewSurface line before any other field."};
 
@@ -880,7 +879,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 	OKread_Group = YUP; /* it is OK to read a group before a new surface is declared */
 	OKread_SurfaceFormat = OKread_SurfaceType = OKread_SureFitTopo = OKread_SureFitCoord = NOPE;
 	OKread_MappingRef = OKread_SureFitVolParam = OKread_FreeSurferSurface = OKread_InventorSurface = NOPE;
-	OKread_State = OKread_EmbedDim = NOPE;
+	OKread_State = OKread_EmbedDim = OKread_SurfaceVolume = NOPE;
 	
 	Spec->StateList[0] = '\0';
 	Spec->Group[0][0] = '\0';
@@ -909,10 +908,11 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					Spec->State[Spec->N_Surfs-1][0] = '\0';
 					Spec->IDcode[Spec->N_Surfs-1] = NULL; /* this field is set in LoadSpec function */
 					Spec->EmbedDim[Spec->N_Surfs-1] = 3;
+					Spec->VolParName[Spec->N_Surfs-1][0] = '\0';
 				} else { 
 					/* make sure important fields have been filled */
 					if (Spec->SurfaceType[Spec->N_Surfs-2][0] == '\0') {
-						fprintf(SUMA_STDERR,"Error %s: Failed to specif surface type for surface %d\n", FuncName, Spec->N_Surfs-2);
+						fprintf(SUMA_STDERR,"Error %s: Failed to specify surface type for surface %d\n", FuncName, Spec->N_Surfs-2);
 						SUMA_RETURN (NOPE);
 					}
 					/* initilize SOME of the fields to previous one */
@@ -929,7 +929,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 				} 
 				OKread_SurfaceFormat = OKread_SurfaceType = OKread_SureFitTopo = OKread_SureFitCoord = YUP;
 				OKread_MappingRef = OKread_SureFitVolParam = OKread_FreeSurferSurface = OKread_InventorSurface = YUP;
-				OKread_Group = OKread_State = OKread_EmbedDim = YUP;
+				OKread_Group = OKread_State = OKread_EmbedDim = OKread_SurfaceVolume = YUP;
 				skp = 1;
 			}
 			
@@ -1202,6 +1202,31 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 				skp = 1;
 			}
 
+			sprintf(stmp,"SurfaceVolume");
+			if (!skp && SUMA_iswordin (s, stmp) == 1) {
+				/*fprintf(SUMA_STDERR,"Found %s\n", stmp);*/
+				if (Spec->N_Surfs < 1) {
+					fprintf(SUMA_STDERR,"Error %s: %s\n", FuncName, NewSurfWarn);
+					SUMA_RETURN (NOPE);
+				}
+				if (!SUMA_ParseLHS_RHS (s, stmp, stmp2)) {
+					fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+					SUMA_RETURN (NOPE);
+				}
+				
+				fprintf(SUMA_STDOUT,"Warning %s: Found SurfaceVolume in Spec File, Name must include path to volume", FuncName);
+				
+				sprintf(Spec->VolParName[Spec->N_Surfs-1], "%s",  stmp2);
+				
+				if (!OKread_SurfaceVolume) {
+					fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
+					SUMA_RETURN (NOPE);
+				} else {
+					OKread_SurfaceVolume = NOPE;
+				}
+				skp = 1;
+			}
+
 			if (!skp) {
 				fprintf(SUMA_STDERR,"Error %s: Your spec file contains uncommented gibberish:\n%s\nPlease deal with it.\n", \
 				FuncName, s);
@@ -1240,7 +1265,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 {/* SUMA_LoadSpec */
 	static char FuncName[]={"SUMA_LoadSpec"};
 	int i;
-	char *tmpid;
+	char *tmpid, *tmpVolParName = NULL;
 	SUMA_SurfaceObject *SO=NULL;
 	SUMA_Axis *EyeAxis;
 	SUMA_SFname *SF_name;
@@ -1253,6 +1278,14 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 		/*locate and load all Mappable surfaces */
 		if (SUMA_iswordin(Spec->MappingRef[i],"SAME") == 1) { /* Mappable surfaces */
 			fprintf (SUMA_STDERR,"Surface #%d is mappable, loading ...\n",i);
+
+			if (Spec->VolParName[i][0] != '\0') {
+				fprintf (SUMA_STDOUT, "Warning %s: Using Volume Parent Specified in Spec File. This overrides -sv option.\n", FuncName);
+				tmpVolParName = Spec->VolParName[i];
+			}else {
+				tmpVolParName = VolParName;
+			}
+
 			brk = NOPE;
 			if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) {/* load surefit surface */
 				SF_name = malloc(sizeof(SUMA_SFname));
@@ -1267,7 +1300,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
 				/* Load The Surface */
 				if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1) {
-					SO = SUMA_Load_Surface_Object ((void *)SF_name, SUMA_SUREFIT, SUMA_ASCII, VolParName);
+					SO = SUMA_Load_Surface_Object ((void *)SF_name, SUMA_SUREFIT, SUMA_ASCII, tmpVolParName);
 				} else {
 					fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
 					SUMA_RETURN (NOPE);
@@ -1282,11 +1315,11 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 				SurfIn = YUP;			
 				brk = YUP;
 			}/* load surefit surface */ 
-
+			
 			if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "FreeSurfer") == 1) {/* load FreeSurfer surface */
 				
 				if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1)
-					SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_FREE_SURFER, SUMA_ASCII, VolParName);
+					SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_FREE_SURFER, SUMA_ASCII, tmpVolParName);
 				else {
 					fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
 					SUMA_RETURN(NOPE);
@@ -1300,7 +1333,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 			} /* load FreeSurfer surface */
 
 			if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) {/* load generic inventor format surface */
-				if (VolParName != NULL) {
+				if (tmpVolParName != NULL) {
 					fprintf(SUMA_STDERR,"Error %s: Sorry, but Parent volumes are not supported for generic inventor surfaces.\n", FuncName);
 					SUMA_RETURN (NOPE);
 				}
@@ -1480,6 +1513,14 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 	}/* first loop across mappable surfaces */
 
 	for (i=0; i<Spec->N_Surfs; ++i) { /* Now locate and load all NON Mappable surfaces */
+
+		if (Spec->VolParName[i][0] != '\0') {
+			fprintf (SUMA_STDOUT, "Warning %s: Using Volume Parent Specified in Spec File. This overrides -sv option.\n", FuncName);
+			tmpVolParName = Spec->VolParName[i];
+		}else {
+			tmpVolParName = VolParName;
+		}
+
 		if (SUMA_iswordin(Spec->MappingRef[i],"SAME") != 1) { /* Non Mappable surfaces */
 			fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
 			fprintf (SUMA_STDERR,"Surface #%d is NON mappable, loading ...\n",i);
@@ -1498,7 +1539,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
 				/* Load The Surface */
 				if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1) {
-					SO = SUMA_Load_Surface_Object ((void *)SF_name, SUMA_SUREFIT, SUMA_ASCII, VolParName);
+					SO = SUMA_Load_Surface_Object ((void *)SF_name, SUMA_SUREFIT, SUMA_ASCII, tmpVolParName);
 				} else {
 					fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
 					SUMA_RETURN (NOPE);
@@ -1517,7 +1558,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 			if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "FreeSurfer") == 1) {/* load FreeSurfer surface */
 				
 				if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1)
-					SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_FREE_SURFER, SUMA_ASCII, VolParName);
+					SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_FREE_SURFER, SUMA_ASCII, tmpVolParName);
 				else {
 					fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
 					SUMA_RETURN(NOPE);
@@ -1531,7 +1572,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 			} /* load FreeSurfer surface */
 
 			if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) {/* load generic inventor format surface */
-				if (VolParName != NULL) {
+				if (tmpVolParName != NULL) {
 					fprintf(SUMA_STDERR,"Error %s: Sorry, but Parent volumes are not supported for generic inventor surfaces.\n", FuncName);
 					SUMA_RETURN (NOPE);
 				}
@@ -2003,6 +2044,9 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
 }
 
 #ifdef SUMA_Read_SpecFile_STAND_ALONE
+
+SUMA_CommonFields *SUMAg_CF;
+
 void usage_SUMA_Read_SpecFile ()
    
   {/*Usage*/
@@ -2024,15 +2068,31 @@ int main (int argc,char *argv[])
           usage_SUMA_Read_SpecFile ();
           exit (1);
        }
+
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+	
+
 	if (!SUMA_Read_SpecFile (argv[1], &Spec)) {
 		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
+		if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 		return (1);
-	}	else 	return (0);
+	}	else 	{		
+		if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+		return (0);
+	}
 } /* Main */
 
 #endif
 
 #ifdef SUMA_Load_Surface_Object_STAND_ALONE
+
+SUMA_CommonFields *SUMAg_CF;
+
 void usage_SUMA_Load_Surface_Object_STAND_ALONE ()
    
   {/*Usage*/
@@ -2052,9 +2112,17 @@ int main (int argc,char *argv[])
    char FuncName[100]; 
    SUMA_SurfaceObject *SO;
 	
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+	
    /* initialize Main function name for verbose output */
    sprintf (FuncName,"SUMA_Load_Surface_Object-Main-");
    
+	
    
    if (argc < 2)
        {
@@ -2065,6 +2133,9 @@ int main (int argc,char *argv[])
 	SO = SUMA_Load_Surface_Object((void *)argv[1], SUMA_INVENTOR_GENERIC, SUMA_ASCII, NULL);
 	SUMA_Print_Surface_Object (SO, stdout);
 	SUMA_Free_Surface_Object (SO);
+
+	if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+
 	return (0);
 }/* Main */
 #endif

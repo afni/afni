@@ -1167,8 +1167,11 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
 		fprintf(SUMA_STDERR,"Error %s: d is 0. Not good, Not good at all.\n", FuncName);
 		SUMA_RETURN (NULL);
 	}
-	fprintf (SUMA_STDOUT,"%s: U %f, %f, %f, P1 %f %f %f, d %f\n", FuncName,\
+	
+	/*
+		fprintf (SUMA_STDOUT,"%s: U %f, %f, %f, P1 %f %f %f, d %f\n", FuncName,\
 			U[0], U[1], U[2], P1[0], P1[1], P1[2], d);
+	*/
 			
 	/* store initial values */
 	P1orig[0] = P1[0]; 	
@@ -1264,7 +1267,7 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
 
 	SUMA_DOTP_VEC(Uorig, P1, bf, 3, float, float)
 	if (bf < 0) {
-		fprintf(SUMA_STDOUT,"Flipping...\n");
+		/* fprintf(SUMA_STDOUT,"Flipping...\n");*/
 		for (i=0; i< 3; ++i) {
 			bf = P2[0][i];
 			P2[0][i] = P2[1][i]; P2[1][i] = bf;

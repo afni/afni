@@ -502,13 +502,16 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 	
 	SUMA_RETURN (YUP);
 }
-#ifdef STAND_ALONE
+#ifdef SUMA_SureFit_STAND_ALONE
+
+SUMA_CommonFields *SUMAg_CF;
+
 void usage ()
    
   {/*Usage*/
           printf ("\n\33[1mUsage: \33[0m SUMA_SureFit CoordRoot TopoRoot \n");
           printf ("\t ..... \n\n");
-          printf ("\t To Compile:\ngcc -DSTAND_ALONE -Wall -o $1 $1.c -I./ -I//usr/X11R6/include SUMA_lib.a\n");
+          printf ("\t To Compile:\ngcc -DSUMA_SureFit_STAND_ALONE -Wall -o $1 $1.c -I./ -I//usr/X11R6/include SUMA_lib.a\n");
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tFri Feb 8 16:29:06 EST 2002 \n");
           exit (0);
   }/*Usage*/
@@ -518,6 +521,13 @@ int main (int argc,char *argv[])
    static char FuncName[]={"SUMA_SureFit-Main"}; 
    char SF_name[200];
 	SUMA_SureFit_struct *SF;
+	
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
 	
 	/* Allocate for SF */
 	SF = (SUMA_SureFit_struct *) malloc(sizeof(SUMA_SureFit_struct));	
@@ -551,6 +561,8 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
 	
+	if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+
 	SUMA_RETURN (0);
 }/* Main */
 #endif

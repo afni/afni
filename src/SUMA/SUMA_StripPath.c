@@ -29,7 +29,7 @@ Support :
 \sa  SUMA_define.h 
    
 To Compile as stand alone:
-gcc -DSTAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/include -I./
+gcc -DSUMA_StripPath_STAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/include -I./
 ***/
 SUMA_FileName SUMA_StripPath (char *FileName)
 {/*SUMA_StripPath*/
@@ -79,13 +79,13 @@ SUMA_FileName SUMA_StripPath (char *FileName)
 	return (NewName);
 }/*SUMA_StripPath*/
    
-#ifdef STAND_ALONE
+#ifdef SUMA_StripPath_STAND_ALONE
 void usage ()
    
   {/*Usage*/
           printf ("\n\33[1mUsage: \33[0m SUMA_StripPath <Name> \n");
           printf ("\t  \n\n");
-          printf ("To Compile:\ngcc -DSTAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/include -I./ \n\n");
+          printf ("To Compile:\ngcc -DSUMA_StripPath_STAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/include -I./ \n\n");
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tThu Jan 24 10:55:18 EST 2002 \n");
           exit (0);
   }/*Usage*/

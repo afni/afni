@@ -134,7 +134,7 @@ int main (int argc,char *argv[])
 		{
 			kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -vp or -sa ");
+		  		fprintf (SUMA_STDERR, "need argument after -vp|-sa|-sv ");
 				exit (1);
 			}
 			VolParName = argv[kar];
