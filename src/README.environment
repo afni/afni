@@ -355,6 +355,14 @@ The third variable is
 This is used to set the initial precalculation mode for the renderer
 (this mode can be altered interactively, unlike the stepsizes).
 
+The fourth variable is
+
+  AFNI_RENDER_SHOWTHRU_FAC = some number between 0.0 and 1.0
+
+This is used to control the way in which the "ShowThru" Color Opacity
+option renders images.  See the rendering plugin Help window for more
+information.
+
 -------------------------
 Variable: AFNI_NOREALPATH
 -------------------------

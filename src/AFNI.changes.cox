@@ -2079,5 +2079,8 @@
 16 Mar 2000
  * Added -cmask option to 3dmaskdump.c (via new file edt_calcmask.c).
 
-17 Mar 2000
- * Added '3dcalc()' input to thd_mastery.c.
+04 Apr 2000
+ * Added thd_base64.c routines for dealing with BASE64 encodings.
+
+07 Apr 2000
+ * Included 3dWavelets code from Doug Ward.

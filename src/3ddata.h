@@ -2436,4 +2436,11 @@ extern char * tross_breakup_string( char *, int , int ) ;
 #include <stdarg.h>
 void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
 
+/*-----------------------------------------------------------------------*/
+
+extern void B64_to_binary( int , byte * , int * , byte ** ) ;
+extern void B64_to_base64( int , byte * , int * , byte ** ) ;
+extern void B64_set_linelen( int ) ;
+extern void B64_set_crlf( int ) ;
+
 #endif /* _MCW_3DDATASET_ */

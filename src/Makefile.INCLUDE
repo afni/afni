@@ -38,7 +38,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
-           3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot
+           3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
+           3dWavelets
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -409,6 +410,10 @@ AlphaSim:AlphaSim.o
 3dWilcoxon:3dWilcoxon.o
 	$(RM) $@
 	$(CC) -o 3dWilcoxon 3dWilcoxon.o $(LFLAGS) $(LLIBS)
+
+3dWavelets:3dWavelets.o
+	$(RM) $@
+	$(CC) -o 3dWavelets 3dWavelets.o $(LFLAGS) $(LLIBS)
 
 3dKruskalWallis:3dKruskalWallis.o
 	$(RM) $@
@@ -814,7 +819,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
            thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o  \
            thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o \
-           thd_shift2.o thd_1Dtodset.o thd_detrend.o
+           thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_base64.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -870,7 +875,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_coorder.$(SO)  plug_compress.$(SO) plug_volreg.$(SO)      \
         plug_drawdset.$(SO) plug_maskave.$(SO)  plug_deconvolve.$(SO)  \
         plug_render.$(SO)   plug_notes.$(SO)    plug_histog.$(SO)      \
-        plug_scatplot.$(SO) plug_nudge.$(SO)                           \
+        plug_scatplot.$(SO) plug_nudge.$(SO)    plug_wavelets.$(SO)    \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
