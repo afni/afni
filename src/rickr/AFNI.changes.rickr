@@ -425,3 +425,15 @@
              ( -> v4.0            -> v3.1              -> v 1.5 )
       - SUMA_isINHmappable() is depricated, check with AnatCorrect field
 
+29 January 2004
+  * modified plug_realtime.c :
+      - allow 100 chars in root_prefix via PREFIX (from 31)
+      - x-axis of 3-D motion graphs changed from time to reps
+      - plot_ts_... functions now use reg_rep for x-axis values
+      - reg_graph_xr is no longer scaled by TR
+      - added (float *)reg_rep, for graphing with x == rep num
+      - added RT_set_grapher_pinnums(), to call more than once
+      - added GRAPH_XRANGE and GRAPH_YRANGE command strings for control over
+        the scales of the motion graph
+      - if GRAPH_XRANGE and GRAPH_YRANGE commands are both passed, do not
+        display the final (scaled) motion graph
