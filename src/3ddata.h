@@ -26,6 +26,10 @@
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
 #endif
 
+#ifndef myXtNew
+#define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
+#endif
+
 struct THD_3dim_dataset ;  /* incomplete definition */
 
 /***************************** dimensions ***************************/
@@ -745,12 +749,21 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
 typedef struct {
       int type ;     /* type code */
 
-      int nvals ;               /* number of 3D bricks */
-      MRI_IMARR * brick  ;      /* array of pointers to each one */
-      float * brick_fac  ;      /* scale factors to convert sub-bricks to floats */
-      int *  brick_bytes ;      /* data size of each sub-brick */
-      int    total_bytes ;      /* totality of data storage needed */
-      int    malloc_type ;      /* memory allocation method */
+      int nvals ;             /* number of 3D bricks */
+
+      MRI_IMARR * brick  ;    /* array of pointers to each one */
+      float * brick_fac  ;    /* scale factors to convert sub-bricks to floats */
+      int *  brick_bytes ;    /* data size of each sub-brick */
+
+                                /* These fields added for "bucket" datasets: */
+      char **  brick_lab  ;     /* labels for all sub-bricks                 */
+      char **  brick_keywords ; /* keywords strings for all sub-bricks       */
+      int *    brick_statcode ; /* a FUNC_*_TYPE ==> kind of statistic here  */
+      float ** brick_stataux ;  /* stat_aux parameters for each sub-brick    */
+                                /* with brick_statcode[iv] > 0               */
+
+      int    total_bytes ;    /* totality of data storage needed */
+      int    malloc_type ;    /* memory allocation method */
 
       THD_diskptr * diskptr ; /* where the data is on disk (if anywhere!) */
 
@@ -763,8 +776,23 @@ typedef struct {
       XtPointer parent ;
 } THD_datablock ;
 
-extern void THD_delete_datablock( THD_datablock * ) ;
-extern void THD_init_datablock_brick( THD_datablock * , int , void * ) ;
+extern void THD_delete_datablock         ( THD_datablock * ) ;
+extern void THD_init_datablock_brick     ( THD_datablock * , int , void * ) ;
+extern void THD_init_datablock_labels    ( THD_datablock * ) ;
+extern void THD_init_datablock_keywords  ( THD_datablock * ) ;
+extern void THD_copy_datablock_auxdata   ( THD_datablock * , THD_datablock * ) ;
+extern void THD_init_datablock_stataux   ( THD_datablock * ) ;
+extern void THD_store_datablock_stataux  ( THD_datablock *,int,int,int,float * );
+extern void THD_store_datablock_label    ( THD_datablock * , int , char * ) ;
+extern void THD_store_datablock_keywords ( THD_datablock * , int , char * ) ;
+extern void THD_append_datablock_keywords( THD_datablock * , int , char * ) ;
+
+#define THD_null_datablock_auxdata(blk) ( (blk)->brick_lab      = NULL , \
+                                          (blk)->brick_keywords = NULL , \
+                                          (blk)->brick_statcode = NULL , \
+                                          (blk)->brick_stataux  = NULL  )
+
+extern int  THD_string_has( char * , char * ) ;
 
 #define ISVALID_DATABLOCK(bk) ( (bk) != NULL && (bk)->type == DATABLOCK_TYPE )
 
@@ -1222,76 +1250,97 @@ static char * VIEW_codestr[] = {
 #define FUNC_PT_DESCRIPTOR    "Poisson Distribution"
 #define FUNC_PT_MASK          (1 << FUNC_PT_TYPE)
 
+                                                   /* 30 Nov 1997 */
+#define FUNC_BUCK_TYPE          11
+#define FUNC_BUCK_STR           "Func-Bucket"
+#define FUNC_BUCK_PREFIX        "fbuc"
+#define FUNC_BUCK_TOP           1.0
+#define FUNC_BUCK_SCALE_SHORT   1
+#define FUNC_BUCK_SCALE_BYTE    1
+#define FUNC_BUCK_LABEL         "Buck"
+#define FUNC_BUCK_DESCRIPTOR    "Function Bucket"
+#define FUNC_BUCK_MASK          (1 << FUNC_BUCK_TYPE)
+
 #define FIRST_FUNC_TYPE  0
-#define LAST_FUNC_TYPE  10
+#define LAST_FUNC_TYPE  11
 
 #define FUNC_ALL_MASK (FUNC_FIM_MASK | FUNC_THR_MASK |                \
                        FUNC_COR_MASK | FUNC_TT_MASK  | FUNC_FT_MASK | \
                        FUNC_ZT_MASK  | FUNC_CT_MASK  | FUNC_BT_MASK | \
-                       FUNC_BN_MASK  | FUNC_GT_MASK  | FUNC_PT_MASK  )
+                       FUNC_BN_MASK  | FUNC_GT_MASK  | FUNC_PT_MASK | \
+                       FUNC_BUCK_MASK                                    )
 
 #define LONGEST_FUNC_TYPESTR strlen(FUNC_PT_STR)
 
 static char * FUNC_typestr[] = {
    FUNC_FIM_STR , FUNC_THR_STR , FUNC_COR_STR , FUNC_TT_STR , FUNC_FT_STR ,
    FUNC_ZT_STR  , FUNC_CT_STR  , FUNC_BT_STR  ,
-   FUNC_BN_STR  , FUNC_GT_STR  , FUNC_PT_STR
+   FUNC_BN_STR  , FUNC_GT_STR  , FUNC_PT_STR  , FUNC_BUCK_STR
 } ;
 
 static char * FUNC_prefixstr[] = {
    FUNC_FIM_PREFIX , FUNC_THR_PREFIX , FUNC_COR_PREFIX ,
    FUNC_TT_PREFIX  , FUNC_FT_PREFIX  ,
    FUNC_ZT_PREFIX  , FUNC_CT_PREFIX  , FUNC_BT_PREFIX  ,
-   FUNC_BN_PREFIX  , FUNC_GT_PREFIX  , FUNC_PT_PREFIX
+   FUNC_BN_PREFIX  , FUNC_GT_PREFIX  , FUNC_PT_PREFIX  , FUNC_BUCK_PREFIX
 } ;
 
 static float FUNC_topval[] = {
   0.0 , FUNC_THR_TOP , FUNC_COR_TOP , FUNC_TT_TOP , FUNC_FT_TOP ,
         FUNC_ZT_TOP  , FUNC_CT_TOP  , FUNC_BT_TOP ,
-        FUNC_BN_TOP  , FUNC_GT_TOP  , FUNC_PT_TOP
+        FUNC_BN_TOP  , FUNC_GT_TOP  , FUNC_PT_TOP , FUNC_BUCK_TOP
 } ;
 
 static int FUNC_scale_short[] = {
   0 , FUNC_THR_SCALE_SHORT , FUNC_COR_SCALE_SHORT ,
       FUNC_TT_SCALE_SHORT  , FUNC_FT_SCALE_SHORT  ,
       FUNC_ZT_SCALE_SHORT  , FUNC_CT_SCALE_SHORT  , FUNC_BT_SCALE_SHORT ,
-      FUNC_BN_SCALE_SHORT  , FUNC_GT_SCALE_SHORT  , FUNC_PT_SCALE_SHORT
+      FUNC_BN_SCALE_SHORT  , FUNC_GT_SCALE_SHORT  , FUNC_PT_SCALE_SHORT ,
+      FUNC_BUCK_SCALE_SHORT
 } ;
 
 static int FUNC_scale_byte[] = {
   0 , FUNC_THR_SCALE_BYTE , FUNC_COR_SCALE_BYTE ,
       FUNC_TT_SCALE_BYTE  , FUNC_FT_SCALE_BYTE  ,
       FUNC_ZT_SCALE_BYTE  , FUNC_CT_SCALE_BYTE  , FUNC_BT_SCALE_BYTE ,
-      FUNC_BN_SCALE_BYTE  , FUNC_GT_SCALE_BYTE  , FUNC_PT_SCALE_BYTE
+      FUNC_BN_SCALE_BYTE  , FUNC_GT_SCALE_BYTE  , FUNC_PT_SCALE_BYTE ,
+      FUNC_BUCK_SCALE_BYTE
 } ;
 
 static char * FUNC_label[] = {
   FUNC_FIM_LABEL , FUNC_THR_LABEL , FUNC_COR_LABEL , FUNC_TT_LABEL , FUNC_FT_LABEL ,
   FUNC_ZT_LABEL  , FUNC_CT_LABEL  , FUNC_BT_LABEL ,
-  FUNC_BN_LABEL  , FUNC_GT_LABEL  , FUNC_PT_LABEL
+  FUNC_BN_LABEL  , FUNC_GT_LABEL  , FUNC_PT_LABEL , FUNC_BUCK_LABEL
 } ;
 
 static char * FUNC_descriptor[] = {
   FUNC_FIM_DESCRIPTOR , FUNC_THR_DESCRIPTOR ,
   FUNC_COR_DESCRIPTOR , FUNC_TT_DESCRIPTOR  , FUNC_FT_DESCRIPTOR ,
   FUNC_ZT_DESCRIPTOR  , FUNC_CT_DESCRIPTOR  , FUNC_BT_DESCRIPTOR ,
-  FUNC_BN_DESCRIPTOR  , FUNC_GT_DESCRIPTOR  , FUNC_PT_DESCRIPTOR
+  FUNC_BN_DESCRIPTOR  , FUNC_GT_DESCRIPTOR  , FUNC_PT_DESCRIPTOR ,
+  FUNC_BUCK_DESCRIPTOR
 } ;
 
-static int FUNC_nvals[]    = {  1, 2,2,2,2,2,2,2,2,2,2 } ; /* # in each dataset */
-static int FUNC_ival_fim[] = {  0, 0,0,0,0,0,0,0,0,0,0 } ; /* index of fim      */
-static int FUNC_ival_thr[] = { -1, 1,1,1,1,1,1,1,1,1,1 } ; /* index of thresh   */
+static int FUNC_nvals[]    = {  1, 2,2,2,2,2,2,2,2,2,2, 1 } ; /* # in each dataset */
+static int FUNC_ival_fim[] = {  0, 0,0,0,0,0,0,0,0,0,0, 0 } ; /* index of fim      */
+static int FUNC_ival_thr[] = { -1, 1,1,1,1,1,1,1,1,1,1, 0 } ; /* index of thresh   */
 
-#define FUNC_HAVE_FIM(ftyp)  (FUNC_ival_fim[(ftyp)] >= 0)
-#define FUNC_HAVE_THR(ftyp)  (FUNC_ival_thr[(ftyp)] >= 0)
-#define FUNC_HAVE_PVAL(ftyp) (FUNC_HAVE_THR(ftyp) && (ftyp) != FUNC_PAIR_TYPE)
+#define FUNC_HAVE_FIM(ftyp)  ((ftyp) >= 0 && \
+                              (ftyp) <= LAST_FUNC_TYPE && FUNC_ival_fim[(ftyp)] >= 0)
+
+#define FUNC_HAVE_THR(ftyp)  ((ftyp) >= 0 && \
+                              (ftyp) <= LAST_FUNC_TYPE && FUNC_ival_thr[(ftyp)] >= 0)
+
+#define FUNC_HAVE_PVAL(ftyp) (FUNC_HAVE_THR(ftyp)  && (ftyp) != FUNC_PAIR_TYPE)
+#define FUNC_IS_STAT(ftyp)   (FUNC_HAVE_PVAL(ftyp) && (ftyp) != FUNC_BUCK_TYPE)
 
 /******* dimension of auxiliary array for functional statistics *******/
 
 #define MAX_STAT_AUX 64
 
 static int FUNC_need_stat_aux[] = { 0 , 0 , 3 , 1 , 2 ,
-                                    0 , 1 , 2 , 2 , 2 , 1 } ; /* # aux data needed */
+                                    0 , 1 , 2 , 2 , 2 , 1 ,
+                                    0 } ; /* # aux data needed */
 
 static char * FUNC_label_stat_aux[] = {
    "N/A" , "N/A" ,                                      /* fim, fith */
@@ -1303,7 +1352,8 @@ static char * FUNC_label_stat_aux[] = {
    "A (numerator) and B (denominator)" ,                /* fibt */
    "NUMBER-of-TRIALS and PROBABILITY-per-TRIAL" ,       /* fibn */
    "SHAPE and SCALE" ,                                  /* figt */
-   "MEAN"                                               /* fipt */
+   "MEAN" ,                                             /* fipt */
+   "N/A"                                                /* fbuc */
 } ;
 
 /***  stat_aux values:
@@ -1318,6 +1368,7 @@ static char * FUNC_label_stat_aux[] = {
         FUNC_BN_TYPE  = number of trials, and probability per trial
         FUNC_GT_TYPE  = shape and scale parameters
         FUNC_PT_TYPE  = mean of Poisson distribution
+      FUNC_BUCK_TYPE  = not used
 ***********************************************************************/
 
 /****   anatomy type codes, strings, and prefixes        ****/
@@ -1378,18 +1429,24 @@ static char * FUNC_label_stat_aux[] = {
 #define ANAT_OMRI_PREFIX "omri"
 #define ANAT_OMRI_MASK   (1 << ANAT_OMRI_TYPE)
 
-#define ANAT_MAPC_TYPE   11
+#define ANAT_BUCK_TYPE   11
+#define ANAT_BUCK_STR    "Anat Bucket"
+#define ANAT_BUCK_PREFIX "abuc"
+#define ANAT_BUCK_MASK   (1 << ANAT_BUCK_TYPE)
+
+#define ANAT_MAPC_TYPE   12
 #define ANAT_MAPC_STR    "Mapped Color"
 #define ANAT_MAPC_PREFIX "mapc"
 #define ANAT_MAPC_MASK   (1 << ANAT_MAPC_TYPE)
 
 #define FIRST_ANAT_TYPE  0
-#define LAST_ANAT_TYPE   10
+#define LAST_ANAT_TYPE   11
 
 #define ANAT_ALL_MASK ( ANAT_SPGR_MASK | ANAT_FSE_MASK | ANAT_EPI_MASK   | \
                         ANAT_MRAN_MASK | ANAT_CT_MASK  | ANAT_SPECT_MASK | \
                         ANAT_PET_MASK  | ANAT_MRA_MASK | ANAT_BMAP_MASK  | \
-                        ANAT_DIFF_MASK | ANAT_OMRI_MASK| ANAT_MAPC_MASK )
+                        ANAT_DIFF_MASK | ANAT_OMRI_MASK| ANAT_BUCK_MASK  | \
+                        ANAT_MAPC_MASK )
 
 #define NUM_DSET_TYPES (LAST_FUNC_TYPE + LAST_ANAT_TYPE + 2)
 
@@ -1399,18 +1456,18 @@ static char * ANAT_typestr[] = {
  ANAT_SPGR_STR , ANAT_FSE_STR   , ANAT_EPI_STR  , ANAT_MRAN_STR ,
  ANAT_CT_STR   , ANAT_SPECT_STR , ANAT_PET_STR  ,
  ANAT_MRA_STR  , ANAT_BMAP_STR  , ANAT_DIFF_STR , ANAT_OMRI_STR ,
- ANAT_MAPC_STR
+ ANAT_BUCK_STR , ANAT_MAPC_STR
 } ;
 
 static char * ANAT_prefixstr[] = {
  ANAT_SPGR_PREFIX , ANAT_FSE_PREFIX   , ANAT_EPI_PREFIX  , ANAT_MRAN_PREFIX ,
  ANAT_CT_PREFIX   , ANAT_SPECT_PREFIX , ANAT_PET_PREFIX  ,
  ANAT_MRA_PREFIX  , ANAT_BMAP_PREFIX  , ANAT_DIFF_PREFIX , ANAT_OMRI_PREFIX ,
- ANAT_MAPC_PREFIX
+ ANAT_BUCK_PREFIX , ANAT_MAPC_PREFIX
 } ;
 
-static int ANAT_nvals[]     = { 1,1,1,1,1,1,1,1,1,1,1,1 } ;
-static int ANAT_ival_zero[] = { 0,0,0,0,0,0,0,0,0,0,0,0 } ;
+static int ANAT_nvals[]     = { 1,1,1,1,1,1,1,1,1,1,1,1 , 1 } ;
+static int ANAT_ival_zero[] = { 0,0,0,0,0,0,0,0,0,0,0,0 , 0 } ;
 
 /* the data structure itself */
 
@@ -1464,6 +1521,8 @@ typedef struct THD_3dim_dataset {
       MCW_idcode anat_parent_idcode , warp_parent_idcode ;
 #endif
 
+      char * keywords ;   /* 30 Nov 1997 */
+
    /* pointers to other stuff */
 
       KILL_list kl ;
@@ -1478,26 +1537,33 @@ typedef struct THD_3dim_dataset {
    ( (ds) != NULL && (ds)->type >= FIRST_3DIM_TYPE && \
                      (ds)->type <= LAST_3DIM_TYPE )
 
+#define ISVALID_DSET ISVALID_3DIM_DATASET
+
 #define ISFUNCTYPE(nn) ( (nn) == HEAD_FUNC_TYPE || (nn) == GEN_FUNC_TYPE )
-#define ISFUNC(dset) ISFUNCTYPE((dset)->type)
+#define ISFUNC(dset) ( ISVALID_DSET(dset) && ISFUNCTYPE((dset)->type) )
 
 #define ISANATTYPE(nn) ( (nn) == HEAD_ANAT_TYPE || (nn) == GEN_ANAT_TYPE )
-#define ISANAT(dset) ISANATTYPE((dset)->type)
+#define ISANAT(dset) ( ISVALID_DSET(dset) && ISANATTYPE((dset)->type) )
 
 #define ISHEADTYPE(nn) ( (nn) = HEAD_ANAT_TYPE || (nn) == HEAD_FUNC_TYPE )
-#define ISHEAD(dset) ISHEADTYPE((dset)->type)
+#define ISHEAD(dset) ( ISVALID_DSET(dset) && ISHEADTYPE((dset)->type) )
 
-#define ISMERGER(ds) ( (ds)->func_type == MERGER_TYPE )
+#define ISANATBUCKET(dset) ( ISANAT(dset) && (dset)->func_type == ANAT_BUCK_TYPE )
+#define ISFUNCBUCKET(dset) ( ISFUNC(dset) && (dset)->func_type == FUNC_BUCK_TYPE )
 
-#define DSET_ONDISK(ds) \
- ( (ds)->dblk!=NULL && (ds)->dblk->diskptr->storage_mode!=STORAGE_UNDEFINED )
+#define ISBUCKET(dset) ( ISANATBUCKET(dset) || ISFUNCBUCKET(dset) )
+
+#define ISMERGER(ds) ( ISVALID_DSET(ds) && (ds)->func_type == MERGER_TYPE )
+
+#define DSET_ONDISK(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
+                          (ds)->dblk->diskptr->storage_mode!=STORAGE_UNDEFINED )
 
 #define PURGE_DSET(ds)                                  \
  do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )  \
         (void) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY ) ; } while(0)
 
-#define DSET_INMEMORY(ds) \
- ( (ds)->dblk!=NULL && (ds)->dblk->malloc_type!=DATABLOCK_MEM_UNDEFINED )
+#define DSET_INMEMORY(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
+                            (ds)->dblk->malloc_type!=DATABLOCK_MEM_UNDEFINED )
 
 #define DBLK_BRICK(db,iv) ((db)->brick->imarr[(iv)])
 #define DSET_BRICK(ds,iv) DBLK_BRICK((ds)->dblk,(iv))
@@ -1532,6 +1598,17 @@ typedef struct THD_3dim_dataset {
 #define DSET_FILECODE(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                          ? ((ds)->dblk->diskptr->filecode) : "\0" )
 
+#define DSET_HEADNAME(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
+                         ? ((ds)->dblk->diskptr->header_name) : "\0" )
+
+#define DSET_BRIKNAME(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
+                         ? ((ds)->dblk->diskptr->brick_name) : "\0" )
+#define DSET_BRICKNAME DSET_BRIKNAME
+
+#define DSET_DIRNAME(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
+                         ? ((ds)->dblk->diskptr->directory_name) : "\0" )
+#define DSET_SESSNAME DSET_DIRNAME
+
 #define DSET_IDCODE(ds) (&((ds)->idcode))
 
 /** macros for time-dependent datasets **/
@@ -1549,6 +1626,50 @@ typedef struct THD_3dim_dataset {
 #define DSET_TIMEDURATION(ds)    ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdur )
 #define DSET_TIMEUNITS(ds)       ( ((ds)->taxis == NULL) ? ILLEGAL_TYPE \
                                                          : (ds)->taxis->units_type )
+
+/** 30 Nov 1997 **/
+
+static char tmp_dblab[8] ;
+#define DBLK_BRICK_LAB(db,iv) ( ((db)->brick_lab != NULL) ? ((db)->brick_lab[iv]) : "?" )
+#define DSET_BRICK_LAB(ds,iv) DBLK_BRICK_LAB((ds)->dblk,(iv))
+#define DSET_BRICK_LABEL      DSET_BRICK_LAB
+
+#define DBLK_BRICK_STATCODE(db,iv)  \
+ ( ((db)->brick_statcode != NULL) ? (db)->brick_statcode[iv] : ILLEGAL_TYPE )
+
+#define DSET_BRICK_STATCODE(ds,iv)                                         \
+   ( ISBUCKET((ds)) ? DBLK_BRICK_STATCODE((ds)->dblk,(iv))                 \
+                    : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type]) \
+                      ? (ds)->func_type : -1 )
+
+#define DBLK_BRICK_STATAUX(db,iv)  \
+ ( ((db)->brick_stataux != NULL) ? (db)->brick_stataux[iv] : NULL )
+
+#define DSET_BRICK_STATAUX(ds,iv)                                          \
+   ( ISBUCKET((ds)) ? DBLK_BRICK_STATAUX((ds)->dblk,(iv))                  \
+                    : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type]) \
+                      ? (ds)->stat_aux : NULL )
+
+#define DBLK_BRICK_STATPAR(db,iv,jj) \
+ ( ((db)->brick_stataux != NULL) ? (db)->brick_stataux[iv][jj] : 0.0 )
+
+#define DSET_BRICK_STATPAR(ds,iv,jj)                                       \
+   ( ISBUCKET((ds)) ? DBLK_BRICK_STATPAR((ds)->dblk,(iv),(jj))             \
+                    : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type]) \
+                      ? (ds)->stat_aux[jj] : 0.0 )
+
+#define DBLK_BRICK_KEYWORDS(db,iv) \
+  ( ((db)->brick_keywords != NULL) ? ((db)->brick_keywords[iv]) : NULL )
+
+#define DSET_BRICK_KEYWORDS(ds,iv) DBLK_BRICK_KEYWORDS((ds)->dblk,(iv))
+
+#define DSET_KEYWORDS(ds) ((ds)->keywords)
+
+#define DSET_BRICK_KEYWORDS_HAS(ds,iv,ss) \
+   THD_string_has( DSET_BRICK_KEYWORDS((ds),(iv)) , (ss) )
+
+#define DSET_KEYWORDS_HAS(ds,ss) \
+   THD_string_has( DSET_KEYWORDS((ds)) , (ss) )
 
 /** macros to load the self_name and labels of a dataset
     with values computed from the filenames --
@@ -1600,6 +1721,8 @@ typedef struct THD_3dim_dataset {
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
+#define DSET_LOADED(ds) ( THD_count_databricks((ds)->dblk) == DSET_NVALS(ds) )
+
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
 typedef struct THD_3dim_dataset_array {
@@ -1630,6 +1753,8 @@ typedef struct THD_3dim_dataset_array {
    if( (name) != NULL ){      \
      myXtFree( (name)->ar ) ; \
      myXtFree( (name) ) ; }
+
+#define DSET_IN_3DARR(name,nn) ((name)->ar[(nn)])
 
 #define DSET_ORDERED(d1,d2)                  \
   ( ( (d1)->view_type < (d2)->view_type ) || \
@@ -1820,6 +1945,14 @@ typedef struct {
 #define ATRNAME_TAXIS_OFFSETS  "TAXIS_OFFSETS"
 #define ATRSIZE_TAXIS_OFFSETS  0
 
+/** 30 Nov 1997 **/
+
+#define ATRNAME_BRICK_LABS     "BRICK_LABS"
+#define ATRNAME_BRICK_STATAUX  "BRICK_STATAUX"
+#define ATRNAME_BRICK_KEYWORDS "BRICK_KEYWORDS"
+
+#define ATRNAME_KEYWORDS       "DATASET_KEYWORDS"
+
 /************************************************************************/
 /******************* rest of prototypes *********************************/
 
@@ -1850,6 +1983,10 @@ extern ATR_int    * THD_find_int_atr   ( THD_datablock * , char * ) ;
 extern ATR_string * THD_find_string_atr( THD_datablock * , char * ) ;
 
 extern void THD_set_atr( THD_datablock * , char * , int,int, void * ) ;
+
+extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
+extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
+extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
 
 extern void THD_set_float_atr( THD_datablock * , char * , int , float * ) ;
 extern void THD_set_int_atr  ( THD_datablock * , char * , int , int   * ) ;
@@ -1921,7 +2058,7 @@ typedef struct FD_brick {
    float del1,del2,del3 ;       /* voxel dimensions */
 
    THD_3dim_dataset * dset ;    /* pointer to parent dataset */
-   int resam_code ;
+   int resam_code , thr_resam_code ;
 
    char namecode[32] ;  /* June 1997 */
 
@@ -1947,7 +2084,11 @@ extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 
 /*-----------------------------------------------------------*/
 
+#if 0
 extern float THD_thresh_to_pval( float thr , THD_3dim_dataset * dset ) ;
+#endif
+
+extern float THD_stat_to_pval( float thr , int statcode , float * stataux ) ;
 
 extern int THD_filename_ok( char * ) ; /* 24 Apr 1997 */
 

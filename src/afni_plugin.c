@@ -869,7 +869,7 @@ ENTRY("PLUG_setup_widgets") ;
 
    /**** create widgets structure ****/
 
-   plint->wid = wid = XtNew(PLUGIN_widgets) ;
+   plint->wid = wid = myXtNew(PLUGIN_widgets) ;
 
    /**** create Shell that can be opened up later ****/
 
@@ -1044,7 +1044,7 @@ ENTRY("PLUG_setup_widgets") ;
       opt = plint->option[iopt] ;
       if( opt == NULL ) continue ; /* bad? */
 
-      ow = opwid[iopt] = XtNew(PLUGIN_option_widgets) ;
+      ow = opwid[iopt] = myXtNew(PLUGIN_option_widgets) ;
 
       for( ib=0 ; ib < PLUGIN_MAX_SUBVALUES ; ib++ ){  /* initialize */
          ow->chooser[ib]      = NULL ;                 /* all subvalue */
@@ -1240,7 +1240,7 @@ ENTRY("PLUG_setup_widgets") ;
 
                } else {  /* arbitrary string input allowed */
 
-                  PLUGIN_strval * av = XtNew(PLUGIN_strval) ;
+                  PLUGIN_strval * av = myXtNew(PLUGIN_strval) ;
 
                   av->rowcol =
                      XtVaCreateWidget(
@@ -1296,7 +1296,7 @@ ENTRY("PLUG_setup_widgets") ;
 
             case PLUGIN_DATASET_LIST_TYPE:
             case PLUGIN_DATASET_TYPE:{
-               PLUGIN_dsetval * av = XtNew(PLUGIN_dsetval) ;
+               PLUGIN_dsetval * av = myXtNew(PLUGIN_dsetval) ;
 
                av->sv = sv ;  /* what this is linked to */
 
@@ -1367,7 +1367,7 @@ ENTRY("PLUG_setup_widgets") ;
             /** single timeseries type (similiar to dataset above) **/
 
             case PLUGIN_TIMESERIES_TYPE:{
-               PLUGIN_tsval * av = XtNew(PLUGIN_tsval) ;
+               PLUGIN_tsval * av = myXtNew(PLUGIN_tsval) ;
 
                av->sv        = sv ;                        /* a friend in need  */
                av->tsimar    = GLOBAL_library.timeseries ; /* to choose amongst */
@@ -1743,7 +1743,7 @@ ENTRY("PLUG_fillin_values") ;
               PLUGIN_dsetval * av = (PLUGIN_dsetval *) ow->chooser[ib] ;
               MCW_idcode * idc ;
 
-              idc = XtNew( MCW_idcode ) ;
+              idc = myXtNew( MCW_idcode ) ;
               if( av->dset_choice < 0 )
                  ZERO_IDCODE(*idc) ;
               else
@@ -1760,7 +1760,7 @@ ENTRY("PLUG_fillin_values") ;
               MCW_idclist ** llist ;
               int id ;
 
-              llist = XtNew(MCW_idclist *) ; *llist = av ;
+              llist = myXtNew(MCW_idclist *) ; *llist = av ;
 
               av->current = 0 ;
               if( av->nchosen <= 0 ){
@@ -1782,7 +1782,7 @@ ENTRY("PLUG_fillin_values") ;
               PLUGIN_tsval * av = (PLUGIN_tsval *) ow->chooser[ib] ;
               MRI_IMAGE ** imp ;
 
-              imp  = XtNew(MRI_IMAGE *) ;
+              imp  = myXtNew(MRI_IMAGE *) ;
               *imp = av->tsim ;
 
               opt->callvalue[ib] = (void *) imp ;
@@ -2152,19 +2152,36 @@ void PLUG_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cbs )
       dset = PLUTO_find_dset( &(av->dset_link[id].idcode) ) ;
       if( ! ISVALID_3DIM_DATASET(dset) ) continue ;
       if( ISANAT(dset) ){
-         if( DSET_NUM_TIMES(dset) == 1 )
-            sprintf(qnam,"%-*s [%s]" , ltop,av->dset_link[id].title ,
-                                       ANAT_prefixstr[dset->func_type] ) ;
+         if( ISANATBUCKET(dset) )         /* 30 Nov 1997 */
+            sprintf(qnam,"%-*s [%s:%d]" ,
+                    ltop,av->dset_link[id].title ,
+                    ANAT_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
+
+         else if( DSET_NUM_TIMES(dset) == 1 )
+            sprintf(qnam,"%-*s [%s]" ,
+                    ltop,av->dset_link[id].title ,
+                    ANAT_prefixstr[dset->func_type] ) ;
+
          else
-            sprintf(qnam,"%-*s [%s:3D+t]" , ltop,av->dset_link[id].title ,
-                                            ANAT_prefixstr[dset->func_type] ) ;
+            sprintf(qnam,"%-*s [%s:3D+t]" ,
+                    ltop,av->dset_link[id].title ,
+                    ANAT_prefixstr[dset->func_type] ) ;
+
       } else {
-         if( DSET_NUM_TIMES(dset) == 1 )
-            sprintf(qnam,"%-*s [%s]" , ltop,av->dset_link[id].title ,
-                                       FUNC_prefixstr[dset->func_type] ) ;
+         if( ISFUNCBUCKET(dset) )         /* 30 Nov 1997 */
+            sprintf(qnam,"%-*s [%s:%d]" ,
+                    ltop,av->dset_link[id].title ,
+                    FUNC_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
+
+         else if( DSET_NUM_TIMES(dset) == 1 )
+            sprintf(qnam,"%-*s [%s]" ,
+                    ltop,av->dset_link[id].title ,
+                    FUNC_prefixstr[dset->func_type] ) ;
+
          else
-            sprintf(qnam,"%-*s [%s:3D+t]" , ltop,av->dset_link[id].title ,
-                                            FUNC_prefixstr[dset->func_type] ) ;
+            sprintf(qnam,"%-*s [%s:3D+t]" ,
+                    ltop,av->dset_link[id].title ,
+                    FUNC_prefixstr[dset->func_type] ) ;
       }
       strcpy( av->dset_link[id].title , qnam ) ;
    }
@@ -2917,7 +2934,7 @@ void * PLUTO_popup_image( void * handle , MRI_IMAGE * im )
    /*-- input = no popper handle ==> create one --*/
 
    if( imp == NULL ){
-      imp      = XtNew(PLUGIN_impopper) ;
+      imp      = myXtNew(PLUGIN_impopper) ;
       imp->seq = NULL ; imp->im  = NULL ;
    }
 
@@ -2961,7 +2978,7 @@ XtPointer PLUGIN_imseq_getim( int n , int type , XtPointer handle )
    /*--- control info ---*/
 
    if( type == isqCR_getstatus ){
-      MCW_imseq_status * stat = XtNew( MCW_imseq_status ) ;
+      MCW_imseq_status * stat = myXtNew( MCW_imseq_status ) ;
       stat->num_total  = 1 ;
       stat->num_series = 1 ;
       stat->send_CB    = PLUGIN_seq_send_CB ;

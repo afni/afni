@@ -976,7 +976,7 @@ ENTRY("AFNI_brick_to_mri") ;
    /*-------- May 1996: graph callbacks first --------*/
 
    if( type == graCR_getstatus ){
-      MCW_grapher_status * grstat = XtNew( MCW_grapher_status ) ;
+      MCW_grapher_status * grstat = myXtNew( MCW_grapher_status ) ;
 
       grstat->num_total  = grstat->num_series = br->dset->dblk->nvals ;
       grstat->nx         = br->n1 ;
@@ -1021,7 +1021,7 @@ STATUS("get overlay") ;
 
 STATUS("get status") ;
 
-      stat = XtNew( MCW_imseq_status ) ;
+      stat = myXtNew( MCW_imseq_status ) ;
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
@@ -1049,17 +1049,25 @@ STATUS("get status") ;
 
       } else if( ISANAT(br->dset) ){          /* an anatomy brick */
 
-         ival = ANAT_ival_zero[br->dset->func_type] ;  /* get default data */
+         if( ISANATBUCKET(br->dset) )                     /* 30 Nov 1997 */
+            ival = im3d->vinfo->anat_index ;
+         else
+            ival = ANAT_ival_zero[br->dset->func_type] ;  /* get default data */
 
       } else if( ISFUNC(br->dset) ){   /* a functional brick */
 
-        if( im3d->vinfo->showfunc_type == SHOWFUNC_THR  &&  /* showing thr */
-            ISFUNC_UNDERLAY(im3d->vinfo->underlay_type) &&  /* as underlay? */
-            FUNC_HAVE_THR(br->dset->func_type) ){
+        if( ISFUNCBUCKET(br->dset) ){                     /* 30 Nov 1997 */
+           ival = im3d->vinfo->fim_index ;
+        }
+        else {
+           if( im3d->vinfo->showfunc_type == SHOWFUNC_THR  &&  /* showing thr */
+               ISFUNC_UNDERLAY(im3d->vinfo->underlay_type) &&  /* as underlay? */
+               FUNC_HAVE_THR(br->dset->func_type) ){
 
-           ival = FUNC_ival_thr[br->dset->func_type] ; /* get thresh data */
-        } else {
-           ival = FUNC_ival_fim[br->dset->func_type] ; /* get fim data */
+              ival = FUNC_ival_thr[br->dset->func_type] ; /* get thresh data */
+           } else {
+              ival = FUNC_ival_fim[br->dset->func_type] ; /* get fim data */
+           }
         }
      }
 
@@ -1085,10 +1093,15 @@ STATUS("get status") ;
 
          MRI_IMAGE * im_thr , * qim ;
          double thresh ;
-         int ival = FUNC_ival_thr[br->dset->func_type] ;
+         int jval ;
 
-         if( im3d->vinfo->showfunc_type != SHOWFUNC_THR ){
-            im_thr = FD_warp_to_mri( n , ival ,  br ) ;
+         if( ISFUNCBUCKET(br->dset) )          /* 30 Nov 1997 */
+            jval = im3d->vinfo->thr_index ;
+         else
+            jval = FUNC_ival_thr[br->dset->func_type] ;
+
+         if( jval != ival ){
+            im_thr = FD_warp_to_mri( n , jval ,  br ) ;
             if( im_thr == NULL ) im_thr = im ;
          } else {
             im_thr = im ;  /* if already have threshold data */
@@ -1100,11 +1113,7 @@ STATUS("get status") ;
             im_thr = qim ;
          }
 
-#if 0
-         thresh = im3d->vinfo->func_threshold * FUNC_topval[br->dset->func_type];
-#else
          thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
-#endif
 
          if( im_thr->kind == MRI_short )
             thresh *= FUNC_scale_short[br->dset->func_type];
@@ -1330,10 +1339,10 @@ ENTRY("AFNI_read_images") ;
 
    /*--- now create the rest of the data structure, as far as we can ---*/
 
-   dset                = XtNew( THD_3dim_dataset ) ;
-   dset->dblk          = XtNew( THD_datablock ) ;
-   dset->daxes         = XtNew( THD_dataxes ) ;
-   dset->dblk->diskptr = XtNew( THD_diskptr ) ;
+   dset                = myXtNew( THD_3dim_dataset ) ;
+   dset->dblk          = myXtNew( THD_datablock ) ;
+   dset->daxes         = myXtNew( THD_dataxes ) ;
+   dset->dblk->diskptr = myXtNew( THD_diskptr ) ;
    dset->markers       = NULL ;
    dset->warp          = NULL ;
    dset->vox_warp      = NULL ;
@@ -1373,6 +1382,13 @@ ENTRY("AFNI_read_images") ;
    dset->dblk->brick_fac    = NULL ; /* let THD_init_datablock_brick do these */
    dset->dblk->brick_bytes  = NULL ;
    dset->dblk->brick        = NULL ;
+
+   dset->dblk->brick_lab      = NULL ; /* 30 Nov 1997 */
+   dset->dblk->brick_keywords = NULL ;
+   dset->dblk->brick_statcode = NULL ;
+   dset->dblk->brick_stataux  = NULL ;
+   dset->keywords             = NULL ;
+
    THD_init_datablock_brick( dset->dblk , datum , NULL ) ;
    mri_fix_data_pointer( bar , DSET_BRICK(dset,0) ) ;  /* the attachment! */
 
@@ -1943,7 +1959,7 @@ ENTRY("AFNI_read_inputs") ;
 
    /* create empty library of dataset sessions */
 
-   GLOBAL_library.sslist = XtNew( THD_sessionlist ) ;
+   GLOBAL_library.sslist = myXtNew( THD_sessionlist ) ;
    GLOBAL_library.sslist->type = SESSIONLIST_TYPE ;
    BLANK_SESSIONLIST(GLOBAL_library.sslist) ;
    GLOBAL_library.sslist->parent = NULL ;
@@ -1969,7 +1985,7 @@ ENTRY("AFNI_read_inputs") ;
 
       /* set up minuscule session and session list */
 
-      new_ss             = XtNew( THD_session ) ;
+      new_ss             = myXtNew( THD_session ) ;
       new_ss->type       = SESSION_TYPE ;
       BLANK_SESSION(new_ss) ;
       new_ss->num_anat   = 1 ;
@@ -2113,7 +2129,7 @@ ENTRY("AFNI_read_inputs") ;
 
          /** manufacture a minimal session **/
 
-         new_ss         = XtNew( THD_session ) ;
+         new_ss         = myXtNew( THD_session ) ;
          new_ss->type   = SESSION_TYPE ;
          new_ss->parent = NULL ;
          BLANK_SESSION(new_ss) ;
@@ -4057,6 +4073,8 @@ STATUS("turning markers on") ;
                 rather than in the datasets.  This is to allow
                 for the possibility that more than one im3d
                 may be looking at the same dataset at once.
+
+   30 Nov 1997: add bucket stuff
 ------------------------------------------------------------------------*/
 
 void AFNI_setup_viewing( Three_D_View * im3d , Boolean rescaled )
@@ -4107,6 +4125,12 @@ ENTRY("AFNI_setup_viewing") ;
      im3d->b231_anat->resam_code =
        im3d->b312_anat->resam_code = im3d->vinfo->anat_resam_mode ;
 
+   /* 30 Nov 1997: don't go past end of bucket */
+
+   if( ISANATBUCKET(im3d->anat_now) &&
+       im3d->vinfo->anat_index >= DSET_NVALS(im3d->anat_now) )
+      im3d->vinfo->anat_index = DSET_NVALS(im3d->anat_now) - 1 ;
+
    /*-----------------------------------------------------*/
    /*--- set up the func w-o-d axes and viewing bricks ---*/
 
@@ -4151,6 +4175,22 @@ STATUS("forcing function WOD") ;
       im3d->b123_fim->resam_code =
         im3d->b231_fim->resam_code =
           im3d->b312_fim->resam_code = im3d->vinfo->func_resam_mode ;
+
+      im3d->b123_fim->thr_resam_code =     /* 09 Dec 1997 */
+        im3d->b231_fim->thr_resam_code =
+          im3d->b312_fim->thr_resam_code = im3d->vinfo->thr_resam_mode ;
+
+      /* 30 Nov 1997: don't go past end of bucket */
+
+      if( ISFUNCBUCKET(im3d->fim_now) ){
+
+          if( im3d->vinfo->fim_index >= DSET_NVALS(im3d->fim_now) )
+             im3d->vinfo->fim_index = DSET_NVALS(im3d->fim_now) - 1 ;
+
+          if( im3d->vinfo->thr_index >= DSET_NVALS(im3d->fim_now) )
+             im3d->vinfo->thr_index = DSET_NVALS(im3d->fim_now) - 1 ;
+      }
+
    } else {
 
 STATUS("no function") ;
@@ -4255,6 +4295,7 @@ STATUS(" -- function widgets OFF") ;
    {
       Boolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
       Boolean have_thr = have_fim && FUNC_HAVE_THR(im3d->fim_now->func_type) ;
+      int do_buck ;
 
 STATUS(" -- function widgets ON") ;
 
@@ -4263,8 +4304,11 @@ STATUS(" -- function widgets ON") ;
 
       /* make some widgets sensitive if we have the threshold available */
 
-      if( ! have_thr ) XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;
-      else{
+      if( ! have_thr ){
+STATUS(" ---- threshold scale OFF") ;
+         XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;
+      } else {
+STATUS(" ---- threshold scale ON") ;
          XtManageChild  ( im3d->vwid->func->thr_rowcol ) ;
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
       }
@@ -4286,6 +4330,9 @@ STATUS(" -- function widgets ON") ;
 
       if( ! have_thr ) im3d->vinfo->showfunc_type = SHOWFUNC_FIM ;
 
+      if( have_fim && ISFUNCBUCKET(im3d->fim_now) )    /* 30 Nov 1997 */
+         im3d->vinfo->showfunc_type = SHOWFUNC_FIM ;
+
 #if 0
       /* 12 Aug 1996: fix range control sensitivity and settings */
 
@@ -4298,33 +4345,118 @@ STATUS(" -- function widgets ON") ;
       AV_SENSITIZE( im3d->vwid->dmode->func_resam_av,
                     have_fim && im3d->fim_wod_flag ) ;
 
+      AV_SENSITIZE( im3d->vwid->dmode->thr_resam_av,    /* 09 Dec 1997 */
+                    have_fim && im3d->fim_wod_flag ) ;
+
       /** Mar 1996: modify the threshold scale stuff **/
       /** Oct 1996: increase decim by 1 to allow for
                     new precision 0..999 of scale (used to be 0..99) **/
+      /** Nov 1997: the scale precision is now set by macro THR_TOP_EXPON,
+                    and its settings are done in routine AFNI_set_thresh_top **/
 
       if( have_thr ){
 
-         /* set the number of decimal places to shift for the threshold scale */
+         if( ! ISFUNCBUCKET(im3d->fim_now) ){  /* 30 Nov 1997 */
 
-#if 0
-         int decim  ;
-         decim = 7 - (int)(4.99+log10(FUNC_topval[im3d->fim_now->func_type])) ;
+STATUS(" ---- set threshold decim OLD") ;
 
-         XtVaSetValues( im3d->vwid->func->thr_scale ,
-                           XmNdecimalPoints , decim ,
-                        NULL ) ;
-#else
-         AFNI_set_thresh_top( im3d , FUNC_topval[im3d->fim_now->func_type] ) ;
-#endif
+            /* set number of decimal places to shift for thr_scale */
 
-         /* set the label at the top of the scale */
+            AFNI_set_thresh_top( im3d , FUNC_topval[im3d->fim_now->func_type] ) ;
 
-         MCW_set_widget_label( im3d->vwid->func->thr_label ,
-                               FUNC_label[im3d->fim_now->func_type] ) ;
+            /* set the label at the top of the scale */
+
+            MCW_set_widget_label( im3d->vwid->func->thr_label ,
+                                  FUNC_label[im3d->fim_now->func_type] ) ;
+         } else {
+            int iv = im3d->vinfo->thr_index , jj ;
+
+STATUS(" ---- set threshold decim NEW") ;
+
+            if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
+               float bb = fabs(im3d->fim_now->stats->bstat[iv].min) ;
+               float tt = fabs(im3d->fim_now->stats->bstat[iv].max) ;
+               float xx = (bb<tt) ? tt : bb ;
+
+               if( xx > 0.0 ){
+                  jj = (int)( 0.999 + log10(xx) ) ;
+                       if( jj < 0             ) jj = 0 ;
+                  else if( jj > THR_TOP_EXPON ) jj = THR_TOP_EXPON ;
+                  xx = pow(10.0,jj) ;
+                  AFNI_set_thresh_top( im3d, xx ) ;
+               }
+            }
+
+            jj = DSET_BRICK_STATCODE(im3d->fim_now,iv) ;
+            if( jj > 0 )
+               MCW_set_widget_label( im3d->vwid->func->thr_label ,
+                                     FUNC_label[jj] ) ;
+            else
+               MCW_set_widget_label( im3d->vwid->func->thr_label ,
+                                     DSET_BRICK_LABEL(im3d->fim_now,iv) ) ;
+         }
 
          /* set the pval label at the bottom of the scale */
 
          AFNI_set_thr_pval( im3d ) ;
+      }
+
+      /*** 30 Nov 1997:
+           Open/close widgets depending on if we have function buckets ***/
+
+      do_buck = 0 ;
+
+      if( ISFUNCBUCKET(im3d->fim_now) ){
+STATUS(" ---- func bucket widgets ON") ;
+         XtUnmanageChild( im3d->vwid->func->functype_bbox->wtop )  ;
+         refit_MCW_optmenu( im3d->vwid->func->fim_buck_av ,
+                            0 ,                            /* new minval */
+                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
+                            im3d->vinfo->fim_index ,       /* new inival */
+                            0 ,                            /* new decim? */
+                            AFNI_bucket_label_CB ,         /* text routine */
+                            im3d->fim_now                  /* text data */
+                          ) ;
+         refit_MCW_optmenu( im3d->vwid->func->thr_buck_av ,
+                            0 ,                            /* new minval */
+                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
+                            im3d->vinfo->thr_index ,       /* new inival */
+                            0 ,                            /* new decim? */
+                            AFNI_bucket_label_CB ,         /* text routine */
+                            im3d->fim_now                  /* text data */
+                          ) ;
+         XtManageChild  ( im3d->vwid->func->fim_buck_av->wrowcol ) ;
+         XtManageChild  ( im3d->vwid->func->thr_buck_av->wrowcol ) ;
+         do_buck = 1 ;
+      } else {
+STATUS(" ---- func bucket widgets OFF") ;
+         XtManageChild  ( im3d->vwid->func->functype_bbox->wtop )  ;
+         XtUnmanageChild( im3d->vwid->func->fim_buck_av->wrowcol ) ;
+         XtUnmanageChild( im3d->vwid->func->thr_buck_av->wrowcol ) ;
+      }
+
+      if( ISANATBUCKET(im3d->anat_now) ){
+STATUS(" ---- anat bucket widgets ON") ;
+         refit_MCW_optmenu( im3d->vwid->func->anat_buck_av ,
+                            0 ,                             /* new minval */
+                            DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */
+                            im3d->vinfo->anat_index ,       /* new inival */
+                            0 ,                             /* new decim? */
+                            AFNI_bucket_label_CB ,          /* text routine */
+                            im3d->anat_now                  /* text data */
+                          ) ;
+         XtManageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
+         do_buck = 1 ;
+      } else {
+STATUS(" ---- anat bucket widgets OFF") ;
+         XtUnmanageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
+      }
+
+      if( do_buck ){
+         XtManageChild( im3d->vwid->func->buck_rowcol ) ;
+         XtManageChild( im3d->vwid->func->buck_frame ) ;
+      } else {
+         XtUnmanageChild( im3d->vwid->func->buck_frame ) ;
       }
    }
 
@@ -4357,7 +4489,6 @@ STATUS(" -- function underlay widgets") ;
       THD_fvec3 fv ;
 
 STATUS(" -- scanning for points in other datasets") ;
-
       for( ii=0 ; ii <= LAST_VIEW_TYPE ; ii++ ){
          if( ISVALID_3DIM_DATASET(im3d->anat_dset[ii]) &&
              im3d->anat_dset[ii]->pts != NULL &&
@@ -4376,7 +4507,6 @@ STATUS(" -- processing points in other dataset") ;
          INIT_VLIST( im3d->anat_now->pts , im3d->anat_now ) ;
 
          for( ii=0 ; ii < dset_orig->pts->num ; ii++ ){
-
             fv = THD_3dmm_to_dicomm( dset_orig , dset_orig->pts->xyz[ii] ) ;
             fv = AFNI_transform_vector( dset_orig , fv  , im3d->anat_now ) ;
             fv = THD_dicomm_to_3dmm( im3d->anat_now , fv ) ;
@@ -5177,7 +5307,7 @@ ENTRY("AFNI_make_warp") ;
    /*--- make a new warp, and then construct it,
          based on the type of marker set we have here ---*/
 
-   warp = XtNew( THD_warp ) ;
+   warp = myXtNew( THD_warp ) ;
 
    switch( markers->type ){  /* type of marker set */
 
@@ -5759,7 +5889,7 @@ ENTRY("AFNI_init_warp") ;
            create the total warp from "adam" to the new dataset -----*/
 
    adam_dset   = parent_dset ;
-   warp_total  = XtNew( THD_warp ) ;  /* copy initial warp into final warp */
+   warp_total  = myXtNew( THD_warp ) ;  /* copy initial warp into final warp */
    *warp_total = *warp_init ;
 
    while( adam_dset->warp != NULL ){
@@ -5952,11 +6082,11 @@ printf("  ==> new nx=%d ny=%d nz=%d\n",new_nx,new_ny,new_nz) ;
 
    /*----- make a new 3D dataset !!! -----*/
 
-   new_dset    =                     XtNew( THD_3dim_dataset ) ;
-   new_dblk    = new_dset->dblk    = XtNew( THD_datablock ) ;
-   new_daxes   = new_dset->daxes   = XtNew( THD_dataxes ) ;
+   new_dset    =                     myXtNew( THD_3dim_dataset ) ;
+   new_dblk    = new_dset->dblk    = myXtNew( THD_datablock ) ;
+   new_daxes   = new_dset->daxes   = myXtNew( THD_dataxes ) ;
    new_markers = new_dset->markers = NULL ;                 /* later, dude */
-   new_dkptr   = new_dblk->diskptr = XtNew( THD_diskptr ) ;
+   new_dkptr   = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
 
    INIT_KILL(new_dset->kl) ; INIT_KILL(new_dblk->kl) ;
 
@@ -6043,6 +6173,9 @@ STATUS("init new_dblk") ;
    new_dblk->brick       = NULL ;
    THD_init_datablock_brick( new_dblk , -1 , adam_dblk ) ;
 
+   THD_null_datablock_auxdata( new_dblk ) ;
+   THD_copy_datablock_auxdata( adam_dblk , new_dblk ) ; /* 30 Nov 1997 */
+
    /*--- initialize data axes fields ---*/
 
 STATUS("init new_daxes") ;
@@ -6086,7 +6219,7 @@ STATUS("no new_markers") ;
 
 STATUS("init new_markers") ;
 
-         new_markers = new_dset->markers = XtNew( THD_marker_set ) ;
+         new_markers = new_dset->markers = myXtNew( THD_marker_set ) ;
          ADDTO_KILL(new_dset->kl,new_markers) ;
 
          new_markers->numdef = NMARK_BOUNDING ;
@@ -6156,7 +6289,7 @@ ENTRY("AFNI_copy_statistics") ;
    if( !ISVALID_STATISTIC(stold) ) EXRETURN ;
 
    if( stnew == NULL ){
-      dsnew->stats  = stnew = XtNew( THD_statistics ) ;
+      dsnew->stats  = stnew = myXtNew( THD_statistics ) ;
       stnew->type   = STATISTICS_TYPE ;
       stnew->nbstat = nvnew ;
       stnew->bstat  = (THD_brick_stats *)
@@ -6406,6 +6539,16 @@ void AFNI_load_defaults( Widget w )
          if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
       }
       if( ii <= LAST_RESAM_TYPE ) INIT_resam_func = ii ;
+      myXtFree(cpt) ;
+   }
+
+   cpt = NULL ;
+   NAME2STRING( "resam_thr" , cpt ) ;
+   if( cpt != NULL ){
+      for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ ){
+         if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
+      }
+      if( ii <= LAST_RESAM_TYPE ) INIT_resam_thr = ii ;
       myXtFree(cpt) ;
    }
 

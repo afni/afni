@@ -221,7 +221,7 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
       return av ;
    }
 
-   av = XtNew( MCW_arrowval ) ;
+   av = myXtNew( MCW_arrowval ) ;
    av->wrowcol = XtVaCreateWidget(
                     "dialog" , xmRowColumnWidgetClass , parent ,
 
@@ -431,7 +431,7 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 str_func * text_proc  , XtPointer text_data
                               )
 {
-   MCW_arrowval * av = XtNew( MCW_arrowval ) ;
+   MCW_arrowval * av = myXtNew( MCW_arrowval ) ;
    Widget wmenu , wbut ;
    Arg args[5] ;
    int nargs , ival ;
@@ -1456,7 +1456,7 @@ MCW_arrowpad * new_MCW_arrowpad( Widget parent ,
    int asizx = 20 , asizy = 20 ;  /* arrow sizes */
    int iar ;
 
-   apad = XtNew( MCW_arrowpad ) ;
+   apad = myXtNew( MCW_arrowpad ) ;
 
    /*--- form to hold the stuff: everything is tied to rubber positions ---*/
 

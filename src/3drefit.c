@@ -13,6 +13,7 @@
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
 #include "3ddata.h"
+#include "editvol.h"
 
 void Syntax(char * str)
 {
@@ -76,23 +77,53 @@ void Syntax(char * str)
     "                  if it can handle them (is anatomical, doesn't already\n"
     "                  have markers, is in the +orig view, and isn't 3D+time).\n"
     "\n"
+    "  -appkey ll      Appends the string 'll' to the keyword list for the\n"
+    "                  whole dataset.\n"
+    "  -repkey ll      Replaces the keyword list for the dataset with the\n"
+    "                  string 'll'.\n"
+    "  -empkey         Destroys the keyword list for the dataset.\n"
+   ) ;
+
+   printf(
+    "\n"
     "  -type           Changes the type of data that is declared for this\n"
     "                  dataset, where 'type' is chosen from the following:\n"
    ) ;
-
    printf("       ANATOMICAL TYPES\n") ;
    for( ii=FIRST_ANAT_TYPE ; ii <= LAST_ANAT_TYPE ; ii++ ){
       printf("     %8s == %-16.16s",ANAT_prefixstr[ii],ANAT_typestr[ii] ) ;
       if( (ii-FIRST_ANAT_TYPE)%2 == 1 ) printf("\n") ;
    }
    if( (ii-FIRST_ANAT_TYPE)%2 == 1 ) printf("\n") ;
-
    printf("       FUNCTIONAL TYPES\n") ;
    for( ii=FIRST_FUNC_TYPE ; ii <= LAST_FUNC_TYPE ; ii++ ){
       printf("     %8s == %-16.16s",FUNC_prefixstr[ii],FUNC_typestr[ii] ) ;
       if( (ii-FIRST_ANAT_TYPE)%2 == 1 ) printf("\n") ;
    }
    if( (ii-FIRST_ANAT_TYPE)%2 == 1 ) printf("\n") ;
+
+   printf(
+    "The options below allow you to attach auxiliary data to sub-bricks\n"
+    "in the dataset.  Each option may be used more than once so that\n"
+    "multiple sub-bricks can be modified in a single run of 3drefit.\n"
+    "\n"
+    "  -sublabel  n ll  Attach to sub-brick #n the label string 'll'.\n"
+    "  -subappkey n ll  Add to sub-brick #n the keyword string 'll'.\n"
+    "  -subrepkey n ll  Replace sub-brick #n's keyword string with 'll'.\n"
+    "  -subempkey n     Empty out sub-brick #n' keyword string\n"
+    "\n"
+    "  -substatpar n type v ...\n"
+    "                  Attach to sub-brick #n the statistical type and\n"
+    "                  the auxiliary parameters given by values 'v ...',\n"
+    "                  where 'type' is one of the following:\n"
+   ) ;
+   printf("         type  Description  PARAMETERS\n"
+          "         ----  -----------  ----------------------------------------\n" ) ;
+   for( ii=FIRST_FUNC_TYPE ; ii <= LAST_FUNC_TYPE ; ii++ ){
+      if( FUNC_IS_STAT(ii) )
+         printf("         %4s  %-11.11s  %s\n",
+                FUNC_prefixstr[ii] , FUNC_typestr[ii]+6 , FUNC_label_stat_aux[ii] ) ;
+   }
 
    exit(0) ;
 }
@@ -115,8 +146,18 @@ int main( int argc , char * argv[] )
    int new_stataux= 0 ; float stataux[MAX_STAT_AUX] ;
    int new_type   = 0 ; int dtype , ftype , nvals ;
    int new_markers= 0 ;
+   int new_key    = 0 ; char * key ;
    char str[256] ;
    int  iarg , ii ;
+
+   typedef struct { int iv ; char lab[32] ; }              SUBlabel   ;
+   typedef struct { int iv ; float par[MAX_STAT_AUX+2] ; } SUBstatpar ;
+   typedef struct { int iv , code ; char * keyword ; }     SUBkeyword ;
+   int nsublab     = 0 ; SUBlabel *   sublab     = NULL ;
+   int nsubstatpar = 0 ; SUBstatpar * substatpar = NULL ;
+   int nsubkeyword = 0 ; SUBkeyword * subkeyword = NULL ;
+   char * cpt ;
+   int iv ;
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax(NULL) ;
 
@@ -127,6 +168,120 @@ int main( int argc , char * argv[] )
 #if 0
       if( strcmp(argv[iarg],"-v") == 0 ){ verbose = 1 ; iarg++ ; continue ; }
 #endif
+
+      /*----- -sublabel option -----*/
+
+      if( strncmp(argv[iarg],"-sublabel",7) == 0 ){
+         if( iarg+2 >= argc )
+            Syntax("need 2 arguments after -sublabel!") ;
+
+         iv = strtol( argv[++iarg] , &cpt , 10 ) ;
+         if( iv < 0 || iv == 0 && cpt == argv[iarg] )
+            Syntax("illegal sub-brick index after -sublabel!") ;
+
+         sublab = (SUBlabel *) XtRealloc( (char *)sublab ,
+                                          sizeof(SUBlabel) * (nsublab+1) ) ;
+
+         sublab[nsublab].iv = iv ;
+         MCW_strncpy( sublab[nsublab].lab , argv[++iarg] , 32 ) ;
+         nsublab++ ; new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -subkeyword options -----*/
+
+      if( strncmp(argv[iarg],"-subappkey",7) == 0 ||
+          strncmp(argv[iarg],"-subrepkey",7) == 0 ||
+          strncmp(argv[iarg],"-subempkey",7) == 0   ){
+
+         int code , npl ;
+              if( strncmp(argv[iarg],"-subappkey",7) == 0 ) code = 1 ;
+         else if( strncmp(argv[iarg],"-subrepkey",7) == 0 ) code = 2 ;
+         else                                               code = 3 ;
+
+         npl = (code == 3) ? 1 : 2 ;
+         if( iarg+npl >= argc )
+            Syntax("need arguments after -sub...key!") ;
+
+         iv = strtol( argv[++iarg] , &cpt , 10 ) ;
+         if( iv < 0 || iv == 0 && cpt == argv[iarg] )
+            Syntax("illegal sub-brick index after -sub...key!") ;
+
+         subkeyword = (SUBkeyword *) XtRealloc( (char *)subkeyword ,
+                                                sizeof(SUBkeyword)*(nsubkeyword+1) ) ;
+
+         subkeyword[nsubkeyword].iv   = iv ;
+         subkeyword[nsubkeyword].code = code ;
+         if( code != 3 ) subkeyword[nsubkeyword].keyword = argv[++iarg] ;
+
+         nsubkeyword++ ; new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -keywords options -----*/
+
+      if( strncmp(argv[iarg],"-appkey",4) == 0 ||
+          strncmp(argv[iarg],"-repkey",4) == 0 ||
+          strncmp(argv[iarg],"-empkey",4) == 0   ){
+
+         int code , npl ;
+              if( strncmp(argv[iarg],"-appkey",4) == 0 ) code = 1 ;
+         else if( strncmp(argv[iarg],"-repkey",4) == 0 ) code = 2 ;
+         else                                            code = 3 ;
+
+         npl = (code == 3) ? 0 : 1 ;
+         if( iarg+code >= argc )
+            Syntax("need arguments after -...key!") ;
+
+         new_key = code ;
+         if( code != 3 ) key = argv[++iarg] ;
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -substatpar option -----*/
+
+      if( strncmp(argv[iarg],"-substatpar",7) == 0 ){
+         int fc ; float val ;
+
+         if( iarg+2 >= argc )
+            Syntax("need at least 2 arguments after -substatpar!") ;
+
+         iv = strtol( argv[++iarg] , &cpt , 10 ) ;
+         if( iv < 0 || iv == 0 && cpt == argv[iarg] )
+            Syntax("illegal sub-brick index after -substatpar!") ;
+
+         iarg++ ;
+         if( strlen(argv[iarg]) < 3 )
+            Syntax("illegal type code after -substatpar!") ;
+         fc = (argv[iarg][0] == '-') ? 1 : 0 ;
+
+         for( ii=FIRST_FUNC_TYPE ; ii <= LAST_FUNC_TYPE ; ii++ ){
+            if( ! FUNC_IS_STAT(ii) ) continue ;
+            if( strncmp( &(argv[iarg][fc]) ,
+                         FUNC_prefixstr[ii] , THD_MAX_PREFIX ) == 0 ) break ;
+         }
+
+         if( ii > LAST_FUNC_TYPE )
+            Syntax("unknown type code after -substatpar!") ;
+
+         substatpar = (SUBstatpar *) XtRealloc( (char *)substatpar ,
+                                                sizeof(SUBstatpar) * (nsubstatpar+1) ) ;
+
+         substatpar[nsubstatpar].iv     = iv ;
+         substatpar[nsubstatpar].par[0] = ii ;
+         substatpar[nsubstatpar].par[1] = MAX_STAT_AUX ;
+
+         for( ii=0 ; ii < MAX_STAT_AUX ; ii++ )
+            substatpar[nsubstatpar].par[ii+2] = 0.0 ;
+
+         ii = 2 ; iarg++ ;
+         do{
+            val = strtod( argv[iarg] , &cpt ) ;
+            if( *cpt != '\0' ) break ;
+            substatpar[nsubstatpar].par[ii++] = val ;
+            iarg++ ;
+         } while( iarg < argc ) ;
+
+         nsubstatpar++ ; new_stuff++ ; continue ;  /* go to next arg */
+      }
 
       /*----- -orient code option -----*/
 
@@ -265,7 +420,8 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
-      /* -type from the anatomy prefixes */
+      /** anything else must be a -type **/
+      /*  try the anatomy prefixes */
 
       for( ii=FIRST_ANAT_TYPE ; ii <= LAST_ANAT_TYPE ; ii++ )
          if( strncmp( &(argv[iarg][1]) ,
@@ -279,7 +435,7 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
-      /* -type from the function prefixes */
+      /* try the function prefixes */
 
       for( ii=FIRST_FUNC_TYPE ; ii <= LAST_FUNC_TYPE ; ii++ )
          if( strncmp( &(argv[iarg][1]) ,
@@ -302,7 +458,8 @@ int main( int argc , char * argv[] )
 
    }  /* end of loop over switches */
 
-   if( new_stuff == 0 ) Syntax("No options given") ;
+   if( new_stuff == 0 ) Syntax("No options given!?") ;
+   if( iarg >= argc   ) Syntax("No datasets given!?") ;
 
    /*--- process datasets ---*/
 
@@ -312,7 +469,7 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"** Can't open dataset %s\n",argv[iarg]) ;
          continue ;
       }
-      printf("Processing dataset %s\n",argv[iarg]) ;
+      fprintf(stderr,"Processing dataset %s\n",argv[iarg]) ;
 
       daxes = dset->daxes ;
 
@@ -355,7 +512,7 @@ int main( int argc , char * argv[] )
 
       if( new_TR ){
          if( dset->taxis == NULL ){
-            printf("  ** can't process -TR for this dataset!\n") ;
+            fprintf(stderr,"  ** can't process -TR for this dataset!\n") ;
          } else {
             float frac = TR / dset->taxis->ttdel ;
             int ii ;
@@ -407,7 +564,7 @@ int main( int argc , char * argv[] )
          THD_marker_set * markers ;
          int ii , jj ;
 
-         markers = dset->markers = XtNew( THD_marker_set ) ;
+         markers = dset->markers = myXtNew( THD_marker_set ) ;
          markers->numdef = 0 ;
 
          for( ii=0 ; ii < MARKS_MAXNUM ; ii++ ){       /* null all data out */
@@ -432,6 +589,62 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"  ** can't add markers to this dataset\n") ;
       } /* end of markers */
 
+      if( nsublab > 0 ){
+         for( ii=0 ; ii < nsublab ; ii++ ){
+            iv = sublab[ii].iv ;
+            if( iv < 0 || iv >= DSET_NVALS(dset) ){
+               fprintf(stderr,"  ** can't put label on sub-brick %d\n",iv) ;
+            } else {
+               EDIT_dset_items( dset ,
+                                   ADN_brick_label_one + iv , sublab[ii].lab ,
+                                ADN_none ) ;
+            }
+         }
+      }
+
+      if( nsubkeyword > 0 ){
+         int code ;
+         for( ii=0 ; ii < nsubkeyword ; ii++ ){
+            iv = subkeyword[ii].iv ; code = subkeyword[ii].code ;
+            if( iv < 0 || iv >= DSET_NVALS(dset) ){
+               fprintf(stderr,"  ** can't put keyword on sub-brick %d\n",iv) ;
+            } else if( code == 1 ){
+               EDIT_dset_items( dset ,
+                                   ADN_brick_keywords_append_one + iv ,
+                                   subkeyword[ii].keyword ,
+                                ADN_none ) ;
+            } else if( code == 2 ){
+               EDIT_dset_items( dset ,
+                                   ADN_brick_keywords_replace_one + iv ,
+                                   subkeyword[ii].keyword ,
+                                ADN_none ) ;
+            } else if( code == 3 && dset->dblk->brick_keywords != NULL ){
+               EDIT_dset_items( dset ,
+                                   ADN_brick_keywords_replace_one + iv ,
+                                   NULL ,
+                                ADN_none ) ;
+            }
+         }
+      }
+
+      switch( new_key ){
+         case 1: EDIT_dset_items(dset, ADN_keywords_append , key , ADN_none); break;
+         case 2: EDIT_dset_items(dset, ADN_keywords_replace, key , ADN_none); break;
+         case 3: EDIT_dset_items(dset, ADN_keywords_replace, NULL, ADN_none); break;
+      }
+
+      if( nsubstatpar > 0 ){
+         for( ii=0 ; ii < nsubstatpar ; ii++ ){
+            iv = substatpar[ii].iv ;
+            if( iv < 0 || iv >= DSET_NVALS(dset) ){
+               fprintf(stderr,"  ** can't put statpar on sub-brick %d\n",iv) ;
+            } else {
+               EDIT_dset_items( dset ,
+                                   ADN_brick_stataux_one + iv , substatpar[ii].par ,
+                                ADN_none ) ;
+            }
+         }
+      }
 
       THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
       THD_delete_3dim_dataset( dset , False ) ;

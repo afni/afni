@@ -109,12 +109,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.11c"
+#define VERSION "2.20 "
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "06 Nov 1997      "
+#define RELEASE "07 Dec 1997      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -181,6 +181,8 @@ typedef struct {
       THD_ivec3 xhairs_ndown , xhairs_nup , xhairs_nskip ; /* montage crosshairs */
       int       time_index , top_index ;
 
+      int       anat_index , fim_index , thr_index ; /* 30 Nov 1997 */
+
       Boolean crosshair_visible , inverted_pause ;
       int     crosshair_gap , crosshair_ovcolor , crosshair_gap_old ;
 
@@ -197,6 +199,7 @@ typedef struct {
       float      func_threshold , resam_vox ;
       float      func_thresh_top ;              /* 23 Jul 1997 */
       int        func_resam_mode , anat_resam_mode , pts_color ;
+      int        thr_resam_mode ;               /* 09 Dec 1997 */
 
       int        fimmer_update_frequency ;
 
@@ -360,6 +363,11 @@ typedef struct {
 
 #define THR_PVAL_LABEL_NONE "[N/A]"
 
+#define THR_TOP_EXPON  4         /* 30 Nov 1997 */
+#define THR_FACTOR     0.0001    /* pow(10,-THR_TOP_EXPON) */
+
+#undef USE_FUNC_FIM              /* 09 Dec 1997 */
+
 typedef struct {
       Widget frame , rowcol ;
 
@@ -375,12 +383,17 @@ typedef struct {
       MCW_bbox     * underlay_bbox ;
       MCW_bbox     * functype_bbox ;
 
+      Widget         buck_frame , buck_rowcol ;
+      MCW_arrowval * anat_buck_av , * fim_buck_av , * thr_buck_av ;  /* 30 Nov 1997 */
+
       Widget range_frame , range_rowcol , range_label ;
       MCW_bbox     * range_bbox ;
       MCW_arrowval * range_av ;
 
+#ifdef USE_FUNC_FIM
       Widget fim_frame , fim_rowcol , fim_dset_label , fim_mbar ;
       FIM_menu * fim_menu ;
+#endif
 
       Widget bkgd_lab ;
 } AFNI_function_widgets ;
@@ -429,6 +442,7 @@ typedef struct {
       MCW_bbox     * anatmode_bbox , * funcmode_bbox ;
       MCW_arrowval * anat_resam_av , * resam_vox_av ;
       MCW_arrowval * func_resam_av ;                   /* moved here 03 Nov 1996 */
+      MCW_arrowval * thr_resam_av ;                    /* 09 Dec 1997 */
       Widget         write_rowcol , write_anat_pb , write_func_pb , write_many_pb ;
       Widget         rescan_rowcol , rescan_pb , rescan_all_pb , rescan_timeseries_pb ;
       Widget         read_rowcol , read_sess_pb , read_1D_pb ;
@@ -439,6 +453,7 @@ typedef struct {
 
       Widget         misc_voxind_pb ;
       Widget         misc_hints_pb ;
+      Widget         misc_anat_info_pb , misc_func_info_pb ;
 } AFNI_datamode_widgets ;
 
 /*---*/
@@ -554,28 +569,32 @@ typedef struct {
     (iq)->fimdata->fimref->kind == MRI_float                        && \
     (iq)->fimdata->fimref->nx >= DSET_NUM_TIMES((iq)->fimdata->fimdset) )
 
-#define ALLOW_COMPUTE_FIM(iq)                                          \
-  do{ XmString xstr ; THD_3dim_dataset * ds = (iq)->fimdata->fimdset ; \
-      int fim_ok = USABLE_FIMDATA(iq) ,                                \
-          ds_ok  = DSET_GRAPHABLE((iq)->fimdata->fimdset) ;            \
-      STATUS("** Setting FIM controls") ;                              \
-      if( ISVALID_3DIM_DATASET(ds) ){                                  \
-         STATUS("setting fim string to dataset") ;                     \
-         xstr = XmStringCreateLtoR(ds->dblk->diskptr->filecode,        \
-                                 XmFONTLIST_DEFAULT_TAG);              \
-      } else {                                                         \
-         STATUS("setting fim string to nothing") ;                     \
-         xstr = XmStringCreateLtoR("[FIM not set up]",                 \
-                                 XmFONTLIST_DEFAULT_TAG);              \
-      }                                                                \
-      STATUS("setting fim label to fim string") ;                      \
-      XtVaSetValues( (iq)->vwid->func->fim_dset_label ,                \
-                        XmNlabelString , xstr , NULL ) ;               \
-      XmStringFree(xstr) ;                                             \
-      SENSITIZE((iq)->vwid->func->fim_menu->fim_execute_pb,fim_ok);    \
-      if( ds_ok ) AFNI_fimmer_fix_optmenu(iq) ;                        \
-      STATUS("** Done setting FIM controls") ;                         \
-   } while(0)
+#ifdef USE_FUNC_FIM
+#  define ALLOW_COMPUTE_FIM(iq)                                           \
+     do{ XmString xstr ; THD_3dim_dataset * ds = (iq)->fimdata->fimdset ; \
+         int fim_ok = USABLE_FIMDATA(iq) ,                                \
+             ds_ok  = DSET_GRAPHABLE((iq)->fimdata->fimdset) ;            \
+         STATUS("** Setting FIM controls") ;                              \
+         if( ISVALID_3DIM_DATASET(ds) ){                                  \
+            STATUS("setting fim string to dataset") ;                     \
+            xstr = XmStringCreateLtoR(ds->dblk->diskptr->filecode,        \
+                                    XmFONTLIST_DEFAULT_TAG);              \
+         } else {                                                         \
+            STATUS("setting fim string to nothing") ;                     \
+            xstr = XmStringCreateLtoR("[FIM not set up]",                 \
+                                    XmFONTLIST_DEFAULT_TAG);              \
+         }                                                                \
+         STATUS("setting fim label to fim string") ;                      \
+         XtVaSetValues( (iq)->vwid->func->fim_dset_label ,                \
+                           XmNlabelString , xstr , NULL ) ;               \
+         XmStringFree(xstr) ;                                             \
+         SENSITIZE((iq)->vwid->func->fim_menu->fim_execute_pb,fim_ok);    \
+         if( ds_ok ) AFNI_fimmer_fix_optmenu(iq) ;                        \
+         STATUS("** Done setting FIM controls") ;                         \
+      } while(0)
+#else
+#  define ALLOW_COMPUTE_FIM(iq) /* nada */
+#endif
 
 /*-----------------------------------------------------------*/
 /*------------- define the central data structure -----------*/
@@ -824,7 +843,16 @@ extern void AFNI_fimmer_pickref_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_pickort_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_setupdate_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
+#ifdef USE_FUNC_FIM
 extern void AFNI_fimmer_fix_optmenu( Three_D_View * ) ;
+extern void AFNI_fimmer_menu_CB( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_fimmer_dset_choose_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
+# ifdef USE_OPTMENUS
+  extern void AFNI_fimmer_ignore_choose_CB( MCW_arrowval *, XtPointer ) ;
+# else
+  extern void AFNI_fimmer_ignore_choose_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
+# endif
+#endif
 
 extern void AFNI_fimmer_setref( Three_D_View * , MRI_IMAGE * ) ;
 extern void AFNI_fimmer_setort( Three_D_View * , MRI_IMAGE * ) ;
@@ -842,7 +870,6 @@ extern void AFNI_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_fimmer_execute( Three_D_View * ) ;
-extern void AFNI_fimmer_menu_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_process_interrupts( Widget ) ;
 extern void AFNI_add_interruptable( Widget ) ;
@@ -854,14 +881,6 @@ extern THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * ,
                                                MRI_IMAGE *, THD_session * , int ) ;
 
 extern void AFNI_fimmer_redisplay( int , Three_D_View * , THD_3dim_dataset * ) ;
-
-#ifdef USE_OPTMENUS
-extern void AFNI_fimmer_ignore_choose_CB( MCW_arrowval *, XtPointer ) ;
-#else
-extern void AFNI_fimmer_ignore_choose_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
-#endif
-
-extern void AFNI_fimmer_dset_choose_CB  ( Widget, XtPointer, MCW_choose_cbs * ) ;
 
 #ifdef USE_TALAIRACH_TO
 extern void AFNI_talto_CB               ( Widget, XtPointer, MCW_choose_cbs * ) ;
@@ -875,8 +894,11 @@ extern void AFNI_resam_vox_av_CB   ( MCW_arrowval * , XtPointer ) ;
 extern char * AFNI_resam_texter    ( MCW_arrowval * , XtPointer ) ;
 extern void   AFNI_resam_av_CB     ( MCW_arrowval * , XtPointer ) ;
 
+extern void   AFNI_bucket_CB      ( MCW_arrowval * , XtPointer ) ; /* 30 Nov 1997 */
+extern char * AFNI_bucket_label_CB( MCW_arrowval * , XtPointer ) ;
+
 extern Boolean AFNI_refashion_dataset( Three_D_View * ,
-                             THD_3dim_dataset *, THD_dataxes *, int ) ;
+                                       THD_3dim_dataset *, THD_dataxes * , int ) ;
 
 #define REDISPLAY_OPTIONAL 0
 #define REDISPLAY_OVERLAY  1
@@ -1093,7 +1115,8 @@ int INIT_ngray           = DEFAULT_NGRAY ,
     INIT_posfunc         = 0 ,
     INIT_bigscroll       = 5 ,
     INIT_resam_anat      = RESAM_LINEAR_TYPE ,
-    INIT_resam_func      = RESAM_NN_TYPE   ;
+    INIT_resam_func      = RESAM_NN_TYPE ,
+    INIT_resam_thr       = RESAM_NN_TYPE   ;
 
 float INIT_gamma         = DEFAULT_GAMMA ,
       INIT_resam_vox     = DEFAULT_RESAMPLE_VOX ;
@@ -1116,7 +1139,8 @@ extern int INIT_ngray           ,
            INIT_posfunc         ,
            INIT_bigscroll       ,
            INIT_resam_anat      ,
-           INIT_resam_func       ;
+           INIT_resam_func      ,
+           INIT_resam_thr        ;
 
 extern float INIT_gamma         ,
              INIT_resam_vox      ;

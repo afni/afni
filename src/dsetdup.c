@@ -203,7 +203,7 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
 
    /* make new dataset, copying appropriate fields from its various parents */
 
-   new_dset = XtNew( THD_3dim_dataset ) ; INIT_KILL( new_dset->kl ) ;
+   new_dset = myXtNew( THD_3dim_dataset ) ; INIT_KILL( new_dset->kl ) ;
 
    new_dset->type      = parent->type ;
    new_dset->func_type = parent->func_type ;
@@ -217,9 +217,9 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
 
    /* make the actual warp from the warp_parent to this dataset */
 
-   new_dset->vox_warp       = XtNew( THD_warp ) ;
+   new_dset->vox_warp       = myXtNew( THD_warp ) ;
    new_dset->vox_warp->type = ILLEGAL_TYPE ;        /* created when needed */
-   new_dset->warp           = XtNew( THD_warp ) ;
+   new_dset->warp           = myXtNew( THD_warp ) ;
    *(new_dset->warp)        = IDENTITY_WARP ;
 
    /* make up some names for this new dataset */
@@ -234,18 +234,18 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
    /* set the axes for this new dataset
       (same as parent, since that's the meaning of this routine) */
 
-   new_dset->daxes         = XtNew( THD_dataxes ) ;  /* copy data axes of */
+   new_dset->daxes         = myXtNew( THD_dataxes ) ;  /* copy data axes of */
    *(new_dset->daxes)      = *(parent->daxes) ;      /* parent */
    new_dset->daxes->parent = (XtPointer) new_dset ;  /* reset parent */
 
-   new_dset->wod_daxes     = XtNew( THD_dataxes ) ;  /* warp-on-demand */
+   new_dset->wod_daxes     = myXtNew( THD_dataxes ) ;  /* warp-on-demand */
    *(new_dset->wod_daxes)  = *(new_dset->daxes) ;
    new_dset->wod_flag      = True ;
 
    /* create a datablock and diskptr, in case the data is ever
       filled into memory (instead of wod) and written to disk */
 
-   new_dset->dblk = XtNew( THD_datablock ) ; INIT_KILL( new_dset->dblk->kl ) ;
+   new_dset->dblk = myXtNew( THD_datablock ) ; INIT_KILL( new_dset->dblk->kl ) ;
 
    new_dset->dblk->type        = DATABLOCK_TYPE ;
    new_dset->dblk->nvals       = parent->dblk->nvals ;
@@ -256,7 +256,7 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
    new_dset->dblk->atr         = NULL ;
    new_dset->dblk->parent      = (XtPointer) new_dset ;
 
-   new_dset->dblk->diskptr               = XtNew( THD_diskptr ) ;
+   new_dset->dblk->diskptr               = myXtNew( THD_diskptr ) ;
    new_dset->dblk->diskptr->type         = DISKPTR_TYPE ;
    new_dset->dblk->diskptr->nvals        = parent->dblk->nvals ;
    new_dset->dblk->diskptr->rank         = 3 ;
@@ -285,7 +285,7 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
    ADDTO_KILL( new_dset->kl , new_dset->dblk ) ;
 
    if( parent->stats != NULL ){
-      new_dset->stats         = XtNew( THD_statistics ) ;  /* copy statistics */
+      new_dset->stats         = myXtNew( THD_statistics ) ;  /* copy statistics */
       *(new_dset->stats)      = *(parent->stats) ;         /* of parent */
       new_dset->stats->parent = (XtPointer) new_dset ;
       ADDTO_KILL( new_dset->kl , new_dset->stats ) ;

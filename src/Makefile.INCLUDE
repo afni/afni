@@ -30,7 +30,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
            p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 \
-           waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit \
+           waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna
 
@@ -154,9 +154,13 @@ dsetdup:dsetdup.o 3ddata.o
 	$(RM) $@
 	$(CC) -o 3dinfo 3dinfo.o 3ddata.o $(LFLAGS) $(LLIBS)
 
-3drefit:3drefit.o 3ddata.o
+3drefit:3drefit.o 3ddata.o editvol.o
 	$(RM) $@
-	$(CC) -o 3drefit 3drefit.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3drefit 3drefit.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+
+3dbucket:3dbucket.o 3ddata.o editvol.o
+	$(RM) $@
+	$(CC) -o 3dbucket 3dbucket.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
 
 from3d:from3d.o 3ddata.o
 	$(RM) $@
@@ -286,14 +290,14 @@ waver:waver.o
 	$(CC) -c $*.c $(IFLAGS)
 
 dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
-      dafni_slice_complex.o  dafni_pcor_float.o                 \
+      dafni_slice_complex.o  dafni_pcor_float.o  LiteClue.o    \
       afni.c afni_func.c afni_widg.c afni_warp.c afni_fimmer.c \
       3ddata.c pbar.c display.c imseq.c bbox.c xim.c xutil.c   \
       afni_pcor.c afni_pcor_update.c editvol.c afni_plugin.c   \
       parser.c parser_int.c iochan.c afni_plugout.c afni_plugout.c
 	$(CCD) -o dafni $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE \
                 afni.c afni_func.c afni_widg.c afni_warp.c afni_graph.c afni_fimmer.c \
-                dafni_slice_short.o dafni_slice_float.o  \
+                dafni_slice_short.o dafni_slice_float.o  LiteClue.o \
                 dafni_slice_byte.o  dafni_slice_complex.o \
                 dafni_pcor_float.o editvol.c parser.c parser_int.c iochan.c \
                 3ddata.c pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_pcor.c \
@@ -493,20 +497,20 @@ install_lib:
 
 3ddata.o:killer.h vecmat.h machdep.h 3ddata.h
 
-afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h afni_graph.h
+afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h afni_graph.h machdep.h
 
-afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h
-afni_widg.o:imseq.h 3ddata.h xutil.h pbar.h afni.h mcw.h
-afni_warp.o:afni_warp.h 3ddata.h
-afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h
-afni_fimmer.o:afni_graph.h afni.h
-afni_plugin.o:afni_plugin.h 3ddata.h xutil.h afni.h bbox.h afni_warp.h
-afni_plugout.o:afni_plugin.h afni_plugout.h
+afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h
+afni_widg.o:imseq.h 3ddata.h xutil.h pbar.h afni.h mcw.h machdep.h
+afni_warp.o:afni_warp.h 3ddata.h machdep.h
+afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h machdep.h
+afni_fimmer.o:afni_graph.h afni.h machdep.h
+afni_plugin.o:afni_plugin.h 3ddata.h xutil.h afni.h bbox.h afni_warp.h machdep.h
+afni_plugout.o:afni_plugin.h afni_plugout.h machdep.h
 
 editvol.o:editvol.h 3ddata.h
 3dclust.o:editvol.h 3ddata.h
 3dmerge.o:editvol.h 3ddata.h
-pbar.o:pbar.h
+pbar.o:pbar.h machdep.h
 bbox.o:bbox.h xutil.h
 xutil.o:xutil.h
 imseq.o:imseq.h display.h bbox.h xutil.h mrilib.h
@@ -516,6 +520,8 @@ xim.o:xim.h display.h mrilib.h
 ts.o:ts.h
 to3d.o:to3d.h
 iochan.o:iochan.h
+
+3dbucket.o:3ddata.h editvol.h
 
 afni_plugout.o:afni_plugout.h iochan.h afni_plugin.h
 
@@ -563,7 +569,7 @@ plugins:plug_clust.$(SO)   plug_copy.$(SO)     plug_rename.$(SO) \
         plug_lsqfit.$(SO)  plug_imreg.$(SO)    plug_edit.$(SO)   \
         plug_nlfit.$(SO)   plug_realtime.$(SO)                   \
         plug_coorder.$(SO) plug_3Ddump.$(SO)                     \
-        models
+        models 3ddata.h
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
         model_null.$(SO) \

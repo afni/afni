@@ -112,6 +112,13 @@ particular, is fairly dubious.)
 Finally, only the fico, fitt, fift, fizt, and fict types have actually
 been tested.  The others remain to be verified.
 
+Bucket Dataset Types (new in Dec 1997)
+======================================
+The new bucket dataset types (`abuc' == ANAT_BUCK_TYPE, and
+`fbuc' == FUNC_BUCK_TYPE) can contain an arbitrary number of sub-bricks.
+In an fbuc dataset, each sub-brick can have one of the statistical types
+described above attached to it.
+
 ================================
 Robert W. Cox, PhD
 Biophysics Research Institute

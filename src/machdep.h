@@ -102,6 +102,7 @@
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define BOXUP_SCALE
 # define DYNAMIC_LOADING_VIA_DL
+# define FIX_SCALE_SIZE_PROBLEM
 extern int alphasort(struct dirent **, struct dirent **) ;
 #endif
 

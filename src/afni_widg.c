@@ -10,9 +10,9 @@
     be used in place of MCW_arrowvals wherever possible **/
 
 #ifndef DONT_USE_OPTMENUS
-#ifndef USE_OPTMENUS
-#define USE_OPTMENUS
-#endif
+#  ifndef USE_OPTMENUS
+#    define USE_OPTMENUS
+#  endif
 #endif
 #define COLSIZE 20
 
@@ -32,6 +32,8 @@
    Make all the rest of the widgets for a Three_D_View
    (after the toplevel shell has been created)
 -----------------------------------------------------------------------*/
+
+static char * AFNI_dummy_av_label[2] = { "Nothing 1" , "Nothing 2" } ;
 
 static char * AFNI_crosshair_av_label[3] = { "Off" , "Single" , "Multi" } ;
 
@@ -398,12 +400,12 @@ STATUS("WANT_AFNI_BITMAP") ;
 
 STATUS("creating control panels") ;
 
-   imag =vwid->imag = XtNew(AFNI_imaging_widgets) ;ADDTO_KILL(im3d->kl,imag);
-   view =vwid->view = XtNew(AFNI_viewing_widgets) ;ADDTO_KILL(im3d->kl,view);
-   marks=vwid->marks= XtNew(AFNI_marks_widgets)   ;ADDTO_KILL(im3d->kl,marks);
-   func =vwid->func = XtNew(AFNI_function_widgets);ADDTO_KILL(im3d->kl,func);
-   prog =vwid->prog = XtNew(AFNI_program_widgets) ;ADDTO_KILL(im3d->kl,prog);
-   dmode=vwid->dmode= XtNew(AFNI_datamode_widgets);ADDTO_KILL(im3d->kl,dmode);
+   imag =vwid->imag = myXtNew(AFNI_imaging_widgets) ;ADDTO_KILL(im3d->kl,imag);
+   view =vwid->view = myXtNew(AFNI_viewing_widgets) ;ADDTO_KILL(im3d->kl,view);
+   marks=vwid->marks= myXtNew(AFNI_marks_widgets)   ;ADDTO_KILL(im3d->kl,marks);
+   func =vwid->func = myXtNew(AFNI_function_widgets);ADDTO_KILL(im3d->kl,func);
+   prog =vwid->prog = myXtNew(AFNI_program_widgets) ;ADDTO_KILL(im3d->kl,prog);
+   dmode=vwid->dmode= myXtNew(AFNI_datamode_widgets);ADDTO_KILL(im3d->kl,dmode);
 
    imag->frame =
       XtVaCreateWidget(
@@ -1988,6 +1990,12 @@ ENTRY("AFNI_make_wid2") ;
    char thr_str[] = "-----------" ;
    char zork[2] ;
 
+   int smax , stop , decim , sstep ;                  /* 30 Nov 1997:       */
+   decim = THR_TOP_EXPON ;                            /* compute parameters */
+   smax  = (int)( pow(10.0,decim) + 0.001 ) ;         /* for scale display. */
+   stop  = smax - 1 ;
+   sstep = smax / 1000 ;  if( sstep < 1 ) sstep = 1 ;
+
 #ifdef BOXUP_SCALE
    qqq = XtVaCreateManagedWidget(
            "dialog" , xmFrameWidgetClass , func->thr_rowcol ,
@@ -2002,16 +2010,16 @@ ENTRY("AFNI_make_wid2") ;
    func->thr_scale =
       XtVaCreateManagedWidget(
          "scale" , xmScaleWidgetClass , qqq ,
-            XmNminimum , 0 ,         /* 30 Oct 1996: changed */
-            XmNmaximum , 999 ,       /* range from 0..99 to  */
-            XmNscaleMultiple , 1 ,   /* 0..999, and made it  */
-            XmNdecimalPoints , 3 ,   /* decim-shifted by 3   */
+            XmNminimum , 0 ,             /* 30 Nov 1997: changed */
+            XmNmaximum , stop ,          /* range to be computed */
+            XmNscaleMultiple , sstep ,
+            XmNdecimalPoints , decim ,
 #ifdef FIX_SCALE_VALUE_PROBLEM
             XmNshowValue , False ,
 #else
             XmNshowValue , True ,
 #endif
-            XmNvalue , (int)(1000*im3d->vinfo->func_threshold) ,
+            XmNvalue , (int)(smax*im3d->vinfo->func_threshold) ,
             XmNorientation , XmVERTICAL ,
             XmNheight , sel_height ,
             XmNborderWidth , 0 ,
@@ -2078,7 +2086,7 @@ ENTRY("AFNI_make_wid2") ;
    func->thr_top_av = new_MCW_arrowval( func->thr_rowcol ,
                                         "**" ,
                                         AVOPT_STYLE ,
-                                        0,3,0 ,
+                                        0,THR_TOP_EXPON,0 ,
                                         MCW_AV_notext , 0 ,
                                         AFNI_thresh_top_CB , (XtPointer) im3d ,
                                         AFNI_thresh_tlabel_CB , NULL ) ;
@@ -2269,6 +2277,139 @@ ENTRY("AFNI_make_wid2") ;
 
    ADDTO_KILL(im3d->kl,func->underlay_bbox) ;
 
+   /*--- 30 Nov 1997: bucket managers ---*/
+
+   func->buck_frame =
+      XtVaCreateWidget(
+         "dialog" , xmFrameWidgetClass , func->options_rowcol ,
+            XmNshadowType , XmSHADOW_ETCHED_IN ,
+            XmNshadowThickness , 2 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   func->buck_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->buck_frame ,
+            XmNorientation , XmVERTICAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   /*--- 30 Nov 1997: anatomy bucket arrowval ---*/
+   /*    (Actual labels are set when used)       */
+
+   func->anat_buck_av = new_MCW_arrowval(
+                          func->buck_rowcol    ,  /* parent Widget */
+                          "Anat" ,                /* label */
+                          MCW_AV_optmenu ,        /* option menu style */
+                          0 ,                     /* first option */
+                          1 ,                     /* last option */
+                          0 ,                     /* initial selection */
+                          MCW_AV_readtext ,       /* ignored but needed */
+                          0 ,                     /* ditto */
+                          AFNI_bucket_CB ,        /* callback when changed */
+                          (XtPointer) im3d ,      /* data for above */
+                          MCW_av_substring_CB ,   /* text creation routine */
+                          AFNI_dummy_av_label     /* data for above */
+                        ) ;
+
+   func->anat_buck_av->parent     = (XtPointer) im3d ;
+   func->anat_buck_av->allow_wrap = True ;
+
+   MCW_reghelp_children( func->anat_buck_av->wrowcol ,
+                         "Use this to choose which\n"
+                         "sub-brick of the anatomical\n"
+                         "dataset to display (='Anat').\n"
+                         "(The sub-brick labels are\n"
+                         " assigned when the dataset\n"
+                         " is created.  The [index]\n"
+                         " values show the numerical\n"
+                         " location of the sub-brick\n"
+                         " in the dataset.)"           ) ;
+   MCW_reghint_children( func->anat_buck_av->wrowcol ,
+                         "Choose Anat sub-brick" ) ;
+
+   ADDTO_KILL(im3d->kl,func->anat_buck_av) ;
+
+   XtUnmanageChild( func->anat_buck_av->wrowcol ) ;
+
+   /*--- 30 Nov 1997: function bucket arrowval ---*/
+
+   func->fim_buck_av = new_MCW_arrowval(
+                          func->buck_rowcol    ,  /* parent Widget */
+                          "Func" ,                /* label */
+                          MCW_AV_optmenu ,        /* option menu style */
+                          0 ,                     /* first option */
+                          1 ,                     /* last option */
+                          0 ,                     /* initial selection */
+                          MCW_AV_readtext ,       /* ignored but needed */
+                          0 ,                     /* ditto */
+                          AFNI_bucket_CB ,        /* callback when changed */
+                          (XtPointer) im3d ,      /* data for above */
+                          MCW_av_substring_CB ,   /* text creation routine */
+                          AFNI_dummy_av_label     /* data for above */
+                        ) ;
+
+   func->fim_buck_av->parent     = (XtPointer) im3d ;
+   func->fim_buck_av->allow_wrap = True ;
+
+   MCW_reghelp_children( func->fim_buck_av->wrowcol ,
+                         "Use this to choose which\n"
+                         "sub-brick of the functional\n"
+                         "dataset to display (='Func').\n"
+                         "(The sub-brick labels are\n"
+                         " assigned when the dataset\n"
+                         " is created.  The [index]\n"
+                         " values show the numerical\n"
+                         " location of the sub-brick\n"
+                         " in the dataset.)"           ) ;
+   MCW_reghint_children( func->fim_buck_av->wrowcol ,
+                         "Choose Func sub-brick" ) ;
+
+   ADDTO_KILL(im3d->kl,func->fim_buck_av) ;
+
+   XtUnmanageChild( func->fim_buck_av->wrowcol ) ;
+
+   /*--- 30 Nov 1997: threshold bucket arrowval ---*/
+
+   func->thr_buck_av = new_MCW_arrowval(
+                          func->buck_rowcol    ,  /* parent Widget */
+                          "Thr " ,                /* label */
+                          MCW_AV_optmenu ,        /* option menu style */
+                          0 ,                     /* first option */
+                          1 ,                     /* last option */
+                          0 ,                     /* initial selection */
+                          MCW_AV_readtext ,       /* ignored but needed */
+                          0 ,                     /* ditto */
+                          AFNI_bucket_CB ,        /* callback when changed */
+                          (XtPointer) im3d ,      /* data for above */
+                          MCW_av_substring_CB ,   /* text creation routine */
+                          AFNI_dummy_av_label     /* data for above */
+                        ) ;
+
+   func->thr_buck_av->parent     = (XtPointer) im3d ;
+   func->thr_buck_av->allow_wrap = True ;
+
+   MCW_reghelp_children( func->thr_buck_av->wrowcol ,
+                         "Use this to choose which\n"
+                         "sub-brick of the functional\n"
+                         "dataset with which to threshold\n"
+                         "the Func sub-brick (='Thr').\n"
+                         "(The sub-brick labels are\n"
+                         " assigned when the dataset\n"
+                         " is created.  The [index]\n"
+                         " values show the numerical\n"
+                         " location of the sub-brick\n"
+                         " in the dataset.)"           ) ;
+   MCW_reghint_children( func->thr_buck_av->wrowcol ,
+                         "Choose Thr sub-brick" ) ;
+
+   ADDTO_KILL(im3d->kl,func->thr_buck_av) ;
+
+   XtUnmanageChild( func->thr_buck_av->wrowcol ) ;
+
    /*--- radio box to control which function we see ---*/
 
    func->functype_bbox =
@@ -2397,6 +2538,7 @@ ENTRY("AFNI_make_wid2") ;
 
    AV_SENSITIZE( func->range_av , ! im3d->vinfo->use_autorange ) ;
 
+#ifdef USE_FUNC_FIM
    /*--- fim execution controls ---*/
 
    func->fim_frame =
@@ -2447,6 +2589,7 @@ ENTRY("AFNI_make_wid2") ;
          "is currently set up."
    ) ;
    MCW_register_hint( func->fim_dset_label , "Dataset to be FIM-ed") ;
+#endif
 
 #ifdef ALLOW_BKGD_LAB
    xstr = XmStringCreateLtoR( "Anat = xxxxxxxxxxxxxxxx\n"
@@ -2488,7 +2631,9 @@ ENTRY("AFNI_make_wid2") ;
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
    XtManageChild( func->options_rowcol ) ;
+#ifdef USE_FUNC_FIM
    XtManageChild( func->fim_rowcol ) ;
+#endif
    XtManageChild( func->rowcol ) ;
 
    EXRETURN ;
@@ -2563,7 +2708,7 @@ ENTRY("AFNI_make_wid3") ;
 
    MCW_reghelp_children( dmode->anat_resam_av->wrowcol ,
      "This controls the resampling mode for\n"
-     "anatomical data:\n\n"
+     "anatomical data (for display and writing):\n\n"
      "NN = nearest neighbor resampling [fastest]\n"
      "Li = linear interpolation        [OK]\n"
      "Cu = cubic interpolation         [nice but slow]\n"
@@ -2674,13 +2819,59 @@ ENTRY("AFNI_make_wid3") ;
 
    MCW_reghelp_children( dmode->func_resam_av->wrowcol ,
      "This controls the resampling mode for\n"
-     "functional data (intensity only):\n\n"
+     "functional data (display and writing):\n\n"
      "NN = nearest neighbor resampling [fastest]\n"
      "Li = linear interpolation        [OK]\n"
      "Cu = cubic interpolation         [nice but slow]\n"
      "Bk = blocky interpolation        [between NN & Li]\n\n"
-     "N.B.: Threshold data is always using NN mode."  ) ;
+     "N.B.: Dataset sub-bricks without statistical\n"
+     "  parameters attached will be interpolated using\n"
+     "  this method.  Those with statistical parameters\n"
+     "  will be interpolated using the method chosen below." ) ;
+
    MCW_reghint_children( dmode->func_resam_av->wrowcol , "Resampling method" ) ;
+
+   /*-- thr resampling control (09 Dec 1997) --*/
+
+   dmode->thr_resam_av = new_MCW_arrowval(
+                             dmode->rowcol ,
+#ifdef USE_OPTMENUS
+                             "Thr  resam mode" ,
+#else
+                             "Thr mode  " ,
+#endif
+                             AVOPT_STYLE ,
+                             FIRST_RESAM_TYPE ,
+                             LAST_RESAM_TYPE ,
+                             im3d->vinfo->thr_resam_mode ,
+                             MCW_AV_readtext , 0 ,
+                             AFNI_resam_av_CB , (XtPointer) im3d ,
+                             AFNI_resam_texter , NULL ) ;
+
+   dmode->thr_resam_av->parent     = (XtPointer) im3d ;
+   dmode->thr_resam_av->allow_wrap = 1 ;       /* wrap values */
+   dmode->thr_resam_av->fastdelay  = 1000 ;    /* slow it down */
+
+#ifndef USE_OPTMENUS
+   XtVaSetValues( dmode->thr_resam_av->wtext ,
+                     XmNcolumns   , NSTR_SHORT_RESAM ,
+                     XmNmaxLength , NSTR_SHORT_RESAM ,
+                  NULL ) ;
+#endif
+
+   MCW_reghelp_children( dmode->thr_resam_av->wrowcol ,
+     "This controls the resampling mode for\n"
+     "functional data (threshold only):\n\n"
+     "NN = nearest neighbor resampling [fastest]\n"
+     "Li = linear interpolation        [OK]\n"
+     "Cu = cubic interpolation         [nice but slow]\n"
+     "Bk = blocky interpolation        [between NN & Li]\n\n"
+     "N.B.: Dataset sub-bricks without statistical\n"
+     "  parameters attached will be interpolated using\n"
+     "  the method chosen above.  Those with statistical\n"
+     "   parameters will be interpolated using this method." ) ;
+
+   MCW_reghint_children( dmode->thr_resam_av->wrowcol , "Resampling method" ) ;
 
    /*--- separator between func stuff and write buttons ---*/
 
@@ -3442,15 +3633,15 @@ ENTRY("new_AFNI_controller") ;
 
    /*-- create the basic stuff --*/
 
-   im3d = XtNew(Three_D_View) ; INIT_KILL(im3d->kl) ;
+   im3d = myXtNew(Three_D_View) ; INIT_KILL(im3d->kl) ;
 
-   im3d->vwid   = XtNew(AFNI_widget_set) ; ADDTO_KILL(im3d->kl,im3d->vwid) ;
+   im3d->vwid   = myXtNew(AFNI_widget_set) ; ADDTO_KILL(im3d->kl,im3d->vwid) ;
    im3d->type   = im3d_type ;
    im3d->opened = 0 ;          /* not yet opened up */
    im3d->dc     = dc ;
-   im3d->vinfo  = XtNew( AFNI_view_info ); ADDTO_KILL(im3d->kl,im3d->vinfo);
+   im3d->vinfo  = myXtNew( AFNI_view_info ); ADDTO_KILL(im3d->kl,im3d->vinfo);
 
-   im3d->fimdata = XtNew( AFNI_fimmer_type ); ADDTO_KILL(im3d->kl,im3d->fimdata);
+   im3d->fimdata = myXtNew( AFNI_fimmer_type ); ADDTO_KILL(im3d->kl,im3d->fimdata);
    CLEAR_FIMDATA(im3d) ;
 
    strcpy( im3d->window_title , "MCW AFNI" ) ;
@@ -3518,6 +3709,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->resam_vox         = INIT_resam_vox ;
    im3d->vinfo->anat_resam_mode   = INIT_resam_anat ;
    im3d->vinfo->func_resam_mode   = INIT_resam_func ;
+   im3d->vinfo->thr_resam_mode    = INIT_resam_thr ;
    im3d->vinfo->func_threshold    = 0.5 ;
    im3d->vinfo->inverted_pause    = False ;
 
@@ -3525,6 +3717,10 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->fim_range         = DEFAULT_FIM_SCALE ;
    im3d->vinfo->fim_autorange     = DEFAULT_FIM_SCALE ;
    im3d->vinfo->use_posfunc       = GLOBAL_argopt.pos_func ;
+
+   im3d->vinfo->anat_index        = 0 ;  /* 30 Nov 1997 */
+   im3d->vinfo->fim_index         = 0 ;
+   im3d->vinfo->thr_index         = 0 ;
 
    /** July 1996: set up the montage crosshair stuff **/
 
@@ -3560,13 +3756,13 @@ ENTRY("new_AFNI_controller") ;
 
    /* 02 Nov 1996: create daxes and voxwarp spaces for viewing */
 
-   im3d->wod_daxes          = XtNew(THD_dataxes) ;
+   im3d->wod_daxes          = myXtNew(THD_dataxes) ;
    im3d->wod_daxes->type    = DATAXES_TYPE ;
 
-   im3d->anat_voxwarp       = XtNew(THD_warp) ;
+   im3d->anat_voxwarp       = myXtNew(THD_warp) ;
    im3d->anat_voxwarp->type = ILLEGAL_TYPE ;
 
-   im3d->fim_voxwarp        = XtNew(THD_warp) ;
+   im3d->fim_voxwarp        = myXtNew(THD_warp) ;
    im3d->fim_voxwarp->type  = ILLEGAL_TYPE ;
 
    RETURN(im3d) ;
@@ -4052,6 +4248,32 @@ void AFNI_misc_button( Three_D_View * im3d )
          }
    }
 #endif
+
+   /*-- pushbuttons to popup info about datasets --*/
+
+   dmode->misc_anat_info_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Anat Info") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_anat_info_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_anat_info_pb , "Popup anat dataset info" ) ;
+
+   dmode->misc_func_info_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Func Info") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_func_info_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_func_info_pb , "Popup func dataset info" ) ;
 
    XtManageChild( rc ) ;
    return ;

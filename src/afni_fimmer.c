@@ -899,6 +899,7 @@ STATUS("about to redisplay") ;
 
 /*--------------------------------------------------------------------------*/
 
+#ifdef USE_FUNC_FIM
 void AFNI_fimmer_menu_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
    FIM_menu * fmenu = (FIM_menu *) cd ;
@@ -1053,8 +1054,11 @@ ENTRY("AFNI_fimmer_menu_CB") ;
 
    EXRETURN ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
+
+#ifdef USE_FUNC_FIM
 
 #ifdef USE_OPTMENUS
 void AFNI_fimmer_ignore_choose_CB( MCW_arrowval * cbs , XtPointer cd )
@@ -1069,7 +1073,9 @@ void AFNI_fimmer_ignore_choose_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs 
    AFNI_fimmer_setignore( im3d , cbs->ival ) ;
    return ;
 }
+#endif
 
+#ifdef USE_FUNC_FIM
 void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
@@ -1098,6 +1104,7 @@ void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs 
 
    return ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -1297,6 +1304,7 @@ void AFNI_process_interrupts( Widget w )
    return ;
 }
 
+#ifdef USE_FUNC_FIM
 void AFNI_fimmer_fix_optmenu( Three_D_View * im3d )
 {
    int igtop , ntime ;
@@ -1338,3 +1346,4 @@ ENTRY("AFNI_fimmer_fix_optmenu") ;
 
    EXRETURN ;
 }
+#endif

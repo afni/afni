@@ -57,12 +57,15 @@ ENTRY("AFNI_dataset_slice") ;
    nyy   = daxes->nyy ;
    nzz   = daxes->nzz ;
 
+#if 0
    /*** June 1996: if resampling a threshold, always use NN ***/
 
    if( ival == DSET_THRESH_VALUE(dset) ) resam_mode = RESAM_NN_TYPE ;
+#endif
 
 #ifdef AFNI_DEBUG
 { char str[256] ;
+  sprintf(str,"Input dataset = %s",DSET_FILECODE(dset)) ; STATUS(str) ;
   sprintf(str,"nxx=%d nyy=%d nzz=%d",nxx,nyy,nzz) ;  STATUS(str) ;
   sprintf(str,"fixed_axis=%d fixed_index=%d ival=%d resam=%d",
           fixed_axis,fixed_index,ival,resam_mode ) ; STATUS(str) ; }
@@ -244,6 +247,8 @@ STATUS("warp-on-demand") ;
    /**********   [See template routines in afni_slice.c]    **********/
    /******************************************************************/
 
+#undef USE_CLIP  /* 10 Dec 1997 -- CUBIC_CLIP is broken */
+
    switch( typ ){
 
       default:               /** Illegal type: should not happen! **/
@@ -260,6 +265,7 @@ STATUS("warp-on-demand") ;
 #define LMAP_XNAME TWO_TWO(AFNI_lmap_to_xslice_,DTYPE)
 #define LMAP_YNAME TWO_TWO(AFNI_lmap_to_yslice_,DTYPE)
 #define LMAP_ZNAME TWO_TWO(AFNI_lmap_to_zslice_,DTYPE)
+#ifdef USE_CLIP
 #define CUBIC_CLIP                                                         \
    if( resam_mode == RESAM_CUBIC_TYPE && ISVALID_STATISTIC(dset->stats) ){ \
      int ii , npix = newim->nx * newim->ny ;                               \
@@ -269,6 +275,9 @@ STATUS("warp-on-demand") ;
      if( bot < top ) for( ii=0 ; ii < npix ; ii++ )                        \
                         if( ar[ii] < bot ) ar[ii] = bot ;                  \
                    else if( ar[ii] > top ) ar[ii] = top ; }
+#else
+#define CUBIC_CLIP /* nada */
+#endif
 
       case TWO_TWO(MRI_,DTYPE):
       switch( fixed_axis ){
@@ -289,6 +298,7 @@ STATUS("warp-on-demand") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -306,6 +316,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -326,6 +337,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -343,6 +355,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -363,6 +376,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -380,6 +394,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -395,6 +410,7 @@ STATUS("scaling slice to floats") ;
 #define LMAP_XNAME TWO_TWO(AFNI_lmap_to_xslice_,DTYPE)
 #define LMAP_YNAME TWO_TWO(AFNI_lmap_to_yslice_,DTYPE)
 #define LMAP_ZNAME TWO_TWO(AFNI_lmap_to_zslice_,DTYPE)
+#ifdef USE_CLIP
 #define CUBIC_CLIP                                                         \
    if( resam_mode == RESAM_CUBIC_TYPE && ISVALID_STATISTIC(dset->stats) ){ \
      int ii , npix = newim->nx * newim->ny ;                               \
@@ -404,6 +420,9 @@ STATUS("scaling slice to floats") ;
      if( bot < top ) for( ii=0 ; ii < npix ; ii++ )                        \
                         if( ar[ii] < bot ) ar[ii] = bot ;                  \
                    else if( ar[ii] > top ) ar[ii] = top ; }
+#else
+#define CUBIC_CLIP /* nada */
+#endif
 
       case TWO_TWO(MRI_,DTYPE):
       switch( fixed_axis ){
@@ -424,6 +443,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -441,6 +461,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -461,6 +482,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -478,6 +500,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -498,6 +521,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -515,6 +539,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -530,6 +555,7 @@ STATUS("scaling slice to floats") ;
 #define LMAP_XNAME TWO_TWO(AFNI_lmap_to_xslice_,DTYPE)
 #define LMAP_YNAME TWO_TWO(AFNI_lmap_to_yslice_,DTYPE)
 #define LMAP_ZNAME TWO_TWO(AFNI_lmap_to_zslice_,DTYPE)
+#ifdef USE_CLIP
 #define CUBIC_CLIP                                                         \
    if( resam_mode == RESAM_CUBIC_TYPE && ISVALID_STATISTIC(dset->stats) ){ \
      int ii , npix = newim->nx * newim->ny ;                               \
@@ -539,6 +565,9 @@ STATUS("scaling slice to floats") ;
      if( bot < top ) for( ii=0 ; ii < npix ; ii++ )                        \
                         if( ar[ii] < bot ) ar[ii] = bot ;                  \
                    else if( ar[ii] > top ) ar[ii] = top ; }
+#else
+#define CUBIC_CLIP /* nada */
+#endif
 
       case TWO_TWO(MRI_,DTYPE):
       switch( fixed_axis ){
@@ -559,6 +588,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -576,6 +606,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -596,6 +627,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -613,6 +645,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -633,6 +666,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
 
                case WARP_TALAIRACH_12_TYPE:{
@@ -650,6 +684,7 @@ STATUS("scaling slice to floats") ;
                   mri_free(newim) ; newim = qim ;
 STATUS("scaling slice to floats") ;
                }
+               CUBIC_CLIP ;
                RETURN(newim) ;
          }
          break ;
@@ -767,6 +802,7 @@ MRI_IMAGE * FD_warp_to_mri( int kslice , int ival , FD_brick * br )
    int fixed_axis , fixed_index , dsl_1 , dsl_2 , rot,mir;
    MRI_IMAGE * dsim , * flim ;
    THD_dataxes * daxes ;
+   int resam_code ;
 
 ENTRY("FD_warp_to_mri") ;
 
@@ -816,8 +852,19 @@ ENTRY("FD_warp_to_mri") ;
   STATUS(str) ; }
 #endif
 
-   dsim = AFNI_dataset_slice( br->dset , fixed_axis , fixed_index ,
-                                         ival , br->resam_code ) ;
+   resam_code = ( DSET_BRICK_STATCODE(br->dset,ival) > 0 )
+                ? br->thr_resam_code
+                : br->resam_code ;
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"ival=%d  statcode=%d  resam_code=%d",
+          ival,DSET_BRICK_STATCODE(br->dset,ival),resam_code) ;
+  STATUS(str) ; }
+#endif
+
+   dsim = AFNI_dataset_slice( br->dset ,
+                              fixed_axis , fixed_index , ival , resam_code ) ;
 
    if( dsim == NULL ) RETURN(NULL) ;
 

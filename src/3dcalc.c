@@ -401,6 +401,8 @@ int main( int argc , char * argv[] )
 
    if( ISFUNC(new_dset) )
       EDIT_dset_items( new_dset , ADN_func_type , FUNC_FIM_TYPE , ADN_none ) ;
+   else if( ISANATBUCKET(new_dset) ) /* 30 Nov 1997 */
+      EDIT_dset_items( new_dset , ADN_func_type , ANAT_EPI_TYPE , ADN_none ) ;
 
    if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
       fprintf(stderr,

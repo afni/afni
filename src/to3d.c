@@ -3646,11 +3646,11 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
       exit(1) ;
    }
 
-   dset    =                 XtNew( THD_3dim_dataset ) ;  /* these are */
-   dblk    = dset->dblk    = XtNew( THD_datablock ) ;     /* globals */
-   daxes   = dset->daxes   = XtNew( THD_dataxes ) ;
+   dset    =                 myXtNew( THD_3dim_dataset ) ;  /* these are */
+   dblk    = dset->dblk    = myXtNew( THD_datablock ) ;     /* globals */
+   daxes   = dset->daxes   = myXtNew( THD_dataxes ) ;
    markers = dset->markers = NULL ;                       /* later, dude */
-   dkptr   = dblk->diskptr = XtNew( THD_diskptr ) ;
+   dkptr   = dblk->diskptr = myXtNew( THD_diskptr ) ;
 
    INIT_KILL(dset->kl) ; INIT_KILL(dblk->kl) ;
 
@@ -3679,6 +3679,7 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    dblk->brick_bytes = NULL ;
 
    THD_init_datablock_brick( dblk , argopt.datum_all , NULL ) ;
+   THD_null_datablock_auxdata( dblk ) ;
 
    bsize = nx*ny*nz * mri_datum_size( argopt.datum_all ) ;
    for( ibr=0 ; ibr < nvals ; ibr++ ){
@@ -3882,7 +3883,7 @@ XtPointer T3D_getim( int n , int type , FD_brick * br )
    if( n < 0 || n >= br->n3 || type == isqCR_getoverlay ) return NULL ;
 
    if( type == isqCR_getstatus ){
-      stat = XtNew( MCW_imseq_status ) ;
+      stat = myXtNew( MCW_imseq_status ) ;
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
@@ -3982,6 +3983,7 @@ QQQ("save_file1");
 
    MCW_strncpy( dset->label1 , user_inputs.short_label1 , THD_MAX_LABEL ) ;
    MCW_strncpy( dset->label2 , user_inputs.short_label2 , THD_MAX_LABEL ) ;
+   dset->keywords = NULL ;
 
    if( strlen(dset->label1) == 0 ){
       MCW_strncpy( dset->label1 , user_inputs.output_filename , THD_MAX_LABEL ) ;
@@ -4045,7 +4047,7 @@ QQQ("save_file1");
    dset->taxis = NULL ;
 
    if( user_inputs.ntt > 0 ){
-      dset->taxis = XtNew( THD_timeaxis ) ;
+      dset->taxis = myXtNew( THD_timeaxis ) ;
 
       dset->taxis->type       = TIMEAXIS_TYPE ;
       dset->taxis->ntt        = user_inputs.ntt ;
@@ -4098,7 +4100,7 @@ QQQ("save_file1");
        dset->view_type == VIEW_ORIGINAL_TYPE &&
        DSET_NUM_TIMES(dset) == 1                ){  /* no markers on 3D+t datasets! */
 
-      markers = dset->markers = XtNew( THD_marker_set ) ;
+      markers = dset->markers = myXtNew( THD_marker_set ) ;
       markers->numdef = 0 ;
 
       for( ii=0 ; ii < MARKS_MAXNUM ; ii++ ){       /* null all data out */

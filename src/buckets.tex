@@ -1,0 +1,661 @@
+\documentstyle[12pt,art12cox,epsf]{article}
+\newcommand{\afni}{{\em AFNI\,}}
+\newcommand{\afnit}{{\em AFNI\/}\ }
+
+\newcommand{\MCW}{{\sf MCW}}
+
+\newcommand{\mcwafni}{\MCW$\!$ \afnit}
+
+\setlength{\topmargin}{0.0in}
+\setlength{\textheight}{8.7in}
+\setlength{\oddsidemargin}{0.25in}
+\setlength{\evensidemargin}{0.25in}
+\setlength{\textwidth}{6.5in}
+\setlength{\footskip}{.7in}
+
+\hyphenpenalty=200
+
+\def\mypleft{\footnotesize \MCW$\!$ \afnit Buckets}
+\def\mypright{\scriptsize\today}
+\dashpage
+
+\raggedbottom
+
+\newcommand{\seeme}[1]%
+{\marginpar{\raggedright%
+$\star\star\star$\hspace*{0pt plus 1fill}$\longrightarrow$\\{}%
+\scriptsize\bf#1}}
+
+\newcommand{\blob}{\hspace*{1em}}
+\newcommand{\vset}{\vspace{0.5in}\goodbreak\vspace{-0.5in}}
+
+\newcommand{\mysec}[1]{%
+\vspace{2in}\goodbreak\vspace{-1.99in}\section{#1}}
+
+\newcommand{\mysubsec}[1]{%
+\vspace{1.1in}\goodbreak\vspace{-1.09in}\subsection{#1}}
+
+\newcommand{\subbreak}[1]{\vspace{#1}\penalty-5000\vspace{-#1}}
+
+\newcommand{\dline}[1]%
+{\subbreak{0.6in}\noindent%
+\underline{\bf$\vphantom{y}$#1}\\*[.1ex]\nopagebreak}
+
+%\setcounter{tocdepth}{2}
+
+%---------------------------------------------------------------------
+\begin{document}
+%%%\thispagestyle{empty}
+
+\vspace*{0.4in}
+\centerline{\Large\bf\boldmath \MCW$\!$ \afnit --- Buckets}\vspace{1ex}
+\centerline{\large\bf Robert W. Cox, Ph.D.}\vspace{0.4ex}
+\centerline{\tt rwcox@mcw.edu}\vspace{0.2ex}
+\centerline{\copyright\ 1997 Medical College of Wisconsin}
+
+\vspace{5ex}
+\centerline{\fbox{\fbox{\LARGE\bf The New `Bucket' Dataset Type}}}
+\vspace{6ex}
+
+\noindent
+A {\bf bucket} dataset is a 3D dataset that can contain an
+arbitrary number of sub-bricks.  These sub-bricks are not
+considered to be time-ordered; rather, the bucket dataset type
+is a place where the user can toss 3D bricks of data.
+
+This documentation is provided to update the \afnit plugins
+manual and to explain the programmatic interface for creating
+bucket datasets.  It is current as of \afnit 2.20, and
+is at present a work-in-progress ({\it i.e.},~subject to change
+at a moment's whim).
+
+Note that the entire \mcwafni package---including plugins---must be recompiled
+to use these features.  This is because the internal
+storage scheme used for datasets has been modified slightly.
+
+\tableofcontents
+\newpage
+%---------------------------------------------------------------------
+It has always been possible to create a 3D (no time) dataset with
+multiple sub-bricks.  Until now, there has not been any program
+that would do this, nor would any but the first sub-brick be
+visible from within \afni.
+The new program {\tt 3dbucket} allows the creation of
+datasets with an arbitrary number of sub-bricks drawn from
+the bricks of existing dataset.  \afnit has been modified
+to allow the user to switch viewing between sub-bricks.
+The dataset structure has been extended to allow extra
+information to be attached to each sub-brick to make
+them easy to distinguish.  A~programming interface has
+been implemented that allows external programs (and plugins)
+to create 3D bucket datasets.
+
+%---------------------------------------------------------------------
+\mysec{Sub-brick Auxiliary Data}
+Three new types of data can be associated with each sub-brick in any
+\afnit dataset (bucket, 3D+time,~\ldots). They are
+\begin{description}
+
+  \item[Label] This is a character string that is displayed on
+               the \afnit bucket chooser menu that lets the user
+               decide which sub-brick should be displayed (see~\S5).
+
+  \item[Keywords] This is a character string that contains a
+                  list of keywords that are to be associated
+                  with a given sub-brick.  Each keyword is
+                  separated by the C substring \hbox{\tt " ; "}.
+                  At present, the keywords have no function
+                  within any \mcwafni program, but that
+                  is likely to change shortly.
+
+  \item[Statistical Parameters]
+         Each sub-brick can have a statistical type attached,
+         exactly as some of the earlier function types can.
+         If a sub-brick with a valid statistical type is chosen to be the threshold
+         sub-brick from within \afni, then the nominal $p$-value per voxel will be
+         displayed beneath the threshold slider.
+
+         Most of these sub-brick statistical types require
+         auxiliary parameters.  The list of statistical types is:\vspace{1ex}
+
+   \centerline{\begin{tabular}{|l|l|l|l|}\hline
+    Name & Type Code     & Distribution       & Auxiliary parameters \\\hline\hline
+   %
+    {\tt fico} & {\tt FUNC\_COR\_TYPE} & Correlation Coeff & \# Samples, \# Fit Param, \# Ort Param \\\hline
+    {\tt fitt} & {\tt FUNC\_TT\_TYPE}  & Student t         &  Degrees-of-Freedom (DOF) \\\hline
+    {\tt fift} & {\tt FUNC\_FT\_TYPE}  & F ratio           &  Numerator DOF, Denominator DOF \\\hline
+    {\tt fizt} & {\tt FUNC\_ZT\_TYPE}  & Standard Normal   &  --- none --- \\\hline
+    {\tt fict} & {\tt FUNC\_CT\_TYPE}  & Chi-Squared       &  DOF \\\hline
+    {\tt fibt} & {\tt FUNC\_BT\_TYPE}  & Incomplete Beta   &  Parameters $a$ and $b$  \\\hline
+    {\tt fibn} & {\tt FUNC\_BN\_TYPE}  & Binomial          &  \# Trials, Probability per trial \\\hline
+    {\tt figt} & {\tt FUNC\_GT\_TYPE}  & Gamma             &  Shape, Scale \\\hline
+    {\tt fipt} & {\tt FUNC\_PT\_TYPE}  & Poisson           &  Mean \\\hline
+   \end{tabular}}\vspace{1ex}
+
+         The `Name' is used on the command line when modifying the auxiliary data
+         inside a dataset using the program {\tt 3drefit}.  The `Type Code' is a C macro
+         for a constant that is used from within a program when modifying the
+         auxiliary data.
+
+\end{description}
+
+In addition to the sub-brick specific keywords list, I have also added a global
+keywords list that pertains to the entire dataset.  One ultimate purpose of
+the keywords lists is to allow the selection of datasets and sub-bricks based
+on keywords.
+
+It is possible to attach a label and a statistical type to sub-bricks
+of non-bucket datasets.  But they will have no effect.
+
+%---------------------------------------------------------------------
+\mysec{Program {\tt 3dbucket}}
+At this moment, the only program that can create a bucket dataset is
+{\tt 3dbucket}.  (In particular, {\tt to3d} {\it cannot\/} create
+a bucket dataset!)  {\tt 3dbucket} concatenates 3D sub-bricks from
+multiple input datasets and produce one output bucket dataset.
+The main purpose of this program is to experiment with bucket datasets.
+Its help file follows:
+\begin{verbatim}
+Usage: 3dbucket options
+where the options are:
+     -prefix pname = Use 'pname' for the output dataset prefix name.
+ OR  -output pname     [default='buck']
+
+     -session dir  = Use 'dir' for the output dataset session directory.
+                       [default='./'=current working directory]
+     -dry          = Execute a 'dry run'; that is, only print out
+                       what would be done.  This is useful when
+                       combining sub-bricks from multiple inputs.
+     -verb         = Print out some verbose output as the program
+                       proceeds (-dry implies -verb).
+     -fbuc         = Create a functional bucket.
+     -abuc         = Create an anatomical bucket.  If neither of
+                       these options is given, the output type is
+                       determined from the first input type.
+
+Other arguments are taken as input datasets.  A dataset is specified
+using one of the forms
+   'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.
+You can also add a sub-brick selection list after the end of the
+dataset name.  This allows only a subset of the sub-bricks to be
+included into the output (by default, all of the input dataset
+is copied into the output).  A sub-brick selection list looks like
+one of the following forms:
+  fred+orig[5]                     ==> use only sub-brick #5
+  fred+orig[5,9,17]                ==> use #5, #9, and #12
+  fred+orig[5..8]     or [5-8]     ==> use #5, #6, #7, and #8
+  fred+orig[5..13(2)] or [5-13(2)] ==> use #5, #7, #9, #11, and #13
+Sub-brick indexes start at 0.  You can use the character '$'
+to indicate the last sub-brick in a dataset; for example, you
+can select every third sub-brick by using the selection list
+  fred+orig[0..$(3)]
+
+N.B.: The sub-bricks are output in the order specified, which may
+ not be the order in the original datasets.  For example, using
+  fred+orig[0..$(2),1..$(2)]
+ will cause the sub-bricks in fred+orig to be output into the
+ new dataset in an interleaved fashion.  Using
+  fred+orig[$..0]
+ will reverse the order of the sub-bricks in the output.
+
+N.B.: Bucket datasets have multiple sub-bricks, but do NOT have
+ a time dimension.  You can input sub-bricks from a 3D+time dataset
+ into a bucket dataset.  You can use the '3dinfo' program to see
+ how many sub-bricks a 3D+time or a bucket dataset contains.
+
+N.B.: The '$', '(', ')', '[', and ']' characters are special to
+ the shell, so you will have to escape them.  This is most easily
+ done by putting the entire dataset plus selection list inside
+ single quotes, as in 'fred+orig[5..7,9]'.
+\end{verbatim}
+
+\noindent
+Some additional points:
+\begin{itemize}
+  \item If an input sub-brick has a statistical type, then its type
+        and auxiliary parameters are copied to the output sub-brick.
+        This happen if the input dataset is one of the functional
+        types with a statistics threshold attached ({\it e.g.},~the
+        second sub-brick from a {\tt fico} dataset).  It can also
+        happen if the input dataset is itself a bucket dataset.
+
+  \item The sub-brick labels for the output dataset are of the form
+        {\tt prefix[index]}, where `{\tt prefix}' is the input
+        dataset and `{\tt index}' is the integer index of the
+        sub-brick in the input dataset.
+
+  \item The output sub-brick keywords are copied from the input sub-bricks,
+        if any.  The additional keyword {\tt prefix+view[index]} is also
+        attached to the sub-brick keyword list.
+
+  \item I intend to extend the input sub-brick selection scheme
+        for {\tt 3dbucket} to allow selection from keyword lists.
+        Eventually, it will also be possible to construct datasets
+        `on-the-fly' on the command line for any program.
+
+  \item Anatomical bucket datasets are not particularly useful,
+        at least at present. (Got any ideas for applications?)
+\end{itemize}
+
+%---------------------------------------------------------------------
+\mysec{Program {\tt 3drefit}}
+This program lets the user change the contents of a dataset header.
+It has been extended to let the sub-brick auxiliary data be modified.
+Its help file follows:
+\begin{verbatim}
+Usage: 3drefit [options] dataset ...
+where the options are
+  -orient code    Sets the orientation of the 3D volume(s) in the .BRIK.
+                  The code must be 3 letters, one each from the
+                  pairs {R,L} {A,P} {I,S}.  The first letter gives
+                  the orientation of the x-axis, the second the
+                  orientation of the y-axis, the third the z-axis:
+                     R = right-to-left         L = left-to-right
+                     A = anterior-to-posterior P = posterior-to-anterior
+                     I = inferior-to-superior  S = superior-to-inferior
+               ** WARNING: when changing the orientation, you must be sure
+                  to check the origins as well, to make sure that the volume
+                  is positioned correctly in space.
+
+  -xorigin distx  Puts the center of the edge voxel off at the given
+  -yorigin disty  distance, for the given axis (x,y,z); distances in mm.
+  -zorigin distz  (x=first axis, y=second axis, z=third axis).
+                  Usually, only -zorigin makes sense.  Note that this
+                  distance is in the direction given by the corresponding
+                  letter in the -orient code.  For example, '-orient RAI'
+                  would mean that '-zorigin 30' sets the center of the
+                  first slice at 30 mm Inferior.  See the to3d manual
+                  for more explanations of axes origins.
+               ** SPECIAL CASE: you can use the string 'cen' in place of
+                  a distance to force that axis to be re-centered.
+
+  -xdel dimx      Makes the size of the voxel the given dimension,
+  -ydel dimy      for the given axis (x,y,z); dimensions in mm.
+  -zdel dimz   ** WARNING: if you change a voxel dimension, you will
+                  probably have to change the origin as well.
+
+  -TR time        Changes the TR time to a new value (see 'to3d -help').
+               ** WARNING: this only applies to 3D+time datasets.
+
+  -newid          Changes the ID code of this dataset as well.
+
+  -statpar v ...  Changes the statistical parameters stored in this
+                  dataset.  See 'to3d -help' for more details.
+
+  -markers        Adds an empty set of AC-PC markers to the dataset,
+                  if it can handle them (is anatomical, doesn't already
+                  have markers, is in the +orig view, and isn't 3D+time).
+
+  -appkey ll      Appends the string 'll' to the keyword list for the
+                  whole dataset.
+  -repkey ll      Replaces the keyword list for the dataset with the
+                  string 'll'.
+  -empkey         Destroys the keyword list for the dataset.
+
+  -type           Changes the type of data that is declared for this
+                  dataset, where 'type' is chosen from the following:
+       ANATOMICAL TYPES
+         spgr == Spoiled GRASS             fse == Fast Spin Echo
+         epan == Echo Planar              anat == MRI Anatomy
+           ct == CT Scan                  spct == SPECT Anatomy
+          pet == PET Anatomy               mra == MR Angiography
+         bmap == B-field Map              diff == Diffusion Map
+         omri == Other MRI                abuc == Anat Bucket
+       FUNCTIONAL TYPES
+          fim == Intensity                fith == Inten+Thr
+         fico == Inten+Cor                fitt == Inten+Ttest
+         fift == Inten+Ftest              fizt == Inten+Ztest
+         fict == Inten+ChiSq              fibt == Inten+Beta
+         fibn == Inten+Binom              figt == Inten+Gamma
+         fipt == Inten+Poisson            fbuc == Func-Bucket
+
+The options below allow you to attach auxiliary data to sub-bricks
+in the dataset.  Each option may be used more than once so that
+multiple sub-bricks can be modified in a single run of 3drefit.
+
+  -sublabel  n ll  Attach to sub-brick #n the label string 'll'.
+  -subappkey n ll  Add to sub-brick #n the keyword string 'll'.
+  -subrepkey n ll  Replace sub-brick #n's keyword string with 'll'.
+  -subempkey n     Empty out sub-brick #n' keyword string
+
+  -substatpar n type v ...
+                  Attach to sub-brick #n the statistical type and
+                  the auxiliary parameters given by values 'v ...',
+                  where 'type' is one of the following:
+
+
+
+         type  Description  PARAMETERS
+         ----  -----------  ----------------------------------------
+         fico  Cor          SAMPLES  FIT-PARAMETERS  ORT-PARAMETERS
+         fitt  Ttest        DEGREES-of-FREEDOM
+         fift  Ftest        NUMERATOR and DENOMINATOR DEGREES-of-FREEDOM
+         fizt  Ztest        N/A
+         fict  ChiSq        DEGREES-of-FREEDOM
+         fibt  Beta         A (numerator) and B (denominator)
+         fibn  Binom        NUMBER-of-TRIALS and PROBABILITY-per-TRIAL
+         figt  Gamma        SHAPE and SCALE
+         fipt  Poisson      MEAN
+\end{verbatim}
+
+\noindent
+{\tt 3drefit} is the only program that lets the user change the
+sub-brick label, keywords, and statistical parameters.  In particular,
+if you don't like the default labels provided by {\tt 3dbucket},
+you must use {\tt 3drefit} to patch things up.
+Program {\tt 3dinfo} has been modified so that it will print
+out the sub-brick auxiliary data (including keywords).  This will help guide
+the use of {\tt 3drefit}.
+
+%---------------------------------------------------------------------
+\mysec{Creating Buckets in a Program}
+\dline{Modifying Sub-Brick Parameters}
+A number of new {\tt ADN\_} commands have been added to
+{\tt EDIT\_dset\_items} in order to make creating
+bucket datasets moderately painless.  In combination
+with a couple of other utility routines, it is possible
+to create an empty dataset with $n$ sub-bricks, attach
+data arrays to them and auxiliary data to them, and even
+later to expand the number of sub-bricks.
+
+The new {\tt ADN\_} commands are described below.
+(This section should be read in conjunction with \S2.7
+of the \afnit plugins manual.)
+The inputs to {\tt EDIT\_dset\_items} are copied into the
+internal data structure of the dataset being modified,
+and so can be freed or otherwise recycled after
+this function return.
+Bucket construction examples will be given later.
+
+\vset
+\newcommand{\tb}[1]{\parbox[t]{3.6in}{\sloppy #1}}
+\begin{tabbing}
+  ADN CONTROL NAme \= ADN type na \= \kill
+%
+\underline{\bf Control Code} \> \underline{\bf Data Type} \> \underline{\bf Meaning} \\*[.5ex]
+%
+{\tt ADN\_brick\_label\_one}            \> {\tt char *} \>
+         \tb{Unlike the earlier {\tt ADN\_} codes, this one, and the
+             others below that end in `{\tt \_one}' are be used to
+             set auxiliary parameters for individual sub-bricks in
+             a dataset.  This is done by adding the sub-brick index
+             to the {\tt ADN\_} code. Note that only one version
+             of any particular `{\tt \_one}' code can be used per
+             call to {\tt EDIT\_dset\_items}---to set multiple sub-bricks,
+             a~loop is required.  This particular code is used
+             to set the label that is displayed in the menu that
+             is used to select which sub-brick is displayed.}
+\\[.9ex]
+
+{\tt ADN\_brick\_fac\_one}              \> {\tt float}  \>
+          \tb{This code is used to set the scale factor for an
+              individual sub-brick.  The alternative code,
+              {\tt ADN\_brick\_fac} (described in the plugins manual),
+              is used to set {\it all\/} the sub-brick factors at once.}
+\\[.9ex]
+
+{\tt ADN\_brick\_stataux\_one}          \> \tb{\blob\\[.5ex]{\tt float *}} \>
+          \tb{This code is used to set the auxiliary statistical
+              parameters for an individual sub-brick.  The {\tt float}
+              array that is passed as the paired argument must have
+              the following contents:\\
+              \blob\blob {\tt statcode npar v1 v2 ... vn}\\
+              where {\tt statcode} is the type of statistic
+              stored in the sub-brick, {\tt npar} is the number
+              of parameters that follow in the array,
+              and {\tt v1}~\ldots~{\tt vn} are the parameters
+              for that type of statistic.  (Note that {\tt npar} may
+              be~0.)  See \S1 for details on the
+              different statistical types supported by \afni.}
+\\[.9ex]
+
+{\tt ADN\_brick\_keywords\_replace\_one} \> \tb{\blob\\[.5ex]{\tt char *}} \>
+          \tb{This code is used to delete the keywords associated
+              with a sub-brick and replace them with a new set.
+              The list of keywords is stored as a single string,
+              with distinct entries separated by the substring
+              \hbox{\tt " ; "}.  If you want to enter multiple distinct
+              keywords with this operation, you must supply the
+              \hbox{\tt " ; "} yourself within the paired argument.}
+\\[.9ex]
+
+{\tt ADN\_brick\_keywords\_append\_one} \> \tb{\blob\\[.5ex]{\tt char *}} \>
+          \tb{This code is used to add keywords to the list
+              associated with a sub-brick.  The input character string
+              will be appended to the existing keyword string, with
+              \hbox{\tt " ; "} separating them.  (This function will
+              supply the \hbox{\tt " ; "} separator.)  If there are
+              no keywords, this operation is equivalent to the {\tt replace} function
+              above.}
+\\[.9ex]
+
+{\tt ADN\_keywords\_replace}            \> {\tt char *} \>
+          \tb{This is used to replace the keywords list associated
+              with the entire dataset.}
+\\*[.9ex]
+
+{\tt ADN\_keywords\_append}             \> {\tt char *} \>
+          \tb{This is used to append to the keyword list for the
+              entire dataset.}
+\end{tabbing}
+
+\dline{Example: Creating a Bucket Dataset All at Once}
+In this example, an empty copy of an input dataset is made
+(to get the geometry correct), then the new dataset is turned
+into a function bucket, then the sub-bricks are attached.
+The following code is adapted from {\tt 3dbucket.c}.
+\begin{verbatim}
+THD_3dim_dataset * old_dset , * new_dset ;
+char * output_prefix , output_session ;
+int new_nvals , iv ;
+short ** bar ;          /* bar[iv] points to data for sub-brick #iv */
+char ** new_label ;     /* new_label[iv] points to label for #iv    */
+char ** new_keyw ;      /* new_keyw[iv] points to keywords for #iv  */
+float * new_fac ;       /* new_fac[iv] is new scale factor for #iv  */
+float   sax[32] ;       /* statistical auxiliary parameters         */
+
+/*-- Copy the input dataset structure, but not data --*/
+
+new_dset = EDIT_empty_copy( old_dset ) ;
+
+/*-- Modify some structural properties.
+     Note that the new_nvals just makes empty
+     sub-bricks, without any data attached.   --*/
+
+EDIT_dset_items( new_dset ,
+                   ADN_prefix        , output_prefix ,
+                   ADN_directory_name, output_session ,
+                   ADN_type          , HEAD_FUNC_TYPE ,
+                   ADN_func_type     , FUNC_BUCK_TYPE,
+                   ADN_ntt           , 0 ,              /* no time! */
+                   ADN_nvals         , new_nvals ,
+                   ADN_malloc_type   , DATABLOCK_MEM_MALLOC ,
+                 ADN_none ) ;
+
+if( THD_is_file(DSET_HEADNAME(new_dset)) ){
+   fprintf(stderr,"*** Fatal error: file %s already exists!\n",
+           DSET_HEADNAME(new_dset) ) ;
+   exit(1) ;
+}
+
+/*-- Loop over new sub-brick index,
+     attach data array with EDIT_substitute_brick
+     (this just attaches the pointer, it DOES NOT copy the array),
+     then put some strings into the labels and keywords,
+     and modify the sub-brick scaling factor
+     (a zero scaling factor means don't scale the data array). --*/
+
+for( iv=0 ; iv < new_nvals ; iv++ ){
+   EDIT_substitute_brick( new_dset , iv ,         /* attach bar[iv] to   */
+                          MRI_short , bar[iv] ) ; /* be sub-brick #iv.   */
+                                                  /* don't free bar[iv]! */
+
+   EDIT_dset_items( new_dset ,
+                       ADN_brick_label_one           +iv, new_label[iv] ,
+                       ADN_brick_keywords_replace_one+iv, new_keyw[iv]  ,
+                       ADN_brick_fac_one             +iv, new_fac[iv]   ,
+                    ADN_none ) ;
+}
+
+/*-- Make sub-brick #2 be a t-test --*/
+
+sax[0] = FUNC_TT_TYPE ;
+sax[1] = 1.0 ;
+sax[2] = degrees_of_freedom ;
+EDIT_dset_items( new_dset ,
+                   ADN_brick_stataux_one + 2 , sax ,
+                 ADN_none ) ;
+
+/*-- write new dataset to disk --*/
+
+DSET_write( new_dset ) ;
+\end{verbatim}
+
+\dline{Adding Sub-Bricks to a Bucket Dataset}
+In the above example, all the sub-bricks were created at once.
+They were initially empty, after the first call to
+{\tt EDIT\_dset\_items}, but otherwise had all the structure
+needed.  After a sub-brick has an actual data array attached
+to it, the {\tt ADN\_nvals} code can no longer be used to
+change the number of sub-bricks in dataset.
+
+If a dataset already has actual data attached to any of its
+sub-bricks, another method must be used to add a new sub-brick:
+\begin{verbatim}
+  short * qbar ;
+  float   qfac ;
+  EDIT_add_brick( new_dset , MRI_short , qfac , qbar ) ;
+\end{verbatim}
+will create a new sub-brick in the dataset, with data
+type {\tt short}, scale factor {\tt qfac}, and data
+array {\tt qbar}.  (The pointer {\tt qbar} is just
+copied into the sub-brick---the data it points to
+now `belongs' to the dataset and should not be freed
+by you!)  If you wish to attach a label, keywords, or
+statistical parameters to this new brick, you would
+do this using {\tt EDIT\_dset\_items} (using the
+correct index for the new sub-brick).
+
+Note that if you are doing this to a 3D+time dataset,
+as opposed to a bucket dataset, then a little more
+needs to be done.  See {\tt plug\_realtime.c} for
+an example of how the \afnit real-time system uses
+{\tt EDIT\_add\_brick} to grow a 3D+time dataset
+during image acquisition.
+
+\dline{Accessing Sub-Brick Data}
+The following {\tt C} macros can be used to access the contents
+of sub-bricks and their associated data.
+The argument {\tt ds} is a pointer to a dataset {\tt struct},
+and the argument {\tt iv} is a sub-brick index.
+\vset
+\renewcommand{\tb}[1]{\parbox[t]{3.99in}{\sloppy #1}}
+\begin{tabbing}
+  XXXXXXXXXXXXXXXXXXXx \= \kill
+%
+\underline{\bf Macro} \> \underline{\bf Meaning} \\*[.5ex]
+
+{\tt ISVALID\_DSET(ds)} \> \tb{Returns 1 if {\tt ds} is a valid pointer
+                              to a dataset, or 0 if it is not.}
+\\[.9ex]
+{\tt ISANATBUCKET(ds)} \> \tb{Returns 1 if {\tt ds} is an anatomy
+                              bucket dataset, 0~if it is not.}
+\\[.9ex]
+{\tt ISFUNCBUCKET(ds)} \> \tb{Returns 1 if {\tt ds} is a function
+                              bucket dataset, 0~if it is not.}
+\\[.9ex]
+{\tt ISBUCKET(ds)}     \> \tb{Returns 1 if {\tt ds} is a 
+                              bucket dataset (function or anatomy), 0~if it is not.}
+\\[.9ex]
+{\tt DSET\_BRICK\_TYPE(ds,iv)} \> \tb{Returns an integer describing what type
+                                    of data is stored in the sub-brick array.}
+\\[.9ex]
+{\tt DSET\_BRICK\_ARRAY(ds,iv)} \> \tb{Returns a pointer to the sub-brick array.}
+\\[.9ex]
+{\tt DSET\_BRICK\_FACTOR(ds,iv)} \> \tb{Returns the sub-brick floating point
+                                      scale factor.}
+\\[.9ex]
+{\tt DSET\_NVALS(ds)} \> \tb{Returns the number of sub-bricks in a dataset.}
+\\[.9ex]
+{\tt DSET\_BRICK\_LABEL(ds,iv)} \> \tb{Returns a pointer to the sub-brick label.
+                                     This pointer will not be {\tt NULL}.  Do {\it not\/}
+                                     write into this string!}
+\\[.9ex]
+{\tt DSET\_BRICK\_STATCODE(ds,iv)} \> \tb{Returns an integer with the statistical
+                                        type of a sub-brick.  A~positive value
+                                        means that this sub-brick can be interpreted
+                                        as a statistic.  Note that if {\tt ds} is
+                                        on of the older 2-brick datasets such
+                                        as {\tt fico}, then calling this with
+                                        {\tt iv=1} will return the correct code,
+                                        even though that code is actually associated
+                                        with the dataset as a whole, not the sub-brick.}
+\\[.9ex]
+{\tt DSET\_BRICK\_STATAUX(ds,iv)} \> \tb{Returns a pointer to a {\tt float} array
+                                       with the statistical parameters for this
+                                       sub-brick.  This may be {\tt NULL}, which means
+                                       that you did something wrong.  Do {\it not\/}
+                                     write into this array!  The number of parameters
+                                     in this array can be determined from the table
+                                     in~\S1, or from 
+                                     {\tt FUNC\_need\_stat\_aux[kv]} where
+                                     {\tt kv = DSET\_BRICK\_STATCODE(ds,iv)}.}
+\\[.9ex]
+{\tt DSET\_BRICK\_STATPAR(ds,iv,jj)} \> \tb{Returns the {\tt jj}$^{\rm th}$ statistical
+                                          parameter for this sub-brick.  This will
+                                          be a float.}
+\\[.9ex]
+{\tt DSET\_BRICK\_KEYWORDS(ds,iv)} \> \tb{Returns a pointer to the keywords string for
+                                        this sub-brick (\hbox{\tt char *}).  Do {\it not\/}
+                                     write into this string!  This pointer may be {\tt NULL}.}
+\\[.9ex]
+{\tt DSET\_KEYWORDS(ds)} \> \tb{Returns a pointer to the keywords string for the
+                              entire dataset.  Do {\it not\/}
+                                     write into this string!  This pointer may be {\tt NULL}.}
+\end{tabbing}
+
+
+%---------------------------------------------------------------------
+\mysec{Changes in \afni}
+If the active datasets are buckets, then the set of choosers
+in the {\tt Define Function} control panel changes.  The
+figure below shows the new bucket sub-brick choosers on the
+left; the old style sub-brick choosers are shown on the right
+for comparison (these are used with the non-bucket dataset types).\vspace{1ex}
+
+\centerline{\epsfxsize=2.5in\epsffile{bucket_bb.eps}
+            \blob\blob\blob
+            \epsfxsize=2.5in\epsffile{bucket_nb.eps}}
+
+\centerline{\makebox[2.5in]{\sf With bucket sub-brick choosers}
+            \blob\blob\blob
+            \makebox[2.5in]{\sf With old-style choosers}}\vspace{1ex}
+
+Note that any sub-brick of a bucket dataset can be used as a
+threshold.  This is true even if it does not have statistical
+parameters attached.  (In that case, no $p$-value can be
+computed, of course.)
+
+Two new buttons have been added to the \fbox{\tt Misc} menu under the {\tt Define Datamode} control panel:
+\fbox{\tt Anat Info} and \fbox{\tt Func Info}.
+These buttons will popup message windows with the output of
+program {\tt 3dinfo} about the current anatomical and functional datasets.
+This is to help look up keywords and statistical types of sub-bricks.
+In addition, the \fbox{FIM} button has been removed from the
+{\tt Define Function} control panel.
+
+%---------------------------------------------------------------------
+\mysec{Still to Come}
+Things that are needed:
+\begin{itemize}
+  \item A generic function for converting a 3D+time dataset into
+        a bucket dataset ({\it \`a~la} {\tt PLUTO\_4D\_to\_typed\_fim}).
+  \item Routines to deal with keyword lists, and a mechanism to
+        allow the user to select sub-bricks (and datasets) based on keywords.
+  \item A mechanism to allow the user to assemble datasets `on-the-fly'
+        using keyword and/or sub-brick index criteria.  (A~generalization
+        of the syntax of {\tt 3dbucket} is a possibility.)
+  \item Applications that create buckets ({\it e.g.}, multiple regression, \ldots).
+\end{itemize}
+
+\end{document}

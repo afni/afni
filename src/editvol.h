@@ -19,6 +19,10 @@
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
 #endif
 
+#ifndef myXtNew
+#define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
+#endif
+
 #define INC_CLUSTER 8
 
 /** In a cluster struct, the (i,j,k) indexes for each voxel
@@ -30,16 +34,16 @@
 
 #define THREE_TO_IJK(i,j,k,nx,nxy) ((i)+(j)*(nx)+(k)*(nxy))
 
-/* 
-   The cluster structure was modified to store the individual coordinate 
+/*
+   The cluster structure was modified to store the individual coordinate
    indices for each voxel.  This avoids ambiguity in voxel identification.
-   BDW, 06 March 1997 
+   BDW, 06 March 1997
 */
 
 typedef struct {
    int num_pt , num_all ;
-   short * i;       /* store indices separately */  
-   short * j;      
+   short * i;       /* store indices separately */
+   short * j;
    short * k;
    float * mag ;    /* stores value at each voxel */
 } MCW_cluster ;
@@ -132,8 +136,8 @@ extern void MCW_scale_to_max( int,int,int, int,void * );
 extern float MCW_vol_amax( int,int,int , int,void *) ;
 
 /* 11 Sept 1996 */
-extern MCW_cluster * MCW_build_mask (int, int, int, 
-                                     float, float, float, float); 
+extern MCW_cluster * MCW_build_mask (int, int, int,
+                                     float, float, float, float);
 
 /*----------------------------------------------------------------------------*/
 
@@ -228,7 +232,7 @@ static char * EDIT_options_help =
     "  -t1filter_smax rmm   = Set each correlation or threshold voxel to the \n"
     "                          maximum signed intensity of the voxels \n"
     "                          within a radius of rmm. \n"
-    " \n" 
+    " \n"
 
 
 #ifdef ALLOW_SCALE_TO_MAX
@@ -269,7 +273,7 @@ typedef struct EDIT_options {
 
    float filter_rmm;              /* --> filter radius        (11 Sept 1996)  */
    int   filter_opt;              /* --> filter option        (11 Sept 1996)  */
-   
+
    float thrfilter_rmm;           /* --> threshold filter radius (1 Oct 1996) */
    int   thrfilter_opt;           /* --> threshold filter option (1 Oct 1996) */
 
@@ -281,6 +285,8 @@ typedef struct EDIT_options {
    float zv_x1 , zv_x2 ,          /* --> dimensions of sub-volume to massacre */
          zv_y1 , zv_y2 ,
          zv_z1 , zv_z2  ;
+
+   int   iv_fim , iv_thr ;        /* 30 Nov 1997 --> use these sub-bricks     */
 
 } EDIT_options ;
 
@@ -301,26 +307,28 @@ typedef struct EDIT_options {
 #define FCFLAG_AMAX   4
 #define FCFLAG_SMAX   5
 
-#define INIT_EDOPT(edopt)           \
-      ( (edopt)->thtoin     = 0 ,   \
-        (edopt)->noneg      = 0 ,   \
-        (edopt)->abss       = 0 ,   \
-        (edopt)->clip_bot   = 0.0 , \
-        (edopt)->clip_top   = 0.0 , \
-        (edopt)->thresh     = 0.0 , \
-        (edopt)->clust_rmm  = 0.0 , \
-        (edopt)->clust_vmul = 0.0 , \
-        (edopt)->edit_clust = 0 ,   \
-        (edopt)->filter_rmm = 0.0 , \
-        (edopt)->filter_opt = 0 ,   \
+#define INIT_EDOPT(edopt)              \
+      ( (edopt)->thtoin        = 0   , \
+        (edopt)->noneg         = 0   , \
+        (edopt)->abss          = 0   , \
+        (edopt)->clip_bot      = 0.0 , \
+        (edopt)->clip_top      = 0.0 , \
+        (edopt)->thresh        = 0.0 , \
+        (edopt)->clust_rmm     = 0.0 , \
+        (edopt)->clust_vmul    = 0.0 , \
+        (edopt)->edit_clust    = 0   , \
+        (edopt)->filter_rmm    = 0.0 , \
+        (edopt)->filter_opt    = 0   , \
         (edopt)->thrfilter_rmm = 0.0 , \
-        (edopt)->thrfilter_opt = 0 ,   \
-        (edopt)->blur       = 0.0 , \
-        (edopt)->thrblur    = 0.0 , \
-        (edopt)->scale      = 0   , \
-        (edopt)->mult       = 0.0 , \
-        (edopt)->do_zvol    = 0   , \
-        (edopt)->clip_unscaled = 0  \
+        (edopt)->thrfilter_opt = 0   , \
+        (edopt)->blur          = 0.0 , \
+        (edopt)->thrblur       = 0.0 , \
+        (edopt)->scale         = 0   , \
+        (edopt)->mult          = 0.0 , \
+        (edopt)->do_zvol       = 0   , \
+        (edopt)->clip_unscaled = 0   , \
+        (edopt)->iv_fim        = -1  , \
+        (edopt)->iv_thr        = -1    \
       )
 
 extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;
@@ -403,11 +411,21 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
 #define ADN_label1               6054     /*=  char *  =*/
 #define ADN_label2               6055     /*=  char *  =*/
 #define ADN_self_name            6056     /*=  char *  =*/
+#define ADN_keywords_replace     6057     /*=  char *  =*/
+#define ADN_keywords_append      6058     /*=  char *  =*/
 
 #define ADN_warp_parent          6061     /*=  THD_3dim_dataset *  =*/
 #define ADN_anat_parent          6062     /*=  THD_3dim_dataset *  =*/
 #define ADN_stat_aux             6063     /*=  float *             =*/
 #define ADN_warp                 6064     /*=  THD_warp *          =*/
+
+/* 30 Nov 1997 */
+#define ADN_ONE_STEP            100000
+#define ADN_brick_label_one             (2*ADN_ONE_STEP)  /*=  char *   =*/
+#define ADN_brick_fac_one               (3*ADN_ONE_STEP)  /*=  float    =*/
+#define ADN_brick_stataux_one           (4*ADN_ONE_STEP)  /*=  float *  =*/
+#define ADN_brick_keywords_replace_one  (5*ADN_ONE_STEP)  /*=  char *   =*/
+#define ADN_brick_keywords_append_one   (6*ADN_ONE_STEP)  /*=  char *   =*/
 
 /*------------------------------------------------------------------*/
 

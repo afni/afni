@@ -40,7 +40,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    lcol = dc->ncol_ov - 1 ;  /* last color available */
 
-   pbar = XtNew( MCW_pbar ) ;
+   pbar = myXtNew( MCW_pbar ) ;
 
    pbar->top = XtVaCreateWidget( "pbar" , xmBulletinBoardWidgetClass , parent ,
                                      XmNmarginHeight , 0 ,

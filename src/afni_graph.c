@@ -19,7 +19,7 @@ MCW_grapher * new_MCW_grapher( MCW_DC * dc , get_ptr getser , XtPointer aux )
 
 ENTRY("new_MCW_grapher") ;
 
-   grapher = XtNew( MCW_grapher ) ;
+   grapher = myXtNew( MCW_grapher ) ;
 
    grapher->type   = MCW_GRAPHER_TYPE ;
    grapher->dc     = dc ;
@@ -3253,7 +3253,7 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
    FIM_menu * fmenu ;
    static char * redcolor = NULL ;
 
-   fmenu = XtNew(FIM_menu) ;
+   fmenu = myXtNew(FIM_menu) ;
    fmenu->cbfunc = cbfunc ;
 
    /*------------------------*/

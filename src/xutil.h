@@ -29,6 +29,10 @@
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
 #endif
 
+#ifndef myXtNew
+#define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
+#endif
+
 #define SENSITIZE(w,sen)                         \
    do{ Boolean fred = (Boolean) sen ;            \
        if(w != NULL){                            \

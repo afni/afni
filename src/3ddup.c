@@ -140,7 +140,7 @@ int main( int argc , char * argv[] )
          th = strtod( argv[nopt++] , NULL ) * (PI/180.0) ;
          if( th == 0.0 )      DUPERR("-rsag angle can't be zero") ;
 
-          rwarp[nrot] = XtNew( THD_warp ) ;
+          rwarp[nrot] = myXtNew( THD_warp ) ;
          *rwarp[nrot] = ROTX_WARP(th) ;
          nrot++ ; continue ;
       }
@@ -155,7 +155,7 @@ int main( int argc , char * argv[] )
          th = strtod( argv[nopt++] , NULL ) * (PI/180.0) ;
          if( th == 0.0 )      DUPERR("-rcor angle can't be zero") ;
 
-          rwarp[nrot] = XtNew( THD_warp ) ;
+          rwarp[nrot] = myXtNew( THD_warp ) ;
          *rwarp[nrot] = ROTY_WARP(th) ;
          nrot++ ; continue ;
       }
@@ -170,7 +170,7 @@ int main( int argc , char * argv[] )
          th = strtod( argv[nopt++] , NULL ) * (PI/180.0) ;
          if( th == 0.0 )      DUPERR("-raxi angle can't be zero") ;
 
-          rwarp[nrot] = XtNew( THD_warp ) ;
+          rwarp[nrot] = myXtNew( THD_warp ) ;
          *rwarp[nrot] = ROTZ_WARP(th) ;
          nrot++ ; continue ;
       }
@@ -212,6 +212,11 @@ int main( int argc , char * argv[] )
       new_nvals = (isfunc) ? FUNC_nvals[function_type]
                            : ANAT_nvals[anatomy_type]  ;
 
+      if( ( isfunc && function_type == FUNC_BUCK_TYPE) ||
+          (!isfunc && anatomy_type  == ANAT_BUCK_TYPE)   )  /* 30 Nov 1997 */
+         new_nvals = dset_in->dblk->nvals ;
+      
+
       if( new_nvals > dset_in->dblk->nvals ){
          fprintf(stderr,
                  "ERROR: new dataset type has %d values per voxel,"
@@ -245,7 +250,7 @@ int main( int argc , char * argv[] )
                        ADN_none ) ;
    }
 
-   warp = XtNew( THD_warp ) ; *warp = IDENTITY_WARP ;
+   warp = myXtNew( THD_warp ) ; *warp = IDENTITY_WARP ;
 
    for( ii=nrot-1 ; ii >=0 ; ii-- )
       AFNI_concatenate_warp( warp , rwarp[ii] ) ;
