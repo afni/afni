@@ -661,6 +661,10 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
       char key[128] , * kend , shm2[256] ;
       int  size=-1 , ii , jj , size2=-1 ;
 
+#ifdef DONT_USE_SHM
+      return NULL ;        /* 18 Dec 2002 */
+#endif
+
       /** get keystring **/
 
       kend = strstr( name+4 , ":" ) ;
