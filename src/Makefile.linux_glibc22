@@ -40,6 +40,8 @@ INSTALLDIR = ./linux_glibc22
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=linux_glibc22
 
+INSTALL_PREREQ = suma
+
 # for dynamic linking
 
 # LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
