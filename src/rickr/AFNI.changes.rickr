@@ -275,4 +275,8 @@
       - added '-quit' option
       - allow both 'I.*' and 'i.*' filenames
       
+15 August 2003:
+  * modified 3dDeconvolve.c   - only output timing with -jobs option
+  * modified Makefile.INCLUDE - fix cygwin compile
+      - created PROGRAM_EXE targets for Imon.exe, file_tool.exe, 3dresample.exe
 
