@@ -234,7 +234,7 @@ int THD_filename_ok( char * name )  /* 24 Apr 1997 */
           name[ii] == '['   || name[ii] == ']'   ||
           name[ii] == '('   || name[ii] == ')'   ||
           name[ii] == '{'   || name[ii] == '}'   ||
-          name[ii] == '!'   || name[ii] >= 127     ) return 0 ;
+          name[ii] == '!'   || (name[ii] & 128) != 0 ) return 0 ;
 
    return 1 ;
 }

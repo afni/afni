@@ -115,10 +115,11 @@ int main( int argc , char *argv[] )
    INIT_IMARR(MAIN_imar) ;
 
    for( ii=0 ; ii < gnim ; ii++ ){
+     if( !THD_filename_ok(gname[ii]) ) continue ;  /* 23 Apr 2003 */
      if( verb ) fprintf(stderr,"+") ;
      qar = mri_read_file( gname[ii] ) ;  /* may have more than 1 image */
      if( qar == NULL || IMARR_COUNT(qar) < 1 ){
-       fprintf(stderr,"\n** Can't read file %s - skipping **\n",gname[ii]) ;
+       fprintf(stderr,"\n** Can't read file %s - skipping!",gname[ii]) ;
        continue ;
      } else if( verb ){
        fprintf(stderr,"%s",gname[ii]) ;
