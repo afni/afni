@@ -228,6 +228,7 @@ ENTRY("THD_open_analyze") ;
    }
 
    /* check SPM originator field - 03 Nov 2003 */
+   /* 11 Mar 2004 - oops: SPM indexes start at 1 - RWCox */
 
    spmorg = spmxx = spmyy = spmzz = 0 ;
    { short xyzuv[5] , xx,yy,zz ;
@@ -237,7 +238,7 @@ ENTRY("THD_open_analyze") ;
        if( doswap ){ swap_2(&xx); swap_2(&yy); swap_2(&zz); }
        if( xx > 0 && xx < nx-1 &&
            yy > 0 && yy < ny-1 &&
-           zz > 0 && zz < nz-1   ){ spmorg=1; spmxx=xx; spmyy=yy; spmzz=zz; }
+           zz > 0 && zz < nz-1   ){ spmorg=1; spmxx=xx-1; spmyy=yy-1; spmzz=zz-1; }
      }
    }
 

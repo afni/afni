@@ -3683,6 +3683,11 @@ extern THD_3dim_dataset * THD_warp3D(    /* cf. mri_warp3D.c - 18 May 2003 */
 extern THD_3dim_dataset * THD_warp3D_affine(
                      THD_3dim_dataset *, THD_vecmat, void *, char *, int, int );
 
+extern THD_3dim_dataset * THD_warp3D_mni2tta( THD_3dim_dataset *, void *,
+                                              char *, int, int );
+extern THD_3dim_dataset * THD_warp3D_tta2mni( THD_3dim_dataset *, void *,
+                                              char *, int, int );
+
 #define WARP3D_NEWGRID  1
 #define WARP3D_NEWDSET  2
 #define WARP3D_GRIDMASK 7

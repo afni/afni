@@ -35,13 +35,16 @@ int main( int argc , char * argv[] )
                 "or: ccalc -eval 3 +5 '*' 'sin(22)'\n") ;
          exit(0) ;
       }
-      
-      if (!brk && strcmp(argv[1],"-eval") == 0) {
+
+      if( !brk ){
+        if( strcmp(argv[1],"-eval") == 0 ){
          ++kar;
          if (kar >= argc)  {
 		  		fprintf (stderr, "need argument after -eval ");
 				exit (1);
 			}
+        }
+
          /* anything after eval gets put inot an expression */
          while (kar < argc)  {
             sprintf(expr,"%s %s", expr, argv[kar]); 

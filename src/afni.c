@@ -5782,7 +5782,12 @@ ENTRY("AFNI_crosshair_label") ;
    if( ! IM3D_VALID(im3d) ) RETURN( NULL );
 
    if( ! IM3D_OPEN(im3d) ){
-      sprintf(buf,"1234567890123456789\n1234567890123456789\n1234567890123456789") ;
+
+      buf[0] = '\0' ;
+      if( im3d->type != AFNI_IMAGES_VIEW ) strcat(buf," \n") ;
+      strcat(buf, "1234567890123456789\n"
+                  "1234567890123456789\n"
+                  "1234567890123456789"  ) ;
 
    } else if( im3d->type == AFNI_IMAGES_VIEW || im3d->vinfo->show_voxind ){
 
@@ -5812,7 +5817,7 @@ STATUS("voxel indexes") ;
                   im3d->vinfo->i1 , im3d->vinfo->j2 , im3d->vinfo->k3  ) ;
       }
    } else {
-      char bxyz[3][32] ;
+      char bxyz[3][32] , *cname ;
 
 STATUS("voxel coordinates") ;
 
@@ -5835,7 +5840,15 @@ STATUS("voxel coordinates") ;
       sprintf( bxyz[2] , "=%9.3f mm %s" ,
                GLOBAL_library.cord.zzsign * zval , zz ) ;
 
-      sprintf( buf , "x %17s\ny %17s\nz %17s"   ,
+      if( strcmp(GLOBAL_library.cord.orcode,"RAI") == 0 )
+        cname = "=DICOM" ;
+      else if( strcmp(GLOBAL_library.cord.orcode,"LPI") == 0 )
+        cname = "=SPM  " ;
+      else
+        cname = "      " ;
+
+      sprintf( buf , "[order: %s%s]\nx %17s\ny %17s\nz %17s"   ,
+               GLOBAL_library.cord.orcode       , cname ,
                bxyz[GLOBAL_library.cord.first]  ,
                bxyz[GLOBAL_library.cord.second] ,
                bxyz[GLOBAL_library.cord.third]   ) ;
@@ -7545,6 +7558,84 @@ ENTRY("AFNI_see_marks_CB") ;
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
 
    RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------
+  Event handler to find #3 button press for crosshair label [12 Mar 2004]
+--------------------------------------------------------------------------*/
+
+void AFNI_crosshair_EV( Widget w , XtPointer cd ,
+                        XEvent *ev , Boolean *continue_to_dispatch )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_crosshair_EV") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   /*** handle events ***/
+
+   switch( ev->type ){
+
+     /*----- take button press -----*/
+
+     case ButtonPress:{
+       XButtonEvent *event = (XButtonEvent *)ev ;
+
+       if( event->button == Button3 ||
+           (event->button == Button1 &&
+            (event->state & (ShiftMask|ControlMask))) ){
+
+         event->button = Button3 ;                                   /* fake  */
+         XmMenuPosition( im3d->vwid->imag->crosshair_menu , event ); /* where */
+         XtManageChild ( im3d->vwid->imag->crosshair_menu ) ;        /* popup */
+       }
+     }
+     break ;
+
+     /*----- take key press -----*/
+
+     case KeyPress:{
+       XKeyEvent * event = (XKeyEvent *) ev ;
+       char           buf[32] ;
+       KeySym         ks ;
+       int            nbuf ;
+
+       buf[0] = '\0' ;
+       nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
+
+       switch( buf[0] ){
+         default: break ;
+       }
+     }
+     break ;
+   }
+
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------
+  callback for crosshair label popup menu [12 Mar 2004]
+--------------------------------------------------------------------*/
+
+void AFNI_crosshair_pop_CB( Widget w ,
+                            XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View *im3d = (Three_D_View *)client_data ;
+   static char *cord_dicom="RAI" , *cord_spm="LPI" ;
+   char *val=NULL ;
+
+ENTRY("AFNI_crosshair_pop_CB") ;
+
+        if( w == im3d->vwid->imag->crosshair_dicom_pb ) val = cord_dicom ;
+   else if ( w == im3d->vwid->imag->crosshair_spm_pb  ) val = cord_spm   ;
+
+   if( val != NULL ){
+     MCW_strncpy(GLOBAL_argopt.orient_code,val,4) ;
+     THD_coorder_fill( GLOBAL_argopt.orient_code , &GLOBAL_library.cord ) ;
+     PLUTO_force_redisplay() ;
+   }
    EXRETURN ;
 }
 

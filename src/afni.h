@@ -331,6 +331,8 @@ typedef struct {
 
       Widget crosshair_frame , crosshair_rowcol , crosshair_label ;
 
+      Widget crosshair_menu, crosshair_dicom_pb, crosshair_spm_pb ; /* 12 Mar 2004 */
+
       Widget         xhair_rowcol ;
       MCW_arrowval * crosshair_av ;
       MCW_bbox     * xhall_bbox ;
@@ -1134,6 +1136,9 @@ extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
 extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_sumato_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_mnito_CB            ( Widget , XtPointer , MCW_choose_cbs * ) ;
+
+extern void AFNI_crosshair_pop_CB    ( Widget , XtPointer , XtPointer ) ; /* 12 Mar 2004 */
+extern void AFNI_crosshair_EV        ( Widget , XtPointer , XEvent * , Boolean * ) ;
 
 extern void AFNI_fimmer_pickref_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_pickort_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;

@@ -229,7 +229,7 @@ char * tross_Get_Note( THD_3dim_dataset * dset , int inote )
    if( inote > num_notes ) return NULL ;
 
    sprintf(note_name, "NOTE_NUMBER_%03d", inote);
-   note=THD_find_string_atr(dset->dblk, note_name);
+   note = THD_find_string_atr(dset->dblk, note_name);
    if (note == NULL ) return NULL ;
    ch = tross_Expand_String( note->ch ) ;
    return ch ;
@@ -252,7 +252,7 @@ char * tross_Get_Notedate( THD_3dim_dataset * dset , int inote )
    if( inote > num_notes ) return NULL ;
 
    sprintf(note_name, "NOTE_DATE_%03d", inote);
-   note=THD_find_string_atr(dset->dblk, note_name);
+   note = THD_find_string_atr(dset->dblk, note_name);
    if (note == NULL ) return NULL ;
    return tross_Expand_String( note->ch ) ;
 }

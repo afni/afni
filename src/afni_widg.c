@@ -463,7 +463,7 @@ STATUS("WANT_AFNI_BITMAP") ;
 
       /* 28 Jan 2004: just for fun, background pixmaps for top forms */
 
-      if( im3d->dc->visual_class == TrueColor && 
+      if( im3d->dc->visual_class == TrueColor &&
           AFNI_yesenv("AFNI_LOGO16")          &&
           afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP ){
 
@@ -913,6 +913,55 @@ STATUS("making imag->rowcol") ;
 
    MCW_register_help( imag->crosshair_label , AFNI_crosshair_label_help ) ;
    MCW_register_hint( imag->crosshair_label , "Coordinates of crosshair point" ) ;
+
+   /*--- 12 Mar 2004: coordinate order popup menu ---*/
+
+   imag->crosshair_menu =
+      XmCreatePopupMenu( imag->crosshair_label  , "menu" , NULL , 0 ) ;
+
+   SAVEUNDERIZE(XtParent(imag->crosshair_menu)) ;
+   VISIBILIZE_WHEN_MAPPED(imag->crosshair_menu) ;
+
+   XtInsertEventHandler( imag->crosshair_label , /* handle events in label */
+                            ButtonPressMask ,    /* button presses */
+                            FALSE ,              /* nonmaskable events? */
+                            AFNI_crosshair_EV ,  /* handler */
+                            (XtPointer) im3d ,   /* client data */
+                            XtListTail           /* last in queue */
+                        ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "menu" , xmLabelWidgetClass , imag->crosshair_menu ,
+               LABEL_ARG("-Set Coord Order-") ,
+               XmNrecomputeSize , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "menu" , xmSeparatorWidgetClass , imag->crosshair_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+   imag->crosshair_dicom_pb =
+      XtVaCreateManagedWidget(
+         "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
+            LABEL_ARG(" DICOM order ") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( imag->crosshair_dicom_pb , XmNactivateCallback ,
+                  AFNI_crosshair_pop_CB , im3d ) ;
+
+   imag->crosshair_spm_pb =
+      XtVaCreateManagedWidget(
+         "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
+            LABEL_ARG(" SPM order ") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( imag->crosshair_spm_pb , XmNactivateCallback ,
+                  AFNI_crosshair_pop_CB , im3d ) ;
 
    /*--- 01 Jan 1997: horizontal rowcol for crosshair stuff ---*/
 
@@ -4700,6 +4749,7 @@ ENTRY("AFNI_initialize_controller") ;
    WAIT_for_window(im3d->vwid->top_shell) ;
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;
    POPUP_cursorize( im3d->vwid->picture ) ;
+   POPUP_cursorize( imag->crosshair_label ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;

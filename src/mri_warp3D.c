@@ -1289,3 +1289,50 @@ THD_3dim_dataset * THD_warp3D_affine(
 
    return THD_warp3D( inset , afi2o,afo2i , newggg,prefix,zpad,flag ) ;
 }
+
+/*--------------------------------------------------------------------------*/
+/*! Internal transform functions for TT <-> MNI coords.  Both are RAI,
+    as per AFNI internal logic.  11 Mar 2004 - RW Cox [Jury Duty Day]
+    cf. http://www.mrc-cbu.cam.ac.uk/Imaging/Common/mnispace.shtml
+----------------------------------------------------------------------------*/
+
+static INLINE void w3d_mni2tta( float mx , float my , float mz ,
+                                float *tx, float *ty, float *tz )
+{
+   *tx = 0.99 * mx ;
+
+   if( mz > 0.0 ){
+     *ty =  0.9688 * my + 0.0460 * mz ;
+     *tz = -0.0485 * my + 0.9189 * mz ;
+   } else {
+     *ty =  0.9688 * my + 0.0420 * mz ;
+     *tz = -0.0485 * my + 0.8390 * mz ;
+   }
+}
+
+/*-------  Should be the inverse of the above! -----------------------------*/
+
+static INLINE void w3d_tta2mni( float tx , float ty , float tz ,
+                                float *mx, float *my, float *mz )
+{
+   *mx = 1.01010 * tx ;
+   *my = 1.02962 * ty - 0.05154 * tz ;
+   *mz = 0.05434 * ty + 1.08554 * tz ;
+   if( *mz < 0.0 ) *mz *= 1.09523 ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_warp3D_tta2mni( THD_3dim_dataset *inset , void *newggg ,
+                                       char *prefix , int zpad , int flag )
+{
+   return THD_warp3D( inset , w3d_tta2mni,w3d_mni2tta , NULL,prefix,0,0 ) ;
+}
+
+/*-------  Should be the inverse of the above! -----------------------------*/
+
+THD_3dim_dataset * THD_warp3D_mni2tta( THD_3dim_dataset *inset , void *newggg ,
+                                       char *prefix , int zpad , int flag )
+{
+   return THD_warp3D( inset , w3d_mni2tta,w3d_tta2mni , newggg,prefix,zpad,flag ) ;
+}
