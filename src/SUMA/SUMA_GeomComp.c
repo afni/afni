@@ -423,13 +423,20 @@ float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO)
 /*!
    \brief A function to calculate the geodesic distance of nodes connected to node n
            SUMA_getoffsets was the first incarnation but it was too slow.
-    ans = SUMA_getoffsets2 (n, SO, lim, OffS) 
+    ans = SUMA_getoffsets2 (n, SO, lim, OffS, CoverThisNode, N_CoverThisNode) 
    
    \param n (int) index of center node
    \param SO (SUMA_SurfaceObject *) structure containing surface object
-   \param lim (float) maximum geodesic distance to travel
+   \param lim (float) maximum geodesic distance to travel 
+                     (ignored when CoverThisNode is used)
    \param OffS (SUMA_GET_OFFSET_STRUCT *) initialized structure to contain
           the nodes that neighbor n within lim mm 
+          or until all the nodes in CoverThisNode are used up
+   \param CoverThisNode (int *) SO->N_Node mask vector such that
+                                 if CoverThisNode[i] then node i
+                                 has to be reached (supersedes lim)
+                                 NULL if you don't want to use it.
+   \param N_CoverThisNode (int) number of nodes to cover (where CoverThisNode = 1).
    \return ans (SUMA_Boolean) YUP = GOOD, NOPE = BAD
    
    \sa SUMA_AddNodeToLayer
@@ -483,7 +490,7 @@ switch (SEG_METHOD) {
       break;
 }                    
 */
-SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GET_OFFSET_STRUCT *OffS) 
+SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GET_OFFSET_STRUCT *OffS, int *CoverThisNode, int N_CoverThisNode) 
 {
    static char FuncName[]={"SUMA_getoffsets2"};
    int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0;
@@ -504,7 +511,11 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
    OffS->LayerVect[n] = 0;   /* n is on the zeroth layer */
    OffS->layers[0].N_NodesInLayer = 1;
    OffS->layers[0].NodesInLayer[0] = n;
-   
+   if (CoverThisNode) { 
+      if (CoverThisNode[n]) {
+         CoverThisNode[n] = 0; --N_CoverThisNode;
+      }
+   }
    LayInd = 1;  /* index of next layer to build */
    AllDone = NOPE;
    while (!AllDone) {
@@ -545,8 +556,17 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
                   SUMA_RETURN(NOPE);
                } else {
                   OffS->OffVect[n_jne] = OffS->OffVect[n_prec] + sqrt(SegPres); SegPres = 0.0;
-                  if (OffS->OffVect[n_jne] < lim) { /* must go at least one more layer */
-                     AllDone = NOPE;
+                  if (!CoverThisNode) {
+                     if (OffS->OffVect[n_jne] < lim) { /* must go at least one more layer */
+                        AllDone = NOPE;
+                     }
+                  } else {
+                     if (CoverThisNode[n_jne]) {
+                        CoverThisNode[n_jne] = 0; --N_CoverThisNode;
+                     }
+                     if (N_CoverThisNode > 0) {
+                        AllDone = NOPE;
+                     }
                   }
                }
             } /* node not already in layer */
@@ -1253,7 +1273,7 @@ SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *
       if (i == 0) {
          SUMA_etime(&start_time,0);
       }
-      SUMA_getoffsets2 (i, SOref, max_off, OffS);
+      SUMA_getoffsets2 (i, SOref, max_off, OffS, NULL, 0);
       /* find average distance between nodes within offset and center of surface */
       a = &(SOref->NodeList[3*i]); SUMA_SEG_LENGTH(a, SOref->Center, ave_dist_ref); 
       cnt = 1;
@@ -1823,6 +1843,46 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    SUMA_RETURN(fout);
 }
 
+/*!
+   \brief a function to turn the often cumbersome SUMA_GET_OFFSET_STRUCT
+   to a more friendly SUMA_OFFSET_STRUCT
+*/
+
+SUMA_Boolean SUMA_GetOffset2Offset (SUMA_GET_OFFSET_STRUCT *GOS, SUMA_OFFSET_STRUCT *OS) 
+{
+   static char FuncName[]={"SUMA_GetOffset2Offset"};
+   int il, jl, noffs;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!GOS || !OS) {
+      SUMA_SL_Err("NULL input"); SUMA_RETURN(NOPE);
+   }
+   
+   OS->N_Neighb = 0; 
+   for (il=1; il<GOS->N_layers; ++il) {
+      OS->N_Neighb += GOS->layers[il].N_NodesInLayer;
+   }
+   OS->Neighb_ind = (int *)SUMA_malloc(OS->N_Neighb * sizeof(int));
+   OS->Neighb_dist = (float *)SUMA_malloc(OS->N_Neighb * sizeof(float));
+   if (!OS->Neighb_ind || !OS->Neighb_dist) {
+      SUMA_SL_Crit("Failed to allocate.");
+      SUMA_RETURN(NOPE);
+   }
+   
+   noffs = 0;
+   for (il=1; il<GOS->N_layers; ++il) {
+      for (jl=0; jl<GOS->layers[il].N_NodesInLayer; ++jl) {
+         OS->Neighb_ind[noffs] = GOS->layers[il].NodesInLayer[jl]; 
+         OS->Neighb_dist[noffs] = GOS->OffVect[OS->Neighb_ind[noffs]];
+         ++noffs;
+      }
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
 
 /*!
    \brief creates a vector of node neighbors structures such that:
@@ -1852,6 +1912,7 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
          repeatedly for each node, as is done in this function.
          
 */
+ 
 SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim)
 {
    static char FuncName[]={"SUMA_FormNeighbOffset"};
@@ -1876,7 +1937,7 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
    mean_N_Neighb = 0;
    dist_norm = 1.1 * OffsetLim;
    for (i=0; i < SO->N_Node; ++i) {
-      SUMA_getoffsets2 (i, SO, OffsetLim, OffS);
+      SUMA_getoffsets2 (i, SO, OffsetLim, OffS, NULL, 0);
       /* Now store all the relevant info in OffS in OffS_out[i] */
       OffS_out[i].N_Neighb = 0; 
       for (il=1; il<OffS->N_layers; ++il) {
