@@ -37,6 +37,12 @@ char gv2s_history[] =
     "September 09, 2004 [rickr]\n"
     "  - in afni_vol2surf(), print v2s options when debug > 1\n"
     "  - allow (first_node > last_node) if (last == 0), then change to n-1\n"
+    "\n"
+    "September 15, 2004 [rickr]\n"
+    "  - added support for -gp_index, computing over a single sub-brick\n"
+    "    - altered subs in dump_surf_3dt(), max_index in set_surf_results(),\n"
+    "      set brick_index in v2s_apply_filter(), mem in alloc_output_mem(),\n"
+    "      and added an index check in validate_v2s_inputs()\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -223,10 +229,9 @@ static int dump_surf_3dt( v2s_opts_t * sopt, v2s_param_t * p, v2s_results * sd )
     THD_fvec3      dset_min, dset_max;
     range_3dmm_res r3mm_res;
     range_3dmm     r3mm;
-    THD_ivec3      i3;				/* for coordinates */
     float          dist, min_dist, max_dist;
-    int            sub, subs, nindex, findex = 0, index1d;
-    int            oobc, oomc, index, max_index;
+    int            sub, subs, nindex, findex = 0;
+    int            oobc, oomc, max_index;
 
 ENTRY("dump_surf_3dt");
 
@@ -236,7 +241,8 @@ ENTRY("dump_surf_3dt");
 	RETURN(-1);
     }
 
-    subs = DSET_NVALS(p->gpar);
+    /* note the number of sub-bricks, unless the user has given just one */
+    subs = sopt->gp_index >= 0 ? 1 : DSET_NVALS(p->gpar);
     set_3dmm_bounds( p->gpar, &dset_min, &dset_max );
     if ( sopt->debug > 1 )
 	fprintf(stderr, "-- dset bounding box: (%f, %f, %f)\n"
@@ -371,6 +377,12 @@ ENTRY("set_surf_results");
     if (sd->k     )  sd->k[sd->nused]      = k;
     if (sd->nvals )  sd->nvals[sd->nused]  = r3res->ims.num;
 
+    /* rcr : should I nuke the MRI images, and just copy what is needed? */
+    if ( ! p->over_steps && sopt->gp_index >= 0 &&
+	 (sopt->debug > 1) && (node == sopt->dnode) )
+	    fprintf(stderr,"** dnode %d gets %f from gp_index %d\n",
+		    node, sd->vals[0][sd->nused], sopt->gp_index);
+    
     /* set max_index, and adjust in case max_vals has been restricted */
     max_index = p->over_steps ? r3res->ims.num : DSET_NVALS(p->gpar);
     if ( max_index > sd->max_vals ) max_index = sd->max_vals;
@@ -540,7 +552,7 @@ ENTRY("segment_imarr");
 
 	/* Huston, we have a good voxel... */
 
-	prev_ind    = vindex;		/* note this for next time  */
+	prev_ind = vindex;		/* note this for next time  */
 
 	/* now for the big finish, get and insert the actual data */
 
@@ -679,6 +691,7 @@ static float v2s_apply_filter( range_3dmm_res * rr, v2s_opts_t * sopt,
     double            tmp, comp = 0.0;
     float             fval;
     int               count, source;
+    int               brick_index = 0;
 
 ENTRY("v2s_apply_filter");
 
@@ -773,8 +786,10 @@ ENTRY("v2s_apply_filter");
 	    break;
 
 	case E_SMAP_SEG_VALS:
+	    /* if the user has specified a brick index, use it */
+	    if ( sopt->gp_index >= 0 ) brick_index = sopt->gp_index;
 	    if ( findex ) *findex = 0;
-	    comp = MRI_FLOAT_PTR(rr->ims.imarr[index])[0];
+	    comp = MRI_FLOAT_PTR(rr->ims.imarr[index])[brick_index];
 	    break;
 
 	case E_SMAP_MEDIAN:
@@ -929,9 +944,6 @@ ENTRY("float_list_slow_sort");
 */
 static int float_list_alloc(float_list *f, int **ilist, int size, int trunc)
 {
-    THD_fvec3 f3_diff;
-    float     dist, factor;
-
 ENTRY("float_list_alloc");
 
     if ( (f->nalloc < size) ||
@@ -1139,9 +1151,13 @@ ENTRY("allocate_output_mem");
 
     sd->nalloc   = sopt->last_node - sopt->first_node + 1;
     sd->nused    = 0;
-    sd->max_vals = p->over_steps ? sopt->f_steps : DSET_NVALS(p->gpar);
+
+    /* decide the maximum number of entries per row */
+    if ( p->over_steps )            sd->max_vals = sopt->f_steps;
+    else if ( sopt->gp_index >= 0 ) sd->max_vals = 1;
+    else                            sd->max_vals = DSET_NVALS(p->gpar);
+
     if ( sopt->skip_cols & V2S_SKIP_VALS ) sd->max_vals = 1;
-    sd->memory   = 0;
 
     if ( p->over_steps && (sopt->skip_cols & V2S_SKIP_VALS) )
     {
@@ -1149,6 +1165,8 @@ ENTRY("allocate_output_mem");
 	free(sd);
 	RETURN(NULL);
     }
+
+    sd->memory   = 0;
 
     /* first, compute the memory needed for one row */
     mem = 0;
@@ -1255,6 +1273,7 @@ ENTRY("alloc_ints");
     RETURN(0);
 }
 
+
 /*----------------------------------------------------------------------
  * disp_v2s_param_t  -  display the contents of the v2s_param_t struct
  *----------------------------------------------------------------------
@@ -1305,7 +1324,8 @@ ENTRY("disp_v2s_opts_t");
 
     fprintf(stderr,
 	    "v2s_opts_t struct at %p  :\n"
-	    "    map, debug, dnode     = %d, %d, %d\n"
+	    "    map, gp_index         = %d, %d\n"
+	    "    debug, dnode          = %d, %d\n"
 	    "    no_head, skip_cols    = %d, %d\n"
 	    "    first_node, last_node = %d, %d\n"
 	    "    use_norms, norm_len   = %d, %f\n"
@@ -1316,7 +1336,7 @@ ENTRY("disp_v2s_opts_t");
 	    "    outfile_1D            = %s\n"
 	    "    outfile_niml          = %s\n"
 	    , sopt,
-	    sopt->map, sopt->debug, sopt->dnode,
+	    sopt->map, sopt->gp_index, sopt->debug, sopt->dnode,
 	    sopt->no_head, sopt->skip_cols,
 	    sopt->first_node, sopt->last_node,
 	    sopt->use_norms, sopt->norm_len, sopt->keep_norm_dir,
@@ -1574,7 +1594,7 @@ ENTRY("free_v2s_results");
 */
 static int validate_v2s_inputs ( v2s_opts_t * sopt, v2s_param_t * p )
 {
-    int c, rv = 0;
+    int c;
 
 ENTRY("validate_v2s_inputs");
 
@@ -1608,6 +1628,13 @@ ENTRY("validate_v2s_inputs");
     if ( p->nvox != DSET_NVOX(p->gpar) )
     {
 	fprintf(stderr,"** invalid voxel count (%d) for grid_parent\n",p->nvox);
+	RETURN(2);
+    }
+
+    if ( sopt->gp_index >= DSET_NVALS(p->gpar) )
+    {
+	fprintf(stderr,"** gp_index (%d) > max grid_parent index (%d)\n",
+		sopt->gp_index, DSET_NVALS(p->gpar) - 1); 
 	RETURN(2);
     }
 
@@ -1730,5 +1757,4 @@ ENTRY("v2s_map_type");
                                                                                 
     RETURN((int)E_SMAP_INVALID);
 }
-                                                                                
 

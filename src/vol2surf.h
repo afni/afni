@@ -62,6 +62,7 @@ typedef struct
 typedef struct
 {
     int         map;			/* type of mapping from surfs    */
+    int         gp_index;		/* grid parent sub-brick (or -1) */
     int         debug;			/* for printing extra output     */
     int         dnode;			/* node watched for debug        */
     int         no_head;		/* do not write output headers   */

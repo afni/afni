@@ -25,6 +25,7 @@ typedef struct
     char      * cmask_cmd;     		/* 3dcalc style mask command    */
     char      * map_str;		/* how to map surf(s) to dset   */
     char      * snames[V2S_MAX_SURFS];	/* list of surfaces to use      */
+    int         gp_index;               /* grid parent sub-brick        */
     int         no_head;		/* do not write output headers  */
     int         skip_cols;		/* which output columns to skip */
     int         first_node;		/* skip nodes before this index */
