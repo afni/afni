@@ -249,7 +249,7 @@ static void ISQ_setup_ppmto_filters(void)
 
    /*-- the cheap way to write PPM --*/
 
-   pg = THD_find_executable( "cat" ) ;
+   pg = THD_find_executable( "cat" ) ;   /* should always find this! */
    if( pg != NULL ){
       str = malloc(strlen(pg)+32) ;
       sprintf(str,"%s > %%s",pg) ;
@@ -649,7 +649,10 @@ if( PRINT_TRACING ){
 
    strcpy( newseq->im_label , "hi bob" ) ;
 
+   /* set display processing options */
+
    ISQ_DEFAULT_OPT(newseq->opt) ;  /* 09 Oct 1998: macro replaces explicit code */
+   if( ppmto_num > 0 ) newseq->opt.save_filter = 0 ;  /* 26 Mar 2002 */
    newseq->opt.parent = (XtPointer) newseq ;
    newseq->old_opt    = newseq->opt ;         /* backup copy */
 
@@ -2785,7 +2788,7 @@ ENTRY("ISQ_saver_CB") ;
          }
          continue ;  /* skip to next one */
       }
-      flim = tim ;
+      flim = tim ;   /* image to save is flim */
 
 #ifndef DONT_USE_METER
       if( meter != NULL ){
@@ -2811,8 +2814,6 @@ ENTRY("ISQ_saver_CB") ;
          flim = ISQ_process_mri( kf , seq , tim ) ;
          if( tim != flim ) KILL_1MRI( tim ) ;
 
-         nx = flim->nx ; ny = flim->ny ; npix = flim->nx * flim->ny ;
-
          /* get overlay and flip it */
 
          if( !ISQ_SKIP_OVERLAY(seq) ){
@@ -2835,6 +2836,52 @@ ENTRY("ISQ_saver_CB") ;
             mri_free( ovim ) ;
          }
 
+         /* if needed, convert from indices to color */
+
+         if( flim->kind == MRI_short ){
+            tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
+            mri_free(flim) ; flim = tim ;
+         }
+
+         /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
+
+#ifdef ALLOW_ZOOM
+         if( seq->zoom_fac > 1 && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+           tim=mri_dup2D(seq->zoom_fac,flim) ;
+           mri_free(flim) ; flim = tim ;
+         }
+#endif
+
+         if( MCW_val_bbox(seq->wbar_plots_bbox) != 0 ){  /* draw geometry overlay */
+           MEM_plotdata *mp ;
+           mp = (MEM_plotdata *) seq->getim( kf,isqCR_getmemplot,seq->getaux ) ;
+           if( mp != NULL ){
+             flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror,mp );
+             memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+             delete_memplot(mp) ;
+           }
+         }
+
+#ifdef ALLOW_ZOOM
+         if( seq->zoom_fac > 1 &&                   /* crop zoomed image */
+             seq->mont_nx == 1 &&                   /* to displayed part? */
+             seq->mont_ny == 1 &&
+             AFNI_yesenv("AFNI_CROP_ZOOMSAVE") ) {
+
+           int xa,ya , iw=flim->nx/seq->zoom_fac , ih=flim->ny/seq->zoom_fac ;
+
+           xa = seq->zoom_hor_off * flim->nx ;
+           if( xa+iw > flim->nx ) xa = flim->nx-iw ;
+           ya = seq->zoom_ver_off * flim->nx ;
+           if( ya+ih > flim->ny ) ya = flim->ny-ih ;
+           tim = mri_cut_2D( flim , xa,xa+iw-1 , ya,ya+ih-1 ) ;
+           if( tim != NULL ){ mri_free(flim); flim = tim; }
+         }
+#endif
+         /* image dimensions */
+
+         nx = flim->nx ; ny = flim->ny ; npix = nx*ny ;
+
          /* write the output file */
 
          if( !DO_ANIM(seq) ){   /* don't write progress for animation */
@@ -2843,13 +2890,6 @@ ENTRY("ISQ_saver_CB") ;
            else if( kf%10 == 5 )
               printf("." ) ;
            fflush(stdout) ;
-         }
-
-         /* if needed, convert from indices to color */
-
-         if( flim->kind == MRI_short ){
-            tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
-            mri_free(flim) ; flim = tim ;
          }
 
          /* start the filter */
@@ -2881,6 +2921,8 @@ ENTRY("ISQ_saver_CB") ;
          fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
          pc = pclose(fp) ;
          if( pc == -1 ) perror("Error in image output pipe") ;
+
+         mri_free(flim) ; flim = NULL ; /* done with this image */
 
          /* 27 Jul 2001: if doing animated GIF,
                          and if done, then write result */
@@ -2990,6 +3032,8 @@ ENTRY("ISQ_saver_CB") ;
          sprintf( fname , "%s%04d.pnm" , seq->saver_prefix , kf ) ;
          mri_write_pnm( fname , flim ) ;
 
+         mri_free(flim) ; flim = NULL ; /* done with this image */
+
       } else if( ! seq->opt.save_pnm ){ /** write background only **/
 
          if( seq->opt.save_nsize ){
@@ -3009,10 +3053,10 @@ ENTRY("ISQ_saver_CB") ;
 
          if( flim->kind == MRI_byte ){  /* 17 Feb 1999 */
             sprintf( fname , "%s%04d.pnm" , seq->saver_prefix , kf ) ;
-            mri_write_pnm( fname , flim ) ; mri_free( flim ) ;
+            mri_write_pnm( fname , flim ) ; mri_free( flim ) ; flim = NULL ;
          } else {
             sprintf( fname , "%s%04d" , seq->saver_prefix , kf ) ;
-            mri_write( fname , flim ) ; mri_free( flim ) ;
+            mri_write( fname , flim ) ; mri_free( flim ) ; flim = NULL ;
          }
 
       } else { /** write color overlay and everything **/
@@ -3076,7 +3120,7 @@ ENTRY("ISQ_saver_CB") ;
          sprintf( fname , "%s%04d.pnm" , seq->saver_prefix , kf ) ;
 
          if( flim->kind == MRI_rgb ){                        /* 07 Mar 2001 */
-            mri_write_pnm( fname , flim ) ; mri_free(flim) ;
+            mri_write_pnm( fname , flim ) ; mri_free(flim) ; flim = NULL ;
          } else {                                            /* the old way */
 
             /* XColor arrays for underlay and overlay */
@@ -3128,8 +3172,8 @@ ENTRY("ISQ_saver_CB") ;
             }
 
             fprintf(fd,"P%d\n%d %d\n255\n",ncode,nx,ny) ; /* write PNM header */
-            fwrite( rgb , sizeof(byte) , nout , fd ) ;    /* write bytes */
-            fclose( fd ) ; mri_free( flim ) ; myXtFree(rgb) ; /* DONE */
+            fwrite( rgb , sizeof(byte) , nout , fd ) ;         /* write bytes */
+            fclose( fd ); mri_free(flim); flim = NULL; myXtFree(rgb); /* DONE */
          }
       }
    } /* end of loop over images */
