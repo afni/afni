@@ -1070,6 +1070,14 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'ZTONE' )THEN
             R8_EVAL(NEVAL) = ZTONE( R8_EVAL(NEVAL) )
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'NOTZERO' )THEN
+            R8_EVAL(NEVAL) = BOOL( R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'ISZERO' )THEN
+            R8_EVAL(NEVAL) = 1.D+0 - BOOL( R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'EQUALS' )THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = 1.D+0-BOOL(R8_EVAL(NEVAL)-R8_EVAL(NEVAL+1))
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'AND'  )THEN
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
@@ -1815,6 +1823,21 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'ZTONE' )THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = ZTONE( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'NOTZERO' )THEN
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = BOOL( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'ISZERO' )THEN
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = 1.D+0-BOOL(R8_EVAL(IV-IBV,NEVAL))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'EQUALS' )THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = 1.D+0
+     X              -BOOL(R8_EVAL(IV-IBV,NEVAL)-R8_EVAL(IV-IBV,NEVAL+1))
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'AND'  )THEN

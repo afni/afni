@@ -5227,3 +5227,6 @@
  * Modified afni_graph.[ch] to add a chooser to set the thickness of
      'Thick' lines in the graph viewers (on the "Opt->Colors, Etc." menu).
      Also, afni.c to add AFNI_graph_gthick to initialize this value.
+
+20 Oct 2004
+ * Modified parser.f to add NOTZERO, ISZERO, and EQUALS functions.
