@@ -2057,13 +2057,18 @@ lines will not be drawn.
 -------------------------
 Variable: AFNI_XJPEG_IMXY
 -------------------------
-This variable determines the size of the image saved when via the
--xjpeg option to 3dDeconvolve.  It should be
-in the format
+This variable determines the size of the image saved when via the -xjpeg
+option to 3dDeconvolve.  It should be in the format AxB, where 'A' is the
+number of pixels the image is to be wide (across the matrix rows) and 'B'
+is the number of pixels high (down the columns); for example:
   setenv AFNI_XJPEG_IMXY 768x1024
-which means to set the x-size (horizontal) to 768 pixels and the
-y-size (vertical) to 1024 pixels.  These values are the default,
-by the way.
+which means to set the x-size (horizontal) to 768 pixels and the y-size
+(vertical) to 1024 pixels.  These values are the default, by the way.
+
+If the first value 'A' is negative and less than -1, its absolute value
+is the number of pixels across PER ROW.  If the second value 'B' is
+negative, its absolute value is the number of pixels down PER ROW.
+(Usually there are many fewer columns than rows.)
 
 =============================================
 | Robert W Cox, PhD                         |
