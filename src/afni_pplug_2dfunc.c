@@ -12,7 +12,13 @@
 /*--------------------- string to 'help' the user --------------------*/
 
 static char helpstring[] =
-  "Purpose: control the 2D Chain function\n"
+  "Purpose: control the 2DChain function\n"
+  "\n"
+  "The 2DChain transformation allows you to chain together a sequence\n"
+  "of up to 8 other 0D or 2D transformation functions.  Each row of\n"
+  "the input form controls one transformation.  If it is toggled ON,\n"
+  "then you can choose from a menu of functions.  Each ON function is\n"
+  "applied in turn.\n"
   "\n"
   "The special 'Expr 3x3' function lets you compute any expression\n"
   "that depends on the local 3x3 neighborhood of each pixel, where\n"
@@ -31,6 +37,8 @@ static char helpstring[] =
   "\n"
   "for the expression, this will evaluate the average of the 9\n"
   "local pixels and subtract the output of chain link A.\n"
+  "On line C, you cannot use variables C or higher, since they\n"
+  "won't have been calculated at the time C is being computed.\n"
   "\n"
   "Author -- RW Cox -- July 2000"
 ;
@@ -124,6 +132,8 @@ PLUGIN_interface * F2D_init(void)
       numfunc += num2D ;
    }
 
+   AFNI_register_2D_function( "2DChain" , F2D_chainfunc ) ;  /* add this only now */
+
    /*--------- make interface lines -----------*/
 
    for( ii=0 ; ii < NUM_CHAIN ; ii++ ){
@@ -148,8 +158,6 @@ PLUGIN_interface * F2D_init(void)
 
    /*--------- done with interface setup ---------*/
 
-   AFNI_register_2D_function( "2DChain" , F2D_chainfunc ) ;
-
    return plint ;
 }
 
@@ -164,16 +172,18 @@ static char * F2D_main( PLUGIN_interface * plint )
    char *tag , *str ;
    int ii,kk,jj , ndone=0 ;
 
-   /*--------- loop over input lines ---------*/
+   /*-- turn off all rows --*/
 
-   for( ii=0 ; ii < NUM_CHAIN ; ii++ ){  /* turn them all off */
+   for( ii=0 ; ii < NUM_CHAIN ; ii++ ){
       chain_do[ii] = 0 ;
       chain_ff[ii] = NULL ;
       if( chain_pc[ii] != NULL ){ free(chain_pc[ii]); chain_pc[ii]=NULL; }
    }
 
+   /*--------- loop over input lines ---------*/
+
    while(1){
-      tag = PLUTO_get_optiontag(plint) ;
+      tag = PLUTO_get_optiontag(plint) ;  /* "A", "B", etc */
       if( tag == NULL ) break ;
 
       /* find which variable */
@@ -181,32 +191,33 @@ static char * F2D_main( PLUGIN_interface * plint )
       for( kk=0 ; kk < NUM_CHAIN ; kk++ )
          if( tag[0] == alpha[kk] ) break ;
 
-      if( kk >= NUM_CHAIN ) break ;
+      if( kk >= NUM_CHAIN ) break ;       /* should not happen */
 
-      chain_do[kk] = 1 ; ndone++ ; /* mark to do this chain */
+      chain_do[kk] = 1 ; ndone++ ;        /* mark to do this chain link */
 
-      str = PLUTO_get_string(plint) ;
-      jj  = PLUTO_string_index( str , numfunc,funcname ) ;
+      str = PLUTO_get_string(plint) ;                       /* function name */
+      jj  = PLUTO_string_index( str , numfunc,funcname ) ;  /* index of function */
 
-      if( jj < 0 || jj >= numfunc ){ /* error */
-         for( ii=0 ; ii < NUM_CHAIN ; ii++ ) chain_do[ii] = 0 ;
+      if( jj < 0 || jj >= numfunc ){ /* should not happen */
+
+         for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
          return "** Internal Error **" ;
 
       } else if( jj == 0 ){          /* Expr 3x3 */
          int hasym[26] , ns ;
 
-         str = PLUTO_get_string(plint) ;
-         chain_pc[kk] = PARSER_generate_code(str) ;
-         chain_dd[kk] = -1 ;
+         str = PLUTO_get_string(plint) ;             /* get expression */
+         chain_pc[kk] = PARSER_generate_code(str) ;  /* parse it */
+         chain_dd[kk] = -1 ;                         /* code for this case */
 
          if( chain_pc[kk] == NULL ){
             for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
             return "** Expr 3x3 parser error **" ;
          }
 
-         PARSER_mark_symbols( chain_pc[kk] , hasym ) ;
-
          /* check symbol usage */
+
+         PARSER_mark_symbols( chain_pc[kk] , hasym ) ;
 
          for( ii=0 ; ii < kk ; ii++ ){                 /* previous */
            if( hasym[ii] && chain_do[ii] == 0 ){
@@ -244,12 +255,12 @@ static char * F2D_main( PLUGIN_interface * plint )
 
       } else if( jj >= 1 && jj <= num0D ){   /* 0D function */
 
-         chain_dd[kk] = 0 ;
+         chain_dd[kk] = 0 ;            /* code for 0D */
          chain_ff[kk] = func0D[jj-1] ;
 
       } else {                               /* 2D function */
 
-         chain_dd[kk] = 2 ;
+         chain_dd[kk] = 2 ;            /* code for 2D */
          chain_ff[kk] = func2D[jj-num0D-1] ;
       }
 
@@ -292,8 +303,10 @@ static void F2D_chainfunc( int nx , int ny , double dx, double dy, float * ar )
          atoz[ii] = (double *) malloc(sizeof(double)*nx) ;
    }
 
+   /* loop over chain links */
+
    for( kk=0 ; kk < NUM_CHAIN ; kk++ ){
-      if( !chain_do[kk] ) break ;
+      if( !chain_do[kk] ) continue ;     /* skip this link */
 
       switch( chain_dd[kk] ){
 
@@ -310,99 +323,112 @@ static void F2D_chainfunc( int nx , int ny , double dx, double dy, float * ar )
          case -1:{                                    /* Expr 3x3 */
             int hasym[26] , jj ;
 
-            PARSER_mark_symbols( chain_pc[kk] , hasym ) ;
+            PARSER_mark_symbols( chain_pc[kk] , hasym ) ;  /* which symbols to load? */
 
-            for( jj=0 ; jj < ny ; jj++ ){  /* evaluate rows */
+            for( jj=0 ; jj < ny ; jj++ ){  /* loop over rows */
 
-               uvw = aprev + jj*nx ;
+               uvw = aprev + jj*nx ;                     /* row containing u,v,w */
 
-               rst = (jj == 0) ? uvw
+               rst = (jj == 0) ? uvw                     /* row containing r,s,t */
                                : aprev + (jj-1)*nx ;
 
-               xyz = (jj == ny-1 ) ? uvw
+               xyz = (jj == ny-1 ) ? uvw                 /* row containing x,y,z */
                                    : aprev + (jj+1)*nx ;
+
+               /* initialize all variables to 0 */
 
                for( pp=0 ; pp < 26 ; pp++){
                   for( ii=0 ; ii < nx ; ii++ ) atoz[pp][ii] = 0.0 ;
                }
 
-               for( pp=0 ; pp < kk ; pp++ ){ /* load previous images */
+               /* load previous images */
+
+               for( pp=0 ; pp < kk ; pp++ ){
                   if( hasym[pp] ){
                      for( ii=0 ; ii < nx ; ii++ )
                         atoz[pp][ii] = (double) abc[pp][ii+jj*nx] ;
                   }
                }
 
-               if( hasym[RR] ){                         /* R */
+               if( hasym[RR] ){                         /* load R */
                   atoz[RR][0] = (double) rst[0] ;
                   for( ii=1 ; ii < nx ; ii++ )
                      atoz[RR][ii] = (double) rst[ii-1] ;
                }
 
-               if( hasym[SS] ){                         /* S */
+               if( hasym[SS] ){                         /* load S */
                   for( ii=0 ; ii < nx ; ii++ )
                      atoz[SS][ii] = (double) rst[ii] ;
                }
 
-               if( hasym[TT] ){                         /* T */
+               if( hasym[TT] ){                         /* load T */
                   for( ii=0 ; ii < nx-1 ; ii++ )
                      atoz[TT][ii] = (double) rst[ii+1] ;
                   atoz[TT][nx-1] = (double) rst[nx-1] ;
                }
 
-               if( hasym[UU] ){                         /* U */
+               if( hasym[UU] ){                         /* load U */
                   atoz[UU][0] = (double) uvw[0] ;
                   for( ii=1 ; ii < nx ; ii++ )
                      atoz[UU][ii] = (double) uvw[ii-1] ;
                }
 
-               if( hasym[VV] ){                         /* V */
+               if( hasym[VV] ){                         /* load V */
                   for( ii=0 ; ii < nx ; ii++ )
                      atoz[VV][ii] = (double) uvw[ii] ;
                }
 
-               if( hasym[WW] ){                         /* W */
+               if( hasym[WW] ){                         /* load W */
                   for( ii=0 ; ii < nx-1 ; ii++ )
                      atoz[WW][ii] = (double) uvw[ii+1] ;
                   atoz[WW][nx-1] = (double) uvw[nx-1] ;
                }
 
-               if( hasym[XX] ){                         /* X */
+               if( hasym[XX] ){                         /* load X */
                   atoz[XX][0] = (double) xyz[0] ;
                   for( ii=1 ; ii < nx ; ii++ )
                      atoz[XX][ii] = (double) xyz[ii-1] ;
                }
 
-               if( hasym[YY] ){                         /* Y */
+               if( hasym[YY] ){                         /* load Y */
                   for( ii=0 ; ii < nx ; ii++ )
                      atoz[YY][ii] = (double) xyz[ii] ;
                }
 
-               if( hasym[ZZ] ){                         /* Z */
+               if( hasym[ZZ] ){                         /* load Z */
                   for( ii=0 ; ii < nx-1 ; ii++ )
                      atoz[ZZ][ii] = (double) xyz[ii+1] ;
                   atoz[ZZ][nx-1] = (double) xyz[nx-1] ;
                }
 
+               /* compute this row! */
+
                PARSER_evaluate_vector( chain_pc[kk] , atoz , nx , tmp ) ;
+
+               /* store back in output row */
 
                uvw = abc[kk] + jj*nx ;
                for( ii=0 ; ii < nx ; ii++ ) uvw[ii] = (float) tmp[ii] ;
-            }
+
+            } /* end of loop over rows */
          }
          break ;
       }
 
-      aprev = abc[kk] ;                               /* for next time */
+      aprev = abc[kk] ;  /* for next time, this is previous image */
    }
 
-   memcpy( ar , aprev , sizeof(float)*nxy ) ; /* output */
+   /* copy last result into input array: this is the result */
 
-   for( kk=0 ; kk < NUM_CHAIN ; kk++ )        /* take out the trash */
+   memcpy( ar , aprev , sizeof(float)*nxy ) ;
+
+   /* take out the trash */
+
+   for( kk=0 ; kk < NUM_CHAIN ; kk++ )       /* images */
       if( abc[kk] != NULL ) free(abc[kk]) ;
 
    if( nexp > 0 ){
-      for( ii=0 ; ii < 26 ; ii++ ) free(atoz[ii]) ;
+      for( ii=0 ; ii < 26 ; ii++ ) free(atoz[ii]) ;  /* expression variables */
       free(tmp) ;
    }
 

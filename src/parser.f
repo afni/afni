@@ -818,7 +818,7 @@ C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
-     X       GRAN,URAN,IRAN,ERAN,LRAN
+     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT
 C
 C  External library functions
 C
@@ -1075,6 +1075,12 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = MEDIAN( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'ORSTAT' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
+            ITM   = R8_EVAL(NEVAL)
+            R8_EVAL(NEVAL) = ORSTAT( ITM,NTM , R8_EVAL(NEVAL+1) )
          ELSEIF( CNCODE .EQ. 'HMODE' )THEN
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
@@ -1253,7 +1259,7 @@ C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
-     X       GRAN,URAN,IRAN,ERAN,LRAN
+     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT
 C
 C  External library functions
 C
@@ -1755,6 +1761,17 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = MEDIAN( NTM, SCOP )
+	    ENDDO
+         ELSEIF( CNCODE .EQ. 'ORSTAT' )THEN
+            NTM   = R8_EVAL(1,NEVAL)
+            NEVAL = NEVAL - NTM
+            NTM   = NTM - 1
+            DO IV=IVBOT,IVTOP
+               ITM   = R8_EVAL(IV-IBV,NEVAL)
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = ORSTAT(ITM,NTM,SCOP)
 	    ENDDO
          ELSEIF( CNCODE .EQ. 'HMODE'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
@@ -2303,6 +2320,28 @@ C------------------------------------  Bubble sort
          ENDIF
 100   CONTINUE
       IF( IT .NE. 0 )GOTO 50
+      RETURN
+      END
+C
+C
+C
+      FUNCTION ORSTAT(M,N,X)
+      REAL*8  ORSTAT,X(N)
+      INTEGER M,N , I
+C
+      IF( N .LE. 1 )THEN
+         ORSTAT = X(1)
+         RETURN
+      ENDIF
+C
+      I = M
+      IF( I .LE. 0 )THEN
+         I = 1
+      ELSEIF( I .GT. N )THEN
+         I = N
+      ENDIF
+      CALL BSORT(N,X)
+      ORSTAT = X(I)
       RETURN
       END
 C

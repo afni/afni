@@ -40,7 +40,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
-           3dWavelets 3dfim+ imcutup
+           3dWavelets 3dfim+ imcutup 3dWinsor
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -362,6 +362,10 @@ d3dmerge:3dmerge.c
 3ddot:3ddot.o
 	$(RM) $@
 	$(CC) -o 3ddot 3ddot.o $(LFLAGS) $(LLIBS)
+
+3dWinsor:3dWinsor.o
+	$(RM) $@
+	$(CC) -o 3dWinsor 3dWinsor.o $(LFLAGS) $(LLIBS)
 
 3drotate:3drotate.o
 	$(RM) $@
@@ -831,7 +835,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
            thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o  \
            thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o \
-           thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_base64.o
+           thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_base64.o     \
+           thd_winsor.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \

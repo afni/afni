@@ -2404,6 +2404,9 @@ extern void AFNI_concatenate_warp( THD_warp * , THD_warp * ) ;
 extern THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * ,
                                                    THD_linear_mapping *  ) ;
 
+extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
+                                     int, int, int, float, char *, int ) ;
+
 /*--------------------------------------------------------------------------*/
 
 /*--- Stuff for Tom Ross's NOTES ---*/
