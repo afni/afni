@@ -333,10 +333,10 @@
 
 #ifndef FLOATIZE
 # include "matrix.h"          /* double precision */
-# define MATRIX_TYPE double
+# define MTYPE double
 #else
 # include "matrix_f.h"        /* single precision */
-# define MATRIX_TYPE float
+# define MTYPE float
 #endif
 
 /*------------ prototypes for routines far below (RWCox) ------------------*/
@@ -369,6 +369,36 @@ static SYM_irange *SymStim = NULL ;
 
 void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat ) ;
 static void vstep_print(void) ;
+
+/*---------- Typedefs for basis function expansions of the IRF ----------*/
+
+/** Search for 'basis_' to find all stuff related to this **/
+
+/*! One basis function f(t,a,b,c). */
+
+typedef struct {
+  float a , b , c ;                      /* up to 3 parameters */
+  float (*f)(float,float,float,float) ;  /* function to call */
+} basis_func ;
+
+/*! A whole set of basis functions. */
+
+typedef struct {
+  int nfunc ;
+  basis_func *bfunc ;
+} basis_expansion ;
+
+/** Prototypes for some basis expansion functions appearing later **/
+
+basis_expansion * basis_parser( char *sym ) ;
+float basis_evaluation( basis_expansion *be , float *wt , float x ) ;
+
+/** global variable for stimulus basis expansions **/
+
+basis_expansion **basis_stim  = NULL ;
+MRI_IMAGE       **basis_times = NULL ;
+
+#define basis_filler 1.e+33
 
 /*---------------------------------------------------------------------------*/
 
@@ -735,6 +765,8 @@ void initialize_stim_options
   option_data->sresp_filename = (char **) malloc (sizeof(char *) * num_stimts);
   MTEST (option_data->sresp_filename);
 
+  basis_stim = (basis_expansion **)malloc(sizeof(basis_expansion *)*num_stimts);
+  basis_times = (MRI_IMAGE **)     malloc(sizeof(MRI_IMAGE *)      *num_stimts);
 
   /*----- Initialize stimulus options -----*/
   for (is = 0;  is < num_stimts;  is++)
@@ -751,6 +783,9 @@ void initialize_stim_options
 
       option_data->iresp_filename[is] = NULL;
       option_data->sresp_filename[is] = NULL;
+
+      basis_stim[is]  = NULL ;
+      basis_times[is] = NULL ;
     }
 
 }
@@ -1101,6 +1136,35 @@ void get_options
 	  continue;
 	}
 
+      /*-----  -stim_times k sname rtype [10 Aug 2004]  -----*/
+      if( strcmp(argv[nopt],"-stim_times") == 0 ){
+        nopt++ ;
+        if( nopt+2 >= argc ) DC_error("need 3 arguments after -stim_times");
+        sscanf( argv[nopt] , "%d" , &ival ) ;
+        if( (ival < 1) || (ival > option_data->num_stimts) ){
+          fprintf(stderr,
+                  "** ERROR: '-stim_times %d' value out of range 1..%d\n",
+                  ival , option_data->num_stimts ) ;
+          exit(1) ;
+        }
+        k = ival-1 ; nopt++ ;
+        option_data->stim_filename[k] = strdup( argv[nopt] ) ;
+        basis_times[k] = mri_read_ascii_ragged( argv[nopt] , basis_filler ) ;
+        if( basis_times[k] == NULL ){
+          fprintf(stderr,
+                  "** ERROR: '-stim_times %d' can't open file '%s'\n",
+                  ival , argv[nopt] ) ;
+          exit(1) ;
+        }
+        nopt++ ;
+        basis_stim[k] = basis_parser( argv[nopt] ) ;
+        if( basis_stim[k] == NULL ){
+          fprintf(stderr,
+                  "** ERROR: '-stim_times %d %s' can't parse '%s'\n",
+                  ival , argv[nopt-1] , argv[nopt] ) ;
+        }
+        nopt++ ; continue ;
+      }
 
       /*-----   -stim_file k sname   -----*/
       if (strcmp(argv[nopt], "-stim_file") == 0)
@@ -5241,7 +5305,7 @@ char * niml_element_to_string( NI_element *nel )
 NI_element * matrix_to_niml( matrix a , char *ename )
 {
    int m=a.rows , n=a.cols , ii,jj ;
-   MATRIX_TYPE **aar = a.elts ;
+   MTYPE **aar = a.elts ;
    NI_element *nel ;
    double *ecol ;
 
@@ -5270,7 +5334,7 @@ void niml_to_matrix( NI_element *nel , matrix *a )
 {
    int m , n , ii , jj ;
    double *ecol ;
-   MATRIX_TYPE **aar ;
+   MTYPE **aar ;
    char *ename ;
 
    if( nel == NULL || a == NULL ) return ;
@@ -5287,7 +5351,7 @@ void niml_to_matrix( NI_element *nel , matrix *a )
 
    for( jj=0 ; jj < n ; jj++ ){
      ecol = (double *)nel->vec[jj] ;
-     for( ii=0 ; ii < m ; ii++ ) aar[ii][jj] = (MATRIX_TYPE)ecol[ii] ;;
+     for( ii=0 ; ii < m ; ii++ ) aar[ii][jj] = (MTYPE)ecol[ii] ;;
    }
 
    return ;
@@ -6218,4 +6282,324 @@ static void vstep_print(void)
    fprintf(stderr , "%c" , xx[nn%10] ) ;
    if( nn%10 == 9) fprintf(stderr,".") ;
    nn++ ;
+}
+
+/***************************************************************************/
+/** Functions  for basis function expansion of impulse response function. **/
+/***************************************************************************/
+
+/*--------------------------------------------------------------------------*/
+/*! Evaluate a basis expansion, given the weights for each function
+    in wt[] and the point of evaluation.
+----------------------------------------------------------------------------*/
+
+float basis_evaluation( basis_expansion *be , float *wt , float x )
+{
+   float sum=0.0 ;
+   int ii ;
+
+   for( ii=0 ; ii < be->nfunc ; ii++ )
+     sum += wt[ii] * be->bfunc[ii].f( x , be->bfunc[ii].a ,
+                                          be->bfunc[ii].b , be->bfunc[ii].c ) ;
+
+   return sum ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Tent basis function:
+     - 0 for x outside bot..top range
+     - piecewise linear and equal to 1 at x=mid
+----------------------------------------------------------------------------*/
+
+static float basis_tent( float x , float bot , float mid , float top )
+{
+   if( x <= bot || x >= top ) return 0.0f ;
+   if( x <= mid )             return (x-bot)/(mid-bot) ;
+                              return (top-x)/(top-mid) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Basis function that is 1 inside the bot..top interval, 0 outside of it.
+----------------------------------------------------------------------------*/
+
+static float basis_one( float x , float bot , float top , float junk )
+{
+   if( x < bot || x > top ) return 0.0f ;
+   return 1.0f ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Cosine basis function:
+    - 0 for x outside bot..top range
+    - cos(freq*(x-bot)) otherwise.
+----------------------------------------------------------------------------*/
+
+static float basis_cos( float x , float bot , float top , float freq )
+{
+   if( x < bot || x > top ) return 0.0f ;
+   return (float)cos(freq*(x-bot)) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Sine basis function:
+    - 0 for x outside bot..top range
+    - sin(freq*(x-bot)) otherwise.
+----------------------------------------------------------------------------*/
+
+static float basis_sin( float x , float bot , float top , float freq )
+{
+   if( x <= bot || x >= top ) return 0.0f ;
+   return (float)sin(freq*(x-bot)) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Gamma variate basis function
+    - 0 for x outside range 0..top
+    - x^b * exp(-x/c), scaled to peak value=1, otherwise
+----------------------------------------------------------------------------*/
+
+static float basis_gam( float x , float b , float c , float top )
+{
+   if( x <= 0.0f || x > top ) return 0.0f ;
+   return (float)(pow(x/(b*c),b)*exp(b-x/c)) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+#undef  SPM_A1
+#undef  SPM_A2
+#undef  SPM_P1
+#undef  SPM_P2
+
+#define SPM_A1 0.0083333333    /* A * exp(-x) * x^P */
+#define SPM_P1 4.0
+#define SPM_A2 1.274527e-13
+#define SPM_P2 15.0
+
+static float basis_spmg1( float x , float a, float b, float c )
+{
+   if( x <= 0.0f || x >= 25.0f ) return 0.0f ;
+   return (float)(exp(-x)*( SPM_A1*pow(x,SPM_P1)
+                           -SPM_A2*pow(x,SPM_P2) )) ;
+}
+
+static float basis_spmg2( float x, float a, float b, float c )
+{
+   if( x <= 0.0f || x >= 25.0f ) return 0.0f ;
+   return (float)(exp(-x)*( SPM_A1*pow(x,SPM_P1-1.0)*(SPM_P1-x)
+                           -SPM_A2*pow(x,SPM_P2-1.0)*(SPM_P2-x) )) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Legendre polynomial basis function
+    - 0 for x outside range bot..top
+    - P_n(x), x scaled to be -1..1 over range bot..top
+----------------------------------------------------------------------------*/
+
+static float basis_legendre( float x , float bot , float top , float n )
+{
+   float xq ;
+
+   x = 2.0f*(x-bot)/(top-bot) - 1.0f ;  /* now in range -1..1 */
+
+   if( x < -1.0f || x > 1.0f ) return 0.0f ;
+
+   xq = x*x ;
+
+   switch( (int)n ){
+    case 0: return 1.0f ;
+    case 1: return x ;
+    case 2: return (3.0f*xq-1.0f)/2.0f ;
+    case 3: return (5.0f*xq-3.0f)*x/2.0f ;
+    case 4: return ((35.0f*xq-30.0f)*xq+3.0f)/8.0f ;
+    case 5: return ((63.0f*xq-70.0f)*xq+15.0f)*x/8.0f ;
+    case 6: return (((231.0f*xq-315.0f)*xq+105.0f)*xq-5.0f)/16.0f ;
+    case 7: return (((429.0f*xq-693.0f)*xq+315.0f)*xq-35.0f)*x/16.0f ;
+
+    case 8: return ((((6435.0f*xq-12012.0f)*xq+6930.0f)*xq-1260.0f)*xq+35.0f)
+                  /128.0f;
+
+    case 9: return ((((12155.0f*xq-25740.0f)*xq+18018.0f)*xq-4620.0f)*xq+315.0f)
+                  *x/128.0f ;
+   }
+
+   return 0.0f ;   /* should never be reached */
+}
+
+#undef  POLY_MAX
+#define POLY_MAX 9  /* max order allowed in function above */
+
+/*--------------------------------------------------------------------------*/
+/* Take a string and generate a basis expansion structure from it.
+----------------------------------------------------------------------------*/
+
+basis_expansion * basis_parser( char *sym )
+{
+   basis_expansion *be ;
+   char *cpt , *scp ;
+   float bot=0.0f, top=0.0f ;
+   int nn , nord=0 ;
+
+   if( sym == NULL ) return NULL ;
+
+   scp = strdup(sym) ;                        /* duplicate, for editing */
+   cpt = strchr(scp,'(') ;                    /* find opening '(' */
+   if( cpt != NULL ){ *cpt = '\0' ; cpt++ ; } /* cut string there */
+
+   be = (basis_expansion *)malloc(sizeof(basis_expansion)) ;
+
+   /*--- GAM(b,c) ---*/
+
+   if( strcmp(scp,"GAM") == 0 ){
+
+     be->nfunc = 1 ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     be->bfunc[0].f = basis_gam ;
+     if( cpt == NULL ){
+       be->bfunc[0].a = 8.6f ;
+       be->bfunc[0].b = 0.547f ;
+       be->bfunc[0].c = 11.1f ;    /* return to zero-ish */
+     } else {
+       sscanf(cpt,"%f,%f",&bot,&top) ;
+       if( bot <= 0.0f || top <= 0.0f ){
+         fprintf(stderr,"** ERROR: 'GAM(%s' is illegal\n",cpt) ;
+         free((void *)be->bfunc); free((void *)be); return NULL ;
+       }
+       be->bfunc[0].a = bot ;
+       be->bfunc[0].b = top ;
+       be->bfunc[0].c = bot*top + 4.0f*sqrt(bot)*top ;  /* long enough */
+     }
+
+   /*--- TENT(bot,top,order) ---*/
+
+   } else if( strcmp(scp,"TENT") == 0 ){
+     float dx ;
+
+     if( cpt == NULL ){
+       fprintf(stderr,"** ERROR: 'TENT' by itself is illegal\n") ;
+       free((void *)be); return NULL ;
+     }
+     sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
+     if( bot >= top || nord < 2 ){
+       fprintf(stderr,"** ERROR: 'TENT(%s' is illegal\n",cpt) ;
+       free((void *)be->bfunc); free((void *)be); return NULL ;
+     }
+     be->nfunc = nord ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     dx        = (top-bot) / (nord-1) ;
+
+     be->bfunc[0].f = basis_tent ;
+     be->bfunc[0].a = bot-0.001*dx ;
+     be->bfunc[0].b = bot ;
+     be->bfunc[0].c = bot+dx ;
+     for( nn=1 ; nn < nord-1 ; nn++ ){
+       be->bfunc[nn].f = basis_tent ;
+       be->bfunc[nn].a = bot + (nn-1)*dx ;
+       be->bfunc[nn].b = bot +  nn   *dx ;
+       be->bfunc[nn].c = bot + (nn+1)*dx ;
+     }
+     be->bfunc[nord-1].f = basis_tent ;
+     be->bfunc[nord-1].a = bot + (nord-2)*dx ;
+     be->bfunc[nord-1].b = top ;
+     be->bfunc[nord-1].c = top + 0.001*dx ;
+
+   /*--- TRIG(bot,top,order) ---*/
+
+   } else if( strcmp(scp,"TRIG") == 0 ){
+
+     if( cpt == NULL ){
+       fprintf(stderr,"** ERROR: 'TRIG' by itself is illegal\n") ;
+       free((void *)be); return NULL ;
+     }
+     sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
+     if( bot >= top || nord < 3 ){
+       fprintf(stderr,"** ERROR: 'TRIG(%s' is illegal\n",cpt) ;
+       free((void *)be->bfunc); free((void *)be); return NULL ;
+     }
+     be->nfunc = nord ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+
+     be->bfunc[0].f = basis_one ;
+     be->bfunc[0].a = bot ;
+     be->bfunc[0].b = top ;
+     be->bfunc[0].c = 0.0f ;
+     for( nn=1 ; nn < nord ; nn++ ){
+       be->bfunc[nn].f = basis_cos ;
+       be->bfunc[nn].a = bot ;
+       be->bfunc[nn].b = top ;
+       be->bfunc[nn].c = (2.0*PI)*((nn+1)/2)/(top-bot) ;
+       nn++ ; if( nn >= nord ) break ;
+       be->bfunc[nn].f = basis_sin ;
+       be->bfunc[nn].a = bot ;
+       be->bfunc[nn].b = top ;
+       be->bfunc[nn].c = (2.0*PI)*((nn+1)/2)/(top-bot) ;
+     }
+
+   /*--- SIN(bot,top,order) ---*/
+
+   } else if( strcmp(scp,"SIN") == 0 ){
+
+     if( cpt == NULL ){
+       fprintf(stderr,"** ERROR: 'SIN' by itself is illegal\n") ;
+       free((void *)be); return NULL ;
+     }
+     sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
+     if( bot >= top || nord < 1 ){
+       fprintf(stderr,"** ERROR: 'SIN(%s' is illegal\n",cpt) ;
+       free((void *)be->bfunc); free((void *)be); return NULL ;
+     }
+     be->nfunc = nord ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+
+     for( nn=0 ; nn < nord ; nn++ ){
+       be->bfunc[nn].f = basis_sin ;
+       be->bfunc[nn].a = bot ;
+       be->bfunc[nn].b = top ;
+       be->bfunc[nn].c = PI*(nn+1)/(top-bot) ;
+     }
+
+   /*--- POLY(bot,top,order) ---*/
+
+   } else if( strcmp(scp,"POLY") == 0 ){
+
+     if( cpt == NULL ){
+       fprintf(stderr,"** ERROR: 'POLY' by itself is illegal\n") ;
+       free((void *)be); return NULL ;
+     }
+     sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
+     if( bot >= top || nord < 1 || nord > POLY_MAX ){
+       fprintf(stderr,"** ERROR: 'POLY(%s' is illegal\n",cpt) ;
+       free((void *)be->bfunc); free((void *)be); return NULL ;
+     }
+     be->nfunc = nord ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     be->bfunc[0].f = basis_one ;
+     be->bfunc[0].a = bot ;
+     be->bfunc[0].b = top ;
+     be->bfunc[0].c = 0.0f ;
+     for( nn=1 ; nn < nord ; nn++ ){
+       be->bfunc[nn].f = basis_legendre ;
+       be->bfunc[nn].a = bot ;
+       be->bfunc[nn].b = top ;
+       be->bfunc[nn].c = (float)nn ;
+     }
+
+   /*--- SPM ---*/
+
+   } else if( strcmp(scp,"SPMG") == 0 ){
+
+     be->nfunc = 2 ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     be->bfunc[0].f = basis_spmg1 ;
+     be->bfunc[0].a = 0.0f ;
+     be->bfunc[0].b = 0.0f ;
+     be->bfunc[0].c = 0.0f ;
+     be->bfunc[1].f = basis_spmg2 ;
+     be->bfunc[1].a = 0.0f ;
+     be->bfunc[1].b = 0.0f ;
+     be->bfunc[1].c = 0.0f ;
+
+   }
+
+   return be ;
 }
