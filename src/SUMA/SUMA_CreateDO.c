@@ -854,6 +854,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes (  SUMA_SurfaceObject *SO,
    \param N_Nodes (int *) updated with the total number of nodes in Nodes
    \param Unique (SUMA_Boolean) Remove repeated node occurences
    \return Nodes (int *) N_Nodesx1 vector of nodes forming ROI
+   
+   - Nodes (and N_Nodes) might have duplicate node entries, unless you set Unique
 */
 int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique) 
 {
@@ -870,20 +872,13 @@ int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique)
    }
    
    /* a quick count of number of nodes */
-   N_max = 0;
-   NextElm = NULL;
-   do {
-      if (!NextElm) NextElm = dlist_head(D_ROI->ROIstrokelist);
-      else NextElm = dlist_next(NextElm);
-      ROId = (SUMA_ROI_DATUM *)NextElm->data;
-      N_max += ROId->N_n;
-   }while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
+   SUMA_ROI_CRUDE_COUNT_NODES(D_ROI, N_max);
    
    if (!N_max) {
       *N_Nodes = 0;
       SUMA_RETURN (NULL);
    }
-   
+    
    Nodes = (int*)SUMA_malloc(N_max*sizeof(int));
    if (!Nodes) {
       SUMA_SLP_Crit("Failed to allocate for Nodes.");
@@ -2746,6 +2741,9 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
    \param FillColor (float[3])
    \param EdgeColor (float[3])
    \param EdgeThickness (int)
+   \param ForDisplay (SUMA_Boolean) YUP: Prepare ROI for display
+                                    (creates the contour for the ROI,
+                                    requires that Parent surface object be loaded)
    \return ROI (SUMA_DRAWN_ROI *)
    
    - No DO/Undos possible in this format
@@ -2754,7 +2752,7 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
 SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char *Parent_idcode_str, 
                                           char *Label, char *ColPlaneName, 
                                           float *FillColor, float *EdgeColor, int EdgeThickness, 
-                                          SUMA_DO *dov, int N_dov)
+                                          SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay)
 {
    static char FuncName[]={"SUMA_1DROI_to_DrawnROI"};
    SUMA_ROI_DATUM *ROI_Datum = NULL;
@@ -2790,25 +2788,27 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
    /* just append that baby */
    dlist_ins_next(ROI->ROIstrokelist, dlist_tail(ROI->ROIstrokelist), (void *)ROI_Datum);
    
-   /* You must find the contour by yourself. This is normally
-   done when the status is set to SUMA_ROI_Finished via the 
-   action stack functions */
-   { 
-      int *cNodes, N_cNodes;
-      SUMA_Boolean Unique = NOPE;
+   if (ForDisplay) {
+      /* You must find the contour by yourself. This is normally
+      done when the status is set to SUMA_ROI_Finished via the 
+      action stack functions */
+      { 
+         int *cNodes, N_cNodes;
+         SUMA_Boolean Unique = NOPE;
 
-      SUMA_LH("Getting Contour ");
-      N_cNodes = 0;
-      Unique = NOPE; /* Set to YUP if you have node indices listed more than once. 
-                        1D ROIs are uniquized in the reading functions*/
-      cNodes = SUMA_NodesInROI (ROI, &N_cNodes, Unique);
-      if (cNodes) {
-         ROI->CE = SUMA_GetContour (
-                        SUMA_findSOp_inDOv(ROI->Parent_idcode_str, dov, N_dov), 
-                        cNodes, N_cNodes, &(ROI->N_CE));
-         if (!ROI->CE) { SUMA_LH("Null DrawnROI->CE"); }
-         else { SUMA_LH("Good DrawnROI->CE"); }
-         SUMA_free(cNodes);
+         SUMA_LH("Getting Contour ");
+         N_cNodes = 0;
+         Unique = NOPE; /* Set to YUP if you have node indices listed more than once. 
+                           1D ROIs are uniquized in the reading functions*/
+         cNodes = SUMA_NodesInROI (ROI, &N_cNodes, Unique);
+         if (cNodes) {
+            ROI->CE = SUMA_GetContour (
+                           SUMA_findSOp_inDOv(ROI->Parent_idcode_str, dov, N_dov), 
+                           cNodes, N_cNodes, &(ROI->N_CE));
+            if (!ROI->CE) { SUMA_LH("Null DrawnROI->CE"); }
+            else { SUMA_LH("Good DrawnROI->CE"); }
+            SUMA_free(cNodes);
+         }
       }
    }
    SUMA_RETURN(ROI);

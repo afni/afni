@@ -38,6 +38,7 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
 int *SUMA_z_dqsort (int *x , int nx );
 int *SUMA_z_dqsort_nsc (int *x , int nx );
 int *SUMA_z_qsort (float *x , int nx );
+int *SUMA_reorder(int *y, int *isort, int N_isort);
 int SUMA_compare_int (int *a, int *b );
 void SUMA_disp_dmat (int **v,int nr, int nc , int SpcOpt);
 void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt);
@@ -82,6 +83,7 @@ SUMA_Boolean SUMA_isNumString (char *s, void *p);
 int SUMA_StringToNum (char *s, float *fv, int N);
 int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation);
 int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted );
+int * SUMA_UniqueInt_ind (int *ys, int N_y, int *kunq, int **iup);
 void SUMA_Show_Edge_List (SUMA_EDGE_LIST *SEL, FILE *Out);
 int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2);
 int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri); 
@@ -90,7 +92,7 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Inciden
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident);
 SUMA_IRGB *SUMA_Free_IRGB(SUMA_IRGB *irgb);
-SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name, int n_rows);
+SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name);
 SUMA_IRGB *SUMA_Create_IRGB(int n_el);
 
 

@@ -9,8 +9,8 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_IV_FaceSetsextract.c  SUMA_SurfNorm.c SUMA_DOmanip.c SUMA_StripPath.c 	\
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
 		 SUMA_Engine.c SUMA_Surface_IO.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
-		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c
-       
+		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c SUMA_DataSets.c
+ 
 SUMA_SRCS_MAIN = SUMA_suma.c
 
 SUMA_OBJS = ${SUMA_SRCS:.c=.o}
@@ -19,7 +19,8 @@ AFNI_3dOBJS = ../parser.o ../parser_int.o
 SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
 SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
-		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h
+		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h  \
+		 SUMA_DataSets.h
 
 #library only
 ${SUMALIB} : libply.a ${SUMA_OBJS}
@@ -113,9 +114,24 @@ SurfaceMetrics: SUMA_Load_Surface_Object.c
 	$(RM) $@
 	${CC} -DSUMA_SurfaceMetrics_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SUMA_TestDataSets: SUMA_DataSets.c
+	$(RM) $@
+	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+ROI2dataset: SUMA_Surface_IO.c
+	$(RM) $@
+	${CC} -DSUMA_ROI2dataset_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 3dSurfMaskDump: SUMA_3dSurfMaskDump.c 
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_3dSurfMaskDump.c ${SUMA_INCLUDE_PATH}		\
+		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
+		${SUMALIB} libply.a ${AFNILIB} ${ZLIB}			\
+		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+3dSurf2Vol: SUMA_3dSurf2Vol.c 
+	$(RM) $@
+	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_3dSurf2Vol.c ${SUMA_INCLUDE_PATH}\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIB} libply.a ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -124,32 +140,36 @@ libply.a:
 	( cd PLY ;	\
 	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
 	  $(CP) -p $@ .. ; )
-   
+
 install:
-	if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
-	if [ -f suma ]; then mv suma ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_CreateIcosahedron ]; then mv SUMA_CreateIcosahedron ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_Map_SurfacetoSurface ]; then mv SUMA_Map_SurfacetoSurface ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_MapIcosahedron ]; then mv SUMA_MapIcosahedron ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_SureFit ]; then mv SUMA_SureFit ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_Load_Surface_Object ]; then mv SUMA_Load_Surface_Object ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_Read_SpecFile ]; then mv SUMA_Read_SpecFile ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_FreeSurfer ]; then mv SUMA_FreeSurfer ${INSTALLDIR_SUMA}; fi;
-	if [ -f ScaleToMap ]; then mv ScaleToMap ${INSTALLDIR_SUMA}; fi;
-	if [ -f MakeColorMap ]; then mv MakeColorMap ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_compare_surfaces ]; then mv SUMA_compare_surfaces ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_inflate_compare ]; then mv SUMA_inflate_compare ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_Ply_Read ]; then mv SUMA_Ply_Read ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_ParseName ]; then mv SUMA_ParseName ${INSTALLDIR_SUMA}; fi;
-	if [ -f 3dSurfMaskDump ]; then mv 3dSurfMaskDump ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
-	if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
+	@echo Installing Binaries...
+	@if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
+	@if [ -f suma ]; then mv suma ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_CreateIcosahedron ]; then mv SUMA_CreateIcosahedron ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_Map_SurfacetoSurface ]; then mv SUMA_Map_SurfacetoSurface ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_MapIcosahedron ]; then mv SUMA_MapIcosahedron ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_SureFit ]; then mv SUMA_SureFit ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_Load_Surface_Object ]; then mv SUMA_Load_Surface_Object ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_Read_SpecFile ]; then mv SUMA_Read_SpecFile ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_FreeSurfer ]; then mv SUMA_FreeSurfer ${INSTALLDIR_SUMA}; fi;
+	@if [ -f ScaleToMap ]; then mv ScaleToMap ${INSTALLDIR_SUMA}; fi;
+	@if [ -f MakeColorMap ]; then mv MakeColorMap ${INSTALLDIR_SUMA}; fi;
+	@if [ -f ROI2dataset ]; then mv ROI2dataset ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_compare_surfaces ]; then mv SUMA_compare_surfaces ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_inflate_compare ]; then mv SUMA_inflate_compare ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_Ply_Read ]; then mv SUMA_Ply_Read ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_ParseName ]; then mv SUMA_ParseName ${INSTALLDIR_SUMA}; fi;
+	@if [ -f 3dSurfMaskDump ]; then mv 3dSurfMaskDump ${INSTALLDIR_SUMA}; fi;
+	@if [ -f 3dSurf2Vol ]; then mv 3dSurf2Vol ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
 	chmod u+x ./@SUMA_CreateCompileStamp
 	./@SUMA_CreateCompileStamp SUMA_bin/@SUMA_CompileStamp
-	$(CP) -p suma MakeColorMap libSUMA.a ScaleToMap 3dSurfMaskDump SUMA_bin/
+	$(CP) -p suma MakeColorMap libSUMA.a ScaleToMap 3dSurfMaskDump  \
+		 3dSurf2Vol SUMA_bin/
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
 	
@@ -158,7 +178,8 @@ all: libSUMA.a mainobj suma install
 standalones: SUMA_CreateIcosahedron SUMA_Map_SurfacetoSurface SUMA_MapIcosahedron SUMA_SureFit \
 SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer ScaleToMap MakeColorMap \
 SUMA_compare_surfaces SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface \
-3dSurfMaskDump
+3dSurfMaskDump 3dSurf2Vol SurfaceMetrics SUMA_TestDataSets ROI2dataset
+
 
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 

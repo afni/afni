@@ -12,16 +12,18 @@
 #define STAND_ALONE
 #elif defined SUMA_ConvertSurface_STAND_ALONE
 #define STAND_ALONE
+#elif defined SUMA_ROI2dataset_STAND_ALONE
+#define STAND_ALONE
 #endif
 
 #ifdef STAND_ALONE
 /* these global variables must be declared even if they will not be used by this main */
-SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
 int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
-SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
+SUMA_DO *SUMAg_DOv = NULL;   /*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
+SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
 #else
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
@@ -2228,7 +2230,11 @@ int main (int argc,char *argv[])
 /*!
    \brief Handles opening an ROI file
    \param filename (char *)
-   \param data(void *) */
+   \param data(void *) 
+   
+   - results are placed in SUMAg_DOv
+   
+*/
 void SUMA_OpenDrawnROI (char *filename, void *data)
 {
    static char FuncName[]={"SUMA_OpenDrawnROI"};
@@ -2247,7 +2253,7 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    
    if (SUMA_isExtension(filename, ".niml.roi")) {
       /* load niml ROI */
-      if (!( ROIv = SUMA_OpenDrawnROI_NIML (filename, &N_ROI))) {
+      if (!( ROIv = SUMA_OpenDrawnROI_NIML (filename, &N_ROI, YUP))) {
          SUMA_SLP_Err("Failed to read NIML ROI.");
          SUMA_RETURNe;
       }
@@ -2256,7 +2262,7 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
       /* You need to select a parent surface */
       SUMA_SLP_Warn("Assuming parent surface.");
       SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_SVv[0].Focus_SO_ID].OP);
-      if (!( ROIv = SUMA_OpenDrawnROI_1D (filename, SO->idcode_str, &N_ROI))) {
+      if (!( ROIv = SUMA_OpenDrawnROI_1D (filename, SO->idcode_str, &N_ROI, YUP))) {
          SUMA_SLP_Err("Failed to read NIML ROI.");
          SUMA_RETURNe;
       }
@@ -2318,6 +2324,8 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    
    \param filename (char *) name of 1D file (see below for formats)
    \param Parent_idcode_str (char *) idcode of parent surface
+   \param N_ROI (int *) will contain the number of ROIs read in
+   \param ForDisplay (SUMA_Boolean) YUP: prepares ROI for display
    \return ans (SUMA_Boolean) YUP for good NOPE for not good.
    
    - The ROI is added to SUMAg_DOv
@@ -2348,7 +2356,8 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
       each ROI. 
        
 */ 
-SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str, int *N_ROI)
+SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
+                                        int *N_ROI, SUMA_Boolean ForDisplay)
 {
    static char FuncName[]={"SUMA_OpenDrawnROI_1D"};
    MRI_IMAGE *im = NULL;
@@ -2540,6 +2549,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
          break;
    }
    
+   
    ROIv = (SUMA_DRAWN_ROI **)SUMA_malloc(N_Labels*sizeof(SUMA_DRAWN_ROI*));
    
    for (i=0; i < N_Labels; ++i) {
@@ -2563,17 +2573,21 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
          sprintf(stmp,"(%d)", Value);
          Label = SUMA_append_string(stmp,NewName->FileName_NoExt);
       }
+      SUMA_LH("Transforming to Drawn ROIs...");
       ROIv[i] = SUMA_1DROI_to_DrawnROI( Node, N_Node , 
                                     Value, Parent_idcode_str,
                                     Label, NULL,
                                     fillcolor, edgecolor, edgethickness, 
-                                    SUMAg_DOv, SUMAg_N_DOv);
+                                    SUMAg_DOv, SUMAg_N_DOv,
+                                    ForDisplay);
       
-      if (Label) SUMA_free(Label); Label = NULL;
+      if (Label) free(Label); Label = NULL;
       if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
       if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROIv[i]->Parent_idcode_str);
 
    }
+ 
+   SUMA_LH("Freeing...");
    
    if (iLabel) SUMA_free(iLabel); iLabel = NULL;
    if (isort) SUMA_free(isort); isort = NULL;
@@ -2590,7 +2604,14 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
      
 }
 
-SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI)
+/*!
+   \brief Loads a niml ROI 
+   
+   \param ForDisplay (SUMA_Boolean) YUP: Performs checks to see if ROI with similar idcode already
+                                          exists and if parent surface is loaded.
+                                    NOPE: Does not check for above conditions.
+*/
+SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boolean ForDisplay)
 { /* begin embedded function */
    static char FuncName[]={"SUMA_OpenDrawnROI_NIML"};
    char stmp[SUMA_MAX_NAME_LENGTH+100], *nel_idcode;
@@ -2638,8 +2659,8 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI)
          
          if (LocalHead && 0) SUMA_nel_stdout (nel);
          
-         if (strcmp(nel->name,"A_drawn_ROI")) {
-            SUMA_SLP_Err ("ni element not of the \n'A_drawn_ROI' variety.\nElement discarded.");
+         if (strcmp(nel->name,SUMA_Dset_Type_Name(SUMA_NODE_ROI))) {
+            SUMA_SLP_Err ("ni element not of the \n Node ROI variety.\nElement discarded.");
             NI_free_element(nel) ; nel = NULL;
             SUMA_RETURN(NULL);
          }
@@ -2650,71 +2671,75 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI)
             SUMA_RETURN(NULL);
          }
 
-         /* find out if a displayable object exists with the same idcode_str */
-         nel_idcode = NI_get_attribute( nel , "idcode_str");
-         if (SUMA_existDO(nel_idcode, SUMAg_DOv, SUMAg_N_DOv)) {
-            if (AlwaysReplace) {
-               AddNel = YUP; 
-            }
-            if (NeverReplace) {
-               AddNel = NOPE;
-            }
-            if (!AlwaysReplace && !NeverReplace) {   /* ASk */
-               sprintf(stmp, "Found duplicate ROIs.\n"\
-                                          "Replace ROI %s (%s) by\n" \
-                                          "version in file ?", 
-               NI_get_attribute( nel , "Label"), nel_idcode); 
-
-               answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
-                                 stmp, 
-                                 0);
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Got %d, You ?\n", FuncName, answer);
-               switch (answer) {
-                  case SUMA_YES:
-                     SUMA_LH("YES");
-                     AddNel = YUP;
-                     break;
-
-                  case SUMA_NO:
-                     SUMA_LH("NO");
-                     /* don't add this one */
-                     AddNel = NOPE;
-                     break;
-
-                  case SUMA_YES_ALL:
-                     SUMA_LH("YES ALL");
-                     /* cancel Check_Prior */
-                     AddNel = YUP;
-                     AlwaysReplace = YUP;
-                     break;
-
-                  case SUMA_NO_ALL:
-                     SUMA_LH("NO ALL");
-                     /* don't add this one and set flag to ignore the doubles */
-                     AddNel = NOPE;
-                     NeverReplace = YUP;
-                     break;
-
-                  default:
-                     SUMA_SLP_Crit("Don't know what to do with this button.");
-                     SUMA_RETURN(NULL);
-                     break;
+         if (ForDisplay) {
+            /* find out if a displayable object exists with the same idcode_str */
+            nel_idcode = NI_get_attribute( nel , "idcode_str");
+            if (SUMA_existDO(nel_idcode, SUMAg_DOv, SUMAg_N_DOv)) {
+               if (AlwaysReplace) {
+                  AddNel = YUP; 
                }
+               if (NeverReplace) {
+                  AddNel = NOPE;
+               }
+               if (!AlwaysReplace && !NeverReplace) {   /* ASk */
+                  sprintf(stmp, "Found duplicate ROIs.\n"\
+                                             "Replace ROI %s (%s) by\n" \
+                                             "version in file ?", 
+                  NI_get_attribute( nel , "Label"), nel_idcode); 
+
+                  answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+                                    stmp, 
+                                    0);
+                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Got %d, You ?\n", FuncName, answer);
+                  switch (answer) {
+                     case SUMA_YES:
+                        SUMA_LH("YES");
+                        AddNel = YUP;
+                        break;
+
+                     case SUMA_NO:
+                        SUMA_LH("NO");
+                        /* don't add this one */
+                        AddNel = NOPE;
+                        break;
+
+                     case SUMA_YES_ALL:
+                        SUMA_LH("YES ALL");
+                        /* cancel Check_Prior */
+                        AddNel = YUP;
+                        AlwaysReplace = YUP;
+                        break;
+
+                     case SUMA_NO_ALL:
+                        SUMA_LH("NO ALL");
+                        /* don't add this one and set flag to ignore the doubles */
+                        AddNel = NOPE;
+                        NeverReplace = YUP;
+                        break;
+
+                     default:
+                        SUMA_SLP_Crit("Don't know what to do with this button.");
+                        SUMA_RETURN(NULL);
+                        break;
+                  }
+               } 
+            } else {
+               AddNel = YUP;
             } 
-         } else {
-            AddNel = YUP;
-         } 
          
-         /* make sure element's parent exists */
-         if (AddNel) {
-            SUMA_LH("Checking for Parent surface...");
-            if ((iDO = SUMA_whichDO(NI_get_attribute( nel , "Parent_idcode_str"), SUMAg_DOv, SUMAg_N_DOv)) < 0) {
-               SUMA_SLP_Err(  "ROI's parent surface\n"
-                              "is not loaded. ROI is\n"
-                              "discarded." );
-               AddNel = NOPE;
+            /* make sure element's parent exists */
+            if (AddNel) {
+               SUMA_LH("Checking for Parent surface...");
+               if ((iDO = SUMA_whichDO(NI_get_attribute( nel , "Parent_idcode_str"), SUMAg_DOv, SUMAg_N_DOv)) < 0) {
+                  SUMA_SLP_Err(  "ROI's parent surface\n"
+                                 "is not loaded. ROI is\n"
+                                 "discarded." );
+                  AddNel = NOPE;
+               }
             }
-         }
+         } else {
+            AddNel = YUP; /* ignore checks */
+         }         
          
          if (AddNel) {
             SUMA_LH("Adding Nel");
@@ -2826,7 +2851,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI)
       
       /* transfom nimlROI to a series of drawing actions */
       SUMA_LH("Transforming ROI to a series of actions...");
-      ROIv[inel] = SUMA_NIMLDrawnROI_to_DrawnROI (nimlROI);
+      ROIv[inel] = SUMA_NIMLDrawnROI_to_DrawnROI (nimlROI, ForDisplay);
       if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROIv[inel]->Parent_idcode_str);
 
       /* manually free nimlROI fields that received copies of allocated space as opposed to pointer copies */
@@ -2850,7 +2875,456 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI)
    *N_ROI = N_nel;
    SUMA_RETURN(ROIv);
 } 
+
+/*!
+   \brief turns a bunch of ROIs into a NI dataset
    
+   \param ROIv (SUMA_DRAWN_ROI**) vector of ROI structures
+   \param N_ROIv (int) number of ROI structures
+   \param Parent_idcode_str (char *) idcode of parent surface
+   \return nel (NI_element *) structure to data set
+                              NULL if failed
+*/
+NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str) 
+{
+   static char FuncName[]={"SUMA_ROIv2dataset"};
+   int ii, i, nn, cnt, N_NodesTotal = 0, 
+      *ip=NULL, *NodesTotal=NULL, *LabelsTotal=NULL;
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /* Now you have the ROIs, concatenate all NodesInROI vectors into 1*/
+   /* count the total number of nodes */
+   N_NodesTotal = 0;
+   for (ii=0; ii < N_ROIv; ++ii) {
+      SUMA_ROI_CRUDE_COUNT_NODES(ROIv[ii], cnt);
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: ROI #%d: %d nodes\n", FuncName, ii, cnt);
+      }
+      N_NodesTotal += cnt;
+   }
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: %d nodes total.\n", FuncName, N_NodesTotal);
+
+   NodesTotal = (int *)SUMA_calloc(N_NodesTotal, sizeof(int));
+   LabelsTotal = (int *)SUMA_calloc(N_NodesTotal, sizeof(int));
+
+   if (!NodesTotal || !LabelsTotal) {
+      SUMA_S_Err("Failed to allocate.");
+      SUMA_RETURN(nel);
+   }
+
+   cnt = 0;
+   N_NodesTotal = 0;
+   for (ii=0; ii <  N_ROIv; ++ii) {
+      SUMA_LH("Appending ROI");
+      /* You do not need the Unique operation in SUMA_NodesInROI,
+      but it is nice to have so that you can report the nodes that 
+      were part of more than one ROI. If you do not Set the Unique 
+      flag in SUMA_NodesInROI you will likely get node duplication
+      but these nodes are in the same ROI and therefore are not
+      duplicates to be removed....*/
+      ip = SUMA_NodesInROI (ROIv[ii], &nn, YUP);
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: Nodes in ROI #%d\n", FuncName, ii);
+         SUMA_disp_dvect (ip, nn);
+      }
+      for (i=0; i < nn; ++i) {
+         NodesTotal[cnt] = ip[i];
+         LabelsTotal[cnt] = ROIv[ii]->iLabel;
+         ++cnt;
+      }
+      N_NodesTotal += nn;
+      SUMA_freeDrawnROI (ROIv[ii]); ROIv[ii] = NULL; /* free the Drawn ROI */
+      SUMA_free(ip);ip=NULL;
+   }
+
+   if (LocalHead) {
+      SUMA_disp_dvect (NodesTotal, N_NodesTotal);
+   }
+
+   /* Now you want to make sure that no two nodes are listed twice */
+   /* sort NodesTotal and rearrange LabelsTotal accordingly */
+   {  int *isort = NULL, *LabelsTotal_r = NULL,
+         *NodesTotal_u = NULL, N_NodesTotal_u, *iu = NULL;
+      char report[100];
+
+      isort = SUMA_z_dqsort(NodesTotal, N_NodesTotal);
+      LabelsTotal_r = SUMA_reorder (LabelsTotal, isort, N_NodesTotal);
+      SUMA_free(LabelsTotal);
+      LabelsTotal = LabelsTotal_r; LabelsTotal_r = NULL;
+      SUMA_free(isort); isort = NULL;
+
+      /* now get the unique set of nodes */
+      NodesTotal_u = SUMA_UniqueInt_ind (NodesTotal, N_NodesTotal, &N_NodesTotal_u, &iu);
+      /* reorder LabelsTotal to contain data from the nodes left in NodesTotal_u */
+      LabelsTotal_r = SUMA_reorder (LabelsTotal, iu, N_NodesTotal_u);
+      SUMA_free(NodesTotal); NodesTotal = NULL;
+      SUMA_free(LabelsTotal); LabelsTotal = NULL;
+      SUMA_free(iu); iu = NULL;
+      NodesTotal = NodesTotal_u; NodesTotal_u = NULL;
+      LabelsTotal = LabelsTotal_r; LabelsTotal_r = NULL;
+
+      if (N_NodesTotal - N_NodesTotal_u) {
+         sprintf(report, "%d/%d nodes had duplicate entries.\n"
+                         "(ie same node part of more than 1 ROI)\n"
+                         "Duplicate entries were eliminated.", 
+                         N_NodesTotal - N_NodesTotal_u , N_NodesTotal);
+
+         N_NodesTotal = N_NodesTotal_u; N_NodesTotal_u = 0;
+         SUMA_SLP_Warn(report);
+      }
+   }
+
+   /* construct a NIML data set for the output */
+   SUMA_LH("Creating nel ");
+   nel = SUMA_NewNel ( SUMA_NODE_ROI, /* one of SUMA_DSET_TYPE */
+                       Parent_idcode_str, /* idcode of Domain Parent */
+                       NULL, /* idcode of geometry parent, not useful here*/
+                       N_NodesTotal); /* Number of elements */
+
+   if (!nel) {
+      SUMA_SL_Err("Failed in SUMA_NewNel");
+      SUMA_RETURN(nel);
+   }
+
+   /* Add the index column */
+   SUMA_LH("Adding index column...");
+   if (!SUMA_AddNelCol (nel, SUMA_NODE_INDEX, (void *)NodesTotal, NULL, 1)) {
+      SUMA_SL_Err("Failed in SUMA_AddNelCol");
+      SUMA_RETURN(nel);
+   }
+
+   /* Add the label column */
+   SUMA_LH("Adding label column...");
+   if (!SUMA_AddNelCol (nel, SUMA_NODE_ILABEL, (void *)LabelsTotal, NULL, 1)) {
+      SUMA_SL_Err("Failed in SUMA_AddNelCol");
+      SUMA_RETURN(nel);
+   }
+
+   if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
+   if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
+   
+   SUMA_RETURN(nel);
+}
+   
+   
+#ifdef SUMA_ROI2dataset_STAND_ALONE
+void usage_ROI2dataset_Main ()
+   
+  {/*Usage*/
+         static char Help_msg[]={
+            "\n\33[1mUsage: \33[0m\n"
+            "\tROI2dataset <-prefix dsetname> [...] <-input ROI1 ROI2 ...>\n"
+            "\t            [<-of ni_bi|ni_as|1D>] \n"
+            "\t            [<-dom_par_id idcode>] \n"
+          /* "\t[<-dom_par domain> NOT IMPLEMENTED YET] \n" */
+            "\t This program transforms a series of ROI files\n"
+            "\t to a node dataset.\n"
+            "\n\33[1mMandatory parameters:\33[0m\n"
+            "\t -prefix dsetname: Prefix of output dataset.\n"
+            "\t                   Program will not overwrite existing\n"
+            "\t                   datasets.\n"
+            "\t -input ROI1 ROI2....: ROI files to turn into a \n"
+            "\t                       data set. This parameter MUST\n"
+            "\t                       be the last one on command line.\n"
+            "\n\33[1mOptional parameters:\33[0m\n"
+            "(all optional parameters must be specified before the\n"
+            " -input parameters.)\n"
+            "\t -h | -help: This help message\n"
+            "\t -of FOMAT: Output format of dataset. FORMAT is one of:\n"
+            "\t            ni_bi: NIML binary\n"
+            "\t            ni_as: NIML ascii (default)\n"
+            "\t            1D   : 1D AFNI format.\n"
+            "\t -dom_par_id id: Idcode of domain parent.\n"
+            "\t                 When specified, only ROIs have the same\n"
+            "\t                 domain parent are included in the output.\n"
+            "\t                 If id is not specified then the first\n"
+            "\t                 domain parent encountered in the ROI list\n"
+            "\t                 is adopted as dom_par_id.\n"
+            "\t                 1D roi files do not have domain parent \n"
+            "\t                 information. They will be added to the \n"
+            "\t                 output data under the chosen dom_par_id.\n"
+            "\t -prefix dsetname: Prefix of output data set.\n\n"
+            "\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
+         };
+         
+         fprintf(SUMA_STDOUT, "%s", Help_msg);
+         
+         exit (0);
+  }/*Usage*/
+   
+int main (int argc,char *argv[])
+{/* Main */
+   static char FuncName[]={"ROI2dataset"}; 
+   char  *prefix_name, **input_name_v=NULL, *out_name=NULL, 
+         *Parent_idcode_str = NULL, *dummy_idcode_str = NULL, *stmp=NULL;
+   int kar, brk, N_input_name, cnt = 0, N_ROIv, N_tROI, ii, i, nn;
+   NI_element *nel=NULL;
+   NI_stream ns;
+   SUMA_DSET_FORMAT Out_Format = SUMA_ASCII_NIML;
+   SUMA_DRAWN_ROI ** ROIv = NULL, **tROIv = NULL;
+	SUMA_Boolean AddThis = NOPE, LocalHead = NOPE;
+	
+   /* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+	
+   if (argc < 4) {
+      usage_ROI2dataset_Main ();
+   }
+   
+   /* parse the command line */
+   kar = 1;
+	brk = NOPE;
+   prefix_name = NULL;
+   input_name_v = NULL;
+   N_input_name = 0;
+   Out_Format = SUMA_ASCII_NIML;
+   Parent_idcode_str = NULL;
+   while (kar < argc) { /* loop accross command ine options */
+		/* SUMA_LH("Parsing command line..."); */
+      
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_ROI2dataset_Main();
+          exit (1);
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -prefix ");
+				exit (1);
+			}
+			prefix_name = argv[kar];
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-of") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -of ");
+				exit (1);
+			}
+			if (!strcmp(argv[kar], "ni_as")) Out_Format = SUMA_ASCII_NIML;
+         else if (!strcmp(argv[kar], "ni_bi")) Out_Format = SUMA_BINARY_NIML;
+         else if (!strcmp(argv[kar], "1D")) Out_Format = SUMA_1D;
+         else {
+            fprintf (SUMA_STDERR, "%s not a valid option with -of.\n", argv[kar]);
+				exit (1);
+         }   
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-dom_par_id") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -dom_par_id");
+				exit (1);
+			}
+			Parent_idcode_str = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-input") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need at least one argument after -input ");
+				exit (1);
+			}
+         input_name_v = (char **)SUMA_malloc((argc-kar+1)*sizeof(char *));
+         
+         cnt = 0;
+         while (kar < argc) {
+            input_name_v[cnt] = argv[kar];
+            ++cnt; ++kar;
+         }
+         N_input_name = cnt;
+         brk = YUP;
+      }
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}   
+   }   
+   
+   /* form the output name and check for existence */
+   switch (Out_Format) {
+      case SUMA_ASCII_NIML:
+      case SUMA_BINARY_NIML:
+         out_name = SUMA_Extension(prefix_name, ".niml.dset", NOPE); 
+         break;
+      case SUMA_1D:
+         out_name = SUMA_Extension(prefix_name, ".1D.dset", NOPE); 
+         break;
+      default:
+         SUMA_S_Err("Output format not supported");
+         exit(1);
+         break;
+   }
+   
+   SUMA_LH (out_name);
+    
+   /* check for existence of out_name */
+   if (SUMA_filexists(out_name)) {
+      fprintf(SUMA_STDERR,"Error %s:\n Output file %s exists.\n", 
+                           FuncName, out_name);
+      exit(1); 
+   }
+   
+   /* check for input files */
+   if (N_input_name <= 0) {
+      fprintf(SUMA_STDERR,"Error %s:\n No ROI files specified.\n",
+                           FuncName);
+      exit(1); 
+   }
+    
+   /* read in the data sets */
+   /* create a dummy idcode_str for potential 1D data sets */
+   N_ROIv = 0;
+   Parent_idcode_str = NULL;
+   dummy_idcode_str = UNIQ_hashcode("DummyNameNothingLikeIt");
+   for (i=0; i < N_input_name; ++i) {
+      if (SUMA_isExtension(input_name_v[i], ".niml.roi")) {
+         /* load niml ROI */
+         if (!( tROIv = SUMA_OpenDrawnROI_NIML (input_name_v[i], &N_tROI, NOPE))) {
+            SUMA_S_Err("Failed to read NIML ROI.");
+            exit(1);
+         }
+      }else if (SUMA_isExtension(input_name_v[i], ".1D.roi")) {
+         /* load 1D ROI */
+         if (!( tROIv = SUMA_OpenDrawnROI_1D (input_name_v[i], dummy_idcode_str, &N_tROI, NOPE))) {
+            SUMA_S_Err("Failed to read NIML ROI.");
+            exit(1);
+         }
+      }else {
+         SUMA_S_Err(  "Failed to recognize\n"
+                      "ROI type from filename.");
+         exit(1);
+      } 
+      
+      /* copy temporary ROIv into the main ROIv */
+      ROIv = (SUMA_DRAWN_ROI **)SUMA_realloc(ROIv, (N_ROIv + N_tROI) * sizeof(SUMA_DRAWN_ROI*));
+      if (!ROIv) {
+         SUMA_S_Err("Failed to allocate.");
+         exit(1);
+      }
+
+      /* Now go throught the ROIs and load them if possible into ROIv */
+      for (ii=0; ii < N_tROI; ++ii) {
+         if (!Parent_idcode_str) {
+            /* try to find out what the Parent_idcode_str is */
+            if (strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
+               fprintf (SUMA_STDERR,"%s: Adopting Parent_idcode_str (%s) in ROI %s\n",
+                                  FuncName, tROIv[ii]->Parent_idcode_str, tROIv[ii]->Label);
+               /* good, use it as the Parent_idcode_str for all upcoming ROIs */
+               Parent_idcode_str = SUMA_copy_string(tROIv[ii]->Parent_idcode_str);
+            }
+         } 
+         
+         AddThis = NOPE;
+         if (!strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
+            AddThis = YUP;
+         } else {
+            if (strcmp(tROIv[ii]->Parent_idcode_str, Parent_idcode_str)) {
+               fprintf (SUMA_STDERR,"Warning %s:\n Ignoring ROI labeled %s\n"
+                                    "because of Parent_idcode_str mismatch.\n", 
+                                    FuncName, tROIv[ii]->Label); 
+               AddThis = NOPE;
+               /* free structure of tROIv[ii] */
+               SUMA_freeDrawnROI (tROIv[ii]); tROIv[ii] = NULL;
+            }
+            else AddThis = YUP;
+            
+         }
+         if (AddThis) {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: Adding %dth ROI to ROIv...\n",
+                            FuncName, N_ROIv);
+            ROIv[N_ROIv] = tROIv[ii];
+            
+            ++N_ROIv;
+         }
+          
+      }
+      /* now free tROIv vector */
+      if (tROIv) SUMA_free(tROIv); tROIv = NULL;  
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Kept a total of %d ROIs with parent %s\n",
+                        FuncName, N_ROIv, Parent_idcode_str);
+        
+   }
+   
+   if (!(nel = SUMA_ROIv2dataset (ROIv, N_ROIv, Parent_idcode_str))) {
+      SUMA_SL_Err("Failed in SUMA_ROIv2dataset");
+      exit(1);
+   }
+   
+   /* Add the history line */
+   if (!SUMA_AddNelHist (nel, FuncName, argc, argv)) {
+      SUMA_SL_Err("Failed in SUMA_AddNelHist");
+      exit(1);
+   }
+
+
+   
+   /* open stream */
+   stmp = SUMA_append_string ("file:", out_name);
+   ns = NI_stream_open( stmp , "w" ) ;
+   if( ns == NULL ){
+      fprintf (stderr,"Error  %s:\nCan't open %s!"
+                  , FuncName, stmp); 
+      exit(1);
+   }
+   
+   /* write nel */
+   switch (Out_Format) {
+      case SUMA_ASCII_NIML:
+         nn = NI_write_element(  ns , nel , NI_TEXT_MODE ); 
+         break;
+      case SUMA_BINARY_NIML:
+         nn = NI_write_element(  ns , nel , NI_BINARY_MODE ); 
+         break;
+      case SUMA_1D:
+         nn = NI_write_element(  ns , nel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG);  
+         break;
+      default:
+         SUMA_S_Err("Output format not supported");
+         exit(1);
+         break;
+   }
+ 
+   if (nn < 0) {
+      SUMA_S_Err ("Failed in NI_write_element");
+      exit(1);
+   }
+   
+   /* close the stream */
+   NI_stream_close( ns ) ; 
+   
+   /* free nel */
+   NI_free_element(nel) ; nel = NULL;
+   
+   /* free others */
+   if (stmp) free(stmp);
+   if (ROIv) SUMA_free (ROIv);
+   if (out_name) SUMA_free(out_name);
+   if (Parent_idcode_str) SUMA_free(Parent_idcode_str);
+   if (dummy_idcode_str) free(dummy_idcode_str); /* this one's allocated 
+                                                   by Bob's functions */
+   return(0);
+}/* Main */
+#endif   
+
 /*!
    \brief handles saving ROI to filename.
    
@@ -3049,7 +3523,7 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
  
       /* Now create a ni element */
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Creating new element of %d segments\n", FuncName, niml_ROI->N_ROI_datum);
-      nel = NI_new_data_element(SUMA_Dset_Name(SUMA_NODE_ROI),  niml_ROI->N_ROI_datum);
+      nel = NI_new_data_element(SUMA_Dset_Type_Name(SUMA_NODE_ROI),  niml_ROI->N_ROI_datum);
 
       SUMA_LH("Adding column...");
       NI_add_column( nel , SUMAg_CF->nimlROI_Datum_type, niml_ROI->ROI_datum );
@@ -3289,7 +3763,7 @@ SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *fil
 
       /* write it out in a NIML friendly format */
       /* begin with attributes */
-      fprintf (fout,"# <A_drawn_ROI\n");
+      fprintf (fout,"# %s\n", SUMA_Dset_Type_Name(SUMA_NODE_ROI));
       fprintf (fout,"#  ni_type = \"SUMA_1D_ROI_DATUMorint,int?\"\n");
       fprintf (fout,"#  ni_dimen = \"%d\"\n",  ROI_1D->N);
       fprintf (fout,"#  ni_datasize = \"???\"\n");
@@ -3299,7 +3773,7 @@ SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *fil
       fprintf (fout,"# >\n");
       for (j=0; j < ROI_1D->N; ++j) 
          fprintf (fout," %d %d\n", ROI_1D->iNode[j], ROI_1D->iLabel[j]);
-      fprintf (fout,"# </A_drawn_ROI>\n");
+      fprintf (fout,"# </%s>\n", SUMA_Dset_Type_Name(SUMA_NODE_ROI));
       fprintf (fout,"\n");
        
       /* free the ROI_1D structure */

@@ -64,7 +64,7 @@ L_INIT_VARS:
 			occip.patch.flat	\
 			sphere			\
          white          \
-         shpere.reg     \
+         sphere.reg     \
 			)
 
 goto L_INIT_VARS_DONE
