@@ -4422,6 +4422,13 @@ void AFNI_misc_button( Three_D_View * im3d )
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_func_info_pb , "Popup func dataset info" ) ;
 
+   /*--- pushbutton to popup the README.changes file ---*/
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
    dmode->misc_newstuff_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
@@ -4433,6 +4440,8 @@ void AFNI_misc_button( Three_D_View * im3d )
    XtAddCallback( dmode->misc_newstuff_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_newstuff_pb , "List New Features" ) ;
+
+   /*--- done ---*/
 
    XtManageChild( rc ) ;
    return ;

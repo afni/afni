@@ -20,7 +20,7 @@ int main( int argc , char * argv[] )
       ll = strlen(buf) ; if( ll == 0 ) break ;
       if( buf[ll-1] == '\n' ) buf[ll-1] = '\0' ;
       for( ii=0,jj=0 ; buf[ii] != '\0' ; ){
-         if( buf[ii] == '"' ) buf2[jj++] = '\\' ;
+         if( buf[ii] == '"' || buf[ii] == '\\' ) buf2[jj++] = '\\' ;
          buf2[jj++] = buf[ii++] ;
       }
       buf2[jj] = '\0' ;

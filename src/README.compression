@@ -48,6 +48,8 @@ will set to zero all voxels at or below the cutoff.  The cutoff is
 determined for the entire dataset at once, not for each individual
 sub-brick.  A chi-squared fit is used to estimate the noise
 standard deviation, and the cutoff is set at 2.5 times this value.
+(You can use the option "-snr fac" to change the scale factor
+from 2.5 to "fac", for any positive fac.)
 
 3dnoise can only be applied to datasets that are stored as shorts
 and that have no negative elements.  If either of these conditions
@@ -55,9 +57,11 @@ is violated, the program will complain about "illegal data".
 Thus, it is inappropriate to apply 3dnoise to a derived dataset,
 such as is output by FIM.  It is possible that the program will be
 unable to find any fit to the Rayleigh model, in which case it will
-so report.  This can happen under at least 2 circumstances:
-  [a] The dataset was already run through 3dnoise with -blast, or
-  [b] The dataset has a very low SNR.
+so report.  This can happen under at least 3 circumstances:
+  [a] The dataset was already run through 3dnoise with -blast;
+  [b] The dataset has a very low SNR; or
+  [c] The dataset is not comprised of MR magnitude images, but
+      contains instead some derived quantities.
 
 Do NOT use the output of 3dnoise as a way to estimate the SNR
 of your MRI data!  The method used to estimate the noise cutoff
@@ -73,6 +77,12 @@ is only read into the program when its values are actually needed
 when you "Switch" to a compressed dataset, there can be a noticeable
 delay.  For "compress" and "gzip", this may be a few seconds.  For
 "bzip2", the delays will generally be longer.
+
+The speed penalty means that it is probably best to keep the
+datasets you are actively using in uncompressed form.  Datasets
+that you want to keep on disk, but don't think you will use
+often, can be compressed.  They can still be viewed when the
+need arises without manual decompression.
 
 Large .BRIK files are normally directly mapped to memory.  This
 technique saves system swap space, but isn't useful with compressed

@@ -61,24 +61,40 @@ double chfit( double mu )
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * dset ;
-   double mu , ccc , mbest,cbest , perc ;
+   double mu , ccc , mbest,cbest , perc , snr=2.5 ;
    int ii , narg=1 , blast=0 , iv , ncut , nnn , nvox ;
    int vmax ;
    short * bar ;
 
-   if( argc < 2 ){
-      printf("Usage: 3dnoise [-blast] datasets ...\n"
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+      printf("Usage: 3dnoise [-blast] [-snr fac] datasets ...\n"
              "Estimates noise level in 3D datasets, and optionally\n"
              "set voxels below the noise threshold to zero.\n"
              "This only works on datasets that are stored as shorts,\n"
              "and whose elements are all nonnegative.\n"
+             "  -blast   = Set values at or below the cutoff to zero.\n"
+             "  -snr fac = Set cutoff to 'fac' times the estimated\n"
+             "               noise level.  Default fac = 2.5.\n"
             ) ;
       exit(0) ;
    }
 
-   if( strcmp(argv[narg],"-blast") == 0 ){
-      blast = 1 ; narg++ ;
+   while( narg < argc && argv[narg][0] == '-' ){
+
+      if( strcmp(argv[narg],"-blast") == 0 ){
+         blast = 1 ; narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-snr") == 0 ){
+         narg++ ;
+         snr = strtod( argv[narg] , NULL ) ;
+         if( snr <= 0.0 ){fprintf(stderr,"Illegal snr value!\n");exit(1);}
+         narg++ ; continue ;
+      }
+
+      fprintf(stderr,"Unknown option: %s\n",argv[narg]) ; exit(1) ;
    }
+   if( narg >= argc ){fprintf(stderr,"No datasets?\n");exit(1);}
 
    for( ; narg < argc ; narg++ ){
       dset = THD_open_one_dataset(argv[narg]) ;
@@ -104,6 +120,8 @@ int main( int argc , char * argv[] )
       if( iv < DSET_NVALS(dset) ) continue ;
       if( vmax < 40 ){ printf(": Didn't fit noise model!\n"); continue; }
 
+      printf(":") ; fflush(stdout) ;
+
 #define DMU 0.5
       mu = 1.0 ; mbest = mu ; cbest = chfit(mu) ; ii = 0 ;
       do {
@@ -113,13 +131,13 @@ int main( int argc , char * argv[] )
          if( mu > 0.05 * vmax ){ ii=0 ; break; }
       } while( 1 ) ;
 
-      if( ii <= 0 ){ printf(": Didn't fit noise model!\n"); continue; }
+      if( ii <= 0 ){ printf(" Didn't fit noise model!\n"); continue; }
 
-      ncut = (int) 2.5 * mbest ;
+      ncut = (int) (snr * mbest) ;
       nnn  = 0 ;
       for( ii=0 ; ii <= ncut ; ii++ ) nnn += histo[ii] ;
       perc = (100.0*nnn) / (double)(DSET_NVOX(dset)*DSET_NVALS(dset)) ;
-      printf(": Cutoff=%d  Count=%d [%4.1f%%]",ncut,nnn,perc) ; fflush(stdout) ;
+      printf(" Cutoff=%d  Count=%d [%4.1f%%]",ncut,nnn,perc) ; fflush(stdout) ;
 
       if( blast && nnn > 0 ){
          for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
