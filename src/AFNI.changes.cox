@@ -3382,3 +3382,9 @@
  * Modified 3dTstat.c to have NOD (no-detrend) versions of -stdev
       and -cvar.
  * Modified afni_widg.c to implement AFNI_START_SMALL.
+
+11 Dec 2001
+ * Fixed stupid errors in the cursor stuff, and propagated the changes
+      to more places, so that most AFNI windows should now be properly
+      cursorized.
+ * Fixed bug in to3d.c - 1 slice with TR=0 on command line would crash.

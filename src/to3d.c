@@ -308,8 +308,10 @@ QQQ("main1");
          int ii ;
          user_inputs.TR     = MRILIB_tr ;
          user_inputs.tunits = UNITS_SEC_TYPE ;
-         for( ii=0 ; ii < user_inputs.nzz ; ii++ ){
-            user_inputs.tpattern[ii] *= MRILIB_tr ;
+         if( user_inputs.tpattern != NULL ){
+           for( ii=0 ; ii < user_inputs.nzz ; ii++ ){
+             user_inputs.tpattern[ii] *= MRILIB_tr ;
+           }
          }
          printf("Setting TR=%gs from image header\n",MRILIB_tr) ;
 
