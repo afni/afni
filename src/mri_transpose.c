@@ -14,7 +14,9 @@ MRI_IMAGE * mri_transpose_float( MRI_IMAGE * im )
    float * iar , * oar ;
    int ii,jj,nx,ny ;
 
-   if( im == NULL || im->kind != MRI_float ) return NULL ;
+ENTRY("mri_transpose_float") ;
+
+   if( im == NULL || im->kind != MRI_float ) RETURN(NULL) ;
 
    nx  = im->nx ; ny = im->ny ;
    om  = mri_new( ny , nx , MRI_float ) ;
@@ -26,7 +28,7 @@ MRI_IMAGE * mri_transpose_float( MRI_IMAGE * im )
          oar[jj+ii*ny] = iar[ii+jj*nx] ;
 
    MRI_COPY_AUX(om,im) ;
-   return om ;
+   RETURN(om) ;
 }
 
 MRI_IMAGE * mri_transpose_short( MRI_IMAGE * im )
@@ -35,7 +37,9 @@ MRI_IMAGE * mri_transpose_short( MRI_IMAGE * im )
    short * iar , * oar ;
    int ii,jj,nx,ny ;
 
-   if( im == NULL || im->kind != MRI_short ) return NULL ;
+ENTRY("mri_transpose_short") ;
+
+   if( im == NULL || im->kind != MRI_short ) RETURN(NULL) ;
 
    nx  = im->nx ; ny = im->ny ;
    om  = mri_new( ny , nx , MRI_short ) ;
@@ -47,7 +51,7 @@ MRI_IMAGE * mri_transpose_short( MRI_IMAGE * im )
          oar[jj+ii*ny] = iar[ii+jj*nx] ;
 
    MRI_COPY_AUX(om,im) ;
-   return om ;
+   RETURN(om) ;
 }
 
 MRI_IMAGE * mri_transpose_byte( MRI_IMAGE * im )
@@ -56,7 +60,9 @@ MRI_IMAGE * mri_transpose_byte( MRI_IMAGE * im )
    byte * iar , * oar ;
    int ii,jj,nx,ny ;
 
-   if( im == NULL || im->kind != MRI_byte ) return NULL ;
+ENTRY("mri_transpose_byte") ;
+
+   if( im == NULL || im->kind != MRI_byte ) RETURN(NULL) ;
 
    nx  = im->nx ; ny = im->ny ;
    om  = mri_new( ny , nx , MRI_byte ) ;
@@ -68,7 +74,7 @@ MRI_IMAGE * mri_transpose_byte( MRI_IMAGE * im )
          oar[jj+ii*ny] = iar[ii+jj*nx] ;
 
    MRI_COPY_AUX(om,im) ;
-   return om ;
+   RETURN(om) ;
 }
 
 MRI_IMAGE * mri_transpose_int( MRI_IMAGE * im )
@@ -77,7 +83,9 @@ MRI_IMAGE * mri_transpose_int( MRI_IMAGE * im )
    int * iar , * oar ;
    int ii,jj,nx,ny ;
 
-   if( im == NULL || im->kind != MRI_int ) return NULL ;
+ENTRY("mri_transpose_int") ;
+
+   if( im == NULL || im->kind != MRI_int ) RETURN(NULL) ;
 
    nx  = im->nx ; ny = im->ny ;
    om  = mri_new( ny , nx , MRI_int ) ;
@@ -89,7 +97,7 @@ MRI_IMAGE * mri_transpose_int( MRI_IMAGE * im )
          oar[jj+ii*ny] = iar[ii+jj*nx] ;
 
    MRI_COPY_AUX(om,im) ;
-   return om ;
+   RETURN(om) ;
 }
 
 MRI_IMAGE * mri_transpose_complex( MRI_IMAGE * im )
@@ -98,7 +106,9 @@ MRI_IMAGE * mri_transpose_complex( MRI_IMAGE * im )
    complex * iar , * oar ;
    int ii,jj,nx,ny ;
 
-   if( im == NULL || im->kind != MRI_complex ) return NULL ;
+ENTRY("mri_transpose_complex") ;
+
+   if( im == NULL || im->kind != MRI_complex ) RETURN(NULL) ;
 
    nx  = im->nx ; ny = im->ny ;
    om  = mri_new( ny , nx , MRI_complex ) ;
@@ -110,7 +120,7 @@ MRI_IMAGE * mri_transpose_complex( MRI_IMAGE * im )
          oar[jj+ii*ny] = iar[ii+jj*nx] ;
 
    MRI_COPY_AUX(om,im) ;
-   return om ;
+   RETURN(om) ;
 }
 
 MRI_IMAGE * mri_transpose_rgbyte( MRI_IMAGE * im )
@@ -119,7 +129,9 @@ MRI_IMAGE * mri_transpose_rgbyte( MRI_IMAGE * im )
    rgbyte * iar , * oar ;
    int ii,jj,nx,ny ;
 
-   if( im == NULL || im->kind != MRI_rgb ) return NULL ;
+ENTRY("mri_transpose_rgbyte") ;
+
+   if( im == NULL || im->kind != MRI_rgb ) RETURN(NULL) ;
 
    nx  = im->nx ; ny = im->ny ;
    om  = mri_new( ny , nx , MRI_rgb ) ;
@@ -131,7 +143,7 @@ MRI_IMAGE * mri_transpose_rgbyte( MRI_IMAGE * im )
          oar[jj+ii*ny] = iar[ii+jj*nx] ;
 
    MRI_COPY_AUX(om,im) ;
-   return om ;
+   RETURN(om) ;
 }
 
 

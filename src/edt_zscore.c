@@ -19,6 +19,8 @@ void EDIT_zscore_vol( int nvox ,
 {
    register int ii ;
 
+ENTRY("EDIT_zscore_vol") ;
+
    /*-- sanity checks --*/
 
    if( nvox < 1                 ||                  /* no data? */
@@ -26,7 +28,7 @@ void EDIT_zscore_vol( int nvox ,
        ! FUNC_IS_STAT(statcode) ||                  /* not a statistic? */
        statcode == FUNC_ZT_TYPE ||                  /* already a z-score? */
        ( vtype != MRI_short && vtype != MRI_float ) /* illegal type of data? */
-   ) return ;
+   ) EXRETURN ;
 
    /*-- what type of data? --*/
 
@@ -52,5 +54,5 @@ void EDIT_zscore_vol( int nvox ,
       break ;
    }
 
-   return ;
+   EXRETURN ;
 }

@@ -16,9 +16,11 @@ THD_3dim_dataset * EDIT_full_copy( THD_3dim_dataset * dset , char * new_prefix )
    int ival , ityp , nbytes , nvals ;
    void * new_brick , * old_brick ;
 
+ENTRY("EDIT_full_copy") ;
+
    /*-- sanity check --*/
 
-   if( ! ISVALID_3DIM_DATASET(dset) ) return NULL ;
+   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(NULL) ;
 
    /*-- make the empty copy --*/
 
@@ -45,7 +47,7 @@ THD_3dim_dataset * EDIT_full_copy( THD_3dim_dataset * dset , char * new_prefix )
 
       if( new_brick == NULL ){
         THD_delete_3dim_dataset( new_dset , False ) ;
-        return NULL ;
+        RETURN(NULL) ;
       }
 
       EDIT_substitute_brick( new_dset , ival , ityp , new_brick ) ;
@@ -56,11 +58,11 @@ THD_3dim_dataset * EDIT_full_copy( THD_3dim_dataset * dset , char * new_prefix )
 
       if( old_brick == NULL ){
          THD_delete_3dim_dataset( new_dset , False ) ;
-         return NULL ;
+         RETURN(NULL) ;
       }
 
       memcpy( new_brick , old_brick , nbytes ) ;
    }
 
-   return new_dset ;
+   RETURN( new_dset );
 }

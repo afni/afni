@@ -37,6 +37,8 @@ void EDIT_cluster_array (MCW_cluster_array * clar, int edit_clust,
       mean,        /* mean of voxel intensities */
       size;        /* size of cluster (multiples of vmul) */
 
+ENTRY("EDIT_cluster_array") ;
+
    if( edit_clust == ECFLAG_ORDER ){
       SORT_CLARR(clar) ;
    }
@@ -95,5 +97,5 @@ void EDIT_cluster_array (MCW_cluster_array * clar, int edit_clust,
       }
    }  /* iclu */
 
-   return;
+   EXRETURN ;
 }

@@ -37,10 +37,12 @@ MCW_cluster_array * MCW_find_clusters(
    short ic, jc, kc;
    short im, jm, km;
 
-   if( fim == NULL ) return NULL ;
+ENTRY("MCW_find_clusters") ;
+
+   if( fim == NULL ) RETURN(NULL) ;
 
    switch( ftype ){
-      default: return NULL ;
+      default: RETURN(NULL) ;
       case MRI_short:  sfar = (short *) fim ; break ;
       case MRI_byte :  bfar = (byte  *) fim ; break ;
       case MRI_float:  ffar = (float *) fim ; break ;
@@ -52,7 +54,7 @@ MCW_cluster_array * MCW_find_clusters(
    if (mask == NULL)
    {
       fprintf (stderr, "Unable to build mask in MCW_find_clusters");
-      return NULL;
+      RETURN(NULL) ;
    }
 
    nxy = nx*ny ; nxyz = nxy * nz ;
@@ -183,7 +185,7 @@ printf("  starting cluster at ijk=%d\n",ijk) ;
 
    if( clust_arr->num_clu <= 0 ){ DESTROY_CLARR(clust_arr) ; }
 
-   return clust_arr ;
+   RETURN(clust_arr) ;
 }
 
 /*---------------------------------------------------------------
@@ -204,7 +206,9 @@ void MCW_cluster_to_vol( int nx , int ny , int nz ,
    float * ffar ;
    byte  * bfar ;
 
-   if( fim == NULL || clust == NULL ) return ;
+ENTRY("MCW_cluster_to_vol") ;
+
+   if( fim == NULL || clust == NULL ) EXRETURN ;
 
    nxy = nx * ny;
 
@@ -217,7 +221,7 @@ void MCW_cluster_to_vol( int nx , int ny , int nz ,
 				 nx, nxy);
 	     sfar[ijk] = clust->mag[icl] ;
 	   }
-      return ;
+      EXRETURN ;
 
       case MRI_byte:
          bfar = (byte *) fim ;
@@ -227,7 +231,7 @@ void MCW_cluster_to_vol( int nx , int ny , int nz ,
 				 nx, nxy);
 	     bfar[ijk] = clust->mag[icl] ;
 	   }
-      return ;
+      EXRETURN ;
 
       case MRI_float:
          ffar = (float *) fim ;
@@ -237,10 +241,10 @@ void MCW_cluster_to_vol( int nx , int ny , int nz ,
 				 nx, nxy);
 	     ffar[ijk] = clust->mag[icl] ;
 	   }
-      return ;
+      EXRETURN ;
    }
 
-   return ;  /* should not be reached */
+   EXRETURN ;  /* should not be reached */
 }
 
 
@@ -288,9 +292,11 @@ void MCW_erode_clusters
   float * ffar;                     /* pointer to float data */
   float * efim = NULL;              /* copy of eroded voxels */
 
+ENTRY("MCW_erode_clusters") ;
+
 
   /*----- Just in case -----*/
-  if ( fim == NULL )  return;
+  if ( fim == NULL )  EXRETURN;
 
 
   /*----- Initialize local variables -----*/
@@ -300,7 +306,7 @@ void MCW_erode_clusters
   /*----- Set pointer to input data -----*/
   switch (ftype)
     {
-    default:  return;
+    default:  EXRETURN;
     case MRI_short:  sfar = (short *) fim;  break;
     case MRI_byte :  bfar = (byte  *) fim;  break;
     case MRI_float:  ffar = (float *) fim;  break;
@@ -312,7 +318,7 @@ void MCW_erode_clusters
   if (efim == NULL)
     {
       fprintf (stderr, "Unable to allocate memory in MCW_erode_clusters");
-      return;
+      EXRETURN;
     }
   for (ijk = 0;  ijk < nxyz;  ijk++)
     efim[ijk] = 0.0;
@@ -323,14 +329,14 @@ void MCW_erode_clusters
   if (mask == NULL)
     {
       fprintf (stderr, "Unable to build mask in MCW_erode_clusters");
-      return;
+      EXRETURN;
     }
 
 
   /*----- Calculate minimum number of voxels in nbhd. for non-erosion -----*/
   nmask = mask->num_pt ;
   minimum = floor(pv*nmask + 0.99);
-  if (minimum <= 0)  return;     /*----- Nothing will be eroded -----*/
+  if (minimum <= 0)  EXRETURN;     /*----- Nothing will be eroded -----*/
 
 
   /*----- Step 1:  Identify voxels to be eroded -----*/
@@ -535,5 +541,5 @@ void MCW_erode_clusters
   /*----- Release memory -----*/
   KILL_CLUSTER(mask) ;
   free (efim);   efim = NULL;
-
+  EXRETURN ;
 }

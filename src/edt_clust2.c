@@ -26,10 +26,12 @@ MCW_cluster_array * NIH_find_clusters(
    short ic, jc, kc;
    short im, jm, km;
 
-   if( fim == NULL ) return NULL ;
+ENTRY("NIH_find_clusters") ;
+
+   if( fim == NULL ) RETURN(NULL) ;
 
    switch( ftype ){
-      default: return NULL ;
+      default: RETURN(NULL) ;
       case MRI_short:  sfar = (short *) fim ; break ;
       case MRI_byte :  bfar = (byte  *) fim ; break ;
       case MRI_float:  ffar = (float *) fim ; break ;
@@ -38,8 +40,8 @@ MCW_cluster_array * NIH_find_clusters(
    /* default => use older code (in edt_clust.c) */
 
    if( mode <= 0 || mode > ISOMERGE_MODE ){
-     return MCW_find_clusters( nx,ny,nz , dx,dy,dz ,
-                               ftype,fim , max_dist ) ;
+     RETURN( MCW_find_clusters( nx,ny,nz , dx,dy,dz ,
+                               ftype,fim , max_dist ) ) ;
    }
 
    /*--- make a cluster that is a mask of points closer than max_dist ---*/
@@ -48,8 +50,8 @@ MCW_cluster_array * NIH_find_clusters(
      mask = MCW_build_mask (nx, ny, nz, dx, dy, dz, max_dist);
      if (mask == NULL)
      {
-        fprintf (stderr, "Unable to build mask in NIH_find_clusters");
-        return NULL;
+        fprintf(stderr, "Unable to build mask in NIH_find_clusters");
+        RETURN(NULL);
      }
      mnum = mask->num_pt ;
    }
@@ -217,5 +219,5 @@ MCW_cluster_array * NIH_find_clusters(
 
    if( clust_arr->num_clu <= 0 ){ DESTROY_CLARR(clust_arr) ; }
 
-   return clust_arr ;
+   RETURN(clust_arr) ;
 }

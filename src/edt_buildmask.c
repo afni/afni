@@ -30,6 +30,8 @@ MCW_cluster * MCW_build_mask (int nx, int ny, int nz,
    float xq, yq, zq, dist_q;
    MCW_cluster * mask;
 
+ENTRY("MCW_build_mask") ;
+
    if( max_dist <= 0.0 ){                   /* 30 Apr 2002 */
      dx = dy = dz = 1.0 ; max_dist = 1.01 ;
    }
@@ -44,7 +46,7 @@ printf("MCW_find_clusters: idx=%d jdy=%d kdz=%d\n",idx,jdy,kdz) ;
       fprintf(stderr,"*** Illegal dimensions input to MCW_build_mask:\n"
                      "*** dx=%g dy=%g dz=%g max_dist=%g\n",
                      dx,dy,dz,max_dist ) ;
-      return NULL ;
+      RETURN( NULL );
    }
 
    INIT_CLUSTER(mask) ;
@@ -74,8 +76,8 @@ printf("  mask size = %d\n",mask->num_pt ) ;
       KILL_CLUSTER(mask) ;
       fprintf(stderr,
               "*** MCW_build_mask error: mask has only %d elements!\n",mnum);
-      return NULL ;
+      RETURN( NULL );
    }
 
-   return (mask);
+   RETURN (mask);
 }

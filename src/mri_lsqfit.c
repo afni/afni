@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** 7D SAFE ***/
@@ -24,10 +24,12 @@ float * mri_lsqfit( MRI_IMAGE * fitim , MRI_IMARR * refim , MRI_IMAGE * wtim )
    int ii , jj , npix,nref ;
    float **refar , *fitar , *war ;
 
+ENTRY("mri_lsqfit") ;
+
    /****---- check inputs, convert to float type if needed ----****/
 
    if( fitim == NULL ){
-      fprintf(stderr,"mri_lsqfit: NULL fitim!\a\n") ; EXIT(1) ;
+     fprintf(stderr,"mri_lsqfit: NULL fitim!\a\n"); RETURN(NULL);
    }
 
    if( fitim->kind == MRI_float ) ffitim = fitim ;
@@ -42,18 +44,18 @@ float * mri_lsqfit( MRI_IMAGE * fitim , MRI_IMARR * refim , MRI_IMAGE * wtim )
       wim = wtim ;
       war = mri_data_pointer( wim ) ;
       if( wim->nvox != npix ){
-         fprintf(stderr,"mri_lsqfit: MISMATCH wtim\a\n") ; EXIT(1) ;
+         fprintf(stderr,"mri_lsqfit: MISMATCH wtim\a\n"); RETURN(NULL);
       }
    } else {
       wim = mri_to_float( wtim ) ;
       war = mri_data_pointer( wim ) ;
       if( wim->nvox != npix ){
-         fprintf(stderr,"mri_lsqfit: MISMATCH wtim\a\n") ; EXIT(1) ;
+         fprintf(stderr,"mri_lsqfit: MISMATCH wtim\a\n"); RETURN(NULL);
       }
    }
 
    if( refim == NULL || refim->num < 1 ){
-      fprintf(stderr,"mri_lsqfit: NULL refim!\a\n") ; EXIT(1) ;
+      fprintf(stderr,"mri_lsqfit: NULL refim!\a\n"); RETURN(NULL);
    }
 
    nref = refim->num ;
@@ -61,15 +63,15 @@ float * mri_lsqfit( MRI_IMAGE * fitim , MRI_IMARR * refim , MRI_IMAGE * wtim )
    INIT_IMARR(frefim) ;
    refar = (float **) malloc( sizeof(float *) * nref ) ;
    if( refar == NULL ){
-      fprintf(stderr,"mri_lsqfit: malloc failure for refar!\a\n") ; EXIT(1) ;
+      fprintf(stderr,"mri_lsqfit: malloc failure for refar!\a\n"); RETURN(NULL);
    }
 
    for( ii=0 ; ii < nref ; ii++ ){
       if( refim->imarr[ii] == NULL ){
-         fprintf(stderr,"mri_lsqfit: NULL refim[%d]!\a\n",ii) ; EXIT(1) ;
+         fprintf(stderr,"mri_lsqfit: NULL refim[%d]!\a\n",ii); RETURN(NULL);
       }
       if( refim->imarr[ii]->nvox != npix ){
-         fprintf(stderr,"mri_lsqfit: MISMATCH refim[%d]!\a\n",ii) ; EXIT(1) ;
+         fprintf(stderr,"mri_lsqfit: MISMATCH refim[%d]!\a\n",ii); RETURN(NULL);
       }
       if( refim->imarr[ii]->kind == MRI_float ) tim = refim->imarr[ii] ;
       else                                      tim = mri_to_float(refim->imarr[ii]) ;
@@ -91,7 +93,7 @@ float * mri_lsqfit( MRI_IMAGE * fitim , MRI_IMARR * refim , MRI_IMAGE * wtim )
    FREE_IMARR(frefim) ;
    free(refar) ;
 
-   return fit ;
+   RETURN(fit) ;
 }
 
 /*----------------------------------------------------------------
@@ -368,33 +370,35 @@ double * mri_startup_lsqfit( MRI_IMARR * refim , MRI_IMAGE * wtim )
    int ii , npix,nref ;
    float * wtar , ** refar ;
 
+ENTRY("mri_startup_lsqfit") ;
+
    /****---- check inputs ----****/
 
    if( wtim != NULL && wtim->kind != MRI_float ){
-      fprintf(stderr,"mri_startup_lsqfit: non-float wtim!\a\n") ; EXIT(1) ;
+      fprintf(stderr,"mri_startup_lsqfit: non-float wtim!\a\n") ; RETURN(NULL);
    }
    wtar = (wtim == NULL) ? (NULL) : (MRI_FLOAT_PTR(wtim)) ;
 
    if( refim == NULL || refim->num < 1 ){
-      fprintf(stderr,"mri_startup_lsqfit: NULL refim!\a\n") ; EXIT(1) ;
+      fprintf(stderr,"mri_startup_lsqfit: NULL refim!\a\n") ; RETURN(NULL);
    }
 
    nref  = refim->num ;
    npix  = refim->imarr[0]->nvox ;
    refar = (float **) malloc( sizeof(float *) * nref ) ;
    if( refar == NULL ){
-      fprintf(stderr,"mri_startup_lsqfit: malloc failure for refar!\a\n") ; EXIT(1) ;
+      fprintf(stderr,"mri_startup_lsqfit: malloc failure for refar!\a\n") ; RETURN(NULL);
    }
 
    for( ii=0 ; ii < nref ; ii++ ){
       if( refim->imarr[ii] == NULL ){
-         fprintf(stderr,"mri_startup_lsqfit: NULL refim[%d]!\a\n",ii) ; EXIT(1) ;
+         fprintf(stderr,"mri_startup_lsqfit: NULL refim[%d]!\a\n",ii) ; RETURN(NULL);
       }
       if( refim->imarr[ii]->nvox != npix ){
-         fprintf(stderr,"mri_startup_lsqfit: MISMATCH refim[%d]!\a\n",ii) ; EXIT(1) ;
+         fprintf(stderr,"mri_startup_lsqfit: MISMATCH refim[%d]!\a\n",ii) ; RETURN(NULL);
       }
       if( refim->imarr[ii]->kind != MRI_float ){
-         fprintf(stderr,"mri_startup_lsqfit: non-float refim[%d]!\a\n",ii) ; EXIT(1) ;
+         fprintf(stderr,"mri_startup_lsqfit: non-float refim[%d]!\a\n",ii) ; RETURN(NULL);
       }
       refar[ii] = MRI_FLOAT_PTR(refim->imarr[ii]) ;
    }
@@ -403,11 +407,13 @@ double * mri_startup_lsqfit( MRI_IMARR * refim , MRI_IMAGE * wtim )
 
    cc = startup_lsqfit( npix , wtar , nref , refar ) ;
    if( cc == NULL ){
-         fprintf(stderr,"mri_startup_lsqfit: bad call to startup_lsqfit!\a\n") ; EXIT(1) ;
+         fprintf(stderr,"mri_startup_lsqfit: bad call to startup_lsqfit!\a\n") ; RETURN(NULL);
    }
    free(refar) ;
-   return cc ;
+   RETURN(cc) ;
 }
+
+/*-----------------------------------------------------------------*/
 
 float * mri_delayed_lsqfit( MRI_IMAGE * fitim , MRI_IMARR * refim , double * cc )
 {
@@ -415,6 +421,8 @@ float * mri_delayed_lsqfit( MRI_IMAGE * fitim , MRI_IMARR * refim , double * cc 
    float * fit ;
    static float ** refar = NULL ;
    static int     nrefar = -1 ;
+
+ENTRY("mri_delayed_lsqfit") ;
 
    nref = refim->num ;
    npix = refim->imarr[0]->nvox ;
@@ -425,12 +433,12 @@ float * mri_delayed_lsqfit( MRI_IMAGE * fitim , MRI_IMARR * refim , double * cc 
       nrefar = nref ;
    }
    if( refar == NULL ){
-      fprintf(stderr,"mri_delayed_lsqfit: malloc failure for refar!\a\n") ; EXIT(1) ;
+     fprintf(stderr,"mri_delayed_lsqfit: malloc failure for refar!\a\n"); RETURN(NULL);
    }
 
    for( ii=0 ; ii < nref ; ii++ )
       refar[ii] = MRI_FLOAT_PTR(refim->imarr[ii]) ;
 
    fit = delayed_lsqfit( npix , MRI_FLOAT_PTR(fitim) , nref , refar , cc ) ;
-   return fit ;
+   RETURN(fit) ;
 }

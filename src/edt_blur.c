@@ -61,7 +61,7 @@ void EDIT_blur_volume_3d( int nx, int ny, int nz,
 
    /*** initialize ***/
 
-ENTRY("EDIT_blur_volume") ;
+ENTRY("EDIT_blur_volume_3d") ;
 
    if( vfim == NULL ||
        sigmax <= 0.0 || sigmay <= 0.0 || sigmaz <= 0.0)  EXRETURN ;

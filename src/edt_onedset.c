@@ -74,7 +74,7 @@ ENTRY("EDIT_one_dataset") ;
       fprintf(stderr,
               "\n*** Cannot read data brick for dataset %s\a\n",
               DSET_BRIKNAME(dset) ) ;
-      EXIT(1) ;
+      EXRETURN ;
    }
 
    /** load the data sub-brick indexes (iv_*) and check types for legality **/
@@ -169,7 +169,7 @@ ENTRY("EDIT_one_dataset") ;
       default:
          fprintf(stderr,"\n*** Illegal data type in dataset %s\a\n",
                  dset->dblk->diskptr->brick_name ) ;
-      EXIT(1) ;
+      EXRETURN ;
 
       case MRI_short:   sfim = (short *)   vfim ; break ;
       case MRI_float:   ffim = (float *)   vfim ; break ;
@@ -183,7 +183,7 @@ ENTRY("EDIT_one_dataset") ;
          default:
             fprintf(stderr,"\n*** Illegal thresh data type in dataset %s\a\n",
                     dset->dblk->diskptr->brick_name ) ;
-         EXIT(1) ;
+         EXRETURN ;
 
          case MRI_short:   sthr = (short *) vthr ; break ;
          case MRI_float:   fthr = (float *) vthr ; break ;

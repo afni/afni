@@ -20,9 +20,11 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    MRI_IMAGE *im ;
    byte *imar , *buf ;
 
+ENTRY("mri_read_stuff") ;
+
    /*--- check input for OK-ness ---*/
 
-   if( fname == NULL || *fname == '\0' ) return NULL ;
+   if( fname == NULL || *fname == '\0' ) RETURN(NULL) ;
 
    /*--- first time in, setup up filters to PNM format ---*/
 
@@ -69,7 +71,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    /*--- determine filter based on file suffix ---*/
 
    nf = strlen(fname) ;
-   if( nf < 5 ) return NULL ;  /* filename too short! */
+   if( nf < 5 ) RETURN(NULL);  /* filename too short! */
 
    pg  = fname + (nf-4);       /* points to last 4 chars */
    pg2 = pg - 1;               /* points to last 5 chars */
@@ -100,7 +102,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    else if( strcmp(pg ,".png" ) == 0 ||
             strcmp(pg ,".PNG" ) == 0   ) filt = png_filter  ;
 
-   if( filt == NULL ) return NULL ;  /* didn't match, or no filter */
+   if( filt == NULL ) RETURN(NULL);  /* didn't match, or no filter */
 
    /*--- create the filter for this file and open the pipe ---*/
 
@@ -109,7 +111,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
    signal( SIGPIPE , SIG_IGN ) ;  /* ignore this signal */
    fp = popen( pg , "r" ) ;
-   if( fp == NULL ){ free(pg); return NULL; }  /* bad pipe */
+   if( fp == NULL ){ free(pg); RETURN(NULL); }  /* bad pipe */
 
    buf = AFMALL(byte, QBUF) ;  /* read buffer for initial data from pipe */
 
@@ -118,18 +120,18 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    nbuf = fread( buf , 1 , QBUF , fp ) ;
 
    if( nbuf < 16 ){  /* bad read */
-     free(buf); free(pg); pclose(fp); return NULL;
+     free(buf); free(pg); pclose(fp); RETURN(NULL);
    }
 
    if( buf[0] != 'P' ){  /* not a P?M file */
-     free(buf); free(pg); pclose(fp); return NULL;
+     free(buf); free(pg); pclose(fp); RETURN(NULL);
    }
 
         if( buf[1] == '6' ) bper = 3 ;              /* PPM from pipe */
    else if( buf[1] == '5' ) bper = 1 ;              /* PGM from pipe */
    else if( buf[1] == '4' ){bper = 1 ; pbm=1; }     /* PBM from pipe */
    else {
-     free(buf); free(pg); pclose(fp); return NULL;  /* bad bad bad!! */
+     free(buf); free(pg); pclose(fp); RETURN(NULL); /* bad bad bad!! */
    }
 
    ipos = 2 ;  /* start scanning for PNM header stuff at position 2 in buf */
@@ -159,14 +161,14 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
   NUMSCAN(nx) ;
   if( nx < 2 || ipos >= nbuf ){                      /* bad */
-    free(buf); free(pg); pclose(fp); return NULL;
+    free(buf); free(pg); pclose(fp); RETURN(NULL);
   }
 
   /* scan for the ny variable */
 
   NUMSCAN(ny) ;
   if( ny < 2 || ipos >= nbuf ){                      /* bad */
-    free(buf); free(pg); pclose(fp); return NULL;
+    free(buf); free(pg); pclose(fp); RETURN(NULL);
   }
 
   /* scan for the maxval variable */
@@ -174,7 +176,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
   if( !pbm ){
     NUMSCAN(maxval) ;
     if( maxval <= 0 || maxval > 255 || ipos >= nbuf ){ /* bad */
-      free(buf); free(pg); pclose(fp); return NULL;
+      free(buf); free(pg); pclose(fp); RETURN(NULL);
     }
   }
 
@@ -222,7 +224,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
 
   /*--- vamoose the ranch ---*/
 
-  return im;
+  RETURN(im);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -236,7 +238,9 @@ void mri_inflate_pbm( MRI_IMAGE *im )  /* 02 Jan 2002 */
    int ii,jj , nx,ny , nbrow , i8 ;
    byte bmask[8] = { 1<<7 , 1<<6 , 1<<5 , 1<<4 , 1<<3 , 1<<2 , 1<<1 , 1 } ;
 
-   if( im == NULL || im->kind != MRI_byte ) return ;
+ENTRY("mri_inflate_pbm") ;
+
+   if( im == NULL || im->kind != MRI_byte ) EXRETURN ;
 
    nx = im->nx ; ny = im->ny ;
    qim   = mri_new( nx , ny , MRI_byte ) ;
@@ -252,4 +256,5 @@ void mri_inflate_pbm( MRI_IMAGE *im )  /* 02 Jan 2002 */
      }
 
    memcpy( imar , qimar , nx*ny ) ; mri_free( qim ) ;
+   EXRETURN ;
 }
