@@ -4590,3 +4590,6 @@
 13 Jun 2003
  * Modified imseq.c to prevent resized windows from getting bigger than
      AFNI_IMAGE_MAXFRAC (default=0.9) times the screen dimensions.
+ * Modified niml/niml_elemio.c to make attribute string buffer size expand
+     when Ziad writes huge attributes, the fiend.  Also put a newline before
+     each attribute, whether we want it or not.
