@@ -6436,6 +6436,24 @@ SUMA_Boolean  SUMA_isDsetRelated(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    SUMA_RETURN(NOPE);
 }
 
+SUMA_Boolean SUMA_isColumn_inferred(NI_element *nel, int icol)
+{
+   static char FuncName[]={"SUMA_isColumn_inferred"};
+   char *lblcp=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   
+   lblcp = SUMA_ColLabelCopy(nel, icol);
+   
+   SUMA_LH(lblcp);
+   if (lblcp) {
+      if (strstr(lblcp, "(inferred)")) SUMA_RETURN(YUP);   
+   }
+   SUMA_free(lblcp);
+   SUMA_RETURN(NOPE);
+}
+
+
 SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO) 
 {
    static char FuncName[]={"SUMA_AddNodeIndexColumn"};
@@ -6498,6 +6516,8 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
       }
       
       /* Now add Ti to the dataset as a node index column ... */
+      /* if you change the column label's string ("Node Index (inferred)") 
+      make sure you change SUMA_isColumn_inferred accordingly */
       if (!SUMA_AddNelCol (dset->nel, "Node Index (inferred)", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
          SUMA_SL_Err("Failed to add column");
          if (Ti) SUMA_free(Ti); Ti = NULL;
