@@ -56,7 +56,7 @@ int main( int argc , char * argv[] )
       }
 
       /*-- datum --*/
-
+ 
       if( strcmp(argv[nopt],"-datum") == 0 ){
          if( ++nopt >= argc ){
             fprintf(stderr,"*** -datum needs an argument!\n"); exit(1);
@@ -88,8 +88,8 @@ int main( int argc , char * argv[] )
    }
 
    /* expect 6 values per voxel - 6 sub-briks as input dataset */ 
-   if( DSET_NVALS(old_dset) != 6 ){
-      fprintf(stderr,"*** Can't use dataset that is not 6 values per voxel!\n") ;
+   if( DSET_NVALS(old_dset) < 6 ){  /* allows 6 or greater sub-briks */
+      fprintf(stderr,"*** Can't use dataset that is not at least 6 values per voxel!\n") ;
       exit(1) ;
    }
 
