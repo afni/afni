@@ -1571,10 +1571,12 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
    /*--- overlay # n ---*/
 
    if( type == isqCR_getoverlay  ){
+      Three_D_View * im3d = (Three_D_View *) br->parent ;
 
 STATUS("get overlay") ;
 
       im = AFNI_overlay( n , br ) ;
+      if( AFNI_yesenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
       RETURN( (XtPointer) im ) ;
    }
 
@@ -1824,7 +1826,6 @@ if(PRINT_TRACING)
       /* Load value of current pixel into display label */
       /* April 1996: only if image is at current slice  */
 
-#ifdef ALLOW_BKGD_LAB
       { char buf[32] = "\0" ;
         AFNI_set_valabel( br , n , im , buf ) ;
         if( buf[0] != '\0' ){
@@ -1832,6 +1833,8 @@ if(PRINT_TRACING)
               strcpy( im3d->vinfo->anat_val , buf ) ;
            else
               im3d->vinfo->anat_val[0] = '\0' ;
+
+           if( AFNI_yesenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
 
            if( im->kind != MRI_complex ){
               char qbuf[32] = "bg =" ;
@@ -1841,7 +1844,6 @@ if(PRINT_TRACING)
            XtManageChild( im3d->vwid->imag->pop_bkgd_lab ) ;
         }
       }
-#endif
 
       RETURN( (XtPointer) im ) ;
    }
@@ -1851,8 +1853,8 @@ STATUS("get something else, but I don't care!") ;
    RETURN( NULL ) ;
 }
 
-/*-----------------------------------------------------------------------------
-   Set a value label when the nsl-th image is in "im".
+/*-----------------------------------------------------------------------------*/
+/*! Set a value label when the nsl-th image is in "im".
 -------------------------------------------------------------------------------*/
 
 void AFNI_set_valabel( FD_brick * br , int nsl , MRI_IMAGE * im , char * blab )
@@ -1865,11 +1867,18 @@ ENTRY("AFNI_set_valabel") ;
    if( ! IM3D_VALID(im3d) || ! im3d->vwid->imag->do_bkgd_lab ||
        im == NULL         || blab == NULL                      ) EXRETURN ;
 
+   /* convert current voxel index location to FD_brick indexes */
+
    ib = THD_3dind_to_fdind( br , TEMP_IVEC3( im3d->vinfo->i1 ,
                                              im3d->vinfo->j2 ,
                                              im3d->vinfo->k3  ) ) ;
 
+   /* if the input image slice index (nsl) doesn't match the current
+      location of the crosshairs, then we don't care about this image */
+
    if( nsl != ib.ijk[2] ) EXRETURN ;
+
+   /* otherwise, extract a value from the image and put into blab */
 
    switch( im->kind ){
 
@@ -4454,6 +4463,30 @@ void AFNI_redisplay_func( Three_D_View * im3d )  /* 05 Mar 2002 */
 
 /*------------------------------------------------------------------------*/
 
+void AFNI_do_bkgd_lab( Three_D_View * im3d )
+{
+   char str[256] ;
+
+   if( !IM3D_OPEN(im3d) || !im3d->vwid->imag->do_bkgd_lab ) return ;
+
+#define VSTR(x) ( ((x)[0] == '\0') ? ("?") : (x) )
+
+   sprintf(str,"Anat = %s\n"
+               "Func = %s\n"
+               "Thr  = %s" ,
+           VSTR(im3d->vinfo->anat_val),
+           VSTR(im3d->vinfo->func_val),
+           VSTR(im3d->vinfo->thr_val ) ) ;
+
+#undef VSTR
+
+   MCW_set_widget_label( im3d->vwid->func->bkgd_lab , str ) ;
+   XtManageChild( im3d->vwid->func->bkgd_lab ) ;
+   FIX_SCALE_SIZE(im3d) ;
+}
+
+/*------------------------------------------------------------------------*/
+
 void AFNI_set_viewpoint( Three_D_View * im3d ,
                          int xx,int yy,int zz , int redisplay_option )
 {
@@ -4502,6 +4535,10 @@ if(PRINT_TRACING)
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
 
+   if( AFNI_yesenv("AFNI_VALUE_LABEL") && new_xyz &&
+       (im3d->s123 == NULL || im3d->s231 == NULL || im3d->s312 == NULL) )
+     isq_driver = isqDR_display ;         /* 08 Mar 2002 */
+
    LOAD_IVEC3(old_id,old_i1,old_j2,old_k3) ;
    LOAD_IVEC3(new_id,    i1,    j2,    k3) ;
 
@@ -4519,10 +4556,12 @@ DUMP_IVEC3("  new_id",new_id) ;
       im3d->vinfo->zk = fv.xyz[2] ;
    }
 
-#ifdef ALLOW_BKGD_LAB
+   /* clear labels */
+
    im3d->vinfo->func_val[0] = im3d->vinfo->thr_val[0] = '\0' ;
-   if( do_lock || isq_driver==isqDR_display ) im3d->vinfo->anat_val[0] = '\0' ;
-#endif
+   if( do_lock || isq_driver==isqDR_display )
+      im3d->vinfo->anat_val[0] = '\0';
+   if( AFNI_yesenv( "AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
 
    /*--- redraw images now ---*/
 
@@ -4605,7 +4644,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    /*--- redraw coordinate display now ---*/
 
-   if( redisplay_option || i1 != old_i1 || j2 != old_j2 || k3 != old_k3 ){
+   if( redisplay_option || new_xyz ){
       XmString xstr ;
       Boolean same ;
 
@@ -4623,22 +4662,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
          XmStringFree( xstr ) ;  /* was same --> don't need this copy */
       }
 
-#ifdef ALLOW_BKGD_LAB
-#define VSTR(x) ( ((x)[0] == '\0') ? ("?") : (x) )
-      if( im3d->vwid->imag->do_bkgd_lab ){
-         char str[256] ;
-         sprintf(str,"Anat = %s\n"
-                     "Func = %s\n"
-                     "Thr  = %s" ,
-                 VSTR(im3d->vinfo->anat_val),
-                 VSTR(im3d->vinfo->func_val), VSTR(im3d->vinfo->thr_val) ) ;
-
-         MCW_set_widget_label( im3d->vwid->func->bkgd_lab , str ) ;
-         XtManageChild( im3d->vwid->func->bkgd_lab ) ;
-         FIX_SCALE_SIZE(im3d) ;
-      }
-#undef VSTR
-#endif
+      AFNI_do_bkgd_lab( im3d ) ;  /* 08 Mar 2002: moved labelizing to function */
    }
 
    /* 24 Jan 2001: set grapher index based on type of dataset */

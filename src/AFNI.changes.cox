@@ -3511,3 +3511,6 @@
 08 Mar 2002
  * Modified afni_graph.c and afni.c to add 2 environment variables to
      let user set the initial graph baseline parameters.
+ * Modified afni_func.c, afni.c, and afni.h to allow the Define Function
+     value label to be recomputed/redisplayed even if only 1 image
+     window is open.

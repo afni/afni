@@ -296,23 +296,17 @@ typedef struct {
 /*-------------------------------------------------------------------*/
 /*--------------- define display control widgets --------------------*/
 
-#define ALLOW_BKGD_LAB
-
-#ifdef ALLOW_BKGD_LAB
 #define BKGD_COUNT 3
 #define INIT_BKGD_LAB(iq) \
    do{ int qq = ((iq)->s123!=NULL) + ((iq)->s231!=NULL) + ((iq)->s312!=NULL); \
-       if( qq >= BKGD_COUNT ){                              \
-          (iq)->vwid->imag->do_bkgd_lab = True ;            \
-       } else {                                             \
-          (iq)->vwid->imag->do_bkgd_lab = False ;           \
-          XtUnmanageChild(im3d->vwid->imag->pop_bkgd_lab) ; \
-          XtUnmanageChild(im3d->vwid->func->bkgd_lab) ;     \
-          FIX_SCALE_SIZE(im3d) ;                            \
+       if( qq >= BKGD_COUNT || (qq > 0 && AFNI_yesenv("AFNI_VALUE_LABEL")) ){ \
+          (iq)->vwid->imag->do_bkgd_lab = True ;                              \
+       } else {                                                               \
+          (iq)->vwid->imag->do_bkgd_lab = False ;                             \
+          XtUnmanageChild(im3d->vwid->imag->pop_bkgd_lab) ;                   \
+          XtUnmanageChild(im3d->vwid->func->bkgd_lab) ;                       \
+          FIX_SCALE_SIZE(im3d) ;                                              \
        } break ; } while(0)
-#else
-#define INIT_BKGD_LAB(iq)
-#endif
 
 #define AFNI_XHAIRS_OFF    0
 #define AFNI_XHAIRS_SINGLE 1
@@ -1383,6 +1377,8 @@ extern void AFNI_process_drawing    ( Three_D_View *, int,int, int *,int *,int *
 extern void AFNI_process_ttatlas    ( Three_D_View * ) ;
 extern void AFNI_process_redisplay  ( Three_D_View * ) ; /* 04 Mar 2002 */
 extern void AFNI_process_funcdisplay( Three_D_View * ) ; /* 05 Mar 2002 */
+
+extern void AFNI_do_bkgd_lab( Three_D_View * ) ;         /* 08 Mar 2002 */
 
 extern MRI_IMAGE * AFNI_ttatlas_overlay(Three_D_View *, int,int,int,int, MRI_IMAGE *) ;
 
