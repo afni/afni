@@ -1574,7 +1574,7 @@ libSUMA.a:
 suma:libSUMA.a librickr.a
 	( cd SUMA ;	\
 	make -f SUMA_Makefile all 'INSTALLDIR=$(INSTALLDIR)' \
-	'SUMA_INCLUDE_PATH=$()' \
+	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'CC=$(CC)'	;	\
