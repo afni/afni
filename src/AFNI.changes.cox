@@ -4217,3 +4217,8 @@
 21 Jan 2003
  * More additions to afni_driver.c.
  * Changes to afni.[ch] to allow startup script to drive AFNI setup.
+
+22 Jan 2003
+ * Added "Run Script" button to Datamode->Misc menu.
+ * Made "Save Layout" button save setup script to .afni.startup_script
+     if no filename is entered.

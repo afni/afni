@@ -134,12 +134,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.51m"
+#define VERSION "2.51n"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "15 Jan 2003      "
+#define RELEASE "22 Jan 2003      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -586,6 +586,7 @@ typedef struct {
       Widget         misc_license_pb ;    /* 03 Dec 2000 */
       Widget         misc_plugout_pb ;    /* 07 Nov 2001 */
       Widget         misc_niml_pb    ;    /* 02 Mar 2002 */
+      Widget         misc_runscript_pb ;  /* 22 Jan 2003 */
 
 } AFNI_datamode_widgets ;
 
@@ -1020,10 +1021,14 @@ extern void AFNI_quit_CB           ( Widget wcall , XtPointer cd , XtPointer cbs
 extern void AFNI_quit_timeout_CB   ( XtPointer , XtIntervalId * ) ;
 extern void AFNI_startup_timeout_CB( XtPointer , XtIntervalId * ) ;
 
-extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ; /* 23 Sep 2000 */
-extern void AFNI_startup_script_CB  ( XtPointer, XtIntervalId * ) ; /* 21 Jan 2003 */
+extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ;    /* 23 Sep 2000 */
 extern void AFNI_save_layout_CB     ( Widget, XtPointer, XtPointer ) ;
 extern void AFNI_finalsave_layout_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
+extern void AFNI_startup_script_CB  ( XtPointer, XtIntervalId * ) ;    /* 21 Jan 2003 */
+extern void AFNI_run_script_CB      ( Widget, XtPointer, XtPointer ) ; /* 22 Jan 2003 */
+extern void AFNI_finalrun_script_CB ( Widget, XtPointer, MCW_choose_cbs * ) ;
+
+#define AFNI_run_script(ss) AFNI_startup_script_CB((XtPointer)(ss),NULL)
 
 extern void AFNI_decode_geom( char * , int *, int *, int *, int * ) ;
 

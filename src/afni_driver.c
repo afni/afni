@@ -44,6 +44,8 @@ static int AFNI_set_func_autorange     ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_set_func_range         ( char *cmd ) ; /* 21 Jan 2003 */
 static int AFNI_set_func_visible       ( char *cmd ) ; /* 21 Jan 2003 */
 static int AFNI_set_func_resam         ( char *cmd ) ; /* 21 Jan 2003 */
+static int AFNI_sleeper                ( char *cmd ) ; /* 22 Jan 2003 */
+static int AFNI_setenv                 ( char *cmd ) ; /* 22 Jan 2003 */
 
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
@@ -97,6 +99,8 @@ static AFNI_driver_pair dpair[] = {
  { "SET_FUNC_RANGE"     , AFNI_set_func_range          } ,
  { "SET_FUNC_VISIBLE"   , AFNI_set_func_visible        } ,
  { "SET_FUNC_RESAM"     , AFNI_set_func_resam          } ,
+ { "SLEEP"              , AFNI_sleeper                 } ,
+ { "SETENV"             , AFNI_setenv                  } ,
 
  { NULL , NULL } } ;
 
@@ -691,7 +695,7 @@ static int AFNI_drive_quit( char *cmd )
 {
   int ii ;
   fprintf(stderr,"\n******* Plugout commanded AFNI to quit! ") ; fflush(stderr) ;
-  for( ii=0 ; ii < 7 ; ii++ ){ iochan_sleep(100); fprintf(stderr,"*"); fflush(stderr); }
+  for( ii=0 ; ii < 7 ; ii++ ){ RWC_sleep(100); fprintf(stderr,"*"); fflush(stderr); }
   fprintf(stderr,"\n") ;
   exit(0) ;
 }
@@ -1720,5 +1724,49 @@ ENTRY("AFNI_set_func_resam") ;
    }
 
    AFNI_resam_av_CB( NULL , im3d ) ;
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------*/
+/*! SLEEP msec */
+
+static int AFNI_sleeper( char *cmd )
+{
+   int ms=-1 ;
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+   sscanf( cmd , "%d" , &ms ) ;
+   if( ms > 0 ) RWC_sleep( ms ) ;
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------*/
+/*! SETENV name value */
+
+static int AFNI_setenv( char *cmd )
+{
+   char nam[256]="\0" , val[1024]="\0" , eqn[1280] ;
+
+   if( cmd == NULL || strlen(cmd) < 3 ) RETURN(-1) ;
+
+   sscanf( cmd , "%255s %1023s" , nam , val ) ;
+   if( nam[0] == '\0' || val[0] == '\0' ) RETURN(-1) ;
+
+   sprintf(eqn,"%s=%s",nam,val) ; putenv(eqn) ;
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------*/
+/*! REDISPLAY */
+
+static int AFNI_redisplay( char *cmd )
+{
+   int cc ;
+   Three_D_View *qq3d ;
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+      qq3d = GLOBAL_library.controllers[cc] ;
+      if( ! IM3D_OPEN(qq3d) ) continue ;
+      AFNI_set_viewpoint( qq3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   }
    RETURN(0) ;
 }

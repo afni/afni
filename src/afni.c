@@ -347,18 +347,18 @@ ENTRY("AFNI_parse_args") ;
 
    /* 21 Jan 2003: get the startup script name */
 
-   { char * lf = getenv("AFNI_SCRIPT_STARTUP") ;
+   { char *lf = getenv("AFNI_STARTUP_SCRIPT") ;
      if( lf == NULL ) lf = ".afni.startup_script" ;
      if( lf != NULL ){
-        char * eh = NULL , * ff ;
-        int ll = strlen(lf) + 8 ;
-        if( strchr(lf,"/") == NULL ) eh = getenv("HOME") ;
-        if( eh != NULL ) ll += strlen(eh) ;
-        ff = malloc(ll) ;
-        if( eh != NULL ){ strcpy(ff,eh) ; strcat(ff,"/") ; }
-        else            { ff[0] = '\0' ; }
-        strcat(ff,lf) ;
-        GLOBAL_argopt.script_fname = ff ;
+       char *eh = NULL , *ff ;
+       int ll = strlen(lf) + 8 ;
+       if( !THD_is_file(lf) && lf[0] != '/' ) eh = getenv("HOME") ;
+       if( eh != NULL ) ll += strlen(eh) ;
+       ff = malloc(ll) ;
+       if( eh != NULL ){ strcpy(ff,eh) ; strcat(ff,"/") ; }
+       else            { ff[0] = '\0' ; }
+       strcat(ff,lf) ;
+       GLOBAL_argopt.script_fname = ff ;
      }
    }
 

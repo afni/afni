@@ -4867,7 +4867,8 @@ ENTRY("AFNI_misc_button") ;
                              " Edit Environment  = Control environment vars\n"
                              " Edit 2DChain      = Control 2DChain function\n"
 #endif
-                             " Save Layout       = Save windows layout\n"
+                             " Save Layout       = Save windows layout/setup\n"
+                             " Run Script        = Run an AFNI script file\n"
                              " License Info      = GPL & Copyright notice\n"
                              " Version Check     = Check AFNI version\n"
                              " Purge Memory      = Of dataset BRIKs\n"
@@ -5045,6 +5046,20 @@ ENTRY("AFNI_misc_button") ;
    XtAddCallback( dmode->misc_savelayout_pb , XmNactivateCallback ,
                   AFNI_save_layout_CB , im3d ) ;
    MCW_register_hint( dmode->misc_savelayout_pb , "Save windows layout to file" ) ;
+
+   /*--- 22 Jan 2003: Run Script [see afni_splash.c] ---*/
+
+   dmode->misc_runscript_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Run Script") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_runscript_pb , XmNactivateCallback ,
+                  AFNI_run_script_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_runscript_pb , "Run an AFNI script file" ) ;
 
    /*--- 07 Nov 2001: start plugouts [see afni_plugout.c] ---*/
 
