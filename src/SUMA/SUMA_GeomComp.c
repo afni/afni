@@ -485,7 +485,7 @@ switch (SEG_METHOD) {
 */
 SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GET_OFFSET_STRUCT *OffS) 
 {
-   static char FuncName[]={"SUMA_getoffsets"};
+   static char FuncName[]={"SUMA_getoffsets2"};
    int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0;
    float Off_tmp, Seg, *a, *b, minSeg;
    SUMA_Boolean Visit = NOPE;

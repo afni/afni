@@ -232,18 +232,19 @@ void calcWithDijkstra (SUMA_SurfaceObject *SO, float* box_dim)
    const int istart = 0;
    const int istop = SO->N_Node;
    int n =0, j =0, N_nPath =0, N_isNodeInMesh=0;
+   FILE *outFile = fopen("Test1.1D.dset", "w");
    SUMA_Boolean isNodeInMesh[SO->N_Node]; //subset (whole set) of nodes that dijkstra will use
+   struct timeval t;
+   
    for (j=0; j<SO->N_Node; j++)
       isNodeInMesh[j] = NOPE;
    //float Result[SO->N_Node][5];
    //int iResult = 0;
-   FILE *outFile = fopen("Test1.1D.dset", "w");
    if (!outFile)
    {
       fprintf (SUMA_STDERR, "Error %s: Failed in opening %s for writing.\n",FuncName, "Test.1D.dset");
       exit(1);
    }
-   struct timeval t;
    SUMA_etime(&t, 0);
    for (n=istart; n < istop; n++)
    { //loops through nodes
