@@ -719,7 +719,7 @@ STATUS("received Node_ROI element") ;
 
 STATUS("checking Node_ROI ID codes") ;
 
-     surf_idc = NI_get_attribute( nel , "DomParent_idcode" ) ;
+     surf_idc = NI_get_attribute( nel , "MeshParent_idcode" ) ;
      if( surf_idc == NULL )
        surf_idc = NI_get_attribute( nel , "surface_idcode" ) ;
      if( surf_idc == NULL )
@@ -740,7 +740,7 @@ STATUS("checking Node_ROI ID codes") ;
      if( surf_idc == NULL ){
        AFNI_popup_message( "*** ERROR:\n\n"
                            " Node_ROI input doesn't\n"
-                           " set 'DomParent_idcode'!\n" ) ;
+                           " set 'MeshParent_idcode'!\n" ) ;
        EXRETURN ;
      }
      if( dset_idc == NULL ){

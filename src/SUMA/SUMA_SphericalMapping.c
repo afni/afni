@@ -148,7 +148,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
    }
 
    /* write the data */
-   fname = SUMA_append_string(Froot, "_SortedDist.1D");
+   fname = SUMA_append_string(Froot, "_SortedDist.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    fid = fopen(fname, "w");
    fprintf(fid,"#Sorted node distance from center of mass.\n"
@@ -203,7 +203,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
    bad_ind = (int *)  SUMA_realloc(bad_ind, ibad * sizeof(int));
    bad_dot = (float *)SUMA_realloc(bad_dot, ibad * sizeof(float));
    
-      fname = SUMA_append_string(Froot, "_dotprod.1D");
+      fname = SUMA_append_string(Froot, "_dotprod.1D.dset");
       if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
       fprintf(fid,"#Cosine of node normal angles with radial direction\n"
@@ -246,7 +246,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
       SUMA_free(fname); fname = NULL;
       if (SV) SUMA_Free_ColorScaledVect (SV);
       
-      fname = SUMA_append_string(Froot, "_BadNodes.1D");
+      fname = SUMA_append_string(Froot, "_BadNodes.1D.dset");
       if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
       fprintf(fid,"#Nodes with normals at angle with radial direction: abs(dot product < 0.9)\n"
@@ -2828,7 +2828,7 @@ void SUMA_MapIcosahedron_usage ()
             "       and icosahedron in output spec file.\n"
             "       (optional, default does not include original-mesh surfaces)\n"
             "\n"
-            "NOTE: The algorithm used by this program is applicable\n"
+            "NOTE 1: The algorithm used by this program is applicable\n"
             "      to any surfaces warped to a spherical coordinate\n"
             "      system. However for the moment, the interface for\n"
             "      this algorithm only deals with FreeSurfer surfaces.\n"
@@ -2836,6 +2836,13 @@ void SUMA_MapIcosahedron_usage ()
             "      data. If you want to apply this algorithm using surfaces\n"
             "      created by other programs such as SureFit and Caret, \n"
             "      Send ziad@nih.gov a note and some test data.\n"
+            "\n"
+            "NOTE 2: At times, the standard-mesh surfaces are visibly\n"
+            "      distorted in some locations from the original surfaces.\n"
+            "      So far, this has only occurred when original spherical \n"
+            "      surfaces had topological errors in them. \n"
+            "      See SurfQual -help and SUMA's online documentation \n"
+            "      for more detail.\n"
             "\n" );
    
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
@@ -3151,7 +3158,7 @@ int main (int argc, char *argv[])
             if (surfaces_orig[id]->MF==NULL) 
                SUMA_SurfaceMetrics(surfaces_orig[id], "MemberFace", NULL);    
             surfaces_orig[id]->Label = SUMA_SurfaceFileName(surfaces_orig[id], NOPE);
-            OutName = SUMA_append_string (surfaces_orig[id]->Label, "_Conv_detail.1D");
+            OutName = SUMA_append_string (surfaces_orig[id]->Label, "_Conv_detail.1D.dset");
             Cx = SUMA_Convexity_Engine ( surfaces_orig[id]->NodeList, surfaces_orig[id]->N_Node, 
                                          surfaces_orig[id]->NodeNormList, surfaces_orig[id]->FN, OutName);
             if (Cx) SUMA_free(Cx); Cx = NULL;
