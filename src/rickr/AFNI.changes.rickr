@@ -115,5 +115,8 @@
   * modified rickr/Makefile for Imon to use EXTRA_LIBS_2
 
 28 January 2003:
-  * modified Imon.[ch] to add '-nt VOLUMES_PER_RUN' option (version 2.1)
+  * modified Imon.[ch] to add '-nt VOLUMES_PER_RUN' option (revision 2.1)
+
+02 February 2003:
+  * modified Imon.[ch] to fail only after 4 I-file read failures (rv 2.2)
 
