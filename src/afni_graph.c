@@ -682,15 +682,16 @@ STATUS("destroying optmenus") ;
 #endif
 
 STATUS("destroying arrowvals") ;
-   myXtFree( grapher->setshift_right_av) ;
-   myXtFree( grapher->setshift_left_av)  ;
-   myXtFree( grapher->setshift_inc_av)   ;
-   myXtFree( grapher->fmenu )            ;
-   myXtFree( grapher->cen_line )         ;
-   myXtFree( grapher->transform0D_av )   ;  /* 22 Oct 1996 */
-   myXtFree( grapher->transform1D_av )   ;  /* 03 Nov 1996 */
+   myXtFree( grapher->setshift_right_av)    ;
+   myXtFree( grapher->setshift_left_av)     ;
+   myXtFree( grapher->setshift_inc_av)      ;
+   myXtFree( grapher->fmenu->fim_opt_bbox ) ;  /* Jan 1998 */
+   myXtFree( grapher->fmenu )               ;
+   myXtFree( grapher->cen_line )            ;
+   myXtFree( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
+   myXtFree( grapher->transform1D_av )      ;  /* 03 Nov 1996 */
 
-   for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ ) /* 16 Jun 1997 */
+   for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )   /* 16 Jun 1997 */
       myXtFree( grapher->opt_color_av[ii] ) ;
 
 STATUS("destroying bboxes") ;
@@ -794,37 +795,43 @@ ENTRY("fd_px_store") ;
   draw a small circle somewhere:
     xwin,ywin = Window coordinates of center
     filled    = 1 or 0, if you want the circle solid or not
+                14 Jan 1998: 2 if for points on a filled circle
 ----------------------------------------------------------------*/
 
-#define NCIR 12
-static XPoint sm_cir[NCIR] = {
-   {-1,-2},{ 0,-2}, { 1,-2},  /* small circle */
-   { 2,-1},{ 2, 0}, { 2, 1},
-   { 1, 2},{ 0, 2}, {-1, 2},
-   {-2, 1},{-2, 0}, {-2,-1}  };
+#define NCIR 12  /* hollow circle */
+#define NBAL 21  /* filled circle */
+#define NBAX 25  /* with points   */
 
-#define NBAL 21
-static XPoint sm_bal[NBAL] = {
-   {-1,-2},{ 0,-2}, { 1,-2},  /* small ball */
-   { 2,-1},{ 2, 0}, { 2, 1},
-   { 1, 2},{ 0, 2}, {-1, 2},
-   {-2, 1},{-2, 0}, {-2,-1},
-   {-1,-1},{-1, 0}, {-1, 1},
-   { 0,-1},{ 0, 0}, { 0, 1},
-   { 1,-1},{ 1, 0}, { 1, 1}, } ;
+#define NBTOP NBAX  /* max # of points */
+
+static XPoint xball[] = {
+      {-1,-2},{ 0,-2},{ 1,-2},
+      { 2,-1},{ 2, 0},{ 2, 1},
+      { 1, 2},{ 0, 2},{-1, 2},
+      {-2, 1},{-2, 0},{-2,-1},  /* NCIR ends here */
+      {-1,-1},{-1, 0},{-1, 1},
+      { 0,-1},{ 0, 0},{ 0, 1},
+      { 1,-1},{ 1, 0},{ 1, 1},  /* NBAL ends here */
+      { 0,-3},{ 0, 3},{ 3, 0},
+      {-3, 0}                   /* NBAX ends here */
+ } ;
+
+/*--- draw into Pixmap (the graph itself) ---*/
 
 void GRA_small_circle( MCW_grapher * grapher , int xwin , int ywin , int filled )
 {
    int  i , ncirc ;
-   XPoint a[NBAL] ;
-   XPoint * circ ;
+   XPoint a[NBTOP] ;
 
-   if( filled ){ circ = sm_bal ; ncirc = NBAL ; }
-   else        { circ = sm_cir ; ncirc = NCIR ; }
+   switch( filled ){
+      default: ncirc = NCIR ; break ;
+      case 1:  ncirc = NBAL ; break ;
+      case 2:  ncirc = NBAX ; break ;
+   }
 
    for( i=0 ; i < ncirc ; i++ ){
-      a[i].x = circ[i].x + xwin ;
-      a[i].y = circ[i].y + ywin ;
+      a[i].x = xball[i].x + xwin ;
+      a[i].y = xball[i].y + ywin ;
    }
 
    XDrawPoints( grapher->dc->display , grapher->fd_pxWind ,
@@ -832,18 +839,22 @@ void GRA_small_circle( MCW_grapher * grapher , int xwin , int ywin , int filled 
    return ;
 }
 
+/*--- draw into window (the graph overlay) ---*/
+
 void GRA_overlay_circle( MCW_grapher * grapher , int xwin , int ywin , int filled )
 {
    int  i , ncirc ;
-   XPoint a[NBAL] ;
-   XPoint * circ ;
+   XPoint a[NBTOP] ;
 
-   if( filled ){ circ = sm_bal ; ncirc = NBAL ; }
-   else        { circ = sm_cir ; ncirc = NCIR ; }
+   switch( filled ){
+      default: ncirc = NCIR ; break ;
+      case 1:  ncirc = NBAL ; break ;
+      case 2:  ncirc = NBAX ; break ;
+   }
 
    for( i=0 ; i < ncirc ; i++ ){
-      a[i].x = circ[i].x + xwin ;
-      a[i].y = circ[i].y + ywin ;
+      a[i].x = xball[i].x + xwin ;
+      a[i].y = xball[i].y + ywin ;
    }
 
    DC_linewidth( grapher->dc , 0 ) ;
@@ -892,7 +903,7 @@ ENTRY("GRA_redraw_overlay") ;
    if( ii >= 0 && ii < NPTS(grapher) && ii < grapher->nncen ){
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       GRA_overlay_circle( grapher ,
-                          grapher->cen_line[ii].x , grapher->cen_line[ii].y , 1 ) ;
+                          grapher->cen_line[ii].x , grapher->cen_line[ii].y , 2 ) ;
    }
 
    /* draw text showing value at currently displayed time_index */
@@ -1377,7 +1388,7 @@ STATUS("starting time series graph loop") ;
 
          if( DATA_POINTS(grapher) ){         /* 09 Jan 1998 */
             for( i=0 ; i < itop ; i++ )
-               GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DATA_THICK(grapher) ) ;
+               GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DATA_IS_THICK(grapher) ) ;
 
          } else {                            /* old method */
             XDrawLines( grapher->dc->display ,
@@ -1433,7 +1444,7 @@ STATUS("starting time series graph loop") ;
 
             if( DPLOT_POINTS(grapher) ){        /* 09 Jan 1998 */
                for( i=0 ; i < itop ; i++ )
-                  GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DPLOT_THICK(grapher) ) ;
+                  GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DPLOT_IS_THICK(grapher) ) ;
 
             } else {                            /* old method */
                DC_linewidth( grapher->dc , DPLOT_THICK(grapher) ) ;
@@ -3193,24 +3204,21 @@ ENTRY("GRA_fim_CB") ;
       GRA_setshift_startup( grapher ) ;
    }
 
-   /*** Screen refresh rate during actual FIMage ***/
-
-#if 0
-   else if( w == grapher->fmenu->fim_setupdate_pb ){
-      cbs.reason = graCR_updtfreqfim ;
-      grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
-   }
-#endif
-
    /*** Execute FIM ***/
 
    else if( w == grapher->fmenu->fim_execute_pb ){
+      int val = MCW_val_bbox(grapher->fmenu->fim_opt_bbox) ;
       cbs.reason = graCR_dofim ;
+      switch(val){
+         default:  cbs.key = FIM_ALPHA_MASK | FIM_CORR_MASK ; break ;
+         case 2:   cbs.key = FIM_PERC_MASK  | FIM_CORR_MASK ; break ;
+      }
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    }
 
    else if( w == grapher->fmenu->fim_execfimp_pb ){
-      cbs.reason = graCR_dofimplus ;
+      cbs.reason = graCR_dofim ;
+      cbs.key    = FIM_DOALL_MASK ;
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    }
 
@@ -3526,6 +3534,7 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
 {
    FIM_menu * fmenu ;
    static char * redcolor = NULL ;
+   Widget qbut_menu = NULL ;
 
    fmenu = myXtNew(FIM_menu) ;
    fmenu->cbfunc = cbfunc ;
@@ -3684,15 +3693,16 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
    /** 15 Dec 1997: a pullright menu with a single button **/
 
 #define FIM_MENU_QBUT(wname,label,qlab)                                   \
- do { Widget mmm = XmCreatePulldownMenu(fmenu->fim_menu,"menu",NULL,0);   \
-      Widget ccc = XtVaCreateManagedWidget( "dialog" ,                    \
+ do { Widget ccc ;                                                        \
+      qbut_menu = XmCreatePulldownMenu(fmenu->fim_menu,"menu",NULL,0);    \
+            ccc = XtVaCreateManagedWidget( "dialog" ,                     \
                      xmCascadeButtonWidgetClass , fmenu->fim_menu ,       \
                      LABEL_ARG( label ) ,                                 \
-                     XmNsubMenuId , mmm ,                                 \
+                     XmNsubMenuId , qbut_menu ,                           \
                      XmNtraversalOn , False ,                             \
                      XmNinitialResourcesPersistent , False , NULL ) ;     \
       fmenu -> wname = XtVaCreateManagedWidget( "dialog" ,                \
-                         xmPushButtonWidgetClass , mmm ,                  \
+                         xmPushButtonWidgetClass , qbut_menu ,            \
                          LABEL_ARG( qlab ) ,                              \
                          XmNmarginHeight , 0 ,                            \
                          XmNtraversalOn , False ,                         \
@@ -3769,17 +3779,21 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
       EMPTY_BUT(fim_plot_allrefs_pb) ;
    }
 
-
-#if 0
-   FIM_MENU_BUT( fim_setupdate_pb , "Refresh Freq" ) ;
-#else
-   EMPTY_BUT( fim_setupdate_pb ) ;
-#endif
    if( redcolor == NULL ){ HOTCOLOR(parent,redcolor) ; }
 
    MENU_DLINE(fim_menu) ;
    FIM_MENU_QBUT( fim_execute_pb   , "Compute FIM" , "-> fico") ;
    MCW_set_widget_bg( fmenu->fim_execute_pb , redcolor , 0 ) ;
+
+   { static char * blab[] = { "Fit Coef" , "% Change" } ;
+     (void) XtVaCreateManagedWidget(
+             "dialog" , xmSeparatorWidgetClass , qbut_menu ,
+              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+     fmenu->fim_opt_bbox = new_MCW_bbox( qbut_menu , 2 , blab ,
+                                         MCW_BB_radio_one , MCW_BB_noframe ,
+                                         NULL , NULL ) ;
+   }
 
    MENU_DLINE(fim_menu) ;
    FIM_MENU_QBUT( fim_execfimp_pb  , "Compute FIM+" , "-> fbuc") ;

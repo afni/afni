@@ -461,11 +461,11 @@ cleaner:
 	$(RM) $(PROGRAMS)
 
 backup:
-	rsh manwe chmod -R u+w /usr2/cox/AFNI96
-	rcp -prv * manwe:/usr2/cox/AFNI96
+	rsh manwe chmod -R u+w /usr2/cox/AFNI98
+	rcp -prv * manwe:/usr2/cox/AFNI98
 
 backtape:
-	$(TAR) cvf $(TAPE) ../AFNI96/
+	$(TAR) cvf $(TAPE) ../AFNI98/
 
 afni96.tgz:
 	$(RM) $@
@@ -660,7 +660,7 @@ f2c.tgz:
 	$(TAR) cf - ./f2cdir | $(GZIP) -9v > f2c.tgz
 
 ## The following only needs to be used if parser.f
-## is edited, since AFNI96 ships with parser.c already made.
+## is edited, since AFNI ships with parser.c already made.
 
 parser.c:
 	$(F2C) parser.f

@@ -95,9 +95,10 @@ typedef struct {
           fim_editref_setshift_pb , fim_editort_clear_pb ;
    Widget fim_ignore_menu   , fim_ignore_cbut ,
           fim_ignore_down_pb, fim_ignore_up_pb , fim_ignore_choose_pb ;
-   Widget fim_pickref_pb , fim_pickort_pb ,
-          fim_setupdate_pb , fim_execute_pb , fim_execfimp_pb ;
+   Widget fim_pickref_pb , fim_pickort_pb , fim_execute_pb , fim_execfimp_pb ;
    Widget fim_pickdset_pb ;
+
+   MCW_bbox * fim_opt_bbox ;
 
 #ifdef USE_OPTMENUS
    MCW_arrowval * fim_ignore_choose_av ;
@@ -257,15 +258,25 @@ static int gr_color_start[NUM_COLOR_ITEMS] = {
 
 #define THICKKK  2
 
-#define FG_THICK(gr)     ((gr)->thick_index[0] * THICKKK )
-#define BG_THICK(gr)     ((gr)->thick_index[1] * THICKKK )
-#define GRID_THICK(gr)   ((gr)->thick_index[2] * THICKKK )
-#define TEXT_THICK(gr)   ((gr)->thick_index[3] * THICKKK )
-#define DATA_THICK(gr)   ((gr)->thick_index[4] * THICKKK )
-#define IDEAL_THICK(gr)  ((gr)->thick_index[5] * THICKKK )
-#define ORT_THICK(gr)    ((gr)->thick_index[6] * THICKKK )
-#define IGNORE_THICK(gr) ((gr)->thick_index[7] * THICKKK )
-#define DPLOT_THICK(gr)  ((gr)->thick_index[8] * THICKKK )
+#define FG_THICK(gr)     ((gr)->thick_index[0] * THICKKK)
+#define BG_THICK(gr)     ((gr)->thick_index[1] * THICKKK)
+#define GRID_THICK(gr)   ((gr)->thick_index[2] * THICKKK)
+#define TEXT_THICK(gr)   ((gr)->thick_index[3] * THICKKK)
+#define DATA_THICK(gr)   ((gr)->thick_index[4] * THICKKK)
+#define IDEAL_THICK(gr)  ((gr)->thick_index[5] * THICKKK)
+#define ORT_THICK(gr)    ((gr)->thick_index[6] * THICKKK)
+#define IGNORE_THICK(gr) ((gr)->thick_index[7] * THICKKK)
+#define DPLOT_THICK(gr)  ((gr)->thick_index[8] * THICKKK)
+
+#define FG_IS_THICK(gr)     ((gr)->thick_index[0] != 0)
+#define BG_IS_THICK(gr)     ((gr)->thick_index[1] != 0)
+#define GRID_IS_THICK(gr)   ((gr)->thick_index[2] != 0)
+#define TEXT_IS_THICK(gr)   ((gr)->thick_index[3] != 0)
+#define DATA_IS_THICK(gr)   ((gr)->thick_index[4] != 0)
+#define IDEAL_IS_THICK(gr)  ((gr)->thick_index[5] != 0)
+#define ORT_IS_THICK(gr)    ((gr)->thick_index[6] != 0)
+#define IGNORE_IS_THICK(gr) ((gr)->thick_index[7] != 0)
+#define DPLOT_IS_THICK(gr)  ((gr)->thick_index[8] != 0)
 
 #define FG_POINTS(gr)     ((gr)->points_index[0])
 #define BG_POINTS(gr)     ((gr)->points_index[1])
@@ -423,8 +434,6 @@ typedef struct {
 #define graCR_clearort           7725
 
 #define graCR_dofim       7731
-#define graCR_updtfreqfim 7732
-#define graCR_dofimplus   7733
 
 #define graCR_refequals   7741
 #define graCR_refadd      7742

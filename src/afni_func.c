@@ -27,7 +27,7 @@ ENTRY("AFNI_see_func_CB") ;
    old_val = (im3d->vinfo->func_visible) ? 1 : 0 ;
    new_val = MCW_val_bbox( im3d->vwid->view->see_func_bbox ) ;
 
-   if( old_val != new_val ){
+   if( w == NULL || old_val != new_val ){
       im3d->vinfo->func_visible = (new_val == 1) ? True : False ;
       if( ! ISVALID_3DIM_DATASET(im3d->fim_now) )             /* 29 Apr 1997 */
          im3d->vinfo->func_visible = False ;
@@ -277,7 +277,8 @@ ENTRY("AFNI_set_thr_pval") ;
 
 #ifdef AFNI_DEBUG
 { char buf[128] ;
-  sprintf( buf, "thresh=%g  pval=%g", thresh,pval ) ; STATUS(buf) ; }
+  sprintf( buf, "thresh=%g  top=%g  pval=%g",
+           thresh,im3d->vinfo->func_thresh_top,pval ) ; STATUS(buf) ; }
 #endif
 
    if( pval < 0.0 ){

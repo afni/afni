@@ -57,8 +57,8 @@ void PCOR_UPDATE( DTYPE * vdata , PCOR_references * ref , PCOR_voxel_corr * vc )
 
 /**----------------------------------------------------------------------
     innermost loop expansion is for speedup if nref is small, if enabled
-      UPZZ updates zz for each row element  } This pair is performed for
-      UPCH updates the Cholesky row element } each non-diagonal element
+      UPZZ updates zz for each row element  > This pair is performed for
+      UPCH updates the Cholesky row element > each non-diagonal element
       UPLL updates the Cholesky diagonal element
 -------------------------------------------------------------------------**/
 

@@ -78,27 +78,6 @@ ENTRY("AFNI_fimmer_pickort_CB") ;
    EXRETURN ;
 }
 
-/*--------------------------------------------------------------------*/
-
-void AFNI_fimmer_setupdate_CB( Widget wcall ,
-                               XtPointer cd , MCW_choose_cbs * cbs )
-{
-   Three_D_View * im3d = (Three_D_View *) cd ;
-
-ENTRY("AFNI_fimmer_setupdate_CB") ;
-
-   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
-   if( cbs->reason != mcwCR_integer ) EXRETURN ;
-
-   im3d->vinfo->fimmer_update_frequency = cbs->ival ;
-
-   if( DSET_GRAPHABLE(im3d->anat_now) )
-      im3d->fimdata->fimdset = im3d->anat_now ;
-
-   ALLOW_COMPUTE_FIM(im3d) ;
-   EXRETURN ;
-}
-
 /*-------------------------------------------------------------------
    Pass this a timeseries that will not be deleted!
 ---------------------------------------------------------------------*/
@@ -252,21 +231,19 @@ ENTRY("AFNI_fimmer_setignore") ;
 
 #define FIM_THR  0.0999
 
-/** 15 Dec 1997: code == 0 --> old style (fico output)
-                 code == 1 --> new style (fbuc output) **/
+/** Jan 1998: code = combinations of the FIM_*_MASK values **/
 
 THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
                                         THD_3dim_dataset * dset_time ,
                                         MRI_IMAGE * ref_ts , MRI_IMAGE * ort_ts ,
-                                        THD_session * sess ,
-                                        int update_frequency , int code )
+                                        THD_session * sess , int code )
 {
    THD_3dim_dataset * new_dset ;
    char new_prefix[THD_MAX_PREFIX] ;
    char old_prefix[THD_MAX_PREFIX] ;
    THD_slist_find fff ;
    int ifim , it,iv , nvox , ngood_ref , ntime , it1 , dtyp , nxyz , itbot ;
-   float * vval , * tsar , * aval , * rbest , * abest ;
+   float * vval, * tsar, * aval, * rbest, * abest, * pbest, * pval, * bbest, * bval;
    int   * indx ;
    short * bar ;
    short * ibest ;  /* 15 Dec 1997 */
@@ -276,13 +253,13 @@ THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
    int nx_ref , ny_ref , ivec , nnow ;
    PCOR_references ** pc_ref ;
    PCOR_voxel_corr ** pc_vc ;
-   Boolean save_xhairs , save_marks ;
-   int save_resam ;
 
    int fim_nref , nx_ort , ny_ort , internal_ort ;
    float * ortar ;
    static float * ref_vec = NULL ;
    static int    nref_vec = -666 ;
+
+   int ibr_best , ibr_perc , ibr_fim , ibr_corr , ibr_base , nbrik ;
 
 #ifndef DONT_USE_METER
    Widget meter = NULL ;
@@ -302,6 +279,7 @@ ENTRY("AFNI_fimmer_compute") ;
        ref_ts->kind != MRI_float      ||
        ! IM3D_OPEN(im3d)              ||
        im3d->type != AFNI_3DDATA_VIEW ||
+       code == 0                      ||           /* Jan 1998 */
        ref_ts->nx < DSET_NUM_TIMES(dset_time) ){
 
 #ifdef AFNI_DEBUG
@@ -353,11 +331,6 @@ ENTRY("AFNI_fimmer_compute") ;
       ngood_ref = MAX( ifim , ngood_ref ) ;
    }
 
-   if( ny_ref == 1 && code == 1 ){             /** 15 Dec 1997 **/
-      STATUS("ny_ref == 1 with code == 1!") ;
-      RETURN(NULL) ;
-   }
-
    /** at this point, ngood_ref = max number of good reference points,
        and                  it1 = index of first point used in first reference **/
 
@@ -373,7 +346,6 @@ ENTRY("AFNI_fimmer_compute") ;
 
    if( ! ISVALID_SESSION(sess) ){
       sprintf( new_prefix , "%s@%d" , old_prefix , 1 ) ;
-      update_frequency = 0 ;  /* can't update without session */
    } else {
       for( ifim=1 ; ifim < 99 ; ifim++ ){
          sprintf( new_prefix , "%s@%d" , old_prefix , ifim ) ;
@@ -462,25 +434,43 @@ ENTRY("AFNI_fimmer_compute") ;
       free(indx) ; RETURN(NULL) ;
    }
 
+   /** compute number of output bricks **/
+
+   ibr_fim=ibr_corr=ibr_best=ibr_perc=ibr_base = -1 ; nbrik = 0 ;
+
+   if( (code & FIM_ALPHA_MASK)!= 0)              { ibr_fim  = nbrik ; nbrik++ ; }
+   if( (code & FIM_BEST_MASK) != 0 && ny_ref > 1){ ibr_best = nbrik ; nbrik++ ; }
+   if( (code & FIM_PERC_MASK) != 0)              { ibr_perc = nbrik ; nbrik++ ; }
+   if( (code & FIM_BASE_MASK) != 0)              { ibr_base = nbrik ; nbrik++ ; }
+   if( (code & FIM_CORR_MASK) != 0)              { ibr_corr = nbrik ; nbrik++ ; }
+
    /** allocate extra space for comparing results from multiple ref vectors **/
 
    if( ny_ref > 1 ){
-      aval  = (float *) malloc( sizeof(float) * nvox) ;
-      rbest = (float *) malloc( sizeof(float) * nvox) ;
-      abest = (float *) malloc( sizeof(float) * nvox) ;
-      ibest = (short *) malloc( sizeof(short) * nvox) ;  /* 15 Dec 1997 */
+      aval  = (float *) malloc(sizeof(float) * nvox) ;
+      rbest = (float *) malloc(sizeof(float) * nvox) ;
+      abest = (float *) malloc(sizeof(float) * nvox) ;
+      ibest = (short *) malloc(sizeof(short) * nvox) ;  /* 15 Dec 1997 */
+      pbest = (float *) malloc(sizeof(float) * nvox) ;  /* 16 Jan 1998 */
+      bbest = (float *) malloc(sizeof(float) * nvox) ;  /* 16 Jan 1998 */
+      pval  = (float *) malloc(sizeof(float) * nvox) ;  /* 16 Jan 1998 */
+      bval  = (float *) malloc(sizeof(float) * nvox) ;  /* 16 Jan 1998 */
 
-      if( aval==NULL || rbest==NULL || abest==NULL || ibest==NULL ){
-         fprintf(stderr,"\n*** abest malloc failure in AFNI_fimmer_compute\n") ;
+      if( bval == NULL ){
+         fprintf(stderr,"\n*** 'best' malloc failure in AFNI_fimmer_compute\n") ;
          free(vval) ; free(indx) ;
-         if( aval  != NULL ) free(aval) ;
+         if( aval  != NULL ) free(aval)  ;
          if( rbest != NULL ) free(rbest) ;
          if( abest != NULL ) free(abest) ;
          if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
+         if( pbest != NULL ) free(pbest) ;  /* 16 Jan 1998 */
+         if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
+         if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
+         if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
          RETURN(NULL) ;
       }
    } else {
-      aval = rbest = abest = NULL ;
+      aval = rbest = abest = pbest = bbest = pval = bval = NULL ;
       ibest = NULL ;  /* 15 Dec 1997 */
    }
 
@@ -500,6 +490,10 @@ ENTRY("AFNI_fimmer_compute") ;
       if( rbest != NULL ) free(rbest) ;
       if( abest != NULL ) free(abest) ;
       if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
+      if( pbest != NULL ) free(pbest) ;  /* 16 Jan 1998 */
+      if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
+      if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
+      if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
       fprintf(stderr,"\n*** FIM initialization fails in AFNI_fimmer_compute\n") ;
       RETURN(NULL) ;
    }
@@ -521,6 +515,10 @@ ENTRY("AFNI_fimmer_compute") ;
       if( rbest != NULL ) free(rbest) ;
       if( abest != NULL ) free(abest) ;
       if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
+      if( pbest != NULL ) free(pbest) ;  /* 16 Jan 1998 */
+      if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
+      if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
+      if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
       fprintf(stderr,"\n*** FIM initialization fails in AFNI_fimmer_compute\n") ;
       RETURN(NULL) ;
    }
@@ -529,32 +527,41 @@ ENTRY("AFNI_fimmer_compute") ;
 
    new_dset = EDIT_empty_copy( dset_time ) ;
 
-   if( code == 0 ){
+   if( nbrik == 1 ){                         /* 1 brick out --> a 'fim' dataset */
+      it = EDIT_dset_items( new_dset ,
+                               ADN_prefix      , new_prefix ,
+                               ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                               ADN_type        , ISHEAD(dset_time)
+                                                 ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
+                               ADN_func_type   , FUNC_FIM_TYPE ,
+                               ADN_nvals       , 1 ,
+                               ADN_datum_all   , MRI_short ,
+                               ADN_ntt         , 0 ,
+                            ADN_none ) ;
+
+   } else if( nbrik == 2 && ibr_corr == 1 ){ /* 2 bricks, 2nd corr --> 'fico' */
       it = EDIT_dset_items( new_dset ,
                                ADN_prefix      , new_prefix ,
                                ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
                                ADN_type        , ISHEAD(dset_time)
                                                  ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
                                ADN_func_type   , FUNC_COR_TYPE ,
-                               ADN_nvals       , FUNC_nvals[FUNC_COR_TYPE] ,
+                               ADN_nvals       , 2 ,
                                ADN_datum_all   , MRI_short ,
                                ADN_ntt         , 0 ,
                             ADN_none ) ;
-   } else if( code == 1 ){
+
+   } else if( nbrik > 0 ){                   /* otherwise --> 'fbuc' (bucket) */
       it = EDIT_dset_items( new_dset ,
                                ADN_prefix      , new_prefix ,
                                ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
                                ADN_type        , ISHEAD(dset_time)
                                                  ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
                                ADN_func_type   , FUNC_BUCK_TYPE ,
-                               ADN_nvals       , 3 ,
+                               ADN_nvals       , nbrik ,
                                ADN_datum_all   , MRI_short ,
                                ADN_ntt         , 0 ,
                             ADN_none ) ;
-
-      EDIT_BRICK_LABEL( new_dset , 0 , "FIM" ) ;
-      EDIT_BRICK_LABEL( new_dset , 1 , "Correlation" ) ;
-      EDIT_BRICK_LABEL( new_dset , 2 , "Best Index" ) ;
    } else {
       it = 999 ;
    }
@@ -572,8 +579,27 @@ ENTRY("AFNI_fimmer_compute") ;
       if( rbest != NULL ) free(rbest) ;
       if( abest != NULL ) free(abest) ;
       if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
+      if( pbest != NULL ) free(pbest) ;  /* 16 Jan 1998 */
+      if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
+      if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
+      if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
       RETURN(NULL) ;
    }
+
+   /* modify labels for each brick */
+
+   if( ibr_fim >= 0 )
+      EDIT_BRICK_LABEL( new_dset , ibr_fim  , "FIM" ) ;
+   if( ibr_corr >= 0 )
+      EDIT_BRICK_LABEL( new_dset , ibr_corr , "Correlation" ) ;
+   if( ibr_best >= 0 )
+      EDIT_BRICK_LABEL( new_dset , ibr_best , "Best Index" ) ;
+   if( ibr_perc >= 0 )
+      EDIT_BRICK_LABEL( new_dset , ibr_perc , "Percent Change" ) ;
+   if( ibr_base >= 0 )
+      EDIT_BRICK_LABEL( new_dset , ibr_base , "Baseline" ) ;
+
+   /* create bricks */
 
    for( iv=0 ; iv < new_dset->dblk->nvals ; iv++ ){
       ptr = malloc( DSET_BRICK_BYTES(new_dset,iv) ) ;
@@ -593,9 +619,14 @@ ENTRY("AFNI_fimmer_compute") ;
       if( rbest != NULL ) free(rbest) ;
       if( abest != NULL ) free(abest) ;
       if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
+      if( pbest != NULL ) free(pbest) ;  /* 16 Jan 1998 */
+      if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
+      if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
+      if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
       RETURN(NULL) ;
    }
 
+   /*---------------------------------*/
    /*--- FIM: do recursive updates ---*/
 
 #ifndef DONT_USE_METER
@@ -603,34 +634,25 @@ ENTRY("AFNI_fimmer_compute") ;
    meter_pold = 0 ;
 #endif
 
-   if( update_frequency > 0 ){
-      AFNI_add_interruptable( NULL ) ;                        /* clear */
-      AFNI_add_interruptable( im3d->vwid->func->thr_scale ) ; /* setup */
-   }
+   for( it=itbot ; it < ntime ; it++ ){  /* loop over time */
 
-   /** save crosshairs and marks visibility states **/
+      nnow = 0 ;  /* number of updates done at this time point */
 
-   save_xhairs = im3d->vinfo->crosshair_visible ;
-   save_marks  = im3d->vwid->marks->ov_visible ;
-   save_resam  = im3d->vinfo->func_resam_mode ;
+      for( ivec=0 ; ivec < ny_ref ; ivec++ ){  /* loop over ref vects */
 
-   for( it=itbot ; it < ntime ; it++ ){
-
-      nnow = 0 ;
-      for( ivec=0 ; ivec < ny_ref ; ivec++ ){
-         tsar = MRI_FLOAT_PTR(ref_ts) + (ivec*nx_ref) ;
-         if( tsar[it] >= WAY_BIG ) continue ;  /* skip this */
+         tsar = MRI_FLOAT_PTR(ref_ts) + (ivec*nx_ref) ; /* ptr to vect */
+         if( tsar[it] >= WAY_BIG ) continue ;           /* skip this */
 
          ref_vec[0] = 1.0 ;         /* we always supply orts */
          ref_vec[1] = (float) it ;  /* for mean and linear trend */
 
-         if( internal_ort ){
-            ref_vec[2] = tsar[it] ;
+         if( internal_ort ){        /* no external orts */
+            ref_vec[2] = tsar[it] ; /* ref value */
          } else {
-            for( iv=0 ; iv < ny_ort ; iv++ )
-               ref_vec[iv+2] = ortar[it + iv*nx_ort] ;
+            for( iv=0 ; iv < ny_ort ; iv++ )            /* external */
+               ref_vec[iv+2] = ortar[it + iv*nx_ort] ;  /* orts */
 
-            ref_vec[ny_ort+2] = tsar[it] ;
+            ref_vec[ny_ort+2] = tsar[it] ; /* ref value */
          }
 
 #ifdef AFNI_DEBUG
@@ -639,38 +661,41 @@ ENTRY("AFNI_fimmer_compute") ;
   STATUS(str) ; }
 #endif
 
+         /* process the ort+ref update */
+
          update_PCOR_references( ref_vec , pc_ref[ivec] ) ;
 
-         if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+         /* first time thru: load data from dataset */
 
-         switch( dtyp ){
-            case MRI_short:{
-               short * dar = (short *) DSET_ARRAY(dset_time,it) ;
-               for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
-            }
-            break ;
+         if( nnow == 0 ){
+            switch( dtyp ){
+               case MRI_short:{
+                  short * dar = (short *) DSET_ARRAY(dset_time,it) ;
+                  for( iv=0; iv < nvox; iv++ ) vval[iv] = (float) dar[indx[iv]];
+               }
+               break ;
 
-            case MRI_float:{
-               float * dar = (float *) DSET_ARRAY(dset_time,it) ;
-               for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
-            }
-            break ;
+               case MRI_float:{
+                  float * dar = (float *) DSET_ARRAY(dset_time,it) ;
+                  for( iv=0; iv < nvox; iv++ ) vval[iv] = (float) dar[indx[iv]];
+               }
+               break ;
 
-            case MRI_byte:{
-               byte * dar = (byte *) DSET_ARRAY(dset_time,it) ;
-               for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
+               case MRI_byte:{
+                  byte * dar = (byte *) DSET_ARRAY(dset_time,it) ;
+                  for( iv=0; iv < nvox; iv++ ) vval[iv] = (float) dar[indx[iv]];
+               }
+               break ;
             }
-            break ;
          }
 
-         if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+         /* process the data update */
 
          PCOR_update_float( vval , pc_ref[ivec] , pc_vc[ivec] ) ;
-         nnow++ ;
+         nnow++ ;  /* one more update at this time point */
+      }  /* end of loop over ref vects */
 
-         if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-      }
-      if( nnow > 0 ) nupdt++ ;
+      if( nnow > 0 ) nupdt++ ;  /* number of time points that had updates */
 
 #ifndef DONT_USE_METER
       meter_perc = (int) ( 100.0 * nupdt / ngood_ref ) ;
@@ -680,241 +705,252 @@ ENTRY("AFNI_fimmer_compute") ;
       }
 #endif
 
-      /*--- Load results into the dataset and redisplay it ---*/
+   }  /* end of loop over time */
 
-      if( nupdt == ngood_ref ||
-          (update_frequency>0 && nupdt>=min_updt && nupdt%update_frequency==0) ){
+   /*-------------------------------------------*/
+   /*--- Load final results into the dataset ---*/
 
-         /*--- set the statistical parameters ---*/
+   /*--- set the statistical parameters ---*/
 
-         stataux[0] = nupdt ;               /* number of points used */
-         stataux[1] = (ny_ref==1) ? 1 : 2 ; /* number of references  */
-         stataux[2] = fim_nref - 1 ;        /* number of orts        */
-         for( iv=3 ; iv < MAX_STAT_AUX ; iv++ ) stataux[iv] = 0.0 ;
+   stataux[0] = nupdt ;               /* number of points used */
+   stataux[1] = (ny_ref==1) ? 1 : 2 ; /* number of references  */
+   stataux[2] = fim_nref - 1 ;        /* number of orts        */
+   for( iv=3 ; iv < MAX_STAT_AUX ; iv++ ) stataux[iv] = 0.0 ;
 
-STATUS("setting statistical parameters") ;
+   if( ibr_corr >= 0 ){
+      EDIT_dset_items( new_dset, ADN_stat_aux, stataux, ADN_none ) ;
+      EDIT_BRICK_TO_FICO( new_dset, ibr_corr, stataux[0],stataux[1],stataux[2] ) ;
+   }
 
-         if( code == 0 ){
-            (void) EDIT_dset_items( new_dset ,
-                                       ADN_stat_aux , stataux ,
-                                    ADN_none ) ;
-         } else if( code == 1 ){
-            EDIT_BRICK_TO_FICO( new_dset , 1 , stataux[0],stataux[1],stataux[2] ) ;
-         }
+   /*** Compute brick arrays for new dataset ***/
+   /*  [load scale factors into stataux, too]  */
 
-         if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+   if( ny_ref == 1 ){
 
-         /*** Compute brick arrays for new dataset ***/
+   /*** Just 1 ref vector --> load values directly into dataset ***/
 
-         if( ny_ref == 1 ){
-
-         /*** Just 1 ref vector --> load values directly into dataset ***/
-
-            /*--- get alpha (coef) into vval,
-                  find max value, scale into brick array ---*/
+      if( ibr_fim >= 0 ){
 
 STATUS("getting 1 ref alpha") ;
 
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+         PCOR_get_coef( pc_ref[0] , pc_vc[0] , vval ) ;
 
-            PCOR_get_coef( pc_ref[0] , pc_vc[0] , vval ) ;
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(vval[iv]) > topval ) topval = fabs(vval[iv]) ;
 
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+         bar = DSET_ARRAY( new_dset , ibr_fim ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
 
-            topval = 0.0 ;
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
             for( iv=0 ; iv < nvox ; iv++ )
-               if( fabs(vval[iv]) > topval ) topval = fabs(vval[iv]) ;
+               bar[indx[iv]] = (short)(topval * vval[iv] + 0.499) ;
 
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+            stataux[ibr_fim] = 1.0/topval ;
+         } else {
+            stataux[ibr_fim] = 0.0 ;
+         }
+      }
 
-            bar = DSET_ARRAY( new_dset , FUNC_ival_fim[FUNC_COR_TYPE] ) ;
-            memset( bar , 0 , sizeof(short)*nxyz ) ;
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            if( topval > 0.0 ){
-               topval = MRI_TYPE_maxval[MRI_short] / topval ;
-               for( iv=0 ; iv < nvox ; iv++ )
-                  bar[indx[iv]] = (short)(topval * vval[iv] + 0.499) ;
-
-               stataux[0] = 1.0/topval ;
-            } else {
-               stataux[0] = 0.0 ;
-            }
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            /*--- get correlation coefficient (pcor) into vval,
-                  scale into brick array (with fixed scaling factor) ---*/
+      if( ibr_corr >= 0 ){
 
 STATUS("getting 1 ref pcor") ;
 
-            PCOR_get_pcor( pc_ref[0] , pc_vc[0] , vval ) ;
+         PCOR_get_pcor( pc_ref[0] , pc_vc[0] , vval ) ;
 
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+         bar = DSET_ARRAY( new_dset , ibr_corr ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
 
-            bar = DSET_ARRAY( new_dset , FUNC_ival_thr[FUNC_COR_TYPE] ) ;
-            memset( bar , 0 , sizeof(short)*nxyz ) ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * vval[iv] + 0.499) ;
 
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+         stataux[ibr_corr] = 1.0 / FUNC_COR_SCALE_SHORT ;
+      }
 
+      if( ibr_perc >= 0 ){
+
+STATUS("getting 1 ref perc") ;
+
+         PCOR_get_perc( pc_ref[0] , pc_vc[0] , vval , NULL ) ;
+
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(vval[iv]) > topval ) topval = fabs(vval[iv]) ;
+
+         bar = DSET_ARRAY( new_dset , ibr_perc ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
             for( iv=0 ; iv < nvox ; iv++ )
-               bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * vval[iv] + 0.499) ;
+               bar[indx[iv]] = (short)(topval * vval[iv] + 0.499) ;
 
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            stataux[1] = 1.0 / FUNC_COR_SCALE_SHORT ;
-
+            stataux[ibr_perc] = 1.0/topval ;
          } else {
-
-         /*** Multiple references --> find best correlation at each voxel ***/
-
-            /*--- get first ref results into abest and rbest (best so far) ---*/
-
-            PCOR_get_coef( pc_ref[0] , pc_vc[0] , abest ) ;
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            PCOR_get_pcor( pc_ref[0] , pc_vc[0] , rbest ) ;
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            for( iv=0 ; iv < nvox ; iv++ ) ibest[iv] = 1 ;  /* 15 Dec 1997 */
-
-            /*--- for each succeeding ref vector,
-                  get results into aval and vval,
-                  if |vval| > |rbest|, then use that result instead ---*/
-
-            for( ivec=1 ; ivec < ny_ref ; ivec++ ){
-
-               PCOR_get_coef( pc_ref[ivec] , pc_vc[ivec] , aval ) ;
-
-               if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-               PCOR_get_pcor( pc_ref[ivec] , pc_vc[ivec] , vval ) ;
-
-               if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-               for( iv=0 ; iv < nvox ; iv++ ){
-                  if( fabs(vval[iv]) > fabs(rbest[iv]) ){
-                     rbest[iv] = vval[iv] ;
-                     abest[iv] = aval[iv] ;
-                     ibest[iv] = (ivec+1) ;   /* 15 Dec 1997 */
-                  }
-               }
-
-               if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-            }
-
-            /*--- at this point, abest and rbest are the best
-                  results, so scale them into the dataset bricks ---*/
-
-            /** fim brick **/
-
-            topval = 0.0 ;
-            for( iv=0 ; iv < nvox ; iv++ )
-               if( fabs(abest[iv]) > topval ) topval = fabs(abest[iv]) ;
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            bar = DSET_ARRAY( new_dset , 0 ) ;
-            memset( bar , 0 , sizeof(short)*nxyz ) ;
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            if( topval > 0.0 ){
-               topval = MRI_TYPE_maxval[MRI_short] / topval ;
-               for( iv=0 ; iv < nvox ; iv++ )
-                  bar[indx[iv]] = (short)(topval * abest[iv] + 0.499) ;
-
-               stataux[0] = 1.0/topval ;
-            } else {
-               stataux[0] = 0.0 ;
-            }
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            /** threshold brick **/
-
-            bar = DSET_ARRAY( new_dset , 1 ) ;
-            memset( bar , 0 , sizeof(short)*nxyz ) ;
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            for( iv=0 ; iv < nvox ; iv++ )
-               bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * rbest[iv] + 0.499) ;
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
-
-            stataux[1] = 1.0 / FUNC_COR_SCALE_SHORT ;
-
-            /** best index brick? 15 Dec 1997 */
-
-            if( code == 1 ){
-               bar = DSET_ARRAY( new_dset , 2 ) ;
-               memset( bar , 0 , sizeof(short)*nxyz ) ;
-               for( iv=0 ; iv < nvox ; iv++ ) bar[indx[iv]] = ibest[iv] ;
-               stataux[2] = 0.0 ;
-            }
-
-            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
+            stataux[ibr_perc] = 0.0 ;
          }
+      }
 
-STATUS("setting brick_fac") ;
+      if( ibr_base >= 0 ){
 
-         (void) EDIT_dset_items( new_dset ,
-                                    ADN_brick_fac , stataux ,
-                                 ADN_none ) ;
+STATUS("getting 1 ref base") ;
 
-         /*--- redisplay ---*/
+         PCOR_get_perc( pc_ref[0] , pc_vc[0] , NULL , vval ) ;
 
-         if( update_frequency > 0 ){
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(vval[iv]) > topval ) topval = fabs(vval[iv]) ;
 
-STATUS("real-time update") ;
+         bar = DSET_ARRAY( new_dset , ibr_base ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
 
-            /*-- Bastille Day 1996:
-                 do most efficient type of display, except when trying the last --*/
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( iv=0 ; iv < nvox ; iv++ )
+               bar[indx[iv]] = (short)(topval * vval[iv] + 0.499) ;
 
-            if( nupdt < ngood_ref ) {
-               im3d->vinfo->crosshair_visible = False ;
-               im3d->vwid->marks->ov_visible  = False ;
+            stataux[ibr_base] = 1.0/topval ;
+         } else {
+            stataux[ibr_base] = 0.0 ;
+         }
+      }
 
-               im3d->vinfo->func_resam_mode   = RESAM_NN_TYPE ;
-               if( im3d->b123_fim != NULL )
-                  im3d->b123_fim->resam_code  =
-                   im3d->b231_fim->resam_code  =
-                    im3d->b312_fim->resam_code  = RESAM_NN_TYPE ;
+   } else {
 
-            } else {
-               im3d->vinfo->crosshair_visible = save_xhairs ;
-               im3d->vwid->marks->ov_visible  = save_marks ;
+   /*** Multiple references --> find best correlation at each voxel ***/
 
-               im3d->vinfo->func_resam_mode   = save_resam ;
-               if( im3d->b123_fim != NULL )
-                  im3d->b123_fim->resam_code  =
-                   im3d->b231_fim->resam_code  =
-                    im3d->b312_fim->resam_code  = save_resam ;
+      /*--- get first ref results into abest and rbest (best so far) ---*/
+
+      PCOR_get_coef( pc_ref[0] , pc_vc[0] , abest ) ;
+      PCOR_get_pcor( pc_ref[0] , pc_vc[0] , rbest ) ;
+      PCOR_get_perc( pc_ref[0] , pc_vc[0] , pbest , bbest ) ;
+
+      for( iv=0 ; iv < nvox ; iv++ ) ibest[iv] = 1 ;  /* 15 Dec 1997 */
+
+      /*--- for each succeeding ref vector,
+            get results into aval and vval,
+            if |vval| > |rbest|, then use that result instead ---*/
+
+      for( ivec=1 ; ivec < ny_ref ; ivec++ ){
+
+         PCOR_get_coef( pc_ref[ivec] , pc_vc[ivec] , aval ) ;
+         PCOR_get_pcor( pc_ref[ivec] , pc_vc[ivec] , vval ) ;
+         PCOR_get_perc( pc_ref[ivec] , pc_vc[ivec] , pval , bval ) ;
+
+         for( iv=0 ; iv < nvox ; iv++ ){
+            if( fabs(vval[iv]) > fabs(rbest[iv]) ){
+               rbest[iv] = vval[iv] ;
+               abest[iv] = aval[iv] ;
+               ibest[iv] = (ivec+1) ;   /* 15 Dec 1997 */
+               pbest[iv] = pval[iv] ;   /* Jan 1998 */
+               bbest[iv] = bval[iv] ;
             }
+         }
+      }
 
-STATUS("AFNI_SEE_FUNC_ON") ;
+      /*--- at this point, abest and rbest are the best
+            results, so scale them into the dataset bricks ---*/
 
-            AFNI_SEE_FUNC_ON(im3d) ;
+      /** fim brick **/
 
-STATUS("about to redisplay") ;
+      if( ibr_fim >= 0 ){
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(abest[iv]) > topval ) topval = fabs(abest[iv]) ;
 
-            AFNI_fimmer_redisplay( first_updt , im3d , new_dset ) ;
-            first_updt = 0 ;
+         bar = DSET_ARRAY( new_dset , ibr_fim ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( iv=0 ; iv < nvox ; iv++ )
+               bar[indx[iv]] = (short)(topval * abest[iv] + 0.499) ;
+
+            stataux[ibr_fim] = 1.0/topval ;
+         } else {
+            stataux[ibr_fim] = 0.0 ;
+         }
+      }
+
+      /** threshold brick **/
+
+      if( ibr_corr >= 0 ){
+         bar = DSET_ARRAY( new_dset , ibr_corr ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         for( iv=0 ; iv < nvox ; iv++ )
+            bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * rbest[iv] + 0.499) ;
+
+         stataux[ibr_corr] = 1.0 / FUNC_COR_SCALE_SHORT ;
+      }
+
+      /** best index brick (15 Dec 1997) */
+
+      if( ibr_best >= 0 ){
+         bar = DSET_ARRAY( new_dset , ibr_best ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+         for( iv=0 ; iv < nvox ; iv++ ) bar[indx[iv]] = ibest[iv] ;
+         stataux[ibr_best] = 0.0 ;  /* no scaling */
+      }
+
+      /** perc brick */
+
+      if( ibr_perc >= 0 ){
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(pbest[iv]) > topval ) topval = fabs(pbest[iv]) ;
+
+         bar = DSET_ARRAY( new_dset , ibr_perc ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( iv=0 ; iv < nvox ; iv++ )
+               bar[indx[iv]] = (short)(topval * pbest[iv] + 0.499) ;
+
+            stataux[ibr_perc] = 1.0/topval ;
+         } else {
+            stataux[ibr_perc] = 0.0 ;
+         }
+      }
+
+      /** base brick */
+
+      if( ibr_base >= 0 ){
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(bbest[iv]) > topval ) topval = fabs(bbest[iv]) ;
+
+         bar = DSET_ARRAY( new_dset , ibr_base ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( iv=0 ; iv < nvox ; iv++ )
+               bar[indx[iv]] = (short)(topval * bbest[iv] + 0.499) ;
+
+            stataux[ibr_base] = 1.0/topval ;
+         } else {
+            stataux[ibr_base] = 0.0 ;
          }
       }
    }
+
+   /*** Set the brick factors for the new dataset,
+        no matter how it was computed above.       ***/
+
+STATUS("setting brick_fac") ;
+
+   (void) EDIT_dset_items( new_dset ,
+                                    ADN_brick_fac , stataux ,
+                                 ADN_none ) ;
 
 #ifndef DONT_USE_METER
    MCW_set_meter( meter , 100 ) ;
 #endif
 
    /*--- End of recursive updates; now free temporary workspaces ---*/
-
-   if( update_frequency > 0 ) AFNI_add_interruptable( NULL ) ;  /* clear */
 
    for( ivec=0 ; ivec < ny_ref ; ivec++ ){
       free_PCOR_references(pc_ref[ivec]) ;
@@ -925,6 +961,10 @@ STATUS("about to redisplay") ;
    if( rbest != NULL ) free(rbest) ;
    if( abest != NULL ) free(abest) ;
    if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
+   if( pbest != NULL ) free(pbest) ;  /* 16 Jan 1998 */
+   if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
+   if( pval  != NULL ) free(pval) ;   /* 16 Jan 1998 */
+   if( bval  != NULL ) free(bval) ;   /* 16 Jan 1998 */
 
    /*--- Return new dataset ---*/
 
@@ -979,16 +1019,6 @@ ENTRY("AFNI_fimmer_menu_CB") ;
                    "No timeseries library\nexists to pick from!" ,
                    MCW_USER_KILL | MCW_TIMER_KILL ) ;
       }
-   }
-
-
-   /*** Refresh Frequency ***/
-
-   else if( w == fmenu->fim_setupdate_pb ){
-      MCW_choose_integer( fmenu->fim_cbut , "FIM Refresh Frequency" ,
-                          0 , 99 , im3d->vinfo->fimmer_update_frequency ,
-                          AFNI_fimmer_setupdate_CB , (XtPointer) im3d ) ;
-
    }
 
    /*** execute FIM ***/
@@ -1146,9 +1176,6 @@ void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs 
 
 /*---------------------------------------------------------------------------*/
 
-/** 15 Dec 1997: code == 0 --> old style (fico output)
-                 code == 1 --> new style (fbuc output) **/
-
 void AFNI_fimmer_execute( Three_D_View * im3d , int code )
 {
    THD_3dim_dataset * new_dset , * dset_time ;
@@ -1182,8 +1209,7 @@ ENTRY("AFNI_fimmer_execute") ;
 
    /*--- Start lots of CPU time ---*/
 
-   new_dset = AFNI_fimmer_compute( im3d , dset_time , ref_ts , ort_ts , sess ,
-                                   im3d->vinfo->fimmer_update_frequency , code ) ;
+   new_dset = AFNI_fimmer_compute( im3d, dset_time, ref_ts, ort_ts, sess, code ) ;
 
    /*--- End lots of CPU time ---*/
 
@@ -1192,10 +1218,8 @@ ENTRY("AFNI_fimmer_execute") ;
        XBell(im3d->dc->display,100) ; EXRETURN ;
    }
 
-   if( im3d->vinfo->fimmer_update_frequency <= 0 ){
-      AFNI_SEE_FUNC_ON(im3d) ;
-      AFNI_fimmer_redisplay( 1 , im3d , new_dset ) ;
-   }
+   AFNI_SEE_FUNC_ON(im3d) ;
+   AFNI_fimmer_redisplay( 1 , im3d , new_dset ) ;
 
    (void) THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
@@ -1205,7 +1229,6 @@ ENTRY("AFNI_fimmer_execute") ;
    AFNI_make_descendants( GLOBAL_library.sslist ) ;
 
    SHOW_AFNI_READY ;
-
    EXRETURN ;
 }
 
@@ -1310,6 +1333,8 @@ void AFNI_add_interruptable( Widget w )
    return ;
 }
 
+/*---------------------------------------------------------------------------*/
+
 void AFNI_process_interrupts( Widget w )
 {
    Display * dis = XtDisplay(w) ;
@@ -1350,6 +1375,8 @@ void AFNI_process_interrupts( Widget w )
 
    return ;
 }
+
+/*---------------------------------------------------------------------------*/
 
 #ifdef USE_FUNC_FIM
 void AFNI_fimmer_fix_optmenu( Three_D_View * im3d )

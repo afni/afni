@@ -1929,26 +1929,12 @@ STATUS("graCR_pickort") ;
       }
       break ;
 
-      /*** User sets up FIM update frequency ***/
-
-      case graCR_updtfreqfim:{
-         MCW_choose_integer( grapher->fdw_graph , "FIM Refresh Frequency" ,
-                             0 , 99 , im3d->vinfo->fimmer_update_frequency ,
-                             AFNI_fimmer_setupdate_CB , (XtPointer) im3d ) ;
-      }
-      break ; /* end of updtfreqfim */
-
       /*** User asks to do fim! ***/
 
       case graCR_dofim:{
-         AFNI_fimmer_execute( im3d , 0 ) ;
+         AFNI_fimmer_execute( im3d , cbs->key ) ;
       }
       break ; /* end of dofim */
-
-      case graCR_dofimplus:{
-         AFNI_fimmer_execute( im3d , 1 ) ;
-      }
-      break ; /* end of dofimplus */
 
       /*** User sets initial ignore count ***/
 

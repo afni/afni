@@ -203,8 +203,6 @@ typedef struct {
       int        func_resam_mode , anat_resam_mode , pts_color ;
       int        thr_resam_mode ;               /* 09 Dec 1997 */
 
-      int        fimmer_update_frequency ;
-
       /* 3/24/95: range data for conversion of pbar
                   values to thresholding values in the data */
 
@@ -559,6 +557,14 @@ typedef struct {
 /*-----------------------------*/
 /*----- Data for FIM-age ------*/
 
+#define FIM_ALPHA_MASK  1
+#define FIM_CORR_MASK   2
+#define FIM_BEST_MASK   4
+#define FIM_PERC_MASK   8
+#define FIM_BASE_MASK  16
+
+#define FIM_DOALL_MASK  (1 | 2 | 4 | 8 | 16)
+
 typedef struct {
    MRI_IMAGE *        fimref ;
    MRI_IMAGE *        fimort ;   /* 12 Nov 1996 */
@@ -857,7 +863,6 @@ extern int  AFNI_jumpto_dicom        ( Three_D_View * , float, float, float  ) ;
 
 extern void AFNI_fimmer_pickref_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_pickort_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
-extern void AFNI_fimmer_setupdate_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 #ifdef USE_FUNC_FIM
 extern void AFNI_fimmer_fix_optmenu( Three_D_View * ) ;
@@ -894,7 +899,7 @@ extern int AFNI_ts_in_library( MRI_IMAGE * tsim ) ;
 
 extern THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * ,
                                                THD_3dim_dataset * , MRI_IMAGE *,
-                                               MRI_IMAGE *, THD_session *, int,int ) ;
+                                               MRI_IMAGE *, THD_session *, int ) ;
 
 extern void AFNI_fimmer_redisplay( int , Three_D_View * , THD_3dim_dataset * ) ;
 

@@ -2096,6 +2096,8 @@ ENTRY("AFNI_make_wid2") ;
                                         AFNI_thresh_top_CB , (XtPointer) im3d ,
                                         AFNI_thresh_tlabel_CB , NULL ) ;
 
+   im3d->vinfo->func_thresh_top = 1.0 ;
+
    MCW_reghelp_children( func->thr_top_av->wrowcol ,
                            "Use this to set\n"
                            "the power-of-10\n"
@@ -3879,8 +3881,6 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->xhairs_all          = False ;
 
    /** June 1996: stuff for interactive FIM **/
-
-   im3d->vinfo->fimmer_update_frequency = 0 ;  /* how often to redisplay during computations */
 
    im3d->s123 = im3d->s231 = im3d->s312 = NULL ; /* no viewing windows yet */
    im3d->g123 = im3d->g231 = im3d->g312 = NULL ; /* no graphing windows yet */

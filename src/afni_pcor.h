@@ -58,6 +58,8 @@ typedef struct {
           int nupdate ;             /* number of times has been updated */
           float **chol ,            /* nref X nref Cholesky factor */
                 *alp , *ff , *gg ;  /* alpha, f, and g factors */
+          float *rmin , *rmax ,     /* 14 Jan 1998 additions: */
+                *rsum ;             /* statistics of references */
           float betasq ;            /* 1/beta^2 factor */
    } PCOR_references ;
 
@@ -109,6 +111,7 @@ extern void PCOR_get_lsqfit(PCOR_references *, PCOR_voxel_corr *, float *fit[]) 
 extern void PCOR_get_coef  (PCOR_references *, PCOR_voxel_corr *, float *) ;
 extern void PCOR_get_pcor  (PCOR_references *, PCOR_voxel_corr *, float *) ;
 extern void PCOR_get_mcor  (PCOR_references *, PCOR_voxel_corr *, int , float *) ;
+extern void PCOR_get_perc  (PCOR_references *, PCOR_voxel_corr *, float *,float *) ;
 
 extern void PCOR_get_pcor_and_coef(PCOR_references *, PCOR_voxel_corr *,
                                    float, float *,float * ) ;

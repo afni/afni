@@ -61,6 +61,17 @@ PCOR_references * new_PCOR_references(int numref)
       free_PCOR_references( ref ) ; return NULL ;
    }
 
+   /*** 14 Jan 1998: space for ref vector statistics ***/
+
+   ref->rmin = (float *) malloc( sizeof(float) * numref ) ;
+   ref->rmax = (float *) malloc( sizeof(float) * numref ) ;
+   ref->rsum = (float *) malloc( sizeof(float) * numref ) ;
+
+   if( ref->rmin == NULL || ref->rmax == NULL || ref->rsum == NULL ){
+      fprintf( stderr , "new_PCOR_references: malloc error for data\n" ) ;
+      free_PCOR_references( ref ) ; return NULL ;
+   }
+
    /*** initialize Cholesky factor ***/
 
    for( ii=0 ; ii < numref ; ii++ ){
@@ -99,12 +110,27 @@ void update_PCOR_references(float * vec, PCOR_references * ref)
       zz      = (float *) malloc( sizeof(float) * nr ) ;
       zz_size = nr ;
       if( zz == NULL ){
-         fprintf( stderr , "\nupdate_PCOR_references: cannot malloc!\n" ) ;
+         fprintf( stderr , "\nupdate_PCOR_references: can't malloc!\n" ) ;
          exit(1) ;
       }
    }
 
    for( jj=0 ; jj < nr ; jj++) zz[jj] = vec[jj] ;
+
+   /*** 14 Jan 1998: collect ref vector stats ***/
+
+   if( ref->nupdate == 0 ){  /* initialize */
+      for( jj=0 ; jj < nr ; jj++ ){
+         ref->rmin[jj] = ref->rmax[jj] = ref->rsum[jj] = zz[jj] ;
+      }
+   } else {
+      register float val ;
+      for( jj=0 ; jj < nr ; jj++ ){
+         val = zz[jj] ;                 ref->rsum[jj] += val ;
+              if( val < ref->rmin[jj] ) ref->rmin[jj]  = val ;
+         else if( val > ref->rmax[jj] ) ref->rmax[jj]  = val ;
+      }
+   }
 
    /*** Carlson algorithm ***/
 
@@ -159,7 +185,7 @@ PCOR_voxel_corr * new_PCOR_voxel_corr(int numvox, int numref)
 
    vc = (PCOR_voxel_corr *) malloc( sizeof(PCOR_voxel_corr) ) ;
    if( vc == NULL ){
-      fprintf( stderr , "new_PCOR_voxel_corr:  cannot malloc base\n" ) ;
+      fprintf( stderr , "new_PCOR_voxel_corr:  can't malloc base\n" ) ;
       return NULL ;
    }
 
@@ -173,7 +199,7 @@ PCOR_voxel_corr * new_PCOR_voxel_corr(int numvox, int numref)
 
    vc->chrow = (float *)malloc( sizeof(float) * numvox*(numref+1) );
    if( vc->chrow == NULL ){
-      fprintf( stderr , "new_PCOR_voxel_corr:  cannot malloc last rows\n" ) ;
+      fprintf( stderr , "new_PCOR_voxel_corr:  can't malloc last rows\n" ) ;
       free( vc ) ; return NULL ;
    }
 
@@ -199,9 +225,12 @@ void free_PCOR_references(PCOR_references * ref)
 
    nr = ref->nref ; if( nr <= 0 ) return ;
 
-   if( ref->alp != NULL ) free(ref->alp) ;
-   if( ref->ff  != NULL ) free(ref->ff)  ;
-   if( ref->gg  != NULL ) free(ref->gg)  ;
+   if( ref->alp  != NULL ) free(ref->alp) ;
+   if( ref->ff   != NULL ) free(ref->ff)  ;
+   if( ref->gg   != NULL ) free(ref->gg)  ;
+   if( ref->rmin != NULL ) free(ref->rmin);  /* 14 Jan 1998 */
+   if( ref->rmax != NULL ) free(ref->rmax);
+   if( ref->rsum != NULL ) free(ref->rsum);
 
    if( ref->chol != NULL ){
       for( ii=0 ; ii < nr ; ii++ )
@@ -394,7 +423,7 @@ void PCOR_get_lsqfit(PCOR_references * ref, PCOR_voxel_corr * vc, float *fit[] )
 
    ff = (float *) malloc( sizeof(float) * nr ) ;
    if( ff == NULL ){
-      fprintf( stderr, "\nPCOR_get_lsqfit: cannot malloc workspace!\n") ;
+      fprintf( stderr, "\nPCOR_get_lsqfit: can't malloc workspace!\n") ;
       exit(1) ;
    }
 
@@ -413,6 +442,81 @@ void PCOR_get_lsqfit(PCOR_references * ref, PCOR_voxel_corr * vc, float *fit[] )
    }
 
    free( ff ) ;
+   return ;
+}
+
+/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+/*** get percent change (due to last reference) ***/
+/*** array coef must be big enough to hold the results ***/
+/*** if bline != NULL, it gets the baseline estimate ***/
+
+void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
+                   float * coef, float * bline)
+{
+   int vox,jj,kk , nv=vc->nvox , nr=vc->nref , nup=ref->nupdate ;
+   float sum , base , rdif , rmin ;
+   float * ff , * bb , * dd ;
+
+   /*** check inputs for OK-ness ***/
+
+   if( vc->nref != ref->nref ){
+      fprintf( stderr , "\nPCOR_get_perc: reference size mismatch!\n" ) ;
+      exit(1) ;
+   }
+
+   if( coef == NULL && bline == NULL ) return ;  /* nothing to do */
+
+   /*** Setup ***/
+
+   ff = (float *) malloc( sizeof(float) * nr ) ;
+   bb = (float *) malloc( sizeof(float) * nr ) ;
+   dd = (float *) malloc( sizeof(float) * nr ) ;
+   if( ff == NULL || bb == NULL || dd == NULL ){
+      fprintf( stderr, "\nPCOR_get_perc: can't malloc workspace!\n") ;
+      exit(1) ;
+   }
+
+   /* range of last reference */
+
+   rmin = ref->rmin[nr-1] ;
+   rdif = 100.0 * (ref->rmax[nr-1] - ref->rmin[nr-1]) ;
+   if( rdif == 0.0 ){
+      for( vox=0 ; vox < nv ; vox++ ) coef[vox] = 0.0 ;
+      fprintf(stderr,"\nPCOR_get_perc: ref vector has no range!\n") ;
+      return ;
+   }
+
+   for( jj=0 ; jj < nr ; jj++ ){
+      bb[jj] = ref->rsum[jj] / nup ;    /* average of each ref */
+      dd[jj] = 1.0 / RCH(ref,jj,jj) ;   /* factor for loop below */
+   }
+
+   /*** Work:                               jj=nr-2
+        x(t) = fit[nr-1] * ref(t,nr-1) + SUM       fit[jj] * ref(t,jj)
+                                            jj=0
+
+        The percent change due to ref(t,nr-1) is computed by scaling
+        this ref to run from 0 to 1 (that's why rmin and rmax are used),
+        and by computing the baseline as fit[nr-1]*rmin + the sum
+        of the averages of the other refs times their fit coefficients. ***/
+
+   for( vox=0 ; vox < nv ; vox++ ){
+      for( jj=nr-1 ; jj >=0 ; jj-- ){  /* compute fit coefficients */
+         sum = VCH(vc,vox,jj) ;
+         for( kk=jj+1 ; kk < nr ; kk++ ) sum -= ff[kk] * RCH(ref,kk,jj) ;
+         ff[jj] = sum * dd[jj] ;
+      }
+      base = ff[nr-1] * rmin ;         /* compute baseline */
+      for( jj=0 ; jj < nr-2 ; jj++ )
+         base += ff[jj] * bb[jj] ;
+
+      if( coef != NULL ) coef[vox] = (base > 0.0) ? ff[nr-1] * rdif / base
+                                                  : 0.0 ;
+      if( bline != NULL ) bline[vox] = base ;
+   }
+
+   free(ff) ; free(bb) ; free(dd) ;
    return ;
 }
 
