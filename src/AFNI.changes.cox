@@ -5379,3 +5379,6 @@
 
 21 Mar 2005
  * Edgize the overlay.
+
+22 Mar 2005
+ * mean(), stdev(), and sem() for parser and 3dcalc.

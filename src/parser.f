@@ -818,7 +818,8 @@ C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
-     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD
+     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
+     X       MEAN , STDEV , SEM
       REAL*8 ARGMAX,ARGNUM
 C
 C  External library functions
@@ -1094,6 +1095,18 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = MAD( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'MEAN' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = MEAN( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'STDEV' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = STDEV( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'SEM' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = SEM( NTM , R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'ORSTAT' )THEN
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
@@ -1251,7 +1264,7 @@ C
 C
       SUBROUTINE PAREVEC( NUM_CODE , C_CODE , VA, VB, VC, VD, VE,
      X                    VF, VG, VH, VI, VJ, VK, VL, VM, VN, VO,
-     X   		  VP, VQ, VR, VS, VT, VU, VV, VW, VX, VY, VZ,
+     X                    VP, VQ, VR, VS, VT, VU, VV, VW, VX, VY, VZ,
      X                    LVEC, VOUT )
       IMPLICIT NONE
 C
@@ -1264,16 +1277,16 @@ C
       INTEGER     NUM_ESTACK       , NVMAX
       PARAMETER ( NUM_ESTACK = 101 , NVMAX = 64 )
       REAL*8      VA(LVEC), VB(LVEC), VC(LVEC), VD(LVEC), VE(LVEC),
-     X		  VF(LVEC), VG(LVEC), VH(LVEC), VI(LVEC), VJ(LVEC),
+     X            VF(LVEC), VG(LVEC), VH(LVEC), VI(LVEC), VJ(LVEC),
      X            VK(LVEC), VL(LVEC), VM(LVEC), VN(LVEC), VO(LVEC),
-     X		  VP(LVEC), VQ(LVEC), VR(LVEC), VS(LVEC), VT(LVEC),
-     X		  VU(LVEC), VV(LVEC), VW(LVEC), VX(LVEC), VY(LVEC),
-     X		  VZ(LVEC), VOUT(LVEC)
+     X            VP(LVEC), VQ(LVEC), VR(LVEC), VS(LVEC), VT(LVEC),
+     X            VU(LVEC), VV(LVEC), VW(LVEC), VX(LVEC), VY(LVEC),
+     X            VZ(LVEC), VOUT(LVEC)
 C
       REAL*8  R8_EVAL(NVMAX,NUM_ESTACK) , R8VAL(NVMAX,26)
 C
       INTEGER     NEVAL , NCODE , IALPHA , IV,IBV,IVBOT,IVTOP ,
-     X 		  JF, NTM,ITM,JTM
+     X            JF, NTM,ITM,JTM
       CHARACTER*8 C8_VAL , CNCODE , C2CODE
       REAL*8      R8_VAL , X , Y
       EQUIVALENCE ( C8_VAL , R8_VAL )
@@ -1286,7 +1299,8 @@ C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
-     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD
+     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
+     X       MEAN , STDEV , SEM
       REAL*8 ARGMAX,ARGNUM
 C
 C  External library functions
@@ -1860,7 +1874,7 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = LAND( NTM, SCOP )
-	    ENDDO
+            ENDDO
          ELSEIF( CNCODE .EQ. 'MEDIAN'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -1869,7 +1883,7 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = MEDIAN( NTM, SCOP )
-	    ENDDO
+            ENDDO
          ELSEIF( CNCODE .EQ. 'MAD'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -1878,7 +1892,34 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = MAD( NTM, SCOP )
-	    ENDDO
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'MEAN'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = MEAN( NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'STDEV'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = STDEV( NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'SEM'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = SEM( NTM, SCOP )
+            ENDDO
          ELSEIF( CNCODE .EQ. 'ORSTAT' )THEN
             NTM   = R8_EVAL(1,NEVAL)
             NEVAL = NEVAL - NTM
@@ -1889,7 +1930,7 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = ORSTAT(ITM,NTM,SCOP)
-	    ENDDO
+            ENDDO
          ELSEIF( CNCODE .EQ. 'HMODE'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -1898,7 +1939,7 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = HMODE( NTM, SCOP )
-	    ENDDO
+            ENDDO
          ELSEIF( CNCODE .EQ. 'LMODE'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -1907,7 +1948,7 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = LMODE( NTM, SCOP )
-	    ENDDO
+            ENDDO
          ELSEIF( CNCODE .EQ. 'OR'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -1915,8 +1956,8 @@ C.......................................................................
                DO JTM=1,NTM
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
-  	       R8_EVAL(IV-IBV,NEVAL) = LOR( NTM, SCOP )
-	    ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = LOR( NTM, SCOP )
+            ENDDO
          ELSEIF( CNCODE .EQ. 'MOFN'  )THEN
             NTM   = R8_EVAL(1,NEVAL)
             NEVAL = NEVAL - NTM
@@ -1927,16 +1968,17 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = LMOFN(ITM,NTM,SCOP)
-	    ENDDO
+            ENDDO
          ELSEIF( CNCODE .EQ. 'ASTEP' )THEN
             NEVAL = NEVAL - 1
             DO IV=IVBOT,IVTOP
-	       IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .GT. R8_EVAL(IV-IBV,NEVAL+1) )THEN
+              IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .GT.
+     X                R8_EVAL(IV-IBV,NEVAL+1) )THEN
                   R8_EVAL(IV-IBV,NEVAL) = 1.D+0
                ELSE
                   R8_EVAL(IV-IBV,NEVAL) = 0.D+0
                ENDIF
-	    ENDDO
+            ENDDO
          ELSEIF( CNCODE .EQ. 'ARGMAX'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -1945,7 +1987,7 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = ARGMAX( NTM, SCOP )
-	    ENDDO
+            ENDDO
          ELSEIF( CNCODE .EQ. 'ARGNUM'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -1954,7 +1996,7 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = ARGNUM( NTM, SCOP )
-	    ENDDO
+            ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -2490,6 +2532,60 @@ C
       ENDIF
       CALL BSORT(N,X)
       ORSTAT = X(I)
+      RETURN
+      END
+C
+C
+C
+      FUNCTION MEAN(N,X)
+      REAL *8 MEAN , X(N) , TMP
+      INTEGER N , IT
+C
+      IF( N .EQ. 1 )THEN
+         MEAN = X(1)
+         RETURN
+      ELSEIF( N .EQ. 2 )THEN
+         MEAN = 0.5D+0 * (X(1)+X(2))
+         RETURN
+      ENDIF
+      TMP = 0.0D+0
+      DO IT=1,N
+        TMP = TMP + X(IT)
+      ENDDO
+      MEAN = TMP / N
+      RETURN
+      END
+C
+C
+C
+      FUNCTION STDEV(N,X)
+      REAL *8 STDEV , X(N) , TMP , XBAR
+      INTEGER N , IT
+C
+      IF( N .EQ. 1 )THEN
+         STDEV = 0.0D+0
+         RETURN
+      ENDIF
+      TMP = 0.0D+0
+      DO IT=1,N
+         TMP = TMP + X(IT)
+      ENDDO
+      XBAR = TMP / N
+      TMP  = 0.D+0
+      DO IT=1,N
+         TMP = TMP + (X(IT)-XBAR)**2
+      ENDDO
+      STDEV = SQRT(TMP/(N-1.D+0))
+      RETURN
+      END
+C
+C
+C
+      FUNCTION SEM(N,X)
+      REAL *8 SEM , X(N) , STDEV
+      INTEGER N
+C
+      SEM = STDEV(N,X) / SQRT(N+0.000001D+0)
       RETURN
       END
 C
