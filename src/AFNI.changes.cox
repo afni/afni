@@ -4069,3 +4069,7 @@
      contains all the image data (i.e., for tiny images).
  * Modified coxplot/plot_ps.c to allow output to stdout.
  * Modified 1dplot.c to allout PostScript output to stdout.
+
+30 Nov 2002
+ * Modified mcw_graf.[ch] to draw a coordinate label during drag of graf
+     handle with Button 3.

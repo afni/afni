@@ -25,7 +25,7 @@
  *           o see RCREND_xhair_underlay/RCREND_xhair_overlay
  *           o passing mset to both RCREND_xhair_XXX functions
  *       - added ENTRY(), EXRETURN and RETURN() statements
- * 
+ *
  * 1.4   - underlay data set grid need not match that of overlay
  *           o see gcr.mset and new_fset
  *
@@ -1323,10 +1323,18 @@ ENTRY( "RCREND_make_widgets" );
    gry_graf = new_MCW_graf( hrc , im3d->dc, "Brightness", RCREND_graf_CB, NULL ) ;
 
    MCW_reghelp_children( gry_graf->topform ,
-                         "This controls the brightness of each\n"
-                         "voxel, as a function of input signal.\n"
-                         "After you change this curve, you\n"
-                         "must press 'Draw' to see the effect." ) ;
+                         "This graph controls the brightness (y-axis) of each\n"
+                         "voxel, as a function of input signal (x-axis).\n\n"
+                         "After you change this curve, you must press\n"
+                         "'Draw' to see the effect on the rendered image.\n\n"
+                         "* To change the curve, drag the square handles\n"
+                         "   using mouse Button 1 or Button 3.\n"
+                         "* Dragging with Button 3 shows a label indicating\n"
+                         "   the (x,y) coordinates of the handle.\n"
+                         "* Use the # button to add and remove handles.\n"
+                         "* Use the Crv button to use spline interpolation.\n"
+                         "* Use the Line button to reset the curve to y=x.\n"
+                       ) ;
 
    SEP_VER(hrc) ;
 
@@ -1335,10 +1343,18 @@ ENTRY( "RCREND_make_widgets" );
    opa_graf = new_MCW_graf( hrc , im3d->dc, "Opacity", RCREND_graf_CB, NULL ) ;
 
    MCW_reghelp_children( opa_graf->topform ,
-                         "This controls the opacity of each\n"
-                         "voxel, as a function of input signal.\n\n"
-                         "After you change this curve, you\n"
-                         "must press 'Draw' to see the effect." ) ;
+                         "This graph controls the opacity (y-axis) of each\n"
+                         "voxel, as a function of input signal (x-axis).\n\n"
+                         "After you change this curve, you must press\n"
+                         "'Draw' to see the effect on the rendered image.\n\n"
+                         "* To change the curve, drag the square handles\n"
+                         "   using mouse Button 1 or Button 3.\n"
+                         "* Dragging with Button 3 shows a label indicating\n"
+                         "   the (x,y) coordinates of the handle.\n"
+                         "* Use the # button to add and remove handles.\n"
+                         "* Use the Crv button to use spline interpolation.\n"
+                         "* Use the Line button to reset the curve to y=x.\n"
+                       ) ;
 
    SEP_VER(hrc) ;
 
@@ -1352,10 +1368,13 @@ ENTRY( "RCREND_make_widgets" );
                          "the square-root of the histogram of\n"
                          "the input signal.\n"
                          "\n"
-                         "N.B.: The histogram at 0 is not included\n"
-                         "      in the scaling, since it tends to\n"
-                         "      be huge.  The square-root is graphed\n"
-                         "      to enhance the range of the plot."      ) ;
+                         "* The histogram at 0 is not included\n"
+                         "   in the scaling, since it tends to\n"
+                         "   be huge.  The square-root is graphed\n"
+                         "   to enhance the range of the plot.\n"
+                         "* Press Button 3 in this window to see a\n"
+                         "   popup label with the (x,y) coordinate.\n"
+                       ) ;
 
    XtManageChild(hrc) ;
 
@@ -2271,6 +2290,13 @@ ENTRY( "RCREND_reload_dataset" );
       }
 
       CREN_set_opamap( gcr.rh, gcr.omap, func_color_opacity );
+
+      /** 02 Dec 2002 [RWCox]:
+          set bot,top values for graphs (for Button3 popup labels) **/
+
+         GRAF_set_xyrange( gry_graf , (float)cbot, (float)ctop , 0.0,255.0 ) ;
+         GRAF_set_xyrange( opa_graf , (float)cbot, (float)ctop , 0.0,  1.0 ) ;
+      PASGRAF_set_xyrange( his_graf , (float)cbot, (float)ctop , 0.0,  0.0 ) ;
    }
 
    /*--- Now deal with overlay, if need be ---*/
@@ -3425,7 +3451,7 @@ ENTRY( "RCREND_finalize_dset_CB" );
 #endif
 
       /* just warn user                                   rickr 2002.07.18 */
-      (void) MCW_popup_message( choose_pb , 
+      (void) MCW_popup_message( choose_pb ,
                                    " \n"
                                    "** Warning:                  **\n"
                                    "** new underlay dataset does **\n"

@@ -107,6 +107,7 @@ typedef struct {
    byte func[GRAF_SIZE] ;
 
    float xbot,xtop,ybot,ytop ; /* for scaling x,y axes */
+   Widget popmenu , poplabel ;
 } MCW_pasgraf ;
 
 #define UNMANAGE_PASGRAF(g)                                          \
