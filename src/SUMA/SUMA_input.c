@@ -594,6 +594,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                } else {
                   sv->GVS[sv->StdView].ApplyMomentum = !sv->GVS[sv->StdView].ApplyMomentum;
+                  SUMA_UpdateViewerTitle(sv);
                   if (sv->GVS[sv->StdView].ApplyMomentum) {
                       sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) w);
                       /* wait till user initiates turning */
@@ -845,10 +846,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_w:
-            fprintf(SUMA_STDOUT,"%s: Began rendering to file. Please wait ...\n", FuncName);
-            if (!SUMA_RenderToPixMap (sv, SUMAg_DOv)) {
-               fprintf(SUMA_STDERR, "Error %s: Failed to write image.\n", FuncName);
-            } 
+            SUMA_SLP_Warn("Option 'w' no longer supported.\nUse 'R' or 'r' instead.");
+            #if 0
+               fprintf(SUMA_STDOUT,"%s: Began rendering to file. Please wait ...\n", FuncName);
+               if (!SUMA_RenderToPixMap (sv, SUMAg_DOv)) {
+                  fprintf(SUMA_STDERR, "Error %s: Failed to write image.\n", FuncName);
+               } 
+            #endif
             break;
 
          case XK_Z:
@@ -1073,6 +1077,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
+               
+               /* update titles */
+               SUMA_UpdateViewerTitle(sv);
             }
             break;
 
@@ -1115,7 +1122,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
 
-               break;
+               /* update titles */
+               SUMA_UpdateViewerTitle(sv);
             }
             break;
 
@@ -1556,14 +1564,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /* make sure no viewer, other than the one clicked in is in momentum mode */
                   if (SUMAg_N_SVv > 1) {
                      for (ii=0; ii < SUMAg_N_SVv; ++ii) {
-                        if (&(SUMAg_SVv[ii]) != sv) {
+                        /* if (&(SUMAg_SVv[ii]) != sv) {  USED TO ALLOW CLICKING IN VIEWER IN MOMENTUM, NOT GOOD */
                            if (SUMAg_SVv[ii].GVS[SUMAg_SVv[ii].StdView].ApplyMomentum) {
-                              sprintf (s,"You cannot select while other viewers\n(like #%d) are in momentum mode.\n", ii);
+                              sprintf (s,"You cannot select or draw while viewers\n(like #%d) are in momentum mode.\n", ii);
                               SUMA_RegisterMessage (SUMAg_CF->MessageList, 
                                                     s, FuncName, SMT_Error, SMA_LogAndPopup);
                               SUMA_RETURNe;
                            }
-                        }
+                       /* }   */
                      }
                   }  
                   

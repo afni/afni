@@ -287,10 +287,28 @@ ENTRY("THD_open_analyze") ;
      orgxyz.xyz[2] = -0.5 * (nz-1) * dz ;
    }
 
-   iview = VIEW_ORIGINAL_TYPE ;   /* can't tell if it is Talairach-ed */
-
+   
+   iview = VIEW_ORIGINAL_TYPE ;   /* can't tell if it is Talairach-ed (default)*/
+   {/* ZSS Dec 15 03 */
+      char *vie = getenv("AFNI_ANALYZE_VIEW") ;
+      if (!vie) iview = VIEW_ORIGINAL_TYPE; 
+      else {
+         if (strcmp(vie, "tlrc") == 0) iview = VIEW_TALAIRACH_TYPE; 
+         else if (strcmp(vie, "orig") == 0) iview = VIEW_ORIGINAL_TYPE;
+         else {
+            fprintf (stderr,  "\nWarning: Bad value (%s) for environment \n"
+                              "variable AFNI_ANALYZE_VIEW. Choose from:\n"
+                              "orig or tlrc.\n"
+                              "Assuming orig view.\n", vie);
+            iview = VIEW_ORIGINAL_TYPE;  
+         }
+      }
+   }
+   
    if( AFNI_yesenv("AFNI_ANALYZE_ORIGINATOR") && spmorg ){  /* 03 Nov 2003 */
-     iview         = VIEW_TALAIRACH_TYPE ;
+     if ( !getenv ("AFNI_ANALYZE_VIEW") ) { /* ZSS Dec. 16 03 */
+       iview         = VIEW_TALAIRACH_TYPE ;     /* for backward compatibility */
+     } 
      orgxyz.xyz[0] = -spmxx * dx ; /* (0,0,0) is at (spmxx,spmyy,spmzz) */
      orgxyz.xyz[1] = -spmyy * dy ;
      orgxyz.xyz[2] = -spmzz * dz ;

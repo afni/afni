@@ -2210,7 +2210,16 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    dpy = XtDisplay(tl);
    
    slabel = (char *)SUMA_malloc (sizeof(char) * (strlen(SO->Label) + 100));
-   sprintf(slabel,"[%s] Surface Controller", SO->Label);
+   if (strlen(SO->Label) > 40) {
+      char *tmpstr=NULL;
+      tmpstr = SUMA_truncate_string(SO->Label, 40);
+      if (tmpstr) { 
+         sprintf(slabel,"[%s] Surface Controller", tmpstr);
+         free(tmpstr); tmpstr=NULL;
+      }
+   } else {
+      sprintf(slabel,"[%s] Surface Controller", SO->Label);
+   }
    
    #if SUMA_CONTROLLER_AS_DIALOG /*xmDialogShellWidgetClass, topLevelShellWidgetClass*/
    if (LocalHead) fprintf(SUMA_STDERR, "%s: Creating dialog shell.\n", FuncName);
@@ -2300,7 +2309,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             NULL);
 
       /*put a label containing the surface name, number of nodes and number of facesets */
-      sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
+      if (strlen(SO->Label) > 40) {
+         char tmpchar = SO->Label[40];
+         SO->Label[40] = '\0';
+         sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
+         SO->Label[40] = tmpchar;
+      } else {
+         sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
+      }
       label = XtVaCreateManagedWidget (slabel, 
                xmLabelWidgetClass, rc,
                NULL);
@@ -2457,9 +2473,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       if (SO->N_Overlays) {
          SUMA_InitializeColPlaneShell(SO, SO->Overlays[0]);
       }
-      
+      SUMA_LH("Here");
       XtManageChild (SO->SurfCont->ColPlane_fr);
-   
+      SUMA_LH("There");
    }
    
    { /* rendering mode and transparency level */
@@ -2701,8 +2717,22 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOpacity->textfield,"-");
    }else {
       SUMA_LH("Initializing for real");
-      sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, SO->Label);
-      SUMA_SET_LABEL(SO->SurfCont->ColPlaneLabel_Parent_lb,sbuf);
+      if (strlen(ColPlane->Label) + strlen(SO->Label) +25 > SUMA_MAX_LABEL_LENGTH) {
+         SUMA_SL_Warn("Surface Labels too long!");
+         SUMA_SET_LABEL(SO->SurfCont->ColPlaneLabel_Parent_lb,"Surface Labels too long!");
+      } else {
+         if (strlen(SO->Label) > 40) {
+            char *tmpstr=NULL;
+            tmpstr = SUMA_truncate_string(SO->Label, 40);
+            if (tmpstr) { 
+               sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, tmpstr);
+               free(tmpstr); tmpstr = NULL;
+            }
+         } else {
+            sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, SO->Label);
+         }
+         SUMA_SET_LABEL_MAX(SO->SurfCont->ColPlaneLabel_Parent_lb,sbuf, 150);
+      }
       
       SO->SurfCont->ColPlaneOrder->value = ColPlane->PlaneOrder;
       sprintf(sbuf,"%d", ColPlane->PlaneOrder);

@@ -1803,7 +1803,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
 {  
    static char FuncName[]={"SUMA_UpdateViewerTitle"};
    int isv, i, N_SOlist, nalloc;  
-   char slabel[30], sside[30], srec[10], cl='\0', cr='\0';   
+   char slabel[30], sside[30], srec[10], cl='\0', cr='\0', smoment[30];   
    SUMA_SurfaceObject *SO = NULL;   
    int SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];   
    SUMA_Boolean LeftSide, RightSide, RightShown, LeftShown;
@@ -1860,6 +1860,9 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    if (sv->Record) sprintf(srec,":Rec");
    else srec[0] = '\0';
    
+   if (sv->GVS[sv->StdView].ApplyMomentum) sprintf(smoment,":M");
+   else smoment[0] = '\0';
+   
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d surface models.\n", FuncName, N_SOlist);
    
    i = 0; 
@@ -1872,9 +1875,9 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
          if (LocalHead) fprintf (SUMA_STDERR,"%s: sv->Focus_SO_ID = %d,  SOlist[%d] = %d\n", FuncName, sv->Focus_SO_ID, i, SOlist[i]);
          if (!i)  {
             if (sv->Focus_SO_ID == SOlist[i]) {
-               sprintf (sv->X->Title,"%s%s%s [%s]", slabel, srec, sside, SO->Label); 
+               sprintf (sv->X->Title,"%s%s%s%s [%s]", slabel, srec, smoment, sside, SO->Label); 
             } else {
-               sprintf (sv->X->Title,"%s%s%s %s", slabel, srec, sside, SO->Label); 
+               sprintf (sv->X->Title,"%s%s%s%s %s", slabel, srec, smoment, sside, SO->Label); 
             }
          } else {
             sv->X->Title = strcat (sv->X->Title, " & ");
