@@ -1,8 +1,18 @@
 
-#define IFM_VERSION "version 1.3 (December, 2002)"
+#define IFM_VERSION "version 2.0 (January, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.0  January 15, 2003
+ *   - rtfeedme feature
+ *       o added -rt   option: pass data to afni as collected
+ *       o added -host option: specify afni host for real-time
+ *       o added -swap option: byte swap pairs before sending to afni
+ *       o created realtime.[ch] for all RT processing functions
+ *       o (see gAC struct and ART_ functions)
+ *   - actually read and store images (to be sent to afni)
+ *   - moved function declarations to Imon.c (from Imon.h)
  *
  * 1.3  December 13, 2002
  *   - compile as standalone (include mcw_glob, but not mcw_malloc)
@@ -29,6 +39,7 @@
 /*----------------------------------------------------------------------
  * todo:
  *
+ * - add -host and -swap options
  * - check for missing first slice
  * - add '-first_file FILE' option, for a new starting point
  *----------------------------------------------------------------------
@@ -72,37 +83,83 @@
 #include <unistd.h>
 
 #include "Imon.h"
+#include "l_mcw_glob.h"
+#include "thd_iochan.h"
+#include "realtime.h"
 
-#include "mcw_glob.h"
+/*----------------------------------------------------------------------*/
+/* static function declarations */
+
+static int alloc_x_im          ( im_store_t * is, int bytes );
+static int check_im_store_space( im_store_t * is, int num_images );
+static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
+static int complete_orients_str( vol_t * v, param_t * p );
+static int dir_expansion_form  ( char * sin, char ** sexp );
+static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
+static int find_more_volumes   ( vol_t * v, param_t * p, ART_comm * ac );
+static int find_next_zoff      ( param_t * p, int start, float zoff );
+static int init_extras         ( param_t * p, ART_comm * ac );
+static int init_options        ( param_t * p, ART_comm * a, int argc,
+				 char * argv[] );
+static int nap_time_from_tr    ( float tr );
+static int read_ge_files       ( param_t * p, int next, int max );
+static int read_ge_image       ( char * pathname, finfo_t * fp,
+	                         int get_image, int need_memory );
+static int scan_ge_files       ( param_t * p, int next, int nfiles );
+static int set_nice_level      ( int level );
+static int set_volume_stats    ( vol_t * v );
+static int show_run_stats      ( stats_t * s );
+static int swap_4              ( void * ptr );
+
+static void hf_signal          ( int signum );
+
+/* volume scanning */
+static int volume_match  ( vol_t * vin, vol_t * vout, param_t * p, int start );
+static int volume_search ( vol_t * V, param_t * p, int * start, int maxsl );
+
+/* information functions */
+static int idisp_hf_param_t     ( char * info, param_t * p );
+static int idisp_hf_vol_t       ( char * info, vol_t * v );
+static int idisp_ge_extras      ( char * info, ge_extras * E );
+static int idisp_ge_header_info ( char * info, ge_header_info * I );
+static int idisp_im_store_t     ( char * info, im_store_t * is );
+
+static int usage                ( char * prog, int level );
+
+/* local copy of AFNI function */
+static unsigned long l_THD_filesize( char * pathname );
+
+/*----------------------------------------------------------------------*/
 
 #define MAIN
 
 /***********************************************************************/
 /* globals */
 
-IFM_debug gD;		/* debug information       */
-param_t   gP;		/* main parameter struct   */
-stats_t   gS;		/* general run information */
+IFM_debug gD;		/* debug information         */
+param_t   gP;		/* main parameter struct     */
+stats_t   gS;		/* general run information   */
+ART_comm  gAC;		/* afni communication struct */
 
 /***********************************************************************/
 int main( int argc, char * argv[] )
 {
-    param_t * p = &gP;			/* access the global as local  */
-    vol_t     baseV;			/* base volume - first scanned */
-    int       ret_val;
+    ART_comm * ac = &gAC;		/* access AFNI comm as local   */
+    param_t  * p  = &gP;		/* access the global as local  */
+    vol_t      baseV;			/* base volume - first scanned */
+    int        ret_val;
 
     /* validate inputs and init options structure */
-    if ( (ret_val = init_options( p, argc, argv )) != 0 )
+    if ( (ret_val = init_options( p, ac, argc, argv )) != 0 )
 	return ret_val;
 
-    if ( gD.level > 0 )
-	fprintf( stderr, "\n%s running, use <ctrl-c> to quit...\n\n",
-		 IFM_PROG_NAME );
-
-    if ( (ret_val = find_first_volume( &baseV, p )) != 0 )
+    if ( (ret_val = init_extras( p, ac )) != 0 )
 	return ret_val;
 
-    if ( (ret_val = find_more_volumes( &baseV, p )) != 0 )
+    if ( (ret_val = find_first_volume( &baseV, p, ac )) != 0 )
+	return ret_val;
+
+    if ( (ret_val = find_more_volumes( &baseV, p, ac )) != 0 )
 	return ret_val;
 
     return 0;
@@ -119,8 +176,9 @@ int main( int argc, char * argv[] )
  *          else : error
  *----------------------------------------------------------------------
 */
-static int find_first_volume( vol_t * v, param_t * p )
+static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 {
+    int max_im_alloc = IFM_MAX_IM_ALLOC;
     int ret_val;
     int start = 0;  /* initial starting location for the first volume */
 
@@ -130,7 +188,7 @@ static int find_first_volume( vol_t * v, param_t * p )
     ret_val = 0;
     while ( ret_val == 0 )
     {
-	ret_val = read_ge_files( p, 0, 0 );
+	ret_val = read_ge_files( p, 0, max_im_alloc );
 
 	if ( ret_val > 0 )
 	{
@@ -138,6 +196,15 @@ static int find_first_volume( vol_t * v, param_t * p )
 
 	    if ( ret_val == -1 )   /* try to recover from a data error */
 		ret_val = 0;
+	    else if ( (ret_val == 0) && (max_im_alloc < (2*p->nused)) )
+	    {
+		/* If we don't have a volume yet, but have used "too much"
+		 * of our available memory, request more, making sure there
+		 * is enough for a volume, despite the previous max_im_alloc
+		 * limitation.
+		 */
+		max_im_alloc *= 2;
+	    }
 	}
 
 	if ( ret_val == 0 )			/* we are not done yet */
@@ -153,7 +220,47 @@ static int find_first_volume( vol_t * v, param_t * p )
 	    {
 		fprintf( stderr, "\n-- first volume found\n" );
 		if ( gD.level > 1 )
+		{
 		    idisp_hf_vol_t( "first volume : ", v );
+		    idisp_hf_param_t( "first vol - new params : ", p );
+		}
+	    }
+
+	    /* make sure there is enough memory for bad volumes */
+	    if ( p->nalloc < (4 * v->nim) )
+	    {
+		p->nalloc = 4 * v->nim;
+		p->flist = (finfo_t *)realloc( p->flist,
+			                       p->nalloc*sizeof(finfo_t) );
+		if ( p->flist == NULL )
+		{
+		    fprintf( stderr, "** FFV: failure to allocate %d finfo_t "
+			             "structs!\n", p->nalloc );
+		    return -1;
+		}
+
+		if ( gD.level > 1 )
+		    idisp_hf_param_t( "++ final realloc of flist : ", p );
+	    }
+
+	    /* use this volume to comple the geh.orients string */
+	    if ( complete_orients_str( v, p ) < 0 )
+		return -1;
+
+	    /* if wanted, verify afni link, send image info and first volume */
+	    if ( ac->state == ART_STATE_TO_OPEN )
+		ART_open_afni_link( ac, 5, 0, gD.level );
+
+	    if ( ac->state == ART_STATE_TO_SEND_CTRL )
+		ART_send_control_info( ac, v, gD.level );
+
+	    if ( ac->state == ART_STATE_IN_USE )
+		    ART_send_volume( ac, v, gD.level );
+
+	    if ( gD.level > 1 )
+	    {
+		ART_idisp_ART_comm( "-- first vol ", ac );
+		idisp_im_store_t( "-- first vol ", &p->im_store );
 	    }
 	}
 	else
@@ -176,7 +283,7 @@ static int find_first_volume( vol_t * v, param_t * p )
  *          else : error
  *----------------------------------------------------------------------
 */
-static int find_more_volumes( vol_t * v0, param_t * p )
+static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 {
     vol_t vn;
     int   ret_val, done;
@@ -196,8 +303,8 @@ static int find_more_volumes( vol_t * v0, param_t * p )
 
     run      = v0->run;
     seq_num  = v0->seq_num = 1;		/* set first seq_num to 1 */
-    fl_index = v0->last_im + 1;		/* start looking past first volume */
-    next_im  = v0->last_im + 1;		/* for read_ge_files()             */
+    fl_index = v0->fn_n + 1;		/* start looking past first volume */
+    next_im  = v0->fn_n + 1;		/* for read_ge_files()             */
 
     nap_time = nap_time_from_tr( v0->geh.tr );
 
@@ -227,14 +334,18 @@ static int find_more_volumes( vol_t * v0, param_t * p )
 
 	    if ( (ret_val == 1) || (ret_val == -1) )
 	    {
-		if ( gD.level > 1 )
+		if ( gD.level > 2 )
 		    idisp_hf_vol_t( "-- new volume: ", &vn );
 
 		fl_index += vn.nim;		/* note the new position   */
-		next_im   = vn.last_im + 1;	/* for read_ge_files()     */
+		next_im   = vn.fn_n + 1;	/* for read_ge_files()     */
 
 		if ( vn.run != run )		/* new run?                */
 		{
+		    /* pass run and seq_num before they are updated */
+		    if ( ac->state == ART_STATE_IN_USE )
+			ART_send_end_of_run( ac, run, seq_num, gD.level );
+
 		    run = vn.run;		/* reset                   */
 		    seq_num = 1;
 
@@ -254,6 +365,15 @@ static int find_more_volumes( vol_t * v0, param_t * p )
 		if ( set_volume_stats( &vn ) )
 		    return -1;
 
+		if ( complete_orients_str( &vn, p ) < 0 )
+		    return -1;
+
+		if ( ac->state == ART_STATE_TO_SEND_CTRL )
+		    ART_send_control_info( ac, &vn, gD.level );
+
+		if ( ac->state == ART_STATE_IN_USE )
+		    ART_send_volume( ac, &vn, gD.level );
+
 		naps = 0;			/* reset on existing volume */
 	    }
 	}
@@ -269,7 +389,9 @@ static int find_more_volumes( vol_t * v0, param_t * p )
 	    if ( naps > 0 )
 	    {
 		/* continue, regardless */
-		(void)check_stalled_run( run, seq_num, naps, nap_time );
+		if ( check_stalled_run( run, seq_num, naps, nap_time ) > 0 )
+		    if ( ac->state == ART_STATE_IN_USE )
+			ART_send_end_of_run( ac, run, seq_num, gD.level );
 
 		if ( gD.level > 0 ) 	/* status */
 		    fprintf( stderr, ". " );
@@ -421,10 +543,11 @@ static int volume_search(
 
     V->geh      = p->flist[first].geh;		/* copy GE structure      */
     V->nim      = last - first + 1;
-    V->first_im = p->flist[first].index;
-    V->last_im  = p->flist[last].index;
-    strncpy( V->first_file, p->fnames[V->first_im], MAX_FLEN );
-    strncpy( V->last_file,  p->fnames[V->last_im],  MAX_FLEN );
+    V->fl_1     = first;
+    V->fn_1     = p->flist[first].index;
+    V->fn_n     = p->flist[last].index;
+    strncpy( V->first_file, p->fnames[V->fn_1], IFM_MAX_FLEN );
+    strncpy( V->last_file,  p->fnames[V->fn_n],  IFM_MAX_FLEN );
     V->z_first  = p->flist[first].geh.zoff;
     V->z_last   = p->flist[last].geh.zoff;
     V->z_delta  = delta;
@@ -567,10 +690,11 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 
     vout->geh      = p->flist[start].geh;
     vout->nim      = next_start - start;
-    vout->first_im = p->flist[start].index;
-    vout->last_im  = p->flist[start+vout->nim-1].index;
-    strncpy( vout->first_file, p->fnames[vout->first_im], MAX_FLEN );
-    strncpy( vout->last_file,  p->fnames[vout->last_im],  MAX_FLEN );
+    vout->fl_1     = start;
+    vout->fn_1     = p->flist[start].index;
+    vout->fn_n     = p->flist[start+vout->nim-1].index;
+    strncpy( vout->first_file, p->fnames[vout->fn_1], IFM_MAX_FLEN );
+    strncpy( vout->last_file,  p->fnames[vout->fn_n],  IFM_MAX_FLEN );
     vout->z_first  = vin->z_first;
     vout->z_last   = vin->z_last;
     vout->z_delta  = vin->z_delta;
@@ -642,23 +766,31 @@ static int read_ge_files(
     else
 	n2scan = p->nfiles - next;		/* scan rest of files  */
 
-    if ( n2scan > p->nalloc )
+    /* do we need/want more memory? */
+    if ( (n2scan > p->nalloc) || (max > p->nalloc) )
     {
-	/* we need more memory */
-	p->flist = (finfo_t *)realloc( p->flist, n2scan * sizeof(finfo_t) );
+	int nalloc;
+
+	/* allow a request to allocate 'max' entries */
+	nalloc = (n2scan >= max) ? n2scan : max;
+
+	p->flist = (finfo_t *)realloc( p->flist, nalloc * sizeof(finfo_t) );
 
 	if ( p->flist == NULL )
 	{
-	    fprintf(stderr, "failure to allocate %d finfo_t structs\n", n2scan);
+	    fprintf(stderr, "failure to allocate %d finfo_t structs\n", nalloc);
 	    return -1;
 	}
 
-	p->nalloc = n2scan;
+	p->nalloc = nalloc;
+
+	if ( gD.level > 1 )
+	    idisp_hf_param_t( "++ realloc of flist : ", p );
     }
 
-    p->nused = scan_ge_files( p->flist, p->fnames, next, n2scan );
+    p->nused = scan_ge_files( p, next, n2scan );
 
-    if ( gD.level > 1 )
+    if ( gD.level > 2 )
 	idisp_hf_param_t( "end read_ge_files : ", p );
 
     /* may be negative for an error condition */
@@ -673,63 +805,94 @@ static int read_ge_files(
  *----------------------------------------------------------------------
 */
 static int scan_ge_files (
-	finfo_t  * flist,		/* location of file info array */
-	char    ** fnames,		/* list of filenames to scan   */
+	param_t  * p,			/* general parameter structure */
 	int        next,		/* index of next file to scan  */
 	int        nfiles )		/* number of files to scan     */
 {
-    static int   read_failure = -1;	/* last read_ge_header failure */
+    static int   read_failure = -1;	/* last read_ge_image failure */
     finfo_t    * fp;
-    int          count, files_read, rv;
-
-    if ( flist == NULL || fnames == NULL )
-    {
-	fprintf( stderr, "failure: SGF with (flist, fnames) = (%p, %p)\n",
-		 flist, fnames );
-	return -1;
-    }
+    int          im_num, fnum;
+    int          files_read, rv;
+    int          need_M;		/* do we need image memory?    */
 
     if ( nfiles <= 0 )
 	return 0;
 
+    if ( check_im_store_space( &p->im_store, nfiles ) < 0 )
+	return -1;
+
+    p->im_store.nused = 0;
     /* scan from 'next' to 'next + nfiles - 1' */
-    for ( count = next, fp = flist; count < next + nfiles; count++, fp++ )
+    for ( im_num = 0, fnum = next, fp = p->flist;
+	  im_num < nfiles;
+	  im_num++, fnum++, fp++ )
     {
-	rv = read_ge_header( fnames[count], &fp->geh, &fp->gex );
-	if ( rv != 0 )
+	if ( im_num < p->im_store.nalloc )	/* then we have image memory */
 	{
-	    if ( read_failure != count )
+	    fp->image = p->im_store.im_ary[im_num];
+	    need_M    = 0;
+	}
+	else					/* get it from read_ge_image */
+	{
+	    fp->image = NULL;
+	    need_M    = 1;
+	}
+
+	rv = read_ge_image( p->fnames[fnum], fp, 1, need_M );
+
+	/* don't lose any allocated memory, regardless of the return value */
+	if ( (need_M == 1) && (fp->image != NULL) )
+	{
+	    p->im_store.im_ary[im_num] = fp->image;
+	    p->im_store.nalloc++;
+
+	    /* note the size of the image and get memory for x_im */
+	    if ( p->im_store.im_size == 0 )
+	    {
+		if ( alloc_x_im( &p->im_store, fp->bytes ) < 0 )
+		    return -1;
+	    }
+
+	    if ( gD.level > 1 )
+		fprintf( stderr, "++ allocated image %d at address %p\n",
+			 im_num, p->im_store.im_ary[im_num] );
+	}
+
+	if ( (rv != 0) || (fp->geh.good != 1) )
+	{
+	    if ( read_failure != fnum )
 	    {
 		/* first time to fail with this file - wait and try again */
 		if ( gD.level > 1 )
 		    fprintf( stderr, "\n** failure to read GE header for "
-			     "file <%s>\n", fnames[count] );
-		read_failure = count;
+			     "file <%s>\n", p->fnames[fnum] );
+		read_failure = fnum;
 
 		break;
 	    }
 	    else
 	    {
 		fprintf( stderr, "\nfailure: cannot read GE header for "
-			 "file <%s>\n", fnames[count] );
+			 "file <%s>\n", p->fnames[fnum] );
 		return -1;
 	    }
 	}
 	else
 	{
-	    fp->index = count;		/* store index into fnames array */
+	    p->im_store.nused++;	/* keep track of used images     */
+	    fp->index = fnum;		/* store index into fnames array */
 
 	    if ( gD.level > 2 )
-		idisp_ge_header_info( fnames[fp->index], &fp->geh );
+		idisp_ge_header_info( p->fnames[fp->index], &fp->geh );
 	}
     }
 
     /* even on failure, this non-negative integer is accurate */
-    files_read = count - next;
+    files_read = fnum - next;
 
     if ( gD.level > 1 )
 	printf( "-- scanned %d GE files, from <%s> to <%s>\n",
-		files_read, fnames[next], fnames[next+files_read-1] );
+		files_read, p->fnames[next], p->fnames[next+files_read-1] );
 
     return files_read;
 }
@@ -742,16 +905,12 @@ static int scan_ge_files (
  *     2. do initial allocation of data structures
  *----------------------------------------------------------------------
 */
-static int init_options( param_t * p, int argc, char * argv[] )
+static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 {
-    int ac, rv;
+    int ac, errors = 0;
 
     if ( p == NULL )
 	return 2;
-
-    memset( p,   0, sizeof(*p) );	/* parameters   */
-    memset( &gD, 0, sizeof(gD) );	/* debug struct */
-    memset( &gS, 0, sizeof(gS) );	/* stats struct */
 
     if ( argc < 2 )
     {
@@ -759,12 +918,22 @@ static int init_options( param_t * p, int argc, char * argv[] )
 	return 1;
     }
 
-    /* debug level 1 is now the default - by order of Wen Ming :) */
+    /* basic initialization of data structures */
+
+    memset(  p,  0, sizeof(*p)  );	/* parameters       */
+    memset( &gD, 0, sizeof(gD)  );	/* debug struct     */
+    memset( &gS, 0, sizeof(gS)  );	/* stats struct     */
+    memset(  A,  0, sizeof(gAC) );	/* afni comm struct */
+
+    ART_init_AC_struct( A );		/* init for no real-time comm */
+    A->param = p;			/* store the param_t pointer  */
+
+    /* debug level 1 is now the default - by order of Wen-Ming :) */
     gD.level = 1;
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	if ( ! strncmp( argv[ac], "-help", 2 ) )
+	if ( ! strncmp( argv[ac], "-help", 5 ) )
 	{
 	    usage( IFM_PROG_NAME, IFM_USE_LONG );
 	    return 1;
@@ -799,15 +968,8 @@ static int init_options( param_t * p, int argc, char * argv[] )
 	    {
 		fprintf( stderr, "error: debug level must be in [0,%d]\n",
 			 IFM_MAX_DEBUG );
-		usage( IFM_PROG_NAME, IFM_USE_SHORT );
-		return 1;
+		errors++;
 	    }
-	}
-	else if ( ! strncmp( argv[ac], "-quiet", 3 ) )
-	{
-	    /* only go quiet if '-debug' option has not changed it */
-	    if ( gD.level == IFM_DEBUG_DEFAULT )
-		gD.level = 0;
 	}
 	else if ( ! strncmp( argv[ac], "-nice", 4 ) )
 	{
@@ -823,9 +985,35 @@ static int init_options( param_t * p, int argc, char * argv[] )
 	    {
 		fprintf( stderr, "error: nice incrment must be in [%d,%d]\n",
 			 IFM_MIN_NICE_INC, IFM_MAX_NICE_INC );
+		errors++;
+	    }
+	}
+	else if ( ! strncmp( argv[ac], "-quiet", 3 ) )
+	{
+	    /* only go quiet if '-debug' option has not changed it */
+	    if ( gD.level == IFM_DEBUG_DEFAULT )
+		gD.level = 0;
+	}
+	/* real-time options */
+	else if ( ! strncmp( argv[ac], "-host", 4 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -host HOSTNAME\n", stderr );
 		usage( IFM_PROG_NAME, IFM_USE_SHORT );
 		return 1;
 	    }
+
+	    strncpy( A->host, argv[ac], ART_NAME_LEN-1 );
+	    A->host[ART_NAME_LEN-1] = '\0';	/* just to be sure */
+	}
+	else if ( ! strncmp( argv[ac], "-rt", 3 ) )
+	{
+	    A->state = ART_STATE_TO_OPEN; /* real-time is open for business */
+	}
+	else if ( ! strncmp( argv[ac], "-swap", 5 ) )
+	{
+	    A->swap = 1;		/* do byte swapping before sending */
 	}
 	else
 	{
@@ -835,6 +1023,12 @@ static int init_options( param_t * p, int argc, char * argv[] )
 	}
     }
 
+    if ( errors > 0 )	       /* check for all minor errors before exiting */
+    {
+	usage( IFM_PROG_NAME, IFM_USE_SHORT );
+	return 1;
+    }
+
     if ( p->start_dir == NULL )
     {
 	fputs( "error: missing '-start_dir DIR' option\n", stderr );
@@ -842,37 +1036,72 @@ static int init_options( param_t * p, int argc, char * argv[] )
 	return 1;
     }
 
+    /* done processing argument list */
+
     if ( dir_expansion_form( p->start_dir, &p->glob_dir ) != 0 )
 	return 2;
-
-    if ( p->glob_dir == NULL )			/* error message from DEF() */
-	return 1;
-
-    if ( p->nice != 0 )
-    {
-	rv = nice( p->nice );
-	if ( rv == -1 )
-	{
-	    if ( p->nice < 0 )
-		fprintf( stderr, "error: only root may decrement nice value\n"
-			         "       (errno = %d, rv = %d)\n", errno, rv );
-	    else
-		fprintf( stderr,
-			 "error: failure to adjust nice by %d\n"
-			 "       (errno = %d, rv = %d)\n", p->nice, errno, rv );
-	    return 1;
-	}
-
-	if ( gD.level > 1 )
-	    fprintf( stderr, "-- nice value incremented by %d (rv = %d)\n",
-		     p->nice, rv );
-    }
 
     if ( gD.level > 1 )
 	idisp_hf_param_t( "end init_options : ", p );
 
+    if ( gD.level > 0 )
+	fprintf( stderr, "\n%s running, use <ctrl-c> to quit...\n\n",
+		 IFM_PROG_NAME );
+
     return 0;
 }
+
+
+/*----------------------------------------------------------------------
+ * initialize:
+ *     - nice level
+ *     - afni communications
+ *----------------------------------------------------------------------
+*/
+static int init_extras( param_t * p, ART_comm * ac )
+{
+    if ( p->nice && set_nice_level(p->nice) )
+        return 1;
+
+    if ( ac->state == ART_STATE_TO_OPEN )            /* open afni comm link */
+    {
+	atexit( ART_exit );
+	ac->mode = AFNI_OPEN_CONTROL_MODE;
+	ART_open_afni_link( ac, 2, 1, gD.level );
+    }
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ *  set_nice_level		- set to given "nice" value
+ *
+ *  returns:   0  : success
+ *           else : failure
+ *----------------------------------------------------------------------
+*/
+static int set_nice_level( int level )
+{
+    int rv;
+
+    rv = nice( level );
+    if ( rv != 0 )
+    {
+	if ( level < 0 )
+	    fprintf( stderr, "error: only root may decrement nice value\n"
+			     "       (errno = %d, rv = %d)\n", errno, rv );
+	else
+	    fprintf( stderr,
+		     "error: failure to adjust nice by %d\n"
+		     "       (errno = %d, rv = %d)\n", level, errno, rv );
+    }
+    else if ( gD.level > 1 )
+	fprintf( stderr, "-- nice value incremented by %d\n", level );
+
+    return rv;
+}
+
 
 /*------------------------------------------------------------
  *  dir_expansion_form
@@ -960,14 +1189,17 @@ int dir_expansion_form( char * sin, char ** sexp )
 
 
 /*----------------------------------------------------------------------
- *  read_ge_header  (basically from Ifile.c, but use file_tool.c version)
+ *  read_ge_image  (basically from Ifile.c, but use file_tool.c version)
  *
  *  returns:   0  : success
  *           < 0  : failure
  *----------------------------------------------------------------------
 */
-static int read_ge_header( char * pathname, ge_header_info * hi, ge_extras * E )
+static int read_ge_image( char * pathname, finfo_t * fp,
+	                  int get_image, int need_memory )
 {
+   ge_header_info * hi  = &fp->geh;
+
    FILE *imfile ;
    int  length , skip , swap=0 ;
    char orients[8] , str[8] ;
@@ -1133,21 +1365,47 @@ static int read_ge_header( char * pathname, ge_header_info * hi, ge_extras * E )
 	/* printf ("%d ", (int)uv17);  */
 	hi->uv17 = (int)uv17; 
 	/* printf ("\n"); */
+
+	/* store the ge_extra info */
+	fp->gex.bpp    = bpp;
+	fp->gex.cflag  = cflag;
+	fp->gex.hdroff = hdroff;
+	fp->gex.skip   = skip;
+	fp->gex.swap   = swap;
+	fp->gex.kk     = kk;
+
+	memcpy( fp->gex.xyz, xyz, sizeof(xyz) );
 	
 	hi->good = 1 ;                  /* this is a good file */
 
-	/* fill any existing ge_extras structure */
-	if ( E )
-	{
-	    E->bpp    = bpp;		/* store the ge_extra info */
-	    E->cflag  = cflag;
-	    E->hdroff = hdroff;
-	    E->skip   = skip;
-	    E->swap   = swap;
-
-	    memcpy( E->xyz, xyz, sizeof(xyz) );
-	}
     } /* end of actually reading image header */
+
+    /* read image in as well */
+    if ( get_image )
+    {
+	int elements = hi->nx * hi->ny;
+
+	fp->bytes = elements * 2;			/* bpp == 16 */
+
+	if ( need_memory )
+	    fp->image = malloc( fp->bytes );
+
+	if ( fp->image == NULL )
+	{
+	    fprintf(stderr, "** RGI: no memory for %d byte image\n", fp->bytes);
+	    hi->good = 0;
+	    return -1;
+	}
+
+	fseek ( imfile, skip, SEEK_SET );
+	if ( fread( fp->image , 2, elements, imfile ) != elements )
+	{
+	    fprintf( stderr, "** RGI: failed to read %d shorts from %s\n",
+		     elements, pathname );
+	    hi->good = 0;		/* signal file problem */
+	    return -1;
+	}
+    }
 
     fclose(imfile);
     return 0;
@@ -1164,6 +1422,28 @@ static int swap_4( void * ptr )            /* destructive */
 
     addr[0] ^= addr[3]; addr[3] ^= addr[0]; addr[0] ^= addr[3];
     addr[1] ^= addr[2]; addr[2] ^= addr[1]; addr[1] ^= addr[2];
+
+    return 0;
+}
+
+
+static int idisp_im_store_t( char * info, im_store_t * is )
+{
+    if ( info )
+	fputs( info, stdout );
+
+    if ( is == NULL )
+    {
+	printf( "idisp_im_store_t: is == NULL\n" );
+	return -1;
+    }
+
+    printf( "im_store_t struct at %p :\n"
+	    "   (nalloc, nused)    = (%d, %d)\n"
+	    "   (ary_len, im_size) = (%d, %d)\n"
+	    "   (im_ary, x_im)     = (0x%p,0x%p)\n",
+	    is, is->nalloc, is->nused,
+	    is->ary_len, is->im_size, is->im_ary, is->x_im );
 
     return 0;
 }
@@ -1202,19 +1482,19 @@ static int idisp_hf_vol_t( char * info, vol_t * v )
 
     if ( v == NULL )
     {
-	printf( "idisp_hf_param_t: v == NULL\n" );
+	printf( "idisp_hf_vol_t: v == NULL\n" );
 	return -1;
     }
 
     printf( "vol_t struct at %p :\n"
 	    "   nim                 = %d\n"
-	    "   (first_im, last_im) = (%d, %d)\n"
+	    "   (fl_1, fn_1, fn_n)  = (%d, %d, %d)\n"
 	    "   first_file          = %s\n"
 	    "   last_file           = %s\n"
 	    "   (z_first, z_last)   = (%f, %f)\n"
 	    "   z_delta             = %f\n"
 	    "   (seq_num, run)      = (%d, %d)\n",
-	    v, v->nim, v->first_im, v->last_im,
+	    v, v->nim, v->fl_1, v->fn_1, v->fn_n,
 	    v->first_file, v->last_file,
 	    v->z_first, v->z_last, v->z_delta,
 	    v->seq_num, v->run );
@@ -1247,10 +1527,11 @@ static int idisp_ge_extras( char * info, ge_extras * E )
 	    "    hdroff           = %d\n"
 	    "    skip             = %d\n"
 	    "    swap             = %d\n"
+	    "    kk               = %d\n"
 	    "    (xyz0,xyz1,xyz2) = (%f,%f,%f)\n"
 	    "    (xyz3,xyz4,xyz5) = (%f,%f,%f)\n"
 	    "    (xyz6,xyz7,xyz8) = (%f,%f,%f)\n",
-	    E, E->bpp, E->cflag, E->hdroff, E->skip, E->swap,
+	    E, E->bpp, E->cflag, E->hdroff, E->skip, E->swap, E->kk,
 	    E->xyz[0], E->xyz[1], E->xyz[2],
 	    E->xyz[3], E->xyz[4], E->xyz[5],
 	    E->xyz[6], E->xyz[7], E->xyz[8]
@@ -1281,7 +1562,7 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
 	    "    (dx,dy,dz)  = (%f,%f,%f)\n"
 	    "    zoff        = %f\n"
 	    "    (tr,te)     = (%f,%f)\n"
-	    "    orients     = %8s\n",
+	    "    orients     = %-8s\n",
 	    I, I->good, I->nx, I->ny, I->uv17,
 	    I->dx, I->dy, I->dz, I->zoff, I->tr, I->te, I->orients
 	  );
@@ -1315,7 +1596,7 @@ static int usage ( char * prog, int level )
 	  "    is aquired out of order.\n"
 	  "\n"
 	  "    It is recommended that the user runs '%s' before scanning\n"
-	  "    begins, and then watches for error messages during the.\n"
+	  "    begins, and then watches for error messages during the\n"
 	  "    scanning session.  The user should terminate the program\n"
 	  "    whey they are done with all runs.\n"
 	  "\n"
@@ -1324,13 +1605,16 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "  usage: %s [options] -start_dir DIR\n"
 	  "\n"
-	  "  examples:\n"
+	  "  examples (no real-time options):\n"
 	  "\n"
 	  "    %s -start_dir 003\n"
-	  "    %s -quiet -start_dir 003\n"
 	  "    %s -help\n"
-	  "    %s -version\n"
 	  "    %s -debug 2 -nice 10 -start_dir 003\n"
+	  "\n"
+	  "  examples (with real-time options):\n"
+	  "\n"
+	  "    %s -start_dir 003 -rt\n"
+	  "    %s -start_dir 003 -rt -host pickle -swap \n"
 	  "\n"
 	  "  notes:\n"
 	  "\n"
@@ -1342,7 +1626,7 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "  main option:\n"
 	  "\n"
-	  "    -start_dir DIR     : REQUIRED - specify starting directory\n"
+	  "    -start_dir DIR     : (REQUIRED) specify starting directory\n"
 	  "\n"
 	  "        e.g. -start_dir 003\n"
 	  "\n"
@@ -1352,6 +1636,44 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "        For instance, with the option '-start_dir 003', this\n"
 	  "        program watches for new directories 003, 023, 043, etc.\n"
+	  "\n"
+	  "  real-time options:\n"
+	  "\n"
+	  "    -rt                : specify to use the real-time facility\n"
+	  "\n"
+	  "        With this option, the user tells '%s' to use the real-time\n"
+	  "        facility, passing each volume of images to an existing\n"
+	  "        afni process on some machine (as specified by the '-host'\n"
+	  "        option).  Whenever a new volume is aquired, it will be\n"
+	  "        sent to the afni program for immediate update.\n"
+	  "\n"
+	  "        Note that afni must also be started with the '-rt' option\n"
+	  "        to make use of this.\n"
+	  "\n"
+	  "        Note also that the '-host HOSTNAME' option is not required\n"
+	  "        if afni is running on the same machine.\n"
+	  "\n"
+	  "    -host HOSTNAME     : specify the host for afni communication\n"
+	  "\n"
+	  "        e.g.  -host mycomputer.dot.my.network\n"
+	  "        e.g.  -host 127.0.0.127\n"
+	  "        e.g.  -host mycomputer\n"
+	  "        the default host is 'localhost'\n"
+	  "\n"
+	  "        The specified HOSTNAME represents the machine that is\n"
+	  "        running afni.  Images will be sent to afni on this machine\n"
+	  "        during the execution of '%s'.\n"
+	  "\n"
+	  "        Note that the enviroment variable AFNI_TRUSTHOST must be\n"
+	  "        set on the machine running afni.  Set this equal to the\n"
+	  "        name of the machine running Imon (so that afni knows to\n"
+	  "        accept the data from the sending machine).\n"
+	  "\n"
+	  "    -swap             : swap data bytes before sending to afni\n"
+	  "\n"
+	  "        Since afni may be running on a different machine, the byte\n"
+	  "        order may differ there.  This option will force the bytes\n"
+	  "        to be reversed, before sending the data to afni.\n"
 	  "\n"
 	  "  other options:\n"
 	  "\n"
@@ -1379,7 +1701,10 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "  Author: R. Reynolds - %s\n"
 	  "\n",
-	  prog, prog, prog, prog, prog, prog, prog, prog, IFM_VERSION
+	  prog, prog, prog,
+	  prog, prog, prog, prog, prog,
+	  prog, prog,
+	  IFM_VERSION
 	);
 
 	return 0;
@@ -1487,7 +1812,7 @@ static int set_volume_stats( vol_t * v )
 	gS.nused = v->run+1;
 
     if ( rp->volumes == 0 )
-	strncpy( rp->first_im, v->first_file, MAX_FLEN );
+	strncpy( rp->f1name, v->first_file, IFM_MAX_FLEN );
 
     rp->volumes = v->seq_num;
 
@@ -1524,7 +1849,7 @@ static int show_run_stats( stats_t * s )
     {
 	if ( s->runs[c].volumes > 0 )
 	    printf( "    run #%4d : volumes = %d, first file = %s\n",
-		    c, s->runs[c].volumes, s->runs[c].first_im );
+		    c, s->runs[c].volumes, s->runs[c].f1name );
     }
 
     putchar( '\n' );
@@ -1583,8 +1908,6 @@ static int find_next_zoff( param_t * p, int start, float zoff )
 
 
 /* ----------------------------------------------------------------------
- * check_stalled_run
- *
  * Given:  run     > 0
  *         seq_num > 0
  *         naps
@@ -1596,7 +1919,8 @@ static int find_next_zoff( param_t * p, int start, float zoff )
  *          - run and seq_num are for the previously found volume
  *
  * returns:
- *          1 : run is stalled - message printed
+ *          2 : run is stalled - message printed
+ *          1 : first run appears stalled - end of run?
  *          0 : no stall, or if a message has already been printed
  *         -1 : function failure
  * ----------------------------------------------------------------------
@@ -1610,8 +1934,15 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
     if ( func_failure != 0 )
 	return 0;
 
-    if ( ( run <= 1 ) || ( seq_num < 1 ) || ( naps <= IFM_MAX_RUN_NAPS ) )
+    if ( ( run < 1 ) || ( seq_num < 1 ) || ( naps <= IFM_MAX_RUN_NAPS ) )
 	return 0;
+
+    if ( run == 1 )
+    {
+	if ( gD.level > 1 )
+	    fprintf( stderr, "apparently done with run 1\n" );
+	return 1;
+    }
 
     /* verify that we have already taken note of the previous volume */
     if ( ((gS.nused + 1) < run) || (gS.runs[run].volumes < seq_num) )
@@ -1622,7 +1953,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
 	return -1;
     }
 
-    if ( seq_num < gS.runs[1].volumes )		/* are we done with a run? */
+    if ( seq_num < gS.runs[1].volumes )	   /* are we done with the run yet? */
     {
 	/* if we haven't printed before, this is the first stalled case */
 	if ( (run != prev_run) || (seq_num != prev_seq) )
@@ -1637,13 +1968,26 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
 		     "    first file of this run : %s\n"
 		     "****************************************************\n",
 		     run, seq_num, gS.runs[1].volumes,
-		     naps*nap_time, gS.runs[run].first_im );
+		     naps*nap_time, gS.runs[run].f1name );
 
+	    prev_run = run;
+	    prev_seq = seq_num;
+
+	    return 2;
+	}
+    }
+    else if ( seq_num >= gS.runs[1].volumes )
+    {
+	/* if this is our first visit, then we just finished a run */
+	if ( (run != prev_run) || (seq_num != prev_seq) )
+	{
 	    prev_run = run;
 	    prev_seq = seq_num;
 
 	    return 1;
 	}
+	else
+	    return 0;
     }
 
     return 0;
@@ -1653,7 +1997,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
 /*! Return the file length (-1 if file not found).       */
 /*  (local copy from thd_filestuff.c                     */
 
-unsigned long l_THD_filesize( char * pathname )
+static unsigned long l_THD_filesize( char * pathname )
 {
     static struct stat buf ; int ii ;
 
@@ -1661,5 +2005,154 @@ unsigned long l_THD_filesize( char * pathname )
 	ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
 
     return buf.st_size ;
+}
+
+/* ----------------------------------------------------------------------
+ * Make sure im_ary has enough memory for num_images pointers.
+ *
+ * return  -1 : on error
+ *          0 : nothing needed
+ *          1 : memory successfully created
+ * ----------------------------------------------------------------------
+*/
+static int check_im_store_space( im_store_t * is, int num_images )
+{
+    if ( (is == NULL) || (num_images <= 0) )
+    {
+	fprintf( stderr, "** CISS: invalid parameters (%p,%d)\n",
+		 is, num_images );
+	return -1;
+    }
+
+    if ( is->ary_len >= num_images )
+	return 0;
+
+    /* so we need memory */
+
+    if ( gD.level > 2 )
+	fprintf( stderr, "++ allocating %d image pointers (was %d)\n",
+		 num_images, is->ary_len );
+
+    is->im_ary = realloc(is->im_ary, num_images * sizeof(void *));
+
+    if ( is->im_ary == NULL )
+    {
+	fprintf( stderr, "** failure: cannot allocate %d image pointers\n",
+		 num_images );
+	return -1;
+    }
+
+    is->ary_len = num_images;
+
+    return 1;
+}
+
+
+/* ----------------------------------------------------------------------
+ * Set the im_size and allocate memory for x_im.
+ *
+ * return  -1 : on error
+ *          0 : success
+ * ----------------------------------------------------------------------
+*/
+static int alloc_x_im( im_store_t * is, int bytes )
+{
+    if ( (is == NULL) || (bytes <= 0) )
+    {
+	fprintf( stderr, "** bad params to AXI (%p,%d)\n", is, bytes );
+	return -1;
+    }
+
+    is->im_size = bytes;
+
+    if ( (is->x_im = malloc( bytes )) == NULL )
+    {
+	fprintf( stderr, "** AXI: failed to malloc %d bytes for x_im\n",
+		 bytes );
+	return -1;
+    }
+
+    if ( gD.level > 1 )
+	fprintf( stderr, "++ allocating %d bytes for is->x_im\n", bytes );
+
+    return 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * Use gex.kk to figure out the z orientation, and complete
+ * the v->geh.orients string.
+ *
+ * orient(kk) = { LR, if kk = 1
+ *              { PA, if kk = 2
+ *              { IS, if kk = 3
+ *
+ * return   0 : success
+ *         -1 : on error
+ * ----------------------------------------------------------------------
+*/
+static int complete_orients_str( vol_t * v, param_t * p )
+{
+    int kk;
+
+    if ( (v == NULL) || (p == NULL) )
+    {
+	fprintf( stderr, "** invalid paramters to COS (%p,%p)\n", v, p );
+	return -1;
+    }
+
+    kk = p->flist[v->fl_1].gex.kk;
+
+    switch( kk )
+    {
+	case 1:					/* LR */
+	    if ( v->z_delta > 0 )
+	    {
+		v->geh.orients[4] = 'L';
+		v->geh.orients[5] = 'R';
+	    }
+	    else
+	    {
+		v->geh.orients[4] = 'R';
+		v->geh.orients[5] = 'L';
+	    }
+	    break;
+
+	case 2:					/* PA */
+	    if ( v->z_delta > 0 )
+	    {
+		v->geh.orients[4] = 'P';
+		v->geh.orients[5] = 'A';
+	    }
+	    else
+	    {
+		v->geh.orients[4] = 'A';
+		v->geh.orients[5] = 'P';
+	    }
+	    break;
+	    
+	case 3:					/* IS */
+	    if ( v->z_delta > 0 )
+	    {
+		v->geh.orients[4] = 'I';
+		v->geh.orients[5] = 'S';
+	    }
+	    else
+	    {
+		v->geh.orients[4] = 'S';
+		v->geh.orients[5] = 'I';
+	    }
+	    break;
+	    
+	default:
+	{
+	    fprintf(stderr, "** COS failure: kk (%d) out of [1,3] range\n", kk);
+	    return -1;
+	}
+    }
+
+    v->geh.orients[6] = '\0';
+
+    return 0;
 }
 
