@@ -8,14 +8,6 @@
       ** NIfTI (Neuroimaging Informatics Technology Initiative)       **
       ** at the National Institutes of Health (NIH).                  **
       **                                                              **
-      ** This header is intended to be "mostly compatible" with the   **
-      ** ANALYZE (TM) 7.5 file format.  Most of the unused fields     **
-      ** in that format have been taken, and some of the lesser-used  **
-      ** fields have been co-opted for other purposes.  Notably,      **
-      ** most of the data_history substructure has been co-opted for  **
-      ** other purposes, since the ANALYZE 7.5 format describes this  **
-      ** substructure as "not required".                              **
-      **                                                              **
       ** Neither the National Institutes of Health (NIH), the DFWG,   **
       ** nor any of the members or employees of these institutions    **
       ** imply any warranty of usefulness of this material for any    **
@@ -23,9 +15,6 @@
       ** incidental or otherwise, caused by any use of this document. **
       ** If these conditions are not acceptable, do not use this!     **
 ******************************************************************************/
-
-#define NIFTI_VERSION 1
-#define NIFTI_DATE    "01 Aug 2003"
 
 /*---------------------------------------------------------------------------*/
 /* Note that the ANALYZE 7.5 file header (dbh.h) is
@@ -46,10 +35,72 @@
 /*---------------------------------------------------------------------------*/
 /*! INTRODUCTION TO NIFTI-1:
    ------------------------
-   In the comments below for each field, only NIFTI-1 specific
-   requirements or changes from the ANALYZE 7.5 format are described.
-   For convenience, the 348 byte header is described as a single
-   struct, rather than as the ANALYZE 7.5 group of 3 substructs.
+   The twin goals of this modified ANALYZE 7.5 format are:
+    (a) To add information to the header that will be useful for functional
+        neuroimaging data analysis and display.  These additions include:
+        - More basic data types.
+        - Storage of more than one value in each voxel ("vector" data).
+        - Two affine transformations to specify voxel coordinates.
+        - "Intent" codes and parameters to describe the meaning of the data.
+        - Affine scaling of the stored data values to their "true" values.
+        - Optional storage of the header and image data in one file.
+        - Optional storage of multiple datasets in one file.
+    (b) To maintain compatibility with non-NIFTI-aware ANALYZE 7.5 compatible
+        software (i.e., such a program should be able to do something useful
+        with a NIFTI-1 dataset -- at least, with one stored in a traditional
+        .img/.hdr file pair).
+
+   Most of the unused fields in the ANALYZE 7.5 header have been taken,
+   and some of the lesser-used fields have been co-opted for other purposes.
+   Notably, most of the data_history substructure has been co-opted for
+   other purposes, since the ANALYZE 7.5 format describes this substructure
+   as "not required".
+
+   NIFTI-1 FLAG (MAGIC NUMBERS):
+   ----------------------------
+   To flag such a struct as being conformant to the NIFTI-1 spec, the last 4
+   bytes of the header must be either the C String "ni1" or
+   "n1+"; in hexadecimal, the 4 bytes
+     6E 69 31 00   or   6E 31 2B 00
+   (in any future version of this format, the '1' will be upgraded to '2',
+   etc.).  Normally, such a "magic number" or flag goes at the start of the
+   file, but trying to avoid clobbering widely-used ANALYZE 7.5 fields led to
+   putting this marker last.  However, recall that "the last shall be first"
+   (Matthew 20:16).
+
+   If a NIFTI-aware program reads a header file that is NOT marked with a
+   NIFTI magic number, then it should treat the header as an ANALYZE 7.5
+   structure.  For convenience, that header struct declaration is also
+   given in this file (at the very end).  To disable it's inclusion, define
+   the macro DONT_INCLUDE_ANALYZE_STRUCT before including this file.
+
+   NIFTI-1 FILE STORAGE:
+   --------------------
+   "ni1" means that the image data is stored in the ".img" file corresponding
+   to the header file (starting at file offset 0).
+
+   "n1+" means that the image data is stored in the same file as the header
+   information.  We recommend that the combined header+data filename suffix
+   be ".nii".  When the dataset is stored in one file, the first byte of image
+   data is stored at byte location data_offset in this combined file.
+
+   GRACE UNDER FIRE:
+   ----------------
+   Most NIFTI-aware programs will only be able to handle a subset of the full
+   range of datasets possible with this format.  All NIFTI-aware programs
+   should take care to check if an input dataset conforms to the program's
+   needs and expectations (e.g., check datatype, intent_code, etc.).  If the
+   input dataset can't be handled by the program, the program should fail
+   gracefully.
+-----------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+/* HEADER STRUCT DECLARATION:
+   -------------------------
+   In the comments below for each field, only NIFTI-1 specific requirements
+   or changes from the ANALYZE 7.5 format are described.  For convenience,
+   the 348 byte header is described as a single struct, rather than as the
+   ANALYZE 7.5 group of 3 substructs.
 
    Further comments about the interpretation of various elements of this
    header are after the data type definition itself.  Fields that are
@@ -58,28 +109,6 @@
 
    The presumption below is that the various C types have particular sizes:
      sizeof(int) == sizeof(float) == 4 ;  sizeof(short) == 2
-
-   NIFTI-1 FLAG (MAGIC NUMBERS):
-   ----------------------------
-   To flag such a struct as being conformant to the NIFTI-1 spec,
-   the last 4 bytes of the header must be either the C String "ni1" or
-   "n1+"; in hexadecimal, the 4 bytes
-     6E 69 31 00   or   6E 31 2B 00
-   (in any future version of this format, the '1' will be upgraded
-   to '2', etc.).  Normally, such a "magic number" or flag goes at the
-   start of the file, but trying to avoid clobbering widely-used
-   ANALYZE 7.5 fields led to putting this marker last.  However, recall
-   that "the last shall be first" (Matthew 20:16).
-
-   NIFTI-1 FILE STORAGE:
-   --------------------
-   "ni1" means that the image data is stored in the ".img" file
-   corresponding to the header file (starting at file offset 0).
-
-   "n1+" means that the image data is stored in the same file as the
-   header information.  We recommend that the combined header+data
-   filename suffix be ".nii".  When the dataset is stored in one file,
-   the first byte of image data is stored at file offset (int)vox_offset.
 -----------------------------------------------------------------------------*/
 
                         /*-----------------------*/  /*----------------------*/
@@ -108,12 +137,11 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  short bitpix;        /*!< Number bits/voxel.    */  /* short bitpix;        */
  short byteorder ;    /*!< NIFTI_ORDER_* flag.   */  /* short dim_un0;       */
  float pixdim[8];     /*!< Grid spacings.        */  /* float pixdim[8];     */
- float vox_offset;    /*!< "n1+" data offset     */  /* float vox_offset;    */
+ float vox_offset;    /*!< ++UNUSED++            */  /* float vox_offset;    */
  float scl_slope ;    /*!< Data scaling: slope.  */  /* float funused1;      */
  float scl_inter ;    /*!< Data scaling: offset. */  /* float funused2;      */
  short num_head ;     /*!< Number of headers.    */  /* float funused3;      */
- short sunused1 ;     /*!< ++UNUSED++            */
- float funused3;      /*!< ++UNUSED++            */  /* float funused3;      */
+ short head_ref ;     /*!< Ref to other header.  */
  float cal_max;       /*!< max display intensity */  /* float cal_max;       */
  float cal_min;       /*!< min display intensity */  /* float cal_min;       */
  float compressed;    /*!< ++UNUSED++            */  /* float compressed;    */
@@ -139,11 +167,15 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  float srow_y[4] ;    /*!< 2nd row affine transform.   */
  float srow_z[4] ;    /*!< 3rd row affine transform.   */
 
- char intent_name[16];/*!< 'name' or meaning of data.  */
+ int   data_offset ;  /*!< Byte offset of data start.  */
+
+ char intent_name[12];/*!< 'name' or meaning of data.  */
 
  char magic[4] ;      /*!< MUST be "ni1\0" or "n1+\0". */
 
 } ;                   /**** 348 bytes total ****/
+
+typedef struct nifti_1_header nifti_1_header ;
 
 /*---------------------------------------------------------------------------*/
 /* DATA DIMENSIONALITY (as in ANALYZE 7.5):
@@ -164,14 +196,14 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
 -----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
-/* MULTIPLE HEADERS:
-   ----------------
+/* MULTIPLE HEADERS AND DATASETS:
+   -----------------------------
    If the num_head field is > 1, this means that more than one 348 byte header
    is stored in the same file.  This is only allowed if the magic field is
    "n1+", indicating that the voxel data is also stored in the same file.
    The headers are to be stored sequentially -- that is, the i-th header
    is at byte offset (i-1)*348 into the file, for i=1..num_head.  Each
-   header will contain (in its vox_offset field) the location of its
+   header will contain (in its data_offset field) the location of its
    corresponding image data in the same file.
 
    Multiple sub-datasets per file can be used for various applications:
@@ -182,6 +214,11 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
       sub-datasets together define a surface.  Further sub-datasets could
       contain data values at each node or triangle in the surface (e.g.,
       curvature, some activation statistic).
+
+   The num_head field is ignored in any headers that follow the first one.
+
+   The head_ref field, if positive, indicates that the sub-dataset for the
+   current header also refers to another sub-dataset.
 -----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -189,8 +226,8 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
    ------------
    If the magic field is "n1+", then the voxel data is stored in the
    same file as the header.  In this case, the voxel data starts at offset
-   (int)vox_offset into the header file.  Thus, vox_offset==348.0 means that
-   the data starts immediately after the NIFTI-1 header.  If vox_offset is
+   data_offset into the header file.  Thus, data_offset==348 means that
+   the data starts immediately after the NIFTI-1 header.  If data_offset is
    greater than 348, the NIFTI-1 format does not say anything about the
    contents of the dataset file between the end of the header and the
    start of the data.
@@ -198,8 +235,8 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
    FILES:
    -----
    If the magic field is "ni1", then the voxel data is stored in the
-   associated ".img" file, starting at offset 0 (i.e., vox_offset is not
-   used in this case, and should be set to 0.0).
+   associated ".img" file, starting at offset 0 (i.e., data_offset is not
+   used in this case, and should be set to 0).
 
    When storing NIFTI-1 datasets in pairs of files, it is customary to name
    the files in the pattern "name.hdr" and "name.img", as in ANALYZE 7.5.
@@ -409,7 +446,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    stored in the dataset.  Some non-statistical values for intent_code
    and conventions are provided for storing other complex data types.
 
-   The intent_name field provides space for a 15 character (plus 0 byte)
+   The intent_name field provides space for a 11 character (plus 0 byte)
    'name' for the type of data stored. Examples:
     - intent_code == NIFTI_INTENT_ESTIMATE; intent_name == "T1";
        could be used to signify that the voxel values are estimates of the
@@ -436,7 +473,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
          /*    Most distributions have a number of parameters,
                below denoted by p1, p2, and p3, and stored in
                  - intent_p1, intent_p2, intent_p3 if intent_vector == 0
-                 - image data array                if intent_vector != 0 
+                 - image data array                if intent_vector != 0
 
             Functions to compute with many of the distributions
             below can be found in the CDF library from U Texas.
@@ -616,14 +653,66 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_INTENT_DISPVECT  1005
 
  /*! To signify that the vector value at each voxel is really a
-     spatial coordinates (e.g., the vertices of a surface mesh):
+     spatial coordinate (e.g., the vertices or nodes of a surface mesh):
        - intent_vector must be nonzero
-       - intent_code must be NIFTI_INTENT_POINT
+       - intent_code must be NIFTI_INTENT_POINTSET
        - dim[0] must be 2
        - dim[1] must be the number of points
-       - dim[2] must be the dimensionality of space (e.g., 3 => 3D space). */
+       - dim[2] must be the dimensionality of space (e.g., 3 => 3D space).
+       - intent_name may describe the object these points come from
+         (e.g., "pial", "gray/white" , "EEG").                            */
 
-#define NIFTI_INTENT_POINT     1006
+#define NIFTI_INTENT_POINTSET  1006
+
+ /*! To signify that the vector value at each voxel is really a triple
+     of indexes (e.g., forming a triangle) from a pointset dataset:
+       - intent_vector must be nonzero
+       - intent_code must be NIFTI_INTENT_TRIANGLE
+       - dim[0] must be 2
+       - dim[1] must be the number of triangles
+       - dim[2] must be 3
+       - datatype should be an integer type (preferably DT_INT32)
+       - the data values are indexes (0,1,...) into a pointset dataset. */
+
+#define NIFTI_INTENT_TRIANGLE  1007
+
+ /*! To signify that the data values are a measure of curvature,
+     set intent_code = NIFTI_INTENT_CURVATURE.                   */
+
+#define NIFTI_INTENT_CURVATURE 1008
+
+ /*! To attach a variable length list of data values to each node,
+     two sub-datasets can be used.  The 1st one is the length of
+     each list (1 integer value per node):
+       - intent_vector must be zero
+       - intent_code must be NIFTI_INTENT_LISTLENGTH
+       - dim[] is set up as desired
+       - datatype should be an integer type (preferable DT_INT32)
+       - head_ref must be the index of the header for the sub-dataset
+         that contains the actual data values list
+       - each voxel/node data value in the 1st sub-dataset is the number
+         of data values in the 2nd sub-dataset that are attached to this
+         particular voxel/node
+     The 2nd sub-dataset contains the data values
+       - intent_vector may be zero or nonzero
+       - intent_code must be NIFTI_INTENT_LISTDATA
+       - dim[0] = 1 if intent_code==0, or dim[0] = 2 if intent_code!=0
+       - dim[1] = total number of data values, which must be the sum of
+         all the list lengths from the 1st sub-dataset
+       - datatype is arbitrary
+       - head_ref must be the index of the list length sub-dataset
+       - define N    = number of voxels/nodes in list length sub-dataset
+                L[i] = list length of voxel/node number i
+                P[0] = 0
+                P[i] = P[i-1] + L[i] for i=1,2,...,N-1
+         then the data values for voxel/node number i are stored in the
+         2nd sub-dataset in array locations P[i]..P[i]+L[i] if L[i] > 0.
+     Potential surface applications of this scheme:
+       - storing the list of edges attached to each surface node
+       - storing the list of triangles attached to each surface node    */
+
+#define NIFTI_INTENT_LISTLENGTH 1009
+#define NIFTI_INTENT_LISTDATA   1010
 
 /*---------------------------------------------------------------------------*/
 /* 3D IMAGE (VOLUME) ORIENTATION AND LOCATION IN SPACE:
@@ -906,7 +995,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
     same file or in a separate file.  Returns 1 if the data is in the same
     file as the header, 0 if it is not.                                   */
 
-#define NIFTI_ONEFILE(h) ( (h).magic[2] == '+' && (h).vox_offset >= 348.0 )
+#define NIFTI_ONEFILE(h) ( (h).magic[2] == '+' && (h).data_offset >= 348 )
 
 /*.................*/
 /*! Check if a nifti_1_header struct needs to be byte swapped.
@@ -915,4 +1004,41 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_NEEDS_SWAP(h) ( (h).dim[0] < 0 || (h).dim[0] > 7 )
 
 /*****************************************************************************/
+
+/*------------ The ANALYZE-7.5 header struct (sans commentary). -------------*/
+
+#ifndef DONT_INCLUDE_ANALYZE_STRUCT
+struct header_key {
+       int sizeof_hdr;
+       char data_type[10]; char db_name[18];
+       int extents; short int session_error;
+       char regular; char hkey_un0;
+};
+struct image_dimension {
+       short int dim[8];
+       short int unused8; short int unused9; short int unused10;
+       short int unused11; short int unused12; short int unused13;
+       short int unused14; short int datatype; short int bitpix;
+       short int dim_un0; float pixdim[8]; float vox_offset;
+       float funused1; float funused2; float funused3;
+       float cal_max; float cal_min;
+       float compressed; float verified; int glmax,glmin;
+};
+struct data_history {
+       char descrip[80]; char aux_file[24];
+       char orient; char originator[10]; char generated[10];
+       char scannum[10]; char patient_id[10]; char exp_date[10];
+       char exp_time[10]; char hist_un0[3];
+       int views; int vols_added; int start_field; int field_skip;
+       int omax, omin; int smax, smin;
+};
+struct dsr {
+       struct header_key hk;
+       struct image_dimension dime;
+       struct data_history hist;
+};
+#endif /* DONT_INCLUDE_ANALYZE_STRUCT */
+
+/*****************************************************************************/
+
 #endif /* _NIFTI_HEADER_ */
