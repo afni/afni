@@ -1828,6 +1828,13 @@ of undo levels, you could set this to a larger value; however, this
 would only be needed if you are drawing huge 3D swaths of data at a
 time (e.g., using the 3D sphere option with a large radius).
 
+---------------------
+Variable: AFNI_SPEECH
+---------------------
+If this YES/NO variable is set to NO, then the AFNI speech synthesis
+is disabled.  At the current time (Nov 2003), only the Mac OS X
+version of AFNI uses speech synthesis in any way.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
