@@ -659,6 +659,10 @@ float * read_time_series
   far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
   ny = flim->ny; iy = 0 ;
+  if( ny > 1 ){
+    fprintf(stderr,"WARNING: time series %s has more than 1 column\n",filename);
+  }
+
   
   /*----- Save the time series data -----*/
   *ts_length = nx;

@@ -759,6 +759,10 @@ float * read_one_time_series
   /*----- Set pointer to data, and set dimensions -----*/
   nx = flim->nx;
   ny = flim->ny; iy = 0 ;
+  if( ny > 1 ){
+    fprintf(stderr,"WARNING: time series %s has more than 1 column\n",filename);
+  }
+
   
 
   /*----- Save the time series data -----*/
