@@ -3399,3 +3399,8 @@
       popup menu, Motif never does an XUngrabPointer, thus freezing the
       X server until afni is killed from outside.  This seems to avoid
       that problem.
+
+20 Dec 2001
+ * Modified ge_header.c to use -verb option to print out more stuff.
+ * Modified to3d.c to set default dataset type to ANAT_EPI_TYPE (-epan)
+      if user is creating a 3D+time dataset.
