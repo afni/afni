@@ -70,7 +70,7 @@ foreach face ( face_*.jpg )
 
   echo '<td align="center"> <img src="'${face}'" /></td>' >>   afni_faces.html
 
-  @ nn = ($nn + 1) % 6
+  @ nn = ($nn + 1) % 5
 end
 
 echo '</tr></table>'                                      >>   afni_faces.html
