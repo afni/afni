@@ -110,6 +110,46 @@ ENTRY("SUMA_add_nodes_ixyz") ;
    ag->seq = ag->sorted = 0 ; EXRETURN ;
 }
 
+/*--------------------------------------------------------------------
+ * Add/replace normals on the given surface.       05 Oct 2004 [rickr]
+ *
+ * This function requires one normal per node, and that the
+ * indices match.
+ *--------------------------------------------------------------------
+*/
+int SUMA_add_norms_xyz( SUMA_surface *ag, int nadd,
+                        float *xadd, float *yadd, float *zadd )
+{
+   int ii ;
+
+ENTRY("SUMA_add_norms_xyz") ;
+
+   if( ag == NULL || nadd < 1 ) RETURN(-1) ;
+   if( xadd == NULL || yadd == NULL || zadd == NULL ) RETURN(-1) ;
+
+   if( nadd != ag->num_ixyz ){
+     fprintf(stderr, "** SUMA surface has %d nodes but %d normals!\n",
+             ag->num_ixyz, nadd ) ;
+     RETURN(-1) ;
+   }
+
+   /* if norm is NULL, memory is needed */
+   if( ag->norm == NULL ){
+       ag->norm = (THD_fvec3 *)calloc(nadd, sizeof(THD_fvec3));
+       if( ag->norm == NULL ){
+           fprintf(stderr,"SUMA_add_norms_xyz: can't malloc!\n"); EXIT(1);
+       }
+   }
+
+   for( ii=0 ; ii < nadd ; ii++ ){
+     ag->norm[ii].xyz[0] = xadd[ii] ;
+     ag->norm[ii].xyz[1] = yadd[ii] ;
+     ag->norm[ii].xyz[2] = zadd[ii] ;
+   }
+
+   RETURN(0) ;
+}
+
 /*------------------------------------------------------------------*/
 /*! Add 1 pitiful node to a surface.
 --------------------------------------------------------------------*/
@@ -331,10 +371,9 @@ int SUMA_find_node_id( SUMA_surface *ag , int target )
 
 SUMA_vnlist * SUMA_make_vnlist( SUMA_surface *ag , THD_3dim_dataset *dset )
 {
-   int ii,jj,kk , nx,ny,nz , nxy,nxyz , nnode , ijk , pp,qq,nn,nvox  ;
+   int ii,jj,kk , nx,ny,nz , nxy,nxyz , nnode , pp,qq,nn,nvox  ;
    THD_fvec3 fv ;
    THD_ivec3 iv ;
-   float xv,yv,zv , xp,yp,zp ;
    int *vlist , *nlist , wodsave ;
    SUMA_vnlist *vnlist ;
    float xbot,xtop , ybot,ytop , zbot,ztop ;

@@ -175,6 +175,7 @@ extern void SUMA_destroy_surface( SUMA_surface * ) ;
 extern void SUMA_add_nodes_ixyz( SUMA_surface *, int,
                                  int *, float *, float *, float *) ;
 extern void SUMA_add_node_ixyz( SUMA_surface *, int, float, float, float );
+extern int  SUMA_add_norms_xyz( SUMA_surface *, int, float *, float *, float *);
 
 extern void SUMA_add_triangles( SUMA_surface *, int, int *, int *, int * ) ;
 extern void SUMA_add_triangle( SUMA_surface *, int, int, int ) ;
