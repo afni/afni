@@ -494,6 +494,10 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
                              MCW_BB_check, MCW_BB_noframe,         \
                              AFNI_surf_bbox_CB , im3d ) ;          \
      MCW_set_bbox( swid->surf_bbox[ii] , 1 ) ;                     \
+     MCW_reghelp_children( swid->surf_bbox[ii]->wrowcol ,          \
+                           "Use this toggle to turn the\n"         \
+                           "overlay drawing for this surface\n"    \
+                           "off and back on."                  ) ; \
      swid->surf_node_av[ii] = new_MCW_colormenu( rc ,              \
                                "Nodes" , im3d->dc ,                \
                                0 , im3d->dc->ovc->ncol_ov-1 , 0 ,  \
@@ -504,8 +508,18 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
                                AFNI_surf_redraw_CB , im3d ) ;      \
      MCW_reghint_children( swid->surf_node_av[ii]->wrowcol ,       \
                            "Color of node boxes" ) ;               \
+     MCW_reghelp_children( swid->surf_node_av[ii]->wrowcol ,       \
+                           "If this is not 'none', then\n"         \
+                           "a box will be drawn around the\n"      \
+                           "location of each surface node\n"       \
+                           "inside the slice volume."        ) ;   \
      MCW_reghint_children( swid->surf_line_av[ii]->wrowcol ,       \
                            "Color of triangle lines" ) ;           \
+     MCW_reghelp_children( swid->surf_line_av[ii]->wrowcol ,       \
+                           "If this is not 'none', then\n"         \
+                           "line segments will be drawn for\n"     \
+                           "the intersection of each surface\n"    \
+                           "triangle with the slice plane."    ) ; \
   } while(0)
 
 /*------------------------------------------------------------------------*/
@@ -555,7 +569,7 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
             XmNtraversalOn , False ,
          NULL ) ;
 
-   /* top label to look nice */
+   /* top label to say what dataset we are dealing with */
 
    xstr = XmStringCreateLtoR( "xxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxxxA [x] " ,
                               XmFONTLIST_DEFAULT_TAG ) ;
@@ -566,6 +580,13 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
                        XmNtraversalOn , False ,
                     NULL ) ;
    XmStringFree(xstr) ;
+
+   /* Separator from other widgets */
+
+   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass,swid->rowcol,
+                                      XmNseparatorType   , XmSHADOW_ETCHED_IN ,
+                                      XmNshadowThickness , 5 ,
+                                   NULL ) ;
 
    /* horiz rowcol for top controls [23 Feb 2003] */
 
@@ -588,9 +609,14 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
                          "This sets the size of the\n"
                          "boxes used to draw the\n"
                          "surface nodes that are\n"
-                         "in the current slice plane." ) ;
+                         "in the current slice volume." ) ;
 
    /* linewidth control [23 Feb 2003] */
+
+   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, rc ,
+                                      XmNorientation   , XmVERTICAL    ,
+                                      XmNseparatorType , XmDOUBLE_LINE ,
+                                   NULL ) ;
 
    swid->linewidth_av = new_MCW_optmenu( rc , "LineWidth" ,
                                          0,19,0,0 ,
@@ -605,12 +631,12 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
                          "with the slice plane."         ) ;
 
 
-   /* Done button (with a line separating it from the others) */
+   /* Done button */
 
-   ww = XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, rc ,
-                                    XmNorientation   , XmVERTICAL    ,
-                                    XmNseparatorType , XmDOUBLE_LINE ,
-                                 NULL ) ;
+   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, rc ,
+                                      XmNorientation   , XmVERTICAL    ,
+                                      XmNseparatorType , XmDOUBLE_LINE ,
+                                   NULL ) ;
 
    xstr = XmStringCreateLtoR( "Done" , XmFONTLIST_DEFAULT_TAG ) ;
    swid->done_pb =
@@ -628,10 +654,10 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
 
    /* Separator from other widgets */
 
-   ww = XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, swid->rowcol,
-                                    XmNseparatorType   , XmSHADOW_ETCHED_IN ,
-                                    XmNshadowThickness , 5 ,
-                                 NULL ) ;
+   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass,swid->rowcol,
+                                      XmNseparatorType   , XmSHADOW_ETCHED_IN ,
+                                      XmNshadowThickness , 5 ,
+                                   NULL ) ;
 
    /* Now create rows of widgets to control the surfaces */
 
