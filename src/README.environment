@@ -864,6 +864,14 @@ AFNI_REALTIME_volreg_graphgeom   = something like 320x320+59+159
 For more information about how the realtime plugin works, read the
 file README.realtime.
 
+----------------------------------
+Variable: AFNI_PLUGINS_ALPHABETIZE
+----------------------------------
+If this YES/NO variable is set to YES, then the plugin buttons will
+be alphabetized on the menu.  Otherwise, they will appear in the
+order which AFNI chooses.  Alphabetizing is done without regard to
+case (using the C library routine strcasecmp).
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

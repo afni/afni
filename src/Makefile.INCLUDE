@@ -223,7 +223,7 @@ dsetdup:dsetdup.o
 3dproject:3dproject.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dproject 3dproject.o parser.o parser_int.o \
-              $(LFLAGS) -lmri -lf2c $(LLIBS)
+                 $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dinfo:3dinfo.o
 	$(RM) $@
@@ -820,6 +820,14 @@ thd_shift2.o:thd_shift2.c
 	$(RM) $@
 	$(CCFAST) -c thd_shift2.c $(IFLAGS)
 
+thd_rot3d_byte.o:thd_rot3d_byte.c
+	$(RM) $@
+	$(CCFAST) -c thd_rot3d_byte.c $(IFLAGS)
+
+cox_render.o:cox_render.h cox_render.c
+	$(RM) $@
+	$(CCFAST) -c cox_render.c $(IFLAGS)
+
 MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_max.o mri_new.o mri_read.o mri_swapbytes.o mri_dup.o        \
            mri_to_byte.o mri_to_complex.o mri_to_float.o mri_to_short.o     \
@@ -828,8 +836,8 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o        \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o  \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
-           mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o mri_cut.o    \
-           mri_overlay.o mri_copy.o mri_uncat2D.o
+           mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o mri_cut.o      \
+           mri_overlay.o mri_copy.o mri_uncat2D.o cox_render.o mri_histobyte.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -860,7 +868,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o  \
            thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o \
            thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_base64.o     \
-           thd_winsor.o thd_zeropad.o
+           thd_winsor.o thd_zeropad.o thd_rot3d_byte.o thd_shear3d.o   \
+           thd_tmask.o thd_rotangles.o thd_md5.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -1043,6 +1052,20 @@ volpack.tgz:
 
 #######
 
+libfftw.a:
+	( cd fftw ; \
+	  make libfftw.a clean 'RM=$(RM)' 'CC=$(CCFAST)' 'AR=$(AR)' \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	  $(MV) libfftw.a .. ; )
+
+fftw.h:
+	$(CP) fftw/fftw.h ./
+
+fftw_setup:fftw_setup.o
+	$(CC) -o fftw_setup fftw_setup.o $(LFLAGS) -lfftw $(LLIBS)
+
+#######
+
 libclam.a:
 	( cd clamdir ; \
 	  make libclam.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' \
@@ -1095,6 +1118,9 @@ imcalc:imcalc.o parser.o parser_int.o
 
 fftest:fftest.o
 	$(CC) -o fftest fftest.o $(LFLAGS) $(LLIBS)
+
+fftwest:fftest.c
+	$(CC) -o fftwest fftest.c -DUSE_FFTW $(LFLAGS) -lfftw $(LLIBS)
 
 fftnext:fftnext.o
 	$(CC) -o fftnext fftnext.o $(LFLAGS) $(LLIBS)
@@ -1167,6 +1193,9 @@ Xphace:Xphace.o $(IMOBJS)
 
 3dbetafit3:3dbetafit3.o betafit.c
 	$(CC) -o 3dbetafit3 3dbetafit3.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+
+testcox:testcox.o
+	$(CC) -o testcox testcox.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

@@ -52,13 +52,14 @@ static FLOAT_TYPE tempRWC ;
                             tempB_fvec3.xyz[2]=(z), tempB_fvec3 )
 
 #define DUMP_IVEC3(str,iv) \
-   printf("%s: %d %d %d\n",(str),(iv).ijk[0],(iv).ijk[1],(iv).ijk[2])
+   fprintf(stderr,"%s: %d %d %d\n",(str),(iv).ijk[0],(iv).ijk[1],(iv).ijk[2])
 
 #define DUMP_FVEC3(str,fv) \
-   printf("%s: %13.6g %13.6g %13.6g\n",(str),(fv).xyz[0],(fv).xyz[1],(fv).xyz[2])
+   fprintf(stderr,"%s: %13.6g %13.6g %13.6g\n",(str),(fv).xyz[0],(fv).xyz[1],(fv).xyz[2])
 
 #define DUMP_MAT33(str,A)                                  \
-   printf("%10.10s: [ %13.6g %13.6g %13.6g ]\n"            \
+   fprintf(stderr,                                         \
+          "%10.10s: [ %13.6g %13.6g %13.6g ]\n"            \
        "            [ %13.6g %13.6g %13.6g ]\n"            \
        "            [ %13.6g %13.6g %13.6g ]\n" ,          \
      str , (A).mat[0][0] , (A).mat[0][1] , (A).mat[0][2] , \

@@ -462,7 +462,7 @@ void lin_shift( int n , float af , float * f )
       ix = ii + ia ;
       lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
    }
-   for( ii=itop+1 ; ii < ibot ; ii++ ){
+   for( ii=itop+1 ; ii < n ; ii++ ){
       ix = ii + ia ;
       lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
    }
@@ -520,22 +520,17 @@ void nn_shift2( int n, int nup, float af, float * f, float ag, float * g )
 }
 
 /*---------------------------------------------------------------------------
-   More experiments
+   More experiments: two-step interpolation
 -----------------------------------------------------------------------------*/
 
 void ts_shift( int n , float af , float * f )
 {
-   int   ii , ia , ix ;
-   float  wt_00 , wt_p1 , aa ;
-#ifdef SEPARATE_FINS
+   register int ii , ia , ix ;
+   float aa ;
    int ibot,itop ;
-#endif
 
    af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
    aa = af - ia ;
-        if( aa < 0.25 ){ wt_00 = 1.0 ; wt_p1 = 0.0 ; }  /* two step weights */
-   else if( aa < 0.75 ){ wt_00 = 0.5 ; wt_p1 = 0.5 ; }
-   else                { wt_00 = 0.0 ; wt_p1 = 1.0 ; }
 
    if( n > nlcbuf ){
       if( lcbuf != NULL ) free(lcbuf) ;
@@ -543,32 +538,39 @@ void ts_shift( int n , float af , float * f )
       nlcbuf = n ;
    }
 
-#ifdef SEPARATE_FINS
    ibot = -ia  ;   if( ibot < 0   ) ibot = 0 ;
    itop = n-2-ia ; if( itop > n-1 ) itop = n-1 ;
-   for( ii=ibot ; ii <= itop ; ii++ ){
-      ix = ii + ia ;
-      lcbuf[ii] =  wt_00 * f[ix] + wt_p1 * f[ix+1] ;
+
+   if( aa < 0.30 ){
+      memcpy( lcbuf+ibot, f+(ibot+ia)  , (itop+1-ibot)*sizeof(float) );
+      for( ii=0 ; ii < ibot ; ii++ ){
+         ix = ii + ia ; lcbuf[ii] = FINS(ix) ;
+      }
+      for( ii=itop+1 ; ii < n ; ii++ ){
+         ix = ii + ia ; lcbuf[ii] = FINS(ix) ;
+      }
    }
 
-   for( ii=0 ; ii < ibot ; ii++ ){
-      ix = ii + ia ;
-      lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
-   }
-   for( ii=itop+1 ; ii < ibot ; ii++ ){
-      ix = ii + ia ;
-      lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
-   }
-#else
-   for( ii=0 ; ii < n ; ii++ ){
-      ix = ii + ia ;
-      if( ix >= 0 && ix < n-1 )
-         lcbuf[ii] =  wt_00 * f[ix] + wt_p1 * f[ix+1] ;
-      else
-         lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
-   }
-#endif /* SEPARATE_FINS */
+   else if( aa > 0.70 ){
+      memcpy( lcbuf+ibot, f+(ibot+1+ia), (itop+1-ibot)*sizeof(float) );
+      for( ii=0 ; ii < ibot ; ii++ ){
+         ix = ii + ia ; lcbuf[ii] = FINS(ix+1) ;
+      }
+      for( ii=itop+1 ; ii < n ; ii++ ){
+         ix = ii + ia ; lcbuf[ii] = FINS(ix+1) ;
+      }
 
+   } else {
+      for( ii=ibot ; ii <= itop ; ii++ ){
+         ix = ii + ia ; lcbuf[ii] =  0.5*( f[ix] + f[ix+1] ) ;
+      }
+      for( ii=0 ; ii < ibot ; ii++ ){
+         ix = ii + ia ; lcbuf[ii] =  0.5*( FINS(ix) + FINS(ix+1) ) ;
+      }
+      for( ii=itop+1 ; ii < n ; ii++ ){
+         ix = ii + ia ; lcbuf[ii] =  0.5*( FINS(ix) + FINS(ix+1) ) ;
+      }
+   }
    memcpy( f , lcbuf , sizeof(float)*n ) ;
    return ;
 }

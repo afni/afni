@@ -345,6 +345,7 @@ extern void csfft_many( int,int,int , complex * ) ;
 extern int  csfft_nextup(int) ;
 extern int csfft_nextup_one35(int) ;
 extern void csfft_scale_inverse(int) ;
+extern void csfft_use_fftw( int ) ;     /* 20 Oct 2000 */
 
 extern void *mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;
@@ -486,6 +487,8 @@ extern MRI_IMAGE *mri_float_func( int,int,
 
 extern void mri_histogram( MRI_IMAGE * , float,float ,
                                          int,int, int h[] ) ;
+
+extern void mri_histobyte( MRI_IMAGE * , int * ) ;
 
 extern void mri_percents( MRI_IMAGE * , int nper , float per[] ) ;
 extern MRI_IMAGE * mri_flatten( MRI_IMAGE * ) ;

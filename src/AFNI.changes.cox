@@ -2353,3 +2353,34 @@
  * Modified plug_realtime.c to insert its own Xt event loop to deal
      with interface-freeze when the images are being slammed in as
      fast as possible (function RT_process_xevents).
+
+16 Oct 2000
+ * Modified fftest.c to allow use of FFTW; do "make fftwest" and
+     run with nvec = -1.
+
+20 Nov 2000
+ * Fixed bug in -rlt+ option of 3dTcat.c: qmid was 0.5*ns, but
+     should have been 0.5*(ns-1).  This makes the baseline wrong
+     in each voxel.
+
+24 Nov 2000
+ * Modified plug_render.c to eliminate duplicate rendering of datasets
+     when loading a script that changes dataset index.  This was caused
+     by the dataset index CB routine calling draw, and then the script
+     controller calling draw again.  Now, the routine that loads the
+     widgets from the rendering state sets a variable that stops drawing
+     if it should occur, then unsets this variable after widgets are
+     loaded.
+ * Modified 3drotate.c to have new -points option, to rotate a set of
+     (x,y,z) triples using the same rotation as would be used for a
+     dataset brick.
+ * Modified 3dUndump.c to check (x,y,z) coordinates for validity.
+
+27 Nov 2000
+ * Modified plug_nudge.c to reload sub-brick statistic after moving it.
+
+28 Nov 2000
+ * Modified AFNI_plugin_button() in afni_plugin.c to allow user to
+     have plugin buttons sorted alphabetically.
+ * Fixed bug in plug_nudge.c where the interpolation mode was
+     set improperly.
