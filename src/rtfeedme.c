@@ -247,6 +247,7 @@ int main( int argc , char * argv[] )
    char *note[128] ;   /* 02 Oct 2002 */
    int   num_note=0 ;
    int   num_start=0 , jarg , bwait ; /* 11 Dec 2002 */
+   float gyr=0.0 ;                    /* 29 Jan 2004 */
 
    /*-- help the ignorant user --*/
 
@@ -307,6 +308,9 @@ int main( int argc , char * argv[] )
         "\n"
         "  -note sss   =  Send 'sss' as a NOTE to the realtime plugin.\n"
         "                 Multiple -note options may be used.\n"
+        "\n"
+        "  -gyr v      =  Send value 'v' as the y-range for realtime motion\n"
+        "                 estimation graphing.\n"
       ) ;
       exit(0) ;
    }
@@ -316,6 +320,11 @@ int main( int argc , char * argv[] )
    /*-- scan arguments --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-gyr") == 0 ){     /* 29 Jan 2004 */
+        gyr = strtod( argv[++iarg] , NULL ) ;
+        iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-drive") == 0 ){   /* 30 Jul 2002 */
          drive_afni[ndrive++] = argv[++iarg] ;
@@ -576,6 +585,17 @@ Restart:
    for( ii=0 ; ii < num_note ; ii++ ){
      sprintf( RT_com , "NOTE %s" , note[ii] ) ;
      ADDTO_BUF ;
+   }
+
+   /*** GRAPH range commands [29 Jan 2004] ***/
+
+   if( DSET_NVALS(RT_dset[0]) > 9 ){
+     sprintf( RT_com , "GRAPH_XRANGE %d" , DSET_NVALS(RT_dset[0]) ) ;
+     ADDTO_BUF ;
+     if( gyr > 0.0 ){
+       sprintf( RT_com , "GRAPH_YRANGE %.2f" , gyr ) ;
+       ADDTO_BUF ;
+     }
    }
 
    /*** send metadata buffer to AFNI ***/
