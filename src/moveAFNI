@@ -1,0 +1,60 @@
+#!/bin/tcsh
+
+# script to put changed files from afni98.tgz into the current directory
+
+set doit = 0
+if( $#argv == 1 ) then
+  if( $argv[1] == "doit" ) set doit = 1
+endif
+
+set archive  = afni98.tgz
+set localdir = AFNI98
+set ftpdir   = $cwd
+
+echo "================================================"
+echo "Starting to install $archive into $ftpdir"
+
+gzip -dc $archive | tar xpf -
+cd $localdir
+
+echo "Starting to scan for changed files"
+
+@ ttt = 0
+foreach fname ( `find . -print` )
+
+   if( -f $fname ) then
+      if( -f $ftpdir/$fname ) then
+         diff $ftpdir/$fname $fname > /dev/null
+         set mmm = $status
+      else
+         set mmm = 1
+      endif
+      if( $mmm && $doit ) then
+         echo "/bin/mv -f $fname $ftpdir/$fname"
+               /bin/mv -f $fname $ftpdir/$fname
+         @ ttt = $ttt + 1
+      else if( $mmm ) then
+         echo "WOULD /bin/mv -f $fname $ftpdir/$fname"
+      else
+#            echo "/bin/rm -f $fname"
+#                  /bin/rm -f $fname
+      endif
+   else if( -d $fname ) then
+      if( ! -d $ftpdir/$fname ) then
+         if( $doit ) then
+            echo "/bin/mkdir -p $ftpdir/$fname"
+                  /bin/mkdir -p $ftpdir/$fname
+         else
+            echo "WOULD /bin/mkdir -p $ftpdir/$fname"
+         endif
+      endif
+   endif
+
+end
+
+cd -
+
+echo "Removing leftover files from $localdir"
+/bin/rm -rf $localdir
+
+if( $doit ) echo "`date`: Put ${ttt} files from ${archive} to ${ftpdir}"

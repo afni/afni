@@ -1,0 +1,118 @@
+#!/bin/tcsh -f
+if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
+	goto USAGE
+endif
+
+#goto parse Command line
+	goto PARSE
+	ENDPARSE:
+
+#run the command line
+	echo "Running ..."
+	set cnt = 1
+	foreach brick ($List)
+		set BrickNoExt = `@NoExt $brick HEAD BRIK`
+		if ($XtLoc != 0) then
+			set BrickPrefix = `echo $BrickNoExt | sed 's/+orig//'`
+			set BrickOutPrefix = "$BrickPrefix$NewXt"
+			set Commandf = "$Command -prefix $Session$BrickOutPrefix"
+		else
+			set Commandf = "$Command"
+		endif
+		echo "Running $cnt : $NList $Commandf $BrickNoExt ..."
+		set noglob
+		$Commandf  $BrickNoExt
+		unset noglob
+		@ cnt ++
+	end
+
+#finished
+	goto ENDALL
+
+PARSE:
+	echo "Parsing ..."
+	set Narg = $#
+	
+	#find the locations of -com and -list
+	set cnt = 1
+	set Session = ''
+	set ListLoc = 0
+	set ComLoc = 0
+	set XtLoc = 0
+	set SessLoc = 0
+	while ($cnt <= $Narg)
+		if ("$argv[$cnt]" == "-com") then
+			set ComLoc = $cnt		
+		endif
+		if ("$argv[$cnt]" == "-list") then
+			set ListLoc = $cnt
+		endif
+		if ("$argv[$cnt]" == "-newxt") then
+			set XtLoc = $cnt
+			if ($XtLoc == $Narg) then
+				goto BADCOMMANDLINE
+			else
+				set XtLoc = $cnt
+				@ cnt ++
+				set NewXt = $argv[$cnt]
+			endif
+		endif
+		if ("$argv[$cnt]" == "-session") then
+			set SessLoc = $cnt
+			if ($SessLoc == $Narg) then
+				goto BADCOMMANDLINE
+			else
+				set SessLoc = $cnt
+				@ cnt ++
+				set Session = $argv[$cnt]"/"
+			endif
+		endif
+		
+		@ cnt ++
+	end
+	
+	#check if locations are OK 
+	if ($ComLoc == 0 || $ListLoc == 0 || $ListLoc == $Narg || $ComLoc == $Narg || $SessLoc == $Narg) then
+		goto BADCOMMANDLINE		
+	endif
+	
+	#get the command line options
+	set cnt = `expr $ComLoc + 1`
+	set Command = ''
+	while ($cnt <= $Narg && $cnt != $ListLoc && $cnt != $XtLoc && $cnt != $SessLoc)
+		set Command = "$Command $argv[$cnt]"
+		@ cnt ++
+	end
+	set cnt = `expr $ListLoc + 1`
+	set List = ('')
+	set NList = 0
+	while ($cnt <= $Narg && $cnt !=  $ComLoc && $cnt != $XtLoc)
+		set List = ($List $argv[$cnt])
+		@ NList ++
+		@ cnt ++
+	end
+	
+	goto ENDPARSE
+
+BADCOMMANDLINE:
+	echo 'Error in command line synatx'
+	goto USAGE
+		
+USAGE:
+	echo "\012Usage: `basename $0` -com <Program Command line> -session <Output Dir> -newxt <extension> -list <Brick 1> <Brick 2> ..."	
+	echo "\012<Program Command line> : The entire command line for the program desired"
+	echo "The command is best put between single quotes, do not use the \ to break a long line within the quotes"
+	echo "<Brik*> : a list of bricks (or anything)"
+	echo "<extension> : if the program requires a -prefix option, then you can specify the extension"
+	echo " which will get appended to the Brick names before +orig"
+	echo "<Output Dir> : The output directory "
+	echo "\012example"
+	echo "`basename $0` -com '3dinfo -v' -list *.HEAD" 
+	echo 'will execute 3dinfo -v on each of the A*.HEAD headers'
+	echo "\012`basename $0` -com '3dZeropad -z 4' -newxt _zpd4 -list ADzst*vr+orig.BRIK"
+	echo 'will run 3dZeropad with the -z 4 option on all the bricks ADzst*vr+orig.BRIK'
+	echo "\012Ziad S. Saad (ziad@nih.gov). FIM/LBC/NIMH/NIH. Wed Jan 24 "
+
+	goto ENDALL
+
+ENDALL:

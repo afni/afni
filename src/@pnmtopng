@@ -1,0 +1,21 @@
+#!/bin/tcsh -f
+
+if ("$1" == "-h" || $1 =~ "-help" || $1 == "") then
+	goto USAGE
+endif
+
+foreach img ($*)
+	set imgnoExt = `@NoExt $img pnm`
+	echo "running pnmtopng $img > $imgnoExt.png ..." 
+	pnmtopng $img > $imgnoExt.png	
+end
+
+goto END
+
+USAGE:
+        echo "Usage: `basename $0` <*.pnm>"
+			echo "uses pnmtopng to change the pnm images on command line to png"
+		  echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
+    	  goto END
+
+END:
