@@ -54,9 +54,9 @@ float * SUMA_HomerVertex(Point3 *Vert, int sz_vect, int *N)
    NodeList = (float *)SUMA_malloc(*N*3*sizeof(float));
    k = 0;
    for (i=0; i<*N; ++i) {
-      NodeList[k] = (float)Vert[i].x; ++k;
-      NodeList[k] = (float)Vert[i].y; ++k;
-      NodeList[k] = (float)Vert[i].z; ++k;
+      NodeList[k] = 50.0*(float)Vert[i].x; ++k;
+      NodeList[k] = 50.0*(float)Vert[i].y; ++k;
+      NodeList[k] = 50.0*(float)Vert[i].z; ++k;
    }
    
    SUMA_RETURN(NodeList);
@@ -113,23 +113,75 @@ int * SUMA_HomerFace(long *face, int sz_vect, int *N)
                SUMA_RETURN(NULL);
             } 
          }
-         FaceSetList[iFS3] = face[iface0]; ++iFS3; /* first node in polygon is first node of triangles forming polygon */
+         FaceSetList[iFS3] = face[iface0]; /* first node in polygon is first node of triangles forming polygon */
+         if (FaceSetList[iFS3] < 0) {
+            fprintf (SUMA_STDERR,"Negative index loaded (loc 0)\n");
+         }
          if (LocalHead) fprintf(SUMA_STDERR,
             "t(%d, ", (int)face[iface0]);
          if (iface == iface0) ++iface;
          if (LocalHead) fprintf(SUMA_STDERR,
             "%d, ", (int)face[iface]);
-         FaceSetList[iFS3] = face[iface]; ++iFS3; /* node 2 */
+         ++iFS3;
+         FaceSetList[iFS3] = face[iface]; /* node 2 */
+         if (FaceSetList[iFS3] < 0) {
+            fprintf (SUMA_STDERR,"Negative index loaded (loc 1)\n");
+         }
          if (LocalHead) fprintf(SUMA_STDERR,
             "%d) ", (int)face[iface+1]);
-         FaceSetList[iFS3] = face[iface+1]; ++iFS3; ++iface; /* node 3 */
-      } while (face[iface+1] > 0);
+         ++iFS3; 
+         FaceSetList[iFS3] = face[iface+1]; /* node 3 */
+         if (FaceSetList[iFS3] < 0) {
+            fprintf (SUMA_STDERR,"Negative index loaded (loc 2)\n");
+         }
+         ++iFS3; ++iface; 
+      } while (face[iface+1] >= 0);
       if (LocalHead) fprintf(SUMA_STDERR," iFS3/N_alloc = %d/%d\n", iFS3, N_alloc);
       ++iface; /* skip -1 */
       ++iface; /* goto next */
    }
+   
    *N = iFS3 / 3;
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Returning ...\n", FuncName);
+   
+   /* reallocate */
+
+      if (LocalHead) {
+         int tmpmin=-100, n3, itmp;
+         n3 = 3 * *N;
+         fprintf (SUMA_STDERR,"%s: N_FaceSet %d\n", FuncName, *N);
+         SUMA_MIN_VEC (FaceSetList, n3, tmpmin);
+         fprintf (SUMA_STDERR,"Minimum index is %d\n", tmpmin);
+         if (tmpmin < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Bad ass pre-alloc negative number\n", FuncName);
+            for (itmp=0; itmp<n3; ++itmp) {
+               fprintf (SUMA_STDERR, "%d: %d\n", itmp, FaceSetList[itmp]);
+               if (FaceSetList[itmp] < 0) {
+                  fprintf (SUMA_STDERR,"%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
+               }
+            } 
+         }
+      }
+
+   FaceSetList = (int *)SUMA_realloc((void *)FaceSetList, iFS3 * sizeof(int));
+      if (LocalHead) {
+         int tmpmin=-100, n3, itmp;
+         n3 = 3 * *N;
+         fprintf (SUMA_STDERR,"%s: N_FaceSet %d\n", FuncName, *N);
+         SUMA_MIN_VEC (FaceSetList, n3, tmpmin);
+         fprintf (SUMA_STDERR,"Minimum index is %d\n", tmpmin);
+         if (tmpmin < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Bad post realloc ass negative number\n", FuncName);
+            for (itmp=0; itmp<n3; ++itmp) {
+               fprintf (SUMA_STDERR, "%d: %d\n", itmp, FaceSetList[itmp]);
+               if (FaceSetList[itmp] < 0) {
+                  fprintf (SUMA_STDERR,"%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
+               }
+            } 
+         }
+      }
+   
+   
+   fprintf(SUMA_STDERR,"%s: Returning (iFS3 = %d, N = %d...)\n", FuncName, iFS3, *N);
    
    SUMA_RETURN(FaceSetList); 
 }
@@ -138,13 +190,21 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SUMA_Homer"}; 
    float *NodeList = NULL;
-   int N_NodeList = 0, N_FaceSet = 0;
+   int N_Node = 0, N_FaceSet = 0,
+      N_parts = 0, ipart=0;
    int *FaceSetList = NULL;
+   char sbuf[100], fName[100];
+   SUMA_SURF_NORM SN;
+   SUMA_INODE *NewColPlane_Inode = NULL;
+   SUMA_OVERLAYS *NewColPlane=NULL;
    SUMA_SurfaceObject **SOv=NULL;
+   FILE *SpecOut = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    /* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
+	if (SUMAg_CF == NULL) {fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
@@ -152,82 +212,91 @@ int main (int argc,char *argv[])
    N_parts = 19;
    SOv = (SUMA_SurfaceObject **) SUMA_malloc(N_parts * sizeof(SUMA_SurfaceObject *));
    
+   SpecOut = fopen("HJS.spec", "w");
+   if (!SpecOut) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in opening spec file.\n", FuncName);
+		exit(1);
+   }
+   
+   fprintf (SpecOut,"\tGroup = HJS\n");
+   fprintf (SpecOut,"\tStateDef = Duffed\n"); 
+
    for (ipart = 0; ipart < N_parts; ++ipart) {
       switch (ipart) {
          case 0:      
-            NodeList = SUMA_HomerVertex(X1_X5_Sphere_vertex, sizeof(X1_X5_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_Sphere_vertex, sizeof(X1_X5_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_Sphere_face, sizeof(X1_X5_Sphere_face), &N_FaceSet);
             break;
          case 1:
-            NodeList = SUMA_HomerVertex(X1_X5_X12_lleg_vertex, sizeof(X1_X5_X12_lleg_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X12_lleg_vertex, sizeof(X1_X5_X12_lleg_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X12_lleg_face, sizeof(X1_X5_X12_lleg_face), &N_FaceSet);
             break;
          case 2:
-            NodeList = SUMA_HomerVertex(X1_X5_X12_Rleg_vertex, sizeof(X1_X5_X12_Rleg_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X12_Rleg_vertex, sizeof(X1_X5_X12_Rleg_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X12_Rleg_face, sizeof(X1_X5_X12_Rleg_face), &N_FaceSet);
             break;
          case 3:
-            NodeList = SUMA_HomerVertex(X1_X5_X12_Sphere_vertex, sizeof(X1_X5_X12_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X12_Sphere_vertex, sizeof(X1_X5_X12_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X12_Sphere_face, sizeof(X1_X5_X12_Sphere_face), &N_FaceSet);
             break;
          case 4:
-            NodeList = SUMA_HomerVertex(X1_X5_X12_X31_Sphere_vertex, sizeof(X1_X5_X12_X31_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X12_X31_Sphere_vertex, sizeof(X1_X5_X12_X31_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X12_X31_Sphere_face, sizeof(X1_X5_X12_X31_Sphere_face), &N_FaceSet);
             break;
          case 5:
-            NodeList = SUMA_HomerVertex(X1_X5_X44_X45_vertex, sizeof(X1_X5_X44_X45_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X44_X45_vertex, sizeof(X1_X5_X44_X45_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X44_X45_face, sizeof(X1_X5_X44_X45_face), &N_FaceSet);
             break;
          case 6:
-            NodeList = SUMA_HomerVertex(X1_X5_X44_Torus_vertex, sizeof(X1_X5_X44_Torus_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X44_Torus_vertex, sizeof(X1_X5_X44_Torus_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X44_Torus_face, sizeof(X1_X5_X44_Torus_face), &N_FaceSet);
             break;
          case 7:
-            NodeList = SUMA_HomerVertex(X1_X5_X44_X57_Sphere_vertex, sizeof(X1_X5_X44_X57_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X44_X57_Sphere_vertex, sizeof(X1_X5_X44_X57_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X44_X57_Sphere_face, sizeof(X1_X5_X44_X57_Sphere_face), &N_FaceSet);
             break;
          case 8:
-            NodeList = SUMA_HomerVertex(X1_X5_X44_X88_Sphere_vertex, sizeof(X1_X5_X44_X88_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X44_X88_Sphere_vertex, sizeof(X1_X5_X44_X88_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X44_X88_Sphere_face, sizeof(X1_X5_X44_X88_Sphere_face), &N_FaceSet);
             break;
          case 9:
-            NodeList = SUMA_HomerVertex(X1_X5_X44_X88_X95_Sphere_vertex, sizeof(X1_X5_X44_X88_X95_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X44_X88_X95_Sphere_vertex, sizeof(X1_X5_X44_X88_X95_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X44_X88_X95_Sphere_face, sizeof(X1_X5_X44_X88_X95_Sphere_face), &N_FaceSet);
             break;
          case 10:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_Sphere_Sphere_vertex, sizeof(X1_X5_X120_Sphere_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_Sphere_Sphere_vertex, sizeof(X1_X5_X120_Sphere_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_Sphere_Sphere_face, sizeof(X1_X5_X120_Sphere_Sphere_face), &N_FaceSet);
             break;
          case 11:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_Sphere_vertex, sizeof(X1_X5_X120_X127_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_Sphere_vertex, sizeof(X1_X5_X120_X127_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_Sphere_face, sizeof(X1_X5_X120_X127_Sphere_face), &N_FaceSet);
             break;
          case 12:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X134_vertex, sizeof(X1_X5_X120_X127_X134_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X134_vertex, sizeof(X1_X5_X120_X127_X134_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X134_face, sizeof(X1_X5_X120_X127_X134_face), &N_FaceSet);
             break;
          case 13:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_Torus_vertex, sizeof(X1_X5_X120_X127_Torus_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_Torus_vertex, sizeof(X1_X5_X120_X127_Torus_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_Torus_face, sizeof(X1_X5_X120_X127_Torus_face), &N_FaceSet);
             break;
          case 14:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X146_vertex, sizeof(X1_X5_X120_X127_X146_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X146_vertex, sizeof(X1_X5_X120_X127_X146_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X146_face, sizeof(X1_X5_X120_X127_X146_face), &N_FaceSet);
             break;
          case 15:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X152_vertex, sizeof(X1_X5_X120_X127_X152_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X152_vertex, sizeof(X1_X5_X120_X127_X152_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X152_face, sizeof(X1_X5_X120_X127_X152_face), &N_FaceSet);
             break;
          case 16:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X158_vertex, sizeof(X1_X5_X120_X127_X158_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X158_vertex, sizeof(X1_X5_X120_X127_X158_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X158_face, sizeof(X1_X5_X120_X127_X158_face), &N_FaceSet);
             break;
          case 17:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X164_Sphere_vertex, sizeof(X1_X5_X120_X127_X164_Sphere_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X164_Sphere_vertex, sizeof(X1_X5_X120_X127_X164_Sphere_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X164_Sphere_face, sizeof(X1_X5_X120_X127_X164_Sphere_face), &N_FaceSet);
             break;
          case 18:
-            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X177_Torus_vertex, sizeof(X1_X5_X120_X127_X177_Torus_vertex), &N_NodeList);
+            NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X177_Torus_vertex, sizeof(X1_X5_X120_X127_X177_Torus_vertex), &N_Node);
             FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X177_Torus_face, sizeof(X1_X5_X120_X127_X177_Torus_face), &N_FaceSet);
             break;
          default:
@@ -236,9 +305,25 @@ int main (int argc,char *argv[])
             break;
       }
                      
-      /* SUMA_disp_vect(NodeList, 3*N_NodeList); */
-      /* SUMA_disp_dvect(FaceSetList, 3*N_FaceSet); */
-
+      /* SUMA_disp_vect(NodeList, 3*N_Node); */
+      /* SUMA_disp_dvect(FaceSetList, 3*N_FaceSet);  */
+      if (LocalHead) {
+         int tmpmin=-100, n3, itmp;
+         n3 = 3 * N_FaceSet;
+         fprintf (SUMA_STDERR,"%s: N_Node %d, N_FaceSet %d\n", FuncName, N_Node, N_FaceSet);
+         SUMA_MIN_VEC (FaceSetList, n3, tmpmin);
+         fprintf (SUMA_STDERR,"Minimum index is %d\n", tmpmin);
+         if (tmpmin < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Bad in return ass negative number\n", FuncName);
+            for (itmp=0; itmp<n3; ++itmp) {
+               fprintf (SUMA_STDERR, "%d: %d\n", itmp, FaceSetList[itmp]);
+               if (FaceSetList[itmp] < 0) {
+                  fprintf (SUMA_STDERR,"%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
+               }
+            } 
+         }
+      }
+      
       /* No create an SO for that thing */
       SOv[ipart] = SUMA_Alloc_SurfObject_Struct(1);
       /* calculate the curvatures */
@@ -246,11 +331,13 @@ int main (int argc,char *argv[])
       SOv[ipart]->N_Node = N_Node;
       SOv[ipart]->FaceSetList = FaceSetList;
       SOv[ipart]->N_FaceSet = N_FaceSet;
-      sbuf = sprintf ("Springfield/HomerJaySimpson_%d", ipart);
-      SOv[ipart]->Name = SUMA_StripPath(sbuf);
-      SOv[ipart]->FileType = SUMA_FT_NOT_SPECIFIED;
+      sprintf (fName, "Springfield/HomerJaySimpson_%d", ipart);
+      SOv[ipart]->Group = SUMA_copy_string("HJS");
+      SOv[ipart]->State = SUMA_copy_string("Duffed");
+      SOv[ipart]->Name = SUMA_StripPath(fName);
+      SOv[ipart]->FileType = SUMA_PLY;
       SOv[ipart]->FileFormat = SUMA_FF_NOT_SPECIFIED;
-      SOv[ipart]->idcode_str = UNIQ_hashcode(sbuf); 
+      SOv[ipart]->idcode_str = UNIQ_hashcode(fName); 
       SOv[ipart]->SUMA_VolPar_Aligned = NOPE;
       SOv[ipart]->VolPar = NULL;
       SOv[ipart]->NodeDim = 3;
@@ -268,7 +355,8 @@ int main (int argc,char *argv[])
       SUMA_MAX_VEC (SOv[ipart]->MaxDims, 3, SOv[ipart]->aMaxDims);
       
       /* Calculate SurfaceNormals */
-      SN = SUMA_SurfNorm(SOv[ipart]->NodeList,  SOv[ipart]->N_Node, SOv[ipart]->FaceSetList, SOv[ipart]->N_FaceSet );
+      SN = SUMA_SurfNorm(SOv[ipart]->NodeList,  SOv[ipart]->N_Node, 
+                  SOv[ipart]->FaceSetList, SOv[ipart]->N_FaceSet );
       SOv[ipart]->NodeNormList = SN.NodeNormList;
       SOv[ipart]->FaceNormList = SN.FaceNormList;
 
@@ -294,32 +382,34 @@ int main (int argc,char *argv[])
       if (SOv[ipart]->NodeMarker == NULL) {
          fprintf(SUMA_STDERR,"Error%s: Could not allocate for SOv[ipart]->NodeMarker\n", FuncName);
          SUMA_Free_Surface_Object (SOv[ipart]);
-         SUMA_RETURN (NULL);
+         SUMA_RETURN (1);
       }
       /* create the FaceSetMarker object */
       SOv[ipart]->FaceSetMarker = SUMA_Alloc_FaceSetMarker();
       if (SOv[ipart]->FaceSetMarker == NULL) {
          fprintf(SUMA_STDERR,"Error%s: Could not allocate for SOv[ipart]->FaceSetMarker\n", FuncName);
          SUMA_Free_Surface_Object (SOv[ipart]);
-         SUMA_RETURN (NULL);
+         SUMA_RETURN (1);
       }
       
       /* make it its own mapping reference */
-      SOv[ipart]->MapRef_idcode_str = SUMA_copy_string (SO[ipart]->idcode_str);
+      SOv[ipart]->MapRef_idcode_str = SUMA_copy_string (SOv[ipart]->idcode_str);
       
       if (SUMA_existSO (SOv[ipart]->idcode_str, SUMAg_DOv, SUMAg_N_DOv)) {
          fprintf(SUMA_STDERR,"Error %s: Surface %d is specifed more than once, multiple copies ignored.\n",
              FuncName, ipart);
-         SUMA_Free_Surface_Object (SOv[ipart][ipart]);
-         SUMA_RETURN (NULL);
+         SUMA_Free_Surface_Object (SOv[ipart]);
+         SUMA_RETURN (1);
       }
       
+      SUMA_LH("Doing Metrics...");
       if (!SUMA_SurfaceMetrics (SOv[ipart], "Convexity, EdgeList, MemberFace", NULL)) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
-         SUMA_Free_Surface_Object (SOv[ipart][ipart]);
-         SUMA_RETURN (NULL);
+         SUMA_Free_Surface_Object (SOv[ipart]);
+         SUMA_RETURN (1);
       }
       
+      SUMA_LH("Color planes...");
       { /* MOST OF THIS BLOCK SHOULD BE TURNED TO A FUNCTION */
          SUMA_COLOR_MAP *CM;
          SUMA_SCALE_TO_MAP_OPT * OptScl;
@@ -396,11 +486,31 @@ int main (int argc,char *argv[])
          /* free */
          if (Vsort) SUMA_free(Vsort);
          if (CM) SUMA_Free_ColorMap (CM);
-          if (OptScl) SUMA_free(OptScl);
+         if (OptScl) SUMA_free(OptScl);
          if (SV) SUMA_Free_ColorScaledVect (SV);
+         
       }
+
+      /* all the previous stuff is nice and dandy but it takes a lot more to
+         get this thing working */
+      /* Write out the surfaces in PLY format and create a dummy spec file */
+      if (!SUMA_Save_Surface_Object (  fName, SOv[ipart], 
+                                       SUMA_PLY, SUMA_FF_NOT_SPECIFIED)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         exit (1);
+      }
+
+      fprintf (SpecOut,"NewSurface\n");
+      fprintf (SpecOut, "\tSurfaceFormat = ASCII\n");
+      fprintf (SpecOut, "\tSurfaceType = Ply\n");
+      fprintf (SpecOut, "\tFreeSurferSurface = %s\n", fName);
+      fprintf (SpecOut, "\tMappingRef = SAME\n");
+      fprintf (SpecOut, "\tSurfaceState = %s\n", SOv[ipart]->State);
+      fprintf (SpecOut, "\tEmbedDimension = 3\n\n");
+
       
    }   
+   if (SpecOut) fclose (SpecOut);
    SUMA_RETURN(0);
 }
 #endif

@@ -238,7 +238,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       
       SV->ShowRight = YUP;
       SV->ShowLeft = YUP;
-      
+      SV->Record = NOPE;
    }
    SUMA_RETURN (SVv);
 }

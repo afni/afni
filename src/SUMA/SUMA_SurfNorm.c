@@ -89,6 +89,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
    float d1[3], d2[3], d, nrm;
    SUMA_SURF_NORM RetStrct;
    int *Index, *N_Memb, i, j, maxind, NotMember, id, id2, ND, ip, NP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -98,7 +99,8 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
    RetStrct.N_Face = N_FaceSetList;
 
    /* allocate space */
-    RetStrct.FaceNormList = (float *)SUMA_calloc (N_FaceSetList * NP, sizeof(float));
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: %d %d\n", FuncName, N_NodeList, N_FaceSetList);
+   RetStrct.FaceNormList = (float *)SUMA_calloc (N_FaceSetList * NP, sizeof(float));
    RetStrct.NodeNormList = (float *)SUMA_calloc (N_NodeList * ND, sizeof(float));
    Index = (int *)SUMA_calloc (N_NodeList, sizeof(int));
    N_Memb = (int *)SUMA_calloc (N_NodeList, sizeof(int));
@@ -107,7 +109,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
          SUMA_alloc_problem (FuncName);
          SUMA_RETURN (RetStrct);
       }
-   
+
    /* calculate and normalize triangle normals */
    maxind = N_NodeList -1;
    for (i=0; i < N_FaceSetList; i++) {

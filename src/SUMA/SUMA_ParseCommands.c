@@ -536,7 +536,9 @@ Ans = SUMA_RegisterMessage (  list, Message, Source, Type, Action );
 \return  YUP/NOPE, success/failure
 
 */
-SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SUMA_MESSAGE_TYPES Type, SUMA_MESSAGE_ACTION Action)
+SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, 
+                                    char *Source, SUMA_MESSAGE_TYPES Type, 
+                                    SUMA_MESSAGE_ACTION Action)
 {
    static char FuncName[]={"SUMA_RegisterMessage"};
    SUMA_MessageData *MD = NULL;
@@ -558,8 +560,8 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SU
       SUMA_RETURN (NOPE);
    }
    
-   MD->Message = Message;
-   MD->Source = Source;
+   MD->Message = SUMA_copy_string(Message);
+   MD->Source = SUMA_copy_string(Source);
    MD->Type = Type;
    MD->Action = Action;
    
@@ -1544,8 +1546,10 @@ void SUMA_FreeMessageListData(void *Hv)
       SUMA_RETURNe;
    }
    
-#if 0   /* Message and Source are never allocated and should not be freed. */
+#if 1   /* Message and Source are never allocated and should not be freed. */
         /*                                            2003 June 19 [rickr] */
+        /* Message and Source are now allocated */
+        /*                 2003 June 23 [zsaad] */
    if (H->Message) SUMA_free(H->Message);
    if (H->Source) SUMA_free(H->Source);
 #endif
