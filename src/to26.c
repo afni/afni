@@ -17,11 +17,12 @@ int main( int argc , char * argv[] )
    MRI_IMAGE * im ;
    byte * bp , bb ;
    int ii , jj , nn , rr , kk , nlin=0 ;
-   char out[NOUT+1] , zout[NOUT+1] , cc,nc ;
+   char out[NOUT+1] , zout[NOUT+1] , cc,nc , *nam ;
 
-   if( argc < 2 ){ fprintf(stderr,"Usage: to26 input.pgm > output.26\n"); exit(0); }
+   if( argc < 2 ){ fprintf(stderr,"Usage: to26 NAME input.pgm > output.26\n"); exit(0); }
 
-   im = mri_read( argv[1] ) ; if( im == NULL ) exit(1) ;
+   nam = argv[1] ;
+   im = mri_read( argv[2] ) ; if( im == NULL ) exit(1) ;
    bp = MRI_BYTE_PTR(im) ;
 
    for( ii=0 ; ii < 25 ; ii++ ) bk[ii] = (map[ii]+map[ii+1])/2 ;
@@ -30,11 +31,11 @@ int main( int argc , char * argv[] )
 fprintf(stderr,"image dimensions = %d %d\n",im->nx,im->ny) ;
 
    nn = 0 ; rr = 0 ;
-   printf( "#undef  NX26\n") ;
-   printf( "#undef  NY26\n") ;
-   printf( "#define NX26 %d\n",im->nx) ;
-   printf( "#define NY26 %d\n",im->ny) ;
-   printf( "static char * im26[] = {\n" ) ;
+   printf( "#undef  NX_%s\n",nam) ;
+   printf( "#undef  NY_%s\n",nam) ;
+   printf( "#define NX_%s %d\n",nam,im->nx) ;
+   printf( "#define NY_%s %d\n",nam,im->ny) ;
+   printf( "static char * BAR_%s[] = {\n" , nam ) ;
    for( ii=0 ; ii < im->nvox ; ii++ ){
       bb = bp[ii] ;
       for( jj=0 ; jj < 26 ; jj++ ) if( bb <= bk[jj] ) break ;
@@ -67,7 +68,7 @@ fprintf(stderr,"image dimensions = %d %d\n",im->nx,im->ny) ;
 
    out[nn] = '\0' ;
    printf("   \"%s\"\n};\n",out) ; nlin++ ;
-   printf("#undef  NLINE26\n") ;
-   printf("#define NLINE26 %d\n",nlin) ;
+   printf("#undef  NLINE_%s\n",nam) ;
+   printf("#define NLINE_%s %d\n",nam,nlin) ;
    exit(0) ;
 }

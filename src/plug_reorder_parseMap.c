@@ -572,7 +572,8 @@ for(i = 0, currentClass = 0; i < *length; /* quit when all indices are remapped 
 	   class to be remapped; remap until class changes or class number
 	   returns to 1 */
 	/* for(k = currentClassPos; i < rawLength, k < rawLength; ) { */
-	for(k = currentClassPos; i < rawLength && k < rawLength; ) {
+	/* for(k = currentClassPos; i < rawLength && k < rawLength; ) { */
+	   for(k = currentClassPos; k < rawLength; ) {
 		if(classList[k]) {
 			#ifdef DEBUG_PLUGIN_REORDER_PARSEMAP
 			printf("    Index[%d] <-- %d [Old index]\n", i, k);

@@ -9,11 +9,18 @@ void AFNI_splashup  (void){ return; }
 
 #include "afni_splash.h"     /* contains the RLE image data */
 
-static void * handle = NULL ;
 static void * SPLASH_popup_image( void * , MRI_IMAGE * ) ;
+static MRI_IMAGE * SPLASH_decode26( int , int , int , char ** ) ;
+
 static MRI_IMAGE * imspl = NULL ;
+static void * handle = NULL ;
 
 #define USE_FADING
+
+#ifdef AFNI_DEBUG
+#  define USE_TRACING
+#endif
+#include "dbtrace.h"
 
 /*----------------------------------------------------------------------------*/
 
@@ -21,6 +28,8 @@ void AFNI_splashdown(void)
 {
    byte * bspl ; int ii , nv , kk ;
    PLUGIN_impopper * ppp = (PLUGIN_impopper *) handle ;
+
+ENTRY("AFNI_splashdown") ;
 
    if( handle != NULL ){
 #ifdef USE_FADING
@@ -42,7 +51,7 @@ void AFNI_splashdown(void)
       SPLASH_popup_image(handle,NULL); handle = NULL;  /* get rid of window */
    }
    mri_free(imspl) ; imspl = NULL ;
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -50,37 +59,30 @@ void AFNI_splashdown(void)
 void AFNI_splashup(void)
 {
    PLUGIN_impopper * ppp ;
-   int ii , jj , cc,rr , dd,ee ;
+   MRI_IMAGE * imov ;
+   int    dd,ee ;
    char   bb ;
    byte * bspl ;
-   static int first=1 ;
+   static int first=1 , nov , dnov ;
+
+ENTRY("AFNI_splashup") ;
 
    /*--- create splash image ---*/
 
    if( ! PLUTO_popup_open(handle) ){
       mri_free(imspl) ;
-      imspl = mri_new( NX_SPLASH , NY_SPLASH , MRI_byte ) ;
-      bspl  = MRI_BYTE_PTR(imspl) ;
+      imspl = SPLASH_decode26( NX_blank, NY_blank, NLINE_blank, BAR_blank ) ;
 
-      /* decode the RLE image data into a real image array */
-
-      cc = rr = 0 ;
-      for( ii=0 ; ii < imspl->nvox && rr < NLINE_SPLASH ; ){
-         bb = im26[rr][cc++] ; if( bb == '\0' ) break ;
-         if( bb >= 'A' && bb <= 'Z' ){
-            jj = bb - 'A' ; bspl[ii++] = map26[jj] ;
-         } else {
-            dd = bb - '0' ; bb = im26[rr][cc++] ; if( bb == '\0' ) break ;
-            jj = bb - 'A' ;
-            for( ee=0 ; ee < dd && ii < imspl->nvox ; ee++ )
-               bspl[ii++] = map26[jj] ;
-         }
-         if( im26[rr][cc] == '\0' ){ cc = 0 ; rr++ ; }
+      if( first ){
+         nov  =    (lrand48() >> 8) % NOVER  ;
+         dnov = 2*((lrand48() >> 8) % 2) - 1 ;
       }
+      nov  = (nov+dnov+NOVER) % NOVER ;
+      imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
 
-      /* initialize image display */
+      mri_overlay_2D( imspl, imov, IXOVER, JYOVER ) ; mri_free(imov) ;
 
-      handle = SPLASH_popup_image( handle , imspl ) ;
+      handle = SPLASH_popup_image( handle, imspl ) ;
 #ifndef USE_FADING
       mri_free(imspl) ; imspl = NULL ;
 #endif
@@ -96,7 +98,7 @@ void AFNI_splashup(void)
       }
 
       XtVaSetValues( ppp->seq->wtop ,
-                       XmNx , (GLOBAL_library.dc->width-NX_SPLASH)/2 ,
+                       XmNx , (GLOBAL_library.dc->width-NX_blank)/2 ,
                        XmNy , 100 ,
                        XmNmwmDecorations , dd ,
                        XmNmwmFunctions   , ee ,
@@ -137,7 +139,7 @@ void AFNI_splashup(void)
       AFNI_splashdown() ;  /* off with their heads */
    }
 
-   first = 0 ; return ;
+   first = 0 ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -148,13 +150,15 @@ static void * SPLASH_popup_image( void * handle , MRI_IMAGE * im )
 {
    PLUGIN_impopper * imp = (PLUGIN_impopper *) handle ;
 
+ENTRY("SPLASH_popup_image") ;
+
    /*-- input image is NULL ==> popdown, if applicable --*/
 
    if( im == NULL ){
       if( imp != NULL )
          drive_MCW_imseq( imp->seq , isqDR_destroy , NULL ) ;
 
-      return ((void *) imp) ;
+      RETURN ((void *) imp) ;
    }
 
    /*-- input = no popper handle ==> create one --*/
@@ -177,6 +181,43 @@ static void * SPLASH_popup_image( void * handle , MRI_IMAGE * im )
 
    /*-- unlike PLUTO_popup_image, actual popup is left to caller --*/
 
-   return ((void *) imp) ;
+   RETURN ((void *) imp) ;
+}
+
+/*--------------------------------------------------------------------------
+  Decode the 26 data into an image
+----------------------------------------------------------------------------*/
+
+static MRI_IMAGE * SPLASH_decode26( int nx, int ny , int nl , char ** im26 )
+{
+   MRI_IMAGE * im ;
+   byte * bim ;
+   int ii , jj , cc,rr , dd,ee ;
+   char bb ;
+
+ENTRY("SPLASH_decode26") ;
+
+   if( nx < 3 || ny < 3 || nl < 3 || im26 == NULL ) RETURN(NULL) ;
+
+   im  = mri_new( nx , ny , MRI_byte ) ;
+   bim = MRI_BYTE_PTR(im) ;
+
+   /* decode the RLE image data into a real image array */
+
+   cc = rr = 0 ;
+   for( ii=0 ; ii < im->nvox && rr < nl ; ){
+      bb = im26[rr][cc++] ; if( bb == '\0' ) break ;
+      if( bb >= 'A' && bb <= 'Z' ){
+         jj = bb - 'A' ; bim[ii++] = map26[jj] ;
+      } else {
+         dd = bb - '0' ; bb = im26[rr][cc++] ; if( bb == '\0' ) break ;
+         jj = bb - 'A' ;
+         for( ee=0 ; ee < dd && ii < im->nvox ; ee++ )
+            bim[ii++] = map26[jj] ;
+      }
+      if( im26[rr][cc] == '\0' ){ cc = 0 ; rr++ ; }
+   }
+
+   RETURN(im) ;
 }
 #endif /* NO_FRIVOLITIES */
