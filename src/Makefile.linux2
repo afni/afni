@@ -58,8 +58,8 @@ LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -l
 # For suma (NO STATIC LINKING OF GL libs)
 SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
-#if you want to link to a static version of GLw you can use -lMesaGLw
-#since libGLw.so is not common on many systems
+#use -lGLw if you have libGLw.a or libGLw.so* or 
+#  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
 SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lcurses -lm 
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar

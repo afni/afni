@@ -579,7 +579,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
   #if 1  /* use screen rendering Xvisual */
   vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[1]);
   if (vi == NULL) {
-  	fprintf(SUMA_STDERR,"%s: Trying to use useless double buffering configuration.\n", FuncName);
+  	/*fprintf(SUMA_STDERR,"%s: Trying to use useless double buffering configuration.\n", FuncName);*/
     vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[0]);
     if (vi == NULL) {
       fprintf(SUMA_STDERR,"Error %s: no appropriate RGB visual with depth buffer", FuncName);
