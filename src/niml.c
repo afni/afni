@@ -4283,7 +4283,7 @@ static int tcp_alivecheck( sd )
 
 static int tcp_connect( char *host , int port )
 {
-   int sd , l ;
+   int sd , l , q,qq ;
    struct sockaddr_in sin ;
    struct hostent    *hostp ;
 
@@ -4313,9 +4313,18 @@ static int tcp_connect( char *host , int port )
    /* but large buffers are good */
 
 #ifdef SOCKET_BUFSIZE
-   l = SOCKET_BUFSIZE ;
-   setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
-   setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
+   q = 0 ; qq = sizeof(int) ;                                    /* 03 Dec 2002:    */
+   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, &qq ) ;     /* only modify      */
+   if( q < SOCKET_BUFSIZE ){                                     /* if current buffer */
+     l = SOCKET_BUFSIZE ;                                        /* is too small     */
+     setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
+   }
+   q = 0 ; qq = sizeof(int) ;
+   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, &qq ) ;
+   if( q < SOCKET_BUFSIZE ){
+     l = SOCKET_BUFSIZE ;
+     setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
+   }
 #endif
 
    /** set port on remote computer **/
@@ -4369,7 +4378,7 @@ static int tcp_connect( char *host , int port )
 
 static int tcp_listen( int port )
 {
-   int sd , l ;
+   int sd , l , q,qq ;
    struct sockaddr_in sin ;
 
    if( port < 1 ) return -1 ; /* bad input */
@@ -4392,9 +4401,18 @@ static int tcp_listen( int port )
 #endif
 
 #ifdef SOCKET_BUFSIZE
-   l = SOCKET_BUFSIZE ;
-   setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
-   setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
+   q = 0 ; qq = sizeof(int) ;
+   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, &qq ) ;
+   if( q < SOCKET_BUFSIZE ){
+     l = SOCKET_BUFSIZE ;
+     setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
+   }
+   q = 0 ; qq = sizeof(int) ;
+   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, &qq ) ;
+   if( q < SOCKET_BUFSIZE ){
+     l = SOCKET_BUFSIZE ;
+     setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
+   }
 #endif
 
    /** set port on remote computer **/

@@ -4081,3 +4081,7 @@
  * Modified mri_read_dicom.c to deal with Siemens Mosaic differently, to
      accomodate variations from NYU's Allegra scanner (vs. NIDA's).
  * Modified to3d.c to show NX x NY along with Datum in GUI.
+
+03 Dec 2002
+ * Modified niml.c to use setsockopt() to change socket buffer sizes only
+     if getsockopt() says they are too small.
