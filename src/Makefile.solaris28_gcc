@@ -1,5 +1,4 @@
-# This worked on a Sun UltraSPARC with Solaris 2.6,
-# during the brief period that I had access to one.
+# This works on a Sun Solaris 2.8 with gcc and gnu ld.
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = gcc -O2 -ffast-math -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
@@ -18,16 +17,16 @@ EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
 #              /usr/lib/libsocket.a /usr/lib/libnsl.a /usr/lib/libgen.a -ldl
 
 PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -G -s
+PLUGIN_LFLAGS = -s -shared
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib -s
+PLFLAGS       = -Wl,-E -L. -L/usr/dt/lib -L/usr/openwin/lib -s
 
 AR     = /usr/ccs/bin/ar
 RANLIB = /usr/bin/touch
 TAR    = /bin/tar
 GZIP   = gzip
 MKDIR  = /bin/mkdir
-LD     = /usr/ucb/ld
+LD     = /usr/local/bin/ld
 
 RM = /bin/rm -f
 MV = /bin/mv -f
