@@ -1040,10 +1040,11 @@ void nifti_image_load( nifti_image *nim )
 
    if( ii < ntot ){
      fprintf(stderr,"++ WARNING: nifti_image_load(%s):\n"
-                    "   data bytes needed = %d\n"
-                    "   data bytes input  = %d\n"
-                    "   number missing    = %d (set to 0)\n",
-             nim->iname , ntot, ii, ntot-ii ) ;
+                    "   data bytes needed = %u\n"
+                    "   data bytes input  = %u\n"
+                    "   number missing    = %u (set to 0)\n",
+             nim->iname , (unsigned int)ntot ,
+             (unsigned int)ii , (unsigned int)ntot-ii ) ;
      memset( (char *)(nim->data)+ii , 0 , ntot-ii ) ;
    }
 
@@ -1587,7 +1588,7 @@ char *nifti_image_to_ascii( nifti_image *nim )
      sprintf( buf+strlen(buf) ,
               "  qform_code = '%d'\n"
               "  qform_code_name = '%s'\n"
-              "  qto_xyz_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
+     "  qto_xyz_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
          nim->qform_code      , nifti_xform_string(nim->qform_code) ,
          nim->qto_xyz.m[0][0] , nim->qto_xyz.m[0][1] ,
          nim->qto_xyz.m[0][2] , nim->qto_xyz.m[0][3] ,
@@ -1599,7 +1600,7 @@ char *nifti_image_to_ascii( nifti_image *nim )
          nim->qto_xyz.m[3][2] , nim->qto_xyz.m[3][3]  ) ;
 
      sprintf( buf+strlen(buf) ,
-              "  qto_ijk_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
+     "  qto_ijk_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
          nim->qto_ijk.m[0][0] , nim->qto_ijk.m[0][1] ,
          nim->qto_ijk.m[0][2] , nim->qto_ijk.m[0][3] ,
          nim->qto_ijk.m[1][0] , nim->qto_ijk.m[1][1] ,
@@ -1625,7 +1626,7 @@ char *nifti_image_to_ascii( nifti_image *nim )
      sprintf( buf+strlen(buf) ,
               "  sform_code = '%d'\n"
               "  sform_code_name = '%s'\n"
-              "  sto_xyz_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
+     "  sto_xyz_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
          nim->sform_code      , nifti_xform_string(nim->sform_code) ,
          nim->sto_xyz.m[0][0] , nim->sto_xyz.m[0][1] ,
          nim->sto_xyz.m[0][2] , nim->sto_xyz.m[0][3] ,
@@ -1637,7 +1638,7 @@ char *nifti_image_to_ascii( nifti_image *nim )
          nim->sto_xyz.m[3][2] , nim->sto_xyz.m[3][3]  ) ;
 
      sprintf( buf+strlen(buf) ,
-              "  sto_ijk matrix = '%g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
+     "  sto_ijk matrix = '%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
          nim->sto_ijk.m[0][0] , nim->sto_ijk.m[0][1] ,
          nim->sto_ijk.m[0][2] , nim->sto_ijk.m[0][3] ,
          nim->sto_ijk.m[1][0] , nim->sto_ijk.m[1][1] ,
@@ -1772,7 +1773,7 @@ nifti_image *nifti_image_from_ascii( char *str )
        nim->iname = strdup(rhs) ;
      }
      else if( strcmp(lhs,"sto_xyz_matrix") == 0 ){
-       sscanf( rhs , "%f %f %f %f %f %f %f %f %f %f %f %f" ,
+       sscanf( rhs , "%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f" ,
                &(nim->sto_xyz.m[0][0]) , &(nim->sto_xyz.m[0][1]) ,
                &(nim->sto_xyz.m[0][2]) , &(nim->sto_xyz.m[0][3]) ,
                &(nim->sto_xyz.m[1][0]) , &(nim->sto_xyz.m[1][1]) ,
