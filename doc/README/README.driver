@@ -1,6 +1,6 @@
-
-Driving AFNI from a Plugout
-===========================
+=================================
+** Driving AFNI from a Plugout **
+=================================
 A plugout can control some aspects of AFNI.  This is done by passing a
 command line of the form
 
@@ -11,6 +11,7 @@ available are described below.  The sample plugout plugout_drive.c can
 be used to test how things work (highly recommended before you start
 writing your own code).
 
+
 RESCAN_THIS [c]
   rescans the current session directory for controller 'c', where 'c'
   is one of 'A', 'B', 'C', 'D', or 'E'.  If 'c' is absent, the 'A'
@@ -18,40 +19,65 @@ RESCAN_THIS [c]
   is not open, the acknowledgement from AFNI will be "BAD", otherwise
   it will be "good".
 
+
 SET_SESSION [c.]directoryname
   Switches controller 'c' to be looking at the named directory.  The
   match on directory names is done by a sub-string match - that is,
   directoryname = "fred" will match an AFNI session directory named
   "wilhelm/frederick/von/guttenstein".
 
+
 SET_ANATOMY [c.]prefix
   Switches controller 'c' to be looking at the anatomical dataset with
   the given prefix.  The prefix must be a perfect match - this is NOT
   a sub-string match.
 
+
 SET_FUNCTION [c.]prefix
   Same, but for the functional dataset in controller 'c'.
 
-OPEN_WINDOW [c].windowname [geom=+x+y]
+
+OPEN_WINDOW [c.]windowname [options]
   Opens a window from controller 'c'.  The window name can be one of
     axialimage sagittalimage coronalimage
     axialgraph sagittalgraph coronalgraph
-  or can be a plugin, specified by something like
-    plugin.Fourier_Stuff
-  If geom=+x+y is present on the command line, then the window is positioned
-  at the given location.
+  If the specified controller is not yet opened, it will be opened
+  first (like pressing the 'New' button).  If the command is of the
+  form "OPEN_WINDOW c", then only the controller itself will be opened.
+  For all windows, one allowed option is:
+    geom=PxQ+R+S or geom=PxQ or geom=+R+S
+    to make the window be PxQ pixels in size and located at screen
+    coordinates (R,S).
+  For image windows, other options available are:
+    ifrac=number -> set image fraction in window to number (<= 1.0)
+    mont=PxQ:R   -> montage P across, Q down, every R'th slice
+  For graph windows, other options available are:
+    matrix=number -> use number sub-graphs (<= 21)
+    pinnum=number -> pin the graph length to number time points
+  You can also open plugin windows with a windowname like so:
+    A.plugin.buttonlabel
+  where buttonlabel is the plugin's button label with blanks replaced
+  by underscores or hyphens (e.g., Render_Dataset).  You can also use
+  the geom=+R+S option with this type of window opening, to position
+  the plugin interface window.
+
 
 CLOSE_WINDOW [c].windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
 
+
 QUIT
   AFNI will exit immediately.
+
 
 ============
 ** GRAPHS **
 ============
 The following commands are used to open graph windows and manipulate them.
+These commands don't actually interact with the rest of AFNI - they are
+really just using AFNI as a graph display server.
+
 At present there are two similar kinds of graphs:
 
   XY = connected (x,y) pairs - you must supply (x,y) for each new point
@@ -123,7 +149,7 @@ CLOSE_GRAPH_XY gname
 CLEAR_GRAPH_XY gname
   Clears the graph out of the given window (leaves the axes and labels).
 
-ADDTO_GRAPH_xy gname x y_1 y_2 .. y_ny [repeat]
+ADDTO_GRAPH_XY gname x y_1 y_2 .. y_ny [repeat]
   Actually plots data into the given window.  In the i-th sub-graph, a line
   will be drawn connecting to (x,y_i), for i=1..ny.  You can put many sets
   of points on the line, subject to the limitation that a plugout command
