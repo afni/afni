@@ -5286,6 +5286,11 @@
  * Modified mri_imcount() in mri_read.c to not do "3D:" counting on a file
      unless there is actually a colon in the filename!  D'oh.
 
-04 Jan 2004
+04 Jan 2005
  * Modified mri_warp3D_align.c and 3dWarpDrive.c to fix up some issues with
      -twopass on small (EPI-sized) bricks and to add -1Dfile option.
+
+05 Jan 2005
+ * Modified 1dsvd.c to add -1Dright option.
+ * Fixed bug in 1dplot.c -stdin option: failed to skip leading blanks properly
+     when scanning input lines for '#' comment characters!  (Stupid)

@@ -19,6 +19,7 @@ int main( int argc , char *argv[] )
    float *far ;
    int do_cond=0 ;  /* 08 Nov 2004 */
    int do_sing=0 ;
+   int do_1Drr=0 ;  /* 05 Jan 2005 */
    int pall=1 ;
 
    /* help? */
@@ -26,12 +27,16 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1dsvd [options] 1Dfile 1Dfile ...\n"
             "- Computes SVD of the matrix formed by the 1D file(s).\n"
-            "- Output appears on stdout.\n"
+            "- Output appears on stdout; to save it, use '>' redirection.\n"
             "\n"
             "Options:\n"
-            " -one  =  Make 1st vector be all 1's.\n"
-            " -cond =  Only print condition number (ratio of extremes)\n"
-            " -sing =  Only print singular values\n"
+            " -one     = Make 1st vector be all 1's.\n"
+            " -cond    = Only print condition number (ratio of extremes)\n"
+            " -sing    = Only print singular values\n"
+            " -1Dright = Only output right eigenvectors, in a .1D format\n"
+            "            This can be useful for reducing the number of\n"
+            "            columns in a design matrix.  The singular values\n"
+            "            are printed at the top of each vector column.\n"
            ) ;
      exit(0) ;
    }
@@ -40,6 +45,10 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ; nvec = 0 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-1Dright") == 0 ){
+       pall = 0 ; do_1Drr = 1 ; iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-one") == 0 ){
        do_one = 1 ; iarg++ ; continue ;
@@ -130,38 +139,45 @@ int main( int argc , char *argv[] )
        if( sval[jj] > stop ) stop = sval[jj] ;
      }
      cnum = stop/sbot ;
+     if( do_1Drr ) printf("# condition number = ") ;
      printf("%.7g\n",cnum) ;
    }
 
-   if( do_sing ){
+   if( do_sing && !do_1Drr ){
      qsort( sval , nvec , sizeof(double) , dbc ) ;
      for( jj=0 ; jj < nvec ; jj++ ) printf(" %6g",sval[jj]) ;
      printf("\n") ;
    }
 
-   if( !pall ) exit(0) ;
+   if( !pall && !do_1Drr ) exit(0) ;
 
-   printf("\n"
-          "++ Data vectors [A]:\n   " ) ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" ---------") ;
+   if( !do_1Drr ){
+     printf("\n"
+            "++ Data vectors [A]:\n   " ) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" ---------") ;
+     printf("\n") ;
+     for( kk=0 ; kk < nx ; kk++ ){
+       printf("%02d:",kk) ;
+       for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",A(kk,jj)) ;
+       printf("\n") ;
+     }
+   }
+
+   if( !do_1Drr ) printf("\n++ Right Vectors [U]:\n   " ) ;
+
+   if( do_1Drr ) printf("#") ;
+   for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.5g",sval[jj]) ;
+   printf("\n") ;
+   if( do_1Drr ) printf("#") ; else printf("  ") ;
+   for( jj=0 ; jj < nvec ; jj++ ) printf(" ------------") ;
    printf("\n") ;
    for( kk=0 ; kk < nx ; kk++ ){
-     printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",A(kk,jj)) ;
+     if( !do_1Drr) printf("%02d:",kk) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.5g",U(kk,jj)) ;
      printf("\n") ;
    }
 
-   printf("\n"
-          "++ Right Vectors [U]:\n   " ) ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",sval[jj]) ;
-   printf("\n   ") ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" ---------") ;
-   printf("\n") ;
-   for( kk=0 ; kk < nx ; kk++ ){
-     printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",U(kk,jj)) ;
-     printf("\n") ;
-   }
+   if( do_1Drr ) exit(0) ;
 
    printf("\n"
           "++ Left Vectors [V]:\n   " ) ;
