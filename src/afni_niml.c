@@ -875,6 +875,7 @@ STATUS("searching for Node_ROI functional dataset") ;
          AFNI_popup_message( msg ) ;
          EXRETURN ;
        }
+       DSET_mallocize(dset_func) ;     /* oops */
        if( !DSET_LOADED(dset_func) ){
          DSET_load(dset_func) ;
          if( !DSET_LOADED(dset_func) ){
