@@ -22,14 +22,18 @@ static char helpstring[] =
   "\n"
   "   Ignore Count   = How many points to ignore at start\n"
   "   Taper Percent  = Amount of data to taper (Hamming)\n"
-  "   FFT Length     = Power-of-2 to use\n"
+  "   FFT Length     = Fourier transform size to use [N]\n"
+  "                    (If N > size of data, data will be zero)\n"
+  "                    (padded. 'shortest' means to use N just)\n"
+  "                    (above the length of the time series.  )\n"
   "\n"
   " The output dataset will be stored in the 3D+time format, with\n"
   " the 'time' index actually being frequency.  The frequency grid\n"
   " spacing will be 1/(N*dt), where N=FFT length and dt = input\n"
   " dataset time spacing.\n"
   "\n"
-  " The method used is the simplest known: squared periodogram."
+  " The method used is the simplest known: squared periodogram.\n"
+  " A single FFT is done (i.e., each point has DOF=2.)\n"
 ;
 
 /*------------- strings for output format -------------*/
@@ -41,8 +45,14 @@ static char * type_strings[]
 
 /*------------- strings for FFT length -------------*/
 
-static char * fft_strings[]
- = { "shortest", "32", "64", "128", "256", "512", "1024", "2048", "4096" } ;
+static char * fft_strings[] =
+#if 0
+   { "shortest", "32", "64", "128", "256", "512", "1024", "2048", "4096" } ;
+#else
+   { "shortest",  "32" ,  "40" ,  "48" ,  "64" ,  "80" ,  "96" ,
+                 "128" , "160" , "192" , "256" , "320" , "384" ,
+                 "512" , "640" , "768" ,"1024" ,"1280" ,"1536" , "2048" } ;
+#endif
 
 #define NUM_FFT_STRINGS (sizeof(fft_strings)/sizeof(char *))
 
@@ -275,8 +285,11 @@ char * POWER_main( PLUGIN_interface * plint )
    if( strcmp(str,fft_strings[0]) == 0 ){
 
       /*-- get next larger power-of-2 --*/
-
+#if 0
       for( nfft=32 ; nfft < nuse ; nfft *= 2 ) ; /* loop until nfft >= nuse */
+#else
+      nfft = csfft_nextup(nuse) ;
+#endif
 
    } else {
       nfft = strtol( str , NULL , 10 ) ;  /* just convert string to integer */
@@ -481,8 +494,9 @@ char * POWER_main( PLUGIN_interface * plint )
    { char buf[128] ;
      ii = (nfreq * nvox * sizeof(float)) / (1024*1024) ;
      sprintf( buf , "  \n"
-                    "*** 3D+time Power Spectrum:\n"
-                    "*** Using %d MBytes of workspace\n " , ii ) ;
+                    "*** 3D+time Power Spectral Density:\n"
+                    "*** Using %d MBytes of workspace,\n "
+                    "*** with FFT length = %d\n" , ii,nfft ) ;
      PLUTO_popup_transient( plint , buf ) ;
    }
 

@@ -19,8 +19,10 @@ void main( int argc , char * argv[] )
    num = strtol( argv[narg++] , NULL , 10 ) ;
    nvec_in = strtol( argv[narg++] , NULL , 10 ) ;
 
-   if( len != csfft_nextup(len) ){
+   if( len > 0 && len != csfft_nextup(len) ){
       fprintf(stderr,"Can't do FFT of length %d\n",len) ; exit(1) ;
+   } else if ( len < 0 ){
+      len = -len ;
    }
 
    if( nvec_in < 1 ){fprintf(stderr,"Illegal nvec value!\n"); exit(1) ;}

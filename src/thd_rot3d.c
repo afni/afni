@@ -1270,7 +1270,11 @@ static void apply_xshear( float a , float b , float s ,
 
    if( shift_method == MRI_FOURIER ){
       nup = 8 ; nst = 0.95*nx + 0.5*st ; if( nst < nx ) nst = nx ;
+#if 0
       while( nup < nst ){ nup *= 2 ; }  /* FFT length */
+#else
+      nup = csfft_nextup(nst) ;
+#endif
    }
 
    for( kk=0 ; kk < nz ; kk++ ){
@@ -1305,7 +1309,11 @@ static void apply_yshear( float a , float b , float s ,
 
    if( shift_method == MRI_FOURIER ){
       nup = 8 ; nst = 0.95*ny + 0.5*st ; if( nst < ny ) nst = ny ;
+#if 0
       while( nup < nst ){ nup *= 2 ; }  /* FFT length */
+#else
+      nup = csfft_nextup(nst) ;
+#endif
    }
 
    fj0 = (float *) malloc( sizeof(float) * 2*ny ) ; fj1 = fj0 + ny ;
@@ -1349,7 +1357,11 @@ static void apply_zshear( float a , float b , float s ,
 
    if( shift_method == MRI_FOURIER ){
       nup = 8 ; nst = 0.95*nz + 0.5*st ; if( nst < nz ) nst = nz ;
+#if 0
       while( nup < nst ){ nup *= 2 ; }  /* FFT length */
+#else
+      nup = csfft_nextup(nst) ;
+#endif
    }
 
    fj0 = (float *) malloc( sizeof(float) * 2*nz ) ; fj1 = fj0 + nz ;

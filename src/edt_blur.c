@@ -86,7 +86,11 @@ STATUS("start x FFTs") ;
 
    aa  = sigmax * sigmax * 0.5 ;
    nup = nx + (int)(3.0 * sigmax / dx) ;      /* min FFT length */
+#if 0
    ii  = 2 ; while( ii < nup ){ ii *= 2 ; }  /* next power of 2 larger */
+#else
+   ii = csfft_nextup(nup) ;
+#endif
    nup = ii ; nby2 = nup / 2 ;
 
    GET_AS_BIG(cx,complex,nup) ; GET_AS_BIG(gg,float,nup) ;
@@ -194,7 +198,11 @@ STATUS("start y FFTs") ;
 
    aa  = sigmay * sigmay * 0.5 ;
    nup = ny + (int)(3.0 * sigmay / dy) ;      /* min FFT length */
+#if 0
    ii  = 2 ; while( ii < nup ){ ii *= 2 ; }  /* next power of 2 larger */
+#else
+   ii = csfft_nextup(nup) ;
+#endif
    nup = ii ; nby2 = nup / 2 ;
 
    GET_AS_BIG(cx,complex,nup) ; GET_AS_BIG(gg,float,nup) ;
@@ -298,7 +306,11 @@ STATUS("start z FFTs") ;
 
    aa  = sigmaz * sigmaz * 0.5 ;
    nup = nz + (int)(3.0 * sigmaz / dz) ;      /* min FFT length */
+#if 0
    ii  = 2 ; while( ii < nup ){ ii *= 2 ; }  /* next power of 2 larger */
+#else
+   ii = csfft_nextup(nup) ;
+#endif
    nup = ii ; nby2 = nup / 2 ;
 
    GET_AS_BIG(cx,complex,nup) ; GET_AS_BIG(gg,float,nup) ;

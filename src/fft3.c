@@ -10,11 +10,14 @@ int main( int argc , char * argv[] )
    if( argc < 3 ){ printf("Usage: fft3 N nf\n"); exit(1); }
 
    N = strtod( argv[1] , NULL ) ;
-   f = strtod( argv[2] , NULL ) / N ;
 
-   if( N != csfft_nextup(N) ){
+   if( N > 0 && N != csfft_nextup(N) ){
       fprintf(stderr,"Can't do FFT of length %d\n",N) ; exit(1) ;
+   } else if ( N < 0 ){
+      N = -N ;
    }
+
+   f = strtod( argv[2] , NULL ) / N ;
 
    cs = (complex *) malloc(sizeof(complex)*N) ;
    cx = (complex *) malloc(sizeof(complex)*N) ;

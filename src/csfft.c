@@ -10,7 +10,7 @@
 #  include "mrilib.h"   /* for use in AFNI package */
 #endif
 
-/*** Prototype:                                                          ***
+/*** Prototypes:                                                         ***
  ***    Complex-to-complex FFT in place:                                 ***
  ***      mode = -1 or +1 (NO SCALING ON INVERSE!)                       ***
  ***      idim = dimension (power of 2)                                  ***
@@ -21,8 +21,9 @@ void csfft_cox( int mode , int idim , complex * xc ) ;
 int csfft_nextup( int idim ) ;
 
 /*** 08 Aug 1999:                                                        ***
- ***   idim can now also have a single factor of 3 or 5 (not both).      ***
- ***   Examples: 48, 80, 96, 160, 192, 320, 384, ...                     ***
+ ***   idim can now also have a single factor of 3 or 5 (or both).       ***
+ ***   Examples:  48,  80,  96, 120, 160, 192, 240 , 320,  384, ...      ***
+ ***          [ 3*16,5*16,3*32,15*8,5*32,3*64,15*16,5*64,3*128 ]         ***
  ***   The routine csfft_nextup(n) returns the smallest size FFT         ***
  ***    >= n that csfft_cox() knows how to do.                           ***/
 
@@ -1375,7 +1376,7 @@ static void fft256( int mode , complex * xc )
 /*------------------------------------------------------------------
    fft_3dec: do a decimation-by-3, plus a power-of-2.
    idim must be equal to a power-of-2 times 3 -- this routine must
-     note be called recursively!
+     not be called recursively!
 --------------------------------------------------------------------*/
 
 #undef  CC3
@@ -1479,7 +1480,7 @@ static void fft_3dec( int mode , int idim , complex * xc )
 /*------------------------------------------------------------------
    fft_5dec: do a decimation-by-5, plus a power-of-2.
    idim must be equal to a power-of-2 times 5 -- this routine must
-     note be called recursively!
+     not be called recursively!
 --------------------------------------------------------------------*/
 
 #undef  COS72
@@ -1619,9 +1620,10 @@ int csfft_nextup( int idim )
 
    ibase = 8 ;
    while(1){
-      if( idim <= 3*ibase ) return 3*ibase ;
-      if( idim <= 4*ibase ) return 4*ibase ;
-      if( idim <= 5*ibase ) return 5*ibase ;
+      if( idim <= 3*ibase    ) return 3*ibase    ;
+      if( idim <= 15*ibase/4 ) return 15*ibase/4 ;
+      if( idim <= 4*ibase    ) return 4*ibase    ;
+      if( idim <= 5*ibase    ) return 5*ibase    ;
       ibase *= 2 ;
    }
 }
