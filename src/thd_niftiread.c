@@ -13,6 +13,9 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    nifti_image *nim ;
    int ntt , nbuc , nvals ;
    int statcode = 0 ;
+   THD_ivec3 orixyz ;
+   THD_fvec3 dxyz , orgxyz ;
+   THD_mat33 R ;
 
 ENTRY("THD_open_nifti") ;
 
@@ -23,23 +26,6 @@ ENTRY("THD_open_nifti") ;
    if( nim == NULL || nim->nifti_type == 0 ) RETURN(NULL) ;
 
    /*-- extract some useful AFNI-ish information from the nim struct --*/
-
-   /* determine type of dataset values */
-
-   switch( nim->datatype ){
-      default:
-        fprintf(stderr,
-                "** NIFTI error: can't handle datatype=%d (%s) in file %s\n",
-                nim->datatype, nifti_datatype_string(nim->datatype), pathname );
-        RETURN(NULL) ;
-      break ;
-
-      case DT_UINT8:     datum = MRI_byte   ; break ;
-      case DT_INT16:     datum = MRI_short  ; break ;
-      case DT_FLOAT32:   datum = MRI_float  ; break ;
-      case DT_COMPLEX64: datum = MRI_complex; break ;
-      case DT_RGB24:     datum = MRI_rgb    ; break ;
-   }
 
    /* we must have at least 2 spatial dimensions */
 
@@ -56,6 +42,26 @@ ENTRY("THD_open_nifti") ;
      RETURN(NULL) ;
    }
    nvals = MAX(ntt,nbuc) ;
+
+   /* determine type of dataset values */
+
+   switch( nim->datatype ){
+      default:
+        fprintf(stderr,
+                "** AFNI can't handle NIFTI datatype=%d (%s) in file %s\n",
+                nim->datatype, nifti_datatype_string(nim->datatype), pathname );
+        RETURN(NULL) ;
+      break ;
+
+      case DT_UINT8:     datum = MRI_byte    ; break ;
+      case DT_INT16:     datum = MRI_short   ; break ;
+      case DT_FLOAT32:   datum = MRI_float   ; break ;
+      case DT_COMPLEX64: datum = MRI_complex ; break ;
+      case DT_RGB24:     datum = MRI_rgb     ; break ;
+   }
+
+   if( nim->scl_slope != 0.0          &&
+       (datum == MRI_byte || datum == MRI_short) ) datum = MRI_float ;
 
    /* check for statistics code */
 
@@ -77,33 +83,36 @@ ENTRY("THD_open_nifti") ;
      }
    }
 
-   /* determine orientation, etc., from the qto_xyz matrix,
+   /* determine orientation from the qto_xyz matrix,
       which transforms (i,j,k) voxel indexes to (x,y,z) LPI coordinates */
 
-   { float xi = -nim->qto_xyz.m[0][0] ;  /* negate x and y   */
-     float xj = -nim->qto_xyz.m[0][1] ;  /* coefficients,    */
-     float xk = -nim->qto_xyz.m[0][2] ;  /* since AFNI works */
-     float xo = -nim->qto_xyz.m[0][3] ;  /* with RAI coords  */
-     float yi = -nim->qto_xyz.m[1][0] ;
-     float yj = -nim->qto_xyz.m[1][1] ;
-     float yk = -nim->qto_xyz.m[1][2] ;
-     float yo = -nim->qto_xyz.m[1][3] ;
-     float zi =  nim->qto_xyz.m[2][0] ;
-     float zj =  nim->qto_xyz.m[2][1] ;
-     float zk =  nim->qto_xyz.m[2][2] ;
-     float zo =  nim->qto_xyz.m[2][3] ;
+   LOAD_MAT(R, -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
+               -nim->qto_xyz.m[0][1] ,  /* coefficients,    */
+               -nim->qto_xyz.m[0][2] ,  /* since AFNI works */
+               -nim->qto_xyz.m[1][0] ,  /* with RAI coords  */
+               -nim->qto_xyz.m[1][1] ,
+               -nim->qto_xyz.m[1][2] ,
+                nim->qto_xyz.m[2][0] ,
+                nim->qto_xyz.m[2][1] ,
+                nim->qto_xyz.m[2][2]  ) ;
 
-     float di = sqrt(xi*xi+yi*yi+zi*zi) ;
-     float dj = sqrt(xj*xj+yj*yj+zj*zj) ;
-     float dk = sqrt(xk*xk+yk*yk+zk*zk) ;
+   orixyz = THD_matrix_to_orientation( R ) ;   /* orientation codes */
 
-     int ior,jor,kor ; float a,b,c , abc[3] ;
+   /* load the offsets and the grid spacings */
 
-     abc[0] = xi ; abc[1] = xj ; abc[3] = xk ;
-     a = fabs(xi) ; ior = 1 ;
-     b = fabs(xj) ; if( b > a ){ ior=2 ; a=b; }
-     c = fabs(zj) ; if( c > a ){ ior=3 ; }
-     if( abc[ior-1] < 0 ) ior = -ior ;
+   LOAD_FVEC3( orgxyz , -nim->qto_xyz.m[0][3] ,
+                        -nim->qto_xyz.m[1][3] ,
+                         nim->qto_xyz.m[2][3]  ) ;
+
+   if( nim->xyz_units == NIFTI_UNITS_METER ){
+     nim->dx *= 1000.0 ; nim->dy *= 1000.0 ; nim->dz *= 1000.0 ;
+   } else if(  nim->xyz_units == NIFTI_UNITS_MICRON ){
+     nim->dx *= 0.001 ; nim->dy *= 0.001 ; nim->dz *= 0.001 ;
+   }
+
+   LOAD_FVEC3( dxyz , (ORIENT_sign[orixyz.ijk[0]]=='+') ? nim->dx : -nim->dx ,
+                      (ORIENT_sign[orixyz.ijk[1]]=='+') ? nim->dy : -nim->dy ,
+                      (ORIENT_sign[orixyz.ijk[2]]=='+') ? nim->dz : -nim->dz  ) ;
 
    /*-- make a dataset --*/
 
@@ -112,35 +121,28 @@ ENTRY("THD_open_nifti") ;
    ppp  = THD_trailname(pathname,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
 
-   nxyz.ijk[0] = nim->nx ; dxyz.xyz[0] = nim->dx ;       /* setup axes */
-   nxyz.ijk[1] = nim->ny ; dxyz.xyz[1] = nim->dy ;
-   nxyz.ijk[2] = nim->nz ; dxyz.xyz[2] = nim->dz ;
-
-   orixyz.ijk[0] = xyz[0]->afni_orient ; orgxyz.xyz[0] = xyz[0]->start ;
-   orixyz.ijk[1] = xyz[1]->afni_orient ; orgxyz.xyz[1] = xyz[1]->start ;
-   orixyz.ijk[2] = xyz[2]->afni_orient ; orgxyz.xyz[2] = xyz[2]->start ;
+   nxyz.ijk[0] = nim->nx ;                          /* setup axes */
+   nxyz.ijk[1] = nim->ny ;
+   nxyz.ijk[2] = nim->nz ;
 
    iview = (nim->qform_code == NIFTI_XFORM_TALAIRACH )
            ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
 
-   dset->idcode.str[0] = 'N' ;  /* overwrite 1st 3 bytes with something special */
-   dset->idcode.str[1] = 'f' ;
-   dset->idcode.str[2] = 'T' ;
+   dset->idcode.str[0] = 'n' ;  /* overwrite 1st 3 bytes with something special */
+   dset->idcode.str[1] = 'i' ;
+   dset->idcode.str[2] = 'i' ;
 
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
                       ADN_datum_all   , datum ,
                       ADN_nxyz        , nxyz ,
                       ADN_xyzdel      , dxyz ,
-
-                      ADN_xyzorg      , orgxyz ,   /* needs a-fixin' */
+                      ADN_xyzorg      , orgxyz ,
                       ADN_xyzorient   , orixyz ,
-
                       ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
                       ADN_view_type   , iview ,
                       ADN_type        , (statcode != 0) ? HEAD_FUNC_TYPE
                                                         : HEAD_ANAT_TYPE ,
-
                     ADN_none ) ;
 
    /* not a time dependent dataset */
@@ -188,7 +190,7 @@ ENTRY("THD_open_nifti") ;
 
    /* return unpopulated dataset */
 
-   RETURN(dset) ;
+   nifti_image_free(nim) ; RETURN(dset) ;
 }
 
 /*-----------------------------------------------------------------
@@ -199,9 +201,10 @@ ENTRY("THD_open_nifti") ;
 void THD_load_nifti( THD_datablock *dblk )
 {
    THD_diskptr *dkptr ;
-   int nx,ny,nz,nxy,nxyz,nxyzv , nbad,ibr,nv, nslice ;
-   void *ptr ;
+   int nx,ny,nz,nxy,nxyz,nxyzv , nbad,ibr,nv, nslice , datum ;
+   void *ptr , *sbuf=NULL ;
    nifti_image *nim ;
+   FILE *fp ;
 
 ENTRY("THD_load_nifti") ;
 
@@ -215,6 +218,10 @@ ENTRY("THD_load_nifti") ;
 
    nim = nifti_image_read( dset->dblk->diskptr->brick_name, 0 ) ;
    if( nim == NULL ) EXRETURN ;
+
+   fp = fopen( nim->iname , "rb" ) ;
+   if( fp == NULL ){ nifti_image_free(nim); EXRETURN; }
+   fseek( fp , nim->iname_offset , SEEK_SET ) ;
 
    /*-- allocate space for data --*/
 
@@ -245,84 +252,18 @@ ENTRY("THD_load_nifti") ;
          mri_fix_data_pointer( NULL , DBLK_BRICK(dblk,ibr) ) ;
        }
      }
-     EXRETURN ;
+     nifti_image_free(nim); EXRETURN;
    }
 
-   (void) nc_inq_vartype( ncid , im_varid , &im_type ) ;
+   /* scaling? */
 
-   /* N.B.: we don't scale if input data is stored as floats */
+   datum = DBLK_BRICK_TYPE(dblk,0) ;  /* destination data */
 
-   do_scale = (im_type==NC_BYTE || im_type==NC_SHORT || im_type==NC_INT) ;
+   if( nim->scl_slope != 0 &&
+       (nim->datatype==DT_UINT8 || nim->datatype==DT_INT16) ){
 
-   if( do_scale && AFNI_noenv("AFNI_MINC_SLICESCALE") ) do_scale = 0 ;
-
-   code = nc_get_att_float( ncid,im_varid , "valid_range" , im_valid_range ) ;
-
-   /** if can't get valid_range, make something up **/
-
-   if( code != NC_NOERR || im_valid_range[0] >= im_valid_range[1] ){
-
-      im_valid_range[0] = 0.0 ;
-
-      switch( im_type ){
-         case NC_BYTE:   im_valid_range[1] = 255.0        ; break ;
-         case NC_SHORT:  im_valid_range[1] = 32767.0      ; break ;
-         case NC_INT:    im_valid_range[1] = 2147483647.0 ; break ;
-         case NC_FLOAT:
-         case NC_DOUBLE: im_valid_range[1] = 1.0          ; break ;
-      break ;
-      }
+     sbuf = calloc( nim->nbyper , nxyz ) ;  /* scaling buffer */
    }
-   inbot = im_valid_range[0] ;
-   intop = im_valid_range[1] ;
-   denom = intop - inbot  ;  /* always positive */
-
-   /** Get range of image (per 2D slice) to which valid_range will be scaled **/
-   /** Scaling will only be done if we get both image-min and image-max      **/
-
-   if( do_scale ){
-
-     code = nc_inq_varid( ncid , "image-min" , &im_min_varid ) ;
-     if( code == NC_NOERR ){
-       im_min = (float *) calloc(sizeof(float),nslice) ;
-       code = nc_get_var_float( ncid , im_min_varid , im_min ) ;
-       if( code != NC_NOERR ){ free(im_min); im_min = NULL; }
-     }
-
-     /* got im_min ==> try for im_max */
-
-     if( im_min != NULL ){
-       code = nc_inq_varid( ncid , "image-max" , &im_max_varid ) ;
-       if( code == NC_NOERR ){
-         im_max = (float *) calloc(sizeof(float),nslice) ;
-         code = nc_get_var_float( ncid , im_max_varid , im_max ) ;
-         if( code != NC_NOERR ){
-           free(im_min); im_min = NULL; free(im_max); im_max = NULL;
-         }
-       }
-     }
-
-     /* 19 Mar 2003: make sure we don't scale out of range! */
-
-     if( im_max != NULL && MRI_IS_INT_TYPE(DBLK_BRICK_TYPE(dblk,0)) ){
-       float stop=0.0 , vbot,vtop ;
-       int ii ;
-       for( ii=0 ; ii < nslice ; ii++ ){
-         if( im_min[ii] < im_max[ii] ){
-           vbot = fabs(im_min[ii]) ; vtop = fabs(im_max[ii]) ;
-           vtop = MAX(vtop,vbot) ; stop = MAX(vtop,stop) ;
-         }
-       }
-       if( stop > MRI_TYPE_maxval[DBLK_BRICK_TYPE(dblk,0)] ){
-         sfac = MRI_TYPE_maxval[DBLK_BRICK_TYPE(dblk,0)] / stop ;
-         fprintf(stderr,"++ Scaling %s by %g to avoid overflow to %g of %s data!\n",
-                 dkptr->brick_name, sfac, stop, MRI_TYPE_name[DBLK_BRICK_TYPE(dblk,0)] ) ;
-       } else if( stop == 0.0 ){
-         free(im_min); im_min = NULL; free(im_max); im_max = NULL;
-       }
-     }
-
-   } /* end of do_scale */
 
    /** read data! **/
 

@@ -94,6 +94,8 @@ char *nifti_units_string   ( int uu ) ;
 char *nifti_intent_string  ( int ii ) ;
 char *nifti_xform_string   ( int xx ) ;
 
+int nifti_is_inttype( int dt ) ;
+
 mat44 mat44_inverse( mat44 R ) ;
 
 mat33 mat33_inverse( mat33 R ) ;
@@ -138,8 +140,8 @@ mat44 make_orthog_mat44( float r11, float r12, float r13 ,
                          float r21, float r22, float r23 ,
                          float r31, float r32, float r33  ) ;
 
-int unescape_inplace( char *str ) ;  /* string utility functions */
-char *quotize_string( char *str ) ;
+int   unescape_string( char *str ) ;  /* string utility functions */
+char *escapize_string( char *str ) ;
 
 int short_order(void) ;              /* CPU byte order */
 

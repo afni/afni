@@ -40,8 +40,35 @@ char *nifti_datatype_string( int dt )
      case DT_COMPLEX256: return "COMPLEX256" ;
      case DT_RGB24:      return "RGB24"      ;
    }
-
    return "**ILLEGAL**" ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Determine if the datatype code dt is an integer type (1=YES, 0=NO).
+-----------------------------------------------------------------------------*/
+
+int nifti_is_inttype( int dt )
+{
+   switch( dt ){
+     case DT_UNKNOWN:    return 0 ;
+     case DT_BINARY:     return 0 ;
+     case DT_INT8:       return 1 ;
+     case DT_UINT8:      return 1 ;
+     case DT_INT16:      return 1 ;
+     case DT_UINT16:     return 1 ;
+     case DT_INT32:      return 1 ;
+     case DT_UINT32:     return 1 ;
+     case DT_INT64:      return 1 ;
+     case DT_UINT64:     return 1 ;
+     case DT_FLOAT32:    return 0 ;
+     case DT_FLOAT64:    return 0 ;
+     case DT_FLOAT128:   return 0 ;
+     case DT_COMPLEX64:  return 0 ;
+     case DT_COMPLEX128: return 0 ;
+     case DT_COMPLEX256: return 0 ;
+     case DT_RGB24:      return 1 ;
+   }
+   return 0 ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1446,7 +1473,7 @@ void nifti_image_write( nifti_image *nim )
 #define CR 0x0D
 #define LF 0x0A
 
-int unescape_inplace( char *str )
+int unescape_string( char *str )
 {
    int ii,jj , nn,ll ;
 
@@ -1539,11 +1566,11 @@ int unescape_inplace( char *str )
 
 /*------------------------------------------------------------------------*/
 /* Quotize (and escapize) one string, returning a new string.
-   Approximately speaking, this is the inverse of unescape_inplace().
+   Approximately speaking, this is the inverse of unescape_string().
    The result should be free()-ed when you are done with it.
 --------------------------------------------------------------------------*/
 
-char *quotize_string( char *str )
+char *escapize_string( char *str )
 {
    int ii,jj , lstr,lout ;
    char *out ;
@@ -1620,14 +1647,14 @@ char *nifti_image_to_ascii( nifti_image *nim )
    /** Strings that we don't control (filenames, etc.) that might
        contain "weird" characters (like quotes) are "escaped":
        - A few special characters are replaced by XML-style escapes, using
-         the function quotize_string().
-       - On input, function unescape_inplace() reverses this process.
+         the function escapize_string().
+       - On input, function unescape_string() reverses this process.
        - The result is that the NIFTI ASCII-format header is XML-compliant. **/
 
-   ebuf = quotize_string(nim->fname) ;
+   ebuf = escapize_string(nim->fname) ;
    sprintf( buf+strlen(buf) , "  header_filename = %s\n",ebuf); free(ebuf);
 
-   ebuf = quotize_string(nim->iname) ;
+   ebuf = escapize_string(nim->iname) ;
    sprintf( buf+strlen(buf) , "  image_filename = %s\n", ebuf); free(ebuf);
 
    sprintf( buf+strlen(buf) , "  image_offset = '%d'\n" , nim->iname_offset );
@@ -1677,7 +1704,7 @@ char *nifti_image_to_ascii( nifti_image *nim )
      sprintf( buf+strlen(buf) , "  intent_p3 = '%g'\n" , nim->intent_p3 ) ;
 
      if( nim->intent_name[0] != '\0' ){
-       ebuf = quotize_string(nim->intent_name) ;
+       ebuf = escapize_string(nim->intent_name) ;
        sprintf( buf+strlen(buf) , "  intent_name = %s\n",ebuf) ;
        free(ebuf) ;
      }
@@ -1699,13 +1726,13 @@ char *nifti_image_to_ascii( nifti_image *nim )
               nim->time_units , nifti_units_string(nim->time_units) ) ;
 
    if( nim->descrip[0] != '\0' ){
-     ebuf = quotize_string(nim->descrip) ;
+     ebuf = escapize_string(nim->descrip) ;
      sprintf( buf+strlen(buf) , "  descrip = %s\n",ebuf) ;
      free(ebuf) ;
    }
 
    if( nim->aux_file[0] != '\0' ){
-     ebuf = quotize_string(nim->aux_file) ;
+     ebuf = escapize_string(nim->aux_file) ;
      sprintf( buf+strlen(buf) , "  aux_file = %s\n",ebuf) ;
      free(ebuf) ;
    }
@@ -1881,7 +1908,7 @@ nifti_image *nifti_image_from_ascii( char *str )
         ii = sscanf( str+spos , "%1023s%n" , rhs , &nn ) ; spos += nn ;
         if( ii == 0 ) break ;  /* nothing found? */
      }
-     unescape_inplace(rhs) ;  /* remove any XML escape sequences */
+     unescape_string(rhs) ;  /* remove any XML escape sequences */
 
      /* Now can do the assignment, based on lhs string.
         Start with special cases that don't fit the QNUM/QSTR macros. */
