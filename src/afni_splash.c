@@ -139,7 +139,7 @@ ENTRY("AFNI_splashup") ;
       if( num_face > 0 ){                       /* external face_*.jpg files */
         static int *dold=NULL, ndold=0 ; int qq ;
         if( ndold == 0 && num_face > 1 ){
-          ndold = (num_face+2)/3 ;
+          ndold = num_face/2 ;
           dold  = (int *) malloc(sizeof(int)*ndold) ;
           for( qq=0 ; qq < ndold ; qq++ ) dold[qq] = -1 ;
         }
