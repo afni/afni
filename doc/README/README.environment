@@ -2042,7 +2042,7 @@ Variable: AFNI_MAX_1DSIZE
 Sets the maximum size (in bytes) of each 1D file that will be automatically
 loaded when AFNI starts.  The default is 123 Kbytes.  The intention is to
 prevent loading of very large files that are not intended to be used for
-graphing/FIM purposes.
+graphing/FIMming purposes.
 
 --------------------------
 Variable: AFNI_XJPEG_COLOR
