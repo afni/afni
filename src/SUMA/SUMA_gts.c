@@ -25,9 +25,9 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 									 gts_vertex_class ());
 	GtsVertex ** vertices = NULL;
 	GtsEdge ** edges = NULL;
-	int i = 0; //counters
+	int i = 0; /*counters */
 	int n = 0;
-	int *MapToGts = NULL; //used to map EL vector to edge vector
+	int *MapToGts = NULL; /*used to map EL vector to edge vector*/
 
 	vertices = g_malloc (SO->N_Node * sizeof (GtsVertex *));
 	for ( i=0; i< SO->N_Node*3; i+=3)
@@ -44,7 +44,7 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 	for ( i=0; i< SO->EL->N_EL; i++)
 	{
 		if (SO->EL->ELps[i][2] > 0)
-		{ // a unique edge
+		{ /* a unique edge*/
 			GtsVertex* v1 = vertices[SO->EL->EL[i][0]];
 			GtsVertex* v2 = vertices[SO->EL->EL[i][1]];
 			if (SO->EL->ELps[i][0] == 1)
@@ -52,7 +52,7 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 			else
 				edges[n++] = gts_edge_new ( s->edge_class, v1, v2 );
 		}
-		MapToGts[i] = n-1; //n-1 bc n was just incremented
+		MapToGts[i] = n-1; /* n-1 bc n was just incremented */
 	}
 
 	if (n != SO->EL->N_Distinct_Edges)
@@ -129,7 +129,6 @@ void MakeNodeList_foreach_vertex ( GtsVertex* v, gpointer* data)
 	SO->NodeList[(*i)*3] = v->p.x;
 	SO->NodeList[(*i)*3+1] = v->p.y;
 	SO->NodeList[(*i)*3+2] = v->p.z;
-	//printf("%i\n",*i);
 	if (*i >= SO->N_Node || *i < 0)
 	{
 		fprintf(SUMA_STDERR, "node %i out of range", *i);
@@ -156,7 +155,6 @@ void MakeFaceList_foreach_face ( GtsFace* f, gpointer* data)
 	int iresult = 0;
 	gpointer temp = NULL;
 	gts_triangle_vertices(&(f->triangle), &v1, &v2, &v3);
-	//printf("%i %i\n", *i, (*i)*3);
 	if ((*i) >= SO->N_FaceSet)
 	{
 		fprintf(SUMA_STDERR, "counter %i passed N_FaceSet %i",(*i),SO->N_FaceSet);
@@ -176,7 +174,6 @@ void MakeFaceList_foreach_face ( GtsFace* f, gpointer* data)
 	}
 	SO->FaceSetList[(*i)*3] = iresult;
 	
-	//printf("%i ",GPOINTER_TO_INT (result));
 	if (!g_hash_table_lookup_extended(hash, v2, temp, &presult))
 	{
 		fprintf(SUMA_STDERR, "hash table lookup failed");
@@ -189,7 +186,6 @@ void MakeFaceList_foreach_face ( GtsFace* f, gpointer* data)
 		exit(1);
 	}
 	SO->FaceSetList[(*i)*3+1] = iresult;
-	//printf("%i ",GPOINTER_TO_INT (result));
 	
 	if (!g_hash_table_lookup_extended(hash, v3, temp, &presult))
 	{
@@ -203,7 +199,6 @@ void MakeFaceList_foreach_face ( GtsFace* f, gpointer* data)
 		exit(1);
 	}
 	SO->FaceSetList[(*i)*3+2] = iresult;
-	//printf("%i\n",GPOINTER_TO_INT (result));
 	(*i)++;
 }
 
