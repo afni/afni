@@ -1,4 +1,8 @@
-#include "mrilib.h"
+#include "afni.h"
+
+#ifndef ALLOW_PLUGINS
+#  error "Plugins not properly set up -- see machdep.h"
+#endif
 
 /*------------------------------------------------------------------*/
 
@@ -62,15 +66,13 @@ static char * axial_ff[] = {
 /*! (xx,yy,zz) in RAI (Dicom) coords; code is (0=axial,1=sag,2=cor).            */
 /*------------------------------------------------------------------------------*/
 
-MRI_IMAGE * THD_ttget( int code , float xx , float yy , float zz )
+static char * TTget_URL( int code , float xx , float yy , float zz )
 {
-   int ii,jj,kk , nn , ch,nch, nx,ny,maxval , id ;
-   char nbuf[256] , *ttahome , buf[32] ;
-   byte *ndata=NULL , *bar ;
-   MRI_IMAGE *im ;
+   static char nbuf[256] ;
+   char *ttahome ;
+   int ii,jj,kk ;
 
-   ttahome = getenv("AFNI_TTAHOME") ;
-   if( ttahome == NULL ) ttahome = TTAHOME ;
+   ttahome = getenv("AFNI_TTAHOME") ; if( ttahome == NULL ) ttahome = TTAHOME ;
 
    switch( code ){
      case 1:                       /* sagittal */
@@ -87,6 +89,7 @@ MRI_IMAGE * THD_ttget( int code , float xx , float yy , float zz )
      break ;
 
      case 2:                       /* coronal */
+       yy = -yy ;
        if( yy <= coronal_yy[0] ){
           jj = 0 ;
        } else if( yy >= coronal_yy[CORONAL_NUM-1] ){
@@ -112,9 +115,21 @@ MRI_IMAGE * THD_ttget( int code , float xx , float yy , float zz )
      break ;
    }
 
+   return nbuf ;
+}
+
+/*------------------------------------------------------------------------------*/
+
+static MRI_IMAGE * TTget_ppm( char *url )
+{
+   int ii,nn , ch,nch, nx,ny,maxval , id ;
+   char buf[32] ;
+   byte *ndata=NULL , *bar ;
+   MRI_IMAGE *im ;
+
    /* get data */
 
-   nn = NI_read_URL( nbuf , (char **)&ndata ) ;
+   nn = NI_read_URL( url , (char **)&ndata ) ;
 
    if( nn < 40960 || ndata == NULL || ndata[0] != 'P' || ndata[1] != '6' ){
       if( ndata != NULL ) free(ndata) ;
@@ -137,7 +152,6 @@ MRI_IMAGE * THD_ttget( int code , float xx , float yy , float zz )
 
     NUMSCAN(nx) ; if( nx <= 2 || id >= nn-1 ){ free(ndata); return NULL; }
     NUMSCAN(ny) ; if( ny <= 2 || id >= nn-1 ){ free(ndata); return NULL; }
-
     NUMSCAN(maxval);
     if( maxval <= 7 || maxval > 255 || id >= nn-1 ){ free(ndata); return NULL; }
 
@@ -196,11 +210,7 @@ static char * self_to_inet( void )
 {
    char hname[1048]="localhost" ;
    static char *ipad=NULL ;
-
-   if( ipad == NULL ){
-     gethostname( hname , 1048 ) ;
-     ipad = xxx_name_to_inet( hname ) ;
-   }
+   if( ipad == NULL ){ gethostname(hname,1048); ipad = xxx_name_to_inet(hname); }
    return ipad ;
 }
 
@@ -222,27 +232,106 @@ static int is_nih_host( void )
    return 0 ;
 }
 
-/*----------------------------------------------------------------*/
+/*-----------------------------------------------------------------*/
 
-int main( int argc , char *argv[] )
+#define NUM_ORIENT_STRINGS 4
+static char *orient_strings[4] = { "None" , "Axial" , "Sagittal", "Coronal" } ;
+static int orient = 0 ;
+
+static char * TTget_main( PLUGIN_interface * ) ;
+
+/*-----------------------------------------------------------------*/
+
+PLUGIN_interface * PLUGIN_init( int ncall )
 {
-   MRI_IMAGE *im ;
+   PLUGIN_interface * plint ;
 
-   fprintf(stderr,"is_nih_host()=%d\n",is_nih_host()) ;
+   if( ncall > 0 || !is_nih_host() ) return NULL ;
 
-   im = THD_ttget( 2 , 12.0,12.0,12.0 ) ;
-   if( im == NULL ){ fprintf(stderr,"** failure!\n"); exit(0); }
-   mri_write_pnm( "q2.ppm" , im ) ;
-   fprintf(stderr,"wrote image\n") ;
+   plint = PLUTO_new_interface( "TT Atlas" ,
+                                "TT Atlas display" ,
+                                NULL ,
+                                PLUGIN_CALL_VIA_MENU , TTget_main  ) ;
 
-   im = THD_ttget( 0 , 12.0,12.0,12.0 ) ;
-   if( im == NULL ){ fprintf(stderr,"** failure!\n"); exit(0); }
-   mri_write_pnm( "q0.ppm" , im ) ;
-   fprintf(stderr,"wrote image\n") ;
+   PLUTO_add_option( plint , "Mode" , "MODE" , TRUE ) ;
 
-   im = THD_ttget( 1 , 12.0,12.0,12.0 ) ;
-   if( im == NULL ){ fprintf(stderr,"** failure!\n"); exit(0); }
-   mri_write_pnm( "q1.ppm" , im ) ;
-   fprintf(stderr,"wrote image\n") ;
-   exit(0) ;
+   PLUTO_add_string( plint, "Orient", NUM_ORIENT_STRINGS, orient_strings, orient ) ;
+
+   return plint ;
+}
+
+/*-----------------------------------------------------------------*/
+
+static int recv_key = -1 ;
+static Three_D_View *old_im3d = NULL ;
+static char old_url[256] = "\0" ;
+
+static void TTget_recv( int why , int np , int * ijk , void * junk ) ;
+
+/*-----------------------------------------------------------------*/
+
+static char * TTget_main( PLUGIN_interface *plint )
+{
+   char *str ;
+
+   PLUTO_next_option(plint) ;
+   str    = PLUTO_get_string(plint) ;
+   orient = PLUTO_string_index( str, NUM_ORIENT_STRINGS, orient_strings ) ;
+
+   old_url[0] = '\0' ;
+
+   if( plint->im3d != old_im3d || !IM3D_OPEN(plint->im3d) ){
+     if( recv_key >= 0 ){
+       AFNI_receive_control( old_im3d,recv_key,EVERYTHING_SHUTDOWN,NULL ) ;
+       recv_key = -1 ;
+     }
+     old_im3d = plint->im3d ;
+     if( !IM3D_OPEN(plint->im3d) )
+       return "***************************************\n"
+              "TTget_main: AFNI controller isn't open!\n"
+              "***************************************"   ;
+   }
+
+   if( orient == 0 && recv_key >= 0 ){
+     AFNI_receive_control( plint->im3d,recv_key,EVERYTHING_SHUTDOWN,NULL ) ;
+     recv_key = -1 ;
+   } else if( orient > 0 && recv_key < 0 ){
+     recv_key = AFNI_receive_init( plint->im3d, RECEIVE_VIEWPOINT_MASK, TTget_recv, NULL ) ;
+   }
+
+   return NULL ;
+}
+
+/*-----------------------------------------------------------------*/
+
+static void *impop = NULL ;
+
+static void TTget_recv( int why , int np , int * ijk , void * junk )
+{
+   if( orient == 0          ||
+       !IM3D_OPEN(old_im3d) ||
+       old_im3d->vinfo->view_type != VIEW_TALAIRACH_TYPE ) return ;
+
+   switch( why ){
+
+      case RECEIVE_VIEWPOINT:{ /*-- change of crosshair location --*/
+        MRI_IMAGE *im ;
+        char *url ;
+
+        url = TTget_URL( orient-1 , old_im3d->vinfo->xi ,
+                                    old_im3d->vinfo->yj , old_im3d->vinfo->zk ) ;
+
+        if( strcmp(url,old_url) == 0 ) return ;
+        strcpy(old_url,url) ;
+
+        im = TTget_ppm( url ) ; if( im == NULL ) return ;
+
+        impop = PLUTO_popup_image( impop , im ) ;
+        mri_free(im) ;
+      }
+      break ;
+
+   }
+
+   return ;
 }
