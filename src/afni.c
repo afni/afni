@@ -3089,7 +3089,6 @@ if(PRINT_TRACING)
          ib = THD_3dind_to_fdind( br , TEMP_IVEC3( im3d->vinfo->i1 ,
                                                    im3d->vinfo->j2 ,
                                                    im3d->vinfo->k3  ) ) ;
-
          switch( cbs->reason ){
             case isqCR_dxplus:   ib.ijk[0] += step ; break ;
             case isqCR_dxminus:  ib.ijk[0] -= step ; break ;
@@ -3101,6 +3100,7 @@ if(PRINT_TRACING)
 
          /* 13 May 2003: allow for wraparound */
 
+         LOAD_DSET_VIEWS(im3d) ;  /* 20 Nov 2003 */
          daxes = CURRENT_DAXES(im3d->anat_now) ;
               if( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
          else if( id.ijk[0] >= daxes->nxx ) id.ijk[0] -= daxes->nxx ;
