@@ -644,18 +644,14 @@ void SEGMENT_auto ()
   /*----- Segment intracranial voxels -----*/
   segment_volume (cv);
 
-
   /*----- Perform voxel connectivity tests -----*/
   connectivity_tests (cv);
-
 
   /*----- Put estimated target structure into output dataset -----*/
   target_into_dataset (cv);
 
-
   /*----- Write out the segmented dataset -----*/
   write_afni_data (cv);
-
 
   return ;
 
@@ -683,7 +679,7 @@ int main
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
-  machdep() ;
+  mainENTRY("3dIntracranial:main") ; machdep() ;
 
   
   /*----- Program initialization -----*/
