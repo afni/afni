@@ -935,7 +935,7 @@ afni_src.tgz:
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./afni_src
 	$(CP) -r coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
 	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir dlcompat ./afni_src
-	$(CP) -r netcdf-3.5.0 jpeg-6b ./afni_src
+	$(CP) -r netcdf-3.5.0 jpeg-6b niml ./afni_src
 	$(CP) -r SUMA rickr ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
@@ -1105,9 +1105,14 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_mincwrite.o thd_mnicoords.o thd_strfunc.o                  \
            thd_analyzeread.o thd_ctfread.o
 
-# these are now included in niml.o
+# these are now included in NIML
 
 UNUSED_OBSJ = thd_md5.o thd_base64.o
+
+NIML_OBJS = niml_b64.o        niml_element.o  niml_elemio.o                  niml_util.o  \
+            niml_byteorder.o  niml_header.o   niml_malloc.o  niml_rowtype.o  niml_uuid.o   \
+            niml_do.o         niml_htable.o   niml_md5.o     niml_url.o      niml_stream.o  \
+            niml_struct.o     niml_dataset.o  niml_vector.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -1119,7 +1124,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
-           niml.o afni_suma.o cl1.o
+           afni_suma.o cl1.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -1143,9 +1148,11 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
                netcdf_string.o netcdf_v1hpg.o netcdf_v2i.o   netcdf_var.o     \
                thd_mincread.o
 
-libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)
+libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS)                \
+         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)
+	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)
 	$(RANLIB) libmri.a
 
 ### Dependencies for above
@@ -1417,6 +1424,15 @@ eis_bakvec.o:
 
 cdf_00.o:
 	( cd cdflib/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
+
+#######
+# Ditto for NIML objects
+
+niml_b64.o:
+	( cd niml/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
+
+niml.h:niml/niml.h
+	$(CP) niml/niml.h .
 
 #######
 # netcdf library files - make them and move them up here

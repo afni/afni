@@ -11,7 +11,7 @@ IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/X11R6/lib
 
 PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -shared
+PLUGIN_LFLAGS = -shared -s
 PLUGIN_CC     = $(CC)
 PLFLAGS       = -s -rdynamic -L. -L/usr/X11R6/lib
 
