@@ -145,12 +145,10 @@ int main (int argc, char * argv[]) {
    if( narg >= argc )
       Error_Exit("No input dataset!?\n") ;
 
-        dset = THD_open_one_dataset( argv[narg] ) ;
-        if( dset == NULL )
-           Error_Exit("Cannot open dataset") ; 
-        if( DSET_IS_MINC(dset) )
-           Error_Exit("Cannot use MINC dataset") ;
-
+   dset = THD_open_one_dataset( argv[narg] ) ;
+   if( dset == NULL          ) Error_Exit("Cannot open dataset") ; 
+   if( DSET_IS_MINC(dset)    ) Error_Exit("Cannot use MINC dataset") ;
+   if( DSET_IS_ANALYZE(dset) ) Error_Exit("Cannot use ANALYZE dataset") ;
 
    /* First, delete notes */
    do {

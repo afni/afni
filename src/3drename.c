@@ -47,14 +47,20 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Illegal new dataset name!\n") ; exit(1) ;
    }
 
-#ifdef ALLOW_MINC
+   /* disallow operation on MINC or ANALYZE files */
+
    if( STRING_HAS_SUFFIX(old_name,".mnc") ){
       fprintf(stderr,"** Old dataset name can't be a MINC file!\n"); exit(1);
    }
    if( STRING_HAS_SUFFIX(new_name,".mnc") ){
       fprintf(stderr,"** New dataset name can't be a MINC file!\n"); exit(1);
    }
-#endif
+   if( STRING_HAS_SUFFIX(old_name,".hdr") ){
+      fprintf(stderr,"** Old dataset name can't be an ANALYZE file!\n"); exit(1);
+   }
+   if( STRING_HAS_SUFFIX(new_name,".hdr") ){
+      fprintf(stderr,"** New dataset name can't be an ANALYZE file!\n"); exit(1);
+   }
 
    /* check old_name for a +view suffix somewhere */
 

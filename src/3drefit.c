@@ -647,7 +647,15 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"** 3drefit: Can't open dataset %s\n",argv[iarg]) ;
          continue ;
       }
-      fprintf(stderr,"++ 3drefit: Processing dataset %s\n",argv[iarg]) ;
+      if( DSET_IS_MINC(dset) ){
+         fprintf(stderr,"** 3drefit: Can't process MINC dataset %s\n",argv[iarg]);
+         continue ;
+      }
+      if( DSET_IS_ANALYZE(dset) ){
+         fprintf(stderr,"** 3drefit: Can't process ANALYZE dataset %s\n",argv[iarg]);
+         continue ;
+      }
+      fprintf(stderr,"++ 3drefit: Processing AFNI dataset %s\n",argv[iarg]) ;
 
       tross_Make_History( "3drefit" , argc,argv, dset ) ;
 

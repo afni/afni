@@ -3,10 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
-
 
 /************************************************************************
   July 1997: moved warp manipulations routines from afni_warp.c to here.
@@ -290,4 +289,34 @@ THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * map_2 ,
    map_out->top  = map_2->top ;
 
    return map_out ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Make an affine warp from 12 input numbers:
+     -         [ a11 a12 a13 ]        [ s1 ]
+     - x_map = [ a21 a22 a23 ] x_in + [ s2 ]
+     -         [ a31 a32 a33 ]        [ s3 ]
+
+    27 Aug 2002 - RWCox.
+----------------------------------------------------------------------------*/
+
+THD_warp * AFNI_make_affwarp( float a11, float a12, float a13,  float s1 ,
+                              float a21, float a22, float a23,  float s2 ,
+                              float a31, float a32, float a33,  float s3  )
+{
+   THD_warp *warp ;
+   THD_linear_mapping map ;
+
+   warp       = myXtNew( THD_warp ) ;
+   warp->type = WARP_AFFINE_TYPE ;
+
+   map.type = MAPPING_LINEAR_TYPE ;
+
+   LOAD_MAT(map.mfor,a11,a12,a13,a21,a22,a23,a31,a32,a33) ;
+   LOAD_FVEC3(map.bvec,-s1,-s2,-s3) ;
+   LOAD_INVERSE_LMAP(map) ;
+
+   warp->rig_bod.warp = map ;
+
+   return warp ;
 }

@@ -908,6 +908,7 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_BRICK   2
 #define STORAGE_BY_MINC    3
 #define STORAGE_BY_VOLUMES 4  /* 20 Jun 2002 */
+#define STORAGE_BY_ANALYZE 5
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -2097,6 +2098,17 @@ typedef struct THD_3dim_dataset {
                            ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
                            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MINC )
 
+/*! Determine if datablock db is stored in a ANALYZE file on disk */
+
+#define DBLK_IS_ANALYZE(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) && \
+                              (db)->diskptr->storage_mode == STORAGE_BY_ANALYZE )
+
+/*! Determine if dataset ds is stored in a ANALYZE file on disk */
+
+#define DSET_IS_ANALYZE(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&       \
+                              ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
+                              (ds)->dblk->diskptr->storage_mode == STORAGE_BY_ANALYZE )
+
 /*! Determine if datablock db is stored by volume files rather than 1 big BRIK */
 
 #define DBLK_IS_VOLUMES(db) ( ISVALID_DBLK(db) &&                                \
@@ -2112,9 +2124,12 @@ typedef struct THD_3dim_dataset {
 
 /*! Determine if AFNI is allowed to over-write dataset ds */
 
-#define DSET_WRITEABLE(ds)                            \
- ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&    \
-   (ds)->warp_parent != NULL && !DSET_IS_MINC(ds)  )
+#define DSET_WRITEABLE(ds)       \
+ ( ISVALID_DSET(ds)          &&  \
+   ISVALID_DBLK((ds)->dblk)  &&  \
+   (ds)->warp_parent != NULL &&  \
+   !DSET_IS_MINC(ds)         &&  \
+   !DSET_IS_ANALYZE(ds)        )
 
 /*! Determine if dataset ds is stored in a compressed format */
 
@@ -2718,6 +2733,8 @@ typedef struct {
       THD_3dim_dataset * func[THD_MAX_SESSION_FUNC][LAST_VIEW_TYPE+1] ;  /*!< array of functional datasets */
 
       XtPointer parent ;                                                 /*!< generic pointer to "owner"  */
+
+      Htable *warptable ;       /*!< Table of inter-dataset warps [27 Aug 2002] */
 } THD_session ;
 
 /*! Determine if ss points to a valid THD_session. */
@@ -2726,14 +2743,15 @@ typedef struct {
 
 /*! Initialize THD_session ss to hold nothing at all. */
 
-#define BLANK_SESSION(ss) \
-  if( ISVALID_SESSION((ss)) ){ \
-      int id , vv ; \
-      for( id=0 ; id < THD_MAX_SESSION_ANAT ; id++ ) \
+#define BLANK_SESSION(ss)                                                     \
+  if( ISVALID_SESSION((ss)) ){                                                \
+      int id , vv ;                                                           \
+      for( id=0 ; id < THD_MAX_SESSION_ANAT ; id++ )                          \
         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) (ss)->anat[id][vv] = NULL ; \
-      for( id=0 ; id < THD_MAX_SESSION_FUNC ; id++ ) \
+      for( id=0 ; id < THD_MAX_SESSION_FUNC ; id++ )                          \
         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) (ss)->func[id][vv] = NULL ; \
-      (ss)->num_anat = (ss)->num_func = 0 ; }
+      (ss)->num_anat = (ss)->num_func = 0 ;                                   \
+      (ss)->warptable = NULL ; }
 
 #define SESSIONLIST_TYPE 107
 
@@ -2992,6 +3010,7 @@ extern THD_session * THD_init_session( char * ) ;
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
 extern THD_3dim_dataset * THD_open_minc( char * ) ;         /* 29 Oct 2001 */
+extern THD_3dim_dataset * THD_open_analyze( char * ) ;      /* 27 Aug 2002 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *); /* 23 Mar 2001 */
 extern XtPointer_array *  THD_fetch_many_datasets(char *);
@@ -3109,6 +3128,9 @@ extern Boolean THD_purge_one_brick( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;
 extern int     THD_count_databricks( THD_datablock * dblk ) ;
 extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
+extern void    THD_load_analyze( THD_datablock * ) ;         /* 27 Aug 2002 */
+
+#define ALLOW_FSL_FEAT  /* 27 Aug 2002 */
 
 #define MINC_FLOATIZE_MASK 1
 extern int THD_write_minc( char *, THD_3dim_dataset *, int ) ; /* 11 Apr 2002 */
@@ -3437,6 +3459,9 @@ extern void AFNI_concatenate_warp( THD_warp * , THD_warp * ) ;
 
 extern THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * ,
                                                    THD_linear_mapping *  ) ;
+
+extern THD_warp * AFNI_make_affwarp(float,float,float,float,float,float,  /* 27 Aug 2002 */
+                                    float,float,float,float,float,float);
 
 extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
                                      int, int, int, float, char *, int,int ) ;

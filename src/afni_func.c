@@ -2901,7 +2901,7 @@ ENTRY("AFNI_rescan_session") ;
    if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ BEEPIT ; EXRETURN ; }
 
    old_ss = GLOBAL_library.sslist->ssar[sss] ;
-   if( ! ISVALID_SESSION(old_ss) ){ BEEPIT ; EXRETURN ; }
+   if( ! ISVALID_SESSION(old_ss) ){ BEEPIT; EXRETURN; }
 
    if( old_ss == GLOBAL_library.session ) EXRETURN ;  /* 21 Dec 2001 */
 
@@ -3531,7 +3531,8 @@ ENTRY("AFNI_write_dataset_CB") ;
           resam_mode >= FIRST_RESAM_TYPE &&
           resam_mode <= LAST_RESAM_TYPE  &&
           im3d->vinfo->resam_vox > 0.0   &&
-         !DSET_IS_MINC(dset)                ;   /* 29 Oct 2001 */
+         !DSET_IS_MINC(dset)             &&      /* 29 Oct 2001 */
+         !DSET_IS_ANALYZE(dset)              ;   /* 27 Aug 2002 */
 
    destroy = !DSET_WRITEABLE(dset) ;      /* check for destruction */
 

@@ -96,6 +96,9 @@ ENTRY("THD_dataset_info") ;
 
      case STORAGE_BY_VOLUMES:
        outbuf = THD_zzprintf(outbuf,"Storage Mode:    Volume file(s)\n") ; break ;
+
+     case STORAGE_BY_ANALYZE:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    ANALYZE files\n") ; break ;
    }
 
    /*-- keywords --*/

@@ -179,7 +179,6 @@ ENTRY("THD_init_session") ;
 
    /*-- 29 Oct 2001: try to read .mnc "datasets" --*/
 
-#ifdef ALLOW_MINC
    if( !AFNI_noenv("AFNI_MINC_DATASETS") ){
      char ename[THD_MAX_NAME] , **fn_minc , *eee ;
      int num_minc , ii ;
@@ -227,9 +226,60 @@ ENTRY("THD_init_session") ;
          }
        } /* end of loop over files */
        MCW_free_expand( num_minc , fn_minc ) ;
-     } /* end of if we found files */
+     } /* end of if we found MINC files */
    }
-#endif /* ALLOW_MINC */
+
+   /*-- 27 Aug 2002: try to read any ANALYZE "datasets" here --*/
+
+   if( !AFNI_noenv("AFNI_ANALYZE_DATASETS") ){
+     char ename[THD_MAX_NAME] , **fn_anlz , *eee ;
+     int num_anlz , ii ;
+
+     STATUS("looking for ANALYZE files") ;
+
+     strcpy(ename,sess->sessname) ; strcat(ename,"*.hdr") ;
+     eee = ename ;
+     MCW_file_expand( 1,&eee , &num_anlz,&fn_anlz ) ;  /* find files */
+
+     if( num_anlz > 0 ){                               /* got some! */
+       STATUS("opening ANALYZE files") ;
+       for( ii=0 ; ii < num_anlz ; ii++ ){             /* loop over files */
+         dset = THD_open_analyze( fn_anlz[ii] ) ;      /* try it on */
+         if( !ISVALID_DSET(dset) ) continue ;          /* doesn't fit? */
+         if( ISANAT(dset) ){
+            int na = sess->num_anat ;
+            if( na >= THD_MAX_SESSION_ANAT ){
+               fprintf(stderr,
+                 "\n*** Session %s anat table overflow with dataset %s ***\n",
+                 sessname , fn_anlz[ii] ) ;
+               THD_delete_3dim_dataset( dset , False ) ;
+               break ; /* out of for loop */
+            }
+            iview = dset->view_type ;
+            sess->anat[na][iview] = dset ;
+            (sess->num_anat)++ ;
+         } else if( ISFUNC(dset) ){
+            int nf = sess->num_func ;
+            if( nf >= THD_MAX_SESSION_FUNC ){
+               fprintf(stderr,
+                 "\n*** Session %s func table overflow with dataset %s ***\n",
+                 sessname , fn_anlz[ii] ) ;
+               THD_delete_3dim_dataset( dset , False ) ;
+               break ; /* out of for loop */
+            }
+            iview = dset->view_type ;
+            sess->func[nf][iview] = dset ;
+            (sess->num_func)++ ;
+         } else {                                      /* should never happen */
+            fprintf(stderr,
+                    "\n*** Session %s: malformed dataset %s\n",
+                    sessname , fn_anlz[ii] ) ;
+            THD_delete_3dim_dataset( dset , False ) ;
+         }
+       } /* end of loop over files */
+       MCW_free_expand( num_anlz , fn_anlz ) ;
+     } /* end of if we found ANALYZE files */
+   }
 
    /*-- done! --*/
 

@@ -114,6 +114,7 @@ ENTRY("THD_delete_3dim_dataset") ;
 
    if( DSET_IS_MINC(dset)    ) kill_files = False ;  /* 29 Oct 2001 */
    if( DSET_IS_VOLUMES(dset) ) kill_files = False ;  /* 20 Jun 2002 */
+   if( DSET_IS_ANALYZE(dset) ) kill_files = False ;  /* 27 Aug 2002 */
 
    if( kill_files ){
       THD_diskptr * dkptr = dset->dblk->diskptr ;

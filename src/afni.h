@@ -823,6 +823,8 @@ typedef struct {
       XtPointer parent ;
 
       int brand_new ;                           /* 07 Dec 2001 */
+
+      THD_warp * fim_selfwarp ;                 /* 27 Aug 2002 */
 } Three_D_View ;
 
 /* 02 Nov 1996: macro to load current viewing data into current datasets */
@@ -838,6 +840,7 @@ typedef struct {
          (iq)->fim_now->wod_daxes = (iq)->wod_daxes ;    \
          (iq)->fim_now->wod_flag  = (iq)->fim_wod_flag ; \
          (iq)->fim_now->vox_warp  = (iq)->fim_voxwarp ;  \
+         (iq)->fim_now->self_warp = (iq)->fim_selfwarp ; \
       } } while(0)
 
 #define LOAD_DSET_VIEWS(iq) \
