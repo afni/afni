@@ -2,6 +2,11 @@
 Nifti-1 C libraries
 -------------------
 
+Version 0.1 beta release March 11, 2005
+
+niftilib code is released into the public domain.
+
+
 znzlib   -- low level library for handling read/write of compressed files.
 
 niftilib -- i/o routines for reading and writing nifti-1 format files.
@@ -21,10 +26,12 @@ lib      -- destination directory for compiled libraries
 
 docs     -- destination directory Doxygen html (created via "make doc")
 
+
 Other directories
 -----------------
 examples -- directory containing sample library access modules
 utils    -- directory containing library utility programs
+
 
 
 Instructions to build
@@ -33,3 +40,16 @@ Instructions to build
 command  -- "make all" 
 
             results will be left in the directories: bin/ include/ lib/
+
+command  -- "make help"
+
+	    will show more build options
+
+
+For more information
+--------------------
+
+See the niftilib webpage at http://niftilib.sourceforge.net/
+See the NIFTI webpage at http://nifti.nimh.nih.gov/
+
+
