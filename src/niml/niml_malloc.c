@@ -273,13 +273,8 @@ static void * malloc_track( size_t n , char *fn , int ln )
 
    /* mark overrun buffers */
 
-#if 0
-   for( ii=0 ; ii < NEXTRA ; ii++ )
-     fred[ii] = fred[n+NEXTRA+ii] = MAGIC ;
-#else
    memset( fred           , MAGIC , NEXTRA ) ;
    memset( fred+(n+NEXTRA), MAGIC , NEXTRA ) ;
-#endif
 
    ni_mall_used = 1 ;
    add_tracker(fred,n,fn,ln) ;      /* put in hash table */
@@ -338,13 +333,8 @@ static void * realloc_track( NI_mallitem *ip, size_t n, char *fn, int ln )
    nfred = realloc( cfred , nn ) ;
    if( nfred == NULL ) return NULL ;  /* this is bad - real bad */
 
-#if 0
-   for( ii=0 ; ii < NEXTRA ; ii++ )
-     nfred[ii] = nfred[n+NEXTRA+ii] = MAGIC ;
-#else
    memset( nfred           , MAGIC , NEXTRA ) ;
    memset( nfred+(n+NEXTRA), MAGIC , NEXTRA ) ;
-#endif
 
    cjj = mallkey(cfred) % SLOTS ;  /* hash table list for old */
    njj = mallkey(nfred) % SLOTS ;  /* and for new address */

@@ -4474,3 +4474,7 @@
 
 23 Mar 2003
  * Added -xyz option to 3dmaskdump.c.
+
+27 Mar 2003
+ * Modified NIML to allow ni_dimen=0 on input, and then infer length of vectors
+     from input data.
