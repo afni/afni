@@ -309,7 +309,7 @@ DUMP_MAT33("skewmat",ar->skewmat) ;
 void CREN_dset_axes( void * ah , THD_3dim_dataset * dset )
 {
    CREN_stuff * ar = (CREN_stuff *) ah ;
-   int aii , ajj , akk ;
+   int aii=1 , ajj=2 , akk=3 ;
    float dx , dy , dz ;
 
    if( !ISVALID_CREN(ar) || !ISVALID_DSET(dset) ) return ;
@@ -321,6 +321,8 @@ void CREN_dset_axes( void * ah , THD_3dim_dataset * dset )
       case ORI_P2A_TYPE: aii = -2 ; break ;
       case ORI_I2S_TYPE: aii =  3 ; break ;
       case ORI_S2I_TYPE: aii = -3 ; break ;
+      default:
+        fprintf(stderr,"** CREN_dset_axes: illegal xxorient code!\n") ;
    }
    switch( dset->daxes->yyorient ){
       case ORI_R2L_TYPE: ajj =  1 ; break ;
@@ -329,6 +331,8 @@ void CREN_dset_axes( void * ah , THD_3dim_dataset * dset )
       case ORI_P2A_TYPE: ajj = -2 ; break ;
       case ORI_I2S_TYPE: ajj =  3 ; break ;
       case ORI_S2I_TYPE: ajj = -3 ; break ;
+      default:
+        fprintf(stderr,"** CREN_dset_axes: illegal yyorient code!\n") ;
    }
    switch( dset->daxes->zzorient ){
       case ORI_R2L_TYPE: akk =  1 ; break ;
@@ -337,6 +341,8 @@ void CREN_dset_axes( void * ah , THD_3dim_dataset * dset )
       case ORI_P2A_TYPE: akk = -2 ; break ;
       case ORI_I2S_TYPE: akk =  3 ; break ;
       case ORI_S2I_TYPE: akk = -3 ; break ;
+      default:
+        fprintf(stderr,"** CREN_dset_axes: illegal zzorient code!\n") ;
    }
 
    dx = fabs(dset->daxes->xxdel) ;
@@ -836,7 +842,7 @@ static void extract_byte_ts( int nx , int ny , int nz , byte * vol ,
 {
    int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
    register int aa , ijkoff , aoff,boff ;
-   int astep,bstep,cstep , na,nb,nc , nts,dts1,dts2 ;
+   int astep,bstep,cstep , na,nb,nc , nts,dts1=0,dts2=0 ;
    float fa , fb ;
    byte * mask ;
 
@@ -936,7 +942,7 @@ static void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
 {
    int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
    register int aa , ijkoff , aoff,boff ;
-   int astep,bstep,cstep , na,nb,nc , nts,dts1,dts2 , nn ;
+   int astep,bstep,cstep , na,nb,nc , nts,dts1=0,dts2=0 , nn ;
    float fa , fb ;
    byte *mask , v1,v2,v3,v4 ;
 

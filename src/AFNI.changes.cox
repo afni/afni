@@ -3685,3 +3685,7 @@
  * Modified thd_dsetdblk.c to deal with NULL dataset at very end - the SUMA stuff
      didn't check for that, which caused a crash if the dataset couldn't be
      constructed.
+
+26 Apr 2002
+ * At last seem to have figured out how to make the orientations change
+     w.r.t. spatial axes - added these changes to plug_crender.c.

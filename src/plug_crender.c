@@ -8,6 +8,9 @@
   $Id$
 
   $Log$
+  Revision 1.2  2002/04/26 20:53:42  rwcox
+  Crm
+
   Revision 1.1  2002/03/08 16:46:39  rickr
   Cadd
 
@@ -77,6 +80,31 @@ static char * interp_mode_strings[] = { "Neighbor" , "Twostep" , "Linear" } ;
 static int    interp_mode[]    = { CREN_NN,CREN_TWOSTEP,CREN_LINEAR } ;
 
 static int   interp_ival   = CREN_NN ;
+
+/*==========================================================================*/
+#define ALLOW_INCROT   /* 26 Apr 2002 - RWCox */
+#ifdef  ALLOW_INCROT
+
+  /** prototypes for incremental rotation matrix/angles stuff **/
+
+ static void RCREND_inc_angles( int,float, float *,float *,float *) ;
+ static THD_dmat33 RCREND_rotmatrix( int,double , int,double , int,double ) ;
+ static void RCREND_rotmatrix_to_angles( THD_dmat33, double *, double *, double * ) ;
+
+  /** toggle button for incremental rotations **/
+
+ static MCW_bbox *incrot_bbox ;
+
+  /** callback for above toggle **/
+
+ static void RCREND_incrot_CB(Widget,XtPointer,XtPointer) ;
+
+  /** prototype for what happens when user increments angles **/
+
+ static void RCREND_do_incrot( MCW_arrowval * ) ;
+
+#endif /* ALLOW_INCROT */
+/*==========================================================================*/
 
 /***********************************************************************
    Set up the interface to the user.  Note that we bypass the
@@ -1501,9 +1529,28 @@ void RCREND_make_widgets(void)
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
+/*==========================================================================*/
+#ifdef ALLOW_INCROT /* 26 Apr 2002 - RWCox */
+   { static char * incrot_bbox_label[1] = { "I" } ;
+     incrot_bbox = new_MCW_bbox( hrc , 1 , incrot_bbox_label ,
+                                 MCW_BB_check , MCW_BB_noframe ,
+                                 RCREND_incrot_CB, NULL         ) ;
+     MCW_set_bbox( incrot_bbox , 0 ) ;
+     MCW_reghelp_children( incrot_bbox->wrowcol ,
+                           "OUT: angles increment globally\n"
+                           "IN:  angles increment locally"   ) ;
+     MCW_reghint_children( incrot_bbox->wrowcol , "Incremental rotation?" ) ;
+     SEP_VER(hrc) ;
+   }
+#endif  /* ALLOW_INCROT */
+
+  /** N.B.: removed trailing space from "Roll", "Pitch", "Yaw" labels
+            for arrowvals below, to make space for the bbox created above **/
+/*==========================================================================*/
+
    /***  arrowvals to choose rotation angles  ***/
 
-   roll_av = new_MCW_arrowval( hrc , "Roll " ,
+   roll_av = new_MCW_arrowval( hrc , "Roll" ,
                                 MCW_AV_downup , -999999,999999,(int)(0.1*angle_roll) ,
                                 MCW_AV_noactext , -1 ,
                                 RCREND_angle_CB , NULL , NULL,NULL ) ;
@@ -1517,7 +1564,7 @@ void RCREND_make_widgets(void)
 
    SEP_VER(hrc) ;  /* separator widget */
 
-   pitch_av = new_MCW_arrowval( hrc , "Pitch " ,
+   pitch_av = new_MCW_arrowval( hrc , "Pitch" ,
                                 MCW_AV_downup , -999999,999999,(int)(0.1*angle_pitch) ,
                                 MCW_AV_noactext , -1 ,
                                 RCREND_angle_CB , NULL , NULL,NULL ) ;
@@ -1531,7 +1578,7 @@ void RCREND_make_widgets(void)
 
    SEP_VER(hrc) ;  /* separator widget */
 
-   yaw_av = new_MCW_arrowval( hrc , "Yaw " ,
+   yaw_av = new_MCW_arrowval( hrc , "Yaw" ,
                                 MCW_AV_downup , -999999,999999,(int)(0.1*angle_yaw) ,
                                 MCW_AV_noactext , -1 ,
                                 RCREND_angle_CB , NULL , NULL,NULL ) ;
@@ -1542,6 +1589,22 @@ void RCREND_make_widgets(void)
                          "then press 'Draw'"
                        ) ;
    XtAddCallback( yaw_av->wtext, XmNactivateCallback, RCREND_textact_CB, yaw_av ) ;
+
+   /** 26 Apr 2002: add hints to these arrows as well **/
+
+   MCW_reghint_children( roll_av->wrowcol  , "Angle about I-S axis" ) ;
+   MCW_reghint_children( pitch_av->wrowcol , "Angle about R-L axis" ) ;
+   MCW_reghint_children( yaw_av->wrowcol   , "Angle about A-P axis" ) ;
+
+/*==========================================================================*/
+#if 1
+#ifdef ALLOW_INCROT  /* 26 Apr 2002 - RWCox */
+   XtVaSetValues( roll_av->wtext  , XmNcolumns , 8 , NULL ) ;
+   XtVaSetValues( pitch_av->wtext , XmNcolumns , 8 , NULL ) ;
+   XtVaSetValues( yaw_av->wtext   , XmNcolumns , 8 , NULL ) ;
+#endif
+#endif
+/*==========================================================================*/
 
    XtManageChild(hrc) ;
 
@@ -2184,7 +2247,7 @@ void RCREND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    /* rickr - get new renderer and set basic opacity map */
    if ( gcr.rh == NULL )
-   {  
+   {
       int ii;
 
       gcr.rh = new_CREN_renderer();
@@ -2194,7 +2257,7 @@ void RCREND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
       CREN_set_opamap( gcr.rh, gcr.omap, 1.0 );
    }
-   
+
    RCREND_load_cutout_state() ;           /* load cutout data from widgets */
 
    if( RCREND_cutout_state_changed() ){   /* if cutouts changed, must reload data */
@@ -2485,6 +2548,24 @@ void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         extent of the dataset in any way.  Each additional\n"
        "         accumulated image appears as the last image in the\n"
        "         sequence, no matter where you are when 'Draw' activates.\n"
+#ifdef ALLOW_INCROT /* 26 Apr 2002 - RWCox */
+       "\n"
+       " * The 'I' toggle left of the 'Roll' button lets you select\n"
+       "     incremental mode for angle changes made with the arrow\n"
+       "     buttons.\n"
+       "     + In incremental mode, the extra rotation implied by\n"
+       "         pressing the arrow button will be around the spatial\n"
+       "         axis corresponding to that button:\n"
+       "         Roll=I-S axis, Pitch=R-L axis, Yaw=A-P axis.\n"
+       "     + In non-incremental mode, the rotation angles are always\n"
+       "         applied in the order Yaw, Pitch, Roll; the result may\n"
+       "         not be intuitive since the SO(3) group is not Abelian.\n"
+       "     + In incremental mode, when you press an angle arrow button,\n"
+       "         new absolute spatial angles corresponding to the changed\n"
+       "         orientation are calculated and put into the Roll, Pitch,\n"
+       "         and Yaw text fields.\n"
+       "     + Incremental rotation mode does not combine with Automate.\n"
+#endif /* ALLOW_INCROT */
        "\n"
        "Brightness and Opacity:\n"
        "-----------------------\n"
@@ -3276,6 +3357,15 @@ void RCREND_angle_CB( MCW_arrowval * av , XtPointer cd )
 {
    float na ;
 
+/*==========================================================================*/
+#ifdef ALLOW_INCROT  /* 26 Apr 2002 - RWCox */
+   if( cd == NULL && MCW_val_bbox(incrot_bbox) ){  /* increment mode  */
+      RCREND_do_incrot( av ) ;                     /* ==> do work here */
+      return ;
+   }
+#endif
+/*==========================================================================*/
+
    if( av == roll_av  ){
 
       na = angle_roll = av->fval ;
@@ -3306,6 +3396,79 @@ void RCREND_angle_CB( MCW_arrowval * av , XtPointer cd )
 
    return ;
 }
+
+/*==========================================================================*/
+#ifdef ALLOW_INCROT  /* 26 Apr 2002 - RWCox */
+
+void RCREND_incrot_CB( Widget w , XtPointer cld , XtPointer cad )
+{
+   if( MCW_val_bbox(automate_bbox) ){       /* don't allow incrot */
+      MCW_set_bbox( incrot_bbox , 0 ) ;     /* if Automate is set */
+      return ;
+   }
+
+   /* if incrot is on, then force arrowvals back to numerical
+      values in case they are now encoded as Automate expressions */
+
+   if( MCW_val_bbox(incrot_bbox) ){
+      RCREND_textact_CB( roll_av ->wtext , (XtPointer)roll_av  , NULL ) ;
+      RCREND_textact_CB( pitch_av->wtext , (XtPointer)pitch_av , NULL ) ;
+      RCREND_textact_CB( yaw_av  ->wtext , (XtPointer)yaw_av   , NULL ) ;
+   }
+}
+
+/*--------------------------------------------------------------------------*/
+
+void RCREND_do_incrot( MCW_arrowval * av )
+{
+   int ax ;
+   float th , roll,pitch,yaw ;
+
+   /* read angles from arrowval's current status */
+
+   roll  = roll_av ->fval ;
+   pitch = pitch_av->fval ;
+   yaw   = yaw_av  ->fval ;
+
+   /* choose axis of rotation based on what was just clicked,
+      and set current angle for that axis to last value (before click) */
+
+        if( av == roll_av  ){ ax = 2; roll  = av->old_fval; }
+   else if( av == pitch_av ){ ax = 0; pitch = av->old_fval; }
+   else if( av == yaw_av   ){ ax = 1; yaw   = av->old_fval; }
+   else
+        return ;   /* should never happen */
+
+   th = av->fval - av->old_fval ;  /* angle increment */
+
+   roll  *= (PI/180) ;  /* convert to radians */
+   pitch *= (PI/180) ;
+   yaw   *= (PI/180) ;
+   th    *= (PI/180) ;
+
+   /* compute new angles */
+
+   RCREND_inc_angles( ax, th, &yaw , &pitch, &roll ) ;
+
+   roll  = 0.001 * rint( (180000.0/PI)*roll  ) ;  /* convert to degrees */
+   pitch = 0.001 * rint( (180000.0/PI)*pitch ) ;  /* (rounded to 1/1000) */
+   yaw   = 0.001 * rint( (180000.0/PI)*yaw   ) ;
+
+   /* put back into arrowvals */
+
+   AV_assign_fval( roll_av  , roll  ) ; angle_roll  = roll  ;
+   AV_assign_fval( yaw_av   , yaw   ) ; angle_yaw   = yaw   ;
+   AV_assign_fval( pitch_av , pitch ) ; angle_pitch = pitch ;
+
+   /* redraw if desirable */
+
+   if( dynamic_flag && gcr.rh != NULL )
+      RCREND_draw_CB(NULL,NULL,NULL) ;
+
+   return ;
+}
+#endif /* ALLOW_INCROT */
+/*==========================================================================*/
 
 /*-----------------------------------------------------------------------
    Callback for xhair toggle button
@@ -4433,6 +4596,11 @@ void RCREND_autoflag_CB( Widget w , XtPointer client_data , XtPointer call_data 
 {
    int flag = MCW_val_bbox( automate_bbox ) ;
    XtSetSensitive( autocompute_pb , (Boolean) flag ) ;
+
+#ifdef ALLOW_INCROT  /* 26 Apr 2002 - RWCox */
+   if( flag ) MCW_set_bbox( incrot_bbox , 0 ) ;
+#endif
+
    return ;
 }
 
@@ -7761,7 +7929,7 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
          RCREND_color_opacity_CB( wfunc_opacity_av , NULL ) ;
       }
 
-      if( RSOK(func_showthru,0,1) ){             /* 08 Mar 2002 */ 
+      if( RSOK(func_showthru,0,1) ){             /* 08 Mar 2002 */
          MCW_set_bbox( wfunc_do_ST_bbox, rs->func_showthru );
          RCREND_do_ST_CB( NULL,NULL,NULL );
       }
@@ -7937,7 +8105,7 @@ void rcr_disp_hist( unsigned char * im, int nvox, int b1, int cut, int b2 )
 
     memset( grcr_hist_high, 0, 256 * sizeof(int) );
     memset( grcr_hist_low, 0, 256 * sizeof(int) );
- 
+
     for ( c1 = 0, tmpi = im; c1 < nvox; c1++, tmpi++ )
 	if ( *tmpi > max )
 	    max = *tmpi;
@@ -8032,3 +8200,81 @@ void rcr_verify_rgb( MRI_IMAGE * im )
     printf( "-- rcr_verify_rgb: max gray is %d\n", max );
 }
 
+/*==========================================================================*/
+#ifdef ALLOW_INCROT   /* 26 Apr 2002 - RWCox */
+
+/*--------------------------------------------------------------------------*/
+/*! Compute the changes in the rotation angles if we add
+    an incremental rotation about axis ax (0,1,2) of size th.
+----------------------------------------------------------------------------*/
+
+static void RCREND_inc_angles( int ax, float th,
+                               float *yaw, float *pitch, float *roll )
+{
+   double a,b,c ;
+   THD_dmat33 qq , rr , pp ;
+
+   a = *yaw ; b = *pitch ; c = *roll ;           /* fetch input angles */
+   qq = RCREND_rotmatrix( 1,a , 0,b , 2,c ) ;    /* compute matrix from angles */
+
+   LOAD_ROT_MAT(rr,th,ax) ;                      /* incremental rotation */
+
+   pp = DMAT_MUL(rr,qq) ;                        /* total rotation matrix */
+   RCREND_rotmatrix_to_angles( pp , &a,&b,&c ) ; /* get angles from this */
+   *yaw = a ; *pitch = b ; *roll = c ;           /* store angles */
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute a rotation matrix. */
+
+static THD_dmat33 RCREND_rotmatrix( int ax1,double th1 ,
+                                    int ax2,double th2 , int ax3,double th3  )
+{
+   THD_dmat33 q , p ;
+
+   LOAD_ROT_MAT( q , th1 , ax1 ) ;
+   LOAD_ROT_MAT( p , th2 , ax2 ) ; q = DMAT_MUL( p , q ) ;
+   LOAD_ROT_MAT( p , th3 , ax3 ) ; q = DMAT_MUL( p , q ) ;
+
+   return q ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Compute yaw=a, pitch=b, roll=c, given rotation matrix in form below:
+
+                         [cc ca + sc sb sa     sc cb    -cc sa + sc sb ca]
+                         [                                               ]
+ Rz(c) * Rx(b) * Ry(a) = [-sc ca + cc sb sa    cc cb    sc sa + cc sb ca ]
+                         [                                               ]
+                         [      cb sa           -sb           cb ca      ]
+
+  - pitch will be between PI/2 and 3*PI/2.
+  - this function only works if ax1=1, ax2=0, ax3=2 (the defaults)
+-------------------------------------------------------------------------*/
+
+static void RCREND_rotmatrix_to_angles( THD_dmat33 q,
+                                        double *yaw, double *pitch, double *roll )
+{
+   double a,b,c ;
+   double sb,cb , sa,ca , sc,cc ;
+
+   sb = -q.mat[2][1] ; b = PI-asin(sb) ; cb = cos(b) ;
+
+   if( fabs(cb) < 0.001 ){  /* singular case */
+      a  = 0 ;
+      cc = q.mat[0][0] ;
+      sc = q.mat[0][2] ; if( sb < 0.0 ) sc = -sc ;
+      c  = atan2( sc , cc ) ;
+   } else {
+      a = atan2( -q.mat[2][0] , -q.mat[2][2] ) ;
+      c = atan2( -q.mat[0][1] , -q.mat[1][1] ) ;
+   }
+
+   if( a < 0 ) a += 2.0*PI ;
+   if( c < 0 ) c += 2.0*PI ;
+
+   *yaw = a ; *pitch = b ; *roll = c ; return ;
+}
+#endif /* ALLOW_INCROT */
+/*==========================================================================*/

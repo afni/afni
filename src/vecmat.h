@@ -317,12 +317,12 @@ static float tempRWC ;
 #define LOAD_ROTY_MAT(A,th) LOAD_ROTGEN_MAT(A,th,1,2,0)
 #define LOAD_ROTZ_MAT(A,th) LOAD_ROTGEN_MAT(A,th,2,0,1)
 
-#define LOAD_ROT_MAT(A,th,i)                  \
-  do{ switch( (i) ){                          \
-        case 0: LOAD_ROTX_MAT(A,th) ; break ; \
-        case 1: LOAD_ROTY_MAT(A,th) ; break ; \
-        case 2: LOAD_ROTZ_MAT(A,th) ; break ; \
-       default: LOAD_ZERO_MAT(A)    ; break ; \
+#define LOAD_ROT_MAT(A,th,i)                    \
+  do{ switch( (i) ){                            \
+        case 0: LOAD_ROTX_MAT(A,th)   ; break ; \
+        case 1: LOAD_ROTY_MAT(A,th)   ; break ; \
+        case 2: LOAD_ROTZ_MAT(A,th)   ; break ; \
+       default: LOAD_DIAG_MAT(A,1,1,1); break ; \
       } } while(0)
 
    /* shear matrices [3 Oct 1998] */
@@ -430,6 +430,13 @@ static double dtempRWC ;
            (A).mat[2][0] , (A).mat[2][1] , (A).mat[2][2]  )
 
 #define DUMP_DVECMAT(str,vvmm) ( DUMP_DMAT33(str,vvmm.mm) , DUMP_DFVEC3(str,vvmm.vv) )
+
+  /*! Convert from dmat33 to mat33 (double to single precision) */
+
+#define DMAT_TO_MAT(D,M)                                    \
+ LOAD_MAT(M,(D).mat[0][0] , (D).mat[0][1] , (D).mat[0][2] , \
+            (D).mat[1][0] , (D).mat[1][1] , (D).mat[1][2] , \
+            (D).mat[2][0] , (D).mat[2][1] , (D).mat[2][2]  )
 
 /*--- macros for operations on floating 3 vectors,
       with heavy use of the comma operator and structure assignment! ---*/
