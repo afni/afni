@@ -457,6 +457,11 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
         EDIT_dset_items( (ds),ADN_brick_stataux_one+(iv),sqq,ADN_none ) ; \
      } } while(0)
 
+/*! Convert sub-brick iv of dataset ds to a no-statistic [16 Jun 2003] */
+
+#define EDIT_BRICK_TO_NOSTAT(ds,iv) \
+  EDIT_STATAUX4(ds,iv,FUNC_FIM_TYPE,0,0,0,0)
+
 /*! Convert sub-brick iv of dataset ds to a fico (correlation) statistic. */
 
 #define EDIT_BRICK_TO_FICO(ds,iv,nsam,nfit,nort) \

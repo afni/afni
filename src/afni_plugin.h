@@ -664,6 +664,7 @@ extern void PLUTO_register_timeseries( char * , MRI_IMAGE * ) ;
 
 extern THD_3dim_dataset * PLUTO_find_dset( MCW_idcode * ) ;
 extern THD_3dim_dataset * PLUTO_find_dset_idc( char * ) ;
+extern THD_slist_find     PLUTO_dset_finder( char * ) ;
 
 extern void PLUTO_histoplot( int, float, float, int *,
                              char *, char *, char * , int,int ** ) ;

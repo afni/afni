@@ -32,6 +32,8 @@ ENTRY("SUMA_create_empty_surface") ;
 
    ag->seq = ag->seqbase = ag->sorted = 0 ; /* not sequential; not sorted */
 
+   ag->vv = NULL ;  /* 16 Jun 2003 */
+
    RETURN( ag ) ;
 }
 

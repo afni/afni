@@ -4593,3 +4593,6 @@
  * Modified niml/niml_elemio.c to make attribute string buffer size expand
      when Ziad writes huge attributes, the fiend.  Also put a newline before
      each attribute, whether we want it or not.
+
+16 Jun 2003
+ * SUMA+AFNI ROI stuff.

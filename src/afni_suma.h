@@ -53,6 +53,21 @@ typedef struct {
 #define WAY_BIG 1.e+10
 #endif
 
+/*! Typedef for voxel value list */
+
+typedef struct {
+   int nvox ;
+   int   *voxijk ;
+   float *voxval ;
+} SUMA_vvlist ;
+
+#define DESTROY_VVLIST(vv)                          \
+ do{ if( vv != NULL ){                              \
+       if( vv->voxijk != NULL ) free(vv->voxijk) ;  \
+       if( vv->voxval != NULL ) free(vv->voxval) ;  \
+       free(vv) ;                                   \
+ }} while(0)
+
 /*! A surface structure in 3D space:
      - a bunch of SUMA_ixyz's
      - a bunch of SUMA_ijk's linking them together */
@@ -81,6 +96,8 @@ typedef struct {
   char idcode_dset[32] ;       /*!< IDCODE string for AFNI dataset */
 
   char label[32] ;             /*!< Label for user-interaction [19 Aug 2002] */
+
+  SUMA_vvlist *vv ;            /*!< [16 Jun 2003] */
 } SUMA_surface ;
 
 /*! Macro for node count in a SUMA_surface struct */
