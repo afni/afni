@@ -5,9 +5,7 @@
 ******************************************************************************/
    
 /***********************************************************************
- *
  * plug_roiedit.h		- see plug_roiedit.c v1.7
- * 
  ***********************************************************************
 */
 
@@ -113,8 +111,8 @@ typedef struct
 
 
     /* boundary stuff */
-    points_t old;
-    points_t new;
+    points_t Bold;
+    points_t Bnew;
     points_t border;
 
     short  * neighbors;
