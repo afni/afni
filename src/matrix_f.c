@@ -52,8 +52,17 @@
 
   Mod:      Added UNROLL_VECMUL stuff from matrix.c to this file as well.
             Added 'ipr' to matrix_print().
+            Added USE_ALTIVEC stuff for Macs.
   Date:     03 Aug 2004
 */
+
+#ifdef USE_ALTIVEC
+# include <math.h>
+# include <stdlib.h>
+# include <stdio.h>
+# include "matrix_f.h"
+# include <Accelerate/Accelerate.h>
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*!
@@ -253,6 +262,11 @@ void matrix_enter (matrix * m)
      If error_exit flag is set, then print error message and exit.
      Otherwise, return null matrix.
 */
+
+#ifdef USE_ALTIVEC
+# include "mri_image.h"
+  extern MRI_IMAGE *mri_read_1D(char *) ;
+#endif
 
 void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 		       int error_exit)
@@ -953,7 +967,12 @@ void vector_multiply (matrix a, vector b, vector * c)
   register int rows, cols;
   register int i, j;
   register float  sum ;
-  register float  *bb , *aa ;
+  register float  *bb ;
+#ifdef USE_ALTIVEC
+  register float **aa , *cc ;
+#else
+  register float *aa ;
+#endif
 
   if (a.cols != b.dim)
     matrix_error ("Incompatible dimensions for vector multiplication");
@@ -969,6 +988,16 @@ void vector_multiply (matrix a, vector b, vector * c)
   }
 
   bb = b.elts ;
+
+#ifdef USE_ALTIVEC
+  aa = a.elts ; cc = c->elts ;
+  i = rows%2 ;
+  if( i == 1 ) dotpr( aa[0],1 , bb,1 , cc , cols ) ;
+  for( ; i < rows ; i+=2 ){
+    dotpr( aa[i]  ,1 , bb,1 , cc+i     , cols ) ;
+    dotpr( aa[i+1],1 , bb,1 , cc+(i+1) , cols ) ;
+  }
+#else
 
 #ifdef UNROLL_VECMUL
   if( cols%2 == 0 ){              /* even number of cols */
@@ -994,6 +1023,8 @@ void vector_multiply (matrix a, vector b, vector * c)
     }
 #endif /* UNROLL_VECMUL */
 
+#endif /* USE_ALTIVEC */
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1006,8 +1037,12 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 {
   register int rows, cols;
   register int i, j;
-  register float  sum , qsum ;
-  register float  *aa,*bb ;
+  register float  *bb ;
+#ifdef USE_ALTIVEC
+  float qsum,sum , **aa , *dd,*cc,*ee ;
+#else
+  register float qsum,sum, *aa ;
+#endif
 
   if (a.cols != b.dim || a.rows != c.dim )
     matrix_error ("Incompatible dimensions for vector multiplication-subtraction");
@@ -1027,6 +1062,20 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   }
 
   qsum = 0.0f ; bb = b.elts ;
+
+#ifdef USE_ALTIVEC
+  aa = a.elts ; dd = d->elts ; cc = c.elts ;
+  ee = (float *)malloc(sizeof(float)*rows) ;
+  i  = rows%2 ;
+  if( i == 1 ) dotpr( aa[0],1 , bb,1 , ee , cols ) ;
+  for( ; i < rows ; i+=2 ){
+    dotpr( aa[i]  ,1 , bb,1 , ee+i     , cols ) ;
+    dotpr( aa[i+1],1 , bb,1 , ee+(i+1) , cols ) ;
+  }
+  vsub( cc,1 , ee,1 , dd,1 , rows ) ;
+  dotpr( dd,1 , dd,1 , &qsum , rows ) ;
+  free((void *)ee) ;
+#else
 
 #ifdef UNROLL_VECMUL
   if( cols%2 == 0 ){                   /* even number */
@@ -1051,6 +1100,8 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
     d->elts[i] = sum ; qsum += sum*sum ;
   }
 #endif /* UNROLL_VECMUL */
+
+#endif /* USE_ALTIVEC */
 
   return qsum ;  /* 26 Feb 2003 */
 }

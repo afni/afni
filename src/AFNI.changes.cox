@@ -5143,3 +5143,5 @@
      when the matrix comprises all 1 digit integers.
  * Modified 3dDeconvolve.c to print -gltsym matrices when AFNI_GLTSYM_PRINT
      environment variable is YES.
+ * Modified matrix_f.c to use Altivec on Mac for matrix-vector multiplies.
+     Adds about 10% to speed on G5, over the loop unrolling from yesterday.
