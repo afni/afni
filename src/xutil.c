@@ -471,21 +471,23 @@ ENTRY("MCW_popup_message") ;
   Alter the text in the popup message - 10 Jul 2001
 ---------------------------------------------------------------------------*/
 
-void MCW_message_alter( Widget wmsg , char * msg )
+void MCW_message_alter( Widget wmsg , char *msg )
 {
    Widget wlab ;
-   Widget * children=NULL ;
+   Widget *children=NULL ;
    int  num_children=0 ;
    XmString xstr ;
 
-   if( wmsg == NULL || msg == NULL || msg[0] == '\0' ) return ;
+ENTRY("MCW_message_alter") ;
+
+   if( wmsg == NULL || msg == NULL || msg[0] == '\0' ) EXRETURN ;
 
    XtVaGetValues( wmsg , XmNchildren    , &children ,
                          XmNnumChildren , &num_children , NULL ) ;
-   if( num_children < 1 ) return ;
+   if( num_children < 1 ) EXRETURN ;
 
    MCW_set_widget_label( children[0] , msg ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -560,9 +562,7 @@ void MCW_alter_widget_cursor( Widget w, int cur, char * fgname, char * bgname )
       ccc = cur ;
    } else {
       ii = -cur ;
-      if( cur_font[ii] == None )
-	 cur_font[ii] = XCreateFontCursor( dis , ii ) ;
-
+      if( cur_font[ii] == None ) cur_font[ii] = XCreateFontCursor( dis , ii ) ;
       ccc = cur_font[ii] ;
    }
 
@@ -1293,9 +1293,11 @@ void MCW_textwin_alter( MCW_textwin * tw , char * mmm ) /* 10 Jul 2001 */
    XmString xstr ;
    XmFontList xflist ;
 
-   if( tw == NULL ) return ;     /* bad */
+ENTRY("MCW_textwin_alter") ;
 
-   if( msg == NULL ) msg = " " ; /* don't let user be stupid */
+   if( tw == NULL ) EXRETURN ;     /* bad */
+
+   if( msg == NULL ) msg = " " ; /* don't let user be so stupid */
 
 #if 0
    /*-- compute size of text window with new message in it --*/
@@ -1356,7 +1358,7 @@ void MCW_textwin_alter( MCW_textwin * tw , char * mmm ) /* 10 Jul 2001 */
    }
 #endif
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -1465,9 +1467,11 @@ void RWC_visibilize_widget( Widget w )
 {
    Position xroot , yroot ;
    int wx,hy,xx,yy , scr_width,scr_height , xo,yo ;
-   Screen * scr ;
+   Screen *scr ;
 
-   if( w == NULL || !XtIsWidget(w) ) return ;
+ENTRY("RWC_visibilize_widget") ;
+
+   if( w == NULL || !XtIsWidget(w) ) EXRETURN ;
 
    MCW_widget_geom( w , &wx,&hy,&xx,&yy ) ;     /* geometry of widget */
 
@@ -1488,7 +1492,7 @@ void RWC_visibilize_widget( Widget w )
    if( xx != xo || yy != yo )
       XtVaSetValues( w , XmNx , xx , XmNy , yy , NULL ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -1700,7 +1704,8 @@ void RWC_destroy_nullify_cancel( Widget w, void **p )
 
 /*---------------------------------------------------------------------------*/
 
-static RWC_draw_rect( Display *dis, Window win, GC gc, int x1,int y1,int x2,int y2 )
+static RWC_draw_rect( Display *dis, Window win, GC gc,
+                      int x1, int y1, int x2, int y2  )
 {
   int xb,yb , xt,yt ;
   unsigned int short w,h ;
@@ -1714,9 +1719,24 @@ static RWC_draw_rect( Display *dis, Window win, GC gc, int x1,int y1,int x2,int 
     XDrawPoint( dis,win,gc , xb,yb ) ;
 }
 
-#define RWC_draw_line XDrawLine
-
 /*---------------------------------------------------------------------------*/
+
+static Cursor cur = None ;  /* 17 Jun 2002 */
+
+static void RWC_drag_cursor( Display *dis )
+{
+   XColor fg , bg ;
+   Colormap cmap ;
+   Boolean  good ;
+
+   if( cur == None ){
+     cur  = XCreateFontCursor( dis , XC_arrow ) ;
+     cmap = DefaultColormap( dis , DefaultScreen(dis) ) ;
+     good =   XParseColor( dis, cmap, "yellow" , &fg )
+           && XParseColor( dis, cmap, "red"    , &bg )  ;
+     if( good ) XRecolorCursor( dis , cur , &fg , &bg ) ;
+   }
+}
 
 void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
 {
@@ -1728,10 +1748,6 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
    XGCValues  gcv;
    GC         myGC ;
 
-   static Cursor cur = None ;  /* 17 Jun 2002 */
-   XColor fg , bg ;
-   Colormap cmap ;
-   Boolean  good ;
 
 ENTRY("RWC_drag_rectangle") ;
 
@@ -1745,13 +1761,7 @@ ENTRY("RWC_drag_rectangle") ;
 
    dis = XtDisplay(w) ; win = XtWindow(w) ;
 
-   if( cur == None ){  /* 17 Jun 2002: make a special cursor */
-     cur  = XCreateFontCursor( dis , XC_diamond_cross ) ;
-     cmap = DefaultColormap( dis , DefaultScreen(dis) ) ;
-     good =   XParseColor( dis, cmap, "yellow" , &fg )
-           && XParseColor( dis, cmap, "red"    , &bg )  ;
-     if( good ) XRecolorCursor( dis , cur , &fg , &bg ) ;
-   }
+   RWC_drag_cursor(dis) ;
 
    grab = !XGrabPointer(dis, win, False, 0, GrabModeAsync,
                         GrabModeAsync, win, cur , (Time)CurrentTime);
@@ -1797,6 +1807,92 @@ ENTRY("RWC_drag_rectangle") ;
    if (grab) XUngrabPointer(dis, (Time)CurrentTime) ;
 
    *x2 = xold ; *y2 = yold ;  /* output values */
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static RWC_draw_circle( Display *dis, Window win, GC gc, int xc, int yc, int rad )
+{
+   int xb,yb ;
+   unsigned int ww ;
+
+   if( rad < 0 ) rad = 0 ;
+   xb = xc-rad ; yb = yc-rad ; ww = 2*rad ;
+   XDrawArc( dis,win,gc , xb,yb , ww,ww , 0,360*64 ) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void RWC_drag_circle( Widget w, int x1, int y1, int *radius )
+{
+   Display *dis ;
+   Window win , rW,cW ;
+   int grab , xold,yold , x,y, rx,ry , first=1 , rrr=0 ;
+   unsigned int mask ;                                      /* which buttons */
+   unsigned int bmask=Button1Mask|Button2Mask|Button3Mask ; /* all buttons  */
+   XGCValues  gcv;
+   GC         myGC ;
+
+ENTRY("RWC_drag_circle") ;
+
+   /** make a GC for invert drawing **/
+
+   gcv.function = GXinvert ;
+   myGC         = XtGetGC( w , GCFunction , &gcv ) ;
+
+   /** grab the pointer (so no one else gets events from it),
+       and confine it to the window in question              **/
+
+   dis = XtDisplay(w) ; win = XtWindow(w) ;
+
+   RWC_drag_cursor(dis) ;
+
+   grab = !XGrabPointer(dis, win, False, 0, GrabModeAsync,
+                        GrabModeAsync, win, cur , (Time)CurrentTime);
+
+   /* grab fails => exit */
+
+   if( !grab ){ XBell(dis,100); *radius=0; EXRETURN; }
+
+   xold = x1 ; yold = y1 ;  /* current location of pointer */
+
+   /** loop and find out where the pointer is (while button is down) **/
+
+   while( XQueryPointer(dis,win,&rW,&cW,&rx,&ry,&x,&y,&mask) ){
+
+     /* check if all buttons are released */
+
+     if( !(mask & bmask) ) break ;  /* no button down => done! */
+
+     /* pointer now at (x,y) in the window */
+
+     /* if it has moved, redraw rectangle */
+
+     if( x != xold || y != yold ){
+
+       if( !first )  /* undraw old rectangle */
+         RWC_draw_circle( dis,win,myGC , x1,y1 , rrr ) ;
+
+       /* draw new rectangle */
+
+       xold = x ; yold = y ; first = 0 ;
+       rrr = (int)rint(sqrt( (x-x1)*(x-x1) + (y-y1)*(y-y1) )) ;
+       RWC_draw_circle( dis,win,myGC , x1,y1 , rrr ) ;
+
+     } /* end of new (x,y) position */
+
+   } /* end of loop while button is pressed */
+
+   if( !first )  /* undraw old rectangle */
+     RWC_draw_circle( dis,win,myGC , x1,y1 , rrr ) ;
+
+   /* clean up */
+
+   XtReleaseGC( w , myGC ) ;
+   if (grab) XUngrabPointer(dis, (Time)CurrentTime) ;
+
+   *radius = rrr ;
    EXRETURN ;
 }
 
