@@ -1722,6 +1722,7 @@ SUMA_X_ViewCont *SUMA_CreateViewContStruct (void)
    ViewCont->TopLevelShell = NULL;
    ViewCont->ViewerInfo_TextShell = NULL;
    ViewCont->Info_lb = NULL;
+   ViewCont->ViewerInfo_pb = NULL;
    ViewCont->Mainform = NULL;
    ViewCont->SwitchGrouplst = NULL; 
    ViewCont->SwitchStatelst = NULL; 

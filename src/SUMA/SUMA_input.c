@@ -191,10 +191,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      break;   
                   }
                } 
-               if (!SUMAg_CF->X->WarnClose) {
-                  XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
-                  exit(0);
-               } 
+               XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
+               exit(0);
             }else { 
                if( SUMAg_CF->X->WarnClose) {
                   if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close This Viewer?", SUMA_YES) != SUMA_YES) {
