@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <ctype.h>
 #include "nifti1.h"
 
 /*****===================================================================*****/
@@ -64,7 +65,8 @@ typedef struct {                  /** Image storage struct **/
   int xyz_units , time_units ;    /* dx,dy,dz & dt units: NIFTI_UNITS_* code */
 
   int nifti_type ;                /* 0==ANALYZE, 2==NIFTI-1 (2 files),
-                                                 1==NIFTI-1 (1 file)   */
+                                                 1==NIFTI-1 (1 file) ,
+                                                 3==NIFTI-ASCII (1 file) */
   int intent_code ;               /* statistic type (or something) */
   float intent_p1, intent_p2,     /* intent parameters */
         intent_p3 ;
@@ -76,6 +78,7 @@ typedef struct {                  /** Image storage struct **/
   char *iname ;                   /* image filename (.img or .nii)  */
   int   iname_offset ;            /* offset into iname where data starts */
   int   swapsize ;                /* swapping unit in image data */
+  int   byteorder ;               /* byte order on disk (MSB_ or LSB_FIRST) */
   void *data ;                    /* pointer to data: nbyper*nvox bytes */
 
 } nifti_image ;
@@ -105,12 +108,17 @@ void swap_Nbytes ( int n , int siz , void *ar ) ;
 void swap_nifti_header( struct nifti_1_header *h , int is_nifti ) ;
 unsigned int get_filesize( char *pathname ) ;
 
-nifti_image * nifti_image_read    ( char *hname , int read_data ) ;
-void          nifti_image_load    ( nifti_image *nim ) ;
-void          nifti_image_unload  ( nifti_image *nim ) ;
-void          nifti_image_free    ( nifti_image *nim ) ;
-void          nifti_image_infodump( nifti_image *nim ) ;
-void          nifti_image_write   ( nifti_image *nim ) ;
+nifti_image *nifti_image_read    ( char *hname , int read_data ) ;
+void         nifti_image_load    ( nifti_image *nim ) ;
+void         nifti_image_unload  ( nifti_image *nim ) ;
+void         nifti_image_free    ( nifti_image *nim ) ;
+void         nifti_image_write   ( nifti_image *nim ) ;
+void         nifti_image_infodump( nifti_image *nim ) ;
+
+char *       nifti_image_to_ascii  ( nifti_image *nim ) ;
+nifti_image *nifti_image_from_ascii( char *str        ) ;
+
+void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize ) ;
 
 void mat44_to_quatern( mat44 R ,
                        float *qb, float *qc, float *qd,
@@ -120,6 +128,11 @@ void mat44_to_quatern( mat44 R ,
 mat44 quatern_to_mat44( float qb, float qc, float qd,
                         float qx, float qy, float qz,
                         float dx, float dy, float dz, float qfac );
+
+int unescape_inplace( char *str ) ;  /* string utility functions */
+char *quotize_string( char *str ) ;
+
+int short_order(void) ;
 
 /*-------------------- Some C convenience macros ----------------------------*/
 
@@ -141,6 +154,16 @@ mat44 quatern_to_mat44( float qb, float qc, float qd,
 #  define IS_GOOD_FLOAT(x) 1                               /* don't check it */
 #  define FIXED_FLOAT(x)   (x)                               /* don't fix it */
 #endif
+
+#undef  ASSIF                                 /* assign v to *p, if possible */
+#define ASSIF(p,v) if( (p)!=NULL ) *(p) = (v)
+
+#undef  MSB_FIRST
+#undef  LSB_FIRST
+#undef  REVERSE_ORDER
+#define MSB_FIRST 1
+#define LSB_FIRST 2
+#define REVERSE_ORDER(x) (3-(x))
 
 /*---------------------------------------------------------------------------*/
 /* Return a pointer to a string holding the name of a NIFTI datatype.
@@ -216,11 +239,11 @@ char *nifti_xform_string( int xx )
 char *nifti_intent_string( int ii )
 {
    switch( ii ){
-     case NIFTI_INTENT_CORREL:     return "Correlation" ;
+     case NIFTI_INTENT_CORREL:     return "Correlation statistic" ;
      case NIFTI_INTENT_TTEST:      return "T-statistic" ;
      case NIFTI_INTENT_FTEST:      return "F-statistic" ;
      case NIFTI_INTENT_ZSCORE:     return "Z-score"     ;
-     case NIFTI_INTENT_CHISQ:      return "Chi-squared" ;
+     case NIFTI_INTENT_CHISQ:      return "Chi-squared distribution" ;
      case NIFTI_INTENT_BETA:       return "Beta distribution" ;
      case NIFTI_INTENT_BINOM:      return "Binomial distribution" ;
      case NIFTI_INTENT_GAMMA:      return "Gamma distribution" ;
@@ -250,6 +273,43 @@ char *nifti_intent_string( int ii )
      case NIFTI_INTENT_QUATERNION: return "Quaternion" ;
    }
    return "Unknown" ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Given a datatype code, set number of bytes per voxel and the swapsize.
+   The swapsize is set to 0 if this datatype doesn't ever need swapping.
+----------------------------------------------------------------------------*/
+
+void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize )
+{
+   int nb=0, ss=0 ;
+   switch( datatype ){
+     case DT_INT8:
+     case DT_UINT8:       nb =  1 ; ss =  0 ; break ;
+
+     case DT_INT16:
+     case DT_UINT16:      nb =  2 ; ss =  2 ; break ;
+
+     case DT_RGB24:       nb =  3 ; ss =  0 ; break ;
+
+     case DT_INT32:
+     case DT_UINT32:
+     case DT_FLOAT32:     nb =  4 ; ss =  4 ; break ;
+
+     case DT_COMPLEX64:   nb =  8 ; ss =  4 ; break ;
+
+     case DT_FLOAT64:
+     case DT_INT64:
+     case DT_UINT64:      nb =  8 ; ss =  8 ; break ;
+
+     case DT_FLOAT128:    nb = 16 ; ss = 16 ; break ;
+
+     case DT_COMPLEX128:  nb = 16 ; ss =  8 ; break ;
+
+     case DT_COMPLEX256:  nb = 32 ; ss = 16 ; break ;
+   }
+
+   ASSIF(nbyper,nb) ; ASSIF(swapsize,ss) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -329,9 +389,6 @@ mat44 quatern_to_mat44( float qb, float qc, float qd,
      - If the 3 input matrix columns are not even linearly independent,
        you'll just have to take your luck, won't you?
 -----------------------------------------------------------------------------*/
-
-#undef  ASSIF                                 /* assign v to *p, if possible */
-#define ASSIF(p,v) if( (p)!=NULL ) *(p) = (v)
 
 void mat44_to_quatern( mat44 R ,
                        float *qb, float *qc, float *qd,
@@ -447,8 +504,6 @@ void mat44_to_quatern( mat44 R ,
    ASSIF(qb,b) ; ASSIF(qc,c) ; ASSIF(qd,d) ;
    return ;
 }
-
-#undef ASSIF
 
 /*---------------------------------------------------------------------------*/
 /* Compute the inverse of a bordered 4x4 matrix.
@@ -767,8 +822,8 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
    return ;
 }
 
-#define THIS_IS_UNIX
-#ifdef  THIS_IS_UNIX
+#define USE_STAT
+#ifdef  USE_STAT
 /*---------------------------------------------------------------------------*/
 /* Return the file length (0 if file not found or has no contents).
    This is a Unix-specific function, since it uses stat().
@@ -797,7 +852,7 @@ unsigned int get_filesize( char *pathname )
    fclose(fp) ; return len ;
 }
 
-#endif /* THIS_IS_UNIX */
+#endif /* USE_STAT */
 
 /*--------------------------------------------------------------------------*/
 /* Read in a NIFTI-1 or ANALYZE-7.5 file (pair) into a nifti_image struct.
@@ -817,7 +872,7 @@ unsigned int get_filesize( char *pathname )
              (hname != NULL) ? hname : "(null)" , (msg) ) ;  \
      return NULL ; } while(0)
 
-nifti_image * nifti_image_read( char *hname , int read_data )
+nifti_image *nifti_image_read( char *hname , int read_data )
 {
    struct nifti_1_header nhdr ;
    nifti_image *nim ;
@@ -827,7 +882,7 @@ nifti_image * nifti_image_read( char *hname , int read_data )
    int   is_nifti , is_onefile ;
    float dx,dy,dz,dt,du,dv,dw ;
    short ss ;
-   char *iname=NULL ;
+   char *iname=NULL , buf[16] ;
 
    /** check input file(s) for sanity **/
 
@@ -840,13 +895,35 @@ nifti_image * nifti_image_read( char *hname , int read_data )
    fp = fopen( hname , "rb" ) ;
    if( fp == NULL )                      ERREX("can't open header file") ;
 
-   /** read header **/
+   /** test if header file starts with ASCII string "<nifti_image";
+       if so, read the dataset that special way                     **/
+
+   ii = fread( buf , 1 , 12 , fp ) ;
+   if( ii < 12 ){ fclose( fp ) ;         ERREX("bad header read") ; }
+   rewind(fp) ;
+   buf[12] = '\0' ;
+   if( strcmp(buf,"<nifti_image") == 0 ){  /* have an ASCII header! */
+     int slen = get_filesize( hname ) ;
+     char  *sbuf ;
+     if( slen > 65530 ) slen = 65530 ;
+     sbuf = calloc(1,slen+1) ;
+     fread( sbuf , 1 , slen , fp ) ; fclose( fp ) ;
+     nim = nifti_image_from_ascii( sbuf ) ; free( sbuf ) ;
+     if( nim == NULL )                   ERREX("bad ASCII header read") ;
+     nim->nifti_type = 3 ;
+     nim->iname_offset = -1 ;
+     if( read_data ) nifti_image_load( nim ) ;
+     else            nim->data = NULL ;
+     return nim ;
+   }
+
+   /** read binary header **/
 
    ii = fread( &nhdr , 1 , sizeof(nhdr) , fp ) ;          /* read the thing */
    fclose( fp ) ;                                         /* close the file */
-   if( ii < sizeof(nhdr) )               ERREX("bad header read") ;
+   if( ii < sizeof(nhdr) )               ERREX("bad binary header read") ;
 
-   /** check if have to swap header bytes **/
+   /** check if have to swap bytes **/
 
    doswap = 0 ;                                           /* swap data flag */
    ss = nhdr.dim[0] ;
@@ -878,14 +955,11 @@ nifti_image * nifti_image_read( char *hname , int read_data )
    for( ii=2 ; ii <= 7 ; ii++ )
      if( nhdr.dim[ii] <= 0 ) nhdr.dim[ii] = 1 ;  /* fix bad dim[] values */
 
-   /** if dim[0] is 0, get number of dimensions another way **/
+   /** get number of dimensions (ignoring dim[0] now) **/
 
-   ndim = nhdr.dim[0] ;
-   if( ndim == 0 || is_nifti ){
-     for( ii=7 ; ii >= 2 ; ii++ )            /* loop backwards until we  */
-       if( nhdr.dim[ii] > 1 ) break ;        /* find a dim bigger than 1 */
-     ndim = ii ;
-   }
+   for( ii=7 ; ii >= 2 ; ii-- )            /* loop backwards until we  */
+     if( nhdr.dim[ii] > 1 ) break ;        /* find a dim bigger than 1 */
+   ndim = ii ;
 
    /* set bad grid spacings to 1.0 */
 
@@ -919,6 +993,10 @@ nifti_image * nifti_image_read( char *hname , int read_data )
    if( is_nifti ) nim->nifti_type = (is_onefile) ? 1 : 2 ;
    else           nim->nifti_type = 0 ;
 
+   ii = short_order() ;
+   if( doswap )   nim->byteorder = REVERSE_ORDER(ii) ;
+   else           nim->byteorder = ii ;
+
    /** dimensions of data array **/
 
    nim->ndim = nim->dim[0] = ndim ;
@@ -934,35 +1012,8 @@ nifti_image * nifti_image_read( char *hname , int read_data )
 
    nim->datatype = nhdr.datatype ;
 
-   switch( nim->datatype ){
-     default:
-       free(nim) ; free(iname) ; ERREX("bad datatype") ;
-
-     case DT_INT8:
-     case DT_UINT8:       nim->nbyper =  1 ; nim->swapsize =  0 ; break ;
-
-     case DT_INT16:
-     case DT_UINT16:      nim->nbyper =  2 ; nim->swapsize =  2 ; break ;
-
-     case DT_RGB24:       nim->nbyper =  3 ; nim->swapsize =  0 ; break ;
-
-     case DT_INT32:
-     case DT_UINT32:
-     case DT_FLOAT32:     nim->nbyper =  4 ; nim->swapsize =  4 ; break ;
-
-     case DT_COMPLEX64:   nim->nbyper =  8 ; nim->swapsize =  4 ; break ;
-
-     case DT_FLOAT64:
-     case DT_INT64:
-     case DT_UINT64:      nim->nbyper =  8 ; nim->swapsize =  8 ; break ;
-
-     case DT_FLOAT128:    nim->nbyper = 16 ; nim->swapsize = 16 ; break ;
-
-     case DT_COMPLEX128:  nim->nbyper = 16 ; nim->swapsize =  8 ; break ;
-
-     case DT_COMPLEX256:  nim->nbyper = 32 ; nim->swapsize = 16 ; break ;
-   }
-   if( !doswap ) nim->swapsize = 0 ;
+   nifti_datatype_sizes( nim->datatype , &(nim->nbyper) , &(nim->swapsize) ) ;
+   if( nim->nbyper == 0 ){ free(nim); free(iname); ERREX("bad datatype"); }
 
    /** grid spacings **/
 
@@ -1104,7 +1155,7 @@ nifti_image * nifti_image_read( char *hname , int read_data )
 
 void nifti_image_load( nifti_image *nim )
 {
-   int ntot , ii ;
+   size_t ntot , ii , ioff ;
    FILE *fp ;
 
    if( nim == NULL      || nim->iname == NULL ||
@@ -1112,22 +1163,29 @@ void nifti_image_load( nifti_image *nim )
 
    /** open image data file **/
 
+   ntot = (size_t)(nim->nbyper) * (size_t)(nim->nvox) ; /* total bytes */
+
    fp = fopen( nim->iname , "rb" ) ;
    if( fp == NULL ) ERREX("Can't open data file") ;
-   fseek( fp , nim->iname_offset , SEEK_SET ) ;
+   if( nim->iname_offset < 0 ){          /* negative offset means   */
+     ii = get_filesize( nim->iname ) ;   /* figure from end of file */
+     ioff = (ii > ntot) ? ii-ntot : 0 ;
+   } else {                              /* non-negative offset   */
+     ioff = nim->iname_offset ;          /* means use it directly */
+   }
+   fseek( fp , ioff , SEEK_SET ) ;
 
    /* make space for data, then read all of it in one operation */
 
    if( nim->data != NULL ) free(nim->data) ;
 
-   ntot      = nim->nbyper * nim->nvox ;            /* total number of bytes */
    nim->data = malloc( ntot ) ;
    if( nim->data == NULL ) ERREX("can't malloc array space") ;
 
-   ii = fread( nim->data , 1 , ntot , fp ) ;              /*** data input! ***/
+   ii = fread( nim->data , 1 , ntot , fp ) ;             /*** data input! ***/
    fclose( fp ) ;
 
-   /* if read was short, fill rest of array with 0 bytes */
+   /** if read was short, fill rest of array with 0 bytes **/
 
    if( ii < ntot ){
      fprintf(stderr,"++ WARNING: nifti_image_load(%s):\n"
@@ -1140,7 +1198,7 @@ void nifti_image_load( nifti_image *nim )
 
    /** byte swap array if needed **/
 
-   if( nim->swapsize > 0 )
+   if( nim->swapsize > 0 && nim->byteorder != short_order() )
      swap_Nbytes( ntot / nim->swapsize , nim->swapsize , nim->data ) ;
 
 #ifdef isfinite
@@ -1201,144 +1259,8 @@ void nifti_image_free( nifti_image *nim )
 
 void nifti_image_infodump( nifti_image *nim )
 {
-   printf("\n"
-          "++++++++++++++++++++++++\n"
-          "++ nifti_image_infodump:" ) ;
-
-   if( nim == NULL ){
-     printf(" ?? input is NULL ??!!\n\n") ; return ;
-   } else
-     printf("\n") ;
-
-   printf("  NIFTI storage type = %s\n",
-          (nim->nifti_type == 0 ) ? "ANALYZE-7.5"
-         :(nim->nifti_type == 1 ) ? "NIFTI-1 in 1 file"
-         :                          "NIFTI-1 in 2 files" ) ;
-   printf("  header filename = %s\n",nim->fname) ;
-   printf("  image  filename = %s  offset = %d\n",
-          nim->iname,nim->iname_offset) ;
-
-   printf("  ndim = %3d\n"
-          "  nx   = %3d    dx = %g\n"
-          "  ny   = %3d    dy = %g\n"
-          "  nz   = %3d    dz = %g\n"
-          "  nt   = %3d    dt = %g\n"
-          "  nu   = %3d    du = %g\n"
-          "  nv   = %3d    dv = %g\n"
-          "  nw   = %3d    dw = %g\n" ,
-       nim->ndim ,
-       nim->nx , nim->dx , nim->ny , nim->dy ,
-       nim->nz , nim->dz , nim->nt , nim->dt ,
-       nim->nu , nim->du , nim->nv , nim->dv , nim->nw , nim->dw ) ;
-
-   printf("  nvox = %d  nbyper = %d  datatype = %d (%s)\n",
-          nim->nvox , nim->nbyper ,
-          nim->datatype , nifti_datatype_string(nim->datatype) ) ;
-
-   printf("  cal_min = %g  cal_max = %g\n" ,
-          nim->cal_min   , nim->cal_max         ) ;
-
-   if( nim->nifti_type > 0 ){
-     printf("  scl_slope = %g  scl_inter = %g\n" ,
-            nim->scl_slope , nim->scl_inter       ) ;
-
-     printf("  intent_code = %d (%s)\n"
-            "  intent_p1=%g  intent_p2=%g  intent_p3=%g\n" ,
-            nim->intent_code, nifti_intent_string(nim->intent_code) ,
-            nim->intent_p1, nim->intent_p2, nim->intent_p3 ) ;
-
-     if( nim->intent_name[0] != '\0' )
-       printf("  intent_name = %s\n",nim->intent_name) ;
-
-     printf("  toffset = %g\n",nim->toffset) ;
-     printf("  xyz_units  = %d (%s)\n"
-            "  time_units = %d (%s)\n" ,
-            nim->xyz_units ,nifti_units_string(nim->xyz_units),
-            nim->time_units,nifti_units_string(nim->time_units) ) ;
-   }
-
-   if( nim->descrip[0] != '\0' )
-     printf("  descrip = %s\n",nim->descrip) ;
-
-   if( nim->aux_file[0] != '\0' )
-     printf("  aux_file = %s\n",nim->aux_file) ;
-
-   if( nim->qform_code > 0 ){
-     printf("  qform_code = %d (%s)\n"
-            "  qto_xyz matrix =\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n" ,
-         nim->qform_code      , nifti_xform_string(nim->qform_code) ,
-         nim->qto_xyz.m[0][0] , nim->qto_xyz.m[0][1] ,
-         nim->qto_xyz.m[0][2] , nim->qto_xyz.m[0][3] ,
-         nim->qto_xyz.m[1][0] , nim->qto_xyz.m[1][1] ,
-         nim->qto_xyz.m[1][2] , nim->qto_xyz.m[1][3] ,
-         nim->qto_xyz.m[2][0] , nim->qto_xyz.m[2][1] ,
-         nim->qto_xyz.m[2][2] , nim->qto_xyz.m[2][3] ,
-         nim->qto_xyz.m[3][0] , nim->qto_xyz.m[3][1] ,
-         nim->qto_xyz.m[3][2] , nim->qto_xyz.m[3][3]  ) ;
-
-     printf("  qto_ijk matrix =\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n" ,
-         nim->qto_ijk.m[0][0] , nim->qto_ijk.m[0][1] ,
-         nim->qto_ijk.m[0][2] , nim->qto_ijk.m[0][3] ,
-         nim->qto_ijk.m[1][0] , nim->qto_ijk.m[1][1] ,
-         nim->qto_ijk.m[1][2] , nim->qto_ijk.m[1][3] ,
-         nim->qto_ijk.m[2][0] , nim->qto_ijk.m[2][1] ,
-         nim->qto_ijk.m[2][2] , nim->qto_ijk.m[2][3] ,
-         nim->qto_ijk.m[3][0] , nim->qto_ijk.m[3][1] ,
-         nim->qto_ijk.m[3][2] , nim->qto_ijk.m[3][3]  ) ;
-
-     printf("  quatern_b = %g  quatern_c = %g  quatern_c = %g\n"
-            "  qoffset_x = %g  qoffset_y = %g  qoffset_z = %g\n"
-            "  qfac = %g\n" ,
-         nim->quatern_b , nim->quatern_c , nim->quatern_c ,
-         nim->qoffset_x , nim->qoffset_y , nim->qoffset_z , nim->qfac ) ;
-   }
-
-   if( nim->sform_code != NIFTI_XFORM_UNKNOWN ){
-     printf("  sform_code = %d (%s)\n"
-            "  sto_xyz matrix =\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n" ,
-         nim->sform_code      , nifti_xform_string(nim->sform_code) ,
-         nim->sto_xyz.m[0][0] , nim->sto_xyz.m[0][1] ,
-         nim->sto_xyz.m[0][2] , nim->sto_xyz.m[0][3] ,
-         nim->sto_xyz.m[1][0] , nim->sto_xyz.m[1][1] ,
-         nim->sto_xyz.m[1][2] , nim->sto_xyz.m[1][3] ,
-         nim->sto_xyz.m[2][0] , nim->sto_xyz.m[2][1] ,
-         nim->sto_xyz.m[2][2] , nim->sto_xyz.m[2][3] ,
-         nim->sto_xyz.m[3][0] , nim->sto_xyz.m[3][1] ,
-         nim->sto_xyz.m[3][2] , nim->sto_xyz.m[3][3]  ) ;
-
-     printf("  sto_ijk matrix =\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n"
-            "    %9.6f %9.6f %9.6f   %9.6f\n" ,
-         nim->sto_ijk.m[0][0] , nim->sto_ijk.m[0][1] ,
-         nim->sto_ijk.m[0][2] , nim->sto_ijk.m[0][3] ,
-         nim->sto_ijk.m[1][0] , nim->sto_ijk.m[1][1] ,
-         nim->sto_ijk.m[1][2] , nim->sto_ijk.m[1][3] ,
-         nim->sto_ijk.m[2][0] , nim->sto_ijk.m[2][1] ,
-         nim->sto_ijk.m[2][2] , nim->sto_ijk.m[2][3] ,
-         nim->sto_ijk.m[3][0] , nim->sto_ijk.m[3][1] ,
-         nim->sto_ijk.m[3][2] , nim->sto_ijk.m[3][3]  ) ;
-   }
-
-   if( nim->data == NULL )
-     printf("  data not loaded\n") ;
-   else
-     printf("  data loaded at address %p (%u bytes)\n",
-            nim->data , (unsigned int)(nim->nbyper*nim->nvox) ) ;
-
+   char *str = nifti_image_to_ascii( nim ) ;
+   if( str != NULL ){ fputs(str,stdout) ; free(str) ; }
    return ;
 }
 
@@ -1347,7 +1269,9 @@ void nifti_image_infodump( nifti_image *nim )
    the output appears:
     - nifti_type = 0 ==> ANALYZE-7.5 format file pair will be written
     - nifti_type = 1 ==> NIFTI-1 format single file will be written
+                         (data offset will be 348)
     - nifti_type = 2 ==> NIFTI_1 format file pair will be written
+    - nifti_type = 3 ==> NIFTI_1 ASCII single file will be written
     - fname is the name of the output file (header or header+data)
     - if a file pair is being written, iname is the name of the data file
     - existing files WILL be overwritten with extreme prejudice
@@ -1376,20 +1300,37 @@ void nifti_image_write( nifti_image *nim )
 
    /* make iname from fname, if needed */
 
-   if( nim->nifti_type != 1 ){            /* writing into 2 files */
-     if( nim->iname != NULL && strcmp(nim->fname,nim->fname) == 0 ){
-       free(nim->iname) ; nim->iname = NULL ;
+   switch( nim->nifti_type ){
+
+     default:  /* writing into 2 files */
+       if( nim->iname != NULL && strcmp(nim->fname,nim->fname) == 0 ){
+         free(nim->iname) ; nim->iname = NULL ;
+       }
+       if( nim->iname == NULL ){
+         int ll = strlen(nim->fname) ; char *cc ;
+         nim->iname = calloc(1,ll+5) ;
+         strcpy(nim->iname,nim->fname) ;
+         if( ll > 4 ) strcpy(nim->iname+ll-4,".img") ; /* create .img filename */
+         else         strcat(nim->iname     ,".img") ;
+       }
+       nim->iname_offset = 0 ;
+     break ;
+
+     case 1:   /* NIFTI-1 single binary file */
+       nim->iname_offset = sizeof(nhdr) ;
+     break ;
+
+     case 3:{  /* NIFTI-1 ASCII header + binary data file */
+       char *hstr ;
+       nim->iname_offset = -1 ;
+       nim->byteorder = short_order() ;
+       hstr = nifti_image_to_ascii( nim ) ;
+       if( hstr == NULL ) ERREX("bad ASCII header creation?") ;
+       fp = fopen( nim->fname , "wb" ) ;
+       if( fp == NULL ){ free(hstr); ERREX("can't open output file"); }
+       fputs(hstr,fp) ;
      }
-     if( nim->iname == NULL ){
-       int ll = strlen(nim->fname) ; char *cc ;
-       nim->iname = calloc(1,ll+5) ;
-       strcpy(nim->iname,nim->fname) ;
-       if( ll > 4 ) strcpy(nim->iname+ll-4,".img") ; /* create .img filename */
-       else         strcat(nim->iname     ,".img") ;
-     }
-     nim->iname_offset = 0 ;
-   } else {
-     nim->iname_offset = sizeof(nhdr) ;   /* writing into 1 file */
+     goto DataWriter ;   /* writes the binary data to fp */
    }
 
    /** load the ANALYZE-7.5 generic parts of the header **/
@@ -1495,12 +1436,567 @@ void nifti_image_write( nifti_image *nim )
      if( fp == NULL ) ERREX("can't open image file") ;
    }
 
-   /** Write all the image data at once **/
+   /** Write all the image data at once (no swapping here) **/
 
+DataWriter:
    ss = fwrite( nim->data , nim->nbyper , nim->nvox , fp ) ;
    fclose(fp) ;
    if( ss < nim->nvox ) ERREX("bad write to image file") ;
 
-   nim->swapsize = 0 ;  /* don't swap if we read back in */
+   nim->byteorder = short_order() ;  /* mark as being in this CPU byte order */
    return ;
+}
+
+/*------------------------------------------------------------------------*/
+/* Un-escape a C string in place -- that is, convert XML escape sequences
+   back into their characters.  (This can be done in place since the
+   replacement is always smaller than the input.)  Escapes recognized are:
+     -  &lt;   ->  <
+     -  &gt;   ->  >
+     -  &quot; ->  "
+     -  &apos; ->  '
+     -  &amp;  ->  &
+   Also replace CR LF pair (Microsoft), or CR alone (Macintosh) with
+   LF (Unix), per the XML standard.
+   Return value is number of replacements made.
+--------------------------------------------------------------------------*/
+
+#undef  CR
+#undef  LF
+#define CR 0x0D
+#define LF 0x0A
+
+int unescape_inplace( char *str )
+{
+   int ii,jj , nn,ll ;
+
+   if( str == NULL ) return 0 ;                /* no string? */
+   ll = strlen(str) ; if( ll == 0 ) return 0 ;
+
+   /* scan for escapes: &something; */
+
+   for( ii=jj=nn=0 ; ii<ll ; ii++,jj++ ){ /* scan at ii; results go in at jj */
+
+     if( str[ii] == '&' ){  /* start of escape? */
+
+             if( ii+3 < ll        &&   /* &lt; */
+                 str[ii+1] == 'l' &&
+                 str[ii+2] == 't' &&
+                 str[ii+3] == ';'   ){ str[jj] = '<' ; ii += 3 ; nn++ ; }
+
+        else if( ii+3 < ll        &&   /* &gt; */
+                 str[ii+1] == 'g' &&
+                 str[ii+2] == 't' &&
+                 str[ii+3] == ';'   ){ str[jj] = '>' ; ii += 3 ; nn++ ; }
+
+        else if( ii+5 < ll        &&   /* &quot; */
+                 str[ii+1] == 'q' &&
+                 str[ii+2] == 'u' &&
+                 str[ii+3] == 'o' &&
+                 str[ii+4] == 't' &&
+                 str[ii+5] == ';'   ){ str[jj] = '"' ; ii += 5 ; nn++ ; }
+
+        else if( ii+5 < ll        &&   /* &apos; */
+                 str[ii+1] == 'a' &&
+                 str[ii+2] == 'p' &&
+                 str[ii+3] == 'o' &&
+                 str[ii+4] == 's' &&
+                 str[ii+5] == ';'   ){ str[jj] = '\'' ; ii += 5 ; nn++ ; }
+
+        else if( ii+4 < ll        &&  /* &amp; */
+                 str[ii+1] == 'a' &&
+                 str[ii+2] == 'm' &&
+                 str[ii+3] == 'p' &&
+                 str[ii+4] == ';'   ){ str[jj] = '&' ; ii += 4 ; nn++ ; }
+
+        /* although the comments above don't mention it,
+           we also look for XML style numeric escapes
+           of the forms &#32; (decimal) and &#xfd; (hex) */
+
+        else if( ii+3 < ll        &&
+                 str[ii+1] == '#' &&
+                 isdigit(str[ii+2]) ){   /* &#dec; */
+
+           unsigned int val='?' ; int kk=ii+3 ;
+           while( kk < ll && kk != ';' ) kk++ ;
+           sscanf( str+ii+2 , "%u" , &val ) ;
+           str[jj] = (char) val ; ii = kk ; nn++ ;
+        }
+
+        else if( ii+4 < ll        &&
+                 str[ii+1] == '#' &&
+                 str[ii+2] == 'x' &&
+                 isxdigit(str[ii+3]) ){   /* &#hex; */
+
+           unsigned int val='?' ; int kk=ii+4 ;
+           while( kk < ll && kk != ';' ) kk++ ;
+           sscanf( str+ii+3 , "%x" , &val ) ;
+           str[jj] = (char) val ; ii = kk ; nn++ ;
+        }
+
+        /* didn't start a recognized escape, so just copy as normal */
+
+        else if( jj < ii ){ str[jj] = str[ii] ; }
+
+     } else if( str[ii] == CR ) {  /* is a carriage return */
+
+        if( str[ii+1] == LF ){ str[jj] = LF ; ii++ ; nn++ ; }  /* CR LF */
+        else                 { str[jj] = LF ;      ; nn++ ; }  /* CR only */
+
+     } else { /* is a normal character, just copy to output */
+
+             if( jj < ii ){ str[jj] = str[ii] ; }
+     }
+
+     /* at this point, ii=index of last character used up in scan
+                       jj=index of last character written to (jj <= ii) */
+   }
+
+   if( jj < ll ) str[jj] = '\0' ; /* end string properly */
+
+   return nn ;
+}
+
+/*------------------------------------------------------------------------*/
+/* Quotize (and escapize) one string, returning a new string.
+   Approximately speaking, this is the inverse of unescape_inplace().
+--------------------------------------------------------------------------*/
+
+char *quotize_string( char *str )
+{
+   int ii,jj , lstr,lout ;
+   char *out ;
+
+   if( str == NULL || (lstr=strlen(str)) == 0 ){      /* 0 length */
+     out = strdup("''") ; return out ;                /* string?? */
+   }
+
+   lout = 4 ;                      /* initialize length of output */
+   for( ii=0 ; ii < lstr ; ii++ ){ /* count characters for output */
+     switch( str[ii] ){
+       case '&':  lout += 5 ; break ;  /* replace '&' with "&amp;" */
+
+       case '<':
+       case '>':  lout += 4 ; break ;  /* replace '<' with "&lt;" */
+
+       case '"' :
+       case '\'': lout += 6 ; break ;  /* replace '"' with "&quot;" */
+
+       case CR:
+       case LF:   lout += 6 ; break ;  /* replace CR with "&#x0d;"
+                                                  LF with "&#x0a;" */
+
+       default: lout++ ; break ;      /* copy all other chars */
+     }
+   }
+   out = malloc(lout) ;               /* allocate output string */
+   out[0] = '\'' ;                    /* opening quote mark */
+   for( ii=0,jj=1 ; ii < lstr ; ii++ ){
+      switch( str[ii] ){
+         default: out[jj++] = str[ii] ; break ;  /* normal characters */
+
+         case '&':  memcpy(out+jj,"&amp;",5)  ; jj+=5 ; break ;
+
+         case '<':  memcpy(out+jj,"&lt;",4)   ; jj+=4 ; break ;
+         case '>':  memcpy(out+jj,"&gt;",4)   ; jj+=4 ; break ;
+
+         case '"' : memcpy(out+jj,"&quot;",6) ; jj+=6 ; break ;
+
+         case '\'': memcpy(out+jj,"&apos;",6) ; jj+=6 ; break ;
+
+         case CR:   memcpy(out+jj,"&#x0d;",6) ; jj+=6 ; break ;
+         case LF:   memcpy(out+jj,"&#x0a;",6) ; jj+=6 ; break ;
+      }
+   }
+   out[jj++] = '\''  ;  /* closing quote mark */
+   out[jj]   = '\0' ;  /* terminate the string */
+   return out ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Dump the information in a NIFTI image header to an XML-ist ASCII string
+   that can later be converted back into a NIFTI header in
+   nifti_image_from_ascii().
+-----------------------------------------------------------------------------*/
+
+char *nifti_image_to_ascii( nifti_image *nim )
+{
+   char *buf , *ebuf ; int nbuf ;
+
+   if( nim == NULL ) return NULL ;   /* stupid caller */
+
+   buf = malloc(65530) ; nbuf = 0 ;
+
+   sprintf( buf , "<nifti_image\n" ) ;   /* XML-ish header */
+
+   sprintf( buf+strlen(buf) , "  nifti_type = '%s'\n" ,
+              (nim->nifti_type == 1) ? "NIFTI-1+"
+             :(nim->nifti_type == 2) ? "NIFTI-1"
+             :(nim->nifti_type == 3) ? "NIFTI-1A"
+             :                         "ANALYZE-7.5" ) ;
+
+   ebuf = quotize_string(nim->fname) ;
+   sprintf( buf+strlen(buf) , "  header_filename = %s\n",ebuf); free(ebuf);
+   ebuf = quotize_string(nim->iname) ;
+   sprintf( buf+strlen(buf) , "  image_filename = %s\n", ebuf); free(ebuf);
+   sprintf( buf+strlen(buf) , "  image_offset = '%d'\n" , nim->iname_offset );
+
+                       sprintf( buf+strlen(buf), "  ndim = '%d'\n", nim->ndim);
+                       sprintf( buf+strlen(buf), "  nx = '%d'\n",   nim->nx  );
+   if( nim->ndim > 1 ) sprintf( buf+strlen(buf), "  ny = '%d'\n",   nim->ny  );
+   if( nim->ndim > 2 ) sprintf( buf+strlen(buf), "  nz = '%d'\n",   nim->nz  );
+   if( nim->ndim > 3 ) sprintf( buf+strlen(buf), "  nt = '%d'\n",   nim->nt  );
+   if( nim->ndim > 4 ) sprintf( buf+strlen(buf), "  nu = '%d'\n",   nim->nu  );
+   if( nim->ndim > 5 ) sprintf( buf+strlen(buf), "  nv = '%d'\n",   nim->nv  );
+   if( nim->ndim > 6 ) sprintf( buf+strlen(buf), "  nw = '%d'\n",   nim->nw  );
+                       sprintf( buf+strlen(buf), "  dx = '%g'\n",   nim->dx  );
+   if( nim->ndim > 1 ) sprintf( buf+strlen(buf), "  dy = '%g'\n",   nim->dy  );
+   if( nim->ndim > 2 ) sprintf( buf+strlen(buf), "  dz = '%g'\n",   nim->dz  );
+   if( nim->ndim > 3 ) sprintf( buf+strlen(buf), "  dt = '%g'\n",   nim->dt  );
+   if( nim->ndim > 4 ) sprintf( buf+strlen(buf), "  du = '%g'\n",   nim->du  );
+   if( nim->ndim > 5 ) sprintf( buf+strlen(buf), "  dv = '%g'\n",   nim->dv  );
+   if( nim->ndim > 6 ) sprintf( buf+strlen(buf), "  dw = '%g'\n",   nim->dw  );
+
+   sprintf( buf+strlen(buf) , "  datatype = '%d'\n" , nim->datatype ) ;
+   sprintf( buf+strlen(buf) , "  datatype_name = '%s'\n" ,
+                              nifti_datatype_string(nim->datatype) ) ;
+
+   sprintf( buf+strlen(buf) , "  nvox = '%d'\n" , nim->nvox ) ;
+   sprintf( buf+strlen(buf) , "  nbyper = '%d'\n" , nim->nbyper ) ;
+
+   sprintf( buf+strlen(buf) , "  byteorder = '%s'\n" ,
+            (nim->byteorder==MSB_FIRST) ? "MSB_FIRST" : "LSB_FIRST" ) ;
+
+   if( nim->cal_min < nim->cal_max ){
+     sprintf( buf+strlen(buf) , "  cal_min = '%g'\n", nim->cal_min ) ;
+     sprintf( buf+strlen(buf) , "  cal_max = '%g'\n", nim->cal_max ) ;
+   }
+
+   if( nim->scl_slope != 0.0 ){
+     sprintf( buf+strlen(buf) , "  scl_slope = '%g'\n" , nim->scl_slope ) ;
+     sprintf( buf+strlen(buf) , "  scl_inter = '%g'\n" , nim->scl_inter ) ;
+   }
+
+   if( nim->intent_code > 0 ){
+     sprintf( buf+strlen(buf) , "  intent_code = '%d'\n", nim->intent_code ) ;
+     sprintf( buf+strlen(buf) , "  intent_code_name = '%s'\n" ,
+                                nifti_intent_string(nim->intent_code) ) ;
+     sprintf( buf+strlen(buf) , "  intent_p1 = '%g'\n" , nim->intent_p1 ) ;
+     sprintf( buf+strlen(buf) , "  intent_p2 = '%g'\n" , nim->intent_p2 ) ;
+     sprintf( buf+strlen(buf) , "  intent_p3 = '%g'\n" , nim->intent_p3 ) ;
+
+     if( nim->intent_name[0] != '\0' ){
+       ebuf = quotize_string(nim->intent_name) ;
+       sprintf( buf+strlen(buf) , "  intent_name = %s\n",ebuf) ;
+       free(ebuf) ;
+     }
+   }
+
+   if( nim->toffset != 0.0 )
+     sprintf( buf+strlen(buf) , "  toffset = '%g'\n",nim->toffset) ;
+
+   if( nim->xyz_units > 0 )
+     sprintf( buf+strlen(buf) ,
+              "  xyz_units = '%d'\n"
+              "  xyz_units_name = '%s'\n" ,
+              nim->xyz_units , nifti_units_string(nim->xyz_units) ) ;
+
+   if( nim->time_units > 0 )
+     sprintf( buf+strlen(buf) ,
+              "  time_units = '%d'\n"
+              "  time_units_name = '%s'\n" ,
+              nim->time_units , nifti_units_string(nim->time_units) ) ;
+
+   if( nim->descrip[0] != '\0' ){
+     ebuf = quotize_string(nim->descrip) ;
+     sprintf( buf+strlen(buf) , "  descrip = %s\n",ebuf) ;
+     free(ebuf) ;
+   }
+
+   if( nim->aux_file[0] != '\0' ){
+     ebuf = quotize_string(nim->aux_file) ;
+     sprintf( buf+strlen(buf) , "  aux_file = %s\n",ebuf) ;
+     free(ebuf) ;
+   }
+
+   if( nim->qform_code > 0 ){
+     sprintf( buf+strlen(buf) ,
+              "  qform_code = '%d'\n"
+              "  qform_code_name = '%s'\n"
+              "  qto_xyz_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
+         nim->qform_code      , nifti_xform_string(nim->qform_code) ,
+         nim->qto_xyz.m[0][0] , nim->qto_xyz.m[0][1] ,
+         nim->qto_xyz.m[0][2] , nim->qto_xyz.m[0][3] ,
+         nim->qto_xyz.m[1][0] , nim->qto_xyz.m[1][1] ,
+         nim->qto_xyz.m[1][2] , nim->qto_xyz.m[1][3] ,
+         nim->qto_xyz.m[2][0] , nim->qto_xyz.m[2][1] ,
+         nim->qto_xyz.m[2][2] , nim->qto_xyz.m[2][3] ,
+         nim->qto_xyz.m[3][0] , nim->qto_xyz.m[3][1] ,
+         nim->qto_xyz.m[3][2] , nim->qto_xyz.m[3][3]  ) ;
+
+     sprintf( buf+strlen(buf) ,
+              "  qto_ijk_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
+         nim->qto_ijk.m[0][0] , nim->qto_ijk.m[0][1] ,
+         nim->qto_ijk.m[0][2] , nim->qto_ijk.m[0][3] ,
+         nim->qto_ijk.m[1][0] , nim->qto_ijk.m[1][1] ,
+         nim->qto_ijk.m[1][2] , nim->qto_ijk.m[1][3] ,
+         nim->qto_ijk.m[2][0] , nim->qto_ijk.m[2][1] ,
+         nim->qto_ijk.m[2][2] , nim->qto_ijk.m[2][3] ,
+         nim->qto_ijk.m[3][0] , nim->qto_ijk.m[3][1] ,
+         nim->qto_ijk.m[3][2] , nim->qto_ijk.m[3][3]  ) ;
+
+     sprintf( buf+strlen(buf) ,
+              "  quatern_b = '%g'\n"
+              "  quatern_c = '%g'\n"
+              "  quatern_c = '%g'\n"
+              "  qoffset_x = '%g'\n"
+              "  qoffset_y = '%g'\n"
+              "  qoffset_z = '%g'\n"
+              "  qfac = '%g'\n" ,
+         nim->quatern_b , nim->quatern_c , nim->quatern_c ,
+         nim->qoffset_x , nim->qoffset_y , nim->qoffset_z , nim->qfac ) ;
+   }
+
+   if( nim->sform_code > 0 ){
+     sprintf( buf+strlen(buf) ,
+              "  sform_code = '%d'\n"
+              "  sform_code_name = '%s'\n"
+              "  sto_xyz_matrix = '%g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
+         nim->sform_code      , nifti_xform_string(nim->sform_code) ,
+         nim->sto_xyz.m[0][0] , nim->sto_xyz.m[0][1] ,
+         nim->sto_xyz.m[0][2] , nim->sto_xyz.m[0][3] ,
+         nim->sto_xyz.m[1][0] , nim->sto_xyz.m[1][1] ,
+         nim->sto_xyz.m[1][2] , nim->sto_xyz.m[1][3] ,
+         nim->sto_xyz.m[2][0] , nim->sto_xyz.m[2][1] ,
+         nim->sto_xyz.m[2][2] , nim->sto_xyz.m[2][3] ,
+         nim->sto_xyz.m[3][0] , nim->sto_xyz.m[3][1] ,
+         nim->sto_xyz.m[3][2] , nim->sto_xyz.m[3][3]  ) ;
+
+     sprintf( buf+strlen(buf) ,
+              "  sto_ijk matrix = '%g %g %g %g %g %g %g %g %g %g %g %g'\n" ,
+         nim->sto_ijk.m[0][0] , nim->sto_ijk.m[0][1] ,
+         nim->sto_ijk.m[0][2] , nim->sto_ijk.m[0][3] ,
+         nim->sto_ijk.m[1][0] , nim->sto_ijk.m[1][1] ,
+         nim->sto_ijk.m[1][2] , nim->sto_ijk.m[1][3] ,
+         nim->sto_ijk.m[2][0] , nim->sto_ijk.m[2][1] ,
+         nim->sto_ijk.m[2][2] , nim->sto_ijk.m[2][3] ,
+         nim->sto_ijk.m[3][0] , nim->sto_ijk.m[3][1] ,
+         nim->sto_ijk.m[3][2] , nim->sto_ijk.m[3][3]  ) ;
+   }
+
+   sprintf( buf+strlen(buf) , "/>\n" ) ;   /* XML-ish closer */
+
+   nbuf = strlen(buf) ;
+   buf = realloc( buf , nbuf+1 ) ;
+   return buf ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int short_order(void)   /* determine this CPU's byte order */
+{
+   union { unsigned char bb[2] ;
+           short         ss    ; } fred ;
+
+   fred.bb[0] = 1 ; fred.bb[1] = 0 ;
+
+   return (fred.ss == 1) ? LSB_FIRST : MSB_FIRST ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#undef  QQNUM
+#undef  QNUM
+#undef  QSTR
+
+/* macro to check lhs string against "n1"; if it matches,
+   interpret rhs string as a number, and put it into nim->"n2" */
+
+#define QQNUM(n1,n2) if( strcmp(lhs,#n1)==0 ) nim->n2=strtod(rhs,NULL)
+
+/* same, but where "n1" == "n2" */
+
+#define QNUM(nam)    QQNUM(nam,nam)
+
+/* macro to check lhs string against "nam"; if it matches,
+   put rhs string into nim->"nam" string, with max length = "ml" */
+
+#define QSTR(nam,ml) if( strcmp(lhs,#nam) == 0 )                           \
+                       strncpy(nim->nam,rhs,ml), nim->intent_name[ml]='\0'
+
+/*---------------------------------------------------------------------------*/
+/* Take an XML-ish ASCII string and create a NIFTI image header to match.
+   NULL is returned if enough information isn't present in the input string.
+   N.B.: Not a lot of error checking is done here to make sure that the
+         input values are reasonable!
+-----------------------------------------------------------------------------*/
+
+nifti_image *nifti_image_from_ascii( char *str )
+{
+   char lhs[1024] , rhs[1024] ;
+   int ii , spos, nn , slen ;
+   nifti_image *nim ;              /* will be output */
+
+   if( str == NULL || *str == '\0' ) return NULL ;  /* bad input!? */
+
+   /* scan for opening string */
+
+   spos = 0 ; slen = strlen(str) ;
+   ii = sscanf( str+spos , "%1023s%n" , lhs , &nn ) ; spos += nn ;
+   if( ii == 0 || strcmp(lhs,"<nifti_image") != 0 ) return NULL ;
+
+   /* create empty image struct */
+
+   nim = (nifti_image *) calloc( 1 , sizeof(nifti_image) ) ;
+
+   nim->nx = nim->ny = nim->nz = nim->nt
+           = nim->nu = nim->nv = nim->nw = 1 ;
+   nim->dx = nim->dy = nim->dz = nim->dt
+           = nim->du = nim->dv = nim->dw = nim->qfac = 1.0 ;
+
+   nim->byteorder = short_order() ;
+
+   /* starting at str[spos], scan for "equations" of the form
+         lhs = 'rhs'
+      and assign rhs values into the struct component named by lhs */
+
+   while(1){
+
+     while( isspace(str[spos]) ) spos++ ;  /* skip whitespace */
+     if( str[spos] == '\0' ) break ;       /* end of string? */
+
+     /* get lhs string */
+
+     ii = sscanf( str+spos , "%1023s%n" , lhs , &nn ) ; spos += nn ;
+     if( ii == 0 || strcmp(lhs,"/>") == 0 ) break ;  /* end of input? */
+
+     /* skip whitespace and the '=' marker */
+
+     while( isspace(str[spos]) || str[spos] == '=' ) spos++ ;
+     if( str[spos] == '\0' ) break ;       /* end of string? */
+
+     /* if next character is a quote ', copy everything up to next '
+        otherwise, copy everything up to next nonblank              */
+
+     if( str[spos] == '\'' ){
+        ii = spos+1 ;
+        while( str[ii] != '\0' && str[ii] != '\'' ) ii++ ;
+        nn = ii-spos-1 ; if( nn > 1023 ) nn = 1023 ;
+        memcpy(rhs,str+spos+1,nn) ; rhs[nn] = '\0' ;
+        spos = (str[ii] == '\'') ? ii+1 : ii ;
+     } else {
+        ii = sscanf( str+spos , "%1023s%n" , rhs , &nn ) ; spos += nn ;
+        if( ii == 0 ) break ;  /* nothing found? */
+     }
+     unescape_inplace(rhs) ;  /* remove any XML escape sequences */
+
+     /* Now can do the assignment, based on lhs string.
+        Start with special cases that don't fit the QNUM/QSTR macros. */
+
+     if( strcmp(lhs,"nifti_type") == 0 ){
+            if( strcmp(rhs,"ANALYZE-7.5") == 0 ) nim->nifti_type = 0 ;
+       else if( strcmp(rhs,"NIFTI-1+")    == 0 ) nim->nifti_type = 1 ;
+       else if( strcmp(rhs,"NIFTI-1")     == 0 ) nim->nifti_type = 2 ;
+       else if( strcmp(rhs,"NIFTI-1A")    == 0 ) nim->nifti_type = 3 ;
+     }
+     else if( strcmp(lhs,"header_filename") == 0 ){
+       nim->fname = strdup(rhs) ;
+     }
+     else if( strcmp(lhs,"image_filename") == 0 ){
+       nim->iname = strdup(rhs) ;
+     }
+     else if( strcmp(lhs,"sto_xyz_matrix") == 0 ){
+       sscanf( rhs , "%f %f %f %f %f %f %f %f %f %f %f %f" ,
+               &(nim->sto_xyz.m[0][0]) , &(nim->sto_xyz.m[0][1]) ,
+               &(nim->sto_xyz.m[0][2]) , &(nim->sto_xyz.m[0][3]) ,
+               &(nim->sto_xyz.m[1][0]) , &(nim->sto_xyz.m[1][1]) ,
+               &(nim->sto_xyz.m[1][2]) , &(nim->sto_xyz.m[1][3]) ,
+               &(nim->sto_xyz.m[2][0]) , &(nim->sto_xyz.m[2][1]) ,
+               &(nim->sto_xyz.m[2][2]) , &(nim->sto_xyz.m[2][3]) ,
+               &(nim->sto_xyz.m[3][0]) , &(nim->sto_xyz.m[3][1]) ,
+               &(nim->sto_xyz.m[3][2]) , &(nim->sto_xyz.m[3][3])  ) ;
+     }
+     else if( strcmp(lhs,"byteorder") == 0 ){
+       if( strcmp(rhs,"MSB_FIRST") == 0 ) nim->byteorder = MSB_FIRST ;
+       if( strcmp(rhs,"LSB_FIRST") == 0 ) nim->byteorder = LSB_FIRST ;
+     }
+     else QQNUM(image_offset,iname_offset) ;
+     else QNUM(datatype) ;
+     else QNUM(ndim) ;
+     else QNUM(nx) ;
+     else QNUM(ny) ;
+     else QNUM(nz) ;
+     else QNUM(nt) ;
+     else QNUM(nu) ;
+     else QNUM(nv) ;
+     else QNUM(nw) ;
+     else QNUM(dx) ;
+     else QNUM(dy) ;
+     else QNUM(dz) ;
+     else QNUM(dt) ;
+     else QNUM(du) ;
+     else QNUM(dv) ;
+     else QNUM(dw) ;
+     else QNUM(cal_min) ;
+     else QNUM(cal_max) ;
+     else QNUM(scl_slope) ;
+     else QNUM(scl_inter) ;
+     else QNUM(intent_code) ;
+     else QNUM(intent_p1) ;
+     else QNUM(intent_p2) ;
+     else QNUM(intent_p3) ;
+     else QSTR(intent_name,15) ;
+     else QNUM(toffset) ;
+     else QNUM(xyz_units) ;
+     else QNUM(time_units) ;
+     else QSTR(descrip,79) ;
+     else QSTR(aux_file,23) ;
+     else QNUM(qform_code) ;
+     else QNUM(quatern_b) ;
+     else QNUM(quatern_c) ;
+     else QNUM(quatern_d) ;
+     else QNUM(qoffset_x) ;
+     else QNUM(qoffset_y) ;
+     else QNUM(qoffset_z) ;
+     else QNUM(qfac) ;
+     else QNUM(sform_code) ;
+
+   } /* end of while loop */
+
+   /** do miscellaneous checking and cleanup **/
+
+   if( nim->ndim <= 0 ){ nifti_image_free(nim); return NULL; } /** bad! **/
+
+   nifti_datatype_sizes( nim->datatype, &(nim->nbyper), &(nim->swapsize) );
+   if( nim->nbyper == 0 ){ nifti_image_free(nim); return NULL; } /** bad! **/
+
+   nim->dim[0] = nim->ndim ;
+   nim->dim[1] = nim->nx ; nim->pixdim[1] = nim->dx ;
+   nim->dim[2] = nim->ny ; nim->pixdim[2] = nim->dy ;
+   nim->dim[3] = nim->nz ; nim->pixdim[3] = nim->dz ;
+   nim->dim[4] = nim->nt ; nim->pixdim[4] = nim->dt ;
+   nim->dim[5] = nim->nu ; nim->pixdim[5] = nim->du ;
+   nim->dim[6] = nim->nv ; nim->pixdim[6] = nim->dv ;
+   nim->dim[7] = nim->nw ; nim->pixdim[7] = nim->dw ;
+
+   nim->nvox =  nim->nx * nim->ny * nim->nz
+              * nim->nt * nim->nu * nim->nv * nim->nw ;
+
+   if( nim->qform_code > 0 )
+     nim->qto_xyz = quatern_to_mat44(
+                      nim->quatern_b, nim->quatern_c, nim->quatern_c,
+                      nim->qoffset_x, nim->qoffset_y, nim->qoffset_z,
+                      nim->dx       , nim->dy       , nim->dz       ,
+                      nim->qfac                                      ) ;
+   else
+     nim->qto_xyz = quatern_to_mat44(
+                      0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ,
+                      nim->dx , nim->dy , nim->dz , 0.0 ) ;
+
+   nim->qto_ijk = mat44_inverse( nim->qto_xyz ) ;
+
+   if( nim->sform_code > 0 )
+     nim->sto_ijk = mat44_inverse( nim->sto_xyz ) ;
+
+   return nim ;
 }
