@@ -94,7 +94,7 @@ double get_matrix_flops(void){ return flops; }
 static double dotnum=0.0 , dotsum=0.0 ;
 double get_matrix_dotlen(void){ return (dotnum > 0.0) ? dotsum/dotnum : 0.0 ; }
 
-#undef ENABLE_FLOPS
+#define ENABLE_FLOPS
 /*---------------------------------------------------------------------------*/
 /*!
   Routine to print and error message and stop.
