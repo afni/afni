@@ -130,6 +130,11 @@ MRI_IMARR * THD_get_all_timeseries( char * dname )
    char * pat ;
 #endif
 
+   unsigned long max_fsize ;  /* 20 Jul 2004: max 1D file size to load */
+
+   max_fsize = (unsigned long) AFNI_numenv( "AFNI_MAX_1DSIZE" ) ;
+   if( max_fsize == 0 ) max_fsize = 123*1024 ;
+
    /*----- sanity check and initialize -----*/
 
    if( dname == NULL || strlen(dname) == 0 ) return NULL ;
@@ -171,6 +176,8 @@ MRI_IMARR * THD_get_all_timeseries( char * dname )
       if( strcmp(fname+ll,".1D")==0 ||
           strcmp(fname+ll,"1Dx")==0 ||
           strcmp(fname+ll,"1Dv")==0   ){
+
+         if( THD_filesize(fname) > max_fsize ) continue ;  /* 20 Jul 2004 */
 
          flim = mri_read_1D( fname ) ;
          if( flim != NULL ){

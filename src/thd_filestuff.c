@@ -119,8 +119,8 @@ unsigned long THD_filesize( char * pathname )
 {
    static struct stat buf ; int ii ;
 
-   if( pathname == NULL || *pathname == '\0' ) return -1 ;
-   ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
    return buf.st_size ;
 }
 

@@ -97,7 +97,7 @@
 
 
 /*---------------------------------------------------------------------------*/
-static int legendre_polort = 0 ;  /* 15 Jul 2004 */
+static int legendre_polort = 1 ;  /* 15 Jul 2004 */
 
 double legendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 {
