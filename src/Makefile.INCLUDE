@@ -1828,6 +1828,10 @@ nimltest:nimltest.o niml.h
 	$(RM) $@
 	$(CC) -o nimltest nimltest.o $(LFLAGS) $(LLIBS)
 
+nimel:nimel.o niml.h
+	$(RM) $@
+	$(CC) -o nimel nimel.o $(LFLAGS) $(LLIBS)
+
 nicat:nicat.o
 	$(RM) $@
 	$(CC) -o nicat nicat.o $(LFLAGS) $(LLIBS)

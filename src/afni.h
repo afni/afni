@@ -263,6 +263,10 @@ typedef struct {
 
       float func_pval ;  /* 06 Feb 2004 */
 
+      int stats_anat_ok,     /* 29 Mar 2005: set in AFNI_range_label() */
+          stats_func_ok,     /*   to indicate if the sub-brick range  */
+          stats_thresh_ok ;  /*   statistics are loaded properly     */
+
 } AFNI_view_info ;
 
 #define AXIAL    1       /* 20 Feb 2003: view_setter codes */

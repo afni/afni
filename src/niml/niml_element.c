@@ -27,6 +27,8 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
    nel->type = NI_ELEMENT_TYPE ;
 
+   nel->outmode = -1 ;   /* 29 Mar 2005 */
+
    /* move name and attributes from hs to new element */
 
    nel->name = hs->name ; hs->name = NULL ;
@@ -204,6 +206,8 @@ NI_group * make_empty_group_element( header_stuff *hs )
 
    ngr->name = hs->name ; hs->name = NULL ;  /* 24 Feb 2005 */
 
+   ngr->outmode = -1 ;   /* 29 Mar 2005 */
+
    /* move attributes from hs to new element */
 
    ngr->attr_num = hs->nattr ;
@@ -365,6 +369,8 @@ NI_element * NI_new_data_element( char *name , int veclen )
    nel = NI_malloc(NI_element, sizeof(NI_element) ) ;
 
    nel->type = NI_ELEMENT_TYPE ;  /* mark as being a data element */
+
+   nel->outmode = -1 ;   /* 29 Mar 2005 */
 
    nel->name = NI_strdup(name) ;
    nel->attr_num = 0 ;
@@ -837,6 +843,8 @@ NI_group * NI_new_group_element(void)
    ngr = NI_malloc(NI_group, sizeof(NI_group) ) ;
 
    ngr->type = NI_GROUP_TYPE ;
+
+   ngr->outmode = -1 ;   /* 29 Mar 2005 */
 
    ngr->attr_num = 0 ;
    ngr->attr_lhs = ngr->attr_rhs = NULL ;

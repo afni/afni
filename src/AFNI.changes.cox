@@ -5394,5 +5394,14 @@
      than int, to better deal with huge datasets.  Modified a lot of places
      that refer to this field, especially places dealing with reading and
      writing datasets.
- * Modified thd_loaddblk.c to auto-load brick statistics for non-AFNI
+ * Modified thd_loaddblk.c to auto-update brick statistics for non-AFNI
      datasets.
+
+29 Mar 2005
+ * Modified afni_func.c to call AFNI_reset_func_range() at start of
+     AFNI_func_overlay() to make sure brick ranges are set properly
+     for display.
+ * Modified fim+.c and 3dfim+.c to allow polort > 2, by using Legendre
+     polynomials for the baseline model.
+ * Fixed bug in NIML, where the new 'outmode' field in elements wasn't
+     being initialized to -1 like it should have been.

@@ -355,8 +355,22 @@ void get_options
 	  nopt++;
 	  if (nopt >= argc)  FIM_error ("need argument after -polort ");
 	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 0) || (ival > 2))
+
+#undef PMAX
+#ifdef USE_LEGENDRE
+# define PMAX 19
+#else
+# define PMAX  2
+#endif
+	  if ((ival < 0) || (ival > PMAX))
 	    FIM_error ("illegal argument after -polort ");
+
+#ifdef USE_LEGENDRE
+     if( ival > 2 )
+       fprintf(stderr,
+            "** WARNING: -polort > 2 is a new untested option: 29 Mar 2005\n") ;
+#endif
+
 	  option_data->polort = ival;
 	  nopt++;
 	  continue;
