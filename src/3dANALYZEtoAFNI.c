@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+/*---------------------------------------------------------------------------*/
+
 void A2A_help(void)
 {
   printf("Usage: 3dANALYZEtoAFNI [options] file1.hdr file2.hdr ...\n"
@@ -18,6 +20,9 @@ void A2A_help(void)
          "- The .img files must be in the same directory as the .HEAD file.\n"
          "- Note that you put the .hdr files on the command line, but it is\n"
          "   the .img files that will be named in the .HEAD file.\n"
+         "- After this program is run, you must keep the .img files with\n"
+         "   the output .HEAD file.  AFNI doesn't need the .hdr files, but\n"
+         "   other programs (e.g., FSL, SPM) will want them as well.\n"
          "\n"
          "Options:\n"
          " -prefix ppp   = Save the dataset with the prefix name 'ppp'.\n"
@@ -40,6 +45,8 @@ void A2A_help(void)
          "\n"
          " -geomparent g = Use the .HEAD file from dataset 'g' to set\n"
          "                  the geometry of this dataset.\n"
+         "   ** If you don't use -geomparent, then the following options\n"
+         "       can be used to specify the geometry of this dataset:\n"
          " -orient code  = Tells the orientation of the 3D volumes.  The code\n"
          "                  must be 3 letters, one each from the pairs {R,L}\n"
          "                  {A,P} {I,S}.  The first letter gives the orientation\n"
@@ -71,7 +78,7 @@ void A2A_help(void)
 int main( int argc , char *argv[] )
 {
    int iarg=1 ;
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset ;    /* output dataset */
    int nvals , ii , jj , kk ;
 
    MRI_IMARR *anar ;      /* stuff from ANALYZE headers */
@@ -89,7 +96,8 @@ int main( int argc , char *argv[] )
    char *prefix="a2a" ;
    int xorient=-1, yorient=-1, zorient=-1 ;
    int use_zoff=0,use_xoff=0,use_yoff=0 ; float zoff,xoff,yoff ;
-   THD_3dim_dataset *gset=NULL ;
+   THD_3dim_dataset *gset=NULL ;  /* geometry parent */
+   float *fac ;
 
    char **flab , *fatr ;
 
@@ -243,6 +251,8 @@ int main( int argc , char *argv[] )
 
    CLEAR_MRILIB_globals ;  /* setup */
 
+   fac = (float *) malloc(sizeof(float)*nvals) ;
+
    for( ii=iarg ; ii < argc ; ii++ ){
 
      if( strstr(argv[ii],"/") != NULL ){
@@ -259,6 +269,8 @@ int main( int argc , char *argv[] )
 
      anim = IMARR_SUBIM(anar,0) ;     /* first 2D image */
 
+     fac[ii-iarg] = anim->dv ;        /* save scale factor, if any */
+
      if( ii == iarg ){                /* first time in: store header values */
 
        nxan = anim->nx ; nyan = anim->ny ; nzan = IMARR_COUNT(anar) ;
@@ -269,7 +281,7 @@ int main( int argc , char *argv[] )
 
      } else {                         /* check later sub-bricks */
 
-       if( nxan != anim->nx || nyan != anim->ny || nzan != anim->nz   ){
+       if( nxan != anim->nx || nyan != anim->ny || nzan != IMARR_COUNT(anar) ){
          fprintf(stderr,"** File %s has different dimensions than %s\n",
                  argv[ii] , argv[iarg] ) ;
          exit(1) ;
@@ -330,12 +342,14 @@ int main( int argc , char *argv[] )
     yoff = gset->daxes->yyorg ;
     zoff = gset->daxes->zzorg ;
 
-    if( dxan > 0.0 ){
-      fprintf(stderr,"++ WARNING: geomparent overrides ANALYZE voxel sizes!\n") ;
-    }
     dxan = gset->daxes->xxdel ;
     dyan = gset->daxes->yydel ;
     dzan = gset->daxes->zzdel ;
+
+    if( gset->taxis != NULL ){
+       TR     = gset->taxis->ttdel ;
+       tunits = gset->taxis->units_type ;
+    }
 
     DSET_delete(gset) ;  /* delete to save memory */
 
@@ -353,6 +367,10 @@ int main( int argc , char *argv[] )
       fprintf(stderr,"++ WARNING: voxel size defaults to 1 mm\n") ;
     }
 
+    if( ORIENT_sign[xorient] == '-' ) dxan = -dxan ;
+    if( ORIENT_sign[yorient] == '-' ) dyan = -dyan ;
+    if( ORIENT_sign[zorient] == '-' ) dzan = -dzan ;
+
   } /* end of setup for new dataset parameters */
 
   /*-- At last: create empty output dataset --*/
@@ -367,9 +385,9 @@ int main( int argc , char *argv[] )
   orixyz.ijk[1] = yorient ;
   orixyz.ijk[2] = zorient ;
 
-  orgxyz.xyz[0] = (use_xoff) ? xoff : 0.5*(nxan-1)*dxan ;
-  orgxyz.xyz[1] = (use_yoff) ? yoff : 0.5*(nyan-1)*dyan ;
-  orgxyz.xyz[2] = (use_zoff) ? zoff : 0.5*(nzan-1)*dzan ;
+  orgxyz.xyz[0] = (use_xoff) ? xoff : -0.5*(nxan-1)*dxan ;
+  orgxyz.xyz[1] = (use_yoff) ? yoff : -0.5*(nyan-1)*dyan ;
+  orgxyz.xyz[2] = (use_zoff) ? zoff : -0.5*(nzan-1)*dzan ;
 
   EDIT_dset_items( dset ,
                      ADN_prefix      , prefix ,
@@ -380,6 +398,7 @@ int main( int argc , char *argv[] )
                      ADN_xyzorient   , orixyz ,
                      ADN_nvals       , nvals ,
                      ADN_view_type   , view_type ,
+                     ADN_brick_fac   , fac ,
                    ADN_none ) ;
 
   /*-- select dataset type (3D+time or bucket) --*/
@@ -422,18 +441,21 @@ int main( int argc , char *argv[] )
 
   kk = 0 ;
   for( ii=0 ; ii < nvals ; ii++ ){
-    jj = strlen( argv[iarg+ii] ) ;
-    flab[ii] = strdup( argv[iarg+ii] ) ;
-    strcpy( flab[ii]+jj-3 , "img" ) ;
+    jj = strlen( argv[iarg+ii] ) ;             /* convert .hdr */
+    flab[ii] = strdup( argv[iarg+ii] ) ;       /* filename to */
+    strcpy( flab[ii]+jj-3 , "img" ) ;          /* .img name  */
     kk += (jj+2) ;
     THD_store_datablock_label( dset->dblk , ii , flab[ii] ) ;
   }
 
-  fatr = malloc(kk) ; fatr[0] = '\0' ;
-  for( ii=0 ; ii < nvals ; ii++ ){
-    strcat(fatr,flab[ii] ); strcat(fatr," ");
+  fatr = malloc(kk) ; fatr[0] = '\0' ;         /* all filenames */
+  for( ii=0 ; ii < nvals ; ii++ ){             /* into one big */
+    strcat(fatr,flab[ii] ); strcat(fatr," ");  /* string      */
     free(flab[ii]) ;
   }
+
+  /*-- setting this attribute marks the dataset as being
+       stored by volumes, rather than all data in one .BRIK file --*/
 
   THD_set_string_atr( dset->dblk , "VOLUME_FILENAMES" , fatr ) ;
   free(fatr) ; free(flab) ;
@@ -446,6 +468,10 @@ int main( int argc , char *argv[] )
     dset->dblk->diskptr->byte_order = REVERSE_ORDER(jj) ;
   else
     dset->dblk->diskptr->byte_order = jj ;
+
+  /*-- set history attribute --*/
+
+  tross_Make_History( "3dANALYZEtoAFNI" , argc,argv , dset ) ;
 
   /*-- write dataset header --*/
 
