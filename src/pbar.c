@@ -56,10 +56,12 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
    int i , np , jm , lcol , ic , ph ;
    Widget frm ;
 
+ENTRY("new_MCW_pbar") ;
+
    /* sanity check */
 
    if( npane   < NPANE_MIN        || npane > NPANE_MAX ||
-       pheight < PANE_MIN_HEIGHT  || pmin == pmax         ) return NULL ;
+       pheight < PANE_MIN_HEIGHT  || pmin == pmax         ) RETURN( NULL );
 
    /* new pbar */
 
@@ -266,7 +268,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
    /*-- go home --*/
 
    XtManageChild( pbar->top ) ;
-   return pbar ;
+   RETURN( pbar );
 }
 
 /*-------------------------------------------------------------------*/
@@ -278,7 +280,9 @@ static void PBAR_enviro_bigmaps( MCW_DC *dc )
    char nnn[32] , *eh , *en , *fn , bn[2000] ;
    int ii ;
 
-   if( !first || dc == NULL ) return ;
+ENTRY("PBAR_enviro_bigmaps") ;
+
+   if( !first || dc == NULL ) EXRETURN ;
    first = 0 ;
 
    eh = getenv("HOME") ;
@@ -297,7 +301,7 @@ static void PBAR_enviro_bigmaps( MCW_DC *dc )
        PBAR_read_bigmap( fn , dc ) ;
      }
    }
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -307,6 +311,8 @@ static void PBAR_enviro_bigmaps( MCW_DC *dc )
 void PBAR_add_bigmap( char *name , rgbyte *cmap )
 {
    int ii , nn , kk ;
+
+ENTRY("PBAR_add_bigmap") ;
 
    /* if needed, setup initial colorscale tables */
 
@@ -360,7 +366,7 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
      PBAR_enviro_bigmaps( myfirst_dc ) ;
    }
 
-   if( name == NULL || *name == '\0' || cmap == NULL ) return ;
+   if( name == NULL || *name == '\0' || cmap == NULL ) EXRETURN ;
 
    /* 07 Feb 2003: see if name is a duplicate;
                    if so, replace the old colorscale */
@@ -383,7 +389,7 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
 
    for( ii=0 ; ii < NPANE_BIG ; ii++ ) bigmap[nn][ii] = cmap[ii] ;
 
-   POPDOWN_strlist_chooser ; return ;
+   POPDOWN_strlist_chooser ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -395,7 +401,9 @@ void PBAR_make_bigmap( char *name,
    float fr,fg,top,bot,del,vv ;
    rgbyte map[NPANE_BIG] ;
 
-   if( neq < 2 || val == NULL || col == NULL || dc == NULL ) return ;
+ENTRY("PBAR_make_bigmap") ;
+
+   if( neq < 2 || val == NULL || col == NULL || dc == NULL ) EXRETURN ;
 
    /* bubble sort val,col pairs */
 
@@ -409,7 +417,7 @@ void PBAR_make_bigmap( char *name,
     }
    } while(jj) ;
 
-   top = val[0] ; bot = val[neq-1] ; if( bot >= top ) return ;
+   top = val[0] ; bot = val[neq-1] ; if( bot >= top ) EXRETURN ;
    del = (top-bot)/(NPANE_BIG-1) ;
 
    for( jj=ii=0 ; ii < NPANE_BIG ; ii++ ){
@@ -429,7 +437,7 @@ void PBAR_make_bigmap( char *name,
      }
    }
 
-   PBAR_add_bigmap( name, map ) ; return ;
+   PBAR_add_bigmap( name, map ) ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -442,11 +450,13 @@ int PBAR_define_bigmap( char *cmd )
   float  val[NPANE_BIG] , fr,fg,fb ;
   rgbyte col[NPANE_BIG] ;
 
-  if( myfirst_dc == NULL ) return(-1) ;
+ENTRY("PBAR_define_bigmap") ;
+
+  if( myfirst_dc == NULL ) RETURN(-1) ;
 
   name[0] = '\0' ; ii = 0 ;
   sscanf(cmd,"%127s%n",name,&ii) ;
-  if( *name == '\0' || ii == 0 ) return(-1) ;
+  if( *name == '\0' || ii == 0 ) RETURN(-1) ;
   cmd += ii ;
 
   /* get lines of form "value=colordef" */
@@ -460,9 +470,9 @@ int PBAR_define_bigmap( char *cmd )
     rhs[0] = '\0' ; ii = 0 ;
     if( !nonum ) sscanf(eqn,"%f=%s%n",val+neq,rhs,&ii) ;
     else         sscanf(eqn,"%s%n"           ,rhs,&ii) ;
-    if( *rhs == '\0' || ii == 0 ) return -1;                    /* bad */
+    if( *rhs == '\0' || ii == 0 ) RETURN(-1);               /* bad */
     ii = DC_parse_color( myfirst_dc , rhs, &fr,&fg,&fb ) ;
-    if( ii ) return -1;                                         /* bad */
+    if( ii ) RETURN(-1);                                    /* bad */
     col[neq].r = (byte)(255.0*fr+0.5) ;
     col[neq].g = (byte)(255.0*fg+0.5) ;
     col[neq].b = (byte)(255.0*fb+0.5) ; neq++ ;
@@ -471,7 +481,7 @@ int PBAR_define_bigmap( char *cmd )
   if( nonum )                    /* supply numbers, if missing */
     for( ii=0 ; ii < neq ; ii++ ) val[ii] = neq-ii ;
 
-  PBAR_make_bigmap( name , neq, val, col, myfirst_dc ); return(0);
+  PBAR_make_bigmap( name , neq, val, col, myfirst_dc ); RETURN(0);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -484,14 +494,16 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
   rgbyte col[NPANE_BIG] ;
   FILE *fp ;
 
-  if( fname == NULL || *fname == '\0' || dc == NULL ) return ;
-  fp = fopen(fname,"r"); if( fp == NULL ) return;
+ENTRY("PBAR_read_bigmap") ;
+
+  if( fname == NULL || *fname == '\0' || dc == NULL ) EXRETURN ;
+  fp = fopen(fname,"r"); if( fp == NULL ) EXRETURN;
 
   /* get name */
 
   do{
     cpt = fgets( line , 2*NSBUF , fp ) ;
-    if( cpt == NULL ){ fclose(fp); return; }
+    if( cpt == NULL ){ fclose(fp); EXRETURN; }
     name[0] = '\0' ;
     sscanf(line,"%127s",name) ;
   } while( name[0]=='\0' || name[0]=='!' || (name[0]=='/' && name[1]=='/') ) ;
@@ -537,7 +549,7 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
       val[ii] = neq-ii ;
   }
 
-  PBAR_make_bigmap( name , neq, val, col, dc ) ; return ;
+  PBAR_make_bigmap( name , neq, val, col, dc ) ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -552,12 +564,14 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
    int hh , ii , rr,gg,bb ;
    float yy ;
 
+ENTRY("PBAR_button_EV") ;
+
 #if 0
    if( bev->button == Button2 )
      XUngrabPointer( bev->display , CurrentTime ) ;
 #endif
 
-   if( pbar == NULL || !pbar->bigmode ) return ;
+   if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
 
    /* get current position, value, and color */
 
@@ -600,7 +614,7 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
 #endif
 
    }
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -609,7 +623,9 @@ static void PBAR_big_menu_CB( Widget w , XtPointer cd , XtPointer qd )
 {
    MCW_pbar *pbar = (MCW_pbar *) cd ;
 
-   if( pbar == NULL || !pbar->bigmode ) return ;
+ENTRY("PBAR_big_menu_CB") ;
+
+   if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
 
    if( w == pbar->big_choose_pb ){
      MCW_choose_strlist( w , "Choose Colorscale" ,
@@ -619,7 +635,7 @@ static void PBAR_big_menu_CB( Widget w , XtPointer cd , XtPointer qd )
                          PBAR_bigmap_finalize , cd ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -629,8 +645,10 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
    MCW_pbar *pbar = (MCW_pbar *) cd ;
    int ii , ind=cbs->ival ;
 
+ENTRY("PBAR_bigmap_finalize") ;
+
    if( ind < 0 || ind >= bigmap_num || !pbar->bigmode ){
-     XBell( pbar->dc->display,100); POPDOWN_strlist_chooser; return;
+     XBell( pbar->dc->display,100); POPDOWN_strlist_chooser; EXRETURN;
    }
 
    pbar->bigflip      = 0 ;                 /* 07 Feb 2004 */
@@ -645,7 +663,7 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
    if( XtIsRealized(pbar->panes[0]) )
      PBAR_callback(pbar,pbCR_COLOR) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -653,7 +671,10 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 void PBAR_set_bigmap( MCW_pbar *pbar , char *bnam )  /* 03 Feb 2003 */
 {
    int ii ;
-   if( pbar == NULL || bnam == NULL || *bnam == '\0' ) return ;
+
+ENTRY("PBAR_set_bigmap") ;
+
+   if( pbar == NULL || bnam == NULL || *bnam == '\0' ) EXRETURN ;
    for( ii=0 ; ii < bigmap_num ; ii++ )
      if( strcmp(bnam,bigmap_name[ii]) == 0 ) break ;
    if( ii < bigmap_num ){
@@ -661,7 +682,7 @@ void PBAR_set_bigmap( MCW_pbar *pbar , char *bnam )  /* 03 Feb 2003 */
      cbs.ival = ii ;
      PBAR_bigmap_finalize( NULL , pbar , &cbs ) ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -679,7 +700,9 @@ void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MCW_pbar *pbar = (MCW_pbar *) cd ;
 
-   if( pbar == NULL || !pbar->bigmode ) return ;
+ENTRY("PBAR_bigexpose_CB") ;
+
+   if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
 
    /* make an image of what we want to see */
 
@@ -715,6 +738,8 @@ void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
      XPutImage( pbar->dc->display , XtWindow(pbar->panes[0]) ,
                 pbar->dc->origGC , pbar->bigxim , 0,0,0,0 ,
                 pbar->bigxim->width , pbar->bigxim->height ) ;
+
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -723,10 +748,12 @@ void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
 
 void PBAR_set_bigmode( MCW_pbar *pbar, int bmode, float bot,float top )
 {
+ENTRY("PBAR_set_bigmode") ;
    if( bmode && bot < top ){ pbar->bigbot = bot; pbar->bigtop = top; }
    pbar->bigmode   = bmode ;
    pbar->update_me = 1 ;
    update_MCW_pbar( pbar ) ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -736,7 +763,9 @@ static void PBAR_show_bigmode( MCW_pbar *pbar )  /* 30 Jan 2003 */
    int ii , yy ;
    char buf[16] ;
 
-   if( pbar == NULL || !pbar->bigmode ) return ;
+ENTRY("PBAR_show_bigmode") ;
+
+   if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
 
    if( !pbar->bigset ){   /* set up big mode */
 
@@ -773,6 +802,7 @@ static void PBAR_show_bigmode( MCW_pbar *pbar )  /* 30 Jan 2003 */
    /* show the thing */
 
    PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------
@@ -801,7 +831,9 @@ void PBAR_flip( MCW_pbar *pbar )  /* 07 Feb 2004 */
 {
    rgbyte tc ; int ip ;
 
-   if( pbar == NULL || !pbar->bigmode ) return ;
+ENTRY("PBAR_flip") ;
+
+   if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
 
    for( ip=0 ; ip < NPANE_BIG/2 ; ip++ ){
      tc = pbar->bigcolor[ip] ;
@@ -811,7 +843,7 @@ void PBAR_flip( MCW_pbar *pbar )  /* 07 Feb 2004 */
    MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
    PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
    pbar->bigflip = ! pbar->bigflip ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------
@@ -824,26 +856,30 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
    MCW_pbar * pbar = NULL ;
    int ip ;
 
+ENTRY("PBAR_click_CB") ;
+
    XtVaGetValues( w , XmNuserData , &pbar , NULL ) ;
-   if( pbar == NULL ) return ;
+   if( pbar == NULL ) EXRETURN ;
 
    if( pbar->bigmode ){   /* 30 Jan 2003: reverse color spectrum */
      PBAR_flip( pbar ) ;
      PBAR_callback(pbar,pbCR_COLOR) ;
-     return ;
+     EXRETURN ;
    }
 
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
-   if( ip == pbar->num_panes ) return ;
+   if( ip == pbar->num_panes ) EXRETURN ;
 
    MCW_choose_ovcolor( w , dc , pbar->ov_index[ip] , PBAR_set_CB , dc ) ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
 
 void PBAR_set_panecolor( MCW_pbar *pbar , int ip , int ovc ) /* 17 Jan 2003 */
 {
-   if( pbar == NULL || pbar->bigmode ) return ;  /* 30 Jan 2003 */
+ENTRY("PBAR_set_panecolor") ;
+   if( pbar == NULL || pbar->bigmode ) EXRETURN ;  /* 30 Jan 2003 */
    if( ovc > 0 ){
       XtVaSetValues( pbar->panes[ip] ,
                         XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP ,
@@ -854,6 +890,7 @@ void PBAR_set_panecolor( MCW_pbar *pbar , int ip , int ovc ) /* 17 Jan 2003 */
                         XmNbackgroundPixmap , check_pixmap ,
                      NULL ) ;
    }
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------
@@ -866,6 +903,8 @@ void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    MCW_pbar * pbar = NULL ;
    int ip , jm ;
 
+ENTRY("PBAR_set_CB") ;
+
    if( cbs->ival > 0 && cbs->ival < dc->ovc->ncol_ov ){
       XtVaSetValues( w , XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP , NULL ) ;
       MCW_set_widget_bg( w , NULL , dc->ovc->pix_ov[cbs->ival] ) ;
@@ -874,18 +913,18 @@ void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    }
 
    XtVaGetValues( w , XmNuserData , &pbar , NULL ) ;
-   if( pbar == NULL ) return ;
-   if( pbar->bigmode ) return ;  /* 30 Jan 2003 */
+   if( pbar == NULL ) EXRETURN ;
+   if( pbar->bigmode ) EXRETURN ;  /* 30 Jan 2003 */
 
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
-   if( ip == pbar->num_panes ) return ;
+   if( ip == pbar->num_panes ) EXRETURN ;
 
    jm = pbar->mode ;
    pbar->ovin_save[pbar->num_panes][ip][jm] =
                          pbar->ov_index[ip] = cbs->ival ;
 
    PBAR_callback(pbar,pbCR_COLOR) ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -957,8 +996,10 @@ void PBAR_resize_CB( Widget w , XtPointer cd , XtPointer cb )
    float pmin , pmax , val ;
    int alter_all = pbar->renew_all ;
 
-   if( pbar == NULL || pbar->renew_all < 0 ) return ;  /* skip it */
-   if( pbar->bigmode ) return ;  /* 30 Jan 2003 */
+ENTRY("PBAR_resize_CB") ;
+
+   if( pbar == NULL || pbar->renew_all < 0 ) EXRETURN ;  /* skip it */
+   if( pbar->bigmode ) EXRETURN ;  /* 30 Jan 2003 */
 
    jm  = pbar->mode ;
    sum = 0 ;
@@ -972,7 +1013,7 @@ printf("resize: read pane # %d height=%d\n",i,hh[i]) ; fflush(stdout) ;
    }
 
    if( sum != pbar->panes_sum ){
-      if( ip != pbar->num_panes - 1 ) return ;
+      if( ip != pbar->num_panes - 1 ) EXRETURN ;
       pbar->panes_sum = sum ;
       MCW_widget_geom( pbar->panew , NULL,&(pbar->panew_height),NULL,NULL) ;
 #if 0
@@ -1029,6 +1070,7 @@ printf("resize: read pane # %d height=%d\n",i,hh[i]) ; fflush(stdout) ;
    PBAR_callback(pbar,pbCR_VALUE) ;
 
    pbar->renew_all = 0 ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1038,12 +1080,14 @@ printf("resize: read pane # %d height=%d\n",i,hh[i]) ; fflush(stdout) ;
 
 void update_MCW_pbar( MCW_pbar * pbar )
 {
-   if( pbar == NULL ) return ;
+ENTRY("update_MCW_pbar") ;
+   if( pbar == NULL ) EXRETURN ;
    if( pbar->update_me ){
      if( pbar->bigmode ) PBAR_show_bigmode( pbar ) ;         /* 30 Jan 2003 */
      else                alter_MCW_pbar( pbar , 0 , NULL ) ;
    }
    pbar->update_me = 0 ;
+   EXRETURN ;
 }
 
 void alter_MCW_pbar( MCW_pbar * pbar , int new_npane , float * new_pval )
@@ -1054,10 +1098,12 @@ void alter_MCW_pbar( MCW_pbar * pbar , int new_npane , float * new_pval )
 
    /* sanity check */
 
-   if( pbar == NULL || new_npane > NPANE_MAX ||
-       ( new_npane < NPANE_MIN && new_npane != 0 ) ) return ;
+ENTRY("alter_MCW_pbar") ;
 
-   if( pbar->bigmode ) return ;   /* 30 Jan 2003 */
+   if( pbar == NULL || new_npane > NPANE_MAX ||
+       ( new_npane < NPANE_MIN && new_npane != 0 ) ) EXRETURN ;
+
+   if( pbar->bigmode ) EXRETURN ;   /* 30 Jan 2003 */
    was_bigset   = pbar->bigset ;
    pbar->bigset = 0 ;
 
@@ -1193,6 +1239,7 @@ printf("set pane %d to height %d\n",npane-1,sum) ; fflush(stdout) ;
  }
 #endif
 
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1207,22 +1254,24 @@ MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
    float pmin,pmax , rhh,fhh , hfrac ;
    byte rr,gg,bb , *bar ;
 
+ENTRY("MCW_pbar_to_mri") ;
+
    /* check for decent inputs */
 
-   if( pbar == NULL ) return NULL ;
+   if( pbar == NULL ) RETURN(NULL) ;
    if( nx < 1 ) nx = 1 ;
 
    if( pbar->bigmode ){    /* 30 Jan 2003: save spectrum */
      XImage *xim ;
      if( pbar->bigxim == NULL ){
        PBAR_bigexpose_CB(NULL,pbar,NULL) ;
-       if( pbar->bigxim == NULL ) return NULL ;
+       if( pbar->bigxim == NULL ) RETURN(NULL) ;
      }
      if( ny < NPANE_BIG ) ny = NPANE_BIG ;
      xim = resize_XImage( pbar->dc , pbar->bigxim , nx,ny ) ;
      im  = XImage_to_mri( pbar->dc , xim , X2M_USE_CMAP|X2M_FORCE_RGB ) ;
      MCW_kill_XImage( xim ) ;
-     return im ;
+     RETURN(im) ;
    }
 
    /** the old way: make the image by brute force **/
@@ -1294,5 +1343,5 @@ MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
       }
    }
 
-   return im ;
+   RETURN(im) ;
 }

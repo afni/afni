@@ -3925,6 +3925,9 @@ ENTRY("ISQ_free_alldata") ;
    FREE_AV( seq->wbar_label_av )      ; /* 20 Sep 2001 */
    myXtFree( seq->wbar_plots_bbox )   ;
 
+   FREE_AV( seq->wbar_labsz_av )      ; /* 06 Jan 2005: oopsie */
+   myXtFree( seq->pen_bbox ) ;          /* 06 Jan 2005: oopsie again */
+
    FREE_AV( seq->slice_proj_av )      ; /* 31 Jan 2002 */
    FREE_AV( seq->slice_proj_range_av );
 
@@ -4392,13 +4395,13 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
                 seq->sized_xim , 0,0,0,0,
                 seq->sized_xim->width , seq->sized_xim->height ) ;
 
-   } else {  /* 23 Apr 2001 - draw something else */
+   } else {  /* 23 Apr 2001 - draw 'EMPTY IMAGE' */
 
-      static MEM_plotdata * mp=NULL ;  /* only create once */
+      static MEM_plotdata *empt=NULL ;  /* only create once */
 
-      if( mp == NULL ){
+      if( empt == NULL ){
          create_memplot_surely("EmptyImagePlot",1.0) ;
-         mp = get_active_memplot() ;
+         empt = get_active_memplot() ;
          set_color_memplot(1.0,1.0,1.0) ;
          set_thick_memplot(0.009) ;
          plotpak_pwritf( 0.4,0.83 , "EMPTY" , 96 , 0 , 0 ) ;
@@ -4416,7 +4419,7 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
       }
       XClearWindow( seq->dc->display , XtWindow(seq->wimage) ) ;
       memplot_to_X11_sef( seq->dc->display ,
-                          XtWindow(seq->wimage) , mp ,
+                          XtWindow(seq->wimage) , empt ,
                           0,0,MEMPLOT_FREE_ASPECT     ) ;
    }
 
@@ -10506,7 +10509,14 @@ ENTRY("ISQ_cropper") ;
         (x1,y1) = window coords of rectangle start
         (x2,y2) = window coords of rectangle finish         ***/
 
+#if 1
    RWC_drag_rectangle( seq->wimage , x1,y1,&x2,&y2 ) ;
+#else
+   { int rad ;
+     RWC_drag_circle( seq->wimage , x1,y1 , &rad ) ;  /** just a test **/
+     fprintf(stderr,"rad=%d\n",rad) ; EXRETURN ;
+   }
+#endif
 
    /*** find corners of rectangle in original image pixels ***/
 
