@@ -40,7 +40,7 @@ int main( int argc , char * argv[] )
    int corder=-1 , nref , ignore=0 , polort=2 , nuse , nomask=0 ;
    int nspike, nbig, nproc ;
    float **ref ;
-   float  *fit , *ssp , snew , c21,ic21 , pspike,pbig ;
+   float  *fit , *ssp , snew , c21,ic21 , pspike,pbig , cls ;
    short  *sar , *qar ;
    byte   *tar , *mask=NULL ;
    float  *zar , *yar ;
@@ -398,9 +398,9 @@ int main( int argc , char * argv[] )
 
       /*** solve for L1 fit ***/
 
-      jj = cl1_solve( nuse , nref , far , ref , fit,0 );
+      cls = cl1_solve( nuse , nref , far , ref , fit,0 );
 
-      if( jj ){                              /* fit failed! */
+      if( cls < 0.0 ){                       /* fit failed! */
 #if 0
         fprintf(stderr,"curve fit fails at voxel %d %d %d\n",
                 DSET_index_to_ix(dset,ii) ,

@@ -49,6 +49,7 @@ extern int qhull_wrap( int , float * , int ** ) ; /* 07 Jun 2001 */
 extern int sphere_voronoi_angles( int , float *, float *, float ** ) ;
 extern int sphere_voronoi_vectors( int , float *, float ** ) ;
 
-extern int cl1_solve( int, int, float *, float **, float *,int ) ; /* cl1.c */
+extern float cl1_solve    ( int, int, float *, float **, float *,int ) ; /* cl1.c */
+extern float cl1_solve_res( int, int, float *, float **, float *,int, float*,int ) ; /* cl1.c */
 
 #endif

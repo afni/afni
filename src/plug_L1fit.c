@@ -221,7 +221,7 @@ void L1F_worker( int nt , double dt , float * vec , int dofit , char ** label )
    static float *  fit = NULL ;
 
    int ir , ii , ks,jh ;
-   float fac , tm , val ;
+   float fac , tm , val , cls ;
    float * tsar ;
 
    /*** compute how many ref functions are ordered ***/
@@ -324,9 +324,9 @@ void L1F_worker( int nt , double dt , float * vec , int dofit , char ** label )
 
    /** find L1 fit coefficients **/
 
-   ii = cl1_solve( nlen , nref , vec+ignore , ref , fit,0 ) ;
+   cls = cl1_solve( nlen , nref , vec+ignore , ref , fit,0 ) ;
 
-   if( ii != 0 ) return ;  /* bad fit */
+   if( cls < 0.0 ) return ;  /* bad fit */
 
    for( ii=0 ; ii < nlen ; ii++ ){
       val = 0.0 ;
