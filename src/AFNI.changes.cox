@@ -5303,3 +5303,6 @@
 
 14 Jan 2005
  * Added program whereami, from Mike Angstadt of U Chicago.
+
+24 Jan 2005
+ * Added environment variable AFNI_SLAVE_THRTIME to afni.c.
