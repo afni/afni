@@ -1,7 +1,8 @@
 ##################################################################
 #
-# This Makefile is tested with FreeBSD 4.x and 5.x, NetBSD 1.6.1,
-# and OpenBSD 3.3.
+# This Makefile is tested with FreeBSD 5.3 AMD64.  Performance of
+# the AMD64 (1 megabyte cache) for large 3dDeconvolve analyses is 
+# very similar to PowerMac G5 systems.
 #
 # Contributed by: 
 #   Jason W. Bacon
@@ -11,7 +12,7 @@
 #
 #   open-motif
 # 
-# To compile SUMA you will also need the following packages:
+# To compile SUMA you will also need the following packages installed.
 #
 #   libiconv
 #   gettext
@@ -27,23 +28,13 @@
 #   Note:   The SUMA build process (as of Aug, 2003) requires GNU make,
 #           which is /usr/local/bin/gmake on BSD systems.  
 #           Be sure the MAKE macro below is set to gmake.
-#
-#   Note:   Compilation of netcdf-3.5.0 may fail due to m4's lack of
-#           support for the -B option.  Remove the -B10000 flag from
-#           netcdf-3.5.0/src/configure BEFORE running make to avoid
-#           this error.  ( Or force configure to use gm4 by reversing
-#           the order of "m4 gm4" to "gm4 m4" everywhere in the script )
-#           This problem has been reported to the netcdf development team.
-#           It seems to have been resolved as of the June, 2003 afni
-#           source distribution.
-#
 
 MAKE   = gmake
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
-CC     = gcc -O2 -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
-CCVOL  = gcc -O2 -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
-CCFAST = gcc -O3 -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
+CC     = gcc -O2 -DREAD_WRITE_64 -fPIC -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
+CCVOL  = gcc -O2 -DREAD_WRITE_64 -fPIC -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
+CCFAST = gcc -O3 -DREAD_WRITE_64 -fPIC -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
 # OpenBSD: /usr/local/include/Xm
@@ -69,7 +60,8 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./BSD
+# INSTALLDIR should match the extension on the Makefile name
+INSTALLDIR = ./BSD_AMD64
 LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
