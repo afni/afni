@@ -935,8 +935,10 @@ ENTRY("end_fd_graph_CB") ;
 
    grapher->valid = 0 ;  /* can't do anything with this anymore */
 
-   if( grapher->fd_pxWind != (Pixmap) 0 )
-      XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
+   if( grapher->fd_pxWind != (Pixmap) 0 ){
+STATUS("freeing Pixmap") ;
+     XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
+   }
 
 #ifdef USE_OPTMENUS
 STATUS("destroying optmenus") ;
@@ -955,7 +957,7 @@ STATUS("destroying arrowvals") ;
    FREE_AV( grapher->opt_ggap_av )         ;  /* 28 Sep 1998: via Purify */
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )  /* 16 Jun 1997 */
-      FREE_AV( grapher->opt_color_av[ii] ) ;
+     FREE_AV( grapher->opt_color_av[ii] ) ;
 
 STATUS("destroying fmenu") ;
    myXtFree( grapher->fmenu->fim_editref_winaver_bbox );  /* 27 Jan 2004 */
@@ -966,14 +968,14 @@ STATUS("destroying fmenu") ;
    myXtFree( grapher->cen_line )            ;
 
 STATUS("destroying bboxes") ;
-   myXtFree( grapher->opt_dplot_bbox ) ;          /* 08 Nov 1996 */
+   myXtFree( grapher->opt_dplot_bbox ) ;         /* 08 Nov 1996 */
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ ){
-      myXtFree( grapher->opt_thick_bbox[ii] ) ;   /* 16 Jun 1997 */
-      myXtFree( grapher->opt_points_bbox[ii] ) ;  /* 09 Jan 1998 */
+     myXtFree( grapher->opt_thick_bbox[ii] ) ;   /* 16 Jun 1997 */
+     myXtFree( grapher->opt_points_bbox[ii] ) ;  /* 09 Jan 1998 */
    }
 
-   myXtFree( grapher->opt_baseline_bbox ) ;       /* 07 Aug 2001 */
+   myXtFree( grapher->opt_baseline_bbox ) ;      /* 07 Aug 2001 */
    myXtFree( grapher->opt_textgraph_bbox ) ;
 
 STATUS("freeing cen_tsim") ;
@@ -986,6 +988,7 @@ STATUS("freeing tuser") ;
 
 STATUS("destroying widgets") ;
    XtDestroyWidget( grapher->fdw_graph ) ;
+STATUS("widgets now destroyed") ;
 
    /** if AFNI has a notify callback, it will free the data **/
 
