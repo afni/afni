@@ -28,14 +28,17 @@ typedef struct {
                         is always for more than N_Node elements. But 
                         values beyond NodeList[N_Node-1] are of no meaning. */
    float totalarea;
-   int rank;
+   /* int rank; */  /* completely useless ... rank is inferred from order in list! */
 } SUMA_CLUST_DATUM;
 
 SUMA_Boolean SUMA_Show_SurfClust_list(DList *list, FILE *Out, int detail); 
 char *SUMA_Show_SurfClust_list_Info(DList *list, int detail); 
 void SUMA_FreeClustDatum (void * data);
-DList *SUMA_FindClusters (SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni, DList *laliste, int dothisnode, SUMA_SURFCLUST_OPTIONS *Opt, SUMA_CLUST_DATUM *clust);
+DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni, 
+                           DList *laliste, int dothisnode, SUMA_SURFCLUST_OPTIONS *Opt, 
+                           SUMA_CLUST_DATUM *clust, float *NodeArea);
 SUMA_DSET *SUMA_SurfClust_list_2_Dset(SUMA_SurfaceObject *SO, DList *list);
+float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO);
 
 
 #endif
