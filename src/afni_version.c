@@ -1,4 +1,5 @@
 #include "afni.h"
+#include <sys/utsname.h>
 
 #define AFNI_LATEST "http://afni.nimh.nih.gov/afni/news"
 
@@ -47,9 +48,11 @@ char * AFNI_make_update_script(void) ;  /* prototype */
 
 static void vexit( int sig )
 {
+#if 0
    static volatile int fff=0 ;
    if( fff ) _exit(1) ; else fff = 1 ;
-   fprintf(stderr,"** Version Check: fails to complete **\n");
+   fprintf(stderr,"** Version Check: child fails to complete: %d **\n",sig);
+#endif
    _exit(1);
 }
 
@@ -81,7 +84,8 @@ void AFNI_start_version_check(void)
      return ;
    }
 
-   /* check if we did this in the last 12 hours */
+#define VDELAY 429999  /* 429999 s = 5 days */
+   /* check if we did this in the last VDELAY seconds */
 
    { char *home=getenv("HOME") , mname[VSIZE]="file:" ;
      NI_stream ns ;
@@ -97,7 +101,7 @@ void AFNI_start_version_check(void)
          if( rhs != NULL ){
            int last_time = strtol(rhs,NULL,10) ;
            int dtime = ((int)time(NULL)) - last_time ;
-           if( dtime >= 0 && dtime < 429999 ){ /* don't check */
+           if( dtime >= 0 && dtime < VDELAY ){ /* don't check */
              disabled = 1 ; return ;
            }
          }
@@ -132,7 +136,7 @@ void AFNI_start_version_check(void)
      if( vc_ioc == NULL ){
        kill(child_pid,SIGTERM) ;            /* cf. Abraham and Isaac */
        vc_child_pid = (pid_t)(-1) ;
-       FAIL_MESSAGE("can't open shared memory with child") ;
+       FAIL_MESSAGE("can't open connection to child") ;
      } else {
        fprintf(stderr,"\n** Version check: " VERSION_URL "\n" ); /* 13 Jan 2003 */
        atexit( vc_exit ) ;                                       /* 12 Dec 2002 */
@@ -144,13 +148,51 @@ void AFNI_start_version_check(void)
      int nbuf=0 , jj ;
      char *vbuf=NULL ;
      IOCHAN *ioc ;
+     struct utsname ubuf ;
+     char ua[512] ;
 
      iochan_enable_perror(0) ;   /* don't print TCP/IP error messages */
      signal( SIGTERM , vexit ) ; /* if parent kills us, call vexit()  */
 
      /*-- get information from the AFNI server --*/
 
+#define USE_HTTP_10
+
+#ifdef USE_HTTP_10
+#  undef PCLAB
+#  ifdef SHOWOFF
+#    undef SHSH
+#    undef SHSHSH
+#    define SHSH(x)   #x
+#    define SHSHSH(x) SHSH(x)
+#    define PCLAB     SHSHSH(SHOWOFF)
+#  else
+#    define PCLAB     "Unknown"
+#  endif
+#endif
+
+     /** 25 Mar 2005: send more info in the request header **/
+
+#ifdef USE_HTTP_10
+     jj = uname( &ubuf ) ;
+     if( jj == 0 )
+       sprintf( ua ,
+               "afni (avers='%s'; prec='%s' node='%s'; sys='%s'; mach='%s')" ,
+                VERSION, PCLAB, ubuf.nodename, ubuf.sysname, ubuf.machine   ) ;
+     else
+       sprintf( ua , "afni (avers='%s'; prec='%s')" , VERSION , PCLAB ) ;
+
+     set_HTTP_10( 1 ) ;
+     set_HTTP_user_agent( ua ) ;
+#else
+     set_HTTP_10( 0 ) ;
+#endif
+
+     /* send the request */
+
      nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* may take a while */
+
+     set_HTTP_10( 0 ) ;
 
      /*-- if this failed, quit --*/
 
@@ -159,12 +201,12 @@ void AFNI_start_version_check(void)
      /*-- talk to parent process thru shared memory --*/
 
      ioc = iochan_init( SHM_CHILD , "create" ) ;
-     if( ioc == NULL )                                  vexit(1);
+     if( ioc == NULL )                                  vexit(2);
 
      /*-- wait until ioc is ready for writing --*/
 
      jj = iochan_writecheck(ioc,-1) ;
-     if( jj < 0 )                                       vexit(1);
+     if( jj < 0 )                                       vexit(3);
 
      /*-- send the info in vbuf --*/
 
@@ -178,9 +220,8 @@ void AFNI_start_version_check(void)
 }
 
 /******************************************/
-/* 27 Jan 2003: re-enable the KAPUT macro */
 
-#if 1
+#if 0
 # define KAPUT(ss)                                          \
   do{ fprintf(stderr,"** Version Check fails: %s **\n",ss); \
       return ; } while(0)
@@ -200,7 +241,7 @@ int AFNI_version_check(void)
    int jj , nbuf=0 ;
    char *vbuf=NULL ;
    char vv[128]="none" ;
-   char *sname ;
+   char *sname , *vvbuf ;
 
    /* if something is rotten, then toss it out */
 
@@ -217,7 +258,7 @@ int AFNI_version_check(void)
    jj = iochan_readcheck( vc_ioc , 333 ) ;    /* is iochan open yet? */
    if( jj <= 0 ){
      IOCHAN_CLOSE(vc_ioc); kill(vc_child_pid,SIGTERM); vc_child_pid=(pid_t)(-1);
-     KAPUT("bad shmem to child");
+     KAPUT("connection to child gone bad");
    }
 
    /* if here, have data ready to read from child! */
@@ -244,7 +285,15 @@ int AFNI_version_check(void)
 
    /* extract version and data/time strings from data */
 
-   sscanf( vbuf , "%127s" , vv ); free(vbuf);
+#ifdef USE_HTTP_10
+   vvbuf = strstr(vbuf,"\r\n\r\n") ;
+   if( vvbuf == NULL ) vvbuf = vbuf      ;
+   else                vvbuf = vvbuf + 4 ;
+#else
+   vvbuf = vbuf ;
+#endif
+
+   sscanf( vvbuf , "%127s" , vv ); free(vbuf);
 
    /* record the current time, so we don't check too often */
 
