@@ -1302,9 +1302,11 @@ f2c.tgz:
 # dlcompat
 
 libdl.a:dlcompat/dlfcn.h dlcompat/dlopen.c
-	( cd dlcompat ; \
-	  make libdl.a ; \
-	  $(CP) libdl.a dlfcn.h .. ; )
+	( cd dlcompat ;              \
+	  make libdl.a ;             \
+	  $(CP) libdl.a dlfcn.h .. ; \
+          cd .. ;                    \
+	  $(RANLIB) libdl.a ;     )
 
 #######
 # plotting library

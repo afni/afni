@@ -77,12 +77,14 @@ static char *dlerror_pointer = NULL;
  * __dyld_NSMakePrivateModulePublic is returned so thats all that maters to get
  * the functionality need to implement the dlopen() interfaces.
  */
-static
-enum bool
+
+/** typedef enum { FALSE = 0, TRUE = 1 } bool; **/
+
+static enum DYLD_BOOL
 NSMakePrivateModulePublic(
 NSModule module)
 {
-    static enum bool (*p)(NSModule module) = NULL;
+    static enum DYLD_BOOL (*p)(NSModule module) = NULL;
 
 	if(p == NULL)
 	    _dyld_func_lookup("__dyld_NSMakePrivateModulePublic",
