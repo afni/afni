@@ -738,6 +738,9 @@ extern float mri_rotate_point( MRI_IMAGE *im, float,float,float,float, int,int )
 
 extern MRI_IMAGE *mri_resize( MRI_IMAGE * , int , int ) ;
 
+extern MRI_IMAGE *mri_resize_NN( MRI_IMAGE *, int , int ) ;  /* 08 Jun 2004 */
+extern MRI_IMAGE *mri_squareaspect( MRI_IMAGE * ) ;
+
 extern MRI_IMAGE *mri_rotate         ( MRI_IMAGE * , float,float,float,float ) ;
 extern MRI_IMAGE *mri_rotate_bilinear( MRI_IMAGE * , float,float,float,float ) ;
 

@@ -55,6 +55,67 @@ MRI_IMAGE *mri_warp( MRI_IMAGE *im , int nxnew , int nynew , int wtype ,
 
 /****************************************************************************/
 
+MRI_IMAGE *mri_resize_NN( MRI_IMAGE *im , int nxnew , int nynew )  /* 08 Jun 2004 */
+{
+   int nx,ny , nnx,nny , ii,jj , pp,qq , bb ;
+   float fx,fy ;
+   MRI_IMAGE *nim ;
+   char *nar , *ar ;
+
+   if( im == NULL ) return NULL ;
+
+   nx  = im->nx ;  ny  = im->ny ;
+   nnx = nxnew  ;  nny = nynew  ;
+   fx  = ((float)nx) / (float)nnx ;
+   fy  = ((float)ny) / (float)nny ;
+
+   nim = mri_new( nnx , nny , im->kind ) ;
+   nar = mri_data_pointer( nim ) ;
+   ar  = mri_data_pointer( im ) ;
+   bb  = im->pixel_size ;
+
+   for( jj=0 ; jj < nny ; jj++ ){
+     qq = (int)( fy*jj ) ;
+     for( ii=0 ; ii < nnx ; ii++ ){
+       pp = (int)( fx*ii ) ;
+       memcpy( nar + (ii+jj*nnx)*bb , ar + (pp+qq*nx)*bb , bb ) ;
+     }
+   }
+
+   MRI_COPY_AUX(nim,im) ;
+   nim->dx *= fx ;
+   nim->dy *= fy ;
+   return nim ;
+}
+
+/****************************************************************************/
+
+MRI_IMAGE *mri_squareaspect( MRI_IMAGE *im )  /* 08 Jun 2004 */
+{
+   int nx,ny , nxnew,nynew ;
+   float dx,dy , rr ;
+
+   if( im == NULL ) return NULL ;
+
+   dx = fabs(im->dx) ; dy = fabs(im->dy) ;
+   if( dx == 0.0 || dy == 0.0 ) return NULL ;
+   rr = dy / dx ; if( rr == 1.0 ) return NULL ;
+
+   nx = im->nx ; ny = im->ny ;
+
+   if( rr < 1.0 ){
+     nxnew = rint( nx/rr ) ; if( nxnew <= nx ) return NULL ;
+     nynew = ny ;
+   } else {
+     nynew = rint( ny*rr ) ; if( nynew <= ny ) return NULL ;
+     nxnew = nx ;
+   }
+
+   return mri_resize_NN( im , nxnew , nynew ) ;
+}
+
+/****************************************************************************/
+
 MRI_IMAGE *mri_resize( MRI_IMAGE *im , int nxnew , int nynew )
 {
    int nx,ny , nnx,nny , wtype ;

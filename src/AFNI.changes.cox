@@ -5046,3 +5046,5 @@
 08 Jun 2004
  * Added call to THD_copy_auxdata() to mri_warp3D.c, and -copyaux option to
      3drefit.c
+ * Added AFNI_IMAGE_SAVESQUARE environment variable to imseq.c; added
+     functions to mri_warp.c to implement re-aspectizationing.
