@@ -1,8 +1,11 @@
 
-#define IFM_VERSION "version 2.1 (January, 2003)"
+#define IFM_VERSION "version 2.2 (February, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.2  February 2, 2003
+ *   - allow IFM_MAX_GE_FAILURES file reading failures
  *
  * 2.1  January 27, 2003
  *   - added '-nt VOLUMES_PER_RUN' option (for checking stalled runs)
@@ -299,7 +302,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 
     if ( v0 == NULL || p == NULL )
     {
-	fprintf( stderr, "error: HF:FMV() lacking parameters\n" );
+	fprintf( stderr, "error: IFM:FMV() lacking parameters\n" );
 	return -1;
     }
 
@@ -410,7 +413,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 
 	if ( ret_val < 0 )		/* aaaaagh!  panic!  wet pants! */
 	{
-	    fprintf( stderr, "\n** failure: HF:RGF fatal error\n" );
+	    fprintf( stderr, "\n** failure: IFM:RGF fatal error\n" );
 	    return -1;
 	}
     }
@@ -814,7 +817,6 @@ static int scan_ge_files (
 	int        next,		/* index of next file to scan  */
 	int        nfiles )		/* number of files to scan     */
 {
-    static int   read_failure = -1;	/* last read_ge_image failure */
     finfo_t    * fp;
     int          im_num, fnum;
     int          files_read, rv;
@@ -865,22 +867,33 @@ static int scan_ge_files (
 
 	if ( (rv != 0) || (fp->geh.good != 1) )
 	{
+	    static int read_failure = -1;  /* last read_ge_image failure    */
+	    static int fail_count   =  0;  /* get multiple tries to succeed */
+
+	    /* on first failure, note file and set fail_count to 1 */
 	    if ( read_failure != fnum )
 	    {
-		/* first time to fail with this file - wait and try again */
-		if ( gD.level > 1 )
-		    fprintf( stderr, "\n** failure to read GE header for "
-			     "file <%s>\n", p->fnames[fnum] );
 		read_failure = fnum;
-
-		break;
+		fail_count   = 1;
 	    }
 	    else
+		fail_count++;
+
+	    /* after too many failure, we give up */
+	    if ( fail_count > IFM_MAX_GE_FAILURES )
 	    {
-		fprintf( stderr, "\nfailure: cannot read GE header for "
+		fprintf( stderr, "\n** failure: cannot read GE header for "
 			 "file <%s>\n", p->fnames[fnum] );
 		return -1;
 	    }
+
+	    /* we failed, but will try again later - maybe inform user */
+	    if ( gD.level > 1 )
+		fprintf( stderr, "\n-- (%d) failures to read GE header for "
+			 "file <%s>, trying again...\n",
+			 fail_count, p->fnames[fnum] );
+
+	    break;
 	}
 	else
 	{
@@ -1613,7 +1626,7 @@ static int usage ( char * prog, int level )
     {
 	printf(
 	  "\n"
-	  "%s - monitor real-time aquisition of I-files\n"
+	  "%s - monitor real-time acquisition of I-files\n"
 	  "\n"
 	  "    This program is intended to be run during a scanning session\n"
 	  "    on a GE scanner, to monitor the collection of I-files.  The\n"
