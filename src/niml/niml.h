@@ -541,10 +541,12 @@ extern int    NI_write_rowtype( NI_stream_type * ,
                                 NI_rowtype * , int , void * , int ) ;
 extern int    NI_read_columns ( NI_stream_type *,
                                 int, int *, int, void **, int,int ) ;
-extern void   NI_free_column  ( NI_rowtype * , int , void * ) ;
-extern void * NI_copy_column  ( NI_rowtype * , int , void * ) ;
+extern void   NI_free_column  ( NI_rowtype * , int , void * );
+extern void * NI_copy_column  ( NI_rowtype * , int , void * );
+extern int    NI_size_column  ( NI_rowtype * , int , void * ); /* 26 Mar 2003 */
 
-extern void   NI_read_header_only( int ) ; /* 21 Mar 2003 */
+extern void   NI_read_header_only   ( int ) ;                  /* 21 Mar 2003 */
+extern void * NI_read_element_header( NI_stream_type *, int ); /* 26 Mar 2003 */
 
 #define NI_SWAP_MASK  (1<<0)
 #define NI_LTEND_MASK (1<<1)
