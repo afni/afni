@@ -13,6 +13,7 @@ extern char * my_getenv( char * ) ;
 extern void AFNI_mark_environ_done(void) ;  /* 16 Apr 2000 */
 extern int AFNI_yesenv( char * ) ;          /* 21 Jun 2000 */
 extern int AFNI_noenv ( char * ) ;          /* 21 Jun 2000 */
+extern double AFNI_numenv( char * ) ;       /* 23 Aug 2003 */
 
 /*-- 22 May 2000: macros for checking for Yes or No --*/
 
