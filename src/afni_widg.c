@@ -463,6 +463,33 @@ STATUS("WANT_AFNI_BITMAP") ;
 
       /* 28 Jan 2004: just for fun, background pixmaps for top forms */
 
+      if( im3d->dc->visual_class == TrueColor && 
+          AFNI_yesenv("AFNI_LOGO16")          &&
+          afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP ){
+
+        MRI_IMAGE *bim ; XImage *xim ; char ename[32], *ept ;
+        sprintf(ename,"AFNI_LOGO16_IMAGE_%c" , 'A'+num_entry-1 ) ;
+        ept = getenv(ename) ;
+        if( ept == NULL ) ept = getenv( "AFNI_LOGO16_IMAGE" ) ;
+        if( ept != NULL ){
+          bim = mri_read( ept ) ;
+          if( bim != NULL ){
+            if( bim->kind == MRI_rgb ){
+              xim = rgb_to_XImage( im3d->dc , bim ) ;
+              if( xim != NULL ){
+                afni16_pixmap[num_entry-1] = XCreatePixmap( im3d->dc->display ,
+                                                 RootWindowOfScreen(im3d->dc->screen) ,
+                                                 bim->nx , bim->ny , im3d->dc->planes ) ;
+                XPutImage( im3d->dc->display , afni16_pixmap[num_entry-1] ,
+                           im3d->dc->origGC , xim , 0,0 , 0,0 , bim->nx , bim->ny ) ;
+                MCW_kill_XImage( xim ) ;
+              }
+            }
+            mri_free(bim) ;
+          }
+        }
+      }
+
       if( afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP && AFNI_yesenv("AFNI_LOGO16") ){
         Pixel fg16=ICON_bg, bg16=ICON_fg ; int ic ; char ename[32] ;
         char *fgn[7] = { "red", "blue-cyan", "green", "violet", "orange", "gray70", "yellow" };

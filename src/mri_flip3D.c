@@ -12,9 +12,12 @@
      - +3 => +z
      - -3 => -z
 
-    Among (outx,outy,outz), exactly 1 must be either +1 or -1, one must
-    be +2 or -2, and one must be +3 or -3.  Bad inputs result in a NULL
-    return.
+    Among (outx,outy,outz), exactly one must be either +1 or -1, one
+    must be +2 or -2, and one must be +3 or -3.  Bad inputs result in
+    a NULL return value.
+
+    If the input image doesn't have a data array, then the output
+    image won't either.
 ------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
@@ -28,13 +31,15 @@ MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
 
 ENTRY("mri_flip3D") ;
 
+   /* check inputs for correctness */
+
    if( inim == NULL || outx == 0 || outy == 0 || outz == 0 ) RETURN( NULL );
    ii = abs(outx) ; jj = abs(outy) ; kk = abs(outz) ;
    if( ii > 3 || jj > 3 || kk > 3 )                          RETURN( NULL );
    if( ii == jj || ii == kk || jj == kk )                    RETURN( NULL );
    if( ii+jj+kk != 6 )                                       RETURN( NULL );
 
-   if( outx==1 && outy==2 && outz==3 ) RETURN( mri_copy(inim) ) ;  /* easy case */
+   if( outx==1 && outy==2 && outz==3 ) RETURN( mri_copy(inim) ); /* easy case */
 
    nxin = inim->nx ;
    nyin = inim->ny ; nxyin = nxin*nyin ;
