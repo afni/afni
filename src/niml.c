@@ -63,7 +63,7 @@ char * NI_strdup( char *str )
 {
    int nn ; char *dup ;
    if( str == NULL ) return NULL ;
-   nn = strlen(str); dup = NI_malloc(nn+1); strcpy(dup,str); return dup ;
+   nn = NI_strlen(str); dup = NI_malloc(nn+1); strcpy(dup,str); return dup ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -160,7 +160,7 @@ static int unescape_inplace( char *str )
    int ii,jj , nn,ll ;
 
    if( str == NULL ) return 0 ;                /* no string? */
-   ll = strlen(str) ;  if( ll < 4 ) return 0 ; /* too short */
+   ll = NI_strlen(str) ;  if( ll < 4 ) return 0 ; /* too short */
 
    /* scan for escapes: &something; */
 
@@ -627,7 +627,7 @@ static str_array * decode_string_list( char *ss , char *sep )
 
    /* scan for sub-strings */
 
-   lss = strlen(ss) ;
+   lss = NI_strlen(ss) ;
    num = id = 0 ;
    while( id <= lss ){
 
@@ -676,7 +676,7 @@ static int_array * decode_dimen_string( char *ds )
    /* scan string for integers */
 
    num = id = 0 ;
-   lds = strlen(ds) ;
+   lds = NI_strlen(ds) ;
    do{
       /* skip ahead until ds[id] is a digit */
 
@@ -720,7 +720,7 @@ static int_array * decode_type_string( char *ts )
 
    /* scan type string to find counts/fields and add to output */
 
-   lts = strlen(ts) ;
+   lts = NI_strlen(ts) ;
    num = 0 ;            /* will be count of fields */
 
    for( id=kk=0 ; id < lts ; ){  /* loop over input string */
@@ -971,6 +971,13 @@ static NI_element * make_empty_data_element( header_stuff *hs )
 
    nel->vec_filled = 0 ;  /* no data has been filled into vectors */
 
+   nel->vec_rank        = 0 ;
+   nel->vec_axis_len    = NULL ;
+   nel->vec_axis_delta  = NULL ;
+   nel->vec_axis_origin = NULL ;
+   nel->vec_axis_unit   = NULL ;
+   nel->vec_axis_label  = NULL ;
+
    if( !hs->empty ){  /* find and process ni_* attributes about vectors */
 
      /* ni_type attribute */
@@ -991,13 +998,96 @@ static NI_element * make_empty_data_element( header_stuff *hs )
      ii = string_index( "ni_dimen" , nel->attr_num , nel->attr_lhs ) ;
 
      if( ii >= 0 && nel->attr_rhs[ii] != NULL ){
-        int qq = strtol( nel->attr_rhs[ii] , NULL , 10 ) ;
-        if( qq > 0 ) nel->vec_len = qq ;
+        int_array *dar = decode_dimen_string( nel->attr_rhs[ii] ) ;
+        if( dar != NULL && dar->num > 0 ){
+           int nd=dar->num , qq,pp ;
+           /* compute product of all dimensions */
+           for( qq=1,pp=0 ; pp < nd ; pp++ ) qq *= dar->ar[pp] ;
+           nel->vec_len      = qq ;      /* length of vectors */
+           nel->vec_rank     = nd ;      /* number of dimensions */
+           nel->vec_axis_len = dar->ar ; /* array of dimension lengths */
+#if 0
+fprintf(stderr,"ni_dimen: nd=%d qq=%d\n",nd,qq) ;
+#endif
+        }
+     }
+
+     /* if we had ni_dimen, also use ni_delta */
+
+     ii = string_index( "ni_delta" , nel->attr_num , nel->attr_lhs ) ;
+     if( ii >= 0 && nel->vec_len > 0 ){
+        str_array *sar = decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        if( sar != NULL && sar->num > 0 ){
+           int ns=sar->num , nd=nel->vec_rank , pp ;
+           nel->vec_axis_delta = NI_malloc(sizeof(float)*nd) ;
+           if( nd > ns ) nd = ns ;
+           for( pp=0 ; pp < nd ; pp++ )
+             sscanf( sar->str[pp] , "%f" , nel->vec_axis_delta+pp ) ;
+           for( pp=0 ; pp < ns ; pp++ )
+             NI_free( sar->str[pp] );
+           NI_free(sar->str) ; NI_free(sar) ;
+        }
+     }
+
+     /* if we had ni_dimen, also use ni_origin */
+
+     ii = string_index( "ni_origin" , nel->attr_num , nel->attr_lhs ) ;
+     if( ii >= 0 && nel->vec_len > 0 ){
+        str_array *sar = decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        if( sar != NULL && sar->num > 0 ){
+           int ns=sar->num , nd=nel->vec_rank , pp ;
+           nel->vec_axis_origin = NI_malloc(sizeof(float)*nd) ;
+           if( nd > ns ) nd = ns ;
+           for( pp=0 ; pp < nd ; pp++ )
+             sscanf( sar->str[pp] , "%f" , nel->vec_axis_origin+pp ) ;
+           for( pp=0 ; pp < ns ; pp++ )
+             NI_free( sar->str[pp] );
+           NI_free(sar->str) ; NI_free(sar) ;
+        }
+     }
+
+     /* if we had ni_dimen, also use ni_units */
+
+     ii = string_index( "ni_units" , nel->attr_num , nel->attr_lhs ) ;
+     if( ii >= 0 && nel->vec_len > 0 ){
+        str_array *sar = decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        if( sar != NULL && sar->num > 0 ){
+           int ns=sar->num , nd=nel->vec_rank , pp ;
+           nel->vec_axis_unit = NI_malloc(sizeof(char *)*nd) ;
+           if( nd > ns ) nd = ns ;
+           for( pp=0 ; pp < nd ; pp++ )
+             nel->vec_axis_unit[pp] = NI_strdup(sar->str[pp]) ;
+           for( pp=0 ; pp < ns ; pp++ )
+             NI_free( sar->str[pp] );
+           NI_free(sar->str) ; NI_free(sar) ;
+        }
+     }
+
+     /* if we had ni_dimen, also use ni_axes */
+
+     ii = string_index( "ni_axes" , nel->attr_num , nel->attr_lhs ) ;
+     if( ii >= 0 && nel->vec_len > 0 ){
+        str_array *sar = decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        if( sar != NULL && sar->num > 0 ){
+           int ns=sar->num , nd=nel->vec_rank , pp ;
+           nel->vec_axis_label = NI_malloc(sizeof(char *)*nd) ;
+           if( nd > ns ) nd = ns ;
+           for( pp=0 ; pp < nd ; pp++ )
+             nel->vec_axis_label[pp] = NI_strdup(sar->str[pp]) ;
+           for( pp=0 ; pp < ns ; pp++ )
+             NI_free( sar->str[pp] );
+           NI_free(sar->str) ; NI_free(sar) ;
+        }
      }
 
      /* supply vector parameters if none was given */
 
-     if( nel->vec_len == 0 ) nel->vec_len = 1 ;  /* default length */
+     if( nel->vec_len == 0 ){                    /* default dimensions */
+        nel->vec_len         = 1 ;
+        nel->vec_rank        = 1 ;
+        nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
+        nel->vec_axis_len[0] = 1 ;
+     }
 
      if( nel->vec_num == 0 ){                    /* default type */
         nel->vec_num    = 1 ;
@@ -1197,6 +1287,13 @@ void NI_free_element( void *nini )
       for( ii=0 ; ii < nel->vec_num ; ii++ )
          NI_free( nel->vec[ii] ) ;
       NI_free( nel->vec ) ;
+
+      NI_free(nel->vec_axis_len) ;
+      NI_free(nel->vec_axis_delta) ;
+      NI_free(nel->vec_axis_origin) ;
+      NI_free(nel->vec_axis_unit) ;
+      NI_free(nel->vec_axis_label) ;
+
       NI_free( nel ) ;
 
    /*-- erase contents of group element --*/
@@ -1816,9 +1913,9 @@ static int tcp_listen( int port )
    with a pointer to the Internet address (in 'dot' form) of the host that
    connected.
 
-   Both the char * pointers returned are from malloc, and should be free()-d
-   when no longer needed.  If they aren't needed at all, just pass in NULL
-   for these arguments.
+   Both the char * pointers returned are from malloc(), and should be
+   free()-d when no longer needed.  If they aren't needed at all, just
+   pass in NULL for these arguments.
 
    Note that this routine will block until somebody connects.  You can
    use tcp_readcheck(sd,0) to see if anyone is waiting to connect before
@@ -1843,13 +1940,10 @@ static int tcp_accept( int sd , char ** hostname , char ** hostaddr )
    if( hostname != NULL ){
       hostp = gethostbyaddr( (char *) (&pin.sin_addr) ,
                              sizeof(struct in_addr) , AF_INET ) ;
-      if( hostp != NULL ){
-         sout = (char *) malloc( strlen(hostp->h_name)+1 ) ;
-         strcpy(sout,hostp->h_name) ;
-      } else {
-         sout = (char *) malloc( strlen("UNKNOWN")+1 ) ;
-         strcpy(sout,"UNKNOWN") ;
-      }
+
+      if( hostp != NULL ) sout = NI_strdup(hostp->h_name) ;
+      else                sout = NI_strdup("UNKNOWN") ;
+
       *hostname = sout ;
    }
 
@@ -1857,8 +1951,7 @@ static int tcp_accept( int sd , char ** hostname , char ** hostaddr )
 
    if( hostaddr != NULL ){
       str = inet_ntoa( pin.sin_addr ) ;
-      sout = (char *) malloc( strlen(str)+1 ) ;
-      strcpy(sout,str) ;
+      sout = NI_strdup(str) ;
       *hostaddr = sout ;
    }
 
@@ -1930,7 +2023,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    /** check if inputs are reasonable **/
 
-   if( name == NULL || strlen(name) < 4 ) return NULL ;
+   if( NI_strlen(name) < 4 ) return NULL ;
 
    if( mode == NULL ) return NULL ;
 
@@ -1945,7 +2038,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       char host[128] , *hend ;
       int  port=-1 , ii , jj ;
 
-      if( strlen(name) > 127 ) return NULL ;
+      if( NI_strlen(name) > 127 ) return NULL ;
 
       /** find "host" substring **/
 
@@ -1990,7 +2083,7 @@ NI_stream NI_stream_open( char *name , char *mode )
             if( jj >= 0 ){                               /* if accept worked  */
                CLOSEDOWN( ns->sd ) ;                     /* close old socket  */
                NI_strncpy(ns->name,hend,128) ;           /* put IP into name  */
-               free(hend) ; ns->bad = 0 ; ns->sd = jj ;  /* and ready to go!  */
+               NI_free(hend); ns->bad = 0; ns->sd = jj;  /* and ready to go!  */
             }
          }
          return ns ;
@@ -2020,7 +2113,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       char *fname = name+4 ;
       FILE *fp ;
 
-      if( strlen(name) > 127 || strlen(fname) < 1 ) return NULL ;
+      if( NI_strlen(name) > 127 || NI_strlen(fname) < 1 ) return NULL ;
 
       fp = fopen( fname , do_create ? "wb"     /* always in binary mode */
                                     : "rb" ) ;
@@ -2056,7 +2149,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    if( strncmp(name,"str:",4) == 0 ){
 
-      int nn = strlen(name+4) ;  /* may be 0 */
+      int nn = NI_strlen(name+4) ;  /* may be 0 */
 
       ns = NI_malloc( sizeof(NI_stream_type) ) ;
 
@@ -2132,7 +2225,7 @@ void NI_stream_setbuf( NI_stream_type *ns , char *str )
        str         == NULL             ) return ;  /* bad inputs */
 
    NI_free(ns->buf) ;               /* take out the trash */
-   nn = strlen(str) ;               /* size of new buffer string */
+   nn = NI_strlen(str) ;            /* size of new buffer string */
    ns->nbuf    = nn ;               /* set num char in new buffer */
    ns->npos    = 0  ;               /* reset scan position */
    ns->bufsize = nn+1 ;             /* allow space for NUL byte */
@@ -2201,13 +2294,13 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
         /** TCP/IP waiting to accept call from another host **/
 
         if( ns->bad == TCP_WAIT_ACCEPT ){
-           ii = tcp_readcheck(ns->sd,msec) ;            /* see if ready      */
-           if( ii > 0 ){                                /* if socket ready:  */
-              jj = tcp_accept( ns->sd , NULL,&bbb ) ;   /* accept connection */
-              if( jj >= 0 ){                            /* if accept worked  */
-                 CLOSEDOWN( ns->sd ) ;                  /* close old socket  */
-                 NI_strncpy(ns->name,bbb,128) ;         /* put IP into name  */
-                 free(bbb); ns->bad = 0; ns->sd = jj;   /* and ready to go!  */
+           ii = tcp_readcheck(ns->sd,msec) ;             /* see if ready      */
+           if( ii > 0 ){                                 /* if socket ready:  */
+              jj = tcp_accept( ns->sd , NULL,&bbb ) ;    /* accept connection */
+              if( jj >= 0 ){                             /* if accept worked  */
+                 CLOSEDOWN( ns->sd ) ;                   /* close old socket  */
+                 NI_strncpy(ns->name,bbb,128) ;          /* put IP into name  */
+                 NI_free(bbb); ns->bad = 0; ns->sd = jj; /* and ready to go!  */
               }
            }
         }
@@ -2430,10 +2523,16 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
      /** str: ==> append to buffer in stream struct **/
 
      case NI_STRING_TYPE:
+#if 0
+fprintf(stderr,"NI_stream_write str: input=%s\n",ns->buf) ;
+#endif
         ns->buf = NI_realloc( ns->buf , ns->bufsize+nbytes ) ;
         memcpy( ns->buf+ns->nbuf , buffer , nbytes ) ;
         ns->nbuf    += nbytes ; ns->buf[ns->nbuf] = '\0' ;
         ns->bufsize += nbytes ;
+#if 0
+fprintf(stderr,"NI_stream_write str: output=%s\n",ns->buf) ;
+#endif
         return nbytes ;
    }
 
@@ -3274,9 +3373,8 @@ static char * quotize_string( char *str )
    int ii,jj , lstr,lout ;
    char *out ;
 
-   if( str == NULL ) return NULL ;
-   lstr = strlen(str) ;
-   if( lstr == 0 ){ out = NI_malloc(1); return out; }
+   lstr = NI_strlen(str) ;
+   if( lstr == 0 ){ out = NI_malloc(4); strcpy(out,"\"\""); return out; }
    lout = 4 ;
    for( ii=0 ; ii < lstr ; ii++ ){
       switch( str[ii] ){
@@ -3311,6 +3409,104 @@ static char * quotize_string( char *str )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Quotize an array of strings, separating substrings with sep. */
+
+static char * quotize_string_vector( int num , char **str , char sep )
+{
+   char *out , **qstr ;
+   int ii , ntot , ll,nn ;
+
+   /* handle special cases */
+
+   if( num <= 0 || str == NULL )
+      return quotize_string(NULL) ;
+
+   if( num == 1 )
+      return quotize_string( str[0] ) ;
+
+   /* default separator */
+
+   if( sep == '\0' ) sep = ',' ;
+
+   /* temp array for quotized individual sub-strings */
+
+   qstr = NI_malloc(sizeof(char *)*num) ;
+
+   for( ntot=ii=0 ; ii < num ; ii++ ){
+      qstr[ii] = quotize_string( str[ii] ) ;
+      ntot += NI_strlen( qstr[ii] ) ;
+   }
+
+   /* make output, put 1st sub-string into it */
+
+   out = NI_malloc(ntot) ;
+   strcpy( out , qstr[0] ) ; NI_free(qstr[0]) ;
+   for( ii=1 ; ii < num ; ii++ ){
+      ll = strlen(out) ;  /* put separator at end of string string, */
+      out[ll-1] = sep ;   /* in place of the closing " mark.       */
+
+      strcat(out,qstr[ii]+1) ;  /* catenate with next sub-string, */
+                                    /* but skip the opening " mark.  */
+      NI_free(qstr[ii]) ;
+   }
+
+   NI_free(qstr) ; return out ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Quotize a bunch of ints. */
+
+static char * quotize_int_vector( int num , int *vec , char sep )
+{
+   int ii , jj ;
+   char *out , **qstr ;
+
+   if( num <= 0 || vec == NULL )
+      return quotize_string(NULL) ;
+
+   qstr = NI_malloc(sizeof(char *)*num) ;
+   for( ii=0 ; ii < num ; ii++ ){
+      qstr[ii] = NI_malloc(16) ;
+      sprintf(qstr[ii],"%d",vec[ii]) ;
+      for( jj=strlen(qstr[ii])-1 ;                   /* clip */
+           jj > 0 && isspace(qstr[ii][jj]) ; jj-- )  /* trailing */
+        qstr[ii][jj] = '\0' ;                        /* blanks */
+   }
+
+   out = quotize_string_vector( num , qstr , sep ) ;
+
+   for( ii=0 ; ii < num ; ii++ ) NI_free(qstr[ii]) ;
+
+   NI_free(qstr) ; return out ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Quotize a bunch of floats. */
+
+static char * quotize_float_vector( int num , float *vec , char sep )
+{
+   int ii , jj , ff ;
+   char *out , **qstr , fbuf[32] ;
+
+   if( num <= 0 || vec == NULL )
+      return quotize_string(NULL) ;
+
+   qstr = NI_malloc(sizeof(char *)*num) ;
+   for( ii=0 ; ii < num ; ii++ ){
+      sprintf(fbuf," %12.6g",vec[ii]) ;
+      for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
+      for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
+      qstr[ii] = NI_strdup(fbuf+ff) ;
+   }
+
+   out = quotize_string_vector( num , qstr , sep ) ;
+
+   for( ii=0 ; ii < num ; ii++ ) NI_free(qstr[ii]) ;
+
+   NI_free(qstr) ; return out ;
+}
+
+/*------------------------------------------------------------------------*/
 /*! Check a string for 'nameness' - that is, consists only of legal
     characters for a NIML 'Name'.  Returns 1 if it is a Name and 0 if
     is not.
@@ -3322,7 +3518,7 @@ static int NI_is_name( char *str )
 
    if( str == NULL || str[0] == '\0' || !isalpha(str[0]) ) return 0 ;
 
-   ll = strlen(str) ;
+   ll = NI_strlen(str) ;
 
    for( ii=0 ; ii < ll ; ii++ ){
       if( isalnum(str[ii]) || str[ii] == '_'   ||
@@ -3347,7 +3543,7 @@ static int NI_is_name( char *str )
 
 int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 {
-   char *wbuf , *att ;
+   char *wbuf , *att , *qtt , *btt ;
    int  nwbuf , ii,jj,row,col , tt=NI_element_type(nini) , ntot=0,nout ;
 
    if( ns == NULL || tt < 0 ) return -1 ;
@@ -3424,36 +3620,44 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
       jj = NI_strlen(nel->name) ; if( jj == 0 ) return -1 ;
 
-      /*- select the data output mode, if not already given -*/
+      /*- select the data output mode -*/
 
-#if 0
-      if( tmode < 0 ){
-              if( ns->bin_thresh <  0 ) tmode = NI_TEXT_MODE ;
-         else if( ns->bin_thresh == 0 ) tmode = NI_BINARY_MODE ;
-         else {
-            jj = NI_element_allsize( nel ) ;
-            if( jj <= ns->bin_thresh )  tmode = NI_TEXT_MODE ;
-            else                        tmode = NI_BINARY_MODE ;
-         }
+      /* Strings and Lines can only be written in text mode */
+
+      if( tmode != NI_TEXT_MODE ){
+        for( jj=0 ; jj < nel->vec_num ; jj++ ){
+          if( nel->vec_typ[jj]==NI_STRING || nel->vec_typ[jj]==NI_LINE ){
+             tmode = NI_TEXT_MODE ; break ;
+          }
+        }
       }
-#else
-      tmode = NI_TEXT_MODE ;  /* only mode implemented below */
+
+      switch( tmode ){
+         default: tmode = NI_TEXT_MODE ; break ; /* currently the only mode */
+#if 0
+         case NI_BINARY_MODE: break ;
+         case NI_BASE64_MODE: break ;
 #endif
+      }
 
-      /*- element header -*/
+      /* space to hold attribute strings */
 
-      nout = NI_stream_write( ns , "<" , 1 ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
-      nout = NI_stream_write( ns , nel->name , strlen(nel->name) ) ;
+      att = NI_malloc( 4096 + 2*nel->vec_num + 128*nel->vec_rank ) ;
+
+      /* write start of header "<name" */
+
+      strcpy(att,"<") ; strcat(att,nel->name) ;
+      nout = NI_stream_write( ns , att , strlen(att) ) ;
         if( nout < 0 ) return -1 ; else ntot += nout ;
 
       /*- write "special" attributes, if not an empty element -*/
 
       if( nel->vec_len > 0 && nel->vec_num > 0 ){
-         char *btt ; int ll ;
+         int ll ;
 
-         att = NI_malloc( 128 + 2*nel->vec_num ) ;
-         sprintf(att," ni_dimen=\"%d\" ni_type=\"" , nel->vec_len ) ;
+         /* ni_type */
+
+         strcpy(att," ni_type=\"") ;
          for( ll=-1,ii=0 ; ii < nel->vec_num ; ii++ ){
             if( nel->vec_typ[ii] != ll ){  /* not the last type */
                if( ll >= 0 ){              /* write the last type out now */
@@ -3468,15 +3672,80 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
                jj++ ;                      /* so add 1 to its count */
             }
          }
-         /* write the last one */
+         /* write the last type */
          btt = att + strlen(att) ;
          if( jj > 1 ) sprintf(btt,"%d%c\"",jj,NI_type_char(ll)) ;
          else         sprintf(btt,"%c\""  ,   NI_type_char(ll)) ;
-         nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
+
+         nout = NI_stream_write( ns , att , strlen(att) ) ;
            if( nout < 0 ) return -1 ; else ntot += nout ;
+
+         /* ni_dimen */
+
+         strcpy(att," ni_dimen=") ;
+         qtt = quotize_int_vector( nel->vec_rank ,
+                                   nel->vec_axis_len , ',' ) ;
+         strcat(att,qtt) ; NI_free(qtt) ;
+         nout = NI_stream_write( ns , att , strlen(att) ) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+
+         /* extras: ni_veclen and ni_vecnum attributes */
+
+         sprintf(att," ni_veclen=\"%d\"",nel->vec_len) ;
+         nout = NI_stream_write( ns , att , strlen(att) ) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+
+         sprintf(att," ni_vecnum=\"%d\"",nel->vec_num) ;
+         nout = NI_stream_write( ns , att , strlen(att) ) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+
+         /* ni_delta */
+
+         if( nel->vec_axis_delta != NULL ){
+            strcpy(att," ni_delta=") ;
+            qtt = quotize_float_vector( nel->vec_rank ,
+                                        nel->vec_axis_delta , ',' ) ;
+            strcat(att,qtt) ; NI_free(qtt) ;
+            nout = NI_stream_write( ns , att , strlen(att) ) ;
+              if( nout < 0 ) return -1 ; else ntot += nout ;
+         }
+
+         /* ni_origin */
+
+         if( nel->vec_axis_origin != NULL ){
+            strcpy(att," ni_origin=") ;
+            qtt = quotize_float_vector( nel->vec_rank ,
+                                        nel->vec_axis_origin , ',' ) ;
+            strcat(att,qtt) ; NI_free(qtt) ;
+            nout = NI_stream_write( ns , att , strlen(att) ) ;
+              if( nout < 0 ) return -1 ; else ntot += nout ;
+         }
+
+         /* ni_units */
+
+         if( nel->vec_axis_unit != NULL ){
+            strcpy(att," ni_units=") ;
+            qtt = quotize_string_vector( nel->vec_rank ,
+                                         nel->vec_axis_unit , ',' ) ;
+            strcat(att,qtt) ; NI_free(qtt) ;
+            nout = NI_stream_write( ns , att , strlen(att) ) ;
+              if( nout < 0 ) return -1 ; else ntot += nout ;
+         }
+
+         /* ni_axes */
+
+         if( nel->vec_axis_label != NULL ){
+            strcpy(att," ni_axes=") ;
+            qtt = quotize_string_vector( nel->vec_rank ,
+                                         nel->vec_axis_label , ',' ) ;
+            strcat(att,qtt) ; NI_free(qtt) ;
+            nout = NI_stream_write( ns , att , strlen(att) ) ;
+              if( nout < 0 ) return -1 ; else ntot += nout ;
+         }
+
       }
 
-      /*- attributes -*/
+      /*- other attributes -*/
 
       for( ii=0 ; ii < nel->attr_num ; ii++ ){
 
@@ -3484,26 +3753,37 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
          /* skip "special" attributes */
 
-         if( strcmp(nel->attr_lhs[ii],"ni_type")  == 0 ) continue ;
-         if( strcmp(nel->attr_lhs[ii],"ni_dimen") == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_type")   == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_dimen")  == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_veclen") == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_vecnum") == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_delta")  == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_origin") == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_units")  == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_axes")   == 0 ) continue ;
 
-         nout = NI_stream_write( ns , " " , 1 ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+         /* do the work */
+
+         strcpy(att," ") ;
+
          if( NI_is_name(nel->attr_lhs[ii]) ){
-           nout = NI_stream_write( ns , nel->attr_lhs[ii] , jj ) ;
+           strcat(att,nel->attr_lhs[ii]) ;
          } else {
-           att = quotize_string( nel->attr_lhs[ii] ) ;
-           nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
+           qtt = quotize_string( nel->attr_lhs[ii] ) ;
+           strcat(att,qtt) ; NI_free(qtt) ;
          }
-         if( nout < 0 ) return -1 ; else ntot += nout ;
 
-         jj = NI_strlen( nel->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
-         nout = NI_stream_write( ns , "=" , 1 ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
-         att = quotize_string( nel->attr_rhs[ii] ) ;
-         nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
+         jj = NI_strlen( nel->attr_rhs[ii] ) ;
+         if( jj > 0 ){
+            strcat(att,"=") ;
+            qtt = quotize_string( nel->attr_rhs[ii] ) ;
+            strcat(att,qtt) ; NI_free(qtt) ;
+         }
+         nout = NI_stream_write( ns , att , strlen(att) ) ;
            if( nout < 0 ) return -1 ; else ntot += nout ;
       }
+
+      NI_free(att) ;  /* done with attributes */
 
       /*- close header -*/
 
@@ -3517,23 +3797,53 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
         return ntot ;                 /* done with empty element */
       }
 
-      /* if here, must write data out */
+      /*- if here, must write data out -*/
 
-      nout = NI_stream_write( ns , ">\n" , 2 ) ;
+      /* first, terminate the header,
+         and allocate space for the write buffer (1 row at a time) */
+
+      switch( tmode ){
+         default:
+         case NI_TEXT_MODE:
+            btt = ">\n" ;
+            nwbuf = 4*NI_element_rowsize(nel) + 128 ;
+         break ;
+
+         case NI_BINARY_MODE:
+            btt = ">" ;
+            nwbuf = NI_element_rowsize(nel) ;
+         break ;
+
+#if 0
+         case NI_BASE64_MODE:
+            btt = ">\n" ;
+            nwbuf = NI_element_rowsize(nel) ;
+         break ;
+#endif
+      }
+
+      nout = NI_stream_write( ns , btt , strlen(btt) ) ;
         if( nout < 0 ) return -1 ; else ntot += nout ;
 
-      nwbuf = 4*NI_element_rowsize(nel) + 128 ;
-      wbuf  = NI_malloc(nwbuf) ;
+      wbuf = NI_malloc(nwbuf) ;
+
+      /*- loop over output rows and write results -*/
 
       for( row=0 ; row < nel->vec_len ; row++ ){
-        wbuf[0] = '\0' ;
+
+        switch( tmode ){
+           case NI_TEXT_MODE:    wbuf[0] = '\0' ; break ;
+           case NI_BINARY_MODE:  jj = 0 ;         break ;
+        }
+
         for( col=0 ; col < nel->vec_num ; col++ ){
 
-          jj = strlen(wbuf) ;
+         switch( tmode ){
 
-          /* encode one value to output, according to its type */
-
-          switch( nel->vec_typ[col] ){
+          /*----- encode one value to output, according to its type -----*/
+          case NI_TEXT_MODE:
+           jj = strlen(wbuf) ;
+           switch( nel->vec_typ[col] ){
             default:                    /* unimplemented types */
             break ;                     /* (String and Line)   */
 
@@ -3609,7 +3919,14 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
             }
             break ;
 
-          } /* end of switch on datum type */
+           } /* end of switch on datum type */
+          break ; /* end of NI_TEXT_MODE */
+
+          /*----- put the binary form of this element into wbuf -----*/
+          case NI_BINARY_MODE:
+          break ; /* end of NI_BINARY_MODE */
+
+         } /* end of switch on tmode */
         } /* end of loop over columns */
 
         /*- write this column of data out -*/
@@ -3631,7 +3948,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       nout = NI_stream_write( ns , ">\n" , 2 ) ;
         if( nout < 0 ) return -1 ; else ntot += nout ;
 
-      return nout ;
+      return ntot ;
    } /* end of write data element */
 
    return -1 ; /* should never happen */
@@ -3708,11 +4025,22 @@ GetElement:
                      "  vec_num    = %d\n"
                      "  vec_len    = %d\n"
                      "  vec_filled = %d\n"
+                     "  vec_rank   = %d\n"
                      "  attr_num   = %d\n" ,
-          nel->name,nel->vec_num,nel->vec_len,nel->vec_filled,nel->attr_num );
+          nel->name,nel->vec_num,nel->vec_len,nel->vec_filled,
+          nel->vec_rank,nel->attr_num );
        for( nn=0 ; nn < nel->attr_num ; nn++ )
           fprintf(stderr,"  %2d: lhs=%s  rhs=%s\n",
                   nn , nel->attr_lhs[nn] , nel->attr_rhs[nn] ) ;
+
+       for( nn=0 ; nn < nel->vec_rank ; nn++ ){
+          fprintf(stderr,"  axis[%d]: len=%d delta=%f origin=%f unit=%s label=%s\n",
+                  nn , nel->vec_axis_len[nn] ,
+                  (nel->vec_axis_delta)  ? nel->vec_axis_delta[nn]  : -666.0 ,
+                  (nel->vec_axis_origin) ? nel->vec_axis_origin[nn] : -666.0 ,
+                  (nel->vec_axis_unit)   ? nel->vec_axis_unit[nn]   : "NULL" ,
+                  (nel->vec_axis_label)  ? nel->vec_axis_label[nn]  : "NULL"  ) ;
+       }
    } else {
       NI_group *ngr = (NI_group *) nini ;
       fprintf(stderr,"Group element:\n"
@@ -3729,10 +4057,10 @@ GetElement:
       fprintf(stderr,"NI_stream_open fails for output\n"); exit(1);
    }
 
-   NI_write_element( nsout , nini , NI_TEXT_MODE ) ;
+   nn = NI_write_element( nsout , nini , NI_TEXT_MODE ) ;
 
-   fprintf(stderr,"\n------ NI_write_element ------\n%s\n==========================\n" ,
-           NI_stream_getbuf(nsout) ) ;
+   fprintf(stderr,"\n------ NI_write_element = %d ------\n%s\n==========================\n" ,
+           nn, NI_stream_getbuf(nsout) ) ;
 
    goto GetElement ;
 }

@@ -98,6 +98,13 @@ typedef struct {
    int    vec_filled ; /*!< Length that each one was filled up. */
    int   *vec_typ ;    /*!< Type code for each vector. */
    void **vec ;        /*!< Pointer to each vector. */
+
+   int    vec_rank ;        /*!< Number of dimensions, from ni_dimen. */
+   int   *vec_axis_len ;    /*!< Array of dimensions, from ni_dimen. */
+   float *vec_axis_delta ;  /*!< Array of step sizes, from ni_delta. */
+   float *vec_axis_origin ; /*!< Array of origins, from ni_origin. */
+   char **vec_axis_unit ;   /*!< Array of units, from ni_units. */
+   char **vec_axis_label ;  /*!< Array of labels, from ni_axes. */
 } NI_element ;
 
 /*! A bunch of elements. */
