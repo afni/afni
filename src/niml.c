@@ -1,7 +1,7 @@
 #include "niml.h"
 
 /****************************************************************************/
-/*********************** Utility functions **********************************/
+/*********************** NIML Utility functions *****************************/
 /****************************************************************************/
 
 /*--------------------------------------------------------------------------*/
@@ -41,48 +41,15 @@ void * NI_realloc( void *p , size_t len )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Like strncpy, but better (result always ends in NUL character). */
+/*! Return the file length (-1 if file not found). */
 
-char * NI_strncpy( char *dest , const char *src , size_t n )
+long NI_filesize( char *pathname )
 {
-   if( dest == NULL || n == 0 ) return NULL ;
-   if( src  == NULL || n == 1 ){ dest[0] = '\0' ; return dest ; }
-   strncpy( dest , src , n-1 ) ;
-   dest[n-1] = '\0' ; return dest ;
-}
+   static struct stat buf ; int ii ;
 
-/*------------------------------------------------------------------------*/
-/*! Like strlen, but better (input=NULL ==> output=0). */
-
-int NI_strlen( char *str )
-{
-   if( str == NULL ) return 0 ;
-   return strlen(str) ;
-}
-
-/*------------------------------------------------------------------------*/
-/*! Like strdup, but better (input=NULL ==> output=NULL). */
-
-char * NI_strdup( char *str )
-{
-   int nn ; char *dup ;
-   if( str == NULL ) return NULL ;
-   nn = NI_strlen(str); dup = NI_malloc(nn+1); strcpy(dup,str); return dup ;
-}
-
-/*------------------------------------------------------------------------*/
-/*! Find a string in an array of strings; return index (-1 if not found). */
-
-static int string_index( char *targ , int nstr , char *str[] )
-{
-   int ii ;
-
-   if( nstr < 1 || str == NULL || targ == NULL ) return -1 ;
-
-   for( ii=0 ; ii < nstr ; ii++ )
-      if( str[ii] != NULL && strcmp(str[ii],targ) == 0 ) return ii ;
-
-   return -1 ;
+   if( pathname == NULL ) return -1 ;
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
+   return buf.st_size ;
 }
 
 /*-------------------------------------------------------------------*/
@@ -96,18 +63,6 @@ void NI_sleep( int msec )
    tv.tv_usec = (msec%1000)*1000 ;
    select( 1 , NULL,NULL,NULL , &tv ) ;
    return ;
-}
-
-/*--------------------------------------------------------------------------*/
-/*! Return the file length (-1 if file not found). */
-
-long NI_filesize( char *pathname )
-{
-   static struct stat buf ; int ii ;
-
-   if( pathname == NULL ) return -1 ;
-   ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
-   return buf.st_size ;
 }
 
 /*---------------------------------------------------------------*/
@@ -139,6 +94,55 @@ int NI_clock_time(void)
 
    return (int)( (new_tval.tv_sec  - old_tval.tv_sec )*1000.0
                 +(new_tval.tv_usec - old_tval.tv_usec)*0.001 + 0.5 ) ;
+}
+
+/*************************************************************************/
+/****************** NIML string utilities ********************************/
+/*************************************************************************/
+
+/*--------------------------------------------------------------------------*/
+/*! Like strncpy, but better (result always ends in NUL character). */
+
+char * NI_strncpy( char *dest , const char *src , size_t n )
+{
+   if( dest == NULL || n == 0 ) return NULL ;
+   if( src  == NULL || n == 1 ){ dest[0] = '\0' ; return dest ; }
+   strncpy( dest , src , n-1 ) ;
+   dest[n-1] = '\0' ; return dest ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Like strlen, but better (input=NULL ==> output=0). */
+
+int NI_strlen( char *str )
+{
+   if( str == NULL ) return 0 ;
+   return strlen(str) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Like strdup, but better (input=NULL ==> output=NULL). */
+
+char * NI_strdup( char *str )
+{
+   int nn ; char *dup ;
+   if( str == NULL ) return NULL ;
+   nn = NI_strlen(str); dup = NI_malloc(nn+1); strcpy(dup,str); return dup;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Find a string in an array of strings; return index (-1 if not found). */
+
+static int string_index( char *targ, int nstr, char *str[] )
+{
+   int ii ;
+
+   if( nstr < 1 || str == NULL || targ == NULL ) return -1 ;
+
+   for( ii=0 ; ii < nstr ; ii++ )
+      if( str[ii] != NULL && strcmp(str[ii],targ) == 0 ) return ii ;
+
+   return -1 ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -202,6 +206,10 @@ static int unescape_inplace( char *str )
                   str[ii+3] == 'p' &&
                   str[ii+4] == ';'   ){ str[jj] = '&' ; ii += 4 ; nn++ ; }
 
+         /* although the comments above don't mention it,
+            we also look for XML style numeric escapes
+            of the forms &#32; (decimal) and &#xfd; (hex) */
+
          else if( ii+3 < ll        &&
                   str[ii+1] == '#' &&
                   isdigit(str[ii+2]) ){   /* &#dec; */
@@ -244,6 +252,1562 @@ static int unescape_inplace( char *str )
    if( jj < ll ) str[jj] = '\0' ; /* end string properly */
 
    return nn ;
+}
+
+/*------------------------------------------------------------------------*/
+/* Quotize (and escapize) one string, returning a new string.
+   Approximately speaking, this is the inverse of unescape_inplace().
+--------------------------------------------------------------------------*/
+
+static char * quotize_string( char *str )
+{
+   int ii,jj , lstr,lout ;
+   char *out ;
+
+   lstr = NI_strlen(str) ;
+   if( lstr == 0 ){ out = NI_malloc(4); strcpy(out,"\"\""); return out; }
+   lout = 4 ;                      /* length of output */
+   for( ii=0 ; ii < lstr ; ii++ ){ /* count characters for output */
+      switch( str[ii] ){
+         case '&': lout += 5 ; break ;  /* replace '&' with "&amp;" */
+
+         case '<':
+         case '>': lout += 4 ; break ;  /* replace '<' with "&lt;" */
+
+         case '"' :
+         case '\'': lout +=6 ; break ;  /* replace '"' with "&quot;" */
+
+         default: lout++ ; break ;      /* copy all other chars */
+      }
+   }
+   out = NI_malloc(lout) ;              /* allocate output string */
+   out[0] = '"' ;                       /* opening quote mark */
+   for( ii=0,jj=1 ; ii < lstr ; ii++ ){
+      switch( str[ii] ){
+         default: out[jj++] = str[ii] ; break ;  /* normal characters */
+
+         case '&':  memcpy(out+jj,"&amp;",5)  ; jj+=5 ; break ;
+
+         case '<':  memcpy(out+jj,"&lt;",4)   ; jj+=4 ; break ;
+         case '>':  memcpy(out+jj,"&gt;",4)   ; jj+=4 ; break ;
+
+         case '"' : memcpy(out+jj,"&quot;",6) ; jj+=6 ; break ;
+
+         case '\'': memcpy(out+jj,"&apos;",6) ; jj+=6 ; break ;
+      }
+   }
+   out[jj++] = '"'  ;  /* closing quote mark */
+   out[jj]   = '\0' ;  /* terminate the string */
+   return out ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Quotize an array of strings into one string,
+    separating substrings with sep (setting sep=0 means use commas).
+--------------------------------------------------------------------------*/
+
+static char * quotize_string_vector( int num , char **str , char sep )
+{
+   char *out , **qstr ;
+   int ii , ntot , ll,nn ;
+
+   /* handle special cases */
+
+   if( num <= 0 || str == NULL )
+      return quotize_string(NULL) ;      /* will be string of 2 quotes */
+
+   if( num == 1 )
+      return quotize_string( str[0] ) ;  /* just quotize the only string */
+
+   /* default separator */
+
+   if( sep == '\0' ) sep = ',' ;
+
+   /* temp array for quotized individual sub-strings */
+
+   qstr = NI_malloc(sizeof(char *)*num) ;
+
+   for( ntot=ii=0 ; ii < num ; ii++ ){       /* quotize each input string */
+      qstr[ii] = quotize_string( str[ii] ) ;
+      ntot += NI_strlen( qstr[ii] ) ;      /* length of all quotized strings */
+   }
+
+   /* make output, put 1st sub-string into it */
+
+   out = NI_malloc(ntot) ;
+   strcpy( out , qstr[0] ) ; NI_free(qstr[0]) ;
+   for( ii=1 ; ii < num ; ii++ ){
+      ll = strlen(out) ;  /* put separator at end of output string, */
+      out[ll-1] = sep ;   /* in place of the closing " mark.       */
+
+      strcat(out,qstr[ii]+1) ;  /* catenate with next sub-string, */
+                                /* but skip the opening " mark.  */
+      NI_free(qstr[ii]) ;       /* toss the quotized trash */
+   }
+
+   NI_free(qstr) ; return out ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Quotize a bunch of ints int a string like "1,32,-12". */
+
+static char * quotize_int_vector( int num , int *vec , char sep )
+{
+   int ii , jj ;
+   char *out , **qstr ;
+
+   if( num <= 0 || vec == NULL )
+      return quotize_string(NULL) ;
+
+   qstr = NI_malloc(sizeof(char *)*num) ;  /* temp array of strings */
+   for( ii=0 ; ii < num ; ii++ ){
+      qstr[ii] = NI_malloc(16) ;           /* max size of printed int */
+      sprintf(qstr[ii],"%d",vec[ii]) ;               /* print int */
+      for( jj=strlen(qstr[ii])-1 ;                   /* clip */
+           jj > 0 && isspace(qstr[ii][jj]) ; jj-- )  /* trailing */
+        qstr[ii][jj] = '\0' ;                        /* blanks */
+   }
+
+   out = quotize_string_vector( num , qstr , sep ) ;
+
+   for( ii=0 ; ii < num ; ii++ ) NI_free(qstr[ii]) ;
+
+   NI_free(qstr) ; return out ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Quotize a bunch of floats into a string like "-2.71828,3.1416,1.111". */
+
+static char * quotize_float_vector( int num , float *vec , char sep )
+{
+   int ii , jj , ff ;
+   char *out , **qstr , fbuf[32] ;
+
+   if( num <= 0 || vec == NULL )
+      return quotize_string(NULL) ;
+
+   qstr = NI_malloc(sizeof(char *)*num) ;
+   for( ii=0 ; ii < num ; ii++ ){
+      sprintf(fbuf," %12.6g",vec[ii]) ;
+      for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) /* skip trailing blanks */
+        fbuf[ff] = '\0' ;
+      for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;         /* skip leading blanks */
+      qstr[ii] = NI_strdup(fbuf+ff) ;              /* array of temp strings */
+   }
+
+   out = quotize_string_vector( num , qstr , sep ) ;
+
+   for( ii=0 ; ii < num ; ii++ ) NI_free(qstr[ii]) ;
+
+   NI_free(qstr) ; return out ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Check a string for 'nameness' - that is, consists only of legal
+    characters for a NIML 'Name' and also starts with an alphabetic
+    character.  Returns 1 if it is a Name and 0 if is not.
+--------------------------------------------------------------------------*/
+
+static int NI_is_name( char *str )
+{
+   int ii , ll ;
+
+   if( str == NULL || str[0] == '\0' || !isalpha(str[0]) ) return 0 ;
+
+   ll = NI_strlen(str) ;
+
+   for( ii=0 ; ii < ll ; ii++ ){
+      if( isalnum(str[ii]) || str[ii] == '_'   ||
+          str[ii] == '.'   || str[ii] == '-'     ) continue ;
+      return 0 ; /* failure */
+   }
+
+   return 1 ;    /* success */
+}
+
+/*------------------------------------------------------------------------*/
+/*! Find a 'trailing name in a pathname.
+
+   For example, for fname = "/bob/cox/is/the/author/of/NIML",
+     - the lev=0 trailing name is "NIML",
+     - the lev=1 trailing name is "of/NIML",
+     - the lev=2 trailing name is "author/of/NIML", and so on.
+   That is, "lev" is the number of directory names above the last name
+   to keep.  The pointer returned is to some place in the middle of fname;
+   that is, this is not a malloc()-ed string, so don't try to free() it!.
+--------------------------------------------------------------------------*/
+
+static char * trailname( char *fname , int lev )
+{
+   int fpos , flen , flev ;
+
+   if( fname == NULL || (flen=strlen(fname)) <= 1 ) return fname ;
+
+   if( lev < 0 ) lev = 0 ;
+
+   flev = 0 ;
+   fpos = flen ;
+   if( fname[fpos-1] == '/' ) fpos-- ;  /* skip trailing slash */
+
+   /* fpos   = index of latest character I've accepted,
+      fpos-1 = index of next character to examine,
+      flev   = number of directory levels found so far */
+
+   while( fpos > 0 ){
+
+      if( fname[fpos-1] == '/' ){
+         flev++ ; if( flev >  lev ) break ;  /* reached the lev we like */
+      }
+      fpos-- ;  /* scan backwards */
+   }
+
+   return (fname+fpos) ;
+}
+
+/*************************************************************************/
+/************************ Functions for Base64 ***************************/
+/** [Most are not actually used in NIML, but are here for completeness] **/
+/*************************************************************************/
+
+static int  dtable_mode = -1 ;    /* 1=encode, 2=decode, -1=neither */
+static byte dtable[256] ;         /* encode/decode table */
+static int  linelen = 72 ;        /* line length (max 76) */
+static int  ncrlf   = 1 ;
+static int  nocrlf  = 0 ;         /* disable CR LF output? */
+
+#define B64_goodchar(c) (dtable[c] != 0x80)  /* for decode only */
+
+#define B64_EOL1 '\r'   /* CR */
+#define B64_EOL2 '\n'   /* LF */
+
+/*----------------------------------------------------------------------*/
+/*! Set the number of characters to use for end of line:
+    1 = Unix standard (LF only); 2 = DOS standard (CR LF).
+------------------------------------------------------------------------*/
+
+void B64_set_crlf( int nn )
+{
+   if( nn >= 1 && nn <= 2 ) ncrlf  = nn ;
+   else                     nocrlf = !nocrlf ;
+   return ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Set the length of a line of output in base64; ll should be
+    between 16 and 76 (inclusive). Will round down to a multiple of 4.
+------------------------------------------------------------------------*/
+
+void B64_set_linelen( int ll )
+{
+   if( ll >= 16 && ll <= 76 ) linelen = 4*(ll/4) ; /* multiple of 4 */
+   else                       linelen = 72 ;       /* default */
+   return ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Load the base64 encoding table. */
+
+static void load_encode_table(void)
+{
+    int i ;
+    if( dtable_mode == 1 ) return ;
+    for (i = 0; i < 26; i++) {
+        dtable[i] = 'A' + i;
+        dtable[26 + i] = 'a' + i;
+    }
+    for (i = 0; i < 10; i++) dtable[52 + i] = '0' + i;
+    dtable[62] = '+'; dtable[63] = '/'; dtable_mode = 1 ;
+    return ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Load the base64 decoding table. */
+
+static void load_decode_table(void)
+{
+    int i;
+    if( dtable_mode == 2 ) return ;
+    for (i = 0  ; i < 255 ; i++) dtable[i] = 0x80;             /* bad */
+    for (i = 'A'; i <= 'Z'; i++) dtable[i] =  0 + (i - 'A');
+    for (i = 'a'; i <= 'z'; i++) dtable[i] = 26 + (i - 'a');
+    for (i = '0'; i <= '9'; i++) dtable[i] = 52 + (i - '0');
+    dtable['+'] = 62; dtable['/'] = 63; dtable['='] = 0; dtable_mode = 2 ;
+    return ;
+}
+
+/*! Encode 3 bytes (a,b,c) into 4 bytes (w,x,y,z) */
+
+#define B64_encode3(a,b,c,w,x,y,z)                 \
+     ( w = dtable[(a)>>2]                      ,   \
+       x = dtable[((a & 3) << 4) | (b >> 4)]   ,   \
+       y = dtable[((b & 0xF) << 2) | (c >> 6)] ,   \
+       z = dtable[c & 0x3F]                     )
+
+/*! Encode 2 bytes (a,b) into 4 bytes (w,x,y,z) */
+
+#define B64_encode2(a,b,w,x,y,z)                   \
+     ( B64_encode3(a,b,0,w,x,y,z) , z = '=' )
+
+/*! Encode 1 byte (a) into 4 bytes (w,x,y,z) */
+
+#define B64_encode1(a,w,x,y,z)                     \
+     ( B64_encode3(a,0,0,w,x,y,z) , y=z = '=' )
+
+/*! Decode 4 bytes (w,x,y,z) into 3 bytes (a,b,c) */
+
+#define B64_decode4(w,x,y,z,a,b,c)                 \
+     ( a = (dtable[w] << 2) | (dtable[x] >> 4) ,   \
+       b = (dtable[x] << 4) | (dtable[y] >> 2) ,   \
+       c = (dtable[y] << 6) | dtable[z]         )
+
+/*! Determine how many output bytes are encoded in a quad (w,x,y,z) */
+
+#define B64_decode_count(w,x,y,z)                  \
+     ( ((w)=='='||(x)=='=') ? 0                    \
+                            : ((y)=='=') ? 1       \
+                            : ((z)=='=') ? 2 : 3 )
+
+/*----------------------------------------------------------------------*/
+/*! Convert base64-encoded array to a binary array (decoding).
+
+   Inputs: nb64 = number of bytes in b64
+            b64 = array of base64 encoding bytes
+                  values not in the base64 encoding set will be skipped
+
+   Outputs: *nbin = number of binary bytes [*nbin==0 flags an error]
+             *bin = pointer to newly malloc()-ed space with bytes
+------------------------------------------------------------------------*/
+
+void B64_to_binary( int nb64 , byte * b64 , int * nbin , byte ** bin )
+{
+   int ii,jj , nn ;
+   byte a,b,c , w,x,y,z ;
+
+   /*- sanity checks -*/
+
+   if( nbin == NULL || bin == NULL ) return ;
+
+   if( nb64 < 4 || b64 == NULL ){ *nbin = 0 ; *bin = NULL ; return ; }
+
+   *bin = (byte *) malloc(sizeof(byte)*(2+3*nb64/4)) ;
+   if( *bin == NULL ){ *nbin = 0 ; return ; }
+
+   /*- some work -*/
+
+   load_decode_table() ;
+   for( ii=jj=0 ; ii < nb64 ; ){  /* scan inputs, skipping bad characters */
+
+      /* get next 4 characters (use '=' if we hit the end early) */
+
+      w = b64[ii++] ;
+      while( !B64_goodchar(w) && ii < nb64 ) w = b64[ii++] ;
+      x = (ii < nb64) ? b64[ii++] : '=' ;
+      while( !B64_goodchar(x) && ii < nb64 ) x = b64[ii++] ;
+      y = (ii < nb64) ? b64[ii++] : '=' ;
+      while( !B64_goodchar(y) && ii < nb64 ) y = b64[ii++] ;
+      z = (ii < nb64) ? b64[ii++] : '=' ;
+      while( !B64_goodchar(z) && ii < nb64 ) z = b64[ii++] ;
+
+      B64_decode4(w,x,y,z,a,b,c) ;           /* decode 4 bytes into 3 */
+
+      if( z == '=' ){                        /* got to the end? */
+         nn = B64_decode_count(w,x,y,z) ;    /* see how many to save */
+         if( nn > 0 ) (*bin)[jj++] = a ;
+         if( nn > 1 ) (*bin)[jj++] = b ;
+         break ;                             /* end of decoding loop */
+      }
+
+      /* not at the end => save all 3 outputs, loop back */
+
+      (*bin)[jj++] = a ; (*bin)[jj++] = b ; (*bin)[jj++] = c ;
+   }
+
+   /* resize output array to be exact fit */
+
+   *bin  = (byte *) realloc( *bin , sizeof(byte)*jj ) ;
+   *nbin = jj ;
+   return ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Convert binary array to base64 encoding.
+
+   Inputs: nbin = number of bytes in bin
+            bin = array of binary bytes to encode
+
+   Outputs: *nb64 = number of base64 bytes [*nb64==0 flags an error]
+             *b64 = pointer to newly malloc()-ed space with bytes
+
+   The output array (*b64) line length can be set by
+      B64_set_linelen(n)
+   where n is from 16 to 76.  The default is 72.  Note, however, that
+   encoded bytes will always be written out in groups of 4.
+   The output array line separator can be the LF character only (Unix)
+   or the CR-LF combination (DOS, etc.).  This is controlled by
+      B64_set_crlf(n)
+   where n=1 for LF, n=2 for CR LF.  The default is LF.  The output
+   array will be terminated with a line separator.  If you call
+      B64_set_crlf(0)
+   then this will toggle the use of line separators.
+
+   There will be no ASCII NUL character at the end of *b64 -- that is,
+   the output is not a C string.
+------------------------------------------------------------------------*/
+
+void B64_to_base64( int nbin , byte * bin , int * nb64 , byte ** b64 )
+{
+   int ii,jj , nn,n3 ;
+   byte a,b,c , w,x,y,z ;
+
+   /*- sanity checks -*/
+
+   if( nb64 == NULL || b64 == NULL ) return ;
+   if( nbin <= 0    || bin == NULL ){ *nb64 = 0 ; *b64 = NULL ; return ; }
+
+   /* calculate size of output (3 bytes in -> 4 bytes out, plus EOL */
+
+   nn   = (4.0*(linelen+ncrlf+1.0)/(3.0*linelen))*nbin + 256 ;
+   *b64 = (byte *) malloc(sizeof(byte)*nn) ;
+   if( *b64 == NULL ){ *nb64 = 0 ; return ; }  /* this is bad */
+
+   /*- do blocks of 3 bytes in -*/
+
+   load_encode_table() ;
+   n3 = (nbin/3)*3 ;
+   for( nn=jj=ii=0 ; ii < n3 ; ){
+
+      /* encode next 3 bytes to 4 outputs */
+
+      a = bin[ii++] ; b = bin[ii++] ; c = bin[ii++] ;
+      B64_encode3(a,b,c,w,x,y,z) ;
+      (*b64)[jj++] = w ;
+      (*b64)[jj++] = x ;
+      (*b64)[jj++] = y ;
+      (*b64)[jj++] = z ;
+
+      /* if we past the line length, add the EOL stuff */
+
+      if( !nocrlf ){
+        nn += 4 ; if( nn >= linelen ){
+                     if( ncrlf == 2 ) (*b64)[jj++] = B64_EOL1 ;
+                     (*b64)[jj++] = B64_EOL2 ;
+                     nn = 0 ;
+                  }
+      }
+   }
+
+   /*- do the leftover data, if any (1 or 2 bytes) -*/
+
+   if( ii < nbin ){
+      if( ii == nbin-2 )
+         B64_encode2(bin[ii],bin[ii+1],w,x,y,z) ;
+      else
+         B64_encode1(bin[ii],w,x,y,z) ;
+
+      (*b64)[jj++] = w ;
+      (*b64)[jj++] = x ;
+      (*b64)[jj++] = y ;
+      (*b64)[jj++] = z ; nn += 4 ;
+   }
+
+   /* if any output bytes are left, add EOL */
+
+   if( nn > 0 && !nocrlf ){
+      if( ncrlf == 2 ) (*b64)[jj++] = B64_EOL1 ;
+      (*b64)[jj++] = B64_EOL2 ;
+   }
+
+   /* resize output array to be exact fit */
+
+   *b64  = (byte *) realloc( *b64 , sizeof(byte)*jj ) ;
+   *nb64 = jj ;
+   return ;
+}
+
+/*************************************************************************/
+/************************* Stuff for MD5 hashing *************************/
+/** [Most are not actually used in NIML, but are here for completeness] **/
+/*************************************************************************/
+
+/**********************************************************************
+ * Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All    *
+ * rights reserved.                                                   *
+ *                                                                    *
+ * License to copy and use this software is granted provided that it  *
+ * is identified as the "RSA Data Security, Inc. MD5 Message-Digest   *
+ * Algorithm" in all material mentioning or referencing this software *
+ * or this function.                                                  *
+ *                                                                    *
+ * License is also granted to make and use derivative works provided  *
+ * that such works are identified as "derived from the RSA Data       *
+ * Security, Inc. MD5 Message-Digest Algorithm" in all material       *
+ * mentioning or referencing the derived work.                        *
+ *                                                                    *
+ * RSA Data Security, Inc. makes no representations concerning either *
+ * the merchantability of this software or the suitability of this    *
+ * software for any particular purpose. It is provided "as is"        *
+ * without express or implied warranty of any kind.                   *
+ *                                                                    *
+ * These notices must be retained in any copies of any part of this   *
+ * documentation and/or software.                                     *
+ **********************************************************************/
+
+/*======= Modified by RWCox for inclusion in the NIML package ========*/
+/*------- These changes are released to the public domain     --------*/
+
+typedef unsigned char *POINTER;   /* POINTER defines a generic pointer type */
+typedef unsigned short int UINT2; /* UINT2 defines a two byte word */
+typedef unsigned long int UINT4;  /* UINT4 defines a four byte word */
+
+/* MD5 context data type */
+
+typedef struct {
+  UINT4 state[4];                                        /* state (ABCD) */
+  UINT4 count[2];             /* number of bits, modulo 2^64 (lsb first) */
+  unsigned char buffer[64];                              /* input buffer */
+} MD5_CTX;
+
+/* prototypes for some internal functions */
+
+static void MD5Init (MD5_CTX *);
+static void MD5Update (MD5_CTX *, unsigned char *, unsigned int);
+static void MD5Final (unsigned char [16], MD5_CTX *);
+
+static void MD5Transform (UINT4 [4], unsigned char [64]);
+static void Encode (unsigned char *, UINT4 *, unsigned int);
+static void Decode (UINT4 *, unsigned char *, unsigned int);
+
+/* Constants for MD5Transform routine.  */
+
+#define S11 7
+#define S12 12
+#define S13 17
+#define S14 22
+#define S21 5
+#define S22 9
+#define S23 14
+#define S24 20
+#define S31 4
+#define S32 11
+#define S33 16
+#define S34 23
+#define S41 6
+#define S42 10
+#define S43 15
+#define S44 21
+
+static unsigned char PADDING[64] = {
+  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+/* F, G, H and I are basic MD5 functions.  */
+
+#define F(x, y, z) (((x) & (y)) | ((~x) & (z)))
+#define G(x, y, z) (((x) & (z)) | ((y) & (~z)))
+#define H(x, y, z) ((x) ^ (y) ^ (z))
+#define I(x, y, z) ((y) ^ ((x) | (~z)))
+
+/* ROTATE_LEFT rotates x left n bits.  */
+
+#define ROTATE_LEFT(x, n) (((x) << (n)) | ((x) >> (32-(n))))
+
+/* FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
+   Rotation is separate from addition to prevent recomputation.  */
+
+#define FF(a, b, c, d, x, s, ac) { \
+ (a) += F ((b), (c), (d)) + (x) + (UINT4)(ac); \
+ (a) = ROTATE_LEFT ((a), (s)); \
+ (a) += (b); \
+  }
+
+#define GG(a, b, c, d, x, s, ac) { \
+ (a) += G ((b), (c), (d)) + (x) + (UINT4)(ac); \
+ (a) = ROTATE_LEFT ((a), (s)); \
+ (a) += (b); \
+  }
+
+#define HH(a, b, c, d, x, s, ac) { \
+ (a) += H ((b), (c), (d)) + (x) + (UINT4)(ac); \
+ (a) = ROTATE_LEFT ((a), (s)); \
+ (a) += (b); \
+  }
+
+#define II(a, b, c, d, x, s, ac) { \
+ (a) += I ((b), (c), (d)) + (x) + (UINT4)(ac); \
+ (a) = ROTATE_LEFT ((a), (s)); \
+ (a) += (b); \
+  }
+
+/*----------------------------------------------------------------------*/
+/*! MD5 initialization. Begins an MD5 operation, writing a new context.
+------------------------------------------------------------------------*/
+
+static void MD5Init (MD5_CTX * context)
+{
+  context->count[0] = context->count[1] = 0;
+
+  /* Load magic initialization constants */
+
+  context->state[0] = 0x67452301;
+  context->state[1] = 0xefcdab89;
+  context->state[2] = 0x98badcfe;
+  context->state[3] = 0x10325476;
+}
+
+/*----------------------------------------------------------------------*/
+/*! MD5 block update operation. Continues an MD5 message-digest
+   operation, processing another message block, and updating the
+   context.
+------------------------------------------------------------------------*/
+
+static void MD5Update (MD5_CTX * context, unsigned char * input,
+                                          unsigned int inputLen  )
+{
+  unsigned int i, index, partLen;
+
+  /* Compute number of bytes mod 64 */
+
+  index = (unsigned int)((context->count[0] >> 3) & 0x3F);
+
+  /* Update number of bits */
+
+  if( (context->count[0] += ((UINT4)inputLen << 3)) < ((UINT4)inputLen << 3) )
+    context->count[1]++;
+
+  context->count[1] += ((UINT4)inputLen >> 29);
+
+  partLen = 64 - index;
+
+  /* Transform as many times as possible.  */
+
+  if (inputLen >= partLen) {
+
+   memcpy ((POINTER)&context->buffer[index], (POINTER)input, partLen);
+
+   MD5Transform (context->state, context->buffer);
+
+   for (i = partLen; i + 63 < inputLen; i += 64)
+     MD5Transform (context->state, &input[i]);
+
+   index = 0;
+  }
+  else
+   i = 0;
+
+  /* Buffer remaining input */
+
+  memcpy ((POINTER)&context->buffer[index], (POINTER)&input[i],
+          inputLen-i);
+}
+
+/*----------------------------------------------------------------------*/
+/*! MD5 finalization. Ends an MD5 message-digest operation, writing the
+   the message digest and zeroizing the context.
+------------------------------------------------------------------------*/
+
+static void MD5Final (unsigned char digest[16], MD5_CTX * context)
+{
+  unsigned char bits[8];
+  unsigned int index, padLen;
+
+  /* Save number of bits */
+
+  Encode (bits, context->count, 8);
+
+  /* Pad out to 56 mod 64.  */
+
+  index = (unsigned int)((context->count[0] >> 3) & 0x3f);
+  padLen = (index < 56) ? (56 - index) : (120 - index);
+  MD5Update (context, PADDING, padLen);
+
+  /* Append length (before padding) */
+
+  MD5Update (context, bits, 8);
+
+  /* Store state in digest */
+
+  Encode (digest, context->state, 16);
+
+  /* Zeroize sensitive information. */
+
+  memset ((POINTER)context, 0, sizeof (*context));
+}
+
+/*----------------------------------------------------------------------*/
+/*! MD5 basic transformation. Transforms state based on block.
+------------------------------------------------------------------------*/
+
+static void MD5Transform (UINT4 state[4], unsigned char block[64])
+{
+  UINT4 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
+
+  Decode (x, block, 64);
+
+  /* Round 1 */
+
+  FF (a, b, c, d, x[ 0], S11, 0xd76aa478); /* 1 */
+  FF (d, a, b, c, x[ 1], S12, 0xe8c7b756); /* 2 */
+  FF (c, d, a, b, x[ 2], S13, 0x242070db); /* 3 */
+  FF (b, c, d, a, x[ 3], S14, 0xc1bdceee); /* 4 */
+  FF (a, b, c, d, x[ 4], S11, 0xf57c0faf); /* 5 */
+  FF (d, a, b, c, x[ 5], S12, 0x4787c62a); /* 6 */
+  FF (c, d, a, b, x[ 6], S13, 0xa8304613); /* 7 */
+  FF (b, c, d, a, x[ 7], S14, 0xfd469501); /* 8 */
+  FF (a, b, c, d, x[ 8], S11, 0x698098d8); /* 9 */
+  FF (d, a, b, c, x[ 9], S12, 0x8b44f7af); /* 10 */
+  FF (c, d, a, b, x[10], S13, 0xffff5bb1); /* 11 */
+  FF (b, c, d, a, x[11], S14, 0x895cd7be); /* 12 */
+  FF (a, b, c, d, x[12], S11, 0x6b901122); /* 13 */
+  FF (d, a, b, c, x[13], S12, 0xfd987193); /* 14 */
+  FF (c, d, a, b, x[14], S13, 0xa679438e); /* 15 */
+  FF (b, c, d, a, x[15], S14, 0x49b40821); /* 16 */
+
+  /* Round 2 */
+
+  GG (a, b, c, d, x[ 1], S21, 0xf61e2562); /* 17 */
+  GG (d, a, b, c, x[ 6], S22, 0xc040b340); /* 18 */
+  GG (c, d, a, b, x[11], S23, 0x265e5a51); /* 19 */
+  GG (b, c, d, a, x[ 0], S24, 0xe9b6c7aa); /* 20 */
+  GG (a, b, c, d, x[ 5], S21, 0xd62f105d); /* 21 */
+  GG (d, a, b, c, x[10], S22,  0x2441453); /* 22 */
+  GG (c, d, a, b, x[15], S23, 0xd8a1e681); /* 23 */
+  GG (b, c, d, a, x[ 4], S24, 0xe7d3fbc8); /* 24 */
+  GG (a, b, c, d, x[ 9], S21, 0x21e1cde6); /* 25 */
+  GG (d, a, b, c, x[14], S22, 0xc33707d6); /* 26 */
+  GG (c, d, a, b, x[ 3], S23, 0xf4d50d87); /* 27 */
+  GG (b, c, d, a, x[ 8], S24, 0x455a14ed); /* 28 */
+  GG (a, b, c, d, x[13], S21, 0xa9e3e905); /* 29 */
+  GG (d, a, b, c, x[ 2], S22, 0xfcefa3f8); /* 30 */
+  GG (c, d, a, b, x[ 7], S23, 0x676f02d9); /* 31 */
+  GG (b, c, d, a, x[12], S24, 0x8d2a4c8a); /* 32 */
+
+  /* Round 3 */
+
+  HH (a, b, c, d, x[ 5], S31, 0xfffa3942); /* 33 */
+  HH (d, a, b, c, x[ 8], S32, 0x8771f681); /* 34 */
+  HH (c, d, a, b, x[11], S33, 0x6d9d6122); /* 35 */
+  HH (b, c, d, a, x[14], S34, 0xfde5380c); /* 36 */
+  HH (a, b, c, d, x[ 1], S31, 0xa4beea44); /* 37 */
+  HH (d, a, b, c, x[ 4], S32, 0x4bdecfa9); /* 38 */
+  HH (c, d, a, b, x[ 7], S33, 0xf6bb4b60); /* 39 */
+  HH (b, c, d, a, x[10], S34, 0xbebfbc70); /* 40 */
+  HH (a, b, c, d, x[13], S31, 0x289b7ec6); /* 41 */
+  HH (d, a, b, c, x[ 0], S32, 0xeaa127fa); /* 42 */
+  HH (c, d, a, b, x[ 3], S33, 0xd4ef3085); /* 43 */
+  HH (b, c, d, a, x[ 6], S34,  0x4881d05); /* 44 */
+  HH (a, b, c, d, x[ 9], S31, 0xd9d4d039); /* 45 */
+  HH (d, a, b, c, x[12], S32, 0xe6db99e5); /* 46 */
+  HH (c, d, a, b, x[15], S33, 0x1fa27cf8); /* 47 */
+  HH (b, c, d, a, x[ 2], S34, 0xc4ac5665); /* 48 */
+
+  /* Round 4 */
+
+  II (a, b, c, d, x[ 0], S41, 0xf4292244); /* 49 */
+  II (d, a, b, c, x[ 7], S42, 0x432aff97); /* 50 */
+  II (c, d, a, b, x[14], S43, 0xab9423a7); /* 51 */
+  II (b, c, d, a, x[ 5], S44, 0xfc93a039); /* 52 */
+  II (a, b, c, d, x[12], S41, 0x655b59c3); /* 53 */
+  II (d, a, b, c, x[ 3], S42, 0x8f0ccc92); /* 54 */
+  II (c, d, a, b, x[10], S43, 0xffeff47d); /* 55 */
+  II (b, c, d, a, x[ 1], S44, 0x85845dd1); /* 56 */
+  II (a, b, c, d, x[ 8], S41, 0x6fa87e4f); /* 57 */
+  II (d, a, b, c, x[15], S42, 0xfe2ce6e0); /* 58 */
+  II (c, d, a, b, x[ 6], S43, 0xa3014314); /* 59 */
+  II (b, c, d, a, x[13], S44, 0x4e0811a1); /* 60 */
+  II (a, b, c, d, x[ 4], S41, 0xf7537e82); /* 61 */
+  II (d, a, b, c, x[11], S42, 0xbd3af235); /* 62 */
+  II (c, d, a, b, x[ 2], S43, 0x2ad7d2bb); /* 63 */
+  II (b, c, d, a, x[ 9], S44, 0xeb86d391); /* 64 */
+
+  state[0] += a;
+  state[1] += b;
+  state[2] += c;
+  state[3] += d;
+
+  /* Zeroize sensitive information. */
+
+  memset ((POINTER)x, 0, sizeof (x));
+}
+
+/*----------------------------------------------------------------------*/
+/*! Encodes input (UINT4) into output (unsigned char). Assumes len is
+   a multiple of 4.
+------------------------------------------------------------------------*/
+
+static void Encode (unsigned char *output, UINT4 *input, unsigned int len)
+{
+  unsigned int i, j;
+
+  for (i = 0, j = 0; j < len; i++, j += 4) {
+    output[j] = (unsigned char)(input[i] & 0xff);
+    output[j+1] = (unsigned char)((input[i] >> 8) & 0xff);
+    output[j+2] = (unsigned char)((input[i] >> 16) & 0xff);
+    output[j+3] = (unsigned char)((input[i] >> 24) & 0xff);
+  }
+}
+
+/*----------------------------------------------------------------------*/
+/*! Decodes input (unsigned char) into output (UINT4). Assumes len is
+   a multiple of 4.
+------------------------------------------------------------------------*/
+
+static void Decode (UINT4 *output, unsigned char *input, unsigned int len)
+{
+  unsigned int i, j;
+
+  for (i = 0, j = 0; j < len; i++, j += 4)
+    output[i] = ((UINT4)input[j])          | (((UINT4)input[j+1]) << 8) |
+               (((UINT4)input[j+2]) << 16) | (((UINT4)input[j+3]) << 24) ;
+}
+
+/*======================================================================
+   The stuff below is some MD5 interface routines, by RWCox
+========================================================================*/
+
+/*----------------------------------------------------------------------*/
+/*! Function to print a 128 bit digest into a static 32 char string.
+------------------------------------------------------------------------*/
+
+static char * MD5_static_printf( unsigned char digest[16] )
+{
+  static char st[33] ;
+
+  sprintf(st,
+     "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x" ,
+     digest[0] , digest[1] , digest[2] , digest[3] , digest[4] ,
+     digest[5] , digest[6] , digest[7] , digest[8] , digest[9] ,
+     digest[10], digest[11], digest[12], digest[13], digest[14],
+     digest[15]
+    ) ;
+
+  return st ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Digest an array and returns the printable string of the result,
+    stored in a static array (length=32+1 bytes).
+------------------------------------------------------------------------*/
+
+char * MD5_static_array( int n , char *bytes )
+{
+   MD5_CTX context;
+   unsigned char digest[16];
+
+   if( n < 0 || bytes == NULL ) return NULL ;
+
+   MD5Init( &context ) ;
+   MD5Update( &context, bytes, n ) ;
+   MD5Final( digest, &context ) ;
+
+   return MD5_static_printf(digest) ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Digest an array and returns the printable string of the result,
+    stored in a malloc()-ed array (length=32+1 bytes).
+------------------------------------------------------------------------*/
+
+char * MD5_malloc_array( int n , char *bytes )
+{
+   char *st , *dy ;
+   st = MD5_static_array( n , bytes ) ;
+   if( st == NULL ) return NULL ;
+   dy = (char *) malloc(33) ; strcpy(dy,st) ; return dy ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Digest a C string and returns the printable string of the result,
+    stored in a static array (length=32+1 bytes).
+------------------------------------------------------------------------*/
+
+char * MD5_static_string( char *string )
+{
+   if( string == NULL ) string = "ElvisTheKing" ;
+   return MD5_static_array( strlen(string) , string ) ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Digest a C string and returns the printable string of the result,
+    stored in a malloc()-ed array (length=32+1 bytes).
+------------------------------------------------------------------------*/
+
+char * MD5_malloc_string( char *string )
+{
+   if( string == NULL ) string = "ElvisTheKing" ;
+   return MD5_malloc_array( strlen(string)+1 , string ) ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Digests a file and prints the result, stored in a static array
+    (length=32+1 bytes).
+------------------------------------------------------------------------*/
+
+char * MD5_static_file(char *filename)
+{
+  FILE *file;
+  MD5_CTX context;
+  int len;
+  unsigned char buffer[1024] ;
+  unsigned char digest[16] ;
+
+  if( (file = fopen(filename, "rb")) == NULL ) return NULL ;
+
+  MD5Init( &context ) ;
+
+  while( len = fread(buffer, 1, 1024, file) )
+      MD5Update( &context, buffer, len ) ;
+
+  MD5Final( digest, &context );
+  fclose (file);
+
+  return MD5_static_printf( digest ) ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Digests a file and prints the result, stored in a malloc()-ed array
+    (length=32+1 bytes).
+------------------------------------------------------------------------*/
+
+char * MD5_malloc_file(char *filename)
+{
+   char *st , *dy ;
+
+   st = MD5_static_file( filename ) ;
+   if( st == NULL ) return NULL ;
+   dy = (char *) malloc(33) ; strcpy(dy,st) ; return dy ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Convert a MD5 hex string to a Base64-ed string.
+    * strlen(result) is 22 instead of 32
+    * result is malloc()-ed and should be free()-d when appropriate
+------------------------------------------------------------------------------*/
+
+static char * MD5_to_B64( unsigned char digest[16] )
+{
+   int nb64=0 ; byte *b64=NULL ;
+
+   B64_to_base64( 16 , (char *)digest , &nb64 , &b64 ) ;
+   if( nb64 <= 0 || b64 == NULL ) return NULL ;
+   b64[nb64-3] = '\0' ;                           /* remove trailing "==" */
+   if( isspace(b64[nb64-4]) ) b64[nb64-4]='\0' ;
+   return (char *)b64 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Return the MD5 hash of an array as a Base64 string, instead of a hex
+    string.
+    * strlen(result) is 22 instead of 32
+    * result is malloc()-ed and should be free()-d when appropriate
+------------------------------------------------------------------------------*/
+
+char * MD5_B64_array( int n , char *bytes )
+{
+   MD5_CTX context;
+   unsigned char digest[16];
+
+   if( n < 0 || bytes == NULL ) return NULL ;
+
+   MD5Init( &context ) ;
+   MD5Update( &context, bytes, n ) ;
+   MD5Final( digest, &context ) ;
+
+   return MD5_to_B64( digest ) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Return the MD5 hash of a C string as a Base64 string, instead of a hex
+    string.
+    * strlen(result) is 22 instead of 32
+    * result is malloc()-ed and should be free()-d when appropriate
+------------------------------------------------------------------------------*/
+
+char * MD5_B64_string( char *string )
+{
+   if( string == NULL ) string = "ElvisTheKing" ;
+   return MD5_B64_array( strlen(string) , string ) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Return the MD5 hash of a file as a Base64 string, instead of a hex
+    string.
+    * strlen(result) is 22 instead of 32
+    * result is malloc()-ed and should be free()-d when appropriate
+------------------------------------------------------------------------------*/
+
+char * MD5_B64_file(char *filename)
+{
+  FILE *file;
+  MD5_CTX context;
+  int len;
+  unsigned char buffer[1024] ;
+  unsigned char digest[16] ;
+
+  if( (file=fopen (filename, "rb")) == NULL ) return NULL ;
+
+  MD5Init( &context ) ;
+
+  while( len = fread(buffer, 1, 1024, file) )
+      MD5Update( &context, buffer, len ) ;
+
+  MD5Final( digest, &context );
+  fclose (file);
+
+  return MD5_to_B64( digest ) ;
+}
+
+/*************************************************************************/
+/***************** Unique Identifier String functions ********************/
+/***** [Not directly used in NIML, but available to the application] *****/
+/*************************************************************************/
+
+#include <sys/utsname.h>  /* Need by UNIQ_ functions for uname() */
+
+/*-----------------------------------------------------------------------*/
+/*! Return a globally unique identifier (I hope).  This is a malloc()-ed
+  string of length <= 31 (plus the NUL byte; the whole thing will fit
+  into a char[32] array).  The output does not contain any '/'s, so
+  it could be used as a temporary filename.
+
+  Method: Generate a string from the system identfier information and
+          the current time of day. MD5 hash this to a 128 byte code.
+          Base64 encode this to a 22 byte string. Replace '/' with '-'
+          and '+' with '_'. Add 4 character prefix (1st 3 characters
+          of environment variable IDCODE_PREFIX plus '_').
+-------------------------------------------------------------------------*/
+
+char * UNIQ_idcode(void)
+{
+   struct utsname ubuf ;
+   struct timeval tv ;
+   int    nn , ii ;
+   int  nbuf ;
+   char *buf , *idc , *eee ;
+   static int ncall=0 ;                /* number of times I've been called */
+
+   /* get info about this system */
+
+   nn = uname( &ubuf ) ;               /* get info about this system */
+   if( nn == -1 ){                     /* should never happen */
+      strcpy( ubuf.nodename , "E" ) ;
+      strcpy( ubuf.sysname  , "L" ) ;
+      strcpy( ubuf.release  , "V" ) ;
+      strcpy( ubuf.version  , "I" ) ;
+      strcpy( ubuf.machine  , "S" ) ;
+   }
+
+   /* store system info into a string buffer */
+
+   nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
+         +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
+
+   buf = malloc(nbuf+64) ;      /* include some extra space */
+   strcpy(buf,ubuf.nodename) ;
+   strcat(buf,ubuf.sysname ) ;
+   strcat(buf,ubuf.release ) ;
+   strcat(buf,ubuf.version ) ;
+   strcat(buf,ubuf.machine ) ;
+
+   idc = calloc(1,32) ;         /* will be output string */
+
+   /* get time and store into buf (along with process id and ncall) */
+
+   nn = gettimeofday( &tv , NULL ) ;
+   if( nn == -1 ){              /* should never happen */
+      tv.tv_sec  = (long) buf ;
+      tv.tv_usec = (long) idc ;
+   }
+
+   /* even if called twice in rapid succession,
+      at least ncall will differ, so we'll get different ID codes  */
+
+   sprintf(buf+nbuf,"%d%d%d%d",
+          (int)tv.tv_sec,(int)tv.tv_usec,(int)getpid(),ncall) ;
+   ncall++ ;
+
+   /* get prefix for idcode from environment, if present */
+
+   eee = getenv("IDCODE_PREFIX") ;
+   if( eee != NULL && isalpha(eee[0]) ){
+     for( ii=0 ; ii < 3 && isalnum(eee[ii]) ; ii++ )
+       idc[ii] = eee[ii] ;
+   } else {
+     strcpy(idc,"XYZ") ;  /* innocent default prefix */
+   }
+   strcat(idc,"_") ;  /* recall idc was calloc()-ed */
+
+   /* MD5+Base64 encode buf to be latter part of the idcode */
+
+   eee = MD5_B64_string( buf ) ;
+   if( eee != NULL ){                     /* should always work */
+      nn = strlen(eee) ;
+      for( ii=0 ; ii < nn ; ii++ ){
+              if( eee[ii] == '/' ) eee[ii] = '-' ;  /* / -> - */
+         else if( eee[ii] == '+' ) eee[ii] = '_' ;  /* + -> _ */
+      }
+      strcat(idc,eee) ; free(eee) ;
+   } else {                               /* should never happen */
+     nn = strlen(idc) ;
+     sprintf(idc+nn,"%d_%d_%d",(int)tv.tv_sec,(int)tv.tv_usec,ncall) ;
+   }
+
+   /* free workspace and get outta here */
+
+   free(buf) ; return idc ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Fill a user-supplied buffer (length at least 32) with an idcode.
+------------------------------------------------------------------------*/
+
+void UNIQ_idcode_fill( char *idc )
+{
+   char *bbb ;
+   if( idc == NULL ) return ;
+   bbb = UNIQ_idcode() ;
+   strcpy(idc,bbb) ; free(bbb) ; return ;
+}
+
+/*************************************************************************/
+/********************** Functions for fetching URLs **********************/
+/*************************************************************************/
+
+static int www_debug = 0 ;
+#define FAILED     if(www_debug)fprintf(stderr," **FAILED\n")
+#define DMESS(s,t) if(www_debug)fprintf(stderr,s,t)
+
+/*---------------------------------------------------------------------*/
+static char tmpdir[512] = "\0" ;
+
+static void setup_tmpdir(void)
+{
+   char *td ;
+
+   if( tmpdir[0] != '\0' ) return ;
+
+                    td = getenv("TMPDIR")  ;
+   if( td == NULL ) td = getenv("TEMPDIR") ;
+
+   if( td == NULL || td[0] == '\0' || strlen(td) > 222 ){
+      strcpy(tmpdir,"/tmp/") ;
+   } else {
+      int ltd ;
+      NI_strncpy(tmpdir,td,511) ;
+      ltd = strlen(tmpdir) ;
+      if( tmpdir[ltd-1] != '/' ) strcat(tmpdir,"/") ;
+   }
+}
+
+/*---------------------------------------------------------------------
+  Open an "http://" URL in host, port, and filename pieces.
+  Wait up to msec milliseconds for network functions to occur.
+  If an error occurs, return NULL, otherwise the caller can read
+  from this NI_stream.
+-----------------------------------------------------------------------*/
+
+static NI_stream_type * open_URL_hpf( char *host, int port,
+                                      char *file, int msec )
+{
+   NI_stream_type *ns ;
+   char str[1024] ;
+   int ii ;
+
+   if( host == NULL || port <= 0 || file == NULL ) return NULL ;
+
+   sprintf(str,"tcp:%s:%d",host,port) ;
+   DMESS(" ++Opening %s",str);
+   ns = NI_stream_open( str , "w" ) ;
+   if( ns == NULL ){ FAILED; return NULL; }
+   ii = NI_stream_writecheck( ns , msec ) ;
+   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
+
+   DMESS(" ++GET %s",file);
+   sprintf(str,"GET %s\n",file) ;                     /* HTTP 0.9 */
+   ii = NI_stream_write( ns , str , strlen(str) ) ;
+   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
+
+   ii = NI_stream_readcheck( ns , msec ) ;
+   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
+   DMESS("%s"," **OPENED");
+   return ns ;
+}
+
+/*----------------------------------------------------------------------
+  Open an "http://" URL and prepare to read it (but the caller must
+  actually do the reading).  If NULL is returned, an error occurred.
+------------------------------------------------------------------------*/
+
+#define HTTP     "http://"
+#define HTTPLEN  7
+
+#define FTP      "ftp://"
+#define FTPLEN   6
+
+static NI_stream_type * open_URL_http( char *url , int msec )
+{
+  char *s, *h , *file ;
+  char hostname[1024] ;
+  int port;
+  NI_stream_type *ns ;
+
+  /* check inputs */
+
+  if( url == NULL || strstr(url,HTTP) != url ) return NULL ;
+
+  /* parse hostname */
+
+  for( s=url+HTTPLEN , h=hostname ;
+       (*s != '\0') && (*s != ':') && (*s != '/') ; s++ , h++ ) *h = *s ;
+
+  *h = '\0' ; if( hostname[0] == '\0' ) return NULL ;
+
+  /* parse port number if present */
+
+  port = 0 ;
+  if( *s == ':' ){ port = strtol( ++s , &h , 10 ) ; s = h ; }
+  if( port <= 0 ) port = 80 ;
+
+  /* get the file name (keep leading "/") */
+
+  file = (*s == '/') ? s : "/" ;
+
+  /* do the actual work */
+
+  ns = open_URL_hpf( hostname , port , file , msec ) ;
+  return ns ;
+}
+
+/*---------------------------------------------------------------
+  Read an "http://" URL, with network waits of up to msec
+  milliseconds allowed.  Returns number of bytes read -- if this
+  is > 0, then *data will be a pointer to malloc-ed bytes holding
+  the contents of the file.
+
+  If the file is gzip-ed, then it will be un-gzip-ed before being
+  loaded into memory.  This uses temporary files in $TMPDIR or
+  /tmp, which must have space to hold the compressed and
+  uncompressed file.  If the file is not compressed, then input
+  is directly to memory and no temporary files are used.
+-----------------------------------------------------------------*/
+
+#define QBUF 4096
+
+static int read_URL_http( char *url , int msec , char **data )
+{
+   NI_stream_type *ns ;
+   char *buf=NULL , *cpt , qbuf[QBUF] , qname[1024] ;
+   int ii,jj , nall=0 , nuse ;
+   int cflag , first ;
+   FILE *cfile=NULL ;
+
+   /* sanity check */
+
+   if( url == NULL || data == NULL || msec < 0 ) return( -1 );
+
+   /* open http channel to get url */
+
+   ns = open_URL_http( url , msec ) ;
+   if( ns == NULL ){ DMESS("%s","\n"); return( -1 ); }
+
+   /* check if url will be returned gzip-ed */
+
+   ii = strlen(url) ;
+   if( ii > 3 ){
+      cpt = url + (ii-3) ; cflag = (strcmp(cpt,".gz") == 0) ;
+   } else {
+      cflag = 0 ;
+   }
+
+   if( cflag ){
+      setup_tmpdir() ;
+      strcpy(qname,tmpdir) ; strcat(qname,"ElvisXXXXXX") ;
+      mktemp(qname) ;
+      if( qname[0] != '\0' ){
+         strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
+         if( cfile == NULL ) cflag == 0 ;
+      } else {
+         cflag = 0 ;
+      }
+
+      if( cflag == 0 ){
+         DMESS(" **Temp file %s FAILS\n",qname); NI_stream_close(ns); return(-1);
+      }
+      DMESS(" ++Temp file=%s",qname);
+   }
+
+   /* read all of url */
+
+   if( !cflag ){ buf = malloc( QBUF ) ; nall = QBUF ; }
+   nuse = 0 ; first = 1 ;
+
+   do{
+      if(www_debug)fprintf(stderr,".");
+      ii = NI_stream_readcheck( ns , msec ) ;  /* wait for data to be ready */
+      if( ii <= 0 ) break ;                    /* quit if no data */
+      ii = NI_stream_read( ns , qbuf , QBUF ) ;
+      if( ii <= 0 ) break ;                  /* quit if no data */
+
+      if( first ){                           /* check for "not found" */
+         if( buf == NULL ){ buf = malloc(ii) ; }
+         memcpy( buf , qbuf , ii ) ;
+         for( jj=0 ; jj < ii ; jj++ ) buf[jj] = toupper(buf[jj]) ;
+         buf[ii-1] = '\0' ;
+         cpt = strstr(buf,"NOT FOUND") ;
+         if( cpt != NULL ){
+            if( cflag ){ fclose(cfile) ; unlink(qname) ; }
+            DMESS("%s"," **NOT FOUND\n");
+            free(buf) ; NI_stream_close(ns) ; return( -1 );
+         }
+         first = 0 ;
+         if( cflag ){ free(buf) ; buf = NULL ; }
+      }
+
+      if( cflag ){                           /* write to temp file */
+         nall = fwrite( qbuf , 1 , ii , cfile ) ;
+         if( nall != ii ){                   /* write failed? */
+            DMESS("\n** Write to temp file %s FAILED!\n",qname);
+            fclose(cfile) ; unlink(qname) ;
+            NI_stream_close(ns) ; return( -1 );
+         }
+      } else {                               /* save to buffer */
+         if( nuse+ii > nall ){               /* enlarge buffer? */
+            nall += QBUF ;
+            buf   = realloc( buf , nall ) ;
+         }
+         memcpy( buf+nuse , qbuf , ii ) ;    /* copy data into buffer */
+      }
+      nuse += ii ;                           /* how many bytes so far */
+   } while(1) ;
+   NI_stream_close(ns) ;
+
+   /* didn't get anything? */
+
+   if( nuse <= 0 ){
+      if( cflag ){ fclose(cfile) ; unlink(qname) ; }
+      else       { free(buf) ; }
+      FAILED; return(-1);
+   }
+   if(www_debug)fprintf(stderr,"!\n");
+
+   /* uncompression time? */
+
+   if( cflag ){
+      fclose(cfile) ;
+      sprintf( qbuf , "gzip -dq %s" , qname ) ;     /* execute gzip */
+      ii = system(qbuf) ;
+      if( ii != 0 ){ DMESS("%s"," **gzip failed!\n");
+                     unlink(qname) ; return( -1 );   }  /* gzip failed  */
+      ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
+      nuse = NI_filesize( qname ) ;                 /* find how big */
+      if( nuse <= 0 ){ DMESS("%s"," **gzip failed!\n");
+                       unlink(qname) ; return( -1 );   }
+
+      cfile = fopen( qname , "rb" ) ;
+      if( cfile == NULL ){ DMESS("%s"," **gzip failed!\n");
+                           unlink(qname) ; return( -1 );   }
+      buf = malloc(nuse) ;
+      fread( buf , 1 , nuse , cfile ) ;             /* read file in */
+      fclose(cfile) ; unlink(qname) ;
+   }
+
+   /* data is in buf, nuse bytes of it */
+
+   DMESS("%s","\n"); *data = buf ; return( nuse );
+}
+
+/*---------------------------------------------------------------------*/
+
+static char ftp_name[512] = "anonymous" ;
+static char ftp_pwd[512]  = "NIML@nowhere.org" ;
+
+#if 0
+void NI_set_URL_ftp_ident( char *name , char *pwd )
+{
+   int ll ;
+
+   if( name == NULL || pwd == NULL ) return ;
+
+   ll = strlen(name) ; if( ll < 1 || ll > 511 ) return ;
+   ll = strlen(pwd)  ; if( ll < 1 || ll > 511 ) return ;
+
+   strcpy(ftp_name,name) ; strcpy(ftp_pwd,pwd) ; return ;
+}
+#endif
+
+/*---------------------------------------------------------------------
+  Reads an "ftp://" URL, similarly to read_URL_http above;
+  however, staging is always done through a temporary file.
+  This function works simply by creating/running a script file to
+  run the command line ftp program.  Clumsy, but simpler than
+  implementing the protocol.
+-----------------------------------------------------------------------*/
+
+static int read_URL_ftp( char *url , char **data )
+{
+   char *s, *h , *file , qname[1024] , sname[1024] , *cpt , *buf ;
+   char hostname[1024] ;
+   int port , ii , cflag , nuse ;
+   FILE *sp ;
+
+   /* sanity check */
+
+   if( url == NULL || data == NULL || strstr(url,FTP) != url ) return( -1 );
+
+   /* parse hostname */
+
+   for( s=url+FTPLEN , h=hostname ;
+        (*s != '\0') && (*s != ':') && (*s != '/') ; s++ , h++ ) *h = *s ;
+
+   *h = '\0' ; if( hostname[0] == '\0' ) return( -1 );
+
+   /* parse port number, if present */
+
+   port = 0 ;
+   if( *s == ':' ){ port = strtol( ++s , &h , 10 ) ; s = h ; }
+
+   /* get the file name (strip off leading "/") */
+
+   if( *s == '/' ){
+      file = s+1 ; if( file[0] == '\0' ) return( -1 );
+   } else {
+                                         return( -1 );
+   }
+
+   /* check if file will be returned gzip-ed */
+
+   ii = strlen(file) ;
+   if( ii > 3 ){
+      cpt = file + (ii-3) ; cflag = (strcmp(cpt,".gz") == 0) ;
+   } else {
+      cflag = 0 ;
+   }
+
+   /* make name for output file */
+
+   setup_tmpdir() ;
+   strcpy(qname,tmpdir) ; strcat(qname,"EthelXXXXXX") ;
+   mktemp(qname) ;
+   if( qname[0] == '\0' ) return( -1 );
+   if( cflag ) strcat(qname,".gz") ;
+
+   /* write the script file that will be used to run ftp */
+
+   strcpy(sname,tmpdir) ; strcat(sname,"DahmerXXXXXX") ;
+   mktemp(sname) ;             if( sname[0] == '\0' ) return( -1 );
+   sp = fopen( sname , "w" ) ; if( sp == NULL )       return( -1 );
+
+   fprintf( sp , "#!/bin/sh\n" ) ;
+   fprintf( sp , "ftp -n << EEEEE &> /dev/null\n") ;
+   if( port > 0 )
+      fprintf( sp , "open %s %d\n" , hostname , port ) ;
+   else
+      fprintf( sp , "open %s\n" , hostname ) ;
+   fprintf( sp , "user %s %s\n" , ftp_name, ftp_pwd ) ;
+   fprintf( sp , "binary\n" ) ;
+   fprintf( sp , "get %s %s\n" , file , qname ) ;
+   fprintf( sp , "bye\n" ) ;
+   fprintf( sp , "EEEEE\n" ) ;
+   fprintf( sp , "exit\n" ) ;
+   fclose( sp ) ;
+   chmod( sname , S_IRUSR | S_IWUSR | S_IXUSR ) ;
+
+   /* execute the script, then delete it */
+
+   system( sname ) ; unlink( sname ) ;
+
+   /* check the size of the output file */
+
+   nuse = NI_filesize( qname ) ;
+   if( nuse <= 0 ){ unlink(qname) ; return( -1 ); }
+
+   /* uncompress the file, if needed */
+
+   if( cflag ){
+      sprintf( sname , "gzip -dq %s" , qname ) ;    /* execute gzip */
+      ii = system(sname) ;
+      if( ii != 0 ){ unlink(qname) ; return( -1 ); }  /* gzip failed  */
+      ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
+      nuse = NI_filesize( qname ) ;                 /* find how big */
+      if( nuse <= 0 ){ unlink(qname) ; return( -1 ); }
+   }
+
+   /* suck the file into memory */
+
+   sp = fopen( qname , "rb" ) ;
+   if( sp == NULL ){ unlink(qname) ; return( -1 ); }
+   buf = malloc(nuse) ; if( buf == NULL ){ unlink(qname) ; return( -1 ); }
+
+   fread( buf , 1 , nuse , sp ) ;  /* AT LAST! */
+   fclose(sp) ; unlink(qname) ;
+
+   /* data is in buf, nuse bytes of it */
+
+   *data = buf ; return( nuse );
+}
+
+/*-------------------------------------------------------------------
+   Read a URL (ftp:// or http://) into memory.  The return value
+   is the number of bytes read, and *data points to the data.
+   If the return value is negative, then something bad happened.
+---------------------------------------------------------------------*/
+
+int NI_read_URL( char *url , char **data )
+{
+   int nn ;
+   if( url == NULL || data == NULL ) return( -1 );
+
+   if( getenv("NIML_WWW_DEBUG") != NULL ) www_debug = 1 ;
+
+   if( strstr(url,HTTP) == url ){
+      nn = read_URL_http( url , 4444 , data ) ; return(nn) ;
+   }
+
+   else if( strstr(url,FTP) == url ){
+      nn = read_URL_ftp( url , data ) ; return(nn) ;
+   }
+
+   return( -1 );
+}
+
+/*------------------------------------------------------------------
+  Read a URL and save it to disk in tmpdir.  The filename
+  it is saved in is returned in the malloc-ed space *tname.
+  The byte count is the return value of the function;
+  if <= 0, then an error transpired (and *tname is not set).
+--------------------------------------------------------------------*/
+
+int NI_read_URL_tmpdir( char *url , char **tname )
+{
+   int nn , ll ;
+   char *data , *fname , *tt ;
+   FILE *fp ;
+
+   if( url == NULL || tname == NULL ) return( -1 );
+
+   nn = NI_read_URL( url , &data ) ;  /* get the data into memory */
+   if( nn <= 0 ) return( -1 );        /* bad */
+
+   /* make the output filename */
+
+   setup_tmpdir() ;
+   fname = malloc(strlen(url)+strlen(tmpdir)+1) ;
+   tt    = trailname(url,0) ;
+   strcpy(fname,tmpdir) ; strcat(fname,tt) ; ll = strlen(fname) ;
+   if( ll > 3 && strcmp(fname+(ll-3),".gz") == 0 ) fname[ll-3] = '\0' ;
+
+   /* open and write output */
+
+   fp = fopen( fname , "wb" ) ;
+   if( fp == NULL ){
+      fprintf(stderr,"** Can't open temporary file %s\n",fname);
+      free(data) ; return( -1 );
+   }
+   ll = fwrite(data,1,nn,fp) ; fclose(fp) ; free(data) ;
+   if( ll != nn ){ unlink(fname); return( -1 ); } /* write failed */
+
+   *tname = fname ; return( nn );
 }
 
 /*************************************************************************/
@@ -947,6 +2511,8 @@ static void enhance_header_stuff( header_stuff *hs )
     The data vectors will have space allocated, but they will be
     filled with all zero bytes.  If the header was "empty" (ended in
     "/>"), then no vectors will be allocated, and nel->vec_num=0.
+    This function is used by NI_read_element() to create the
+    data element after the header has been parsed.
 -------------------------------------------------------------------------*/
 
 static NI_element * make_empty_data_element( header_stuff *hs )
@@ -988,6 +2554,13 @@ static NI_element * make_empty_data_element( header_stuff *hs )
    nel->vec_axis_origin = NULL ;
    nel->vec_axis_unit   = NULL ;
    nel->vec_axis_label  = NULL ;
+
+   /* set up to allow rowmapping to make NI_get_row() usable */
+
+   nel->rowmap_num   = 0    ;
+   nel->rowmap_cod   = 1    ;  /* rowmap doesn't affect vec_len, etc */
+   nel->rowmap_off   = NULL ;
+   nel->rowmap_siz   = NULL ;
 
    if( !hs->empty ){  /* find and process ni_* attributes about vectors */
 
@@ -1111,7 +2684,7 @@ fprintf(stderr,"ni_dimen: nd=%d qq=%d\n",nd,qq) ;
      nel->vec = NI_malloc( sizeof(void *)*nel->vec_num ) ;
 
      for( ii=0 ; ii < nel->vec_num ; ii++ )
-       nel->vec[ii] = NI_malloc(NI_type_size(nel->vec_typ[ii]) * nel->vec_len) ;
+       nel->vec[ii] = NI_malloc(NI_type_size(nel->vec_typ[ii])*nel->vec_len) ;
    }
 
    return nel ;
@@ -1197,11 +2770,11 @@ int NI_type_size( int tval )
 
 #if 0
 /*----------------------------------------------------------------------*/
-/*! Static table to store byte sizes. */
+/*! Static table to store byte sizes of NIML types. */
 
 static int typesize[NI_NUM_TYPES] ;
 
-/*! Function to initialize this. */
+/*! Function to initialize static NIML type size table. */
 
 static void init_typesize(void)
 {
@@ -1330,6 +2903,9 @@ void NI_free_element( void *nini )
       NI_free(nel->vec_axis_unit) ;
       NI_free(nel->vec_axis_label) ;
 
+      NI_free(nel->rowmap_off) ;
+      NI_free(nel->rowmap_siz) ;
+
       NI_free( nel ) ;
 
    /*-- erase contents of group element --*/
@@ -1369,7 +2945,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
 {
    NI_element *nel ;
 
-   if( name == NULL || name[0] == '\0' || veclen < 0 ) return NULL ;
+   if( name == NULL || name[0] == '\0' ) return NULL ;
 
    nel = NI_malloc( sizeof(NI_element) ) ;
 
@@ -1380,18 +2956,35 @@ NI_element * NI_new_data_element( char *name , int veclen )
    nel->attr_lhs = nel->attr_rhs = NULL ;
 
    nel->vec_num = 0 ;
-   nel->vec_len = veclen ;
-
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
 
-   if( veclen == 0 ){             /* empty element */
+   if( veclen == 0 ){              /* empty element */
+     nel->vec_len      = 0 ;
      nel->vec_rank     = 0 ;
      nel->vec_axis_len = NULL ;
-   } else {                       /* element with data (to come) */
+     nel->rowmap_num   = 0    ;
+     nel->rowmap_cod   = -1   ;    /* signal that rows are bad */
+     nel->rowmap_off   = NULL ;
+     nel->rowmap_siz   = NULL ;
+   } else if( veclen > 0 ){        /* element with data to come in columns */
+     nel->vec_len         = veclen ;
      nel->vec_rank        = 1 ;
      nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
      nel->vec_axis_len[0] = veclen ;
+     nel->rowmap_num      = 0    ;
+     nel->rowmap_cod      = -1   ; /* signal that rows are bad */
+     nel->rowmap_off      = NULL ;
+     nel->rowmap_siz      = NULL ;
+   } else {                        /* element with data to come in rows */
+     nel->vec_len         = 0 ;
+     nel->vec_rank        = 1 ;
+     nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
+     nel->vec_axis_len[0] = 0 ;
+     nel->rowmap_num      = 0    ;
+     nel->rowmap_cod      = 0    ; /* rowmap creates vec_ stuff */
+     nel->rowmap_off      = NULL ;
+     nel->rowmap_siz      = NULL ;
    }
 
    nel->vec_axis_delta  = NULL ;
@@ -1400,6 +2993,260 @@ NI_element * NI_new_data_element( char *name , int veclen )
    nel->vec_axis_label  = NULL ;
 
    return nel ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Define the rowmap for inserting/retrieving a struct from a
+    data element, using ARrays as input.
+     * nrow = number of data fields in a row
+     * typ[i] = type code for the i-th field, i=0..nrow-1 (e.g., NI_FLOAT)
+     * off[i] = byte offset into struct for i-th field
+-------------------------------------------------------------------------*/
+
+void NI_define_rowmap_AR( NI_element *nel, int nrow, int *typ, int *off )
+{
+   int ii ;
+
+   /* sanity checks */
+
+   if( nel             == NULL            ||
+       nel->type       != NI_ELEMENT_TYPE ||
+       nel->rowmap_cod <  0               ||
+       nel->rowmap_num >  0               ||
+       nrow            <  1               ||
+       typ             == NULL            ||
+       off             == NULL              ) return ;
+
+   /* check each offset and type code */
+
+   for( ii=0 ; ii < nrow ; ii++ )
+      if( typ[ii] < 0 || typ[ii] >= NI_NUM_TYPES || off[ii] < 0 ) return ;
+
+   /* if we are adding a rowmap to an existing element
+      (rowmap_cod==1), then the number of rows must match */
+
+   if( nel->rowmap_cod == 1 && nel->vec_num != nrow ) return ;
+
+   /* make rowmap inside element */
+
+   nel->rowmap_num = nrow ;
+   nel->rowmap_off = NI_malloc(sizeof(int)*nrow) ;
+   nel->rowmap_siz = NI_malloc(sizeof(int)*nrow) ;
+
+   /* if adding rowmap to a new element,
+      then must make vector stuff as well */
+
+   if( nel->rowmap_cod == 0 ){
+     nel->vec_num  = nrow ;
+     nel->vec_typ  = NI_malloc(sizeof(int)*nrow) ;
+     nel->vec      = NI_malloc(sizeof(void *)*nrow ) ;
+   }
+
+   for( ii=0 ; ii < nrow ; ii++ ){
+      nel->rowmap_off[ii] = off[ii] ;
+      nel->rowmap_siz[ii] = NI_type_size(typ[ii]) ;
+      if( nel->rowmap_cod == 0 ){
+        nel->vec_typ[ii]    = typ[ii] ;
+        nel->vec[ii]        = NULL ;
+      }
+   }
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Define the rowmap for inserting/retrieving a struct from a
+    data element, using VAriable argument list as input, as in
+    NI_define_rowmap_VA(nel,typ1,off1,typ2,off2,-1);
+    This function works simply by building temp arrays with the
+    typ and off arguments, then calls NI_define_rowmap_AR().
+     * typ = type code (-1 signals end of argument list)
+     * off = byte offset into struct (should be >= 0)
+-------------------------------------------------------------------------*/
+
+void NI_define_rowmap_VA( NI_element *nel , ... )
+{
+   va_list vararg_ptr ;
+   int nrow=0 , typ,off ;
+   int *tar=NULL , *oar=NULL ;
+
+   /* check nel for reasonability */
+
+   if( nel == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
+
+   /* initialize vararg usage */
+
+   va_start( vararg_ptr , nel ) ;
+
+   /* loop over remaining args */
+
+   while(1){
+     typ = va_arg( vararg_ptr , int ) ;     /* get next arg */
+
+     if( typ < 0 || typ >= NI_NUM_TYPES ){  /* end of args? */
+        if( nrow > 0 ){
+          NI_define_rowmap_AR(nel,nrow,tar,oar) ;
+          NI_free(tar) ; NI_free(oar) ;
+        }
+        va_end( vararg_ptr ) ; return ;     /* the only way out */
+     }
+
+     off = va_arg( vararg_ptr , int ) ;     /* get next arg */
+
+     /* add typ,off to end of arrays */
+
+     tar = NI_realloc(tar,sizeof(int)*(nrow+1)) ; tar[nrow] = typ ;
+     oar = NI_realloc(oar,sizeof(int)*(nrow+1)) ; oar[nrow] = off ;
+     nrow++ ;
+   }
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Add a row to a data element from a struct.  You must have defined
+    the mapping from the struct to the columns using NI_define_rowmap_??
+    before this.
+-------------------------------------------------------------------------*/
+
+void NI_add_row( NI_element *nel , void *datin )
+{
+   int ii , rr , ll , typ ;
+   char *vpt , *ddd , *eee , *dat=(char *)datin ;
+
+   /* check inputs */
+
+   if( nel             == NULL            ||
+       nel->type       != NI_ELEMENT_TYPE ||
+       nel->rowmap_num <= 0               ||
+       dat             == NULL              ) return ;
+
+   rr = nel->vec_len ;  /* number of rows we currently have */
+
+   /* loop over columns */
+
+   for( ii=0 ; ii < nel->vec_num ; ii++ ){
+
+      /* extend size of this column */
+
+      ll  = nel->rowmap_siz[ii] ; /* size of one column element */
+      typ = nel->vec_typ[ii] ;    /* type code of column element */
+
+      nel->vec[ii] = NI_realloc( nel->vec[ii] , (rr+1)*ll ) ;
+
+      /* pointer to space we just allocated at end of column */
+
+      vpt = (char *)(nel->vec[ii]) + rr*ll ;
+
+      /* pointer to space in struct to copy from */
+
+      ddd = (char *)(dat + nel->rowmap_off[ii]) ;
+
+      /* If the data is actually a string, then
+         ddd points to the char * that points to the string.
+         So we have to duplicate that string, then save
+         the pointer to the duplicate in the element.
+         Confused?  So am I.  This requires thinking, which is hard work */
+
+      if( typ == NI_STRING || typ == NI_LINE ){
+         char *ppp ;
+#if 0
+fprintf(stderr,"NI_add_row duplicating string:  dat=%p ddd=%p ll=%d\n",dat,ddd,ll) ;
+#endif
+         memcpy(&ppp,ddd,ll) ;      /* ppp is the pointer to the string */
+         eee = NI_strdup(ppp);      /* duplicate string from struct */
+#if 0
+fprintf(stderr,"           duplicated string:%s; stored at eee=%p\n",eee,eee) ;
+#endif
+         ddd = (char *)(&eee);      /* we want to save address of duplicate */
+      }
+
+      memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
+
+#if 0
+      if( typ == NI_STRING || typ == NI_LINE ){
+         char *ppp ; memcpy(&ppp,vpt,ll) ;
+         fprintf(stderr,"      vpt as a char *=%p\n",ppp) ;
+      }
+#endif
+
+   }
+
+   nel->vec_len = nel->vec_axis_len[0] = rr+1 ;  /* vectors now longer */
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Get a row from a data element into a struct.  You must have defined
+    the mapping from the struct to the columns using NI_define_rowmap_??
+    before this.  Strings in the element will be duplicated with
+    strdup and the pointers to the duplicates will be put into the
+    struct.
+-------------------------------------------------------------------------*/
+
+void NI_get_row( NI_element *nel , int rr , void *datin )
+{
+   int ii , ll , typ ;
+   char *vpt , *ddd , *eee , *dat=(char *)datin ;
+
+   /* check inputs */
+
+   if( nel             == NULL            ||
+       nel->type       != NI_ELEMENT_TYPE ||
+       nel->rowmap_num <= 0               ||
+       rr              <  0               ||
+       rr              >= nel->vec_len    ||
+       dat             == NULL              ) return ;
+
+#if 0
+fprintf(stderr,"Enter NI_get_row with rr=%d\n",rr) ;
+#endif
+
+   /* loop over columns */
+
+   for( ii=0 ; ii < nel->vec_num ; ii++ ){
+
+      ll  = nel->rowmap_siz[ii] ; /* size of this column element */
+      typ = nel->vec_typ[ii] ;    /* type code of column element */
+
+#if 0
+fprintf(stderr,"  ii=%d ll=%d typ=%d off=%d\n",ii,ll,typ,nel->rowmap_off[ii]) ;
+#endif
+
+      /* pointer to space in element where data lives */
+
+      vpt = (char *)(nel->vec[ii]) + rr*ll ;
+
+#if 0
+fprintf(stderr,"  vpt=%p ",vpt) ;
+#endif
+
+      /* pointer to space in struct to copy into */
+
+      ddd = (char *)(dat + nel->rowmap_off[ii]) ;
+
+#if 0
+fprintf(stderr,"  ddd=%p ",ddd) ;
+#endif
+
+      /* if the data is actually a string,
+         then vpt really points to the char * that points to the string;
+         in this case, we want to duplicate the string,
+         then copy the pointer to the duplicate into the struct */
+
+      if( typ == NI_STRING || typ == NI_LINE ){
+         char *ppp ;
+         memcpy(&ppp,vpt,ll) ;      /* ppp is the pointer to the string */
+         eee = NI_strdup(ppp);      /* duplicate string from element */
+         vpt = (char *)(&eee);      /* we want to save address of duplicate */
+#if 0
+fprintf(stderr,"  vpt=%p ",vpt) ;
+#endif
+      }
+#if 0
+fprintf(stderr," copying from vpt to ddd\n") ;
+#endif
+      memcpy( ddd, vpt , ll ) ;  /* copy bytes from element to ddd */
+   }
+
+   return ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -1423,6 +3270,8 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
    /* check for reasonable inputs */
 
    if( nel == NULL || nel->vec_len == 0 || arr == NULL ) return ;
+
+   if( nel->rowmap_num >= 0 ) return ;  /* needs NI_add_row() */
 
    if( typ < 0 || typ >= NI_NUM_TYPES ) return ;
 
@@ -1679,12 +3528,9 @@ void NI_add_to_group( NI_group *ngr , void *nini )
 
    ngr->part_typ     = NI_realloc( ngr->part_typ , sizeof(int)*(nn+1) ) ;
    ngr->part_typ[nn] = tt ;
-
    ngr->part         = NI_realloc( ngr->part , sizeof(void *)*(nn+1) ) ;
    ngr->part[nn]     = nini ;
-
    ngr->part_num     = nn+1 ;
-
    return ;
 }
 
@@ -1827,7 +3673,7 @@ static int nosigpipe = 0 ;
 
 /*! This is used to set the send/receive buffer size for sockets **/
 
-#define SOCKET_BUFSIZE  NI_BUFSIZE
+#define SOCKET_BUFSIZE  (63*1024)
 
 /*! This macro is used so I can replace recv() with something else if I want. */
 
@@ -1838,6 +3684,7 @@ static int nosigpipe = 0 ;
 #define tcp_send send
 
 #ifndef MIN
+/*! Duh. */
 #  define MIN(a,b) (((a)>(b)) ? (b) : (a))
 #endif
 
@@ -1932,7 +3779,7 @@ static void tcp_set_cutoff( int sd )
 {
    if( sd < 0 ) return ;  /* bad input */
 
-#if 1
+#ifdef SO_LINGER
    /* Turn off "lingering". */
 
    { struct linger lg ;
@@ -1942,7 +3789,7 @@ static void tcp_set_cutoff( int sd )
    }
 #endif
 
-#if 1
+#ifdef SO_REUSEADDR
    /* Let the address be reused quickly,
       in case of another connection from the same host on the same port. */
 
@@ -2001,9 +3848,13 @@ static int tcp_connect( char * host , int port )
    /** set socket options (no delays, large buffers) **/
 
 #if 0
+   /* actually, delays (the Nagle algorithm) are OK here,
+      so we won't turn on the TCP_NODELAY option after all */
    l = 1;
    setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
 #endif
+
+   /* but large buffers are good */
 
    l = SOCKET_BUFSIZE ;
    setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
@@ -2062,6 +3913,8 @@ static int tcp_listen( int port )
    /** set socket options (no delays, large buffers) **/
 
 #if 0
+   /* actually, delays (the Nagle algorithm) are OK here,
+      so we won't turn on the TCP_NODELAY option after all */
    l = 1;
    setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
 #endif
@@ -2096,7 +3949,8 @@ static int tcp_listen( int port )
    If -1 is returned, some error occured.  If the accept works, then the
    original socket is still open and listening for further attachments.
    Under many circumstances, you will want to close the original socket
-   immediately.
+   immediately.  This can be done with CLOSEDOWN(sd), where sd is the
+   input socket.
 
    If hostname is not NULL, then the char * it points to will be filled
    with a pointer to the official name of the host that connected.
@@ -2112,14 +3966,17 @@ static int tcp_listen( int port )
    Note that this routine will block until somebody connects.  You can
    use tcp_readcheck(sd,0) to see if anyone is waiting to connect before
    calling this routine.
+
+   However, if someone connects and the IP address isn't on the
+   trusted list, then the connection will be closed immediately.
 ---------------------------------------------------------------------------*/
 
-static int tcp_accept( int sd , char ** hostname , char ** hostaddr )
+static int tcp_accept( int sd , char **hostname , char **hostaddr )
 {
    struct sockaddr_in pin ;
    int addrlen , sd_new ;
-   struct hostent * hostp ;
-   char * sout , * str ;
+   struct hostent *hostp ;
+   char *str ;
 
    /** accept the connection **/
 
@@ -2127,28 +3984,178 @@ static int tcp_accept( int sd , char ** hostname , char ** hostaddr )
    sd_new = accept( sd , (struct sockaddr *)&pin , &addrlen ) ;
    if( sd_new == -1 ){ PERROR("tcp_accept"); return -1; }
 
+   /** get dotted form address of connector **/
+
+   str = inet_ntoa( pin.sin_addr ) ;
+
+   if( !NI_trust_host(str) ){
+      fprintf(stderr,"\n** ILLEGAL attempt to connect from host %s\n",str) ;
+      CLOSEDOWN( sd_new ) ;
+      return -1 ;
+   }
+
+   if( hostaddr != NULL ) *hostaddr = strdup(str) ;
+
    /** get name of connector **/
 
    if( hostname != NULL ){
       hostp = gethostbyaddr( (char *) (&pin.sin_addr) ,
                              sizeof(struct in_addr) , AF_INET ) ;
 
-      if( hostp != NULL ) sout = NI_strdup(hostp->h_name) ;
-      else                sout = NI_strdup("UNKNOWN") ;
-
-      *hostname = sout ;
+      if( hostp != NULL ) *hostname = strdup(hostp->h_name) ;
+      else                *hostname = strdup("UNKNOWN") ;  /* bad lookup */
    }
 
-   /** get address of connector **/
-
-   if( hostaddr != NULL ){
-      str = inet_ntoa( pin.sin_addr ) ;
-      sout = NI_strdup(str) ;
-      *hostaddr = sout ;
-   }
-
-   tcp_set_cutoff( sd_new ) ;
+   tcp_set_cutoff( sd_new ) ;  /* let it die quickly, we hope */
    return sd_new ;
+}
+
+/*******************************************************************/
+/*** Functions to setup a "trusted host" list for TCP/IP accept. ***/
+/*******************************************************************/
+
+static int     host_num  = 0 ;    /*!< Number of trusted hosts. */
+static char ** host_list = NULL ; /*!< IP addresses in dotted form. */
+
+static char * init_hosts[] = { /* Initial list of OK computers */
+    "127.0.0.1"    ,           /* localhost is always OK */
+    "192.168."                 /* private class B networks */
+} ;
+#define INIT_NHO (sizeof(init_hosts)/sizeof(char *))
+#define HSIZE    32
+
+/*----------------------------------------------------------------*/
+/*! Return the Internet address (in 'dot' format, as a string)
+   given the name of the host.  If NULL is returned, some
+   error occurrrrred.  The string is malloc()-ed.
+------------------------------------------------------------------*/
+
+char * NI_hostname_to_inet( char *host )
+{
+   struct hostent * hostp ;
+   char * iname = NULL , * str ;
+   int ll ;
+
+   if( host == NULL || host[0] == '\0' ) return NULL ;
+
+   hostp = gethostbyname(host) ; if( hostp == NULL ) return NULL ;
+
+   str = inet_ntoa(*((struct in_addr *)(hostp->h_addr))) ;
+   if( str == NULL || str[0] == '\0' ) return NULL ;
+
+   iname = strdup(str) ; return iname ;
+}
+
+/*----------------------------------------------------------------*/
+/* Check if hostname is in dotted form.
+------------------------------------------------------------------*/
+
+static int hostname_dotted( char *hnam )
+{
+   int ii, nh ;
+   if( hnam == NULL ) return 0 ;
+   nh = strlen(hnam) ;
+   for( ii=0 ; ii < nh ; ii++ )
+      if( !isdigit(hnam[ii]) && hnam[ii] != '.' ) return 0 ;
+   return 1 ;
+}
+
+/*----------------------------------------------------------------*/
+/*! Add a host to the trusted list (internal version).
+------------------------------------------------------------------*/
+
+static void add_trusted_host( char *hnam )
+{
+   char *hh=NULL ;
+   int nh,ii ;
+
+   if( hnam == NULL || hnam[0] == '\0' ) return ;
+
+   if( !hostname_dotted(hnam) ){          /* not a dotted number */
+      hh = NI_hostname_to_inet( hnam ) ;  /* so do a lookup on it */
+      if( hh == NULL ) return ;           /* failed? */
+
+   } else if( nh > HSIZE-1 ){         /* something bad? */
+      return ;
+   } else {
+      hh = hnam ;                     /* store dotted number */
+   }
+
+   host_list = (char **) realloc(host_list,sizeof(char *)*(host_num+1)) ;
+   host_list[host_num] = (char *) malloc(HSIZE) ;
+   strcpy( host_list[host_num] , hh ) ; host_num++ ;
+
+   if( hh != hnam ) free(hh) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Initialize trusted list from the internal table and the environment.
+----------------------------------------------------------------------------*/
+
+static void init_trusted_list(void)
+{
+   int ii ;
+   char ename[HSIZE] , * str ;
+
+   if( host_num == 0 ){
+      host_num = INIT_NHO ;
+      host_list = (char **) malloc( sizeof(char *) * INIT_NHO ) ;
+      for( ii=0 ; ii < INIT_NHO ; ii++ ){
+         host_list[ii] = (char *) malloc(HSIZE) ;
+         strcpy( host_list[ii] , init_hosts[ii] ) ;
+      }
+
+      for( ii=0 ; ii <= 99 ; ii++ ){
+         sprintf(ename,"NIML_TRUSTHOST_%2d",ii) ;
+         str = getenv(ename) ;
+         if( str != NULL ) add_trusted_host(str) ;
+      }
+   }
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Externally callable routine to add a host to the trusted list.
+    If call with NULL, will just initialize the default trusted
+    host list.
+----------------------------------------------------------------------------*/
+
+void NI_add_trusted_host( char *hostname )
+{
+   if( host_num == 0 ) init_trusted_list() ;
+   if( hostname == NULL || hostname[0] == '\0' ) return ;
+   add_trusted_host(hostname) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Return 1 if we like hostid, 0 if we don't.
+-----------------------------------------------------------------------------*/
+
+int NI_trust_host( char *hostid )
+{
+   int ii ;
+   char *hh = hostid ;
+
+   if( host_num == 0 ) return 1 ;  /* complete trust */
+
+   if( hostid == NULL || hostid[0] == '\0' ) return 0 ;
+
+   if( !hostname_dotted(hostid) ){
+      hh = NI_hostname_to_inet(hostid) ;  /* will be malloc()-ed */
+      if( hh == NULL ) return 0 ;
+   }
+
+   /* to be trusted, hostid must start with same
+      string as something in the trusted host_list array */
+
+   for( ii=0 ; ii < host_num ; ii++ ){
+      if( strstr(hh,host_list[ii]) == hh ){
+        if( hh != hostid ) free(hh) ;
+        return 1 ;
+      }
+   }
+
+   if( hh != hostid ) free(hh) ;
+   return 0 ;
 }
 
 /*******************************************************************/
@@ -3038,6 +5045,12 @@ HeadRestart:                            /* loop back here to retry */
    mleft = msec - (NI_clock_time()-start_time) ;      /* time left */
    if( num_restart > 1 && mleft <= 0 ) return NULL ;  /* don't allow too many loops */
 
+#if 0
+NI_sleep(500) ;
+fprintf(stderr,"NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" ,
+               num_restart ) ;
+#endif
+
    nn = scan_for_angles( ns , 0 ) ;     /* look for '<stuff>' */
 
    /* didn't find it */
@@ -3092,6 +5105,12 @@ HeadRestart:                            /* loop back here to retry */
 
       num_restart = 0 ;
       while(1){           /* loop to find an element */
+
+#if 0
+NI_sleep(500) ;
+fprintf(stderr,"NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
+               num_restart ) ;
+#endif
 
          nn = scan_for_angles( ns , 10 ) ;  /* find header/trailer '<...>' */
 
@@ -3181,17 +5200,18 @@ HeadRestart:                            /* loop back here to retry */
 
       if( ii >= 0 && nel->attr_rhs[ii] != NULL ){ /* parse ni_form=rhs */
 
-         /* at present, the only non-text mode is "binary" */
+         /* binary or base64 mode? */
 
-         if( strstr(nel->attr_rhs[ii],"bin") != NULL ){
-            int order=NI_MSB_FIRST ; /* default input byteorder */
-
+         if( strstr(nel->attr_rhs[ii],"bin") != NULL )
             form = NI_BINARY_MODE ;
+         else if( strstr(nel->attr_rhs[ii],"bas") != NULL )
+            form = NI_BASE64_MODE ;
 
-            /* check byteorder in header vs. this CPU */
+         /* check byteorder in header vs. this CPU */
 
+         if( form != NI_TEXT_MODE ){
+            int order=NI_MSB_FIRST ; /* default input byteorder */
             if( strstr(nel->attr_rhs[ii],"lsb") != NULL ) order = NI_LSB_FIRST;
-
             swap = ( order != NI_byteorder() ) ;  /* swap bytes? */
          }
       }
@@ -3208,7 +5228,178 @@ HeadRestart:                            /* loop back here to retry */
 
         /*......................................................*/
 
-        case NI_BINARY_MODE:
+        case NI_BASE64_MODE:{
+         char *bbuf = NI_malloc(nbrow+8) ;  /* binary results */
+         byte  a,b,c,w,x,y,z ;              /* base64 stuff */
+         int   bb=0, bpos, num_reread=0 , bdone ;
+
+         /* Base64 encodes 3 bytes of binary in 4 bytes of
+             character coding;
+            bbuf is the binary output of the conversion
+            bb is the number of bytes currently saved in bbuf */
+
+         load_decode_table() ;         /* prepare for base64 decoding */
+
+         while( row < nel->vec_len ){  /* loop over input rows */
+
+           /* we may be forced back here before a row
+              is finished, if we run out of input data */
+
+           num_reread = 0 ;
+Base64Reread:
+#if 0
+fprintf(stderr,"b64: Reread at row=%d num_reread=%d\n",row,num_reread) ;
+#endif
+           num_reread++ ; if( num_reread > 4 ) goto Base64Done ;
+
+           /* if not enough data left in buffer to fill up
+              one quad of base64 bytes into cbuf,
+              then try to read more data into the buffer */
+
+           if( num_reread > 1 || ns->nbuf-ns->npos < 4 ){
+
+             reset_buffer(ns) ;  /* discard used up data in buffer */
+                                 /* (so ns->npos == 0 now)         */
+
+             /* now read at least enough to fill up one quad,
+                waiting a long time if need be (or until the stream goes bad) */
+
+             bpos = 4 - ns->nbuf ; if( bpos <= 0 ) bpos = 1 ;
+
+#if 0
+fprintf(stderr,"b64: reading extra data\n") ;
+#endif
+
+             (void) NI_stream_fillbuf( ns , bpos , 9999 ) ;
+
+             /* if still don't have a full quad of data
+                something bad has happened (end-of-file? closed socket?);
+                we don't try to recover a partial row; instead, just quit */
+
+             if( ns->nbuf < 4 ) goto Base64Done ;
+           }
+
+           /* copy base64 bytes out of the stream buffer,
+              converting them to binary as we get full quads,
+              then putting the results into bbuf;
+              when bbuf is full, then we've finished a row
+              and can put it into the data element vectors */
+
+           bdone = 0 ;  /* bdone==1 when we hit '=' at end of base64 input */
+           do{
+             bpos = ns->npos ;  /* scan forward in input buffer using bpos */
+
+             /* get next valid base64 character into w;
+                if we hit the end token '<' first, quit;
+                if we hit the end of the buffer first, need more data */
+
+#if 0
+fprintf(stderr,"b64: bpos=%d bb=%d\n",bpos,bb) ;
+#endif
+
+             w = ns->buf[bpos++] ;
+             while( !B64_goodchar(w) && w != '<' && bpos < ns->nbuf )
+               w = ns->buf[bpos++] ;
+             if( w == '<' ){ ns->npos = bpos-1; goto Base64Done; }
+             if( bpos == ns->nbuf ){ ns->npos=bpos; goto Base64Reread; }
+             ns->npos = bpos-1 ;  /* if we have to reread, will start here */
+
+#if 0
+fprintf(stderr,"b64: bpos=%d w=%c\n",bpos,w) ;
+#endif
+
+             /* repeat to fill x */
+
+             x = ns->buf[bpos++] ;
+             while( !B64_goodchar(x) && x != '<' && bpos < ns->nbuf )
+               x = ns->buf[bpos++] ;
+             if( x == '<' ){ ns->npos = bpos-1; goto Base64Done; }
+             if( bpos == ns->nbuf ){ goto Base64Reread; }
+
+#if 0
+fprintf(stderr,"b64: bpos=%d x=%c\n",bpos,x) ;
+#endif
+
+             /* repeat to fill y */
+
+             y = ns->buf[bpos++] ;
+             while( !B64_goodchar(y) && y != '<' && bpos < ns->nbuf )
+               y = ns->buf[bpos++] ;
+             if( y == '<' ){ ns->npos = bpos-1; goto Base64Done; }
+             if( bpos == ns->nbuf ){ goto Base64Reread; }
+
+#if 0
+fprintf(stderr,"b64: bpos=%d y=%c\n",bpos,y) ;
+#endif
+
+             /* repeat to fill z */
+
+             z = ns->buf[bpos++] ;
+             while( !B64_goodchar(z) && z != '<' && bpos < ns->nbuf )
+               z = ns->buf[bpos++] ;
+             if( z == '<' ){ ns->npos = bpos-1; goto Base64Done; }
+             if( bpos == ns->nbuf ){ goto Base64Reread; }
+
+#if 0
+fprintf(stderr,"b64: bpos=%d z=%c\n",bpos,z) ;
+#endif
+
+             /* at this point, have w,x,y,z to decode */
+
+             ns->npos = bpos ;  /* scan continues at next place in buffer */
+
+             B64_decode4(w,x,y,z,a,b,c) ;  /* decode 4 bytes into 3 */
+
+             if( z == '=' ){                        /* got to the end? */
+               int nn = B64_decode_count(w,x,y,z) ; /* see how many to save */
+               if( nn > 0 ) bbuf[bb++] = a ;
+               if( nn > 1 ) bbuf[bb++] = b ;
+               bdone = 1 ; break ;                  /* end of base64 data */
+             }
+
+             /* not at the end => save all 3 outputs, loop back */
+
+             bbuf[bb++] = a ; bbuf[bb++] = b ; bbuf[bb++] = c ;
+
+           } while( bb < nbrow ) ;  /* loop to fill output buffer */
+
+#if 0
+fprintf(stderr,"b64: decoded row=%d with bb=%d\n",row,bb) ;
+#endif
+
+           /* if we've not filled a full row,
+              then we reached the end of the base64 input
+              (that was the only break out of the loop above) */
+
+           if( bb < nbrow ) goto Base64Done ;
+
+           /* have a full row here ==> save it! */
+
+           NI_fill_vector_row( nel , row , bbuf ) ;
+           row++ ;
+           if( bdone ) goto Base64Done ;
+
+           /* if we had more data stored into bbuf than
+              was needed for one row, move the extra data down now */
+
+           if( bb > nbrow ){
+              memmove( bbuf , bbuf+nbrow , bb-nbrow ) ;
+              bb = bb - nbrow ;
+           } else {
+              bb = 0 ;
+           }
+
+         } /* end of loop over vector rows */
+
+Base64Done:
+         nel->vec_filled = row ;  /* how many rows were filled above */
+         NI_free(bbuf) ;
+        }
+        break ; /* end of base64 input */
+
+        /*......................................................*/
+
+        case NI_BINARY_MODE:{
          while( row < nel->vec_len ){  /* loop over input rows */
 
            /* if not enough data left in buffer for 1 row
@@ -3250,7 +5441,7 @@ HeadRestart:                            /* loop back here to retry */
 
 BinaryDone:
          nel->vec_filled = row ;  /* how many rows were filled above */
-
+        }
         break ;  /* end of binary input */
 
         /*......................................................*/
@@ -3402,7 +5593,13 @@ TailRestart:
       if( num_restart < 99 ){  /* don't loop forever, dude */
          int is_tail ;
 
-         nn = scan_for_angles( ns , 10 ) ;  /* find '<...>' */
+#if 0
+NI_sleep(100) ;
+fprintf(stderr,"NI_read_element: TailRestart scan_for_angles; num_restart=%d\n" ,
+               num_restart ) ;
+#endif
+
+         nn = scan_for_angles( ns , 99 ) ;  /* find '<...>' */
 
          /* if we didn't find '<...>' at all,
             then if the I/O stream is bad, just exit;
@@ -3668,8 +5865,18 @@ Restart:                                       /* loop back here to retry */
 
    if( num_restart > 3 && mleft <= 0 ){                        /* failure */
       reset_buffer(ns) ;                               /* and out of time */
+#if 0
+fprintf(stderr,"  scan_for_angles: out of time\n") ;
+#endif
       return -1 ;
    }
+
+#if 0
+NI_sleep(500) ;
+if( ns->npos < ns->nbuf )
+fprintf(stderr,"  scan_for_angles: npos=%d epos=%d nbuf=%d buffer=%.*s\n",
+        ns->npos,epos,ns->nbuf,ns->nbuf-ns->npos,ns->buf+ns->npos ) ;
+#endif
 
    /*-- skip ahead to find goal in the buffer --*/
 
@@ -3678,6 +5885,10 @@ Restart:                                       /* loop back here to retry */
    /*-- if we found our goal, do something about it --*/
 
    if( epos < ns->nbuf ){
+
+#if 0
+fprintf(stderr,"  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
+#endif
 
      /*-- if our goal was the closing '>', we are done! --*/
 
@@ -3700,11 +5911,20 @@ Restart:                                       /* loop back here to retry */
         (c) UNLESS the buffer is full
              - in this case, the universe ends right here and now --*/
 
-   if( goal == '<' ){                   /* case (a) */
+   if( goal == '<' ){                    /* case (a) */
+#if 0
+fprintf(stderr,"  scan_for_angles: case (a)\n") ;
+#endif
       ns->nbuf = ns->npos = epos = 0 ;
    } else if( ns->nbuf < ns->bufsize ){  /* case (b) */
+#if 0
+fprintf(stderr,"  scan_for_angles: case (b)\n") ;
+#endif
       reset_buffer(ns) ; epos = 0 ;
-   } else {                             /* case (c) */
+   } else {                              /* case (c) */
+#if 0
+fprintf(stderr,"  scan_for_angles: case (c)\n") ;
+#endif
       ns->nbuf = 0 ; return -1 ;
    }
 
@@ -3747,170 +5967,6 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
 #endif
 
 /*------------------------------------------------------------------------*/
-/* Quotize (and escapize) a string, returning a new string. */
-
-static char * quotize_string( char *str )
-{
-   int ii,jj , lstr,lout ;
-   char *out ;
-
-   lstr = NI_strlen(str) ;
-   if( lstr == 0 ){ out = NI_malloc(4); strcpy(out,"\"\""); return out; }
-   lout = 4 ;
-   for( ii=0 ; ii < lstr ; ii++ ){
-      switch( str[ii] ){
-         case '&': lout += 5 ; break ;
-
-         case '<':
-         case '>': lout += 4 ; break ;
-
-         case '"' :
-         case '\'': lout +=6 ; break ;
-
-         default: lout++ ; break ;
-      }
-   }
-   out = NI_malloc(lout) ;
-   out[0] = '"' ;
-   for( ii=0,jj=1 ; ii < lstr ; ii++ ){
-      switch( str[ii] ){
-         default: out[jj++] = str[ii] ; break ;
-
-         case '&':  memcpy(out+jj,"&amp;",5)  ; jj+=5 ; break ;
-
-         case '<':  memcpy(out+jj,"&lt;",4)   ; jj+=4 ; break ;
-         case '>':  memcpy(out+jj,"&gt;",4)   ; jj+=4 ; break ;
-
-         case '"' : memcpy(out+jj,"&quot;",6) ; jj+=6 ; break ;
-
-         case '\'': memcpy(out+jj,"&apos;",6) ; jj+=6 ; break ;
-      }
-   }
-   out[jj++] = '"' ; out[jj] = '\0' ; return out ;
-}
-
-/*------------------------------------------------------------------------*/
-/*! Quotize an array of strings, separating substrings with sep. */
-
-static char * quotize_string_vector( int num , char **str , char sep )
-{
-   char *out , **qstr ;
-   int ii , ntot , ll,nn ;
-
-   /* handle special cases */
-
-   if( num <= 0 || str == NULL )
-      return quotize_string(NULL) ;
-
-   if( num == 1 )
-      return quotize_string( str[0] ) ;
-
-   /* default separator */
-
-   if( sep == '\0' ) sep = ',' ;
-
-   /* temp array for quotized individual sub-strings */
-
-   qstr = NI_malloc(sizeof(char *)*num) ;
-
-   for( ntot=ii=0 ; ii < num ; ii++ ){
-      qstr[ii] = quotize_string( str[ii] ) ;
-      ntot += NI_strlen( qstr[ii] ) ;
-   }
-
-   /* make output, put 1st sub-string into it */
-
-   out = NI_malloc(ntot) ;
-   strcpy( out , qstr[0] ) ; NI_free(qstr[0]) ;
-   for( ii=1 ; ii < num ; ii++ ){
-      ll = strlen(out) ;  /* put separator at end of string string, */
-      out[ll-1] = sep ;   /* in place of the closing " mark.       */
-
-      strcat(out,qstr[ii]+1) ;  /* catenate with next sub-string, */
-                                    /* but skip the opening " mark.  */
-      NI_free(qstr[ii]) ;
-   }
-
-   NI_free(qstr) ; return out ;
-}
-
-/*------------------------------------------------------------------------*/
-/*! Quotize a bunch of ints. */
-
-static char * quotize_int_vector( int num , int *vec , char sep )
-{
-   int ii , jj ;
-   char *out , **qstr ;
-
-   if( num <= 0 || vec == NULL )
-      return quotize_string(NULL) ;
-
-   qstr = NI_malloc(sizeof(char *)*num) ;
-   for( ii=0 ; ii < num ; ii++ ){
-      qstr[ii] = NI_malloc(16) ;
-      sprintf(qstr[ii],"%d",vec[ii]) ;
-      for( jj=strlen(qstr[ii])-1 ;                   /* clip */
-           jj > 0 && isspace(qstr[ii][jj]) ; jj-- )  /* trailing */
-        qstr[ii][jj] = '\0' ;                        /* blanks */
-   }
-
-   out = quotize_string_vector( num , qstr , sep ) ;
-
-   for( ii=0 ; ii < num ; ii++ ) NI_free(qstr[ii]) ;
-
-   NI_free(qstr) ; return out ;
-}
-
-/*------------------------------------------------------------------------*/
-/*! Quotize a bunch of floats. */
-
-static char * quotize_float_vector( int num , float *vec , char sep )
-{
-   int ii , jj , ff ;
-   char *out , **qstr , fbuf[32] ;
-
-   if( num <= 0 || vec == NULL )
-      return quotize_string(NULL) ;
-
-   qstr = NI_malloc(sizeof(char *)*num) ;
-   for( ii=0 ; ii < num ; ii++ ){
-      sprintf(fbuf," %12.6g",vec[ii]) ;
-      for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
-      for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
-      qstr[ii] = NI_strdup(fbuf+ff) ;
-   }
-
-   out = quotize_string_vector( num , qstr , sep ) ;
-
-   for( ii=0 ; ii < num ; ii++ ) NI_free(qstr[ii]) ;
-
-   NI_free(qstr) ; return out ;
-}
-
-/*------------------------------------------------------------------------*/
-/*! Check a string for 'nameness' - that is, consists only of legal
-    characters for a NIML 'Name'.  Returns 1 if it is a Name and 0 if
-    is not.
---------------------------------------------------------------------------*/
-
-static int NI_is_name( char *str )
-{
-   int ii , ll ;
-
-   if( str == NULL || str[0] == '\0' || !isalpha(str[0]) ) return 0 ;
-
-   ll = NI_strlen(str) ;
-
-   for( ii=0 ; ii < ll ; ii++ ){
-      if( isalnum(str[ii]) || str[ii] == '_'   ||
-          str[ii] == '.'   || str[ii] == '-'     ) continue ;
-      return 0 ;
-   }
-
-   return 1 ;
-}
-
-/*------------------------------------------------------------------------*/
 /*! Write an element (data or group) to a stream.
     Return value is number of bytes written to the stream.
     If return is -1, something bad happened.  You should check
@@ -3927,12 +5983,15 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    char *wbuf , *att=NULL , *qtt , *btt ;
    int  nwbuf , ii,jj,row,col , tt=NI_element_type(nini) , ntot=0,nout ;
 
+   char *bbuf , *cbuf ;  /* base64 stuff */
+   int   bb   ,  cc   ;
+
    /* ADDOUT = after writing, add byte count if OK, else quit */
-   /* AF     = thing to NI_free() if ADDOUT is quitting */
+   /* AF     = thing to do if ADDOUT is quitting */
 
 #undef  AF
-#define AF     NULL
-#define ADDOUT if(nout<0){NI_free(AF);return -1;} else ntot += nout
+#define AF     0
+#define ADDOUT if(nout<0){AF;return -1;} else ntot += nout
 
    if( ns == NULL ) return -1 ;
 
@@ -4021,11 +6080,10 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       }
 
       switch( tmode ){
-         default: tmode = NI_TEXT_MODE ; break ; /* currently the only mode */
+         default: tmode = NI_TEXT_MODE ; break ;
+
          case NI_BINARY_MODE: break ;
-#if 0
          case NI_BASE64_MODE: break ;
-#endif
       }
 
       /* space to hold attribute strings */
@@ -4033,7 +6091,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       att = NI_malloc( 4096 + 2*nel->vec_num + 128*nel->vec_rank ) ;
 
 #undef  AF
-#define AF att  /* free att if we have to quit early */
+#define AF NI_free(att)  /* free att if we have to quit early now */
 
       /* write start of header "<name" */
 
@@ -4216,7 +6274,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       NI_free(att) ; att = NULL ; /* done with attributes */
 
 #undef  AF
-#define AF NULL  /* free nothing if we have to quit early */
+#define AF 0  /* nothing to do if we have to quit early */
 
       /*- close header -*/
 
@@ -4230,7 +6288,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
         return ntot ;                 /* done with empty element */
       }
 
-      /*- if here, must write data out -*/
+      /*- if here, must write some data out -*/
 
       /* first, terminate the header,
          and allocate space for the write buffer (1 row at a time) */
@@ -4247,21 +6305,31 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
             nwbuf = NI_element_rowsize(nel) ;         /* binary buffer */
          break ;
 
-#if 0
          case NI_BASE64_MODE:
-            btt = ">\n" ;
-            nwbuf = NI_element_rowsize(nel) ;
+            btt = ">\n" ;                             /* add a newline */
+            nwbuf = NI_element_rowsize(nel) ;         /* binary buffer */
+            load_encode_table() ;                     /* initialize B64 */
          break ;
-#endif
       }
 
       nout = NI_stream_write( ns , btt , strlen(btt) ) ;
       ADDOUT ;
 
+      /* allocate output buffer */
+
       wbuf = NI_malloc(nwbuf+128) ;  /* 128 for the hell of it */
 
+      /* allocate buffer for base64 encoding  */
+
+      if( tmode == NI_BASE64_MODE ){
+         bbuf = NI_malloc(  nwbuf+128) ; bb = 0 ;  /* binary buffer */
+         cbuf = NI_malloc(2*nwbuf+128) ; cc = 0 ;  /* base64 buffer */
+      } else {
+         bbuf = cbuf = NULL ;
+      }
+
 #undef  AF
-#define AF wbuf  /* free wbuf if we have to quit early */
+#define AF NI_free(wbuf);NI_free(bbuf);NI_free(cbuf)
 
       /*- loop over output rows and write results -*/
 
@@ -4271,6 +6339,8 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
         switch( tmode ){
            case NI_TEXT_MODE:    wbuf[0] = '\0'; break; /* clear buffer */
+
+           case NI_BASE64_MODE:
            case NI_BINARY_MODE:  jj = 0 ;        break; /* clear byte count */
         }
 
@@ -4377,6 +6447,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
           break ; /* end of NI_TEXT_MODE */
 
           /*----- put the binary form of this element into wbuf+jj -----*/
+          case NI_BASE64_MODE:
           case NI_BINARY_MODE:{
            switch( nel->vec_typ[col] ){
             default: break ;              /* should not happen */
@@ -4439,7 +6510,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
            } /* end of switch on datum type */
           }
-          break ; /* end of NI_BINARY_MODE */
+          break ; /* end of NI_BINARY_MODE and NI_BASE64_MODE */
 
          } /* end of switch on tmode */
         } /* end of loop over columns */
@@ -4457,18 +6528,72 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
             nout = NI_stream_write( ns , wbuf , nwbuf ) ;
             ADDOUT ;
           break ;
+
+          /* must convert binary byte triples into base64 byte quads */
+          case NI_BASE64_MODE:{
+            int nb , nb3 , nb64 , pp,qq ;
+            byte a,b,c,w,x,y,z ;
+
+            /* bbuf = bb bytes of unprocessed data from last row
+                      plus nwbuf bytes of data from new row      */
+
+            memcpy(bbuf+bb,wbuf,nwbuf) ;    /* add wbuf to bbuf      */
+            nb = nwbuf+bb ;                 /* number of bytes in bb */
+            if( nb < 3 ){ bb = nb; break; } /* need at least 3 bytes */
+            nb3 = 3*(nb/3) ;                /* will encode nb3 bytes */
+
+            /* cbuf = base64 output buffer */
+            /* cc   = # bytes written since last EOL */
+
+            for( qq=pp=0 ; pp < nb3 ; ){
+              a = bbuf[pp++] ; b = bbuf[pp++] ; c = bbuf[pp++] ;
+              B64_encode3(a,b,c,w,x,y,z) ;
+              cbuf[qq++] = w ; cbuf[qq++] = x ;
+              cbuf[qq++] = y ; cbuf[qq++] = z ;
+              cc += 4; if( cc > 64 ){ cbuf[qq++]=B64_EOL2; cc=0; }
+            }
+
+            /* write base64 bytes to output */
+
+            nout = NI_stream_write( ns , cbuf , qq ) ;
+            ADDOUT ;
+
+            /* deal with leftover bytes in bbuf */
+
+            bb = nb - nb3 ;  /* num leftover bytes = 0, 1, or 2 */
+            if( bb > 0 ){
+              bbuf[0] = bbuf[nb3] ;                /* copy leftovers   */
+              if( bb > 1 ) bbuf[1] = bbuf[nb3+1] ; /* to front of bbuf */
+            }
+          }
+          break ;
         }
 
       } /* end of loop over rows */
 
-      NI_free(wbuf) ;  /* don't need row buffer no more no how */
+      /* In base64 mode, we might have to clean
+         up if there are any leftover bytes in bbuf. */
+
+      if( tmode == NI_BASE64_MODE && bb > 0 ){
+        byte w,x,y,z ;
+        if( bb == 2 ) B64_encode2(bbuf[0],bbuf[1],w,x,y,z) ;
+        else          B64_encode1(bbuf[0],w,x,y,z) ;
+        cbuf[0] = w ; cbuf[1] = x ;
+        cbuf[2] = y ; cbuf[3] = z ; cbuf[4] = B64_EOL2 ;
+        nout = NI_stream_write( ns , cbuf , 5 ) ;
+        ADDOUT ;
+      }
+
+      NI_free(wbuf) ;  /* don't need output buffer no more no how */
+      NI_free(bbuf) ;
+      NI_free(cbuf) ;
 
 #undef  AF
-#define AF NULL  /* free nothing if we quit early */
+#define AF 0  /* nothing to do if we quit early now */
 
       /*- write element trailer -*/
 
-      nout = NI_stream_write( ns , "</" , 2 ) ;
+      nout = NI_stream_write( ns , " </" , 3 ) ;
       ADDOUT ;
       nout = NI_stream_write( ns , nel->name , strlen(nel->name) ) ;
       ADDOUT ;
@@ -4479,1357 +6604,4 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    } /* end of write data element */
 
    return -1 ; /* should never be reachable */
-}
-
-/*************************************************************************/
-/********************** Functions for fetching URLs **********************/
-/**********************  [adapted from thd_http.c]  **********************/
-/*************************************************************************/
-
-static int www_debug = 0 ;
-#define FAILED     if(www_debug)fprintf(stderr," **FAILED\n")
-#define DMESS(s,t) if(www_debug)fprintf(stderr,s,t)
-
-/*---------------------------------------------------------------------*/
-static char tmpdir[512] = "\0" ;
-
-static void setup_tmpdir(void)
-{
-   char *td ;
-
-   if( tmpdir[0] != '\0' ) return ;
-
-                    td = getenv("TMPDIR")  ;
-   if( td == NULL ) td = getenv("TEMPDIR") ;
-
-   if( td == NULL || td[0] == '\0' || strlen(td) > 222 ){
-      strcpy(tmpdir,"/tmp/") ;
-   } else {
-      int ltd ;
-      NI_strncpy(tmpdir,td,511) ;
-      ltd = strlen(tmpdir) ;
-      if( tmpdir[ltd-1] != '/' ) strcat(tmpdir,"/") ;
-   }
-}
-
-/*---------------------------------------------------------------------
-  Open an "http://" URL in host, port, and filename pieces.
-  Wait up to msec milliseconds for network functions to occur.
-  If an error occurs, return NULL, otherwise the caller can read
-  from this NI_stream.
------------------------------------------------------------------------*/
-
-static NI_stream_type * open_URL_hpf( char *host, int port,
-                                      char *file, int msec )
-{
-   NI_stream_type *ns ;
-   char str[1024] ;
-   int ii ;
-
-   if( host == NULL || port <= 0 || file == NULL ) return NULL ;
-
-   sprintf(str,"tcp:%s:%d",host,port) ;
-   DMESS(" ++Opening %s",str);
-   ns = NI_stream_open( str , "w" ) ;
-   if( ns == NULL ){ FAILED; return NULL; }
-   ii = NI_stream_writecheck( ns , msec ) ;
-   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
-
-   DMESS(" ++GET %s",file);
-   sprintf(str,"GET %s\n",file) ;                     /* HTTP 0.9 */
-   ii = NI_stream_write( ns , str , strlen(str) ) ;
-   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
-
-   ii = NI_stream_readcheck( ns , msec ) ;
-   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
-   DMESS("%s"," **OPENED");
-   return ns ;
-}
-
-/*----------------------------------------------------------------------
-  Open an "http://" URL and prepare to read it (but the caller must
-  actually do the reading).  If NULL is returned, an error occurred.
-------------------------------------------------------------------------*/
-
-#define HTTP     "http://"
-#define HTTPLEN  7
-
-#define FTP      "ftp://"
-#define FTPLEN   6
-
-static NI_stream_type * open_URL_http( char *url , int msec )
-{
-  char *s, *h , *file ;
-  char hostname[512] ;
-  int port;
-  NI_stream_type *ns ;
-
-  /* check inputs */
-
-  if( url == NULL || strstr(url,HTTP) != url ) return NULL ;
-
-  /* parse hostname */
-
-  for( s=url+HTTPLEN , h=hostname ;
-       (*s != '\0') && (*s != ':') && (*s != '/') ; s++ , h++ ) *h = *s ;
-
-  *h = '\0' ; if( hostname[0] == '\0' ) return NULL ;
-
-  /* parse port number if present */
-
-  port = 0 ;
-  if( *s == ':' ){ port = strtol( ++s , &h , 10 ) ; s = h ; }
-  if( port <= 0 ) port = 80 ;
-
-  /* get the file name (keep leading "/") */
-
-  file = (*s == '/') ? s : "/" ;
-
-  /* do the actual work */
-
-  ns = open_URL_hpf( hostname , port , file , msec ) ;
-  return ns ;
-}
-
-/*---------------------------------------------------------------
-  Read an "http://" URL, with network waits of up to msec
-  milliseconds allowed.  Returns number of bytes read -- if this
-  is > 0, then *data will be a pointer to malloc-ed bytes holding
-  the contents of the file.
-
-  If the file is gzip-ed, then it will be un-gzip-ed before being
-  loaded into memory.  This uses temporary files in $TMPDIR or
-  /tmp, which must have space to hold the compressed and
-  uncompressed file.  If the file is not compressed, then input
-  is directly to memory and no temporary files are used.
------------------------------------------------------------------*/
-
-#define QBUF 4096
-
-static int read_URL_http( char *url , int msec , char **data )
-{
-   NI_stream_type *ns ;
-   char *buf=NULL , *cpt , qbuf[QBUF] , qname[256] ;
-   int ii,jj , nall=0 , nuse ;
-   int cflag , first ;
-   FILE *cfile=NULL ;
-
-   /* sanity check */
-
-   if( url == NULL || data == NULL || msec < 0 ) return( -1 );
-
-   /* open http channel to get url */
-
-   ns = open_URL_http( url , msec ) ;
-   if( ns == NULL ){ DMESS("%s","\n"); return( -1 ); }
-
-   /* check if url will be returned gzip-ed */
-
-   ii = strlen(url) ;
-   if( ii > 3 ){
-      cpt = url + (ii-3) ; cflag = (strcmp(cpt,".gz") == 0) ;
-   } else {
-      cflag = 0 ;
-   }
-
-   if( cflag ){
-      setup_tmpdir() ;
-      strcpy(qname,tmpdir) ; strcat(qname,"ElvisXXXXXX") ;
-      mktemp(qname) ;
-      if( qname[0] != '\0' ){
-         strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
-         if( cfile == NULL ) cflag == 0 ;
-      } else {
-         cflag = 0 ;
-      }
-
-      if( cflag == 0 ){
-         DMESS(" **Temp file %s FAILS\n",qname); NI_stream_close(ns); return(-1);
-      }
-      DMESS(" ++Temp file=%s",qname);
-   }
-
-   /* read all of url */
-
-   if( !cflag ){ buf = malloc( QBUF ) ; nall = QBUF ; }
-   nuse = 0 ; first = 1 ;
-
-   do{
-      if(www_debug)fprintf(stderr,".");
-      ii = NI_stream_readcheck( ns , msec ) ;  /* wait for data to be ready */
-      if( ii <= 0 ) break ;                    /* quit if no data */
-      ii = NI_stream_read( ns , qbuf , QBUF ) ;
-      if( ii <= 0 ) break ;                  /* quit if no data */
-
-      if( first ){                           /* check for "not found" */
-         if( buf == NULL ){ buf = malloc(ii) ; }
-         memcpy( buf , qbuf , ii ) ;
-         for( jj=0 ; jj < ii ; jj++ ) buf[jj] = toupper(buf[jj]) ;
-         buf[ii-1] = '\0' ;
-         cpt = strstr(buf,"NOT FOUND") ;
-         if( cpt != NULL ){
-            if( cflag ){ fclose(cfile) ; unlink(qname) ; }
-            DMESS("%s"," **NOT FOUND\n");
-            free(buf) ; NI_stream_close(ns) ; return( -1 );
-         }
-         first = 0 ;
-         if( cflag ){ free(buf) ; buf = NULL ; }
-      }
-
-      if( cflag ){                           /* write to temp file */
-         nall = fwrite( qbuf , 1 , ii , cfile ) ;
-         if( nall != ii ){                   /* write failed? */
-            DMESS("\n** Write to temp file %s FAILED!\n",qname);
-            fclose(cfile) ; unlink(qname) ;
-            NI_stream_close(ns) ; return( -1 );
-         }
-      } else {                               /* save to buffer */
-         if( nuse+ii > nall ){               /* enlarge buffer? */
-            nall += QBUF ;
-            buf   = realloc( buf , nall ) ;
-         }
-         memcpy( buf+nuse , qbuf , ii ) ;    /* copy data into buffer */
-      }
-      nuse += ii ;                           /* how many bytes so far */
-   } while(1) ;
-   NI_stream_close(ns) ;
-
-   /* didn't get anything? */
-
-   if( nuse <= 0 ){
-      if( cflag ){ fclose(cfile) ; unlink(qname) ; }
-      else       { free(buf) ; }
-      FAILED; return(-1);
-   }
-   if(www_debug)fprintf(stderr,"!\n");
-
-   /* uncompression time? */
-
-   if( cflag ){
-      fclose(cfile) ;
-      sprintf( qbuf , "gzip -dq %s" , qname ) ;     /* execute gzip */
-      ii = system(qbuf) ;
-      if( ii != 0 ){ DMESS("%s"," **gzip failed!\n");
-                     unlink(qname) ; return( -1 );   }  /* gzip failed  */
-      ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
-      nuse = NI_filesize( qname ) ;                 /* find how big */
-      if( nuse <= 0 ){ DMESS("%s"," **gzip failed!\n");
-                       unlink(qname) ; return( -1 );   }
-
-      cfile = fopen( qname , "rb" ) ;
-      if( cfile == NULL ){ DMESS("%s"," **gzip failed!\n");
-                           unlink(qname) ; return( -1 );   }
-      buf = malloc(nuse) ;
-      fread( buf , 1 , nuse , cfile ) ;             /* read file in */
-      fclose(cfile) ; unlink(qname) ;
-   }
-
-   /* data is in buf, nuse bytes of it */
-
-   DMESS("%s","\n"); *data = buf ; return( nuse );
-}
-
-/*---------------------------------------------------------------------*/
-
-static char ftp_name[512] = "anonymous" ;
-static char ftp_pwd[512]  = "NIML@nowhere.org" ;
-
-void NI_set_URL_ftp_ident( char *name , char *pwd )
-{
-   int ll ;
-
-   if( name == NULL || pwd == NULL ) return ;
-
-   ll = strlen(name) ; if( ll < 1 || ll > 511 ) return ;
-   ll = strlen(pwd)  ; if( ll < 1 || ll > 511 ) return ;
-
-   strcpy(ftp_name,name) ; strcpy(ftp_pwd,pwd) ; return ;
-}
-
-/*---------------------------------------------------------------------
-  Reads an "ftp://" URL, similarly to read_URL_http above;
-  however, staging is always done through a temporary file.
------------------------------------------------------------------------*/
-
-static int read_URL_ftp( char *url , char **data )
-{
-   char *s, *h , *file , qname[256] , sname[256] , *cpt , *buf ;
-   char hostname[512] ;
-   int port , ii , cflag , nuse ;
-   FILE *sp ;
-
-   /* sanity check */
-
-   if( url == NULL || data == NULL || strstr(url,FTP) != url ) return( -1 );
-
-   /* parse hostname */
-
-   for( s=url+FTPLEN , h=hostname ;
-        (*s != '\0') && (*s != ':') && (*s != '/') ; s++ , h++ ) *h = *s ;
-
-   *h = '\0' ; if( hostname[0] == '\0' ) return( -1 );
-
-   /* parse port number, if present */
-
-   port = 0 ;
-   if( *s == ':' ){ port = strtol( ++s , &h , 10 ) ; s = h ; }
-
-   /* get the file name (strip off leading "/") */
-
-   if( *s == '/' ){
-      file = s+1 ; if( file[0] == '\0' ) return( -1 );
-   } else {
-                                         return( -1 );
-   }
-
-   /* check if file will be returned gzip-ed */
-
-   ii = strlen(file) ;
-   if( ii > 3 ){
-      cpt = file + (ii-3) ; cflag = (strcmp(cpt,".gz") == 0) ;
-   } else {
-      cflag = 0 ;
-   }
-
-   /* make name for output file */
-
-   setup_tmpdir() ;
-   strcpy(qname,tmpdir) ; strcat(qname,"EthelXXXXXX") ;
-   mktemp(qname) ;
-   if( qname[0] == '\0' ) return( -1 );
-   if( cflag ) strcat(qname,".gz") ;
-
-   /* write the script file that will be used to run ftp */
-
-   strcpy(sname,tmpdir) ; strcat(sname,"DahmerXXXXXX") ;
-   mktemp(sname) ;             if( sname[0] == '\0' ) return( -1 );
-   sp = fopen( sname , "w" ) ; if( sp == NULL )       return( -1 );
-
-   fprintf( sp , "#!/bin/sh\n" ) ;
-   fprintf( sp , "ftp -n << EEEEE &> /dev/null\n") ;
-   if( port > 0 )
-      fprintf( sp , "open %s %d\n" , hostname , port ) ;
-   else
-      fprintf( sp , "open %s\n" , hostname ) ;
-   fprintf( sp , "user %s %s\n" , ftp_name, ftp_pwd ) ;
-   fprintf( sp , "binary\n" ) ;
-   fprintf( sp , "get %s %s\n" , file , qname ) ;
-   fprintf( sp , "bye\n" ) ;
-   fprintf( sp , "EEEEE\n" ) ;
-   fprintf( sp , "exit\n" ) ;
-   fclose( sp ) ;
-   chmod( sname , S_IRUSR | S_IWUSR | S_IXUSR ) ;
-
-   /* execute the script, then delete it */
-
-   system( sname ) ; unlink( sname ) ;
-
-   /* check the size of the output file */
-
-   nuse = NI_filesize( qname ) ;
-   if( nuse <= 0 ){ unlink(qname) ; return( -1 ); }
-
-   /* uncompress the file, if needed */
-
-   if( cflag ){
-      sprintf( sname , "gzip -dq %s" , qname ) ;    /* execute gzip */
-      ii = system(sname) ;
-      if( ii != 0 ){ unlink(qname) ; return( -1 ); }  /* gzip failed  */
-      ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
-      nuse = NI_filesize( qname ) ;                 /* find how big */
-      if( nuse <= 0 ){ unlink(qname) ; return( -1 ); }
-   }
-
-   /* suck the file into memory */
-
-   sp = fopen( qname , "rb" ) ;
-   if( sp == NULL ){ unlink(qname) ; return( -1 ); }
-   buf = malloc(nuse) ; if( buf == NULL ){ unlink(qname) ; return( -1 ); }
-
-   fread( buf , 1 , nuse , sp ) ;  /* AT LAST! */
-   fclose(sp) ; unlink(qname) ;
-
-   /* data is in buf, nuse bytes of it */
-
-   *data = buf ; return( nuse );
-}
-
-/*-------------------------------------------------------------------
-   Read a URL (ftp:// or http://) into memory.  The return value
-   is the number of bytes read, and *data points to the data.
-   If the return value is negative, then something bad happened.
----------------------------------------------------------------------*/
-
-int NI_read_URL( char *url , char **data )
-{
-   int nn ;
-   if( url == NULL || data == NULL ) return( -1 );
-
-   if( getenv("NIML_WWW_DEBUG") != NULL ) www_debug = 1 ;
-
-   if( strstr(url,HTTP) == url ){
-      nn = read_URL_http( url , 4444 , data ) ; return(nn) ;
-   }
-
-   else if( strstr(url,FTP) == url ){
-      nn = read_URL_ftp( url , data ) ; return(nn) ;
-   }
-
-   return( -1 );
-}
-
-/*-----------------------------------------------------------------*/
-/*! Find a 'trailing name in a pathname.
-
-   For example, for fname = "/bob/cox/is/the/author/of/NIML",
-     - the lev=0 trailing name is "NIML",
-     - the lev=1 trailing name is "of/NIML",
-     - the lev=2 trailing name is "author/of/NIML", and so on.
-   That is, "lev" is the number of directory names above the
-   last name to keep.  The pointer returned is to some place
-   in the middle of fname; that is, this is not a malloc()-ed
-   string, so don't try to free() it!.
--------------------------------------------------------------------*/
-
-static char * trailname( char *fname , int lev )
-{
-   int fpos , flen , flev ;
-
-   if( fname == NULL || (flen=strlen(fname)) <= 1 ) return fname ;
-
-   if( lev < 0 ) lev = 0 ;
-
-   flev = 0 ;
-   fpos = flen ;
-   if( fname[fpos-1] == '/' ) fpos-- ;  /* skip trailing slash */
-
-   /* fpos   = index of latest character I've accepted,
-      fpos-1 = index of next character to examine,
-      flev   = number of directory levels found so far */
-
-   while( fpos > 0 ){
-
-      if( fname[fpos-1] == '/' ){
-         flev++ ; if( flev >  lev ) break ;  /* reached the lev we like */
-      }
-      fpos-- ;  /* scan backwards */
-   }
-
-   return (fname+fpos) ;
-}
-
-/*------------------------------------------------------------------
-  Read a URL and save it to disk in tmpdir.  The filename
-  it is saved in is returned in the malloc-ed space *tname.
-  The byte count is the return value of the function;
-  if <= 0, then an error transpired (and *tname is not set).
---------------------------------------------------------------------*/
-
-int NI_read_URL_tmpdir( char *url , char **tname )
-{
-   int nn , ll ;
-   char *data , *fname , *tt ;
-   FILE *fp ;
-
-   if( url == NULL || tname == NULL ) return( -1 );
-
-   nn = NI_read_URL( url , &data ) ;  /* get the data into memory */
-   if( nn <= 0 ) return( -1 );        /* bad */
-
-   /* make the output filename */
-
-   setup_tmpdir() ;
-   fname = malloc(strlen(url)+strlen(tmpdir)+1) ;
-   tt    = trailname(url,0) ;
-   strcpy(fname,tmpdir) ; strcat(fname,tt) ; ll = strlen(fname) ;
-   if( ll > 3 && strcmp(fname+(ll-3),".gz") == 0 ) fname[ll-3] = '\0' ;
-
-   /* open and write output */
-
-   fp = fopen( fname , "wb" ) ;
-   if( fp == NULL ){
-      fprintf(stderr,"** Can't open temporary file %s\n",fname);
-      free(data) ; return( -1 );
-   }
-   ll = fwrite(data,1,nn,fp) ; fclose(fp) ; free(data) ;
-   if( ll != nn ){ unlink(fname); return( -1 ); } /* write failed */
-
-   *tname = fname ; return( nn );
-}
-
-/*************************************************************************/
-/************************ Functions for Base64 ***************************/
-/********************* [adapted from thd_base64.c] ***********************/
-/*************************************************************************/
-
-static int  dtable_mode = -1 ;    /* 1=encode, 2=decode, -1=neither */
-static byte dtable[256] ;         /* encode/decode table */
-static int linelen = 72 ;         /* line length (max 76) */
-static int ncrlf   = 1 ;
-
-#define B64_goodchar(c) (dtable[c] != 0x80)  /* for decode only */
-
-#define B64_EOL1 '\r'   /* CR */
-#define B64_EOL2 '\n'   /* LF */
-
-/*----------------------------------------------------------------------*/
-/*! Set the number of characters to use for end of line:
-    1 = Unix standard (LF only); 2 = DOS standard (CR LF).
-------------------------------------------------------------------------*/
-
-static void B64_set_crlf( int nn )
-{
-   if( nn >= 1 && nn <= 2 ) ncrlf = nn ;
-   return ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Set the length of a line of output in base64. */
-
-void B64_set_linelen( int ll )
-{
-   if( ll >= 16 && ll <= 76 ) linelen = 4*(ll/4) ; /* multiple of 4 */
-   else                       linelen = 72 ;
-   return ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Load the base64 encoding table. */
-
-static void load_encode_table(void)
-{
-    int i ;
-    if( dtable_mode == 1 ) return ;
-    for (i = 0; i < 26; i++) {
-        dtable[i] = 'A' + i;
-        dtable[26 + i] = 'a' + i;
-    }
-    for (i = 0; i < 10; i++) dtable[52 + i] = '0' + i;
-    dtable[62] = '+'; dtable[63] = '/'; dtable_mode = 1 ;
-    return ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Load the base64 decoding table. */
-
-static void load_decode_table(void)
-{
-    int i;
-    if( dtable_mode == 2 ) return ;
-    for (i = 0  ; i < 255 ; i++) dtable[i] = 0x80;             /* bad */
-    for (i = 'A'; i <= 'Z'; i++) dtable[i] =  0 + (i - 'A');
-    for (i = 'a'; i <= 'z'; i++) dtable[i] = 26 + (i - 'a');
-    for (i = '0'; i <= '9'; i++) dtable[i] = 52 + (i - '0');
-    dtable['+'] = 62; dtable['/'] = 63; dtable['='] = 0; dtable_mode = 2 ;
-    return ;
-}
-
-/*! Encode 3 bytes (a,b,c) into 4 bytes (w,x,y,z) */
-
-#define B64_encode3(a,b,c,w,x,y,z)                 \
-     ( w = dtable[(a)>>2]                      ,   \
-       x = dtable[((a & 3) << 4) | (b >> 4)]   ,   \
-       y = dtable[((b & 0xF) << 2) | (c >> 6)] ,   \
-       z = dtable[c & 0x3F]                     )
-
-/*! Encode 2 bytes (a,b) into 4 bytes (w,x,y,z) */
-
-#define B64_encode2(a,b,w,x,y,z)                   \
-     ( B64_encode3(a,b,0,w,x,y,z) , z = '=' )
-
-/*! Encode 1 byte (a) into 4 bytes (w,x,y,z) */
-
-#define B64_encode1(a,w,x,y,z)                     \
-     ( B64_encode3(a,0,0,w,x,y,z) , y=z = '=' )
-
-/*! Decode 4 bytes (w,x,y,z) into 3 bytes (a,b,c) */
-
-#define B64_decode4(w,x,y,z,a,b,c)                 \
-     ( a = (dtable[w] << 2) | (dtable[x] >> 4) ,   \
-       b = (dtable[x] << 4) | (dtable[y] >> 2) ,   \
-       c = (dtable[y] << 6) | dtable[z]         )
-
-/*! Determine how many output bytes are encoded in a quad (w,x,y,z) */
-
-#define B64_decode_count(w,x,y,z)                  \
-     ( ((w)=='='||(x)=='=') ? 0                    \
-                            : ((y)=='=') ? 1       \
-                            : ((z)=='=') ? 2 : 3 )
-
-/*----------------------------------------------------------------------*/
-/*! Convert base64 encoding to a binary array
-
-   Inputs: nb64 = number of bytes in b64
-            b64 = array of base64 encoding bytes
-                  values not in the base64 encoding set will be skipped
-
-   Outputs: *nbin = number of binary bytes [*nbin==0 flags an error]
-             *bin = pointer to newly malloc()-ed space with bytes
-------------------------------------------------------------------------*/
-
-void B64_to_binary( int nb64 , byte * b64 , int * nbin , byte ** bin )
-{
-   int ii,jj , nn ;
-   byte a,b,c , w,x,y,z ;
-
-   /*- sanity checks -*/
-
-   if( nbin == NULL || bin == NULL ) return ;
-
-   if( nb64 < 4 || b64 == NULL ){ *nbin = 0 ; *bin = NULL ; return ; }
-
-   *bin = (byte *) malloc(sizeof(byte)*(2+3*nb64/4)) ;
-   if( *bin == NULL ){ *nbin = 0 ; return ; }
-
-   /*- some work -*/
-
-   load_decode_table() ;
-   for( ii=jj=0 ; ii < nb64 ; ){  /* scan inputs, skipping bad characters */
-      w = b64[ii++] ;
-      while( !B64_goodchar(w) && ii < nb64 ) w = b64[ii++] ;
-      x = (ii < nb64) ? b64[ii++] : '=' ;
-      while( !B64_goodchar(x) && ii < nb64 ) x = b64[ii++] ;
-      y = (ii < nb64) ? b64[ii++] : '=' ;
-      while( !B64_goodchar(y) && ii < nb64 ) y = b64[ii++] ;
-      z = (ii < nb64) ? b64[ii++] : '=' ;
-      while( !B64_goodchar(z) && ii < nb64 ) z = b64[ii++] ;
-
-      B64_decode4(w,x,y,z,a,b,c) ;
-
-      if( z == '=' ){                        /* got to the end? */
-         nn = B64_decode_count(w,x,y,z) ;    /* see how many to save */
-         if( nn > 0 ) (*bin)[jj++] = a ;
-         if( nn > 1 ) (*bin)[jj++] = b ;
-         break ;
-      }
-
-      /* not at the end => save all 3 outputs */
-
-      (*bin)[jj++] = a ; (*bin)[jj++] = b ; (*bin)[jj++] = c ;
-   }
-
-   *bin  = (byte *) realloc( *bin , sizeof(byte)*jj ) ;
-   *nbin = jj ;
-   return ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Convert binary array to base64 encoding
-
-   Inputs: nbin = number of bytes in bin
-            bin = array of binary bytes to encode
-
-   Outputs: *nb64 = number of base64 bytes [*nb64==0 flags an error]
-             *b64 = pointer to newly malloc()-ed space with bytes
-
-   The output array (*b64) line length can be set by
-      B64_set_linelen(n)
-   where n is from 16 to 76.  The default is 72.  Note, however, that
-   encoded bytes will always be written out in groups of 4.
-   The output array line separator can be the LF character only (Unix)
-   or the CR-LF combination (DOS, etc.).  This is controlled by
-      B64_set_crlf(n)
-   where n=1 for LF, n=2 for CR-LF.  The default is LF.  The output
-   array will be terminated with a line separator.  There will be
-   no ASCII NUL character at the end of *b64 -- that is, the output
-   is not a C string.
-------------------------------------------------------------------------*/
-
-void B64_to_base64( int nbin , byte * bin , int * nb64 , byte ** b64 )
-{
-   int ii,jj , nn,n3 ;
-   byte a,b,c , w,x,y,z ;
-
-   /*- sanity checks -*/
-
-   if( nb64 == NULL || b64 == NULL ) return ;
-   if( nbin <= 0    || bin == NULL ){ *nb64 = 0 ; *b64 = NULL ; return ; }
-
-   nn   = (4.0*(linelen+ncrlf+1.0)/(3.0*linelen))*nbin + 256 ;
-   *b64 = (byte *) malloc(sizeof(byte)*nn) ;
-   if( *b64 == NULL ){ *nb64 = 0 ; return ; }
-
-   /*- do blocks of 3 -*/
-
-   load_encode_table() ;
-   n3 = (nbin/3)*3 ;
-   for( nn=jj=ii=0 ; ii < n3 ; ){
-      a = bin[ii++] ; b = bin[ii++] ; c = bin[ii++] ;
-      B64_encode3(a,b,c,w,x,y,z) ;
-      (*b64)[jj++] = w ;
-      (*b64)[jj++] = x ;
-      (*b64)[jj++] = y ;
-      (*b64)[jj++] = z ;
-      nn += 4 ; if( nn >= linelen ){
-                   if( ncrlf == 2 ) (*b64)[jj++] = B64_EOL1 ;
-                   (*b64)[jj++] = B64_EOL2 ;
-                   nn = 0 ;
-                }
-   }
-
-   /*- do the leftovers, if any (1 or 2 bytes) -*/
-
-   if( ii < nbin ){
-      if( ii == nbin-2 )
-         B64_encode2(bin[ii],bin[ii+1],w,x,y,z) ;
-      else
-         B64_encode1(bin[ii],w,x,y,z) ;
-
-      (*b64)[jj++] = w ;
-      (*b64)[jj++] = x ;
-      (*b64)[jj++] = y ;
-      (*b64)[jj++] = z ; nn += 4 ;
-   }
-
-   if( nn > 0 ){
-      if( ncrlf == 2 ) (*b64)[jj++] = B64_EOL1 ;
-      (*b64)[jj++] = B64_EOL2 ;
-   }
-
-   *b64  = (byte *) realloc( *b64 , sizeof(byte)*jj ) ;
-   *nb64 = jj ;
-   return ;
-}
-
-/**********************************************************************/
-/*************** Stuff for MD5 hashing [from thd_md5.c] ***************/
-/**********************************************************************/
-
-/**********************************************************************
- * Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All    *
- * rights reserved.                                                   *
- *                                                                    *
- * License to copy and use this software is granted provided that it  *
- * is identified as the "RSA Data Security, Inc. MD5 Message-Digest   *
- * Algorithm" in all material mentioning or referencing this software *
- * or this function.                                                  *
- *                                                                    *
- * License is also granted to make and use derivative works provided  *
- * that such works are identified as "derived from the RSA Data       *
- * Security, Inc. MD5 Message-Digest Algorithm" in all material       *
- * mentioning or referencing the derived work.                        *
- *                                                                    *
- * RSA Data Security, Inc. makes no representations concerning either *
- * the merchantability of this software or the suitability of this    *
- * software for any particular purpose. It is provided "as is"        *
- * without express or implied warranty of any kind.                   *
- *                                                                    *
- * These notices must be retained in any copies of any part of this   *
- * documentation and/or software.                                     *
- **********************************************************************/
-
-/*======= Modified by RWCox for inclusion in the NIML package ========*/
-/*------- These changes are released to the public domain     --------*/
-
-typedef unsigned char *POINTER;   /* POINTER defines a generic pointer type */
-typedef unsigned short int UINT2; /* UINT2 defines a two byte word */
-typedef unsigned long int UINT4;  /* UINT4 defines a four byte word */
-
-/* MD5 context data type */
-
-typedef struct {
-  UINT4 state[4];                                        /* state (ABCD) */
-  UINT4 count[2];             /* number of bits, modulo 2^64 (lsb first) */
-  unsigned char buffer[64];                              /* input buffer */
-} MD5_CTX;
-
-/* prototypes for some internal functions */
-
-static void MD5Init (MD5_CTX *);
-static void MD5Update (MD5_CTX *, unsigned char *, unsigned int);
-static void MD5Final (unsigned char [16], MD5_CTX *);
-
-static void MD5Transform (UINT4 [4], unsigned char [64]);
-static void Encode (unsigned char *, UINT4 *, unsigned int);
-static void Decode (UINT4 *, unsigned char *, unsigned int);
-
-/* Constants for MD5Transform routine.  */
-
-#define S11 7
-#define S12 12
-#define S13 17
-#define S14 22
-#define S21 5
-#define S22 9
-#define S23 14
-#define S24 20
-#define S31 4
-#define S32 11
-#define S33 16
-#define S34 23
-#define S41 6
-#define S42 10
-#define S43 15
-#define S44 21
-
-static unsigned char PADDING[64] = {
-  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
-/* F, G, H and I are basic MD5 functions.  */
-
-#define F(x, y, z) (((x) & (y)) | ((~x) & (z)))
-#define G(x, y, z) (((x) & (z)) | ((y) & (~z)))
-#define H(x, y, z) ((x) ^ (y) ^ (z))
-#define I(x, y, z) ((y) ^ ((x) | (~z)))
-
-/* ROTATE_LEFT rotates x left n bits.  */
-
-#define ROTATE_LEFT(x, n) (((x) << (n)) | ((x) >> (32-(n))))
-
-/* FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
-   Rotation is separate from addition to prevent recomputation.  */
-
-#define FF(a, b, c, d, x, s, ac) { \
- (a) += F ((b), (c), (d)) + (x) + (UINT4)(ac); \
- (a) = ROTATE_LEFT ((a), (s)); \
- (a) += (b); \
-  }
-
-#define GG(a, b, c, d, x, s, ac) { \
- (a) += G ((b), (c), (d)) + (x) + (UINT4)(ac); \
- (a) = ROTATE_LEFT ((a), (s)); \
- (a) += (b); \
-  }
-
-#define HH(a, b, c, d, x, s, ac) { \
- (a) += H ((b), (c), (d)) + (x) + (UINT4)(ac); \
- (a) = ROTATE_LEFT ((a), (s)); \
- (a) += (b); \
-  }
-
-#define II(a, b, c, d, x, s, ac) { \
- (a) += I ((b), (c), (d)) + (x) + (UINT4)(ac); \
- (a) = ROTATE_LEFT ((a), (s)); \
- (a) += (b); \
-  }
-
-/*----------------------------------------------------------------------*/
-/*! MD5 initialization. Begins an MD5 operation, writing a new context.
-------------------------------------------------------------------------*/
-
-static void MD5Init (MD5_CTX * context)
-{
-  context->count[0] = context->count[1] = 0;
-
-  /* Load magic initialization constants */
-
-  context->state[0] = 0x67452301;
-  context->state[1] = 0xefcdab89;
-  context->state[2] = 0x98badcfe;
-  context->state[3] = 0x10325476;
-}
-
-/*----------------------------------------------------------------------*/
-/*! MD5 block update operation. Continues an MD5 message-digest
-   operation, processing another message block, and updating the
-   context.
-------------------------------------------------------------------------*/
-
-static void MD5Update (MD5_CTX * context, unsigned char * input,
-                                          unsigned int inputLen  )
-{
-  unsigned int i, index, partLen;
-
-  /* Compute number of bytes mod 64 */
-
-  index = (unsigned int)((context->count[0] >> 3) & 0x3F);
-
-  /* Update number of bits */
-
-  if( (context->count[0] += ((UINT4)inputLen << 3)) < ((UINT4)inputLen << 3) )
-    context->count[1]++;
-
-  context->count[1] += ((UINT4)inputLen >> 29);
-
-  partLen = 64 - index;
-
-  /* Transform as many times as possible.  */
-
-  if (inputLen >= partLen) {
-
-   memcpy ((POINTER)&context->buffer[index], (POINTER)input, partLen);
-
-   MD5Transform (context->state, context->buffer);
-
-   for (i = partLen; i + 63 < inputLen; i += 64)
-     MD5Transform (context->state, &input[i]);
-
-   index = 0;
-  }
-  else
-   i = 0;
-
-  /* Buffer remaining input */
-
-  memcpy ((POINTER)&context->buffer[index], (POINTER)&input[i],
-          inputLen-i);
-}
-
-/*----------------------------------------------------------------------*/
-/*! MD5 finalization. Ends an MD5 message-digest operation, writing the
-   the message digest and zeroizing the context.
-------------------------------------------------------------------------*/
-
-static void MD5Final (unsigned char digest[16], MD5_CTX * context)
-{
-  unsigned char bits[8];
-  unsigned int index, padLen;
-
-  /* Save number of bits */
-
-  Encode (bits, context->count, 8);
-
-  /* Pad out to 56 mod 64.  */
-
-  index = (unsigned int)((context->count[0] >> 3) & 0x3f);
-  padLen = (index < 56) ? (56 - index) : (120 - index);
-  MD5Update (context, PADDING, padLen);
-
-  /* Append length (before padding) */
-
-  MD5Update (context, bits, 8);
-
-  /* Store state in digest */
-
-  Encode (digest, context->state, 16);
-
-  /* Zeroize sensitive information. */
-
-  memset ((POINTER)context, 0, sizeof (*context));
-}
-
-/*----------------------------------------------------------------------*/
-/*! MD5 basic transformation. Transforms state based on block.
-------------------------------------------------------------------------*/
-
-static void MD5Transform (UINT4 state[4], unsigned char block[64])
-{
-  UINT4 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
-
-  Decode (x, block, 64);
-
-  /* Round 1 */
-
-  FF (a, b, c, d, x[ 0], S11, 0xd76aa478); /* 1 */
-  FF (d, a, b, c, x[ 1], S12, 0xe8c7b756); /* 2 */
-  FF (c, d, a, b, x[ 2], S13, 0x242070db); /* 3 */
-  FF (b, c, d, a, x[ 3], S14, 0xc1bdceee); /* 4 */
-  FF (a, b, c, d, x[ 4], S11, 0xf57c0faf); /* 5 */
-  FF (d, a, b, c, x[ 5], S12, 0x4787c62a); /* 6 */
-  FF (c, d, a, b, x[ 6], S13, 0xa8304613); /* 7 */
-  FF (b, c, d, a, x[ 7], S14, 0xfd469501); /* 8 */
-  FF (a, b, c, d, x[ 8], S11, 0x698098d8); /* 9 */
-  FF (d, a, b, c, x[ 9], S12, 0x8b44f7af); /* 10 */
-  FF (c, d, a, b, x[10], S13, 0xffff5bb1); /* 11 */
-  FF (b, c, d, a, x[11], S14, 0x895cd7be); /* 12 */
-  FF (a, b, c, d, x[12], S11, 0x6b901122); /* 13 */
-  FF (d, a, b, c, x[13], S12, 0xfd987193); /* 14 */
-  FF (c, d, a, b, x[14], S13, 0xa679438e); /* 15 */
-  FF (b, c, d, a, x[15], S14, 0x49b40821); /* 16 */
-
-  /* Round 2 */
-
-  GG (a, b, c, d, x[ 1], S21, 0xf61e2562); /* 17 */
-  GG (d, a, b, c, x[ 6], S22, 0xc040b340); /* 18 */
-  GG (c, d, a, b, x[11], S23, 0x265e5a51); /* 19 */
-  GG (b, c, d, a, x[ 0], S24, 0xe9b6c7aa); /* 20 */
-  GG (a, b, c, d, x[ 5], S21, 0xd62f105d); /* 21 */
-  GG (d, a, b, c, x[10], S22,  0x2441453); /* 22 */
-  GG (c, d, a, b, x[15], S23, 0xd8a1e681); /* 23 */
-  GG (b, c, d, a, x[ 4], S24, 0xe7d3fbc8); /* 24 */
-  GG (a, b, c, d, x[ 9], S21, 0x21e1cde6); /* 25 */
-  GG (d, a, b, c, x[14], S22, 0xc33707d6); /* 26 */
-  GG (c, d, a, b, x[ 3], S23, 0xf4d50d87); /* 27 */
-  GG (b, c, d, a, x[ 8], S24, 0x455a14ed); /* 28 */
-  GG (a, b, c, d, x[13], S21, 0xa9e3e905); /* 29 */
-  GG (d, a, b, c, x[ 2], S22, 0xfcefa3f8); /* 30 */
-  GG (c, d, a, b, x[ 7], S23, 0x676f02d9); /* 31 */
-  GG (b, c, d, a, x[12], S24, 0x8d2a4c8a); /* 32 */
-
-  /* Round 3 */
-
-  HH (a, b, c, d, x[ 5], S31, 0xfffa3942); /* 33 */
-  HH (d, a, b, c, x[ 8], S32, 0x8771f681); /* 34 */
-  HH (c, d, a, b, x[11], S33, 0x6d9d6122); /* 35 */
-  HH (b, c, d, a, x[14], S34, 0xfde5380c); /* 36 */
-  HH (a, b, c, d, x[ 1], S31, 0xa4beea44); /* 37 */
-  HH (d, a, b, c, x[ 4], S32, 0x4bdecfa9); /* 38 */
-  HH (c, d, a, b, x[ 7], S33, 0xf6bb4b60); /* 39 */
-  HH (b, c, d, a, x[10], S34, 0xbebfbc70); /* 40 */
-  HH (a, b, c, d, x[13], S31, 0x289b7ec6); /* 41 */
-  HH (d, a, b, c, x[ 0], S32, 0xeaa127fa); /* 42 */
-  HH (c, d, a, b, x[ 3], S33, 0xd4ef3085); /* 43 */
-  HH (b, c, d, a, x[ 6], S34,  0x4881d05); /* 44 */
-  HH (a, b, c, d, x[ 9], S31, 0xd9d4d039); /* 45 */
-  HH (d, a, b, c, x[12], S32, 0xe6db99e5); /* 46 */
-  HH (c, d, a, b, x[15], S33, 0x1fa27cf8); /* 47 */
-  HH (b, c, d, a, x[ 2], S34, 0xc4ac5665); /* 48 */
-
-  /* Round 4 */
-
-  II (a, b, c, d, x[ 0], S41, 0xf4292244); /* 49 */
-  II (d, a, b, c, x[ 7], S42, 0x432aff97); /* 50 */
-  II (c, d, a, b, x[14], S43, 0xab9423a7); /* 51 */
-  II (b, c, d, a, x[ 5], S44, 0xfc93a039); /* 52 */
-  II (a, b, c, d, x[12], S41, 0x655b59c3); /* 53 */
-  II (d, a, b, c, x[ 3], S42, 0x8f0ccc92); /* 54 */
-  II (c, d, a, b, x[10], S43, 0xffeff47d); /* 55 */
-  II (b, c, d, a, x[ 1], S44, 0x85845dd1); /* 56 */
-  II (a, b, c, d, x[ 8], S41, 0x6fa87e4f); /* 57 */
-  II (d, a, b, c, x[15], S42, 0xfe2ce6e0); /* 58 */
-  II (c, d, a, b, x[ 6], S43, 0xa3014314); /* 59 */
-  II (b, c, d, a, x[13], S44, 0x4e0811a1); /* 60 */
-  II (a, b, c, d, x[ 4], S41, 0xf7537e82); /* 61 */
-  II (d, a, b, c, x[11], S42, 0xbd3af235); /* 62 */
-  II (c, d, a, b, x[ 2], S43, 0x2ad7d2bb); /* 63 */
-  II (b, c, d, a, x[ 9], S44, 0xeb86d391); /* 64 */
-
-  state[0] += a;
-  state[1] += b;
-  state[2] += c;
-  state[3] += d;
-
-  /* Zeroize sensitive information. */
-
-  memset ((POINTER)x, 0, sizeof (x));
-}
-
-/*----------------------------------------------------------------------*/
-/*! Encodes input (UINT4) into output (unsigned char). Assumes len is
-   a multiple of 4.
-------------------------------------------------------------------------*/
-
-static void Encode (unsigned char *output, UINT4 *input, unsigned int len)
-{
-  unsigned int i, j;
-
-  for (i = 0, j = 0; j < len; i++, j += 4) {
-    output[j] = (unsigned char)(input[i] & 0xff);
-    output[j+1] = (unsigned char)((input[i] >> 8) & 0xff);
-    output[j+2] = (unsigned char)((input[i] >> 16) & 0xff);
-    output[j+3] = (unsigned char)((input[i] >> 24) & 0xff);
-  }
-}
-
-/*----------------------------------------------------------------------*/
-/*! Decodes input (unsigned char) into output (UINT4). Assumes len is
-   a multiple of 4.
-------------------------------------------------------------------------*/
-
-static void Decode (UINT4 *output, unsigned char *input, unsigned int len)
-{
-  unsigned int i, j;
-
-  for (i = 0, j = 0; j < len; i++, j += 4)
-    output[i] = ((UINT4)input[j])          | (((UINT4)input[j+1]) << 8) |
-               (((UINT4)input[j+2]) << 16) | (((UINT4)input[j+3]) << 24) ;
-}
-
-/*======================================================================
-   The stuff below is some interface routines, by RWCox
-========================================================================*/
-
-/*----------------------------------------------------------------------*/
-/*! Function to print a 128 bit digest into a static 32 char string.
-------------------------------------------------------------------------*/
-
-static char * MD5_static_printf( unsigned char digest[16] )
-{
-  static char st[33] ;
-
-  sprintf(st,
-          "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x" ,
-          digest[0] , digest[1] , digest[2] , digest[3] , digest[4] ,
-          digest[5] , digest[6] , digest[7] , digest[8] , digest[9] ,
-          digest[10], digest[11], digest[12], digest[13], digest[14],
-          digest[15]
-         ) ;
-
-  return st ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Digest an array and returns the printable string of the result,
-    stored in a static array (length=32+1 bytes).
-------------------------------------------------------------------------*/
-
-char * MD5_static_array( int n , char * bytes )
-{
-   MD5_CTX context;
-   unsigned char digest[16];
-
-   if( n < 0 || bytes == NULL ) return NULL ;
-
-   MD5Init( &context ) ;
-   MD5Update( &context, bytes, n ) ;
-   MD5Final( digest, &context ) ;
-
-   return MD5_static_printf(digest) ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Digest an array and returns the printable string of the result,
-    stored in a malloc()-ed array (length=32+1 bytes).
-------------------------------------------------------------------------*/
-
-char * MD5_malloc_array( int n , char * bytes )
-{
-   char *st , *dy ;
-   st = MD5_static_array( n , bytes ) ;
-   if( st == NULL ) return NULL ;
-   dy = (char *) malloc(33) ; strcpy(dy,st) ; return dy ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Digest a C string and returns the printable string of the result,
-    stored in a static array (length=32+1 bytes).
-------------------------------------------------------------------------*/
-
-char * MD5_static_string( char * string )
-{
-   if( string == NULL ) return NULL ;
-   return MD5_static_array( strlen(string) , string ) ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Digest a C string and returns the printable string of the result,
-    stored in a malloc()-ed array (length=32+1 bytes).
-------------------------------------------------------------------------*/
-
-char * MD5_malloc_string( char * string )
-{
-   if( string == NULL ) return NULL ;
-   return MD5_malloc_array( strlen(string) , string ) ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Digests a file and prints the result, stored in a static array
-    (length=32+1 bytes).
-------------------------------------------------------------------------*/
-
-char * MD5_static_file(char * filename)
-{
-  FILE *file;
-  MD5_CTX context;
-  int len;
-  unsigned char buffer[1024] ;
-  unsigned char digest[16] ;
-
-  if( (file = fopen (filename, "rb")) == NULL ) return NULL ;
-
-  MD5Init( &context ) ;
-
-  while( len = fread(buffer, 1, 1024, file) )
-      MD5Update( &context, buffer, len ) ;
-
-  MD5Final( digest, &context );
-  fclose (file);
-
-  return MD5_static_printf( digest ) ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Digests a file and prints the result, stored in a malloc()-ed array
-    (length=32+1 bytes).
-------------------------------------------------------------------------*/
-
-char * MD5_malloc_file(char * filename)
-{
-   char *st , *dy ;
-
-   st = MD5_static_file( filename ) ;
-   if( st == NULL ) return NULL ;
-   dy = (char *) malloc(33) ; strcpy(dy,st) ; return dy ;
-}
-
-/*----------------------------------------------------------------------------*/
-/*! Convert a MD5 hex string to a Base64-ed string.
-    * strlen(result) is 22 instead of 32
-    * result is malloc()-ed and should be free()-d when appropriate
-------------------------------------------------------------------------------*/
-
-static char * MD5_to_B64( unsigned char digest[16] )
-{
-   int nb64=0 ; byte *b64=NULL ;
-
-   B64_to_base64( 16 , (char *)digest , &nb64 , &b64 ) ;  /* thd_base64.c */
-   if( nb64 <= 0 || b64 == NULL ) return NULL ;
-   b64[nb64-3] = '\0' ;                           /* remove trailing "==" */
-   return (char *)b64 ;
-}
-
-/*----------------------------------------------------------------------------*/
-/*! Return the MD5 hash of an array as a Base64 string, instead of a hex
-    string.
-    * strlen(result) is 22 instead of 32
-    * result is malloc()-ed and should be free()-d when appropriate
-------------------------------------------------------------------------------*/
-
-char * MD5_B64_array( int n , char * bytes )
-{
-   MD5_CTX context;
-   unsigned char digest[16];
-
-   if( n < 0 || bytes == NULL ) return NULL ;
-
-   MD5Init( &context ) ;
-   MD5Update( &context, bytes, n ) ;
-   MD5Final( digest, &context ) ;
-
-   return MD5_to_B64( digest ) ;
-}
-
-/*----------------------------------------------------------------------------*/
-/*! Return the MD5 hash of a C string as a Base64 string, instead of a hex
-    string.
-    * strlen(result) is 22 instead of 32
-    * result is malloc()-ed and should be free()-d when appropriate
-------------------------------------------------------------------------------*/
-
-char * MD5_B64_string( char * string )
-{
-   if( string == NULL ) return NULL ;
-   return MD5_B64_array( strlen(string) , string ) ;
-}
-
-/*----------------------------------------------------------------------------*/
-/*! Return the MD5 hash of a file as a Base64 string, instead of a hex
-    string.
-    * strlen(result) is 22 instead of 32
-    * result is malloc()-ed and should be free()-d when appropriate
-------------------------------------------------------------------------------*/
-
-char * MD5_B64_file(char * filename)
-{
-  FILE *file;
-  MD5_CTX context;
-  int len;
-  unsigned char buffer[1024] ;
-  unsigned char digest[16] ;
-
-  if( (file = fopen (filename, "rb")) == NULL ) return NULL ;
-
-  MD5Init( &context ) ;
-
-  while( len = fread(buffer, 1, 1024, file) )
-      MD5Update( &context, buffer, len ) ;
-
-  MD5Final( digest, &context );
-  fclose (file);
-
-  return MD5_to_B64( digest ) ;
-}
-
-/*-----------------------------------------------------------------------*/
-
-#include <sys/utsname.h>  /* These 4 files are needed by */
-#include <sys/time.h>     /* the UNIQ_ functions below.  */
-#include <unistd.h>
-#include <ctype.h>
-
-/*-----------------------------------------------------------------------*/
-/*! Return a globally unique identifier (I hope).  This is a malloc()-ed
-  string of length <= 31 (plus the NUL byte; the whole thing will fit
-  into a char[32] array).  The output does not contain any '/'s, so
-  it could be used as a temporary filename.
-  Method: generate a string from the system identfier information and
-          the current time of day; MD5 hash this to a 128 byte code;
-          Base64 encode this to a 22 byte string; replace '/' with '-'
-          and '+' with '_'; add 4 character prefix (1st 3 characters
-          of environment variable IDCODE_PREFIX plus '_').
--------------------------------------------------------------------------*/
-
-char * UNIQ_idcode(void)
-{
-   struct utsname ubuf ;
-   struct timeval tv ;
-   int    nn , ii ;
-   int  nbuf ;
-   char *buf , *idc , *eee ;
-   static int ncall=0 ;                /* number of times I've been called */
-
-   /* get info about this system */
-
-   nn = uname( &ubuf ) ;               /* get info about this system */
-   if( nn == -1 ){                     /* should never happen */
-      strcpy( ubuf.nodename , "E" ) ;
-      strcpy( ubuf.sysname  , "L" ) ;
-      strcpy( ubuf.release  , "V" ) ;
-      strcpy( ubuf.version  , "I" ) ;
-      strcpy( ubuf.machine  , "S" ) ;
-   }
-
-   /* store system info into a string buffer */
-
-   nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
-         +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
-
-   buf = malloc(nbuf+64) ;      /* include some extra space */
-   strcpy(buf,ubuf.nodename) ;
-   strcat(buf,ubuf.sysname ) ;
-   strcat(buf,ubuf.release ) ;
-   strcat(buf,ubuf.version ) ;
-   strcat(buf,ubuf.machine ) ;
-
-   idc = calloc(1,32) ;         /* will be output string */
-
-   /* get time and store into buf (along with process id and ncall) */
-
-   nn = gettimeofday( &tv , NULL ) ;
-   if( nn == -1 ){              /* should never happen */
-      tv.tv_sec  = (long) buf ;
-      tv.tv_usec = (long) idc ;
-   }
-
-   /* even if called twice in rapid succession,
-      at least ncall will differ, so we'll get different ID codes  */
-
-   sprintf(buf+nbuf,"%d%d%d%d",
-          (int)tv.tv_sec,(int)tv.tv_usec,(int)getpid(),ncall) ;
-   ncall++ ;
-
-   /* get prefix for idcode from environment, if present */
-
-   eee = getenv("IDCODE_PREFIX") ;
-   if( eee != NULL && isalpha(eee[0]) ){
-     for( ii=0 ; ii < 3 && isalnum(eee[ii]) ; ii++ )
-       idc[ii] = eee[ii] ;
-   } else {
-     strcpy(idc,"XYZ") ;  /* innocent default prefix */
-   }
-   strcat(idc,"_") ;  /* recall idc was calloc()-ed */
-
-   /* MD5+Base64 encode buf to be latter part of the idcode */
-
-   eee = MD5_B64_string( buf ) ;
-   if( eee != NULL ){                     /* should always work */
-      nn = strlen(eee) ;
-      for( ii=0 ; ii < nn ; ii++ ){
-              if( eee[ii] == '/' ) eee[ii] = '-' ;  /* / -> - */
-         else if( eee[ii] == '+' ) eee[ii] = '_' ;  /* + -> _ */
-      }
-      strcat(idc,eee) ; free(eee) ;
-   } else {                               /* should never happen */
-     nn = strlen(idc) ;
-     sprintf(idc+nn,"%d_%d_%d",(int)tv.tv_sec,(int)tv.tv_usec,ncall) ;
-   }
-
-   /* free workspace and get outta here */
-
-   free(buf) ; return idc ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Fill a user-supplied buffer (length at least 32) with an idcode.
-------------------------------------------------------------------------*/
-
-void UNIQ_idcode_fill( char *idc )
-{
-   char *bbb ;
-   if( idc == NULL ) return ;
-   bbb = UNIQ_idcode() ;
-   strcpy(idc,bbb) ; free(bbb) ; return ;
 }

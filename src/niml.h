@@ -1,6 +1,7 @@
 #ifndef _NIML_HEADER_FILE_
 #define _NIML_HEADER_FILE_
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -19,7 +20,16 @@
 #include <sys/times.h>
 #include <limits.h>
 
-/*-----------------------------------------*/
+/*-----------------------------------------------------------*/
+
+/* This is suppose to be defined in stddef.h, but
+   apparently it isn't on all systems for some reason. */
+
+#ifndef offsetof
+# define offsetof(TYPE,MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
+#endif
+
+/*-----------------------------------------------------------*/
 
 typedef unsigned char byte ;
 
@@ -105,6 +115,11 @@ typedef struct {
    float *vec_axis_origin ; /*!< Array of origins, from ni_origin. */
    char **vec_axis_unit ;   /*!< Array of units, from ni_units. */
    char **vec_axis_label ;  /*!< Array of labels, from ni_axes. */
+
+   int  rowmap_num ;   /*!< Is >0 for use with NI_add_row(). */
+   int  rowmap_cod ;
+   int *rowmap_off ;   /*!< Array of offsets into struct. */
+   int *rowmap_siz ;   /*!< Array of sizes of components. */
 } NI_element ;
 
 /*! A bunch of elements. */
@@ -207,6 +222,13 @@ extern void NI_add_to_group( NI_group *, void * ) ;
 
 extern void NI_swap_vector( int, int, void * ) ;
 
+#include <stdarg.h>
+extern void NI_define_rowmap_AR( NI_element *, int,int *,int *) ;
+extern void NI_define_rowmap_VA( NI_element *, ... ) ;
+
+extern void NI_add_row( NI_element *, void * ) ;
+extern void NI_get_row( NI_element *, int, void * ) ;
+
 /** I/O functions **/
 
 extern NI_stream NI_stream_open( char *, char * ) ;
@@ -238,6 +260,7 @@ extern void NI_set_URL_ftp_ident( char *name, char *pwd ) ;
 
 /* prototypes for Base64 and MD5 functions */
 
+extern void   B64_set_crlf( int nn ) ;
 extern void   B64_set_linelen( int ll ) ;
 extern void   B64_to_binary( int nb64, byte * b64, int * nbin, byte ** bin ) ;
 extern void   B64_to_base64( int nbin, byte * bin, int * nb64, byte ** b64 ) ;
@@ -255,6 +278,13 @@ extern char * MD5_B64_file(char * filename) ;
 
 extern char * UNIQ_idcode(void) ;
 extern void   UNIQ_idcode_fill( char *idc ) ;
+
+/* trusted host manipulation */
+
+extern char * NI_hostname_to_inet( char *host ) ;
+extern void   NI_add_trusted_host( char *hostname ) ;
+extern int    NI_trust_host( char *hostid ) ;
+
 
 /*! Close a NI_stream, and set the pointer to NULL. */
 
