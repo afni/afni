@@ -5,7 +5,7 @@ double acos();
 double r_acos(x) real *x;
 #else
 #undef abs
-#include "math.h"
+#include "mathh.h"
 double r_acos(real *x)
 #endif
 {

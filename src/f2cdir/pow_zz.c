@@ -5,7 +5,7 @@ double log(), exp(), cos(), sin(), atan2(), f__cabs();
 VOID pow_zz(r,a,b) doublecomplex *r, *a, *b;
 #else
 #undef abs
-#include "math.h"
+#include "mathh.h"
 extern double f__cabs(double,double);
 void pow_zz(doublecomplex *r, doublecomplex *a, doublecomplex *b)
 #endif

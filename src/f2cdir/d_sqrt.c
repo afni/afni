@@ -5,7 +5,7 @@ double sqrt();
 double d_sqrt(x) doublereal *x;
 #else
 #undef abs
-#include "math.h"
+#include "mathh.h"
 double d_sqrt(doublereal *x)
 #endif
 {
