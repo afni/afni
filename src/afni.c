@@ -1032,13 +1032,14 @@ int main( int argc , char * argv[] )
    GLOBAL_library.ijk_lock  = 0 ;                      /* 11 Sep 2000 */
    SET_FIM_bkthr(10.0) ;                               /* 02 Jun 1999 */
 
-   GLOBAL_library.hints_on = 0 ;                       /* 07 Aug 1999 */
+   GLOBAL_library.hints_on  = 0 ;                      /* 07 Aug 1999 */
 
 #ifdef ALLOW_PLUGINS
-   GLOBAL_library.plugins  = NULL ;
+   GLOBAL_library.plugins   = NULL ;
 #endif
 
-   GLOBAL_library.session  = NULL ;                    /* 20 Dec 2001 */
+   GLOBAL_library.session   = NULL ;                   /* 20 Dec 2001 */
+   GLOBAL_library.warptable = NULL ;                   /* 28 Aug 2002 */
 
    /*--------------------------------------------------------------------*/
    /*--- initialize X, toplevel window, defaults, and display context ---*/
@@ -3478,7 +3479,7 @@ if(PRINT_TRACING)
                 new_ss->sessname ,
                 new_ss->num_anat , new_ss->num_func ) ;
 
-            num_dsets += (new_ss->num_anat + new_ss->num_func) ;  /* 04 Jan 2000 */
+            num_dsets += (new_ss->num_anat + new_ss->num_func) ; /* 04 Jan 2000 */
 
             REPORT_PROGRESS(str) ;
 
@@ -3488,6 +3489,16 @@ if(PRINT_TRACING)
                        THD_MAX_NUM_SESSION) ;
                REPORT_PROGRESS(str) ;
                break ;                            /* exit the loop over id */
+            }
+
+            /* 28 Aug 2002: add any inter-dataset warps to global warptable */
+
+            if( new_ss->warptable != NULL ){
+              if( GLOBAL_library.warptable == NULL ) /* create global warptable */
+                GLOBAL_library.warptable = new_Htable(101) ;
+              subsume_Htable( new_ss->warptable , GLOBAL_library.warptable ) ;
+              destroy_Htable( new_ss->warptable ) ;
+              new_ss->warptable = NULL ;
             }
          }
 
@@ -6394,6 +6405,25 @@ STATUS("turning markers on") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------*/
+/*! Find the warp that takes one dataset to another, if it exists.
+    [28 Aug 2002]
+------------------------------------------------------------------------*/
+
+THD_warp * AFNI_find_warp( THD_3dim_dataset *dset_to , THD_3dim_dataset *dset_from )
+{
+   THD_warp *swarp = NULL ;
+   char idkey[256] ;
+
+   if( GLOBAL_library.warptable == NULL ||
+       dset_to   == NULL                ||
+       dset_from == NULL                  ) return NULL ;
+
+   sprintf(idkey,"%s,%s",dset_to->idcode.str,dset_from->idcode.str) ;
+   swarp = (THD_warp *) findin_Htable( idkey , GLOBAL_library.warptable ) ;
+   return swarp ;
+}
+
 /*----------------------------------------------------------------------
    set the stage for viewing:
      -- prepare for warp-on-demand image production
@@ -6503,18 +6533,9 @@ STATUS("deciding whether to use function WOD") ;
                        this is a coordinate-to-coordinate tranformation,
                        and requires warp-on-demand viewing              -*/
 
-      if( im3d->ss_now->warptable != NULL ){
-        char idkey[256] ;
-        THD_warp *swarp ;
-        sprintf(idkey,"%s,%s",im3d->anat_now->idcode.str,im3d->fim_now->idcode.str) ;
-        swarp = (THD_warp *) findin_Htable( idkey , im3d->ss_now->warptable ) ;
-        if( swarp != NULL ){
-          func_brick_possible = 0 ;      /* require warp-on-demand */
-          im3d->fim_selfwarp  = swarp ;  /* transform from fim to anat coords */
-fprintf(stderr,"++ Loaded self warp\n") ;
-        }
-      } else {
-        im3d->fim_selfwarp = NULL ;      /* no transform required */
+      { THD_warp *swarp = AFNI_find_warp( im3d->anat_now , im3d->fim_now ) ;
+        im3d->fim_selfwarp = swarp ;  /* transform from fim to anat coords */
+        if( swarp != NULL ) func_brick_possible = 0 ;   /* require warp-on-demand */
       }
 
       /*- The Ides of March, 2000: allow switching back to "view brick" -*/
@@ -7091,6 +7112,14 @@ THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * old_dset ,
        new_dset->anat_parent->warp_parent != NULL      ){
 
       return AFNI_forward_warp_vector( new_dset->anat_parent->warp , old_fv ) ;
+   }
+
+   /*-- 28 Aug 2002: see if there is a special warp between datasets --*/
+
+   { THD_warp *swarp = AFNI_find_warp(new_dset,old_dset) ;
+     if( swarp != NULL ) return AFNI_forward_warp_vector( swarp , old_fv ) ;
+     swarp = AFNI_find_warp(old_dset,new_dset) ;
+     if( swarp != NULL ) return AFNI_backward_warp_vector( swarp, old_fv ) ;
    }
 
    /*-- default is no change --*/

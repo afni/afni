@@ -273,9 +273,9 @@ typedef NI_stream_type *NI_stream ;
 
 typedef struct {
   int     len , ntot ;
-  void *** vtab ;             /* pointers */
-  char *** ctab ;             /* digests */
-  int    * ntab ;             /* counts */
+  void ***vtab ;             /* pointers */
+  char ***ctab ;             /* digests */
+  int    *ntab ;             /* counts */
 } Htable ;
 
 extern Htable * new_Htable( int ) ;
@@ -284,6 +284,7 @@ extern void     addto_Htable( char *, void *, Htable * ) ;
 extern void *   findin_Htable( char *, Htable * ) ;
 extern void     removefrom_Htable( char *, Htable * ) ;
 extern void     profile_Htable( char *, Htable * ) ;
+extern void     subsume_Htable( Htable *, Htable * ) ;
 
 /*-------------- prototypes ---------------*/
 

@@ -245,6 +245,19 @@ static float tempRWC ;
   + (A).mat[2][0]*(A).mat[0][1]*(A).mat[1][2] \
   - (A).mat[2][0]*(A).mat[0][2]*(A).mat[1][1]   )
 
+   /* matrix norm [28 Aug 2002] */
+
+#define MAT_FNORM(A)                 \
+ sqrt( (A).mat[0][0]*(A).mat[0][0] + \
+       (A).mat[0][1]*(A).mat[0][1] + \
+       (A).mat[0][2]*(A).mat[0][2] + \
+       (A).mat[1][0]*(A).mat[1][0] + \
+       (A).mat[1][1]*(A).mat[1][1] + \
+       (A).mat[1][2]*(A).mat[1][2] + \
+       (A).mat[2][0]*(A).mat[2][0] + \
+       (A).mat[2][1]*(A).mat[2][1] + \
+       (A).mat[2][2]*(A).mat[2][2]  )
+
    /* matrix trace [5 Oct 1998] */
 
 #define MAT_TRACE(A) ( (A).mat[0][0] + (A).mat[1][1] + (A).mat[2][2] )

@@ -278,11 +278,10 @@ ENTRY("THD_open_minc") ;
       iview = VIEW_ORIGINAL_TYPE ;
    }
 
-   dset->idcode.str[0] = 'M' ;  /* this is a fake ID code */
+   dset->idcode.str[0] = 'M' ;  /* overwrite 1st 4 bytes with something special */
    dset->idcode.str[1] = 'I' ;
    dset->idcode.str[2] = 'N' ;
    dset->idcode.str[3] = 'C' ;
-   dset->idcode.str[4] = ':' ;
 
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
