@@ -8831,11 +8831,30 @@ ENTRY("AFNI_load_defaults") ;
 
 /********************************************************************/
 #ifdef USE_SONNETS
+
+void AFNI_popup_sonnet( Widget w , int ii )  /* 12 Dec 2001 */
+{
+   char buf[2048] ; int jj=MCW_USER_KILL ;
+
+   if( w == NULL ) return ;
+
+   if( ii < 1 || ii > NUM_SONNETS ){
+      ii  = (lrand48()&NUM_SONNETS) + 1 ;
+      jj |= MCW_TIMER_KILL ;
+   }
+
+   sprintf( buf , "                    * %d *\n" , ii ) ;
+   strcat( buf , sonnets[ii-1] ) ;
+   (void) MCW_popup_message( w , buf , jj ) ;
+   return ;
+}
+
+/*..................................................................*/
+
 void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
    MCW_choose_cbs * cbs ;
-   char buf[2048] ;
 
    if( NO_frivolities || !IM3D_VALID(im3d) ) return ;
 
@@ -8852,18 +8871,10 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
    cbs = (MCW_choose_cbs *) call_data ;
    if( cbs->reason != mcwCR_integer ){  /* error */
-      XBell( XtDisplay(w) , 100 ) ;
-      return ;
+      XBell( XtDisplay(w) , 100 ) ; return ;
    }
 
-   if( cbs->ival < 1 || cbs->ival > NUM_SONNETS ){ /* error */
-      XBell( XtDisplay(w) , 100 ) ;
-      return ;
-   }
-
-   sprintf( buf , "                    * %d *\n" , cbs->ival ) ;
-   strcat( buf , sonnets[cbs->ival-1] ) ;
-   (void) MCW_popup_message( im3d->vwid->picture , buf , MCW_USER_KILL ) ;
+   AFNI_popup_sonnet( im3d->vwid->picture , cbs->ival ) ;
    return ;
 }
 #endif /* USE_SONNETS */

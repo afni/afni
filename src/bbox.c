@@ -475,6 +475,10 @@ int AV_colsize()                      /* 11 Dec 2001 */
 
 static void optmenu_EV( Widget,XtPointer,XEvent *,Boolean *) ; /* prototype */
 
+static int allow_optmenu_EV = 1 ;
+
+void allow_MCW_optmenu_popup( int ii ){ allow_optmenu_EV = ii ; }
+
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 char * label ,
                                 int    minval , int maxval , int inival , int decim ,
@@ -606,12 +610,13 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
 
    /* 11 Dec 2001: allow user to choose via Button-3 popup */
 
-   XtInsertEventHandler( av->wrowcol ,      /* handle events in optmenu */
-                         ButtonPressMask ,  /* button presses */
-                         FALSE ,            /* nonmaskable events? */
-                         optmenu_EV ,       /* handler */
-                         (XtPointer) av ,   /* client data */
-                         XtListTail ) ;     /* last in queue */
+   if( allow_optmenu_EV )
+     XtInsertEventHandler( av->wrowcol ,      /* handle events in optmenu */
+                           ButtonPressMask ,  /* button presses */
+                           FALSE ,            /* nonmaskable events? */
+                           optmenu_EV ,       /* handler */
+                           (XtPointer) av ,   /* client data */
+                           XtListTail ) ;     /* last in queue */
 
    return av ;
 }
@@ -633,10 +638,6 @@ void refit_MCW_optmenu( MCW_arrowval * av ,
 ENTRY("refit_MCW_optmenu") ;
 
    /** sanity check **/
-
-#if 0
-   POPDOWN_strlist_chooser ;  /* 11 Dec 2001 */
-#endif
 
    if( av == NULL || av->wmenu == NULL ) EXRETURN ;
    wmenu = av->wmenu ;
@@ -752,8 +753,7 @@ ENTRY("refit_MCW_optmenu") ;
 }
 
 /*--------------------------------------------------------------------------
-  11 Dec 2001:
-  Provide a Button 3 list to choose from for an optmenu
+  11 Dec 2001: Provide a Button 3 list to choose from for an optmenu
 ----------------------------------------------------------------------------*/
 
 static void optmenu_finalize( Widget w, XtPointer cd, MCW_choose_cbs * cbs )
@@ -793,9 +793,9 @@ ENTRY("optmenu_EV") ;
 
    /** sanity checks **/
 
-   if( bev->button != Button3 ) EXRETURN ;
-
    if( w == NULL || av == NULL || av->wmenu == NULL ) EXRETURN ;
+
+   if( bev->button != Button3 ) EXRETURN ;
 
    XtVaGetValues( av->wlabel , XmNwidth,&lw , NULL ) ;
    if( bev->x > lw ) EXRETURN ;

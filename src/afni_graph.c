@@ -216,6 +216,8 @@ ENTRY("new_MCW_grapher") ;
             XmNbottomAttachment , XmATTACH_FORM ,
          NULL ) ;
 
+   allow_MCW_optmenu_popup( 1 ) ;  /* 12 Dec 2001 */
+
    /*------------------------*/
    /*--- FIM Menu Buttons ---*/
    /*------------------------*/
@@ -741,6 +743,8 @@ ENTRY("new_MCW_grapher") ;
    /** done with option buttons -- manage the manager widget **/
 
    XtManageChild( grapher->option_rowcol ) ;
+
+   allow_MCW_optmenu_popup( 1 ) ;  /* 12 Dec 2001 */
 
    /** initialize the internal parameters **/
 

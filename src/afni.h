@@ -165,6 +165,8 @@ extern char AFNI_abohelp[1024] ;
 
 #ifdef USE_SONNETS
 
+    extern void AFNI_popup_sonnet( Widget,int ) ; /* 12 Dec 2001 */
+
 #   ifdef MAIN
 #     include "sonnets.h"
       static int sonnet_index = 0 ;

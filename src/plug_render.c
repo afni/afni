@@ -3365,7 +3365,9 @@ void REND_xhair_EV( Widget w , XtPointer cd ,
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
          if( event->button == Button3 || event->button == Button2 ){
+            allow_MCW_optmenu_popup(1) ;
             MCW_choose_ovcolor( w,dc , xhair_ovc , REND_xhair_ovc_CB,NULL ) ;
+            allow_MCW_optmenu_popup(1) ;
          }
       }
       break ;
@@ -4836,6 +4838,8 @@ void REND_func_widgets(void)
                             XtListTail           /* last in queue */
                           ) ;
 
+   allow_MCW_optmenu_popup(0) ;  /* 12 Dec 2001 */
+
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , wfunc_pbar_menu ,
                LABEL_ARG("-- Cancel --") ,
@@ -4942,6 +4946,8 @@ void REND_func_widgets(void)
    } else {
       XtUnmanageChild( wfunc_pbar_palette_av->wrowcol ) ;
    }
+
+   allow_MCW_optmenu_popup(1) ;  /* 12 Dec 2001 */
 
    /**-- Color pbar to control intensity-to-color mapping --**/
 
