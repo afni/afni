@@ -1305,27 +1305,10 @@ void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    ndsl = 0 ;
 
-   /* scan anats */
+   /* scan datasets */
 
-   for( id=0 ; id < ss->num_anat ; id++ ){
-      qset = ss->anat[id][vv] ;
-
-      if( ! ISVALID_DSET (qset)                        ) continue ;  /* skip */
-      if( ! DSET_INMEMORY(qset)                        ) continue ;
-      if( DSET_NVALS(qset) > 1                         ) continue ;
-      if( ! EQUIV_DATAXES(qset->daxes,im3d->wod_daxes) ) continue ;
-
-      ndsl++ ;
-      dsl = (PLUGIN_dataset_link *)
-              XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
-
-      make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;
-   }
-
-   /* scan funcs */
-
-   for( id=0 ; id < ss->num_func ; id++ ){
-      qset = ss->func[id][vv] ;
+   for( id=0 ; id < ss->num_dsset ; id++ ){
+      qset = ss->dsset[id][vv] ;
 
       if( ! ISVALID_DSET (qset)                        ) continue ;  /* skip */
       if( ! DSET_INMEMORY(qset)                        ) continue ;
@@ -1430,6 +1413,8 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    THD_3dim_dataset * qset ;
    XmString xstr ;
    char str[256] , *dtit ;
+   THD_slist_find slf ;   /* 29 Jul 2003 */
+   MCW_choose_cbs cbs ;
 
    /*-- check for errors --*/
 
@@ -1535,7 +1520,20 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    undo_bufuse = 0 ; SENSITIZE(undo_pb,0) ;
 
-   if( ISFUNC(dset) ) AFNI_SEE_FUNC_ON(im3d) ; /* 30 Apr 2002 */
+   /* 29 Jul 2003: switch to this dataset */
+
+   slf = THD_dset_in_session( FIND_IDCODE , &(dset->idcode) , im3d->ss_now ) ;
+   if( slf.dset_index >= 0 ){
+     cbs.ival = slf.dset_index ;
+     if( ISFUNC(dset) ){
+       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
+                                 (XtPointer) im3d ,  &cbs          ) ;
+       AFNI_SEE_FUNC_ON(im3d) ; /* 30 Apr 2002 */
+     } else {
+       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
+                                 (XtPointer) im3d ,  &cbs          ) ;
+     }
+   }
 
    return ;
 }

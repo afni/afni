@@ -2715,47 +2715,28 @@ ENTRY("PLUG_choose_dataset_CB") ;
    for( iss=iss_bot ; iss <= iss_top ; iss++ ){
       ss = GLOBAL_library.sslist->ssar[iss] ;
 
-      /* check anat datasets, if reasonable */
+      /* check datasets in this session */
 
-      if( sv->dset_anat_mask != 0 ){
-         for( id=0 ; id < ss->num_anat ; id++ ){
-            dset = ss->anat[id][vv] ;
+      for( id=0 ; id < ss->num_dsset ; id++ ){
+        dset = ss->dsset[id][vv] ;            if( dset == NULL ) continue ;
 
-            if( ! PLUGIN_dset_check( sv->dset_anat_mask ,
-                                     sv->dset_ctrl_mask , dset ) ) continue ;
+        if( sv->dset_anat_mask != 0 && ISANAT(dset) )
+          if( ! PLUGIN_dset_check( sv->dset_anat_mask ,
+                                   sv->dset_ctrl_mask , dset ) ) continue ;
 
-            /* if we get here, then this dataset is OK to choose! */
+        if( sv->dset_func_mask != 0 && ISFUNC(dset) )
+          if( ! PLUGIN_dset_check( sv->dset_func_mask ,
+                                   sv->dset_ctrl_mask , dset ) ) continue ;
 
-            num_dset++ ;
-            av->dset_link = (PLUGIN_dataset_link *)
-                             XtRealloc( (char *) av->dset_link ,
-                                        sizeof(PLUGIN_dataset_link)*num_dset ) ;
+        /* if we get here, then this dataset is OK to choose! */
 
-            make_PLUGIN_dataset_link( dset , av->dset_link + (num_dset-1) ) ;
+        num_dset++ ;
+        av->dset_link = (PLUGIN_dataset_link *)
+                         XtRealloc( (char *) av->dset_link ,
+                                    sizeof(PLUGIN_dataset_link)*num_dset ) ;
 
-         }
-      } /* end of loop over anat datasets */
-
-      /* do the same for func datasets */
-
-      if( sv->dset_func_mask != 0 ){
-         for( id=0 ; id < ss->num_func ; id++ ){
-            dset = ss->func[id][vv] ;
-
-            if( ! PLUGIN_dset_check( sv->dset_func_mask ,
-                                     sv->dset_ctrl_mask , dset ) ) continue ;
-
-            /* if we get here, then this dataset is OK to choose! */
-
-            num_dset++ ;
-            av->dset_link = (PLUGIN_dataset_link *)
-                             XtRealloc( (char *) av->dset_link ,
-                                        sizeof(PLUGIN_dataset_link)*num_dset ) ;
-
-            make_PLUGIN_dataset_link( dset , av->dset_link + (num_dset-1) ) ;
-
-         }
-      } /* end of loop over func datasets */
+        make_PLUGIN_dataset_link( dset , av->dset_link + (num_dset-1) ) ;
+      }
 
    } /* end of loop over sessions */
 
@@ -3136,10 +3117,10 @@ ENTRY("PLUTO_popup_dset_chooser") ;
    for( iss=iss_bot ; iss <= iss_top ; iss++ ){
       ss = GLOBAL_library.sslist->ssar[iss] ;
 
-      /* check anat datasets */
+      /* check datasets from this session */
 
-      for( id=0 ; id < ss->num_anat ; id++ ){
-         dset = ss->anat[id][vv] ;
+      for( id=0 ; id < ss->num_dsset ; id++ ){
+         dset = ss->dsset[id][vv] ;    if( dset == NULL ) continue ;
          if( chk_func != NULL && chk_func(dset,cd) == 0 ) continue ; /* skip */
 
          num_user_dset++ ;
@@ -3149,22 +3130,7 @@ ENTRY("PLUTO_popup_dset_chooser") ;
 
          make_PLUGIN_dataset_link( dset , user_dset_link + (num_user_dset-1) ) ;
 
-      } /* end of loop over anat datasets */
-
-      /* do the same for func datasets */
-
-      for( id=0 ; id < ss->num_func ; id++ ){
-         dset = ss->func[id][vv] ;
-         if( chk_func != NULL && chk_func(dset,cd) == 0 ) continue ; /* skip */
-
-         num_user_dset++ ;
-         user_dset_link = (PLUGIN_dataset_link *)
-                         XtRealloc( (char *) user_dset_link ,
-                                    sizeof(PLUGIN_dataset_link)*num_user_dset ) ;
-
-        make_PLUGIN_dataset_link( dset , user_dset_link + (num_user_dset-1) ) ;
-
-      } /* end of loop over func datasets */
+      } /* end of loop over datasets */
 
    } /* end of loop over sessions */
 
@@ -3645,26 +3611,13 @@ ENTRY("PLUTO_add_dset") ;
 
    /** add the dataset to the session **/
 
-   if( ISANAT(dset) ){
-      id = sess->num_anat ;
-      if( id >= THD_MAX_SESSION_ANAT ){
-         fprintf(stderr,"*** Overflow anat dataset limit ***\n") ;
-         RETURN(1) ;
-      }
-      sess->anat[id][vv] = dset ;
-      (sess->num_anat)++ ;
-   } else if( ISFUNC(dset) ){
-      id = sess->num_func ;
-      if( id >= THD_MAX_SESSION_FUNC ){
-         fprintf(stderr,"*** Overflow func dataset limit ***\n") ;
-         RETURN(1) ;
-      }
-      sess->func[id][vv] = dset ;
-      (sess->num_func)++ ;
-   } else {
-      fprintf(stderr,"*** Bizarre type error in PLUTO_add_dset!\n") ;
-      RETURN(1) ;
+   id = sess->num_dsset ;
+   if( id >= THD_MAX_SESSION_SIZE ){
+     fprintf(stderr,"*** Overflow session dataset limit ***\n") ;
+     RETURN(1) ;
    }
+   sess->dsset[id][vv] = dset ;
+   sess->num_dsset ++ ;
 
    /** make sure the dataset is properly fit into the situation **/
 
@@ -3674,19 +3627,19 @@ ENTRY("PLUTO_add_dset") ;
    THD_write_3dim_dataset( NULL,NULL , dset , True ) ;
 
    if( dset->anat_parent == NULL )                          /* if() added 14 Dec 1999 */
-      AFNI_force_adoption( sess , GLOBAL_argopt.warp_4D ) ;
+     AFNI_force_adoption( sess , GLOBAL_argopt.warp_4D ) ;
 
    AFNI_make_descendants( GLOBAL_library.sslist ) ;
 
    /** if desired, jump to this puppy in the viewer **/
 
    if( make_current && IM3D_VALID(im3d) ){
-      if( ISANAT(dset) )
-         im3d->vinfo->anat_num = sess->num_anat - 1 ;
-      else
-         im3d->vinfo->func_num = sess->num_func - 1 ;
+     if( ISANAT(dset) )
+       im3d->vinfo->anat_num = sess->num_dsset - 1 ;
+     else
+       im3d->vinfo->func_num = sess->num_dsset - 1 ;
 
-      AFNI_initialize_view( im3d->anat_now , im3d ) ;
+     AFNI_initialize_view( im3d->anat_now , im3d ) ;
    }
 
    THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_ANY ) ;

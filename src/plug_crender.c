@@ -3238,10 +3238,10 @@ ENTRY( "RCREND_load_dsl" );
       nx = ny = nz = 0 ;
    }
 
-   /* scan anats */
+   /* scan datasets */
 
-   for( id=0 ; id < ss->num_anat ; id++ ){
-      qset = ss->anat[id][vv] ;
+   for( id=0 ; id < ss->num_dsset ; id++ ){
+      qset = ss->dsset[id][vv] ;
 
       if( ! USEFUL_DSET(qset) ) continue ;   /* skip this one */
 
@@ -3256,26 +3256,6 @@ ENTRY( "RCREND_load_dsl" );
               XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
 
       make_PLUGIN_dataset_link(qset, dsl + (ndsl-1)) ;  /* cf. afni_plugin.c */
-   }
-
-   /* scan funcs */
-
-   for( id=0 ; id < ss->num_func ; id++ ){
-      qset = ss->func[id][vv] ;
-
-      if( ! USEFUL_DSET(qset) ) continue ;    /* skip this one */
-
-#if 0   /* overlay grid no longer needs to match underlay  rickr 2002.07.18 */
-      if( nx > 0 && DSET_NX(qset) != nx ) continue ;
-      if( ny > 0 && DSET_NY(qset) != ny ) continue ;
-      if( nz > 0 && DSET_NZ(qset) != nz ) continue ;
-#endif
-
-      ndsl++ ;
-      dsl = (PLUGIN_dataset_link *)
-              XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
-
-      make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;
    }
 
    EXRETURN ;

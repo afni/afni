@@ -9,7 +9,8 @@
 
 /*----------------------------------------------------------------
     Reconcile warp and anatomy pointers between datasets that
-    have been read in from multiple sessions
+    have been read in from multiple sessions.
+    [28 Jul 2003] Modified for new THD_session struct.
 ------------------------------------------------------------------*/
 
 # define IFNOANAT(ds)                                           \
@@ -38,22 +39,24 @@ void THD_reconcile_parents( THD_sessionlist * ssl )
    THD_3dim_dataset * dset_orph ;
    THD_slist_find   find ;
 
+ENTRY("THD_reconcile_parents") ;
+
    /*-- sanity check --*/
 
-   if( ! ISVALID_SESSIONLIST(ssl) || ssl->num_sess <= 0 ) return ;
+   if( ! ISVALID_SESSIONLIST(ssl) || ssl->num_sess <= 0 ) EXRETURN ;
 
    /*-- for each session in the list --*/
 
    for( iss=0 ; iss < ssl->num_sess ; iss++ ){
       sess = ssl->ssar[iss] ;
 
-      /*-- for each anat dataset in the session --*/
+      /*-- for each dataset in the session --*/
 
-      for( idd=0 ; idd < sess->num_anat ; idd++ ){
+      for( idd=0 ; idd < sess->num_dsset ; idd++ ){
          for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
 
-            dset_orph = sess->anat[idd][ivv] ;
-            if( dset_orph == NULL ) continue ;
+          dset_orph = sess->dsset[idd][ivv] ;
+          if( dset_orph == NULL ) continue ;
 
             /*-- if it needs an anatomy parent --*/
 
@@ -108,66 +111,7 @@ void THD_reconcile_parents( THD_sessionlist * ssl )
          }
       }  /* end of loop over anat datasets */
 
-      /*-- for each func dataset in the session --*/
-
-      for( idd=0 ; idd < sess->num_func ; idd++ ){
-         for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
-
-            dset_orph = sess->func[idd][ivv] ;
-            if( dset_orph == NULL ) continue ;
-
-            /*-- if it needs an anatomy parent --*/
-
-          if( dset_orph->anat_parent == NULL ){  /* 28 Dec 2002 */
-            needed = 0 ;
-            if( ! ISZERO_IDCODE(dset_orph->anat_parent_idcode) ){
-               needed = 1 ;
-               find = THD_dset_in_sessionlist( FIND_IDCODE ,
-                                               &(dset_orph->anat_parent_idcode),
-                                               ssl , iss ) ;
-               dset_orph->anat_parent = find.dset ;
-               if( dset_orph->anat_parent != NULL )
-                  SHOW_PARENTING("(ID) anat_parent",dset_orph,dset_orph->anat_parent) ;
-            }
-            if( dset_orph->anat_parent == NULL && strlen(dset_orph->anat_parent_name) > 0 ){
-               needed = 1 ;
-               find = THD_dset_in_sessionlist( FIND_NAME ,
-                                               dset_orph->anat_parent_name,
-                                               ssl , iss ) ;
-               dset_orph->anat_parent = find.dset ;
-               if( dset_orph->anat_parent != NULL )
-                  SHOW_PARENTING("(NAME) anat_parent",dset_orph,dset_orph->anat_parent) ;
-            }
-            IFNOANAT(dset_orph) ;
-          }
-
-            /*-- if it needs a warp parent --*/
-
-          if( dset_orph->warp_parent == NULL ){  /* 28 Dec 2002 */
-            needed = 0 ;
-            if( ! ISZERO_IDCODE(dset_orph->warp_parent_idcode) ){
-               needed = 1 ;
-               find = THD_dset_in_sessionlist( FIND_IDCODE ,
-                                               &(dset_orph->warp_parent_idcode),
-                                               ssl , iss ) ;
-               dset_orph->warp_parent = find.dset ;
-               if( dset_orph->warp_parent != NULL )
-                  SHOW_PARENTING("(ID) warp_parent",dset_orph,dset_orph->warp_parent) ;
-            }
-            if( dset_orph->warp_parent == NULL && strlen(dset_orph->warp_parent_name) > 0 ){
-               needed = 1 ;
-               find = THD_dset_in_sessionlist( FIND_NAME ,
-                                               dset_orph->warp_parent_name,
-                                               ssl , iss ) ;
-               dset_orph->warp_parent = find.dset ;
-               if( dset_orph->warp_parent != NULL )
-                  SHOW_PARENTING("(NAME) warp_parent",dset_orph,dset_orph->warp_parent) ;
-            }
-            IFNOWARP(dset_orph) ;
-          }
-
-         }
-      }  /* end of loop over func datasets */
-
    }  /* end of loop over sessions */
+
+   EXRETURN ;
 }

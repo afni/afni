@@ -1759,7 +1759,7 @@ ENTRY("AFNI_fimmer_menu_CB") ;
 #define STRLIST_SIZE (THD_MAX_PREFIX+12)
 
    else if( w == fmenu->fim_pickdset_pb ){
-      static char * strlist[THD_MAX_SESSION_ANAT] ;  /* strings to choose between */
+      static char * strlist[THD_MAX_SESSION_SIZE] ;  /* strings to choose between */
       static int first_call = 1 ;                    /* initialization flag */
 
       int num_str , ii , init_str=-1 , vv , jj ;
@@ -1769,25 +1769,25 @@ ENTRY("AFNI_fimmer_menu_CB") ;
       if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
 
       if( first_call ){
-         for( ii=0 ; ii < THD_MAX_SESSION_ANAT ; ii++ )
-            strlist[ii] = XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
-         first_call = 0 ;
+        for( ii=0 ; ii < THD_MAX_SESSION_SIZE ; ii++ )
+          strlist[ii] = XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
+        first_call = 0 ;
       }
 
       /** scan through anats and find 3D+t datasets **/
 
       num_str = 0 ;
       vv      = im3d->vinfo->view_type ;  /* current view */
-      for( ii=0 ; ii < im3d->ss_now->num_anat ; ii++ ){
+      for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
 
-         if( DSET_GRAPHABLE(im3d->ss_now->anat[ii][vv]) ){  /** have one! **/
+         if( DSET_GRAPHABLE(im3d->ss_now->dsset[ii][vv]) ){  /** have one! **/
             MCW_strncpy( strlist[num_str] ,
-                         im3d->ss_now->anat[ii][vv]->dblk->diskptr->prefix ,
+                         im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ,
                          THD_MAX_PREFIX ) ;
 
             jj = ii ;  /* most recent */
 
-            if( im3d->fimdata->fimdset == im3d->ss_now->anat[ii][vv] )  /* same? */
+            if( im3d->fimdata->fimdset == im3d->ss_now->dsset[ii][vv] )  /* same? */
                init_str = num_str ;
 
             num_str ++ ;
@@ -1806,7 +1806,7 @@ ENTRY("AFNI_fimmer_menu_CB") ;
 
       } else if( num_str == 1 ){             /* Hobson's choice */
 
-         im3d->fimdata->fimdset = im3d->ss_now->anat[jj][vv] ;
+         im3d->fimdata->fimdset = im3d->ss_now->dsset[jj][vv] ;
          ALLOW_COMPUTE_FIM(im3d) ;
 
       } else {                               /* an actual choice to make! */
@@ -1859,15 +1859,15 @@ void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs 
 
    num_str = 0 ;
    vv      = im3d->vinfo->view_type ;
-   for( ii=0 ; ii < im3d->ss_now->num_anat ; ii++ ){
-      if( DSET_GRAPHABLE(im3d->ss_now->anat[ii][vv]) ){
+   for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
+      if( DSET_GRAPHABLE(im3d->ss_now->dsset[ii][vv]) ){
          if( num_str == cbs->ival ) break ;
          num_str ++ ;
       }
    }
 
-   if( ii < im3d->ss_now->num_anat ){
-      im3d->fimdata->fimdset = im3d->ss_now->anat[ii][vv] ;
+   if( ii < im3d->ss_now->num_dsset ){
+      im3d->fimdata->fimdset = im3d->ss_now->dsset[ii][vv] ;
       ALLOW_COMPUTE_FIM(im3d) ;
    } else {
       fprintf(stderr,"\n*** Illegal choice in AFNI_fimmer_dset_choose_CB:"
@@ -1906,7 +1906,7 @@ ENTRY("AFNI_fimmer_execute") ;
    if( ref_ts == NULL ){ XBell(im3d->dc->display,100) ; EXRETURN ; }
 
    sess = im3d->ss_now ;
-   if( ! ISVALID_SESSION(sess) || sess->num_func >= THD_MAX_SESSION_FUNC ){
+   if( ! ISVALID_SESSION(sess) || sess->num_dsset >= THD_MAX_SESSION_SIZE ){
       XBell(im3d->dc->display,100) ; EXRETURN ;
    }
 
@@ -1972,20 +1972,17 @@ STATUS("first_call mode") ;
 
       /*** Fit the new dataset into its place in the session ***/
 
-      ifunc = sess->num_func ;
-      sess->func[ifunc][new_dset->view_type] = new_dset ;
-      (sess->num_func)++ ;
+      ifunc = sess->num_dsset ;
+      sess->dsset[ifunc][new_dset->view_type] = new_dset ;
+      sess->num_dsset ++ ;
       im3d->vinfo->func_num = ifunc ;
 
 STATUS("loading statistics") ;
       THD_load_statistics( new_dset ) ;
 
-      if( new_dset->func_type == FUNC_BUCK_TYPE ){   /* 15 Dec 1997 */
-STATUS("modifying vinfo for bucket") ;
-         im3d->vinfo->fim_index = 0 ;
-         im3d->vinfo->thr_index = 1 ;
-         if( DSET_NVALS(new_dset) == 1 ) im3d->vinfo->thr_index = 0 ;
-      }
+      im3d->vinfo->fim_index = 0 ;
+      im3d->vinfo->thr_index = 1 ;
+      if( DSET_NVALS(new_dset) == 1 ) im3d->vinfo->thr_index = 0 ;
 
       AFNI_initialize_view( im3d->anat_now , im3d ) ;
 

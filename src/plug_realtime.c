@@ -2982,47 +2982,28 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
       /** put it into the current session in the current controller **/
 
-      if( ISANAT(rtin->dset[cc]) ){
+      if( GLOBAL_library.have_dummy_dataset ) UNDUMMYIZE ;
 
-         if( GLOBAL_library.have_dummy_dataset ) UNDUMMYIZE ;
+      id = sess->num_dsset ;
 
-         id = sess->num_anat ;
-
-         if( id >= THD_MAX_SESSION_ANAT ){
-            fprintf(stderr,"RT: max number of anat datasets exceeded!\a\n") ;
-            EXIT(1) ;
-         }
-         sess->anat[id][VIEW_ORIGINAL_TYPE] = rtin->dset[cc] ;
-         sess->num_anat = id+1 ;
-         POPDOWN_strlist_chooser ;
-
-      } else if( ISFUNC(rtin->dset[cc]) ){
-
-         if( GLOBAL_library.have_dummy_dataset )
-            fprintf(stderr,"RT: input of functional dataset into dummy session!\a\n") ;
-
-         id = sess->num_func ;
-         if( id >= THD_MAX_SESSION_FUNC ){
-            fprintf(stderr,"RT: max number of func datasets exceeded!\a\n") ;
-            EXIT(1) ;
-         }
-         sess->func[id][VIEW_ORIGINAL_TYPE] = rtin->dset[cc] ;
-         sess->num_func = id+1 ;
-         AFNI_force_adoption( sess , False ) ;
-         POPDOWN_strlist_chooser ;
-
-      } else {
-         fprintf(stderr,"RT: bizarre dataset type error!\a\n") ;
-         EXIT(1) ;
+      if( id >= THD_MAX_SESSION_SIZE ){
+        fprintf(stderr,"RT: max number of anat datasets exceeded!\a\n") ;
+        EXIT(1) ;
       }
+      sess->dsset[id][VIEW_ORIGINAL_TYPE] = rtin->dset[cc] ;
+      sess->num_dsset = id+1 ;
+      POPDOWN_strlist_chooser ;
+
+      if( ISFUNC(rtin->dset[cc]) )
+        AFNI_force_adoption( sess , False ) ;
 
       /** tell AFNI controller to jump to this dataset and session **/
 
       if( im3d != NULL ){
         if( ISANAT(rtin->dset[cc]) )
-           im3d->vinfo->anat_num = sess->num_anat - 1 ;
+           im3d->vinfo->anat_num = sess->num_dsset - 1 ;
         else
-           im3d->vinfo->func_num = sess->num_func - 1 ;
+           im3d->vinfo->func_num = sess->num_dsset - 1 ;
 
         im3d->vinfo->sess_num = rtin->sess_num[cc] ;
 
@@ -3067,17 +3048,17 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
                        clll , sess->sessname ) ;
 
             EDIT_dset_items( rtin->func_dset, ADN_directory_name,sess->sessname, ADN_none ) ;
-            id = sess->num_func ;
-            if( id >= THD_MAX_SESSION_FUNC ){
-               fprintf(stderr,"RT: max number of func datasets exceeded!\a\n") ;
-               EXIT(1) ;
+            id = sess->num_dsset ;
+            if( id >= THD_MAX_SESSION_SIZE ){
+              fprintf(stderr,"RT: max number of datasets exceeded!\a\n") ;
+              EXIT(1) ;
             }
-            sess->func[id][VIEW_ORIGINAL_TYPE] = rtin->func_dset ; (sess->num_func)++ ;
+            sess->dsset[id][VIEW_ORIGINAL_TYPE] = rtin->func_dset ; sess->num_dsset++ ;
             AFNI_force_adoption( sess , False ) ;
             POPDOWN_strlist_chooser ;
 
             if( im3d != NULL ){
-              im3d->vinfo->func_num = sess->num_func - 1 ;
+              im3d->vinfo->func_num = sess->num_dsset - 1 ;
               AFNI_SETUP_FUNC_ON(im3d) ;
             }
 
@@ -3111,12 +3092,12 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
          EDIT_dset_items( rtin->reg_dset, ADN_directory_name,sess->sessname, ADN_none ) ;
 
-         id = sess->num_anat ;
-         if( id >= THD_MAX_SESSION_ANAT ){
-            fprintf(stderr,"RT: max number of anat datasets exceeded!\a\n") ;
-            EXIT(1) ;
+         id = sess->num_dsset ;
+         if( id >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,"RT: max number of datasets exceeded!\a\n") ;
+           EXIT(1) ;
          }
-         sess->anat[id][VIEW_ORIGINAL_TYPE] = rtin->reg_dset ; sess->num_anat = id+1 ;
+         sess->dsset[id][VIEW_ORIGINAL_TYPE] = rtin->reg_dset ; sess->num_dsset = id+1 ;
          POPDOWN_strlist_chooser ;
 
          rtin->reg_status = 1 ;   /* AFNI knows about this dataset now */

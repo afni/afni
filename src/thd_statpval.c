@@ -117,7 +117,7 @@ float THD_pval_to_stat( float pval , int statcode , float * stataux )
 
 float THD_stat_to_zscore( float thr , int statcode , float * stataux )
 {
-   float zscore = 0.0 ;
+   float zscore = thr ;
 
    if( stataux == NULL && statcode != FUNC_ZT_TYPE ) return zscore ;
 
