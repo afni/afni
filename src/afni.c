@@ -4638,8 +4638,6 @@ STATUS("opening a graph window") ;
        if( mirror )                                            /* 12 Jul 2000 */
           drive_MCW_grapher( gr , graDR_mirror , (XtPointer) 1 ) ;
 
-STATUS("realizing new grapher") ;
-
        /* 07 Aug 2001: set global baseline level, if possible */
 
        if( ISVALID_STATISTIC(brnew->dset->stats) ){
@@ -4654,6 +4652,8 @@ STATUS("realizing new grapher") ;
              drive_MCW_grapher( gr, graDR_setglobalbaseline, (XtPointer)&vbot );
          }
        }
+
+STATUS("realizing new grapher") ;
 
        drive_MCW_grapher( gr , graDR_realize , NULL ) ;
 
