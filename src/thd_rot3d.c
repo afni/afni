@@ -36,6 +36,8 @@ void THD_rota_method( int mode )
       case MRI_CUBIC:   shifter = cub_shift2   ; break ;
       case MRI_QUINTIC: shifter = quint_shift2 ; break ;  /* Nov 1998 */
       case MRI_HEPTIC:  shifter = hept_shift2  ; break ;  /* Nov 1998 */
+
+      case MRI_FOURIER_NOPAD: shifter = fft_shift2   ; break ;  /* 13 May 2003 */
    }
    return ;
 }
@@ -155,6 +157,8 @@ ENTRY("apply_xshear") ;
    if( shift_method == MRI_FOURIER ){
       nst = nx + 0.5*st ;
       nup = csfft_nextup_one35(nst) ;
+   } else if( shift_method == MRI_FOURIER_NOPAD ){
+      nup = csfft_nextup_even(nx) ;
    }
 
    for( kk=0 ; kk < nz ; kk++ ){
@@ -192,6 +196,8 @@ ENTRY("apply_yshear") ;
    if( shift_method == MRI_FOURIER ){
       nst = ny + 0.5*st ;
       nup = csfft_nextup_one35(nst) ;
+   } else if( shift_method == MRI_FOURIER_NOPAD ){
+      nup = csfft_nextup_even(ny) ;
    }
 
    fj0 = (float *) malloc( sizeof(float) * 2*ny ) ; fj1 = fj0 + ny ;
@@ -238,6 +244,8 @@ ENTRY("apply_zshear") ;
    if( shift_method == MRI_FOURIER ){
       nst = nz + 0.5*st ;
       nup = csfft_nextup_one35(nst) ;
+   } else if( shift_method == MRI_FOURIER_NOPAD ){
+      nup = csfft_nextup_even(nz) ;
    }
 
    fj0 = (float *) malloc( sizeof(float) * 2*nz ) ; fj1 = fj0 + nz ;

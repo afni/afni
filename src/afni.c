@@ -3062,6 +3062,7 @@ if(PRINT_TRACING)
          THD_ivec3 ib , id ;
          XButtonEvent * xev = (XButtonEvent *) cbs->event ;
          int step = 1 ;
+         THD_dataxes *daxes ;
 
          if( xev != NULL &&
              ( xev->type == ButtonPress ||
@@ -3080,6 +3081,16 @@ if(PRINT_TRACING)
          }
 
          id = THD_fdind_to_3dind( br , ib ) ;
+
+         /* 13 May 2003: allow for wraparound */
+
+         daxes = CURRENT_DAXES(im3d->anat_now) ;
+              if( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
+         else if( id.ijk[0] >= daxes->nxx ) id.ijk[0] -= daxes->nxx ;
+              if( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
+         else if( id.ijk[1] >= daxes->nyy ) id.ijk[1] -= daxes->nyy ;
+              if( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
+         else if( id.ijk[2] >= daxes->nzz ) id.ijk[2] -= daxes->nzz ;
 
          if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
 

@@ -488,6 +488,8 @@ static int MRI_mm ;
 #define MRI_HEPTIC    (5)
 #define MRI_TSSHIFT   (6)   /* Dec 1999 */
 
+#define MRI_FOURIER_NOPAD (66)  /* 13 May 2003 */
+
 #define SQR(x)   ((x)*(x))
 #define CSQR(z)  (SQR(z.r)+SQR(z.i))
 #define CABS(z)  sqrt(CSQR(z))
@@ -542,8 +544,11 @@ extern void csfft_cox( int,int , complex * ) ;
 extern void csfft_many( int,int,int , complex * ) ;
 extern int  csfft_nextup(int) ;
 extern int csfft_nextup_one35(int) ;
+extern int csfft_nextup_even(int) ;
 extern void csfft_scale_inverse(int) ;
 extern void csfft_use_fftw( int ) ;     /* 20 Oct 2000 */
+
+extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003 */
 
 extern void *mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;

@@ -4564,3 +4564,4 @@
 
 13 May 2003
  * Added "-Fourier_nopad" option to 3drotate.c, plug_nudge.c, and thd_rot3d.c.
+ * Modified afni.c to have arrowpad keys do wraparound when they hit the edge.
