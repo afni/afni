@@ -621,7 +621,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                VolParName = (char *)EngineData->vp;
                specfilename = EngineData->cp;
                
-               
                /* Load The spec file */
 		         if (LocalHead) fprintf (SUMA_STDERR, "%s: Reading Spec File ...\n", FuncName);
                if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
@@ -663,6 +662,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (!list) {
                   if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating new list.\n", FuncName);
                   list = SUMA_CreateList();
+               }else {
+                  SUMA_LH("Appending to list ");
                }
                ED = SUMA_InitializeEngineListData (SE_Home_AllVisible);
                if (!SUMA_RegisterEngineListCommand (  list, ED, 

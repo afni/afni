@@ -2242,7 +2242,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterSpecSO.\n", FuncName);
          SUMA_RETURN(NOPE);
       } 
-      SUMA_LH("Done.\n");
+      SUMA_LH("Done.");
 
    /* register all SOs of the first state */   
       /*fprintf(SUMA_STDERR,"%s: Registering All SO of the first group ...", FuncName);*/
@@ -2312,8 +2312,11 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
       SUMA_RETURN(NOPE);
    }
    
-   /* if surface is SureFit, flip lights */
+   /* if surface is SureFit , flip lights */
    if (SO->FileType == SUMA_SUREFIT) {
+      SUMA_LH("Flippo for safety");
+      cSV->light0_position[0] *= -1;
+      cSV->light0_position[1] *= -1;      
       cSV->light0_position[2] *= -1;
    }
 

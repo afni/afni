@@ -406,6 +406,9 @@ const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp)
       case SUMA_PLY:
          SUMA_RETURN("Ply");
          break;
+      case SUMA_BRAIN_VOYAGER:
+         SUMA_RETURN("BrainVoyager");
+         break;
       case SUMA_VEC:
          SUMA_RETURN("1D");
          break;
@@ -432,7 +435,8 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    if (!strcmp(cd, "SureFit") || !strcmp(cd, "SF")) { SUMA_RETURN( SUMA_SUREFIT); }
    if (!strcmp(cd, "GenericInventor") || !strcmp(cd, "INV")) { SUMA_RETURN(SUMA_INVENTOR_GENERIC ); }
    if (!strcmp(cd, "Ply") || !strcmp(cd, "PLY")) { SUMA_RETURN( SUMA_PLY); }
-   if (!strcmp(cd, "1D") || !strcmp(cd, "VEC")) { SUMA_RETURN(SUMA_VEC ); }
+   if (!strcmp(cd, "BrainVoyager") || !strcmp(cd, "BV") || !strcmp(cd, "bv")) { SUMA_RETURN( SUMA_BRAIN_VOYAGER); }
+   if (!strcmp(cd, "1D") || !strcmp(cd, "VEC") || !strcmp(cd, "1d")) { SUMA_RETURN(SUMA_VEC ); }
    if (!strcmp(cd, "Error")) { SUMA_RETURN(SUMA_FT_ERROR ); }
    /* if (!strcmp(cd, "")) { SUMA_RETURN( ); } */
    SUMA_RETURN(SUMA_FT_ERROR); 
