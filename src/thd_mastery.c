@@ -59,6 +59,13 @@ ENTRY("THD_open_dataset") ;
      if( dset != NULL ) RETURN(dset) ;
    }
 
+   /*-- 04 Aug 2004: allow input of a list of dataset, separated by spaces --*/
+
+   if( strchr(pathname,' ') != NULL ){
+     dset = THD_open_tcat( pathname ) ;
+     RETURN(dset) ;
+   }
+
    /*-- find the opening "[" and/or "<" --*/
 
    cpt = strstr(pathname,"[") ;

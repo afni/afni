@@ -136,7 +136,6 @@ STATUS("destroy taxis") ;
       myXtFree( dset->taxis ) ;
    }
 
-   myXtFree( dset->merger_list ) ;
    THD_delete_datablock( dset->dblk ) ;
 
 STATUS("KILL_KILL") ;

@@ -2832,8 +2832,10 @@ ENTRY("AFNI_read_images") ;
    dset->warp_parent   = NULL ;
    dset->anat_parent   = NULL ;
    dset->stats         = NULL ;
-   dset->merger_list   = NULL ;
    dset->death_mark    = 0 ;
+   dset->tcat_list     = NULL ;  /* 04 Aug 2004 */
+   dset->tcat_num      = 0 ;
+   dset->tcat_len      = NULL ;
    dset->taxis         = NULL ;
    dset->tagset        = NULL ;  /* Oct 1998 */
    ZERO_STAT_AUX( dset ) ;
@@ -9244,8 +9246,10 @@ STATUS("init new_dset") ;
                 VIEW_typestr[new_dset->view_type] ,
                 THD_MAX_NAME-ii ) ;
 
-   new_dset->merger_list = NULL ;
    new_dset->death_mark  = 0 ;
+   new_dset->tcat_list   = 0 ;
+   new_dset->tcat_num    = 0 ;
+   new_dset->tcat_len    = NULL ;
 
    /*--- initialize disk pointer fields ---*/
 

@@ -1573,10 +1573,6 @@ static char * VIEW_codestr[] = {
 
 /* function type codes, string, and prefixes */
 
-#define MERGER_TYPE           -99
-#define MERGER_UNDEFINED_TYPE   0
-#define MERGER_FUNCGROUP_TYPE   1
-
 #define FUNC_FIM_TYPE       0
 #define FUNC_FIM_STR        "Intensity"
 #define FUNC_FIM_PREFIX     "fim"
@@ -1955,8 +1951,6 @@ static int ANAT_ival_zero[] = { 0,0,0,0,0,0,0,0,0,0,0,0 , 0 } ;
 
 struct THD_3dim_dataset_array ;  /* incomplete definition */
 
-typedef MRI_IMAGE * THD_merger_func( int merger_code, XtPointer merger_data ) ;
-
 /*! One AFNI dataset structure.
     Most elements are accessed via macros, and should only be changed via EDIT_dset_items(). */
 
@@ -1992,11 +1986,6 @@ typedef struct THD_3dim_dataset {
       char anat_parent_name[THD_MAX_NAME] ;  /*!< "name" of anat_parent dataset (no longer used) */
       char self_name[THD_MAX_NAME]        ;  /*!< my own "name" (no longer used) */
 
-      struct THD_3dim_dataset_array *  merger_list ; /*!< "merger" stuff was never implemented */
-      THD_merger_func               *  merger_func ; /*!< "merger" stuff was never implemented */
-      int                              merger_code ; /*!< "merger" stuff was never implemented */
-      int                              merger_type ; /*!< "merger" stuff was never implemented */
-
 #ifdef ALLOW_DATASET_VLIST
       THD_vector_list * pts ;     /*!< in dataset coords (not Dicom order!) - for Ted Deyoe */
       Boolean pts_original ;      /*!< true if was read from disk directly */
@@ -2021,6 +2010,12 @@ typedef struct THD_3dim_dataset {
 
       THD_warp *self_warp ;
 
+   /* 03 Aug 2004: list of filenames to cat together (cf. THD_open_tcat) */
+
+      char *tcat_list ;
+      int   tcat_num ;
+      int  *tcat_len ;
+
 } THD_3dim_dataset ;
 
 /*! A marker that defines a dataset that is about to be killed. */
@@ -2041,6 +2036,10 @@ typedef struct THD_3dim_dataset {
 
 #define DSET_MARK_FOR_NORMAL(ds)                                        \
  do{ if( ISVALID_DSET(ds) ) ds->death_mark = 0 ; } while(0)
+
+/*! Dataset is tcat-ed? */
+
+#define DSET_IS_TCAT(ds) (ISVALID_DSET(ds) && (ds)->tcat_list != NULL)
 
 /*! Return pointer to current dataset axes (warp-on-demand or permanent). */
 
@@ -2091,10 +2090,6 @@ typedef struct THD_3dim_dataset {
 /*! Determine if dset is a bucket dataset (functional or anatomical) */
 
 #define ISBUCKET(dset) ( ISANATBUCKET(dset) || ISFUNCBUCKET(dset) )
-
-/*! Not currently used for anything (probably never will be) */
-
-#define ISMERGER(ds) ( ISVALID_DSET(ds) && (ds)->func_type == MERGER_TYPE )
 
 /*! Determine if dataset ds is actually stored on disk */
 
@@ -2314,8 +2309,9 @@ extern char * THD_deplus_prefix( char *prefix ) ;                    /* 22 Nov 2
 
 /*! Return a pointer to the .HEAD filename of dataset ds */
 
-#define DSET_HEADNAME(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
-                         ? ((ds)->dblk->diskptr->header_name) : "\0" )
+#define DSET_HEADNAME(ds) ( ((ds)->tcat_list != NULL) ? (ds)->tcat_list     \
+                          : ((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
+                          ? ((ds)->dblk->diskptr->header_name) : "\0" )
 
 /*! Return a pointer to the .BRIK filename of dataset ds */
 
@@ -3135,6 +3131,7 @@ extern THD_3dim_dataset * THD_open_1D( char * ) ;           /* 04 Mar 2003 */
 extern THD_3dim_dataset * THD_open_3D( char * ) ;           /* 21 Mar 2003 */
 extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
 extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
+extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *) ; /* 23 Mar 2001 */
 extern XtPointer_array *  THD_fetch_many_datasets(char *) ;
@@ -3305,6 +3302,7 @@ extern void    THD_load_1D     ( THD_datablock * ) ;         /* 04 Mar 2003 */
 extern void    THD_load_3D     ( THD_datablock * ) ;         /* 21 Mar 2003 */
 extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
+extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)
