@@ -649,7 +649,7 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *
                   {
                      /* try the other (slower) method for intersection and compare results*/
                      SUMA_MT_INTERSECT_TRIANGLE *MTI;
-                     MTI = SUMA_MT_intersect_triangle(P1, P0, nodeList, surf->N_Node, surf->FaceSetList, surf->N_FaceSet);
+                     MTI = SUMA_MT_intersect_triangle(P1, P0, nodeList, surf->N_Node, surf->FaceSetList, surf->N_FaceSet, NULL);
                      if (MTI) {
                         if (LocalHead)fprintf(SUMA_STDERR, "%s: Meth2-Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
                                               FuncName, MTI->ifacemin, surf->FaceSetList[3*MTI->ifacemin], surf->FaceSetList[3*MTI->ifacemin+1],
@@ -663,7 +663,7 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *
                            }
                         }
 
-                        SUMA_Free_MT_intersect_triangle(MTI);
+                        MTI = SUMA_Free_MT_intersect_triangle(MTI);
                      } 
 
                   }
@@ -1116,7 +1116,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
          {
             SUMA_MT_INTERSECT_TRIANGLE *MTI;
          
-            MTI = SUMA_MT_intersect_triangle(ptHit, zero, ctrNodeList_2, surf2->N_Node, surf2->FaceSetList, surf2->N_FaceSet);
+            MTI = SUMA_MT_intersect_triangle(ptHit, zero, ctrNodeList_2, surf2->N_Node, surf2->FaceSetList, surf2->N_FaceSet, NULL);
             if (MTI) {
                if (MTI->N_hits) {
                   if (LocalHead)fprintf(SUMA_STDERR, "%s: Brute force-Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
@@ -1128,7 +1128,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
                   ptHit[2] = MTI->P[2];
                }
 
-               SUMA_Free_MT_intersect_triangle(MTI);
+               MTI = SUMA_Free_MT_intersect_triangle(MTI);
             } 
 
          }
@@ -1502,6 +1502,8 @@ void SUMA_writeFSfile (float *nodeList, int *faceList, int numNode, int numFace,
    else {
       fprintf (outFile,"%s\n", firstLine);
       fprintf (outFile, "%d %d\n", numNode, numFace);
+
+
     
       j=0;
       for (i=0; i<numNode; ++i) {
@@ -1537,7 +1539,7 @@ void SUMA_writeFSfile (float *nodeList, int *faceList, int numNode, int numFace,
 void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[], char group[], char specFileNm[]) {
 
    FILE *outFile=NULL;
-   int i=0, k=0, tag=0;
+   int i=0, k=0, tag=0, ifSmwm=0;
    static char FuncName[]={"SUMA_writeSpecFile"};
       
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1964,7 +1966,7 @@ int main (int argc, char *argv[])
    }
    else {
       strcpy (surfaces[0].type, "SureFit");
-      sprintf (surfaces[0].fileToRead, "%s", surf1file_SF);
+      sprintf (surfaces[0].fileToRead, "%s", surf1file_SF->name_coord);
    }
    strcpy (surfaces[0].format, "ASCII");  strcpy(surfaces[0].mapRef, "SAME");
    strcpy (surfaces[0].state, "origSurf1"); strcpy (surfaces[0].dim, "3");
@@ -1979,7 +1981,7 @@ int main (int argc, char *argv[])
    }
    else {
       strcpy (surfaces[2].type, "SureFit");
-      sprintf (surfaces[2].fileToRead, "%s", surf2file_SF);
+      sprintf (surfaces[2].fileToRead, "%s", surf2file_SF->name_coord);
    }
    strcpy (surfaces[2].format, "ASCII");  strcpy(surfaces[2].mapRef, "SAME");
    strcpy (surfaces[2].state, "origSurf2"); strcpy (surfaces[2].dim, "3");
@@ -2296,6 +2298,18 @@ int main (int argc, char *argv[])
       exit(1);
    }
 
+   /**prepare for writing spec file*/
+   surfaces = (SUMA_SpecSurfInfo *)SUMA_calloc(2*brainSpec.N_States+1, sizeof(SUMA_SpecSurfInfo));
+   
+   sprintf (surfaces[0].fileToRead, "%s", icoFileNm);  strcpy (surfaces[0].state, "icosahedron");
+   strcpy( surfaces[0].mapRef, "SAME");  strcpy (surfaces[0].format, "ASCII");   
+   strcpy (surfaces[0].type, "FreeSurfer");   strcpy (surfaces[0].dim, "3");
+   
+   sprintf (surfaces[1].fileToRead, "%s", mapSphrFileNm);  strcpy (surfaces[1].state, "mappedSphere.reg");
+   sprintf (surfaces[2].fileToRead, "%s", ctrSphrFileNm);  strcpy (surfaces[2].state, "sphere.reg");
+   i_currSurf = 2;
+
+
    /**determine depth such that numTri best approximates (but overestimates) sphrSurf->N_FaceSet? */ 
    if ( depth<0 ) {
 
@@ -2322,14 +2336,6 @@ int main (int argc, char *argv[])
          sprintf (bin, "y");
       }
    }
-
-   /**prepare for writing spec file*/
-   surfaces = (SUMA_SpecSurfInfo *)SUMA_calloc(2*brainSpec.N_States+1, sizeof(SUMA_SpecSurfInfo));
-   sprintf (surfaces[0].fileToRead, "%s", icoFileNm);  strcpy (surfaces[0].state, "icosahedron");
-   sprintf (surfaces[1].fileToRead, "%s", mapSphrFileNm);  strcpy (surfaces[1].state, "mappedSphere.reg");
-   sprintf (surfaces[2].fileToRead, "%s", ctrSphrFileNm);  strcpy (surfaces[2].state, "sphere.reg");
-   i_currSurf = 2;
-
 
    /**determine radius for icosahedron*/ 
    ctrX=0; ctrY=0; ctrZ=0; j=0;
@@ -2376,10 +2382,20 @@ int main (int argc, char *argv[])
    /**morph sphere.reg backwards*/
    mapSphrList = SUMA_morphToStd( sphrSurf->NodeList, MI);
 
-   /**morph backwards (for surfaces besides sphere.reg)
+  
+   /**morph sphere.reg backwards and write to file*/
+   mapSphrList = SUMA_morphToStd( sphrSurf->NodeList, MI);
+
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSphrFileNm);
+   SUMA_writeFSfile (mapSphrList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
+                     "#icosahedron mapped to spherical brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSphrFileNm);
+
+
+   /**morph backwards (for surfaces besides sphere.reg) and write to file
       (using weighting from SUMA_MapSurfaces)*/
    
    if (sphrNoRegSurf!=NULL){
+
       mapSphrNoRegNodeList = SUMA_morphToStd(sphrNoRegSurf->NodeList, MI);
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedSphrNoReg");
@@ -2387,8 +2403,13 @@ int main (int argc, char *argv[])
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "sphere");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", sphrNoRegFile);
+
+      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSphrNoRegFileNm);
+      SUMA_writeFSfile (mapSphrNoRegNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
+                        "#standard sphere brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSphrNoRegFileNm);
    }
    if (inflSurf!=NULL) {
+
       mapInflNodeList = SUMA_morphToStd(inflSurf->NodeList, MI);
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedInflated");
@@ -2396,8 +2417,13 @@ int main (int argc, char *argv[])
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "inflated");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", inflFile);
+
+      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapInflFileNm);
+      SUMA_writeFSfile (mapInflNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
+                        "#standard to inflated brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapInflFileNm);
    }
    if (pialSurf!=NULL){
+
       mapPialNodeList = SUMA_morphToStd(pialSurf->NodeList, MI);
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedPial");
@@ -2405,8 +2431,13 @@ int main (int argc, char *argv[])
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "pial");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", pialFile);
+
+      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapPialFileNm);
+      SUMA_writeFSfile (mapPialNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
+                        "#standard pial brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapPialFileNm);
    }
    if (smwmSurf!=NULL) {
+
       mapSmWmNodeList = SUMA_morphToStd(smwmSurf->NodeList, MI);
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedSmWm");
@@ -2414,8 +2445,13 @@ int main (int argc, char *argv[])
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "smoothwm");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", smwmFile);
+
+      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSmWmFileNm);
+      SUMA_writeFSfile (mapSmWmNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
+                        "#standard smoothwm brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSmWmFileNm);
    }
    if (whiteSurf!=NULL){
+
       mapWhiteNodeList = SUMA_morphToStd(whiteSurf->NodeList, MI);
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedWhite");
@@ -2423,15 +2459,22 @@ int main (int argc, char *argv[])
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "white");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", whiteFile);
+
+      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapWhiteFileNm);
+      SUMA_writeFSfile (mapWhiteNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
+                        "#standard white brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapWhiteFileNm);
    }
 
-   /**morph colorfile, if given*/
+   /**morph colorfile, if given, and write to file*/
    if(color) {
       colArray = SUMA_readColor( sphrSurf->N_Node, sphrColFileNm);
       mapCol = SUMA_morphToStd( colArray, MI);
+
+      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n ", FuncName, colFileNm);
+      SUMA_writeColorFile (mapCol, MI->N_Node, colFileNm);
    }
 
-   /**write surfaces to file*/
+   /**write icosahedron, sphere.reg to file*/
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, icoFileNm);
    SUMA_writeFSfile (icoSurf->NodeList, icoSurf->FaceSetList, icoSurf->N_Node, icoSurf->N_FaceSet, 
                      "#icosahedron for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", icoFileNm);
@@ -2440,44 +2483,22 @@ int main (int argc, char *argv[])
    SUMA_writeFSfile (ctrSphrList, sphrSurf->FaceSetList, sphrSurf->N_Node, sphrSurf->N_FaceSet, 
                      "#centered original sphere for  SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", ctrSphrFileNm);
 
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSphrFileNm);
-   SUMA_writeFSfile (mapSphrList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
-                     "#icosahedron mapped to spherical brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSphrFileNm);
-  
-   if (LocalHead && sphrNoRegSurf!=NULL) {
-      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSphrNoRegFileNm);
-      SUMA_writeFSfile (mapSphrNoRegNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
-                        "#standard sphere brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSphrNoRegFileNm);
-   }
-   if (LocalHead && pialSurf!=NULL) {
-      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapPialFileNm);
-      SUMA_writeFSfile (mapPialNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
-                        "#standard pial brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapPialFileNm);
-   }
-   if (LocalHead && inflSurf!=NULL) {
-      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapInflFileNm);
-      SUMA_writeFSfile (mapInflNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
-                        "#standard to inflated brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapInflFileNm);
-   }
-   if (LocalHead && smwmSurf!=NULL) { 
-      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSmWmFileNm);
-      SUMA_writeFSfile (mapSmWmNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
-                        "#standard smoothwm brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSmWmFileNm);
-   }
-   if (LocalHead && whiteSurf!=NULL) {
-      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapWhiteFileNm);
-      SUMA_writeFSfile (mapWhiteNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
-                        "#standard white brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapWhiteFileNm);
-   }
-   if (LocalHead && color) {
-      fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n ", FuncName, colFileNm);
-      SUMA_writeColorFile (mapCol, MI->N_Node, colFileNm);
-   }
 
    /**write spec file*/
-   for(i=0; i<=i_currSurf; ++i) {
-      strcpy (surfaces[i].format, "ASCII");   strcpy (surfaces[i].type, "FreeSurfer");   
-      strcpy( surfaces[i].mapRef, "SAME");    strcpy (surfaces[i].dim, "3");
+   for(i=1; i<=i_currSurf/2; ++i) {
+      j = 2*i-1;
+      if (smwmSurf!=NULL) {
+         strcpy (surfaces[j].mapRef, mapSmWmFileNm);
+         strcpy (surfaces[j+1].mapRef, smwmFile);
+      }
+      else {
+          strcpy( surfaces[j].mapRef, "SAME");
+          strcpy( surfaces[j+1].mapRef, "SAME");
+      }
+      strcpy (surfaces[j].format, "ASCII");   strcpy (surfaces[j].type, "FreeSurfer");   
+      strcpy (surfaces[j].dim, "3");
+      strcpy (surfaces[j+1].format, "ASCII");   strcpy (surfaces[j+1].type, "FreeSurfer");   
+      strcpy (surfaces[j+1].dim, "3");
    }
    SUMA_writeSpecFile ( surfaces, i_currSurf+1, FuncName, fout, outSpecFileNm );
 
@@ -2494,7 +2515,6 @@ int main (int argc, char *argv[])
    SUMA_Free_Surface_Object (sphrSurf);
 
    if (color) {
-      fprintf(SUMA_STDERR, "color\n");
       SUMA_free(mapCol);
    }
    if (inflSurf!=NULL) {
@@ -2524,3 +2544,4 @@ int main (int argc, char *argv[])
   
 }/* main SUMA_MapIcosahedron*/
 #endif
+
