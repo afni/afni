@@ -2592,9 +2592,7 @@ static char tmp_dblab[8] ;
      THD_load_statistics((dset)) ; }
 
 /*! Determine if the ii-th volume of dataset dset has a valid brick statistic.
-
-    Brick statistics are just the min and max values in the volume
-    (not scaled by the brick scaling factor).
+    Brick statistics are just the min and max values in the volume.
 */
 
 #define DSET_VALID_BSTAT(dset,ii)                 \
@@ -3872,7 +3870,7 @@ extern MRI_IMAGE * mri_watershedize( MRI_IMAGE * , float ) ;
 /* 09 May 2005: stuff for converting a dataset to from a NIML group.      */
 
 extern NI_group * THD_nimlize_dsetatr( THD_3dim_dataset *) ;
-extern void       THD_dsetatr_from_niml( NI_group *, THD_3dim_dataset * ) ;
+extern void       THD_dblkatr_from_niml( NI_group *, THD_datablock * ) ;
 extern void       THD_set_dataset_attributes( THD_3dim_dataset * ) ;
 
 extern THD_3dim_dataset * THD_niml_to_dataset( NI_group * , int ) ;

@@ -11,7 +11,7 @@
   erase the insides of a diskptr from the earth
 -----------------------------------------------------------------*/
 
-void THD_delete_diskptr( THD_diskptr * dkptr )
+void THD_delete_diskptr( THD_diskptr *dkptr )
 {
    if( ! ISVALID_DISKPTR(dkptr) ) return ;
 }
@@ -20,7 +20,7 @@ void THD_delete_diskptr( THD_diskptr * dkptr )
   erase the insides of a datablock from the earth
 -----------------------------------------------------------------*/
 
-void THD_delete_datablock( THD_datablock * dblk )
+void THD_delete_datablock( THD_datablock *dblk )
 {
    int ibr ;
 
@@ -102,7 +102,7 @@ STATUS("free attributes") ;
    destroy a 3D dataset (possibly including files)
 ---------------------------------------------------------------------*/
 
-void THD_delete_3dim_dataset( THD_3dim_dataset * dset, Boolean kill_files )
+void THD_delete_3dim_dataset( THD_3dim_dataset *dset, Boolean kill_files )
 {
 ENTRY("THD_delete_3dim_dataset") ;
 
@@ -118,7 +118,7 @@ ENTRY("THD_delete_3dim_dataset") ;
    if( DSET_IS_NIFTI(dset)   ) kill_files = False ;  /* 28 Aug 2003 */
 
    if( kill_files ){
-      THD_diskptr * dkptr = dset->dblk->diskptr ;
+      THD_diskptr *dkptr = dset->dblk->diskptr ;
 
 STATUS("killing files") ;
       unlink( dkptr->header_name ) ;

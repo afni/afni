@@ -347,6 +347,7 @@ extern THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * ) ;
 extern THD_3dim_dataset * EDIT_full_copy ( THD_3dim_dataset * , char * ) ;
 extern int                EDIT_dset_items( THD_3dim_dataset * , ... ) ;
 extern THD_3dim_dataset * EDIT_wod_copy( THD_3dim_dataset * ) ; /* 31 Jul 2002 */
+extern THD_datablock *    EDIT_empty_datablock(void) ;          /* 11 Mar 2005 */
 
 extern void EDIT_add_bricklist( THD_3dim_dataset *,int,int *,float *,void *sbr[] ) ;
 

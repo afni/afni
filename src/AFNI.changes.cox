@@ -5369,3 +5369,7 @@
      out of THD_write_dataset and THD_write_datablock); to (b) convert
      dataset attributes to/from a NIML group; to (c) populate datablock
      from attributes, rather than do so on-the-fly as they are read in.
+
+11 Mar 2005
+ * Fixed up the NIML-ization of datasets, and their transmission into
+     AFNI.

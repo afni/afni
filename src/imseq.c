@@ -9991,7 +9991,7 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
          } else if( event->button == Button2 ){
             XBell(XtDisplay(w),100) ;
             MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
-            AFNI_speak( "Ouch!" , 0 ) ;
+            /** AFNI_speak( "Ouch!" , 0 ) ; **/
          }
       }
       break ;
@@ -10879,9 +10879,12 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_F10:
        case XK_F11:
        case XK_F12:
+#if 0
          XBell(seq->dc->display,100) ;
          MCW_popup_message( seq->wimage, " \n Ouch! \n ", MCW_USER_KILL );
          AFNI_speak( "Ouch!" , 0 ) ;
+#endif
+       break ;
      }
      busy=0; RETURN(1) ;
    }
