@@ -658,6 +658,22 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             SUMA_postRedisplay(w, clientData, callData);
             break;
          
+         case XK_r:
+            {
+               GLvoid *pixels;
+               fprintf(SUMA_STDOUT,"%s: Sending image...\n", FuncName);
+               pixels = SUMA_grabPixels(1, -sv->X->WIDTH, sv->X->HEIGHT);
+               fprintf(SUMA_STDOUT,"%s: Got pixels...\n", FuncName);
+               
+               if (pixels) {
+                 ISQ_snapsave (sv->X->WIDTH, sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
+                 SUMA_free(pixels);
+               }else {
+                  SUMA_SLP_Err("Failed to record image.");
+               }
+            }
+            break;
+
          case XK_R:
             sv->Record = !sv->Record;
             if (sv->Record) { SUMA_SLP_Note ("Recording ON"); }

@@ -1444,8 +1444,6 @@ void SUMA_unSetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * co
  \sa OpenGl, Programming for the X Window System, pp 94, 95
  
 */
-int SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned int height);
-GLvoid *SUMA_grabPixels(int inColor, unsigned int width, unsigned int height);
 
 int
 SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned int height)
@@ -1459,6 +1457,7 @@ SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned int h
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    pixels = SUMA_grabPixels(inColor, width, height);
+   
    if (pixels == NULL)
     SUMA_RETURN (1);
    if (inColor)
