@@ -934,6 +934,11 @@ extern double poisson_t2p ( double xx , double lambda ) ;
 extern double poisson_t2z ( double xx , double lambda ) ;
 extern double poisson_p2t ( double qq , double lambda ) ;
 
+/*----------------- Misc other types -------------------------------------*/
+
+typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
+typedef struct { int i,j,k; } int_triple ;
+
 /*-----------------  30 Oct 1996: incorporation of cdflib ----------------*/
 #include "cdflib.h"
 /*------------------------------------------------------------------------*/
