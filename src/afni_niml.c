@@ -45,6 +45,10 @@ static int ns_flags[NUM_NIML] ;
 
 static int dont_tell_suma = 1 ;
 
+/*! If 1, won't send func overlay to SUMA */
+
+static int dont_overlay_suma = 1 ;
+
 /*---------------------------------------*/
 /*! If 1, won't listen to info from SUMA */
 
@@ -262,6 +266,7 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
    }
 
    dont_tell_suma = 0 ;                              /* talk to SUMA */
+   dont_overlay_suma = 0 ;
 
    if( ngood == 0 ){
       fprintf(stderr,"++ NIML shutting down: no listening sockets\n") ;
@@ -708,9 +713,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      if( dont_hear_suma ) EXRETURN ;
 
-     if( nel->vec_len    <  1        ||
-         nel->vec_filled <  1        ||
-         nel->vec_num    <  2        ||
+     if( nel->vec_num    <  2        ||
          nel->vec_typ[0] != NI_INT   ||
          nel->vec_typ[1] != NI_INT     ){
 
@@ -931,47 +934,51 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
               attached to the surface ; if so zero out those voxels **/
 
      if( ag->vv != NULL ){
+fprintf(stderr,"++ erasing %d voxels from previous SUMA ROI\n",ag->vv->nvox) ;
        for( ii=0 ; ii < ag->vv->nvox ; ii++ ) funcar[ ag->vv->voxijk[ii] ] = 0;
        DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
      }
 
      /** now put values from SUMA into dataset array **/
 
-     ag->vv = (SUMA_vvlist *) malloc( sizeof(SUMA_vvlist) ) ;
-     ag->vv->nvox = 0 ;
-     ag->vv->voxijk = (int *)   malloc( sizeof(int)  *num_list ) ;
-     ag->vv->voxval = (float *) malloc( sizeof(float)*num_list ) ;
+     if( num_list > 0 ){
+fprintf(stderr,"++ writing %d voxels from SUMA ROI\n",ag->vv->nvox) ;
+       ag->vv = (SUMA_vvlist *) malloc( sizeof(SUMA_vvlist) ) ;
+       ag->vv->nvox   = num_list ;
+       ag->vv->voxijk = (int *)   malloc( sizeof(int)  *num_list ) ;
+       ag->vv->voxval = (float *) malloc( sizeof(float)*num_list ) ;
 
-     wodsave = dset_func->wod_flag ; dset_func->wod_flag = 0 ;
+       wodsave = dset_func->wod_flag ; dset_func->wod_flag = 0 ;
 
-     xbot = DSET_XXMIN(dset_func) ; xtop = DSET_XXMAX(dset_func) ;
-     ybot = DSET_YYMIN(dset_func) ; ytop = DSET_YYMAX(dset_func) ;
-     zbot = DSET_ZZMIN(dset_func) ; ztop = DSET_ZZMAX(dset_func) ;
-     nx = DSET_NX(dset_func); ny = DSET_NY(dset_func); nxy = nx*ny ;
+       xbot = DSET_XXMIN(dset_func) ; xtop = DSET_XXMAX(dset_func) ;
+       ybot = DSET_YYMIN(dset_func) ; ytop = DSET_YYMAX(dset_func) ;
+       zbot = DSET_ZZMIN(dset_func) ; ztop = DSET_ZZMAX(dset_func) ;
+       nx = DSET_NX(dset_func); ny = DSET_NY(dset_func); nxy = nx*ny ;
 
-     for( ii=0 ; ii < num_list ; ii++ ){
-       pp = SUMA_find_node_id( ag , nlist[ii] ) ;
-       if( pp >= 0 ){
-         LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
-         fv = THD_dicomm_to_3dmm( dset_func , fv ) ;
-         if( fv.xyz[0] < xbot || fv.xyz[0] > xtop ) continue ;
-         if( fv.xyz[1] < ybot || fv.xyz[1] > ytop ) continue ;
-         if( fv.xyz[2] < zbot || fv.xyz[2] > ztop ) continue ;
-         iv = THD_3dmm_to_3dind( dset_func , fv ) ;
-         jj = iv.ijk[0] + iv.ijk[1]*nx + iv.ijk[2]*nxy ;
-         funcar[jj] = nval[ii] ;
-         ag->vv->voxijk[ii] = jj ; ag->vv->voxval[ii] = nval[ii] ;
+       for( ii=0 ; ii < num_list ; ii++ ){
+         pp = SUMA_find_node_id( ag , nlist[ii] ) ;
+         if( pp >= 0 ){
+           LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
+           fv = THD_dicomm_to_3dmm( dset_func , fv ) ;
+           if( fv.xyz[0] < xbot || fv.xyz[0] > xtop ) continue ;
+           if( fv.xyz[1] < ybot || fv.xyz[1] > ytop ) continue ;
+           if( fv.xyz[2] < zbot || fv.xyz[2] > ztop ) continue ;
+           iv = THD_3dmm_to_3dind( dset_func , fv ) ;
+           jj = iv.ijk[0] + iv.ijk[1]*nx + iv.ijk[2]*nxy ;
+           funcar[jj] = nval[ii] ;
+           ag->vv->voxijk[ii] = jj ; ag->vv->voxval[ii] = nval[ii] ;
+         }
        }
      }
      DSET_write( dset_func ) ;  /* save to disk */
 
+     dont_overlay_suma = 1 ;
+
 #if 1
-     dont_tell_suma = 1 ;
      MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
      im3d->vinfo->func_visible = 1 ;
      PLUTO_dset_redisplay( dset_func ) ;  /* redisplay windows with this dataset */
      AFNI_process_drawnotice( im3d ) ;
-     dont_tell_suma = 0 ;
 #endif
 
      EXRETURN ;
@@ -986,6 +993,13 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                nel->name) ;
    AFNI_popup_message(msg) ;
    EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void AFNI_allow_suma_overlay( int aa )
+{
+   dont_overlay_suma = aa ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -1006,6 +1020,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
    /* check inputs for reasonability */
 
    if( dont_tell_suma            ||
+       dont_overlay_suma         ||
        !IM3D_OPEN(im3d)          ||
        !im3d->vinfo->func_visible  ) EXRETURN ;
 
