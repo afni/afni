@@ -781,6 +781,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 {
    char *wbuf , *att=NULL , *qtt , *btt ;
    int  nwbuf , ii,jj,row,col , tt=NI_element_type(nini) , ntot=0,nout ;
+   int  att_len , kk ;
 
    char *bbuf , *cbuf ;  /* base64 stuff */
    int   bb=0 ,  cc=0 ;
@@ -827,7 +828,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
    /*-- 20 Mar 2003: modified for "#  lhs = rhs" type of header     --*/
 
    att_prefix = (header_sharp) ? "\n#  "      /* write this before each attribute */
-                               : " "    ;
+                               : "\n  " ;
 
    att_equals = (header_sharp) ? " = "        /* write this between lhs and rhs */
                                : "="    ;
@@ -915,7 +916,8 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
       /* space to hold attribute strings */
 
-      att = NI_malloc( 4096 + 2*nel->vec_num + 128*nel->vec_rank ) ;
+      att_len = 8192 + 64*nel->vec_num + 128*nel->vec_rank ;
+      att     = NI_malloc( att_len ) ;
 
 #undef  AF
 #define AF NI_free(att)  /* free att if we have to quit early now */
@@ -1064,7 +1066,14 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          if( strcmp(nel->attr_lhs[ii],"ni_units")  == 0 ) continue ;
          if( strcmp(nel->attr_lhs[ii],"ni_axes")   == 0 ) continue ;
 
+         kk = NI_strlen( nel->attr_rhs[ii] ) ;
+
          /* do the work */
+
+         if( jj+kk+128 > att_len ){                 /* 13 Jun 2003 */
+           att_len = jj+kk+128 ;
+           att     = NI_realloc( att , att_len ) ;
+         }
 
          strcpy(att,att_prefix) ;
 
@@ -1075,8 +1084,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
            strcat(att,qtt) ; NI_free(qtt) ;
          }
 
-         jj = NI_strlen( nel->attr_rhs[ii] ) ;
-         if( jj > 0 ){
+         if( kk > 0 ){
             strcat(att,att_equals) ;
             qtt = quotize_string( nel->attr_rhs[ii] ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
