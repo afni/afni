@@ -537,3 +537,7 @@
 13 May 2004:
   * added -NN help info to 3drotate.c
 
+17 May 2004:
+  * modified edt_dsetitems.c: THD_deplus_prefix() to remove only the basic
+    three extensions: +orig, +acpc, +tlrc (blame Shruti)
+

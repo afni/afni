@@ -801,12 +801,19 @@ char * THD_deplus_prefix( char *prefix )
 
    nn = strlen(prefix); newprefix = strdup(prefix);
 
-   if( nn > 4                   &&
-       newprefix[nn-5] == '+'   &&
+   /* only remove the basic 3: +orig, +acpc +tlrc   17 May 2004 [rickr] */
+   /* (blame Shruti) */
+   if( nn > 4 &&   ( (strcmp(newprefix+nn-5,"+orig") == 0) ||
+                     (strcmp(newprefix+nn-5,"+acpc") == 0) ||
+                     (strcmp(newprefix+nn-5,"+tlrc") == 0)   ) )
+      newprefix[nn-5] = '\0' ;
+
+/* old check
        isalpha(newprefix[nn-4]) &&
        isalpha(newprefix[nn-3]) &&
        isalpha(newprefix[nn-2]) &&
        isalpha(newprefix[nn-1])   ) newprefix[nn-5] = '\0' ;
+*/
 
    return newprefix ;
 }
