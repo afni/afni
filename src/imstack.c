@@ -77,7 +77,9 @@ int main( int argc , char * argv[] )
 
    /***** Perform filename expansion on the input list *****/
 
+   MCW_warn_expand(1) ;
    MCW_file_expand( argc - iarg , argv + iarg , &gnim , &gname ) ;
+   MCW_warn_expand(0) ;
 
    if( gnim < 1 ){
       fprintf(stderr,"Filename expansion fails on input filenames?!\n") ; exit(1) ;

@@ -386,6 +386,10 @@ void REND_init_cmap(void) ;
 void REND_reload_func_dset(void) ;
 void REND_reload_renderer(void) ;
 
+#ifdef USE_TALAIRACH_TO
+void REND_overlay_ttatlas(void) ; /* 12 Jul 2001 */
+#endif
+
 static Widget wfunc_open_pb ;
 void REND_open_func_CB( Widget , XtPointer , XtPointer ) ;
 
@@ -5141,7 +5145,7 @@ void REND_func_widgets(void)
             XmNpacking , XmPACK_TIGHT ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
-         NULL ) ; 
+         NULL ) ;
 
    /*--- arrowval to provide user control for pbar scaling ---*/
 
@@ -5161,14 +5165,14 @@ void REND_func_widgets(void)
    AV_SENSITIZE( wfunc_range_av , False ) ;
 
    /*--- 30 Mar 2001: rotate pbar ---*/
- 
+
    wfunc_range_rotate_av = new_MCW_arrowval(
                              wqqq , "Rota" ,
                              MCW_AV_downup , 0,0,0 ,
                              MCW_AV_notext , 0 ,
                              AFNI_range_rotate_av_CB , (XtPointer) wfunc_color_pbar ,
                              NULL,NULL ) ;
- 
+
    XtManageChild( wqqq ) ;
    XtManageChild( wfunc_range_rowcol ) ;
    XtManageChild( wfunc_range_frame ) ;
@@ -6038,10 +6042,99 @@ void REND_reload_func_dset(void)
       }
    }  /* end of cluster removal */
 
+#ifdef USE_TALAIRACH_TO
+   REND_overlay_ttatlas() ;  /* 12 July 2001 */
+#endif
+
    if( xhair_flag ) REND_xhair_overlay() ; /* 08 Mar 2001 */
 
    return ;
 }
+
+#ifdef USE_TALAIRACH_TO
+/*-----------------------------------------------------------------------
+   Overlay regions from the Talairach Daemon database, if possible
+-------------------------------------------------------------------------*/
+
+#define HEMX 80         /* 1/2 the brain, in the x-direction */
+#define ALLX (2*HEMX+1) /* all the brain, in the x-direction */
+
+void REND_overlay_ttatlas(void)
+{
+   TTRR_params *ttp ;
+   THD_3dim_dataset *dseTT ;
+   byte *b0 , *b1 , *ovar ;
+   int nvox , ii,jj , xx ;
+   int fwin , gwin , nreg , hemi,hbot ;
+   byte *brik , *val , *ovc , g_ov , a_ov , final_ov ;
+
+   /* sanity checks and setup */
+
+   nvox = ovim->nvox ;
+
+#if 0
+# define RET(s) do{fprintf(stderr,s);return;}while(0)
+#else
+# define RET(s) return
+#endif
+
+   dseTT = TT_retrieve_atlas() ; if( dseTT == NULL ) RET("no dataset\n") ;
+   if( DSET_NVOX(dseTT) != nvox )                    RET("dataset mismatch\n");
+   ttp   = TTRR_get_params()   ; if( ttp   == NULL ) RET("no ttp\n") ;
+
+   DSET_load(dseTT) ;
+   b0 = DSET_ARRAY(dseTT,0) ; b1 = DSET_ARRAY(dseTT,1) ;
+   if( b0 == NULL || b1 == NULL )                    RET("no bricks\n") ;
+
+   ovar = MRI_BYTE_PTR(ovim) ;
+
+   fwin = (ttp->meth == TTRR_METH_FGA) || (ttp->meth == TTRR_METH_FAG) ;
+   gwin = (ttp->meth == TTRR_METH_FGA) || (ttp->meth == TTRR_METH_GAF) ;
+
+   nreg = ttp->num ;
+   brik = ttp->ttbrik ;
+   val  = ttp->ttval ;
+   ovc  = ttp->ttovc ;
+
+   hemi = ttp->hemi ;
+   switch( hemi ){
+      case TTRR_HEMI_LEFT:  hbot=HEMX+1 ; break ;
+      case TTRR_HEMI_RIGHT: hbot= 0     ; break ;
+      case TTRR_HEMI_BOTH:  hbot= 0     ; break ;
+   }
+
+   /* ready to do something */
+
+   for( xx=0,ii=hbot ; ii < nvox ; ii++ ){
+
+      if( hemi != TTRR_HEMI_BOTH ){
+         if( xx == HEMX ){
+            xx = 0 ; ii += HEMX ; continue ;  /* skip ahead 1/2 row */
+         }
+         xx++ ;
+      }
+
+      if( ovar[ii] && fwin ) continue ;  /* function wins */
+
+      /* check atlas dataset for hits */
+
+      g_ov = a_ov = 0 ;
+      for( jj=0 ; g_ov==0 && a_ov==0 && jj<nreg ; jj++ ){
+              if( b0[ii] == val[jj] ) g_ov = ovc[jj] ;
+         else if( b1[ii] == val[jj] ) a_ov = ovc[jj] ;
+      }
+
+      if( g_ov==0 && a_ov==0 ) continue ;  /* no hit */
+
+      if( g_ov && (gwin || a_ov==0) ) final_ov = g_ov ;
+      else                            final_ov = a_ov ;
+
+      ovar[ii] = final_ov ;
+   }
+
+   return ;
+}
+#endif /* USE_TALAIRACH_TO */
 
 /*-----------------------------------------------------------------------
    Overlay some colored lines showing the crosshair location.

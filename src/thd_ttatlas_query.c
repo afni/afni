@@ -10,6 +10,14 @@ static MCW_cluster * wamiclust = NULL ;
 
 /*-----------------------------------------------------------------------*/
 
+THD_3dim_dataset * TT_retrieve_atlas(void)
+{
+   if( have_dseTT < 0 ) TT_load_atlas() ;
+   return dseTT ;
+}
+
+/*-----------------------------------------------------------------------*/
+
 int TT_load_atlas(void)
 {
    char *epath , *elocal , ename[THD_MAX_NAME] , *eee ;

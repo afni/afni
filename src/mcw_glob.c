@@ -744,12 +744,14 @@ globfree(pglob)
     }
 }
 
-
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
+
+static int warn = 0 ;
+void MCW_warn_expand( int www ){ warn = www; return; }  /* 13 Jul 2001 */
 
 /*------------------------------------------------------------------------
    Routines that allows filename wildcarding to be handled inside
@@ -862,7 +864,8 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
 
       } else {  /* 30 Apr 2001 */
 
-         fprintf(stderr,"** Can't find file %s\n", (ig > 0) ? fname : fn ) ;
+         if( warn )  /* 13 Jul 2001 - print only if told to do so */
+           fprintf(stderr,"** Can't find file %s\n", (ig>0) ? fname : fn ) ;
       }
 
       globfree( &gl ) ;

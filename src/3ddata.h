@@ -2631,6 +2631,7 @@ extern char * MD5_B64_file  (char * ) ;
 extern char * TT_whereami( float , float , float ) ;
 extern int TT_load_atlas(void) ;
 extern void TT_purge_atlas(void);
+extern THD_3dim_dataset * TT_retrieve_atlas(void) ;
 
 /*------------------------------------------------------------------------*/
 

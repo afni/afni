@@ -36,7 +36,7 @@
  "  ** This software was designed to be used only for research purposes. **\n" \
  "  ** Clinical uses are not recommended, and have never been evaluated. **\n" \
  "  ** This software comes with no warranties of any kind whatsoever,    **\n" \
- "  ** and may not be useful for anything.  Use it at your own risk!     **\n"
+ "  ** and may not be useful for anything.  Use it at your own risk!     **\n\n"
 
 #define USE_FRIENDS
 
@@ -2679,9 +2679,13 @@ ENTRY("AFNI_read_inputs") ;
       int gnim ;  /* 16 Mar 1998: names from globbing */
       char ** gname ;
 
+      MCW_warn_expand(1) ;  /* 13 Jul 2001 */
+
       MCW_file_expand( argc - GLOBAL_argopt.first_file_arg ,
                        &(argv[GLOBAL_argopt.first_file_arg]) ,
                        &gnim , &gname ) ;
+
+      MCW_warn_expand(0) ;  /* 13 Jul 2001 */
 
       if( gnim < 1 )
          FatalError("No valid filenames on command line?!" ) ;
@@ -6737,7 +6741,7 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW      &&
             CAN_TALTO(im3d)                          ){
 
-      TTRR_popup( im3d->dc ) ;
+      TTRR_popup( im3d ) ;
    }
 #endif /* USE_TALAIRACH_TO */
 

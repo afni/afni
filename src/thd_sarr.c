@@ -95,6 +95,7 @@ THD_string_array * THD_get_all_filenames( char * dirname )
 #ifdef DONT_USE_SCANDIR
    total_dirname[dlen]   = '*' ;                            /* add wildcard */
    total_dirname[++dlen] = '\0' ;
+   MCW_warn_expand(0) ;
    MCW_file_expand( 1, &total_dirname, &nfiles, &gname ) ;  /* find files */
 #else
    nfiles = scandir( dirname ,
@@ -320,6 +321,7 @@ THD_string_array * THD_get_wildcard_filenames( char * pat )
 
    if( pat == NULL || strlen(pat) == 0 ) return NULL ;
 
+   MCW_warn_expand(0) ;
    MCW_file_expand( 1, &pat, &nfiles, &gname ) ;  /* find files */
 
    if( nfiles < 1 ){

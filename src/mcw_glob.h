@@ -43,6 +43,7 @@
 
 void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout ) ;
 void MCW_free_expand( int gnum , char ** gout ) ;
+void MCW_warn_expand( int www ) ;  /* 13 Jul 2001 */
 
 typedef struct {
 	int gl_pathc;		/* count of total paths so far */

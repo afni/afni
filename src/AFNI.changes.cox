@@ -2906,3 +2906,9 @@
 12 Jul 2001
  * Added afni_ttren.c, to control the colors of the display of the
      Talairach atlas regions (when I get around to it, that is).
+
+13 Jul 2001
+ * OK, made afni_ttren.c work with the volume renderer.
+ * Modified mcw_glob.c to only print warning message if allowed to.
+     Modifed various codes that use MCW_file_expand() to turn such 
+     messages on or off, depending on what I feel like.

@@ -47,7 +47,9 @@ int main( int argc , char * argv[] )
 
    /* get input filenames */
 
+   MCW_warn_expand(1) ;
    MCW_file_expand( argc-2 , argv+2 , &nfname , &fname ) ;
+   MCW_warn_expand(0) ;
    if( nfname == 0 ){
       fprintf(stderr,"** No files found from command line!\n") ;
       exit(1) ;

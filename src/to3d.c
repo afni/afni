@@ -3603,7 +3603,9 @@ printf("T3D_read_images: entry\n") ;
 
    INIT_SARR( imnames ) ;  /* image name for each slice */
 
+   MCW_warn_expand(1) ;
    MCW_file_expand( nim , Argv+First_Image_Arg , &gnim , &gname ) ;
+   MCW_warn_expand(0) ;
 #ifdef AFNI_DEBUG
 printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 #endif

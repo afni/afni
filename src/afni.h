@@ -125,12 +125,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.30b"
+#define VERSION "2.30c"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "10 Jul 2001      "
+#define RELEASE "13 Jul 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -1257,8 +1257,9 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define RECEIVE_OVERLAY_MASK    4    /* not implemented yet */
 #define RECEIVE_DRAWNOTICE_MASK 8    /* 30 Mar 1999 */
 #define RECEIVE_DSETCHANGE_MASK 16   /* 31 Mar 1999 */
+#define RECEIVE_TTATLAS_MASK    32   /* 12 Jul 2001 */
 
-#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 | 8 | 16 )
+#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 | 8 | 16 | 32 )
 
 /* codes for input to AFNI_receive_control */
 
@@ -1290,6 +1291,9 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define DSETCHANGE_STARTUP      58   /* 31 Mar 1999 */
 #define DSETCHANGE_SHUTDOWN     59
 
+#define TTATLAS_STARTUP         68   /* 11 Jul 2001 */
+#define TTATLAS_SHUTDOWN        69
+
 #define EVERYTHING_SHUTDOWN    666
 
 /* whys for input to the receiver routine */
@@ -1301,6 +1305,7 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define RECEIVE_ALTERATION     105
 #define RECEIVE_DRAWNOTICE     106  /* 30 Mar 1999 */
 #define RECEIVE_DSETCHANGE     107  /* 31 Mar 1999 */
+#define RECEIVE_TTATLAS        108  /* 12 Jul 2001 */
 
 /* modes for the process_drawing routine */
 
@@ -1311,14 +1316,15 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 
 extern void AFNI_toggle_drawing ( Three_D_View * ) ;
 extern int AFNI_receive_init    ( Three_D_View *, int, gen_func * , void * ) ;
-extern void AFNI_receive_destroy( Three_D_View * im3d ) ;
+extern void AFNI_receive_destroy( Three_D_View * ) ;
 extern int AFNI_receive_control ( Three_D_View *, int,int, void * ) ;
 
-extern void AFNI_process_viewpoint ( Three_D_View * im3d ) ;
-extern void AFNI_process_drawnotice( Three_D_View * im3d ) ;
-extern void AFNI_process_dsetchange( Three_D_View * im3d ) ;
-extern void AFNI_process_alteration( Three_D_View * im3d ) ;
+extern void AFNI_process_viewpoint ( Three_D_View * ) ;
+extern void AFNI_process_drawnotice( Three_D_View * ) ;
+extern void AFNI_process_dsetchange( Three_D_View * ) ;
+extern void AFNI_process_alteration( Three_D_View * ) ;
 extern void AFNI_process_drawing   ( Three_D_View *, int,int, int *,int *,int * );
+extern void AFNI_process_ttatlas   ( Three_D_View * ) ;
 
 extern void AFNI_3d_linefill( int  ,int * ,int * ,int * ,
                               int *,int **,int **,int ** ) ;
@@ -1609,7 +1615,26 @@ extern void AFNI_talto_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 extern char * AFNI_ttatlas_query( Three_D_View * ) ; /* 10 Jul 2001 */
 extern void AFNI_pop_whereami_kill( Three_D_View * ) ;
 
-extern void TTRR_popup( MCW_DC * ) ;  /* 12 Jul 2001 */
+extern void TTRR_popup( Three_D_View * ) ;  /* 12 Jul 2001 */
+
+typedef struct {
+   int num , meth , hemi ;
+   byte *ttbrik ;
+   byte *ttval  ;
+   byte *ttovc  ;
+} TTRR_params ;
+
+#define TTRR_METH_OFF 0
+#define TTRR_METH_GAF 1
+#define TTRR_METH_AGF 2
+#define TTRR_METH_FGA 3
+#define TTRR_METH_FAG 4
+
+#define TTRR_HEMI_LEFT  0
+#define TTRR_HEMI_RIGHT 1
+#define TTRR_HEMI_BOTH  2
+
+extern TTRR_params * TTRR_get_params(void) ;
 
 #endif /* USE_TALAIRACH_TO */
 

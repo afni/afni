@@ -3,29 +3,38 @@
 #include <Xm/XmAll.h>
 
 #ifndef USE_TALAIRACH_TO
-static void TTRR_junkfunc(void){ return; }
+static void TTRR_popup(void){ return; }  /* doesn't do too much */
 #else
 
-#define NUM_AV_FIRST 20
+#define NUM_AV_FIRST 20  /* number of colormenus to create on first pass */
+
+#undef AV_INVERT         /* if defined, invert colormenu when not 'none' */
+
+/*-- internal data structure --*/
 
 typedef struct {
-   int  reg_num , reg_numon ;
-   MCW_arrowval *reg_av[TTO_COUNT] ;
-   char  *reg_label[TTO_COUNT] ;
-   short  reg_tto[TTO_COUNT]   ;
-   short  reg_ttbrik[TTO_COUNT] ;
-   short  reg_ttval[TTO_COUNT]  ;
-   short  reg_ttovc[TTO_COUNT]  ;
+   int  reg_num ;
+   MCW_arrowval *reg_av[TTO_COUNT] ;  /* colormenus */
+   char  *reg_label[TTO_COUNT] ;      /* labels for menus */
+   short  reg_tto[TTO_COUNT]   ;      /* index into afni.h TTO_list */
+   short  reg_ttbrik[TTO_COUNT] ;     /* which sub-brick in TTatlas+tlrc */
+   short  reg_ttval[TTO_COUNT]  ;     /* what value in TTatlas+tlrc */
+   short  reg_ttovc[TTO_COUNT]  ;     /* saved value of colormenu */
 
    Widget shell , scrollw , workwin ;
    MCW_arrowval *meth_av , *hemi_av ;
+
+   Three_D_View * im3d ;
    MCW_DC *dc ;
 } TTRR_controls ;
 
 static TTRR_controls *ttc = NULL ;
 
+/*-- prototypes for internal functions --*/
+
 static void TTRR_action_CB       ( Widget, XtPointer, XtPointer ) ;
 static void TTRR_delete_window_CB( Widget, XtPointer, XtPointer ) ;
+static void TTRR_av_CB           (MCW_arrowval * , XtPointer )    ;
 
 /*----------------------------------------------------------------------------
   Routine to create widgets for the TT atlas rendering controls
@@ -33,25 +42,22 @@ static void TTRR_delete_window_CB( Widget, XtPointer, XtPointer ) ;
 
 /***** definitions for the action area controls *****/
 
-#define TTRR_quit_label   "Quit"
 #define TTRR_clear_label  "Clear"
-#define TTRR_apply_label  "Apply"
-#define TTRR_set_label    "Set"
+#define TTRR_redraw_label "Redraw"
+#define TTRR_done_label   "Done"
 #define TTRR_help_label   "Help"
 
-#define TTRR_quit_hint  "Close control panel"
-#define TTRR_clear_hint "Set all regions to 'none'"
-#define TTRR_apply_hint "Apply colors to AFNI display"
-#define TTRR_set_hint   "Apply and Quit"
+#define TTRR_clear_hint  "Set all colors to 'none'"
+#define TTRR_redraw_hint "Redraw using current colors"
+#define TTRR_done_hint   "Close this window"
 
-#define NUM_TTRR_ACT 5
+#define NUM_TTRR_ACT 4
 
 static MCW_action_item TTRR_act[] = {
- { TTRR_quit_label , TTRR_action_CB, NULL,NULL, TTRR_quit_hint , 0 } ,
- { TTRR_clear_label, TTRR_action_CB, NULL,NULL, TTRR_clear_hint, 0 } ,
- { TTRR_apply_label, TTRR_action_CB, NULL,NULL, TTRR_apply_hint, 0 } ,
- { TTRR_set_label  , TTRR_action_CB, NULL,NULL, TTRR_set_hint  , 1 } ,
- { TTRR_help_label , TTRR_action_CB, NULL,NULL, NULL           , 0 }
+ { TTRR_clear_label , TTRR_action_CB, NULL,NULL, TTRR_clear_hint , 0 } ,
+ { TTRR_redraw_label, TTRR_action_CB, NULL,NULL, TTRR_redraw_hint,-1 } ,
+ { TTRR_done_label  , TTRR_action_CB, NULL,NULL, TTRR_done_hint  , 1 } ,
+ { TTRR_help_label  , TTRR_action_CB, NULL,NULL, NULL            , 0 }
 } ;
 
 #define NMETHOD     5
@@ -95,16 +101,23 @@ static char helpstring[] =
   "  overlay on top of any functional color there.\n"
   "\n"
   "Hemisphere(s) \n"
-  "  Use this to control which side(s) of the brain will have brain region\n"
-  "  overlays\n"
+  "  Use this to control which side(s) of the brain will have brain\n"
+  "  region overlays\n"
   "\n"
-  "The regional controls below are to set the overlay colors; if a region's\n"
+  "The regional controls are to set the overlay colors; if a region's\n"
   "color is set to 'none', then it will not be overlaid.\n"
   "\n"
-  "To reset all overlay colors to 'none', use the Clear button.\n"
-  "To actually have the choices you make take effect, use the Apply button.\n"
+  "To change all overlay colors to 'none', use the Clear button.\n"
   "\n"
-  "**** AT THIS TIME, THESE CONTROLS DO NOTHING ****\n"
+  "NOTES:\n"
+  " * At this time, the Redraw button has no functionality\n"
+  " * The colors only affect the Render Dataset plugin, and only\n"
+  "     then if the dataset being rendered is at 1 mm resolution\n"
+  "     in the Talairach coordinate system\n"
+  " * To use this in the Render Dataset plugin, you must have\n"
+  "     overlays turned on; after you set the colors here,\n"
+  "     press the Reload button in the plugin\n"
+  "\n"
   "-- RWCox - July 2001\n"
 ;
 
@@ -233,7 +246,7 @@ ENTRY("TTRR_setup_widgets") ;
    /**** a couple of buttons to control operational settings ****/
 
    ttc->meth_av = new_MCW_optmenu( toprc , "Method" ,
-                                   0 , NMETHOD-1 , 0 , 0 ,
+                                   0 , NMETHOD-1 , NMETHOD-1 , 0 ,
                                    NULL,NULL ,
                                    MCW_av_substring_CB, METHOD_strings ) ;
 
@@ -246,7 +259,7 @@ ENTRY("TTRR_setup_widgets") ;
                  NULL ) ;
 
    ttc->hemi_av = new_MCW_optmenu( toprc , "Hemisphere(s)" ,
-                                   0 , NHEMI-1 , 0 , 0 ,
+                                   0 , NHEMI-1 , NHEMI-1 , 0 ,
                                    NULL,NULL ,
                                    MCW_av_substring_CB, HEMI_strings ) ;
 
@@ -325,7 +338,11 @@ ENTRY("TTRR_setup_widgets") ;
       ttc->reg_ttval [ttc->reg_num] = TTO_list[ii].tdval ;
       ttc->reg_ttovc [ttc->reg_num] = 0 ;
 
-      if( ttc->reg_num <  NUM_AV_FIRST ){
+      /* only create a few colormenu widgets first,
+         because XtRealizeWidget() is so slow with many widgets,
+         and the impatient user is likely to be unhappy with us  */
+
+      if( ttc->reg_num < NUM_AV_FIRST ){
          ttc->reg_av[ttc->reg_num] =
             new_MCW_colormenu(
                ttc->workwin ,                 /* parent */
@@ -334,7 +351,7 @@ ENTRY("TTRR_setup_widgets") ;
                0 ,                            /* first color */
                dc->ovc->ncol_ov - 1 ,         /* last color */
                0 ,                            /* initial color */
-               NULL,NULL                      /* callback func,data */
+               TTRR_av_CB,NULL                /* callback func,data */
             ) ;
 
          XtVaSetValues( ttc->reg_av[ttc->reg_num]->wrowcol ,
@@ -352,20 +369,21 @@ ENTRY("TTRR_setup_widgets") ;
       ttc->reg_num++ ;
    }
 
+   /* manage the managers */
+
    XtManageChild( ttc->workwin ) ;
    XtManageChild( frame ) ;
    XtManageChild( ttc->scrollw ) ;
    XtManageChild( toprc ) ;
    XtRealizeWidget( ttc->shell ) ;
 
-   PLUTO_cursorize( ttc->shell ) ;
-   XtSetSensitive( ttc->shell , False ) ;
+   MCW_set_widget_cursor( ttc->shell , -XC_watch ) ;  /* passification */
    XmUpdateDisplay( ttc->shell ) ;
 
    /*** set size ***/
 
-#define LUCK   5
-#define CMMAX 17
+#define LUCK   5  /* we all need some */
+#define CMMAX 17  /* vertical size = CMMAX colormenus high */
 
    MCW_widget_geom( ttc->reg_av[0]->wrowcol , &ww , &hh , NULL,NULL ) ;
 
@@ -375,6 +393,9 @@ ENTRY("TTRR_setup_widgets") ;
    hh  = CMMAX*hh + LUCK ;
    ww += bww + 5*LUCK ;
 
+   /* but make sure window is at least wide
+      enough for the Method and Hemisphere(s) widgets */
+
    MCW_widget_geom( ttc->meth_av->wrowcol , &ii  , NULL,NULL,NULL ) ;
    MCW_widget_geom( ttc->hemi_av->wrowcol , &bww , NULL,NULL,NULL ) ;
    bww += ii + LUCK ;
@@ -383,7 +404,8 @@ ENTRY("TTRR_setup_widgets") ;
    XtVaSetValues( ttc->shell , XmNwidth , ww , XmNheight , hh , NULL ) ;
    XmUpdateDisplay( ttc->shell ) ;
 
-   /*** do rest of widgets now ***/
+   /*** create rest of colormenu widgets now
+        -- this provides some visual feedback, and keeps the user busy ***/
 
    for( ii=NUM_AV_FIRST ; ii < ttc->reg_num ; ii++ ){
       ttc->reg_av[ii] =
@@ -405,30 +427,51 @@ ENTRY("TTRR_setup_widgets") ;
                      NULL ) ;
 
       XtRealizeWidget( ttc->reg_av[ii]->wrowcol ) ;
-      if( ii%5 == 0 ) XmUpdateDisplay( ttc->shell ) ;
+
+      if( ii%NUM_AV_FIRST == 0 )          /* show something occasionally */
+         XmUpdateDisplay( ttc->shell ) ;
    }
 
-   XtSetSensitive( ttc->shell , True ) ;
-   XmUpdateDisplay( ttc->shell ) ;
+   PLUTO_cursorize( ttc->shell ) ;
 
    /*** done!!! ***/
 
    SHOW_AFNI_READY ; EXRETURN ;
 }
 
-/*------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------
+   Called to actually see the damn thing
+-------------------------------------------------------------------------*/
 
-void TTRR_popup( MCW_DC * dc )
+void TTRR_popup( Three_D_View * im3d )
 {
 ENTRY("TTRR_popup") ;
 
-   if( ttc == NULL ) TTRR_setup_widgets( dc ) ;
+   if( ttc == NULL ) TTRR_setup_widgets( im3d->dc ) ;
+
+   ttc->im3d = im3d ;
    XtMapWidget( ttc->shell ) ;
-   /** RWC_visibilize_widget( ttc->shell ) ; **/
+
    EXRETURN ;
 }
 
-/*------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+   What happens when a colormenu item is selected
+--------------------------------------------------------------------------*/
+
+static void TTRR_av_CB( MCW_arrowval * av , XtPointer cd )
+{
+#ifdef AV_INVERT
+   if( av == NULL || av->ival == av->old_ival ) return ;
+   if( av->ival == 0 ||
+       (av->ival != 0 && av->old_ival == 0) ) MCW_invert_widget(av->wrowcol);
+#endif
+   return ;
+}
+
+/*------------------------------------------------------------------------
+   What happens when an action button is pressed
+--------------------------------------------------------------------------*/
 
 static void TTRR_action_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
@@ -441,30 +484,27 @@ ENTRY("TTRR_action_CB") ;
 
       new_MCW_textwin( w , helpstring , TEXT_READONLY ) ;
 
-   } else if( strcmp(wname,TTRR_quit_label) == 0 ){
+   } else if( strcmp(wname,TTRR_done_label) == 0 ){
 
       TTRR_delete_window_CB(NULL,NULL,NULL) ;
 
    } else if( strcmp(wname,TTRR_clear_label) == 0 ){
 
+      /* restore colormenus to 'none' status */
+
       for( ii=0 ; ii < ttc->reg_num ; ii++ ){
-         if( ttc->reg_av[ii]->ival != 0 )
+         if( ttc->reg_av[ii]->ival != 0 ){
             AV_assign_ival( ttc->reg_av[ii] , 0 ) ;
+#ifdef AV_INVERT
+            if( ttc->reg_av[ii]->old_ival != 0 )
+               MCW_invert_widget(ttc->reg_av[ii]->wrowcol);
+#endif
+         }
       }
 
-   } else if( strcmp(wname,TTRR_apply_label) == 0 ||
-              strcmp(wname,TTRR_set_label  ) == 0   ){
+   } else if( strcmp(wname,TTRR_redraw_label) == 0 ){
 
-      ttc->reg_numon = 0 ;
-      for( ii=0 ; ii < ttc->reg_num ; ii++ ){
-         ttc->reg_ttovc[ii] = ttc->reg_av[ii]->ival ;
-         if( ttc->reg_ttovc[ii] ) ttc->reg_numon ++ ;
-      }
-
-      fprintf(stderr,"** TTRR has %d turned on **\n",ttc->reg_numon) ;
-
-      if( strcmp(wname,TTRR_set_label) == 0 )
-         TTRR_delete_window_CB(NULL,NULL,NULL) ;
+      BEEPIT ;
    }
 
    EXRETURN ;
@@ -472,7 +512,7 @@ ENTRY("TTRR_action_CB") ;
 
 /*------------------------------------------------------------------------
    What happens when the user selects "Close" from the window
-   menu in a plugin interface menu window.
+   menu in a plugin interface menu window
 --------------------------------------------------------------------------*/
 
 static void TTRR_delete_window_CB( Widget w , XtPointer cd , XtPointer cbs )
@@ -480,9 +520,57 @@ static void TTRR_delete_window_CB( Widget w , XtPointer cd , XtPointer cbs )
 ENTRY("TTRR_delete_window_CB") ;
 
    if( ttc != NULL ){
-      XtUnmapWidget(ttc->shell) ;
-      XmUpdateDisplay(ttc->shell) ;
+      XtUnmapWidget(ttc->shell) ;   /* just hide the window */
+      XmUpdateDisplay(ttc->shell) ; /* (it's too hard to re-create) */
    }
    EXRETURN ;
 }
+
+/*------------------------------------------------------------------------
+   Return the current state of the TT atlas colors in a static
+   struct (i.e., do NOT free() this!).
+--------------------------------------------------------------------------*/
+
+static TTRR_params *ttp = NULL ;
+
+TTRR_params * TTRR_get_params(void)
+{
+   int ii,jj ;
+
+ENTRY("TTRR_get_params") ;
+
+   if( ttc == NULL ) RETURN(NULL) ;  /* report nothing */
+
+   if( ttc->meth_av->ival == TTRR_METH_OFF ) RETURN(NULL) ;
+
+   /* 1st time in: make reporting struct */
+
+   if( ttp == NULL ){
+      ttp = myXtNew(TTRR_params) ;
+      ttp->ttbrik = (byte *) malloc(sizeof(byte)*ttc->reg_num) ;
+      ttp->ttval  = (byte *) malloc(sizeof(byte)*ttc->reg_num) ;
+      ttp->ttovc  = (byte *) malloc(sizeof(byte)*ttc->reg_num) ;
+   }
+
+   /* set method codes */
+
+   ttp->meth = ttc->meth_av->ival ;
+   ttp->hemi = ttc->hemi_av->ival ;  /* hemisphere */
+
+   /* make list of all 'on' regions */
+
+   for( ii=jj=0 ; ii < ttc->reg_num ; ii++ ){
+      ttc->reg_ttovc[ii] = ttc->reg_av[ii]->ival ;
+      if( ttc->reg_ttovc[ii] > 0 ){
+         ttp->ttbrik[jj] = (byte) ttc->reg_ttbrik[ii] ;
+         ttp->ttval [jj] = (byte) ttc->reg_ttval [ii] ;
+         ttp->ttovc [jj] = (byte) ttc->reg_ttovc [ii] ;
+         jj++ ;
+      }
+   }
+
+   ttp->num = jj ;  /* number of 'on' regions */
+   RETURN(ttp) ;
+}
+
 #endif /* USE_TALAIRACH_TO */
