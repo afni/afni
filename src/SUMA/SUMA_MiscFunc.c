@@ -4331,7 +4331,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 
    /* crop left over allocated space and rearrange neighboring nodes in order */
    for (i=0; i < N_Node; ++i) {
-      #ifndef NoOrder
+      #ifdef NoOrder
       for (j=0; j < FN->N_Neighb[i]; ++j) {
           FirstNeighb[i][j] = FN->FirstNeighb[i][j];
       }

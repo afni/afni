@@ -182,6 +182,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
          break;
       case SUMA_PLY:
          break;
+      case SUMA_VEC:
+         break;
       default:
          SUMA_error_message(FuncName, "SO_FileType not supported", 0);
          SUMA_RETURN (NULL);
@@ -323,6 +325,18 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
          SO->N_FaceSet /= 3;
          SO->FaceSetDim = 3;
          
+         SO->NodeList = (float *)SUMA_calloc (SO->N_Node*SO->NodeDim, sizeof(float));
+         SO->FaceSetList = (int *) SUMA_calloc (SO->N_FaceSet*SO->FaceSetDim, sizeof(int));
+         if (!SO->NodeList || !SO->FaceSetList) {
+            fprintf(SUMA_STDERR,"Error %s: Failed to allocate for NodeList or FaceSetList.\n", FuncName);
+            if (SO->NodeList) SUMA_free(SO->NodeList);
+            if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
+            SUMA_RETURN (NULL);
+         }
+         SUMA_Read_file (SO->NodeList, SF_FileName->name_coord, SO->N_Node*SO->NodeDim);
+         SUMA_Read_dfile (SO->FaceSetList, SF_FileName->name_topo, SO->N_FaceSet*SO->FaceSetDim);
+        
+         
          sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
          SO->idcode_str = UNIQ_hashcode(stmp);
          break;
@@ -443,7 +457,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
    #ifdef DO_SCALE
    /* Now do some scaling */
    if ((SO->aMaxDims - SO->aMinDims) > SUMA_TESSCON_DIFF_FLAG) {
-      fprintf (stdout,"\n\nWARNING %s:\n Assuming %s to be in tesscon units, scaling down by %f\n\a\n\n",\
+      fprintf (stdout,"\n\nWARNING %s:\n Assuming %s to be in tesscon units, scaling down by %f.\n\aYou might have abnormally large or small freakish vertex coordinates\n\n",\
          FuncName, SO_FileName, SUMA_TESSCON_TO_MM);
       ND = SO->NodeDim;
       for (k=0; k < SO->N_Node; k++)
@@ -1046,7 +1060,8 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
    for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
       /*locate and load all Mappable surfaces */
       if (SUMA_iswordin(Spec->MappingRef[i],"SAME") == 1) { /* Mappable surfaces */
-         fprintf (SUMA_STDERR,"Surface #%d is mappable, loading ...\n",i);
+         fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+         fprintf (SUMA_STDERR,"Surface #%d (directly mappable), loading ...\n",i);
 
          if (Spec->VolParName[i][0] != '\0') {
             fprintf (SUMA_STDOUT, "Warning %s: Using Volume Parent Specified in Spec File. This overrides -sv option.\n", FuncName);
@@ -1322,7 +1337,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
       if (SUMA_iswordin(Spec->MappingRef[i],"SAME") != 1) { /* Non Mappable surfaces */
          fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-         fprintf (SUMA_STDERR,"Surface #%d is NON mappable, loading ...\n",i);
+         fprintf (SUMA_STDERR,"Surface #%d (mappable via MappingRef), loading ...\n",i);
          
          brk = NOPE;
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) {/* load surefit surface */
