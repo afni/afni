@@ -25,15 +25,15 @@
 #define IFM_USE_VERSION      4
 
 #define IFM_DEBUG_DEFAULT    1       /* default debug level: show status */
-#define IFM_MAX_DEBUG        4       /* maximum debug level		 */
+#define IFM_MAX_DEBUG        4       /* maximum debug level              */
 
 #define IFM_GERT_SCRIPT "GERT_Reco2" /* output script, like GERT_Reco    */
 #define IFM_SLICE_PAT   "alt+z"
 
 /* -- define copies -- */
 
-#define LSB_FIRST	     1
-#define MSB_FIRST	     2
+#define LSB_FIRST            1
+#define MSB_FIRST            2
 
 /*-----------------------------------------------------------------------*/
                                     /* from Ifile.c ... */
@@ -53,7 +53,7 @@ typedef struct                      /* extra stuff from mri_read.c     */
     int   hdroff;                   /* offset of image header          */
     int   skip;                     /* offset of image data into file  */
     int   swap;                     /* did we do byte swapping?        */
-    int   kk;			    /* z-orient info (1=LR, 2=PA, 3=IS)*/
+    int   kk;                       /* z-orient info (1=LR, 2=PA, 3=IS)*/
     float xorg;                     /* x and y axes origins            */
     float yorg;
     float xyz[9];
@@ -65,23 +65,23 @@ typedef struct
     ge_extras        gex;           /* array of ge_extras structs      */
     int              index;         /* index into fnames array        */
     int              bytes;         /* size of image in bytes        */
-    void           * image;	    /* actual image data            */
+    void           * image;         /* actual image data            */
 } finfo_t;
 
 typedef struct
 {
-    char          ** str;	    /* list of actual strings */
+    char          ** str;           /* list of actual strings */
     int              nalloc;        /* number allocated for  */
     int              nused;         /* number in use        */
 } string_list;
 
 typedef struct
 {
-    int		     nalloc;	    /* number of images allocated for   */
-    int		     nused;	    /* number of images in use now      */
-    int		     ary_len;       /* length of allocated im_ary array */
-    int		     im_size;	    /* size of each individual image    */
-    void          ** im_ary;	    /* array of images                  */
+    int              nalloc;        /* number of images allocated for   */
+    int              nused;         /* number of images in use now      */
+    int              ary_len;       /* length of allocated im_ary array */
+    int              im_size;       /* size of each individual image    */
+    void          ** im_ary;        /* array of images                  */
     void           * x_im;          /* extra image for afni comm        */
 } im_store_t;
 
@@ -91,7 +91,7 @@ typedef struct  /* user options */
     char           * start_dir;     /* user input starting directory    */
     char           * sp;            /* slice acquisition pattern        */
     char           * gert_outdir;   /* output directory for GERT_Reco2  */
-    char	  ** argv;	    /* passed to the program            */
+    char          ** argv;          /* passed to the program            */
     int              argc;
     int              nt;            /* user input time points per run   */
     int              nice;          /* nice offset (must be >= 0)       */
@@ -122,22 +122,22 @@ typedef struct
     opts_t           opts;          /* user specified options           */
 } param_t;
 
-typedef struct			    /* used for the stats_t struct      */
+typedef struct                      /* used for the stats_t struct      */
 {
-    int  volumes;		    /* number of volumes in this run    */
-    char f1name[IFM_MAX_FLEN];	    /* file name for first image        */
+    int  volumes;                   /* number of volumes in this run    */
+    char f1name[IFM_MAX_FLEN];      /* file name for first image        */
 } run_t;
 
-typedef struct			/* used to output statistics at the end */
+typedef struct                  /* used to output statistics at the end */
 {
-    int     slices;		/* the number of slices in each volume  */
-    float   z_first, z_last;	/* bounding range for slice locations   */
-    float   z_delta;		/* slice thickness                      */
+    int     slices;             /* the number of slices in each volume  */
+    float   z_first, z_last;    /* bounding range for slice locations   */
+    float   z_delta;            /* slice thickness                      */
 
-    int     nalloc;		/* number of run_t structures allocated */
-    int     nused;		/* number of run_t structures in use    */
-    int     nvols;		/* number of volumes in a run           */
-    run_t * runs;		/* array of run_t strcutrues            */
+    int     nalloc;             /* number of run_t structures allocated */
+    int     nused;              /* number of run_t structures in use    */
+    int     nvols;              /* number of volumes in a run           */
+    run_t * runs;               /* array of run_t strcutrues            */
 } stats_t;
 
 typedef struct
@@ -166,17 +166,17 @@ typedef struct
 /* macros */
 
 #define IFM_BIG_ERROR_MESG( I_str, I_file, I_ez, I_az, I_run, I_s1, I_sn )  \
-	do {								\
-	    fprintf( stderr, "\007\n"					\
-		    "***********************************************\n" \
-		    "Error: %s\n"					\
-		    "       current file      : %s\n"			\
-		    "       expected z-offset : %.4f\n"      		\
-		    "       actual z-offset   : %.4f\n"      		\
-		    "       current run       : %d\n"                   \
-		    "       slice number      : %d (of %d)\n"           \
-		    "***********************************************\n",\
-		I_str, I_file, I_ez, I_az, I_run, I_s1, I_sn );         \
-	} while (0)
+        do {                                                            \
+            fprintf( stderr, "\007\n"                                   \
+                    "***********************************************\n" \
+                    "Error: %s\n"                                       \
+                    "       current file      : %s\n"                   \
+                    "       expected z-offset : %.4f\n"                 \
+                    "       actual z-offset   : %.4f\n"                 \
+                    "       current run       : %d\n"                   \
+                    "       slice number      : %d (of %d)\n"           \
+                    "***********************************************\n",\
+                I_str, I_file, I_ez, I_az, I_run, I_s1, I_sn );         \
+        } while (0)
 
 #endif /* _IMON_H_ */

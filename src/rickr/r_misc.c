@@ -35,24 +35,24 @@ r_hex_str_to_long ( char * src, int hex_digits )
     int             nib, digs;
 
     if ( hex_digits <= 0 || hex_digits > 8 )
-	return 0;
+        return 0;
 
     for ( digs = hex_digits, cp = src; digs > 0; digs--, cp++ )
     {
-	if ( (*cp >= '0') && (*cp <= '9') )
-	    nib = *cp - '0';
-	else if ( (*cp >= 'a') && (*cp <= 'f') )
-	    nib = *cp - 'a' + 10;
-	else if ( (*cp >= 'A') && (*cp <= 'F') )
-	    nib = *cp - 'A' + 10;
-	else
-	{
-	    fprintf( stderr, "r_hex_str_to_long: invalid input string <%8s>\n",
-		     src );
-	    return 0;
-	}
+        if ( (*cp >= '0') && (*cp <= '9') )
+            nib = *cp - '0';
+        else if ( (*cp >= 'a') && (*cp <= 'f') )
+            nib = *cp - 'a' + 10;
+        else if ( (*cp >= 'A') && (*cp <= 'F') )
+            nib = *cp - 'A' + 10;
+        else
+        {
+            fprintf( stderr, "r_hex_str_to_long: invalid input string <%8s>\n",
+                     src );
+            return 0;
+        }
 
-	res = (res << 4) + (nib & 0xf);
+        res = (res << 4) + (nib & 0xf);
     }
 
     return res;
@@ -75,10 +75,10 @@ r_hex_str_to_long ( char * src, int hex_digits )
 int
 r_sprintf_long_to_hex
     (
-	char          * dest,           /* location of output string     */
-	unsigned long   lsrc,		/* number to translate           */
-	int             bytes, 		/* total bytes (hex pairs)       */
-	int		pad		/* pad the result with zeros?    */
+        char          * dest,           /* location of output string     */
+        unsigned long   lsrc,           /* number to translate           */
+        int             bytes,          /* total bytes (hex pairs)       */
+        int             pad             /* pad the result with zeros?    */
     )
 {
     static char hexstring[] = "0123456789ABCDEF";
@@ -89,23 +89,23 @@ r_sprintf_long_to_hex
 
     if ( (bytes <= 0) || (bytes > 4) )
     {
-	*cp = '\0';
-	return 0;
+        *cp = '\0';
+        return 0;
     }
 
     size = ulong_size( lsrc );
 
-    if ( (size < bytes) && !pad )	/* use size if we avoid padding  */
-	ret = size;
+    if ( (size < bytes) && !pad )       /* use size if we avoid padding  */
+        ret = size;
     else
-	ret = bytes;
+        ret = bytes;
 
     for ( posn = ret-1; posn >= 0; posn-- )
     {
-	/* write one hex pair for this byte */
-	ub = ( lsrc >> (posn << 3) ) & 0xff;		/* current ubyte */
-	*cp++ = hexstring[(ub>>4) & 0xf];		/* upper nibble  */
-	*cp++ = hexstring[ ub     & 0xf];		/* lower nibble  */
+        /* write one hex pair for this byte */
+        ub = ( lsrc >> (posn << 3) ) & 0xff;            /* current ubyte */
+        *cp++ = hexstring[(ub>>4) & 0xf];               /* upper nibble  */
+        *cp++ = hexstring[ ub     & 0xf];               /* lower nibble  */
     }
 
     *cp = '\0';
@@ -118,13 +118,13 @@ static int
 ulong_size ( unsigned long l )
 {
     if ( l & 0xff000000 )
-	return 4;
+        return 4;
 
     if ( l & 0xff0000 )
-	return 3;
+        return 3;
 
     if ( l & 0xff00 )
-	return 2;
+        return 2;
 
     return 1;
 }

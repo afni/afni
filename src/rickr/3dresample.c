@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.7 <July 26, 2004>"
+#define VERSION "Version 1.7a <March 22, 2005>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -18,23 +18,23 @@
  * usage:  3dresample  [options]  -prefix OUTPUT_DSET  -inset INPUT_DSET
  *
  *    options:
- *		-help             : detailed program info
- *		-debug LEVEL      : spit out info
- *		-version          : print version info
+ *              -help             : detailed program info
+ *              -debug LEVEL      : spit out info
+ *              -version          : print version info
  *
  *              -dxyz DX DY DZ    : resample to a new grid
- *					(DX, DY, DZ are real numbers in mm)
- *		-orient OR_CODE	  : reorient to new orientation code
- *					(a three character string, each
- *					 from the set {A,P, I,S, L,R})
+ *                                      (DX, DY, DZ are real numbers in mm)
+ *              -orient OR_CODE   : reorient to new orientation code
+ *                                      (a three character string, each
+ *                                       from the set {A,P, I,S, L,R})
  *
- *		-master MAST_DSET : apply orient/dxyz from MAST_DSET
+ *              -master MAST_DSET : apply orient/dxyz from MAST_DSET
  *
- *		-rmode RESAM      : one of {"NN", "Li", "Cu", "Bk"}
+ *              -rmode RESAM      : one of {"NN", "Li", "Cu", "Bk"}
  *
  *    examples:
- *	3dresample -orient "asl" -rmode NN -prefix asl.dset -inset inset+orig
- *	3dresample -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset some.input+tlrc
+ *      3dresample -orient "asl" -rmode NN -prefix asl.dset -inset inset+orig
+ *      3dresample -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset some.input+tlrc
  *      3dresample -master master+orig -prefix new.copy -inset old.copy+orig
  *----------------------------------------------------------------------
 */
@@ -68,18 +68,21 @@ static char g_history[] =
  "\n"
  " 1.7  July 26, 2004\n"
  "   - passed NULL sublist to r_new_resam_dset()\n"
+ "\n"
+ " 1.7a March 22, 2005\n"
+ "   - removed tabs\n"
  "----------------------------------------------------------------------\n";
 
 
 /*--- local stuff ------------------------------------------------------*/
 
-#define USE_LONG	1
-#define USE_SHORT	2
-#define USE_VERSION	3
-#define USE_HISTORY	4
+#define USE_LONG        1
+#define USE_SHORT       2
+#define USE_VERSION     3
+#define USE_HISTORY     4
 
-#define DELTA_MIN	 0.1
-#define DELTA_MAX	99.9
+#define DELTA_MIN        0.1
+#define DELTA_MAX       99.9
 
 #define RL_DEBUG_OFF    0
 #define RL_DEBUG_LOW    1
@@ -102,7 +105,7 @@ int resam_str2mode   ( char * mode );
 int sync_master_opts ( options_t * opts );
 int usage            ( char * prog, int level );
 int write_results    ( THD_3dim_dataset * dout, options_t * opts,
-		       int argc, char * argv [] );
+                       int argc, char * argv [] );
 
 /*----------------------------------------------------------------------*/
 
@@ -116,15 +119,15 @@ int main( int argc , char * argv[] )
 
     /* validate inputs and init options structure */
     if ( (ret_val = init_options(&opts, argc, argv)) != 0 )
-	return ret_val;
+        return ret_val;
 
     /* actually resample and/or reorient the dataset */
     dout = r_new_resam_dset( opts.dset, opts.mset, opts.dx, opts.dy, opts.dz,
-			     opts.orient, opts.resam, NULL);
+                             opts.orient, opts.resam, NULL);
     if ( dout == NULL )
     {
-	fprintf( stderr, "failure to resample dataset, exiting...\n" );
-	return FAIL;
+        fprintf( stderr, "failure to resample dataset, exiting...\n" );
+        return FAIL;
     }
 
     return write_results( dout, &opts, argc, argv );
@@ -144,173 +147,173 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	if ( ! strncmp(argv[ac], "-help", 5) )
-	{
-	    usage( argv[0], USE_LONG );
-	    return FAIL;
-	}
-	else if ( ! strncmp(argv[ac], "-hist", 5) )
-	{
-	    usage( argv[0], USE_HISTORY );
-	    return FAIL;
-	}
-	else if ( ! strncmp(argv[ac], "-version", 2) )
-	{
-	    usage( argv[0], USE_VERSION );
-	    return FAIL;
-	}
-	else if ( ! strncmp(argv[ac], "-debug", 6) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -debug LEVEL\n", stderr );
-		usage( argv[0], USE_SHORT );
-		return FAIL;
-	    }
+        if ( ! strncmp(argv[ac], "-help", 5) )
+        {
+            usage( argv[0], USE_LONG );
+            return FAIL;
+        }
+        else if ( ! strncmp(argv[ac], "-hist", 5) )
+        {
+            usage( argv[0], USE_HISTORY );
+            return FAIL;
+        }
+        else if ( ! strncmp(argv[ac], "-version", 2) )
+        {
+            usage( argv[0], USE_VERSION );
+            return FAIL;
+        }
+        else if ( ! strncmp(argv[ac], "-debug", 6) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -debug LEVEL\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
 
-	    opts->debug = atoi(argv[++ac]);
-	    if ( opts->debug < 0 || opts->debug > RL_DEBUG_HIGH )
-	    {
-		fprintf( stderr, "bad debug level <%d>, should be in [%d,%d]\n",
-			opts->debug, RL_DEBUG_OFF, RL_DEBUG_HIGH );
-		usage( argv[0], USE_SHORT );
-		return FAIL;
-	    }
-	}
-	else if ( ! strncmp(argv[ac], "-dxyz", 3) )	/* dxyz */
-	{
-	    if ( (ac+3) >= argc )
-	    {
-		fputs( "option usage: -dxyz DX DY DZ\n", stderr );
-		usage( argv[0], USE_SHORT );
-		return FAIL;
-	    }
+            opts->debug = atoi(argv[++ac]);
+            if ( opts->debug < 0 || opts->debug > RL_DEBUG_HIGH )
+            {
+                fprintf( stderr, "bad debug level <%d>, should be in [%d,%d]\n",
+                        opts->debug, RL_DEBUG_OFF, RL_DEBUG_HIGH );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
+        }
+        else if ( ! strncmp(argv[ac], "-dxyz", 3) )     /* dxyz */
+        {
+            if ( (ac+3) >= argc )
+            {
+                fputs( "option usage: -dxyz DX DY DZ\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
 
-	    opts->dx = atof(argv[++ac]);
-	    opts->dy = atof(argv[++ac]);
-	    opts->dz = atof(argv[++ac]);
+            opts->dx = atof(argv[++ac]);
+            opts->dy = atof(argv[++ac]);
+            opts->dz = atof(argv[++ac]);
 
-	    if ( (opts->dx < DELTA_MIN || opts->dx > DELTA_MAX) ||
-	         (opts->dy < DELTA_MIN || opts->dy > DELTA_MAX) ||
-	         (opts->dz < DELTA_MIN || opts->dz > DELTA_MAX) )
-	    {
-		fprintf( stderr, "dxyz must be in [%.1f,%.1f]\n",
-			 DELTA_MIN, DELTA_MAX );
-		return FAIL;
-	    }
-	}
-	else if ( ! strncmp(argv[ac], "-or", 3) )	/* orientation */
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -orient OR_STRING\n", stderr );
-		usage( argv[0], USE_SHORT );
-		return FAIL;
-	    }
+            if ( (opts->dx < DELTA_MIN || opts->dx > DELTA_MAX) ||
+                 (opts->dy < DELTA_MIN || opts->dy > DELTA_MAX) ||
+                 (opts->dz < DELTA_MIN || opts->dz > DELTA_MAX) )
+            {
+                fprintf( stderr, "dxyz must be in [%.1f,%.1f]\n",
+                         DELTA_MIN, DELTA_MAX );
+                return FAIL;
+            }
+        }
+        else if ( ! strncmp(argv[ac], "-or", 3) )       /* orientation */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -orient OR_STRING\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
 
-	    opts->orient = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-master", 5) )	/* master */
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -master MAST_DSET\n", stderr );
-		usage( argv[0], USE_SHORT );
-		return FAIL;
-	    }
+            opts->orient = argv[++ac];
+        }
+        else if ( ! strncmp(argv[ac], "-master", 5) )   /* master */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -master MAST_DSET\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
 
-	    opts->mset = THD_open_dataset( argv[++ac] );
-	    if ( ! ISVALID_DSET(opts->mset) )
-	    {
-		fprintf( stderr, "invalid master dataset <%s>\n", argv[ac] );
-		return FAIL;
-	    }
-	}
-	else if ( ! strncmp(argv[ac], "-zeropad", 5) )	/* zeropad */
-	{
-	    fputs("warning: '-zeropad' is no longer a valid option\n", stderr);
-	    /* but still move on... */
-	}
-	else if ( ! strncmp(argv[ac], "-rmode", 6) )	/* resample mode */
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -rmode RESAMPLE_MODE\n", stderr );
-		usage( argv[0], USE_SHORT );
-		return FAIL;
-	    }
+            opts->mset = THD_open_dataset( argv[++ac] );
+            if ( ! ISVALID_DSET(opts->mset) )
+            {
+                fprintf( stderr, "invalid master dataset <%s>\n", argv[ac] );
+                return FAIL;
+            }
+        }
+        else if ( ! strncmp(argv[ac], "-zeropad", 5) )  /* zeropad */
+        {
+            fputs("warning: '-zeropad' is no longer a valid option\n", stderr);
+            /* but still move on... */
+        }
+        else if ( ! strncmp(argv[ac], "-rmode", 6) )    /* resample mode */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -rmode RESAMPLE_MODE\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
 
-	    if ( ( (opts->resam = resam_str2mode(argv[++ac]) ) < 0 ) ||
-		 (  opts->resam > LAST_RESAM_TYPE ) )
-	    {
-		fprintf( stderr, "invalid resample mode <%s>\n", argv[ac] );
-		return FAIL;
-	    }
-	}
-	else if ( ! strncmp(argv[ac], "-prefix", 4) )	/* new dset prefix */
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -prefix OUTPUT_PREFIX\n", stderr );
-		usage( argv[0], USE_SHORT );
-		return FAIL;
-	    }
+            if ( ( (opts->resam = resam_str2mode(argv[++ac]) ) < 0 ) ||
+                 (  opts->resam > LAST_RESAM_TYPE ) )
+            {
+                fprintf( stderr, "invalid resample mode <%s>\n", argv[ac] );
+                return FAIL;
+            }
+        }
+        else if ( ! strncmp(argv[ac], "-prefix", 4) )   /* new dset prefix */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -prefix OUTPUT_PREFIX\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
 
-	    opts->prefix = argv[++ac];
-	    if ( !THD_filename_ok(opts->prefix) )
-	    {
-		fprintf( stderr, "invalid output prefix <%s>\n", opts->prefix );
-		return usage( argv[0], USE_SHORT );
-	    }
-	}
-	else if ( ! strncmp(argv[ac], "-inset", 3) ||
-		  ! strncmp(argv[ac], "-input", 6) )    /* input dset */
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -inset INPUT_DSET\n", stderr );
-		usage( argv[0], USE_SHORT );
-		return FAIL;
-	    }
+            opts->prefix = argv[++ac];
+            if ( !THD_filename_ok(opts->prefix) )
+            {
+                fprintf( stderr, "invalid output prefix <%s>\n", opts->prefix );
+                return usage( argv[0], USE_SHORT );
+            }
+        }
+        else if ( ! strncmp(argv[ac], "-inset", 3) ||
+                  ! strncmp(argv[ac], "-input", 6) )    /* input dset */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -inset INPUT_DSET\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
 
-	    opts->dset = THD_open_dataset( argv[++ac] );
-	    if ( ! ISVALID_DSET(opts->dset) )
-	    {
-		fprintf( stderr, "invalid input dataset <%s>\n", argv[ac] );
-		return FAIL;
-	    }
-	}
-	else	 /* invalid option */
-	{
-	    fprintf( stderr, "invalid option <%s>\n", argv[ac] );
-	    usage( argv[0], USE_SHORT );
-	    return FAIL;
-	}
+            opts->dset = THD_open_dataset( argv[++ac] );
+            if ( ! ISVALID_DSET(opts->dset) )
+            {
+                fprintf( stderr, "invalid input dataset <%s>\n", argv[ac] );
+                return FAIL;
+            }
+        }
+        else     /* invalid option */
+        {
+            fprintf( stderr, "invalid option <%s>\n", argv[ac] );
+            usage( argv[0], USE_SHORT );
+            return FAIL;
+        }
     }
 
     if ( !ISVALID_DSET(opts->dset) || (opts->prefix == NULL) )
     {
-	fprintf( stderr, "missing prefix or input dset, exiting...\n" );
-	usage( argv[0], USE_SHORT );
-	return FAIL;
+        fprintf( stderr, "missing prefix or input dset, exiting...\n" );
+        usage( argv[0], USE_SHORT );
+        return FAIL;
     }
 
     if ( opts->debug >= RL_DEBUG_LOW )
     {
-	disp_opts_data( "++ options initialized: ", opts );
+        disp_opts_data( "++ options initialized: ", opts );
 
-	if ( opts->debug >= RL_DEBUG_HIGH )	/* dset is valid by now */
-	{
-	    r_idisp_thd_3dim_dataset( "inset : ", opts->dset );
-	    r_idisp_thd_dataxes     ( "inset : ", opts->dset->daxes );
-	    r_idisp_thd_datablock   ( "inset : ", opts->dset->dblk  );
-	    if ( opts->dset->dblk )
-		r_idisp_thd_diskptr ( "inset : ", opts->dset->dblk->diskptr );
-	}
+        if ( opts->debug >= RL_DEBUG_HIGH )     /* dset is valid by now */
+        {
+            r_idisp_thd_3dim_dataset( "inset : ", opts->dset );
+            r_idisp_thd_dataxes     ( "inset : ", opts->dset->daxes );
+            r_idisp_thd_datablock   ( "inset : ", opts->dset->dblk  );
+            if ( opts->dset->dblk )
+                r_idisp_thd_diskptr ( "inset : ", opts->dset->dblk->diskptr );
+        }
     }
 
     if ( sync_master_opts( opts ) )
-	return FAIL;
+        return FAIL;
 
     return 0;
 }
@@ -340,7 +343,7 @@ int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout )
         max->yyorient != iax->yyorient ||
         max->zzorient != iax->zzorient )
     {
-	fputs("error: orientation mismatch!\n", stderr );
+        fputs("error: orientation mismatch!\n", stderr );
         nerr++;
     }
 
@@ -359,7 +362,7 @@ int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout )
     }
 
     if ( nerr > 0 )
-	return FAIL;	/* we have already printed the failure cause(s) */
+        return FAIL;    /* we have already printed the failure cause(s) */
 
     /* the data looks okay */
 
@@ -383,56 +386,56 @@ int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout )
     /* map trims from x,y,z to RL,AP,IS coords */
 
     switch( iax->xxorient ){
-	case ORI_R2L_TYPE: add_R = add_xb; add_L = add_xt; break;
-	case ORI_L2R_TYPE: add_L = add_xb; add_R = add_xt; break;
-	case ORI_I2S_TYPE: add_I = add_xb; add_S = add_xt; break;
-	case ORI_S2I_TYPE: add_S = add_xb; add_I = add_xt; break;
-	case ORI_A2P_TYPE: add_A = add_xb; add_P = add_xt; break;
-	case ORI_P2A_TYPE: add_P = add_xb; add_A = add_xt; break;
-	default          : fputs("bad xxorient!\n", stderr); return FAIL;
+        case ORI_R2L_TYPE: add_R = add_xb; add_L = add_xt; break;
+        case ORI_L2R_TYPE: add_L = add_xb; add_R = add_xt; break;
+        case ORI_I2S_TYPE: add_I = add_xb; add_S = add_xt; break;
+        case ORI_S2I_TYPE: add_S = add_xb; add_I = add_xt; break;
+        case ORI_A2P_TYPE: add_A = add_xb; add_P = add_xt; break;
+        case ORI_P2A_TYPE: add_P = add_xb; add_A = add_xt; break;
+        default          : fputs("bad xxorient!\n", stderr); return FAIL;
     }
 
     switch( iax->yyorient ){
-	case ORI_R2L_TYPE: add_R = add_yb; add_L = add_yt; break;
-	case ORI_L2R_TYPE: add_L = add_yb; add_R = add_yt; break;
-	case ORI_I2S_TYPE: add_I = add_yb; add_S = add_yt; break;
-	case ORI_S2I_TYPE: add_S = add_yb; add_I = add_yt; break;
-	case ORI_A2P_TYPE: add_A = add_yb; add_P = add_yt; break;
-	case ORI_P2A_TYPE: add_P = add_yb; add_A = add_yt; break;
-	default          : fputs("bad yyorient!\n", stderr); return FAIL;
+        case ORI_R2L_TYPE: add_R = add_yb; add_L = add_yt; break;
+        case ORI_L2R_TYPE: add_L = add_yb; add_R = add_yt; break;
+        case ORI_I2S_TYPE: add_I = add_yb; add_S = add_yt; break;
+        case ORI_S2I_TYPE: add_S = add_yb; add_I = add_yt; break;
+        case ORI_A2P_TYPE: add_A = add_yb; add_P = add_yt; break;
+        case ORI_P2A_TYPE: add_P = add_yb; add_A = add_yt; break;
+        default          : fputs("bad yyorient!\n", stderr); return FAIL;
     }
 
     switch( iax->zzorient ){
-	case ORI_R2L_TYPE: add_R = add_zb; add_L = add_zt; break;
-	case ORI_L2R_TYPE: add_L = add_zb; add_R = add_zt; break;
-	case ORI_I2S_TYPE: add_I = add_zb; add_S = add_zt; break;
-	case ORI_S2I_TYPE: add_S = add_zb; add_I = add_zt; break;
-	case ORI_A2P_TYPE: add_A = add_zb; add_P = add_zt; break;
-	case ORI_P2A_TYPE: add_P = add_zb; add_A = add_zt; break;
-	default          : fputs("bad zzorient!\n", stderr); return FAIL;
+        case ORI_R2L_TYPE: add_R = add_zb; add_L = add_zt; break;
+        case ORI_L2R_TYPE: add_L = add_zb; add_R = add_zt; break;
+        case ORI_I2S_TYPE: add_I = add_zb; add_S = add_zt; break;
+        case ORI_S2I_TYPE: add_S = add_zb; add_I = add_zt; break;
+        case ORI_A2P_TYPE: add_A = add_zb; add_P = add_zt; break;
+        case ORI_P2A_TYPE: add_P = add_zb; add_A = add_zt; break;
+        default          : fputs("bad zzorient!\n", stderr); return FAIL;
     }
 
     if ( opts->debug >= RL_DEBUG_LOW )
     {
-	printf( "++ zeropad: (I,S,A,P,L,R) = (%d,%d,%d,%d,%d,%d)\n",
-		add_I, add_S, add_A, add_P, add_L, add_R );
+        printf( "++ zeropad: (I,S,A,P,L,R) = (%d,%d,%d,%d,%d,%d)\n",
+                add_I, add_S, add_A, add_P, add_L, add_R );
     }
 
     /* pad if we need to */
     if ( add_I || add_S || add_A || add_P || add_L || add_R )
     {
-	tmp_dset = THD_zeropad( *dout,
-				add_I, add_S, add_A, add_P, add_L, add_R,
-				opts->prefix, ZPAD_PURGE );
+        tmp_dset = THD_zeropad( *dout,
+                                add_I, add_S, add_A, add_P, add_L, add_R,
+                                opts->prefix, ZPAD_PURGE );
 
-	if ( !ISVALID_DSET( tmp_dset ) )
-	{
-	    fputs( "THD_zeropad failed!\n", stderr );
-	    return FAIL;
-	}
+        if ( !ISVALID_DSET( tmp_dset ) )
+        {
+            fputs( "THD_zeropad failed!\n", stderr );
+            return FAIL;
+        }
 
-	DSET_delete( *dout );
-	*dout = tmp_dset;
+        DSET_delete( *dout );
+        *dout = tmp_dset;
     }
 
     return 0;
@@ -444,120 +447,120 @@ int usage ( char * prog, int level )
 {
     if ( level == USE_SHORT )
     {
-	fprintf( stderr,
-		 "usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
-		 "usage: %s -help\n",
-		 prog, prog );
-	return 0;
+        fprintf( stderr,
+                 "usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
+                 "usage: %s -help\n",
+                 prog, prog );
+        return 0;
     }
     else if ( level == USE_LONG )
     {
-	printf(
-	    "\n"
-	    "%s - reorient and/or resample a dataset\n"
-	    "\n"
-	    "    This program can be used to change the orientation of a\n"
-	    "    dataset (via the -orient option), or the dx,dy,dz\n"
-	    "    grid spacing (via the -dxyz option), or change them\n"
-	    "    both to match that of a master dataset (via the -master\n"
-	    "    option).\n"
-	    "\n"
-	    " ** Warning: this program is not meant to transform datasets\n"
-	    "             between view types (such as '+orig' and '+tlrc').\n"
-	    "\n"
-	    "             For that purpose, please see '3dfractionize -help'.\n"
-	    "\n"
-	    "------------------------------------------------------------\n"
-	    "\n"
-	    "  usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
-	    "\n"
-	    "  examples:\n"
-	    "\n"
-	    "    %s -orient asl -rmode NN -prefix asl.dset -inset in+orig\n"
-	    "    %s -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset in+tlrc\n"
-	    "    %s -master master+orig -prefix new.dset -inset old+orig\n"
-	    "\n"
-	    "  note:\n"
-	    "\n"
-	    "    Information about a dataset's voxel size and orientation\n"
-	    "    can be found in the output of program 3dinfo\n"
-	    "\n"
-	    "------------------------------------------------------------\n"
-	    "\n"
-	    "  options: \n"
-	    "\n"
-	    "    -help            : show this help information\n"
-	    "\n"
-	    "    -hist            : output the history of program changes\n"
-	    "\n"
-	    "    -debug LEVEL     : print debug info along the way\n"
-	    "          e.g.  -debug 1\n"
-	    "          default level is 0, max is 2\n"
-	    "\n"
-	    "    -version         : show version information\n"
-	    "\n"
-	    "    -dxyz DX DY DZ   : resample to new dx, dy and dz\n"
-	    "          e.g.  -dxyz 1.0 1.0 0.9\n"
-	    "          default is to leave unchanged\n"
-	    "\n"
-	    "          Each of DX,DY,DZ must be a positive real number,\n"
-	    "          and will be used for a voxel delta in the new\n"
-	    "          dataset (according to any new orientation).\n"
-	    "\n"
-	    "    -orient OR_CODE  : reorient to new axis order.\n"
-	    "          e.g.  -orient asl\n"
-	    "          default is to leave unchanged\n"
-	    "\n"
-	    "          The orientation code is a 3 character string,\n"
-	    "          where the characters come from the respective\n"
-	    "          sets {A,P}, {I,S}, {L,R}.\n"
-	    "\n"
-	    "          For example OR_CODE = LPI is the standard\n"
-	    "          'neuroscience' orientation, where the x-axis is\n"
-	    "          Left-to-Right, the y-axis is Posterior-to-Anterior,\n"
-	    "          and the z-axis is Inferior-to-Superior.\n"
-	    "\n"
-	    "    -rmode RESAM     : use this resampling method\n"
-	    "          e.g.  -rmode Linear\n"
-	    "          default is NN (nearest neighbor)\n"
-	    "\n"
-	    "          The resampling method string RESAM should come\n"
-	    "          from the set {'NN', 'Li', 'Cu', 'Bk'}.  These\n"
-	    "          are for 'Nearest Neighbor', 'Linear', 'Cubic'\n"
-	    "          and 'Blocky' interpolation, respectively.\n"
-	    "          See 'Anat resam mode' under the 'Define Markers'\n"
-	    "          window in afni.\n"
-	    "\n"
-	    "    -master MAST_DSET: align dataset grid to that of MAST_DSET\n"
-	    "          e.g.  -master master.dset+orig\n"
-	    "\n"
-	    "          Get dxyz and orient from a master dataset.  The\n"
+        printf(
+            "\n"
+            "%s - reorient and/or resample a dataset\n"
+            "\n"
+            "    This program can be used to change the orientation of a\n"
+            "    dataset (via the -orient option), or the dx,dy,dz\n"
+            "    grid spacing (via the -dxyz option), or change them\n"
+            "    both to match that of a master dataset (via the -master\n"
+            "    option).\n"
+            "\n"
+            " ** Warning: this program is not meant to transform datasets\n"
+            "             between view types (such as '+orig' and '+tlrc').\n"
+            "\n"
+            "             For that purpose, please see '3dfractionize -help'.\n"
+            "\n"
+            "------------------------------------------------------------\n"
+            "\n"
+            "  usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
+            "\n"
+            "  examples:\n"
+            "\n"
+            "    %s -orient asl -rmode NN -prefix asl.dset -inset in+orig\n"
+            "    %s -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset in+tlrc\n"
+            "    %s -master master+orig -prefix new.dset -inset old+orig\n"
+            "\n"
+            "  note:\n"
+            "\n"
+            "    Information about a dataset's voxel size and orientation\n"
+            "    can be found in the output of program 3dinfo\n"
+            "\n"
+            "------------------------------------------------------------\n"
+            "\n"
+            "  options: \n"
+            "\n"
+            "    -help            : show this help information\n"
+            "\n"
+            "    -hist            : output the history of program changes\n"
+            "\n"
+            "    -debug LEVEL     : print debug info along the way\n"
+            "          e.g.  -debug 1\n"
+            "          default level is 0, max is 2\n"
+            "\n"
+            "    -version         : show version information\n"
+            "\n"
+            "    -dxyz DX DY DZ   : resample to new dx, dy and dz\n"
+            "          e.g.  -dxyz 1.0 1.0 0.9\n"
+            "          default is to leave unchanged\n"
+            "\n"
+            "          Each of DX,DY,DZ must be a positive real number,\n"
+            "          and will be used for a voxel delta in the new\n"
+            "          dataset (according to any new orientation).\n"
+            "\n"
+            "    -orient OR_CODE  : reorient to new axis order.\n"
+            "          e.g.  -orient asl\n"
+            "          default is to leave unchanged\n"
+            "\n"
+            "          The orientation code is a 3 character string,\n"
+            "          where the characters come from the respective\n"
+            "          sets {A,P}, {I,S}, {L,R}.\n"
+            "\n"
+            "          For example OR_CODE = LPI is the standard\n"
+            "          'neuroscience' orientation, where the x-axis is\n"
+            "          Left-to-Right, the y-axis is Posterior-to-Anterior,\n"
+            "          and the z-axis is Inferior-to-Superior.\n"
+            "\n"
+            "    -rmode RESAM     : use this resampling method\n"
+            "          e.g.  -rmode Linear\n"
+            "          default is NN (nearest neighbor)\n"
+            "\n"
+            "          The resampling method string RESAM should come\n"
+            "          from the set {'NN', 'Li', 'Cu', 'Bk'}.  These\n"
+            "          are for 'Nearest Neighbor', 'Linear', 'Cubic'\n"
+            "          and 'Blocky' interpolation, respectively.\n"
+            "          See 'Anat resam mode' under the 'Define Markers'\n"
+            "          window in afni.\n"
+            "\n"
+            "    -master MAST_DSET: align dataset grid to that of MAST_DSET\n"
+            "          e.g.  -master master.dset+orig\n"
+            "\n"
+            "          Get dxyz and orient from a master dataset.  The\n"
             "          resulting grid will match that of the master.  This\n"
-	    "          option cannot be used with -dxyz or -orient.\n"
-	    "\n"
-	    "    -prefix OUT_DSET : required prefix for output dataset\n"
-	    "          e.g.  -prefix reori.asl.pickle\n"
-	    "\n"
-	    "    -inset IN_DSET   : required input dataset to reorient\n"
-	    "          e.g.  -inset old.dset+orig\n"
-	    "\n"
-	    "------------------------------------------------------------\n"
-	    "\n"
-	    "  Author: R. Reynolds - %s\n"
-	    "\n",
-	    prog, prog, prog, prog, prog, VERSION );
+            "          option cannot be used with -dxyz or -orient.\n"
+            "\n"
+            "    -prefix OUT_DSET : required prefix for output dataset\n"
+            "          e.g.  -prefix reori.asl.pickle\n"
+            "\n"
+            "    -inset IN_DSET   : required input dataset to reorient\n"
+            "          e.g.  -inset old.dset+orig\n"
+            "\n"
+            "------------------------------------------------------------\n"
+            "\n"
+            "  Author: R. Reynolds - %s\n"
+            "\n",
+            prog, prog, prog, prog, prog, VERSION );
 
-	return 0;
+        return 0;
     }
     else if ( level == USE_HISTORY )
     {
-	fputs( g_history, stdout );
-	return 0;
+        fputs( g_history, stdout );
+        return 0;
     }
     else if ( level == USE_VERSION )
     {
-	printf( "%s %s, compile date: %s\n", prog, VERSION, __DATE__ );
-	return 0;
+        printf( "%s %s, compile date: %s\n", prog, VERSION, __DATE__ );
+        return 0;
     }
 
     fprintf( stderr, "usage called with illegal level <%d>\n", level );
@@ -572,10 +575,10 @@ int resam_str2mode ( char * modestr )
 
     for (mode = FIRST_RESAM_TYPE; mode <= LAST_RESAM_TYPE; mode++ )
     {
-	if ( ! strncmp( modestr, RESAM_typestr[mode], 2 ) )
-	    return mode;
-	else if ( ! strncmp( modestr, RESAM_shortstr[mode], 2 ) )
-	    return mode;
+        if ( ! strncmp( modestr, RESAM_typestr[mode], 2 ) )
+            return mode;
+        else if ( ! strncmp( modestr, RESAM_shortstr[mode], 2 ) )
+            return mode;
     }
 
     return FAIL;
@@ -584,21 +587,21 @@ int resam_str2mode ( char * modestr )
 
 /*----------------------------------------------------------------------*/
 int write_results ( THD_3dim_dataset * dout, options_t * opts,
-		    int argc, char * argv [] )
+                    int argc, char * argv [] )
 {
     /* set filename */
     EDIT_dset_items( dout, ADN_prefix, opts->prefix, ADN_none );
 
     if ( THD_is_file(DSET_HEADNAME(dout)) )
     {
-	fprintf( stderr, "error: cannot overwrite existing dataset <%s>\n",
-		 DSET_HEADNAME(dout) );
-	return FAIL;
+        fprintf( stderr, "error: cannot overwrite existing dataset <%s>\n",
+                 DSET_HEADNAME(dout) );
+        return FAIL;
     }
 
     /* set number of time-axis slices to 0 */
     if( DSET_NUM_TTOFF(dout) > 0 )
-	EDIT_dset_items( dout, ADN_nsl, 0, ADN_none );
+        EDIT_dset_items( dout, ADN_nsl, 0, ADN_none );
 
     /* since we are writing data to disk, clear warp info */
     ZERO_IDCODE( dout->warp_parent_idcode );
@@ -612,22 +615,22 @@ int write_results ( THD_3dim_dataset * dout, options_t * opts,
     /* write the output files */
     if ( DSET_write( dout ) != True )
     {
-	fputs( "failure: cannot write dataset, exiting...\n", stderr );
-	return FAIL;
+        fputs( "failure: cannot write dataset, exiting...\n", stderr );
+        return FAIL;
     }
 
     if ( opts->debug >= RL_DEBUG_LOW )
     {
-	printf( "dset <%s> has been written to disk\n", opts->prefix );
+        printf( "dset <%s> has been written to disk\n", opts->prefix );
 
-	if ( opts->debug >= RL_DEBUG_HIGH )
-	{
-	    r_idisp_thd_3dim_dataset( "final dset  : ", dout );
-	    r_idisp_thd_dataxes     ( "final daxes : ", dout->daxes );
-	    r_idisp_thd_datablock   ( "final dblk  : ", dout->dblk  );
-	    if ( dout->dblk )
-		r_idisp_thd_diskptr ( "final diskp : ", dout->dblk->diskptr );
-	}
+        if ( opts->debug >= RL_DEBUG_HIGH )
+        {
+            r_idisp_thd_3dim_dataset( "final dset  : ", dout );
+            r_idisp_thd_dataxes     ( "final daxes : ", dout->daxes );
+            r_idisp_thd_datablock   ( "final dblk  : ", dout->dblk  );
+            if ( dout->dblk )
+                r_idisp_thd_diskptr ( "final diskp : ", dout->dblk->diskptr );
+        }
     }
 
     return 0;
@@ -640,20 +643,20 @@ int sync_master_opts ( options_t * opts )
     THD_dataxes * dax;
 
     if ( !opts->mset )
-	return 0;	/* OK */
+        return 0;       /* OK */
 
     if ( ! ISVALID_DSET(opts->mset) ||
-	 ! ISVALID_DATAXES(opts->mset->daxes ) )
+         ! ISVALID_DATAXES(opts->mset->daxes ) )
     {
-	fputs( "error: master dset or daxes not valid, exiting...\n", stderr );
-	return FAIL;			/* non-NULL but invalid is bad */
+        fputs( "error: master dset or daxes not valid, exiting...\n", stderr );
+        return FAIL;                    /* non-NULL but invalid is bad */
     }
 
     if ( ( opts->dx != 0.0 ) || ( opts->orient != NULL ) )
     {
-	fputs( "error: -dxyz and -orient are not valid with -master option, "
-	       "exiting...\n", stderr );
-	return FAIL;
+        fputs( "error: -dxyz and -orient are not valid with -master option, "
+               "exiting...\n", stderr );
+        return FAIL;
     }
 
     /* all is okay, so fill dxyz and orientation code from master */
@@ -666,8 +669,8 @@ int sync_master_opts ( options_t * opts )
     /* make space for orient string */
     if ( (opts->orient = (char *)malloc(4 * sizeof(char)) ) == NULL )
     {
-	fputs( "failure: malloc failure for orient, exiting...\n", stderr );
-	return FAIL;
+        fputs( "failure: malloc failure for orient, exiting...\n", stderr );
+        return FAIL;
     }
 
     opts->orient[0] = ORIENT_typestr[dax->xxorient][0];
@@ -677,16 +680,16 @@ int sync_master_opts ( options_t * opts )
 
     if ( opts->debug >= RL_DEBUG_LOW )
     {
-	disp_opts_data( "++ mastered options : ", opts );
+        disp_opts_data( "++ mastered options : ", opts );
 
-	if ( opts->debug >= RL_DEBUG_HIGH )
-	{
-	    r_idisp_thd_3dim_dataset("sync mset : ", opts->mset );
-	    r_idisp_thd_dataxes     ("sync mset : ", opts->mset->daxes );
-	    r_idisp_thd_datablock   ("sync mset : ", opts->mset->dblk  );
-	    if ( opts->mset->dblk )
-		r_idisp_thd_diskptr ("sync mset : ", opts->mset->dblk->diskptr);
-	}
+        if ( opts->debug >= RL_DEBUG_HIGH )
+        {
+            r_idisp_thd_3dim_dataset("sync mset : ", opts->mset );
+            r_idisp_thd_dataxes     ("sync mset : ", opts->mset->daxes );
+            r_idisp_thd_datablock   ("sync mset : ", opts->mset->dblk  );
+            if ( opts->mset->dblk )
+                r_idisp_thd_diskptr ("sync mset : ", opts->mset->dblk->diskptr);
+        }
     }
 
     return 0;
@@ -696,28 +699,28 @@ int sync_master_opts ( options_t * opts )
 int disp_opts_data ( char * info, options_t * opts )
 {
     if ( info )
-	fputs( info, stdout );
+        fputs( info, stdout );
 
     if ( opts == NULL )
     {
-	printf( "disp_opts_data: opts == NULL\n" );
-	return FAIL;
+        printf( "disp_opts_data: opts == NULL\n" );
+        return FAIL;
     }
 
     printf( "options struct at %p :\n"
-	    "    dset        = %p (%s)\n"
-	    "    mset        = %p (%s)\n"
-	    "    (dx,dy,dz)  = (%6.3f, %6.3f, %6.3f)\n"
-	    "    orient      = %.6s\n"
-	    "    prefix      = %.60s\n"
-	    "    resam       = %d\n"
-	    "    debug       = %d\n",
-	    opts,
-	    opts->dset, ISVALID_DSET(opts->dset) ? "valid" : "invalid",
-	    opts->mset, ISVALID_DSET(opts->mset) ? "valid" : "invalid",
-	    opts->dx, opts->dy, opts->dz,
-	    CHECK_NULL_STR(opts->orient), CHECK_NULL_STR(opts->prefix),
-	    opts->resam, opts->debug );
+            "    dset        = %p (%s)\n"
+            "    mset        = %p (%s)\n"
+            "    (dx,dy,dz)  = (%6.3f, %6.3f, %6.3f)\n"
+            "    orient      = %.6s\n"
+            "    prefix      = %.60s\n"
+            "    resam       = %d\n"
+            "    debug       = %d\n",
+            opts,
+            opts->dset, ISVALID_DSET(opts->dset) ? "valid" : "invalid",
+            opts->mset, ISVALID_DSET(opts->mset) ? "valid" : "invalid",
+            opts->dx, opts->dy, opts->dz,
+            CHECK_NULL_STR(opts->orient), CHECK_NULL_STR(opts->prefix),
+            opts->resam, opts->debug );
 
     return 0;
 }

@@ -17,7 +17,7 @@
 #define PLUG_CRENDER_VERSION "Version 1.9 <July 2004>"
 
 /***********************************************************************/
-/* VERSION HISTORY						       */
+/* VERSION HISTORY                                                     */
 static char g_cren_hist[] =
  "plug_crender.c version history:\n"
  "\n"
@@ -59,6 +59,9 @@ static char g_cren_hist[] =
  "         (now resampling is done only for displayed sub-bricks)\n"
  "      - created printable history through debug interface\n"
  "         (via 'dh', where 'd?' is now debug help\n"
+ "\n"
+ " 1.9a 22 March 2005 [rickr]\n"
+ "      - removed all tabs\n"
  "\n";
 /***********************************************************************/
 
@@ -263,23 +266,23 @@ static char * accum_bbox_label[1]   = { "Accumulate" } ;
 /*----------------------------------------------------------------*/
 /* rickr - cox rendering data */
 
-typedef struct			/* bigstuff                 v1.8 [rickr] */
+typedef struct                  /* bigstuff                 v1.8 [rickr] */
 {
-    byte r[NPANE_BIG];		/* for ease of calling CREN_set_rgbmap() */
+    byte r[NPANE_BIG];          /* for ease of calling CREN_set_rgbmap() */
     byte g[NPANE_BIG];
     byte b[NPANE_BIG];
 } CR_bigstuff;
 
 typedef struct
 {
-    THD_fvec3 xp[2][2];		/* 12 points for the 6 xhair segments */
+    THD_fvec3 xp[2][2];         /* 12 points for the 6 xhair segments */
     THD_fvec3 yp[2][2];
     THD_fvec3 zp[2][2];
 } CR_xhairs;
 
 typedef struct
 {
-    void  * rh;			/* render handle                 */
+    void  * rh;                 /* render handle                 */
     float   omap[GRAF_SIZE];    /* opacity map - graph data      */
 
     THD_3dim_dataset * dset_or; /* re-oriented dataset           */
@@ -306,9 +309,9 @@ CR_data gcr;
 
 typedef struct
 {
-    THD_fvec3 xhairs;			/* last cross hair coords      */
+    THD_fvec3 xhairs;                   /* last cross hair coords      */
     int       level;
-    char      text[CR_TEXT_LEN];	/* for debug sprintf functions */
+    char      text[CR_TEXT_LEN];        /* for debug sprintf functions */
 } CR_debug;
 
 CR_debug gcr_debug;
@@ -678,7 +681,7 @@ void RCREND_clusters_av_CB  ( MCW_arrowval * , XtPointer ) ;
 void RCREND_color_pbar_CB( MCW_pbar * , XtPointer , int ) ;
 void RCREND_set_thr_pval(void) ;
 
-static int reset_bigcolors( rgbyte * bcs );	/* v1.8 [rickr] */
+static int reset_bigcolors( rgbyte * bcs );     /* v1.8 [rickr] */
 
 #define COLSIZE 20  /* to modify optmenus */
 
@@ -2040,7 +2043,7 @@ void RCREND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( dset      != NULL ) dset      = NULL ;
    if( func_dset != NULL ) func_dset = NULL ;
 
-   if( gcr.dset_or != NULL )			/* delete re-oriented copy */
+   if( gcr.dset_or != NULL )                    /* delete re-oriented copy */
    {
       THD_delete_3dim_dataset( gcr.dset_or, FALSE );
       gcr.dset_or = NULL;
@@ -2075,7 +2078,7 @@ void RCREND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 void RCREND_reload_dataset(void)
 {
    THD_3dim_dataset * local_dset;
-   int sublist[2] = {1, 0};	/* sub-brick list for resampling */
+   int sublist[2] = {1, 0};     /* sub-brick list for resampling */
    int ii , nvox , vmin,vmax , cbot,ctop , ival,val , cutdone, btype ;
    float fac ;
    void * var ;
@@ -2098,8 +2101,8 @@ ENTRY( "RCREND_reload_dataset" );
 
    /* make sure the dataset is in memory */
    DSET_load(dset) ;
-   local_dset = dset;			/* default - if we don't re-orient */
-   ival = dset_ival;			/* unless we resample, then 0      */
+   local_dset = dset;                   /* default - if we don't re-orient */
+   ival = dset_ival;                    /* unless we resample, then 0      */
 
    /* make an oriented underlay, if needed            26 June 2002 - rickr */
    if ( !IS_AXIAL_RAI( dset ) )
@@ -2107,13 +2110,13 @@ ENTRY( "RCREND_reload_dataset" );
       if ( new_dset || gcr.dset_or == NULL )          /* we need a new one */
       {
          if ( gcr.dset_or != NULL )                    /* lose the old one */
-	 {
-	    THD_delete_3dim_dataset( gcr.dset_or, FALSE );
+         {
+            THD_delete_3dim_dataset( gcr.dset_or, FALSE );
             gcr.dset_or = NULL;
-	 }
+         }
 
-	 /* resample only sub-brick dset_ival */
-	 sublist[0] = 1;  sublist[1] = dset_ival;
+         /* resample only sub-brick dset_ival */
+         sublist[0] = 1;  sublist[1] = dset_ival;
          fprintf(stderr, "++ reorienting underlay as rai...");
          gcr.dset_or = r_new_resam_dset(dset, NULL, 0,0,0, "rai",
                                         RESAM_NN_TYPE, sublist);
@@ -2125,7 +2128,7 @@ ENTRY( "RCREND_reload_dataset" );
       else
       {
          local_dset  = gcr.dset_or;    /* woohoo!  we have our new dataset */
-	 ival = 0;
+         ival = 0;
       }
    }
 
@@ -2151,9 +2154,9 @@ ENTRY( "RCREND_reload_dataset" );
    switch( btype ){
 
       default:{
-	 fprintf( stderr, "RCREND_reload_dataset: invalid brick type %d\n",
-		  btype );
-	 EXRETURN;
+         fprintf( stderr, "RCREND_reload_dataset: invalid brick type %d\n",
+                  btype );
+         EXRETURN;
       }
 
       case MRI_short:{
@@ -2406,20 +2409,20 @@ ENTRY( "RCREND_reload_dataset" );
          RCREND_cutout_blobs(grim_showthru) ;
    }
 
-#if 0 	/* rcr - do not render crosshairs with data (for the moment) */
+#if 0   /* rcr - do not render crosshairs with data (for the moment) */
         /* 2002.08.29 */
 
    /* fill crosshair data into image volumes */
    if( xhair_flag )
    {
       if ( !ISVALID_DSET( gcr.mset ) )
-	  XBell(dc->display,100);
+          XBell(dc->display,100);
       else if ( ! func_computed )
-	  RCREND_xhair_underlay( gcr.mset );      /* underlay only      */
+          RCREND_xhair_underlay( gcr.mset );      /* underlay only      */
       else if ( func_showthru )
-	  RCREND_xhair_overlay( gcr.mset, grim_showthru );
+          RCREND_xhair_overlay( gcr.mset, grim_showthru );
       else
-	  RCREND_xhair_overlay( gcr.mset, grim ); /* overlay is in grim */
+          RCREND_xhair_overlay( gcr.mset, grim ); /* overlay is in grim */
    }
 #endif
 
@@ -2461,7 +2464,7 @@ ENTRY( "RCREND_reload_renderer" );
 
    if( func_computed && func_showthru && func_showthru_pass )
    {
-      /* if we have a reoriented dataset, use it	27 June 2002 - rickr */
+      /* if we have a reoriented dataset, use it        27 June 2002 - rickr */
       if ( gcr.fset_or != NULL )
          CREN_dset_axes(gcr.rh, gcr.fset_or );
       else
@@ -2474,9 +2477,9 @@ ENTRY( "RCREND_reload_renderer" );
    {
       /* if we have re-oriented the dataset, give that to the library */
       if ( gcr.dset_or != NULL )
-	  CREN_dset_axes(gcr.rh, gcr.dset_or );
+          CREN_dset_axes(gcr.rh, gcr.dset_or );
       else
-	  CREN_dset_axes(gcr.rh, dset );
+          CREN_dset_axes(gcr.rh, dset );
 
       CREN_set_databytes(gcr.rh, grim->nx, grim->ny, grim->nz,
                          MRI_BYTE_PTR(grim));
@@ -2484,11 +2487,11 @@ ENTRY( "RCREND_reload_renderer" );
 
    if( func_computed && !func_cmap_set ){
        if ( wfunc_color_pbar->bigmode )
-	   CREN_set_rgbmap( gcr.rh, NPANE_BIG, gcr.bigstuff.r,
-			    gcr.bigstuff.g,    gcr.bigstuff.b );
+           CREN_set_rgbmap( gcr.rh, NPANE_BIG, gcr.bigstuff.r,
+                            gcr.bigstuff.g,    gcr.bigstuff.b );
        else
-	  CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
-			   (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
+          CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
+                           (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
       func_cmap_set = 1 ; /* do we need to reset the colormap? */
    }
 
@@ -3968,7 +3971,7 @@ ENTRY( "RCREND_accum_CB" );
 #define GR(i,j,k) gar[(i)+(j)*nx+(k)*nxy]
 #define OP(i,j,k) oar[(i)+(j)*nx+(k)*nxy]
 
-#define GXH_GRAY  127			/* 2002 Mar 06: 255->127            */
+#define GXH_GRAY  127                   /* 2002 Mar 06: 255->127            */
 #define GXH_COLOR 127
 #define OXH       255
 
@@ -4722,10 +4725,10 @@ ENTRY( "RCREND_evaluate" );
    if( str == NULL || str[0] == '\0' ){ XtFree(str) ; RETURN(0.0) ; }
 
    /* rcr - until I make a button for this... */
-   if ( r_debug_check( &gcr_debug, str ) )	/* if this is a debug action */
+   if ( r_debug_check( &gcr_debug, str ) )      /* if this is a debug action */
    {
-	XtFree(str);				/* free the string, and      */
-	RETURN(av->fval);			/* return the previous value */
+        XtFree(str);                            /* free the string, and      */
+        RETURN(av->fval);                       /* return the previous value */
    }
 
    /* try a regular numerical conversion */
@@ -5523,7 +5526,7 @@ ENTRY( "RCREND_func_widgets" );
  { float pmin=-1.0 , pmax=1.0 ;
    int npane = INIT_panes_sgn ;       /* from afni.h */
 
-   				 /* 22->15      v1.8 [rickr]        */
+                                 /* 22->15      v1.8 [rickr]        */
    sel_height -= 15 ;            /* a little shorter than the scale */
 
    wfunc_color_pbar = new_MCW_pbar(
@@ -5537,7 +5540,7 @@ ENTRY( "RCREND_func_widgets" );
 
    wfunc_color_pbar->parent       = NULL ;
    wfunc_color_pbar->mode         = 0 ;
-   wfunc_color_pbar->bigmode      = 1 ;		     /* v1.8 [rickr] */
+   wfunc_color_pbar->bigmode      = 1 ;              /* v1.8 [rickr] */
    wfunc_color_pbar->npan_save[0] = INIT_panes_sgn ;  /* from afni.h */
    wfunc_color_pbar->npan_save[1] = INIT_panes_pos ;
    wfunc_color_pbar->hide_changes = INIT_panes_hide ;
@@ -5554,7 +5557,7 @@ ENTRY( "RCREND_func_widgets" );
                         "#" ,
                         MCW_AV_optmenu ,
                         NPANE_MIN , NPANE_MAX+1 ,
-			wfunc_color_pbar->bigmode ? NPANE_MAX+1 : npane ,
+                        wfunc_color_pbar->bigmode ? NPANE_MAX+1 : npane ,
                         MCW_AV_notext , 0 ,
                         RCREND_colornum_av_CB , NULL ,
                         AFNI_inten_av_texter,NULL ) ;
@@ -5945,10 +5948,10 @@ ENTRY( "RCREND_init_cmap" );
 
    if ( wfunc_color_pbar->bigmode )
        CREN_set_rgbmap( gcr.rh, NPANE_BIG, gcr.bigstuff.r,
-	                gcr.bigstuff.g,    gcr.bigstuff.b );
+                        gcr.bigstuff.g,    gcr.bigstuff.b );
    else
        CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
-			(dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
+                        (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
    EXRETURN ;
 }
 
@@ -6314,7 +6317,7 @@ ENTRY( "RCREND_color_pbar_CB" );
    FIX_SCALE_SIZE ;
    INVALIDATE_OVERLAY ;
 
-   /* to be sure 					  v1.8 [rickr] */
+   /* to be sure                                          v1.8 [rickr] */
    reset_bigcolors( wfunc_color_pbar->bigcolor );
 
    AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Mar 2001 */
@@ -6334,7 +6337,7 @@ ENTRY( "RCREND_colornum_av_CB" );
    if( av->ival > NPANE_MAX ){
       int   npane=wfunc_color_pbar->num_panes , jm=wfunc_color_pbar->mode ;
       float pmax=wfunc_color_pbar->pval_save[npane][0][jm] ,
-	    pmin=wfunc_color_pbar->pval_save[npane][npane][jm] ;
+            pmin=wfunc_color_pbar->pval_save[npane][npane][jm] ;
 
       PBAR_set_bigmode( wfunc_color_pbar , 1 , pmin,pmax ) ;
       RCREND_color_pbar_CB( wfunc_color_pbar, im3d, 0 ) ;
@@ -6724,7 +6727,7 @@ void RCREND_reload_func_dset(void)
 {
    THD_3dim_dataset  * local_dset;
    MRI_IMAGE * cim , * tim ;
-   int         sublist[3] = {2, 0, 1};	/* sub-brick list for resampling */
+   int         sublist[3] = {2, 0, 1};  /* sub-brick list for resampling */
    int         ival_func, ival_thr;
    void      * car , * tar ;
    float       cfac ,  tfac ;
@@ -6753,9 +6756,9 @@ ENTRY( "RCREND_reload_func_dset" );
       goto EndOfFuncOverlay ;                 /* AHA! */
    }
 
-   if ( pbar->bigmode )		/* v1.8 [rickr] */
+   if ( pbar->bigmode )         /* v1.8 [rickr] */
        CREN_set_rgbmap( gcr.rh, NPANE_BIG, gcr.bigstuff.r,
-	                gcr.bigstuff.g,    gcr.bigstuff.b );
+                        gcr.bigstuff.g,    gcr.bigstuff.b );
    else
        CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
                         (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
@@ -6777,13 +6780,13 @@ ENTRY( "RCREND_reload_func_dset" );
             THD_delete_3dim_dataset( gcr.fset_or, FALSE );
 
          sublist[1] = func_color_ival;
-	 sublist[2] = func_thresh_ival;
+         sublist[2] = func_thresh_ival;
 
-	 /* maybe we don't need to resample 2 sub-bricks */
-	 if ( func_color_ival == func_thresh_ival )
-	    sublist[0] = 1;
-	 else
-	    sublist[0] = 2;	/* normal case, get 2 bricks */
+         /* maybe we don't need to resample 2 sub-bricks */
+         if ( func_color_ival == func_thresh_ival )
+            sublist[0] = 1;
+         else
+            sublist[0] = 2;     /* normal case, get 2 bricks */
 
          gcr.fset_or = r_new_resam_dset(func_dset, gcr.mset, 0,0,0, NULL,
                                         RESAM_NN_TYPE, sublist);
@@ -6795,11 +6798,11 @@ ENTRY( "RCREND_reload_func_dset" );
       else
       {
          local_dset = gcr.fset_or;       /* woohoo!  we have our new dataset */
-	 ival_func  = 0;
-	 if ( func_color_ival == func_thresh_ival ) /* only need 1 brick?    */
-	    ival_thr = 0;
-  	 else
- 	    ival_thr = 1;
+         ival_func  = 0;
+         if ( func_color_ival == func_thresh_ival ) /* only need 1 brick?    */
+            ival_thr = 0;
+         else
+            ival_thr = 1;
       }
    }
 
@@ -6833,24 +6836,24 @@ ENTRY( "RCREND_reload_func_dset" );
    /* bigmode stuff - for computing color index             [v1.8 rickr] */
    if ( pbar->bigmode )
    {
-	btop   = scale_factor / cfac;
-	bbot   = (func_posfunc) ? (0) : -btop;
-	bdelta = (btop - bbot) / NPANE_BIG;
+        btop   = scale_factor / cfac;
+        bbot   = (func_posfunc) ? (0) : -btop;
+        bdelta = (btop - bbot) / NPANE_BIG;
    }
    else
    {
        for( lp=0 ; lp < num_lp ; lp++ )
-	  fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
+          fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
    }
 
    if( thresh < 1.0 || !func_use_thresh ){  /*--- no thresholding needed ---*/
       switch( cim->kind ){
 
-	 default: {
-	    fprintf( stderr, "RCREND_reload_func_dset: image kind %d is not"
-		     "supported here\n", cim->kind );
-	    EXRETURN;
-	 }
+         default: {
+            fprintf( stderr, "RCREND_reload_func_dset: image kind %d is not"
+                     "supported here\n", cim->kind );
+            EXRETURN;
+         }
 
          case MRI_short:{
             short * sar = (short *) car ;
@@ -6859,16 +6862,16 @@ ENTRY( "RCREND_reload_func_dset" );
                if( sar[ii] == 0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
-		   /* since 0 is considered blank, use 1 through 127 */
-		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
-		   RANGE(bindex,1,(NPANE_BIG-1));
-		   if ( CRBM_IS_BLACK_INDEX(bindex) )
-		       ovar[ii] = 0;
-		   else
-		       ovar[ii] = bindex;
-	       } else {
+                   /* since 0 is considered blank, use 1 through 127 */
+                   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+                   RANGE(bindex,1,(NPANE_BIG-1));
+                   if ( CRBM_IS_BLACK_INDEX(bindex) )
+                       ovar[ii] = 0;
+                   else
+                       ovar[ii] = bindex;
+               } else {
                   for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
-		      ; /*nada*/
+                      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6882,16 +6885,16 @@ ENTRY( "RCREND_reload_func_dset" );
                if( sar[ii] == 0.0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
-		   /* since 0 is considered blank, use 1 through 127 */
-		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
-		   RANGE(bindex,1,(NPANE_BIG-1));
-		   if ( CRBM_IS_BLACK_INDEX(bindex) )
-		       ovar[ii] = 0;
-		   else
-		       ovar[ii] = bindex;
+                   /* since 0 is considered blank, use 1 through 127 */
+                   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+                   RANGE(bindex,1,(NPANE_BIG-1));
+                   if ( CRBM_IS_BLACK_INDEX(bindex) )
+                       ovar[ii] = 0;
+                   else
+                       ovar[ii] = bindex;
                } else {
                   for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
-		      ; /*nada*/
+                      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6909,16 +6912,16 @@ ENTRY( "RCREND_reload_func_dset" );
                if( sar[ii] == 0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
-		   /* since 0 is considered blank, use 1 through 127 */
-		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
-		   RANGE(bindex,1,(NPANE_BIG-1));
-		   if ( CRBM_IS_BLACK_INDEX(bindex) )
-		       ovar[ii] = 0;
-		   else
-		       ovar[ii] = bindex;
+                   /* since 0 is considered blank, use 1 through 127 */
+                   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+                   RANGE(bindex,1,(NPANE_BIG-1));
+                   if ( CRBM_IS_BLACK_INDEX(bindex) )
+                       ovar[ii] = 0;
+                   else
+                       ovar[ii] = bindex;
                } else {
                   for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
-		      ; /*nada*/
+                      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6930,11 +6933,11 @@ ENTRY( "RCREND_reload_func_dset" );
 
       switch( cim->kind ){
 
-	 default: {
-	    fprintf( stderr, "RCREND_reload_func_dset (2): image kind %d is not"
-		     "supported here\n", cim->kind );
-	    EXRETURN;
-	 }
+         default: {
+            fprintf( stderr, "RCREND_reload_func_dset (2): image kind %d is not"
+                     "supported here\n", cim->kind );
+            EXRETURN;
+         }
 
          case MRI_short:{
             short * sar = (short *) car ;
@@ -6945,16 +6948,16 @@ ENTRY( "RCREND_reload_func_dset" );
                if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0.0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
-		   /* since 0 is considered blank, use 1 through 127 */
-		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
-		   RANGE(bindex,1,(NPANE_BIG-1));
-		   if ( CRBM_IS_BLACK_INDEX(bindex) )
-		       ovar[ii] = 0;
-		   else
-		       ovar[ii] = bindex;
+                   /* since 0 is considered blank, use 1 through 127 */
+                   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+                   RANGE(bindex,1,(NPANE_BIG-1));
+                   if ( CRBM_IS_BLACK_INDEX(bindex) )
+                       ovar[ii] = 0;
+                   else
+                       ovar[ii] = bindex;
                } else {
                   for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
-		      ; /*nada*/
+                      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6970,16 +6973,16 @@ ENTRY( "RCREND_reload_func_dset" );
                if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
-		   /* since 0 is considered blank, use 1 through 127 */
-		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
-		   RANGE(bindex,1,(NPANE_BIG-1));
-		   if ( CRBM_IS_BLACK_INDEX(bindex) )
-		       ovar[ii] = 0;
-		   else
-		       ovar[ii] = bindex;
+                   /* since 0 is considered blank, use 1 through 127 */
+                   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+                   RANGE(bindex,1,(NPANE_BIG-1));
+                   if ( CRBM_IS_BLACK_INDEX(bindex) )
+                       ovar[ii] = 0;
+                   else
+                       ovar[ii] = bindex;
                } else {
                   for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
-		      ; /*nada*/
+                      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6999,16 +7002,16 @@ ENTRY( "RCREND_reload_func_dset" );
                if( qar[ii] < thr || sar[ii] == 0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
-		   /* since 0 is considered blank, use 1 through 127 */
-		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
-		   RANGE(bindex,1,(NPANE_BIG-1));
-		   if ( CRBM_IS_BLACK_INDEX(bindex) )
-		       ovar[ii] = 0;
-		   else
-		       ovar[ii] = bindex;
+                   /* since 0 is considered blank, use 1 through 127 */
+                   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+                   RANGE(bindex,1,(NPANE_BIG-1));
+                   if ( CRBM_IS_BLACK_INDEX(bindex) )
+                       ovar[ii] = 0;
+                   else
+                       ovar[ii] = bindex;
                } else {
                   for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
-		      ; /*nada*/
+                      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -7049,7 +7052,7 @@ EndOfFuncOverlay:
 
    if( func_see_ttatlas ) RCREND_overlay_ttatlas() ;  /* 12 July 2001 */
 
-   new_fset = 0;				      /* 28 June 2002 */
+   new_fset = 0;                                      /* 28 June 2002 */
 
    EXRETURN ;
 }
@@ -8803,7 +8806,7 @@ ENTRY( "rcr_disp_hist" );
 
     if ( ( b1 > 256 ) || ( b2 > 256 ) || ( im == NULL ) )
     {
-	fprintf( stderr, "*** incorrect parameters to rcr_disp_hist\n" );
+        fprintf( stderr, "*** incorrect parameters to rcr_disp_hist\n" );
         EXRETURN;
     }
 
@@ -8811,18 +8814,18 @@ ENTRY( "rcr_disp_hist" );
     memset( grcr_hist_low, 0, 256 * sizeof(int) );
 
     for ( c1 = 0, tmpi = im; c1 < nvox; c1++, tmpi++ )
-	if ( *tmpi > max )
-	    max = *tmpi;
+        if ( *tmpi > max )
+            max = *tmpi;
 
     s1 = (b1 <= 0) ? 1 : (cut+b1-1) / b1;
     s2 = (b2 <= 0) ? 1 : (max - cut + b2) / b2;   /* m+1-c+b2-1 */
 
     for ( c1 = 0, tmpi = im; c1 < nvox; c1++, tmpi++ )
     {
-	if ( *tmpi >= cut )
-	    grcr_hist_high[(*tmpi - cut) / s2]++;
+        if ( *tmpi >= cut )
+            grcr_hist_high[(*tmpi - cut) / s2]++;
         else
-	    grcr_hist_low[*tmpi / s1]++;
+            grcr_hist_low[*tmpi / s1]++;
     }
 
     printf( "nvox = %d, max = %d\n", nvox, max );
@@ -8830,20 +8833,20 @@ ENTRY( "rcr_disp_hist" );
     cur = 0;
     if ( cut && b1 )
     {
-	printf( "--------- lower buckets ---------\n" );
-	for (c1 = 0; c1 < b1; c1++)
-	{
-	    printf( "[%d,%d] : %d\n", cur, cur + s1 - 1, grcr_hist_low[c1] );
-	    cur += s1;
-	}
+        printf( "--------- lower buckets ---------\n" );
+        for (c1 = 0; c1 < b1; c1++)
+        {
+            printf( "[%d,%d] : %d\n", cur, cur + s1 - 1, grcr_hist_low[c1] );
+            cur += s1;
+        }
     }
 
     cur = cut;
     printf( "--------- upper buckets ---------\n" );
     for (c1 = 0; c1 < b2; c1++)
     {
-	printf( "[%d,%d] : %d\n", cur, cur + s2 - 1, grcr_hist_high[c1] );
-	cur += s2;
+        printf( "[%d,%d] : %d\n", cur, cur + s2 - 1, grcr_hist_high[c1] );
+        cur += s2;
     }
 
     EXRETURN;
@@ -8951,92 +8954,92 @@ static int get_xhair_points( CR_xhairs * pts, THD_3dim_dataset * dset )
 ENTRY( "get_xhair_points" );
 
     if ( ! pts || ! dset )
-	RETURN(-1);
+        RETURN(-1);
 
-    xi = im3d->vinfo->xi;			/* get Dicomm mm coords    */
+    xi = im3d->vinfo->xi;                       /* get Dicomm mm coords    */
     yj = im3d->vinfo->yj;
     zk = im3d->vinfo->zk;
 
-    om  = im3d->vinfo->xhairs_orimask;		/* get xhair orient mask   */
-    gap = im3d->vinfo->crosshair_gap;		/* get gap radius          */
+    om  = im3d->vinfo->xhairs_orimask;          /* get xhair orient mask   */
+    gap = im3d->vinfo->crosshair_gap;           /* get gap radius          */
 
     /* set the 2 x-direction xhair segments */
     if ( om & ORIMASK_LR )
     {
-	/* first pair */
-	fa = dax->xxorg;
-	fb = xi - gap * dax->xxdel;
+        /* first pair */
+        fa = dax->xxorg;
+        fb = xi - gap * dax->xxdel;
 
-	LOAD_FVEC3( pts->xp[0][0], fa, yj, zk );
-	LOAD_FVEC3( pts->xp[0][1], fb, yj, zk );
+        LOAD_FVEC3( pts->xp[0][0], fa, yj, zk );
+        LOAD_FVEC3( pts->xp[0][1], fb, yj, zk );
 
-        if ( fb < fa )	/* stick to single endpoint */
-	    pts->xp[0][1] = pts->xp[0][0];
+        if ( fb < fa )  /* stick to single endpoint */
+            pts->xp[0][1] = pts->xp[0][0];
 
-	/* second pair */
-	fa = xi + gap * dax->xxdel;
-	fb = dax->xxorg + dax->xxdel * (dax->nxx - 1);
+        /* second pair */
+        fa = xi + gap * dax->xxdel;
+        fb = dax->xxorg + dax->xxdel * (dax->nxx - 1);
 
-	LOAD_FVEC3( pts->xp[1][0], fa, yj, zk );
-	LOAD_FVEC3( pts->xp[1][1], fb, yj, zk );
+        LOAD_FVEC3( pts->xp[1][0], fa, yj, zk );
+        LOAD_FVEC3( pts->xp[1][1], fb, yj, zk );
 
-        if ( fb < fa )	/* stick to single endpoint */
-	    pts->xp[1][0] = pts->xp[1][1];
+        if ( fb < fa )  /* stick to single endpoint */
+            pts->xp[1][0] = pts->xp[1][1];
     }
 
     /* set the 2 y-direction xhair segments */
     if ( om & ORIMASK_AP )
     {
-	/* first pair */
-	fa = dax->yyorg;
-	fb = yj - gap * dax->yydel;
+        /* first pair */
+        fa = dax->yyorg;
+        fb = yj - gap * dax->yydel;
 
-	LOAD_FVEC3( pts->yp[0][0], xi, fa, zk );
-	LOAD_FVEC3( pts->yp[0][1], xi, fb, zk );
+        LOAD_FVEC3( pts->yp[0][0], xi, fa, zk );
+        LOAD_FVEC3( pts->yp[0][1], xi, fb, zk );
 
-        if ( fb < fa )	/* stick to single endpoint */
-	    pts->yp[0][1] = pts->yp[0][0];
+        if ( fb < fa )  /* stick to single endpoint */
+            pts->yp[0][1] = pts->yp[0][0];
 
-	/* second  pair */
-	fa = yj + gap * dax->yydel;
-	fb = dax->yyorg + dax->yydel * (dax->nyy - 1);
+        /* second  pair */
+        fa = yj + gap * dax->yydel;
+        fb = dax->yyorg + dax->yydel * (dax->nyy - 1);
 
-	LOAD_FVEC3( pts->yp[1][0], xi, fa, zk );
-	LOAD_FVEC3( pts->yp[1][1], xi, fb, zk );
+        LOAD_FVEC3( pts->yp[1][0], xi, fa, zk );
+        LOAD_FVEC3( pts->yp[1][1], xi, fb, zk );
 
-        if ( fb < fa )	/* stick to single endpoint */
-	    pts->yp[1][0] = pts->yp[1][1];
+        if ( fb < fa )  /* stick to single endpoint */
+            pts->yp[1][0] = pts->yp[1][1];
     }
 
     /* set the 2 z-direction xhair segments */
     if ( om & ORIMASK_IS )
     {
-	/* first pair */
-	fa = dax->zzorg;
-	fb = zk - gap * dax->zzdel;
+        /* first pair */
+        fa = dax->zzorg;
+        fb = zk - gap * dax->zzdel;
 
-	LOAD_FVEC3( pts->zp[0][0], xi, yj, fa );
-	LOAD_FVEC3( pts->zp[0][1], xi, yj, fb );
+        LOAD_FVEC3( pts->zp[0][0], xi, yj, fa );
+        LOAD_FVEC3( pts->zp[0][1], xi, yj, fb );
 
-        if ( fb < fa )	/* stick to single endpoint */
-	    pts->zp[0][1] = pts->zp[0][0];
+        if ( fb < fa )  /* stick to single endpoint */
+            pts->zp[0][1] = pts->zp[0][0];
 
-	/* second  pair */
-	fa = zk + gap * dax->zzdel;
-	fb = dax->zzorg + dax->zzdel * (dax->nzz - 1);
+        /* second  pair */
+        fa = zk + gap * dax->zzdel;
+        fb = dax->zzorg + dax->zzdel * (dax->nzz - 1);
 
-	LOAD_FVEC3( pts->zp[1][0], xi, yj, fa );
-	LOAD_FVEC3( pts->zp[1][1], xi, yj, fb );
+        LOAD_FVEC3( pts->zp[1][0], xi, yj, fa );
+        LOAD_FVEC3( pts->zp[1][1], xi, yj, fb );
 
-        if ( fb < fa )	/* stick to single endpoint */
-	    pts->zp[1][0] = pts->zp[1][1];
+        if ( fb < fa )  /* stick to single endpoint */
+            pts->zp[1][0] = pts->zp[1][1];
     }
 
     /* debug stuff */
-    LOAD_FVEC3( gcr_debug.xhairs, xi, yj, zk );		/* save for later */
+    LOAD_FVEC3( gcr_debug.xhairs, xi, yj, zk );         /* save for later */
 
     if ( gcr_debug.level > 0 )
-	r_idisp_vec3f( "-- xhair center : ", gcr_debug.xhairs.xyz );
+        r_idisp_vec3f( "-- xhair center : ", gcr_debug.xhairs.xyz );
 
     RETURN(0);
 }
@@ -9054,18 +9057,18 @@ static int xhairs_to_image_pts( CR_xhairs * xh, THD_3dim_dataset * dset )
 
 ENTRY( "xhairs_to_image_pts" );
 
-    dx = dax->xxdel;	/* set deltas */
+    dx = dax->xxdel;    /* set deltas */
     dy = dax->yydel;
     dz = dax->zzdel;
 
     if ( dx <= 0.0 || dx <= 0.0 || dz <= 0.0 )
     {
-	fprintf( stderr, "failure: xhairs_to_image_pts - bad deltas!\n" );
-	RETURN(-1);      /* leave image as is */
+        fprintf( stderr, "failure: xhairs_to_image_pts - bad deltas!\n" );
+        RETURN(-1);      /* leave image as is */
     }
 
     if ( gcr_debug.level > 1 )
-	idisp_xhair_pts( "-- xh, pre im  : ", xh );
+        idisp_xhair_pts( "-- xh, pre im  : ", xh );
 
     /* set the origins to be the center of the 3-D volume */
     org.xyz[0] = dax->xxorg + (dax->nxx - 1) * dx / 2.0;
@@ -9074,7 +9077,7 @@ ENTRY( "xhairs_to_image_pts" );
 
     if ( gcr_debug.level > 0 )
     {
-	r_idisp_vec3f( "-- xhair point shift : ", org.xyz );
+        r_idisp_vec3f( "-- xhair point shift : ", org.xyz );
         printf( "-- unitizing points by (%f,%f,%f)\n", dx, dy, dz );
     }
 
@@ -9126,7 +9129,7 @@ ENTRY( "xhairs_to_image_pts" );
     DIV_FVEC3_BY_CONST(gcr_debug.xhairs, min);
 
     if ( gcr_debug.level > 0 )
-	r_idisp_vec3f( "-- shifted xhair center : ", gcr_debug.xhairs.xyz );
+        r_idisp_vec3f( "-- shifted xhair center : ", gcr_debug.xhairs.xyz );
 
     RETURN(0);
 }
@@ -9137,7 +9140,7 @@ static int rotate_xhair_points( CR_xhairs * xh, THD_mat33 * rotm )
 ENTRY( "rotate_xhair_points" );
 
     if ( gcr_debug.level > 1 )
-	idisp_xhair_pts( "-- xh, pre rot  : ", xh );
+        idisp_xhair_pts( "-- xh, pre rot  : ", xh );
 
     /* 4 x-direction points */
     xh->xp[0][0] = FVEC_TIMES_MAT(xh->xp[0][0],*rotm);
@@ -9167,12 +9170,12 @@ ENTRY( "rotate_xhair_points" );
 
     if ( gcr_debug.level > 1 )
     {
-	r_idisp_mat33f( "-- rotm : ", rotm->mat );
-	idisp_xhair_pts( "-- xh, post rot : ", xh );
+        r_idisp_mat33f( "-- rotm : ", rotm->mat );
+        idisp_xhair_pts( "-- xh, post rot : ", xh );
     }
 
     if ( gcr_debug.level > 0 )
-	r_idisp_vec3f( "-- rotated xhairs : ", gcr_debug.xhairs.xyz );
+        r_idisp_vec3f( "-- rotated xhairs : ", gcr_debug.xhairs.xyz );
 
     RETURN(0);
 }
@@ -9181,8 +9184,8 @@ static void idisp_xhair_pts ( char * note, CR_xhairs * p )
 {
     if ( ! p )
     {
-	fputs( "idisp_xhair_pts: p == NULL!\n", stderr );
-	return;
+        fputs( "idisp_xhair_pts: p == NULL!\n", stderr );
+        return;
     }
 
     r_idisp_vec3f( note, p->xp[0][0].xyz );
@@ -9209,7 +9212,7 @@ static int draw_xhairs_in_image( CR_xhairs * x, MRI_IMAGE * im )
 ENTRY( "draw_xhairs_in_image" );
 
     if ( !x || !im )
-	RETURN(-1);
+        RETURN(-1);
 
     ovc_to_rgb_bytes( xhair_ovc, rgb, dc->ovc );
 
@@ -9232,13 +9235,13 @@ static int draw_image_line( MRI_IMAGE * im, THD_fvec3 * p1,
                             THD_fvec3 * p2, byte * rgb )
 {
     byte * bp = MRI_RGB_PTR(im);
-    int    x, y;			/* computed positions to plot    */
-    int    x1, y1, x2, y2;		/* start and end positions       */
-    int    xtot, ytot;			/* cumulative directional steps  */
-    int    xdir, ydir;			/* direction of steps            */
-    int    xsteps, ysteps, points;	/* total steps to make           */
-    int    index;			/* image index                   */
-    int    pc;				/* point counter                 */
+    int    x, y;                        /* computed positions to plot    */
+    int    x1, y1, x2, y2;              /* start and end positions       */
+    int    xtot, ytot;                  /* cumulative directional steps  */
+    int    xdir, ydir;                  /* direction of steps            */
+    int    xsteps, ysteps, points;      /* total steps to make           */
+    int    index;                       /* image index                   */
+    int    pc;                          /* point counter                 */
 
 
 ENTRY( "draw_image_line" );
@@ -9249,9 +9252,9 @@ ENTRY( "draw_image_line" );
     y2 = (int)( p2->xyz[1] + im->ny / 2 + 0.001 );
 
     if ( x1 == x2 && y1 == y2 )
-	RETURN(0);
+        RETURN(0);
 
-    BOUND_VAL( 0, x1, im->nx-1 );	/* just to be safe */
+    BOUND_VAL( 0, x1, im->nx-1 );       /* just to be safe */
     BOUND_VAL( 0, y1, im->ny-1 );
     BOUND_VAL( 0, x2, im->nx-1 );
     BOUND_VAL( 0, y2, im->ny-1 );
@@ -9269,37 +9272,37 @@ ENTRY( "draw_image_line" );
     xtot = ytot = 0;
     for ( pc = 0; pc < points; pc++ )
     {
-	x = x1 + xdir * (xtot/points);  /* hmmmm, that's a lot of work to  */
-	y = y1 + ydir * (ytot/points);  /* allow arbitrary direction, alas */
+        x = x1 + xdir * (xtot/points);  /* hmmmm, that's a lot of work to  */
+        y = y1 + ydir * (ytot/points);  /* allow arbitrary direction, alas */
 
         index = 3 * (x + y * im->nx);
-	
+        
         bp[index]   = rgb[0];
         bp[index+1] = rgb[1];
         bp[index+2] = rgb[2];
 
-	xtot += xsteps;
+        xtot += xsteps;
         ytot += ysteps;
     }
 
     if ( gcr_debug.level > 0 )
     {
-	printf( "++ drawing line from (%f,%f) to (%f,%f)\n",
+        printf( "++ drawing line from (%f,%f) to (%f,%f)\n",
                 p1->xyz[0], p1->xyz[1], p2->xyz[0], p2->xyz[1] );
-	printf( "-- as line from (%d,%d) to (%d,%d)\n", x1, y1, x2, y2 );
+        printf( "-- as line from (%d,%d) to (%d,%d)\n", x1, y1, x2, y2 );
     }
 
     RETURN(0);
 }
 
-#define RD_CHOICE_NONE	        0x00
-#define RD_CHOICE_HELP	        0x01
-#define RD_CHOICE_HIST	        0x02
-#define RD_CHOICE_DISP_COLORS	0x12			           /* v1.8 */
-#define RD_CHOICE_DISP_DSET	0x13
-#define RD_CHOICE_DISP_IM	0x14
-#define RD_CHOICE_DISP_XHAIRS	0x15
-#define RD_CHOICE_SET_LEVEL	0x20
+#define RD_CHOICE_NONE          0x00
+#define RD_CHOICE_HELP          0x01
+#define RD_CHOICE_HIST          0x02
+#define RD_CHOICE_DISP_COLORS   0x12                               /* v1.8 */
+#define RD_CHOICE_DISP_DSET     0x13
+#define RD_CHOICE_DISP_IM       0x14
+#define RD_CHOICE_DISP_XHAIRS   0x15
+#define RD_CHOICE_SET_LEVEL     0x20
 
 static int rd_debug_choice   ( char ** str );
 static int rd_disp_debug_help( char *  str, CR_debug * d );
@@ -9327,21 +9330,21 @@ ENTRY( "r_debug_check" );
 
     switch ( choice )
     {
-	case RD_CHOICE_HELP:        rd_disp_debug_help(sp,d);            break;
-	case RD_CHOICE_HIST:        fputs(g_cren_hist, stderr);          break;
-	case RD_CHOICE_DISP_COLORS: rd_disp_color_info(sp,d,&gcr);       break;
-	case RD_CHOICE_DISP_DSET:   rd_disp_dset_info (sp,d,&gcr);       break;
-	case RD_CHOICE_DISP_IM:     rd_disp_mri_image (sp,d,renderings); break;
-	case RD_CHOICE_SET_LEVEL:   rd_set_debug_level(sp,d);            break;
-	case RD_CHOICE_DISP_XHAIRS: rd_disp_xhairs    (sp,d);            break;
+        case RD_CHOICE_HELP:        rd_disp_debug_help(sp,d);            break;
+        case RD_CHOICE_HIST:        fputs(g_cren_hist, stderr);          break;
+        case RD_CHOICE_DISP_COLORS: rd_disp_color_info(sp,d,&gcr);       break;
+        case RD_CHOICE_DISP_DSET:   rd_disp_dset_info (sp,d,&gcr);       break;
+        case RD_CHOICE_DISP_IM:     rd_disp_mri_image (sp,d,renderings); break;
+        case RD_CHOICE_SET_LEVEL:   rd_set_debug_level(sp,d);            break;
+        case RD_CHOICE_DISP_XHAIRS: rd_disp_xhairs    (sp,d);            break;
 
-	default:
-	     printf( "error: invalid debug command: %5s\n", str );       break;
+        default:
+             printf( "error: invalid debug command: %5s\n", str );       break;
     }
 
     fflush(stdout);
 
-    RETURN(1);	/* we did something */
+    RETURN(1);  /* we did something */
 }
 
 static int rd_disp_color_info ( char * str, CR_debug * d, CR_data * crd )
@@ -9350,21 +9353,21 @@ static int rd_disp_color_info ( char * str, CR_debug * d, CR_data * crd )
     int        c, incr;
 
     if ( str && isdigit(*str) )
-	incr = abs(atoi(str));
+        incr = abs(atoi(str));
     else
-	incr = 8;	/* default increment for color value display */
+        incr = 8;       /* default increment for color value display */
 
     fprintf(stderr,"-- debug color increment: %d\n", incr );
     fprintf(stderr,"-- bigstuff:   r    g    b   +64  r    g    b\n"
-	           "              ---  ---  ---      ---  ---  ---\n");
+                   "              ---  ---  ---      ---  ---  ---\n");
     for ( c = 0; c < NPANE_BIG/2; c += incr )
-	fprintf(stderr, "   %3d/%3d:   %3d  %3d  %3d      %3d  %3d  %3d\n",
-	  c, c+64,
-	  crd->bigstuff.r[c   ], crd->bigstuff.g[c   ], crd->bigstuff.b[c   ],
-	  crd->bigstuff.r[c+64], crd->bigstuff.g[c+64], crd->bigstuff.b[c+64]);
+        fprintf(stderr, "   %3d/%3d:   %3d  %3d  %3d      %3d  %3d  %3d\n",
+          c, c+64,
+          crd->bigstuff.r[c   ], crd->bigstuff.g[c   ], crd->bigstuff.b[c   ],
+          crd->bigstuff.r[c+64], crd->bigstuff.g[c+64], crd->bigstuff.b[c+64]);
 
     fprintf(stderr,"-- fcb: mode, bigmode, num_panes = %d,%d,%d\n",
-	    fcb->mode, fcb->bigmode, fcb->num_panes );
+            fcb->mode, fcb->bigmode, fcb->num_panes );
 
     return 0;
 }
@@ -9380,8 +9383,8 @@ static int rd_disp_dset_info ( char * str, CR_debug * d, CR_data * crd )
     else if ( str[0] == 'm' && str[1] == 'o' ) ds = crd->mset;
     else
     {
-	printf( "error: see 'd?' for list of valid control characters\n" );
-	return 0;
+        printf( "error: see 'd?' for list of valid control characters\n" );
+        return 0;
     }
 
     sprintf( d->text, "-- debug '%2s' : ", str );
@@ -9390,8 +9393,8 @@ static int rd_disp_dset_info ( char * str, CR_debug * d, CR_data * crd )
 
     if ( ISVALID_DSET(ds) )
     {
-	r_idisp_thd_dataxes  ( d->text, ds->daxes );
-	r_idisp_thd_datablock( d->text, ds->dblk );
+        r_idisp_thd_dataxes  ( d->text, ds->daxes );
+        r_idisp_thd_datablock( d->text, ds->dblk );
     }
 
     return 1;
@@ -9418,20 +9421,20 @@ static int rd_debug_choice( char ** str )
 static int rd_disp_debug_help( char * str, CR_debug * d )
 {
     printf (
-	"------------------------------------------------------------------\n"
-	"debugging commands:\n"
-	"\n"
-	"    d?   - debug help           : display this menu\n"
-	"    dh   - history              : display plugin history\n"
-	"    dcN  - display color info   : bigmode color info (with step N)\n"
-	"    di   - display image        : display last mri image strcture\n"
-	"    dlN  - debug level          : set debug level to N, {0,1,2}\n"
-	"    ddX  - display dataset info : display dataset info for \n"
-	"                                  dset, fset, or mset\n"
-	"                                  X is one of {dd,do,fd,fo,mo}\n"
-	"    dx   - display crosshairs   : display rotated crosshair center\n"
-	"------------------------------------------------------------------\n"
-	);
+        "------------------------------------------------------------------\n"
+        "debugging commands:\n"
+        "\n"
+        "    d?   - debug help           : display this menu\n"
+        "    dh   - history              : display plugin history\n"
+        "    dcN  - display color info   : bigmode color info (with step N)\n"
+        "    di   - display image        : display last mri image strcture\n"
+        "    dlN  - debug level          : set debug level to N, {0,1,2}\n"
+        "    ddX  - display dataset info : display dataset info for \n"
+        "                                  dset, fset, or mset\n"
+        "                                  X is one of {dd,do,fd,fo,mo}\n"
+        "    dx   - display crosshairs   : display rotated crosshair center\n"
+        "------------------------------------------------------------------\n"
+        );
 
     return 1;
 }
@@ -9440,7 +9443,7 @@ static int rd_disp_debug_help( char * str, CR_debug * d )
 static int rd_disp_mri_image( char * str, CR_debug * d, MRI_IMARR * r )
 {
     if ( r->num <= 0 )
-	return 1;              /* valid attempt, but no data, so return 1 */
+        return 1;              /* valid attempt, but no data, so return 1 */
 
     sprintf( d->text, "-- debug : imarr[%d] : ", r->num-1 );
 
@@ -9455,8 +9458,8 @@ static int rd_set_debug_level( char * str, CR_debug * d )
 
     if ( level < 0 || level > CR_MAX_DEBUG )
     {
-	printf( "error: valid debug levels are in [0,%d]\n", CR_MAX_DEBUG );
-	return 0;
+        printf( "error: valid debug levels are in [0,%d]\n", CR_MAX_DEBUG );
+        return 0;
     }
 
     d->level = level;
@@ -9476,22 +9479,22 @@ static int ovc_to_rgb_bytes( int ovc, byte * rgb, MCW_DCOV * ov )
 {
     BOUND_VAL( 0, ovc, ov->ncol_ov );
 
-    if ( ovc == 0 )	/* then use white */
+    if ( ovc == 0 )     /* then use white */
     {
-	rgb[0] = 255;
-	rgb[1] = 255;
-	rgb[2] = 255;
+        rgb[0] = 255;
+        rgb[1] = 255;
+        rgb[2] = 255;
     }
     else
     {
-	/* get the intensities from the color map */
-	rgb[0] = ov->r_ov[ovc];
-	rgb[1] = ov->g_ov[ovc];
-	rgb[2] = ov->b_ov[ovc];
+        /* get the intensities from the color map */
+        rgb[0] = ov->r_ov[ovc];
+        rgb[1] = ov->g_ov[ovc];
+        rgb[2] = ov->b_ov[ovc];
     }
 
     if ( gcr_debug.level > 0 )
-	printf( "-- rgb vals are %d, %d, %d\n", rgb[0], rgb[1], rgb[2] );
+        printf( "-- rgb vals are %d, %d, %d\n", rgb[0], rgb[1], rgb[2] );
 
     return 1;
 }
@@ -9502,13 +9505,13 @@ static int reset_bigcolors( rgbyte * bcs )
     int  i;
 
     if ( gcr_debug.level > 0 )
-	fprintf(stderr,"-- reset_bigcolors()\n");
+        fprintf(stderr,"-- reset_bigcolors()\n");
 
     for ( i = 0; i < NPANE_BIG; i++ )
     {
-	gcr.bigstuff.r[i] = bcs[i].r;
-	gcr.bigstuff.g[i] = bcs[i].g;
-	gcr.bigstuff.b[i] = bcs[i].b;
+        gcr.bigstuff.r[i] = bcs[i].r;
+        gcr.bigstuff.g[i] = bcs[i].g;
+        gcr.bigstuff.b[i] = bcs[i].b;
     }
 
     return 0;
