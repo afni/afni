@@ -15,7 +15,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 	GLwDrawingAreaCallbackStruct *cd = (GLwDrawingAreaCallbackStruct *) callData;
 	char buffer[10], cbuf = '\0', cbuf2='\0';
 	KeySym keysym;
-	int xls, ntot;
+	int xls, ntot, id = 0, ND, ip, NP;
 	float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
 	SUMA_EngineData EngineData; /* Do not free EngineData, only its contents*/
 	char CommString[SUMA_MAX_COMMAND_LENGTH];
@@ -483,31 +483,42 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 				if (SUMAg_CF->Dev) {
 					FILE *Fout;
 					SUMA_SurfaceObject *SO;
+					char stmploc[SUMA_MAX_LABEL_LENGTH+50];
+					
+					SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+					ND = SO->NodeDim;
+					NP = SO->FaceSetDim;
 
-					Fout = fopen("NodeList.txt", "w");
+					sprintf (stmploc, "%s_NodeList.txt", SO->Label); 
+					if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write %s.\n", FuncName, stmploc); 
+					Fout = fopen(stmploc, "w");
 					if (Fout == NULL) {
-						fprintf(SUMA_STDERR, "Error SUMA_input: Could not open file for writing.\n");
+						fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, stmploc);
 						break;
 					}
-					SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+					
 					for (ii=0; ii < SO->N_Node; ++ii) {
+						id = ND * ii;
 						fprintf(Fout, "%f\t%f\t%f\n", \
-							SO->NodeList[ii][0], SO->NodeList[ii][1],SO->NodeList[ii][2]);
+							SO->NodeList[id], SO->NodeList[id+1],SO->NodeList[id+2]);
 					}
 					fclose (Fout);
 
-					Fout = fopen("FaceSetList.txt", "w");
+					sprintf (stmploc, "%s_FaceSetList.txt", SO->Label);
+					if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write %s.\n", FuncName, stmploc); 
+					Fout = fopen(stmploc, "w");
 					if (Fout == NULL) {
-						fprintf(SUMA_STDERR, "Error SUMA_input: Could not open file for writing.\n");
+						fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, stmploc);
 						break;
 					}
 					for (ii=0; ii < SO->N_FaceSet; ++ii) {
+						ip = NP * ii;
 						fprintf(Fout, "%d\t%d\t%d\n", \
-							SO->FaceSetList[ii][0], SO->FaceSetList[ii][1],SO->FaceSetList[ii][2]);
+							SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
 					}
 					fclose (Fout);
 
-					fprintf(SUMA_STDERR, "SUMA_input: Wrote NodeList.txt & FaceSetList.txt to disk.\n");
+					fprintf(SUMA_STDERR, "%s: Wrote %s_NodeList.txt & %s_FaceSetList.txt to disk.\n", FuncName, SO->Label, SO->Label);
 				}
 				break;
 
@@ -1134,8 +1145,9 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 								}
 								free(do_id);
 								/* report some results */
+								id = SO->NodeDim * i2min;
 								fprintf (SUMA_STDOUT, "Node [%d] %f, %f, %f was closest (%f mm) to line\n", \
-									i2min, SO->NodeList[i2min][0], SO->NodeList[i2min][1], SO->NodeList[i2min][2], sqrt(d2min));
+									i2min, SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2], sqrt(d2min));
 								/* sort the distances to the line and find the closest 50 nodes */
 								Indx = SUMA_z_qsort ( d2 , SO->N_Node );	
 								/* from the closest nodes, find the one that is closest to P0f (that would be closest to the user) that should be the node of choice */
@@ -1144,9 +1156,9 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 								get the correct node */
 
 								/* prepare EngineData to points cetered on closest node (poor man's method for now)*/
-								fv15[0] = SO->NodeList[i2min][0];
-								fv15[1] = SO->NodeList[i2min][1];
-								fv15[2] = SO->NodeList[i2min][2];
+								fv15[0] = SO->NodeList[id];
+								fv15[1] = SO->NodeList[id+1];
+								fv15[2] = SO->NodeList[id+2];
 
 								fv15[3] = 5.0;
 								fv15[4] = 5.0;
@@ -1174,7 +1186,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 							/* Now the FaceSetIntersection game */
 							{/* FaceSet Intersection */
 								SUMA_MT_INTERSECT_TRIANGLE *MTI;
-
+								NP = SO->FaceSetDim;
 								if (SO->FaceSetDim != 3) {
 									fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle only works for triangular meshes.\n", FuncName);
 								} else {
@@ -1197,28 +1209,31 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 										*/
 										/* Mark intersection Facsets */
 											if (MTI->N_hits) {
+												ip = NP * MTI->ifacemin;
 												/* print nodes about the closets faceset*/
 												fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
 												fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
 												fprintf(SUMA_STDOUT, "%d, %d, %d\n", \
-												SO->FaceSetList[MTI->ifacemin][0], SO->FaceSetList[MTI->ifacemin][1],SO->FaceSetList[MTI->ifacemin][2]);
+												SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
 
 												fprintf (SUMA_STDOUT,"Coordinates of Nodes forming closest FaceSet:\n");
 												for (it=0; it < 3; ++it) { 
-													fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][0],\
-																										SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][1],\
-																										SO->NodeList[SO->FaceSetList[MTI->ifacemin][it]][2]);
+													
+													id = SO->NodeDim * SO->FaceSetList[ip+it];
+													fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[id],\
+																										SO->NodeList[id+1],\
+																										SO->NodeList[id+2]);
 												}
 												fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
 												#ifdef SUMA_LOCAL_COLORINTERSECTION
 												EngineData.N_rows = 3;
 												EngineData.N_cols = 4;
 												fm = (float **)SUMA_allocate2D(EngineData.N_rows, EngineData.N_cols, (sizeof(float)));
-												fm[0][0] = SO->FaceSetList[MTI->ifacemin][0];
+												fm[0][0] = SO->FaceSetList[ip];
 												fm[0][1] = 0.0; fm[0][2] = 1.0; fm[0][3] = 1.0; 
-												fm[1][0] = SO->FaceSetList[MTI->ifacemin][1];
+												fm[1][0] = SO->FaceSetList[ip+1];
 												fm[1][1] = 0.0; fm[1][2] = 1.0; fm[1][3] = 1.0; 
-												fm[2][0] = SO->FaceSetList[MTI->ifacemin][2];
+												fm[2][0] = SO->FaceSetList[ip+2];
 												fm[2][1] = 0.0; fm[2][2] = 1.0; fm[2][3] = 1.0; 
 												/* register fm with EngineData */
 													sprintf(sfield,"fm");

@@ -392,11 +392,13 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 /*! Create a tesselated mesh */
 void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj)
 {  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-	int i;
+	int i, ND, id, ip, NP;
 	static char FuncName[]={"SUMA_CreateMesh"};
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+	ND = SurfObj->NodeDim;
+	NP = SurfObj->FaceSetDim;
 	switch (DRAW_METHOD) { 
    	case STRAIGHT:
 			switch (RENDER_METHOD) {
@@ -411,12 +413,18 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj)
       		glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
       		for (i=0; i < SurfObj->N_FaceSet; i++)
 				{	
-					glNormal3fv(&SurfObj->NodeNormList[SurfObj->FaceSetList[i][0]][0]);
-					glVertex3fv(&SurfObj->NodeList[SurfObj->FaceSetList[i][0]][0]); /* glVertex3f(0.1, 0.9, 0.0); */
-      			glNormal3fv(&SurfObj->NodeNormList[SurfObj->FaceSetList[i][1]][0]);
-					glVertex3fv(&SurfObj->NodeList[SurfObj->FaceSetList[i][1]][0]);/* glVertex3f(0.1, 0.1, 0.0); */
-					glNormal3fv(&SurfObj->NodeNormList[SurfObj->FaceSetList[i][2]][0]);
-      			glVertex3fv(&SurfObj->NodeList[SurfObj->FaceSetList[i][2]][0]);/* glVertex3f(0.7, 0.5, 0.0); */
+					ip = NP * i;
+					id = ND * SurfObj->FaceSetList[ip];
+					glNormal3fv(&SurfObj->NodeNormList[id]);
+					glVertex3fv(&SurfObj->NodeList[id]); /* glVertex3f(0.1, 0.9, 0.0); */
+					
+					id = ND * SurfObj->FaceSetList[ip+1];
+      			glNormal3fv(&SurfObj->NodeNormList[id]);
+					glVertex3fv(&SurfObj->NodeList[id]);/* glVertex3f(0.1, 0.1, 0.0); */
+					
+					id = ND * SurfObj->FaceSetList[ip+2];
+					glNormal3fv(&SurfObj->NodeNormList[id]);
+      			glVertex3fv(&SurfObj->NodeList[id]);/* glVertex3f(0.7, 0.5, 0.0); */
 				}
    		glEnd();
 			break;
@@ -432,11 +440,12 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj)
 			/* Draw Selected Node Highlight */
 			if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
 				/*fprintf(SUMA_STDOUT,"Drawing Node Selection \n");*/
-				glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissivity for sphere */
-				glTranslatef (SurfObj->NodeList[SurfObj->SelectedNode][0], SurfObj->NodeList[SurfObj->SelectedNode][1],SurfObj->NodeList[SurfObj->SelectedNode][2]);
+				id = ND * SurfObj->SelectedNode;
+				glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissidity for sphere */
+				glTranslatef (SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
 				gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad, SurfObj->NodeMarker->slices, SurfObj->NodeMarker->stacks);
-				glTranslatef (-SurfObj->NodeList[SurfObj->SelectedNode][0], -SurfObj->NodeList[SurfObj->SelectedNode][1],-SurfObj->NodeList[SurfObj->SelectedNode][2]);
-				glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
+				glTranslatef (-SurfObj->NodeList[id], -SurfObj->NodeList[id+1],-SurfObj->NodeList[id+2]);
+				glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for axis*/
 			}
 			
 			/* Draw Selected FaceSet Highlight */
@@ -514,24 +523,22 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
 
 	/*fprintf (stdout, "freeing:\n");*/
 	/* Start with the big ones and down*/
-	/*fprintf (stdout, "SO->glar_FaceNormList... ");*/
-	if (SO->glar_FaceNormList)	free(SO->glar_FaceNormList);
-	/*fprintf (stdout, "SO->glar_NodeNormList... ");*/
-	if (SO->glar_NodeNormList)	free(SO->glar_NodeNormList);
-	/*fprintf (stdout, "SO->glar_FaceSetList... ");*/
-	if (SO->glar_FaceSetList)	free(SO->glar_FaceSetList);
-	/*fprintf (stdout, "SO->glar_NodeList... ");*/
-	if (SO->glar_NodeList)	free(SO->glar_NodeList);
+	/* From SUMA 1.2 and on, some glar_ pointers are copies of others and should not be freed */ 
+	SO->glar_FaceSetList = NULL;
+	SO->glar_NodeList = NULL;
+	SO->glar_NodeNormList = NULL;
+	SO->glar_FaceNormList = NULL;
+	
 	/*fprintf (stdout, "SO->glar_ColorList... ");*/
 	if (SO->glar_ColorList)	free(SO->glar_ColorList);
 	/*fprintf (stdout, "SO->NodeList... ");*/
-	if (SO->NodeList)	SUMA_free2D((char **)SO->NodeList, SO->N_Node);
+	if (SO->NodeList)	free(SO->NodeList);
 	/*fprintf (stdout, "SO->NodeList... ");*/
-	if (SO->FaceSetList) SUMA_free2D((char **)SO->FaceSetList, SO->N_FaceSet);
+	if (SO->FaceSetList) free(SO->FaceSetList);
 	/*fprintf (stdout, "SO->FaceSetList... ");*/
-	if (SO->NodeNormList) SUMA_free2D((char **)SO->NodeNormList, SO->N_Node);
+	if (SO->NodeNormList) free(SO->NodeNormList);
 	/*fprintf (stdout, "SO->NodeNormList... ");*/
-	if (SO->FaceNormList) SUMA_free2D((char **)SO->FaceNormList, SO->N_FaceSet);
+	if (SO->FaceNormList) free(SO->FaceNormList);
 	/*fprintf (stdout, "SO->FaceNormList... ");*/
 	if (SO->Name_NodeParent) free(SO->Name_NodeParent);
 	/*fprintf (stdout, "SO->Name.FileName... ");*/
@@ -650,7 +657,7 @@ Input paramters :
 void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 {	
 	static char FuncName[]={"SUMA_Print_Surface_Object"};
-	int MaxShow = 5, i,j;
+	int MaxShow = 5, i,j, ND, NP;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -660,6 +667,9 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 		fprintf (Out, "NULL Surface Object Pointer\n");
 		SUMA_RETURNe;
 	}
+
+	ND = SO->NodeDim;
+	NP = SO->FaceSetDim;
 	fprintf (Out,"\n---------------------------------\n");
 	if (SO->Label == NULL)
 		fprintf (Out,"Label is NULL\n");
@@ -744,7 +754,7 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 		if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
 		fprintf (Out, "NodeList (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
 		for (i=0; i < MaxShow; ++i)	{
-			for (j=0; j < SO->NodeDim; ++j) fprintf (Out, "\t%.3f", SO->NodeList[i][j]);
+			for (j=0; j < SO->NodeDim; ++j) fprintf (Out, "\t%.3f", SO->NodeList[ND * i + j]);
 			fprintf (Out, "\n\n");
 		}
 	}
@@ -755,7 +765,7 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 		if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
 		fprintf (Out, "NodeNormList (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
 		for (i=0; i < MaxShow; ++i)	{
-			for (j=0; j < 3; ++j) fprintf (Out, "\t%.3f", SO->NodeNormList[i][j]);
+			for (j=0; j < 3; ++j) fprintf (Out, "\t%.3f", SO->NodeNormList[ND * i + j]);
 			fprintf (Out, "\n");
 		}
 		fprintf (Out, "\n");
@@ -768,7 +778,7 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 		if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
 		fprintf (Out, "FaceSetList: (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
 		for (i=0; i < MaxShow; ++i)	{
-			for (j=0; j < SO->FaceSetDim; ++j) fprintf (Out, "\t%d", SO->FaceSetList[i][j]);
+			for (j=0; j < SO->FaceSetDim; ++j) fprintf (Out, "\t%d", SO->FaceSetList[NP * i + j]);
 			fprintf (Out, "\n");
 		}
 		fprintf (Out, "\n");
@@ -780,30 +790,12 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 		if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
 		fprintf (Out, "FaceNormList (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
 		for (i=0; i < MaxShow; ++i)	{
-			for (j=0; j < 3; ++j) fprintf (Out, "\t%.3f", SO->FaceNormList[i][j]);
+			for (j=0; j < 3; ++j) fprintf (Out, "\t%.3f", SO->FaceNormList[NP * i + j]);
 			fprintf (Out, "\n");
 		}
 		fprintf (Out, "\n");
 	}
-	
-	if (SO->glar_NodeList == NULL)
-		fprintf (Out,"glar_NodeList is NULL\n\n");
-	else {
-		if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-		fprintf (Out, "glar_NodeList (showing %d out of %d elements):\n", MaxShow*3, SO->N_Node*3);
-		for (i=0; i < MaxShow; ++i)	fprintf (Out, "\t%.3f\t%.3f\t%.3f\n", SO->glar_NodeList[3*i], SO->glar_NodeList[3*i+1], SO->glar_NodeList[3*i+2]);
-		fprintf (Out, "\n");
-	}
-
-	if (SO->glar_NodeNormList == NULL)
-		fprintf (Out,"glar_NodeNormList is NULL\n\n");
-	else {
-		if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-		fprintf (Out, "glar_NodeNormList (showing %d out of %d elements):\n", MaxShow*3, SO->N_Node*3);
-		for (i=0; i < MaxShow; ++i)	fprintf (Out, "\t%.3f\t%.3f\t%.3f\n", SO->glar_NodeNormList[3*i], SO->glar_NodeNormList[3*i+1],SO->glar_NodeNormList[3*i+2]);
-		fprintf (Out, "\n");		
-	}
-	
+		
 	if (SO->glar_ColorList == NULL)
 		fprintf (Out,"glar_ColorList is NULL\n\n");
 	else {
@@ -813,24 +805,6 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 		fprintf (Out, "\n");		
 	}
 
-	if (SO->glar_FaceSetList == NULL)
-		fprintf (Out,"glar_FaceSetList is NULL\n\n");
-	else {
-		if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
-		fprintf (Out, "glar_FaceSetList (showing %d out of %d elements):\n", MaxShow*3, SO->N_FaceSet*3);
-		for (i=0; i < MaxShow ; ++i)	fprintf (Out, "\t%d\t%d\t%d\n", SO->glar_FaceSetList[3*i], SO->glar_FaceSetList[3*i+1],SO->glar_FaceSetList[3*i+2]);
-		fprintf (Out, "\n");		
-	}
-
-	if (SO->glar_FaceNormList == NULL)
-		fprintf (Out,"glar_FaceNormList is NULL\n\n");
-	else {
-		if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
-		fprintf (Out, "glar_FaceNormList (showing %d out of %d elements):\n", MaxShow*3, SO->N_FaceSet*3);
-		for (i=0; i < MaxShow ; ++i)	fprintf (Out, "\t%.3f\t%.3f\t%.3f\n", SO->glar_FaceNormList[3*i], SO->glar_FaceNormList[3*i+1],SO->glar_FaceNormList[3*i+2]);
-		fprintf (Out, "\n");		
-	}
-	
 	if (SO->MF == NULL)
 		fprintf (Out,"SO->MF = NULL\n\n") ;
 	else {
@@ -936,6 +910,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
 		SO[i].Cx = NULL;
 		SO[i].Cx_Inode = NULL;
 		SO[i].VolPar = NULL;
+		SO[i].glar_NodeList = NULL; 
 		/* create vector of pointers */
 		SO[i].Overlays = (SUMA_OVERLAYS **) malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
 		SO[i].Overlays_Inode = (SUMA_INODE **) malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 

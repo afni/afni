@@ -1,4 +1,4 @@
-/*#define TEST*/
+/*#define SUMA_IV_XYZextract_STANDALONE*/
 /*#define DEBUG_3*/
 #ifdef DEBUG_1
 	#define DEBUG_2
@@ -35,7 +35,7 @@ Purpose :
 Input paramters : 
  
  	IV_filename (char *) a string specifying the name of the inventor file
- 	N_NodeList (int *) will give the number of rows in NodeList
+ 	N_NodeList (int *) will give the number of nodes in NodeList / 3 or /4
 	Include_Index (int) (0/1) controls the output of the function, see ahead for info
  
 Usage : 
@@ -43,7 +43,7 @@ Usage :
  
  
 Returns : 
- NodeList (float **) an Mx3 (or Mx4) matrix containing the 
+ NodeList (float *) an Mx3 (or Mx4) vector containing the 
  	
  		X	Y	Z coordinates of each node (with Include_Index = 0)
 		or
@@ -67,13 +67,13 @@ Side effects :
 #include "SUMA_suma.h"
  
 /* CODE */
-float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex)
+float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex)
 {/* SUMA_IV_XYZextract */
 	static char FuncName[]={"SUMA_IV_XYZextract"};
 	char s[500],serr[500];
 	char seq_strt[5][30], seq_end[5][30];
-	float f, *linv, **NodeList;
-	int i, ex, si, si_exit, evl, se, se_exit, cnt ;
+	float f, *linv, *NodeList;
+	int i, ex, si, si_exit, evl, se, se_exit, cnt, cntlim,i3, i4;
 	int nospacing, MaxAlloc = 100;
 	div_t cnt3;
 	FILE*iv_file;
@@ -260,9 +260,9 @@ float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeInde
 	
 	/* Now allocate space for IV_FaceSetsextract and fill it up */
 	if (!IncludeIndex)
-		NodeList = (float **) SUMA_allocate2D (*N_NodeList, 3, sizeof(float));
+		NodeList = (float *) calloc (*N_NodeList * 3, sizeof(float));
 	else
-		NodeList = (float **) SUMA_allocate2D (*N_NodeList, 4, sizeof(float));
+		NodeList = (float *) calloc (*N_NodeList * 4, sizeof(float));
 	
 	if (!NodeList)
 		{
@@ -274,19 +274,22 @@ float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeInde
 		{	
 			for (i=0; i< cnt; ++i)
 				{
-					cnt3 = div(i,3);
-					NodeList[cnt3.quot][cnt3.rem] = linv[i];
+					NodeList[i] = linv[i];
 				}
 		}
 	else
 		{
-			for (i=0; i< cnt; ++i)
+			cntlim = cnt/3;
+			for (i=0; i < cntlim; ++i)
 				{
-					cnt3 = div(i,3);
-					if (cnt3.rem == 0)
-						NodeList[cnt3.quot][cnt3.rem] = cnt3.quot;
 					
-					NodeList[cnt3.quot][cnt3.rem+1] = linv[i];
+					i4 = 4*i;
+					i3 = 3*i;
+					NodeList[i4] = i;
+					
+					NodeList[i4+1] = linv[i3];
+					NodeList[i4+2] = linv[i3+1];
+					NodeList[i4+3] = linv[i3+2];
 					
 				}
 			
@@ -300,7 +303,7 @@ float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeInde
 	
 }/* SUMA_IV_XYZextract */
 
-#ifdef TEST 
+#ifdef SUMA_IV_XYZextract_STANDALONE 
 void usage ()
  
   {/*Usage*/
@@ -335,7 +338,7 @@ void usage ()
 main (int argc,char *argv[])
 {/* Main */
 char outfile[300];
-float ** NodeList;
+float * NodeList;
 int N_NodeList, writeout,CountOnly,paramnum, ncol,IncludeIndex;
  
 if (argc < 2)
@@ -392,12 +395,41 @@ NodeList = SUMA_IV_XYZextract (argv[1], &N_NodeList, IncludeIndex)	;
 if (CountOnly)
 	printf ("%d Nodes XYZ corrdinates read\n",N_NodeList);
 
-if (writeout == 1)
-	write_2Dfloat(NodeList, outfile, N_NodeList, ncol, 1);
-else if (!CountOnly)
-	SUMA_disp_mat(NodeList, N_NodeList, ncol,1);
+if (writeout == 1) {
+	FILE *outfid; 
+	
+	outfid = fopen (outfile, "w");
+	if (outfid == NULL) {
+		fprintf (SUMA_STDERR, "Error %s: Could not open %s for writing.\n", FuncName, outfile);
+	}else {
+		i = 0;
+		cntlim = N_NodeList*ncol;
+		while (i < cntlim) {
+			j = 0;
+			while (j < ncol) {
+				fprintf (outfid, "%f\t", NodeList[i]);
+				++i;
+				++j;
+			}
+			fprintf (outfid, "\n");
+		}
+		fclose (outfid);
+	}
+} else if (!CountOnly) {
+	i = 0;
+	cntlim = N_NodeList*ncol;
+	while (i < cntlim) {
+		j = 0;
+		while (j < ncol) {
+			fprintf (SUMA_STDOUT, "%f\t", NodeList[i]);
+			++i;
+			++j;
+		}
+		fprintf (SUMA_STDOUT, "\n");
+	}
+}
 
-SUMA_free2D ((char **)NodeList,N_NodeList);
+free (NodeList);
 
 }/* Main */
 #endif

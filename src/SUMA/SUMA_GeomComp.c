@@ -10,7 +10,7 @@ extern SUMA_CommonFields *SUMAg_CF;
 	\param NodesSelected (int *) N_Nodes x 1 Vector containing indices of selected nodes. 
 				These are indices into NodeList making up the surface formed by Full_FaceSetList.
 	\param N_Nodes (int) number of elements in NodesSelected
-	\param Full_FaceSetList (int **) N_Full_FaceSetList  x 3 matrix containing the triangles forming the surface 
+	\param Full_FaceSetList (int *) N_Full_FaceSetList  x 3 vector containing the triangles forming the surface 
 	\param N_Full_FaceSetList (int) number of triangular facesets forming the surface
 	\param Memb (SUMA_MEMBER_FACE_SETS *) structure containing the node membership information (result of SUMA_MemberFaceSets function)
 
@@ -20,16 +20,16 @@ extern SUMA_CommonFields *SUMAg_CF;
 	\sa SUMA_MemberFaceSets, SUMA_isinbox, SUMA_PATCH
 */
 
-SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int **Full_FaceSetList, int N_Full_FaceSetList, SUMA_MEMBER_FACE_SETS *Memb)
+SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetList, int N_Full_FaceSetList, SUMA_MEMBER_FACE_SETS *Memb)
 {
 	int * BeenSelected;
-	int i, j, node;
+	int i, j, node, ip, ip2, NP;
 	SUMA_PATCH *Patch;
  	static char FuncName[]={"SUMA_getPatch"};
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
-	
+	NP = 3;
 	BeenSelected = (int *)calloc (N_Full_FaceSetList, sizeof(int));
 	Patch = (SUMA_PATCH *)malloc(sizeof(Patch));
 	
@@ -52,7 +52,7 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int **Full_FaceSetL
 	
 	/* now load these facesets into a new matrix */
 	
-	Patch->FaceSetList = (int **) SUMA_allocate2D (Patch->N_FaceSet, 3, sizeof(int));
+	Patch->FaceSetList = (int *) calloc (Patch->N_FaceSet * 3, sizeof(int));
 	Patch->FaceSetIndex = (int *) calloc (Patch->N_FaceSet, sizeof(int));
 	
 	if (!Patch->FaceSetList || !Patch->FaceSetIndex) {
@@ -63,9 +63,11 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int **Full_FaceSetL
 	for (i=0; i < N_Full_FaceSetList; ++i) {
 		if (BeenSelected[i]) {
 			Patch->FaceSetIndex[j] = i;
-			Patch->FaceSetList[j][0] = Full_FaceSetList[i][0];
-			Patch->FaceSetList[j][1] = Full_FaceSetList[i][1];
-			Patch->FaceSetList[j][2] = Full_FaceSetList[i][2];
+			ip = NP * j;
+			ip2 = NP * i;
+			Patch->FaceSetList[ip] = Full_FaceSetList[ip2];
+			Patch->FaceSetList[ip+1] = Full_FaceSetList[ip2+1];
+			Patch->FaceSetList[ip+2] = Full_FaceSetList[ip2+2];
 			++j;
 		}
 	}
@@ -91,7 +93,7 @@ SUMA_Boolean SUMA_freePatch (SUMA_PATCH *Patch)
 	
 	
 	if (Patch->FaceSetIndex) free(Patch->FaceSetIndex);
-	if (Patch->FaceSetList) SUMA_free2D((char **)Patch->FaceSetList, Patch->N_FaceSet);
+	if (Patch->FaceSetList) free(Patch->FaceSetList);
 	if (Patch) free(Patch);
 	SUMA_RETURN(YUP);
 	

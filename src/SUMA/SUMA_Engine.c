@@ -25,7 +25,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 {
 	char NextCom[SUMA_MAX_COMMAND_LENGTH], tmpcom[SUMA_MAX_COMMAND_LENGTH], ssource[100], sfield[100], sdestination[100];
 	static char FuncName[]={"SUMA_Engine"};
-	int NextComCode, ii, i;
+	int NextComCode, ii, i, id, ND, ip, NP;
 	SUMA_SurfaceObject *SO;
 	float delta_t;
 	struct  timeval tt;
@@ -263,18 +263,24 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 					break;
 				} 
 				SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
-				SO->FaceSetMarker->n0[0] = SO->NodeList[SO->FaceSetList[EngineData->i][0]][0];
-				SO->FaceSetMarker->n0[1] = SO->NodeList[SO->FaceSetList[EngineData->i][0]][1];
-				SO->FaceSetMarker->n0[2] = SO->NodeList[SO->FaceSetList[EngineData->i][0]][2];
-				SO->FaceSetMarker->n1[0] = SO->NodeList[SO->FaceSetList[EngineData->i][1]][0];
-				SO->FaceSetMarker->n1[1] = SO->NodeList[SO->FaceSetList[EngineData->i][1]][1];
-				SO->FaceSetMarker->n1[2] = SO->NodeList[SO->FaceSetList[EngineData->i][1]][2];
-				SO->FaceSetMarker->n2[0] = SO->NodeList[SO->FaceSetList[EngineData->i][2]][0];
-				SO->FaceSetMarker->n2[1] = SO->NodeList[SO->FaceSetList[EngineData->i][2]][1];
-				SO->FaceSetMarker->n2[2] = SO->NodeList[SO->FaceSetList[EngineData->i][2]][2];
-				SO->FaceSetMarker->NormVect[0] = SO->FaceNormList[EngineData->i][0];
-				SO->FaceSetMarker->NormVect[1] = SO->FaceNormList[EngineData->i][1];
-				SO->FaceSetMarker->NormVect[2] = SO->FaceNormList[EngineData->i][2];
+				ND = SO->NodeDim;
+				NP = SO->FaceSetDim;
+				ip = NP * EngineData->i;
+				id = ND * SO->FaceSetList[ip];
+				SO->FaceSetMarker->n0[0] = SO->NodeList[id];
+				SO->FaceSetMarker->n0[1] = SO->NodeList[id+1];
+				SO->FaceSetMarker->n0[2] = SO->NodeList[id+2];
+				id = ND * SO->FaceSetList[ip+1];
+				SO->FaceSetMarker->n1[0] = SO->NodeList[id];
+				SO->FaceSetMarker->n1[1] = SO->NodeList[id+1];
+				SO->FaceSetMarker->n1[2] = SO->NodeList[id+2];
+				id = ND * SO->FaceSetList[ip+2];
+				SO->FaceSetMarker->n2[0] = SO->NodeList[id];
+				SO->FaceSetMarker->n2[1] = SO->NodeList[id+1];
+				SO->FaceSetMarker->n2[2] = SO->NodeList[id+2];
+				SO->FaceSetMarker->NormVect[0] = SO->FaceNormList[ip];
+				SO->FaceSetMarker->NormVect[1] = SO->FaceNormList[ip+1];
+				SO->FaceSetMarker->NormVect[2] = SO->FaceNormList[ip+2];
 				
 				SO->SelectedFaceSet = EngineData->i;
 				break;
@@ -482,6 +488,8 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 					SUMA_ISINBOX IB;
 					
 					SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+					ND = SO->NodeDim;
+				
 					SUMA_etime (&tt, 0);
 					IB = SUMA_isinbox (SO->NodeList, SO->N_Node, &(EngineData->fv15[0]), &(EngineData->fv15[3]),  YUP);
 					delta_t = SUMA_etime (&tt, 1);
@@ -496,12 +504,13 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 						#ifdef STUFF
 							/* This is not being used and if it is to be used, EngineData should 
 							not be set manually */
-							EngineData->fv15[0] = SO->NodeList[IB.IsIn[it]][0];
-							EngineData->fv15[1] = SO->NodeList[IB.IsIn[it]][1];
-							EngineData->fv15[2] = SO->NodeList[IB.IsIn[it]][2];
-							EngineData->fv15[3] = SO->NodeNormList[IB.IsIn[it]][0];
-							EngineData->fv15[4] = SO->NodeNormList[IB.IsIn[it]][1];
-							EngineData->fv15[5] = SO->NodeNormList[IB.IsIn[it]][2];
+							id = ND * IB.IsIn[it];
+							EngineData->fv15[0] = SO->NodeList[id];
+							EngineData->fv15[1] = SO->NodeList[id+1];
+							EngineData->fv15[2] = SO->NodeList[id+2];
+							EngineData->fv15[3] = SO->NodeNormList[id];
+							EngineData->fv15[4] = SO->NodeNormList[id+1];
+							EngineData->fv15[5] = SO->NodeNormList[id+2];
 						#endif
 						/* Color the nodes*/
 							fm = (float **)SUMA_allocate2D(IB.nIsIn, 4, sizeof(float));
@@ -510,8 +519,9 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 								break;
 							}
 							for (i=0; i < IB.nIsIn; ++i) {
+								 /* id = ND * IB.IsIn[i]; */
 								 /*fprintf (SUMA_STDOUT,"\t[%d] %f %f %f\n", IB.IsIn[i] ,\
-						 						 SO->NodeList[IB.IsIn[i]][0], SO->NodeList[IB.IsIn[i]][1], SO->NodeList[IB.IsIn[i]][2]);*/
+						 						 SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);*/
 								/* color those nodes in yellow, just for kicks */
 								fm[i][0] = (float)IB.IsIn[i];
 								fm[i][1] = 0; 
@@ -562,6 +572,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 					SUMA_ISINBOX IB;
 					
 					SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+					ND = SO->NodeDim;
 					SUMA_etime (&tt, 0);
 					IB = SUMA_isinbox (SO->NodeList, SO->N_Node, &(EngineData->fv15[0]), &(EngineData->fv15[3]),  YUP);
 					delta_t = SUMA_etime (&tt, 1);
@@ -580,12 +591,13 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 						SUMA_MIN_LOC_VEC (IB.d, IB.nIsIn, ft, it);
 						
 						/* get the XYZ and normal of that node */
-						fv15[0] = SO->NodeList[IB.IsIn[it]][0];
-						fv15[1] = SO->NodeList[IB.IsIn[it]][1];
-						fv15[2] = SO->NodeList[IB.IsIn[it]][2];
-						fv15[3] = SO->NodeNormList[IB.IsIn[it]][0];
-						fv15[4] = SO->NodeNormList[IB.IsIn[it]][1];
-						fv15[5] = SO->NodeNormList[IB.IsIn[it]][2];
+						id = ND * IB.IsIn[it];
+						fv15[0] = SO->NodeList[id];
+						fv15[1] = SO->NodeList[id+1];
+						fv15[2] = SO->NodeList[id+2];
+						fv15[3] = SO->NodeNormList[id];
+						fv15[4] = SO->NodeNormList[id+1];
+						fv15[5] = SO->NodeNormList[id+2];
 						/* register fv in EngineData */
 							sprintf(sfield,"fv15");
 							sprintf(sdestination,"SetLookAtNode");
@@ -855,7 +867,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 {
 	static char FuncName[]={"SUMA_SwitchState"};
 	SUMA_Axis *EyeAxis;
-	int EyeAxis_ID, I_C, OverInd;
+	int EyeAxis_ID, I_C, OverInd, ND, id;
 	char CommString[100];
 	SUMA_EngineData ED;
 	int curstateID, i, j, jmax, prec_ID;
@@ -973,11 +985,13 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 		/* set the XYZ of the cross hair based on the coordinates of the upcoming surface, if possible */
 		if (j >= 0) {
 			SO_nxt = (SUMA_SurfaceObject *)(dov[j].OP);
+			ND = SO_nxt->NodeDim;
+			id = ND * sv->Ch->NodeID;
 			if (sv->Ch->NodeID >= 0) {
 				if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Using NodeID for link.\n", FuncName);
-				sv->Ch->c[0] = SO_nxt->NodeList[sv->Ch->NodeID][0];
-				sv->Ch->c[1] = SO_nxt->NodeList[sv->Ch->NodeID][1];
-				sv->Ch->c[2] = SO_nxt->NodeList[sv->Ch->NodeID][2];
+				sv->Ch->c[0] = SO_nxt->NodeList[id];
+				sv->Ch->c[1] = SO_nxt->NodeList[id+1];
+				sv->Ch->c[2] = SO_nxt->NodeList[id+2];
 			} else {
 				/* no node associated with cross hair, use XYZ */
 				if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Using XYZ for link.\n", FuncName);
@@ -1115,7 +1129,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 {/* SUMA_XYZ_XYZmap */
 	static char FuncName[]={"SUMA_XYZ_XYZmap"};
 	float *XYZmap;
-	int iclosest;
+	int iclosest, id, ND;
 	SUMA_SurfaceObject *SOmap;
 	int SOmapID;
 
@@ -1189,9 +1203,11 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 	}
 
 	SOmap = (SUMA_SurfaceObject *)(dov[SOmapID].OP);
-	XYZmap[0]=SOmap->NodeList[iclosest][0];
-	XYZmap[1]=SOmap->NodeList[iclosest][1];
-	XYZmap[2]=SOmap->NodeList[iclosest][2];
+	ND = SOmap->NodeDim;
+	id = ND * iclosest;
+	XYZmap[0]=SOmap->NodeList[id];
+	XYZmap[1]=SOmap->NodeList[id+1];
+	XYZmap[2]=SOmap->NodeList[id+2];
 
 	/* all is done */
 
@@ -1222,7 +1238,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 {/* SUMA_XYZmap_XYZ */
 	static char FuncName[]={"SUMA_XYZmap_XYZ"};
 	float *XYZ;
-	int iclosest;
+	int iclosest, id, ND;
 	SUMA_SurfaceObject *SOmap;
 	int SOmapID;
 
@@ -1294,9 +1310,11 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 		iclosest = *I_C;
 	}
 	fprintf (SUMA_STDERR,"%s: Node identified for linking purposes is %d\n", FuncName, *I_C);
-	XYZ[0]=SO->NodeList[iclosest][0];
-	XYZ[1]=SO->NodeList[iclosest][1];
-	XYZ[2]=SO->NodeList[iclosest][2];
+	ND = SO->NodeDim;
+	id = ND * iclosest;
+	XYZ[0]=SO->NodeList[id];
+	XYZ[1]=SO->NodeList[id+1];
+	XYZ[2]=SO->NodeList[id+2];
 
 	/* all is done */
 	SUMA_RETURN (XYZ);

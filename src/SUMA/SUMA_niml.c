@@ -443,7 +443,7 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
 {
 	static char FuncName[]={"SUMA_makeNI_SurfIXYZ"};
 	NI_element *nel;
-	int *ic, ii;
+	int *ic, ii, ND, id;
 	float *xc, *yc, *zc;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -474,12 +474,13 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
 	
 
    /* load the columns from the struct array */
-
+	ND = SO->NodeDim;
    for( ii=0 ; ii < SO->N_Node ; ii++ ){
       ic[ii] = ii;
-      xc[ii] = SO->NodeList[ii][0];
-      yc[ii] = SO->NodeList[ii][1];
-      zc[ii] = SO->NodeList[ii][2];
+		id = ND * ii;
+      xc[ii] = SO->NodeList[id];
+      yc[ii] = SO->NodeList[id+1];
+      zc[ii] = SO->NodeList[id+2];
    }
 
    /* put columns into element */
@@ -505,7 +506,7 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
 {
 	static char FuncName[]={"SUMA_makeNI_SurfIJK"};
 	NI_element *nel;
-	int  ii;
+	int  ii,  ip, NP;
 	int *I, *J, *K;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -520,6 +521,7 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
 		SUMA_RETURN (NULL);
 	}
 	
+	NP = SO->FaceSetDim;
 	/* make a new data element, to be filled by columns */
    nel = NI_new_data_element( "SUMA_ijk" , SO->N_FaceSet) ;
 	
@@ -537,9 +539,10 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
    /* load the columns from the struct array */
 
    for( ii=0 ; ii < SO->N_FaceSet ; ii++ ){
-      I[ii] = SO->FaceSetList[ii][0];
-      J[ii] = SO->FaceSetList[ii][1];
-      K[ii] = SO->FaceSetList[ii][2];
+      ip = NP * ii;
+		I[ii] = SO->FaceSetList[ip];
+      J[ii] = SO->FaceSetList[ip+1];
+      K[ii] = SO->FaceSetList[ip+2];
    }
 
    /* put columns into element */

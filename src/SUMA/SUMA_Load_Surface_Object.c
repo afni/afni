@@ -55,7 +55,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
    char FuncName[]={"SUMA_Load_Surface_Object"};
 	char stmp[1000], *SO_FileName=NULL;
 	SUMA_SFname *SF_FileName; 
-	int k;
+	int k, ND, id;
 	SUMA_SureFit_struct *SF;
 	SUMA_FreeSurfer_struct *FS;
    SUMA_SurfaceObject *SO;
@@ -241,7 +241,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
 	} /* SO_FileType*/
 
 	/* Calculate Min, Max, Mean */
-	SUMA_MIN_MAX_SUM_MAT_COL(SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
+	SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
 
 	SO->Center[0] /= SO->N_Node;
 	SO->Center[1] /= SO->N_Node;
@@ -254,11 +254,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
 	{ float tmpfact;
 	/* Now do some scaling */
 	tmpfact = (SO->aMaxDims - SO->aMinDims)/100;
+	ND = SO->NodeDim;
 	for (k=0; k < SO->N_Node; k++)
 	{
-		SO->NodeList[k][0] = (SO->NodeList[k][0] - SO->aMinDims)/tmpfact;
-		SO->NodeList[k][1] = (SO->NodeList[k][1] - SO->aMinDims)/tmpfact;
-		SO->NodeList[k][2] = (SO->NodeList[k][2] - SO->aMinDims)/tmpfact;
+		id = NodeDim * k;
+		SO->NodeList[k] = (SO->NodeList[k] - SO->aMinDims)/tmpfact;
+		SO->NodeList[k+1] = (SO->NodeList[k+1] - SO->aMinDims)/tmpfact;
+		SO->NodeList[k+2] = (SO->NodeList[k+2] - SO->aMinDims)/tmpfact;
 	}
 	
 	SO->Center[0] = (SO->Center[0] - SO->aMinDims)/tmpfact;
@@ -282,11 +284,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
 	if ((SO->aMaxDims - SO->aMinDims) > SUMA_TESSCON_DIFF_FLAG) {
 		fprintf (stdout,"\n\nWARNING %s:\n Assuming %s to be in tesscon units, scaling down by %f\n\a\n\n",\
 			FuncName, SO_FileName, SUMA_TESSCON_TO_MM);
+		ND = SO->NodeDim;
 		for (k=0; k < SO->N_Node; k++)
 		{
-			SO->NodeList[k][0] /= SUMA_TESSCON_TO_MM;
-			SO->NodeList[k][1] /= SUMA_TESSCON_TO_MM;
-			SO->NodeList[k][2] /= SUMA_TESSCON_TO_MM;
+			id = ND * k;
+			SO->NodeList[id] /= SUMA_TESSCON_TO_MM;
+			SO->NodeList[id+1] /= SUMA_TESSCON_TO_MM;
+			SO->NodeList[id+2] /= SUMA_TESSCON_TO_MM;
 		}
 
 		SO->Center[0] /= SUMA_TESSCON_TO_MM;
@@ -309,25 +313,22 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
 	
 	/* Calculate SurfaceNormals */
 	SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );
-	SO->NodeNormList = SN.Node_NormList;
-	SO->FaceNormList = SN.Face_NormList;
+	SO->NodeNormList = SN.NodeNormList;
+	SO->FaceNormList = SN.FaceNormList;
 
 	/*create the structures for GL rendering */
 	/*The data is being duplicated at the moment and perhaps I should just stick with the 1D stuf */
-	SO->glar_NodeList = (GLfloat *) calloc(SO->N_Node*SO->NodeDim, sizeof(float));
-	SO->glar_FaceSetList = (GLuint *) calloc(SO->N_FaceSet*SO->FaceSetDim, sizeof(int));
-	SO->glar_FaceNormList = (GLfloat *) calloc(SO->N_FaceSet*3, sizeof(float));
-	SO->glar_NodeNormList = (GLfloat *) calloc(SO->N_Node*3, sizeof(float));
+	SO->glar_NodeList = (GLfloat *) SO->NodeList; /* just copy the pointer, not the data */
+	SO->glar_FaceSetList = (GLint *) SO->FaceSetList; /* just copy the pointer, not the data */
+	SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList; /* just copy the pointer, not the data */
+	SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */
 	SO->glar_ColorList = (GLfloat *) calloc(SO->N_Node*4, sizeof(float));
 	
-	if (SO->glar_NodeList == NULL || SO->glar_FaceSetList == NULL || SO->glar_FaceNormList == NULL || SO->glar_NodeNormList == NULL  || SO->glar_ColorList == NULL) {
-		SUMA_error_message(FuncName, "SUMA_Load_Surface_Object Could not allocate for glar_* vectors", 0);
+	if (SO->glar_ColorList == NULL) {
+		SUMA_error_message(FuncName, "SUMA_Load_Surface_Object Could not allocate for glar_ColorList vector", 0);
 		SUMA_RETURN (NULL);
 	}
-	SUMA_MAT_TO_VEC(SO->NodeList, SO->glar_NodeList, SO->N_Node, SO->NodeDim, float, float);
-	SUMA_MAT_TO_VEC(SO->FaceSetList, SO->glar_FaceSetList, SO->N_FaceSet, SO->FaceSetDim, float, float);
-	SUMA_MAT_TO_VEC(SO->NodeNormList, SO->glar_NodeNormList, SO->N_Node, 3, float, float);
-	SUMA_MAT_TO_VEC(SO->FaceNormList, SO->glar_FaceNormList, SO->N_FaceSet, 3, float, float);
+
 	for (k=0; k < SO->N_Node; ++k) {
 		SO->glar_ColorList[4*k] = SO->glar_ColorList[4*k+1] = SO->glar_ColorList[4*k+2] = SUMA_GRAY_NODE_COLOR;
 		SO->glar_ColorList[4*k+3] = SUMA_NODE_ALPHA;
@@ -1568,6 +1569,11 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
 
 #ifdef SUMA_Read_SpecFile_STAND_ALONE
 
+SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF;
 
 void usage_SUMA_Read_SpecFile ()
@@ -1614,6 +1620,11 @@ int main (int argc,char *argv[])
 
 #ifdef SUMA_Load_Surface_Object_STAND_ALONE
 
+SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF;
 
 void usage_SUMA_Load_Surface_Object_STAND_ALONE ()
