@@ -170,7 +170,7 @@ extern MCW_cluster * MCW_build_mask (int, int, int,
                                      float, float, float, float);
 
 /* 16 June 1998 */
-extern void * MCW_erode_clusters (int, int, int, float, float, float, int,
+extern void MCW_erode_clusters (int, int, int, float, float, float, int,
 				  void *, float, float, int);
 
 extern void MCW_sort_cluster( MCW_cluster * ) ; /* 10 Jul 2001 */

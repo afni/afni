@@ -262,14 +262,14 @@ void MCW_cluster_to_vol( int nx , int ny , int nz ,
   
 -----------------------------------------------------------------------------*/
 
-void * MCW_erode_clusters
+void MCW_erode_clusters
 (
   int nx, int ny, int nz,           /* dimensions of volume fim */
   float dx, float dy, float dz,     /* voxel dimensions */
   int ftype,                        /* data type */
   void * fim,                       /* volume data */
   float max_dist,                   /* voxel connectivity radius */
-  float pv,                         /* pv % of voxels within max_dist must
+  float pv,                         /* fraction pv of voxels within max_dist must
                                        be in the cluster */
   int dilate                        /* boolean for perform dilation phase */
 )
@@ -450,8 +450,8 @@ void * MCW_erode_clusters
 		  im = iv + mask->i[imask];
 		  jm = jv + mask->j[imask];
 		  km = kv + mask->k[imask];
-		  if ( im < 0 || jm < 0 || km < 0 ||
-		       im >= nx || jm >= ny || km >= nz )  continue;
+		  if ( im <  0  || jm <  0  || km <  0 ||
+		       im >= nx || jm >= ny || km >= nz  )  continue;
 		  ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
 		  if (sfar[ijkm] != 0)  break;
 		}

@@ -10,7 +10,7 @@ byte * THD_automask( THD_3dim_dataset * dset )
    MRI_IMAGE *medim ;
    float clip_val , *mar ;
    byte *mmm = NULL ;
-   int nvox , ii , nmm ;
+   int nvox , ii , nmm , nx,ny,nz ;
 
    MCW_cluster_array *clar ;
    int iclu , kclu ;
@@ -30,9 +30,10 @@ ENTRY("THD_automask") ;
 
    /*-- 10 Apr 2002: only keep the largest component --*/
 
-   clar = MCW_find_clusters( DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset) ,
-                             1.0,1.0,1.0 ,
-                             MRI_byte , mmm , 1.01 ) ;
+   nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
+
+   clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
+                             MRI_byte , mmm , 1.01   ) ;
 
    /* at this point, all nonzero data in mmm has been transferred to clar */
 
@@ -48,10 +49,33 @@ ENTRY("THD_automask") ;
 
    /* put that cluster back into the volume */
 
-   MCW_cluster_to_vol( DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset) ,
-                       MRI_byte , mmm , clar->clar[kclu]          ) ;
+   MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
 
    DESTROY_CLARR(clar) ;
+
+#if 1
+   /* 18 Apr 2002: now erode the resulting volume */
+
+   MCW_erode_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
+                       MRI_byte,mmm , 1.42 , 0.90 , 1 ) ;
+
+   /* now recluster it, and again keep only the largest survivor */
+
+   clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
+                             MRI_byte , mmm , 1.01   ) ;
+
+   if( clar == NULL ) RETURN(mmm) ; /* should not happen */
+
+   for( nmm=iclu=kclu=0 ; iclu < clar->num_clu ; iclu++ ){
+     if( clar->clar[iclu]->num_pt > nmm ){
+       nmm = clar->clar[iclu]->num_pt; kclu = iclu;
+     }
+   }
+
+   MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
+
+   DESTROY_CLARR(clar) ;
+#endif
 
    RETURN(mmm) ;
 }
