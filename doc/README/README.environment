@@ -22,6 +22,8 @@ N.B.: Changes to environment variables AFTER you start a program will
       it starts.  This is a standard Unix feature, and is not specific
       to AFNI.  Some variables can be set internally in AFNI using
       the "Edit Environment" control from the "Datamode->Misc" menu.
+      These variable are marked with "(editable)" in the descriptions
+      below.
 
 N.B.: Some variables below are described as being of "YES/NO" type.
       This means that they should either be set to the value "YES"
@@ -62,26 +64,26 @@ If an X11 resource is actually set, it will take priority over the
 environment variable.  Some of the variables that can be set in this
 way are:
 
-  ncolors             = number of gray levels to use
-  gamma               = gamma correction for image intensities
-  graph_boxes_thick   = 0 = thin lines, 1 = thick lines, for the graph boxes
-  graph_grid_thick    = ditto for the graph vertical grid lines
-  graph_data_thick    = ditto for the data graphs
-  graph_ideal_thick   = ditto for the ideal graphs
-  graph_ort_thick     = ditto for the ort graphs
-  graph_dplot_thick   = ditto for the dplot graphs
-  graph_ggap          = spacing between graph boxes
-  fim_polort          = polynomial detrending order for FIM
-  fim_ignore          = how many points to ignore at start when doing FIM
-  montage_periodic    = True allows periodic montage wraparound
-  purge               = True allows automatic dataset memory purge
-  resam_vox           = dimension of voxel (mm) for resampled datasets
-  resam_anat          = One of NN, Li, Cu, Bk for Anat resampling mode
-  resam_func          = ditto for Func resampling mode
-  resam_thr           = ditto for Threshold resampling mode
-  pbar_posfunc        = True will start color pbar as all positive
-  pbar_sgn_pane_count = # of panes to start signed color pbar with
-  pbar_pos_pane_count = # of panes to start positive color pbar with
+ AFNI_ncolors             = number of gray levels to use
+ AFNI_gamma               = gamma correction for image intensities
+ AFNI_graph_boxes_thick   = 0=thin lines, 1=thick lines, for graph boxes
+ AFNI_graph_grid_thick    = ditto for the graph vertical grid lines
+ AFNI_graph_data_thick    = ditto for the data graphs
+ AFNI_graph_ideal_thick   = ditto for the ideal graphs
+ AFNI_graph_ort_thick     = ditto for the ort graphs
+ AFNI_graph_dplot_thick   = ditto for the dplot graphs
+ AFNI_graph_ggap          = spacing between graph boxes
+ AFNI_fim_polort          = polynomial detrending order for FIM
+ AFNI_fim_ignore          = how many pts to ignore at start when doing FIM
+ AFNI_montage_periodic    = True allows periodic montage wraparound
+ AFNI_purge               = True allows automatic dataset memory purge
+ AFNI_resam_vox           = dimension of voxel (mm) for resampled datasets
+ AFNI_resam_anat          = One of NN, Li, Cu, Bk for Anat resampling mode
+ AFNI_resam_func          = ditto for Func resampling mode
+ AFNI_resam_thr           = ditto for Threshold resampling mode
+ AFNI_pbar_posfunc        = True will start color pbar as all positive
+ AFNI_pbar_sgn_pane_count = # of panes to start signed color pbar with
+ AFNI_pbar_pos_pane_count = # of panes to start positive color pbar with
 
 Some other such variables are described in file AFNI.Xdefaults.  Note that
 values that actually affect the way the X11/Motif interface appears, such as
@@ -116,7 +118,7 @@ up.  You would never be able to tell this from my office, though.)
  AFNI_SPLASHTIME          = 3.0     //                       v
 
 ---------------------
-Variable: AFNI_ORIENT
+Variable: AFNI_ORIENT (editable)
 ---------------------
 This is a string used to control the display of coordinates in the AFNI
 main control window.  The string must be 3 letters, one each from the
@@ -176,7 +178,8 @@ Variable: AFNI_YESPLUGOUTS
 If this YES/NO variable is set to YES, then AFNI will try to listen
 for plugouts when it starts.  The command line switch "-yesplugouts"
 will have the same effect.  (Plugouts are an experimental feature
-that allow external programs to exchange data with AFNI.)
+that allow external programs to exchange data with AFNI.)  It is now
+also possible to start plugout listening from the Datamode->Misc menu.
 
 ---------------------
 Variable: AFNI_TSPATH
@@ -210,7 +213,7 @@ of the auxiliary programs manual (afni_aux.ps), in the section on "3D:"
 file specifications, and is also explained in the AFNI FAQ list.
 
 ------------------------
-Variable: AFNI_SESSTRAIL
+Variable: AFNI_SESSTRAIL (editable)
 ------------------------
 This variable controls the number of directory levels shown when
 choosing between session directories with the "Switch Session"
@@ -238,7 +241,7 @@ Variable: AFNI_HINTS
 This is a string controlling whether or not the popup "hints" are
 displayed when AFNI starts.  If the string is "NO", then the hints
 are disabled when AFNI starts, otherwise they are enabled.  In
-either case, they can be turned off and on from the "Misc" menu in
+either case, they can be turned off and on from the Misc menu in
 the Datamode control panel.
 
 Hints can be permanently disabled by setting the C macro
@@ -246,7 +249,7 @@ DONT_USE_HINTS in machdep.h and recompiling AFNI.  They can also
 be disabled at runtime by setting AFNI_HINTS to "KILL".
 
 -------------------------
-Variable: AFNI_COMPRESSOR (cf. AFNI_AUTOGZIP)
+Variable: AFNI_COMPRESSOR (cf. AFNI_AUTOGZIP) (editable)
 -------------------------
 This variable is used to control automatic compression of .BRIK files on
 output.  The legal values are "COMPRESS", "GZIP", and "BZIP2", which
@@ -329,7 +332,7 @@ I write this line (Aug 1998), I have a PC with 384 MB of RAM, and
 it is great to use with AFNI.
 
 ----------------------
-Variable: AFNI_PSPRINT
+Variable: AFNI_PSPRINT (editable)
 ----------------------
 This variable is used to define a command that will print the
 standard input (stdin) to a PostScript printer.  If it is defined,
@@ -346,7 +349,7 @@ In the (very far distant) future, other windows (e.g., image and graph
 displays) may get the ability to print to a PostScript file or printer.
 
 ---------------------------
-Variable: AFNI_LEFT_IS_LEFT
+Variable: AFNI_LEFT_IS_LEFT (editable)
 ---------------------------
 Setting this YES/NO variable to YES tells AFNI to display images with
 the left side of the subject on the left side of the window.  The default
@@ -363,9 +366,9 @@ controllers to view datasets in unison, then this will be useful.
 Notice that the Time Lock feature is not automatically enabled
 by this -- you must still actuate it manually.
 
--------------------------
-Variables: AFNI_RENDER_*
--------------------------
+------------------------
+Variables: AFNI_RENDER_* (editable)
+------------------------
 These variables set some defaults in the "Render Dataset" (volume
 rendering) plugin.  The first two variables are
 
@@ -445,7 +448,7 @@ values as large as 50.0 may be useful.  This parameter may be changed
 interactively from the FIM->Edit Ideal submenu in a graph viewer.
 
 ------------------------
-Variable: AFNI_FLOATSCAN
+Variable: AFNI_FLOATSCAN (editable)
 ------------------------
 If this YES/NO variable is set to YES, then floating point bricks
 are checked for illegal values (NaN and Infinity) when they are
@@ -495,7 +498,7 @@ to 0.0, you can have the splash screen removed as soon as possible
 (and the fade-out feature will be disabled).
 
 --------------------------------
-Variable: AFNI_FIM_PERCENT_LIMIT
+Variable: AFNI_FIM_PERCENT_LIMIT (editable)
 --------------------------------
 This sets an upper limit on the % Change that the FIM+ computation
 will compute.  For example
@@ -574,7 +577,7 @@ will turn off the checking entirely.  Or you could do
   setenv AFNI_PCOR_DENEPS 1.e-10
 
 -----------------------------
-Variable: AFNI_ENFORCE_ASPECT
+Variable: AFNI_ENFORCE_ASPECT (editable)
 -----------------------------
 Some Linux window managers do no enforce the aspect ratio (width to height
 proportion) request that the image display module makes.  This means that
@@ -602,7 +605,7 @@ use most frequently.  The size of the of plugin menu is growing, and it
 is easy to misplace what you need in the list.
 
 -----------------------------
-Variable: AFNI_MARKERS_NOQUAL
+Variable: AFNI_MARKERS_NOQUAL (editable)
 -----------------------------
 If this YES/NO variable is set to YES, then the interactive AFNI program
 behaves as if the "-noqual" command line option had been included.  This
@@ -624,7 +627,7 @@ Note that the AFNI command line option "-nomall" cannot be specified this
 way (cf. the discussion under variable AFNI_NO_MCW_MALLOC).
 
 ------------------------------
-Variable: AFNI_NO_SIDES_LABELS
+Variable: AFNI_NO_SIDES_LABELS (editable)
 ------------------------------
 As of 01 Dec 1999, the interactive AFNI program now displays a label
 beneath each image window showing which side of the image is on the left
@@ -663,8 +666,8 @@ does not implement it correctly - this is a problem on the Xsgi server
 running under IRIX 6.5.3 on R4400 machines.
 
 ------------------------------
-Variable: AFNI_VIEW_ANAT_BRICK
-          AFNI_VIEW_FUNC_BRICK
+Variable: AFNI_VIEW_ANAT_BRICK (editable)
+          AFNI_VIEW_FUNC_BRICK (editable)
 ------------------------------
 One of the (very few) confusing parts of AFNI is the "warp-on-demand"
 viewing of transformed datasets (e.g., in the +tlrc coordinate system).
@@ -742,7 +745,7 @@ of the -skip_afnirc option will cause both the system and user setup
 files to be skipped.
 
 ----------------------------
-Variable: AFNI_IMAGE_PGMFILE
+Variable: AFNI_IMAGE_PGMFILE (editable)
 ----------------------------
 If this variable is set, it is the name of an image file to be read
 that will be shown in the AFNI splash window, when this window is popped
@@ -766,7 +769,7 @@ be chosen randomly for display when the splash window is popped up.
     are exactly 436 pixels wide and 140 deep.
 
 ------------------------
-Variable: AFNI_PBAR_IMXY
+Variable: AFNI_PBAR_IMXY (editable)
 ------------------------
 This variable determines the size of the image saved when the
 "Save to PPM" button is selected for a color pbar.  It should be
@@ -954,7 +957,7 @@ If neither is present, no zero padding is used.  Note well that this
 padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.
 
 ----------------------------
-Variable: AFNI_IMAGE_MINFRAC
+Variable: AFNI_IMAGE_MINFRAC (editable)
 ----------------------------
 This variable sets the minimum size of an image window when it is first
 opened, in terms of a fraction of the overall screen area.  By default,
@@ -970,7 +973,7 @@ don't even think of complaining or commenting to me about problems that
 arise if you try this!
 
 -----------------------
-Variable: AFNI_AUTOGZIP (cf. AFNI_COMPRESSOR)
+Variable: AFNI_AUTOGZIP (cf. AFNI_COMPRESSOR) (editable)
 -----------------------
 If this YES/NO variable is set to YES, then when AFNI programs write a
 dataset .BRIK file to disk, they will test to see if the data is easily
@@ -994,7 +997,7 @@ compress by at least 50%.  Note that ent16's estimate of compression
 may be high or low relative to what gzip actually does.
 
 ------------------------------
-Variable: AFNI_DONT_MOVE_MENUS
+Variable: AFNI_DONT_MOVE_MENUS (editable)
 ------------------------------
 If this YES/NO variable is set to YES, then the functions that try
 to move popup menus to "good" locations on screens will be skipped.
@@ -1114,6 +1117,195 @@ grown larger over the years, and for some people with pitifully small
 displays (e.g., laptops), it is now taller than their screens.  If
 activated, this option will prevent the Disp window from being so tall
 and will attach scrollbars so you can access all of its contents.
+
+------------------------------
+Variable: AFNI_GRAPH_TEXTLIMIT (editable)
+------------------------------
+This numerical variable sets the upper limit on the number of rows shown
+in the Button-3 popup in a sub-graph.  If the number of rows in the popup
+would be more than this value, a text window with scrollbars is used
+instead of a "spring-loaded" menu pane.  If you set this value to 1, then
+the text window will always be used.  Note that a text window does not
+automatically popdown, but must be explicitly dismissed by the user
+pressing the "Quit" button.
+
+-----------------------------
+Variable: AFNI_GRAPH_BASELINE
+-----------------------------
+This variable should be set to one of the strings "Individual", "Common",
+or "Global", corresponding to the choices on the Opt->Baseline menu in
+a graph window.  (Actually, only the first letter of the string will be
+used.)  This variable will determine the initial setting of the Baseline
+menu when a graph window opens.
+
+-------------------------------
+Variable: AFNI_GRAPH_GLOBALBASE
+-------------------------------
+Normally, the global baseline for a graph window is set to the smallest
+value found in the entire 3D+time dataset.  This variable lets you specify
+a numerical value to be used for this purpose instead.  Probably the most
+common setting (for those who want to use this feature at all, which means
+Mike Beauchamp) would be
+  setenv AFNI_GRAPH_GLOBALBASE 0
+Of course, you can always change the global baseline from the Opt->Baseline
+menu.
+
+--------------------------
+Variable: AFNI_VALUE_LABEL (editable)
+--------------------------
+If this YES/NO variable is set to YES, then the data value label on the
+Define Function control panel will be turned on when only 1 or 2 image
+viewer windows are open.  This will consume more CPU time and redrawing
+time than the default, which is that this label is only turned on when
+all 3 image viewer windows are open.  If you are operating X11 remotely
+over a slow connection, this option should not be turned on.
+
+----------------------------
+Variable: AFNI_SUMA_BOXCOLOR (editable)
+----------------------------
+This string defines the color used for overlaying surface nodes transmitted
+from SUMA to AFNI.  The default is an orangish-yellow.  If you like yellow,
+then do
+   setenv AFNI_SUMA_COLOR yellow
+If this is set to "none", then these lines won't be plotted.
+
+-----------------------------
+Variable: AFNI_SUMA_LINECOLOR (editable)
+-----------------------------
+This string defines the color used for overlaying the intersection of SUMA
+surface triangles with image slice planes.  The default is white.  If this
+is set to "none", then these lines won't be plotted.
+
+---------------------------
+Variable: AFNI_SUMA_BOXSIZE (editable)
+---------------------------
+This variable defines the size of the boxes drawn at each surface node
+transmitted from SUMA.  The default is 0.25, which means that each box is
+plus and minus 1/4 of a voxel size about the node location. If you want a
+larger box, you could try
+   setenv AFNI_SUMA_BOXSIZE 0.5
+
+------------------------
+Variable: AFNI_FIM_IDEAL
+------------------------
+This variable specifies the filename of the initial FIM ideal timeseries.
+The main use of this would be to be able to initialize the Realtime
+plugin without direct user intervention.
+
+-------------------------
+Variable: AFNI_NIML_START
+-------------------------
+If this YES/NO variable is set to YES, then NIML listening will be engaged
+from when AFNI starts.  You can also enable NIML from the command line with
+the option "-niml", and from the Datamode->Misc menu item "Start NIML".
+
+NIML is the mechanism by which AFNI talks to other programs - it is the
+successor to plugouts.  At this moment (Mar 2002), the only external NIML
+program is SUMA - the surface mapper.
+
+---------------------------
+Variable: AFNI_KEEP_PANNING (editable)
+---------------------------
+If this YES/NO variable is set to YES, then when the Zoom pan gets turned
+on in the AFNI image viewer, it will stay on until it is explicitly turned
+off.  (The default behavior is to turn panning off after the user releases
+the mouse button.)
+
+-------------------------------
+Variable: AFNI_IMAGE_LABEL_MODE
+-------------------------------
+This integer determines the placement of the image coordinate labels drawn
+in the AFNI image viewer windows.  The possible values are
+   0  =  Labels are off
+   1  =  Labels in upper left
+   2  =  Labels in upper right
+   3  =  Labels in lower left
+   4  =  Labels in lower right
+   5  =  Labels in upper middle
+   6  =  Labels in lower middle
+You can also control the placement and size of the labels from the Button-3
+(right-click) popup menu attached to the intensity bar to the right of the
+image sub-window.
+
+-------------------------------
+Variable: AFNI_IMAGE_LABEL_SIZE
+-------------------------------
+This integer determines the size of the image coordinate labels:
+   0  =  Small
+   1  =  Medium
+   2  =  Large
+   3  =  Huge
+   4  =  Enormous
+
+--------------------------------
+Variable: AFNI_IMAGE_LABEL_COLOR (editable)
+--------------------------------
+This variable controls the color of the image coordinate labels.
+
+----------------------------------
+Variable: AFNI_IMAGE_LABEL_SETBACK (editable)
+----------------------------------
+This variable, a floating point value between 0 and 0.1, determines how
+far from the edge an image coordinate label will be drawn.  The units are
+fractions of the image width/height.
+
+------------------------------
+Variable: AFNI_CROSSHAIR_LINES (editable)
+------------------------------
+If this YES/NO variable is set to YES, then the image crosshairs will be
+drawn using lines rather than pixels.  By default (this is the original
+AFNI way), crosshair lines are drawn the same way as functional overlays:
+by putting color pixels on top of the image.  The new way draws lines on
+top of the image instead.  The difference is quite visible when the image
+is zoomed; overlay by pixels shows the crosshair lines as fat blobs, but
+the lines are drawn as thin as possible, no matter what the image window
+size and zoom factor.
+
+Good points about crosshairs drawn with lines:
+ - They are less obtrusive than pixel overlay, especially if you zoom
+     or enlarge the image a lot
+ - When doing a montage with Spacing=1, they'll look better in the
+     orthogonal slices.
+Good points about crosshairs drawn with pixel overlay:
+ - Pixel overlays can be rendered as translucent (on X11 TrueColor displays);
+     geometrical overlays are always solid color.
+So you have to decide what you need most.  You can change this item using
+the "Edit Environment" pseudo-plugin on the Datamode->Misc menu, so you
+can play with it interactively to get the features you want.
+
+----------------------------
+Variable: AFNI_CROP_ZOOMSAVE (editable)
+----------------------------
+When saving a zoomed image, the default is to save the entire zoomed image,
+not just the part you see.  If this YES/NO variable is set to YES, then only
+the visible part will be saved.
+
+---------------------------
+Variables: AFNI_TLRC_BBOX_*
+---------------------------
+These variables let you choose the size of the "Talairach Box", into which
++tlrc datasets are transformed.  If defined, they should be positive values,
+in mm.  The 5 variables (any or all of which may be used) are:
+
+  AFNI_TLRC_BBOX_LAT = distance from midline to maximum left/right position
+                        [default=80]
+  AFNI_TLRC_BBOX_ANT = distance from AC to most anterior point in box
+                        [default=80]
+  AFNI_TLRC_BBOX_POS = distance from AC to most posterior point in box
+                        [default=110]
+  AFNI_TLRC_BBOX_INF = distance from AC-PC line to most inferior point in box
+                        [default=55 for small box, 65 for big box]
+  AFNI_TLRC_BBOX_SUP = distance from AC-PC line to most superior point in box
+                        [default=85]
+
+For example, "setenv AFNI_TLRC_BBOX_INF 100" lets you define the +tlrc box
+to extend 100 mm below the AC-PC line.  Please note that virtually all the
+3d* analysis programs (3dANOVA, etc.) do voxel-by-voxel analyses.  This fact
+means that you will be unable to compare datasets created in +tlrc coordinates
+with different box sizes.  Also, you will be unable to overlay regions from
+the Talairach Daemon database onto odd-sized +tlrc datasets.  Therefore, I
+recommend that these variables be used only when strictly needed, and with
+caution.
 
 =======================================
 | Robert W Cox, PhD                   |

@@ -152,7 +152,7 @@ ENTRY("mri_new_7D_generic") ;
 
       case MRI_rgba:
          if( make_space )
-            newim->im.rgba_data = (byte *)calloc( npix,sizeof(rgba) ) ;
+            newim->im.rgba_data = (rgba *)calloc( npix,sizeof(rgba) ) ;
          else
             newim->im.rgb_data = NULL ;
          newim->pixel_size = sizeof(rgba) ;
