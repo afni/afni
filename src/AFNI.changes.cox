@@ -4961,4 +4961,5 @@
 
 23 Feb 2004
  * Added range locking to afni_lock.c and afni_func.c.
+ * Added tick marks to imseq.c.
  * Rick Reynolds added NN interpolation option for zooming to mri_dup.c.

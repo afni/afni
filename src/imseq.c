@@ -1603,7 +1603,7 @@ STATUS("creation: widgets created") ;
      iii = 0 ;
      eee = getenv("AFNI_IMAGE_LABEL_MODE") ;
      if( eee != NULL ){
-        iii = strtol(eee,NULL,10) ; if( iii < 0 || iii > 6 ) iii = 1 ;
+       iii = strtol(eee,NULL,10) ; if( iii < 0 || iii > 6 ) iii = 1 ;
      }
      newseq->wbar_label_av =
         new_MCW_arrowval( newseq->wbar_menu ,
@@ -1641,6 +1641,47 @@ STATUS("creation: widgets created") ;
                         ) ;
 
    } /* end of plots & labels stuff */
+
+   /** 23 Feb 2003: menu items to control tic marks */
+
+   (void) XtVaCreateManagedWidget( "menu",
+                                   xmSeparatorWidgetClass, newseq->wbar_menu,
+                                     XmNseparatorType , XmSINGLE_LINE ,
+                                   NULL ) ;
+   newseq->wbar_ticnum_av =
+      new_MCW_arrowval( newseq->wbar_menu ,
+                        "Tick Div." ,
+                        MCW_AV_optmenu ,      /* option menu style */
+                        0 ,                   /* first option */
+                        20 ,                  /* last option */
+                        0 ,                   /* initial selection */
+                        MCW_AV_readtext ,     /* ignored but needed */
+                        0 ,                   /* ditto */
+                        ISQ_wbar_label_CB ,   /* callback when changed */
+                        (XtPointer)newseq ,   /* data for above */
+                        NULL                , /* text creation routine */
+                        NULL                  /* data for above */
+                      ) ;
+   AVOPT_columnize(newseq->wbar_ticnum_av,2) ;
+   MCW_reghint_children( newseq->wbar_ticnum_av->wrowcol ,
+                         "Number of tick mark divisions on image edges" ) ;
+   newseq->wbar_ticsiz_av =
+      new_MCW_arrowval( newseq->wbar_menu ,
+                        "Tick Size" ,
+                        MCW_AV_optmenu ,      /* option menu style */
+                        1 ,                   /* first option */
+                        10 ,                  /* last option */
+                        1 ,                   /* initial selection */
+                        MCW_AV_readtext ,     /* ignored but needed */
+                        0 ,                   /* ditto */
+                        ISQ_wbar_label_CB ,   /* callback when changed */
+                        (XtPointer)newseq ,   /* data for above */
+                        NULL                , /* text creation routine */
+                        NULL                  /* data for above */
+                      ) ;
+   AVOPT_columnize(newseq->wbar_ticsiz_av,2) ;
+   MCW_reghint_children( newseq->wbar_ticsiz_av->wrowcol ,
+                         "Size of tick marks around image edges" ) ;
 
    /* 23 Jan 2003: set default save? */
 
@@ -2412,11 +2453,7 @@ ENTRY("ISQ_plot_label") ;
 
    if( !ISQ_REALZ(seq) || lab  == NULL ) RETURN(NULL) ;
 
-#if 0
-   asp = seq->last_width_mm/seq->last_height_mm ;
-#else
    asp = 1.0 ;
-#endif
 
    /* set character size (units = 0.001 of plot width) */
 
@@ -3731,8 +3768,11 @@ ENTRY("ISQ_free_alldata") ;
    FREE_AV( seq->wbar_label_av )      ; /* 20 Sep 2001 */
    myXtFree( seq->wbar_plots_bbox )   ;
 
-   FREE_AV( seq->slice_proj_av )       ; /* 31 Jan 2002 */
-   FREE_AV( seq->slice_proj_range_av ) ;
+   FREE_AV( seq->slice_proj_av )      ; /* 31 Jan 2002 */
+   FREE_AV( seq->slice_proj_range_av );
+
+   FREE_AV( seq->wbar_ticnum_av )     ; /* 23 Feb 2004 */
+   FREE_AV( seq->wbar_ticsiz_av )     ; /* 23 Feb 2004 */
 
    FREE_AV( seq->zoom_val_av ) ;
    if( seq->zoom_pixmap != (Pixmap) 0 ){
@@ -9995,6 +10035,7 @@ ENTRY("ISQ_getlabel") ;
 MEM_plotdata * ISQ_getmemplot( int nn , MCW_imseq *seq )
 {
    MEM_plotdata *mp ;
+   int ntic ;
 
 ENTRY("ISQ_getmemplot") ;
 
@@ -10040,6 +10081,38 @@ ENTRY("ISQ_getmemplot") ;
      scale_memplot( sx,tx , sy,ty , 1.0 , mp ) ;    /* expand scale  */
      np = clip_memplot( 0.0,0.0 , 1.0,1.0 , mp ) ;  /* clip to window */
      DESTROY_MEMPLOT(mp) ; mp = np ;
+   }
+
+   /*** 23 Feb 2004: tick marks around the edge of the image? ***/
+
+   ntic = seq->wbar_ticnum_av->ival ;
+   if( ntic > 0 ){
+     MEM_plotdata *tp ;
+     char *eee ;
+     float rr=0.8,gg=1.0,bb=0.6 , tic, fac=1.0/ntic ;
+     int it ;
+
+     create_memplot_surely( "Iticplot" , 1.0 ) ;
+     set_thick_memplot(0.0) ;
+     eee = getenv("AFNI_IMAGE_LABEL_COLOR") ;
+     if( eee != NULL )
+       DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
+     set_color_memplot(rr,gg,bb) ;
+
+     tic = 0.01 * seq->wbar_ticsiz_av->ival ;  /* percent of image size */
+
+     for( it=0 ; it <= ntic ; it++ ){
+       plotpak_line( 0.0,it*fac , tic    ,it*fac ) ;
+       plotpak_line( 1.0,it*fac , 1.0-tic,it*fac ) ;
+       plotpak_line( it*fac,0.0 , it*fac ,tic    ) ;
+       plotpak_line( it*fac,1.0 , it*fac ,1.0-tic) ;
+     }
+
+     /* append tick plot to existing plot, if any */
+
+     tp = get_active_memplot() ;
+     if( mp != NULL ){ append_to_memplot(mp,tp); delete_memplot(tp); }
+     else              mp = tp ;
    }
 
    RETURN(mp) ;
