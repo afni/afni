@@ -3896,3 +3896,8 @@
  * Fixed array overflow by 1 bug in mri_percents.c.
  * Modified mri_read.c to check for .hdr files before DICOM.
  * Modified 3dToutcount.c to save result as a FIM, and to save history.
+
+14 Aug 2002
+ * Modified various things (afni.h, afni.c, afni_niml.c, afni_suma.c)
+     to allow for multiple surfaces per dataset.
+ * Modified niml.h to disable shm stuff for Cygwin.

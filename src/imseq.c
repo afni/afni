@@ -4089,8 +4089,11 @@ ENTRY("ISQ_drawing_EV") ;
    if( ! ISQ_REALZ(seq) ) EXRETURN ;
 
   if(PRINT_TRACING){
-    char str[256] ;
-    sprintf(str,"Widget=%s Event type=%d",XtName(w),ev->type);
+    char str[256], *wn ;
+         if( w == seq->wimage ) wn = "wimage" ;
+    else if ( w == seq->wbar  ) wn = "wbar"   ;
+    else                        wn = XtName(w) ;
+    sprintf(str,"Widget=%s Event type=%d",wn,ev->type);
     STATUS(str) ;
   }
 
