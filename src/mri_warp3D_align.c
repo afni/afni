@@ -297,6 +297,85 @@ static void mri_warp3D_get_delta( MRI_warp3D_align_basis *bas , int kpar )
    return ;
 }
 
+/*--------------------------------------------------------------------*/
+
+static MRI_IMAGE * mri_warp3D_align_fitim( MRI_warp3D_align_basis *bas ,
+                                           MRI_IMAGE *cim ,
+                                           int warp_mode , float delfac )
+{
+   MRI_IMAGE *fitim , *pim , *mim ;
+   float *fitar , *car=MRI_FLOAT_PTR(cim) ;
+   int nfree=bas->nfree , *ima=MRI_INT_PTR(bas->imap) , nmap=bas->imap->nx ;
+   int npar =bas->nparam ;
+   float *pvec , *par , *mar ;
+   int ii , pp ;
+   float dpar , delta ;
+
+   /*-- create image containing basis columns --*/
+
+   fitim = mri_new( nmap , nfree+1 , MRI_float ) ;
+   fitar = MRI_FLOAT_PTR(fitim) ;
+   pvec  = (float *)malloc(sizeof(float) * npar) ;
+
+#define FMAT(i,j) fitar[(i)+(j)*nmap]  /* col dim=nmap, row dim=nfree+1 */
+
+   /* column #nfree = base image itself */
+
+   for( ii=0 ; ii < nmap ; ii++ ) FMAT(ii,nfree) = car[ima[ii]] ;
+
+   pvec = (float *)malloc(sizeof(float) * npar) ;
+
+   /* for each parameter:
+       apply inverse transform to base image with param value up and down
+       compute central difference to approximate derivative of base
+        image wrt parameter
+       store as a column in the fitim matrix */
+
+   mri_warp3D_method( warp_mode ) ;  /* set interpolation mode */
+   mri_warp3D_set_womask( bas->imsk ) ;
+
+   for( pp=0 ; pp < npar ; pp++ ){
+
+     if( bas->param[pp].fixed ) continue ;  /* don't do this one! */
+
+     /* init all params to their identity transform value */
+
+     for( ii=0 ; ii < npar ; ii++ )
+       pvec[ii] = (bas->param[ii].fixed) ? bas->param[ii].val_fixed
+                                         : bas->param[ii].ident ;
+
+     /* change in the pp-th parameter to use for derivative */
+
+     dpar = delfac * bas->param[pp].delta ;
+
+     if( bas->verb )
+       fprintf(stderr,"+   difference base by %f in param#%d [%s]\n",
+               dpar , pp+1 , bas->param[pp].name ) ;
+
+     pvec[pp] = bas->param[pp].ident + dpar ;   /* set positive change */
+     bas->vwset( npar , pvec ) ;                 /* put into transform */
+     pim = mri_warp3D( cim , 0,0,0 , bas->vwinv ) ;      /* warp image */
+
+     pvec[pp] = bas->param[pp].ident - dpar ;   /* set negative change */
+     bas->vwset( npar , pvec ) ;
+     mim = mri_warp3D( cim , 0,0,0 , bas->vwinv ) ;
+
+     /* compute derivative */
+
+     delta = bas->scale_init / ( 2.0f * dpar ) ;
+     par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
+     for( ii=0 ; ii < nmap ; ii++ )
+       FMAT(ii,pp) = delta * ( par[ima[ii]] - mar[ima[ii]] ) ;
+
+     mri_free(pim) ; mri_free(mim) ;  /* no longer needed */
+   }
+
+   mri_warp3D_set_womask( NULL ) ;
+   free((void *)pvec) ;
+
+   return(fitim) ;
+}
+
 /*-------------------------------------------------------------------------
    Input:  pointer to a filled in MRI_warp3D_align_basis struct.
    Output: 0 if setup went OK, 1 if it failed.
@@ -307,14 +386,12 @@ static void mri_warp3D_get_delta( MRI_warp3D_align_basis *bas , int kpar )
 
 int mri_warp3D_align_setup( MRI_warp3D_align_basis *bas )
 {
-   MRI_IMAGE *pim , *mim , *cim , *fitim ;
-   double * chol_fitim=NULL ;
+   MRI_IMAGE *cim , *fitim ;
    int nx, ny, nz, nxy, nxyz , ii,jj,kk , nmap, *im ;
-   float *wf , *wtar , *fitar , *car , *pvec , dpar , clip,delta ;
-   float *par , *mar ;
+   float *wf , *wtar , clip ;
    int   *ima , pp , wtproc , npar , nfree ;
    byte  *msk ;
-   int ctstart , ctnow ;
+   int ctstart ;
 
 ENTRY("mri_warp3D_align_setup") ;
 
@@ -361,7 +438,7 @@ ENTRY("mri_warp3D_align_setup") ;
    if( bas->imwt == NULL   ||
        bas->imwt->nx != nx ||
        bas->imwt->ny != ny ||
-       bas->imwt->nz != nz   ) bas->imww = mri_to_float( cim ) ;
+       bas->imwt->nz != nz   ) bas->imww = mri_copy( cim ) ;
    else                        bas->imww = mri_to_float( bas->imwt ) ;
 
    if( bas->verb ) fprintf(stderr,"+   processing weight:") ;
@@ -379,6 +456,12 @@ ENTRY("mri_warp3D_align_setup") ;
 
      if( xfade < 0 || yfade < 0 || zfade < 0 )
        mri_warp3D_align_edging_default(nx,ny,nz,&xfade,&yfade,&zfade) ;
+
+     if( bas->twoblur > 1.0f ){
+       xfade += (int)rint(2.0*bas->twoblur) ;
+       yfade += (int)rint(2.0*bas->twoblur) ;
+       zfade += (int)rint(2.0*bas->twoblur) ;
+     }
 
      if( 2*zfade >= nz ) zfade = (nz-1)/2 ;
      if( 2*xfade >= nx ) xfade = (nx-1)/2 ;
@@ -406,30 +489,29 @@ ENTRY("mri_warp3D_align_setup") ;
    /* spatially blur weight a little */
 
    if( wtproc ){
+     float blur ;
+     blur = 1.0f + MAX(2.0f,bas->twoblur) ;
      if( bas->verb ) fprintf(stderr," [blur]") ;
      EDIT_blur_volume_3d( nx,ny,nz ,       1.0f,1.0f,1.0f ,
-                          MRI_float , wf , 3.0f,3.0f,3.0f  ) ;
+                          MRI_float , wf , blur,blur,blur  ) ;
    }
 
    /* get rid of low-weight voxels */
 
    if( bas->verb ) fprintf(stderr," [clip]") ;
-   clip = 0.025 * mri_max(bas->imww) ;
+   clip = 0.035 * mri_max(bas->imww) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] < clip ) wf[ii] = 0.0f ;
 
-   /* get rid of isolated voxels */
+   /* keep only the largest cluster of nonzero voxels */
 
-   for( kk=1 ; kk < nz-1 ; kk++ ){
-    for( jj=1 ; jj < ny-1 ; jj++ ){
-     for( ii=1 ; ii < nx-1 ; ii++ ){
-       if( WW(ii  ,jj  ,kk  ) >  0.0f &&
-           WW(ii-1,jj  ,kk  ) == 0.0f &&
-           WW(ii+1,jj  ,kk  ) == 0.0f &&
-           WW(ii  ,jj+1,kk  ) == 0.0f &&
-           WW(ii  ,jj-1,kk  ) == 0.0f &&
-           WW(ii  ,jj  ,kk+1) == 0.0f &&
-           WW(ii  ,jj  ,kk-1) == 0.0f   ) WW(ii,jj,kk) = 0.0f ;
-   }}}
+   { byte *mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ;
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+     THD_mask_erode( nx,ny,nz, mmm ) ;  /* cf. thd_automask.c */
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
+     free((void *)mmm) ;
+   }
 
    if( bas->verb ) fprintf(stderr,"\n") ;
 
@@ -442,8 +524,8 @@ ENTRY("mri_warp3D_align_setup") ;
      fprintf(stderr,"+   using %d [%.3f%%] voxels\n",nmap,(100.0*nmap)/nxyz);
 
    if( nmap < 7*nfree+13 ){
-     fprintf(stderr,"** warp3D_align error: weight image is zero!\n") ;
-     mri_warp3D_align_cleanup( bas ) ;
+     fprintf(stderr,"** mri_warp3D_align error: weight image too zero-ish!\n") ;
+     mri_warp3D_align_cleanup( bas ) ; mri_free(cim) ;
      RETURN(1) ;
    }
 
@@ -480,93 +562,45 @@ ENTRY("mri_warp3D_align_setup") ;
 
    mri_free(bas->imww) ; bas->imww = NULL ; wf = NULL ;
 
-   /*-- create image containing basis columns --*/
+   /*-- create image containing basis columns, then pseudo-invert it --*/
 
-   fitim = mri_new( nmap , nfree+1 , MRI_float ) ;
-   fitar = MRI_FLOAT_PTR(fitim) ; car = MRI_FLOAT_PTR(cim) ;
-
-#define FMAT(i,j) fitar[(i)+(j)*nmap]  /* col dim=nmap, row dim=nfree+1 */
-
-   /* column #nfree = base image itself */
-
-   for( ii=0 ; ii < nmap ; ii++ ) FMAT(ii,nfree) = car[ima[ii]] ;
-
-   pvec = (float *)malloc(sizeof(float) * npar) ;
-
-   /* for each parameter:
-       apply inverse transform to base image with param value up and down
-       compute central difference to approximate derivative of base
-        image wrt parameter
-       store as a column in the fitim matrix */
-
-   mri_warp3D_method( bas->regmode ) ;  /* set interpolation mode */
-   mri_warp3D_set_womask( bas->imsk ) ;
-
-   for( pp=0 ; pp < npar ; pp++ ){
-
-     if( bas->param[pp].fixed ) continue ;  /* don't do this one! */
-
-     /* init all params to their identity transform value */
-
-     for( ii=0 ; ii < npar ; ii++ )
-       pvec[ii] = (bas->param[ii].fixed) ? bas->param[ii].val_fixed
-                                         : bas->param[ii].ident ;
-
-     /* change in the pp-th parameter to use for derivative */
-
-     dpar = bas->delfac * bas->param[pp].delta ;
-
-     if( bas->verb )
-       fprintf(stderr,"+   difference base by %f in param#%d [%s]\n",
-               dpar , pp+1 , bas->param[pp].name ) ;
-
-     pvec[pp] = bas->param[pp].ident + dpar ;   /* set positive change */
-     bas->vwset( npar , pvec ) ;                 /* put into transform */
-     pim = mri_warp3D( cim , 0,0,0 , bas->vwinv ) ;      /* warp image */
-
-     pvec[pp] = bas->param[pp].ident - dpar ;   /* set negative change */
-     bas->vwset( npar , pvec ) ;
-     mim = mri_warp3D( cim , 0,0,0 , bas->vwinv ) ;
-
-     /* compute derivative */
-
-     delta = bas->scale_init / ( 2.0f * dpar ) ;
-     par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
-     for( ii=0 ; ii < nmap ; ii++ )
-       FMAT(ii,pp) = delta * ( par[ima[ii]] - mar[ima[ii]] ) ;
-
-     mri_free(pim) ; mri_free(mim) ;  /* no longer needed */
-   }
-
-   free((void *)pvec) ; mri_free(cim) ;  /* more trashola */
-   mri_warp3D_set_womask( NULL ) ;
-
-   /*-- setup linear least squares --*/
-
-   if( bas->verb ){
-     fprintf(stderr,"+   compute pseudo-inverse") ;
-     ctnow = NI_clock_time() ;
-   }
-
+   if( bas->verb ) fprintf(stderr,"+  Compute Derivatives of Base\n") ;
+   fitim = mri_warp3D_align_fitim( bas , cim , bas->regmode , bas->delfac ) ;
    bas->imps = mri_psinv( fitim , wtar ) ;
-
-   if( bas->verb ){
-     double pt = (NI_clock_time()-ctnow) * 0.001 ;
-     fprintf(stderr,": %.2f seconds elapsed\n",pt) ;
-   }
-
-   free((void *)wtar) ; mri_free(fitim) ;
+   mri_free(fitim) ;
 
    if( bas->imps == NULL ){  /* bad bad bad */
-     fprintf(stderr,"** warp3D_align error: can't invert matrix!\n") ;
-     mri_warp3D_align_cleanup( bas ) ;
+     fprintf(stderr,"** mri_warp3D_align error: can't invert Base matrix!\n") ;
+     free((void *)wtar) ; mri_warp3D_align_cleanup( bas ) ; mri_free(cim) ;
      RETURN(1) ;
    }
+
+   /*--- twoblur? ---*/
+
+   if( bas->twoblur > 1.0f ){
+     float *car=MRI_FLOAT_PTR(cim) ;
+     float blur = bas->twoblur ;
+
+     if( bas->verb ) fprintf(stderr,"+  Compute Derivatives of Blurred Base\n") ;
+     EDIT_blur_volume_3d( nx,ny,nz ,       1.0f,1.0f,1.0f ,
+                          MRI_float , car, blur,blur,blur  ) ;
+     fitim = mri_warp3D_align_fitim( bas , cim , MRI_LINEAR , blur*bas->delfac ) ;
+     bas->imps_blur = mri_psinv( fitim , wtar ) ;
+     mri_free(fitim) ;
+     if( bas->imps_blur == NULL ){  /* bad */
+       fprintf(stderr,"** mri_warp3D_align error: can't invert Blur matrix!\n") ;
+     }
+   }
+
+   /*--- done ---*/
+
+   mri_free(cim) ; free((void *)wtar) ;
 
    if( bas->verb ){
      double st = (NI_clock_time()-ctstart) * 0.001 ;
      fprintf(stderr,"++ mri_warp3D_align_setup EXIT: %.2f seconds elapsed\n",st);
    }
+
    RETURN(0);
 }
 
@@ -580,7 +614,7 @@ ENTRY("mri_warp3D_align_setup") ;
 
 MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
 {
-   float *fit , *dfit , *qfit ;
+   float *fit , *dfit , *qfit , *tol ;
    int iter , good,ngood , ii, pp , skip_first ;
    MRI_IMAGE *tim , *fim ;
    float *pmat=MRI_FLOAT_PTR(bas->imps) , /* pseudo inverse: n X m matrix */
@@ -592,11 +626,12 @@ MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
     *ima=MRI_INT_PTR(bas->imap) , /* = indexes in fim of voxels to use */
     *pma ;                        /* = map of free to total params */
    int ctstart ;
+   int do_twopass=(bas->imps_blur != NULL && bas->twoblur > 1.0f) , passnum=1 ;
 
 #define AITMAX  3.33
 #define NMEM    5
    float *fitmem[NMEM] ;
-   int mm , nmem=0 , last_aitken=3 , num_aitken=0 ;
+   int mm , last_aitken , num_aitken=0 ;
 
 ENTRY("mri_warp3D_align_one") ;
 
@@ -607,9 +642,6 @@ ENTRY("mri_warp3D_align_one") ;
    if( im->kind == MRI_float ) fim = im ;
    else                        fim = mri_to_float( im ) ;
 
-   mri_warp3D_method( bas->regmode ) ;
-   mri_warp3D_set_womask( bas->imsk ) ;
-
    pma = (int *)malloc(sizeof(int) * nfree) ;
    for( pp=ii=0 ; ii < npar ; ii++ )
      if( !bas->param[ii].fixed ) pma[pp++] = ii ;
@@ -617,36 +649,61 @@ ENTRY("mri_warp3D_align_one") ;
    fit  = (float *)malloc(sizeof(float) * npar ) ;
    dfit = (float *)malloc(sizeof(float) * npar ) ;
    qfit = (float *)malloc(sizeof(float) * nfree) ;
+   tol  = (float *)malloc(sizeof(float) * npar ) ;
 
    for( mm=0 ; mm < NMEM ; mm++ ) fitmem[mm] = NULL ;
+
+   /*--- loop back point for two pass alignment ---*/
+
+   bas->num_iter = 0 ;
+   mri_warp3D_set_womask( bas->imsk ) ;
+
+ ReStart:
+
+   mri_warp3D_method( (do_twopass && passnum==1) ? MRI_LINEAR : bas->regmode ) ;
 
    /* load initial fit parameters;
       if they are all the identity transform value,
       then skip the first transformation of the fim volume */
 
-   skip_first = 1 ;
-   for( pp=0 ; pp < npar ; pp++ ){
-     if( bas->param[pp].fixed ){
-       fit[pp] = bas->param[pp].val_fixed ;
-     } else {
-       fit[pp] = bas->param[pp].val_init ;
-       skip_first = skip_first && (fit[pp] == bas->param[pp].ident) ;
+   if( passnum == 1 ){
+     skip_first = 1 ;
+     for( pp=0 ; pp < npar ; pp++ ){
+       if( bas->param[pp].fixed ){
+         fit[pp] = bas->param[pp].val_fixed ;
+       } else {
+         fit[pp] = bas->param[pp].val_init ;
+         skip_first = skip_first && (fit[pp] == bas->param[pp].ident) ;
+       }
      }
+   } else {
+     skip_first = 0 ;  /* and fit[] is unchanged */
    }
 
-   if( bas->verb ) fprintf(stderr,"++ mri_warp3d_align_one ENTRY\n") ;
+   fitmem[0] = (float *)malloc(sizeof(float)*npar) ;
+   memcpy( fitmem[0] , fit , sizeof(float)*npar) ;
+
+   for( pp=0 ; pp < npar ; pp++ ) tol[pp] = bas->param[pp].toler ;
+
+   if( do_twopass && passnum == 1 ){
+     for( pp=0 ; pp < npar ; pp++ ) tol[pp] *= (6.0f+bas->twoblur) ;
+   }
+
+   if( bas->verb ) fprintf(stderr,"++ mri_warp3d_align_one: START PASS #%d\n",passnum) ;
 
    /*-- iterate fit --*/
 
-   iter = 0 ; good = 1 ;
+   iter = 0 ; good = 1 ; last_aitken = 3 ;
    while( good ){
      if( skip_first ){
        tim = fim ; skip_first = 0 ;
      } else {
        bas->vwset( npar , fit ) ;
-       tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ;
+       tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ; /* warp on current params */
      }
      tar = MRI_FLOAT_PTR(tim) ;
+
+     /* find least squares fit of base + derivatives to warped image */
 
      sfit = 0.0f ;
      for( pp=0 ; pp < npar  ; pp++ ) dfit[pp] = 0.0f ;
@@ -673,7 +730,7 @@ ENTRY("mri_warp3D_align_one") ;
        fprintf(stderr,"\n") ;
      }
 
-     /* save results for a while, and then maybe do Aitken */
+     /* save fit results for a while into the past, and then maybe do Aitken */
 
      if( fitmem[NMEM-1] != NULL ) free((void *)fitmem[NMEM-1]) ;
      for( mm=NMEM-1 ; mm > 0 ; mm-- ) fitmem[mm] = fitmem[mm-1] ;
@@ -686,7 +743,7 @@ ENTRY("mri_warp3D_align_one") ;
        num_aitken = 0 ;
        for( pp=0 ; pp < npar ; pp++ ){
          dd = fabs(fitmem[1][pp]-fit[pp]) ;
-         if( dd <= bas->param[pp].toler ) continue ; /* done here */
+         if( dd <= tol[pp] ) continue ; /* done here */
          de = dd ;
          for( mm=2 ; mm < NMEM ; mm++ ){
            df = fabs(fitmem[mm][pp]-fitmem[mm-1][pp]) ;
@@ -722,32 +779,49 @@ ENTRY("mri_warp3D_align_one") ;
        }
      }
 
-     /* loop back? */
+     /* loop back for more iterations? */
 
      if( last_aitken == iter ) continue ;  /* don't test, just loop */
+     if( fitmem[2]   == NULL ) continue ;
 
      ngood = 0 ;
      for( pp=0 ; pp < npar ; pp++ )
        if( !bas->param[pp].fixed )
-         ngood += ( fabs(dfit[pp]) <= bas->param[pp].toler ) ;
+         ngood += ( ( fabs(fitmem[1][pp]-fitmem[0][pp]) <= tol[pp] ) &&
+                    ( fabs(fitmem[2][pp]-fitmem[1][pp]) <= tol[pp] )   ) ;
+
      good = (ngood < nfree) && (iter < bas->max_iter) ;
 
    } /* end while */
 
-   bas->num_iter = iter ;
+   bas->num_iter += iter ;
+
+   for( mm=0 ; mm < NMEM ; mm++ )
+     if( fitmem[mm] != NULL ){ free((void *)fitmem[mm]); fitmem[mm] = NULL; }
+
+   /*--- do the second pass? ---*/
+
+   if( do_twopass && passnum == 1 ){
+     if( bas->verb ) fprintf(stderr,"+++++++ Loop back for next pass +++++\n");
+     passnum++ ; goto ReStart ;
+   } else {
+     if( bas->verb ) fprintf(stderr,"+++++++ Convergence test passed +++++\n");
+   }
+
+   /*--- done! ---*/
+
    for( pp=0 ; pp < npar ; pp++ ) bas->param[pp].val_out = fit[pp] ;
 
-   /*-- do the actual realignment --*/
+   /*-- do the actual realignment to get the output image --*/
 
+   if( bas->regfinal > 0 ) mri_warp3D_method( bas->regfinal ) ;
    mri_warp3D_set_womask( NULL ) ;
    bas->vwset( npar , fit ) ;
    tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ;
 
    if( fim != im ) mri_free(fim) ;  /* if it was a copy, junk it */
    free((void *)dfit) ; free((void *)fit) ;
-   free((void *)qfit) ; free((void *)pma) ;
-   for( mm=0 ; mm < NMEM ; mm++ )
-     if( fitmem[mm] != NULL ) free((void *)fitmem[mm]) ;
+   free((void *)qfit) ; free((void *)pma) ; free((void *)tol) ;
 
    if( bas->verb ){
      double st = (NI_clock_time()-ctstart) * 0.001 ;
@@ -766,4 +840,6 @@ void mri_warp3D_align_cleanup( MRI_warp3D_align_basis *bas )
    if( bas->imap != NULL ){ mri_free(bas->imap) ; bas->imap = NULL ; }
    if( bas->imps != NULL ){ mri_free(bas->imps) ; bas->imps = NULL ; }
    if( bas->imsk != NULL ){ mri_free(bas->imsk) ; bas->imsk = NULL ; }
+
+   if( bas->imps_blur != NULL ){ mri_free(bas->imps_blur) ; bas->imps_blur = NULL ; }
 }

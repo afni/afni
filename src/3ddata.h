@@ -3665,6 +3665,7 @@ typedef struct {
 
    int regmode , verb , max_iter , num_iter , wtproc ;
    int xedge , yedge , zedge ;
+   int regfinal ;
 
    MRI_IMAGE *imbase , *imwt ;
 
@@ -3679,6 +3680,7 @@ typedef struct {
    MRI_IMAGE *imap ;
    MRI_IMAGE *imps ;
    MRI_IMAGE *imsk ;
+   MRI_IMAGE *imps_blur ;
 
 } MRI_warp3D_align_basis ;
 
