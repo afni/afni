@@ -4907,3 +4907,6 @@
 
 23 Jan 2004
  * Modifications to put surfaces into sessions rather than directories.
+ * Modified ISQ_show_zoom() in imseq.c to avoid infinite recursion that
+     seems to happen when user zooms, crops, then changes image fraction
+     (with the "i" arrows). WTF?
