@@ -750,3 +750,17 @@
     - if the user sets dnode, then skip any (debug > 0) tests for it
     - check for out of bounds, even if an endpoint is in (e.g. midpoint)
 
+01 November 2004:
+  * modified nifti1.h, correcting 3 small errors in the descriptions:
+    - integers from 0 to 2^24 can be represented with a 24 bit mantissa
+    - we require that a = sqrt(1.0-b*b-c*c-d*d) be nonnegative
+    - [a,b,0,0] * [0,0,0,1] = [0,0,-b,a]
+  * modified plug_maxima.[ch]
+    - remove restrictions on threshold input
+    - rearrange options, and add a Debug Level
+    - increment style (should be in {1,2}, not {0,1}
+    - add a little debug output, including show_point_list_s()
+    - removed unused variables
+    - true_max update in find_local_maxima()
+    - added check for warp-on-demand failure
+

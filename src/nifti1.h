@@ -375,7 +375,7 @@ typedef struct nifti1_extension nifti1_extension ;
       memory-mapped input to be properly byte-aligned.
    Note that since vox_offset is an IEEE-754 32 bit float (for compatibility
    with the ANALYZE-7.5 format), it effectively has a 24 bit mantissa. All
-   integers from 0 to 224 can be represented exactly in this format, but not
+   integers from 0 to 2^24 can be represented exactly in this format, but not
    all larger integers are exactly storable as IEEE-754 32 bit floats. However,
    unless you plan to have vox_offset be potentially larger than 16 MB, this
    should not be an issue. (Actually, any integral multiple of 16 up to 2^27
@@ -1011,7 +1011,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    The orientation of the (x,y,z) axes relative to the (i,j,k) axes
    in 3D space is specified using a unit quaternion [a,b,c,d], where
    a*a+b*b+c*c+d*d=1.  The (b,c,d) values are all that is needed, since
-   we require that a = sqrt(1.0-b*b+c*c+d*d) be nonnegative.  The (b,c,d)
+   we require that a = sqrt(1.0-b*b-c*c-d*d) be nonnegative.  The (b,c,d)
    values are stored in the (quatern_b,quatern_c,quatern_d) fields.
 
    The quaternion representation is chosen for its compactness in
@@ -1050,10 +1050,10 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
      [a,b,c,d] = a*1 + b*I + c*J + d*K
      where
        I*I = J*J = K*K = -1 (I,J,K are square roots of -1)
-       I*J =  K  J*K =  I  K*I =  J
-       J*I = -K  K*J = -I  I*K = -J  (not commutative!)
+       I*J =  K    J*K =  I    K*I =  J
+       J*I = -K    K*J = -I    I*K = -J  (not commutative!)
      For example
-       [a,b,0,0] * [0,0,0,1] = [0,-b,0,a]
+       [a,b,0,0] * [0,0,0,1] = [0,0,-b,a]
      since this expands to
        (a+b*I)*(K) = (a*K+b*I*K) = (a*K-b*J).
 
