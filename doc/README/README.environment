@@ -2070,6 +2070,15 @@ is the number of pixels across PER ROW.  If the second value 'B' is
 negative, its absolute value is the number of pixels down PER ROW.
 (Usually there are many fewer columns than rows.)
 
+-------------------------
+Variable: AFNI_XSAVE_TEXT
+-------------------------
+If this YES/NO variable is set to YES, then the .xsave file created by
+the "-xsave" option to 3dDeconvolve will be saved in text format.  The
+default is a binary format, which preserves the full accuracy of the
+matrices stored therein.  However, if you want to look at the .xsave
+file yourself, the binary format is hard to grok.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
