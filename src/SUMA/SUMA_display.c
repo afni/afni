@@ -546,17 +546,25 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    /* now you need to set the clear_color since it can be changed per viewer Thu Dec 12 2002 */
    glClearColor (csv->clear_color[0], csv->clear_color[1], csv->clear_color[2], csv->clear_color[3]);
    
-   /* You cannot just rely on csv->ResetGLStateVariables because it is hard to set 
-   for all conditions. For example, if you have multiple viewers open and you have surfaces 
-   moving on momentum in all viewers, then you will have to call SUMA_OpenGLStateReset before
-   each display otherwise the openGL settings for one of them will affect the others.
-   At any rate, that function is not costly to run so there's no harm in running it anytime
-   you have a display call and more than one viewer open */ 
-   
-   if (SUMAg_N_SVv > 1 || csv->ResetGLStateVariables) {
-      if (LocalHead) fprintf(SUMA_STDERR, "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
-      SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, csv);
-      csv->ResetGLStateVariables = NOPE;
+   if (csv->NewGeom) { 
+      /* This function makes calls that are repeated in SUMA_OpenGLStateReset */
+      SUMA_NewGeometryInViewer(SUMAg_DOv, SUMAg_N_DOv, csv);
+      csv->NewGeom = NOPE;
+      csv->ResetGLStateVariables = NOPE; /*  SUMA_NewGeometryInViewer contains SUMA_OpenGLStateReset
+                                             stuff and lots more ...*/
+   } else {
+      /* You cannot just rely on csv->ResetGLStateVariables because it is hard to set 
+      for all conditions. For example, if you have multiple viewers open and you have surfaces 
+      moving on momentum in all viewers, then you will have to call SUMA_OpenGLStateReset before
+      each display otherwise the openGL settings for one of them will affect the others.
+      At any rate, that function is not costly to run so there's no harm in running it anytime
+      you have a display call and more than one viewer open */ 
+
+      if (SUMAg_N_SVv > 1 || csv->ResetGLStateVariables) {
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
+         SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, csv);
+         csv->ResetGLStateVariables = NOPE;
+      }
    }
    
    /* decide on color mixing needs */
@@ -2964,13 +2972,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    Widget tl, pb, form, DispFrame, SurfFrame, RenderSetFrame, rc_left, rc_right, rc_mamma;
    Display *dpy;
    SUMA_SurfaceObject *SO;
-   char *slabel; 
+   char *slabel, *lbl30; 
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    
    SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
+   *(SO->SurfCont->curSOp) = (void *)SO;
    
    if (SO->SurfCont->TopLevelShell) {
       fprintf (SUMA_STDERR,"Error %s: SO->SurfCont->TopLevelShell!=NULL. Should not be here.\n", FuncName);
@@ -3011,7 +3020,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    
    /* allow for code to resize the shell */
    XtVaSetValues (SO->SurfCont->TopLevelShell, 
-         XmNresizePolicy , XmRESIZE_NONE , /* allow (?) childrent to resize */
+         XmNresizePolicy , XmRESIZE_NONE , 
          XmNallowShellResize , True ,       /* let code resize shell */
          NULL);
     
@@ -3048,6 +3057,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             XmNorientation , XmVERTICAL ,
             XmNmarginHeight, SUMA_MARGIN ,
             XmNmarginWidth , SUMA_MARGIN ,
+            XmNwidth, 317,
+            XmNresizeWidth, False,
             NULL);
    
    rc_right = XtVaCreateWidget ("rowcolumn",
@@ -3079,13 +3090,12 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             NULL);
 
       /*put a label containing the surface name, number of nodes and number of facesets */
-      if (strlen(SO->Label) > 40) {
-         char tmpchar = SO->Label[40];
-         SO->Label[40] = '\0';
-         sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
-         SO->Label[40] = tmpchar;
+      lbl30 = SUMA_set_string_length(SO->Label, ' ', 27);
+      if (lbl30) {
+         sprintf(slabel,"%s\n%d nodes: %d tri.", lbl30, SO->N_Node, SO->N_FaceSet); 
+         SUMA_free(lbl30); lbl30 = NULL;
       } else {
-         sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
+         sprintf(slabel,"???\n%d nodes: %d tri.", SO->N_Node, SO->N_FaceSet); 
       }
       SO->SurfCont->SurfInfo_label = XtVaCreateManagedWidget (slabel, 
                xmLabelWidgetClass, rc,
@@ -3098,8 +3108,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SO->SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, SUMA_cb_moreSurfInfo, (XtPointer)SO);
-      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, (XtPointer)SO, NULL); /* 
+      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, SUMA_cb_moreSurfInfo, (XtPointer)SO->SurfCont->curSOp);
+      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, (XtPointer)SO->SurfCont->curSOp, NULL); /* 
                                                                   Feb 23 04: XmNuserData is not used anymore.
                                                                   See notes for SUMA_cb_moreViewerInfo
                                                                   call for reasons why this was done...
@@ -3305,13 +3315,13 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
      SUMA_BuildMenuReset(0);
      SUMA_BuildMenu (rc, XmMENU_OPTION, 
                                  "RenderMode", '\0', YUP, RenderMode_Menu, 
-                                 (void *)SO, SO->SurfCont->RenderModeMenu );
+                                 (void *)(SO->SurfCont->curSOp), SO->SurfCont->RenderModeMenu );
       XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
       
       pb = XtVaCreateWidget ("Dsets", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO);
+      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO->SurfCont->curSOp);
       MCW_register_hint( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
       MCW_register_help( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
       XtManageChild (pb);
@@ -3446,89 +3456,103 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_Init_SurfCont_SurfParam"};
-   char *slabel = NULL, *Name;
+   char *slabel = NULL, *Name, *lbl30 = NULL;
    int i, imenu;
    Widget *w=NULL, whist=NULL;
    XmString string;
+   SUMA_SurfaceObject *oSO;
+   SUMA_Boolean SameSurface = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
-   /* initialize the title of the window */
-   slabel = (char *)SUMA_malloc (sizeof(char) * (strlen(SO->Label) + 100));
-   if (strlen(SO->Label) > 40) {
-      char *tmpstr=NULL;
-      tmpstr = SUMA_truncate_string(SO->Label, 40);
-      if (tmpstr) { 
-         sprintf(slabel,"[%s] Surface Controller", tmpstr);
-         free(tmpstr); tmpstr=NULL;
-      }
+   oSO = *(SO->SurfCont->curSOp);
+   if (oSO == SO) {
+      SameSurface = YUP;
    } else {
-      sprintf(slabel,"[%s] Surface Controller", SO->Label);
+      SameSurface = NOPE;
    }
-   SUMA_LH("Setting title");
-   XtVaSetValues(SO->SurfCont->TopLevelShell, XtNtitle, slabel, NULL);
    
-   /* initialize the string before the more button */
-      /*put a label containing the surface name, number of nodes and number of facesets */
+   /* set the new current surface pointer */
+   *(SO->SurfCont->curSOp) = (void *)SO;
+   
+   if (!SameSurface) {
+      /* initialize the title of the window */
+      slabel = (char *)SUMA_malloc (sizeof(char) * (strlen(SO->Label) + 100));
       if (strlen(SO->Label) > 40) {
-         char tmpchar = SO->Label[40];
-         SO->Label[40] = '\0';
-         sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
-         SO->Label[40] = tmpchar;
-      } else {
-         sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
-      }
-      SUMA_LH("Setting label");
-      string = XmStringCreateLocalized (slabel);
-      XtVaSetValues(SO->SurfCont->SurfInfo_label, XmNlabelString, string, NULL);
-      XmStringFree (string);
-   
-   /* Can't do much with the SurfInfo button,
-   You can only have on Info shell/LocalDomainParent
-   at a time */
-   
-   SUMA_LH("Setting RenderMode");
-   /* set the correct RenderMode for that surface */
-   imenu = -1;
-   switch (SO->PolyMode) {
-      case SRM_ViewerDefault:
-         imenu = SW_SurfCont_RenderViewerDefault;
-         break;
-      case SRM_Fill:
-         imenu = SW_SurfCont_RenderFill;
-         break;
-      case SRM_Line:
-         imenu = SW_SurfCont_RenderLine;
-         break;
-      case SRM_Points:
-         imenu = SW_SurfCont_RenderPoints;
-         break;
-      default: 
-         fprintf (SUMA_STDERR, "Error %s: Unexpected something.\n", FuncName);
-         break;
-   }
-   /* look for name of widget with imenu for call data. This is overkill but its fun */
-   i = 0;
-   Name = NULL;
-   while (&(RenderMode_Menu[i])) {
-      if ((int)RenderMode_Menu[i].callback_data == imenu) {
-         Name = RenderMode_Menu[i].label;
-         if (LocalHead) fprintf (SUMA_STDERR,"Looking for %s\n", Name);
-         /* now we know what the name of the button needed is, look for it*/
-         w = SO->SurfCont->RenderModeMenu;
-         for (i=0; i< SW_N_SurfCont_Render; ++i) {
-            if (LocalHead) fprintf (SUMA_STDERR,"I have %s\n", XtName(w[i]));
-            if (strcmp(Name, XtName(w[i])) == 0) {
-               SUMA_LH("Match!");
-               XtVaSetValues(  w[0], XmNmenuHistory , w[i] , NULL ) ;  
-               SUMA_RETURN(YUP);
-           }
+         char *tmpstr=NULL;
+         tmpstr = SUMA_truncate_string(SO->Label, 40);
+         if (tmpstr) { 
+            sprintf(slabel,"[%s] Surface Controller", tmpstr);
+            free(tmpstr); tmpstr=NULL;
          }
+      } else {
+         sprintf(slabel,"[%s] Surface Controller", SO->Label);
       }
-      ++i;
-   }
+      SUMA_LH("Setting title");
+      XtVaSetValues(SO->SurfCont->TopLevelShell, XtNtitle, slabel, NULL);
+
+      /* initialize the string before the more button */
+         /*put a label containing the surface name, number of nodes and number of facesets */
+         lbl30 = SUMA_set_string_length(SO->Label, ' ', 27);
+         if (lbl30) {
+            sprintf(slabel,"%s\n%d nodes: %d tri.", lbl30, SO->N_Node, SO->N_FaceSet); 
+            SUMA_free(lbl30); lbl30 = NULL;
+         } else {
+            sprintf(slabel,"???\n%d nodes: %d tri.", SO->N_Node, SO->N_FaceSet); 
+         }
+         SUMA_LH("Setting label");
+         string = XmStringCreateLocalized (slabel);
+         XtVaSetValues(SO->SurfCont->SurfInfo_label, XmNlabelString, string, NULL);
+         XmStringFree (string);
+
+      if (slabel) SUMA_free(slabel); slabel = NULL;
+      /* Can't do much with the SurfInfo button,
+      You can only have on Info shell/LocalDomainParent
+      at a time */
+
+      SUMA_LH("Setting RenderMode");
+      /* set the correct RenderMode for that surface */
+      imenu = -1;
+      switch (SO->PolyMode) {
+         case SRM_ViewerDefault:
+            imenu = SW_SurfCont_RenderViewerDefault;
+            break;
+         case SRM_Fill:
+            imenu = SW_SurfCont_RenderFill;
+            break;
+         case SRM_Line:
+            imenu = SW_SurfCont_RenderLine;
+            break;
+         case SRM_Points:
+            imenu = SW_SurfCont_RenderPoints;
+            break;
+         default: 
+            fprintf (SUMA_STDERR, "Error %s: Unexpected something.\n", FuncName);
+            break;
+      }
+      /* look for name of widget with imenu for call data. This is overkill but its fun */
+      i = 0;
+      Name = NULL;
+      while (&(RenderMode_Menu[i])) {
+         if ((int)RenderMode_Menu[i].callback_data == imenu) {
+            Name = RenderMode_Menu[i].label;
+            if (LocalHead) fprintf (SUMA_STDERR,"Looking for %s\n", Name);
+            /* now we know what the name of the button needed is, look for it*/
+            w = SO->SurfCont->RenderModeMenu;
+            for (i=0; i< SW_N_SurfCont_Render; ++i) {
+               if (LocalHead) fprintf (SUMA_STDERR,"I have %s\n", XtName(w[i]));
+               if (strcmp(Name, XtName(w[i])) == 0) {
+                  SUMA_LH("Match!");
+                  XtVaSetValues(  w[0], XmNmenuHistory , w[i] , NULL ) ;  
+                  SUMA_RETURN(YUP);
+              }
+            }
+         }
+         ++i;
+      }
+   } 
    
+   /* do even if this is the old surface */ 
     
    SUMA_RETURN(YUP);
 }
@@ -3675,10 +3699,10 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
 
       /* set the values for the threshold bar */
       if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
-         SUMA_SetScaleRange(SO->SurfCont->thr_sc, range );
+         SUMA_SetScaleRange(SO, range );
       }
    } else {
-      SUMA_SL_Note("cmap_context was NULL");
+      SUMA_LH("cmap_context was NULL");
    }
    
    
@@ -4898,7 +4922,7 @@ SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO)
 
    /* redisplay */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL); 
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_RedisplayNow_AllVisible, SES_Suma, NULL); 
    if (!SUMA_Engine(&list)) {
       SUMA_SLP_Err("Failed to redisplay.");
       SUMA_RETURN(NOPE);
@@ -6406,6 +6430,7 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    SUMA_SurfaceObject *SO=NULL;
    void *n=NULL;
    char *s = NULL;
+   void **curSOp;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
    
@@ -6418,7 +6443,8 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
                   
    SO = (SUMA_SurfaceObject *)n;
    #else
-   SO = (SUMA_SurfaceObject *)client_data;
+   curSOp = (void **)client_data;
+   SO = (SUMA_SurfaceObject *)(*curSOp);
    #endif
    
    /* check to see if window is already open, if it is, just raise it */
@@ -6818,13 +6844,15 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_
    SUMA_EngineData *ED = NULL;
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_SurfaceObject *SO = NULL;
+   void **curSOp;
    int imenu = 0;
    
    SUMA_ENTRY;
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
-   SO = (SUMA_SurfaceObject *)datap->ContID;
+   curSOp = (void **)datap->ContID;
+   SO = (SUMA_SurfaceObject *)(*curSOp);
    imenu = (int)datap->callback_data; 
    
    switch (imenu) {
@@ -7226,7 +7254,7 @@ void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data)
    
    /* redisplay all others */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_RedisplayNow_AllVisible, SES_SumaWidget, NULL);
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaWidget, NULL);
    SUMA_Engine (&list);
 
    SUMA_RETURNe;
@@ -8527,11 +8555,13 @@ void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data)
    static char FuncName[]={"SUMA_cb_UnmanageWidget"};
    static int ncall=1;
    SUMA_SurfaceObject *SO = NULL;
+   void **curSOp;
    int xx, yy;
    
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)data;
+   curSOp = (void **)data;
+   SO = (SUMA_SurfaceObject *)(*curSOp);
    
    if (ncall > 0) {
       XtUnmanageChild(SO->SurfCont->ColPlane_fr);

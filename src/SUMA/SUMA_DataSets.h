@@ -523,6 +523,7 @@ char * SUMA_append_string(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
                                     char *Spc, int whichTofree);
 char * SUMA_truncate_string (char *s1, int length);
+char *SUMA_set_string_length(char *buf, char cp, int n);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 void SUMA_sigfunc(int sig);

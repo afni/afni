@@ -213,7 +213,7 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dTcorrelate" , argc,argv , cset ) ;
 
    /* loop over voxels, correlate */
-
+   /* fprintf(stderr,"have %d voxels to work with, %d values/time series.\n", nvox, nvals);*/
    for( ii=0 ; ii < nvox ; ii++ ){
 
       if( mmm != NULL && mmm[ii] == 0 ){  /* the easy case */

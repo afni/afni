@@ -1968,7 +1968,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                } 
                
                /* Add this plane to SO->Overlays */
-               if (!SUMA_AddNewPlane (SO, NewColPlane)) {
+               if (!SUMA_AddNewPlane (SO, NewColPlane, NULL, -1)) {
                   SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
                   SUMA_FreeOverlayPointer(NewColPlane);
                   SUMA_RETURN (NOPE);
@@ -2123,7 +2123,6 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                
                /* deal with surface controller */
                if (SOinh) {
-                  SUMA_SL_Note("Decide what to do here ...");
                   #if SUMA_SEPARATE_SURF_CONTROLLERS
                   /* leave controllers separate */ 
                   SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str); 

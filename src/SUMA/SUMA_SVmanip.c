@@ -309,7 +309,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->LinkAfniCrossHair = YUP;
       
       SV->ResetGLStateVariables = YUP;
-      
+      SV->NewGeom = NOPE;
       SV->BS = NULL;
       
       SV->ShowRight = YUP;
@@ -1803,6 +1803,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->SwitchDsetlst = NULL;
    SurfCont->ColPlaneLabel_Parent_lb = NULL;
    SurfCont->curColPlane = NULL;
+   SurfCont->curSOp = (void **)malloc(sizeof(void*));
    SurfCont->PosRef = NULL;
    SurfCont->cmap_wid = NULL;
    SurfCont->cmap_context = NULL;
@@ -1866,6 +1867,7 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->SwitchThrMenu) { XtDestroyWidget(SurfCont->SwitchThrMenu[0]); SUMA_free(SurfCont->SwitchThrMenu); }
    if (SurfCont->SwitchBrtMenu) { XtDestroyWidget(SurfCont->SwitchBrtMenu[0]); SUMA_free(SurfCont->SwitchBrtMenu); }
    if (SurfCont->SwitchCmapMenu) { XtDestroyWidget(SurfCont->SwitchCmapMenu[0]); SUMA_free(SurfCont->SwitchCmapMenu); }
+   if (SurfCont->curSOp) free(SurfCont->curSOp);
    if (SurfCont) free(SurfCont);
    return (NULL);
 }
