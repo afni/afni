@@ -4806,3 +4806,6 @@
 
 21 Nov 2003
  * Added ability to undo Linear Fillin to plug_drawdset.c.
+
+24 Nov 2003
+ * Fun with Apple's speech synthesis.
