@@ -130,7 +130,7 @@
   Mod:     Added -concat option for analysis of a concatenated 3d+time dataset.
   Date:    26 June 2000
 
-  Mod:     Increased max. allowed number of input stimulus functions, GLT's,
+  Mod:     Increased max. allowed number of input stimulus functions, GLTs,
            and linear constraints per GLT.  Also, increased size of screen
 	   output buffer.
   Date:    27 July 2000
@@ -161,7 +161,7 @@
   Date:    03 May 2001
 
   Mod:     Changes to eliminate constraints on number of stimulus time series,
-           number of regressors, number of GLT's, and number of GLT linear
+           number of regressors, number of GLTs, and number of GLT linear
            constraints.  Added -num_glt option.
   Date:    10 May 2001
 
@@ -265,6 +265,9 @@
 
   Mod:     -xsave and -xrestore options, to be able to run extra GLTs
   Date     28 Jul 2004 - RWCox
+
+  Mod:     -gltsym option
+  Date     29 Jul 2004 - RWCox
 */
 
 /*---------------------------------------------------------------------------*/
@@ -357,6 +360,11 @@ struct DC_options ;  /* incomplete struct definition */
 void do_xrestore_stuff( int, char **, struct DC_options * ) ;
 
 #define XSAVE_version "0.5"
+
+static int nSymStim = 0 ;             /* 29 Jul 2004: symbols for stimuli */
+static SYM_irange *SymStim = NULL ;
+
+void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat ) ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -509,11 +517,12 @@ void display_help_menu()
     "                       (default: p = 1)                                \n"
     "                                                                       \n"
     "     General linear test (GLT) options:                                \n"
-    "-num_glt num         num = number of general linear tests              \n"
+    "-num_glt num         num = number of general linear tests (GLTs)       \n"
     "                       (0 <= num)   (default: num = 0)                 \n"
     "[-glt s gltname]     Perform s simultaneous linear tests, as specified \n"
     "                       by the matrix contained in file gltname         \n"
     "[-glt_label k glabel]  glabel = label for kth general linear test      \n"
+    "[-gltsym gltname]    Read the GLT with symbolic names from the file    \n"
     "                                                                       \n"
     "     Options for output 3d+time datasets:                              \n"
     "[-iresp k iprefix]   iprefix = prefix of 3d+time output dataset which  \n"
@@ -722,7 +731,7 @@ void initialize_stim_options
       option_data->stim_filename[is] = NULL;
       option_data->stim_label[is] = malloc (sizeof(char)*THD_MAX_NAME);
       MTEST (option_data->stim_label[is]);
-      sprintf (option_data->stim_label[is], "Stim #%d ", is+1);
+      sprintf (option_data->stim_label[is], "Stim#%d ", is+1);
 
       option_data->stim_base[is] = 0;
       option_data->stim_minlag[is]   = 0;
@@ -1227,7 +1236,7 @@ void get_options
 	    initialize_glt_options (option_data, 10);   /* default limit on GLTs */
 	
 	  if (iglt+1 > option_data->num_glt)
-	    DC_error ("Use -num_glt option to specify number of GLT's ");
+	    DC_error ("Use -num_glt option to specify number of GLTs");
 
 	  option_data->glt_rows[iglt] = s;
 	  nopt++;
@@ -1242,6 +1251,24 @@ void get_options
 	  nopt++;
 	  continue;
 	}
+
+      /*---- -gltsym gltname [29 Jul 2004] -----*/
+
+      if( strcmp(argv[nopt],"-gltsym") == 0 ){
+        nopt++ ;
+        if( nopt+1 >= argc ) DC_error("need 1 argument after -glt") ;
+
+        if( option_data->num_glt == 0 )
+          initialize_glt_options(option_data,10) ;   /* default limit on GLTs */
+
+        if( iglt+1 > option_data->num_glt )
+          DC_error("Use -num_glt option to specify number of GLTs") ;
+
+        option_data->glt_rows[iglt] = -1 ;  /* flag for symbolic read */
+
+        option_data->glt_filename[iglt] = strdup( argv[nopt] ) ;
+        iglt++ ; nopt++ ; continue ;
+      }
 
 
       /*-----   -glt_label k glabel   -----*/
@@ -1460,7 +1487,7 @@ void get_options
     }
 
 
-  /*----- Set number of GLT's actually present -----*/
+  /*----- Set number of GLTs actually present -----*/
   option_data->num_glt = iglt;
 
   /*---- if -jobs is given, make sure are processing 3D data ----*/
@@ -1755,10 +1782,9 @@ void read_input_data
       p += max_lag[is] - min_lag[is] + 1;
       if (baseline[is])  q += max_lag[is] - min_lag[is] + 1;
     }
-  option_data->p  = p;
-  option_data->q  = q;
+  option_data->p  = p;   /* total number of parameters */
+  option_data->q  = q;   /* number of baseline parameters (polort+stim_base) */
   option_data->qp = qp;  /* number of polort baseline parameters */
-
 
   /*----- Read the censorship file -----*/
   if (option_data->censor_filename != NULL)
@@ -1784,6 +1810,24 @@ void read_input_data
     }
 
 
+  /*----- Build symbolic list of stim names and index ranges [29 Jul 2004] -----*/
+
+  nSymStim = num_stimts+1 ;
+  SymStim  = (SYM_irange *)calloc(sizeof(SYM_irange),nSymStim) ;
+
+  strcpy( SymStim[num_stimts].name , "Ort" ) ;
+  SymStim[num_stimts].nbot = 0 ;
+  SymStim[num_stimts].ntop = qp-1 ;
+  SymStim[num_stimts].gbot = 0 ;
+  it = qp ;
+  for( is=0 ; is < num_stimts ; is++ ){
+    MCW_strncpy( SymStim[is].name , option_data->stim_label[is] , 64 ) ;
+    SymStim[is].nbot = min_lag[is] ;
+    SymStim[is].ntop = max_lag[is] ;
+    SymStim[is].gbot = it ;
+    it += max_lag[is] - min_lag[is] + 1 ;
+  }
+
   /*----- Read the general linear test matrices -----*/
   if (num_glt > 0)
     {
@@ -1796,6 +1840,11 @@ void read_input_data
 
       for (iglt = 0;  iglt < num_glt;  iglt++)
 	{
+#if 1
+          read_glt_matrix( option_data->glt_filename[iglt] ,
+                           option_data->glt_rows + iglt ,
+                           p , *glt_cmat + iglt              ) ;
+#else
 	  matrix_file_read (option_data->glt_filename[iglt],  /* uses MRI_read_1D() */
 			    option_data->glt_rows[iglt],
 			    p, &((*glt_cmat)[iglt]), 1);
@@ -1805,6 +1854,7 @@ void read_input_data
 		       option_data->glt_filename[iglt]);
 	      DC_error (message);
 	    }
+#endif
 	}
     }
 
@@ -3001,7 +3051,7 @@ void report_evaluation
 	}
     }
 
-  /*----- Print normalized standard deviations for GLT's -----*/
+  /*----- Print normalized standard deviations for GLTs -----*/
   if (num_glt > 0)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
@@ -5229,6 +5279,62 @@ void niml_to_stringvec( NI_element *nel , int *nstr , char ***str )
 
 /*-------------------------------------------------------------------*/
 
+NI_element * symvec_to_niml( int ns , SYM_irange *sv , char *ename )
+{
+   NI_element *nel ;
+   int ii , *bc,*tc,*gc ; char **sc ;
+
+   if( ns < 1 || sv == NULL ) return NULL ;  /* bad user, bad */
+
+   if( ename == NULL || *ename == '\0' ) ename = "symvec" ;
+
+   nel = NI_new_data_element( ename , ns ) ;
+
+   bc  = (int *)  malloc(sizeof(int)   *ns) ;
+   tc  = (int *)  malloc(sizeof(int)   *ns) ;
+   gc  = (int *)  malloc(sizeof(int)   *ns) ;
+   sc  = (char **)malloc(sizeof(char *)*ns) ;
+
+   for( ii=0 ; ii < ns ; ii++ ){
+     bc[ii] = sv[ii].nbot ; tc[ii] = sv[ii].ntop ;
+     gc[ii] = sv[ii].gbot ; sc[ii] = sv[ii].name ;
+   }
+
+   NI_add_column( nel , NI_INT ,    bc ); free((void *)bc) ;
+   NI_add_column( nel , NI_INT    , tc ); free((void *)tc) ;
+   NI_add_column( nel , NI_INT    , gc ); free((void *)gc) ;
+   NI_add_column( nel , NI_STRING , sc ); free((void *)sc) ;
+
+   return nel ;
+}
+
+/*-------------------------------------------------------------------*/
+
+void niml_to_symvec( NI_element *nel , int *ns , SYM_irange **sv )
+{
+   int ii , *bc,*tc,*gc ; char **sc ;
+
+   if( nel == NULL || ns == NULL || sv == NULL ) return ;
+
+   if( nel->vec_len < 1 || nel->vec_num < 4 ) return ;
+   if( nel->vec_typ[0] != NI_INT    ) return ;  bc = (int *)  nel->vec[0] ;
+   if( nel->vec_typ[1] != NI_INT    ) return ;  tc = (int *)  nel->vec[1] ;
+   if( nel->vec_typ[2] != NI_INT    ) return ;  gc = (int *)  nel->vec[2] ;
+   if( nel->vec_typ[3] != NI_STRING ) return ;  sc = (char **)nel->vec[3] ;
+
+   *ns = nel->vec_len ;
+   *sv = (SYM_irange *)calloc(sizeof(SYM_irange),*ns) ;
+   for( ii=0 ; ii < *ns ; ii++ ){
+     (*sv)[ii].nbot = bc[ii] ;
+     (*sv)[ii].ntop = tc[ii] ;
+     (*sv)[ii].gbot = gc[ii] ;
+     NI_strncpy( (*sv)[ii].name , sc[ii] , 64 ) ;
+   }
+   return ;
+}
+
+/*-------------------------------------------------------------------*/
+
 void XSAVE_output( char *prefix )
 {
    char *fname , *cpt ;
@@ -5334,6 +5440,15 @@ void XSAVE_output( char *prefix )
    (void) NI_write_element( ns , nel , nimode ) ;
    NI_free_element( nel ) ;
 
+   /*-- stimulus symbols [29 Jul 2004] --*/
+
+   if( nSymStim > 0 ){
+     nel = symvec_to_niml( nSymStim , SymStim , "symvec" ) ;
+     NI_set_attribute( nel , "Xname" , "SymStim" ) ;
+     (void) NI_write_element( ns , nel , nimode ) ;
+     NI_free_element( nel ) ;
+   }
+
    /*-- done, finito, ciao babee --*/
 
    NI_stream_close(ns) ; free((void *)fname) ; return ;
@@ -5417,6 +5532,11 @@ void XSAVE_input( char *xname )
 
        if( strcmp(cpt,"ParamLabel") == 0 )
                              niml_to_stringvec( nel , &nParam , &ParamLabel );
+
+     } else if( strcmp(nel->name,"symvec") == 0 ){       /*- symvec elements -*/
+
+       if( strcmp(cpt,"SymStim") == 0 )
+                                 niml_to_symvec( nel , &nSymStim , &SymStim );
 
      } else {                                            /*- other elements? -*/
                                                       /*- silently skip them -*/
@@ -5649,6 +5769,11 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    for( iglt=0; iglt < num_glt ; iglt++){
      matrix_initialize( glt_cmat + iglt ) ;
+#if 1
+     read_glt_matrix( option_data->glt_filename[iglt] ,
+                      option_data->glt_rows + iglt ,
+                      np , glt_cmat + iglt             ) ;
+#else
      matrix_file_read ( option_data->glt_filename[iglt] ,
                             option_data->glt_rows[iglt] ,
                         np , glt_cmat+iglt , 1           ) ;
@@ -5658,6 +5783,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
                option_data->glt_filename[iglt] ) ;
        exit(1) ;
      }
+#endif
    }
 
    /*----- initialize new GLT calculations:
@@ -5911,5 +6037,65 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
    /*----- Write dataset out! -----*/
 
    DSET_write( dset_buck ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* New code to read one GLT matrix: the old way and the new way [29 Jul 2004]
+-----------------------------------------------------------------------------*/
+
+#define GLT_ERR                                                               \
+ do{ fprintf(stderr,"** ERROR: Can't read GLT matrix from file %s\n",fname);  \
+     exit(1) ; } while(0)
+
+void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
+{
+   if( *nrows > 0 ){    /* standard read */
+     matrix_file_read( fname , *nrows , ncol , cmat , 1 ) ;  /* mri_read_1D */
+     if( cmat->elts == NULL ) GLT_ERR ;
+
+   } else {  /* symbolic read */
+     floatvec *fv ;
+     int nr=0 , ii ;
+     float **far=NULL ;
+
+     if( nSymStim < 1 ){
+       fprintf(stderr,"** ERROR: use of -gltsym without SymStim being defined\n");
+       exit(1) ;
+     }
+
+     if( strncmp(fname,"SYM:",4) == 0 ){  /* read directly from fname string */
+
+       fv = SYM_expand_ranges( ncol-1 , nSymStim , SymStim , fname+4 ) ;
+       if( fv == NULL ) GLT_ERR ;
+       far = (float **)malloc(sizeof(float *)) ;
+       far[0] = fv->ar ; fv->ar = NULL ; free((void *)fv) ; nr = 1 ;
+
+     } else {                             /* read from file */
+       char buf[8192] , *cpt ;
+       FILE *fp = fopen( fname , "r" ) ;
+       if( fp == NULL ) GLT_ERR ;
+       while(1){
+         cpt = fgets( buf , 8192 , fp ) ;   /* read next line */
+         if( cpt == NULL ) break ;          /* end of input? */
+         fv = SYM_expand_ranges( ncol-1 , nSymStim , SymStim , buf ) ;
+         if( fv == NULL ) continue ;        /* bad line? */
+         far = (float **)realloc( (void *)far , sizeof(float *)*(nr+1) ) ;
+         far[nr++] = fv->ar ; fv->ar = NULL ; free((void *)fv) ;
+       }
+       fclose(fp) ; if( nr == 0 ) GLT_ERR ;
+     }
+     *nrows = nr ;
+     array_to_matrix( nr , ncol , far , cmat ) ;
+
+     for( ii=0 ; ii < nr ; ii++ ) free((void *)far[ii]) ;
+     free((void *)far) ;
+
+#if 0
+     printf("GLT matrix from %s:\n",fname) ;
+     matrix_print( *cmat ) ;
+#endif
+   }
+
    return ;
 }

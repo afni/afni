@@ -986,6 +986,25 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
 typedef struct { int i,j,k; } int_triple ;
 
+typedef struct { int nar ; float *ar ; } floatvec ;
+#define KILL_floatvec(fv)                      \
+  do{ if( (fv)->ar != NULL ) free((fv)->ar);   \
+      free(fv);                                \
+  } while(0)
+
+typedef struct { int nar ; int *ar ; } intvec ;
+#define KILL_intvec(fv)                        \
+  do{ if( (fv)->ar != NULL ) free((fv)->ar);   \
+      free(fv);                                \
+  } while(0)
+
+typedef struct {
+  int nbot, ntop , gbot ;
+  char name[64] ;
+} SYM_irange ;
+
+floatvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *str );
+
 /*-----------------  30 Oct 1996: incorporation of cdflib ----------------*/
 #include "cdflib.h"
 /*------------------------------------------------------------------------*/
