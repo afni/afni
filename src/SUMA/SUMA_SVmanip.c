@@ -111,6 +111,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		
 		SV->VSv = NULL;
 		SV->N_VSv = 0;
+		SV->LastNonMapStateID = -1;
 		
 		SV->PolyMode = 0;
 		#if SUMA_BACKFACE_CULL
@@ -118,6 +119,11 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		#else
 			SV->BF_Cull = NOPE;
 		#endif
+
+		SV->ShowForeground = YUP;
+		SV->ShowBackground = YUP;
+		SV->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+
 	}
 	return (SVv);
 }
@@ -316,6 +322,10 @@ void Show_SUMA_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
 			fprintf(Out,"Error in SUMA_Show_ViewState\n");
 		}
 	}
+	
+	fprintf(Out, "\nBackground Modulation Factor= %f\n", SV->Back_Modfact);
+	fprintf(Out, "\nLast non mappable visited %d\n", SV->LastNonMapStateID);
+	
 	/*fprintf(Out,"\t\n", SV->);
 	fprintf(Out,"\t\n", SV->);
 	fprintf(Out,"\t\n", SV->);
@@ -435,7 +445,7 @@ int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv)
 	while (i < csv->N_VSv) {
 		/*fprintf(SUMA_STDERR,"%s: comparing csv->VSv[%d].Name = %s to %s ...\n", FuncName, i, csv->VSv[i].Name, state);*/
 		if (strcmp(csv->VSv[i].Name, state) == 0) {
-			/*fprintf(SUMA_STDERR,"%s: FOUND!\n", FuncName);*/
+			/*fprintf(SUMA_STDERR,"%s: FOUND, i=%d!\n", FuncName, i);*/
 			return (i);
 		}
 		++i;

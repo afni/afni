@@ -1,7 +1,20 @@
 #
 
-#leave this one up to afni
-#CC = gcc
+#These normally come from AFNI's makefile, if you're running make without using afni's makefile, you need to set some variables
+ifndef CEXTRA
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
+endif
+
+ifeq ($(CC),gcc)
+#if (on safni) CC starts with gcc then it means makefile is executed from afni's makefile
+#can't use ndef with CC because it's always defined
+else
+CC = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+endif
+
+ifndef INSTALLDIR
+INSTALLDIR = /home/ziad/abin
+endif 
 
 CCOPT = 
 WARNOPT = -Wall -Wno-unused-variable

@@ -1444,18 +1444,20 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
 
 	function to turn color overlay planes into GL color array
 	
-	ans = SUMA_Overlays_2_GLCOLAR4(Overlays, N_Overlays, glar_ColorList, N_Node, Back_Modfact);
+	ans = SUMA_Overlays_2_GLCOLAR4(Overlays, N_Overlays, glar_ColorList, N_Node, Back_Modfact, ShowBackground, ShowForeground);
 	
 	\param Overlays (SUMA_OVERLAYS **) a pointer to the vector of overlay planes structure pointers
 	\param N_Overlays (int) number of overlay plane structures
 	\param glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that contains the node colors 
 	\param N_Node (int) total number of nodes in Surface NOT in color overlay plane
-	\param Back_Modfact (float) Background brightness modulation factor typically SO->Back_Modfact
+	\param Back_Modfact (float) Background brightness modulation factor typically SAFNIg_cSV->Back_Modfact
+	\param ShowBackground (SUMA_Boolean) flag for showing/hiding background (brightness modulating) colors
+	\param ShowForeground (SUMA_Boolean) flag for showing/hiding foreground colors
 	\ret YUP/NOPE
 	\sa SUMA_MixOverlays
 */
 
-SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays, GLfloat *glcolar, int N_Node, float Back_Modfact)
+SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays, GLfloat *glcolar, int N_Node, float Back_Modfact, SUMA_Boolean ShowBackground, SUMA_Boolean ShowForeground)
 {
 	static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4"};
 	int ShowOverLays[SUMA_MAX_OVERLAYS], ShowOverLays_Back[SUMA_MAX_OVERLAYS]; 
@@ -1465,6 +1467,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 	SUMA_Boolean *isColored, *isColored_Fore, *isColored_Back;
 	GLfloat *glcolar_Fore , *glcolar_Back;
 	float avg_Back, avgfact;
+	
 	
 	/*fprintf (SUMA_STDOUT, "%s: Showing all overlay planes.\n", FuncName);
 	SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays); */ 
@@ -1496,91 +1499,103 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored.\n", FuncName);
 		return (NOPE);
 	}
-
+	
 	glcolar_Back = NULL;
 	isColored_Back = NULL;
-	if (NshowOverlays_Back) {
-		glcolar_Back = (GLfloat *) calloc (4*N_Node, sizeof(GLfloat));
-		isColored_Back = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
-		
-		if (!isColored_Back || !glcolar_Back) {
-			fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored_Back || glcolar_Back.\n", FuncName);
-			return (NOPE);
+	if (ShowBackground) {
+		if (NshowOverlays_Back) {
+			glcolar_Back = (GLfloat *) calloc (4*N_Node, sizeof(GLfloat));
+			isColored_Back = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
+
+			if (!isColored_Back || !glcolar_Back) {
+				fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored_Back || glcolar_Back.\n", FuncName);
+				return (NOPE);
+			}
 		}
 	}
 	
 	isColored_Fore = NULL;
 	glcolar_Fore = NULL;
-	if (NshowOverlays) {
-		isColored_Fore = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
-		glcolar_Fore = (GLfloat *) calloc (4*N_Node, sizeof(GLfloat));
+	if (ShowForeground) {
+		if (NshowOverlays) {
+			isColored_Fore = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
+			glcolar_Fore = (GLfloat *) calloc (4*N_Node, sizeof(GLfloat));
 
-		if (!isColored_Fore || !glcolar_Fore) {
-			fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored_Fore || glcolar_Fore.\n", FuncName);
-			return (NOPE);
-		}
-	}		
-	
+			if (!isColored_Fore || !glcolar_Fore) {
+				fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored_Fore || glcolar_Fore.\n", FuncName);
+				return (NOPE);
+			}
+		}		
+	}
 	/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ allocate space ------------------------------------*/
 	
 	/* vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv Background colors ------------------------------*/
 	
-	/* arrange Background color planes by plane order in preparation for mixing them */
-		/* sort plane order */
-		if (NshowOverlays_Back > 1) {
-			isort = SUMA_z_dqsort (OverlayOrder_Back, NshowOverlays_Back );
-			/* use sorting by plane order to reorder ShowOverlays */
-			for (j=0; j < NshowOverlays_Back; ++j) {
-				ShowOverLays_Back_sort[j] = ShowOverLays_Back[isort[j]];
+	if (ShowBackground) {
+		/* arrange Background color planes by plane order in preparation for mixing them */
+			/* sort plane order */
+			if (NshowOverlays_Back > 1) {
+				isort = SUMA_z_dqsort (OverlayOrder_Back, NshowOverlays_Back );
+				/* use sorting by plane order to reorder ShowOverlays */
+				for (j=0; j < NshowOverlays_Back; ++j) {
+					ShowOverLays_Back_sort[j] = ShowOverLays_Back[isort[j]];
+				}
+				/* done with isort, free it */
+				free(isort);
+			} 
+			if (NshowOverlays_Back == 1) {
+					ShowOverLays_Back_sort[0] = ShowOverLays_Back[0];
 			}
-			/* done with isort, free it */
-			free(isort);
+
+
+		/* mix the colors that will constitute background*/
+		if (NshowOverlays_Back) {
+			/*fprintf (SUMA_STDERR,"%s: Mixing Background colors ...\n", FuncName);*/
+
+			if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_Back_sort, NshowOverlays_Back, glcolar_Back, N_Node, isColored_Back, NOPE)) {
+				fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
+				return (NOPE);
+			}
+		} else {
+			ShowBackground = NOPE;
 		} 
-		if (NshowOverlays_Back == 1) {
-				ShowOverLays_Back_sort[0] = ShowOverLays_Back[0];
-		}
-	
-	
-	/* mix the colors that will constitute background*/
-	if (NshowOverlays_Back) {
-		/*fprintf (SUMA_STDERR,"%s: Mixing Background colors ...\n", FuncName);*/
-		
-		if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_Back_sort, NshowOverlays_Back, glcolar_Back, N_Node, isColored_Back, NOPE)) {
-			fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
-			return (NOPE);
-		}
-	} 
-	
+	} else {
+		NshowOverlays_Back = 0;
+	}
 	/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  Background colors ------------------------------*/
 	
 	
 	/* vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv Foreground  colors ------------------------------*/
-	
-	/* arrange foreground color planes by plane order */
-		/* sort plane order */
-		if (NshowOverlays > 1) {
-			isort = SUMA_z_dqsort (OverlayOrder, NshowOverlays );
-			/* use sorting by plane order to reorder ShowOverlays */
-			for (j=0; j < NshowOverlays; ++j) {
-				ShowOverLays_sort[j] = ShowOverLays[isort[j]];
+	if (ShowForeground) {
+		/* arrange foreground color planes by plane order */
+			/* sort plane order */
+			if (NshowOverlays > 1) {
+				isort = SUMA_z_dqsort (OverlayOrder, NshowOverlays );
+				/* use sorting by plane order to reorder ShowOverlays */
+				for (j=0; j < NshowOverlays; ++j) {
+					ShowOverLays_sort[j] = ShowOverLays[isort[j]];
+				}
+				/* done with isort, free it */
+				free(isort);
+			} 
+			if (NshowOverlays  == 1) {
+				ShowOverLays_sort[0] = ShowOverLays[0];	
 			}
-			/* done with isort, free it */
-			free(isort);
-		} 
-		if (NshowOverlays  == 1) {
-			ShowOverLays_sort[0] = ShowOverLays[0];	
+	
+
+		/* Now mix the foreground colors */
+		if (NshowOverlays) {
+				/*fprintf (SUMA_STDERR,"%s: Mixing Foreground colors ....\n", FuncName);*/
+				if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_sort, NshowOverlays, glcolar_Fore, N_Node, isColored_Fore, NOPE)) {
+					fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
+					return (NOPE);
+				}
+		} else {
+			ShowForeground = NOPE;
 		}
-
-	
-	/* Now mix the foreground colors */
-	if (NshowOverlays) {
-			fprintf (SUMA_STDERR,"%s: Mixing Foreground colors ....\n", FuncName);
-			if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_sort, NshowOverlays, glcolar_Fore, N_Node, isColored_Fore, NOPE)) {
-				fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
-				return (NOPE);
-			}
+	} else {
+		NshowOverlays = 0;
 	}
-
 	/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors ------------------------------*/
 
 	/* time to modulate the mixed colors with the average brightness */
@@ -1632,7 +1647,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 		/*fprintf (SUMA_STDERR,"%s: Done Modulating Brightness of overlay colors.\n", FuncName);*/
 	} 
 	if (NshowOverlays && !NshowOverlays_Back) {
-		fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
+		/*fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);*/
 			for (i=0; i < N_Node; ++i) {
 				if (isColored_Fore[i]) {
 					i4 = 4 * i;
@@ -1671,7 +1686,15 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 			}
 	}
 	
-
+	if (!(ShowBackground) && !ShowForeground) {
+		for (i=0; i < N_Node; ++i) {
+			i4 = 4 * i;
+			glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+			glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+			glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+		}
+	}
+	
 	/* free this mess and get out */	
 	if (isColored) free(isColored);
 	if (isColored_Back) free(isColored_Back);

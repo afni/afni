@@ -133,6 +133,9 @@ int SUMA_CommandCode(char *Scom)
 	if (!strcmp(Scom,"SetAfniCrossHair")) return (SE_SetAfniCrossHair);
 	if (!strcmp(Scom,"SetAfniSurf")) return (SE_SetAfniSurf);
 	if (!strcmp(Scom,"BindCrossHair")) return(SE_BindCrossHair);
+	if (!strcmp(Scom,"Remix")) return (SE_Remix);
+	if (!strcmp(Scom,"ToggleForeground")) return (SE_ToggleForeground);
+	if (!strcmp(Scom,"ToggleBackground")) return (SE_ToggleBackground);
 	if (!strcmp(Scom,"Home")) return (SE_Home);
 	/*if (!strcmp(Scom,"")) return(SE_);*/
 	

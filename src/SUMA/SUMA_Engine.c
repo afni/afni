@@ -46,10 +46,10 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 	SUMA_SurfaceObject *SO;
 	float delta_t;
 	struct  timeval tt;
-	int it, Wait_tot, nn;
+	int it, Wait_tot, nn=0;
 	float ft, **fm, fv15[15];
 	SUMA_Boolean BreakOut;
-	XtPointer elvis;
+	XtPointer elvis=NULL;
 	NI_element *nel;
 	/*int iv3[3], iv15[15], **im;
 	float fv3[3];
@@ -407,6 +407,40 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				/*fprintf (SUMA_STDOUT,"%s: OK\n", FuncName);*/
 				break;
 			
+			case SE_Remix:
+				/* mix the colors */
+				for (ii=0; ii<SUMAg_cSV->N_DO; ++ii) {
+					if (SUMA_isSO(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]])) {
+						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]].OP);
+						if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, SUMAg_cSV->Back_Modfact,\
+						 SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
+							fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
+							break;
+						}
+					}
+				}
+				break;
+			
+			case SE_ToggleForeground:
+				/* Show/hide the foreground */
+				SUMAg_cSV->ShowForeground = !SUMAg_cSV->ShowForeground;
+				if (!SUMAg_cSV->ShowForeground) {
+					fprintf(SUMA_STDOUT,"%s: Foreground Colors Off.\n", FuncName);
+				} else {
+					fprintf(SUMA_STDOUT,"%s: Foreground Colors ON.\n", FuncName);
+				}
+				break;
+			
+			case SE_ToggleBackground:
+				/* Show/hide the background */
+				SUMAg_cSV->ShowBackground = !SUMAg_cSV->ShowBackground;
+				if (!SUMAg_cSV->ShowBackground) {
+					fprintf(SUMA_STDOUT,"%s: Background Colors OFF.\n", FuncName);
+				} else {
+					fprintf(SUMA_STDOUT,"%s: Background Colors ON.\n", FuncName);
+				}
+				break;
+							
 			case SE_Home:
 				SUMAg_cSV->translateVec[0]=0; SUMAg_cSV->translateVec[1]=0;
 				glMatrixMode(GL_PROJECTION);
@@ -857,6 +891,7 @@ int SUMA_ShownSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 	\param sv (SUMA_SurfaceViewer *) pointer to surface viewer structure 
 	\ret nxtState (int) the index into sv->VSv of the next state
 		-1 if there is trouble
+	\sa SUMA_PrevState 
 */
 int SUMA_NextState(SUMA_SurfaceViewer *sv)
 {
@@ -873,6 +908,30 @@ int SUMA_NextState(SUMA_SurfaceViewer *sv)
 	
 	return (-1);
 }
+
+/*!
+	precState = SUMA_PreviState (sv);
+	get the previous Viewing State available in sv
+	\sa SUMA_NextState
+*/
+int SUMA_PrevState(SUMA_SurfaceViewer *sv)
+{
+	int inxt, icur;
+	static char FuncName[] = {"SUMA_PrevState"};
+	
+	icur = SUMA_WhichState (sv->State, sv);	if (icur < 0) {
+		fprintf(SUMA_STDERR,"Error %s: SUMA_WhichState failed.\n", FuncName);
+		return (-1);
+	} else {
+		icur = icur -1;
+		if (icur < 0) icur = sv->N_VSv + icur;
+		return(icur);
+	}
+	
+	return (-1);
+}
+
+
 
 /*!
 	SOnxtID = SUMA_NextSO (dov, n_dov, CurrentIDcode, SOnxt);
@@ -1070,7 +1129,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 
 			if (SO_prec->N_Node > SO_nxt->N_Node) {/* More in prec */
 				/* just warn */
-				fprintf(SUMA_STDERR, "Warning %s: More nodes (%d) in precursor surface. \n Assuming upcoming surface is a subset of precursor.\nAssuming Proceeding ...\n", FuncName, SO_prec->N_Node - SO_nxt->N_Node);
+				fprintf(SUMA_STDERR, "Warning %s: More nodes (%d) in precursor surface. \n Assuming upcoming surface is a subset of precursor.\n", FuncName, SO_prec->N_Node - SO_nxt->N_Node);
 			}/* More in prec */ 
 
 			/* link the selected nodes and facesets, if possible */
@@ -1091,17 +1150,16 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 			}
 
 			/* Here you need to remix the colors */
-			if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, SO_nxt->N_Overlays, SO_nxt->glar_ColorList, SO_nxt->N_Node, SO_nxt->Back_Modfact)) {
+			if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, SO_nxt->N_Overlays, SO_nxt->glar_ColorList, SO_nxt->N_Node,\
+				 SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
 				fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
 				return (NOPE);
 			}
 			
 		}
 	
-		
 	/* Bind the cross hair to a reasonable surface, if possible */
-	if (sv->Ch->SurfaceID >= 0) {
-		
+	if (sv->Ch->SurfaceID >= 0) {		
 		/*fprintf(SUMA_STDERR, "%s: Linking Cross Hair via SurfaceID...\n", FuncName);*/
 		j = SUMA_MapRefRelative (sv->Ch->SurfaceID, sv->VSv[nxtstateID].MembSOs, sv->VSv[nxtstateID].N_MembSOs, dov);
 		/*fprintf(SUMA_STDERR, "%s: Cross Hair's New SurfaceID = %d\n", FuncName, j );*/
@@ -1152,7 +1210,6 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 	/* set the focus ID to the first surface in the next view   */
 	sv->Focus_SO_ID = sv->VSv[nxtstateID].MembSOs[0];
 
-
 	/* modify the rotation center */
 	if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
@@ -1181,11 +1238,6 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 		fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
 	}
 
-	
-	/* take care of the cross hair's XYZ */
-
-	/* to do elsewhere */
-	/* when a cross hair needs to be communicated, you must use the MapRef_idcode_str surface and not the Focus_Surface */
 	return (YUP);
 }
 

@@ -91,7 +91,7 @@ int main (int argc,char *argv[])
 	SUMA_Axis *EyeAxis;
 	SUMA_SFname *SF_name;
 	SUMA_Boolean brk, SurfIn;
-	char *VolParName, *NameParam, *specfilename, *AfniHostName;
+	char *VolParName, *NameParam, *specfilename = NULL, *AfniHostName;
 	SUMA_SurfSpecFile Spec;   
 	 	
   

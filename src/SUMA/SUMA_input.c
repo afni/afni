@@ -57,81 +57,81 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 		if (xls) {/* xls, a normal character*/
 			switch (keysym) { /* keysym */
       		case XK_space:   /* The spacebar. */
+					/* toggle between state containing mapping reference of SO in focus and other view */
 					{
+						SUMA_SurfaceObject *SO = NULL;
+						int curstateID = -1, nxtstateID = -1;
 						
-						#if 0
-							/* the olde switching method */
-							SUMA_SurfaceObject *SOcur, *SOnxt= NULL;
-							int SOnxtID;
-
-							if (SUMAg_cSV->N_VSv < 2) break;
-							
-							fprintf(SUMA_STDERR,"%s: Current SO is DOv[%d]...\n", FuncName, SUMAg_cSV->Focus_SO_ID);
-							/* toggle to the next surface */
-							SOcur = (SUMA_SurfaceObject *)SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP;
-							SOnxtID = SUMA_NextSO (SUMAg_DOv, SUMAg_N_DOv, SOcur->idcode_str, SOnxt);/* get the next SO in DOv */ 
-							if (SOnxtID < 0) {
-								fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_NextSO.\n", FuncName);
+						curstateID = SUMA_WhichState(SUMAg_cSV->State, SUMAg_cSV);
+						SO = (SUMA_SurfaceObject *)SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP;
+						if (SUMA_isINHmappable (SO)) {
+							/* get the last non mappable state in SV */
+							if (SUMAg_cSV->LastNonMapStateID < 0) { /* not recorded, complain and quit */
+								fprintf(SUMA_STDERR,"Warning %s: Nothing defined to toggle with yet.\n", FuncName); 
 								break;
 							}
-
-							if (!SUMA_SwitchSO (SUMAg_DOv, SUMAg_N_DOv, SUMAg_cSV->Focus_SO_ID, SOnxtID, SUMAg_cSV)) {
-								fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchSO.\n", FuncName);
+							
+							if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, SUMAg_cSV, SUMAg_cSV->LastNonMapStateID)) {
+								fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
 								break;
 							}
-
-						#else
-						 	/* the novel switching method */
-							int nxtstateID;
 							
-							if (SUMAg_cSV->N_VSv < 2) break;
-							
-							/*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, SUMAg_cSV->State);*/
-							/* toggle to the next view state */
-							nxtstateID = SUMA_NextState(SUMAg_cSV);
+						} else {/* that's a non mappable, go to state containing reference */
+							/* find SO that is mappable reference & get corresponding state ID*/
+							nxtstateID = SUMA_findDO(SO->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
 							if (nxtstateID < 0) {
-								fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_NextState.\n", FuncName);
+								fprintf (SUMA_STDERR,"%s: Failed in SUMA_findDO This should not happen.\n", FuncName);
 								break;
 							}
-							fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", FuncName, SUMAg_cSV->State, SUMAg_cSV->VSv[nxtstateID].Name);
+							/* store this location */
+							SUMAg_cSV->LastNonMapStateID = curstateID;
 							
+							/* go there */
 							if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, SUMAg_cSV, nxtstateID)) {
 								fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
 								break;
 							}
-						#endif
-						
-							/* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
-							sprintf(CommString,"Redisplay~");
-							if (!SUMA_Engine (CommString, &EngineData)) {
-								fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-							}
+						}
+					
 					}
+					postRedisplay();
 					break;
+					
 				case XK_Escape: /* there's more:  XK_BackSpace XK_Tab XK_Linefeed XK_Return XK_Delete */
          		exit(0);
          		break;
 				
 				case 'a':
 					/* toggle background attenuation */
-					{	
-						SUMA_SurfaceObject * SO;
 					
-						SO = (SUMA_SurfaceObject *)SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP;
-						if (SO->Back_Modfact) SO->Back_Modfact = 0;
-						else SO->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+					if (SUMAg_cSV->Back_Modfact) {
+						fprintf (SUMA_STDOUT,"%s: Modulation by background intensity OFF.\n", FuncName);
+						SUMAg_cSV->Back_Modfact = 0;
+					} else {
+						fprintf (SUMA_STDOUT,"%s: Modulation by background intensity ON.\n", FuncName);
+						SUMAg_cSV->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+					}
+
+					{
+						SUMA_SurfaceObject *SO = NULL;
 						
-						/* remix colors */
-						if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, SO->Back_Modfact)) {
-							fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
-							return;
+						for (ii=0; ii< SUMAg_cSV->N_DO; ++ii) {
+							if (SUMA_isSO(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]])) {
+								SO = (SUMA_SurfaceObject*)SUMAg_DOv[SUMAg_cSV->ShowDO[ii]].OP;
+								/* remix colors */
+								if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, \
+									SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
+									fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
+									return;
+								}
+							}
 						}
-						
-						postRedisplay();
-						break;
 					}
 					
-				case 'b':
+					postRedisplay();
+					break;
+					
+				case 'B':
 					SUMAg_cSV->BF_Cull = !SUMAg_cSV->BF_Cull;
 					if (SUMAg_cSV->BF_Cull) {
 						glCullFace (GL_BACK);
@@ -141,7 +141,16 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					}
 					postRedisplay();
 					break;
-				
+					
+				case 'b':
+					/* Show/hide the background */
+					sprintf(CommString,"Redisplay|Remix|ToggleBackground~");
+					if (!SUMA_Engine (CommString, &EngineData)) {
+						fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+					}
+					break;				
+
+
 				case 'c':
 					fprintf(stdout,"Enter name of color file: ");
 					/*Load colors from file */
@@ -191,16 +200,27 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					if (fm) SUMA_free2D ((char **)fm, EngineData.N_rows);
 				
 					break;
+				
 				case 'd':
 					SUMA_Show_DOv(SUMAg_DOv, SUMAg_N_DOv, stdout);
 					break;
-				case 'f':
+				
+				
+				case 'F':
 					sprintf(CommString,"Redisplay|FlipLight0Pos~");
 					if (!SUMA_Engine (CommString, &EngineData)) {
 						fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
 					}
 					break;
 					
+				case 'f':
+					/* Show/hide the foreground */
+					sprintf(CommString,"Redisplay|Remix|ToggleForeground~");
+					if (!SUMA_Engine (CommString, &EngineData)) {
+						fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+					}
+					break;				
+
 				case 'H':
 					do {
 						fprintf(stdout,"Enter XYZ of center followed by size of Box (comma separated):\n");
@@ -228,12 +248,6 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					SUMA_help_message(NULL);
 					break;
 
-				case 'i':
-					/*fprintf(stdout,"Zoom in");*/
-					SUMAg_cSV->FOV /= FOV_IN_FACT; if (SUMAg_cSV->FOV < FOV_MIN) SUMAg_cSV->FOV = FOV_MIN; 
-					postRedisplay();
-					break;
-				
 				case 'l':
 					do {
 						fflush (stdin);
@@ -298,12 +312,6 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					}
 					break;
 					
-				case 'o':
-					/*fprintf(stdout,"Zoom out");*/
-					SUMAg_cSV->FOV /= FOV_OUT_FACT; if (SUMAg_cSV->FOV > FOV_MAX) SUMAg_cSV->FOV = FOV_MAX;
-					postRedisplay();
-					break;
-				
 				case 'p':
 					 SUMAg_cSV->PolyMode = ((SUMAg_cSV->PolyMode+1) % 3);
 					 switch (SUMAg_cSV->PolyMode) {
@@ -331,6 +339,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 							}
 							free(do_id);
 						}
+						break;
 					}
 				case 's':
 					for (ii=0; ii< SUMAg_cSV->N_DO; ++ii) {
@@ -388,6 +397,18 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					} else {
 						fprintf(SUMA_STDERR, "%s: File suma.rgb.eps should have been written to disk.\n", FuncName);
 					}
+					break;
+				
+				case 'Z':
+					/*fprintf(stdout,"Zoom in");*/
+					SUMAg_cSV->FOV /= FOV_IN_FACT; if (SUMAg_cSV->FOV < FOV_MIN) SUMAg_cSV->FOV = FOV_MIN; 
+					postRedisplay();
+					break;
+				
+				case 'z':
+					/*fprintf(stdout,"Zoom out");*/
+					SUMAg_cSV->FOV /= FOV_OUT_FACT; if (SUMAg_cSV->FOV > FOV_MAX) SUMAg_cSV->FOV = FOV_MAX;
+					postRedisplay();
 					break;
 				
 				case '*':
@@ -539,6 +560,67 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						postRedisplay();	
 					}
 					break;
+				case ',':
+					{
+						/* switch state, back one */
+						int nxtstateID = -1;
+
+						if (SUMAg_cSV->N_VSv < 2) break;
+
+						/*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, SUMAg_cSV->State);*/
+						/* toggle to the next view state */
+						nxtstateID = SUMA_PrevState(SUMAg_cSV);
+						if (nxtstateID < 0) {
+							fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_PrevState.\n", FuncName);
+							break;
+						}
+						fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", \
+							FuncName, SUMAg_cSV->State, SUMAg_cSV->VSv[nxtstateID].Name);
+
+						if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, SUMAg_cSV, nxtstateID)) {
+							fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
+							break;
+						}
+
+						/* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
+						sprintf(CommString,"Redisplay~");
+						if (!SUMA_Engine (CommString, &EngineData)) {
+							fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+						}
+					}
+					break;
+					
+				case '.':
+					{
+						/* switch state, forward one */
+						int nxtstateID=-1;
+
+						if (SUMAg_cSV->N_VSv < 2) break;
+
+						/*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, SUMAg_cSV->State);*/
+						/* toggle to the next view state */
+						nxtstateID = SUMA_NextState(SUMAg_cSV);
+						if (nxtstateID < 0) {
+							fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_NextState.\n", FuncName);
+							break;
+						}
+						fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", FuncName, SUMAg_cSV->State, SUMAg_cSV->VSv[nxtstateID].Name);
+
+						if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, SUMAg_cSV, nxtstateID)) {
+							fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
+							break;
+						}
+
+						/* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
+						sprintf(CommString,"Redisplay~");
+						if (!SUMA_Engine (CommString, &EngineData)) {
+							fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+						}
+
+						break;
+					}
+					break;
+					
 				default:
 					break;
 					
@@ -608,8 +690,10 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 							/*SUMAg_cSV->translateVec[1] -= 0;*/
 							postRedisplay();
 							break;
+						
 						case ControlMask:
 							break;
+							
 						case Mod1Mask:
 							break;
 						default:
@@ -631,10 +715,13 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 							/*SUMAg_cSV->translateVec[1] -= 0;*/
 							postRedisplay();
 							break;
+						
 						case ControlMask:
 							break;
+							
 						case Mod1Mask:
 							break;
+							
 						default:
 							trackball(SUMAg_cSV->deltaQuat, 
 								-ArrowDeltaRot, 0.0, /* first point */
