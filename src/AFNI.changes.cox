@@ -4113,4 +4113,8 @@
      closing the data IOCHAN.  Also added new XYZFIRST metadata command,
      to allow setting of all 3 axis offsets.
  * Modified rtfeedme.c to test the above features.
- * Modified afni.c to skip version check if realtime is activated.
+
+12 Dec 2002
+ * Modified afni_niml.c and afni_sumafunc.c to create functional
+     colormaps for all surfaces on the anat dataset, not just the
+     first surface.  Also fixed it so that fim=0 is not overlaid.
