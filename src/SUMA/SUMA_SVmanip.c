@@ -659,7 +659,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 	cf->InOut_Notify = NOPE;
 	cf->InOut_Level = 0;
 	cf->MemTrace = NOPE;
-   cf->Mem = SUMA_Create_MemTrace ();
+   cf->Mem = SUMA_Create_MemTrace();
+   /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    return (cf);
 
 }

@@ -6,6 +6,7 @@ void *SUMA_calloc (size_t nmemb, size_t size);
 void *SUMA_malloc (size_t size);
 void *SUMA_realloc (void *ptr, size_t size);
 SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void);
+void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out);
 SUMA_Boolean SUMA_Free_MemTrace (SUMA_MEMTRACE_STRUCT * Mem);
 int SUMA_filexists (char *f_name);
 void SUMA_alloc_problem (char *s1);

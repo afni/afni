@@ -108,7 +108,7 @@ int main (int argc,char *argv[])
 	}
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
-	/* initialize Volume Parent and AfniHostName to nothing */
+  /* initialize Volume Parent and AfniHostName to nothing */
 	VolParName = NULL;
 	AfniHostName = NULL; 
 	
@@ -132,7 +132,7 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
-		#ifdef SUMA_MEMTRACE
+		#ifdef SUMA_MEMTRACE_FLAG
          if (!brk && (strcmp(argv[kar], "-memdbg") == 0)) {
 			   fprintf(SUMA_STDOUT,"Warning %s: SUMA running in memory trace mode.\n", FuncName);
 			   SUMAg_CF->MemTrace = YUP;

@@ -2,16 +2,15 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 
-/* #define USE_SUMA_ALLOC */
-
+#define USE_SUMA_ALLOC 
 #ifdef USE_SUMA_ALLOC
 /* This group of functions will get replaced by Bob's mcw_malloc functions that are more efficient */
 
    /*!
       ptr = SUMA_malloc ( size );
       \purpose a wrapper around malloc function that allows one to keep track of allocated memory.
-      For the tracking to occurr, you need to have SUMA_MEMTRACE set to 1 (when compiling) and then turn the flag SUMAg_CF->MemTrace on.
-      ifdef SUMA_MEMTRACE and SUMAg_CF->MemTrace then when size bytes are allocated to ptr the following happens:
+      For the tracking to occurr, you need to have SUMA_MEMTRACE_FLAG set to 1 (when compiling) and then turn the flag SUMAg_CF->MemTrace on.
+      ifdef SUMA_MEMTRACE_FLAG and SUMAg_CF->MemTrace then when size bytes are allocated to ptr the following happens:
       SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc] = ptr;
       SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc] = size;
       ++SUMAg_CF->Mem->N_alloc; 
@@ -25,22 +24,20 @@ extern SUMA_CommonFields *SUMAg_CF;
       void *ptr;
       static char FuncName[]={"SUMA_malloc"};
 
-      #if SUMA_MEMTRACE
+      #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
       #endif
-
       /* The allocation */
       ptr = malloc (size);
 
-      #if SUMA_MEMTRACE
+      #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->MemTrace) {
             ++SUMAg_CF->Mem->N_alloc;
-            if (SUMAg_CF->Mem->N_alloc > SUMAg_CF->Mem->N_MaxPointers-3) {
+            if (SUMAg_CF->Mem->N_MaxPointers <= SUMAg_CF->Mem->N_alloc) {
                /* must reallocate */
-               fprintf (SUMA_STDERR, "%s: About to reallocate ...\n", FuncName);
-               SUMAg_CF->Mem->Pointers = (void **)realloc (SUMAg_CF->Mem->Pointers, SUMAg_CF->Mem->N_MaxPointers+SUMA_MEMTRACE_BLOCK);
-               SUMAg_CF->Mem->Size  = (int *)realloc (SUMAg_CF->Mem->Size, SUMAg_CF->Mem->N_MaxPointers+SUMA_MEMTRACE_BLOCK);
-                fprintf (SUMA_STDERR, "%s:  reallocate Done. ...\n", FuncName);
+               SUMAg_CF->Mem->N_MaxPointers += SUMA_MEMTRACE_BLOCK;
+               SUMAg_CF->Mem->Pointers = (void **)realloc (SUMAg_CF->Mem->Pointers, sizeof(void*) * SUMAg_CF->Mem->N_MaxPointers);
+               SUMAg_CF->Mem->Size  = (int *)realloc (SUMAg_CF->Mem->Size, sizeof(int) * SUMAg_CF->Mem->N_MaxPointers);
               if (!SUMAg_CF->Mem->Pointers || !SUMAg_CF->Mem->Pointers) {
                   fprintf (SUMA_STDERR, "Error %s: Failed to reallocate.\nTurning off memory tracing.\n", \
                            FuncName);
@@ -49,12 +46,12 @@ extern SUMA_CommonFields *SUMAg_CF;
                   if (SUMAg_CF->Mem->Size) free(SUMAg_CF->Mem->Size); 
                   SUMAg_CF->MemTrace = 0;
                   SUMAg_CF->Mem->N_alloc = 0;
+                  SUMAg_CF->Mem->N_MaxPointers = 0;
                   SUMA_RETURN(ptr);
                }
-               SUMAg_CF->Mem->N_MaxPointers += SUMA_MEMTRACE_BLOCK;
             }
-            SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc] = ptr;
-            SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc] = size;
+            SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc-1] = ptr;
+            SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc-1] = size;
          }
          SUMA_RETURN(ptr);
       #else
@@ -68,26 +65,23 @@ extern SUMA_CommonFields *SUMAg_CF;
       int i;
       static char FuncName[]={"SUMA_realloc"};
 
-      #if SUMA_MEMTRACE
+      #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
       #endif
 
       /* The allocation */
       ptr2 = realloc(ptr, size);
 
-      #if SUMA_MEMTRACE
+      #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->MemTrace) {
             SUMA_Boolean Found = NOPE;
             /* find the pointer that's being changed*/
             for (i=0; i < SUMAg_CF->Mem->N_alloc && !Found; ++i) {
                if (SUMAg_CF->Mem->Pointers[i] == ptr) {
-                  /* cleanup that one */
-                  SUMAg_CF->Mem->Pointers[i] = SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc-1];
-                  SUMAg_CF->Mem->Size[i] = SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc-1];
+                 /* cleanup that one and replace with new*/
+                  SUMAg_CF->Mem->Pointers[i] = ptr2;
+                  SUMAg_CF->Mem->Size[i] = size;
                   Found = YUP;
-                  /* add the new one */
-                  SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc-1] = ptr2;
-                  SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc-1] = size;
                }   
             }
 
@@ -100,8 +94,6 @@ extern SUMA_CommonFields *SUMAg_CF;
       #else
          return(ptr2);
       #endif
-
-
 
    }
    /*!
@@ -117,23 +109,23 @@ extern SUMA_CommonFields *SUMAg_CF;
       void *ptr;
       static char FuncName[]={"SUMA_calloc"};
 
-      #if SUMA_MEMTRACE
+      #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
       #endif
 
       /* The allocation */
       ptr = calloc (nmemb, size);
 
-      #if SUMA_MEMTRACE
+      #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->MemTrace) {
             ++SUMAg_CF->Mem->N_alloc;
-            if (SUMAg_CF->Mem->N_alloc > SUMAg_CF->Mem->N_MaxPointers-1000) {
+            if (SUMAg_CF->Mem->N_MaxPointers <= SUMAg_CF->Mem->N_alloc) {
                /* must reallocate */
+               /* SUMA_ShowMemTrace (SUMAg_CF->Mem, NULL);*/
                SUMAg_CF->Mem->N_MaxPointers += SUMA_MEMTRACE_BLOCK;
-               fprintf (SUMA_STDERR, "%s: About to reallocate %p, new size %d ...\n", FuncName, SUMAg_CF->Mem->Pointers, SUMAg_CF->Mem->N_MaxPointers);
+
                SUMAg_CF->Mem->Pointers = (void **)realloc (SUMAg_CF->Mem->Pointers, sizeof(void*) * SUMAg_CF->Mem->N_MaxPointers);
                SUMAg_CF->Mem->Size  = (int *)realloc ((void *)SUMAg_CF->Mem->Size, sizeof(int) * SUMAg_CF->Mem->N_MaxPointers);
-               fprintf (SUMA_STDERR, "%s: Done.\n", FuncName);
                if (!SUMAg_CF->Mem->Pointers || !SUMAg_CF->Mem->Pointers) {
                   fprintf (SUMA_STDERR, "Error %s: Failed to reallocate.\nTurning off memory tracing.\n", \
                      FuncName);
@@ -146,8 +138,8 @@ extern SUMA_CommonFields *SUMAg_CF;
                   SUMA_RETURN(ptr);
                }
             }
-            SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc] = ptr;
-            SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc] = nmemb * size;
+            SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc-1] = ptr;
+            SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc-1] = nmemb * size;
          }
          SUMA_RETURN(ptr);
       #else
@@ -175,12 +167,12 @@ extern SUMA_CommonFields *SUMAg_CF;
       static char FuncName[]={"SUMA_free"};
       int i;
 
-      #if SUMA_MEMTRACE
+      #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
       #endif
 
 
-      #if SUMA_MEMTRACE
+      #if SUMA_MEMTRACE_FLAG
 
          if (SUMAg_CF->MemTrace && ptr) {
             SUMA_Boolean Found = NOPE;
@@ -234,7 +226,7 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
    /* you cannot use SUMAg_CF here because the function that allocates for SUMAg_CF calls that one */
    
    /* DO NOT USE SUMA_malloc function here ! */
-   Mem = malloc (sizeof(SUMA_MEMTRACE));
+   Mem = malloc (sizeof(SUMA_MEMTRACE_STRUCT));
    /* allocate for the Pointers and Size vectors */
    Mem->Pointers = (void **)calloc(SUMA_MEMTRACE_BLOCK, sizeof(void *));
    
@@ -242,13 +234,32 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
    Mem->N_MaxPointers = SUMA_MEMTRACE_BLOCK;
    Mem->N_alloc = 0;
    
-   if (!Mem->Pointers || !Mem->Pointers) {
+   if (!Mem->Pointers || !Mem->Size) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
       return (NULL);
    }
    return(Mem);
 }
 
+void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out) 
+{
+   static char FuncName[]={"SUMA_ShowMemTrace"};
+   
+   if (!Out) Out = SUMA_STDERR;
+   if (!Mem) {
+      fprintf (Out,"\nNull struct. Nothing to show.\n");
+      SUMA_RETURNe;
+   }
+   
+   fprintf (Out,"\nShowing SUMA_MEMTRACE_STRUCT: %p\n", Mem);    
+   fprintf (Out,"->Pointers: %p\n", Mem->Pointers);
+   fprintf (Out,"->Size: %p\n", Mem->Size);
+   fprintf (Out,"->N_alloc: %d\n", Mem->N_alloc);
+   fprintf (Out,"->N_MaxPointers: %d\n", Mem->N_MaxPointers);
+   
+   SUMA_RETURNe;
+   
+}
 SUMA_Boolean SUMA_Free_MemTrace (SUMA_MEMTRACE_STRUCT * Mem) {
    static char FuncName[]={"SUMA_Free_MemTrace"};
       

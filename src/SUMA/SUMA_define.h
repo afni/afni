@@ -89,7 +89,7 @@
 #define SUMA_MAX_N_SURFACE_SPEC 20/*!< Maximum number of surfaces allowed in a spec file */
 
 #define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
-#define SUMA_MEMTRACE 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
+#define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
 #define SUMA_PI 3.14159 
 
 typedef enum  { SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC } SUMA_SO_File_Type;
@@ -750,7 +750,7 @@ typedef struct {
 	int N_OpenSV; /*!< Number of open (visible) surface viewers */
    
    SUMA_MEMTRACE_STRUCT *Mem; /*!< structure used to keep track of memory usage */
-   SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage (must also set SUMA_MEMTRACE ) */
+   SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage (must also set SUMA_MEMTRACE_FLAG ) */
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */
