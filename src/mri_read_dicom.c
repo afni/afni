@@ -280,8 +280,17 @@ ENTRY("mri_read_dicom") ;
 
      ddd = strstr(epos[E_ACQ_MATRIX],"//") ;
      if( ddd != NULL ){                                  /* should always happen */
-       int aa=0,bb=0,cc=0,dd=0 ;
-       sscanf( ddd+2 , "%d%d%d%d" , &aa,&bb,&cc,&dd ) ;  /* should be 0 nx ny 0 */
+       int aa=0,bb=0,cc=0,dd=0 , pp[4]={0,0,0,0} , ip ;
+       sscanf( ddd+2 , "%d%d%d%d" , pp,pp+1,pp+2,pp+3 ) ;  /* contains nx ny */
+
+       /* 30 Nov 2002: extract nx ny from 1st two nonzero vals in pp,
+                       rather than assuming it is always the middle 2 vals */
+
+       for( ip=0 ; ip < 4 && pp[ip] <= 1 ; ip++ ) ; /* nada */
+       if( ip < 4 ) bb = pp[ip] ;
+       for( ip++ ; ip < 4 && pp[ip] <= 1 ; ip++ ) ; /* nada */
+       if( ip < 4 ) cc = pp[ip] ;
+     
        if( bb > 1 && cc > 1 ){
          mos_nx = bb    ; mos_ny = cc    ;   /* nx,ny = sub-image dimensions */
          mos_ix = nx/bb ; mos_iy = ny/cc ;   /* ix,iy = mosaic dimensions */
@@ -351,7 +360,7 @@ ENTRY("mri_read_dicom") ;
          static int nwarn=0 ;
          if( nwarn < NWMAX )
            fprintf(stderr,"++ DICOM WARNING: bad SIEMENS MOSAIC Acquisition Matrix: %d %d %d %d\n",
-                   aa,bb,cc,dd ) ;
+                   pp[0],pp[1],pp[2],pp[3] ) ;
          if( nwarn == NWMAX )
            fprintf(stderr,"++ DICOM NOTICE: no more SIEMENS MOSAIC Acquisition Matrix messages will be printed\n");
          nwarn++ ;
@@ -968,8 +977,17 @@ ENTRY("mri_imcount_dicom") ;
 
      ddd = strstr(epos[E_ACQ_MATRIX],"//") ;
      if( ddd != NULL ){
-       int aa=0,bb=0,cc=0,dd=0 ;
-       sscanf( ddd+2 , "%d%d%d%d" , &aa,&bb,&cc,&dd ) ;
+       int aa=0,bb=0,cc=0,dd=0 , pp[4]={0,0,0,0} , ip ;
+       sscanf( ddd+2 , "%d%d%d%d" , pp,pp+1,pp+2,pp+3 ) ;  /* contains nx ny */
+
+       /* 30 Nov 2002: extract nx ny from 1st two nonzero vals in pp,
+                       rather than assuming it is always the middle 2 vals */
+
+       for( ip=0 ; ip < 4 && pp[ip] <= 1 ; ip++ ) ; /* nada */
+       if( ip < 4 ) bb = pp[ip] ;
+       for( ip++ ; ip < 4 && pp[ip] <= 1 ; ip++ ) ; /* nada */
+       if( ip < 4 ) cc = pp[ip] ;
+
        if( bb > 1 && cc > 1 ){
          mos_nx = bb    ; mos_ny = cc    ;   /* nx,ny = sub-image dimensions */
          mos_ix = nx/bb ; mos_iy = ny/cc ;   /* ix,iy = mosaic dimensions */

@@ -17,6 +17,11 @@
 #define GRAF_XTICK  16
 #define GRAF_NTICK   8
 
+/* 30 Nov 2002: prototypes for internal functions (at end of file) */
+
+static char *get_popup_label( float,float,float,float , int,int ) ;
+static double clock_time(void) ;
+
 MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
                          gen_func * cbfunc , void * cbdata )
 {
@@ -78,6 +83,8 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
                          GRAF_drawing_EV ,      /* event handler */
                          (XtPointer) gp ,       /* client data */
                          XtListTail ) ;         /* last in queue */
+
+   /* 30 Nov 2002: popup stuff */
 
    gp->popmenu  = XmCreatePopupMenu( gp->drawer , "help" , NULL , 0 ) ;
    gp->poplabel = XtVaCreateManagedWidget(
@@ -144,7 +151,7 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
    memcpy( gp->oldf , gp->func , sizeof(byte)*256 ) ;
    gp->yeqx = 1 ;
 
-   gp->xbot = gp->xtop = gp->ybot = gp->ytop = 0.0 ;
+   gp->xbot = gp->xtop = gp->ybot = gp->ytop = 0.0 ;  /* 30 Nov 2002 */
 
    return gp ;
 }
@@ -253,6 +260,9 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
          int vertonly, x,y , orighx, orighy, grab,h , newx,newy ;
          unsigned int mask ;
 
+         int use_popup=0 , opx,opy ; /* 30 Nov 2002 */
+         double ct1,ct2 ;
+
 #undef USE_MyCursor
 #ifdef USE_MyCursor
          static int need_MyCursor = 1 ;
@@ -274,37 +284,22 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
 #endif /* USE_MyCursor */
 
          but = event->button ;
+         if( but == Button2 ) return ;  /* bad button */
 
-         if( but == Button3 && gp->popmenu != NULL ){   /* 29 Nov 2002 */
-           XmString xstr ; char str[128] , xbuf[32],ybuf[32] ;
-           float xx , yy , ff ;
+         /* 30 Nov 2002: label popup if Button3 was pressed */
 
-           if( event->x >= GRAF_SIZE || event->y >= GRAF_SIZE ) return ;  /* bad */
-
-           if( gp->xtop != gp->xbot ){
-             ff = event->x / (float)(GRAF_SIZE-1) ;
-             xx = ff*gp->xtop + (1.0-ff)*gp->xbot ;
-           } else {
-             xx = event->x ;
+         if( but == Button3 && gp->popmenu != NULL ){
+           char *str = get_popup_label( gp->xbot,gp->xtop ,
+                                        gp->ybot,gp->ytop ,
+                                        event->x , event->y ) ;
+           if( str != NULL ){
+             MCW_set_widget_label( gp->poplabel , str ) ;
+             XmMenuPosition( gp->popmenu , event ) ;
+             XtManageChild ( gp->popmenu ) ;
+             use_popup = 1 ; ct1 = clock_time() ;  /* start timer */
+             opx = event->x ; opy = event->y ;     /* old popup (x,y) in (opx,opy) */
            }
-
-           if( gp->ytop != gp->ybot ){
-             ff = event->y / (float)(GRAF_SIZE-1) ;
-             yy = ff*gp->ybot + (1.0-ff)*gp->ytop ;
-           } else {
-             yy = GRAF_SIZE-1 - event->y ;
-           }
-
-           AV_fval_to_char( xx,xbuf ); AV_fval_to_char( yy,ybuf );
-           sprintf(str,"%s %s",xbuf+1,ybuf+1) ;
-           MCW_set_widget_label( gp->poplabel , str ) ;
-
-           XmMenuPosition( gp->popmenu , event ) ;
-           XtManageChild ( gp->popmenu ) ;
-           return ;
          }
-
-         if( but != Button1 ) return ;  /* meaningless button */
 
          /* see if press is within any of the handles */
 
@@ -317,51 +312,86 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
 
          if (h==gp->nhands) return ;  /* meaningless click - not in a "hand" */
 
+         /* grab the mouse (should always work, but you never know) */
+
          grab = !XGrabPointer(gp->dc->display,
                               gp->gwin, False, 0, GrabModeAsync,
                               GrabModeAsync, gp->gwin, MyCursor , (Time) CurrentTime);
 
-         orighx = gp->hands[h].x; orighy = gp->hands[h].y;
+         orighx = gp->hands[h].x; orighy = gp->hands[h].y;  /* current hand location */
 
-         vertonly = (h==0 || h==(gp->nhands-1));
+         vertonly = (h==0 || h==(gp->nhands-1));   /* 1st & last hands: only y moves */
+
+         /** loop while mouse button is pressed down **/
 
          while( XQueryPointer(gp->dc->display,gp->gwin,&rW,&cW,&rx,&ry,&x,&y,&mask) ){
 
-          if (!(mask & Button1Mask)) break;    /* button was released */
+          if( !(mask & Button1Mask) && !(mask & Button3Mask) ) break; /* button released */
 
-          /* convert x,y from window to handle coordinates */
+          /* XQueryPointer returned current mouse position in (x,y); */
+          /* now, convert x,y from window to handle coordinates      */
 
-          newx = (vertonly) ? orighx : 2*x ;         /* handle moves */
-          newy = (y >= 127) ? 0      : 255 - 2*y ;   /* (newx,newy)  */
+          newx = (vertonly) ? orighx : 2*x ;         /* handle now at */
+          newy = (y >= 127) ? 0      : 255 - 2*y ;   /* (newx,newy)   */
 
-          if( !vertonly ){ /* don't let handle stray past neighbors */
-             if( newx <= gp->hands[h-1].x ) newx = gp->hands[h-1].x + 1 ;
-             if( newx >= gp->hands[h+1].x ) newx = gp->hands[h+1].x - 1 ;
+          if( !vertonly ){ /* don't let handle x stray past neighbors */
+            if( newx <= gp->hands[h-1].x ) newx = gp->hands[h-1].x + 1 ;
+            if( newx >= gp->hands[h+1].x ) newx = gp->hands[h+1].x - 1 ;
           }
 
           RANGE(newx, 0, 255);  /* ensure they are in the legal range! */
           RANGE(newy, 0, 255);
 
+          /* 30 Nov 2002: re-label popup if new (x,y) != (opx,opy) */
+#if 1
+          x = newx/2 ; y = (255-newy)/2 ;   /* convert back to screen coords */
+          if( use_popup && (opx != x || opy != y) ){
+            ct2 = clock_time() ;    /* only update every so often */
+            if( ct2-ct1 > 0.100 ){
+              char *str = get_popup_label( gp->xbot,gp->xtop ,
+                                           gp->ybot,gp->ytop , x,y ) ;
+              ct1 = ct2 ; opx = x ; opy = y ;
+              if( str != NULL ){
+                MCW_set_widget_label( gp->poplabel , str ) ;
+                XSync( XtDisplay(gp->drawer) , True ) ;
+                XmUpdateDisplay( gp->drawer ) ;
+              }
+            }
+          }
+#endif
+
           /* if handle moved, redraw graph */
 
           if (newx != gp->hands[h].x || newy != gp->hands[h].y) {
 
-             DC_fg_colorpix( gp->dc , gp->bg ) ;  /* erase region around handle */
-             XFillRectangle( gp->dc->display, gp->gwin, gp->dc->myGC ,
-                      (gp->hands[h].x/2)-3, ((255-gp->hands[h].y)/2)-3, 7,7);
+            DC_fg_colorpix( gp->dc , gp->bg ) ;  /* erase region around handle */
+            XFillRectangle( gp->dc->display, gp->gwin, gp->dc->myGC ,
+                     (gp->hands[h].x/2)-3, ((255-gp->hands[h].y)/2)-3, 7,7);
 
-             gp->hands[h].x = newx;  gp->hands[h].y = newy;
+            gp->hands[h].x = newx;  gp->hands[h].y = newy;
 
-             drawGraf(gp,1);           /* erase old trace */
-             GenerateGrafFunc(gp,0);   /* generate curve from handles */
-             drawGraf(gp,0);           /* redraw new trace */
+            drawGraf(gp,1);           /* erase old trace */
+            GenerateGrafFunc(gp,0);   /* generate curve from handles */
+            drawGraf(gp,0);           /* redraw new trace */
 
-           }
-        }  /* end of loop that modifies graph */
+          } /* end of redraw graph after handle move */
+
+        }  /* end of loop that modifies graph, while mouse button is down */
+
+        /* release the mouse grab */
 
         if (grab) XUngrabPointer(gp->dc->display, (Time) CurrentTime);
 
+        /* if the graph WAS changed, call the callback function */
+
         if( GRAF_changed(gp) && gp->cbfunc != NULL ) gp->cbfunc(gp,gp->cbdata) ;
+
+#if 1
+        if( use_popup ){                     /* 30 Nov 2002 */
+          XtUnmanageChild( gp->popmenu ) ;
+          MCW_expose_widget( gp->topform ) ;
+        }
+#endif
       }
       break ;  /* end of ButtonPress */
 
@@ -390,8 +420,10 @@ void drawGraf( MCW_graf * gp , int erase )
     pt->x = i/2;  pt->y = 127 - (gp->func[i]/2);
     if (i==0) i = -1;   /* kludge to get sequence 0,1,3,5, ... 253,255 */
   }
+  DC_linewidth( gp->dc , 2 ) ;
   XDrawLines( gp->dc->display , gp->gwin ,
               gp->dc->myGC , pts, 129, CoordModeOrigin    );
+  DC_linewidth( gp->dc , 0 ) ;
 
   if (erase) return ;  /* just erased the curve */
 
@@ -399,6 +431,7 @@ void drawGraf( MCW_graf * gp , int erase )
 
   DC_fg_colorpix( gp->dc , gp->bg ) ;
 
+  DC_linewidth( gp->dc , 1 ) ;
   for (i=0; i<gp->nhands; i++) {   /* clear inside rectangles */
     x = gp->hands[i].x/2;  y = 127 - gp->hands[i].y/2;
     XFillRectangle(gp->dc->display, gp->gwin,
@@ -418,6 +451,7 @@ void drawGraf( MCW_graf * gp , int erase )
     x = gp->hands[i].x/2;  y = 127 - gp->hands[i].y/2;
     XDrawRectangle(gp->dc->display, gp->gwin, gp->dc->myGC, x-3, y-3, 6,6);
   }
+  DC_linewidth( gp->dc , 0 ) ;
 
   /* draw tick marks in the extra space */
 
@@ -771,6 +805,15 @@ MCW_pasgraf * new_MCW_pasgraf( Widget wpar , MCW_DC * dc , char * title )
                          (XtPointer) gp ,       /* client data */
                          XtListTail ) ;         /* last in queue */
 
+   /* 30 Nov 2002: popup stuff */
+
+   gp->popmenu  = XmCreatePopupMenu( gp->drawer , "help" , NULL , 0 ) ;
+   gp->poplabel = XtVaCreateManagedWidget(
+                    "help" , xmLabelWidgetClass , gp->popmenu ,
+                    LABEL_ARG("I am a label") ,
+                    XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+
    XtManageChild( gp->topform ) ;
 
    /* initialize data structure */
@@ -780,7 +823,7 @@ MCW_pasgraf * new_MCW_pasgraf( Widget wpar , MCW_DC * dc , char * title )
    gp->fg = gp->bg = 0 ;   /* will be fixed later */
    gp->gwin = (Window) 0 ;
 
-   gp->xbot = gp->xtop = gp->ybot = gp->ytop = 0.0 ;
+   gp->xbot = gp->xtop = gp->ybot = gp->ytop = 0.0 ;  /* 30 Nov 2002 */
 
    return gp ;
 }
@@ -828,6 +871,20 @@ void GRAF_pasdrawing_EV( Widget w , XtPointer client_data ,
          int mx,my , but ;
 
          but = event->button ;
+
+         /* 30 Nov 2002: label popup if Button3 was pressed */
+
+         if( but == Button3 && gp->popmenu != NULL ){
+           char *str = get_popup_label( gp->xbot,gp->xtop ,
+                                        gp->ybot,gp->ytop ,
+                                        event->x , event->y ) ;
+           if( str != NULL ){
+             MCW_set_widget_label( gp->poplabel , str ) ;
+             XmMenuPosition( gp->popmenu , event ) ;
+             XtManageChild ( gp->popmenu ) ;
+           }
+         }
+
          if( but != Button1 ) return ;    /* meaningless */
          mx = event->x ; my = event->y ;  /* window coords */
 
@@ -924,7 +981,8 @@ void MCW_histo_bytes( int nb , byte * bar , int * har )
    return ;
 }
 
-/********************************************************************************/
+/*****************************************************************************/
+/*** 30 Nov 2002: stuff for popping up position label ***/
 
 void PASGRAF_set_xyrange( MCW_pasgraf *gp , float xb,float xt, float yb,float yt )
 {
@@ -933,10 +991,71 @@ void PASGRAF_set_xyrange( MCW_pasgraf *gp , float xb,float xt, float yb,float yt
   gp->ybot = yb ; gp->ytop = yt ;
 }
 
+/*--------------------------------------------------------------------------*/
 
 void GRAF_set_xyrange( MCW_graf *gp , float xb,float xt, float yb,float yt )
 {
   if( gp == NULL ) return ;
   gp->xbot = xb ; gp->xtop = xt ;
   gp->ybot = yb ; gp->ytop = yt ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static char *get_popup_label( float xbot,float xtop ,
+                              float ybot,float ytop , int x,int y )
+{
+   static char str[128] ;
+   char xbuf[32],ybuf[32] , *xb,*yb ;
+   float xx , yy , ff ;
+
+        if( x <  0         ) x = 0 ;
+   else if( x >= GRAF_SIZE ) x = GRAF_SIZE-1 ;
+        if( y <  0         ) y = 0 ;
+   else if( y >= GRAF_SIZE ) y = GRAF_SIZE-1 ;
+
+   if( xtop != xbot ){
+     ff = x / (float)(GRAF_SIZE-1) ;
+     xx = ff*xtop + (1.0-ff)*xbot ;
+   } else {
+     xx = x ;
+   }
+
+   if( ytop != ybot ){
+     ff = y / (float)(GRAF_SIZE-1) ;
+     yy = ff*ybot + (1.0-ff)*ytop ;
+   } else {
+     yy = GRAF_SIZE-1 - y ;
+   }
+
+   AV_fval_to_char( xx,xbuf ); xb = xbuf; if( *xb == ' ' ) xb++;
+   AV_fval_to_char( yy,ybuf ); yb = ybuf; if( *yb == ' ' ) yb++;
+   sprintf(str,"%s,%s",xb,yb) ;
+   return str ;
+}
+
+/*-----------------------------------------------------------------*/
+
+static double clock_time(void) /* in seconds, since first call to this */
+{
+   struct timeval  new_tval ;
+   struct timezone tzone ;
+   static struct timeval old_tval ;     /* save old time */
+   static int first = 1 ;
+
+   gettimeofday( &new_tval , &tzone ) ;
+
+   if( first ){                         /* 1st time in: */
+      old_tval = new_tval ;             /* just save current time */
+      first    = 0 ;
+      return 0.0 ;                      /* and return zero */
+   }
+
+   if( old_tval.tv_usec > new_tval.tv_usec ){  /* adjust structs */
+      new_tval.tv_usec += 1000000 ;            /* so new_tval.tv_usec */
+      new_tval.tv_sec -- ;                     /* >= old_tval.tv_usec */
+   }
+
+   return (double)( (new_tval.tv_sec  - old_tval.tv_sec )
+                   +(new_tval.tv_usec - old_tval.tv_usec)*1.0e-6 ) ;
 }
