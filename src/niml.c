@@ -1717,14 +1717,20 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->bad      = 0 ;
       ns->npos     = 0 ;             /* scan starts at 0   */
 
+      /* Note that bufsize == nbuf+1 for str:
+         This is because we don't count the terminal NUL
+         in nbuf (number of readable bytes),
+         but do count it in bufsize (size of the buf array) */
+
       if( do_accept ){               /* read from stuff after str: */
          ns->nbuf    = nn ;
          ns->bufsize = nn+1 ;
          ns->buf     = NI_malloc(nn+1) ;
          strcpy(ns->buf,name+4) ;
       } else {                       /* write to a string */
-         ns->nbuf = ns->bufsize = 0 ;
-         ns->buf  = NULL ;
+         ns->nbuf    = 0 ;
+         ns->bufsize = 1 ;
+         ns->buf     = NI_malloc(1) ; /* 1 byte set to zero */
       }
 
       strcpy( ns->name , "Elvis" ) ;
@@ -1907,7 +1913,7 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
       case NI_STRING_TYPE:{
          if( ns->io_mode == NI_OUTPUT_MODE ) return -1 ; /* never? */
 
-         return (ns->npos < ns->nbuf) ? 1 : -1 ;
+         return (ns->npos < ns->nbuf) ? 1 : -1 ;  /* is data left? */
       }
    }
 
@@ -2014,9 +2020,10 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
      /** str: ==> append to buffer in stream struct **/
 
      case NI_STRING_TYPE:
-        ns->buf = NI_realloc( ns->buf , ns->nbuf+nbytes ) ;
+        ns->buf = NI_realloc( ns->buf , ns->bufsize+nbytes ) ;
         memcpy( ns->buf+ns->nbuf , buffer , nbytes ) ;
-        ns->nbuf = ns->bufsize = ns->nbuf + nbytes ;
+        ns->nbuf    += nbytes ; ns->buf[ns->nbuf] = '\0' ;
+        ns->bufsize += nbytes ;
         return nbytes ;
    }
 
@@ -2068,6 +2075,17 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
        if( ns->fp == NULL || ns->io_mode == NI_OUTPUT_MODE ) return -1 ;
        ii = fread( buffer , 1 , nbytes , ns->fp ) ;
        return ii ;
+
+     /** str: copy bytes out of the buffer string **/
+
+     case NI_STRING_TYPE:
+       if( ns->io_mode == NI_OUTPUT_MODE ) return -1 ; /* bad stream */
+       ii = ns->nbuf - ns->npos ;                      /* how much is left */
+       if( ii <= 0                       ) return -1 ; /* no data left */
+       if( ii > nbytes ) ii = nbytes ;                 /* amount to copy */
+       memcpy( buffer , ns->buf+ns->npos , ii ) ;      /* copy it */
+       ns->npos += ii ;                                /* advance position */
+       return ii ;
    }
 
    return -1 ;  /* should not be reached */
@@ -2099,6 +2117,8 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
    int start_msec = NI_clock_time() ;
 
    if( NI_stream_goodcheck(ns,0) <= 0 ) return -1 ; /* bad input */
+
+   if( ns->type == NI_STRING_TYPE ) return 0 ;      /* goofy input */
 
    if( ns->nbuf >= ns->bufsize ) return 0 ; /* buffer already full */
 
@@ -2402,8 +2422,12 @@ BinaryDone:
 
         case NI_TEXT_MODE:{
 
+fprintf(stderr,"starting text mode read\n") ;
+
          while( row < nel->vec_len ){  /* loop over input rows */
           for( col=0 ; col < nel->vec_num ; col++ ){ /* over input vectors */
+
+fprintf(stderr,"  row=%d col=%d\n",row,col) ;
 
             /* decode one value from input, according to its type */
 
@@ -2505,6 +2529,8 @@ BinaryDone:
             } /* end of switch on type of this data value */
 
           } /* end of loop over vector columns */
+
+          row++ ;
          } /* end of loop over vector rows */
 
 TextDone:
@@ -2583,6 +2609,8 @@ static int decode_one_double( NI_stream_type *ns, double *val )
    int epos , num_restart, need_data, nn ;
    char vbuf[NVBUF+1] ;                    /* number string from buffer */
 
+fprintf(stderr,"   enter decode_one_double\n") ;
+
    /*-- check inputs for stupidness --*/
 
    if( ns == NULL || val == NULL ) return 0 ;
@@ -2592,6 +2620,7 @@ static int decode_one_double( NI_stream_type *ns, double *val )
    num_restart = 0 ;
 Restart:
    num_restart++ ;
+fprintf(stderr,"    num_restart=%d\n",num_restart) ;
    if( num_restart > 19 ) return 0 ;  /*** give up ***/
 
    /*-- advance over useless characters in the buffer --*/
@@ -2600,6 +2629,8 @@ Restart:
 
    /*-- check if we ran into the closing '<' prematurely
         (before any useful characters); if we did, then we are done --*/
+
+fprintf(stderr,"    npos=%d  nbuf=%d\n",ns->npos,ns->nbuf) ;
 
    if( ns->npos < ns->nbuf && ns->buf[ns->npos] == '<' ) return 0 ;
 
@@ -2774,4 +2805,59 @@ Restart:                                       /* loop back here to retry */
    /*-- if here, the stream went bad, so exit --*/
 
    ns->nbuf = ns->npos = 0 ; return -1 ;
+}
+
+/*************************************************************************/
+/*************************************************************************/
+/*************************************************************************/
+/*************************************************************************/
+
+int main( int argc , char *argv[] )
+{
+   NI_stream ns ;
+   char *str ;
+   int nn , tt ;
+   void *nini ;
+
+   if( argc < 2 ) exit(0) ;
+   nn = strlen(argv[1]) ; if( nn < 1 ) exit(0) ;
+   str = NI_malloc(nn+8) ;
+   strcpy(str,"str:") ; strcat(str,argv[1]) ;
+
+   ns = NI_stream_open( str , "r" ) ;
+   if( ns == NULL ){
+      fprintf(stderr,"NI_stream_open fails\n") ; exit(1) ;
+   }
+
+   nini = NI_read_element( ns ) ;
+   if( nini == NULL ){
+      fprintf(stderr,"NI_read_element fails\n") ; exit(1) ;
+   }
+
+   tt = NI_element_type( nini ) ;
+
+   if( tt == NI_ELEMENT_TYPE ){
+      NI_element *nel = (NI_element *) nini ;
+      fprintf(stderr,"Data element:\n"
+                     "  name       = %s\n"
+                     "  vec_num    = %d\n"
+                     "  vec_len    = %d\n"
+                     "  vec_filled = %d\n"
+                     "  attr_num   = %d\n" ,
+          nel->name,nel->vec_num,nel->vec_len,nel->vec_filled,nel->attr_num );
+       for( nn=0 ; nn < nel->attr_num ; nn++ )
+          fprintf(stderr,"  %2d: lhs=%s  rhs=%s\n",
+                  nn , nel->attr_lhs[nn] , nel->attr_rhs[nn] ) ;
+   } else {
+      NI_group *ngr = (NI_group *) nini ;
+      fprintf(stderr,"Group element:\n"
+                     "  part_num = %d\n"
+                     "  attr_num = %d\n" ,
+              ngr->part_num , ngr->attr_num ) ;
+       for( nn=0 ; nn < ngr->attr_num ; nn++ )
+          fprintf(stderr,"  %2d: lhs=%s  rhs=%s\n",
+                  nn , ngr->attr_lhs[nn] , ngr->attr_rhs[nn] ) ;
+   }
+
+   exit(0) ;
 }
