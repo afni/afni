@@ -39,7 +39,6 @@
     (a) To add information to the header that will be useful for functional
         neuroimaging data analysis and display.  These additions include:
         - More basic data types.
-        - Storage of more than one value in each voxel ("vector" data).
         - Two affine transformations to specify voxel coordinates.
         - "Intent" codes and parameters to describe the meaning of the data.
         - Affine scaling of the stored data values to their "true" values.
@@ -107,7 +106,7 @@
    (Also see the UNUSED FIELDS comment section, far below.)
 
    The presumption below is that the various C types have particular sizes:
-     sizeof(int) == sizeof(float) == 4 ;  sizeof(short) == 2
+     sizeof(int) = sizeof(float) = 4 ;  sizeof(short) = 2
 -----------------------------------------------------------------------------*/
 
                         /*************************/  /************************/
@@ -121,7 +120,7 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  int   extents;       /*!< ++UNUSED++            */  /* int extents;         */
  short session_error; /*!< ++UNUSED++            */  /* short session_error; */
  char  regular;       /*!< ++UNUSED++            */  /* char regular;        */
- char  intent_vector; /*!< Last dim=vector data? */  /* char hkey_un0;       */
+ char  hkey_un0;      /*!< ++UNUSED++            */  /* char hkey_un0;       */
 
                                       /*--- was image_dimension substruct ---*/
  short dim[8];        /*!< Data array dimensions.*/  /* short dim[8];        */
@@ -134,7 +133,7 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  short intent_code ;  /*!< NIFTI_INTENT_* code.  */  /* short unused14;      */
  short datatype;      /*!< Defines data type!    */  /* short datatype;      */
  short bitpix;        /*!< Number bits/voxel.    */  /* short bitpix;        */
- short byteorder ;    /*!< NIFTI_ORDER_* flag.   */  /* short dim_un0;       */
+ short dim_un0;       /*!< ++UNUSED++            */  /* short dim_un0;       */
  float pixdim[8];     /*!< Grid spacings.        */  /* float pixdim[8];     */
  float vox_offset;    /*!< Offset into .nii file */  /* float vox_offset;    */
  float scl_slope ;    /*!< Data scaling: slope.  */  /* float funused1;      */
@@ -146,7 +145,7 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  float cal_max;       /*!< Max display intensity */  /* float cal_max;       */
  float cal_min;       /*!< Min display intensity */  /* float cal_min;       */
  float compressed;    /*!< ++UNUSED++            */  /* float compressed;    */
- float verified;      /*!< ++UNUSED++            */  /* float verified;      */
+ float toffset;       /*!< Time axis shift.      */  /* float verified;      */
  int   glmax;         /*!< ++UNUSED++            */  /* int glmax;           */
  int   glmin;         /*!< ++UNUSED++            */  /* int glmin;           */
 
@@ -180,20 +179,59 @@ typedef struct nifti_1_header nifti_1_header ;
 /* DATA DIMENSIONALITY (as in ANALYZE 7.5):
    ---------------------------------------
      dim[0] = number of dimensions;
-              if dim[0] is outside range 1..7, then the header information
-              needs to be byte swapped appropriately
+              - if dim[0] is outside range 1..7, then the header information
+                needs to be byte swapped appropriately
+              - ANALYZE supports dim[0] up to 7, but NIFTI-1 reserves
+                dimensions 1,2,3 for space (x,y,z), 4 for time (t), and
+                5,6,7 for anything else needed.
 
      dim[i] = length of dimension #i, for i=1..dim[0]  (must be positive)
               - also see the discussion of intent_code, far below
 
      pixdim[i] = voxel width along dimension #i, i=1..dim[0] (positive)
-                 (cf. ORIENTATION section below for use of pixdim[0]);
-                 the units of pixdim can be specified with the xyz_units
-                 and time_units field (also described far below).
+                 - cf. ORIENTATION section below for use of pixdim[0]
+                 - the units of pixdim can be specified with the xyz_units
+                   and time_units field (also described far below).
 
    Number of bits per voxel value is in bitpix, which MUST correspond with
    the datatype field.  The total number of bytes in the image data is
      dim[1] * ... * dim[dim[0]] * bitpix / 8
+
+   In NIFTI-1 files, dimensions 1,2,3 are for space, dimension 4 is for time,
+   and dimension 5 is for storing multiple values at each spatiotemporal
+   voxel.  Some examples:
+     - A typical whole-brain FMRI experiment's time series:
+        - dim[0] = 4
+        - dim[1] = 64   pixdim[1] = 3.75 xyz_units = NIFTI_UNITS_MM
+        - dim[2] = 64   pixdim[2] = 3.75
+        - dim[3] = 20   pixdim[3] = 5.0
+        - dim[4] = 120  pixdim[4] = 2.0  time_units = NIFTI_UNITS_SEC
+     - A typical T1-weighted anatomical volume:
+        - dim[0] = 3
+        - dim[1] = 256  pixdim[1] = 1.0  xyz_units = NIFTI_UNITS_MM
+        - dim[2] = 256  pixdim[2] = 1.0
+        - dim[3] = 128  pixdim[3] = 1.1
+     - A single slice EPI time series:
+        - dim[0] = 4
+        - dim[1] = 64   pixdim[1] = 3.75 xyz_units = NIFTI_UNITS_MM
+        - dim[2] = 64   pixdim[2] = 3.75
+        - dim[3] = 1    pixdim[3] = 5.0
+        - dim[4] = 1200 pixdim[4] = 0.2  time_units = NIFTI_UNITS_SEC
+     - A 3-vector stored at each point in a 3D volume:
+        - dim[0] = 5
+        - dim[1] = 256  pixdim[1] = 1.0  xyz_units = NIFTI_UNITS_MM
+        - dim[2] = 256  pixdim[2] = 1.0
+        - dim[3] = 128  pixdim[3] = 1.1
+        - dim[4] = 1    pixdim[4] = 0.0  time_units = NIFTI_UNITS_UNKNOWN
+        - dim[5] = 3                     intent_code = NIFTI_INTENT_VECTOR
+     - A single time series with a 3x3 matrix at each point:
+        - dim[0] = 5
+        - dim[1] = 1                     xyz_units = NIFTI_UNITS_UNKNOWN
+        - dim[2] = 1
+        - dim[3] = 1
+        - dim[4] = 1200 pixdim[4] = 0.2  time_units = NIFTI_UNITS_SEC
+        - dim[5] = 9                     intent_code = NIFTI_INTENT_GENMATRIX
+        - intent_p1 = intent_p2 = 3.0    (indicates matrix dimensions)
 -----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -201,7 +239,7 @@ typedef struct nifti_1_header nifti_1_header ;
    ------------
    If the magic field is "n+1", then the voxel data is stored in the
    same file as the header.  In this case, the voxel data starts at offset
-   (int)vox_offset into the header file.  Thus, vox_offset==348.0 means that
+   (int)vox_offset into the header file.  Thus, vox_offset=348.0 means that
    the data starts immediately after the NIFTI-1 header.  If vox_offset is
    greater than 348, the NIFTI-1 format does not say anything about the
    contents of the dataset file between the end of the header and the
@@ -221,28 +259,11 @@ typedef struct nifti_1_header nifti_1_header ;
 
    BYTE ORDERING:
    -------------
-   The byteorder field indicates the voxel data storage byte order.  It should
-   be one of the codes below.  Note that it is possible for the header data
-   and the voxel data to be stored in different byte orders.  (The header
-   byte order is determined by checking dim[0], as described earlier.)
-
-   LSB first and MSB first may not be adequate specifications for all systems.
-   If needed, more codes will be added for more complex cases.
+   The byte order of the data arrays is presumed to be the same as the byte
+   order of the header (which is determined by examining dim[0]).
 
    Floating point types are presumed to be stored in IEEE-754 format.
 -----------------------------------------------------------------------------*/
-
- /*! Voxel data is ordered same as header */
-
-#define NIFTI_ORDER_SAME      0
-
- /*! Voxel data is LSB first */
-
-#define NIFTI_ORDER_LSB_FIRST 1
-
- /*! Voxel data is MSB first */
-
-#define NIFTI_ORDER_MSB_FIRST 2
 
 /*---------------------------------------------------------------------------*/
 /* DATA SCALING:
@@ -266,7 +287,7 @@ typedef struct nifti_1_header nifti_1_header ;
     - Colors "black" and "white", of course, may refer to any scalar display
       scheme (e.g., a color lookup table specified via aux_file).
     - cal_min and cal_max only make sense when applied to scalar-valued
-      datasets (i.e., intent_vector == 0).
+      datasets (i.e., dim[0] < 5 or dim[5] = 1).
 -----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -369,26 +390,25 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
    VECTOR-VALUED DATASETS:
    ----------------------
-   If the intent_vector field is nonzero, this indicates that the last
-   dimension of the dataset (e.g., dimension number dim[0]) is not a
-   physical dimension, but is just a way of storing multiple values
-   (e.g., a vector) at each location.  For example, the header values
-     dim[0] = 4
-     dim[1] = 64
-     dim[2] = 64
-     dim[3] = 20
-     dim[4] = 3
-     intent_vector = 1
-     datatype = DT_FLOAT
+   The 5th dimension of the dataset, if present (i.e., dim[0]=5 and
+   dim[5] > 1), contains multiple values (e.g., a vector) to be stored
+   at each spatiotemporal location.  For example, the header values
+    - dim[0] = 5
+    - dim[1] = 64
+    - dim[2] = 64
+    - dim[3] = 20
+    - dim[4] = 1     (indicates no time axis)
+    - dim[5] = 3
+    - datatype = DT_FLOAT
+    - intent_code = NIFTI_INTENT_VECTOR
    mean that this dataset should be interpreted as a 3D volume (64x64x20),
-   with a 3-vector of floats defined at each point in the 3D grid.  Note
-   that when intent_code != 0, then the physical dimensionality of the
-   dataset is dim[0]-1, rather than dim[0].
+   with a 3-vector of floats defined at each point in the 3D grid.
 
-   A program reading a dataset with intent_vector != 0 may want to reformat
+   A program reading a dataset with a 5th dimension may want to reformat
    the image data to store each voxels' set of values together in a struct
    or array.  This programming detail, however, is beyond the scope of the
-   NIFTI-1 file specification!
+   NIFTI-1 file specification!  Uses of dimensions 6 and 7 are also not
+   specified here.
 
    STATISTICAL PARAMETRIC DATASETS (i.e., SPMs):
    --------------------------------------------
@@ -397,25 +417,31 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    as being drawn from a given distribution.  Most such distributions have
    auxiliary parameters (e.g., NIFTI_INTENT_TTEST has 1 DOF parameter).
 
-   If intent_vector == 0, then the auxiliary parameters are the same for
-   each voxel, and are given in header fields intent_p1, intent_p2, and
-   intent_p3.
+   If the dataset DOES NOT have a 5th dimension, then the auxiliary parameters
+   are the same for each voxel, and are given in header fields intent_p1,
+   intent_p2, and intent_p3.
 
-   If intent_vector != 0, then the auxiliary parameters are different for
-   each voxel.  For example, the header values
-     dim[0] = 3
-     dim[1] = 128
-     dim[2] = 128
-     dim[3] = 2
-     intent_vector = 1
-     datatype = DT_FLOAT
-     intent_code = NIFTI_INTENT_TTEST
+   If the dataset DOES have a 5th dimension, then the auxiliary parameters
+   are different for each voxel.  For example, the header values
+    - dim[0] = 5
+    - dim[1] = 128
+    - dim[2] = 128
+    - dim[3] = 1      (indicates a single slice)
+    - dim[4] = 1      (indicates no time axis)
+    - dim[5] = 2
+    - datatype = DT_FLOAT
+    - intent_code = NIFTI_INTENT_TTEST
    mean that this is a 2D dataset (128x128) of t-statistics, with the
    t-statistic being in the first "plane" of data and the degrees-of-freedom
    parameter being in the second "plane" of data.
 
+   If the dataset 5th dimension is used to store the voxel-wise statistical
+   parameters, then dim[5] must be 1 plus the number of parameters required
+   by that distribution (e.g., intent_code=NIFTI_INTENT_TTEST implies dim[5]
+   must be 2, as in the example just above).
+
    Note: intent_code values 2..10 are compatible with AFNI 1.5x (which is
-   why there is no code with value==1, which is obsolescent in AFNI).
+   why there is no code with value=1, which is obsolescent in AFNI).
 
    OTHER INTENTIONS:
    ----------------
@@ -425,17 +451,17 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
    The intent_name field provides space for a 15 character (plus 0 byte)
    'name' string for the type of data stored. Examples:
-    - intent_code == NIFTI_INTENT_ESTIMATE; intent_name == "T1";
+    - intent_code = NIFTI_INTENT_ESTIMATE; intent_name = "T1";
        could be used to signify that the voxel values are estimates of the
        NMR parameter T1.
-    - intent_code == NIFTI_INTENT_TTEST; intent_name == "House";
+    - intent_code = NIFTI_INTENT_TTEST; intent_name = "House";
        could be used to signify that the voxel values are t-statistics
        for the significance of 'activation' response to a House stimulus.
-    - intent_code == NIFTI_INTENT_DISPVECT; intent_name == "ToMNI152";
+    - intent_code = NIFTI_INTENT_DISPVECT; intent_name = "ToMNI152";
        could be used to signify that the voxel values are a displacement
        vector that transforms each voxel (x,y,z) location to the
        corresponding location in the MNI152 standard brain.
-    - intent_code == NIFTI_INTENT_MATRIX; intent_name == "DTI";
+    - intent_code = NIFTI_INTENT_SYMMATRIX; intent_name = "DTI";
        could be used to signify that the voxel values comprise a diffusion
        tensor image.
 
@@ -446,27 +472,27 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_NONE        0
 
-         /*-------- These codes are for probability distributions --------*/
-         /*    Most distributions have a number of parameters,
-               below denoted by p1, p2, and p3, and stored in
-                 - intent_p1, intent_p2, intent_p3 if intent_vector == 0
-                 - image data array                if intent_vector != 0
+    /*-------- These codes are for probability distributions ---------------*/
+    /* Most distributions have a number of parameters,
+       below denoted by p1, p2, and p3, and stored in
+        - intent_p1, intent_p2, intent_p3 if dataset doesn't have 5th dimension
+        - image data array                if dataset does have 5th dimension
 
-            Functions to compute with many of the distributions
-            below can be found in the CDF library from U Texas.
+       Functions to compute with many of the distributions below can be found
+       in the CDF library from U Texas.
 
-            Formulas for and discussions of these distributions
-            can be found in the following books:
+       Formulas for and discussions of these distributions can be found in the
+       following books:
 
-              [U] Univariate Discrete Distributions,
-                  NL Johnson, S Kotz, AW Kemp.
+        [U] Univariate Discrete Distributions,
+            NL Johnson, S Kotz, AW Kemp.
 
-              [C1] Continuous Univariate Distributions, vol. 1,
-                   NL Johnson, S Kotz, N Balakrishnan.
+        [C1] Continuous Univariate Distributions, vol. 1,
+             NL Johnson, S Kotz, N Balakrishnan.
 
-              [C2] Continuous Univariate Distributions, vol. 2,
-                   NL Johnson, S Kotz, N Balakrishnan.                    */
-         /*---------------------------------------------------------------*/
+        [C2] Continuous Univariate Distributions, vol. 2,
+             NL Johnson, S Kotz, N Balakrishnan.                            */
+    /*----------------------------------------------------------------------*/
 
   /*! [C2, chap 32] Correlation coefficient R (3 params):
        p1 = number of sample points
@@ -562,9 +588,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
   /*! [C1, chap 18] Chi distribution (1 param): p1 = DOF.
       Density(x) proportional to x^(p1-1) * exp(-x^2/2) for x > 0.
-       p1 = 1 == 'half normal' distribution
-       p1 = 2 == Rayleigh distribution
-       p1 = 3 == Maxwell-Boltzmann distribution.                  */
+       p1 = 1 = 'half normal' distribution
+       p1 = 2 = Rayleigh distribution
+       p1 = 3 = Maxwell-Boltzmann distribution.                  */
 
 #define NIFTI_INTENT_CHI        19
 
@@ -596,7 +622,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
  /*---------- these values for intent_code aren't for statistics ----------*/
 
  /*! To signify that the value at each voxel is an estimate
-     of some parameter, set intent_code = NIFTI_INTENT_ESTIMATE. */
+     of some parameter, set intent_code = NIFTI_INTENT_ESTIMATE.
+     The name of the parameter may be stored in intent_name.     */
 
 #define NIFTI_INTENT_ESTIMATE  1001
 
@@ -612,9 +639,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_INTENT_NEURONAME 1003
 
  /*! To store an M x N matrix at each voxel:
-       - intent_vector must be nonzero
+       - dataset must have a 5th dimension (dim[0]=5 and dim[5]>1)
        - intent_code must be NIFTI_INTENT_GENMATRIX
-       - dim[ dim[0] ] must be M*N
+       - dim[5] must be M*N
        - intent_p1 must be M (in float format)
        - intent_p2 must be N (ditto)
        - the matrix values A[i][[j] are stored in row-order:
@@ -626,9 +653,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_INTENT_GENMATRIX 1004
 
  /*! To store an NxN symmetric matrix at each voxel:
-       - intent_vector must be nonzero
+       - dataset must have a 5th dimension
        - intent_code must be NIFTI_INTENT_SYMMATRIX
-       - dim[ dim[0] ] must be N*(N+1)/2
+       - dim[5] must be N*(N+1)/2
        - intent_p1 must be N (in float format)
        - the matrix values A[i][[j] are stored in row-order:
          - A[0][0]
@@ -639,42 +666,49 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_INTENT_SYMMATRIX 1005
 
  /*! To signify that the vector value at each voxel is to be taken
-     as a displacement field:
-       - intent_vector must be nonzero
+     as a displacement field or vector:
+       - dataset must have a 5th dimension
        - intent_code must be NIFTI_INTENT_DISPVECT
-       - dim[ dim[0] ] must be the dimensionality of the displacment
-         (e.g., 3 for spatial displacement, 2 for in-plane)          */
+       - dim[5] must be the dimensionality of the displacment
+         vector (e.g., 3 for spatial displacement, 2 for in-plane) */
 
-#define NIFTI_INTENT_DISPVECT  1006
+#define NIFTI_INTENT_DISPVECT  1006   /* specifically for displacements */
+#define NIFTI_INTENT_VECTOR    1007   /* for any other type of vector */
 
  /*! To signify that the vector value at each voxel is really a
      spatial coordinate (e.g., the vertices or nodes of a surface mesh):
-       - intent_vector must be nonzero
+       - dataset must have a 5th dimension
        - intent_code must be NIFTI_INTENT_POINTSET
-       - dim[0] must be 2
-       - dim[1] must be the number of points
-       - dim[2] must be the dimensionality of space (e.g., 3 => 3D space).
+       - dim[0] = 5
+       - dim[1] = number of points
+       - dim[2] = dim[3] = dim[4] = 1
+       - dim[5] must be the dimensionality of space (e.g., 3 => 3D space).
        - intent_name may describe the object these points come from
          (e.g., "pial", "gray/white" , "EEG", "MEG").                   */
 
-#define NIFTI_INTENT_POINTSET  1007
+#define NIFTI_INTENT_POINTSET  1008
 
  /*! To signify that the vector value at each voxel is really a triple
      of indexes (e.g., forming a triangle) from a pointset dataset:
-       - intent_vector must be nonzero
+       - dataset must have a 5th dimension
        - intent_code must be NIFTI_INTENT_TRIANGLE
-       - dim[0] must be 2
-       - dim[1] must be the number of triangles
-       - dim[2] must be 3
+       - dim[0] = 5
+       - dim[1] = number of triangles
+       - dim[2] = dim[3] = dim[4] = 1
+       - dim[5] = 3
        - datatype should be an integer type (preferably DT_INT32)
        - the data values are indexes (0,1,...) into a pointset dataset. */
 
-#define NIFTI_INTENT_TRIANGLE  1008
+#define NIFTI_INTENT_TRIANGLE  1009
 
- /*! To signify that the data values are a measure of curvature,
-     set intent_code = NIFTI_INTENT_CURVATURE.                   */
+ /*! To signify that the vector value at each voxel is a quaternion:
+       - dataset must have a 5th dimension
+       - intent_code must be NIFTI_INTENT_QUATERNION
+       - dim[0] = 5
+       - dim[5] = 4
+       - datatype should be a floating point type     */
 
-#define NIFTI_INTENT_CURVATURE 1009
+#define NIFTI_INTENT_QUATERNION 1010
 
 /*---------------------------------------------------------------------------*/
 /* 3D IMAGE (VOLUME) ORIENTATION AND LOCATION IN SPACE:
@@ -714,13 +748,14 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
     would be done with the inverse transformation to those described below.
 
    N.B.: Method 2 uses a factor 'pfac' which is either -1 or 1; pfac is
-    stored in the otherwise unused pixdim[0].  If pixdim[0]==0.0 (which
-    should not occur), we take pfac=1.
+    stored in the otherwise unused pixdim[0].  If pixdim[0]=0.0 (which
+    should not occur), we take pfac=1.  Of course, pixdim[0] is only used
+    when reading a NIFTI-1 header, not when reading an ANALYZE 7.5 header.
 
    N.B.: The units of (x,y,z) can be specified using the xyz_units code.
 
-   METHOD 1 (the "old" way, used only when qform_code == 0):
-   --------------------------------------------------------
+   METHOD 1 (the "old" way, used only when qform_code = 0):
+   -------------------------------------------------------
    The coordinate mapping from (i,j,k) to (x,y,z) is the ANALYZE
    7.5 way.  This is a simple scaling relationship:
 
@@ -835,7 +870,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
          [ 2*b*d-2*a*c       2*c*d+2*a*b       a*a+d*d-c*c-b*b ]
 
          [ R11               R12               R13             ]
-      == [ R21               R22               R23             ]
+       = [ R21               R22               R23             ]
          [ R31               R32               R33             ]
 
    If (p,q,r) is a unit 3-vector, then rotation of angle h about that
@@ -859,7 +894,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
    Multiplication of 2 quaternions is defined by the following:
 
-     [a,b,c,d] == a*1 + b*I + c*J + d*K
+     [a,b,c,d] = a*1 + b*I + c*J + d*K
      where
        I*I = J*J = K*K = -1 (I,J,K are square roots of -1)
        I*J =  K  J*K =  I  K*I =  J
@@ -873,14 +908,14 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    rotation matrix and direction cosines.  Conversely, given R,
    we can compute the fields for the NIFTI-1 header by
 
-     a = 0.5  * sqrt(1+R11+R22+R33)     (not stored)
-     b = 0.25 * (R32-R23) / a       ==> quatern_b
-     c = 0.25 * (R13-R31) / a       ==> quatern_c
-     d = 0.25 * (R21-R12) / a       ==> quatern_d
+     a = 0.5  * sqrt(1+R11+R22+R33)    (not stored)
+     b = 0.25 * (R32-R23) / a       => quatern_b
+     c = 0.25 * (R13-R31) / a       => quatern_c
+     d = 0.25 * (R21-R12) / a       => quatern_d
 
-   [If a==0 (a 180 degree rotation), alternative formulas are needed.]
+   [If a=0 (a 180 degree rotation), alternative formulas are needed.]
 
-   Note that R-transpose (== R-inverse) would lead to the quaternion
+   Note that R-transpose (= R-inverse) would lead to the quaternion
    [a,-b,-c,-d].
 
    The choice to specify the qoffset_x (etc.) values in the final
@@ -891,9 +926,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    where (x,y,z) refers to the NIFTI coordinate system discussed above.
    (i.e., DICOM +Xd is Left, +Yd is Posterior, +Zd is Superior,
         whereas +x is Right, +y is Anterior  , +z is Superior. )
-   Thus, if the 0020/0032 DICOM attribute are extracted into (px,py,pz), then
+   Thus, if the 0020/0032 DICOM attribute is extracted into (px,py,pz), then
      qoffset_x = -px   qoffset_y = -py   qoffset_z = pz
-   is a reasonable setting for qform_code==NIFTI_XFORM_SCANNER_ANAT.
+   is a reasonable setting for qform_code=NIFTI_XFORM_SCANNER_ANAT.
 
    That is, DICOM's coordinate system is 180 degrees rotated about the z-axis
    from the neuroscience/NIFTI coordinate system.  To transform between DICOM
@@ -903,23 +938,25 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
    /*-----------------------*/      /*---------------------------------------*/
 
- /*! Arbitrary coordinates (Method 1). */
+                                    /*! Arbitrary coordinates (Method 1). */
 
 #define NIFTI_XFORM_UNKNOWN      0
 
- /*! Scanner-based anatomical coordinates. */
+                                    /*! Scanner-based anatomical coordinates */
 
 #define NIFTI_XFORM_SCANNER_ANAT 1
 
- /*! Coordinates aligned to another file's, or to anatomical "truth". */
+                                    /*! Coordinates aligned to another file's,
+                                        or to anatomical "truth".            */
 
 #define NIFTI_XFORM_ALIGNED_ANAT 2
 
- /*! Coordinates aligned to Talairach-Tournoux Atlas; (0,0,0)=AC, etc. */
+                                    /*! Coordinates aligned to Talairach-
+                                        Tournoux Atlas; (0,0,0)=AC, etc. */
 
 #define NIFTI_XFORM_TALAIRACH    3
 
- /*! MNI 152 normalized coordinates. */
+                                    /*! MNI 152 normalized coordinates. */
 
 #define NIFTI_XFORM_MNI_152      4
 
@@ -927,20 +964,23 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 /* SPATIAL AND TEMPORAL DIMENSIONS:
    -------------------------------
    The codes below can be used in xyz_units and time_units to indicate
-   the units of pixdim.
+   the units of pixdim.  As noted earlier, dimensions 1,2,3 are for x,y,z;
+   dimension 4 is for time (t).
+    - If dim[4]=1 or dim[0] < 4, there is no time axis.
+    - A single time series (no space) would be specified with
+      - dim[0] = 4 (for scalar data) or dim[0] = 5 (for vector data)
+      - dim[1] = dim[2] = dim[3] = 1
+      - dim[4] = number of time points
+      - pixdim[4] = time step
+      - time_units indicates units of pixdim[4]
+      - dim[5] = number of values stored at each time point
 
-   If time_units is not zero, this indicates that the last dimension
-   (or next-to-last, if intent_vector is nonzero) of the data array should
-   be considered to be a time axis.  The following situations are the
-   most likely to occur:
-  - dim[0]=3, intent_vector=0, time_axis=0 ==> 3D spatial grid
-  - dim[0]=2, intent_vector=0, time_axis=0 ==> 2D slice
-  - dim[0]=4, intent_vector=0, time_axis>0 ==> 3D grid plus time
-  - dim[0]=3, intent_vector=0, time_axis>0 ==> 2D slice plus time
-  - dim[0]=4, intent_vector=1, time_axis=0 ==> 3D grid w/ vector data
-  - dim[0]=3, intent_vector=1, time_axis=0 ==> 2D slice w/ vector data
-  - dim[0]=5, intent_vector=1, time_axis>0 ==> 3D grid + time w/ vector data
-  - dim[0]=4, intent_vector=1, time_axis>0 ==> 2D slice + time w/ vector data
+   Note that codes are provided to indicate the "time" axis units are
+   actually frequency in Hertz (_HZ) or in part-per-million (_PPM).
+
+   The toffset field can be used to indicate a nonzero start point for
+   the time axis.  That is, time point #m is at t=toffset+m*pixdim[4]
+   for m=0..dim[4]-1.
 -----------------------------------------------------------------------------*/
 
                                /*! NIFTI code for unspecified units.
@@ -957,8 +997,12 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_UNITS_MSEC    9
                                /*! NIFTI code for microseconds. */
 #define NIFTI_UNITS_USEC   10
+
+                               /*** These units are for spectral data: ***/
                                /*! NIFTI code for Hertz. */
 #define NIFTI_UNITS_HZ     11
+                               /*! NIFTI code for ppm. */
+#define NIFTI_UNITS_PPM    12
 
 /*---------------------------------------------------------------------------*/
 /* UNUSED FIELDS:
@@ -1006,6 +1050,12 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
     Returns 1 if it needs to be swapped, 0 if it does not.     */
 
 #define NIFTI_NEEDS_SWAP(h) ( (h).dim[0] < 0 || (h).dim[0] > 7 )
+
+/*.................*/
+/*! Check if a nifti_1_header struct contains a 5th (vector) dimension.
+    Returns size of 5th dimension if > 1, returns 0 otherwise.         */
+
+#define NIFTI_5TH_DIM(h) ( ((h).dim[0]>4 && (h).dim[5]>1) ? (h).dim[5] : 0 )
 
 /*****************************************************************************/
 
