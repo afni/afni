@@ -917,6 +917,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
             break;
          
+         case SE_SetSOinFocus:
+            /* expects surface ID in i */
+            if (EngineData->i_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               break;
+            }
+            if (sv->Focus_SO_ID != EngineData->i) {
+               /* a new one, update */
+               sv->Focus_SO_ID = EngineData->i;
+               SUMA_UpdateViewerTitle(sv);
+           }
+            break;
+            
          case SE_ToggleLockView:
             /* expects index of viewer in i to toggle its lock view */
             /* toggles the lock view button */
@@ -1179,6 +1192,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             break;
             
+         
          case SE_Redisplay:
             /* expects nothing in EngineData */
             /*post a redisplay to one specific viewer*/

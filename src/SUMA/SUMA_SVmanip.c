@@ -1706,7 +1706,8 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    char slabel[30], sside[30], srec[10], cl='\0', cr='\0';   
    SUMA_SurfaceObject *SO = NULL;   
    int SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];   
-   SUMA_Boolean LeftSide, RightSide, RightShown, LeftShown, LocalHead = NOPE;
+   SUMA_Boolean LeftSide, RightSide, RightShown, LeftShown;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1756,7 +1757,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    
    sprintf(sside, ":%c%c:", cl, cr);
    
-   if (sv->Record) sprintf(srec,":Rec:");
+   if (sv->Record) sprintf(srec,":Rec");
    else srec[0] = '\0';
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d surface models.\n", FuncName, N_SOlist);
@@ -1764,15 +1765,26 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    i = 0; 
    if (N_SOlist >= 0) {   
       SUMA_LH("title surfaces found");
-      sv->X->Title = (char *)SUMA_calloc(nalloc + strlen(slabel)+3, sizeof(char));      
+      sv->X->Title = (char *)SUMA_calloc(nalloc + strlen(slabel)+ 13, sizeof(char));      
       sv->X->Title[0] = '\0';
       while (i < N_SOlist) {   
          SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);   
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: sv->Focus_SO_ID = %d,  SOlist[%d] = %d\n", FuncName, sv->Focus_SO_ID, i, SOlist[i]);
          if (!i)  {
-            sprintf (sv->X->Title,"%s%s%s%s", slabel, srec, sside, SO->Label); 
+            if (sv->Focus_SO_ID == SOlist[i]) {
+               sprintf (sv->X->Title,"%s%s%s [%s]", slabel, srec, sside, SO->Label); 
+            } else {
+               sprintf (sv->X->Title,"%s%s%s %s", slabel, srec, sside, SO->Label); 
+            }
          } else {
             sv->X->Title = strcat (sv->X->Title, " & ");
-            sv->X->Title = strcat (sv->X->Title, SO->Label); 
+            if (sv->Focus_SO_ID == SOlist[i]) {
+               sv->X->Title = strcat (sv->X->Title, " [");
+               sv->X->Title = strcat (sv->X->Title, SO->Label); 
+               sv->X->Title = strcat (sv->X->Title, "] "); 
+            } else  {
+               sv->X->Title = strcat (sv->X->Title, SO->Label); 
+            }
          }
          ++i;   
       }  

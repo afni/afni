@@ -1910,6 +1910,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    /* Mark intersection Facsets */
    if (imin >= 0) {
       sv->Focus_SO_ID = imin;
+      SUMA_UpdateViewerTitle(sv);
       SO = (SUMA_SurfaceObject *)dov[imin].OP;
       NP = SO->FaceSetDim;
       ip = NP * MTI->ifacemin;
