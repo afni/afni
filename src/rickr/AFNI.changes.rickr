@@ -590,3 +590,7 @@
   * modified SUMA_glxdino.c, cast each 3rd gluTessCallback arg as _GLUfuncptr
     (some 64-bit machines have complained)
 
+03 August 2004:
+  * modified f2cdir/rawio.h, hiding read/write declarations for 64-bit machines
+  * added Makefile.solaris9_suncc_64 (works on kampos)
+
