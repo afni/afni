@@ -12,8 +12,11 @@
 
 static THD_fvec3 AFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
 static THD_fvec3 AFNI_backward_warp_vector( THD_warp * , THD_fvec3 ) ;
+
+#if 0
 static THD_fvec3 THD_dicomm_to_surefit( THD_3dim_dataset *, THD_fvec3 ) ;
 static THD_fvec3 THD_surefit_to_dicomm( THD_3dim_dataset *, THD_fvec3 ) ;
+#endif
 
 #undef DEBUG
 
@@ -538,6 +541,7 @@ static THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
    return new_fv ;
 }
 
+#if 0
 /*--------------------------------------------------------------------------
    The following routines are used to convert DICOM order coordinates
    (used in AFNI) to SureFit order coordinates
@@ -608,3 +612,4 @@ if(first){fprintf(stderr,"s2d base=%f %f %f\n",xbase,ybase,zbase);first=0;}
    vout.xyz[1] = yy - ybase ;
    vout.xyz[2] = zz + zbase ; return vout ;
 }
+#endif
