@@ -4066,7 +4066,94 @@ ENTRY("PLUGIN_seq_send_CB") ;
          }
       }
       break ;
-#endif
+
+      /*--------------------------------------*/
+
+      case isqCR_keypress:{    /* 12 Sep 2002 */
+        static char *nash[] = {
+                   " \n"
+                   "The ant has made himself illustrious\n"
+                   "Through constant industry industrious.\n"
+                   "So what?\n"
+                   "Would you be calm and placid\n"
+                   "If you were full of formic acid?\n"
+                ,
+                   " \n"
+                   "Celery, raw\n"
+                   "Develops the jaw,\n"
+                   "But celery, stewed,\n"
+                   "Is more quietly chewed.\n"
+                ,
+                   " \n"
+                   "I objurgate the centipede,\n"
+                   "A bug we do not really need.\n"
+                   "At sleepy-time he beats a path\n"
+                   "Straight to the bedroom or the bath.\n"
+                   "You always wallop where he?s not,\n"
+                   "Or, if he is, he makes a spot. \n"
+                ,
+                   " \n"
+                   "The cow is of the bovine ilk;\n"
+                   "One end is moo, the other, milk.\n"
+                ,
+                   " \n"
+                   "This is my dream,\n"
+                   "It is my own dream,\n"
+                   "I dreamt it.\n"
+                   "I dreamt that my hair was kempt.\n"
+                   "Then I dreamt that my true love unkempt it.\n"
+                ,
+                   " \n"
+                   "I find it very difficult to enthuse\n"
+                   "Over the current news.\n"
+                   "Just when you think that at least the outlook\n"
+                   "   is so black that it can grow no blacker, it worsens,\n"
+                   "And that is why I do not like the news, because there\n"
+                   "   has never been an era when so many things were going\n"
+                   "   so right for so many of the wrong persons. \n"
+                ,
+                   " \n"
+                   "I test my bath before I sit,\n"
+                   "And I'm always moved to wonderment\n"
+                   "That what chills the finger not a bit\n"
+                   "Is so frigid upon the fundament.\n"
+                ,
+                   " \n"
+                   "The turtle lives 'twixt plated decks\n"
+                   "Which practically conceal its sex.\n"
+                   "I think it clever of the turtle\n"
+                   "In such a fix to be so fertile.\n"
+                ,
+                   " \n"
+                   "Candy\n"
+                   "Is Dandy\n"
+                   "But liquor\n"
+                   "Is quicker.\n"
+                ,
+                   " \n"
+                   "I've never seen an abominable snowman,\n"
+                   "I'm hoping not to see one,\n"
+                   "I'm also hoping, if I do,\n"
+                   "That it will be a wee one. \n"
+                ,
+                   " \n"
+                   "Children aren't happy without\n"
+                   "something to ignore, and that's\n"
+                   "what parents were created for. \n"
+                ,
+                   " \n"
+                   "Middle age is when you've met so\n"
+                   "many people that every new person\n"
+                   "you meet reminds you of someone else.\n"
+                } ;
+#define NUM_NASH (sizeof(nash)/sizeof(char *)) ;
+
+        static int iold=-1 ; int ii ;
+        do{ ii=lrand48()%NUM_NASH; } while( ii==iold ) ; iold = ii ;
+        MCW_popup_message( seq->wimage , nash[ii] , MCW_USER_KILL ) ;
+      }
+      break ;
+#endif  /* NO_FRIVOLITIES */
 
    }
    EXRETURN ;
