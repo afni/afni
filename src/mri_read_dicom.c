@@ -425,7 +425,7 @@ ENTRY("mri_read_dicom") ;
 
      eee           = getenv("AFNI_SLICE_SPACING_IS_GAP") ;
      stupid_ge_fix = (eee != NULL && (*eee=='Y' || *eee=='y') ) ;
-     no_stupidity  = (eee != NULL && (*eee=='N' || *eee=='y') ) ;  /* 03 Mar 2003 */
+     no_stupidity  = (eee != NULL && (*eee=='N' || *eee=='n') ) ;  /* 03 Mar 2003 */
 
      if( epos[E_SLICE_SPACING] != NULL ){                  /* get reported slice spacing */
        ddd = strstr(epos[E_SLICE_SPACING],"//") ;
