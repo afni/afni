@@ -473,6 +473,7 @@ typedef struct MCW_imseq {
      Widget        crop_drag_pb ;                     /* 17 Jun 2002 */
      int           crop_drag ;
 
+     int button2_width ;                              /* 08 Oct 2002 */
 } MCW_imseq ;
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
@@ -540,6 +541,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_button2_disable 502
 #define isqDR_button2_pixel   503
 #define isqDR_button2_mode    504
+#define isqDR_button2_width   505
 
 #define isqDR_ignore_redraws  521
 

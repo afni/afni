@@ -148,12 +148,13 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *, int,int,int ) ;
 #define MODE_3D_NN4     17
 #define MODE_3D_NN5     18
 #define MODE_3D_NN6     19
+#define MODE_3D_5x5     20   /* 08 Oct 2002 */
 
 #define FIRST_2D_MODE   MODE_2D_NN1
 #define LAST_2D_MODE    MODE_2D_NN5
 
 #define FIRST_3D_MODE   MODE_3D_NN1
-#define LAST_3D_MODE    MODE_3D_NN6
+#define LAST_3D_MODE    MODE_3D_5x5
 
 static char * mode_strings[] = {
   "Open Curve"       ,                 /* MODE_CURVE      */
@@ -177,7 +178,14 @@ static char * mode_strings[] = {
   "*3D Nbhd: 3rd NN" ,
   "*3D Nbhd: 4th NN" ,
   "*3D Nbhd: 5th NN" ,
-  "*3D Nbhd: 6th NN"
+  "*3D Nbhd: 6th NN" ,
+  "*3D Nbhd: 5x5x5"
+} ;
+
+static int  mode_width[] = {    /* 08 Oct 2002: line width for button2 drawing */
+  2,2 , 0,0,0,0,0,0 , 2 ,
+  3,3,5,5,7 ,
+  3,3,3,5,5,5,5
 } ;
 
 static int    mode_ints[] = {
@@ -185,8 +193,9 @@ static int    mode_ints[] = {
   DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS ,
   DRAWING_POINTS ,
   DRAWING_FILL   ,
-  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS ,
-  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS
+  DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  ,
+  DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  , DRAWING_LINES  ,
+  DRAWING_LINES  , DRAWING_LINES
 } ;
 
 #define NUM_modes (sizeof(mode_ints)/sizeof(int))
@@ -542,16 +551,14 @@ void DRAW_make_widgets(void)
                          "Filled Curve    = fill inside of closed curve with\n"
                          "                   Drawing Value\n"
                          "\n"
-                         "2D Nbhd         = like Points, but fills in around\n"
+                         "2D Nbhd         = like Open Curve, but fills in around\n"
                          "                   the in-plane neighborhood of each\n"
                          "                   point 'x' with the patterns:\n"
-                         "\n"
                          "                        5 4 3 4 5\n"
                          "                        4 2 1 2 4\n"
                          "                        3 1 x 1 3\n"
                          "                        4 2 1 2 4\n"
                          "                        5 4 3 4 5\n"
-                         "\n"
                          "                   where the number indicates the\n"
                          "                   Nearest Neighbor order of the\n"
                          "                   points nearby 'x'.\n"
@@ -1024,7 +1031,7 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            its interior with the drawing value.  It is similar to\n"
   "            doing 'Closed Curve' followed by 'Flood->Value', but\n"
   "            more convenient.\n"
-  "        * '2D Nbhd: Kth NN' is like 'Points', but each the 2D in-slice\n"
+  "        * '2D Nbhd: Kth NN' is like 'Open Curve', but each the 2D in-slice\n"
   "            neighborhood of a point 'x' is filled in with the following\n"
   "            pattern of points, for K=1..5:\n"
   "                                              5 4 3 4 5\n"
@@ -1034,20 +1041,21 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "                                              5 4 3 4 5\n"
   "            In a cubical lattice with voxel edge length=1, the 2D Kth NN\n"
   "            volume is a 'circle' out to radius:\n"
-  "                  K=1  r=sqrt(1)\n"
-  "                  K=2  r=sqrt(2)\n"
-  "                  K=3  r=sqrt(4)\n"
-  "                  K=4  r=sqrt(5)\n"
-  "                  K=5  r=sqrt(8)  [the 5x5 square about 'x']\n"
+  "                  K=1  r=sqrt(1)  [e.g., (+1, 0)]\n"
+  "                  K=2  r=sqrt(2)  [e.g., (+1,+1) => 3x3 square]\n"
+  "                  K=3  r=sqrt(4)  [e.g., (+2, 0)]\n"
+  "                  K=4  r=sqrt(5)  [e.g., (+2,+1)]\n"
+  "                  K=5  r=sqrt(8)  [the whole 5x5 square about 'x']\n"
   "        * '3D Nbhd: Kth NN' is similar, but with the 3D neighborhood\n"
   "            of each point (so you are drawing out-of-slice).  In this\n"
   "            case, the 3D Kth NN volume is a 'sphere' out to radius\n"
-  "                  K=1  r=sqrt(1)\n"
-  "                  K=2  r=sqrt(2)\n"
-  "                  K=3  r=sqrt(3)\n"
-  "                  K=4  r=sqrt(4)\n"
-  "                  K=5  r=sqrt(5)\n"
-  "                  K=6  r=sqrt(6)\n"
+  "                  K=1  r=sqrt(1)  [e.g., (+1, 0, 0)]\n"
+  "                  K=2  r=sqrt(2)  [e.g., (+1,+1, 0)]\n"
+  "                  K=3  r=sqrt(3)  [e.g., (+1,+1,+1) => 3x3x3 cube]\n"
+  "                  K=4  r=sqrt(4)  [e.g., (+2, 0, 0)]\n"
+  "                  K=5  r=sqrt(5)  [e.g., (+2,+1, 0)]\n"
+  "                  K=6  r=sqrt(6)  [e.g., (+2,+1,+1)]\n"
+  "                5x5x5  fills out the 5x5x5 cube about each drawn point.\n"
   "\n"
   "Step 5) Draw something in an image window.\n"
   "        * Drawing is done using mouse button 2.\n"
@@ -1464,8 +1472,14 @@ void DRAW_mode_CB( MCW_arrowval * av , XtPointer cd )
    mode_ival  = av->ival ;
    mode_index = mode_ints[mode_ival] ;
 
-   if( dset != NULL && recv_open )
+   if( dset != NULL && recv_open ){
       AFNI_receive_control( im3d, recv_key,mode_index , NULL ) ;
+
+      /* 08 Oct 2002: set drawing line width */
+
+      AFNI_receive_control( im3d, recv_key, DRAWING_LINEWIDTH ,
+                            (void *) mode_width[mode_ival]     ) ;
+   }
 
    return ;
 }
@@ -2406,9 +2420,9 @@ static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
    int kadd , ii,jj,kk , ixn,jyn,kzn , mm,qq ;
    int nnew , *xyzn ;
 
-   static int nadd[6] = { 6 , 18 , 26 , 32 , 56 , 80 } ;
+   static int nadd[7] = { 6 , 18 , 26 , 32 , 56 , 80 , 124 } ;
 
-   static int nn[80][3] = { {-1, 0, 0} , { 1, 0, 0} ,  /* r**2 = 1 */
+   static int nn[124][3] ={ {-1, 0, 0} , { 1, 0, 0} ,  /* r**2 = 1 */
                             { 0,-1, 0} , { 0, 1, 0} ,
                             { 0, 0,-1} , { 0, 0, 1} ,
 
@@ -2452,7 +2466,33 @@ static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
                             {-1,-1,-2} , {-1,-1, 2} ,
                             {-1, 1,-2} , {-1, 1, 2} ,
                             { 1,-1,-2} , { 1,-1, 2} ,
-                            { 1, 1,-2} , { 1, 1, 2}  } ;
+                            { 1, 1,-2} , { 1, 1, 2} ,
+
+                            {-2,-2, 0} , {-2, 2, 0} ,  /* r**2 = 8 */
+                            { 2,-2, 0} , { 2, 2, 0} ,
+                            { 0,-2,-2} , { 0,-2, 2} ,
+                            { 0, 2,-2} , { 0, 2, 2} ,
+                            {-2, 0,-2} , {-2, 0, 2} ,
+                            { 2, 0,-2} , { 2, 0, 2} ,
+
+                            {-2,-2, 1} , {-2, 2, 1} ,  /* r**2 = 9 */
+                            { 2,-2, 1} , { 2, 2, 1} ,
+                            { 1,-2,-2} , { 1,-2, 2} ,
+                            { 1, 2,-2} , { 1, 2, 2} ,
+                            {-2, 1,-2} , {-2, 1, 2} ,
+                            { 2, 1,-2} , { 2, 1, 2} ,
+                            {-2,-2,-1} , {-2, 2,-1} ,
+                            { 2,-2,-1} , { 2, 2,-1} ,
+                            {-1,-2,-2} , {-1,-2, 2} ,
+                            {-1, 2,-2} , {-1, 2, 2} ,
+                            {-2,-1,-2} , {-2,-1, 2} ,
+                            { 2,-1,-2} , { 2,-1, 2} ,
+
+                            {-2,-2,-2} , {-2,-2, 2} ,  /* r**2 = 12 [corners] */
+                            {-2, 2,-2} , {-2, 2, 2} ,
+                            { 2,-2,-2} , { 2,-2, 2} ,
+                            { 2, 2,-2} , { 2, 2, 2}
+                          } ;
 
    /* check inputs */
 

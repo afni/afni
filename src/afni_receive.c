@@ -157,7 +157,7 @@ ENTRY("AFNI_receive_destroy") ;
   occurs.
 ---------------------------------------------------------------------*/
 
-int AFNI_receive_control( Three_D_View * im3d, int key, int code, void * arg )
+int AFNI_receive_control( Three_D_View *im3d, int key, int code, void *arg )
 {
 ENTRY("AFNI_receive_control") ;
 
@@ -237,6 +237,16 @@ ENTRY("AFNI_receive_control") ;
          drive_MCW_imseq( im3d->s123, isqDR_button2_mode, (XtPointer)code ) ;
          drive_MCW_imseq( im3d->s231, isqDR_button2_mode, (XtPointer)code ) ;
          drive_MCW_imseq( im3d->s312, isqDR_button2_mode, (XtPointer)code ) ;
+      }
+      break ;
+
+      case DRAWING_LINEWIDTH:{    /* 08 Oct 2002 */
+        int ww = (int) arg ;
+        if( ww >= 0 ){
+          drive_MCW_imseq( im3d->s123, isqDR_button2_width, (XtPointer)ww ) ;
+          drive_MCW_imseq( im3d->s231, isqDR_button2_width, (XtPointer)ww ) ;
+          drive_MCW_imseq( im3d->s312, isqDR_button2_width, (XtPointer)ww ) ;
+        }
       }
       break ;
 
