@@ -51,6 +51,11 @@ void Syntax(char * str)
     "               ** SPECIAL CASE: you can use the string 'cen' in place of\n"
     "                  a distance to force that axis to be re-centered.\n"
     "\n"
+    " -xorigin_raw xx  Puts the center of the edge voxel at the given COORDINATE\n"
+    " -yorigin_raw yy  rather than the given DISTANCE.  That is, these values\n"
+    " -zorigin_raw zz  directly replace the offsets in the dataset header,\n"
+    "                  without any possible sign changes.\n"
+    "\n"
     "  -duporigin cset Copies the xorigin, yorigin, and zorigin values from\n"
     "                  the header of dataset 'cset'.\n"
     "\n"
@@ -423,27 +428,27 @@ int main( int argc , char * argv[] )
 
       /** -?origin dist **/
 
-      if( strncmp(argv[iarg],"-xorigin",4) == 0 ){
+      if( strcmp(argv[iarg],"-xorigin") == 0 ){
          if( ++iarg >= argc ) Syntax("need an argument after -xorigin!");
          if( strncmp(argv[iarg],"cen",3) == 0 ) cxorg = 1 ;
          else                                   xorg  = strtod(argv[iarg],NULL) ;
-         new_xorg = 1 ; new_stuff++ ;
+         dxorg = 0 ; new_xorg = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
 
-      if( strncmp(argv[iarg],"-yorigin",4) == 0 ){
+      if( strcmp(argv[iarg],"-yorigin") == 0 ){
          if( ++iarg >= argc ) Syntax("need an argument after -yorigin!");
          if( strncmp(argv[iarg],"cen",3) == 0 ) cyorg = 1 ;
          else                                   yorg  = strtod(argv[iarg],NULL) ;
-         new_yorg = 1 ; new_stuff++ ;
+         dyorg = 0 ; new_yorg = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
 
-      if( strncmp(argv[iarg],"-zorigin",4) == 0 ){
+      if( strcmp(argv[iarg],"-zorigin") == 0 ){
          if( ++iarg >= argc ) Syntax("need an argument after -zorigin!");
          if( strncmp(argv[iarg],"cen",3) == 0 ) czorg = 1 ;
          else                                   zorg  = strtod(argv[iarg],NULL) ;
-         new_zorg = 1 ; new_stuff++ ;
+         dzorg = 0 ; new_zorg = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -482,6 +487,29 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dzorigin!");
          zorg = strtod(argv[iarg],NULL) ; dzorg = 1 ; czorg = 0 ;
          new_zorg = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      /** 04 Oct 2002: _raw origins **/
+
+      if( strcmp(argv[iarg],"-xorigin_raw") == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -xorigin_raw!");
+         xorg     = strtod(argv[iarg],NULL) ; cxorg = dxorg = 0 ;
+         new_xorg = 2 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strcmp(argv[iarg],"-yorigin_raw") == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -yorigin_raw!");
+         yorg     = strtod(argv[iarg],NULL) ; cyorg = dyorg = 0 ;
+         new_yorg = 2 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strcmp(argv[iarg],"-zorigin_raw") == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -zorigin_raw!");
+         zorg     = strtod(argv[iarg],NULL) ; czorg = dzorg = 0 ;
+         new_zorg = 2 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -711,23 +739,23 @@ int main( int argc , char * argv[] )
 
       if( dxorg )
          daxes->xxorg += xorg ;
-      else if( duporg )
+      else if( duporg || new_xorg==2 )
          daxes->xxorg = xorg ;
-      else if( new_xorg || new_orient )
+      else if( new_xorg==1 || new_orient )
          daxes->xxorg = (ORIENT_sign[daxes->xxorient] == '+') ? (-xorg) : (xorg) ;
 
       if( dyorg )
          daxes->yyorg += yorg ;
-      else if( duporg )
+      else if( duporg || new_yorg==2 )
          daxes->yyorg = yorg ;
-      else if( new_yorg || new_orient )
+      else if( new_yorg==1 || new_orient )
          daxes->yyorg = (ORIENT_sign[daxes->yyorient] == '+') ? (-yorg) : (yorg) ;
 
       if( dzorg )
          daxes->zzorg += zorg ;
-      else if( duporg )
+      else if( duporg || new_zorg==2 )
          daxes->zzorg = zorg ;
-      else if( new_zorg || new_orient )
+      else if( new_zorg==1 || new_orient )
          daxes->zzorg = (ORIENT_sign[daxes->zzorient] == '+') ? (-zorg) : (zorg) ;
 
       if( new_xdel || new_orient )
