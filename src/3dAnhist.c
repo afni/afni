@@ -362,7 +362,7 @@ int main( int argc , char * argv[] )
 
      if( his ){
        FILE *hf ;
-       float **Gmat, *Hvec, *lam, *rez, sum, *wt,wbot,wtop, ebest=-1.0;
+       float **Gmat, *Hvec, *lam, *rez, sum,wtm, *wt,wbot,wtop, ebest=-1.0;
        float *ap,*pk,*ww ; int nregtry ;
        float *pkbest,*wwbest,*apbest,*lambest , pplm,aplm,wplm ;
        float *pklast,*wwlast,*aplast ;
@@ -409,29 +409,17 @@ int main( int argc , char * argv[] )
              pklast[jj] = pval[jj] ;
            }
          }
-         for( iw=0 ; iw < nw ; iw++ ){
-#if 0
-           if( nregtry == 0 ){
-             for( jj=0 ; jj < nvec ; jj++ ){               /* random search! */
-               ww[jj] = wbot+drand48()*(wtop-wbot) ;
-               pk[jj] = pval[jj] + (2.*drand48()-1.)*pplm ;
-               ap[jj] = (2.*drand48()-1.)*aplm ;
-             }
-           } else {
-#endif
-             for( jj=0 ; jj < nvec ; jj++ ){
-               ww[jj] = wwlast[jj] + (2.*drand48()-1.)*wplm ;
-               pk[jj] = pklast[jj] + (2.*drand48()-1.)*pplm ;
-               ap[jj] = aplast[jj] + (2.*drand48()-1.)*aplm ;
-                    if( ap[jj] >  1.0 ) ap[jj] =  1.0 ;
-               else if( ap[jj] < -1.0 ) ap[jj] = -1.0 ;
-                    if( ww[jj] < 0.1*cbot ) ww[jj] = 0.1*cbot ;
-               else if( ww[jj] > 0.9*ctop ) ww[jj] = 0.9*ctop ;
-             }
-#if 0
+         for( iw=0 ; iw < nw ; iw++ ){           /* random search nw times */
+           for( jj=0 ; jj < nvec ; jj++ ){
+             ww[jj] = wwlast[jj] + (2.*drand48()-1.)*wplm ;
+             pk[jj] = pklast[jj] + (2.*drand48()-1.)*pplm ;
+             ap[jj] = aplast[jj] + (2.*drand48()-1.)*aplm ;
+                  if( ap[jj] >  1.0 ) ap[jj] =  1.0 ;
+             else if( ap[jj] < -1.0 ) ap[jj] = -1.0 ;
+                  if( ww[jj] < 0.1*cbot ) ww[jj] = 0.1*cbot ;
+             else if( ww[jj] > 0.9*ctop ) ww[jj] = 0.9*ctop ;
            }
-#endif
-           sum = 0.0 ;
+           sum = wtm = 0.0 ;
            for( ii=0 ; ii < ndim ; ii++ ){
             wt[ii] = 0.01/ndim ;
             for( jj=0 ; jj < nvec ; jj++ ){
@@ -440,7 +428,10 @@ int main( int argc , char * argv[] )
              if( Gmat[jj][ii] < 0.0 ) Gmat[jj][ii] = 0.0 ;
              wt[ii] += Gmat[jj][ii] ;
             }
-            sum += wt[ii] ;
+            wtm = MAX(wtm,wt[ii]) ;
+           }
+           for( ii=0 ; ii < ndim ; ii++ ){
+             wt[ii] = pow(wt[ii]/wtm,2.0) ; sum += wt[ii] ;
            }
            for( ii=0 ; ii < ndim ; ii++ ) wt[ii] /= sum ;
            for( ii=0 ; ii < ndim ; ii++ ){
