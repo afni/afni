@@ -49,6 +49,7 @@
    For convenience, the 348 byte header is described as a single
    struct, rather than as the ANALYZE 7.5 group of 3 substructs.
 
+   NIFTI-1 FLAG (MAGIC NUMBERS):
    To flag such a struct as being conformant to the NIFTI-1 spec,
    the last 4 bytes of the header must be either the C String "ni1" or
    "n1+"; in hexadecimal, the 4 bytes
@@ -57,14 +58,15 @@
    to '2', etc.).  Normally, such a "magic number" or flag goes at the
    start of the file, but trying to avoid clobbering widely-used
    ANALYZE 7.5 fields led to putting this marker last.  However, recall
-   that "the last shall be first".
+   that "the last shall be first" (Matthew 20:16).
 
    "ni1" means that the image data is stored in the ".img" file
    corresponding to the header file (starting at file offset 0).
 
    "n1+" means that the image data is stored in the same file as the
    header information.  In this case, the first byte of image data is
-   stored at file offset (int)vox_offset into the header file.
+   stored at file offset (int)vox_offset into the file.  In this case,
+   we recommend that the combined header+data filename suffix be ".nii".
 
    Further comments about the interpretation of various elements of this
    header are after the data type definition itself.  Fields that are
@@ -105,30 +107,30 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
   float scl_slope ;     /* Data scaling:         */  /* float funused1;      */
   float scl_inter ;     /*  slope*val+inter.     */  /* float funused2;      */
   float funused3;       /* ++UNUSED++            */  /* float funused3;      */
-  float cal_max;        /* ++UNUSED++            */  /* float cal_max;       */
-  float cal_min;        /* ++UNUSED++            */  /* float cal_min;       */
+  float cal_max;        /* max display intensity */  /* float cal_max;       */
+  float cal_min;        /* min display intensity */  /* float cal_min;       */
   float compressed;     /* ++UNUSED++            */  /* float compressed;    */
   float verified;       /* ++UNUSED++            */  /* float verified;      */
   int   glmax;          /* ++UNUSED++            */  /* int glmax;           */
   int   glmin;          /* ++UNUSED++            */  /* int glmin;           */
 
                                          /*--- was data_history substruct ---*/
-  char  descrip[80];    /* ++UNUSED++            */  /* char descrip[80];    */
-  char  aux_file[24];   /* ++UNUSED++            */  /* char aux_file[24];   */
+  char  descrip[80];    /* any text you like.    */  /* char descrip[80];    */
+  char  aux_file[24];   /* auxiliary filename.   */  /* char aux_file[24];   */
 
-  short qform_code ;    /* NIFTI_XFORM_* code.   */  /* all ANALYZE 7.5      */
-  short sform_code ;    /* NIFTI_XFORM_* code.   */  /* fields below here    */
-                                                     /* are replaced         */
+  short qform_code ;    /* NIFTI_XFORM_* code.   */  /*-- all ANALYZE 7.5 ---*/
+  short sform_code ;    /* NIFTI_XFORM_* code.   */  /*   fields below here  */
+                                                     /*   are replaced       */
   float quatern_b ;     /* Orientation of the    */
   float quatern_c ;     /*  3D volume, given by  */
   float quatern_d ;     /*  a quaternion.        */
   float qoffset_x ;     /* Coords of center of   */
   float qoffset_y ;     /*  (0,0,0) voxel.       */
-  float qoffset_z ;
+  float qoffset_z ;     /* (cf. qform_code)      */
 
   float srow_x[4] ;     /* Rows of standardizing */
-  float srow_y[4] ;     /*  affine transform.    */
-  float srow_z[4] ;
+  float srow_y[4] ;     /*  affine transform     */
+  float srow_z[4] ;     /*  (cf. sform_code).    */
 
   char idcode[16] ;     /* 128 bit GUID          */
 
@@ -527,12 +529,13 @@ typedef struct { long double r,i; } complex_longdouble ;
    (i.e., DICOM +Xd is Right, +Yd is Posterior, +Zd is Superior).
 -----------------------------------------------------------------------------*/
 
-   /* [qs]form_code value:  */    /* x,y,z coordinate system refers to:   */
-   /*-----------------------*/    /*--------------------------------------*/
-#define NIFTI_XFORM_UNKNOWN    0  /* Arbitrary (Method 1 coordinates)     */
-#define NIFTI_XFORM_ANATOMICAL 1  /* Scanner-anatomical orientation       */
-#define NIFTI_XFORM_TALAIRACH  2  /* Talairach-Tournoux Atlas; (0,0,0)=AC */
-#define NIFTI_XFORM_MNI_152    3  /* MNI 152 normalized coords            */
+   /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
+   /*-----------------------*/      /*---------------------------------------*/
+#define NIFTI_XFORM_UNKNOWN      0  /* Arbitrary (Method 1 coordinates)      */
+#define NIFTI_XFORM_SCANNER_ANAT 1  /* Scanner-anatomical orientation        */
+#define NIFTI_XFORM_ALIGNED_ANAT 2  /* Coordinates aligned to another file's */
+#define NIFTI_XFORM_TALAIRACH    3  /* Talairach-Tournoux Atlas; (0,0,0)=AC  */
+#define NIFTI_XFORM_MNI_152      4  /* MNI 152 normalized coords             */
 
 /*---------------------------------------------------------------------------*/
 /* 128 BIT GLOBALLY UNIQUE IDENTIFIER (GUID):
