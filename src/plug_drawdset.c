@@ -43,6 +43,7 @@ void DRAW_2dfiller( int nx , int ny , int ix , int jy , byte * ar ) ;
 void DRAW_saveas_finalize_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 static void DRAW_2D_expand( int, int *, int *, int *, int, int *, int ** ) ;  /* 07 Oct 2002 */
+static void DRAW_3D_expand( int, int *, int *, int *, int, int *, int ** ) ;  /* 07 Oct 2002 */
 
 static PLUGIN_interface * plint = NULL ;
 
@@ -141,24 +142,42 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *, int,int,int ) ;
 #define MODE_2D_NN4     12
 #define MODE_2D_NN5     13
 
+#define MODE_3D_NN1     14
+#define MODE_3D_NN2     15
+#define MODE_3D_NN3     16
+#define MODE_3D_NN4     17
+#define MODE_3D_NN5     18
+#define MODE_3D_NN6     19
+
 #define FIRST_2D_MODE   MODE_2D_NN1
 #define LAST_2D_MODE    MODE_2D_NN5
 
+#define FIRST_3D_MODE   MODE_3D_NN1
+#define LAST_3D_MODE    MODE_3D_NN6
+
 static char * mode_strings[] = {
-  "Open Curve"      ,                  /* MODE_CURVE      */
-  "Closed Curve"    ,                  /* MODE_CLOSED     */
-  "Points"          ,                  /* MODE_POINTS     */
-  "Flood->Value"    ,                  /* MODE_FLOOD_VAL  */
-  "Flood->Nonzero"  ,                  /* MODE_FLOOD_NZ   */
-  "Flood->Zero"     ,                  /* MODE_FLOOD_ZERO */
-  "Zero->Value"     ,                  /* MODE_ZERO_VAL   */
-  "Flood->Val/Zero" ,                  /* MODE_FLOOD_VZ   */
-  "Filled Curve"    ,                  /* MODE_FILLED     */
-  "2D Nbhd: 1st NN" ,
-  "2D Nbhd: 2nd NN" ,
-  "2D Nbhd: 3rd NN" ,
-  "2D Nbhd: 4th NN" ,
-  "2D Nbhd: 5th NN"
+  "Open Curve"       ,                 /* MODE_CURVE      */
+  "Closed Curve"     ,                 /* MODE_CLOSED     */
+  "Points"           ,                 /* MODE_POINTS     */
+  "Flood->Value"     ,                 /* MODE_FLOOD_VAL  */
+  "Flood->Nonzero"   ,                 /* MODE_FLOOD_NZ   */
+  "Flood->Zero"      ,                 /* MODE_FLOOD_ZERO */
+  "Zero->Value"      ,                 /* MODE_ZERO_VAL   */
+  "Flood->Val/Zero"  ,                 /* MODE_FLOOD_VZ   */
+  "Filled Curve"     ,                 /* MODE_FILLED     */
+
+  " 2D Nbhd: 1st NN" ,                 /* 07 Oct 2002 */
+  " 2D Nbhd: 2nd NN" ,
+  " 2D Nbhd: 3rd NN" ,
+  " 2D Nbhd: 4th NN" ,
+  " 2D Nbhd: 5th NN" ,
+
+  "*3D Nbhd: 1st NN" ,
+  "*3D Nbhd: 2nd NN" ,
+  "*3D Nbhd: 3rd NN" ,
+  "*3D Nbhd: 4th NN" ,
+  "*3D Nbhd: 5th NN" ,
+  "*3D Nbhd: 6th NN"
 } ;
 
 static int    mode_ints[] = {
@@ -166,7 +185,8 @@ static int    mode_ints[] = {
   DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS ,
   DRAWING_POINTS ,
   DRAWING_FILL   ,
-  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS
+  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS ,
+  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS
 } ;
 
 #define NUM_modes (sizeof(mode_ints)/sizeof(int))
@@ -1007,11 +1027,27 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "        * '2D Nbhd: Kth NN' is like 'Points', but each the 2D in-slice\n"
   "            neighborhood of a point 'x' is filled in with the following\n"
   "            pattern of points, for K=1..5:\n"
-  "                                            5 4 3 4 5\n"
-  "                                            4 2 1 2 4\n"
-  "                                            3 1 x 1 3\n"
-  "                                            4 2 1 2 4\n"
-  "                                            5 4 3 4 5\n"
+  "                                              5 4 3 4 5\n"
+  "                                              4 2 1 2 4\n"
+  "                                              3 1 x 1 3\n"
+  "                                              4 2 1 2 4\n"
+  "                                              5 4 3 4 5\n"
+  "            In a cubical lattice with voxel edge length=1, the 2D Kth NN\n"
+  "            volume is a 'circle' out to radius:\n"
+  "                  K=1  r=sqrt(1)\n"
+  "                  K=2  r=sqrt(2)\n"
+  "                  K=3  r=sqrt(4)\n"
+  "                  K=4  r=sqrt(5)\n"
+  "                  K=5  r=sqrt(8)  [the 5x5 square about 'x']\n"
+  "        * '3D Nbhd: Kth NN' is similar, but with the 3D neighborhood\n"
+  "            of each point (so you are drawing out-of-slice).  In this\n"
+  "            case, the 3D Kth NN volume is a 'sphere' out to radius\n"
+  "                  K=1  r=sqrt(1)\n"
+  "                  K=2  r=sqrt(2)\n"
+  "                  K=3  r=sqrt(3)\n"
+  "                  K=4  r=sqrt(4)\n"
+  "                  K=5  r=sqrt(5)\n"
+  "                  K=6  r=sqrt(6)\n"
   "\n"
   "Step 5) Draw something in an image window.\n"
   "        * Drawing is done using mouse button 2.\n"
@@ -1492,7 +1528,16 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                 free(xyzf) ;
               }
 
-            } else {
+            } else if( plane != 0 && mode_ival >= FIRST_3D_MODE && mode_ival <= LAST_3D_MODE ){
+              int nfill=0, *xyzf=NULL ;
+
+              DRAW_3D_expand( np , xd,yd,zd , plane , &nfill , &xyzf ) ;
+              if( nfill > 0 && xyzf != NULL ){
+                DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
+                free(xyzf) ;
+              }
+
+            } else {                                        /* the old way:     */
               DRAW_into_dataset( np , xd,yd,zd , NULL ) ;   /* just draw points */
             }
 
@@ -2296,9 +2341,8 @@ static void DRAW_2D_expand( int np, int *xd, int *yd, int *zd, int plane ,
                             int *nfill , int **xyzf )
 {
    int base , di,dj , itop,jtop,nij , xx,yy,zz , ix,jy , *ip,*jp ;
-   int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
-       nxy = nx*ny , nxyz = nxy*nz  ;
-   int kadd , ii,jj,kk , ixn,jyn ;
+   int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) , nxy = nx*ny ;
+   int kadd , ii,jj,kk , ixn,jyn , mm,qq ;
    int nnew , *xyzn ;
 
    static int nadd[5] = { 4 , 8 , 12 , 20 , 24 } ;
@@ -2330,14 +2374,109 @@ static void DRAW_2D_expand( int np, int *xd, int *yd, int *zd, int plane ,
 
    xyzn = (int *) malloc( sizeof(int)*np*(kadd+1) ) ;   /* output array */
 
+   /** add points around each input point, culling duplicates **/
+
    for( ii=jj=0 ; ii < np ; ii++ ){
      ix = ip[ii] ; jy = jp[ii] ;                                /* drawn point 2D index */
      if( ix >= 0 && ix < itop && jy >= 0 && jy < jtop ){
        xyzn[jj++] = base + ix*di + jy*dj ;                      /* load 3D index */
        for( kk=0 ; kk < kadd ; kk++ ){
          ixn = ix+nn[kk][0] ; jyn = jy+nn[kk][1] ;              /* nbhd pt 2D index */
-         if( ixn >= 0 && ixn < itop && jyn >= 0 && jyn < jtop )
-           xyzn[jj++] = base + ixn*di + jyn*dj ;                /* load 3D index */
+         if( ixn >= 0 && ixn < itop && jyn >= 0 && jyn < jtop ){
+           mm = base + ixn*di + jyn*dj ;                        /* 3D index */
+           for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
+           if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
+         }
+       }
+     }
+   }
+
+   *nfill = jj ; *xyzf  = xyzn ; return ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/*! Expand set of points in 3D space.  RWCox - 07 Oct 2002.
+-------------------------------------------------------------------------------*/
+
+static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
+                            int *nfill , int **xyzf )
+{
+   int ix,jy,kz ;
+   int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) , nxy = nx*ny ;
+   int kadd , ii,jj,kk , ixn,jyn,kzn , mm,qq ;
+   int nnew , *xyzn ;
+
+   static int nadd[6] = { 6 , 18 , 26 , 32 , 56 , 80 } ;
+
+   static int nn[80][3] = { {-1, 0, 0} , { 1, 0, 0} ,  /* r**2 = 1 */
+                            { 0,-1, 0} , { 0, 1, 0} ,
+                            { 0, 0,-1} , { 0, 0, 1} ,
+
+                            {-1,-1, 0} , {-1, 1, 0} ,  /* r**2 = 2 */
+                            { 1,-1, 0} , { 1, 1, 0} ,
+                            { 0,-1,-1} , { 0,-1, 1} ,
+                            { 0, 1,-1} , { 0, 1, 1} ,
+                            {-1, 0,-1} , {-1, 0, 1} ,
+                            { 1, 0,-1} , { 1, 0, 1} ,
+
+                            {-1,-1,-1} , {-1,-1, 1} ,  /* r**2 = 3 */
+                            {-1, 1,-1} , {-1, 1, 1} ,
+                            { 1,-1,-1} , { 1,-1, 1} ,
+                            { 1, 1,-1} , { 1, 1, 1} ,
+
+                            {-2, 0, 0} , { 2, 0, 0} ,  /* r**2 = 4 */
+                            { 0,-2, 0} , { 0, 2, 0} ,
+                            { 0, 0,-2} , { 0, 0, 2} ,
+
+                            {-2,-1, 0} , {-2, 1, 0} ,  /* r**2 = 5 */
+                            { 2,-1, 0} , { 2, 1, 0} ,
+                            { 0,-2,-1} , { 0,-2, 1} ,
+                            { 0, 2,-1} , { 0, 2, 1} ,
+                            {-2, 0,-1} , {-2, 0, 1} ,
+                            { 2, 0,-1} , { 2, 0, 1} ,
+                            {-1,-2, 0} , {-1, 2, 0} ,
+                            { 1,-2, 0} , { 1, 2, 0} ,
+                            { 0,-1,-2} , { 0,-1, 2} ,
+                            { 0, 1,-2} , { 0, 1, 2} ,
+                            {-1, 0,-2} , {-1, 0, 2} ,
+                            { 1, 0,-2} , { 1, 0, 2} ,
+
+                            {-2,-1,-1} , {-2,-1, 1} ,  /* r**2 = 6 */
+                            {-2, 1,-1} , {-2, 1, 1} ,
+                            { 2,-1,-1} , { 2,-1, 1} ,
+                            { 2, 1,-1} , { 2, 1, 1} ,
+                            {-1,-2,-1} , {-1,-2, 1} ,
+                            {-1, 2,-1} , {-1, 2, 1} ,
+                            { 1,-2,-1} , { 1,-2, 1} ,
+                            { 1, 2,-1} , { 1, 2, 1} ,
+                            {-1,-1,-2} , {-1,-1, 2} ,
+                            {-1, 1,-2} , {-1, 1, 2} ,
+                            { 1,-1,-2} , { 1,-1, 2} ,
+                            { 1, 1,-2} , { 1, 1, 2}  } ;
+
+   /* check inputs */
+
+   if( np <= 0 || xd == NULL || yd == NULL || zd == NULL )     return ;
+   if( mode_ival < FIRST_3D_MODE && mode_ival > LAST_3D_MODE ) return ;
+   if( nfill == NULL || xyzf == NULL )                         return ;
+
+   kadd = nadd[mode_ival-FIRST_3D_MODE] ;  /* how many pts around each input pt */
+
+   xyzn = (int *) malloc( sizeof(int)*np*(kadd+1) ) ;   /* output array */
+
+   /** add points around each input point, culling duplicates **/
+
+   for( ii=jj=0 ; ii < np ; ii++ ){
+     ix = xd[ii] ; jy = yd[ii] ; kz = zd[ii] ;
+     if( ix >= 0 && ix < nx && jy >= 0 && jy < ny && kz >= 0 && kz <= nz ){
+       xyzn[jj++] = ix + jy*nx + kz*nxy ;                       /* load 3D index */
+       for( kk=0 ; kk < kadd ; kk++ ){
+         ixn = ix+nn[kk][0] ; jyn = jy+nn[kk][1] ; kzn=kz+nn[kk][2] ;
+         if( ixn >= 0 && ixn < nx && jyn >= 0 && jyn < ny && kzn >= 0 && kzn < nz ){
+           mm = ixn + jyn*nx + kzn*nxy ;                        /* 3D index */
+           for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
+           if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
+         }
        }
      }
    }
