@@ -263,10 +263,12 @@ ENTRY("THD_open_analyze") ;
      if( ORIENT_sign[orixyz.ijk[1]] == '-' ) dxyz.xyz[1] = -dy ;
      if( ORIENT_sign[orixyz.ijk[2]] == '-' ) dxyz.xyz[2] = -dz ;
 
-fprintf(stderr,"\n") ;
-DUMP_IVEC3("orixyz",orixyz) ;
-DUMP_FVEC3("orgxyz",orgxyz) ;
-DUMP_FVEC3("dxyz  ",dxyz  ) ;
+#if 0
+     fprintf(stderr,"\n") ;
+     DUMP_IVEC3("orixyz",orixyz) ;
+     DUMP_FVEC3("orgxyz",orgxyz) ;
+     DUMP_FVEC3("dxyz  ",dxyz  ) ;
+#endif
    }
 
    iview = VIEW_ORIGINAL_TYPE ;

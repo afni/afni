@@ -1,7 +1,7 @@
 #ifndef _RWC_ANALYZE_HEADER_
 /***************************************************************************
 From http://www.mayo.edu/bir/Analyze_Pages/AnalyzeFileInfo.html
-Describes the ANALYZE 7.5 file formate (.img/.hdr pairs).
+Describes the ANALYZE 7.5 file format (.img/.hdr pairs).
 ----------------------------------------------------------------
 The image database is the system of files that the ANALYZE package uses to
 organize and access image data on the disk. Facilities are provided for
