@@ -1310,11 +1310,20 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (void)
 {
    static char FuncName[]={"SUMA_CreateSurfContStruct"};
    SUMA_X_SurfCont *SurfCont = NULL;
+   
    /* do not use commonfields related stuff here for obvious reasons */
    SurfCont = (SUMA_X_SurfCont *)malloc(sizeof(SUMA_X_SurfCont));
+   SurfCont->ColPlane_fr = NULL;
    SurfCont->TopLevelShell = NULL;
    SurfCont->SurfInfo_pb = NULL;
    SurfCont->SurfInfo_TextShell = NULL;
+   SurfCont->ColPlaneOrder = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->ColPlaneOpacity = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->ColPlaneShow_tb = NULL;
+   SurfCont->SwitchColPlanelst = NULL;
+   SurfCont->ColPlaneLabel_Parent_lb = NULL;
+   SurfCont->curColPlane = NULL;
+   SurfCont->PosRef = NULL;
    
    return (SurfCont);
 }
@@ -1328,6 +1337,12 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    static char FuncName[]={"SUMA_FreeSurfContStruct"};
 
    /* do not use commonfields related stuff here for obvious reasons */
+   if (!SurfCont) return(NULL);
+   
+   if (SurfCont->ColPlaneOrder) free (SurfCont->ColPlaneOrder);
+   if (SurfCont->ColPlaneOpacity) free (SurfCont->ColPlaneOpacity);
+   if (SurfCont->SwitchColPlanelst) SUMA_FreeScrolledList (SurfCont->SwitchColPlanelst);
+
    if (SurfCont) free(SurfCont);
    return (NULL);
 }

@@ -1450,7 +1450,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
    ans = SUMA_CreateOverlayPointer (N_Nodes, Name);
    
    \param N_Nodes (int): The number of nodes for which color is assigned
-   \param Name (char *): A character string no longer than SUMA_MAX_LABEL_LENGTH-1 containing the name of the color overlay
+   \param Name (char *): A character string containing the name of the color overlay
    \ret ans (SUMA_OVERLAYS *): a pointer to the structure containing the color overlay
       NULL is returned in case of trouble.
       
@@ -1469,6 +1469,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
 {
    static char FuncName[]={"SUMA_CreateOverlayPointer"};
    SUMA_OVERLAYS *Sover=NULL;
+   SUMA_FileName sfn;
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
@@ -1477,13 +1478,16 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover.\n", FuncName);
       SUMA_RETURN (NULL);
    }
-   if (strlen(Name) - 1 > SUMA_MAX_LABEL_LENGTH) {
-      fprintf (SUMA_STDERR,"Error %s: Name must be less than %d characters in length.\n", FuncName, SUMA_MAX_LABEL_LENGTH-1);
-      SUMA_free(Sover);
-      SUMA_RETURN (NULL);
-   } else {
-      sprintf(Sover->Name, "%s", Name);
-   }
+   
+   /* copy the name */
+   Sover->Name = (char *)SUMA_calloc (strlen(Name)+1, sizeof(char));
+   Sover->Name = strcpy(Sover->Name, Name);
+   
+   /* create a label */
+   sfn = SUMA_StripPath((char *)Name);
+   Sover->Label = sfn.FileName;
+   if (sfn.Path) SUMA_free(sfn.Path); /* get rid of path */
+   
    Sover->N_Alloc = N_Nodes;
    
    Sover->NodeDef = (int *) SUMA_calloc(Sover->N_Alloc, sizeof(int));
@@ -1507,13 +1511,34 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
    SUMA_RETURN (Sover);
 }
 
+/*!
+   \brief releases an overlay pointer (decrement its inode count and free it if necessary)
+*/
+SUMA_Boolean SUMA_ReleaseOverlay (SUMA_OVERLAYS * Overlays, SUMA_INODE *Overlays_Inode)
+{
+   static char FuncName[]={"SUMA_FreeOverlay"};
+   SUMA_Boolean LocalHead = YUP;
+
+   if (Overlays_Inode || Overlays) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
+      if (SUMA_ReleaseLink(Overlays_Inode)) { 
+         /* some links are left, do not free memory */
+      } else {
+         fprintf (SUMA_STDERR,"%s: Overlay plane %s is free of links, freeing allocated memory ...\n", FuncName, Overlays->Name);
+         if (Overlays) SUMA_FreeOverlayPointer (Overlays);
+         SUMA_free(Overlays_Inode); 
+      }
+   }   
+   SUMA_RETURN(YUP);
+}
 /*! 
    Function to free an overlay structure 
    ans = SUMA_FreeOverlayPointer (Sover); 
    \param Sover (SUMA_OVERLAYS * ) 
    \ret ans (SUMA_Boolean) (YUP/NOPE)
    
-   \sa SUMA_SetPlaneOrder
+   -WARNING, If YOU CREATED AN INODE FOR THIS POINTER, YOU NEED TO RELASE IT BEFORE YOU FREE Sover
+   Perhaps you should use SUMA_FreeOverlay (SUMA_OVERLAYS * Sover, SUMA_INODE *Sover_Inode);
+   
    If you free one overlay structure at a time, take care to make sure the plane orders still make sense
 */
 
@@ -1531,6 +1556,8 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
    if (Sover->NodeDef) SUMA_free(Sover->NodeDef);
    if (Sover->ColMat) SUMA_free2D ((char **)Sover->ColMat, Sover->N_Alloc);
    if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity);
+   if (Sover->Label) SUMA_free(Sover->Label);
+   if (Sover->Name) SUMA_free(Sover->Name);
    
    SUMA_free(Sover); Sover = NULL;
    
@@ -1555,18 +1582,19 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
    static char FuncName[]={"SUMA_Fetch_OverlayPointer"};
    int i;
    SUMA_OVERLAYS *ptr= NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
    for (i=0; i < N_Overlays; ++i) {
       if (!strcmp(Overlays[i]->Name, Name)) {
          *OverInd = i;
-         /*fprintf (SUMA_STDOUT,"%s: Found overlay plane %s, indexed %d.\n", FuncName, Name, i);*/
+         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Found overlay plane %s, indexed %d.\n", FuncName, Name, i);
          SUMA_RETURN (Overlays[i]);
       }
    }
    
-   /*fprintf (SUMA_STDOUT,"%s: Overlay plane %s was not found.\n", FuncName, Name);*/
+   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Overlay plane %s was not found.\n", FuncName, Name);
    
    *OverInd = -1;
 
@@ -1614,7 +1642,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
    NshowOverlays = 0;
    NshowOverlays_Back = 0;
    for (j=0; j < N_Overlays; ++j) {
-      if (Overlays[j]->Show) {
+      if (Overlays[j]->Show && Overlays[j]->GlobalOpacity != 0) {
          if (Overlays[j]->BrightMod) {
             ShowOverLays_Back[NshowOverlays_Back] = j; 
             OverlayOrder_Back[NshowOverlays_Back] = Overlays[j]->PlaneOrder;
@@ -1863,7 +1891,7 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
    static char FuncName[] = {"SUMA_MixOverlays"};
    int i, j;
    SUMA_Boolean Full, Fill, Locl, Glob;
-   SUMA_Boolean LocalHead = YUP; /* local headline debugging messages */   
+   SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
@@ -1886,6 +1914,10 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
    Locl = YUP;
    Fill = YUP; 
    for (j=0; j<NshowOverlays; ++j) {
+      Full = YUP;
+      Glob = YUP;
+      Locl = YUP;
+      Fill = YUP; 
       
       i = ShowOverlays[j];
       
@@ -1894,9 +1926,9 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
       if (Overlays[i]->NodeDef[0] < 0) {         Fill = NOPE;   /* Full list, no need to fill up unvisited nodes at the end */   } 
       else {         Full = NOPE; /* Not a full list */      }
       
-      if (j > 0) {
+      if (j > 0) { /* opacity plays a role when you are overlaying one plane on top of the other */
          /* is this a Global Factor */
-         if (Overlays[i]->GlobalOpacity < 0) {         Glob = NOPE;      }
+         if (Overlays[i]->GlobalOpacity < 0.0) {         Glob = NOPE;      }
 
          /* is this a Local Factor */
          if (Overlays[i]->LocalOpacity[0] < 0) {         Locl = NOPE;      }
@@ -1905,8 +1937,8 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
       }
       
       if (LocalHead) 
-         fprintf (SUMA_STDOUT,"%s: Building color layer %d Overlay #%d: %s ...\nFull=%d, Glob=%d, Locl=%d,Fill=%d\n", \
-         FuncName, j, i, Overlays[i]->Name, (int)Full, (int)Glob, (int)Locl, (int)Fill);
+         fprintf (SUMA_STDOUT,"%s: Building color layer %d Overlay #%d: %s ...\nFull=%d, Glob=%d (Globopacity %f), Locl=%d,Fill=%d\n", \
+         FuncName, j, i, Overlays[i]->Name, (int)Full, (int)Glob, Overlays[i]->GlobalOpacity, (int)Locl, (int)Fill);
       
          
       /* call the appropriate macro to add the overlay */
@@ -2181,77 +2213,524 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays)
    
    SUMA_RETURN(s);
 }
-/*! 
 
-   ans = SUMA_SetPlaneOrder (Overlays, N_Overlays, Name, NewOrder);
-   \param Overlays (SUMA_OVERLAYS **) vector of  pointers to overlay structures
-   \param N_Overlays (int) Number of overlay structure pointers 
-   \param Name (const char *) Name of plane to be assigned the NewOrder
-   \param NewOrder (int) layer order of Ovelay plane
-   \ret ans (SUMA_Boolean) YUP/NOPE
-   
-   To put a plane on the top, use NewOrder = N_Ovelays -1 
-
-   IF YOU EVER START TO REMOVE SINGLE OVERLAY PLANES AT A TIME FROM SO, You will need to repack the orders
-   \sa SUMA_FreeOverlayPointer
-*/
-
-SUMA_Boolean SUMA_SetPlaneOrder (SUMA_OVERLAYS **Overlays, int N_Overlays, const char* Name, int NewOrder)
+/*!
+   \brief Frees SUMA_OVERLAY_LIST_DATUM * used in the linked list
+*/ 
+void SUMA_FreeOverlayListDatum (void *OLDv)
 {
-   static char FuncName[]={"SUMA_SetPlaneOrder"};
-   int i, PlaneIndex = -1;
-   SUMA_Boolean Found;
+   static char FuncName[]={"SUMA_FreeOverlayListDatum"};
+   SUMA_Boolean LocalHead = YUP; 
    
+   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+
+   if (OLDv) SUMA_free(OLDv); 
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Create an ordered list of the colorplanes in Overlays
+   the sorting of the list is done based on BackMod followed by the order
+   The function makes sure colorplane orders span 0 to N_Overlays-1 
+   
+   \param SO (SUMA_SurfaceObject *)
+   \param Opt (int) -1 for background plane list only
+                     1 for foreground plane list only
+                     0 for both background followed by foreground
+   \return list (DList *) a doubly linked list of the ordered color planes.
+         NULL is returned in case of error.
+        to free this list when you no longer need it, do:   
+         dlist_destroy(list); SUMA_free(list);
+    
+                  
+
+*/
+DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
+{
+   static char FuncName[]={"SUMA_OverlaysToOrderedList"}; 
+   DList *listop = NULL;
+   DListElmt *Elmop=NULL;
+   SUMA_OVERLAY_LIST_DATUM *OvD = NULL, *oOvD = NULL;
+   int i, Shift, ShftPlaneOrder, oShftPlaneOrder;
+   SUMA_OVERLAYS *oPlane=NULL;
+   SUMA_Boolean Found, LocalHead = NOPE;  
+   
+   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   
+   listop = (DList *)SUMA_malloc(sizeof(DList));
+   
+   dlist_init(listop, SUMA_FreeOverlayListDatum);
+   SUMA_LH("Considering loop");
+   for (i=0; i < SO->N_Overlays; ++i) {
+      SUMA_LH("In Loop");
+         OvD = (SUMA_OVERLAY_LIST_DATUM *)SUMA_malloc(sizeof(SUMA_OVERLAY_LIST_DATUM));
+         OvD->Overlay = SO->Overlays[i];
+         OvD->Overlay_Inode = SO->Overlays_Inode[i];
+         if (!OvD->Overlay) {
+            SUMA_LH("NULL Overlay");
+         }
+            SUMA_LH("Here");
+         if (OvD->Overlay->BrightMod && Opt == 1) continue;   /* that was an unwanted background */
+         if (!OvD->Overlay->BrightMod && Opt == -1) continue; /* that was an unwanted foreground */
+         if (!listop->size) {
+            SUMA_LH("Very first");
+            dlist_ins_next(listop, dlist_tail(listop), (void*)OvD);
+         }else { /* must sort first */
+            Elmop = NULL;
+            do {
+               SUMA_LH("Searching");
+               Found = NOPE;
+               if (!Elmop) {
+                  Elmop = dlist_head(listop);
+               } else {
+                  Elmop = dlist_next(Elmop);
+               }
+               
+               oOvD = (SUMA_OVERLAY_LIST_DATUM *)Elmop->data;
+               
+               /* transform PlaneOrder so that is reflects the Background modulation */
+               Shift = SO->N_Overlays;
+               
+               if (OvD->Overlay->BrightMod) ShftPlaneOrder = OvD->Overlay->PlaneOrder - Shift;
+               else ShftPlaneOrder = OvD->Overlay->PlaneOrder;
+               
+               if (oOvD->Overlay->BrightMod) oShftPlaneOrder = oOvD->Overlay->PlaneOrder - Shift;
+               else oShftPlaneOrder = oOvD->Overlay->PlaneOrder; 
+               
+               if (ShftPlaneOrder <= oShftPlaneOrder) {
+                  SUMA_LH ("Ins Prev");
+                  dlist_ins_prev(listop, Elmop, (void *)OvD);
+                  Found = YUP;
+               } else if (Elmop == dlist_tail(listop)) {
+                  SUMA_LH ("Ins Next");
+                  /* reached the end, append */
+                  dlist_ins_next(listop, Elmop, (void *)OvD);
+                  Found = YUP;
+               }
+            } while (!Found);
+         }
+   }
+    
+
+   /* Now the list is sorted  
+   Go through the planes and make sure that the orders 
+   span 0 to N_Overlays -1 */
+   SUMA_LH("Changing list order to plane order");
+   SUMA_ListOrderToPlaneOrder (listop);
+   
+   SUMA_RETURN(listop);
+}
+
+/*!
+   \brief sets the values of PlaneOrder to reflect the location of the color planes in list
+*/
+SUMA_Boolean SUMA_ListOrderToPlaneOrder (DList *listop) 
+{
+   static char FuncName[]={"SUMA_ListOrderToPlaneOrder"};
+   SUMA_OVERLAY_LIST_DATUM *OvD = NULL;
+   int i, fg_shift = 0;
+   DListElmt *Elmop=NULL;
+
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
-   if (!SUMA_Fetch_OverlayPointer (Overlays, N_Overlays, Name, &PlaneIndex)) {
-      fprintf (SUMA_STDERR,"Error %s: Plane %s not found.\n", FuncName, Name);
-      SUMA_RETURN (NOPE);
+   /* First pass, do background */
+   if (listop->size) {
+      Elmop = NULL;
+      i = 0;
+      do {
+         if (!Elmop) Elmop = dlist_head(listop);
+         else Elmop = Elmop->next;
+         OvD = (SUMA_OVERLAY_LIST_DATUM *)Elmop->data;
+         if (OvD->Overlay->BrightMod) {
+            OvD->Overlay->PlaneOrder = i;
+            ++i;
+         }
+      } while (!dlist_is_tail(Elmop));
    }
+   
+   /* second pass, do foreground */
+   if (listop->size) {
+      Elmop = NULL;
+      i = 0;
+      do {
+         if (!Elmop) Elmop = dlist_head(listop);
+         else Elmop = Elmop->next;
+         OvD = (SUMA_OVERLAY_LIST_DATUM *)Elmop->data;
+         if (!OvD->Overlay->BrightMod) {
+            OvD->Overlay->PlaneOrder = i;
+            ++i;
+         }
+      } while (!dlist_is_tail(Elmop));
+   }
+   
 
-   if (PlaneIndex < 0 || PlaneIndex >= N_Overlays) {
-      fprintf (SUMA_STDERR,"Error %s: PlaneIndex <0 || >= N_Overlays.\n", FuncName);
-      SUMA_RETURN (NOPE);
-   }
-   
-   if (NewOrder < 0 || NewOrder >= N_Overlays) {
-      fprintf (SUMA_STDERR,"Error %s: NewOrder <0 || NewOrder >= .\n", FuncName);
-      SUMA_RETURN (NOPE);
-   }
-   
-   /* find out if NewOrder alreay exists */
-   i = 0; 
-   Found = NOPE;
-   while (i < N_Overlays && !Found) {
-      if (Overlays[i]->PlaneOrder == NewOrder) {
-         Found = YUP;
-      }else ++i;
-   }
-   
-   /* if a new order, assign it and leave */
-   if (!Found) {
-      Overlays[PlaneIndex]->PlaneOrder = NewOrder;
-      SUMA_RETURN (YUP);
-   }
-   
-   /* not a new order, some shifting required */
-   for (i=0; i < N_Overlays; ++i) {
-      if (i != PlaneIndex) {
-         if (Overlays[i]->PlaneOrder >= NewOrder) ++Overlays[i]->PlaneOrder;
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief returns the largest background order in the list of verlay planes
+*/
+int SUMA_GetLargestBackroundOrder (DList *listop)
+{
+   static char FuncName[]={"SUMA_GetLargestBackroundOrder"};
+   int Order, i;
+   DListElmt *Elmop=NULL;
+   SUMA_OVERLAY_LIST_DATUM *OvD = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
+   Order = 0;
+   Elmop = NULL;
+   do {
+      if (!Elmop) Elmop = dlist_head(listop);
+      else Elmop = Elmop->next;
+      OvD = (SUMA_OVERLAY_LIST_DATUM *)Elmop->data;
+      if (OvD->Overlay->BrightMod) {
+         if (OvD->Overlay->PlaneOrder > Order) Order = OvD->Overlay->PlaneOrder;
       }
-   }
-   Overlays[PlaneIndex]->PlaneOrder = NewOrder;
+      ++i;
+   } while (!dlist_is_tail(Elmop));
    
-   /* dbg 
-   for (i=0; i < N_Overlays; ++i) {
-      fprintf (SUMA_STDERR,"%s: Overlay Plane %s, order %d.\n", FuncName, Overlays[i]->Name, Overlays[i]->PlaneOrder);
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Highest background order found is %d\n", FuncName, Order);
    }
-   */
+   
+   SUMA_RETURN(Order);
+}
 
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }
-   SUMA_RETURN (YUP);
+/*!
+   \brief returns the lowest foreground plane order in the list of overlay planes
+*/
+int SUMA_GetSmallestForegroundOrder (DList *listop)
+{
+   static char FuncName[]={"SUMA_GetSmallestForegroundOrder"};
+   int Order, i;
+   DListElmt *Elmop=NULL;
+   SUMA_OVERLAY_LIST_DATUM *OvD = NULL, *oOvD = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
+   Order = listop->size -1 ;
+   Elmop = NULL;
+   do {
+      if (!Elmop) Elmop = dlist_head(listop);
+      else Elmop = Elmop->next;
+      OvD = (SUMA_OVERLAY_LIST_DATUM *)Elmop->data;
+      if (!OvD->Overlay->BrightMod) {
+         if (OvD->Overlay->PlaneOrder < Order) Order = OvD->Overlay->PlaneOrder;
+      }
+      ++i;
+   } while (!dlist_is_tail(Elmop));
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Lowest foreground order found is %d\n", FuncName, Order);
+   }
+   
+   SUMA_RETURN(Order);
+}
+
+/*!
+   Is a color overlay plane registered in SO
+*/
+SUMA_Boolean SUMA_isOverlayOfSO (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Plane)
+{
+   static char FuncName[]={"SUMA_isOverlayOfSO"};
+   int i;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+
+   for (i=0; i< SO->N_Overlays; ++i) if (SO->Overlays[i] == Plane) SUMA_RETURN(YUP);
+   
+   SUMA_RETURN(NOPE);
+}
+
+void SUMA_Print_PlaneOrder (SUMA_SurfaceObject *SO, FILE *Out)
+{   
+   static char FuncName[]={"SUMA_Print_PlaneOrder"};
+   char *s;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (Out == NULL) Out = stdout;
+      
+   s =  SUMA_PlaneOrder_Info(SO);
+   
+   if (s) {
+      fprintf (Out, "%s", s);
+      SUMA_free(s);
+   }else {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceObject_Info.\n", FuncName);
+   }   
+   
+   SUMA_RETURNe;
 }   
 
+/*!
+   \brief Shows the overlay plane order 
+*/
+char * SUMA_PlaneOrder_Info (SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_PlaneOrder_Info"};
+   char stmp[1000], *s = NULL;
+   SUMA_STRING *SS = NULL;
+   DList *list=NULL;
+   DListElmt *Elm=NULL;
+   SUMA_OVERLAY_LIST_DATUM *OvD=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* get the background and foreground lists */
+   SS = SUMA_StringAppend (NULL, NULL);
+      
+   if (!(list = SUMA_OverlaysToOrderedList (SO, -1))) {
+      SS = SUMA_StringAppend (SS,"NULL Background list\n");
+   }else if (!list->size) {
+      SS = SUMA_StringAppend (SS,"Empty Background list\n");
+   } else {
+      Elm=NULL;
+      do {
+         if (!Elm) Elm = dlist_head(list);
+         else Elm = Elm->next;
+         OvD = (SUMA_OVERLAY_LIST_DATUM *)Elm->data;
+         sprintf (stmp,"BK: %s o%d (%s)\n", OvD->Overlay->Label, OvD->Overlay->PlaneOrder, OvD->Overlay->Name );
+         SS = SUMA_StringAppend (SS,stmp);
+      } while (Elm != dlist_tail(list));
+   }
+   
+   if (!(list = SUMA_OverlaysToOrderedList (SO, 1))) {
+      SS = SUMA_StringAppend (SS,"NULL Foreground list\n");
+   }else if (!list->size) {
+      SS = SUMA_StringAppend (SS,"Empty Foreground list\n");
+   } else {
+      Elm=NULL;
+      do {
+         if (!Elm) Elm = dlist_head(list);
+         else Elm = Elm->next;
+         OvD = (SUMA_OVERLAY_LIST_DATUM *)Elm->data;
+         sprintf (stmp,"FG: %s o%d (%s)\n", OvD->Overlay->Label, OvD->Overlay->PlaneOrder, OvD->Overlay->Name );
+         SS = SUMA_StringAppend (SS,stmp);
+      } while (Elm != dlist_tail(list));
+   }
+   
+   s = SS->s;
+   SUMA_free(SS);
+   
+   SUMA_RETURN (s);
+}
+
+/*!
+   \brief Moves a plane up one order
+*/
+SUMA_Boolean SUMA_MovePlaneUp (SUMA_SurfaceObject *SO, char *Name)
+{
+   static char FuncName[]={"SUMA_MovePlaneUp"};
+   SUMA_OVERLAYS *Overlay=NULL;
+   SUMA_OVERLAY_LIST_DATUM *OvD=NULL;
+   DList *list=NULL;
+   DListElmt *Elm = NULL;
+   int junk=0;
+   SUMA_Boolean Found = NOPE, LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   
+   /* search for the plane by name */
+   SUMA_LH("Searching for plane");
+   if (!(Overlay = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, Name, &junk))) {
+      SUMA_S_Err("Plane does not exist in SO->Overlays. (identified by name)");
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* get the list of planes */
+   SUMA_LH("Creating list");
+   if (Overlay->BrightMod) list = SUMA_OverlaysToOrderedList (SO, -1);
+   else list = SUMA_OverlaysToOrderedList (SO, 1);
+   if (!list) {
+      SUMA_S_Err("NULL list");
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* Now search through the list until you find Overlay */
+   SUMA_LH("Searching for plane in list");
+   Found = NOPE;
+   Elm = NULL;
+   do {
+      if (!Elm) Elm = dlist_head(list);
+      else Elm = Elm->next;
+      OvD = (SUMA_OVERLAY_LIST_DATUM *) Elm->data;
+      if (OvD->Overlay == Overlay) Found = YUP;
+   }while (Elm != dlist_tail(list) && !Found);
+   
+   if (!Found) {
+      SUMA_S_Err("Strange, real strange.");
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_LH("Found element, inserting at new position");
+   if (Elm != dlist_tail(list)) { /* not on top, can move up */
+      /* add Elm's data  ahead of Elm->next */
+      dlist_ins_next (list, Elm->next, Elm->data);
+      /* remove Elm BUT NOT ITS DATA STRUCTURE!*/
+      dlist_remove (list, Elm, (void *)(&OvD));
+   } else {
+      SUMA_LH("Reached the top");
+   }
+   
+   SUMA_LH("Compacting");
+   /* now compact the order just for good measure */
+   SUMA_ListOrderToPlaneOrder (list);
+
+   
+   SUMA_LH("Clean up");
+   dlist_destroy(list); SUMA_free(list);
+   SUMA_RETURN(YUP);   
+}
+
+/*!
+   \brief Moves a plane up one order
+*/
+SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
+{
+   static char FuncName[]={"SUMA_MovePlaneDown"};
+   SUMA_OVERLAYS *Overlay=NULL;
+   SUMA_OVERLAY_LIST_DATUM *OvD=NULL;
+   DList *list=NULL;
+   DListElmt *Elm = NULL;
+   int junk=0;
+   SUMA_Boolean Found = NOPE, LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   
+   /* search for the plane by name */
+   SUMA_LH("Searching for plane");
+   if (!(Overlay = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, Name, &junk))) {
+      SUMA_S_Err("Plane does not exist in SO->Overlays. (identified by name)");
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* get the list of planes */
+   SUMA_LH("Creating list");
+   if (Overlay->BrightMod) list = SUMA_OverlaysToOrderedList (SO, -1);
+   else list = SUMA_OverlaysToOrderedList (SO, 1);
+   if (!list) {
+      SUMA_S_Err("NULL list");
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* Now search through the list until you find Overlay */
+   SUMA_LH("Searching for plane in list");
+   Found = NOPE;
+   Elm = NULL;
+   do {
+      if (!Elm) Elm = dlist_head(list);
+      else Elm = Elm->next;
+      OvD = (SUMA_OVERLAY_LIST_DATUM *) Elm->data;
+      if (OvD->Overlay == Overlay) Found = YUP;
+   }while (Elm != dlist_tail(list) && !Found);
+   
+   if (!Found) {
+      SUMA_S_Err("Strange, real strange.");
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_LH("Found element, inserting at new position");
+   if (Elm != dlist_head(list)) { /* not on bottom, can move down */
+      /* add Elm's data  before of Elm->prev */
+      dlist_ins_prev (list, Elm->prev, Elm->data);
+      /* remove Elm BUT NOT ITS DATA STRUCTURE!*/
+      dlist_remove (list, Elm, (void *)(&OvD));
+   } else {
+      SUMA_LH("Reached the bottom");
+   }
+   
+   SUMA_LH("Compacting");
+   /* now compact the order just for good measure */
+   SUMA_ListOrderToPlaneOrder (list);
+
+   
+   SUMA_LH("Clean up");
+   dlist_destroy(list); SUMA_free(list);
+   SUMA_RETURN(YUP);   
+}
+
+/*!
+   \brief Adds a new plane to SO->Overlays. 
+   If plane exists, you get an error message
+*/
+SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_INODE *Overlay_Inode)
+{
+   static char FuncName[]={"SUMA_AddNewPlane"};
+   DList *ForeList=NULL, *BackList = NULL;
+   SUMA_OVERLAY_LIST_DATUM *OvD=NULL;
+   int junk=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   
+   if (!Overlay || !Overlay_Inode) {
+      SUMA_S_Err("You sent me NULLS!");
+      SUMA_RETURN (NOPE);
+   }
+   
+   if (SUMA_isOverlayOfSO(SO, Overlay)) {
+      SUMA_S_Err("Plane exists in SO->Overlays.");
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* also try looking for plane by name */
+   if (SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, Overlay->Name, &junk)) {
+      SUMA_S_Err("Plane exists in SO->Overlays. (identified by name)");
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* make sure there's enough room for the new plane */
+   if (SO->N_Overlays+1 >= SUMA_MAX_OVERLAYS) {
+      SUMA_SL_Crit("Too many color overlays.");
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* Now add the plane where it belongs */
+   if (!(ForeList = SUMA_OverlaysToOrderedList (SO, 1))) {
+      SUMA_S_Err("NULL ForeList");
+      SUMA_RETURN (NOPE);
+   }
+   if (!(BackList = SUMA_OverlaysToOrderedList (SO, -1))) {
+      SUMA_S_Err("NULL BackList");
+      SUMA_RETURN (NOPE);
+   }
+   
+   SUMA_LH("Adding to list...");
+   OvD = (SUMA_OVERLAY_LIST_DATUM *) SUMA_malloc(sizeof(SUMA_OVERLAY_LIST_DATUM));
+   OvD->Overlay = Overlay;
+   OvD->Overlay_Inode = Overlay_Inode;
+   if (Overlay->BrightMod) {
+      SUMA_LH("Back dude...");
+      dlist_ins_next(BackList, dlist_tail(BackList), (void *)OvD);
+      Overlay->PlaneOrder = BackList->size - 1;
+   } else {
+      SUMA_LH("Front dude...");
+      dlist_ins_next(ForeList, dlist_tail(ForeList), (void *)OvD);
+      Overlay->PlaneOrder = ForeList->size - 1;
+   }
+   
+   SUMA_LH("Out dude...");
+   /* place the Overlay plane and its inode in SO */
+   SO->Overlays[SO->N_Overlays] = Overlay;
+   SO->Overlays_Inode[SO->N_Overlays] = Overlay_Inode;
+   
+   /* Now increment the number of overlays to be in SO */
+   ++SO->N_Overlays;
+   
+   
+   SUMA_LH("Destruction...");
+   dlist_destroy(ForeList); SUMA_free(ForeList);
+   dlist_destroy(BackList); SUMA_free(BackList);
+
+   SUMA_RETURN (YUP);
+}
 
 /*!
    \brief ans = SUMA_MixColors (sv);
@@ -2263,7 +2742,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_MixColors"};
    int i, dov_id;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    SUMA_SurfaceObject *SO = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -2301,6 +2780,8 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
    static char FuncName[]={"SUMA_iRGB_to_OverlayPointer"};
    int i, OverInd = -1;
    SUMA_SurfaceObject *SO2 = NULL;
+   SUMA_OVERLAYS *Overlay=NULL;
+   SUMA_INODE *Overlay_Inode = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -2318,32 +2799,33 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
             }
          } 
 
-         SO->Overlays[SO->N_Overlays] = SUMA_CreateOverlayPointer (SO->N_Node, Name);
-         if (!SO->Overlays[SO->N_Overlays]) {
+         Overlay = SUMA_CreateOverlayPointer (SO->N_Node, Name);
+         if (!Overlay) {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
             SUMA_RETURN(NOPE);
          } 
 
          /* make an Inode for the overlay */
-         SO->Overlays_Inode[SO->N_Overlays] = SUMA_CreateInode ((void *)SO->Overlays[SO->N_Overlays], SO->idcode_str);
-         if (!SO->Overlays_Inode[SO->N_Overlays]) {
+         Overlay_Inode = SUMA_CreateInode ((void *)Overlay, SO->idcode_str);
+         if (!Overlay_Inode) {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
             SUMA_RETURN(NOPE);
          }
 
+         /* set up some defaults for the overlap plane */
+         Overlay->Show = sopd->Show;
+         Overlay->GlobalOpacity = sopd->GlobalOpacity;
+         Overlay->BrightMod = sopd->BrightMod;
+         
          OverInd = SO->N_Overlays; 
-         SO->N_Overlays ++;
 
-         /* place the overlay plane on top */
-         if(!SUMA_SetPlaneOrder (SO->Overlays, SO->N_Overlays, Name, SO->N_Overlays-1)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetPlaneOrder\n", FuncName);
-            SUMA_RETURN(NOPE);
+         /* Add this plane to SO->Overlays */
+         if (!SUMA_AddNewPlane (SO, Overlay, Overlay_Inode)) {
+            SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
+            SUMA_FreeOverlayPointer(Overlay);
+            SUMA_RETURN (NOPE);
          }
 
-         /* set up some defaults for the overlap plane */
-         SO->Overlays[OverInd]->Show = sopd->Show;
-         SO->Overlays[OverInd]->GlobalOpacity = sopd->GlobalOpacity;
-         SO->Overlays[OverInd]->BrightMod = sopd->BrightMod;
          
       }
       
@@ -2432,3 +2914,280 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
 
 }
 
+/*!
+   \brief refreshes a colorplane list. 
+   A combo of SUMA_AssembleColorPlaneList and SUMA_CreateScrolledList.
+   
+*/
+void SUMA_RefreshColorPlaneList (SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_RefreshColorPlaneList"};
+   SUMA_LIST_WIDGET *LW = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   LW = SO->SurfCont->SwitchColPlanelst;
+   
+   if (!LW) SUMA_RETURNe;
+   
+   if (LW->ALS) {
+      /* free that old hag */
+      if (LocalHead) SUMA_S_Err("Freeing the hag.");
+      LW->ALS = SUMA_FreeAssembleListStruct(LW->ALS);
+   }
+   
+   
+   /* assemble the ColorPlane list */
+   LW->ALS = SUMA_AssembleColorPlaneList (SO);
+  
+   if (!LW->ALS) {
+      SUMA_SLP_Err("Error assembling list.");
+      SUMA_RETURNe;
+   }
+   
+   if (LW->ALS->N_clist < 0) {
+      SUMA_SL_Err("Failed in SUMA_AssembleColorPlaneList");
+      SUMA_RETURNe;
+   }
+   
+   if (!LW->ALS->N_clist) {
+      SUMA_SLP_Note ("No Color planes to choose from.");
+      SUMA_RETURNe;
+   }
+   
+   if (LocalHead) {
+      int i;
+      for (i=0; i < LW->ALS->N_clist; ++i) fprintf (SUMA_STDERR,"%s: %s\n", FuncName, LW->ALS->clist[i]);
+   }
+   SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE,
+                             LW);
+   
+   SUMA_RETURNe;
+}  
+
+/*!
+   \brief Returns a list of the Colorplanes belonging to a certain surface. 
+   
+   \param SO (SUMA_SurfaceObject *) pointer to surface object
+   
+   \return clist (SUMA_ASSEMBLE_LIST_STRUCT *) pointer to structure containing results
+   
+   \sa SUMA_FreeAssembleListStruct
+   \sa SUMA_CreateAssembleListStruct
+   
+*/
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_AssembleColorPlaneList"};
+   int i=-1, N_clist=-1; 
+   DList *list=NULL, *listop = NULL, *OverlayPlanelist = NULL;
+   DListElmt *Elm = NULL, *Elmop = NULL, *Elm_OverlayPlanelist = NULL;
+   char Label[SUMA_MAX_NAME_LENGTH], *store=NULL;
+   char **clist=NULL;
+   void **oplist=NULL;
+   SUMA_ASSEMBLE_LIST_STRUCT *clist_str = NULL;
+   SUMA_OVERLAY_LIST_DATUM *OvD=NULL, *oOvD=NULL;
+   SUMA_Boolean SortByOrder = YUP;
+   SUMA_Boolean Found = NOPE, LocalHead = NOPE;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /* get list of all Overlay planes */
+   OverlayPlanelist = SUMA_OverlaysToOrderedList (SO, 0);
+
+   /* need a list to store new names */
+   list = (DList *)SUMA_malloc(sizeof(DList));
+   dlist_init(list, NULL); /* you don't want to free the strings */
+   /* need a list to store the pointers, it is useless when SortByOrder is used, but I leave it in to keep the code simple */
+   listop = (DList *)SUMA_malloc(sizeof(DList)); 
+   dlist_init(listop, NULL); /* you don't want to free the data as it is copied from  OverlayPlanelist*/
+         
+   clist = NULL;
+   N_clist = -1;
+   Elm_OverlayPlanelist = NULL;
+   do {
+      if (!Elm_OverlayPlanelist) Elm_OverlayPlanelist = dlist_head(OverlayPlanelist);
+      else Elm_OverlayPlanelist = Elm_OverlayPlanelist->next;
+      
+      OvD = (SUMA_OVERLAY_LIST_DATUM *) Elm_OverlayPlanelist->data;
+
+      if (!OvD->Overlay->Label) sprintf (Label,"NULL");
+      else sprintf (Label,"%s", OvD->Overlay->Label);
+
+      SUMA_LH(Label);
+      /* Now allocate space for that label */
+      store = (char *)SUMA_calloc(strlen(Label)+10, sizeof(char));
+      if (OvD->Overlay->BrightMod) {
+         sprintf(store,"bk:%s", Label);
+      } else {
+         sprintf(store,"fg:%s", Label);
+      }
+
+      if (SortByOrder) {
+         SUMA_LH("Sorting by order");
+         /* list is already sorted, just copy the string and object structure pointers to lists */
+         dlist_ins_next(list, dlist_tail(list), (void*)store);
+         /* this line is redundant with SortByOrder but it don't hoyt */
+         dlist_ins_next(listop, dlist_tail(listop), (void*)OvD);
+      } else {   /* sort the list by aplhpabetical order */
+         SUMA_LH("Sorting by name");
+         if (!list->size) {
+            dlist_ins_next(list, dlist_tail(list), (void*)store);
+            dlist_ins_next(listop, dlist_tail(listop), (void*)OvD);
+         }else { /* must sort first */
+            Elm = NULL;
+            Elmop = NULL;
+            do {
+               Found = NOPE;
+               if (!Elm) {
+                  Elm = dlist_head(list);
+                  Elmop = dlist_head(listop);
+               } else {
+                  Elm = Elm->next;
+                  Elmop = Elmop->next;
+               }
+
+               if (strcmp(store, (char*)Elm->data) <= 0) {
+                  dlist_ins_prev(list, Elm, (void *)store);
+                  dlist_ins_prev(listop, Elmop, (void *)OvD);
+                  Found = YUP;
+               } else if (Elm == dlist_tail(list)) {
+                  /* reached the end, append */
+                  dlist_ins_next(list, Elm, (void *)store);
+                  dlist_ins_next(listop, Elmop, (void *)OvD);
+                  Found = YUP;
+               }
+            } while (!Found);
+         }
+
+      }
+   } while (Elm_OverlayPlanelist != dlist_tail(OverlayPlanelist));
+   
+   SUMA_LH("saving list.");
+   if (!list->size) { /* Nothing found */
+      SUMA_LH("Empty list");
+      N_clist = 0;
+   }else {
+      Elm = NULL;
+      Elmop = NULL;
+      clist =  (char **)SUMA_calloc(list->size, sizeof(char *));
+      oplist = (void **)SUMA_calloc(list->size, sizeof(void *));
+      for (i=0; i< list->size; ++i) {
+         if (!Elm) {
+            Elm = dlist_head(list);
+            Elmop = dlist_head(listop);
+         } else {
+            Elm = dlist_next(Elm);
+            Elmop = dlist_next(Elmop);
+         }
+         clist[i] = (char*)Elm->data;
+         OvD = (SUMA_OVERLAY_LIST_DATUM *) Elmop->data;
+         oplist[i] = (void *)OvD->Overlay;
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Inserting %s with %s (%s).\n", 
+            FuncName, clist[i], OvD->Overlay->Label, OvD->Overlay->Name);
+      }
+
+      N_clist = list->size;
+      /* destroy list */
+      dlist_destroy(list);
+      dlist_destroy(listop);
+      dlist_destroy(OverlayPlanelist);
+      SUMA_free(list);
+      SUMA_free(listop);
+      SUMA_free(OverlayPlanelist);
+   }
+   
+   clist_str = SUMA_CreateAssembleListStruct();
+   clist_str->clist = clist;
+   clist_str->oplist = oplist;
+   clist_str->N_clist = N_clist;
+   
+   /* return */
+   SUMA_RETURN (clist_str);  
+}
+
+/*!
+   \brief Loads a color plane file and adds it to a surface's list of colorplanes
+   
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+*/
+void SUMA_LoadColorPlaneFile (char *filename, void *data)
+{
+   static char FuncName[]={"SUMA_LoadColorPlaneFile"};
+   SUMA_SurfaceObject *SO = NULL;
+   int ntot;
+   SUMA_OVERLAY_PLANE_DATA sopd;
+   SUMA_IRGB *irgb=NULL;
+   int OverInd = -1;
+   DList *list=NULL;
+   SUMA_LIST_WIDGET *LW=NULL;
+   SUMA_Boolean LocalHead=YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Received request to load %s for surface %s.\n", FuncName, filename, SO->Label);
+   }
+
+   /* find out if file exists and how many values it contains */
+   ntot = SUMA_float_file_size (filename);
+   if (ntot < 0) {
+      fprintf(SUMA_STDERR,"Error %s: filename %s could not be open.\n", FuncName, filename);
+      SUMA_RETURNe;
+   }
+
+   /* make sure it's a full matrix */
+   if ((ntot % 4)) {
+      fprintf(stderr,"Error %s: file %s contains %d values, not divisible by ncols %d.\n", FuncName, filename, ntot, 4);
+      SUMA_RETURNe;
+   }
+
+
+   irgb = SUMA_Read_IRGB_file(filename, ntot / 4);
+   if (!irgb) {
+      SUMA_SLP_Err("Failed to read file.");
+      SUMA_RETURNe;
+   }
+
+   sopd.N = irgb->N;
+   sopd.Type = SOPT_ifff;
+   sopd.Source = SES_Suma;
+   sopd.GlobalOpacity = 0.3;
+   sopd.BrightMod = NOPE;
+   sopd.Show = YUP;
+   /* dim colors from maximum intensity to preserve surface shape highlights, division by 255 is to scale color values between 1 and 0 */
+   sopd.DimFact = 0.5;
+   sopd.i = (void *)irgb->i;
+   sopd.r = (void *)irgb->r;
+   sopd.g = (void *)irgb->g;
+   sopd.b = (void *)irgb->b;
+   sopd.a = NULL;
+
+   if (!SUMA_iRGB_to_OverlayPointer (SO, filename, &sopd, &OverInd, SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
+      SUMA_RETURNe;
+   }
+
+   /* values were copied, dump structure */
+   irgb = SUMA_Free_IRGB(irgb);  
+
+   if (!SUMA_RemixRedisplay (SO)) {
+      SUMA_RETURNe;
+   }
+  
+               
+   /*update the list widget if open */
+   LW = SO->SurfCont->SwitchColPlanelst;
+   if (LW) {
+      if (!LW->isShaded) SUMA_RefreshColorPlaneList (SO);  
+   }  
+   
+   /* update the color plane frame */
+   if (OverInd >= 0)        
+      SUMA_InitializeColPlaneShell(SO, SO->Overlays[OverInd]);
+
+   SUMA_RETURNe;
+}

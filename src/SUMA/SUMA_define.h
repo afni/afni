@@ -136,7 +136,7 @@ typedef enum { SE_Empty,
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
-               SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos,
+               SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -162,6 +162,37 @@ typedef enum {    SOPT_ibbb,  /*!< int, byte, byte, byte, null */
                   SOPT_ifff   /*!< int, float, float, float, null */
             } SUMA_OVERLAY_PLANE_TYPE; /*!< type of color plane data, letters code for 
                                             index red green blue and alpha values */
+
+
+
+typedef enum { SW_File, 
+               SW_FileOpen, SW_FileOpenSpec, SW_FileOpenSurf, SW_FileClose, 
+               SW_N_File } SUMA_WIDGET_INDEX_FILE; /*!< Indices to widgets under File menu. 
+                                                      Make sure you begin with SW_File and end
+                                                      with SW_N_File */
+typedef enum { SW_Tools,
+               SW_ToolsDrawROI,
+               SW_N_Tools } SUMA_WIDGET_INDEX_TOOLS; /*!< Indices to widgets under Tools menu. 
+                                                      Make sure you begin with SW_Tools and end
+                                                      with  SW_N_Tools*/
+typedef enum { SW_View, 
+               SW_ViewSumaCont, SW_ViewSurfCont, SW_ViewViewCont, 
+               SW_ViewSep1,
+               SW_ViewCrossHair, SW_ViewNodeInFocus, SW_ViewSelectedFaceset,
+               SW_N_View } SUMA_WIDGET_INDEX_VIEW; /*!< Indices to widgets under View menu. 
+                                                      Make sure you begin with SW_View and end
+                                                      with SW_N_View */
+typedef enum { SW_Help, 
+               SW_HelpViewer,  SW_HelpMessageLog, SW_HelpSep1, SW_HelpIONotify,
+               SW_HelpMemTrace,  
+               SW_N_Help } SUMA_WIDGET_INDEX_HELP; /*!< Indices to widgets under Help menu.
+                                                         Make sure you begin with SW_View and end
+                                                         with SW_N_View */                                                   
+typedef enum { SW_SurfCont_Render,
+               SW_SurfCont_RenderViewerDefault, SW_SurfCont_RenderFill, SW_SurfCont_RenderLine, SW_SurfCont_RenderPoints, 
+               SW_N_SurfCont_Render } SUMA_WIDGET_INDEX_SURFCONT_RENDER; /*!< Indices to widgets in SurfaceController under
+                                                                           RenderMode */
+
 typedef struct {
    int *i;  /*!< node index */
    float *r; /*!< node red */
@@ -267,7 +298,8 @@ typedef struct {
 /*! Structure containing one color overlay */
 typedef struct {
    SUMA_Boolean Show; /*!< if YUP then this overlay enters the composite color map */
-   char Name[SUMA_MAX_LABEL_LENGTH]; /*!< name of ovelay, CONVEXITY or Functional or areal boundaries perhaps*/
+   char *Name; /*!< name of ovelay, CONVEXITY or Functional or areal boundaries perhaps. The Name can be a filename with path*/
+   char *Label; /*!< Usually the same as Name without any existing path */
    int *NodeDef; /*!< nodes overwhich the colors are defined*/
    int N_NodeDef; /*!< total number of nodes specified in NodeDef*/
    int N_Alloc; /*!< You'd think this should be equal to NodeDef, but in instances where you may be receiving
@@ -335,6 +367,22 @@ typedef struct {
    float nDistance; /*!< distance from the first node to the last by summing the length of segments between nodes */
 } SUMA_ROI_DATUM; /*!< elementary datum of a drawn ROI */
 
+/*! 
+I do not think we can have both nodes and triangles in this struct.
+I guess I can make this be a Node Datum then create a similar struct
+for triangle Datum and add them to SUMA_NIML_DRAWN_ROI.
+If you do something like this rename:
+SUMA_NIML_ROI_DATUM to SUMA_NIML_NODE_ROI_DATUM
+Will the file niml.h no longer be in afni_src directory ?
+*/
+typedef struct {
+   int N_n; 
+   int *nPath;
+/* int Type;
+   int N_t;
+   int *tPath; */
+} SUMA_NIML_ROI_DATUM; /*!< a version of SUMA_ROI_DATUM struct that can be used by niml. */
+
 #define SUMA_MAX_ROI_CTRL_NODES 100 /*!< Maximum number of control nodes in an ROI */
 #define SUMA_MAX_ROI_CTRL_NODES3 300 
 #define SUMA_MAX_ROI_ON_SURFACE 100 /*!< Maximum number of ROIs Drawn on a surface */
@@ -353,6 +401,16 @@ typedef struct {
    DList *ActionStack; /*!< a stack containing the various actions performed*/
    DListElmt *StackPos; /*!< The element of ActionStack that represents the current position */
 } SUMA_DRAWN_ROI;
+
+typedef struct {
+   int Type; 
+   char *idcode_str;
+   char *Parent_idcode_str;
+   char *Label;
+   int iLabel;
+   SUMA_NIML_ROI_DATUM *ROI_datum; /*! a vector of ROI data (a multitude of ROI datum) */
+   int N_ROI_datum;
+} SUMA_NIML_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that can be used by niml. */
 
 typedef struct {
    SUMA_ROI_DATUM *ROId;
@@ -562,35 +620,6 @@ typedef struct {
                               do not return before being done with this structure*/ 
 } SUMA_SELECTION_DIALOG_STRUCT;
 
-/*! structure containing widgets for surface  controllers SurfCont */
-typedef struct {
-   Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
-   Widget Mainform; /*!< main form, child of TopLevelShell */
-   Widget ShowHide; /*!< a testing, temporary widget */
-   Widget SurfInfo_pb; /*!< More info push button */
-   SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing widgets and options of the surface info text shell */
-   Widget RenderModeMenu[SRM_N_RenderModes]; /*!< vector of widgets controlling the rendering mode menu */
-}SUMA_X_SurfCont;
-
-typedef struct {
-   int N_rb_group; /*!< number of radio buttons in group */
-   int N_but; /*!< number of buttons per radio button group */
-   Widget *tb; /*!< vector of N_rb_group * N_but toggle button widgets */
-   Widget *rb; /*!< vetor of N_rb_group radio box widget */
-   Widget arb; /*!< widget of radiobox for all lock buttons */
-   Widget *atb; /*!< widget of toggle buttons in arb */
-}SUMA_rb_group;
-
-/*! structure containing widgets for Suma's controller SumaCont */
-typedef struct {
-   Widget AppShell; /*!< AppShell widget for Suma's controller */
-   Widget quit_pb; /*!< quit push button */
-   SUMA_Boolean quit_first;   /*!< flag indicating first press of done button */
-   SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio button groups */
-   Widget *LockView_tbg;   /*!< vector of toggleview buttons */
-   Widget LockAllView_tb;  /*!< widget of toggleAllview button */
-}SUMA_X_SumaCont;
-
 /*!
    Structure containing widgets and settings of an arrow and or a text field
 */ 
@@ -613,6 +642,7 @@ typedef struct {
    XtIntervalId arrow_timer_id; /*!< time out process id */
    
    void (*NewValueCallback)(void *data); /*!< callback to make when a new value is set */
+   void *NewValueCallbackData; 
    SUMA_Boolean modified; /*!< set to YUP when user edits the value field */
    SUMA_Boolean arrow_action; /*!< set to YUP when user clicks one of the arrows */
 } SUMA_ARROW_TEXT_FIELD;
@@ -645,14 +675,54 @@ typedef struct {
    SUMA_Boolean ShowSorted; /*!< Sort the list in alphabetical order */
    SUMA_Boolean RemoveDups; /*!< Remove duplicates in list */                        
    void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a default selection mode is made */ 
+   void *Default_Data; /*!< pointer to data to go with Default_cb. If you pass NULL, the pointer to the List Widget is sent */
    void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a selection is made */ 
+   void *Select_Data; /*!< pointer to data to go with Select_cb. If you pass NULL, the pointer to the List Widget is sent */
    void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callbak to make when a selection is made */
+   void *CloseList_Data; /*!< pointer to data to go with CloseList_cb. If you pass NULL, the pointer to the List Widget is sent */
    char *Label;
    SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
    
    SUMA_ASSEMBLE_LIST_STRUCT *ALS; /*!< structure containing the list of strings shown in the widget and the pointers 
                                        of the objects the list refers to*/  
 } SUMA_LIST_WIDGET;
+
+/*! structure containing widgets for surface  controllers SurfCont */
+typedef struct {
+   Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
+   Widget PosRef; /*!< reference position widget */
+   Widget Mainform; /*!< main form, child of TopLevelShell */
+   Widget SurfInfo_pb; /*!< More info push button */
+   SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing widgets and options of the surface info text shell */
+   Widget RenderModeMenu[SW_N_SurfCont_Render]; /*!< vector of widgets controlling the rendering mode menu */
+   Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
+   SUMA_ARROW_TEXT_FIELD *ColPlaneOrder; /*!< structure for arrow/text field widget controlling color plane order */
+   SUMA_ARROW_TEXT_FIELD *ColPlaneOpacity; /*!< structure for arrow/text field widget controlling color plane opacity */
+   Widget ColPlaneShow_tb; /*!< show/hide color plane */
+   SUMA_LIST_WIDGET *SwitchColPlanelst; /*!< a structure containing widgets and options for the switch color plane list */
+   Widget ColPlaneLabel_Parent_lb;
+   SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
+}SUMA_X_SurfCont;
+
+typedef struct {
+   int N_rb_group; /*!< number of radio buttons in group */
+   int N_but; /*!< number of buttons per radio button group */
+   Widget *tb; /*!< vector of N_rb_group * N_but toggle button widgets */
+   Widget *rb; /*!< vetor of N_rb_group radio box widget */
+   Widget arb; /*!< widget of radiobox for all lock buttons */
+   Widget *atb; /*!< widget of toggle buttons in arb */
+}SUMA_rb_group;
+
+/*! structure containing widgets for Suma's controller SumaCont */
+typedef struct {
+   Widget AppShell; /*!< AppShell widget for Suma's controller */
+   Widget quit_pb; /*!< quit push button */
+   SUMA_Boolean quit_first;   /*!< flag indicating first press of done button */
+   SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio button groups */
+   Widget *LockView_tbg;   /*!< vector of toggleview buttons */
+   Widget LockAllView_tb;  /*!< widget of toggleAllview button */
+}SUMA_X_SumaCont;
+
 
 /*! structure containing widgets and data for the DrawROI window*/
 typedef struct {
@@ -675,34 +745,6 @@ typedef struct {
    SUMA_LIST_WIDGET *SwitchROIlst; /*!< a structure containing widgets and options for the switch ROI list */
 } SUMA_X_DrawROI;
 
-
-typedef enum { SW_File, 
-               SW_FileOpen, SW_FileOpenSpec, SW_FileOpenSurf, SW_FileClose, 
-               SW_N_File } SUMA_WIDGET_INDEX_FILE; /*!< Indices to widgets under File menu. 
-                                                      Make sure you begin with SW_File and end
-                                                      with SW_N_File */
-typedef enum { SW_Tools,
-               SW_ToolsDrawROI,
-               SW_N_Tools } SUMA_WIDGET_INDEX_TOOLS; /*!< Indices to widgets under Tools menu. 
-                                                      Make sure you begin with SW_Tools and end
-                                                      with  SW_N_Tools*/
-typedef enum { SW_View, 
-               SW_ViewSumaCont, SW_ViewSurfCont, SW_ViewViewCont, 
-               SW_ViewSep1,
-               SW_ViewCrossHair, SW_ViewNodeInFocus, SW_ViewSelectedFaceset,
-               SW_N_View } SUMA_WIDGET_INDEX_VIEW; /*!< Indices to widgets under View menu. 
-                                                      Make sure you begin with SW_View and end
-                                                      with SW_N_View */
-typedef enum { SW_Help, 
-               SW_HelpViewer,  SW_HelpMessageLog, SW_HelpSep1, SW_HelpIONotify,
-               SW_HelpMemTrace,  
-               SW_N_Help } SUMA_WIDGET_INDEX_HELP; /*!< Indices to widgets under Help menu.
-                                                         Make sure you begin with SW_View and end
-                                                         with SW_N_View */                                                   
-typedef enum { SW_SurfCont_Render,
-               SW_SurfCont_RenderViewerDefault, SW_SurfCont_RenderFill, SW_SurfCont_RenderLine, SW_SurfCont_RenderPoints, 
-               SW_N_SurfCont_Render } SUMA_WIDGET_INDEX_SURFCONT_RENDER; /*!< Indices to widgets in SurfaceController under
-                                                                           RenderMode */
                
                
 /*! structure containg X vars for surface viewers*/
@@ -1122,6 +1164,11 @@ typedef struct {
    float *VOLREG_CENTER_BASE; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
    float *VOLREG_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
 } SUMA_VOLPAR;
+
+typedef struct {
+   SUMA_OVERLAYS *Overlay; /*!< pointer to color overlay structures */
+   SUMA_INODE *Overlay_Inode; /*!< pointer to Inodes corresponding to each Overlay struct */
+} SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists of SO->Overlays and co */ 
 
 
 
