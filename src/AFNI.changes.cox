@@ -4971,3 +4971,6 @@
 
 29 Feb 2004
  * Re-fixed the thd_shear3d.c bug of 24 Feb 2004, since it was wrong.
+
+09 Mar 2004
+ * Added 'ms' time unit selection to 3dcalc.c -dt/-taxis options.
