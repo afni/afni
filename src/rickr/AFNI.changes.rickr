@@ -926,3 +926,6 @@
   * modified Makefile.INCLUDE to compile nifti_tool
   * modified nifti/Makefile to compile nifti_stats nifti_tool and nifti1_test
 
+03 Jan 2005:
+  * modified mri_read.c:mri_imcount() to check for ':' after "3D"
+
