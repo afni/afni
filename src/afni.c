@@ -4676,7 +4676,8 @@ ENTRY("AFNI_time_index_CB") ;
      im3d->vinfo->anat_index = DSET_NVALS(im3d->anat_now) - 1 ;
    AV_assign_ival( im3d->vwid->func->anat_buck_av , im3d->vinfo->anat_index ) ;
 
-   if( ISVALID_DSET(im3d->fim_now) && HAS_TIMEAXIS(im3d->fim_now) ){
+   if( ISVALID_DSET(im3d->fim_now) &&
+       HAS_TIMEAXIS(im3d->fim_now) && !AFNI_noenv("AFNI_SLAVE_FUNCTIME") ){
      im3d->vinfo->fim_index = ipx ;
      if( im3d->vinfo->fim_index >= DSET_NVALS(im3d->fim_now) )
        im3d->vinfo->fim_index = DSET_NVALS(im3d->fim_now) - 1 ;

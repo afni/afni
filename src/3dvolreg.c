@@ -540,7 +540,7 @@ int main( int argc , char *argv[] )
             if( kim > 0 || sx == 66666 ){  /* if didn't already get best shift */
                if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
                   if( VL_verbose )
-                     fprintf(stderr,"++ Getting best coarse shift:") ;
+                     fprintf(stderr,"++ Getting best coarse shift [%d]:",kim) ;
                   get_best_shift( nx,ny,nz , MRI_FLOAT_PTR(tp_base),MRI_FLOAT_PTR(fim) ,
                                   &sx,&sy,&sz ) ;
                   if( VL_verbose )
