@@ -448,6 +448,27 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
 }
 
 /*-------------------------------------------------------------------------
+  Alter the text in the popup message - 10 Jul 2001
+---------------------------------------------------------------------------*/
+
+void MCW_message_alter( Widget wmsg , char * msg )
+{
+   Widget wlab ;
+   Widget * children=NULL ;
+   int  num_children=0 ;
+   XmString xstr ;
+
+   if( wmsg == NULL || msg == NULL || msg[0] == '\0' ) return ;
+
+   XtVaGetValues( wmsg , XmNchildren    , &children ,
+                         XmNnumChildren , &num_children , NULL ) ;
+   if( num_children < 1 ) return ;
+
+   MCW_set_widget_label( children[0] , msg ) ;
+   return ;
+}
+
+/*-------------------------------------------------------------------------
     callback when the popup message created above is a PushButton
     (Note that w is the PushButton widget, so its parent is to be killed)
 ---------------------------------------------------------------------------*/
@@ -582,6 +603,7 @@ void MCW_enable_help (void){ disable_helps = 0 ; }
 void MCW_register_hint( Widget w , char * msg ) { return ; }
 void MCW_reghint_children( Widget w , char * msg ) { return ; }
 void MCW_hint_toggle(void){ return ; }
+void MCW_unregister_hint( Widget w ){ return ; }
 #else
 
 #include "LiteClue.h"
@@ -614,6 +636,15 @@ void MCW_hint_toggle(void)
       }
    }
    XtVaSetValues( liteClue , XgcNwaitPeriod , period , NULL ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void MCW_unregister_hint( Widget w )    /* 11 Jul 2001 */
+{
+   if( liteClue != NULL && w != NULL )
+      XcgLiteClueDeleteWidget( liteClue , w ) ;
    return ;
 }
 
@@ -1025,7 +1056,17 @@ static MCW_action_item TWIN_act[] = {
  { "Set"  , MCW_textwin_CB , NULL , NULL , "Apply choice and close window" , 0 }
 } ;
 
-MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
+MCW_textwin * new_MCW_textwin( Widget wpar, char * msg, int type )
+{
+   return new_MCW_textwin_2001( wpar,msg,type , NULL,NULL ) ;
+}
+
+/*-----------------------------------------------------------------------
+   Modified 10 Jul 2001 to include killing callback
+-------------------------------------------------------------------------*/
+
+MCW_textwin * new_MCW_textwin_2001( Widget wpar, char * msg, int type,
+                                    void_func * kill_func , XtPointer kill_data )
 {
    MCW_textwin * tw ;
    int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr , ii,nact ;
@@ -1060,6 +1101,9 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
    /* create a popup shell */
 
    tw = myXtNew(MCW_textwin) ;
+
+   tw->kill_func = kill_func ;  /* 10 Jul 2001 */
+   tw->kill_data = kill_data ;
 
    tw->wshell = XtVaCreatePopupShell(
                  "dialog" , xmDialogShellWidgetClass , wpar ,
@@ -1182,7 +1226,85 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
 
    XtVaSetValues( tw->wshell, XmNx,xpr , XmNy,ypr , NULL ) ;
 
+   tw->shell_width = swid ; tw->shell_height = shi ; /* 10 Jul 2001 */
    return tw ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void MCW_textwin_alter( MCW_textwin * tw , char * mmm ) /* 10 Jul 2001 */
+{
+   int swid , shi ;
+   char * msg = mmm ;
+   int cmax = 20 , ll , nlin ;
+   char * cpt , *cold , cbuf[128] ;
+   XmString xstr ;
+   XmFontList xflist ;
+
+   if( tw == NULL ) return ;     /* bad */
+
+   if( msg == NULL ) msg = " " ; /* don't let user be stupid */
+
+#if 0
+   /*-- compute size of text window with new message in it --*/
+
+   XtVaGetValues( tw->wtext , XmNfontList , &xflist , NULL ) ;
+
+   /* find longest line in msg */
+
+   cmax = 20 ; nlin = 1 ;
+   for( cpt=msg,cold=msg ; *cpt != '\0' ; cpt++ ){
+      if( *cpt == '\n' ){
+         ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
+         cold = cpt ; nlin++ ;
+      }
+   }
+   ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
+   if( cmax > 100 ) cmax = 100 ;
+
+   /* fill a dummy string of that length, plus a bit */
+
+   cmax+=3 ;
+   for( ll=0 ; ll < cmax ; ll++ ) cbuf[ll] = 'x' ;
+   cbuf[cmax] = '\0' ;
+
+   /* find width, height of the dummy string */
+
+   xstr = XmStringCreateLtoR( cbuf , XmFONTLIST_DEFAULT_TAG ) ;
+   swid = XmStringWidth ( xflist , xstr ) + 44 ;
+   shi  = XmStringHeight( xflist , xstr ) * nlin + 66 ;
+   XmStringFree( xstr ) ;
+
+   /* find width, height of screen */
+
+   cmax = WidthOfScreen(XtScreen(tw->wshell)) - 128 ;
+   if( swid > cmax ) swid = cmax ;
+
+   cmax = HeightOfScreen(XtScreen(tw->wshell)) - 128 ;
+   if( shi > cmax ) shi = cmax ;
+#endif
+
+   /*-- actually set new text --*/
+
+   XtVaSetValues( tw->wtext , XmNvalue , msg , NULL ) ;
+
+#if 1
+   MCW_widget_geom( tw->wtext , &swid , &shi , NULL,NULL ) ;
+   XtVaSetValues( tw->wshell , XmNwidth,swid+29 , XmNheight,shi+59 , NULL ) ;
+   tw->shell_width = swid+29 ; tw->shell_height = shi+59 ;
+#endif
+
+#if 0
+   /*-- maybe set new window size --*/
+
+   if( swid > tw->shell_width || shi > tw->shell_height ){
+      tw->shell_width  = swid = MAX( swid , tw->shell_width ) ;
+      tw->shell_height = shi  = MAX( shi  , tw->shell_height ) ;
+      XtVaSetValues( tw->wshell , XmNwidth,swid , XmNheight,shi , NULL ) ;
+   }
+#endif
+
+   return ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -1195,6 +1317,7 @@ void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
    if( client_data == NULL ) return ;
 
    if( strcmp(wname,"Quit") == 0 ){
+      if( tw->kill_func != NULL ) tw->kill_func(tw->kill_data); /* 10 Jul 2001 */
       XtDestroyWidget( tw->wshell ) ;
       myXtFree( tw ) ;
       return ;
@@ -1209,6 +1332,8 @@ void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
 void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    MCW_textwin * tw = (MCW_textwin *) client_data ;
+
+   if( tw->kill_func != NULL ) tw->kill_func(tw->kill_data); /* 10 Jul 2001 */
    XtDestroyWidget( tw->wshell ) ;
    myXtFree( tw ) ;
    return ;

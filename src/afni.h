@@ -125,12 +125,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.30a"
+#define VERSION "2.30b"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "06 Jul 2001      "
+#define RELEASE "10 Jul 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -342,6 +342,9 @@ typedef struct {
              graph_xyz_pb , graph_yzx_pb , graph_zxy_pb  ;  /* zxy = Coronal  */
 
       Boolean do_bkgd_lab ;
+
+      Widget pop_whereami_pb , pop_ttren_pb ;
+      MCW_textwin * pop_whereami_twin ;
 
 } AFNI_imaging_widgets ;
 
@@ -1156,10 +1159,12 @@ extern void AFNI_initialize_view( THD_3dim_dataset * , Three_D_View * ) ;
 extern void AFNI_setup_viewing(  Three_D_View * , Boolean ) ;
 extern void AFNI_modify_viewing( Three_D_View * , Boolean ) ;
 
-THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * ,
-                                 THD_fvec3 , THD_3dim_dataset * ) ;
-THD_fvec3 AFNI_backward_warp_vector( THD_warp * , THD_fvec3 ) ;
-THD_fvec3 AFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
+extern int AFNI_can_transform_vector( THD_3dim_dataset *, THD_3dim_dataset * );
+
+extern THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * ,
+                                        THD_fvec3 , THD_3dim_dataset * ) ;
+extern THD_fvec3 AFNI_backward_warp_vector( THD_warp * , THD_fvec3 ) ;
+extern THD_fvec3 AFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
 
 extern THD_warp * AFNI_make_warp( Three_D_View * ) ;
 
@@ -1335,11 +1340,14 @@ typedef struct {
 
 #define TTO_COUNT 241
 
+#define TTO_COUNT_BROD    209
+#define TTO_COUNT_NONBROD 125
+
 #ifdef MAIN
    TTO_point TTO_list[TTO_COUNT] = {
-      {  0, -1, -1,0, 41,"Anterior Commissure....................."} ,
+      {  0, -1, -1,0,  0,"Anterior Commissure....................."} ,
       {  0, 23,  0,0,  0,"Posterior Commissure...................."} ,
-      {  0,  7, 21,4,142,"Corpus Callosum........................."} ,
+      {  0,  7, 21,0,  0,"Corpus Callosum........................."} ,
       { 30, 24, -9,4, 68,"Left  Hippocampus......................."} ,
       {-30, 24, -9,4, 68,"Right Hippocampus......................."} ,
       { 23,  5,-15,4, 71,"Left  Amygdala.........................."} ,
@@ -1593,9 +1601,15 @@ typedef struct {
 
 extern void AFNI_talto_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 
-#define CAN_TALTO(q3d)                                \
- ( (q3d)->vinfo->view_type == VIEW_TALAIRACH_TYPE ||  \
-   (q3d)->anat_dset[VIEW_TALAIRACH_TYPE] != NULL    )
+#define CAN_TALTO(q3d)                                           \
+ ( (q3d)->vinfo->view_type == VIEW_TALAIRACH_TYPE ||             \
+   AFNI_can_transform_vector(                                    \
+      (q3d)->anat_dset[VIEW_TALAIRACH_TYPE] , (q3d)->anat_now ) )
+
+extern char * AFNI_ttatlas_query( Three_D_View * ) ; /* 10 Jul 2001 */
+extern void AFNI_pop_whereami_kill( Three_D_View * ) ;
+
+extern void TTRR_popup( MCW_DC * ) ;  /* 12 Jul 2001 */
 
 #endif /* USE_TALAIRACH_TO */
 

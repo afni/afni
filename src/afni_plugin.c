@@ -552,6 +552,14 @@ ENTRY("add_option_to_PLUGIN_interface") ;
       opt->subvalue[isv].hint = NULL ;
 
    (plint->option_count)++ ;  /* one more option */
+
+#if 0
+{int qq; fprintf(stderr,"Option tags thus far:\n");
+ for(qq=0;qq<plint->option_count;qq++)
+   fprintf(stderr," %s",plint->option[qq]->tag) ;
+ fprintf(stderr,"\n"); }
+#endif
+
    EXRETURN ;
 }
 
@@ -938,6 +946,48 @@ ENTRY("add_timeseries_to_PLUGIN_interface") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------
+   Routine to add a color overlay  "chooser" to the most recently
+   created option within a plugin interface -- 11 Jul 2001 - RWCox.
+
+   label = C string to go in the menu, next to the "chooser" for
+           the color.
+-------------------------------------------------------------------------*/
+
+void add_overlaycolor_to_PLUGIN_interface( PLUGIN_interface * plint, char * label )
+{
+   int nopt , nsv , ii ;
+   PLUGIN_option * opt ;
+   PLUGIN_subvalue * sv ;
+
+ENTRY("add_overlaycolor_to_PLUGIN_interface") ;
+
+   /*-- sanity checks --*/
+
+   if( plint == NULL || plint->option_count == 0 ) EXRETURN ;
+
+   if( label == NULL ) label = EMPTY_STRING ;
+
+   nopt = plint->option_count - 1 ;
+   opt  = plint->option[nopt] ;
+
+   nsv = opt->subvalue_count ;
+   if( nsv == PLUGIN_MAX_SUBVALUES ){
+      fprintf(stderr,"*** Warning: maximum plugin subvalue count exceeded!\n");
+      EXRETURN ;
+   }
+
+   /*-- load values into next subvalue --*/
+
+   sv = &(opt->subvalue[nsv]) ;
+
+   sv->data_type = PLUGIN_OVERLAY_COLOR_TYPE ;
+   PLUGIN_LABEL_strcpy( sv->label , label ) ;
+
+   (opt->subvalue_count)++ ;
+   EXRETURN ;
+}
+
 /*--------------------------------------------------------------------------*/
 
 int PLUG_nonblank_len( char * str )
@@ -1276,6 +1326,10 @@ ENTRY("PLUG_setup_widgets") ;
 
       /** create Label to describe this option **/
 
+#if 0
+fprintf(stderr,"Option setup %s\n",opt->label) ;
+#endif
+
       zlen = (PLUG_nonblank_len(opt->label) == 0) ;
       xstr = XmStringCreateLtoR( opt->label , XmFONTLIST_DEFAULT_TAG ) ;
       ow->label =
@@ -1330,6 +1384,31 @@ ENTRY("PLUG_setup_widgets") ;
                XmStringFree( xstr ) ;
                ow->chooser_type[ib] = OP_CHOOSER_NONE ;
                ow->chooser[ib]      = NULL ;
+            break ;
+
+            /** overlay color type -- 11 Jul 2001 **/
+
+            case PLUGIN_OVERLAY_COLOR_TYPE:{
+               MCW_arrowval * av ;
+#if 0
+fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
+#endif
+
+               av = new_MCW_colormenu(
+                       wid->workwin ,                    /* parent */
+                       sv->label ,                       /* label  */
+                       dc ,                              /* display context */
+                       1 ,                               /* first color */
+                       dc->ovc->ncol_ov - 1 ,            /* last color */
+                       1 ,                               /* initial color */
+                       NULL,NULL                         /* callback func,data */
+                    ) ;
+
+               ow->chooser[ib] = (void *) av ;
+               ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
+
+               ow->chooser_type[ib] = OP_CHOOSER_COLORMENU ;
+            }
             break ;
 
             /** number type: make an arrowval or an option menu **/
@@ -1395,6 +1474,20 @@ ENTRY("PLUG_setup_widgets") ;
                           MCW_av_substring_CB ,             /* text routine */
                           sv->string_range                  /* text data */
                         ) ;
+
+                  if( !use_optmenu ){                        /* 11 Jul 2001 */
+                    int ss , ll , mm=9 ;                     /* increase   */
+                    for( ss=0 ; ss < num_choice ; ss++ ){    /* width of  */
+                       if( sv->string_range[ss] != NULL ){   /* widget,   */
+                          ll = strlen(sv->string_range[ss]); /* if needed */
+                          if( ll > mm ) mm = ll ;
+                       }
+                    }
+                    if( mm > 9 )
+                      XtVaSetValues( av->wtext ,
+                                       XmNmaxLength,mm , XmNcolumns,mm ,
+                                     NULL ) ;
+                  }
 
                   if( use_optmenu && num_choice > OP_OPTMENU_COLSIZE )
                      AVOPT_columnize(av, 1+(num_choice-1)/OP_OPTMENU_COLSIZE) ;
@@ -1645,6 +1738,10 @@ ENTRY("PLUG_setup_widgets") ;
 
    } /* end of loop over options */
 
+#if 0
+fprintf(stderr,"Widget attachments\n") ;
+#endif
+
    /**** Now that we've created all the rows,
          and have found all the widest widgets in each column,
          go back and attach each column to the widest one to its left. ****/
@@ -1662,6 +1759,10 @@ ENTRY("PLUG_setup_widgets") ;
                         NULL ) ;
       }
    }
+
+#if 0
+fprintf(stderr,"Widget separators\n") ;
+#endif
 
    /**** Create a vertical separator to the left of each column ****/
 
@@ -1681,6 +1782,10 @@ ENTRY("PLUG_setup_widgets") ;
       }
    }
 
+#if 0
+fprintf(stderr,"Widget management\n") ;
+#endif
+
    /**** Manage the managers, and go home ****/
 
    if( plint->option_count > 0 ){
@@ -1689,6 +1794,10 @@ ENTRY("PLUG_setup_widgets") ;
       XtManageChild( wid->scrollw ) ;
    }
    XtManageChild( wid->form ) ;
+
+#if 0
+fprintf(stderr,"Widget realization\n") ;
+#endif
 
    XtRealizeWidget( wid->shell ) ;  /* will not be mapped */
 
@@ -1701,6 +1810,10 @@ ENTRY("PLUG_setup_widgets") ;
    if( wframe != NULL ){
       Widget bar ;
       int fww , fhh , fyy , bww ;
+
+#if 0
+fprintf(stderr,"Widget geometrization\n") ;
+#endif
 
       MCW_widget_geom( wid->label   , &ww , &hh , NULL, NULL ) ;  /* get dimensions */
       MCW_widget_geom( wframe       , &fww, &fhh, NULL, NULL ) ;  /* of various */
@@ -1726,6 +1839,10 @@ ENTRY("PLUG_setup_widgets") ;
    /** set the popup meter to be nothing at all right now **/
 
    wid->meter = NULL ;
+
+#if 0
+fprintf(stderr,"Widgets done!\n") ;
+#endif
 
    EXRETURN ;
 }
@@ -1913,6 +2030,18 @@ ENTRY("PLUG_fillin_values") ;
 
            default:
               opt->callvalue[ib] = NULL ;
+           break ;
+
+           /** 11 Jul 2001: overlay color type; send in the color index **/
+
+           case PLUGIN_OVERLAY_COLOR_TYPE:{
+              MCW_arrowval * av = (MCW_arrowval *) ow->chooser[ib] ;
+              int * iptr ;
+
+              iptr  = (int *) XtMalloc( sizeof(int) ) ;
+              *iptr = av->ival ;
+              opt->callvalue[ib] = (void *) iptr ;
+           }
            break ;
 
            /** number type: uses arrowval interface;
@@ -2152,6 +2281,16 @@ ENTRY("PLUTO_commandstring") ;
             default:
                outbuf = THD_zzprintf( outbuf,"?" ) ; break ;
 
+            case PLUGIN_OVERLAY_COLOR_TYPE:{
+               int * val = (int *) opt->callvalue[jsv] ;
+               MCW_DC * dc = plint->im3d->dc ;
+               if( val != NULL && *val >= 0 )
+                 outbuf = THD_zzprintf( outbuf,"%s",dc->ovc->label_ov[*val] );
+               else
+                 outbuf = THD_zzprintf( outbuf,"?" ) ;
+            }
+            break ;
+
             case PLUGIN_NUMBER_TYPE:{
                float * val = (float *) opt->callvalue[jsv] ;
                if( val != NULL ) outbuf = THD_zzprintf( outbuf,"%g",*val) ;
@@ -2263,12 +2402,13 @@ ENTRY("peek_callvalue_type_from_PLUGIN_interface") ;
    "type".  If it is not, return NULL, otherwise return a "void *",
    which must be properly de-referenced to get the true value:
 
-     type                    output is really
-     ------------------      ----------------
-     PLUGIN_NUMBER_TYPE       float *
-     PLUGIN_STRING_TYPE       char *
-     PLUGIN_DATASET_TYPE      MCW_idcode *
-     PLUGIN_TIMESERIES_TYPE   MRI_IMAGE **
+     type                      output is really
+     ------------------        ----------------
+     PLUGIN_NUMBER_TYPE        float *         points to number
+     PLUGIN_STRING_TYPE        char *          duh
+     PLUGIN_DATASET_TYPE       MCW_idcode *    duh
+     PLUGIN_TIMESERIES_TYPE    MRI_IMAGE **    duh
+     PLUGIN_OVERLAY_COLOR_TYPE int *           points to overlay index
 
    Following this are convenience routines to do similar work on specific
    data types.
@@ -2319,6 +2459,17 @@ ENTRY("get_number_from_PLUGIN_interface") ;
    fp = (float *)get_callvalue_from_PLUGIN_interface(plint,PLUGIN_NUMBER_TYPE) ;
    if( fp == NULL ) RETURN(BAD_NUMBER) ;
    RETURN(*fp) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int get_overlaycolor_from_PLUGIN_interface( PLUGIN_interface * plint )
+{
+   int * ip ;
+ENTRY("get_overlaycolor_from_PLUGIN_interface") ;
+   ip = (int *)get_callvalue_from_PLUGIN_interface(plint,PLUGIN_OVERLAY_COLOR_TYPE) ;
+   if( ip == NULL ) RETURN(-1) ;
+   RETURN(*ip) ;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -652,11 +652,45 @@ STATUS("making imag->rowcol") ;
 
       XtAddCallback( imag->pop_talto_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
+
+      if( TT_load_atlas() > 0 ){
+         imag->pop_whereami_pb =        /* 10 Jul 2001 */
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+                  LABEL_ARG(" -Where Am I?") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+
+         XtAddCallback( imag->pop_whereami_pb , XmNactivateCallback ,
+                        AFNI_imag_pop_CB , im3d ) ;
+
+         imag->pop_ttren_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+                  LABEL_ARG(" -Atlas colors") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+
+         XtAddCallback( imag->pop_ttren_pb , XmNactivateCallback ,
+                        AFNI_imag_pop_CB , im3d ) ;
+
+      } else {
+         imag->pop_ttren_pb = imag->pop_whereami_pb = NULL ;
+      }
+      imag->pop_whereami_twin = NULL ;
    } else {
       imag->pop_talto_pb = NULL ;
+      imag->pop_ttren_pb = imag->pop_whereami_pb = NULL ; /* 10 Jul 2001 */
+      imag->pop_whereami_twin = NULL ;
    }
 #else
    imag->pop_talto_pb = NULL ;
+   imag->pop_ttren_pb = imag->pop_whereami_pb = NULL ;    /* 10 Jul 2001 */
+   imag->pop_whereami_twin = NULL ;
 #endif /* USE_TALAIRACH_TO */
 
    /*--- imageonly button in menu ---*/

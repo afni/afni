@@ -18,6 +18,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             parser.o parser_int.o afni_plugout.o afni_fimfunc.o  \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o \
             afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o  \
+            afni_ttren.o                                         \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -966,13 +967,13 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_tmask.o thd_rotangles.o thd_md5.o thd_center.o           \
            thd_mismatch.o thd_read_vecmat.o thd_tshift.o thd_newprefix.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
-           thd_getpathprogs.o thd_zfillin.o
+           thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
            edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
            edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o \
-           edt_fullcopy.o edt_calcmask.o edt_volpad.o
+           edt_fullcopy.o edt_calcmask.o edt_volpad.o edt_sortmask.o
 
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \

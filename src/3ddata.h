@@ -2626,4 +2626,12 @@ extern char * MD5_B64_string( char * ) ;
 extern char * MD5_B64_file  (char * ) ;
 #endif
 
+/*------------------------------------------------------------------------*/
+
+extern char * TT_whereami( float , float , float ) ;
+extern int TT_load_atlas(void) ;
+extern void TT_purge_atlas(void);
+
+/*------------------------------------------------------------------------*/
+
 #endif /* _MCW_3DDATASET_ */

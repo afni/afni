@@ -128,6 +128,7 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 #define PLUGIN_3DIMAGE_LIST_TYPE    10
 #define PLUGIN_4DIMAGE_TYPE         11
 #define PLUGIN_4DIMAGE_LIST_TYPE    12
+#define PLUGIN_OVERLAY_COLOR_TYPE   13
 
 /** macro to copy string into plugin label array,
     filling with blanks or truncating length, as needed **/
@@ -199,6 +200,7 @@ typedef struct {
 #define OP_CHOOSER_NUMBER     4   /* number type of MCW_arrowval  */
 #define OP_CHOOSER_TEXTFIELD  5   /* TextField                    */
 #define OP_CHOOSER_TIMESERIES 6   /* PushButton                   */
+#define OP_CHOOSER_COLORMENU  7   /* optmenu for overlay colors   */
 
 #define OP_OPTMENU_LIMIT     99
 #define OP_OPTMENU_COLSIZE   20
@@ -317,6 +319,7 @@ extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 #define PLUTO_add_dataset        add_dataset_to_PLUGIN_interface
 #define PLUTO_add_timeseries     add_timeseries_to_PLUGIN_interface
 #define PLUTO_add_dataset_list   add_dataset_list_to_PLUGIN_interface
+#define PLUTO_add_overlaycolor   add_overlaycolor_to_PLUGIN_interface
 
 #define PLUTO_register_environment_numeric ENV_add_numeric     /* 20 Jun 2000 */
 #define PLUTO_register_environment_string  ENV_add_string
@@ -353,6 +356,8 @@ extern void add_dataset_list_to_PLUGIN_interface( PLUGIN_interface *,
 
 extern void add_timeseries_to_PLUGIN_interface( PLUGIN_interface *, char * ) ;
 
+extern void add_overlaycolor_to_PLUGIN_interface( PLUGIN_interface *, char * );
+
 extern void PLUG_fillin_values( PLUGIN_interface * plint ) ;
 extern void PLUG_freeup_values( PLUGIN_interface * plint ) ;
 
@@ -369,6 +374,7 @@ extern char * PLUTO_commandstring( PLUGIN_interface * plint ) ;
 #define PLUTO_peek_callvalue   peek_callvalue_type_from_PLUGIN_interface
 #define PLUTO_peek_optiontag   peek_optiontag_from_PLUGIN_interface
 #define PLUTO_get_idclist      get_idclist_from_PLUGIN_interface
+#define PLUTO_get_overlaycolor get_overlaycolor_from_PLUGIN_interface
 
 #define PLUTO_idclist_count(ll) ( ((ll) != NULL) ? (ll)->nchosen : 0 )
 #define PLUTO_idclist_reset(ll) ((ll)->current = 0)
@@ -381,6 +387,7 @@ extern char * get_optiontag_from_PLUGIN_interface   ( PLUGIN_interface * ) ;
 extern void * get_callvalue_from_PLUGIN_interface   ( PLUGIN_interface * , int ) ;
 extern float  get_number_from_PLUGIN_interface      ( PLUGIN_interface * ) ;
 extern char * get_string_from_PLUGIN_interface      ( PLUGIN_interface * ) ;
+extern int    get_overlaycolor_from_PLUGIN_interface( PLUGIN_interface * ) ;
 
 extern MCW_idcode * get_idcode_from_PLUGIN_interface( PLUGIN_interface * ) ;
 extern MRI_IMAGE * get_timeseries_from_PLUGIN_interface( PLUGIN_interface * ) ;

@@ -4382,6 +4382,21 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    if( new_xyz ) AFNI_process_viewpoint( im3d ) ;
 
+#ifdef USE_TALAIRACH_TO
+   if( new_xyz && im3d->vwid->imag->pop_whereami_twin != NULL ){
+
+      char * tlab = AFNI_ttatlas_query( im3d ) ;
+
+      if( tlab == NULL ){
+         MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin ,
+                           "\n*** Can't compute Talairach coordinates now ***\n");
+      } else {
+         MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin , tlab ) ;
+         free(tlab) ;
+      }
+   }
+#endif
+
    EXRETURN ;
 }
 
@@ -6061,10 +6076,19 @@ STATUS(" -- processing points in this dataset") ;
 STATUS(" -- managing talairach_to button") ;
 
    if( im3d->vwid->imag->pop_talto_pb != NULL ){
-      if( CAN_TALTO(im3d) )
+      if( CAN_TALTO(im3d) ){
          XtSetSensitive( im3d->vwid->imag->pop_talto_pb , True ) ;
-      else
-         XtSetSensitive( im3d->vwid->imag->pop_talto_pb , False ) ;
+         if( im3d->vwid->imag->pop_whereami_pb != NULL )
+          XtSetSensitive( im3d->vwid->imag->pop_whereami_pb , True ); /* 10 Jul 2001 */
+         if( im3d->vwid->imag->pop_ttren_pb != NULL )
+          XtSetSensitive( im3d->vwid->imag->pop_ttren_pb , True ); /* 12 Jul 2001 */
+      } else {
+         XtSetSensitive( im3d->vwid->imag->pop_talto_pb, False ) ;
+         if( im3d->vwid->imag->pop_whereami_pb != NULL )
+          XtSetSensitive( im3d->vwid->imag->pop_whereami_pb, False ); /* 10 Jul 2001 */
+         if( im3d->vwid->imag->pop_ttren_pb != NULL )
+          XtSetSensitive( im3d->vwid->imag->pop_ttren_pb , False ); /* 12 Jul 2001 */
+      }
    }
 #endif /* USE_TALAIRACH_TO */
 
@@ -6106,6 +6130,36 @@ STATUS(" -- turning time index control off") ;
 
    im3d->vinfo->tempflag = 0 ;
    EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+  Tell if AFNI_transform_vector can take a vector from old_dset
+  to new_dset coordinates -- 09 Jul 2001 -- RWCox.
+-------------------------------------------------------------------------*/
+
+int AFNI_can_transform_vector( THD_3dim_dataset * old_dset ,
+                               THD_3dim_dataset * new_dset  )
+{
+   if( old_dset==NULL || new_dset==NULL  ) return 0 ;
+
+   if( old_dset == new_dset->warp_parent ) return 1 ;
+
+   if( old_dset->warp_parent == new_dset ) return 1 ;
+
+   if( old_dset->warp_parent == new_dset->warp_parent &&
+       old_dset->warp_parent != NULL                   ) return 1 ;
+
+   if( new_dset->view_type   == VIEW_ORIGINAL_TYPE &&
+       old_dset->view_type   != VIEW_ORIGINAL_TYPE &&
+       old_dset->anat_parent != NULL               &&
+       old_dset->anat_parent->warp_parent != NULL      ) return 1 ;
+
+   if( old_dset->view_type   == VIEW_ORIGINAL_TYPE &&
+       new_dset->view_type   != VIEW_ORIGINAL_TYPE &&
+       new_dset->anat_parent != NULL               &&
+       new_dset->anat_parent->warp_parent != NULL      ) return 1 ;
+
+   return 0 ;
 }
 
 /*-----------------------------------------------------------------------
@@ -6580,7 +6634,8 @@ ENTRY("AFNI_imag_pop_CB") ;
    /*-- jump to a predetermined Talairach anatomical reference point --*/
 
    if( w == im3d->vwid->imag->pop_talto_pb &&
-       im3d->type == AFNI_3DDATA_VIEW         ){
+       im3d->type == AFNI_3DDATA_VIEW      &&
+       CAN_TALTO(im3d)                       ){
 
       MCW_imseq * seq ;
       XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
@@ -6599,6 +6654,90 @@ ENTRY("AFNI_imag_pop_CB") ;
                              "Brain Structure (from San Antonio Talairach Daemon)" ,
                              TTO_COUNT , TTO_current , TTO_labels ,
                              AFNI_talto_CB , (XtPointer) im3d ) ;
+   }
+
+   /*---- 10 Jul 2001 ----*/
+
+   else if( w == im3d->vwid->imag->pop_whereami_pb &&
+            w != NULL                              &&
+            im3d->type == AFNI_3DDATA_VIEW         &&
+            CAN_TALTO(im3d)                          ){
+
+      MCW_imseq *seq ; char *tlab ;
+
+      /*- if one is already open, kill it -*/
+
+      if( im3d->vwid->imag->pop_whereami_twin != NULL ){
+         MCW_textwinkill_CB(NULL,
+                            (XtPointer)im3d->vwid->imag->pop_whereami_twin,NULL);
+         im3d->vwid->imag->pop_whereami_twin == NULL ;
+      }
+
+      /*- get TT atlas location, if any -*/
+
+      tlab = AFNI_ttatlas_query( im3d ) ;
+
+      /*- open a window to show it -*/
+
+      if( tlab != NULL ){
+         XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
+
+         im3d->vwid->imag->pop_whereami_twin =
+           new_MCW_textwin_2001( seq->wbar , tlab , TEXT_READONLY ,
+                                 AFNI_pop_whereami_kill , im3d     ) ;
+
+         XtVaSetValues( im3d->vwid->imag->pop_whereami_twin->wtext ,
+                          XmNresizeHeight , True ,
+                          XmNresizeWidth  , True ,
+                        NULL ) ;
+
+         MCW_register_hint( im3d->vwid->imag->pop_whereami_twin->wtext ,
+                            "Use BHelp for documentation" ) ;
+
+         MCW_register_help( im3d->vwid->imag->pop_whereami_twin->wtext ,
+          "Lists the brain structures near the crosshair focus point\n"
+          "according to the Talairach Daemon database (kindly provided\n"
+          "by Jack Lancaster and Peter Fox of RIC UTHSCSA).\n"
+          "\n"
+          "The search is conducted outwards from the focus point, until\n"
+          "7 different structures are found, or a 7 mm radius is reached,\n"
+          "whichever occurs first. (Distances are rounded to nearest 1 mm,\n"
+          "the grid spacing on which the database is constructed.) Labels\n"
+          "reported on different output lines came from different voxels.\n"
+          "\n"
+          "In the database, some voxels have 2 labels - a larger scale\n"
+          "'gyral' name and a finer scale 'area' name.  Locations that\n"
+          "are doubly labeled will appear with a listing like\n"
+          "    Within 2 mm: Right Precuneus -AND- Right Brodmann area 31\n"
+          "In the database there are\n"
+          "    1,205,737 voxels with at least one label\n"
+          "      709,953 voxels with only a 'gyral' label\n"
+          "       15,898 voxels with only a 'area' label\n"
+          "      479,886 voxels with both types of labels\n"
+          "A list of all the labels (of either type) is presented by the\n"
+          "'Talairach to' control.  In the database, there are\n"
+          "           50 'gyral' labels (times 2 for Left and Right)\n"
+          "           68 'area' labels\n"
+          "          355 distinct combinations of labels\n"
+          "Note Well:\n"
+          "* This feature of AFNI is experimental, and is subject to change.\n"
+          "* The labels reported here should be considered only approximate.\n"
+          "* Do NOT rely on them exclusively for anatomical identification!!\n"
+          "* Do NOT use this feature for surgical or therapeutic planning!!!"
+         ) ;
+
+         free(tlab) ;
+      }
+   }
+
+   /*---- 12 Jul 2001 ----*/
+
+   else if( w == im3d->vwid->imag->pop_ttren_pb &&
+            w != NULL                           &&
+            im3d->type == AFNI_3DDATA_VIEW      &&
+            CAN_TALTO(im3d)                          ){
+
+      TTRR_popup( im3d->dc ) ;
    }
 #endif /* USE_TALAIRACH_TO */
 
@@ -6650,7 +6789,7 @@ ENTRY("AFNI_talto_CB") ;
    LOAD_FVEC3(tv,xx,yy,zz) ; /* Talairach coords */
 
    /* 09 Jul 2001: if not now viewing in Talairach coordinates,
-                   then transform vector to Talairach coordinates */
+                   then transform vector to current coordinates */
 
    if( im3d->anat_now->view_type != VIEW_TALAIRACH_TYPE )
       tv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
@@ -6670,6 +6809,58 @@ ENTRY("AFNI_talto_CB") ;
       XBell( im3d->dc->display , 100 ) ;
    }
    EXRETURN ;
+}
+
+/*-------------------------------------------------------------------------
+   10 Jul 2001
+---------------------------------------------------------------------------*/
+
+void AFNI_pop_whereami_kill( Three_D_View * im3d )
+{
+   if( im3d == NULL ) return ;
+
+   MCW_unregister_hint( im3d->vwid->imag->pop_whereami_twin->wtext ) ;
+   MCW_unregister_help( im3d->vwid->imag->pop_whereami_twin->wtext ) ;
+
+   im3d->vwid->imag->pop_whereami_twin = NULL ;
+   return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+char * AFNI_ttatlas_query( Three_D_View * im3d )
+{
+   static int have_TT = -1 ;
+
+   if( !IM3D_OPEN(im3d) || !CAN_TALTO(im3d) ) return NULL ;
+
+   /*-- make sure we have the TT atlas --*/
+
+   if( have_TT == -1 ){
+      have_TT = TT_load_atlas() ;
+      if( !have_TT ) return NULL ;
+   }
+
+   if( have_TT ){
+     THD_fvec3 tv ; char *tlab ;
+
+     /*-- current position --*/
+
+     LOAD_FVEC3(tv,im3d->vinfo->xi,im3d->vinfo->yj,im3d->vinfo->zk) ;
+
+     /*-- transform to Talairach, if needed --*/
+
+     if( im3d->anat_now->view_type != VIEW_TALAIRACH_TYPE )
+        tv = AFNI_transform_vector( im3d->anat_now , tv ,
+                                    im3d->anat_dset[VIEW_TALAIRACH_TYPE] ) ;
+
+     /*-- get result string --*/
+
+     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2] ) ;
+     return tlab ;
+   }
+
+   return NULL ;
 }
 #endif /* USE_TALAIRACH_TO */
 

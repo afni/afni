@@ -2891,3 +2891,18 @@
  * Used this to modify the "Talairach to" feature (AFNI_talto_CB() in afni.c)
      to allow jumping even if the dataset is not in Talairach view, but just
      has a way of transforming the vector to Talairach view.
+
+10 Jul 2001
+ * Added "Where Am I?" Talairach Daemon feature to afni_widg.c, afni.[ch].
+     Actual calculations done in thd_ttatlas_query.c.
+ * Modified xutil.[ch] to add function to alter contents of a textwin.
+ * Added edt_sortmask.c to sort a MCW_cluster based on its contents.
+
+11 Jul 2001
+ * Modified xutil.[ch] to add function MCW_unregister_hint().
+ * Modified afni.c to add hint/help to "Where Am I?" textwin (and to
+     remove help when the window is destroyed).
+
+12 Jul 2001
+ * Added afni_ttren.c, to control the colors of the display of the
+     Talairach atlas regions (when I get around to it, that is).

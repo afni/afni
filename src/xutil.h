@@ -69,6 +69,7 @@ extern void MCW_help_CB( Widget , XtPointer , XtPointer ) ;
 extern void MCW_unhelp_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void MCW_unregister_help( Widget ) ;        /* 24 Apr 2001 */
+extern void MCW_unregister_hint( Widget ) ;        /* 11 Jul 2001 */
 
 extern void MCW_set_widget_label( Widget , char * ) ;
 extern void MCW_widget_geom( Widget , int * , int * , int * , int * ) ;
@@ -96,6 +97,8 @@ extern Widget MCW_action_area( Widget , MCW_action_item * , int ) ;
 extern Widget MCW_popup_message( Widget , char * , int ) ;
 extern void MCW_message_CB( Widget , XtPointer , XtPointer ) ;
 extern void MCW_message_timer_CB( XtPointer , XtIntervalId * ) ;
+
+extern void MCW_message_alter( Widget , char * ) ;  /* 10 Jul 2001 */
 
 #define MCW_nofile    0
 #define MCW_readonly  1
@@ -127,13 +130,24 @@ extern char * RWC_getname( Display * , char * ) ; /* 04 Jun 1999 */
 #define TEXT_READONLY  1
 #define TEXT_EDITABLE  2
 
+#ifndef VOID_FUNC
+#define VOID_FUNC
+typedef void void_func() ;
+#endif
+
 typedef struct {
    Widget wshell , wtop , wactar , wscroll , wtext ;
+   void_func *kill_func ;
+   XtPointer  kill_data ;
+   int shell_width , shell_height ;
 } MCW_textwin ;
 
-extern MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type ) ;
-extern void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
-extern void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
+extern MCW_textwin * new_MCW_textwin( Widget, char *, int ) ;
+extern void MCW_textwin_CB( Widget , XtPointer , XtPointer ) ;
+extern void MCW_textwinkill_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void MCW_textwin_alter( MCW_textwin * , char * ) ; /* 10 Jul 2001 */
+extern MCW_textwin * new_MCW_textwin_2001(Widget,char *,int,void_func *,XtPointer);
 
 extern void RWC_visibilize_widget( Widget ) ;  /* 09 Nov 1999 */
 
