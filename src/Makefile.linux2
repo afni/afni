@@ -58,7 +58,7 @@ LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -l
 # For suma (NO STATIC LINKING OF GL libs)
 SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
-SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lcurses -lm 
+SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lcurses -lm 
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
