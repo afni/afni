@@ -4708,3 +4708,5 @@
 
 23 Aug 2003
  * Added AFNI_MAX_OPTMENU environment variable (bbox.c, etc.).
+ * Modified Makefile.INCLUDE to chmog ugo+x the ./configure files
+     in a couple of subdirectories.
