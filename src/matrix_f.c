@@ -1162,7 +1162,11 @@ double * matrix_singvals( matrix X )
      }
    }
 
-   for( i=0 ; i < N ; i++ ) e[i] = 1.0l / a[i+N*i] ;
+   for( i=0 ; i < N ; i++ ){
+     if( a[i+N*i] > 0.0 ) e[i] = 1.0l / sqrt(a[i+N*i]) ;
+     else                 e[i] = 1.0l ;
+   }
+
    for( i=0 ; i < N ; i++ ){
      for( j=0 ; j < N ; j++ ) a[j+N*i] *= sqrt(e[i]*e[j]) ;
    }

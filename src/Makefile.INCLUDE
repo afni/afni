@@ -699,7 +699,7 @@ AlphaSim:AlphaSim.o
 
 3dDeconvolve:3dDeconvolve.o
 	$(RM) $@
-	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 # The float (vs. double) version of 3dDeconvolve
 
@@ -710,7 +710,7 @@ AlphaSim:AlphaSim.o
 
 3dDeconvolve_f:3dDeconvolve_f.o
 	$(RM) $@
-	$(CC) -o 3dDeconvolve_f 3dDeconvolve_f.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o 3dDeconvolve_f 3dDeconvolve_f.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 3dConvolve:3dConvolve.o
 	$(RM) $@

@@ -122,7 +122,7 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
                if( x1 < x2 ){ xb=x1; xt=x2; } else { xb=x2; xt=x1; }
                if( y1 < y2 ){ yb=y1; yt=y2; } else { yb=y2; yt=y1; }
                w = xt-xb ; h = yt-yb ;
-               mri_drawemptyrectangle( im , xb,yb , w,h , rrr,ggg,bbb ) ;
+               mri_drawfilledrectangle( im , xb,yb , w,h , rrr,ggg,bbb ) ;
                skip = 1 ;
             }
             break ;
@@ -148,6 +148,6 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
       }
    }
 
-   set_memplot_X11_box(0,0,0,0) ; /* clear box */
+   set_memplot_RGB_box(0,0,0,0) ; /* clear box */
    EXRETURN ;
 }

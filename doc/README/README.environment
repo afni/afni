@@ -2044,6 +2044,27 @@ loaded when AFNI starts.  The default is 123 Kbytes.  The intention is to
 prevent loading of very large files that are not intended to be used for
 graphing/FIM purposes.
 
+--------------------------
+Variable: AFNI_XJPEG_COLOR
+--------------------------
+Determines the color of the lines drawn between the column boxes in the
+output from the -xjpeg option to 3dDeconvolve.  The color format is
+"rgbi:rf/gf/bf", where each value rf,gf,bf is a number between 0.0 and 1.0
+(inclusive); for example, yellow would be "rgbi:1.0/1.0/0.0".  As a
+special case, if this value is the string "none" or "NONE", then these
+lines will not be drawn.
+
+-------------------------
+Variable: AFNI_XJPEG_IMXY
+-------------------------
+This variable determines the size of the image saved when via the
+-xjpeg option to 3dDeconvolve.  It should be
+in the format
+  setenv AFNI_XJPEG_IMXY 768x1024
+which means to set the x-size (horizontal) to 768 pixels and the
+y-size (vertical) to 1024 pixels.  These values are the default,
+by the way.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
