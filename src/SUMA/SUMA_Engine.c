@@ -1746,7 +1746,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    SUMA_SurfaceObject *SO_nxt, *SO_prec;
    float *XYZ, *XYZmap;
    DList *list = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1772,6 +1772,77 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
          SUMA_RETURN (NOPE);
       }
    }
+      
+   #if 0
+   {/* trying to keep two surfaces from riding on top of each other - An initial pass*/
+      /* This method works OK but you should not be applying it to 
+      geometrically correct surfaces (like the pial surfaces whose containing
+      boxes intersect although slightly). Since you're modifying the coordinates
+      here, you will be throwing them out of alignment with the volume.
+      Since I have not such field yet, this method will be put on hold for a while
+      */
+      int RegSO[SUMA_MAX_DISPLAYABLE_OBJECTS], N_RegSO, im;
+      float Ep1, Ep2, d1, d2, dc, dd, xShift1=0.0, xShift2=0.0;
+      SUMA_SurfaceObject *SO1, *SO2;
+      /* find out how many SOs are registered in the current view */
+      N_RegSO = SUMA_RegisteredSOs (sv, dov, RegSO);
+      if (N_RegSO > 2) {
+         SUMA_SLP_Note( "Will not attempt\n"
+                        "to separate more than\n"
+                        "2 surfaces.\n");
+      }
+      if (N_RegSO == 2) {
+         SO1 = (SUMA_SurfaceObject *)dov[RegSO[0]].OP;
+         SO2 = (SUMA_SurfaceObject *)dov[RegSO[1]].OP;
+         
+         /* THIS IS AN EXTREMELY CRUDE TEST */
+         /* check if bounding boxes overlap */
+         /* Usually, problem is in the x direction*/
+         /* what extreme points fall within the two centroids ? */
+         if ( ((SO1->MaxDims[0] - SO1->Center[0]) * (SO1->MaxDims[0] - SO2->Center[0]) ) < 0 ) {
+            Ep1 = SO1->MaxDims[0];
+         }else {
+            Ep1 = SO1->MinDims[0];
+         }
+         
+         if ( ((SO2->MaxDims[0] - SO2->Center[0]) * (SO2->MaxDims[0] - SO1->Center[0]) ) < 0 ) {
+            Ep2 = SO2->MaxDims[0];
+         }else {
+            Ep2 = SO2->MinDims[0];
+         }
+         
+         /* Do the surfaces intersect each other in that direction ? */
+         d1 = (float)fabs(Ep1 - SO1->Center[0]);
+         d2 = (float)fabs(Ep2 - SO2->Center[0]);
+         dc = (float)fabs(SO1->Center[0] -SO2->Center[0]);
+         dd = d1 + d2 - dc;
+         if (dd > 0) {
+            if (SO1->Center[0] > SO2->Center[0]) {
+               xShift1 = 1.1 * dd / 2.0;
+               xShift2 = 1.1 * -dd / 2.0;
+            }else {
+               xShift1 = 1.1 * -dd / 2.0;
+               xShift2 = 1.1 * +dd / 2.0;
+            }
+         } 
+         
+         if (xShift1) {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: Shifting by +- %f\n", FuncName, xShift1);
+            /* modify the coordinates */
+            for (im=0; im< SO1->N_Node; ++im) SO1->NodeList[3*im] += xShift1;
+            SO1->Center[0] += xShift1;
+            SO1->MaxDims[0] += xShift1;
+            SO1->MinDims[0] += xShift1;
+            for (im=0; im< SO2->N_Node; ++im) SO2->NodeList[3*im] += xShift2;
+            SO2->Center[0] += xShift2;
+            SO2->MaxDims[0] += xShift2;
+            SO2->MinDims[0] += xShift2;
+         } else {
+            SUMA_LH("No shift necessary");
+         }
+      } 
+   }
+   #endif
    
    /*set the Color Remix flag */
    if (!SUMA_SetShownLocalRemixFlag (sv)) {

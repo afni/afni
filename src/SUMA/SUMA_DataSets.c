@@ -395,7 +395,7 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg)
    \brief returns a copy of a null terminated string . 
    s_cp = SUMA_copy_string(s1);
    
-   - free returned pointer with: if(s_cp) SUMA_free(s_cp);
+   - free returned pointer with: if(s_cp) free(s_cp);
 */
 char *SUMA_copy_string(char *buf)
 {

@@ -66,7 +66,7 @@ static String fallbackResources_AFNI[] = {
    "*fontList:              9x15bold=charset1"    ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
-   "*background:            green"               ,
+   "*background:            gray30"               ,
    "*menu*background:       gray30"               ,
    "*borderColor:           gray30"               ,
    "*foreground:            yellow"               ,
@@ -83,7 +83,7 @@ static String fallbackResources_AFNI[] = {
   NULL
 }; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
 
-static String fallbackResources_NP[] = {
+static String fallbackResources_EURO[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
    "*frame*x: 20", "*frame*y: 20",
    "*frame*topOffset: 20", "*frame*bottomOffset: 20",
@@ -119,7 +119,7 @@ static String fallbackResources_Bonaire[] = {
    "*fontList:              9x15bold=charset1"    ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
-   "*background:            blue2"               ,
+   "*background:            navy"               ,
    "*menu*background:       gray30"               ,
    "*borderColor:           gray30"               ,
    "*foreground:            LightCyan2"               ,
@@ -152,8 +152,8 @@ String *SUMA_get_fallbackResources ()
       case SXR_Afni:
          SUMA_RETURN (fallbackResources_AFNI);
          break;
-      case SXR_NP:
-         SUMA_RETURN (fallbackResources_NP);
+      case SXR_Euro:
+         SUMA_RETURN (fallbackResources_EURO);
          break;
       case SXR_Bonaire:
          SUMA_RETURN (fallbackResources_Bonaire);

@@ -1,6 +1,7 @@
 #ifndef SUMA_MACROSm_INCLUDED
 #define SUMA_MACROSm_INCLUDED
 
+      
 #define IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
 
 #define IS_POS(a)   ( ((a) >= 0) ? 1 : 0 )
