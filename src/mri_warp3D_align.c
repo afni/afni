@@ -160,12 +160,14 @@ static void mri_warp3D_get_delta( MRI_warp3D_align_basis *bas , int kpar )
    float *wf ;
 
    if( bas == NULL || kpar < 0 || kpar >= bas->nparam ) return ;
+   if( bas->param[kpar].fixed ) return ;
 
    /* load parameter vector with the identity value for all params */
 
    pvec = (float *)malloc(sizeof(float) * bas->nparam) ;
    for( ii=0 ; ii < bas->nparam ; ii++ )
-     pvec[ii] = bas->param[ii].ident ;
+     pvec[ii] = (bas->param[ii].fixed) ? bas->param[ii].val_fixed
+                                       : bas->param[ii].ident ;
 
    nx = bas->imbase->nx ; ny = bas->imbase->ny ; nz = bas->imbase->nz ;
    nxy = nx*ny ;
@@ -207,7 +209,7 @@ static void mri_warp3D_get_delta( MRI_warp3D_align_basis *bas , int kpar )
      }}}
      if( ntot > 0 ){
        dtot = sqrt( dtot/ntot ) ;        /* RMS positive distance moved */
-       if( dtot > 0.618f && dtot < 1.618f ) break ;     /* good enough! */
+       if( dtot > 0.909f && dtot < 1.100f ) break ;     /* good enough! */
        dtot = 1.0f / dtot ;                   /* dpar adjustment factor */
             if( dtot > 50.0f ) dtot = 50.0f ;
        else if( dtot < 0.02f ) dtot = 0.02f ;
@@ -368,7 +370,7 @@ ENTRY("mri_warp3D_align_setup") ;
    if( bas->verb )
      fprintf(stderr,"+   using %d [%.3f%%] voxels\n",nmap,(100.0*nmap)/nxyz);
 
-   if( nmap < 2*nfree+2 ){
+   if( nmap < 7*nfree+13 ){
      fprintf(stderr,"** warp3D_align error: weight image is zero!\n") ;
      mri_warp3D_align_cleanup( bas ) ;
      RETURN(1) ;
@@ -392,7 +394,7 @@ ENTRY("mri_warp3D_align_setup") ;
    for( ii=0 ; ii < npar ; ii++ ){
      if( bas->param[ii].fixed ) continue ; /* don't need this */
      if( bas->param[ii].delta <= 0.0f )
-       mri_warp3D_get_delta( bas , ii ) ;
+       mri_warp3D_get_delta( bas , ii ) ;  /* find step size */
      if( bas->param[ii].toler <= 0.0f ){   /* and set default tolerance */
        bas->param[ii].toler = 0.03f * bas->param[ii].delta ;
        if( bas->verb )
@@ -407,7 +409,7 @@ ENTRY("mri_warp3D_align_setup") ;
 
    /*-- create image containing basis columns --*/
 
-   fitim = mri_new( nmap , nfree + 1 , MRI_float ) ;
+   fitim = mri_new( nmap , nfree+1 , MRI_float ) ;
    fitar = MRI_FLOAT_PTR(fitim) ; car = MRI_FLOAT_PTR(cim) ;
 
 #define FMAT(i,j) fitar[(i)+(j)*nmap]  /* col dim=nmap, row dim=nfree+1 */
@@ -429,16 +431,13 @@ ENTRY("mri_warp3D_align_setup") ;
 
    for( pp=0 ; pp < npar ; pp++ ){
 
-     if( bas->param[pp].fixed ) continue ;  / * don't do this one! */
+     if( bas->param[pp].fixed ) continue ;  /* don't do this one! */
 
      /* init all params to their identity transform value */
 
-     for( ii=0 ; ii < npar ; ii++ ){
-       if( bas->param[ii].fixed )
-         pvec[ii] = bas->param[ii].val_fixed ;
-       else
-         pvec[ii] = bas->param[ii].ident ;
-     }
+     for( ii=0 ; ii < npar ; ii++ )
+       pvec[ii] = (bas->param[ii].fixed) ? bas->param[ii].val_fixed
+                                         : bas->param[ii].ident ;
 
      /* change in the pp-th parameter to use for derivative */
 
@@ -497,8 +496,8 @@ ENTRY("mri_warp3D_align_setup") ;
 
 MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
 {
-   float *fit , *dfit ;
-   int iter , good,ngood , ii , pp , skip_first ;
+   float *fit , *dfit , *qfit ;
+   int iter , good,ngood , ii, pp , skip_first ;
    MRI_IMAGE *tim , *fim ;
    float *pmat=MRI_FLOAT_PTR(bas->imps) , /* pseudo inverse: n X m matrix */
          *tar , tv , sfit ;
@@ -506,7 +505,8 @@ MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
        m=bas->imps->ny ,          /* = imap->nx = length of ima */
     npar=bas->nparam   ,          /* = number of warp parameters */
    nfree=bas->nfree    ,          /* = number of free warp parameters */
-    *ima=MRI_INT_PTR(bas->imap) ; /* = indexes in fim of voxels to use */
+    *ima=MRI_INT_PTR(bas->imap) , /* = indexes in fim of voxels to use */
+    *pma ;                        /* = map of free to total params */
 
 ENTRY("mri_warp3D_align_one") ;
 
@@ -518,8 +518,13 @@ ENTRY("mri_warp3D_align_one") ;
    mri_warp3D_method( bas->regmode ) ;
    mri_warp3D_set_womask( bas->imsk ) ;
 
-   fit  = (float *)malloc(sizeof(float) * npar) ;  /* nfree? */
-   dfit = (float *)malloc(sizeof(float) * npar) ;
+   pma = (int *)malloc(sizeof(int) * nfree) ;
+   for( pp=ii=0 ; ii < npar ; ii++ )
+     if( !bas->param[ii].fixed ) pma[pp++] = ii ;
+
+   fit  = (float *)malloc(sizeof(float) * npar ) ;
+   dfit = (float *)malloc(sizeof(float) * npar ) ;
+   qfit = (float *)malloc(sizeof(float) * nfree) ;
 
    /* load initial fit parameters;
       if they are all the identity transform value,
@@ -527,8 +532,12 @@ ENTRY("mri_warp3D_align_one") ;
 
    skip_first = 1 ;
    for( pp=0 ; pp < npar ; pp++ ){
-     fit[pp] = bas->param[pp].val_init ;
-     skip_first = skip_first && (fit[pp] == bas->param[pp].ident) ;
+     if( bas->param[pp].fixed ){
+       fit[pp] = bas->param[pp].val_fixed ;
+     } else {
+       fit[pp] = bas->param[pp].val_init ;
+       skip_first = skip_first && (fit[pp] == bas->param[pp].ident) ;
+     }
    }
 
    if( bas->verb ) fprintf(stderr,"++ mri_warp3d_align_one ENTRY\n") ;
@@ -546,35 +555,42 @@ ENTRY("mri_warp3D_align_one") ;
      tar = MRI_FLOAT_PTR(tim) ;
 
      sfit = 0.0f ;
-     for( pp=0 ; pp < npar ; pp++ ) dfit[pp] = 0.0f ;
+     for( pp=0 ; pp < npar  ; pp++ ) dfit[pp] = 0.0f ;
+     for( pp=0 ; pp < nfree ; pp++ ) qfit[pp] = 0.0f ;
      for( ii=0 ; ii < m ; ii++ ){
-       tv = tar[ima[ii]] ; sfit += P(npar,ii) * tv ;
-       for( pp=0 ; pp < npar ; pp++ ) dfit[pp] += P(pp,ii) * tv ;
+       tv = tar[ima[ii]] ; sfit += P(nfree,ii) * tv ;
+       for( pp=0 ; pp < nfree ; pp++ ) qfit[pp] += P(pp,ii) * tv ;
      }
      if( tim != fim ) mri_free( tim ) ;
-
-     for( pp=0 ; pp < npar ; pp++ ) fit[pp] += dfit[pp] ;
+     for( pp=0 ; pp < nfree ; pp++ ) dfit[pp] = qfit[pma[pp]] ;
+     for( pp=0 ; pp < npar  ; pp++ ){
+       fit[pp] += dfit[pp] ;
+            if( fit[pp] > bas->param[pp].max ) fit[pp] = bas->param[pp].max ;
+       else if( fit[pp] < bas->param[pp].min ) fit[pp] = bas->param[pp].min ;
+     }
 
      if( bas->verb ){
        fprintf(stderr,"+   Delta:") ;
        for( pp=0 ; pp < npar ; pp++ ) fprintf(stderr," %13.6g",dfit[pp]) ;
        fprintf(stderr,"\n") ;
-       fprintf(stderr,"+   Total: scale factor=%g\n+        :",sfit) ;
+       fprintf(stderr,"+   Total: scale factor=%g\n"
+                      "+  #%5d:",sfit,iter+1) ;
        for( pp=0 ; pp < npar ; pp++ ) fprintf(stderr," %13.6g", fit[pp]) ;
        fprintf(stderr,"\n") ;
       }
 
       iter++ ; ngood = 0 ;
       for( pp=0 ; pp < npar ; pp++ )
-        ngood += ( fabs(dfit[pp]) <= bas->param[pp].toler ) ;
-      good = (ngood < npar) && (iter < bas->max_iter) ;
+        if( !bas->param[pp].fixed )
+          ngood += ( fabs(dfit[pp]) <= bas->param[pp].toler ) ;
+      good = (ngood < nfree) && (iter < bas->max_iter) ;
 
    } /* end while */
 
    bas->num_iter = iter ;
    for( pp=0 ; pp < npar ; pp++ ) bas->param[pp].val_out = fit[pp] ;
 
-   if( bas->verb ) fprintf(stderr,"++ mri_warp3d_align_one EXIT: %d steps\n",iter) ;
+   if( bas->verb ) fprintf(stderr,"++ mri_warp3d_align_one EXIT: %d iterations\n",iter) ;
 
    /*-- do the actual realignment --*/
 
@@ -584,6 +600,7 @@ ENTRY("mri_warp3D_align_one") ;
 
    if( fim != im ) mri_free(fim) ;  /* if it was a copy, junk it */
    free((void *)dfit) ; free((void *)fit) ;
+   free((void *)qfit) ; free((void *)pma) ;
 
    RETURN( tim ) ;
 }
