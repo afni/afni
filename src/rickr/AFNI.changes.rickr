@@ -1016,3 +1016,6 @@
     validation in nifti_read_header()
   * modified nifti_tool.c to remove validation of nifti_1_header structs
 
+17 Mar 2005:
+  * modified 3dROIstats.c to properly check for failure to use -mask option
+

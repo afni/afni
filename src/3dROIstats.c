@@ -223,11 +223,16 @@ int main(int argc, char *argv[])
     if (narg >= argc)
 	Error_Exit("No input datasets!?\n");
 
+    if (mask_dset == NULL){          /* 17 March 2005 [rickr] */
+        fprintf(stderr,"Error: missing '-mask MASK_DATASET'\n");
+        return 1;
+    }
+
     /* check the mask dataset type */
     if (DSET_BRICK_TYPE(mask_dset, 0) == MRI_float && mask_f2s == 0 ){
-        fprintf(stderr, "\nError: Cannot deal with float-valued mask dataset!\n");
-        fprintf(stderr, "(consider the -mask_f2short option)\n");
-        exit(1);
+        fprintf(stderr,"\nError: cannot deal with float-valued mask dataset\n");
+        fprintf(stderr,"(consider the -mask_f2short option)\n");
+        return 1;
     }
 
 
