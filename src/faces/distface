@@ -9,7 +9,7 @@ echo "===== Making afni_faces.html"
 
 echo  '<html><head><title>AFNI User Images</title></head>'                        > afni_faces.html
 echo  '<body><center><h1><i>AFNI</i> User Images</h1>'                           >> afni_faces.html
-echo  '<h2>Contributed voluntarily by each user</h2>'                            >> afni_faces.html
+echo  '<h2>Contributed by each user</h2>'                                        >> afni_faces.html
 echo  'To contribute your personal image, send a JPEG (.jpg) file'               >> afni_faces.html
 echo  'no larger than 128x128 to'                                                >> afni_faces.html
 echo  '<a href="mailto:rwcox@nih.gov">rwcox@nih.gov</a>.<br />'                  >> afni_faces.html
@@ -37,7 +37,7 @@ foreach face ( face_*.jpg )
 
   echo '<td align="center"> <img src="'${face}'" /></td>' >>   afni_faces.html
 
-  @ nn = ($nn + 1) % 6
+  @ nn = ($nn + 1) % 7
 end
 
 echo '</tr></table>'                                      >>   afni_faces.html
