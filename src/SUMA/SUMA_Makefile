@@ -40,7 +40,7 @@ endif
 ifndef SUMA_LINK_LIB
 #No need for those unless you are using SUMA_MOTIF_GLXAREA
 #-lMesaGLwM lXm 
-SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lcurses -lm 
+SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lm 
 endif
 
 ifndef SUMA_BIN_ARCHIVE
