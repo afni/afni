@@ -932,6 +932,27 @@ void vector_multiply (matrix a, vector b, vector * c)
   bb = b.elts ;
 
 #ifdef UNROLL_VECMUL
+#if 0                               /* experimental code -- RWCox - 17 Nov 2003 */
+  { int jbot = cols%8 ;
+    for (i = 0;  i < rows;  i++){
+     aa = a.elts[i] ;
+     switch( jbot ){
+      case 0: sum = 0.0 ; break ;
+      case 1: sum = aa[0]*bb[0] ; break ;
+      case 2: sum = aa[0]*bb[0]+aa[1]*bb[1] ; break ;
+      case 3: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2] ; break ;
+      case 4: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2]+aa[3]*bb[3] ; break ;
+      case 5: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2]+aa[3]*bb[3]+aa[4]*bb[4] ; break ;
+      case 6: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2]+aa[3]*bb[3]+aa[4]*bb[4]+aa[5]*bb[5] ; break ;
+      case 7: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2]+aa[3]*bb[3]+aa[4]*bb[4]+aa[5]*bb[5]+aa[6]*bb[6] ; break ;
+     }
+     for( j=jbot ; j < cols ; j+=8 )
+       sum += aa[j]*bb[j] +aa[j+1]*bb[j+1] +aa[j+2]*bb[j+2] +aa[j+3]*bb[j+3] +aa[j+4]*bb[j+4]
+                          +aa[j+5]*bb[j+5] +aa[j+6]*bb[j+6] +aa[j+7]*bb[j+7] ;
+     c->elts[i] = sum ;
+    }
+  }
+#else
   if( cols%2 == 0 ){              /* even number of cols */
     for (i = 0;  i < rows;  i++){
         sum = 0.0 ; aa = a.elts[i] ;
@@ -947,6 +968,7 @@ void vector_multiply (matrix a, vector b, vector * c)
         c->elts[i] = sum ;
     }
   }
+#endif
 #else
     for (i = 0;  i < rows;  i++){
         sum = 0.0 ; aa = a.elts[i] ;
