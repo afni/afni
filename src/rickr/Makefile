@@ -29,6 +29,10 @@ file_tool: file_tool.o file_tool.h
 	$(RM) $@
 	$(CC) -o file_tool file_tool.o -lm
 
+Hfile: Hfile.o Hfile.h
+	$(RM) $@
+	$(CC) -o Hfile Hfile.o $(LFLAGS) -L.. -lrickr $(LLIBS) -lm
+
 .c.o:
 	$(RM) $@
 	$(CC) -c $*.c -I. -I.. $(IFLAGS)
