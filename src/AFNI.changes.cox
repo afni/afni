@@ -3418,7 +3418,7 @@
       matrix-vector calculations, to make 3dDeconvolve faster.  Makes
       it about 22% faster on an Athlon/Linux box.
 
-08 Jan 2001
+08 Jan 2002
  * Modifications to make AFNI work under CYGWIN (www.cygwin.com):
    - Removed shm stuff from thd_iochan.c
    - Compile plugins directly into afni.exe (no dlopen)
@@ -3428,13 +3428,17 @@
    - At this time, 3dNLfim, 3dTSgen, plug_nlfit, and plug_wavelets
        are not compiled for CYGWIN since they present difficulties.
 
-28 Jan 2001
+28 Jan 2002
  * Modified cs_qhull.c to use centroid instead of normal for midpoint.
 
-29 Jan 2001
+29 Jan 2002
  * Modified afni.c function AFNI_setup_viewing() to correct problem when
      viewing the same functional bucket in two controllers - the bucket
      widgets might not get set up correctly due to false memories.
 
-30 Jan 2001
+30 Jan 2002
  * New program 3dAutoTcorrelate.c for PAB.
+
+31 Jan 2002
+ * Modified imseq.c to allow scrollbars on the Disp button dialog, if
+      AFNI_DISP_SCROLLBARS is yessish.
