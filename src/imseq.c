@@ -3739,7 +3739,9 @@ ENTRY("ISQ_set_image_number") ;
        cbs.nim    = seq->im_nr ;
        seq->status->send_CB( seq , seq->getaux , &cbs ) ;
      } else {
+#if 0
        ISQ_redisplay( seq , n , isqDR_display ) ;  /* 07 Nov 2002 */
+#endif
      }
    }
    RETURN(1) ;

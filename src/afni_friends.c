@@ -152,6 +152,8 @@ static mday holiday[] = {
    {JAN,16,"Anniversary of Prohibition's start"                      } ,
    {JAN,17,"Benjamin Franklin's birthday"                            } ,
    {JAN,17,"Muhammad Ali's birthday"                                 } ,
+   {JAN,17,"James Earl Jones' birthday"                              } ,
+   {JAN,17,"Latvia's Zirgu Diena"                                    } ,
    {JAN,18,"Cary Grants' birthday"                                   } ,
    {JAN,18,"Daniel Webster's birthday"                               } ,
    {JAN,19,"Edgar Allen Poe's birthday"                              } ,
