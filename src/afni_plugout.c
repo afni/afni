@@ -1,7 +1,6 @@
 #undef MAIN
 #include "afni.h"
 #include "afni_plugout.h"
-#include "trusted_hosts.h"
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
@@ -64,6 +63,8 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
    int jj , ngood , pcode , ii , opcount=0 ;
    PLUGOUT_spec * pp ;
 
+ENTRY("AFNI_plugout_workproc") ;
+
    /*****************************************************/
    /** if no control connection active, listen for one **/
 
@@ -76,7 +77,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
 #if 0
             fprintf(stderr,"PO: can't listen for control channel!\a\n") ;
 #endif
-            return False ;
+            RETURN(False) ;
          }
       }
       opcount++ ;
@@ -95,10 +96,10 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
 
       fprintf(stderr,"PO: plugout connection from host %s\n",ioc_control->name) ;
 
-      if( ! OKHOST(ioc_control->name) ){
-         fprintf(stderr,"PO: illegal host!\n") ;
+      if( ! TRUST_host(ioc_control->name) ){
+         fprintf(stderr,"PO: untrusted host: %s\n",ioc_control->name) ;
          IOCHAN_CLOSE(ioc_control) ;
-         return False ;
+         RETURN(False) ;
       }
 
       /** read all data possible from the control channel **/
@@ -122,7 +123,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
 
       if( npobuf < 1 ){
          fprintf(stderr,"PO: control channel sent no data!\n") ;
-         IOCHAN_CLOSE(ioc_control) ; free(pobuf) ; return False ;
+         IOCHAN_CLOSE(ioc_control) ; free(pobuf) ; RETURN(False) ;
       }
 
       /** process the input and make a new connection to a plugout program **/
@@ -133,7 +134,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
          fprintf(stderr,"PO: can't create PLUGOUT_spec.  Input was:\n%s\n",pobuf) ;
          PO_ACK_BAD(ioc_control) ;
          iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
-         free(pobuf) ; return False ;
+         free(pobuf) ; RETURN(False) ;
       } else {
          PO_ACK_OK(ioc_control) ; iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
          fprintf(stderr,"PO: plugout connection name is %s\n",pp->po_name) ;
@@ -162,20 +163,23 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
 
    ngood = 0 ;
    for( jj=0 ; jj < npout ; jj++ ){
-      pcode = AFNI_process_plugout( pout[jj] ) ;
-      if( pcode < 0 ) DESTROY_PLUGOUT( pout[jj] ) ;
-      else            ngood++ ;
+      if( pout[jj] != NULL ){
+         pcode = AFNI_process_plugout( pout[jj] ) ;
+         if( pcode < 0 ) DESTROY_PLUGOUT( pout[jj] ) ;
+         else            ngood++ ;
 
-      if( pcode ) opcount++ ;
+         if( pcode ) opcount++ ;
+      }
    }
 
-   if( ngood == 0 ){
-      npout = 0 ;
-      free(pout) ; pout = NULL ;
-   }
+   /* if all plugouts are deceased, free their array */
+
+   if( ngood == 0 ){ npout = 0 ; free(pout) ; pout = NULL ; }
+
+   /* if nothing happened, take a short nap */
 
    if( opcount == 0 ) iochan_sleep(LONG_DELAY) ;
-   return False ;
+   RETURN(False) ;
 }
 
 /*------------------------------------------------------------------------
@@ -196,20 +200,22 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
    Three_D_View * im3d ;
    static char pobuf[PO_BUFSIZE] ;
 
+ENTRY("AFNI_process_plugout") ;
+
    /** find the lowest numbered open controller **/
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
       im3d = GLOBAL_library.controllers[ii] ;
       if( IM3D_OPEN(im3d) ) break ;
    }
-   if( ii == MAX_CONTROLLERS ) return 0 ;  /* nothing available? */
+   if( ii == MAX_CONTROLLERS ) RETURN(0) ;  /* nothing available? */
 
    /** if the IOCHAN isn't ready yet, see if it has become ready **/
 
    if( ! pp->ioc_ready ){
       ii = iochan_goodcheck( pp->ioc , SHORT_DELAY ) ;
-      if( ii == 0 ) return  0 ;   /* still waiting */
-      if( ii <  0 ) return -1 ;   /* something bad */
+      if( ii == 0 ) RETURN( 0) ;   /* still waiting */
+      if( ii <  0 ) RETURN(-1) ;   /* something bad */
       pp->ioc_ready = 1 ;         /* mark that it is ready */
    }
 
@@ -220,7 +226,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
 
    if( jj < 0 ){    /* something bad happened */
       fprintf(stderr,"PO: plugout %s closed connection!\n",pp->po_name) ;
-      return -1 ;
+      RETURN(-1) ;
    }
 
    if( jj > 0 ){  /* data is incoming! */
@@ -230,7 +236,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
      npobuf = iochan_recv( pp->ioc , pobuf , PO_BUFSIZE ) ;
      if( npobuf <= 0 ){
         fprintf(stderr,"PO: failure to read data from plugout %s!\n",pp->po_name) ;
-        return -1 ;
+        RETURN(-1) ;
      }
 
      /** check it for ASCII NUL termination **/
@@ -244,19 +250,19 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
 
      /** determine what to do with it **/
 
-     if( strncmp(pobuf,"TT_XYZ",6) == 0 ){
+     if( strncmp(pobuf,"TT_XYZ_SET",10) == 0 ){
         float xx , yy , zz ;
 
-        ii = sscanf( pobuf , "TT_XYZ %f %f %f" , &xx , &yy , &zz ) ;
+        ii = sscanf( pobuf , "TT_XYZ_SET %f %f %f" , &xx , &yy , &zz ) ;
         if( ii < 3 ){
 
-           fprintf(stderr,"PO: malformed TT_XYZ string from plugout %s: %s\n",
+           fprintf(stderr,"PO: malformed TT_XYZ_SET string from plugout %s: %s\n",
                    pp->po_name , pobuf ) ;
            PO_ACK_BAD( pp->ioc ) ;
 
         } else if( im3d->vinfo->view_type != VIEW_TALAIRACH_TYPE ){
 
-           fprintf(stderr,"PO: can't accept TT_XYZ from plugout %s in %s\n",
+           fprintf(stderr,"PO: can't accept TT_XYZ_SET from plugout %s in %s\n",
                           pp->po_name , VIEW_typestr[im3d->vinfo->view_type]) ;
            PO_ACK_BAD( pp->ioc ) ;
 
@@ -269,12 +275,12 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
         }
         retval = 2 ; goto Proust ;
 
-     } else if( strncmp(pobuf,"DICOM_XYZ",9) == 0 ){
+     } else if( strncmp(pobuf,"DICOM_XYZ_SET",13) == 0 ){
         float xx , yy , zz ;
 
-        ii = sscanf( pobuf , "DICOM_XYZ %f %f %f" , &xx , &yy , &zz ) ;
+        ii = sscanf( pobuf , "DICOM_XYZ_SET %f %f %f" , &xx , &yy , &zz ) ;
         if( ii < 3 ){
-           fprintf(stderr,"PO: malformed DICOM_XYZ string from plugout %s: %s\n",
+           fprintf(stderr,"PO: malformed DICOM_XYZ_SET string from plugout %s: %s\n",
                    pp->po_name , pobuf ) ;
            PO_ACK_BAD( pp->ioc ) ;
         } else {
@@ -282,6 +288,30 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
            if( jj < 0 ) PO_ACK_BAD( pp->ioc ) ;
            else         PO_ACK_OK ( pp->ioc ) ;
         }
+        retval = 2 ; goto Proust ;
+
+     } else if( strncmp(pobuf,"DSET_IJK_SET",12) == 0 ){
+        int ix , jy , kz ;
+
+        ii = sscanf( pobuf , "DSET_IJK_SET %d %d %d" , &ix , &jy , &kz ) ;
+        if( ii < 3 ){
+           fprintf(stderr,"PO: malformed DSET_IJK_SET string from plugout %s: %s\n",
+                   pp->po_name , pobuf ) ;
+           PO_ACK_BAD( pp->ioc ) ;
+        } else {
+           AFNI_set_viewpoint( im3d , ix,jy,kz , REDISPLAY_ALL ) ;
+           PO_ACK_OK ( pp->ioc ) ;
+        }
+        retval = 2 ; goto Proust ;
+
+     } else if( strncmp(pobuf,"DSET_IJK_GET",12) == 0 ){
+        int ix=im3d->vinfo->i1 , jy=im3d->vinfo->j2 , kz=im3d->vinfo->k3 ;
+
+        sprintf(pobuf,"DSET_IJK %d %d %d\n" , ix,jy,kz ) ;
+        PO_SEND( pp->ioc , pobuf ) ;            /* send */
+        jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
+        if( jj == -1 ) RETURN(-1) ;             /* something bad! */
+        jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
         retval = 2 ; goto Proust ;
 
      } else {
@@ -307,7 +337,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
 
          switch( pp->pomode[ii] ){
 
-            case POMODE_DICOM_XYZ_OUT:{
+            case POMODE_DICOM_XYZ_DELTA:{
                float xx , yy , zz ;
                xx = im3d->vinfo->xi ;
                yy = im3d->vinfo->yj ;
@@ -317,7 +347,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
             }
             break ;
 
-            case POMODE_TT_XYZ_OUT:{
+            case POMODE_TT_XYZ_DELTA:{
                float xx , yy , zz ;
                xx = im3d->vinfo->xi ;
                yy = im3d->vinfo->yj ;
@@ -325,6 +355,16 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
                if( im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE &&
                   (!FEQ(xx,pp->xi) || !FEQ(yy,pp->yj) || !FEQ(zz,pp->zk)) )
                   sprintf( pobuf + npobuf , "TT_XYZ %9.3f %9.3f %9.3f\n" , -xx,-yy,zz ) ;
+            }
+            break ;
+
+            case POMODE_DSET_IJK_DELTA:{
+               int ix , jy , kz ;
+               ix = im3d->vinfo->i1 ;
+               jy = im3d->vinfo->j2 ;
+               kz = im3d->vinfo->k3 ;
+               if( ix != pp->ix || jy != pp->jy || kz != pp->kz )
+                  sprintf( pobuf + npobuf , "DSET_IJK %d %d %d\n" , ix,jy,kz ) ;
             }
             break ;
          }
@@ -337,7 +377,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
       if( npobuf > 0 ){
          PO_SEND( pp->ioc , pobuf ) ;            /* send */
          jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
-         if( jj == -1 ) return -1 ;              /* something bad! */
+         if( jj == -1 ) RETURN(-1) ;             /* something bad! */
          jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
          retval = 1 ; goto Proust ;
       } else {
@@ -352,6 +392,9 @@ Proust:
    pp->xi             = im3d->vinfo->xi ;
    pp->yj             = im3d->vinfo->yj ;
    pp->zk             = im3d->vinfo->zk ;
+   pp->ix             = im3d->vinfo->i1 ;
+   pp->jy             = im3d->vinfo->j2 ;
+   pp->kz             = im3d->vinfo->k3 ;
    pp->time_index     = im3d->vinfo->time_index ;
    pp->view_type      = im3d->vinfo->view_type ;
    pp->sess_num       = im3d->vinfo->sess_num ;
@@ -359,7 +402,7 @@ Proust:
    pp->func_num       = im3d->vinfo->func_num ;
    pp->func_threshold = im3d->vinfo->func_threshold ;
 
-   return retval ;
+   RETURN(retval) ;
 }
 
 /*------------------------------------------------------------------------
@@ -431,14 +474,19 @@ ENTRY("new_PLUGOUT_spec") ;
       /************************************/
       /*** Scan for legal input strings ***/
 
-      if( STARTER("TT_XYZ_OUT") ){
+      if( STARTER("TT_XYZ_DELTA") ){
 
-         pp->pomode[ pp->npomode ] = POMODE_TT_XYZ_OUT ;
+         pp->pomode[ pp->npomode ] = POMODE_TT_XYZ_DELTA ;
          pp->npomode ++ ;
 
-      } else if( STARTER("DICOM_XYZ_OUT") ){
+      } else if( STARTER("DICOM_XYZ_DELTA") ){
 
-         pp->pomode[ pp->npomode ] = POMODE_DICOM_XYZ_OUT ;
+         pp->pomode[ pp->npomode ] = POMODE_DICOM_XYZ_DELTA ;
+         pp->npomode ++ ;
+
+      } else if( STARTER("DSET_IJK_DELTA") ){
+
+         pp->pomode[ pp->npomode ] = POMODE_DSET_IJK_DELTA ;
          pp->npomode ++ ;
 
       } else if( STARTER("IOCHAN") ){

@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <assert.h>
 
 /*	Definitions of prototypes and declaration of support functions 
 	this is taken from the list of include files that I use in the original code*/ 
@@ -38,7 +37,6 @@ typedef struct {
     extern void triang(COMPLEX *,int);
     extern void black(COMPLEX *,int);
     extern void harris(COMPLEX *,int);
-    extern int log2(unsigned int);
 
 #include "plug_delay_V2.h"
 

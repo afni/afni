@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <assert.h>
 
 
 /*------------------ macros to return workspace at exit -------------------*/
@@ -839,8 +838,13 @@ fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, in
 	/* Allocate and check for necessary space */
 	xyzvect = (fXYZ *) calloc (sz+2,sizeof(fXYZ));
 	
-	assert (xyzvect);
-	
+	 if (xyzvect == NULL)
+				{
+					printf ("\nFatal Error : Failed to Allocate memory\a\n");
+					printf ("Abandon Lab Immediately !\n\n");
+					return;
+				};
+				
 	INFILE = fopen (fname,"r");
 	if (INFILE == NULL)
 		{
@@ -935,7 +939,12 @@ float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int 
 	/* Allocate and check for necessary space */
 	indxvect = (float *) calloc (sz+2,sizeof(float));
 	
-	assert (indxvect);
+	 if (indxvect == NULL)
+				{
+					printf ("\nFatal Error : Failed to Allocate memory\a\n");
+					printf ("Abandon Lab Immediately !\n\n");
+					return;
+				}; 
 	
 	INFILE = fopen (fname,"r");
 	if (INFILE == NULL)
@@ -1057,7 +1066,7 @@ int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detren
    float val , d0fac , d1fac , x0,x1;
    double tzero , tdelta , ts_mean , ts_slope ;
    int   ii , old_datum , nuse , use_fac , iz,izold, nxy,nvox ;
-   int retval;
+   static int retval;
 	register int kk ;
 
    /*----------------------------------------------------------*/

@@ -1,50 +1,6 @@
 /***************************************************************
-  Sample plugout program, that registers with AFNI
-  to be notified every time the Talairach-Tournoux
-  coordinates change.  Note that this will only
-  occur when the lowest numbered active AFNI
-  controller is in the Talairach view.
-  T-T coordinates are
-      -x axis = L   +x axis = R
-      -y axis = P   +y axis = A
-      -z axis = I   +z axis = S
-  Note that x and y are each flipped from the
-  DICOM standard, which AFNI uses internally.
-  The values reported to this plugout program
-  are in the T-T system, not the DICOM system.
-                                          RWCox, June 1997
-****************************************************************
-  Usage: plugout_tt [-host name] [-v]
-  Options:
-    -host name  Means to connect to AFNI running on the
-                  remote computer 'name'.  The default is
-                  to connect on the current host.  If the
-                  connection is to "localhost" (the default),
-                  then shared memory is used, otherwise
-                  a TCP/IP socket is used.
-    -v          Verbose mode: prints out lots of stuff.
-
-  Note that AFNI must be run with the "-yesplugouts"
-  option to allow it to talk to this program.  See the
-  output of "afni -help" for (a little) more information.
-****************************************************************
-  The file "thd_trusthost" controls which systems are
-  allowed to connect to AFNI.  This is controlled by
-  setting the environment variables
-    AFNI_TRUSTHOST_1 through AFNI_TRUSTHOST_99
-  to the IP addresses (not names) of hosts from which
-  AFNI should accept plugout connections.  For example,
-    setenv AFNI_TRUSTHOST_1 123.45.67.89
-  Note that 127.0.0.1 (localhost) is always trusted.
-****************************************************************
-  Compilation:
-    If using the Makefile that came with AFNI, then
-        make plugout_tt
-    Otherwise
-        cc -o plugout_tt -O plugout_tt.c thd_iochan.c -I.
-
-  "thd_iochan.c" contains the routines that do the TCP/IP
-  socket and IPC shared memory stuff.
+  Sample plugout program to send the dataset (i,j,k)
+  indices for viewing.
 ****************************************************************/
 
 /***** Header file for communication routines *****/
@@ -56,10 +12,8 @@
 
 static char afni_host[128] = "." ;
 static char afni_name[128] = "\0" ;
-static int  afni_port      = 8001 ;
-
-static int  afni_verbose = 0 ;  /* print out debug info? */
-static int  afni_do_ijk  = 0 ;  /* do IJK instead of TT? */
+static int  afni_port      = 8009 ;
+static int  afni_verbose   = 0 ;  /* print out debug info? */
 
 /***** Prototype *****/
 
@@ -78,19 +32,17 @@ int main( int argc , char * argv[] )
    /***** See if the pitiful user wants help *****/
 
    if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
-      printf("Usage: plugout_tt [-host name] [-v]\n"
-             "This program connects to AFNI and receives notification\n"
-             "whenever the user changes Talairach coordinates.\n\n"
+      printf("Usage: plugout_ijk [-host name] [-v]\n"
+             "This program connects to AFNI and send (i,j,k)\n"
+             "dataset indices to control the viewpoint.\n\n"
              "Options:\n"
              "  -host name  Means to connect to AFNI running on the\n"
              "                computer 'name' using TCP/IP.  The default is to\n"
              "                connect on the current host using shared memory.\n"
-             "  -ijk        Means to get voxel indices from AFNI, rather\n"
-             "                than Talairach coordinates.\n"
-             "  -v          Verbose mode: prints out lots of stuff.\n"
+             "  -v          Verbose mode.\n"
              "  -port pp    Use TCP/IP port number 'pp'.  The default is\n"
-             "                8001, but if two copies of this are running on\n"
-             "                the same computer, they must use different ports.\n"
+             "                8009, but if two plugins are running on the\n"
+             "                same computer, they must use different ports.\n"
              "  -name sss   Use the string 'sss' for the name that AFNI assigns\n"
              "                to this plugout.  The default is something stupid.\n"
             ) ;
@@ -146,13 +98,6 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
-      /** -ijk **/
-
-      if( strncmp(argv[narg],"-ijk",4) == 0 ){
-         afni_do_ijk = 1 ;
-         narg++ ; continue ;
-      }
-
       /** Je ne sais pas **/
 
       fprintf(stderr,"Unrecognized option: %s\a\n",argv[narg]) ;
@@ -190,7 +135,7 @@ int main( int argc , char * argv[] )
      then
        4) Wait for AFNI to also open the data connection;
      then
-       5) See if AFNI sends any data, and if so, process it!  *****/
+       5) Send data to AFNI!                                *****/
 
 #define AFNI_OPEN_CONTROL_MODE  1  /* 1st time thru: open control channel */
 #define AFNI_WAIT_CONTROL_MODE  2  /* wait for AFNI to open control chan  */
@@ -231,6 +176,7 @@ int afni_io(void)
          sprintf( afni_iocname , "tcp:%s:7955" , "localhost" ); /* make name */
       else
          sprintf( afni_iocname , "tcp:%s:7955" , afni_host ) ;  /* make name */
+
       afni_ioc = iochan_init( afni_iocname , "create" ) ;    /* create it */
       if( afni_ioc == NULL ){
          fprintf(stderr,
@@ -294,24 +240,14 @@ int afni_io(void)
                 except (possibly) the last command;
             * the command buffer is a C string, which ends
                 with an ASCII NUL character;
-            * TT_XYZ_DELTA means 'send me T-T coordinates when they change';
-            * DSET_IJK_DELTA means 'send me IJK voxel indices when they change';
             * PONAME means 'use this string for informative messages';
             * IOCHAN means 'use this I/O channel from now on'. **/
 
-      if( afni_name[0] == '\0' ) strcpy(afni_name,"aManCalledHorse") ;
+      if( afni_name[0] == '\0' ) strcpy(afni_name,"aHorseCalledMan") ;
 
-      if( afni_do_ijk ){
-         sprintf( afni_buf , "DSET_IJK_DELTA\n"
-                             "PONAME %s\n"
-                             "IOCHAN %s" ,
-                  afni_name , afni_iocname ) ;
-      } else {
-         sprintf( afni_buf , "TT_XYZ_DELTA\n"
-                             "PONAME %s\n"
-                             "IOCHAN %s" ,
-                  afni_name , afni_iocname ) ;
-      }
+      sprintf( afni_buf , "PONAME %s\n"
+                          "IOCHAN %s" ,
+               afni_name , afni_iocname ) ;
 
       if( afni_verbose )
          fprintf(stderr,"Sending control information to AFNI\n") ;
@@ -377,62 +313,41 @@ int afni_io(void)
       }
    }
 
-   /************************************************************/
-   /***** The "normal" state of affairs:                   *****/
-   /***** AFNI is connected.  See if any data is arriving. *****/
+   /**************************************************************/
+   /***** The "normal" state of affairs:  AFNI is connected. *****/
+   /***** See if the user wants to send i,j,k to AFNI.       *****/
 
    if( afni_mode == AFNI_CONTINUE_MODE ){
       char afni_buf[256] ;
-      float xx , yy , zz ;
       int   ix , jy , kz ;
 
-      ii = iochan_readcheck( afni_ioc , 0 ) ;  /* don't wait */
+      /* get user input */
 
-      /** ii <  0  ==>  a fatal error has happened
-          ii == 0  ==>  no data is ready
-          ii >  0  ==>  data is ready to read from the channel **/
+      printf("Enter i j k: ") ; fflush(stdout) ; fgets(afni_buf,256,stdin) ;
+      ii = sscanf(afni_buf,"%d %d %d",&ix,&jy,&kz) ;
+      if( ii < 3 ){
+         printf("** Warning -- planetary meltdown will occur in 10 seconds!\a\n") ;
+         iochan_sleep(1000) ;
+         ii = iochan_writecheck(afni_ioc,5) ; if( ii < 0 ) return -1 ;
+         return 0 ;
+      }
 
-      if( ii < 0 ){
+      /* send input to AFNI (essentially unedited) */
+
+      sprintf(afni_buf,"DSET_IJK_SET %d %d %d",ix,jy,kz) ;
+      ii = iochan_sendall( afni_ioc , afni_buf , strlen(afni_buf)+1 ) ;
+
+      if( ii > 0 ){  /* send was OK; wait for acknowledgment */
+         ii = iochan_recvall( afni_ioc , afni_buf , POACKSIZE ) ;
+      }
+
+      if( ii < 0 ){   /* send or acknowledgment failed */
          fprintf(stderr,"AFNI data channel aborted!\a\n") ;
          IOCHAN_CLOSE(afni_ioc) ;
          afni_mode = 0 ;
          return -1 ;
-      } else if( ii == 0 ){
-         return 0 ;       /* no data ==> try again next time */
       }
-
-      /** at this point, data is incoming from AFNI **/
-
-      ii = iochan_recv( afni_ioc , afni_buf , 256 ) ;
-
-      if( ii <= 0 ){
-         fprintf(stderr,"AFNI data channel recv failed!\a\n") ;
-         IOCHAN_CLOSE(afni_ioc) ;
-         afni_mode = 0 ;
-         return -1 ;
-      }
-
-      /** at last! "process" the data from AFNI
-                   (in this case, just print it out) **/
-
-      if( afni_do_ijk )
-         ii = sscanf( afni_buf , "DSET_IJK %d %d %d" , &ix,&jy,&kz ) ;
-      else
-         ii = sscanf( afni_buf , "TT_XYZ %f %f %f"   , &xx,&yy,&zz ) ;
-
-      /** also, AFNI will wait until we send an acknowledgment;
-          acknowledgment messages are always 4 (POACKSIZE) bytes long **/
-
-      if( ii < 3 ){
-         fprintf(stderr,"AFNI sent bad data: %s\a\n",afni_buf) ;
-         PO_ACK_BAD(afni_ioc) ;
-      } else if( afni_do_ijk ){
-         fprintf(stderr,"AFNI sent indices: %d %d %d\n",ix,jy,kz) ;
-         PO_ACK_OK(afni_ioc) ;
-      } else {
-         fprintf(stderr,"AFNI sent coords: %9.3f %9.3f %9.3f\n",xx,yy,zz) ;
-         PO_ACK_OK(afni_ioc) ;
-      }
+      return 0 ;
    }
 
    return 0 ;

@@ -23,8 +23,9 @@ void AFNI_init_plugouts( void ) ;  /* prototype */
 
 #define PO_MAXMODES 16
 
-#define POMODE_TT_XYZ_OUT     1
-#define POMODE_DICOM_XYZ_OUT  2
+#define POMODE_TT_XYZ_DELTA     1
+#define POMODE_DICOM_XYZ_DELTA  2
+#define POMODE_DSET_IJK_DELTA   3
 
 typedef struct {
    IOCHAN * ioc ;
@@ -38,6 +39,7 @@ typedef struct {
    /** things to recall about the current state **/
 
    float xi , yj , zk ;     /* DICOM coordinates of viewpoint */
+   int   ix , jy , kz ;     /* dataset indices of viewpoint */
    int   time_index ;
    int   view_type ;
    int   sess_num , anat_num , func_num ;

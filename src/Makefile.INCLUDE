@@ -30,9 +30,9 @@ MISC    = afni.montage AFNI.Xdefaults mF64 mF128 gmovie 3d*.lib
 PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
-           p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 \
+           p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
-           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt bzip2 3dnoise \
+           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt bzip2 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
            2dImReg
 
@@ -596,7 +596,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetdblk.o thd_get1D.o thd_manydset.o thd_writedset.o    \
            thd_dsetinsess.o  thd_idcode.o thd_opendset.o thd_zblock.o  \
            thd_dsetinslist.o thd_info.o thd_purgedblk.o thd_http.o    \
-           thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o
+           thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
+           thd_trusthost.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -673,6 +674,14 @@ epsim:epsim.o
 plugout_tt:plugout_tt.o
 	$(RM) $@
 	$(CC) -o plugout_tt plugout_tt.o $(LFLAGS) $(LLIBS)
+
+plugout_ijk:plugout_ijk.o
+	$(RM) $@
+	$(CC) -o plugout_ijk plugout_ijk.o $(LFLAGS) $(LLIBS)
+
+plugout_tta:plugout_tta.o
+	$(RM) $@
+	$(CC) -o plugout_tta plugout_tta.o $(LFLAGS) $(LLIBS)
 
 ######################################################################
 # Stuff that was originally in Fortran

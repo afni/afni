@@ -682,6 +682,7 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
       case SIGPIPE: sname = "SIGPIPE" ; break ;
       case SIGSEGV: sname = "SIGSEGV" ; break ;
       case SIGBUS:  sname = "SIGBUS"  ; break ;
+      case SIGTERM: sname = "SIGTERM" ; break ;
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname) ;
    fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
@@ -702,6 +703,7 @@ int main( int argc , char * argv[] )
 signal(SIGINT ,AFNI_sigfunc) ;
 signal(SIGBUS ,AFNI_sigfunc) ;
 signal(SIGSEGV,AFNI_sigfunc) ;
+signal(SIGTERM,AFNI_sigfunc) ;
 #endif
 
 /** debuggin stuff **/

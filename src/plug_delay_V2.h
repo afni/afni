@@ -241,7 +241,12 @@ void detrend (float *y,float *yd,int lny,float *a,float *b)
          float *x;
          
     x = (float *)calloc (lny+1,sizeof(float));
-         assert (x);
+         if (x == NULL)
+				{
+					printf ("\nFatal Error : Failed to Allocate memory\a\n");
+					printf ("Abandon Lab Immediately !\n\n");
+					return;
+				};
          
          for (i=0;i<lny;++i) /*creating x vector */
                 x[i] = (float)i;
@@ -266,7 +271,13 @@ void padd (float *x,float *y,float pad_val,int ix,int lnx,int lny)
                 
                 tmp = (float *) calloc (lnx+2,sizeof(float));
                 
-                assert (tmp);
+            	if (tmp == NULL)
+						{
+							printf ("\nFatal Error : Failed to Allocate memory\a\n");
+							printf ("Abandon Lab Immediately !\n\n");
+							return;
+						};
+
                 
                 di = lny-lnx;
                 if (lny < lnx) 
@@ -723,8 +734,13 @@ void c_padd (COMPLEX *x,COMPLEX *y,COMPLEX pad_val,int ix,int lnx,int lny)
                 
                 tmp = (COMPLEX *) calloc (lnx+2,sizeof(COMPLEX));
                 
-                assert (tmp);
-                
+                if (tmp == NULL)
+						{
+							printf ("\nFatal Error : Failed to Allocate memory\a\n");
+							printf ("Abandon Lab Immediately !\n\n");
+							return;
+						};
+
                 di = lny-lnx;
                 if (lny < lnx) 
                         {
@@ -1194,12 +1210,19 @@ if (opt > 0)							/* Execution mode */
 			fftyca = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
 			Pxya = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
 			Ryya = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
-			Rxxa = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));
+			Rxxa = (COMPLEX **) allocate2D ((2*lng)+2,Nseg,sizeof(COMPLEX));	
 			
-			assert (fftx && fftxc && ffty && fftyc && Pxy && Px && Py && xp && yp && \
-						ubias && tmp_f_vect && Pxx && Pyy && Rxx && Ryy && fftyca && Pxya \
-						&& Ryya && Rxxa && tmp_f_vect2);
-			
+			if (fftx == NULL ||  fftxc == NULL ||  ffty == NULL ||  fftyc == NULL ||  \
+			    Pxy == NULL ||  Px == NULL ||  Py == NULL ||  xp == NULL ||  yp == NULL ||  \
+				 ubias == NULL ||  tmp_f_vect == NULL ||  Pxx == NULL ||  Pyy == NULL ||  \
+				 Rxx == NULL ||  Ryy == NULL ||  fftyca == NULL ||  Pxya == NULL ||  \
+				 Ryya == NULL ||  Rxxa == NULL ||  tmp_f_vect2 == NULL)
+				{
+					printf ("\nFatal Error : Failed to Allocate memory\a\n");
+					printf ("Abandon Lab Immediately !\n\n");
+					return;
+				};
+
 			/* creating a vector to remove the bowtie artifact from the auto and cross correlation curves, and set to zero 
 							their irrelevant values */
 			if (biasrem == 1)
@@ -1466,7 +1489,7 @@ if (opt > 0)							/* Execution mode */
 		
 				*del = izero + Dtx;		/* delay is in sample units corrected by the sampling time difference*/	
 					
-				*xcorCoef = *xcor / sqrtf (Rxx[0].real * Ryy[0].real) * *slp; /*correction for sign of cross correlation coefficient (slp = 1.0 or -1.00*/
+				*xcorCoef = *xcor / sqrt (Rxx[0].real * Ryy[0].real) * *slp; /*correction for sign of cross correlation coefficient (slp = 1.0 or -1.00*/
 				
 				/* set vx and vy */
 				

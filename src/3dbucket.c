@@ -413,6 +413,14 @@ void BUCK_Syntax(void)
     " the shell, so you will have to escape them.  This is most easily\n"
     " done by putting the entire dataset plus selection list inside\n"
     " single quotes, as in 'fred+orig[5..7,9]'.\n"
+    "\n"
+    "N.B.: In non-bucket functional datasets (like the 'fico' datasets\n"
+    " output by FIM, or the 'fitt' datasets output by 3dttest), sub-brick\n"
+    " [0] is the 'intensity' and sub-brick [1] is the statistical parameter\n"
+    " used as a threshold.  Thus, to create a bucket dataset using the\n"
+    " intensity from dataset A and the threshold from dataset B, and\n"
+    " calling the output dataset C, you would type\n"
+    "    3dbucket -prefix C -fbuc 'A+orig[0]' -fbuc 'B+orig[1]'\n"
    ) ;
 
    exit(0) ;

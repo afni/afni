@@ -1,54 +1,4 @@
-/***************************************************************
-  Sample plugout program, that registers with AFNI
-  to be notified every time the Talairach-Tournoux
-  coordinates change.  Note that this will only
-  occur when the lowest numbered active AFNI
-  controller is in the Talairach view.
-  T-T coordinates are
-      -x axis = L   +x axis = R
-      -y axis = P   +y axis = A
-      -z axis = I   +z axis = S
-  Note that x and y are each flipped from the
-  DICOM standard, which AFNI uses internally.
-  The values reported to this plugout program
-  are in the T-T system, not the DICOM system.
-                                          RWCox, June 1997
-****************************************************************
-  Usage: plugout_tt [-host name] [-v]
-  Options:
-    -host name  Means to connect to AFNI running on the
-                  remote computer 'name'.  The default is
-                  to connect on the current host.  If the
-                  connection is to "localhost" (the default),
-                  then shared memory is used, otherwise
-                  a TCP/IP socket is used.
-    -v          Verbose mode: prints out lots of stuff.
-
-  Note that AFNI must be run with the "-yesplugouts"
-  option to allow it to talk to this program.  See the
-  output of "afni -help" for (a little) more information.
-****************************************************************
-  The file "thd_trusthost" controls which systems are
-  allowed to connect to AFNI.  This is controlled by
-  setting the environment variables
-    AFNI_TRUSTHOST_1 through AFNI_TRUSTHOST_99
-  to the IP addresses (not names) of hosts from which
-  AFNI should accept plugout connections.  For example,
-    setenv AFNI_TRUSTHOST_1 123.45.67.89
-  Note that 127.0.0.1 (localhost) is always trusted.
-****************************************************************
-  Compilation:
-    If using the Makefile that came with AFNI, then
-        make plugout_tt
-    Otherwise
-        cc -o plugout_tt -O plugout_tt.c thd_iochan.c -I.
-
-  "thd_iochan.c" contains the routines that do the TCP/IP
-  socket and IPC shared memory stuff.
-****************************************************************/
-
-/***** Header file for communication routines *****/
-
+#include <math.h>
 #include "thd_iochan.h"
 
 /***** Global variable determining on which system AFNI runs.  *****/
@@ -56,14 +6,28 @@
 
 static char afni_host[128] = "." ;
 static char afni_name[128] = "\0" ;
-static int  afni_port      = 8001 ;
+static int  afni_port      = 8005 ;
 
 static int  afni_verbose = 0 ;  /* print out debug info? */
-static int  afni_do_ijk  = 0 ;  /* do IJK instead of TT? */
+
+static char * url = NULL ;
+static char * uff = NULL ;
 
 /***** Prototype *****/
 
 int afni_io(void) ;
+void handle_tta( float xx , float yy , float zz ) ;
+
+void exit_me_baby( void ){
+   if( uff != NULL ) unlink(uff) ;
+   return ;
+}
+
+#include <signal.h>
+void sigfunc(int sig)   /** signal handler for fatal errors **/
+{
+   exit(1) ;
+}
 
 /*===================================================================
    Main program:
@@ -78,24 +42,34 @@ int main( int argc , char * argv[] )
    /***** See if the pitiful user wants help *****/
 
    if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
-      printf("Usage: plugout_tt [-host name] [-v]\n"
+      printf("Usage: plugout_tta [options]\n"
              "This program connects to AFNI and receives notification\n"
-             "whenever the user changes Talairach coordinates.\n\n"
+             "whenever the user changes Talairach coordinates.\n"
+             "It then drives Netscape to display the closest figures\n"
+             "from the Talairach-Tournoux atlas.  Note that Netscape must\n"
+             "be running on the same computer as this plugout, since it\n"
+             "communicates with Netscape using a temporary URL file.\n"
              "Options:\n"
              "  -host name  Means to connect to AFNI running on the\n"
              "                computer 'name' using TCP/IP.  The default is to\n"
              "                connect on the current host using shared memory.\n"
-             "  -ijk        Means to get voxel indices from AFNI, rather\n"
-             "                than Talairach coordinates.\n"
-             "  -v          Verbose mode: prints out lots of stuff.\n"
-             "  -port pp    Use TCP/IP port number 'pp'.  The default is\n"
-             "                8001, but if two copies of this are running on\n"
-             "                the same computer, they must use different ports.\n"
-             "  -name sss   Use the string 'sss' for the name that AFNI assigns\n"
-             "                to this plugout.  The default is something stupid.\n"
+             "                To connect to the current host with TCP/IP, use\n"
+             "                '-host localhost', or use the '-port' option.\n"
+             "  -v          Verbose mode: prints out progress reports.\n"
+             "  -port pp    Use TCP/IP port number 'pp'; default is 8005.\n"
+             "The environment variable AFNI_TTAHOME controls where the atlas\n"
+             "images are loaded from.  If not given, a default value is used.\n"
             ) ;
       exit(0) ;
    }
+
+   /* set up to delete the temporary URL file when the program ends */
+
+   atexit(exit_me_baby) ;
+   signal(SIGINT ,sigfunc) ;
+   signal(SIGBUS ,sigfunc) ;
+   signal(SIGSEGV,sigfunc) ;
+   signal(SIGTERM,sigfunc) ;
 
    /***** Process command line options *****/
 
@@ -143,13 +117,6 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"-port needs a positive argument!\a\n"); exit(1);
          }
          if( strcmp(afni_host,".") == 0 ) strcpy(afni_host,"localhost") ;
-         narg++ ; continue ;
-      }
-
-      /** -ijk **/
-
-      if( strncmp(argv[narg],"-ijk",4) == 0 ){
-         afni_do_ijk = 1 ;
          narg++ ; continue ;
       }
 
@@ -299,19 +266,12 @@ int afni_io(void)
             * PONAME means 'use this string for informative messages';
             * IOCHAN means 'use this I/O channel from now on'. **/
 
-      if( afni_name[0] == '\0' ) strcpy(afni_name,"aManCalledHorse") ;
+      if( afni_name[0] == '\0' ) strcpy(afni_name,"T-T-A") ;
 
-      if( afni_do_ijk ){
-         sprintf( afni_buf , "DSET_IJK_DELTA\n"
-                             "PONAME %s\n"
-                             "IOCHAN %s" ,
-                  afni_name , afni_iocname ) ;
-      } else {
-         sprintf( afni_buf , "TT_XYZ_DELTA\n"
-                             "PONAME %s\n"
-                             "IOCHAN %s" ,
-                  afni_name , afni_iocname ) ;
-      }
+      sprintf( afni_buf , "TT_XYZ_DELTA\n"
+                          "PONAME %s\n"
+                          "IOCHAN %s" ,
+               afni_name , afni_iocname ) ;
 
       if( afni_verbose )
          fprintf(stderr,"Sending control information to AFNI\n") ;
@@ -415,10 +375,7 @@ int afni_io(void)
       /** at last! "process" the data from AFNI
                    (in this case, just print it out) **/
 
-      if( afni_do_ijk )
-         ii = sscanf( afni_buf , "DSET_IJK %d %d %d" , &ix,&jy,&kz ) ;
-      else
-         ii = sscanf( afni_buf , "TT_XYZ %f %f %f"   , &xx,&yy,&zz ) ;
+      ii = sscanf( afni_buf , "TT_XYZ %f %f %f"   , &xx,&yy,&zz ) ;
 
       /** also, AFNI will wait until we send an acknowledgment;
           acknowledgment messages are always 4 (POACKSIZE) bytes long **/
@@ -426,14 +383,160 @@ int afni_io(void)
       if( ii < 3 ){
          fprintf(stderr,"AFNI sent bad data: %s\a\n",afni_buf) ;
          PO_ACK_BAD(afni_ioc) ;
-      } else if( afni_do_ijk ){
-         fprintf(stderr,"AFNI sent indices: %d %d %d\n",ix,jy,kz) ;
-         PO_ACK_OK(afni_ioc) ;
       } else {
-         fprintf(stderr,"AFNI sent coords: %9.3f %9.3f %9.3f\n",xx,yy,zz) ;
          PO_ACK_OK(afni_ioc) ;
+         if( afni_verbose )
+            fprintf(stderr,"AFNI sent TT coords %9.3f %9.3f %9.3f\n",xx,yy,zz) ;
+         handle_tta(xx,yy,zz) ;
       }
    }
 
    return 0 ;
+}
+
+/*------------------------------------------------------------------*/
+
+#define CORONAL_NUM 38
+static float coronal_yy[] = {
+  -100, -95, -90, -85, -80, -75, -70, -65,
+   -60, -55, -50, -45, -40, -35, -32, -28,
+   -24, -20, -16, -12, -8,  -4,   0,   4,
+     8,  12,  16,  20, 24,  28,  32,  35,
+    40,  45,  50,  55, 60,  65
+} ;
+static char * coronal_ff[] = {
+   "tt_corm99.gif" , "tt_corm95.gif" , "tt_corm90.gif" , "tt_corm85.gif" ,
+   "tt_corm80.gif" , "tt_corm75.gif" , "tt_corm70.gif" , "tt_corm65.gif" ,
+   "tt_corm60.gif" , "tt_corm55.gif" , "tt_corm50.gif" , "tt_corm45.gif" ,
+   "tt_corm40.gif" , "tt_corm35.gif" , "tt_corm32.gif" , "tt_corm28.gif" ,
+   "tt_corm24.gif" , "tt_corm20.gif" , "tt_corm16.gif" , "tt_corm12.gif" ,
+   "tt_corm08.gif" , "tt_corm04.gif" , "tt_corp00.gif" , "tt_corp04.gif" ,
+   "tt_corp08.gif" , "tt_corp12.gif" , "tt_corp16.gif" , "tt_corp20.gif" ,
+   "tt_corp24.gif" , "tt_corp28.gif" , "tt_corp32.gif" , "tt_corp35.gif" ,
+   "tt_corp40.gif" , "tt_corp45.gif" , "tt_corp50.gif" , "tt_corp55.gif" ,
+   "tt_corp60.gif" , "tt_corp65.gif"
+} ;
+
+#define SAGITTAL_NUM 18
+static float sagittal_xx[] = {
+   0, 3, 5, 9, 13, 17, 21, 25, 29, 33 ,
+   37, 41, 43, 47, 51, 55, 59, 61
+} ;
+static char * sagittal_ff[] = {
+   "tt_sag00g.gif", "tt_sag03.gif" , "tt_sag05.gif" , "tt_sag09.gif" ,
+   "tt_sag13.gif" , "tt_sag17.gif" , "tt_sag21.gif" , "tt_sag25.gif" ,
+   "tt_sag29.gif" , "tt_sag33.gif" , "tt_sag37.gif" , "tt_sag41.gif" ,
+   "tt_sag43.gif" , "tt_sag47.gif" , "tt_sag51.gif" , "tt_sag55.gif" ,
+   "tt_sag59.gif" , "tt_sag61.gif"
+} ;
+
+#define AXIAL_NUM 27
+static float axial_zz[] = {
+   -40 , -36 , -32 , -28 , -24 , -20 , -16 , -12 , -8 , -4 ,
+   -1 , 1 , 4 , 8 , 12 , 16 , 20 , 24 , 28 , 32 , 35 ,
+   40 , 45 , 50 , 55 , 60 , 65
+} ;
+static char * axial_ff[] = {
+   "tt_horm40.gif" , "tt_horm36.gif" , "tt_horm32.gif" , "tt_horm28.gif" ,
+   "tt_horm24.gif" , "tt_horm20.gif" , "tt_horm16.gif" , "tt_horm12.gif" ,
+   "tt_horm08.gif" , "tt_horm04.gif" , "tt_horm01.gif" , "tt_horp01.gif" ,
+   "tt_horp04.gif" , "tt_horp08.gif" , "tt_horp12.gif" , "tt_horp16.gif" ,
+   "tt_horp20.gif" , "tt_horp24.gif" , "tt_horp28.gif" , "tt_horp32.gif" ,
+   "tt_horp35.gif" , "tt_horp40.gif" , "tt_horp45.gif" , "tt_horp50.gif" ,
+   "tt_horp55.gif" , "tt_horp60.gif" , "tt_horp65.gif"
+} ;
+
+#define TTAHOME "http://varda.biophysics.mcw.edu/~cox/TTA/"
+
+void handle_tta( float xx , float yy , float zz )
+{
+   char * tname ;
+   int ii,jj,kk , qqq ;
+   static int ii_old=-1 , jj_old=-1 , kk_old=-1 ;
+   FILE * fp ;
+   static char nbuf[444] ;
+   static char * ttahome ;
+
+   /* create temporary URL */
+
+   if( url == NULL ){
+      tname = tempnam(NULL,"tta") ;
+      url   = (char *) malloc(strlen(tname)+16) ;
+      uff   = url + 5 ;
+      strcpy(url,"file:") ; strcat(url,tname) ; strcat(url,".html") ;
+      free(tname) ;
+      sprintf(nbuf,"netscape -remote 'openURL(%s)'" , url ) ;
+      fprintf(stderr,"Temporary URL file is %s\n",uff) ;
+
+      ttahome = getenv( "AFNI_TTAPATH" ) ;
+      if( ttahome == NULL ) ttahome = TTAHOME ;
+   }
+
+   /* find sagittal image */
+
+   xx = fabs(xx) ;
+   if( xx <= sagittal_xx[0] ){
+      ii = 0 ;
+   } else if( xx >= sagittal_xx[SAGITTAL_NUM-1] ){
+      ii = SAGITTAL_NUM - 1 ;
+   } else {
+      for( ii=1 ; ii < SAGITTAL_NUM && xx > sagittal_xx[ii] ; ii++ ) ; /* nada */
+      if( fabs(xx-sagittal_xx[ii-1]) < fabs(xx-sagittal_xx[ii]) ) ii-- ;
+   }
+
+   /* find coronal image */
+
+   if( yy <= coronal_yy[0] ){
+      jj = 0 ;
+   } else if( yy >= coronal_yy[CORONAL_NUM-1] ){
+      jj = CORONAL_NUM - 1 ;
+   } else {
+      for( jj=1 ; jj < CORONAL_NUM && yy > coronal_yy[jj] ; jj++ ) ; /* nada */
+      if( fabs(yy-coronal_yy[jj-1]) < fabs(yy-coronal_yy[jj]) ) jj-- ;
+   }
+
+   /* find axial image */
+
+   if( zz <= axial_zz[0] ){
+      kk = 0 ;
+   } else if( zz >= axial_zz[AXIAL_NUM-1] ){
+      kk = AXIAL_NUM - 1 ;
+   } else {
+      for( kk=1 ; kk < AXIAL_NUM && zz > axial_zz[kk] ; kk++ ) ; /* nada */
+      if( fabs(zz-axial_zz[kk-1]) < fabs(zz-axial_zz[kk]) ) kk-- ;
+   }
+
+   if( ii == ii_old && jj == jj_old && kk == kk_old ) return ;
+
+   /* write out url file */
+
+   fp = fopen( uff , "w" ) ;
+   if( fp == NULL ){ fprintf(stderr,"Can't write URL file\n") ; return ; }
+
+   fprintf(fp , "<HEAD>\n"
+                "<title>T-T Atlas Pages</title>\n"
+                "</HEAD>\n"
+                "<BODY>\n"
+                "<img align=middle src=\"%s%s\"><p>\n"
+                "<img align=middle src=\"%s%s\"><p>\n"
+                "<img align=middle src=\"%s%s\"><p>\n"
+                "</BODY>\n" ,
+           ttahome , axial_ff[kk] ,
+           ttahome , coronal_ff[jj] ,
+           ttahome , sagittal_ff[ii] ) ;
+
+   fclose(fp) ;
+
+   if( afni_verbose )
+      fprintf(stderr,"Axial=%s  Coronal=%s  Sagittal=%s\n",
+              axial_ff[kk] , coronal_ff[jj] , sagittal_ff[ii] ) ;
+
+   /* send message to Netscape */
+
+   qqq = system(nbuf) ;
+   if( qqq != 0 )
+      fprintf(stderr,"Can't send command to Netscape - is it running?\n") ;
+
+   ii_old = ii ; jj_old = jj ; kk_old = kk ;
+   return ;
 }

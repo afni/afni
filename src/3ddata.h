@@ -2065,6 +2065,9 @@ extern void THD_set_write_compression( int mm ) ;
 extern int THD_enviro_write_compression(void) ;
 extern int THD_get_write_compression(void) ;
 
+extern int TRUST_host(char *) ;
+#define OKHOST(hh) TRUST_host(hh) ;
+
 extern Boolean THD_load_datablock ( THD_datablock * , generic_func * ) ;
 extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;

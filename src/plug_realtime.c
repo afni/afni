@@ -1,5 +1,4 @@
 #include "afni.h"
-#include "trusted_hosts.h"
 
 #define TCP_CONTROL "tcp:*:7954"      /* control channel specification */
 #define INFO_SIZE  (16*1024)          /* change this ==> change SHM_CHILD below */
@@ -339,7 +338,7 @@ int RT_check_listen(void)
 **/
       }
 
-      if( ! OKHOST(ioc_control->name) ){
+      if( ! TRUST_host(ioc_control->name) ){
          fprintf(stderr,"RT: illegal host connection!\a\n") ;
          IOCHAN_CLOSE(ioc_control) ;
          return 0 ;
