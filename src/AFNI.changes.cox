@@ -5243,5 +5243,5 @@
  * Modified niml/niml_rowtype.c to auto-define VEC_basictype_len types
      when first referenced.
 
-02 Nov 2004
+03 Nov 2004
  * Some changes to 3dAnhist.c for Lukas and Katie.
