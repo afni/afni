@@ -252,9 +252,9 @@ libgts.a:
 	  $(RANLIB) src/.libs/$@ ;	\
 	  $(CP) -p src/.libs/$@ .. ; )
 
-AddGTS:
+AddGTS: ${SUMA_GTS_OBJS}
 	( echo "Adding SUMA's GTS functions to libSUMA.a";	\
-	  ar q libSUMA.a ${SUMA_GTS_OBJS} ; \
+     ar q libSUMA.a ${SUMA_GTS_OBJS} ; \
 	  $(RANLIB) ${SUMALIB} ;  )
 
 libglut.a:
