@@ -2138,3 +2138,9 @@
 12 May 2000
  * Incorporated NLfim changes from Doug Ward, to include calculation
      of R**2, per my request.
+
+18 May 2000
+ * Add plug_second_dataset.c and code in afni_graph.c to use it - a
+     "1D function" that returns the time series from another dataset,
+     for example to plot the -snfit output of 3dNLfim on top of the
+     original dataset.

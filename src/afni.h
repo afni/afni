@@ -122,12 +122,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.26b"
+#define VERSION "2.26c"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "09 May 2000      "
+#define RELEASE "18 May 2000      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -1300,6 +1300,10 @@ extern void AFNI_register_nD_function( int , char * , generic_func * , int ) ;
 
 #define AFNI_register_1D_funcstr(cc,ff)  \
    AFNI_register_nD_function(1,(cc),(ff),RETURNS_STRING)
+
+extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
+extern int  AFNI_needs_dset_ijk(void) ;
+extern int  AFNI_needs_dset_tin(void) ;
 
 /*-----------------------------------------------------------*/
 /*-----------------  initializations  -----------------------*/

@@ -45,16 +45,16 @@ PLUGIN_interface * PLUGIN_init(int ncall)
    /*-- second line of input --*/
 
    PLUTO_add_option( plint , "a Params" , "Params" , TRUE ) ;
-   PLUTO_add_number( plint , "a bot" , 2,50,1 ,  5 , 1 ) ;
-   PLUTO_add_number( plint , "a top" , 2,50,1 , 20 , 1 ) ;
+   PLUTO_add_number( plint , "a bot" , 2,50 ,1 ,  5 , 1 ) ;
+   PLUTO_add_number( plint , "a top" , 2,500,1 , 20 , 1 ) ;
 
    PLUTO_add_option( plint , "b Params" , "Params" , TRUE ) ;
-   PLUTO_add_number( plint , "b bot" , 10,400,0 ,  10 , 1 ) ;
-   PLUTO_add_number( plint , "b top" , 10,999,0 , 200 , 1 ) ;
+   PLUTO_add_number( plint , "b bot" , 10,400 ,0 ,  10 , 1 ) ;
+   PLUTO_add_number( plint , "b top" , 10,9999,0 , 200 , 1 ) ;
 
    PLUTO_add_option( plint , "Misc" , "Params" , TRUE ) ;
    PLUTO_add_number( plint , "N ran" , 10,1000,-2 , 100 , 1 ) ;
-   PLUTO_add_number( plint , "% cut" , 20,99,0 , 70,1 ) ;
+   PLUTO_add_number( plint , "% cut" , 2,9,-1 , 7,1 ) ;
    PLUTO_add_string( plint , "HSqrt"  , NYESNO , YESNO_strings , 0 ) ;
 
    /*-- (optional) line of input --*/
@@ -92,7 +92,7 @@ PLUGIN_interface * PLUGIN_init(int ncall)
      bi7[4] = d(bi7[1])/db = (I11*I00-I10*I01)/I00**2
      bi7[5] = d(bi7[2])/da = (I11*I00-I10*I01)/I00**2
      bi7[6] = d(bi7[2])/db = (I02*I00-I01**2)/I00**2
-   The integrals are calculated by transforming to y=a*ln(xc/a), and
+   The integrals are calculated by transforming to y=a*ln(xc/x), and
    then using Gauss-Laguerre quadrature:
 
    Int( x**(a-1)*(1-x)**(b-1) * f(x) , x=0..xc )
@@ -116,7 +116,9 @@ static int bi7func( double a , double b , double xc , double * bi7 )
    register int ii ;
 
    if( a  <= 0.0 || b  <= 0.0 ||
-       xc <= 0.0 || xc >= 1.0 || bi7 == NULL ) return -1 ;
+       xc <= 0.0 || xc >= 1.0 || bi7 == NULL ) return -1 ;  /* sanity check */
+
+   /* initialize Laguerre integration table */
 
    if( yy == NULL ) get_laguerre_table( NL , &yy , &ww ) ;
 
@@ -146,7 +148,9 @@ static int bi7func( double a , double b , double xc , double * bi7 )
    return 0 ;
 }
 
-/*-----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------
+   Set the range of values to search for beta distribution fit
+------------------------------------------------------------------------*/
 
 #define LL   0.2
 #define UL   10000.0
@@ -166,6 +170,13 @@ static void betarange( double al,double au , double bl , double bu , int nran )
    if( nran > 1 ) NRAN = nran ;
 }
 
+/*--------------------------------------------------------------------
+   Solve the two equations
+     I10(a,b)/I00(a,b) = e0
+     I01(a,b)/I00(a,b) = e1
+   for (a,b), using 2D Newton's method.
+----------------------------------------------------------------------*/
+
 static int betasolve( double e0, double e1, double xc, double * ap, double * bp )
 {
    double bi7[7] , aa,bb , da,db , m11,m12,m21,m22 , r1,r2 , dd,ee ;
@@ -174,6 +185,8 @@ static int betasolve( double e0, double e1, double xc, double * ap, double * bp 
    if( ap == NULL || bp == NULL ||
        xc <= 0.0  || xc >= 1.0  || e0 >= 0.0 || e1 >= 0.0 ) return -1 ;
 
+   /* randomly search for a good starting point */
+
    dd = 1.e+20 ; aa = bb = 0.0 ;
    for( jj=0 ; jj < NRAN ; jj++ ){
       da = AL +(AU-AL) * drand48() ;
@@ -181,7 +194,7 @@ static int betasolve( double e0, double e1, double xc, double * ap, double * bp 
       ii = bi7func( da , db , xc , bi7 ) ; if( ii ) continue ;
       r1 = bi7[1] - e0 ; r2 = bi7[2] - e1 ;
       ee = fabs(r1/e0) + fabs(r2/e1) ;
-      if( ee < dd ){ aa=da ; bb=db ; dd=ee ; }
+      if( ee < dd ){ aa=da ; bb=db ; dd=ee ; /*if(ee<0.05)break;*/ }
    }
    if( aa == 0.0 || bb == 0.0 ) return -1 ;
 #if 0
@@ -221,7 +234,9 @@ char * BFIT_main( PLUGIN_interface * plint )
    int nvals,ival , nran,nvox , nbin , miv , sqr,sqt ;
    float abot,atop,bbot,btop,pcut , eps,eps1 ;
    float *bval , *cval ;
-   double e0,e1 , aa,bb,xc  ;
+   double e0,e1 , aa,bb,xc ;
+   double chq,ccc,cdf ;
+   int    ihqbot,ihqtop ;
 
    int mcount,mgood , ii , jj , ibot,itop ;
    float mask_bot=666.0 , mask_top=-666.0 , hbot,htop,dbin ;
@@ -409,10 +424,12 @@ char * BFIT_main( PLUGIN_interface * plint )
    }
    free(mmm) ;
 
+   /* correlation coefficients must be squared prior to betafit */
+
    if( sqr ){
       cval = (float *) malloc( sizeof(float) * mcount ) ;
       for( ii=0 ; ii < mcount ; ii++ ){
-         cval[ii] = bval[ii] ;
+         cval[ii] = bval[ii] ;                /* save cc values */
          bval[ii] = bval[ii]*bval[ii] ;
       }
       qsort_floatfloat( mcount , bval , cval ) ;
@@ -430,7 +447,11 @@ char * BFIT_main( PLUGIN_interface * plint )
       return "*** beta values < 0.0 exist! ***" ;
    }
 
-   for( ibot=0; ibot<mcount && bval[ibot]<=0.0; ibot++ ) ; /* find 1st bval > 0 */
+   /* find 1st bval > 0 [we don't use 0 values] */
+
+   for( ibot=0; ibot<mcount && bval[ibot]<=0.0; ibot++ ) ; /* nada */
+
+   /* now set the cutoff value (xc) */
 
    itop  = (int)( ibot + 0.01*pcut*(mcount-ibot) + 0.5 ) ;
    mgood = itop - ibot ;
@@ -445,18 +466,23 @@ char * BFIT_main( PLUGIN_interface * plint )
    fprintf(stderr,"+++ mcount=%d ibot=%d itop=%d xc=%g\n",mcount,ibot,itop,xc) ;
 #endif
 
+   /* compute the statistics of the values in (0,xc] */
+
    e0 = e1 = 0.0 ;
    for( ii=ibot ; ii < itop ; ii++ ){
      e0 += log(bval[ii]) ; e1 += log(1.0-bval[ii]) ;
    }
    e0 /= mgood ; e1 /= mgood ;
 
+   /* and solve for the best fit parameters (aa,bb) */
+
    betarange( abot , atop , bbot , btop ,  nran ) ;
    betasolve( e0,e1,xc , &aa,&bb );
 
    /*+++ At this point, could do some bootstrap to
-         estimate how good the estimates aa and bb are
-         --- this is work for when I return from NIH trip +++*/
+         estimate how good the estimates aa and bb are +++*/
+
+   /* estimate of outlier fraction */
 
    eps1 = mgood / ( (mcount-ibot)*(1.0-beta_t2p(xc,aa,bb)) ) ;
    eps  = 1.0-eps1 ;
@@ -466,15 +492,17 @@ char * BFIT_main( PLUGIN_interface * plint )
    if( eps1 > 1.0 ) eps1 = 1.0 ;
    eps1 = (mcount-ibot) * eps1 ;
 
-   /*-- do histogram --*/
+   /*-- compute and plot histogram --*/
+
+   /* original data was already squared (e.g., R**2 values) */
 
    if( !sqr ){
       hbot = 0.0 ; htop = 1.0 ; nbin = 200 ;
       if( bval[mcount-1] < 1.0 ) htop = bval[mcount-1] ;
       dbin = (htop-hbot)/nbin ;
 
-      hbin = (int *) calloc((nbin+1),sizeof(int)) ;
-      jbin = (int *) calloc((nbin+1),sizeof(int)) ;
+      hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
+      jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
 
       for( ii=0 ; ii < nbin ; ii++ ){  /* beta fit */
          jbin[ii] = (int)( eps1 * ( beta_t2p(hbot+ii*dbin,aa,bb)
@@ -487,6 +515,11 @@ char * BFIT_main( PLUGIN_interface * plint )
       mri_fix_data_pointer( bval+ibot , flim ) ;
       mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
 
+      ihqbot = 0 ;
+      ihqtop = rint( xc / dbin ) ;
+
+      /* "extra" histogram (nominal values?) */
+
       if( aext > 0.0 ){
          kbin = (int *) calloc((nbin+1),sizeof(int)) ;
          jist[1] = kbin ;
@@ -495,15 +528,17 @@ char * BFIT_main( PLUGIN_interface * plint )
                                       -beta_t2p(hbot+ii*dbin+dbin,aext,bext) ) ) ;
          }
       }
-   } else {
+
+   } else {   /* original data was not squared (e.g., correlations) */
+
       double hb,ht ;
       htop = 1.0 ; nbin = 200 ;
       if( bval[mcount-1] < 1.0 ) htop = sqrt(bval[mcount-1]) ;
       hbot = -htop ;
       dbin = (htop-hbot)/nbin ;
 
-      hbin = (int *) calloc((nbin+1),sizeof(int)) ;
-      jbin = (int *) calloc((nbin+1),sizeof(int)) ;
+      hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
+      jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
 
       for( ii=0 ; ii < nbin ; ii++ ){  /* beta fit */
          hb = hbot+ii*dbin ; ht = hb+dbin ;
@@ -515,9 +550,14 @@ char * BFIT_main( PLUGIN_interface * plint )
 
       jist[0] = jbin ;
 
+      ihqbot = rint( (-sqrt(xc) - hbot) / dbin ) ;
+      ihqtop = rint( ( sqrt(xc) - hbot) / dbin ) ;
+
       flim = mri_new_vol_empty( mcount-ibot,1,1 , MRI_float ) ;
       mri_fix_data_pointer( cval+ibot , flim ) ;
       mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
+
+      /* nominal fit */
 
       if( aext > 0.0 ){
          kbin = (int *) calloc((nbin+1),sizeof(int)) ;
@@ -535,6 +575,21 @@ char * BFIT_main( PLUGIN_interface * plint )
    sprintf(buf,"%s[%d] a=%.2f b=%.2f \\epsilon=%.2f %%=%.0f",
            DSET_FILECODE(input_dset),ival,aa,bb,eps,pcut ) ;
 
+   /* compute upper-tail probability of chi-square */
+
+   chq = cdf = 0.0 ;
+   for( ii=ihqbot ; ii <= ihqtop ; ii++ ){
+      ccc = jbin[ii] ;
+      if( ccc > 1.0 ){
+         chq += SQR(hbin[ii]-ccc) / ccc ;
+         cdf++ ;
+      }
+   }
+   cdf -= 3.0 ;
+   ccc = chisq_t2p( chq , cdf ) ;
+
+   /* blow up histogram details by sqrt-ing, if ordered */
+
    if( sqt ){
       for( ii=0 ; ii < nbin ; ii++ ){
          hbin[ii] = (int) sqrt( (double)(100*hbin[ii]+0.5) ) ;
@@ -544,10 +599,19 @@ char * BFIT_main( PLUGIN_interface * plint )
       }
    }
 
-   sprintf(tbuf,"Betafit: cutoff=%.2f", (sqr)?sqrt(xc):xc ) ;
+   /* and plot */
+
+   sprintf(tbuf,"Betafit: cutoff=%.2f nvox=%d q(\\chi^2)=%8.2e",
+           (sqr)?sqrt(xc):xc , mcount , ccc ) ;
+   if( sqt ){
+      ii = strlen(tbuf) ;
+      sprintf( tbuf+ii , " \\surd ogram" ) ;
+   }
 
    PLUTO_histoplot( nbin,hbot,htop,hbin ,
                     tbuf,NULL,buf , (kbin==NULL)?1:2 , jist ) ;
+
+   /* cleanup */
 
    mri_clear_data_pointer(flim) ; mri_free(flim) ;
    free(bval) ; free(hbin) ; free(jbin) ;

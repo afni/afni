@@ -75,7 +75,8 @@ typedef struct {                 /* for "registered" functions */
    int *   func_code ;
 } MCW_function_list ;
 
-#define RETURNS_STRING   1
+#define RETURNS_STRING   1   /* possible flags bit settings */
+#define NEEDS_DSET_INDEX 2
 
 #define FUNC_0D   0   /* possible values of func_code */
 #define FUNC_1D   1

@@ -92,8 +92,12 @@ static MCW_idcode         dset_idc ; /* 31 Mar 1999     */
 
 static int editor_open  = 0 ;
 
-#define NUM_DH 9
+#define NUM_DH 10
 static char * default_history[NUM_DH] = {
+
+   "The mind is its own place, and in itself\n"
+   "Can make a Heaven of Hell, a Hell of Heaven.\n"
+   "-- John Milton (Paradise Lost)\n" ,
 
    "Those who cannot remember the past are condemned to repeat it.\n"
    "-- George Santayana" ,

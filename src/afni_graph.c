@@ -1292,6 +1292,21 @@ STATUS("about to perform 0D transformation") ;
 
 STATUS("about to perform 1D transformation") ;
 
+            if( grapher->transform1D_flags & NEEDS_DSET_INDEX ){ /* 18 May 2000 */
+#ifdef BE_AFNI_AWARE
+               FD_brick * br = (FD_brick *) grapher->getaux ;
+               THD_ivec3 id ;
+               id = THD_fdind_to_3dind( br ,
+                                        TEMP_IVEC3(xtemp,ytemp,grapher->zpoint) );
+               AFNI_store_dset_index(
+                             id.ijk[0]
+                            +id.ijk[1] * br->nxyz.ijk[0]
+                            +id.ijk[2] * br->nxyz.ijk[0] * br->nxyz.ijk[1] , 0 ) ;
+#else
+               AFNI_store_dset_index(-1,0) ;
+#endif
+            }
+
             if( ! (grapher->transform1D_flags & RETURNS_STRING) ){
                grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
                                           MRI_FLOAT_PTR(qim) ) ;

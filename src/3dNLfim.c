@@ -52,6 +52,10 @@
              Also, added screen display of p-values.
    Date:     10 May 2000
 
+   Mod:      Corrected error in initializing of output data type (MRI_short)
+             in routine write_3dtime.
+   Date:     17 May 2000
+
 */
 
 
@@ -64,7 +68,7 @@
 
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "10 May 2000"               /* date of last program mod */
+#define PROGRAM_DATE "17 May 2000"               /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -2241,9 +2245,9 @@ void write_3dtime
 			    ADN_label1,      output_filename,
 			    ADN_self_name,   output_filename,
 			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,  
+			    ADN_datum_all,   MRI_short,   
 			    ADN_nvals,       ts_length,
 			    ADN_ntt,         ts_length,
-			    ADN_stat_aux,    fbuf,
 			    ADN_none);
  
   if( ierror > 0 ){
@@ -2291,7 +2295,7 @@ void write_3dtime
 
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
-  
+
 
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
