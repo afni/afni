@@ -14,7 +14,7 @@
 /***********************************************************************
   Plugin to extract 3D brick data 
 ************************************************************************/
-typedef struct extract_data
+typedef struct 
 	{
 		  int nxx;			/* number of voxels in the x direction */
 		  int nyy;			/* number of voxels in the y direction */
@@ -41,7 +41,7 @@ typedef struct extract_data
 		  FILE * outfile;
 		  FILE * outlogfile;
 		  char outname[PLUGIN_MAX_STRING_RANGE]; /* output data file name */
-	};
+	}extract_data;
 
 
 static char helpstring[] =
@@ -119,9 +119,9 @@ static int filexists (char *);
 
 static char * DUMP_main( PLUGIN_interface * ) ;
 
-static int Dumpit( struct extract_data* , THD_3dim_dataset * ) ;
+static int Dumpit( extract_data* , THD_3dim_dataset * ) ;
 
-static void write_ud (struct extract_data*);
+static void write_ud (extract_data*);
 
 static char **allocate2D (int rows,int cols,int element_size);
 
@@ -257,7 +257,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 static char * DUMP_main( PLUGIN_interface * plint )
 {
-   struct extract_data uda,*ud;
+   extract_data uda,*ud;
    MCW_idcode * idc ;
    THD_3dim_dataset * xset , * yset ;
    char * tag ;
@@ -487,7 +487,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 }
 
 
-static int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
+static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
 {
    void  *  xar  ;
    void  * thar ;
@@ -618,7 +618,7 @@ static int filexists (char *f_name)
 /* function to create log file       */
 /* ************************************************************ */ 
 
-void write_ud (struct extract_data* ud)
+void write_ud (extract_data* ud)
 	{
 		fprintf (ud->outlogfile,"\n\nUser Data Values \n");
 		fprintf (ud->outlogfile,"Input data set file name= %s\n",ud->dsetname);

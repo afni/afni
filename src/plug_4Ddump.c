@@ -48,7 +48,7 @@ typedef struct {
   Plugin to extract 3D+time time courses whos index or xyz corrdinates 
   match a certain criterion
 ************************************************************************/
-typedef struct extract_data
+typedef struct 
 	{
 		  int nxx;			/* number of voxels in the x direction */
 		  int nyy;			/* number of voxels in the y direction */
@@ -74,7 +74,7 @@ typedef struct extract_data
 		  FILE * outwritets;
 		  FILE * outlogfile;
 		  char outname[PLUGIN_MAX_STRING_RANGE]; /* output data file name */
-	};
+	}extract_data;
 
 /*--------------------- string to 'help' the user --------------------*/
 
@@ -152,15 +152,15 @@ static void EXTRACT_tsfunc( double T0 , double TR ,
                             int npts , float ts[] , double ts_mean , double ts_slope ,
                             void * udp) ;
 
-static void show_ud (struct extract_data* ud);
+static void show_ud (extract_data* ud);
 
-static void write_ud (struct extract_data* ud);
+static void write_ud (extract_data* ud);
 
-static void indexTOxyz (struct extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos);
+static void indexTOxyz (extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos);
 
-static void error_report (struct extract_data* ud, int ncall );
+static void error_report (extract_data* ud, int ncall );
 
-static void writets (struct extract_data* ud,float * ts, int ncall);
+static void writets (extract_data* ud,float * ts, int ncall);
 
 static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int *Err);
 
@@ -340,7 +340,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 static char * EXTRACT_main( PLUGIN_interface * plint )
 {
-   struct extract_data uda,*ud;
+   extract_data uda,*ud;
    MRI_IMAGE * tsim;
    MCW_idcode * idc ;                          /* input dataset idcode */
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
@@ -576,13 +576,13 @@ static void EXTRACT_tsfunc( double T0 , double TR ,
                    void * udp)
 {
    static int nvox = -1, ncall = -1;
-	struct extract_data uda,*ud;
+	extract_data uda,*ud;
 	float xcor=0.0 ,  tmp=0.0 , tmp2 = 0.0 ,  dtx = 0.0 ,\
 			 slp = 0.0 , vts = 0.0 , vrvec = 0.0 , rxcorCoef = 0.0;
 	int i , is_ts_null , status , opt , actv , zpos , ypos , xpos , hit;
 	
 	ud = &uda;
-	ud = (struct extract_data *) udp;
+	ud = (extract_data *) udp;
 	
 	
    /** is this a "notification"? **/
@@ -658,7 +658,7 @@ static void EXTRACT_tsfunc( double T0 , double TR ,
 /* function to display user data input (debugging stuff)        */
 /* ************************************************************ */
 
-static void show_ud (struct extract_data* ud)
+static void show_ud (extract_data* ud)
 	{
 		printf ("\n\nUser Data Values at location :\n");
 		printf ("ud->dsetname= %s\n",ud->dsetname);
@@ -685,7 +685,7 @@ static void show_ud (struct extract_data* ud)
 /* function to write user data input to log file        */
 /* ************************************************************ */
 
-static void write_ud (struct extract_data* ud)
+static void write_ud (extract_data* ud)
 	{
 		fprintf (ud->outlogfile,"\n\nUser Data Values \n");
 		fprintf (ud->outlogfile,"ud->dsetname= %s\n",ud->dsetname);
@@ -722,7 +722,7 @@ static void write_ud (struct extract_data* ud)
 /* function to compute x, y, z coordinates from the index       */
 /* ************************************************************ */ 
 
-static void indexTOxyz (struct extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos)  	
+static void indexTOxyz (extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos)  	
 	{
 		*zpos = (int)ncall / (int)(ud->nxx*ud->nyy);
 		*ypos = (int)(ncall - *zpos * ud->nxx * ud->nyy) / (int)ud->nxx;
@@ -737,7 +737,7 @@ static void indexTOxyz (struct extract_data* ud, int ncall, int *xpos , int *ypo
 /* logged 																		 */
 /* ************************************************************ */
 
-void error_report (struct extract_data* ud, int ncall ) 
+void error_report (extract_data* ud, int ncall ) 
 	{
 		int xpos,ypos,zpos;
 		
@@ -758,7 +758,7 @@ void error_report (struct extract_data* ud, int ncall )
 /* function to write the time course into a line in the given file */
 /* *************************************************************** */
 
-void writets (struct extract_data * ud,float * ts, int ncall)
+void writets (extract_data * ud,float * ts, int ncall)
 
 	{	
 		int i,xpos,ypos,zpos;
