@@ -3297,7 +3297,8 @@ DPR("putting sized_xim to screen");
       }
       XClearWindow( seq->dc->display , XtWindow(seq->wimage) ) ;
       memplot_to_X11_sef( seq->dc->display ,
-                          XtWindow(seq->wimage) , mp , 0,0,1 ) ;
+                          XtWindow(seq->wimage) , mp ,
+                          0,0,MEMPLOT_FREE_ASPECT     ) ;
    }
 
    /*-- 26 Feb 2001: draw some line overlay, a la coxplot? --*/
@@ -3305,7 +3306,8 @@ DPR("putting sized_xim to screen");
 
    if( !seq->opt.no_overlay && seq->mplot != NULL )
       memplot_to_X11_sef( seq->dc->display ,
-                          XtWindow(seq->wimage) , seq->mplot , 0,0,1 ) ;
+                          XtWindow(seq->wimage) , seq->mplot ,
+                          0,0,MEMPLOT_FREE_ASPECT             ) ;
 
    seq->never_drawn = 0 ;
 
