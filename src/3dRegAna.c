@@ -33,6 +33,10 @@
   Mod:     Added changes for incorporating History notes.
   Date:    09 September 1999
 
+  Mod:     Replaced dataset input code with calls to THD_open_dataset,
+           to allow operator selection of individual sub-bricks for input.
+  Date:    03 December 1999
+
 */
 
 /*****************************************************************************
@@ -44,7 +48,7 @@
 
 #define PROGRAM_NAME "3dRegAna"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "09 September 1999"         /* date of last program mod */
+#define PROGRAM_DATE "03 December 1999"          /* date of last program mod */
 #define SUFFIX ".3dregana"                     /* suffix for temporary files */
 
 #include <stdio.h>
@@ -228,7 +232,17 @@ void display_help_menu()
      "[-brick m fstat label]     F-stat for significance of regression      \n"
      "[-brick m rstat label]     coefficient of multiple determination R^2  \n"
      "[-brick m tstat k label]   t-stat for kth regression coefficient      \n"
-      );
+     "\n" );
+
+  printf
+    (
+     "\n"
+     "N.B.: For this program, the user must specify 1 and only 1 sub-brick  \n"
+     "      with each -xydata command. That is, if an input dataset contains\n"
+     "      more than 1 sub-brick, a sub-brick selector must be used, e.g.: \n"
+     "      -xydata 2.17 4.59 7.18  'fred+orig[3]'                          \n"
+     );
+	  
   
   exit(0);
 }
@@ -239,19 +253,21 @@ void display_help_menu()
 /** macro to open a dataset and make it ready for processing **/
 
 #define DOPEN(ds,name)                                                        \
-do{ int pv ; (ds) = THD_open_one_dataset((name)) ;                         \
+do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
        if( !ISVALID_3DIM_DATASET((ds)) ){                                     \
           fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; } \
-       if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ){   \
+       if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny ||                    \
+	   (ds)->daxes->nzz!=nz ){                                            \
           fprintf(stderr,"*** Axes mismatch: %s\n",(name)) ; exit(1) ; }      \
-       if( DSET_NUM_TIMES((ds)) > 1 ){                                        \
-         fprintf(stderr,"*** Can't use time-dependent data: %s\n",(name));exit(1); } \
+       if( DSET_NVALS((ds)) != 1 ){                                           \
+         fprintf(stderr,"*** Must specify 1 sub-brick: %s\n",(name));exit(1);}\
        THD_load_datablock( (ds)->dblk , NULL ) ;                              \
        pv = DSET_PRINCIPAL_VALUE((ds)) ;                                      \
        if( DSET_ARRAY((ds),pv) == NULL ){                                     \
           fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }   \
        if( DSET_BRICK_TYPE((ds),pv) == MRI_complex ){                         \
-          fprintf(stderr,"*** Can't use complex data: %s\n",(name)) ; exit(1); }     \
+          fprintf(stderr,"*** Can't use complex data: %s\n",(name)); exit(1); \
+       }                                                                      \
        break ; } while (0)
 
 
@@ -289,7 +305,7 @@ void get_dimensions
 
    /*----- read first dataset to get dimensions, etc. -----*/
 
-   dset = THD_open_one_dataset( option_data->first_dataset ) ;
+   dset = THD_open_dataset( option_data->first_dataset ) ;
    if( ! ISVALID_3DIM_DATASET(dset) ){
       fprintf(stderr,"*** Unable to open dataset file %s\n", 
               option_data->first_dataset);
@@ -1217,7 +1233,7 @@ void get_inputs
 	  }  
 	
 	/*--- check whether input files exist ---*/
-	dset = THD_open_one_dataset( argv[nopt] ) ;
+	dset = THD_open_dataset( argv[nopt] ) ;
 	if( ! ISVALID_3DIM_DATASET(dset) )
 	  {
 	    sprintf(message,"Unable to open dataset file %s\n", argv[nopt]);
@@ -1782,7 +1798,7 @@ void check_one_output_file
   
   
   /*----- read first dataset -----*/
-  dset = THD_open_one_dataset (option_data->first_dataset ) ;
+  dset = THD_open_dataset (option_data->first_dataset ) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
 	    option_data->first_dataset);
@@ -2527,7 +2543,7 @@ void write_afni_data
   nxyz = option_data->nxyz;
   
   /*----- read first dataset -----*/
-  dset = THD_open_one_dataset (option_data->first_dataset) ;
+  dset = THD_open_dataset (option_data->first_dataset) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
 	    option_data->first_dataset);    exit(1) ;
@@ -2724,7 +2740,7 @@ void write_bucket_data
 
  
   /*----- read first dataset -----*/
-  old_dset = THD_open_one_dataset (option_data->first_dataset) ;
+  old_dset = THD_open_dataset (option_data->first_dataset) ;
   
 
   /*-- make an empty copy of this dataset, for eventual output --*/

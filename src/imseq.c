@@ -5944,7 +5944,21 @@ void winsor21_box_func( int nx , int ny , double dx, double dy, float * ar )
    float aa[21] ;
    float * ajj , * ajm , * ajp , * ajmm , * ajpp ;
 
+   static int kbot=-1 , ktop ;
+
    if( nx < 5 || ny < 5 ) return ;
+
+   /** initialize cutoffs [07 Dec 1999] **/
+
+   if( kbot < 0 ){
+      char * ee = my_getenv("AFNI_WINSOR21_CUTOFF") ;
+      kbot = 6 ;   /* default */
+      if( ee != NULL ){
+         ii = strtol( ee , NULL , 10 ) ;
+         if( ii > 0 && ii < 10 ) kbot = ii ;
+      }
+      ktop = 20 - kbot ;
+   }
 
    /** make space and copy input into it **/
 
@@ -5982,8 +5996,8 @@ void winsor21_box_func( int nx , int ny , double dx, double dy, float * ar )
 
          isort_float( 21 , aa ) ;
 
-              if( ar[ii+joff] < aa[6]  ) ar[ii+joff] = aa[6]  ;
-         else if( ar[ii+joff] > aa[14] ) ar[ii+joff] = aa[14] ;
+              if( ar[ii+joff] < aa[kbot] ) ar[ii+joff] = aa[kbot] ;
+         else if( ar[ii+joff] > aa[ktop] ) ar[ii+joff] = aa[ktop] ;
       }
 
    }

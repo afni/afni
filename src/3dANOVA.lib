@@ -29,6 +29,10 @@
    Mod:     Added changes for incorporating History notes.
    Date:    09 September 1999
 
+   Mod:     Replaced dataset input code with calls to THD_open_dataset,
+            to allow operator selection of individual sub-bricks for input.
+   Date:    02 December 1999
+
 */
 
 /*****************************************************************************
@@ -302,7 +306,7 @@ void get_dimensions (anova_options * option_data)
 
    /*----- read first dataset to get dimensions, etc. -----*/
 
-   dset = THD_open_one_dataset( option_data->first_dataset ) ;
+   dset = THD_open_dataset( option_data->first_dataset ) ;
    if( ! ISVALID_3DIM_DATASET(dset) ){
       fprintf(stderr,"*** Unable to open dataset file %s\n", 
               option_data->first_dataset);
@@ -358,7 +362,7 @@ void check_one_output_file (anova_options * option_data, char * filename)
   
   
   /*----- read first dataset -----*/
-  dset = THD_open_one_dataset (option_data->first_dataset ) ;
+  dset = THD_open_dataset (option_data->first_dataset ) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
 	    option_data->first_dataset);
@@ -546,7 +550,7 @@ void write_afni_data (anova_options * option_data,  char * filename,
   nxyz = option_data->nxyz;
   
   /*----- read first dataset -----*/
-  dset = THD_open_one_dataset (option_data->first_dataset) ;
+  dset = THD_open_dataset (option_data->first_dataset) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
 	    option_data->first_dataset);

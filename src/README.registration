@@ -50,8 +50,10 @@ Medical College of Wisconsin
 
 The following words can be used as a concise description of the registration
 algorithm, if you need such a thing for a paper.  A paper on the algorithm
-has been accepted by Magnetic Resonance in Medicine; when it is published,
-then you could cite it -- Bob Cox, Oct 1999.
+has been published recently:
+     RW Cox and A Jesmanowicz.
+     Real-time 3D image registration for functional MRI.
+     Magnetic Resonance in Medicine, 42:1014-1018, 1999.
 -------------------------------------------------------------------------------
 The algorithm used for 3D volume registration is designed to be efficient
 at fixing motions of a few mm and rotations of a few degrees.  Using this

@@ -87,7 +87,7 @@ void Syntax(char * str)
     "                  filenames to match.  If the dataset filenames already\n"
     "                  exist in the '+code' view, then this option will fail.\n"
     "                  You will have to rename the dataset files before trying\n"
-    "                  to use '-view'.  If you copy the files and then use\n"
+    "                  to use '-view'.  If you COPY the files and then use\n"
     "                  '-view', don't forget to use '-newid' as well!\n"
     "\n"
     "  -byteorder bbb  Sets the byte order string in the header.\n"

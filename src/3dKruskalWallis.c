@@ -9,6 +9,11 @@
   Mod:     Added changes for incorporating History notes.
   Date:    08 September 1999
 
+  Mod:     Replaced dataset input code with calls to THD_open_dataset,
+           to allow operator selection of individual sub-bricks for input.
+  Date:    03 December 1999
+
+
 */
 
 
@@ -22,7 +27,7 @@
 
 #define PROGRAM_NAME "3dKruskalWallis"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "08 September 1999"         /* date of last program mod */
+#define PROGRAM_DATE "03 December 1999"          /* date of last program mod */
 
 #define MAX_TREATMENTS 100     /* max. number of treatments */
 #define MAX_OBSERVATIONS 100   /* max. number of observations per treatment */
@@ -70,30 +75,39 @@ typedef struct NP_options
 
 void display_help_menu()
 {
-   printf 
-      (
-       "This program performs nonparametric Kruskal-Wallis test for         \n"
-       "comparison of multiple treatments.                                \n\n"
-       "Usage:                                                              \n"
-       "3dKruskalWallis                                                     \n"
-       "-levels s                      s = number of treatments             \n"
-       "-dset 1 filename               data set for treatment #1            \n"
-       " . . .                           . . .                              \n"
-       "-dset 1 filename               data set for treatment #1            \n"
-       " . . .                           . . .                              \n"
-       "-dset s filename               data set for treatment #s            \n"
-       " . . .                           . . .                              \n"
-       "-dset s filename               data set for treatment #s            \n"
-       "                                                                    \n"
-       "[-workmem mega]                number of megabytes of RAM to use    \n"
-       "                                 for statistical workspace          \n"
-       "[-voxel num]                   screen output for voxel # num        \n"
-       "-out prefixnamename            Kruskal-Wallis statistics are written\n"
-       "                                 to file prefixname                 \n"
-
-      );
- 
-   exit(0);
+  printf 
+    (
+     "This program performs nonparametric Kruskal-Wallis test for         \n"
+     "comparison of multiple treatments.                                \n\n"
+     "Usage:                                                              \n"
+     "3dKruskalWallis                                                     \n"
+     "-levels s                      s = number of treatments             \n"
+     "-dset 1 filename               data set for treatment #1            \n"
+     " . . .                           . . .                              \n"
+     "-dset 1 filename               data set for treatment #1            \n"
+     " . . .                           . . .                              \n"
+     "-dset s filename               data set for treatment #s            \n"
+     " . . .                           . . .                              \n"
+     "-dset s filename               data set for treatment #s            \n"
+     "                                                                    \n"
+     "[-workmem mega]                number of megabytes of RAM to use    \n"
+     "                                 for statistical workspace          \n"
+     "[-voxel num]                   screen output for voxel # num        \n"
+     "-out prefixnamename            Kruskal-Wallis statistics are written\n"
+     "                                 to file prefixname                 \n"
+     "\n");
+  
+  
+  printf
+    (
+     "\n"
+     "N.B.: For this program, the user must specify 1 and only 1 sub-brick  \n"
+     "      with each -dset command. That is, if an input dataset contains  \n"
+     "      more than 1 sub-brick, a sub-brick selector must be used, e.g.: \n"
+     "      -dset 2 'fred+orig[3]'                                          \n"
+     );
+  
+  exit(0);
 }
 
 
@@ -249,12 +263,21 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  
 	  /*--- check whether input files exist ---*/
 	  nopt++;
-	  dset = THD_open_one_dataset( argv[nopt] ) ;
+	  dset = THD_open_dataset( argv[nopt] ) ;
 	  if( ! ISVALID_3DIM_DATASET(dset) )
 	    {
 	     sprintf(message,"Unable to open dataset file %s\n", argv[nopt]);
 	     NP_error (message);
 	    }
+
+	  /*--- check number of selected sub-bricks ---*/
+	  if (DSET_NVALS(dset) != 1)
+	    {
+	      sprintf(message,"Must specify exactly 1 sub-brick for file %s\n",
+		      argv[nopt]);
+	      NP_error (message);
+	    }
+
 	  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 	  
 	  option_data->xname[ival-1][nijk-1] 

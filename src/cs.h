@@ -20,6 +20,10 @@ extern void qsort_floatint ( int , float *  , int * ) ;
 extern void qsort_doubleint( int , double * , int * ) ;
 extern void qsort_intint   ( int , int *    , int * ) ;
 
+/***** Quicksort-ish median *****/
+
+extern float qmed_float( int , float * ) ;
+
 /***** Eigensolutions *****/
 
 extern void symeig_double( int , double * , double * ) ;

@@ -31,7 +31,7 @@ static int   UC_mtail = 2 ;
 
 void UC_syntax(char * msg) ;
 
-#include "uuu2.c"
+#include "uuu3.c"
 
 #include "graph_compon.c"
 

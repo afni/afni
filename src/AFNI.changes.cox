@@ -1887,3 +1887,10 @@
  * Disable "sides" labels if an environment variable is present.
  * Incorporate "-quiet" options in 3dclust.c and 3dROIstats.c from
      Mike Beauchamp.
+ * Incorporate sub-dataset selection for various statistical programs
+     from Doug Ward.
+
+07 Dec 1999
+ * Added program 3drename.c, to rename dataset .HEAD and .BRIK files
+     at the same time.
+ * Added environment variable to control Winsor21 function in imseq.c.

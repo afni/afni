@@ -9,6 +9,11 @@
   Mod:     Added changes for incorporating History notes.
   Date:    08 September 1999
 
+  Mod:     Replaced dataset input code with calls to THD_open_dataset,
+           to allow operator selection of individual sub-bricks for input.
+  Date:    03 December 1999
+
+
 */
 
 
@@ -43,7 +48,7 @@ void get_dimensions (NP_options * option_data)
 
    /*----- read first dataset to get dimensions, etc. -----*/
 
-   dset = THD_open_one_dataset( option_data->first_dataset ) ;
+   dset = THD_open_dataset( option_data->first_dataset ) ;
    if( ! ISVALID_3DIM_DATASET(dset) ){
       fprintf(stderr,"*** Unable to open dataset file %s\n", 
               option_data->first_dataset);
@@ -74,7 +79,7 @@ void check_one_output_file (NP_options * option_data, char * filename)
   
   
   /*----- read first dataset -----*/
-  dset = THD_open_one_dataset (option_data->first_dataset ) ;
+  dset = THD_open_dataset (option_data->first_dataset ) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
 	    option_data->first_dataset);
@@ -119,19 +124,21 @@ void check_one_output_file (NP_options * option_data, char * filename)
 /** macro to open a dataset and make it ready for processing **/
 
 #define DOPEN(ds,name)                                                        \
-do{ int pv ; (ds) = THD_open_one_dataset((name)) ;                         \
+do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
        if( !ISVALID_3DIM_DATASET((ds)) ){                                     \
           fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; } \
-       if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ){   \
+       if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny ||                    \
+	   (ds)->daxes->nzz!=nz ){                                            \
           fprintf(stderr,"*** Axes mismatch: %s\n",(name)) ; exit(1) ; }      \
-       if( DSET_NUM_TIMES((ds)) > 1 ){                                        \
-         fprintf(stderr,"*** Can't use time-dependent data: %s\n",(name));exit(1); } \
+       if( DSET_NVALS((ds)) != 1 ){                                           \
+         fprintf(stderr,"*** Must specify 1 sub-brick: %s\n",(name));exit(1);}\
        THD_load_datablock( (ds)->dblk , NULL ) ;                              \
        pv = DSET_PRINCIPAL_VALUE((ds)) ;                                      \
        if( DSET_ARRAY((ds),pv) == NULL ){                                     \
           fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }   \
        if( DSET_BRICK_TYPE((ds),pv) == MRI_complex ){                         \
-          fprintf(stderr,"*** Can't use complex data: %s\n",(name)) ; exit(1); }     \
+          fprintf(stderr,"*** Can't use complex data: %s\n",(name)) ; exit(1);\
+       }                                                                      \
        break ; } while (0)
 
 
@@ -427,7 +434,7 @@ void write_afni_fizt (int argc, char ** argv, NP_options * option_data,
   nxyz = option_data->nxyz;
   
   /*----- read first dataset -----*/
-  dset = THD_open_one_dataset (option_data->first_dataset) ;
+  dset = THD_open_dataset (option_data->first_dataset) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
 	    option_data->first_dataset);
@@ -573,7 +580,7 @@ void write_afni_fict (int argc, char ** argv, NP_options * option_data,
   nxyz = option_data->nxyz;
   
   /*----- read first dataset -----*/
-  dset = THD_open_one_dataset (option_data->first_dataset) ;
+  dset = THD_open_dataset (option_data->first_dataset) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
 	    option_data->first_dataset);

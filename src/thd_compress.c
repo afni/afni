@@ -126,7 +126,7 @@ int COMPRESS_fclose( FILE * fp )
 /*** return a malloc-ed filename string that has the
      correct compression suffix attached.
      If NULL is returned, the file doesn't exist.
-     The return string should be free-d after it is used. ***/
+     The return string should be free()-ed after it is used. ***/
 
 char * COMPRESS_filename( char * fname )
 {
@@ -136,10 +136,12 @@ char * COMPRESS_filename( char * fname )
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
 
    mm  = COMPRESS_filecode( fname ) ;  /* find compression mode */
-   ll  = strlen(fname) ;
-   buf = malloc( sizeof(char) * (ll+16) ) ;
+   if( mm == COMPRESS_NOFILE ) return NULL ;
 
-   if( mm == COMPRESS_NOFILE || mm == COMPRESS_NONE ){
+   ll  = strlen(fname) ;
+   buf = malloc( sizeof(char) * (ll+16) ) ;  /* worst case */
+
+   if( mm == COMPRESS_NONE ){
       strcpy(buf,fname) ;
    } else {
       if( ! COMPRESS_has_suffix(fname,mm) ){
@@ -264,7 +266,7 @@ FILE * COMPRESS_fopen_write( char * fname , int mm )
 int COMPRESS_unlink( char * fname )
 {
    char * fff = COMPRESS_filename(fname) ;
-   int     ii = unlink(fff) ;
-   if( fff != NULL ) free(fff) ;
+   int     ii = -1 ;
+   if( fff != NULL ){ ii=unlink(fff); free(fff); }
    return ii ;
 }

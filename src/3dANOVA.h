@@ -27,6 +27,10 @@
 
    Mod:     Added changes for incorporating History notes.
    Date:    09 September 1999
+
+   Mod:     Replaced dataset input code with calls to THD_open_dataset,
+            to allow operator selection of individual sub-bricks for input.
+   Date:    02 December 1999
 */
 
 
@@ -202,20 +206,22 @@ void initialize_options (anova_options * option_data);
 
 /** macro to open a dataset and make it ready for processing **/
 
-#define DOPEN(ds,name)                                                               \
-   do{ int pv ; (ds) = THD_open_one_dataset((name)) ;                                \
-       if( !ISVALID_3DIM_DATASET((ds)) ){                                            \
-          fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; }        \
-       if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ){   \
-          fprintf(stderr,"*** Axes mismatch: %s\n",(name)) ; exit(1) ; }             \
-       if( DSET_NUM_TIMES((ds)) > 1 ){                                               \
-         fprintf(stderr,"*** Can't use time-dependent data: %s\n",(name));exit(1); } \
-       THD_load_datablock( (ds)->dblk , NULL ) ;                                     \
-       pv = DSET_PRINCIPAL_VALUE((ds)) ;                                             \
-       if( DSET_ARRAY((ds),pv) == NULL ){                                            \
-          fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }          \
-       if( DSET_BRICK_TYPE((ds),pv) == MRI_complex ){                                \
-          fprintf(stderr,"*** Can't use complex data: %s\n",(name)) ; exit(1); }     \
+#define DOPEN(ds,name)                                                        \
+   do{ int pv ; (ds) = THD_open_dataset((name)) ;                             \
+       if( !ISVALID_3DIM_DATASET((ds)) ){                                     \
+          fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; } \
+       if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny ||                    \
+          (ds)->daxes->nzz!=nz ){                                             \
+          fprintf(stderr,"*** Axes mismatch: %s\n",(name)) ; exit(1) ; }      \
+       if( DSET_NVALS((ds)) != 1 ){                                           \
+         fprintf(stderr,"*** Must specify 1 sub-brick: %s\n",(name));exit(1);}\
+       THD_load_datablock( (ds)->dblk , NULL ) ;                              \
+       pv = DSET_PRINCIPAL_VALUE((ds)) ;                                      \
+       if( DSET_ARRAY((ds),pv) == NULL ){                                     \
+          fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }   \
+       if( DSET_BRICK_TYPE((ds),pv) == MRI_complex ){                         \
+          fprintf(stderr,"*** Can't use complex data: %s\n",(name)) ; exit(1);\
+       }                                                                      \
        break ; } while (0)
 
 

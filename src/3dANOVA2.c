@@ -37,6 +37,10 @@
    Mod:     Added changes for incorporating History notes.
    Date:    09 September 1999
 
+   Mod:     Replaced dataset input code with calls to THD_open_dataset,
+            to allow operator selection of individual sub-bricks for input.
+   Date:    03 December 1999
+
 */
 
 
@@ -48,7 +52,7 @@
 
 #define PROGRAM_NAME "3dANOVA2"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "09 September 1999"         /* date of last program mod */
+#define PROGRAM_DATE "03 December 1999"          /* date of last program mod */
 
 #define SUFFIX ".3danova2"                /* suffix for temporary data files */
 
@@ -121,7 +125,17 @@ void display_help_menu()
      "                           sub-bricks are obtained by concatenating   \n"
      "                           the above output files; the output 'bucket'\n"
      "                           is written to file with prefix file name   \n"
+     "\n");
+
+  printf
+    (
+     "\n"
+     "N.B.: For this program, the user must specify 1 and only 1 sub-brick  \n"
+     "      with each -dset command. That is, if an input dataset contains  \n"
+     "      more than 1 sub-brick, a sub-brick selector must be used, e.g.: \n"
+     "      -dset 2 4 'fred+orig[3]'                                        \n"
      );
+	  	  
   
   exit(0);
 }
@@ -296,13 +310,22 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  
 	  /*--- check whether input files exist ---*/
 	  nopt++;
-	  dset = THD_open_one_dataset( argv[nopt] ) ;
+	  dset = THD_open_dataset( argv[nopt] ) ;
 	  if( ! ISVALID_3DIM_DATASET(dset) )
 	    {
 	      sprintf(message,"Unable to open dataset file %s\n", 
 		      argv[nopt]);
 	      ANOVA_error (message);
 	    }
+
+	  /*--- check number of selected sub-bricks ---*/
+	  if (DSET_NVALS(dset) != 1)
+	    {
+	     sprintf(message,"Must specify exactly 1 sub-brick for file %s\n",
+ 		     argv[nopt]);
+	     ANOVA_error (message);
+	    }
+
 	  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 	  
 	  option_data->xname[ival-1][jval-1][0][nij-1] 
@@ -2872,7 +2895,7 @@ void create_bucket (anova_options * option_data)
 
 
   /*----- read first dataset -----*/
-  dset = THD_open_one_dataset (option_data->first_dataset) ;
+  dset = THD_open_dataset (option_data->first_dataset) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
 	    option_data->first_dataset);
@@ -3191,7 +3214,7 @@ void terminate (anova_options * option_data)
     {
 
       /*----- read first dataset -----*/
-      dset = THD_open_one_dataset (option_data->first_dataset) ;
+      dset = THD_open_dataset (option_data->first_dataset) ;
       if( ! ISVALID_3DIM_DATASET(dset) ){
 	fprintf(stderr,"*** Unable to open dataset file %s\n",
 		option_data->first_dataset);

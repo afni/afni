@@ -12,6 +12,11 @@
   Mod:     Added changes for incorporating History notes.
   Date:    08 September 1999
 
+  Mod:     Replaced dataset input code with calls to THD_open_dataset,
+           to allow operator selection of individual sub-bricks for input.
+  Date:    03 December 1999
+
+
 */
 
 
@@ -25,7 +30,7 @@
 
 #define PROGRAM_NAME "3dMannWhitney"                 /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "08 September 1999"         /* date of last program mod */
+#define PROGRAM_DATE "03 December 1999"          /* date of last program mod */
 
 #define MAX_OBSERVATIONS 100     /* max. number of observations per cell */
 #define MAX_NAME_LENGTH 80       /* max. strength length for file names */ 
@@ -72,28 +77,37 @@ typedef struct NP_options
 
 void display_help_menu()
 {
-   printf 
-      (
-       "This program performs nonparametric Mann-Whitney two-sample test. \n\n"
-       "Usage: \n"
-       "3dMannWhitney \n"
-       "-dset 1 filename               data set for X observations          \n"
-       " . . .                           . . .                              \n"
-       "-dset 1 filename               data set for X observations          \n"
-       "-dset 2 filename               data set for Y observations          \n"
-       " . . .                           . . .                              \n"
-       "-dset 2 filename               data set for Y observations          \n"
-       "                                                                    \n"
-       "[-workmem mega]                number of megabytes of RAM to use    \n"
-       "                                 for statistical workspace          \n"
-       "[-voxel num]                   screen output for voxel # num        \n"
-       "-out prefixname                estimated population delta and       \n"
-       "                                 Wilcoxon-Mann-Whitney statistics   \n"
-       "                                 written to file prefixname         \n"
-
-      );
+  printf 
+    (
+     "This program performs nonparametric Mann-Whitney two-sample test. \n\n"
+     "Usage: \n"
+     "3dMannWhitney \n"
+     "-dset 1 filename               data set for X observations          \n"
+     " . . .                           . . .                              \n"
+     "-dset 1 filename               data set for X observations          \n"
+     "-dset 2 filename               data set for Y observations          \n"
+     " . . .                           . . .                              \n"
+     "-dset 2 filename               data set for Y observations          \n"
+     "                                                                    \n"
+     "[-workmem mega]                number of megabytes of RAM to use    \n"
+     "                                 for statistical workspace          \n"
+     "[-voxel num]                   screen output for voxel # num        \n"
+     "-out prefixname                estimated population delta and       \n"
+     "                                 Wilcoxon-Mann-Whitney statistics   \n"
+     "                                 written to file prefixname         \n"
+     "\n");
+  
+  printf
+    (
+     "\n"
+     "N.B.: For this program, the user must specify 1 and only 1 sub-brick  \n"
+     "      with each -dset command. That is, if an input dataset contains  \n"
+     "      more than 1 sub-brick, a sub-brick selector must be used, e.g.: \n"
+     "      -dset 2 'fred+orig[3]'                                          \n"
+     );
+   
  
-   exit(0);
+  exit(0);
 }
 
 
@@ -239,12 +253,21 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  
 	  /*--- check whether input files exist ---*/
 	  nopt++;
-	  dset = THD_open_one_dataset( argv[nopt] ) ;
+	  dset = THD_open_dataset( argv[nopt] ) ;
 	  if( ! ISVALID_3DIM_DATASET(dset) )
 	    {
 	     sprintf(message,"Unable to open dataset file %s\n", argv[nopt]);
 	     NP_error (message);
 	    }
+
+	  /*--- check number of selected sub-bricks ---*/
+	  if (DSET_NVALS(dset) != 1)
+	    {
+	      sprintf(message,"Must specify exactly 1 sub-brick for file %s\n",
+		      argv[nopt]);
+	      NP_error (message);
+	    }
+
 	  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 	  
 	  option_data->xname[ival-1][nijk-1] 
