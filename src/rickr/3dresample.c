@@ -4,6 +4,8 @@
 
 #define MAIN
 
+#define VERSION "Version 1.0 <June 25, 2002>"
+
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
  *              an existing one 
@@ -18,6 +20,8 @@
  *    options:
  *		-help             : detailed program info
  *		-debug LEVEL      : spit out info
+ *		-version          : print version info
+ *
  *              -dxyz DX DY DZ    : resample to a new grid
  *					(DX, DY, DZ are real numbers in mm)
  *		-orient OR_CODE	  : reorient to new orientation code
@@ -41,6 +45,7 @@
 
 #define USE_LONG	1
 #define USE_SHORT	2
+#define USE_VERSION	3
 
 #define DELTA_MIN	 0.1
 #define DELTA_MAX	99.9
@@ -97,8 +102,6 @@ int main( int argc , char * argv[] )
 	return FAIL;
 
     return write_results( dout, &opts, argc, argv );
-
-    return 0;
 }
 
 
@@ -118,6 +121,11 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 	if ( ! strncmp(argv[ac], "-help", 2) )
 	{
 	    usage( argv[0], USE_LONG );
+	    return FAIL;
+	}
+	else if ( ! strncmp(argv[ac], "-version", 2) )
+	{
+	    usage( argv[0], USE_VERSION );
 	    return FAIL;
 	}
 	else if ( ! strncmp(argv[ac], "-debug", 6) )
@@ -444,6 +452,8 @@ int usage ( char * prog, int level )
 	    "          e.g.  -debug 1\n"
 	    "          default level is 0, max is 2\n"
 	    "\n"
+	    "    -version         : show version information\n"
+	    "\n"
 	    "    -dxyz DX DY DZ   : resample to new dx, dy and dz\n"
 	    "          e.g.  -dxyz 1.0 1.0 0.9\n"
 	    "          default is to leave unchanged\n"
@@ -496,10 +506,15 @@ int usage ( char * prog, int level )
 	    "    -inset IN_DSET   : required input dataset to reorient\n"
 	    "          e.g.  -inset old.dset+orig\n"
 	    "\n"
-	    "  Author: R. Reynolds - May 2002\n"
+	    "  Author: R. Reynolds - %s\n"
 	    "\n",
-	    prog, prog, prog, prog, prog, prog );
+	    prog, prog, prog, prog, prog, prog, VERSION );
 
+	return 0;
+    }
+    else if ( level == USE_VERSION )
+    {
+	printf( "%s %s, compile date: %s\n", prog, VERSION, __DATE__ );
 	return 0;
     }
 
