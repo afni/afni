@@ -1996,6 +1996,16 @@ the start of each run, and will be closed at the end.  A simple example of
 what to set this variable to is localhost:53214.  See 'serial_helper -help'
 for more details.
 
+-----------------------------
+Variable: AFNI_X11_REDECORATE (editable)
+-----------------------------
+By default, AFNI tries to change some of the "decorations" (control buttons)
+on some of the windows it creates (e.g., removing resize handles).  If you
+don't want this to happen, set this variable to NO.  This variable only
+has effect on windows created AFTER it is set, so if you change this
+interactively in the Edit Environment plugin, it will not affect existing
+windows.  Normally, you would want to set this in your .afnirc file.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
