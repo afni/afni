@@ -3458,3 +3458,4 @@
      directory twice, rather than the cheap (strstr) way done before.
      The old way caused problems when /usr/bin/ was ahead of /bin/,
      for example.
+ * Similar changes to NLfit_model.c, afni_plugin.c, and thd_get1D.c.

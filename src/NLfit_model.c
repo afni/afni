@@ -218,6 +218,7 @@ NLFIT_MODEL_array * NLFIT_get_many_MODELs(void)
    char ename[THD_MAX_NAME] , efake[]="/usr/local/lib/afni:./" ;
    NLFIT_MODEL_array * outar , * tmpar ;
    int epos , ll , ii , id ;
+   THD_string_array *qlist ;  /* 02 Feb 2002 */
 
    /*----- sanity checks -----*/
 
@@ -253,6 +254,8 @@ NLFIT_MODEL_array * NLFIT_get_many_MODELs(void)
      }
 
 
+   INIT_SARR(qlist) ; /* 02 Feb 2002: list of searched directories */
+
    /*----- extract blank delimited strings;
            use as directory names to get libraries -----*/
 
@@ -261,16 +264,17 @@ NLFIT_MODEL_array * NLFIT_get_many_MODELs(void)
 
    do{
       ii = sscanf( elocal+epos , "%s%n" , ename , &id ) ; /* next substring */
-      if( ii < 1 ) break ;                          /* none --> end of work */
-
-      /** check if ename occurs earlier in elocal **/
-
-      eee = strstr( elocal , ename ) ;
-      if( eee != NULL && (eee-elocal) < epos ){ epos += id ; continue ; }
-
+      if( ii < 1 || id < 1 ) break ;                     /* none --> end of work */
       epos += id ;                               /* char after last scanned */
 
-      ii = strlen(ename) ;                            /* make sure name has */
+      /* 02 Feb 2002: check if ename has already been checked */
+
+      for( ii=0 ; ii < qlist->num ; ii++ )
+         if( THD_equiv_file(qlist->ar[ii],ename) ) break ;
+      if( ii < qlist->num ) continue ;
+      ADDTO_SARR(qlist,ename) ;
+
+      ii = strlen(ename) ;                           /* make sure name has */
       if( ename[ii-1] != '/' ){                     /* a trailing '/' on it */
 	ename[ii]  = '/' ; ename[ii+1] = '\0' ; 
       }
@@ -294,6 +298,8 @@ NLFIT_MODEL_array * NLFIT_get_many_MODELs(void)
      }
 
    if( outar->num == 0 ) DESTROY_MODEL_ARRAY(outar) ;
+
+   DESTROY_SARR(qlist) ; /* 02 Feb 2002 */
    return (outar) ;
 }
 

@@ -651,6 +651,38 @@ int NI_type_size( int val )
    return 0 ;
 }
 
+/*----------------------------------------------------------------------*/
+/*! Return the size in bytes of one row in a data element. */
+
+int NI_element_rowsize( NI_element *nel )
+{
+   int ii , nb ;
+
+   if( nel == NULL                  ||
+       nel->type != NI_ELEMENT_TYPE ||
+       nel->vec_num < 1             ||
+       nel->vec_typ == NULL           ) return 0 ;  /* bad input */
+
+   for( ii=nb=0 ; ii < nel->vec_num ; ii++ )
+      nb += NI_type_size( nel->vec_typ[ii] ) ;
+
+   return nb ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Return the size of all the rows in a data element. */
+
+int NI_element_allsize( NI_element *nel )
+{
+   if( nel == NULL                  ||
+       nel->type != NI_ELEMENT_TYPE ||
+       nel->vec_num < 1             ||
+       nel->vec_len < 1             ||
+       nel->vec_typ == NULL           ) return 0 ;  /* bad input */
+
+   return (nel->vec_len * NI_element_rowsize(nel)) ;
+}
+
 /*************************************************************************/
 /********** Functions to create NIML data and group elements *************/
 /*************************************************************************/
@@ -1925,7 +1957,7 @@ Restart:                            /* loop back here to retry */
    else { /*---------------------- a data element -------------------*/
 
       NI_element *nel = make_empty_data_element( hs ) ;
-      int form , swap ;
+      int form , swap , nball ;
       destroy_header_stuff( hs ) ;
 
       if( nel == NULL          ||     /* nel == NULL should never happen. */
@@ -1960,9 +1992,12 @@ Restart:                            /* loop back here to retry */
          }
       }
 
-      /*-- Try to fill up the input buffer --*/
+      /*-- Determine if the buffer might already have enough data;
+           if it doesn't, try to read some more data right now.    --*/
 
-      (void) NI_stream_fillbuf( ns , 0 , 0 ) ;
+      nball = NI_element_allsize( nel ) ;
+
+      if( ns->nbuf < nball ) (void) NI_stream_fillbuf( ns , 0 , 0 ) ;
 
       /*-- Now must actually read data and put it somewhere (ugh). */
    }
