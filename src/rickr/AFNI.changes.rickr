@@ -471,4 +471,8 @@
   * modified plug_maxima.c
       - added ENTRY/RETURN calls
       - error: do not process last plane in find_local_maxima()
+      - allow any anat or func dataset of type short
+      - added a sub-brick selector
+      - note that dist and radius are in voxels
+      - output coordinates in RAI mm format
 

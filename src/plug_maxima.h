@@ -38,6 +38,7 @@ typedef struct
     short             * simage  [ R_MAX_AFNI_DSETS ];
     float               factor  [ R_MAX_AFNI_DSETS ];
     int                 subs    [ R_MAX_AFNI_DSETS ]; /* number of subbricks  */
+    int                 sub_brick;                    /* user chosen index    */
 
     int                 nx, ny, nz, nvox;
 
