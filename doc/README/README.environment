@@ -1628,10 +1628,34 @@ a single coherent volume, then they are NOT interleaved.  If the slices
 look like they make up 2 separate brain volumes, then they need to be
 un-interleaved, and you need to set this variable to YES.
 
+-----------------------------
+Variable: AFNI_TRY_DICOM_LAST
+-----------------------------
+When to3d tries to read an image file, it guesses the format from the
+filename.  However, this doesn't always work.  In particular, DICOM files
+don't have any fixed filename suffix or prefix.  If all else fails, to3d
+normally tries to read a file as a DICOM file, and as a last resort, as
+a flat binary file.  However, if a file is NOT a DICOM file, the DICOM
+reading function will print out a lot of error messages, since there is
+also no standard internal marker in all DICOM files that identify them.
+Most people don't like all these messages, even if the program then
+successfully reads their flat binary files.
+
+If this YES/NO variable is set to YES, then the normal last-resort order
+of reading described above is reversed.  If to3d can't read the file any
+other way, it will try it as a flat binary file.  If that fails, then
+DICOM will be the ultimate resort, instead of being the penultimate
+resort that it is by default.  This may help elide some error messages.
+However, if you have a DICOM file that is exactly 131072 bytes long
+(for example), then it will be interpreted as a headerless 256x256 image
+of shorts, instead of whatever it really is.  So only set this variable
+to YES if necessary!
+
 =========================================
 | Robert W Cox, PhD                     |
 | National Institute of Mental Health   |
 | National Institutes of Health         |
 | Department of Health & Human Services |
 | United States of America              |
+| Earth, United Federation of Planets   |
 =========================================
