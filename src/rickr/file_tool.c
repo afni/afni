@@ -1,6 +1,10 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 2.1  June 02, 2003
+ *   - changed format of call to ge4_read_header()
+ *   - made swap_[24]() static
+ *
  * 2.0  May 29, 2003
  *   - added information for ge4 study header
  *   - added option -ge4_study
@@ -23,6 +27,11 @@
 */
 /*----------------------------------------------------------------------
  * file_tool.c	- display or modify (binary?) info from files
+ *
+ * This is a pretty generic file processing tool, originally designed
+ * to display and modify data at random places in files, and also to
+ * deal with GEMS 5.x image files (e.g. being able to replace subject
+ * names with 'x's).
  *
  * options:
  *
@@ -85,7 +94,6 @@
  * todo:
  *
  * - add option '-help_ge4'
- * - add more ge4 output, and only display one variable per output line
  * ----------------------------------------------------------------------
 */
 
@@ -101,6 +109,9 @@
 #include "ge4_header.h"
 
 char g_rep_output_data[MAX_STR_LEN];	/* in case user doesn't pass it in */
+
+static int swap_2 ( void * ptr );
+static int swap_4 ( void * ptr );
 
 /*------------------------------------------------------------
  *  - check that the program is used correctly
@@ -165,7 +176,7 @@ process_ge4( char * filename, param_t * p )
     ge4_header H;
     int        rv;
 
-    rv = ge4_read_header( filename, &H );
+    rv = ge4_read_header( &H, filename, 0 );
 
     if ( rv != 0 )
     {
@@ -861,7 +872,7 @@ help_full( char * prog )
  * Reverse the order of the 4 bytes at this address.
  *------------------------------------------------------------
 */
-int
+static int
 swap_4( void * ptr )		/* destructive */
 {
    unsigned char * addr = ptr;
@@ -876,7 +887,7 @@ swap_4( void * ptr )		/* destructive */
  * Reverse the order of the 2 bytes at this address.
  *------------------------------------------------------------
 */
-int
+static int
 swap_2( void * ptr )		/* destructive */
 {
    unsigned char * addr = ptr;

@@ -17,6 +17,17 @@
  * ----------------------------------------------------------------------
 */
 
+/* ----------------------------------------------------------------------
+ * history:
+ *
+ * June 03, 2003
+ *   - added doxygen style header (for ge4_read_header())
+ *   - added get_image param to ge4_read_header()
+ *   - swap bytes in image
+ *   - added local static for swap_[24]()
+ * ----------------------------------------------------------------------
+*/
+
 #include <stdio.h>
 #include <string.h>
 
@@ -25,8 +36,11 @@
 
 /* comes from either Imon.o or libmri.a */
 extern unsigned long THD_filesize ( char * pathname );
-extern int swap_2( void * ptr );
-extern int swap_4( void * ptr );
+
+/* local protos */
+int swap_2      ( void * ptr );
+int swap_4      ( void * ptr );
+int swap_2_multi( void * ptr, int num_shorts );
 
 /* ---------------------------------------------------------------------- */
 /* series header value descriptions - for display */
@@ -44,16 +58,19 @@ static char * g_ge4_sl_orient[] = { "supine", "prone", "Lt", "Rt" };
 
 /* ---------------------------------------------------------------------- */
 
-/* ----------------------------------------------------------------------
- * Validate and read header data from a GEMS 4.x formatted file.
- * 
- * If H->image is non-NULL, fill with image data.
- *
- * return   0 : on success
- *        < 0 : on error
- * ----------------------------------------------------------------------
+/*!  Validate and read header data from a GEMS 4.x formatted file.
+
+  \param filename is the name of the file to try to read
+  
+  \param H is the address of a ge4_header struct to be initialized and filled
+
+  \param get_image specifies whether to allocate for and read in the image
+
+  \return   0 : on success
+          < 0 : on error
+
 */
-int ge4_read_header( char * filename, ge4_header * H )
+int ge4_read_header( ge4_header * H, char * filename, int get_image )
 {
     ge4_image_t  * ih;
     ge4_series_t * sh;
@@ -68,13 +85,14 @@ int ge4_read_header( char * filename, ge4_header * H )
 	return -1;
     }
 
-    memset( H, 0, sizeof(ge4_header) );
-
     file_len = THD_filesize( filename );
 
     /* file size must be fixed at 145408 bytes (142 KB) */
     if ( file_len != (GE4_HEADER_LENGTH + GE4_IMAGE_SIZE) )
 	return 1;
+
+    /* clear structure */
+    memset( H, 0, sizeof(ge4_header) );
 
     if ( (fp = fopen( filename, "r" )) == NULL )
     {
@@ -216,8 +234,15 @@ int ge4_read_header( char * filename, ge4_header * H )
     if ( ge4_validate_header( H ) )
 	return 1;
 
-    if ( H->image != NULL )	/* then read in the image */
+    if ( get_image )
     {
+	if ( (H->image = (short *)malloc( GE4_IMAGE_SIZE )) == NULL )
+	{
+	    fprintf( stderr, "** failed to allocate %d bytes for image\n",
+		     GE4_IMAGE_SIZE );
+	    return -1;
+	}
+
 	fseek( fp, GE4_HEADER_LENGTH, SEEK_SET );
 	rres = fread( H->image, GE4_IMAGE_SIZE, 1, fp );
 
@@ -225,8 +250,14 @@ int ge4_read_header( char * filename, ge4_header * H )
 	{
 	    fprintf( stderr, "** failed to read ge4 image for file '%s'\n",
 		     filename );
+	    free( H->image );
 	    return -1;
 	}
+
+	H->im_bytes = GE4_IMAGE_SIZE;          /* note it for "outsiders" */
+
+	if ( H->swap )
+	    swap_2_multi( H->image, GE4_IMAGE_SIZE/2 );
     }
 
     return 0;
@@ -259,6 +290,7 @@ int ge4_validate_header( ge4_header * h )
     im = &h->im_h;
 
     /* note that titles have already been validated */
+
     if ( (s->plane_type < 0) || (s->plane_type > 4) ||
 	 (s->im_mode    < 0) || (s->im_mode    > 4) ||
          (s->pulse_seq  < 0) || (s->pulse_seq  > 25) )
@@ -467,4 +499,33 @@ int swap_2_multi( void * ptr, int num_shorts )
 
     return 0;
 }
+
+
+/*------------------------------------------------------------
+ * Reverse the order of the 4 bytes at this address.
+ *------------------------------------------------------------
+*/
+static int swap_4( void * ptr )		/* destructive */
+{
+   unsigned char * addr = ptr;
+
+   addr[0] ^= addr[3]; addr[3] ^= addr[0]; addr[0] ^= addr[3];
+   addr[1] ^= addr[2]; addr[2] ^= addr[1]; addr[1] ^= addr[2];
+
+   return 0;
+}
+
+/*------------------------------------------------------------
+ * Reverse the order of the 2 bytes at this address.
+ *------------------------------------------------------------
+*/
+static int swap_2( void * ptr )		/* destructive */
+{
+   unsigned char * addr = ptr;
+
+   addr[0] ^= addr[1]; addr[1] ^= addr[0]; addr[0] ^= addr[1];
+
+   return 0;
+}
+
 

@@ -1,5 +1,5 @@
 
-#define VERSION		"1.31 - May 29, 2003"
+#define VERSION		"2.1 - June 03, 2003"
 #define MAX_STR_LEN	1024
 
 #define MOD_STRING         0
@@ -74,7 +74,6 @@ int  process_file      ( char * pathname, param_t * p );
 int  process_ge        ( char * pathname, param_t * p );
 int  process_ge4       ( char * pathname, param_t * p );
 int  set_params        ( param_t * p, int argc, char * argv[] );
-int  swap_4            ( void * ptr );
 
 int  help_full         ( char * prog );
 int  help_ge_structs   ( char * prog );

@@ -138,21 +138,21 @@ typedef struct
     ge4_series_t	ser_h;		/* series header data      */
     ge4_image_t 	im_h;		/* image header data       */
     short             * image;		/* image data, if non-NULL */
+    int                 im_bytes;	/* size of image, in bytes */
     int			swap;		/* was the data swapped?   */
 } ge4_header;
 
 
 /* global prototypes */
-int ge4_read_header		( char * filename, ge4_header * H );
-int idisp_ge4_image_header      ( char * info, ge4_image_t * im );
-int idisp_ge4_series_header     ( char * info, ge4_series_t * s );
-int idisp_ge4_study_header      ( char * info, ge4_study_t * st );
+int ge4_read_header	     ( ge4_header * H, char * filename, int get_image );
+int idisp_ge4_image_header   ( char * info, ge4_image_t * im );
+int idisp_ge4_series_header  ( char * info, ge4_series_t * s );
+int idisp_ge4_study_header   ( char * info, ge4_study_t * st );
 
 
-int ge4_swap_all_bytes		( ge4_header * h );
-int idisp_ge4_series_header	( char * info, ge4_series_t * s );
-int ge4_validate_header         ( ge4_header * h );
-
+int ge4_swap_all_bytes	     ( ge4_header * h );
+int idisp_ge4_series_header  ( char * info, ge4_series_t * s );
+int ge4_validate_header      ( ge4_header * h );
 
 /* ---------------------------------------------------------------------- */
 
