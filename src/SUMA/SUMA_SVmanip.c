@@ -1153,8 +1153,15 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       cf->ViewLocked[i] = NOPE;
    }
    
-   cf->SwapButtons_1_3 = SUMA_SWAP_BUTTONS_1_3;
-   
+   {
+      char *eee = getenv("SUMA_SwapButtons_1_3");
+      if (eee) {
+         if (strcmp (eee, "YES") == 0) cf->SwapButtons_1_3 = YUP;
+         else cf->SwapButtons_1_3 = NOPE;
+      } else {
+         cf->SwapButtons_1_3 = NOPE;
+      }
+   }
    cf->X = (SUMA_X_AllView *)malloc(sizeof(SUMA_X_AllView));
    if (!cf->X) {
      fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
