@@ -34,12 +34,17 @@ static char ns_name[NUM_NIML][64] ;
 
 static int started = 0 ;
 
+static int redisplay_key[MAX_CONTROLLERS] ;
+static int viewpoint_key[MAX_CONTROLLERS] ;
+
 /*---------------------*/
 /* Internal prototypes */
 
 static void    AFNI_niml_exit( void ) ;
 static Boolean AFNI_niml_workproc( XtPointer ) ;
 static void    AFNI_process_NIML_data( int , void * ) ;
+static void    AFNI_niml_redisplay_CB( int,int,void *,void * ) ;
+static void    AFNI_niml_viewpoint_CB( int,int,void *,void * ) ;
 
 /*-----------------------------------------------------------------------*/
 /*! Routine executed at AFNI exit: shutdown all open NI_stream.
@@ -68,9 +73,34 @@ ENTRY("AFNI_init_niml") ;
    PLUTO_register_workproc( AFNI_niml_workproc , NULL ) ;
    atexit( AFNI_niml_exit ) ;
 
+   /* initialize status and names of all listening NI_streams */
+
    for( cc=0 ; cc < NUM_NIML ; cc++ ) ns_listen[cc] = NULL ;
 
    sprintf(ns_name[0] , "tcp:host:%d" , SUMA_TCP_PORT ) ;
+
+   /* initialize all receive keys (cf. afni_receive.c) */
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+     redisplay_key[cc] = -1 ;
+     viewpoint_key[cc] = -1 ;
+   }
+
+   /* set up to receive notifications (callbacks)
+      when the functional overlay is redisplayed (controller A only) */
+
+   redisplay_key[0] = AFNI_receive_init( GLOBAL_library.controllers[0] ,
+                                         RECEIVE_FUNCDISPLAY_MASK ,
+                                         AFNI_niml_redisplay_CB ,
+                                         GLOBAL_library.controllers[0] ) ;
+
+   /* set up to receive notifications (callbacks)
+      when the viewpoint is altered by the user  (controller A only) */
+
+   viewpoint_key[0] = AFNI_receive_init( GLOBAL_library.controllers[0] ,
+                                         RECEIVE_VIEWPOINT_MASK ,
+                                         AFNI_niml_viewpoint_CB ,
+                                         GLOBAL_library.controllers[0] ) ;
 
    started = 1 ; EXRETURN ;
 }
@@ -113,14 +143,14 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
        ns_listen[cc] = NI_stream_open( ns_name[cc] , "r" ) ;
      }
 
-     /* check if stream has gone bad */
+     /* now check if stream has gone bad */
 
      nn = NI_stream_goodcheck( ns_listen[cc] , 1 ) ;
 
      if( nn < 0 ){                          /* is bad */
        NI_stream_close( ns_listen[cc] ) ;
-       ns_listen[cc] = NULL ;
-       continue ;              /* skip to next stream */
+       ns_listen[cc] = NULL ;  /* will reopen next time */
+       continue ;              /* skip to next stream  */
      }
 
      if( nn == 0 ) continue ;  /* waiting: skip to next stream */
@@ -130,21 +160,13 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 
      nn = NI_stream_readcheck( ns_listen[cc] , 1 ) ;
 
-     if( nn > 0 ){                                   /* has data */
-       int ct = NI_clock_time() ;
-fprintf(stderr,"NIML: reading data stream") ;
+     if( nn > 0 ){                                   /* has data!*/
+       nini = NI_read_element( ns_listen[cc] , 1 ) ; /* read it */
 
-       nini = NI_read_element( ns_listen[cc] , 1 ) ;  /* read it */
+       if( nini != NULL )                            /* handle it */
+         AFNI_process_NIML_data( cc , nini ) ;
 
-fprintf(stderr," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
-
-       if( nini != NULL )
-          AFNI_process_NIML_data( cc , nini ) ;
-
-       NI_free_element( nini ) ;
-
-fprintf(stderr,"processing time=%d ms\n",NI_clock_time()-ct) ;
-
+       NI_free_element( nini ) ;                     /* trash it */
      }
    }
 
@@ -160,6 +182,7 @@ static void AFNI_process_NIML_data( int chan , void *nini )
 {
    int tt = NI_element_type(nini) ;
    NI_element *nel ;
+   char msg[1024] ;
 
 ENTRY("AFNI_process_NIML_data") ;
 
@@ -182,15 +205,12 @@ ENTRY("AFNI_process_NIML_data") ;
 
    nel = (NI_element *) nini ;
 
-fprintf(stderr,"      name=%s vec_len=%d vec_filled=%d\n",nel->name,nel->vec_len,nel->vec_filled) ;
-
-   /*--- Surface nodes for a dataset ---*/
+   /******** Surface nodes for a dataset *********/
 
    if( strcmp(nel->name,"SUMA_ixyz") == 0 ){
      THD_3dim_dataset *dset ;
      SUMA_surface *ag ;
      int *ic ; float *xc,*yc,*zc ; char *idc ;
-     int ct ;
 
      /*-- check element for suitability --*/
 
@@ -200,7 +220,13 @@ fprintf(stderr,"      name=%s vec_len=%d vec_filled=%d\n",nel->name,nel->vec_len
          nel->vec_typ[0] != NI_INT   ||  /* must be int,float,float,float */
          nel->vec_typ[1] != NI_FLOAT ||
          nel->vec_typ[2] != NI_FLOAT ||
-         nel->vec_typ[3] != NI_FLOAT   ) EXRETURN ;
+         nel->vec_typ[3] != NI_FLOAT   ){
+
+       AFNI_popup_message( "*** ERROR:\n\n"
+                           " SUMA surface input\n"
+                           " is badly formatted! \n" ) ;
+       EXRETURN ;
+     }
 
      /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
           so that we can attach this surface to a dataset for display;
@@ -209,9 +235,21 @@ fprintf(stderr,"      name=%s vec_len=%d vec_filled=%d\n",nel->name,nel->vec_len
      idc = NI_get_attribute( nel , "volume_idcode" ) ;
      if( idc == NULL )
        idc = NI_get_attribute( nel , "dataset_idcode" ) ;
-     if( idc == NULL ) EXRETURN ;
+     if( idc == NULL ){
+        AFNI_popup_message( "***ERROR:\n "
+                            " SUMA surface input does \n"
+                            " not identify dataset!\n" ) ;
+        EXRETURN ;
+     }
      dset = PLUTO_find_dset_idc( idc ) ;
-     if( dset == NULL ) EXRETURN ;
+     if( dset == NULL ){
+        sprintf(msg, "***ERROR:\n\n"
+                     " SUMA surface dataset idcode is \n"
+                     "   %s\n"
+                     " Can't find this in AFNI\n", idc ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
 
      /*-- if the dataset already has a surface, trash it */
 
@@ -233,9 +271,6 @@ fprintf(stderr,"      name=%s vec_len=%d vec_filled=%d\n",nel->name,nel->vec_len
      dset->su_sname = strdup( "++LOCK++" ) ;
 
      /*-- initialize surface that we will fill up here */
-
-ct = NI_clock_time() ;
-fprintf(stderr,"      creating surface: %d nodes",nel->vec_filled) ;
 
      ag = SUMA_create_empty_surface() ;
 
@@ -265,33 +300,149 @@ fprintf(stderr,"      creating surface: %d nodes",nel->vec_filled) ;
 
      /*-- prepare the surface for AFNI --*/
 
-fprintf(stderr," time=%d ms\n",NI_clock_time()-ct); ct = NI_clock_time() ;
-fprintf(stderr,"      sorting surface") ;
-
      SUMA_ixyzsort_surface( ag ) ;
      dset->su_surf = ag ;
 
-fprintf(stderr," time=%d ms\n",NI_clock_time()-ct); ct = NI_clock_time() ;
-fprintf(stderr,"      vmapping surface") ;
-
      dset->su_vmap = SUMA_map_dset_to_surf( ag , dset ) ;
-
-fprintf(stderr," time=%d ms\n",NI_clock_time()-ct); ct = NI_clock_time() ;
-fprintf(stderr,"      vnlisting surface") ;
-
-     dset->su_vnlist = SUMA_make_vnlist( ag , dset ) ;
 
      /*-- we're done! --*/
 
+     sprintf(msg,"+++NOTICE:\n\n"
+                 " SUMA surface received:\n"
+                 "  %d nodes attached to \n"
+                 "  dataset %.222s \n" ,
+                 nel->vec_filled , DSET_FILECODE(dset) ) ;
+     AFNI_popup_message( msg ) ;
+
      PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
+     EXRETURN ;
+   }
 
-fprintf(stderr," time=%d ms\n",NI_clock_time()-ct); ct = NI_clock_time() ;
+   /********* new focus position **********/
 
+   if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0 ){
+     float *xyz ;
+
+     if( nel->vec_len    <  3        ||
+         nel->vec_filled <  3        ||
+         nel->vec_num    <  1        ||
+         nel->vec_typ[0] != NI_FLOAT   ){
+
+       AFNI_popup_message( "***ERROR:\n\n"
+                           " SUMA_crosshair_xyz input \n"
+                           " is badly formatted!\n" );
+       EXRETURN ;
+     }
+
+     xyz = (float *) nel->vec[0] ;
+     AFNI_jumpto_dicom( GLOBAL_library.controllers[0] ,
+                        xyz[0] , xyz[1] , xyz[2]       ) ;
      EXRETURN ;
    }
 
    /*** If here, then name of element didn't match anything ***/
 
-   fprintf(stderr,"++ Unknown NIML input: %s\n",nel->name) ;
+   sprintf(msg,"***ERROR:\n\n"
+               " Unknown NIML input: \n"
+               " %.900s \n",nel->name) ;
+   AFNI_popup_message(msg) ;
    EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Receives notice when user redisplays the functional overlay.
+----------------------------------------------------------------------*/
+
+#define SENDIT
+
+static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
+{
+   Three_D_View *im3d = (Three_D_View *) qqq ;
+   THD_3dim_dataset *adset , *fdset ;
+   SUMA_irgba *map ;
+   int        nmap ;
+   NI_element *nel ;
+
+ENTRY("AFNI_niml_redisplay_CB") ;
+
+   /* check inputs for reasonability */
+
+   if( !IM3D_OPEN(im3d) || !im3d->vinfo->func_visible ) EXRETURN ;
+
+   adset = im3d->anat_now ; if( adset->su_surf == NULL ) EXRETURN ;
+   fdset = im3d->fim_now  ; if( fdset          == NULL ) EXRETURN ;
+
+#ifdef SENDIT
+   if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
+#endif
+
+   /* build a node+color map */
+
+   nmap = AFNI_vnlist_func_overlay( im3d , &map ) ;
+   if( nmap < 0 ) EXRETURN ;
+
+   if( nmap > 0 ){  /* make a data element with data */
+      nel = NI_new_data_element( "SUMA_irgba" , -1 ) ;
+      NI_define_rowmap_VA( nel ,
+                           NI_INT  , offsetof(SUMA_irgba,id) ,
+                           NI_BYTE , offsetof(SUMA_irgba,r ) ,
+                           NI_BYTE , offsetof(SUMA_irgba,g ) ,
+                           NI_BYTE , offsetof(SUMA_irgba,b ) ,
+                           NI_BYTE , offsetof(SUMA_irgba,a ) , -1 ) ;
+      NI_add_many_rows( nel , nmap , sizeof(SUMA_irgba) , map ) ;
+      free(map) ;
+   } else {         /* make an empty data element */
+      nel = NI_new_data_element( "SUMA_irgba" , 0 ) ;
+   }
+
+   if( adset->su_surf->idcode[0] != '\0' )
+     NI_set_attribute( nel , "surface_idcode" , adset->su_surf->idcode ) ;
+
+#ifdef SENDIT
+   NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
+#else
+   NIML_to_stderr(nel) ;
+#endif
+
+   NI_free_element(nel) ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Receives notice when user changes viewpoint position.
+----------------------------------------------------------------------*/
+
+static void AFNI_niml_viewpoint_CB( int why, int q, void *qq, void *qqq )
+{
+   Three_D_View *im3d = (Three_D_View *) qqq ;
+   NI_element *nel ;
+   float xyz[3] ;
+   float xold=-666,yold=-777,zold=-888 ;
+
+ENTRY("AFNI_niml_viewpoint_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   if( im3d->anat_now->su_surf == NULL ) EXRETURN ;
+
+#ifdef SENDIT
+   if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
+#endif
+
+   xyz[0] = im3d->vinfo->xi ;
+   xyz[1] = im3d->vinfo->yj ;
+   xyz[2] = im3d->vinfo->zk ;
+
+   if( xyz[0] == xold && xyz[1] == yold && xyz[2] == zold ) EXRETURN ;
+
+   nel = NI_new_data_element( "SUMA_crosshair_xyz" , 3 ) ;
+   NI_add_column( nel , NI_FLOAT , xyz ) ;
+
+   xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;
+
+#ifdef SENDIT
+   NI_write_element( ns_listen[NS_SUMA] , nel , NI_TEXT_MODE ) ;
+#else
+   NIML_to_stderr(nel) ;
+#endif
+
+   NI_free_element(nel) ;
 }

@@ -690,7 +690,7 @@ SUMA_vnlist * SUMA_make_vnlist( SUMA_surface *ag , THD_3dim_dataset *dset )
    THD_fvec3 fv ;
    THD_ivec3 iv ;
    float xv,yv,zv , xp,yp,zp ;
-   int *vlist , *nlist ;
+   int *vlist , *nlist , wodsave ;
    SUMA_vnlist *vnlist ;
 
 ENTRY("SUMA_make_vnlist") ;
@@ -711,6 +711,8 @@ ENTRY("SUMA_make_vnlist") ;
 
    /* for each node, find which voxel it is in */
 
+   wodsave = dset->wod_flag ; dset->wod_flag = 0 ;
+
    for( pp=0 ; pp < nnode ; pp++ ){
       LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
       fv = THD_dicomm_to_3dmm( dset , fv ) ; /* convert Dicom coords */
@@ -720,6 +722,8 @@ ENTRY("SUMA_make_vnlist") ;
       nlist[pp] = pp ;                       /* list of nodes */
       vlist[pp] = ii + jj*nx + kk*nxy ;      /* list of voxels */
    }
+
+   dset->wod_flag = wodsave ;
 
    /* now sort the 2 lists so that vlist is increasing
       (and each nlist still corresponds to its original vlist) */
@@ -740,6 +744,7 @@ ENTRY("SUMA_make_vnlist") ;
    vnlist->voxijk = (int *) malloc(sizeof(int)*nvox) ;
    vnlist->numnod = (int *) calloc(sizeof(int),nvox) ;
    vnlist->nlist  = (int **)malloc(sizeof(int*)*nvox);
+   vnlist->dset   = dset ;
 
    if( vnlist->voxijk==NULL || vnlist->numnod==NULL || vnlist->nlist==NULL ){
       fprintf(stderr,"SUMA_make_vnlist: can't malloc!\n"); EXIT(1);
@@ -767,7 +772,7 @@ ENTRY("SUMA_make_vnlist") ;
   fprintf(fp,"--i--  --nlist--  ---id--- --vlist--\n") ;
   for( pp=0 ; pp < nnode ; pp++ )
     fprintf(fp,"%5d  %9d  %8d  %9d\n",pp,nlist[pp],ag->ixyz[nlist[pp]].id,vlist[pp]) ;
-  fprintf(fp,"\nNumber of voxels=%d\n",vnlist->nvox) ;
+  fprintf(fp,"\nNumber of voxels=%d voxijk=%p numnod=%p\n",vnlist->nvox,vnlist->voxijk,vnlist->numnod) ;
   for( ii=0 ; ii < vnlist->nvox ; ii++ ){
     fprintf(fp,"voxijk=%7d numnod=%4d:",vnlist->voxijk[ii],vnlist->numnod[ii]) ;
     for( pp=0 ; pp < vnlist->numnod[ii] ; pp++ )
@@ -825,9 +830,14 @@ ENTRY("SUMA_load") ;
 
    dset->su_vmap = SUMA_map_dset_to_surf( dset->su_surf , dset ) ;
 
-   if( dset->su_vnlist != NULL ) SUMA_destroy_vnlist( dset->su_vnlist ) ;
+   if( dset->su_vnlist != NULL ){
+      SUMA_destroy_vnlist( dset->su_vnlist ) ;
+      dset->su_vnlist = NULL ;
+   }
 
+#if 0
    dset->su_vnlist = SUMA_make_vnlist( dset->su_surf , dset ) ;
+#endif
 
    EXRETURN ;
 }

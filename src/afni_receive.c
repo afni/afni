@@ -3,13 +3,13 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #undef MAIN
 
 #include "afni.h"
 
-/*-------------------------------------------------------------------
-   Set up to have AFNI send data to a receiver:
+/*-------------------------------------------------------------------*/
+/*! Set up to have AFNI send data to a receiver:
 
      rmask = bitwise OR (|) mask of RECEIVE_*_MASK (cf. afni.h)
 
@@ -20,11 +20,20 @@
                    vp  = pointer to data being sent (may be NULL)
                cb_data = pointer passed into this routine
 
-*    why = RECEIVE_VIEWPOINT --> np = 3, vp = int *, pointing to
+     why = RECEIVE_VIEWPOINT --> np = 3, vp = int *, pointing to
                                  array of dataset voxel indices just
                                  jumped to; vp[0] = x index, etc.
 
-*    why = RECEIVE_POINTS --> np = number of points drawn
+     why = RECEIVE_REDISPLAY --> the user did something to cause
+                                 an image redisplay besides changing
+                                 the viewpoint. For this call, np and
+                                 vp are unused.
+
+     why = RECEIVE_FUNCDISPLAY --> the user did something to cause
+                                   the function display to change.
+                                   For this call, np and vp are unused.
+
+     why = RECEIVE_POINTS --> np = number of points drawn
                               vp = int **, pointer to array of arrays
                                    of dataset voxel indices:
                                     vp[0][i] = x index of point i
@@ -33,7 +42,7 @@
                                     vp[3][0] = sending mode
                                    for i=0..np-1
 
-*    why = RECEIVE_DRAWNOTICE --> the user drew something and that
+     why = RECEIVE_DRAWNOTICE --> the user drew something and that
                                   information was sent to a receiver.
                                   This call will occur AFTER all the
                                   RECEIVE_POINTS calls have been done.
@@ -42,7 +51,7 @@
                                   be made either.  For this call,
                                   np and vp are unused.
 
-*    why = RECEIVE_DSETCHANGE --> the user did something (like rescan
+     why = RECEIVE_DSETCHANGE --> the user did something (like rescan
                                   a session) that may have changed
                                   dataset pointers.  The receiving
                                   routine should use dataset idcodes
@@ -50,14 +59,14 @@
                                   pointers.  For this call, np and vp
                                   are unused.
 
-*    why = RECEIVE_CLOSURE --> the user closed the controller window,
+     why = RECEIVE_CLOSURE --> the user closed the controller window,
                                which means that no more data will
                                be coming from it -- even if it is
                                reopened, AFNI_receive_init must be
                                called again.  For this call, np and
                                vp are unused.
 
-*    why = RECEIVE_ALTERATION --> the user changed something in the
+     why = RECEIVE_ALTERATION --> the user changed something in the
                                   controller -- the dataset, the
                                   time index, the resampling, ....
                                   This is basically a warning
@@ -83,7 +92,7 @@ ENTRY("AFNI_receive_init") ;
 
    /* check for invalid entries */
 
-   if( ! IM3D_OPEN(im3d)             ||               /* no good? */
+   if( ! IM3D_VALID(im3d)            ||               /* no good? */
        cb == NULL                    ||               /* no receiver? */
        (rmask & RECEIVE_ALL_MASK) == 0 ) RETURN(-1) ; /* no action? */
 
@@ -106,8 +115,8 @@ ENTRY("AFNI_receive_init") ;
    RETURN(ir) ;  /* 15 Jun 1999: used to return 0, which is not correct! */
 }
 
-/*-------------------------------------------------------------------------
-   Turn off all reception for this viewer
+/*-------------------------------------------------------------------------*/
+/*! Turn off all reception for this viewer.
 ---------------------------------------------------------------------------*/
 
 void AFNI_receive_destroy( Three_D_View * im3d )
@@ -139,15 +148,16 @@ ENTRY("AFNI_receive_destroy") ;
    EXRETURN ;
 }
 
-/*-------------------------------------------------------------------
-  Control how the receiver works:
-    code = indicates what action is
-    arg  = extra information, if code needs it
+/*-------------------------------------------------------------------*/
+/*! Control how the receiver works:
+    - code = indicates what action is
+    - arg  = extra information, if code needs it
+
   This function returns 0 if all is OK, and returns -1 if an error
   occurs.
 ---------------------------------------------------------------------*/
 
-int AFNI_receive_control( Three_D_View * im3d , int key , int code , void * arg )
+int AFNI_receive_control( Three_D_View * im3d, int key, int code, void * arg )
 {
 ENTRY("AFNI_receive_control") ;
 
@@ -237,6 +247,26 @@ ENTRY("AFNI_receive_control") ;
 
       case VIEWPOINT_SHUTDOWN:{
          im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_VIEWPOINT_MASK) ;
+      }
+      break ;
+
+      case REDISPLAY_STARTUP:{
+         im3d->vinfo->receiver[key]->receiver_mask |= RECEIVE_REDISPLAY_MASK ;
+      }
+      break ;
+
+      case REDISPLAY_SHUTDOWN:{
+         im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_REDISPLAY_MASK) ;
+      }
+      break ;
+
+      case FUNCDISPLAY_STARTUP:{
+         im3d->vinfo->receiver[key]->receiver_mask |= RECEIVE_FUNCDISPLAY_MASK ;
+      }
+      break ;
+
+      case FUNCDISPLAY_SHUTDOWN:{
+         im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_FUNCDISPLAY_MASK) ;
       }
       break ;
 
@@ -449,20 +479,73 @@ ENTRY("AFNI_process_viewpoint") ;
    EXRETURN ;
 }
 
-/*-------------------------------------------------------------------
-   Process drawn points:
-     npts  = number of points sent in
-     mode  = type of points to follow:
-               PLANAR_MODE + zz ==> axis zz is fixed, for zz=1,2,3
-               SINGLE_MODE + zz ==> one point only, clicked in a
+/*-------------------------------------------------------------------*/
+/*! Send redisplay notification to receivers that care [04 Mar 2002].
+---------------------------------------------------------------------*/
+
+void AFNI_process_redisplay( Three_D_View * im3d )
+{
+   int ir ;
+
+ENTRY("AFNI_process_redisplay") ;
+
+   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
+                            im3d->vinfo->num_receiver == 0   ) EXRETURN ;
+
+   for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+      if( im3d->vinfo->receiver[ir] != NULL &&
+          (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_REDISPLAY_MASK) )
+
+         im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_REDISPLAY , 0 , NULL ,
+                   im3d->vinfo->receiver[ir]->receiver_data ) ;
+
+   }
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------*/
+/*! Send funcdisplay notification to receivers that care [05 Mar 2002].
+---------------------------------------------------------------------*/
+
+void AFNI_process_funcdisplay( Three_D_View * im3d )
+{
+   int ir ;
+
+ENTRY("AFNI_process_funcdisplay") ;
+
+   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
+                            im3d->vinfo->num_receiver == 0   ) EXRETURN ;
+
+   for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+      if( im3d->vinfo->receiver[ir] != NULL &&
+          (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_FUNCDISPLAY_MASK) )
+
+         im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_FUNCDISPLAY , 0 , NULL ,
+                   im3d->vinfo->receiver[ir]->receiver_data ) ;
+
+   }
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------*/
+/*! Process drawn points:
+    - npts  = number of points sent in
+    - mode  = type of points to follow:
+              - PLANAR_MODE + zz ==> axis zz is fixed, for zz=1,2,3
+              - SINGLE_MODE + zz ==> one point only, clicked in a
                                       window with zz fixed
-               THREED_MODE      ==> points are in 3D (not planar)
+              - THREED_MODE      ==> points are in 3D (not planar)
                                       (not currently possible)
              *** at this moment, this mode flag isn't used anywhere
 
-     xd[i] = x index of point i, for i=0..npts-1
-     yd[i] = y index of point i, for i=0..npts-1
-     zd[i] = z index of point i, for i=0..npts-1
+    - xd[i] = x index of point i, for i=0..npts-1
+    - yd[i] = y index of point i, for i=0..npts-1
+    - zd[i] = z index of point i, for i=0..npts-1
+
    These indices are with respect to the dataset brick axes.
 ---------------------------------------------------------------------*/
 

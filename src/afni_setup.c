@@ -672,7 +672,7 @@ ENTRY("AFNI_palette_av_CB") ;
                             PALTAB_ARR(GPT,av->ival) , 1  ) ;
 
    if( im3d->vinfo->func_visible )
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+      AFNI_redisplay_func( im3d ) ;
 
    EXRETURN ;
 }
@@ -947,7 +947,7 @@ ENTRY("AFNI_palette_tran_CB") ;
    }
 
    if( im3d->vinfo->func_visible )
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+      AFNI_redisplay_func( im3d ) ;
 
    EXRETURN ;
 }

@@ -102,6 +102,8 @@ typedef struct {
    int *voxijk ;    /*!< Voxel indexes */
    int *numnod ;    /*!< Number of nodes */
    int **nlist ;    /*!< Array of node indexes */
+
+   struct THD_3dim_dataset * dset ;  /*!< Dataset to which this is linked */
 } SUMA_vnlist ;
 
 /*--- prototypes ---*/

@@ -32,7 +32,7 @@ ENTRY("AFNI_see_func_CB") ;
          im3d->vinfo->func_visible = False ;
          MCW_set_bbox( im3d->vwid->view->see_func_bbox , 0 ) ; /* 29 Jan 1999 */
       }
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+      AFNI_redisplay_func( im3d ) ;  /* 05 Mar 2002 */
    }
 
    RESET_AFNI_QUIT(im3d) ;
@@ -89,7 +89,7 @@ ENTRY("AFNI_functype_CB") ;
          (im3d->vinfo->use_autorange) ? (im3d->vinfo->fim_autorange)
                                       : (im3d->vwid->func->range_av->fval) ;
 
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , redisplay ) ; /* redraw */
+      AFNI_redisplay_func( im3d ) ;  /* 05 Mar 2002 */
 
       /** 3/24/95: turn range controls on or off **/
 
@@ -148,7 +148,7 @@ ENTRY("AFNI_thr_scale_CB") ;
    AFNI_set_thr_pval( im3d ) ;
 
    if( ! DOING_REALTIME_WORK )
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , redisplay ) ;  /* redraw */
+      AFNI_redisplay_func( im3d ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -243,7 +243,7 @@ ENTRY("AFNI_thresh_top_CB") ;
       AFNI_set_thresh_top( im3d , tval[av->ival] ) ;
 
       if( im3d->vinfo->func_visible )
-         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+         AFNI_redisplay_func( im3d ) ;
    }
 
    EXRETURN ;
@@ -351,7 +351,7 @@ ENTRY("AFNI_inten_pbar_CB") ;
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
    if( im3d->vinfo->func_visible )
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+      AFNI_redisplay_func( im3d ) ;
 
    AFNI_hintize_pbar( pbar ,
                       (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
@@ -1155,7 +1155,6 @@ STATUS("bad im_fim->kind!") ;
             short thresh = im3d->vinfo->func_threshold
                          * im3d->vinfo->func_thresh_top * FUNC_scale_short[fdset_type] ;
             short * ar_thr = MRI_SHORT_PTR(im_thr) ;
-
             for( ii=0 ; ii < npix ; ii++ ){
                if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ar_fim[ii] == 0 ){
                   ar_ov[ii] = 0 ;
@@ -4286,7 +4285,7 @@ ENTRY("AFNI_range_bbox_CB") ;
 
       AV_SENSITIZE( im3d->vwid->func->range_av , ! new_auto ) ;
 
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+      AFNI_redisplay_func( im3d ) ;
    }
 
    EXRETURN ;
@@ -4305,7 +4304,7 @@ ENTRY("AFNI_range_av_CB") ;
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
    im3d->vinfo->fim_range = av->fval ;
-   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+   AFNI_redisplay_func( im3d ) ;
 
    AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
                       (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
@@ -4348,7 +4347,7 @@ ENTRY("AFNI_inten_bbox_CB") ;
       AV_assign_ival( im3d->vwid->func->inten_av ,
                       im3d->vwid->func->inten_pbar->npan_save[jm] ) ;
 
-      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+      AFNI_redisplay_func( im3d ) ;
    }
 
    EXRETURN ;
@@ -4469,6 +4468,8 @@ ENTRY("AFNI_anat_bucket_CB") ;
       im3d->vinfo->tempflag = 1 ;
       AFNI_setup_viewing( im3d , False ) ;
       AFNI_set_viewpoint( im3d , -1,-1,-1 , redisplay ) ; /* redraw */
+      if( redisplay == REDISPLAY_OVERLAY &&
+          im3d->vinfo->func_visible        ) AFNI_process_funcdisplay(im3d) ;
       SHOW_AFNI_READY ;
    }
 

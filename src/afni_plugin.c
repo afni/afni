@@ -3725,7 +3725,7 @@ ENTRY("PLUTO_dset_redisplay_mode") ;
          im3d->fim_voxwarp->type = ILLEGAL_TYPE ;
          AFNI_reset_func_range( im3d ) ;
          AFNI_imseq_clearstat( im3d ) ;
-         AFNI_set_viewpoint( im3d , -1,-1,-1 , fmode ) ;
+         AFNI_redisplay_func( im3d ) ;
       }
    }
    EXRETURN ;

@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.40e"
+#define VERSION "2.45 "
 
 /** this should always be exactly 17 characters! **/
-/*              "12345678901234567" **/
+/**             "12345678901234567" **/
 
-#define RELEASE "04 Feb 2002      "
+#define RELEASE "17 Mar 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -843,6 +843,9 @@ extern void AFNI_purge_dsets(int) ;
 extern void AFNI_purge_unused_dsets(void) ;
 extern int AFNI_controller_index( Three_D_View * ) ;
 
+extern Three_D_View * AFNI_find_open_controller(void) ; /* 05 Mar 2002 */
+extern void AFNI_popup_message( char * ) ;
+
 extern char * AFNI_get_friend(void) ;  /* 26 Feb 2001 */
 
 #define OPEN_CONTROLLER(iq)                                  \
@@ -978,6 +981,8 @@ typedef struct {
 
 /*-----------------------------------------------------------*/
 /*------------------------ prototypes -----------------------*/
+
+extern int AFNI_vnlist_func_overlay( Three_D_View *, SUMA_irgba ** ) ;
 
 extern void AFNI_parse_args( int argc , char * argv[] );
 extern void FatalError(char * str);
@@ -1164,6 +1169,7 @@ extern Boolean AFNI_refashion_dataset( Three_D_View * ,
 #define REDISPLAY_ALL      2
 
 extern void AFNI_set_viewpoint( Three_D_View * , int,int,int , int ) ;
+extern void AFNI_redisplay_func( Three_D_View * ) ; /* 05 Mar 2002 */
 
 extern XmString AFNI_crosshair_label( Three_D_View * ) ;
 extern XmString AFNI_range_label( Three_D_View * ) ;
@@ -1290,14 +1296,16 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 
 /* masks for input to AFNI_receive_init */
 
-#define RECEIVE_DRAWING_MASK    1
-#define RECEIVE_VIEWPOINT_MASK  2
-#define RECEIVE_OVERLAY_MASK    4    /* not implemented yet */
-#define RECEIVE_DRAWNOTICE_MASK 8    /* 30 Mar 1999 */
-#define RECEIVE_DSETCHANGE_MASK 16   /* 31 Mar 1999 */
-#define RECEIVE_TTATLAS_MASK    32   /* 12 Jul 2001 */
+#define RECEIVE_DRAWING_MASK     1
+#define RECEIVE_VIEWPOINT_MASK   2
+#define RECEIVE_OVERLAY_MASK     4    /* not implemented yet */
+#define RECEIVE_DRAWNOTICE_MASK  8    /* 30 Mar 1999 */
+#define RECEIVE_DSETCHANGE_MASK  16   /* 31 Mar 1999 */
+#define RECEIVE_TTATLAS_MASK     32   /* 12 Jul 2001 */
+#define RECEIVE_REDISPLAY_MASK   64   /* 04 Mar 2002 */
+#define RECEIVE_FUNCDISPLAY_MASK 128  /* 05 Mar 2002 */
 
-#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 | 8 | 16 | 32 )
+#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 )
 
 /* codes for input to AFNI_receive_control */
 
@@ -1319,6 +1327,12 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 
 #define VIEWPOINT_STARTUP       28
 #define VIEWPOINT_SHUTDOWN      29
+
+#define REDISPLAY_STARTUP       78   /* 04 Mar 2002 */
+#define REDISPLAY_SHUTDOWN      79
+
+#define FUNCDISPLAY_STARTUP     88   /* 05 Mar 2002 */
+#define FUNCDISPLAY_SHUTDOWN    89
 
 #define OVERLAY_STARTUP         38
 #define OVERLAY_SHUTDOWN        39
@@ -1344,6 +1358,8 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define RECEIVE_DRAWNOTICE     106  /* 30 Mar 1999 */
 #define RECEIVE_DSETCHANGE     107  /* 31 Mar 1999 */
 #define RECEIVE_TTATLAS        108  /* 12 Jul 2001 */
+#define RECEIVE_REDISPLAY      109  /* 04 Mar 2002 */
+#define RECEIVE_FUNCDISPLAY    110  /* 04 Mar 2002 */
 
 /* modes for the process_drawing routine */
 
@@ -1357,12 +1373,14 @@ extern int AFNI_receive_init    ( Three_D_View *, int, gen_func * , void * ) ;
 extern void AFNI_receive_destroy( Three_D_View * ) ;
 extern int AFNI_receive_control ( Three_D_View *, int,int, void * ) ;
 
-extern void AFNI_process_viewpoint ( Three_D_View * ) ;
-extern void AFNI_process_drawnotice( Three_D_View * ) ;
-extern void AFNI_process_dsetchange( Three_D_View * ) ;
-extern void AFNI_process_alteration( Three_D_View * ) ;
-extern void AFNI_process_drawing   ( Three_D_View *, int,int, int *,int *,int * );
-extern void AFNI_process_ttatlas   ( Three_D_View * ) ;
+extern void AFNI_process_viewpoint  ( Three_D_View * ) ;
+extern void AFNI_process_drawnotice ( Three_D_View * ) ;
+extern void AFNI_process_dsetchange ( Three_D_View * ) ;
+extern void AFNI_process_alteration ( Three_D_View * ) ;
+extern void AFNI_process_drawing    ( Three_D_View *, int,int, int *,int *,int * );
+extern void AFNI_process_ttatlas    ( Three_D_View * ) ;
+extern void AFNI_process_redisplay  ( Three_D_View * ) ; /* 04 Mar 2002 */
+extern void AFNI_process_funcdisplay( Three_D_View * ) ; /* 05 Mar 2002 */
 
 extern MRI_IMAGE * AFNI_ttatlas_overlay(Three_D_View *, int,int,int,int, MRI_IMAGE *) ;
 
@@ -1495,7 +1513,7 @@ typedef struct {
       {-14, 12,  9,4,135,"Right Ventral Lateral Nucleus..........."} ,
       {  7, 18, 16,4,136,"Left  Midline Nucleus..................."} ,
       { -7, 18, 16,4,136,"Right Midline Nucleus..................."} ,
-      {  8,  8, 12,4,137,"Left  Anterior Nucleus.................."} ,
+      {  8,  8, 12,4,137,"Left  Anterior Nucleus.................."} ,   /* 04 Mar 2002 */
       { -8,  8, 12,4,137,"Right Anterior Nucleus.................."} ,
       { 11, 20,  2,4,138,"Left  Mammillary Body..................."} ,
       {-11, 20,  2,4,138,"Right Mammillary Body..................."} ,
