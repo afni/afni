@@ -1,0 +1,154 @@
+#!/bin/csh -f
+
+if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
+	goto USAGE
+endif
+
+goto PARSE_COMMAND
+Ret_PARSE_COMMAND:
+
+goto SET_VARIABLES
+Ret_SET_VARIABLES:
+
+goto CHECK_EXISTENCE
+Ret_CHECK_EXISTENCE:
+
+goto DOWNSAMPLE
+Ret_DOWNSAMPLE:
+
+goto RESAMPLE
+Ret_RESAMPLE:
+
+goto REGISTER
+Ret_REGISTER:
+
+echo "Done."
+goto END
+
+
+PARSE_COMMAND:
+	if ($# == 3) then
+		set DownSample = $3
+	else
+		set DownSample = 0
+	endif
+	set ExpAnatPrefix = `@GetAfniPrefix $1`
+	set ExpAnatView = `@GetAfniView $1`
+	set SurfAnatPrefix = `@GetAfniPrefix $2` 
+	set SurfAnatView = `@GetAfniView $2` 
+	set SurfAnatPath = $2:h
+	goto Ret_PARSE_COMMAND
+
+SET_VARIABLES:
+	set ExpAnat = $ExpAnatPrefix$ExpAnatView
+	set SurfAnat = $SurfAnatPrefix$SurfAnatView
+	set CurDir = $PWD
+	set Resampled = 0 #flag set when resampling is done
+	goto Ret_SET_VARIABLES
+
+DOWNSAMPLE:
+	if ($DownSample != 0) then
+		echo "Downsampling ..."
+		cd $SurfAnatPath
+		set tmpPrefix = $SurfAnatPrefix"_"$DownSample"mm"
+		if (-f $tmpPrefix$SurfAnatView.BRIK) then
+			echo ""
+			echo "Warning: $tmpPrefix$SurfAnatView exists in $SurfAnatPath"
+			echo "Skipping downsampling since $SurfAnat has already been downsampled to $DownSample"
+			echo ""
+		else
+			echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
+			adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
+			test -f $tmpPrefix$SurfAnatView.BRIK || goto NO_DOWNGOOD_BADBAD
+		endif
+		set SurfAnatPrefix = $tmpPrefix
+		set SurfAnat = $SurfAnatPrefix$SurfAnatView
+		cd $CurDir
+	endif
+	goto Ret_DOWNSAMPLE
+
+RESAMPLE:
+	#resample Experiment volume to look like SurfAnat
+	echo "resampling ..."
+	cd $CurDir
+	set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"
+	set ExpAnat_Resamp = $ExpAnat_ResampPrefix$ExpAnatView
+	3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -zeropad -rmode Cu -inset $ExpAnat
+	test -f $ExpAnat_Resamp.BRIK || goto NO_RESAMP
+	set ExpAnatPrefix = $ExpAnat_ResampPrefix
+	set ExpAnat = $ExpAnat_Resamp
+	set Resampled = 1
+	goto Ret_RESAMPLE
+	
+REGISTER:
+	echo "Running 3dvolreg ..."
+	cd $CurDir
+	set VolRegPrefix = $SurfAnatPrefix"_Alnd_Exp"
+	3dvolreg -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
+	test -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || goto NO_VOLREG
+	mv $SurfAnatPath/$VolRegPrefix* ./
+	#remove _resamp_
+	if ($Resampled == 1) then
+		echo "removing temporary bricks ..."
+		rm -f $ExpAnat_Resamp".HEAD"
+		rm -f $ExpAnat_Resamp".BRIK"
+	endif
+	goto Ret_REGISTER
+
+CHECK_EXISTENCE:
+	test -f $ExpAnat.HEAD || goto NO_EXPANAT
+	test -f $ExpAnat.BRIK || goto NO_EXPANAT
+
+	test -f $SurfAnatPath/$SurfAnat.HEAD || goto NO_SURFANAT
+	test -f $SurfAnatPath/$SurfAnat.BRIK || goto NO_SURFANAT
+	goto Ret_CHECK_EXISTENCE
+
+NO_SURFANAT:
+	echo ""
+	echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) volume in $SurfAnatPath"
+	echo ""
+	goto END
+
+NO_EXPANAT:
+	echo ""
+	echo "Error: No Experiment Anatomy $ExpAnat (.HEAD or .BRIK) in current directory"
+	echo ""
+	goto END
+
+NO_DOWNGOOD_BADBAD:
+	echo ""
+	echo "Error: adwarp failed."
+	echo ""
+	goto END
+
+NO_VOLREG:
+	echo ""
+	echo "Error: 3dvolreg failed."
+	echo ""
+	goto END
+NO_RESAMP:
+	echo ""
+	echo "Error: 3dresample failed."
+	echo ""
+	goto END
+	
+USAGE:
+	echo ""
+	echo "Usage: `basename $0` <Experiment Anatomy> <Surface Anatomy> [dxyz]"
+	echo "creates a version of Surface Anatomy that is registered to Experiment Anatomy."
+	echo ""
+	echo "<Experiment Anatomy> Name of high resolution anatomical data set in register with experimental data."
+	echo "<Surface Anatomy> Path and Name of high resolution antomical data set used to create the surface."
+	echo "[dxyz]: This optional parameter indicates that the anatomical volumes must be downsampled to dxyz mm"
+	echo "        voxel resolution before registration. That is necessary when 3dvolreg runs out of memory."
+	echo ""
+	echo "NOTE: You must run the script from the directory where Experiment Anatomy resides."
+	echo ""
+	echo "Example:"
+	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig. 1.1"
+	echo ""
+	echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
+	goto END
+
+END:
+	cd $CurDir
