@@ -237,7 +237,7 @@ int AFNI_drive_chdir( char *cmd )   /* 19 Dec 2002 */
   Convert a controller code ("A", etc.) to an index.
   * Returns -1 if the index is illegal.
   * Returns -1 if the next character in the code string is NOT
-     a NUL or a '.'.
+     a NUL or a '.' or a blank.
   * Note that a legal index might not have an active controller.
   * Controller #i is pointed to by GLOBAL_library.controllers[i],
     for i=0..MAX_CONTROLLERS-1; cf. AFNI_rescan_controller().

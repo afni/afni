@@ -5409,3 +5409,13 @@
 30 Mar 2005
  * Fixed bug in AFNI_range_label() in afni_func.c about brick range
      setup change of yesterday (forgot to initialize stats_*_ok).
+
+31 Mar 2005
+ * Oops.  Fixed bug in afni_niml.c wrt <?drive_afni ... ?> processing
+     instruction: needed to put the command into an attribute.
+ * Added a 1 ms wait to niml/niml_stream.c when a tcp: or shm: stream
+     is closed.  This is to let the application on the other end have
+     a decent interval to fetch any just-transmitted data.
+ * Modified thd_opendset.c to NOT print an error message when trying to
+     open a non-existent file -- now just prints a message if the file
+     exists but has no data.
