@@ -1480,4 +1480,8 @@ epsim:epsim.o
 	$(RM) $@
 	$(CC) -o epsim epsim.o $(LFLAGS) $(LLIBS)
 
+nimltest:nimltest.o niml.o
+	$(RM) $@
+	$(CC) -o nimltest nimltest.o niml.o $(LFLAGS) $(LLIBS)
+
 #-------------------------------------------------------------------------------
