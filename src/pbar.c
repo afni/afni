@@ -321,7 +321,7 @@ void PBAR_make_bigmap( char *name,
 void PBAR_read_bigmap( char *fname , MCW_DC *dc )
 {
 #define NSBUF 128
-  int ii , neq=0 , nonum=0 ;
+  int ii , neq=0 , nonum=0 , yeseq=0 ;
   char name[NSBUF], lhs[NSBUF],rhs[NSBUF],mid[NSBUF],line[2*NSBUF] , *cpt ;
   float  val[NPANE_BIG] , fr,fg,fb , top,bot,del,vv ;
   rgbyte col[NPANE_BIG] ;
@@ -347,8 +347,14 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
     lhs[0] = mid[0] = rhs[0] = '\0' ;
     sscanf(line,"%127s %127s %127s",lhs,mid,rhs) ;
     if( lhs[0]=='\0' || lhs[0]=='!' || (lhs[0]=='/' && lhs[1]=='/') ) continue;
-    if( neq == 0 && (isalpha(lhs[0]) || lhs[0]=='#') ) nonum = 1 ;
-    if( !nonum ){
+
+         if( neq == 0 && (isalpha(lhs[0]) || lhs[0]=='#') ) nonum = 1 ;
+    else if( neq == 0 && strchr(lhs,'=') != NULL          ) yeseq = 1 ;
+
+    if( yeseq ){
+      val[neq] = strtod(lhs,&cpt) ;
+      if( *cpt != '\0' ) cpt++ ;
+    } else if( !nonum ){
       val[neq] = strtod(lhs,&cpt) ;
       if( val[neq] == 0.0 && *cpt != '\0' ){
         fprintf(stderr,"** %s: %s is a bad number\n",fname,lhs); continue;
