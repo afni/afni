@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#define MAX_PARCODE 999
+#define MAX_PARCODE 9999
 
 typedef struct {
    int num_code ;
