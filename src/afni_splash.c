@@ -90,8 +90,25 @@ ENTRY("AFNI_splashup") ;
 
 #ifdef NMAIN
       if( !first || AFNI_yesenv("AFNI_SPLASH_OVERRIDE") ){ /* 07 Jun 2000 */
-         int good=0 ;
-         char * ufname = getenv("AFNI_IMAGE_PGMFILE") ;
+         int good=0 , qq,nq=0 ;
+         char * ufname , * qname[10] , str[32] ;
+
+         /* select a user-supplied main image name, if any */
+
+         ufname = getenv("AFNI_IMAGE_PGMFILE") ;
+         if( ufname != NULL ) qname[nq++] = ufname ;
+         for( qq=1 ; qq < 10 ; qq++ ){
+            sprintf(str,"AFNI_IMAGE_PGMFILE_%d",qq) ;
+            ufname = getenv(str) ; if( ufname != NULL) qname[nq++] = ufname ;
+         }
+
+         switch( nq ){
+            case 0:  ufname = NULL                           ; break ;
+            case 1:  ufname = qname[0]                       ; break ;
+            default: ufname = qname[ (lrand48() >> 8) % nq ] ; break ;
+         }
+
+         /* popup user-supplied main image, if any */
 
          if( ufname != NULL ){         /* 08 & 20 Jun 2000 */
             imov = mri_read(ufname) ;  /* popup user-supplied image */

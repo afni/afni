@@ -141,6 +141,10 @@ PLUGIN_interface * ENV_init(void)
 
    /*------- some environment variables for AFNI ------*/
 
+   ENV_add_string( "AFNI_ENFORCE_ASPECT" ,
+                   "To make AFNI enforce image window aspect ratio?" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+
    ENV_add_numeric( "AFNI_FIM_PERCENT_LIMIT" ,
                     "Upper limit on % Change in FIM" ,
                     10,1000,0,100 , NULL              ) ;

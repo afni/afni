@@ -90,6 +90,14 @@ static void betarange( double al,double au , double bl , double bu , int nran )
    if( nran > 1 ) NRAN = nran ;
 }
 
+static double ainit=0.0 ;
+static double binit=0.0 ;
+
+static void beta_init( double ai , double bi )
+{
+   ainit = ai ; binit = bi ; return ;
+}
+
 /*--------------------------------------------------------------------
    Solve the two equations
      I10(a,b)/I00(a,b) = e0
@@ -108,12 +116,20 @@ static int betasolve( double e0, double e1, double xc, double * ap, double * bp 
    /* randomly search for a good starting point */
 
    dd = 1.e+20 ; aa = bb = 0.0 ;
+   if( ainit > 0.0 && binit > 0.0 ){
+      ii = bi7func( ainit , binit , xc , bi7 ) ;
+      if( ii == 0 ){
+         r1 = bi7[1]-e0; r2 = bi7[2]-e1; dd = fabs(r1/e0)+fabs(r2/e1);
+         aa = ainit ; bb = binit ;
+      }
+   }
+
+   dd = 1.e+20 ; aa = bb = 0.0 ;
    for( jj=0 ; jj < NRAN ; jj++ ){
       da = AL +(AU-AL) * drand48() ;
       db = BL +(BU-BL) * drand48() ;
       ii = bi7func( da , db , xc , bi7 ) ; if( ii ) continue ;
-      r1 = bi7[1] - e0 ; r2 = bi7[2] - e1 ;
-      ee = fabs(r1/e0) + fabs(r2/e1) ;
+      r1 = bi7[1]-e0; r2 = bi7[2]-e1; ee = fabs(r1/e0)+fabs(r2/e1);
       if( ee < dd ){ aa=da ; bb=db ; dd=ee ; /*if(ee<0.05)break;*/ }
    }
    if( aa == 0.0 || bb == 0.0 ) return -1 ;
@@ -372,8 +388,7 @@ BFIT_result * BFIT_compute( BFIT_data * bfd ,
    if( abot < 0.1  || abot >= atop ) return NULL ;
    if( bbot < 9.9  || bbot >= btop ) return NULL ;
 
-   if( nran < 100 ) nran = 100 ;
-   if( nbin < 100 ) nbin = 100 ;
+   if( nran < 10 ) nran = 10 ;
 
    mcount = bfd->mcount ;
    ibot   = bfd->ibot ;
@@ -418,104 +433,109 @@ BFIT_result * BFIT_compute( BFIT_data * bfd ,
 
    /*-- compute histogram and chi-square --*/
 
-#define NEW_HCQ
+   if( nbin >= 100 ){  /* don't do it if nbin is too small */
 
+#define NEW_HCQ
 #ifdef NEW_HCQ    /* use new method */
 
-   { float * xbin = (float *) malloc(sizeof(float)*nbin) ;
+     { float * xbin = (float *) malloc(sizeof(float)*nbin) ;
 
-     hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
-     jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
+       hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
+       jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
 
-     htop = 1.0 - beta_t2p(xc,aa,bb) ;   /* CDF at top */
-     dbin = htop / nbin ;                /* d(CDF) for each bin */
-     ii   = rint( eps1 * dbin ) ;
-     for( jj=0 ; jj < nbin ; jj++ ){
-        xbin[jj] = beta_p2t( 1.0 - (jj+1)*dbin , aa , bb ) ;
-        jbin[jj] = ii ;
+       htop = 1.0 - beta_t2p(xc,aa,bb) ;   /* CDF at top */
+       dbin = htop / nbin ;                /* d(CDF) for each bin */
+       ii   = rint( eps1 * dbin ) ;
+       for( jj=0 ; jj < nbin ; jj++ ){
+          xbin[jj] = beta_p2t( 1.0 - (jj+1)*dbin , aa , bb ) ;
+          jbin[jj] = ii ;
+       }
+       xbin[nbin-1] = xc ;
+
+       for( ii=ibot ; ii < mcount ; ii++ ){
+          for( jj=0 ; jj < nbin ; jj++ ){
+             if( bval[ii] <= xbin[jj] ){ hbin[jj]++ ; break ; }
+          }
+       }
+
+       free(xbin) ;
+
+       ihqbot = 0 ;
+       ihqtop = nbin-1 ;
      }
-     xbin[nbin-1] = xc ;
-
-     for( ii=ibot ; ii < mcount ; ii++ ){
-        for( jj=0 ; jj < nbin ; jj++ ){
-           if( bval[ii] <= xbin[jj] ){ hbin[jj]++ ; break ; }
-        }
-     }
-
-     free(xbin) ;
-
-     ihqbot = 0 ;
-     ihqtop = nbin-1 ;
-   }
 
 #else             /* use old method */
 
-   /* original data was already squared (e.g., R**2 values) */
+     /* original data was already squared (e.g., R**2 values) */
 
-   if( !sqr ){
-      hbot = 0.0 ; htop = 1.001 * xc ;
-      dbin = (htop-hbot)/nbin ;
+     if( !sqr ){
+        hbot = 0.0 ; htop = 1.001 * xc ;
+        dbin = (htop-hbot)/nbin ;
 
-      hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
-      jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
+        hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
+        jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
 
-      for( ii=0 ; ii < nbin ; ii++ ){  /* beta fit */
-         jbin[ii] = (int)( eps1 * ( beta_t2p(hbot+ii*dbin,aa,bb)
-                                   -beta_t2p(hbot+ii*dbin+dbin,aa,bb) ) ) ;
-      }
+        for( ii=0 ; ii < nbin ; ii++ ){  /* beta fit */
+           jbin[ii] = (int)( eps1 * ( beta_t2p(hbot+ii*dbin,aa,bb)
+                                     -beta_t2p(hbot+ii*dbin+dbin,aa,bb) ) ) ;
+        }
 
-      flim = mri_new_vol_empty( mcount-ibot,1,1 , MRI_float ) ;
-      mri_fix_data_pointer( bval+ibot , flim ) ;
-      mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
+        flim = mri_new_vol_empty( mcount-ibot,1,1 , MRI_float ) ;
+        mri_fix_data_pointer( bval+ibot , flim ) ;
+        mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
 
-      ihqbot = 0 ;
-      ihqtop = rint( xc / dbin ) ;
+        ihqbot = 0 ;
+        ihqtop = rint( xc / dbin ) ;
 
-   } else {   /* original data was not squared (e.g., correlations) */
+     } else {   /* original data was not squared (e.g., correlations) */
 
-      double hb,ht ;
-      htop = sqrt(1.001*xc) ;
-      hbot = -htop ;
-      dbin = (htop-hbot)/nbin ;
+        double hb,ht ;
+        htop = sqrt(1.001*xc) ;
+        hbot = -htop ;
+        dbin = (htop-hbot)/nbin ;
 
-      hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
-      jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
+        hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
+        jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
 
-      for( ii=0 ; ii < nbin ; ii++ ){  /* beta fit */
-         hb = hbot+ii*dbin ; ht = hb+dbin ;
-         hb = hb*hb ; ht = ht*ht ;
-         if( hb > ht ){ double qq=hb ; hb=ht ; ht=qq ; }
-         jbin[ii] = (int)( 0.5*eps1 * ( beta_t2p(hb,aa,bb)
-                                       -beta_t2p(ht,aa,bb) ) ) ;
-      }
+        for( ii=0 ; ii < nbin ; ii++ ){  /* beta fit */
+           hb = hbot+ii*dbin ; ht = hb+dbin ;
+           hb = hb*hb ; ht = ht*ht ;
+           if( hb > ht ){ double qq=hb ; hb=ht ; ht=qq ; }
+           jbin[ii] = (int)( 0.5*eps1 * ( beta_t2p(hb,aa,bb)
+                                         -beta_t2p(ht,aa,bb) ) ) ;
+        }
 
-      ihqbot = rint( (-sqrt(xc) - hbot) / dbin ) ;
-      ihqtop = rint( ( sqrt(xc) - hbot) / dbin ) ;
+        ihqbot = rint( (-sqrt(xc) - hbot) / dbin ) ;
+        ihqtop = rint( ( sqrt(xc) - hbot) / dbin ) ;
 
-      flim = mri_new_vol_empty( mcount-ibot,1,1 , MRI_float ) ;
-      mri_fix_data_pointer( cval+ibot , flim ) ;
-      mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
+        flim = mri_new_vol_empty( mcount-ibot,1,1 , MRI_float ) ;
+        mri_fix_data_pointer( cval+ibot , flim ) ;
+        mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
 
-   }
+     }
 #endif
 
    /* compute upper-tail probability of chi-square */
 
-   chq = cdf = 0.0 ;
-   for( ii=ihqbot ; ii <= ihqtop ; ii++ ){
-      ccc = jbin[ii] ;
-      if( ccc > 1.0 ){
-         chq += SQR(hbin[ii]-ccc) / ccc ;
-         cdf++ ;
-      }
-   }
-   cdf -= 3.0 ;
-   ccc = chisq_t2p( chq , cdf ) ;
+     chq = cdf = 0.0 ;
+     for( ii=ihqbot ; ii <= ihqtop ; ii++ ){
+        ccc = jbin[ii] ;
+        if( ccc > 1.0 ){
+           chq += SQR(hbin[ii]-ccc) / ccc ;
+           cdf++ ;
+        }
+     }
+     cdf -= 3.0 ;
+     ccc = chisq_t2p( chq , cdf ) ;
 
 #ifndef NEW_HCQ
-   mri_clear_data_pointer(flim) ; mri_free(flim) ;
+     mri_clear_data_pointer(flim) ; mri_free(flim) ;
 #endif
-   free(hbin) ; free(jbin) ;
+     free(hbin) ; free(jbin) ;
+
+   } else {
+      chq = ccc = cdf = 0.0 ;
+   }
 
    bfr = (BFIT_result *) malloc(sizeof(BFIT_result)) ;
 

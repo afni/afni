@@ -2210,3 +2210,7 @@
      the output dataset header.
  * Modified 3drotate.c to read matrix+vector of transformation from
      a file or from a dataset header.
+
+21 Jul 2000
+ * Added AFNI_ENFORCE_ASPECT to afni_pplug_env.c.
+ * Added AFNI_IMAGE_PGMFILE_[1-9] to afni_splash.c.

@@ -20,6 +20,8 @@ static int                CALC_datum = -1 ;
 static int                CALC_nvox  = -1 ;
 static PARSER_code *      CALC_code  = NULL ;
 
+static int CALC_nx=-1 , CALC_ny=-1 ;  /* 27 Jul 2000 */
+
 static MRI_IMAGE * CALC_im[26] ;
 static int         CALC_type[26] ;
 static byte *      CALC_byte[26] ;
@@ -46,6 +48,17 @@ void CALC_read_opts( int argc , char * argv[] )
    }
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      /**** -nxy nx ny ****/
+
+      if( strncmp(argv[nopt],"-nxy",4) == 0 ){
+         if( ++nopt >= argc-1 ){
+            fprintf(stderr,"need 2 arguments after -nxy!\n"); exit(1);
+         }
+         CALC_nx = strtol(argv[nopt++],NULL,10) ;
+         CALC_ny = strtol(argv[nopt++],NULL,10) ;
+         continue ;  /* go to next arg */
+      }
 
       /**** -datum type ****/
 
@@ -157,7 +170,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
    for( ids=0 ; ids < 26 ; ids++ ) if( CALC_im[ids] != NULL ) break ;
 
-   if( ids == 26 ){
+   if( ids == 26 && (CALC_nx < 2 || CALC_ny < 2) ){
       fprintf(stderr,"No input images given!\n") ; exit(1) ;
    }
 
@@ -226,8 +239,13 @@ int main( int argc , char * argv[] )
    }
 
    for( ids=0 ; ids < 26 ; ids++ ) if( CALC_im[ids] != NULL ) break ;
-   new_im = mri_new_conforming( CALC_im[ids] , MRI_float ) ;
-   fnew   = MRI_FLOAT_PTR(new_im) ;
+   if( ids < 26 ){
+      new_im = mri_new_conforming( CALC_im[ids] , MRI_float ) ;
+   } else if( CALC_nx > 1 && CALC_ny > 1 ){
+      new_im = mri_new( CALC_nx , CALC_ny , MRI_float ) ;
+      CALC_nvox = new_im->nvox ;
+   }
+   fnew = MRI_FLOAT_PTR(new_im) ;
 
    for( ids=0 ; ids < 26 ; ids++ ) atoz[ids] = 0.0 ;
 

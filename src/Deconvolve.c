@@ -30,6 +30,25 @@
            and the residual error time series (-errts) to 3d+time datasets.
   Date:    22 November 1999
 
+  Mod:     Added -censor option to allow operator to eliminate individual
+           time points from the analysis.
+  Date:    21 June 2000
+
+  Mod:     Added -censor option to allow operator to eliminate individual
+           time points from the analysis.
+  Date:    21 June 2000
+
+  Mod:     Added screen display of p-values.
+  Date:    22 June 2000
+
+  Mod:     Added -glt_label option for labeling the GLT matrix.
+  Date:    23 June 2000
+
+  Mod:     Added -concat option for analysis of a concatenated 3d+time dataset.
+  Date:    26 June 2000
+
+  Mod:     Increased size of screen output buffer.
+  Date:    27 July 2000
 
 */
 
@@ -50,38 +69,57 @@ int init_indep_var_matrix
 (
   int p,                      /* number of parameters in the full model */   
   int q,                      /* number of parameters in the baseline model */ 
-  int NFirst,                 /* index of first image to use in the analysis */
+  int polort,                 /* degree of polynomial for baseline model */
+  int nt,                     /* number of images in input 3d+time dataset */
   int N,                      /* total number of images used in the analysis */
+  int * good_list,            /* list of usable time points */
+  int * block_list,           /* list of block (run) starting points */
+  int num_blocks,             /* number of blocks (runs) */
   int num_stimts,             /* number of stimulus time series */
   float ** stimulus,          /* stimulus time series arrays */
   int * stim_length,          /* length of stimulus time series arrays */
   int * min_lag,              /* minimum time delay for impulse response */
   int * max_lag,              /* maximum time delay for impulse response */
-  matrix * x                  /* independent variable matrix */
+  matrix * xgood              /* independent variable matrix */
 )
 
 {
-  int i;                    /* time index */
   int m;                    /* X matrix column index */
   int n;                    /* X matrix row index */
   int is;                   /* input stimulus index */
   int ilag;                 /* time lag index */
+  int ib;                   /* block (run) index */
+  int nfirst, nlast;        /* time boundaries of a block (run) */
+  int mfirst, mlast;        /* column boundaries of baseline parameters 
+			       for a block (run) */
 
   float * stim_array;       /* stimulus function time series */
+  matrix x;                 /* X matrix */
 
 
   /*----- Initialize X matrix -----*/
-  matrix_create (N, p, x);
+  matrix_initialize (&x);
+  matrix_create (nt, p, &x);
 
 
   /*----- Set up columns of X matrix corresponding to  
           the baseline (null hypothesis) signal model -----*/
-  for (m = 0;  m < q;  m++)
-    for (n = 0;  n < N;  n++)
-      {
-	i = n + NFirst;
-	(*x).elts[n][m] = pow ((double)i, (double)m);
-      }
+  for (ib = 0;  ib < num_blocks;  ib++)
+    {
+      nfirst = block_list[ib];
+      if (ib+1 < num_blocks)
+	nlast = block_list[ib+1];
+      else
+	nlast = nt;
+
+      for (n = nfirst;  n < nlast;  n++)
+	{
+	  mfirst = ib * (polort+1);
+	  mlast  = (ib+1) * (polort+1);
+	  for (m = mfirst;  m < mlast;  m++)
+	    x.elts[n][m] = pow ((double)(n-nfirst), (double)(m-mfirst));
+	}
+    }
 
 
   /*----- Set up columns of X matrix corresponding to 
@@ -89,7 +127,7 @@ int init_indep_var_matrix
   m = q;
   for (is = 0;  is < num_stimts;  is++)
     {
-      if (stim_length[is] < N+NFirst)
+      if (stim_length[is] < nt)
 	{
 	  DC_error ("Input stimulus time series is too short");
 	  return (0);
@@ -97,14 +135,22 @@ int init_indep_var_matrix
       stim_array = stimulus[is];
       for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
 	{
-	  for (n = 0;  n < N;  n++)
+	  for (n = 0;  n < nt;  n++)
 	    {
-	      i = n + NFirst;
-	      (*x).elts[n][m] = stim_array[i-ilag];
+	      if (n < ilag)
+		x.elts[n][m] = 0.0;
+	      else
+		x.elts[n][m] = stim_array[n-ilag];
 	    }
 	  m++;
 	}
     }
+
+
+  /*----- Keep only those rows of the X matrix which correspond to 
+          usable time points -----*/
+  matrix_extract_rows (x, N, good_list, xgood);
+  matrix_destroy (&x);
 
   return (1);
 
@@ -433,14 +479,44 @@ void glt_analysis
 
 
 /*---------------------------------------------------------------------------*/
+/*
+  Convert F-value to p-value.  
+  This routine was copied from: mri_stats.c
+*/
 
-static char lbuf[4096];   /* character string containing statistical summary */
+
+double fstat_t2p( double ff , double dofnum , double dofden )
+{
+   int which , status ;
+   double p , q , f , dfn , dfd , bound ;
+
+   which  = 1 ;
+   p      = 0.0 ;
+   q      = 0.0 ;
+   f      = ff ;
+   dfn    = dofnum ;
+   dfd    = dofden ;
+
+   cdff( &which , &p , &q , &f , &dfn , &dfd , &status , &bound ) ;
+
+   if( status == 0 ) return q ;
+   else              return 1.0 ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static char lbuf[8192];   /* character string containing statistical summary */
 static char sbuf[256];
 
 
 void report_results 
 (
+  int N,                      /* number of usable data points */
+  int p,                      /* number of parameters in the full model */
   int q,                      /* number of parameters in the baseline model */
+  int polort,                 /* degree of polynomial for baseline model */
+  int * block_list,           /* list of block (run) starting points */
+  int num_blocks,             /* number of blocks (runs) */
   int num_stimts,             /* number of stimulus time series */
   char ** stim_label,         /* label for each stimulus */
   int * min_lag,              /* minimum time delay for impulse response */ 
@@ -453,6 +529,7 @@ void report_results
   float rfull,                /* full model R^2 stat. */
   float mse,                  /* mean square error from full model */
   int glt_num,                /* number of general linear tests */
+  char ** glt_label,          /* label for general linear tests */
   int * glt_rows,             /* number of linear constraints in glt */
   vector *  glt_coef,         /* linear combinations from GLT matrices */
   float * fglt,               /* F-statistics for the general linear tests */
@@ -461,6 +538,7 @@ void report_results
 )
 
 {
+  const int MAXBUF = 7936;    /* maximum buffer string length */
   int m;                      /* coefficient index */
   int is;                     /* stimulus index */
   int ilag;                   /* time lag index */
@@ -468,87 +546,125 @@ void report_results
   int iglt;                   /* general linear test index */
   int ilc;                    /* linear combination index */
 
+  double pvalue;              /* p-value corresponding to F-value */
+  int r;                      /* number of parameters in the reduced model */
 
-  /** 22 Apr 1997: create label if desired by AFNI         **/
-  /** [This is in static storage, since AFNI will copy it] **/
+  int ib;                   /* block (run) index */
+  int mfirst, mlast;        /* column boundaries of baseline parameters 
+			       for a block (run) */
+ 
+
+  lbuf[0] = '\0' ;   /* make this a 0 length string to start */
   
-  if( label != NULL ){  /* assemble this 1 line at a time from sbuf */
-    
-    lbuf[0] = '\0' ;   /* make this a 0 length string to start */
-    
-    /** for each reference, make a string into sbuf **/
+  /** for each reference, make a string into sbuf **/
 
 
-    /*----- Statistical results for baseline fit -----*/ 
-    sprintf (sbuf, "\nBaseline: \n");
-    strcat(lbuf,sbuf);
-    for (m=0;  m < q;  m++)
-      {
-	sprintf (sbuf, "t^%d  coef = %10.4f    ", m, coef.elts[m]);
-	strcat(lbuf,sbuf) ;
-	sprintf (sbuf, "t^%d  t-stat = %10.4f\n", m, tcoef.elts[m]);
-	strcat(lbuf,sbuf) ;
-      }
+  /*----- Statistical results for baseline fit -----*/ 
+  if (num_blocks == 1)
+    {
+      sprintf (sbuf, "\nBaseline: \n");
+      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
+      for (m=0;  m < q;  m++)
+	{
+	  sprintf (sbuf, "t^%d   coef = %10.4f    ", m, coef.elts[m]);
+	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	  sprintf (sbuf, "t^%d   t-st = %10.4f\n", m, tcoef.elts[m]);
+	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	}
+    }
+  else
+    {
+      for (ib = 0;  ib < num_blocks;  ib++)
+	{
+	  sprintf (sbuf, "\nBaseline for Run #%d: \n", ib+1);
+	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
+	  
+	  mfirst = ib * (polort+1);
+	  mlast  = (ib+1) * (polort+1);
+	  for (m = mfirst;  m < mlast;  m++)
+	    {
+	      sprintf (sbuf, "t^%d   coef = %10.4f    ", 
+		       m - mfirst, coef.elts[m]);
+	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	      sprintf (sbuf, "t^%d   t-st = %10.4f\n", 
+		       m - mfirst, tcoef.elts[m]);
+	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	    }
+	}
+    }
     
 
-    /*----- Statistical results for stimulus response -----*/
-    m = q;
-    for (is = 0;  is < num_stimts;  is++)
-      {
-	sprintf (sbuf, "\nStimulus: %s \n", stim_label[is]);
-	strcat(lbuf,sbuf);
-	for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
-	  {
-	    sprintf (sbuf,"h[%d] coef = %10.4f    ", ilag, coef.elts[m]);
-	    strcat(lbuf,sbuf) ;
-	    sprintf  (sbuf,"h[%d] t-stat = %10.4f\n", ilag, tcoef.elts[m]);
-	    strcat (lbuf, sbuf);
-	    m++;
-	  }
-	sprintf (sbuf, "%26sPartial R^2 = %10.4f \n", "", rpart[is]);
-	strcat (lbuf, sbuf);
-	sprintf (sbuf, "%26sPartial F   = %10.4f \n", "", fpart[is]);
-	strcat (lbuf, sbuf);
-      }
-
-
-    /*----- Statistical results for general linear test -----*/
-    if (glt_num > 0)
-      {
-	for (iglt = 0;  iglt < glt_num;  iglt++)
-	  {
-	    sprintf (sbuf, "\nGeneral Linear Test #%d: \n", iglt+1);
-	    strcat (lbuf,sbuf);
-	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	      {
-		sprintf (sbuf, "LC[%d]  = %10.4f \n", 
-			 ilc, glt_coef[iglt].elts[ilc]);
-		strcat (lbuf,sbuf);
-	      }
-	    sprintf (sbuf, "R^2    = %10.4f \n", rglt[iglt]);
-	    strcat (lbuf,sbuf);
-	    sprintf (sbuf, "F-stat = %10.4f \n", fglt[iglt]);
-	    strcat (lbuf,sbuf);
-	  }
-      }
-    
-
-    /*----- Statistical results for full model -----*/
-    sprintf (sbuf, "\nFull Model: \n");
-    strcat (lbuf, sbuf);
-
-    sprintf (sbuf, "MSE    = %10.4f \n", mse);
-    strcat (lbuf, sbuf);
-    
-    sprintf (sbuf, "R^2    = %10.4f \n", rfull);
-    strcat (lbuf, sbuf);
-    
-    sprintf (sbuf, "F-stat = %10.4f \n", ffull);
-    strcat (lbuf, sbuf);
-    
-    *label = lbuf ;  /* send address of lbuf back in what label points to */
-  }
+  /*----- Statistical results for stimulus response -----*/
+  m = q;
+  for (is = 0;  is < num_stimts;  is++)
+    {
+      sprintf (sbuf, "\nStimulus: %s \n", stim_label[is]);
+      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
+      for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
+	{
+	  sprintf (sbuf,"h[%2d] coef = %10.4f    ", ilag, coef.elts[m]);
+	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	  sprintf  (sbuf,"h[%2d] t-st = %10.4f\n", ilag, tcoef.elts[m]);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	  m++;
+	}
+      
+      sprintf (sbuf, "       R^2 = %10.4f    ", rpart[is]);
+      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+      r = p - (max_lag[is]-min_lag[is]+1);
+      sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-r, N-p, fpart[is]);
+      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+      pvalue = fstat_t2p ((double)fpart[is], (double)(p-r), (double)(N-p));
+      sprintf (sbuf, "p-value    = %12.4e \n", pvalue);
+      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+    }
   
+
+  /*----- Statistical results for full model -----*/
+  sprintf (sbuf, "\nFull Model: \n");
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  
+  sprintf (sbuf, "       MSE = %10.4f \n", mse);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  
+  sprintf (sbuf, "       R^2 = %10.4f    ", rfull);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  
+  sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-q, N-p, ffull);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  pvalue = fstat_t2p ((double)ffull, (double)(p-q), (double)(N-p));
+  sprintf (sbuf, "p-value    = %12.4e  \n", pvalue);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+    
+
+  /*----- Statistical results for general linear test -----*/
+  if (glt_num > 0)
+    {
+      for (iglt = 0;  iglt < glt_num;  iglt++)
+	{
+	  sprintf (sbuf, "\nGeneral Linear Test: %s \n", glt_label[iglt]);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+	  for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+	    {
+	      sprintf (sbuf, "LC[%d]      = %10.4f \n", 
+		       ilc, glt_coef[iglt].elts[ilc]);
+	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+	    }
+	  sprintf (sbuf, "R^2        = %10.4f    ", rglt[iglt]);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+
+	  r = p - glt_rows[iglt];
+	  sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-r, N-p, fglt[iglt]);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	  pvalue = fstat_t2p ((double)fglt[iglt], 
+			      (double)(p-r), (double)(N-p));
+	  sprintf (sbuf, "p-value    = %12.4e  \n", pvalue);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	}
+    }
+  
+  *label = lbuf ;  /* send address of lbuf back in what label points to */
+
 }
 
 

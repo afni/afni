@@ -1,10 +1,7 @@
-#include "thd_iochan.h"
+#include "mrilib.h"
 
 #define WDEL 1
 #define RDEL 1
-
-extern double COX_cpu_time(void) ;     /* in times.c */
-extern double COX_clock_time(void) ;
 
 int main( int argc , char * argv[] )
 {
@@ -13,10 +10,12 @@ int main( int argc , char * argv[] )
    char * buf ;
    double time1,time2,rate ;
 
-   if( argc < 5 ){ printf("Usage: iotest iochan_spec mode_spec nbytes nreps\n");
-                   printf("where iochan_spec = shm:name:size or tcp:host:port\n");
-                   printf("      mode        = w or r\n") ;
-                   exit(0); }
+   if( argc < 5 ){
+      printf("Usage: iotest iochan_spec mode_spec nbytes nreps\n");
+      printf("where iochan_spec = shm:name:size or tcp:host:port\n");
+      printf("      mode        = w or r\n") ;
+      exit(0);
+   }
 
    writer = (strcmp(argv[2],"create") == 0 || strcmp(argv[2],"w") == 0) ;
 

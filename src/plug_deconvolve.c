@@ -62,6 +62,22 @@
   Mod:     Modified matrix_file_read to use mri_read_ascii routine.
   Date:    12 January 2000
 
+  Mod:     Added censor input option to allow operator to eliminate individual
+           time points from the analysis.
+  Date:    21 June 2000
+
+  Mod:     Added screen display of p-values.
+  Date:    22 June 2000
+
+  Mod:     Added -glt_label option for labeling the GLT matrix.
+  Date:    23 June 2000
+
+  Mod:     Added Concat Runs option for analysis of a concatenated 3d+time 
+           dataset.
+  Date:    27 June 2000
+
+  Mod:     Increased size of screen output buffer.
+  Date:    27 July 2000
   
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -70,9 +86,10 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
-#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "29 November 1999"          /* date of last program mod */
+#define PROGRAM_NAME    "plug_deconvolve"            /* name of this program */
+#define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
+#define PROGRAM_INITIAL "09 Sept 1998"    /* date of initial program release */
+#define PROGRAM_LATEST  "27 July 2000"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -118,11 +135,29 @@ static char helpstring[] =
    "              NLast     = Number of last time series point to use.      \n"
    "              IRF Label = Which stimulus to use for generating IRF plot.\n"
    "                                                                        \n"
-   " Stimulus:    Label     = Name for reference to this input stimulus.    \n"
+   " Concat Runs: Label     = Name to use as label for concatenation.       \n"
+   "              File      = File containing list of volume indices of     \n"
+   "                          starting points for individual runs.          \n"
+   "              Column    = Column of file which contains concat run list.\n"
+   "                                                                        \n"
+   " Censor:      Label     = Name to use as label for censor function.     \n"
+   "              File      = Time series file indicating censored points.  \n"
+   "              Column    = Column of file which contains censor function.\n"
+   "                                                                        \n"
+   " Stimulus:    Label     = Name to use as label for this input stimulus. \n"
    "              File      = Time series file representing input stimulus. \n"
    "              Column    = Column of file which contains input stimulus. \n"
    "              Min Lag   = Minimum time delay for impulse response.      \n"
    "              Max Lag   = Maximum time delay for impulse response.      \n"
+   "                                                                        \n"
+   " GLT Matrix:  Label     = Name to use as label for this GLT matrix.     \n"
+   "              File      = File containing the GLT matrix.               \n"
+   "              # Rows    = Number of rows (linear constraints) in GLT.   \n"
+   "                                                                        \n"
+   "                                                                        \n"
+   " For more details, see:                                                 \n"
+   " `Deconvolution Analysis of FMRI Time Series Data' by B. Douglas Ward,  \n"
+   " which is contained in file 3dDeconvolve.ps of the AFNI distribution.   \n"
 ;
 
 
@@ -146,15 +181,29 @@ int calculate_results();
 
 static PLUGIN_interface * global_plint = NULL;
 
-static int plug_polort=1;   /* degree of polynomial for baseline model */
-static int plug_p = 0;      /* total number of parameters in the model */
-static int plug_NFirst=0;   /* first image from input 3d+time dataset to use */
-static int plug_NLast=32767;/* last image from input 3d+time dataset to use */
-static int plug_IRF=-1;     /* which impulse response fuction to plot */
-static int initialize=0;    /* flag for perform initialization */
-static int prev_nt=0;       /* previous time series length */
+static int plug_polort;     /* degree of polynomial for baseline model */
+static int plug_p;          /* total number of parameters in the full model */
+static int plug_q;          /* total number of parameters in the base model */
+static int plug_NFirst;     /* first image from input 3d+time dataset to use */
+static int plug_NLast;      /* last image from input 3d+time dataset to use */
+static int plug_IRF;        /* which impulse response fuction to plot */
+static int initialize;      /* flag for perform initialization */
+static int prev_nt;         /* previous time series length */
+static char * IRF_label;    /* label of stimulus for IRF plot */
 
-static int num_stimts = 0;                 /* number of stimulus time series */
+static char * concat_label;      /* label for concatenation */
+static int concat_column;        /* column containing list of blocks (runs) */
+static int num_blocks;           /* number of blocks (runs) */
+static int * block_list;         /* list of block (run) starting points */
+
+static int num_censor;                /* flag for include censor function */
+static char * censor_label;           /* censor time series label */
+static int censor_column;             /* column containing censor array */
+static float * censor_array;          /* censor time series array */
+static int censor_length;             /* length of censor time series */
+static int * good_list;               /* list of usable time points */
+
+static int num_stimts;                     /* number of stimulus time series */
 static char * stim_label[MAX_STIMTS];      /* stimulus time series labels */
 static int stim_column[MAX_STIMTS];        /* column containing stimulus */
 static float * stimulus[MAX_STIMTS];       /* stimulus time series arrays */
@@ -172,13 +221,13 @@ static matrix x_rdcd[MAX_STIMTS]; /* extracted X matrices for reduced models */
 static matrix xtxinvxt_rdcd[MAX_STIMTS];     
                                   /* matrix:  (1/(X'X))X' for reduced models */
 
-static int glt_num = 0;           /* number of general linear tests */
-static int glt_rows[MAX_GLT];     /* number of linear constraints in glt */
-static char * glt_filename[MAX_GLT];       /* file containing glt matrix */
-
-static matrix glt_cmat[MAX_GLT];  /* general linear test matrices */
-static matrix glt_amat[MAX_GLT];  /* constant GLT matrices for later use */
-static vector glt_coef[MAX_GLT];  /* linear combinations from GLT matrices */
+static int glt_num;                 /* number of general linear tests */
+static char * glt_label[MAX_GLT];   /* general linear test labels */
+static int glt_rows[MAX_GLT];       /* number of linear constraints in glt */
+static char * glt_filename[MAX_GLT];/* file containing glt matrix */
+static matrix glt_cmat[MAX_GLT];    /* general linear test matrices */
+static matrix glt_amat[MAX_GLT];    /* constant GLT matrices for later use */
+static vector glt_coef[MAX_GLT];    /* linear combinations from GLT matrices */
 
 
 /*---------------------------------------------------------------------------*/
@@ -187,6 +236,209 @@ static vector glt_coef[MAX_GLT];  /* linear combinations from GLT matrices */
 */
 
 #include "Deconvolve.c"
+
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Initialize control options and global data.
+*/
+
+void initialize_options ()
+{
+  int is;                     /* input stimulus index */
+  int iglt;                   /* index for general linear test */
+
+
+  /*----- Initialize control parameters -----*/
+  plug_polort = 1;        /* degree of polynomial for baseline model */
+  plug_p      = 0;        /* total number of parameters in the full model */
+  plug_q      = 0;        /* total number of parameters in the base model */
+  plug_NFirst = 0;        /* first image from input 3d+time dataset to use */
+  plug_NLast  = 32767;    /* last image from input 3d+time dataset to use */
+  plug_IRF    = -1;       /* which impulse response fuction to plot */
+  initialize  = 0;        /* flag for perform initialization */
+  prev_nt     = 0;        /* previous time series length */
+  IRF_label   = malloc (sizeof(char)*MAX_NAME_LENGTH);   MTEST (IRF_label);
+  strcpy (IRF_label, " ");      /* label of stimulus for IRF plot */
+
+
+  /*----- Initialization for concatenated runs -----*/
+  concat_label = malloc (sizeof(char)*MAX_NAME_LENGTH);  MTEST (concat_label);
+  strcpy (concat_label, " ");    /* label for concatenation */
+  concat_column = 0;             /* column containing list of blocks (runs) */
+  num_blocks = 1;                /* number of blocks (runs) */
+  block_list = (int *) malloc (sizeof(int) * 1);  MTEST (block_list);  
+  block_list[0] = 0;             /* list of block (run) starting points */
+
+
+  /*----- Initialize censorship function -----*/
+  num_censor = 0;
+  censor_label = malloc (sizeof(char)*MAX_NAME_LENGTH);  MTEST (censor_label);
+  strcpy (censor_label, " ");        /* censor time series label */
+  censor_column = 0;                 /* column containing censor array */
+  censor_array = NULL;               /* censor time series array */
+  censor_length = 0;                 /* length of censor time series */
+  good_list = NULL;                  /* list of usable time points */
+
+
+  /*----- Initialize stimulus functions -----*/
+  num_stimts = 0;                          /* number of stimulus time series */
+  for (is =0;  is < MAX_STIMTS;  is++)
+    {
+      stim_label[is] = malloc (sizeof(char)*MAX_NAME_LENGTH);
+      MTEST (stim_label[is]);
+      sprintf (stim_label[is], "Stim #%d ", is+1);
+                                           /* stimulus time series labels */
+      stim_column[is] = 0;                 /* column containing stimulus */
+      stimulus[is] = NULL;                 /* stimulus time series arrays */
+      stim_length[is] = 0;                 /* length of stimulus time series */
+      min_lag[is] = 0;            /* minimum time delay for impulse response */
+      max_lag[is] = 0;            /* maximum time delay for impulse response */
+   }
+
+
+  /*----- Initialize matrices -----*/
+  matrix_initialize (&xdata);         /* independent variable matrix */
+  matrix_initialize (&x_full);        /* extracted X matrix   for full model */
+  matrix_initialize (&xtxinv_full);   /* matrix:  1/(X'X)     for full model */
+  matrix_initialize (&xtxinvxt_full); /* matrix:  (1/(X'X))X' for full model */
+  matrix_initialize (&x_base);    /* extracted X matrix   for baseline model */
+  matrix_initialize (&xtxinvxt_base);
+                                  /* matrix:  (1/(X'X))X' for baseline model */
+  for (is =0;  is < MAX_STIMTS;  is++)
+    {
+      matrix_initialize (&x_rdcd[is]); 
+                                  /* extracted X matrices for reduced models */
+      matrix_initialize (&xtxinvxt_rdcd[is]);
+                                  /* matrix:  (1/(X'X))X' for reduced models */
+    }
+
+
+  /*----- Initialize GLT matrices -----*/
+  glt_num = 0;                             /* number of general linear tests */
+  for (iglt =0;  iglt < MAX_GLT;  iglt++)
+    {
+      glt_label[iglt] = malloc (sizeof(char)*MAX_NAME_LENGTH);
+      MTEST (glt_label[iglt]);
+      sprintf (glt_label[iglt], "GLT #%d ", iglt+1);
+                                               /* general linear test labels */
+      glt_rows[iglt] = 0;             /* number of linear constraints in glt */
+      glt_filename[iglt] = malloc (sizeof(char)*MAX_NAME_LENGTH);
+      MTEST (glt_filename[iglt]);
+      strcpy (glt_filename[iglt], " ");        /* file containing glt matrix */
+      matrix_initialize (&glt_cmat[iglt]);
+                                             /* general linear test matrices */
+      matrix_initialize (&glt_amat[iglt]); 
+                                      /* constant GLT matrices for later use */
+      vector_initialize (&glt_coef[iglt]);
+                                    /* linear combinations from GLT matrices */
+    }
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Reset control options and global data.
+*/
+
+void reset_options ()
+{
+  int is;                     /* input stimulus index */
+  int iglt;                   /* index for general linear test */
+
+
+  /*----- Reset control parameters -----*/
+  plug_polort = 1;        /* degree of polynomial for baseline model */
+  plug_p      = 0;        /* total number of parameters in the full model */
+  plug_q      = 0;        /* total number of parameters in the base model */
+  plug_NFirst = 0;        /* first image from input 3d+time dataset to use */
+  plug_NLast  = 32767;    /* last image from input 3d+time dataset to use */
+  plug_IRF    = -1;       /* which impulse response fuction to plot */
+  initialize  = 0;        /* flag for perform initialization */
+  prev_nt     = 0;        /* previous time series length */
+  strcpy (IRF_label, " ");       /* label of stimulus for IRF plot */
+
+
+  /*----- Reset for concatenated runs -----*/
+  strcpy (concat_label, " ");    /* label for concatenation */
+  concat_column = 0;             /* column containing list of blocks (runs) */
+  num_blocks = 1;                /* number of blocks (runs) */
+  if (block_list != NULL)  free (block_list);       
+  block_list = (int *) malloc (sizeof(int) * 1);  MTEST (block_list);  
+  block_list[0] = 0;             /* list of block (run) starting points */
+
+
+  /*----- Reset censorship function -----*/
+  num_censor = 0;
+  strcpy (censor_label, " ");        /* censor time series label */
+  censor_column = 0;                 /* column containing censor array */
+  if (censor_array != NULL)
+    {  
+      free (censor_array);   
+      censor_array = NULL;           /* censor time series array */
+    }
+  censor_length = 0;                 /* length of censor time series */
+  if (good_list != NULL)
+    {
+      free (good_list);
+      good_list = NULL;              /* list of usable time points */
+    }
+
+
+  /*----- Reset stimulus functions -----*/
+  num_stimts = 0;                          /* number of stimulus time series */
+  for (is =0;  is < MAX_STIMTS;  is++)
+    {
+      sprintf (stim_label[is], "Stim #%d ", is+1);
+                                           /* stimulus time series labels */
+      stim_column[is] = 0;                 /* column containing stimulus */
+      if (stimulus[is] != NULL)
+	{
+	  free (stimulus[is]);
+	  stimulus[is] = NULL;             /* stimulus time series arrays */
+	}
+      stim_length[is] = 0;                 /* length of stimulus time series */
+      min_lag[is] = 0;            /* minimum time delay for impulse response */
+      max_lag[is] = 0;            /* maximum time delay for impulse response */
+   }
+
+
+  /*----- Destroy matrices -----*/
+  matrix_destroy (&xdata);         /* independent variable matrix */
+  matrix_destroy (&x_full);        /* extracted X matrix   for full model */
+  matrix_destroy (&xtxinv_full);   /* matrix:  1/(X'X)     for full model */
+  matrix_destroy (&xtxinvxt_full); /* matrix:  (1/(X'X))X' for full model */
+  matrix_destroy (&x_base);       /* extracted X matrix   for baseline model */
+  matrix_destroy (&xtxinvxt_base);
+                                  /* matrix:  (1/(X'X))X' for baseline model */
+  for (is =0;  is < MAX_STIMTS;  is++)
+    {
+      matrix_destroy (&x_rdcd[is]); 
+                                  /* extracted X matrices for reduced models */
+      matrix_destroy (&xtxinvxt_rdcd[is]);
+                                  /* matrix:  (1/(X'X))X' for reduced models */
+    }
+
+
+  /*----- Destroy GLT matrices -----*/
+  glt_num = 0;                             /* number of general linear tests */
+  for (iglt =0;  iglt < MAX_GLT;  iglt++)
+    {
+      sprintf (glt_label[iglt], "GLT #%d ", iglt+1);
+                                               /* general linear test labels */
+      glt_rows[iglt] = 0;             /* number of linear constraints in glt */
+      strcpy (glt_filename[iglt], " ");        /* file containing glt matrix */
+      matrix_destroy (&glt_cmat[iglt]);
+                                             /* general linear test matrices */
+      matrix_destroy (&glt_amat[iglt]); 
+                                      /* constant GLT matrices for later use */
+      vector_destroy (&glt_coef[iglt]);
+                                    /* linear combinations from GLT matrices */
+    }
+
+}
 
 
 /*---------------------------------------------------------------------------*/
@@ -227,6 +479,20 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_string( plint, "IRF Label",    0, NULL, 1);
 
 
+   /*----- Concatenation Function -----*/
+   PLUTO_add_option (plint, "Concat Runs", "Concat Runs", FALSE);
+   PLUTO_add_string( plint, "Label", 0, NULL, 1);
+   PLUTO_add_timeseries (plint, "File");
+   PLUTO_add_number (plint, "Column ", 0, 100, 0, 0, TRUE);
+
+
+   /*----- Censor Function -----*/
+   PLUTO_add_option (plint, "Censor", "Censor", FALSE);
+   PLUTO_add_string( plint, "Label", 0, NULL, 1);
+   PLUTO_add_timeseries (plint, "File");
+   PLUTO_add_number (plint, "Column ", 0, 100, 0, 0, TRUE);
+
+
    /*----- Input Stimulus -----*/
    for (is = 0;  is < MAX_STIMTS;  is++)
      {
@@ -243,48 +509,103 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    for (is = 0;  is < MAX_GLT;  is++)
      {
        PLUTO_add_option (plint, "GLT Matrix", "GLT Matrix", FALSE);
-       PLUTO_add_number (plint, "Rows", 1, 10, 0, 0, TRUE);
+       PLUTO_add_string( plint, "Label", 0, NULL, 1);
        PLUTO_add_string( plint, "File", 0, NULL, 1);     
+       PLUTO_add_number (plint, "# Rows", 1, 10, 0, 0, TRUE);
      }
 
    /*--------- done with interface setup ---------*/
    PLUTO_register_1D_funcstr ("DC_Fit" , DC_Fit);
    PLUTO_register_1D_funcstr ("DC_Err" , DC_Err);
    PLUTO_register_1D_funcstr ("DC_IRF" , DC_IRF);
+   
 
-
-  /*----- Initialize arrays, matrices, and vectors -----*/
-  matrix_initialize (&xdata);
-  matrix_initialize (&x_full);
-  matrix_initialize (&xtxinv_full);
-  matrix_initialize (&xtxinvxt_full);
-  matrix_initialize (&x_base);
-  matrix_initialize (&xtxinvxt_base);
-
-  for (is =0;  is < MAX_STIMTS;  is++)
-    {
-      matrix_initialize (&x_rdcd[is]);
-      matrix_initialize (&xtxinvxt_rdcd[is]);
-      stim_label[is] = malloc (sizeof(char)*MAX_NAME_LENGTH);
-      MTEST (stim_label[is]);
-      strcpy (stim_label[is], " ");
-      stimulus[is] = NULL;
-      stim_length[is] = 0;
-    }
-
-  for (iglt =0;  iglt < MAX_GLT;  iglt++)
-    {
-      glt_rows[iglt] = 0;
-      matrix_initialize (&glt_cmat[iglt]);
-      matrix_initialize (&glt_amat[iglt]);
-      vector_initialize (&glt_coef[iglt]);
-      glt_filename[iglt] = malloc (sizeof(char)*MAX_NAME_LENGTH);
-      MTEST (glt_filename[iglt]);
-      strcpy (glt_filename[iglt], " ");
-    }
+   /*----- Initialize options and global data -----*/
+   initialize_options ();
 
 
    return plint ;
+}
+
+
+/*---------------------------------------------------------------------------*/
+
+void show_options ()
+{
+  int ib;                         /* block (run) index */
+  int it;                         /* time index */
+  int is;                         /* stimulus index */
+  int iglt;                       /* general linear test index */
+
+
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+  printf ("\n");
+
+
+  /*----- Show current input options -----*/
+  printf ("\nControls: \n");
+  printf ("Baseline  = %10s \n", baseline_strings[plug_polort]);
+  printf ("NFirst    = %10d \n", plug_NFirst);
+  printf ("NLast     = %10d \n", plug_NLast);
+  printf ("IRF label = %10s \n", IRF_label);
+
+
+  /*----- Identify concatenation function -----*/
+  if (num_blocks > 0)
+    {
+      printf ("\n");
+      printf ("Concatenation:     Label = %8s ", concat_label);
+      printf ("Column = %3d  \n", concat_column);
+      for (ib = 0;  ib < num_blocks;  ib++)
+	printf ("Run #%d  Initial Point = %d \n", ib+1, block_list[ib]); 
+    }
+
+
+  /*----- Identify censor function -----*/
+  if (num_censor > 0)
+    {
+      printf ("\n");
+      printf ("Censor Function:   Label = %8s ", censor_label);
+      printf ("Column = %3d  \n", censor_column);
+      printf ("Censored Points: ");
+      for (it = 0;  it < censor_length;  it++)
+	{
+	  if (censor_array[it] == 0)  printf (" %d", it);
+	}
+      printf ("\n");
+    }
+
+
+  /*----- List stimulus functions -----*/
+  if (num_stimts > 0)
+    {
+      printf ("\n");
+      for (is = 0;  is < num_stimts;  is++)
+	{
+	  printf ("Stimulus:      Label = %8s ", stim_label[is]);
+	  printf ("Column = %3d   Min. Lag = %3d   Max. Lag = %3d \n", 
+		  stim_column[is], min_lag[is], max_lag[is]);
+	}
+    }
+
+
+  /*----- List GLT matrices -----*/
+  if (glt_num > 0)
+    {
+      printf ("\n");
+      for (iglt = 0;  iglt < glt_num;  iglt++)
+	{
+	  printf ("GLT:       Label = %8s   ", glt_label[iglt]);
+   	  printf ("#Rows = %2d   Input File: %s \n", 
+		  glt_rows[iglt], glt_filename[iglt]);
+	}
+    }
+ 
 }
 
 
@@ -299,7 +620,6 @@ char * DC_main( PLUGIN_interface * plint )
 {
   char * str;                           /* input string */
   int is;                               /* stimulus index */
-  char IRF_label[MAX_NAME_LENGTH];      /* label of stimulus for IRF plot */
   int iglt;                             /* general linear test index */
   MRI_IMAGE * stim;     /* pointers to image structures 
                            -- used to read 1D ASCII */
@@ -307,9 +627,9 @@ char * DC_main( PLUGIN_interface * plint )
   int ipt;              /* time point index */
   
 
-  /*----- reset flag for successful initialization -----*/
-  initialize = 0;
-    
+  /*----- Reset options and global data -----*/
+  reset_options ();
+
 
   /*--------- go to Control input line ---------*/
   PLUTO_next_option (plint);
@@ -318,13 +638,95 @@ char * DC_main( PLUGIN_interface * plint )
   plug_NFirst = PLUTO_get_number (plint);
   plug_NLast  = PLUTO_get_number (plint);
   strcpy (IRF_label, PLUTO_get_string (plint));
+	  
+
+  /*--------- go to Concat Runs input line ---------*/
+  str = PLUTO_peek_optiontag (plint);
+  if (str != NULL) 
+
+    /*----- Read Concat Runs input Line -----*/
+    if (strcmp (str, "Concat Runs") == 0)
+      {
+	str = PLUTO_get_optiontag (plint);
+	strcpy (concat_label, PLUTO_get_string(plint));
+
+	stim = PLUTO_get_timeseries(plint) ;
+	
+	if (stim == NULL || stim->nx < 1 
+	    ||  stim->kind != MRI_float)
+	  return "**************************\n"
+	    "Illegal Censor File Input!\n"
+	    "**************************"  ;
+	
+	/*----- Column in file which contains the concat function -----*/
+	concat_column = PLUTO_get_number(plint);
+	
+	if ((concat_column < 0) 
+	    ||(concat_column > stim->ny - 1))
+	  return "**********************************\n"
+	    "Illegal Concat File Column Number!\n"
+	    "**********************************"  ;
+
+	/*----- Extract concat run start list from MRI data structure -----*/
+	far = MRI_FLOAT_PTR(stim);
+	num_blocks = stim->nx;
+	if (block_list != NULL)  free (block_list);
+	block_list = (int *) malloc (sizeof(int) * num_blocks);
+	MTEST (block_list);
+	
+	for (ipt = 0;  ipt < num_blocks;  ipt++)
+	  block_list[ipt] = floor (far[ipt+concat_column*(stim->nx)] + 0.5); 
+      }
+  
+
+  /*--------- go to Censor input line ---------*/
+  str = PLUTO_peek_optiontag (plint);
+  if (str != NULL) 
+
+    /*----- Read Censor input Line -----*/
+    if (strcmp (str, "Censor") == 0)
+      {
+	str = PLUTO_get_optiontag (plint);
+	strcpy (censor_label, PLUTO_get_string(plint));
+
+	stim = PLUTO_get_timeseries(plint) ;
+	
+	if (stim == NULL || stim->nx < 3 
+	    ||  stim->kind != MRI_float)
+	  return "**************************\n"
+	    "Illegal Censor File Input!\n"
+	    "**************************"  ;
+
+	
+	/*----- Column in file which contains the censor function -----*/
+	censor_column = PLUTO_get_number(plint);
+	
+	if ((censor_column < 0) 
+	    ||(censor_column > stim->ny - 1))
+	  return "**********************************\n"
+	    "Illegal Censor File Column Number!\n"
+	    "**********************************"  ;
 
 
-  /*------ read input line(s) -----*/
-  plug_IRF = -1;
-  num_stimts = 0;
-  glt_num = 0;
+	/*----- Extract censor time series from MRI data structure -----*/
+	if (censor_array != NULL) 
+	  {
+	    free (censor_array);
+	    censor_array = NULL;
+	  }
+	far = MRI_FLOAT_PTR(stim);
+	censor_length = stim->nx;
+	censor_array = (float *) malloc (sizeof(float) * (stim->nx));
+	MTEST (censor_array);
+	
+	num_censor = 1;
+	for (ipt = 0;  ipt < (stim->nx);  ipt++)
+	  censor_array[ipt] 
+	    = far[ipt + censor_column*(stim->nx)]; 
+      }
+  
 
+  /*------ Loop over input line(s) -----*/
   do
     {
       str = PLUTO_get_optiontag(plint); 
@@ -338,7 +740,9 @@ char * DC_main( PLUGIN_interface * plint )
       /*----- Read Input Stimulus Line -----*/
       if (strcmp (str, "Stimulus") == 0)
 	{      
-	  strcpy (stim_label[num_stimts], PLUTO_get_string(plint));
+	  str =  PLUTO_get_string(plint);
+	  if (strlen(str) != 0)  strcpy (stim_label[num_stimts], str);
+
 	  if (strcmp(stim_label[num_stimts], IRF_label) == 0)
 	    plug_IRF = num_stimts;
 	  
@@ -393,9 +797,12 @@ char * DC_main( PLUGIN_interface * plint )
       /*----- Read General Matrix Test Line -----*/
       if (strcmp (str, "GLT Matrix") == 0)
 	{      
-	  glt_rows[glt_num] = PLUTO_get_number(plint);
+	  str =  PLUTO_get_string(plint);
+	  if (strlen(str) != 0)  strcpy (glt_label[glt_num], str);
 
 	  strcpy (glt_filename[glt_num], PLUTO_get_string(plint));
+
+	  glt_rows[glt_num] = PLUTO_get_number(plint);
       
 	  glt_num++;
 	}
@@ -406,7 +813,8 @@ char * DC_main( PLUGIN_interface * plint )
 
 
   /*----- Determine total number of parameters in the model -----*/
-  plug_p = plug_polort + 1;
+  plug_q = (plug_polort + 1) * num_blocks;
+  plug_p = plug_q;
   for (is = 0;  is < num_stimts;  is++)
     plug_p += max_lag[is] - min_lag[is] + 1;
   if (plug_p > MAX_XVARS)
@@ -434,31 +842,9 @@ char * DC_main( PLUGIN_interface * plint )
       } 
 
 
-  /*----- show current input options -----*/
-  printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR);
-  printf ("Date:    %s \n", PROGRAM_DATE);
-  printf ("\nControls: \n");
-  printf ("Baseline  = %10s \n", baseline_strings[plug_polort]);
-  printf ("NFirst    = %10d \n", plug_NFirst);
-  printf ("NLast     = %10d \n", plug_NLast);
-  printf ("IRF label = %10s \n", IRF_label);
+  /*----- Show the user input options -----*/
+  show_options ();
 
-  for (is = 0;  is < num_stimts;  is++)
-    {
-      printf ("\nStimulus:  %s \n", stim_label[is]);
-      printf ("Column = %3d   Min. Lag = %3d   Max. Lag = %3d \n", 
-	      stim_column[is], min_lag[is], max_lag[is]);
-    }
-
-  if (glt_num > 0)
-    for (iglt = 0;  iglt < glt_num;  iglt++)
-      {
-	printf ("\nGLT #%d   #rows = %d   from file: %s \n", 
-		iglt+1, glt_rows[iglt], glt_filename[iglt]);
-      }
- 
 
   /*--- nothing left to do until data arrives ---*/
   initialize = 1 ;  /* successful initialization */
@@ -478,8 +864,7 @@ int calculate_results
   int nt,               /* number of time points */
   double dt,            /* delta time */
   float * vec,          /* input measured data vector */
-  int * nfirst,         /* first image from input 3d+time dataset to use */
-  int * nlast,          /* last image from input 3d+time dataset to use */
+  int * NN,             /* number of usable data points */
   int * nfit,           /* number of fit parameters */
   float * fit,          /* fit parameters (regression coefficients) */
   char ** label,        /* string containing statistical summary of results */
@@ -491,7 +876,7 @@ int calculate_results
 {
   float * ts_array;           /* array of measured data for one voxel */
 
-  int N;                      /* number of data points */
+  int N;                      /* number of usable data points */
   int p;                      /* number of parameters in the full model */
   int q;                      /* number of parameters in the baseline model */
   int m;                      /* parameter index */
@@ -510,7 +895,7 @@ int calculate_results
 
   int NFirst;            /* first image from input 3d+time dataset to use */
   int NLast;             /* last image from input 3d+time dataset to use */
-  int i;                 /* data point index */
+  int i, it;             /* data point index */
   int is;                /* stimulus index */
 
   float rms_min = 0.0;   /* minimum variation in data to fit full model */
@@ -518,6 +903,9 @@ int calculate_results
   int novar;             /* flag for insufficient variation in data */
   float fglt[MAX_GLT];   /* F-statistics for the general linear tests */
   float rglt[MAX_GLT];   /* R^2 statistics for the general linear tests */
+
+  int ib;                /* block (run) index */
+  int irb;               /* time index relative to start of block (run) */
 
 
   /*----- Check initialization flag -----*/
@@ -532,31 +920,53 @@ int calculate_results
   
 
   /*----- Initialize local variables -----*/
-  q = plug_polort + 1;
+  q = plug_q;
   p = plug_p;
+  *nfit = p;
+
+
+  /*----- Allocate memory for fitted time series and residuals -----*/
+  *fitts    = (float *) malloc (sizeof(float) * nt);    MTEST (*fitts);
+  *errts    = (float *) malloc (sizeof(float) * nt);    MTEST (*errts);
+
+
+  /*----- Create list of good (usable) data points -----*/
+  good_list = (int *) malloc (sizeof(int) * nt);  MTEST (good_list);
   NFirst = plug_NFirst;
-  NLast = plug_NLast;
-
   for (is = 0;  is < num_stimts;  is++)
-    if (NFirst < max_lag[is])  NFirst = max_lag[is];
-   
-  if (NLast > nt-1)  NLast = nt-1;
-  N = NLast - NFirst + 1;
+    if (NFirst < max_lag[is])  
+      NFirst = max_lag[is];
+  NLast = plug_NLast;   
 
+  N = 0;
+  ib = 0;
+  for (it = block_list[0];  it < nt;  it++)
+    {
+      if (ib+1 < num_blocks)
+	if (it >= block_list[ib+1])  ib++;
+      
+      irb = it - block_list[ib];
+	  
+      if ((irb >= NFirst) && (irb <= NLast))
+	if ((num_censor == 0) || (censor_array[it]))
+	  {
+	    good_list[N] = it;
+	    N++;
+	  }
+    }
+
+  if (N == 0)
+    {
+      DC_error ("No usable time points?");
+      return (0);
+    }
   if (N <= p)  
     {
       DC_error ("Insufficient time series data for deconvolution fit");
       return (0);
     }
 
-  *nfirst = NFirst;
-  *nlast = NLast;
-  *nfit = p;
-
-
-  /*----- Allocate memory for fitted time series and residuals -----*/
-  *fitts    = (float *) malloc (sizeof(float) * N);    MTEST (fitts);
-  *errts    = (float *) malloc (sizeof(float) * N);    MTEST (errts);
+  *NN = N;
 
 
   /*----- Perform initialization only if something has changed -----*/
@@ -567,7 +977,8 @@ int calculate_results
   else
     {
       /*----- Initialize the independent variable matrix -----*/
-      ok = init_indep_var_matrix (p, q, NFirst, N, num_stimts, stimulus, 
+      ok = init_indep_var_matrix (p, q, plug_polort, nt, N, good_list, 
+				  block_list, num_blocks, num_stimts, stimulus,
 				  stim_length, min_lag, max_lag, &xdata);
 
       
@@ -590,7 +1001,7 @@ int calculate_results
       vector_create (N, &y);
       ts_array = vec;
       for (i = 0;  i < N;  i++)
-	y.elts[i] = ts_array[i+NFirst];
+	y.elts[i] = ts_array[good_list[i]];
       
       
       /*----- Perform the regression analysis for this voxel-----*/
@@ -614,9 +1025,11 @@ int calculate_results
       
       /*----- Report results for this voxel -----*/
       printf ("\nResults for Voxel: \n");
-      report_results (q, num_stimts, stim_label, min_lag, max_lag,
+      report_results (N, p, q, plug_polort, block_list, num_blocks, 
+		      num_stimts, stim_label, min_lag, max_lag,
 		      coef, tcoef, fpart, rpart, ffull, rfull, mse, 
-		      glt_num, glt_rows, glt_coef, fglt, rglt, label);
+		      glt_num, glt_label, glt_rows, glt_coef, 
+		      fglt, rglt, label);
       printf ("%s \n", *label);
 
       prev_nt = nt;
@@ -652,8 +1065,7 @@ int calculate_results
 void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
 
 {
-  int NFirst;              /* first image from input 3d+time dataset to use */
-  int NLast;               /* last image from input 3d+time dataset to use */ 
+  int N;              /* first image from input 3d+time dataset to use */
   int n;                   /* time index */
   int ifit;                /* parameter index */
   int nfit;                /* number of fit parameters */
@@ -664,7 +1076,7 @@ void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
 
 
   /*----- Calculate the multiple linear regression -----*/
-  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label,
+  ok = calculate_results (nt, dt, vec, &N, &nfit, fit, label,
 			  &fitts, &errts);
 
 
@@ -676,14 +1088,8 @@ void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
   /*----- Use full model fit to the time series data -----*/
   else
     {
-      for (n = NFirst;  n <= NLast;  n++)
-	vec[n] = fitts[n-NFirst];
-      
-      for (n = 0;  n < NFirst;  n++)
-	vec[n] = vec[NFirst];
-      
-      for (n = NLast+1;  n < nt;  n++)
-	vec[n] = vec[NLast];
+      for (n = 0;  n < N;  n++)
+	vec[good_list[n]] = fitts[n];
     }
 
 
@@ -703,8 +1109,7 @@ void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
 void DC_Err (int nt, double to, double dt, float * vec, char ** label)
 
 {
-  int NFirst;              /* first image from input 3d+time dataset to use */
-  int NLast;               /* last image from input 3d+time dataset to use */
+  int N;              /* first image from input 3d+time dataset to use */
   float val;               /* residual value at a time point */ 
   int n;                   /* time index */
   int ifit;                /* parameter index */
@@ -716,26 +1121,19 @@ void DC_Err (int nt, double to, double dt, float * vec, char ** label)
 
 
   /*----- Calculate the multiple linear regression -----*/
-  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label,
+  ok = calculate_results (nt, dt, vec, &N, &nfit, fit, label,
 			  &fitts, &errts);
 
 
   /*----- If unable to complete the calculation, return all zeros -----*/
-  if (!ok)
-    for (n = 0;  n < nt;  n++)  vec[n] = 0.0;
+  for (n = 0;  n < nt;  n++)  vec[n] = 0.0;
 
 
   /*----- Use residuals from full model fit to time series data -----*/
-  else
+  if (ok)
     {
-      for (n = NFirst;  n <= NLast;  n++)
-	vec[n] = errts[n-NFirst];
-
-      for (n = 0;  n < NFirst;  n++)
-	vec[n] = 0.0;
-      
-      for (n = NLast+1;  n < nt;  n++)
-	vec[n] = 0.0;
+      for (n = 0;  n < N;  n++)
+	vec[good_list[n]] = errts[n];
     }
 
 
@@ -755,8 +1153,7 @@ void DC_Err (int nt, double to, double dt, float * vec, char ** label)
 void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
 
 {
-  int NFirst;              /* first image from input 3d+time dataset to use */
-  int NLast;               /* last image from input 3d+time dataset to use */
+  int N;              /* first image from input 3d+time dataset to use */
   int nfit;                /* number of fit parameters */
   float fit[MAX_XVARS];    /* fit parameters (regression coefficients) */
   int np;                  /* length of estimated impulse reponse function */
@@ -770,7 +1167,7 @@ void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
 
 
   /*----- Calculate the multiple linear regression -----*/
-  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label,
+  ok = calculate_results (nt, dt, vec, &N, &nfit, fit, label,
 			  &fitts, &errts);
 
 

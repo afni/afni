@@ -735,6 +735,18 @@ dimensions.  (The "AFNI rocks" image will still be shown at startup.)
 This filename should be an absolute pathname, so that AFNI can find it
 regardless of the directory in which AFNI is started.
 
+You may also name additional files using variables
+  AFNI_IMAGE_PGMFILE_1 up to AFNI_IMAGE_PGMFILE_9
+If these environment variables are present, then one of them will
+be chosen randomly for display when the splash window is popped up.
+
+(Bonus hints for the diligent reader):
+[1] If you set AFNI_SPLASH_OVERRIDE to Yes, then one of your PGMFILE
+    images will be popped up instead of the "AFNI rocks" default image
+    when AFNI first starts.
+[2] In fact, your PGMFILE images can be color (PPM format), if they
+    are exactly 436 pixels wide and 140 deep.
+
 ------------------------
 Variable: AFNI_PBAR_IMXY
 ------------------------

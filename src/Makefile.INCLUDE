@@ -1142,5 +1142,8 @@ Xphace:Xphace.o $(IMOBJS)
 3dbetafit:3dbetafit.o betafit.c
 	$(CC) -o 3dbetafit 3dbetafit.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
+3dbetafit2:3dbetafit2.o betafit.c
+	$(CC) -o 3dbetafit2 3dbetafit2.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS
