@@ -475,7 +475,7 @@ STATUS("WANT_AFNI_BITMAP") ;
         ept = getenv(ename) ;
         if( ept == NULL ) ept = getenv( "AFNI_LOGO16_IMAGE" ) ;
         if( ept != NULL ){
-          bim = mri_read( ept ) ;
+          bim = mri_read_just_one( ept ) ;
           if( bim != NULL ){
             if( bim->kind == MRI_rgb ){
               xim = rgb_to_XImage( im3d->dc , bim ) ;

@@ -32,7 +32,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./macosx_10.3
+INSTALLDIR = ./macosx_10.3_darwinports
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=macosx_10.3
 
