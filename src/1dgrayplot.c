@@ -40,16 +40,7 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
    dx   = 1.0/npt ;
    dy   = 1.0/nts ;
 
-   for( jj=0 ; jj < 1000 ; jj++ ){
-      sprintf( str , "gplot#%03d" , jj ) ;
-      ii = create_memplot( str , 1.0 ) ;
-      if( ii == 0 ) break ;
-   }
-   if( jj == 1000 ){
-      fprintf(stderr,"** Can't create memplot!\n");
-      return NULL ;  /* should never happen */
-   }
-
+   create_memplot_surely( "Gplot" , 1.0 ) ;
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    set_thick_memplot( 0.0 ) ;
 

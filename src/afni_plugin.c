@@ -4600,13 +4600,7 @@ ENTRY("PLUTO_scatterplot") ;
 
    /*-- setup to plot --*/
 
-   for( np=0 ; np < 1000 ; np++ ){
-      sprintf( str , "scatplot#%03d" , np ) ;
-      ii = create_memplot( str , 1.3 ) ;
-      if( ii == 0 ) break ;
-   }
-   if( np == 1000 ) EXRETURN ;  /* should never happen */
-
+   create_memplot_surely( "ScatPlot" , 1.3 ) ;
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    set_thick_memplot( 0.0 ) ;
 

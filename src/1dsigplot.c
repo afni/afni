@@ -134,13 +134,7 @@ MEM_plotdata * PLOT_scatterellipse( int npt ,
 
    /*-- setup to plot --*/
 
-   for( np=0 ; np < 1000 ; np++ ){
-      sprintf( str , "sellplot#%03d" , np ) ;
-      ii = create_memplot( str , 1.3 ) ;
-      if( ii == 0 ) break ;
-   }
-   if( np == 1000 ) return NULL ;  /* should never happen */
-
+   create_memplot_surely( "SellPlot" , 1.3 ) ;
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    set_thick_memplot( 0.0 ) ;
 

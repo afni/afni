@@ -3117,3 +3117,29 @@
      and to make mri_read_ppm() scale a PPM image to maxval=255.
  * Modified afni_splash.c to look for .afnisplash*.ppm files for the
      splash image override.
+
+18 Sep 2001
+ * Added mri_drawing.c to draw things into RGB images, and mri_coxplot.c,
+     to use that to draw coxplot stuff into RGB images.
+
+19 Sep 2001
+ * In imseq.c, realized that the "Empty Image" memplot was being re-created
+     multiple times, and this is stupid.  Now it is only created once, and
+     is re-used from then on.
+ * Also in imseq.c, realized that if last image in a Save sequence is
+     NULL, and we are saving to an animation, then the animation won't be
+     written and the saved images will never be deleted.  At least they
+     will be deleted now (animation still won't be written, but at least
+     an error message will be output).
+ * Also in imseq.c, added montage overlay plots to function
+     ISQ_make_montage().
+
+20 Sep 2001
+ * Modified imseq.c to do the overlay plot montage more efficiently
+     (using less memory).
+ * Modified imseq.c to draw labels returned by the get_image() function
+     for each slice, both in single and montage images.
+ * Modified afni.c to return a label for each slice.
+ * Modified coxplot/plot_cox.c to have new function, create_memplot_surely().
+     Modified a number of functions/programs to use this instead of looping
+     over create_memplot() a number of times.

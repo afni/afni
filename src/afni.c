@@ -877,6 +877,8 @@ static char * FALLback[] =
 void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
    char * sname ;
+   static volatile int fff=0 ;
+   if( fff ) _exit(1) ; else fff = 1 ;
    switch(sig){
       default:      sname = "unknown" ; break ;
       case SIGINT:  sname = "SIGINT"  ; break ;
@@ -1555,12 +1557,13 @@ STATUS("get status") ;
      if( !AGNI_ENABLED || br->dset->ag_surf == NULL ) RETURN(NULL) ;
      {
       Three_D_View * im3d = (Three_D_View *) br->parent ;
-      int nn=br->dset->ag_surf->num_nod , ii ;
+      int nn=br->dset->ag_surf->num_nod , ii,jj ;
       AGNI_nod *nod = br->dset->ag_surf->nod ;
       MEM_plotdata * mp ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
       float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz ;
+      char str[32] ;
 
       LOAD_IVEC3(iv,0,0,n+1) ;
       ivp = THD_fdind_to_3dind( br , iv ) ;
@@ -1571,15 +1574,7 @@ STATUS("get status") ;
       fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
       fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
 
-      ii = create_memplot("AGNI memplot",1.0) ;
-      if( ii != 0 ){
-         mp = find_memplot( "AGNI memplot" ) ;
-         delete_memplot( mp ) ;
-         ii = create_memplot("AGNI memplot",1.0) ;
-         if( ii != 0 ){
-            RETURN(NULL) ;
-         }
-      }
+      create_memplot_surely( "AGNI_plot" , 1.0 ) ;
       mp = get_active_memplot() ;
       set_color_memplot(1.0,0.9,0.0) ; /* yellow-ish */
 
@@ -1633,6 +1628,51 @@ STATUS("get status") ;
       RETURN(mp) ; /* will be destroyed in imseq */
      }
 #endif
+   }
+
+   /*--- 20 Sep 2001: image label ---*/
+
+   if( type == isqCR_getlabel ){
+      Three_D_View * im3d = (Three_D_View *) br->parent ;
+      char *lab , str[32] , *dd ;
+      THD_ivec3 iv,ivp,ivm ;
+      THD_fvec3 fv,fvp,fvm ;
+      float dxyz , cc ;
+      int ii ;
+
+      if( im3d->type != AFNI_3DDATA_VIEW ) RETURN(NULL) ;
+
+      LOAD_IVEC3(iv,0,0,n) ;
+      ivp = THD_fdind_to_3dind( br , iv ) ;
+      fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
+      fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
+
+      if( n == 0 ) LOAD_IVEC3(iv,0,0,1) ;
+      else         LOAD_IVEC3(iv,0,0,n-1) ;
+      ivm = THD_fdind_to_3dind( br , iv ) ;
+      fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
+      fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
+
+      dxyz = MIN(br->del1,br->del2) ;
+      dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+
+      if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* +=R -=L */
+         cc = fvp.xyz[0] ;
+         dd = ( cc >= 0.0 ) ? "L" : "R" ;
+      } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* +=P -=A */
+         cc = fvp.xyz[1] ;
+         dd = ( cc >= 0.0 ) ? "P" : "A" ;
+      } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* +=S -=I */
+         cc = fvp.xyz[2] ;
+         dd = ( cc >= 0.0 ) ? "S" : "I" ;
+      } else {
+        RETURN(NULL) ;   /* should never happen */
+      }
+
+      sprintf(str,"%6.2f",fabs(cc)) ;
+      for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
+      if( str[ii] == '.' ) str[ii] = '\0' ;
+      strcat(str,dd) ; lab = strdup(str) ; RETURN(lab) ;
    }
 
    /*--- underlay image # n ---*/

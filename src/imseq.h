@@ -253,6 +253,7 @@ typedef struct {
 #define isqCR_getxynim    411  /* 30 Dec 1998 */
 
 #define isqCR_getmemplot  421  /* 21 Feb 2001 */
+#define isqCR_getlabel    422  /* 19 Sep 2001 */
 
 #define isqCR_dxplus      301  /* arrowpad reasons */
 #define isqCR_dxminus     302
@@ -441,7 +442,21 @@ typedef struct MCW_imseq {
 
      float clbot,cltop , barbot,bartop ; /* 29 Jul 2001 */
 
+     MEM_plotdata * mplot ;              /* 19 Sep 2001 */
+     MCW_bbox * wbar_plots_bbox ;        /* 20 Sep 2001 */
+     MCW_arrowval * wbar_label_av ;      /* 20 Sep 2001 */
+
 } MCW_imseq ;
+
+/*--------------------------------------------------------------------*/
+
+#define ISQ_LABEL_OFF  0  /* 20 Sep 2001 */
+#define ISQ_LABEL_UPLF 1
+#define ISQ_LABEL_UPRT 2
+#define ISQ_LABEL_DNLF 3
+#define ISQ_LABEL_DNRT 4
+
+/*--------------------------------------------------------------------*/
 
 #define ISQ_USE_SIDES(isq) ( (isq)->winfo_sides[0][0] != '\0' || \
                              (isq)->winfo_sides[1][0] != '\0' || \
@@ -503,6 +518,9 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_record_mode     604  /* 24 Apr 2001 */
 #define isqDR_record_disable  605  /* 24 Apr 2001 */
 
+#define isqDR_plot_label      701  /* 20 Sep 2001 */
+#define isqDR_plot_plot       702  /* 20 Sep 2001 */
+
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
 extern Boolean ISQ_setup_new( MCW_imseq * , XtPointer ) ;
@@ -516,6 +534,9 @@ extern MCW_imseq_status * ISQ_copy_status( MCW_imseq_status * ) ;
 extern void ISQ_reset_dimen( MCW_imseq * , float , float ) ;
 
 extern void ISQ_scale_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void ISQ_wbar_plots_CB( Widget , XtPointer , XtPointer ) ; /* 20 Sep 2001 */
+extern void ISQ_wbar_label_CB( MCW_arrowval * , XtPointer ) ;
 
 extern void ISQ_wbar_menu_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_set_rng_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
@@ -626,9 +647,11 @@ extern void fft2D_func      ( int nx , int ny , double,double , float * ar ) ;
 extern void median21_box_func( int nx , int ny , double,double , float * ar ) ;
 extern void winsor21_box_func( int nx , int ny , double,double , float * ar ) ;
 
-/*---- temporary, I hope ----*/
+/*---- temporary, I hope (yeah, sure, right) ----*/
 
-void ISQ_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void ISQ_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+
+extern MEM_plotdata * ISQ_plot_label( MCW_imseq *, char * ) ; /* 20 Sep 2001 */
 
 /*---- 24 Apr 2001: recording stuff ----*/
 

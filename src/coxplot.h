@@ -145,11 +145,11 @@ extern void           set_thick_memplot( float ) ;
 extern float          get_thick_memplot(void) ;
 extern int            nline_active_memplot(void) ;
 extern void           plotrect_memplot( float,float,float,float ) ; /* 21 Mar 2001 */
+extern int            create_memplot_surely( char *, float ) ;      /* 20 Sep 2001 */
 
 extern MEM_plotdata * copy_memplot( MEM_plotdata * ) ; /*-- 26 Feb 2001 --*/
 extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;
-extern void           scale_memplot( float,float,float,float,float,
-                                     MEM_plotdata * ) ;
+extern void           scale_memplot( float,float,float,float,float,MEM_plotdata * );
 
 #define MRI_ROT_0   1  /* codes for various rotations */
 #define MRI_ROT_90  2  /* [do not change these unless */

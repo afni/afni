@@ -632,6 +632,51 @@ extern int mri_int_order(void) ;
 extern void mri_swap2( int , short * ) ;
 extern void mri_swap4( int , int * ) ;
 
+/*---------------------------------------------------------------------*/
+/*------------------ 18 Sep 2001: drawing stuff -----------------------*/
+
+extern void ppmd_filledrectangle( byte *pixels, int cols, int rows,
+                           int x, int y, int width, int height , byte r,byte g,byte b );
+
+extern void ppmd_line( byte *pixels, int cols, int rows,
+                int x0, int y0, int x1, int y1, byte r,byte g,byte b );
+
+extern void ppmd_spline3( byte *pixels, int cols, int rows,
+                   int x0, int y0, int x1, int y1, int x2, int y2, byte r,byte g, byte b);
+
+
+extern void ppmd_polyspline( byte *pixels, int cols, int rows,
+                      int x0,int y0, int nc, int* xc, int* yc, int x1,int y1, byte r,byte g,byte b );
+
+extern void ppmd_circle( byte *pixels, int cols, int rows,
+                  int cx, int cy, int radius, byte r,byte g,byte b );
+
+extern void ppmd_text(byte *pixels, int cols, int rows,
+               int x, int y, int height, int angle, char *s, byte r,byte g,byte b );
+
+extern void mri_drawline( MRI_IMAGE *im , int x0,int y0, int x1,int y1, byte r,byte g,byte b );
+
+extern void mri_drawfilledrectangle( MRI_IMAGE *im ,
+                              int x, int y, int width, int height , byte r,byte g,byte b );
+
+extern void mri_drawemptyrectangle( MRI_IMAGE *im ,
+                             int x, int y, int width, int height , byte r,byte g,byte b );
+
+extern void mri_drawtext( MRI_IMAGE *im ,
+                   int x, int y, int height, int angle, char *s,
+                   byte r,byte g,byte b );
+
+/**********************************************************************/
+
+#include "coxplot.h"
+#undef min
+#undef max
+
+extern void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop ) ;
+
+extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata * mp ,
+                                int start , int end , int freee    ) ;
+
 /************************ Statistics routines *************************/
 
 /**

@@ -93,6 +93,8 @@ void DBG_traceback(void)
 void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
    char * sname ; int ii ;
+   static volatile int fff=0 ;
+   if( fff ) _exit(1); else fff=1 ;
    switch(sig){
       default:      sname = "unknown" ; break ;
       case SIGPIPE: sname = "SIGPIPE" ; break ;

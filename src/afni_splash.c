@@ -166,7 +166,7 @@ ENTRY("AFNI_splashup") ;
 
          if( !good ){    /* no user specified image ==> use my own */
 
-            int nrr = lrand48()&48 ;
+            int nrr = lrand48()&3584 ;
             if( num_ppms > 0 && nrr != 0 ){  /* 17 Sep 2001: external image */
               static int np=-1 ;
               if( np < 0 ) np = (lrand48() >> 8) % num_ppms ;
@@ -343,7 +343,7 @@ ENTRY("SPLASH_imseq_getim") ;
 
    if( do_write && type == isqCR_getmemplot ){
       int ii ;
-      ii = create_memplot("SPLASH memplot",1.0) ;
+      ii = create_memplot_surely("SPLASH memplot",1.0) ;
       if( ii == 0 ){
          MEM_plotdata * mp = get_active_memplot() ;
          char * sf = AFNI_get_friend() ;

@@ -377,14 +377,19 @@ static void ISQ_setup_ppmto_filters(void)
                    "MCW_imseq_status *" (n is ignored)
 
               - get_image(n,isqCR_getmemplot,aux) should return a
-                   "MEM_plotdata *" (see coxplot.h -- 21 Feb 2001)
+                   "MEM_plotdata *" (see coxplot.h -- 21 Feb 2001);
+                   NULL means no plot
+
+              - get_image(n,isqCR_getlabel,aux) should return a
+                   "char *": a NUL-terminated string to be plotted
+                   on top of the image; NULL means no label string
 
             Thus, get_image takes as input 2 "int"s and an "XtPointer",
             and returns a "XtPointer".  Note that the MRI_IMAGEs returned
             will be mri_free-d after being used internally.  Therefore,
             if you want to keep them, you should send a copy, not the
             original.  The same applies to the MCW_imseq_status struct,
-            and the MEM_plotdata struct.
+            the MEM_plotdata struct, and the char *.
 
     aux = XtPointer supplied by user, pointing to data to be passed
             get_image for its own internal use (similar in concept to
@@ -1255,6 +1260,38 @@ STATUS("creation: widgets created") ;
    newseq->surfgraph_phi   = DEFAULT_PHI   ;
    newseq->surfgraph_arrowpad = NULL ;
 
+   newseq->mplot = NULL ;              /* 19 Sep 2001 */
+
+   /* 20 Sep 2001: add a button box to control plots */
+
+   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, newseq->wbar_menu,
+                                     XmNseparatorType , XmSINGLE_LINE ,
+                                   NULL ) ;
+
+   { static char * plabel[1] = { "Plot Overlay Plots" } ;
+     static char *alabel[5] = { "Off", "UpperLeft", "UpperRight", "LowerLeft", "LowerRight" } ;
+
+     newseq->wbar_plots_bbox = new_MCW_bbox( newseq->wbar_menu ,
+                                             1 , plabel ,
+                                             MCW_BB_check , MCW_BB_noframe ,
+                                             ISQ_wbar_plots_CB , (XtPointer)newseq ) ;
+     MCW_set_bbox( newseq->wbar_plots_bbox , 1 ) ;
+
+     newseq->wbar_label_av = new_MCW_arrowval( newseq->wbar_menu ,
+                                               "Label" ,
+                                               MCW_AV_optmenu ,      /* option menu style */
+                                               0 ,                   /* first option */
+                                               4 ,                   /* last option */
+                                               0 ,                   /* initial selection */
+                                               MCW_AV_readtext ,     /* ignored but needed */
+                                               0 ,                   /* ditto */
+                                               ISQ_wbar_label_CB ,   /* callback when changed */
+                                               (XtPointer)newseq ,   /* data for above */
+                                               MCW_av_substring_CB , /* text creation routine */
+                                               alabel                /* data for above */
+                                             ) ;
+   }
+
    newseq->parent = NULL ;
    RETURN(newseq) ;
 }
@@ -1574,12 +1611,18 @@ ENTRY("ISQ_make_image") ;
 
    if( ! ISQ_VALID(seq) ) EXRETURN ;
 
+   /*-- if doing a montage, make it in a separate function --*/
+
    if( seq->mont_nx > 1 || seq->mont_ny > 1 ){
       ISQ_make_montage( seq ) ;
       EXRETURN ;
    }
 
    KILL_2XIM( seq->given_xim , seq->sized_xim ) ;  /* erase the XImages */
+
+   if( seq->mplot != NULL ){                            /* 19 Sep 2001 */
+     delete_memplot( seq->mplot ) ; seq->mplot = NULL ;
+   }
 
    /* process toggled options that affect the image that may be stored */
 
@@ -1633,12 +1676,12 @@ ENTRY("ISQ_make_image") ;
       if( FLDIF(new_width_mm ,seq->last_width_mm ) ||
           FLDIF(new_height_mm,seq->last_height_mm)   ){
 
-if( PRINT_TRACING ){
-  char str[256] ;
-  sprintf(str,"nx=%d ny=%d dx=%f dy=%f wid=%f hei=%f",
-         im->nx,im->ny,im->dx,im->dy,new_width_mm,new_height_mm) ;
-  STATUS(str) ;
-}
+         if( PRINT_TRACING ){
+           char str[256] ;
+           sprintf(str,"nx=%d ny=%d dx=%f dy=%f wid=%f hei=%f",
+                  im->nx,im->ny,im->dx,im->dy,new_width_mm,new_height_mm) ;
+           STATUS(str) ;
+         }
 
          ISQ_reset_dimen( seq , new_width_mm , new_height_mm ) ;
          reset_done = True ;
@@ -1654,6 +1697,8 @@ if( PRINT_TRACING ){
       KILL_1MRI( seq->ovim ) ;
       ovim = NULL ;
    } else {
+      char *lab ;        /* 20 Sep 2001 */
+
       ovim = seq->ovim ;
       if( ovim == NULL ){
          tim = (MRI_IMAGE *) seq->getim( seq->im_nr ,
@@ -1670,7 +1715,36 @@ if( PRINT_TRACING ){
 
          if( tim != ovim ) KILL_1MRI(tim) ;
       }
-   }
+
+      /*-- 19 Sep 2001: get an overlay plot, if there is one --*/
+
+      if( MCW_val_bbox(seq->wbar_plots_bbox) != 0 ){
+        seq->mplot = (MEM_plotdata *) seq->getim( seq->im_nr ,
+                                                  isqCR_getmemplot ,
+                                                  seq->getaux ) ;
+
+        if( seq->mplot != NULL )
+          flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror, seq->mplot );
+      }
+
+      /*-- 20 Sep 2001: get a label, if there is one --*/
+
+      if( seq->wbar_label_av->ival != 0 ){
+        lab = (char *) seq->getim( seq->im_nr, isqCR_getlabel, seq->getaux ) ;
+        if( lab != NULL ){
+          MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
+          if( mp != NULL ){
+            if( seq->mplot != NULL ){
+              append_to_memplot( seq->mplot , mp ) ; delete_memplot( mp ) ;
+            } else {
+              seq->mplot = mp ;
+            }
+          }
+          free(lab) ;
+        }
+      }
+
+   } /* end of overlay-osity */
 
    /* set old_opt to current options */
 
@@ -1727,6 +1801,46 @@ if( PRINT_TRACING ){
    if( tim != im ) KILL_1MRI(tim) ;
 
    EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+  Plot a label into a structure for later display
+-------------------------------------------------------------------------*/
+
+MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
+{
+   MEM_plotdata *mp ; int ww ; float asp ;
+
+ENTRY("ISQ_plot_label") ;
+
+   if( !ISQ_REALZ(seq) || lab  == NULL ) RETURN(NULL) ;
+
+#if 0
+   asp = seq->last_width_mm/seq->last_height_mm ;
+#else
+   asp = 1.0 ;
+#endif
+   ww  = (asp <= 1.0) ? 32 : (int)(32.0/asp+0.5) ;
+   create_memplot_surely( "Ilabelplot" , asp ) ;
+   set_color_memplot(1.0,0.9,0.8) ;
+   set_thick_memplot(0.0) ;
+
+   switch( seq->wbar_label_av->ival ){
+      default:
+      case ISQ_LABEL_UPLF:
+         plotpak_pwritf( 0.003,0.96 , lab , ww , 0 , -1 ) ; break ;
+
+      case ISQ_LABEL_UPRT:
+         plotpak_pwritf( asp-0.003,0.96 , lab , ww , 0 ,  1 ) ; break ;
+
+      case ISQ_LABEL_DNLF:
+         plotpak_pwritf( 0.003,0.04 , lab , ww , 0 , -1 ) ; break ;
+
+      case ISQ_LABEL_DNRT:
+         plotpak_pwritf( asp-0.003,0.04 , lab , ww , 0 ,  1 ) ; break ;
+   }
+
+   mp = get_active_memplot() ; RETURN(mp) ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2323,7 +2437,11 @@ ENTRY("ISQ_saver_CB") ;
 
       tim = (MRI_IMAGE *) seq->getim( kf , isqCR_getimage , seq->getaux ) ;
       if( tim == NULL ){
-         fprintf(stderr,"*** error in ISQ_saver_CB: NULL image %d returned! ***\n",kf) ;
+         if( kf == seq->saver_to && agif_list != NULL ){ /* 19 Sep 2001 */
+            fprintf(stderr,
+                    "** Can't save animation: last image in list is NULL!\n");
+            DESTROY_SARR(agif_list) ;
+         }
          continue ;  /* skip to next one */
       }
       flim = tim ;
@@ -2430,7 +2548,10 @@ ENTRY("ISQ_saver_CB") ;
 
             int af ;
 
-            if( agif_list->num == 0 ) goto AnimationCleanup ;
+            if( agif_list->num == 0 ){
+               fprintf(stderr,"** Can't save animation: no images in list!\n");
+               goto AnimationCleanup ;
+            }
 
             if( DO_AGIF(seq) ){
                int alen ; char *alc , *alf , *oof ;
@@ -2808,6 +2929,8 @@ ENTRY("ISQ_free_alldata") ;
    FREE_AV( seq->surfgraph_av )       ; /* 21 Jan 1999 */
    myXtFree( seq->surfgraph_arrowpad );
    FREE_AV( seq->ov_opacity_av )      ; /* 07 Mar 2001 */
+   FREE_AV( seq->wbar_label_av )      ; /* 20 Sep 2001 */
+   myXtFree( seq->wbar_plots_bbox )   ;
 
    if( seq->rowgraph_mtd != NULL ){                /* 30 Dec 1998 */
       seq->rowgraph_mtd->killfunc = NULL ;
@@ -2831,6 +2954,10 @@ ENTRY("ISQ_free_alldata") ;
 
    myXtFree( seq->record_status_bbox ) ;
    myXtFree( seq->record_method_bbox ) ;
+
+   if( seq->mplot != NULL ){                       /* 19 Sep 2001 */
+      delete_memplot( seq->mplot ); seq->mplot = NULL;
+   }
 
    EXRETURN ;
 }
@@ -3075,41 +3202,33 @@ DPR("putting sized_xim to screen");
       static MEM_plotdata * mp=NULL ;  /* only create once */
 
       if( mp == NULL ){
-         create_memplot("EmptyImage memplot for imseq.c",1.0) ;
-         mp = find_memplot("EmptyImage memplot for imseq.c") ;
+         create_memplot_surely("EmptyImagePlot",1.0) ;
+         mp = get_active_memplot() ;
+         set_color_memplot(1.0,1.0,1.0) ;
+         set_thick_memplot(0.009) ;
+         plotpak_pwritf( 0.4,0.83 , "EMPTY" , 96 , 0 , 0 ) ;
+         plotpak_pwritf( 0.4,0.67 , "IMAGE" , 96 , 0 , 0 ) ;
+         set_color_memplot(0.0,0.0,0.0) ;
+         plotpak_pwritf( 0.6,0.33 , "EMPTY" , 96 , 0 , 0 ) ;
+         plotpak_pwritf( 0.6,0.17 , "IMAGE" , 96 , 0 , 0 ) ;
+         set_color_memplot(1.0,1.0,0.0) ;
+         set_thick_memplot(0.019) ;
+         plotpak_line( 0.01,0.01 , 0.99,0.01 ) ;
+         plotpak_line( 0.99,0.01 , 0.99,0.99 ) ;
+         plotpak_line( 0.99,0.99 , 0.01,0.99 ) ;
+         plotpak_line( 0.01,0.99 , 0.01,0.01 ) ;
       }
-      set_color_memplot(1.0,1.0,1.0) ;
-      set_thick_memplot(0.009) ;
-      plotpak_pwritf( 0.4,0.83 , "EMPTY" , 96 , 0 , 0 ) ;
-      plotpak_pwritf( 0.4,0.67 , "IMAGE" , 96 , 0 , 0 ) ;
-      set_color_memplot(0.0,0.0,0.0) ;
-      plotpak_pwritf( 0.6,0.33 , "EMPTY" , 96 , 0 , 0 ) ;
-      plotpak_pwritf( 0.6,0.17 , "IMAGE" , 96 , 0 , 0 ) ;
-      set_color_memplot(1.0,1.0,0.0) ;
-      set_thick_memplot(0.019) ;
-      plotpak_line( 0.01,0.01 , 0.99,0.01 ) ;
-      plotpak_line( 0.99,0.01 , 0.99,0.99 ) ;
-      plotpak_line( 0.99,0.99 , 0.01,0.99 ) ;
-      plotpak_line( 0.01,0.99 , 0.01,0.01 ) ;
       XClearWindow( seq->dc->display , XtWindow(seq->wimage) ) ;
       memplot_to_X11_sef( seq->dc->display ,
                           XtWindow(seq->wimage) , mp , 0,0,1 ) ;
    }
 
    /*-- 26 Feb 2001: draw some line overlay, a la coxplot? --*/
-   /*** (shouldn't be HERE, but this is just a test)       ***/
+   /*-- 19 Sep 2001: modified to use memplot stored in seq --*/
 
-   if( !seq->opt.no_overlay && seq->mont_nx == 1 && seq->mont_ny == 1 ){
-      MEM_plotdata * mp ;
-      mp = (MEM_plotdata *) seq->getim( seq->im_nr ,
-                                        isqCR_getmemplot , seq->getaux ) ;
-      if( mp != NULL ){
-         flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror, mp ) ;
-         memplot_to_X11_sef( seq->dc->display ,
-                             XtWindow(seq->wimage) , mp , 0,0,1 ) ;
-         delete_memplot(mp) ;
-      }
-   }
+   if( !seq->opt.no_overlay && seq->mplot != NULL )
+      memplot_to_X11_sef( seq->dc->display ,
+                          XtWindow(seq->wimage) , seq->mplot , 0,0,1 ) ;
 
    seq->never_drawn = 0 ;
 
@@ -4677,6 +4796,12 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_record_disable  (ignored)
                            disables the Rec button (irreversibly)
 
+*    isqDR_plot_label      (int)
+                           0..4 for label position
+
+*    isqDR_plot_plot       (int)
+                           1=show overlay plot; 0=don't
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -4697,6 +4822,28 @@ ENTRY("drive_MCW_imseq") ;
          RETURN( False );
       }
       break ;
+
+      /*--------- overlay plot stuff [20 Sep 2001] ----------*/
+
+      case isqDR_plot_label:{
+         int dd = (int)drive_data ;
+         if( dd != seq->wbar_label_av->ival && dd >= 0 && dd <= 4 ){
+           AV_assign_ival( seq->wbar_label_av , dd ) ;
+           ISQ_redisplay( seq , -1 , isqDR_display ) ;
+         }
+         RETURN( True ) ;
+      }
+
+      /*.....................................................*/
+
+      case isqDR_plot_plot:{
+         int dd = ((int)drive_data) != 0 ;
+         if( dd != MCW_val_bbox(seq->wbar_plots_bbox) ){
+           MCW_set_bbox( seq->wbar_plots_bbox , dd ) ;
+           ISQ_redisplay( seq , -1 , isqDR_display ) ;
+         }
+         RETURN( True ) ;
+      }
 
       /*--------- record off forever [24 Apr 2001] ----------*/
 
@@ -5569,6 +5716,32 @@ ENTRY("ISQ_setup_new") ;
 /*----------------------------------------------------------------------*/
 /*----         Stuff for the menu hidden on the color bar           ----*/
 
+void ISQ_wbar_plots_CB( Widget w , XtPointer cld , XtPointer cad ) /* 20 Sep 2001 */
+{
+   MCW_imseq * seq = (MCW_imseq *) cld ;
+
+ENTRY("ISQ_wbar_plots_CB") ;
+
+   if( !ISQ_REALZ(seq) ) EXRETURN ;
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------*/
+
+void ISQ_wbar_label_CB( MCW_arrowval *av , XtPointer cd )
+{
+   MCW_imseq * seq = (MCW_imseq *) cd ;
+
+ENTRY("ISQ_wbar_label_CB") ;
+
+   if( !ISQ_REALZ(seq) ) EXRETURN ;
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------*/
+
 void ISQ_wbar_menu_CB( Widget w , XtPointer client_data ,
                                   XtPointer call_data    )
 {
@@ -5604,6 +5777,8 @@ ENTRY("ISQ_wbar_menu_CB") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------*/
+
 void ISQ_set_rng_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_imseq * seq = (MCW_imseq *) cd ;
@@ -5619,6 +5794,8 @@ ENTRY("ISQ_set_rng_CB") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------*/
+
 void ISQ_set_zcol_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_imseq * seq = (MCW_imseq *) cd ;
@@ -5631,6 +5808,8 @@ ENTRY("ISQ_set_zcol_CB") ;
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------*/
 
 void ISQ_set_flat_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
@@ -5655,6 +5834,8 @@ ENTRY("ISQ_set_flat_CB") ;
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------*/
 
 void ISQ_set_sharp_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
@@ -6022,19 +6203,17 @@ ENTRY("ISQ_montage_action_CB") ;
 MRI_IMAGE * ISQ_manufacture_one( int nim , int overlay , MCW_imseq * seq )
 {
    MRI_IMAGE * im , * ovim , * tim ;
-   int nrold , nwrap ;
+   int nrold ;
 
 ENTRY("ISQ_manufacture_one") ;
 
    if( ! ISQ_VALID(seq) ) RETURN( NULL );
 
    if( seq->mont_periodic ){
-      nwrap = (nim < 0) || (nim >= seq->status->num_total) ;
       while( nim < 0 )                       nim += seq->status->num_total ;
       while( nim >= seq->status->num_total ) nim -= seq->status->num_total ;
    } else {
       if( nim < 0 || nim >= seq->status->num_total ) RETURN( NULL );
-      nwrap = 0 ;
    }
 
    /** Not an overlay image **/
@@ -6087,7 +6266,11 @@ ENTRY("ISQ_make_montage");
 
    KILL_2XIM( seq->given_xim , seq->sized_xim ) ;  /* erase the XImages */
 
-   /* process toggled options that affect the image that may be stored */
+   if( seq->mplot != NULL ){                           /* 19 Sep 2001 */
+     delete_memplot( seq->mplot ) ; seq->mplot = NULL ;
+   }
+
+   /*-- process toggled options that affect the image that may be stored --*/
 
    if( seq->opt.rot         != seq->old_opt.rot         ||
        seq->opt.mirror      != seq->old_opt.mirror      ||
@@ -6227,16 +6410,24 @@ DPR("Destroying underlay image array") ;
    if( ISQ_SKIP_OVERLAY(seq) ){
       KILL_1MRI( seq->ovim ) ; ovim = NULL ;  /* that was easy */
    } else {
+      int ij , nim , nmont=seq->mont_nx * seq->mont_ny , nov=0 , ijcen ;
+
+      MEM_plotdata *mp ; /* 19 Sep 2001 */
+      int ii,jj ;
+      float sx,sy,st , xb,xt,yb,yt , tx,ty ;
+
+      ijcen = (seq->mont_nx)/2 + (seq->mont_ny/2) * seq->mont_nx ;
+
+      /*--- get overlay images and montage them, if needed ---*/
+
       ovim = seq->ovim ;
       if( ovim == NULL ){
-         int ij , nim , nmont = seq->mont_nx * seq->mont_ny , nov = 0 , ijcen ;
          MRI_IMARR * mar ;
 
          INIT_IMARR(mar) ;
 
          isrgb_ov = 0 ;  /* 07 Mar 2001 */
 
-         ijcen = (seq->mont_nx)/2 + (seq->mont_ny/2) * seq->mont_nx ;
          for( ij=0 ; ij < nmont ; ij++ ){
             nim = seq->im_nr + (seq->mont_skip + 1) * (ij - ijcen) ;
 
@@ -6289,9 +6480,112 @@ DPR("Destroying overlay image array") ;
 
          DESTROY_IMARR( mar ) ;
       }
-   }
 
-   /* set old_opt to current options */
+      /*--- 19 Sep 2001: make overlay line plots for image? ---*/
+
+      /*-- get sub-plots for each sub-image,
+           merge into a superplot for the montage --*/
+
+      if( MCW_val_bbox(seq->wbar_plots_bbox) != 0 ){
+       for( ij=0 ; ij < nmont ; ij++ ){
+
+         nim = seq->im_nr + (seq->mont_skip + 1) * (ij - ijcen) ;
+         if( seq->mont_periodic ){
+            while( nim < 0 )                       nim += seq->status->num_total ;
+            while( nim >= seq->status->num_total ) nim -= seq->status->num_total ;
+         } else {
+            if( nim < 0 || nim >= seq->status->num_total ) continue ; /* skip */
+         }
+
+         mp = (MEM_plotdata *) seq->getim( nim,isqCR_getmemplot,seq->getaux );
+
+         if( mp == NULL ) continue ; /* skip */
+
+         ii = ij % seq->mont_nx ;  /* sub-image x index in montage */
+         jj = ij / seq->mont_nx ;  /* sub-image y index in montage */
+
+         tx = im->nx ; ty = im->ny ;  /* size of underlay image */
+
+         /* sub-image is inside (xb..xt) X (yb..yt) in
+            plot coordinates -- y is down-to-up,
+            whereas image coordinates run y is up-to-down */
+
+         xb = (seq->horig + seq->mont_gap) * ii ;
+         xt = xb + seq->horig ;
+         yb = (seq->vorig + seq->mont_gap) * (seq->mont_ny - 1 - jj) ;
+         yt = yb + seq->vorig ;
+
+         /* scale factors to put this sub-plot
+            in the correct place in the montage */
+
+         sx = (xt-xb) / tx ; tx = xb / tx ;
+         sy = (yt-yb) / ty ; ty = yb / ty ;  st = sqrt(sx*sy) ;
+
+         /* rotate/flip to same orientation as sub-image */
+
+         flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror, mp ) ;
+
+         /* scale to correct location as sub-image */
+
+         scale_memplot( sx,tx , sy,ty , st , mp ) ;
+
+         /* attach to superplot */
+
+         if( seq->mplot == NULL ){  /* make 1st one the superplot */
+           seq->mplot = mp ;
+         } else {                  /* attach later ones to superplot */
+           append_to_memplot( seq->mplot , mp ) ;
+           delete_memplot( mp ) ;
+         }
+
+       } /* end of loop over sub-images' sub-plots */
+      } /* end of if over whether to plot the plot */
+
+      /*--- 20 Sep 2001: plot labels ---*/
+
+      if( seq->wbar_label_av->ival != 0 ){
+       char *lab ;
+
+       for( ij=0 ; ij < nmont ; ij++ ){
+
+         nim = seq->im_nr + (seq->mont_skip + 1) * (ij - ijcen) ;
+         if( seq->mont_periodic ){
+            while( nim < 0 )                       nim += seq->status->num_total ;
+            while( nim >= seq->status->num_total ) nim -= seq->status->num_total ;
+         } else {
+            if( nim < 0 || nim >= seq->status->num_total ) continue ; /* skip */
+         }
+
+         /*- get label string -*/
+
+         lab = (char *) seq->getim( nim, isqCR_getlabel, seq->getaux ) ;
+         if( lab != NULL ){
+          mp = ISQ_plot_label( seq , lab ) ;  /* plot it */
+          if( mp != NULL ){
+           ii = ij % seq->mont_nx ;  /* sub-image x index in montage */
+           jj = ij / seq->mont_nx ;  /* sub-image y index in montage */
+           tx = im->nx ; ty = im->ny ;  /* size of underlay image */
+           xb = (seq->horig + seq->mont_gap) * ii ;
+           xt = xb + seq->horig ;
+           yb = (seq->vorig + seq->mont_gap) * (seq->mont_ny - 1 - jj) ;
+           yt = yb + seq->vorig ;
+           sx = (xt-xb) / tx ; tx = xb / tx ;
+           sy = (yt-yb) / ty ; ty = yb / ty ;  st = sqrt(sx*sy) ;
+           scale_memplot( sx,tx , sy,ty , st , mp ) ;
+           if( seq->mplot != NULL ){
+             append_to_memplot( seq->mplot , mp ) ; delete_memplot( mp ) ;
+           } else {
+             seq->mplot = mp ;
+           }
+          }
+          free(lab) ;
+         }
+       } /* end of loop over sub-images */
+      } /* end of plot labels */
+
+   } /* end of making overlay stuff */
+
+   /*--- set old_opt to current options ---*/
 
    seq->old_opt = seq->opt ;
 
@@ -6301,7 +6595,7 @@ DPR("Destroying overlay image array") ;
    seq->mont_gap_old       = seq->mont_gap       ;
    seq->mont_gapcolor_old  = seq->mont_gapcolor  ;
 
-   /* overlay, if needed */
+   /*--- overlay ovim onto im, producing tim, if needed ---*/
 
    if( ovim == NULL || ISQ_SKIP_OVERLAY(seq) ){   /* no processing of overlay */
       tim = im ;
@@ -6341,7 +6635,7 @@ DPR("Destroying overlay image array") ;
 #endif
    }
 
-   /* convert result to XImage for display */
+   /*--- convert result to XImage for display ---*/
 
    seq->given_xim = mri_to_XImage( seq->dc , tim ) ;
 
@@ -6885,7 +7179,7 @@ MEM_plotdata * plot_image_surface( MRI_IMAGE * im , float fac ,
    MEM_plotdata * mp ;
    float * x , * y , * z ;
    float  dx ,  dy , zbot,ztop ;
-   int ii , jj , nx , ny , nxy ;
+   int ii , nx , ny , nxy ;
    char str[128] ;
 
 ENTRY("plot_image_surface") ;
@@ -6897,12 +7191,7 @@ ENTRY("plot_image_surface") ;
    nx = im->nx ; ny = im->ny ;
    if( nx < 3 || ny < 3 ) RETURN( NULL );
 
-   for( jj=0 ; jj < 1000 ; jj++ ){
-      sprintf( str , "imsurf#%03d" , jj ) ;
-      ii = create_memplot( str , 1.1 ) ;
-      if( ii == 0 ) break ;
-   }
-   if( jj == 1000 ) RETURN( NULL );
+   create_memplot_surely( "imsurf" , 1.1 ) ;
 
    dx = im->dx ; if( dx <= 0.0 ) dx = 1.0 ;
    dy = im->dy ; if( dy <= 0.0 ) dy = 1.0 ;
