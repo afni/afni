@@ -233,6 +233,7 @@ USAGE:
 	echo "Example:"
 	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
 	echo ""
+   echo "More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
 	echo ""
 	echo "Ziad Saad (ziad@nih.gov)"
 	echo "LBC/NIMH/ National Institutes of Health, Bethesda Maryland"

@@ -4,7 +4,7 @@ if ("$1" == "-h" || $1 =~ "-help") then
 	goto USAGE
 endif
 
-set RemoteServer = 'ftp://afni.nimh.nih.gov/'
+set RemoteServer = 'http://afni.nimh.nih.gov/'
 set RemoteSRC = $RemoteServer'AFNI/src'
 set RemoteDOC = $RemoteServer'AFNI/doc'
 set MacName = `hostname -s`
