@@ -40,6 +40,7 @@ void NIH_glob_free( int gnum , char **gout ) ;
 typedef struct {                    /* stuff extracted from GE I.* image */
   int good  ;                       /* is this a good image? */
   int nx,ny ;                       /* image matrix */
+  int uv17;                         /* apparently codes for scan index */
   float dx,dy,dz , zoff , tr,te ;   /* various dimensions */
   char orients[8] ;                 /* orientation string */
 } ge_header_info ;
@@ -52,10 +53,10 @@ void Ifile_help ();
 
 int main( int argc , char *argv[] )
 {
-   int num_I , ii,jj , ngood , nrun , i;
+   int num_I , ii,jj , ngood , nrun , i, UseUv17 = 0;
    char **nam_I  ;
    char **gnam_I ;
-   int   *time_I , lmax=0 , ll , thresh , ibot,itop ;
+   int   *time_I , *uv17, lmax=0 , ll , thresh , ibot,itop ;
    float *zoff_I , tr , zth1,zth2 , zd ;
    ge_header_info geh ;
 	int Ni, CurVolInd, *New_Vol_Loc, *VolSize, N_Vols, *TroubVolume, iTroub, MultiSliceVol, *DupSlice, iDup, BadRun, AllGood = 1, GoodRun;
@@ -64,6 +65,13 @@ int main( int argc , char *argv[] )
 	FILE * fout_dbg, *fout_panga;
 
 	if (argc == 1) { Ifile_help(); exit(1); }
+	if (strcmp (argv[1],"-h") == 0 || strcmp (argv[1],"-help") == 0) { Ifile_help(); exit(1); }
+	if (strcmp (argv[1],"-nt") == 0) { 
+		fprintf(stderr,"++ using User Variable 17.\n");
+		UseUv17 = 1; } 
+	else { 
+		fprintf(stderr,"++ using time stamp.\n");
+		UseUv17 = 0; } 
 	
    /*
 	for (i = 1; i < argc; ++i) {
@@ -80,7 +88,11 @@ int main( int argc , char *argv[] )
 		exit(1);
 	}
 	/*-- get the list of files */
-	MCW_file_expand( argc-1, argv + 1  , &num_I , &nam_I );
+	if (UseUv17) {
+		MCW_file_expand( argc-2, argv + 2  , &num_I , &nam_I );
+	} else {
+		MCW_file_expand( argc-1, argv + 1  , &num_I , &nam_I );
+	}
 
    fprintf(stderr,"++ found %d '*/I.*' files\n",num_I) ;
 
@@ -91,7 +103,8 @@ int main( int argc , char *argv[] )
    time_I = (int *)   calloc( sizeof(int)    , num_I ) ;
    zoff_I = (float *) calloc( sizeof(float)  , num_I ) ;
    gnam_I = (char **) calloc( sizeof(char *) , num_I ) ;
-   ngood  = 0 ;
+   uv17 = (int *) calloc( sizeof(int)    , num_I ) ;
+	ngood  = 0 ;
 
    fprintf(stderr,"++ Scanning GE headers") ;
 	#ifdef DBG_FILE	
@@ -107,7 +120,9 @@ int main( int argc , char *argv[] )
          zoff_I[ngood] = geh.zoff ;
          time_I[ngood] = (int) THD_file_mtime( nam_I[ii] ) ;
          gnam_I[ngood] = strdup( nam_I[ii] ) ;
-         ngood++ ;
+         uv17[ngood] = geh.uv17;
+			
+			ngood++ ;
 
          ll = strlen(nam_I[ii]) ; if( ll > lmax ) lmax = ll ;
 
@@ -142,10 +157,14 @@ int main( int argc , char *argv[] )
    tr    /= ngood ;                 /* average TR reported */
    thresh = (int)( 3.0*tr+10.5 ) ;  /* threshold (may need some work) */
 
-   fprintf(stderr,"++ File time threshold = %d s\n",thresh) ;
-
+   if (UseUv17 == 0) {
+		/* Just suppress time threshold output, time calculations are not trimmed since they are performed very quickly*/
+   	fprintf(stderr,"++ File time threshold = %d s\n",thresh) ;
+	}
+	
    /*-- find time steps longer than thresh:
-        these are starts of new imaging runs --*/
+        these are starts of new imaging runs 
+		  or with -nt option, use User Variable 17--*/
 	GoodRun = 0;
    nrun = 0 ;
    ibot = 0 ;
@@ -153,9 +172,16 @@ int main( int argc , char *argv[] )
 
       /* scan itop until end, or until time step is too big */
 
-      for( itop=ibot+1; itop<ngood && time_I[itop]<thresh; itop++ ) ; /* nada */
+      if (UseUv17) {
+			for( itop=ibot+1; itop<ngood && uv17[itop]==uv17[ibot]; itop++ ) {/* printf("%d ", uv17[itop]); */}; 
+		} else { /* use time stamp */
+			for( itop=ibot+1; itop<ngood && time_I[itop]<thresh; itop++ ) ; /* nada */
+		}
+		
+		
       /* this run is from ibot to itop-1 */
-
+		
+		
       if( ibot == itop-1 ){                    /* skip single files */
 
          printf("skip:   %s\n",gnam_I[ibot]) ;
@@ -322,20 +348,25 @@ int main( int argc , char *argv[] )
 /***************************************************************************/
 void Ifile_help ()
 	{
-		fprintf(stdout,"\nUsage: Ifile <File List> \n");
+		fprintf(stdout,"\nUsage: Ifile [Options] <File List> \n");
+		fprintf(stdout,"\n\t[-nt]: Do not use time stamp to identify complete scans.\n");
+		fprintf(stdout,"\t       Complete scans are identified from 'User Variable 17' in the image header.\n");
 		fprintf(stdout,"\n\t<File List>: Strings of wildcards defining series of\n");
 		fprintf(stdout,"\t              GE-Real Time (GERT) images to be assembled\n");
 		fprintf(stdout,"\t              as an afni brick. Example:\n");
 		fprintf(stdout,"\t              Ifile '*/I.*'\n");
-		fprintf(stdout,"\t          or  Ifile '083/I.*' '103/I.*' '123/I.*' '143/I.*'\n"); 
+		fprintf(stdout,"\t          or  Ifile '083/I.*' '103/I.*' '123/I.*' '143/I.*'\n\n"); 
 		fprintf(stdout,"\tThe program attempts to identify complete scans from the list\n");
 		fprintf(stdout,"\tof images supplied on command line and generates the commands\n");
 		fprintf(stdout,"\tnecessary to turn them into AFNI bricks using the script @RenamePanga.\n");
 		fprintf(stdout,"\tIf at least one complete scan is identified, a script file named GERT_Reco\n");
 		fprintf(stdout,"\tis created and executing it creates the afni bricks placed in the afni directory.\n");
 		fprintf(stdout,"\nHow does it work?\n");
-		fprintf(stdout,"\tIfile first examines the modification time for each image and infers from\n");
-		fprintf(stdout,"\tthat which images form a single scan. Consecutive images that are less \n");
+		fprintf(stdout,"\tWith the -nt option: Ifile uses the variable 'User Variable 17' in the \n");
+		fprintf(stdout,"\tI file's header. This option appears to be augmented each time a new\n");
+		fprintf(stdout,"\tscan is started. (Thanks to S. Marrett for discovering the elusive variable.)\n");
+		fprintf(stdout,"\tWithout -nt option: Ifile first examines the modification time for each image and \n");
+		fprintf(stdout,"\tinfers from that which images form a single scan. Consecutive images that are less \n");
 		fprintf(stdout,"\tthan T seconds apart belong to the same scan. T is set based on the mean\n");
 		fprintf(stdout,"\ttime delay difference between successive images. The threshold currently\n");
 		fprintf(stdout,"\tused works for the test data that we have. If it fails for your data, let us\n");
@@ -343,7 +374,7 @@ void Ifile_help ()
 		fprintf(stdout,"\tscan the sequence of slice location is analysed and duplicate, missing slices,\n");
 		fprintf(stdout,"\tand incomplete volumes are detected. Sets of images that do not pass these tests\n");
 		fprintf(stdout,"\tare ignored.\n");
-		fprintf(stdout,"\nPreserving Time Info:\n");
+		fprintf(stdout,"\nPreserving Time Info: (not necessary with -nt option but does not hurt to preserve anyway)\n");
 		fprintf(stdout,"\tIt is important to preserve the file modification time info as you copy or untar\n");
 		fprintf(stdout,"\tthe data. If you neglect to do so and fail to write down where each scan ends\n");
 		fprintf(stdout,"\tand/or begins, you might have a hell of a time reconstructing your data.\n");
@@ -354,9 +385,8 @@ void Ifile_help ()
 		fprintf(stdout,"\tOut of justifiable laziness, and for other less convincing reasons, I have left \n");
 		fprintf(stdout,"\tIfile and @RenamePanga separate. They can be combined into one program but it's usage\n");
 		fprintf(stdout,"\twould become more complicated. At any rate, the user should not notice any difference\n");
-		fprintf(stdout,"\tsince all they have to do is run the script GERT_reco that is created by Ifile.\n"); 
-		fprintf(stdout,"\nShare any brilliant ideas for making the program more useful during this open season!\n");
-		fprintf(stdout,"\t	Dec. 12/01 SSCC/NIMH Robert W. Cox(rwcox@nih.gov) and Ziad S. Saad (ziad@nih.gov)\n\n");
+		fprintf(stdout,"\tsince all they have to do is run the script GERT_reco that is created by Ifile.\n\n"); 
+		fprintf(stdout,"\t	Dec. 12/01 (Last modified July 24/02) SSCC/NIMH \n\tRobert W. Cox(rwcox@nih.gov) and Ziad S. Saad (ziad@nih.gov)\n\n");
 		
 	}
 
@@ -1393,7 +1423,8 @@ void ge_header( char *pathname , ge_header_info *hi )
    int  length , skip , swap=0 , gg ;
    char orients[8] , str[8] ;
    int nx , ny , bpp , cflag , hdroff , stamp=0 , iarg=1 ;
-
+	float uv17 = -1.0;
+	
    if( hi == NULL ) return ;            /* bad */
    hi->good = 0 ;                       /* not good yet */
    if( pathname    == NULL ||
@@ -1420,7 +1451,7 @@ void ge_header( char *pathname , ge_header_info *hi )
    fread( &bpp  , 4,1, imfile ) ; /* bits per pixel (should be 16) */
    fread( &cflag, 4,1, imfile ) ; /* compression flag (1=uncompressed)*/
 
-   /*-- check if nx is funny --*/
+	/*-- check if nx is funny --*/
 
    if( nx < 0 || nx > 8192 ){      /* have to byte swap these 5 ints */
      swap = 1 ;                    /* flag to swap data, too */
@@ -1539,7 +1570,17 @@ void ge_header( char *pathname , ge_header_info *hi )
        if( swap ) swap_4(&itr) ;
        hi->te = 1.0e-6 * itr ;
 
-       hi->good = 1 ;                 /* this is a good file */
+       /* zmodify: get User Variable 17, a likely indicator of a new scan, info by S.Marrett, location from S. Inati's matlab function GE_readHeaderImage.m*/
+			
+		/* printf ("\nuv17 = \n"); */
+		fseek ( imfile , hdroff+272+202, SEEK_SET ) ;
+		fread( &uv17 , 4, 1 , imfile ) ;
+		if( swap ) swap_4(&uv17) ;
+		/* printf ("%d ", (int)uv17);  */
+		hi->uv17 = (int)uv17; 
+		/* printf ("\n"); */
+		
+	    hi->good = 1 ;                 /* this is a good file */
 
    } /* end of actually reading image header */
 
