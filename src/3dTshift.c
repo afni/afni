@@ -464,6 +464,9 @@ int main( int argc , char *argv[] )
    for( kk=0 ; kk < nzz ; kk++ ){       /* loop over slices */
 
       tshift = (TS_tzero - TS_tpat[kk]) / TS_TR ;    /* rightward fractional shift */
+#if 1
+      tshift = -tshift ;   /* 24 Apr 2003 -- OOG */
+#endif
 
       if( TS_verbose )
          printf("++ slice %d: fractional shift = %g\n",kk,tshift) ;

@@ -6,8 +6,8 @@
 
 #include "mrilib.h"
 
-/*-----------------------------------------------------------------------------
-   Time shift a dataset to a common origin.  Stores the data on top of the
+/*-----------------------------------------------------------------------------*/
+/*! Time shift a dataset to a common origin.  Stores the data on top of the
    input dataset!  Return value is 0 for good processing, nonzero for errors.
    This routine is like doing the default actions of 3dTshift (from which
    the code is adapted).  -- RWCox -- 15 Feb 2001
@@ -107,6 +107,9 @@ ENTRY("THD_dataset_tshift") ;
    for( kk=0 ; kk < nzz ; kk++ ){                            /* loop over slices */
 
       tshift = (TS_tzero - TS_tpat[kk]) / TS_TR ;  /* rightward fractional shift */
+#if 1
+      tshift = -tshift ;  /* 24 Apr 2003 -- OOG */
+#endif
 
       if( fabs(tshift) < 0.001 ) continue ;                   /* skip this slice */
 
