@@ -105,7 +105,7 @@ int powerof2 (int n)
   Calculate integer log base 2.
 */
 
-int log2 (int n)
+int my_log2 (int n)
 {
   int i;
    
@@ -164,7 +164,7 @@ float * FWT_1d_stop_filter
   float * stop_filter = NULL;  /* select wavelet coefficients to stop */
 
 
-  N = log2(NPTS);
+  N = my_log2(NPTS);
   stop_filter = (float *) malloc (sizeof(float) * NPTS);   MTEST (stop_filter);
   
 
@@ -178,7 +178,7 @@ float * FWT_1d_stop_filter
 	}
       else
 	{
-	  band = log2(ipts);
+	  band = my_log2(ipts);
 	  mintr = (ipts - powerof2(band)) * powerof2(N-band);
 	  maxtr = mintr + powerof2(N-band) - 1;
 	}
@@ -230,7 +230,7 @@ float * FWT_1d_pass_filter
   float * pass_filter = NULL;  /* select wavelet coefficients to pass */
 
 
-  N = log2 (NPTS);
+  N = my_log2 (NPTS);
   pass_filter = (float *) malloc (sizeof(float) * NPTS);   MTEST (pass_filter);
   
 
@@ -244,7 +244,7 @@ float * FWT_1d_pass_filter
 	}
       else
 	{
-	  band = log2(ipts);
+	  band = my_log2(ipts);
 	  mintr = (ipts - powerof2(band)) * powerof2(N-band);
 	  maxtr = mintr + powerof2(N-band) - 1;
 	}
@@ -422,7 +422,7 @@ void wavelet_analysis
 
     
   /*----- Initialize local variables -----*/
-  N = log2(NPTS);
+  N = my_log2(NPTS);
 
 
   /*----- Allocate memory for arrays -----*/
@@ -657,9 +657,9 @@ void report_results
 	      }
 	    else
 	      {
-		band = log2(it);
-		mintr = (it - powerof2(band)) * powerof2(log2(N)-band);
-		maxtr = mintr + powerof2(log2(N)-band) - 1;
+		band = my_log2(it);
+		mintr = (it - powerof2(band)) * powerof2(my_log2(N)-band);
+		maxtr = mintr + powerof2(my_log2(N)-band) - 1;
 	      }
 	    
 	    mintr += NFirst;

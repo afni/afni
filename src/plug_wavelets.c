@@ -390,7 +390,7 @@ int calculate_results
   if (*NLast > nt-1)  *NLast = nt-1;
 
   N = *NLast - *NFirst + 1;
-  N = powerof2(log2(N));
+  N = powerof2(my_log2(N));
   *NLast = N + *NFirst - 1;
 
 

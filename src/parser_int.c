@@ -56,8 +56,6 @@ double PARSER_evaluate_one( PARSER_code * pc , double atoz[] )
    first character of sym, otherwise return 0 - 15 Sep 1999 - RWCox.
 ------------------------------------------------------------------------*/
 
-#include <ctype.h>
-
 int PARSER_has_symbol( char * sym , PARSER_code * pc )
 {
    int hh ;
@@ -197,8 +195,10 @@ doublereal derfc_( doublereal * x )
 doublereal unif_( doublereal * x )  /* 04 Feb 2000 */
 {
    static first=1 ;
+   doublereal val ;
    if( first ){ srand48((long)time(NULL)); first=0; }
-   return (doublereal) drand48() ;
+   val = (doublereal) drand48() ;
+   return val ;
 }
 
 /**** statistic conversion routines ****/

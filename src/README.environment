@@ -679,6 +679,30 @@ is not defined, directory /tmp will be used.  On some systems, this
 directory may not have enough space for the creation of large temporary
 datasets.
 
+----------------------------
+Variable: AFNI_GRAYSCALE_BOT
+----------------------------
+This variable sets the darkest level shown in a grayscale image window.
+The default value is 55 (a leftover from Andrzej Jesmanowicz).  You can
+set this value to anything from 0 to 254.
+
+----------------------------
+Variable: AFNI_SYSTEM_AFNIRC
+----------------------------
+If this variable is set, it is the name of a file to be read like the
+user's .afnirc file (see README.setup).  The purpose is to allow a
+system-wide setup file to be used.  To do this, you would create such
+a file in a useful place - perhaps where you store the AFNI binaries.
+Then each user account should have the equivalent of
+
+   setenv AFNI_SYSTEM_AFNIRC /place/where/setup/is/stored/.afnirc
+
+defined in its .cshrc (.bashrc, etc.) file.  Note that it doesn't make
+sense to define this variable in the user's .afnirc file, since that
+file won't be read until AFTER this file is read.  Also note that use
+of the -skip_afnirc option will cause both the system and user setup
+files to be skipped.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

@@ -378,21 +378,38 @@ void DC_init_im_gry( MCW_DC * dc )
    int i, k, m, nc ;
    float a , gamm , b ;
 
+   char * env ;              /* 11 Apr 2000 */
+   float atop=255.0 , abot=55.0 ;
+
+#if 0
+   env = getenv("AFNI_GRAYSCALE_TOP") ;
+   if( env != NULL ){
+      float val = strtod(env,NULL) ;
+      if( val <= 255.0 && val >= 100.0 ) atop = val ;
+   }
+#endif
+
+   env = getenv("AFNI_GRAYSCALE_BOT") ;
+   if( env != NULL ){
+      float val = strtod(env,NULL) ;
+      if( val < atop && val >= 0.0 ) abot = val ;
+   }
+
    nc   = dc->ncol_im ;
    gamm = dc->gamma ;
-   a    = 200. / nc ;
+   a    = (atop-abot) / nc ;
 
    for (i=0; i < nc ; i++) {
-      b = log( (a*i+55.0)/255.0 ) ;   /* The code that used to be here */
+      b = log( (a*i+abot)/255.0 ) ;   /* The code that used to be here */
       b = exp( gamm * b ) ;           /* (using pow) was replaced due  */
       k = (int)( 255.0 * b + 0.5 ) ;  /* to some bug in gcc on Linux.  */
 
       m = BYTE_TO_INTEN(k) ;
 
       dc->xint_im[i]       = m ;
-      dc->xgry_im[i].red   = m;
-      dc->xgry_im[i].green = m;
-      dc->xgry_im[i].blue  = m;
+      dc->xgry_im[i].red   = m ;
+      dc->xgry_im[i].green = m ;
+      dc->xgry_im[i].blue  = m ;
       dc->xgry_im[i].flags = DoRed|DoGreen|DoBlue;
 
       if( dc->visual_class == PseudoColor )        /* 22 Aug 1998 */

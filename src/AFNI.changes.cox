@@ -2084,3 +2084,14 @@
 
 07 Apr 2000
  * Included 3dWavelets code from Doug Ward.
+
+11 Apr 2000
+ * Fixed bug in 3drotate.c when input was a master-ed file.  Also added
+     -clipit option to 3drotate.c.
+ * Fixed bug in parser_int.c where stdlib.h wasn't included before
+     drand48() was called.
+ * Added AFNI_GRAYSCALE_BOT to display.c.
+
+12 Apr 2000
+ * Added AFNI_SYSTEM_AFNIRC environment variable, to allow introduction
+     of a system wide .afnirc file.

@@ -82,6 +82,8 @@ int main( int argc , char * argv[] )
    int iopt , nvox , rotarg=-1 , dcode=-1 , ival,nval , verb=0 , ihand ;
    float * fvol ;
    double cputim ;
+   int clipit=0 ;  /* 11 Apr 2000 */
+   float cbot,ctop ;
 
    /*-- read command line arguments --*/
 
@@ -132,6 +134,8 @@ int main( int argc , char * argv[] )
          " -cubic   = Use the cubic (3rd order) Lagrange polynomial method.\n"
          " -quintic = Use the quintic (5th order) Lagrange polynomial method.\n"
          " -heptic  = Use the heptic (7th order) Lagrange polynomial method.\n"
+         "\n"
+         " -clipit  = Clip results to input brick range\n"
       ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -141,6 +145,11 @@ int main( int argc , char * argv[] )
 
    iopt = 1 ;
    while( iopt < argc && argv[iopt][0] == '-' ){
+
+      if( strncmp(argv[iopt],"-clipit",4) == 0 ){  /* 11 Apr 2000 */
+         clipit = 1 ;
+         iopt++ ; continue ;
+      }
 
       if( strncmp(argv[iopt],"-prefix",4) == 0 ){
          new_prefix = argv[++iopt] ;
@@ -392,11 +401,30 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
 
       if( verb ) fprintf(stderr,".") ;
 
+      if( clipit ){                                 /* 11 Apr 2000 */
+         register int ii ; register float bb,tt ;
+         bb = tt = fvol[0] ;
+         for( ii=1 ; ii < nvox ; ii++ ){
+                 if( fvol[ii] < bb ) bb = fvol[ii] ;
+            else if( fvol[ii] > tt ) tt = fvol[ii] ;
+         }
+         cbot = bb ; ctop = tt ;
+      }
+
       THD_rota_vol( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
                     fabs(DSET_DX(dset)) , fabs(DSET_DY(dset)) , fabs(DSET_DZ(dset)) , fvol ,
                     ax1,th1 , ax2,th2 , ax3,th3 , dcode,dx,dy,dz ) ;
 
       if( verb ) fprintf(stderr,".") ;
+
+      if( clipit ){                                 /* 11 Apr 2000 */
+         register int ii ; register float bb,tt ;
+         bb = cbot ; tt = ctop ;
+         for( ii=0 ; ii < nvox ; ii++ ){
+                 if( fvol[ii] < bb ) fvol[ii] = bb ;
+            else if( fvol[ii] > tt ) fvol[ii] = tt ;
+         }
+      }
 
       EDIT_coerce_type( nvox , MRI_float,fvol ,
                                DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) ) ;
@@ -407,6 +435,8 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
       if( nval > 1 ) fprintf(stderr,"  [= %10.3g s/sub-brick]" , cputim/nval) ;
       fprintf(stderr,"\n+++ Writing dataset to disk in %s",dset->dblk->diskptr->header_name) ;
    }
+
+   dset->dblk->master_nvals = 0 ;  /* 11 Apr 2000 hack */
    DSET_write(dset) ;
    if( verb ) fprintf(stderr,"\n") ;
    exit(0) ;

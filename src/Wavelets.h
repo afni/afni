@@ -70,7 +70,7 @@ int powerof2 (int n);
   Calculate integer log base 2.
 */
 
-int log2 (int n);
+int my_log2 (int n);
 
 
 /*---------------------------------------------------------------------------*/

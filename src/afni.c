@@ -1005,17 +1005,28 @@ int main( int argc , char * argv[] )
    for( ii=1 ; ii < argc ; ii++ )
       if( strncmp(argv[ii],"-skip_afnirc",12) == 0 ){ GLOBAL_argopt.skip_afnirc = 1; break; }
 
-   if( ! GLOBAL_argopt.skip_afnirc ) AFNI_process_environ(NULL) ;  /* 07 Jun 1999 */
+   if( ! GLOBAL_argopt.skip_afnirc ){
+       char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 12 Apr 2000 */
+       if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 12 Apr 2000 */
+
+       AFNI_process_environ(NULL) ;                         /* 07 Jun 1999 */
+   }
 
    AFNI_load_defaults( MAIN_shell ) ;
 
    if( ! GLOBAL_argopt.skip_afnirc ){          /* this line added 14 Jul 1998 */
       char * home = getenv("HOME") ; char fname[256] ;
+      char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 12 Apr 2000 */
 
       GPT = NULL ;  /* 19 Dec 1997 */
+
+      if( sysenv != NULL )                                 /* 12 Apr 2000 */
+         AFNI_process_setup( sysenv , SETUP_INIT_MODE , NULL ) ;
+
       if( home != NULL ){ strcpy(fname,home) ; strcat(fname,"/.afnirc") ; }
       else              { strcpy(fname,".afnirc") ; }
       AFNI_process_setup( fname , SETUP_INIT_MODE , NULL ) ;
+
 #ifdef AFNI_DEBUG
       home = dump_PBAR_palette_table(0) ;
       if( home != NULL ){ puts(home) ; free(home) ; }
