@@ -804,7 +804,7 @@ if( PRINT_TRACING ){
 
    newseq->wform =
       XtVaCreateWidget(
-           "dialog" , xmFormWidgetClass , newseq->wtop ,
+           "imseq" , xmFormWidgetClass , newseq->wtop ,
 
             XmNwidth  , xwide ,      /* initial size */
             XmNheight , yhigh ,
@@ -812,6 +812,9 @@ if( PRINT_TRACING ){
             XmNborderWidth , 0 ,
 
             XmNfractionBase , FORM_FRAC_BASE ,
+
+            XmNhorizontalSpacing , 0 ,  /* 17 Jun 2002 */
+            XmNverticalSpacing   , 0 ,
 
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -823,7 +826,7 @@ if( PRINT_TRACING ){
 
    newseq->wimage =
        XtVaCreateManagedWidget(
-         "dialog" , xmDrawingAreaWidgetClass , newseq->wform ,
+         "imseq" , xmDrawingAreaWidgetClass , newseq->wform ,
 
           XmNtopAttachment    , XmATTACH_FORM ,
           XmNleftAttachment   , XmATTACH_FORM ,
@@ -865,8 +868,12 @@ if( PRINT_TRACING ){
 
       na = 0 ;
 
-      XtSetArg( wa[na] , XmNmarginWidth   , 2     ) ; na++ ;
-      XtSetArg( wa[na] , XmNmarginHeight  , 1     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginWidth   , 1     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginHeight  , 0     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginBottom  , 0     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginTop     , 0     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginLeft    , 0     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginRight   , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNtraversalOn   , False ) ; na++ ;
       XtSetArg( wa[na] , XmNrecomputeSize , False ) ; na++ ;
 
@@ -935,7 +942,11 @@ if( PRINT_TRACING ){
       na = 0 ;
 
       XtSetArg( wa[na] , XmNmarginWidth   , 1     ) ; na++ ;
-      XtSetArg( wa[na] , XmNmarginHeight  , 2     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginHeight  , 0     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginBottom  , 0     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginTop     , 0     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginLeft    , 0     ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginRight   , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNtraversalOn   , False ) ; na++ ;
       XtSetArg( wa[na] , XmNrecomputeSize , False ) ; na++ ;
 
@@ -1012,7 +1023,7 @@ if( PRINT_TRACING ){
      /** 08 Mar 2001 - put a line between the arrows above and this control **/
 
      newseq->ov_opacity_sep = XtVaCreateManagedWidget(
-                                "dialog" , xmSeparatorWidgetClass , newseq->wform ,
+                                "imseq" , xmSeparatorWidgetClass , newseq->wform ,
                                    XmNseparatorType , XmSINGLE_LINE ,
                                    EDGING_RIG   , XmATTACH_FORM ,
                                    LEADING_RIG  , XmATTACH_WIDGET ,
@@ -1062,7 +1073,7 @@ if( PRINT_TRACING ){
    }
 
      newseq->zoom_sep = XtVaCreateManagedWidget(
-                         "dialog" , xmSeparatorWidgetClass , newseq->wform ,
+                         "imseq" , xmSeparatorWidgetClass , newseq->wform ,
                             XmNseparatorType , XmSINGLE_LINE ,
                             EDGING_RIG   , XmATTACH_FORM ,
                             LEADING_RIG  , XmATTACH_WIDGET ,
@@ -1113,10 +1124,14 @@ if( PRINT_TRACING ){
 
      newseq->zoom_drag_pb =
         XtVaCreateManagedWidget(
-           "dialog" , xmPushButtonWidgetClass , newseq->wform ,
+           "imseq" , xmPushButtonWidgetClass , newseq->wform ,
             LABEL_ARG("pan") ,
-            XmNmarginWidth   , 2 ,
-            XmNmarginHeight  , 1 ,
+            XmNmarginWidth   , 1 ,
+            XmNmarginHeight  , 0 ,
+            XmNmarginBottom  , 0 ,
+            XmNmarginTop     , 0 ,
+            XmNmarginLeft    , 0 ,
+            XmNmarginRight   , 0 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1159,6 +1174,59 @@ if( PRINT_TRACING ){
      newseq->zoom_xim     = NULL ;
      newseq->zoom_button1 = 0 ;       /* 15 Mar 2002 */
 
+     /* 17 Jun 2002: crop pushbutton */
+
+     newseq->crop_drag_pb =
+        XtVaCreateManagedWidget(
+           "imseq" , xmPushButtonWidgetClass , newseq->wform ,
+            LABEL_ARG("crop") ,
+            XmNmarginWidth   , 1 ,
+            XmNmarginHeight  , 0 ,
+            XmNmarginBottom  , 0 ,
+            XmNmarginTop     , 0 ,
+            XmNmarginLeft    , 0 ,
+            XmNmarginRight   , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+     XtAddCallback( newseq->crop_drag_pb , XmNactivateCallback ,
+                    ISQ_crop_pb_CB , newseq ) ;
+     newseq->crop_drag = 0 ;
+
+     newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->crop_drag_pb ;
+
+     XtVaSetValues( newseq->crop_drag_pb ,
+                      EDGING_RIG   , XmATTACH_FORM ,
+                      LEADING_RIG  , XmATTACH_WIDGET ,
+                      LEADING_WIDGET_RIG , wtemp ,
+                  NULL ) ;
+
+     MCW_register_help( newseq->crop_drag_pb ,
+                           "To crop the image window:\n"
+                           "- Click on this 'crop' button;\n"
+                           "- Then click and hold down a\n"
+                           "   mouse Button at a corner\n"
+                           "   of the rectangle to crop;\n"
+                           "- Then drag a rectangle to crop\n"
+                           "   and release the mouse button\n"
+                           "\n"
+                           "To uncrop (back to original size):\n"
+                           "- Click on this 'crop' button\n"
+                           "- Click on it again without cropping\n"
+                           "\n"
+                           "Another way to crop without using\n"
+                           "this 'crop' button is to drag the\n"
+                           "crop rectangle using Shift+Button #2\n"
+                           "\n"
+                           "Another way to uncrop is to click\n"
+                           "Shift+Button #2 in the image without\n"
+                           "any dragging\n"
+                       ) ;
+     MCW_register_hint( newseq->crop_drag_pb ,
+                           "Crop image" );
+
+     wtemp = newseq->crop_drag_pb ;
+
    /* scale for image number */
 
    ii = (one_image) ? 1 : newseq->status->num_total - 1 ;
@@ -1166,7 +1234,7 @@ if( PRINT_TRACING ){
    newseq->onoff_widgets[(newseq->onoff_num)++] =
    newseq->wscale =
        XtVaCreateManagedWidget(
-          "dialog" , xmScaleWidgetClass , newseq->wform ,
+          "imseq" , xmScaleWidgetClass , newseq->wform ,
 
           XmNtopAttachment    , XmATTACH_WIDGET ,
           XmNtopWidget        , newseq->wimage ,
@@ -1214,7 +1282,7 @@ if( PRINT_TRACING ){
    newseq->onoff_widgets[(newseq->onoff_num)++] =
    newseq->wbar =
        XtVaCreateManagedWidget(
-          "dialog" , xmDrawingAreaWidgetClass , newseq->wform ,
+          "imseq" , xmDrawingAreaWidgetClass , newseq->wform ,
 
            XmNtopAttachment    , XmATTACH_FORM ,
            XmNleftAttachment   , XmATTACH_WIDGET ,
@@ -1247,7 +1315,7 @@ if( PRINT_TRACING ){
                       "Use Button 3 to popup\n"
                       "a display control menu"  ) ;
 
-   newseq->wbar_menu = XmCreatePopupMenu( newseq->wbar , "menu" , NULL , 0 ) ;
+   newseq->wbar_menu = XmCreatePopupMenu( newseq->wbar , "imseq" , NULL , 0 ) ;
 
    SAVEUNDERIZE(XtParent(newseq->wbar_menu)) ;  /* 27 Feb 2001 */
 
@@ -1255,7 +1323,7 @@ if( PRINT_TRACING ){
 
    newseq->wbar_rng_but =
       XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+         "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Display Range") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1265,7 +1333,7 @@ if( PRINT_TRACING ){
 
    newseq->wbar_zer_but =
       XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+         "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Zero Color") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1275,7 +1343,7 @@ if( PRINT_TRACING ){
 
    newseq->wbar_flat_but =
       XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+         "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Flatten Range") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1285,7 +1353,7 @@ if( PRINT_TRACING ){
 
    newseq->wbar_sharp_but =
       XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+         "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Sharpen factor") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1302,7 +1370,7 @@ if( PRINT_TRACING ){
 
    newseq->onoff_widgets[(newseq->onoff_num)++] =
    newseq->winfo = XtVaCreateManagedWidget(
-                     "dialog" , xmLabelWidgetClass , newseq->wform ,
+                     "imseq" , xmLabelWidgetClass , newseq->wform ,
                         XmNtopAttachment   , XmATTACH_WIDGET ,
                         XmNtopWidget       , newseq->wscale ,
                         XmNleftAttachment  , XmATTACH_FORM ,
@@ -1394,7 +1462,7 @@ STATUS("creation: widgets created") ;
      static char *slabel[5] = { "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
      char *eee ; int iii ;
 
-     (void) XtVaCreateManagedWidget( "dialog",
+     (void) XtVaCreateManagedWidget( "imseq",
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
@@ -1407,7 +1475,7 @@ STATUS("creation: widgets created") ;
                                              ISQ_wbar_plots_CB , (XtPointer)newseq ) ;
      MCW_set_bbox( newseq->wbar_plots_bbox , 1 ) ;
 
-     (void) XtVaCreateManagedWidget( "dialog",
+     (void) XtVaCreateManagedWidget( "imseq",
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
@@ -1703,6 +1771,8 @@ void ISQ_zoom_pb_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    MCW_imseq * seq = (MCW_imseq *) client_data ;
 
+ENTRY("ISQ_zoom_pb_CB") ;
+
    if( ! ISQ_REALZ(seq)       ||
        w != seq->zoom_drag_pb ||
        seq->zoom_fac == 1       ) EXRETURN ; /* bad */
@@ -1713,6 +1783,42 @@ void ISQ_zoom_pb_CB( Widget w , XtPointer client_data , XtPointer call_data )
    else                    POPUP_cursorize( seq->wimage ) ;
 
    MCW_invert_widget( seq->zoom_drag_pb ) ;
+
+   if( seq->crop_drag ){                       /* turn off crop */
+     MCW_invert_widget( seq->crop_drag_pb ) ;  /* button, if on */
+     seq->crop_drag = 0 ;
+   }
+
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Callback for 'crop' button. */
+
+void ISQ_crop_pb_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   MCW_imseq * seq = (MCW_imseq *) client_data ;
+
+ENTRY("ISQ_crop_pb_CB") ;
+
+   if( !ISQ_REALZ(seq)        ||
+       w != seq->crop_drag_pb ||
+       ! seq->crop_allowed      ){ XBell(XtDisplay(w),100); EXRETURN; }
+
+   MCW_invert_widget( seq->crop_drag_pb ) ;
+   seq->crop_drag = !seq->crop_drag ;
+
+   if( !seq->crop_drag && seq->cropit ){        /* turn crop off */
+     seq->cropit = 0 ; seq->crop_nxorg = -1 ;   /* if double-pressed */
+     ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   }
+
+   if( seq->zoom_button1 ){                     /* turn pan off if on */
+     POPUP_cursorize( seq->wimage ) ;
+     MCW_invert_widget( seq->zoom_drag_pb ) ;
+     seq->zoom_button1 = 0 ;
+   }
+
    EXRETURN ;
 }
 
@@ -4128,6 +4234,13 @@ DPR(" .. KeyPress") ;
            EXRETURN ;
          }
 
+         /* 17 Jun 2002: toggle cropping with 'c' or 'C' */
+
+         if( buf[0] == 'c' || buf[0] == 'C' ){
+           ISQ_crop_pb_CB( seq->crop_drag_pb , (XtPointer)seq , NULL ) ;
+           EXRETURN ;
+         }
+
          /* 17 May 2002: do image fraction */
 
          if( buf[0] == 'i' || buf[0] == 'I' ){
@@ -4187,7 +4300,18 @@ DPR(" .. ButtonPress") ;
 
          MCW_discard_events( w , ButtonPressMask ) ;
 
-         /* default processing */
+         /* 12-17 Jun 2002: Shift+Button2 for picking crop rectangle */
+
+         if( w == seq->wimage &&
+             ( (but==Button2 && (event->state & ShiftMask)) ||
+               (seq->crop_drag)                            )  ){
+
+           ISQ_cropper( seq , event ) ;
+           EXRETURN ;
+
+         } /* end of cropping stuff */
+
+         /*-- default processing --*/
 
          switch( but ){
 
@@ -4252,98 +4376,6 @@ DPR(" .. ButtonPress") ;
             /* pass this event to the separate handler, if allowed */
 
             case Button2:{
-
-              /* 12 Jun 2002: Shift+Button2 for picking crop rectangle */
-
-              if( w == seq->wimage && (event->state & ShiftMask) ){
-
-#define MINCROP 9
-
-                int x1=bx,y1=by , x2,y2 ;
-                int imx1,imy1,nim1 , imx2,imy2,nim2 , tt ;
-                int zlev = seq->zoom_fac ;
-
-                if( !seq->crop_allowed ){
-                  XBell(seq->dc->display,100); EXRETURN;
-                }
-
-                /* let the user drag a rectangle while button is pressed:
-                   (x1,y1) = window coords of rectangle start
-                   (x2,y2) = window coords of rectangle finish           */
-
-                RWC_drag_rectangle( w , x1,y1,&x2,&y2 ) ;
-
-                /* find corners of rectangle in original image pixels */
-
-                ISQ_mapxy( seq , x1,y1 , &imx1,&imy1,&nim1 ) ;
-                ISQ_mapxy( seq , x2,y2 , &imx2,&imy2,&nim2 ) ;
-
-                /* if dragging occured across sub-images in a montage, quit */
-
-                if( nim1 != nim2 ){
-                  MCW_popup_message( seq->wimage ,
-                                     " \n  Stupid   \n  crop\n  window!\n " ,
-                                     MCW_USER_KILL | MCW_TIMER_KILL  ) ;
-                  XBell(seq->dc->display,100); EXRETURN;
-                }
-
-                /* make sure coords of rectangle run upwards */
-
-                if( imx1 > imx2 ){ tt = imx1; imx1 = imx2; imx2 = tt; }
-                if( imy1 > imy2 ){ tt = imy1; imy1 = imy2; imy2 = tt; }
-
-                if( imx2-imx1 < MINCROP || imy2-imy1 < MINCROP ){ /* too small */
-                  if( imx2-imx1 < 2 || imy2-imy1 < 2 ){
-                    seq->cropit = 0 ; seq->crop_nxorg = -1 ;      /* crop off */
-                  } else {
-                    EXRETURN ;                                  /* do nothing */
-                  }
-                } else {                                   /* set crop region */
-                  if( zlev > 1 ){                     /* 14 Jun 2002: zoomed? */
-                    int xmid=(imx2+imx1)/2, xh=(imx2-imx1)/2, xhw=zlev*xh ;
-                    int ymid=(imy2+imy1)/2, yh=(imy2-imy1)/2, yhw=zlev*yh ;
-                    int nx,ny ;
-                    float mh = (zlev-1.001)/zlev ;
-                    nx = (seq->crop_nxorg > 0) ? seq->crop_nxorg : seq->horig ;
-                    ny = (seq->crop_nxorg > 0) ? seq->crop_nyorg : seq->vorig ;
-#if 0
-fprintf(stderr,"Crop: imx1=%d imx2=%d xmid=%d xh=%d xhw=%d nx=%d\n",imx1,imx2,xmid,xh,xhw,nx);
-fprintf(stderr,"      imy1=%d imy2=%d ymid=%d yh=%d yhw=%d ny=%d\n",imy1,imy2,ymid,yh,yhw,ny);
-#endif
-                    imx1 = xmid-xhw ; imx2 = xmid+xhw ;
-                         if( imx1 <  0    ){ imx1 = 0   ; imx2 = imx1+2*xhw; }
-                    else if( imx2 >= nx-1 ){ imx2 = nx-1; imx1 = imx2-2*xhw; }
-                    imy1 = ymid-yhw ; imy2 = ymid+yhw ;
-                         if( imy1 <  0    ){ imy1 = 0   ; imy2 = imy1+2*yhw; }
-                    else if( imy2 >= ny-1 ){ imy2 = ny-1; imy1 = imy2-2*yhw; }
-                    if( seq->opt.mirror )
-                      seq->zoom_hor_off = ((float)(imx2-xmid-xh))
-                                         /((float)(imx2-imx1)) ;
-                    else
-                      seq->zoom_hor_off = ((float)(xmid-xh-imx1))
-                                         /((float)(imx2-imx1)) ;
-
-                    seq->zoom_ver_off = ((float)(ymid-yh-imy1))
-                                       /((float)(imy2-imy1)) ;
-#if 0
-fprintf(stderr,"      imx1=%d imx2=%d hor_off=%f\n",imx1,imx2,seq->zoom_hor_off);
-fprintf(stderr,"      imy1=%d imy2=%d ver_off=%f\n",imy1,imy2,seq->zoom_ver_off);
-#endif
-                         if( seq->zoom_hor_off > mh  ) seq->zoom_hor_off = mh  ;
-                    else if( seq->zoom_hor_off < 0.0 ) seq->zoom_hor_off = 0.0 ;
-                         if( seq->zoom_ver_off > mh  ) seq->zoom_ver_off = mh  ;
-                    else if( seq->zoom_ver_off < 0.0 ) seq->zoom_ver_off = 0.0 ;
-                  }
-                  seq->crop_xa = imx1 ; seq->crop_xb = imx2 ;
-                  seq->crop_ya = imy1 ; seq->crop_yb = imy2 ;
-                  seq->cropit = 1 ; seq->crop_nxorg = -1 ;
-                }
-
-                /* force redisplay */
-
-                ISQ_redisplay( seq , -1 , isqDR_display ) ;
-                EXRETURN ;
-              } /* end of cropping stuff */
 
               /* drawing mode */
 
@@ -4633,7 +4665,7 @@ ENTRY("ISQ_but_disp_CB") ;
         SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
    seq->dialog = XtVaCreatePopupShell(
-                    "menu" , xmDialogShellWidgetClass , seq->wtop ,
+                    "imseq" , xmDialogShellWidgetClass , seq->wtop ,
                        XmNtitle , "Display Options" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
@@ -4664,7 +4696,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
    if( AFNI_yesenv("AFNI_DISP_SCROLLBARS") ){  /* 31 Jan 2002 */
       shtop = swtop = XtVaCreateManagedWidget(
-                 "menu" , xmScrolledWindowWidgetClass , seq->dialog ,
+                 "imseq" , xmScrolledWindowWidgetClass , seq->dialog ,
                     XmNscrollingPolicy        , XmAUTOMATIC ,
                     XmNvisualPolicy           , XmVARIABLE ,
 #if 0
@@ -4679,7 +4711,7 @@ ENTRY("ISQ_but_disp_CB") ;
    }
 
    rctop = XtVaCreateWidget(
-              "menu" , xmRowColumnWidgetClass , shtop ,
+              "imseq" , xmRowColumnWidgetClass , shtop ,
                  XmNpacking    , XmPACK_TIGHT ,
                  XmNnumColumns , 1 ,
 
@@ -4687,7 +4719,7 @@ ENTRY("ISQ_but_disp_CB") ;
               NULL ) ;
 
    rcboxes = XtVaCreateWidget(
-                "menu" , xmRowColumnWidgetClass , rctop ,
+                "imseq" , xmRowColumnWidgetClass , rctop ,
                    XmNpacking    , XmPACK_TIGHT ,
                    XmNnumColumns , 2 ,
 
@@ -4764,7 +4796,7 @@ ENTRY("ISQ_but_disp_CB") ;
              seq->status->slice_proj->num > 0  ){  /* 31 Jan 2002 */
 
              (void) XtVaCreateManagedWidget(
-                      "menu" , xmSeparatorWidgetClass , rcboxes ,
+                      "imseq" , xmSeparatorWidgetClass , rcboxes ,
                          XmNseparatorType , XmSINGLE_LINE ,
                          XmNinitialResourcesPersistent , False ,
                       NULL ) ;
@@ -4817,7 +4849,7 @@ ENTRY("ISQ_but_disp_CB") ;
              seq->status->transforms0D->num > 0  ){
 
              (void) XtVaCreateManagedWidget(
-                      "menu" , xmSeparatorWidgetClass , rcboxes ,
+                      "imseq" , xmSeparatorWidgetClass , rcboxes ,
                          XmNseparatorType , XmSINGLE_LINE ,
                          XmNinitialResourcesPersistent , False ,
                       NULL ) ;
@@ -4848,7 +4880,7 @@ ENTRY("ISQ_but_disp_CB") ;
              seq->status->transforms2D->num > 0  ){
 
              (void) XtVaCreateManagedWidget(
-                      "menu" , xmSeparatorWidgetClass , rcboxes ,
+                      "imseq" , xmSeparatorWidgetClass , rcboxes ,
                          XmNseparatorType , XmSINGLE_LINE ,
                          XmNinitialResourcesPersistent , False ,
                       NULL ) ;
@@ -4877,7 +4909,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
          if( nav > 0 && seq->status->send_CB != NULL ){
             (void) XtVaCreateManagedWidget(
-                     "menu" , xmSeparatorWidgetClass , rcboxes ,
+                     "imseq" , xmSeparatorWidgetClass , rcboxes ,
                         XmNseparatorType , XmSINGLE_LINE ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
@@ -4914,7 +4946,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
          if( nav > 0 && seq->status->send_CB != NULL ){
             (void) XtVaCreateManagedWidget(
-                     "menu" , xmSeparatorWidgetClass , rcboxes ,
+                     "imseq" , xmSeparatorWidgetClass , rcboxes ,
                         XmNseparatorType , XmSINGLE_LINE ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
@@ -4952,7 +4984,7 @@ ENTRY("ISQ_but_disp_CB") ;
          /* final separator */
 
          if( nav ) (void) XtVaCreateManagedWidget(
-                            "menu" , xmSeparatorWidgetClass , rcboxes ,
+                            "imseq" , xmSeparatorWidgetClass , rcboxes ,
                                XmNseparatorType , XmSINGLE_LINE ,
                                XmNinitialResourcesPersistent , False ,
                             NULL ) ;
@@ -5818,6 +5850,7 @@ static unsigned char record_bits[] = {
          ISQ_remove_widget( seq , seq->zoom_sep ) ;
          ISQ_remove_widget( seq , seq->zoom_val_av->wrowcol ) ;
          ISQ_remove_widget( seq , seq->zoom_drag_pb ) ;
+         ISQ_remove_widget( seq , seq->crop_drag_pb ) ;
 
          ISQ_remove_widget( seq , seq->arrowpad->wform ) ;
          ISQ_remove_widget( seq , seq->wbar ) ;
@@ -5915,10 +5948,12 @@ static unsigned char record_bits[] = {
             XtUnmanageChild( seq->zoom_sep ) ;
             XtUnmanageChild( seq->zoom_val_av->wrowcol ) ;
             XtUnmanageChild( seq->zoom_drag_pb ) ;
+            XtUnmanageChild( seq->crop_drag_pb ) ;
          } else {
             XtManageChild( seq->zoom_sep ) ;
             XtManageChild( seq->zoom_val_av->wrowcol ) ;
             XtManageChild( seq->zoom_drag_pb ) ;
+            XtManageChild( seq->crop_drag_pb ) ;
          }
          RETURN( True ) ;
       }
@@ -6830,7 +6865,7 @@ ENTRY("ISQ_montage_CB") ;
         SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
    seq->dialog = XtVaCreatePopupShell(
-                    "menu" , xmDialogShellWidgetClass , seq->wtop ,
+                    "imseq" , xmDialogShellWidgetClass , seq->wtop ,
                        XmNtitle , "Montage" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
@@ -6857,7 +6892,7 @@ ENTRY("ISQ_montage_CB") ;
            ISQ_montage_action_CB , seq ) ;
 
    wrc  = XtVaCreateWidget(                    /* RowColumn to hold all */
-             "menu" , xmRowColumnWidgetClass , seq->dialog ,
+             "imseq" , xmRowColumnWidgetClass , seq->dialog ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
                 XmNtraversalOn , False ,
@@ -6865,14 +6900,14 @@ ENTRY("ISQ_montage_CB") ;
              NULL ) ;
 
    (void) XtVaCreateManagedWidget(
-            "menu" , xmLabelWidgetClass , wrc ,
+            "imseq" , xmLabelWidgetClass , wrc ,
                LABEL_ARG("-- Montage Controls --") ,
                XmNalignment  , XmALIGNMENT_CENTER ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
    (void) XtVaCreateManagedWidget(
-            "menu" , xmSeparatorWidgetClass , wrc ,
+            "imseq" , xmSeparatorWidgetClass , wrc ,
                XmNseparatorType , XmSHADOW_ETCHED_IN ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
@@ -8353,7 +8388,7 @@ ENTRY("ISQ_record_button") ;
 
    seq->onoff_widgets[(seq->onoff_num)++] = seq->record_rc = rc =
      XtVaCreateWidget(
-           "dialog" , xmRowColumnWidgetClass , seq->wform ,
+           "imseq" , xmRowColumnWidgetClass , seq->wform ,
               XmNorientation    , XmHORIZONTAL ,
               XmNpacking        , XmPACK_TIGHT ,
 
@@ -8361,8 +8396,12 @@ ENTRY("ISQ_record_button") ;
               LEADING_WIDGET_BOT, seq->wbut_bot[NBUTTON_BOT-1] ,
               EDGING_BOT        , XmATTACH_FORM                ,
 
-              XmNmarginWidth  , 0 ,
+              XmNmarginWidth  , 1 ,
               XmNmarginHeight , 0 ,
+              XmNmarginBottom , 0 ,
+              XmNmarginTop    , 0 ,
+              XmNmarginLeft   , 0 ,
+              XmNmarginRight  , 0 ,
               XmNspacing      , 0 ,
               XmNborderWidth  , 0 ,
               XmNborderColor  , 0 ,
@@ -8374,10 +8413,14 @@ ENTRY("ISQ_record_button") ;
 
    /* menubar to hold the cascade button */
 
-   mbar = XmCreateMenuBar( rc , "dialog" , NULL,0 ) ;
+   mbar = XmCreateMenuBar( rc , "imseq" , NULL,0 ) ;
    XtVaSetValues( mbar ,
-                     XmNmarginWidth  , 0 ,
+                     XmNmarginWidth  , 1 ,
                      XmNmarginHeight , 0 ,
+                     XmNmarginBottom , 0 ,
+                     XmNmarginTop    , 0 ,
+                     XmNmarginLeft   , 0 ,
+                     XmNmarginRight  , 0 ,
                      XmNspacing      , 0 ,
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
@@ -8387,7 +8430,7 @@ ENTRY("ISQ_record_button") ;
 
    /* the menu pane */
 
-   menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
+   menu = XmCreatePulldownMenu( mbar , "imseq" , NULL,0 ) ;
    VISIBILIZE_WHEN_MAPPED(menu) ;
 
    /* the cascade button (what the user sees) */
@@ -8395,10 +8438,10 @@ ENTRY("ISQ_record_button") ;
    xstr = XmStringCreateLtoR( "Rec" , XmFONTLIST_DEFAULT_TAG ) ;
    seq->record_cbut = cbut =
      XtVaCreateManagedWidget(
-            "dialog" , xmCascadeButtonWidgetClass , mbar ,
+            "imseq" , xmCascadeButtonWidgetClass , mbar ,
                XmNlabelString , xstr ,
                XmNsubMenuId   , menu ,
-               XmNmarginWidth , 0 ,
+               XmNmarginWidth , 1 ,
                XmNmarginHeight, 0 ,
                XmNmarginBottom, 0 ,
                XmNmarginTop   , 0 ,
@@ -8463,7 +8506,7 @@ ENTRY("ISQ_record_button") ;
 
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
    (void) XtVaCreateManagedWidget(
-            "dialog" , xmLabelWidgetClass , menu ,
+            "imseq" , xmLabelWidgetClass , menu ,
                XmNlabelString , xstr ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
@@ -8471,7 +8514,7 @@ ENTRY("ISQ_record_button") ;
    XmStringFree(xstr) ;
 
    (void) XtVaCreateManagedWidget(
-            "dialog" , xmSeparatorWidgetClass , menu ,
+            "imseq" , xmSeparatorWidgetClass , menu ,
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
@@ -8493,7 +8536,7 @@ ENTRY("ISQ_record_button") ;
       seq->record_status = RECORD_STATUS_OFF ;
 
       (void) XtVaCreateManagedWidget(
-               "dialog" , xmSeparatorWidgetClass , menu ,
+               "imseq" , xmSeparatorWidgetClass , menu ,
                   XmNseparatorType , XmSINGLE_LINE ,
                NULL ) ;
 
@@ -9026,6 +9069,11 @@ ENTRY("ISQ_getimage") ;
 
        seq->cropit = 0 ; seq->crop_nxorg = -1 ;
 
+       if( seq->crop_drag ){              /* should not happen */
+         MCW_invert_widget( seq->crop_drag_pb ) ;
+         seq->crop_drag = 0 ;
+       }
+
      } else {
        MRI_IMAGE *cim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
                                          seq->crop_ya,seq->crop_yb ) ;
@@ -9117,4 +9165,141 @@ ENTRY("ISQ_getimage") ;
    }
 
    RETURN(qim) ;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Deal with dragging a crop window after a button has been pressed.
+-----------------------------------------------------------------------*/
+
+void ISQ_cropper( MCW_imseq *seq , XButtonEvent *event )
+{
+#define MINCROP 9
+
+   int x1=event->x,y1=event->y , x2,y2 ;
+   int imx1,imy1,nim1 , imx2,imy2,nim2 , tt ;
+   int zlev = seq->zoom_fac ;
+
+ENTRY("ISQ_cropper") ;
+
+   if( !seq->crop_allowed ){
+     XBell(seq->dc->display,100); EXRETURN;
+   }
+
+   /*** make the user drag a rectangle while button is pressed:
+        (x1,y1) = window coords of rectangle start
+        (x2,y2) = window coords of rectangle finish         ***/
+
+   RWC_drag_rectangle( seq->wimage , x1,y1,&x2,&y2 ) ;
+
+   /*** find corners of rectangle in original image pixels ***/
+
+   ISQ_mapxy( seq , x1,y1 , &imx1,&imy1,&nim1 ) ;
+   ISQ_mapxy( seq , x2,y2 , &imx2,&imy2,&nim2 ) ;
+
+   /*** if dragging occured across sub-images in a montage, quit ***/
+
+   if( nim1 != nim2 ){
+     MCW_popup_message( seq->wimage ,
+                        " \n  Stupid   \n  crop\n  window!\n " ,
+                        MCW_USER_KILL | MCW_TIMER_KILL  ) ;
+     XBell(seq->dc->display,100); goto CropDone;
+   }
+
+   /*** make sure coords of rectangle run upwards ***/
+
+   if( imx1 > imx2 ){ tt = imx1; imx1 = imx2; imx2 = tt; }
+   if( imy1 > imy2 ){ tt = imy1; imy1 = imy2; imy2 = tt; }
+
+   /*** if crop window is too small, then deal with that ***/
+
+   if( imx2-imx1 < MINCROP || imy2-imy1 < MINCROP ){ /* too small */
+     if( imx2-imx1 < 2 || imy2-imy1 < 2 ){
+       seq->cropit = 0 ; seq->crop_nxorg = -1 ;  /* turn crop off */
+     } else {
+       XBell(seq->dc->display,100);                 /* do nothing */
+     }
+
+   /*** otherwise (not too small), set the crop region ***/
+
+   } else {
+
+     /* 14 Jun 2002: if we are also zoomed, things are more complex */
+
+     if( zlev > 1 ){
+
+       /* xmid = middle of crop region */
+       /* xh   = half-width of crop region, as drawn */
+       /* xhw  = half-width enlarged by zoom factor */
+
+       int xmid=(imx2+imx1)/2, xh=(imx2-imx1)/2, xhw=zlev*xh ;
+       int ymid=(imy2+imy1)/2, yh=(imy2-imy1)/2, yhw=zlev*yh ;
+       int nx,ny ;
+       float mh = (zlev-1.001)/zlev ;  /* max offset allowed */
+
+       /* set size of original image from which cropping will be done */
+
+       nx = (seq->crop_nxorg > 0) ? seq->crop_nxorg : seq->horig ;
+       ny = (seq->crop_nxorg > 0) ? seq->crop_nyorg : seq->vorig ;
+#if 0
+fprintf(stderr,"Crop: imx1=%d imx2=%d xmid=%d xh=%d xhw=%d nx=%d\n",imx1,imx2,xmid,xh,xhw,nx);
+fprintf(stderr,"      imy1=%d imy2=%d ymid=%d yh=%d yhw=%d ny=%d\n",imy1,imy2,ymid,yh,yhw,ny);
+#endif
+
+       /* cropping should run from imx1-xhw to imx2+xhw
+          (since we want the image window to show what the user
+           drew, so we have to crop a larger rectangle and then
+           zoom in on THAT),
+          but we can't go outside the original image boundaries,
+          so we recompute imx1..imx2 here                       */
+
+       imx1 = xmid-xhw ; imx2 = xmid+xhw ;
+            if( imx1 <  0    ){ imx1 = 0   ; imx2 = imx1+2*xhw; }
+       else if( imx2 >= nx-1 ){ imx2 = nx-1; imx1 = imx2-2*xhw; }
+       imy1 = ymid-yhw ; imy2 = ymid+yhw ;
+            if( imy1 <  0    ){ imy1 = 0   ; imy2 = imy1+2*yhw; }
+       else if( imy2 >= ny-1 ){ imy2 = ny-1; imy1 = imy2-2*yhw; }
+
+       /* set the offset for the zoom window so that we'll show
+          the crop region just computed in the image display    */
+
+       if( seq->opt.mirror )
+         seq->zoom_hor_off = ((float)(imx2-xmid-xh))
+                            /((float)(imx2-imx1)) ;
+       else
+         seq->zoom_hor_off = ((float)(xmid-xh-imx1))
+                            /((float)(imx2-imx1)) ;
+
+       seq->zoom_ver_off = ((float)(ymid-yh-imy1))
+                          /((float)(imy2-imy1)) ;
+#if 0
+fprintf(stderr,"      imx1=%d imx2=%d hor_off=%f\n",imx1,imx2,seq->zoom_hor_off);
+fprintf(stderr,"      imy1=%d imy2=%d ver_off=%f\n",imy1,imy2,seq->zoom_ver_off);
+#endif
+
+       /* safeguard: don't let the zoom window offset be out of range! */
+
+            if( seq->zoom_hor_off > mh  ) seq->zoom_hor_off = mh  ;
+       else if( seq->zoom_hor_off < 0.0 ) seq->zoom_hor_off = 0.0 ;
+            if( seq->zoom_ver_off > mh  ) seq->zoom_ver_off = mh  ;
+       else if( seq->zoom_ver_off < 0.0 ) seq->zoom_ver_off = 0.0 ;
+
+     } /* end of mangling crop+zoom interaction */
+
+     /* now set crop parameters */
+
+     seq->crop_xa = imx1 ; seq->crop_xb = imx2 ;
+     seq->crop_ya = imy1 ; seq->crop_yb = imy2 ;
+     seq->cropit = 1 ; seq->crop_nxorg = -1 ;
+   }
+
+   /*** force image redisplay ***/
+
+CropDone:
+   if( seq->crop_drag ){                       /* turn off crop */
+     MCW_invert_widget( seq->crop_drag_pb ) ;  /* button, if on */
+     seq->crop_drag = 0 ;
+   }
+
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
 }

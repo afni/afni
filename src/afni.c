@@ -881,6 +881,7 @@ void AFNI_handler(char * msg){ return ; }
 static char * FALLback[] =
   {   "AFNI*fontList:             9x15bold=charset1"    ,
       "AFNI*pbar*fontList:        6x10=charset1"        ,
+      "AFNI*imseq*fontList:       7x13=charset1"        ,
       "AFNI*background:           gray40"               ,
       "AFNI*menu*background:      gray40"               ,
       "AFNI*borderColor:          gray40"               ,

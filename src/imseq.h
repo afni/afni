@@ -470,11 +470,14 @@ typedef struct MCW_imseq {
 
      int cropit , crop_xa,crop_xb , crop_ya,crop_yb ; /* 11 Jun 2002 */
      int crop_nxorg , crop_nyorg , crop_allowed ;
+     Widget        crop_drag_pb ;                     /* 17 Jun 2002 */
+     int           crop_drag ;
 
 } MCW_imseq ;
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
 extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
+extern void ISQ_crop_pb_CB( Widget, XtPointer, XtPointer ) ;
 
 /*--------------------------------------------------------------------*/
 
@@ -711,5 +714,6 @@ extern void ISQ_record_send_CB( MCW_imseq * , XtPointer , ISQ_cbs * ) ;
 extern void ISQ_record_kill_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void ISQ_remove_widget( MCW_imseq * , Widget ) ;
+extern void ISQ_cropper( MCW_imseq *, XButtonEvent *) ; /* 17 Jun 2002 */
 
 #endif /* _MCW_IMSEQ_HEADER_ */
