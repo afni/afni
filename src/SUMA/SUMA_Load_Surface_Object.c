@@ -1463,6 +1463,7 @@ SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec)
    static char FuncName[]={"SUMA_CheckOnSpecFile"};
    static int ob_warn = 0;
    int i;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1480,7 +1481,7 @@ SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec)
       }
       if (  Spec->MappingRef[i][0] ) {
          
-         if (!ob_warn) { 
+         if (LocalHead && !ob_warn) { 
             fprintf(SUMA_STDERR, "Warning:\n"
                                  "The field MappingRef in the spec file \n"
                                  "is obsolete. Consider replacing: \n"
@@ -2492,7 +2493,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
    
    if (DoWind){   
       /* check to make sure winding is consistent */
-      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL)) {
+      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 1)) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MakeConsistent.\n", FuncName);
       }else {
          if (LocalHead) fprintf(SUMA_STDERR,"%s: Eeeexcellent.\n", FuncName);
@@ -2514,8 +2515,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
          SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim);
          if (SO->MF->NodeMemberOfFaceSet == NULL) {
             fprintf(SUMA_STDERR,"Error %s: Error in SUMA_MemberFaceSets\n", FuncName);
-            SO->MF = NULL;
-            SO->MF_Inode = NULL;
+            SUMA_RETURN (NOPE); /* do not free MF, that is done when SO is freed */
          }else {
             SO->MF_Inode = SUMA_CreateInode ((void *)SO->MF, SO->idcode_str);
             if (!SO->MF_Inode) {
@@ -2650,7 +2650,7 @@ void usage_SUMA_quickspec()
 {
    static char FuncName[]={"usage_SUMA_quickspec"};
    char * s = NULL;
-   printf ( "\n\33[1mUsage: \33[0m quickspec \n"
+   printf ( "\nUsage:  quickspec \n"
             "        <-tn TYPE NAME> ...\n"
             "        <-tsn TYPE STATE NAME> ...\n"
             "        [<-spec specfile>] [-h/-help]\n"
@@ -3465,7 +3465,7 @@ int main (int argc,char *argv[])
 void usage_SUMA_Read_SpecFile ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_Read_SpecFile <fname> \n");
+          printf ("\nUsage:  SUMA_Read_SpecFile <fname> \n");
           printf ("\t <fname> Filename of Surface Specs file\n");
           printf ("To compile: \ngcc -DSUMA_Read_SpecFile_STAND_ALONE -Wall -o SUMA_Load_Surface_Object  SUMA_Load_Surface_Object.c ");
           printf ("SUMA_lib.a libmri.a -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib -lm \n");
@@ -3509,7 +3509,7 @@ int main (int argc,char *argv[])
 void usage_SUMA_Load_Surface_Object_STAND_ALONE ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_Load_Surface_Object <SurfName> [<Type> <format>]\n");
+          printf ("\nUsage:  SUMA_Load_Surface_Object <SurfName> [<Type> <format>]\n");
           printf ("\t <SurfName> Filename of Surface Object\n");
           printf ("\t <Type>: 2 (hard coded at the moment for SUMA_INVENTOR_GENERIC)\n");
           printf ("\t <format>: 0 (hard coded at the moment for SUMA_ASCII\n"); 

@@ -1532,6 +1532,18 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       } else cf->X->NumForeSmoothing = 0;
    }
    
+   {
+      char *eee = getenv("SUMA_WarnBeforeClose");
+      if (eee) {
+         if (strcmp(eee,"NO") == 0) cf->X->WarnClose = NOPE;
+         else if (strcmp(eee,"YES") == 0) cf->X->WarnClose = YUP;
+         else {
+            SUMA_SL_Warn("Bad value for environment variable SUMA_WarnBeforeClose\nAssuming default of YES");
+            cf->X->WarnClose = YUP;
+         }
+      } else cf->X->WarnClose = YUP;
+   }
+   
    cf->MessageList = SUMA_CreateMessageList ();
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    cf->ROI_mode = NOPE;

@@ -2293,7 +2293,7 @@ void SUMA_ShowList (DList *list, FILE *Out)
 void usage ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_GetNextCommand ..... \n");
+          printf ("\nUsage:  SUMA_GetNextCommand ..... \n");
           printf ("\t ..... \n\n");
           printf ("\t To Compile:\ngcc -DSTAND_ALONE -Wall -o $1 $1.c -I/usr/X11R6/include -I./\n");
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tTue Feb 5 10:39:02 EST 2002 \n");

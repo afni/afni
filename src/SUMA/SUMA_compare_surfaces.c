@@ -304,14 +304,14 @@ int main (int argc,char *argv[])
   if (SkipConsistent) {
    fprintf (SUMA_STDERR,"Skipping consistency check.\n");
   } else {
-     if (SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SEL) == YUP)
+     if (SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SEL, 1) == YUP)
        fprintf(SUMA_STDERR,"faces are consistent\n");
      else
        fprintf(SUMA_STDERR,"faces are not consistent\n");
   }
  
  SEL = SUMA_Make_Edge_List (SO2->FaceSetList, SO2->N_FaceSet, SO2->N_Node,SO2->NodeList); 
-  if (SUMA_MakeConsistent (SO2->FaceSetList, SO2->N_FaceSet, SEL) == YUP)
+  if (SUMA_MakeConsistent (SO2->FaceSetList, SO2->N_FaceSet, SEL, 1) == YUP)
     fprintf(SUMA_STDERR,"faces are consistent\n");
   else
     fprintf(SUMA_STDERR,"faces are not consistent\n");

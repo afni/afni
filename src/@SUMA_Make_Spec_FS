@@ -511,7 +511,7 @@ L_CREATE_SPEC:
 	    echo "        SurfaceFormat = ASCII"		>> $spec_file
 	    echo "        SurfaceType = FreeSurfer"		>> $spec_file
 	    echo "        FreeSurferSurface = $surf.asc"	>> $spec_file
-	    echo "        MappingRef = $map_ref"		>> $spec_file
+	    echo "        LocalDomainParent = $map_ref"		>> $spec_file
 	    echo "        SurfaceState = $s_state"		>> $spec_file
 	    echo "        EmbedDimension = $embed_ref"		>> $spec_file
 	    echo ""						>> $spec_file

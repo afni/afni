@@ -7813,14 +7813,15 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
    SUMA_RETURN(answer);
 }
 
+
 /*!
-   \brief create a forced answer dialog for replacing ROIs
+   \brief create a forced answer dialog YES/NO 
    
    \return SUMA_YES SUMA_NO 
 */
-int SUMA_AskUser_ROI_replace(Widget parent, char *question, int default_ans)
+int SUMA_ForceUser_YesNo(Widget parent, char *question, int default_ans)
 {
-    static char FuncName[]={"SUMA_AskUser_ROI_replace"};
+    static char FuncName[]={"SUMA_ForceUser_YesNo"};
     static Widget dialog; /* static to avoid multiple creation */
     Widget YesWid, NoWid, HelpWid;
     XmString text, yes, no;
@@ -7855,7 +7856,7 @@ int SUMA_AskUser_ROI_replace(Widget parent, char *question, int default_ans)
    XmStringFree (yes);
    XmStringFree (no);
 
-   /* set the values of the standrard buttons */
+   /* set the values of the standard buttons */
    YesWid = XmMessageBoxGetChild(dialog, XmDIALOG_OK_BUTTON);
    XtVaSetValues(YesWid, XmNuserData, SUMA_YES, NULL);
    NoWid = XmMessageBoxGetChild(dialog, XmDIALOG_CANCEL_BUTTON);

@@ -127,7 +127,8 @@ SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
 int SUMA_ReleaseLink (SUMA_INODE * IN) 
 {
    static char FuncName[]={"SUMA_ReleaseLink"};
-
+   SUMA_Boolean LocalHead = NOPE;
+   
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (!IN) {

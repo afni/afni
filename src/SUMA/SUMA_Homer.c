@@ -28,7 +28,7 @@ extern int SUMAg_N_DOv;
 
 void usage_SUMA_Homer()
 {
-   printf ("\n\33[1mUsage: \33[0m SUMA_Homer\n");
+   printf ("\nUsage:  SUMA_Homer\n");
    exit (1);
 }   
 

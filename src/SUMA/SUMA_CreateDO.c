@@ -1687,6 +1687,10 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   if (!SO) {
+      SUMA_SL_Warn("NULL SO");
+      SUMA_RETURN(YUP);
+   }
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO\n", FuncName);
    /* Start with the big ones and down*/
    /* From SUMA 1.2 and on, some glar_ pointers are copies of others and should not be freed */ 

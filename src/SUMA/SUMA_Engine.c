@@ -1648,10 +1648,10 @@ int SUMA_NextState(SUMA_SurfaceViewer *sv)
 {
    static char FuncName[] = {"SUMA_NextState"};
    int inxt, icur;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-   SUMA_SL_Warn("Modified next SUMA_WhichState\nMake sure it tests OK");
    icur = SUMA_WhichState (sv->State, sv, sv->CurGroupName);
    if (icur < 0) {
       fprintf(SUMA_STDERR,"Error %s: SUMA_WhichState failed.\n", FuncName);
@@ -1686,10 +1686,10 @@ int SUMA_PrevState(SUMA_SurfaceViewer *sv)
 {
    static char FuncName[] = {"SUMA_PrevState"};
    int inxt, icur;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
-   SUMA_SL_Warn("Modified next SUMA_WhichState\nMake sure it tests OK");
+   
    icur = SUMA_WhichState (sv->State, sv, sv->CurGroupName);   
    if (icur < 0) {
       fprintf(SUMA_STDERR,"Error %s: SUMA_WhichState failed.\n", FuncName);

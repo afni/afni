@@ -1630,7 +1630,7 @@ void usage_SUMA_SurfSmooth ()
    {
       static char FuncName[]={"usage_SUMA_SurfSmooth"};
       char * s = NULL;
-      printf ("\n\33[1mUsage: \33[0m SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
+      printf ("\nUsage:  SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
               "\n"
               "   Method specific options:\n"
               "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
@@ -1647,7 +1647,7 @@ void usage_SUMA_SurfSmooth ()
               "   Detailed usage:\n"
               "      -spec SpecFile: Name of specfile containing surface of interest.\n"
               "                      If the surface does not have a spec file, use the \n"
-              "                      program \33[1mquickspec\33[0m to create one.\n"
+              "                      program quickspec to create one.\n"
               "      -surf_A insurf: Name of surface of interest. \n"
               "                      NOTE: i_TYPE inSurf option is now obsolete.\n"
               "      -met method: name of smoothing method to use. Choose from:\n"
@@ -2876,8 +2876,9 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
       #if 0
          fprintf(SUMA_STDOUT, "%s: Computing MemberFaceSets... \n", FuncName);
          SO->MF = SUMA_MemberFaceSets (SO->N_Node, SO->FaceSetList, SO->N_FaceSet, 3);
-         if (SO->MF == NULL) {
+         if (SO->MF->NodeMemberOfFaceSet== NULL) {
             fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_MemberFaceSets. \n", FuncName);
+            /* cleanup of MF is done when surface is freed */
             SUMA_RETURN(CE);
          }
          /* YOU SHOULD CREATE INODES FOR THIS BABY and link related surfaces,

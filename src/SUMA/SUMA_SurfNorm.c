@@ -288,8 +288,9 @@ and RetStruct.N_Memb is:
 
 Side effects : 
    To free RetStruct, use:
-   if (RetStruct.NodeMemberOfFaceSet) free2D((char **)RetStruct.NodeMemberOfFaceSet, Nind);
+   if (RetStruct.NodeMemberOfFaceSet) SUMA_free2D((char **)RetStruct.NodeMemberOfFaceSet, Nind);
    if (RetStruct.N_Memb) SUMA_free(RetStruct.N_Memb);
+   if (RetStruct) SUMA_free(RetStrct);
    
    
 ***/
@@ -385,7 +386,7 @@ SUMA_Boolean SUMA_Free_MemberFaceSets (SUMA_MEMBER_FACE_SETS *MF)
 void usage ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_MemberFaceSets <FaceSetList> <indexfile> \n");
+          printf ("\nUsage:  SUMA_MemberFaceSets <FaceSetList> <indexfile> \n");
           printf ("\t <FaceSetList> : file containing the facesetlist \n");
           printf ("\t <index file> : file containing the indices of the nodes \n");
           printf ("\t              You're looking up wich node belongs to which FaceSets\n\n");
@@ -436,7 +437,7 @@ int main (int argc,char *argv[])
 void usage ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_SurfNorm <NodeList> <FaceSetList> \n");
+          printf ("\nUsage:  SUMA_SurfNorm <NodeList> <FaceSetList> \n");
           printf ("\t ..... \n\n");
           printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tThu Jan 3 14:46:55 EST 2002 \n");
           exit (0);

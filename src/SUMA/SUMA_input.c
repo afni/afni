@@ -133,7 +133,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                int curstateID = -1, nxtstateID = -1, dov_ID = -1;
 
                /* make sure switching is OK */
-               SUMA_SL_Warn("Modified next SUMA_WhichState\nMake sure it tests OK");
                curstateID = SUMA_WhichState(sv->State, sv, sv->CurGroupName);
                SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
                if (SUMA_isLocalDomainParent (SO)) {
@@ -160,7 +159,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /* find SO that is mappable reference & get corresponding state ID*/
                   dov_ID = SUMA_findSO_inDOv(SO->LocalDomainParentID, SUMAg_DOv, SUMAg_N_DOv);
                   SOmap = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-                  SUMA_SL_Warn("Modified next SUMA_WhichState\nMake sure it tests OK");   
                   nxtstateID = SUMA_WhichState(SOmap->State, sv, sv->CurGroupName);
                   
                   if (nxtstateID < 0) {
@@ -188,9 +186,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_Escape: /* there's more:  XK_BackSpace XK_Tab XK_Linefeed XK_Return XK_Delete */
             /* control mask and escape is grabbed by gnome window manager .... */
             if (Kev.state & ShiftMask){/* kill all */
-               XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
-               exit(0);
+               if( SUMAg_CF->X->WarnClose) {
+                  if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close All Viewers?", SUMA_YES) != SUMA_YES) {
+                     break;   
+                  }
+               } 
+               if (!SUMAg_CF->X->WarnClose) {
+                  XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
+                  exit(0);
+               } 
             }else { 
+               if( SUMAg_CF->X->WarnClose) {
+                  if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close This Viewer?", SUMA_YES) != SUMA_YES) {
+                     break;   
+                  }
+               }
                SUMA_ButtClose_pushed (w, clientData, callData);
             }
             break;

@@ -1241,7 +1241,7 @@ void SUMA_MakeColorMap_usage ()
       char * s = NULL;
       
       fprintf (SUMA_STDOUT, "\n"
-                            "\33[1mUsage1: \33[0m\n"
+                            "Usage1: \n"
                             "MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n"
                             "    Creates a colormap of N colors that contains the fiducial colors.\n"
                             "    -fn Fiducials_Ncol: Fiducial colors and their indices in the color\n"
@@ -1252,7 +1252,7 @@ void SUMA_MakeColorMap_usage ()
                             "       i-th color in the colormap. i should be between 0 and\n"
                             "       N-1, N being the total number of colors in the colormap.\n"
                             "\n"
-                            "\33[1mUsage2: \33[0m\n"
+                            "Usage2: \n"
                             "MakeColorMap <-f Fiducials> <-nc N> [-sl] [-ah prefix] [-h/-help]\n"
                             "    Creates a colormap of N colors that contains the fiducial colors.\n"
                             "    -f Fiducials:  Fiducial colors are listed in an ascii file Fiducials. \n"
@@ -1261,13 +1261,13 @@ void SUMA_MakeColorMap_usage ()
                             "    -sl: (optional, default is NO) if used, the last color in the Fiducial \n"
                             "       list is omitted. This is useful in creating cyclical color maps.\n"
                             "\n"
-                            "\33[1mUsage3: \33[0m\n"
+                            "Usage3: \n"
                             "MakeColorMap <-std MapName>\n"
                             "    Returns one of SUMA's standard colormaps. Choose from:\n"
                             "    rgybr20, ngray20, gray20, bw20, bgyr19, \n"
                             "    matlab_default_byr64, roi128, roi64\n"
                             "\n"
-                            "\33[1mCommon options to all usages:\33[0m\n"
+                            "Common options to all usages:\n"
                             "    -ah prefix: (optional, Afni Hex format.\n"
                             "                 default is RGB values in decimal form)\n"
                             "       use this option if you want a color map formatted to fit \n"
@@ -2600,7 +2600,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
    {
       static char FuncName[]={"SUMA_ScaleToMap_usage"};
       char * s = NULL;
-      fprintf (SUMA_STDOUT,   "\n\33[1mUsage: \33[0m ScaleToMap <-input IntFile icol vcol>  \n"
+      fprintf (SUMA_STDOUT,   "\nUsage:  ScaleToMap <-input IntFile icol vcol>  \n"
                               "    [-cmap MapType] [-cmapfile Mapfile] [-cmapdb Palfile] [-frf] \n"
                               "    [-clp/-perc_clp clp0 clp1] [-apr/-anr range]\n"
                               "    [-interp/-nointerp/-direct] [-msk msk0 msk1] [-nomsk_col]\n"
@@ -2747,7 +2747,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                               "\n");                        
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       fprintf (SUMA_STDOUT,   "    Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
-                              "      July 31/02 Last Modified Nov 03 03\n"
+                              "      July 31/02 \n"
                               "\n");
    }
 

@@ -397,7 +397,7 @@ char * SUMA_New_Additions (float ver, SUMA_Boolean StampOnly)
    char *s = NULL;
    int i;
    SUMA_STRING *SS = NULL;
-   float verv[] = {2.48, 2.45, -1.00}; /* modify this dude and you must update SUMA_New_Additions_perver  
+   float verv[] = {2.4800, 2.4500, -1.0000}; /* modify this dude and you must update SUMA_New_Additions_perver  
                                        Add to the left of the vector, leave the last value of -1 untouched
                                        The number of significant digits should be constant*/
    
@@ -455,7 +455,7 @@ char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
 {
    static char FuncName[]={"SUMA_New_Additions_perver"};
    char *s = NULL;
-   const int ti = 100; /* The power of 10 should be equal to the significant digits used in ver */
+   const int ti = 10000; /* The power of 10 should be equal to the significant digits used in ver */
    int V;
    SUMA_STRING *SS = NULL;
    
@@ -480,7 +480,7 @@ char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
       */
       case (int)((2.48*ti)):
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.2f, Jan. 16 2004\n", ver); if (StampOnly) break;
+            "++ SUMA version %.4f, Jan. 16 2004\n", ver); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "Modifications:\n"
             "  + Beginning of multiple group support in SUMA\n"
@@ -490,7 +490,7 @@ char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
          
       case (int)((2.45*ti)):
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.2f, Jan. 6 2004\n", ver); if (StampOnly) break;
+            "++ SUMA version %.4f, Jan. 6 2004\n", ver); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
             "  + inspec: Shows the contents of a spec file\n"
