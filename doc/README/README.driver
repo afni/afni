@@ -65,6 +65,15 @@ PBAR_ROTATE [c.]{+|-}
   Rotates the color pbar in the positive ('+') or negative ('-') direction:
     PBAR_ROTATE A.+
 
+DEFINE_COLORSCALE name number=color number=color ...
+  or
+DEFINE_COLORSCALE name color color color
+  Defines a new colorscale with the given name.  The format of the following
+  arguments is either like "1.0=#ffff00" or like "#ff00ff" (all must be in the
+  same format).  See http://afni.nimh.nih.gov/afni/afni_colorscale.html for
+  more information about the format of color names and about how the colorscale
+  definition works.
+
 SET_FUNC_AUTORANGE [c.]{+|-}
   Sets the function "autoRange" toggle to be on ('+') or off ('-'):
     SET_FUNC_AUTORANGE A.+
