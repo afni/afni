@@ -493,6 +493,7 @@ STATUS("WANT_AFNI_BITMAP") ;
         }
       }
 
+#if 0
       if( afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP && AFNI_yesenv("AFNI_LOGO16") ){
         Pixel fg16=ICON_bg, bg16=ICON_fg ; int ic ; char ename[32] ;
         char *fgn[7] = { "red", "blue-cyan", "green", "violet", "orange", "gray70", "yellow" };
@@ -518,6 +519,8 @@ STATUS("WANT_AFNI_BITMAP") ;
                                       fg16 , bg16 ,
                                       DefaultDepthOfScreen(XtScreen(vwid->top_shell)) ) ;
       }
+#endif
+
 #endif  /* WANT_AFNI_BITMAP */
    }
 #endif  /* if WANT any of the BITMAPs */
