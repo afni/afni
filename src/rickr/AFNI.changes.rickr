@@ -308,3 +308,11 @@
 01 October 2003:
   * modified SUMA_3dVol2Surf.c: added -oom_value option and help example
 
+02 October 2003:
+  * major upgrades to 3dSurf2Vol (-> v2.0)
+      - changes accepting surface data, surface coordinates, output data type,
+        debug options, multiple sub-brick output, and segment alterations
+      - added the following options:
+	  '-surf_xyz_1D', '-sdata_1D', '-data_expr', '-datum', '-dnode',
+	  '-dvoxel', '-f_index', '-f_p1_fr', '-f_pn_fr', '-f_p1_mm', '-f_pn_mm'
+
