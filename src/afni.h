@@ -116,7 +116,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "07 Dec 1997      "
+#define RELEASE "31 Jan 1998      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -125,7 +125,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
      "*           Version " VERSION " -- " RELEASE " *\n"  \
      "*                                              *\n"  \
      "* Copyright:     Medical College of Wisconsin  *\n"  \
-     "*   1994-7       Milwaukee, WI 53226-0509      *\n"  \
+     "*   1994-8       Milwaukee, WI 53226-0509      *\n"  \
      "*                                              *\n"  \
      "* Author:  Robert W. Cox, Ph.D.                *\n"  \
      "* E-mail:  rwcox@mcw.edu                       *\n"  \

@@ -1,0 +1,95 @@
+Compressed Dataset .BRIK Files
+==============================
+AFNI now supports the use of compressed .BRIK files.  The routines
+that open and read these files detect the compression mode using
+the filename suffix, and will use the correct decompression program
+to read them in from disk.
+
+How to Compress
+===============
+At this time, AFNI will not write out compressed .BRIK files.  You
+have to do that manually.  The following 3 programs are supported:
+
+  Name      Suffix  Compression Command  Uncompress Command
+  --------  ------  -------------------  -------------------
+  compress   .Z     compress -v *.BRIK   uncompress *.BRIK.Z
+  gzip       .gz    gzip -1v *.BRIK      gzip -d *.BRIK.gz
+  bzip2      .bz2   bzip2 -1v *.BRIK     bzip2 -d *.BRIK.bz2
+
+  "compress" is available on almost all Unix systems.
+  "gzip" is available on many Unix systems, and can also be
+     ftp-ed from the AFNI distribution site.
+  "bzip2" is included in the AFNI distribution.  It generally
+     compresses more than the other two programs, but is much
+     slower at both compression and uncompression.  (See the
+     file README.bzip2 for details about this program.)
+
+For large MR image datasets, "compress" and "gzip" have about the
+same compression factor and take about the same CPU time (at least
+in the samples I've tried here.)
+
+Do NOT compress the .HEAD files!  AFNI will not be able to read them.
+
+Removing Some of the Noise Region
+=================================
+The program 3dnoise will attempt to fit a Rayleigh distribution to
+the low intensity tail of a dataset histogram.  It can be used to
+zero out voxels that fall in the noise floor.  This will make a
+dataset compress somewhat better.
+
+The command line
+   3dnoise dataset dataset ...
+will print out the estimated noise cutoff for each input dataset.
+The alternative usage
+   3dnoise -blast dataset dataset ...
+will set to zero all voxels at or below the cutoff.  The cutoff is
+determined for the entire dataset at once, not for each individual
+sub-brick.  A chi-squared fit is used to estimate the noise
+standard deviation, and the cutoff is set at 2.5 times this value.
+
+3dnoise can only be applied to datasets that are stored as shorts
+and that have no negative elements.  If either of these conditions
+is violated, the program will complain about "illegal data".
+Thus, it is inappropriate to apply 3dnoise to a derived dataset,
+such as is output by FIM.  It is possible that the program will be
+unable to find any fit to the Rayleigh model, in which case it will
+so report.  This can happen under at least 2 circumstances:
+  [a] The dataset was already run through 3dnoise with -blast, or
+  [b] The dataset has a very low SNR.
+
+Do NOT use the output of 3dnoise as a way to estimate the SNR
+of your MRI data!  The method used to estimate the noise cutoff
+is partly ad hoc, and is intended to be conservative -- that is,
+to err on the low side.
+
+Penalties for Using Compression
+===============================
+Datasets must be uncompressed when they are read into AFNI (or other
+programs), which takes time.  In AFNI itself, a dataset .BRIK file
+is only read into the program when its values are actually needed
+-- when an image or graph window is opened.  When this happens, or
+when you "Switch" to a compressed dataset, there can be a noticeable
+delay.  For "compress" and "gzip", this may be a few seconds.  For
+"bzip2", the delays will generally be longer.
+
+Large .BRIK files are normally directly mapped to memory.  This
+technique saves system swap space, but isn't useful with compressed
+files.  Compressed .BRIK files are read into "malloc" allocated
+memory, which will take up swap space.  This may limit the number
+of datasets that can be used at once.  AFNI will try to purge unused
+datasets from memory if a problem arises, but it may not succeed.
+If necessary, the "-purge" option can be used when starting AFNI.
+
+Effect on Plugins and Other Programs
+====================================
+If you use the AFNI supplied routines to read in a dataset, then
+everything should work well with compressed .BRIK files.  You can
+tell if a dataset is compressed after you open it by using the
+DSET_COMPRESSED(dset) macro -- it returns 1 if "dset" is compressed,
+0 otherwise.
+
+=================================
+| Robert W. Cox, PhD            |
+| Biophysics Research Institute |
+| Medical College of Wisconsin  |
+=================================

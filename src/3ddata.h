@@ -19,8 +19,12 @@
 #include "killer.h"
 #include "vecmat.h"
 #include "machdep.h"
-
 #include "mrilib.h"
+
+#define ALLOW_COMPRESSOR
+#ifdef  ALLOW_COMPRESSOR
+#  include "compressor.h"
+#endif
 
 #ifndef myXtFree
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
@@ -1557,6 +1561,13 @@ typedef struct THD_3dim_dataset {
 #define DSET_ONDISK(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
                           (ds)->dblk->diskptr->storage_mode!=STORAGE_UNDEFINED )
 
+#ifdef ALLOW_COMPRESSOR
+#  define DSET_COMPRESSED(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
+                                COMPRESS_filecode((ds)->dblk->diskptr->brick_name) >= 0 )
+#else
+#  define DSET_COMPRESSED(ds) 0
+#endif
+
 #define PURGE_DSET(ds)                                  \
  do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )  \
         (void) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY ) ; } while(0)
@@ -1615,6 +1626,8 @@ typedef struct THD_3dim_dataset {
 #define DSET_NUM_TIMES(ds)       ( ((ds)->taxis == NULL) ? 1 : (ds)->taxis->ntt )
 #define DSET_NVALS_PER_TIME(ds)  ( (ds)->dblk->nvals / DSET_NUM_TIMES(ds) )
 #define DSET_NVALS(ds)           ( (ds)->dblk->nvals )
+
+#define DSET_NVOX(ds) ( (ds)->daxes->nxx * (ds)->daxes->nyy * (ds)->daxes->nzz )
 
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
                              (ds)->wod_flag == False  && DSET_NUM_TIMES(ds) > 1 && \

@@ -32,14 +32,14 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
            p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
-           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt \
+           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt bzip2 3dnoise \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
-                  sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat \
+                  sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
                   p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
-                  waver 3dnewid 3dcalc ccalc imcalc \
+                  waver 3dnewid 3dcalc ccalc imcalc bzip2 \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna
 
 all:libmri.a programs
@@ -51,6 +51,9 @@ all_noplug:libmri.a programs_noplug
 programs:$(PROGRAMS)
 
 programs_noplug:$(PROGRAMS_NOPLUG)
+
+3dnoise:3dnoise.o 3ddata.o
+	$(CC) -o 3dnoise 3dnoise.o 3ddata.o $(LFLAGS) $(LLIBS)
 
 whirlgif:whirlgif.h whirlgif.c
 	$(CC) -o whirlgif -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
@@ -114,6 +117,9 @@ dFD2:dFD2.o ts.o mcw.o overfim.o pcorsh.o
 fim:fim.c
 	$(RM) $@
 	$(CC) -o fim fim.c -DSYSV $(LFLAGS) $(LLIBS)
+
+bzip2:bzip2.o
+	$(CC) -o bzip2 bzip2.o
 
 fim2:fim2.o ts.o pcor.o
 	$(RM) $@
@@ -498,7 +504,7 @@ install_lib:
 ###################################################################
 # some dependencies (not complete)
 
-3ddata.o:killer.h vecmat.h machdep.h 3ddata.h
+3ddata.o:killer.h vecmat.h machdep.h 3ddata.h compressor.h compressor.c
 
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
        afni_graph.h afni_setup.h machdep.h

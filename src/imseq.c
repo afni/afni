@@ -327,7 +327,7 @@ static char * ISQ_form_help =
      "* Image Sequence Display Module                *\n"
      "*                                              *\n"
      "* Copyright 1994, Medical College of Wisconsin *\n"
-     "*          -1996  Milwaukee, WI 53226-0509     *\n"
+     "*          -1998  Milwaukee, WI 53226-0509     *\n"
      "*                                              *\n"
      "* Author:  Robert W. Cox, Ph.D                 *\n"
      "* E-mail:  rwcox@mcw.edu                       *\n"
