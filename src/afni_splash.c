@@ -5,31 +5,59 @@
 void AFNI_splashdown(void){ return; }  /* for party poopers */
 void AFNI_splashup  (void){ return; }
 
-#else                                  /* for party animals */
+#else  /*================================ for party animals !!!!!!!!!!!!!!!!!!*/
 
-#include "afni_splash.h"
+#include "afni_splash.h"     /* contains the RLE image data */
 
 static void * handle = NULL ;
 static void * SPLASH_popup_image( void * , MRI_IMAGE * ) ;
+static MRI_IMAGE * imspl = NULL ;
+
+#define USE_FADING
+
+/*----------------------------------------------------------------------------*/
 
 void AFNI_splashdown(void)
 {
-   if( handle != NULL ){ SPLASH_popup_image(handle,NULL); handle = NULL; }
+   byte * bspl ; int ii , nv , kk ;
+   PLUGIN_impopper * ppp = (PLUGIN_impopper *) handle ;
+
+   if( handle != NULL ){
+#ifdef USE_FADING
+      if( imspl != NULL ){  /* fade gently away */
+         bspl = MRI_BYTE_PTR(imspl) ; nv = imspl->nvox ;
+         for( kk=0 ; kk < 10 ; kk++ ){
+            for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
+            SPLASH_popup_image(handle,imspl) ;
+            drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
+         }
+      }
+      iochan_sleep(100) ; /* 100 msec of solitude */
+#endif
+      SPLASH_popup_image(handle,NULL); handle = NULL;  /* get rid of window */
+   }
+   mri_free(imspl) ; imspl = NULL ;
    return ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 void AFNI_splashup(void)
 {
    PLUGIN_impopper * ppp ;
-   MRI_IMAGE * imspl ;
    int ii , jj , cc,rr , dd,ee ;
    char   bb ;
    byte * bspl ;
    static int first=1 ;
 
+   /*--- create splash image ---*/
+
    if( ! PLUTO_popup_open(handle) ){
+      mri_free(imspl) ;
       imspl = mri_new( NX_SPLASH , NY_SPLASH , MRI_byte ) ;
       bspl  = MRI_BYTE_PTR(imspl) ;
+
+      /* decode the RLE image data into a real image array */
 
       cc = rr = 0 ;
       for( ii=0 ; ii < imspl->nvox && rr < NLINE_SPLASH ; ){
@@ -45,8 +73,14 @@ void AFNI_splashup(void)
          if( im26[rr][cc] == '\0' ){ cc = 0 ; rr++ ; }
       }
 
+      /* initialize image display */
+
       handle = SPLASH_popup_image( handle , imspl ) ;
-      mri_free(imspl) ;
+#ifndef USE_FADING
+      mri_free(imspl) ; imspl = NULL ;
+#endif
+
+      /* modify image display properties */
 
       ppp = (PLUGIN_impopper *) handle ;
 
@@ -63,12 +97,16 @@ void AFNI_splashup(void)
                        XmNmwmFunctions   , ee ,
                      NULL ) ;
 
+      /* actually popup image display */
+
       drive_MCW_imseq( ppp->seq , isqDR_realize   , NULL                     ) ;
       drive_MCW_imseq( ppp->seq , isqDR_onoffwid  , (XtPointer) isqDR_offwid ) ;
       drive_MCW_imseq( ppp->seq , isqDR_clearstat , NULL                     ) ;
 #if 0
       drive_MCW_imseq( ppp->seq , isqDR_reimage   , (XtPointer) 0            ) ;
 #endif
+
+      /* some super-frivolities */
 
       if( !first ){
          drive_MCW_imseq( ppp->seq , isqDR_title     , (XtPointer) "AFNI!" ) ;
@@ -80,12 +118,18 @@ void AFNI_splashup(void)
                                       "won't you please, please, help me?\n"
                         ) ;
       }
+
+   /*--- destroy splash image ---*/
+
    } else {
       ppp = (PLUGIN_impopper *) handle ;
+
+      /* bring splash window to the top */
+
       if( ISQ_REALZ(ppp->seq) )
          XMapRaised( XtDisplay(ppp->seq->wtop) , XtWindow(ppp->seq->wtop) ) ;
-      else
-         AFNI_splashdown() ;
+
+      AFNI_splashdown() ;  /* off with their heads */
    }
 
    first = 0 ; return ;
