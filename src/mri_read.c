@@ -982,6 +982,75 @@ MRI_IMAGE * mri_read_ascii( char * fname )
 }
 
 /*---------------------------------------------------------------------------
+  16 Nov 1999: read an ASCII file as columns, transpose to rows,
+               and allow column selectors.
+-----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_read_1D( char * fname )
+{
+   MRI_IMAGE * inim , * outim , * flim ;
+   char dname[256] , subv[256] , *cpt ;
+   int ii,nx,ny,nts , *ivlist , *ivl ;
+   float * far , * oar ;
+
+   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 255 ) return NULL ;
+
+   /*-- split filename and subvector list --*/
+
+   cpt = strstr(fname,"[") ;
+
+   if( cpt == NULL ){                   /* no subvector list */
+      strcpy( dname , fname ) ;
+      subv[0] = '\0' ;
+   } else if( cpt == fname ){           /* can't be at start of filename! */
+      fprintf(stderr,"*** Illegal filename in mri_read_1D: %s\n",fname) ;
+      return NULL ;
+   } else {                             /* got a subvector list */
+      ii = cpt - fname ;
+      memcpy(dname,fname,ii) ; dname[ii] = '\0' ;
+      strcpy(subv,cpt) ;
+   }
+
+   /*-- read file in --*/
+
+   inim = mri_read_ascii(dname) ;
+   if( inim == NULL ) return NULL ;
+   flim = mri_transpose(inim) ; mri_free(inim) ;
+   if( subv[0] == '\0' ) return flim ;             /* no subvector => am done */
+
+   /*-- get the subvector list --*/
+
+   nx = flim->nx ;
+   ny = flim->ny ;
+
+   ivlist = MCW_get_intlist( ny , subv ) ;         /* in thd_intlist.c */
+   if( ivlist == NULL || ivlist[0] < 1 ){
+      fprintf(stderr,"*** Illegal subvector list in mri_read_1D: %s\n",fname) ;
+      if( ivlist != NULL ) free(ivlist) ;
+      mri_free(flim) ; return NULL ;
+   }
+
+   nts = ivlist[0] ;                          /* number of subvectors */
+   ivl = ivlist + 1 ;                         /* start of array of subvectors */
+
+   for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
+      if( ivl[ii] < 0 || ivl[ii] >= ny ){
+         fprintf(stderr,"*** Out-of-range subvector list in mri_read_1D: %s\n",fname) ;
+         mri_free(flim) ; free(ivlist) ; return NULL ;
+      }
+   }
+
+   outim = mri_new( nx , nts , MRI_float ) ;   /* make output image */
+   far   = MRI_FLOAT_PTR( flim ) ;
+   oar   = MRI_FLOAT_PTR( outim ) ;
+
+   for( ii=0 ; ii < nts ; ii++ )               /* copy desired rows */
+      memcpy( oar + ii*nx , far + ivl[ii]*nx , sizeof(float)*nx ) ;
+
+   mri_free(flim) ; free(ivlist) ; return outim ;
+}
+
+/*---------------------------------------------------------------------------
    Stuff to read a file in "delay" mode -- 01 Jan 1997.
 -----------------------------------------------------------------------------*/
 

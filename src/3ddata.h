@@ -2251,11 +2251,20 @@ extern MRI_IMAGE * THD_extract_series( int , THD_3dim_dataset * , int ) ;
 
 extern void THD_insert_series( int, THD_3dim_dataset *, int, int, void *, int );
 
+/*--------------- routines that are in thd_detrend.c ---------------*/
+
 extern void get_linear_trend     ( int, float *, float *, float * ) ;
 extern void THD_linear_detrend   ( int, float *, float *, float * ) ;
 extern void get_quadratic_trend  ( int, float *, float *, float *, float * ) ;
 extern void THD_quadratic_detrend( int, float *, float *, float *, float * ) ;
 extern void THD_normalize        ( int, float * ) ;
+extern void THD_cubic_detrend    ( int, float * ) ;  /* 15 Nov 1999 */
+
+#define DETREND_linear(n,f)    THD_linear_detrend(n,f,NULL,NULL)
+#define DETREND_quadratic(n,f) THD_quadratic_detrend(n,f,NULL,NULL,NULL)
+#define DETREND_cubic(n,f)     THD_cubic_detrend(n,f)
+
+/*------------------------------------------------------------------*/
 
 extern THD_ivec3 THD_fdind_to_3dind( FD_brick * , THD_ivec3 ) ;
 extern THD_ivec3 THD_3dind_to_fdind( FD_brick * , THD_ivec3 ) ;

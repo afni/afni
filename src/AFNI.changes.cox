@@ -1796,3 +1796,16 @@
      afni_func.c, afni_graph.c, afni_setup.c, bbox.c.
  * Added missing "void" to declaration of function setup_tmpdir() in
      thd_http.c.
+
+16 Nov 1999
+ * Added more -help to 3dTshift.c, per MSB's comments.
+ * Added cubic detrend routine to thd_detrend.c.
+ * Added mri_read_1D() to mri_read.c.  This adds the ability to
+     do sub-vector selection, and does the transpose too.
+ * Added mri_write_1D() to mri_write.c.  This just does the
+     transpose before called mri_write_ascii().
+ * Modified 1dtranspose.c, 3dcalc.c, waver.c, afni_graph.c, and
+      model_convgamma*.c to use mri_read_1D().
+ * Modified afni_graph.c to use mri_write_1D().
+ * Added program 3dDetrend.c - remove time series trends.
+ * Added predefined 't' and 'l' to 3dcalc.c.

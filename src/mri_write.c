@@ -203,7 +203,23 @@ int mri_write_pnm( char * fname , MRI_IMAGE * im )
    return 1 ;
 }
 
-/** Only good for 1D and 2D images **/
+/*---------------------------------------------------------------------------------------*/
+
+int mri_write_1D( char * fname , MRI_IMAGE * im )  /* 16 Nov 1999 */
+{
+   MRI_IMAGE * fim ;
+   int jj ;
+
+   if( fname == NULL || strlen(fname) == 0 ||
+       im == NULL    || im->nz > 1           ) return 0 ;
+
+   fim = mri_transpose( im ) ;
+   jj  = mri_write_ascii( fname , fim ) ;
+   mri_free(fim) ;
+   return jj ;
+}
+
+/**-------------------------- Only good for 1D and 2D images ---------------------------**/
 
 int mri_write_ascii( char * fname, MRI_IMAGE * im )
 {

@@ -7,7 +7,7 @@
 
 int main( int argc , char * argv[] )
 {
-   MRI_IMAGE * inim , * flim ;
+   MRI_IMAGE * inim ;
 
    /*-- help? --*/
 
@@ -15,9 +15,11 @@ int main( int argc , char * argv[] )
      printf("Usage: 1dtranspose infile outfile\n"
             "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
             "in columns); outfile will be a similar file, but transposed.\n"
+            "You can use a column subvector selector list on infile, as in\n"
+            "  1dtranspose 'fred.1D[0,3,7]' ethel.1D\n"
             "\n"
-            "N.B.: This program may produce files with lines longer\n"
-            "      than a normal text editor can handle.\n"
+            "N.B.: This program may produce files with lines longer than a\n"
+            "      text editor can handle.\n"
            ) ;
       exit(0) ;
    }
@@ -31,17 +33,11 @@ int main( int argc , char * argv[] )
 
    /* read input file */
 
-   inim = mri_read_ascii( argv[1] ) ;
+   inim = mri_read_1D( argv[1] ) ;
    if( inim == NULL ){
       fprintf(stderr,"** Can't read input file!\n"); exit(1);
    }
 
-   if( inim->kind != MRI_float ){  /* should not happen */
-      flim = mri_to_float(inim) ; mri_free(inim) ; inim = flim ;
-   }
-
-   flim = mri_transpose(inim) ; mri_free(inim) ;
-
-   mri_write_ascii( argv[2] , flim ) ;
+   mri_write_ascii( argv[2] , inim ) ;
    exit(0) ;
 }

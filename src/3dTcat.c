@@ -25,6 +25,9 @@ static int                      TCAT_type  = -1 ;    /* dataset type */
 static int                      TCAT_glue  = 0 ;     /* glueing run? */
 static int                      TCAT_rlt   = 0 ;     /* remove linear trend? */
 
+static int                      TCAT_rqt   = 0 ;     /* 15 Nov 1999 */
+static int                      TCAT_rct   = 0 ;     /* 15 Nov 1999 */
+
 static char TCAT_output_prefix[THD_MAX_PREFIX] = "tcat" ;
 static char TCAT_session[THD_MAX_NAME]         = "./"   ;
 
@@ -127,6 +130,20 @@ void TCAT_read_opts( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-rlt++") == 0 ){  /* 16 Sep 1999 */
          TCAT_rlt = 3 ;
+         nopt++ ; continue ;
+      }
+
+      /**** -rqt [15 Nov 1999] ****/
+
+      if( strcmp(argv[nopt],"-rqt") == 0 ){
+         TCAT_rqt = 1 ;
+         nopt++ ; continue ;
+      }
+
+      /**** -rct [15 Nov 1999] ****/
+
+      if( strcmp(argv[nopt],"-rct") == 0 ){
+         TCAT_rct = 1 ;
          nopt++ ; continue ;
       }
 

@@ -41,29 +41,24 @@ fprintf(stderr,"conv_set_ref: num=%d nonzero=%d\n",num,refnz) ;
    } else { /*** if no inputs, do something special ***/
 
      char * cp ;
-     MRI_IMAGE * im , * flim ;
+     MRI_IMAGE * flim ;
      float one = 1.0 ;
 
      cp = my_getenv("AFNI_CONVMODEL_REF") ;  /* get name of reference file */
      if( cp == NULL )
         ERREX("model_convgamma: Can't read AFNI_CONVMODEL_REF from environment") ;
 
-     im = mri_read_ascii(cp) ;            /* read into memory */
-     if( im == NULL ){
+     flim = mri_read_1D(cp) ;            /* 16 Nov 1999: replaces mri_read_ascii */
+     if( flim == NULL ){
         char buf[256] ;
         sprintf(buf,"model_convgamma: Can't read timeseries file %s",cp) ;
         ERREX(buf) ;
      }
 
 #if 0
-fprintf(stderr,"conv_set_ref: refts=%s  nx=%d\n",cp,im->ny) ;
+fprintf(stderr,"conv_set_ref: refts=%s  nx=%d\n",cp,flim->ny) ;
 #endif
 
-     if( im->kind != MRI_float ){         /* convert type? */
-        flim = mri_to_float(im) ; mri_free(im) ; im = flim ;
-     }
-
-     flim = mri_transpose(im) ; mri_free(im) ;         /* flip over */
      conv_set_ref( flim->nx , MRI_FLOAT_PTR(flim) ) ;  /* recursion! */
      mri_free(flim) ;
    }

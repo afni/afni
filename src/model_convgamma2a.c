@@ -69,7 +69,7 @@ void conv_set_ref( int num , float ** ref )
    } else { /*** if no inputs, do something special ***/
 
      char * cp ;
-     MRI_IMAGE * im , * flim ;
+     MRI_IMAGE * flim ;
      int jv , nx ;
      float * ref[NREF] ;
 
@@ -77,20 +77,14 @@ void conv_set_ref( int num , float ** ref )
      if( cp == NULL )
         ERREX(__FILE__ ": Can't read AFNI_CONVMODEL_REF from environment") ;
 
-     im = mri_read_ascii(cp) ;            /* read into memory */
-     if( im == NULL ){
+     flim = mri_read_1D(cp) ;            /* 16 Nov 1999: replaces mri_read_ascii */
+     if( flim == NULL ){
         char buf[256] ;
         sprintf(buf,__FILE__ ": Can't read timeseries file %s",cp) ;
         ERREX(buf) ;
      } else {
         fprintf(stderr,__FILE__ ": Read reference file %s\n",cp) ;
      }
-
-     if( im->kind != MRI_float ){         /* convert type? */
-        flim = mri_to_float(im) ; mri_free(im) ; im = flim ;
-     }
-
-     flim = mri_transpose(im) ; mri_free(im) ;         /* flip over */
 
      if( flim->ny < NREF )
         ERREX(__FILE__ ": reference file has too few columns!") ;

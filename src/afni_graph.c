@@ -2463,10 +2463,8 @@ STATUS(str); }
                                                      grapher->getaux ) ;
 
          if( tsim != NULL ){
-             MRI_IMAGE * qim ;
-             qim = mri_transpose( tsim ) ;
-             mri_write_ascii( wcfname , qim ) ;
-             mri_free( tsim ) ; mri_free( qim ) ;
+             mri_write_1D( wcfname , tsim ) ;  /* 16 Nov 1999: replaces mri_write_ascii */
+             mri_free( tsim ) ;
          }
          myXtFree(wcfname) ;
       }
@@ -2948,7 +2946,7 @@ ENTRY("GRA_bkthr_choose_CB") ;
 void GRA_refread_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
-   MRI_IMAGE * tsim , * flim ;
+   MRI_IMAGE * flim ;
    float * far ;
    int ii ;
    GRA_cbs gbs ;
@@ -2960,20 +2958,19 @@ ENTRY("GRA_refread_choose_CB") ;
        cbs->reason != mcwCR_string      ||
        cbs->cval == NULL                || strlen(cbs->cval) == 0 ) EXRETURN ;
 
-   tsim = mri_read_ascii( cbs->cval ) ;
-   if( tsim == NULL || tsim->ny < 2 ){
-      XBell( grapher->dc->display , 100 ) ; mri_free(tsim) ; EXRETURN ;
+   flim = mri_read_1D( cbs->cval ) ;     /* 16 Nov 1999: replaces mri_read_ascii */
+   if( flim == NULL || flim->nx < 2 ){
+      XBell(grapher->dc->display,100) ; mri_free(flim) ; EXRETURN ;
    }
 
-   flim = mri_transpose(tsim) ; mri_free(tsim) ;
-   far  = MRI_FLOAT_PTR(flim) ;
+   far = MRI_FLOAT_PTR(flim) ;
    for( ii=0 ; ii < flim->nvox ; ii++ )
       if( fabs(far[ii]) >= 33333.0 ) far[ii] = WAY_BIG ;
 
    gbs.reason   = graCR_refequals ;
    gbs.userdata = (XtPointer) flim ;
    grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
-   mri_free( flim ) ;
+   mri_free(flim) ;
    EXRETURN ;
 }
 
@@ -3025,9 +3022,13 @@ ENTRY("GRA_refwrite_choose_CB") ;
       }
    }
 
+#if 0
    tsim = mri_transpose( IMARR_SUBIMAGE(grapher->ref_ts,0) ) ;
    mri_write_ascii( cbs->cval , tsim ) ;
    mri_free( tsim ) ;
+#else
+   mri_write_1D( cbs->cval , IMARR_SUBIMAGE(grapher->ref_ts,0) ) ; /* 16 Nov 1999 */
+#endif
 
    /* 12 Nov 1996: put this in AFNI's list of library files */
 

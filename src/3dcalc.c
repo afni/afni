@@ -24,6 +24,10 @@ Modified output to scale each sub-brick to shorts/bytes separately
 Modifed sub-brick selection of type "-b3 name+view" to mangle dataset
 into form "name+view[3]", since that code works better on 3D+time.
   [RW Cox, Nov 1999]
+
+Modified TS_reader to use new mri_read_1D() function, instead of
+mri_read_ascii().
+  [RW Cox, Nov 1999]
 ----------------------------------------------------------------------------*/
 
 #define ALLOW_BUCKETS
@@ -55,8 +59,13 @@ static char  abet[] = "abcdefghijklmnopqrstuvwxyz" ;
 #define HAS_X  CALC_has_sym[23]
 #define HAS_Y  CALC_has_sym[24]
 #define HAS_Z  CALC_has_sym[25]
+#define HAS_T  CALC_has_sym[19]  /* 19 Nov 1999 */
+#define HAS_L  CALC_has_sym[11]  /* 19 Nov 1999 */
 
-#define PREDEFINED_MASK ( (1<<8)|(1<<9)|(1<<10)|(1<<23)|(1<<24)|(1<<25) )
+#define PREDEFINED_MASK ((1<< 8)|(1<< 9)|(1<<10)|(1<<11)| \
+                         (1<<19)|(1<<23)|(1<<24)|(1<<25) )
+
+static int     CALC_has_predefined = 0 ;  /* 19 Nov 1999 */
 
 static THD_3dim_dataset *  CALC_dset[26] ;
 static int                 CALC_type[26] ;
@@ -76,6 +85,11 @@ static float *     TS_flar[26] ;
 static int         TS_nmax = 0 ;
 static int         TS_make = 0 ;
 
+/* this macro tells if a variable (index 0..25) is defined,
+   either by a time series file or an input dataset - 16 Nov 1999 */
+
+#define VAR_DEFINED(kv) (TS_flim[kv] != NULL || CALC_dset[kv] != NULL)
+
 /*--------------------------- prototypes ---------------------------*/
 void CALC_read_opts( int , char ** ) ;
 void CALC_Syntax(void) ;
@@ -92,14 +106,13 @@ int TS_reader( int ival , char * fname )
 
    if( ival < 0 || ival >= 26 ) return -1 ;
 
-   tsim = mri_read_ascii( fname ) ;
+   tsim = mri_read_1D( fname ) ;  /* 16 Nov 1999: replaces mri_read_ascii */
    if( tsim == NULL ) return -1 ;
-   if( tsim->ny < 2 ){ mri_free(tsim) ; return -1 ; }
+   if( tsim->nx < 2 ){ mri_free(tsim) ; return -1 ; }
 
-   TS_flim[ival] = mri_transpose(tsim) ;
+   TS_flim[ival] = tsim ;
    TS_nmax       = MAX( TS_nmax , TS_flim[ival]->nx ) ;
    TS_flar[ival] = MRI_FLOAT_PTR( TS_flim[ival] ) ;
-   mri_free(tsim) ;
    return 0 ;
 }
 
@@ -215,7 +228,7 @@ void CALC_read_opts( int argc , char * argv[] )
          THD_3dim_dataset * dset ;
 
          ival = argv[nopt][1] - 'a' ;
-         if( CALC_dset[ival] != NULL || TS_flim[ival] != NULL ){
+         if( VAR_DEFINED(ival) ){
             fprintf(stderr,"can't open duplicate %s datasets!\n",argv[nopt]) ;
             exit(1) ;
          }
@@ -234,7 +247,7 @@ void CALC_read_opts( int argc , char * argv[] )
          /*-- 17 Apr 1998: allow for a *.1D filename --*/
 
          ll = strlen(argv[nopt]) ;
-         if( ll >= 4 && strcmp(argv[nopt]+(ll-3),".1D") == 0 ){
+         if( ll >= 4 && strstr(argv[nopt],".1D") != NULL ){
             ll = TS_reader( ival , argv[nopt] ) ;
             if( ll == 0 ){ nopt++ ;  goto DSET_DONE ; }
 
@@ -406,16 +419,24 @@ DSET_DONE: continue;
                    or if an undefined symbol is used.   */
 
    for (ids=0; ids < 26; ids ++){
-      if( CALC_dset[ids] != NULL && !CALC_has_sym[ids] )
+      if( VAR_DEFINED(ids) && !CALC_has_sym[ids] )
          fprintf(stderr ,
-                 "--- Warning: dataset %c not used in the expression\n" ,
+                 "--- Warning: input '%c' is not used in the expression\n" ,
                  abet[ids] ) ;
 
-      else if( CALC_dset[ids] == NULL &&
-               CALC_has_sym[ids]      && ((1<<ids) & PREDEFINED_MASK) == 0 )
-         fprintf(stderr ,
-                 "--- Warning: expression symbol %c is used but not defined\n" ,
-                 abet[ids] ) ;
+      else if( !VAR_DEFINED(ids) && CALC_has_sym[ids] ){
+
+         if( ((1<<ids) & PREDEFINED_MASK) == 0 )
+            fprintf(stderr ,
+                    "--- Warning: symbol %c is used but not defined\n" ,
+                    abet[ids] ) ;
+         else {
+            CALC_has_predefined++ ;
+            if( CALC_verbose )
+               fprintf(stderr,"  ++ Symbol %c using predefined value\n" ,
+                       abet[ids] ) ;
+         }
+      }
    }
 
    return ;
@@ -532,16 +553,33 @@ void CALC_Syntax(void)
     " Another method to set up the correct timing would be to input an\n"
     " unused 3D+time dataset -- 3dcalc will then copy that dataset's time\n"
     " information, but simply do not use that dataset's letter in -expr.\n"
+    "\n"
+    " If the *.1D file has multiple columns, only the first read will be\n"
+    " used in this program.  You can select a column to be the first by\n"
+    " using a sub-vector selection of the form 'b.1D[3]', which will\n"
+    " choose the 4th column (since counting starts at 0).\n"
 
     "\n"
-    "COORDINATES and DEFAULT VALUES:\n"
+    "COORDINATES and PREDEFINED VALUES:\n"
     " If you don't use '-x', '-y', or '-z' for a dataset, then the voxel\n"
     " spatial coordinates will be loaded into those variables.  For example,\n"
     " the expression 'a*step(x*x+y*y+z*z-100)' will zero out all the voxels\n"
-    " inside a 10 mm radius of the origin.\n"
+    " inside a 10 mm radius of the origin x=y=z=0.\n"
+    "\n"
+    " Similarly, the '-t' value, if not otherwise used by a dataset or *.1D\n"
+    " input, will be loaded with the voxel time coordinate, as determined\n"
+    " from the header file created for the OUTPUT.  Please note that the units\n"
+    " of this are variable; they might be in milliseconds, seconds, or Hertz.\n"
+    " In addition, slices of the dataset might be offset in time from one\n"
+    " another, and this is allowed for in the computation of 't'.  Use program\n"
+    " 3dinfo to find out the structure of your datasets, if you are not sure.\n"
+    " If no input datasets are 3D+time, then the effective value of TR is 1.0\n"
+    " in the output dataset, with t=0 at the first sub-brick.  In this case,\n"
+    " you would be better off using the 'l' variable.\n"
     "\n"
     " Similarly, the '-i', '-j', and '-k' values, if not otherwise used,\n"
-    " will be loaded with the voxel index coordinates.\n"
+    " will be loaded with the voxel spatial index coordinates.  The '-l'\n"
+    " (letter 'ell') value will be loaded with the temporal index coordinate.\n"
     "\n"
     " Otherwise undefined letters will be set to zero.  In the future,\n"
     " new default values for other letters may be added.\n"
@@ -569,6 +607,12 @@ void CALC_Syntax(void)
     "       sind, cosd, tand take arguments in degrees (vs. radians),\n"
     "       median(a,b,c,...) computes the median of its arguments\n"
     "         [median takes a variable number of arguments].\n"
+    "\n"
+    " You may use the symbol 'PI' to refer to the constant of that name.\n"
+    " This is the only 2 letter symbol defined; all input files are\n"
+    " referred to by 1 letter symbols.  The case of the expression is\n"
+    " ignored (in fact, it is converted to uppercase as the first step\n"
+    " in the parsing algorithm).\n"
     "\n"
     " The following functions are designed to help implement logical\n"
     " functions, such as masking of 3D volumes against some criterion:\n"
@@ -724,6 +768,8 @@ int main( int argc , char * argv[] )
 	 jbot = ii ;
 	 jtop = MIN( ii + VSIZE , CALC_nvox ) ;
 
+         /* loop over datasets or other symbol definitions */
+
 	 for (ids = 0 ; ids < 26 ; ids ++ ) {
 
             /* 17 Apr 1998: if a time series is used here instead of a dataset,
@@ -790,25 +836,28 @@ int main( int argc , char * argv[] )
 
            /* the case of a voxel (x,y,z) or (i,j,k) coordinate */
 
-           else {
+           else if( CALC_has_predefined ) {
 
               switch( ids ){
                  case 23:     /* x */
                     if( HAS_X )
                      for( jj=jbot ; jj < jtop ; jj++ )
-                       atoz[ids][jj-ii] = daxes->xxorg + (jj%nx) * daxes->xxdel ;
+                       atoz[ids][jj-ii] = daxes->xxorg +
+                                          (jj%nx) * daxes->xxdel ;
                  break ;
 
                  case 24:     /* y */
                     if( HAS_Y )
                      for( jj=jbot ; jj < jtop ; jj++ )
-                       atoz[ids][jj-ii] = daxes->yyorg + ((jj%nxy)/nx) * daxes->yydel ;
+                       atoz[ids][jj-ii] = daxes->yyorg +
+                                          ((jj%nxy)/nx) * daxes->yydel ;
                  break ;
 
                  case 25:     /* z */
                     if( HAS_Z )
                      for( jj=jbot ; jj < jtop ; jj++ )
-                       atoz[ids][jj-ii] = daxes->zzorg + (jj/nxy) * daxes->zzdel ;
+                       atoz[ids][jj-ii] = daxes->zzorg +
+                                          (jj/nxy) * daxes->zzdel ;
                  break ;
 
                  case 8:     /* i */
@@ -828,9 +877,22 @@ int main( int argc , char * argv[] )
                      for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = (jj/nxy) ;
                  break ;
-               }
-	     } /* end of choice over data type switch */
-	    } /* end of loop over datasets */
+
+                 case 19:    /* t */
+                    if( HAS_T )
+                     for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = THD_timeof_vox(kt,jj,new_dset) ;
+                 break ;
+
+                 case 11:    /* l */
+                    if( HAS_L )
+                     for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = kt ;
+                 break ;
+               } /* end of switch on symbol subscript */
+
+	     } /* end of choice over data type (if-else cascade) */
+	    } /* end of loop over datasets/symbols */
 
             /**** actually do the work! ****/
 
@@ -838,7 +900,7 @@ int main( int argc , char * argv[] )
 	    for ( jj = jbot ; jj < jtop ; jj ++ )
 	       buf[kt][jj] = temp[jj-ii];
 
-         } /* end of loop over space */
+         } /* end of loop over space (voxels) */
 
          /* 30 April 1998: purge 3D+time sub-bricks if possible */
 

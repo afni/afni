@@ -108,7 +108,54 @@ void THD_quadratic_detrend( int npt, float *far, float *xx0, float *xx1, float *
    return ;
 }
 
-/*--------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------*/
+
+void THD_cubic_detrend( int npt , float * far )  /* 15 Nov 1999 */
+{
+   register int ii ;
+   float g0,g1,g2,g3 , f0,f1,f2,f3 , t1,t2,t5,t8 , t95,t56,t22,t25,txx ;
+
+   if( npt < 5 || far == NULL ) return ;
+
+   t8 = npt*npt ; t2 = npt-1.0 ; t5 = t2*(npt-2.0) ;
+   t95 = 0.05*t5*(npt-3.0) ;
+   t56 = 0.16666667*t5 ;
+   t22 = 0.5*t2 ;
+   t25 = 1.5*t2 ;
+   txx = 0.6*t8-1.5*npt+1.1 ;
+
+   g0=g1=g2=g3=0.0 ;
+   for( ii=0 ; ii < npt ; ii++ ){
+      t1 = ii*ii ;
+      f1 = ii - t22 ;
+      f2 = t1 - t2*ii + t56 ;
+      f3 = t1*(ii - t25) + txx*ii - t95 ;
+
+      g0 += far[ii] ;
+      g1 += far[ii] * f1 ;
+      g2 += far[ii] * f2 ;
+      g3 += far[ii] * f3 ;
+   }
+   g0 *= (1.0/npt) ;
+   g1 *= 12.0/(npt*(t8-1.0)) ;
+   g2 *= 180.0/(npt*(t8-1.0)*(t8-4.0)) ;
+   g3 *= 2800.0/(npt*(t8-1.0)*(t8-4.0)*(t8-9.0)) ;
+
+   for( ii=0 ; ii < npt ; ii++ ){
+      t1 = ii*ii ;
+      f1 = ii- t22 ;
+      f2 = t1 - t2*ii + t56 ;
+      f3 = t1*(ii - t25) + txx*ii - t95 ;
+
+      far[ii] -= ( g0 + g1*f1 + g2*f2 + g3*f3 ) ;
+   }
+
+   return ;
+}
+
+/*-------------------------------------------------------------------------
+   Make a vector have L2 norm 1
+---------------------------------------------------------------------------*/
 
 void THD_normalize( int npt , float * far )
 {

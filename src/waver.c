@@ -243,8 +243,11 @@ void Syntax(void)
     "                     1=time 2=waveform (useful for graphing)\n"
     "                     [default is 1 column=waveform]\n"
     "\n"
-    "  -input infile  = Read timeseries from 'infile';\n"
+    "  -input infile  = Read timeseries from *.1D formatted 'infile';\n"
     "                     convolve with waveform to produce output\n"
+    "              N.B.: you can use a sub-vector selector to choose\n"
+    "                    a particular column of infile, as in\n"
+    "                      -input 'fred.1D[3]'\n"
     "\n"
     "  -inline DATA   = Read timeseries from command line DATA;\n"
     "                     convolve with waveform to produce output\n"
@@ -373,10 +376,10 @@ void Process_Options( int argc , char * argv[] )
          }
 
          if( nopt+1 >= argc ) ERROR ;
-         tsim = mri_read_ascii( argv[nopt+1] ) ;
+         tsim = mri_read_1D( argv[nopt+1] ) ;
          if( tsim == NULL ) ERROR ;
 
-         IN_npts = tsim->ny ;
+         IN_npts = tsim->nx ;
          IN_ts   = (double *) malloc( sizeof(double) * IN_npts ) ;
          tsar    = MRI_FLOAT_PTR(tsim) ;
          for( ii=0 ; ii < IN_npts ; ii++ ) IN_ts[ii] = tsar[ii] ;

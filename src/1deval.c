@@ -14,7 +14,11 @@ int main( int argc , char * argv[] )
    if( argc < 3 ){
       printf("Usage: 1deval -expr 'expression' [-del d] [-num n] [-v]\n"
              "Evaluates the expression at 'n' points, spaced 'd'\n"
-             "apart, and writes the result to stdout.\n" ) ;
+             "apart, and writes the result to stdout.\n"
+             "Any single letter from a-z can be used as the independent\n"
+             "variable in the expression.  Example:\n"
+             "  1deval -expr 'sin(2*PI*t)' -del 0.01 -num 101 > sin.1D\n"
+             ) ;
       exit(0) ;
    }
 
