@@ -1516,7 +1516,7 @@ qhull.exe:
 # Eispack and CDF library files - make them and move them up here
 
 eis_bakvec.o:
-	( cd eispack/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
+	( cd eispack/ ; $(MAKE) all 'CC=$(CC)' 'CCEIS=$(CCMIN)' ; $(MV) *.o .. ; )
 
 cdf_00.o:
 	( cd cdflib/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
