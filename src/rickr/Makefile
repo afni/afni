@@ -37,6 +37,10 @@ Imon: $(IMON_OBJS) Imon.h l_mcw_glob.h realtime.h
 	$(RM) $@
 	$(CC) -o Imon $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
+serial_helper: serial_helper.o
+	$(RM) $@
+	$(CC) -o serial_helper serial_helper.o -lm
+
 # ----------------------------------------------------------------------
 # local Imon objects need mcw_glob, but without MCW_MALLOC
 
