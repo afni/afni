@@ -1805,7 +1805,12 @@
  * Added mri_write_1D() to mri_write.c.  This just does the
      transpose before called mri_write_ascii().
  * Modified 1dtranspose.c, 3dcalc.c, waver.c, afni_graph.c, and
-      model_convgamma*.c to use mri_read_1D().
+     model_convgamma*.c to use mri_read_1D().
  * Modified afni_graph.c to use mri_write_1D().
  * Added program 3dDetrend.c - remove time series trends.
  * Added predefined 't' and 'l' to 3dcalc.c.
+
+17 Nov 1999
+ * Removed some -help from imcalc.c, since 3dcalc -help has the
+     same info.
+ * Added function PARSER_1deval() to parser_int.c.

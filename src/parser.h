@@ -22,6 +22,8 @@ extern void PARSER_evaluate_vector( PARSER_code * pc, double  * atoz[],
 extern int PARSER_has_symbol( char * sym , PARSER_code * pc ) ;
 extern void PARSER_mark_symbols( PARSER_code * pc , int * sl ) ;
 
+extern int PARSER_1deval( char *, int, float, float, float * ) ; /* 17 Nov 1999 */
+
 #ifdef NEED_PARSER_INTERNALS
 #include "f2c.h"
 

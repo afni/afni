@@ -129,6 +129,51 @@ void PARSER_evaluate_vector( PARSER_code * pc , double* atoz[] ,
    return ;
 }
 
+/*----------------------------------------------------------------------
+   Evaluate an expression at a set of evenly spaced points.
+     expr = expression - first symbol found will be the variable
+     nt   = number of points
+     tz   = value of first point (the variable)
+     dt   = spacing between points
+     vec  = pointer to pre-allocated output location of length nt
+   Return value is 1 for good results, 0 for errors.
+
+   17 Nov 1999 - RW Cox - adapted from 1deval.c [hence the name]
+------------------------------------------------------------------------*/
+
+int PARSER_1deval( char * expr, int nt, float tz, float dt, float * vec )
+{
+   PARSER_code * pcode = NULL ;
+   char sym[4] ;
+   double atoz[26] ;
+   int ii , kvar ;
+
+   if( expr == NULL || nt <= 0 || vec == NULL ) return 0 ;  /* bad */
+
+   pcode = PARSER_generate_code( expr ) ;        /* compile */
+   if( pcode == NULL ) return 0 ;                /* bad news */
+
+   kvar = -1 ;                                   /* find symbol */
+   for( ii=0 ; ii < 26 ; ii++ ){
+      sym[0] = 'A' + ii ; sym[1] = '\0' ;
+      if( PARSER_has_symbol(sym,pcode) ){ kvar = ii ; break ; }
+   }
+
+   for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ; /* initialize */
+
+   if( kvar >= 0 ){                              /* the normal case */
+      for( ii=0 ; ii < nt ; ii++ ){
+         atoz[kvar] = tz + ii*dt ;
+         vec[ii]    = PARSER_evaluate_one( pcode , atoz ) ;
+      }
+   } else {                                      /* no variable found! */
+      vec[0] = PARSER_evaluate_one( pcode , atoz ) ;
+      for( ii=1 ; ii < nt ; ii++ ) vec[ii] = vec[0] ;
+   }
+
+   free(pcode) ; return 1 ;
+}
+
 /*** use the math library to provide Bessel and error functions ***/
 
 doublereal dbesj0_( doublereal * x )
