@@ -358,7 +358,7 @@ static void ISQ_setup_ppmto_filters(void)
      }
    } else if( pg != NULL ){              /* 21 Feb 2003 */
       str = malloc(strlen(pg)+32) ;
-      sprintf(str,"%s -bpp 24 -windows > %%s",pg2,pg) ;
+      sprintf(str,"%s -bpp 24 -windows > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
    }
 
