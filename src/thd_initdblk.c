@@ -179,11 +179,11 @@ ENTRY("THD_datablock_from_atr") ;
 
    brick_ccode = COMPRESS_filecode(dkptr->brick_name) ;
    if( brick_ccode != COMPRESS_NOFILE )
-     dkptr->storage_mode = STORAGE_BY_BRICK ;
+     dkptr->storage_mode = STORAGE_BY_BRICK ;  /* a .BRIK file */
 
    /*-- if VOLUME_FILENAMES attribute exists, make it so [20 Jun 2002] --*/
 
-   if( dkptr->storage_mode == STORAGE_UNDEFINED ){
+   if( headname != NULL && dkptr->storage_mode == STORAGE_UNDEFINED ){
      atr_labs = THD_find_string_atr(dblk,"VOLUME_FILENAMES") ;
      if( atr_labs != NULL ){
        dkptr->storage_mode = STORAGE_BY_VOLUMES ;
