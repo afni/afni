@@ -873,4 +873,5 @@
 16 Dec 2004:
   * moved nifti_stats.c into the nifti directory
   * modified Makefile.INCLUDE to compile nifti_stats from the nifti dir
+  * nifti1.io.[ch] (v 0.7): minor changes to extension reading 
 
