@@ -425,6 +425,8 @@ ENTRY("AFNI_process_NIML_data") ;
 
    if( tt < 0 ) EXRETURN ;  /* should never happen */
 
+   if( tt == NI_PROCINS_TYPE ) EXRETURN ;   /* 16 Mar 2005 */
+
    /* we got a group element, so process it */
 
    if( tt == NI_GROUP_TYPE ){
