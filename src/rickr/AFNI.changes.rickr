@@ -554,3 +554,6 @@
   * modified SUMA_3dVol2Surf.c (-> v5.1)
       - Ziad reminded me to add help for options '-first_node' and '-last_node'
 
+07 June 2004:
+  * modified @RenamePanga - subtract 1 from init of Nwhatapain
+
