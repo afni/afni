@@ -1089,7 +1089,7 @@ float set_fim_thr_level
   ts_array = (float *) malloc (sizeof(float) * nt);
   MTEST (ts_array);
 
-
+  sum = 0.0;  /* Ides March 2004 [rickr] */
   /*----- Sum values of all voxels at initial time point -----*/
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
