@@ -402,10 +402,15 @@ typedef struct {
 
 basis_expansion * basis_parser( char *sym ) ;
 float basis_evaluation( basis_expansion *be , float *wt , float x ) ;
-void basis_write_response( int argc , char *argv[] ,
-                           struct DC_options *option_data ,
-                           basis_expansion *be , float dt ,
-                           float **wtar , char *output_filename ) ;
+void basis_write_iresp( int argc , char *argv[] ,
+                        struct DC_options *option_data ,
+                        basis_expansion *be , float dt ,
+                        float **wtar , char *output_filename ) ;
+void basis_write_sresp( int argc , char *argv[] ,
+                        struct DC_options *option_data ,
+                        basis_expansion *be , float dt ,
+                        float *mse ,
+                        int pbot, matrix cvar, char *output_filename ) ;
 
 /** global variables for stimulus basis expansions **/
 
@@ -415,6 +420,8 @@ static MRI_IMAGE       **basis_vect  = NULL ; /* vectors generated from above */
 static float             basis_TR    = 1.0f ; /* data time step in seconds */
 static int               basis_count = 0    ; /* any -stim_times inputs? */
 static float             basis_dtout = 0.0f ; /* IRF time step in seconds */
+
+static int               basis_need_mse = 0 ; /* need MSE volume */
 
 #define basis_filler 3.e+33 /* filler in basis_times for missing entries */
 
@@ -1661,6 +1668,8 @@ void get_options
   for( k=0 ; k < option_data->num_stimts ; k++ ){
 
     if( basis_stim[k] != NULL ){    /* -stim_times input */
+
+      if( option_data->sresp_filename[k] != NULL ) basis_need_mse = 1 ;
 
       if( option_data->stim_nptr[k] != 1 ){
         fprintf(stderr,
@@ -2996,7 +3005,7 @@ void allocate_memory
     }
 
 
-  if (vout)  zero_fill_volume (&(*mse_vol),   nxyz);
+  if (vout || basis_need_mse)  zero_fill_volume (&(*mse_vol),   nxyz);
   if (fout)  zero_fill_volume (&(*ffull_vol), nxyz);
   if (rout)  zero_fill_volume (&(*rfull_vol), nxyz);
 
@@ -4036,15 +4045,15 @@ void calculate_results
   matrix_destroy (&xtxinvxt_base);
   matrix_destroy (&x_base);
   matrix_destroy (&xdata);
-  if( !xsave ){
-    matrix_destroy (&xtxinvxt_full);
-    matrix_destroy (&xtxinv_full);
-    matrix_destroy (&x_full);
-  } else {
-    X        = x_full        ;  /* 25 Jul 2004 (RWCox): */
-    XtXinv   = xtxinv_full   ;  /* Stuff to be -xsave-d */
-    XtXinvXt = xtxinvxt_full ;  /* into bucket dataset. */
-  }
+#if 0
+  matrix_destroy (&xtxinvxt_full);  /* old: destroy matrices */
+  matrix_destroy (&xtxinv_full);
+  matrix_destroy (&x_full);
+#else
+  X        = x_full        ;  /* 25 Jul 2004 (RWCox): */
+  XtXinv   = xtxinv_full   ;  /* Stuff to be -xsave-d */
+  XtXinvXt = xtxinvxt_full ;  /* into bucket dataset. */
+#endif
 
   if (num_glt > 0)
     {
@@ -4384,7 +4393,7 @@ void write_ts_array
 
   /*----- write afni data set -----*/
   if (!  option_data->quiet)
-    printf ("++ Writing 3d+time dataset into %s\n",
+    printf ("++ Writing 3D+time dataset into %s\n",
 	    new_dset->dblk->diskptr->header_name);
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
@@ -4903,7 +4912,7 @@ void write_bucket_data
 
   /*----- write bucket data set -----*/
   if (! option_data->quiet)
-    printf("++ Writing `bucket' dataset into %s\n",  DSET_HEADNAME(new_dset));
+    printf("++ Writing bucket dataset into %s\n",  DSET_HEADNAME(new_dset));
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
@@ -5026,10 +5035,11 @@ void output_results
                   "** WARNING: Ignoring -iresp %d '%s'\n",
                   is+1,option_data->iresp_filename[is]) ;
 #else
-          basis_write_response( argc , argv , option_data ,
-                                basis_stim[is] , basis_dtout ,
-                                coef_vol+ib    ,
-                                option_data->iresp_filename[is] ) ;
+          basis_write_iresp( argc , argv , option_data ,
+                             basis_stim[is] , basis_dtout ,
+                             coef_vol+ib    ,
+                             option_data->iresp_filename[is] ) ;
+          ib += basis_stim[is]->nfunc ;
 #endif
         continue ;
       }
@@ -5061,9 +5071,17 @@ void output_results
     {
       if( basis_stim[is] != NULL ){                     /* until later */
         if( option_data->sresp_filename[is] != NULL )
+#if 0
           fprintf(stderr,
                   "** WARNING: Ignoring -sresp %d '%s'\n",
                   is+1 , option_data->sresp_filename[is]) ;
+#else
+          basis_write_sresp( argc , argv , option_data ,
+                             basis_stim[is] , basis_dtout ,
+                             mse_vol , ib , XtXinv ,
+                             option_data->sresp_filename[is] ) ;
+          ib += basis_stim[is]->nfunc ;
+#endif
         continue ;
       }
 
@@ -6893,16 +6911,17 @@ static float basis_legendre( float x, float bot, float top, float n, void *q )
 #undef  POLY_MAX
 #define POLY_MAX 9  /* max order allowed in function above */
 
-#define USE_EXPR
-#ifdef  USE_EXPR
-# include "parser.h"
-#endif
 
 /*--------------------------------------------------------------------------*/
+#define USE_EXPR
 #ifdef USE_EXPR
-#define ITT 19
-#define IXX 23
-#define IZZ 25
+# include "parser.h"
+# define ITT 19
+# define IXX 23
+# define IZZ 25
+
+/*------------------------------------------------------*/
+/*! Basis function given by a user-supplied expression. */
 
 static float basis_expr( float x, float bot, float top, float dtinv, void *q )
 {
@@ -6910,7 +6929,7 @@ static float basis_expr( float x, float bot, float top, float dtinv, void *q )
    double atoz[26] , val ;
 
    if( x < bot || x > top ) return 0.0f ;
-   atoz[ITT] = x ;                            /* t = true time */
+   atoz[ITT] = x ;                            /* t = true time from stim */
    atoz[IXX] = (x-bot)*dtinv ;                /* x = scaled to [0,1] */
    atoz[IZZ] = 2.0l*atoz[IXX] - 1.0l ;        /* z = scaled to [-1,1] */
    val = PARSER_evaluate_one( pc , atoz ) ;
@@ -7166,44 +7185,50 @@ basis_expansion * basis_parser( char *sym )
      }
      sscanf(cpt,"%f,%f",&bot,&top) ;
      if( top <= bot ){
-       fprintf(stderr,"** ERROR: 'EXPR(%f,%f)' is illegal\n",bot,top) ;
+       fprintf(stderr,"** ERROR: 'EXPR(%f,%f)' has illegal time range\n",bot,top) ;
        free((void *)be); free(scp); return NULL;
      }
      ept = strchr( cpt , ')' ) ;
      if( ept == NULL ){
-       fprintf(stderr,"** ERROR: 'EXPR(%f,%f)' has no expresions!?\n",bot,top);
+       fprintf(stderr,"** ERROR: 'EXPR(%f,%f)' has no expressions!?\n",bot,top);
        free((void *)be); free(scp); return NULL;
      }
      sar = NI_decode_string_list( ept+1 , "~" ) ;
      if( sar == NULL || sar->num == 0 ){
-       fprintf(stderr,"** ERROR: 'EXPR(%f,%f)' has no expresions!?\n",bot,top);
+       fprintf(stderr,"** ERROR: 'EXPR(%f,%f)' has no expressions!?\n",bot,top);
        free((void *)be); free(scp); return NULL;
      }
      be->nfunc = nexpr = sar->num ;
      be->tbot  = bot  ; be->ttop = top ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     PARSER_set_printout(1) ;
      for( ie=0 ; ie < nexpr ; ie++ ){
        pc = PARSER_generate_code( sar->str[ie] ) ;
        if( pc == NULL ){
-         fprintf(stderr,"** ERROR: illegal EXPRession '%s'\n",sar->str[ie]) ;
+         fprintf(stderr,"** ERROR: unparsable EXPRession '%s'\n",sar->str[ie]) ;
          free((void *)be); free(scp); return NULL;
        }
-       if( !PARSER_has_symbol("t",pc) && !PARSER_has_symbol("x",pc) &&
-           !PARSER_has_symbol("y",pc) && !PARSER_has_symbol("z",pc)   ){
-         fprintf(stderr,"** ERROR: illegal EXPRession '%s'\n",sar->str[ie]) ;
+       if( strcmp(sar->str[ie],"1") != 0 &&    /* must either be "1" */
+           !PARSER_has_symbol("t",pc)    &&    /* or contain symbol  */
+           !PARSER_has_symbol("x",pc)    &&    /* 't', 'x', or 'z'   */
+           !PARSER_has_symbol("z",pc)      ){
+         fprintf(stderr,
+           "** ERROR: illegal EXPRession '%s' lacks symbol t, x, or z\n",
+           sar->str[ie]) ;
          free((void *)be); free(scp); return NULL;
        }
        be->bfunc[ie].f = basis_expr ;
        be->bfunc[ie].a = bot ;
        be->bfunc[ie].b = top ;
-       be->bfunc[ie].c = 1.0f/(top-bot) ;
+       be->bfunc[ie].c = 1.0f/(top-bot) ;  /* for ease of scaling */
        be->bfunc[ie].q = (void *)pc ;
      }
+     PARSER_set_printout(0) ;
 
      NI_delete_str_array(sar) ;
 #endif
 
-   /*--- NO MORE CHOICES ---*/
+   /*--- NO MORE BASIS FUNCTION CHOICES ---*/
 
    } else {
      fprintf(stderr,"** ERROR: '%s' is unknown response function type\n",scp) ;
@@ -7214,26 +7239,39 @@ basis_expansion * basis_parser( char *sym )
 }
 
 /*----------------------------------------------------------------------*/
+/*! For IRFs defined by -stim_times basis function expansion, write out
+    a 3D+time dataset with time spacing dt.
+------------------------------------------------------------------------*/
 
-void basis_write_response( int argc , char *argv[] ,
-                           DC_options *option_data ,
-                           basis_expansion *be , float dt ,
-                           float **wtar , char *output_filename )
+void basis_write_iresp( int argc , char *argv[] ,
+                        DC_options *option_data ,
+                        basis_expansion *be , float dt ,
+                        float **wtar , char *output_filename )
 {
-   int nvox , ii, ib , pp , nf , allz , ts_length ;
-   float *wt , *tt , **hout , factor ;
+   int nvox, ii, nf, allz, ts_length ;
+   register int pp, ib ;
+   float *wt , *tt , **hout , factor , **bb ;
    short *bar ;
    THD_3dim_dataset *in_dset = NULL;
    THD_3dim_dataset *out_dset = NULL;
    char *commandline , label[512] ;
    const float EPSILON = 1.0e-10 ;
 
+   /* open input 3D+time dataset to get some parameters */
+
    in_dset = THD_open_dataset(option_data->input_filename);
    nvox    = in_dset->daxes->nxx * in_dset->daxes->nyy * in_dset->daxes->nzz;
+
+   if( dt <= 0.0f ) dt = DSET_TR(in_dset) ;
+   if( dt <= 0.0f ) dt = 1.0f ;
+
+   /* create output dataset on the input as a model, then close the input */
 
    out_dset = EDIT_empty_copy( in_dset ) ;
    tross_Copy_History( in_dset , out_dset ) ;
    DSET_delete( in_dset ) ;
+
+   /* historicize the output */
 
    commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
    sprintf( label , "Impulse response: %s" , output_filename ) ;
@@ -7243,7 +7281,9 @@ void basis_write_response( int argc , char *argv[] ,
      tross_Append_History ( out_dset, label);
    free((void *)commandline) ;
 
-   ts_length = (int)ceil( (be->ttop - be->tbot)/basis_dtout ) ;
+   ts_length = (int)ceil( (be->ttop - be->tbot)/dt ) ;
+
+   /* modify the output dataset appropriately */
 
    (void ) EDIT_dset_items( out_dset,
                              ADN_prefix,      output_filename,
@@ -7253,7 +7293,7 @@ void basis_write_response( int argc , char *argv[] ,
                              ADN_datum_all,   MRI_short,
                              ADN_nvals,       ts_length,
                              ADN_ntt,         ts_length,
-                             ADN_ttdel,       basis_dtout ,
+                             ADN_ttdel,       dt ,
                              ADN_ttorg,       be->tbot,
                             ADN_none ) ;
 
@@ -7264,16 +7304,31 @@ void basis_write_response( int argc , char *argv[] ,
      DSET_delete(out_dset) ; return ;
    }
 
-   hout = (float **) malloc( sizeof(float) * ts_length ) ;  /* output bricks */
+   /* create output bricks (float for now, will scale to shorts later) */
+
+   hout = (float **) malloc( sizeof(float) * ts_length ) ;
    for( ib=0 ; ib < ts_length ; ib++ )
      hout[ib] = (float *)calloc(sizeof(float),nvox) ;
+
+   /* create basis vectors for the expansion on the dt time grid */
 
    nf = be->nfunc ;
    wt = (float *) malloc( sizeof(float) * nf ) ;
    tt = (float *) malloc( sizeof(float) * ts_length ) ;
 
    for( ib=0 ; ib < ts_length ; ib++ )     /* output time grid */
-     tt[ib] = be->tbot + ib*basis_dtout ;
+     tt[ib] = be->tbot + ib*dt ;
+
+   bb = (float **) malloc( sizeof(float *) * nf ) ;
+   for( pp=0 ; pp < nf ; pp++ ){
+     bb[pp] = (float *) malloc( sizeof(float) * ts_length ) ;
+     for( ib=0 ; ib < ts_length ; ib++ )
+       bb[pp][ib] = basis_funceval( be->bfunc[pp] , tt[ib] ) ;
+   }
+
+   /* loop over voxels:
+        extract coefficient (weights) for each basis function into wt
+        sum up basis vectors times wt to get result, save into output arrays */
 
    for( ii=0 ; ii < nvox ; ii++ ){
      allz = 1 ;
@@ -7284,24 +7339,170 @@ void basis_write_response( int argc , char *argv[] ,
      if( allz ){
        for( ib=0 ; ib < ts_length ; ib++ ) hout[ib][ii] = 0.0f ;
      } else {
-       for( ib=0 ; ib < ts_length ; ib++ )
-         hout[ib][ii] = basis_evaluation( be , wt , tt[ib] ) ;
+       register float sum ;
+       for( ib=0 ; ib < ts_length ; ib++ ){
+         sum = 0.0f ;
+         for( pp=0 ; pp < nf ; pp++ ) sum += wt[pp] * bb[pp][ib] ;
+         hout[ib][ii] = sum ;
+       }
      }
    }
 
-   free((void *)tt) ; free((void *)wt) ;
+   /* toss some trash */
+
+   for( pp=0 ; pp < nf ; pp++ ) free((void *)bb[pp]) ;
+   free((void *)bb) ; free((void *)tt) ; free((void *)wt) ;
+
+   /* scale floating point bricks to shorts and insert into output dataset */
 
    for( ib=0 ; ib < ts_length ; ib++ ){
      bar = (short *) malloc( sizeof(short) * nvox ) ;
      factor = EDIT_coerce_autoscale_new(nvox, MRI_float,hout[ib], MRI_short,bar) ;
-     if( factor < EPSILON ) factor = 0.0f ;
+     if( factor < EPSILON ) factor = 0.0f ;          /* if brick is all zero */
      else                   factor = 1.0f / factor ;
      EDIT_BRICK_FACTOR( out_dset , ib , factor ) ;
      EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
      free((void *)hout[ib]) ;
    }
-
    free((void *)hout) ;
+
+   /* and save the results to disk! */
+
+   if( verb )
+    fprintf(stderr,"++ Writing iresp 3D+time dataset into %s\n",DSET_HEADNAME(out_dset)) ;
+
+   DSET_write( out_dset ) ;
+   DSET_delete( out_dset ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------*/
+
+void basis_write_sresp( int argc , char *argv[] ,
+                        struct DC_options *option_data ,
+                        basis_expansion *be , float dt ,
+                        float *mse ,
+                        int pbot, matrix cvar, char *output_filename )
+{
+   int nvox, ii, nf, allz, ts_length ;
+   register int pp,qq, ib ;
+   register float sum ;
+   float *vv , *tt , **hout , factor , **bb ;
+   short *bar ;
+   THD_3dim_dataset *in_dset = NULL;
+   THD_3dim_dataset *out_dset = NULL;
+   char *commandline , label[512] ;
+   const float EPSILON = 1.0e-10 ;
+
+   /* open input 3D+time dataset to get some parameters */
+
+   in_dset = THD_open_dataset(option_data->input_filename);
+   nvox    = in_dset->daxes->nxx * in_dset->daxes->nyy * in_dset->daxes->nzz;
+
+   if( dt <= 0.0f ) dt = DSET_TR(in_dset) ;
+   if( dt <= 0.0f ) dt = 1.0f ;
+
+   /* create output dataset on the input as a model, then close the input */
+
+   out_dset = EDIT_empty_copy( in_dset ) ;
+   tross_Copy_History( in_dset , out_dset ) ;
+   DSET_delete( in_dset ) ;
+
+   /* historicize the output */
+
+   commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
+   sprintf( label , "Sigma response: %s" , output_filename ) ;
+   if( commandline != NULL )
+     tross_multi_Append_History( out_dset , commandline,label,NULL ) ;
+   else
+     tross_Append_History ( out_dset, label);
+   free((void *)commandline) ;
+
+   ts_length = (int)ceil( (be->ttop - be->tbot)/dt ) ;
+
+   /* modify the output dataset appropriately */
+
+   (void ) EDIT_dset_items( out_dset,
+                             ADN_prefix,      output_filename,
+                             ADN_label1,      output_filename,
+                             ADN_self_name,   output_filename,
+                             ADN_malloc_type, DATABLOCK_MEM_MALLOC,
+                             ADN_datum_all,   MRI_short,
+                             ADN_nvals,       ts_length,
+                             ADN_ntt,         ts_length,
+                             ADN_ttdel,       dt ,
+                             ADN_ttorg,       be->tbot,
+                            ADN_none ) ;
+
+   if( THD_is_file(out_dset->dblk->diskptr->header_name) ){
+     fprintf(stderr,
+             "** ERROR: Output dataset file %s already exists - won't overwrite\n",
+             out_dset->dblk->diskptr->header_name ) ;
+     DSET_delete(out_dset) ; return ;
+   }
+
+   /* create output bricks (float for now, will scale to shorts later) */
+
+   hout = (float **) malloc( sizeof(float) * ts_length ) ;
+   for( ib=0 ; ib < ts_length ; ib++ )
+     hout[ib] = (float *)calloc(sizeof(float),nvox) ;
+
+   nf = be->nfunc ;
+   tt = (float *) malloc( sizeof(float) * ts_length ) ;
+
+   for( ib=0 ; ib < ts_length ; ib++ )     /* output time grid */
+     tt[ib] = be->tbot + ib*dt ;
+
+   /* evaluate basis vectors for output on dt time grid */
+
+   bb = (float ** ) malloc( sizeof(float * ) * nf ) ;
+   for( pp=0 ; pp < nf ; pp++ ){
+     bb[pp] = (float * ) malloc( sizeof(float  ) * ts_length ) ;
+     for( ib=0 ; ib < ts_length ; ib++ )
+       bb[pp][ib] = basis_funceval( be->bfunc[pp] , tt[ib] ) ;
+   }
+   free((void *)tt) ;
+
+   /* evaluate unscaled variance on dt time grid */
+
+   vv = (float *) malloc( sizeof(float) * ts_length ) ;
+   for( ib=0 ; ib < ts_length ; ib++ ){
+     sum = 0.0f ;
+     for( pp=0 ; pp < nf ; pp++ ){
+       for( qq=0 ; qq < nf ; qq++ )
+         sum += cvar.elts[pbot+pp][pbot+qq] * bb[pp][ib] * bb[qq][ib] ;
+     }
+     vv[ib] = (sum >= 0.0f) ? sum : 0.0f ;
+   }
+   for( pp=0 ; pp < nf ; pp++ ) free((void *)bb[pp]) ;
+   free((void *)bb) ;
+
+   /* loop over voxels, scale by mse to get variance */
+
+   for( ii=0 ; ii < nvox ; ii++ ){
+     for( ib=0 ; ib < ts_length ; ib++ )
+       hout[ib][ii] = sqrt( vv[ib] * mse[ii] ) ;
+   }
+   free((void *)vv) ;
+
+   /* scale floating point bricks to shorts and insert into output dataset */
+
+   for( ib=0 ; ib < ts_length ; ib++ ){
+     bar = (short *) malloc( sizeof(short) * nvox ) ;
+     factor = EDIT_coerce_autoscale_new(nvox, MRI_float,hout[ib], MRI_short,bar) ;
+     if( factor < EPSILON ) factor = 0.0f ;          /* if brick is all zero */
+     else                   factor = 1.0f / factor ;
+     EDIT_BRICK_FACTOR( out_dset , ib , factor ) ;
+     EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
+     free((void *)hout[ib]) ;
+   }
+   free((void *)hout) ;
+
+   /* and save the results to disk! */
+
+   if( verb )
+    fprintf(stderr,"++ Writing sresp 3D+time dataset into %s\n",DSET_HEADNAME(out_dset)) ;
+
    DSET_write( out_dset ) ;
    DSET_delete( out_dset ) ;
    return ;
