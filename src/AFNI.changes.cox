@@ -5300,3 +5300,6 @@
 06 Jan 2005
  * Modified imseq.c to free the pen_bbox and labsz_av when destroying an image
      viewer -- somehow these got overlooked in ISQ_free_alldata().
+
+14 Jan 2005
+ * Added program whereami, from Mike Angstadt of U Chicago.
