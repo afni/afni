@@ -67,11 +67,19 @@ int main( int argc , char * argv[] )
             "                         from file 'mmm':\n"
             "                         x_in = Matrix x_out + Vector\n"
             "\n"
-            "           ** N.B.: The coordinate vectors described above are\n"
-            "                     defined in DICOM ('RAI') coordinate order.\n"
-            "                     (Also see the '-fsl_matvec option, below.)\n"
-            "           ** N.B.: Using the special name 'IDENTITY' for 'mmm'\n"
-            "                     means to use the identity matrix.\n"
+            "     ** N.B.: The coordinate vectors described above are\n"
+            "               defined in DICOM ('RAI') coordinate order.\n"
+            "               (Also see the '-fsl_matvec option, below.)\n"
+            "     ** N.B.: Using the special name 'IDENTITY' for 'mmm'\n"
+            "               means to use the identity matrix.\n"
+            "     ** N.B.: You can put the matrix on the command line\n"
+            "               directly by using an argument of the form\n"
+            "       'MATRIX(a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34)'\n"
+            "               in place of 'mmm', where the aij values are the\n"
+            "               matrix entries (aij = i-th row, j-th column),\n"
+            "               separated by commas.\n"
+            "             * You will need the 'forward single quotes' around\n"
+            "               the argument.\n"
             "-----------------------\n"
             "Other Transform Options:\n"
             "-----------------------\n"
@@ -224,10 +232,23 @@ int main( int argc , char * argv[] )
        if( ++nopt >= argc ){
          fprintf(stderr,"** ERROR: need an argument after -matvec!\n"); exit(1);
        }
-       if( strcmp(argv[nopt],"IDENTITY") == 0 ){
+       if( strcmp(argv[nopt],"IDENTITY") == 0 ){ /* load identity matrix */
          matim = mri_new( 4,3 , MRI_float ) ;    /* will be all zero */
          matar = MRI_FLOAT_PTR(matim) ;
-         matar[0] = matar[5] = matar[10] = 1.0 ; /* load identity matrix */
+         matar[0] = matar[5] = matar[10] = 1.0 ;
+       } else if( strncmp(argv[nopt],"MATRIX(",7) == 0 ){ /* matrix from arg */
+         int nn ;
+         matim = mri_new( 4,3 , MRI_float ) ;    /* will be all zero */
+         matar = MRI_FLOAT_PTR(matim) ;
+         nn = sscanf(argv[nopt],"MATRIX(%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+                     matar+0 , matar+1 , matar+2 , matar+3 ,
+                     matar+4 , matar+5 , matar+6 , matar+7 ,
+                     matar+8 , matar+9 , matar+10, matar+11 ) ;
+         if( nn < 12 ){
+           fprintf(stderr,"** Could only decode %d numbers from %s\n",
+                   nn,argv[nopt]) ;
+           exit(1) ;
+         }
        } else {
          matim = mri_read_ascii( argv[nopt] ) ;
          if( matim == NULL ){
