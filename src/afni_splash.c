@@ -1399,3 +1399,28 @@ ENTRY("AFNI_finalsave_layout_CB") ;
 
    fclose(fp) ; EXRETURN ;
 }
+
+/*--------------------------------------------------------------------------------*/
+/*! Run the startup script [21 Jan 2003]. */
+
+void AFNI_startup_script_CB( XtPointer client_data , XtIntervalId * id )
+{
+   char *fname = (char *)client_data ;
+   char *fbuf , *fptr ;
+   int ii , nbuf ;
+
+ENTRY("AFNI_startup_script_CB") ;
+
+   if( fname == NULL ) EXRETURN ;
+
+   fbuf = AFNI_suck_file(fname); if( fbuf == NULL ) EXRETURN ;
+   nbuf = strlen(fbuf) ;         if( nbuf == 0    ) EXRETURN ;
+
+   fptr = fbuf ; linbuf = (char *) malloc(sizeof(char)*NLBUF) ;
+
+   while(1){
+     ii = get_linbuf( fptr ) ; fptr += ii ;
+     if( linbuf[0] == '\0' || fptr-fbuf >= nbuf ){ free(linbuf); EXRETURN; }
+     AFNI_driver( linbuf ) ;
+   }
+}

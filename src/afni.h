@@ -68,6 +68,8 @@ typedef struct {
 
       int yes_niml ;          /* 28 Feb 2002 */
       int port_niml ;         /* 10 Dec 2002 */
+
+      char * script_fname ;   /* 21 Jan 2003 */
 } AF_options ;
 
 #ifdef MAIN
@@ -1019,6 +1021,7 @@ extern void AFNI_quit_timeout_CB   ( XtPointer , XtIntervalId * ) ;
 extern void AFNI_startup_timeout_CB( XtPointer , XtIntervalId * ) ;
 
 extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ; /* 23 Sep 2000 */
+extern void AFNI_startup_script_CB  ( XtPointer, XtIntervalId * ) ; /* 21 Jan 2003 */
 extern void AFNI_save_layout_CB     ( Widget, XtPointer, XtPointer ) ;
 extern void AFNI_finalsave_layout_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 

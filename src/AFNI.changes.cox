@@ -4213,3 +4213,7 @@
      of animated GIF output.
  * Modified afni_driver.c to allow remote changing of thresholds, the
      addition of overlay colors, and the setting of pbar pane number.
+
+21 Jan 2003
+ * More additions to afni_driver.c.
+ * Changes to afni.[ch] to allow startup script to drive AFNI setup.

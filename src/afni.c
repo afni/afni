@@ -345,6 +345,23 @@ ENTRY("AFNI_parse_args") ;
      }
    }
 
+   /* 21 Jan 2003: get the startup script name */
+
+   { char * lf = getenv("AFNI_SCRIPT_STARTUP") ;
+     if( lf == NULL ) lf = ".afni.startup_script" ;
+     if( lf != NULL ){
+        char * eh = NULL , * ff ;
+        int ll = strlen(lf) + 8 ;
+        if( strchr(lf,"/") == NULL ) eh = getenv("HOME") ;
+        if( eh != NULL ) ll += strlen(eh) ;
+        ff = malloc(ll) ;
+        if( eh != NULL ){ strcpy(ff,eh) ; strcat(ff,"/") ; }
+        else            { ff[0] = '\0' ; }
+        strcat(ff,lf) ;
+        GLOBAL_argopt.script_fname = ff ;
+     }
+   }
+
    /*-- 18 Nov 1999: Allow setting of options from environment --*/
 
    env = getenv( "AFNI_OPTIONS" ) ;
@@ -1448,6 +1465,16 @@ STATUS("call 14") ;
                                   AFNI_startup_layout_CB , GLOBAL_argopt.layout_fname ) ;
 
           nodown = 1 ;  /* splashdown will be done in AFNI_startup_layout_CB */
+        }
+
+        /* 21 Jan 2003: this function will be called 0.246 seconds
+                        from now to run the startup script, if any */
+
+        if( GLOBAL_argopt.script_fname != NULL &&
+            MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
+
+          (void) XtAppAddTimeOut( MAIN_app , 246 ,
+                                  AFNI_startup_script_CB , GLOBAL_argopt.script_fname ) ;
         }
 
         /* this function will be called 1.234 seconds from now to finalize

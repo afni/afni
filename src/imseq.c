@@ -5851,6 +5851,9 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_opacitybut      (int) turns opacity control on/off
 
+*    isqDR_setopacity      (int) sets opacity (value=0..9)
+*    isqDR_getopacity      (int *) get opacity setting
+
 *    isqDR_zoombut         (int) turns zoom control on/off
 
 *    isqDR_record_mode     (ignored)
@@ -6091,6 +6094,28 @@ static unsigned char record_bits[] = {
             XtManageChild( seq->ov_opacity_av->wrowcol ) ;
          }
          RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- set opacity value [21 Jan 2003] ----------*/
+
+      case isqDR_setopacity:{
+        int val = (int) drive_data ;
+        if( seq->ov_opacity_av == NULL ) RETURN( False ) ;
+        if( val < OPACITY_BOT || val > OPACITY_TOP ) RETURN( False ) ;
+        AV_assign_ival( seq->ov_opacity_av , val ) ;
+        ISQ_opacity_CB( seq->ov_opacity_av , seq ) ;
+        RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- get opacity value [21 Jan 2003] ----------*/
+
+      case isqDR_getopacity:{
+        int *val = (int *) drive_data ;
+        if( seq->ov_opacity_av == NULL || val == NULL ) RETURN( False ) ;
+        *val = seq->ov_opacity_av->ival ;
+        RETURN( True ) ;
       }
       break ;
 

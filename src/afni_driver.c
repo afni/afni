@@ -66,6 +66,7 @@ static AFNI_driver_pair dpair[] = {
  { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
 
  { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,
+ { "ALTER_WINDOW"     , AFNI_drive_open_window       } ,
  { "CLOSE_WINDOW"     , AFNI_drive_close_window      } ,
 
  { "OPEN_GRAPH_XY"    , AFNI_drive_open_graph_xy     } ,
@@ -87,6 +88,7 @@ static AFNI_driver_pair dpair[] = {
 
  { "ADD_OVERLAY_COLOR"  , AFNI_drive_add_overlay_color } ,
  { "SET_THRESHOLD"      , AFNI_drive_set_threshold     } ,
+ { "SET_FUNC_THRESH"    , AFNI_drive_set_threshold     } ,
  { "SET_PBAR_NUMBER"    , AFNI_drive_set_pbar_number   } ,
  { "SET_PBAR_SIGN"      , AFNI_drive_set_pbar_sign     } ,
  { "SET_PBAR_ALL"       , AFNI_drive_set_pbar_all      } ,
@@ -477,6 +479,15 @@ ENTRY("AFNI_drive_open_window") ;
         XIconifyWindow( XtDisplay(isq->wtop) ,
                          XtWindow(isq->wtop)  ,
                          isq->dc->screen_num   ) ;
+      }
+
+      /* opacity [21 Jan 2003] */
+
+      cpt = strstr(cmd,"opacity=") ;
+      if( cpt != NULL ){
+        int opaval = -1 ;
+        sscanf( cpt+8 , "%d" , &opaval ) ;
+        drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer) opaval ) ;
       }
 
    /*--- opened a graph viewer: maybe modify it ---*/
