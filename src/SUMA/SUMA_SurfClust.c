@@ -36,6 +36,44 @@ void SUMA_FreeClustDatum (void * data)
    
    SUMA_RETURNe;
 }
+
+/*!
+   \brief Calculate area of each node as one third of the sum of
+   the areas of incident triangles. 
+   If you change this function make sure changes are also done
+   on RickR's compute_node_areas since the two functions use
+   the same principle.
+*/
+float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_CalculateNodeAreas"};
+   float *NodeAreas=NULL;
+   int *flist = NULL, i, c;
+   
+   SUMA_ENTRY;
+   
+   if (!SO) { SUMA_RETURN(NodeAreas); }
+   if (!SO->PolyArea) {
+      if (!SUMA_SurfaceMetrics (SO, "PolyArea", NULL)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+         SUMA_RETURN(NodeAreas);
+      }
+   }
+   
+   NodeAreas = (float *)SUMA_malloc(SO->N_Node*sizeof(float));
+   if (!NodeAreas) { SUMA_SL_Crit ("Failed to allocate for NodeAreas"); SUMA_RETURN(NodeAreas); }
+   
+   for (i=0; i<SO->N_Node; ++i) {
+      flist = SO->MF->NodeMemberOfFaceSet[i];
+      NodeAreas[i] = 0.0;
+      for (c = 0; c < SO->MF->N_Memb[i]; c++) {
+         NodeAreas[i] += SO->PolyArea[flist[c]];
+      }
+      NodeAreas[i] /= 3.0;
+   }
+   
+   SUMA_RETURN(NodeAreas);
+}
 /*!
    \brief creates a list of the various clusters on the surface
    
@@ -70,7 +108,7 @@ void SUMA_FreeClustDatum (void * data)
    }  \
    \
    Clust = (SUMA_CLUST_DATUM *)SUMA_malloc(sizeof(SUMA_CLUST_DATUM));   \
-   Clust->N_Node = 0; Clust->totalarea = -1.0; Clust->rank = -1;  \
+   Clust->N_Node = 0; Clust->totalarea = 0.0; /* Clust->rank = -1; */  \
    Clust->NodeList = (int *)SUMA_malloc(N_n * sizeof(int)); \
    /* add Clust to list */ \
    dlist_ins_next(list, dlist_tail(list), (void *)Clust);   \
@@ -78,7 +116,7 @@ void SUMA_FreeClustDatum (void * data)
    ++nc; \
    if (LocalHead) { fprintf(SUMA_STDERR,"%s:\n%d New cluster %p created and to begin with node %d...\n", FuncName, nc, Clust, dothisnode); }   \
    /* put in a call to search its neighborhood */  \
-   SUMA_FindClusters (SO, ni, nv, N_ni, list, dothisnode, Opt, Clust);   \
+   SUMA_FindClusters (SO, ni, nv, N_ni, list, dothisnode, Opt, Clust, NodeArea);   \
 }
 
 #define SUMA_FIND_CLUSTERS_CLEANUP  \
@@ -92,7 +130,9 @@ void SUMA_FreeClustDatum (void * data)
       SUMA_RETURN(list);   \
 }  \
 
-DList *SUMA_FindClusters (SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni, DList *laliste, int dothisnode, SUMA_SURFCLUST_OPTIONS *Opt, SUMA_CLUST_DATUM *AddToThisClust)
+DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni, 
+                           DList *laliste, int dothisnode, SUMA_SURFCLUST_OPTIONS *Opt, 
+                           SUMA_CLUST_DATUM *AddToThisClust, float *NodeArea)
 {
    static char FuncName[]={"SUMA_FindClusters"};
    DList *list=NULL;
@@ -166,7 +206,7 @@ DList *SUMA_FindClusters (SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni, 
    #endif
    /* Add node to cluster */
    if (LocalHead) fprintf(SUMA_STDERR,"%s:\n%d element of NodeList set to %d\n", FuncName, Clust->N_Node, dothisnode);
-   Clust->NodeList[Clust->N_Node] = dothisnode; ++Clust->N_Node;
+   Clust->NodeList[Clust->N_Node] = dothisnode; Clust->totalarea += NodeArea[dothisnode]; ++Clust->N_Node;
    
    /* mark it as assigned, an reduce the number of nodes left to assign*/
    ToBeAssigned[dothisnode] = NOPE; --N_n;
@@ -180,7 +220,7 @@ DList *SUMA_FindClusters (SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni, 
          neighb = OffS->layers[il].NodesInLayer[jl];
          if (ToBeAssigned[neighb] && OffS->OffVect[neighb] <= Opt->DistLim) {
             /* take that node into the cluster */
-            SUMA_FindClusters (SO, ni, nv, N_ni, list, neighb, Opt, Clust); SUMA_RETURN(list);
+            SUMA_FindClusters (SO, ni, nv, N_ni, list, neighb, Opt, Clust, NodeArea); SUMA_RETURN(list);
          }
       }
    }
@@ -240,20 +280,29 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail)
       SUMA_SS2S(SS,s); 
       SUMA_RETURN(s);  
    }else{
+      SS = SUMA_StringAppend_va (SS,"#Col. 0 = rank\n"
+                                    "#Col. 1 = number of nodes\n"
+                                    "#Col. 2 = total area (units^2)\n");
+      if (detail == 1) {
+         SS = SUMA_StringAppend_va (SS,"#Other columns: list of 5 first nodes in ROI.\n");   
+      }
+      if (detail == 2) {
+         SS = SUMA_StringAppend_va (SS,"#Other columns: list all  nodes in ROI.\n");   
+      }
       if (detail > 0) {
-         SS = SUMA_StringAppend_va (SS,"#%d cluster%s.\n", list->size, SUMA_COUNTER_PLURAL(list->size));
+         SS = SUMA_StringAppend_va (SS,"#A total of %d cluster%s were found.\n", list->size, SUMA_COUNTER_PLURAL(list->size));
       }
    }
    
    elmt = NULL; 
-   ic = 0; 
+   ic = 1; 
    do {
       if (!elmt) elmt = dlist_head(list); else elmt = elmt->next;
       if (!elmt) SS = SUMA_StringAppend_va (SS,"#%d%s cluster element is NULL!\n", ic, SUMA_COUNTER_SUFFIX(ic));
       else {
          cd = (SUMA_CLUST_DATUM *)elmt->data;
          if (detail > 0) SS = SUMA_StringAppend_va (SS,"#%d%s cluster\n", ic, SUMA_COUNTER_SUFFIX(ic));
-         SS = SUMA_StringAppend_va (SS,"%d\t%d\t", ic, cd->N_Node);
+         SS = SUMA_StringAppend_va (SS,"%d\t%d\t%f\t", ic, cd->N_Node, cd->totalarea);
          if (detail > 0) {
             if (detail == 1) {
                if (cd->N_Node < 5) max = cd->N_Node; else max = 5;
@@ -294,9 +343,10 @@ SUMA_DSET *SUMA_SurfClust_list_2_Dset(SUMA_SurfaceObject *SO, DList *list)
 SUMA_Boolean SUMA_Sort_ClustersList (DList *list, SUMA_SURF_CLUST_SORT_MODES SortMode)
 {
    static char FuncName[]={"SUMA_Sort_ClustersList"};
-   DListElmt *elmt=NULL;
-   SUMA_CLUST_DATUM *cd=NULL;
+   DListElmt *elmt=NULL, *max_elmt=NULL, *elmt_comp=NULL;
+   SUMA_CLUST_DATUM *cd=NULL, *cd_comp=NULL, *cd_max=NULL;
    int r = 0;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -307,28 +357,33 @@ SUMA_Boolean SUMA_Sort_ClustersList (DList *list, SUMA_SURF_CLUST_SORT_MODES Sor
          SUMA_RETURN(NOPE);
          break;
       case SUMA_SORT_CLUST_NO_SORT:
-         elmt = NULL;
-         do {
-            if (!elmt) elmt = dlist_head(list);
-            else elmt = elmt->next;
-            ++r; /* start at 1 because you will use this value in dsets */
-            cd = (SUMA_CLUST_DATUM *)elmt->data; cd->rank = r;
-         } while (elmt != dlist_tail(list));
          SUMA_RETURN(YUP);
          break;
       case SUMA_SORT_CLUST_BY_NUMBER_NODES:
+      case SUMA_SORT_CLUST_BY_AREA:
          elmt = NULL;
          do {
             if (!elmt) elmt = dlist_head(list);
             else elmt = elmt->next;
             cd = (SUMA_CLUST_DATUM *)elmt->data; 
             /* compare to all ahead of this element */
-            if (elmt != dlist_tail(list) {
-               max_elmt = elmt;
+            if (elmt != dlist_tail(list)) {
+               max_elmt = elmt; cd_max = (SUMA_CLUST_DATUM *)max_elmt->data; elmt_comp = NULL;
                do {
-                  elmt_comp = elmt->next; cd_comp = (SUMA_CLUST_DATUM *)elmt_comp->data; 
-                  if (elmt_comp->N_Node > ((SUMA_CLUST_DATUM *)max_elmt)->N_Node) max_elmt = elmt_comp; STOPPED HERE 
+                  if (!elmt_comp) elmt_comp = elmt->next; 
+                  else elmt_comp = elmt_comp->next; 
+                  cd_comp = (SUMA_CLUST_DATUM *)elmt_comp->data; 
+                  if (SortMode == SUMA_SORT_CLUST_BY_NUMBER_NODES) {
+                     if (cd_comp->N_Node > cd_max->N_Node) { max_elmt = elmt_comp; cd_max = (SUMA_CLUST_DATUM *)max_elmt->data; }  
+                  }else if (SortMode == SUMA_SORT_CLUST_BY_AREA) {
+                     if (cd_comp->totalarea > cd_max->totalarea) { max_elmt = elmt_comp; cd_max = (SUMA_CLUST_DATUM *)max_elmt->data; }  
+                  }
                } while (elmt_comp != dlist_tail(list));
+               if (max_elmt != elmt) { /* max is the real deal */
+                  dlist_remove(list, max_elmt, (void *)(&cd_max));
+                  dlist_ins_prev(list, elmt, (void *)cd_max);
+                  elmt = elmt->prev; /* continue from that one */
+               }
             }
          } while (elmt != dlist_tail(list));
          SUMA_RETURN(YUP);
@@ -444,7 +499,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			Opt->out_prefix = SUMA_copy_string(argv[kar]);
-			opt->WriteFile = YUP;
+			Opt->WriteFile = YUP;
          brk = YUP;
 		}
             
@@ -511,7 +566,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
       }
       
       if (!brk && (strcmp(argv[kar], "-sort_area") == 0)) {
-         Opt->SortMode = SUMA_SORT_CLUST_BY_NUMBER_NODES;
+         Opt->SortMode = SUMA_SORT_CLUST_BY_AREA;
 			brk = YUP;
       }
       
@@ -525,12 +580,12 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    }
 
    /* sanitorium */
-   if (Opt->rmm < 0 || Opt->amm2 < 0) {
-      fprintf (SUMA_STDERR, "must use options -rmm and -amm2 \n");
+   if (Opt->DistLim < 0) {
+      fprintf (SUMA_STDERR, "must use options -rmm  \n");
       exit(1);
    }
-   if (!Opt->prefix) {
-      Opt->prefix = SUMA_RemoveDsetExtension(Opt->in_name, SUMA_NO_DSET_FORMAT);
+   if (!Opt->out_prefix) {
+      Opt->out_prefix = SUMA_RemoveDsetExtension(Opt->in_name, SUMA_NO_DSET_FORMAT);
    }
    
    if (Opt->SortMode == SUMA_SORT_CLUST_NOT_SET) { Opt->SortMode = SUMA_SORT_CLUST_BY_AREA; }
@@ -551,6 +606,7 @@ int main (int argc,char *argv[])
 	SUMA_SurfSpecFile Spec; 
    DList *list = NULL;
    SUMA_DSET *dset = NULL;
+   float *NodeArea = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
 	SUMA_mainENTRY;
@@ -586,7 +642,11 @@ int main (int argc,char *argv[])
       exit(1);
    }
    SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
-      
+   NodeArea = SUMA_CalculateNodeAreas(SO);
+   if (!NodeArea) {
+      SUMA_S_Err("Failed to calculate Node Areas.\n");
+      exit(1);
+   }   
    /* load the data */   
    iform = SUMA_NO_DSET_FORMAT;
    dset = SUMA_LoadDset (Opt->in_name, &iform, 0); 
@@ -602,7 +662,7 @@ int main (int argc,char *argv[])
    nv = SUMA_Col2Float(dset->nel, Opt->labelcol, 0);
    
    /* make the call */
-   list = SUMA_FindClusters (SO, ni, nv, N_ni, NULL, -1, Opt, NULL);
+   list = SUMA_FindClusters (SO, ni, nv, N_ni, NULL, -1, Opt, NULL, NodeArea);
    
    /* sort the list */
    if (!SUMA_Sort_ClustersList (list, Opt->SortMode)) {
@@ -613,7 +673,7 @@ int main (int argc,char *argv[])
    /* Show the results */
    SUMA_Show_SurfClust_list(list, NULL, 2);
    
-   if (Opt->out_roi) {
+   if (Opt->OutROI) {
       SUMA_DSET *dset_roi = NULL;
       char *NameOut = NULL;
       /* Call this function, write out the resultant dset to disk then cleanup */
@@ -622,7 +682,7 @@ int main (int argc,char *argv[])
          SUMA_S_Err("NULL dset_roi");
          exit(1);
       }
-      NameOut = SUMA_WriteDset (prefix, dset, iform, 0, 0);
+      NameOut = SUMA_WriteDset (Opt->out_prefix, dset, iform, 0, 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       SUMA_FreeDset((void *)dset_roi); dset_roi = NULL; 
       if (NameOut) SUMA_free(NameOut); NameOut = NULL; 
