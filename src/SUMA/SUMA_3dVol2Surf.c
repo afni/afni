@@ -1,5 +1,5 @@
 
-#define VERSION "version  4.2 (February 18, 2004)"
+#define VERSION "version  4.3 (February 19, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -160,6 +160,10 @@ static char g_history[] =
     "4.2  February 18, 2004  [rickr]\n"
     "  - added functionality for mapping functions that require sorting\n"
     "  - added mapping functions: median and mode\n"
+    "\n"
+    "4.3  February 19, 2004  [rickr]\n"
+    "  - track 1dindex sources for new sorting filters (median, mode)\n"
+    "    i.e. idindex is accurate, not just defaulting to first node\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -2409,17 +2413,15 @@ ENTRY("usage");
 	    "\n"
 	    "    1dindex : the global index of the AFNI voxel used for output\n"
 	    "\n"
-	    "              Note that for filters like min, max and midpoint,\n"
-	    "              there is a specific location (and therefore voxel)\n"
-	    "              that the result comes from.  It will be accurate.\n"
+	    "              Note that for some filters (min, max, midpoint,\n"
+	    "              median and mode) there is a specific location (and\n"
+	    "              therefore voxel) that the result comes from.  It\n"
+	    "              will be accurate (though median may come from one\n"
+	    "              of two voxels that are averaged).\n"
 	    "\n"
 	    "              For filters without a well-defined source (such as\n"
 	    "              average or seg_vals), the 1dindex will come from\n"
 	    "              the first point on the corresponding segment.\n"
-	    "\n"
-	    "              Currently, for filters that require sorting the\n"
-	    "              segment values (like median and mode), the 1dindex\n"
-	    "              will come from the first point on the segment.\n"
 	    "\n"
 	    "    i j k   : the i j k indices matching 1dindex\n"
 	    "\n"
@@ -2674,9 +2676,10 @@ float v2s_apply_filter( range_3dmm_res * rr, smap_opts_t * sopt, int index,
  		        int * findex )
 {
     static float_list flist = { 0, 0, NULL };    /* for sorting results */
+    static int      * ind_list = NULL;		 /* track index sources */
     double            tmp, comp = 0.0;
     float             fval;
-    int               count;
+    int               count, source;
 
 ENTRY("v2s_apply_filter");
 
@@ -2693,12 +2696,15 @@ ENTRY("v2s_apply_filter");
     /* if sorting is required for resutls, do it now */
     if ( v2s_map_needs_sort( sopt->map ) )
     {
-	if ( float_list_alloc( &flist, rr->ims.num, 0 ) != 0 )
+	if ( float_list_alloc( &flist, &ind_list, rr->ims.num, 0 ) != 0 )
 	    RETURN(0.0);
 	for ( count = 0; count < rr->ims.num; count++ )
+	{
 	    flist.list[count] = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+	    ind_list  [count] = count;   /* init index sources */
+	}
 	flist.nused = rr->ims.num;
-	float_list_slow_sort( &flist );
+	float_list_slow_sort( &flist, ind_list );
     }
 
     switch ( sopt->map )
@@ -2775,16 +2781,21 @@ ENTRY("v2s_apply_filter");
 	case E_SMAP_MEDIAN:
 	    count = flist.nused >> 1;
 	    if ( (flist.nused & 1) || (count == 0) )
+	    {
 		comp = flist.list[count];
+		if ( findex ) *findex = ind_list[count];
+	    }
 	    else
+	    {
 		comp = (flist.list[count-1] + flist.list[count]) / 2;
-	    if ( findex ) *findex = 0;
+		if ( findex ) *findex = ind_list[count-1]; /* take first */
+	    }
 	    break;
 
 	case E_SMAP_MODE:
-	    float_list_comp_mode(&flist, &fval, &count);
+	    float_list_comp_mode(&flist, &fval, &count, &source);
 	    comp = fval;
-	    if ( findex ) *findex = 0;
+	    if ( findex ) *findex = ind_list[source];
 	    break;
     }
 
@@ -2811,11 +2822,11 @@ int v2s_map_needs_sort( int map )
 /*----------------------------------------------------------------------
  * float_list_comp_mode		- compute the mode of the list
  *
- * return   0 on success
- *        < 0 on error
+ * return  0 : on success
+ *        -1 : on error
  *----------------------------------------------------------------------
 */
-int float_list_comp_mode( float_list * f, float * mode, int * nvals )
+int float_list_comp_mode( float_list *f, float *mode, int *nvals, int *index )
 {
     float fcur;
     int   ncur, c;
@@ -2825,6 +2836,7 @@ ENTRY("float_list_comp_mode");
     /* init default results */
     *nvals = ncur = 1;
     *mode  = fcur = f->list[0];
+    *index = 0;
 
     for ( c = 1; c < f->nused; c++ )
     {
@@ -2836,6 +2848,7 @@ ENTRY("float_list_comp_mode");
 	    {
 		*mode  = fcur;
 		*nvals = ncur;
+		*index = c;
 	    }
 
 	    fcur = f->list[c];
@@ -2847,6 +2860,7 @@ ENTRY("float_list_comp_mode");
     {
 	*mode  = fcur;
 	*nvals = ncur;
+	*index = c;
     }
 
     RETURN(0);
@@ -2856,11 +2870,13 @@ ENTRY("float_list_comp_mode");
 /*----------------------------------------------------------------------
  * float_list_slow_sort		- sort (small) float list
  *
+ * If ilist, track index sources.
+ *
  * return   0 on success
  *        < 0 on error
  *----------------------------------------------------------------------
 */
-int float_list_slow_sort( float_list * f )
+int float_list_slow_sort( float_list * f, int * ilist )
 {
     float * list, save;
     int     c0, c1, sindex;
@@ -2882,11 +2898,18 @@ ENTRY("float_list_slow_sort");
 		save   = list[sindex];
 	    }
 
-	/* swap if smaller */
+	/* swap if smaller was found */
 	if ( sindex > c0 )
 	{
 	    list[sindex] = list[c0];
 	    list[c0]     = save;
+
+	    if ( ilist )        /* make same swap of indices */
+	    {
+		c1            = ilist[sindex];
+		ilist[sindex] = ilist[c0];
+		ilist[c0]     = c1;
+	    }
 	}
     }
 
@@ -2898,12 +2921,13 @@ ENTRY("float_list_slow_sort");
  * float_list_alloc		- verify float list memory
  *
  * If truncate, realloc down to necessary size.
+ * If ilist, make space for accompanying int list.
  *
  * return   0 on success
  *        < 0 on error
  *----------------------------------------------------------------------
 */
-int float_list_alloc( float_list * f, int size, int truncate )
+int float_list_alloc( float_list * f, int ** ilist, int size, int truncate )
 {
     THD_fvec3 f3_diff;
     float     dist, factor;
@@ -2920,6 +2944,17 @@ ENTRY("float_list_alloc");
 	    RETURN(-2);
 	}
 	f->nalloc = size;
+
+	if ( ilist )	 /* then allocate accompanying ilist */
+	{
+	    *ilist = (int *)realloc(*ilist, size * sizeof(int));
+	    if ( ! *ilist )
+	    {
+		fprintf(stderr,"** float_list_alloc: failed for %d ints\n",
+			size);
+		RETURN(-2);
+	    }
+	}
 
 	if ( truncate && (f->nused > f->nalloc) )
 	    f->nused = f->nalloc;

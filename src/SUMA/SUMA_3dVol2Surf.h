@@ -178,9 +178,9 @@ int write_output      ( smap_opts_t * sopt, param_t * p, node_list_t * N );
 
 
 /* float list functions */
-int float_list_alloc       ( float_list * f, int size, int truncate );
-int float_list_comp_mode   ( float_list * f, float * mode, int * nvals );
-int float_list_slow_sort   ( float_list * f );
+int float_list_alloc     ( float_list * f, int **ilist, int size, int truncate);
+int float_list_comp_mode ( float_list * f, float *mode, int *nvals, int *index);
+int float_list_slow_sort ( float_list * f, int * ilist );
 
 
 int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max );
