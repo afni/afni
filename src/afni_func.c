@@ -4695,6 +4695,18 @@ STATUS("got func info") ;
 
    /*.........................................................*/
 
+   else if( w == im3d->vwid->dmode->misc_readme_env_pb ){  /* 05 Aug 2004 */
+#include "readme_env.h"
+      char * inf = NULL ; int ii ;
+
+      for( ii=0 ; readme_env[ii] != NULL ; ii++ )
+         inf = THD_zzprintf( inf , "%s" , readme_env[ii] ) ;
+      (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
+      free(inf) ;
+   }
+
+   /*.........................................................*/
+
    else if( w == im3d->vwid->dmode->misc_vcheck_pb ){  /* 11 Jan 2000 */
       FILE * fp = popen( "afni_vcheck" , "r" ) ;
       if( fp == NULL ){
