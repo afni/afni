@@ -472,7 +472,7 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
      EDIT_dset_items( (ds), ADN_brick_label_one+(iv), (str), ADN_none )
 
 #define EDIT_BRICK_FACTOR(ds,iv,fac) \
-     EDIT_dset_items( (ds), ADN_brick_factor_one+(iv), (fac), ADN_none )
+     EDIT_dset_items( (ds), ADN_brick_fac_one+(iv), (fac), ADN_none )
 
 #define EDIT_BRICK_ADDKEY(ds,iv,str) \
      EDIT_dset_items( (ds), ADN_brick_keywords_append_one+(iv), (str), ADN_none )
