@@ -300,7 +300,7 @@ typedef struct {
 
 /*! Size of NI_stream buffer. */
 
-#define NI_BUFSIZE (16*1024)
+#define NI_BUFSIZE (27*1024)
 
 /*! Data needed to process input stream. */
 
@@ -540,6 +540,7 @@ extern void NI_swap_vector( int, int, void * ) ;
 extern NI_stream NI_stream_open( char *, char * ) ;
 extern int NI_stream_goodcheck( NI_stream_type *, int ) ;
 extern void NI_stream_close( NI_stream_type * ) ;
+extern void NI_stream_closenow( NI_stream_type * ) ;   /* 02 Jan 2004 */
 extern int NI_stream_readcheck( NI_stream_type *, int  ) ;
 extern int NI_stream_writecheck( NI_stream_type *, int  ) ;
 extern int NI_stream_write( NI_stream_type *, char *, int ) ;

@@ -452,8 +452,8 @@ int NI_read_URL_tmpdir( char *url , char **tname )
 
    fp = fopen( fname , "wb" ) ;
    if( fp == NULL ){
-      fprintf(stderr,"** Can't open temporary file %s\n",fname);
-      free(data) ; return( -1 );
+     fprintf(stderr,"** Can't open temporary file %s\n",fname);
+     free(data) ; return( -1 );
    }
    ll = fwrite(data,1,nn,fp) ; fclose(fp) ; free(data) ;
    if( ll != nn ){ unlink(fname); return( -1 ); } /* write failed */
