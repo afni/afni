@@ -2,7 +2,7 @@
 
 #These normally come from AFNI's makefile, if you're running make without using afni's makefile, you need to set some variables
 ifndef CEXTRA
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
+CEXTRA = -Wno-unused-variable -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
 endif
 
 ifeq ($(CC),gcc)
@@ -17,7 +17,7 @@ INSTALLDIR = /home/ziad/abin
 endif 
 
 CCOPT = 
-WARNOPT = -Wall -Wno-unused-variable
+WARNOPT = -Wall 
 SUMALIB = libSUMA.a
 AFNILIB = -lmri -lrickr
 MAINCODE = SUMA
