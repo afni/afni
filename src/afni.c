@@ -172,7 +172,7 @@ void AFNI_syntax(void)
    printf(
      "\n"
      "Usage 2: read in images for 'quick and dirty' viewing\n"
-     "(Many advanced features of AFNI will be disabled.)\n"
+     "(Most advanced features of AFNI will be disabled.)\n"
      "\n"
      "   afni -im [options] im1 im2 im3 ...\n"
      "\n"
@@ -2303,6 +2303,7 @@ THD_3dim_dataset * AFNI_read_images( int nf , char * fname[] )
    int datum = GLOBAL_argopt.datum , dsize ;
 
    int nvals , nzz , nzin ;  /* 19 Oct 1999 */
+   float dx=0.0, dy=0.0 , dz=0.0 ;  /* 29 Jul 2002 */
 
 ENTRY("AFNI_read_images") ;
 
@@ -2334,6 +2335,10 @@ ENTRY("AFNI_read_images") ;
    im = arr->imarr[0] ;
    nx = im->nx ;
    ny = im->ny ; npix = nx * ny ;
+
+   if( im->dw > 0.0 ){
+     dx = fabs(im->dx); dy = fabs(im->dy); dz = fabs(im->dz);  /* 29 Jul 2002 */
+   }
 
    if( datum < 0 ) datum = im->kind ;
    if( ! AFNI_GOOD_DTYPE(datum) )
@@ -2559,6 +2564,10 @@ ENTRY("AFNI_read_images") ;
    dset->daxes->zzdel = GLOBAL_argopt.dz ;  /* the images' aspect ratio */
    dset->daxes->xxorg = dset->daxes->yyorg = dset->daxes->zzorg = 0.0 ;
    dset->daxes->parent= (XtPointer) dset ;
+
+   if( dx > 0.0 ) dset->daxes->xxdel = dx ;  /* 29 Jul 2002 */
+   if( dy > 0.0 ) dset->daxes->yydel = dy ;
+   if( dz > 0.0 ) dset->daxes->zzdel = dz ;
 
 #ifndef OMIT_DATASET_IDCODES
    dset->idcode = MCW_new_idcode() ;
