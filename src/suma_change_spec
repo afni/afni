@@ -1,0 +1,158 @@
+#!/usr/bin/perl
+#
+# suma_change_spec
+#
+# A script to automate the changing of SUMA's Spec. files.
+#
+# written by Xander Meadow
+# 1/8/04
+#
+# Modified for new SUMA files by XM
+# 2/11/04
+#
+#
+# This code may be freely distributed, and modified as needed.  Please
+# contact xmeadow@uchicago.edu with any questions or improvements for the
+# script.
+##############################################################################
+
+use Getopt::Long;
+
+# if no arguments presented, print out help message.
+if(!$ARGV[0]) {
+	$help=1;
+}else {
+	$help=0;
+}
+
+GetOptions(\%args, "input=s", "state=s", "domainparent=s", "output=s", "remove","anatomical");
+
+# if not all of the necessary flags are present, print out help message.
+if (!($args{input} && $args{state})) {
+	$help=1;
+}
+
+# help message
+if ($help) {
+ print "suma_change_spec:\n";
+ print " This program changes SUMA's surface specification (Spec) files.\n";
+ print " At minimum, the flags input and state are required.\n";
+ print "Available flags:\n";
+ print "  input: Which is the SUMA Spec file you want to change.\n";
+ print "  state: The state within the Spec file you want to change.\n";
+ print "  domainparent: The new Domain Parent for the state within the ";
+ print "\n\tSpec file you want to change.\n";
+ print "  output: The name to which your new Spec file will be temporarily";
+ print "\n\twritten to. (this flag is optional, if omitted the new Spec\n";
+ print "\tfile will be temporarily written to 'input_file.change').\n";
+ print "  remove: This flag will remove the automatically created backup.\n";
+ print "  anatomical: This will add 'Anatomical = Y' to the selected\n";
+ print "\tSurfaceState.\n";
+ print "Usage:\n";
+ print " This program will take the user given flags and create a spec file,\n";
+ print " named from the output flag or <input>.change.  It will then take\n";
+ print " this new spec file and overwrite the original input file.  If the -remove\n";
+ print " flag is not used the original input file can be found at ";
+ print "<inputfile>.bkp.\n If the -remove is used the .bkp file will be ";
+ print " automatically deleted.\n\n";
+ print " ex. suma_change_spec -input <file> -state <statename> \n";
+ print "\t-domainparent <new_parent> -anatomical\n";
+ exit;
+}
+
+# open read in and write out files.
+open(IN,$args{input});
+if (!(-e $args{input})) {
+	print "ERROR!! Input file $args{input} does not exist\n";
+	exit;
+}
+if ($args{output}) {
+	open(OUT,">$args{output}");
+}
+else {
+	open(OUT,">$args{input}.change");
+}
+
+# initialize variables.
+$mark=0;
+$holder="";
+
+# read in input file.
+while (<IN>) {
+  chomp($_);
+
+# Check to see if the line read in is either LocalDomainParent or
+# Surface state line.
+  if ($mark == 0) {
+	switch: for ($_) {
+	  /LocalDomainParent = / && do {
+		$holder=$_;
+		$mark=1;	
+	  };
+	  /SurfaceState = / && do {
+		$mark=1;
+	  };
+	}
+  }
+
+# If the read in line is not a LocalDomainParent line, print it out.
+  if (!($holder)) {
+	print OUT "$_\n";
+  }
+
+# If mark equals 2, then the previous line was either a LocalDomainParent
+# line or a SurfaceState line.  Either way now the script must check to
+# see if this is the correct state to be making changes to.
+  if ($mark == 2) {
+	switch: for ($_) {
+	    /$args{state}/ && do {
+		if ($holder) {
+		  if ($args{domainparent}) {
+		   print OUT "\tLocalDomainParent = $args{domainparent}\n";
+		  } else {
+		   print OUT "$holder\n";
+		  }
+		  print OUT "$_\n";
+		  $holder="";
+		  $mark=0;
+		}
+		if ($args{anatomical}) {
+		  print OUT "\tAnatomical = Y\n";
+		}
+		$mark=0;
+	    };
+	  }
+# If this is not the correct SurfaceState, then print out the held
+# LocalDomainParent line as well as the current SurfaceState line.
+# Also, clear the holder variable.
+	if ($holder) {
+	  print OUT "$holder\n";
+	  print OUT "$_\n";
+	  $holder="";
+	  $mark=0;
+	}
+  }
+
+# This is required to allow to a new input $_ to be read in, that $_ should
+# be the SurfaceState information.
+  if ($mark == 1) { $mark=2; }
+}
+
+# Close the read in and write out files.
+close(IN);
+close(OUT);
+
+# Move the original input file to a backup file, unless the user has requested
+# no backup file be created, then if there was an output file, change its 
+# name to the original input file.  If there wasn't an output file, move the
+# input.change file's name to the original input file.
+if (!($args{remove})) {
+`mv $args{input} $args{input}.bkp`;
+}
+if ($args{output}) {
+  `mv $args{output} $args{input}`;
+}
+else {
+  `mv $args{input}.change $args{input}`;
+}
+
