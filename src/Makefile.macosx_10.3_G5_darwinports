@@ -41,7 +41,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./macosx_10.3_G5
+INSTALLDIR = ./macosx_10.3_G5_darwinports
 LIBDIR = $(INSTALLDIR)
 
 INSTALL_PREREQ = suma
