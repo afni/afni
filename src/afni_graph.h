@@ -502,6 +502,7 @@ typedef struct {
 
    int dont_setref ;                                /* 27 Jan 2004 */
    int dont_redraw ;                                /* 27 Jan 2004 */
+   int tschosen ;                                   /* 31 Mar 2004 */
 
 } MCW_grapher ;
 

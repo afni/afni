@@ -1426,14 +1426,18 @@ void MCW_destroy_chooser_CB( Widget wpop ,
                              XtPointer client_data, XtPointer call_data )
 {
    Widget *wpointer = (Widget *) client_data ;
+ENTRY("MCW_destroy_chooser_CB") ;
    *wpointer = NULL ;
+   EXRETURN ;
 }
 
 void MCW_kill_chooser_CB( Widget w ,
                           XtPointer client_data, XtPointer call_data )
 {
    Widget wpop = (Widget) client_data ;
+ENTRY("MCW_kill_chooser_CB") ;
    XtDestroyWidget(wpop) ;
+EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -2561,6 +2565,7 @@ ENTRY("MCW_choose_timeseries") ;
 
    if( wpar == NULL ){
      if( wpop != NULL ){
+STATUS("popdown call") ;
        XtUnmapWidget( wpop ) ;
        XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
        XtDestroyWidget( wpop ) ;
@@ -2579,6 +2584,7 @@ ENTRY("MCW_choose_timeseries") ;
    /*--- if popup widget already exists, destroy it ---*/
 
    if( wpop != NULL ){
+STATUS("destroying old widget") ;
      XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
      XtDestroyWidget( wpop ) ;
    }
@@ -2590,9 +2596,9 @@ ENTRY("MCW_choose_timeseries") ;
    if( tsarr == NULL || tsarr->num == 0 ) EXRETURN ;
    num_ts = tsarr->num ;
 
-#ifdef AFNI_DEBUG
-printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
-#endif
+if(PRINT_TRACING){
+ char str[256]; sprintf(str,"creation with %d choices",num_ts); STATUS(str);
+}
 
    /*--- create popup widget ---*/
 
@@ -2706,8 +2712,10 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
    cd.wchoice = wlist ;
    cd.av      = NULL ;
 
+#if 1
    for( ib=0 ; ib < num_ts ; ib++ ) XmStringFree(xmstr[ib]) ;
    myXtFree(xmstr) ;
+#endif
 
    cd.wpop    = wpop ;  /* data to be passed to pushbutton callback */
    cd.wcaller = wpar ;

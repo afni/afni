@@ -68,6 +68,8 @@ ENTRY("new_MCW_grapher") ;
    grapher->button2_enabled = 0 ;  /* Feb 1998 */
    grapher->mirror          = 0 ;  /* Jul 2000 */
 
+   grapher->tschosen        = 0 ;  /* 31 Mar 2004 */
+
    grapher->gx_max = 0 ;
    grapher->gy_max = 0 ;
    grapher->fWIDE  = 0 ;
@@ -986,8 +988,18 @@ STATUS("freeing cen_tsim") ;
 STATUS("freeing tuser") ;
    GRA_CLEAR_tuser( grapher ) ;  /* 22 Apr 1997 */
 
+   /* 31 Mar 2004:
+      On the Mac, destroying widgets after the timeseries
+      chooser is opened causes death for unknown reasons.
+      So in that case, just hide them.  What the ....?    */
+
 STATUS("destroying widgets") ;
-   XtDestroyWidget( grapher->fdw_graph ) ;
+#ifdef DARWIN
+   if( grapher->tschosen ) XtUnrealizeWidget( grapher->fdw_graph ) ;
+   else                    XtDestroyWidget  ( grapher->fdw_graph ) ;
+#else
+   XtUnrealizeWidget( grapher->fdw_graph ) ;
+#endif
 STATUS("widgets now destroyed") ;
 
    /** if AFNI has a notify callback, it will free the data **/
@@ -4441,6 +4453,7 @@ ENTRY("GRA_fim_CB") ;
 #else
       CALL_sendback( grapher , cbs ) ;
 #endif
+      grapher->tschosen = 1 ;  /* 31 Mar 2004 */
    }
 
    /*** Pick ort ***/
@@ -4452,6 +4465,7 @@ ENTRY("GRA_fim_CB") ;
 #else
       CALL_sendback( grapher , cbs ) ;
 #endif
+      grapher->tschosen = 1 ;  /* 31 Mar 2004 */
    }
 
    /*** Clear FIM ***/

@@ -5017,3 +5017,9 @@
 24 Mar 2004
  * Modify Intracranial.c to deal with an optimizing bug on Mac OS X
      -- doesn't work well with large auto arrays.
+
+31 Mar 2004
+ * Weird Mac problem: afni_graph.c crashes when destroying graph viewer
+     Widgets, but only after the timeseries chooser is popped up.  Stupid
+     solution is to only unrealize widgets if this chooser was opened by
+     the user.  WTF?
