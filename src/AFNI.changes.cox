@@ -4692,3 +4692,9 @@
 07 Aug 2003
  * Fixed small typo in index in mri_warp3D.c quintic code.
  * Fixed CYGWIN bracket placement at end of thd_loaddblk.c.
+
+08 Aug 2003
+ * Problem: when anat_now == fim_now, and fim_now got set to
+     "Warp Func on Demand", then trouble.  Solutions:
+     - make AFNI_VIEW_FUNC_BRICK and AFNI_VIEW_ANAT_BRICK default to YES.
+     - make sure if anat_now == fim_now, Func WOD is turned off.
