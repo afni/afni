@@ -1257,7 +1257,7 @@ int NI_read_columns( NI_stream_type *ns,
                      int col_num, int   *col_typ,
                      int col_len, void **col_dpt, int tmode, int flags )
 {
-   int ii,jj , row , dim , nin , col ;
+   int ii,jj , row , dim , nin , col , nn ;
    char *ptr , **col_dat=(char **)col_dpt ;
    int  nwbuf,bb=0,cc=0;
    char *wbuf=NULL ; /* write buffer */
@@ -1267,6 +1267,8 @@ int NI_read_columns( NI_stream_type *ns,
    NI_rowtype **rt=NULL ;  /* array of NI_rowtype, 1 per column */
    int *vsiz=NULL , vsiz_tot=0 ;
    int *fsiz=NULL , fsiz_tot=0 ;
+
+   int (*readfun)( NI_stream_type *, NI_rowtype *, void * ) ;
 
 # undef  FREEUP
 # define FREEUP do{ NI_FREE(wbuf); NI_FREE(bbuf); NI_FREE(cbuf); \
@@ -1306,20 +1308,354 @@ int NI_read_columns( NI_stream_type *ns,
        memset( col_dat[col], 0 , fsiz[col]*col_len ) ; /* set space to 0 */
    }
 
-#if 0
    /*-- Special (and fast) case:
         one compact (no padding) fixed-size rowtype,
         and binary input ==> can read all data direct from stream at once --*/
 
    if( col_num == 1 && tmode == NI_BINARY_MODE && fsiz[0] == rt[0]->psiz ){
-     nin = NI_stream_read( ns , col_dat[0] , fsiz[0]*col_num ) ;
-     if( nin <= 0 ){ FREEUP; return nin; }
+     nin = NI_stream_readbuf( ns , col_dat[0] , fsiz[0]*col_num ) ;
+     if( nin < fsiz[0] ){ FREEUP; return (nin >= 0) ? 0 : -1 ; }
+     nin = nin / fsiz[0] ;  /* number of rows finished */
      goto ReadFinality ;
    }
-#endif
+
+   switch( tmode ){
+     case NI_TEXT_MODE:   readfun = NI_text_to_val   ; break ;
+     case NI_BINARY_MODE: readfun = NI_binary_to_val ; break ;
+     default:
+       FREEUP ; return -1 ;
+   }
+
+   /*-- OK, have to read the hard ways --*/
+
+   for( nn=1,row=0 ; nn && row < col_len ; row++ ){
+
+    /* loop over columns, write each into the buffer */
+
+    for( col=0 ; nn && col < col_num ; col++ ){
+      ptr = col_dat[col] + fsiz[col]*row ; /* ptr to row-th element */
+      nn  = readfun( ns , rt[col] , ptr ) ; /* read data to element */
+    }
+   }
+
+   if( row == 0 ){ FREEUP ; return -1 ; }
+
+   nin = row ;  /* number of rows finished */
 
    /*-- Have read all data; byte swap if needed, then get outta here --*/
 
 ReadFinality:
 
+   if( tmode != NI_TEXT_MODE && (flags & NI_SWAP_MASK) ){
+     for( col=0 ; col < col_num ; col++ )
+       NI_swap_rowtype( rt[col] , nin , col_dat[col] ) ;
+   }
+
+   FREEUP ; return nin ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Decode binary data from the NI_stream into a rowtype struct.
+    - Note that String is illegal here.
+    - Return value is 1 if all was OK, 0 if something bad happened.
+---------------------------------------------------------------------------*/
+
+int NI_binary_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
+{
+   int nn , jj ;
+
+   if( rt->code == NI_STRING ) return 0 ;            /* shouldn't happen */
+
+   if( ROWTYPE_is_basic_code(rt->code) ){                  /* basic type */
+
+     jj = NI_stream_readbuf( ns , dpt , type_size[rt->code] ) ;
+     return (jj == type_size[rt->code]) ;
+
+   } else {                                              /* derived type */
+
+     char *dat = (char *)dpt , **aaa = NULL ;
+     int ii                  ,  naaa = 0 , iaaa = 0 ;
+
+     if( rt->psiz == 0 ){                  /* variable dim arrays inside */
+       for( naaa=ii=0 ; ii < rt->part_num ; ii++ )
+         if( rt->part_dim[ii] >= 0 ) naaa++ ;    /* count var dim arrays */
+       if( naaa > 0 )
+         aaa = NI_malloc(sizeof(char *)*naaa) ;  /* save their addresses */
+     }                                    /* for possible deletion later */
+
+     /* loop over parts and load them */
+
+     for( nn=1,ii=0 ; nn && ii < rt->part_num ; ii++ ){
+
+       if( rt->part_dim[ii] < 0 ){                    /* fixed size part */
+
+         nn = NI_binary_to_val( ns, rt->part_rtp[ii], dat+rt->part_off[ii] );
+
+       } else {                                         /* var dim array */
+
+         char **apt = (char **)(dat+rt->part_off[ii]); /* data in struct */
+                                                 /* will be ptr to array */
+         int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
+         int siz = rt->part_rtp[ii]->size ;   /* size of each piece-part */
+         if( dim > 0 ){
+           *apt = NI_malloc( siz * dim );                  /* make array */
+           for( jj=0 ; nn && jj < dim ; jj++ )   /* get values for array */
+             nn = NI_binary_to_val( ns, rt->part_rtp[ii],
+                                    *apt + rt->part_rtp[ii]->size * jj ) ;
+         } else {
+           *apt = NULL ;                    /* dim=0 ==> no array needed */
+         }
+         aaa[iaaa++] = *apt ;              /* save for possible deletion */
+
+       }
+     } /* end of loop over parts */
+
+     /* bad news ==> delete any allocated var dim arrays */
+
+     if( nn == 0 ){
+       for( ii=0 ; ii < iaaa ; ii++ ) NI_free( aaa[ii] ) ;
+       NI_free( aaa ) ;
+       return 0 ;
+     }
+   }
+
+   return 1 ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Decode text from the NI_stream into a rowtype struct.
+    - Return value is 1 if it works, 0 if it fails.
+    - If it works, *dpt will be filled with values.
+    - Note that dpt must be pre-allocated rt->size bytes long.
+---------------------------------------------------------------------------*/
+
+int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
+{
+   int nn ;
+
+   switch( rt->code ){
+
+     /*-- a derived type: fill the parts by recursion --*/
+
+     default:{
+       char *dat = (char *)dpt , **aaa = NULL ;
+       int ii , jj ,              naaa = 0 , iaaa = 0 ;
+
+       if( rt->psiz == 0 ){                  /* variable dim arrays inside */
+         for( naaa=ii=0 ; ii < rt->part_num ; ii++ )
+           if( rt->part_dim[ii] >= 0 ) naaa++ ;    /* count var dim arrays */
+         if( naaa > 0 )
+           aaa = NI_malloc(sizeof(char *)*naaa) ;  /* save their addresses */
+       }                                    /* for possible deletion later */
+
+       /* loop over parts and load them */
+
+       for( nn=1,ii=0 ; nn && ii < rt->part_num ; ii++ ){
+
+         if( rt->part_dim[ii] < 0 ){                    /* fixed size part */
+
+           nn = NI_text_to_val( ns, rt->part_rtp[ii], dat+rt->part_off[ii] );
+
+         } else {                                         /* var dim array */
+
+           char **apt = (char **)(dat+rt->part_off[ii]); /* data in struct */
+                                                   /* will be ptr to array */
+           int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
+           int siz = rt->part_rtp[ii]->size ;   /* size of each piece-part */
+           if( dim > 0 ){
+             *apt = NI_malloc( siz * dim );                  /* make array */
+             for( jj=0 ; nn && jj < dim ; jj++ )   /* get values for array */
+               nn = NI_text_to_val( ns, rt->part_rtp[ii],
+                                    *apt + rt->part_rtp[ii]->size * jj ) ;
+           } else {
+             *apt = NULL ;                    /* dim=0 ==> no array needed */
+           }
+           aaa[iaaa++] = *apt ;              /* save for possible deletion */
+
+         }
+       } /* end of loop over parts */
+
+       /* bad news ==> delete any allocated var dim arrays */
+
+       if( nn == 0 ){
+         for( ii=0 ; ii < iaaa ; ii++ ) NI_free( aaa[ii] ) ;
+         NI_free( aaa ) ;
+         return 0 ;
+       }
+     }
+     break ;
+
+     /*-- the 9 builtin types below here; first up: String! --*/
+
+     case NI_STRING:{
+        char *val=NULL ;
+        char **vpt = (char **) dpt ;
+        nn = NI_decode_one_string( ns , &val ) ;
+        if( nn == 0 || val == NULL ) return 0 ;
+        unescape_inplace(val) ;
+        *vpt = val ;
+     }
+     break ;
+
+     /*-- numeric types below here --*/
+
+     case NI_BYTE:{
+        double val ;
+        byte *vpt = (byte *) dpt ;
+        nn = NI_decode_one_double( ns , &val ) ;
+        if( nn == 0 ) return 0 ;
+        *vpt = (byte) val ;
+     }
+     break ;
+
+     case NI_SHORT:{
+        double val ;
+        short *vpt = (short *) dpt ;
+        nn = NI_decode_one_double( ns , &val ) ;
+        if( nn == 0 ) return 0 ;
+        *vpt = (short) val ;
+     }
+     break ;
+
+     case NI_INT:{
+        double val ;
+        int *vpt = (int *) dpt ;
+        nn = NI_decode_one_double( ns , &val ) ;
+        if( nn == 0 ) return 0 ;
+        *vpt = (int) val ;
+     }
+     break ;
+
+     case NI_FLOAT:{
+        double val ;
+        float *vpt = (float *) dpt ;
+        nn = NI_decode_one_double( ns , &val ) ;
+        if( nn == 0 ) return 0 ;
+        *vpt = (float) val ;
+     }
+     break ;
+
+     case NI_DOUBLE:{
+        double val ;
+        double *vpt = (double *) dpt ;
+        nn = NI_decode_one_double( ns , &val ) ;
+        if( nn == 0 ) return 0 ;
+        *vpt = (double) val ;
+     }
+     break ;
+
+     case NI_COMPLEX:{
+        double v1,v2 ;
+        complex *vpt = (complex *) dpt ;
+        nn = NI_decode_one_double( ns , &v1 ) ;
+        if( nn == 0 ) return 0 ;
+        nn = NI_decode_one_double( ns , &v2 ) ;
+        if( nn == 0 ) return 0 ;
+        vpt->r = (float) v1 ;
+        vpt->i = (float) v2 ;
+     }
+     break ;
+
+     case NI_RGB:{
+        double v1,v2,v3 ;
+        rgb *vpt = (rgb *) dpt ;
+        nn = NI_decode_one_double( ns , &v1 ) ;
+        if( nn == 0 ) return 0 ;
+        nn = NI_decode_one_double( ns , &v2 ) ;
+        if( nn == 0 ) return 0 ;
+        nn = NI_decode_one_double( ns , &v3 ) ;
+        if( nn == 0 ) return 0 ;
+        vpt->r = (byte) v1 ;
+        vpt->g = (byte) v2 ;
+        vpt->b = (byte) v3 ;
+     }
+     break ;
+
+     case NI_RGBA:{
+        double v1,v2,v3,v4 ;
+        rgba *vpt = (rgba *) dpt ;
+        nn = NI_decode_one_double( ns , &v1 ) ;
+        if( nn == 0 ) return 0 ;
+        nn = NI_decode_one_double( ns , &v2 ) ;
+        if( nn == 0 ) return 0 ;
+        nn = NI_decode_one_double( ns , &v3 ) ;
+        if( nn == 0 ) return 0 ;
+        nn = NI_decode_one_double( ns , &v4 ) ;
+        if( nn == 0 ) return 0 ;
+        vpt->r = (byte) v1 ;
+        vpt->g = (byte) v2 ;
+        vpt->b = (byte) v3 ;
+        vpt->a = (byte) v4 ;
+     }
+     break ;
+
+   } /* end of switch on type */
+
+   return 1 ;  /* good */
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Swap bytes in a bunch of rowtype structs.
+---------------------------------------------------------------------------*/
+
+void NI_swap_rowtype( NI_rowtype *rt , int nrow , char *dat )
+{
+   switch( rt->code ){
+
+     case NI_RGB:
+     case NI_RGBA:
+     case NI_STRING:
+     case NI_BYTE:    return ;   /* nothing to do */
+
+     /*-- basic types --*/
+
+     case NI_SHORT:
+       NI_swap2( nrow , dat ) ;
+     return ;
+
+     case NI_INT:
+     case NI_FLOAT:
+       NI_swap4( nrow , dat ) ;
+     return ;
+
+     case NI_DOUBLE:
+       NI_swap8( nrow , dat ) ;
+     return ;
+
+     case NI_COMPLEX:
+       NI_swap4( 2*nrow , dat ) ;
+     return ;
+
+     /* a derived type */
+
+     default:{
+       int ii , row , fsiz = rt->size ;
+       char *ptr ;
+
+       for( row=0 ; row < nrow ; row++ ){
+         ptr = dat + fsiz*row ;     /* ptr to row-th element */
+
+         /* loop over parts and swap them */
+
+         for( ii=0 ; ii < rt->part_num ; ii++ ){
+
+           if( rt->part_dim[ii] < 0 ){                    /* fixed size part */
+
+             NI_swap_rowtype( rt->part_rtp[ii] , 1 , ptr+rt->part_off[ii] ) ;
+
+           } else {                                         /* var dim array */
+
+             char **apt = (char **)(dat+rt->part_off[ii]); /* data in struct */
+                                                          /* is ptr to array */
+             int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
+             int siz = rt->part_rtp[ii]->size ;   /* size of each piece-part */
+             if( dim > 0 && *apt != NULL)
+               NI_swap_rowtype( rt->part_rtp[ii] , dim , *apt ) ;
+
+           }
+         } /* end of loop over parts */
+       } /* end of loop over rows */
+     }
+     return ;
+   }
 }

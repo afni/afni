@@ -4,10 +4,6 @@
 /******* Functions to read and write data and group elements. *********/
 /**********************************************************************/
 
-/* internal prototypes */
-
-static int decode_one_double( NI_stream_type *, double * ) ;
-static int decode_one_string( NI_stream_type *, char ** ) ;
 static int scan_for_angles( NI_stream_type *, int ) ;
 
 #define clear_buffer(ns) ( (ns)->nbuf = (ns)->npos = 0 )
@@ -521,7 +517,7 @@ NI_dpr("NI_read_element: ROW=%d",row) ;
               case NI_STRING:{
                  char *val=NULL ;
                  char **vpt = (char **) nel->vec[col] ;
-                 nn = decode_one_string( ns , &val ) ;
+                 nn = NI_decode_one_string( ns , &val ) ;
                  if( nn == 0 || val == NULL ) goto TextDone ;
                  unescape_inplace(val) ;
                  vpt[row] = val ;
@@ -533,7 +529,7 @@ NI_dpr("NI_read_element: ROW=%d",row) ;
               case NI_BYTE:{
                  double val ;
                  byte *vpt = (byte *) nel->vec[col] ;
-                 nn = decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (byte) val ;
               }
@@ -542,7 +538,7 @@ NI_dpr("NI_read_element: ROW=%d",row) ;
               case NI_SHORT:{
                  double val ;
                  short *vpt = (short *) nel->vec[col] ;
-                 nn = decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (short) val ;
               }
@@ -551,7 +547,7 @@ NI_dpr("NI_read_element: ROW=%d",row) ;
               case NI_INT:{
                  double val ;
                  int *vpt = (int *) nel->vec[col] ;
-                 nn = decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (int) val ;
 #ifdef NIML_DEBUG
@@ -563,7 +559,7 @@ NI_dpr(" [%d]=%d",col,vpt[row]) ;
               case NI_FLOAT:{
                  double val ;
                  float *vpt = (float *) nel->vec[col] ;
-                 nn = decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (float) val ;
 #ifdef NIML_DEBUG
@@ -575,7 +571,7 @@ NI_dpr(" [%d]=%f",col,vpt[row]) ;
               case NI_DOUBLE:{
                  double val ;
                  double *vpt = (double *) nel->vec[col] ;
-                 nn = decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (double) val ;
               }
@@ -584,9 +580,9 @@ NI_dpr(" [%d]=%f",col,vpt[row]) ;
               case NI_COMPLEX:{
                  double v1,v2 ;
                  complex *vpt = (complex *) nel->vec[col] ;
-                 nn = decode_one_double( ns , &v1 ) ;
+                 nn = NI_decode_one_double( ns , &v1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = decode_one_double( ns , &v2 ) ;
+                 nn = NI_decode_one_double( ns , &v2 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row].r = (float) v1 ;
                  vpt[row].i = (float) v2 ;
@@ -596,11 +592,11 @@ NI_dpr(" [%d]=%f",col,vpt[row]) ;
               case NI_RGB:{
                  double v1,v2,v3 ;
                  rgb *vpt = (rgb *) nel->vec[col] ;
-                 nn = decode_one_double( ns , &v1 ) ;
+                 nn = NI_decode_one_double( ns , &v1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = decode_one_double( ns , &v2 ) ;
+                 nn = NI_decode_one_double( ns , &v2 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = decode_one_double( ns , &v3 ) ;
+                 nn = NI_decode_one_double( ns , &v3 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row].r = (byte) v1 ;
                  vpt[row].g = (byte) v2 ;
@@ -611,13 +607,13 @@ NI_dpr(" [%d]=%f",col,vpt[row]) ;
               case NI_RGBA:{
                  double v1,v2,v3,v4 ;
                  rgba *vpt = (rgba *) nel->vec[col] ;
-                 nn = decode_one_double( ns , &v1 ) ;
+                 nn = NI_decode_one_double( ns , &v1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = decode_one_double( ns , &v2 ) ;
+                 nn = NI_decode_one_double( ns , &v2 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = decode_one_double( ns , &v3 ) ;
+                 nn = NI_decode_one_double( ns , &v3 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = decode_one_double( ns , &v4 ) ;
+                 nn = NI_decode_one_double( ns , &v4 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row].r = (byte) v1 ;
                  vpt[row].g = (byte) v2 ;
@@ -726,7 +722,7 @@ NI_dpr("NI_read_element: returning filled data element\n") ;
     when all is done.
 ------------------------------------------------------------------------*/
 
-static int decode_one_double( NI_stream_type *ns, double *val )
+int NI_decode_one_double( NI_stream_type *ns, double *val )
 {
    int epos , num_restart, need_data, nn ;
    char vbuf[NVBUF+1] ;                    /* number string from buffer */
@@ -831,7 +827,7 @@ NI_dpr(" {fill buf}") ;
     (one after the last character processed) when all is done.
 ------------------------------------------------------------------------*/
 
-static int decode_one_string( NI_stream_type *ns, char **str )
+int NI_decode_one_string( NI_stream_type *ns, char **str )
 {
    int epos , num_restart, need_data, nn ;
    intpair sp ;
