@@ -264,7 +264,6 @@ static   XmFontList xflist ;
 static   char       str[256] ;
 static   int        id , npane , last_color ,
                     view_count , view_height , sel_height ;
-static   char * redcolor = NULL ;
 
 void AFNI_make_wid1 (Three_D_View *) ;
 void AFNI_make_wid2 (Three_D_View *) ;
@@ -3504,8 +3503,7 @@ STATUS("making prog->rowcol") ;
             XmNuserData , (XtPointer) im3d ,
          NULL ) ;
 
-   if( redcolor == NULL ){ HOTCOLOR(prog->quit_pb,redcolor) ; }
-   MCW_set_widget_bg( prog->quit_pb , redcolor , 0 ) ;
+   MCW_set_widget_bg( prog->quit_pb , MCW_hotcolor(prog->quit_pb) , 0 ) ;
 
    XtAddCallback( prog->quit_pb , XmNactivateCallback ,
                   AFNI_quit_CB , im3d ) ;

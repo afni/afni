@@ -69,6 +69,8 @@ static int CL_summarize = 0 ;
 
 static int CL_noabs = 0;   /* BDW  19 Jan 1999 */
 
+static int CL_verbose = 0 ; /* RWC 01 Nov 1999 */
+
 /**-- RWCox: July 1997
       Report directions based on AFNI_ORIENT environment --**/
 
@@ -115,7 +117,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,
 	  "Copyright 1994-9 Medical College of Wisconsin\n\n"
           "Simple-minded Cluster Detection in 3D Datasets\n"
-          "Usage: 3dclust [editing options] [-summarize] rmm vmul dset ... \n"
+          "Usage: 3dclust [editing options] [-summarize] [-verbose] rmm vmul dset ... \n"
           "  where rmm  = cluster connection radius (mm);\n"
           "        vmul = minimum cluster volume (micro-liters)\n"
           "               (both rmm and vmul must be positive);\n"
@@ -126,6 +128,8 @@ int main( int argc , char * argv[] )
           "     abs. value) for calculation of the mean and SEM \n"
           "  The -summarize option will write out only the total\n"
           "     nonzero voxel count and volume for each dataset.\n"
+          "  The -verbose option prints out a progress report (to stderr)\n"
+          "     as the computations proceed.\n"
           "  The editing options are as in 3dmerge\n"
           "     (including use of the -1dindex and -1tindex options).\n"
           "  The program does not work on complex-valued datasets!\n"
@@ -156,6 +160,9 @@ int main( int argc , char * argv[] )
    /* BDW  26 March 1999  */
    else
      {
+       if( CL_edopt.clust_rmm > 0.0 )  /* 01 Nov 1999 */
+          fprintf(stderr,"*** Warning: replacing -1clust values with later inputs!\n") ;
+
        CL_edopt.clust_rmm = rmm;
        CL_edopt.clust_vmul = vmul;
      }
@@ -166,13 +173,20 @@ int main( int argc , char * argv[] )
    for( iarg=nopt ; iarg < argc ; iarg++ ){
       if( dset != NULL ) THD_delete_3dim_dataset( dset , False ) ; /* flush old   */
       dset = THD_open_one_dataset( argv[iarg] ) ;                  /* open new    */
-      if( dset == NULL ) continue ;                                /* failed?     */
-      if( DSET_NUM_TIMES(dset) > 1 ){                              /* no time     */
+      if( dset == NULL ){                                          /* failed?     */
+         fprintf(stderr,"*** Warning: skipping dataset %s\n",argv[iarg]) ;
+         continue ;
+      }
+      if( DSET_NUM_TIMES(dset) > 1 &&
+          ( CL_edopt.iv_fim < 0 || CL_edopt.iv_thr < 0 ) ){      /* no time     */
+
          fprintf(stderr,                                           /* dependence! */
                  "*** cannot use time-dependent dataset %s\n",argv[iarg]) ;
          continue ;
       }
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ; /* don't mmap  */
+      if( CL_verbose )
+         fprintf(stderr,"+++ Loading dataset %s\n",argv[iarg]) ;
       THD_load_datablock( dset->dblk , NULL ) ;                    /* read in     */
       EDIT_one_dataset( dset , &CL_edopt ) ;                       /* editing?    */
 
@@ -499,6 +513,14 @@ void CL_read_opts( int argc , char * argv[] )
          continue ;
       }
 
+      /**** -verbose ****/
+
+      if( strncmp(argv[nopt],"-verbose",5) == 0 ){
+         CL_verbose = CL_edopt.verbose = 1 ;
+         nopt++ ;
+         continue ;
+      }
+
       /**** -orient code ****/
 
       if( strncmp(argv[nopt],"-orient",5) == 0 ){
@@ -517,7 +539,7 @@ void CL_read_opts( int argc , char * argv[] )
       /**** unknown switch ****/
 
       fprintf(stderr,"*** unrecognized option %s\a\n",argv[nopt]) ;
-      exit(-1) ;
+      exit(1) ;
 
    }  /* end of loop over options */
 

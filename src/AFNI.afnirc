@@ -19,6 +19,12 @@ AFNI_FIM_BKTHR         = 40.0
 AFNI_FIM_PERCENT_LIMIT = 100.0
 AFNI_SPLASHTIME        = 1.0
 
+AFNI_plug_drawdset_butcolor = #992066  // For the Plugins menu.
+AFNI_plug_histog_butcolor   = #663199  // Colors are drawn from
+AFNI_plug_maskave_butcolor  = #992066  // the RBGYR map defined below
+AFNI_plug_render_butcolor   = #cc1033
+AFNI_plug_volreg_butcolor   = #cc1033
+
 ***COLORS
 // Define new overlay colors.  These will appear on the color menus.
 //

@@ -49,6 +49,7 @@ void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
    int   edit_zvol     = edopt->do_zvol ;
    int   edit_ivfim    = edopt->iv_fim ;         /* 30 Nov 1997 */
    int   edit_ivthr    = edopt->iv_thr ;         /* 30 Nov 1997 */
+   int   verbose       = edopt->verbose ;        /* 01 Nov 1999 */
 
    int   edit_clip_unscaled = edopt->clip_unscaled ;  /* 09 Aug 1996 */
 
@@ -89,6 +90,8 @@ ENTRY("EDIT_one_dataset") ;
       else
          iv_fim = ANAT_ival_zero[dset->func_type] ;
 
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: fim index = %d\n",iv_fim) ;
+
       fim_type = DSET_BRICK_TYPE(dset,iv_fim) ;
       fimfac   = DSET_BRICK_FACTOR(dset,iv_fim) ;
       iv_thr   = -1 ;
@@ -114,6 +117,8 @@ ENTRY("EDIT_one_dataset") ;
       else
          iv_fim = FUNC_ival_fim[dset->func_type] ;
 
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: fim index = %d\n",iv_fim) ;
+
       fim_type = DSET_BRICK_TYPE(dset,iv_fim) ;
       fimfac   = DSET_BRICK_FACTOR(dset,iv_fim) ;
 
@@ -121,6 +126,8 @@ ENTRY("EDIT_one_dataset") ;
          iv_thr = edit_ivthr ;
       else
          iv_thr = FUNC_ival_thr[dset->func_type] ;
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: thr index = %d\n",iv_thr) ;
 
       if( iv_thr < 0 ){
          thr_type = ILLEGAL_TYPE ;
@@ -202,6 +209,8 @@ STATUS("dataset loaded") ;
 
    if( edit_thtoin && iv_thr >= 0 ){
       float new_fimfac , scaling ;
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: copy thr over fim\n") ;
 
       /****
             Find scaling factors for various conversions (0 --> no scaling)
@@ -301,6 +310,9 @@ STATUS("dataset loaded") ;
 
    if( edit_noneg ){   /* meaningless for byte and complex */
 STATUS("noneg") ;
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: remove negative values\n") ;
+
       switch( fim_type ){
          case MRI_short:
             for( ii=0 ; ii < nxyz ; ii++ ) if( sfim[ii] < 0 ) sfim[ii] = 0 ;
@@ -319,6 +331,9 @@ STATUS("noneg applied to meaningless type: will be ignored") ;
 
    if( edit_abs ){   /* meaningless for byte */
 STATUS("abs") ;
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: take absolute value\n") ;
+
       switch( fim_type ){
          case MRI_short:
             for( ii=0 ; ii < nxyz ; ii++ ) if( sfim[ii] < 0 ) sfim[ii] = -sfim[ii] ;
@@ -342,6 +357,9 @@ STATUS("abs applied to meaningless type: will be ignored") ;
    /*----- clip? -----*/
 
    if( edit_clip_bot < edit_clip_top ){
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: clip fim values\n") ;
+
       switch( fim_type ){
          case MRI_short:{
             int top , bot ;
@@ -455,6 +473,9 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 #else
 #  define THADD /* nada */
 #endif
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: apply threshold\n") ;
+
       switch( thr_type ){
 
          /** threshold datum is shorts **/
@@ -562,11 +583,17 @@ STATUS("abs applied to meaningless type: will be ignored") ;
    /*----- blur? -----*/
 
    if( edit_blur > 0.0 ){
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: blurring fim\n") ;
+
       EDIT_blur_volume( nx,ny,nz, dx,dy,dz , fim_type,vfim , edit_blur ) ;
    }
 
    /*----- threshold blur? -----*/   /* 4 Oct 1996 */
    if(( edit_thrblur > 0.0) && (vthr != NULL) ){
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: blurring threshold\n") ;
+
       EDIT_blur_volume( nx,ny,nz, dx,dy,dz , thr_type,vthr , edit_thrblur ) ;
    }
 
@@ -597,6 +624,10 @@ STATUS("abs applied to meaningless type: will be ignored") ;
           ix1,ix2,jy1,jy2,kz1,kz2) ;
   STATUS(str) ; }
 #endif
+
+      if( verbose )
+         fprintf(stderr,"--- EDIT_one_dataset: zeroing indexes [%d,%d]x[%d,%d]x[%d,%d]\n",
+                 ix1,ix2,jy1,jy2,kz1,kz2 ) ;
 
       for( kk=kz1 ; kk <= kz2 ; kk++ ){
          for( jj=jy1 ; jj <= jy2 ; jj++ ){
@@ -635,6 +666,8 @@ STATUS("abs applied to meaningless type: will be ignored") ;
       MCW_cluster_array * clbig ;
       MCW_cluster * cl ;
 
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: clustering with rmm=%g vmul=%g\n",
+                            rmm,vmul ) ;
 
      /*----- Erosion and dilation of clusters -----*/   /* 17 June 1998 */
      if (erode_pv > 0.0)
@@ -696,15 +729,23 @@ STATUS("no data left after cluster edit!") ;
 
 
    /*----- filter? -----*/   /* 11 Sept 1996 */
-   if (filter_opt > FCFLAG_NONE)
+   if (filter_opt > FCFLAG_NONE){
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: filtering fim\n") ;
+
       EDIT_filter_volume (nx, ny, nz, dx, dy, dz, fim_type, vfim,
                           filter_opt, filter_rmm);
+   }
 
 
    /*----- threshold filter? -----*/   /* 1 Oct 1996 */
-   if ((thrfilter_opt > FCFLAG_NONE) && (vthr != NULL))
+   if ((thrfilter_opt > FCFLAG_NONE) && (vthr != NULL)){
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: filtering thr\n") ;
+
       EDIT_filter_volume (nx, ny, nz, dx, dy, dz, thr_type, vthr,
                           thrfilter_opt, thrfilter_rmm);
+   }
 
 
    /*----- scale? -----*/
@@ -712,6 +753,9 @@ STATUS("no data left after cluster edit!") ;
 #ifdef ALLOW_SCALE_TO_MAX
    if( edit_scale ){
 STATUS("scale") ;
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: scaling fim to max\n") ;
+
       MCW_scale_to_max( nx,ny,nz , fim_type , vfim ) ;
    }
 #endif
@@ -721,6 +765,8 @@ STATUS("scale") ;
 
    if( edit_mult != 0.0 ){
 STATUS("mult") ;
+
+    if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: multiplying fim\n") ;
 
      switch( fim_type ){
         case MRI_short:
@@ -759,6 +805,8 @@ STATUS("mult") ;
 #if 0
 fprintf(stderr," -1zscore: converting\n") ;
 #endif
+
+       if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: converting to zscore\n") ;
 
         EDIT_zscore_vol( nxyz , fim_type , fimfac , vfim ,
                          kv , DSET_BRICK_STATAUX(dset,iv_fim) ) ;

@@ -194,6 +194,25 @@ if(PRINT_TRACING)
 
    plin->interface_count = nin ;
 
+#if 1
+   if( nin > 0 ){                                    /* 01 Nov 1999 */
+      char * bcol , benv[256] ;
+      int ii = strlen(DYNAMIC_suffix) , jj ;
+
+      strcpy(benv,"AFNI_") ; strcat(benv,THD_trailname(fname,0)) ; /* make */
+      jj = strlen(benv) ; benv[jj-ii] = '\0' ;                     /* name */
+      strcat(benv,"_butcolor") ;
+      bcol = my_getenv(benv) ;                       /* find name */
+      if( bcol != NULL ){                            /* if have name: */
+         for( ii=0 ; ii < nin ; ii++ ){
+            plint = plin->interface[ii] ;
+            if( plint->butcolor[0] == '\0' )         /* set color if */
+               PLUTO_set_butcolor( plint , bcol ) ;  /* not defined */
+         }
+      }
+   }
+#endif
+
 if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"library %s created %d interfaces",fname,nin) ; STATUS(str) ; }
@@ -400,6 +419,7 @@ ENTRY("new_PLUGIN_interface_1999") ;
       plint->helpstring = XtNewString( help ) ;
 
    strcpy( plint->seqcode , "zzzzzzz" ) ; /* 06 Aug 1999 */
+   strcpy( plint->butcolor, "\0" ) ;      /* 01 Nov 1999 */
 
    /** 15 Jun 1999 stuff for date checking **/
 
@@ -455,6 +475,19 @@ void PLUTO_set_sequence( PLUGIN_interface * plint , char * sq )
 ENTRY("PLUTO_set_sequence") ;
    if( plint == NULL || sq == NULL || sq[0] == '\0' ) EXRETURN ;
    MCW_strncpy( plint->seqcode , sq , PLUGIN_STRING_SIZE ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+  Set the button color in a plugin [01 Nov 1999]
+------------------------------------------------------------------------*/
+
+void PLUTO_set_butcolor( PLUGIN_interface * plint , char * sq )
+{
+ENTRY("PLUTO_set_butcolor") ;
+   if( plint == NULL || sq == NULL || sq[0] == '\0' ) EXRETURN ;
+   if( strncmp(sq,"hot",3) == 0 ) sq = MCW_hotcolor(NULL) ;
+   MCW_strncpy( plint->butcolor , sq , PLUGIN_STRING_SIZE ) ;
    EXRETURN ;
 }
 
@@ -3020,6 +3053,8 @@ ENTRY("AFNI_plugin_button") ;
                      PLUG_startup_plugin_CB , (XtPointer)(pl) ) ;         \
       XmStringFree(xstr) ;                                                \
       if( (pl)->hint != NULL ) MCW_register_hint( pbut , (pl)->hint ) ;   \
+      if( (pl)->butcolor[0] != '\0' )                                     \
+         MCW_set_widget_bg( pbut , (pl)->butcolor , 0 ) ;                 \
    } while(0)
 
    /*** top of menu = a label to click on that does nothing at all ***/

@@ -1972,12 +1972,10 @@ STATUS("creating new dialog") ;
       im3d->vwid->file_cd = NULL ;
 
 #if 1
-      { static char * redcolor = NULL ;
-        Widget www ;
-        if( redcolor == NULL ){ HOTCOLOR(im3d->vwid->top_shell,redcolor) ; }
+      { Widget www ;
         www = XmFileSelectionBoxGetChild( im3d->vwid->file_sbox ,
                                           XmDIALOG_TEXT ) ;
-        if( www != NULL ) MCW_set_widget_bg( www , redcolor , 0 ) ;
+        if( www != NULL ) MCW_set_widget_bg( www , MCW_hotcolor(www) , 0 ) ;
       }
 #endif
 

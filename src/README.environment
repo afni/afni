@@ -532,6 +532,25 @@ image windows can become undesirably distorted when manually resized.
 Setting this variable (to anything) will make AFNI itself enforce the
 aspect ratio whenever an image window is resized.
 
+----------------------------------------
+Variables: AFNI_<plug_filename>_butcolor
+----------------------------------------
+These variables (one for each AFNI plugin) let you set the menu button colors
+for the Plugins menu item.  For example
+  setenv AFNI_plug_power_butcolor red3
+will make the "Power Spectrum" button appear in a dark red color.  The format
+of the variable is exemplified above: the <plug_filename> is replaced by the
+filename of the plugin (after removing the suffix).  Note that it is possible
+for the plugin author to hardcode the menu button for his/her plugin, in
+which case the corresponding environment variable will have no effect.
+
+Colors are specified as described in file README.setup.  If you are using
+an X11 PseudoColor visual, then you should be economical with color usage!
+
+The purpose of this feature is to let you highlight the plugins that you
+use most frequently.  The size of the of plugin menu is growing, and it
+is easy to misplace what you need in the list.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

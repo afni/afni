@@ -191,6 +191,8 @@ typedef struct EDIT_options {
 
    int   zscore ;                 /* 17 Sep 1998 --> convert statistic to Z   */
 
+   int   verbose ;                /* 01 Nov 1999 --> verbose output during editing */
+
 } EDIT_options ;
 
 /*--- cluster editing options ---*/   /* 10 Sept 1996 */
@@ -238,6 +240,7 @@ typedef struct EDIT_options {
         (edopt)->iv_fim        = -1  , \
         (edopt)->iv_thr        = -1  , \
         (edopt)->zscore        = 0   , \
+        (edopt)->verbose       = 0   , \
        0 )
 
 extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;

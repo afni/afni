@@ -217,8 +217,6 @@ QQQ("main2");
 
 void T3D_create_widgets(void)
 {
-   static char * redcolor = NULL ;
-
    wset.dc  = MCW_new_DC( wset.topshell, argopt.ncolor,
                           NCOLOVR,FD_colovr,FD_colovr, argopt.gamma , 0 );
    wset.seq = NULL ;  /* no viewing open now */
@@ -1700,8 +1698,7 @@ QQQ("types and files setup") ;
     "Press this button TWICE\nto exit the program" ) ;
    MCW_register_hint( wset.quit_pb , "Press twice to exit program" ) ;
 
-   if( redcolor == NULL ){ HOTCOLOR(wset.quit_pb,redcolor) ; }
-   MCW_set_widget_bg( wset.quit_pb , redcolor , 0 ) ;
+   MCW_set_widget_bg( wset.quit_pb , MCW_hotcolor(wset.quit_pb) , 0 ) ;
 
    XtManageChild( wset.action_rowcol ) ;
 

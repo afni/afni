@@ -217,15 +217,26 @@ void MCW_discard_events( Widget w , int ev_mask )
 
 /*--------------------------------------------------------------------------*/
 
+char * MCW_hotcolor(Widget w)
+{
+   static char * redcolor = NULL ;
+ 
+   if( redcolor == NULL ){
+     char * xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL, "hotcolor" ) ;
+
+     redcolor = (xdef != NULL) ? (xdef) : ("red3") ;
+   }
+   return redcolor ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 #define TIG 25
 
 Widget MCW_action_area( Widget parent, MCW_action_item * action, int num_act )
 {
    Widget act_area , ww ;
    int ii ;
-   static char * redcolor = NULL ;
-
-   if( redcolor == NULL ){ HOTCOLOR(parent,redcolor) ; }
 
    act_area = XtVaCreateWidget( "action_area" , xmFormWidgetClass , parent ,
                                     XmNfractionBase , TIG*num_act - 1,
@@ -265,7 +276,7 @@ Widget MCW_action_area( Widget parent, MCW_action_item * action, int num_act )
          MCW_register_hint( ww , action[ii].hint_text ) ;
 
       if( action[ii].make_red > 0 )                  /* for some fun */
-         MCW_set_widget_bg( ww , redcolor , 0 ) ;
+         MCW_set_widget_bg( ww , MCW_hotcolor(ww) , 0 ) ;
       else if( action[ii].make_red < 0 )             /* for no fun at all */
          XtSetSensitive( ww , False ) ;
 

@@ -7,7 +7,7 @@
   Date:    17 December 1997
 
 
-  Mod:     Changes to implement "-glueto" command option. 
+  Mod:     Changes to implement "-glueto" command option.
            Also, modified output to preserve sub-brick labels.
   Author:  B. D. Ward
   Date:    04 February 1998
@@ -18,20 +18,6 @@
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
 #define PROGRAM_NAME "3dbucket"                      /* name of this program */
 #define LAST_MOD_DATE "04 February 1998"         /* date of last program mod */
@@ -89,10 +75,10 @@ void BUCK_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-prefix",6) == 0 ||
           strncmp(argv[nopt],"-output",6) == 0   ){
-	 if (BUCK_glue){
+           if (BUCK_glue){
             fprintf(stderr,"-prefix and -glueto options are not compatible\n");
-	    exit(1) ;
-	 }	   
+            exit(1) ;
+         }
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"need argument after -prefix!\n") ; exit(1) ;
@@ -104,11 +90,11 @@ void BUCK_read_opts( int argc , char * argv[] )
       /**** -session directory ****/
 
       if( strncmp(argv[nopt],"-session",6) == 0 ){
-	 if (BUCK_glue){
+         if (BUCK_glue){
             fprintf(stderr,
-		    "-session and -glueto options are not compatible\n");
-	    exit(1) ;
-	 }	   
+                    "-session and -glueto options are not compatible\n");
+            exit(1) ;
+         }
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"need argument after -session!\n") ; exit(1) ;
@@ -138,15 +124,15 @@ void BUCK_read_opts( int argc , char * argv[] )
       }
 
       if( strncmp(argv[nopt],"-glueto",5) == 0 ){
-	 if( strncmp(BUCK_output_prefix, "buck", 5) != 0 ){
+         if( strncmp(BUCK_output_prefix, "buck", 5) != 0 ){
             fprintf(stderr,"-prefix and -glueto options are not compatible\n");
-	    exit(1) ;
-	 }	   
-	 if( strncmp(BUCK_session, "./", 5) != 0 ){
+            exit(1) ;
+         }
+         if( strncmp(BUCK_session, "./", 5) != 0 ){
             fprintf(stderr,
-		    "-session and -glueto options are not compatible\n");
-	    exit(1) ;
-	 }	   
+                    "-session and -glueto options are not compatible\n");
+            exit(1) ;
+         }
 	 BUCK_glue = 1 ;
          nopt++ ;
          if( nopt >= argc ){
@@ -158,7 +144,7 @@ void BUCK_read_opts( int argc , char * argv[] )
 	 nlen = strlen(argv[nopt]);
 	 if (nlen <= 5) ok = 0;
 
-	 if (ok) 
+	 if (ok)
 	   {
 	     for (ilen = 0;  ilen < nlen;  ilen++)
 	       {
@@ -167,11 +153,11 @@ void BUCK_read_opts( int argc , char * argv[] )
 	       }
 	     if (ilen == nlen)  ok = 0;
 	   }
-	       
+
 	 if (ok)
 	   {
 	     str = argv[nopt] + ilen + 1;
-	 
+
 	     for (ii=FIRST_VIEW_TYPE ; ii <= LAST_VIEW_TYPE ; ii++)
 	       if (! strncmp(str,VIEW_codestr[ii],4)) break ;
 	
@@ -180,18 +166,18 @@ void BUCK_read_opts( int argc , char * argv[] )
 
 	 if (! ok)
 	   {
-	     fprintf(stderr, 
+	     fprintf(stderr,
 	       "File name must end in +orig, +acpc, or +tlrc after -glueto\n");
 	     exit(1);
 	   }
-	 
-	 /*----- Remove View Type from string to make output prefix -----*/ 
+
+	 /*----- Remove View Type from string to make output prefix -----*/
          MCW_strncpy( BUCK_output_prefix , argv[nopt] , ilen+1) ;
 
 	 /*----- Note: no "continue" statement here.  File name will now
 	   be processed as an input dataset -----*/
       }
-      
+
       if( argv[nopt][0] == '-' ){
          fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; exit(1) ;
       }
@@ -427,6 +413,12 @@ void BUCK_Syntax(void)
     " intensity from dataset A and the threshold from dataset B, and\n"
     " calling the output dataset C, you would type\n"
     "    3dbucket -prefix C -fbuc 'A+orig[0]' -fbuc 'B+orig[1]'\n"
+    "\n"
+    "WARNING: using this program, it is possible to create a dataset that\n"
+    "         has different basic datum types for different sub-bricks\n"
+    "         (e.g., shorts for brick 0, floats for brick 1).\n"
+    "         Do NOT do this!  Very few AFNI program will work correctly\n"
+    "         with such datasets!\n"
    ) ;
 
    exit(0) ;
@@ -482,7 +474,7 @@ int main( int argc , char * argv[] )
    if (! BUCK_glue){
      if( THD_is_file(DSET_HEADNAME(new_dset)) ){
        fprintf(stderr,"*** Fatal error: file %s already exists!\n",
-	       DSET_HEADNAME(new_dset) ) ;
+               DSET_HEADNAME(new_dset) ) ;
        exit(1) ;
      }
    } else {   /* if glueing is used, make the 'new'
@@ -520,12 +512,12 @@ int main( int argc , char * argv[] )
             EDIT_substitute_brick( new_dset , ivout ,
                                    DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
 
-	    /*----- If this sub-brick is from a bucket dataset, 
-	      preserve the label for this sub-brick -----*/
-	    if (dset->func_type == FUNC_BUCK_TYPE)
-	      sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
-	    else
-	      sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
+            /*----- If this sub-brick is from a bucket dataset,
+                    preserve the label for this sub-brick -----*/
+            if (dset->func_type == FUNC_BUCK_TYPE)
+              sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
+            else
+              sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
             EDIT_dset_items( new_dset , ADN_brick_label_one+ivout, buf , ADN_none ) ;
 
             sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;

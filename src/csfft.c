@@ -2148,3 +2148,21 @@ int csfft_nextup( int idim )
       ibase *= 2 ;
    }
 }
+
+/*----------------------------------------------------------------------
+   return the next legal value that has only 1 power of 3 and/or 5,
+   and that is also even
+------------------------------------------------------------------------*/
+
+int csfft_nextup_one35( int idim )
+{
+   int jj = idim ;
+
+   do{
+      jj = csfft_nextup(jj) ;
+      if( jj%9 == 0 || jj%25 == 0 || jj%2 == 1 ) jj++ ;
+      else                                       return jj ;
+   } while(1) ;
+
+   return 0 ; /* cannot be reached */
+}

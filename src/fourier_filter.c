@@ -68,7 +68,7 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	**************************************************************************************/
 
 
-	padded_N=csfft_nextup(N);
+	padded_N=csfft_nextup_one35(N);
 
 
 	NEW_SIG=(complex *)My_Malloc(padded_N*sizeof(complex));		/*Tom Ross's malloc*/

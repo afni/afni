@@ -1751,7 +1751,31 @@
      or time-then-space=-tim).
 
 21 Oct 1999
- * Fixed a couple small bugs in 1deval.c.
+ * Fixed a couple of small bugs in 1deval.c.
 
 28 Oct 1999
  * Removed "experimental" message for TrueColor visuals in display.c.
+ * Added csfft_nextup_one35() function to csfft.c.
+ * Modified various programs to use csfft_nextup_one35() in place
+     of csfft_nextup(), for efficiency.
+ * Moved shifting routines from thd_rot3d.c to thd_shift2.c, so that
+     they can be used in other programs.
+
+29 Oct 1999
+ * Added thd_1Dtodset.c - provides the inverse of thd_dsetto1D.c
+     (inserts a vector into a dataset time series, rather than extracts it).
+ * Add thd_detrend.c - detrend a timeseries and provide mean, slope.
+
+30 Oct 1999
+ * Modified thd_detrend.c to have linear and quadratic detrending,
+     and an L2 normalizing function.
+
+31 Oct 1999
+ * Finished program 3dTshift.c - time shifting.
+
+01 Nov 1999
+ * Modified 3dclust.c and edt_onedset.c to have a -verbose option, so as to
+     print out progress report info.
+ * Added MCW_hotcolor() to xutil.[ch], to get rid of HOTCOLOR macro usage.
+ * Added function PLUTO_set_butcolor() to afni_plugin.[ch], to let plugin
+     set its menu button color.

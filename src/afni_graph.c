@@ -18,7 +18,6 @@ MCW_grapher * new_MCW_grapher( MCW_DC * dc , get_ptr getser , XtPointer aux )
 {
    int ii ;
    MCW_grapher * grapher ;
-   static char * redcolor = NULL ;
    static int new_xsize = -1 , new_ysize = -1 ;
    char * buf , * cpt ;
 
@@ -596,8 +595,8 @@ ENTRY("new_MCW_grapher") ;
 
    MENU_DLINE(opt_menu) ;
    OPT_MENU_BUT(opt_quit_pb         ,"Done         [q]" , "Close window" ) ;
-   if( redcolor == NULL ){ HOTCOLOR(grapher->draw_fd,redcolor) ; }
-   MCW_set_widget_bg( grapher->opt_quit_pb , redcolor , 0 ) ;
+   MCW_set_widget_bg( grapher->opt_quit_pb ,
+                      MCW_hotcolor(grapher->opt_quit_pb) , 0 ) ;
 
    /** done with option buttons -- manage the manager widget **/
 
@@ -3871,7 +3870,6 @@ ENTRY("GRA_doshift") ;
 FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int graphable )
 {
    FIM_menu * fmenu ;
-   static char * redcolor = NULL ;
    Widget qbut_menu = NULL ;
 
 ENTRY("AFNI_new_fim_menu") ;
@@ -4132,11 +4130,10 @@ ENTRY("AFNI_new_fim_menu") ;
       EMPTY_BUT(fim_plot_allrefs_pb) ;
    }
 
-   if( redcolor == NULL ){ HOTCOLOR(parent,redcolor) ; }
-
    MENU_DLINE(fim_menu) ;
    FIM_MENU_QBUT( fim_execute_pb   , "Compute FIM" , "-> fico") ;
-   MCW_set_widget_bg( fmenu->fim_execute_pb , redcolor , 0 ) ;
+   MCW_set_widget_bg( fmenu->fim_execute_pb ,
+                      MCW_hotcolor(fmenu->fim_execute_pb) , 0 ) ;
 
    { static char * blab[] = { "Fit Coef" , "% Change" , "% From Ave" } ;
      (void) XtVaCreateManagedWidget(
@@ -4150,7 +4147,8 @@ ENTRY("AFNI_new_fim_menu") ;
 
    MENU_DLINE(fim_menu) ;
    FIM_MENU_QBUT( fim_execfimp_pb  , "Compute FIM+" , "-> fbuc") ;
-   MCW_set_widget_bg( fmenu->fim_execfimp_pb , redcolor , 0 ) ;
+   MCW_set_widget_bg( fmenu->fim_execfimp_pb ,
+                      MCW_hotcolor(fmenu->fim_execfimp_pb) , 0 ) ;
 
    (void) XtVaCreateManagedWidget(
            "dialog" , xmSeparatorWidgetClass , qbut_menu ,

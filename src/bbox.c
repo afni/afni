@@ -2568,10 +2568,7 @@ void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
 
    XmStringFree(xms) ;
 
-   { static char * redcolor = NULL ;
-     if( redcolor == NULL ){ HOTCOLOR(wpar,redcolor) ; }
-     MCW_set_widget_bg( wadd , redcolor , 0 ) ;
-   }
+   MCW_set_widget_bg( wadd , MCW_hotcolor(wadd) , 0 ) ;
 
    XtAddCallback( wadd, XmNactivateCallback, MCW_stradd_CB, &cd ) ;
    XtAddCallback( wtf , XmNactivateCallback, MCW_stradd_CB, &cd ) ;

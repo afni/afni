@@ -89,7 +89,7 @@ STATUS("start x FFTs") ;
 #if 0
    ii  = 2 ; while( ii < nup ){ ii *= 2 ; }  /* next power of 2 larger */
 #else
-   ii = csfft_nextup(nup) ;
+   ii = csfft_nextup_one35(nup) ;
 #endif
    nup = ii ; nby2 = nup / 2 ;
 
@@ -201,7 +201,7 @@ STATUS("start y FFTs") ;
 #if 0
    ii  = 2 ; while( ii < nup ){ ii *= 2 ; }  /* next power of 2 larger */
 #else
-   ii = csfft_nextup(nup) ;
+   ii = csfft_nextup_one35(nup) ;
 #endif
    nup = ii ; nby2 = nup / 2 ;
 
@@ -309,7 +309,7 @@ STATUS("start z FFTs") ;
 #if 0
    ii  = 2 ; while( ii < nup ){ ii *= 2 ; }  /* next power of 2 larger */
 #else
-   ii = csfft_nextup(nup) ;
+   ii = csfft_nextup_one35(nup) ;
 #endif
    nup = ii ; nby2 = nup / 2 ;
 

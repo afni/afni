@@ -2248,6 +2248,14 @@ extern MRI_IMAGE * FD_brick_to_series( int , FD_brick * br ) ;
 
 extern MRI_IMAGE * THD_extract_series( int , THD_3dim_dataset * , int ) ;
 
+extern void THD_insert_series( int, THD_3dim_dataset *, int, int, void *, int );
+
+extern void get_linear_trend     ( int, float *, float *, float * ) ;
+extern void THD_linear_detrend   ( int, float *, float *, float * ) ;
+extern void get_quadratic_trend  ( int, float *, float *, float *, float * ) ;
+extern void THD_quadratic_detrend( int, float *, float *, float *, float * ) ;
+extern void THD_normalize        ( int, float * ) ;
+
 extern THD_ivec3 THD_fdind_to_3dind( FD_brick * , THD_ivec3 ) ;
 extern THD_ivec3 THD_3dind_to_fdind( FD_brick * , THD_ivec3 ) ;
 
@@ -2277,6 +2285,25 @@ extern void THD_rota_vol( int, int, int, float, float, float, float *,
 extern MRI_IMAGE * THD_rota3D( MRI_IMAGE * ,
                                int,float, int,float, int,float,
                                int,float,float,float ) ;
+
+  /*-- see thd_shift2.c for these routines --*/
+
+extern void SHIFT_set_method( int ) ;
+extern int  SHIFT_get_method( void ) ;
+extern void SHIFT_two_rows( int , int , float , float *, float , float *) ;
+
+extern void fft_shift2  ( int , int , float , float *, float , float *) ;
+extern void hept_shift2 ( int , int , float , float *, float , float *) ;
+extern void quint_shift2( int , int , float , float *, float , float *) ;
+extern void cub_shift2  ( int , int , float , float *, float , float *) ;
+extern void lin_shift2  ( int , int , float , float *, float , float *) ;
+extern void nn_shift2   ( int , int , float , float *, float , float *) ;
+
+extern void hept_shift ( int , float , float *) ;
+extern void nn_shift   ( int , float , float *) ;
+extern void lin_shift  ( int , float , float *) ;
+extern void cub_shift  ( int , float , float *) ;
+extern void quint_shift( int , float , float *) ;
 
   /*-- see mri_3dalign.c for these routines --*/
 

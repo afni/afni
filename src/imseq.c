@@ -375,7 +375,6 @@ MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
    int ii , xwide , yhigh , one_image ;
    float fac ;
    MRI_IMAGE * tim ;
-   static char * redcolor = NULL ;
 
 #define ERREX { free(newseq) ; XBell(dc->display,100) ; return NULL ; }
 
@@ -608,8 +607,6 @@ fflush(stdout) ;
 
    /* all pushbuttons (these are next so they overlay the scale and bar) */
 
-   if( redcolor == NULL ){ HOTCOLOR(newseq->wform,redcolor) ; }
-
    for( ii=0 ; ii < NBUTTON_BOT ; ii++){
 
       Arg wa[30] ;
@@ -651,7 +648,8 @@ fflush(stdout) ;
                wa , na ) ;
 
       if( ii == NBUT_DONE )   /* added 3/25/95 */
-         MCW_set_widget_bg( newseq->wbut_bot[ii] , redcolor , 0 ) ;
+         MCW_set_widget_bg( newseq->wbut_bot[ii] ,
+                            MCW_hotcolor(newseq->wbut_bot[ii]) , 0 ) ;
 
       XtAddCallback( newseq->wbut_bot[ii] , XmNactivateCallback ,
                      ISQ_but_bot_def[ii].func_CB , newseq ) ;

@@ -264,6 +264,7 @@ typedef struct {
    int opnum , svnum ;        /* used during get_*_from readout */
 
    char seqcode[PLUGIN_STRING_SIZE] ;  /* 06 Aug 1999 */
+   char butcolor[PLUGIN_STRING_SIZE] ; /* 01 Nov 1999 */
 } PLUGIN_interface ;
 
 /*************** Prototypes for creation of the above structures ***************/
@@ -302,6 +303,7 @@ extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 extern void PLUTO_add_hint( PLUGIN_interface * , char * ) ;
 
 extern void PLUTO_set_sequence( PLUGIN_interface *, char * ) ; /* 06 Aug 1999 */
+extern void PLUTO_set_butcolor( PLUGIN_interface *, char * ) ; /* 01 Nov 1999 */
 
 /* 15 Jun 1999: redo PLUTO_new_interface */
 
