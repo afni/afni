@@ -4222,3 +4222,8 @@
  * Added "Run Script" button to Datamode->Misc menu.
  * Made "Save Layout" button save setup script to .afni.startup_script
      if no filename is entered.
+
+23 Jan 2003
+ * Added AFNI_DEFAULT_OPACITY environment variable.
+ * Made AFNI_VALUE_LABEL default be YES instead of NO.
+ * Added AFNI_DEFAULT_IMSAVE environment variable.

@@ -1721,7 +1721,7 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
 STATUS("get overlay") ;
 
       im = AFNI_overlay( n , br ) ;
-      if( AFNI_yesenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
+      if( !AFNI_noenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
       RETURN( (XtPointer) im ) ;
    }
 
@@ -2344,7 +2344,7 @@ if(PRINT_TRACING)
            else
               im3d->vinfo->anat_val[0] = '\0' ;
 
-           if( AFNI_yesenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
+           if( !AFNI_noenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
 
            if( im->kind != MRI_complex && im->kind != MRI_rgb ){
               char qbuf[32] = "bg =" ;
@@ -4730,6 +4730,22 @@ STATUS("setting image viewer 'sides'") ;
 
          drive_MCW_imseq( *snew,isqDR_winfosides,(XtPointer)ws ) ;
 
+         /* 23 Jan 2003: set opacity? */
+
+         { char *eee = getenv("AFNI_DEFAULT_OPACITY") ;
+           if( eee != NULL ){
+             int opval = (int) strtod( eee , NULL ) ;
+             if( opval > 0 && opval <= 9 )
+               drive_MCW_imseq( *snew , isqDR_setopacity , (XtPointer)opval ) ;
+           }
+         }
+
+         /* 23 Jan 2003: set default save? */
+
+         { char *eee = getenv("AFNI_DEFAULT_IMSAVE") ;
+           drive_MCW_imseq( *snew , isqDR_setimsave , (XtPointer)eee ) ;
+         }
+
       }
 #undef LL
 #undef RR
@@ -5103,7 +5119,7 @@ if(PRINT_TRACING)
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
 
-   if( AFNI_yesenv("AFNI_VALUE_LABEL") && new_xyz &&
+   if( !AFNI_noenv("AFNI_VALUE_LABEL") && new_xyz &&
        (im3d->s123 == NULL || im3d->s231 == NULL || im3d->s312 == NULL) )
      isq_driver = isqDR_display ;         /* 08 Mar 2002 */
 
@@ -5129,7 +5145,7 @@ DUMP_IVEC3("  new_id",new_id) ;
    im3d->vinfo->func_val[0] = im3d->vinfo->thr_val[0] = '\0' ;
    if( do_lock || isq_driver==isqDR_display )
       im3d->vinfo->anat_val[0] = '\0';
-   if( AFNI_yesenv( "AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
+   if( !AFNI_noenv( "AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
 
    /*--- redraw images now ---*/
 

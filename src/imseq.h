@@ -557,6 +557,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_zoombut         606  /* 11 Mar 2002 */
 #define isqDR_getopacity      607  /* 21 Jan 2003 */
 #define isqDR_setopacity      608  /* 21 Jan 2003 */
+#define isqDR_setimsave       609  /* 23 Jan 2003 */
 
 #define isqDR_plot_label      701  /* 20 Sep 2001 */
 #define isqDR_plot_plot       702  /* 20 Sep 2001 */

@@ -302,7 +302,7 @@ typedef struct {
 #define BKGD_COUNT 3
 #define INIT_BKGD_LAB(iq) \
    do{ int qq = ((iq)->s123!=NULL) + ((iq)->s231!=NULL) + ((iq)->s312!=NULL); \
-       if( qq >= BKGD_COUNT || (qq > 0 && AFNI_yesenv("AFNI_VALUE_LABEL")) ){ \
+       if( qq >= BKGD_COUNT || (qq > 0 && !AFNI_noenv("AFNI_VALUE_LABEL")) ){ \
           (iq)->vwid->imag->do_bkgd_lab = True ;                              \
        } else {                                                               \
           (iq)->vwid->imag->do_bkgd_lab = False ;                             \
