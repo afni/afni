@@ -1442,6 +1442,24 @@ This is the time delay between frames when writing an animated GIF file from
 an image viewer window.  The units are 100ths of seconds; the default value
 is 20 (= 5 frames per second).
 
+-----------------------------
+Variable: AFNI_STARTUP_SCRIPT
+-----------------------------
+If this is set, this is the name of an AFNI Script to run when AFNI first
+starts.  (See the file README.driver for information about AFNI Scripts.)
+If this is not set, it defaults to ".afni.startup_script".  The program first
+tries to read this filename from the current working directory; if that fails,
+then it tries to read from your home directory.  No error message is given
+if neither file can be read.
+
+You can save a file ".afni.startup_script" that will recreate the window
+layout you currently have.  Use the "Datamode->Misc->Save Layout" button
+and press "Set" on the popup control without entering any filename.  Instead
+of a Layout file (cf. AFNI_LAYOUT_FILE above), you'll get a Script file.
+
+The capabilities of Script files are being expanded.  Not all features of
+the AFNI window setup are currently save-able this way.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
