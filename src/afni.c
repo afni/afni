@@ -77,7 +77,9 @@ static AFNI_friend afni_friends[] = {
   { "R. Reynolds"      , (                           64 ) } ,
   { "S.-J. Li"         , (     2                        ) } ,
   { "Z. Saad"          , (     2 | 4 | 8 | 16           ) } ,
-  { "K. Ropella"       , (     2                        ) }
+  { "K. Ropella"       , (     2                        ) } ,
+  { "B. Knutson"       , (                      32      ) } ,
+  { "B. Biswal"        , (                 16           ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -923,6 +925,11 @@ int main( int argc , char * argv[] )
    exit(0) ;
 }
 
+#undef HUBERIZE
+#ifdef HUBERIZE
+#include "huber.c"
+#endif
+
 /*---------------------------------------------------------------------------------
    Xt work process to do most of the initialization stuff.
 -----------------------------------------------------------------------------------*/
@@ -1037,6 +1044,10 @@ static Boolean MAIN_workprocess( XtPointer fred )
 
         AFNI_register_2D_function( "Median21" , median21_box_func ) ;   /* imseq.c */
         AFNI_register_2D_function( "Winsor21" , winsor21_box_func ) ;   /* imseq.c */
+
+#ifdef HUBERIZE
+        AFNI_register_1D_funcstr( "Huber Fit" , huber_func ) ;
+#endif
 
 #ifdef ALLOW_PLUGINS
         if( MAIN_im3d->type == AFNI_3DDATA_VIEW ){

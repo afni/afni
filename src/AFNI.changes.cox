@@ -1681,3 +1681,8 @@
 21 Sep 1999
  * added message about 3drefit to thd_initdblk.c.
  * modified MEDIAN function in parser.f to handle N=3 case separately.
+
+24 Sep 1999
+ * Fixed wcsuffix bugs in afni_graph.c:
+     - didn't mangle output name correctly!
+     - overwrote the end of the wcsuffix string!

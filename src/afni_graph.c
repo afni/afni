@@ -2428,24 +2428,33 @@ STATUS(str); }
          char * wcfname ;
          int ndig , ll ;
          MRI_IMAGE * tsim ;
+         int xd,yd,zd ;     /* 24 Sep 1999 */
 
          ll   = MAX( grapher->status->nx , grapher->status->ny ) ;
          ll   = MAX( grapher->status->nz , ll ) ;
          ndig = (ll < 1000) ? 3 : 4 ;
 
-         ll   = 3*ndig + 8 ;
+         ll   = 3*ndig + 16 ;
          if( Grapher_Stuff.wcsuffix != NULL )
             ll += strlen(Grapher_Stuff.wcsuffix) ;
          wcfname = (char *) XtMalloc(ll) ;
 
+         /* 24 Sep 1999: mangle the name for the output */
+
+         xd = grapher->xpoint; yd = grapher->ypoint; zd = grapher->zpoint;
+#ifndef DONT_MANGLE_XYZ
+         { THD_ivec3 id;
+           id = THD_fdind_to_3dind( grapher->getaux, TEMP_IVEC3(xd,yd,zd) );
+           xd = id.ijk[0]; yd = id.ijk[1]; zd = id.ijk[2]; }
+#endif
+
          if( Grapher_Stuff.wcsuffix != NULL )
             sprintf(wcfname,"%0*d_%0*d_%0*d.%s.1D" ,
-                    ndig,grapher->xpoint , ndig,grapher->ypoint ,
-                    ndig,grapher->zpoint , Grapher_Stuff.wcsuffix ) ;
+                    ndig,xd , ndig,yd , ndig,zd ,
+                              Grapher_Stuff.wcsuffix ) ;
          else
             sprintf(wcfname,"%0*d_%0*d_%0*d.1D" ,
-                    ndig,grapher->xpoint , ndig,grapher->ypoint ,
-                    ndig,grapher->zpoint  ) ;
+                    ndig,xd , ndig,yd , ndig,zd  ) ;
 
          ll = grapher->xpoint +
               grapher->ypoint * grapher->status->nx +
@@ -2769,14 +2778,7 @@ ENTRY("GRA_wcsuffix_choose_CB") ;
 
    if( Grapher_Stuff.wcsuffix != NULL ) myXtFree(Grapher_Stuff.wcsuffix) ;
 
-   Grapher_Stuff.wcsuffix = (char *) XtMalloc(ll+2) ;
-   strcpy( Grapher_Stuff.wcsuffix , cbs->cval ) ;
-
-   if( Grapher_Stuff.wcsuffix[ll] != '.' ){
-      Grapher_Stuff.wcsuffix[ll+1] = '.' ;
-      Grapher_Stuff.wcsuffix[ll+2] = '\0' ;
-   }
-
+   Grapher_Stuff.wcsuffix = XtNewString(cbs->cval) ;
    EXRETURN ;
 }
 
