@@ -60,6 +60,9 @@ static char * COMP_main( PLUGIN_interface * ) ;  /* the entry point */
         "PLUTO_add_number"  for a number chooser.
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;     /* will be the output of this routine */

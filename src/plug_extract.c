@@ -144,7 +144,9 @@ static char * format_strings[] = { "i x y z ts[1] ..." , "ts[1] ts[2] ..." };
 
 static char * EXTRACT_main( PLUGIN_interface * ) ;  /* the entry point */
 
-static void EXTRACT_tsfunc() ;                      /* the timeseries routine */
+static void EXTRACT_tsfunc( double T0 , double TR ,
+                   int npts , float ts[] , double ts_mean , double ts_slope , 
+                   void * udp , float * dumb) ;
 
 static void show_ud (struct extract_data* ud);
 
@@ -182,6 +184,9 @@ static PLUGIN_interface * global_plint = NULL ;
         "PLUTO_add_string"  for a string chooser,
         "PLUTO_add_number"  for a number chooser.
 ************************************************************************/
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

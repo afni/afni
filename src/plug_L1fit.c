@@ -33,9 +33,9 @@ static char * baseline_strings[NBASE] = { "Constant", "Linear", "Quadratic", "Cu
 
 char * L1F_main( PLUGIN_interface * ) ;  /* the entry point */
 
-void L1F_fitter() ;
-void L1F_detrend() ;
-void L1F_worker() ;
+void L1F_fitter ( int nt, double to, double dt, float * vec, char ** label ) ;
+void L1F_detrend( int nt, double to, double dt, float * vec, char ** label ) ;
+void L1F_worker ( int nt, double dt, float * vec, int dofit, char ** label ) ;
 
 /*---------------- global data -------------------*/
 
@@ -63,6 +63,9 @@ static MRI_IMAGE * tsim[NRMAX_TS] ;
         "PLUTO_add_number"     for a number chooser,
         "PLUTO_add_timeseries" for a timeseries chooser.
 ************************************************************************/
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

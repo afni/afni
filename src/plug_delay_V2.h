@@ -60,7 +60,7 @@ static float punwrap (float p,int opt );
 
 static float Lagrange_interp (float *x,float *y,float xi,int ln);
 
-void f_mult (float *x,float *y,float *z,int ln);	
+static void f_mult (float *x,float *y,float *z,int ln);	
 	
 static int hilbertdelay_V2 (float *x,float *y,int lng_full,int Nseg,int Pover,\
                        int opt,int dtrnd, float Dtx, int biasrem,\
@@ -343,9 +343,7 @@ void fft(COMPLEX *x, int m)
 
 *************************************************************************/
 
-static void fft(x,m)
-    COMPLEX *x;
-    int m;
+static void fft(COMPLEX *x,int m)
 {
     static COMPLEX *w;           /* used to store the w complex array */
     static int mstore = 0;       /* stores m for future reference */
@@ -470,9 +468,7 @@ void ifft(COMPLEX *x, int m)
 
 *************************************************************************/
 
-static void ifft(x,m)
-    COMPLEX *x;
-    int m;
+static void ifft(COMPLEX *x,int m)
 {
     static COMPLEX *w;           /* used to store the w complex array */
     static int mstore = 0;       /* stores m for future reference */
@@ -605,10 +601,7 @@ void rfft(float *x, COMPLEX *y, int m)
 
 ***************************************************************/
 
-static void rfft(x,y,m)
-    float      *x;
-    COMPLEX    *y;
-    int        m;
+static void rfft(float *x,COMPLEX *y,int m)
 {
     static    COMPLEX  *cf;
     static    int      mstore = 0;

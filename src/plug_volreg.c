@@ -101,6 +101,9 @@ static float VL_del  = 0.70 ;  /* voxels */
         "PLUTO_add_number"  for a number chooser.
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;     /* will be the output of this routine */

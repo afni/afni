@@ -36,6 +36,8 @@ static double DSET_cor( int , THD_3dim_dataset * , THD_3dim_dataset * ) ;
    Set up the interface to the user
 ************************************************************************/
 
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;

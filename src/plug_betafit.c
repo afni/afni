@@ -68,6 +68,9 @@ static char * BFIT_main( PLUGIN_interface * ) ;
 #define NYESNO 2
 static char * YESNO_strings[NYESNO] = { "No" , "Yes" } ;
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init(int ncall)
 {
    PLUGIN_interface * plint ;

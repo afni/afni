@@ -224,9 +224,9 @@ static char * false_or_true[2] = {"False", "True"};
 
 static char * DC_main( PLUGIN_interface * ) ;  /* the entry point */
 
-static void DC_Fit ();
-static void DC_Err ();
-static void DC_IRF ();
+static void DC_Fit (int nt, double to, double dt, float * vec, char ** label) ;
+static void DC_Err (int nt, double to, double dt, float * vec, char ** label) ;
+static void DC_IRF (int nt, double to, double dt, float * vec, char ** label) ;
 static int calculate_results();
 
 
@@ -520,6 +520,9 @@ static void reset_options ()
 /*
    Set up the interface to the user.
 */
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

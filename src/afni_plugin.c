@@ -123,6 +123,7 @@ AFNI_plugin * PLUG_read_plugin( char * fname )
    AFNI_plugin * plin ;
    PLUGIN_interface * plint ;
    int nin ;
+   static int firsterr=1 ;
 
    /*----- sanity checks -----*/
 
@@ -153,6 +154,7 @@ if(PRINT_TRACING)
       /* 24 May 2001: always print if there is an error */
 
       char *er ;
+      if( firsterr ){fprintf(stderr,"\n"); firsterr=0; }
       fprintf(stderr,"Failed to open plugin %s",fname) ;
       er = (char *)DYNAMIC_ERROR_STRING ;
       if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
@@ -182,7 +184,8 @@ if(PRINT_TRACING)
 
    if( plin->libinit_func == (vptr_func *) NULL ){
       char *er = (char *)DYNAMIC_ERROR_STRING ;
-      fprintf(stderr,"plugin %s lacks PLUGIN_init function\n",fname) ;
+      if( firsterr ){fprintf(stderr,"\n"); firsterr=0; }
+      fprintf(stderr,"plugin %s lacks PLUGIN_init() function\n",fname) ;
       if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
       DYNAMIC_CLOSE( plin->libhandle ) ;
       myXtFree(plin) ;

@@ -41,7 +41,9 @@ static char * method_strings[] = { "Mean" , "Slope" , "Sigma" , "CVar" } ;
 
 char * STATS_main( PLUGIN_interface * ) ;  /* the entry point */
 
-void STATS_tsfunc() ;                      /* the timeseries routine */
+void STATS_tsfunc( double tzero , double tdelta ,
+                   int npts , float ts[] , double ts_mean , double ts_slope ,
+                   void * ud , float * val ) ;
 
 /*---------------------------- global data ---------------------------*/
 
@@ -59,6 +61,9 @@ static PLUGIN_interface * global_plint = NULL ;
         "PLUTO_add_string"  for a string chooser,
         "PLUTO_add_number"  for a number chooser.
 ************************************************************************/
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

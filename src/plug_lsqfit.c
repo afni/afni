@@ -55,16 +55,16 @@ static char * baseline_strings[NBASE] = { "Constant" , "Linear" , "Quadratic" } 
 
 char * LSQ_main( PLUGIN_interface * ) ;  /* the entry point */
 
-void LSQ_fitter() ;
-void LSQ_detrend() ;
-void LSQ_worker() ;
+void LSQ_fitter( int nt, double to, double dt, float * vec, char ** label ) ;
+void LSQ_detrend( int nt, double to, double dt, float * vec, char ** label ) ;
+void LSQ_worker( int nt, double dt, float * vec, int dofit, char ** label ) ;
 
 PLUGIN_interface * TSGEN_init(void) ;
 char * TSGEN_main( PLUGIN_interface * ) ;
 
 PLUGIN_interface * EXP0D_init(void) ;
 char * EXP0D_main( PLUGIN_interface * ) ;
-void EXP0D_worker() ;
+void EXP0D_worker( int num , float * vec ) ;
 
 #ifdef ALLOW_LOMO
 PLUGIN_interface * LOMOR_init(void) ;
@@ -98,6 +98,9 @@ static MRI_IMAGE * tsim[NRMAX_TS] ;
         "PLUTO_add_number"     for a number chooser,
         "PLUTO_add_timeseries" for a timeseries chooser.
 ************************************************************************/
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

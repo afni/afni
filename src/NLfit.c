@@ -500,7 +500,13 @@ void RAN_setup
          for( ip=0 ; ip < p ; ip++ )                 /* parameter vector */
             par[ip] = get_random_value(min_sconstr[ip], max_sconstr[ip]) ;
 
+#if 0
          smodel( par , ts_length , x_array , ts ) ;  /* time series vector */
+#else
+         AFNI_CALL_VOID_4ARG(smodel ,
+                             float *,par , int,ts_length,
+                             float **,x_array , float *,ts ) ;
+#endif
       }
 
 #if 0
@@ -544,7 +550,13 @@ void full_model
      y_array = (float *) malloc (sizeof(float) * (ts_length));
      if (y_array == NULL)
        NLfit_error ("Unable to allocate memory for y_array");
+#if 0
      smodel (gs, ts_length, x_array, y_array);
+#else
+     AFNI_CALL_VOID_4ARG(smodel ,
+                         float *,gs , int,ts_length,
+                         float **,x_array , float *,y_array ) ;
+#endif
 
 #ifdef SAVE_RAN
   } else            /* recall a saved time series */
@@ -552,7 +564,13 @@ void full_model
 #endif
 
   /*----- generate time series corresponding to the noise model -----*/
+#if 0
   nmodel (gn, ts_length, x_array, yhat_array);
+#else
+  AFNI_CALL_VOID_4ARG(nmodel ,
+                      float *,gn , int,ts_length,
+                      float **,x_array , float *,yhat_array ) ;
+#endif
 
   /*----- add signal and noise model time series -----*/
   for (it = 0;  it < ts_length;  it++)
@@ -1110,13 +1128,25 @@ void analyze_results
   y_array = (float *) malloc (sizeof(float) * (ts_length));
   if (y_array == NULL)
     NLfit_error ("Unable to allocate memory for y_array");
+#if 0
   smodel (par_full+r, ts_length, x_array, y_array);
+#else
+  AFNI_CALL_VOID_4ARG(smodel ,
+                      float *,(par_full+r) , int,ts_length,
+                      float **,x_array , float *,y_array ) ;
+#endif
 
   /*----- generate time series corresponding to the noise model -----*/
   base_array = (float *) malloc (sizeof(float) * (ts_length));
   if (base_array == NULL)
     NLfit_error ("Unable to allocate memory for base_array");
+#if 0
   nmodel (par_full, ts_length, x_array, base_array);
+#else
+  AFNI_CALL_VOID_4ARG(nmodel ,
+                      float *,par_full , int,ts_length,
+                      float **,x_array , float *,base_array ) ;
+#endif
 
   /*----- initialize signal parameters -----*/
   *tmax = x_array[0][1];

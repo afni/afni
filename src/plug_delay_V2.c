@@ -259,7 +259,9 @@ static char * yn_strings[] = { "n" , "y" };
 
 static char * DELAY_main( PLUGIN_interface * ) ;  /* the entry point */
 
-static void DELAY_tsfuncV2() ;                      /* the timeseries routine */
+static void DELAY_tsfuncV2( double T0 , double TR ,
+                   int npts , float ts[] , double ts_mean , double ts_slope ,
+                   void * udp , int nbrick , float * buckar) ;
 
 static void show_ud (struct hilbert_data_V2* ud,int loc);
 
@@ -287,6 +289,9 @@ static PLUGIN_interface * global_plint = NULL ;
         "PLUTO_add_string"  for a string chooser,
         "PLUTO_add_number"  for a number chooser.
 ************************************************************************/
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

@@ -116,6 +116,7 @@ NLFIT_MODEL_array * NLFIT_get_all_MODELs( char * dname )
 NLFIT_MODEL * NLFIT_read_MODEL( char * fname )
 {
    NLFIT_MODEL * model ;
+   static int firsterr=1 ;
 
    /*----- sanity checks -----*/
 
@@ -135,14 +136,12 @@ NLFIT_MODEL * NLFIT_read_MODEL( char * fname )
 
    DYNAMIC_OPEN( fname , model->libhandle ) ;
    if( ! ISVALID_DYNAMIC_handle( model->libhandle ) ){
-
-     if (NL_DEBUG)
-       { 
-	 char str[256]; 
-	 sprintf (str,"failed to open library %s \n",fname); 
-	 printf (str); 
-       }
-
+      char *er ;
+      if( firsterr ){ fprintf(stderr,"\n"); firsterr=0; }
+      fprintf (stderr,"failed to open library %s ",fname); 
+      er = (char *)DYNAMIC_ERROR_STRING ;
+      if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
+      else             fprintf(stderr,"\n") ;
       myXtFree(model) ;
       return (NULL) ;
    }
@@ -171,14 +170,10 @@ NLFIT_MODEL * NLFIT_read_MODEL( char * fname )
    /*----- if symbols not found, complain and kill this MODEL -----*/
 
    if( model->libinit_func == (vptr_func *) NULL ){
-
-     if (NL_DEBUG)
-       { 
-	 char str[256] ;
-	 sprintf (str,"library %s lacks required global symbol \n",fname) ; 
-	 printf (str) ; 
-       }
-
+      char *er = (char *)DYNAMIC_ERROR_STRING ;
+      if( firsterr ){ fprintf(stderr,"\n"); firsterr=0; }
+      fprintf(stderr,"model %s lacks initialize_model() function\n",fname) ;
+      if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
       DYNAMIC_CLOSE( model->libhandle ) ;
       myXtFree(model) ;
       return (NULL) ;

@@ -72,6 +72,8 @@ char * DRAW_value_string( float val ) ;
    set of interface widgets.
 ************************************************************************/
 
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
 

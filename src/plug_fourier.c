@@ -74,6 +74,9 @@ void fourier_1D(int num, double to, double dt, float *vec) {
    Set up the interface to the user
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;

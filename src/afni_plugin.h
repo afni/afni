@@ -17,6 +17,14 @@
 
 #ifdef ALLOW_PLUGINS
 
+#if defined(__cplusplus) || defined(c_plusplus)
+# define DEFINE_PLUGIN_PROTOTYPE \
+  extern "C" { PLUGIN_interface * PLUGIN_init( int ncall ) ; }
+#else
+# define DEFINE_PLUGIN_PROTOTYPE
+#endif
+
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>

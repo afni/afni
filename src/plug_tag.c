@@ -95,6 +95,9 @@ static THD_3dim_dataset * dset = NULL ;
    set of interface widgets.
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    if( ncall > 0 ) return NULL ;  /* only one interface */
