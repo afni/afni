@@ -4227,6 +4227,15 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
 
    MCW_free_expand( gnim , gname ) ;
 
+   /**-- 10 Jan 2004: set slice thickness to slice spacing, if given --**/
+
+   if( use_MRILIB_slicespacing && fabs(MRILIB_slicespacing-imdz) > 0.01l ){
+     fprintf(stderr,"Using slice spacing=%g",MRILIB_slicespacing) ;
+     if( imdz > 0.0 ) fprintf(stderr," instead of slice thickness=%g",imdz) ;
+     fprintf(stderr,"\n") ;
+     imdz = MRILIB_slicespacing ;
+   }
+
    /**-- 19 Jan 2000: check inputs shorts for negativity --**/
 
    if( argopt.datum_all == MRI_short ){
