@@ -350,6 +350,9 @@ typedef struct MRI_IMARR {
 
 #define IMARR_COUNT(name)       ((name)->num)
 
+#define IMARR_LASTIM(name)      ((name)->imarr[(name)->num-1])
+#define IMARR_FIRSTIM(name)     ((name)->imarr[0])
+
 #define INC_IMARR 32
 
 /*! Initialize an MRI_IMARR struct. */
@@ -524,6 +527,8 @@ static int MRI_mm ;
   extern MRI_IMARR * mri_read_file_delay( char * ) ;
   extern MRI_IMARR * mri_read_3D_delay( char * ) ;
 #endif
+
+extern int mri_equal( MRI_IMAGE *, MRI_IMAGE * ) ; /* 30 Jun 2003 */
 
 extern MRI_IMARR * mri_read_analyze75( char * ) ;  /* 05 Feb 2001 */
 extern MRI_IMARR * mri_read_siemens( char * ) ;    /* 12 Mar 2001 */

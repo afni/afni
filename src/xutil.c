@@ -825,7 +825,7 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
       XtAddCallback( wbut , XmNactivateCallback , MCW_unhelp_CB , wpop ) ;
 
       XmUpdateDisplay( wpar ) ;
-      XtPopdown( wpop ) ;
+      RWC_XtPopdown( wpop ) ;
 
       XmAddWMProtocolCallback(
            wpop ,
@@ -871,7 +871,7 @@ void MCW_unhelp_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    Widget wpop = (Widget) client_data ;
 
-   XtPopdown(wpop) ;
+   RWC_XtPopdown(wpop) ;
    return ;
 }
 
@@ -1771,5 +1771,19 @@ void RWC_sleep( int msec )
    tv.tv_sec  = msec/1000 ;
    tv.tv_usec = (msec%1000)*1000 ;
    select( 1 , NULL,NULL,NULL , &tv ) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------*/
+/*! Popdown a widget that may not be a shell. [30 Jun 2003]
+-------------------------------------------------------------------*/
+
+void RWC_XtPopdown( Widget w )
+{
+   Widget wpar = w ;
+
+   if( wpar == NULL ) return ;
+   while( XtIsShell(wpar) == 0 && XtParent(wpar) != NULL ) wpar = XtParent(wpar);
+   XtPopdown(wpar) ;
    return ;
 }

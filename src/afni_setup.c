@@ -695,7 +695,7 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
       /** close the file selection dialog **/
 
       case XmCR_CANCEL:
-         XtPopdown( im3d->vwid->file_dialog ) ;
+         RWC_XtPopdown( im3d->vwid->file_dialog ) ;
       break ;
 
       /** try to read a new palette **/
@@ -745,7 +745,7 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
                                          dum , MCW_USER_KILL | MCW_TIMER_KILL ) ;
                free(dum) ;
 
-               XtPopdown( im3d->vwid->file_dialog ) ;  /* done with dialog */
+               RWC_XtPopdown( im3d->vwid->file_dialog ) ;  /* done with dialog */
 
             } else {                                            /* bad filename */
                (void) MCW_popup_message( w ,

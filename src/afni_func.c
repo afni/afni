@@ -2379,7 +2379,7 @@ void AFNI_close_file_dialog_CB( Widget w, XtPointer cd, XtPointer cb )
 ENTRY("AFNI_close_file_dialog") ;
 
    if( im3d->vwid->file_dialog != NULL )
-      XtPopdown( im3d->vwid->file_dialog ) ;
+      RWC_XtPopdown( im3d->vwid->file_dialog ) ;
 
    EXRETURN ;
 }
@@ -2560,7 +2560,7 @@ ENTRY("AFNI_finalize_read_sess_CB") ;
       /** close the file selection dialog **/
 
       case XmCR_CANCEL:
-         XtPopdown( im3d->vwid->file_dialog ) ;
+         RWC_XtPopdown( im3d->vwid->file_dialog ) ;
       break ;
 
       /** try to read a new session **/
@@ -2725,7 +2725,7 @@ STATUS("rescanning timeseries files") ;
                  new_ss->warptable = NULL ;
                }
 
-               XtPopdown( im3d->vwid->file_dialog ) ;
+               RWC_XtPopdown( im3d->vwid->file_dialog ) ;
             }
 
 STATUS("freeing 'text' variable") ;
@@ -2816,7 +2816,7 @@ ENTRY("AFNI_finalize_read_1D_CB") ;
       /** close the file selection dialog **/
 
       case XmCR_CANCEL:
-         XtPopdown( im3d->vwid->file_dialog ) ;
+         RWC_XtPopdown( im3d->vwid->file_dialog ) ;
       break ;
 
       /** try to read a new timeseries **/
@@ -2847,7 +2847,7 @@ ENTRY("AFNI_finalize_read_1D_CB") ;
          PLUTO_register_timeseries( text , flim ) ;
          mri_free(flim) ;
          myXtFree(text) ;
-         XtPopdown( im3d->vwid->file_dialog ) ;
+         RWC_XtPopdown( im3d->vwid->file_dialog ) ;
       }
       break ;
 
