@@ -879,7 +879,8 @@ static MCW_action_item TWIN_act[] = {
 MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
 {
    MCW_textwin * tw ;
-   int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr , ii,nact , swid=0 ;
+   int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr , ii,nact ;
+   int swid=0 , shi=0 ;
    Position xroot , yroot ;
    Screen * scr ;
    Boolean editable ;
@@ -915,6 +916,8 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
                  "dialog" , xmDialogShellWidgetClass , wpar ,
                     XmNx , xpr ,
                     XmNy , ypr ,
+                    XmNborderWidth , 0 ,
+                    XmNborderColor , 0 ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
 
@@ -946,12 +949,6 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
 
    tw->wactar = MCW_action_area( tw->wtop , TWIN_act , nact ) ;
 
-   XtVaSetValues( tw->wactar ,
-                     XmNleftAttachment , XmATTACH_FORM ,
-                     XmNrightAttachment, XmATTACH_FORM ,
-                     XmNtopAttachment  , XmATTACH_FORM ,
-                  NULL ) ;
-
    /* create text area */
 
    tw->wscroll = XtVaCreateManagedWidget(
@@ -970,6 +967,13 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
+   XtVaSetValues( tw->wactar ,
+                     XmNleftAttachment , XmATTACH_FORM ,
+                     XmNrightAttachment, XmATTACH_FORM ,
+                     XmNtopAttachment  , XmATTACH_FORM ,
+                     XmNtopOffset      , 7 ,
+                  NULL ) ;
+
    tw->wtext = XtVaCreateManagedWidget(
                     "dialog" , xmTextWidgetClass , tw->wscroll ,
                        XmNeditMode               , XmMULTI_LINE_EDIT ,
@@ -979,7 +983,7 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
                     NULL ) ;
 
    if( msg != NULL ){
-      int cmax = 20 , ll ;
+      int cmax = 20 , ll , nlin ;
       char * cpt , *cold , cbuf[128] ;
       XmString xstr ;
       XmFontList xflist ;
@@ -987,21 +991,29 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
       XtVaSetValues( tw->wtext , XmNvalue , msg , NULL ) ;
       XtVaGetValues( tw->wtext , XmNfontList , &xflist , NULL ) ;
 
-      cmax = 20 ;
+      cmax = 20 ; nlin = 1 ;
       for( cpt=msg,cold=msg ; *cpt != '\0' ; cpt++ ){
          if( *cpt == '\n' ){
             ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
-            cold = cpt ;
+            cold = cpt ; nlin++ ;
          }
       }
       ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
-      if( cmax > 88 ) cmax = 88 ;
-      cmax++ ;
+      if( cmax > 80 ) cmax = 80 ;
+      cmax+=2 ;
       for( ll=0 ; ll < cmax ; ll++ ) cbuf[ll] = 'x' ;
       cbuf[cmax] = '\0' ;
+
       xstr = XmStringCreateLtoR( cbuf , XmFONTLIST_DEFAULT_TAG ) ;
-      swid = XmStringWidth( xflist , xstr ) + 44 ;
+      swid = XmStringWidth ( xflist , xstr ) + 44 ;
+      shi  = XmStringHeight( xflist , xstr ) * nlin + 66 ;
       XmStringFree( xstr ) ;
+
+      cmax = WidthOfScreen(XtScreen(wpar)) - 128 ;
+      if( swid > cmax ) swid = cmax ;
+
+      cmax = HeightOfScreen(XtScreen(wpar)) - 128 ;
+      if( shi > cmax ) shi = cmax ;
    }
 
    XtManageChild( tw->wtop ) ;
@@ -1010,6 +1022,9 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
 
    if( swid > 0 )
       XtVaSetValues( tw->wshell , XmNwidth , swid , NULL ) ; 
+
+   if( shi > 0 )
+      XtVaSetValues( tw->wshell , XmNheight , shi , NULL ) ; 
 
    return tw ;
 }

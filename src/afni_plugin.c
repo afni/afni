@@ -1601,9 +1601,15 @@ ENTRY("PLUG_action_CB") ;
 
    if( close && !badrun ) PLUG_delete_window_CB( w , cd , cbs ) ;
 
-   if( help )
-      (void) MCW_popup_message( plint->wid->label ,
-                                plint->helpstring , MCW_USER_KILL ) ;
+   /* 28 Dec 1997: use a scrolling text window if help too big */
+
+   if( help ){
+      int nl = THD_linecount( plint->helpstring ) ;
+      if( nl < 10 ) MCW_popup_message( plint->wid->label ,
+                                       plint->helpstring , MCW_USER_KILL ) ;
+      else          new_MCW_textwin  ( plint->wid->label ,
+                                       plint->helpstring , TEXT_READONLY ) ;
+   }
 
    EXRETURN ;
 }

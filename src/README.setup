@@ -4,9 +4,15 @@ You can set up the colors and palette tables used by AFNI in the
 file .afnirc in your home directory.  This file will be read when
 AFNI starts.  Each section of this file starts with a string of
 the form "***NAME", where "NAME" is the name of the section.  At
-present, two sections are available: one for defining new colors,
-and one for defining the layout of colors used for functional
-overlays (the "palette tables").
+present, two sections are available:
+   ***COLORS   -- for defining new colors
+   ***PALETTES -- for defining the layout of colors used for
+                  functional overlays (the "palette tables").
+
+Note that you can have more than one of each section in the setup
+file (although there is no particular reason why this is needed).
+Comments can be put in the .afnirc file using the C++ "//" style:
+everything from the "//" to the end of line will be ignored.
 
 Defining the Colors Available for Overlays
 ------------------------------------------
@@ -15,8 +21,8 @@ to the color menu that is used for functional overlays, crosshairs,
 etc.  A sample is
 
 ***COLORS
-   qblue = #804cff
-   zblue = rgbi:0.5/0.3/1.0
+   qblue = #804cff            // RGB hexadecimal color definition
+   zblue = rgbi:0.5/0.3/1.0   // RGB floating point intensities
 
 The general form of a color definition line is
    label = definition
@@ -39,9 +45,9 @@ redefined.  That is, you could do something stupid like
    blue = red
 and AFNI won't complain at all.  ("blue" is one of the pre-defined colors
 in AFNI.)  Color labels are case sensitive, so "BLUE = red" is different
-than "blue = red".
+than "blue = red".  You cannot redefine the label "none".
 
-On 8 bit graphics systems (the vast majority), you must be cautious
+On 8 bit graphics systems (the vast majority), you must be parsimonious
 when defining new colors.  You may run out of color "cells", since there
 are only 2**8 = 256 available at one time.  All the colors used for
 the windowing system, the buttons, the grayscale images, and the overlays
@@ -58,9 +64,9 @@ name associated, and a number of color "panes".  For example:
 
 ***PALETTES
   rainbow [3]
-    1.0 -> blue
+    1.0 -> blue     // The spaces around "->" are required
     0.2 -> green
-   -0.4 -> hotpink
+   -0.4 -> hotpink  // There are N lines for palette entry [N]
 
 This defines a palette table "rainbow", and in the entry for 3 panes
 sets up the pbar to have 1.0 as its maximum value, then to have the
@@ -105,6 +111,7 @@ The New Palette Menu
 Attached to the "Inten" label atop the color pbar is a popup menu
 that is activated using mouse button 3.  This menu has the following
 items:
+
    Equalize Spacing   = Sets the spacings in the currently visible
                           palette to be uniform in size.
 
@@ -123,7 +130,8 @@ items:
                           files to have names that end in ".pal".
                           Note that new colors defined this way will
                           NOT be visible on previously created color
-                          menus (such as the Crosshairs Color chooser).
+                          menus (such as the Crosshairs Color chooser),
+                          but will be visible on menus created later.
 
    Write out palette  = Writes out the currently visible palette to
                           a ".pal" file.  In this way, you can set up
@@ -131,6 +139,13 @@ items:
                           then read it back in later.  (Or you could
                           copy the data into your .afnirc file, and
                           it would be available at all times.)
+                          The program asks you for a palette name,
+                          which is also used to for the filename -- if
+                          you enter "elvis" for the palette name, then
+                          AFNI will write to the file "elvis.pal".  If
+                          this file already exists, the palette is
+                          appended to the end of the file; otherwise,
+                          the file is created.
 
    Show Palette Table = Pops up a text window showing the definitions
                           of all the colors and palettes.  Mostly useful
@@ -139,9 +154,10 @@ items:
    Set Pal "chooser"  = A menu that lets you pick the palette table
                           that is currently active.  Note that reading
                           in a palette table does not make it active --
-                          you must then choose it from this menu.  Also,
-                          if a palette table does not have an entry for
-                          a given number of panes, then nothing will
+                          you must then choose it from this menu.  Writing
+                          a palette out does not enter it into this menu.
+                          Also, if a palette table does not have an entry
+                          for a given number of panes, then nothing will
                           happen until you use the "#" chooser to make
                           the number of panes correspond to the selected
                           palette table.
