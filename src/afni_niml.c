@@ -23,6 +23,16 @@ static char ns_name[NUM_NIML][64] ;
 
 #define NS_SUMA 0
 
+/*--------------------------------*/
+/*! If 1, won't send info to SUMA */
+
+static int dont_tell_suma = 0 ;
+
+/*---------------------------------------*/
+/*! If 1, won't listen to info from SUMA */
+
+static int dont_hear_suma = 0 ;
+
 /*-------------------------*/
 
 #ifndef SUMA_TCP_PORT
@@ -212,6 +222,8 @@ ENTRY("AFNI_process_NIML_data") ;
      SUMA_surface *ag ;
      int *ic ; float *xc,*yc,*zc ; char *idc ;
 
+     if( dont_hear_suma ) EXRETURN ;
+
      /*-- check element for suitability --*/
 
      if( nel->vec_len    <  1        ||  /* empty element?             */
@@ -316,7 +328,9 @@ ENTRY("AFNI_process_NIML_data") ;
                  nel->vec_filled , DSET_FILECODE(dset) ) ;
      AFNI_popup_message( msg ) ;
 
+     dont_tell_suma = 1 ;
      PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
+     dont_tell_suma = 0 ;
      EXRETURN ;
    }
 
@@ -324,6 +338,8 @@ ENTRY("AFNI_process_NIML_data") ;
 
    if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0 ){
      float *xyz ;
+
+     if( dont_hear_suma ) EXRETURN ;
 
      if( nel->vec_len    <  3        ||
          nel->vec_filled <  3        ||
@@ -337,8 +353,10 @@ ENTRY("AFNI_process_NIML_data") ;
      }
 
      xyz = (float *) nel->vec[0] ;
+     dont_tell_suma = 1 ;
      AFNI_jumpto_dicom( GLOBAL_library.controllers[0] ,
                         xyz[0] , xyz[1] , xyz[2]       ) ;
+     dont_tell_suma = 0 ;
      EXRETURN ;
    }
 
@@ -369,7 +387,9 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    /* check inputs for reasonability */
 
-   if( !IM3D_OPEN(im3d) || !im3d->vinfo->func_visible ) EXRETURN ;
+   if( dont_tell_suma            ||
+       !IM3D_OPEN(im3d)          ||
+       !im3d->vinfo->func_visible  ) EXRETURN ;
 
    adset = im3d->anat_now ; if( adset->su_surf == NULL ) EXRETURN ;
    fdset = im3d->fim_now  ; if( fdset          == NULL ) EXRETURN ;
@@ -422,8 +442,9 @@ static void AFNI_niml_viewpoint_CB( int why, int q, void *qq, void *qqq )
 
 ENTRY("AFNI_niml_viewpoint_CB") ;
 
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
-   if( im3d->anat_now->su_surf == NULL ) EXRETURN ;
+   if( dont_tell_suma                 ||
+       !IM3D_OPEN(im3d)               ||
+       im3d->anat_now->su_surf == NULL  ) EXRETURN ;
 
 #ifdef SENDIT
    if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
