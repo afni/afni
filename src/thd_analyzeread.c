@@ -96,6 +96,9 @@ static void swap_analyze_hdr( struct dsr *pntr )
 #include "nifti1_io.h"               /*** NIFTI spec and funcs ***/
 /*-----------------------------------------------------------------*/
 
+#undef swap_2
+#undef swap_4
+
 /*-----------------------------------------------------------------*/
 /*! Open an ANALYZE .hdr file as an unpopulated AFNI dataset.
     It will be populated from the .img file, in THD_load_analyze().
@@ -117,6 +120,7 @@ THD_3dim_dataset * THD_open_analyze( char *hname )
    THD_ivec3 nxyz , orixyz ;
    THD_fvec3 dxyz , orgxyz ;
    int iview ;
+   short spmorg , spmxx,spmyy,spmzz ;  /* 03 Nov 2003 */
 
 ENTRY("THD_open_analyze") ;
 
@@ -143,16 +147,16 @@ ENTRY("THD_open_analyze") ;
    fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
    fclose(fp) ;
    if( hdr.dime.dim[0] == 0 ){    /* bad input */
-      fprintf(stderr,"*** ANALYZE file %s has dim[0]=0!\n",hname) ;
-      RETURN( NULL ) ;
+     fprintf(stderr,"*** ANALYZE file %s has dim[0]=0!\n",hname) ;
+     RETURN( NULL ) ;
    }
 
    /*-- check .img file for existence and size --*/
 
    length = THD_filesize(iname) ;  /* will use this later */
    if( length <= 0 ){
-      fprintf(stderr,"*** Can't find ANALYZE file %s\n",iname) ;
-      RETURN( NULL );
+     fprintf(stderr,"*** Can't find ANALYZE file %s\n",iname) ;
+     RETURN( NULL );
    }
 
    /*-- check for swap-age of header --*/
@@ -163,26 +167,26 @@ ENTRY("THD_open_analyze") ;
    /*-- get a scale factor for images --*/
 
    if( !AFNI_noenv("AFNI_ANALYZE_SCALE") ){
-      fac = hdr.dime.funused1 ;
-      (void) thd_floatscan( 1 , &fac ) ;
-      if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
+     fac = hdr.dime.funused1 ;
+     (void) thd_floatscan( 1 , &fac ) ;
+     if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
    }
 
    /*-- get data type for each voxel --*/
 
    switch( hdr.dime.datatype ){
-      default:
-         fprintf(stderr,"*** %s: Unsupported ANALYZE datatype=%d (%s)\n",
-                 hname,hdr.dime.datatype,ANDT_string(hdr.dime.datatype) ) ;
-      RETURN( NULL );
+     default:
+        fprintf(stderr,"*** %s: Unsupported ANALYZE datatype=%d (%s)\n",
+                hname,hdr.dime.datatype,ANDT_string(hdr.dime.datatype) ) ;
+     RETURN( NULL );
 
-      case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ; break;
-      case ANDT_SIGNED_SHORT:  datum_type = MRI_short  ; break;
-      case ANDT_FLOAT:         datum_type = MRI_float  ; break;
-      case ANDT_COMPLEX:       datum_type = MRI_complex; break;
-      case ANDT_RGB:           datum_type = MRI_rgb    ; break;
+     case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ; break;
+     case ANDT_SIGNED_SHORT:  datum_type = MRI_short  ; break;
+     case ANDT_FLOAT:         datum_type = MRI_float  ; break;
+     case ANDT_COMPLEX:       datum_type = MRI_complex; break;
+     case ANDT_RGB:           datum_type = MRI_rgb    ; break;
 #if 0
-      case ANDT_SIGNED_INT:    datum_type = MRI_int    ; break; /* not in AFNI */
+     case ANDT_SIGNED_INT:    datum_type = MRI_int    ; break; /* not in AFNI */
 #endif
    }
 
@@ -195,14 +199,14 @@ ENTRY("THD_open_analyze") ;
    if( nx < 2 || ny < 2 ) RETURN( NULL );
 
    switch( hdr.dime.dim[0] ){
-      case 2:  nz = 1 ; nt = 1 ;                           ; break ;
-      case 3:  nz = hdr.dime.dim[3] ; nt = 1 ;             ; break ;
-      case 4:  nz = hdr.dime.dim[3] ; nt = hdr.dime.dim[4] ; break ;
+     case 2:  nz = 1 ; nt = 1 ;                           ; break ;
+     case 3:  nz = hdr.dime.dim[3] ; nt = 1 ;             ; break ;
+     case 4:  nz = hdr.dime.dim[3] ; nt = hdr.dime.dim[4] ; break ;
 
-      default:
-        fprintf(stderr,"*** ANALYZE file %s has %d dimensions!\n",
-                hname,hdr.dime.dim[0]) ;
-        RETURN( NULL ) ;
+     default:
+       fprintf(stderr,"*** ANALYZE file %s has %d dimensions!\n",
+               hname,hdr.dime.dim[0]) ;
+       RETURN( NULL ) ;
    }
    if( nz < 1 ) nz = 1 ;
    if( nt < 1 ) nt = 1 ;
@@ -216,11 +220,25 @@ ENTRY("THD_open_analyze") ;
 
    ngood = datum_len*nx*ny*nz*nt ;  /* number bytes needed in .img file */
    if( length < ngood ){
-      fprintf( stderr,
-        "*** ANALYZE file %s is %d bytes long but must be %d bytes long\n"
-        "*** for nx=%d ny=%d nz=%d nt=%d and %d bytes/voxel\n",
-        iname,length,ngood,nx,ny,nz,nt,datum_len ) ;
-      fclose(fp) ; RETURN( NULL );
+     fprintf( stderr,
+       "*** ANALYZE file %s is %d bytes long but must be %d bytes long\n"
+       "*** for nx=%d ny=%d nz=%d nt=%d and %d bytes/voxel\n",
+       iname,length,ngood,nx,ny,nz,nt,datum_len ) ;
+     fclose(fp) ; RETURN( NULL );
+   }
+
+   /* check SPM originator field - 03 Nov 2003 */
+
+   spmorg = spmxx = spmyy = spmzz = 0 ;
+   { short xyzuv[5] , xx,yy,zz ;
+     memcpy( xyzuv , hdr.hist.originator , 10 ) ;
+     if( xyzuv[3] == 0 && xyzuv[4] == 0 ){
+       xx = xyzuv[0] ; yy = xyzuv[1] ; zz = xyzuv[2] ;
+       if( doswap ){ swap_2(&xx); swap_2(&yy); swap_2(&zz); }
+       if( xx > 0 && xx < nx-1 &&
+           yy > 0 && yy < ny-1 &&
+           zz > 0 && zz < nz-1   ){ spmorg=1; spmxx=xx; spmyy=yy; spmzz=zz; }
+     }
    }
 
    /*-- make a dataset --*/
@@ -269,6 +287,15 @@ ENTRY("THD_open_analyze") ;
      orgxyz.xyz[2] = -0.5 * (nz-1) * dz ;
    }
 
+   iview = VIEW_ORIGINAL_TYPE ;   /* can't tell if it is Talairach-ed */
+
+   if( AFNI_yesenv("AFNI_ANALYZE_ORIGINATOR") && spmorg ){  /* 03 Nov 2003 */
+     iview         = VIEW_TALAIRACH_TYPE ;
+     orgxyz.xyz[0] = -spmxx * dx ; /* (0,0,0) is at (spmxx,spmyy,spmzz) */
+     orgxyz.xyz[1] = -spmyy * dy ;
+     orgxyz.xyz[2] = -spmzz * dz ;
+   }
+
    /* 10 Oct 2002: change voxel size signs, if axis orientation is negative */
    /*              [above, we assumed that axes were oriented in - to + way] */
 
@@ -286,8 +313,6 @@ ENTRY("THD_open_analyze") ;
      dxyz.xyz[2]   = -dxyz.xyz[2]   ;
      orgxyz.xyz[2] = -orgxyz.xyz[2] ;
    }
-
-   iview = VIEW_ORIGINAL_TYPE ;   /* can't tell if it is Talairach-ed */
 
    /*-- actually send the values above into the dataset header --*/
 

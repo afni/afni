@@ -63,6 +63,8 @@ int RWC_groupbase = 0 ;  /* to use a group baseline or not */
 int AJ_base = 0;         /* to set base to zero when group baseline is on */
 
 /***-----------------------------------------------------------------------***/
+/*  int discard(int, XEvent*) ; */
+/***-----------------------------------------------------------------------***/
 
 /* additions for use of MCW logo */
 
@@ -4930,7 +4932,7 @@ STATUS("   finished drawing T_name") ;
       Put_image(Im_Nr);
       DrawSubWindow();
       DrawTopWindow();
-      discard(KeyPressMask, event);
+      discard(KeyPressMask, &event);
    }
 
    if( FFT_pressed ) {                /* second press - back to normal graph */

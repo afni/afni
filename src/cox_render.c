@@ -22,25 +22,25 @@
 
 static int num_renderers = 0 ;  /* global count of how many are open */
 
-static THD_mat33 rotmatrix( int ax1,float th1 ,
+THD_mat33 rotmatrix( int ax1,float th1 ,
                             int ax2,float th2 , int ax3,float th3  ) ;
 
-static void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
+void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
                              Tmask * tm ,
                              int fixdir , int fixijk , float da , float db ,
                              int ma , int mb , byte * im ) ;
 
-static void extract_rgba_nn( int nx , int ny , int nz , rgba * vol ,
+void extract_rgba_nn( int nx , int ny , int nz , rgba * vol ,
                              Tmask * tm ,
                              int fixdir , int fixijk , float da , float db ,
                              int ma , int mb , rgba * im ) ;
 
-static void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
+void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
                               Tmask * tm ,
                               int fixdir , int fixijk , float da , float db ,
                               int ma , int mb , byte * im ) ;
 
-static void extract_byte_lix( int nx , int ny , int nz , byte * vol ,
+void extract_byte_lix( int nx , int ny , int nz , byte * vol ,
                               Tmask * tm ,
                               int fixdir , int fixijk , float da , float db ,
                               int ma , int mb , byte * im ) ;
@@ -768,7 +768,7 @@ fprintf(stderr,"warp: aii=%g  aij=%g\n"
 
 /*-----------------------------------------------------------------------*/
 
-static void extract_assign_directions( int nx, int ny, int nz, int fixdir ,
+void extract_assign_directions( int nx, int ny, int nz, int fixdir ,
                                        int *Astep, int *Bstep, int *Cstep ,
                                        int *Na   , int *Nb   , int *Nc     )
 {
@@ -784,7 +784,7 @@ static void extract_assign_directions( int nx, int ny, int nz, int fixdir ,
    NN "interpolation"
 -------------------------------------------------------------------------*/
 
-static void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
+void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
                              Tmask * tm ,
                              int fixdir , int fixijk , float da , float db ,
                              int ma , int mb , byte * im )
@@ -832,7 +832,7 @@ static void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
    NN "interpolation" of rgba data - 30 Jan 2003
 -------------------------------------------------------------------------*/
 
-static void extract_rgba_nn( int nx , int ny , int nz , rgba * vol ,
+void extract_rgba_nn( int nx , int ny , int nz , rgba * vol ,
                              Tmask * tm ,
                              int fixdir , int fixijk , float da , float db ,
                              int ma , int mb , rgba * im )
@@ -993,7 +993,7 @@ static void extract_byte_ts( int nx , int ny , int nz , byte * vol ,
 
 /*---------------------------------------------------------------------------*/
 
-static void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
+void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
                               Tmask * tm ,
                               int fixdir , int fixijk , float da , float db ,
                               int ma , int mb , byte * im )
@@ -1125,7 +1125,7 @@ static void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
 
 /*---------------------------------------------------------------------------*/
 
-static void extract_byte_lix( int nx , int ny , int nz , byte * vol ,
+void extract_byte_lix( int nx , int ny , int nz , byte * vol ,
                               Tmask * tm ,
                               int fixdir , int fixijk , float da , float db ,
                               int ma , int mb , byte * im )
@@ -1193,7 +1193,12 @@ static void extract_byte_lix( int nx , int ny , int nz , byte * vol ,
          v2 = vol[aoff+(ijkoff+LR)] ;
          v3 = vol[aoff+(ijkoff+UL)] ;
          v4 = vol[aoff+(ijkoff+UR)] ;
-         if( v1 < 128 && v2 < 128 && v3 < 128 && v4 < 128 ) /* gray */
+#ifdef BECLEVER
+         if( (v1|v2|v3|v4) & 128 != 0 )
+#else
+         if( v1 < 128 && v2 < 128 && v3 < 128 && v4 < 128 )  /* gray */
+#endif
+
 #if 0
            im[aa+boff] = (byte)(  f_a_b  * v1 + f_ap_b  * v2
                                 + f_a_bp * v3 + f_ap_bp * v4 ) ;
@@ -1210,7 +1215,7 @@ static void extract_byte_lix( int nx , int ny , int nz , byte * vol ,
 
 /*------------------------------------------------------------------------------*/
 
-static THD_mat33 rotmatrix( int ax1,float th1 ,
+THD_mat33 rotmatrix( int ax1,float th1 ,
                             int ax2,float th2 , int ax3,float th3  )
 {
    THD_mat33 q , p ;
