@@ -14,12 +14,12 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o     \
             afni_slice_byte.o  afni_slice_complex.o    \
             afni_pcor.o afni_pcor_float.o editvol.o     \
-            3ddata.o pbar.o afni_graph.o afni_plugin.o   \
+            pbar.o afni_graph.o afni_plugin.o            \
             parser.o parser_int.o iochan.o afni_plugout.o \
             3dmaker.o afni_setup.o                         \
             $(IMOBJS)
 
-T3OBJS  = to3d.o 3ddata.o $(IMOBJS)
+T3OBJS  = to3d.o $(IMOBJS)
 
 MISC    = afni.montage AFNI.Xdefaults mF64 mF128 gmovie 3d*.lib
 
@@ -59,8 +59,8 @@ newstuff.hhh:quotize README.changes
 	$(RM) newstuff.hhh
 	./quotize newstuff < README.changes > newstuff.hhh
 
-3dnoise:3dnoise.o 3ddata.o
-	$(CC) -o 3dnoise 3dnoise.o 3ddata.o $(LFLAGS) $(LLIBS)
+3dnoise:3dnoise.o
+	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
 
 whirlgif:whirlgif.h whirlgif.c
 	$(CC) -o whirlgif -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
@@ -152,41 +152,41 @@ imrotate:imrotate.o
 	$(RM) $@
 	$(CC) -o imrotate imrotate.o $(LFLAGS) $(LLIBS)
 
-dsetdup:dsetdup.o 3ddata.o
+dsetdup:dsetdup.o
 	$(RM) $@
-	$(CC) -o dsetdup dsetdup.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o dsetdup dsetdup.o $(LFLAGS) $(LLIBS)
 
-3ddup:3ddup.o 3ddata.o editvol.o
+3ddup:3ddup.o editvol.o
 	$(RM) $@
-	$(CC) -o 3ddup 3ddup.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3ddup 3ddup.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dnvals:3dnvals.o 3ddata.o
+3dnvals:3dnvals.o
 	$(RM) $@
-	$(CC) -o 3dnvals 3dnvals.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dnvals 3dnvals.o $(LFLAGS) $(LLIBS)
 
-3dproject:3dproject.o 3ddata.o editvol.o
+3dproject:3dproject.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dproject 3dproject.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dproject 3dproject.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dinfo:3dinfo.o 3ddata.o
+3dinfo:3dinfo.o
 	$(RM) $@
-	$(CC) -o 3dinfo 3dinfo.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dinfo 3dinfo.o $(LFLAGS) $(LLIBS)
 
-3drefit:3drefit.o 3ddata.o editvol.o
+3drefit:3drefit.o editvol.o
 	$(RM) $@
-	$(CC) -o 3drefit 3drefit.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3drefit 3drefit.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dbucket:3dbucket.o 3ddata.o editvol.o
+3dbucket:3dbucket.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dbucket 3dbucket.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dbucket 3dbucket.o editvol.o $(LFLAGS) $(LLIBS)
 
-from3d:from3d.o 3ddata.o
+from3d:from3d.o
 	$(RM) $@
-	$(CC) -o from3d from3d.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o from3d from3d.o $(LFLAGS) $(LLIBS)
 
-3dfim:3dfim.o afni_pcor_float.o 3ddata.o editvol.o ts.o
+3dfim:3dfim.o afni_pcor_float.o editvol.o ts.o
 	$(RM) $@
-	$(CC) -o 3dfim 3dfim.o ts.o afni_pcor_float.o 3ddata.o \
+	$(CC) -o 3dfim 3dfim.o ts.o afni_pcor_float.o \
                        editvol.o $(LFLAGS) $(LLIBS)
 
 3T_toafni:3T_toafni.o
@@ -209,99 +209,99 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o nsize nsize.o $(LFLAGS) $(LLIBS)
 
-3dclust:3dclust.o editvol.o 3ddata.o
+3dclust:3dclust.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dclust 3dclust.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dclust 3dclust.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dhistog:3dhistog.o editvol.o 3ddata.o
+3dhistog:3dhistog.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dhistog 3dhistog.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dhistog 3dhistog.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dmerge:3dmerge.o editvol.o 3ddata.o
+3dmerge:3dmerge.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dmerge 3dmerge.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dmerge 3dmerge.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dcalc:3dcalc.o editvol.o 3ddata.o parser.o parser_int.o
+3dcalc:3dcalc.o editvol.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dcalc 3dcalc.o editvol.o 3ddata.o parser.o parser_int.o \
+	$(CC) -o 3dcalc 3dcalc.o editvol.o parser.o parser_int.o \
               $(LFLAGS) -lf2c $(LLIBS)
 
-d3dmerge:3dmerge.c editvol.c 3ddata.c editvol.h
+d3dmerge:3dmerge.c editvol.c editvol.h
 	$(RM) $@
-	$(CCD) -o d3dmerge 3dmerge.c editvol.c 3ddata.c $(LFLAGS) $(LLIBS)
+	$(CCD) -o d3dmerge 3dmerge.c editvol.c $(LFLAGS) $(LLIBS)
 
-3dttest:3dttest.o editvol.o 3ddata.o
+3dttest:3dttest.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dttest 3dttest.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dttest 3dttest.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dpc:3dpc.o 3ddata.o editvol.o
+3dpc:3dpc.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dpc 3dpc.o 3ddata.o editvol.o $(LFLAGS) $(LLAPACK) $(LLIBS)
+	$(CC) -o 3dpc 3dpc.o editvol.o $(LFLAGS) $(LLAPACK) $(LLIBS)
 
-3ddot:3ddot.o 3ddata.o editvol.o
+3ddot:3ddot.o editvol.o
 	$(RM) $@
-	$(CC) -o 3ddot 3ddot.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3ddot 3ddot.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dANOVA:3dANOVA.o editvol.o 3ddata.o
+3dANOVA:3dANOVA.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dANOVA 3dANOVA.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dANOVA 3dANOVA.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dANOVA2:3dANOVA2.o editvol.o 3ddata.o
+3dANOVA2:3dANOVA2.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dANOVA2 3dANOVA2.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dANOVA2 3dANOVA2.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dANOVA3:3dANOVA3.o editvol.o 3ddata.o
+3dANOVA3:3dANOVA3.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dANOVA3 3dANOVA3.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dANOVA3 3dANOVA3.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dNLfim:3dNLfim.o 3ddata.o editvol.o
+3dNLfim:3dNLfim.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dNLfim 3dNLfim.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dNLfim 3dNLfim.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dTSgen:3dTSgen.o 3ddata.o editvol.o
+3dTSgen:3dTSgen.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dTSgen 3dTSgen.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dTSgen 3dTSgen.o editvol.o $(LFLAGS) $(LLIBS)
 
-AlphaSim:AlphaSim.o editvol.o 3ddata.o
+AlphaSim:AlphaSim.o editvol.o
 	$(RM) $@
-	$(CC) -o AlphaSim AlphaSim.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o AlphaSim AlphaSim.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dFWHM:3dFWHM.o editvol.o 3ddata.o
+3dFWHM:3dFWHM.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dFWHM 3dFWHM.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dFWHM 3dFWHM.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dMannWhitney:3dMannWhitney.o editvol.o 3ddata.o
+3dMannWhitney:3dMannWhitney.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dMannWhitney 3dMannWhitney.o editvol.o 3ddata.o \
+	$(CC) -o 3dMannWhitney 3dMannWhitney.o editvol.o \
                         $(LFLAGS) $(LLIBS)
 
-3dWilcoxon:3dWilcoxon.o editvol.o 3ddata.o
+3dWilcoxon:3dWilcoxon.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dWilcoxon 3dWilcoxon.o editvol.o 3ddata.o \
+	$(CC) -o 3dWilcoxon 3dWilcoxon.o editvol.o \
                         $(LFLAGS) $(LLIBS)
 
-3dKruskalWallis:3dKruskalWallis.o editvol.o 3ddata.o
+3dKruskalWallis:3dKruskalWallis.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dKruskalWallis 3dKruskalWallis.o editvol.o 3ddata.o \
+	$(CC) -o 3dKruskalWallis 3dKruskalWallis.o editvol.o \
                         $(LFLAGS) $(LLIBS)
 
-3dFriedman:3dFriedman.o editvol.o 3ddata.o
+3dFriedman:3dFriedman.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dFriedman 3dFriedman.o editvol.o 3ddata.o \
+	$(CC) -o 3dFriedman 3dFriedman.o editvol.o \
                         $(LFLAGS) $(LLIBS)
 
-3dRegAna:3dRegAna.o editvol.o 3ddata.o
+3dRegAna:3dRegAna.o editvol.o
 	$(RM) $@
-	$(CC) -o 3dRegAna 3dRegAna.o editvol.o 3ddata.o \
+	$(CC) -o 3dRegAna 3dRegAna.o editvol.o \
                         $(LFLAGS) $(LLIBS)
 
 waver:waver.o
 	$(RM) $@
 	$(CC) -o waver waver.o $(LFLAGS) $(LLIBS)
 
-3dnewid:3dnewid.o 3ddata.o
+3dnewid:3dnewid.o
 	$(RM) $@
-	$(CC) -o 3dnewid 3dnewid.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dnewid 3dnewid.o $(LFLAGS) $(LLIBS)
 
 .c.o:
 	$(RM) $@
@@ -310,7 +310,7 @@ waver:waver.o
 dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
       dafni_slice_complex.o  dafni_pcor_float.o  LiteClue.o    \
       afni.c afni_func.c afni_widg.c afni_warp.c afni_fimmer.c \
-      3ddata.c pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_setup.c  \
+      pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_setup.c  \
       afni_pcor.c afni_pcor_update.c editvol.c afni_plugin.c 3dmaker.c  \
       parser.c parser_int.c iochan.c afni_plugout.c afni_plugout.c
 	$(CCD) -o dafni $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE \
@@ -318,21 +318,21 @@ dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
                 dafni_slice_short.o dafni_slice_float.o  LiteClue.o \
                 dafni_slice_byte.o  dafni_slice_complex.o afni_fimmer.c \
                 dafni_pcor_float.o editvol.c parser.c parser_int.c iochan.c \
-                3ddata.c pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_pcor.c \
+                pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_pcor.c \
                 afni_plugin.c 3dmaker.c afni_plugout.c afni_setup.c \
                 $(PLFLAGS) -lf2c $(LLIBS)
 	$(RM) afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o afni_pcor.o \
-              3ddata.o pbar.o display.o imseq.o bbox.o xim.o xutil.o \
+              pbar.o display.o imseq.o bbox.o xim.o xutil.o \
               parser.o parser_int.o iochan.o afni_plugout.o afni_setup.o \
               dafni_pcor_float.o editvol.o afni_graph.o afni_plugin.o 3dmaker.o \
               dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
               dafni_slice_complex.o
 
-dto3d:to3d.c 3ddata.c display.c imseq.c bbox.c xim.c xutil.c
+dto3d:to3d.c display.c imseq.c bbox.c xim.c xutil.c
 	$(CCD) -o dto3d $(IFLAGS) \
-               to3d.c 3ddata.c display.c imseq.c bbox.c xim.c xutil.c \
+               to3d.c display.c imseq.c bbox.c xim.c xutil.c \
                $(LFLAGS) $(LLIBS)
-	$(RM) to3d.o 3ddata.o display.o imseq.o bbox.o xim.o xutil.o
+	$(RM) to3d.o display.o imseq.o bbox.o xim.o xutil.o
 
 ### Special compilations for the reslicing routines, which
 ### are templates that require definition of the data type
@@ -523,8 +523,6 @@ install_lib:
 ###################################################################
 # some dependencies (not complete)
 
-3ddata.o:killer.h vecmat.h machdep.h 3ddata.h compressor.h compressor.c
-
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
        afni_graph.h afni_setup.h machdep.h
 
@@ -568,7 +566,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o \
            mri_add_name.o mri_histog.o mri_nsize.o mri_lsqfit.o mri_sobel.o \
            csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o \
-           mri_transpose.o mri_shifter.o
+           mri_transpose.o mri_shifter.o mcw_glob.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -585,10 +583,24 @@ CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_72.o cdf_73.o cdf_74.o cdf_75.o cdf_76.o cdf_77.o \
            cdf_78.o cdf_79.o cdf_80.o
 
-libmri.a:mrilib.h $(MRI_OBJS) $(CDF_OBJS) mcw_glob.o
+THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
+           thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o   \
+           thd_bstats.o thd_fdbrick.o thd_initdkptr.o thd_statpval.o  \
+           thd_compress.o thd_fdto1D.o thd_initprefix.o thd_timeof.o  \
+           thd_coords.o thd_fdto2D.o thd_initsess.o thd_warps.o        \
+           thd_countb.o thd_filestuff.o thd_linecount.o thd_writeatr.o  \
+           thd_delete.o thd_forcemalloc.o thd_loaddblk.o thd_writedblk.o \
+           thd_dsetdblk.o thd_get1D.o thd_manydset.o thd_writedset.o    \
+           thd_dsetinsess.o  thd_idcode.o thd_opendset.o thd_zblock.o  \
+           thd_dsetinslist.o thd_info.o thd_purgedblk.o
+
+libmri.a:mrilib.h 3ddata.h thd.h $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS)
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) mcw_glob.o
+	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS)
 	$(RANLIB) libmri.a
+
+thd_compress.o:thd_compress.h
+mcw_glob.o:mcw_glob.h
 
 ###################################################################
 # Plugin stuff
@@ -634,9 +646,9 @@ plug_realtime.$(SO):plug_realtime.c iochan.h
 	$(PLUGIN_CC) -c plug_realtime.c $(IFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_realtime.$(SO) plug_realtime.o
 
-epsim:epsim.o iochan.o 3ddata.o
+epsim:epsim.o iochan.o
 	$(RM) $@
-	$(CC) -o epsim epsim.o iochan.o 3ddata.o $(LFLAGS) $(LLIBS)
+	$(CC) -o epsim epsim.o iochan.o $(LFLAGS) $(LLIBS)
 
 plugout_tt:plugout_tt.o iochan.o
 	$(RM) $@

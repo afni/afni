@@ -1,12 +1,11 @@
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- This software is Copyright 1994, 1995 by
+ This software is Copyright 1994-8 by
       Medical College of Wisconsin
       8701 Watertown Plank Road
       Milwaukee, WI 53226
 
  License is granted to use this program for nonprofit research purposes only.
- It is specifically against the license to use this program for any clinical
- application. The Medical College of Wisconsin makes no warranty of usefulness
+ The Medical College of Wisconsin makes no warranty of usefulness
  of this program for any particular purpose.  The redistribution of this
  software for a fee, or the derivation of for-profit works from this program
  is not allowed.
@@ -532,6 +531,10 @@ extern double poisson_t2p ( double xx , double lambda ) ;
 
 /*-----------------  01 Feb 1998: incoroporation of mcw_glob -------------*/
 #include "mcw_glob.h"
+/*------------------------------------------------------------------------*/
+
+/*-----------------  02 Feb 1998: incoroporation of 3ddata ---------------*/
+#include "3ddata.h"
 /*------------------------------------------------------------------------*/
 
 #endif /* _MCW_MRILIB_HEADER_ */

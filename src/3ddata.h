@@ -23,7 +23,7 @@
 
 #define ALLOW_COMPRESSOR
 #ifdef  ALLOW_COMPRESSOR
-#  include "compressor.h"
+#  include "thd_compress.h"
 #endif
 
 #ifndef myXtFree

@@ -1,0 +1,241 @@
+#include "3ddata.h"
+#include "thd.h"
+
+
+/*--------------------------------------------------------------
+   SARR: string array routines (not easily coded as macros)
+
+     SARR_find_string: return index of string in the array
+     SARR_find_substring: return index of string that has substring in it
+
+   If these return value < 0, string or substring not found!
+----------------------------------------------------------------*/
+
+int SARR_find_string( THD_string_array * sar , char * str )
+{
+   return SARR_lookfor_string( sar , str , 0 ) ;
+}
+
+int SARR_find_substring( THD_string_array * sar , char * str )
+{
+   return SARR_lookfor_substring( sar , str , 0 ) ;
+}
+
+int SARR_lookfor_string( THD_string_array * sar , char * str , int nstart )
+{
+   int ii ;
+
+   if( sar == NULL || str == NULL ) return -1 ;
+
+   for( ii=nstart ; ii < sar->num ; ii++ ){
+      if( sar->ar[ii] != NULL && strcmp(sar->ar[ii],str) == 0 )
+         return ii ;
+   }
+   return -1 ;
+}
+
+int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nstart )
+{
+   int ii ;
+
+   if( sar == NULL || sub == NULL ) return -1 ;
+
+   for( ii=nstart ; ii < sar->num ; ii++ ){
+      if( sar->ar[ii] != NULL && strstr(sar->ar[ii],sub) != NULL )
+         return ii ;
+   }
+   return -1 ;
+}
+
+/*--------------------------------------------------------------
+   routines to return an alphabetized list of all the entries
+   in a directory that don't begin with '.'
+
+   01 Feb 1998: modified to avoid use of scandir routine.
+----------------------------------------------------------------*/
+
+#ifndef DONT_USE_SCANDIR
+#  ifdef SCANDIR_WANTS_CONST
+      int THD_select_dirent( const struct dirent * dp )
+#  else
+      int THD_select_dirent( struct dirent * dp )
+#  endif
+      {
+         if( dp == NULL || dp->d_name[0] == '\0' || dp->d_name[0] == '.' )
+            return 0 ;
+         return 1 ;
+      }
+#endif
+
+THD_string_array * THD_get_all_filenames( char * dirname )
+{
+#ifndef DONT_USE_SCANDIR
+   struct dirent ** dplist=NULL ;
+#endif
+   int nfiles , dlen , ii , n_fname , max_fname ;
+   THD_string_array * star ;
+   char * total_dirname , * total_fname ;
+   char ** gname=NULL ;
+
+   if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) return NULL ;
+   if( ! THD_is_directory(dirname) )                    return NULL ;
+
+   total_dirname = XtMalloc( dlen+4 ) ;
+   strcpy( total_dirname , dirname ) ;
+   if( total_dirname[dlen-1] != '/' ){
+      total_dirname[dlen]   = '/' ;     /* add a slash */
+      total_dirname[++dlen] = '\0' ;
+   }
+
+#ifdef DONT_USE_SCANDIR
+   total_dirname[dlen]   = '*' ;                            /* add wildcard */
+   total_dirname[++dlen] = '\0' ;
+   MCW_file_expand( 1, &total_dirname, &nfiles, &gname ) ;  /* find files */
+#else
+   nfiles = scandir( dirname ,
+                     &dplist ,
+                     THD_select_dirent ,
+                     alphasort ) ;
+#endif
+
+   if( nfiles < 1 ){
+       myXtFree( total_dirname ) ;
+#ifdef DONT_USE_SCANDIR
+       if( gname != NULL ) free(gname) ;
+#else
+       if( dplist != NULL ) free(dplist) ;
+#endif
+       return NULL ;
+   }
+
+   INIT_SARR( star ) ;
+
+#ifndef DONT_USE_SCANDIR
+   max_fname   = dlen+64 ;
+   total_fname = XtMalloc( max_fname ) ;
+#endif
+
+   for( ii=0 ; ii < nfiles ; ii++ ){
+#ifdef DONT_USE_SCANDIR
+      ADDTO_SARR( star , gname[ii] ) ;
+#else
+      n_fname = dlen + strlen( dplist[ii]->d_name ) + 4 ;
+      if( n_fname > max_fname ){
+         total_fname = XtRealloc( total_fname , n_fname ) ;
+         max_fname   = n_fname ;
+      }
+      strcpy( total_fname , total_dirname ) ;
+      strcat( total_fname , dplist[ii]->d_name ) ;
+      ADDTO_SARR( star , total_fname ) ;
+      free( dplist[ii] ) ;
+#endif
+   }
+
+   myXtFree( total_dirname ) ;
+#ifdef DONT_USE_SCANDIR
+   MCW_free_expand( nfiles , gname ) ;
+#else
+   myXtFree( total_fname ) ;
+   free( dplist ) ;
+#endif
+   return star ;
+}
+
+/*------------------------------------------------------------------
+  Returns a list of all subdirectories under the input,
+  recursively to level "lev", including the input directory.
+--------------------------------------------------------------------*/
+
+THD_string_array * THD_get_all_subdirs( int lev , char * dirname )
+{
+   int ii , jj , dlen ;
+   THD_string_array * star , * flist , * dlist ;
+   char * total_dirname ;
+
+   if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) return NULL ;
+
+   total_dirname = XtMalloc( dlen+2 ) ;
+   strcpy( total_dirname , dirname ) ;
+   if( total_dirname[dlen-1] != '/' ){
+      total_dirname[dlen]   = '/' ;
+      total_dirname[++dlen] = '\0' ;
+   }
+
+   INIT_SARR( star ) ;
+   ADDTO_SARR( star , total_dirname ) ;
+
+   /** want only this level? **/
+
+   if( lev <= 0 ) return star ;
+
+   /** must want deeper levels **/
+
+   flist = THD_get_all_filenames( total_dirname ) ;
+   myXtFree(total_dirname) ;
+
+   if( flist == NULL ) return star ;
+   if( flist->num == 0 ){ DESTROY_SARR(flist) ; return star ; }
+
+   dlist = THD_extract_directories( flist ) ;
+   DESTROY_SARR(flist) ;
+   if( dlist == NULL ) return star ;
+   if( dlist->num == 0 ){ DESTROY_SARR(dlist) ; return star ; }
+
+   for( ii=0 ; ii < dlist->num ; ii++ ){
+      flist = THD_get_all_subdirs( lev-1 , dlist->ar[ii] ) ;
+      if( flist == NULL ) continue ;
+      for( jj=0 ; jj < flist->num ; jj++ ){
+         ADDTO_SARR( star , flist->ar[jj] ) ;
+      }
+      DESTROY_SARR(flist) ;
+   }
+
+   DESTROY_SARR(dlist) ;
+   return star ;
+}
+
+/*-------------------------------------------------------
+   take a list of filenames and extract a new list
+   consisting only of regular files
+---------------------------------------------------------*/
+
+THD_string_array * THD_extract_regular_files( THD_string_array * star_in )
+{
+   THD_string_array * star_out ;
+   int ii ;
+
+   if( star_in == NULL || star_in->num <= 0 ) return NULL ;
+
+   INIT_SARR(star_out) ;
+
+   for( ii=0 ; ii < star_in->num ; ii++ ){
+      if( THD_is_file(star_in->ar[ii]) )
+         ADDTO_SARR( star_out , star_in->ar[ii] ) ;
+   }
+
+   if( star_out->num == 0 ) DESTROY_SARR(star_out) ;
+   return star_out ;
+}
+
+/*-------------------------------------------------------
+   take a list of filenames and extract a new list
+   consisting only of directories
+---------------------------------------------------------*/
+
+THD_string_array * THD_extract_directories( THD_string_array * star_in )
+{
+   THD_string_array * star_out ;
+   int ii ;
+
+   if( star_in == NULL || star_in->num <= 0 ) return NULL ;
+
+   INIT_SARR(star_out) ;
+
+   for( ii=0 ; ii < star_in->num ; ii++ ){
+      if( THD_is_directory(star_in->ar[ii]) )
+         ADDTO_SARR( star_out , star_in->ar[ii] ) ;
+   }
+
+   if( star_out->num == 0 ) DESTROY_SARR(star_out) ;
+   return star_out ;
+}
