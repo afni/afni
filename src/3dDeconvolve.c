@@ -1692,7 +1692,7 @@ void read_input_data
   else if (option_data->input_filename != NULL)
     {
       /*----- Read the input 3d+time dataset -----*/
-      *dset_time = THD_open_one_dataset (option_data->input_filename);
+      *dset_time = THD_open_dataset (option_data->input_filename);
       if (!ISVALID_3DIM_DATASET(*dset_time))
 	{
 	  sprintf (message,  "Unable to open data file: %s",
@@ -1702,6 +1702,20 @@ void read_input_data
       THD_load_datablock ((*dset_time)->dblk);
       nt = DSET_NUM_TIMES (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
+
+      if( DSET_IS_TCAT(*dset_time) ){  /** 04 Aug 2004 **/
+        if( option_data->concat_filename != NULL ){
+          fprintf(stderr,
+             "** WARNING: -concat %s is ignored, since input dataset is catenated\n" ,
+             option_data->concat_filename ) ;
+          option_data->concat_filename = NULL ;
+        }
+        *num_blocks = (*dset_time)->tcat_num ;
+        *block_list = (int *) malloc (sizeof(int) * (*num_blocks));
+        (*block_list)[0] = 0;
+        for( it=0 ; it < (*num_blocks)-1 ; it++ )
+          (*block_list)[it+1] = (*block_list)[it] + (*dset_time)->tcat_len[it] ;
+      }
 
 
       if (option_data->mask_filename != NULL)
@@ -1718,7 +1732,7 @@ void read_input_data
 	    }
 
 	  /*----- If mask is used, check for compatible dimensions -----*/
-	  if ( (DSET_NX(*dset_time) != DSET_NX(mask_dset))
+	  if (    (DSET_NX(*dset_time) != DSET_NX(mask_dset))
 	       || (DSET_NY(*dset_time) != DSET_NY(mask_dset))
 	       || (DSET_NZ(*dset_time) != DSET_NZ(mask_dset)) )
 	    {
@@ -3720,7 +3734,7 @@ void cubic_spline
 
 
   /*----- Initialize local variables -----*/
-  dset = THD_open_one_dataset (option_data->input_filename);
+  dset = THD_open_dataset (option_data->input_filename);
   n = ts_length - 1;
   tdelta = dset->taxis->ttdel;
   nx = dset->daxes->nxx;   ny = dset->daxes->nyy;   nz = dset->daxes->nzz;
@@ -3873,7 +3887,7 @@ void write_ts_array
 
   /*----- Initialize local variables -----*/
   input_filename = option_data->input_filename;
-  dset = THD_open_one_dataset (input_filename);
+  dset = THD_open_dataset (input_filename);
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
   newtr = DSET_TIMESTEP(dset) / nptr;
 
@@ -4087,7 +4101,7 @@ void write_bucket_data
   int cbuck , bout,cout ;
 
   /*----- read prototype dataset -----*/
-  old_dset = THD_open_one_dataset (option_data->input_filename);
+  old_dset = THD_open_dataset (option_data->input_filename);
 
   bout = !option_data->nobout ;
   cout = !option_data->nocout ;
@@ -4187,8 +4201,13 @@ void write_bucket_data
 
   /*----- save names for future xsave-ing -----*/
   if( xsave ){
-    InputFilename  = strdup(THD_trailname(DSET_HEADNAME(old_dset),0)) ;
+    if( DSET_IS_TCAT(old_dset) )
+      InputFilename = strdup(old_dset->tcat_list) ;
+    else
+      InputFilename  = strdup(THD_trailname(DSET_HEADNAME(old_dset),0)) ;
+
     BucketFilename = strdup(THD_trailname(DSET_HEADNAME(new_dset),0)) ;
+
     if( coef_dset != NULL )
       CoefFilename = strdup(THD_trailname(DSET_HEADNAME(coef_dset),0)) ;
   }
@@ -5708,17 +5727,17 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
    /*----- read input time series dataset -----*/
 
    if( verb ) fprintf(stderr,"++ loading time series dataset %s\n",InputFilename);
-   dset_time = THD_open_one_dataset( InputFilename ) ;
+   dset_time = THD_open_dataset( InputFilename ) ;
    if( dset_time == NULL ){
      fprintf(stderr,
-             "** ERROR: -xrestore can't open time series dataset %s\n" ,
+             "** ERROR: -xrestore can't open time series dataset '%s'\n" ,
              InputFilename ) ;
      exit(1) ;
    }
    DSET_load( dset_time ) ;
    if( !DSET_LOADED(dset_time) ){
      fprintf(stderr,
-             "** ERROR: -xrestore can't load time series dataset %s\n" ,
+             "** ERROR: -xrestore can't load time series dataset '%s'\n" ,
              InputFilename ) ;
      exit(1) ;
    }
@@ -5730,7 +5749,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
    dset_coef = NULL ;
    if( CoefFilename != NULL ){
      if( verb) fprintf(stderr,"++ loading coefficient dataset %s\n",CoefFilename);
-     dset_coef = THD_open_one_dataset( CoefFilename ) ;
+     dset_coef = THD_open_dataset( CoefFilename ) ;
      if( dset_coef == NULL ){
        fprintf(stderr,
                "** WARNING: -xrestore can't open coefficient dataset %s\n",
@@ -5761,7 +5780,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    if( dset_coef == NULL && BucketFilename != NULL && ParamIndex != NULL ){
      if( verb ) fprintf(stderr,"++ loading original bucket dataset %s\n",BucketFilename) ;
-     dset_coef = THD_open_one_dataset( BucketFilename ) ;
+     dset_coef = THD_open_dataset( BucketFilename ) ;
      if( dset_coef == NULL ){
        fprintf(stderr,
                "** WARNING: -xrestore can't open old bucket dataset %s\n",
@@ -5982,7 +6001,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
    strcpy(buck_name,buck_prefix) ;
    strcat(buck_name,"+") ; strcat(buck_name,VIEW_codestr[view]) ;
 
-   dset_buck = THD_open_one_dataset( buck_name ) ;
+   dset_buck = THD_open_dataset( buck_name ) ;
 
    if( dset_buck != NULL ){
 
@@ -5990,7 +6009,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
      DSET_mallocize( dset_buck ) ;
      if( DSET_NVOX(dset_buck) != nxyz ){
        fprintf(stderr,
-               "** ERROR: dataset %s mismatch with %s\n" ,
+               "** ERROR: dataset %s mismatch with time series '%s'\n" ,
                buck_name , DSET_HEADNAME(dset_time)       );
        exit(0) ;
      }

@@ -1173,7 +1173,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_mincwrite.o thd_mnicoords.o thd_strfunc.o                  \
            thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o   \
            thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o       \
-           thd_brainormalize.o
+           thd_brainormalize.o thd_opentcat.o
 
 # these are now included in NIML
 

@@ -100,6 +100,16 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      RETURN( False ) ;
    }
 
+   { THD_3dim_dataset *ds = (THD_3dim_dataset *)blk->parent ;  /* 04 Aug 2004 */
+     if( ISVALID_DSET(ds) && DSET_IS_TCAT(ds) ){
+       THD_load_tcat( blk ) ;
+       ii = THD_count_databricks( blk ) ;
+       if( ii == blk->nvals ) RETURN( True ) ;
+       STATUS("can't read tcat-ed file?!") ;
+       RETURN( False ) ;
+     }
+   }
+
    if( dkptr->storage_mode == STORAGE_BY_ANALYZE ){
      THD_load_analyze( blk ) ;
      ii = THD_count_databricks( blk ) ;

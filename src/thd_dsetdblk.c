@@ -55,9 +55,10 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    dset->wod_daxes = NULL ;  /* 02 Nov 1996 */
 
    dset->wod_flag    = False ;  /* set special flags */
-   dset->merger_list = NULL ;
-   dset->merger_func = NULL ;
    dset->death_mark  = 0 ;
+   dset->tcat_list   = NULL ;
+   dset->tcat_num    = 0 ;
+   dset->tcat_len    = NULL ;
 
    ADDTO_KILL(dset->kl,daxes) ;
 
