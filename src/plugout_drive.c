@@ -7,6 +7,7 @@
     SET_ANATOMY  Q.prefix
     SET_FUNCTION Q.prefix
     OPEN_WINDOW  Q.windowname
+    CLOSE_WINDOW Q.windowname
     QUIT
 
   where "Q" is the letter for the AFNI controller you are
@@ -19,6 +20,11 @@
                    switch to (must be in the current session)
     windowname = axialimage OR coronalimage OR sagittalimage
                  OR axialgraph OR coronalgraph OR sagittalgraph
+
+  Doing OPEN_WINDOW or CLOSE_WINDOW on just the single letter Q
+  will open or close controller Q itself.  However, you cannot
+  use CLOSE_WINDOW to kill AFNI - it won't close the last
+  controller window.
 
 *******************************************************************/
 

@@ -25,6 +25,7 @@ static AFNI_driver_pair dpair[] = {
  { "SWITCH_ANATOMY"   , AFNI_drive_switch_anatomy    } ,
  { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
  { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,
+ { "CLOSE_WINDOW"     , AFNI_drive_close_window      } ,
  { "QUIT"             , AFNI_drive_quit              } ,
 
  { NULL , NULL } } ;
@@ -275,8 +276,12 @@ ENTRY("AFNI_drive_open_window") ;
       im3d = GLOBAL_library.controllers[ic] ;
       if( !IM3D_VALID(im3d) ) RETURN(-1) ;   /* should never happen */
    }
-   if( !IM3D_OPEN(im3d) )                    /* make sure is visible */
+   if( !IM3D_OPEN(im3d) ){                   /* make sure is visible */
       OPEN_CONTROLLER(im3d) ;
+      AFNI_initialize_controller( im3d ) ;   /* decide what to see */
+      AFNI_initialize_view( NULL , im3d ) ;  /* set up to see it */
+      AFNI_controller_clonify() ;
+   }
 
    if( strlen(cmd) < 3 ) RETURN(0) ;         /* no window? */
 
@@ -299,6 +304,62 @@ ENTRY("AFNI_drive_open_window") ;
 
    else if( strstr(cmd,"coronalgraph") != NULL )
           AFNI_view_xyz_CB( im3d->vwid->imag->graph_zxy_pb, im3d, NULL ) ;
+
+   else
+          RETURN(-1) ;
+
+   RETURN(0) ;
+}
+
+/*--------------------------------------------------------------------
+  Close a window in the controller.
+  Input is a string of the form A.sagittalimage, etc.
+  Return value is 0 if good, -1 if bad.
+-------------------------------------------------------------------*/
+
+int AFNI_drive_close_window( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_drive_close_window") ;
+
+   /* make sure the controller itself is open */
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ) ic = 0 ;
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;       /* that was easy */
+
+   if( strlen(cmd) < 3 ){                    /* close the controller */
+      if( AFNI_count_controllers() > 1 ){    /* but only if there is */
+         CLOSE_CONTROLLER(im3d); RETURN(0);  /* at least 1 more open */
+      }
+      RETURN(-1) ;                           /* can't close last controller */
+   }
+
+   /* close a window */
+
+
+
+        if( strstr(cmd,"axialimage") != NULL )
+          drive_MCW_imseq( im3d->s123 , isqDR_destroy , NULL ) ;
+
+   else if( strstr(cmd,"sagittalimage") != NULL )
+          drive_MCW_imseq( im3d->s231 , isqDR_destroy , NULL ) ;
+
+   else if( strstr(cmd,"coronalimage") != NULL )
+          drive_MCW_imseq( im3d->s312 , isqDR_destroy , NULL ) ;
+
+   else if( strstr(cmd,"axialgraph") != NULL )
+          drive_MCW_grapher( im3d->g123 , graDR_destroy , NULL ) ;
+
+   else if( strstr(cmd,"sagittalgraph") != NULL )
+          drive_MCW_grapher( im3d->g231 , graDR_destroy , NULL ) ;
+
+   else if( strstr(cmd,"coronalgraph") != NULL )
+          drive_MCW_grapher( im3d->g312 , graDR_destroy , NULL ) ;
 
    else
           RETURN(-1) ;

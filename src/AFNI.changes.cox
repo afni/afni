@@ -3293,7 +3293,8 @@
      to "DRIVE_AFNI" commands.
  * Added afni_driver.c and AFNI_driver() function to carry out some
      user interface functionality from a plugout:
-       - open windows
+       - open windows, close windows
        - switch sessions, datasets
        - rescan this
        - quit
+ * Added a button to the Datamode->Misc menu to start plugouts.

@@ -4892,6 +4892,29 @@ ENTRY("AFNI_misc_button") ;
                   AFNI_save_layout_CB , im3d ) ;
    MCW_register_hint( dmode->misc_savelayout_pb , "Save windows layout to file" ) ;
 
+   /*--- 07 Nov 2001: start plugouts [see afni_plugout.c] ---*/
+
+#ifdef ALLOW_PLUGINS
+   if( !ALLOW_real_time && !AFNI_have_plugouts() ){
+      dmode->misc_plugout_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , menu ,
+                  LABEL_ARG("Start Plugouts") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( dmode->misc_plugout_pb , XmNactivateCallback ,
+                     AFNI_misc_CB , im3d ) ;
+      MCW_register_hint( dmode->misc_plugout_pb ,
+                         "Start listening for plugouts" ) ;
+   } else {
+      dmode->misc_plugout_pb = NULL ;
+   }
+#else
+   dmode->misc_plugout_pb = NULL ;
+#endif
+
    /*--- Utility buttons ---*/
 
    (void) XtVaCreateManagedWidget(

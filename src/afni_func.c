@@ -4428,7 +4428,7 @@ void AFNI_misc_CB( Widget w , XtPointer cd , XtPointer cbd )
 
 ENTRY("AFNI_misc_CB") ;
 
-   if( ! IM3D_OPEN(im3d) || w == NULL ) EXRETURN ;
+   if( !IM3D_OPEN(im3d) || w == NULL ) EXRETURN ;
 
    /*.........................................................*/
 
@@ -4732,7 +4732,14 @@ STATUS("got func info") ;
       XtMapWidget( wpop ) ;  /* after this, is up to user */
       RWC_visibilize_widget( wpop ) ;
    }
-#endif
+
+   /*.........................................................*/
+
+   else if( w == im3d->vwid->dmode->misc_plugout_pb ){ /* 07 Nov 2001 */
+      AFNI_init_plugouts() ;
+      XtSetSensitive(w,False) ;
+   }
+#endif /* ALLOW_PLUGINS
 
    /*.........................................................*/
 

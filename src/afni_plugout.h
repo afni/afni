@@ -7,7 +7,8 @@
 #ifndef _AFNI_PLUGOUT_HEADER_
 #define _AFNI_PLUGOUT_HEADER_
 
-void AFNI_init_plugouts( void ) ;  /* prototype */
+extern void AFNI_init_plugouts( void ) ;  /* prototypes */
+extern int AFNI_have_plugouts( void ) ;   /* 07 Nov 2001 */
 
 #ifdef ALLOW_PLUGINS
 

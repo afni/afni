@@ -1279,9 +1279,9 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
            sprintf(str,"\n Plugins       = %d libraries read",nplug) ;
            REPORT_PROGRESS(str) ;
 
-           if( ! GLOBAL_argopt.noplugouts && ! ALLOW_real_time ){  /* June 1997 */
-
+           if( !GLOBAL_argopt.noplugouts && !ALLOW_real_time ){  /* June 1997 */
                AFNI_init_plugouts() ;
+               XtSetSensitive(MAIN_im3d->vwid->dmode->misc_plugout_pb,False) ; /* 07 Nov 2001 */
                REPORT_PROGRESS("\n Plugouts      = listening for connections") ;
            }
         }
@@ -4006,6 +4006,7 @@ ENTRY("AFNI_view_xyz_CB") ;
     SHOW_AFNI_PAUSE ;
 
     if( snew != NULL ){
+STATUS("opening an image window") ;
       MCW_invert_widget(pboff) ;
       *snew = open_MCW_imseq( im3d->dc, AFNI_brick_to_mri, (XtPointer) brnew ) ;
 
@@ -4092,6 +4093,8 @@ STATUS("setting image viewer 'sides'") ;
 
     if( gnew != NULL && DSET_GRAPHABLE(brnew->dset) ){
        MCW_grapher * gr ;
+
+STATUS("opening a graph window") ;
 
        MCW_invert_widget(pboff) ;
        gr = new_MCW_grapher( im3d->dc , AFNI_brick_to_mri , (XtPointer) brnew ) ;

@@ -19,6 +19,12 @@ static PLUGOUT_spec ** pout = NULL ;    /* malloc-ed array of plugouts */
 #undef RETRY
 static int verbose = 0 ;  /* 28 April 1998 */
 
+static int started = 0 ;  /* 07 Nov 2001 */
+
+/*-----------------------------------------------------------------------*/
+
+int AFNI_have_plugouts( void ){ return started ; }  /* 07 Nov 2001 */
+
 /*-----------------------------------------------------------------------
   Initialize plugouts: setup the work process
 -------------------------------------------------------------------------*/
@@ -26,12 +32,15 @@ static int verbose = 0 ;  /* 28 April 1998 */
 void AFNI_init_plugouts( void )
 {
 ENTRY("AFNI_init_plugouts") ;
+
+   if( started ) EXRETURN ;  /* 07 Nov 2001 */
+
    PLUTO_register_workproc( AFNI_plugout_workproc , NULL ) ;
    atexit( AFNI_plugout_exit ) ;
 
    verbose = (GLOBAL_argopt.plugout_code & 1) != 0 ;
 
-   EXRETURN ;
+   started = 1 ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -70,8 +79,6 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
    int jj , ngood , pcode , ii , opcount=0 ;
    PLUGOUT_spec * pp ;
 
-ENTRY("AFNI_plugout_workproc") ;
-
    /*****************************************************/
    /** if no control connection active, listen for one **/
 
@@ -93,7 +100,7 @@ ENTRY("AFNI_plugout_workproc") ;
          if( ioc_control == NULL ){
             iochan_sleep(10*VLONG_DELAY) ;
             fprintf(stderr,"PO: trouble listening for control channel!\n") ;
-            RETURN(False) ;
+            return(False) ;
          }
 #endif
       }
@@ -119,7 +126,7 @@ ENTRY("AFNI_plugout_workproc") ;
          fprintf(stderr,"PO: untrusted host: %s -- connection denied\n" ,
                  ioc_control->name) ;
          IOCHAN_CLOSE(ioc_control) ;
-         RETURN(False) ;
+         return(False) ;
       }
 
       /** read all data possible from the control channel **/
@@ -143,7 +150,7 @@ ENTRY("AFNI_plugout_workproc") ;
 
       if( npobuf < 1 ){
          fprintf(stderr,"PO: control channel sent no data!\n") ;
-         IOCHAN_CLOSE(ioc_control) ; free(pobuf) ; RETURN(False) ;
+         IOCHAN_CLOSE(ioc_control) ; free(pobuf) ; return(False) ;
       }
 
       /** process the input and make a new connection to a plugout program **/
@@ -154,7 +161,7 @@ ENTRY("AFNI_plugout_workproc") ;
          fprintf(stderr,"PO: can't create PLUGOUT_spec.  Input was:\n%s\n",pobuf) ;
          PO_ACK_BAD(ioc_control) ;
          iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
-         free(pobuf) ; RETURN(False) ;
+         free(pobuf) ; return(False) ;
       } else {
          if( pp->do_ack ) PO_ACK_OK(ioc_control) ;
          iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
@@ -203,7 +210,7 @@ ENTRY("AFNI_plugout_workproc") ;
    /* if nothing happened, take a short nap */
 
    if( opcount == 0 ) iochan_sleep(LONG_DELAY) ;
-   RETURN(False) ;
+   return(False) ;
 }
 
 /*------------------------------------------------------------------------
@@ -224,26 +231,24 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
    Three_D_View * im3d ;
    static char pobuf[PO_BUFSIZE] ;
 
-ENTRY("AFNI_process_plugout") ;
-
    /** find the lowest numbered open controller **/
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
       im3d = GLOBAL_library.controllers[ii] ;
       if( IM3D_OPEN(im3d) ) break ;
    }
-   if( ii == MAX_CONTROLLERS ) RETURN(0) ;  /* nothing available? */
+   if( ii == MAX_CONTROLLERS ) return(0) ;  /* nothing available? */
 
    /** if the IOCHAN isn't ready yet, see if it has become ready **/
 
    if( ! pp->ioc_ready ){
       ii = iochan_goodcheck( pp->ioc , SHORT_DELAY ) ;
-      if( ii == 0 ) RETURN( 0) ;   /* still waiting */
+      if( ii == 0 ) return( 0) ;   /* still waiting */
 
       if( ii <  0 ){               /* something bad */
          fprintf(stderr,"PO: plugout %s IOCHAN failed to establish.\n",
                  pp->po_name ) ;
-         RETURN(-1) ;
+         return(-1) ;
       }
 
       pp->ioc_ready = 1 ;          /* mark that it is ready */
@@ -260,7 +265,7 @@ ENTRY("AFNI_process_plugout") ;
 
    if( jj < 0 ){    /* something bad happened */
       fprintf(stderr,"PO: plugout %s has broken connection!\n",pp->po_name) ;
-      RETURN(-1) ;
+      return(-1) ;
    }
 
    if( jj > 0 ){  /* data is incoming! */
@@ -270,7 +275,7 @@ ENTRY("AFNI_process_plugout") ;
      npobuf = iochan_recv( pp->ioc , pobuf , PO_BUFSIZE ) ;
      if( npobuf <= 0 ){
         fprintf(stderr,"PO: failure to read data from plugout %s!\n",pp->po_name) ;
-        RETURN(-1) ;
+        return(-1) ;
      }
 
      /** check it for ASCII NUL termination **/
@@ -363,7 +368,7 @@ ENTRY("AFNI_process_plugout") ;
         PO_SEND( pp->ioc , pobuf ) ;            /* send */
         if( pp->do_ack ){
           jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
-          if( jj == -1 ) RETURN(-1) ;             /* something bad! */
+          if( jj == -1 ) return(-1) ;             /* something bad! */
           jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
           if( verbose )
              fprintf(stderr, (jj > 0) ? "PO: received acknowledgment\n"
@@ -521,7 +526,7 @@ ENTRY("AFNI_process_plugout") ;
          PO_SEND( pp->ioc , pobuf ) ;            /* send */
          if( pp->do_ack ){
            jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
-           if( jj == -1 ) RETURN(-1) ;             /* something bad! */
+           if( jj == -1 ) return(-1) ;             /* something bad! */
            jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
            if( verbose )
              fprintf(stderr, (jj > 0) ? "PO: received acknowledgment\n"
@@ -550,7 +555,7 @@ Proust:
    pp->func_num       = im3d->vinfo->func_num ;
    pp->func_threshold = im3d->vinfo->func_threshold ;
 
-   RETURN(retval) ;
+   return(retval) ;
 }
 
 /*------------------------------------------------------------------------
@@ -709,5 +714,6 @@ ENTRY("new_PLUGOUT_spec") ;
 #else  /* ALLOW_PLUGINS not defined */
 
 void AFNI_init_plugouts( void ){ return ; }
+int AFNI_have_plugouts( void ){ return 0 ; }  /* 07 Nov 2001 */
 
 #endif /* ALLOW_PLUGINS */

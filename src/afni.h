@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.33a"
+#define VERSION "2.33b"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "31 Oct 2001      "
+#define RELEASE "07 Nov 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -571,6 +571,7 @@ typedef struct {
 
       Widget         misc_savelayout_pb ; /* 23 Sep 2000 */
       Widget         misc_license_pb ;    /* 03 Dec 2000 */
+      Widget         misc_plugout_pb ;    /* 07 Nov 2001 */
 
 } AFNI_datamode_widgets ;
 
@@ -1670,6 +1671,7 @@ extern int AFNI_drive_switch_session( char *cmd ) ;
 extern int AFNI_drive_switch_anatomy( char *cmd ) ;
 extern int AFNI_drive_switch_function( char *cmd ) ;
 extern int AFNI_drive_open_window( char *cmd ) ;
+extern int AFNI_drive_close_window( char *cmd ) ;
 extern int AFNI_drive_quit( char *cmd ) ;
 
 /*-------------------------------------------------------*/
