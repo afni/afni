@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.9 (December 22, 2003)"
+#define VERSION "version 4.0 (January 23, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -148,6 +148,10 @@ static char g_history[] =
     "  - added '-keep_norm_dir' option to prevent direction check\n"
     "  - reversed order from '-hist' option (newer at bottom)\n"
     "  - added example with normals to help, along with option descriptions\n"
+    "\n"
+    "4.0  January 23, 2004  [rickr]\n"
+    "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
+    "  - version -> 4.0 to celebrate normals :)\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -932,7 +936,7 @@ ENTRY("get_mappable_surfs");
 
 	so = (SUMA_SurfaceObject *)SUMAg_DOv[count].OP;
 
-	if ( ! SUMA_isINHmappable( so ) )
+	if ( ! so->AnatCorrect )
 	    continue;
 
 	if ( debug > 2 )
