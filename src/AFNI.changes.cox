@@ -2049,3 +2049,6 @@
 
 14 Feb 2000
  * Added -median and -MAD options to 3dTstat.c (but not to plug_stats.c).
+
+29 Feb 2000
+ * Revived the program 3ddot.c and added masking options.
