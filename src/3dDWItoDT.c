@@ -11,7 +11,6 @@
 static char prefix[THD_MAX_PREFIX] = "DT" ;
 static int datum                   = MRI_float ;
 static matrix Rtmat;
-static byte *maskptr;
 static int automask = 0;
 static void Form_R_Matrix(MRI_IMAGE *grad1Dptr);
 static void DWItoDT_tsfunc( double tzero , double tdelta ,
@@ -21,13 +20,13 @@ static void DWItoDT_tsfunc( double tzero , double tdelta ,
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
-   int nopt, nbriks, ii, nvox ;
+   int nopt, nbriks, nvox ;
    int addBriks = 0;
-   int numMultBriks,methIndex,brikIndex;
+   int numMultBriks,methIndex,brikIndex, i;
    MRI_IMAGE *grad1Dptr = NULL;
    MRI_IMAGE *anat_im = NULL;
-   short *sar;
-
+   short *sar=NULL, *tempsptr=NULL, tempval;
+   byte *maskptr=NULL, *tempbptr=NULL;
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dDWItoDT [options] gradient-file dataset\n"
@@ -92,6 +91,7 @@ int main( int argc , char * argv[] )
       }
       if( strcmp(argv[nopt],"-automask") == 0 ){
 	automask = 1;
+        nopt++ ; continue ;
       }
    }
 
@@ -151,15 +151,30 @@ int main( int argc , char * argv[] )
    mri_free(grad1Dptr);
 
    if(automask) {
+     DSET_mallocize(old_dset);
       DSET_load(old_dset);              /* get B0 (anatomical image) from dataset */
-      anat_im = DSET_BRICK(old_dset, 0); /* set the pointer to the 0th sub-brik of the dataset */
+      /*anat_im = THD_extract_float_brick( 0, old_dset ); */
+      anat_im = DSET_BRICK(old_dset, 0); /* set pointer to the 0th sub-brik of the dataset */
       maskptr =  mri_automask_image(anat_im); /* maskptr is a byte pointer for volume */
+
       /* convert byte mask to same format type as dataset */
-      nvox = DSET_NVOX(old_dset); 
+      nvox = DSET_NVOX(old_dset);
       sar = (short *) calloc( nvox , sizeof(short) ) ;
-      /* copy maskptr values to sar ptr */
+      /* copy maskptr values to far ptr */
+      tempsptr = sar;
+      tempbptr = maskptr;
+      for(i=0;i<nvox;i++){
+	*tempsptr++ = (short) *tempbptr++;
+        tempval = *(tempsptr-1);
+      }
+
+      free(maskptr);
+
+      /*old_dset->dblk->malloc_type = DATABLOCK_MEM_MALLOC; */ /* had to set this? */
       EDIT_add_brick( old_dset , MRI_short , 0.0 , sar);  /* add sub-brik to end */
-      }  
+
+
+   }  
 
    /* temporarily set artificial timing to 1 second interval */
    EDIT_dset_items( old_dset ,
@@ -184,8 +199,13 @@ int main( int argc , char * argv[] )
               ) ;
 
    matrix_destroy(&Rtmat);              /* clean up */
-   if(automask)
-     free(maskptr);
+   if(automask){
+      mri_free(anat_im);
+      DSET_unload_one(old_dset,0);
+      /*free(sar); 
+	printf("freed sar\n");*/
+      sar = NULL;
+   }
 
    if( new_dset != NULL ){
       tross_Copy_History( old_dset , new_dset ) ;
@@ -269,6 +289,7 @@ static void DWItoDT_tsfunc( double tzero, double tdelta ,
      For each point in volume brik convert vector data to
      symmetric matrix */
   /* ts should come from data sub-briks in form of I0,I1,...Ip */
+  /* if automask is turned on, ts has Np+2 floating point numbers */
   /* val is output vector of form Dxx Dxy Dxz Dyy Dyz Dzz for each voxel in 6 sub-briks */
   /* the Dij vector is computed as the product of  Rt times ln(I0/Ip)
      where Rt is the pseudo-inverse of the [bxx 2bxy 2bxz byy 2byz bzz] for
@@ -277,7 +298,6 @@ static void DWItoDT_tsfunc( double tzero, double tdelta ,
    if( val == NULL ){
 
       if( npts > 0 ){  /* the "start notification" */
-
          nvox  = npts ;                       /* keep track of   */
          ncall = 0 ;                          /* number of calls */
 
@@ -285,15 +305,17 @@ static void DWItoDT_tsfunc( double tzero, double tdelta ,
 
          /* nothing to do here */
       }
-      return ;
+      EXRETURN ;
    }
+
    ncall++;
    /* if there is an automask turned on, use corresponding voxel in the last sub-brik as a flag */
    if(automask){
-     if (ts[npts-1]==0.0){                              /* don't include this voxel for mask */
-       for(i=0;i<6;i++)                                 /* faster to copy preset vector */
-	 val[i] = 0.0;                                  /* return 0 for all Dxx,Dxy,... */
-       EXRETURN;
+     npts = npts - 1;
+     if (ts[npts]==0){                              /* don't include this voxel for mask */
+        for(i=0;i<6;i++)                                 /* faster to copy preset vector */
+	   val[i] = 0.0;                                  /* return 0 for all Dxx,Dxy,... */
+        EXRETURN;
      }
    }       
    /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
