@@ -44,7 +44,9 @@ ifndef SUMA_LINK_PATH
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
 endif
 ifndef SUMA_LINK_LIB
-SUMA_LINK_LIB = -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lcurses -lm 
+#No need for those unless you are using SUMA_MOTIF_GLXAREA
+#-lMesaGLwM lXm 
+SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXt -lXext -lX11 -lcurses -lm 
 endif
 
 #that one was tried for static linking. Bad idea. Requires libGL.a which crashes with nvidia driver 

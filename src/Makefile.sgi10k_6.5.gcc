@@ -36,7 +36,7 @@ LLIBS  = -lmri -lXm -lXt -lXext -lX11 -lm -lc
 # For suma (NO STATIC LINKING OF GL libs)
 SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I/usr/Motif-2.1/include -I../ -I./ 
 SUMA_LINK_PATH = -L/usr/lib32 -L/usr/X11R6/lib -L../
-SUMA_LINK_LIB = -lm -lGL -lGLU -lGLw -lXmu -lXm -lXt -lXext -lX11
+SUMA_LINK_LIB = -lm -lGL -lGLU -lGLw -lXmu -lXt -lXext -lX11
 SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -1,23 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <Xm/Form.h>    /* Motif Form widget. */
-#include <Xm/Frame.h>   /* Motif Frame widget. */
-#include <X11/keysym.h>
-#include <X11/Xutil.h>
-#include <X11/Xatom.h>  /* For XA_RGB_DEFAULT_MAP. */
-#include <X11/Xmu/StdCmap.h>  /* For XmuLookupStandardColormap. */
-#include <math.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glx.h>
-
-#ifdef SUMA_MOTIF_GLXAREA
-	#include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
-#else
-	#include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
-#endif
-
 #include "SUMA_suma.h"
 
 extern SUMA_SurfaceViewer *SUMAg_cSV;
@@ -338,34 +318,37 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (SUMA_SurfaceViewer *csv, int argc,char
 		}
     csv->X->DOUBLEBUFFER = False;
   }
-  
-  /* Step 4. */
-  csv->X->FORM = XmCreateForm(csv->X->TOPLEVEL, "form", NULL, 0);
-  XtManageChild(csv->X->FORM);
-  csv->X->FRAME = XmCreateFrame(csv->X->FORM, "frame", NULL, 0);
-  XtVaSetValues(csv->X->FRAME,
-    XmNbottomAttachment, XmATTACH_FORM,
-    XmNtopAttachment, XmATTACH_FORM,
-    XmNleftAttachment, XmATTACH_FORM,
-    XmNrightAttachment, XmATTACH_FORM,
-    NULL);
-  XtManageChild(csv->X->FRAME);
 
-  /* Step 5. */
-  csv->X->CMAP = SUMA_getShareableColormap(csv);
-
-  /* Step 6. */
   #ifdef SUMA_MOTIF_GLXAREA
-  	/* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
+	  /* Step 4. */
+	  csv->X->FORM = XmCreateForm(csv->X->TOPLEVEL, "form", NULL, 0);
+	  XtManageChild(csv->X->FORM);
+	  csv->X->FRAME = XmCreateFrame(csv->X->FORM, "frame", NULL, 0);
+	  XtVaSetValues(csv->X->FRAME,
+   	 XmNbottomAttachment, XmATTACH_FORM,
+   	 XmNtopAttachment, XmATTACH_FORM,
+   	 XmNleftAttachment, XmATTACH_FORM,
+   	 XmNrightAttachment, XmATTACH_FORM,
+   	 NULL);
+	  XtManageChild(csv->X->FRAME);
+
+	  /* Step 5. */
+	  csv->X->CMAP = SUMA_getShareableColormap(csv);
+
+	  /* Step 6. */
+	  	/* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
 	  csv->X->GLXAREA = XtVaCreateManagedWidget("glxarea",
    	 glwMDrawingAreaWidgetClass, csv->X->FRAME,
    	 GLwNvisualInfo, csv->X->VISINFO,
    	 XtNcolormap, csv->X->CMAP,
    	 NULL);
   #else
-  	/* glwDrawingAreaWidgetClass requires libMesaGLw.a */
+  /* Step 4-6. */
+ 	  csv->X->CMAP = SUMA_getShareableColormap(csv);
+	
+	/* glwDrawingAreaWidgetClass requires libMesaGLw.a */
 	  csv->X->GLXAREA = XtVaCreateManagedWidget("glxarea",
-   	 glwDrawingAreaWidgetClass, csv->X->FRAME,
+   	 glwDrawingAreaWidgetClass, csv->X->TOPLEVEL,
    	 GLwNvisualInfo, csv->X->VISINFO,
    	 XtNcolormap, csv->X->CMAP,
    	 NULL);
