@@ -1,5 +1,5 @@
 
-#define VERSION "version  4.4 (March 26, 2004)"
+#define VERSION "version  4.5 (April 07, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -167,6 +167,9 @@ static char g_history[] =
     "\n"
     "4.4  March 26, 2004  [ziad]\n"
     "  - DsetList added to SUMA_LoadSpec_eng() call\n"
+    "\n"
+    "4.5  April 07, 2004  [rickr]\n"
+    "  - fixed inconsistency in check_norm_dirs(), default dirs reversed\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -776,14 +779,15 @@ ENTRY("check_norm_dirs");
 
     }
 
-    /* now count the number of normals pointing "toward" the center */
-    match[0] = norms[3*min[0]  ] > 0;
-    match[1] = norms[3*min[1]+1] > 0;
-    match[2] = norms[3*min[2]+2] > 0;
+    /* now count the number of normals pointing "away from" the center */
+    /* fixed directions - inconsistent usage       07 Apr 2004 [rickr] */
+    match[0] = norms[3*min[0]  ] < 0;
+    match[1] = norms[3*min[1]+1] < 0;
+    match[2] = norms[3*min[2]+2] < 0;
 
-    match[3] = norms[3*max[0]  ] < 0;
-    match[4] = norms[3*max[1]+1] < 0;
-    match[5] = norms[3*max[2]+2] < 0;
+    match[3] = norms[3*max[0]  ] > 0;
+    match[4] = norms[3*max[1]+1] > 0;
+    match[5] = norms[3*max[2]+2] > 0;
 
     if ( sopt->debug > 1 )
 	fprintf(stderr,"-- matches[0..5] = (%d, %d, %d,  %d, %d, %d)\n",
