@@ -45,6 +45,8 @@ typedef struct {
 #endif
 
       int first_file_arg , recurse ;
+
+      int elide_quality ;
 } AF_options ;
 
 #ifdef MAIN
@@ -757,6 +759,8 @@ typedef struct {
 #define BEEPIT              XBell(GLOBAL_library.dc->display,100)
 
 #define ALLOW_real_time (GLOBAL_argopt.allow_rt)
+
+#define ELIDE_quality   (GLOBAL_argopt.elide_quality)
 
 /*-----------------------------------------------------------*/
 /*------------------------ prototypes -----------------------*/

@@ -117,6 +117,7 @@ extern Pixel Name_to_color( MCW_DC * , char * ) ;
 #endif
 
 extern int DC_add_overlay_color( MCW_DC * , char * , char * ) ;
+extern int DC_find_overlay_color( MCW_DC * , char * ) ;
 
 extern void load_tmp_colors( int , XColor c[] ) ;
 

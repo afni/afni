@@ -135,6 +135,8 @@ void AFNI_syntax(void)
      "                  to disk 3D+time datasets.  Note that the resulting\n"
      "                  disk files will be gigantic (100s of Megabytes).\n"
 #endif
+     "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"
+     "                  making the transformations to +acpc and +tlrc.\n"
      "   -unique      Tells the program to create a unique set of colors\n"
      "                  for each AFNI controller window.  This allows\n"
      "                  different datasets to be viewed with different\n"
@@ -246,6 +248,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.dy       = 1.0 ;
    GLOBAL_argopt.ignore   = INIT_ignore ;
    GLOBAL_argopt.allow_rt = 0 ;           /* April 1997 */
+   GLOBAL_argopt.elide_quality = 0 ;      /* Dec 1997 */
 
 #ifdef ALLOW_PLUGINS
    { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
@@ -304,6 +307,13 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-rt",3) == 0 ){
          GLOBAL_argopt.allow_rt = -1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -noqual -----*/
+
+      if( strncmp(argv[narg],"-noqual",6) == 0 ){
+         GLOBAL_argopt.elide_quality = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -3581,7 +3591,7 @@ ENTRY("AFNI_marks_action_CB") ;
    /*----- quality button (only on when all markers are defined) -----*/
 
    if( w == marks->action_quality_pb ){
-      transformable = AFNI_marks_quality_check( True , im3d ) ;
+      transformable = AFNI_marks_quality_check(True,im3d) ;
       SENSITIZE( marks->transform_pb , transformable ) ;
       EXRETURN ;
    }
@@ -5863,8 +5873,8 @@ printf("\n") ;
 
    myXtFree( error_list ) ;
 
-   if( num_error > 0 ) RETURN(False) ;
-   RETURN(True ) ;
+   if( num_error > 0 && ! ELIDE_quality ) RETURN(False) ;
+   RETURN(True) ;
 }
 
 /*------------------------------------------------------------------

@@ -5464,7 +5464,7 @@ ENTRY("AFNI_pbar_CB") ;
    }
 
    else if( w == im3d->vwid->func->pbar_readin_pb ){
-fprintf(stderr,"Readin!\n") ;
+      XBell( im3d->dc->display , 100 ) ;
    }
 
    EXRETURN ;

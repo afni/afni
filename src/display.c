@@ -436,6 +436,15 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
 }
 #endif /* USE_OLD_OVCOL */
 
+int DC_find_overlay_color( MCW_DC * dc , char * label )
+{
+   int ii ;
+   if( dc == NULL || label == NULL ) return -1 ;
+   for( ii=0 ; ii < dc->ncol_ov ; ii++ )
+      if( strcmp(label,dc->label_ov[ii]) == 0 ) return ii ;
+   return -1 ;
+}
+
 /*-------------------------------------------------------------------------
   load the tmp? arrays (alas, GLOBAL data, a sin against God and Man)
   from an array of colors

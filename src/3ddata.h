@@ -680,7 +680,6 @@ typedef struct {
 
       char directory_name[THD_MAX_NAME] ;  /* contain all files */
       char header_name[THD_MAX_NAME] ;     /* contains attributes */
-
       char brick_name[THD_MAX_NAME] ;      /* THIS contains data */
 } THD_diskptr ;
 

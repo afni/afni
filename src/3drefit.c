@@ -74,8 +74,18 @@ void Syntax(char * str)
     "                  dataset.  See 'to3d -help' for more details.\n"
     "\n"
     "  -markers        Adds an empty set of AC-PC markers to the dataset,\n"
-    "                  if it can handle them (is anatomical, doesn't already\n"
-    "                  have markers, is in the +orig view, and isn't 3D+time).\n"
+    "                  if it can handle them (is anatomical, is in the +orig\n"
+    "                  view, and isn't 3D+time).\n"
+    "               ** WARNING: this will erase any markers that already exist!\n"
+    "\n"
+    "  -view code      Changes the 'view' to be 'code', where the string 'code'\n"
+    "                  is one of 'orig', 'acpc', or 'tlrc'.\n"
+    "               ** WARNING: The program will also change the .HEAD and .BRIK\n"
+    "                  filenames to match.  If the dataset filenames already\n"
+    "                  exist in the '+code' view, then this option will fail.\n"
+    "                  You will have to rename the dataset files before trying\n"
+    "                  to use '-view'.  If you copy the files and then use\n"
+    "                  '-view', don't forget to use '-newid' as well!\n"
     "\n"
     "  -appkey ll      Appends the string 'll' to the keyword list for the\n"
     "                  whole dataset.\n"
@@ -146,6 +156,7 @@ int main( int argc , char * argv[] )
    int new_stataux= 0 ; float stataux[MAX_STAT_AUX] ;
    int new_type   = 0 ; int dtype , ftype , nvals ;
    int new_markers= 0 ;
+   int new_view   = 0 ; int vtype ;
    int new_key    = 0 ; char * key ;
    char str[256] ;
    int  iarg , ii ;
@@ -420,6 +431,19 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /** -view code **/
+
+      if( strncmp(argv[iarg],"-view",4) == 0 ){
+         char * code ;
+         if( iarg+1 >= argc ) Syntax("need an argument after -view!") ;
+         code = argv[++iarg] ; if( code[0] == '+' ) code++ ;
+         for( vtype=0 ; vtype <= LAST_VIEW_TYPE ; vtype++ )
+            if( strcmp(code,VIEW_codestr[vtype]) == 0 ) break ;
+         if( vtype > LAST_VIEW_TYPE ) Syntax("argument after -view is illegal!") ;
+         new_view = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** anything else must be a -type **/
       /*  try the anatomy prefixes */
 
@@ -555,10 +579,38 @@ int main( int argc , char * argv[] )
          }
       }
 
+      if( new_view && dset->view_type != vtype ){
+         int  old_vtype = dset->view_type ;
+         char old_head[THD_MAX_NAME] , old_brik[THD_MAX_NAME] ;
+         char new_head[THD_MAX_NAME] , new_brik[THD_MAX_NAME] ;
+
+         strcpy(old_head,DSET_DIRNAME(dset)) ; strcat(old_head,DSET_HEADNAME(dset)) ;
+         strcpy(old_brik,DSET_DIRNAME(dset)) ; strcat(old_brik,DSET_BRIKNAME(dset)) ;
+
+         dset->view_type = vtype ;
+         THD_init_diskptr_names( dset->dblk->diskptr ,
+                                 NULL , NULL , NULL , vtype , True ) ;
+
+         strcpy(new_head,DSET_DIRNAME(dset)) ; strcat(new_head,DSET_HEADNAME(dset)) ;
+         strcpy(new_brik,DSET_DIRNAME(dset)) ; strcat(new_brik,DSET_BRIKNAME(dset)) ;
+
+         if( THD_is_file(new_head) || THD_is_file(new_brik) ){
+
+            dset->view_type = old_vtype ;
+            THD_init_diskptr_names( dset->dblk->diskptr ,
+                                    NULL , NULL , NULL , old_vtype , True ) ;
+            fprintf(stderr,
+                    "  ** Can't change view: would overwrite existing files!\n") ;
+         } else {
+            rename( old_head , new_head ) ;
+            rename( old_brik , new_brik ) ;
+            fprintf(stderr,"  -- Changed dataset view type and filenames.\n") ;
+         }
+      }
+
       if( new_markers                           &&
           dset->type      == HEAD_ANAT_TYPE     &&
           dset->view_type == VIEW_ORIGINAL_TYPE &&
-          dset->markers   == NULL               &&
           DSET_NUM_TIMES(dset) == 1                ){  /* code copied from to3d.c */
 
          THD_marker_set * markers ;
