@@ -565,3 +565,7 @@
 
 20 July 2004:
   * modified 3dANOVA3.c to fix stack space problem (see N_INDEX)
+
+22 July 2004:
+  * modified SUMA/3dSurf2Vol.c (-> v3.5) fixed bug in sdata_1D file test
+

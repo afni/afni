@@ -1,5 +1,5 @@
 
-#define VERSION "version  3.4 (June 21, 2004)"
+#define VERSION "version  3.5 (July 22, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -116,6 +116,9 @@ static char g_history[] =
  "\n"
  "3.4  June 21, 2004  [rickr]\n"
  "  - Fixed -surf_xyz_1D option (broken in v3.0 on nsurf test).\n"
+ "\n"
+ "3.5  July 22, 2004  [rickr]\n"
+ "  - Fixed bug with test for valid sdata_1D file.\n"
  "----------------------------------------------------------------------\n";
  
 
@@ -1571,9 +1574,10 @@ ENTRY("sdata_from_1D");
     p->sdata_im = mri_transpose(im);
     mri_free(im);
 
-    if ( im->nx < 2 || im->ny < 1 )
+    if ( p->sdata_im->nx < 2 || p->sdata_im->ny < 1 )
     {
-	fprintf(stderr,"** bad surf data 1D file '%s'\n", opts->sdata_file_1D);
+	fprintf(stderr,"** bad (%d x %d) surf data 1D file '%s'\n",
+		p->sdata_im->ny, p->sdata_im->nx, opts->sdata_file_1D);
 	RETURN(-3);
     }
 
