@@ -348,6 +348,10 @@ static matrix X , XtXinv , XtXinvXt ;
 static int xrestore = 0 ;                           /* globals for -xrestore */
 static char *xrestore_filename = NULL ;
 
+struct DC_options ;  /* incomplete struct definition */
+
+void do_xrestore_stuff( int, char **, struct DC_options * ) ;
+
 #define XSAVE_version "0.5"
 
 /*---------------------------------------------------------------------------*/
@@ -1459,7 +1463,7 @@ void get_options
   /*---- if -jobs is given, make sure are processing 3D data ----*/
 
 #ifdef PROC_MAX
-  if( proc_numjob > 1 && option_data->input1D_filename != NULL )
+  if( xrestore || option_data->input1D_filename != NULL )
     proc_numjob = 1 ;
 #endif
 
@@ -2715,6 +2719,8 @@ void initialize_program
 
   /*----- Identify software -----*/
   if (!(*option_data)->quiet)  identify_software();
+
+  if( xrestore ) return ;  /* 26 Jul 2004 - special operations to do! */
 
   /*----- Tell the user if he is being foolish -----*/
   if( !legendre_polort && (*option_data)->polort > 1 ){  /* 20 Jul 2004 */
@@ -4816,6 +4822,11 @@ int main
      &mse_vol, &ffull_vol, &rfull_vol, &glt_coef_vol, &glt_tcoef_vol,
      &glt_fstat_vol, &glt_rstat_vol, &fitts_vol, &errts_vol);
 
+  if( xrestore ){   /* 26 Jul 2004 - very special operations */
+    do_xrestore_stuff( argc,argv , option_data ) ;
+    exit(0) ;
+  }
+
 
   /*----- Perform deconvolution -----*/
   calculate_results (option_data, dset_time, mask_vol, fmri_data, fmri_length,
@@ -5287,4 +5298,39 @@ void XSAVE_matrices( THD_3dim_dataset *dset )
    /*-- done, finito, ciao babee --*/
 
    NI_stream_close(ns) ; free((void *)fname) ; return ;
+}
+
+/*============================================================================*/
+/*------ xrestore operations: 26 Jul 2004 ------------------------------------*/
+/*----------------------------------------------------------------------------*/
+
+void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
+{
+  if( option_data->num_glt < 1 ){
+    fprintf(stderr,"** ERROR: -xrestore with no new GLTs?\n") ;
+    exit(1) ;
+  }
+
+  /*-- read xsave file --*/
+
+  /*-- read input time series dataset --*/
+
+  /*-- read coefficient dataset (if possible) --*/
+
+  /*-- read new GLT matrices --*/
+
+  /*-- initialize new GLT calculations:
+       - calculate matrices
+       - malloc space for output bricks --*/
+
+  /*-- loop over voxels:
+       - fetch coefficients (check for all zero), or recompute them
+       - fetch time series
+       - compute SSE of full model
+       - compute and store new GLT results in arrays --*/
+
+  /*-- open old dataset for output if
+        (a) -bucket was given for an existing dataset, or
+        (b) no -bucket option was given;
+       otherwise, open a new dataset for output of the GLT results --*/
 }
