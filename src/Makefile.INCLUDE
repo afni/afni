@@ -59,7 +59,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI \
-           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom                \
+           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom Hfile          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
@@ -79,7 +79,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
                   mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC          \
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI    \
-                  dicom_hdr 3dDespike dicom_to_raw file_tool rotcom                  \
+                  dicom_hdr 3dDespike dicom_to_raw file_tool rotcom Hfile            \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -1358,6 +1358,11 @@ file_tool:
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool .. ; )
 
+Hfile: librickr.a libmri.a
+	( cd rickr ; 							\
+	make Hfile 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
+	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
+	$(MV) Hfile .. ; )
 
 #######
 # surface library (not currently used)

@@ -74,3 +74,7 @@
   * modified plug_second_dataset.c and plug_nth_dataset.c to update dataset
       pointers from idcodes on a RECEIVE_DSETCHANGE notification
 
+22 November 2002:
+  * added new program Hfile, including files rickr/Hfile.[ch]
+  * modified rickr/Makefile and Makefile.INCLUDE to build Hfile
+
