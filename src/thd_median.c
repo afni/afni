@@ -2,6 +2,8 @@
 
 /*-----------------------------------------------------------------
   Compute median brick of a dataset - 12 Aug 2001
+  05 Nov 2001: Modified to use THD_extract_array() instead
+               of THD_extract_series()
 -------------------------------------------------------------------*/
 
 MRI_IMAGE * THD_median_brick( THD_3dim_dataset * dset )
@@ -9,6 +11,7 @@ MRI_IMAGE * THD_median_brick( THD_3dim_dataset * dset )
    int nvox , nvals , ii ;
    MRI_IMAGE *tsim , *medim ;
    float *medar ;
+   float *tsar ;  /* 05 Nov 2001 */
 
 ENTRY("THD_median_brick") ;
 
@@ -23,11 +26,11 @@ ENTRY("THD_median_brick") ;
    medim = mri_new_conforming( tsim , MRI_float ) ;
    medar = MRI_FLOAT_PTR(medim) ;
 
+   tsar = (float *) calloc( sizeof(float),nvals+1 ) ; /* 05 Nov 2001 */
    for( ii=0 ; ii < nvox ; ii++ ){
-      tsim = THD_extract_series( ii , dset , 0 ) ;
-      medar[ii] = qmed_float( nvals , MRI_FLOAT_PTR(tsim) ) ;
-      mri_free(tsim) ;
+      THD_extract_array( ii , dset , 0 , tsar ) ;     /* 05 Nov 2001 */
+      medar[ii] = qmed_float( nvals , tsar ) ;
    }
 
-   RETURN(medim) ;
+   free(tsar) ; RETURN(medim) ;
 }

@@ -144,7 +144,7 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
 
-   if( user_inputs.ntt > 0 ){                 /* 15 Aug 2001 */
+   if( user_inputs.ntt > 5 ){                 /* 15 Aug 2001 */
       dset->taxis = myXtNew( THD_timeaxis ) ;
       dset->taxis->ntt = user_inputs.ntt ;
       T3D_check_outliers(0) ; outliers_checked = 1 ;
@@ -3217,6 +3217,8 @@ void Syntax()
     "       defined.\n"
     "    * The outlier count is not done if the input images are shorts\n"
     "       and there is a significant (> 1%%) number of negative inputs.\n"
+    "    * There must be at least 6 time points for the outlier count to\n"
+    "       be carried out.\n"
    ) ;
 
    printf(
@@ -3489,7 +3491,7 @@ void T3D_swap_CB( Widget w , XtPointer cd , XtPointer call_data )
       drive_MCW_imseq( wset.seq , isqDR_display   , (XtPointer)-1 ) ;
    }
 
-   if( user_inputs.ntt > 0 ){                 /* 15 Aug 2001 */
+   if( user_inputs.ntt > 5 ){                 /* 15 Aug 2001 */
       dset->taxis = myXtNew( THD_timeaxis ) ;
       dset->taxis->ntt = user_inputs.ntt ;
       T3D_check_outliers(0) ; outliers_checked = 1 ;
@@ -5620,7 +5622,7 @@ void T3D_check_outliers( int opcode )
      THD_outlier_count( dset , 0.01 , &out_count , &out_ctop ) ;
 
      if( out_count != NULL && out_ctop > 0 ){  /* compute the output message */
-        int iv,nvals=dset->taxis->ntt ; char *msg = malloc(888+8*nvals) ;
+        int iv,nvals=dset->taxis->ntt ; char *msg = malloc(2048+8*nvals) ;
 
         strcpy(msg," \nto3d WARNING:\nSignificant outliers detected in these sub-bricks:\n") ;
 

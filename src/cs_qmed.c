@@ -120,6 +120,8 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
 
    ma = qmed_float( n , q ) ;      /* MAD = median absolute deviation */
 
+   free(q) ;                       /* 05 Nov 2001 */
+
    *med = me ; *mad = ma ; return ;
 }
 

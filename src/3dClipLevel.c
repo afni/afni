@@ -81,7 +81,7 @@ int main( int argc , char * argv[] )
       case MRI_byte : nhist =   255 ; break ;
    }
 
-   hist = (int *) calloc(sizeof(int),nhist) ;
+   hist = (int *) calloc(sizeof(int),nhist+1) ;  /* 05 Nov 2001: +1 */
    nvox = DSET_NVOX(dset) ;
 
    /*-- make histogram --*/
@@ -92,7 +92,7 @@ int main( int argc , char * argv[] )
          case MRI_short:
             sar =  DSET_ARRAY(dset,iv) ;
             for( ii=0 ; ii < nvox ; ii++ ){
-               if( sar[ii] > 0 ){
+               if( sar[ii] > 0 && sar[ii] <= nhist ){
                   hist[sar[ii]]++ ; dsum += (double)(sar[ii])*(double)(sar[ii]) ; npos++ ;
                } else if( sar[ii] < 0 )
                  nneg++ ;

@@ -3269,3 +3269,21 @@
  * Modified 3dmerge.c to protest if an input dataset (for merge)
      can't be loaded.  Also changed edt_onedset.c to use DSET_LOADED()
      macro.
+
+05 Nov 2001
+ * Modified thd_dsetto1D.c to break THD_extract_series() into two
+     functions.  The new function THD_extract_array() returns data
+     in an array supplied by the caller.  This is used in thd_median.c
+     and thd_outlier_count.c to avoid the malloc/free cycle on
+     thousands of voxel time series.
+ * Modified thd_cliplevel.c to check bounds on hist[] array when
+     loading it with shorts, and to increase size of hist[] by 1.
+     (This last problem was causing to3d to crash.)  Also modified
+     3dClipLevel.c in the same way.
+ * Modified coxplot/plot_motif.c to disable "PS->printer" button if
+     environment variable AFNI_PSPRINT isn't set.
+ * Modified machdep.c to do enable_mcw_malloc() if environment variable
+     AFNI_FORCE_MCW_MALLOC is yessish.  Modified mcw_malloc.c to have
+     enable_mcw_malloc() return immediately if it is already enabled.
+ * Modified qmedmad_float() in cs_qmed.c to free workspace array when
+     done with it (oopsie).

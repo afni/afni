@@ -13,9 +13,17 @@
 void machdep()
 {
 
-#  if defined(LINUX) && defined(M_MMAP_MAX)
-      mallopt( M_MMAP_MAX , 0 ) ;  /* disable mmap() in malloc() */
-#  endif
+   /*-- force use of mcw_malloc.c functions - 05 Nov 2001 --*/
+
+#ifdef USING_MCW_MALLOC
+   if( AFNI_yesenv("AFNI_FORCE_MCW_MALLOC") ) enable_mcw_malloc();
+#endif
+
+   /*-- disable mmap() in malloc() --*/
+
+#if defined(LINUX) && defined(M_MMAP_MAX)
+   mallopt( M_MMAP_MAX , 0 ) ;
+#endif
 
 }
 
@@ -32,11 +40,10 @@ double drand48(void){ return (((double)random())/LONG_MAX); }
 long int lrand48(void){ return random(); }
 #endif /* USE_RANDOM */
 
-
 /*-------------------------------------------------------------------
   If the system doesn't provide this function for some reason ...
 ---------------------------------------------------------------------*/
- 
+
 #ifdef NEED_XSETLOCALE
 #include <locale.h>
 

@@ -14,126 +14,39 @@
        = ix + jy * n1 + kz * n1*n2
   raw  = 0 if you always want floats
        = 1 if you want the truly stored data type
+
+  05 Nov 2001: Split into 2 functions -
+      THD_extract_series() produces a new image each time
+      THD_extract_array()  copies data into a user-supplied array
 -----------------------------------------------------------------*/
 
 MRI_IMAGE * THD_extract_series( int ind , THD_3dim_dataset * dset , int raw )
 {
-   MRI_IMAGE * im ;  /* output */
-   MRI_TYPE typ ;
-   int nv , ival ;
-   char * iar ;      /* brick in the input */
+   int nv , typ , ii ;
+   MRI_IMAGE *im ;
+   void *imar ;
 
 ENTRY("THD_extract_series") ;
 
-   if( ind < 0 || dset == NULL ||
-       ind >= dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ) RETURN( NULL );
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
 
    nv  = dset->dblk->nvals ;
-   iar = DSET_ARRAY(dset,0) ;
-   if( iar == NULL ){  /* if data needs to be loaded from disk */
-      (void) THD_load_datablock( dset->dblk ) ;
-      iar = DSET_ARRAY(dset,0) ;
-      if( iar == NULL ) RETURN( NULL );
-   }
-   typ = DSET_BRICK_TYPE(dset,0) ;
-   im  = mri_new( nv , 1 , typ ) ;
-   mri_zero_image(im) ;             /* 19 Oct 2001 */
+   if( raw ) typ = DSET_BRICK_TYPE(dset,0) ;  /* type of output array */
+   else      typ = MRI_float ;
 
-   switch( typ ){
+   im   = mri_new( nv , 1 , typ ) ;           /* output image */
+   imar = mri_data_pointer(im) ;
 
-      default:             /* don't know what to do --> return nada */
-         mri_free( im ) ;
-         RETURN( NULL );
+   ii = THD_extract_array( ind , dset , raw , imar ) ; /* get data */
 
-      case MRI_byte:{
-         byte * ar  = MRI_BYTE_PTR(im) , * bar ;
-         for( ival=0 ; ival < nv ; ival++ ){
-            bar = (byte *) DSET_ARRAY(dset,ival) ;
-            if( bar != NULL ) ar[ival] = bar[ind] ;
-         }
-      }
-      break ;
-
-      case MRI_short:{
-         short * ar  = MRI_SHORT_PTR(im) , * bar ;
-         for( ival=0 ; ival < nv ; ival++ ){
-            bar = (short *) DSET_ARRAY(dset,ival) ;
-            if( bar != NULL ) ar[ival] = bar[ind] ;
-         }
-      }
-      break ;
-
-      case MRI_float:{
-         float * ar  = MRI_FLOAT_PTR(im) , * bar ;
-         for( ival=0 ; ival < nv ; ival++ ){
-            bar = (float *) DSET_ARRAY(dset,ival) ;
-            if( bar != NULL ) ar[ival] = bar[ind] ;
-         }
-      }
-      break ;
-
-      case MRI_int:{
-         int * ar  = MRI_INT_PTR(im) , * bar ;
-         for( ival=0 ; ival < nv ; ival++ ){
-            bar = (int *) DSET_ARRAY(dset,ival) ;
-            if( bar != NULL ) ar[ival] = bar[ind] ;
-         }
-      }
-      break ;
-
-      case MRI_double:{
-         double * ar  = MRI_DOUBLE_PTR(im) , * bar ;
-         for( ival=0 ; ival < nv ; ival++ ){
-            bar = (double *) DSET_ARRAY(dset,ival) ;
-            if( bar != NULL ) ar[ival] = bar[ind] ;
-         }
-      }
-      break ;
-
-      case MRI_complex:{
-         complex * ar  = MRI_COMPLEX_PTR(im) , * bar ;
-         for( ival=0 ; ival < nv ; ival++ ){
-            bar = (complex *) DSET_ARRAY(dset,ival) ;
-            if( bar != NULL ) ar[ival] = bar[ind] ;
-         }
-      }
-      break ;
-
-   }
-
-   if( !raw && THD_need_brick_factor(dset) ){
-      MRI_IMAGE * qim ;
-      qim = mri_mult_to_float( dset->dblk->brick_fac , im ) ;
-      mri_free(im) ; im = qim ;
-   }
-
-#if 0
-#  define DDD(x) fprintf(stderr,x)
-   { static int nc=0 ; fprintf(stderr,"THD_extract_series %d:",++nc) ; }
-#else
-#  define DDD(x) /* nada */
-#endif
-
-DDD("a") ;
-
-   if( !raw && im->kind != MRI_float ){
-      MRI_IMAGE * qim ;
-DDD("b") ;
-      qim = mri_to_float( im ) ;
-DDD("x") ;
-      mri_free(im) ; im = qim ;
-DDD("c") ;
-   }
-DDD("d") ;
+   if( ii != 0 ){ mri_free(im) ; RETURN(NULL) ; }      /* bad */
 
    if( dset->taxis != NULL ){  /* 21 Oct 1996 */
       float zz , tt ;
       int kz = ind / ( dset->daxes->nxx * dset->daxes->nyy ) ;
 
-DDD("e") ;
       zz = dset->daxes->zzorg + kz * dset->daxes->zzdel ;
       tt = THD_timeof( 0 , zz , dset->taxis ) ;
-DDD("f") ;
 
       im->xo = tt ; im->dx = dset->taxis->ttdel ;   /* origin and delta */
 
@@ -143,9 +56,136 @@ DDD("f") ;
    } else {
       im->xo = 0.0 ; im->dx = 1.0 ;  /* 08 Nov 1996 */
    }
-DDD("\n");
 
-   RETURN( im );
+   RETURN(im) ;
+}
+
+/*---------------------------------------------------------------------------
+  Return value is 0 for all is good, -1 for all is bad.
+  If raw == 0, uar is of type float.
+  If raw != 0, uar is of the same type as the dataset brick
+    (the user need to know the type ahead of time if raw != 0).
+  Data goes into a user-supplied array.
+-----------------------------------------------------------------------------*/
+
+int THD_extract_array( int ind, THD_3dim_dataset *dset, int raw, void *uar )
+{
+   MRI_TYPE typ ;
+   int nv , ival , nb ;
+   char  *iar ;      /* brick in the input */
+   float *far=NULL ; /* non-raw output */
+   static void *tar=NULL ; static int ntar=0 ;
+
+ENTRY("THD_extract_array") ;
+
+   if( ind < 0             || uar == NULL           ||
+       !ISVALID_DSET(dset) || ind >= DSET_NVOX(dset)  ) RETURN(-1) ;
+
+   nv  = dset->dblk->nvals ;
+   iar = DSET_ARRAY(dset,0) ;
+   if( iar == NULL ){         /* load data from disk? */
+      DSET_load(dset) ;
+      iar = DSET_ARRAY(dset,0); if( iar == NULL ) RETURN(-1) ;
+   }
+   typ = DSET_BRICK_TYPE(dset,0) ;  /* raw data type */
+
+   /* will extract nb bytes of raw data into array tar */
+
+   nb = mri_datum_size(typ) * (nv+1) ;
+   if( nb > ntar ){ tar = realloc(tar,nb) ; ntar = nb ; }
+   memset(tar,0,nb) ;
+
+   if( !raw ) far = (float *) uar ;  /* non-raw output */
+
+   switch( typ ){
+
+      default:           /* don't know what to do --> return nada */
+         RETURN(-1);
+      break ;
+
+      case MRI_byte:{
+         byte *ar = (byte *)tar , *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (byte *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
+         }
+         if( !raw ){
+            for( ival=0 ; ival < nv ; ival++ ) far[ival] = ar[ival] ;
+         }
+      }
+      break ;
+
+      case MRI_short:{
+         short *ar = (short *)tar , *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (short *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
+         }
+         if( !raw ){
+            for( ival=0 ; ival < nv ; ival++ ) far[ival] = ar[ival] ;
+         }
+      }
+      break ;
+
+      case MRI_float:{
+         float *ar = (float *)tar , *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (float *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
+         }
+         if( !raw ){
+            for( ival=0 ; ival < nv ; ival++ ) far[ival] = ar[ival] ;
+         }
+      }
+      break ;
+
+      case MRI_int:{
+         int *ar = (int *)tar , *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (int *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
+         }
+         if( !raw ){
+            for( ival=0 ; ival < nv ; ival++ ) far[ival] = ar[ival] ;
+         }
+      }
+      break ;
+
+      case MRI_double:{
+         double *ar = (double *)tar , *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (double *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
+         }
+         if( !raw ){
+            for( ival=0 ; ival < nv ; ival++ ) far[ival] = ar[ival] ;
+         }
+      }
+      break ;
+
+      case MRI_complex:{
+         complex *ar = (complex *)tar , *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (complex *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
+         }
+         if( !raw ){
+            for( ival=0 ; ival < nv ; ival++ ) far[ival] = CABS(ar[ival]) ;
+         }
+      }
+      break ;
+
+   }
+
+   if( raw ){ memcpy(uar,tar,nb); RETURN(0); }
+
+   if( THD_need_brick_factor(dset) ){
+      for( ival=0 ; ival < nv ; ival++ )
+         if( DSET_BRICK_FACTOR(dset,ival) > 0.0 )
+           far[ival] *= DSET_BRICK_FACTOR(dset,ival) ;
+   }
+
+   RETURN(0);
 }
 
 /*----------------------------------------------------------------------------

@@ -3,6 +3,8 @@
 /*--------------------------------------------------------------------------
    12 Aug 2001: compare with 3dClipLevel.c
    - compute a clipping level for an image, to eliminate non-brain voxels
+   05 Nov 2001: increased size of hist array to nhist+1 (from nhist), to
+                store properly elements [0..nhist] (d'oh).
 ----------------------------------------------------------------------------*/
 
 float THD_cliplevel( MRI_IMAGE * im , float mfrac )
@@ -35,7 +37,7 @@ ENTRY("THD_cliplevel") ;
       default: RETURN(0.0) ; /* bad */
    }
 
-   hist = (int *) calloc(sizeof(int),nhist) ;
+   hist = (int *) calloc(sizeof(int),nhist+1) ;  /* 05 Nov 2001: +1 */
    nvox = im->nvox ;
 
    /*-- make histogram --*/
@@ -47,8 +49,9 @@ ENTRY("THD_cliplevel") ;
       case MRI_short:
          sar =  MRI_SHORT_PTR(lim) ;
          for( ii=0 ; ii < nvox ; ii++ ){
-            if( sar[ii] > 0 ){
-               hist[sar[ii]]++ ; dsum += (double)(sar[ii])*(double)(sar[ii]); npos++;
+            if( sar[ii] > 0 && sar[ii] <= nhist ){
+               hist[sar[ii]]++ ;
+               dsum += (double)(sar[ii])*(double)(sar[ii]); npos++;
             } else if( sar[ii] < 0 )
               nneg++ ;
          }
@@ -58,13 +61,14 @@ ENTRY("THD_cliplevel") ;
          bar =  MRI_BYTE_PTR(lim) ;
          for( ii=0 ; ii < nvox ; ii++ ){
             if( bar[ii] > 0 ){
-               hist[bar[ii]]++ ; dsum += (double)(bar[ii])*(double)(bar[ii]); npos++;
+               hist[bar[ii]]++ ;
+               dsum += (double)(bar[ii])*(double)(bar[ii]); npos++;
             }
          }
       break ;
    }
 
-   if( npos <= 999 ){ if(lim!=im)mri_free(lim); RETURN(0.0); }
+   if( npos <= 999 ){ free(hist); if(lim!=im)mri_free(lim); RETURN(0.0); }
 
    /*-- initialize cut position to include upper 65% of positive voxels --*/
 

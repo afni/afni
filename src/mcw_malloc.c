@@ -450,6 +450,8 @@ void enable_mcw_malloc()       /* cannot be disabled */
 {
    char * str = getenv("AFNI_NO_MCW_MALLOC") ;  /* NOT my_getenv */
 
+   if( use_tracking ) return ;   /* 05 Nov 2001 */
+
    use_tracking = 1 ;
    if( str!=NULL && ( str[0]=='y' || str[0]=='Y') ) use_tracking = 0 ;
 

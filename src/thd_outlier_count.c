@@ -4,11 +4,12 @@
   Inputs: dset (3D+time) and qthr in (0..0.1).
   Outputs: *count = array of integer counts of outliers (1 count per sub-brick)
            *ctop  = median + 3.5 * MAD of count[]
+  05 Nov 2001: modified to use THD_extract_array() instead of THD_extract_series()
 ------------------------------------------------------------------------------------*/
 
 void THD_outlier_count( THD_3dim_dataset *dset, float qthr, int **count, int *ctop )
 {
-   int nvals , iv , nxyz , ii , oot , ic, *ccc ;
+   int nvals , iv , nxyz , ii , oot , *ccc ;
    float alph,fmed,fmad , fbot,ftop ;
    MRI_IMAGE * flim ;
    float * far , * var , clip_val ;
@@ -40,12 +41,13 @@ ENTRY("THD_outlier_count") ;
 
    /*--- loop over voxels and count ---*/
 
+   far = (float *) calloc(sizeof(float),nvals+1) ;  /* 05 Nov 2001 */
+
    for( ii=0 ; ii < nxyz ; ii++ ){
 
       /*- get time series from voxel #ii -*/
 
-      flim = THD_extract_series( ii , dset , 0 ) ;
-      far  = MRI_FLOAT_PTR(flim) ;
+      THD_extract_array( ii , dset , 0 , far ) ;          /* 05 Nov 2001 */
       memcpy(var,far,sizeof(float)*nvals ) ;              /* copy it */
 
       fmed = qmed_float( nvals , far ) ;                  /* median */
@@ -56,12 +58,13 @@ ENTRY("THD_outlier_count") ;
       fbot = fmed - alph*fmad ; ftop = fmed + alph*fmad ; /* inlier range */
 
       if( fmad > 0.0 ){                                   /* count outliers */
-         for( ic=iv=0 ; iv < nvals ; iv++ )
+         for( iv=0 ; iv < nvals ; iv++ )
             if( var[iv] < fbot || var[iv] > ftop ) ccc[iv]++ ;
       }
 
-      mri_free(flim) ;                                    /* trash */
    }
+
+   free(far) ;  /* 05 Nov 2001 */
 
    for( iv=0 ; iv < nvals ; iv++ ) var[iv] = ccc[iv] ;    /* float-ize counts */
    qmedmad_float( nvals,var , &fmed,&fmad ) ; free(var) ; /* median and MAD */
