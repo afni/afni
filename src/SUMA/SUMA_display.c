@@ -831,7 +831,7 @@ SUMA_grabPixels(int inColor, unsigned int width, unsigned int height)
 	 size = width * height * 1;
 	}
 
-	buffer = (GLvoid *) malloc(size);
+	buffer = (GLvoid *) SUMA_malloc(size);
 	if (buffer == NULL)
 	 SUMA_RETURN (buffer);
 
@@ -936,9 +936,9 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 		}
 		
 		if (!SO){
-			padname = (char *)calloc(100, sizeof(char));
+			padname = (char *)SUMA_calloc(100, sizeof(char));
 		}else {
-			padname = (char *)calloc(strlen(SO->Label)+10, sizeof(char));
+			padname = (char *)SUMA_calloc(strlen(SO->Label)+10, sizeof(char));
 		}
 		
 		while (!OKname) {

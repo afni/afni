@@ -34,7 +34,9 @@ void SUMA_usage ()
 			 /*
 			 printf ("\n\t[-dev]: This option will give access to options that are not well polished for consuption.\n");
 			 printf ("\n\t        \n");
-			 */
+			 printf ("\n\t[-iodbg] This option will trun on the In/Out debug info from the getgo.\n");
+			 printf ("\n\t[-memdbg] This option will trun on the memory tracing from the getgo.\n");
+          */
 			 /*SUMA_VolSurf_help(NULL); OBSOLETE */
 			 printf ("\n\n\tFor help on interacting with SUMA, press 'h' with the mouse pointer inside SUMA's window.\n");
 			 printf ("\n\n\tFor more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
@@ -88,7 +90,8 @@ int main (int argc,char *argv[])
 	char *VolParName, *NameParam, *specfilename = NULL, *AfniHostName;
 	SUMA_SurfSpecFile Spec;   
 	SUMA_Axis *EyeAxis; 	
-  
+   SUMA_Boolean LocalHead = YUP;
+    
    if (argc < 3)
        {
           SUMA_usage ();
@@ -96,11 +99,14 @@ int main (int argc,char *argv[])
        }
 		
 	/* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
+   
+   SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
 	/* initialize Volume Parent and AfniHostName to nothing */
 	VolParName = NULL;
@@ -120,7 +126,21 @@ int main (int argc,char *argv[])
           exit (1);
 		}
 		
-		if (!brk && (strcmp(argv[kar], "-dev") == 0)) {
+		if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
+			fprintf(SUMA_STDOUT,"Warning %s: SUMA running in in/out debug mode.\n", FuncName);
+			SUMAg_CF->InOut_Notify = YUP;
+			brk = YUP;
+		}
+      
+		#ifdef SUMA_MEMTRACE
+         if (!brk && (strcmp(argv[kar], "-memdbg") == 0)) {
+			   fprintf(SUMA_STDOUT,"Warning %s: SUMA running in memory trace mode.\n", FuncName);
+			   SUMAg_CF->MemTrace = YUP;
+			   brk = YUP;
+		   }
+      #endif
+      
+      if (!brk && (strcmp(argv[kar], "-dev") == 0)) {
 			fprintf(SUMA_STDOUT,"Warning %s: SUMA running in developer mode, some options may malfunction.\n", FuncName);
 			SUMAg_CF->Dev = YUP;
 			brk = YUP;

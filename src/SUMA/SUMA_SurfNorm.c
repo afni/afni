@@ -68,10 +68,10 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
 	RetStrct.N_Face = N_FaceSetList;
 
 	/* allocate space */
- 	RetStrct.FaceNormList = (float *)calloc (N_FaceSetList * NP, sizeof(float));
-	RetStrct.NodeNormList = (float *)calloc (N_NodeList * ND, sizeof(float));
-	Index = (int *)calloc (N_NodeList, sizeof(int));
-	N_Memb = (int *)calloc (N_NodeList, sizeof(int));
+ 	RetStrct.FaceNormList = (float *)SUMA_calloc (N_FaceSetList * NP, sizeof(float));
+	RetStrct.NodeNormList = (float *)SUMA_calloc (N_NodeList * ND, sizeof(float));
+	Index = (int *)SUMA_calloc (N_NodeList, sizeof(int));
+	N_Memb = (int *)SUMA_calloc (N_NodeList, sizeof(int));
 	if (!RetStrct.FaceNormList || !RetStrct.NodeNormList || !Index || !N_Memb)
 		{
 			SUMA_alloc_problem (FuncName);
@@ -250,7 +250,7 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	NP = FaceDim;
-	RetStrct = (SUMA_MEMBER_FACE_SETS *)malloc(sizeof(SUMA_MEMBER_FACE_SETS));
+	RetStrct = (SUMA_MEMBER_FACE_SETS *)SUMA_malloc(sizeof(SUMA_MEMBER_FACE_SETS));
 	
 	RetStrct->N_Memb_max = RetStrct->Nnode = 0;
 	RetStrct->N_Memb = NULL;
@@ -258,7 +258,7 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr
 	
 	/* Allocate return variables */
 	tmpMember = (int **) SUMA_allocate2D (Nind, SUMA_MAX_MEMBER_FACE_SETS ,sizeof(int));
-	RetStrct->N_Memb = (int *) calloc (Nind, sizeof(int));
+	RetStrct->N_Memb = (int *) SUMA_calloc (Nind, sizeof(int));
 	
 	if (!tmpMember || !RetStrct->N_Memb)
 		{
@@ -412,8 +412,8 @@ int main (int argc,char *argv[])
 	nface = SUMA_float_file_size(argv[2]);
 	nface /= 3;
 
-	FaceSetList = (int *) calloc (nface * 3, sizeof(int));
-	NodeList = (float *) calloc (nnode * 3, sizeof(float)); 
+	FaceSetList = (int *) SUMA_calloc (nface * 3, sizeof(int));
+	NodeList = (float *) SUMA_calloc (nnode * 3, sizeof(float)); 
 	
 	if (!FaceSetList || !NodeList)
 		{

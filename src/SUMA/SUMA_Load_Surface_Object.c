@@ -113,7 +113,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
 			
 		case SUMA_FREE_SURFER:
 			/* Allocate for FS */
-			FS = (SUMA_FreeSurfer_struct *) malloc(sizeof(SUMA_FreeSurfer_struct));	
+			FS = (SUMA_FreeSurfer_struct *) SUMA_malloc(sizeof(SUMA_FreeSurfer_struct));	
 			if (FS == NULL) {
 				fprintf(SUMA_STDERR,"Error %s: Failed to allocate for FS\n", FuncName);
 				SUMA_RETURN (NULL);
@@ -169,7 +169,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
 			
 		case SUMA_SUREFIT:
 			/* Allocate for SF */
-			SF = (SUMA_SureFit_struct *) malloc(sizeof(SUMA_SureFit_struct));	
+			SF = (SUMA_SureFit_struct *) SUMA_malloc(sizeof(SUMA_SureFit_struct));	
 			if (SF == NULL) {
 				fprintf(SUMA_STDERR,"Error %s: Failed to allocate for SF\n", FuncName);
 				SUMA_RETURN (NULL);
@@ -322,7 +322,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
 	SO->glar_FaceSetList = (GLint *) SO->FaceSetList; /* just copy the pointer, not the data */
 	SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList; /* just copy the pointer, not the data */
 	SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */
-	SO->glar_ColorList = (GLfloat *) calloc(SO->N_Node*4, sizeof(float));
+	SO->glar_ColorList = (GLfloat *) SUMA_calloc(SO->N_Node*4, sizeof(float));
 	
 	if (SO->glar_ColorList == NULL) {
 		SUMA_error_message(FuncName, "SUMA_Load_Surface_Object Could not allocate for glar_ColorList vector", 0);
@@ -906,7 +906,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
 			brk = NOPE;
 			if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) {/* load surefit surface */
-				SF_name = malloc(sizeof(SUMA_SFname));
+				SF_name = SUMA_malloc(sizeof(SUMA_SFname));
 				sprintf(SF_name->name_coord,"%s", Spec->SureFitCoord[i]); ;
 				sprintf(SF_name->name_topo,"%s", Spec->SureFitTopo[i]); 
 				if (!strlen(Spec->SureFitVolParam[i])) { /* initialize to empty string */
@@ -974,7 +974,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 				Spec->IDcode[i] = SO->idcode_str;
 
 			/* set its MappingRef id to its own */
-				SO->MapRef_idcode_str = (char *)calloc(sizeof(char), strlen(SO->idcode_str));
+				SO->MapRef_idcode_str = (char *)SUMA_calloc(sizeof(char), strlen(SO->idcode_str));
 				if (SO->MapRef_idcode_str == NULL) {
 					fprintf(SUMA_STDERR,"Error %s: Failed to allocate for SO->MapRef_idcode_str. That is pretty bad.\n", FuncName);
 					SUMA_RETURN (NOPE);
@@ -1097,8 +1097,8 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 				
 				/* new surface loaded, do the deeds */
 				/* assign its Group and State */
-				SO->Group = (char *)calloc(sizeof(char), strlen(Spec->Group[i]));
-				SO->State = (char *)calloc(sizeof(char), strlen(Spec->State[i]));
+				SO->Group = (char *)SUMA_calloc(sizeof(char), strlen(Spec->Group[i]));
+				SO->State = (char *)SUMA_calloc(sizeof(char), strlen(Spec->State[i]));
 				if (Spec->SurfaceLabel[i][0] == '\0') {
 					SO->Label = SUMA_SurfaceFileName (SO, NOPE);
 					if (!SO->Label) {
@@ -1106,7 +1106,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 						SUMA_RETURN(NOPE);
 					}
 				} else {
-					SO->Label = (char *)calloc(sizeof(char), strlen(Spec->SurfaceLabel[i]));
+					SO->Label = (char *)SUMA_calloc(sizeof(char), strlen(Spec->SurfaceLabel[i]));
 					if (!SO->Label) {
 						fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
 						SUMA_RETURN (NOPE);
@@ -1160,7 +1160,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 			
 			brk = NOPE;
 			if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) {/* load surefit surface */
-				SF_name = malloc(sizeof(SUMA_SFname));
+				SF_name = SUMA_malloc(sizeof(SUMA_SFname));
 				sprintf(SF_name->name_coord,"%s", Spec->SureFitCoord[i]); ;
 				sprintf(SF_name->name_topo,"%s", Spec->SureFitTopo[i]); 
 				if (!strlen(Spec->SureFitVolParam[i])) { /* initialize to empty string */
@@ -1241,8 +1241,8 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 			/* if the surface is loaded OK, and it has not been loaded previously, register it */
 			if (SurfIn) {
 				/* assign its Group and State */
-				SO->Group = (char *)calloc(sizeof(char), strlen(Spec->Group[i]));
-				SO->State = (char *)calloc(sizeof(char), strlen(Spec->State[i]));
+				SO->Group = (char *)SUMA_calloc(sizeof(char), strlen(Spec->Group[i]));
+				SO->State = (char *)SUMA_calloc(sizeof(char), strlen(Spec->State[i]));
 
 				if (!SO->Group || !SO->State) {
 					fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
@@ -1297,7 +1297,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 							SO->MapRef_idcode_str = NULL;
 						} else {
 							/*fprintf(SUMA_STDERR,"MappingRef found in mappable surfaces\n");*/
-							SO->MapRef_idcode_str = (char *)calloc(sizeof(char), strlen(Spec->IDcode[ifound]));
+							SO->MapRef_idcode_str = (char *)SUMA_calloc(sizeof(char), strlen(Spec->IDcode[ifound]));
 							if (SO->MapRef_idcode_str == NULL) {
 								fprintf(SUMA_STDERR,"Error %s: Failed to allocate for SO->MapRef_idcode_str. That is pretty bad.\n", FuncName);
 								SUMA_RETURN (NOPE);
@@ -1714,7 +1714,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
 			break;
 	} 
 
-	Name = (char *) calloc (nalloc, sizeof(char));
+	Name = (char *) SUMA_calloc (nalloc, sizeof(char));
 	if (!Name) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for Name.\n", FuncName);
 		SUMA_RETURN (NULL);

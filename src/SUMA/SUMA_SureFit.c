@@ -131,8 +131,8 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	/*fprintf (stdout,"Expecting %d nodes.\n", SF->N_Node);*/
 	
 	/* allocate space */
-	SF->NodeList = (float *)calloc(SF->N_Node * ND, sizeof(float));
-	SF->NodeId = (int *)calloc (SF->N_Node, sizeof(int));
+	SF->NodeList = (float *)SUMA_calloc(SF->N_Node * ND, sizeof(float));
+	SF->NodeId = (int *)SUMA_calloc (SF->N_Node, sizeof(int));
 	
 	if (SF->NodeList == NULL || SF->NodeId == NULL) {
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for NodeList &/| NodeId.\n", FuncName);
@@ -247,8 +247,8 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	SF->Specs_mat = (int **) SUMA_allocate2D(SF->N_Node_Specs, 6, sizeof(int));
 	/*assume maximum number of neighbors is SUMA_MAX_NUMBER_NODE_NEIGHB */
 	SF->FN.FirstNeighb = (int **) SUMA_allocate2D(SF->FN.N_Node, SUMA_MAX_NUMBER_NODE_NEIGHB, sizeof (int));
-	SF->FN.N_Neighb = (int *) calloc (SF->FN.N_Node, sizeof(int));
-	SF->FN.NodeId = (int *) calloc (SF->FN.N_Node, sizeof(int));
+	SF->FN.N_Neighb = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
+	SF->FN.NodeId = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
 	
 	if (SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || SF->FN.N_Neighb == NULL || SF->FN.NodeId == NULL ){
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->Specs_mat &/| SF->FN.FirstNeighb &/| SF->FN.N_Neighb &/| SF->FN.NodeId.\n", FuncName);
@@ -288,7 +288,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	/*fprintf (stdout, "Expecting to read %d facesets.\n", SF->N_FaceSet);*/
 	
 	NP = 3;
-	SF->FaceSetList = (int *) calloc(SF->N_FaceSet * 3, sizeof(int));
+	SF->FaceSetList = (int *) SUMA_calloc(SF->N_FaceSet * 3, sizeof(int));
 	if (SF->FaceSetList == NULL){
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->FaceSetList.\n", FuncName);
 		SUMA_RETURN (NOPE);
@@ -556,7 +556,7 @@ int main (int argc,char *argv[])
 	}
 	
 	/* Allocate for SF */
-	SF = (SUMA_SureFit_struct *) malloc(sizeof(SUMA_SureFit_struct));	
+	SF = (SUMA_SureFit_struct *) SUMA_malloc(sizeof(SUMA_SureFit_struct));	
 	if (SF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for SF\n", FuncName);
 		exit(1);

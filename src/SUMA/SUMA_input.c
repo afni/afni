@@ -551,7 +551,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 					int allcols;
 
 					SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-					attrbuf = (float *)calloc(SO->N_Node, sizeof(int));
+					attrbuf = (float *)SUMA_calloc(SO->N_Node, sizeof(int));
 					if (attrbuf == NULL) {
 						fprintf(stderr,"Error SUMA_input: Failed to allocate for attrbuf.\n");
 						break;
@@ -1134,7 +1134,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 								int  i2min, *Indx;
 								float *d2, d2min;
 
-								d2 = (float *)calloc(SO->N_Node, sizeof(float));
+								d2 = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
 								if (d2 == NULL) {
 									fprintf(SUMA_STDERR, "Error %s: Could not allocate for d2\n", FuncName);
 									break;

@@ -83,7 +83,7 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 	/* intialize the number of points read to 0 */
 	*N_NodeList = 0;
 	
-	linv = (float *)malloc (MaxAlloc*sizeof(float));
+	linv = (float *)SUMA_malloc (MaxAlloc*sizeof(float));
 	if (!linv)
 		{
 				SUMA_alloc_problem ("Allocation error in SUMA_IV-XYZExtract");
@@ -197,7 +197,7 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 						if (cnt >= MaxAlloc - 1)
 							{
 								MaxAlloc = MaxAlloc + 100;
-								linv = (float *)realloc ((void*) linv, MaxAlloc * sizeof(float));
+								linv = (float *)SUMA_realloc ((void*) linv, MaxAlloc * sizeof(float));
 								if (!linv)
 									{
 										SUMA_alloc_problem ("Re-Allocation error in IV-FaceSetExtract");
@@ -260,9 +260,9 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 	
 	/* Now allocate space for IV_FaceSetsextract and fill it up */
 	if (!IncludeIndex)
-		NodeList = (float *) calloc (*N_NodeList * 3, sizeof(float));
+		NodeList = (float *) SUMA_calloc (*N_NodeList * 3, sizeof(float));
 	else
-		NodeList = (float *) calloc (*N_NodeList * 4, sizeof(float));
+		NodeList = (float *) SUMA_calloc (*N_NodeList * 4, sizeof(float));
 	
 	if (!NodeList)
 		{

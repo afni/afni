@@ -115,15 +115,15 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 	ex = fscanf(fs_file, "%d %d", &(FS->N_Node), &(FS->N_FaceSet));
 	
 	/* allocate space for NodeList and FaceSetList */
-	FS->NodeList = (float *)calloc(FS->N_Node * 3, sizeof(float));
-	FS->FaceSetList = (int *)calloc(FS->N_FaceSet * 3, sizeof(int));
-	FS->NodeId = (int *)calloc(FS->N_Node, sizeof(int));
+	FS->NodeList = (float *)SUMA_calloc(FS->N_Node * 3, sizeof(float));
+	FS->FaceSetList = (int *)SUMA_calloc(FS->N_FaceSet * 3, sizeof(int));
+	FS->NodeId = (int *)SUMA_calloc(FS->N_Node, sizeof(int));
 	if (FS->NodeList == NULL || FS->FaceSetList == NULL || FS->NodeId == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->NodeList &/| FS->FaceSetList &/| FS->NodeId\n", FuncName);
 		return (NOPE);
 	} 
 	if (FS->isPatch) {
-		FS->FaceSetIndexInParent = (int *)calloc(FS->N_FaceSet, sizeof(int));
+		FS->FaceSetIndexInParent = (int *)SUMA_calloc(FS->N_FaceSet, sizeof(int));
 		if (FS->FaceSetIndexInParent == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->FaceSetIndexInParent\n", FuncName);
 			return (NOPE);
@@ -191,7 +191,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		Instead, I will search through the FaceSetList for the highest index and allocate a new nodelist to match it*/
 
 		SUMA_MAX_VEC(FS->FaceSetList, FS->N_FaceSet * 3, maxamax); ++maxamax;
-		NodeList = (float *)calloc(maxamax * 3, sizeof(float));
+		NodeList = (float *)SUMA_calloc(maxamax * 3, sizeof(float));
 		if (NodeList == NULL)
 		{
 			fprintf(SUMA_STDERR,"Error %s: Could not allocate for NodeList\n", FuncName);
@@ -306,7 +306,7 @@ int main (int argc,char *argv[])
 	}
 	
 	/* Allocate for FS */
-	FS = (SUMA_FreeSurfer_struct *) malloc(sizeof(SUMA_FreeSurfer_struct));	
+	FS = (SUMA_FreeSurfer_struct *) SUMA_malloc(sizeof(SUMA_FreeSurfer_struct));	
 	if (FS == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for FS\n", FuncName);
 		exit(1);

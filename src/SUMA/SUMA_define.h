@@ -88,6 +88,8 @@
 
 #define SUMA_MAX_N_SURFACE_SPEC 20/*!< Maximum number of surfaces allowed in a spec file */
 
+#define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
+#define SUMA_MEMTRACE 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
 #define SUMA_PI 3.14159 
 
 typedef enum  { SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC } SUMA_SO_File_Type;
@@ -128,6 +130,15 @@ typedef enum {	SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standa
 																						SUMA_3D standard 3D view
 																						SUMA_Dunno used to flag errors leave this at the end 
 																						Keep in sync with SUMA_N_STANDARD_VIEWS*/
+                                                                  
+/*! structure to keep track of allocate memory */
+typedef struct {
+   void **Pointers; /*!< vector of pointers for which memory was allocated */
+   int *Size; /*!< vector of sizes of allocated memory blocks. Pointers[i] has Size[i] bytes allocated for it */
+   int N_alloc; /*!< number of meaningful entries in Pointers and Size */
+   int N_MaxPointers; /*!< Maximum number of elements allocated for in Pointers and Size */
+} SUMA_MEMTRACE_STRUCT;
+
 /*! structure containing a data block information */
 typedef struct {
 	void *data;	/*!< pointer to data location */
@@ -601,7 +612,7 @@ typedef struct {
 	int N_Node; /*!< Number of nodes in the SO */
 	int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 is used for now, with flat surfaces having z = 0*/
 	int EmbedDim; /*!< Embedding dimension of the surface, 2 for flat surfaces 3 for ones with non zero curvature other. */ 
-	float *NodeList; /*!< N_Node x 1 vector containing the XYZ node coordinates. 
+	float *NodeList; /*!< N_Node x 3 vector containing the XYZ node coordinates. 
 								If NodeDim is 2 then the third column is all zeros
 								Prior to SUMA  1.2 this used to be a 2D matrix (a vector of vectors) */
 	char *MapRef_idcode_str; /*!< if NULL, then it is not known whether surface is mappable or not
@@ -737,6 +748,9 @@ typedef struct {
 	XtAppContext App; /*!< Application Context for SUMA */
 	Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
 	int N_OpenSV; /*!< Number of open (visible) surface viewers */
+   
+   SUMA_MEMTRACE_STRUCT *Mem; /*!< structure used to keep track of memory usage */
+   SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage (must also set SUMA_MEMTRACE ) */
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */
