@@ -380,7 +380,8 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
       SUMA_RETURN (NULL);
    }  
 
-   if (strcmp(bin, "y") == 0) {  numTri = 20*pow(2,2*depth); }  //exact
+   
+   if (strcmp(bin, "y") == 0) { numTri = 20*pow(2,2*depth); }  //exact
    else {
      if (depth !=0) {  numTri = 20*pow(depth, 2); }
      else numTri = 20;
@@ -680,10 +681,6 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *
       ++itry;   
    }
   
-   if (!found) {
-      node[0] = node[1] = node[2] = -1;
-   }
-   
    SUMA_RETURN (found);
 }
 
@@ -1125,10 +1122,10 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
                 FuncName, MTI->ifacemin, surf2->FaceSetList[3*MTI->ifacemin], surf2->FaceSetList[3*MTI->ifacemin+1],
                   surf2->FaceSetList[3*MTI->ifacemin+2], MTI->P[0], MTI->P[1], MTI->P[2]);  
                found = YUP;
+               ptHit[0] = MTI->P[0];
+               ptHit[1] = MTI->P[1];
+               ptHit[2] = MTI->P[2];
             }
-            ptHit[0] = MTI->P[0];
-            ptHit[1] = MTI->P[1];
-            ptHit[2] = MTI->P[2];
 
             SUMA_Free_MT_intersect_triangle(MTI);
          } 
@@ -1167,7 +1164,6 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
     }else { /* some triangles have zero area in FreeSurfer surfaces */
       weight[j] = weight[j+1] = weight[j+2] = 1.0/3.0;
     }
-     
 
   }
 
@@ -1364,7 +1360,7 @@ float* SUMA_morphToStd (float *nodeList, SUMA_MorphInfo *MI) {
                        (MI->Weight[j+2])*nodeList[3*(MI->ClsNodes[j+2])+1];  //node2 y
     newNodeList[j+2] = (MI->Weight[j])*nodeList[3*(MI->ClsNodes[j])+2] +     //node0 z
                        (MI->Weight[j+1])*nodeList[3*(MI->ClsNodes[j+1])+2] + //node1 z
-                       (MI->Weight[j+2])*nodeList[3*(MI->ClsNodes[j+2])+2];  //node2 z
+                       (MI->Weight[j+2])*nodeList[3*(MI->ClsNodes[j+2])+2];  //node2 z   
   }
   
   SUMA_RETURN( newNodeList);
@@ -2015,7 +2011,7 @@ int main (int argc, char *argv[])
 void SUMA_MapIcosahedron_usage ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_MapIcosahedron <-spec specFile> [-c col] [-d depth] [-bin bin] [-prefix fout]\n");
+          printf ("\n\33[1mUsage: \33[0m SUMA_MapIcosahedron <-spec specFile> [-c col] [-d depth] [-bin 'y'/'n'] [-prefix fout]\n");
           printf ("\n\tspecFile: spec file containing spherical brain.\n");
      printf ("\n\tdepth: tesselation extent for icosahedron \n\t  (binary recursion depth if bin=y, number of edge divisions if bin=n). \n\t  (optional, default:3) \n\t  (recommended to approximate number of nodes in brain:\n\t  6 with binary recursion, 120 without)\n");
      printf("\n\tbin: binary recursion flag (optional, default 'y').\n");
@@ -2151,7 +2147,11 @@ int main (int argc, char *argv[])
       
    }/* loop accross command line options */
 
-
+   /* check for some sanity */
+   if (bin[0] == 'y' && depth > 10) {
+      fprintf (SUMA_STDERR, "%s: You cannot use a recursive depth > 10.\n", FuncName);
+      exit(1);
+   }
    if (LocalHead) fprintf (SUMA_STDERR, "%s: %s contains sphere, tesselation depth is %d.\n", FuncName, brainSpecFile, depth);
    
    if (brainSpecFile == NULL) {
