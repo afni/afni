@@ -167,7 +167,7 @@ int main( int argc , char *argv[] )
              "examined for problems.  How you determine what 'much higher' means\n"
              "is mostly up to you.  I suggest graphical inspection of the indexes\n"
              "(cf. EXAMPLE, infra).  As a guide, the program will print (stderr)\n"
-             "the median quality index and the range median-3.5*MAD .. median+3*MAD\n"
+             "the median quality index and the range median-3.5*MAD .. median+3.5*MAD\n"
              "(MAD=Median Absolute Deviation).  Values well outside this range might\n"
              "be considered suspect; if the quality index were normally distributed,\n"
              "then values outside this range would occur only about 1%% of the time.\n"

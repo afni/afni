@@ -4514,3 +4514,7 @@
  * Modified 3dTagalign.c (and thd_shear3d.c) heavily to use THD_warp3D() instead
      of rotation-only functions, and to allow different kinds of transformation
      matrices to be used.
+
+24 Apr 2003
+ * Modified 3dTshift.c and thd_tshift.c to negate time shift, since it seems have
+     been wrong all these years.
