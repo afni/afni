@@ -31,7 +31,7 @@ int main( int argc , char * argv[] )
              "  -SI hh      = After creating the mask, find the most superior\n"
              "                 voxel, then zero out everything more than 'hh'\n"
              "                 millimeters inferior to that.  hh=130 seems to\n"
-             "                 be decent.\n"
+             "                 be decent (for human brains).\n"
             ) ;
       exit(0) ;
    }
@@ -128,7 +128,8 @@ int main( int argc , char * argv[] )
    /* 18 Apr 2002: print voxel count */
 
    nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
-   fprintf(stderr,"++ %d voxels in the mask [out of %d]\n",nmask,DSET_NVOX(dset)) ;
+   fprintf(stderr,"++ %d voxels in the mask [out of %d: %.2f%%]\n",
+           nmask,DSET_NVOX(dset), (100.0*nmask)/DSET_NVOX(dset) ) ;
    if( nmask == 0 ){
       fprintf(stderr,"** Quitting without saving mask\n"); exit(1);
    }
@@ -149,7 +150,7 @@ int main( int argc , char * argv[] )
    { int nx=DSET_NX(dset), ny=DSET_NY(dset), nz=DSET_NZ(dset), nxy=nx*ny ;
      int ii,jj,kk ;
 
-#if 1
+#if 0
      { int xm=-1,xp=-1,ym=-1,yp=-1,zm=-1,zp=-1 ;
        THD_autobbox( dset , &xm,&xp , &ym,&yp , &zm,&zp ) ;
        fprintf(stderr,"++ Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",

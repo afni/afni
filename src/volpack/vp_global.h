@@ -36,7 +36,7 @@
 #include "volpack.h"
 
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>   /* replaces malloc.h - 30 Apr 2003 */
 #include <math.h>
 extern double rint ANSI_ARGS((double x)); /* missing from Ultrix math.h */
 
