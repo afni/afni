@@ -2,6 +2,7 @@
   This program takes the mean of a bunch of datasets, voxel-by-voxel.
   Much of this code was taken from 3dcalc.c [I wrote it, I can steal it].
   30 Jan 2001 - RWCox
+  20 Dec 2004 - MSB adds -sd option (cleaned up by RWC a little)
 --------------------------------------------------------------------------*/
 
 #include "mrilib.h"
@@ -11,8 +12,10 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * inset , * outset ;
    int nx,ny,nz,nxyz,nval , ii,kk , nopt=1, nsum=0 ;
    char * prefix = "mean" ;
-   int datum=-1 , verb=0 , do_sum=0 , do_sqr=0 ;
-   float ** sum , fsum ;
+   int datum=-1 , verb=0 , do_sd=0, do_sum=0 , do_sqr=0, firstds=0 ;
+   float ** sum , fsum;
+   float ** sd;
+
    int fscale=0 , gscale=0 , nscale=0 ;
 
    /*-- help? --*/
@@ -30,6 +33,9 @@ int main( int argc , char * argv[] )
              "  -gscale     = Same as '-fscale', but also forces each output sub-brick to\n"
              "                  to get the same scaling factor.\n"
              "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
+             "\n"
+             "  -sd *OR*    = Calculate the standard deviation (variance/n-1) instead\n"
+             "  -stdev         of the mean (cannot be used with -sqr or -sum).\n"
              "\n"
              "  -sqr        = Average the squares, instead of the values.\n"
              "  -sum        = Just take the sum (don't divide by number of datasets).\n"
@@ -58,6 +64,10 @@ int main( int argc , char * argv[] )
    /*-- command line options --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcmp(argv[nopt],"-sd") == 0 || strcmp(argv[nopt],"-stdev") == 0 ){
+         do_sd = 1 ; nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-sum") == 0 ){
          do_sum = 1 ; nopt++ ; continue ;
@@ -116,6 +126,13 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
+   /*-- MSB: check for legal combination of options --*/
+
+   if( (do_sd) && ( do_sum || do_sqr )){
+     fprintf(stderr,"** ERROR: -sd cannot be used with -sqr or -sum \n") ;
+     exit(1) ;
+   }
+
    /*-- rest of command line should be datasets --*/
 
    if( nopt >= argc-1 ){
@@ -125,6 +142,7 @@ int main( int argc , char * argv[] )
 
    /*-- loop over datasets --*/
 
+   firstds = nopt;
    for( ; nopt < argc ; nopt++,nsum++ ){
 
       /*-- input dataset header --*/
@@ -146,8 +164,8 @@ int main( int argc , char * argv[] )
 
          sum = (float **) malloc( sizeof(float *)*nval ) ;    /* array of sub-bricks */
          for( kk=0 ; kk < nval ; kk++ ){
-            sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  /* kk-th sub-brick */
-            for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = 0.0 ;
+           sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  /* kk-th sub-brick */
+           for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = 0.0f ;
          }
 
          outset = EDIT_empty_copy( inset ) ;
@@ -203,11 +221,11 @@ int main( int argc , char * argv[] )
 
          switch( DSET_BRICK_TYPE(inset,kk) ){
             default:
-               fprintf(stderr,"ERROR: illegal input sub-brick datum\n") ;
-               exit(1) ;
+              fprintf(stderr,"ERROR: illegal input sub-brick datum\n") ;
+              exit(1) ;
 
             case MRI_float:{
-               float * pp = (float *) DSET_ARRAY(inset,kk) ;
+               float *pp = (float *) DSET_ARRAY(inset,kk) ;
                float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
@@ -219,7 +237,7 @@ int main( int argc , char * argv[] )
             break ;
 
             case MRI_short:{
-               short * pp = (short *) DSET_ARRAY(inset,kk) ;
+               short *pp = (short *) DSET_ARRAY(inset,kk) ;
                float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
@@ -231,7 +249,7 @@ int main( int argc , char * argv[] )
             break ;
 
             case MRI_byte:{
-               byte * pp = (byte *) DSET_ARRAY(inset,kk) ;
+               byte *pp = (byte *) DSET_ARRAY(inset,kk) ;
                float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
@@ -247,13 +265,103 @@ int main( int argc , char * argv[] )
       DSET_delete(inset) ;
    }
 
-   /*-- fill up output dataset --*/
+   /* scale to be mean instead of sum */
 
    if( !do_sum ){
-      fsum = 1.0 / nsum ;
-      for( kk=0 ; kk < nval ; kk++ )
-          for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] *= fsum ;
+     fsum = 1.0 / nsum ;
+     for( kk=0 ; kk < nval ; kk++ )
+       for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] *= fsum ;
    }
+
+   /* MSB: If calculating SD,
+           loop through datasets again,
+           subtract each value from the mean, square, and sum up */
+
+   if( do_sd ){
+     for (nopt=firstds, nsum=0; nopt < argc ; nopt++,nsum++ ){
+
+      /*-- input dataset header --*/
+
+      inset = THD_open_dataset( argv[nopt] ) ;
+      if( !ISVALID_DSET(inset) ){
+        fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[nopt]) ;
+        exit(1) ;
+      }
+
+      /*-- 1st time thru: make workspace to hold sd sums */
+
+      if( nsum == 0 ){
+        sd = (float **) malloc( sizeof(float *)*nval ) ;    /* array of sub-bricks */
+        for( kk=0 ; kk < nval ; kk++ ){
+          sd[kk] = (float *) malloc(sizeof(float)*nxyz) ;  /* kk-th sub-brick */
+          for( ii=0 ; ii < nxyz ; ii++ ) sd[kk][ii] = 0.0f ;
+        }
+      }
+
+      /*-- read data from disk --*/
+
+      DSET_load(inset) ;
+      if( !DSET_LOADED(inset) ){
+        fprintf(stderr,"** ERROR: can't read data from dataset %s\n",argv[nopt]) ;
+        exit(1) ;
+      }
+
+      if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",argv[nopt]) ;
+
+      /*-- sum dataset values into sd --*/
+
+      for( kk=0 ; kk < nval ; kk++ ){
+
+         if( verb )
+           fprintf(stderr,"   + sub-brick %d [%s]\n",
+                   kk,MRI_TYPE_name[DSET_BRICK_TYPE(inset,kk)] ) ;
+
+         switch( DSET_BRICK_TYPE(inset,kk) ){
+           default:
+             fprintf(stderr,"ERROR: illegal input sub-brick datum\n") ;
+             exit(1) ;
+
+           case MRI_float:{
+             float *pp = (float *) DSET_ARRAY(inset,kk) ;
+             float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+             if( fac == 0.0 ) fac = 1.0 ;
+             for( ii=0 ; ii < nxyz ; ii++ )
+               { val = (fac * pp[ii]) - sum[kk][ii]; sd[kk][ii] += val*val ; }
+           }
+           break ;
+
+           case MRI_short:{
+             short *pp = (short *) DSET_ARRAY(inset,kk) ;
+             float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+             if( fac == 0.0 ) fac = 1.0 ;
+             for( ii=0 ; ii < nxyz ; ii++ )
+               { val = (fac * pp[ii]) - sum[kk][ii]; sd[kk][ii] += val*val ; }
+           }
+           break ;
+
+           case MRI_byte:{
+             byte *pp = (byte *) DSET_ARRAY(inset,kk) ;
+             float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+             if( fac == 0.0 ) fac = 1.0 ;
+             for( ii=0 ; ii < nxyz ; ii++ )
+               { val = (fac * pp[ii]) - sum[kk][ii]; sd[kk][ii] += val*val ; }
+           }
+           break ;
+         }
+       }
+
+       DSET_delete(inset) ;
+     } /* end dataset loop */
+
+     /*-- fill up output dataset with sd instead of sum --*/
+
+     fsum = 1.0 / (nsum - 1) ;
+     for( kk=0 ; kk < nval ; kk++ ){
+       for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] = sqrt(sd[kk][ii]*fsum) ;
+       free((void *)sd[kk]) ;
+     }
+
+   } /* end sd loop */
 
    switch( datum ){
 
