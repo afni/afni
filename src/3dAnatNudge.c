@@ -78,7 +78,7 @@ int main( int argc , char *argv[] )
              "     if( $cvar[1] == \"3drefit\" ) $cvar\n"
              "  The test on the first sub-string in cvar allows for the\n"
              "  possibility that the program fails, or that the optimal\n"
-             "  nudge is zero."
+             "  nudge is zero.\n"
            ) ;
       exit(0) ;
    }
