@@ -47,15 +47,26 @@
                * added (float *)reg_rep, for graphing with x == rep num
 	       * added RT_set_grapher_pinnums(), to call more than once
 	       * added GRAPH_XRANGE and GRAPH_YRANGE command strings for
-	       *     control over the scales of the motion graph
+	             control over the scales of the motion graph
 	       * if GRAPH_XRANGE and GRAPH_YRANGE commands are both passed,
-	       *     do not display the final (scaled) motion graph          **/
+	             do not display the final (scaled) motion graph          **/
 /** 13 Feb 2004: added RT_MAX_PREFIX for incoming PREFIX command     [rickr]
 	       * if GRAPH_?RANGE is given, disable 'pushing'
-	       *     (see plot_ts_xypush())
+	             (see plot_ts_xypush())
 	       * added GRAPH_EXPR command, to compute and display a single
-	       *     motion curve, instead of the normal six
-	       *     (see p_code, etc., reg_eval, and RT_parser_init())      **/
+	             motion curve, instead of the normal six
+	             (see p_code, etc., reg_eval, and RT_parser_init())      **/
+/** 31 Mar 2004: added ability to send registration parameters       [rickr]
+	       * If the AFNI_REALTIME_MP_HOST_PORT environment variable is 
+	             set (as HOST:PORT, e.g. localhost:53214), then the six
+	             registration correction parameters will be sent to that
+	             host/port via a tcp socket.  This is done only in the
+	             case of graphing the 3D registration parameters.
+	       * added RT_input variables to manage the new socket 
+	       * added RT_mp_comm_...() functions
+	       * modified yar[] logic in RT_registration_3D_realtime() to
+	             pass the registration parameters before adjusting the
+	             base pointers for plot_ts_addto()                       **/
 
 
 /**************************************************************************/
@@ -79,6 +90,8 @@
 
 #define RT_MAX_EXPR     1024    /* max size for parser expression  */
 #define RT_MAX_PREFIX    100    /* max size for output file prefix */
+
+#define RT_MP_DEF_PORT 53214    /* default port for sending motion params */
 
 #define DEFAULT_XYFOV    240.0
 #define DEFAULT_XYMATRIX  64
@@ -205,6 +218,13 @@ typedef struct {
    int           p_max_sym ;			/* max index+1 of p_has_sym  */
    float       * reg_eval ;			/* EXPR evaluation results   */
 
+   /*-- Mar 2004 [rickr]: tcp comm fields for motion params (for Tom Ross) --*/
+   int           mp_tcp_use ;     /* are we using tcp comm for motion params */
+   int           mp_tcp_sd ;      /* socket descriptor                       */
+   int           mp_port ;        /* destination port for motion params      */
+   char          mp_host[128] ;   /* destination host for motion params      */
+   int           mp_nmsg ;        /* count the number of sent messages       */
+   int           mp_npsets ;      /* count the number of sent data lists     */
 #endif
 
    double elapsed , cpu ;         /* times */
@@ -417,8 +437,12 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   void RT_registration_3D_onevol( RT_input * rtin , int tt ) ;
   void RT_registration_3D_realtime( RT_input * rtin ) ;
 
-  void RT_set_grapher_pinnums( int pinnum );
-  int  RT_parser_init( RT_input * rtin );
+  int  RT_mp_comm_close       ( RT_input * rtin );
+  int  RT_mp_comm_init        ( RT_input * rtin );
+  int  RT_mp_comm_init_vars   ( RT_input * rtin );
+  int  RT_mp_comm_send_data   ( RT_input * rtin, float * mp[6], int nt );
+  int  RT_parser_init         ( RT_input * rtin );
+  void RT_set_grapher_pinnums ( int pinnum );
 #endif
 
 #define TELL_NORMAL  0
@@ -1529,6 +1553,13 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
 
    rtin->p_code = NULL ;          /* init parser code    12 Feb 2004 [rickr] */
 
+   rtin->mp_tcp_use = 0 ;         /* tcp motion param    30 Mar 2004 [rickr] */
+   rtin->mp_tcp_sd  = 0 ;
+   rtin->mp_port    = RT_MP_DEF_PORT ;
+   rtin->mp_nmsg    = 0 ;
+   rtin->mp_npsets  = 0 ;
+   strcpy(rtin->mp_host, "localhost") ;
+
    rtin->reg_resam = REG_resam_ints[reg_resam] ;
    if( rtin->reg_resam < 0 ){                    /* 20 Nov 1998: */
       rtin->reg_resam       = MRI_HEPTIC ;       /* special case */
@@ -1730,6 +1761,213 @@ void RT_check_info( RT_input * rtin , int prt )
 }
 
 #ifdef ALLOW_REGISTRATION
+/*---------------------------------------------------------------------------
+   Close the socket connection.                        30 Mar 2004 [rickr]
+
+   return   0 : on success
+          < 0 : on error
+-----------------------------------------------------------------------------*/
+int RT_mp_comm_close( RT_input * rtin )
+{
+    char magic_bye[] = { 0xde, 0xad, 0xde, 0xad, 0 };
+
+    if ( rtin->mp_tcp_use != 1 || rtin->mp_tcp_sd <= 0 )
+	return 0;
+
+    if ( (tcp_writecheck(rtin->mp_tcp_sd, 1)   == -1) ||
+         (send(rtin->mp_tcp_sd, magic_bye, 4, 0) == -1 ) )
+	fprintf(stderr,"** closing: our MP socket has gone bad?\n");
+
+    fprintf(stderr,"RT: MP: closing motion param socket, "
+	           "sent %d param sets over %d messages\n",
+		   rtin->mp_npsets, rtin->mp_nmsg);
+
+    /* in any case, close the socket */
+    close(rtin->mp_tcp_sd);
+    rtin->mp_tcp_sd  = 0;
+    rtin->mp_tcp_use = 0;
+    rtin->mp_npsets  = 0;
+    rtin->mp_nmsg    = 0;
+
+    return 0;
+}
+
+
+/*---------------------------------------------------------------------------
+   Send the current motion params.                        30 Mar 2004 [rickr]
+
+   return   0 : on success
+          < 0 : on error
+-----------------------------------------------------------------------------*/
+int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt )
+{
+    float data[600];		/* max transfer is nt == 100 */
+    int   rv, nvals, remain;
+    int   c, c2;
+
+    if ( rtin->mp_tcp_use != 1 || nt <= 0 )
+	return 0;
+
+    if ( rtin->mp_tcp_sd <= 0 )
+	return -1;
+
+    /* hmmmm, Bob has a good function to test the socket... */
+    if ( (rv = tcp_writecheck(rtin->mp_tcp_sd, 1)) == -1 )
+    {
+	fprintf(stderr,"** our MP socket has gone bad?\n");
+	close(rtin->mp_tcp_sd);
+	rtin->mp_tcp_sd  = 0;
+	rtin->mp_tcp_use = 0;	/* allow a later re-try... */
+	return -1;
+    }
+
+    remain = nt;
+    while ( remain > 0 )
+    {
+	nvals = MIN(remain, 100);
+
+	/* copy floats to 'data' */
+	for ( c = 0; c < nvals; c++ )
+	    for ( c2 = 0; c2 < 6; c2++ )
+		data[6*c+c2] = mp[c2][c];
+
+	if ( send(rtin->mp_tcp_sd, data, 6*nvals*sizeof(float), 0) == -1 )
+	{
+	    fprintf(stderr,"** failed to send %d floats, closing socket...\n",
+		    6*nvals);
+	    close(rtin->mp_tcp_sd);
+	    rtin->mp_tcp_sd  = 0;
+	    rtin->mp_tcp_use = 0;  /* allow a later re-try... */
+	    return -1;
+	}
+
+	/* keep track of num messages and num param sets */
+	rtin->mp_nmsg++;
+	rtin->mp_npsets += nvals;
+
+	remain -= nvals;
+    }
+
+    return 0;
+}
+
+
+/*---------------------------------------------------------------------------
+   Initialize the motion parameter communications.        30 Mar 2004 [rickr]
+
+   return   0 : on success
+          < 0 : on error
+-----------------------------------------------------------------------------*/
+int RT_mp_comm_init( RT_input * rtin )
+{
+    struct sockaddr_in   sin;
+    struct hostent     * hostp;
+    char                 magic_hi[] = { 0xab, 0xcd, 0xef, 0xab };
+    int                  sd;
+
+    if ( rtin->mp_tcp_sd != 0 )
+	fprintf(stderr,"** warning, did we not close the MP socket?\n");
+
+    if ( (hostp = gethostbyname(rtin->mp_host)) == NULL )
+    {
+	fprintf(stderr,"** cannot lookup host '%s'\n", rtin->mp_host);
+	rtin->mp_tcp_use = -1;
+	return -1;
+    }
+
+    /* fill the sockaddr_in struct */
+    memset(&sin, 0, sizeof(sin));
+    sin.sin_family      = AF_INET;
+    sin.sin_addr.s_addr = ((struct in_addr *)(hostp->h_addr))->s_addr;
+    sin.sin_port        = htons(rtin->mp_port);
+
+    /* get a socket */
+    if ( (sd = socket(AF_INET, SOCK_STREAM, 0)) == -1 )
+    {
+	perror("pe: socket");
+	rtin->mp_tcp_use = -1;   /* let us not try, try again */
+	return -1;
+    }
+
+    if ( connect(sd, (struct sockaddr *)&sin, sizeof(sin)) == -1 )
+    {
+	perror("pe: connect");
+	rtin->mp_tcp_use = -1;
+	return -1;
+    }
+
+    /* send the hello message */
+    if ( send(sd, magic_hi, 4*sizeof(char), 0) == -1 )
+    {
+	perror("pe: send hello");
+	rtin->mp_tcp_use = -1;
+	return -1;
+    }
+
+    fprintf(stderr,"RT: MP: opened motion param socket to %s:%d\n",
+	    rtin->mp_host, rtin->mp_port);
+
+    /* everything worked out, we're good to van Gogh */
+
+    rtin->mp_tcp_sd = sd;
+
+    return 0;
+}
+
+
+/*---------------------------------------------------------------------------
+   Initialize the motion parameter communication variables. 30 Mar 2004 [rickr]
+
+   We are expecting AFNI_REALTIME_MP_HOST_PORT to read "hostname:port".
+
+   return   0 : on success
+          < 0 : on error
+-----------------------------------------------------------------------------*/
+int RT_mp_comm_init_vars( RT_input * rtin )
+{
+    char * ept, * cp;
+    int    len;
+
+    if ( rtin->mp_tcp_use < 0 )	    /* we've failed out, do not try again */
+	return 0;
+
+    if ( rtin->mp_tcp_sd != 0 )
+	fprintf(stderr,"** warning, did we not close the MP socket?\n");
+    rtin->mp_tcp_sd   = 0;
+
+    /* for now, we will only init this if the HOST:PORT env var exists */
+    ept = getenv("AFNI_REALTIME_MP_HOST_PORT") ;  /* 09 Oct 2000 */
+    if( ept == NULL )
+	return 0;
+
+    cp = strchr(ept, ':');	/* find ':' seperator */
+
+    if ( cp == NULL || !isdigit(*(cp+1)) )
+    {
+	fprintf(stderr,"** env var AFNI_REALTIME_MP_HOST_PORT must be in the "
+		       "form hostname:port_num\n   (var is '%s')\n", ept);
+	return -1;
+    }
+
+    len = cp - ept;	/* length of hostname */
+    if ( len > 127 )
+    {
+        fprintf(stderr,"** motion param hostname restricted to 127 bytes,\n"
+	               "   found %d from host in %s\n", len, ept);
+	return -1;
+    }
+
+    fprintf(stderr,"RT: MP: found motion param env var '%s'\n", ept);
+
+    rtin->mp_port = atoi(cp+1);
+    strncpy(rtin->mp_host, ept, len);
+    rtin->mp_host[len] = '\0';
+    rtin->mp_tcp_use = 1;
+
+    return 0;
+}
+
+
 /*---------------------------------------------------------------------------
    Initialize the parser fields from the user expression.  12 Feb 2004 [rickr]
 
@@ -3488,6 +3726,10 @@ void RT_finish_dataset( RT_input * rtin )
                    "reps" , NULL , ttl , nar , NULL ) ;
 
       free(ttl) ;
+
+      /* close the tcp connection */
+      if ( rtin->mp_tcp_use )
+	  RT_mp_comm_close( rtin );
    }
 
    /* if we have a parser expression, free it */
@@ -3899,6 +4141,10 @@ void RT_registration_3D_realtime( RT_input * rtin )
          if( rtin->mp != NULL ) rtin->mp->killfunc = MTD_killfunc ;
 
          free(ttl) ;
+
+	 /* set up comm for motion params    30 Mar 2004 [rickr] */
+	 RT_mp_comm_init_vars( rtin ) ; 
+	 if ( rtin->mp_tcp_use ) RT_mp_comm_init( rtin ) ;
       }
    }
 
@@ -3913,8 +4159,6 @@ void RT_registration_3D_realtime( RT_input * rtin )
       float        * yar[7] ;
       int            ycount = -6 ;
 
-      if( ttbot > 0 ) ttbot-- ;
-      
       yar[0] = rtin->reg_rep   + ttbot ;
       yar[1] = rtin->reg_dx    + ttbot ;
       yar[2] = rtin->reg_dy    + ttbot ;
@@ -3923,6 +4167,18 @@ void RT_registration_3D_realtime( RT_input * rtin )
       yar[5] = rtin->reg_psi   + ttbot ;
       yar[6] = rtin->reg_theta + ttbot ;
 
+      /* send the data off over tcp connection          30 Mar 2004 [rickr] */
+      if ( rtin->mp_tcp_use )
+	  RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot );
+
+      if( ttbot > 0 )  /* modify yar after send_data, when ttbot > 0 */
+      {
+	  int c;
+	  for ( c = 0; c < 7; c++ )  /* apply the old ttbot-- */
+	      yar[c]--;
+	  ttbot-- ;
+      }
+      
       /* if p_code, only plot the reg_eval */
       if ( rtin->p_code )
       {
@@ -3931,7 +4187,6 @@ void RT_registration_3D_realtime( RT_input * rtin )
       }
 
       plot_ts_addto( rtin->mp , ntt-ttbot , yar[0] , ycount , yar+1 ) ;
-
    }
 
    /*-- my work here is done --*/
