@@ -178,7 +178,7 @@ static mday holiday[] = {
    {JAN,27,"Charles Dodgson's (Lewis Carroll) birthday"              } ,
    {JAN,27,"Wolfgang Amadeus Mozart's birthday"                      } ,
    {JAN,28,"Anniversary of Challenger explosion"                     } ,
-   {JAN,29,"WC Fields' Birthday"                                     } ,
+   {JAN,29,"WC Fields' birthday"                                     } ,
    {JAN,30,"Franklin Delano Roosevelt's birthday"                    } ,
    {JAN,31,"Queen Beatrix's birthday"                                } ,
    {JAN,31,"Jackie Robinson's birthday"                              } ,
