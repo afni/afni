@@ -1979,3 +1979,9 @@
      which just runs afni_vcheck and puts the output into a popup.
  * Modified plug_render.c to make Cutout Overlay work properly with
      ShowThru.
+
+13 Jan 2000
+ * Added plug_scatplot.c - scatter plotting.  Added PLUTO_scatterplot()
+     function to afni_plugin.[ch].
+ * Fixed error in setup of Range choosers in plug_histog.c - they
+     were initialized to incorrect values.

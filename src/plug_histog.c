@@ -93,8 +93,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*-- fifth line of input --*/
 
    PLUTO_add_option( plint , "Range"  , "Range" , FALSE ) ;
-   PLUTO_add_number( plint , "Bottom" , -99999,99999, 1, 0,1 ) ;
-   PLUTO_add_number( plint , "Top"    , -99999,99999,-1, 0,1 ) ;
+   PLUTO_add_number( plint , "Bottom" , -99999,99999, 0,  1,1 ) ;
+   PLUTO_add_number( plint , "Top"    , -99999,99999, 0, -1,1 ) ;
 
    return plint ;
 }

@@ -4047,3 +4047,164 @@ ENTRY("PLUTO_histoplot") ;
    free(yzar) ; free(xar) ; free(yar) ;
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------
+  Return p10 as a power of 10 such that
+    p10 <= fabs(x) < 10*p10
+  unless x == 0, in which case return 0.
+------------------------------------------------------------------------*/
+
+static float p10( float x )
+{
+   double y ;
+   if( x == 0.0 ) return 0.0 ;
+   if( x <  0.0 ) x = -x ;
+   y = floor(log10(x)+0.000001) ; y = pow( 10.0 , y ) ;
+   return (float) y ;
+}
+
+#define STGOOD(s) ( (s) != NULL && (s)[0] != '\0' )
+
+/*-----------------------------------------------------------------
+   Plot a scatterplot.
+     npt  = # of points in x[] and y[]
+     x    = x-axis values array
+     y    = y-axis values array
+     xlab } labels for x-axis,
+     ylab }            y-axis
+     tlab }        and top of graph (NULL => skip this label)
+   Graph is popped up and then "forgotten" -- RWCox - 13 Jan 2000
+-------------------------------------------------------------------*/
+
+void PLUTO_scatterplot( int npt , float * x , float * y ,
+                        char * xlab , char * ylab , char * tlab )
+{
+   int ii , np , nnax,mmax , nnay,mmay ;
+   float xbot,xtop , ybot,ytop , pbot,ptop ,
+         xobot,xotop,yobot,yotop , xa,xb,ya,yb , dx,dy ;
+   float * xar , * yar , * zar=NULL , ** yzar ;
+   char str[32] ;
+   MEM_plotdata * mp ;
+
+ENTRY("PLUTO_scatterplot") ;
+
+   if( npt < 2 || x == NULL || y == NULL ) EXRETURN ;
+
+   /* find range of data */
+
+   xbot = xtop = x[0] ; ybot = ytop = y[0] ;
+   for( ii=1 ; ii < npt ; ii++ ){
+           if( x[ii] < xbot ) xbot = x[ii] ;
+      else if( x[ii] > xtop ) xtop = x[ii] ;
+
+           if( y[ii] < ybot ) ybot = y[ii] ;
+      else if( y[ii] > ytop ) ytop = y[ii] ;
+   }
+   if( xbot >= xtop || ybot >= ytop ){
+      fprintf(stderr,"*** Data has no range in PLUTO_scatterplot!\n\a");
+      EXRETURN ;
+   }
+
+   /*-- push range of x outwards --*/
+
+   pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
+   if( ptop != 0.0 ){
+      np = (xtop-xbot) / ptop + 0.5 ;
+      switch( np ){
+         case 1:  ptop *= 0.1  ; break ;
+         case 2:  ptop *= 0.2  ; break ;
+         case 3:  ptop *= 0.25 ; break ;
+         case 4:
+         case 5:  ptop *= 0.5  ; break ;
+      }
+      xbot = floor( xbot/ptop ) * ptop ;
+      xtop =  ceil( xtop/ptop ) * ptop ;
+      nnax = floor( (xtop-xbot) / ptop + 0.5 ) ;
+      mmax = (nnax < 3) ? 10
+                        : (nnax < 6) ? 5 : 2 ;
+   } else {
+      nnax = 1 ; mmax = 10 ;
+   }
+
+   /*-- push range of y outwards --*/
+
+   pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
+   if( ptop != 0.0 ){
+      np = (ytop-ybot) / ptop + 0.5 ;
+      switch( np ){
+         case 1:  ptop *= 0.1  ; break ;
+         case 2:  ptop *= 0.2  ; break ;
+         case 3:  ptop *= 0.25 ; break ;
+         case 4:
+         case 5:  ptop *= 0.5  ; break ;
+      }
+      ybot = floor( ybot/ptop ) * ptop ;
+      ytop =  ceil( ytop/ptop ) * ptop ;
+      nnay = floor( (ytop-ybot) / ptop + 0.5 ) ;
+      mmay = (nnay < 3) ? 10
+                        : (nnay < 6) ? 5 : 2 ;
+   } else {
+      nnay = 1 ; mmay = 10 ;
+   }
+
+   /*-- setup to plot --*/
+
+   for( np=0 ; np < 1000 ; np++ ){
+      sprintf( str , "scatplot#%03d" , np ) ;
+      ii = create_memplot( str , 1.3 ) ;
+      if( ii == 0 ) break ;
+   }
+   if( np == 1000 ) EXRETURN ;  /* should never happen */
+
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   set_thick_memplot( 0.0 ) ;
+
+   /*-- plot labels, if any --*/
+
+   xobot = 0.15 ; xotop = 1.27 ;  /* set objective size of plot */
+   yobot = 0.1  ; yotop = 0.95 ;
+
+   if( STGOOD(tlab) ){ yotop -= 0.02 ; yobot -= 0.01 ; }
+
+   /* x-axis label? */
+
+   if( STGOOD(xlab) )
+      plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , xlab , 16 , 0 , 0 ) ;
+
+   /* y-axis label? */
+
+   if( STGOOD(ylab) )
+      plotpak_pwritf( xobot-0.12 , 0.5*(yobot+yotop) , ylab , 16 , 90 , 0 ) ;
+
+   /* label at top? */
+
+   if( STGOOD(tlab) )
+      plotpak_pwritf( xobot+0.01 , yotop+0.01 , tlab , 18 , 0 , -2 ) ;
+
+   /* plot axes */
+
+   plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
+   plotpak_periml( nnax,mmax , nnay,mmay ) ;
+
+   /* plot data */
+
+#define DSQ 0.003
+
+   dx = DSQ*(xtop-xbot) ;
+   dy = DSQ*(ytop-ybot) * (xotop-xobot)/(yotop-yobot) ;
+   for( ii=0 ; ii < npt ; ii++ ){
+      xa = x[ii] - dx ; xb = x[ii] + dx ;
+      ya = y[ii] - dy ; yb = y[ii] + dy ;
+
+      plotpak_line( xa,ya , xa,yb ) ;
+      plotpak_line( xa,yb , xb,yb ) ;
+      plotpak_line( xb,yb , xb,ya ) ;
+      plotpak_line( xb,ya , xa,ya ) ;
+   }
+
+   mp = get_active_memplot() ;
+
+   (void) memplot_to_topshell( GLOBAL_library.dc->display , mp , NULL ) ;
+
+   EXRETURN ;
+}
