@@ -4816,6 +4816,9 @@
      Used this in afni_splash.c as a test.
 
 03 Dec 2003
- * Program mpegtoppm.
- * Read images and datasets from MPEG files.
+ * Program mpegtoppm -- in mpegtoppm_dir/.
+ * Read images and datasets from MPEG files, via mpegtoppm.
  * 'm' and 'M' keys in imseq.c.
+
+04 Dec 2003
+ * Change 'm/M' to 'v/V', and also add to afni_graph.c.
