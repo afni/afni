@@ -4552,3 +4552,6 @@
      make the users happier, I hope.
  * Add mri_possibly_dicom() function to mri_read_dicom.c, and use it to censor
      which files get the full DICOM reading treatment.
+
+09 May 2003
+ * AFNI_THRESH_BIGSTEP environment variable.

@@ -2200,7 +2200,11 @@ STATUS("making func->rowcol") ;
    decim = THR_TOP_EXPON ;                            /* compute parameters */
    smax  = (int)( pow(10.0,decim) + 0.001 ) ;         /* for scale display. */
    stop  = smax - 1 ;
-   sstep = smax / 1000 ;  if( sstep < 1 ) sstep = 1 ;
+   sstep = smax / 1000 ;
+   { char *eee = getenv("AFNI_THRESH_BIGSTEP") ;      /* 09 May 2003 */
+     if( eee != NULL ){ iqqq=strtol(eee,NULL,10); if(iqqq > 0) sstep=iqqq; }
+   }
+   if( sstep < 1 ) sstep = 1 ; else if( sstep > (smax/10) ) sstep = (smax/10) ;
 
 #ifdef BOXUP_SCALE
    qqq = XtVaCreateManagedWidget(
