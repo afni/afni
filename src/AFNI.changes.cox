@@ -4331,3 +4331,7 @@
      get inappropriate calls (forgot to enclose the call in {..} in an if).
  * Modified afni_suma*.c to send closest surface node ID to SUMA when viewpoint
      change callback is invoked.
+
+21 Feb 2003
+ * Modified imseq.c to use "-bpp 24" in ppmtobmp output to BMP files, avoiding
+     quantization problems.
