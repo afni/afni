@@ -300,17 +300,20 @@ int r_ulong_size ( unsigned long l )
 #ifdef SUMA_MakeColorMap_STAND_ALONE
 void SUMA_MakeColorMap_usage ()
 	{
-		fprintf (SUMA_STDOUT, "\n\33[1mUsage1: \33[0m SUMA_MakeColorMap <-f Fiducials> <-nc N> [-sl] [-ah prefix] [-h/-help]\n");
+		fprintf (SUMA_STDOUT, "\n\33[1mUsage1: \33[0m MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n");
+		fprintf (SUMA_STDOUT, "\t Creates a colormap of N colors that contains the fiducial colors.\n");
+		fprintf (SUMA_STDOUT, "\t -fn Fiducials_Ncol: Fiducial colors and their indices in the color map are listed in file Fiducials_Ncol.\n");
+		fprintf (SUMA_STDOUT, "\t\t Each row contains 4 tab delimited values:\n");
+		fprintf (SUMA_STDOUT, "\t\t R G B i\n");
+		fprintf (SUMA_STDOUT, "\t\t R G B values are between 0 and 1 and represent the i-th color in the colormap.\n");
+		fprintf (SUMA_STDOUT, "\t\t i should be between 0 and N-1, N being the total number of colors in the colormap.\n");
+		fprintf (SUMA_STDOUT, "\n\33[1mUsage2: \33[0m MakeColorMap <-f Fiducials> <-nc N> [-sl] [-ah prefix] [-h/-help]\n");
+		fprintf (SUMA_STDOUT, "\t Creates a colormap of N colors that contains the fiducial colors.\n");
 		fprintf (SUMA_STDOUT, "\t -f Fiducials:  Fiducial colors are listed in an ascii file Fiducials. \n");
 		fprintf (SUMA_STDOUT, "\t\t Each row contains 3 tab delimited R G B values between 0 and 1.\n");
 		fprintf (SUMA_STDOUT, "\t -nc N: Total number of colors in the color map.\n");
 		fprintf (SUMA_STDOUT, "\t -sl: (optional, default is NO) if used, the last color in the Fiducial list is omitted.\n");
 		fprintf (SUMA_STDOUT, "\t\t This is useful in creating cyclical color maps.\n");
-		fprintf (SUMA_STDOUT, "\n\33[1mUsage2: \33[0m SUMA_MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n");
-		fprintf (SUMA_STDOUT, "\t -fn Fiducials_Ncol: Fiducial colors and their indices in the color map are listed in file Fiducials_Ncol.\n");
-		fprintf (SUMA_STDOUT, "\t\t Each row contains 4 tab delimited R G B index values.\n");
-		fprintf (SUMA_STDOUT, "\t\t R G B values between 0 and 1 and index between 0 and N-1, \n");
-		fprintf (SUMA_STDOUT, "\t\t N being the total number of colors in the colormap.\n"); 
 		fprintf (SUMA_STDOUT, "\n\33[1mCommon options to both usages:\33[0m\n");
 		fprintf (SUMA_STDOUT, "\t -ah prefix: (optional, default is RGB values in decimal form)\n");
 		fprintf (SUMA_STDOUT, "\t\t use this option if you want a color map formatted to fit in AFNI's .afnirc file.\n");
@@ -321,16 +324,17 @@ void SUMA_MakeColorMap_usage ()
 		fprintf (SUMA_STDOUT, "\t -h or -help: displays this help message.\n");
 		fprintf (SUMA_STDOUT, "\n");
 		fprintf (SUMA_STDOUT, "Example Usage 1: Creating a colormap of 20 colors that goes from Red to Green to Blue to Yellow to Red.\n");
-		fprintf (SUMA_STDOUT, "\nThe file FidCol contains the following:\n");
-		fprintf (SUMA_STDOUT, "\t1 0 0\n\t0 1 0\n\t0 0 1\n\t1 1 0\n\t1 0 0\n\n");
-		fprintf (SUMA_STDOUT, "The following command will generate the RGB colormap in decimal form:\n");
-		fprintf (SUMA_STDOUT, "SUMA_MakeColorMap -f FidCol -sl -nc 20 \n\n");
-		fprintf (SUMA_STDOUT, "The following command will generate the colormap and write it as an AFNI color palette file:\n");
-		fprintf (SUMA_STDOUT, "SUMA_MakeColorMap -f FidCol -sl -nc 20 -ah TestPalette > TestPalette.pal\n\n");
-		fprintf (SUMA_STDOUT, "\nExample Usage 2: Creating a comparable colormap as in usage 1:\n");
-		fprintf (SUMA_STDOUT, "\nThe file FidCol_Nind contains the following:\n");
+		fprintf (SUMA_STDOUT, "\n\tThe file FidCol_Nind contains the following:\n");
 		fprintf (SUMA_STDOUT, "\t1 0 0 0\n\t0 1 0 5\n\t0 0 1 10\n\t1 1 0 15\n\t1 0 0 19\n\n");
-		fprintf (SUMA_STDOUT, "SUMA_MakeColorMap -fn FidCol_Nind \n\n");
+		fprintf (SUMA_STDOUT, "\tThe following command will generate the RGB colormap in decimal form:\n");
+		fprintf (SUMA_STDOUT, "\tMakeColorMap -fn FidCol_Nind \n\n");
+		fprintf (SUMA_STDOUT, "\tThe following command will generate the colormap and write it as an AFNI color palette file:\n");
+		fprintf (SUMA_STDOUT, "\tMakeColorMap -fn FidCol_Nind -ah TestPalette > TestPalette.pal\n\n");
+		fprintf (SUMA_STDOUT, "Example Usage 2: Creating a cyclical version of the colormap in usage 1:\n");
+		fprintf (SUMA_STDOUT, "\n\tThe file FidCol contains the following:\n");
+		fprintf (SUMA_STDOUT, "\t1 0 0\n\t0 1 0\n\t0 0 1\n\t1 1 0\n\t1 0 0\n\n");
+		fprintf (SUMA_STDOUT, "\tThe following command will generate the RGB colormap in decimal form:\n");
+		fprintf (SUMA_STDOUT, "\tMakeColorMap -f FidCol -sl -nc 20 \n\n");
 		fprintf (SUMA_STDOUT, "To read in a new colormap into AFNI, either paste the contents of TestPalette.pal\n");
 		fprintf (SUMA_STDOUT, "in your .afnirc file or read the .pal file using AFNI as follows:\n");
 		fprintf (SUMA_STDOUT, "1- run afni\n2- Define Function --> right click on Inten (over colorbar) --> Read in palette (choose TestPalette.pal)\n");
