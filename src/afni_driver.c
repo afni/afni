@@ -41,6 +41,8 @@ static int AFNI_drive_set_pbar_sign    ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_drive_set_pbar_all     ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_drive_pbar_rotate      ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_set_func_autorange     ( char *cmd ) ; /* 17 Jan 2003 */
+static int AFNI_set_func_range         ( char *cmd ) ; /* 21 Jan 2003 */
+static int AFNI_set_func_visible       ( char *cmd ) ; /* 21 Jan 2003 */
 
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
@@ -89,6 +91,8 @@ static AFNI_driver_pair dpair[] = {
  { "SET_PBAR_ALL"       , AFNI_drive_set_pbar_all      } ,
  { "PBAR_ROTATE"        , AFNI_drive_pbar_rotate       } ,
  { "SET_FUNC_AUTORANGE" , AFNI_set_func_autorange      } ,
+ { "SET_FUNC_RANGE"     , AFNI_set_func_range          } ,
+ { "SET_FUNC_VISIBLE"   , AFNI_set_func_visible        } ,
 
  { NULL , NULL } } ;
 
@@ -1577,5 +1581,76 @@ ENTRY("AFNI_set_func_autorange") ;
    MCW_set_bbox( im3d->vwid->func->range_bbox , nn ) ;
    AFNI_range_bbox_CB( im3d->vwid->func->range_bbox->wbut[RANGE_AUTOBUT] ,
                        im3d , NULL ) ;
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! SET_FUNC_RANGE [c.]value
+   "SET_FUNC_RANGE A.0.3333"
+---------------------------------------------------------------------------*/
+
+static int AFNI_set_func_range( char *cmd )
+{
+   int ic , dadd=2 ;
+   Three_D_View *im3d ;
+   float val ;
+
+ENTRY("AFNI_set_func_range") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   val = strtod( cmd+dadd , NULL ) ;
+   if( val <  0.0 ) RETURN(-1) ;
+
+   if( val == 0.0 ){
+     char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+     char str[8] ;
+     sprintf(str,"%c.+",clabel[ic]) ;
+     RETURN( AFNI_set_func_autorange(str) ) ;
+   }
+
+   MCW_set_bbox( im3d->vwid->func->range_bbox , 0 ) ;   /* autoRange box off */
+   im3d->vinfo->use_autorange = 0 ;
+
+   AV_SENSITIZE( im3d->vwid->func->range_av , 1 ) ;
+   AV_assign_fval( im3d->vwid->func->range_av , val ) ;
+   AFNI_range_av_CB( im3d->vwid->func->range_av , im3d ) ;
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! SET_FUNC_VISIBLE [c.]{+|-}
+   "SET_FUNC_VISIBLE A.+"
+---------------------------------------------------------------------------*/
+
+static int AFNI_set_func_visible( char *cmd )
+{
+   int ic , dadd=2 , nn ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_set_func_visible") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   switch( cmd[dadd] ){
+     default: RETURN(-1) ;
+     case '+': nn = 1 ; break ;
+     case '-': nn = 0 ; break ;
+   }
+
+   MCW_set_bbox( im3d->vwid->view->see_func_bbox , nn ) ;
+   AFNI_see_func_CB( NULL , im3d , NULL ) ;
    RETURN(0) ;
 }
