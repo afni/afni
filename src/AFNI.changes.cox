@@ -4946,3 +4946,7 @@
  * Made threshold locking move sliders during drag, not just end of drag.
      Also change pval at bottom of locked sliders during drag.  Also put
      Edit Environment button on top-of-pbar popup menu.
+
+11 Feb 2004
+ * Fixed bug in afni_graph.c about average time series, when graph is
+     too short.  I think.  [cf. 27 Jan 2004]

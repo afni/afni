@@ -8,7 +8,7 @@
 
 #define VERSION_URL "http://afni.nimh.nih.gov/afni/AFNI.version"
 
-#define VERSION_FILE "/home3/afni/AFNI.version"
+#define VERSION_FILE "/misc/elrond0/var/www/html/pub/dist/AFNI.version"
 
 /*------------------------------------------------------------------------
    Program to check (or write) the AFNI version information.
