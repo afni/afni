@@ -70,21 +70,21 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
    if (!thisidcode) {
       if (!filename) {
          UNIQ_idcode_fill(idcode);
-         NI_set_attribute (nel, "idcode", idcode); /* create one */
+         NI_set_attribute (nel, "Object_ID", idcode); /* create one *//* changed from idcode March 31 */
       } else { 
          namecode = UNIQ_hashcode(filename);  /* from filename */
-         NI_set_attribute (nel, "idcode", namecode); SUMA_free(namecode);
+         NI_set_attribute (nel, "Object_ID", namecode); SUMA_free(namecode);
       }
    } else {
-      NI_set_attribute (nel, "idcode", thisidcode);
+      NI_set_attribute (nel, "Object_ID", thisidcode);
    }
    
    
    /* set the idcodes of the parents */
    if (MeshParent_idcode) {
-      NI_set_attribute (nel, "MeshParent_idcode", MeshParent_idcode);
+      NI_set_attribute (nel, "Parent_ID", MeshParent_idcode); /* changed from MeshParent_idcode March 31 */
    } else {
-      NI_set_attribute (nel, "MeshParent_idcode", NULL);
+      NI_set_attribute (nel, "Parent_ID", NULL);
    }
    if (GeomParent_idcode) {
       NI_set_attribute (nel, "GeomParent_idcode", GeomParent_idcode);
@@ -485,7 +485,7 @@ SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask
          if (!ndset) {
             new_name = SUMA_append_string(NI_get_attribute(nel,"filename"),"copy");
             UNIQ_idcode_fill(idcode); 
-            ndset =  SUMA_CreateDsetPointer( new_name, SUMA_Dset_Type(nel->name), idcode, NI_get_attribute(nel,"MeshParent_idcode"),  n_incopy ); 
+            ndset =  SUMA_CreateDsetPointer( new_name, SUMA_Dset_Type(nel->name), idcode, NI_get_attribute(nel,"Parent_ID"),  n_incopy ); 
             SUMA_free(new_name); new_name = NULL;
          }
          /* add the column */
@@ -802,6 +802,12 @@ char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp)
       case SUMA_PREP_NEW_SURFACE:
          SUMA_RETURN("PrepNewSurface");
          break;
+      case SUMA_SURFACE_VOLUME_PARENT:
+         SUMA_RETURN("SurfaceVolumeParent");
+         break;
+      case SUMA_SURFACE_OBJECT:
+         SUMA_RETURN("SurfaceObject");
+         break;
       default:
          SUMA_RETURN("Cowabonga-gothdo");
          break;
@@ -831,6 +837,8 @@ SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
    if (!strcmp(Name,"NewMesh_IJK")) SUMA_RETURN (SUMA_NEW_MESH_IJK);
    if (!strcmp(Name,"Mesh_IJK")) SUMA_RETURN (SUMA_MESH_IJK);
    if (!strcmp(Name,"PrepNewSurface")) SUMA_RETURN (SUMA_PREP_NEW_SURFACE);
+   if (!strcmp(Name,"SurfaceVolumeParent")) SUMA_RETURN (SUMA_SURFACE_VOLUME_PARENT);
+   if (!strcmp(Name,"SurfaceObject")) SUMA_RETURN (SUMA_SURFACE_OBJECT);
    SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
 }
 
@@ -1092,7 +1100,8 @@ SUMA_DSET * SUMA_FindDset (char *idcode, DList *DsetList)
          SUMA_SLP_Err("Unexpected NULL dset element in list!\nPlease report this occurrence to ziad@nih.gov."); 
       } else {   
          if (dset->nel) {
-            dsetid = NI_get_attribute(dset->nel, "idcode");
+            dsetid = NI_get_attribute(dset->nel, "idcode"); /* obsolete */
+            if (!dsetid) dsetid = NI_get_attribute(dset->nel, "Object_ID");
             if (dsetid) {
                if (!strcmp(dsetid, idcode))  dsetf = dset; /* match */
             } 
@@ -1301,6 +1310,8 @@ SUMA_DSET * SUMA_CreateDsetPointer (
    if (!idcode) { /* No id is given yet */
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Using filename %s to create IDcode.\n", FuncName, filename); 
       idcode = UNIQ_hashcode(filename);   /* form one from the filename */
+   }else {
+      SUMA_LH("using idcode supplied");
    }
    
    dset = SUMA_NewDsetPointer();
@@ -1495,14 +1506,14 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
             SS = SUMA_StringAppend_va(SS, "label: %s\n", SDSET_LABEL(dset));
          else SS = SUMA_StringAppend_va(SS, "label: NULL\n");
          if (SDSET_ID(dset)) 
-            SS = SUMA_StringAppend_va(SS, "idcode: %s\n", SDSET_ID(dset));
-         else SS = SUMA_StringAppend_va(SS, "idcode: NULL\n");
+            SS = SUMA_StringAppend_va(SS, "Object_ID (idcode): %s\n", SDSET_ID(dset));
+         else SS = SUMA_StringAppend_va(SS, "Object_ID (idcode): NULL\n");
          if (SDSET_IDGDOM(dset)) 
             SS = SUMA_StringAppend_va(SS, "GeomParent_idcode: %s\n", SDSET_IDGDOM(dset));
          else SS = SUMA_StringAppend_va(SS, "GeomParent_idcode: NULL\n");
          if (SDSET_IDMDOM(dset)) 
-            SS = SUMA_StringAppend_va(SS, "MeshParent_idcode: %s\n", SDSET_IDMDOM(dset));
-         else SS = SUMA_StringAppend_va(SS, "MeshParent_idcode: NULL\n");
+            SS = SUMA_StringAppend_va(SS, "Parent_ID (MeshParent_idcode): %s\n", SDSET_IDMDOM(dset));
+         else SS = SUMA_StringAppend_va(SS, "Parent_ID ( MeshParent_idcode): NULL\n");
          
          SS = SUMA_StringAppend_va(SS, "vec_num (N_subsets): %d\n", dset->nel->vec_num);
          SS = SUMA_StringAppend_va(SS, "vec_filled (N_NodeDef): %d\n", dset->nel->vec_filled);
@@ -2469,9 +2480,48 @@ SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset)
    if (!dset) SUMA_RETURN(NOPE);
    if (!dset->nel) SUMA_RETURN(NOPE);
    
-   NI_set_attribute(dset->nel, "idcode", stmp);
+   NI_set_attribute(dset->nel, "Object_ID", stmp);
    
    SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief return a niml dset's ID,
+    substitute for macro  SDSET_ID
+*/
+char* SUMA_sdset_id(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_sdset_id"};
+   char *id=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(id);
+   if (!dset->nel) SUMA_RETURN(id);
+   
+   id = NI_get_attribute(dset->nel,"Object_ID"); 
+   if (!id) id = NI_get_attribute(dset->nel,"idcode"); /* the olde way */ 
+   SUMA_RETURN(id);
+}
+
+
+/*!
+   \brief return a niml dset's mesh parent ID , substitute for macro 
+   SDSET_IDMDOM
+*/
+char* SUMA_sdset_idmdom(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_sdset_idmdom"};
+   char *id=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(id);
+   if (!dset->nel) SUMA_RETURN(id);
+   
+   id = NI_get_attribute(dset->nel,"Parent_ID"); 
+   if (!id) id = NI_get_attribute(dset->nel,"MeshParent_idcode"); /* the olde way */ 
+   SUMA_RETURN(id);
 }
 
 #ifdef SUMA_ConvertDset_STANDALONE
@@ -2718,13 +2768,13 @@ int main (int argc,char *argv[])
    int found = 0, NoStride = 0;
    byte *bt=NULL;
    SUMA_DSET * dset = NULL, *ndset=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_mainENTRY;
    
    SUMA_STANDALONE_INIT;
 	
-
+   LocalHead = YUP; /* turn on debugging */
    SUMA_LH("Creating Data ...");
    /* Create some sample data*/
       /* let us create some colors to go on each node */
@@ -2946,7 +2996,7 @@ int main (int argc,char *argv[])
          SUMA_SL_Err("Failed to insert dset into list");
          /* Now change the idcode of that baby */
          newid = UNIQ_hashcode(SDSET_ID(dset));
-         NI_set_attribute(dset->nel, "idcode", newid); SUMA_free(newid);
+         NI_set_attribute(dset->nel, "Object_ID", newid); SUMA_free(newid);
          SUMA_LH("Trying to insert dset with a new id ");
          if (!SUMA_InsertDsetPointer(dset, SUMAg_CF->DsetList)) {
             SUMA_SL_Err("Failed to insert dset into list\nI failed to succeed, snif.");

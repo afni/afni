@@ -192,6 +192,23 @@ SUMA_VOLPAR *SUMA_Alloc_VolPar (void)
       fprintf(SUMA_STDERR,"Error SUMA_Alloc_VolPar: Failed to allocate for VolPar\n");
       SUMA_RETURN (NULL);
    }
+   VP->idcode_str = NULL;
+   VP->isanat = 1;
+   VP->nx = VP->ny = VP->nz = 0; /*!< number of voxels in the three dimensions */
+   VP->dx = VP->dy = VP->dz = 0.0; /*!< delta x, y, z in mm */
+   VP->xorg = VP->yorg = VP->zorg = 0.0; /*!< voxel origin in three dimensions */
+   VP->prefix = NULL; /*!< parent volume prefix */
+   VP->filecode = NULL; /*!< parent volume prefix + view */
+   VP->dirname = NULL; /*!< parent volume directory name */
+   VP->vol_idcode_str = NULL; /*!< idcode string OF parent volume*/
+   VP->vol_idcode_date = NULL; /*!< idcode date */
+   VP->xxorient = VP->yyorient = VP->zzorient = 0; /*!< orientation of three dimensions*/ 
+   VP->VOLREG_CENTER_OLD = NULL; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   VP->VOLREG_CENTER_BASE = NULL; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   VP->VOLREG_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   VP->TAGALIGN_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the tag aligned Parent Volume */
+   VP->Hand = 1; /*!< Handedness of axis 1 RH, -1 LH*/
+   
    SUMA_RETURN(VP);
 }
 SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
@@ -201,10 +218,11 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
    SUMA_ENTRY;
 
    if (VP->prefix != NULL) SUMA_free(VP->prefix);
+   if (VP->idcode_str != NULL) SUMA_free(VP->idcode_str);
    if (VP->filecode != NULL) SUMA_free(VP->filecode);
    if (VP->dirname != NULL) SUMA_free(VP->dirname);
-   if (VP->idcode_str != NULL) SUMA_free(VP->idcode_str);
-   if (VP->idcode_date != NULL) SUMA_free(VP->idcode_date);
+   if (VP->vol_idcode_str != NULL) SUMA_free(VP->vol_idcode_str);
+   if (VP->vol_idcode_date != NULL) SUMA_free(VP->vol_idcode_date);
    if (VP->VOLREG_CENTER_OLD != NULL) SUMA_free(VP->VOLREG_CENTER_OLD);
    if (VP->VOLREG_CENTER_BASE != NULL) SUMA_free(VP->VOLREG_CENTER_BASE);
    if (VP->VOLREG_MATVEC != NULL) SUMA_free(VP->VOLREG_MATVEC);
@@ -255,10 +273,10 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
    ii = strlen(DSET_DIRNAME(dset));
    VP->dirname = (char *)SUMA_malloc(ii+1);
    ii = strlen(dset->idcode.str);
-   VP->idcode_str = (char *)SUMA_malloc(ii+1);
+   VP->vol_idcode_str = (char *)SUMA_malloc(ii+1);
    ii = strlen(dset->idcode.date);
-   VP->idcode_date = (char *)SUMA_malloc(ii+1);
-   if (VP->prefix == NULL || VP->filecode == NULL || VP->idcode_date == NULL || VP->dirname == NULL || VP->idcode_str == NULL) {
+   VP->vol_idcode_date = (char *)SUMA_malloc(ii+1);
+   if (VP->prefix == NULL || VP->filecode == NULL || VP->vol_idcode_date == NULL || VP->dirname == NULL || VP->vol_idcode_str == NULL) {
       fprintf(SUMA_STDERR,"Error %s: Failed to allocate for strings. Kill me, please.\n", FuncName);
       SUMA_Free_VolPar(VP);
       SUMA_RETURN (NULL);
@@ -266,15 +284,15 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
    VP->prefix = strcpy(VP->prefix, DSET_PREFIX(dset));
    VP->filecode = strcpy(VP->filecode, DSET_FILECODE(dset));
    VP->dirname = strcpy(VP->dirname, DSET_DIRNAME(dset));
-   VP->idcode_str = strcpy(VP->idcode_str, dset->idcode.str);
-   VP->idcode_date = strcpy(VP->idcode_date, dset->idcode.date);
+   VP->vol_idcode_str = strcpy(VP->vol_idcode_str, dset->idcode.str);
+   VP->vol_idcode_date = strcpy(VP->vol_idcode_date, dset->idcode.date);
    VP->xxorient = dset->daxes->xxorient;
    VP->yyorient = dset->daxes->yyorient;
    VP->zzorient = dset->daxes->zzorient;
 
    if (LocalHead) {      
       fprintf (SUMA_STDERR,"%s: dset->idcode_str = %s\n", FuncName, dset->idcode.str);
-      fprintf (SUMA_STDERR,"%s: VP->idcode_str = %s\n", FuncName, VP->idcode_str);
+      fprintf (SUMA_STDERR,"%s: VP->vol_idcode_str = %s\n", FuncName, VP->vol_idcode_str);
    }
    /* Get the tagalign matrix if possible*/
    atr = THD_find_float_atr( dset->dblk , "TAGALIGN_MATVEC" ) ;
@@ -403,8 +421,11 @@ char *SUMA_VolPar_Info (SUMA_VOLPAR *VP)
       sprintf (stmp,"\nVP contents:\n");
       SS = SUMA_StringAppend (SS, stmp);
       sprintf (stmp,"prefix: %s\tfilecode: %s\tdirname: %s\nId code str:%s\tID code date: %s\n", \
-         VP->prefix, VP->filecode, VP->dirname, VP->idcode_str, VP->idcode_date);
+         VP->prefix, VP->filecode, VP->dirname, VP->vol_idcode_str, VP->vol_idcode_date);
       SS = SUMA_StringAppend (SS, stmp);
+      if (VP->idcode_str) SS = SUMA_StringAppend (SS, "IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS, "IDcode: %s\n", VP->idcode_str);
+      
       sprintf (stmp,"isanat: %d\n", VP->isanat);
       SS = SUMA_StringAppend (SS, stmp);
       sprintf (stmp,"Orientation: %d %d %d\n", \

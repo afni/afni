@@ -917,10 +917,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
             
          case SE_SetAfniSurfList:
-            /* expects ivec in EngineData and a string in s saying what is to be sent*/
+            /* expects ivec in EngineData and a string in s saying what is to be sent, a flag in i 1=report transmission, 0 = be quiet*/
             { int nels_sent, N_Send, *SendList;
                
-               if (EngineData->ivec_Dest != NextComCode || EngineData->s_Dest != NextComCode) {
+               if (EngineData->ivec_Dest != NextComCode || EngineData->s_Dest != NextComCode || EngineData->i_Dest != NextComCode) {
                   fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                   break;
                }
@@ -931,7 +931,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   for (ii=0; ii<N_Send; ++ii) {
                      nels_sent = 0;
                      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SendList[ii]].OP);
-                     if (SO->Label) fprintf(SUMA_STDERR,"%s: Sending surface %s (%s)...\n", FuncName, SO->Label, EngineData->s);
+                     if (EngineData->i && SO->Label) fprintf(SUMA_STDERR,"%s: Sending surface %s (%s)...\n", FuncName, SO->Label, EngineData->s);
                      if (SUMA_iswordin(EngineData->s,"NodeList") == 1) {
                         nel = SUMA_makeNI_SurfIXYZ (SO);
                         if (!nel) {
@@ -1011,7 +1011,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_SetAfniSurf:
             /* expects nothing in EngineData */
-            {  int N_Send, *SendList;
+            {  int N_Send, *SendList, ti=1;
                SUMA_IVEC ivec;
                /* send to afni the list of anatomically correct surfaces and with a surface volume*/
                /* No surfaces are sent twice because there should not be duplicate 
@@ -1038,6 +1038,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
                      break;
                   }
+                  if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                         SEF_i, (void *)&ti, 
+                                                         SES_Suma, (void *)sv, NOPE, 
+                                                         SEI_In, LocElm))) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     break;
+                  }
                   if (SendList) SUMA_free(SendList); SendList = NULL;   
                }
 
@@ -1048,8 +1055,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects an idcode_str in EngineData->cp and what needs to be sent in EngineData->s for surface to be sent to AFNI */
             {
                SUMA_IVEC ivec;
-               if (EngineData->s_Dest != NextComCode || EngineData->cp_Dest != NextComCode) {
-                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               if (EngineData->s_Dest != NextComCode || EngineData->cp_Dest != NextComCode || EngineData->i_Dest != NextComCode) {
+                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s ((%d %d %d) %d).\n",
+                     FuncName, NextCom,  EngineData->s_Dest, EngineData->cp_Dest, EngineData->i_Dest, NextComCode);
                   break;
                }
                i = SUMA_findSO_inDOv(EngineData->cp, SUMAg_DOv, SUMAg_N_DOv);
@@ -1072,6 +1080,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                       SEF_s, (void *)(EngineData->s), 
                                                       SES_Suma, (void *)sv, NOPE, 
                                                       SEI_In, LocElm))) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                  break;
+               }
+               if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                         SEF_i, (void *)&(EngineData->i), 
+                                                         SES_Suma, (void *)sv, NOPE, 
+                                                         SEI_In, LocElm))) {
                   fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
                   break;
                }
@@ -2935,15 +2950,20 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
       SUMA_RETURN (-1);
    }
    
+    
    for (i=0; i<N_prec_list; ++i) {
       SO_prec = (SUMA_SurfaceObject *)(dov[prec_list[i]].OP);
       
       if (  SO_prec == SOcur ||
             strcmp(SOcur->idcode_str, SO_prec->idcode_str) == 0 ) {
-         SUMA_SL_Err("Flow problem. Did not expect identical surfaces in this condition\n");
-         SUMA_BEEP; 
+         if (N_prec_list == 1) {
+            /* if all you have is one surface in one state in SUMA then you need not worry about the rest */
+         } else {
+            fprintf(SUMA_STDERR,"Error %s: Flow problem. Did not expect identical surfaces in this condition (N_prec_list = %d)\n", FuncName, N_prec_list);
+            SUMA_BEEP; 
+         }
          /* 
-         I changed the condition 
+         I changed the next condition: 
          if (  strcmp(SOcur->LocalDomainParentID, SO_prec->LocalDomainParentID) == 0 || 
             strcmp(SOcur->LocalDomainParentID, SO_prec->idcode_str) == 0 )
          to
