@@ -4053,3 +4053,4 @@
  * Added mri_read_stuff.c to filter input from JPEGs, TIFFs, BMPs, etc., into
      mri_read.c.
  * Added afni_version.c to check AFNI version at startup.
+ * Modified edt_dsetitems.c to strip "+orig" etc. from tail of new prefix.

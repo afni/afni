@@ -442,12 +442,16 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
    /**** carry out edits that were flagged above ****/
 
-   /**---------- Need to reset the disk filename? ----------**/
+   /**---------- Need to reset the disk filename? ------------**/
+   /** 22 Nov 2002: remove +orig etc. from prefix, if present **/
 
-   if( new_prefix || new_directory_name || new_view_type )
+   if( new_prefix || new_directory_name || new_view_type ){
+      char *nprefix = THD_deplus_prefix( prefix ) ;
       THD_init_diskptr_names( dset->dblk->diskptr ,
                               directory_name , NULL ,
-                              prefix , view_type , True ) ;
+                              nprefix , view_type , True ) ;
+      if( nprefix != NULL ) free(nprefix) ;
+   }
 
    /**----------- Need to reconfigure the spatial axes? -----------**/
    /**    Most of this code is from routine THD_3dim_from_block    **/
@@ -770,4 +774,29 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
    /****--------------- hopefully, we are done! ---------------****/
 
    return errnum ;
+}
+
+
+/*-------------------------------------------------------------------*/
+/*! Remove any +???? suffix from a prefix, returning a new one.
+    -- 22 Nov 2002 - RWCox
+---------------------------------------------------------------------*/
+
+char * THD_deplus_prefix( char *prefix )
+{
+   char *newprefix ;
+   int nn ;
+
+   if( prefix == NULL ) return NULL ;
+
+   nn = strlen(prefix); newprefix = strdup(prefix);
+
+   if( nn > 4                   &&
+       newprefix[nn-5] == '+'   &&
+       isalpha(newprefix[nn-4]) &&
+       isalpha(newprefix[nn-3]) &&
+       isalpha(newprefix[nn-2]) &&
+       isalpha(newprefix[nn-1])   ) newprefix[nn-5] = '\0' ;
+
+   return newprefix ;
 }

@@ -6,9 +6,9 @@
   want it anymore.  -- 16 Feb 2001 -- RWCox
 ----------------------------------------------------------------------*/
 
-char * THD_newprefix( THD_3dim_dataset * dset , char * suffix )
+char * THD_newprefix( THD_3dim_dataset *dset , char *suffix )
 {
-   char * np ;
+   char *np ;
 
 ENTRY("THD_newprefix") ;
 
