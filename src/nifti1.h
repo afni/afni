@@ -123,7 +123,7 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  int   extents;       /*!< ++UNUSED++            */  /* int extents;         */
  short session_error; /*!< ++UNUSED++            */  /* short session_error; */
  char  regular;       /*!< ++UNUSED++            */  /* char regular;        */
- char  hkey_un0;      /*!< ++UNUSED++            */  /* char hkey_un0;       */
+ char  dim_info;      /*!< MRI slice orderding.  */  /* char hkey_un0;       */
 
                                       /*--- was image_dimension substruct ---*/
  short dim[8];        /*!< Data array dimensions.*/  /* short dim[8];        */
@@ -136,18 +136,17 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  short intent_code ;  /*!< NIFTI_INTENT_* code.  */  /* short unused14;      */
  short datatype;      /*!< Defines data type!    */  /* short datatype;      */
  short bitpix;        /*!< Number bits/voxel.    */  /* short bitpix;        */
- short dim_un0;       /*!< ++UNUSED++            */  /* short dim_un0;       */
+ short slice_start;   /*!< First slice index.    */  /* short dim_un0;       */
  float pixdim[8];     /*!< Grid spacings.        */  /* float pixdim[8];     */
  float vox_offset;    /*!< Offset into .nii file */  /* float vox_offset;    */
  float scl_slope ;    /*!< Data scaling: slope.  */  /* float funused1;      */
  float scl_inter ;    /*!< Data scaling: offset. */  /* float funused2;      */
- char  xyz_units ;    /*!< Units of spatial axes */  /* float funused3;      */
- char  time_units ;   /*!< Units of time axis.   */
- char  cunused1 ;     /*!< ++UNUSED++            */
- char  cunused2 ;     /*!< ++UNUSED++            */
+ short slice_end;     /*!< Last slice index.     */  /* float funused3;      */
+ char  slice_code ;   /*!< Slice timing order.   */
+ char  xyzt_units ;   /*!< Units of pixdim[1..4] */
  float cal_max;       /*!< Max display intensity */  /* float cal_max;       */
  float cal_min;       /*!< Min display intensity */  /* float cal_min;       */
- float compressed;    /*!< ++UNUSED++            */  /* float compressed;    */
+ float slice_duration;/*!< Time for 1 slice.     */  /* float compressed;    */
  float toffset;       /*!< Time axis shift.      */  /* float verified;      */
  int   glmax;         /*!< ++UNUSED++            */  /* int glmax;           */
  int   glmin;         /*!< ++UNUSED++            */  /* int glmin;           */
@@ -193,8 +192,8 @@ typedef struct nifti_1_header nifti_1_header ;
 
      pixdim[i] = voxel width along dimension #i, i=1..dim[0] (positive)
                  - cf. ORIENTATION section below for use of pixdim[0]
-                 - the units of pixdim can be specified with the xyz_units
-                   and time_units field (also described far below).
+                 - the units of pixdim can be specified with the xyzt_units
+                   field (also described far below).
 
    Number of bits per voxel value is in bitpix, which MUST correspond with
    the datatype field.  The total number of bytes in the image data is
@@ -205,34 +204,34 @@ typedef struct nifti_1_header nifti_1_header ;
    voxel.  Some examples:
      - A typical whole-brain FMRI experiment's time series:
         - dim[0] = 4
-        - dim[1] = 64   pixdim[1] = 3.75 xyz_units = NIFTI_UNITS_MM
-        - dim[2] = 64   pixdim[2] = 3.75
+        - dim[1] = 64   pixdim[1] = 3.75 xyzt_units =  NIFTI_UNITS_MM
+        - dim[2] = 64   pixdim[2] = 3.75             | NIFTI_UNITS_SEC
         - dim[3] = 20   pixdim[3] = 5.0
-        - dim[4] = 120  pixdim[4] = 2.0  time_units = NIFTI_UNITS_SEC
+        - dim[4] = 120  pixdim[4] = 2.0
      - A typical T1-weighted anatomical volume:
         - dim[0] = 3
-        - dim[1] = 256  pixdim[1] = 1.0  xyz_units = NIFTI_UNITS_MM
+        - dim[1] = 256  pixdim[1] = 1.0  xyzt_units = NIFTI_UNITS_MM
         - dim[2] = 256  pixdim[2] = 1.0
         - dim[3] = 128  pixdim[3] = 1.1
      - A single slice EPI time series:
         - dim[0] = 4
-        - dim[1] = 64   pixdim[1] = 3.75 xyz_units = NIFTI_UNITS_MM
-        - dim[2] = 64   pixdim[2] = 3.75
+        - dim[1] = 64   pixdim[1] = 3.75 xyzt_units =  NIFTI_UNITS_MM
+        - dim[2] = 64   pixdim[2] = 3.75             | NIFTI_UNITS_SEC
         - dim[3] = 1    pixdim[3] = 5.0
-        - dim[4] = 1200 pixdim[4] = 0.2  time_units = NIFTI_UNITS_SEC
+        - dim[4] = 1200 pixdim[4] = 0.2
      - A 3-vector stored at each point in a 3D volume:
         - dim[0] = 5
-        - dim[1] = 256  pixdim[1] = 1.0  xyz_units = NIFTI_UNITS_MM
+        - dim[1] = 256  pixdim[1] = 1.0  xyzt_units = NIFTI_UNITS_MM
         - dim[2] = 256  pixdim[2] = 1.0
         - dim[3] = 128  pixdim[3] = 1.1
-        - dim[4] = 1    pixdim[4] = 0.0  time_units = NIFTI_UNITS_UNKNOWN
+        - dim[4] = 1    pixdim[4] = 0.0
         - dim[5] = 3                     intent_code = NIFTI_INTENT_VECTOR
      - A single time series with a 3x3 matrix at each point:
         - dim[0] = 5
-        - dim[1] = 1                     xyz_units = NIFTI_UNITS_UNKNOWN
+        - dim[1] = 1                     xyzt_units = NIFTI_UNITS_SEC
         - dim[2] = 1
         - dim[3] = 1
-        - dim[4] = 1200 pixdim[4] = 0.2  time_units = NIFTI_UNITS_SEC
+        - dim[4] = 1200 pixdim[4] = 0.2
         - dim[5] = 9                     intent_code = NIFTI_INTENT_GENMATRIX
         - intent_p1 = intent_p2 = 3.0    (indicates matrix dimensions)
 -----------------------------------------------------------------------------*/
@@ -760,7 +759,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
     should not occur), we take qfac=1.  Of course, pixdim[0] is only used
     when reading a NIFTI-1 header, not when reading an ANALYZE 7.5 header.
 
-   N.B.: The units of (x,y,z) can be specified using the xyz_units code.
+   N.B.: The units of (x,y,z) can be specified using the xyzt_units field.
 
    METHOD 1 (the "old" way, used only when qform_code = 0):
    -------------------------------------------------------
@@ -993,9 +992,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 /*---------------------------------------------------------------------------*/
 /* SPATIAL AND TEMPORAL DIMENSIONS:
    -------------------------------
-   The codes below can be used in xyz_units and time_units to indicate
-   the units of pixdim.  As noted earlier, dimensions 1,2,3 are for x,y,z;
-   dimension 4 is for time (t).
+   The codes below can be used in xyzt_units to indicate the units of pixdim.
+   As noted earlier, dimensions 1,2,3 are for x,y,z; dimension 4 is for
+   time (t).
     - If dim[4]=1 or dim[0] < 4, there is no time axis.
     - A single time series (no space) would be specified with
       - dim[0] = 4 (for scalar data) or dim[0] = 5 (for vector data)
@@ -1004,6 +1003,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
       - pixdim[4] = time step
       - time_units indicates units of pixdim[4]
       - dim[5] = number of values stored at each time point
+
+   Bits 0..2 of xyzt_units specify the units of pixdim[1..3]
+   bits 3..5 of xyzt_units specify the units of pixdim[4].
 
    Note that codes are provided to indicate the "time" axis units are
    actually frequency in Hertz (_HZ) or in part-per-million (_PPM).
@@ -1015,24 +1017,37 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
                                /*! NIFTI code for unspecified units. */
 #define NIFTI_UNITS_UNKNOWN 0
+
+                               /** Space codes are multiples of 1. **/
                                /*! NIFTI code for meters. */
 #define NIFTI_UNITS_METER   1
                                /*! NIFTI code for millimeters. */
 #define NIFTI_UNITS_MM      2
                                /*! NIFTI code for micrometers. */
 #define NIFTI_UNITS_MICRON  3
+
+                               /** Time codes are multiples of 8. **/
                                /*! NIFTI code for seconds. */
 #define NIFTI_UNITS_SEC     8
                                /*! NIFTI code for milliseconds. */
-#define NIFTI_UNITS_MSEC    9
+#define NIFTI_UNITS_MSEC   16
                                /*! NIFTI code for microseconds. */
-#define NIFTI_UNITS_USEC   10
+#define NIFTI_UNITS_USEC   24
 
                                /*** These units are for spectral data: ***/
                                /*! NIFTI code for Hertz. */
-#define NIFTI_UNITS_HZ     11
+#define NIFTI_UNITS_HZ     32
                                /*! NIFTI code for ppm. */
-#define NIFTI_UNITS_PPM    12
+#define NIFTI_UNITS_PPM    40
+
+#undef  XYZT_TO_SPACE
+#undef  XYZT_TO_TIME
+#define XYZT_TO_SPACE(xyzt)       ( (xyzt) & 0x07 )
+#define XYZT_TO_TIME(xyzt)        ( (xyzt) & 0x38 )
+
+#undef  SPACE_TIME_TO_XYZT
+#define SPACE_TIME_TO_XYZT(ss,tt) (   (((char)(ss)) & 0x07)         \
+                                   | ((((char)(tt)) & 0x07) << 3) )
 
 /*---------------------------------------------------------------------------*/
 /* MRI-SPECIFIC SPATIAL AND TEMPORAL INFORMATION:
@@ -1091,8 +1106,36 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
       1  --   0.0     0.4     0.0     0.2
       0  --   n/a     n/a     n/a     n/a
 
+  The fields freq_dim, phase_dim, slice_dim are all squished into the single
+  byte field dim_info (2 bits each, since the values for each field are
+  limited to the range 0..3).  This unpleasantness is due to lack of space
+  in the 348 byte allowance.
+
+  The macros DIM_INFO_TO_FREQ_DIM, DIM_INFO_TO_PHASE_DIM, and
+  DIM_INFO_TO_SLICE_DIM can be used to extract these values from the
+  dim_info byte.
+
+  The macro FPS_INTO_DIM_INFO can be used to put these 3 values
+  into the dim_info byte.
 -----------------------------------------------------------------------------*/
 
+#undef  DIM_INFO_TO_FREQ_DIM
+#undef  DIM_INFO_TO_PHASE_DIM
+#undef  DIM_INFO_TO_SLICE_DIM
+
+#define DIM_INFO_TO_FREQ_DIM(di)   ( ((di)     ) & 0x03 )
+#define DIM_INFO_TO_PHASE_DIM(di)  ( ((di) >> 2) & 0x03 )
+#define DIM_INFO_TO_SLICE_DIM(di)  ( ((di) >> 4) & 0x03 )
+
+#undef  FPS_INTO_DIM_INFO
+#define FPS_INTO_DIM_INFO(fd,pd,sd) ( ( ( ((char)(fd)) & 0x03)      ) |  \
+                                      ( ( ((char)(pd)) & 0x03) << 2 ) |  \
+                                      ( ( ((char)(sd)) & 0x03) << 4 )  )
+
+#define NIFTI_SLICE_SEQ_INC  1
+#define NIFTI_SLICE_SEQ_DEC  2
+#define NIFTI_SLICE_ALT_INC  3
+#define NIFTI_SLICE_ALT_DEC  4
 
 /*---------------------------------------------------------------------------*/
 /* UNUSED FIELDS:

@@ -62,7 +62,14 @@ typedef struct {                  /** Image storage struct **/
 
   int qform_code , sform_code ;   /* codes for (x,y,z) space meaning */
 
-  float quatern_b, quatern_c,     /* quaternion transform parameters */
+  int freq_dim ,                  /* indexes (1,2,3, or 0) for MRI */
+      phase_dim , slice_dim ;     /* directions in dim[]/pixdim[]  */
+
+  int slice_code ;                /* code for slice timing pattern */
+  int slice_start , slice_end ;   /* indexes for start & stop of slices */
+  float slice_duration ;          /* time between individual slices */
+
+  float quatern_b, quatern_c,     /* quaternion transform parameters   */
         quatern_d, qoffset_x,     /* [when writing a dataset,  these ] */
         qoffset_y, qoffset_z,     /* [are used for qform, NOT qto_xyz] */
         qfac                 ;
