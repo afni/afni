@@ -1,0 +1,319 @@
+Overview of Library Changes Between netCDF Version 2 and 3:
+
+NetCDF version 3 includes a complete rewrite of the netCDF library. It
+is about twice as fast as the previous version. The netCDF file format
+is unchanged, so files written with version 3 can be read with version 2
+code and vice versa.
+
+The library is now written in Standard C. For example, prototypes are
+used throughout as well as "const" qualifiers where appropriate. You
+*must* have a Standard C compiler to compile this version.
+
+Rewriting the library to use Standard C offered an opportunity to
+implement an improved C interface that provides some significant
+benefits:
+
+   * Type safety, by eliminating the use of generic void* pointers;
+
+   * Automatic type conversions, by eliminating the undesirable coupling
+     between the language-independent external netCDF types (NC_BYTE, ...,
+     NC_DOUBLE) and language-dependent internal data types (char, ...,
+     double);
+
+   * Support for future enhancements, by eliminating obstacles to the clean
+     addition of support for packed data and multithreading;
+
+   * More standard error behavior, by uniformly communicating an error
+     status back to the calling program in the return value of each
+     function.
+
+It is not necessary to rewrite programs that use the version 2
+interface, because the netCDF-3 library includes a backward
+compatibility interface that supports all the old functions, globals,
+and behavior. However, you will have to recompile programs that use
+the version 2 interface if you are going to link them against the
+netCDF-3 library.
+
+We are hoping that the benefits of the new interface will be an
+incentive to use it in new netCDF applications. It is possible to
+convert old applications to the new interface incrementally, replacing
+netCDF-2 calls with the corresponding netCDF-3 calls one at a time. If
+you want to check that only netCDF-3 calls are used in an application,
+a preprocessor macro (NO_NETCDF_2) is available for that purpose.
+
+Other changes in the implementation of netCDF result in improved
+portability, maintainability, and performance on most platforms. A
+clean separation between I/O and type layers facilitates
+platform-specific optimizations. The new library no longer uses a
+vendor-provided XDR library, which simplifies linking programs that
+use netCDF and speeds up data access significantly in most cases. A
+rewrite of the install script provides a simpler installation
+procedure that no longer generates new Makefiles for each platform.
+
+----------------------------------------------------------------------------
+The New C Interface:
+
+First, here's an example of C code that uses the netCDF-2 interface:
+
+    void *bufferp;
+    nc_type xtype;
+    ncvarinq(ncid, varid, ..., &xtype, ...
+    ...
+    /* allocate bufferp based on dimensions and type */
+    ...
+    if (ncvarget(ncid, varid, start, count, bufferp) == -1) {
+        (void) fprintf(stderr, "Some error message, error code is %d\n"
+                       ncerr);
+        /* deal with it */
+        ...
+    }
+    switch(xtype) {
+        /* deal with the data, according to type */
+    ....
+    case  NC_FLOAT:
+        fanalyze((float *)bufferp);
+        break;
+    case NC_DOUBLE:
+        danalyze((double *)bufferp);
+        break;
+    }
+
+Here's how you might handle this with the new netCDF-3 interface:
+
+    /*
+     * I want to use doubles for my analysis.
+     */
+    double dbuf[NDOUBLES];
+    int status;
+
+    /* So, I use the function that gets the data as doubles. */
+    status = nc_get_vara_double(ncid, varid, start, count, dbuf)
+    if (status != NC_NOERR) {
+       (void) fprintf(stderr, "Some error message, %s\n",
+                      nc_strerror(status));
+        /* deal with it */
+        ...
+    }
+    danalyze(dbuf);
+
+The example above illustrates changes in function names, data type
+conversion, and error handling, discussed in detail in the sections below.
+
+----------------------------------------------------------------------------
+The New FORTRAN interface:
+
+The new FORTRAN interface is almost one-for-one identical with the new C
+interface.  For example, the following symbols are defined by their
+respective interfaces:
+
+    C Interface                         FORTRAN Interface
+    -----------                         -----------------
+
+    nc_get_vara_double                  nf_get_vara_double
+    nc_get_vara_float                   nf_get_vara_real
+    nc_put_var_int                      nf_put_var_int
+    nc_inq_libvers                      nf_inq_libvers
+    nc_strerror                         nf_strerror
+    nc_open                             nf_open
+    nc_create                           nf_create
+    nc_sync                             nf_sync
+
+----------------------------------------------------------------------------
+Naming Conventions:
+
+The netCDF-3 library employs a new naming convention, intended to make
+netCDF programs more readable. For example, the name of the function
+to rename a variable is now "nc_rename_var" (FORTRAN: "nf_rename_var")
+instead of the previous "ncvarrename" (FORTRAN: "ncvren").
+
+All function names begin with "nc_" (FORTRAN: "nf_").  The second part
+of the name is a verb, like "get", "put", "inq" (for inquire), or
+"open".  The third part of the name is typically the object of the
+verb: for example "dim", "var", or "att" for functions dealing with
+dimensions, variables, or attributes.  To distinguish the various I/O
+operations for variables, "var" gets a single character modifier:
+
+  "var"  access to the entire array
+
+  "var1" access to a single value
+
+  "vara" access to an array or array section
+
+  "vars" strided access to a subsample of values
+
+  "varm" mapped access to values not contiguous in memory
+
+At the end of the name for variable and attribute functions, there is
+component indicating the type of the final argument: "text", "uchar",
+"schar", "short", "int", "long", "float", or "double" (FORTRAN:
+"text", "int1", "int2", "int", "real", or "double").  This part of the
+function name indicates the type of the data container you are using
+in your program: character string, "unsigned char", "signed char", and
+so on.
+
+----------------------------------------------------------------------------
+Type Conversion:
+
+With the new interface, users need not be aware of the external type
+of numeric variables, since automatic conversion to or from any
+desired numeric type is now available. You can use this feature to
+simplify code, by making it independent of external types. The
+elimination of void* pointers provides detection of type errors at
+compile time that could not be detected with the previous
+interface. Programs may be made more robust with the new interface,
+because they need not be changed to accommodate a change to the
+external type of a variable.
+
+If conversion to or from an external numeric type is necessary, it is
+handled by the library. This automatic conversion and separation of
+external data representation from internal data types will become even
+more important in netCDF version 4, when new external types will be
+added for packed data for which there is no natural corresponding
+internal type (for example, arrays of 11-bit values).
+
+Converting from one numeric type to another may result in an error if
+the target type is not capable of representing the converted
+value. (In netCDF-2, such overflows can only happen in the XDR layer.)
+For example, a short may not be able to hold data stored externally as
+an NC_FLOAT (an IEEE floating-point number). When accessing an array
+of values, an ERANGE error is returned if one or more values are out
+of the range of representable values, but other values are converted
+properly.
+
+Note that mere loss of precision in type conversion does not return an
+error. Thus, if you read double precision values into a "long", for
+example, no error results unless the magnitude of the double precision
+value exceeds the representable range of "long"s on your
+platform. Similarly, if you read a large integer into a "float"
+incapable of representing all the bits of the integer in its mantissa,
+this loss of precision will not result in an error.  If you want to
+avoid such precision loss, check the external types of the variables
+you access to make sure you use an internal type that has a compatible
+precision.
+
+The new interface distinguishes arrays of characters intended to
+represent text strings from arrays of 8-bit bytes intended to
+represent small integers. The interface supports the internal types
+"text", "uchar", and "schar", intended for text strings, unsigned byte
+values, and signed byte values.
+
+The "_uchar" and "_schar" functions were introduced in netCDF-3 to
+eliminate an ambiguity, and support both signed and unsigned byte
+data. In netCDF-2, whether the external NC_BYTE type represented
+signed or unsigned values was left up to the user. In netcdf-3, we
+treat NC_BYTE as signed for the purposes of conversion to "short",
+"int", "long", "float", or "double". (Of course, no conversion takes
+place when the internal type is "signed char".) In the _uchar
+functions, we treat NC_BYTE as if it were unsigned. Thus, no ERANGE
+error can occur converting between NC_BYTE and "unsigned char".
+
+----------------------------------------------------------------------------
+Error handling:
+
+The new interface handles errors differently than netCDF-2. In the old
+interface, the default behavior when an error was detected was to
+print an error message and exit. To get control of error handling, you
+had to set flag bits in a global variable, "ncopts", and to determine
+the cause of an error, you had to test the value of another global
+variable "ncerr".
+
+In the new interface, functions return an integer status that
+indicates not only success or failure, but also the cause of the
+error. The global variables "ncerr" and "ncopt" have been
+eliminated. The library will never try to print anything, nor will it
+call exit() (unless you are using the netCDF version 2 compatibility
+functions). You will have to check the function return status and do
+this yourself. We eliminated these globals in the interest of
+supporting parallel (multiprocessor) execution cleanly, as well as
+reducing the number of assumptions about the environment where netCDF
+is being used. The new behavior should provide better support for
+using netCDF as a hidden layer in applications that have their own GUI
+interface.
+
+----------------------------------------------------------------------------
+NC_LONG and NC_INT:
+
+Where the netCDF-2 interface used NC_LONG to identify an external data
+type corresponding to 32-bit integers, the new interface uses NC_INT
+instead.  NC_LONG is defined to have the same value as NC_INT for
+backward compatibility, but it should not be used in new code. With
+new 64-bit platforms using long for 64-bit integers, we would like to
+reduce the confusion caused by this name clash. Note that there is
+still no netCDF external data type corresponding to 64-bit integers.
+
+----------------------------------------------------------------------------
+What's Missing?
+
+The new C interface omits three "record I/O" functions, "ncrecput",
+"ncrecget", and "ncrecinq", from the netCDF-2 interface, although
+these functions are still supported via the netCDF-2 compatibility
+interface. This means you may have to replace one record-oriented call
+with multiple type-specific calls, one for each record variable. For
+example, a single call to "ncrecput" can always be replaced by
+multiple calls to the appropriate "nc_put_var" functions, one call for
+each variable accessed. The record-oriented functions were omitted,
+because there is no simple way to provide type-safety and automatic
+type conversion for such an interface.
+
+There also is no function corresponding to the "nctypelen" function
+from the version 2 interface. The separation of internal and external
+types and the new type-conversion interfaces make "nctypelen"
+unnecessary. Since users read into and write out of native types, the
+"sizeof" operator is perfectly adequate to determine how much space to
+allocate for a value.
+
+In the previous library, there was no checking that the characters
+used in the name of a netCDF object were compatible with the CDL
+restrictions that only alphanumeric characters, "_" and "-" are
+permitted in names. Now this restriction is enforced by the library on
+creation of new dimensions, variables, and attributes, but previously
+existing components with names like "a.b.c" will still work OK.
+
+----------------------------------------------------------------------------
+Other Changes:
+
+There are two new functions in netCDF-3 that don't correspond to any
+netCDF-2 functions: "nc_inq_libvers" and "nc_strerror". The version of
+the netCDF library in use is returned as a string by
+"nc_inq_libvers". An error message corresponding to the status
+returned by a netCDF function call is returned as a string by the
+"nc_strerror" function.
+
+A new NC_SHARE flag is available for use in an "nc_open" or
+"nc_create" call, to suppress the default buffering of accesses. The
+use of NC_SHARE for concurrent access to a netCDF file means you don't
+have to call "nc_sync" after every access to make sure that disk
+updates are synchronous.
+
+The version 2 interface had a single inquiry function, "ncvarinq", for
+getting the name, type, and shape of a variable. Similarly, only a
+single inquiry function was available for getting information about a
+dimension, an attribute, or a netCDF dataset. When you only wanted a
+subset of this information, you had to provide NULL arguments as
+placeholders for the unneeded information. The new interface includes
+additional inquire functions that return each item separately, so
+errors are less likely from miscounting arguments.
+
+The new test program, "nc_test", is run on installation and tests all
+the functions in the new interface. A capability has been added to
+specify an argument to "nc_test" that will test a read-only
+implementations of the netCDF interface.
+
+The previous implementation returned an error when 0-valued count
+components were specified in "ncvarput" and "ncvarget" calls. This
+restriction has been removed, so that now functions in the
+"nc_put_var" and "nc_get_var" families may be called with 0-valued
+count components, resulting in no data being accessed. Although this
+may seem useless, it simplifies some programs to not treat 0-valued
+counts as a special case.
+
+The previous implementation returned an error when the same dimension
+was used more than once in specifying the shape of a variable in
+"ncvardef". This restriction is relaxed in the netCDF-3
+implementation, because an autocorrelation matrix is a good example
+where using the same dimension twice makes sense.
+
+In the new interface, units for the imap argument to the mapped access
+functions "nc_put_varm_*" and "nc_put_varm_*" are now in terms of the
+number of data elements of the desired internal type, not in terms of
+bytes as in the netCDF version-2 mapped access interfaces.
