@@ -446,3 +446,15 @@
 11 February 2004:
   * modified  SUMA_SurfMeasures.c (-> v1.6) to add debug output for AnatCorrect
 
+13 February 2004:
+  * modified README.realtime to include the GRAPH_EXPR command
+  * modified plug_realtime.c:
+      - added RT_MAX_PREFIX for incoming PREFIX command
+      - if GRAPH_XRANGE or GRAPH_YRANGE is given, disable respective 'pushing'
+      - added GRAPH_EXPR command, as explained in README.realtime
+      - added parser functionality to convert 6 graphs to 1 via the expression
+  * modified Imon.[ch], realtime.[ch] -> (Imon v3.3)
+      - added '-rt_cmd' option for passing commands to the realtime plugin
+      - the '-drive_cmd' option can now be used multiple times
+      - the realtime zorder is defaulting to seq again (affects physical order)
+      - passed lists of drive and RT commands to realtime plugin

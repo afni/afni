@@ -1,5 +1,5 @@
 
-#define IFM_VERSION "version 3.2 (January 13, 2004)"
+#define IFM_VERSION "version 3.3 (February 13, 2004)"
 
 static char g_history[] =
     "----------------------------------------------------------------------\n"
@@ -95,6 +95,15 @@ static char g_history[] =
     "   - added '-zorder ORDER' option to specify slice timing in the\n"
     "     real-time mode (the real-time default is now 'alt')\n"
     "   - added '-hist' option for history display\n"
+    "\n"
+    " 3.3 February 13, 2004\n"
+    "   - added '-rt_cmd' option for passing commands to the realtime plugin\n"
+    "       (this option may be used multiple times)\n"
+    "   - '-drive_cmd' option can now be used multiple times\n"
+    "   - realtime.c: changed default zorder back to seq\n"
+    "       (affects slice order in the RT plugin)\n"
+    "   - realtime.c: passed list of drive and rt commands to RT plugin\n"
+    "   - added add_to_string_list() and empty_string_list()\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -153,6 +162,7 @@ static char g_history[] =
 /*----------------------------------------------------------------------*/
 /* static function declarations */
 
+static int add_to_string_list  ( string_list * list, char * str );
 static int alloc_x_im          ( im_store_t * is, int bytes );
 static int check_error         ( int * retry, float tr, char * note );
 static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
@@ -161,6 +171,7 @@ static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
 static int create_gert_script  ( stats_t * s, opts_t * opts );
 static int dir_expansion_form  ( char * sin, char ** sexp );
+static int empty_string_list   ( string_list * list, int free_mem );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_fl_file_index  ( param_t * p, char * file );
 static int find_more_volumes   ( vol_t * v, param_t * p, ART_comm * ac );
@@ -1143,6 +1154,9 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     ART_init_AC_struct( A );		/* init for no real-time comm */
     A->param = p;			/* store the param_t pointer  */
 
+    empty_string_list( &p->opts.drive_list, 0 );
+    empty_string_list( &p->opts.rt_list, 0 );
+
     /* debug level 1 is now the default - by order of Wen-Ming :) */
     gD.level = 1;
 
@@ -1165,17 +1179,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 			 IFM_MAX_DEBUG );
 		errors++;
 	    }
-	}
-	else if ( ! strncmp( argv[ac], "-drive_afni", 6 ) )
-	{
-	    if ( ++ac >= argc )
-	    {
-		fputs( "option usage: -drive_afni COMMAND\n", stderr );
-		usage( IFM_PROG_NAME, IFM_USE_SHORT );
-		return 1;
-	    }
-
-	    p->opts.drive_cmd = argv[ac];
 	}
 	else if ( ! strncmp( argv[ac], "-GERT_Reco2", 7 ) )
 	{
@@ -1289,6 +1292,21 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	    return 1;
 	}
 	/* real-time options */
+	else if ( ! strncmp( argv[ac], "-drive_afni", 6 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -drive_afni COMMAND\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    if ( add_to_string_list( &p->opts.drive_list, argv[ac] ) != 0 )
+	    {
+		fprintf(stderr,"** failed add '%s' to drive_list\n",argv[ac]);
+		return 1;
+	    }
+	}
 	else if ( ! strncmp( argv[ac], "-host", 4 ) )
 	{
 	    if ( ++ac >= argc )
@@ -1305,6 +1323,21 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	else if ( ! strncmp( argv[ac], "-rev_byte_order", 4 ) )
 	{
 	    p->opts.rev_bo = 1;		  /* note to send reverse byte order */
+	}
+	else if ( ! strncmp( argv[ac], "-rt_cmd", 6 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -rt_cmd COMMAND\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    if ( add_to_string_list( &p->opts.rt_list, argv[ac] ) != 0 )
+	    {
+		fprintf(stderr,"** failed add '%s' to rt_list\n",argv[ac]);
+		return 1;
+	    }
 	}
 	else if ( ! strncmp( argv[ac], "-rt", 3 ) )
 	{
@@ -1867,7 +1900,6 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
     printf( "opts_t struct at %p :\n"
 	    "   start_file         = %s\n"
 	    "   start_dir          = %s\n"
-	    "   drive_cmd          = %s\n"
 	    "   sp                 = %s\n"
 	    "   gert_outdir        = %s\n"
 	    "   (argv, argc)       = (%p, %d)\n"
@@ -1875,18 +1907,21 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    "   (debug, gert_reco) = (%d, %d)\n"
 	    "   quit               = %d\n"
 	    "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
-	    "   host               = %s\n",
+	    "   host               = %s\n"
+	    "   drive_list(u,a,p)  = %d, %d, %p\n"
+	    "   rt_list   (u,a,p)  = %d, %d, %p\n",
 	    opt,
 	    CHECK_NULL_STR(opt->start_file),
 	    CHECK_NULL_STR(opt->start_dir),
-	    CHECK_NULL_STR(opt->drive_cmd),
 	    CHECK_NULL_STR(opt->sp),
 	    CHECK_NULL_STR(opt->gert_outdir),
 	    opt->argv, opt->argc,
 	    opt->nt, opt->nice,
 	    opt->debug, opt->gert_reco, opt->quit,
 	    opt->rt, opt->swap, opt->rev_bo,
-	    CHECK_NULL_STR(opt->host)
+	    CHECK_NULL_STR(opt->host),
+	    opt->drive_list.nused, opt->drive_list.nalloc, opt->drive_list.str,
+	    opt->rt_list.nused, opt->rt_list.nalloc, opt->rt_list.str
 	    );
 
     return 0;
@@ -2052,6 +2087,45 @@ static int usage ( char * prog, int level )
 	  "    %s -start_dir 003 -rt -host pickle\n"
 	  "    %s -start_dir 003 -nt 120 -rt -host pickle\n"
 	  "\n"
+	  "  ** detailed real-time example:\n"
+	  "\n"
+	  "    This example scans data starting from directory 003, expects\n"
+	  "    160 repetitions (TRs), and invokes the real-time processing,\n"
+	  "    sending data to a computer called some.remote.computer.name\n"
+	  "    (where afni is running, and which considers THIS computer to\n"
+	  "    be trusted - see the AFNI_TRUSTHOST environment variable).\n"
+	  "\n"
+	  "    Multiple DRIVE_AFNI commands are passed through '-drive_afni'\n"
+	  "    options, one requesting to open an axial image window, and\n"
+	  "    another requesting an axial graph, with 160 data points.\n"
+	  "\n"
+	  "    See README.driver for acceptable DRIVE_AFNI commands.\n"
+	  "\n"
+	  "    Also, multiple commands specific to the real-time plugin are\n"
+	  "    passed via the '-rt_cmd' options.  The 'REFIX command sets the\n"
+	  "    prefix for the datasets output by afni.  The GRAPH_XRANGE and\n"
+	  "    GRAPH_YRANGE commands set the graph dimensions for the 3D\n"
+	  "    motion correction graph (only).  And the GRAPH_EXPR command\n"
+	  "    is used to replace the 6 default motion correction graphs with\n"
+	  "    a single graph, according to the given expression, the square\n"
+	  "    root of the average squared entry of the 3 rotaion parameters,\n"
+	  "    roll, pitch and yaw, ignoring the 3 shift parameters, dx, dy\n"
+	  "    and dz.\n"
+	  "\n"
+	  "    See README.realtime for acceptable DRIVE_AFNI commands.\n"
+	  "\n"
+	  "    %s                                                   \\\n"
+	  "       -start_dir 003                                      \\\n"
+	  "       -nt 160                                             \\\n"
+	  "       -rt                                                 \\\n"
+	  "       -host some.remote.computer.name                     \\\n"
+	  "       -drive_afni 'OPEN_WINDOW axialimage'                \\\n"
+	  "       -drive_afni 'OPEN_WINDOW axialgraph pinnum=160'     \\\n"
+	  "       -rt_cmd 'PREFIX eat.more.cheese'                    \\\n"
+	  "       -rt_cmd 'GRAPH_XRANGE 160'                          \\\n"
+	  "       -rt_cmd 'GRAPH_YRANGE 1.02'                         \\\n"
+	  "       -rt_cmd 'GRAPH_EXPR sqrt((d*d+e*e+f*f)/3)'            \n"
+	  "\n"
 	  "  ---------------------------------------------------------------\n"
 	  "  notes:\n"
 	  "\n"
@@ -2104,7 +2178,9 @@ static int usage ( char * prog, int level )
 	  "        such an axial view window on the afni controller.\n"
 	  "\n"
 	  "        Note: the command 'CMND' must be given in quotes, so that\n"
-	  "        the shell will send it as a single parameter.\n"
+	  "              the shell will send it as a single parameter.\n"
+	  "\n"
+	  "        Note: this option may be used multiple times.\n"
 	  "\n"
 	  "        See README.driver for more details.\n"
 	  "\n"
@@ -2131,6 +2207,22 @@ static int usage ( char * prog, int level )
 	  "        can be used to reverse it.\n"
 	  "\n"
 	  "        See the (obsolete) '-swap' option for more details.\n"
+	  "\n"
+	  "    -rt_cmd COMMAND   : send COMMAND(s) to realtime plugin\n"
+	  "\n"
+	  "        e.g.  -rt_cmd 'GRAPH_XRANGE 120'\n"
+	  "        e.g.  -rt_cmd 'GRAPH_XRANGE 120 \\n GRAPH_YRANGE 2.5'\n"
+	  "\n"
+	  "        This option is used to pass commands to the realtime\n"
+	  "        plugin.  For example, 'GRAPH_XRANGE 120' will set the\n"
+	  "        x-scale of the motion graph window to 120 (repetitions).\n"
+	  "\n"
+	  "        Note: the command 'COMMAND' must be given in quotes, so\n"
+	  "        that the shell will send it as a single parameter.\n"
+	  "\n"
+	  "        Note: this option may be used multiple times.\n"
+	  "\n"
+	  "        See README.realtime for more details.\n"
 	  "\n"
 	  "    -swap  (obsolete) : swap data bytes before sending to afni\n"
 	  "\n"
@@ -2257,7 +2349,7 @@ static int usage ( char * prog, int level )
 	  "                        (many thanks to R. Birn)\n"
 	  "\n",
 	  prog, prog, prog, prog,
-	  prog, prog, prog, prog, prog, prog, prog, prog,
+	  prog, prog, prog, prog, prog, prog, prog, prog, prog,
 	  prog, prog, prog, prog, prog, prog, prog,
 	  IFM_VERSION
 	);
@@ -2946,6 +3038,55 @@ static int path_to_dir_n_suffix( char * dir, char * suff, char * path )
     /* we are set, just copy the data */
     strncpy( dir, cp, 3 );
     dir[3] = '\0';
+
+    return 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * Add given string (pointer) to list.	                     v3.3 [rickr]
+ *
+ * return  0 : success
+ *        -1 : failure (realloc)
+ * ----------------------------------------------------------------------
+*/
+static int add_to_string_list( string_list * list, char * str )
+{
+    if ( !list || !str )
+	return -1;
+
+    /* if needed, just add 10 at a time to nalloc (they're only pointers) */
+    if ( list->nalloc == 0 || (list->nalloc <= list->nused) )
+    {
+	list->nalloc += 10;
+	list->str = (char **)realloc(list->str, list->nalloc*sizeof(char *));
+	if ( !list->str )
+	{
+	    fprintf(stderr,"** failed to allocate for %d (char *)s\n",
+		    list->nalloc);
+	    return -1;
+	}
+    }
+
+    list->str[list->nused] = str;
+    list->nused++;
+
+    return 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * If free_mem, free memory.  Set contents as empty.	     v3.3 [rickr]
+ * ----------------------------------------------------------------------
+*/
+static int empty_string_list( string_list * list, int free_mem )
+{
+    if ( list->str && free_mem )
+	free( list->str );
+
+    list->str    = NULL;
+    list->nalloc = 0;
+    list->nused  = 0;
 
     return 0;
 }

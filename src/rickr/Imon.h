@@ -70,6 +70,13 @@ typedef struct
 
 typedef struct
 {
+    char          ** str;	    /* list of actual strings */
+    int              nalloc;        /* number allocated for  */
+    int              nused;         /* number in use        */
+} string_list;
+
+typedef struct
+{
     int		     nalloc;	    /* number of images allocated for   */
     int		     nused;	    /* number of images in use now      */
     int		     ary_len;       /* length of allocated im_ary array */
@@ -82,7 +89,6 @@ typedef struct  /* user options */
 {
     char           * start_file;    /* user-specified starting file     */
     char           * start_dir;     /* user input starting directory    */
-    char           * drive_cmd;     /* DRIVE_AFNI command to send       */
     char           * sp;            /* slice acquisition pattern        */
     char           * gert_outdir;   /* output directory for GERT_Reco2  */
     char	  ** argv;	    /* passed to the program            */
@@ -98,6 +104,8 @@ typedef struct  /* user options */
     int              swap;          /* swap bytes when sending data     */
     int              rev_bo;        /* reverse BYTEORDER command        */
     char           * host;          /* pointer to hostname              */
+    string_list      drive_list;    /* list of DRIVE_AFNI commands      */
+    string_list      rt_list;       /* list of real-time commands       */
 } opts_t;
 
 typedef struct

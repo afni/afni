@@ -5,6 +5,7 @@
 ******************************************************************************/
 
 #include "afni.h"
+#include "parser.h"
 
 #if 0
 # define VMCHECK do{ if(verbose == 2) MCHECK; } while(0)
@@ -49,6 +50,12 @@
 	       *     control over the scales of the motion graph
 	       * if GRAPH_XRANGE and GRAPH_YRANGE commands are both passed,
 	       *     do not display the final (scaled) motion graph          **/
+/** 13 Feb 2004: added RT_MAX_PREFIX for incoming PREFIX command     [rickr]
+	       * if GRAPH_?RANGE is given, disable 'pushing'
+	       *     (see plot_ts_xypush())
+	       * added GRAPH_EXPR command, to compute and display a single
+	       *     motion curve, instead of the normal six
+	       *     (see p_code, etc., reg_eval, and RT_parser_init())      **/
 
 
 /**************************************************************************/
@@ -69,6 +76,9 @@
 #define ZORDER_SEQ  34
 #define ZORDER_EXP  39
 #define NZMAX       1024
+
+#define RT_MAX_EXPR     1024    /* max size for parser expression  */
+#define RT_MAX_PREFIX    100    /* max size for output file prefix */
 
 #define DEFAULT_XYFOV    240.0
 #define DEFAULT_XYMATRIX  64
@@ -186,6 +196,15 @@ typedef struct {
    int   reg_resam , reg_final_resam ;
    int   reg_graph_xnew, reg_graph_ynew ;
    float reg_graph_xr , reg_graph_yr ;
+
+   /*-- Feb 2004 [rickr]: parser fields for GRAPH_EXPR command --*/
+   PARSER_code * p_code ; 			/* parser expression code    */
+   char          p_expr   [RT_MAX_EXPR+1] ;     /* user's parser expression  */
+   double        p_atoz   [26] ;                /* source values to evaluate */
+   int           p_has_sym[26] ;		/* symbol indices            */
+   int           p_max_sym ;			/* max index+1 of p_has_sym  */
+   float       * reg_eval ;			/* EXPR evaluation results   */
+
 #endif
 
    double elapsed , cpu ;         /* times */
@@ -399,6 +418,7 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   void RT_registration_3D_realtime( RT_input * rtin ) ;
 
   void RT_set_grapher_pinnums( int pinnum );
+  int  RT_parser_init( RT_input * rtin );
 #endif
 
 #define TELL_NORMAL  0
@@ -797,7 +817,8 @@ void cleanup_rtinp( int keep_ioc_data )
    FREEUP( rtinp->reg_tim   ) ; FREEUP( rtinp->reg_dx    ) ;
    FREEUP( rtinp->reg_dy    ) ; FREEUP( rtinp->reg_dz    ) ;
    FREEUP( rtinp->reg_phi   ) ; FREEUP( rtinp->reg_psi   ) ;
-   FREEUP( rtinp->reg_theta ) ; FREEUP( rtinp->reg_rep ) ;
+   FREEUP( rtinp->reg_theta ) ; FREEUP( rtinp->reg_rep   ) ;
+   FREEUP( rtinp->reg_eval  ) ;
 #endif
 
    if( rtinp->image_handle != NULL )
@@ -1497,6 +1518,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->reg_theta    = (float *) malloc( sizeof(float) ) ;
    rtin->reg_psi      = (float *) malloc( sizeof(float) ) ;
    rtin->reg_rep      = (float *) malloc( sizeof(float) ) ;
+   rtin->reg_eval     = (float *) malloc( sizeof(float) ) ;
    rtin->reg_3dbasis  = NULL ;
    rtin->mp           = NULL ;    /* no plot yet */
 
@@ -1504,6 +1526,8 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->reg_graph_ynew = 0 ;     /* did the user update reg_graph_yr */
    rtin->reg_graph_xr = reg_nr ;  /* will scale by TR when we know it */
    rtin->reg_graph_yr = reg_yr ;
+
+   rtin->p_code = NULL ;          /* init parser code    12 Feb 2004 [rickr] */
 
    rtin->reg_resam = REG_resam_ints[reg_resam] ;
    if( rtin->reg_resam < 0 ){                    /* 20 Nov 1998: */
@@ -1705,6 +1729,40 @@ void RT_check_info( RT_input * rtin , int prt )
    return ;
 }
 
+#ifdef ALLOW_REGISTRATION
+/*---------------------------------------------------------------------------
+   Initialize the parser fields from the user expression.  12 Feb 2004 [rickr]
+
+   return   0 : on success
+          < 0 : on error
+-----------------------------------------------------------------------------*/
+int RT_parser_init( RT_input * rtin )
+{
+    PARSER_set_printout(1);
+    rtin->p_code = PARSER_generate_code( rtin->p_expr );
+
+    if ( ! rtin->p_code )
+    {
+	fprintf(stderr,"** cannot parse expression '%s'\n", rtin->p_expr);
+	return -1;
+    }
+
+    /* p_max_sym will be 0 if nothing is marked, 26 if z is, etc. */
+    PARSER_mark_symbols( rtin->p_code, rtin->p_has_sym );
+    for ( rtin->p_max_sym = 26; rtin->p_max_sym > 0; rtin->p_max_sym-- )
+	if ( rtin->p_has_sym[rtin->p_max_sym - 1] )
+	    break;
+
+    if ( rtin->p_max_sym > 6 )
+    {
+	fprintf(stderr,"** parser expression may only contain symbols a-f\n");
+	return -2;
+    }
+
+    return 0;
+}
+#endif
+
 /*---------------------------------------------------------------------------
    Process command strings in the buffer, up to the first '\0' character.
    Returns the number of characters processed, which will be one more than
@@ -1782,8 +1840,14 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          if( fval >= MIN_PIN && fval <= MAX_PIN ) {
 	     rtin->reg_graph_xnew = 1;
 	     rtin->reg_graph_xr   = fval;
-	     if ( IM3D_OPEN(plint->im3d) )   /* copy width for open graphs */
+
+             if( rtin->reg_graph && REG_IS_3D(rtin->reg_mode) &&
+		 IM3D_OPEN(plint->im3d) )
+	     {
+		 plot_ts_xypush(1-rtin->reg_graph_xnew, 1-rtin->reg_graph_ynew);
 		 RT_set_grapher_pinnums((int)(fval+0.5));
+	     }
+
 	 } else
               BADNEWS ;
 
@@ -1793,13 +1857,26 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          if( fval > 0.0 ) {
 	    rtin->reg_graph_ynew = 1;
 	    rtin->reg_graph_yr   = fval ;
+
+	    /* if the user sets scales, don't 'push'    11 Feb 2004 [rickr] */
+            if( rtin->reg_graph && REG_IS_3D(rtin->reg_mode) )
+		plot_ts_xypush(1-rtin->reg_graph_xnew, 1-rtin->reg_graph_ynew);
 	 } else
             BADNEWS ;
 
+      /* Allow the user to specify an expression, to evalue the six motion
+       * parameters into one.
+       *                                                12 Feb 2004 [rickr] */
+      } else if( STARTER("GRAPH_EXPR") ){
+         sscanf( buf , "GRAPH_EXPR %1024s" , rtin->p_expr ) ;
+	 rtin->p_expr[RT_MAX_EXPR] = '\0';
+	 if ( RT_parser_init(rtin) != 0 )
+            BADNEWS ;
 #endif
 
       } else if( STARTER("NAME") ){
          char npr[THD_MAX_PREFIX] = "\0" ;
+	 /* RT_MAX_PREFIX is used here, currently 100 */
          sscanf( buf , "NAME %100s" , npr ) ; /* 31->100  29 Jan 2004 [rickr] */
          if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
          else
@@ -1807,6 +1884,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
       } else if( STARTER("PREFIX") ){           /* 01 Aug 2002 */
          char npr[THD_MAX_PREFIX] = "\0" ;
+	 /* RT_MAX_PREFIX is used here, currently 100 */
          sscanf( buf , "PREFIX %100s" , npr ) ;
          if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
          else
@@ -2236,7 +2314,7 @@ void RT_start_dataset( RT_input * rtin )
    /** make a good dataset prefix **/
 
    for( ii=1 ; ; ii++ ){
-      sprintf( npr , "%.31s#%03d" , rtin->root_prefix , ii ) ;
+      sprintf( npr , "%.*s#%03d" , RT_MAX_PREFIX, rtin->root_prefix , ii ) ;
 
       if( rtin->num_chan == 1 ){                  /* the old way */
 
@@ -3375,7 +3453,8 @@ void RT_finish_dataset( RT_input * rtin )
    if( rtin->reg_graph && rtin->reg_nest > 1 && REG_IS_3D(rtin->reg_mode) &&
        ( rtin->reg_graph_xnew == 0 || rtin->reg_graph_ynew == 0 ) ){
       float * yar[7] ;
-      int nn = rtin->reg_nest ;
+      int     ycount = -6 ;
+      int     nn = rtin->reg_nest ;
       static char * nar[6] = {
          "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
          "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
@@ -3398,11 +3477,24 @@ void RT_finish_dataset( RT_input * rtin )
       yar[5] = rtin->reg_psi   ;  /* pitch */
       yar[6] = rtin->reg_theta ;  /* yaw   */
 
+      if ( rtin->p_code )
+      {
+         ycount = 1;
+	 yar[1] = rtin->reg_eval;
+      }
+
       plot_ts_lab( THE_DISPLAY ,
-                   nn , yar[0] , -6 , yar+1 ,
+                   nn , yar[0] , ycount , yar+1 ,
                    "reps" , NULL , ttl , nar , NULL ) ;
 
       free(ttl) ;
+   }
+
+   /* if we have a parser expression, free it */
+   if ( rtin->p_code )
+   {
+      free( rtin->p_code ) ;
+      rtin->p_code = NULL ;
    }
 #endif
 
@@ -3785,6 +3877,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
       /* realtime graphing? */
 
       if( rtin->reg_graph == 2 ){
+	 int    ycount = -6 ;  /* default number of graphs */
          static char * nar[6] = {
             "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
             "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
@@ -3794,9 +3887,13 @@ void RT_registration_3D_realtime( RT_input * rtin )
          strcat(ttl,DSET_FILECODE(rtin->dset[0])) ;
          if( rtin->reg_mode == REGMODE_3D_ESTIM ) strcat(ttl," [Estimate]") ;
 
+         /* if p_code, only plot the reg_eval */
+	 if ( rtin->p_code )
+	    ycount = 1;
+
          rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,
-                                  0.0,rtin->reg_graph_xr ,
-                                  -6 , -rtin->reg_graph_yr,rtin->reg_graph_yr ,
+                                  0.0,rtin->reg_graph_xr-1 ,
+                                  ycount,-rtin->reg_graph_yr,rtin->reg_graph_yr,
                                   "reps", NULL, ttl, nar , NULL ) ;
 
          if( rtin->mp != NULL ) rtin->mp->killfunc = MTD_killfunc ;
@@ -3814,6 +3911,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
 
    if( rtin->mp != NULL && ntt > ttbot ){
       float        * yar[7] ;
+      int            ycount = -6 ;
 
       if( ttbot > 0 ) ttbot-- ;
       
@@ -3825,7 +3923,15 @@ void RT_registration_3D_realtime( RT_input * rtin )
       yar[5] = rtin->reg_psi   + ttbot ;
       yar[6] = rtin->reg_theta + ttbot ;
 
-      plot_ts_addto( rtin->mp , ntt-ttbot , yar[0] , -6 , yar+1 ) ;
+      /* if p_code, only plot the reg_eval */
+      if ( rtin->p_code )
+      {
+         ycount = 1;
+	 yar[1] = rtin->reg_eval + ttbot;
+      }
+
+      plot_ts_addto( rtin->mp , ntt-ttbot , yar[0] , ycount , yar+1 ) ;
+
    }
 
    /*-- my work here is done --*/
@@ -4051,7 +4157,9 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
                                       sizeof(float) * (nest+1) ) ;
    rtin->reg_theta = (float *) realloc( (void *) rtin->reg_theta ,
                                       sizeof(float) * (nest+1) ) ;
-   rtin->reg_rep = (float *) realloc( (void *) rtin->reg_rep ,
+   rtin->reg_rep   = (float *) realloc( (void *) rtin->reg_rep ,
+                                      sizeof(float) * (nest+1) ) ;
+   rtin->reg_eval   = (float *) realloc( (void *) rtin->reg_eval ,
                                       sizeof(float) * (nest+1) ) ;
 
    rtin->reg_tim[nest]   = THD_timeof_vox( tt , 0 , rtin->dset[0] ) ;
@@ -4060,8 +4168,25 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
    rtin->reg_dz [nest]   = ddz   ;
    rtin->reg_phi[nest]   = roll  ;
    rtin->reg_psi[nest]   = pitch ;
-   rtin->reg_theta[nest] = yaw   ; rtin->reg_nest ++ ; rtin->reg_nvol = tt+1 ;
+   rtin->reg_theta[nest] = yaw   ;
    rtin->reg_rep[nest]   = tt    ;
+
+   /* evaluate parser expression, since all input values are assigned here */
+   if ( rtin->p_code )
+   {
+       int c ;
+       
+       /* clear extras, just to be safe */
+       for ( c = 6; c < 26; c++ ) rtin->p_atoz[c] = 0;
+
+       rtin->p_atoz[0] = ddx ; rtin->p_atoz[1] = ddy  ; rtin->p_atoz[2] = ddz;
+       rtin->p_atoz[3] = roll; rtin->p_atoz[4] = pitch; rtin->p_atoz[5] = yaw;
+       
+       /* actually set the value via parser evaluation */
+       rtin->reg_eval[nest] = PARSER_evaluate_one(rtin->p_code, rtin->p_atoz);
+   }
+
+   rtin->reg_nest ++ ; rtin->reg_nvol = tt+1 ;
 
    /*-- convert output image to desired type;
         set qar to point to data in the converted registered image --*/
@@ -4445,7 +4570,7 @@ int RT_fim_recurse( RT_input *rtin , int mode )
       return 1;
 
 #if 0				/* change to first_pass test */
-   if( mode == it1 ){
+   if( mode == it1 )
 #endif
 
    /* check for first fim computation with this dataset            30 Oct 2003 [rickr] */
