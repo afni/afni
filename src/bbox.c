@@ -1181,8 +1181,6 @@ char * AV_uformat_fval( float fval )
 
 /*------------------------------------------------------------------------*/
 
-/*------------------------------------------------------------------------*/
-
 void AV_assign_fval( MCW_arrowval * av , float qval )
 {
    double newfval = qval ;
