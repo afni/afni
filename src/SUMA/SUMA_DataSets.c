@@ -109,6 +109,28 @@ This file might be compiled and used by AFNI
 #endif
 
 
+/*! Taken from filexists 
+returns 1 if file can be read/found
+*/
+int SUMA_filexists (char *f_name)
+{/*SUMA_filexists*/
+    FILE *outfile;
+    static char FuncName[]={"SUMA_filexists"};
+   
+   SUMA_ENTRY;
+
+    outfile = fopen (f_name,"r");
+    if (outfile == NULL) {
+       SUMA_RETURN(0); 
+   }
+    else {
+       fclose (outfile); 
+   }
+    
+   SUMA_RETURN(1);
+       
+}/*SUMA_filexists*/
+
 
 /*!
    \brief function that tests whether a string contains N numbers
