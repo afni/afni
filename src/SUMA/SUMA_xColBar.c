@@ -1353,8 +1353,10 @@ SUMA_TABLE_FIELD * SUMA_AllocTableField(void)
    TF->type = SUMA_string;
    TF->NewValueCallback = NULL;
    TF->NewValueCallbackData = NULL;
-   TF->TitLabelCallback = NULL;
-   TF->TitLabelCallbackData = NULL;
+   TF->TitLabelEVHandler = NULL;
+   TF->TitLabelEVHandlerData = NULL;
+   TF->CellEVHandler = NULL;
+   TF->CellEVHandlerData = NULL;
    TF->cell_modified = -1;
    TF->num_value = NULL;
    TF->str_value = NULL;
@@ -1362,13 +1364,107 @@ SUMA_TABLE_FIELD * SUMA_AllocTableField(void)
 }
 
 /*!
+   Called when user clicks on range table cell
+   Expect SO in cd
+*/
+void SUMA_RangeTableCell_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
+{
+   static char FuncName[]={"SUMA_RangeTableCell_EV"};
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)cd;
+   SUMA_SurfaceObject *curSO = *(SO->SurfCont->curSOp);
+   SUMA_TABLE_FIELD *TF = SO->SurfCont->RangeTable;
+   XButtonEvent * bev = (XButtonEvent *) ev ;
+   int  i, j, n, Found;
+   void *cv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   /* see note in bbox.c optmenu_EV for the condition below*/
+   if( bev->button == Button2 ) {
+     XUngrabPointer( bev->display , CurrentTime ) ;
+     SUMA_RETURNe ;
+   }
+   
+   if( w == NULL || TF == NULL || SO == NULL ) { SUMA_RETURNe ; }
+
+   switch (bev->button) {
+      case Button1:
+         SUMA_LH("Button 1");
+         break;
+      case Button2:
+         SUMA_LH("Button 2");
+         break;
+      case Button3:
+         SUMA_LH("Button 3");
+         break;
+      default:
+         SUMA_RETURNe;
+   }
+   
+   /* which cell is calling? */
+   n = 0;
+   Found = -1;
+   while (n<TF->Nj*TF->Ni && Found == -1) {
+      if (TF->cells[n] == w) {
+         Found = n;
+      } else ++n;
+   }
+   
+   if (Found <0) {
+      SUMA_SL_Err("Widget not found ????");
+      SUMA_RETURNe;
+   }
+   
+   /* find out widget's place in table*/
+   i = Found % TF->Ni; j = Found / TF->Ni ;
+   n = Found; 
+   
+   switch (j) {
+      case 0:
+      case 1:
+      case 3:
+         break;
+      case 2:
+      case 4:
+         SUMA_LH("Call to jump to a node");
+         XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
+         if (LocalHead) {
+            fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s, node = %d\n", 
+                  FuncName, i, j, (char *)cv, atoi((char *)cv));
+         }
+         /* look for a viewer that is showing this surface and has this surface in focus*/
+         for (i=0; i<SUMAg_N_SVv; ++i) {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, i);
+            if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
+               /* is this viewer showing curSO ? */
+               if (SUMA_isVisibleSO(&(SUMAg_SVv[i]), SUMAg_DOv, curSO)) {
+                  if ((SUMAg_DOv[SUMAg_SVv[i].Focus_SO_ID].OP) == curSO) {
+                        SUMA_JumpIndex((char *)cv, (void *)(&(SUMAg_SVv[i])));
+                  }
+               }
+            }
+         }
+
+         break;
+      default:
+         SUMA_SL_Err("Did not know you had so many");
+         break;
+   }
+   
+   SUMA_RETURNe;
+}
+/*!
    Called when user clicks on table title 
    Expects SO in TF->NewValueCallbackData
 */
-void SUMA_RangeTableTit_EV ( Widget w , XtPointer cd ,
+void SUMA_SetRangeTableTit_EV ( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch )
 {
-   static char FuncName[]={"SUMA_RangeTableTit_EV"};
+   static char FuncName[]={"SUMA_SetRangeTableTit_EV"};
    Dimension lw ;
    Widget * children , wl = NULL;
    XButtonEvent * bev = (XButtonEvent *) ev ;
@@ -1595,7 +1691,8 @@ void SUMA_CreateTable(  Widget parent,
                         char **row_help, char **col_help, 
                         int *cwidth, SUMA_Boolean editable, SUMA_VARTYPE type,
                         void (*NewValueCallback)(void * data), void *cb_data,
-                        void (*TitLabelCallback)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *TitLabelCallbackData,
+                        void (*TitLabelEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *TitLabelEVHandlerData,
+                        void (*CellEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *CellEVHandlerData,
                         SUMA_TABLE_FIELD *TF) 
 {
    static char FuncName[]={"SUMA_CreateTable"};
@@ -1616,8 +1713,10 @@ void SUMA_CreateTable(  Widget parent,
    if (!TF->cells) {  SUMA_SL_Crit("Failed to allocate"); SUMA_RETURNe; }
    TF->NewValueCallback = NewValueCallback;
    TF->NewValueCallbackData = cb_data;
-   TF->TitLabelCallback = TitLabelCallback;
-   TF->TitLabelCallbackData = TitLabelCallbackData;
+   TF->TitLabelEVHandler = TitLabelEVHandler;
+   TF->TitLabelEVHandlerData = TitLabelEVHandlerData;
+   TF->CellEVHandler = CellEVHandler;
+   TF->CellEVHandlerData = CellEVHandlerData;
    TF->type = type;
    switch (TF->type) {
       case SUMA_int:
@@ -1697,13 +1796,13 @@ void SUMA_CreateTable(  Widget parent,
                                                    XmNcolumns, strlen(row_tit[i]), 
                                                    NULL);
                #endif
-               if (!TF->TitLabelCallbackData) cd = (XtPointer) TF; else cd = (XtPointer)TF->TitLabelCallbackData;
-               if (TF->TitLabelCallback) {
+               if (!TF->TitLabelEVHandlerData) cd = (XtPointer) TF; else cd = (XtPointer)TF->TitLabelEVHandlerData;
+               if (TF->TitLabelEVHandler) {
                   /* insert handler to catch clicks on titles */
                   XtInsertEventHandler( TF->cells[n] ,      /* handle events in title cell */
                               ButtonPressMask ,  /* button presses */
                               FALSE ,            /* nonmaskable events? */
-                              TF->TitLabelCallback,  /* handler */
+                              TF->TitLabelEVHandler,  /* handler */
                               cd ,   /* client data */
                               XtListTail ) ; 
                }
@@ -1748,13 +1847,13 @@ void SUMA_CreateTable(  Widget parent,
                }
                
                /* insert handler to catch clicks on titles */
-               if (!TF->TitLabelCallbackData) cd = (XtPointer) TF; else cd = (XtPointer)TF->TitLabelCallbackData;
-               if (TF->TitLabelCallback) {
+               if (!TF->TitLabelEVHandlerData) cd = (XtPointer) TF; else cd = (XtPointer)TF->TitLabelEVHandlerData;
+               if (TF->TitLabelEVHandler) {
                   /* insert handler to catch clicks on titles */
                   XtInsertEventHandler( TF->cells[n] ,      /* handle events in title cell */
                               ButtonPressMask ,  /* button presses */
                               FALSE ,            /* nonmaskable events? */
-                              TF->TitLabelCallback,  /* handler */
+                              TF->TitLabelEVHandler,  /* handler */
                               cd ,   /* client data */
                               XtListTail ) ; 
                }                 
@@ -1781,7 +1880,17 @@ void SUMA_CreateTable(  Widget parent,
                } else {
                   SUMA_SetCellEditMode(TF, i, j, 1);
                }
-
+               /* insert handlers if any */
+               if (!TF->CellEVHandlerData) cd = (XtPointer) TF; else cd = (XtPointer)TF->CellEVHandlerData;
+               if (TF->CellEVHandler) {
+                  /* insert handler to catch clicks on cells */
+                  XtInsertEventHandler( TF->cells[n] ,      /* handle events in cell */
+                              ButtonPressMask ,  /* button presses */
+                              FALSE ,            /* nonmaskable events? */
+                              TF->CellEVHandler,  /* handler */
+                              cd ,   /* client data */
+                              XtListTail ) ; 
+               }                 
                break;
             default:
                SUMA_SL_Err("Bad cell type");
@@ -1971,6 +2080,16 @@ void SUMA_TriInput (void *data)
    i = n % TF->Ni;
    j = n / TF->Ni;
    
+   if ((int)TF->num_value[n] < 0 || (int)TF->num_value[n] >= curSO->N_FaceSet) {
+      SUMA_SLP_Err("Triangle index n must be positive\n"
+                   "and less than the number of nodes \n"
+                   "forming the surface.\n");
+      TF->num_value[n] = SO->SelectedFaceSet;
+      SUMA_TableF_SetString (TF);
+      TF->cell_modified = -1;
+      SUMA_RETURNe;
+   }
+
    switch (j) {
       case 1:
          XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
@@ -2021,6 +2140,16 @@ void SUMA_NodeInput (void *data)
    n = TF->cell_modified;
    i = n % TF->Ni;
    j = n / TF->Ni;
+   
+   if ((int)TF->num_value[n] < 0 || (int)TF->num_value[n] >= curSO->N_Node) {
+      SUMA_SLP_Err("Node index must be positive and \n"
+                   "less than the number of nodes \n"
+                   "forming the surface.\n");
+      TF->num_value[n] = SO->SelectedNode;
+      SUMA_TableF_SetString (TF);
+      TF->cell_modified = -1;
+      SUMA_RETURNe;
+   }
    
    switch (j) {
       case 1:
@@ -2672,7 +2801,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            row_help, col_help,  
                            colw, YUP, SUMA_float, 
                            SUMA_SetRangeValue, (void *)SO,
-                           SUMA_RangeTableTit_EV, NULL, 
+                           SUMA_SetRangeTableTit_EV, NULL,
+                           NULL, NULL,  
                            SO->SurfCont->SetRangeTable);
          }
        
@@ -2886,10 +3016,16 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "Maximum value in data", 
                            "Node index at maximum", NULL};
       char *col_help[]= {  "Full range in data", 
-                           "Minimum value in data",
-                           "Node index at minimum", 
+                           "Minimum value in data.",
+                           "Node index at minimum.\n"
+                           "Right click in cell to\n"
+                           "have crosshair jump to\n"
+                           "node's index.", 
                            "Maximum value in data", 
-                           "Node index at maximum", NULL};
+                           "Node index at maximum.\n"
+                           "Right click in cell to\n"
+                           "have crosshair jump to\n"
+                           "node's index.", NULL};
       char *row_tit[]=  {  " ", "I", "T", "B", NULL};
       char *row_hint[]= {  "Full range in data", 
                            "Range of values in intensity data", 
@@ -2921,7 +3057,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            row_help, col_help,  
                            colw, NOPE, SUMA_string, 
                            NULL, NULL,
-                           NULL, NULL, 
+                           NULL, NULL,  
+                           SUMA_RangeTableCell_EV, (void *)SO, 
                            SO->SurfCont->RangeTable);
       }
 
@@ -2948,14 +3085,13 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
 void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO) 
 {
    static char FuncName[]={"SUMA_CreateUpdatableCmapMenu"};
-   static Widget rc = NULL;
    SUMA_MenuItem *SwitchCmap_Menu = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
-   if (!rc) { /* first pass, create placement container */
-      rc = XtVaCreateWidget ("rowcolumn",
+   if (!SO->SurfCont->rc_CmapCont) { /* first pass, create placement container */
+      SO->SurfCont->rc_CmapCont = XtVaCreateWidget ("rowcolumn",
       xmRowColumnWidgetClass, SO->SurfCont->rccm_swcmap,
       XmNpacking, XmPACK_TIGHT, 
       XmNorientation , XmHORIZONTAL ,
@@ -2981,7 +3117,7 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
          (more additions for sub-menus, see how SUMA_BuildMenu works )*/
       SO->SurfCont->SwitchCmapMenu = (Widget *)SUMA_malloc(sizeof(Widget)*(SUMAg_CF->scm->N_maps+1));  
       SUMA_BuildMenuReset(10);
-      SO->SurfCont->N_CmapMenu = SUMA_BuildMenu (rc, XmMENU_OPTION, /* populate it */
+      SO->SurfCont->N_CmapMenu = SUMA_BuildMenu (SO->SurfCont->rc_CmapCont, XmMENU_OPTION, /* populate it */
                         "Cmp", '\0', YUP, SwitchCmap_Menu, 
                         (void *)SO,  
                         "Switch between available color maps. (BHelp for more)", 
@@ -3006,7 +3142,7 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
       SwitchCmap_Menu = SUMA_FreeMenuVector(SwitchCmap_Menu, SUMAg_CF->scm->N_maps);
    }
 
-   XtManageChild(rc);
+   XtManageChild(SO->SurfCont->rc_CmapCont);
 
    SUMA_RETURNe;
 }
@@ -3036,7 +3172,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
    
    /* TF Range table Int*/
    SUMA_LH("Setting Int.");
-   SUMA_RANGE_STRING(nel, fi, srange_min, srange_max, srange_minloc, srange_maxloc, range); 
+   SUMA_RANGE_STRING(SO->SurfCont->curColPlane->dset_link, fi, srange_min, srange_max, srange_minloc, srange_maxloc, range); 
    SUMA_INSERT_CELL_STRING(TF, 1, 1, srange_min);/* min */
    SUMA_INSERT_CELL_STRING(TF, 1, 2, srange_minloc);/* minloc */
    SUMA_INSERT_CELL_STRING(TF, 1, 3, srange_max);/* max */
@@ -3062,7 +3198,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
    } 
    /* TF Range table Thr*/
    SUMA_LH("Setting Thr.");
-   SUMA_RANGE_STRING(nel, ti, srange_min, srange_max, srange_minloc, srange_maxloc, range); 
+   SUMA_RANGE_STRING(SO->SurfCont->curColPlane->dset_link, ti, srange_min, srange_max, srange_minloc, srange_maxloc, range); 
    SUMA_INSERT_CELL_STRING(TF, 2, 1, srange_min);/* min */
    SUMA_INSERT_CELL_STRING(TF, 2, 2, srange_minloc);/* minloc */
    SUMA_INSERT_CELL_STRING(TF, 2, 3, srange_max);/* max */
@@ -3070,7 +3206,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
   
    /* TF Range table Brt*/
    SUMA_LH("Setting Brt.");
-   SUMA_RANGE_STRING(nel, bi, srange_min, srange_max, srange_minloc, srange_maxloc, range); 
+   SUMA_RANGE_STRING(SO->SurfCont->curColPlane->dset_link, bi, srange_min, srange_max, srange_minloc, srange_maxloc, range); 
    SUMA_INSERT_CELL_STRING(TF, 3, 1, srange_min);/* min */
    SUMA_INSERT_CELL_STRING(TF, 3, 2, srange_minloc);/* minloc */
    SUMA_INSERT_CELL_STRING(TF, 3, 3, srange_max);/* max */
@@ -3541,6 +3677,7 @@ void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO)
          colw, YUP, SUMA_string,
          SUMA_XhairInput, (void*)SO,
          NULL, NULL, 
+         NULL, NULL,  
          SO->SurfCont->XhairTable);
    }
    /* a table for a node's index */      
@@ -3555,6 +3692,7 @@ void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO)
          colw, YUP, SUMA_int,
          SUMA_NodeInput, (void*)SO,
          NULL, NULL, 
+         NULL, NULL,  
          SO->SurfCont->NodeTable);
       /* disable the 3rd entry cell */
       SUMA_SetCellEditMode(SO->SurfCont->NodeTable, 0, 2, 0);
@@ -3571,6 +3709,7 @@ void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO)
          colw, YUP, SUMA_int,
          SUMA_TriInput, (void*)SO,
          NULL, NULL, 
+         NULL, NULL,  
          SO->SurfCont->FaceTable);
       /* disable the 3rd entry cell */
       SUMA_SetCellEditMode(SO->SurfCont->FaceTable, 0, 2, 0);   
@@ -3587,6 +3726,7 @@ void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO)
          colw, NOPE, SUMA_float,
          NULL, NULL,
          NULL, NULL, 
+         NULL, NULL,  
          SO->SurfCont->DataTable);
    }
    /* a table for a node's label*/      
@@ -3601,6 +3741,7 @@ void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO)
          colw, NOPE, SUMA_string,
          NULL, NULL,
          NULL, NULL, 
+         NULL, NULL,  
          SO->SurfCont->LabelTable);
    }      
    XtManageChild(rcc);
@@ -4090,7 +4231,7 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
    Sover = SO->SurfCont->curColPlane;
 
    /* 1- Where is this node in the data set ? */
-   Found = SUMA_GetNodeColIndex(Sover->dset_link->nel, SO->SelectedNode);
+   Found = SUMA_GetNodeRow_FromNodeIndex(Sover->dset_link, SO->SelectedNode, SO->N_Node);
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Node index %d is at row %d in dset.", FuncName, SO->SelectedNode, Found);
    }

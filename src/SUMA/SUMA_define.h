@@ -922,8 +922,10 @@ typedef struct{
    SUMA_VARTYPE type; /*!< SUMA_int or SUMA_float or SUMA_string */
    void (*NewValueCallback)(void *data); /*!< callback to make when a new value is set */
    void *NewValueCallbackData;
-   void (*TitLabelCallback)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd); 
-   void *TitLabelCallbackData; 
+   void (*TitLabelEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd); 
+   void *TitLabelEVHandlerData; 
+   void (*CellEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd); 
+   void *CellEVHandlerData;
    int cell_modified; /*!< set to 1D index (column major) of cell_value edited, 
                            i = cell_modified % Ni, j = cell_modified / Ni 
                            cell_modified = j * Ni + i */
@@ -988,6 +990,7 @@ typedef struct {
    Widget *SwitchThrMenu; /* vector of widgets controlling the switch brightness widgets */
    Widget *SwitchBrtMenu; /* vector of widgets controlling the switch brightness widgets */
    Widget *SwitchCmapMenu; /* vector of widgets controlling the switch cmap widgets */
+   Widget rc_CmapCont; /* rc container to contain Cmap menu */
    int N_CmapMenu; /* Number of widgets in SwitchCmapMenu */
    Widget CoordBiasMenu[SW_N_CoordBias]; /* vector of widgets controlling the switch coord bias widgets */
    Widget CmapModeMenu[SW_N_CmapMode];

@@ -530,8 +530,8 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 void SUMA_sigfunc(int sig);
 char *SUMA_pad_string(char *buf, char cp, int n, int add2end);
 char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval); 
-int SUMA_GetNodeColIndex(NI_element *nel, int node);
-
+int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node);
+int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node);
 /*********************** END Miscellaneous support functions **************************** */
 
 

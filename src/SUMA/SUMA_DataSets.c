@@ -1336,57 +1336,113 @@ void * SUMA_GetCx(char *idcode_str, DList *DsetList, int ReturnDsetPointer)
 }
 
 /*!
-   \brief j = SUMA_GetNodeColIndex( nel, i);
-   Returns the row index of a node in the columns
-   of a data set. In other terms, node i's data are in 
-   row j of the columns in nel 
+   \brief Returns the index of the node for which 
+   data exists in row row of  Dset.
+   Set N_Node to SO->N_Node in the function call whenever
+   appropriate, it helps the function go faster 
+   in certain instances. You can't get SO inside this
+   function from MeshParent_idcode of nel because this file 
+   is not to know about surface objects.
+   Set N_Node to -1 if you don't want to use it 
 */
-int SUMA_GetNodeColIndex(NI_element *nel, int node)
+int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node)
 {
-   static char FuncName[]={"SUMA_GetNodeColIndex"};
-   int Found = -1, *iv, N_i, icol;
+   static char FuncName[]={"SUMA_GetNodeIndex_FromNodeRow"};
+   int Found = -1, i, *NodeDef=NULL;
    double dval=0.0;
    char *str=NULL;
-   
+   NI_element *nel = dset->nel;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (node >= nel->vec_len) {
-      SUMA_SL_Err("Node index >= vec_len");
-      SUMA_RETURN(Found);
+   if (row < 0) SUMA_RETURN(-1);
+   
+   if (N_Node >= 0  && row >= N_Node) {
+      SUMA_SL_Err("row index >= N_Node\n"
+                  "Will somebody please think of the children!");
+      SUMA_RETURN(-1);
+   } 
+   if (row >= nel->vec_len) {
+      SUMA_SL_Err("row index >= nel->vec_len\n"
+                  "Bad logic!");
+      SUMA_RETURN(-1);
+   } 
+   /* try the fast one */
+   SUMA_LH("Trying the fast one");
+   if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
+      SUMA_RETURN(row);
    }
    
+   SUMA_LH("Trying the slow mo");
+   /* does this dset have a column index ? */
+   NodeDef = SUMA_GetNodeDef (dset);
+   
+   if (NodeDef) {
+      SUMA_LH("Col. Index found");
+      if (row >= nel->vec_filled) {
+         SUMA_SL_Err("row >= nel->vec_filled.\n");
+         SUMA_RETURN(-1);
+      } else {
+         SUMA_RETURN(NodeDef[row]);
+      }
+   } 
+      
+   SUMA_SL_Err("No way to get column index.");
+      
+   /* bad news lews, this node is not in this Dset */ 
+   SUMA_RETURN(-1);
+}
+
+
+/*!
+   \brief j = SUMA_GetNodeRow_FromNodeIndex( dset, i);
+   Returns the row index of a node in the columns
+   of a data set. In other terms, node i's data are in 
+   row j of the columns in nel 
+   for N_Node, see comments in  SUMA_GetNodeIndex_FromNodeRow
+   \sa SUMA_GetNodeIndex_FromNodeRow
+*/
+int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
+{
+   static char FuncName[]={"SUMA_GetNodeRow_FromNodeIndex"};
+   int Found = -1, i, *NodeDef=NULL;
+   double dval=0.0;
+   char *str=NULL;
+   NI_element *nel = dset->nel;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+      
+   /* try the fast one */
    SUMA_LH("Trying the fast one");
-   if (nel->vec_len == nel->vec_filled) {
+   if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
       SUMA_RETURN(node);
    }
    
    SUMA_LH("Trying the slow mo");
    /* does this dset have a column index ? */
-   iv = SUMA_GetColIndex (nel, SUMA_NODE_INDEX, &N_i);
-   icol = -1;
-   if (iv) {
+   NodeDef = SUMA_GetNodeDef (dset);
+   
+   if (NodeDef) {
       SUMA_LH("Col. Index found");
-      if (N_i > 1) {
-         SUMA_SL_Warn("Multiple Node Index columns found.\nUsing first.\n");
-         icol = iv[0];
+      if (nel->vec_filled < node) {
+         if (node == NodeDef[node]) {
+            SUMA_LH("Got lucky");
+            SUMA_RETURN(node);
+         }
       }
-      SUMA_free(iv); iv = NULL;
+      /* explicit search */
+      SUMA_LH("Explicit");
+      for (i=0; i<nel->vec_filled; ++i) {
+         if (NodeDef[i] == node) SUMA_RETURN(i);
+      }
    } else {
       SUMA_LH("No Col. Index found");
-      icol = -1;
    }
-   
-   if (icol >= 0) {
-      str = SUMA_GetValInCol(nel, icol, node, &dval);
-      if (str) {
-         SUMA_free(str); str = NULL;
-         SUMA_RETURN((int)dval);
-      }
-   }
-   /* bad news lews */ 
-   SUMA_RETURN(Found);
+      
+   /* bad news lews, this node is not in this Dset */ 
+   SUMA_RETURN(-1);
 }
 
 /*!

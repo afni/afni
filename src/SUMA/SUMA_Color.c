@@ -2188,7 +2188,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             if (!SV->isMasked[i]) {
                /* worry only about unmasked colors */
                if (B[i] < Opt->BrightRange[0]) B[i] = Opt->BrightRange[0];
-               else if (B[i] < Opt->BrightRange[1]) B[i] = Opt->BrightRange[1];
+               else if (B[i] > Opt->BrightRange[1]) B[i] = Opt->BrightRange[1];
             }
          }
       } else {
@@ -6366,6 +6366,85 @@ SUMA_Boolean  SUMA_isDsetRelated(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    SUMA_RETURN(NOPE);
 }
 
+SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_AddNodeIndexColumn"};
+   float range[2];
+   int *iv=NULL, i, N_i;
+   float *T = NULL;
+   int *Ti = NULL;
+   SUMA_Boolean OKfirstCol = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+       
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(NOPE);
+   if (!SO) SUMA_RETURN(NOPE);
+   /* check for obvious insult */
+   if (dset->nel->vec_len > SO->N_Node) {
+      SUMA_SL_Err("more values in dset than nodes in surface.");
+      SUMA_RETURN(NOPE);
+   }
+   /* Check for Col Index*/
+   iv = SUMA_GetColIndex (dset->nel, SUMA_NODE_INDEX, &N_i);
+   if (!iv) {
+      SUMA_LH("No node index column");
+      /* would the first column work ? */
+      T = SUMA_Col2Float (dset->nel, 0, 0);
+      OKfirstCol = NOPE;
+      if (!T) { SUMA_LH("First column does not cut it"); OKfirstCol = NOPE;}
+      else {
+         Ti = (int *)SUMA_malloc(sizeof(int)*dset->nel->vec_len);
+         SUMA_LH("Testing if node indices can be in 1st column...");
+         /* check if all values are ints and if they are within 0 and SO->N_Node -1 */
+         i=0;
+         OKfirstCol = YUP;
+         while (i <dset->nel->vec_len && OKfirstCol) {
+            Ti[i] = (int)T[i];
+            if ( (T[i] != Ti[i]) || (T[i] < 0) || (T[i] >= SO->N_Node) ) OKfirstCol = NOPE;
+            ++i;
+         }
+         
+         if (!OKfirstCol) { 
+            SUMA_SLP_Note( "Assuming node indexing\n"
+                           "is explicit. \n"
+                           "1st row is for node 0\n"
+                           "2nd is for node 1, etc.\n" );
+            for (i=0; i <dset->nel->vec_len; ++i) Ti[i]=i;
+            OKfirstCol = YUP;
+         }else{
+            SUMA_SLP_Note("Used column 0 as node indices");
+         }
+         
+      }
+      
+      if (!OKfirstCol) {
+         SUMA_LH("No node index could be created");
+         if (Ti) SUMA_free(Ti); Ti = NULL;
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* Now add Ti to the dataset as a node index column ... */
+      if (!SUMA_AddNelCol (dset->nel, "le index", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
+         SUMA_SL_Err("Failed to add column");
+         if (Ti) SUMA_free(Ti); Ti = NULL;
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* all done */
+      SUMA_LH("Added the index column, ciao");
+      if (Ti) SUMA_free(Ti); Ti = NULL;
+      SUMA_RETURN(YUP);
+   } else {
+      SUMA_LH("Node index column found");
+      SUMA_free(iv); iv = NULL;
+      /* Nothing to do, return on a positive note */
+      SUMA_RETURN(YUP);      
+   } 
+   
+   SUMA_SL_Err("why are you here ?");
+   SUMA_RETURN(NOPE);
+}
 /*!
    \brief determines if a Dset can be assigned to a surface object 
 */   
@@ -6401,7 +6480,20 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
          SUMA_LH("Number of values per column\n"
                       "is less than the number \n"
                       "of nodes in the surface.\n");
-         SUMA_RETURN(YUP);
+         if (dset->nel->vec_filled != SO->N_Node) {
+            SUMA_LH("Need to attach a node index column, if possible");
+            /* attempt to assign a node index column */
+            if (!SUMA_AddNodeIndexColumn(dset, SO)) {
+                SUMA_LH(" Failed to add a node index column");
+                SUMA_RETURN(NOPE);
+            } else {           
+               SUMA_LH("Added Index Column");
+               SUMA_RETURN(YUP);
+            }
+         }else {
+            SUMA_LH("Looks like a full list of values, No need for explicit node column");
+            SUMA_RETURN(YUP);
+         }
       } else {
          SUMA_SLP_Err("Number of values per column\n"
                       "is larger than the number \n"
@@ -6427,7 +6519,7 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
       SUMA_RETURN(YUP);      
    } 
       
-   SUMA_SL_Err("Should not het here");   
+   SUMA_SL_Err("Should not get here");   
    SUMA_RETURN(NOPE);
 }
 
@@ -6517,7 +6609,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    }
     
    /* set up the colormap for this dset */
-   NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, filename, dset, SO->idcode_str);
+   NewColPlane = SUMA_CreateOverlayPointer (dset->nel->vec_len, filename, dset, SO->idcode_str);
    if (!NewColPlane) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
       SUMA_RETURNe;
@@ -7166,7 +7258,7 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
    \brief j = SUMA_GetNodeOverInd(Sover, node);
    returns the index, into Sover->NodeDef such
    that Sover->NodeDef[j] = node;
-   \sa SUMA_GetNodeColIndex
+   \sa SUMA_GetNodeRow_FromNodeIndex
 */
 int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
 {
