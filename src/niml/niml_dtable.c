@@ -51,7 +51,7 @@ void addto_Dtable( char *str_a , char *str_b , Dtable *dt )
 
 char * findin_Dtable_a( char *str_a , Dtable *dt )
 {
-   if( dt == NULL ) return NULL ;
+   if( dt == NULL || str_a == NULL ) return NULL ;
    return (char *)findin_Htable( str_a , dt->hta ) ;
 }
 
@@ -59,7 +59,7 @@ char * findin_Dtable_a( char *str_a , Dtable *dt )
 
 char * findin_Dtable_b( char *str_b , Dtable *dt )
 {
-   if( dt == NULL ) return NULL ;
+   if( dt == NULL || str_b == NULL ) return NULL ;
    return (char *)findin_Htable( str_b , dt->htb ) ;
 }
 
@@ -67,12 +67,17 @@ char * findin_Dtable_b( char *str_b , Dtable *dt )
 
 void removefrom_Dtable_a( char *str_a , Dtable *dt )
 {
-   char *str_b ;
+   char *str_bb , *str_aa ;
    if( dt == NULL ) return ;
-   str_b = (char *)findin_Htable( str_a , dt->hta ) ;
-   if( str_b == NULL ) return ;
+   str_bb = (char *)findin_Htable( str_a , dt->hta ) ;
+   if( str_bb == NULL ) return ;
+   str_aa = (char *)findin_Htable( str_bb, dt->htb ) ;
    removefrom_Htable( str_a , dt->hta ) ;
-   removefrom_Htable( str_b , dt->htb ) ;
+   removefrom_Htable( str_bb, dt->htb ) ;
+
+   /* must also remove dangling targets from each Htable */
+
+   free((void *)str_bb) ; if( str_aa != NULL ) free((void *)str_aa) ;
    return ;
 }
 
@@ -80,12 +85,15 @@ void removefrom_Dtable_a( char *str_a , Dtable *dt )
 
 void removefrom_Dtable_b( char *str_b , Dtable *dt )
 {
-   char *str_a ;
+   char *str_aa , *str_bb ;
    if( dt == NULL ) return ;
-   str_a = (char *)findin_Htable( str_b , dt->htb ) ;
-   if( str_a == NULL ) return ;
+   str_aa = (char *)findin_Htable( str_b , dt->htb ) ;
+   if( str_aa == NULL ) return ;
+   str_bb = (char *)findin_Htable( str_aa, dt->hta ) ;
    removefrom_Htable( str_b , dt->htb ) ;
-   removefrom_Htable( str_a , dt->hta ) ;
+   removefrom_Htable( str_aa, dt->hta ) ;
+
+   free((void *)str_aa) ; if( str_bb != NULL ) free((void *)str_bb) ;
    return ;
 }
 
