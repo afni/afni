@@ -179,14 +179,14 @@ typedef NI_stream_type *NI_stream ;
 
 extern void * NI_malloc( size_t ) ;
 extern void   NI_free( void * ) ;
-extern void * NI_realloc( void * , size_t ) ;
-extern char * NI_strncpy( char * , const char * , size_t ) ;
+extern void * NI_realloc( void *, size_t ) ;
+extern char * NI_strncpy( char *, const char *, size_t ) ;
 extern long   NI_filesize( char * ) ;
 extern int    NI_clock_time(void) ;
 extern int    NI_byteorder(void) ;
-extern void   NI_swap2( int , void * ) ;
-extern void   NI_swap4( int , void * ) ;
-extern void   NI_swap8( int , void * ) ;
+extern void   NI_swap2( int, void * ) ;
+extern void   NI_swap4( int, void * ) ;
+extern void   NI_swap8( int, void * ) ;
 
 extern char * NI_type_name( int ) ;
 extern int    NI_type_size( int ) ;
@@ -198,42 +198,63 @@ extern void NI_free_element( void * ) ;
 extern int  NI_element_type( void * ) ;
 
 extern NI_element * NI_new_data_element( char *, int ) ;
-extern void NI_add_column( NI_element * , int , void * ) ;
-extern void NI_set_attribute( void * , char * , char * ) ;
+extern void NI_add_column( NI_element *, int, void * ) ;
+extern void NI_set_attribute( void *, char *, char * ) ;
+extern char * NI_get_attribute( void *, char * ) ;
 
 extern NI_group * NI_new_group_element(void) ;
-extern void NI_add_to_group( NI_group * , void * ) ;
+extern void NI_add_to_group( NI_group *, void * ) ;
 
-extern void NI_swap_vector( int , int , void * ) ;
+extern void NI_swap_vector( int, int, void * ) ;
 
 /** I/O functions **/
 
-extern NI_stream NI_stream_open( char * , char * ) ;
-extern int NI_stream_goodcheck( NI_stream_type * , int ) ;
+extern NI_stream NI_stream_open( char *, char * ) ;
+extern int NI_stream_goodcheck( NI_stream_type *, int ) ;
 extern void NI_stream_close( NI_stream_type * ) ;
-extern int NI_stream_readcheck( NI_stream_type * , int  ) ;
-extern int NI_stream_writecheck( NI_stream_type * , int  ) ;
-extern int NI_stream_write( NI_stream_type * , char * , int ) ;
-extern int NI_stream_read( NI_stream_type * , char * , int ) ;
-extern void NI_binary_threshold( NI_stream_type * , int ) ;
+extern int NI_stream_readcheck( NI_stream_type *, int  ) ;
+extern int NI_stream_writecheck( NI_stream_type *, int  ) ;
+extern int NI_stream_write( NI_stream_type *, char *, int ) ;
+extern int NI_stream_read( NI_stream_type *, char *, int ) ;
+extern void NI_binary_threshold( NI_stream_type *, int ) ;
 extern void NI_sleep( int ) ;
 extern char * NI_stream_getbuf( NI_stream_type * ) ;
 extern void   NI_stream_clearbuf( NI_stream_type * ) ;
-extern void   NI_stream_setbuf( NI_stream_type * , char * ) ;
+extern void   NI_stream_setbuf( NI_stream_type *, char * ) ;
 extern char * NI_stream_name( NI_stream_type * ) ;
 extern int NI_stream_readable( NI_stream_type * ) ;
 extern int NI_stream_writeable( NI_stream_type * ) ;
 
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
 
-extern void * NI_read_element( NI_stream_type * , int ) ;
-extern int    NI_write_element( NI_stream_type * , void * , int ) ;
+extern void * NI_read_element( NI_stream_type *, int ) ;
+extern int    NI_write_element( NI_stream_type *, void *, int ) ;
 
 /* prototypes for Web data fetchers */
 
-extern int  NI_read_URL_tmpdir( char *url , char **tname ) ;
-extern int  NI_read_URL       ( char *url , char **data  ) ;
-extern void NI_set_URL_ftp_ident( char *name , char *pwd ) ;
+extern int  NI_read_URL_tmpdir( char *url, char **tname ) ;
+extern int  NI_read_URL       ( char *url, char **data  ) ;
+extern void NI_set_URL_ftp_ident( char *name, char *pwd ) ;
+
+/* prototypes for Base64 and MD5 functions */
+
+extern void   B64_set_linelen( int ll ) ;
+extern void   B64_to_binary( int nb64, byte * b64, int * nbin, byte ** bin ) ;
+extern void   B64_to_base64( int nbin, byte * bin, int * nb64, byte ** b64 ) ;
+
+extern char * MD5_static_array( int n, char * bytes ) ;
+extern char * MD5_malloc_array( int n, char * bytes ) ;
+extern char * MD5_static_string( char * string ) ;
+extern char * MD5_malloc_string( char * string ) ;
+extern char * MD5_static_file(char * filename) ;
+extern char * MD5_malloc_file(char * filename) ;
+
+extern char * MD5_B64_array( int n, char * bytes ) ;
+extern char * MD5_B64_string( char * string ) ;
+extern char * MD5_B64_file(char * filename) ;
+
+extern char * UNIQ_idcode(void) ;
+extern void   UNIQ_idcode_fill( char *idc ) ;
 
 /*! Close a NI_stream, and set the pointer to NULL. */
 
