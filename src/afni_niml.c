@@ -18,6 +18,19 @@ static NI_stream ns_listen[NUM_NIML] ;
 
 static char ns_name[NUM_NIML][64] ;
 
+/*-------------------------*/
+/*! Array of stream flags */
+
+static int ns_flags[NUM_NIML] ;
+
+/*! Waiting for connection flag */
+
+#define FLAG_WAITING    1
+
+/*! Connected flag */
+
+#define FLAG_CONNECTED  2
+
 /*-------------------------------------*/
 /*! The SUMA stream index in ns_listen */
 
@@ -59,7 +72,7 @@ static int viewpoint_key[MAX_CONTROLLERS] ;
 
 static void    AFNI_niml_exit( void ) ;
 static Boolean AFNI_niml_workproc( XtPointer ) ;
-static void    AFNI_process_NIML_data( int , void * ) ;
+static void    AFNI_process_NIML_data( int , void * , int ) ;
 static void    AFNI_niml_redisplay_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_viewpoint_CB( int,int,void *,void * ) ;
 
@@ -153,7 +166,7 @@ void NIML_to_stderr( void *nini )
 
 static Boolean AFNI_niml_workproc( XtPointer elvis )
 {
-   int cc , nn ;
+   int cc , nn , ct ;
    void *nini ;
 
    /** loop over input NIML streams **/
@@ -164,6 +177,7 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 
      if( ns_listen[cc] == NULL ){
        ns_listen[cc] = NI_stream_open( ns_name[cc] , "r" ) ;
+       ns_flags[cc]  = FLAG_WAITING ;
      }
 
      /* now check if stream has gone bad */
@@ -171,6 +185,9 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
      nn = NI_stream_goodcheck( ns_listen[cc] , 1 ) ;
 
      if( nn < 0 ){                          /* is bad */
+       fprintf(stderr,"++ NIML connection closed from %s\n",
+                NI_stream_name(ns_listen[cc])               ) ;
+
        NI_stream_close( ns_listen[cc] ) ;
        ns_listen[cc] = NULL ;  /* will reopen next time */
        continue ;              /* skip to next stream  */
@@ -178,16 +195,26 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 
      if( nn == 0 ) continue ;  /* waiting: skip to next stream */
 
-     /* if here, stream is good;
-        see if there is any data to be read */
+     /* if here, stream is good */
 
-     nn = NI_stream_readcheck( ns_listen[cc] , 1 ) ;
+     /* if just became good, print a message */
+
+     if( ns_flags[cc] & FLAG_WAITING ){
+       ns_flags[cc] = FLAG_CONNECTED ;
+       fprintf(stderr,"++ NIML connection opened from %s\n",
+               NI_stream_name(ns_listen[cc])                ) ;
+     }
+
+     /* see if there is any data to be read */
+
+     nn = NI_stream_readcheck( ns_listen[cc] , 0 ) ;
 
      if( nn > 0 ){                                   /* has data!*/
-       nini = NI_read_element( ns_listen[cc] , 1 ) ; /* read it */
+       ct   = NI_clock_time() ;                      /* start timer */
+       nini = NI_read_element( ns_listen[cc] , 2 ) ; /* read data */
 
        if( nini != NULL )                            /* handle it */
-         AFNI_process_NIML_data( cc , nini ) ;
+         AFNI_process_NIML_data( cc , nini , ct ) ;
 
        NI_free_element( nini ) ;                     /* trash it */
      }
@@ -203,9 +230,9 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
     this is currently not used.
 ------------------------------------------------------------------------*/
 
-static void AFNI_process_NIML_data( int chan , void *nini )
+static void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
 {
-   int tt = NI_element_type(nini) ;
+   int tt=NI_element_type(nini) , ct_read=0 , ct_tot=0 ;
    NI_element *nel ;
    char msg[1024] ;
 
@@ -219,7 +246,7 @@ ENTRY("AFNI_process_NIML_data") ;
      NI_group *ngr = (NI_group *) nini ;
      int ii ;
      for( ii=0 ; ii < ngr->part_num ; ii++ )
-        AFNI_process_NIML_data( chan , ngr->part[ii] ) ; /* recursion */
+        AFNI_process_NIML_data( chan , ngr->part[ii] , -1 ) ; /* recursion */
      EXRETURN ;
    }
 
@@ -229,6 +256,8 @@ ENTRY("AFNI_process_NIML_data") ;
       process the data based on the element name */
 
    nel = (NI_element *) nini ;
+
+   if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
 
 #if 0
 fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
@@ -340,11 +369,19 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- we're done! --*/
 
+     if( ct_start >= 0 ) ct_tot = NI_clock_time() - ct_start ;
+
      sprintf(msg,"+++NOTICE:\n\n"
                  " SUMA_ixyz surface received:\n"
                  "  %d nodes attached to dataset \n"
-                 "  %.222s \n" ,
+                 "  %.222s\n" ,
                  nel->vec_filled , DSET_FILECODE(dset) ) ;
+
+     if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
+                                              "I/O time  =%4d ms\n"
+                                              "Processing=%4d ms\n" ,
+                              ct_read , ct_tot-ct_read ) ;
+
      AFNI_popup_message( msg ) ;
 
 #if 1
@@ -449,11 +486,19 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- we're done! --*/
 
+     if( ct_start >= 0 ) ct_tot = NI_clock_time() - ct_start ;
+
      sprintf(msg,"+++NOTICE:\n\n"
                  " SUMA_ijk triangles received:\n"
                  "  %d triangles attached to dataset \n"
-                 "  %.222s \n" ,
+                 "  %.222s\n" ,
                  nel->vec_filled , DSET_FILECODE(dset) ) ;
+
+     if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
+                                              "I/O time  =%4d ms\n"
+                                              "Processing=%4d ms\n" ,
+                              ct_read , ct_tot-ct_read ) ;
+
      AFNI_popup_message( msg ) ;
 
 #if 1
@@ -508,7 +553,7 @@ static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
    Three_D_View *im3d = (Three_D_View *) qqq ;
    THD_3dim_dataset *adset , *fdset ;
    SUMA_irgba *map ;
-   int        nmap , nvused , nvtot ;
+   int        nmap , nvused , nvtot , ct ;
    NI_element *nel ;
    char msg[16] ;
 
@@ -528,6 +573,8 @@ ENTRY("AFNI_niml_redisplay_CB") ;
    }
 
    /* build a node+color map */
+
+   ct = NI_clock_time() ;
 
    nmap = AFNI_vnlist_func_overlay( im3d , &map , &nvused ) ;
    if( nmap < 0 ) EXRETURN ;
@@ -566,6 +613,11 @@ ENTRY("AFNI_niml_redisplay_CB") ;
      NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
    else
      NIML_to_stderr(nel) ;
+
+   if( GLOBAL_argopt.yes_niml > 1 )
+      fprintf(stderr,
+              "++ NIML write colored surface: voxels=%d nodes=%d time=%d ms\n",
+              nvused , nmap , ct = NI_clock_time() - ct ) ;
 
    NI_free_element(nel) ;
 }
