@@ -8,11 +8,6 @@
 
 #include "afni.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /*-------------------------------------------------------------------
    This routine is also used by the macros
       AFNI_SEE_FUNC_ON and AFNI_SEE_FUNC_OFF

@@ -106,8 +106,6 @@ THD_brick_stats THD_get_brick_stats( MRI_IMAGE * im )
    void * br ;
    THD_brick_stats bst ;
 
-ENTRY("THD_get_brick_stats") ;
-
    bst.min = bst.max = 0 ;
 
    if( im == NULL ) return bst ;
@@ -184,10 +182,6 @@ ENTRY("THD_get_brick_stats") ;
       break ;
 
    }
-
-#ifdef THD_DEBUG
-printf("  -- new stats min=%g max=%g\n",bot,top) ;
-#endif
 
    bst.min = bot ; bst.max = top ;
    return bst ;

@@ -11,11 +11,6 @@
 
 #include "afni_warp.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /*------------------------------------------------------------------------
    Return a slice from a dataset, possibly to be warped on-the-fly
    from its parent:

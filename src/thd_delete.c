@@ -24,8 +24,6 @@ void THD_delete_datablock( THD_datablock * dblk )
 {
    int ibr ;
 
-ENTRY("THD_delete_datablock") ;
-
    if( ! ISVALID_DATABLOCK(dblk) ) return ;
 
    /** free the actual brick data (method depends on how it is stored) **/

@@ -6,14 +6,6 @@
 
 #include "mrilib.h"
 
-#undef  AFNI_DEBUG
-#undef  CLUST_DEBUG
-#define STATUS(x) /* nada */
-#define ENTRY(x)  /* nada */
-#define EXRETURN  return
-#define RETURN(x) return(x)
-
-
 /*-----------------------------------------------------------------------------
    Routine to edit cluster array.
 

@@ -6,7 +6,6 @@
 
 #include "afni.h"
 
-#include "dbtrace.h"
 #if 0
 # define VMCHECK do{ if(verbose == 2) MCHECK; } while(0)
 #else
@@ -3218,60 +3217,6 @@ void RT_registration_3D_atend( RT_input * rtin )
    SHOW_AFNI_READY ; return ;
 }
 
-/*------ These 2 routines criminally lifted from 3drotate.c,
-         but I wrote those programs too, so what's your point? ------*/
-
-#include <ctype.h>
-
-int axcode( THD_3dim_dataset * dset , char ori )
-{
-   ori = toupper(ori) ;
-   if( ori == ORIENT_tinystr[dset->daxes->xxorient][0] ) return  1 ;
-   if( ori == ORIENT_tinystr[dset->daxes->xxorient][1] ) return -1 ;
-   if( ori == ORIENT_tinystr[dset->daxes->yyorient][0] ) return  2 ;
-   if( ori == ORIENT_tinystr[dset->daxes->yyorient][1] ) return -2 ;
-   if( ori == ORIENT_tinystr[dset->daxes->zzorient][0] ) return  3 ;
-   if( ori == ORIENT_tinystr[dset->daxes->zzorient][1] ) return -3 ;
-   return -99 ;
-}
-
-/*-------------------------------------------------------------------------
-   Returns 1 if the dataset axes are right-handed, -1 if left-handed
----------------------------------------------------------------------------*/
-
-int handedness( THD_3dim_dataset * dset )
-{
-   THD_dataxes * dax = dset->daxes ;
-   THD_mat33 q ;
-   int col ;
-   float val ;
-
-   LOAD_ZERO_MAT(q) ;
-
-   col = 0 ;
-   switch( dax->xxorient ){
-      case 0: q.mat[0][col]= 1.0; break ; case 1: q.mat[0][col]=-1.0; break ;
-      case 2: q.mat[1][col]=-1.0; break ; case 3: q.mat[1][col]= 1.0; break ;
-      case 4: q.mat[2][col]= 1.0; break ; case 5: q.mat[2][col]=-1.0; break ;
-   }
-
-   col = 1 ;
-   switch( dax->yyorient ){
-      case 0: q.mat[0][col]= 1.0; break ; case 1: q.mat[0][col]=-1.0; break ;
-      case 2: q.mat[1][col]=-1.0; break ; case 3: q.mat[1][col]= 1.0; break ;
-      case 4: q.mat[2][col]= 1.0; break ; case 5: q.mat[2][col]=-1.0; break ;
-   }
-
-   col = 2 ;
-   switch( dax->zzorient ){
-      case 0: q.mat[0][col]= 1.0; break ; case 1: q.mat[0][col]=-1.0; break ;
-      case 2: q.mat[1][col]=-1.0; break ; case 3: q.mat[1][col]= 1.0; break ;
-      case 4: q.mat[2][col]= 1.0; break ; case 5: q.mat[2][col]=-1.0; break ;
-   }
-
-   val = MAT_DET(q) ; return ( (val > 0.0) ? 1 : -1 ) ;
-}
-
 /*-----------------------------------------------------------------------
    Setup the 3D registration data
 -------------------------------------------------------------------------*/
@@ -3290,16 +3235,16 @@ void RT_registration_3D_setup( RT_input * rtin )
 
    /*-- extract info about coordinate axes of dataset --*/
 
-   rtin->iha  = handedness( rtin->dset )   ;  /* LH or RH? */
+   rtin->iha  = THD_handedness( rtin->dset )   ;  /* LH or RH? */
 
-   rtin->ax1  = axcode( rtin->dset , 'I' ) ;
-   rtin->hax1 = rtin->ax1 * rtin->iha      ;  /* roll */
+   rtin->ax1  = THD_axcode( rtin->dset , 'I' ) ;
+   rtin->hax1 = rtin->ax1 * rtin->iha      ;      /* roll */
 
-   rtin->ax2  = axcode( rtin->dset , 'R' ) ;
-   rtin->hax2 = rtin->ax2 * rtin->iha      ;  /* pitch */
+   rtin->ax2  = THD_axcode( rtin->dset , 'R' ) ;
+   rtin->hax2 = rtin->ax2 * rtin->iha      ;      /* pitch */
 
-   rtin->ax3  = axcode( rtin->dset , 'A' ) ;
-   rtin->hax3 = rtin->ax3 * rtin->iha      ;  /* yaw */
+   rtin->ax3  = THD_axcode( rtin->dset , 'A' ) ;
+   rtin->hax3 = rtin->ax3 * rtin->iha      ;      /* yaw */
 
    im     = DSET_BRICK(rtin->dset,ibase) ;
    im->dx = fabs( DSET_DX(rtin->dset) ) ;  /* must set voxel dimensions */

@@ -66,7 +66,8 @@ void Syntax(char * str)
     "                  probably have to change the origin as well.\n"
     "\n"
     "  -TR time        Changes the TR time to a new value (see 'to3d -help').\n"
-    "               ** WARNING: this only applies to 3D+time datasets.\n"
+    "  -notoff         Removes the slice-dependent time-offsets.\n"
+    "               ** WARNING: these 2 options apply only to 3D+time datasets.\n"
     "\n"
     "  -newid          Changes the ID code of this dataset as well.\n"
     "\n"
@@ -185,7 +186,8 @@ int main( int argc , char * argv[] )
    int new_markers= 0 ;
    int new_view   = 0 ; int vtype ;
    int new_key    = 0 ; char * key ;
-   int new_byte_order = 0 ;          /* 25 April 1998 */
+   int new_byte_order = 0 ;          /* 25 Apr 1998 */
+   int new_toff_sl    = 0 ;          /* 12 Feb 2001 */
    char str[256] ;
    int  iarg , ii ;
 
@@ -505,6 +507,13 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /** -notoff (12 Feb 2001) **/
+
+      if( strncmp(argv[iarg],"-notoff",7) == 0 ){
+         new_toff_sl = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** -newid **/
 
       if( strncmp(argv[iarg],"-newid",4) == 0 ){
@@ -698,6 +707,16 @@ int main( int argc , char * argv[] )
                for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
                   dset->taxis->toff_sl[ii] *= frac ;
             }
+         }
+      }
+
+      if( new_toff_sl ){              /* 12 Feb 2001 */
+         if( dset->taxis == NULL ){
+            fprintf(stderr,"  ** -notoff: dataset has no time axis to clear!\n") ;
+         } else if( dset->taxis->nsl <= 0 ){
+            fprintf(stderr,"  ** -notoff: dataset has no time-offsets to clear!\n") ;
+         } else {
+            EDIT_dset_items( dset , ADN_nsl,0 , ADN_none ) ;
          }
       }
 

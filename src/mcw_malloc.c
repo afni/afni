@@ -6,12 +6,11 @@
 
 #include "mcw_malloc.h"
 
-#define INC_MT 16384
-static int amt = 0 , nmt = 0 ;
-static void  ** pmt = NULL ;     /* ptr to allocated memory       */
-static size_t * psz = NULL ;     /* size of allocated memory       */
-static char  ** pfn = NULL ;     /* function name that did it       */
-static int    * pln = NULL ;     /* function line number that did it */
+/*--------------------------------------------------------------
+  24 Jan 2001: Modified heavily to use a hash table instead of
+  a linear array to store the data about each allocated block
+  -- RWCox
+----------------------------------------------------------------*/
 
 #define MAGIC  ((char) 0xd7)
 #define NEXTRA (2*sizeof(int))
@@ -25,67 +24,137 @@ static int    * pln = NULL ;     /* function line number that did it */
 #undef XtFree
 #undef XtCalloc
 
-/*-----------------------------------------------------------------*/
+#ifdef UINT
+# undef UINT
+#endif
+#define UINT unsigned int
 
-static int ptr_tracker( void * fred )
-{
-   int ii ;
-   if( fred == NULL ) return -1 ;
-   for( ii=0 ; ii < nmt ; ii++ ) if( fred == pmt[ii] ) return ii ;
-   return -1 ;
-}
+/*-- struct to hold info about each malloc()-ed block --*/
 
-#if 0
-  static int shift_tracker( char * fred )
-  {
-     if( fred == NULL ) return -1 ;
-     return ptr_tracker(fred-NEXTRA) ;
-  }
+typedef struct {
+   void * pmt ;   /* pointer to actually malloc-ed block */
+   size_t psz ;   /* size of allocated block */
+   char * pfn ;   /* function name that called */
+   int    pln ;   /* function line number */
+   UINT   pss ;   /* serial number of this malloc */
+} mallitem ;
+
+/** set hash table size (to a prime number, please) **/
+
+/** #define SLOTS 503   **/ /* a little small */
+
+#define SLOTS 8191
+
+/** #define SLOTS 16381 **/
+/** #define SLOTS 32003 **/
+
+static mallitem ** htab  = NULL ; /* table of lists */
+static int *       nhtab = NULL ; /* size of each list */
+static UINT       serial = 0    ; /* serial number of allocation */
+
+#ifdef __GNUC__
+# define INLINE inline
 #else
-#  define shift_tracker(fff)  ptr_tracker( ((char *)(fff)) - NEXTRA )
+# define INLINE /*nada*/
 #endif
 
-/*-----------------------------------------------------------------*/
+/*---------------------------------------------------------------
+  Compute a unique non-negative integer key from an address
+-----------------------------------------------------------------*/
 
-size_t mcw_malloc_sizeof( void * pt )  /* 06 Feb 2000 */
+static INLINE UINT mallkey( char * fred )
 {
-   int ip = shift_tracker(pt) ;
-   return ( (ip >= 0) ? psz[ip] : -1 ) ;
+   UINT q = ((UINT) fred) ;
+
+   q =   ((q & 0xf0f0f0f0) >> 4)   /* swap nibbles */
+       | ((q & 0x0f0f0f0f) << 4) ;
+
+   return q ;
+}
+
+/*----------------------------------------------------------------
+   Find an address in the hash table;
+   returns a pointer to the mallitem that owns it (or NULL)
+------------------------------------------------------------------*/
+
+static mallitem * ptr_tracker( void * fred )
+{
+   int jj,kk ;
+
+   if( fred == NULL ) return NULL ;
+
+   jj = mallkey(fred) % SLOTS ;      /* hash table location */
+
+   if( htab[jj] == NULL ) return NULL ;  /* nothing there */
+
+   for( kk=0 ; kk < nhtab[jj] ; kk++ )   /* scan for match */
+      if( htab[jj][kk].pmt == fred ) return (htab[jj]+kk) ;
+
+   return NULL ; /* no match found */
 }
 
 /*-----------------------------------------------------------------*/
+/*-- this macro finds an address from the user in the hash table --*/
 
-static int nul_tracker(void)
+#define shift_tracker(fff)  ptr_tracker( ((char *)(fff)) - NEXTRA )
+
+/*-----------------------------------------------------------------
+   Find an empty entry in the hash table list [jj] and return
+   a pointer to it.  Will create the entry, if need be.
+-------------------------------------------------------------------*/
+
+static mallitem * find_empty_slot( int jj )
 {
-   int ii ;
-#if 0
-   for( ii=0 ; ii < nmt ; ii++ ) if( pmt[ii] == NULL ) return ii ;
-#else
-   for( ii=nmt-1 ; ii >= 0 ; ii-- ) if( pmt[ii] == NULL ) return ii ;
-#endif
-   return -1 ;
+   int kk ;
+
+   if( htab[jj] == NULL ){                               /* must make new list  */
+      htab[jj] = (mallitem *) malloc(sizeof(mallitem)) ; /* of length 1 at [jj] */
+     nhtab[jj] = 1 ;
+      kk       = 0 ;
+      htab[jj][0].pmt = NULL ;  /* mark as empty */
+   } else {
+      for( kk=nhtab[jj]-1 ; kk >= 0 ; kk-- )    /* scan (backwards) for NULL entry */
+         if( htab[jj][kk].pmt == NULL ) break ; /* found it? */
+
+      if( kk < 0 ){                             /* must make list longer */
+         kk = nhtab[jj] ; nhtab[jj]++ ;
+         htab[jj] = (mallitem *) realloc( htab[jj], sizeof(mallitem)*nhtab[jj] ) ;
+         htab[jj][kk].pmt = NULL ;  /* mark as empty */
+      }
+   }
+
+   return (htab[jj]+kk) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*----------------------------------------------------------------
+   Add an entry to the hash table, given the
+   address, the user's size, and the filename and line number.
+------------------------------------------------------------------*/
 
 static void add_tracker( void * fred , size_t n , char * fn , int ln )
 {
-   int ii ;
-   if( nmt == amt ){
-      amt += INC_MT ;
-      pmt  = (void **)  realloc( pmt , sizeof(void *)*amt ) ;
-      psz  = (size_t *) realloc( psz , sizeof(size_t)*amt ) ;
-      pfn  = (char ** ) realloc( pfn , sizeof(char *)*amt ) ;
-      pln  = (int *   ) realloc( pln , sizeof(int   )*amt ) ;
-      for( ii=nmt ; ii < amt ; ii++ ) pmt[ii] = NULL ;
-   }
-   ii = nul_tracker() ;
-   if( ii < 0 ){ psz[nmt]=n; pfn[nmt]=fn; pln[nmt]=ln; pmt[nmt++]=fred; }
-   else        { psz[ii] =n; pfn[ii] =fn; pln[ii] =ln; pmt[ii]   =fred; }
+   int jj ;
+   mallitem * ip ;
+
+   if( fred == NULL ) return ;   /* bad news */
+
+   jj = mallkey(fred) % SLOTS ;  /* which hash list to use */
+   ip = find_empty_slot(jj) ;    /* get an empty slot in this list */
+
+   /* now put the data into the hash table */
+
+   ip->pmt = fred ;
+   ip->psz = n ;
+   ip->pfn = fn ;
+   ip->pln = ln ;
+   ip->pss = ++serial ;
+
    return ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+  The tracking replacement for malloc
+-------------------------------------------------------------------*/
 
 static void * malloc_track( size_t n , char * fn , int ln )
 {
@@ -93,68 +162,96 @@ static void * malloc_track( size_t n , char * fn , int ln )
    size_t nn = n + 2*NEXTRA ;
    int ii ;
 
-   fred = malloc(nn) ; if( fred == NULL ) return NULL ;
+   fred = malloc(nn) ;
+   if( fred == NULL ) return NULL ;  /* real bad news */
+
+   /* mark overrun buffers */
+
    for( ii=0 ; ii < NEXTRA ; ii++ )
       fred[ii] = fred[n+NEXTRA+ii] = MAGIC ;
 
-   add_tracker(fred,n,fn,ln) ;
+   add_tracker(fred,n,fn,ln) ;      /* put in hash table */
    return (void *)(fred+NEXTRA) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+  Check an entry in the hash table for local overrun integrity
+-------------------------------------------------------------------*/
 
-static void probe_track( int ip )
+static void probe_track( mallitem * ip )
 {
    int ii ;
    size_t n ;
    char * fred ;
 
-   if( ip < 0 || ip >= nmt ) return ;  /* error */
-   fred = (char *) pmt[ip] ; if( fred == NULL ) return ;
-   n = psz[ip] ;
+   if( ip == NULL ) return ; /* error */
+   fred = (char *) ip->pmt ; if( fred == NULL ) return ;
+   n = ip->psz ;
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
       if( fred[ii] != MAGIC ){
          fprintf(stderr,"*** malloc pre-corruption!  "
-                        "chunk=%d size=%d source=%s line#=%d\n",
-                        ip,psz[ip],pfn[ip],pln[ip] ) ;
+                        "serial=%u size=%d source=%s line#=%d\n",
+                        ip->pss,ip->psz,ip->pfn,ip->pln ) ;
          break ;
       }
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
       if( fred[n+NEXTRA+ii] != MAGIC ){
          fprintf(stderr,"*** malloc post-corruption!  "
-                        "chunk=%d size=%d source=%s line#=%d\n",
-                        ip,psz[ip],pfn[ip],pln[ip] ) ;
+                        "serial=%u size=%d source=%s line#=%d\n",
+                        ip->pss,ip->psz,ip->pfn,ip->pln ) ;
          break ;
       }
 
    return ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-------------------------------------------------------------------
+  The tracking replacement for realloc
+---------------------------------------------------------------------*/
 
-static void * realloc_track( int ip , size_t n , char * fn , int ln )
+static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
 {
-   char * nfred ;
-   char * cfred = (char *) pmt[ip] ;
+   char * nfred , * cfred ;
    size_t nn = n + 2*NEXTRA ;
-   int ii ;
+   int ii , cjj,njj , kk ;
+
+   if( ip == NULL ) return NULL ;  /* should not happen */
 
    probe_track(ip) ;  /* check for integrity before reallocation */
+   cfred = ip->pmt ;  /* old address */
 
-   nfred = realloc( cfred , nn ) ; if( nfred == NULL ) return NULL ;
+   nfred = realloc( cfred , nn ) ;
+   if( nfred == NULL ) return NULL ;  /* this is bad - real bad */
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
       nfred[ii] = nfred[n+NEXTRA+ii] = MAGIC ;
 
-   psz[ip] = n ; pmt[ip] = nfred ;
-   pfn[ip] = fn; pln[ip] = ln    ;
+   cjj = mallkey(cfred) % SLOTS ;  /* hash table list for old */
+   njj = mallkey(nfred) % SLOTS ;  /* and for new address */
+
+   if( cjj == njj ){  /* can just update old hashtable entry */
+
+      ip->pmt = nfred ;
+      ip->psz = n ;
+      ip->pfn = fn ;
+      ip->pln = ln ;
+      ip->pss = ++serial ;
+
+   } else {           /* must move into a different list */
+
+      add_tracker( nfred , n , fn , ln ) ;
+
+      ip->pmt = NULL ; /* mark old entry as free */
+   }
 
    return (void *)(nfred+NEXTRA) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+  Tracking replacement for calloc
+-------------------------------------------------------------------*/
 
 static void * calloc_track( size_t n , size_t m , char * fn , int ln )
 {
@@ -166,53 +263,64 @@ static void * calloc_track( size_t n , size_t m , char * fn , int ln )
    return fred ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+  Tracking replacement for free
+-------------------------------------------------------------------*/
 
-static void free_track( int ip )
+static void free_track( mallitem * ip )
 {
-   char * cfred = (char *) pmt[ip] ;
+   char * cfred ;
 
+   if( ip == NULL ) return ;
+   cfred = (char *) ip->pmt ;
    if( cfred == NULL ) return ;
 
    probe_track(ip) ;  /* check for integrity before freeing */
 
-   pmt[ip] = NULL ;
-   if( ip == nmt-1 ){
-      for( ; ip > 0 && pmt[ip] == NULL ; ip-- ) ; /* nada */
-      nmt = ip+1 ;
-   }
-
-   free(cfred) ; return ;
+   free(cfred) ; ip->pmt = NULL ; return ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+  Return a status line about the situation
+-------------------------------------------------------------------*/
 
-static int use_tracking = 0 ;
+static int use_tracking = 0 ;  /* is the tracking enabled? */
 
 char * mcw_malloc_status(void)
 {
    static char buf[128] = "\0" ;
-   int ii , nptr=0 ; size_t nbyt=0 ;
+   int jj,kk , nptr=0 ; size_t nbyt=0 ;
 
    if( ! use_tracking ) return NULL ;
 
-   for( ii=0 ; ii < nmt ; ii++ )
-      if( pmt[ii] != NULL ){
-         probe_track(ii) ;           /* check for integrity */
-         nptr++ ; nbyt += psz[ii] ;
+   for( jj=0 ; jj < SLOTS ; jj++ ){
+      for( kk=0 ; kk < nhtab[jj] ; kk++ ){
+         if( htab[jj][kk].pmt != NULL ){
+            probe_track( htab[jj]+kk ) ; /* check for integrity */
+            nptr++ ; nbyt += htab[jj][kk].psz ;
+         }
       }
+   }
 
-   sprintf(buf,"chunks=%d bytes=%u",nptr,(unsigned int)nbyt) ;
+   sprintf(buf,"chunks=%d bytes=%u",nptr,(UINT)nbyt) ;
    return buf ;
 }
 
+/*-----------------------------------------------------------------
+  Write a file with lots of info about the current status
+-------------------------------------------------------------------*/
+
 void mcw_malloc_dump(void)
 {
-   int ii ;
+   int ii,jj,kk ;
    char fname[32] , * str ;
    FILE * fp = NULL ;
+   int nptr=0 ;
+   int * ss , * jk ;
 
    if( ! use_tracking ) return ;
+
+   /* find and open an output file */
 
    for( ii=1 ; ii < 1000 ; ii++ ){
       sprintf(fname,"malldump.%03d",ii) ;
@@ -231,16 +339,62 @@ void mcw_malloc_dump(void)
       return ;
    }
 
-   fprintf(fp , "MCW Malloc Table Dump:\n"
-                "chunk size       source file          line#\n"
-                "----- ---------- -------------------- -----\n") ;
+   /* count number of entries in the hash table */
 
-   for( ii=0 ; ii < nmt ; ii++ ){
-      if( pmt[ii] != NULL )
-         fprintf(fp,"%5d %10d %-20.30s %5d\n",ii,psz[ii],pfn[ii],pln[ii]) ;
-      else
-         fprintf(fp,"%5d FREE\n",ii) ;
+   for( jj=0 ; jj < SLOTS ; jj++ ){
+      for( kk=0 ; kk < nhtab[jj] ; kk++ ){
+         if( htab[jj][kk].pmt != NULL ) nptr++ ;
+      }
    }
+
+   if( nptr < 1 ){
+      fprintf(fp    ,"--- Nothing is malloc()-ed !? ---\n") ;
+      fprintf(stderr,"--- Nothing is malloc()-ed !? ---\n") ;
+      fclose(fp) ;
+   }
+
+   /* setup to sort by serial number */
+
+   ss = (int *) malloc(sizeof(int)*nptr) ;  /* serial number */
+   jk = (int *) malloc(sizeof(int)*nptr) ;  /* holds combination of jj and kk */
+
+#define JBASE 32768  /* JBASE * SLOTS must be less than max int */
+
+   /* scan table for non-NULL entries */
+
+   for( ii=jj=0 ; jj < SLOTS ; jj++ ){
+      for( kk=0 ; kk < nhtab[jj] ; kk++ ){
+         if( htab[jj][kk].pmt != NULL ){
+            ss[ii] = htab[jj][kk].pss ;   /* save serial number */
+            jk[ii] = JBASE*jj + kk ;      /* save jj and kk */
+            ii++ ;
+         }
+      }
+   }
+
+   qsort_intint( nptr , ss , jk ) ;  /* sort by ss, carrying jk along */
+
+   /* now print table in serial number order */
+
+   fprintf(fp , "MCW Malloc Table Dump:\n"
+                "serial# size       source file          line# address    hash(j,k)\n"
+                "------- ---------- -------------------- ----- ---------- ----- ---\n") ;
+
+   for( ii=0 ; ii < nptr ; ii++ ){
+      jj = jk[ii] / JBASE ;           /* retrieve jj and kk */
+      kk = jk[ii] % JBASE ;
+      if( htab[jj][kk].pmt != NULL )
+         fprintf(fp,"%7u %10d %-20.30s %5d %10p %5d %3d\n",
+                 htab[jj][kk].pss , htab[jj][kk].psz ,
+                 htab[jj][kk].pfn , htab[jj][kk].pln , htab[jj][kk].pmt ,
+                 jj,kk ) ;
+      else
+         fprintf(fp,"*** Error at ii=%d jj=%d kk=%d\n",ii,jj,kk) ;
+   }
+
+   free(ss) ; free(jk) ;
+
+   /* and print out the summary line (to the file and screen) */
 
    str = mcw_malloc_status() ;
    fprintf(fp,"----- Summary: %s\n",str) ;
@@ -248,10 +402,13 @@ void mcw_malloc_dump(void)
 
    fprintf(stderr,"** Malloc table dumped to file %s\n",fname) ;
    fprintf(stderr,"** Summary: %s\n",str) ;
+
    return ;
 }
 
-/*-----------------------------------------------------------------*/
+/*----------------------------------------------------------------
+  Turn on use of the tracking routines
+------------------------------------------------------------------*/
 
 void enable_mcw_malloc()       /* cannot be disabled */
 {
@@ -259,12 +416,27 @@ void enable_mcw_malloc()       /* cannot be disabled */
 
    use_tracking = 1 ;
    if( str!=NULL && ( str[0]=='y' || str[0]=='Y') ) use_tracking = 0 ;
+
+   if( use_tracking && htab == NULL ){  /* initialize hash table */
+      int jj ;
+      htab  = (mallitem **) malloc( SLOTS * sizeof(mallitem *) ) ;
+      nhtab = (int *)       malloc( SLOTS * sizeof(int) ) ;
+      for( jj=0 ; jj < SLOTS ; jj++ ){
+         htab[jj] = NULL ; nhtab[jj] = 0 ;
+      }
+   }
+
    return ;
 }
 
+/*---------------------------------------------------------------*/
+/*--- lets the user check if the tracking routines are in use ---*/
+
 int mcw_malloc_enabled(){ return (use_tracking != 0) ; }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+   The actual routine that replaces malloc() -- see mcw_malloc.h
+-------------------------------------------------------------------*/
 
 void * mcw_malloc( size_t n , char * fnam , int lnum )
 {
@@ -272,22 +444,26 @@ void * mcw_malloc( size_t n , char * fnam , int lnum )
    else               return malloc(n) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*----------------------------------------------------------------
+   The actual replacement for realloc()
+------------------------------------------------------------------*/
 
 void * mcw_realloc( void * fred , size_t n , char * fnam , int lnum )
 {
-   int ip ;
+   mallitem * ip ;
 
    if( fred == NULL )
       return mcw_malloc( n , fnam , lnum ) ;
 
-   if( use_tracking && (ip=shift_tracker(fred)) >= 0 )
+   if( use_tracking && (ip=shift_tracker(fred)) != NULL )
       return realloc_track( ip , n , fnam,lnum ) ;
    else
       return realloc( fred , n ) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*----------------------------------------------------------------
+   The actual replacement for calloc()
+------------------------------------------------------------------*/
 
 void * mcw_calloc( size_t n , size_t m , char * fnam , int lnum )
 {
@@ -295,19 +471,23 @@ void * mcw_calloc( size_t n , size_t m , char * fnam , int lnum )
    else               return calloc( n , m ) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+    The actual replacment for free()
+-------------------------------------------------------------------*/
 
 void mcw_free( void * fred )
 {
-   int ip ;
+   mallitem * ip ;
 
    if( fred == NULL ) return ;
 
-   if( use_tracking && (ip=shift_tracker(fred)) >= 0 ) free_track( ip ) ;
-   else                                                free( fred ) ;
+   if( use_tracking && (ip=shift_tracker(fred)) != NULL ) free_track( ip ) ;
+   else                                                   free( fred ) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+   The actual replacement for XtMalloc()
+-------------------------------------------------------------------*/
 
 char * mcw_XtMalloc( Cardinal n , char * fnam , int lnum )
 {
@@ -315,34 +495,40 @@ char * mcw_XtMalloc( Cardinal n , char * fnam , int lnum )
    else               return XtMalloc(n) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+   The actual replacement for XtRealloc()
+-------------------------------------------------------------------*/
 
 char * mcw_XtRealloc( char *p, Cardinal n , char * fnam , int lnum )
 {
-   int ip ;
+   mallitem * ip ;
 
    if( p == NULL )
       return mcw_XtMalloc( n , fnam , lnum ) ;
 
-   if( use_tracking && (ip=shift_tracker(p)) >= 0 )
+   if( use_tracking && (ip=shift_tracker(p)) != NULL )
       return realloc_track( ip , n , fnam,lnum ) ;
    else
       return XtRealloc( p , n ) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*----------------------------------------------------------------
+   The actual replacement for XtFree()
+------------------------------------------------------------------*/
 
 void mcw_XtFree( char *p )
 {
-   int ip ;
+   mallitem * ip ;
 
    if( p == NULL ) return ;
 
-   if( use_tracking && (ip=shift_tracker(p)) >= 0 ) free_track(ip) ;
-   else                                             XtFree(p) ;
+   if( use_tracking && (ip=shift_tracker(p)) != NULL ) free_track(ip) ;
+   else                                                XtFree(p) ;
 }
 
-/*-----------------------------------------------------------------*/
+/*-----------------------------------------------------------------
+  The actual replacement for XtCalloc()
+-------------------------------------------------------------------*/
 
 char * mcw_XtCalloc( Cardinal n , Cardinal m , char * fnam , int lnum )
 {

@@ -28,11 +28,6 @@
 #endif
 
 #ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
-#ifdef AFNI_DEBUG
 #  define REPORT_PROGRESS(str)  /* nada */
 #else
 #  define REPORT_PROGRESS(str) (printf(str),fflush(stdout))
@@ -4569,7 +4564,7 @@ ENTRY("AFNI_misc_button") ;
                              " Version Check     = Check AFNI version\n"
                              " Purge Memory      = Of dataset BRIKs\n"
 #ifdef USE_TRACING
-                             " Debug=MODE        = Set debug mode to\n"
+                             " Trace=MODE        = Set trace mode to\n"
                              "                      next legal setting\n"
 #endif
 #ifdef USING_MCW_MALLOC
@@ -4789,24 +4784,28 @@ ENTRY("AFNI_misc_button") ;
 #endif
 
 #ifdef USE_TRACING
-   dmode->misc_tracing_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG( DBG_label ) ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , False ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->misc_tracing_pb , XmNactivateCallback ,
-                  AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_tracing_pb , "A Debugging Option" ) ;
+   if( !ALLOW_real_time ){    /* 26 Jan 2001: don't do this if realtime is on */
+     dmode->misc_tracing_pb =
+           XtVaCreateManagedWidget(
+              "dialog" , xmPushButtonWidgetClass , menu ,
+                 LABEL_ARG( DBG_label ) ,
+                 XmNmarginHeight , 0 ,
+                 XmNtraversalOn , False ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+     XtAddCallback( dmode->misc_tracing_pb , XmNactivateCallback ,
+                    AFNI_misc_CB , im3d ) ;
+     MCW_register_hint( dmode->misc_tracing_pb , "A Debugging Option" ) ;
+   } else {
+     dmode->misc_tracing_pb = NULL ;
+   }
 #else
    dmode->misc_tracing_pb = NULL ;
 #endif
 
    /*--- pushbutton to query malloc table ---*/
 #ifdef USING_MCW_MALLOC
-   if( MCW_MALLOC_enabled ){                         /* 06 Mar 1999 */
+   if( MCW_MALLOC_enabled ){  /* 06 Mar 1999 */
       dmode->misc_showmalloc_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , menu ,

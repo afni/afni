@@ -7,7 +7,6 @@
 #include "mrilib.h"
 #include "thd.h"
 
-
 /*-----------------------------------------------------------------------
   Create FD_bricks for viewing purposes.
 
@@ -24,23 +23,10 @@ FD_brick ** THD_setup_bricks( THD_3dim_dataset * dset )
    THD_dataxes * daxes ;
    FD_brick ** br ;
 
-ENTRY("THD_setup_bricks") ;
-
    if( ! ISVALID_3DIM_DATASET(dset) ) return NULL ;
 
    daxes = CURRENT_DAXES(dset) ;
    if( ! ISVALID_DATAXES(daxes) ) return NULL ;
-
-#ifdef THD_DEBUG
-  printf(" -- input orientation codes for dataset %s\n"
-         "     #1 = %d = %s\n"
-         "     #2 = %d = %s\n"
-         "     #3 = %d = %s\n" ,
-         dset->dblk->diskptr->filecode ,
-         daxes->xxorient , ORIENT_typestr[daxes->xxorient] ,
-         daxes->yyorient , ORIENT_typestr[daxes->yyorient] ,
-         daxes->zzorient , ORIENT_typestr[daxes->zzorient]  ) ; fflush(stdout) ;
-#endif
 
    /*----- create FD_bricks for viewing purposes -----*/
 
@@ -127,8 +113,6 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset * dset ,
 
    int x_dir,y_dir,z_dir , sx,sy,sz , aax_1,aax_2,aax_3 , nx,ny,nz ;
 
-ENTRY("THD_3dim_dataset_to_brick") ;
-
    /*-- sanity check --*/
 
    if( ! ISVALID_3DIM_DATASET(dset) ) return NULL ;
@@ -211,16 +195,6 @@ ENTRY("THD_3dim_dataset_to_brick") ;
    br->del1 = fabs(xyz_del[aax_1]) ;  /* dimensions */
    br->del2 = fabs(xyz_del[aax_2]) ;
    br->del3 = fabs(xyz_del[aax_3]) ;
-
-#ifdef THD_DEBUG
-  printf(" -- new brick has:\n"
-         "     ax_1 ax_2 ax_3 = %3d %3d %3d\n"
-         "     n1   d1   e1   = %3d %3d %3d\n"
-         "     n2   d2   e2   = %3d %3d %3d\n"
-         "     n3   d3 start  = %3d %3d %3d\n" ,
-         ax_1,ax_2,ax_3 ,
-         br->n1,br->d1,br->e1,br->n2,br->d2,br->e2,br->n3,br->d3,br->start ) ;
-#endif
 
    br->namecode[0] = '\0' ;
 

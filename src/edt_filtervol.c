@@ -7,13 +7,6 @@
 #include "mrilib.h"
 #include "parser.h"
 
-#undef  AFNI_DEBUG
-#undef  CLUST_DEBUG
-#define STATUS(x) /* nada */
-#define ENTRY(x)  /* nada */
-#define EXRETURN  return
-#define RETURN(x) return(x)
-
 /*-----------------------------------------------------------------------------
    Routine to filter volume data.
 

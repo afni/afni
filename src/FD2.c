@@ -30,18 +30,19 @@
 
 #define MAIN
 
-#ifdef DEBUG
-# define STATUS(str) ( printf("%s\n",str) , fflush(stdout) )
-#else
-# define STATUS(str)
-#endif
-
 /***---------------- additions for use of array of MRI_IMAGE --------------***/
 
 #include "mrilib.h"
 #include "overfim.h"
 #include "pcor.h"
 #include "mcw_glob.h"
+
+#undef STATUS
+#ifdef DEBUG
+# define STATUS(str) ( printf("%s\n",str) , fflush(stdout) )
+#else
+# define STATUS(str)
+#endif
 
 #define INC_ALLIM 8
 

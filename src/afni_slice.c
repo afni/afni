@@ -138,13 +138,6 @@ static complex complex_zero = { 0.0,0.0 } ;
 #define INTYPE_complex  complex
 #define INTYPE TWO_TWO(INTYPE_,DTYPE)
 
-/** debugging macros **/
-
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /**-------------------------------------------------------------------------**/
 /**----- macros for quickly doing NN interpolation along parallel axes -----**/
 

@@ -187,7 +187,7 @@ void CALC_read_opts( int argc , char * argv[] )
          } else if( strcmp(argv[nopt],"complex") == 0 ){  /* not listed help */
             CALC_datum = MRI_complex ;
          } else {
-            fprintf(stderr,"*** -datum of type '%s' not supported in 3dmerge!\n",
+            fprintf(stderr,"*** -datum of type '%s' not supported in 3dcalc!\n",
                     argv[nopt] ) ;
             exit(1) ;
          }

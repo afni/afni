@@ -7,7 +7,6 @@
 #include "mrilib.h"
 #include "thd.h"
 
-
 /*---------------------------------------------------------------
   Routine to extract a slice (fixed value of 3rd dimension) from
     a previously set up FD_brick structure.
@@ -21,11 +20,6 @@ MRI_IMAGE * FD_brick_to_mri( int kslice , int ival , FD_brick * br )
    register int ii,di,ei , jj,dj,ej , base , pp ;
    char * iar ;      /* brick in the input */
    MRI_TYPE typ ;
-
-ENTRY("FD_brick_to_mri") ;
-#ifdef THD_DEBUG
-printf(" kslice=%d  ival=%d\n",kslice,ival) ;
-#endif
 
    /** desire a fake image **/
 
@@ -54,10 +48,6 @@ printf(" kslice=%d  ival=%d\n",kslice,ival) ;
    im->dx = br->del1 ;
    im->dy = br->del2 ;
    im->dz = br->del3 ;
-
-#ifdef THD_DEBUG
-printf(" typ=%s\n",MRI_TYPE_name[typ]) ;
-#endif
 
    switch( typ ){
 

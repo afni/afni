@@ -2408,3 +2408,142 @@
  * Modified 3dvolreg.c to make the -twopass feature more robust for
      registering SPGR images.  Changes included a coarse grid search for
      an initial shift, and fading out the weights along the edges.
+
+    =================================================
+   == All changes from here on were made at the NIH ==
+    =================================================
+
+23 Jan 2001
+ * Modified afni.c MAIN_workprocess() function to exit properly when
+     the "nodown" variable is set.  Before, if a layout was set, then
+     the layout code did the splashdown, and then the MAIN_workprocess()
+     never signaled that it was done.
+ * Modified thd_trusthost.c to use "192.168." as the prefix for Class B
+     subnets, rather than "192.168.0.".
+ * Modified mrilib.h to change my e-mail address macro.
+
+24 Jan 2001
+ * Modified 3dclust.c to use '-dxyz=1' option.
+ * Modified afni.c so that graphs of anat buckets interact correctly when
+     the anat bucket chooser is changed, or the graph "time index" is set.
+
+25 Jan 2001
+ * Modified mcw_malloc.c to use a hash table instead of a linear table.
+     This speeds things up a lot.  Also added a serial number to each
+     allocation, to help in identifying the order -- the dump is now
+     sorted by serial number.
+ * Incorporated Matthew Belmonte's codes plug_threshold.c and
+     plug_permtest.c into the system.
+
+26 Jan 2001
+ * Converted dbtrace.h to debugtrace.c and debugtrace.h.  This is the
+     start of an effort to incorporate traceback into all AFNI and
+     mrilib functions.  As part of this, removed THD_DEBUG stuff from
+     all library functions.
+
+29 Jan 2001
+ * Added DEBUGTHISFILE macro to debugtrace.h, and used it in thd_shear3d.c.
+ * Modified 3drotate.c so that input of something like
+      -ashift 10R 0 0
+   won't have the 0s clobber the 10R; 0s with no direction code suffix will
+   now be skipped in the computation of the dataset-coordinate shift.
+ * Added a few words to README.copyright, and added a Q/A about it to the FAQ.
+ * Added new program 3dMean.c.
+
+31 Jan 2001
+ * Modified thd_zeropad.c to keep the slice-dependent time shifts (toff_sl)
+     when adding/removing slices in the z-direction.
+
+01 Feb 2001
+ * Modified thd_info.c to print dataset center (in addition to box edges).
+ * Added thd_center.c (dataset center vector) and thd_mismatch.c (check if
+     2 datasets are matched for voxel-wise comparisons).
+ * Added program 3dAttribute.c, for printing out values of attributes from
+     dataset header files (for use in scripts).
+
+02 Feb 2001
+ * Added function NIH_volpad (edt_volpad.c) to do zeropadding on 3D arrays
+     - adapted from thd_zeropad.c.
+ * Added THD_rota_setpad to thd_rot3d.c to set zeropadding amount for
+     rotations.
+
+05 Feb 2001
+ * Added mayo_analyze.h to define the structure of an ANALYZE 7.5 .hdr
+     file, and then added mri_read_analyze75() to mri_read.c.
+ * Modified to3d.c to use image dimensions if they are set from the
+     image file (as is possible with ANALYZE .hdr files, for example).
+ * Modified mri_new.c to set dw=-666 as a flag that the d? variables
+     defaults of 1.0 haven't been changed.
+ * Modified thd_rot3d.c to allow setting of zeropad amount via
+     environment variable AFNI_ROTA_ZPAD.
+ * Modified 3drotate.c and 3dvolreg.c to use new command line option
+     "-zpad n".
+ * Modified to3d.c to use -zpad option to add zero slices in the z-direction.
+     Also added attribute to header (TO3D_ZPAD) to mark this fact.  When such
+     a dataset is used with -geomparent, then it's zero padding will be
+     subtracted off when setting the new dataset's origin.
+ * Modified 3dAttribute.c to have '-all' and '-name' options.
+
+06 Feb 2001
+ * Modified vecmat.h to have separate types and macros for float and
+     double vectors/matrices.  Modified all places that used the old
+     "FLOAT_TYPE double" method to use the new types/macros (mostly
+     the 3D rotation codes).
+ * Modified 3dvolreg.c to write rotation parameters, matrices, etc.
+     to the header of the output dataset.
+
+07 Feb 2001
+ * Modified 3dZeropad.c to have '-z' option to add slices (evenly) in
+     the dataset z-axis (slice) direction.
+ * Modified 3drotate.c to deal with -rotparent and -gridparent options.
+
+08 Feb 2001
+ * Debugged several stupid errors in 3drotate.c changes of yesterday.
+ * Implemented program cat_matvec.c to catenate matrix+vector
+     transformations.
+ * File thd_read_matvec.c reads a matrix+vector (THD_dvecmat; cf.
+     vecmat.h) from a file, or from a dataset attribute.
+
+12 Feb 2001
+ * Modified edt_volpad.c to allow for unsymmetric padding.
+ * Modified thd_zeropad.c to allow for producing an empty copy of the
+     zero-padded dataset (so that you have to fill it up later).
+ * Modified 3drotate.c and 3dvolreg.c to adjust the time-offset z-origin
+     when the new dataset axes z-origin is adjusted.
+ * Added a rint() function to mri_free.c (why there? why not?) if NO_RINT
+     is defined in machdep.h -- that way I don't have to worry about it.
+ * Modified 3drotate.c to shift time-offsets when the dz is large enough
+     to warrant it.
+ * Modified 3drefit.c to add new "-notoff" option, to reset time-offsets
+     to zero.
+ * Modified to3d.c to include "AFNI" in fallback resources, per the
+     suggestion of J Bacon of MCW (copying what AFNI itself does).
+
+13 Feb 2001
+ * Modified thd_shear3d.c function rot_to_shear_matvec() to modify the
+     input matrix to make sure it is orthogonal (using the transpose of
+     DMAT_svdrot(q) as the orthogonal matrix closest to q).  User-input
+     matrices may not be precisely orthogonal, which leads to problems
+     in the shear calculation.  Ugh. Squared.
+ * Added function THD_rotcom_to_matvec() to thd_rotangles.c -- this computes
+     the matrix/vector of a transformation, given the "-rotate .. -ashift .."
+     string.
+ * Modified thd_zeropad.c (and 3dZeropad.c) so that padding can be specified
+     in mm instead of slices.
+
+14 Feb 2001
+ * Modified 3dvolreg.c to include -rotparent/-gridparent options, a la
+     3drotate.c.
+ * Edited edt_volpad.c to include new function MRI_zeropad().
+ * Modified thd_read_vecmat.c to include "-rotate ..." input option.
+ * Added new function THD_rota3D_matvec() to thd_rot3d.c.
+ * Added multiply and inverse macros for double vecmats to vecmat.h
+ * Moved function DBLE_mat_to_dicomm() from 3drotate.c to thd_rotangles.c.
+ * Replaced all copies of axcode() and handedness() with the library
+     calls to THD_axcode() and THD_handedness() in thd_rotangles.c
+     (changes to 3drotate.c, 3dvolreg.c, plug_nudge.c, plug_realtime.c,
+     and plug_volreg.c).
+
+15 Feb 2001
+ * Added thd_tshift.c, which does what 3dTshift.c does (in place).
+ * Used this to add -tshift option to 3dvolreg.c.

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_EDITVOL_
 #define _MCW_EDITVOL_
 
@@ -149,7 +149,6 @@ extern MCW_cluster * MCW_build_mask (int, int, int,
 extern void * MCW_erode_clusters (int, int, int, float, float, float, int,
 				  void *, float, float, int);
 
-
 /*----------------------------------------------------------------------------*/
 #undef ALLOW_SCALE_TO_MAX
 char * EDIT_options_help(void) ;  /* was a string, now a prototype */
@@ -285,6 +284,14 @@ extern void EDIT_zscore_vol( int,int,float,void *,int,float * ) ;
 extern void EDIT_clip_float( float , int , float * ) ;
 
 extern byte * EDT_calcmask( char * , int * ) ;  /* 16 Mar 2000 */
+
+extern void * EDIT_volpad( int,int,int,int,int,int ,
+                           int,int,int , int,void * ) ; /* 09 Feb 2001 */
+
+#define EDIT_zeropad EDIT_volpad                        /* 14 Feb 2001 */
+
+#define EDIT_volpad_even(px,py,pz,nx,ny,nz,ft,vv) \
+   EDIT_volpad( (px),(px), (py),(py), (pz),(pz), (nx),(ny),(nz), (ft),(vv) )
 
 /********************* New routines for AFNI-96 ****************************/
 

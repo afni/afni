@@ -7,11 +7,6 @@
 #undef MAIN
 #include "afni.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /*-------------------------------------------------------------------------*/
 
 int label_in_PALTAB( PBAR_palette_table * pt , char * lab )

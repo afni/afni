@@ -1,9 +1,3 @@
-/*****************************************************************************
-   Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
-******************************************************************************/
-   
 /*---------------------------------------------------------------------------*/
 /*
   This file contains routines for performing multiple linear regression.
@@ -29,6 +23,9 @@
   Mod:     Added function calc_sse_fit.
   Date:    21 April 2000
 
+  Mod:     Additional output with -nodata option (norm.std.dev.'s for
+           GLT linear constraints).
+  Date:    11 August 2000
 
 */
 
@@ -106,7 +103,8 @@ int calc_glt_matrix
 (
   matrix xtxinv,              /* matrix:  1/(X'X)  */
   matrix c,                   /* matrix representing GLT linear constraints */
-  matrix * a                  /* constant matrix for use later */
+  matrix * a,                 /* constant matrix for use later */
+  matrix * cxtxinvct          /* matrix: C(1/(X'X))C' for GLT */
 )
 
 {
@@ -124,8 +122,8 @@ int calc_glt_matrix
   /*----- calculate the constant matrix which will be needed later -----*/
   matrix_transpose (c, &ct); 
   matrix_multiply (xtxinv, ct, &xtxinvct);
-  matrix_multiply (c, xtxinvct, &t1);
-  ok = matrix_inverse (t1, &t2);
+  matrix_multiply (c, xtxinvct, cxtxinvct);
+  ok = matrix_inverse (*cxtxinvct, &t2);
   if (ok)
     {
       matrix_multiply (xtxinvct, t2, &t1);

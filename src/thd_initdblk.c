@@ -30,8 +30,6 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    int brick_ccode ;
    int default_order ;   /* 21 Jun 2000 */
 
-ENTRY("THD_init_one_datablock") ;
-
    if( native_order < 0 ) native_order = mri_short_order() ;
 
    no_mmap    = AFNI_yesenv("AFNI_NOMMAP") ;
@@ -51,10 +49,6 @@ ENTRY("THD_init_one_datablock") ;
 
    if( dirname  == NULL || strlen(dirname)  == 0 ||
        headname == NULL || strlen(headname) == 0   ) return NULL ;
-
-#ifdef THD_DEBUG
-printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
-#endif
 
    FILENAME_TO_PREFIX(headname,prefix) ;
    if( strlen(prefix) == 0 ||
@@ -98,9 +92,6 @@ printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
    THD_read_all_atr( headname , dblk ) ;
 
    if( dblk->natr <= 0 ){
-#ifdef THD_DEBUG
-  printf("*** THD_init_one_datablock: no attributes in %s\n",headname) ;
-#endif
       THD_delete_datablock( dblk ) ;
       myXtFree(dblk) ;
       return NULL ;
@@ -115,20 +106,8 @@ printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
    /*-- missing an attribute ==> quit now --*/
 
    if( atr_rank == NULL || atr_dimen == NULL || atr_scene == NULL ){
-#ifdef THD_DEBUG
-  if( atr_rank == NULL )
-    printf("*** THD_init_one_datablock: missing atr_rank in %s\n",headname) ;
-  if( atr_dimen == NULL )
-    printf("*** THD_init_one_datablock: missing atr_dimen in %s\n",headname) ;
-  if( atr_scene == NULL )
-    printf("*** THD_init_one_datablock: missing atr_scene in %s\n",headname) ;
-#endif
       THD_delete_datablock( dblk ) ;
       myXtFree(dblk) ;
-#ifdef THD_DEBUG
-printf("  -- atr_rank=%p  atr_dimen=%p  atr_scene=%p\n",
-       atr_rank, atr_dimen, atr_scene ) ;
-#endif
       return NULL ;
    }
 
@@ -354,8 +333,6 @@ void THD_init_datablock_brick( THD_datablock * dblk ,
    THD_datablock * pblk = NULL ;
    int * itype = NULL ;
 
-ENTRY("THD_init_datablock_brick") ;
-
    if( ! ISVALID_DATABLOCK(dblk)   ) return ;   /* bad inputs */
    if( ntype <  0 && btype == NULL ) return ;
    if( ntype == 0 && btype != NULL ) return ;
@@ -408,9 +385,6 @@ STATUS("starting sub-brick creations") ;
          else              typ = itype[ntype-1] ;
       }
 
-#ifdef THD_DEBUG
-printf("  -- making new sub-brick; type=%s\n",MRI_TYPE_name[typ]);fflush(stdout);
-#endif
       qim = mri_new_vol_empty( nx,ny,nz , typ ) ;  /* image with no data */
       ADDTO_IMARR( dblk->brick , qim ) ;
 

@@ -1,7 +1,6 @@
 #include "mrilib.h"
 #include <string.h>
 
-#define FLOAT_TYPE double
 #include "vecmat.h"
 
 MRI_IMAGE * mri_align_crao( float filt_fwhm , MRI_IMARR * ims ) ;
@@ -46,9 +45,9 @@ MRI_IMAGE * mri_align_crao( float filt_fwhm , MRI_IMARR * ims )
    float sthr,fac , hnx,hny , filt_rms = filt_fwhm*0.42466090 ;
    float *xar , *yar , *par , *sar , *bar , *entar ;
    int ii , npix , nx,ny , jj , joff , nzero=0 ;
-   THD_mat33 cov_all , cov_one ;
-   FLOAT_TYPE vdxdx,vdydy,vphiphi , vdxdy,vdxphi,vdyphi ;
-   FLOAT_TYPE det_all , det_one ;
+   THD_dmat33 cov_all , cov_one ;
+   double vdxdx,vdydy,vphiphi , vdxdy,vdxphi,vdyphi ;
+   double det_all , det_one ;
 
    for( ii=1 ; ii < ims->num ; ii++ )
       (void) mri_stat_seq( ims->imarr[ii] ) ;
@@ -126,7 +125,7 @@ MRI_IMAGE * mri_align_crao( float filt_fwhm , MRI_IMARR * ims )
    cov_all.mat[1][2] = vdyphi ;
    cov_all.mat[2][1] = vdyphi ;
 
-   det_all = MAT_DET(cov_all) ;
+   det_all = DMAT_DET(cov_all) ;
 
    iment = mri_new( nx , ny , MRI_float ) ;
    entar = MRI_FLOAT_PTR(iment) ;
@@ -151,7 +150,7 @@ MRI_IMAGE * mri_align_crao( float filt_fwhm , MRI_IMARR * ims )
       cov_one.mat[1][2] -= vdyphi ;
       cov_one.mat[2][1] -= vdyphi ;
 
-      det_one = MAT_DET(cov_one) ;
+      det_one = DMAT_DET(cov_one) ;
 
       entar[ii] = log( det_all / det_one ) ;
    }

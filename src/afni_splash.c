@@ -28,11 +28,6 @@ static void * handle = NULL ;
 
 #define USE_FADING
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /*----------------------------------------------------------------------------*/
 
 void AFNI_splashraise(void) /* 25 Sep 2000: bring splash window to the top */
@@ -198,6 +193,7 @@ ENTRY("AFNI_splashup") ;
                        XmNy , syy ,
                        XmNmwmDecorations , dd ,
                        XmNmwmFunctions   , ee ,
+                  /**  XmNoverrideRedirect , True , **/
                      NULL ) ;
 
       /* actually popup image display */

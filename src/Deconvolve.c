@@ -1,9 +1,3 @@
-/*****************************************************************************
-   Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
-******************************************************************************/
-   
 /*---------------------------------------------------------------------------*/
 /*
   This file contains routines for performing deconvolution analysis.
@@ -56,6 +50,14 @@
   Mod:     Increased size of screen output buffer.
   Date:    27 July 2000
 
+  Mod:     Additional output with -nodata option (norm.std.dev.'s for
+           GLT linear constraints).
+  Date:    11 August 2000
+
+  Mod:     Added -stim_nptr option, to allow input stim functions to be sampled
+           at a multiple of the 1/TR rate.
+  Date:    02 January 2001 
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -86,6 +88,7 @@ int init_indep_var_matrix
   int * stim_length,          /* length of stimulus time series arrays */
   int * min_lag,              /* minimum time delay for impulse response */
   int * max_lag,              /* maximum time delay for impulse response */
+  int * nptr,                 /* number of stim fn. time points per TR */
   matrix * xgood              /* independent variable matrix */
 )
 
@@ -133,7 +136,7 @@ int init_indep_var_matrix
   m = q;
   for (is = 0;  is < num_stimts;  is++)
     {
-      if (stim_length[is] < nt)
+      if (stim_length[is] < nt*nptr[is])
 	{
 	  DC_error ("Input stimulus time series is too short");
 	  return (0);
@@ -143,10 +146,10 @@ int init_indep_var_matrix
 	{
 	  for (n = 0;  n < nt;  n++)
 	    {
-	      if (n < ilag)
+	      if (n*nptr[is] < ilag)
 		x.elts[n][m] = 0.0;
 	      else
-		x.elts[n][m] = stim_array[n-ilag];
+		x.elts[n][m] = stim_array[n*nptr[is]-ilag];
 	    }
 	  m++;
 	}
@@ -157,6 +160,7 @@ int init_indep_var_matrix
           usable time points -----*/
   matrix_extract_rows (x, N, good_list, xgood);
   matrix_destroy (&x);
+
 
   return (1);
 
@@ -259,7 +263,9 @@ int init_glt_analysis
   matrix xtxinv,              /* matrix:  1/(X'X)  for full model */
   int glt_num,                /* number of general linear tests */
   matrix * glt_cmat,          /* general linear test matrices */
-  matrix * glt_amat           /* constant GLT matrices for later use */
+  matrix * glt_amat,          /* constant GLT matrices for later use */
+  matrix * cxtxinvct          /* matrices: C(1/(X'X))C' for GLT */
+
 )
 
 {
@@ -269,7 +275,8 @@ int init_glt_analysis
 
   for (iglt = 0;  iglt < glt_num;  iglt++)
     {
-      ok = calc_glt_matrix (xtxinv, glt_cmat[iglt], &(glt_amat[iglt]));
+      ok = calc_glt_matrix (xtxinv, glt_cmat[iglt], &(glt_amat[iglt]),
+			    &(cxtxinvct[iglt]));
       if (! ok)  return (0);
     }
 

@@ -39,7 +39,6 @@
 #include "afni_warp.h"
 
 #define MAIN
-#include "dbtrace.h"
 
 /*---------------------------------------------------------------------------*/
 
@@ -641,9 +640,7 @@ Boolean adwarp_refashion_dataset
 
   int native_order , save_order ;  /* 23 Nov 1999 */
   
-
 ENTRY("adwarp_refashion_dataset") ;
-
 
   /* set up for warp-on-demand */
 
@@ -855,9 +852,7 @@ int main( int argc , char * argv[] )
   THD_3dim_dataset * new_dset = NULL;       /* new (output) dataset */
   THD_dataxes new_daxes;                    /* new dataset axes */
   
-
   ENTRY("adwarp main") ;
-
   
   /*----- Identify software -----*/
   printf ("\n");
@@ -910,8 +905,7 @@ int main( int argc , char * argv[] )
   /*----- Fill in the dataset and write out to disk -----*/
   adwarp_refashion_dataset (option_data, new_dset, &new_daxes);
 
-
-  return 0;
+  exit(0) ;
 }
 
 

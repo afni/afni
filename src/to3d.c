@@ -30,6 +30,11 @@ static int     geometry_loaded   = 0 ;
 static int     negative_shorts   = 0 ;  /* 19 Jan 2000 */
 static int     nfloat_err        = 0 ;  /* 14 Sep 1999 */
 
+static float   imdx=0.0, imdy=0.0, imdz=0.0 ;  /* 05 Feb 2001 */
+
+static float   zpad=0 ;                        /* 05 Feb 2001 */
+static int     zpad_mm=0 ;
+
 #ifdef AFNI_DEBUG
 #  define QQQ(str) (printf("to3d: %s\n",str),fflush(stdout))
 #else
@@ -62,19 +67,19 @@ static struct {
 
 /*----------------------------------------------------------------------*/
 static char * FALLback[] =
-  {   "*fontList:        9x15bold=charset1" ,
-      "*background:      gray40"            ,
-      "*menu*background: gray40"            ,
-      "*borderColor:     gray40"            ,
-      "*foreground:      yellow"            ,
-      "*borderWidth:     0"                 ,
-      "*troughColor:     green"             ,
-      "*XmLabel.translations: #override<Btn2Down>:" ,
-      "*help*background:      black"                ,
-      "*help*foreground:      yellow"               ,
-      "*cluefont:             9x15bold"             ,
-      "*help*waitPeriod:      1066"                 ,
-      "*help*cancelWaitPeriod: 50"                  ,
+  {   "AFNI*fontList:        9x15bold=charset1" ,
+      "AFNI*background:      gray40"            ,
+      "AFNI*menu*background: gray40"            ,
+      "AFNI*borderColor:     gray40"            ,
+      "AFNI*foreground:      yellow"            ,
+      "AFNI*borderWidth:     0"                 ,
+      "AFNI*troughColor:     green"             ,
+      "AFNI*XmLabel.translations: #override<Btn2Down>:" ,
+      "AFNI*help*background:      black"                ,
+      "AFNI*help*foreground:      yellow"               ,
+      "AFNI*cluefont:             9x15bold"             ,
+      "AFNI*help*waitPeriod:      1066"                 ,
+      "AFNI*help*cancelWaitPeriod: 50"                  ,
    NULL } ;
 /*-----------------------------------------------------------------------*/
 
@@ -129,6 +134,8 @@ int main( int argc , char * argv[] )
    XtAppContext   app ;
    XtErrorHandler old_handler ;
    Boolean        all_good ;
+
+mainENTRY("to3d:main") ;
 
    /* read the user data from the command line, if any */
 
@@ -206,7 +213,32 @@ QQQ("main1");
    if( argopt.ncolor <= 2   ) argopt.ncolor = INIT_ngray ;
    if( argopt.gamma  <= 0.0 ) argopt.gamma  = INIT_gamma ;
 
-   if( ! (geomparent_loaded || geometry_loaded) ) user_inputs.fov = INIT_fov ;
+   /* 05 Feb 2001:
+      if geometry not loaded at all, maybe use globals imdx, etc. */
+
+   if( ! (geomparent_loaded || geometry_loaded) ){
+      if( imdx <= 0.0 || imdy <= 0.0 ){
+
+         user_inputs.fov = INIT_fov ;    /* the old code */
+
+      } else {                           /* the new code */
+
+         user_inputs.xsize = imdx ;
+         user_inputs.ysize = imdy ;
+         if( imdz > 0.0 ) user_inputs.zsize = imdz ;
+
+         if( user_inputs.xsize != user_inputs.ysize ){
+            user_inputs.voxshape = VOXSHAPE_IRREGULAR ;
+         } else {
+            if( user_inputs.xsize != user_inputs.zsize ){
+               user_inputs.voxshape = VOXSHAPE_SQUARE ;
+            } else {
+               user_inputs.voxshape = VOXSHAPE_CUBICAL ;
+            }
+         }
+         user_inputs.fov = user_inputs.xsize * user_inputs.nx ;
+      }
+   }
 
    if( argopt.xtwarns == False )
       old_handler = XtAppSetWarningHandler(app,AFNI_handler) ;  /* turn off */
@@ -1817,6 +1849,16 @@ void T3D_initialize_user_data(void)
    user_inputs.tpattern = NULL ;
    user_inputs.tunits   = UNITS_MSEC_TYPE ;
 
+   /*-- 05 Feb 2000: zpad environment --*/
+
+   { char *eee=my_getenv("AFNI_TO3D_ZPAD") , *fff ;
+     if( eee != NULL ){
+         zpad = strtod( eee , &fff ) ;
+         if( zpad < 0.0 ) FatalError("AFNI_TO3D_ZPAD is negative") ;
+         zpad_mm = (*fff == 'm') ;
+     }
+   }
+
    /*-- scan options --*/
 
    nopt = 1 ;
@@ -1886,6 +1928,18 @@ void T3D_initialize_user_data(void)
          } else {
             WarningError("Unknown view type after -view!") ;
          }
+         nopt++ ; continue ;
+      }
+
+      /* 05 Feb 2001: -zpad option */
+
+      if( strncmp(Argv[nopt],"-zpad",5) == 0 ){
+         char * eee ;
+         if( ++nopt >= Argc ) FatalError("-zpad needs a count") ;
+         if( zpad > 0.0 ) fprintf(stderr,"+++ WARNING: second -zpad option found!\n") ;
+         zpad = strtod( Argv[nopt] , &eee ) ;
+         if( zpad < 0.0 ) FatalError("-zpad is negative") ;
+         zpad_mm = (*eee == 'm') ;
          nopt++ ; continue ;
       }
 
@@ -2856,6 +2910,10 @@ void Syntax()
     "\n"
     "The 'raw pgm' image format is also supported; it reads data into 'byte' images.\n"
     "\n"
+    "ANALYZE (TM) .hdr/.img files can also be read - give the .hdr filename on\n"
+    "the command line.  The program will detect if byte-swapping is needed on\n"
+    "these images, and can also set the voxel grid sizes from the first .hdr file.\n"
+    "\n"
     "  Notes:\n"
     "   * Not all GPL AFNI programs support all datum types.  Shorts and\n"
     "       floats are safest. (See the '-datum' option below.)\n"
@@ -2906,6 +2964,28 @@ void Syntax()
     "  -4swap\n"
     "     This option will force all input 4 byte images to be byte-swapped\n"
     "     after they are read in.\n"
+    "\n"
+    "  -zpad N   OR\n"
+    "  -zpad Nmm \n"
+    "     This option tells to3d to write 'N' slices of all zeros on each side\n"
+    "     in the z-direction.  This will make the dataset 'fatter', but make it\n"
+    "     simpler to align with datasets from other scanning sessions.  This same\n"
+    "     function can be accomplished later using program 3dZeropad.\n"
+    "   N.B.: The zero slices will NOT be visible in the image viewer in to3d, but\n"
+    "          will be visible when you use AFNI to look at the dataset.\n"
+    "   N.B.: If 'mm' follows the integer N, then the padding is measured in mm.\n"
+    "          The actual number of slices of padding will be rounded up.  So if\n"
+    "          the slice thickness is 5 mm, then '-zpad 16mm' would be the equivalent\n"
+    "          of '-zpad 4' -- that is, 4 slices on each z-face of the volume.\n"
+    "   N.B.: If the geometry parent dataset was created with -zpad, the spatial\n"
+    "          location (origin) of the slices is set using the geometry dataset's\n"
+    "          origin BEFORE the padding slices were added.  This is correct, since\n"
+    "          you need to set the origin on the current dataset as if the padding\n"
+    "          slices were not present.\n"
+    "   N.B.: Unlike the '-zpad' option to 3drotate and 3dvolreg, this adds slices\n"
+    "          only in the z-direction.\n"
+    "   N.B.: You can set the environment variable 'AFNI_TO3D_ZPAD' to provide a\n"
+    "          default for this option.\n"
     "\n"
     "  -gsfac value\n"
     "     will scale each input slice by 'value'.  For example,\n"
@@ -3514,6 +3594,12 @@ printf("T3D_read_images: mri_imcount totals nz=%d\n",nz) ;
    nx = im->nx ;
    ny = im->ny ; npix = nx * ny ;
 
+   /* 05 Feb 2001: set voxel sizes, if available */
+
+   if( im->dw > 0.0 ){
+      imdx = im->dx ; imdy = im->dy ; imdz = im->dz ;  /* globals */
+   }
+
    /**--- use 1st file to set default datum type, if not set already ---**/
 
    if( argopt.datum_all < 0 ){
@@ -3735,7 +3821,7 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
 
          KILL_1MRI(shim) ;
 #ifndef AFNI_DEBUG
-         if( kz%10 == 0 ){ printf("%d",(kz/10)%10) ; fflush(stdout); }
+         if( kz%100 == 0 ){ printf("%d",(kz/100)%10) ; fflush(stdout); }
 #endif
       }  /** end of loop over images from 1 file **/
 
@@ -4125,6 +4211,7 @@ void T3D_save_file_CB( Widget w ,
    Boolean good , isfunc ;
    int ii , jj , bigfile ;
    Widget wmsg = NULL ;
+   int npad ;
 
 QQQ("save_file1");
 
@@ -4337,8 +4424,51 @@ QQQ("save_file9");
    dset->idcode = MCW_new_idcode() ;
 #endif
 
-   good = THD_write_3dim_dataset( user_inputs.session_filename ,
-                                  user_inputs.output_filename , dset , True ) ;
+   npad = (int) zpad ;
+   if( npad == 0 ){   /* the old code */
+
+      good = THD_write_3dim_dataset( user_inputs.session_filename ,
+                                     user_inputs.output_filename , dset , True ) ;
+
+   } else {           /* 05 Feb 2001: allow for zero-padding in z-direction */
+      THD_3dim_dataset * qset=NULL ;
+      int flag=0 ;
+
+      if( zpad_mm ) flag = ZPAD_MM ;
+
+      switch( daxes->zzorient ){
+         case ORI_R2L_TYPE:
+         case ORI_L2R_TYPE:
+            qset = THD_zeropad( dset, 0,0,0,0,npad,npad, user_inputs.output_filename,flag ) ;
+         break ;
+
+         case ORI_P2A_TYPE:
+         case ORI_A2P_TYPE:
+            qset = THD_zeropad( dset, 0,0,npad,npad,0,0, user_inputs.output_filename,flag ) ;
+         break ;
+
+         case ORI_I2S_TYPE:
+         case ORI_S2I_TYPE:
+            qset = THD_zeropad( dset, npad,npad,0,0,0,0, user_inputs.output_filename,flag ) ;
+         break ;
+
+         default:
+            fprintf(stderr,"*** Can't zpad: zzorient=%d\n",daxes->zzorient) ;
+         break ;
+      }
+
+      if( commandline != NULL ) tross_Append_History( qset , commandline ) ;
+
+      { int ppad[3] ;
+        ppad[0] = ppad[1] = 0 ; ppad[2] = npad ;
+        THD_set_int_atr( qset->dblk , "TO3D_ZPAD" , 3 , ppad ) ;
+      }
+
+      THD_load_statistics( qset ) ;
+      good = THD_write_3dim_dataset( user_inputs.session_filename ,
+                                     user_inputs.output_filename , qset , True ) ;
+      DSET_delete(qset) ;
+   }
 
    if( wmsg != NULL ) XtDestroyWidget( wmsg ) ;
 
@@ -4772,6 +4902,8 @@ void T3D_geometry_parent_CB( Widget w ,
    THD_3dim_dataset * geom_dset ;
    THD_dataxes      * geom_daxes ;
 
+   int xpad=0,ypad=0,zpad=0 ;  /* 05 Feb 2001 */
+
    if( old_name == NULL ) old_name = XtNewString("Elvis Lives!!!") ;
 
 #ifdef AFNI_DEBUG
@@ -4829,19 +4961,30 @@ printf("T3D_geometry_parent_CB: got string\n") ; fflush(stdout) ;
 printf("T3D_geometry_parent_CB: got dataset\n") ; fflush(stdout) ;
 #endif
 
+   /* 05 Feb 2001: set if this was a 'padded' dataset from an earlier to3d */
+
+   { ATR_int * atr ;
+     atr = THD_find_int_atr( geom_dset->dblk , "TO3D_ZPAD" ) ;
+     if( atr != NULL && atr->nin >= 3 ){
+        xpad = atr->in[0] ;
+        ypad = atr->in[1] ;
+        zpad = atr->in[2] ;
+     }
+   }
+
    geom_daxes = geom_dset->daxes ;
 
-   if( geom_daxes->nxx != user_inputs.nx ||
-       geom_daxes->nyy != user_inputs.ny ||
-       geom_daxes->nzz != user_inputs.nz   ){
+   if( geom_daxes->nxx - 2*xpad != user_inputs.nx ||
+       geom_daxes->nyy - 2*ypad != user_inputs.ny ||
+       geom_daxes->nzz - 2*zpad != user_inputs.nz   ){
 
        char msg[256] ;
 
        sprintf(msg,
                  "*** Shape mismatch!! ***\n"
-                 "file   nx=%d ny=%d nz=%d\n"
+                 "file   nx=%d ny=%d nz=%d (zpad=%d)\n"
                  "images nx=%d ny=%d nz=%d",
-               geom_daxes->nxx,geom_daxes->nyy,geom_daxes->nzz,
+               geom_daxes->nxx,geom_daxes->nyy,geom_daxes->nzz,zpad,
                user_inputs.nx ,user_inputs.ny ,user_inputs.nz  ) ;
 
        T3D_poperr( INERR , msg ) ;
@@ -4901,16 +5044,24 @@ printf("T3D_geometry_parent_CB: copied strings\n") ; fflush(stdout) ;
    user_inputs.zorient = geom_daxes->zzorient ;
 
 #if 0  /* Bad stuff, replaced June 20, 1995 */
+
    user_inputs.xorigin = fabs(geom_daxes->xxorg) ;
    user_inputs.yorigin = fabs(geom_daxes->yyorg) ;
    user_inputs.zorigin = fabs(geom_daxes->zzorg) ;
-#else
-   user_inputs.xorigin = (ORIENT_sign[user_inputs.xorient] == '+')
-                         ? (-geom_daxes->xxorg) : (geom_daxes->xxorg) ;
-   user_inputs.yorigin = (ORIENT_sign[user_inputs.yorient] == '+')
-                         ? (-geom_daxes->yyorg) : (geom_daxes->yyorg) ;
-   user_inputs.zorigin = (ORIENT_sign[user_inputs.zorient] == '+')
-                         ? (-geom_daxes->zzorg) : (geom_daxes->zzorg) ;
+
+#else  /* newer stuff [05 Feb 2001] - allow for padding in to3d before */
+
+   { float xorg = geom_daxes->xxorg + xpad * geom_daxes->xxdel ;
+     float yorg = geom_daxes->yyorg + ypad * geom_daxes->yydel ;
+     float zorg = geom_daxes->zzorg + zpad * geom_daxes->zzdel ;
+
+     user_inputs.xorigin = (ORIENT_sign[user_inputs.xorient] == '+')
+                           ? (-xorg) : (xorg) ;
+     user_inputs.yorigin = (ORIENT_sign[user_inputs.yorient] == '+')
+                           ? (-yorg) : (yorg) ;
+     user_inputs.zorigin = (ORIENT_sign[user_inputs.zorient] == '+')
+                           ? (-zorg) : (zorg) ;
+   }
 #endif
 
    user_inputs.xsize    = fabs(geom_daxes->xxdel) ;

@@ -6,19 +6,8 @@
 
 #include "mrilib.h"
 
-#undef  AFNI_DEBUG
-#undef  CLUST_DEBUG
-#define STATUS(x) /* nada */
-#define ENTRY(x)  /* nada */
-#define EXRETURN  return
-#define RETURN(x) return(x)
-
 #undef ROUND
-#ifndef NO_RINT
-#  define ROUND(qq)   rint((qq))
-#else
-#  define ROUND(qq)   ((int)(qq))
-#endif
+#define ROUND(qq)   rint((qq))
 
 /*------------------------------------------------------------------------
   convert one volume to another type
@@ -406,7 +395,9 @@ void EDIT_clip_float( float top , int nxyz , float * vol )
    int ii ;
    float bot ;
 
-   if( top <= 0.0 || nxyz <= 0 || vol == NULL ) return ;
+ENTRY("EDIT_clip_float") ;
+
+   if( top <= 0.0 || nxyz <= 0 || vol == NULL ) EXRETURN ;
 
    bot = -top ;
 
@@ -414,5 +405,5 @@ void EDIT_clip_float( float top , int nxyz , float * vol )
            if( vol[ii] > top ) vol[ii] = top ;
       else if( vol[ii] < bot ) vol[ii] = bot ;
 
-   return ;
+   EXRETURN ;
 }

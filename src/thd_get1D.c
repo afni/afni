@@ -7,7 +7,6 @@
 #include "mrilib.h"
 #include "thd.h"
 
-
 /*=============================================================================*/
 
 /***  Read all *.1D (time series) files from a list of directories ***/
@@ -20,8 +19,6 @@ MRI_IMARR * THD_get_many_timeseries( THD_string_array * dlist )
    char   efake[] = "./" ;
 
    /*----- sanity check and initialize -----*/
-
-ENTRY("THD_get_many_timeseries") ;
 
                        epath = my_getenv( "AFNI_TSPATH" ) ;
    if( epath == NULL ) epath = my_getenv( "AFNI_TS_PATH" ) ; /* 07 Oct 1996 */
@@ -134,8 +131,6 @@ MRI_IMARR * THD_get_all_timeseries( char * dname )
 
    /*----- sanity check and initialize -----*/
 
-ENTRY("THD_get_all_timeseries") ;
-
    if( dname == NULL || strlen(dname) == 0 ) return NULL ;
    INIT_IMARR( outar ) ;
 
@@ -190,12 +185,6 @@ ENTRY("THD_get_all_timeseries") ;
             tname = THD_trailname(fname,1) ;
             mri_add_name( tname , flim ) ;
             ADDTO_IMARR( outar , flim ) ;
-
-#ifdef THD_DEBUG
-{ char str[256] ;
-  sprintf(str,"added %s: nx=%d ny=%d", flim->name,flim->nx,flim->ny ) ;
-  STATUS(str) ; }
-#endif
 
          }
       }

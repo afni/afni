@@ -6,14 +6,6 @@
 
 #include "mrilib.h"
 
-#undef  AFNI_DEBUG
-#undef  CLUST_DEBUG
-#define STATUS(x) /* nada */
-#define ENTRY(x)  /* nada */
-#define EXRETURN  return
-#define RETURN(x) return(x)
-
-
 static char * helpstring =
     "EDITING OPTIONS APPLIED TO EACH INPUT DATASET:\n"
     "  -1thtoin         = Copy threshold data over intensity data.\n"

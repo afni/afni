@@ -3,7 +3,6 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
 #ifndef _MCW_MACHDEP_
 #define _MCW_MACHDEP_
 
@@ -21,8 +20,18 @@
   (you could also use the -Dname command line switch in the Makefile
    definition of the CC commands to enable these options):
 
+    USE_TRACING = if #define-d, then AFNI and its programs will compile
+                   in a set of data/functions that allows debug tracing
+                   of execution.
+
+    DONT_USE_MCW_MALLOC = if this is set, then the malloc wrappers
+                          defined in mcw_malloc.[ch] will not be
+                          be used.  (These functions provide some
+                          ability to track and debug the use of
+                          malloc-ed memory space.)
+
     DONT_USE_METER  = if #define-d, won't show progress meter during
-                       brick write operations
+                       brick write operations (and other similar places)
 
     FIX_SCALE_VALUE_PROBLEM = if #defined-d, will work around a bug
                                in Solaris Motif where the threshold scale
@@ -73,12 +82,6 @@
                        The program fftest.c can be used to test the
                        speed of FFTs.
 
-    DONT_USE_MCW_MALLOC = if this is set, then the malloc wrappers
-                          defined in mcw_malloc.[ch] will not be
-                          be used.  (These functions provide some
-                          ability to track and debug the use of
-                          malloc-ed memory space.)
-
     SOLARIS_DIRENT_PATCH = if this is set, then a patch for the
                            difference between Sun's "dirent" functions
                            and everbody else's is used in the file
@@ -111,6 +114,9 @@
                               libraries is accomplished using the "shl"
                               routines, such as "shl_load".  This is
                               only used on HP-UX, as far as I know.
+
+  Apparently some systems don't support either method (IBM AIX, so I've
+  been told).  In such a case, plugins won't work.
 
   Flags that MUST be set appropriately for each system:
 
@@ -261,6 +267,10 @@ extern long   strtol() ;
 #  define ALLOW_PLUGINS
 #else
 #  define DONT_ALLOW_PLUGINS
+#endif
+
+#ifdef NO_RINT
+extern double rint(double) ;  /* 12 Feb 2001 */
 #endif
 
 #endif /* _MCW_MACHDEP_ */

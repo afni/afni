@@ -23,8 +23,6 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
    int ix,jy,kz , ind ;
    THD_ivec3 ind_fd , ind_ds ;
 
-ENTRY("FD_brick_to_series") ;
-
    if( ixyz < 0 || ixyz >= br->n1 * br->n2 * br->n3 ) return NULL ;
 
    /** otherwise, get ready for a real image **/

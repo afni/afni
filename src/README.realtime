@@ -238,7 +238,7 @@ host is on the "trust list".  The default trust list is
 
     141.106.106  = any MCW Biophysics computer (we're very trustworthy)
     127.0.0.1    = localhost
-    192.168.0    = private class B networks (this is a reserved set of
+    192.168      = private class B networks (this is a reserved set of
                    addresses that should not be visible to the Internet)
 
 You can add to this list by defining the environment variable as in the
@@ -250,7 +250,8 @@ This means that any IP address starting with the above string will be
 acceptable.  If you want to add more than one possibility, then you can
 also use environment variables AFNI_TRUSTHOST_1, AFNI_TRUSTHOST_2, up to
 AFNI_TRUSTHOST_99.  (That should be enough - how trusting do you really
-want to be?)
+want to be?)  If you want to remove the builtin trust for MCW Biophysics,
+you'll have to edit file thd_trusthost.c.
 
 You cannot use hostnames for this purpose - only actual IP addresses in
 the dotted form, as shown above.  (What I'll do when IPv6 becomes widely

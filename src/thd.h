@@ -7,14 +7,6 @@
 #ifndef _MCW_THDSOURCE_HEADER_
 #define _MCW_THDSOURCE_HEADER_
 
-#ifdef THD_DEBUG
-#  define ENTRY(rout) (printf("Entry: %s\n",rout),fflush(stdout))
-#  define STATUS(str) (printf("  -- %s\n",str),fflush(stdout))
-#else
-#  define ENTRY(rout)
-#  define STATUS(str)
-#endif
-
 #define THD_FATAL_ERROR(str) \
   { fprintf(stderr,"\a\n*** FATAL INTERAL ERROR: %s\n",str);sleep(1);exit(-1); }
 

@@ -4,76 +4,11 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-#define FLOAT_TYPE double  /* as in thd_rot3d.c and thd_shear3d.c */
 #include "thd_shear3d.h"
 
 /*-- prototypes for funcs at end of file --*/
 
-static THD_mat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;
-
-static void rotate_stdin_points( THD_fvec3, THD_mat33, int,THD_fvec3 ) ;
-
-/*-------------------------------------------------------------------------------*/
-
-#include <ctype.h>
-
-int axcode( THD_3dim_dataset * dset , char ori )
-{
-   ori = toupper(ori) ;
-   if( ori == ORIENT_tinystr[dset->daxes->xxorient][0] ) return  1 ;
-   if( ori == ORIENT_tinystr[dset->daxes->xxorient][1] ) return -1 ;
-   if( ori == ORIENT_tinystr[dset->daxes->yyorient][0] ) return  2 ;
-   if( ori == ORIENT_tinystr[dset->daxes->yyorient][1] ) return -2 ;
-   if( ori == ORIENT_tinystr[dset->daxes->zzorient][0] ) return  3 ;
-   if( ori == ORIENT_tinystr[dset->daxes->zzorient][1] ) return -3 ;
-   return -99 ;
-}
-
-/*------------------------------------------------------------------------------*/
-
-int handedness( THD_3dim_dataset * dset )
-{
-   THD_dataxes * dax = dset->daxes ;
-   THD_mat33 q ;
-   int col ;
-   float val ;
-
-   LOAD_ZERO_MAT(q) ;
-
-   col = 0 ;
-   switch( dax->xxorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   col = 1 ;
-   switch( dax->yyorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   col = 2 ;
-   switch( dax->zzorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   val = MAT_DET(q) ;
-   if( val > 0.0 ) return  1 ;   /* right handed */
-   else            return -1 ;   /* left handed */
-}
+static void rotate_stdin_points( THD_dfvec3, THD_dmat33, int,THD_dfvec3 ) ;
 
 /*-----------------------------------------------------------------------------------*/
 
@@ -97,11 +32,13 @@ int main( int argc , char * argv[] )
    float cbot,ctop ;
 
    int matvec=0 ;    /* 19 July 2000 */
-   THD_mat33 rmat , pp,ppt ;
-   THD_fvec3 tvec ;
+   THD_dmat33 rmat , pp,ppt ;
+   THD_dfvec3 tvec ;
 
    int dopoints=0 , doorigin=0 ;    /* 21 Nov 2000 */
    double xo=0.0 , yo=0.0 , zo=0.0 ;
+
+   THD_3dim_dataset *rotpar_dset=NULL , *gridpar_dset=NULL ;  /* 07 Feb 2001 */
 
 #undef ALLOW_DOBYTE
 
@@ -111,7 +48,9 @@ int main( int argc , char * argv[] )
 #  define dobyte 0   /* 10 Nov 2000 */
 #endif
 
-   LOAD_DIAG_MAT(rmat,1.0,1.0,1.0) ;
+   int zpad=0 ;      /* 05 Feb 2001 */
+
+   LOAD_DIAG_DMAT(rmat,1.0,1.0,1.0) ;
 
    /*-- read command line arguments --*/
 
@@ -120,10 +59,14 @@ int main( int argc , char * argv[] )
          "Usage: 3drotate [options] dataset\n"
          "Rotates and/or translates all bricks from an AFNI dataset.\n"
          "'dataset' may contain a sub-brick selector list.\n"
-         "The options are:\n"
+         "\n"
+         "GENERIC OPTIONS:\n"
          "  -prefix fname    = Sets the output dataset prefix name to be 'fname'\n"
          "  -verbose         = Prints out progress reports (to stderr)\n"
          "\n"
+         "OPTIONS TO SPECIFY THE ROTATION/TRANSLATION:\n"
+         "-------------------------------------------\n"
+         "*** METHOD 1 = direct specification:\n"
          "At most one of these shift options can be used:\n"
          "  -ashift dx dy dz = Shifts the dataset 'dx' mm in the x-direction, etc.,\n"
          "                       AFTER rotation.\n"
@@ -148,6 +91,28 @@ int main( int argc , char * argv[] )
          "    'Superior-to-Inferior' axes, respectively.  A positive rotation is\n"
          "    defined by the right-hand rule.\n"
          "\n"
+         "*** METHOD 2 = copy from output of 3dvolreg:\n"
+         "  -rotparent rset\n"
+         "    Specifies that the rotation and translation should be taken from the\n"
+         "    first 3dvolreg transformation found in the header of dataset 'rset'.\n"
+         "  -gridparent gset\n"
+         "    Specifies that the output dataset of 3drotate should be shifted to\n"
+         "    match the grid of dataset 'gset'.  Can only be used with -rotparent.\n"
+         "    This dataset should be one this is properly aligned with 'rset' when\n"
+         "    overlaid in AFNI.\n"
+         "  * If -rotparent is used, then don't use -matvec, -rotate, or -[ab]shift.\n"
+         "  * If 'gset' has a different number of slices than the input dataset,\n"
+         "    then the output dataset will be zero-padded in the slice direction\n"
+         "    to match 'gset'.\n"
+         "  * These options are intended to be used to align datasets between sessions:\n"
+         "     S1 = SPGR from session 1    E1 = EPI from session 1\n"
+         "     S2 = SPGR from session 2    E2 = EPI from session 2\n"
+         " 3dvolreg -twopass -twodup -clipit -base S1+orig -prefix S2reg S2+orig\n"
+         " 3drotate -clipit -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg E2+orig\n"
+         "     The result will have E2reg rotated from E2 in the same way that S2reg\n"
+         "     was from S2, and also shifted/padded (as needed) to overlap with E1.\n"
+         "\n"
+         "*** METHOD 3 = give the transformation matrix/vector directly:\n"
          "  -matvec_dicom mfile\n"
          "  -matvec_order mfile\n"
          "    Specifies that the rotation and translation should be read from file\n"
@@ -158,11 +123,12 @@ int main( int argc , char * argv[] )
          "    where each 'uij' and 'vi' is a number.  The 3x3 matrix [uij] is the\n"
          "    orthogonal matrix of the rotation, and the 3-vector [vi] is the -ashift\n"
          "    vector of the translation.\n"
+         "\n"
+         "*** METHOD 4 = copy the transformation from 3dTagalign:\n"
          "  -matvec_dset mset\n"
          "    Specifies that the rotation and translation should be read from\n"
          "    the .HEAD file of dataset 'mset', which was created by program\n"
          "    3dTagalign.\n"
-         "\n"
          "  * If -matvec_dicom is used, the matrix and vector are given in Dicom\n"
          "     coordinate order (+x=L, +y=P, +z=S).  This is the option to use\n"
          "     if mfile is generated using 3dTagalign -matvec mfile.\n"
@@ -170,6 +136,8 @@ int main( int argc , char * argv[] )
          "     coordinate order of the dataset axes, whatever they may be.\n"
          "  * You can't mix -matvec_* options with -rotate and -*shift.\n"
          "\n"
+         "POINTS OPTIONS (instead of datasets):\n"
+         "------------------------------------\n"
          " -points\n"
          " -origin xo yo zo\n"
          "   These options specify that instead of rotating a dataset, you will\n"
@@ -198,7 +166,7 @@ int main( int argc , char * argv[] )
          "                 '3dcalc( -a dset+tlrc -expr z -datum float )'\n"
          "\n"
          "     (All of this should be on one command line.)\n"
-         "\n"
+		 "============================================================================\n"
          "Example: 3drotate -prefix Elvis -bshift 10S 0 0 -rotate 30R 0 0 Sinatra+orig\n"
          "\n"
          "This will shift the input 10 mm in the superior direction, followed by a 30\n"
@@ -215,6 +183,12 @@ int main( int argc , char * argv[] )
          " -heptic  = Use the heptic (7th order) Lagrange polynomial method.\n"
          "\n"
          " -clipit  = Clip results to input brick range\n"
+         " -zpad n  = Zeropad around the edges by 'n' voxels during rotations\n"
+         "              (these edge values will be stripped off in the output)\n"
+         "        N.B.: Unlike to3d, in this program '-zpad' adds zeros in\n"
+         "               all directions.\n"
+         "        N.B.: The environment variable AFNI_ROTA_ZPAD can be used\n"
+         "               to set a nonzero default value for this parameter.\n"
       ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -226,6 +200,18 @@ int main( int argc , char * argv[] )
 
    iopt = 1 ;
    while( iopt < argc && argv[iopt][0] == '-' ){
+
+      if( strncmp(argv[iopt],"-zpad",5) == 0 ){     /* 05 Feb 2001 */
+         if( zpad > 0 )
+            fprintf(stderr,"+++ WARNING: second -zpad option!\n") ;
+         zpad = (int) strtod( argv[++iopt] , NULL ) ;
+         if( zpad < 0 ){
+            fprintf(stderr,"*** ERROR: Can't use -zpad %d\n",zpad) ;
+            exit(1) ;
+         }
+         THD_rota_setpad(zpad,zpad,zpad) ;
+         iopt++ ; continue ;
+      }
 
       if( strncmp(argv[iopt],"-points",7) == 0 ){   /* 21 Nov 2000 */
          dopoints = 1 ;
@@ -240,6 +226,40 @@ int main( int argc , char * argv[] )
          iopt++ ; continue ;
       }
 
+      if( strncmp(argv[iopt],"-rotpar",7) == 0 ){  /* 07 Feb 2001 */
+
+         ATR_float * atr ;
+
+         if( rotpar_dset != NULL )
+            ERREX("*** Can't use -2 -rotparent options!") ;
+         if( matvec )
+            ERREX("*** Can't combine -rotparent with -matvec!") ;
+         if( dcode > 0 || rotarg > 0 )
+            ERREX("*** Can't use -rotparent with -shift or -rotate options!") ;
+
+         rotpar_dset = THD_open_one_dataset( argv[++iopt] ) ;
+         if( rotpar_dset == NULL )
+            ERREX("*** Can't open -rotparent dataset!\n") ;
+
+         atr = THD_find_float_atr( rotpar_dset->dblk , "VOLREG_MATVEC_000000" ) ;
+         if( atr == NULL || atr->nfl < 12 )
+            ERREX("*** -rotparent dataset doesn't have VOLREG attributes!?") ;
+
+         iopt++ ; continue ;
+      }
+
+      if( strncmp(argv[iopt],"-gridpar",7) == 0 ){  /* 07 Feb 2001 */
+
+         if( gridpar_dset != NULL )
+            ERREX("*** Can't use -2 -gridparent options!") ;
+
+         gridpar_dset = THD_open_one_dataset( argv[++iopt] ) ;
+         if( gridpar_dset == NULL )
+            ERREX("*** Can't open -gridparent dataset!\n") ;
+
+         iopt++ ; continue ;
+      }
+
       if( strncmp(argv[iopt],"-matvec_",8) == 0 ){  /* 19 Jul 2000 */
 
          MRI_IMAGE * matim ; float * matar , sum ;
@@ -248,6 +268,8 @@ int main( int argc , char * argv[] )
             ERREX("*** Can't use 2 -matvec options!") ;
          if( dcode > 0 || rotarg > 0 )
             ERREX("*** Can't use -matvec with -shift or -rotate options!") ;
+         if( rotpar_dset != NULL )
+            ERREX("*** Can't use -matvec with -rotparent option!") ;
 
          if( strcmp(argv[iopt],"-matvec_order") == 0 ) matvec = MATVEC_ORDER ;
          else                                          matvec = MATVEC_DICOM ;
@@ -261,10 +283,10 @@ int main( int argc , char * argv[] )
             if( atr == NULL || atr->nfl < 12 )
                ERREX("*** -matvec_dset doesn't have matrix+vector in .HEAD!") ;
             matar = atr->fl ;
-            LOAD_MAT(rmat,matar[0],matar[1],matar[2],
+            LOAD_DMAT(rmat,matar[0],matar[1],matar[2],
                           matar[4],matar[5],matar[6],
                           matar[8],matar[9],matar[10] ) ;
-            LOAD_FVEC3(tvec,matar[3],matar[7],matar[11]) ;
+            LOAD_DFVEC3(tvec,matar[3],matar[7],matar[11]) ;
             DSET_delete(mvset) ;
          } else {
             matim = mri_read_ascii( argv[++iopt] ) ;
@@ -272,17 +294,22 @@ int main( int argc , char * argv[] )
             if( matim->nx != 4 || matim->ny != 3 ) ERREX("-matvec file not 4x3!") ;
 
             matar = MRI_FLOAT_PTR(matim) ;
-            LOAD_MAT(rmat,matar[0],matar[1],matar[2],
+            LOAD_DMAT(rmat,matar[0],matar[1],matar[2],
                           matar[4],matar[5],matar[6],
                           matar[8],matar[9],matar[10] ) ;
-            LOAD_FVEC3(tvec,matar[3],matar[7],matar[11]) ;
+            LOAD_DFVEC3(tvec,matar[3],matar[7],matar[11]) ;
 
             mri_free(matim) ;
          }
 
-         /* check if matrix is orthogonal */
+         if( DEBUGTHISFILE ){
+            DUMP_DMAT33("matvec-mat",rmat) ; DUMP_DFVEC3("matvec-vec",tvec) ;
+         }
 
-         pp = TRANSPOSE_MAT(rmat) ; pp = MAT_MUL(pp,rmat) ;
+         /* check if matrix is approximately orthogonal */
+         /* [will be orthogonalized in rot_to_shear_matvec() in thd_shear3d.c] */
+
+         pp = TRANSPOSE_DMAT(rmat) ; pp = DMAT_MUL(pp,rmat) ;
          sum = fabs(pp.mat[0][0]-1.0)+fabs(pp.mat[1][0])    +fabs(pp.mat[2][0])
               +fabs(pp.mat[0][1])    +fabs(pp.mat[1][1]-1.0)+fabs(pp.mat[2][1])
               +fabs(pp.mat[0][2])    +fabs(pp.mat[1][2])    +fabs(pp.mat[2][2]-1.0);
@@ -334,8 +361,7 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[iopt],"-nn",3) == 0 || strncmp(argv[iopt],"-NN",4) == 0 ){
          THD_rota_method( MRI_NN ) ; clipit = 0 ;
 #ifdef ALLOW_DOBYTE
-         dobyte = 1 ;
-         THD_rota_byte_mode( MRI_NN ) ;
+         dobyte = 1 ; THD_rota_byte_mode( MRI_NN ) ;
 #endif
          iopt++ ; continue ;
       }
@@ -351,6 +377,8 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[iopt],"-ashift",4) == 0 ){
          if( matvec    ) ERREX("*** Can't use -ashift with -matvec!") ;
          if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
+         if( rotpar_dset != NULL )
+            ERREX("*** Can't use -ashift with -rotparent!") ;
          dx = strtod( argv[++iopt] , &cpt ) ; cdx = *cpt ;
          dy = strtod( argv[++iopt] , &cpt ) ; cdy = *cpt ;
          dz = strtod( argv[++iopt] , &cpt ) ; cdz = *cpt ;
@@ -361,6 +389,8 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[iopt],"-bshift",4) == 0 ){
          if( matvec    ) ERREX("*** Can't use -bshift with -matvec!") ;
          if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
+         if( rotpar_dset != NULL )
+            ERREX("*** Can't use -bshift with -rotparent!") ;
          dx = strtod( argv[++iopt] , &cpt ) ; cdx = *cpt ;
          dy = strtod( argv[++iopt] , &cpt ) ; cdy = *cpt ;
          dz = strtod( argv[++iopt] , &cpt ) ; cdz = *cpt ;
@@ -382,6 +412,8 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[iopt],"-rotate",4) == 0 ){
          if( matvec     ) ERREX("*** Can't use -rotate with -matvec!") ;
          if( rotarg > 0 ) ERREX("*** Can't have 2 -rotate options!\n") ;
+         if( rotpar_dset != NULL )
+            ERREX("*** Can't use -rotate with -rotparent!") ;
          rotarg = iopt ;  /* save and process later */
          iopt += 4 ; continue ;
       }
@@ -391,12 +423,24 @@ int main( int argc , char * argv[] )
 
    /*-- check for legal combinations --*/
 
+   if( gridpar_dset != NULL && rotpar_dset == NULL ){
+      fprintf(stderr,"+++ WARNING: -gridparent means nothing without -rotparent!\n");
+      DSET_delete( gridpar_dset ) ;
+      gridpar_dset = NULL ;
+   }
+
+   if( gridpar_dset != NULL && dopoints ){
+      fprintf(stderr,"+++ WARNING: -gridparent means nothing with -points!\n") ;
+      DSET_delete( gridpar_dset ) ;
+      gridpar_dset = NULL ;
+   }
+
    if( doorigin && !dopoints ){
       fprintf(stderr,"+++ WARNING: -origin means nothing without -points!\n") ;
    }
 
-   if( matvec == 0 && dcode < 0 && rotarg < 0 )
-      ERREX("Don't you want to do anything [no -rotate, shift, or matvec!]?") ;
+   if( matvec == 0 && dcode < 0 && rotarg < 0 && rotpar_dset == NULL )
+      ERREX("Don't you want to do anything [no -rotate, -shift, -matvec, -rotparent]?");
 
    /** read input dataset */
 
@@ -422,7 +466,7 @@ int main( int argc , char * argv[] )
 
    /* now can process rotation arguments */
 
-   ihand = handedness(dset) ;
+   ihand = THD_handedness(dset) ;
 
    if( rotarg > 0 ){
       int neg ;
@@ -437,7 +481,7 @@ int main( int argc , char * argv[] )
 
          case 'A': case 'P':
          case 'R': case 'L':
-         case 'I': case 'S': ax1 = axcode(dset,*cpt) ;
+         case 'I': case 'S': ax1 = THD_axcode(dset,*cpt) ;
                              neg = (ax1 < 0) ;
                              ax1 = abs(ax1) - 1 ; break ;
       }
@@ -452,7 +496,7 @@ int main( int argc , char * argv[] )
 
          case 'A': case 'P':
          case 'R': case 'L':
-         case 'I': case 'S': ax2 = axcode(dset,*cpt) ;
+         case 'I': case 'S': ax2 = THD_axcode(dset,*cpt) ;
                              neg = (ax2 < 0) ;
                              ax2 = abs(ax2) - 1 ; break ;
       }
@@ -467,7 +511,7 @@ int main( int argc , char * argv[] )
 
          case 'A': case 'P':
          case 'R': case 'L':
-         case 'I': case 'S': ax3 = axcode(dset,*cpt) ;
+         case 'I': case 'S': ax3 = THD_axcode(dset,*cpt) ;
                              neg = (ax3 < 0) ;
                              ax3 = abs(ax3) - 1 ; break ;
       }
@@ -490,7 +534,9 @@ fprintf(stderr,"ihand=%d th1=%g th2=%g th3=%g\n",ihand,th1,th2,th3);
 fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
 #endif
 
-      if( dopoints )
+      /* notice the minus signs on the angles -------+ */
+      /*                           |        |        | */
+      if( dopoints )           /*  V        V        V */
          rmat = rot_to_matrix( ax1,-th1,ax2,-th2,ax3,-th3 ) ; /* 21 Nov 2000 */
    }
 
@@ -499,74 +545,290 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
    if( dcode > 0 && (cdx != '\0' || cdy != '\0' || cdz != '\0') ){
       float qdx=0 , qdy=0 , qdz=0 ;
 
-      adx = axcode(dset,cdx) ;
-      switch( adx ){
-         case  1: qdx = -dx ; break ;
-         default:
-         case -1: qdx =  dx ; break ;
-         case  2: qdy = -dx ; break ;
-         case -2: qdy =  dx ; break ;
-         case  3: qdz = -dx ; break ;
-         case -3: qdz =  dx ; break ;
+      adx = THD_axcode(dset,cdx) ;
+      if( adx > -99 || dx != 0.0 ){      /* 29 Jan 2001: skip if purely 0 */
+         switch( adx ){
+            case  1: qdx = -dx ; break ;
+            default:
+            case -1: qdx =  dx ; break ;
+            case  2: qdy = -dx ; break ;
+            case -2: qdy =  dx ; break ;
+            case  3: qdz = -dx ; break ;
+            case -3: qdz =  dx ; break ;
+         }
       }
 
-      ady = axcode(dset,cdy) ;
-      switch( ady ){
-         case  1: qdx = -dy ; break ;
-         default:
-         case -1: qdx =  dy ; break ;
-         case  2: qdy = -dy ; break ;
-         case -2: qdy =  dy ; break ;
-         case  3: qdz = -dy ; break ;
-         case -3: qdz =  dy ; break ;
+      ady = THD_axcode(dset,cdy) ;
+      if( ady > -99 || dy != 0.0 ){      /* 29 Jan 2001 */
+         switch( ady ){
+            case  1: qdx = -dy ; break ;
+            case -1: qdx =  dy ; break ;
+            case  2: qdy = -dy ; break ;
+            default:
+            case -2: qdy =  dy ; break ;
+            case  3: qdz = -dy ; break ;
+            case -3: qdz =  dy ; break ;
+         }
       }
 
-      adz = axcode(dset,cdz) ;
-      switch( adz ){
-         case  1: qdx = -dz ; break ;
-         default:
-         case -1: qdx =  dz ; break ;
-         case  2: qdy = -dz ; break ;
-         case -2: qdy =  dz ; break ;
-         case  3: qdz = -dz ; break ;
-         case -3: qdz =  dz ; break ;
+      adz = THD_axcode(dset,cdz) ;
+      if( adz > -99 || dz != 0.0 ){      /* 29 Jan 2001 */
+         switch( adz ){
+            case  1: qdx = -dz ; break ;
+            case -1: qdx =  dz ; break ;
+            case  2: qdy = -dz ; break ;
+            case -2: qdy =  dz ; break ;
+            case  3: qdz = -dz ; break ;
+            default:
+            case -3: qdz =  dz ; break ;
+         }
       }
 
-#if 0
-fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n",
-        adx,dx,qdx , ady,dy,qdy , adz,dz,qdz ) ;
-#endif
+      if( verb )
+         fprintf(stderr,"Shifting parameters:\n"
+                        " direction codes: adx=%d ady=%d adz=%d\n"
+                        " input values:     dx=%g  dy=%g  dz=%g\n"
+                        " output values:   qdx=%g qdy=%g qdz=%g\n" ,
+                 adx,ady,adz , dx,dy,dz , qdx,qdy,qdz ) ;
 
       dx = qdx ; dy = qdy ; dz = qdz ;
    }
 
-   /*- 19 July 2000: deal with -matvec_dicom case -*/
+   /*- 19 July 2000: now can deal with -matvec_dicom case -*/
 
    if( matvec == MATVEC_DICOM ){
       pp   = DBLE_mat_to_dicomm( dset ) ;
-      ppt  = TRANSPOSE_MAT(pp) ;
-      rmat = MAT_MUL(ppt,rmat) ; rmat = MAT_MUL(rmat,pp) ; tvec = MATVEC(ppt,tvec) ;
+      ppt  = TRANSPOSE_DMAT(pp);
+      rmat = DMAT_MUL(ppt,rmat); rmat = DMAT_MUL(rmat,pp); tvec = DMATVEC(ppt,tvec);
+   }
+
+   /*-- 07 Feb 2001: deal with -rotparent and -gridparent case
+                     [very similar to -matvec_dicom, actually] --*/
+
+   if( gridpar_dset != NULL ){
+      int mm , nz_gp , nz_ds ;
+
+      /* check for compatibility! */
+
+      mm = THD_dataset_mismatch( gridpar_dset , dset ) ;
+      if( mm & (MISMATCH_DELTA | MISMATCH_ORIENT) ){
+         fprintf(stderr,"*** Fatal Error:\n"
+                        "*** -gridparent dataset and input dataset don't\n"
+                        "*** match in grid spacing and/or orientation!\n"  ) ;
+         exit(1) ;
+      }
+
+      if( DSET_NX(gridpar_dset) != DSET_NX(dset) ||
+          DSET_NY(gridpar_dset) != DSET_NY(dset)   ){
+
+         fprintf(stderr,"*** Fatal Error:\n"
+                        "*** -gridparent and input datasets\n"
+                        "*** don't match in x,y dimensions!\n" ) ;
+         exit(1) ;
+      }
+
+      /* check for zero padding */
+
+      nz_gp = DSET_NZ(gridpar_dset) ; nz_ds = DSET_NZ(dset) ;
+
+      if( nz_gp < nz_ds ){
+         fprintf(stderr,"*** Fatal Error:\n"
+                        "*** -gridparent has fewer slices than input dataset!\n") ;
+         exit(1) ;
+      }
+
+      if( nz_gp > nz_ds ){
+         int npad1 = (nz_gp - nz_ds) / 2 ;
+         int npad2 = (nz_gp - nz_ds) - npad1 ;
+         int add_I=0, add_S=0, add_A=0, add_P=0, add_L=0, add_R=0 ;
+         THD_3dim_dataset * pset ;
+         char *sp1,*sp2 ;
+
+         /* where to add slices? and how many? */
+
+         switch( dset->daxes->zzorient ){
+            case ORI_R2L_TYPE:
+            case ORI_L2R_TYPE: add_R=npad1; add_L=npad2; sp1="R"; sp2="L"; break;
+
+            case ORI_P2A_TYPE:
+            case ORI_A2P_TYPE: add_A=npad1; add_P=npad2; sp1="A"; sp2="P"; break;
+
+            case ORI_I2S_TYPE:
+            case ORI_S2I_TYPE: add_I=npad1; add_S=npad2; sp1="I"; sp2="S"; break;
+         }
+
+         /* add them on */
+
+         if( verb )
+            fprintf(stderr,"+++ Zero padding to match -gridparent: -%s %d  -%s %d\n",
+                    sp1,npad1,sp2,npad2 ) ;
+
+         pset = THD_zeropad( dset,
+                             add_I,add_S,add_A,add_P,add_L,add_R,
+                             "Elvis" , ZPAD_PURGE ) ;
+
+         if( pset == NULL ){
+            fprintf(stderr,"*** Fatal Error:\n"
+                           "*** Can't properly zeropad input dataset!\n" ) ;
+            exit(1) ;
+         }
+
+         /* toss input datset, replace with padded one */
+
+         DSET_delete(dset) ; dset = pset ;
+      }
+   }
+
+   if( rotpar_dset != NULL ){  /* compute transformation from -rotparent */
+      ATR_float * atr ;
+      float * matar , sum ;
+      THD_fvec3 fv ;
+      THD_dfvec3 dv,ev,qv , cv_e2, cv_e1, cv_s1, cv_s2 ;
+
+      /* load transformation from rotparent */
+
+      atr = THD_find_float_atr( rotpar_dset->dblk , "VOLREG_MATVEC_000000" ) ;
+      matar = atr->fl ;
+      LOAD_DMAT(rmat,matar[0],matar[1],matar[2],
+                     matar[4],matar[5],matar[6],
+                     matar[8],matar[9],matar[10] ) ;
+      LOAD_DFVEC3(tvec,matar[3],matar[7],matar[11]) ;
+
+      if( DEBUGTHISFILE ){ DUMP_DMAT33("rmat",rmat) ; DUMP_DFVEC3("tvec",tvec) ; }
+
+      /* check if matrix is orthogonal */
+
+      pp = TRANSPOSE_DMAT(rmat) ; pp = DMAT_MUL(pp,rmat) ;
+      sum = fabs(pp.mat[0][0]-1.0)+fabs(pp.mat[1][0])    +fabs(pp.mat[2][0])
+           +fabs(pp.mat[0][1])    +fabs(pp.mat[1][1]-1.0)+fabs(pp.mat[2][1])
+           +fabs(pp.mat[0][2])    +fabs(pp.mat[1][2])    +fabs(pp.mat[2][2]-1.0);
+      if( sum > 0.01 ) ERREX("-rotparent matrix not orthogonal!") ;
+
+      /* must alter shift [tvec] to allow for differing
+         coordinates in the rotparent, gridparent, and input datasets */
+
+      /* cv_e2 = center of input dataset [Dicom coordinates] */
+
+      fv = THD_dataset_center( dset ) ;       /* dataset coords  */
+      FVEC3_TO_DFVEC3( fv , cv_e2 ) ;         /* convert to double */
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("cv_e2",cv_e2) ; }
+
+      /* cv_e1 = center of gridparent */
+
+      if( gridpar_dset != NULL ){
+         fv = THD_dataset_center( gridpar_dset ) ;
+         FVEC3_TO_DFVEC3( fv , cv_e1 ) ;
+      } else {
+         cv_e1 = cv_e2 ;  /* what else to do? */
+      }
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("cv_e1",cv_e1) ; }
+
+      /* cv_s2 = center of rotation in rotparent */
+
+      atr = THD_find_float_atr( rotpar_dset->dblk , "VOLREG_CENTER_OLD" ) ;
+      LOAD_DFVEC3( cv_s2 , atr->fl[0] , atr->fl[1] , atr->fl[2] ) ;
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("cv_s2",cv_s2) ; }
+
+      /* cv_s1 = center of base dataset for rotparent */
+
+      atr = THD_find_float_atr( rotpar_dset->dblk , "VOLREG_CENTER_BASE" ) ;
+      LOAD_DFVEC3( cv_s1 , atr->fl[0] , atr->fl[1] , atr->fl[2] ) ;
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("cv_s1",cv_s1) ; }
+
+      /* compute extra shift due to difference in
+         center of rotation between rotparent and input dataset,
+         then add in shifts caused by -twodup for rotparent and input */
+
+      dv = SUB_DFVEC3( cv_e2 , cv_s2 ) ;
+      ev = DMATVEC( rmat , dv ) ;         /* R[E2-S2]         */
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("R[E2-S2]",ev) ; }
+
+      dv = ev ;  /* vestige of a stupid bug, since fixed */
+
+      ev = SUB_DFVEC3( cv_e1 , cv_s1 ) ;  /* E1-S1            */
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("E1-S1",ev) ; }
+
+      qv = SUB_DFVEC3( dv , ev ) ;        /* R[E2-S2] + S1-E1 */
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("net Dicom",ev) ; }
+
+      tvec = ADD_DFVEC3( tvec , qv ) ;    /* shifted translation vector */
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("total Dicom",tvec) ; }
+
+      /* convert transformation from Dicom to dataset coords */
+
+      pp   = DBLE_mat_to_dicomm( dset ) ;
+      ppt  = TRANSPOSE_DMAT(pp);
+      rmat = DMAT_MUL(ppt,rmat); rmat = DMAT_MUL(rmat,pp); tvec = DMATVEC(ppt,tvec);
+
+      if( DEBUGTHISFILE ){ DUMP_DFVEC3("total xyz",tvec) ; }
+
+      /* modify origin of output dataset to match -gridparent */
+
+      if( gridpar_dset != NULL ){
+         dset->daxes->xxorg = gridpar_dset->daxes->xxorg ;
+         dset->daxes->yyorg = gridpar_dset->daxes->yyorg ;
+         dset->daxes->zzorg = gridpar_dset->daxes->zzorg ;
+
+         /* 12 Feb 2001: adjust origin of time-offsets as well */
+
+         if( dset->taxis != NULL && dset->taxis->nsl > 0 ){
+            dset->taxis->zorg_sl = dset->daxes->zzorg ;
+         }
+      }
+
+      matvec = MATVEC_ORDER ;  /* flag that transform comes from rmat/tvec */
    }
 
    /*-- 21 Nov 2000: read (x,y,z) points from stdin, process them, quit --*/
 
    if( dopoints ){
-      THD_fvec3 xyzorg ;
-      if( !matvec ) LOAD_FVEC3( tvec , dx,dy,dz ) ;
+      THD_dfvec3 xyzorg ;
+      if( !matvec ) LOAD_DFVEC3( tvec , dx,dy,dz ) ;
       if( dcode < 0 ) dcode = DELTA_AFTER ;
-      LOAD_FVEC3(xyzorg,xo,yo,zo) ;
+      LOAD_DFVEC3(xyzorg,xo,yo,zo) ;
       rotate_stdin_points( xyzorg , rmat , dcode,tvec ) ;  /* at end of file */
       exit(0) ;
    }
 
-   /*-- read dataset, prepare to process it --*/
+   /*-- 12 Feb 2001: adjust time-offsets for slice direction shifts --*/
+
+   if( dset->taxis != NULL && dset->taxis->nsl > 0 ){
+      int ndz ;
+      int kk,jj , nsl = dset->taxis->nsl ;
+
+      if( matvec )
+         ndz = (int) rint( tvec.xyz[2] / fabs(dset->daxes->zzdel) ) ; /* shift */
+      else
+         ndz = (int) rint( dz / fabs(dset->daxes->xxdel) ) ;
+
+      if( ndz != 0 ){
+         float * tsl = (float *)malloc(sizeof(float)*nsl) ;
+         for( kk=0 ; kk < nsl ; kk ++ ){
+            jj = kk - ndz ;
+            if( jj < 0 || jj >= nsl ) tsl[kk] = 0.0 ;
+            else                      tsl[kk] = dset->taxis->toff_sl[jj] ;
+         }
+         EDIT_dset_items( dset , ADN_toff_sl , tsl , ADN_none ) ;
+         free(tsl) ;
+         if( verb )
+            fprintf(stderr,"+++ adjusting time-offsets by %d slices\n",ndz) ;
+      }
+   }
+
+   /*-- read dataset, prepare to process it, write it back out (with new name) --*/
 
    DSET_mallocize(dset) ;
-   if( verb ) fprintf(stderr,"+++ Loading dataset %s from disk",dset->dblk->diskptr->header_name);
    DSET_load(dset) ;
-   if( verb ) fprintf(stderr,"\n") ;
 
-   dset->idcode = MCW_new_idcode() ;  /* 08 Jun 1999 */
+   dset->idcode = MCW_new_idcode() ;  /* 08 Jun 1999 - is a new dataset */
    EDIT_dset_items( dset ,
                        ADN_prefix , new_prefix ,
                        ADN_label1 , new_prefix ,
@@ -672,57 +934,6 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
    exit(0) ;
 }
 
-/***********************************************************************/
-
-#include "thd.h"
-
-/*---------------------------------------------------------------------
-  This produces a permutation-like matrix that transforms from
-  brick axis coordinates to Dicom order coordinates.
------------------------------------------------------------------------*/
-
-static THD_mat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
-{
-   THD_mat33 tod ;
-
-   LOAD_ZERO_MAT(tod) ;
-
-   switch( dset->daxes->xxorient ){
-      case ORI_R2L_TYPE: tod.mat[0][0] =  1.0 ; break ;
-      case ORI_L2R_TYPE: tod.mat[0][0] = -1.0 ; break ;
-      case ORI_P2A_TYPE: tod.mat[1][0] = -1.0 ; break ;
-      case ORI_A2P_TYPE: tod.mat[1][0] =  1.0 ; break ;
-      case ORI_I2S_TYPE: tod.mat[2][0] =  1.0 ; break ;
-      case ORI_S2I_TYPE: tod.mat[2][0] = -1.0 ; break ;
-
-      default: THD_FATAL_ERROR("illegal xxorient code") ;
-   }
-
-   switch( dset->daxes->yyorient ){
-      case ORI_R2L_TYPE: tod.mat[0][1] =  1.0 ; break ;
-      case ORI_L2R_TYPE: tod.mat[0][1] = -1.0 ; break ;
-      case ORI_P2A_TYPE: tod.mat[1][1] = -1.0 ; break ;
-      case ORI_A2P_TYPE: tod.mat[1][1] =  1.0 ; break ;
-      case ORI_I2S_TYPE: tod.mat[2][1] =  1.0 ; break ;
-      case ORI_S2I_TYPE: tod.mat[2][1] = -1.0 ; break ;
-
-      default: THD_FATAL_ERROR("illegal yyorient code") ;
-   }
-
-   switch( dset->daxes->zzorient ){
-      case ORI_R2L_TYPE: tod.mat[0][2] =  1.0 ; break ;
-      case ORI_L2R_TYPE: tod.mat[0][2] = -1.0 ; break ;
-      case ORI_P2A_TYPE: tod.mat[1][2] = -1.0 ; break ;
-      case ORI_A2P_TYPE: tod.mat[1][2] =  1.0 ; break ;
-      case ORI_I2S_TYPE: tod.mat[2][2] =  1.0 ; break ;
-      case ORI_S2I_TYPE: tod.mat[2][2] = -1.0 ; break ;
-
-      default: THD_FATAL_ERROR("illegal zxorient code") ;
-   }
-
-   return tod ;
-}
-
 /*=================================================================================*/
 
 #include <ctype.h>
@@ -731,20 +942,20 @@ static THD_mat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
 
 #define DUPOUT(n) fprintf(fpout,"%s",linbuf+n)
 
-static void rotate_stdin_points( THD_fvec3 xyzorg, THD_mat33 rmat,
-                                                   int dcode, THD_fvec3 tvec )
+static void rotate_stdin_points( THD_dfvec3 xyzorg, THD_dmat33 rmat,
+                                                   int dcode, THD_dfvec3 tvec )
 {
    char linbuf[NBUF] , *cp ;
    FILE *fpin=stdin , *fpout=stdout ;
    int ii , kk , nbuf , ll , nn , ld ;
    double xx,yy,zz ;
-   THD_fvec3 xyz ;
+   THD_dfvec3 xyz ;
 
    if( verb ){
-      DUMP_MAT33("Rotation",rmat) ;
+      DUMP_DMAT33("Rotation",rmat) ;
    }
 
-   /** rmat = MAT_INV(rmat) ; **/
+   /** rmat = DMAT_INV(rmat) ; **/
 
    /*-- loop over input lines --*/
 
@@ -776,13 +987,12 @@ static void rotate_stdin_points( THD_fvec3 xyzorg, THD_mat33 rmat,
 
       /* process vector */
 
-
-      LOAD_FVEC3(xyz , xx,yy,zz) ;
-      xyz = SUB_FVEC3(xyz,xyzorg) ;
-      if( dcode == DELTA_BEFORE ) xyz = ADD_FVEC3(xyz,tvec) ;
-      xyz = MATVEC(rmat,xyz) ;
-      if( dcode == DELTA_AFTER ) xyz = ADD_FVEC3(xyz,tvec) ;
-      xyz = ADD_FVEC3(xyz,xyzorg) ;
+      LOAD_DFVEC3(xyz , xx,yy,zz) ;
+      xyz = SUB_DFVEC3(xyz,xyzorg) ;
+      if( dcode == DELTA_BEFORE ) xyz = ADD_DFVEC3(xyz,tvec) ;
+      xyz = DMATVEC(rmat,xyz) ;
+      if( dcode == DELTA_AFTER ) xyz = ADD_DFVEC3(xyz,tvec) ;
+      xyz = ADD_DFVEC3(xyz,xyzorg) ;
 
       fprintf(fpout,"%g %g %g%s",xyz.xyz[0],xyz.xyz[1],xyz.xyz[2],linbuf+nbuf) ;
       ld++ ;

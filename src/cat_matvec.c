@@ -3,79 +3,112 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
 
-Usage: cat_matvec matvec_spec matvec_spec ...
+/*============ 08 Feb 2001: actually implement this code - RWCox ============*/
 
-Catenates 3D rotation+shift matrix+vector transformations.
-Each matvec_spec is of the form
+#include "mrilib.h"
+#include "vecmat.h"
 
-  mfile [-opkey]
+int main( int argc , char * argv[] )
+{
+   int iarg=1 , nn , invert,nadd ;
+   THD_dmat33 tmat , qmat , imat ;
+   THD_dfvec3 tvec , qvec , ivec ;
+   FILE * fp ;
+   double dd[12] ;
+   THD_dvecmat dvm ;
 
-Where 'mfile indicates from where to get the matrix+vector:
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+      printf("Usage: cat_matvec matvec_spec matvec_spec ...\n"
+             "\n"
+             "Catenates 3D rotation+shift matrix+vector transformations.\n"
+             "Each matvec_spec is of the form\n"
+             "\n"
+             "  mfile [-opkey]\n"
+             "\n"
+             "'mfile' can take 2 forms:\n"
+             "\n"
+             "=== FORM 1 ===\n"
+             "mfile is the name of an ASCII file with 12 numbers arranged\n"
+             "in 3 lines:\n"
+             "      u11 u12 u13 v1\n"
+             "      u21 u22 u23 v2\n"
+             "      u31 u32 u33 u3\n"
+             "where each 'uij' and 'vi' is a number.  The 3x3 matrix [uij]\n"
+             "is the matrix of the transform, and the 3-vector [vi] is the\n"
+             "shift.  The transform is [xnew] = [uij]*[xold] + [vi].\n"
+             "\n"
+             "=== FORM 2 ===\n"
+             "mfile is of the form 'dataset::attribute', where 'dataset'\n"
+             "is the name of an AFNI dataset, and 'attribute' is the name\n"
+             "of an attribute in the dataset's header that contains a\n"
+             "matrix+vector (e.g., 'fred+orig::VOLREG_MATVEC_000000').\n"
+             "\n"
+             "=== COMPUTATIONS ===\n"
+             "If [U] [v] are the matrix/vector for the first mfile, and\n"
+             "   [A] [b] are the matrix/vector for the second mfile, then\n"
+             "the catenated transformation is\n"
+             "  matrix = [A][U]   vector = [A][v] + [b]\n"
+             "That is, the second mfile transformation follows the first.\n"
+             "\n"
+             "The optional 'opkey' (operation key) following each mfile\n"
+             "starts with a '-', and then is a set of letters telling how\n"
+             "to treat the input.  The only opkey currently defined is\n"
+             "\n"
+             "  -I = invert the transformation:\n"
+             "                     -1              -1\n"
+             "       [xold] = [uij]  [xnew] - [uij]  [vi]\n"
+             "\n"
+             "The transformation resulting by catenating the transformations\n"
+             "is written to stdout in the sam ASCII file format.  This can be\n"
+             "used as input to 3drotate -matvec_dicom (provided [uij] is a\n"
+             "proper orthogonal matrix).\n"
+             "\n"
+             "N.B.: If exactly 9 numbers can be read from an mfile, then those\n"
+             "      values form the matrix, and the vector is set to zero.\n"
+           ) ;
+      exit(0) ;
+   }
 
-  * The name of an ASCII file with 12 numbers:
-       u11 u12 u13 v1
-       u21 u22 u23 v2
-       u31 u32 u33 u3
-    where each 'uij' and 'vi' is a number.  The 3x3
-    matrix [uij] is the matrix of the transform, and
-    the 3-vector [vi] is the shift.  The transform
-    is [xnew] = [uij]*[xold] + [vi].
+   /* initialize identity transformation into tmat,tvec */
 
-  * The name of an AFNI dataset that is a linear warp
-    (+acpc) of another dataset (+orig).  The warp
-    transformation is the transformation from +orig
-    to +acpc coordinates.
+   LOAD_DIAG_DMAT(tmat,1.0,1.0,1.0) ;
+   LOAD_DFVEC3(tvec,0.0,0.0,0.0) ;
 
-The optional 'opkey' (operation key) following each mfile
-starts with a '-', and then is a set of letters telling
-how to treat the input:
+   /* loop and read arguments, process them */
 
-  * I or i = invert the transformation
-  * T or t = if mfile is a dataset, get the matrix+vector
-             from the TAGALIGN_MATVEC attribute (computed
-             by 3dTagalign) instead of the WARP_DATA
-             attribute (created by AFNI markers alignment).
+   while( iarg < argc ){
 
-The transformation resulting by catenating the transformations
-is written to stdout in the ASCII file format.  This can be
-used as input to 3drotate -matvec_dicom (provided [uij] is a
-proper orthogonal matrix).
+      nadd = 1 ; invert = 0 ;
+      if( iarg+1 < argc && strcmp(argv[iarg+1],"-I") == 0 ){
+         invert = 1 ; nadd = 2 ;
+      }
+      dvm = THD_read_dvecmat( argv[iarg] , invert ) ;
+      qmat = dvm.mm ; qvec = dvm.vv ;
 
-EXAMPLE: Suppose you have two anatomical datasets on the same
-subject (taken on different days) and wish to align their
-associated functional datasets.  You transform each anat
-dataset to +acpc coordinates.  You then mark each +acpc
-dataset with a set of tags, and then use 3dTagalign to
-compute the transformation that bests aligns the tagsets.
-The transformational picture is
+      if( SIZE_DMAT(qmat) == 0.0 ){
+         fprintf(stderr,"*** ERROR: can't read mfile %s\n",argv[iarg]) ;
+         exit(1) ;
+      }
 
-          T1
-  a1+orig --> a1+acpc
-    ^           ^
-    |T4         |T3
-    |           |
-  a2+orig --> a2+acpc
-          T2
+      iarg += nadd ;
 
-Transformation T1 is stored as the WARP_DATA in a1+acpc.HEAD;
-T2 is stored as the WARP_DATA in a2+acpc.HEAD.  T3 is from
+      /* multiply into accumulating transformation */
 
-  3dTagalign -master a1+acpc -prefix a2tagged a2+acpc
+      imat = DMAT_MUL( qmat , tmat ) ;
+      ivec = DMATVEC( qmat , tvec ) ;
+      tvec = ADD_DFVEC3( qvec , ivec ) ;
+      tmat = imat ;
+   }
 
-and is now stored in TAGALIGN_MATVEC in a2tagged+acpc.HEAD.
-To compute the transformation that takes a2+orig to a1+orig
-(labeled T4 in the diagram above), the command to use is
+   /* write results to stdout */
 
-  cat_matvec a2+acpc a2tagged+acpc -T a1+acpc -I > T4.mfile
+   printf("%13.6g %13.6g %13.6g %13.6g\n"
+          "%13.6g %13.6g %13.6g %13.6g\n"
+          "%13.6g %13.6g %13.6g %13.6g\n" ,
+     tmat.mat[0][0] , tmat.mat[0][1] , tmat.mat[0][2] , tvec.xyz[0] ,
+     tmat.mat[1][0] , tmat.mat[1][1] , tmat.mat[1][2] , tvec.xyz[1] ,
+     tmat.mat[2][0] , tmat.mat[2][1] , tmat.mat[2][2] , tvec.xyz[2]  ) ;
 
-You can use T4.mfile as input to 3drotate to transform
-functional data from the a2+orig session to be aligned with
-data from the a1+orig session by doing
-
-  3drotate -Fourier -clipit -matvec_dicom T4.mfile
-           -prefix f2rot f1+orig
-
-Please note that when marking and +acpc transforming
-datasets with AFNI, they MUST be in separate directories.
+   exit(0) ;
+}

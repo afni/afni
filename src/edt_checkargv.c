@@ -6,14 +6,6 @@
 
 #include "mrilib.h"
 
-#undef  AFNI_DEBUG
-#undef  CLUST_DEBUG
-#define STATUS(x) /* nada */
-#define ENTRY(x)  /* nada */
-#define EXRETURN  return
-#define RETURN(x) return(x)
-
-
 /**--------------------------------------------------------------------
    Check option # nopt to see if it is a legal dataset editing command.
    If so, put its value into "edopt" and return the number of options

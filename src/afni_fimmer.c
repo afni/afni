@@ -9,11 +9,6 @@
 #include "afni.h"
 #include "mrilib.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /*--------------------------------------------------------------------
   Find out if a timeseries is in the library;
   if it is, return its index, otherwise return -1.

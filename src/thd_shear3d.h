@@ -7,8 +7,6 @@
 #ifndef _THD_SHEAR3D_HEADER_
 #define _THD_SHEAR3D_HEADER_
 
-#undef  FLOAT_TYPE
-#define FLOAT_TYPE double
 #include "vecmat.h"
 
 #include <stdio.h>
@@ -34,7 +32,7 @@ typedef struct {
 } MCW_3shear ;
 
 #define DUMP_3SHEAR(str,sss)                                                      \
-  printf("shear %s: flip0=%d flip1=%d\n"                                          \
+  fprintf(stderr,"shear %s: flip0=%d flip1=%d\n"                                  \
          " #0: ax=%d scl=%13.6g %13.6g %13.6g sft=%13.6g\n"                       \
          " #1: ax=%d scl=%13.6g %13.6g %13.6g sft=%13.6g\n"                       \
          " #2: ax=%d scl=%13.6g %13.6g %13.6g sft=%13.6g\n"                       \
@@ -51,26 +49,26 @@ typedef struct {
 /*-------- Prototypes -------------*/
 
 extern double norm_3shear( MCW_3shear sh ) ;
-extern THD_mat33 make_shear_matrix( int ax , double scl[3] ) ;
+extern THD_dmat33 make_shear_matrix( int ax , double scl[3] ) ;
 extern MCW_3shear permute_3shear( MCW_3shear shin , int ox1, int ox2, int ox3 ) ;
-extern THD_mat33 permute_mat33( THD_mat33 q , int ox1, int ox2, int ox3 ) ;
-extern THD_fvec3 permute_fvec3( THD_fvec3 q , int ox1, int ox2, int ox3 ) ;
-extern MCW_3shear shear_xzyx( THD_mat33 *q , THD_fvec3 *xyzdel ) ;
-extern MCW_3shear shear_arb( THD_mat33 *q , THD_fvec3 *xyzdel , int ox1,int ox2,int ox3 ) ;
-extern MCW_3shear shear_best( THD_mat33 * q , THD_fvec3 * xyzdel ) ;
-extern THD_mat33 rot_to_matrix( int ax1 , double th1 ,
-                                int ax2 , double th2 , int ax3 , double th3  ) ;
+extern THD_dmat33 permute_dmat33( THD_dmat33 q , int ox1, int ox2, int ox3 ) ;
+extern THD_dfvec3 permute_dfvec3( THD_dfvec3 q , int ox1, int ox2, int ox3 ) ;
+extern MCW_3shear shear_xzyx( THD_dmat33 *q , THD_dfvec3 *xyzdel ) ;
+extern MCW_3shear shear_arb( THD_dmat33 *q , THD_dfvec3 *xyzdel , int ox1,int ox2,int ox3 ) ;
+extern MCW_3shear shear_best( THD_dmat33 * q , THD_dfvec3 * xyzdel ) ;
+extern THD_dmat33 rot_to_matrix( int ax1 , double th1 ,
+                                 int ax2 , double th2 , int ax3 , double th3  ) ;
 extern MCW_3shear rot_to_shear( int ax1 , double th1 ,
                          int ax2 , double th2 ,
                          int ax3 , double th3 , 
                          int dcode , double dx , double dy , double dz ,
                          double xdel , double ydel , double zdel ) ;
-extern MCW_3shear rot_to_shear_matvec( THD_mat33 rmat , THD_fvec3 tvec , 
+extern MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec , 
                                 double xdel , double ydel , double zdel )  ;
-extern THD_mat33 MAT_xt_x( THD_mat33 inmat ) ;
-extern THD_vecmat MAT_symeig( THD_mat33 inmat ) ;
-extern THD_mat33 MAT_pow( THD_mat33 inmat , double pp ) ;
-extern THD_mat33 MAT_svdrot( THD_mat33 inmat ) ;
-extern THD_vecmat LSQ_rot_trans( int n, THD_fvec3 * xx, THD_fvec3 * yy, FLOAT_TYPE * ww ) ;
+extern THD_dmat33 DMAT_xt_x( THD_dmat33 inmat ) ;
+extern THD_dvecmat DMAT_symeig( THD_dmat33 inmat ) ;
+extern THD_dmat33 DMAT_pow( THD_dmat33 inmat , double pp ) ;
+extern THD_dmat33 DMAT_svdrot( THD_dmat33 inmat ) ;
+extern THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 * xx, THD_dfvec3 * yy, double * ww ) ;
 
 #endif /* _THD_SHEAR3D_HEADER_ */

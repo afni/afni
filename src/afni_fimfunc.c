@@ -8,11 +8,6 @@
 
 #include "afni.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /*-----------------------------------------------------------------------------
    Register a function to be called from the "FIM+" menu.
      menu_name = label for menu

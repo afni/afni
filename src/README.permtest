@@ -1,0 +1,25 @@
+The following is the README file for the permutation test plugins written
+by Matthew Belmonte.  This code has been released under the GPL.
+------------------------------------------------------------------------------
+This directory contains plug_permtest.c and plug_threshold.c, source modules
+for the AFNI Permutation Test and Threshold plugins, respectively.  The
+threshold plugin separates brain from non-brain (with touch-up work being
+handled by the Draw Dataset plugin), and the Permutation Test plugin evaluates
+activations for statistical significance using a sensitive, nonparametric
+algorithm.  To build both modules, place them in your AFNI source code
+directory and type "make plug_permtest.so" and "make plug_threshold.so".
+If you use this software in your research, please take a moment to send mail to
+the author, belmonte@mit.edu, and cite the following paper in your report:
+
+Matthew Belmonte and Deborah Yurgelun-Todd, `Permutation Testing Made Practical
+for Functional Magnetic Resonance Image Analysis', IEEE Transactions on Medical
+Imaging 20(3):???-??? (2001).
+
+The permutation test takes a lot of memory and a lot of CPU.  You'll want to
+use the fastest processor you can lay your hands on, and 256MB of memory.  If
+you're using Digital UNIX, you may find that the plugin will be unable to
+allocate all the memory that it needs unless you increase the values of the
+following kernel parameters: max-per-proc-address-space, per-proc-data-size,
+max-per-proc-data-size, per-proc-address-space, max-per-proc-address-space.
+To change these parameters, use the command-line tool "dxkerneltuner", or the
+graphical interface "sysconfig".

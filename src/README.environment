@@ -887,8 +887,49 @@ of the xy-axes will get zero weight, and 6 along the z-axis.  '5%' is
 the default value used by the 3D registration routines (in mri_3dalign.c)
 if no other value is specified.
 
-=================================
-| Robert W. Cox, PhD            |
-| Biophysics Research Institute |
-| Medical College of Wisconsin  |
-=================================
+--------------------
+Variable: AFNI_TRACE
+--------------------
+This variable controls the initial setting of the tracing (debugging)
+code when AFNI programs startup.  If it is set to 'y', then tracing
+is turned on and set to the LOW mode (like -trace in AFNI).  If it is
+set to 'Y', then tracing is turned on and set to the HIGH mode (like
+-TRACE in AFNI).  Anything else, and tracing is turned off.
+
+N.B.: You can't set this variable in .afnirc and expect it to have
+      any effect (and why would you want to?), since it is read from
+      the environment BEFORE the .afnirc file is read in.
+
+N.B.: At this moment (26 Jan 2001), only the AFNI program itself is
+      configured for tracing.  As time goes, the entire AFNI programming
+      library and suite of programs will be revamped for this purpose.
+      The goal is to make it easier to find bugs, and localize crashes.
+
+------------------------
+Variable: AFNI_ROTA_ZPAD
+------------------------
+This variable controls the amount of zero-padding used during 3D rotations
+in 3drotate, 3dvolreg, etc.  It provides a default value for the "-zpad"
+options of these programs.  If zero-padding is used, then this many voxels
+are padded out on each edge (all 6 faces) of a 3D brick before rotation.
+After the rotation, these perimeter values (whatever they might be) will
+be stripped off.  If "-zpad" is used on the command line, it overrides
+this value.
+
+------------------------
+Variable: AFNI_TO3D_ZPAD
+------------------------
+This variable sets the number of slices added on each z-face in datasets
+created by program to3d.  It provides a default value for the "-zpad" option
+of that program.  It can be set to an integer, meaning a slice count, or
+a number of millimeters, meaning a minimum distance to pad:
+   setenv AFNI_TO3D_ZPAD 2
+   setenv AFNI_TO3D_ZPAD 16mm
+If "-zpad" is used on the to3d command line, it overrides this value.
+If neither is present, no zero padding is used.  Note well that this
+padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.
+
+=======================================
+| Robert W Cox, PhD                   |
+| National Institute of Mental Health |
+=======================================

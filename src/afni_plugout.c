@@ -8,11 +8,6 @@
 #include "afni.h"
 #include "afni_plugout.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 #ifdef ALLOW_PLUGINS
 
 /** global data for plugouts **/

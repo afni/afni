@@ -845,11 +845,7 @@ int main( int argc , char * argv[] )
                   switch( DSET_BRICK_TYPE(new_dset,kk) ){
 
 #undef ROUND
-#ifndef NO_RINT
-#  define ROUND(qq)   ((short)rint((qq)))
-#else
-#  define ROUND(qq)   ((short)(qq))
-#endif
+#define ROUND(qq) ((short)rint((qq)))
 
                      case MRI_short:{
                         short * bar = (short *) DSET_ARRAY(new_dset,kk) ;

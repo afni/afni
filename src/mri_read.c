@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -471,6 +471,10 @@ MRI_IMARR * mri_read_file( char * fname )
 
       newar = mri_read_3A( new_fname ) ;
 
+   } else if( strstr(new_fname,".hdr") != NULL ){  /* 05 Feb 2001 */
+
+      newar = mri_read_analyze75( new_fname ) ;
+
    } else {
       newim = mri_read( new_fname ) ;      /* read from a 2D file */
       if( newim == NULL ){ free(new_fname) ; return NULL ; }
@@ -501,6 +505,8 @@ MRI_IMAGE * mri_read_just_one( char * fname )
 /*-----------------------------------------------------------------
   return a count of how many 2D images will be read from this file
 -------------------------------------------------------------------*/
+
+static int mri_imcount_analyze75( char * ) ;  /* prototype */
 
 int mri_imcount( char * tname )
 {
@@ -582,6 +588,12 @@ int mri_imcount( char * tname )
       free( new_fname ) ;
       if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) return 0 ;
       else                                                                   return nz ;
+   }
+
+   /*** 05 Feb 2001: deal with ANALYZE .hdr files ***/
+
+   if( strstr(new_fname,".hdr") != NULL ){
+      return mri_imcount_analyze75( new_fname ) ;
    }
 
    /*** not a 3D filename ***/
@@ -1272,6 +1284,249 @@ MRI_IMARR * mri_read_3A( char * tname )
 }
 
 /*---------------------------------------------------------------------------
+   Stuff to read an ANALYZE 7.5 .img file, given the .hdr filename
+   -- 05 Feb 2001 -- RWCox
+-----------------------------------------------------------------------------*/
+
+#include "mayo_analyze.h"
+
+static void swap_long(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1, b2, b3;
+
+   b0 = *pntr; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
+   *pntr = b3; *(pntr+1) = b2; *(pntr+2) = b1; *(pntr+3) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+static void swap_short(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1;
+
+   b0 = *pntr; b1 = *(pntr+1);
+   *pntr = b1; *(pntr+1) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+static void swap_analyze_hdr( struct dsr *pntr )
+{
+   swap_long(&pntr->hk.sizeof_hdr) ;
+   swap_long(&pntr->hk.extents) ;
+   swap_short(&pntr->hk.session_error) ;
+   swap_short(&pntr->dime.dim[0]) ;
+   swap_short(&pntr->dime.dim[1]) ;
+   swap_short(&pntr->dime.dim[2]) ;
+   swap_short(&pntr->dime.dim[3]) ;
+   swap_short(&pntr->dime.dim[4]) ;
+   swap_short(&pntr->dime.dim[5]) ;
+   swap_short(&pntr->dime.dim[6]) ;
+   swap_short(&pntr->dime.dim[7]) ;
+#if 0
+   swap_short(&pntr->dime.unused1) ;
+#endif
+   swap_short(&pntr->dime.datatype) ;
+   swap_short(&pntr->dime.bitpix) ;
+   swap_long(&pntr->dime.pixdim[0]) ;
+   swap_long(&pntr->dime.pixdim[1]) ;
+   swap_long(&pntr->dime.pixdim[2]) ;
+   swap_long(&pntr->dime.pixdim[3]) ;
+   swap_long(&pntr->dime.pixdim[4]) ;
+   swap_long(&pntr->dime.pixdim[5]) ;
+   swap_long(&pntr->dime.pixdim[6]) ;
+   swap_long(&pntr->dime.pixdim[7]) ;
+   swap_long(&pntr->dime.vox_offset) ;
+   swap_long(&pntr->dime.funused1) ;
+   swap_long(&pntr->dime.funused2) ;
+   swap_long(&pntr->dime.cal_max) ;
+   swap_long(&pntr->dime.cal_min) ;
+   swap_long(&pntr->dime.compressed) ;
+   swap_long(&pntr->dime.verified) ;
+   swap_short(&pntr->dime.dim_un0) ;
+   swap_long(&pntr->dime.glmax) ;
+   swap_long(&pntr->dime.glmin) ;
+   return ;
+}
+
+/*---------------------------------------------------------------*/
+
+static int mri_imcount_analyze75( char * hname )
+{
+   FILE * fp ;
+   struct dsr hdr ;    /* ANALYZE .hdr format */
+   int doswap , nz ;
+
+   fp = fopen( hname , "rb" ) ;
+   if( fp == NULL ) return 0 ;
+   hdr.dime.dim[0] = 0 ;
+   fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
+   fclose(fp) ;
+   if( hdr.dime.dim[0] == 0 ) return 0 ;
+   doswap = (hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15) ;
+   if( doswap ) swap_analyze_hdr( &hdr ) ;
+
+   switch( hdr.dime.dim[0] ){
+      case 2:  nz = 1                                 ; break ;
+      case 3:  nz = hdr.dime.dim[3]                   ; break ;
+
+      default:
+      case 4:  nz = hdr.dime.dim[3] * hdr.dime.dim[4] ; break ;
+   }
+   if( nz < 1 ) nz == 1 ;
+
+   /** fprintf(stderr,"mri_imcount_analyze75: %s %d\n",hname,nz) ; **/
+   return nz ;
+}
+
+/*---------------------------------------------------------------*/
+
+MRI_IMARR * mri_read_analyze75( char * hname )
+{
+   FILE * fp ;
+   char iname[1024] , buf[1024] ;
+   int ii , jj , doswap ;
+   struct dsr hdr ;    /* ANALYZE .hdr format */
+   int ngood , length , kim , koff , datum_type , datum_len , swap ;
+   int   nx,ny,nz , hglobal=0 , himage=0 ;
+   float dx,dy,dz ;
+   MRI_IMARR * newar ;
+   MRI_IMAGE * newim ;
+   void      * imar ;
+
+   /* check & prepare filenames */
+
+   if( hname == NULL ) return NULL ;
+   jj = strlen(hname) ;
+   if( jj < 5 ) return NULL ;
+   if( strcmp(hname+jj-3,"hdr") != 0 ) return NULL ;
+   strcpy(iname,hname) ; strcpy(iname+jj-3,"img") ;
+
+   /** fprintf(stderr,"mri_read_analyze75: hname=%s iname=%s\n",hname,iname) ; **/
+
+   /* read header file into struct */
+
+   fp = fopen( hname , "rb" ) ;
+   if( fp == NULL ) return NULL ;
+   hdr.dime.dim[0] = 0 ;
+   fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
+   fclose(fp) ;
+   if( hdr.dime.dim[0] == 0 ) return NULL ;
+
+   /* check for swap-age */
+
+   doswap = (hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15) ;
+   if( doswap ) swap_analyze_hdr( &hdr ) ;
+
+   /** fprintf(stderr,"mri_read_analyze75: doswap=%d\n",doswap) ; **/
+
+   /* get data type into mrilib MRI_* form */
+
+   switch( hdr.dime.datatype ){
+      default:
+         fprintf(stderr,"*** %s: Unknown ANALYZE datatype=%d\n",
+                 hname,hdr.dime.datatype) ;
+      return NULL ;
+
+      case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte    ; break ;
+      case ANDT_SIGNED_SHORT:  datum_type = MRI_short   ; break ;
+      case ANDT_SIGNED_INT:    datum_type = MRI_int     ; break ;
+      case ANDT_FLOAT:         datum_type = MRI_float   ; break ;
+      case ANDT_COMPLEX:       datum_type = MRI_complex ; break ;
+      case ANDT_RGB:           datum_type = MRI_rgb     ; break ;
+   }
+
+   datum_len = mri_datum_size(datum_type) ;
+
+   /** fprintf(stderr,"mri_read_analyze75: datum_type=%d datum_len=%d\n",datum_type,datum_len) ; **/
+
+   /* compute dimensions of images, and number of images */
+
+   nx = hdr.dime.dim[1] ;
+   ny = hdr.dime.dim[2] ;
+   if( nx < 2 || ny < 2 ) return NULL ;
+
+   switch( hdr.dime.dim[0] ){
+      case 2:  nz = 1                                 ; break ;
+      case 3:  nz = hdr.dime.dim[3]                   ; break ;
+
+      default:
+      case 4:  nz = hdr.dime.dim[3] * hdr.dime.dim[4] ; break ;
+   }
+   if( nz < 1 ) nz == 1 ;
+
+   dx = hdr.dime.pixdim[1] ;
+   dy = hdr.dime.pixdim[2] ;
+   dz = hdr.dime.pixdim[3] ;
+
+   /** fprintf(stderr,"mri_read_analyze75: nx=%d ny=%d nz=%d\n",nx,ny,nz) ; **/
+   /** fprintf(stderr,"mri_read_analyze75: dx=%g dy=%g dz=%g\n",dx,dy,dz) ; **/
+
+   /* open .img file and read images from it */
+
+   length = THD_filesize(iname) ;
+   if( length <= 0 ){
+      fprintf(stderr,"*** Can't find ANALYZE file %s\n",iname) ;
+      return NULL ;
+   }
+
+   fp = fopen( iname , "rb" ) ;
+   if( fp == NULL ){
+      fprintf(stderr,"*** Can't open ANALYZE file %s\n",iname) ;
+      return NULL ;
+   }
+
+   ngood = datum_len*nx*ny*nz ;
+   if( length < ngood ){
+      fprintf( stderr,
+        "*** ANALYZE file %s is %d bytes long but must be at least %d bytes long\n"
+        "*** for nx=%d ny=%d nz=%d and voxel=%d bytes\n",
+        iname,length,ngood,nx,ny,nz,datum_len ) ;
+      return NULL ;
+   }
+
+   /*** read images from the file ***/
+
+   INIT_IMARR(newar) ;
+
+   for( kim=0 ; kim < nz ; kim++ ){
+      koff = hglobal + (kim+1)*himage + datum_len*nx*ny*kim ;
+   /** fprintf(stderr,"mri_read_analyze75: kim=%d koff=%d\n",kim,koff) ; **/
+      fseek( fp , koff , SEEK_SET ) ;
+
+      newim  = mri_new( nx , ny , datum_type ) ;
+      imar   = mri_data_pointer( newim ) ;
+      length = fread( imar , datum_len , nx * ny , fp ) ;
+
+      if( doswap ){
+   /** fprintf(stderr,"mri_read_analyze75: about to swap\n") ; **/
+         switch( datum_len ){
+            default: break ;
+            case 2:  swap_twobytes (   nx*ny , imar ) ; break ;  /* short */
+            case 4:  swap_fourbytes(   nx*ny , imar ) ; break ;  /* int, float */
+            case 8:  swap_fourbytes( 2*nx*ny , imar ) ; break ;  /* complex */
+         }
+      }
+
+   /** fprintf(stderr,"mri_read_analyze75: about to add aux stuff\n") ; **/
+      if( nz == 1 ) mri_add_name( iname , newim ) ;
+      else {
+         sprintf( buf , "%s#%d" , iname,kim ) ;
+         mri_add_name( buf , newim ) ;
+      }
+
+      newim->dx = dx ; newim->dy = dy ; newim->dz = dz ; newim->dw = 1.0 ;
+      ADDTO_IMARR(newar,newim) ;
+   }
+
+   /** fprintf(stderr,"mri_read_analyze75: about to return\n") ; **/
+   fclose(fp) ; return newar ;
+}
+
+
+/*---------------------------------------------------------------------------
    Stuff to read a file in "delay" mode -- 01 Jan 1997.
 -----------------------------------------------------------------------------*/
 
@@ -1371,6 +1626,10 @@ MRI_IMARR * mri_read_file_delay( char * fname )
               new_fname[0] == '3' && new_fname[1] == 'A' && new_fname[3] == ':' ){
 
       newar = mri_read_3A( new_fname ) ;
+
+   } else if( strstr(new_fname,".hdr") != NULL ){ /* 05 Feb 2001 - ANALYZE header */
+
+      newar = mri_read_analyze75( new_fname ) ;
 
    } else {
       newim = mri_read( new_fname ) ;      /* read from a 2D file */

@@ -1,9 +1,3 @@
-/*****************************************************************************
-   Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
-******************************************************************************/
-
 /*---------------------------------------------------------------------------*/
 /*
   Program to calculate the deconvolution of a measured 3d+time dataset
@@ -135,6 +129,28 @@
 	   output buffer.
   Date:    27 July 2000
 
+  Mod:     Additional output with -nodata option (norm.std.dev.'s for
+           GLT linear constraints).
+  Date:    11 August 2000
+
+  Mod:     Added -nocout option, to suppress the fit coefficient output.
+  Date:    08 September 2000
+
+  Mod:     Added -stim_nptr option, to allow input stim functions which are
+           sampled at a multiple of the 1/TR rate.
+  Date:    03 January 2001 
+
+  Mod:     Added error message if user requests bucket dataset output with
+           no sub-bricks.
+  Date:    10 January 2001
+
+  Mod:     Set slice offset times to 0 if -tshift option is used.
+  Date:    11 January 2001
+
+
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -142,7 +158,7 @@
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "27 July 2000"    /* date of latest program revision */
+#define PROGRAM_LATEST  "11 Jan  2001"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -180,12 +196,14 @@ typedef struct DC_options
   int nodata;              /* flag for 'no data' option */
   int p;                /* total number of parameters in the full model */
   int q;                /* total number of parameters in the baseline model */
+  int nbricks;          /* number of sub-bricks in bucket dataset output */
 
   int num_stimts;                     /* number of stimulus time series */
   char * stim_filename[MAX_STIMTS];   /* input stimulus time series */
   char * stim_label[MAX_STIMTS];      /* label for stimulus time series */
   int stim_minlag[MAX_STIMTS];        /* min. time lag for impulse response */
   int stim_maxlag[MAX_STIMTS];        /* max. time lag for impulse response */
+  int stim_nptr[MAX_STIMTS];          /* number of stim fn. points per TR */
 
   int glt_num;                        /* number of general linear tests */
   int glt_rows[MAX_GLT];              /* number of linear constraints in glt */
@@ -203,6 +221,7 @@ typedef struct DC_options
   int rout;              /* flag to output R^2 statistics */
   int tout;              /* flag to output t-statistics */
   int vout;              /* flag to output variance map */
+  int nocout;            /* flag to suppress output of fit coefficients */
   int xout;              /* flag to write X and inv(X'X) matrices to screen */
   int full_first;        /* flag to output full model stats first */
 
@@ -216,7 +235,7 @@ typedef struct DC_options
 
 void DC_error (char * message)
 {
-  fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
+  fprintf (stderr, "%s Error: %s \a\n\n", PROGRAM_NAME, message);
   exit(1);
 }
 
@@ -253,7 +272,7 @@ void display_help_menu()
     "                       the deconvolution procedure. (default = last)   \n"
     "[-polort pnum]       pnum = degree of polynomial corresponding to the  \n"
     "                       null hypothesis (pnum = 0, 1, or 2)             \n"
-    "                       (default pnum = 1)                              \n"
+    "                       (default: pnum = 1)                             \n"
     "[-rmsmin r]          r = minimum rms error to reject reduced model     \n"
     "[-xout]              flag to write X and inv(X'X) matrices to screen   \n"
     "[-fdisp fval]        Write (to screen) results for those voxels        \n"
@@ -264,9 +283,12 @@ void display_help_menu()
     "-stim_file k sname   sname = filename of kth time series input stimulus\n"
     "[-stim_label k slabel] slabel = label for kth input stimulus           \n"
     "[-stim_minlag k m]   m = minimum time lag for kth input stimulus       \n"
-    "                       (default m = 0)                                 \n"
+    "                       (default: m = 0)                                \n"
     "[-stim_maxlag k n]   n = maximum time lag for kth input stimulus       \n"
-    "                       (default n = 0)                                 \n"
+    "                       (default: n = 0)                                \n"
+    "[-stim_nptr k p]     p = number of stimulus function points per TR     \n"
+    "                       Note: This option requires 0 slice offset times \n"
+    "                       (default: p = 1)                                \n"
     "                                                                       \n"
     "[-glt s gltname]     Perform s simultaneous linear tests, as specified \n"
     "                       by the matrix contained in file gltname         \n"
@@ -298,7 +320,8 @@ void display_help_menu()
     "[-rout]            Flag to output the R^2 statistics                   \n"
     "[-tout]            Flag to output the t-statistics                     \n"
     "[-vout]            Flag to output the sample variance (MSE) map        \n"
-    "                                                                       \n"
+    "[-nocout]          Flag to suppress output of fit coefficients (and    \n"
+    "                     associated statistics)                            \n"
     "[-full_first]      Flag to specify that the full model statistics will \n"
     "                     appear first in the bucket dataset output         \n"
     "                                                                       \n"
@@ -341,6 +364,7 @@ void initialize_options
     {
       option_data->stim_minlag[is] = 0;
       option_data->stim_maxlag[is] = 0;
+      option_data->stim_nptr[is]   = 1;
     }
 
   option_data->glt_num = 0;
@@ -357,6 +381,7 @@ void initialize_options
   option_data->tout = 0;
   option_data->vout = 0;
   option_data->xout = 0;
+  option_data->nocout = 0;
   option_data->full_first = 0;
 
 
@@ -678,6 +703,28 @@ void get_options
 	}
       
 
+      /*-----   -stim_nptr k p   -----*/
+      if (strcmp(argv[nopt], "-stim_nptr") == 0)
+	{
+	  nopt++;
+	  if (nopt+1 >= argc)  
+	    DC_error ("need 2 arguments after -stim_nptr");
+
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival < 1) || (ival > option_data->num_stimts))
+	    DC_error ("-stim_nptr k p   Require: 1 <= k <= num_stimts");
+	  k = ival-1;
+	  nopt++;
+
+	  sscanf (argv[nopt], "%d", &ival);
+	  if (ival < 1)
+	    DC_error ("-stim_nptr k p   Require: 1 <= p");
+	  option_data->stim_nptr[k] = ival;
+	  nopt++;
+	  continue;
+	}
+      
+
       /*-----   -glt s gltname   -----*/
       if (strcmp(argv[nopt], "-glt") == 0)
 	{
@@ -818,6 +865,15 @@ void get_options
       if (strncmp(argv[nopt], "-xout", 5) == 0)
 	{
 	  option_data->xout = 1;
+	  nopt++;
+	  continue;
+	}
+      
+
+      /*-----   -nocout   -----*/
+      if (strcmp(argv[nopt], "-nocout") == 0)
+	{
+	  option_data->nocout = 1;
 	  nopt++;
 	  continue;
 	}
@@ -1314,7 +1370,7 @@ void check_one_output_file
     {
       sprintf (message,
 	       "Output dataset file %s already exists "
-	       " -- cannot continue!\a\n",
+	       " -- cannot continue! ",
 	       new_dset->dblk->diskptr->header_name);
       DC_error (message);
     }
@@ -1379,9 +1435,11 @@ void check_for_valid_inputs
   int num_stimts;          /* number of stimulus time series */
   int * min_lag;           /* minimum time delay for impulse response */
   int * max_lag;           /* maximum time delay for impulse response */
+  int * nptr;              /* number of stim fn. time points per TR */
   int m;                   /* number of time delays for impulse response */
   int q;                   /* number of baseline parameters */
   int p;                   /* total number of parameters */
+  int nbricks;             /* number of sub-bricks in bucket dataset output */
   int it;                  /* time point index */
   int nt;                  /* number of images in input 3d+time dataset */
   int NFirst;              /* first image from input 3d+time dataset to use */
@@ -1389,6 +1447,9 @@ void check_for_valid_inputs
   int N;                   /* number of usable time points */
   int ib;                  /* block (run) index */
   int irb;                 /* time index relative to start of block (run) */
+  int glt_num;             /* number of general linear tests */
+  int * glt_rows;          /* number of linear constraints in glt */
+  int iglt;                /* general linear test index */
 
 
   /*----- Initialize local variables -----*/
@@ -1396,6 +1457,9 @@ void check_for_valid_inputs
   num_stimts = option_data->num_stimts;
   min_lag = option_data->stim_minlag;
   max_lag = option_data->stim_maxlag;
+  glt_num = option_data->glt_num;
+  glt_rows = option_data->glt_rows;
+  nptr = option_data->stim_nptr;
 
 
   /*----- Determine total number of parameters in the model -----*/
@@ -1430,8 +1494,8 @@ void check_for_valid_inputs
   *good_list = (int *) malloc (sizeof(int) * nt);  MTEST (*good_list);
   NFirst = option_data->NFirst;
   for (is = 0;  is < num_stimts;  is++)
-    if (NFirst < max_lag[is])  
-      NFirst = max_lag[is];
+    if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])  
+      NFirst = (max_lag[is]+nptr[is]-1)/nptr[is];
   NLast = option_data->NLast;   
 
   N = 0;
@@ -1481,7 +1545,7 @@ void check_for_valid_inputs
   /*----- Check lengths of stimulus time series -----*/
   for (is = 0;  is < num_stimts;  is++)
     {
-      if (stim_length[is] < nt)
+      if (stim_length[is] < nt*nptr[is])
 	{
 	  sprintf (message, "Input stimulus time series file %s is too short",
 		   option_data->stim_filename[is]);
@@ -1535,6 +1599,43 @@ void check_for_valid_inputs
 	    }
 	}	    
     }
+
+
+  /*----- Calculate number of sub-bricks in the bucket dataset,
+          and check for illegal number of sub-bricks -----*/
+  nbricks = 0;
+  if (option_data->bucket_filename != NULL)
+    {
+      if (! option_data->nocout)
+	nbricks += p * (1 + option_data->tout)
+	  + num_stimts * (option_data->rout + option_data->fout);
+      nbricks += option_data->rout + option_data->fout + option_data->vout;
+      if (glt_num > 0)
+	for (iglt = 0;  iglt < glt_num;  iglt++)
+	  nbricks += glt_rows[iglt] + option_data->rout + option_data->fout;
+
+      if (nbricks <= 0)
+	{
+	  sprintf (message, 
+		   "User requested bucket dataset with only %d sub-bricks",
+		   nbricks);
+	  DC_error (message);
+	}
+    }
+  option_data->nbricks = nbricks;
+
+
+  /*----- Check for zero slice offsets with nptr option -----*/
+  if (dset_time != NULL)
+    if (dset_time->taxis->nsl > 0)
+      for (is = 0;  is < num_stimts;  is++)
+	if (nptr[is] > 1)
+	  {
+	    sprintf (message, "Must align all slices to 0 offset time, \n ");
+	    strcat  (message, "before using -stim_nptr option.  ");
+	    strcat  (message, "See program 3dTshift. ");
+	    DC_error (message);
+	  }
 
 
   /*----- Check whether any of the output files already exist -----*/
@@ -1979,13 +2080,19 @@ void report_evaluation
   char ** stim_label,         /* label for each stimulus */
   int * min_lag,              /* minimum time delay for impulse response */ 
   int * max_lag,              /* maximum time delay for impulse response */ 
-  matrix xtxinv_full          /* matrix:  1/(X'X)      for full model */
+  matrix xtxinv_full,         /* matrix:  1/(X'X)      for full model */
+  int glt_num,                /* number of general linear tests */
+  char ** glt_label,          /* label for general linear test */
+  int * glt_rows,             /* number of linear constraints in glt */
+  matrix * cxtxinvct          /* array of matrices:  C(1/(X'X))C' for glt */
 )
 
 {
   int m;                   /* parameter index */
   int is;                  /* stimulus index */
   int ilag;                /* time lag index */
+  int iglt;                /* general linear test index */
+  int ilc;                 /* linear combination index */
   float stddev;            /* normalized parameter standard deviation */
 
   
@@ -2001,7 +2108,23 @@ void report_evaluation
 	  m++;
 	}
     }
-      
+     
+  /*----- Print normalized standard deviations for GLT's -----*/
+  if (glt_num > 0)
+    {
+      for (iglt = 0;  iglt < glt_num;  iglt++)
+	{
+	  printf ("\nGeneral Linear Test: %s \n", glt_label[iglt]);
+
+	  for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+	    {
+	      stddev = sqrt ( 1.0 * cxtxinvct[iglt].elts[ilc][ilc] );
+	      printf ("  LC[%d] norm. std. dev. = %8.4f \n", 
+		       ilc, stddev);
+	    }
+	}
+    }
+
 }
 
 
@@ -2079,6 +2202,7 @@ void calculate_results
   int num_stimts;          /* number of stimulus time series */
   int * min_lag;           /* minimum time delay for impulse response */ 
   int * max_lag;           /* maximum time delay for impulse response */ 
+  int * nptr;              /* number of stim fn. time points per TR */
   char ** stim_label;      /* label for stimulus time series */
 
   int i;                   /* data point index */
@@ -2095,6 +2219,7 @@ void calculate_results
   int glt_num;                 /* number of general linear tests */
   char ** glt_label;           /* label for general linear test */
   int * glt_rows;              /* number of linear constraints in glt */
+  matrix cxtxinvct[MAX_GLT];   /* matrices: C(1/(X'X))C' for GLT */
   matrix glt_amat[MAX_GLT];    /* constant GLT matrices for later use */
   vector glt_coef[MAX_GLT];    /* linear combinations from GLT matrices */
   float fglt[MAX_GLT];         /* F-statistics for the general linear tests */
@@ -2123,6 +2248,7 @@ void calculate_results
 
   for (iglt =0;  iglt < MAX_GLT;  iglt++)
     {
+      matrix_initialize (&cxtxinvct[iglt]);
       matrix_initialize (&glt_amat[iglt]);
       vector_initialize (&glt_coef[iglt]);
     }
@@ -2150,6 +2276,7 @@ void calculate_results
   stim_label = option_data->stim_label;
   min_lag = option_data->stim_minlag;
   max_lag = option_data->stim_maxlag;
+  nptr    = option_data->stim_nptr;
   glt_num = option_data->glt_num;
   glt_label = option_data->glt_label;
   glt_rows = option_data->glt_rows;
@@ -2173,7 +2300,7 @@ void calculate_results
   /*----- Initialize the independent variable matrix -----*/
   init_indep_var_matrix (p, q, polort, nt, N, good_list, block_list, 
 			 num_blocks, num_stimts, stimulus, stim_length, 
-			 min_lag, max_lag, &xdata);
+			 min_lag, max_lag, nptr, &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
 
@@ -2187,7 +2314,7 @@ void calculate_results
 
   /*----- Initialization for the general linear test analysis -----*/
   if (glt_num > 0)
-    init_glt_analysis (xtxinv_full, glt_num, glt_cmat, glt_amat);
+    init_glt_analysis (xtxinv_full, glt_num, glt_cmat, glt_amat, cxtxinvct);
 
 
   vector_create (N, &y);
@@ -2195,8 +2322,9 @@ void calculate_results
   
   if (nodata)
     {
-      report_evaluation (q, num_stimts, stim_label, 
-			 min_lag, max_lag, xtxinv_full); 
+      report_evaluation 
+	(q, num_stimts, stim_label, min_lag, max_lag, xtxinv_full, 
+	 glt_num, glt_label, glt_rows, cxtxinvct); 
     }
 
   else
@@ -2286,6 +2414,7 @@ void calculate_results
 
   for (iglt = 0;  iglt < MAX_GLT;  iglt++)
     {
+      matrix_destroy (&cxtxinvct[iglt]);      
       matrix_destroy (&glt_amat[iglt]);
       vector_destroy (&glt_coef[iglt]);
     } 
@@ -2491,12 +2620,14 @@ void cubic_spline
 
 void write_ts_array 
 (
-  int argc,                              /* number of input arguments */
-  char ** argv,                          /* array of input arguments */ 
-  DC_options * option_data,              /* deconvolution algorithm options */
-  int ts_length,                         /* length of time series data */  
-  float ** vol_array,                    /* output time series volume data */
-  char * output_filename                 /* output afni data set file name */
+  int argc,                       /* number of input arguments */
+  char ** argv,                   /* array of input arguments */ 
+  DC_options * option_data,       /* deconvolution algorithm options */
+  int ts_length,                  /* length of time series data */  
+  int nptr,                       /* number of time points per TR */
+  int tshift,                     /* flag to set slice offset times to 0 */
+  float ** vol_array,             /* output time series volume data */
+  char * output_filename          /* output afni data set file name */
 )
 
 {
@@ -2513,13 +2644,14 @@ void write_ts_array
   float * fbuf;             /* float buffer */
   float * volume;           /* pointer to volume of data */
   char label[80];           /* label for output file */ 
+  float newtr;              /* new time step = TR/nptr */
   
 
   /*----- Initialize local variables -----*/
   input_filename = option_data->input_filename;
   dset = THD_open_one_dataset (input_filename);
-  nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
-
+  nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;    
+  newtr = DSET_TIMESTEP(dset) / nptr;
  
   /*----- allocate memory -----*/
   bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
@@ -2554,6 +2686,7 @@ void write_ts_array
 			    ADN_datum_all,   MRI_short,   
 			    ADN_nvals,       ts_length,
 			    ADN_ntt,         ts_length,
+			    ADN_ttdel,       newtr,
 			    ADN_none);
   
   if( ierror > 0 ){
@@ -2568,6 +2701,15 @@ void write_ts_array
 	    new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
+
+
+  /*----- Reset slice offset times to zero -----*/
+  if (tshift)
+    EDIT_dset_items (new_dset, 
+		     ADN_nsl,     0,    /* will have no offsets when done */
+		     ADN_ttorg, 0.0,    /* in case not already set */
+		     ADN_ttdur, 0.0,    /* in case not already set */
+		     ADN_none);
 
   
   /*----- attach bricks to new data set -----*/
@@ -2731,17 +2873,10 @@ void write_bucket_data
   q = option_data->q;
   p = option_data->p;
   N = option_data->N;
+  nbricks = option_data->nbricks;
 
 
-  /*----- Calculate number of sub-bricks in the bucket -----*/
-  nbricks = p + p*option_data->tout 
-    + (num_stimts+1) * (option_data->rout + option_data->fout)
-    + option_data->vout;
-  if (glt_num > 0)
-    for (iglt = 0;  iglt < glt_num;  iglt++)
-      nbricks += glt_rows[iglt] + option_data->rout + option_data->fout;
-
-
+  /*----- Prepare output file name -----*/
   strcpy (output_prefix, option_data->bucket_filename);
   strcpy (output_session, "./");
   
@@ -2805,95 +2940,104 @@ void write_bucket_data
     ibrick += option_data->vout + option_data->rout + option_data->fout;
 
 
-  /*----- Baseline statistics -----*/
-  strcpy (label, "Base");
-  for (icoef = 0;  icoef < q;  icoef++)
+  /*----- Include fit coefficients and associated statistics? -----*/
+  if (! option_data->nocout)
     {
-      if (q == polort+1)
-	strcpy (label, "Base");
-      else
-	sprintf (label, "Run #%d", icoef/(polort+1) + 1);
 
-      /*----- Baseline coefficient -----*/
-      ibrick++;
-      brick_type = FUNC_FIM_TYPE;
-      sprintf (brick_label, "%s t^%d Coef", label, icoef % (polort+1));
-      volume = coef_vol[icoef];
-      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			brick_type, brick_label, 0, 0, 0, bar);
-
-      /*----- Baseline t-stat -----*/
-      if (option_data->tout)
+      /*----- Baseline statistics -----*/
+      strcpy (label, "Base");
+      for (icoef = 0;  icoef < q;  icoef++)
 	{
-	  ibrick++;
-	  brick_type = FUNC_TT_TYPE;
-	  dof = N - p;
-	  sprintf (brick_label, "%s t^%d t-st", label, icoef % (polort+1));
-	  volume = tcoef_vol[icoef];
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			    brick_type, brick_label, dof, 0, 0, bar);
-	}
-    }
+	  if (q == polort+1)
+	    strcpy (label, "Base");
+	  else
+	    sprintf (label, "Run #%d", icoef/(polort+1) + 1);
 
-
-  /*----- Stimulus statistics -----*/
-  for (istim = 0;  istim < num_stimts;  istim++)        
-    {                                 
-      strcpy (label, option_data->stim_label[istim]);
-
-      /*----- Loop over stimulus time lags -----*/
-      for (ilag = option_data->stim_minlag[istim];
-	   ilag <= option_data->stim_maxlag[istim];  ilag++)
-	{                             
-	  /*----- Stimulus coefficient -----*/
+	  /*----- Baseline coefficient -----*/
 	  ibrick++;
 	  brick_type = FUNC_FIM_TYPE;
-	  sprintf (brick_label, "%s[%d] Coef", label, ilag);
-	  volume = coef_vol[icoef];		  
+	  sprintf (brick_label, "%s t^%d Coef", label, icoef % (polort+1));
+	  volume = coef_vol[icoef];
 	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
 			    brick_type, brick_label, 0, 0, 0, bar);
-		
-	  /*----- Stimulus t-stat -----*/
+
+	  /*----- Baseline t-stat -----*/
 	  if (option_data->tout)
 	    {
 	      ibrick++;
 	      brick_type = FUNC_TT_TYPE;
 	      dof = N - p;
-	      sprintf (brick_label, "%s[%d] t-st", label, ilag);
+	      sprintf (brick_label, "%s t^%d t-st", label, icoef % (polort+1));
 	      volume = tcoef_vol[icoef];
 	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
 				brick_type, brick_label, dof, 0, 0, bar);
 	    }
-
-	  icoef++;
 	}
+      
+      
+      /*----- Stimulus statistics -----*/
+      for (istim = 0;  istim < num_stimts;  istim++)        
+	{                                 
+	  strcpy (label, option_data->stim_label[istim]);
+	  
+	  /*----- Loop over stimulus time lags -----*/
+	  for (ilag = option_data->stim_minlag[istim];
+	       ilag <= option_data->stim_maxlag[istim];  ilag++)
+	    {                             
+	      /*----- Stimulus coefficient -----*/
+	      if (! option_data->nocout)
+		{
+		  ibrick++;
+		  brick_type = FUNC_FIM_TYPE;
+		  sprintf (brick_label, "%s[%d] Coef", label, ilag);
+		  volume = coef_vol[icoef];		  
+		  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+				    brick_type, brick_label, 0, 0, 0, bar);
+		}
+	      
+	      /*----- Stimulus t-stat -----*/
+	      if (option_data->tout)
+		{
+		  ibrick++;
+		  brick_type = FUNC_TT_TYPE;
+		  dof = N - p;
+		  sprintf (brick_label, "%s[%d] t-st", label, ilag);
+		  volume = tcoef_vol[icoef];
+		  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+				    brick_type, brick_label, dof, 0, 0, bar);
+		}
+	      
+	      icoef++;
+	    }
 	    
-      /*----- Stimulus R^2 stat -----*/
-      if (option_data->rout)
-	{
-	  ibrick++;
-	  brick_type = FUNC_THR_TYPE;
-	  sprintf (brick_label, "%s R^2", label);
-	  volume = rpart_vol[istim];
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			    brick_type, brick_label, 0, 0, 0, bar);
-	}
-	   
-      /*----- Stimulus F-stat -----*/
-      if (option_data->fout)
-	{
-	  ibrick++;
-	  brick_type = FUNC_FT_TYPE;
-	  ndof = option_data->stim_maxlag[istim]
-	    - option_data->stim_minlag[istim] + 1;
-	  ddof = N - p;
-	  sprintf (brick_label, "%s F-stat", label);
-	  volume = fpart_vol[istim];
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			    brick_type, brick_label, 0, ndof, ddof, bar);
-	}
- 
-    }  /* End loop over stim functions */
+	  /*----- Stimulus R^2 stat -----*/
+	  if (option_data->rout)
+	    {
+	      ibrick++;
+	      brick_type = FUNC_THR_TYPE;
+	      sprintf (brick_label, "%s R^2", label);
+	      volume = rpart_vol[istim];
+	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+				brick_type, brick_label, 0, 0, 0, bar);
+	    }
+	  
+	  /*----- Stimulus F-stat -----*/
+	  if (option_data->fout)
+	    {
+	      ibrick++;
+	      brick_type = FUNC_FT_TYPE;
+	      ndof = option_data->stim_maxlag[istim]
+		- option_data->stim_minlag[istim] + 1;
+	      ddof = N - p;
+	      sprintf (brick_label, "%s F-stat", label);
+	      volume = fpart_vol[istim];
+	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+				brick_type, brick_label, 0, ndof, ddof, bar);
+	    }
+	  
+	}  /* End loop over stim functions */
+      
+    }  /*  if (! option_data->nocout)  */
 
       
   /*----- General linear test statistics -----*/
@@ -3024,6 +3168,7 @@ void output_results
   int num_stimts;           /* number of stimulus time series */
   int * min_lag;            /* minimum time delay for impulse response */ 
   int * max_lag;            /* maximum time delay for impulse response */ 
+  int * nptr;               /* number of stim fn. time points per TR */
   int ib;                   /* sub-brick index */
   int is;                   /* stimulus index */
   int ts_length;            /* length of impulse reponse function */
@@ -3036,6 +3181,7 @@ void output_results
   num_stimts = option_data->num_stimts;
   min_lag = option_data->stim_minlag;
   max_lag = option_data->stim_maxlag;
+  nptr    = option_data->stim_nptr;
   nt = option_data->nt;
 
 
@@ -3054,10 +3200,11 @@ void output_results
       if (option_data->iresp_filename[is] != NULL)
 	{
 	  /*----- If requested, time shift the impulse response -----*/
-	  if (option_data->tshift)
+	  if ((option_data->tshift) && (nptr[is] == 1))
 	    cubic_spline (option_data, ts_length, coef_vol+ib);
 
-	  write_ts_array (argc, argv, option_data, ts_length, coef_vol+ib, 
+	  write_ts_array (argc, argv, option_data, ts_length, 
+			  nptr[is], option_data->tshift, coef_vol+ib, 
 			  option_data->iresp_filename[is]);
 	}
       ib += ts_length;
@@ -3070,7 +3217,8 @@ void output_results
     {
       ts_length = max_lag[is] - min_lag[is] + 1;
       if (option_data->sresp_filename[is] != NULL)
-	write_ts_array (argc, argv, option_data, ts_length, scoef_vol+ib, 
+	write_ts_array (argc, argv, option_data, ts_length, 
+			nptr[is], 0, scoef_vol+ib, 
 			option_data->sresp_filename[is]);
       ib += ts_length;
     }
@@ -3078,13 +3226,13 @@ void output_results
 
   /*----- Write the fitted (full model) 3d+time dataset -----*/
   if (option_data->fitts_filename != NULL)
-    write_ts_array (argc, argv, option_data, nt, fitts_vol, 
+    write_ts_array (argc, argv, option_data, nt, 1, 0, fitts_vol, 
 		    option_data->fitts_filename);
 
 
   /*----- Write the residual errors 3d+time dataset -----*/
   if (option_data->errts_filename != NULL)
-    write_ts_array (argc, argv, option_data, nt, errts_vol, 
+    write_ts_array (argc, argv, option_data, nt, 1, 0, errts_vol, 
 		    option_data->errts_filename);
 
 

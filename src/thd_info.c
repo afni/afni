@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -36,7 +36,9 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
 
    char * outbuf = NULL ;
 
-   if( ! ISVALID_3DIM_DATASET(dset) ) return NULL ;
+ENTRY("THD_dataset_info") ;
+
+   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(NULL) ;
 
    daxes = dset->daxes ;
 
@@ -159,6 +161,20 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
     fv1.xyz[0],xlbot , fv2.xyz[0],xltop , fabs(fv3.xyz[0]) , n1 ,
     fv1.xyz[1],ylbot , fv2.xyz[1],yltop , fabs(fv3.xyz[1]) , n2 ,
     fv1.xyz[2],zlbot , fv2.xyz[2],zltop , fabs(fv3.xyz[2]) , n3  ) ;
+
+   /*-- 01 Feb 2001: print the center of the dataset as well --*/
+
+   fv1.xyz[0] = 0.5*(fv1.xyz[0]+fv2.xyz[0]) ; XLAB(xlbot,fv1.xyz[0]) ;
+   fv1.xyz[1] = 0.5*(fv1.xyz[1]+fv2.xyz[1]) ; YLAB(ylbot,fv1.xyz[1]) ;
+   fv1.xyz[2] = 0.5*(fv1.xyz[2]+fv2.xyz[2]) ; ZLAB(zlbot,fv1.xyz[2]) ;
+
+   outbuf = THD_zzprintf(outbuf,
+                           "R-to-L center: %9.3f %s\n"
+                           "A-to-P center: %9.3f %s\n"
+                           "I-to-S center: %9.3f %s\n" ,
+                         fv1.xyz[0],xlbot ,
+                         fv1.xyz[1],ylbot ,
+                         fv1.xyz[2],zlbot  ) ;
 
    ntimes   = DSET_NUM_TIMES(dset) ;
    nval_per = DSET_NVALS_PER_TIME(dset) ;
@@ -284,7 +300,7 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
      }
    }
 
-   return outbuf ;
+   RETURN(outbuf) ;
 }
 
 char * THD_zzprintf( char * sss , char * fmt , ... )

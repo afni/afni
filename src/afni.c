@@ -102,7 +102,6 @@ static AFNI_friend afni_friends[] = {
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
 #endif
-#include "dbtrace.h"
 
 /*----------------------------------------------------------------
    Global variables that used to be local variables in main()
@@ -443,11 +442,11 @@ ENTRY("AFNI_parse_args") ;
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
 
 #ifdef USE_TRACING
-      if( strncmp(argv[narg],"-trace",5) == 0 ){
+      if( strncmp(argv[narg],"-trace",5) == 0 && !ALLOW_real_time ){
          DBG_trace = 1 ;
          narg++ ; continue ;
       }
-      if( strncmp(argv[narg],"-TRACE",5) == 0 ){  /* 23 Aug 1998 */
+      if( strncmp(argv[narg],"-TRACE",5) == 0 && !ALLOW_real_time ){  /* 23 Aug 1998 */
          DBG_trace = 2 ;
          if( MAIN_shell != NULL )
             XSynchronize(XtDisplay(MAIN_shell),TRUE) ; /* 01 Dec 1999 */
@@ -481,7 +480,8 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-rt",3) == 0 ){
          GLOBAL_argopt.allow_rt       = -1 ;
-         GLOBAL_argopt.no_frivolities = 1 ;
+         GLOBAL_argopt.no_frivolities =  1 ;
+         DBG_trace                    =  0 ;  /* 26 Jan 2001 */
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -843,6 +843,8 @@ ENTRY("AFNI_parse_args") ;
 
    } /* end of loop over argv's starting with '-' */
 
+   if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
+
    /** 16 July 1997: orientation code change **/
 
    if( GLOBAL_argopt.orient_code[0] == '-' ){
@@ -953,7 +955,8 @@ int main( int argc , char * argv[] )
    if( argc > 1 && strncmp(argv[1],"-TRACE",5) == 0 ) DBG_trace = 2 ; /* 23 Aug 1998 */
 #endif
 
-   DBG_SIGNALS ; ENTRY("AFNI:main") ;
+   mainENTRY("AFNI:main") ;              /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
+   if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
 
    /*--- help? ---*/
 
@@ -1140,8 +1143,12 @@ static Boolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
    static int nosplash = 0 , nodown = 0 ;
-   static double eltime , max_splash=1.0 ;
+   static double eltime=0.0 , max_splash=1.0 ;
    int ii ;
+
+ENTRY("MAIN_workprocess") ;  /* 23 Jan 2001: added ENTRY/RETURN to this routine */
+
+if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATUS(str); }
 
    switch( MAIN_calls ){
 
@@ -1150,9 +1157,9 @@ static Boolean MAIN_workprocess( XtPointer fred )
         ============================================================================*/
 
       default:{
-         if( nosplash ) return True ;
+         if( nosplash || nodown ) RETURN(True) ;
          if( !nodown &&
-             COX_clock_time()-eltime >= max_splash ){ AFNI_splashdown(); return True; }
+             COX_clock_time()-eltime >= max_splash ){ AFNI_splashdown(); RETURN(True); }
       }
       break ;
 
@@ -1372,7 +1379,7 @@ static Boolean MAIN_workprocess( XtPointer fred )
 #endif
    }
 
-   MAIN_calls++ ; return False ;
+   MAIN_calls++ ; RETURN(False) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2620,14 +2627,23 @@ STATUS("graCR_pickort") ;
       break ;
 
       /*** User sets time_index ***/
+      /*** 24 Jan 2001: or bucket index ***/
 
       case graCR_setindex:{
          MCW_arrowval * tav = im3d->vwid->imag->time_index_av ;
+         MCW_arrowval * aav = im3d->vwid->func->anat_buck_av ;
          int new_index = cbs->key ;
 
-         if( new_index != im3d->vinfo->time_index ){
-            AV_assign_ival( tav , new_index ) ;
-            AFNI_time_index_CB( tav , (XtPointer) im3d ) ;
+         if( DSET_NUM_TIMES(im3d->anat_now) > 1 ){       /* 24 Jan 2001: check type */
+            if( new_index != im3d->vinfo->time_index ){
+               AV_assign_ival( tav , new_index ) ;
+               AFNI_time_index_CB( tav , (XtPointer) im3d ) ;
+            }
+         } else if( ISANATBUCKET(im3d->anat_now) ){      /* 24 Jan 2001: new case */
+            if( new_index != im3d->vinfo->anat_index ){
+               AV_assign_ival( aav , new_index ) ;
+               AFNI_bucket_CB( aav , im3d ) ;
+            }
          }
       }
       break ;
@@ -4134,6 +4150,7 @@ void AFNI_set_viewpoint( Three_D_View * im3d ,
 {
    int old_i1 , old_j2 , old_k3 , i1,j2,k3 ;
    int dim1,dim2,dim3 , isq_driver , do_lock , new_xyz ;
+   int newti ; /* 24 Jan 2001 */
 
    THD_dataxes * daxes ;
    THD_fvec3 fv ;
@@ -4315,9 +4332,21 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 #endif
    }
 
-   drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer) im3d->vinfo->time_index );
-   drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer) im3d->vinfo->time_index );
-   drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer) im3d->vinfo->time_index );
+   /* 24 Jan 2001: set grapher index based on type of dataset */
+
+   if( DSET_NUM_TIMES(im3d->anat_now) > 1 ){
+      newti = im3d->vinfo->time_index ;
+   } else if( ISANATBUCKET(im3d->anat_now) ){
+      newti = im3d->vinfo->anat_index ;
+   } else {
+      newti = -1 ;
+   }
+
+   if( newti >= 0 ){
+      drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer)newti );
+      drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer)newti );
+      drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer)newti );
+   }
 
    if( do_lock )                    /* 11 Nov 1996 */
       AFNI_lock_carryout( im3d ) ;  /* 04 Nov 1996 */

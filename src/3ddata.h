@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_3DDATASET_
 #define _MCW_3DDATASET_
 
@@ -2266,6 +2266,16 @@ extern float THD_timeof      ( int , float , THD_timeaxis * ) ;
 extern float THD_timeof_vox  ( int , int , THD_3dim_dataset * ) ;
 extern float THD_timeof_slice( int , int , THD_3dim_dataset * ) ;  /* BDW */
 
+extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
+extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
+
+extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
+
+#define MISMATCH_CENTER  (1<<0)  /* within 0.2 voxel */
+#define MISMATCH_DELTA   (1<<1)
+#define MISMATCH_ORIENT  (1<<2)
+#define MISMATCH_DIMEN   (1<<3)
+
 /*----------------------------------------------------------------*/
 /*--------  FD_brick type: for rapid extraction of slices --------*/
 
@@ -2345,9 +2355,19 @@ extern void THD_rotangle_user_to_dset( THD_3dim_dataset * ,
                                        float,char, float,char, float,char,
                                        float*,int* , float*,int* , float*,int* );
 
+extern int THD_axcode( THD_3dim_dataset * , char ) ; /* promoted from static */
+extern int THD_handedness( THD_3dim_dataset * ) ;    /* on 06 Feb 2001 - RWCox */
+
+extern THD_dmat33 DBLE_mat_to_dicomm( THD_3dim_dataset * ) ; /* 14 Feb 2001 */
+
+extern THD_dvecmat THD_rotcom_to_matvec( THD_3dim_dataset * , char * ) ;
+
   /*-- see thd_rot3d.c for these routines --*/
 
 extern void THD_rota_method( int ) ;
+
+extern void THD_rota_setpad( int,int,int ) ; /* 02 Feb 2001 */
+extern void THD_rota_clearpad(void) ;
 
 extern void THD_rota_vol( int, int, int, float, float, float, float *,
                           int,float, int,float, int,float,
@@ -2357,12 +2377,16 @@ extern MRI_IMAGE * THD_rota3D( MRI_IMAGE * ,
                                int,float, int,float, int,float,
                                int,float,float,float ) ;
 
+extern MRI_IMAGE * THD_rota3D_matvec( MRI_IMAGE *, THD_dmat33,THD_dfvec3 ) ;
+
   /* routines below added to thd_rot3d.c on 16 Jul 2000 */
 
 extern void THD_rota_vol_matvec( int, int, int, float, float, float, float *,
-                                 THD_mat33 , THD_fvec3 ) ;
+                                 THD_dmat33 , THD_dfvec3 ) ;
 
-extern THD_vecmat LSQ_rot_trans( int, THD_fvec3 *, THD_fvec3 *, double * ww ) ;
+extern THD_dvecmat DLSQ_rot_trans( int, THD_dfvec3 *, THD_dfvec3 *, double * ww ) ;
+
+extern THD_dvecmat THD_read_dvecmat( char * , int ) ;  /* THD_read_vecmat.c */
 
   /* cf. thd_tmask.c */
 
@@ -2468,8 +2492,12 @@ extern THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * ,
 extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
                                      int, int, int, float, char *, int ) ;
 
+#define ZPAD_EMPTY (1<<0)
+#define ZPAD_PURGE (1<<1)
+#define ZPAD_MM    (1<<2)
+
 extern THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * ,
-                                       int,int,int,int,int,int , char * ) ;
+                                       int,int,int,int,int,int , char * , int ) ;
 
 /*--------------------------------------------------------------------------*/
 

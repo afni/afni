@@ -21,8 +21,6 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
    char * ptr ;
    MRI_IMAGE * im ;
 
-ENTRY("THD_load_datablock") ;
-
    if( native_order < 0 ) native_order = mri_short_order() ;
 
    floatscan = AFNI_yesenv("AFNI_FLOATSCAN") ;
@@ -150,9 +148,6 @@ ENTRY("THD_load_datablock") ;
          ptr += DBLK_BRICK_BYTES(blk,ibr) ;
       }
 
-#if defined(THD_DEBUG)
-printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
-#endif
       return True ;
    }
 
@@ -286,9 +281,6 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
                        dkptr->brick_name , nerr ) ;
          }
 
-#if defined(THD_DEBUG)
-printf("THD_load_datablock: malloc-ed/read file %s\n",dkptr->brick_name) ;
-#endif
          return True ;
       }
       break ;

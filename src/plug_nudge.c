@@ -3,10 +3,8 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
-#define FLOAT_TYPE double
+
 #include "vecmat.h"
-#undef FLOAT_TYPE
 
 #include "afni.h"
 
@@ -42,8 +40,6 @@ static void NUD_finalize_dset_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 static void NUD_brick_av_CB( MCW_arrowval * , XtPointer ) ; /* Sub-brick menu */
 
-static int axcode( THD_3dim_dataset * dset , char ori ) ;
-static int handedness( THD_3dim_dataset * dset ) ;
 static void NUD_undopush(void) ;
 static void NUD_setcumlab(void) ;
 
@@ -127,11 +123,11 @@ static char * NUD_dummy_av_label[2] = { "[Nothing At All]", "[Nothing At All]" }
 static int iha=1,ax1=0,ax2=1,ax3=2,hax1=1,hax2=2,hax3=3,adx=1,ady=2,adz=3 ;
 
 static int undo_nall , undo_nuse , undo_ntop ;
-static THD_mat33 * undo_rmat=NULL ;
-static THD_fvec3 * undo_svec=NULL ;
+static THD_dmat33 * undo_rmat=NULL ;
+static THD_dfvec3 * undo_svec=NULL ;
 
-static THD_mat33 rmat ; /* current rotation matrix = undo_rmat[undo_nuse-1] */
-static THD_fvec3 svec ; /* current shift vector    = undo_svec[undo_nuse-1] */
+static THD_dmat33 rmat ; /* current rotation matrix = undo_rmat[undo_nuse-1] */
+static THD_dfvec3 svec ; /* current shift vector    = undo_svec[undo_nuse-1] */
 
 #define NRESAM 5
 #define NYESNO 2
@@ -219,8 +215,8 @@ char * NUD_main( PLUGIN_interface * plint )
 
    NUD_clear_CB(NULL,NULL,NULL) ;
 
-   LOAD_DIAG_MAT(rmat,1.0,1.0,1.0) ;
-   LOAD_FVEC3(svec,0.0,0.0,0.0)    ;
+   LOAD_DIAG_DMAT(rmat,1.0,1.0,1.0) ;
+   LOAD_DFVEC3(svec,0.0,0.0,0.0)    ;
    NUD_setcumlab() ;
 
    /* initialize undo stack */
@@ -230,8 +226,8 @@ char * NUD_main( PLUGIN_interface * plint )
    undo_nuse = 0 ;
    undo_ntop = 0 ;
    undo_nall = 1 ;
-   undo_rmat = (THD_mat33 *) malloc(sizeof(THD_mat33)) ;
-   undo_svec = (THD_fvec3 *) malloc(sizeof(THD_fvec3)) ;
+   undo_rmat = (THD_dmat33 *) malloc(sizeof(THD_dmat33)) ;
+   undo_svec = (THD_dfvec3 *) malloc(sizeof(THD_dfvec3)) ;
    NUD_undopush() ;  /* top of stack = current transformation */
 
    return NULL ;
@@ -631,17 +627,17 @@ static void NUD_make_widgets(void)
    adx,ady,adz) are globals, computed when the dataset is loaded.
 ----------------------------------------------------------------------------*/
 
-static THD_mat33 rotmatrix( double th1 , double th2 , double th3  )
+static THD_dmat33 rotmatrix( double th1 , double th2 , double th3  )
 {
-   THD_mat33 q , p ;
+   THD_dmat33 q , p ;
 
    if( hax1 < 0 ) th1 = -th1 ;
    if( hax2 < 0 ) th2 = -th2 ;
    if( hax3 < 0 ) th3 = -th3 ;
 
-   LOAD_ROT_MAT( q , th1 , ax1 ) ;
-   LOAD_ROT_MAT( p , th2 , ax2 ) ; q = MAT_MUL( p , q ) ;
-   LOAD_ROT_MAT( p , th3 , ax3 ) ; q = MAT_MUL( p , q ) ;
+   LOAD_ROT_DMAT( q , th1 , ax1 ) ;
+   LOAD_ROT_DMAT( p , th2 , ax2 ) ; q = DMAT_MUL( p , q ) ;
+   LOAD_ROT_DMAT( p , th3 , ax3 ) ; q = DMAT_MUL( p , q ) ;
 
    return q ;
 }
@@ -651,7 +647,7 @@ static THD_mat33 rotmatrix( double th1 , double th2 , double th3  )
   [the signs of these may need to be munged]
 -------------------------------------------------------------------------*/
 
-static void rotangles( THD_mat33 rm, double *th1, double *th2, double *th3 )
+static void rotangles( THD_dmat33 rm, double *th1, double *th2, double *th3 )
 {
    *th2 = asin( rm.mat[ax3][ax1] ) ;
    *th1 = atan2( -rm.mat[ax3][ax2] , rm.mat[ax3][ax3] ) ;
@@ -668,10 +664,10 @@ static void rotangles( THD_mat33 rm, double *th1, double *th2, double *th3 )
    Compute the shift vector in dataset coordinates from the user inputs.
 -------------------------------------------------------------------------*/
 
-static THD_fvec3 shiftvec( double dx , double dy , double dz )
+static THD_dfvec3 shiftvec( double dx , double dy , double dz )
 {
    double qdx=0.0,qdy=0.0,qdz=0.0 ;
-   THD_fvec3 qv ;
+   THD_dfvec3 qv ;
 
    switch( adx ){
       case  1: qdx = -dx ; break ;
@@ -700,18 +696,18 @@ static THD_fvec3 shiftvec( double dx , double dy , double dz )
       case -3: qdz =  dz ; break ;
    }
 
-   LOAD_FVEC3(qv,qdx,qdy,qdz) ; return qv ;
+   LOAD_DFVEC3(qv,qdx,qdy,qdz) ; return qv ;
 }
 
 /*-----------------------------------------------------------------------
    Compute the user-coordinate shifts from the dataset-coordinate vector
 -------------------------------------------------------------------------*/
 
-static void shiftdeltas( THD_fvec3 sv, double *d1, double *d2, double *d3   )
+static void shiftdeltas( THD_dfvec3 sv, double *d1, double *d2, double *d3   )
 {
    double qdx,qdy,qdz , dx=0.0,dy=0.0,dz=0.0 ;
 
-   UNLOAD_FVEC3( sv , qdx,qdy,qdz ) ;
+   UNLOAD_DFVEC3( sv , qdx,qdy,qdz ) ;
 
    switch( adx ){
       case  1: dx = -qdx ; break ;
@@ -807,8 +803,8 @@ static void NUD_undopush(void)
 {
    if( undo_nuse >= undo_nall ){
       undo_nall = undo_nuse + 4 ;
-      undo_rmat = (THD_mat33 *)realloc( undo_rmat, sizeof(THD_mat33)*undo_nall );
-      undo_svec = (THD_fvec3 *)realloc( undo_svec, sizeof(THD_fvec3)*undo_nall );
+      undo_rmat = (THD_dmat33 *)realloc( undo_rmat, sizeof(THD_dmat33)*undo_nall );
+      undo_svec = (THD_dfvec3 *)realloc( undo_svec, sizeof(THD_dfvec3)*undo_nall );
    }
 
    undo_rmat[undo_nuse] = rmat ;
@@ -824,8 +820,8 @@ static void NUD_undopush(void)
 static void NUD_nudge_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    float roll,pitch,yaw , dS,dL,dP ;
-   THD_mat33 new_rmat ;
-   THD_fvec3 new_svec , qv ;
+   THD_dmat33 new_rmat ;
+   THD_dfvec3 new_svec , qv ;
 
    if( dset == NULL ){ XBell(dc->display,100); return; }  /* shouldn't happen */
 
@@ -851,11 +847,11 @@ static void NUD_nudge_CB( Widget w, XtPointer client_data, XtPointer call_data )
    SENSITIZE(choose_pb,0) ; AV_SENSITIZE(brick_av,0) ;
 
    new_rmat = rotmatrix( roll, pitch, yaw ) ;
-   rmat     = MAT_MUL( new_rmat , rmat ) ;
+   rmat     = DMAT_MUL( new_rmat , rmat ) ;
 
-   new_svec = MATVEC( new_rmat , svec )  ;
+   new_svec = DMATVEC( new_rmat , svec )  ;
    qv       = shiftvec( dS , dL , dP ) ;
-   svec     = ADD_FVEC3( new_svec , qv ) ;
+   svec     = ADD_DFVEC3( new_svec , qv ) ;
 
    NUD_undopush() ;       /* push new transformatin onto undo list */
    NUD_setcumlab() ;      /* draw the cumulative labels */
@@ -1310,14 +1306,14 @@ static void NUD_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
       ax2 = axis index for 'R'   hax2 = sign for pitch angle
       ax3 = axis index for 'A'   hax3 = sign for yaw angle   */
 
-   iha = handedness( dset ) ;
-   ax1 = axcode(dset,'I') ; hax1 = ax1 ; ax1 = abs(ax1)-1 ; /* roll */
-   ax2 = axcode(dset,'R') ; hax2 = ax2 ; ax2 = abs(ax2)-1 ; /* pitch */
-   ax3 = axcode(dset,'A') ; hax3 = ax3 ; ax3 = abs(ax3)-1 ; /* yaw */
+   iha = THD_handedness( dset ) ;
+   ax1 = THD_axcode(dset,'I') ; hax1 = ax1 ; ax1 = abs(ax1)-1 ; /* roll */
+   ax2 = THD_axcode(dset,'R') ; hax2 = ax2 ; ax2 = abs(ax2)-1 ; /* pitch */
+   ax3 = THD_axcode(dset,'A') ; hax3 = ax3 ; ax3 = abs(ax3)-1 ; /* yaw */
 
-   adx = axcode(dset,'S') ;  /* for shifts */
-   ady = axcode(dset,'L') ;
-   adz = axcode(dset,'P') ;
+   adx = THD_axcode(dset,'S') ;  /* for shifts */
+   ady = THD_axcode(dset,'L') ;
+   adz = THD_axcode(dset,'P') ;
 
 #if 0
    fprintf(stderr,"NUD_finalize_dset_CB: iha=%d\n"
@@ -1341,76 +1337,6 @@ static void NUD_brick_av_CB( MCW_arrowval * av , XtPointer cd )
    return ;
 }
 
-/*--------------------------------------------------------------------
-  Routine to compute dataset axis index from label.
-  ori = one of I,S,L,R,A,P
-  output =  1, 2, 3 if axis is first,second,third of dataset
-         = -1,-2,-3 if axis is reversed first,second,third of dataset
-----------------------------------------------------------------------*/
-
-#include <ctype.h>
-
-static int axcode( THD_3dim_dataset * dset , char ori )
-{
-   ori = toupper(ori) ;
-   if( ori == ORIENT_tinystr[dset->daxes->xxorient][0] ) return  1 ;
-   if( ori == ORIENT_tinystr[dset->daxes->xxorient][1] ) return -1 ;
-   if( ori == ORIENT_tinystr[dset->daxes->yyorient][0] ) return  2 ;
-   if( ori == ORIENT_tinystr[dset->daxes->yyorient][1] ) return -2 ;
-   if( ori == ORIENT_tinystr[dset->daxes->zzorient][0] ) return  3 ;
-   if( ori == ORIENT_tinystr[dset->daxes->zzorient][1] ) return -3 ;
-   return -99 ;
-}
-
-/*--------------------------------------------------------------------
-  Return 1 or -1 as the input dataset axes form a right- or left-
-  handed coordinate triple.
-----------------------------------------------------------------------*/
-
-static int handedness( THD_3dim_dataset * dset )
-{
-   THD_dataxes * dax = dset->daxes ;
-   THD_mat33 q ;
-   int col ;
-   float val ;
-
-   LOAD_ZERO_MAT(q) ;
-
-   col = 0 ;
-   switch( dax->xxorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   col = 1 ;
-   switch( dax->yyorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   col = 2 ;
-   switch( dax->zzorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   val = MAT_DET(q) ;
-   if( val > 0.0 ) return  1 ;   /* right handed */
-   else            return -1 ;   /* left handed */
-}
-
 /*-------------------------------------------------------------------
    Rotate an image in place according to the current specs
 ---------------------------------------------------------------------*/
@@ -1428,7 +1354,7 @@ static void NUD_rotate( MRI_IMAGE * im )
    if( hax1 < 0 ) th1 = -th1 ;
    if( hax2 < 0 ) th2 = -th2 ;
    if( hax3 < 0 ) th3 = -th3 ;
-   UNLOAD_FVEC3( svec , dx,dy,dz ) ;
+   UNLOAD_DFVEC3( svec , dx,dy,dz ) ;
 
 #if 0
 fprintf(stderr,"th1=%g th2=%g th3=%g\n",th1,th2,th3) ;

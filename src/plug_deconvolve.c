@@ -1,9 +1,3 @@
-/*****************************************************************************
-   Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
-******************************************************************************/
-
 /*---------------------------------------------------------------------------*/
 /*
   Plugin to calculate the deconvolution of a measured 3d+time dataset
@@ -84,6 +78,21 @@
 
   Mod:     Increased size of screen output buffer.
   Date:    27 July 2000
+
+  Mod:     Increased maximum number of linear constraints.
+  Date:    07 December 2000
+
+  Mod:     Changes required for compatibility with -nodata option 
+           (norm.std.dev.'s for GLT linear constraints).
+  Date:    21 December 2000
+
+  Mod:     Added NPTR option, to allow input stim functions to be sampled
+           at a multiple of the 1/TR rate.
+  Date:    02 January 2001 
+
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -91,7 +100,7 @@
 #define PROGRAM_NAME    "plug_deconvolve"            /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "27 July 2000"    /* date of latest program revision */
+#define PROGRAM_LATEST  "02 Jan 2001"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -151,6 +160,7 @@ static char helpstring[] =
    "              Column    = Column of file which contains input stimulus. \n"
    "              Min Lag   = Minimum time delay for impulse response.      \n"
    "              Max Lag   = Maximum time delay for impulse response.      \n"
+   "              NPTR      = Number of stim fn. time points per TR         \n"
    "                                                                        \n"
    " GLT Matrix:  Label     = Name to use as label for this GLT matrix.     \n"
    "              File      = File containing the GLT matrix.               \n"
@@ -212,6 +222,7 @@ static float * stimulus[MAX_STIMTS];       /* stimulus time series arrays */
 static int stim_length[MAX_STIMTS];        /* length of stimulus time series */
 static int min_lag[MAX_STIMTS];   /* minimum time delay for impulse response */
 static int max_lag[MAX_STIMTS];   /* maximum time delay for impulse response */
+static int nptr[MAX_STIMTS];      /* number of stim fn. time points per TR */
 
 static matrix xdata;              /* independent variable matrix */
 static matrix x_full;             /* extracted X matrix   for full model */
@@ -227,6 +238,7 @@ static int glt_num;                 /* number of general linear tests */
 static char * glt_label[MAX_GLT];   /* general linear test labels */
 static int glt_rows[MAX_GLT];       /* number of linear constraints in glt */
 static char * glt_filename[MAX_GLT];/* file containing glt matrix */
+static matrix cxtxinvct[MAX_GLT];   /* matrices: C(1/(X'X))C' for GLT */
 static matrix glt_cmat[MAX_GLT];    /* general linear test matrices */
 static matrix glt_amat[MAX_GLT];    /* constant GLT matrices for later use */
 static vector glt_coef[MAX_GLT];    /* linear combinations from GLT matrices */
@@ -297,6 +309,7 @@ void initialize_options ()
       stim_length[is] = 0;                 /* length of stimulus time series */
       min_lag[is] = 0;            /* minimum time delay for impulse response */
       max_lag[is] = 0;            /* maximum time delay for impulse response */
+      nptr[is] = 1;               /* number of stim fn. time points per TR */
    }
 
 
@@ -329,6 +342,9 @@ void initialize_options ()
       glt_filename[iglt] = malloc (sizeof(char)*MAX_NAME_LENGTH);
       MTEST (glt_filename[iglt]);
       strcpy (glt_filename[iglt], " ");        /* file containing glt matrix */
+
+      matrix_initialize (&cxtxinvct[iglt]);
+                                           /* matrices: C(1/(X'X))C' for GLT */
       matrix_initialize (&glt_cmat[iglt]);
                                              /* general linear test matrices */
       matrix_initialize (&glt_amat[iglt]); 
@@ -404,6 +420,7 @@ void reset_options ()
       stim_length[is] = 0;                 /* length of stimulus time series */
       min_lag[is] = 0;            /* minimum time delay for impulse response */
       max_lag[is] = 0;            /* maximum time delay for impulse response */
+      nptr[is] = 1;               /* number of stim fn. time points per TR */
    }
 
 
@@ -432,6 +449,9 @@ void reset_options ()
                                                /* general linear test labels */
       glt_rows[iglt] = 0;             /* number of linear constraints in glt */
       strcpy (glt_filename[iglt], " ");        /* file containing glt matrix */
+
+      matrix_destroy (&cxtxinvct[iglt]);
+                                           /* matrices: C(1/(X'X))C' for GLT */
       matrix_destroy (&glt_cmat[iglt]);
                                              /* general linear test matrices */
       matrix_destroy (&glt_amat[iglt]); 
@@ -504,6 +524,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
        PLUTO_add_number (plint, "Column ", 0, 100, 0, 0, TRUE);
        PLUTO_add_number (plint, "Min Lag", 0, 100, 0, 0, TRUE);
        PLUTO_add_number (plint, "Max Lag", 0, 100, 0, 0, TRUE);
+       PLUTO_add_number (plint, "NPTR",    1, 100, 0, 0, TRUE);
       
      }
 
@@ -513,7 +534,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
        PLUTO_add_option (plint, "GLT Matrix", "GLT Matrix", FALSE);
        PLUTO_add_string( plint, "Label", 0, NULL, 1);
        PLUTO_add_string( plint, "File", 0, NULL, 1);     
-       PLUTO_add_number (plint, "# Rows", 1, 10, 0, 0, TRUE);
+       PLUTO_add_number (plint, "# Rows", 1, MAX_CONSTR, 0, 0, TRUE);
      }
 
    /*--------- done with interface setup ---------*/
@@ -590,8 +611,9 @@ void show_options ()
       for (is = 0;  is < num_stimts;  is++)
 	{
 	  printf ("Stimulus:      Label = %8s ", stim_label[is]);
-	  printf ("Column = %3d   Min. Lag = %3d   Max. Lag = %3d \n", 
+	  printf ("Column = %3d   Min. Lag = %3d   Max. Lag = %3d   ", 
 		  stim_column[is], min_lag[is], max_lag[is]);
+	  printf ("NPTR = %d \n", nptr[is]);
 	}
     }
 
@@ -786,6 +808,7 @@ char * DC_main( PLUGIN_interface * plint )
 	  /*----- Minimum and Maximum time lags for model -----*/
 	  min_lag[num_stimts] = PLUTO_get_number(plint);
 	  max_lag[num_stimts] = PLUTO_get_number(plint);
+	  nptr[num_stimts]    = PLUTO_get_number(plint);
 	  
 	  if (min_lag[num_stimts] > max_lag[num_stimts])
 	    return "**************************\n"
@@ -936,8 +959,8 @@ int calculate_results
   good_list = (int *) malloc (sizeof(int) * nt);  MTEST (good_list);
   NFirst = plug_NFirst;
   for (is = 0;  is < num_stimts;  is++)
-    if (NFirst < max_lag[is])  
-      NFirst = max_lag[is];
+    if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])  
+      NFirst = (max_lag[is]+nptr[is]-1)/nptr[is];
   NLast = plug_NLast;   
 
   N = 0;
@@ -981,7 +1004,7 @@ int calculate_results
       /*----- Initialize the independent variable matrix -----*/
       ok = init_indep_var_matrix (p, q, plug_polort, nt, N, good_list, 
 				  block_list, num_blocks, num_stimts, stimulus,
-				  stim_length, min_lag, max_lag, &xdata);
+				  stim_length, min_lag, max_lag, nptr, &xdata);
 
       
       /*----- Initialization for the regression analysis -----*/
@@ -994,7 +1017,8 @@ int calculate_results
       /*----- Initialization for the general linear test analysis -----*/
       if (ok)
 	if (glt_num > 0)
-	  ok = init_glt_analysis (xtxinv_full, glt_num, glt_cmat, glt_amat);
+	  ok = init_glt_analysis (xtxinv_full, glt_num, glt_cmat, glt_amat, 
+				  cxtxinvct);
     }
       
   if (ok)

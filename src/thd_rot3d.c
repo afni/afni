@@ -3,7 +3,6 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
 
 /*===========================================================================
   Routines to rotate and shift a 3D volume using a 4 way shear decomposition,
@@ -152,12 +151,8 @@ static void apply_xshear( float a , float b , float s ,
    st = fabs(a)*ny2 + fabs(b)*nz2 + fabs(s) ; if( st < 1.e-3 ) return ;
 
    if( shift_method == MRI_FOURIER ){
-      nup = 8 ; nst = 0.95*nx + 0.5*st ; if( nst < nx ) nst = nx ;
-#if 0
-      while( nup < nst ){ nup *= 2 ; }  /* FFT length */
-#else
+      nst = nx + 0.5*st ;
       nup = csfft_nextup_one35(nst) ;
-#endif
    }
 
    for( kk=0 ; kk < nz ; kk++ ){
@@ -191,12 +186,8 @@ static void apply_yshear( float a , float b , float s ,
    st = fabs(a)*nx2 + fabs(b)*nz2 + fabs(s) ; if( st < 1.e-3 ) return ;
 
    if( shift_method == MRI_FOURIER ){
-      nup = 8 ; nst = 0.95*ny + 0.5*st ; if( nst < ny ) nst = ny ;
-#if 0
-      while( nup < nst ){ nup *= 2 ; }  /* FFT length */
-#else
+      nst = ny + 0.5*st ;
       nup = csfft_nextup_one35(nst) ;
-#endif
    }
 
    fj0 = (float *) malloc( sizeof(float) * 2*ny ) ; fj1 = fj0 + ny ;
@@ -239,12 +230,8 @@ static void apply_zshear( float a , float b , float s ,
    st = fabs(a)*nx2 + fabs(b)*ny2 + fabs(s) ; if( st < 1.e-3 ) return ;
 
    if( shift_method == MRI_FOURIER ){
-      nup = 8 ; nst = 0.95*nz + 0.5*st ; if( nst < nz ) nst = nz ;
-#if 0
-      while( nup < nst ){ nup *= 2 ; }  /* FFT length */
-#else
+      nst = nz + 0.5*st ;
       nup = csfft_nextup_one35(nst) ;
-#endif
    }
 
    fj0 = (float *) malloc( sizeof(float) * 2*nz ) ; fj1 = fj0 + nz ;
@@ -324,6 +311,45 @@ static void apply_3shear( MCW_3shear shr ,
 }
 
 /*---------------------------------------------------------------------------
+   Set zero padding size for rotations:
+   padding is done before rotate, then stripped off afterwards.
+   02 Feb 2001 -- RWCox
+-----------------------------------------------------------------------------*/
+
+static int rotpx=0 , rotpy=0 , rotpz = 0 ;
+static int rotpset=0 ;
+
+void THD_rota_setpad( int px , int py , int pz )
+{
+   rotpx = (px > 0) ? px : 0 ;
+   rotpy = (py > 0) ? py : 0 ;
+   rotpz = (pz > 0) ? pz : 0 ;
+   rotpset = 1 ;               /* 05 Feb 2001 */
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void THD_rota_clearpad(void)   /* 05 Feb 2001 */
+{
+   rotpx=rotpy=rotpz=0; rotpset=1; return;
+}
+
+static void THD_rota_envpad(void)
+{
+   char * eee = my_getenv("AFNI_ROTA_ZPAD") ;
+   int ppp ;
+
+   if( rotpset ) return ;
+   eee = my_getenv("AFNI_ROTA_ZPAD") ;
+   if( eee != NULL ){
+      ppp = strtol( eee , NULL , 10 ) ;
+      THD_rota_setpad(ppp,ppp,ppp) ;
+   }
+   rotpset = 1 ; return ;
+}
+
+/*---------------------------------------------------------------------------
   Rotate and translate a 3D volume.
 -----------------------------------------------------------------------------*/
 
@@ -379,11 +405,31 @@ fprintf(stderr,"  xdel=%g  ydel=%g  zdel=%g\n",xdel,ydel,zdel) ;
    if( bot >= top ) return ;
 #endif
 
-   /************************************/
+   /********************************/
+   /* 02 Feb 2001: include padding */
 
-   apply_3shear( shr , nx,ny,nz , vol ) ;
+   { float * vvv , *www ;
+     int nxp , nyp , nzp ;
 
-   /************************************/
+     THD_rota_envpad() ;  /* 05 Feb 2001 */
+
+     nxp=nx+2*rotpx ; nyp=ny+2*rotpy ; nzp=nz+2*rotpz ;
+
+     if( rotpx > 0 && rotpy > 0 && rotpz > 0 )
+        vvv = EDIT_volpad_even( rotpx,rotpy,rotpz , nx,ny,nz , MRI_float,vol ) ;
+     else
+        vvv = vol ;
+
+     apply_3shear( shr , nxp,nyp,nzp , vvv ) ;  /*-- do the actual rotation! --*/
+
+     if( vvv != vol ){
+        www = EDIT_volpad_even( -rotpx,-rotpy,-rotpz , nxp,nyp,nzp , MRI_float,vvv ) ;
+        free(vvv) ;
+        memcpy( vol , www , sizeof(float)*nx*ny*nz ) ; free(www) ;
+     }
+   }
+
+   /********************************/
 
 #ifdef CLIPIT
    for( ii=0 ; ii < nxyz ; ii++ ){
@@ -395,7 +441,10 @@ fprintf(stderr,"  xdel=%g  ydel=%g  zdel=%g\n",xdel,ydel,zdel) ;
    return ;
 }
 
-/*-------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------
+   Like the above, but with geometrical information about the volume
+   given from the image header
+-----------------------------------------------------------------------------*/
 
 MRI_IMAGE * THD_rota3D( MRI_IMAGE * im ,
                         int ax1,float th1, int ax2,float th2, int ax3,float th3,
@@ -436,7 +485,7 @@ MRI_IMAGE * THD_rota3D( MRI_IMAGE * im ,
 
 void THD_rota_vol_matvec( int   nx   , int   ny   , int   nz   ,
                           float xdel , float ydel , float zdel , float * vol ,
-                          THD_mat33 rmat , THD_fvec3 tvec )
+                          THD_dmat33 rmat , THD_dfvec3 tvec )
 {
    MCW_3shear shr ;
    int dcode ;
@@ -472,11 +521,31 @@ void THD_rota_vol_matvec( int   nx   , int   ny   , int   nz   ,
    if( bot >= top ) return ;
 #endif
 
-   /************************************/
+   /********************************/
+   /* 02 Feb 2001: include padding */
 
-   apply_3shear( shr , nx,ny,nz , vol ) ;
+   { float * vvv , *www ;
+     int nxp , nyp , nzp ;
 
-   /************************************/
+     THD_rota_envpad() ;  /* 05 Feb 2001 */
+
+     nxp=nx+2*rotpx ; nyp=ny+2*rotpy ; nzp=nz+2*rotpz ;
+
+     if( rotpx > 0 && rotpy > 0 && rotpz > 0 )
+        vvv = EDIT_volpad_even( rotpx,rotpy,rotpz , nx,ny,nz , MRI_float,vol ) ;
+     else
+        vvv = vol ;
+
+     apply_3shear( shr , nxp,nyp,nzp , vvv ) ;  /*-- do the actual rotation! --*/
+
+     if( vvv != vol ){
+        www = EDIT_volpad_even( -rotpx,-rotpy,-rotpz , nxp,nyp,nzp , MRI_float,vvv ) ;
+        free(vvv) ;
+        memcpy( vol , www , sizeof(float)*nx*ny*nz ) ; free(www) ;
+     }
+   }
+
+   /********************************/
 
 #ifdef CLIPIT
    for( ii=0 ; ii < nxyz ; ii++ ){
@@ -486,4 +555,33 @@ void THD_rota_vol_matvec( int   nx   , int   ny   , int   nz   ,
 #endif
 
    return ;
+}
+
+/*------------------------------------------------------------------------------
+   14 Feb 2001:
+   Like the above, but with geometrical information about the volume
+   given from the image header
+--------------------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_rota3D_matvec( MRI_IMAGE * im, THD_dmat33 rmat,THD_dfvec3 tvec )
+{
+   MRI_IMAGE * jm ;
+   float * jvol ;
+
+   if( ! MRI_IS_3D(im) ){
+      fprintf(stderr,"\n*** THD_rota3D_matvec: non-3D image input!\n") ;
+      return NULL ;
+   }
+
+   jm = mri_new_vol( im->nx , im->ny , im->nz , MRI_float ) ;
+   MRI_COPY_AUX(jm,im) ;
+   jvol = MRI_FLOAT_PTR(jm) ;
+
+   EDIT_coerce_type( im->nvox ,
+                     im->kind , mri_data_pointer(im) , MRI_float , jvol ) ;
+
+   THD_rota_vol_matvec(      im->nx ,       im->ny ,       im->nz  ,
+                       fabs(im->dx) , fabs(im->dy) , fabs(im->dz) , jvol ,
+                       rmat , tvec ) ;
+   return jm ;
 }

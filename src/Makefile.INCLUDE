@@ -40,18 +40,21 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
-           3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump
+           3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
+           3dMean 3dAttribute cat_matvec
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
-                  sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
+                  sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim imupsam \
-                  p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
-                  waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp \
-                  3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-                  imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot \
-                  3dIntracranial 24swap 3dTsmooth RSFgen float_scan 3dmaskdump \
+                  p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit   \
+                  waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp      \
+                  3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna     \
+                  imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot    \
+                  3dIntracranial 24swap 3dTsmooth RSFgen float_scan 3dmaskdump       \
                   3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 1dtranspose \
-                  3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot imcutup
+                  3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
+                  imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+   \
+                  3dUndump cat_matvec
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
@@ -223,6 +226,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dnvals 3dnvals.o $(LFLAGS) $(LLIBS)
 
+3dAttribute:3dAttribute.o
+	$(RM) $@
+	$(CC) -o 3dAttribute 3dAttribute.o $(LFLAGS) $(LLIBS)
+
 3dproject:3dproject.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dproject 3dproject.o parser.o parser_int.o \
@@ -283,6 +290,10 @@ dsetdup:dsetdup.o
 3dTsmooth:3dTsmooth.o
 	$(RM) $@
 	$(CC) -o 3dTsmooth 3dTsmooth.o $(LFLAGS) $(LLIBS)
+
+3dMean:3dMean.o
+	$(RM) $@
+	$(CC) -o 3dMean 3dMean.o $(LFLAGS) $(LLIBS)
 
 3dvolreg:3dvolreg.o
 	$(RM) $@
@@ -616,9 +627,14 @@ afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
 # 	$(RM) $@
 # 	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
+# This program is only used with XFree86 4.0 and above
 xiner:xiner.o
 	$(RM) $@
 	$(CC) -o xiner xiner.o $(LFLAGS) -lXinerama $(LLIBS)
+
+cat_matvec:cat_matvec.o
+	$(RM) $@
+	$(CC) -o cat_matvec cat_matvec.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
@@ -841,7 +857,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
            mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o mri_cut.o      \
            mri_overlay.o mri_copy.o mri_uncat2D.o cox_render.o mri_histobyte.o \
-           mri_aff2d.o
+           mri_aff2d.o debugtrace.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -873,13 +889,14 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o \
            thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_base64.o     \
            thd_winsor.o thd_zeropad.o thd_rot3d_byte.o thd_shear3d.o   \
-           thd_tmask.o thd_rotangles.o thd_md5.o
+           thd_tmask.o thd_rotangles.o thd_md5.o thd_center.o           \
+           thd_mismatch.o thd_read_vecmat.o thd_tshift.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
            edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
            edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o \
-           edt_fullcopy.o edt_calcmask.o
+           edt_fullcopy.o edt_calcmask.o edt_volpad.o
 
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
@@ -945,7 +962,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
 # Contributed plugins go last, since they might not compile well
 
 contrib_plugins: ziad_plugins birn_plugins kummer_plugins \
-                 rickr_plugins tross_plugins
+                 rickr_plugins tross_plugins belmonte_plugins
 
 ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
@@ -958,6 +975,8 @@ rickr_plugins: plug_roiedit.$(SO) plug_hemisub.$(SO) \
                plug_maskcalc.$(SO) plug_maxima.$(SO)
 
 tross_plugins: plug_fourier.$(SO)
+
+belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
 
 install_plugins:
 	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)

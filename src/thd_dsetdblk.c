@@ -30,10 +30,6 @@ THD_3dim_dataset * THD_3dim_from_block( THD_datablock * blk )
 
    /* sanity check */
 
-#ifdef THD_DEBUG
-printf("THD_3dim_from_block: entry\n") ;
-#endif
-
    if( ! ISVALID_DATABLOCK(blk) || ! ISVALID_DISKPTR(blk->diskptr) )
       return NULL ;
 
@@ -89,10 +85,6 @@ printf("THD_3dim_from_block: entry\n") ;
       dset->type = type ;
    }
 
-#ifdef THD_DEBUG
-printf("  -- dset->type = %d\n",dset->type) ;
-#endif
-
    /*-------------------------------------------------------*/
    /*-- find view_type and func_type from SCENE_TYPE data --*/
    /*-------------------------------------------------------*/
@@ -138,11 +130,6 @@ printf("  -- dset->type = %d\n",dset->type) ;
    atr_str = THD_find_string_atr( blk , ATRNAME_IDWARPPAR ) ;
    if( atr_str != NULL )
       MCW_strncpy( dset->warp_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
-#endif
-
-#ifdef THD_DEBUG
-printf("  -- dset->view_type = %d  ->func_type = %d\n",
-       dset->view_type,dset->func_type) ;
 #endif
 
    /*--------------------------------*/
@@ -218,11 +205,6 @@ printf("  -- dset->view_type = %d  ->func_type = %d\n",
       daxes->zzorient = atr_int->in[2] ;
    }
 
-#ifdef THD_DEBUG
-printf("  -- daxes->??orient = %d %d %d\n",
-       daxes->xxorient,daxes->yyorient,daxes->zzorient ) ;
-#endif
-
    /*----------------------*/
    /*-- find axes origin --*/
    /*----------------------*/
@@ -236,11 +218,6 @@ printf("  -- daxes->??orient = %d %d %d\n",
       daxes->zzorg = atr_flo->fl[2] ;
    }
 
-#ifdef THD_DEBUG
-printf("  -- daxes->??org = %f %f %f\n",
-       daxes->xxorg,daxes->yyorg,daxes->zzorg ) ;
-#endif
-
    /*------------------------*/
    /*-- find axes spacings --*/
    /*------------------------*/
@@ -253,11 +230,6 @@ printf("  -- daxes->??org = %f %f %f\n",
       daxes->yydel = atr_flo->fl[1] ;
       daxes->zzdel = atr_flo->fl[2] ;
    }
-
-#ifdef THD_DEBUG
-printf("  -- daxes->??del = %f %f %f\n",
-       daxes->xxdel,daxes->yydel,daxes->zzdel) ;
-#endif
 
    /*---------------------------------------*/
    /*-- set bounding box for this dataset --*/
@@ -414,16 +386,6 @@ printf("  -- daxes->??del = %f %f %f\n",
             if( dset->markers->valid[im] ) (dset->markers->numset)++ ;
 
             if( llen > 0 ) (dset->markers->numdef)++ ;
-
-#ifdef THD_DEBUG
-if(llen > 0){
-   printf("THD_read: marker %d %s: x=%g y=%g z=%g\n",
-          im,&(dset->markers->label[im][0]),
-          dset->markers->xyz[im][0] ,
-          dset->markers->xyz[im][1] ,
-          dset->markers->xyz[im][2]  ) ;
-}
-#endif
 
             dset->markers->ovcolor[im] = -1 ;  /* default color */
 

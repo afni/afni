@@ -8,11 +8,6 @@
 
 #include "afni.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /*-------------------------------------------------------------------
    Set up to have AFNI send data to a receiver:
 

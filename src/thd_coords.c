@@ -217,24 +217,12 @@ THD_ivec3 THD_fdind_to_3dind( FD_brick * br , THD_ivec3 ib )
    THD_ivec3 id ;
    int qq , ax ;
 
-#ifdef THD_DEBUG
-printf("THD_fdind_to_3dind:\n") ;
-DUMP_IVEC3("  br->nxyz",br->nxyz) ;
-DUMP_IVEC3("  br->sxyz",br->sxyz) ;
-DUMP_IVEC3("  br->a123",br->a123) ;
-DUMP_IVEC3("  input ib",ib) ;
-#endif
-
    for( qq=0 ; qq < 3 ; qq++ ){
       ax = abs( br->a123.ijk[qq] ) - 1 ;   /* 0,1,2, for x,y,z */
 
       if( br->a123.ijk[qq] > 0 ) id.ijk[ax] = ib.ijk[qq] ;
       else                       id.ijk[ax] = br->sxyz.ijk[ax] - ib.ijk[qq];
    }
-
-#ifdef THD_DEBUG
-DUMP_IVEC3("  output  ",id) ;
-#endif
 
    return id ;
 }
@@ -244,24 +232,12 @@ THD_ivec3 THD_3dind_to_fdind( FD_brick * br , THD_ivec3 id )
    THD_ivec3 ib ;
    int qq , ax ;
 
-#ifdef THD_DEBUG
-printf("THD_3dind_to_fdind:\n") ;
-DUMP_IVEC3("  br->nxyz",br->nxyz) ;
-DUMP_IVEC3("  br->sxyz",br->sxyz) ;
-DUMP_IVEC3("  br->a123",br->a123) ;
-DUMP_IVEC3("  input id",id) ;
-#endif
-
    for( qq=0 ; qq < 3 ; qq++ ){
       ax = abs( br->a123.ijk[qq] ) - 1 ;
 
       if( br->a123.ijk[qq] > 0 ) ib.ijk[qq] = id.ijk[ax] ;
       else                       ib.ijk[qq] = br->sxyz.ijk[ax] - id.ijk[ax];
    }
-
-#ifdef THD_DEBUG
-DUMP_IVEC3("  output  ",ib) ;
-#endif
 
    return ib ;
 }

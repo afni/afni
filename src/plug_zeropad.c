@@ -17,7 +17,7 @@
 char * ZPAD_main( PLUGIN_interface * ) ;
 
 static char helpstring[] =
-   " Purpose: Creating a zero-padded copy of a dataset.\n"
+   " Purpose: Creating a zero-padded copy of a dataset [like 3dZeropad].\n"
    " Inputs:\n"
    " Dataset = A dataset in the current session that exists in memory\n"
    "             (not warp-on-demand).\n"
@@ -157,7 +157,7 @@ char * ZPAD_main( PLUGIN_interface * plint )
 
    new_dset = THD_zeropad( dset ,
                            add_I, add_S, add_A, add_P, add_L, add_R,
-                           new_prefix ) ;
+                           new_prefix , ZPAD_PURGE ) ;
 
    if( new_dset == NULL )
       return  "****************************************\n"

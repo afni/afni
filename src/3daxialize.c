@@ -1,6 +1,5 @@
 #include "mrilib.h"
 #define MAIN
-#include "dbtrace.h"
 
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College

@@ -9,7 +9,6 @@
 #include "mcw_graf.h"
 #include "parser.h"
 #include <ctype.h>
-#include "dbtrace.h"
 
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"

@@ -7,11 +7,6 @@
 #undef MAIN
 #include "afni.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 /*========================================================================*/
 /*==== Compile this only if plugins are properly enabled in machdep.h ====*/
 
@@ -4305,6 +4300,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) get_laguerre_table ,
    (vptr_func *) mri_fix_data_pointer ,
    (vptr_func *) THD_zeropad ,
+   (vptr_func *) THD_axcode ,
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){

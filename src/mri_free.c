@@ -73,3 +73,16 @@ int mri_datum_size( MRI_TYPE typ )
       default:          return 0 ;
    }
 }
+
+/*---------------- added fake rint() 12 Feb 2001 ---------------*/
+
+#ifdef NO_RINT
+double rint( double x )
+{
+   int nn ;
+
+   if( x >= 0.0 ) nn = (int)(x+0.49999999) ;
+   else           nn = (int)(x-0.49999999) ;
+   return (double)nn ;
+}
+#endif

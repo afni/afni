@@ -9,13 +9,14 @@
 
 #define MRILIB_7D
 
-#define COXEMAIL "rwcox@mcw.edu"
+#define COXEMAIL "rwcox@codon.nih.gov"  /* or /dev/null, if you prefer */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 #include "mcw_malloc.h"  /* 06 Mar 1999 addition */
+#include "debugtrace.h"  /* 26 Jan 2001 addition */
 
 #ifndef PI
 #  define PI 3.14159265358979323846
@@ -334,6 +335,8 @@ static int MRI_mm ;
   extern MRI_IMARR * mri_read_3D_delay( char * ) ;
 #endif
 
+extern MRI_IMARR * mri_read_analyze75( char * ) ;  /* 05 Feb 2001 */
+
 extern void mri_add_name( char * , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
@@ -353,6 +356,8 @@ extern void *mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 #define mri_clear_data_pointer(iq) mri_fix_data_pointer(NULL,(iq))
+
+extern MRI_IMAGE * MRI_zeropad( int,int,int,int,int,int , MRI_IMAGE * ) ;
 
 extern double mri_max( MRI_IMAGE * ) ;
 extern double mri_min( MRI_IMAGE * ) ;

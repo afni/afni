@@ -23,8 +23,6 @@ MRI_IMAGE * THD_extract_series( int ind , THD_3dim_dataset * dset , int raw )
    int nv , ival ;
    char * iar ;      /* brick in the input */
 
-ENTRY("THD_extract_series") ;
-
    if( ind < 0 || dset == NULL ||
        ind >= dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ) return NULL ;
 

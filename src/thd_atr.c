@@ -27,10 +27,6 @@ void THD_read_all_atr( char * headername , THD_datablock * blk )
    int code , ii ;
    FILE * header_file ;
 
-#ifdef THD_DEBUG
-printf("THD_read_all_atr: entry\n") ;
-#endif
-
    if( ! ISVALID_DATABLOCK(blk) )
       THD_FATAL_ERROR( "Illegal datablock type in THD_read_all_atr" ) ;
 
@@ -40,9 +36,6 @@ printf("THD_read_all_atr: entry\n") ;
 
    header_file = fopen( headername , "r" ) ;
    if( header_file == NULL ){
-#ifdef THD_DEBUG
-printf("  -- failed to open header file %s\n",headername) ;
-#endif
        return ;
    }
 
@@ -57,10 +50,6 @@ printf("  -- failed to open header file %s\n",headername) ;
                      " type = %s name = %s count = %d" ,
                      atypestr , aname , &acount ) ;
 
-#ifdef THD_DEBUG
-printf("  -- read type=%s  name=%s  count=%d\n",atypestr,aname,acount) ;
-#endif
-
       code = (code != 3 || acount < 1) ? FAIL : SUCCESS ;
       if( code == FAIL ) break ;  /* bad read */
 
@@ -71,10 +60,6 @@ printf("  -- read type=%s  name=%s  count=%d\n",atypestr,aname,acount) ;
          code = FAIL ;
          break ;
       }
-
-#ifdef THD_DEBUG
-printf("  -- atype=%d\n",atype) ;
-#endif
 
       if( blk->natr == blk->natr_alloc ){  /* make new space */
          blk->natr_alloc  += ATR_ALLINC ;
@@ -112,10 +97,6 @@ printf("  -- atype=%d\n",atype) ;
 
             ADDTO_KILL( blk->kl , new_atr->name ) ;
             ADDTO_KILL( blk->kl , new_atr->fl ) ;
-
-#ifdef THD_DEBUG
-printf("  -- float  atr: %s[0] = %g\n", aname,new_atr->fl[0]) ; fflush(stdout) ;
-#endif
          }
          break ;
 
@@ -135,9 +116,6 @@ printf("  -- float  atr: %s[0] = %g\n", aname,new_atr->fl[0]) ; fflush(stdout) ;
 
             ADDTO_KILL( blk->kl , new_atr->name ) ;
             ADDTO_KILL( blk->kl , new_atr->in ) ;
-#ifdef THD_DEBUG
-printf("  -- int    atr: %s[0] = %d\n", aname,new_atr->in[0]) ; fflush(stdout) ;
-#endif
          }
          break ;
 
@@ -161,9 +139,6 @@ printf("  -- int    atr: %s[0] = %d\n", aname,new_atr->in[0]) ; fflush(stdout) ;
 
             ADDTO_KILL( blk->kl , new_atr->name ) ;
             ADDTO_KILL( blk->kl , new_atr->ch ) ;
-#ifdef THD_DEBUG
-printf("  -- string atr: %s = %s\n",aname,new_atr->ch) ; fflush(stdout) ;
-#endif
          }
          break ;
       }  /* end of switch */
@@ -361,10 +336,6 @@ void THD_set_atr( THD_datablock * blk , char * aname ,
 
    if( old_atr != NULL ){  /* if an attribute with this name already is */
 
-#ifdef THD_DEBUG
-printf("THD_set_atr: replacing atr %s\n",aname) ;
-#endif
-
       atr = old_atr ;
 
       switch( old_atr->type ){  /* free data in old attribute */
@@ -402,11 +373,6 @@ printf("THD_set_atr: replacing atr %s\n",aname) ;
 
       for( ia=0 ; ia < blk->natr ; ia++ )     /* 29 April 1998: look for an */
          if( blk->atr[ia].type < 0 ) break ;  /* unused one before the end  */
-
-#ifdef THD_DEBUG
-  if( ia == blk->natr ) printf("THD_set_atr: making new atr %s\n",aname) ;
-  else                  printf("THD_set_atr: recycling old atr into %s\n",aname) ;
-#endif
 
       if( ia == blk->natr_alloc ){            /* need to extend array */
          blk->natr_alloc  += ATR_ALLINC ;

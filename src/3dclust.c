@@ -106,6 +106,7 @@ int main( int argc , char * argv[] )
    int nvox_total ;
    float vol_total ;
    char buf1[16],buf2[16],buf3[16] ;
+   float dxf,dyf,dzf ;                  /* 24 Jan 2001: for -dxyz=1 option */
 
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
       printf ("\n\n");
@@ -130,13 +131,22 @@ int main( int argc , char * argv[] )
           "     as the computations proceed.\n"
           "  The -quiet option suppresses all non-essential output. \n"
           "  The editing options are as in 3dmerge\n"
-          "     (including use of the -1dindex and -1tindex options).\n"
+          "     (including use of the -1dindex, -1tindex, and -dxyz=1 options).\n"
           "  The program does not work on complex-valued datasets!\n"
           "  Using the -1noneg option is strongly recommended!\n "
-          "  SEM values are not realistic for interpolated data sets! \n"
-          "  A ROUGH correction is to multiply the SEM of the interpolated\n"
-          "     data set by the square root of the number of interpolated \n"
-          "     voxels per original voxel. \n" ) ;
+          "N.B.: SEM values are not realistic for interpolated data sets! \n"
+          "      A ROUGH correction is to multiply the SEM of the interpolated\n"
+          "      data set by the square root of the number of interpolated \n"
+          "      voxels per original voxel. \n"
+          "N.B.: If you use -dxyz=1, then rmm should be given in terms of\n"
+          "      voxel edges (not mm) and vmul should be given in terms of\n"
+          "      voxel counts (not microliters).  Thus, to connect to only\n"
+          "      3D nearest neighbors and keep clusters of 10 voxels or more,\n"
+          "      use something like '3dclust -dxyz=1 1.1 10 dset+orig'.\n"
+          "      In the report, 'Volume' will be voxel count, but the rest of\n"
+          "      the coordinate dependent information will be in actual xyz\n"
+          "      millimeters.\n"
+        ) ;
       exit(0) ;
    }
 
@@ -219,13 +229,17 @@ int main( int argc , char * argv[] )
       ny    = dset->daxes->nyy ; dy = fabs(dset->daxes->yydel) ;
       nz    = dset->daxes->nzz ; dz = fabs(dset->daxes->zzdel) ;
       nxy   = nx * ny ; nxyz = nxy * nz ;
-      ptmin = vmul / (dx*dy*dz) + 0.99 ;
+
+	  if( CL_edopt.fake_dxyz ){ dxf = dyf = dzf = 1.0 ; }         /* 24 Jan 2001 */
+	  else                    { dxf = dx ; dyf = dy ; dzf = dz ; }
+
+      ptmin = (int) (vmul / (dxf*dyf*dzf) + 0.99) ;
 
 #if 0
-      if( rmm < dx && rmm < dy && rmm < dz ){
+      if( rmm < dxf && rmm < dyf && rmm < dzf ){
          fprintf(stderr,
             "*** file %s: cluster rmm %f smaller than voxels dx=%f dy=%f dz=%f\n",
-            argv[iarg],rmm,dx,dy,dz ) ;
+            argv[iarg],rmm,dxf,dyf,dzf ) ;
          continue ;
       }
 #endif
@@ -251,6 +265,10 @@ int main( int argc , char * argv[] )
            rmm , vmul , dx*dy*dz ,
            MRI_TYPE_name[ DSET_BRICK_TYPE(dset,ivfim) ] ,
            dx,dy,dz );
+
+          if( CL_edopt.fake_dxyz )  /* 24 Jan 2001 */
+            printf("[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
+                   dxf,dyf,dzf) ;
 
          if (CL_noabs)                                   /* BDW  19 Jan 1999 */
            printf ("Mean and SEM based on Signed voxel intensities: \n\n");
@@ -286,7 +304,7 @@ int main( int argc , char * argv[] )
 
        }
    }
-      clar = MCW_find_clusters( nx,ny,nz , dx,dy,dz ,
+      clar = MCW_find_clusters( nx,ny,nz , dxf,dyf,dzf ,
                                 DSET_BRICK_TYPE(dset,ivfim) , vfim , rmm ) ;
       PURGE_DSET( dset ) ;
 
@@ -337,7 +355,7 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
          cl = clar->clar[iclu] ;
          if( cl == NULL || cl->num_pt < ptmin ) continue ;  /* no good */
 
-         volsum = cl->num_pt * dx*dy*dz ;
+         volsum = cl->num_pt * dxf*dyf*dzf ;
          xxsum = yysum = zzsum = mmsum = mssum = 0.0 ;
          xxmax = yymax = zzmax = mmmax = msmax = 0.0 ;
          sqsum = sem = 0;

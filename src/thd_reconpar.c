@@ -34,7 +34,7 @@
              (ds)->warp_parent_idcode.str , DSET_HEADNAME(ds) )
 #endif
 
-#ifdef THD_DEBUG
+#if 0
 # define SHOW_PARENTING(str,ds,dsp)                                            \
   ( printf("THD_reconcile_parents: %s of %s to %s\n",                          \
            str,(ds)->dblk->diskptr->filecode,(dsp)->dblk->diskptr->filecode) , \

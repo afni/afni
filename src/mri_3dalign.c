@@ -40,6 +40,10 @@ void mri_3dalign_params( int maxite ,
    if( bx2 >= 0 && bx2 <= 2 ) ax2 = bx2 ;
    if( bx3 >= 0 && bx3 <= 2 ) ax3 = bx3 ;
 
+   if( DEBUGTHISFILE ){
+      fprintf(stderr,"mri_3dalign_params: ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3);
+   }
+
    dcode = dc ;
    return ;
 }

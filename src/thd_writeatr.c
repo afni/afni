@@ -46,10 +46,6 @@ Boolean THD_write_atr( THD_datablock * blk )
          case ATR_FLOAT_TYPE:{
             ATR_float * atr_flo = (ATR_float *) atr_any ;
 
-#ifdef THD_DEBUG
-fprintf(stderr,"THD_write_atr: FLOAT %s\n",atr_flo->name);
-#endif
-
             code = fprintf( header_file ,
                             "\ntype  = %s\nname  = %s\ncount = %d\n" ,
                             ATR_typestr[ATR_FLOAT_TYPE] ,
@@ -70,10 +66,6 @@ fprintf(stderr,"THD_write_atr: FLOAT %s\n",atr_flo->name);
          case ATR_INT_TYPE:{
             ATR_int * atr_int = (ATR_int *) atr_any ;
 
-#ifdef THD_DEBUG
-fprintf(stderr,"THD_write_atr: INT %s\n",atr_int->name);
-#endif
-
             code = fprintf( header_file ,
                             "\ntype = %s\nname = %s\ncount = %d\n" ,
                             ATR_typestr[ATR_INT_TYPE] ,
@@ -93,10 +85,6 @@ fprintf(stderr,"THD_write_atr: INT %s\n",atr_int->name);
 
          case ATR_STRING_TYPE:{
             ATR_string * atr_str = (ATR_string *) atr_any ;
-
-#ifdef THD_DEBUG
-fprintf(stderr,"THD_write_atr: STRING %s\n",atr_str->name);
-#endif
 
             code = fprintf( header_file ,
                             "\ntype = %s\nname = %s\ncount = %d\n" ,
@@ -124,10 +112,6 @@ fprintf(stderr,"THD_write_atr: STRING %s\n",atr_str->name);
       good = good && (code != FAIL) ;  /* all must not FAIL */
       fprintf(header_file,"\n") ;
 
-#ifdef THD_DEBUG
-if( code == FAIL ) fprintf(stderr," ** attribute write failure!\n") ;
-#endif
-
    } /* end of loop over all atr's */
 
    if( good == False ){
@@ -138,10 +122,6 @@ if( code == FAIL ) fprintf(stderr," ** attribute write failure!\n") ;
    }
 
    /*--- close it down ---*/
-
-#ifdef THD_DEBUG
-fprintf(stderr,"THD_write_atr: closing\n") ;
-#endif
 
    fclose( header_file ) ;
    return True ;

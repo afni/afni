@@ -8,11 +8,6 @@
 #include "afni_graph.h"
 #include "afni.h"
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
-#include "dbtrace.h"
-
 static int show_grapher_pixmap = 1 ;
 
 MCW_grapher * new_MCW_grapher( MCW_DC * dc , get_ptr getser , XtPointer aux )

@@ -4,7 +4,6 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
    
-#define FLOAT_TYPE double  /* must be same as in thd_rot3d.c */
 #include "vecmat.h"
 #include "mrilib.h"
 
@@ -12,17 +11,17 @@
 
 #define ERREX(str) (fprintf(stderr,"*** %s\n",str),exit(1))
 
-THD_mat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
+THD_dmat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
 
 /*-------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
 {
-   THD_fvec3 * xx , * yy , dv ;
+   THD_dfvec3 * xx , * yy , dv ;
    int nvec , ii,jj, iarg ;
-   THD_vecmat rt ;
-   THD_mat33  pp,ppt , rr ;
-   THD_fvec3  tt ;
+   THD_dvecmat rt ;
+   THD_dmat33  pp,ppt , rr ;
+   THD_dfvec3  tt ;
 
    THD_3dim_dataset * mset=NULL , * dset=NULL ;
    double * ww=NULL ;
@@ -233,23 +232,23 @@ int main( int argc , char * argv[] )
 
    /*-- load vector lists: xx=master, yy=input --*/
 
-   xx = (THD_fvec3 *) malloc( sizeof(THD_fvec3) * nvec ) ;
-   yy = (THD_fvec3 *) malloc( sizeof(THD_fvec3) * nvec ) ;
+   xx = (THD_dfvec3 *) malloc( sizeof(THD_dfvec3) * nvec ) ;
+   yy = (THD_dfvec3 *) malloc( sizeof(THD_dfvec3) * nvec ) ;
    dsum = 0.0 ;
    for( ii=jj=0 ; ii < nvec ; ii++ ){
       if( TAG_SET(TAGLIST_SUBTAG(mset->tagset,ii)) ){
 
-         LOAD_FVEC3( xx[jj] ,                                       /* N.B.:     */
+         LOAD_DFVEC3( xx[jj] ,                                       /* N.B.:     */
                      TAG_X( TAGLIST_SUBTAG(mset->tagset,ii) ) ,     /* these are */
                      TAG_Y( TAGLIST_SUBTAG(mset->tagset,ii) ) ,     /* in Dicom  */
                      TAG_Z( TAGLIST_SUBTAG(mset->tagset,ii) )  ) ;  /* order now */
 
-         LOAD_FVEC3( yy[jj] ,
+         LOAD_DFVEC3( yy[jj] ,
                      TAG_X( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
                      TAG_Y( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
                      TAG_Z( TAGLIST_SUBTAG(dset->tagset,ii) )  ) ;
 
-         dv    = SUB_FVEC3( xx[jj] , yy[jj] ) ;
+         dv    = SUB_DFVEC3( xx[jj] , yy[jj] ) ;
          dsum += dv.xyz[0]*dv.xyz[0] + dv.xyz[1]*dv.xyz[1] + dv.xyz[2]*dv.xyz[2] ;
 
          jj++ ;
@@ -261,7 +260,7 @@ int main( int argc , char * argv[] )
 
    /*-- compute best rotation + translation --*/
 
-   rt = LSQ_rot_trans( nvec , yy , xx , ww ) ;  /* in thd_rot3d.c */
+   rt = DLSQ_rot_trans( nvec , yy , xx , ww ) ;  /* in thd_rot3d.c */
 
    /*-- check for floating point legality --*/
 
@@ -280,7 +279,7 @@ int main( int argc , char * argv[] )
 
    /*-- check for rotation matrix legality --*/
 
-   dsum = MAT_DET(rt.mm) ;
+   dsum = DMAT_DET(rt.mm) ;
    if( fabs(dsum-1.0) > 0.01 ){
      fprintf(stderr,"*** Invalid rotation matrix computed: tags dependent?\n"
                     "*** computed [R] and follow:\n" ) ;
@@ -303,9 +302,9 @@ int main( int argc , char * argv[] )
 
    { float theta, costheta , dist ;
 
-     costheta = 0.5 * sqrt(1.0 + MAT_TRACE(rt.mm)) ;
+     costheta = 0.5 * sqrt(1.0 + DMAT_TRACE(rt.mm)) ;
      theta    = 2.0 * acos(costheta) * 180/3.14159265 ;
-     dist     = SIZE_FVEC3(rt.vv) ;
+     dist     = SIZE_DFVEC3(rt.vv) ;
 
      if( verb || (theta < 0.1 && dist < 0.1) )
         fprintf(stderr,"+++ Total rotation = %.2f degrees; translation = %.2f mm\n",
@@ -343,8 +342,8 @@ int main( int argc , char * argv[] )
         vector from Dicom coordinate order to dataset brick order --*/
 
    pp  = DBLE_mat_to_dicomm( dset ) ;
-   ppt = TRANSPOSE_MAT(pp) ;
-   rr  = MAT_MUL(ppt,rt.mm) ; rr = MAT_MUL(rr,pp) ; tt = MATVEC(ppt,rt.vv) ;
+   ppt = TRANSPOSE_DMAT(pp) ;
+   rr  = DMAT_MUL(ppt,rt.mm) ; rr = DMAT_MUL(rr,pp) ; tt = DMATVEC(ppt,rt.vv) ;
 
    /*-- now create the output dataset by screwing with the input dataset
         (this code is adapted from 3drotate.c)                           --*/
@@ -371,19 +370,19 @@ int main( int argc , char * argv[] )
    /*-- if desired, keep old tagset --*/
 
    if( keeptags ){
-      THD_fvec3 rv ;
+      THD_dfvec3 rv ;
 
       dsum = 0.0 ;
       for( jj=ii=0 ; ii < TAGLIST_COUNT(dset->tagset) ; ii++ ){
          if( TAG_SET(TAGLIST_SUBTAG(dset->tagset,ii)) ){
-            rv = MATVEC( rt.mm , yy[jj] ) ;                     /* operating on */
-            rv = ADD_FVEC3( rt.vv , rv ) ;                      /* Dicom order  */
+            rv = DMATVEC( rt.mm , yy[jj] ) ;                     /* operating on */
+            rv = ADD_DFVEC3( rt.vv , rv ) ;                      /* Dicom order  */
 
-            dv    = SUB_FVEC3( xx[jj] , rv ) ;
+            dv    = SUB_DFVEC3( xx[jj] , rv ) ;
             dsum += dv.xyz[0]*dv.xyz[0] + dv.xyz[1]*dv.xyz[1]
                                         + dv.xyz[2]*dv.xyz[2] ;
 
-            UNLOAD_FVEC3( rv , TAG_X( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
+            UNLOAD_DFVEC3( rv , TAG_X( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
                                TAG_Y( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
                                TAG_Z( TAGLIST_SUBTAG(dset->tagset,ii) )  ) ;
 
@@ -459,10 +458,10 @@ int main( int argc , char * argv[] )
 
    /* save matrix+vector into dataset, too */
 
-   UNLOAD_MAT(rt.mm,matar[0],matar[1],matar[2],
+   UNLOAD_DMAT(rt.mm,matar[0],matar[1],matar[2],
                     matar[4],matar[5],matar[6],
                     matar[8],matar[9],matar[10] ) ;
-   UNLOAD_FVEC3(rt.vv,matar[3],matar[7],matar[11]) ;
+   UNLOAD_DFVEC3(rt.vv,matar[3],matar[7],matar[11]) ;
    THD_set_atr( dset->dblk, "TAGALIGN_MATVEC", ATR_FLOAT_TYPE, 12, matar ) ;
 
    /* write dataset to disk */
@@ -484,11 +483,11 @@ int main( int argc , char * argv[] )
   brick axis coordinates to Dicom order coordinates.
 -----------------------------------------------------------------------*/
 
-THD_mat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
+THD_dmat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
 {
-   THD_mat33 tod ;
+   THD_dmat33 tod ;
 
-   LOAD_ZERO_MAT(tod) ;
+   LOAD_ZERO_DMAT(tod) ;
 
    switch( dset->daxes->xxorient ){
       case ORI_R2L_TYPE: tod.mat[0][0] =  1.0 ; break ;

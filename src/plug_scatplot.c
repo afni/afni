@@ -40,7 +40,7 @@ static char helpstring[] =
    "  if Bottom >  Top, then all voxels will be used\n"
    "  if Bottom <= Top, then only voxels in this range will be used\n"
    "\n"
-   "Note: A maximum of 1000000 (one million) points can be plotted.\n\n"
+   "Note: A maximum of 4,000,000 (four million) points can be plotted.\n\n"
    " Author -- RW Cox - 13 January 2000\n"
 ;
 
@@ -362,11 +362,11 @@ char * SCAT_main( PLUGIN_interface * plint )
 
    free(mmm) ;  /* don't need this no more */
 
-   if( mcount > 1000000 ){
+   if( mcount > 4000000 ){
       static char msg[128] ;
       free(xar) ; free(yar) ;
       sprintf(msg," \n*** Attempt to scatterplot %d points!\n"
-                     "*** Maximum allowed is     1000000.\n" , mcount ) ;
+                     "*** Maximum allowed is     4000000.\n" , mcount ) ;
       return msg ;
    }
 

@@ -22,7 +22,12 @@
   The MCW-copyrighted part of this software is released to the public under
   the GNU General Public License, Version 2.  A copy of this License is
   appended.  The final reference copy of the software that was fully derived
-  from MCW is in the tar/gzip archive file afni98_lastmcw.tgz.
+  from MCW is in the tar/gzip archive file afni98_lastmcw.tgz.  (This does
+  NOT mean that later code is not copyrighted by MCW - that depends on the
+  source file involved.  It simply means that some code developed later comes
+  from the NIH, and is not copyrighted.  Other parts developed or contributed
+  later are from MCW or other institutions that still maintain their copyright,
+  but who release the code under the GPL.)
 
   The MCW-copyrighted part of the documentation is released to the public
   under the Open Content License (OCL).  A copy of this license is appended.

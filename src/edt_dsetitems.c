@@ -6,13 +6,6 @@
 
 #include "mrilib.h"
 
-#undef  AFNI_DEBUG
-#undef  CLUST_DEBUG
-#define STATUS(x) /* nada */
-#define ENTRY(x)  /* nada */
-#define EXRETURN  return
-#define RETURN(x) return(x)
-
 /*-----------------------------------------------------------------------
   Edit some internals of a dataset.  Notice that it is possible to
   create a dataset which is inconsistent.  Note also that some operations
@@ -32,18 +25,11 @@
   Finally, the end of the argument list is found by the last argument
   being the special code ADN_none.
 
-  The return value is the number of errors detected.  If this is > 0,
-  the input dataset is unchanged.
+  The return value is the number of errors detected (hopefully, 0).
 -------------------------------------------------------------------------*/
 
-#ifdef THD_DEBUG
-#  define EDERR(str) \
-     do{ fprintf(stderr,"*** EDIT_dset_items: %s\n",str) ; errnum++ ; } while(0)
-#else
-/* #  define EDERR(str) errnum++ */
-#  define EDERR(str) \
-     do{ fprintf(stderr,"*** EDIT_dset_items: %s\n",str) ; errnum++ ; } while(0)
-#endif
+#define EDERR(str) \
+   do{ fprintf(stderr,"*** EDIT_dset_items: %s\n",str) ; errnum++ ; } while(0)
 
 int EDIT_dset_items( THD_3dim_dataset * dset , ... )
 {

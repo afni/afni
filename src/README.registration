@@ -1,5 +1,6 @@
-Image and Volume Registration in AFNI 2.21
-------------------------------------------
+====================================================
+Notes on Image and Volume Registration in AFNI 2.21+
+====================================================
 Two basic methods are supplied.  The first does 2D (in-plane) alignment
 on each slice separately.  There is no attempt to correct for out-of-slice
 movements.  The second does 3D (volumetric) alignment on each 3D sub-brick
@@ -7,8 +8,8 @@ in a dataset.  Both methods compute the alignment parameters by an iterative
 weighted least squares fit to a base image or volume (which can be selected
 from another dataset).  The AFNI package registration programs are designed
 to find movements that are small -- 1-2 voxels and 1-2 degrees, at most.
-They will not work well at realigning datasets with larger motion (as would
-occur between imaging sessions).
+They may not work well at realigning datasets with larger motion (as would
+occur between imaging sessions) -- however, this issue is discussed later.
 
 2D registration is implemented in programs
  * imreg:      operates on slice data files, outside of the AFNI framework
@@ -48,13 +49,13 @@ Robert W. Cox, PhD -- November 1998
 Medical College of Wisconsin
 -----------------------------------
 
-The following words can be used as a concise description of the registration
-algorithm, if you need such a thing for a paper.  A paper on the algorithm
-has been published recently:
+The following words can be used as the basis for a concise description of
+the registration algorithm, if you need such a thing for a paper.  A paper
+on the algorithm has been published:
      RW Cox and A Jesmanowicz.
      Real-time 3D image registration for functional MRI.
      Magnetic Resonance in Medicine, 42:1014-1018, 1999.
--------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 The algorithm used for 3D volume registration is designed to be efficient
 at fixing motions of a few mm and rotations of a few degrees.  Using this
 limitation, the basic technique is to align each volume in a time series
@@ -73,3 +74,384 @@ efficient, based on a new method using a 4-way 3D shear matrix factorization
 of the rotation matrix.  It is accurate, since Fourier interpolation is used
 in the resampling process.  On the SGI and Intel workstations used for this
 project, a 64x64x16 volume can be aligned to a fiducial in less than 1 second.
+------------------------------------------------------------------------------
+
+===============================================================================
+Using 3dvolreg/3drotate to Align Intrasubject/Intersession Datasets: AFNI 2.29+
+===============================================================================
+When you study the same subject on different days, to compare the datasets
+gathered in different sessions, it is first necessary to align the volume
+images.  If you do not want to do this in the +acpc or +tlrc coordinate
+systems (which may not be accurate enough), then you need to use 3dvolreg
+to compute and apply the correct rotation+shift to register the datasets.
+This note discusses the practical difficulties posed by this problem, and
+the AFNI solution.
+
+----------------------
+The Discursive Section
+----------------------
+The difficulties include:
+ (A) Subject's head will be positioned differently in the scanner -- both
+     in location and orientation.
+ (B) Low resolution, low contrast echo-planar images are harder to realign
+     accurately than high resolution, high contrast SPGR images, when the
+     subject's head is rotated.
+ (C) Anatomical coverage of the EPI slices will be different, meaning that
+     exact overlap of the functional data from two sessions may not be
+     possible.
+ (D) The geometrical relationship between the EPI and SPGR (MPRAGE, etc.)
+     images may be different on different days.
+ (E) The coordinates in the scanner used for the two scanning sessions
+     may be different (e.g., slice coverage from 40I to 50S on one day,
+     and from 30I to 60S on another), even if the anatomical coverage
+     is the same.
+ (F) The resolution (in-plane and/or slice thickness) may vary between
+     scanning sessions.
+
+(B-D) imply that simply using 3dvolreg to align the EPI data from session 2
+with EPI data from session 1 won't work well.  3dvolreg's calculations are
+based on matching voxel data, but if the images don't cover the same
+part of the brain fully, they won't register well.
+
+** Note well: 3dvolreg cannot deal with problem (F) -- if you want to **
+**            compare data on different days, be sure to use the same **
+**            image acquisition parameters!                           **
+
+The AFNI solution is to register the SPGR images from session 2 to session 1,
+to use this transformation to move the EPI data (or functional datasets
+derived from the EPI data) from session 2 in the same way.  The use of the
+SPGR images as the "parents" gets around difficulty (B), and is consistent
+with the extant AFNI processing philosophy.  The SPGR alignment procedure
+specifically ignores the data at the edges of the bricks, so that small (5%)
+mismatches in anatomical coverage shouldn't be important.  (This also helps
+eliminate problems with various unpleasant artifacts that occur at the edges
+of images.)
+
+Problem (C) is addressed by zero-padding the EPI datasets in the slice-
+direction.  In this way, if the EPI data from session 2 covers a somewhat
+different patch of brain than from session 1, the bricks can still be made
+to overlap, as long as the zero-padding is large enough to accomodate the
+required data shifts.  Zero-padding can be done in one of 3 ways:
+ (1) At dataset assembly time, in to3d (using the -zpad option); or
+ (2) At any later time, using the program 3dZeropad; or
+ (3) By 3drotate (using -gridparent with a previously zero-padded dataset).
+
+Suppose that you have the following 4 datasets:
+  S1 = SPGR from session 1    F1 = functional dataset from session 1
+  S2 = SPGR from session 2    F2 = functional dataset from session 2
+
+Then the following commands will create datasets registered from session 2
+into alignment with session 1:
+
+  3dvolreg -twopass -twodup -clipit -base S1+orig -prefix S2reg S2+orig
+
+  3drotate -clipit -rotparent S2reg+orig -gridparent F1+orig \
+           -prefix F2reg F2+orig
+
+The first command writes the rotation+shift transformation use to align
+S2 with S1 into the header of S2reg.  The "-rotparent" option in the
+second command tells 3drotate to take the transformation from the
+.HEAD file of S2reg, rather than from the command line.  The "-gridparent"
+option tells the program to make sure the output dataset (F2reg) is in the
+same geometrical relationship to S1 as dataset F1.
+
+When you are creating EPI datasets, you may want to use the -zpad option
+to to3d, so that they have some buffer space on either side to allow for
+mismatches in anatomical coverage in the slice direction.  Note that
+the use of the "-gridparent" option to 3drotate implies that the output
+dataset F2reg will be sampled to the same grid as dataset F1.  If needed,
+F2reg will be zeropadded in the slice-direction to make it have the same
+size as F1.
+
+If you want to zeropad a dataset after creation, this can be done using
+a command line like:
+
+  3dZeropad -z 2 -prefix F1pad F1+orig
+
+which will add 2 slices of zeros to each slice-direction face of each
+sub-brick of dataset F1, and write the results to dataset F1pad.
+
+The above 3dvolreg+3drotate combination is reasonable for rotating functional
+datasets derived from EPI time series in session 2 to be aligned with data
+from session 1.  If you want to align the actual EPI time series between
+sessions, the technique above requires two interpolation steps on the EPI
+data.  This is because you want to register all the session 2 EPI data
+together internally, and then later rotate+shift these registered datasets
+to be aligned with session 1.
+
+In general, it is bad to interpolate data twice, since each interpolation
+step corrupts the data a little.  (One visible manifestation of this effect
+is image blurring.)  To avoid this problem, program 3dvolreg also can use the
+"-rotparent -gridparent" options to specify the transform to the final output
+coordinate system.  When these options are used, the EPI time series is
+registered internally as usual, but after each sub-brick has its own
+registration transformation computed, the extra transformation (from the
+-rotparent dataset) that aligns to session 1 is multiplied in.  This means
+that the final output of such a 3dvolreg run will be directly realigned to
+the session 1 coordinate system.  For example:
+
+  3dvolreg -twopass -twodup -clipit -base S1+orig -prefix S2reg S2+orig
+
+  3dvolreg -clipit -base 4 -prefix E1reg E1+orig
+
+  3dvolreg -clipit -rotparent S2reg+orig -gridparent E1reg+orig \
+           -base 4 -prefix E2reg E2+orig
+
+The first command is exactly as before, and provides the anatomical transform
+from session 2 to session 1.  The second command is for registering the sub-
+bricks from session 1's EPI scans.  The third command is for registering the
+sub-bricks from session 2's EPI scans, and simultaneously transforming them
+to session 1's frame of reference.  After this is done, the functional
+activation program of your choice could be applied to E1reg and E2reg (etc.).
+
+Which is better: to analyze each session and then rotate the derived
+functional maps to the master session, OR to rotate the EPI time series to
+the master session, and then analyze?  There is no good answer to this
+question, because there are good points and bad points to each method.
+
+------------------------------------------------------------------------------
+Analyze then Rotate                   | Rotate then Analyze
+------------------------------------- | --------------------------------------
+GOOD: the time-offsets of each slice  | BAD: large inter-session out-of-slice
+      are still accurate after small  |      rotations will make the concept
+      intra-session out-of-slice      |      of slicewise time-offsets useless
+      rotations                       |
+BAD: rotating statistical maps (SPMs) | GOOD: EPI values are linear (about) in
+     requires interpolating values    |       the raw MRI data; interpolating
+     that are not linearly dependent  |       them (linear combinations) is
+     on the data                      |       perfectly reasonable
+------------------------------------------------------------------------------
+
+[No doubt I'll think of more good/bad tradeoffs soon.]
+
+An third method is to time shift all 3D+time datasets to the same origin, prior
+to registration.  This has the drawback that it deals with aliased higher
+frequency signals (e.g., the heartbeat) improperly.  It has the positive feature
+that it eliminates the annoying time-offsets as soon as possible, so you don't
+have to think about them any more.
+
+-------------------------------
+Summary of Tools and Techniques
+-------------------------------
+(1) Zero pad the functional data before doing inter-session rotations.  This
+    will allow for imperfect overlap in the acquisitions of the EPI slices.
+    At dataset assembly time, you can zero pad with
+
+      to3d -zpad 2 ....
+
+    which will insert 2 slices of zeros at each slice-direction face of the
+    dataset.  If you use this method for zero padding, note the following:
+    * If the geometry parent dataset was created with -zpad, the spatial
+        location (origin) of the slices is set using the geometry dataset's
+        origin BEFORE the padding slices were added.  This is correct, since
+        you need to set the origin/geometry on the current dataset as if the
+        padding slices were not present.  To3d will adjust the origin of the
+        output dataset so that the actual data slices appear in the correct
+        location (it uses the same function that 3dZeropad does).
+    * The zero slices will NOT be visible in the image viewer in to3d, but
+        will be visible when you use AFNI to look at the dataset.
+    * Unlike the '-zpad' option to 3drotate and 3dvolreg, this adds slices
+      only in the z-direction.
+    * You can set the environment variable 'AFNI_TO3D_ZPAD' to provide a
+      default for this option.
+    * You can pad in millimeters instead of slices by appending 'mm' to the
+      the -zpad parameter: '-zpad 6mm' will add as many slices as necessary
+      to get at least 6 mm of padding.  For example, if the slice thickness
+      were 2.5 mm, then this would be equivalent to '-zpad 3'.  You could
+      also use this in 'setenv AFNI_TO3D_ZPAD 6mm'.
+
+    You can also zeropad datasets after they are created using
+
+      3dZeropad -z 2 -prefix ElvisZZ Elvis+orig
+
+    This creates a new dataset (here, named ElvisZZ+orig) with the extra 4
+    slices (2 on each slice-direction side) added.  When this is done, the
+    origin of the new dataset is adjusted so that the original part of the
+    data is still in the same spatial (xyz-coordinate) location as it was
+    before -- in this way, it will still overlap with the SPGRs properly
+    (assuming it overlapped properly before zero-padding).
+
+    If you want to specify padding in mm with 3dZeropad, you don't put the
+    'mm' suffix on the slice count; instead, you use the '-mm' flag, as in
+
+      3dZeropad -mm -z 6 -prefix ElvisMM Elvis+orig
+
+    (The reason for this annoying changing from to3d's method is that
+    3dZeropad can also do asymettric padding on all faces, and I didn't
+    want to deal with the annoying user who would specify some faces in mm
+    and some in slices.)
+
+    For the anatomical images I am used to dealing with (whole-head SPGRs
+    and MPRAGEs), there is no real reason to zeropad the dataset -- the
+    brain coverage is usually complete, so realignment between sessions
+    should not lose data.  There might be situations where this advice
+    is incorrect; in particular, if the anatomical reference images do
+    NOT cover the entire head.
+
+(2) Choose one session as the "master" and register all the anatomicals
+    from other sessions to the master anatomical.  For example
+
+      3dvolreg -clipit -twopass -twodup -zpad 4 -rotcom -verbose  \
+               -base ANAT001+orig -prefix ANAT002reg ANAT002+orig
+
+    where I'm assuming datasets labeled "001" are from the master session
+    and those labeled "002" are from another session.  Some points to mull:
+
+    * The -zpad option here just pads the 3D volumes with zeros (4 planes on
+        all 6 sides) during the rotation process, and strips those planes
+        off after rotation.  This helps minimize some artifacts from the
+        shearing algorithm used for rotation.
+    * If you are using a local gradient coil for image acquisition, the
+        images may be slightly distorted at their inferior edges.  This
+        is because the magnetic gradient fields are not perfectly linear
+        at the edges of the coil.  When the SPGRs from different sessions
+        are aligned, you may see small distortions at the base of the brain
+        even though the rest of the volume appears well-registered.  This
+        occurs because the subject's head is placed differently between
+        sessions, and so the gradient coil distortions are in different
+        anatomical locations.  Flipping between the SPGRs from the two
+        sessions make the distortions quite obvious, even if they are
+        imperceptible in any single image.  Registration by itself cannot
+        correct for this effect.  (Sorry, MCW and MAI.)
+    * The -rotcom option prints out the rotation/translation used.  This
+        is for informational purposes only - you don't need to save this.
+        In fact, it is now saved in the header of the output dataset, and
+        could be retrieved with the command
+
+          3dAttribute VOLREG_ROTCOM_000000 ANAT002reg+orig
+
+        The list of all the 3dvolreg-generated dataset attributes is given
+        later in this document.
+
+(3) Register all the EPI time series within the session and also apply the
+    transformation to take the data to the master session reference system.
+    For example
+
+      3dvolreg -clipit -zpad 4 -verbose                                   \
+               -rotparent ANAT002reg+orig -gridparent FUNC001_001reg+orig \
+               -base 'FUNC002_001+orig[4]'                                \
+               -prefix FUNC002_007reg FUNC002_007+orig
+
+    where FUNCsss_nnn is the nnn-th EPI time series from the sss-th session;
+    and the base volume for each session is taken as the #4 sub-brick from
+    the first EPI time series.  Some points to ponder:
+
+    * If you didn't do it before (step 1), you probably should zeropad
+        FUNC001_001+orig or FUNC001_001reg+orig before doing the command
+        above.  If you failed to zeropad dataset FUNC002_007+orig, it will
+        be zeropadded during the 3dvolreg run to match the -gridparent.
+    * I recommend the use of -verbose with inter-session registration, so
+        that you can see what is going on.
+    * After the EPI time series are all registered to the master session,
+        the activation analysis fun can now begin!
+    * The slice time-offsets in FUNC002_007reg will be adjusted to allow
+        for dataset shifts in the slice-direction from FUNC002_007+orig to
+        FUNC001_001reg+orig.  If you use the -verbose option and 3dvolreg
+        decides this is needed, it will print out the amount of shift
+        (always an integer number of slices).
+    * However, if there is any significant rotation between the sessions,
+        the whole concept of voxel time shifts (slicewise or otherwise)
+        becomes meaningless, since the data from different time-offsets
+        will be mixed up by the inter-slice interpolation.  If preserving
+        this time information is important in your analysis, you probably
+        need to analyze the data from each session BEFORE aligning to
+        the master session.  After the analysis, 3drotate can be used with
+        -rotparent/-gridparent (as outlined earlier) to transform the
+        functional maps to the master session brain alignment.
+    * An alternative would be to use 3dTshift on the EPI time series, to
+        interpolate the slices to the same time origin.  Then registration
+        and intersession alignment could proceed.  You can also do this
+        during the 3dvolreg run by adding the switch '-tshift ii' to the
+        3dvolreg command line (before the input file).  Here, 'ii' is the
+        number of time points to ignore at the start of the time series
+        file -- you don't want to interpolate in time using the non-T1
+        equilibrated images at the beginning of the run:
+
+        3dTshift -ignore 4 -prefix FUNC002_base FUNC002_001+orig
+
+        3dvolreg -clipit -zpad 4 -verbose -tshift 4                         \
+                 -rotparent ANAT002reg+orig -gridparent FUNC001_001reg+orig \
+                 -base 'FUNC002_base+orig[4]'                               \
+                 -prefix FUNC002_007reg FUNC002_007+orig
+
+        In this example, the first 4 time points of FUNC002_007+orig are
+        ignored during the time shifting.  Notice that I prepared a temporary
+        dataset (FUNC002_base) to act as the registration base, using 3dTshift.
+        This is desirable, since the FUNC002_007 bricks will be time shifted
+        prior to registration with the base brick.  Since the base brick is NOT
+        from FUNC002_007, it should be time shifted in the same way.  (After
+        FUNC002_base has been used, it can be discarded.)
+
+    * The FUNC datasets from session 001 don't need (or want) the -rotparent,
+      -gridparent options, and would be registered with some command like
+
+        3dvolreg -clipit -zpad 4                          \
+                 -base 'FUNC001_001+orig[4]'              \
+                 -prefix FUNC001_007reg FUNC001_007+orig
+
+-------------------------------------
+Apologia and Philosophical Maundering
+-------------------------------------
+I'm sorry this seems so complicated.  It is another example of the intricacy
+of FMRI data and analysis -- there is more than one reasonable way to proceed.
+
+-----------------------------------
+Robert W Cox - 14 Feb 2001
+National Institute of Mental Health
+rwcox@nih.gov
+-----------------------------------
+
+====================================================================
+Registration Information Stored in Output Dataset Header by 3dvolreg
+====================================================================
+The following attributes are stored in the header of the new dataset.
+Note that the ROTCOM and MATVEC values do NOT include the effects of
+any -rotparent transformation that is multiplied in after the internal
+realignment transformation is computed.
+
+VOLREG_ROTCOM_NUM    = number of sub-bricks registered
+ (1 int)               [may differ from number of sub-bricks in dataset]
+                       [if "3dTcat -glueto" is used later to add images]
+
+VOLREG_ROTCOM_xxxxxx = the string that would be input to 3drotate to
+ (string)              describe the operation, as in
+                   -rotate 1.000I 2.000R 3.000A -ashift 0.100S 0.200L 0.300P
+                       [xxxxxx = printf("%06d",n); n=0 to ROTCOM_NUM-1]
+
+VOLREG_MATVEC_xxxxxx = the 3x3 matrix and 3-vector of the transformation
+ (12 floats)           generated by the above 3drotate parameters; if
+                       U is the matrix and v the vector, then they are
+                       stored in the order
+                           u11 u12 u13 v1
+                           u21 u22 u23 v2
+                           u31 u32 u33 v3
+                       If extracted from the header and stored in a file
+                       in just this way (3 rows of 4 numbers), then that
+                       file can be used as input to "3drotate -matvec_dicom"
+                       to specify the rotation/translation.
+
+VOLREG_CENTER_OLD    = Dicom order coordinates of the center of the input
+ (3 floats)            dataset (about which the rotation takes place).
+
+VOLREG_CENTER_BASE   = Dicom order coordinates of the center of the base
+ (3 floats)            dataset.
+
+VOLREG_BASE_IDCODE   = Dataset idcode for base dataset.
+ (string)
+
+VOLREG_BASE_NAME     = Dataset .HEAD filename for base dataset.
+ (string)
+
+These attributes can be extracted in a shell script using the program
+3dAttribute, as in the csh example:
+
+  set rcom = `3dAttribute VOLREG_ROTCOM_000000 Xreg+orig`
+  3drotate $rcom -heptic -clipit -prefix Yreg Y+orig
+
+which would apply the same rotation/translation to dataset Y+orig as was
+used to produce sub-brick #0 of dataset Xreg+orig.
+
+To see all these attributes, one could execute
+
+  3dAttribute -all Xreg+orig | grep VOLREG
+------------------------------------------------------------------------------

@@ -66,7 +66,9 @@ WHOAMI ;
    newim->name = NULL ;
 
    newim->dx = newim->dy = newim->dz = 
-   newim->dt = newim->du = newim->dv = newim->dw = 1.0 ;  /* default dimensions */
+   newim->dt = newim->du = newim->dv = 1.0 ;  /* default dimensions */
+
+   newim->dw = -666.0 ;  /* 05 Feb 2001 - flag that dimensions aren't set */
 
    newim->xo = newim->yo = newim->zo = 
    newim->to = newim->uo = newim->vo = newim->wo = 0.0 ;  /* default offsets */

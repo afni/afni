@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*--------------------------------------------------------------------------*/
@@ -39,7 +39,8 @@ void TS_syntax(char * str)
           "  before the longitudinal magnetization settles into a steady-state value.\n"
           "  These images should not be included in the interpolation!  For example,\n"
           "  if you wish to exclude the first 4 images, then the input dataset should\n"
-          "  be specified in the form 'prefix+orig[4..$]'.\n"
+          "  be specified in the form 'prefix+orig[4..$]'.  Alternatively, you can\n"
+          "  use the '-ignore ii' option.\n"
           "\n"
           "* It seems to be best to use 3dTshift before using 3dvolreg.\n"
           "\n"
@@ -64,6 +65,11 @@ void TS_syntax(char * str)
           "\n"
           "  -prefix ppp   = use 'ppp' for the prefix of the output file;\n"
           "                  the default is 'tshift'.\n"
+          "\n"
+          "  -ignore ii    = Ignore the first 'ii' points. (Default is ii=0.)\n"
+          "                  The first ii values will be unchanged in the output\n"
+          "                  (regardless of the -rlt option).  They also will\n"
+          "                  not be used in the detrending or time shifting.\n"
           "\n"
           "  -rlt          = Before shifting, the mean and linear trend\n"
           "  -rlt+         = of each time series is removed.  The default\n"
@@ -232,6 +238,8 @@ static int     TS_rlt    = 0 ;   /* 0=add both in; 1=add neither; 2=add mean */
 
 static int     TS_verbose = 0 ;
 
+static int     TS_ignore  = 0 ;  /* 15 Feb 2001 */
+
 static THD_3dim_dataset * TS_dset = NULL , * TS_oset = NULL ;
 
 static char * TS_tpattern = NULL ;
@@ -248,6 +256,7 @@ int main( int argc , char *argv[] )
    float ffmin,ffmax , ggmin,ggmax ;
    MRI_IMAGE * flim , * glim ;
    float * far , * gar ;
+   int ignore=0 ;
 
    /*- scan command line -*/
 
@@ -258,6 +267,12 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-verbose") == 0 ){
          TS_verbose++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-ignore") == 0 ){  /* 15 Feb 2001 */
+         TS_ignore = (int) strtod(argv[++nopt],NULL) ;
+         if( TS_ignore < 0 ) TS_syntax("-ignore value is negative!") ;
          nopt++ ; continue ;
       }
 
@@ -347,7 +362,7 @@ int main( int argc , char *argv[] )
    /*- open dataset; extract values, check for errors -*/
 
    if( nopt >= argc ) TS_syntax("Need a dataset input?!") ;
-   if( TS_verbose ) printf("--- opening input dataset header\n") ;
+   if( TS_verbose ) printf("++ opening input dataset header\n") ;
    TS_dset = THD_open_dataset( argv[nopt] ) ;
    if( TS_dset == NULL ) TS_syntax("Can't open input dataset!") ;
 
@@ -358,6 +373,8 @@ int main( int argc , char *argv[] )
 
    if( DSET_NVALS(TS_dset) < 2 ) TS_syntax("Dataset has only 1 value per voxel!") ;
    if( TS_slice >= nzz ) TS_syntax("-slice value is too large") ;
+
+   if( TS_ignore > ntt-5 ) TS_syntax("-ignore value is too large") ;
 
    if( TS_dset->taxis == NULL ){
       if( TS_TR == 0.0 || TS_tpattern == NULL )
@@ -371,7 +388,7 @@ int main( int argc , char *argv[] )
       TS_TR     = DSET_TIMESTEP(TS_dset) ;
       TS_tunits = TS_dset->taxis->units_type ;
       if( TS_verbose )
-         printf("--- using dataset TR = %g %s\n",TS_TR,UNITS_TYPE_LABEL(TS_tunits)) ;
+         printf("++ using dataset TR = %g %s\n",TS_TR,UNITS_TYPE_LABEL(TS_tunits)) ;
    }
 
    if( TS_tpattern != NULL ){                                    /* set pattern */
@@ -384,7 +401,7 @@ int main( int argc , char *argv[] )
       memcpy( TS_tpat , TS_dset->taxis->toff_sl , sizeof(float)*nzz ) ;
    }
    if( TS_verbose ){
-      printf("--- using tpattern = ") ;
+      printf("++ using tpattern = ") ;
       for( ii=0 ; ii < nzz ; ii++ ) printf("%g ",TS_tpat[ii]) ;
       printf("%s\n",UNITS_TYPE_LABEL(TS_tunits)) ;
    }
@@ -406,11 +423,11 @@ int main( int argc , char *argv[] )
       for( ii=0 ; ii < nzz ; ii++ ) TS_tzero += TS_tpat[ii] ;
       TS_tzero /= nzz ;
    }
-   if( TS_verbose ) printf("--- common time point set to %g\n",TS_tzero) ;
+   if( TS_verbose ) printf("++ common time point set to %g\n",TS_tzero) ;
 
    /*- copy input dataset, modify it to be the output -*/
 
-   if( TS_verbose ) printf("--- copying input dataset bricks\n") ;
+   if( TS_verbose ) printf("++ copying input dataset bricks\n") ;
 
    TS_oset = EDIT_full_copy( TS_dset , TS_prefix ) ;
    if( TS_oset == NULL ) TS_syntax("Can't copy input dataset!") ;
@@ -436,15 +453,17 @@ int main( int argc , char *argv[] )
    /*---- do the temporal shifting! ----*/
 
    nup = csfft_nextup_one35( ntt+4 ) ;
+   ignore = TS_ignore ;
+
    if( TS_verbose && SHIFT_get_method() == MRI_FOURIER )
-      printf("--- Time series length = %d; FFT length set to %d\n",ntt,nup) ;
+      printf("++ Time series length = %d; FFT length set to %d\n",ntt,nup) ;
 
    for( kk=0 ; kk < nzz ; kk++ ){       /* loop over slices */
 
       tshift = (TS_tzero - TS_tpat[kk]) / TS_TR ;    /* rightward fractional shift */
 
       if( TS_verbose )
-         printf("--- slice %d: fractional shift = %g\n",kk,tshift) ;
+         printf("++ slice %d: fractional shift = %g\n",kk,tshift) ;
 
       if( fabs(tshift) < 0.001 ) continue ;          /* skip this slice */
 
@@ -454,31 +473,51 @@ int main( int argc , char *argv[] )
          far  = MRI_FLOAT_PTR(flim) ;
 
          if( TS_rlt == 0 ){
-            ffmin = mri_min(flim) ; ffmax = mri_max(flim) ;      /* range of data: before */
+            for( ffmin=ffmax=far[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
+                    if( far[jj] < ffmin ) ffmin = far[jj] ;
+               else if( far[jj] > ffmax ) ffmax = far[jj] ;
+            }
          }
-         THD_linear_detrend( ntt , far , &f0,&f1 ) ;             /* remove trend */
-         fmin = mri_min(flim) ; fmax = mri_max(flim) ;           /* range of data: after */
+
+         THD_linear_detrend( ntt-ignore , far+ignore , &f0,&f1 ) ;   /* remove trend */
+
+         for( fmin=fmax=far[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
+                 if( far[jj] < fmin ) fmin = far[jj] ;   /* range of data: after */
+            else if( far[jj] > fmax ) fmax = far[jj] ;
+         }
 
          if( ii < nxy-1 ){                                       /* get next voxel */
             glim = THD_extract_series( ii+kk*nxy+1 , TS_oset , 0 ) ;
             gar  = MRI_FLOAT_PTR(glim) ;
+
             if( TS_rlt == 0 ){
-               ggmin = mri_min(glim) ; ggmax = mri_max(glim) ;
+               for( ggmin=ggmax=gar[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
+                       if( gar[jj] < ggmin ) ggmin = gar[jj] ;
+                  else if( gar[jj] > ggmax ) ggmax = gar[jj] ;
+               }
             }
-            THD_linear_detrend( ntt , gar , &g0,&g1 ) ;
-            gmin = mri_min(glim) ; gmax = mri_max(glim) ;
+
+            THD_linear_detrend( ntt-ignore , gar+ignore , &g0,&g1 ) ;
+ 
+            for( gmin=gmax=gar[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
+                    if( gar[jj] < gmin ) gmin = gar[jj] ;
+               else if( gar[jj] > gmax ) gmax = gar[jj] ;
+            }
          } else {
             gar  = NULL ;
          }
 
-         SHIFT_two_rows( ntt , nup , tshift , far , tshift , gar ) ;  /* the shift! */
+         if( gar != NULL )
+            SHIFT_two_rows( ntt-ignore,nup, tshift,far+ignore , tshift, gar+ignore ) ;
+         else
+            SHIFT_two_rows( ntt-ignore,nup, tshift,far+ignore , tshift, NULL ) ;
 
-         for( jj=0 ; jj < ntt ; jj++ ){
+         for( jj=ignore ; jj < ntt ; jj++ ){
                  if( far[jj] < fmin ) far[jj] = fmin ;           /* clip to input range */
             else if( far[jj] > fmax ) far[jj] = fmax ;
             switch( TS_rlt ){                                    /* restore trend? */
                case 0:
-                  far[jj] += (f0 + jj*f1) ;
+                  far[jj] += (f0 + (jj-ignore)*f1) ;
                        if( far[jj] < ffmin ) far[jj] = ffmin ;
                   else if( far[jj] > ffmax ) far[jj] = ffmax ;
                break ;
@@ -490,12 +529,12 @@ int main( int argc , char *argv[] )
          }
 
          if( gar != NULL ){
-            for( jj=0 ; jj < ntt ; jj++ ){
+            for( jj=ignore ; jj < ntt ; jj++ ){
                     if( gar[jj] < gmin ) gar[jj] = gmin ;
                else if( gar[jj] > gmax ) gar[jj] = gmax ;
                switch( TS_rlt ){
                   case 0:
-                     gar[jj] += (g0 + jj*g1) ;
+                     gar[jj] += (g0 + (jj-ignore)*g1) ;
                           if( gar[jj] < ggmin ) gar[jj] = ggmin ;
                      else if( gar[jj] > ggmax ) gar[jj] = ggmax ;
                   break ;
@@ -519,7 +558,7 @@ int main( int argc , char *argv[] )
       }
    }
 
-   if( TS_verbose ) printf("--- writing output\n") ;
+   if( TS_verbose ) printf("++ writing output\n") ;
    DSET_write( TS_oset ) ;
    exit(0) ;
 }

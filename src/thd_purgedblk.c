@@ -12,8 +12,6 @@ Boolean THD_purge_datablock( THD_datablock * blk , int mem_type )
    int ibr , nfreed ;
    void * ptr ;
 
-ENTRY("THD_purge_datablock") ;
-
    /*-- sanity checks --*/
 
    if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ) return False ;
@@ -31,9 +29,6 @@ ENTRY("THD_purge_datablock") ;
             if( ptr != NULL ){ free(ptr) ; nfreed++ ; }
             mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
          }
-#ifdef THD_DEBUG
-printf("  -- free-d %d sub-bricks\n",nfreed) ;
-#endif
          return True ;
 
       case DATABLOCK_MEM_MMAP:
@@ -41,9 +36,6 @@ printf("  -- free-d %d sub-bricks\n",nfreed) ;
          if( ptr != NULL ){ munmap( ptr , blk->total_bytes ) ; nfreed++ ; }
          for( ibr=0 ; ibr < blk->nvals ; ibr++ )
             mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
-#ifdef THD_DEBUG
-if( nfreed ) printf("  -- munmap-ed sub-bricks starting at address %p\n",ptr) ;
-#endif
          return True ;
    }
 

@@ -196,71 +196,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    return plint ;
 }
 
-/*--------------------------------------------------------------------*/
-
-/* These 2 routines criminally lifted from 3drotate.c
-   -- but I wrote those programs too, so what's your point? */
-
-#include <ctype.h>
-
-static int axcode( THD_3dim_dataset * dset , char ori )
-{
-   ori = toupper(ori) ;
-   if( ori == ORIENT_tinystr[dset->daxes->xxorient][0] ) return  1 ;
-   if( ori == ORIENT_tinystr[dset->daxes->xxorient][1] ) return -1 ;
-   if( ori == ORIENT_tinystr[dset->daxes->yyorient][0] ) return  2 ;
-   if( ori == ORIENT_tinystr[dset->daxes->yyorient][1] ) return -2 ;
-   if( ori == ORIENT_tinystr[dset->daxes->zzorient][0] ) return  3 ;
-   if( ori == ORIENT_tinystr[dset->daxes->zzorient][1] ) return -3 ;
-   return -99 ;
-}
-
-/*--------------------------------------------------------------------*/
-
-static int handedness( THD_3dim_dataset * dset )
-{
-   THD_dataxes * dax = dset->daxes ;
-   THD_mat33 q ;
-   int col ;
-   float val ;
-
-   LOAD_ZERO_MAT(q) ;
-
-   col = 0 ;
-   switch( dax->xxorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   col = 1 ;
-   switch( dax->yyorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   col = 2 ;
-   switch( dax->zzorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   val = MAT_DET(q) ;
-   if( val > 0.0 ) return  1 ;   /* right handed */
-   else            return -1 ;   /* left handed */
-}
-
 /***************************************************************************
   Main routine for this plugin (will be called from AFNI).
   If the return string is not NULL, some error transpired, and
@@ -438,10 +373,10 @@ char * VOLREG_main( PLUGIN_interface * plint )
    rmsnew  = (float *) malloc( sizeof(float) * imcount ) ;
    rmsold  = (float *) malloc( sizeof(float) * imcount ) ;
 
-   iha = handedness( VL_dset )   ;                     /* LH or RH? */
-   ax1 = axcode( VL_dset , 'I' ) ; hax1 = ax1 * iha ;  /* roll */
-   ax2 = axcode( VL_dset , 'R' ) ; hax2 = ax2 * iha ;  /* pitch */
-   ax3 = axcode( VL_dset , 'A' ) ; hax3 = ax3 * iha ;  /* yaw */
+   iha = THD_handedness( VL_dset )   ;                     /* LH or RH? */
+   ax1 = THD_axcode( VL_dset , 'I' ) ; hax1 = ax1 * iha ;  /* roll */
+   ax2 = THD_axcode( VL_dset , 'R' ) ; hax2 = ax2 * iha ;  /* pitch */
+   ax3 = THD_axcode( VL_dset , 'A' ) ; hax3 = ax3 * iha ;  /* yaw */
 
    mri_3dalign_params( VL_maxite , VL_dxy , VL_dph , VL_del ,
                        abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
