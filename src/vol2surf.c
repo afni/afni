@@ -35,7 +35,7 @@ char gv2s_history[] =
     "  - define _VOL2SURF_C_, to allow extern defines in vol2surf.h\n"
     "\n"
     "September 09, 2004 [rickr]\n"
-    "  - in afni_vol2surf(), print v2s option if debug > 1\n"
+    "  - in afni_vol2surf(), print v2s options when debug > 1\n"
     "  - allow (first_node > last_node) if (last == 0), then change to n-1\n"
     "---------------------------------------------------------------------\n";
 
