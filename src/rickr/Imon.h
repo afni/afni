@@ -52,6 +52,8 @@ typedef struct                      /* extra stuff from mri_read.c     */
     int   skip;                     /* offset of image data into file  */
     int   swap;                     /* did we do byte swapping?        */
     int   kk;			    /* z-orient info (1=LR, 2=PA, 3=IS)*/
+    float xorg;                     /* x and y axes origins            */
+    float yorg;
     float xyz[9];
 } ge_extras;
 
@@ -127,7 +129,8 @@ typedef struct			/* used to output statistics at the end */
 
 typedef struct
 {
-    ge_header_info geh;                  /* sample GE header structure       */
+    ge_header_info geh;                  /* first GE header structure        */
+    ge_extras      gex;                  /* first GE extras structure        */
     int            nim;                  /* number of images in this volume  */
     int            fl_1;                 /* first index into flist           */
     int            fn_1, fn_n;           /* indicies into the fnames list    */

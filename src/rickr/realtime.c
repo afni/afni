@@ -401,6 +401,30 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 			   v->geh.orients[4], v->geh.orients[5] );
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
+    /* volume offsets                          2003 June 25 [rickr] */
+    {
+	char o0 = v->geh.orients[0];	/* for ease of typing later */
+	char o2 = v->geh.orients[2];
+	char o4 = v->geh.orients[4];
+	int  sx, sy, sz;		/* directional sign values  */
+
+	/* Note - the LPI directions are negatives in GEMS 5.x files, */
+	/*        so when one of those is the origin, negate it.      */
+
+	/* just note o_i directions in s_i */
+	if ( o0 == 'L' || o0 == 'P' || o0 == 'I' ) sx = -1; else sx = 1;
+	if ( o2 == 'L' || o2 == 'P' || o2 == 'I' ) sy = -1; else sy = 1;
+	if ( o4 == 'L' || o4 == 'P' || o4 == 'I' ) sz = -1; else sz = 1;
+
+	/* notes - we do not use a dz/2 offset, as we have slice locations */
+	sprintf(tbuf,"XYZFIRST %f %f %f",
+	    sx * v->gex.xorg - v->geh.dx/2.0,
+	    sy * v->gex.yorg - v->geh.dy/2.0,
+            sz * v->z_first );
+
+	ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
     /* DRIVE_AFNI interface - open afni windows */
     {
 	char * graph_win;			/* graph window to open */
@@ -490,8 +514,6 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 		 "LSB_FIRST" : "MSB_FIRST" );
 	ART_ADD_TO_BUF( ac->buf, tbuf );
     }
-
-    /* rcr - add axes offsets? ...*/
 
     if ( debug > 1 )
 	fprintf( stderr, "++ dataset control info for afni:\n   %s", ac->buf );
