@@ -25,8 +25,9 @@ static int NCLR = 4 ;
 
 #define STGOOD(s) ( (s) != NULL && (s)[0] != '\0' )
 
-#define THIK 0.003
 #define SY   0.07
+
+static float THIK = 0.003 ;  /* 27 Mar 2004: changed from a #define */
 
 /*----------------------------------------------------------------------*/
 static int xpush=1 , ypush=1 ;
@@ -76,6 +77,12 @@ static void init_colors(void)
        }
      }
    }
+
+   eee = getenv("AFNI_1DPLOT_THIK") ;  /* 27 Mar 2004 */
+   if( eee != NULL ){
+     rf = strtod(eee,NULL) ;
+     if( rf >= 0.0 && rf <= 0.05 ) THIK = rf ;
+   }
 }
 
 /*-----------------------------------------------------------------------
@@ -96,12 +103,12 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
                             char ** nam_yyy )
 {
    int ii , jj , np , nnax,nnay , mmax,mmay ;
-   float * xx , * yy ;
+   float *xx , *yy ;
    float xbot,xtop , ybot,ytop , pbot,ptop , xobot,xotop,yobot,yotop ;
    char str[32] ;
    int yall , ysep ;
-   float * ylo , * yhi , yll,yhh ;
-   MEM_plotdata * mp ;
+   float *ylo , *yhi , yll,yhh ;
+   MEM_plotdata *mp ;
 
    /*-- sanity check --*/
 
@@ -157,7 +164,6 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
 
    yall = (ny == 1) || ((ymask & TSP_SEPARATE_YBOX) == 0) ;
    ysep = (ymask & TSP_SEPARATE_YSCALE) != 0 ;
-
                                                /* Nov 1998: find range of */
    ylo = (float *) malloc(sizeof(float)*ny) ;  /* each array separately. */
    yhi = (float *) malloc(sizeof(float)*ny) ;
@@ -186,7 +192,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    /* 30 Dec 1998 */
 
    if( !ysep ){
-      for( jj=0 ; jj < ny ; jj++ ){ ylo[jj] = ybot ; yhi[jj] = ytop ; }
+     for( jj=0 ; jj < ny ; jj++ ){ ylo[jj] = ybot ; yhi[jj] = ytop ; }
    }
 
    /*-- push range of y outwards --*/
@@ -197,6 +203,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
      mmay = mmayy ;
      ybot = yybot ;
      ytop = yytop ;
+     for( jj=0 ; jj < ny ; jj++ ){ ylo[jj] = ybot ; yhi[jj] = ytop ; }
    } else if( ptop != 0.0 && ypush ){
       np = (ytop-ybot) / ptop ;
       switch( np ){
@@ -401,7 +408,7 @@ void plot_ts_lab( Display * dpy ,
 
    mp = plot_ts_mem( nx,x , ny,ymask,y , lab_xxx , lab_yyy , lab_top , nam_yyy ) ;
    if( mp != NULL )
-      (void) memplot_to_topshell( dpy , mp , killfunc ) ;
+     (void) memplot_to_topshell( dpy , mp , killfunc ) ;
 
    return ;
 }

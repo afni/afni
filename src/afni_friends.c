@@ -247,6 +247,7 @@ static mday holiday[] = {
    {MAR,21,"Jean Baptiste Joseph Fourier's birthday"                 } ,
    {MAR,23,"Emmy Noether's birthday"                                 } ,
    {MAR,23,"Pakistan Day"                                            } ,
+   {MAR,24,"Anniversary of Kosciusko's Oath to Nation"               } ,
    {MAR,25,"Anniversary of Downfall of Sauron"                       } ,
    {MAR,25,"Greece Independence Day"                                 } ,
    {MAR,25,"Old English New Year's Day"                              } ,
