@@ -162,8 +162,9 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 
 #define PRINT_TRACING (DBG_trace > 1)
 
-#define STATUS(str)                                               \
-  do{ if(PRINT_TRACING){                                           \
+#define STATUS(str)                                              \
+  do{ if(PRINT_TRACING){                                          \
+        MCHECK ;                                                   \
         printf("%*.*s%s -- %s\n",DBG_num,DBG_num," ",DBROUT,(str)); \
         fflush(stdout) ; }                                           \
       strncpy(last_status,str,1023); last_status[1023]='\0';          \
