@@ -885,8 +885,8 @@ void DC_gray_conbrio( MCW_DC *dc , int dlev )  /* 23 Oct 2003 */
 
    if( dc->use_xcol_im ) return ;
 
-   bdelta = dlev *  abs(in[nc-1] - in[0])       / nc ;
-   cdelta = dlev * (abs(in[nc-1] - in[0]) >> 6) / nc ;
+   bdelta = 2*dlev *  abs(in[nc-1] - in[0])       / nc ;
+   cdelta = dlev   * (abs(in[nc-1] - in[0]) >> 6) / nc ;
    if( cdelta == 0 ) cdelta = dlev ;
 
    for( i=0 ; i < nc ; i++ ){

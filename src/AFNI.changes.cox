@@ -4753,3 +4753,6 @@
  * Added Button1 stroke right/left in image window to change contrast and
      brightness together; changes to imseq.[ch], display.[ch], and
      afni_pplug_env.c.
+
+24 Oct 2003
+ * Added 'Graymap Plot' to imseq.c.
