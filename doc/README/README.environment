@@ -1973,6 +1973,17 @@ the time index will change both the underlay and overlay sub-bricks.  If
 you want the time index control to change ONLY the underlay sub-brick,
 then set this variable to NO.
 
+-----------------------------
+Variable: AFNI_REALTIME_MP_HOST_PORT (editable)
+-----------------------------
+When this variable is set, the realtime plugin will attempt to open a tcp
+socket to the corresponding host and port, and will send the six registration
+correction parameters for each 3D volume received by the plugin.  This applies
+only to the case of graphing 3D registration.  The socket will be opened at
+the start of each run, and will be closed at the end.  A simple example of
+what to set this variable to is localhost:53214.  See 'serial_helper -help'
+for more details.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
