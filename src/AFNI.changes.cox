@@ -4685,4 +4685,6 @@
 06 Aug 2003
  * Somehow, a bug crept into the Read Session function (in afni_func.c) that
      rejected new sessions with # datasets > 0 rather than # datasets == 0.
- * Added quintic interpolation to mri_warp3D.c.
+ * Added quintic interpolation to mri_warp3D.c, and 3dWarp.c.
+ * Added -fsl_matvec option to 3dWarp.c.
+ * plug_3ddup.c created (but not part of the binaries, yet).
