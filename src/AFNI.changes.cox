@@ -3946,7 +3946,9 @@
      input .map files.
 
 01 Sep 2002
- * Program 3dDespike.c.
+ * Program 3dDespike.c, to patch a problem with the 3T-1 scanner.
 
 03 Sep 2002
  * Modify 3dDespike.c to allow float datasets, print nicer messages, etc.
+ * Fix my_tanh() bug in 3dDespike.c, which was returning NaN for very
+     large inputs.
