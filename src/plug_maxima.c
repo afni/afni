@@ -760,10 +760,10 @@ radial_fill( int X, int Y, int Z, maxima_s * M )
     int yc, zc, xrad, yrad, yrad2;
     int xbase, ybase, zbase;
 
-ENTRY("radial_fill");
-
     short * sptr, * optr;
     float   radius = M->out_rad;
+
+ENTRY("radial_fill");
 
     zmin = ( Z < radius ) ? Z : radius;
     zmax = ( Z + radius >= M->nz ) ? ( M->nz-Z-1 ) : radius;
@@ -1035,10 +1035,9 @@ display_coords( r_afni_s * A, maxima_s * M )
     int     X, Y, Z, offset, count;
     int     xm1 = M->nx - 1, ym1 = M->ny - 1, zm1 = M->nz - 1;
 
-ENTRY("display_coords");
-
     point_list_s * P = &M->P;
 
+ENTRY("display_coords");
 
     printf( "---------------------------------------------\n" );
     printf( "RAI mm coordinates:\n\n" );
