@@ -29,6 +29,12 @@ N.B.: Some variables below are described as being of "YES/NO" type.
       This means that they should either be set to the value "YES"
       or to the value "NO".
 
+N.B.: You can now set environment variables on the 'afni' command
+      line; for example:
+        afni -DAFNI_EDGIZE_OVERLAY=YES -DAFNI_SESSTRAIL=3
+      This may be useful for a 'one time' situation, or as an alias.
+      -- RWCox - 22 Mar 2005
+
 ********************************************************
 June 1999: Setting environment variables in file .afnirc
 ********************************************************
