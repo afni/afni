@@ -1972,14 +1972,14 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                   SUMA_RETURN (NOPE);
                }
                
-               if (!SUMA_SetConvexityPlaneDefaults(SO, DsetList)) {
-                  SUMA_SL_Err("Failed to set plane defaults."); SUMA_RETURN(NOPE);
-               }
-               
+               if (SUMAg_CF->scm) { /* colorization possible */
+                  if (!SUMA_SetConvexityPlaneDefaults(SO, DsetList)) {
+                     SUMA_SL_Err("Failed to set plane defaults."); SUMA_RETURN(NOPE);
+                  }
 
-               /* colorize the plane */
-               SUMA_ColorizePlane(NewColPlane);
-               
+                  /* colorize the plane */
+                  SUMA_ColorizePlane(NewColPlane);
+               }
             }
                         
             /* Create a Mesh Axis for the surface */

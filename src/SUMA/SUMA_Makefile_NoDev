@@ -142,6 +142,10 @@ SUMA_TestDsetIO: SUMA_DataSets.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_Test_DSET_IO_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+ConvertDset: SUMA_DataSets.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED -DSUMA_ConvertDset_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 ROI2dataset: SUMA_Surface_IO.c
 	$(RM) $@
 	${CC} -DSUMA_ROI2dataset_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -232,6 +236,7 @@ install:
 	@if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ConvertSurface ]; then mv ConvertSurface ${INSTALLDIR_SUMA}; fi;
+	@if [ -f ConvertDset ]; then mv ConvertDset ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfaceMetrics ]; then mv SurfaceMetrics ${INSTALLDIR_SUMA}; fi;
 	@if [ -f inspec ]; then mv inspec ${INSTALLDIR_SUMA}; fi;
 	@if [ -f quickspec ]; then mv quickspec ${INSTALLDIR_SUMA}; fi;
@@ -266,6 +271,7 @@ packbins:
 	@if [ -f SUMA_glxdino ]; then $(CP) -p SUMA_glxdino SUMA_bin/; fi;
 	@if [ -f SUMA_pixmap2eps ]; then $(CP) -p SUMA_pixmap2eps SUMA_bin/; fi;	
 	@if [ -f ConvertSurface ]; then $(CP) -p ConvertSurface SUMA_bin/; fi;	
+	@if [ -f ConvertDset ]; then $(CP) -p ConvertDset SUMA_bin/; fi;	
 	@if [ -f SurfaceMetrics ]; then $(CP) -p SurfaceMetrics SUMA_bin/; fi;	
 	@if [ -f inspec ]; then $(CP) -p inspec SUMA_bin/; fi;	
 	@if [ -f quickspec ]; then $(CP) -p quickspec SUMA_bin/; fi;	
@@ -283,7 +289,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics SUMA_TestDataSets   \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
-   SUMA_TestDsetIO
+   SUMA_TestDsetIO ConvertDset
 
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 

@@ -3867,7 +3867,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    /* default, choose something */
    SUMA_LH("SCM stuff");
    if (!SUMAg_CF->scm) {
-      SUMA_SL_Warn("SUMA color maps not set up.\n");
+      SUMA_SL_Note("SUMA color maps not set up.");
       Sover->cmapname = NULL;
    } else {
       Sover->cmapname = SUMA_copy_string("bgyr64");
@@ -6179,20 +6179,26 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
 SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetList) 
 {
    static char FuncName[]={"SUMA_SetConvexityPlaneDefaults"};
-   float IntRange[2], *Vsort;
+   float IntRange[2], *Vsort = NULL;
    float *Cx=NULL;
    int junk;
    char *eee = NULL;
    int icmap;
    SUMA_OVERLAYS *ConvPlane;
+   SUMA_Boolean LocalHead = NOPE;
     
    SUMA_ENTRY;
+   
+   if (!SUMAg_CF->scm) { /* colors not setup, go back */
+      SUMA_SL_Warn("No color maps set up.\n");
+      SUMA_RETURN(YUP);
+   }
    
    if (!(ConvPlane = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, "Convexity", &junk))) {
       SUMA_SL_Err("Failed to find overlay plane 'Convexity'");
       SUMA_RETURN(NOPE);
    }
-      
+   
    /* decide on the color map */
    eee = getenv("SUMA_ConvColorMap");
    if (eee) {
@@ -6209,6 +6215,7 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
       SUMA_STRING_REPLACE(ConvPlane->cmapname, "ngray20");
    } 
 
+   SUMA_LH("Deciding on brightness factor");   
    /* decide on the convexity brightness factor */
    eee = getenv("SUMA_ConvBrightFactor");
    if (eee) {
@@ -6228,6 +6235,7 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
    ConvPlane->Show = YUP;
    ConvPlane->BrightMod = YUP;
 
+   SUMA_LH("Smoothing Cx");   
    /* work the options for creating the scaled color mapping a bit */
    ConvPlane->OptScl->interpmode = SUMA_NO_INTERP;
    ConvPlane->OptScl->ApplyClip = YUP;
@@ -6247,7 +6255,7 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
      /* The old method, do nothing here */ 
    }
    if (Vsort) SUMA_free(Vsort); Vsort = NULL;
-
+   
    ConvPlane->OptScl->find = 0; /* the intensity column */
    ConvPlane->OptScl->IntRange[0] = IntRange[0]; ConvPlane->OptScl->IntRange[1] = IntRange[1];
 

@@ -18,6 +18,8 @@ This file might be compiled and used by AFNI
 #define STAND_ALONE
 #elif defined SUMA_Test_DSET_IO_STANDALONE
 #define STAND_ALONE
+#elif defined SUMA_ConvertDset_STANDALONE
+#define STAND_ALONE
 #else
 #endif
 
@@ -1908,6 +1910,198 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
    SUMA_RETURN(V);
 }
 
+/*!
+   \brief Load a surface-based dataset from disk
+   
+   \param Name (char *) THe name of the file
+   \param form (SUMA_DSET_FORMAT) The format of the file
+                                  can choose SUMA_NO_DSET_FORMAT
+                                  and have the function attempt 
+                                  to guess
+   \return (SUMA_DSET *) dset 
+   The datset does not get associated with a surface (owner_id[0] = '\0')
+   You'll have to do this manually later on if you wish
+   You typically want to insert that dataset into SUMA's DsetList list...
+*/
+SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT form)
+{  
+   static char FuncName[]={"SUMA_LoadDset"};
+   SUMA_DSET *dset = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Name) { SUMA_SL_Err("NULL Name"); SUMA_RETURN(dset); }
+   
+   switch (form) {
+      case SUMA_NIML:
+      case SUMA_ASCII_NIML:
+      case SUMA_BINARY_NIML:
+         dset = SUMA_LoadNimlDset(Name, 1);
+         break;
+      case SUMA_1D:
+         dset = SUMA_Load1DDset(Name, 1);
+         break;
+      case SUMA_NO_DSET_FORMAT:
+         if (!dset) dset = SUMA_LoadNimlDset(Name, 0);
+         if (!dset) dset = SUMA_Load1DDset(Name, 0);
+      default:
+         SUMA_SLP_Err("Bad format specification");
+         SUMA_RETURN(dset);   
+   }
+   
+   if (!dset) {
+      SUMA_SL_Err("Failed to read dset");
+      SUMA_RETURN(dset);   
+   }  
+   SUMA_RETURN(dset);
+}
+
+/*!
+
+   \brief Load a surface-based data set of the niml format
+   \param Name (char *) name or prefix of dataset
+   \param verb (int) level of verbosity. 0 mute, 1 normal, 2 dramatic perhaps
+   \return dset (SUMA_DSET *)
+   
+   - Reads one ni element only
+*/
+SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
+{
+   static char FuncName[]={"SUMA_LoadNimlDset"};
+   char *FullName = NULL, *niname = NULL;
+   NI_stream ns = NULL;
+   NI_element *nel = NULL;
+   SUMA_DSET *dset=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Name) { SUMA_SL_Err("Null Name"); SUMA_RETURN(dset); }
+   
+   /* work the name */
+   if (!SUMA_filexists(Name)) {
+      /* try the extension game */
+      FullName = SUMA_Extension(Name, ".niml.dset", NOPE);
+      if (!SUMA_filexists(FullName)) {
+         if (verb)  { SUMA_SL_Err("Failed to find dset file."); }
+         SUMA_RETURN(dset);
+      }
+   }else {
+      FullName = SUMA_copy_string(Name);
+   }
+   
+   /* got the name, now load it */
+   niname = SUMA_append_string("file:", FullName);
+   
+   ns = NI_stream_open(niname, "r");
+   if (!ns) {
+      SUMA_SL_Crit("Failed to open NI stream for reading.");
+      SUMA_RETURN(dset);
+   }
+   nel = NI_read_element(ns, 1) ;
+   NI_stream_close( ns ) ; ns = NULL;
+   
+   /* Now store that baby in Dset */
+   dset = SUMA_NewDsetPointer();
+   dset->nel = nel; nel = NULL;
+
+   /* done, clean up and out you go */
+   if (niname) SUMA_free(niname); niname = NULL;      
+   if (FullName) SUMA_free(FullName); FullName = NULL;
+   SUMA_RETURN(dset);
+}
+
+/*!
+
+   \brief Load a surface-based data set of the 1D format
+   \param Name (char *) name or prefix of dataset
+   \param verb (int) level of verbosity. 0 mute, 1 normal, 2 dramatic perhaps
+   \return dset (SUMA_DSET *)
+   
+*/
+SUMA_DSET *SUMA_Load1DDset (char *Name, int verb)
+{
+   static char FuncName[]={"SUMA_Load1DDset"};
+   char *FullName = NULL;
+   MRI_IMAGE *im = NULL;
+   float *far=NULL;
+   int i;
+   SUMA_DSET *dset=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Name) { SUMA_SL_Err("Null Name"); SUMA_RETURN(dset); }
+   
+   /* work the name */
+   if (!SUMA_filexists(Name)) {
+      /* try the extension game */
+      FullName = SUMA_Extension(Name, ".1D.dset", NOPE);
+      if (!SUMA_filexists(FullName)) {
+         if (verb)  { SUMA_SL_Err("Failed to find dset file."); }
+         SUMA_RETURN(dset);
+      }
+   }else {
+      FullName = SUMA_copy_string(Name);
+   }
+   
+   /* got the name, now read it */
+   im = mri_read_1D (Name);
+   if (!im) {
+      SUMA_SLP_Err("Failed to read file");
+      SUMA_RETURN(NULL);
+   }   
+   
+   far = MRI_FLOAT_PTR(im);
+   dset = SUMA_CreateDsetPointer(
+                                 FullName,         /* usually the filename */
+                                 SUMA_NODE_BUCKET, /* mix and match */
+                                 NULL,       /* no idcode, let the function create one from the filename*/
+                                 NULL,       /* no domain str specified */
+                                 im->nx    /* Number of nodes allocated for */
+                                 ); 
+   
+   /* now add the columns */
+   for (i=0; i<im->ny; ++i) {
+      if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_FLOAT, (void *)(&(far[i*im->nx])), NULL ,1)) {
+         SUMA_SL_Crit("Failed in SUMA_AddNelCol");
+         SUMA_FreeDset((void*)dset); dset = NULL;
+         SUMA_RETURN(dset);
+      }
+   }
+
+   /* done, clean up and out you go */
+   if (im) mri_free(im); im = NULL; 
+   if (FullName) SUMA_free(FullName); FullName = NULL;
+   SUMA_RETURN(dset);
+}
+
+#ifdef SUMA_ConvertDset_STANDALONE
+void usage_ConverDset()
+{
+   
+}
+int main (int argc,char *argv[])
+{/* Main */
+   static char FuncName[]={"ConvertDset"};
+
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_mainENTRY;
+   
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+	
+   SUMA_ParseInput_basics (argv, argc);
+
+   /* dset and its contents are freed in SUMA_Free_CommonFields */
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+
+	SUMA_RETURN (0);
+}    
+#endif
 
 #ifdef SUMA_Test_DSET_IO_STANDALONE
 void usage_Test_DSET_IO ()

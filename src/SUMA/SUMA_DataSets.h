@@ -394,6 +394,10 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
 int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2]);
 int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col, int stride, int col_index); 
+SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb);
+SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT form);
+SUMA_DSET *SUMA_Load1DDset (char *Name, int verb);
+
 
 
 #endif
