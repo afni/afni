@@ -187,4 +187,5 @@
 29 May 2003:
   * modified Makefile.INCLUDE and SUMA/SUMA_Makefile to build 3dSurf2Vol
   * 3dSurf2Vol (version 1.0) is now part of the suma build
+  * file_tool version 2.0 : added ge4 study header info
 

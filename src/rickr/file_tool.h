@@ -1,5 +1,5 @@
 
-#define VERSION		"1.3 - May 06, 2003"
+#define VERSION		"1.31 - May 29, 2003"
 #define MAX_STR_LEN	1024
 
 #define MOD_STRING         0
