@@ -755,7 +755,9 @@ fflush(stdout) ;
                   ISQ_scale_CB , newseq ) ;
 
    MCW_reghelp_children( newseq->wscale , ISQ_scale_help ) ;
+#if 0
    MCW_register_hint( newseq->wscale , "Moves between images" ) ;
+#endif
 
    /* arrowpad at lower right corner */
 
