@@ -301,8 +301,6 @@ extern void ISQ_montage_action_CB( Widget , XtPointer , XtPointer ) ;
 
 /*------------- the central data type -------------*/
 
-#define ALLOW_ZOOM           /* 11 Mar 2002 */
-
 #define ISQ_NHELP   2047
 #define ISQ_NWIDGET 128
 
@@ -460,8 +458,7 @@ typedef struct MCW_imseq {
      MCW_arrowval * wbar_label_av ;      /* 20 Sep 2001 */
      MCW_arrowval * wbar_labsz_av ;      /* 21 Sep 2001 */
 
-#ifdef ALLOW_ZOOM                        /* 11 Mar 2002 */
-     Widget        zoom_sep ;
+     Widget        zoom_sep              /* 11 Mar 2002 */;
      MCW_arrowval *zoom_val_av ;
      Widget        zoom_drag_pb ;
      int    zoom_fac ;
@@ -470,14 +467,11 @@ typedef struct MCW_imseq {
      Pixmap zoom_pixmap  ;
      XImage *zoom_xim  ;
      int    zoom_button1 , zoom_xp,zoom_yp ; /* 15 Mar 2002 */
-#endif
 
 } MCW_imseq ;
 
-#ifdef ALLOW_ZOOM
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
 extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
-#endif
 
 /*--------------------------------------------------------------------*/
 

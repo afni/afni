@@ -3629,3 +3629,5 @@
 
 05 Apr 2002
  * Added (x,y,z) coord printout to "Where Am I" window.
+ * Modified imseq.[ch] to remove ALLOW_ZOOM conditional, and to allow zoom/pan
+     from 'z', 'Z', and 'p' keystrokes.
