@@ -1426,7 +1426,7 @@ gifsicle:
 
 mpeg_encode:
 	( cd mpeg_encodedir ; \
-	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
+	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS) -lm' ; \
 	  $(MV) mpeg_encode .. ; )
 
 #######
