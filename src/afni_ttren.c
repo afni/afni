@@ -30,7 +30,9 @@ static void TTRR_action_CB       ( Widget, XtPointer, XtPointer ) ;
 static void TTRR_delete_window_CB( Widget, XtPointer, XtPointer ) ;
 static void TTRR_av_CB           ( MCW_arrowval * , XtPointer   ) ;
 
-static void TTRR_load_file       ( char * ) ;
+static void TTRR_load_file( char * ) ;                             /* 08 Aug 2002 */
+static void TTRR_save_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
+static void TTRR_load_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 /*----------------------------------------------------------------------------
   Routine to create widgets for the TT atlas rendering controls
@@ -39,18 +41,24 @@ static void TTRR_load_file       ( char * ) ;
 /***** definitions for the action area controls *****/
 
 #define TTRR_clear_label  "Clear"
+#define TTRR_load_label   "Load"
+#define TTRR_save_label   "Save"
 #define TTRR_redraw_label "Redraw"
 #define TTRR_done_label   "Done"
 #define TTRR_help_label   "Help"
 
 #define TTRR_clear_hint  "Set all colors to 'none'"
+#define TTRR_load_hint   "Load colors from a file"
+#define TTRR_save_hint   "Save colors to a file"
 #define TTRR_redraw_hint "Redraw using current colors"
 #define TTRR_done_hint   "Close this window"
 
-#define NUM_TTRR_ACT 4
+#define NUM_TTRR_ACT 6
 
 static MCW_action_item TTRR_act[] = {
  { TTRR_clear_label , TTRR_action_CB, NULL,NULL, TTRR_clear_hint , 0 } ,
+ { TTRR_load_label  , TTRR_action_CB, NULL,NULL, TTRR_load_hint  , 0 } ,
+ { TTRR_save_label  , TTRR_action_CB, NULL,NULL, TTRR_save_hint  , 0 } ,
  { TTRR_redraw_label, TTRR_action_CB, NULL,NULL, TTRR_redraw_hint,-1 } ,
  { TTRR_done_label  , TTRR_action_CB, NULL,NULL, TTRR_done_hint  , 1 } ,
  { TTRR_help_label  , TTRR_action_CB, NULL,NULL, NULL            , 0 }
@@ -522,6 +530,16 @@ ENTRY("TTRR_action_CB") ;
    } else if( strcmp(wname,TTRR_redraw_label) == 0 ){
 
       BEEPIT ;
+
+   } else if( strcmp(wname,TTRR_load_label) == 0 ){
+
+      MCW_choose_string( w , "Filename to load" , NULL ,
+                             TTRR_load_CB , NULL ) ;
+
+   } else if( strcmp(wname,TTRR_save_label) == 0 ){
+
+      MCW_choose_string( w , "Filename to save" , NULL ,
+                             TTRR_save_CB , NULL ) ;
    }
 
    EXRETURN ;
@@ -615,7 +633,7 @@ static void TTRR_load_file( char * fname )  /* 08 Aug 2002 */
       if( ns == 2 ) color = stok[1] ;       /* overlay color name */
       else          color = stok[2] ;
       ic = DC_find_overlay_color( ttc->dc , color ) ;
-      if( ic <= 0 ){ freeup_strings(ns,stok); continue; } /* skip */
+      if( ic < 0 ){ freeup_strings(ns,stok); continue; } /* skip */
 
       /* find region name in list; assign color to menu */
 
@@ -632,4 +650,51 @@ static void TTRR_load_file( char * fname )  /* 08 Aug 2002 */
   }
 
   return ;
+}
+
+/*------------------------------------------------------------------*/
+
+
+static void TTRR_load_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   if( cbs->reason != mcwCR_string ||
+       cbs->cval == NULL           || strlen(cbs->cval) == 0 ){
+
+      PLUTO_beep() ; return ;
+   }
+
+   if( !THD_is_file(cbs->cval) ){ PLUTO_beep(); return; }
+
+   TTRR_load_file( cbs->cval ) ; return ;
+}
+
+/*------------------------------------------------------------------*/
+
+static void TTRR_save_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   int ii , qq , jj ;
+   FILE *fp ;
+   char name[128] , *color ;
+
+   if( cbs->reason != mcwCR_string ||
+       cbs->cval == NULL           || strlen(cbs->cval) == 0 ){
+
+      PLUTO_beep() ; return ;
+   }
+
+   fp = fopen( cbs->cval , "w" ) ;
+   if( fp == NULL ){ PLUTO_beep(); return; }
+
+   for( ii=0 ; ii < ttc->reg_num ; ii++ ){
+     color = ttc->dc->ovc->label_ov[ttc->reg_av[ii]->ival] ;
+     qq = (ttc->reg_label[ii][0] == '[') ? 4 : 0 ;
+     strcpy(name,ttc->reg_label[ii]+qq) ;
+     qq = strlen(name) ;
+     for( jj=0 ; jj < qq ; jj++ ){
+            if( name[jj] == '.'   ) name[jj] = ' ' ;
+       else if( name[jj] == ' '   ) name[jj] = '_' ;
+     }
+     fprintf(fp, "%s = %s\n",name,color) ;
+   }
+   fclose(fp) ; return ;
 }
