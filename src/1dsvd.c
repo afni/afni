@@ -5,7 +5,7 @@ int main( int argc , char *argv[] )
    int iarg , ii,jj,kk,mm , nvec , do_one=0 , nx=0,ny , ff ;
    MRI_IMAGE *tim ;
    MRI_IMARR *tar ;
-   float *amat , *sval , *umat , *vmat ;
+   double *amat , *sval , *umat , *vmat ;
    float *far ;
 
    /* help? */
@@ -74,10 +74,10 @@ int main( int argc , char *argv[] )
 #define U(i,j) umat[(i)+(j)*nx]
 #define V(i,j) vmat[(i)+(j)*nvec]
 
-   amat = (float *)malloc( sizeof(float)*nx*nvec ) ;
-   umat = (float *)malloc( sizeof(float)*nx*nvec ) ;
-   vmat = (float *)malloc( sizeof(float)*nvec*nvec ) ;
-   sval = (float *)malloc( sizeof(float)*nvec ) ;
+   amat = (double *)malloc( sizeof(double)*nx*nvec ) ;
+   umat = (double *)malloc( sizeof(double)*nx*nvec ) ;
+   vmat = (double *)malloc( sizeof(double)*nvec*nvec ) ;
+   sval = (double *)malloc( sizeof(double)*nvec ) ;
 
    kk = 0 ;
    if( do_one ){
@@ -94,7 +94,7 @@ int main( int argc , char *argv[] )
    }
    DESTROY_IMARR(tar) ;
 
-   svd_float( nx , nvec , amat , sval , umat , vmat ) ;
+   svd_double( nx , nvec , amat , sval , umat , vmat ) ;
 
    printf("\n"
           "++ Data vectors [A]:\n   " ) ;
