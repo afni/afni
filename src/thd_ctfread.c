@@ -298,7 +298,7 @@ ENTRY("THD_open_ctfmri") ;
    /* determine if file is big enough to hold all data it claims */
 
    nn = THD_filesize(fname) ;
-   if( nn < sizeof(hh) + hh.dataSize*hh.imageSize*hh.imageSize*hh.imageSize )
+   if( nn < hh.dataSize*hh.imageSize*hh.imageSize*hh.imageSize )
      BADBAD("input file too small") ;
 
    /*** from here, a lot of code is adapted from thd_analyzeread.c ***/
@@ -308,7 +308,7 @@ ENTRY("THD_open_ctfmri") ;
      case 1:  datum_type = MRI_byte ; break ;
      case 2:  datum_type = MRI_short; break ;
    }
-   nx = ny = nz = hh.imageSize ;
+   nx = ny = nz = hh.imageSize ;              /* volumes are cubes! */
 
    /* set orientation:
       for now, assume (based on 1 sample) that data is stored in ASL or ASR order */
@@ -522,9 +522,8 @@ ENTRY("THD_load_ctfmri") ;
 
    /* open and position file at start of data (after header) */
 
-   fp = fopen( dkptr->brick_name , "rb" ) ;  /* .img file */
+   fp = fopen( dkptr->brick_name , "rb" ) ;  /* .mri file */
    if( fp == NULL ) EXRETURN ;
-   fseek( fp , sizeof(Version_2_Header) , SEEK_SET ) ;
 
    /*-- allocate space for data --*/
 
@@ -532,6 +531,20 @@ ENTRY("THD_load_ctfmri") ;
    ny = dkptr->dimsizes[1] ; nxy   = nx * ny   ;
    nz = dkptr->dimsizes[2] ; nxyz  = nxy * nz  ;
    nv = dkptr->nvals       ; nxyzv = nxyz * nv ;
+
+   /* 26 Feb 2005: seek backwards from end,
+                   instead of forwards from start */
+
+#if 0
+   fseek( fp , sizeof(Version_2_Header) , SEEK_SET ) ;  /* old */
+#else
+   switch( DBLK_BRICK_TYPE(dblk,0) ){
+     case MRI_float: ibr = sizeof(float) ; break ;   /* illegal */
+     case MRI_short: ibr = sizeof(short) ; break ;
+     case MRI_byte:  ibr = sizeof(byte)  ; break ;
+   }
+   fseek( fp , -ibr*nxyzv , SEEK_END ) ;                /* new */
+#endif
 
    dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
 
@@ -625,10 +638,10 @@ ENTRY("THD_load_ctfmri") ;
 
 /* 'SAM_HDR' is to be used for both SAM coefficients & SAM static images */
 typedef struct {
-   int    Version;       /* file version number */
+   int    Version;       /* file version number (should be 1) */
    char   SetName[256];  /* name of parent dataset */
-   int    NumChans;      /* number of channels used by SAM */
-   int    NumWeights;    /* number of SAM virtual channels (0=static image) */
+   int    NumChans;      /* # of channels used by SAM */
+   int    NumWeights;    /* # of SAM virtual channels (0=static image) */
    int    pad_bytes1;    /* ** align next double on 8 byte boundary */
    double XStart;        /* x-start coordinate (m) */
    double XEnd;          /* x-end coordinate (m) */
@@ -649,6 +662,41 @@ typedef struct {
    int    SAMUnit;       /* SAM units (a bit redundant, but may be useful) */
    int    pad_bytes2;    /* ** align end of structure on 8 byte boundary */
 } SAM_HDR;
+
+/*** 26 Feb 2005: version 2 of the SAM header ***/
+
+#if 0
+typedef struct {
+   int     Version;         /* file version number (should be 2) */
+   char    SetName[256];    /* name of parent dataset */
+   int     NumChans;        /* # of channels used by SAM */
+   int     NumWeights;      /* # of SAM virtual channels (0=static image) */
+   int     pad_bytes1;      /* ** align next double on 8 byte boundary */
+   double  XStart;          /* x-start coordinate (m) */
+   double  XEnd;            /* x-end coordinate (m) */
+   double  YStart;          /* y-start coordinate (m) */
+   double  YEnd;            /* y-end coordinate (m) */
+   double  ZStart;          /* z-start coordinate (m) */
+   double  ZEnd;            /* z-end coordinate (m) */
+   double  StepSize;        /* voxel step size (m) */
+   double  HPFreq;          /* highpass frequency (Hz) */
+   double  LPFreq;          /* lowpass frequency (Hz) */
+   double  BWFreq;          /* bandwidth of filters (Hz) */
+   double  MeanNoise;       /* mean primary sensor noise (T) */
+   char    MriName[256];    /* MRI image file name */
+   int     Nasion[3];       /* MRI voxel index for nasion */
+   int     RightPA[3];      /* MRI voxel index for right pre-auricular */
+   int     LeftPA[3];       /* MRI voxel index for left pre-auricular */
+   int     SAMType;         /* SAM file type */
+   int     SAMUnit;         /* SAM units (a bit redundant, but may be useful) */
+   int     pad_bytes2;      /* ** align end of structure on 8 byte boundary */
+   double  MegNasion[3];    /* MEG dewar coordinates for nasion (m) */
+   double  MegRightPA[3];   /* MEG dewar coordinates for R pre-auricular (m) */
+   double  MegLeftPA[3];    /* MEG dewar coordinates for L pre-auricular (m) */
+   char    SAMUnitName[32]; /* SAM units (redundant, but useful too!) */
+} SAM_HDR_v2;
+#endif
+
 
 /*-------------------------*/
 /*! Macro for bad return. */
@@ -696,7 +744,7 @@ ENTRY("THD_open_ctfsam") ;
    if( strcmp(Identity,"SAMIMAGE") != 0 ) BADBAD("Identity != SAMIMAGE") ;
    if( hh.Version                  == 0 ) BADBAD("bad header Version") ;
 
-   swap = (hh.Version != 1) ;    /* byte swapping required? */
+   swap = (hh.Version < 0) && (hh.Version > 3) ;    /* byte swap? */
 
    if( swap ){                   /* swap various header fields */
      swap_4( &hh.Version    ) ;
@@ -728,7 +776,8 @@ ENTRY("THD_open_ctfsam") ;
 
    /* simple checks on header values */
 
-   if( hh.Version  != 1       ||
+   if( hh.Version  < 0        ||
+       hh.Version  > 3        ||  /* 26 Feb 2005 */
        hh.XStart   >= hh.XEnd ||
        hh.YStart   >= hh.YEnd ||
        hh.ZStart   >= hh.ZEnd ||
@@ -769,7 +818,7 @@ ENTRY("THD_open_ctfsam") ;
 
    hh.StepSize *= 1000.0 ;   /* convert distances from m to mm */
    hh.XStart   *= 1000.0 ;   /* (who the hell uses meters for brain imaging?) */
-   hh.YStart   *= 1000.0 ;
+   hh.YStart   *= 1000.0 ;   /* (blue whales?  elephants?) */
    hh.ZStart   *= 1000.0 ;
    hh.XEnd     *= 1000.0 ;
    hh.YEnd     *= 1000.0 ;
@@ -790,8 +839,7 @@ ENTRY("THD_open_ctfsam") ;
    /* determine if file is big enough to hold all data it claims */
 
    nn = THD_filesize(fname) ;
-   if( nn < 8+sizeof(hh) + 8*nx*ny*nz )
-     BADBAD("input file too small") ;
+   if( nn < sizeof(double)*nx*ny*nz ) BADBAD("input file too small") ;
 
    datum_type = MRI_float ;  /* actually is double, but AFNI doesn't grok that */
                              /* will be converted to floats when reading data */
@@ -911,18 +959,23 @@ ENTRY("THD_load_ctfsam") ;
 
    dkptr = dblk->diskptr ;
 
-   /* open and position file at start of data (after header) */
-
-   fp = fopen( dkptr->brick_name , "rb" ) ;  /* .img file */
-   if( fp == NULL ) EXRETURN ;
-   fseek( fp , sizeof(SAM_HDR)+8 , SEEK_SET ) ;
-
    /*-- allocate space for data --*/
 
    nx = dkptr->dimsizes[0] ;
    ny = dkptr->dimsizes[1] ; nxy   = nx * ny   ;
    nz = dkptr->dimsizes[2] ; nxyz  = nxy * nz  ;
    nv = dkptr->nvals       ; nxyzv = nxyz * nv ;
+
+   /* position file 8*nxyzv bytes before end of file */
+
+   fp = fopen( dkptr->brick_name , "rb" ) ;  /* .svl file */
+   if( fp == NULL ) EXRETURN ;
+
+   /* 26 Feb 2005: instead of skipping the header,
+                   whose size varies with the SAM version number,
+                   just seek backwards from the end to the correct size */
+
+   fseek( fp , -sizeof(double)*nxyzv , SEEK_END ) ;
 
    dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
 
