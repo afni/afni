@@ -10,7 +10,7 @@
 /*-------------------------------------------------------------*/
 /*! Return the time at which the file was last modified. */
 
-time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
+time_t THD_file_mtime( char *pathname )  /* 05 Dec 2001 */
 {
    static struct stat buf ; int ii ;
 
@@ -22,7 +22,7 @@ time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
 /*-----------------------------------------------------------*/
 /*! Determine if this exists at all (file, directory, ...). */
 
-int THD_is_ondisk( char * pathname )  /* 19 Dec 2002 */
+int THD_is_ondisk( char *pathname )  /* 19 Dec 2002 */
 {
    static struct stat buf ; int ii ;
 
@@ -91,7 +91,7 @@ int THD_mkdir( char *pathname )  /* 19 Dec 2002 */
 /*-----------------------------------------------------------*/
 /*! Determine if this is really a regular file or not. */
 
-int THD_is_file( char * pathname )
+int THD_is_file( char *pathname )
 {
    static struct stat buf ; int ii ;
 
@@ -103,7 +103,7 @@ int THD_is_file( char * pathname )
 /*------------------------------------------------------------*/
 /*! Determine if this is really a symbolic link or not. */
 
-int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
+int THD_is_symlink( char *pathname )  /* 03 Mar 1999 */
 {
    char buf[32] ; int ii ;
 
@@ -115,7 +115,7 @@ int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
 /*-------------------------------------------------------*/
 /*! Return the file length (-1 if file not found). */
 
-unsigned long THD_filesize( char * pathname )
+unsigned long THD_filesize( char *pathname )
 {
    static struct stat buf ; int ii ;
 
@@ -127,7 +127,7 @@ unsigned long THD_filesize( char * pathname )
 /*--------------------------------------------------------*/
 /*! Determine if this is really a directory or not. */
 
-int THD_is_directory( char * pathname )
+int THD_is_directory( char *pathname )
 {
    static struct stat buf ; int ii ;
 
@@ -139,11 +139,11 @@ int THD_is_directory( char * pathname )
 /*---------------------------------------------------------------*/
 /*! Determine if this is really an executable file or not. */
 
-int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
+int THD_is_executable( char *pathname )  /* 26 Jun 2001 */
 {
    static struct stat buf ; int ii ;
 
-   if( pathname == NULL || *pathname == '\0' ) return 0 ;
+   if( pathname == NULL || *pathname == '\0' )  return 0  ;
    ii = stat( pathname , &buf )      ; if( ii ) return 0  ;
    ii = (buf.st_mode & S_IXOTH) != 0 ; if( ii ) return ii ;
 
@@ -157,7 +157,7 @@ int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
 /*--------------------------------------------------------------*/
 /*! Determine if two filenames are really the same thing. */
 
-int THD_equiv_files( char * path1 , char * path2 )
+int THD_equiv_files( char *path1 , char *path2 )
 {
    static struct stat buf1 , buf2 ; int ii ;
 
@@ -217,7 +217,7 @@ char * THD_trailname( char *fname , int lev )
   The list of crummy characters can be inferred from the source code.
 */
 
-int THD_filename_ok( char * name )  /* 24 Apr 1997 */
+int THD_filename_ok( char *name )  /* 24 Apr 1997 */
 {
    int ll , ii ;
 
@@ -242,7 +242,7 @@ int THD_filename_ok( char * name )  /* 24 Apr 1997 */
 /*--------------------------------------------------------------------*/
 /*! Check if a filename is pure - no crummy characters, no '/'. */
 
-int THD_filename_pure( char * name )  /* 28 Feb 2001 */
+int THD_filename_pure( char *name )  /* 28 Feb 2001 */
 {
    int ii ;
 

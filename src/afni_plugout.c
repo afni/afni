@@ -479,23 +479,23 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
       /*-- 07 Nov 2001: drive various AFNI user interface widgets --*/
 
       } else if( strncmp(str[ss],"DRIVE_AFNI",10) == 0 ){
-        char cmd[256]="\0" ;
+        char cmd[1024]="\0" ;
 
         if( strlen(str[ss]) < 11 ){
-           fprintf(stderr,"PO: DRIVE_AFNI from plugout %s lacks command\n",
-                          pp->po_name ) ;
-           if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
+          fprintf(stderr,"PO: DRIVE_AFNI from plugout %s lacks command\n",
+                         pp->po_name ) ;
+          if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
 
         } else {  /* the command is everything after "DRIVE_AFNI " */
 
-           MCW_strncpy(cmd,str[ss]+11,256) ;
-           if( verbose )
-              fprintf(stderr,"PO: command DRIVE_AFNI %s\n",cmd) ;
-           ii = AFNI_driver( cmd ) ;  /* just do it */
-           if( pp->do_ack ){
-              if( ii < 0 ) PO_ACK_BAD( pp->ioc ) ;
-              else         PO_ACK_OK ( pp->ioc ) ;
-           }
+          MCW_strncpy(cmd,str[ss]+11,1024) ;
+          if( verbose )
+            fprintf(stderr,"PO: command DRIVE_AFNI %s\n",cmd) ;
+          ii = AFNI_driver( cmd ) ;  /* just do it */
+          if( pp->do_ack ){
+            if( ii < 0 ) PO_ACK_BAD( pp->ioc ) ;
+            else         PO_ACK_OK ( pp->ioc ) ;
+          }
         }
 
       /*-- unknown plugout command: drop a daisy cutter on them --*/

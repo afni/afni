@@ -5328,3 +5328,6 @@
 23 Feb 2005
  * Modified to3d.c to accept -Torg option.  Also to thd_info.c to print
      out the ttorg field.
+
+24 Feb 2005
+ * Modified 3dmaskave to have -max option.

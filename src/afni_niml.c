@@ -3,7 +3,7 @@
 
 /*----------------------------------------------------------------------
  * history:
- * 
+ *
  * ... [rwcox] ...
  *
  * 08 Oct 2004 [rickr]
@@ -14,7 +14,7 @@
  * 25 Oct 2004 [rickr]
  *   - use vol2surf for all surfaces now (so nvused is no longer computed)
  *   - in ldp_surf_list, added _ldp suffix and full_label_ldp for clarity
- *   - added functions int_list_posn, slist_choose_surfs, 
+ *   - added functions int_list_posn, slist_choose_surfs,
  *     slist_check_user_surfs and slist_surfs_for_ldp to handle an arbitrary
  *     number of surfaces per LDP
  *   - moved any fprintf off the margin
@@ -375,11 +375,11 @@ STATUS("NI_stream_goodcheck was good!") ;
    RETURN( False ) ;
 }
 
-
 /*----------------------------------------------------------------------*/
 /*! Process NIML data.  "chan" is the type of stream it came from;
     this is currently not used.
 ------------------------------------------------------------------------*/
+
 static void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
 {
    int tt=NI_element_type(nini) ;

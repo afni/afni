@@ -154,6 +154,7 @@ extern int_array * decode_dimen_string( char *ds ) ;
 extern int_array * decode_type_string( char *ts ) ;
 extern char NI_type_char( int typ ) ;
 extern void enhance_header_stuff( header_stuff *hs ) ;
+extern char * get_header_attribute( header_stuff *hs , char *attname ) ;
 
 /****************************************************************************/
 
