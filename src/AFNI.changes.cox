@@ -3298,3 +3298,7 @@
        - rescan this
        - quit
  * Added a button to the Datamode->Misc menu to start plugouts.
+
+08 Nov 2001
+ * Modified afni_driver.c to allow the OPEN_WINDOW function to have
+     layout parameters geom=, ifrac=, mont=, matrix=, and pinnum=.

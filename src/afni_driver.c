@@ -262,6 +262,10 @@ int AFNI_drive_open_window( char *cmd )
 {
    int ic ;
    Three_D_View *im3d ;
+   char *cpt ;
+   int gww=-1,ghh=-1,gxx=-1,gyy=-1 ;
+   MCW_imseq   *isq=NULL ;
+   MCW_grapher *gra=NULL ;
 
 ENTRY("AFNI_drive_open_window") ;
 
@@ -276,6 +280,7 @@ ENTRY("AFNI_drive_open_window") ;
       im3d = GLOBAL_library.controllers[ic] ;
       if( !IM3D_VALID(im3d) ) RETURN(-1) ;   /* should never happen */
    }
+
    if( !IM3D_OPEN(im3d) ){                   /* make sure is visible */
       OPEN_CONTROLLER(im3d) ;
       AFNI_initialize_controller( im3d ) ;   /* decide what to see */
@@ -283,30 +288,121 @@ ENTRY("AFNI_drive_open_window") ;
       AFNI_controller_clonify() ;
    }
 
-   if( strlen(cmd) < 3 ) RETURN(0) ;         /* no window? */
+   if( strlen(cmd) < 3 ) RETURN(0) ;         /* no commands? */
 
    /* open a window */
 
-        if( strstr(cmd,"axialimage") != NULL )
+        if( strstr(cmd,"axialimage") != NULL ){
           AFNI_view_xyz_CB( im3d->vwid->imag->image_xyz_pb, im3d, NULL ) ;
+          isq = im3d->s123 ;
 
-   else if( strstr(cmd,"sagittalimage") != NULL )
+   } else if( strstr(cmd,"sagittalimage") != NULL ){
           AFNI_view_xyz_CB( im3d->vwid->imag->image_yzx_pb, im3d, NULL ) ;
+          isq = im3d->s231 ;
 
-   else if( strstr(cmd,"coronalimage") != NULL )
+   } else if( strstr(cmd,"coronalimage") != NULL ){
           AFNI_view_xyz_CB( im3d->vwid->imag->image_zxy_pb, im3d, NULL ) ;
+          isq = im3d->s312 ;
 
-   else if( strstr(cmd,"axialgraph") != NULL )
+   } else if( strstr(cmd,"axialgraph") != NULL ){
           AFNI_view_xyz_CB( im3d->vwid->imag->graph_xyz_pb, im3d, NULL ) ;
+          gra = im3d->g123 ;
 
-   else if( strstr(cmd,"sagittalgraph") != NULL )
+   } else if( strstr(cmd,"sagittalgraph") != NULL ){
           AFNI_view_xyz_CB( im3d->vwid->imag->graph_yzx_pb, im3d, NULL ) ;
+          gra = im3d->g231 ;
 
-   else if( strstr(cmd,"coronalgraph") != NULL )
+   } else if( strstr(cmd,"coronalgraph") != NULL ){
           AFNI_view_xyz_CB( im3d->vwid->imag->graph_zxy_pb, im3d, NULL ) ;
+          gra = im3d->g312 ;
+   }
 
-   else
-          RETURN(-1) ;
+   /* find geom=..., if present */
+
+   cpt = strstr(cmd,"geom=") ;
+   if( cpt != NULL ){
+      AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
+   }
+
+   /*--- opened an image viewer: maybe modify it ---*/
+
+   if( isq != NULL ){
+
+      /* geometry */
+
+      if( gxx >= 0 && gyy >= 0 )
+        XtVaSetValues( isq->wtop, XmNx, gxx, XmNy, gyy, NULL ) ;
+      if( gww > 0 && ghh > 0 )
+        XtVaSetValues( isq->wtop, XmNwidth, gww, XmNheight, ghh, NULL ) ;
+
+      /* image fraction */
+
+      cpt = strstr(cmd,"ifrac=") ;
+      if( cpt != NULL ){
+         float ifrac = strtod( cpt+6 , NULL ) ;
+         if( ifrac >= FRAC_MIN && ifrac <= 1.0 )
+           drive_MCW_imseq( isq, isqDR_setifrac, (XtPointer)(&ifrac) ) ;
+      }
+
+      /* montage */
+
+      cpt = strstr(cmd,"mont=") ;
+      if( cpt != NULL ){
+         int mww=-1 , mhh=-1 , msp=-1 , mgap=-1 , nn ;
+         char mcol[128] = "\0" ;
+
+         nn = sscanf( cpt+5 , "%dx%d:%d:%d:%s" , &mww,&mhh,&msp,&mgap,mcol );
+
+         if( nn >= 2 && mww >= 1 && mww <= MONT_NMAX && mhh >= 1 && mhh <= MONT_NMAX ){
+            int mp[5] ;
+            mp[0] = mww ; mp[1] = mhh ; mp[2] = msp ; mp[3] = mgap ;
+            mp[4] = DC_find_overlay_color(im3d->dc,mcol);
+            drive_MCW_imseq( isq , isqDR_setmontage , (XtPointer) mp ) ;
+         }
+      }
+
+   /*--- opened a graph viewer: maybe modify it ---*/
+
+   } else if ( gra != NULL ){
+
+      /* geometry */
+
+      if( gxx >= 0 && gyy >= 0 )
+         XtVaSetValues( gra->fdw_graph, XmNx, gxx, XmNy, gyy, NULL ) ;
+      if( gww > 0 && ghh > 0 )
+         XtVaSetValues( gra->fdw_graph, XmNwidth, gww, XmNheight, ghh, NULL ) ;
+
+      /* matrix */
+
+      cpt = strstr(cmd,"matrix=") ;
+      if( cpt != NULL ){
+         int mat = (int) strtod( cpt+7 , NULL ) ;
+         if( mat > 0 )
+            drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer) mat ) ;
+      }
+
+      /* pinnum */
+
+      cpt = strstr(cmd,"pinnum=") ;
+      if( cpt != NULL ){
+         int pn = (int) strtod( cpt+7 , NULL ) ;
+         if( pn > 1 )
+            drive_MCW_grapher( gra , graDR_setpinnum , (XtPointer) pn ) ;
+      }
+
+
+   /*--- opened the controller itself: maybe move it ---*/
+
+   } else {
+
+      /* geometry */
+
+      if( gxx >= 0 && gyy >= 0 )
+         XtVaSetValues( im3d->vwid->top_shell, XmNx, gxx, XmNy, gyy, NULL ) ;
+
+   }
+
+   /*-- finito --*/
 
    RETURN(0) ;
 }
