@@ -2818,6 +2818,10 @@ void usage_SUMA_ConvertSurface ()
                   "       vec: Simple ascii matrix format. \n"
                   "            see help for vec under -i_TYPE options for format specifications.\n"
                   "       ply: PLY format, ascii or binary.\n"
+                  "    -make_consistent: Check the consistency of the surface's mesh (triangle\n"
+                  "                      winding). This option will write out a new surface even \n"
+                  "                      if the mesh was consistent.\n"
+                  "                      See SurfQual -help for mesh checks.\n"
                   "    -sv SurfaceVolume [VolParam for sf surfaces]\n"
                   "       This option must not come before the -i_TYPE option.\n"
                   "       If you supply a surface volume, the coordinates of the input surface.\n"
@@ -2873,7 +2877,7 @@ int main (int argc,char *argv[])
    void *SO_name = NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat;
+   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind;
    SUMA_Boolean LocalHead = NOPE;
    
 	/* allocate space for CommonFields structure */
@@ -2882,6 +2886,9 @@ int main (int argc,char *argv[])
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
+	
+   /* Allocate space for DO structure */
+	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
    /* sets the debuging flags, if any */
    SUMA_ParseInput_basics(argv, argc);
@@ -2902,6 +2909,7 @@ int main (int argc,char *argv[])
    Do_mni_RAI = NOPE;
    Do_mni_LPI = NOPE;
    Do_acpc = NOPE;
+   Do_wind = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -2931,6 +2939,11 @@ int main (int argc,char *argv[])
 			}
 			xmat_name = argv[kar]; 
          Doxmat = YUP;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-make_consistent") == 0)) {
+         Do_wind = YUP;
 			brk = YUP;
 		}
       
@@ -3326,6 +3339,17 @@ int main (int argc,char *argv[])
    if (!SO) {
       fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
       exit (1);
+   }
+   
+   /* if Do_wind */
+   if (Do_wind) {
+      fprintf (SUMA_STDOUT,"Checking and repairing mesh's winding consistency...\n");
+      /* check the winding, but that won't fix the normals, 
+      you'll have to recalculate those things, if need be ... */
+      if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, 0, SUMAg_CF->DsetList)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+         exit(1);
+      }   
    }
    
    if (Do_tlrc) {

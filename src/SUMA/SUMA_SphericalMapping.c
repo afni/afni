@@ -117,6 +117,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
    isortdist = SUMA_z_qsort ( dist , SO->N_Node  );
    
    /* report */
+   fprintf (SUMA_STDERR,"\n");
    fprintf (SUMA_STDERR,"%s: \n"
                         "Reporting on Spheriosity of %s\n", FuncName, SO->Label);
    fprintf (SUMA_STDERR," Mean distance from center (estimated radius): %f\n", mdist);
@@ -661,8 +662,8 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    SUMA_SURF_NORM SN;
    SUMA_NODE_FIRST_NEIGHB *firstNeighb=NULL;
    SUMA_Boolean DoWind = YUP;
-   int n=0, m=0, in=0;
-   SUMA_Boolean LocalHead = NOPE;
+   int n=0, m=0, in=0, trouble;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -685,11 +686,11 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    if (LocalHead) fprintf(SUMA_STDERR,"%s: Allocated for %d Nodes, %d numTri\n", FuncName, numNodes, numTri);
    
    /**icosahedron creation and tesselation*/
+   SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth); /* lgth is the length of edge by dist node0->node1 */
    
-   a = r*(1+sqrt(5)) / (sqrt(10+2*sqrt(5)));
-   b = 2*r / (sqrt(10+2*sqrt(5)));
-   lgth = sqrt( pow(0-b,2) + pow(b-a,2) + pow(-a-0,2) );  //determine length of edge by dist node0->node1
- 
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s: a = %f, b=%f, rad = %f, lgth = %f\n", FuncName, a, b, r, lgth);
+   }
    /*assign ep to be 1/2 the lenth of the maximum final distance between two nodes
      (see LNB p3 / p29)*/
    if (strcmp(bin, "y") == 0) {
@@ -822,7 +823,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
       } else {
       }
       
-      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 0)) {
+      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 0, &trouble)) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MakeConsistent.\n", FuncName);
          SUMA_Free_Surface_Object (SO);
          SUMA_RETURN (NULL);
@@ -2201,7 +2202,7 @@ void SUMA_CreateIcosahedron_usage ()
             "       Ntri  = 20 * linDepth^2\n"
             "       Nedge = 30 * linDepth^2\n"
             "\n"
-            "   -nums: output the number of nodes (vertices), triangles and edges then quit\n"
+            "   -nums: output the number of nodes (vertices), triangles, edges, total volume and total area then quit\n"
             "\n"
             "   -nums_quiet: same as -nums but less verbose. For the machine in you.\n"
             "\n"
@@ -2228,7 +2229,7 @@ int main (int argc, char *argv[])
  
    static char FuncName[]={"SUMA_CreateIcosahedron-main"};
    int kar, depth, i, j;
-   float r, ctr[3];
+   float r, ctr[3], a, b, lgth, A = 0.0, V = 0.0;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean brk;
    int NumOnly;
@@ -2358,8 +2359,12 @@ int main (int argc, char *argv[])
          Ntri = 20 * depth * depth;
          Nedge = 30 * depth * depth; 
       }
-      if (NumOnly == 1) fprintf (SUMA_STDOUT,"#Nvert\t\tNtri\t\tNedge\n %d\t\t%d\t\t%d\n", Nvert, Ntri, Nedge);
-      else fprintf (SUMA_STDOUT," %d\t\t%d\t\t%d\n", Nvert, Ntri, Nedge);
+      
+      SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth);
+      A = 1/4.0 * lgth * lgth * sqrt(3.0);   /* surface area, equation from mathworld.wolfram.com */
+      V = 5.0 / 12.0 * ( 3 + sqrt(5.0) ) * lgth * lgth * lgth; /* volume, equation from mathworld.wolfram.com*/
+      if (NumOnly == 1) fprintf (SUMA_STDOUT,"#Nvert\t\tNtri\t\tNedge\t\tArea\t\t\tVolume\n %d\t\t%d\t\t%d\t\t%f\t\t%f\n", Nvert, Ntri, Nedge, A, V);
+      else fprintf (SUMA_STDOUT," %d\t\t%d\t\t%d\t\t%f\t\t%f\n", Nvert, Ntri, Nedge, A, V);
       
       exit(0);
    }

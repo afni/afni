@@ -116,7 +116,6 @@
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
 #define SUMA_PI 3.141592653589 
 #define SUMA_EPSILON 0.000001
-#define SUMA_SCL_POW_BIAS 2   /*!< Bias for power (decimal points) of scale */
 /*!
    Debugging flags
 */
@@ -971,6 +970,7 @@ typedef struct {
    SUMA_TABLE_FIELD *FaceTable;
    SUMA_TABLE_FIELD *DataTable;
    SUMA_TABLE_FIELD *LabelTable;
+   SUMA_TABLE_FIELD *SetThrScaleTable; 
    Widget ColPlaneShow_tb; /*!< show/hide color plane */
    Widget ColPlaneShowOne_tb; /*!< show only one color plane at a time*/
    Widget SymIrange_tb; /*!< Symmetric intensity range */
@@ -984,7 +984,9 @@ typedef struct {
    SUMA_CMAP_RENDER_AREA *cmp_ren;   /* data for cmap rendering zone */
    Widget thr_sc;   /*! scale for threshold data */
    Widget brt_sc;   /*! scale for brightness data */
-   Widget thr_lb;   /*! threshold title */
+   Widget thr_lb;  /*! threshold title 
+                        No longer used, 
+                        using SetThrScaleTable instead */ 
    Widget thrstat_lb;  /*! pvalue associated with threshold */
    Widget cmaptit_lb;  /*! title of cmap */
    Widget cmapswtch_pb; /*! button for switching color map */
@@ -1982,6 +1984,7 @@ typedef struct {
    SUMA_AFNI_COLORS *scm;  /*!< a structure containing all the colormaps available to SUMA */
    DList *DsetList;  /*!< List containing datasets */
    
+   int SUMA_ThrScalePowerBias; 
 } SUMA_CommonFields;
  
 #endif

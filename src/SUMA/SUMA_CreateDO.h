@@ -1,5 +1,9 @@
 #ifndef SUMA_CREATEDO_INCLUDED
 #define SUMA_CREATEDO_INCLUDED
+SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO, 
+                                       float *NodeList, int N_Node, 
+                                       int *FaceSetList, int N_FaceSet,
+                                       SUMA_Boolean replace);
 SUMA_Axis* SUMA_Alloc_Axis (const char *Name);
 void SUMA_Free_Axis (SUMA_Axis *Ax);
 SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax);

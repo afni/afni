@@ -1944,7 +1944,10 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
             }
             
             #if SUMA_CHECK_WINDING
-            if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, debug)) {
+            /* if you have surfaces that are not consistent, you should fix them ahead of time
+            because orientation affects calculations of normals, areas (signed), convexity 
+            etc.... */
+            if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, debug, DsetList)) {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
@@ -2313,10 +2316,10 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
    if (DoArea) {
       /* create the triangle Area  */
       if (SO->NodeDim == 3) {
-         fprintf(SUMA_STDOUT, "%s: Calculating triangle areas ...\n", FuncName); 
+         if (debug) fprintf(SUMA_STDOUT, "%s: Calculating triangle areas ...\n", FuncName); 
          SO->PolyArea = SUMA_TriSurf3v (SO->NodeList, SO->FaceSetList, SO->N_FaceSet);
       } else {
-         fprintf(SUMA_STDOUT, "%s: Calculating polygon areas ...\n", FuncName); 
+         if (debug) fprintf(SUMA_STDOUT, "%s: Calculating polygon areas ...\n", FuncName); 
          SO->PolyArea = SUMA_PolySurf3 (SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->NodeDim, SO->FaceNormList, NOPE);
          #if 0
             /* a test of the functions for calculating areas */
@@ -2451,11 +2454,20 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
    
    
    if (DoWind){   
-      /* check to make sure winding is consistent */
-      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 1)) {
+      int trouble;
+      /* make sure winding is consistent */
+      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 1, &trouble)) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MakeConsistent.\n", FuncName);
       }else {
          if (LocalHead) fprintf(SUMA_STDERR,"%s: Eeeexcellent.\n", FuncName);
+      }
+      if (trouble) {
+         SUMA_SL_Note(  "Even if winding was made consistent,\n"
+                        "Pre-computed normals and normals-related\n"
+                        "measures and edge lists will need to be\n"
+                        "recalculated.\n"
+                        "See also SurfQual and \n"
+                        "ConvertSurface's -make_consistent option.\n");
       }
    }
 
@@ -2858,6 +2870,20 @@ void usage_SUMA_SurfaceMetrics ()
                "Outputs information about a surface's mesh\n"
                "\n"
                "   -Metric1: Replace -Metric1 with the following:\n"
+               "      -vol: calculates the volume of a surface.\n"
+               "            Volume unit is the cube of your surface's\n"
+               "            coordinates unit, obviously.\n"
+               "            Volume's sign depends on the orientation\n"
+               "            of the surface's mesh.\n" 
+               "            Make sure your surface is a closed one\n"
+               "            and that winding is consistent.\n"
+               "            Use SurfQual to check the surface.\n"
+               "            If your surface's mesh has problems,\n"
+               "            the result is incorrect. \n"
+               "            Volume is calculated using Gauss's theorem,\n"
+               "            see [Hughes, S.W. et al. 'Application of a new \n"
+               "            discreet form of Gauss's theorem for measuring \n"
+               "            volume' in Phys. Med. Biol. 1996].\n"
                "      -conv: output surface convexity at each node.\n"
                "         Output file is prefix.conv. Results in two columns:\n"
                "         Col.0: Node Index\n"
@@ -2908,6 +2934,7 @@ void usage_SUMA_SurfaceMetrics ()
                "       Mon May 19 15:41:12 EDT 2003\n"
                "\n");   
    }
+#define SURFACEMETRICS_MAX_SURF 10
 
 int main (int argc,char *argv[])
 {/* Main */
@@ -2917,24 +2944,32 @@ int main (int argc,char *argv[])
          *tlrc_name = NULL;
    float *Cx = NULL;
    SUMA_STRING *MetricList = NULL;
-   int i, n1, n2, n1_3, n2_3, kar, nt;
+   int i, n1, n2, n1_3, n2_3, kar, nt, SO_read;
    double edgeL2;
    FILE *fout=NULL;
    SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED;
    SUMA_SurfaceObject *SO = NULL;   
    SUMA_SFname *SF_name = NULL;
    void *SO_name = NULL;   
+   SUMA_SurfSpecFile Spec;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
+   char *surf_names[SURFACEMETRICS_MAX_SURF];
+   char *spec_file;
+   int insurf_method = 0, N_surf = 0, ind = 0;
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
-                  Do_area, Do_edges, LocalHead = NOPE;  
+                  Do_area, Do_edges, Do_vol, LocalHead = NOPE;  
    
    SUMA_mainENTRY;
    
 	SUMA_STANDALONE_INIT;
    
+	/* Allocate space for DO structure */
+	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+
    if (argc < 4)
        {
+          SUMA_S_Err("Too few parameters");
           usage_SUMA_SurfaceMetrics ();
           exit (1);
        }
@@ -2942,15 +2977,18 @@ int main (int argc,char *argv[])
    MetricList = SUMA_StringAppend (NULL, NULL);
    kar = 1;
 	brk = NOPE;
+   Do_vol = NOPE;
    Do_tlrc = NOPE;
    Do_conv = NOPE;
    Do_area = NOPE;
    Do_curv = NOPE;
    Do_edges = NOPE;
    OutPrefix = NULL;
-   
+   for (i=0; i<SURFACEMETRICS_MAX_SURF; ++i) { surf_names[i] = NULL; }   
+   spec_file = NULL;
+
 	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		/* fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName); */
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_SurfaceMetrics();
           exit (1);
@@ -2959,6 +2997,8 @@ int main (int argc,char *argv[])
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
 		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
+         SUMA_SL_Err("Option -i_fs is obsolete.\nUse -spec and -surf_A instead.\n");
+         exit(1);
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -i_fs ");
@@ -2970,6 +3010,8 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
+         SUMA_SL_Err("Option -i_sf is obsolete.\nUse -spec and -surf_A instead.\n");
+         exit(1);
          kar ++;
 			if (kar+1 >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 2 argument after -i_sf");
@@ -2982,6 +3024,8 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk && (strcmp(argv[kar], "-i_vec") == 0)) {
+         SUMA_SL_Err("Option -i_vec is obsolete.\nUse -spec and -surf_A instead.\n");
+         exit(1);
          kar ++;
 			if (kar+1 >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec");
@@ -2994,6 +3038,8 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
+         SUMA_SL_Err("Option -i_ply is obsolete.\nUse -spec and -surf_A instead.\n");
+         exit(1);
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -i_ply ");
@@ -3003,6 +3049,43 @@ int main (int argc,char *argv[])
          iType = SUMA_PLY;
 			brk = YUP;
 		}
+      
+      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
+				exit (1);
+			}
+			spec_file = argv[kar];
+         if (!insurf_method) insurf_method = 2;
+         else {
+            fprintf (SUMA_STDERR, "already specified spec file.\n");
+            exit(1);
+         }
+			brk = YUP;
+		}
+      
+      if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
+			if (kar + 1>= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
+				exit (1);
+			}
+			ind = argv[kar][6] - 'A';
+         if (ind < 0 || ind >= SURFACEMETRICS_MAX_SURF) {
+            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range,\n"
+                                  "   only surf_A allowed.\n");
+				exit (1);
+         }
+         kar ++;
+         surf_names[ind] = argv[kar];
+         N_surf = ind+1;
+			if (insurf_method != 2) {
+            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option must be used with -spec option.\n");
+            exit(1);
+         }
+         brk = YUP;
+		}
+      
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
@@ -3066,6 +3149,11 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-vol") == 0)) {
+         Do_vol = YUP;
+         brk = YUP;
+      }
+      
       if (!brk) {
 			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -3074,16 +3162,22 @@ int main (int argc,char *argv[])
 			kar ++;
 		}
    }
+   
+   if (N_surf < 1) {
+      SUMA_SL_Err("No surface specified.");
+      exit(1);
+   }
 
    /* clean MetricList */
    MetricList = SUMA_StringAppend (MetricList, NULL); 
    
    /* sanity checks */
-   if (!MetricList) {
+   if (!strlen(MetricList->s) && !Do_vol) {
       SUMA_S_Err("No Metrics specified.\nNothing to do.\n");
       exit(1);
    }
    
+#if 0
    if (!if_name) {
       SUMA_S_Err("Input surface not specified.\n");
       exit(1);
@@ -3124,6 +3218,7 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
+#endif
 
    if (sv_name) {
       if (!SUMA_filexists(sv_name)) {
@@ -3146,6 +3241,7 @@ int main (int argc,char *argv[])
 
    /* read the surface */
    
+#if 0
    /* prepare the name of the surface object to read*/
    switch (iType) {
       case SUMA_SUREFIT:
@@ -3184,7 +3280,26 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
          exit(1);
    }
+#endif
    
+   /* read all surfaces */
+   if (!SUMA_Read_SpecFile (spec_file, &Spec)) {
+		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
+		exit(1);
+	}
+   SO_read = SUMA_spec_select_surfs(&Spec, surf_names, SURFACEMETRICS_MAX_SURF, 0);
+   if ( SO_read != N_surf )
+   {
+	   if (SO_read >=0 )
+         fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", FuncName,  SO_read, N_surf);
+      exit(1);
+   }
+   
+   /* now read into SUMAg_DOv */
+   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, sv_name, 0, SUMAg_CF->DsetList) ) {
+	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
+      exit(1);
+   }   SO = SUMA_find_named_SOp_inDOv(surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
    if (!SO) {
       fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
       exit (1);
@@ -3235,12 +3350,13 @@ int main (int argc,char *argv[])
    
    /* Now do the deed */
    SUMA_LH (MetricList->s);
-   
-   if (!SUMA_SurfaceMetrics (SO, MetricList->s, NULL)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
-      exit(1);
+   if (strlen(MetricList->s)) {
+      if (!SUMA_SurfaceMetrics (SO, MetricList->s, NULL)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+         exit(1);
+      }
    }
-   
+
    SUMA_LH ("Done with Metrics");
    
    /* output time */
@@ -3400,6 +3516,14 @@ int main (int argc,char *argv[])
       
       fclose(fout); fout = NULL;
    }   
+   
+   if (Do_vol) {
+      float vol;
+      fprintf (SUMA_STDOUT,"Calculating surface volume...\n");
+      vol = SUMA_Mesh_Volume(SO, NULL, -1);
+      fprintf (SUMA_STDERR,   "Volume of closed surface is %f (units3).\n"
+                              "Signed volume is  %f (units3).\n", fabs(vol), vol); 
+   }
    
    SUMA_LH("Clean up");
    /* clean up */

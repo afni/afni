@@ -7,6 +7,109 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;
 
+/*!
+   \brief A function to create a surface that is a child of another.
+           function can also be used to replace NodeList and/or 
+           FaceSetList in the same SurfaceObject
+   \param SO (SUMA_SurfaceObject *) 
+   \param NodeList (float *): list of node coordinates, SO->NodeDim*N_Node elements long
+   \param N_Node (int) : number of nodes in NodeList
+   \param FaceSetList (int*): list of facesets, SO->FaceSetDim*N_FaceSet element long
+   \param N_FaceSet (int): number of facesets
+   \param replace: (SUMA_Boolean)   YUP = replace NodeList and/or FaceSetList in SO and return SO. 
+                                    NOPE = return a new SurfaceObject, 
+DO NOT FREE NodeList and/or FaceSetList upon returning
+*/
+SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO, 
+                                       float *NodeList, int N_Node, 
+                                       int *FaceSetList, int N_FaceSet,
+                                       SUMA_Boolean replace)
+{
+   static char FuncName[]={"SUMA_CreateChildSO"};
+   SUMA_SurfaceObject *SOn=NULL;
+   SUMA_Boolean RedoNormals = NOPE, RedoFaces = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!SO) SUMA_RETURN(NULL);
+   if (!NodeList && !FaceSetList && replace ) { SUMA_SL_Err("Nothing to do"); }
+
+   if (NodeList) { 
+      if (N_Node != SO->N_Node) {
+         SUMA_SL_Err("Not ready for partial node lists.\n");
+         SUMA_RETURN(NULL);
+      }  
+   }
+
+   if (replace) { SUMA_LH("Reusing old surface"); SOn = SO; }
+   else { SUMA_LH("New Surface"); SOn =  SUMA_Alloc_SurfObject_Struct(1); } 
+
+   if (NodeList) {
+      SUMA_LH("New Node List");
+      SOn->NodeDim = SO->NodeDim;
+      SOn->NodeList = NodeList; SOn->N_Node = N_Node;
+      SUMA_LH("Recalculating center");
+      SUMA_DIM_CENTER(SOn);
+      RedoNormals = YUP;
+   } else {
+      if (!replace) {
+         SUMA_LH("Copying old node list");
+         SOn->NodeDim = SO->NodeDim;
+         SOn->N_Node = SO->N_Node;
+         SOn->NodeList = (float *)SUMA_malloc(SOn->N_Node*3*sizeof(float));
+         if (!SOn->NodeList) { SUMA_SL_Crit("Failed to allocate."); SUMA_RETURN(NULL); }
+         SUMA_COPY_VEC(SO->NodeList, SOn->NodeList, SOn->N_Node*3, float, float);
+         RedoNormals = YUP;
+      }
+   }
+ 
+   if (FaceSetList) {
+      SUMA_LH("New FaceSet List");
+      SOn->FaceSetList = FaceSetList; SOn->N_FaceSet = N_FaceSet;
+      /* Need a new edge list */
+      if (!SUMA_SurfaceMetrics(SOn, "EdgeList, MemberFace", NULL)) {
+         SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+      }
+      RedoNormals = YUP;
+   } else {
+      if (!replace) {
+         SUMA_LH("Copying old FaceSet list");
+         SOn->N_FaceSet = SO->N_FaceSet;
+         SOn->FaceSetDim = SO->FaceSetDim;
+         SOn->FaceSetList = (int *)SUMA_malloc(SOn->N_FaceSet*SOn->FaceSetDim*sizeof(int));
+         if (!SOn->FaceSetList) { SUMA_SL_Crit("Failed to allocate."); SUMA_RETURN(NULL); }
+         SUMA_COPY_VEC(SO->FaceSetList, SOn->FaceSetList, SOn->N_FaceSet*SOn->FaceSetDim, int, int);
+         RedoNormals = YUP;
+         /* Need to inherit edge list */
+         if (0 &&!SUMA_SurfaceMetrics(SOn, "EdgeList, MemberFace", SO)) {
+            SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+         }
+      }
+   }
+
+   if (RedoNormals) {
+      SUMA_LH("Recalculating normals and convexitation");
+      SUMA_RECOMPUTE_NORMALS(SOn);
+      if (0 &&!SUMA_SurfaceMetrics(SOn, "Convexity", SO)) {
+         SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+      }
+   }
+
+   if (!replace) {
+      SUMA_LH("New IDs");
+      SOn->idcode_str = UNIQ_hashcode("DummyNameNothingLikeIt");
+      SOn->LocalDomainParentID = SUMA_copy_string(SO->LocalDomainParentID);
+   }
+
+   /* the stupid copies */
+   
+   SOn->glar_NodeList = (GLfloat *)SOn->NodeList;
+   SOn->glar_FaceSetList = (GLint *) SOn->FaceSetList;
+   SOn->glar_FaceNormList = (GLfloat *) SOn->FaceNormList;
+   
+   SUMA_RETURN(SOn);
+}
 SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float topright[3], int verb)
 {
    static char FuncName[]={"SUMA_Cmap_To_SO"};
@@ -3558,7 +3661,7 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
          if (cNodes) {
             ROI->CE = SUMA_GetContour (
                            SUMA_findSOp_inDOv(ROI->Parent_idcode_str, dov, N_dov), 
-                           cNodes, N_cNodes, &(ROI->N_CE));
+                           cNodes, N_cNodes, &(ROI->N_CE), 0, NULL);
             if (!ROI->CE) { SUMA_LH("Null DrawnROI->CE"); }
             else { SUMA_LH("Good DrawnROI->CE"); }
             SUMA_free(cNodes);

@@ -2599,7 +2599,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    int i,j, i0, i1, mxColindex, i3=0;
    float MinCol, MaxCol, Vrange, Vscl, r, **Mbuf= NULL;
    SUMA_Boolean NewMap = NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 

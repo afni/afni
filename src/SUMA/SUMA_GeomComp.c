@@ -487,7 +487,7 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
 {
    static char FuncName[]={"SUMA_getoffsets2"};
    int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0;
-   float Off_tmp, Seg, *a, *b, minSeg;
+   float Off_tmp, Seg, *a, *b, minSeg, SegPres; /*! *** SegPres added Jul 08 04, ZSS bug before ... */
    SUMA_Boolean Visit = NOPE;
    SUMA_Boolean AllDone = NOPE;
    static SUMA_Boolean LocalHead = NOPE;
@@ -521,6 +521,7 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
                OffS->OffVect[n_jne] = 0.0;          /* reset its distance from node n */
                SUMA_AddNodeToLayer (n_jne, LayInd, OffS);   /* add the node to the nodes in the layer */
                minSeg = 100000.0; n_prec = -1; Seg = 0.0;
+               SegPres = 0.0;
                for (k=0; k < SO->FN->N_Neighb[n_jne]; ++k) { /* calculate shortest distance of node to any precursor */  
                   n_k = SO->FN->FirstNeighb[n_jne][k];
                   if (OffS->LayerVect[n_k] == LayInd - 1) { /* this neighbor is a part of the previous layer, good */
@@ -532,6 +533,7 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
                      SUMA_SEG_LENGTH_SQ (a, b, Seg);                    
                      if (OffS->OffVect[n_prec] + Seg < minSeg) {
                         minSeg = Seg + OffS->OffVect[n_prec];
+                        SegPres = Seg;
                         n_prec = n_k;
                      }
                   }
@@ -542,7 +544,7 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
                   OffS = SUMA_Free_getoffsets (OffS);
                   SUMA_RETURN(NOPE);
                } else {
-                  OffS->OffVect[n_jne] = OffS->OffVect[n_prec] + sqrt(minSeg - Seg);
+                  OffS->OffVect[n_jne] = OffS->OffVect[n_prec] + sqrt(SegPres); SegPres = 0.0;
                   if (OffS->OffVect[n_jne] < lim) { /* must go at least one more layer */
                      AllDone = NOPE;
                   }
@@ -555,6 +557,447 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
       if (LocalHead) fprintf (SUMA_STDERR,"%s: On to layer %d\n", FuncName, LayInd);
       ++LayInd;
    } /* while AllDone */
+   
+   SUMA_RETURN(YUP);
+}
+
+typedef struct {
+   SUMA_SurfaceObject *SO;
+   SUMA_SurfaceObject *SOref;
+   SUMA_COMM_STRUCT *cs;
+   double Vref;
+   double Rref;
+   double V;
+   double R;
+   float *tmpList;
+} SUMA_VolDiffDataStruct; /*!< a special struct for the functions to equate the volume of two surfaces */
+
+/*!
+   \brief Changes the coordinates of SO's nodes so that the new average radius of the surface
+   is equal to r
+   
+   This function is an integral part of the function for equating the volumes of 2 surfaces.
+   Nodes are stretched by a fraction equal to:
+      (Rref - r) / Rref * Un where Un is the distance of the node from the center of the surface
+      Rref is the reference radius, r is the desired radius
+   \param SO (SUMA_SurfaceObject *) Surface object, obviously
+   \param r (double) (see above)
+   \param Rref (double) (see above)
+   \pram tmpList (float *) a pre-allocated vector to contain the new coordinates of the surface 
+   \return V (double) the volume of the new surface (post streching)
+   \sa SUMA_VolDiff
+*/
+double SUMA_NewVolumeAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float *tmpList)
+{
+   static char FuncName[]={"SUMA_NewVolumeAtRadius"};
+   double Dr, V=0.0,  Un, U[3], Dn, **P2 = NULL, c[3];
+   float *fp;
+   int i;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   /* calculate Dr and normalize by the radius of SOref */
+   Dr = ( Rref - r ) / Rref;
+
+   /* Now loop over all the nodes in SO and add the deal */
+   for (i=0; i<SO->N_Node; ++i) {
+      /* change node coordinate of each node by Dr, along radial direction  */
+      fp = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(SO->Center, fp, U, Un);
+      Dn = Dr*Un + Un;
+      if (Un) {
+         SUMA_COPY_VEC(SO->Center, c, 3, float, double);
+         P2 = SUMA_dPoint_At_Distance(U, c, Dn);
+         if (P2) { /* must loose precision here to stay compatible with node coordinate list types */
+            tmpList[3*i] = (float)P2[0][0]; tmpList[3*i+1] = (float)P2[0][1]; tmpList[3*i+2] = (float)P2[0][2];
+            SUMA_free2D((char **)P2, 2);  P2 = NULL;
+         }else {
+            SUMA_SL_Err("Failed in SUMA_Point_At_Distance!\n"
+                     "No coordinates modified");
+            SUMA_RETURN(0);
+         }
+      } else {
+         SUMA_SL_Err("Identical points!\n"
+                     "No coordinates modified");
+         SUMA_RETURN(0);
+      }
+   }
+
+
+   /* calculate the new volume */
+   fp = SO->NodeList;/* save NodeList */
+   SO->NodeList = tmpList; /* use new coordinates */
+   V = fabs((double)SUMA_Mesh_Volume(SO, NULL, -1));
+   SO->NodeList = fp; fp = NULL;   /* make NodeList point to the original data */
+
+   SUMA_RETURN(V);
+} 
+
+double SUMA_VolDiff(double r, void *fvdata)
+{
+   static char FuncName[]={"SUMA_VolDiff"};
+   double dv, *fp, Dr, V;
+   static int ncall=0;
+   int i;
+   static double Rref = 0.0, Vref = 0.0;
+   SUMA_SurfaceObject *SO, *SOref;
+   SUMA_COMM_STRUCT *cs=NULL;
+   SUMA_VolDiffDataStruct *fdata = (SUMA_VolDiffDataStruct*)fvdata ;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!fdata) {
+      SUMA_LH("Reset");
+      Rref = 0.0; Vref = 0.0;
+      ncall = 0;
+      SUMA_RETURN(0.0);
+   }
+   
+   SO = fdata->SO;
+   SOref = fdata->SOref;
+   cs = fdata->cs;
+   
+   if (!ncall) {
+      SUMA_LH("Initializing, calculating Vref and Rref");
+      Vref = fdata->Vref;
+      Rref = fdata->Rref;
+      if (LocalHead) { fprintf(SUMA_STDERR,"%s: Reference volume = %f, radius = %f \n", FuncName, Vref, Rref); }
+      if (cs->Send) { /* send the first monster (it's SOref "in SUMA" that's being modified on the fly) */
+         if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+         }
+      }
+   }
+   
+   V = SUMA_NewVolumeAtRadius(SO, r, Rref, fdata->tmpList);
+   dv = Vref - V; /* the volume difference */
+      
+   /* need an update ? */
+   if (cs->Send) { /* send the update (it's SOref "in SUMA" that's being modified on the fly) */
+      if (!SUMA_SendToAfni (SOref, cs, (void *)fdata->tmpList, SUMA_NODE_XYZ, 1)) {
+      SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      }
+   }
+
+   ++ncall;
+   
+   SUMA_RETURN(dv);
+}
+ 
+/*! \brief Binary Zero Search, a function to find the zero of a function 
+   \param a (double) 1st point, f(a) < 0
+   \param b (double) 2nd point, f(b) > 0 (actually all you need is that f(a)*f(b) is < 0
+   \param *f (double )(double x, void *data) function to find the zero point (at the right x)
+   \param fdata(void *)a pointer to the data that accompanies x as input to f
+   \param Nitermax (int) the maximum number of iterations
+   \param tol(double) the tolerance for convergence. Stop when ( |f(x)| < tol ) 
+*/
+double SUMA_BinaryZeroSearch(double a, double b, double(*f)(double x, void *data), void *fdata, int Nitermax, double tol) {
+   static char FuncName[]={"SUMA_BinaryZeroSearch"};
+   int Niter;
+   double x, fx;
+   SUMA_Boolean done;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (Nitermax < 0) Nitermax = 1000;
+
+   x = 0.0;
+   Niter = 0;
+   done = NOPE;
+   while(!done && Niter < Nitermax) {
+      x = (a+b)/2.0;
+      fx = (*f)(x, fdata);
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: %d\ta=%.4f\tb=%.4f\tx=%.4f\tfx=%.4f\n", 
+                                          FuncName, Niter, a, b, x, fx);
+      if (fx < 0) a = x;
+      else b = x;
+      if (fabs(fx) < tol) done = YUP;
+      ++Niter;
+   }
+   
+   if (!done) {
+      SUMA_SL_Warn(  "Reached iteration limit\n"
+                     "without converging.\n");
+   }
+   
+   SUMA_RETURN(x);
+}
+
+
+/*
+#define FROM_THIS_NODE 0
+#define TO_THIS_NODE 10
+*/
+/*!
+   \brief a function to find two values a and b such that
+   DV(a) is < 0 and DV(b) is > 0
+   These two starting points are used for the optimization function
+   SUMA_BinaryZeroSearch
+*/
+SUMA_Boolean SUMA_GetVolDiffRange(SUMA_VolDiffDataStruct *fdata, double *ap, double *bp)
+{
+   static char FuncName[]={"SUMA_GetVolDiffRange"};
+   double a = 0.0, b = 0.0, nat=0, nbt=0;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   /* decide on segment range */
+   fdata->Vref = fabs((double)SUMA_Mesh_Volume(fdata->SOref, NULL, -1));
+   SUMA_SO_RADIUS(fdata->SOref, fdata->Rref);
+   fdata->V = fabs((double)SUMA_Mesh_Volume(fdata->SO, NULL, -1));
+   SUMA_SO_RADIUS(fdata->SO, fdata->R);
+
+   /* a very simple range setting. might very well fail at times */
+   if (fdata->Vref - fdata->V < 0) { 
+      a = fdata->R; /* choose 'a' such that Vref - V is < 0, Choose b later*/
+      b = fdata->Rref;
+      do {
+         SUMA_LH("Looking for b");
+         b *= 1.3; ++nbt; /* choose b that Vref - V is > 0 */
+      } while ( fdata->Vref - SUMA_NewVolumeAtRadius(fdata->SO, b, fdata->Rref, fdata->tmpList) < 0 && nbt < 200);
+   }else{
+      b = fdata->R; /* choose 'b' such that Vref - V is > 0, Choose a later*/
+      a = fdata->Rref;
+      do {
+         SUMA_LH("Looking for a");
+         a *= 0.7; ++nat;
+      } while ( fdata->Vref - SUMA_NewVolumeAtRadius(fdata->SO, a, fdata->Rref, fdata->tmpList) > 0 && nat < 200);
+   }
+
+   *ap = a; *bp = b;
+
+   if (nat >= 200 || nbt >= 200) {
+      SUMA_SL_Err("Failed to find segment.");
+      SUMA_RETURN(NOPE);
+   }
+
+   SUMA_RETURN(YUP); 
+}
+
+/*!
+   \brief inflates or deflates a surface to make the volume of one surface (SO) equal to the volume of another (SOref)
+   \param SO: The surface to modify
+   \param SOref: The reference surface
+   \param tol (float): The acceptable difference between the two volumes
+   \param cs (SUMA_COMM_STRUCT *): The suma communication structure
+   
+   - This function does not update the normals and other coordinate related properties for SO.
+   \sa SUMA_RECOMPUTE_NORMALS 
+*/
+SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float tol, SUMA_COMM_STRUCT *cs)
+{
+   static char FuncName[]={"SUMA_EquateSurfaceVolumes"};
+   int iter, i, iter_max, ndiv;
+   double a, b, d;
+   SUMA_VolDiffDataStruct fdata;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO || !SOref) { SUMA_SL_Err("NULL surfaces"); SUMA_RETURN(NOPE); }
+   if (SO->N_Node != SOref->N_Node || SO->N_FaceSet != SOref->N_FaceSet) { SUMA_SL_Err("Surfaces not isotopic"); SUMA_RETURN(NOPE); }
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           " SO    Center: %f, %f, %f\n"
+                           " SOref Center: %f, %f, %f\n"
+                           , FuncName, 
+                           SO->Center[0], SO->Center[1], SO->Center[2],
+                           SOref->Center[0], SOref->Center[1], SOref->Center[2]);  
+   }
+     
+   /* fill up fdata */
+   fdata.SO = SO; fdata.SOref = SOref; fdata.cs = cs;
+   fdata.tmpList = (float *)SUMA_malloc(SOref->NodeDim * SOref->N_Node * sizeof(float));
+   if (!fdata.tmpList) {
+      SUMA_SL_Err("Failed to allocate");
+      SUMA_RETURN(0);
+   }
+
+   if (!SUMA_GetVolDiffRange(&fdata, &a, &b)) {
+      SUMA_SL_Err("Failed to get range");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\na = %f\tb=%f\n", FuncName, a, b);
+   }      
+   SUMA_BinaryZeroSearch(a, b, SUMA_VolDiff, &fdata, 500, tol);  
+   
+   /* now make the new node list be SO's thingy*/
+   SUMA_free(SO->NodeList); SO->NodeList = fdata.tmpList; fdata.tmpList = NULL;
+       
+   SUMA_RETURN(YUP);
+}
+
+
+/*!
+   \brief make the size of 2 surfaces match see help -match_size option in SurfSmooth
+   \param SO The surface to be modified.
+          Adjust node coordinates of SO so that
+          it matches the original size.
+          Node i on SO is repositioned such 
+          that |c i| = 1/N sum(|cr j|) where
+          c and cr are the centers of SO and SOref, respectively.
+          N is the number of nodes that are within max_off along
+          the surface (geodesic) from node i.
+          j is one of the nodes neighboring i.
+   \param SOref The surface to be matched
+   \param max_off geodesic neighborhood to search around i
+   \param cs the famed communication structure
+*/
+/*
+#define FROM_THIS_NODE 0
+#define TO_THIS_NODE 10
+*/
+SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float max_off, SUMA_COMM_STRUCT *cs)
+{
+   static char FuncName[]={"SUMA_EquateSurfaceSize"};
+   int i=0, j=0, cnt = 0, istrt, istp;
+   struct timeval start_time, start_time_all;
+   float etime_GetOffset, etime_GetOffset_all, ave_dist= 0.0, dj = 0.0, ave_dist_ref= 0.0, *a=NULL;
+   float **P2=NULL, U[3], Un;
+   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO || !SOref) { SUMA_SL_Err("NULL surfaces"); SUMA_RETURN(NOPE); }
+   if (SO->N_Node != SOref->N_Node || SO->N_FaceSet != SOref->N_FaceSet) { SUMA_SL_Err("Surfaces not isotopic"); SUMA_RETURN(NOPE); }
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           " SO    Center: %f, %f, %f\n"
+                           " SOref Center: %f, %f, %f\n"
+                           " max_off = %f\n", FuncName, 
+                           SO->Center[0], SO->Center[1], SO->Center[2],
+                           SOref->Center[0], SOref->Center[1], SOref->Center[2],
+                           max_off);  
+   }
+      
+   OffS = SUMA_Initialize_getoffsets (SOref->N_Node);
+   #ifdef FROM_THIS_NODE
+   istrt = FROM_THIS_NODE;
+   istp = TO_THIS_NODE+1;
+   #else
+   istrt = 0;
+   istp = SOref->N_Node;
+   #endif
+   for (i =istrt ; i<istp; ++i) {
+      if (i == 0) {
+         SUMA_etime(&start_time,0);
+      }
+      SUMA_getoffsets2 (i, SOref, max_off, OffS);
+      /* find average distance between nodes within offset and center of surface */
+      a = &(SOref->NodeList[3*i]); SUMA_SEG_LENGTH(a, SOref->Center, ave_dist_ref); 
+      cnt = 1;
+      #ifdef FROM_THIS_NODE
+            fprintf(SUMA_STDERR, "%s: Considering the following %d neighbors to:\n"
+                                 "i=%d; [%f, %f, %f]; d[%d] = %f\n", FuncName, OffS->N_Nodes,
+                                    i, SOref->NodeList[3*i], SOref->NodeList[3*i+1], SOref->NodeList[3*i+2], 
+                                    cnt, ave_dist_ref);
+      #endif
+      for (j=0; j<OffS->N_Nodes; ++j)
+      {
+         
+         if (i!=j && OffS->LayerVect[j] >= 0 && OffS->OffVect[j] <= max_off)
+         {
+            
+            a = &(SOref->NodeList[3*j]); SUMA_SEG_LENGTH(a, SOref->Center, dj);
+            ave_dist_ref += dj;
+            ++cnt;
+            #ifdef FROM_THIS_NODE
+               fprintf(SUMA_STDERR, ""
+                                 "j=%d; [%f, %f, %f]; d[%d] = %f\n",
+                                    j, SOref->NodeList[3*j], SOref->NodeList[3*j+1], SOref->NodeList[3*j+2], 
+                                    cnt, dj);
+            #endif
+         }
+      }
+      ave_dist_ref /=  (float)cnt;
+      /* move node i to the reference average location
+      Do not travel along normals, you should travel along
+      radial direction Center-->node*/
+      a = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(SO->Center, a, U, Un);
+      if (Un) {
+         P2 = SUMA_Point_At_Distance(U, SO->Center, ave_dist_ref);
+         if (P2) {
+            SO->NodeList[3*i] = P2[0][0]; SO->NodeList[3*i+1] = P2[0][1]; SO->NodeList[3*i+2] = P2[0][2];
+            SUMA_free2D((char **)P2, 2);  P2 = NULL;
+         }else {
+            SUMA_SL_Err("Failed in SUMA_Point_At_Distance!\n"
+                        "No coordinates modified");
+         }
+      } else {
+            SUMA_SL_Err("Identical points!\n"
+                        "No coordinates modified");
+      }
+      
+      if (LocalHead) {
+         if (! (i%999)) {
+            a = &(SO->NodeList[3*i]);
+            SUMA_SEG_LENGTH(a, SOref->Center, dj);
+            fprintf(SUMA_STDERR, "%s:\n"
+                           "node i=%d, avg_dist_ref = %f\ncnt = %d\n"
+                           "Check on P2: New dist =%f ?=? %f\n", 
+                           FuncName, i, ave_dist_ref, cnt, dj, ave_dist_ref);
+            etime_GetOffset = SUMA_etime(&start_time,1);
+            fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
+                  "Projected completion time: %f minutes\n",
+                  FuncName, max_off, etime_GetOffset, i+1,
+                  etime_GetOffset * SO->N_Node / 60.0 / (i+1));
+         }
+      }
+      if (! (i%99) && cs) {
+         if (cs->Send) { /* send the first monster (it's SOref  "in SUMA" that's being modified on the fly*/
+            if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+            }
+         }
+      }
+      
+      #ifdef FROM_THIS_NODE
+      {
+         FILE *fid=NULL;
+         char *outname=NULL, tmp[20];
+         int ii;
+         if (cs->Send) { /* send the first monster (it's SOref that's being modified on the fly*/
+            if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+            }
+         }
+         sprintf(tmp,"offset_n%d", FROM_THIS_NODE);
+         outname = SUMA_Extension("", ".1D", YUP);
+         outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
+         fid = fopen(outname, "w"); free(outname); outname = NULL;
+         if (!fid) {
+            SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
+         } else {
+            fprintf (fid,"#Column 1 = Node index\n"
+                         "#column 2 = Neighborhood layer\n"
+                         "#Column 3 = Distance from node %d\n", 99);
+            for (ii=0; ii<SO->N_Node; ++ii) {
+               if (OffS->LayerVect[ii] >= 0) {
+                  fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
+               }
+            }
+            fclose(fid);
+         }
+         { int jnk; fprintf(SUMA_STDOUT,"Pausing, next node is %d...", i+1); jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); }
+      }
+      #endif
+             
+      /* recycle offsets structure */
+      SUMA_Recycle_getoffsets (OffS);
+      
+   }   
+   
+   /* offsets are to be freed */
+   SUMA_Free_getoffsets(OffS); OffS = NULL;
    
    SUMA_RETURN(YUP);
 }
@@ -1017,7 +1460,96 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
       
    SUMA_RETURN(fout);
 }
+float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig, 
+                           int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
+                           SUMA_COMM_STRUCT *cs)
+{
+   static char FuncName[]= {"SUMA_NN_GeomSmooth"};
+   float *fout_final=NULL, *fbuf=NULL, *fin_next=NULL, *fin=NULL, *fout=NULL;
+   int niter=0;
 
+   SUMA_ENTRY;
+   if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NULL); }
+   if (!SO->FN) {
+      SUMA_SL_Err("NULL SO->FN");
+      SUMA_RETURN(NULL);
+   }   
+   if (N_iter % 2) {
+      SUMA_SL_Err("N_iter must be an even number\n");
+      SUMA_RETURN(NULL);
+   }
+   if (vpn < 1) {
+      SUMA_SL_Err("vpn < 1\n");
+      SUMA_RETURN(NULL);
+   }  
+   
+   if (fout_final_user == fin_orig) {
+      SUMA_SL_Err("fout_final_user == fin_orig");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!fout_final_user) { /* allocate for output */
+      fout_final = (float *)SUMA_calloc(SO->N_Node * vpn, sizeof(float));
+      if (!fout_final) {
+         SUMA_SL_Crit("Failed to allocate for fout_final\n");
+         SUMA_RETURN(NULL);
+      }
+   }else {
+      fout_final = fout_final_user; /* pre-allocated */
+   }
+   
+   /* allocate for buffer */
+   fbuf = (float *)SUMA_calloc(SO->N_Node * vpn, sizeof(float));
+   if (!fbuf) {
+      SUMA_SL_Crit("Failed to allocate for fbuf\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   
+   if (cs->Send) { /* send the first monster */
+      if (!SUMA_SendToAfni (SO, cs, (void *)fin_orig, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      }
+   }
+   
+   fin_next = fin_orig;
+   switch (d_order) {
+      case SUMA_ROW_MAJOR:
+         for (niter=0; niter < N_iter; ++niter) {
+            if ( niter % 2 ) { /* odd */
+               fin = fin_next; /* input from previous output buffer */
+               fout = fout_final; /* results go into final vector */
+               fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+            } else { /* even */
+               /* input data is in fin_new */
+               fin = fin_next;
+               fout = fbuf; /* results go into buffer */
+               fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+            }
+            fout = SUMA_SmoothAttr_Neighb ( fin, vpn*SO->N_Node, 
+                                                 fout, SO->FN, vpn);
+            if (cs->Send) {
+               if (!SUMA_SendToAfni (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+               }
+            }
+         }
+         break;
+      case SUMA_COLUMN_MAJOR:
+         SUMA_SL_Err("Column Major not implemented");
+         SUMA_RETURN(NULL);
+         break;
+      default:
+         SUMA_SL_Err("Bad Major, very bad.\n");
+         SUMA_RETURN(NULL);
+         break;
+   }
+   
+   if (fbuf) SUMA_free(fbuf); fbuf = NULL;
+
+   SUMA_RETURN(fout);    
+}
+        
 /*!
    \brief, creates a srtucture for holding communication variables 
    
@@ -1489,6 +2021,7 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    SUMA_RETURN(fout);
 }
 
+    
 /*! 
    A function to turn node XYZ to nel to be sent to SUMA
 */
@@ -1720,6 +2253,10 @@ void usage_SUMA_SurfSmooth ()
       s = SUMA_help_basics();
       printf ("\nUsage:  SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
               "\n"
+              "   Some methods require additional options detailed below.\n"
+              "   I recommend using the -talk_suma option to watch the \n"
+              "   progression of the smoothing in real-time in suma.\n"
+              "\n"
               "   Method specific options:\n"
               "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
               "              This method is used to filter data\n"
@@ -1727,10 +2264,14 @@ void usage_SUMA_SurfSmooth ()
               "      LM: [-kpb k] [-lm l m] [-surf_out surfname]\n"
               "          This method is used to filter the surface's\n"
               "          geometry (node coordinates).\n"
+              "      NN_geom: smooth by averaging coordinates of \n"
+              "               nearest neighbors.\n"
+              "               This method causes shrinkage of surface\n"
+              "               and is meant for test purposes only.\n"
               "\n"
               "   Common options:\n"
               "      [-Niter N] [-output out.1D] [-h/-help] \n"
-              "      [-add_index] [-ni_text|-ni_binary]\n\n"
+              "      [-add_index] [-ni_text|-ni_binary] [-talk_suma]\n\n"
               "\n"
               "   Detailed usage:\n"
               "      -spec SpecFile: Name of specfile containing surface of interest.\n"
@@ -1745,7 +2286,11 @@ void usage_SUMA_SurfSmooth ()
               "                         surface's geometry per se. See References below.\n"
               "                 LM: The smoothing method proposed by G. Taubin 2000\n"
               "                     This method is used for smoothing\n"
-              "                     a surface's geometry. See References below.\n" 
+              "                     a surface's geometry. See References below.\n"
+              "                 NN_geom: A simple nearest neighbor coordinate smoothing.\n"
+              "                          This interpolation method causes surface shrinkage\n"
+              "                          that might need to be corrected with the -match_*\n"
+              "                          options below. \n" 
               "\n"
               "   Options for LB_FEM:\n"
               "      -input inData.1D: file containing data (in 1D format)\n"
@@ -1773,6 +2318,24 @@ void usage_SUMA_SurfSmooth ()
               "                          to disk. For SureFit and 1D formats, only the\n"
               "                          coord file is written out.\n"
               "      NOTE: -surf_out and -output are mutually exclusive.\n"  
+              "\n"
+              "   Options for NN_geom:\n"
+              "      -match_size r: Adjust node coordinates of smoothed surface to \n"
+              "                   approximates the original's size.\n"
+              "                   Node i on the filtered surface is repositioned such \n"
+              "                   that |c i| = 1/N sum(|cr j|) where\n"
+              "                   c and cr are the centers of the smoothed and original\n"
+              "                   surfaces, respectively.\n"
+              "                   N is the number of nodes that are within r [surface \n"
+              "                   coordinate units] along the surface (geodesic) from node i.\n"
+              "                   j is one of the nodes neighboring i.\n"
+              "      -match_vol tol: Adjust node coordinates of smoothed surface to \n"
+              "                   approximates the original's volume.\n"
+              "                   Nodes on the filtered surface are repositioned such\n"
+              "                   that the volume of the filtered surface equals, \n"
+              "                   within tolerance tol, that of the original surface. \n"
+              "                   See option -vol in SurfaceMetrics for information about\n"
+              "                   and calculation of the volume of a closed surface.\n"
               "\n"
               "   Common options:\n"
               "      -Niter N: Number of smoothing iterations (default is 100)\n"
@@ -1842,6 +2405,11 @@ void usage_SUMA_SurfSmooth ()
               "         This command smoothes the surface's geometry. The smoothed\n"
               "         node coordinates are written out to NodeList_sm100.1D. \n"
               "\n"
+              "   Sample command for considerable surface smoothing and inflation\n"
+              "   back to original size:\n"
+              "       SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met NN_geom \\\n"
+              "                   -output NodeList_inflated.1D -Niter 200 -match_vol 0.1\n" 
+              "\n"
               "   References: \n"
               "      (1) M.K. Chung et al.   Deformation-based surface morphometry\n"
               "                              applied to gray matter deformation. \n"
@@ -1853,7 +2421,10 @@ void usage_SUMA_SurfSmooth ()
               "                           Eurographics 2000.\n"
               "\n"
               "   See Also:   \n"
-              "       ScaleToMap  to colorize the output and then load into SUMA\n"
+              "       ScaleToMap to colorize the output, however it is better\n"
+              "       to load surface datasets directly into SUMA and colorize\n"
+              "       them interactively."
+              "\n"
               "\n", s); SUMA_free(s); s = NULL;
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
@@ -1863,7 +2434,7 @@ void usage_SUMA_SurfSmooth ()
 
 #define SURFSMOOTH_MAX_SURF 1  /*!< Maximum number of input surfaces */
 
-typedef enum { SUMA_NO_METH, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE} SUMA_SMOOTHING_METHODS;
+typedef enum { SUMA_NO_METH, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE, SUMA_NN_GEOM} SUMA_SMOOTHING_METHODS;
 
 typedef struct {
    float lim;
@@ -1894,6 +2465,7 @@ typedef struct {
    char *surf_out;
    char *surf_names[SURFSMOOTH_MAX_SURF];
    char *spec_file;
+   int MatchMethod;
 } SUMA_SURFSMOOTH_OPTIONS;
 
 /*!
@@ -1921,6 +2493,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
    Opt = (SUMA_SURFSMOOTH_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFSMOOTH_OPTIONS));
    
    kar = 1;
+   Opt->MatchMethod = 0;
    Opt->lim = 1000000.0;
    Opt->fwhm = -1;
    Opt->ShowNode = -1;
@@ -2218,6 +2791,29 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-match_size") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -match_size \n");
+				exit (1);
+			}
+			Opt->lim = atof(argv[kar]);
+         Opt->MatchMethod = 1;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-match_vol") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -match_vol \n");
+				exit (1);
+			}
+			Opt->lim = atof(argv[kar]);
+         Opt->MatchMethod = 2;
+			brk = YUP;
+		}
+      
+     
       if (!brk && (strcmp(argv[kar], "-fwhm") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -2237,6 +2833,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 			if (strcmp(argv[kar], "LB_FEM") == 0)  Opt->Method = SUMA_LB_FEM;
          else if (strcmp(argv[kar], "LM") == 0)  Opt->Method = SUMA_LM;
          else if (strcmp(argv[kar], "BF") == 0)  Opt->Method = SUMA_BRUTE_FORCE;
+         else if (strcmp(argv[kar], "NN_geom") == 0)  Opt->Method = SUMA_NN_GEOM;
          else {
             fprintf (SUMA_STDERR, "Method %s not supported.\n", argv[kar]);
 				exit (1);
@@ -2325,6 +2922,10 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
             /* form autoname  */
             Opt->out_name = SUMA_copy_string("Bruto.1D");
             break;
+         case SUMA_NN_GEOM:
+            /* form autoname  */
+            Opt->out_name = SUMA_copy_string("NodeList_NNsm.1D");
+            break;
          default:
             fprintf (SUMA_STDERR,"Error %s:\nNot ready for this option here.\n", FuncName);
             exit(1);
@@ -2365,6 +2966,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
             fprintf (SUMA_STDERR,"Error %s:\n-lim option not specified.\n", FuncName);
             exit(1);
          }
+         
          break;
       case SUMA_LM:
          
@@ -2398,6 +3000,23 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
          }
          
          break;
+      case SUMA_NN_GEOM:
+         if (Opt->in_name) {
+            fprintf (SUMA_STDERR,"Error %s:\nOption -input not valid with -met NN_geom.\n", FuncName);
+            exit(1);
+         }
+         
+         if (Opt->lim > 1000) {
+            fprintf (SUMA_STDERR,"Error %s:\n-lim option not specified.\n", FuncName);
+            exit(1);
+         }
+         
+         if (Opt->fwhm !=  -1.0) {
+            fprintf (SUMA_STDERR,"Error %s:\nOption -fwhm not valid with -met NN_geom.\n", FuncName);
+            exit(1);
+         }
+         break;
+         
       default:
          fprintf (SUMA_STDERR,"Error %s:\nNot ready for this option here.\n", FuncName);
          exit(1);
@@ -2414,7 +3033,7 @@ int main (int argc,char *argv[])
    float *data_old = NULL, *far = NULL;
    float **DistFirstNeighb;
    void *SO_name = NULL;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfaceObject *SO = NULL, *SOnew = NULL;
    MRI_IMAGE *im = NULL;
    SUMA_SFname *SF_name = NULL;
    struct  timeval start_time, start_time_all;
@@ -2423,9 +3042,9 @@ int main (int argc,char *argv[])
    SUMA_SURFSMOOTH_OPTIONS *Opt;  
    FILE *fileout=NULL; 
    float **wgt=NULL, *dsmooth=NULL;
-   SUMA_INDEXING_ORDER d_order;
+   SUMA_INDEXING_ORDER d_order=SUMA_NO_ORDER;
    SUMA_COMM_STRUCT *cs = NULL;
-	SUMA_SurfSpecFile Spec;   
+	SUMA_SurfSpecFile Spec; 
    SUMA_Boolean LocalHead = NOPE;
    
 	SUMA_mainENTRY;
@@ -2510,6 +3129,12 @@ int main (int argc,char *argv[])
             cs->Send = NOPE;
             Opt->talk_suma = NOPE;
          }
+      }else if (Opt->Method == SUMA_NN_GEOM) { 
+         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 0)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToAfni");
+            cs->Send = NOPE;
+            Opt->talk_suma = NOPE;
+         }
       }else {
          SUMA_SL_Err("Can't talk to suma with the chosen method.\n");
          Opt->talk_suma = NOPE;
@@ -2575,6 +3200,87 @@ int main (int argc,char *argv[])
          }
          break;
          
+      case SUMA_NN_GEOM:
+         /* brute forcem nearset neighbor interpolation */
+         {
+            if (LocalHead) SUMA_etime(&start_time,0);
+            if (Opt->rps > 0) { cs->nelps = (float)Opt->talk_suma * Opt->rps; }
+            else { cs->nelps = (float) Opt->talk_suma * -1.0; }
+            d_order =  SUMA_ROW_MAJOR; 
+            
+            dsmooth = SUMA_NN_GeomSmooth( SO, Opt->N_iter, SO->NodeList,
+                                          3, d_order, NULL, cs);
+            if (0 && LocalHead) {
+               SUMA_LH("See dsmooth.1D");
+               SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1,  d_order, NULL, YUP);
+            }
+            if (!dsmooth) {
+               SUMA_SL_Err("Failed in SUMA_NN_Geom_Smooth");
+               exit(1);
+            }
+            
+            /* Create a surface that is a descendant of SO, use the new coordinates */
+            SOnew = SUMA_CreateChildSO( SO,
+                                        dsmooth, SO->N_Node,
+                                        NULL, -1,
+                                        0); /* SOnew->NodeList is now == dsmooth */
+            
+            /* fix the shrinking ..*/
+            
+            switch (Opt->MatchMethod) {
+               case 1:
+                  if (!SUMA_EquateSurfaceSize(SOnew, SO, Opt->lim, cs)) {
+                     SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+                  }
+
+                  /* send the unshrunk bunk */
+                  if (cs->Send) {
+                     SUMA_LH("Sending last fix to SUMA ...");
+                     if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                        SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                     }
+                  }
+                  
+                  /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
+                  dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... coordinates have a new pointer after Equating surface size */
+                  SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+                  SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
+                  
+                  break;
+               case 2:
+                  if (!SUMA_EquateSurfaceVolumes(SOnew, SO, Opt->lim, cs)) {
+                     SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+                  }
+
+                  /* send the unshrunk bunk */
+                  if (cs->Send) {
+                     SUMA_LH("Sending last fix to SUMA ...");
+                     if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                        SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                     }
+                  }
+                  /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
+                  dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
+                  SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+                  SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
+                  break;
+               case 0:
+                  break;
+               default:
+                  SUMA_SL_Err("Huh ?");
+                  break;   
+            }
+            
+            if (LocalHead) {
+               etime_GetOffset = SUMA_etime(&start_time,1);
+               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
+                                    "Projected time per 100000 nodes is: %f minutes\n", 
+                                       FuncName, etime_GetOffset, SO->N_Node, 
+                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+            }
+            /* writing of results is done below */
+         }
+         break;  
       case SUMA_LM:
          /* Taubin's */
          {
@@ -2595,57 +3301,7 @@ int main (int argc,char *argv[])
                                        FuncName, etime_GetOffset, SO->N_Node, 
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
-            if (Opt->surf_out) {
-               SUMA_free(SO->NodeList); SO->NodeList = dsmooth; dsmooth = NULL; /* replace NodeList */
-               switch (SO->FileType) {
-                  case SUMA_SUREFIT:
-                     SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-                     sprintf(SF_name->name_coord,"%s", Opt->surf_out);
-                     SF_name->name_topo[0] = '\0'; 
-                     SO_name = (void *)SF_name;
-                     if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_SUREFIT, SUMA_ASCII)) {
-                        fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-                        exit (1);
-                     }
-                     break;
-                  case SUMA_VEC:
-                     SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-                     sprintf(SF_name->name_coord,"%s", Opt->surf_out);
-                     SF_name->name_topo[0] = '\0';
-                     SO_name = (void *)SF_name;
-                     if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII)) {
-                        fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-                        exit (1);
-                     }
-                     break;
-                  case SUMA_FREE_SURFER:
-                     SO_name = (void *)Opt->surf_out; 
-                     if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII)) {
-                        fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-                        exit (1);
-                     }
-                     break;  
-                  case SUMA_PLY:
-                     SO_name = (void *)Opt->surf_out; 
-                     if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED)) {
-                        fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-                        exit (1);
-                     }
-                     break;  
-                  default:
-                     fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
-                     exit(1);
-               }
-            } else {
-               /* write out the results */
-               fileout = fopen(Opt->out_name, "w");
-               if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1, d_order, fileout, YUP);
-               else SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1, d_order, fileout, NOPE);
-               fclose(fileout); fileout = NULL;
-            }
-
-            if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
-
+            /* writing of results is done below */
          }
          break;
          
@@ -2713,7 +3369,67 @@ int main (int argc,char *argv[])
          break;
    }
    
-   
+   /* write out the filtered geometry. Should not be executed for data smoothing */
+   if (Opt->surf_out) {
+      if (!dsmooth) {
+         SUMA_SL_Err("NULL dsmooth. Either failed to smooth or logical error.");
+         exit(1);
+      }
+       
+      SUMA_free(SO->NodeList); SO->NodeList = dsmooth; dsmooth = NULL; /* replace NodeList */
+      switch (SO->FileType) {
+         case SUMA_SUREFIT:
+            SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+            sprintf(SF_name->name_coord,"%s", Opt->surf_out);
+            SF_name->name_topo[0] = '\0'; 
+            SO_name = (void *)SF_name;
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_SUREFIT, SUMA_ASCII)) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+               exit (1);
+            }
+            break;
+         case SUMA_VEC:
+            SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+            sprintf(SF_name->name_coord,"%s", Opt->surf_out);
+            SF_name->name_topo[0] = '\0';
+            SO_name = (void *)SF_name;
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII)) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+               exit (1);
+            }
+            break;
+         case SUMA_FREE_SURFER:
+            SO_name = (void *)Opt->surf_out; 
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII)) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+               exit (1);
+            }
+            break;  
+         case SUMA_PLY:
+            SO_name = (void *)Opt->surf_out; 
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED)) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+               exit (1);
+            }
+            break;  
+         default:
+            fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
+            exit(1);
+      }
+   } else {
+      if (!dsmooth) {
+         SUMA_SL_Err("NULL dsmooth. Either failed to smooth or logical error.");
+         exit(1);
+      }      
+      /* write out the results */
+      fileout = fopen(Opt->out_name, "w");
+      if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1, d_order, fileout, YUP);
+      else SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1, d_order, fileout, NOPE);
+      fclose(fileout); fileout = NULL;
+   }
+
+
+
    /* you don't want to exit rapidly because the SUMA might not be done processing the last elements*/
    if (cs->Send && !cs->GoneBad) {
       /* cleanup and close connections */
@@ -2725,11 +3441,20 @@ int main (int argc,char *argv[])
          if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 2)) {
             SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCleanup failed");
          }
+      }else if (Opt->Method == SUMA_NN_GEOM) {
+         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 2)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCleanup failed");
+         }
       }
    }   
       
    
    SUMA_LH("clean up");
+   if (SO->NodeList != dsmooth) {
+      SUMA_LH("Freeing dsmooth...:");
+      if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
+      SUMA_LH("Done:");
+   }
    mri_free(im); im = NULL;   /* done with that baby */
    if (cs) cs = SUMA_Free_CommSrtuct(cs);
    if (SF_name) SUMA_free(SF_name);
@@ -2757,8 +3482,11 @@ void usage_SUMA_getPatch ()
       printf ( "\nUsage:\n"
                "  SurfPatch <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
                "            <-input nodefile inode ilabel> <-prefix outpref>  \n"
-               "            [-hits min_hits] [-masklabel msk]\n"
+               "            [-hits min_hits] [-masklabel msk] [-vol]\n"
                "\n"
+               "Usage 1:\n"
+               "  The program creates a patch of surface formed by nodes \n"
+               "  in nodefile.\n"
                "  Mandatory parameters:\n"
                "     -spec SpecFile: Spec file containing input surfaces.\n"
                "     -surf_X: Name of input surface X where X is a character\n"
@@ -2788,6 +3516,14 @@ void usage_SUMA_getPatch ()
                "                     in that file. This option must be used with ilabel \n"
                "                     specified (not = -1)\n"
                "\n"
+               "Usage 2:\n"
+               "  The program can also be used calculate between the same patch\n"
+               "  on two isotopic surfaces. See -vol option below.\n"
+               "      -vol: Calculate the volume formed by the patch on surf_A and\n"
+               "            and surf_B. For this option, you must specify two and\n"
+               "            only two surfaces with surf_A and surf_B options.\n"
+               "      -vol_only: Only calculate the volume, don't write out patches.\n"
+               "\n"
                "%s"
                "\n",s); SUMA_free(s); s = NULL;
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
@@ -2807,6 +3543,8 @@ typedef struct {
    int thislabel;
    int labelcol;
    int nodecol;
+   int DoVol;
+   int VolOnly;
 } SUMA_GETPATCH_OPTIONS;
 
 /*!
@@ -2843,6 +3581,8 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
    Opt->nodecol = -1;
    Opt->thislabel = -1;
    Opt->N_surf = -1;
+   Opt->DoVol = 0;
+   Opt->VolOnly = 0;
    for (i=0; i<SURFPATCH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
 	brk = NOPE;
    
@@ -2882,6 +3622,17 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			Opt->thislabel = atoi(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-vol") == 0)) {
+			Opt->DoVol = 1;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-vol_only") == 0)) {
+			Opt->DoVol = 1;
+         Opt->VolOnly = 1;
 			brk = YUP;
 		}
       
@@ -2950,6 +3701,10 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
    }
    if (!Opt->in_name) {
       SUMA_SL_Err("No input specified.");
+      exit(1);
+   }
+   if (Opt->DoVol && Opt->N_surf != 2) {
+      SUMA_SL_Err("Must specify 2 and only 2 surfaces with -vol options");
       exit(1);
    }
    SUMA_RETURN (Opt);
@@ -3062,55 +3817,72 @@ int main (int argc,char *argv[])
    
    /* done with im, free it */
    mri_free(im); im = NULL;   
-   FaceSetList = NULL;
-   N_FaceSet = -1;
-   for (i=0; i < Opt->N_surf; ++i) {/* loop to read in surfaces */
-      /* now identify surface needed */
-      SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[i], SUMAg_DOv, SUMAg_N_DOv);
-      if (!SO) {
-         fprintf (SUMA_STDERR,"Error %s:\n"
-                              "Failed to find surface %s\n"
-                              "in spec file. Use full name.\n",
-                              FuncName, Opt->surf_names[i]);
-         exit(1);
-      }
-      /* extract the patch */
-      if (!SO->MF) {
-         SUMA_SL_Warn ("NULL MF");
-      }
-      ptch = SUMA_getPatch (NodePatch, N_NodePatch, SO->FaceSetList, SO->N_FaceSet, SO->MF, Opt->minhits);
-      if (!ptch) {
-         SUMA_SL_Err("Failed to form patch.");
-         exit(1);
-      }
-      if (LocalHead) SUMA_ShowPatch(ptch, NULL);
+   
+   if (Opt->DoVol) {
+      SUMA_SurfaceObject *SO1 = SUMA_find_named_SOp_inDOv(Opt->surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
+      SUMA_SurfaceObject *SO2 = SUMA_find_named_SOp_inDOv(Opt->surf_names[1], SUMAg_DOv, SUMAg_N_DOv);
+      double Vol = 0.0;
       
-      /* Now create a surface with that patch */
-      if (Opt->N_surf > 1) {
-         sprintf(ext, "_%c", 65+i);
-         ppref = SUMA_append_string(Opt->out_prefix, ext);
-      } else {
-         ppref = SUMA_copy_string(Opt->out_prefix);
+      if (!SO1 || !SO2) {
+         SUMA_SL_Err("Failed to load surfaces.");
+         exit(1);
       }
-      SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, SO->FileType);
-      if (ppref) SUMA_free(ppref); ppref = NULL;
-      /* save the original pointers to the facesets and their number */
-      FaceSetList = SO->FaceSetList;
-      N_FaceSet = SO->N_FaceSet;
-      /* replace with Patch */
-      SO->FaceSetList = ptch->FaceSetList;
-      SO->N_FaceSet = ptch->N_FaceSet; 
-      if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, SUMA_ASCII)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            exit (1);
-      }
-      /* bring SO back to shape */
-      SO->FaceSetList = FaceSetList; FaceSetList = NULL;
-      SO->N_FaceSet = N_FaceSet; N_FaceSet = -1;
-      if (SO_name) SUMA_free(SO_name); SO_name = NULL;
-      if (ptch) SUMA_freePatch(ptch); ptch = NULL;
+      /* a chunk used to test SUMA_Pattie_Volume */
+      Vol = SUMA_Pattie_Volume(SO1, SO2, NodePatch, N_NodePatch, NULL, Opt->minhits);
+      fprintf (SUMA_STDERR,"Volume = %f\n", fabs(Vol));
    }
    
+   
+   if (!Opt->VolOnly) {
+      FaceSetList = NULL;
+      N_FaceSet = -1;
+      for (i=0; i < Opt->N_surf; ++i) {/* loop to read in surfaces */
+         /* now identify surface needed */
+         SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[i], SUMAg_DOv, SUMAg_N_DOv);
+         if (!SO) {
+            fprintf (SUMA_STDERR,"Error %s:\n"
+                                 "Failed to find surface %s\n"
+                                 "in spec file. Use full name.\n",
+                                 FuncName, Opt->surf_names[i]);
+            exit(1);
+         }
+         /* extract the patch */
+         if (!SO->MF) {
+            SUMA_SL_Warn ("NULL MF");
+         }
+         ptch = SUMA_getPatch (NodePatch, N_NodePatch, SO->FaceSetList, SO->N_FaceSet, SO->MF, Opt->minhits);
+         if (!ptch) {
+            SUMA_SL_Err("Failed to form patch.");
+            exit(1);
+         }
+         if (LocalHead) SUMA_ShowPatch(ptch, NULL);
+
+         /* Now create a surface with that patch */
+         if (Opt->N_surf > 1) {
+            sprintf(ext, "_%c", 65+i);
+            ppref = SUMA_append_string(Opt->out_prefix, ext);
+         } else {
+            ppref = SUMA_copy_string(Opt->out_prefix);
+         }
+         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, SO->FileType);
+         if (ppref) SUMA_free(ppref); ppref = NULL;
+         /* save the original pointers to the facesets and their number */
+         FaceSetList = SO->FaceSetList;
+         N_FaceSet = SO->N_FaceSet;
+         /* replace with Patch */
+         SO->FaceSetList = ptch->FaceSetList;
+         SO->N_FaceSet = ptch->N_FaceSet; 
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, SUMA_ASCII)) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+               exit (1);
+         }
+         /* bring SO back to shape */
+         SO->FaceSetList = FaceSetList; FaceSetList = NULL;
+         SO->N_FaceSet = N_FaceSet; N_FaceSet = -1;
+         if (SO_name) SUMA_free(SO_name); SO_name = NULL;
+         if (ptch) SUMA_freePatch(ptch); ptch = NULL;
+      }
+   } 
    
    SUMA_LH("clean up");
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
@@ -3258,15 +4030,19 @@ SUMA_Boolean SUMA_ShowPatch (SUMA_PATCH *Patch, FILE *Out)
 
 /*!
    \brief Returns the contour of a patch 
+   if you have the patch already created, then pass it in the last argument
+   mode (int) 0: nice contour, not necessarily outermost boundary
+              1: outermost edge, might look a tad jagged
 */
-SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_Node, int *N_ContEdges)
+SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_Node, int *N_ContEdges, int ContourMode, SUMA_PATCH *UseThisPatch)
 {
    static char FuncName[]={"SUMA_GetContour"};
    SUMA_EDGE_LIST * SEL=NULL;
    SUMA_PATCH *Patch = NULL;
    int i, Tri, Tri1, Tri2, sHits;
    SUMA_CONTOUR_EDGES *CE = NULL;
-   SUMA_Boolean *isNode=NULL, LocalHead = NOPE;
+   SUMA_Boolean *isNode=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -3276,18 +4052,6 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
    if (!SO->MF) {
       SUMA_SLP_Err("Member FaceSet not created.\n");
       SUMA_RETURN(CE);
-      #if 0
-         fprintf(SUMA_STDOUT, "%s: Computing MemberFaceSets... \n", FuncName);
-         SO->MF = SUMA_MemberFaceSets (SO->N_Node, SO->FaceSetList, SO->N_FaceSet, 3);
-         if (SO->MF->NodeMemberOfFaceSet== NULL) {
-            fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_MemberFaceSets. \n", FuncName);
-            /* cleanup of MF is done when surface is freed */
-            SUMA_RETURN(CE);
-         }
-         /* YOU SHOULD CREATE INODES FOR THIS BABY and link related surfaces,
-         actually, you might want to do this on the parent surface and then link
-         Inodes to other related surfaces. Perhaps add it at startup */
-      #endif
    }  
 
    /* create a flag vector of which node are in Nodes */
@@ -3298,14 +4062,30 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
    }
    
    for (i=0; i < N_Node; ++i) isNode[Nodes[i]] = YUP;
-   
-   Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, SO->N_FaceSet, SO->MF, 2);
+  
+   if (UseThisPatch) {
+      SUMA_LH("Using passed patch");
+      Patch = UseThisPatch;
+   } else { 
+      SUMA_LH("Creating patch");
+      switch (ContourMode) {
+         case 0:
+            Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, SO->N_FaceSet, SO->MF, 2);
+            break;
+         case 1:
+            Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, SO->N_FaceSet, SO->MF, 1);
+            break;
+         default:
+            SUMA_SL_Err("Bad contour mode"); SUMA_RETURN(NULL);
+            break;
+      }
+   }
    if (LocalHead) SUMA_ShowPatch (Patch,NULL);
    
    if (Patch->N_FaceSet) {
       SEL = SUMA_Make_Edge_List_eng (Patch->FaceSetList, Patch->N_FaceSet, SO->N_Node, SO->NodeList, 0, NULL);
    
-      /* SUMA_Show_Edge_List (SEL, NULL); */
+      if (0 && LocalHead) SUMA_Show_Edge_List (SEL, NULL);
       /* allocate for maximum */
       CE = (SUMA_CONTOUR_EDGES *) SUMA_malloc(SEL->N_EL * sizeof(SUMA_CONTOUR_EDGES));
       if (!CE) {
@@ -3313,36 +4093,64 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
          SUMA_RETURN(CE);
       }
    
-      /* edges that are part of unfilled triangles are good */
-      i = 0;
-      *N_ContEdges = 0;
-      while (i < SEL->N_EL) {
-         if (SEL->ELps[i][2] == 2) {
-            Tri1 = SEL->ELps[i][1];
-            Tri2 = SEL->ELps[i+1][1];
-            sHits = Patch->nHits[Tri1] + Patch->nHits[Tri2];
-            if (sHits == 5 || sHits == 4) { /* one tri with 3 hits and one with 2 hits or 2 Tris with 2 hits each */
-               /* Pick edges that are part of only one triangle with three hits */
-                                           /* or two triangles with two hits */
-               /* There's one more condition, both nodes have to be a part of the original list */
-               if (isNode[SEL->EL[i][0]] && isNode[SEL->EL[i][1]]) {
+      switch (ContourMode) {
+         case 0: /* a pretty contour, edges used here may not be the outermost of the patch */
+            /* edges that are part of unfilled triangles are good */
+            i = 0;
+            *N_ContEdges = 0;
+            while (i < SEL->N_EL) {
+               if (SEL->ELps[i][2] == 2) {
+                  Tri1 = SEL->ELps[i][1];
+                  Tri2 = SEL->ELps[i+1][1];
+                  sHits = Patch->nHits[Tri1] + Patch->nHits[Tri2];
+                  if (sHits == 5 || sHits == 4) { /* one tri with 3 hits and one with 2 hits or 2 Tris with 2 hits each */
+                     /* Pick edges that are part of only one triangle with three hits */
+                                                 /* or two triangles with two hits */
+                     /* There's one more condition, both nodes have to be a part of the original list */
+                     if (isNode[SEL->EL[i][0]] && isNode[SEL->EL[i][1]]) {
+                        CE[*N_ContEdges].n1 = SEL->EL[i][0];
+                        CE[*N_ContEdges].n2 = SEL->EL[i][1];
+                        ++ *N_ContEdges;
+
+                        if (LocalHead) {
+                           fprintf (SUMA_STDERR,"%s: Found edge made up of nodes [%d %d]\n",
+                              FuncName, SEL->EL[i][0], SEL->EL[i][1]);
+                        }
+                     }
+                  }
+               }
+
+               if (SEL->ELps[i][2] > 0) {
+                  i += SEL->ELps[i][2];
+               } else {
+                  i ++;
+               }
+            }
+            break;
+         case 1: /* outermost contour, not pretty, but good for getting the outermost edge */
+            i = 0;
+            *N_ContEdges = 0;
+            while (i < SEL->N_EL) {
+               if (SEL->ELps[i][2] == 1) {
                   CE[*N_ContEdges].n1 = SEL->EL[i][0];
                   CE[*N_ContEdges].n2 = SEL->EL[i][1];
                   ++ *N_ContEdges;
-                  
                   if (LocalHead) {
-                     fprintf (SUMA_STDERR,"%s: Found edge made up of nodes [%d %d]\n",
-                        FuncName, SEL->EL[i][0], SEL->EL[i][1]);
+                           fprintf (SUMA_STDERR,"%s: Found edge made up of nodes [%d %d]\n",
+                              FuncName, SEL->EL[i][0], SEL->EL[i][1]);
                   }
                }
+               if (SEL->ELps[i][2] > 0) {
+                  i += SEL->ELps[i][2];
+               } else {
+                  i ++;
+               }
             }
-         }
-         
-         if (SEL->ELps[i][2] > 0) {
-            i += SEL->ELps[i][2];
-         } else {
-            i ++;
-         }
+            break;
+         default:
+            SUMA_SL_Err("Bad ContourMode");
+            SUMA_RETURN(NULL);
+            break;            
       }
       
       /* Now reallocate */
@@ -3360,10 +4168,345 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
       SUMA_free_Edge_List (SEL); 
    }
    
-   SUMA_freePatch (Patch);
+   if (!UseThisPatch) {
+      SUMA_freePatch (Patch); 
+   }
+   Patch = NULL;
+   
    SUMA_free(isNode);
    
    SUMA_RETURN(CE);
+}
+
+/*!
+   \brief Stitch together two isotopic patches to calculate the volume between them
+   
+   \param SO1 : The first surface of the pattie
+   \param SO2 : The second surface of the pattie
+   \param Nodes (int *): N_Node x 1 vector of indices containing nodes that form the patch
+   \param N_Node (int): Number of nodes in SO. 
+   \param UseThisSo : If you send a pointer to an empty (but allocated) surface structure,
+                      The pattie's surface is returned in UseThisSo. Otherwise, the temporary
+                      surface is tossed in the trash can.
+   \pram minPatchHits (int): Since you're forming a patch from nodes, you'll need to select the
+                             minimum number of nodes to be in a patch (triangle) before the patch 
+                             is selected. Minimum is 1, Maximum logical is 3. 
+                             If you choose 1, you will have nodes in the patch that are not included
+                             in Nodes vector. But that is the only way to get something back for just
+                             one node. 
+                             If you choose 3, you will have the same number of nodes in the patch as you
+                             do in the vector Nodes. However, you'll get no patches formed if your Nodes
+                             vector contains, one or two nodes for example ...
+   
+   Testing so far in /home/ziad/SUMA_test/afni:
+   for a bunch of nodes:
+      SurfMeasures -func node_vol -spec ../SurfData/SUMA/DemoSubj_lh.spec -surf_A lh.smoothwm.asc -surf_B lh.pial.asc -nodes_1D lhpatch.1D.roi'[0]' -out_1D SM_out.1D
+      SurfPatch -spec ../SurfData/SUMA/DemoSubj_lh.spec -surf_A lh.smoothwm -surf_B lh.pial.asc -hits 3 -input lhpatch.1D.roi 0 1
+      answer is 326, 13% different from sum in SM_out.1D's second column (373)... 
+      
+   for a single node (must modify SurfPatch code to use 1 for minhits, instead of 3):
+      SurfMeasures -func node_vol -spec ../SurfData/SUMA/DemoSubj_lh.spec -surf_A lh.smoothwm.asc -surf_B lh.pial.asc -nodes_1D lhpatch_1node.1D'[0]' -out_1D SM_out_1node.1D
+      SurfPatch -spec ../SurfData/SUMA/DemoSubj_lh.spec -surf_A lh.smoothwm -surf_B lh.pial.asc -hits 1 -input lhpatch_1node.1D 0 1
+      (divide answer of 2.219910 by 3 (0.73997), difference at 3rd signifcant digit from SM_out_1node.1D of 0.731866)
+   
+   for a box:
+      SurfMeasures -func node_vol -spec RectPly.spec -surf_A RectSurf.ply -surf_B RectSurf2.ply -nodes_1D RectAllPatch.1D'[1]' -out_1D SM_out_Rect.1D
+      SurfPatch -spec RectPly.spec -surf_A RectSurf.ply -surf_B RectSurf2.ply -hits 3 -input RectAllPatch.1D 0 1 -vol_only
+        
+*/
+double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, int *Nodes, int N_Node, SUMA_SurfaceObject *UseThisSO, int minPatchHits)
+{
+   static char FuncName[]={"SUMA_Pattie_Volume"};
+   double Vol = 0.0;
+   int N_ContEdges=0, i,  i3, n, NodesPerPatch, *NewIndex = NULL, inew3, cnt, n1, n2, trouble;
+   SUMA_PATCH *P1 = NULL;
+   FILE *fid=NULL;
+   SUMA_CONTOUR_EDGES *CE = NULL;
+   SUMA_SurfaceObject *SOc = NULL;
+   SUMA_SURF_NORM SN;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO1 || !SO2 || !Nodes || !N_Node) {
+      SUMA_SL_Err("Bad input.");
+      SUMA_RETURN(Vol);
+   }
+   if (SO1->N_Node != SO2->N_Node || SO1->N_FaceSet != SO2->N_FaceSet) {
+      SUMA_SL_Err("Surfaces Not Isotopic");
+      SUMA_RETURN(Vol);
+   }
+   
+   /* form the patch */
+   SUMA_LH("Forming patch...");
+   P1 = SUMA_getPatch (Nodes, N_Node, SO1->FaceSetList, SO1->N_FaceSet, SO1->MF, minPatchHits);
+   if (!P1) {
+      SUMA_SL_Err("Failed to create patches.\n");
+      SUMA_RETURN(Vol);
+   }
+   if (!P1->N_FaceSet) {
+      SUMA_SL_Err("No patch could be formed");
+      SUMA_RETURN(Vol);
+   }
+   /* form the contour */
+   SUMA_LH("Forming contour...");
+   CE = SUMA_GetContour (SO1, Nodes, N_Node, &N_ContEdges, 1, P1);
+   if (!N_ContEdges) {
+      SUMA_SL_Err("No contour edges found.\n"
+                  "It looks like patches form\n"
+                  "closed surfaces.\n");
+      SUMA_RETURN(Vol);
+   }
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\n Found %d contour segments.\n", FuncName, N_ContEdges);
+   }
+   
+   /* create a mapping from old numbering scheme to new one */
+   SUMA_LH("Creating Mapping Index...");
+   NewIndex = (int *)SUMA_malloc(SO1->N_Node * sizeof(int));
+   if (!NewIndex) {
+      SUMA_SL_Crit("Failed to allocate for NewIndex");
+      SUMA_RETURN(Vol);
+   }
+   SUMA_INIT_VEC(NewIndex, SO1->N_Node, -1, int);
+   NodesPerPatch = 0;
+   for (i=0; i < P1->N_FaceSet; ++i) {
+      i3 = 3*i;
+      n = P1->FaceSetList[i3];   if (NewIndex[n] < 0) { NewIndex[n] = NodesPerPatch; ++NodesPerPatch; }   
+      n = P1->FaceSetList[i3+1]; if (NewIndex[n] < 0) { NewIndex[n] = NodesPerPatch; ++NodesPerPatch; }   
+      n = P1->FaceSetList[i3+2]; if (NewIndex[n] < 0) { NewIndex[n] = NodesPerPatch; ++NodesPerPatch; }
+   }
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\n"
+                  "Number of nodes in patch (%d), in N_Node (%d)\n"
+                  , FuncName, NodesPerPatch, N_Node);
+   }
+   if (NodesPerPatch != N_Node) {
+      fprintf(SUMA_STDERR, "Note:\n"
+                           "Have %d nodes in patch, %d nodes in input.\n", NodesPerPatch, N_Node);
+   }
+   
+   /* Building composite surface */
+   SUMA_LH("Building composite surface...");
+   if (UseThisSO) { 
+      SOc = UseThisSO;
+      if (SOc->NodeList || SOc->FaceSetList) {
+         SUMA_SL_Err("You want me to use a filled SurfaceObject structure!\n"
+                     "How rude!");
+         SUMA_RETURN(Vol);
+      }
+   } else {
+      SOc = SUMA_Alloc_SurfObject_Struct(1);
+   }
+   SOc->N_Node = NodesPerPatch*2;
+   SOc->N_FaceSet = P1->N_FaceSet*2+2*N_ContEdges;
+   SOc->NodeDim = 3;
+   SOc->FaceSetDim = 3;
+   SOc->NodeList = (float *)SUMA_malloc(SOc->NodeDim*SOc->N_Node*sizeof(float));
+   SOc->FaceSetList = (int *)SUMA_malloc(SOc->FaceSetDim*SOc->N_FaceSet*sizeof(int));
+   /* first create the NodeList from S01 && SO2*/
+   for (i=0; i<SO1->N_Node; ++i) {
+      if (NewIndex[i] >=0) { /* this node is used */
+         i3 = 3*i;
+         inew3 = 3 * NewIndex[i];
+         SOc->NodeList[inew3  ] = SO1->NodeList[i3  ];
+         SOc->NodeList[inew3+1] = SO1->NodeList[i3+2];
+         SOc->NodeList[inew3+2] = SO1->NodeList[i3+1];
+         inew3 = 3 * (NewIndex[i]+NodesPerPatch);
+         SOc->NodeList[inew3  ] = SO2->NodeList[i3  ];
+         SOc->NodeList[inew3+1] = SO2->NodeList[i3+2];
+         SOc->NodeList[inew3+2] = SO2->NodeList[i3+1];
+      }
+   }
+   /* Now add the pre-existing patches */
+   cnt = 0;
+   for (i=0; i<P1->N_FaceSet; ++i) {
+      i3 = 3*i;
+      n = P1->FaceSetList[i3  ]; SOc->FaceSetList[cnt] = NewIndex[n]; ++cnt;
+      n = P1->FaceSetList[i3+1]; SOc->FaceSetList[cnt] = NewIndex[n]; ++cnt;
+      n = P1->FaceSetList[i3+2]; SOc->FaceSetList[cnt] = NewIndex[n]; ++cnt;                     
+   }
+   for (i=0; i<P1->N_FaceSet; ++i) { /* Now for SO2's */
+      i3 = 3*i;
+      n = P1->FaceSetList[i3  ]; SOc->FaceSetList[cnt] = NewIndex[n]+NodesPerPatch; ++cnt;
+      n = P1->FaceSetList[i3+1]; SOc->FaceSetList[cnt] = NewIndex[n]+NodesPerPatch; ++cnt;
+      n = P1->FaceSetList[i3+2]; SOc->FaceSetList[cnt] = NewIndex[n]+NodesPerPatch; ++cnt;                     
+   }
+   
+   /* Now you need to add the stitches, for each segment you'll need 2 triangles*/
+   for (i=0; i<N_ContEdges; ++i) {
+      n1 = NewIndex[CE[i].n1]; n2 = NewIndex[CE[i].n2];
+      SOc->FaceSetList[cnt] = n1; ++cnt;
+      SOc->FaceSetList[cnt] = n2; ++cnt;
+      SOc->FaceSetList[cnt] = n2+NodesPerPatch; ++cnt;
+      SOc->FaceSetList[cnt] = n1; ++cnt;
+      SOc->FaceSetList[cnt] = n2+NodesPerPatch; ++cnt;
+      SOc->FaceSetList[cnt] = n1+NodesPerPatch; ++cnt;
+   }
+   
+   /* calculate EdgeList */
+   if (!SUMA_SurfaceMetrics_eng(SOc, "EdgeList", NULL, 0, SUMAg_CF->DsetList)){
+      SUMA_SL_Err("Failed to create EdgeList");
+      SUMA_RETURN(Vol);
+   }
+   
+   /* make sure that's a closed surface */
+   if (SOc->EL->max_N_Hosts != 2 || SOc->EL->min_N_Hosts != 2) {
+      SUMA_SL_Err("Created surface is not a closed one.\n"
+                  "Or patches have tessellation problems.");
+      SUMA_RETURN(Vol);
+   }
+   
+   /* fix the winding */
+   if (!SUMA_MakeConsistent(SOc->FaceSetList, SOc->N_FaceSet, SOc->EL, 0, &trouble)) {
+      SUMA_SL_Err("Failed to make surface consistent");
+      SUMA_RETURN(Vol);
+   }
+   
+   /* Now calculate FaceSetNormals and triangle areas*/
+   SN = SUMA_SurfNorm(SOc->NodeList,  SOc->N_Node, SOc->FaceSetList, SOc->N_FaceSet );
+   SOc->NodeNormList = SN.NodeNormList;
+   SOc->FaceNormList = SN.FaceNormList;
+
+   if (!SUMA_SurfaceMetrics_eng(SOc, "PolyArea", NULL, 0, SUMAg_CF->DsetList)){
+      SUMA_SL_Err("Failed to create EdgeList");
+      SUMA_RETURN(Vol);
+   }
+      
+   /* debug */
+   if (LocalHead) {
+      fid = fopen("Junk_NodeList.1D", "w");
+      SUMA_disp_vecmat (SOc->NodeList, SOc->N_Node, SOc->NodeDim, 1, SUMA_ROW_MAJOR, fid, NOPE);
+      fclose(fid);
+      fid = fopen("Junk_FaceSetList.1D", "w");
+      SUMA_disp_vecdmat(SOc->FaceSetList, SOc->N_FaceSet, SOc->FaceSetDim, 1, SUMA_ROW_MAJOR, fid , NOPE);
+      fclose(fid);
+   }
+   
+   /* calculate the volume */
+   SUMA_LH("Calculating volume");
+   Vol = SUMA_Mesh_Volume(SOc, NULL, -1);
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s:\n"
+                           "Volume = %f\n", FuncName, Vol);
+   }
+   
+   /* cleanup */
+   SUMA_LH("Cleanup");
+   if (P1) SUMA_freePatch(P1); P1 = NULL;
+   if (NewIndex) SUMA_free(NewIndex); NewIndex = NULL;
+   if (SOc != UseThisSO) SUMA_Free_Surface_Object(SOc); SOc = NULL;
+   if (CE) SUMA_free(CE); CE=NULL;
+   
+   SUMA_RETURN(Vol);
+}
+
+/*!
+   \brief Calculate the volume of a mesh per the
+   method in Hughes, S.W. et al. Phys. Med. Biol. 1996
+   
+   Tested with Icosahedron surface (see direct vol computation in CreateIcosahedron)
+   
+   Tested with tetrahedron below, which has a volume of 0.166667
+   Also, the same volume was obtained with a rotated version of the same tetrahedron
+TetraFaceSetList.1D
+0 1 2
+0 3 1
+0 2 3
+2 1 3
+
+TetraNodeList.1D
+0 0 0
+1 0 0
+0 1 0
+1 1 1
+which should have a volume of (1/3)A*h of 1/3 * 0.5 * 1
+   
+   Volume of smoothwm surface did not change if surface was rotated and shifted, 
+   a very good thing.
+
+If you try to calculate the volume of a boxe's surface with the box's axes 
+in alignment with the X, Y and Z directions, you will get nan for an answer
+because the sum of the weights is ~= 0 . If you rotate the surface, the problem
+will be solved. 
+
+   - It is extremely important that the surface mesh be consistently defined. 
+   - Detecting consistency must be done ahead of time (need program to do that) 
+   because doing it here will slow the computations a lot and consistency fix 
+   requires recalculating the normals and all that depends on them (quite a bit).
+    
+*/
+
+double SUMA_Mesh_Volume(SUMA_SurfaceObject *SO, int *FSI, int N_FaceSet) 
+{
+   static char FuncName[]={"SUMA_Mesh_Volume"};
+   double Vol = 0.0, c[3], anx, any, anz, sx, sy, sz, kx, ky, kz, kt;
+   float *pa = NULL;
+   int i, fc;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(Vol);  }
+   if (!SO->FaceNormList) { SUMA_SL_Err("NULL SO->FaceNormList"); SUMA_RETURN(Vol);  }
+   if (!SO->PolyArea) { 
+      if (!SUMA_SurfaceMetrics_eng (SO, "PolyArea", NULL, 0, SUMAg_CF->DsetList)) {
+         SUMA_SL_Err("Failed to compute SO->PolyArea"); SUMA_RETURN(Vol);  
+      }
+   }
+   pa = SO->PolyArea;
+   
+   if (FSI || N_FaceSet != -1) {
+      SUMA_SL_Err("FSI and N_FaceSet are two stupid options never to be used.\nUse NULL and -1, respectively.");
+      SUMA_RETURN(Vol);
+   }
+   
+   if (!FSI) { 
+      N_FaceSet = SO->N_FaceSet;    
+   }
+
+   
+   /* calculate vector of areas * normals */
+   kx = ky = kz = sx = sy = sz = 0.0;
+   for (i=0; i<N_FaceSet; ++i) {
+      if (FSI) fc = FSI[i];
+      else fc = i;
+      SUMA_FACE_CENTROID(SO, fc, c);
+      #if 0 
+         if (LocalHead) fprintf(SUMA_STDERR,"Area: %f , normal (%f, %f, %f)\n", 
+               pa[fc], SO->FaceNormList[3*fc], SO->FaceNormList[3*fc+1], SO->FaceNormList[3*fc+2]);
+      #endif
+      anx = pa[fc] * SO->FaceNormList[3*fc];   kx += anx;  sx += c[0] * anx;
+      any = pa[fc] * SO->FaceNormList[3*fc+1]; ky += any;  sy += c[1] * any;
+      anz = pa[fc] * SO->FaceNormList[3*fc+2]; kz += anz;  sz += c[2] * anz;
+   }
+   kt = (kx+ky+kz); /* need to normalize k so that sum is 1, kx, ky and kz are supposed to 
+                  "weight the volume according to its orientation relative to the axes."
+                  For a sphere, you can use 1/3 for kx, ky and kz...   */
+   if (fabs(kt) < 1e-15) { 
+      SUMA_SL_Warn("Weight constants sum to ~= 0.\n"
+                   "Volume measurements may be off.\n"
+                   "If your surface's axes are along\n"
+                   "the X, Y and Z directions, as you \n"
+                   "could have with a box's surface, rotating\n"
+                   "the surface will solve the problem.");
+      fprintf(SUMA_STDERR, "%s:\n"
+                           "kx + ky + kz = kt\n"
+                           "%f + %f + %f = %f\n"
+                           "sx, sy, sz = %f, %f, %f\n",
+                           FuncName, kx, ky, kz, kx+ky+kz, sx, sy, sz);   }
+   kx /= kt;
+   ky /= kt;
+   kz /= kt;
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           "%f + %f + %f = %f\n"
+                           "sx, sy, sz = %f, %f, %f\n",
+                           FuncName, kx, ky, kz, kx+ky+kz, sx, sy, sz);
+   }
+   Vol = kx * sx + ky *sy + kz * sz;
+   
+   SUMA_RETURN(Vol);
 }
 
 /*!
@@ -5402,7 +6545,7 @@ void usage_SUMA_SurfQual ()
       static char FuncName[]={"usage_SUMA_SurfQual"};
       char * s = NULL;
       s = SUMA_help_basics();
-      printf ( "\nUsage:\n"
+      printf ( "\nUsage: A program to check the quality of surfaces.\n"
                "  SurfQual <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
                "             <-sphere> [-prefix OUTPREF]  \n"
                "\n"
@@ -5411,6 +6554,9 @@ void usage_SUMA_SurfQual ()
                "     -surf_X: Name of input surface X where X is a character\n"
                "              from A to Z. If surfaces are specified using two\n"
                "              files, use the name of the node coordinate file.\n"
+               "  Mesh winding consistency and 2-manifold checks are performed\n"
+               "  on all surfaces.\n"
+               "  Most other checks are specific to spherical surfaces (see option below).\n"
                "     -sphere: Indicates that surfaces read are spherical.\n"
                "              With this option you get the following output.\n"
                "              - Absolute deviation between the distance (d) of each\n"
@@ -5460,6 +6606,7 @@ void usage_SUMA_SurfQual ()
                "     - There are no utilities within SUMA to correct these defects.\n"
                "     It is best to fix these problems with the surface creation\n"
                "     software you are using.\n"
+               "     - Some warnings may be redundant. That should not hurt you.\n"
                "%s"
                "\n", s);
        SUMA_free(s); s = NULL;        
@@ -5479,7 +6626,7 @@ typedef struct {
 } SUMA_SURFQUAL_OPTIONS;
 
 /*!
-   \brief parse the arguments for SurfSmooth program
+   \brief parse the arguments for SurfQual program
    
    \param argv (char *)
    \param argc (int)
@@ -5577,17 +6724,11 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
       
    }
    
-   /* sanity checks */
-   if (!Opt->surftype) {
-      SUMA_S_Err("Must specify surface type (such as -sphere).");
-      exit(1);
-   }
-      
    if (Opt->N_surf < 1) {
       SUMA_SL_Err("No surface specified.");
       exit(1);
    }
-
+      
    SUMA_RETURN (Opt);
      
 }
@@ -5598,7 +6739,7 @@ int main (int argc,char *argv[])
    char *OutName = NULL, ext[5], *prefix = NULL;
    SUMA_SURFQUAL_OPTIONS *Opt; 
    int SO_read = -1;
-   int i, cnt;
+   int i, cnt, trouble;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfSpecFile Spec;
    void *SO_name = NULL;
@@ -5633,18 +6774,19 @@ int main (int argc,char *argv[])
       exit(1);
    }
    /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 1, SUMAg_CF->DsetList) ) {
+   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
 	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
       exit(1);
    }
   
    DoConv = NOPE;
    DoSphQ = NOPE;   
-   if (!strcmp(Opt->surftype, "-sphere")) { 
-      DoSphQ = YUP;
-   }else {
-      SUMA_S_Err("No such type allowed at the moment.\n");
-      exit(1);
+   if (Opt->surftype) {
+      if (!strcmp(Opt->surftype, "-sphere")) { 
+         DoSphQ = YUP;
+      }else {
+         /* Don't complain anymore, maybe winding checking is all users need */
+      }
    }
    
    for (i=0; i < Opt->N_surf; ++i) {/* loop to read in surfaces */
@@ -5667,6 +6809,11 @@ int main (int argc,char *argv[])
       if (!Opt->out_prefix) prefix = SUMA_copy_string(SO->Label);
       else prefix = SUMA_copy_string (Opt->out_prefix);
       
+      /* check the winding */
+      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 0, &trouble)) {
+         SUMA_S_Warn("Failed to make sure surface's mesh is consistently wound.\n"
+                     "You should fix the mesh.\n");
+      }
       if (DoConv) {
          float *Cx = NULL;
          if (Opt->N_surf > 1) {
@@ -5691,10 +6838,48 @@ int main (int argc,char *argv[])
          if (OutName) SUMA_free(OutName); OutName = NULL;
       }
       
-      
       if (prefix) SUMA_free(prefix); prefix = NULL;
    }
    
+  
+   if (trouble) { /* put winding problem here to make it visible */
+      fprintf (SUMA_STDERR,"\n");
+      SUMA_S_Warn("Mesh is not consistent, use ConvertSurface's -make_consistent \n"
+                  "option to fix the problem before proceeding further.\n"
+                  "Other results reported by this and other programs\n"
+                  "may be incorrect if mesh is not consistently wound.\n" ); 
+   } 
+   { 
+      int eu;
+      SUMA_EULER_SO(SO, eu);
+      fprintf (SUMA_STDERR,"\n");
+      fprintf(SUMA_STDERR,"Surface Euler number is: %d\n", eu);
+   }
+   if ((SO->EL->min_N_Hosts == 1 || SO->EL->max_N_Hosts == 1)) {
+         fprintf (SUMA_STDERR,"\n");
+         fprintf(SUMA_STDERR,"Warning %s:\n Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
+         fprintf(SUMA_STDERR," You have edges that form a border in the surface.\n");
+   }
+   if (SO->EL->min_N_Hosts == 2 && SO->EL->max_N_Hosts == 2) {
+      fprintf (SUMA_STDERR,"\n");
+      fprintf(SUMA_STDERR,"Surface is closed.");
+   }
+   if (SO->EL->min_N_Hosts > 2 || SO->EL->max_N_Hosts > 2) {
+      fprintf (SUMA_STDERR,"\n");
+      fprintf(SUMA_STDERR, "Warning %s:\n"
+                           "Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
+      fprintf(SUMA_STDERR, "Warning %s:\n"
+                           " You have edges that belong to more than two triangles.\n"
+                           " Bad for analysis assuming surface is a 2-manifold.\n", FuncName);
+      if (1) {
+         int iii=0;
+         fprintf(SUMA_STDERR, " These edges are formed by the following nodes:\n");
+         for (iii = 0; iii < SO->EL->N_EL; ++iii) { 
+            if (SO->EL->ELps[iii][2] > 2) fprintf (SUMA_STDERR," %d: Edge [%d %d] shared by %d triangles.\n", 
+                                             iii+1, SO->EL->EL[iii][0], SO->EL->EL[iii][1] , SO->EL->ELps[iii][2] );
+         }
+      }
+   }
    
    SUMA_LH("clean up");
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;

@@ -57,9 +57,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    if (LocalHead) fprintf (SUMA_STDERR,"%s: A call from SUMA_SurfaceViewer[%d], Pointer %p\n", FuncName, isv, sv);
    
 
-   Kev = (XKeyEvent) cd->event->xkey;
-   Bev = (XButtonEvent) cd->event->xbutton;
-   Mev = (XMotionEvent) cd->event->xmotion;
+   Kev = *(XKeyEvent *) &cd->event->xkey; /* RickR's suggestion to comply with ANSI C, no type casting of structures  July 04*/
+   Bev = *(XButtonEvent *) &cd->event->xbutton;
+   Mev = *(XMotionEvent *) &cd->event->xmotion;
    
    /* a sample keypresses */
    #if 0
@@ -3398,7 +3398,7 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
                if (Nodes) {
                   ROIA->DrawnROI->CE = SUMA_GetContour (
                                  SOparent, 
-                                 Nodes, N_Nodes, &(ROIA->DrawnROI->N_CE));
+                                 Nodes, N_Nodes, &(ROIA->DrawnROI->N_CE), 0, NULL);
                   if (!ROIA->DrawnROI->CE) { SUMA_LH("Null DrawnROI->CE"); }
                   else { SUMA_LH("Good DrawnROI->CE"); }
                   SUMA_free(Nodes);

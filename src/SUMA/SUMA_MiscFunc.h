@@ -19,6 +19,7 @@ SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , float *S_di
 SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB);
 SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float S_rad , int BoundIn);
 float **SUMA_Point_At_Distance(float *U, float *P1, float d);
+double **SUMA_dPoint_At_Distance(double *U, double *P1, double d);
 SUMA_Boolean SUMA_Point_To_Line_Distance (float *NodeList, int N_points, float *P1, float *P2, float *d2, float *d2min, int *i2min);
 SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float *P1, float *d2, float *d2min, int *i2min);
 int *SUMA_z_dqsort (int *x , int nx );
@@ -47,7 +48,7 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  );
 int SUMA_float_file_size (char *f_name);
 int SUMA_Read_2Dfile (char *f_name, float **x,  int n_rows, int n_cols);
 int SUMA_Read_2Ddfile (char *f_name, int **x, int n_rows, int n_cols);
-SUMA_Boolean SUMA_MakeConsistent (int *FaceSetList, int N_FaceSet, SUMA_EDGE_LIST *SEL, int detail);
+SUMA_Boolean SUMA_MakeConsistent (int *FaceSetList, int N_FaceSet, SUMA_EDGE_LIST *SEL, int detail, int *trouble);
 SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FaceSetList, int N_FaceSet, int N_Node, float *NodeList, char *ownerid);
 SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FaceSetList, int N_FaceSet, int N_Node, float *NodeList, int debug, char *ownerid);
 void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL);
