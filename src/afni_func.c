@@ -1153,7 +1153,7 @@ STATUS("bad im_fim->kind!") ;
             fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
 
          if( simult_thr ){
-            short thresh = im3d->vinfo->func_threshold
+            int   thresh = im3d->vinfo->func_threshold
                          * im3d->vinfo->func_thresh_top * FUNC_scale_short[fdset_type] ;
             short * ar_thr = MRI_SHORT_PTR(im_thr) ;
             for( ii=0 ; ii < npix ; ii++ ){
@@ -1188,7 +1188,7 @@ STATUS("bad im_fim->kind!") ;
                fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
 
          if( simult_thr ){
-            byte thresh = im3d->vinfo->func_threshold
+            int  thresh = im3d->vinfo->func_threshold
                          * im3d->vinfo->func_thresh_top * FUNC_scale_byte[fdset_type] ;
             byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
 
@@ -1253,7 +1253,7 @@ STATUS("bad im_fim->kind!") ;
       switch( im_thr->kind ){
 
          case MRI_short:{
-            short thresh = im3d->vinfo->func_threshold
+            int   thresh = im3d->vinfo->func_threshold
                          * im3d->vinfo->func_thresh_top * FUNC_scale_short[fdset_type] ;
             short * ar_thr = MRI_SHORT_PTR(im_thr) ;
 
@@ -1263,7 +1263,7 @@ STATUS("bad im_fim->kind!") ;
          break ;
 
          case MRI_byte:{
-            byte thresh = im3d->vinfo->func_threshold
+            int  thresh = im3d->vinfo->func_threshold
                         * im3d->vinfo->func_thresh_top * FUNC_scale_byte[fdset_type] ;
             byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
 

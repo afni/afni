@@ -165,8 +165,8 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
 
      switch( im_thr->kind ){
        case MRI_short:{
-         short thresh = im3d->vinfo->func_threshold
-                      * im3d->vinfo->func_thresh_top / scale_thr ;
+         int thresh = im3d->vinfo->func_threshold
+                    * im3d->vinfo->func_thresh_top / scale_thr ;
          short *ar_thr = MRI_SHORT_PTR(im_thr) ;
          for( ii=0 ; ii < nvox ; ii++ ){  /* voxel cutting time */
            jj = vlist[ii] ;               /* actual voxel index in func brick */
@@ -176,8 +176,8 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
        break ;
 
        case MRI_byte:{
-         byte thresh = im3d->vinfo->func_threshold
-                     * im3d->vinfo->func_thresh_top / scale_thr ;
+         int thresh = im3d->vinfo->func_threshold
+                    * im3d->vinfo->func_thresh_top / scale_thr ;
          byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
          for( ii=0 ; ii < nvox ; ii++ ){
            jj = vlist[ii] ;
