@@ -403,3 +403,10 @@
   * modified 3dresample.c
       - added suggestion of 3dfractionize to -help output
       - added -hist option
+
+13 January 2004
+  * modified Imon.[ch] realtime.[ch]
+      - added '-zorder ORDER' option for slice patterns in real-time mode
+        (the default has been changed from 'seq' to 'alt')
+      - add '-hist' option
+

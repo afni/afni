@@ -21,7 +21,8 @@
 
 #define IFM_USE_SHORT        1       /* usage constants                  */
 #define IFM_USE_LONG         2
-#define IFM_USE_VERSION      3
+#define IFM_USE_HIST         3
+#define IFM_USE_VERSION      4
 
 #define IFM_DEBUG_DEFAULT    1       /* default debug level: show status */
 #define IFM_MAX_DEBUG        4       /* maximum debug level		 */
