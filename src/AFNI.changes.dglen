@@ -5,3 +5,5 @@
      to fit in 80 characters.
 17 November 2004
  * Renamed some internal messages and history to have the updated function name.
+2 December 2004
+ * Created 3dDWItoDT.c. Program calculates diffusion tensor data from diffusion weighted images.
