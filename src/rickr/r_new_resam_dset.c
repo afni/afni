@@ -145,7 +145,7 @@ int r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam )
 {
     THD_diskptr * diskptr = dset->dblk->diskptr;
     MRI_IMAGE   * im;
-    void        * newdata, * dptr;
+    char        * newdata, * dptr;
     float         bfac;
     int           ival, dsize;
     int           nx, ny, nz, nxy, nxyz, nv;
@@ -206,14 +206,15 @@ int r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam )
 		return FAIL;
 	    }
 
-	    memcpy( dptr, mri_data_pointer(im), nxy*dsize );
+	    memcpy( (void *)dptr, mri_data_pointer(im), nxy*dsize );
 	    mri_free( im );
 	    dptr += nxy*dsize;
 	}
 
         DBLK_BRICK_FACTOR(dset->dblk,ival) = bfac;
 	/* we now have the raw brick data, so insert it into the brick */
-	EDIT_substitute_brick(dset, ival, DSET_BRICK_TYPE(dset,ival), newdata);
+	EDIT_substitute_brick(dset, ival, DSET_BRICK_TYPE(dset,ival),
+			      (void *)newdata);
     }
 
     dset->dblk->malloc_type = DATABLOCK_MEM_MALLOC;
