@@ -1,0 +1,178 @@
+15/05/2004:
+
+Release of version 0.7.2
+
+New features includes:
+
+- gts2dxf and gts2stl filters.
+- New GtsColorVertex class.
+- "Dual" isosurface calculation by Tim F.
+- New "happrox" algorithm to approximate terrain models.
+- New GtsMatrix implementation (quaternions) by Wayne Gramlich and
+  Michael Loehr.
+- Attributes inheritance when computing intersections.
+
+Bug fixes:
+
+- Major changes to inner loops triangulation for boolean operations.
+- compilation on SGI Altix
+- Fixed gts.def generation for Windows support.
+- Cygwin support.
+
+08/01/2003:
+
+Release of version 0.7.1
+
+New features includes:
+
+- Sphere tessellation by Jerome Benoit.
+
+As well as a number of bug and compilation fixes.
+
+The interface to the gts_surface_refine() function has been made more
+generic.
+
+08/11/2002:
+
+Release of version 0.7.0
+
+Boolean operations have been almost entirely rewritten and now use a
+Simulation of Simplicity (SoS) technique to deal with degenerate
+cases. This should fix most of the problems encountered when dealing
+with "simple" geometric objects (i.e. cube/cube intersections with
+coplanar faces etc...) Almost all the test cases in the test suite
+(including significant tests submitted by users) now pass. Difficult
+test cases like an object intersecting with a simplified version of
+itself (created using coarsen for example) work fine despite the huge
+number of degenerate cases (coincident and nearly coincident edges,
+faces, vertices).
+
+There is still a caveat however for intersections which creates
+multiple closed loops contained within one another (note that this
+wasn't a problem in the previous version). This needs to be fixed at
+some point.
+
+Another problem is that the surfaces resulting from a boolean
+operation while guaranteed to be topologically consistent may contain
+degenerate edges/faces which will prevent them from being used in a
+subsequent boolean operation. The degenerate entities need first to be
+eliminated (through edge/face collapse).
+
+The gts_point_is_inside_surface() function has been rewritten using SoS.
+
+A new stl2gts tool provides conversion between STL (stereolithography)
+format and GTS format.
+
+Ray Jones has added new functions to compute gaussian curvature,
+principal curvature directions etc...
+
+The gts_file_close() function call has been replaced by a
+gts_file_destroy() function which does not close the file. This is
+better left to the caller. Your application might need a slight
+modification there.
+
+The whole automake/autoconf stuff has been upgraded to use version
+1.6.3 of automake.
+
+Gert Wollny has added a marching tetrahedra isosurface construction
+technique which should avoid topological defects in isosurfaces
+(created by inconsistencies inherent to the marching cube technique).
+
+A number of bugs have been fixed (thanks to bug reporters).
+
+08/10/2001:
+
+Release of version 0.5.0.
+
+Configuration and compilation have been cleaned and updated. Now
+builds both shared and static libraries.
+
+A new `gts-config' script allows simpler use of the library (a la
+glib), together with a gts.m4 macro definition for your own autoconf
+usage.
+
+A number of new features have been added:
+
+- Configurable out-of-core simplification framework for surfaces
+larger than the main memory.
+
+- Conforming constrained Delaunay triangulation and Delaunay
+refinement by addition of Steiner points.
+
+- Simple implementation of FIFOs (First-In First-out queues).
+
+- New graph objects and operations on graphs. In particular efficient
+graph partitioning routines.
+
+- "Stabbing" functions have been added to bounding box trees, which
+now allows for efficient testing whether a point lies inside or outside
+a surface.
+
+A number of bug fixes and improvements have also been added:
+
+- More generic object methods for surfaces.
+
+- Easily definable inheritance of face attributes (in particular for
+boolean operations).
+
+- Bug fixes for boolean operations.
+
+The srf2oogl converter has been renamed to gts2oogl and an 'isolines'
+functionality was added.
+
+31/01/2001: 
+
+Release of version 0.4.0. Much has happened since 0.3.0. A
+new object structure inspired by GTK allows to use classical
+inheritance mechanisms and virtual functions. As a consequence the
+object hierarchy has been restructured and now uses points, vertices,
+segments, edges, triangles, faces and surfaces.
+
+The Delaunay triangulation has been entirely re-written and is now
+fully-dynamic (insertion or deletion of vertices). The constrained
+Delaunay triangulation is semi-dynamic (insertion of vertices and
+constraints).
+
+Boolean operations between surfaces have also been re-written and are
+more robust (and also benefit from a much more robust implementation
+of the Delaunay triangulation).
+
+Surface coarsening routines have been improved both in term of a more
+generic interface and in order to avoid artefacts such as folds in the
+simplified surface.
+
+An interesting new extension is the implementation of progressive
+surfaces which allow dynamic real-time continuous level-of-detail
+representation of a surface. Progressive transmission of surfaces is
+also possible. The first building blocks for a hierarchical surface
+extension have been written. This will allow for dynamic
+view-dependent simplification of surfaces.
+
+The floating-point control interface necessary for robust geometric
+predicates has been cleaned and GTS should now build on any (touch
+wood) UNIX-based machine.
+
+Preliminary support has been added for win32 compilation using
+Microsoft C.
+
+Please note that the html reference manual is now distributed with the
+sources.
+
+15/02/2000: 
+
+Samples geometry files are avalaible at
+http://gts.sourceforge.net/samples.html
+
+02/02/2000: 
+
+Release of version 0.2.0. New data structures and algorithms including
+triangle strips and binary heaps. The algorithms for surface
+coarsening and refinement are more efficient and general. See
+Changelog for a more complete history.
+
+17/01/2000: 
+
+Release of version 0.1.0. GTS has officially moved to
+gts.sourceforge.net. A number of bug fixes. A few interface
+changes. Most of the functions have been checked for memory
+leaks. Nearly all the functions are now documented.

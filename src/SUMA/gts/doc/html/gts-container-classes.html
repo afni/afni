@@ -1,0 +1,1435 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Container classes</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><LINK
+REL="PREVIOUS"
+TITLE="Object class"
+HREF="gts-object-class.html"><LINK
+REL="NEXT"
+TITLE="Containee classes"
+HREF="gts-containee-classes.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-object-class.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c2560.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-containee-classes.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-CONTAINER-CLASSES"
+></A
+>Container classes</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN3232"
+></A
+><H2
+>Name</H2
+>Container classes&nbsp;--&nbsp;</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN3235"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-container-classes.html#GTS-CONTAINER-CLASS-CAPS"
+>GTS_CONTAINER_CLASS</A
+>             (klass)
+#define     <A
+HREF="gts-container-classes.html#GTS-CONTAINER-CAPS"
+>GTS_CONTAINER</A
+>                   (obj)
+#define     <A
+HREF="gts-container-classes.html#GTS-IS-CONTAINER-CAPS"
+>GTS_IS_CONTAINER</A
+>                (obj)
+struct      <A
+HREF="gts-container-classes.html#GTSCONTAINERCLASS"
+>GtsContainerClass</A
+>;
+struct      <A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+>;
+
+<A
+HREF="gts-container-classes.html#GTSCONTAINERCLASS"
+>GtsContainerClass</A
+>* <A
+HREF="gts-container-classes.html#GTS-CONTAINER-CLASS"
+>gts_container_class</A
+>      (void);
+<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+>* <A
+HREF="gts-container-classes.html#GTS-CONTAINER-NEW"
+>gts_container_new</A
+>             (<A
+HREF="gts-container-classes.html#GTSCONTAINERCLASS"
+>GtsContainerClass</A
+> *klass);
+void        <A
+HREF="gts-container-classes.html#GTS-CONTAINER-ADD"
+>gts_container_add</A
+>               (<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+> *c,
+                                             <A
+HREF="gts-containee-classes.html#GTSCONTAINEE"
+>GtsContainee</A
+> *item);
+void        <A
+HREF="gts-container-classes.html#GTS-CONTAINER-REMOVE"
+>gts_container_remove</A
+>            (<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+> *c,
+                                             <A
+HREF="gts-containee-classes.html#GTSCONTAINEE"
+>GtsContainee</A
+> *item);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-container-classes.html#GTS-CONTAINER-SIZE"
+>gts_container_size</A
+>              (<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+> *c);
+void        <A
+HREF="gts-container-classes.html#GTS-CONTAINER-FOREACH"
+>gts_container_foreach</A
+>           (<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+> *c,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+
+#define     <A
+HREF="gts-container-classes.html#GTS-HASH-CONTAINER-CLASS-CAPS"
+>GTS_HASH_CONTAINER_CLASS</A
+>        (klass)
+#define     <A
+HREF="gts-container-classes.html#GTS-HASH-CONTAINER-CAPS"
+>GTS_HASH_CONTAINER</A
+>              (obj)
+#define     <A
+HREF="gts-container-classes.html#GTS-IS-HASH-CONTAINER-CAPS"
+>GTS_IS_HASH_CONTAINER</A
+>           (obj)
+struct      <A
+HREF="gts-container-classes.html#GTSHASHCONTAINERCLASS"
+>GtsHashContainerClass</A
+>;
+struct      <A
+HREF="gts-container-classes.html#GTSHASHCONTAINER"
+>GtsHashContainer</A
+>;
+
+<A
+HREF="gts-container-classes.html#GTSHASHCONTAINERCLASS"
+>GtsHashContainerClass</A
+>* <A
+HREF="gts-container-classes.html#GTS-HASH-CONTAINER-CLASS"
+>gts_hash_container_class</A
+>
+                                            (void);
+
+#define     <A
+HREF="gts-container-classes.html#GTS-SLIST-CONTAINER-CLASS-CAPS"
+>GTS_SLIST_CONTAINER_CLASS</A
+>       (klass)
+#define     <A
+HREF="gts-container-classes.html#GTS-SLIST-CONTAINER-CAPS"
+>GTS_SLIST_CONTAINER</A
+>             (obj)
+#define     <A
+HREF="gts-container-classes.html#GTS-IS-SLIST-CONTAINER-CAPS"
+>GTS_IS_SLIST_CONTAINER</A
+>          (obj)
+struct      <A
+HREF="gts-container-classes.html#GTSSLISTCONTAINERCLASS"
+>GtsSListContainerClass</A
+>;
+struct      <A
+HREF="gts-container-classes.html#GTSSLISTCONTAINER"
+>GtsSListContainer</A
+>;
+
+<A
+HREF="gts-container-classes.html#GTSSLISTCONTAINERCLASS"
+>GtsSListContainerClass</A
+>* <A
+HREF="gts-container-classes.html#GTS-SLIST-CONTAINER-CLASS"
+>gts_slist_container_class</A
+>
+                                            (void);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN3275"
+></A
+><H2
+>Description</H2
+><P
+></P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN3278"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3280"
+></A
+><H3
+><A
+NAME="GTS-CONTAINER-CLASS-CAPS"
+></A
+>GTS_CONTAINER_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_CONTAINER_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3286"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3291"
+></A
+><H3
+><A
+NAME="GTS-CONTAINER-CAPS"
+></A
+>GTS_CONTAINER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_CONTAINER(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3297"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3302"
+></A
+><H3
+><A
+NAME="GTS-IS-CONTAINER-CAPS"
+></A
+>GTS_IS_CONTAINER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_CONTAINER(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3308"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3313"
+></A
+><H3
+><A
+NAME="GTSCONTAINERCLASS"
+></A
+>struct GtsContainerClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsContainerClass {
+
+  GtsSListContaineeClass parent_class;
+
+  void  (* add)     (GtsContainer *, GtsContainee *);
+  void  (* remove)  (GtsContainer *, GtsContainee *);
+  void  (* foreach) (GtsContainer *, GtsFunc, gpointer);
+  guint (* size)    (GtsContainer *);
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3318"
+></A
+><H3
+><A
+NAME="GTSCONTAINER"
+></A
+>struct GtsContainer</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsContainer {
+
+  GtsSListContainee object;
+};</PRE
+><P
+>The container object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3324"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-containee-classes.html#GTSSLISTCONTAINEE"
+>GtsSListContainee</A
+> <CODE
+CLASS="STRUCTFIELD"
+>object</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3330"
+></A
+><H3
+><A
+NAME="GTS-CONTAINER-CLASS"
+></A
+>gts_container_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-container-classes.html#GTSCONTAINERCLASS"
+>GtsContainerClass</A
+>* gts_container_class      (void);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3337"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3342"
+></A
+><H3
+><A
+NAME="GTS-CONTAINER-NEW"
+></A
+>gts_container_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+>* gts_container_new             (<A
+HREF="gts-container-classes.html#GTSCONTAINERCLASS"
+>GtsContainerClass</A
+> *klass);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3350"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3355"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3360"
+></A
+><H3
+><A
+NAME="GTS-CONTAINER-ADD"
+></A
+>gts_container_add ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_container_add               (<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+> *c,
+                                             <A
+HREF="gts-containee-classes.html#GTSCONTAINEE"
+>GtsContainee</A
+> *item);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3368"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>c</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3373"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>item</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3378"
+></A
+><H3
+><A
+NAME="GTS-CONTAINER-REMOVE"
+></A
+>gts_container_remove ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_container_remove            (<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+> *c,
+                                             <A
+HREF="gts-containee-classes.html#GTSCONTAINEE"
+>GtsContainee</A
+> *item);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3386"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>c</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3391"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>item</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3396"
+></A
+><H3
+><A
+NAME="GTS-CONTAINER-SIZE"
+></A
+>gts_container_size ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_container_size              (<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+> *c);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3404"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>c</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3409"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3414"
+></A
+><H3
+><A
+NAME="GTS-CONTAINER-FOREACH"
+></A
+>gts_container_foreach ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_container_foreach           (<A
+HREF="gts-container-classes.html#GTSCONTAINER"
+>GtsContainer</A
+> *c,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3423"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>c</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3428"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3433"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3438"
+></A
+><H3
+><A
+NAME="GTS-HASH-CONTAINER-CLASS-CAPS"
+></A
+>GTS_HASH_CONTAINER_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_HASH_CONTAINER_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3444"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3449"
+></A
+><H3
+><A
+NAME="GTS-HASH-CONTAINER-CAPS"
+></A
+>GTS_HASH_CONTAINER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_HASH_CONTAINER(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3455"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3460"
+></A
+><H3
+><A
+NAME="GTS-IS-HASH-CONTAINER-CAPS"
+></A
+>GTS_IS_HASH_CONTAINER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_HASH_CONTAINER(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3466"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3471"
+></A
+><H3
+><A
+NAME="GTSHASHCONTAINERCLASS"
+></A
+>struct GtsHashContainerClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsHashContainerClass {
+
+  GtsContainerClass parent_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3476"
+></A
+><H3
+><A
+NAME="GTSHASHCONTAINER"
+></A
+>struct GtsHashContainer</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsHashContainer {
+
+  GtsContainer c;
+
+  GHashTable * items;
+  gboolean frozen;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3481"
+></A
+><H3
+><A
+NAME="GTS-HASH-CONTAINER-CLASS"
+></A
+>gts_hash_container_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-container-classes.html#GTSHASHCONTAINERCLASS"
+>GtsHashContainerClass</A
+>* gts_hash_container_class
+                                            (void);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3488"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3493"
+></A
+><H3
+><A
+NAME="GTS-SLIST-CONTAINER-CLASS-CAPS"
+></A
+>GTS_SLIST_CONTAINER_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_SLIST_CONTAINER_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3499"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3504"
+></A
+><H3
+><A
+NAME="GTS-SLIST-CONTAINER-CAPS"
+></A
+>GTS_SLIST_CONTAINER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_SLIST_CONTAINER(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3510"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3515"
+></A
+><H3
+><A
+NAME="GTS-IS-SLIST-CONTAINER-CAPS"
+></A
+>GTS_IS_SLIST_CONTAINER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_SLIST_CONTAINER(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3521"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3526"
+></A
+><H3
+><A
+NAME="GTSSLISTCONTAINERCLASS"
+></A
+>struct GtsSListContainerClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsSListContainerClass {
+
+  GtsContainerClass parent_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3531"
+></A
+><H3
+><A
+NAME="GTSSLISTCONTAINER"
+></A
+>struct GtsSListContainer</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsSListContainer {
+
+  GtsContainer c;
+
+  GSList * items;
+  gboolean frozen;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3536"
+></A
+><H3
+><A
+NAME="GTS-SLIST-CONTAINER-CLASS"
+></A
+>gts_slist_container_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-container-classes.html#GTSSLISTCONTAINERCLASS"
+>GtsSListContainerClass</A
+>* gts_slist_container_class
+                                            (void);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3543"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-object-class.html"
+><B
+>&lt;&lt;&lt;&nbsp;Object class</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-containee-classes.html"
+><B
+>Containee classes&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

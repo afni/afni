@@ -1,0 +1,248 @@
+AC_INIT
+AC_CONFIG_SRCDIR([src/gts.h])
+
+dnl we to AC_DIVERT_PUSH/AC_DIVERT_POP these variable definitions so they
+dnl are available for $ac_help expansion (don't we all *love* autoconf?)
+#AC_DIVERT_PUSH(AC_DIVERSION_NOTICE)dnl
+# Making releases:
+#   GTS_MICRO_VERSION += 1;
+#   GTS_INTERFACE_AGE += 1;
+#   GTS_BINARY_AGE += 1;
+# if any functions have been added, set GTS_INTERFACE_AGE to 0.
+# if backwards compatibility has been broken,
+# set GTS_BINARY_AGE and GTS_INTERFACE_AGE to 0.
+#
+GTS_MAJOR_VERSION=0
+GTS_MINOR_VERSION=7
+GTS_MICRO_VERSION=2
+GTS_INTERFACE_AGE=0
+GTS_BINARY_AGE=0
+GTS_VERSION=$GTS_MAJOR_VERSION.$GTS_MINOR_VERSION.$GTS_MICRO_VERSION
+dnl
+#AC_DIVERT_POP()dnl
+
+AC_SUBST(GTS_MAJOR_VERSION)
+AC_SUBST(GTS_MINOR_VERSION)
+AC_SUBST(GTS_MICRO_VERSION)
+AC_SUBST(GTS_VERSION)
+
+# libtool versioning
+LT_RELEASE=$GTS_MAJOR_VERSION.$GTS_MINOR_VERSION
+LT_CURRENT=`expr $GTS_MICRO_VERSION - $GTS_INTERFACE_AGE`
+LT_REVISION=$GTS_INTERFACE_AGE
+LT_AGE=`expr $GTS_BINARY_AGE - $GTS_INTERFACE_AGE`
+AC_SUBST(LT_RELEASE)
+AC_SUBST(LT_CURRENT)
+AC_SUBST(LT_REVISION)
+AC_SUBST(LT_AGE)
+
+# For automake.
+VERSION=$GTS_VERSION
+PACKAGE=gts
+
+AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
+
+# Specify a configuration file
+AM_CONFIG_HEADER(config.h)
+
+AC_DEFINE_UNQUOTED(GTS_MAJOR_VERSION, $GTS_MAJOR_VERSION, [Major version])
+AC_DEFINE_UNQUOTED(GTS_MINOR_VERSION, $GTS_MINOR_VERSION, [Minor version])
+AC_DEFINE_UNQUOTED(GTS_MICRO_VERSION, $GTS_MICRO_VERSION, [Micro version])
+AC_DEFINE_UNQUOTED(GTS_INTERFACE_AGE, $GTS_INTERFACE_AGE, [Interface age])
+AC_DEFINE_UNQUOTED(GTS_BINARY_AGE, $GTS_BINARY_AGE, [Binary age])
+
+dnl Initialize libtool
+AM_PROG_LIBTOOL
+
+dnl Initialize maintainer mode
+AM_MAINTAINER_MODE
+
+AC_PROG_CC
+
+if test x$GCC = xyes ; then
+  CFLAGS="$CFLAGS -Wall -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations"
+fi
+
+AC_PROG_AWK
+AC_ISC_POSIX
+AC_HEADER_STDC
+
+AC_CHECK_LIB(netpbm, pgm_init, netpbm="true",
+  AC_MSG_WARN([libnetpbm not found. Some programs will not be available.]))
+AM_CONDITIONAL(HAS_NETPBM, test x$netpbm = xtrue)
+
+if test x$with_glib = xyes ; then
+  AC_MSG_ERROR([
+*** Directory must be specified for --with-glib])
+fi
+
+if test x$with_glib = x ; then 
+  # Look for separately installed glib
+
+  AM_PATH_GLIB(1.2.8,,
+    AC_MSG_ERROR([
+*** GLIB 1.2.8 or better is required. The latest version of GLIB
+*** is always available from ftp://ftp.gtk.org/.]),
+    gmodule gthread)
+
+  glib_cflags=`$GLIB_CONFIG --cflags`
+  glib_thread_cflags=`$GLIB_CONFIG --cflags gthread`
+  glib_module_cflags=`$GLIB_CONFIG --cflags gmodule`
+  glib_libs=`$GLIB_CONFIG --libs`
+  glib_thread_libs=`$GLIB_CONFIG --libs gthread`
+  glib_module_libs=`$GLIB_CONFIG --libs gmodule`
+  GLIB_LIBS="$glib_libs"
+  GLIB_DEPLIBS="$glib_libs"
+else
+  # Use uninstalled glib (assume they got the version right)
+
+  GLIB_CONFIG=$with_glib/glib-config
+  if test -x $GLIB_CONFIG ; then 
+    :
+  else
+    AC_MSG_ERROR([GLIB directory ($with_glib) not present or not configured])
+  fi
+
+  # For use in gts-config
+  glib_cflags=`$GLIB_CONFIG --cflags`
+  glib_thread_cflags=`$GLIB_CONFIG --cflags gthread`
+  glib_module_cflags=`$GLIB_CONFIG --cflags gmodule`
+  glib_libs=`$GLIB_CONFIG --libs`
+  glib_thread_libs=`$GLIB_CONFIG --libs gthread`
+  glib_module_libs=`$GLIB_CONFIG --libs gmodule`
+
+  glib_release=`$GLIB_CONFIG --version | sed 's%\\.[[0-9]]*$%%'`
+
+  # canonicalize relative paths
+  case $with_glib in 
+    /*)
+      glib_dir=$with_glib
+      ;;
+    *)
+      glib_dir="\$(top_builddir)/$with_glib"
+      ;;
+  esac
+
+  GLIB_CFLAGS="-I$glib_dir -I$glib_dir/gmodule"
+  GLIB_LIBS="$glib_dir/libglib.la $glib_dir/gmodule.la"
+  GLIB_DEPLIBS=
+
+  AC_SUBST(GLIB_CFLAGS)
+  AC_SUBST(GLIB_LIBS)
+fi
+
+AC_SUBST(glib_cflags)
+AC_SUBST(glib_libs)
+AC_SUBST(glib_thread_cflags)
+AC_SUBST(glib_thread_libs)
+AC_SUBST(glib_module_cflags)
+AC_SUBST(glib_module_libs)
+AC_SUBST(GLIB_DEPLIBS)
+
+CFLAGS="$CFLAGS $glib_cflags"
+LDFLAGS="$LDFLAGS $glib_libs"
+
+AC_SUBST(CFLAGS)
+AC_SUBST(CPPFLAGS)
+AC_SUBST(LDFLAGS)
+
+dnl generate `src/gtsconfig.h'
+AC_CONFIG_COMMANDS([default-1],[[
+	echo creating src/gtsconfig.h
+	cat >src/gtsconfig.h <<\__EOF
+/* gtsconfig.h
+ * 
+ * This is a generated file.  Please modify `configure.in'
+ */
+
+#ifndef GTSCONFIG_H
+#define GTSCONFIG_H
+
+__EOF
+	case "$build" in
+	*-cray-unicos*)
+	  echo "/* CRAY inlining directives */" >> src/gtsconfig.h
+	  awk '
+BEGIN {
+  nc = 10;
+  nf = 0;
+}
+{
+  if ($1 == "G_INLINE_FUNC") {
+    nc = 0;
+    start = 2;
+  }
+  else
+    start = 1;
+  for (i = start; i <= NF; i++) {
+    if (nc == 1) {
+      if (substr ($i, 1, 1) != "*") {
+	in_list = 0;
+	for (j = 0; j < nf && !inlist; j++)
+	  if ($i == f[j])
+	    inlist = 1;
+	if (!inlist)
+          f[nf++] = $i;
+	nc = 10;
+      }
+    }
+    else
+      nc++;
+  }
+}
+END {
+  if (nf > 0) {
+    printf ("#pragma _CRI inline %s", f[0]);
+    for (i = 1; i < nf; i++)
+      printf (", %s", f[i]);
+    printf ("\n");
+  }
+}
+' < src/gts.h >> src/gtsconfig.h
+	;;
+	esac
+	cat >>src/gtsconfig.h <<__EOF
+$gts_defines
+
+#endif /* GTSCONFIG_H */
+__EOF
+]],[[
+	gts_defines="
+#define GTS_MAJOR_VERSION $GTS_MAJOR_VERSION
+#define GTS_MINOR_VERSION $GTS_MINOR_VERSION
+#define GTS_MICRO_VERSION $GTS_MICRO_VERSION"
+	build="$build"
+]])
+
+dnl checking for #warning cpp directive
+AC_TRY_COMPILE(,
+       "{
+           #warning test
+	}", 
+	AC_DEFINE(CPP_HAS_WARNING, 1, 
+	[Define if C preprocessor supports warning directive.]),
+	AC_MSG_WARN(["C preprocessor does not support warning directive."]))
+
+
+dnl header file checks
+AC_CHECK_HEADERS(fpu_control.h, AC_DEFINE(HAVE_FPU_CONTROL_H))
+AC_CHECK_HEADERS(floatingpoint.h, AC_DEFINE(HAVE_FLOATINGPOINT_H))
+AC_CHECK_HEADERS(unistd.h, AC_DEFINE(HAVE_UNISTD_H))
+AC_CHECK_HEADERS(getopt.h, AC_DEFINE(HAVE_GETOPT_H))
+
+dnl functions checks
+AC_CHECK_FUNCS(getopt_long)
+
+AC_CONFIG_FILES([
+Makefile
+src/Makefile
+src/gts-config
+tools/Makefile
+doc/Makefile
+examples/Makefile
+test/Makefile
+test/boolean/Makefile
+test/delaunay/Makefile
+test/coarsen/Makefile
+])
+AC_OUTPUT

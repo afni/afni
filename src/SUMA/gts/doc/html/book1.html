@@ -1,0 +1,319 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>GTS Library Reference Manual</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="NEXT"
+TITLE="Basic Macros, functions and data structures"
+HREF="c4.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="BOOK"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="BOOK"
+><DIV
+CLASS="TITLEPAGE"
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+CELLPADDING="2"
+CELLSPACING="0"
+><TR
+><TH
+ALIGN="center"
+VALIGN="MIDDLE"
+><P
+CLASS="TITLE"
+>GTS Library Reference Manual<A
+NAME="AEN2"></P
+></TH
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+><A
+HREF="c4.html"
+>Basic Macros, functions and data structures</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="gts-binary-heaps.html"
+>Binary heaps</A
+>&nbsp;--&nbsp;efficient data structure for priority heaps.</DT
+><DT
+><A
+HREF="gts-extended-binary-heaps.html"
+>Extended binary heaps</A
+>&nbsp;--&nbsp;efficient data structure for priority heaps allowing removal of elements.</DT
+><DT
+><A
+HREF="gts-first-in-first-out-heaps.html"
+>First In First Out heaps</A
+>&nbsp;--&nbsp;</DT
+><DT
+><A
+HREF="gts-vectors-and-matrices.html"
+>Vectors and matrices</A
+>&nbsp;--&nbsp;simple operations on vectors and matrices.</DT
+><DT
+><A
+HREF="gts-simple-statistics.html"
+>Simple statistics</A
+>&nbsp;--&nbsp;a basic structure for computing min, max, average and variance.</DT
+><DT
+><A
+HREF="gts-miscellaneous-macros-and-functions.html"
+>Miscellaneous macros and functions</A
+>&nbsp;--&nbsp;Various utilities.</DT
+></DL
+></DD
+><DT
+><A
+HREF="c2560.html"
+>Geometrical Object Hierarchy</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="gts-object-class.html"
+>Object class</A
+>&nbsp;--&nbsp;parent class for all GTS objects.</DT
+><DT
+><A
+HREF="gts-container-classes.html"
+>Container classes</A
+>&nbsp;--&nbsp;</DT
+><DT
+><A
+HREF="gts-containee-classes.html"
+>Containee classes</A
+>&nbsp;--&nbsp;</DT
+><DT
+><A
+HREF="gts-points.html"
+>Points</A
+>&nbsp;--&nbsp;point object and related functions.</DT
+><DT
+><A
+HREF="gts-vertices.html"
+>Vertices</A
+>&nbsp;--&nbsp;vertex object and related functions.</DT
+><DT
+><A
+HREF="gts-segments.html"
+>Segments</A
+>&nbsp;--&nbsp;segment object and related functions.</DT
+><DT
+><A
+HREF="gts-edges.html"
+>Edges</A
+>&nbsp;--&nbsp;edge object and related functions.</DT
+><DT
+><A
+HREF="gts-triangles.html"
+>Triangles</A
+>&nbsp;--&nbsp;triangle object and related functions.</DT
+><DT
+><A
+HREF="gts-faces.html"
+>Faces</A
+>&nbsp;--&nbsp;face object and related functions.</DT
+><DT
+><A
+HREF="gts-surfaces.html"
+>Surfaces</A
+>&nbsp;--&nbsp;surface object and related functions.</DT
+></DL
+></DD
+><DT
+><A
+HREF="c9149.html"
+>Geometrical data structures</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="gts-kd-trees.html"
+>Kd-Trees</A
+>&nbsp;--&nbsp;an efficient way of doing point location queries.</DT
+><DT
+><A
+HREF="gts-bounding-boxes-trees.html"
+>Bounding boxes trees</A
+>&nbsp;--&nbsp;implementation of axis-aligned bounding-box trees.</DT
+></DL
+></DD
+><DT
+><A
+HREF="c10572.html"
+>Surface operations</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="gts-boolean-operations.html"
+>Boolean operations</A
+>&nbsp;--&nbsp;set operations between surfaces: union, intersection, difference.</DT
+><DT
+><A
+HREF="gts-surface-simplification-and-refinement.html"
+>Surface simplification and refinement</A
+>&nbsp;--&nbsp;reducing or increasing the number of edges of a triangulated surface.</DT
+><DT
+><A
+HREF="gts-out-of-core-simplification.html"
+>Out-of-core simplification</A
+>&nbsp;--&nbsp;objects for simplification based on vertex clustering.</DT
+><DT
+><A
+HREF="gts-isosurfaces-from-3d-functions.html"
+>Isosurfaces from 3D functions</A
+>&nbsp;--&nbsp;computing triangulated isosurfaces of a given function f(x,y,z).</DT
+><DT
+><A
+HREF="gts-delaunay-and-constrained-delaunay-triangulations.html"
+>Delaunay and constrained Delaunay triangulations</A
+>&nbsp;--&nbsp;implementation of a dynamic Delaunay triangulation algorithm.</DT
+><DT
+><A
+HREF="gts-differential-geometry-operators.html"
+>Differential geometry operators</A
+>&nbsp;--&nbsp;</DT
+></DL
+></DD
+><DT
+><A
+HREF="c13239.html"
+>Progressive and Hierarchical surfaces</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="gts-vertex-split.html"
+>Vertex split</A
+>&nbsp;--&nbsp;object encoding a reversible edge-collapse operation.</DT
+><DT
+><A
+HREF="gts-progressive-surfaces.html"
+>Progressive surfaces</A
+>&nbsp;--&nbsp;continuous level-of-detail for surfaces.</DT
+><DT
+><A
+HREF="gts-hierarchical-vertex-split.html"
+>Hierarchical vertex split</A
+>&nbsp;--&nbsp;hierarchical extension of the vertex split.</DT
+><DT
+><A
+HREF="gts-hierarchical-surfaces.html"
+>Hierarchical surfaces</A
+>&nbsp;--&nbsp;extension of progressive surfaces allowing arbitrary sequences of vertex split or collapse.</DT
+></DL
+></DD
+><DT
+><A
+HREF="c14807.html"
+>Graph and operations on graphs</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="gts-graph-class.html"
+>Graph class</A
+>&nbsp;--&nbsp;</DT
+><DT
+><A
+HREF="gts-weighted-graph.html"
+>Weighted graph</A
+>&nbsp;--&nbsp;</DT
+><DT
+><A
+HREF="gts-progressive-graph.html"
+>Progressive graph</A
+>&nbsp;--&nbsp;</DT
+><DT
+><A
+HREF="gts-graph-partitioning.html"
+>Graph partitioning</A
+>&nbsp;--&nbsp;</DT
+></DL
+></DD
+></DL
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="c4.html"
+><B
+>Basic Macros, functions and data structures&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

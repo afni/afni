@@ -1,0 +1,1472 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Boolean operations</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Surface operations"
+HREF="c10572.html"><LINK
+REL="PREVIOUS"
+TITLE="Surface operations"
+HREF="c10572.html"><LINK
+REL="NEXT"
+TITLE="Surface simplification and refinement"
+HREF="gts-surface-simplification-and-refinement.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="c10572.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c10572.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-surface-simplification-and-refinement.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-BOOLEAN-OPERATIONS"
+></A
+>Boolean operations</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN10579"
+></A
+><H2
+>Name</H2
+>Boolean operations&nbsp;--&nbsp;set operations between surfaces: union, intersection, difference.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN10582"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-boolean-operations.html#GTS-SURFACE-INTER-CLASS-CAPS"
+>GTS_SURFACE_INTER_CLASS</A
+>         (klass)
+#define     <A
+HREF="gts-boolean-operations.html#GTS-SURFACE-INTER-CAPS"
+>GTS_SURFACE_INTER</A
+>               (obj)
+#define     <A
+HREF="gts-boolean-operations.html#GTS-IS-SURFACE-INTER-CAPS"
+>GTS_IS_SURFACE_INTER</A
+>            (obj)
+struct      <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+>;
+struct      <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+>;
+
+<GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     <A
+HREF="gts-boolean-operations.html#GTS-SURFACE-INTERSECTION"
+>gts_surface_intersection</A
+>        (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s1,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s2,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *faces_tree1,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *faces_tree2);
+<A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+>* <A
+HREF="gts-boolean-operations.html#GTS-SURFACE-INTER-CLASS"
+>gts_surface_inter_class</A
+>
+                                            (void);
+<A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+>* <A
+HREF="gts-boolean-operations.html#GTS-SURFACE-INTER-NEW"
+>gts_surface_inter_new</A
+>      (<A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+> *klass,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s1,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s2,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *faces_tree1,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *faces_tree2,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> is_open1,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> is_open2);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-boolean-operations.html#GTS-SURFACE-INTER-CHECK"
+>gts_surface_inter_check</A
+>         (<A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+> *si,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> *closed);
+enum        <A
+HREF="gts-boolean-operations.html#GTSBOOLEANOPERATION"
+>GtsBooleanOperation</A
+>;
+void        <A
+HREF="gts-boolean-operations.html#GTS-SURFACE-INTER-BOOLEAN"
+>gts_surface_inter_boolean</A
+>       (<A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+> *si,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-boolean-operations.html#GTSBOOLEANOPERATION"
+>GtsBooleanOperation</A
+> op);
+<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>* <A
+HREF="gts-boolean-operations.html#GTS-SURFACE-IS-SELF-INTERSECTING"
+>gts_surface_is_self_intersecting</A
+>
+                                            (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN10619"
+></A
+><H2
+>Description</H2
+><P
+>The three-dimensional curve intersection of two surfaces is described by a <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+> object. This object contains additional information which allows to compute all the set operations between the two surfaces.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN10623"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10625"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-INTER-CLASS-CAPS"
+></A
+>GTS_SURFACE_INTER_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_SURFACE_INTER_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10633"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10639"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-INTER-CAPS"
+></A
+>GTS_SURFACE_INTER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_SURFACE_INTER(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10647"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10653"
+></A
+><H3
+><A
+NAME="GTS-IS-SURFACE-INTER-CAPS"
+></A
+>GTS_IS_SURFACE_INTER()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_SURFACE_INTER(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10663"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10668"
+></A
+><H3
+><A
+NAME="GTSSURFACEINTERCLASS"
+></A
+>struct GtsSurfaceInterClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsSurfaceInterClass {
+
+  GtsObjectClass parent_class;
+};</PRE
+><P
+>The surface intersection class.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10673"
+></A
+><H3
+><A
+NAME="GTSSURFACEINTER"
+></A
+>struct GtsSurfaceInter</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsSurfaceInter {
+
+  GtsObject object;
+
+  GtsSurface * s1;
+  GtsSurface * s2;
+  GSList * edges;
+};</PRE
+><P
+>The surface intersection object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10679"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> <CODE
+CLASS="STRUCTFIELD"
+>object</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10685"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>s1</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Local triangulation of the intersecting faces of the first surface.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10691"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *<CODE
+CLASS="STRUCTFIELD"
+>s2</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Local triangulation of the intersecting faces of the second surface.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10697"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+> *<CODE
+CLASS="STRUCTFIELD"
+>edges</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>List of <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> defining the 3D curve intersection of the two surfaces.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10704"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-INTERSECTION"
+></A
+>gts_surface_intersection ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GSLIST"
+>GSList</GTKDOCLINK
+>*     gts_surface_intersection        (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s1,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s2,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *faces_tree1,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *faces_tree2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10716"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10722"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10728"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>faces_tree1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a bounding box tree (see <A
+HREF="gts-bounding-boxes-trees.html#GTS-BB-TREE-NEW"
+>gts_bb_tree_new</A
+>()) for
+the faces of <VAR
+CLASS="PARAMETER"
+>s1</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10735"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>faces_tree2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a bounding box tree for the faces of <VAR
+CLASS="PARAMETER"
+>s2</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10741"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a list of <A
+HREF="gts-edges.html#GTSEDGE"
+>GtsEdge</A
+> defining the curve intersection of the
+two surfaces.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10747"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-INTER-CLASS"
+></A
+>gts_surface_inter_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+>* gts_surface_inter_class
+                                            (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10755"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10761"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-INTER-NEW"
+></A
+>gts_surface_inter_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+>* gts_surface_inter_new      (<A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+> *klass,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s1,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s2,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *faces_tree1,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *faces_tree2,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> is_open1,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> is_open2);</PRE
+><P
+>When triangulating the cut faces, the new faces inherit the
+attributes of these original faces through their <GTKDOCLINK
+HREF="ATTRIBUTES"
+>attributes</GTKDOCLINK
+>()
+method.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10777"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTERCLASS"
+>GtsSurfaceInterClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10783"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10789"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10795"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>faces_tree1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a bounding box tree (see <A
+HREF="gts-bounding-boxes-trees.html#GTS-BB-TREE-NEW"
+>gts_bb_tree_new</A
+>()) for
+the faces of <VAR
+CLASS="PARAMETER"
+>s1</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10802"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>faces_tree2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a bounding box tree for the faces of <VAR
+CLASS="PARAMETER"
+>s2</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10808"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>is_open1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> whether <VAR
+CLASS="PARAMETER"
+>s1</VAR
+> is an "open" surface.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10814"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>is_open2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> whether <VAR
+CLASS="PARAMETER"
+>s2</VAR
+> is an "open" surface.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10820"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+> describing the intersection of <VAR
+CLASS="PARAMETER"
+>s1</VAR
+>
+and <VAR
+CLASS="PARAMETER"
+>s2</VAR
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10828"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-INTER-CHECK"
+></A
+>gts_surface_inter_check ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_surface_inter_check         (<A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+> *si,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> *closed);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10838"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>si</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10844"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>closed</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> is set to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>si</VAR
+>-&gt;edges is a closed curve, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+>
+otherwise.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10852"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if the curve described by <VAR
+CLASS="PARAMETER"
+>si</VAR
+> is an orientable
+manifold, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10860"
+></A
+><H3
+><A
+NAME="GTSBOOLEANOPERATION"
+></A
+>enum GtsBooleanOperation</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>typedef enum { GTS_1_OUT_2, 
+	       GTS_1_IN_2, 
+	       GTS_2_OUT_1, 
+	       GTS_2_IN_1 }             GtsBooleanOperation;</PRE
+><P
+><VAR
+CLASS="PARAMETER"
+>GTS_1_OUT_2</VAR
+> identifies the part of the first surface which lies outside the second surface.</P
+><P
+><VAR
+CLASS="PARAMETER"
+>GTS_1_IN_2</VAR
+> identifies the part of the first surface which lies inside the second surface.</P
+><P
+><VAR
+CLASS="PARAMETER"
+>GTS_2_OUT_1</VAR
+> identifies the part of the second surface which lies outside the first surface.</P
+><P
+><VAR
+CLASS="PARAMETER"
+>GTS_2_IN_1</VAR
+> identifies the part of the second surface which lies inside the first surface.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10872"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-INTER-BOOLEAN"
+></A
+>gts_surface_inter_boolean ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_surface_inter_boolean       (<A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+> *si,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-boolean-operations.html#GTSBOOLEANOPERATION"
+>GtsBooleanOperation</A
+> op);</PRE
+><P
+>Adds to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> the part of the surface described by <VAR
+CLASS="PARAMETER"
+>si</VAR
+> and <VAR
+CLASS="PARAMETER"
+>op</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10885"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>si</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-boolean-operations.html#GTSSURFACEINTER"
+>GtsSurfaceInter</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10891"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10897"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>op</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-boolean-operations.html#GTSBOOLEANOPERATION"
+>GtsBooleanOperation</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN10903"
+></A
+><H3
+><A
+NAME="GTS-SURFACE-IS-SELF-INTERSECTING"
+></A
+>gts_surface_is_self_intersecting ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>* gts_surface_is_self_intersecting
+                                            (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10912"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN10918"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> containing the faces of <VAR
+CLASS="PARAMETER"
+>s</VAR
+> which are
+self-intersecting or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if no faces of <VAR
+CLASS="PARAMETER"
+>s</VAR
+> are self-intersecting.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="c10572.html"
+><B
+>&lt;&lt;&lt;&nbsp;Surface operations</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-surface-simplification-and-refinement.html"
+><B
+>Surface simplification and refinement&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

@@ -1,0 +1,2399 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Isosurfaces from 3D functions</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Surface operations"
+HREF="c10572.html"><LINK
+REL="PREVIOUS"
+TITLE="Out-of-core simplification"
+HREF="gts-out-of-core-simplification.html"><LINK
+REL="NEXT"
+TITLE="Delaunay and constrained Delaunay triangulations"
+HREF="gts-delaunay-and-constrained-delaunay-triangulations.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-out-of-core-simplification.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c10572.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-delaunay-and-constrained-delaunay-triangulations.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-ISOSURFACES-FROM-3D-FUNCTIONS"
+></A
+>Isosurfaces from 3D functions</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN11954"
+></A
+><H2
+>Name</H2
+>Isosurfaces from 3D functions&nbsp;--&nbsp;computing triangulated isosurfaces of a given function f(x,y,z).</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN11957"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+struct      <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+>;
+struct      <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+>;
+
+<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+>* <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-GRID-PLANE-NEW"
+>gts_grid_plane_new</A
+>            (<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> nx,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> ny);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-GRID-PLANE-DESTROY"
+>gts_grid_plane_destroy</A
+>          (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+> *g);
+
+struct      <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>;
+
+<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>* <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISO-SLICE-NEW"
+>gts_iso_slice_new</A
+>              (<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> nx,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> ny);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISO-SLICE-FILL"
+>gts_iso_slice_fill</A
+>              (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+> *plane1,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+> *plane2,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **f1,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **f2,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *klass);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISO-SLICE-FILL-CARTESIAN"
+>gts_iso_slice_fill_cartesian</A
+>    (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **f1,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **f2,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *klass);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISO-SLICE-DESTROY"
+>gts_iso_slice_destroy</A
+>           (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-SLICE"
+>gts_isosurface_slice</A
+>            (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice1,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice2,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);
+void        (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>*GtsIsoCartesianFunc</A
+>)          (<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **a,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> i,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-CARTESIAN"
+>gts_isosurface_cartesian</A
+>        (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+> f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-TETRA"
+>gts_isosurface_tetra</A
+>            (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+> f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-TETRA-BOUNDED"
+>gts_isosurface_tetra_bounded</A
+>    (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+> f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso);
+void        <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-TETRA-BCL"
+>gts_isosurface_tetra_bcl</A
+>        (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+> f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN12023"
+></A
+><H2
+>Description</H2
+><P
+>Using the <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-CARTESIAN"
+>gts_isosurface_cartesian</A
+>() function, it is possible to build a triangulated isosurface of a given user-defined function. As its name indicates this function assumes that the values of the user-defined function are defined for points located on a regular cartesian grid described by the <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> parameter. The triangles describing the isosurface are computed for each pair of successive planes z and z+dz in a pipelined manner. Consequently only two planes need to be stored in memory at any time. This allows to construct isosurfaces for datasets too large to fit in main memory.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN12028"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12030"
+></A
+><H3
+><A
+NAME="GTSCARTESIANGRID"
+></A
+>struct GtsCartesianGrid</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsCartesianGrid {
+
+  guint nx, ny, nz;
+  gdouble x, dx, y, dy, z, dz;
+};</PRE
+><P
+>A regular cartesian grid is defined by the number of points in each direction, the spatial increment in each direction and the coordinates of the first point.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12036"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>nx</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Number of points in direction x.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12042"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>ny</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Number of points in direction y.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12048"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>nz</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Number of points in direction z.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12054"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>x</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>x coordinate of the first point.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12060"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>dx</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Increment in direction x.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12066"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>y</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>y coordinate of the first point.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12072"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>dy</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Increment in direction y.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12078"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>z</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>z coordinate of the first point.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12084"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>dz</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Increment in direction z.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12090"
+></A
+><H3
+><A
+NAME="GTSGRIDPLANE"
+></A
+>struct GtsGridPlane</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGridPlane {
+
+  GtsPoint ** p;
+  guint nx, ny;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12095"
+></A
+><H3
+><A
+NAME="GTS-GRID-PLANE-NEW"
+></A
+>gts_grid_plane_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+>* gts_grid_plane_new            (<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> nx,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> ny);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12105"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>nx</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12110"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ny</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12115"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12120"
+></A
+><H3
+><A
+NAME="GTS-GRID-PLANE-DESTROY"
+></A
+>gts_grid_plane_destroy ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_grid_plane_destroy          (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+> *g);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12128"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12133"
+></A
+><H3
+><A
+NAME="GTSISOSLICE"
+></A
+>struct GtsIsoSlice</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsIsoSlice;</PRE
+><P
+>A GtsIsoSlice is an opaque data structure containing the coordinates of the points located on the isosurface for a given slice of the user-defined function.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12138"
+></A
+><H3
+><A
+NAME="GTS-ISO-SLICE-NEW"
+></A
+>gts_iso_slice_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>* gts_iso_slice_new              (<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> nx,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> ny);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12148"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>nx</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> number of vertices in the x direction.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12153"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ny</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> number of vertices in the y direction.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12158"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12164"
+></A
+><H3
+><A
+NAME="GTS-ISO-SLICE-FILL"
+></A
+>gts_iso_slice_fill ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_iso_slice_fill              (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+> *plane1,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+> *plane2,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **f1,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **f2,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *klass);</PRE
+><P
+>Fill <VAR
+CLASS="PARAMETER"
+>slice</VAR
+> with the coordinates of the vertices defined by 
+f1 (x,y,z) = <VAR
+CLASS="PARAMETER"
+>iso</VAR
+> and f2 (x, y, z) = <VAR
+CLASS="PARAMETER"
+>iso</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12181"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>slice</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12187"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>plane1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12193"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>plane2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSGRIDPLANE"
+>GtsGridPlane</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12199"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> values of the function corresponding to <VAR
+CLASS="PARAMETER"
+>plane1</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12205"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> values of the function corresponding to <VAR
+CLASS="PARAMETER"
+>plane2</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12211"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>iso</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> isosurface value.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12216"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> or one of its descendant to be used for the 
+new vertices.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12222"
+></A
+><H3
+><A
+NAME="GTS-ISO-SLICE-FILL-CARTESIAN"
+></A
+>gts_iso_slice_fill_cartesian ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_iso_slice_fill_cartesian    (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **f1,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **f2,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso,
+                                             <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+> *klass);</PRE
+><P
+>Fill <VAR
+CLASS="PARAMETER"
+>slice</VAR
+> with the coordinates of the vertices defined by 
+f1 (x,y,z) = <VAR
+CLASS="PARAMETER"
+>iso</VAR
+> and f2 (x, y, z) = <VAR
+CLASS="PARAMETER"
+>iso</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12238"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>slice</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12244"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12250"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> values of the function for plane z = <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.z.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12256"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> values of the function for plane z = <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.z + <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.dz.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12263"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>iso</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> isosurface value.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12268"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-vertices.html#GTSVERTEXCLASS"
+>GtsVertexClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12274"
+></A
+><H3
+><A
+NAME="GTS-ISO-SLICE-DESTROY"
+></A
+>gts_iso_slice_destroy ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_iso_slice_destroy           (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice);</PRE
+><P
+>Free all memory allocated for <VAR
+CLASS="PARAMETER"
+>slice</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12283"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>slice</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12289"
+></A
+><H3
+><A
+NAME="GTS-ISOSURFACE-SLICE"
+></A
+>gts_isosurface_slice ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_isosurface_slice            (<A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice1,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+> *slice2,
+                                             <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface);</PRE
+><P
+>Given two successive slices <VAR
+CLASS="PARAMETER"
+>slice1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>slice2</VAR
+> link their vertices with
+segments and triangles which are added to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12302"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>slice1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12308"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>slice2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOSLICE"
+>GtsIsoSlice</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12314"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12320"
+></A
+><H3
+><A
+NAME="GTSISOCARTESIANFUNC"
+></A
+>GtsIsoCartesianFunc ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        (*GtsIsoCartesianFunc)          (<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> **a,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> i,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>This user-defined function is passed to the <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-CARTESIAN"
+>gts_isosurface_cartesian</A
+>() 
+function. Given a particular <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> <VAR
+CLASS="PARAMETER"
+>g</VAR
+> it must fill the array <VAR
+CLASS="PARAMETER"
+>a</VAR
+>
+with the values of the function for the plane z=<VAR
+CLASS="PARAMETER"
+>g</VAR
+>.z (or for the corresponding 
+index <VAR
+CLASS="PARAMETER"
+>i</VAR
+>). This function is always called in order by <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-CARTESIAN"
+>gts_isosurface_cartesian</A
+>(), i.e. <VAR
+CLASS="PARAMETER"
+>i</VAR
+> varies from 0 to <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.nz - 1 with an increment of one (and similarly <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.z is incremented every time by <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.dz).</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12341"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>a</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>the 2D array to be filled.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12346"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12352"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>i</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>the z direction index of the plane to be filled.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12357"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>user data.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12362"
+></A
+><H3
+><A
+NAME="GTS-ISOSURFACE-CARTESIAN"
+></A
+>gts_isosurface_cartesian ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_isosurface_cartesian        (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+> f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso);</PRE
+><P
+>Adds to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> new faces defining the isosurface f(x,y,z) = <VAR
+CLASS="PARAMETER"
+>iso</VAR
+>. By
+convention, the normals to the surface are pointing toward the positive
+values of f(x,y,z) - <VAR
+CLASS="PARAMETER"
+>iso</VAR
+>.</P
+><P
+>The user function <VAR
+CLASS="PARAMETER"
+>f</VAR
+> is called successively for each value of the z 
+coordinate defined by <VAR
+CLASS="PARAMETER"
+>g</VAR
+>. It must fill the corresponding (x,y) plane with
+the values of the function for which the isosurface is to be computed.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12380"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12386"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12392"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12398"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>f</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12404"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>iso</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> isosurface value.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12409"
+></A
+><H3
+><A
+NAME="GTS-ISOSURFACE-TETRA"
+></A
+>gts_isosurface_tetra ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_isosurface_tetra            (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+> f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso);</PRE
+><P
+>Adds to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> new faces defining the isosurface f(x,y,z) =
+<VAR
+CLASS="PARAMETER"
+>iso</VAR
+>. By convention, the normals to the surface are pointing toward
+the positive values of f(x,y,z) - <VAR
+CLASS="PARAMETER"
+>iso</VAR
+>.</P
+><P
+>The user function <VAR
+CLASS="PARAMETER"
+>f</VAR
+> is called successively for each value of the z
+coordinate defined by <VAR
+CLASS="PARAMETER"
+>g</VAR
+>. It must fill the corresponding (x,y)
+plane with the values of the function for which the isosurface is
+to be computed.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12427"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12433"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12439"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12445"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>f</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12451"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>iso</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> isosurface value.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12456"
+></A
+><H3
+><A
+NAME="GTS-ISOSURFACE-TETRA-BOUNDED"
+></A
+>gts_isosurface_tetra_bounded ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_isosurface_tetra_bounded    (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+> f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso);</PRE
+><P
+>Adds to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> new faces defining the isosurface f(x,y,z) =
+<VAR
+CLASS="PARAMETER"
+>iso</VAR
+>. By convention, the normals to the surface are pointing toward
+the positive values of f(x,y,z) - <VAR
+CLASS="PARAMETER"
+>iso</VAR
+>. To ensure a closed object,
+a boundary of G_MINDOUBLE is added around the domain</P
+><P
+>The user function <VAR
+CLASS="PARAMETER"
+>f</VAR
+> is called successively for each value of the z
+coordinate defined by <VAR
+CLASS="PARAMETER"
+>g</VAR
+>. It must fill the corresponding (x,y)
+plane with the values of the function for which the isosurface is
+to be computed.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12474"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12480"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12486"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12492"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>f</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12498"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>iso</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> isosurface value.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN12503"
+></A
+><H3
+><A
+NAME="GTS-ISOSURFACE-TETRA-BCL"
+></A
+>gts_isosurface_tetra_bcl ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_isosurface_tetra_bcl        (<A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+> *surface,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+> g,
+                                             <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+> f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> iso);</PRE
+><P
+>Adds to <VAR
+CLASS="PARAMETER"
+>surface</VAR
+> new faces defining the isosurface f(x,y,z) =
+<VAR
+CLASS="PARAMETER"
+>iso</VAR
+>. By convention, the normals to the surface are pointing toward
+the positive values of f(x,y,z) - <VAR
+CLASS="PARAMETER"
+>iso</VAR
+>.</P
+><P
+>The user function <VAR
+CLASS="PARAMETER"
+>f</VAR
+> is called successively for each value of the z
+coordinate defined by <VAR
+CLASS="PARAMETER"
+>g</VAR
+>. It must fill the corresponding (x,y)
+plane with the values of the function for which the isosurface is
+to be computed.  </P
+><P
+>This version produces the dual "body-centered" faces relative to
+the faces produced by <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTS-ISOSURFACE-TETRA"
+>gts_isosurface_tetra</A
+>().</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12523"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>surface</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSSURFACE"
+>GtsSurface</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12529"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSCARTESIANGRID"
+>GtsCartesianGrid</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12535"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-isosurfaces-from-3d-functions.html#GTSISOCARTESIANFUNC"
+>GtsIsoCartesianFunc</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12541"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>f</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN12547"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>iso</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> isosurface value.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-out-of-core-simplification.html"
+><B
+>&lt;&lt;&lt;&nbsp;Out-of-core simplification</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-delaunay-and-constrained-delaunay-triangulations.html"
+><B
+>Delaunay and constrained Delaunay triangulations&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

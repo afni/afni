@@ -1,0 +1,1803 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Miscellaneous macros and functions</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Basic Macros, functions and data structures"
+HREF="c4.html"><LINK
+REL="PREVIOUS"
+TITLE="Simple statistics"
+HREF="gts-simple-statistics.html"><LINK
+REL="NEXT"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-simple-statistics.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c4.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="c2560.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-MISCELLANEOUS-MACROS-AND-FUNCTIONS"
+></A
+>Miscellaneous macros and functions</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN2121"
+></A
+><H2
+>Name</H2
+>Miscellaneous macros and functions&nbsp;--&nbsp;Various utilities.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN2124"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-COMMENTS-CAPS"
+>GTS_COMMENTS</A
+>
+
+struct      <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>;
+enum        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSTOKENTYPE"
+>GtsTokenType</A
+>;
+struct      <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+>;
+
+<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>*    <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-NEW"
+>gts_file_new</A
+>                    (<GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fp);
+void        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-NEXT-TOKEN"
+>gts_file_next_token</A
+>             (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);
+void        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-FIRST-TOKEN-AFTER"
+>gts_file_first_token_after</A
+>      (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSTOKENTYPE"
+>GtsTokenType</A
+> type);
+void        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-ASSIGN-START"
+>gts_file_assign_start</A
+>           (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+> *vars);
+<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+>* <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-ASSIGN-NEXT"
+>gts_file_assign_next</A
+>       (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+> *vars);
+void        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-ASSIGN-VARIABLES"
+>gts_file_assign_variables</A
+>       (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+> *vars);
+<GTKDOCLINK
+HREF="GINT"
+>gint</GTKDOCLINK
+>        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-GETC"
+>gts_file_getc</A
+>                   (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);
+<GTKDOCLINK
+HREF="GINT"
+>gint</GTKDOCLINK
+>        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-GETC-SCOPE"
+>gts_file_getc_scope</A
+>             (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-READ"
+>gts_file_read</A
+>                   (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> ptr,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> size,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> nmemb);
+void        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-VARIABLE-ERROR"
+>gts_file_variable_error</A
+>         (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+> *vars,
+                                             const <GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *name,
+                                             const <GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *format,
+                                             ...);
+void        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-VERROR"
+>gts_file_verror</A
+>                 (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             const <GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *format,
+                                             va_list args);
+void        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-ERROR"
+>gts_file_error</A
+>                  (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             const <GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *format,
+                                             ...);
+void        <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-DESTROY"
+>gts_file_destroy</A
+>                (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN2174"
+></A
+><H2
+>Description</H2
+><P
+>The <GTKDOCLINK
+HREF="GTS-GET-TOKEN"
+>gts_get_token</GTKDOCLINK
+>() and <GTKDOCLINK
+HREF="GTS-GET-NEWLINE"
+>gts_get_newline</GTKDOCLINK
+>() functions are used for parsing GTS geometric files.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN2179"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2181"
+></A
+><H3
+><A
+NAME="GTS-COMMENTS-CAPS"
+></A
+>GTS_COMMENTS</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_COMMENTS  "#!"</PRE
+><P
+>Set of characters used as comments identifiers in GTS geometric files.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2186"
+></A
+><H3
+><A
+NAME="GTSFILE"
+></A
+>struct GtsFile</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsFile {
+
+  FILE * fp;
+  guint line, pos;
+  GString * token;
+  GtsTokenType type;
+  gchar * error;
+
+  guint curline, curpos;
+  guint scope, scope_max;
+  gint next_token;
+  gchar * delimiters;
+  gchar * comments;
+  gchar * tokens;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2191"
+></A
+><H3
+><A
+NAME="GTSTOKENTYPE"
+></A
+>enum GtsTokenType</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>typedef enum {
+  GTS_NONE   = 1 &lt;&lt; 8,
+  GTS_INT    = 1 &lt;&lt; 9,
+  GTS_UINT   = 1 &lt;&lt; 10,
+  GTS_FLOAT  = 1 &lt;&lt; 11,
+  GTS_DOUBLE = 1 &lt;&lt; 12,
+  GTS_STRING = 1 &lt;&lt; 13,
+  GTS_FILE   = 1 &lt;&lt; 14,
+  GTS_ERROR  = 1 &lt;&lt; 15
+} GtsTokenType;</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2196"
+></A
+><H3
+><A
+NAME="GTSFILEVARIABLE"
+></A
+>struct GtsFileVariable</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsFileVariable {
+
+  GtsTokenType type;
+  gchar name[30];
+  gboolean unique;
+  gpointer data;
+  gboolean set;
+  guint line, pos;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2201"
+></A
+><H3
+><A
+NAME="GTS-FILE-NEW"
+></A
+>gts_file_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>*    gts_file_new                    (<GTKDOCLINK
+HREF="FILE-CAPS"
+>FILE</GTKDOCLINK
+> *fp);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2210"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>fp</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a file pointer.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2215"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2221"
+></A
+><H3
+><A
+NAME="GTS-FILE-NEXT-TOKEN"
+></A
+>gts_file_next_token ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_file_next_token             (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);</PRE
+><P
+>Reads next token from <VAR
+CLASS="PARAMETER"
+>f</VAR
+> and updates its <VAR
+CLASS="PARAMETER"
+>token</VAR
+> and <VAR
+CLASS="PARAMETER"
+>delim</VAR
+> fields.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2232"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2238"
+></A
+><H3
+><A
+NAME="GTS-FILE-FIRST-TOKEN-AFTER"
+></A
+>gts_file_first_token_after ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_file_first_token_after      (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSTOKENTYPE"
+>GtsTokenType</A
+> type);</PRE
+><P
+>Finds and sets the first token of a type different from <VAR
+CLASS="PARAMETER"
+>type</VAR
+> 
+occuring after a token of type <VAR
+CLASS="PARAMETER"
+>type</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2249"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2255"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>type</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSTOKENTYPE"
+>GtsTokenType</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2261"
+></A
+><H3
+><A
+NAME="GTS-FILE-ASSIGN-START"
+></A
+>gts_file_assign_start ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_file_assign_start           (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+> *vars);</PRE
+><P
+>Opens a block delimited by braces to read a list of optional
+arguments specified by <VAR
+CLASS="PARAMETER"
+>vars</VAR
+>.  </P
+><P
+>If an error is encountered the <VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> is set.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2274"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2280"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vars</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <VAR
+CLASS="LITERAL"
+>GTS_NONE</VAR
+> terminated array of <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2287"
+></A
+><H3
+><A
+NAME="GTS-FILE-ASSIGN-NEXT"
+></A
+>gts_file_assign_next ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+>* gts_file_assign_next       (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+> *vars);</PRE
+><P
+>Assigns the next optional argument of <VAR
+CLASS="PARAMETER"
+>vars</VAR
+> read from <VAR
+CLASS="PARAMETER"
+>f</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2299"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2305"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vars</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <VAR
+CLASS="LITERAL"
+>GTS_NONE</VAR
+> terminated array of <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2312"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the variable of <VAR
+CLASS="PARAMETER"
+>vars</VAR
+> which has been assigned or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if
+no variable has been assigned (if an error has been encountered the
+<VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> is set).  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2321"
+></A
+><H3
+><A
+NAME="GTS-FILE-ASSIGN-VARIABLES"
+></A
+>gts_file_assign_variables ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_file_assign_variables       (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+> *vars);</PRE
+><P
+>Assigns all the variables belonging to <VAR
+CLASS="PARAMETER"
+>vars</VAR
+> found in <VAR
+CLASS="PARAMETER"
+>f</VAR
+>.</P
+><P
+>If an error is encountered the <VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> is set.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2335"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2341"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vars</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> an array of <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2347"
+></A
+><H3
+><A
+NAME="GTS-FILE-GETC"
+></A
+>gts_file_getc ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GINT"
+>gint</GTKDOCLINK
+>        gts_file_getc                   (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2356"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2362"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the next character in <VAR
+CLASS="PARAMETER"
+>f</VAR
+> or EOF if the end of the file is
+reached or if an error occured.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2368"
+></A
+><H3
+><A
+NAME="GTS-FILE-GETC-SCOPE"
+></A
+>gts_file_getc_scope ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GINT"
+>gint</GTKDOCLINK
+>        gts_file_getc_scope             (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2377"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2383"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the next character in <VAR
+CLASS="PARAMETER"
+>f</VAR
+> in the scope defined by
+<VAR
+CLASS="PARAMETER"
+>f</VAR
+>-&gt;scope_max or EOF if the end of the file is reached or if an
+error occured.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2390"
+></A
+><H3
+><A
+NAME="GTS-FILE-READ"
+></A
+>gts_file_read ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_file_read                   (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> ptr,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> size,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> nmemb);</PRE
+><P
+>Reads <VAR
+CLASS="PARAMETER"
+>nmemb</VAR
+> elements of data, each <VAR
+CLASS="PARAMETER"
+>size</VAR
+> bytes long, from <VAR
+CLASS="PARAMETER"
+>f</VAR
+>,
+storing them at the location given by <VAR
+CLASS="PARAMETER"
+>ptr</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2406"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2412"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ptr</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2417"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>size</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> size of an element.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2422"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>nmemb</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> number of elements.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2427"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of elements read.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2432"
+></A
+><H3
+><A
+NAME="GTS-FILE-VARIABLE-ERROR"
+></A
+>gts_file_variable_error ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_file_variable_error         (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+> *vars,
+                                             const <GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *name,
+                                             const <GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *format,
+                                             ...);</PRE
+><P
+>Sets the <VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> using <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-VERROR"
+>gts_file_verror</A
+>().</P
+><P
+>String <VAR
+CLASS="PARAMETER"
+>name</VAR
+> must match one of the variable names in <VAR
+CLASS="PARAMETER"
+>vars</VAR
+>.</P
+><P
+>If variable <VAR
+CLASS="PARAMETER"
+>name</VAR
+> has been assigned (using <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-ASSIGN-VARIABLES"
+>gts_file_assign_variables</A
+>())
+sets the <VAR
+CLASS="PARAMETER"
+>line</VAR
+> and <VAR
+CLASS="PARAMETER"
+>pos</VAR
+> fields of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> to the line and position where
+it has been assigned.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2455"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2461"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>vars</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> an array of <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILEVARIABLE"
+>GtsFileVariable</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2467"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>name</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the name of a variable in <VAR
+CLASS="PARAMETER"
+>vars</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2473"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>format</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the standard sprintf() format string.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2478"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>...</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the parameters to insert into the format string.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2483"
+></A
+><H3
+><A
+NAME="GTS-FILE-VERROR"
+></A
+>gts_file_verror ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_file_verror                 (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             const <GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *format,
+                                             va_list args);</PRE
+><P
+>Sets the <VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> using <GTKDOCLINK
+HREF="G-STRDUP-VPRINTF"
+>g_strdup_vprintf</GTKDOCLINK
+>().</P
+><P
+>This function can be called only once and disables any other
+operation on <VAR
+CLASS="PARAMETER"
+>f</VAR
+> (<GTKDOCLINK
+HREF="GTS-FILE-CLOSE"
+>gts_file_close</GTKDOCLINK
+>() excepted).</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2498"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <VAR
+CLASS="PARAMETER"
+>GtsFile</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2504"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>format</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the standard sprintf() format string.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2509"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>args</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the list of parameters to insert into the format string.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2514"
+></A
+><H3
+><A
+NAME="GTS-FILE-ERROR"
+></A
+>gts_file_error ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_file_error                  (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f,
+                                             const <GTKDOCLINK
+HREF="GCHAR"
+>gchar</GTKDOCLINK
+> *format,
+                                             ...);</PRE
+><P
+>Sets the <VAR
+CLASS="PARAMETER"
+>error</VAR
+> field of <VAR
+CLASS="PARAMETER"
+>f</VAR
+> using <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTS-FILE-VERROR"
+>gts_file_verror</A
+>().</P
+><P
+>This function can be called only once and disables any other
+operation on <VAR
+CLASS="PARAMETER"
+>f</VAR
+> (<GTKDOCLINK
+HREF="GTS-FILE-CLOSE"
+>gts_file_close</GTKDOCLINK
+>() excepted).</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2529"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <VAR
+CLASS="PARAMETER"
+>GtsFile</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2535"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>format</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the standard sprintf() format string.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2540"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>...</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the parameters to insert into the format string.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN2545"
+></A
+><H3
+><A
+NAME="GTS-FILE-DESTROY"
+></A
+>gts_file_destroy ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_file_destroy                (<A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+> *f);</PRE
+><P
+>Frees all the memory allocated for <VAR
+CLASS="PARAMETER"
+>f</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN2554"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>f</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-miscellaneous-macros-and-functions.html#GTSFILE"
+>GtsFile</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-simple-statistics.html"
+><B
+>&lt;&lt;&lt;&nbsp;Simple statistics</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="c2560.html"
+><B
+>Geometrical Object Hierarchy&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

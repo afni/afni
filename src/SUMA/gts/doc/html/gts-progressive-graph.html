@@ -1,0 +1,2361 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Progressive graph</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Graph and operations on graphs"
+HREF="c14807.html"><LINK
+REL="PREVIOUS"
+TITLE="Weighted graph"
+HREF="gts-weighted-graph.html"><LINK
+REL="NEXT"
+TITLE="Graph partitioning"
+HREF="gts-graph-partitioning.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-weighted-graph.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c14807.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-graph-partitioning.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-PROGRESSIVE-GRAPH"
+></A
+>Progressive graph</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN16380"
+></A
+><H2
+>Name</H2
+>Progressive graph&nbsp;--&nbsp;</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN16383"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-progressive-graph.html#GTS-GNODE-SPLIT-CLASS-CAPS"
+>GTS_GNODE_SPLIT_CLASS</A
+>           (klass)
+#define     <A
+HREF="gts-progressive-graph.html#GTS-GNODE-SPLIT-CAPS"
+>GTS_GNODE_SPLIT</A
+>                 (obj)
+#define     <A
+HREF="gts-progressive-graph.html#GTS-IS-GNODE-SPLIT-CAPS"
+>GTS_IS_GNODE_SPLIT</A
+>              (obj)
+#define     <A
+HREF="gts-progressive-graph.html#GTS-GNODE-SPLIT-N1-CAPS"
+>GTS_GNODE_SPLIT_N1</A
+>              (ns)
+#define     <A
+HREF="gts-progressive-graph.html#GTS-GNODE-SPLIT-N2-CAPS"
+>GTS_GNODE_SPLIT_N2</A
+>              (ns)
+struct      <A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+>;
+struct      <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>;
+
+<A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+>* <A
+HREF="gts-progressive-graph.html#GTS-GNODE-SPLIT-CLASS"
+>gts_gnode_split_class</A
+>   (void);
+<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>* <A
+HREF="gts-progressive-graph.html#GTS-GNODE-SPLIT-NEW"
+>gts_gnode_split_new</A
+>          (<A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *n1,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *n2);
+void        <A
+HREF="gts-progressive-graph.html#GTS-GNODE-SPLIT-COLLAPSE"
+>gts_gnode_split_collapse</A
+>        (<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> *ns,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+> *klass);
+void        <A
+HREF="gts-progressive-graph.html#GTS-GNODE-SPLIT-EXPAND"
+>gts_gnode_split_expand</A
+>          (<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> *ns,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);
+
+#define     <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-CLASS-CAPS"
+>GTS_PGRAPH_CLASS</A
+>                (klass)
+#define     <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-CAPS"
+>GTS_PGRAPH</A
+>                      (obj)
+#define     <A
+HREF="gts-progressive-graph.html#GTS-IS-PGRAPH-CAPS"
+>GTS_IS_PGRAPH</A
+>                   (obj)
+struct      <A
+HREF="gts-progressive-graph.html#GTSPGRAPHCLASS"
+>GtsPGraphClass</A
+>;
+struct      <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>;
+
+<A
+HREF="gts-progressive-graph.html#GTSPGRAPHCLASS"
+>GtsPGraphClass</A
+>* <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-CLASS"
+>gts_pgraph_class</A
+>            (void);
+<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>*  <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-NEW"
+>gts_pgraph_new</A
+>                  (<A
+HREF="gts-progressive-graph.html#GTSPGRAPHCLASS"
+>GtsPGraphClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+> *split_class,
+                                             <A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+> *node_class,
+                                             <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+> *edge_class,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> min);
+<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>* <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-ADD-NODE"
+>gts_pgraph_add_node</A
+>          (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);
+<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>* <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-REMOVE-NODE"
+>gts_pgraph_remove_node</A
+>       (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-DOWN"
+>gts_pgraph_down</A
+>                 (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+void        <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-SET-NODE-NUMBER"
+>gts_pgraph_set_node_number</A
+>      (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> n);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-GET-NODE-NUMBER"
+>gts_pgraph_get_node_number</A
+>      (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-MAX-NODE-NUMBER"
+>gts_pgraph_max_node_number</A
+>      (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-MIN-NODE-NUMBER"
+>gts_pgraph_min_node_number</A
+>      (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);
+void        <A
+HREF="gts-progressive-graph.html#GTS-PGRAPH-FOREACH-NODE"
+>gts_pgraph_foreach_node</A
+>         (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN16450"
+></A
+><H2
+>Description</H2
+><P
+></P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN16453"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16455"
+></A
+><H3
+><A
+NAME="GTS-GNODE-SPLIT-CLASS-CAPS"
+></A
+>GTS_GNODE_SPLIT_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_GNODE_SPLIT_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16461"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16466"
+></A
+><H3
+><A
+NAME="GTS-GNODE-SPLIT-CAPS"
+></A
+>GTS_GNODE_SPLIT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_GNODE_SPLIT(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16472"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16477"
+></A
+><H3
+><A
+NAME="GTS-IS-GNODE-SPLIT-CAPS"
+></A
+>GTS_IS_GNODE_SPLIT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_GNODE_SPLIT(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16483"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16488"
+></A
+><H3
+><A
+NAME="GTS-GNODE-SPLIT-N1-CAPS"
+></A
+>GTS_GNODE_SPLIT_N1()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_GNODE_SPLIT_N1(ns) (GTS_IS_GNODE_SPLIT ((ns)-&gt;n1) ? GTS_GNODE_SPLIT ((ns)-&gt;n1)-&gt;n : GTS_GNODE ((ns)-&gt;n1))</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16494"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ns</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16499"
+></A
+><H3
+><A
+NAME="GTS-GNODE-SPLIT-N2-CAPS"
+></A
+>GTS_GNODE_SPLIT_N2()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define GTS_GNODE_SPLIT_N2(ns) (GTS_IS_GNODE_SPLIT ((ns)-&gt;n2) ? GTS_GNODE_SPLIT ((ns)-&gt;n2)-&gt;n : GTS_GNODE ((ns)-&gt;n2))</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16505"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ns</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16510"
+></A
+><H3
+><A
+NAME="GTSGNODESPLITCLASS"
+></A
+>struct GtsGNodeSplitClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGNodeSplitClass {
+
+  GtsObjectClass parent_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16515"
+></A
+><H3
+><A
+NAME="GTSGNODESPLIT"
+></A
+>struct GtsGNodeSplit</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsGNodeSplit {
+
+  GtsObject object;
+
+  GtsGNode * n;
+  GtsObject * n1;
+  GtsObject * n2;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16520"
+></A
+><H3
+><A
+NAME="GTS-GNODE-SPLIT-CLASS"
+></A
+>gts_gnode_split_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+>* gts_gnode_split_class   (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16528"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16534"
+></A
+><H3
+><A
+NAME="GTS-GNODE-SPLIT-NEW"
+></A
+>gts_gnode_split_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>* gts_gnode_split_new          (<A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+> *n,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *n1,
+                                             <A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> *n2);</PRE
+><P
+>Creates a new <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> which would collapse <VAR
+CLASS="PARAMETER"
+>n1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>n2</VAR
+> into
+<VAR
+CLASS="PARAMETER"
+>n</VAR
+>. The collapse itself is not performed.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16550"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16556"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16562"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> or <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16569"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> or <A
+HREF="gts-graph-class.html#GTSGNODE"
+>GtsGNode</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16576"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the new <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16582"
+></A
+><H3
+><A
+NAME="GTS-GNODE-SPLIT-COLLAPSE"
+></A
+>gts_gnode_split_collapse ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_gnode_split_collapse        (<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> *ns,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+> *klass);</PRE
+><P
+>Collapses the node split <VAR
+CLASS="PARAMETER"
+>ns</VAR
+>. Any new edge created during the
+process will be of class <VAR
+CLASS="PARAMETER"
+>klass</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16594"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ns</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16600"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16606"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16612"
+></A
+><H3
+><A
+NAME="GTS-GNODE-SPLIT-EXPAND"
+></A
+>gts_gnode_split_expand ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_gnode_split_expand          (<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> *ns,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g);</PRE
+><P
+>Expands the node split ns adding the new nodes to <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16622"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>ns</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16628"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16634"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-CLASS-CAPS"
+></A
+>GTS_PGRAPH_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_PGRAPH_CLASS(klass)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16640"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16645"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-CAPS"
+></A
+>GTS_PGRAPH()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_PGRAPH(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16651"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16656"
+></A
+><H3
+><A
+NAME="GTS-IS-PGRAPH-CAPS"
+></A
+>GTS_IS_PGRAPH()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_PGRAPH(obj)</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16662"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16667"
+></A
+><H3
+><A
+NAME="GTSPGRAPHCLASS"
+></A
+>struct GtsPGraphClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsPGraphClass {
+
+  GtsObjectClass parent_class;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16672"
+></A
+><H3
+><A
+NAME="GTSPGRAPH"
+></A
+>struct GtsPGraph</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsPGraph {
+
+  GtsObject object;
+
+  GtsGraph * g;
+  GPtrArray * split;
+  GArray * levels;
+  GtsGNodeSplitClass * split_class;
+  GtsWGEdgeClass * edge_class;
+  guint pos, min, level;
+};</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16677"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-CLASS"
+></A
+>gts_pgraph_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-graph.html#GTSPGRAPHCLASS"
+>GtsPGraphClass</A
+>* gts_pgraph_class            (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16685"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-progressive-graph.html#GTSPGRAPHCLASS"
+>GtsPGraphClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16691"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-NEW"
+></A
+>gts_pgraph_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>*  gts_pgraph_new                  (<A
+HREF="gts-progressive-graph.html#GTSPGRAPHCLASS"
+>GtsPGraphClass</A
+> *klass,
+                                             <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+> *g,
+                                             <A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+> *split_class,
+                                             <A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+> *node_class,
+                                             <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+> *edge_class,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> min);</PRE
+><P
+>Creates a new multilevel approximation of graph <VAR
+CLASS="PARAMETER"
+>g</VAR
+>. At each level a
+maximal matching is created using the Heavy Edge Matching (HEM)
+technique of Karypis and Kumar (1997). The newly created nodes are
+of type <VAR
+CLASS="PARAMETER"
+>node_class</VAR
+> and their weight is set to the sum of the
+weights of their children. The newly created edges are of type
+<VAR
+CLASS="PARAMETER"
+>edge_class</VAR
+> and their weight is set to the sum of the weight of the
+collapsed edges. The last level is reached when the maximal
+matching obtained would lead to a graph with less than <VAR
+CLASS="PARAMETER"
+>min</VAR
+> nodes.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16709"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSPGRAPHCLASS"
+>GtsPGraphClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16715"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>g</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-graph-class.html#GTSGRAPH"
+>GtsGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16721"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>split_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSGNODESPLITCLASS"
+>GtsGNodeSplitClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16727"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>node_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-weighted-graph.html#GTSWGNODECLASS"
+>GtsWGNodeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16733"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>edge_class</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-weighted-graph.html#GTSWGEDGECLASS"
+>GtsWGEdgeClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16739"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>min</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the minimum number of nodes.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16744"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the new <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> containing the multilevel
+representation of <VAR
+CLASS="PARAMETER"
+>g</VAR
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16751"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-ADD-NODE"
+></A
+>gts_pgraph_add_node ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>* gts_pgraph_add_node          (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);</PRE
+><P
+>Adds one node to the multilevel graph <VAR
+CLASS="PARAMETER"
+>pg</VAR
+> by expanding the next
+available <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16762"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>pg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16768"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the expanded <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> or <GTKDOCLINK
+HREF="NULL-CAPS"
+>NULL</GTKDOCLINK
+> if all the
+<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> have already been expanded.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16776"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-REMOVE-NODE"
+></A
+>gts_pgraph_remove_node ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>* gts_pgraph_remove_node       (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);</PRE
+><P
+>Removes one node from the multilevel graph <VAR
+CLASS="PARAMETER"
+>pg</VAR
+> by collapsing the
+first available <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16787"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>pg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16793"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the collapsed <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if all the
+<A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> have already been collapsed.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16801"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-DOWN"
+></A
+>gts_pgraph_down ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_pgraph_down                 (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+>Performs the required number of expansions to go from the current
+level to the level immediately below.</P
+><P
+>If <VAR
+CLASS="PARAMETER"
+>func</VAR
+> is not <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>, it is called after each <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> has
+been expanded.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16816"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>pg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16822"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16829"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to pass to <VAR
+CLASS="PARAMETER"
+>func</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16835"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> if it is not possible to go down one level, <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+>
+otherwise.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16842"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-SET-NODE-NUMBER"
+></A
+>gts_pgraph_set_node_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_pgraph_set_node_number      (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg,
+                                             <GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> n);</PRE
+><P
+>Performs the required number of collapses or expansions to set the
+number of nodes of <VAR
+CLASS="PARAMETER"
+>pg</VAR
+> to <VAR
+CLASS="PARAMETER"
+>n</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16853"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>pg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16859"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>n</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a number of nodes.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16864"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-GET-NODE-NUMBER"
+></A
+>gts_pgraph_get_node_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_pgraph_get_node_number      (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16873"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>pg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16879"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the current number of nodes of <VAR
+CLASS="PARAMETER"
+>pg</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16885"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-MAX-NODE-NUMBER"
+></A
+>gts_pgraph_max_node_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_pgraph_max_node_number      (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16894"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>pg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16900"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the maximum number of nodes of <VAR
+CLASS="PARAMETER"
+>pg</VAR
+> i.e. the number of
+nodes if all the <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> were expanded.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16907"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-MIN-NODE-NUMBER"
+></A
+>gts_pgraph_min_node_number ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_pgraph_min_node_number      (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16916"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>pg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16922"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the minimum number of nodes of <VAR
+CLASS="PARAMETER"
+>pg</VAR
+> i.e. the number of
+nodes if all the <A
+HREF="gts-progressive-graph.html#GTSGNODESPLIT"
+>GtsGNodeSplit</A
+> were collapsed.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN16929"
+></A
+><H3
+><A
+NAME="GTS-PGRAPH-FOREACH-NODE"
+></A
+>gts_pgraph_foreach_node ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_pgraph_foreach_node         (<A
+HREF="gts-progressive-graph.html#GTSPGRAPH"
+>GtsPGraph</A
+> *pg,
+                                             <A
+HREF="gts-surfaces.html#GTSFUNC"
+>GtsFunc</A
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16938"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>pg</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16943"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+></P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN16948"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-weighted-graph.html"
+><B
+>&lt;&lt;&lt;&nbsp;Weighted graph</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-graph-partitioning.html"
+><B
+>Graph partitioning&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

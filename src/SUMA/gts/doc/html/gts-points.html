@@ -1,0 +1,3822 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Points</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Geometrical Object Hierarchy"
+HREF="c2560.html"><LINK
+REL="PREVIOUS"
+TITLE="Containee classes"
+HREF="gts-containee-classes.html"><LINK
+REL="NEXT"
+TITLE="Vertices"
+HREF="gts-vertices.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-containee-classes.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c2560.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-vertices.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-POINTS"
+></A
+>Points</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN3784"
+></A
+><H2
+>Name</H2
+>Points&nbsp;--&nbsp;point object and related functions.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN3787"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+#define     <A
+HREF="gts-points.html#GTS-POINT-CLASS-CAPS"
+>GTS_POINT_CLASS</A
+>                 (klass)
+#define     <A
+HREF="gts-points.html#GTS-POINT-CAPS"
+>GTS_POINT</A
+>                       (obj)
+#define     <A
+HREF="gts-points.html#GTS-IS-POINT-CAPS"
+>GTS_IS_POINT</A
+>                    (obj)
+struct      <A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+>;
+struct      <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>;
+
+<A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+>* <A
+HREF="gts-points.html#GTS-POINT-CLASS"
+>gts_point_class</A
+>              (void);
+<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>*   <A
+HREF="gts-points.html#GTS-POINT-NEW"
+>gts_point_new</A
+>                   (<A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+> *klass,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> x,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> y,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> z);
+void        <A
+HREF="gts-points.html#GTS-POINT-SET"
+>gts_point_set</A
+>                   (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> x,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> y,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> z);
+#define     <A
+HREF="gts-points.html#GTS-POINT-IS-IN-RECTANGLE"
+>gts_point_is_in_rectangle</A
+>       (p, p1, p2)
+<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>*   <A
+HREF="gts-points.html#GTS-SEGMENT-TRIANGLE-INTERSECTION"
+>gts_segment_triangle_intersection</A
+>
+                                            (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> boundary,
+                                             <A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+> *klass);
+void        <A
+HREF="gts-points.html#GTS-POINT-TRANSFORM"
+>gts_point_transform</A
+>             (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-DISTANCE"
+>gts_point_distance</A
+>              (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-DISTANCE2"
+>gts_point_distance2</A
+>             (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-ORIENTATION-3D"
+>gts_point_orientation_3d</A
+>        (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p4);
+<GTKDOCLINK
+HREF="GINT"
+>gint</GTKDOCLINK
+>        <A
+HREF="gts-points.html#GTS-POINT-ORIENTATION-3D-SOS"
+>gts_point_orientation_3d_sos</A
+>    (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p4);
+enum        <A
+HREF="gts-points.html#GTSINTERSECT"
+>GtsIntersect</A
+>;
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-IN-CIRCLE"
+>gts_point_in_circle</A
+>             (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-IN-TRIANGLE-CIRCLE"
+>gts_point_in_triangle_circle</A
+>    (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);
+<A
+HREF="gts-points.html#GTSINTERSECT"
+>GtsIntersect</A
+> <A
+HREF="gts-points.html#GTS-POINT-IS-IN-TRIANGLE"
+>gts_point_is_in_triangle</A
+>       (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-ORIENTATION"
+>gts_point_orientation</A
+>           (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3);
+<GTKDOCLINK
+HREF="GINT"
+>gint</GTKDOCLINK
+>        <A
+HREF="gts-points.html#GTS-POINT-ORIENTATION-SOS"
+>gts_point_orientation_sos</A
+>       (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-SEGMENT-DISTANCE2"
+>gts_point_segment_distance2</A
+>     (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-SEGMENT-DISTANCE"
+>gts_point_segment_distance</A
+>      (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s);
+void        <A
+HREF="gts-points.html#GTS-POINT-SEGMENT-CLOSEST"
+>gts_point_segment_closest</A
+>       (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *closest);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-TRIANGLE-DISTANCE"
+>gts_point_triangle_distance</A
+>     (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);
+void        <A
+HREF="gts-points.html#GTS-POINT-TRIANGLE-CLOSEST"
+>gts_point_triangle_closest</A
+>      (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *closest);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-points.html#GTS-POINT-TRIANGLE-DISTANCE2"
+>gts_point_triangle_distance2</A
+>    (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);
+<GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    <A
+HREF="gts-points.html#GTS-POINT-IS-INSIDE-SURFACE"
+>gts_point_is_inside_surface</A
+>     (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *tree,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> is_open);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN3892"
+></A
+><H2
+>Description</H2
+><P
+>Three-dimensional points and a few geometrical functions.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN3895"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3897"
+></A
+><H3
+><A
+NAME="GTS-POINT-CLASS-CAPS"
+></A
+>GTS_POINT_CLASS()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_POINT_CLASS(klass)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>klass</VAR
+> to <A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3905"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of the <A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3911"
+></A
+><H3
+><A
+NAME="GTS-POINT-CAPS"
+></A
+>GTS_POINT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_POINT(obj)</PRE
+><P
+>Casts <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> to <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3919"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a descendant of the <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3925"
+></A
+><H3
+><A
+NAME="GTS-IS-POINT-CAPS"
+></A
+>GTS_IS_POINT()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     GTS_IS_POINT(obj)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>obj</VAR
+> is a descendant of a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3935"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>obj</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a pointer to test.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3940"
+></A
+><H3
+><A
+NAME="GTSPOINTCLASS"
+></A
+>struct GtsPointClass</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsPointClass {
+
+  GtsObjectClass parent_class;
+  gboolean binary;
+};</PRE
+><P
+>The class for <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>. No virtual functions are associated.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3946"
+></A
+><H3
+><A
+NAME="GTSPOINT"
+></A
+>struct GtsPoint</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsPoint {
+
+  GtsObject object;
+
+  gdouble x, y, z; /* must be contiguous (cast to robust functions) */
+};</PRE
+><P
+>The point object.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3952"><SPAN
+STYLE="white-space: nowrap"
+><A
+HREF="gts-object-class.html#GTSOBJECT"
+>GtsObject</A
+> <CODE
+CLASS="STRUCTFIELD"
+>object</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The parent object.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3958"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>x</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>x coordinate.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3964"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>y</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>y coordinate.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3970"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>z</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>z coordinate.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3976"
+></A
+><H3
+><A
+NAME="GTS-POINT-CLASS"
+></A
+>gts_point_class ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+>* gts_point_class              (void);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN3984"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN3990"
+></A
+><H3
+><A
+NAME="GTS-POINT-NEW"
+></A
+>gts_point_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>*   gts_point_new                   (<A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+> *klass,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> x,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> y,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> z);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4002"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4008"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>x</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the x-coordinate.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4013"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>y</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the y-coordinate.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4018"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>z</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the z-coordinate.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4023"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4029"
+></A
+><H3
+><A
+NAME="GTS-POINT-SET"
+></A
+>gts_point_set ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_point_set                   (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> x,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> y,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> z);</PRE
+><P
+>Sets the coordinates of <VAR
+CLASS="PARAMETER"
+>p</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4041"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4047"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>x</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the x-coordinate.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4052"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>y</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the y-coordinate.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4057"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>z</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the z-coordinate.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4062"
+></A
+><H3
+><A
+NAME="GTS-POINT-IS-IN-RECTANGLE"
+></A
+>gts_point_is_in_rectangle()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#define     gts_point_is_in_rectangle(p, p1, p2)</PRE
+><P
+>Evaluates to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> is contained in the box (boundary included) defined by its two corners <VAR
+CLASS="PARAMETER"
+>p1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p2</VAR
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4073"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4079"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>the lower-left front corner of the box.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4084"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>the upper-right back corner of the box.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4089"
+></A
+><H3
+><A
+NAME="GTS-SEGMENT-TRIANGLE-INTERSECTION"
+></A
+>gts_segment_triangle_intersection ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>*   gts_segment_triangle_intersection
+                                            (<A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> boundary,
+                                             <A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+> *klass);</PRE
+><P
+>Checks if <VAR
+CLASS="PARAMETER"
+>s</VAR
+> intersects <VAR
+CLASS="PARAMETER"
+>t</VAR
+>. If this is the case, creates a new
+point pi intersection of <VAR
+CLASS="PARAMETER"
+>s</VAR
+> with <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.</P
+><P
+>This function is geometrically robust in the sense that it will not
+return a point if <VAR
+CLASS="PARAMETER"
+>s</VAR
+> and <VAR
+CLASS="PARAMETER"
+>t</VAR
+> do not intersect and will return a
+point if <VAR
+CLASS="PARAMETER"
+>s</VAR
+> and <VAR
+CLASS="PARAMETER"
+>t</VAR
+> do intersect. However, the point coordinates are
+subject to round-off errors.</P
+><P
+>Note that this function will not return any point if <VAR
+CLASS="PARAMETER"
+>s</VAR
+> is contained in
+the plane defined by <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4113"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4119"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4125"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>boundary</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> if <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+>, the boundary of <VAR
+CLASS="PARAMETER"
+>t</VAR
+> is taken into account.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4132"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>klass</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINTCLASS"
+>GtsPointClass</A
+> to be used for the new point.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4138"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a summit of <VAR
+CLASS="PARAMETER"
+>t</VAR
+> (if <VAR
+CLASS="PARAMETER"
+>boundary</VAR
+> is set to <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+>), one of the endpoints
+of <VAR
+CLASS="PARAMETER"
+>s</VAR
+> or a new <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>, intersection of <VAR
+CLASS="PARAMETER"
+>s</VAR
+> with <VAR
+CLASS="PARAMETER"
+>t</VAR
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+> if <VAR
+CLASS="PARAMETER"
+>s</VAR
+> 
+and <VAR
+CLASS="PARAMETER"
+>t</VAR
+> don't intersect.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4153"
+></A
+><H3
+><A
+NAME="GTS-POINT-TRANSFORM"
+></A
+>gts_point_transform ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_point_transform             (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> *m);</PRE
+><P
+>Transform the coordinates of <VAR
+CLASS="PARAMETER"
+>p</VAR
+> according to <VAR
+CLASS="PARAMETER"
+>m</VAR
+>. (p[] becomes m[][].p[]).</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4164"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4170"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>m</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the <A
+HREF="gts-vectors-and-matrices.html#GTSMATRIX"
+>GtsMatrix</A
+> representing the transformation to 
+apply to the coordinates of <VAR
+CLASS="PARAMETER"
+>p</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4177"
+></A
+><H3
+><A
+NAME="GTS-POINT-DISTANCE"
+></A
+>gts_point_distance ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_distance              (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4187"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4193"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4199"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the Euclidean distance between <VAR
+CLASS="PARAMETER"
+>p1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p2</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4206"
+></A
+><H3
+><A
+NAME="GTS-POINT-DISTANCE2"
+></A
+>gts_point_distance2 ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_distance2             (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4216"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4222"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> another <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4228"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the square of the Euclidean distance between <VAR
+CLASS="PARAMETER"
+>p1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p2</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4235"
+></A
+><H3
+><A
+NAME="GTS-POINT-ORIENTATION-3D"
+></A
+>gts_point_orientation_3d ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_orientation_3d        (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p4);</PRE
+><P
+>Checks if <VAR
+CLASS="PARAMETER"
+>p4</VAR
+> lies above, below or on the plane passing through the
+points <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+>. Below is defined so that <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+>
+appear in counterclockwise order when viewed from above the
+plane. The returned value is an approximation of six times the
+signed volume of the tetrahedron defined by the four points. This
+function uses adaptive floating point arithmetic and is
+consequently geometrically robust.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4254"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4260"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4266"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p3</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4272"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p4</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4278"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a positive value if <VAR
+CLASS="PARAMETER"
+>p4</VAR
+> lies below, a negative value if
+<VAR
+CLASS="PARAMETER"
+>p4</VAR
+> lies above the plane, zero if the four points are coplanar.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4285"
+></A
+><H3
+><A
+NAME="GTS-POINT-ORIENTATION-3D-SOS"
+></A
+>gts_point_orientation_3d_sos ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GINT"
+>gint</GTKDOCLINK
+>        gts_point_orientation_3d_sos    (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p4);</PRE
+><P
+>Checks if <VAR
+CLASS="PARAMETER"
+>p4</VAR
+> lies above or below the plane passing through the
+points <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+>. Below is defined so that <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+>
+appear in counterclockwise order when viewed from above the
+plane. This function uses adaptive floating point arithmetic and is
+consequently geometrically robust.</P
+><P
+>Simulation of Simplicity (SoS) is used to break ties when the
+orientation is degenerate (i.e. <VAR
+CLASS="PARAMETER"
+>p4</VAR
+> lies on the plane defined by
+<VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+>).</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4309"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4315"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4321"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p3</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4327"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p4</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4333"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> +1 if <VAR
+CLASS="PARAMETER"
+>p4</VAR
+> lies below, -1 if <VAR
+CLASS="PARAMETER"
+>p4</VAR
+> lies above the plane.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4340"
+></A
+><H3
+><A
+NAME="GTSINTERSECT"
+></A
+>enum GtsIntersect</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>typedef enum 
+{ 
+  GTS_OUT = -1,
+  GTS_ON = 0,
+  GTS_IN = 1
+} GtsIntersect;</PRE
+><P
+></P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4345"
+></A
+><H3
+><A
+NAME="GTS-POINT-IN-CIRCLE"
+></A
+>gts_point_in_circle ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_in_circle             (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3);</PRE
+><P
+>Tests if the planar projection (x, y) of <VAR
+CLASS="PARAMETER"
+>p</VAR
+> is inside or outside the
+circle defined by the planar projection of <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4361"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4367"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4373"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4379"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p3</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4385"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a positive number if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> lies inside,
+a negative number if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> lies outside and zero if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> lies on 
+the circle.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4393"
+></A
+><H3
+><A
+NAME="GTS-POINT-IN-TRIANGLE-CIRCLE"
+></A
+>gts_point_in_triangle_circle ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_in_triangle_circle    (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);</PRE
+><P
+>Tests if the planar projection (x, y) of <VAR
+CLASS="PARAMETER"
+>p</VAR
+> is inside or outside
+the circumcircle of the planar projection of <VAR
+CLASS="PARAMETER"
+>t</VAR
+>. This function is
+geometrically robust.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4405"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4411"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4417"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a positive number if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> lies inside,
+a negative number if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> lies outside and zero if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> lies on 
+the circumcircle of <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4426"
+></A
+><H3
+><A
+NAME="GTS-POINT-IS-IN-TRIANGLE"
+></A
+>gts_point_is_in_triangle ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-points.html#GTSINTERSECT"
+>GtsIntersect</A
+> gts_point_is_in_triangle       (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);</PRE
+><P
+>Tests if the planar projection (x, y) of <VAR
+CLASS="PARAMETER"
+>p</VAR
+> is inside, outside or
+on the boundary of the planar projection of <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.  This function is
+geometrically robust.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4438"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4444"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4450"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>GTS_IN</VAR
+> if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> is inside <VAR
+CLASS="PARAMETER"
+>t</VAR
+>, <VAR
+CLASS="LITERAL"
+>GTS_ON</VAR
+> if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> is on the boundary of
+<VAR
+CLASS="PARAMETER"
+>t</VAR
+>, <VAR
+CLASS="LITERAL"
+>GTS_OUT</VAR
+> otherwise.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4462"
+></A
+><H3
+><A
+NAME="GTS-POINT-ORIENTATION"
+></A
+>gts_point_orientation ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_orientation           (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3);</PRE
+><P
+>Checks for orientation of the projection of three points on the
+(x,y) plane. The result is also an approximation of twice the
+signed area of the triangle defined by the three points. This
+function uses adaptive floating point arithmetic and is
+consequently geometrically robust.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4473"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4479"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4485"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p3</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4491"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a positive value if <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+> appear in
+counterclockwise order, a negative value if they appear in
+clockwise order and zero if they are colinear.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4499"
+></A
+><H3
+><A
+NAME="GTS-POINT-ORIENTATION-SOS"
+></A
+>gts_point_orientation_sos ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GINT"
+>gint</GTKDOCLINK
+>        gts_point_orientation_sos       (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p1,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p2,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p3);</PRE
+><P
+>Checks for orientation of the projection of three points on the
+(x,y) plane.</P
+><P
+>Simulation of Simplicity (SoS) is used to break ties when the
+orientation is degenerate (i.e. <VAR
+CLASS="PARAMETER"
+>p3</VAR
+> lies on the line defined by
+<VAR
+CLASS="PARAMETER"
+>p1</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p2</VAR
+>).</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4514"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p1</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4520"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p2</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4526"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p3</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4532"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a positive value if <VAR
+CLASS="PARAMETER"
+>p1</VAR
+>, <VAR
+CLASS="PARAMETER"
+>p2</VAR
+> and <VAR
+CLASS="PARAMETER"
+>p3</VAR
+> appear in
+counterclockwise order or a negative value if they appear in
+clockwise order.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4540"
+></A
+><H3
+><A
+NAME="GTS-POINT-SEGMENT-DISTANCE2"
+></A
+>gts_point_segment_distance2 ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_segment_distance2     (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4550"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4556"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4562"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the square of the minimun Euclidean distance between <VAR
+CLASS="PARAMETER"
+>p</VAR
+> and <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4569"
+></A
+><H3
+><A
+NAME="GTS-POINT-SEGMENT-DISTANCE"
+></A
+>gts_point_segment_distance ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_segment_distance      (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4579"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4585"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4591"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the minimun Euclidean distance between <VAR
+CLASS="PARAMETER"
+>p</VAR
+> and <VAR
+CLASS="PARAMETER"
+>s</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4598"
+></A
+><H3
+><A
+NAME="GTS-POINT-SEGMENT-CLOSEST"
+></A
+>gts_point_segment_closest ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_point_segment_closest       (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+> *s,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *closest);</PRE
+><P
+>Set the coordinates of <VAR
+CLASS="PARAMETER"
+>closest</VAR
+> to the coordinates of the point belonging
+to <VAR
+CLASS="PARAMETER"
+>s</VAR
+> closest to <VAR
+CLASS="PARAMETER"
+>p</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4611"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4617"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>s</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-segments.html#GTSSEGMENT"
+>GtsSegment</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4623"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>closest</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4629"
+></A
+><H3
+><A
+NAME="GTS-POINT-TRIANGLE-DISTANCE"
+></A
+>gts_point_triangle_distance ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_triangle_distance     (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4639"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4645"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4651"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the minimun Euclidean distance between <VAR
+CLASS="PARAMETER"
+>p</VAR
+> and <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4658"
+></A
+><H3
+><A
+NAME="GTS-POINT-TRIANGLE-CLOSEST"
+></A
+>gts_point_triangle_closest ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_point_triangle_closest      (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t,
+                                             <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *closest);</PRE
+><P
+>Set the coordinates of <VAR
+CLASS="PARAMETER"
+>closest</VAR
+> to those of the point belonging to <VAR
+CLASS="PARAMETER"
+>t</VAR
+> and 
+closest to <VAR
+CLASS="PARAMETER"
+>p</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4671"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4677"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4683"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>closest</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4689"
+></A
+><H3
+><A
+NAME="GTS-POINT-TRIANGLE-DISTANCE2"
+></A
+>gts_point_triangle_distance2 ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_point_triangle_distance2    (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+> *t);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4699"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4705"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>t</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-triangles.html#GTSTRIANGLE"
+>GtsTriangle</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4711"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the square of the minimun Euclidean distance between <VAR
+CLASS="PARAMETER"
+>p</VAR
+> and <VAR
+CLASS="PARAMETER"
+>t</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN4718"
+></A
+><H3
+><A
+NAME="GTS-POINT-IS-INSIDE-SURFACE"
+></A
+>gts_point_is_inside_surface ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+>    gts_point_is_inside_surface     (<A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+> *p,
+                                             <GTKDOCLINK
+HREF="GNODE"
+>GNode</GTKDOCLINK
+> *tree,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> is_open);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4729"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-points.html#GTSPOINT"
+>GtsPoint</A
+>.  </P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4735"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>tree</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a bounding box tree of the faces of a closed, orientable
+surface (see <A
+HREF="gts-bounding-boxes-trees.html#GTS-BB-TREE-SURFACE"
+>gts_bb_tree_surface</A
+>()).</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4741"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>is_open</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if the surface defined by <VAR
+CLASS="PARAMETER"
+>tree</VAR
+> is "open" i.e. its volume 
+is negative, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+> otherwise.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN4749"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> <VAR
+CLASS="LITERAL"
+>TRUE</VAR
+> if <VAR
+CLASS="PARAMETER"
+>p</VAR
+> is inside the surface defined by <VAR
+CLASS="PARAMETER"
+>tree</VAR
+>, <VAR
+CLASS="LITERAL"
+>FALSE</VAR
+>
+otherwise.  </P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-containee-classes.html"
+><B
+>&lt;&lt;&lt;&nbsp;Containee classes</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-vertices.html"
+><B
+>Vertices&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>

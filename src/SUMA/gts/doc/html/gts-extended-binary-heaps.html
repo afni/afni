@@ -1,0 +1,2029 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML
+><HEAD
+><TITLE
+>Extended binary heaps</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.7"><LINK
+REL="HOME"
+TITLE="GTS Library Reference Manual"
+HREF="book1.html"><LINK
+REL="UP"
+TITLE="Basic Macros, functions and data structures"
+HREF="c4.html"><LINK
+REL="PREVIOUS"
+TITLE="Binary heaps"
+HREF="gts-binary-heaps.html"><LINK
+REL="NEXT"
+TITLE="First In First Out heaps"
+HREF="gts-first-in-first-out-heaps.html"><STYLE
+TYPE="text/css"
+>.synopsis, .classsynopsis {
+    background: #eeeeee;
+    border: solid 1px #aaaaaa;
+    padding: 0.5em;
+}
+.programlisting {
+    background: #eeeeff;
+    border: solid 1px #aaaaff;
+    padding: 0.5em;
+}
+.variablelist {
+    padding: 4px;
+    margin-left: 3em;
+}
+.navigation {
+    background: #ffeeee;
+    border: solid 1px #ffaaaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+.navigation a {
+    color: #770000;
+}
+.navigation a:visited {
+    color: #550000;
+}
+.navigation .title {
+    font-size: 200%;
+}</STYLE
+></HEAD
+><BODY
+CLASS="REFENTRY"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><TABLE
+WIDTH="100%"
+CLASS="navigation"
+SUMMARY="Navigation header"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+><A
+ACCESSKEY="p"
+HREF="gts-binary-heaps.html"
+><IMG
+SRC="left.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Prev"></A
+></TD
+><TD
+><A
+ACCESSKEY="u"
+HREF="c4.html"
+><IMG
+SRC="up.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Up"></A
+></TD
+><TD
+><A
+ACCESSKEY="h"
+HREF="book1.html"
+><IMG
+SRC="home.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Home"></A
+></TD
+><TH
+WIDTH="100%"
+align="center"
+>GTS Library Reference Manual</TH
+><TD
+><A
+ACCESSKEY="n"
+HREF="gts-first-in-first-out-heaps.html"
+><IMG
+SRC="right.png"
+WIDTH="24"
+HEIGHT="24"
+BORDER="0"
+ALT="Next"></A
+></TD
+></TR
+></TABLE
+><H1
+><A
+NAME="GTS-EXTENDED-BINARY-HEAPS"
+></A
+>Extended binary heaps</H1
+><DIV
+CLASS="REFNAMEDIV"
+><A
+NAME="AEN240"
+></A
+><H2
+>Name</H2
+>Extended binary heaps&nbsp;--&nbsp;efficient data structure for priority heaps allowing removal of elements.</DIV
+><DIV
+CLASS="REFSYNOPSISDIV"
+><A
+NAME="AEN243"
+></A
+><H2
+>Synopsis</H2
+><PRE
+CLASS="SYNOPSIS"
+>&#13;#include &lt;gts.h&gt;
+
+
+struct      <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+>;
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     (<A
+HREF="gts-extended-binary-heaps.html#GTSKEYFUNC"
+>*GtsKeyFunc</A
+>)                   (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> item,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+struct      <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>;
+
+<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>*   <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-NEW"
+>gts_eheap_new</A
+>                   (<A
+HREF="gts-extended-binary-heaps.html#GTSKEYFUNC"
+>GtsKeyFunc</A
+> key_func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+>* <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-INSERT"
+>gts_eheap_insert</A
+>              (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> p);
+<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+>* <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-INSERT-WITH-KEY"
+>gts_eheap_insert_with_key</A
+>     (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> p,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> key);
+<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-TOP"
+>gts_eheap_top</A
+>                   (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> *key);
+<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-REMOVE-TOP"
+>gts_eheap_remove_top</A
+>            (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> *key);
+<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-REMOVE"
+>gts_eheap_remove</A
+>                (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> *p);
+void        <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-DECREASE-KEY"
+>gts_eheap_decrease_key</A
+>          (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> *p,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> new_key);
+<GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-KEY"
+>gts_eheap_key</A
+>                   (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> p);
+void        <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-RANDOMIZED"
+>gts_eheap_randomized</A
+>            (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> randomized);
+void        <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-UPDATE"
+>gts_eheap_update</A
+>                (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);
+void        <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-FREEZE"
+>gts_eheap_freeze</A
+>                (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);
+void        <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-THAW"
+>gts_eheap_thaw</A
+>                  (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);
+void        <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-FOREACH"
+>gts_eheap_foreach</A
+>               (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GFUNC"
+>GFunc</GTKDOCLINK
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);
+<GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-SIZE"
+>gts_eheap_size</A
+>                  (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);
+void        <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-DESTROY"
+>gts_eheap_destroy</A
+>               (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);</PRE
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN303"
+></A
+><H2
+>Description</H2
+><P
+>This data structure is similar to the binary heap implementation but adds the two operations <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-DECREASE-KEY"
+>gts_eheap_decrease_key</A
+>() and <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-REMOVE"
+>gts_eheap_remove</A
+>(). Contrary to the binary heap implementation, keys are stored in a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> structure and comparisons between keys are performed directly (thus saving a call to a comparison function). This structure consequently provides generally faster operations at the expense of memory use. If your comparison function is simple and you don't need the extra functionalities, it is usually better to use a <A
+HREF="gts-binary-heaps.html#GTSHEAP"
+>GtsHeap</A
+>.</P
+></DIV
+><DIV
+CLASS="REFSECT1"
+><A
+NAME="AEN310"
+></A
+><H2
+>Details</H2
+><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN312"
+></A
+><H3
+><A
+NAME="GTSEHEAPPAIR"
+></A
+>struct GtsEHeapPair</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsEHeapPair {
+
+  gpointer data;
+  gdouble key;
+  guint pos;
+};</PRE
+><P
+>The extended heap structure.</P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN318"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>data</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Points to the item stored in the heap.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN324"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>key</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Value of the key for this item.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN330"><SPAN
+STYLE="white-space: nowrap"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+> <CODE
+CLASS="STRUCTFIELD"
+>pos</CODE
+></SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Private field.&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN336"
+></A
+><H3
+><A
+NAME="GTSKEYFUNC"
+></A
+>GtsKeyFunc ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     (*GtsKeyFunc)                   (<GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> item,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN345"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>item</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>A pointer to an item to be stored in the heap.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN350"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>User data passed to <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-NEW"
+>gts_eheap_new</A
+>().</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN356"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>the value of the key for the given item.
+&#13;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN361"
+></A
+><H3
+><A
+NAME="GTSEHEAP"
+></A
+>struct GtsEHeap</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>struct GtsEHeap;</PRE
+><P
+>An opaque data structure describing an extended binary heap.</P
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN366"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-NEW"
+></A
+>gts_eheap_new ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>*   gts_eheap_new                   (<A
+HREF="gts-extended-binary-heaps.html#GTSKEYFUNC"
+>GtsKeyFunc</A
+> key_func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN376"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>key_func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSKEYFUNC"
+>GtsKeyFunc</A
+> or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN383"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> user data to be passed to <VAR
+CLASS="PARAMETER"
+>key_func</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN389"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a new <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> using <VAR
+CLASS="PARAMETER"
+>key_func</VAR
+> as key.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN396"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-INSERT"
+></A
+>gts_eheap_insert ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+>* gts_eheap_insert              (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> p);</PRE
+><P
+>Inserts a new element <VAR
+CLASS="PARAMETER"
+>p</VAR
+> in the heap.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN407"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN413"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer to add to the heap.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN418"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> describing the position of the element in the heap.
+This pointer is necessary for <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-REMOVE"
+>gts_eheap_remove</A
+>() and 
+<A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-DECREASE-KEY"
+>gts_eheap_decrease_key</A
+>().</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN426"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-INSERT-WITH-KEY"
+></A
+>gts_eheap_insert_with_key ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+>* gts_eheap_insert_with_key     (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> p,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> key);</PRE
+><P
+>Inserts a new element <VAR
+CLASS="PARAMETER"
+>p</VAR
+> in the heap.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN438"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN444"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer to add to the heap.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN449"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>key</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the value of the key associated to <VAR
+CLASS="PARAMETER"
+>p</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN455"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> describing the position of the element in the heap.
+This pointer is necessary for <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-REMOVE"
+>gts_eheap_remove</A
+>() and 
+<A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-DECREASE-KEY"
+>gts_eheap_decrease_key</A
+>().</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN463"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-TOP"
+></A
+>gts_eheap_top ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    gts_eheap_top                   (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> *key);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN473"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN479"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>key</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer on a gdouble or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN485"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the element at the top of the heap and optionally (if <VAR
+CLASS="PARAMETER"
+>key</VAR
+> is not
+<VAR
+CLASS="LITERAL"
+>NULL</VAR
+>) its key.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN492"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-REMOVE-TOP"
+></A
+>gts_eheap_remove_top ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    gts_eheap_remove_top            (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> *key);</PRE
+><P
+>Removes the element at the top of the heap and optionally (if <VAR
+CLASS="PARAMETER"
+>key</VAR
+> is not
+<VAR
+CLASS="LITERAL"
+>NULL</VAR
+>) returns the value of its key.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN504"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN510"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>key</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer on a gdouble or <VAR
+CLASS="LITERAL"
+>NULL</VAR
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN516"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the element at the top of the heap.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN521"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-REMOVE"
+></A
+>gts_eheap_remove ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+>    gts_eheap_remove                (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> *p);</PRE
+><P
+>Removes element corresponding to <VAR
+CLASS="PARAMETER"
+>p</VAR
+> from <VAR
+CLASS="PARAMETER"
+>heap</VAR
+> in O(log n).</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN533"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN539"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN545"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the element just removed from <VAR
+CLASS="PARAMETER"
+>heap</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN551"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-DECREASE-KEY"
+></A
+>gts_eheap_decrease_key ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_eheap_decrease_key          (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+> *p,
+                                             <GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+> new_key);</PRE
+><P
+>Decreases the value of the key of the element at position <VAR
+CLASS="PARAMETER"
+>p</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN562"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN568"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAPPAIR"
+>GtsEHeapPair</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN574"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>new_key</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the new value of the key for this element. Must be smaller than
+the current key.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN579"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-KEY"
+></A
+>gts_eheap_key ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GDOUBLE"
+>gdouble</GTKDOCLINK
+>     gts_eheap_key                   (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> p);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN589"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN595"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>p</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a pointer to be tested;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN600"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the value of the key for pointer <VAR
+CLASS="PARAMETER"
+>p</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN606"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-RANDOMIZED"
+></A
+>gts_eheap_randomized ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_eheap_randomized            (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GBOOLEAN"
+>gboolean</GTKDOCLINK
+> randomized);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN615"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN621"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>randomized</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> whether <VAR
+CLASS="PARAMETER"
+>heap</VAR
+> should be randomized.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN627"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-UPDATE"
+></A
+>gts_eheap_update ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_eheap_update                (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);</PRE
+><P
+>Updates the key of each element of <VAR
+CLASS="PARAMETER"
+>heap</VAR
+> and reorders it.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN636"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN642"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-FREEZE"
+></A
+>gts_eheap_freeze ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_eheap_freeze                (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);</PRE
+><P
+>Freezes the heap. Any subsequent operation will not preserve the heap
+property. Used in conjunction with <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-INSERT"
+>gts_eheap_insert</A
+>() and <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-THAW"
+>gts_eheap_thaw</A
+>()
+to create a heap in O(n) time.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN652"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN658"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-THAW"
+></A
+>gts_eheap_thaw ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_eheap_thaw                  (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);</PRE
+><P
+>If <VAR
+CLASS="PARAMETER"
+>heap</VAR
+> has been frozen previously using <A
+HREF="gts-extended-binary-heaps.html#GTS-EHEAP-FREEZE"
+>gts_eheap_freeze</A
+>(), reorder it
+in O(n) time and unfreeze it.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN668"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN674"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-FOREACH"
+></A
+>gts_eheap_foreach ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_eheap_foreach               (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap,
+                                             <GTKDOCLINK
+HREF="GFUNC"
+>GFunc</GTKDOCLINK
+> func,
+                                             <GTKDOCLINK
+HREF="GPOINTER"
+>gpointer</GTKDOCLINK
+> data);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN684"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN690"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>func</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the function to call for each element in the heap.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN695"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>data</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> to pass to <VAR
+CLASS="PARAMETER"
+>func</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN701"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-SIZE"
+></A
+>gts_eheap_size ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+><GTKDOCLINK
+HREF="GUINT"
+>guint</GTKDOCLINK
+>       gts_eheap_size                  (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);</PRE
+><P
+></P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN710"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN716"><SPAN
+STYLE="white-space: nowrap"
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Returns</I
+></SPAN
+> :</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> the number of items in <VAR
+CLASS="PARAMETER"
+>heap</VAR
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><HR><DIV
+CLASS="REFSECT2"
+><A
+NAME="AEN722"
+></A
+><H3
+><A
+NAME="GTS-EHEAP-DESTROY"
+></A
+>gts_eheap_destroy ()</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>void        gts_eheap_destroy               (<A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+> *heap);</PRE
+><P
+>Free all the memory allocated for <VAR
+CLASS="PARAMETER"
+>heap</VAR
+>.</P
+><P
+></P
+><P
+></P
+><TABLE
+CLASS="variablelist"
+BORDER="0"
+CELLSPACING="0"
+CELLPADDING="4"
+><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><A
+NAME="AEN731"><SPAN
+STYLE="white-space: nowrap"
+><VAR
+CLASS="PARAMETER"
+>heap</VAR
+>&nbsp;:</SPAN
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> a <A
+HREF="gts-extended-binary-heaps.html#GTSEHEAP"
+>GtsEHeap</A
+>.</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><TABLE
+CLASS="navigation"
+WIDTH="100%"
+SUMMARY="Navigation footer"
+CELLPADDING="2"
+CELLSPACING="2"
+><TR
+VALIGN="middle"
+><TD
+ALIGN="left"
+><A
+ACCESSKEY="p"
+HREF="gts-binary-heaps.html"
+><B
+>&lt;&lt;&lt;&nbsp;Binary heaps</B
+></A
+></TD
+><TD
+ALIGN="right"
+><A
+ACCESSKEY="n"
+HREF="gts-first-in-first-out-heaps.html"
+><B
+>First In First Out heaps&nbsp;&gt;&gt;&gt;</B
+></A
+></TD
+></TR
+></TABLE
+></BODY
+></HTML
+>
