@@ -6648,6 +6648,7 @@ ENTRY("AFNI_setup_viewing") ;
        im3d->vinfo->tempflag == 0  &&
        AFNI_yesenv("AFNI_VIEW_ANAT_BRICK") ){
 
+STATUS("setting anatmode_bbox back to 'View Anat Data Brick'") ;
       im3d->vinfo->force_anat_wod = 0 ;
       MCW_set_bbox( im3d->vwid->dmode->anatmode_bbox , DMODE_BRICK_BVAL ) ;
    }
@@ -6725,6 +6726,7 @@ STATUS("deciding whether to use function WOD") ;
           im3d->vinfo->tempflag == 0   &&
           AFNI_yesenv("AFNI_VIEW_FUNC_BRICK") ){
 
+STATUS("setting funcmode_bbox back to 'View Func Data Brick'") ;
          im3d->vinfo->force_func_wod = 0 ;
          MCW_set_bbox( im3d->vwid->dmode->funcmode_bbox , DMODE_BRICK_BVAL ) ;
       }
@@ -6806,7 +6808,7 @@ STATUS(" -- datamode widgets") ;
    } else {
      SENSITIZE( im3d->vwid->dmode->anatmode_bbox->wbut[DMODE_BRICK] , False ) ;
      MCW_set_bbox( im3d->vwid->dmode->anatmode_bbox , DMODE_WOD_BVAL ) ;
-     im3d->vinfo->force_anat_wod = True ;
+     im3d->vinfo->force_anat_wod = 1 ;
    }
 
    if( func_brick_possible ){
@@ -6814,7 +6816,7 @@ STATUS(" -- datamode widgets") ;
    } else {
      SENSITIZE( im3d->vwid->dmode->funcmode_bbox->wbut[DMODE_BRICK] , False ) ;
      MCW_set_bbox( im3d->vwid->dmode->funcmode_bbox , DMODE_WOD_BVAL ) ;
-     im3d->vinfo->force_func_wod = True ;
+     im3d->vinfo->force_func_wod = 1 ;
    }
 
    AV_SENSITIZE( im3d->vwid->dmode->anat_resam_av , im3d->anat_wod_flag ) ;

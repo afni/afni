@@ -863,9 +863,6 @@ ENTRY("AFNI_func_overlay") ;
 
    ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
 
-   scale_thr = DSET_BRICK_FACTOR(br_fim->dset,ival) ;
-   if( scale_thr == 0.0 ) scale_thr = 1.0 ;
-
    /* get the component images */
 
    LOAD_DSET_VIEWS(im3d) ; /* 02 Nov 1996 */
@@ -881,6 +878,10 @@ ENTRY("AFNI_func_overlay") ;
      MRI_IMAGE *qim = mri_to_float(im_thr) ;
      mri_free(im_thr) ; im_thr = qim ;
    }
+
+   scale_thr = DSET_BRICK_FACTOR(br_fim->dset,ival) ;
+   if( scale_thr == 0.0 ||
+       (im_thr != NULL && im_thr->kind == MRI_float) ) scale_thr = 1.0 ;
 
    AFNI_set_valabel( br_fim , n , im_thr , im3d->vinfo->thr_val ) ;
 
@@ -1228,9 +1229,10 @@ ENTRY("AFNI_newfunc_overlay") ;
          int thr = (int) thresh ;
          short * ar_thr = MRI_SHORT_PTR(im_thr) ;
 
-         for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh )
+         for( ii=0 ; ii < npix ; ii++ ){
+           if( ar_thr[ii] > -thr && ar_thr[ii] < thr )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
+         }
        }
        break ;
 
@@ -1239,7 +1241,7 @@ ENTRY("AFNI_newfunc_overlay") ;
          byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] < thresh )
+           if( ar_thr[ii] < thr )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
        }
        break ;
@@ -1249,7 +1251,7 @@ ENTRY("AFNI_newfunc_overlay") ;
          float * ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh )
+           if( ar_thr[ii] > -thr && ar_thr[ii] < thr )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
        }
        break ;
@@ -3236,16 +3238,19 @@ ENTRY("AFNI_anatmode_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
-   old_val = im3d->vinfo->force_anat_wod ;
+   old_val = 1 << im3d->vinfo->force_anat_wod ;
    new_val = MCW_val_bbox( im3d->vwid->dmode->anatmode_bbox ) ;
-   new_val = (new_val == DMODE_BRICK_BVAL) ? (False) : (True) ;
+
+if(PRINT_TRACING){
+ char str[256] ; sprintf(str,"old_val=%d new_val=%d",old_val,new_val) ;
+ STATUS(str) ; }
 
    if( new_val != old_val ){
-      im3d->vinfo->force_anat_wod = new_val ;
-      SHOW_AFNI_PAUSE ;
-      im3d->vinfo->tempflag = 1 ;           /* 15 Mar 2000 */
-      AFNI_modify_viewing( im3d , True ) ;  /* redisplay */
-      SHOW_AFNI_READY ;
+     im3d->vinfo->force_anat_wod = (new_val != DMODE_BRICK_BVAL) ;
+     SHOW_AFNI_PAUSE ;
+     im3d->vinfo->tempflag = 1 ;           /* 15 Mar 2000 */
+     AFNI_modify_viewing( im3d , True ) ;  /* redisplay */
+     SHOW_AFNI_READY ;
    }
 
    RESET_AFNI_QUIT(im3d) ;
@@ -3267,16 +3272,19 @@ ENTRY("AFNI_funcmode_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
-   old_val = im3d->vinfo->force_func_wod ;
+   old_val = 1 << im3d->vinfo->force_func_wod ;
    new_val = MCW_val_bbox( im3d->vwid->dmode->funcmode_bbox ) ;
-   new_val = (new_val == DMODE_BRICK_BVAL) ? (False) : (True) ;
+
+if(PRINT_TRACING){
+ char str[256] ; sprintf(str,"old_val=%d new_val=%d",old_val,new_val) ;
+ STATUS(str) ; }
 
    if( new_val != old_val ){
-      im3d->vinfo->force_func_wod = new_val ;
-      SHOW_AFNI_PAUSE ;
-      im3d->vinfo->tempflag = 1 ;           /* 15 Mar 2000 */
-      AFNI_modify_viewing( im3d , True ) ;  /* redisplay */
-      SHOW_AFNI_READY ;
+     im3d->vinfo->force_func_wod = (new_val != DMODE_BRICK_BVAL) ;
+     SHOW_AFNI_PAUSE ;
+     im3d->vinfo->tempflag = 1 ;           /* 15 Mar 2000 */
+     AFNI_modify_viewing( im3d , True ) ;  /* redisplay */
+     SHOW_AFNI_READY ;
    }
 
    RESET_AFNI_QUIT(im3d) ;

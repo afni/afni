@@ -136,7 +136,7 @@ void MCW_bbox_hints( MCW_bbox * bb , int nh , char ** hh )
    if( bb == NULL || nh == 0 || hh == NULL ) return ;
    if( nh > bb->nbut ) nh = bb->nbut ;
    for( ib=0 ; ib < nh ; ib++ )
-      MCW_register_hint( bb->wbut[ib] , hh[ib] ) ;
+     MCW_register_hint( bb->wbut[ib] , hh[ib] ) ;
    return ;
 }
 
@@ -148,32 +148,27 @@ void MCW_set_bbox( MCW_bbox * bb , int val )
    Boolean set ;
 
    if( bb == NULL ) return ;  /* 01 Feb 2000 */
-
    bb->value = val ;
-
    for( ib=0 ; ib < bb->nbut ; ib++ ){
-      set = ( val & (1<<ib) ) ? (True) : (False) ;
-      XmToggleButtonSetState( bb->wbut[ib] , set , False ) ;
+     set = ( val & (1<<ib) ) ? (True) : (False) ;
+     XmToggleButtonSetState( bb->wbut[ib] , set , False ) ;
    }
    return ;
 }
 
 /*------------------------------------------------------------------------*/
 
-int MCW_val_bbox( MCW_bbox * bb )
+int MCW_val_bbox( MCW_bbox *bb )
 {
    int ib , val ;
    Boolean set ;
 
    if( bb == NULL ) return 0 ;  /* 01 Feb 2000 */
-
    val = 0 ;
-
    for( ib=0 ; ib < bb->nbut ; ib++ ){
-      set = XmToggleButtonGetState( bb->wbut[ib] ) ;
-      if( set ) val |= (1<<ib) ;
+     set = XmToggleButtonGetState( bb->wbut[ib] ) ;
+     if( set ) val |= (1<<ib) ;
    }
-
    bb->value = val ;
    return val ;
 }

@@ -917,6 +917,12 @@ ENTRY("FD_warp_to_mri") ;
                 ? br->thr_resam_code
                 : br->resam_code ;
 
+if(PRINT_TRACING){
+ char str[256] ;
+ sprintf(str,"thr_resam_code=%d fim_resam_code=%d resam_code=%d",
+         br->thr_resam_code,br->resam_code,resam_code) ;
+ STATUS(str); }
+
    flim = AFNI_slice_flip( kslice , ival , resam_code ,
                            ax_1 , ax_2 , ax_3 , br->dset ) ;
 
@@ -936,7 +942,6 @@ MRI_IMAGE * AFNI_slice_flip( int kslice , int ival , int resam ,
    int fixed_axis , fixed_index , dsl_1 , dsl_2 , rot,mir;
    MRI_IMAGE * dsim , * flim ;
    THD_dataxes * daxes ;
-   int resam_code ;
 
 ENTRY("AFNI_slice_flip") ;
 
