@@ -2836,7 +2836,7 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
    EXRETURN ;
 }
 
-#define NEW_RESCAN_SESSION  /* 28 Dec 2002 */
+#define NEW_RESCAN_SESSION  /* 28 Dec 2002 - use the new AFNI_rescan_session() */
 
 /*----------------------------------------------------------------
    Obey the command to rescan the current session
@@ -2846,11 +2846,27 @@ void AFNI_rescan_CB( Widget w, XtPointer cd, XtPointer cb )
 {
    Three_D_View *im3d = (Three_D_View *) cd , *qq3d ;
    int cc ;
+   char str[256+THD_MAX_NAME] ;
 
 ENTRY("AFNI_rescan_CB") ;
 
    SHOW_AFNI_PAUSE ;
-   AFNI_rescan_session( im3d->vinfo->sess_num ) ;
+   cc = AFNI_rescan_session( im3d->vinfo->sess_num ) ;
+   if( cc > 0 ){
+      POPDOWN_strlist_chooser ;
+      sprintf(str," \n"
+                  " Added %d datasets to \n"
+                  " %s\n" ,
+             cc ,
+             GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num]->sessname ) ;
+      (void) MCW_popup_message( w , str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   } else {
+      sprintf(str," \n"
+                  " Found 0 new datasets in \n"
+                  " %s\n" ,
+             GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num]->sessname ) ;
+      (void) MCW_popup_message( w , str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
 
 #ifndef NEW_RESCAN_SESSION
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
@@ -2867,14 +2883,25 @@ ENTRY("AFNI_rescan_CB") ;
 
 void AFNI_rescan_all_CB( Widget w, XtPointer cd, XtPointer cb )
 {
-   int iss , cc ;
+   int iss , cc=0 ;
    Three_D_View * im3d ;
 
 ENTRY("AFNI_rescan_all_CB") ;
 
    SHOW_AFNI_PAUSE ;
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ )
-      AFNI_rescan_session( iss ) ;
+      cc += AFNI_rescan_session( iss ) ;
+   if( cc > 0 ){
+      char str[256] ;
+      POPDOWN_strlist_chooser ;
+      sprintf(str," \n"
+                  " Added %d datasets total \n" , cc ) ;
+      (void) MCW_popup_message( w , str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   } else {
+      (void) MCW_popup_message( w ,
+                                " \n Found no new datasets \n" ,
+                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
 
 #ifndef NEW_RESCAN_SESSION
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
@@ -2900,7 +2927,7 @@ ENTRY("AFNI_rescan_all_CB") ;
            tie his shoes correctly).
 ------------------------------------------------------------------------*/
 
-void AFNI_rescan_session( int sss )  /* the old way */
+int AFNI_rescan_session( int sss )  /* the old way */
 {
    int vv , ii , cc ;
    THD_session *  new_ss , * old_ss ;
@@ -2912,16 +2939,16 @@ void AFNI_rescan_session( int sss )  /* the old way */
 ENTRY("AFNI_rescan_session") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
 
-   if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
+   if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; RETURN(0) ; }
 
    /*--- sanity checks ---*/
 
-   if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ BEEPIT ; EXRETURN ; }
+   if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ BEEPIT ; RETURN(0) ; }
 
    old_ss = GLOBAL_library.sslist->ssar[sss] ;
-   if( ! ISVALID_SESSION(old_ss) ){ BEEPIT; EXRETURN; }
+   if( ! ISVALID_SESSION(old_ss) ){ BEEPIT; RETURN(0); }
 
-   if( old_ss == GLOBAL_library.session ) EXRETURN ;  /* 21 Dec 2001 */
+   if( old_ss == GLOBAL_library.session ) RETURN(0) ;  /* 21 Dec 2001 */
 
    /*--- Make sure that the dataset choosers are closed.
          Since these are just instances of the generic strlist
@@ -3096,7 +3123,7 @@ STATUS("fixing active controllers") ;
       }
    }
 
-   EXRETURN ;
+   RETURN(0) ;
 }
 #else       /******* 28 Dec 2002: insert the new code *******/
 /*----------------------------------------------------------------------*/
@@ -3116,9 +3143,9 @@ STATUS("fixing active controllers") ;
                existing session -- RWCox (MX&HNY)
 ------------------------------------------------------------------------*/
 
-void AFNI_rescan_session( int sss )   /* the new way */
+int AFNI_rescan_session( int sss )   /* the new way */
 {
-   int vv , ii , nr , nnew=0 ;
+   int vv , ii , nr , na_new=0 , nf_new=0 ;
    THD_session  *new_ss , *old_ss ;
    THD_slist_find find ;
    THD_3dim_dataset *new_dset ;
@@ -3126,17 +3153,17 @@ void AFNI_rescan_session( int sss )   /* the new way */
 ENTRY("AFNI_rescan_session") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
 
-   if( GLOBAL_library.have_dummy_dataset ){ BEEPIT; EXRETURN; }
+   if( GLOBAL_library.have_dummy_dataset ){ BEEPIT; RETURN(0); }
 
    /*--- sanity checks ---*/
 
-   if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ BEEPIT; EXRETURN; }
+   if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ BEEPIT; RETURN(0); }
 
    old_ss = GLOBAL_library.sslist->ssar[sss] ;
-   if( ! ISVALID_SESSION(old_ss) ){ BEEPIT; EXRETURN; }
+   if( ! ISVALID_SESSION(old_ss) ){ BEEPIT; RETURN(0); }
 
                                      /* can't rescan global session */
-   if( old_ss == GLOBAL_library.session ) EXRETURN;  /* 21 Dec 2001 */
+   if( old_ss == GLOBAL_library.session ) RETURN(0); /* 21 Dec 2001 */
 
    /*--- read in the session again, into a new THD_session struct ---*/
 
@@ -3144,7 +3171,7 @@ STATUS("rescanning session now:") ;
 STATUS(old_ss->sessname) ;
 
    new_ss = THD_init_session( old_ss->sessname ) ;
-   if( ! ISVALID_SESSION(new_ss) ){ BEEPIT; EXRETURN; } /* this is BAD */
+   if( ! ISVALID_SESSION(new_ss) ){ BEEPIT; RETURN(0); } /* this is BAD */
 
    /*--- scan datasets and remove those
          that already exist in this session ---*/
@@ -3191,7 +3218,7 @@ STATUS(old_ss->sessname) ;
      if( nr >= THD_MAX_SESSION_ANAT ) break ;      /* old session is full */
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* copy new row to old */
        old_ss->anat[nr][vv] = new_ss->anat[ii][vv];
-     old_ss->num_anat ++ ;  nnew++ ;               /* 1 more row in old   */
+     old_ss->num_anat ++ ;  na_new++ ;             /* 1 more row in old   */
    }
    for( ii=0 ; ii < new_ss->num_func ; ii++ ){
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
@@ -3201,7 +3228,7 @@ STATUS(old_ss->sessname) ;
      if( nr >= THD_MAX_SESSION_FUNC ) break ;
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
        old_ss->func[nr][vv] = new_ss->func[ii][vv];
-     old_ss->num_func ++ ;  nnew++ ;
+     old_ss->num_func ++ ;  nf_new++ ;
    }
 
    /* assign the warp and anatomy parent pointers;
@@ -3227,9 +3254,7 @@ STATUS(old_ss->sessname) ;
          and we can't tell what is being chosen just now, we'll just
          forcibly close the strlist chooser (if we got new datasets). ---*/
 
-   if( nnew ) POPDOWN_strlist_chooser ;
-
-   EXRETURN ;
+   RETURN(na_new+nf_new) ;
 }
 #endif  /******* 28 Dec 2002: end of replacement code *******/
 
@@ -3239,11 +3264,11 @@ STATUS(old_ss->sessname) ;
 
 void AFNI_rescan_timeseries_CB(Widget w, XtPointer cd, XtPointer cb)
 {
-   int iss , inew , jold , nnew , nold ;
-   THD_string_array * dlist ;
-   THD_session * ss ;
-   MRI_IMARR * newtsar ;
-   MRI_IMAGE * newim , * oldim ;
+   int iss , inew , jold , nnew , nold , nadd=0 ;
+   THD_string_array *dlist ;
+   THD_session *ss ;
+   MRI_IMARR *newtsar ;
+   MRI_IMAGE *newim , *oldim ;
 
 ENTRY("AFNI_rescan_timeseries_CB") ;
 
@@ -3251,7 +3276,6 @@ ENTRY("AFNI_rescan_timeseries_CB") ;
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
 
-   POPDOWN_timeseries_chooser ;
    INIT_SARR( dlist ) ;
 
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ ){
@@ -3280,12 +3304,13 @@ ENTRY("AFNI_rescan_timeseries_CB") ;
       }
 
       if( jold == nold ){
-         ADDTO_IMARR(GLOBAL_library.timeseries,newim) ;  /* is new */
+         ADDTO_IMARR(GLOBAL_library.timeseries,newim); nadd++;  /* is new */
       } else {
-         mri_free(newim) ;                               /* is old */
+         mri_free(newim) ;                                      /* is old */
       }
    }
 
+   if( nadd > 0 ) POPDOWN_timeseries_chooser ;
    FREE_IMARR(newtsar) ;
    EXRETURN ;
 }
