@@ -429,4 +429,54 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
 
 /*------------------------------------------------------------------*/
 
+#define EDIT_STATAUX4(ds,iv,ft,a,b,c,d)                     \
+ do{ float sqq[6] ;                                           \
+     if( ISVALID_DSET(ds) &&                                    \
+         (iv) >= 0 && (iv) < DSET_NVALS(ds) &&                    \
+         (ft) >= 0 && (ft) <= LAST_FUNC_TYPE   ){                   \
+        sqq[0] = (ft) ; sqq[1] = FUNC_need_stat_aux[ft] ;             \
+        sqq[2] = (a) ; sqq[3] = (b) ; sqq[4] = (c) ; sqq[5] = (d) ;     \
+        EDIT_dset_items( (ds),ADN_brick_stataux_one+(iv),sqq,ADN_none ) ; \
+     } } while(0)
+
+#define EDIT_BRICK_TO_FICO(ds,iv,nsam,nfit,nort) \
+  EDIT_STATAUX4(ds,iv,FUNC_COR_TYPE,nsam,nfit,nort,0)
+
+#define EDIT_BRICK_TO_FITT(ds,iv,ndof) \
+  EDIT_STATAUX4(ds,iv,FUNC_TT_TYPE,ndof,0,0,0)
+
+#define EDIT_BRICK_TO_FIFT(ds,iv,ndof,ddof) \
+  EDIT_STATAUX4(ds,iv,FUNC_FT_TYPE,ndof,ddof,0,0)
+
+#define EDIT_BRICK_TO_FIZT(ds,iv) \
+  EDIT_STATAUX4(ds,iv,FUNC_ZT_TYPE,0,0,0,0)
+
+#define EDIT_BRICK_TO_FICT(ds,iv,ndof) \
+  EDIT_STATAUX4(ds,iv,FUNC_CT_TYPE,ndof,0,0,0)
+
+#define EDIT_BRICK_TO_FIBT(ds,iv,a,b) \
+    EDIT_STATAUX4(ds,iv,FUNC_BT_TYPE,a,b,0,0)
+
+#define EDIT_BRICK_TO_FIBN(ds,iv,ntrial,prob) \
+    EDIT_STATAUX4(ds,iv,FUNC_BN_TYPE,ntrial,prob,0,0)
+
+#define EDIT_BRICK_TO_FIGT(ds,iv,shape,scale) \
+    EDIT_STATAUX4(ds,iv,FUNC_GT_TYPE,shape,scale,0,0)
+
+#define EDIT_BRICK_TO_FIPT(ds,iv,mean) \
+    EDIT_STATAUX4(ds,iv,FUNC_PT_TYPE,mean,0,0,0)
+
+/*------------------------------------------------------------------*/
+
+#define EDIT_BRICK_LABEL(ds,iv,str) \
+     EDIT_dset_items( (ds), ADN_brick_label_one+(iv), (str), ADN_none )
+
+#define EDIT_BRICK_FACTOR(ds,iv,fac) \
+     EDIT_dset_items( (ds), ADN_brick_factor_one+(iv), (fac), ADN_none )
+
+#define EDIT_BRICK_ADDKEY(ds,iv,str) \
+     EDIT_dset_items( (ds), ADN_brick_keywords_append_one+(iv), (str), ADN_none )
+
+/*------------------------------------------------------------------*/
+
 #endif /* _MCW_EDITVOL_ */

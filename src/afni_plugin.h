@@ -19,6 +19,7 @@ struct AFNI_plugin_array ; /* incomplete definition */
 
 #include "afni.h"
 #include "editvol.h"
+#include "3dmaker.h"
 
 #include <Xm/XmAll.h>
 
@@ -520,6 +521,15 @@ extern THD_3dim_dataset * PLUTO_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
 
 #define PLUTO_4D_to_fith(ds,np,ig,dtr,uf,ud) \
   PLUTO_4D_to_typed_fith( (ds),(np), MRI_short , (ig),(dtr),(uf),(ud) )
+
+/* RWC, 13 Dec 1997 */
+
+extern THD_3dim_dataset * PLUTO_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
+                                                  char * new_prefix , int new_datum ,
+                                                  int ignore , int detrend ,
+                                                  int nbrik ,
+                                                  generic_func * user_func ,
+                                                  void * user_data ) ;
 
 #define PLUTO_extract_series(ijk,ds)     THD_extract_series((ijk),(ds),0)
 #define PLUTO_extract_series_raw(ijk,ds) THD_extract_series((ijk),(ds),1)
