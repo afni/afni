@@ -68,9 +68,7 @@
 
    If a NIFTI-aware program reads a header file that is NOT marked with a
    NIFTI magic string, then it should treat the header as an ANALYZE 7.5
-   structure.  For convenience, that header struct declaration is also
-   given in this file (at the very end).  To disable it's inclusion, define
-   the macro DONT_INCLUDE_ANALYZE_STRUCT before including this file.
+   structure.
 
    NIFTI-1 FILE STORAGE:
    --------------------
@@ -1037,7 +1035,53 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_UNITS_PPM    12
 
 /*---------------------------------------------------------------------------*/
+/* MRI-SPECIFIC SPATIAL AND TEMPORAL INFORMATION:
+   ---------------------------------------------
+   A few fields are provided to store some extra information
+   that is sometimes important for FMRI time series datasets.
+
+    freq_dim  = These fields encode which spatial dimension (1,2, or 3)
+    phase_dim = corresponds to which acquisition dimension for MRI data.
+    slice_dim = Examples:
+      Rectangular scan multi-slice EPI:
+        freq_dim = 1  phase_dim = 2  slice_dim = 3
+      Spiral scan multi-slice EPI:
+        freq_dim = phase_dim = 0  slice_dim = 3
+        since the concepts of frequency- and phase-encoding directions
+        don't apply to spiral scan
+
+    slice_duration = If this is positive, and if slice_dim is nonzero,
+                     indicates the amount of time used to acquire ALL
+                     the slices. This value can be less than
+                     pixdim[slice_dim] with the clustered acquisition
+                     methods, for example.
+             
+    slice_code = If this is nonzero, and if slice_dim is nonzero, and
+                 if slice_duration is positive, indicates the timing
+                 pattern of the slice acquisition.  The following codes
+                 are defined:
+                   NIFTI_SLICE_SEQ_INC
+                   NIFTI_SLICE_SEQ_DEC
+                   NIFTI_SLICE_ALT_INC
+                   NIFTI_SLICE_ALT_DEC
+    slice_start
+    slice_end
+ slice
+ index   SEQ_INC SEQ_DEC ALT_INC ALT_DEC
+   6  --
+   5  --   4
+   4  --   3
+   3  --   2
+   2  --   1
+   1  --   0
+   0  --    
+
+-----------------------------------------------------------------------------*/
+
+
+/*---------------------------------------------------------------------------*/
 /* UNUSED FIELDS:
+   -------------
    Some of the ANALYZE 7.5 fields marked as ++UNUSED++ may need to be set
    to particular values for compatibility with other programs.  The issue
    of interoperability of ANALYZE 7.5 files is a murky one -- not all
@@ -1088,42 +1132,6 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
     Returns size of 5th dimension if > 1, returns 0 otherwise.         */
 
 #define NIFTI_5TH_DIM(h) ( ((h).dim[0]>4 && (h).dim[5]>1) ? (h).dim[5] : 0 )
-
-/*****************************************************************************/
-
-/*------------ The ANALYZE-7.5 header struct (sans commentary). -------------*/
-
-#ifndef DONT_INCLUDE_ANALYZE_STRUCT
-struct header_key {
-       int sizeof_hdr;
-       char data_type[10]; char db_name[18];
-       int extents; short int session_error;
-       char regular; char hkey_un0;
-};
-struct image_dimension {
-       short int dim[8];
-       short int unused8; short int unused9; short int unused10;
-       short int unused11; short int unused12; short int unused13;
-       short int unused14; short int datatype; short int bitpix;
-       short int dim_un0; float pixdim[8]; float vox_offset;
-       float funused1; float funused2; float funused3;
-       float cal_max; float cal_min;
-       float compressed; float verified; int glmax,glmin;
-};
-struct data_history {
-       char descrip[80]; char aux_file[24];
-       char orient; char originator[10]; char generated[10];
-       char scannum[10]; char patient_id[10]; char exp_date[10];
-       char exp_time[10]; char hist_un0[3];
-       int views; int vols_added; int start_field; int field_skip;
-       int omax, omin; int smax, smin;
-};
-struct dsr {
-       struct header_key hk;
-       struct image_dimension dime;
-       struct data_history hist;
-};
-#endif /* DONT_INCLUDE_ANALYZE_STRUCT */
 
 /*****************************************************************************/
 
