@@ -83,7 +83,7 @@ ENTRY("AFNI_vnlist_func_overlay") ;
      if( scale_thr == 0.0 ) scale_thr = 1.0 ;
    }
 
-   if( function_type == SHOWFUNC_FIM ){
+   if( function_type == SHOWFUNC_FIM || !have_thr ){
       int ind ;
 
       if( fdset_type == FUNC_FIM_TYPE ){   /* Mar 1997: allow for 3D+t FIM */
@@ -247,6 +247,26 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
    switch( im_fim->kind ){
 
       default: nvout = nout = 0 ; break ;   /* should never happen */
+
+      case MRI_rgb:{                        /* 17 Apr 2002 */
+         byte *ar_fim = MRI_RGB_PTR(im_fim) ;
+         byte r,g,b ;
+
+         nvout = nout = 0 ;                           /* num output nodes */
+         for( ii=0 ; ii < nvox ; ii++ ){
+            jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
+            r = ar_fim[3*jj]; g = ar_fim[3*jj+1]; b = ar_fim[3*jj+2];
+            if( r == 0 && g ==0 && b == 0 ) continue ; /* uncolored */
+            nlist = adset->su_vnlist->nlist[ii] ;     /* list of nodes */
+            for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
+               mmm[nout].id = ixyz[nlist[nn]].id ;
+               mmm[nout].r  = r ; mmm[nout].g = g ;
+               mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
+            }
+            nvout++ ;                           /* number of voxels used */
+         }
+      }
+      break ;
 
       case MRI_short:{
          short * ar_fim = MRI_SHORT_PTR(im_fim) ;
