@@ -196,7 +196,28 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy
                                                                   void (*SelectCallback)(char *filename, void *data), void *SelectData,
                                                                   void (*CancelCallback)(void *data), void *CancelData,
                                                                   SUMA_SELECTION_DIALOG_STRUCT *dlg);
-void SUMA_DestroyFileSelectionDialog(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_FileSelection_Unmap_cb (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_FreeFileSelectionDialogStruct(SUMA_SELECTION_DIALOG_STRUCT *dlg);
+SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (SUMA_PROMPT_MODE Mode, char *TextFieldLabel, 
+                                                         char *init_selection, 
+                                                         Widget daddy, SUMA_Boolean preserve,
+                                                         SUMA_PROMPT_BUTTONS Return_button,
+                                                         void(*SelectCallback)(char *selection, void *data), void *SelectData,
+                                                         void(*CancelCallback)(void *data), void *CancelData,
+                                                         void(*HelpCallback)(void *data), void *HelpData,
+                                                         SUMA_Boolean(*VerifyFunction)(char *selection, void *data), void *VerifyData,
+                                                         SUMA_PROMPT_DIALOG_STRUCT *oprmpt);
+SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_PROMPT_DIALOG_STRUCT *prmpt);
+const char * SUMA_PromptButtonLabel(SUMA_PROMPT_BUTTONS code);
+SUMA_Boolean SUMA_CreatePromptActionArea (SUMA_PROMPT_DIALOG_STRUCT *prmpt);
+void SUMA_PromptOk_cb (Widget w, XtPointer data, XtPointer calldata);
+void SUMA_PromptClear_cb (Widget w, XtPointer data, XtPointer calldata);
+void SUMA_PromptApply_cb (Widget w, XtPointer data, XtPointer calldata);
+void SUMA_PromptCancel_cb (Widget w, XtPointer data, XtPointer calldata);
+void SUMA_PromptHelp_cb (Widget w, XtPointer data, XtPointer calldata);
+void SUMA_PromptActivate_cb (Widget w, XtPointer data, XtPointer calldata);
+void SUMA_PromptUnmap_cb (Widget w, XtPointer data, XtPointer calldata);
+void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt);
 
 
 

@@ -242,95 +242,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                         SUMAg_CF->X->FileSelectDlg);
             SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Not used yet", SUMAg_CF->X->FileSelectDlg);
             
-            /* Now make a call to read that file */
-            
-            #if 0
-            fprintf(stdout,"Enter name of color file (enter nothing to cancel): ");
-            {int i=0;
-               while ((cbuf = getc(stdin)) != '\n' && i < SUMA_MAX_STRING_LENGTH-1) {
-                  s[i] = cbuf;
-                  ++ i;
-               }
-               if (i == SUMA_MAX_STRING_LENGTH-1) {
-                  fprintf(SUMA_STDERR,"Error %s: Filename should not be longer than %d.\n", FuncName, SUMA_MAX_STRING_LENGTH-1);
-                  fflush(stdin);
-                  SUMA_RETURNe;
-               }
-               s[i] = '\0';
-               if (!i) SUMA_RETURNe;
-            }
-            #endif
-            
-            /* find out if file exists and how many values it contains */
-            fprintf (SUMA_STDERR,"%s: Now reading %s...\n", FuncName, s);
-            ntot = SUMA_float_file_size (s);
-            if (ntot < 0) {
-               fprintf(stderr,"Error SUMA_input: filename %s could not be open.\n", s);
-               SUMA_RETURNe;
-            }
-
-            /* make sure it's a full matrix */
-            if ((ntot % 4)) {
-               fprintf(stderr,"Error SUMA_Read_2Dfile: file %s contains %d values, not divisible by ncols %d.\n", s, ntot, 4);
-               SUMA_RETURNe;
-            }
-            
-
-            /* instead of just colorizing the nodes, put the colors in a color plane */
-            /* Begin Bus modification */
-            {
-               SUMA_OVERLAY_PLANE_DATA sopd;
-               SUMA_IRGB *irgb=NULL;
-               SUMA_SurfaceObject *SO = NULL;
-               int OverInd = -1;
-               
-               irgb = SUMA_Read_IRGB_file(s, ntot / 4);
-               if (!irgb) {
-                  SUMA_SLP_Err("Failed to read file.");
-                  SUMA_RETURNe;
-               }
-
-               sopd.N = irgb->N;
-               sopd.Type = SOPT_ifff;
-               sopd.Source = SES_Suma;
-               sopd.GlobalOpacity = 1;
-               sopd.BrightMod = NOPE;
-               sopd.Show = YUP;
-               /* dim colors from maximum intensity to preserve surface shape highlights, division by 255 is to scale color values between 1 and 0 */
-               sopd.DimFact = 1;
-               sopd.i = (void *)irgb->i;
-               sopd.r = (void *)irgb->r;
-               sopd.g = (void *)irgb->g;
-               sopd.b = (void *)irgb->b;
-               sopd.a = NULL;
-               
-               SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
-               if (!SUMA_iRGB_to_OverlayPointer (SO, s, &sopd, &OverInd, SUMAg_DOv, SUMAg_N_DOv)) {
-                  SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
-                  SUMA_RETURNe;
-               }
-               
-               /* values were copied, dump structure */
-               irgb = SUMA_Free_IRGB(irgb);  
-               
-               /* remix colors for all viewers displaying related surfaces */
-               if (!SUMA_SetRemixFlag(SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
-                  SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
-                  SUMA_RETURNe;
-               }
-               
-               if (!list) list = SUMA_CreateList();
-               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-               if (!SUMA_Engine (&list)) {
-                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
-               }  
-               
-            }
-            
             break;
-            
-            /* End Bus modification */
+             
             #if 0
+            /* THE OLD WAY (part of it) FOR SETTING NODE COLORS DIRECTLY, Left here for documentation */
             /* allocate space */
             fm = (float **)SUMA_allocate2D (ntot/4, 4, sizeof(float));
             if (fm == NULL) {
@@ -364,9 +279,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
             /* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
             if (fm) SUMA_free2D ((char **)fm, ntot/4);
+            break;
             #endif 
             
-            break;
 
          case XK_d:
             if (SUMAg_CF->Dev) {
@@ -623,34 +538,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                }
             } else {
-               fprintf(stdout,"Enter XYZ coordinates to look at (enter nothing to cancel):\n");
-
-               it = SUMA_ReadNumStdin (fv3, 3);
-               if (it > 0 && it < 3) {
-                  fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
-                  SUMA_RETURNe;
-               }else if (it < 0) {
-                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                  SUMA_RETURNe;
-               }else if (it == 0) {
-                  SUMA_RETURNe;
-               }
-
-               fprintf(stdout,"Parsed input: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
-
-               /* register fv3 with ED */
-               if (!list) list = SUMA_CreateList();
-               ED = SUMA_InitializeEngineListData (SE_SetLookAt);
-               if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                      SEF_fv3, (void *)fv3, 
-                                                      SES_Suma, (void *)sv, NOPE, 
-                                                      SEI_Head, NULL )) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-                  break;
-               }
-               if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-               }
+               sv->X->LookAt_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter X,Y,Z coordinates to look at:", 
+                                                      "0,0,0",
+                                                      sv->X->TOPLEVEL, YUP,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_LookAtCoordinates, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      SUMA_isNumString, (void*)3,  
+                                                      sv->X->LookAt_prmpt);
+               
+               sv->X->LookAt_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->LookAt_prmpt);
+               
             }
             break;
 
@@ -3505,3 +3404,47 @@ void SUMA_DestroyROIActionData (void *data)
    SUMA_RETURNe;
 }
 
+/*!
+   \brief rotates surface to face a certain coordinate 
+
+   \param s (char *) a strng containing X, Y, Z coordinates
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+
+*/
+void SUMA_LookAtCoordinates (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_LookAtCoordinates"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv3[3];
+   SUMA_Boolean LocalHead = YUP; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, fv3, 3) != 3) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+
+   /* register fv3 with ED */
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_SetLookAt);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void *)fv3, 
+                                          SES_Suma, (void *)sv, NOPE, 
+                                          SEI_Head, NULL )) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      SUMA_RETURNe;
+   }
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+
+   SUMA_RETURNe;
+}

@@ -76,6 +76,8 @@ int SUMA_Read_file (float *x,char *f_name,int n_points);
 int SUMA_Read_dfile (int *x,char *f_name,int n_points);
 char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt);
 int SUMA_ReadNumStdin (float *fv, int nv);
+SUMA_Boolean SUMA_isNumString (char *s, void *p);
+int SUMA_StringToNum (char *s, float *fv, int N);
 int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation);
 int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted );
 void SUMA_Show_Edge_List (SUMA_EDGE_LIST *SEL, FILE *Out);

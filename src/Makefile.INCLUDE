@@ -1726,7 +1726,7 @@ libSUMA.a: libmri.a
 #link executables but check for libraries first and create them if needed	
 suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 	( cd SUMA ;	\
-	make -f $(SUMA_MAKEFILE_NAME) suma ScaleToMap MakeColorMap 3dSurfMaskDump ConvertSurface packbins testGL 'INSTALLDIR=$(INSTALLDIR)' \
+	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap MakeColorMap 3dSurfMaskDump ConvertSurface packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -1761,7 +1761,7 @@ suma_link:
 	touch *.a	;\
 	$(CP) libmri.a librickr.a ../	;\
 	$(RM) suma MakeColorMap 3dSurfMaskDump	ScaleToMap ConvertSurface;\
-	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 3dSurfMaskDump ScaleToMap ConvertSurface \
+	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap 3dSurfMaskDump ScaleToMap ConvertSurface \
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \

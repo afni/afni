@@ -4,6 +4,8 @@
 extern SUMA_CommonFields *SUMAg_CF;
 extern int SUMAg_N_DOv; 
 extern SUMA_DO *SUMAg_DOv;
+extern SUMA_SurfaceViewer *SUMAg_SVv;
+extern int SUMAg_N_SVv;
 
 /* This is used to hold the functions that manipulate SV, Surface Viewer Structures */
 /*! 
@@ -193,6 +195,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          SUMA_RETURN (NULL);
       }
 
+      SV->X->Title = NULL;
+      SV->X->LookAt_prmpt = NULL;
       SV->X->TOPLEVEL = NULL;
       SV->X->MOMENTUMID = 0;
       SV->X->REDISPLAYPENDING = 0;
@@ -238,6 +242,8 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
+   if (SV->X->Title) SUMA_free(SV->X->Title);
+   if (SV->X->LookAt_prmpt) SUMA_FreePromptDialogStruct (SV->X->LookAt_prmpt);
    if (SV->X->ViewCont) SUMA_FreeViewContStruct(SV->X->ViewCont);
    if (SV->X) SUMA_free(SV->X);
    if (SV->ShowDO) SUMA_free(SV->ShowDO);
@@ -1335,7 +1341,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    
    /* do not use commonfields related stuff here for obvious reasons */
    
-   if (cf->X->FileSelectDlg) SUMA_DestroyFileSelectionDialog(NULL, cf->X->FileSelectDlg, NULL);
+   if (cf->X->FileSelectDlg) SUMA_FreeFileSelectionDialogStruct(cf->X->FileSelectDlg);
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont);
    if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI);
    if (cf->X) free(cf->X);
@@ -1577,4 +1583,72 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
 
 
    SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief updates the title string of a viewer window
+*/
+
+void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)   
+{  
+   static char FuncName[]={"SUMA_UpdateViewerTitle"};
+   int isv, i, N_SOlist, nalloc;  
+   char slabel[30];   
+   SUMA_SurfaceObject *SO = NULL;   
+   int SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];   
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!sv->X) SUMA_RETURNe;
+   if (!sv->X->TOPLEVEL) SUMA_RETURNe;
+
+   isv = SUMA_WhichSV (sv, SUMAg_SVv, SUMAg_N_SVv);   
+   
+   if (sv->X->Title) SUMA_free(sv->X->Title);
+   sv->X->Title = NULL;
+      
+   if (isv >= 0) sprintf(slabel,"[%c] SUMA", 65+isv); 
+   else sprintf(slabel,"[DOH] SUMA"); 
+   
+   N_SOlist = SUMA_ShownSOs(sv, SUMAg_DOv, SOlist);   
+   
+   i = 0; 
+   nalloc = 0;  
+   while (i < N_SOlist) {   
+      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[0]].OP);   
+      if (SO->Label) { 
+         nalloc +=  (strlen(SO->Label)+5);  
+      }  
+      ++i;   
+   }
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d surface models.\n", FuncName, N_SOlist);
+   
+   i = 0; 
+   if (N_SOlist >= 0) {   
+      SUMA_LH("title surfaces found");
+      sv->X->Title = (char *)SUMA_calloc(nalloc + strlen(slabel)+3, sizeof(char));      
+      sv->X->Title[0] = '\0';
+      while (i < N_SOlist) {   
+         SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);   
+         if (!i)  {
+            sprintf (sv->X->Title,"%s:%s", slabel, SO->Label); 
+         } else {
+            sv->X->Title = strcat (sv->X->Title, " & ");
+            sv->X->Title = strcat (sv->X->Title, SO->Label); 
+         }
+         ++i;   
+      }  
+   } else {   
+      SUMA_LH("No title could be made up");
+      sv->X->Title = (char *)SUMA_calloc(strlen(slabel)+3, sizeof(char));  
+      sprintf (sv->X->Title,"%s:-", slabel);   
+   }  
+   
+   XtVaSetValues(sv->X->TOPLEVEL,  
+            XmNtitle, sv->X->Title,  
+            NULL);
+            
+   SUMA_RETURNe;   
 }

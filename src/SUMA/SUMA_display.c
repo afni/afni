@@ -926,7 +926,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    int cargc = 1;
    SUMA_Boolean NewCreation = NOPE, Found;
    char slabel[20]; 
-      
+       
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    /* Step 1. */
@@ -956,9 +956,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       /* an unopen window was found, check its top level widget */
       if (SUMAg_SVv[ic].X->TOPLEVEL == NULL) {
          /* Unopen window found, needs a shell */
-         sprintf(slabel,"[%c] SUMA", 65+ic);
          SUMAg_SVv[ic].X->DPY = SUMAg_CF->X->DPY_controller1;
-         SUMAg_SVv[ic].X->TOPLEVEL = XtVaAppCreateShell(slabel , "Suma" ,
+         SUMAg_SVv[ic].X->TOPLEVEL = XtVaAppCreateShell("Not Yet" , "Suma" ,
                    topLevelShellWidgetClass , SUMAg_SVv[ic].X->DPY ,
                    XmNinitialResourcesPersistent , False ,
                    NULL ) ;
@@ -1107,8 +1106,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       }
       /* keep track of count */
       SUMAg_N_SVv += 1;
-     
-
+             
    } else { /* widget already set up, just undo whatever was done in SUMA_ButtClose_pushed */
       
       #ifdef SUMA_USE_WITHDRAW
@@ -1123,6 +1121,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    SUMAg_SVv[ic].Open = YUP;
    ++SUMAg_CF->N_OpenSV;
    ++CallNum;
+   
+   SUMA_UpdateViewerTitle (&(SUMAg_SVv[ic]));
+
    SUMA_RETURN (YUP);
 }
 
@@ -5108,6 +5109,586 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
  */
  
 /*!
+   \brief function to allocate and initialize a prompt dialogue structure
+   
+   \param Mode (SUMA_PROMPT_MODE) type of action area buttons desired
+   \param init_selection (char *) the original value to set the text_field to
+   \param daddy (Widget) the parent widget of the dialog
+   \param preserve (SUMA_Boolean) if YUP then do not destroy widget and structure after use
+   \param Return_button (SUMA_PROMPT_BUTTONS) make return (enter) in the text field
+      mimick button Return_button (usually SUMA_OK_BUTTON OR SUMA_APPLY_BUTTON)
+   \param SelectCallback 
+   \param SelectData
+   \param CancelCallback
+   \param CancelData
+   \param HelpCallback
+   \param HelpData
+   \param oprmpt (SUMA_PROMPT_DIALOG_STRUCT *) the structure to reuse. 
+                  Use in conjuction with preserve=YUP
+                  
+   \sa warnings in SUMA_CreateFileSelectionDialogStruct
+*/
+SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (SUMA_PROMPT_MODE Mode, char *TextFieldLabel, 
+                                                         char *init_selection, 
+                                                         Widget daddy, SUMA_Boolean preserve,
+                                                         SUMA_PROMPT_BUTTONS Return_button,
+                                                         void(*SelectCallback)(char *selection, void *data), void *SelectData,
+                                                         void(*CancelCallback)(void *data), void *CancelData,
+                                                         void(*HelpCallback)(void *data), void *HelpData,
+                                                         SUMA_Boolean(*VerifyFunction)(char *selection, void *data), void *VerifyData,
+                                                         SUMA_PROMPT_DIALOG_STRUCT *oprmpt)
+{
+   static char FuncName[]={"SUMA_CreatePromptDialogStruct"};
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!oprmpt) {
+      SUMA_LH ("New prompt structure");
+      prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)SUMA_malloc(sizeof(SUMA_PROMPT_DIALOG_STRUCT));
+      if (!prmpt) {
+         SUMA_SLP_Crit("Failed to allocate for prmpt");
+         SUMA_RETURN(prmpt);
+      }
+      prmpt->daddy = daddy;
+      prmpt->dialog = NULL;
+      prmpt->pane = NULL;
+      prmpt->text_w = NULL;
+      prmpt->Mode = Mode;
+   } else {
+      SUMA_LH("Refitting old prompt structure.");
+      prmpt = oprmpt;
+      if (!preserve) SUMA_SLP_Warn("You should not be reusing\na prmpt structure along with\nthe Preserve flag on.");
+      if (Mode != prmpt->Mode) SUMA_SLP_Warn("You cannot be reusing\na prmpt structure and change its mode.");
+      if (prmpt->selection) SUMA_free(prmpt->selection);
+      if (prmpt->label) SUMA_free(prmpt->label);
+   }   
+   
+   prmpt->SelectCallback = SelectCallback;
+   prmpt->SelectData = SelectData;
+   prmpt->CancelCallback = CancelCallback;
+   prmpt->CancelData = CancelData;
+   prmpt->HelpCallback = HelpCallback;
+   prmpt->HelpData = HelpData;
+   prmpt->default_button = Return_button;
+   prmpt->VerifyFunction = VerifyFunction;
+   prmpt->VerifyData = VerifyData;
+   
+   if (init_selection) {
+      prmpt->selection = (char *)SUMA_calloc(strlen(init_selection)+1, sizeof(char));
+      prmpt->selection = strcpy(prmpt->selection, init_selection);
+   }else {
+      prmpt->selection = NULL;
+   }
+   if (TextFieldLabel) {
+      prmpt->label = (char *)SUMA_calloc(strlen(TextFieldLabel)+1, sizeof(char));
+      prmpt->label = strcpy(prmpt->label, TextFieldLabel);
+   }else {
+      prmpt->label = NULL;
+   }
+   prmpt->preserve = preserve;
+   
+   SUMA_RETURN(prmpt);
+}
+
+/*!
+   \brief function to open a prompt 
+*/
+SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_PROMPT_DIALOG_STRUCT *prmpt)
+{
+   static char FuncName[]={"SUMA_CreatePromptDialog"};
+   Widget rc;
+   XmString string;
+   SUMA_Boolean LocalHead = YUP;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!prmpt->dialog) {
+      SUMA_LH ("Creating new prompt dialog.");
+      /* The DialogShell is the Shell for this dialog.  Set it up so
+      * that the "Close" button in the window manager's system menu
+      * destroys the shell (it only unmaps it by default).
+      */
+      prmpt->dialog= XtVaCreatePopupShell ("dialog",
+        xmDialogShellWidgetClass, prmpt->daddy,
+        XmNtitle,  title_extension,     /* give arbitrary title in wm */
+        XmNdeleteResponse, XmDO_NOTHING,  /* Unmap is the default and it is the best, 
+                                             by I can't get an unmap callback for
+                                             the stupid dialog shell. 
+                                          */
+        NULL);
+      
+      /* handle the close button from window manager */
+      XmAddWMProtocolCallback(/* make "Close" window menu work */
+         prmpt->dialog,
+         XmInternAtom( XtDisplay(prmpt->dialog) , "WM_DELETE_WINDOW" , False ) ,
+         SUMA_PromptUnmap_cb, (XtPointer) prmpt) ;
+      
+      
+      /* Create the paned window as a child of the dialog.  This will
+      * contain the control area and the action area
+      * (created by CreateActionArea() using the action_items above).
+      */
+      prmpt->pane = XtVaCreateWidget ("pane", xmPanedWindowWidgetClass, prmpt->dialog,
+        XmNsashWidth,  1,
+        XmNsashHeight, 1,
+        NULL);
+
+      /* create the control area which contains a
+      * Label gadget and a TextField widget.
+      */
+      rc = XtVaCreateWidget ("control_area", xmRowColumnWidgetClass, prmpt->pane, NULL);
+      string = XmStringCreateLocalized (prmpt->label);
+      XtVaCreateManagedWidget ("label", xmLabelGadgetClass, rc,
+        XmNlabelString,    string,
+        NULL);
+      XmStringFree (string);
+
+      prmpt->text_w = XtVaCreateManagedWidget ("text-field",
+        xmTextFieldWidgetClass, rc, 
+        NULL);
+      
+      if (prmpt->selection) {
+         XtVaSetValues(prmpt->text_w, 
+            XmNvalue, prmpt->selection,
+            NULL);
+      }
+
+      /* add a callback for the return in the text-field widget */
+      XtAddCallback (prmpt->text_w, XmNactivateCallback, SUMA_PromptActivate_cb, (XtPointer)prmpt);
+      
+      /* RowColumn is full -- now manage */
+      XtManageChild (rc);
+      
+      
+      /* Now create the action area */
+      if (!SUMA_CreatePromptActionArea (prmpt)){
+         SUMA_SLP_Crit("Failed to create action area.");
+         SUMA_RETURN(NULL);
+      }
+      
+      
+       XtManageChild (prmpt->actionarea);
+       XtManageChild (prmpt->pane);
+       XtPopup (prmpt->dialog, XtGrabNone);
+   }else {
+      SUMA_LH ("bringing back old prompt dialog.");
+      XtManageChild (prmpt->dialog);
+      /* make sure that dialog is raised to top of window stack */
+      XMapRaised (XtDisplay (prmpt->dialog), XtWindow (XtParent (prmpt->dialog)));
+   }
+   
+   SUMA_RETURN(prmpt);
+}
+
+/*!
+   \brief function to create the action area of the prompt 
+*/
+#define TIGHTNESS 20
+const char * SUMA_PromptButtonLabel(SUMA_PROMPT_BUTTONS code)
+{
+   static char FuncName[]={"SUMA_CommandString"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   switch (code) {
+      case SUMA_OK_BUTTON:
+         SUMA_RETURN("OK");
+      case SUMA_CLEAR_BUTTON:
+         SUMA_RETURN("Clear");
+      case SUMA_CANCEL_BUTTON:
+         SUMA_RETURN("Cancel");
+      case SUMA_HELP_BUTTON:
+         SUMA_RETURN("Help");
+      case SUMA_APPLY_BUTTON:
+         SUMA_RETURN("Apply");
+      default:
+         SUMA_RETURN("BAD BAD BAD.");
+   }
+   SUMA_RETURN("This cannot be.");
+}
+
+SUMA_Boolean SUMA_CreatePromptActionArea (SUMA_PROMPT_DIALOG_STRUCT *prmpt)
+{
+   static char FuncName[]={"SUMA_CreatePromptActionArea"};
+   int i, num_actions;
+   Widget widget=NULL;
+   SUMA_Boolean DoButt[SUMA_N_PROMPT_BUTTONS];
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_LH ("Called");
+   /* initialize DoButt */
+   for (i=0; i < SUMA_N_PROMPT_BUTTONS; ++i) DoButt[i]=NOPE;
+   
+   /* Now set the flags for building the action area */
+   num_actions = 0;
+   switch (prmpt->Mode) {
+      case SUMA_OK:
+         DoButt[SUMA_OK_BUTTON] = YUP;
+         num_actions = 1;
+         break;
+      case SUMA_OK_HELP:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_HELP_BUTTON] = YUP;
+         num_actions = 2;
+         break;
+      case SUMA_OK_CANCEL:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_CANCEL_BUTTON] = YUP;
+         num_actions = 2;
+         break;
+      case SUMA_OK_CANCEL_HELP:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_CANCEL_BUTTON] = 
+         DoButt[SUMA_HELP_BUTTON] = YUP;
+         num_actions = 3;
+         break;               
+      case SUMA_OK_CLEAR_CANCEL:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_CANCEL_BUTTON] = 
+         DoButt[SUMA_CLEAR_BUTTON] = YUP;
+         num_actions = 3;
+         break;
+      case SUMA_OK_CLEAR_CANCEL_HELP:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_CANCEL_BUTTON] = 
+         DoButt[SUMA_CLEAR_BUTTON] = DoButt[SUMA_HELP_BUTTON] = YUP;
+         num_actions = 4;
+         break;
+      case SUMA_OK_APPLY_CANCEL:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_CANCEL_BUTTON] = 
+         DoButt[SUMA_APPLY_BUTTON] = YUP;
+         num_actions = 3;
+         break;
+      case SUMA_OK_APPLY_CANCEL_HELP:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_CANCEL_BUTTON] = 
+         DoButt[SUMA_APPLY_BUTTON] = DoButt[SUMA_HELP_BUTTON] = YUP;
+         num_actions = 4;
+         break;
+      case SUMA_OK_APPLY_CLEAR_CANCEL:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_CANCEL_BUTTON] = 
+         DoButt[SUMA_APPLY_BUTTON] = DoButt[SUMA_CLEAR_BUTTON] = YUP;
+         num_actions = 4;
+         break;
+      case SUMA_OK_APPLY_CLEAR_CANCEL_HELP:
+         DoButt[SUMA_OK_BUTTON] = DoButt[SUMA_CANCEL_BUTTON] = 
+         DoButt[SUMA_APPLY_BUTTON] = DoButt[SUMA_CLEAR_BUTTON] = 
+         DoButt[SUMA_HELP_BUTTON] = YUP;
+         num_actions = 5;
+         break;
+      default:
+         SUMA_SL_Err("Bad prompt mode.");
+         SUMA_RETURN(NOPE);
+         break;
+   }
+
+   prmpt->actionarea = XtVaCreateWidget ("action_area", xmFormWidgetClass, prmpt->pane,
+        XmNfractionBase, TIGHTNESS*num_actions - 1,
+        XmNleftOffset,   10,
+        XmNrightOffset,  10,
+        NULL);
+        
+   /* create the buttons */
+   for (i=0; i< SUMA_N_PROMPT_BUTTONS; ++i) {
+      if (DoButt[i]) {
+         widget = XtVaCreateManagedWidget (SUMA_PromptButtonLabel(i),
+            xmPushButtonWidgetClass, prmpt->actionarea,
+            XmNleftAttachment,       i? XmATTACH_POSITION : XmATTACH_FORM,
+            XmNleftPosition,         TIGHTNESS*i,
+            XmNtopAttachment,        XmATTACH_FORM,
+            XmNbottomAttachment,     XmATTACH_FORM,
+            XmNrightAttachment,
+                i != num_actions - 1 ? XmATTACH_POSITION : XmATTACH_FORM,
+            XmNrightPosition,        TIGHTNESS * i + (TIGHTNESS - 1),
+            XmNshowAsDefault,        i == 0, 
+            XmNdefaultButtonShadowThickness, 1, 
+            NULL);      
+      }
+      if (i == prmpt->default_button) {
+         /* Set the action_area's default button  Also, set the
+          * pane window constraint for max and min heights so this
+          * particular pane in the PanedWindow is not resizable.
+          */
+         Dimension height, h;
+         XtVaGetValues (prmpt->actionarea, XmNmarginHeight, &h, NULL);
+         XtVaGetValues (widget, XmNheight, &height, NULL);
+         height += 2 * h;
+         XtVaSetValues (prmpt->actionarea,
+             XmNdefaultButton, widget,
+             XmNpaneMaximum,   height,
+             XmNpaneMinimum,   height,
+             NULL);
+      }
+
+      /* Now set the callbacks */
+      switch (i) {
+         case SUMA_OK_BUTTON:
+            XtAddCallback (widget, XmNactivateCallback, SUMA_PromptOk_cb, (XtPointer)prmpt);
+            break;
+         case SUMA_CLEAR_BUTTON:
+            XtAddCallback (widget, XmNactivateCallback, SUMA_PromptClear_cb, (XtPointer)prmpt);
+            break;
+         case SUMA_CANCEL_BUTTON:
+            XtAddCallback (widget, XmNactivateCallback, SUMA_PromptCancel_cb, (XtPointer)prmpt);
+            break;
+         case SUMA_APPLY_BUTTON:
+            XtAddCallback (widget, XmNactivateCallback, SUMA_PromptApply_cb, (XtPointer)prmpt);
+            break;
+         case SUMA_HELP_BUTTON:
+            XtAddCallback (widget, XmNactivateCallback, SUMA_PromptHelp_cb, (XtPointer)prmpt);
+            break;
+         default:
+            SUMA_SL_Err("Bad action area button label");
+            break;
+      }   
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Called when prompt dialog is being unmapped.
+   This happens when users enter a selection, hit cancel or hit the kill button on the window 
+
+   -expects a SUMA_PROMPT_DIALOG_STRUCT *in data
+
+*/
+void SUMA_PromptUnmap_cb (Widget w, XtPointer data, XtPointer calldata)
+{
+   static char FuncName[]={"SUMA_PromptUnmap_cb"};
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
+   SUMA_Boolean LocalHead = YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)data;
+   
+   /* if preservation is not required, kill the widget and free dlg */
+   if (!prmpt->preserve) {
+      if (prmpt->dialog) {
+         SUMA_LH("Destroying prompt");
+         XtDestroyWidget(prmpt->dialog); 
+      }else {
+         SUMA_SL_Warn("prmpt->dialog is null.\nThis should not be.");
+      }
+      
+      /* now free the structure */
+      SUMA_FreePromptDialogStruct(prmpt);
+      
+   }else {
+      SUMA_LH("Preserving prompt");
+      XtUnmapWidget (prmpt->dialog); 
+   }   
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Call from Activate button in prompt dialog
+   
+   -expects a SUMA_PROMPT_DIALOG_STRUCT *in data
+*/
+void SUMA_PromptActivate_cb (Widget w, XtPointer data, XtPointer calldata)
+{
+   static char FuncName[]={"SUMA_PromptActivate_cb"};
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) calldata;
+   Widget dflt;
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
+   SUMA_Boolean LocalHead = YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)data;
+   
+   /* get the "default button" from the action area... */
+    XtVaGetValues (prmpt->actionarea, XmNdefaultButton, &dflt, NULL);
+    if (dflt) /* sanity check -- this better work */
+        /* make the default button think it got pushed using
+         * XtCallActionProc().  This function causes the button
+         * to appear to be activated as if the user pressed it.
+         */
+        XtCallActionProc (dflt, "ArmAndActivate", cbs->event, NULL, 0);
+   
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Call from Ok button in prompt dialog
+   
+   -expects a SUMA_PROMPT_DIALOG_STRUCT *in data
+*/
+void SUMA_PromptOk_cb (Widget w, XtPointer data, XtPointer calldata)
+{
+   static char FuncName[]={"SUMA_PromptOk_cb"};
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
+   SUMA_Boolean LocalHead = YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+
+   prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)data;
+   
+   /* apply first */
+   SUMA_PromptApply_cb (w, data, calldata);
+
+   /* close window */
+   SUMA_PromptUnmap_cb (w, data, calldata);
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Call from Clear button in prompt dialog
+   
+   -expects a SUMA_PROMPT_DIALOG_STRUCT *in data
+*/
+void SUMA_PromptClear_cb (Widget w, XtPointer data, XtPointer calldata)
+{
+   static char FuncName[]={"SUMA_PromptClear_cb"};
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
+   SUMA_Boolean LocalHead = YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)data;
+  
+   XmTextFieldSetString (prmpt->text_w, "");
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Call from Apply button in prompt dialog
+   
+   -expects a SUMA_PROMPT_DIALOG_STRUCT *in data
+*/
+void SUMA_PromptApply_cb (Widget w, XtPointer data, XtPointer calldata)
+{
+   static char FuncName[]={"SUMA_PromptApply_cb"};
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
+   char *text=NULL;
+   SUMA_Boolean LocalHead = YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)data;
+   
+   text = XmTextFieldGetString (prmpt->text_w);
+   
+   if (prmpt->selection) SUMA_free(prmpt->selection);
+   if (text[0]) { 
+      prmpt->selection = (char *)SUMA_calloc(strlen(text)+1,sizeof(char));
+      prmpt->selection = strcpy(prmpt->selection, text);
+   }else {
+      prmpt->selection = NULL;
+   }
+   XtFree (text);
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Read %s\n", FuncName, prmpt->selection);
+
+   /* verify the input */
+   if (prmpt->VerifyFunction) {
+      if (!prmpt->VerifyFunction(prmpt->selection, prmpt->VerifyData)) {
+         SUMA_SLP_Err("Gibberish! try again.");
+         SUMA_RETURNe;
+      }
+   }
+   
+   /* do your selectcallback */
+   if (prmpt->SelectCallback) {
+      prmpt->SelectCallback (prmpt->selection, prmpt->SelectData);
+   }
+   
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Call from Cancel button in prompt dialog
+   
+   -expects a SUMA_PROMPT_DIALOG_STRUCT *in data
+*/
+void SUMA_PromptCancel_cb (Widget w, XtPointer data, XtPointer calldata)
+{
+   static char FuncName[]={"SUMA_PromptCancel_cb"};
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
+   SUMA_Boolean LocalHead = YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)data;
+   
+   /* do your cancelcallback */
+   if (prmpt->CancelCallback) {
+      prmpt->CancelCallback (prmpt->CancelData);
+   }
+   
+   /* close window */
+   SUMA_PromptUnmap_cb (w, data, calldata);
+
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Call from Help button in prompt dialog
+   
+   -expects a SUMA_PROMPT_DIALOG_STRUCT *in data
+*/
+void SUMA_PromptHelp_cb (Widget w, XtPointer data, XtPointer calldata)
+{
+   static char FuncName[]={"SUMA_PromptHelp_cb"};
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
+   SUMA_Boolean LocalHead = YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)data;
+   
+   /* do your helpcallback */
+   if (prmpt->HelpCallback) {
+      prmpt->HelpCallback (prmpt->HelpData);
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief frees prompt dialog structure. 
+   It does not destroy the widget for the dialog, that should be done
+   before this function is called.
+   
+*/
+void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt)
+{
+   static char FuncName[]={"SUMA_FreePromptDialogStruct"};
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_LH("Called");
+   
+   if (!prmpt) SUMA_RETURNe;
+   
+   /* now free structure */
+   if (prmpt->selection) SUMA_free(prmpt->selection);
+   if (prmpt->label) SUMA_free(prmpt->label); 
+   SUMA_free(prmpt);
+   
+   SUMA_RETURNe;
+}
+
+/*!
    \brief function to allocate and initialize a file selection dialogue structure
    
    \param parent (Widget) parent widget of dialog
@@ -5155,6 +5736,8 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy
       dlg->daddy = daddy; 
    }else {
       SUMA_LH("Refitting old one. ");
+      if (!preserve) 
+         SUMA_SLP_Warn("You should not be reusing\na dlg structure along with\nthe Preserve flag on.");
       dlg = odlg;
       if (dlg->filename) SUMA_free(dlg->filename);
    }
@@ -5182,13 +5765,19 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title_extens
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (!dlg->dlg_w) {/* need to create it for the first time */
-      SUMA_LH ("Creating new window.");
+      SUMA_LH ("Creating new file selection window.");
       dlg->dlg_w = XmCreateFileSelectionDialog (dlg->daddy, "Files", NULL, 0);
+      XtVaSetValues (dlg->dlg_w,
+         XmNdeleteResponse, XmUNMAP,  /* system menu "Close" action */
+        NULL);
+        
       XtAddCallback (dlg->dlg_w, XmNcancelCallback, SUMA_FileSelection_popdown_cb, (XtPointer)dlg);
       XtAddCallback (dlg->dlg_w, XmNokCallback, SUMA_FileSelection_file_select_cb, (XtPointer)dlg);
-      XtAddCallback (dlg->dlg_w, XmNdestroyCallback, SUMA_DestroyFileSelectionDialog, (XtPointer)dlg);
+      XtAddCallback (dlg->dlg_w, XmNunmapCallback, SUMA_FileSelection_Unmap_cb, (XtPointer)dlg);
+      
       /* you can't cancel the kill button's effect, the way you do for toplevel shells. 
       But it does appear that the kill button is just unmanaging the widget, which is fine.
+      see my modified action_area.c file
       */
       
       
@@ -5232,48 +5821,66 @@ void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, XtPointer c
    
    dlg = (SUMA_SELECTION_DIALOG_STRUCT *)client_data;
    
-   XtUnmanageChild (dlg->dlg_w);
 
    /* do the callback for the cancel */
    if (dlg->CancelCallback) {
       dlg->CancelCallback(dlg->CancelData);
    }
    
+   XtUnmanageChild (dlg->dlg_w);
+   
+   SUMA_RETURNe;
+}
+/*!
+ \brief sample callback routine for killing window in FileSelectionDialogs.
+ That happens when users hit the X on the dialog
+ This function destroys the widget and frees the structure if no preservation is needed
+ 
+ -expect SUMA_SELECTION_DIALOG_STRUCT * in client_data
+*/
+void SUMA_FileSelection_Unmap_cb (Widget w, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_FileSelection_Unmap_cb"};
+   SUMA_SELECTION_DIALOG_STRUCT *dlg;
+   SUMA_Boolean LocalHead = YUP;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   dlg = (SUMA_SELECTION_DIALOG_STRUCT *)client_data;
+   
    /* if preservation is not required, kill the widget and free dlg */
    if (!dlg->preserve) {
       if (dlg->dlg_w) {
          SUMA_LH("Destroying dlg");
-         XtDestroyWidget(dlg->dlg_w); /* The function SUMA_DestroyFileSelectionDialog is called by the widget upon destruction */;
+         XtDestroyWidget(dlg->dlg_w); 
       }else {
          SUMA_SL_Warn("dlg_w is null.\nThis should not be.");
-         SUMA_DestroyFileSelectionDialog(NULL, (XtPointer)dlg, NULL);
       }
+      
+      /* now free the structure */
+      SUMA_FreeFileSelectionDialogStruct(dlg);
+      
    }
+   
    SUMA_RETURNe;
 }
 
 /*!
-   \brief destroys file selection dialog widget and frees dlg structure
+   \brief Free the structure for creating a file selection dialog
    
-   -expects SUMA_SELECTION_DIALOG_STRUCT * in clientdata
 */
-void SUMA_DestroyFileSelectionDialog(Widget w, XtPointer clientdata, XtPointer calldata)
+void SUMA_FreeFileSelectionDialogStruct(SUMA_SELECTION_DIALOG_STRUCT *dlg)
 {
-   static char FuncName[]={"SUMA_DestroyFileSelectionDialog"};
+   static char FuncName[]={"SUMA_FreeFileSelectionDialogStruct"};
    SUMA_Boolean LocalHead = YUP;
-   SUMA_SELECTION_DIALOG_STRUCT *dlg = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    SUMA_LH("Called");
    
-   dlg = (SUMA_SELECTION_DIALOG_STRUCT *)clientdata;
    
    if (!dlg) SUMA_RETURNe;
-   
-   if (dlg->dlg_w) {
-      SUMA_LH("Destroying widget");
-      dlg->dlg_w = NULL; /* keep it here, it is healthy, even if dlg is freed */
-   }
    
    /* now free structure */
    if (dlg->filename) SUMA_free(dlg->filename);
@@ -5282,7 +5889,9 @@ void SUMA_DestroyFileSelectionDialog(Widget w, XtPointer clientdata, XtPointer c
    SUMA_RETURNe;
 }
 
-/* callback routine for "OK" button in FileSelectionDialogs */
+/*! 
+callback routine for "OK" button in FileSelectionDialogs 
+*/
 void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtPointer call_data)
 {
    static char FuncName[]={"SUMA_FileSelection_file_select_cb"};
@@ -5351,23 +5960,14 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
    XtFree (filename);
    fclose (fp);
 
-   XtUnmanageChild (dlg->dlg_w);
-
    /* Now do the SelectCallback */
    if (dlg->SelectCallback) {
       dlg->SelectCallback(dlg->filename, dlg->SelectData);
    } 
 
-   /* if not preserving, destroy the stuff */
-   if (!dlg->preserve) {
-      if (dlg->dlg_w) {
-         SUMA_LH("Destroying dlg");
-         XtDestroyWidget(dlg->dlg_w); /* The function SUMA_DestroyFileSelectionDialog is called by the widget upon destruction */;
-      }else {
-         SUMA_SL_Warn("dlg_w is null.\nThis should not be.");
-         SUMA_DestroyFileSelectionDialog(NULL, (XtPointer)dlg, NULL);
-      }
-   }
+   XtUnmanageChild (dlg->dlg_w); /* this function will call the unmap callback which will 
+                                    do the destruction if dialog is not to be preserved */
+
    SUMA_RETURNe;
 }
 

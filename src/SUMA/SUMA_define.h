@@ -503,6 +503,38 @@ typedef struct {
    SUMA_Boolean CursorAtBottom; /*!< If YUP then cursor is positioned at end of text field */
 } SUMA_CREATE_TEXT_SHELL_STRUCT; /*!< structure containing options and widgets for the text shell window */
 
+typedef enum {SUMA_OK_BUTTON, SUMA_APPLY_BUTTON, 
+               SUMA_CLEAR_BUTTON, SUMA_CANCEL_BUTTON, 
+               SUMA_HELP_BUTTON, SUMA_N_PROMPT_BUTTONS }SUMA_PROMPT_BUTTONS;
+
+typedef enum { SUMA_OK, SUMA_OK_HELP, 
+               SUMA_OK_CANCEL, SUMA_OK_CANCEL_HELP,
+               SUMA_OK_CLEAR_CANCEL, SUMA_OK_CLEAR_CANCEL_HELP,
+               SUMA_OK_APPLY_CANCEL, SUMA_OK_APPLY_CANCEL_HELP,
+               SUMA_OK_APPLY_CLEAR_CANCEL, SUMA_OK_APPLY_CLEAR_CANCEL_HELP} SUMA_PROMPT_MODE;
+               
+typedef struct {
+   SUMA_PROMPT_MODE Mode;
+   SUMA_PROMPT_BUTTONS default_button; /*!< button to call when return key is hit in the text field.*/
+   void (*SelectCallback)(char *selection, void *data); /*!< function called when a selection is made 
+                                            See note for Preserve field*/
+   void *SelectData; /*!< data sent along to SelectCallback */
+   void (*CancelCallback)(void *data); /*!< function called when cancel or kill is called */
+   void *CancelData; /*!< data sent along to CancelCallback */
+   void (*HelpCallback)(void *data);
+   void (*HelpData);
+   SUMA_Boolean (*VerifyFunction)(char *word, void *data);
+   void (*VerifyData); 
+   Widget actionarea;
+   Widget pane;
+   Widget dialog; /*!< widget of dialog */
+   Widget daddy; /*!< widget of parent */ 
+   Widget text_w; /*!< Text entry widget */
+   char *selection; /*!< What the lame user wrote */
+   char *label; /*!< Label for the text field */
+   SUMA_Boolean preserve; 
+} SUMA_PROMPT_DIALOG_STRUCT; /*!< \sa similar fields in SUMA_SELECTION_DIALOG_STRUCT */
+
 typedef enum { SUMA_FILE_OPEN, SUMA_FILE_SAVE } SUMA_FILE_SELECT_MODE; /*!< mode of file selection dialog */
 
 typedef struct {
@@ -675,6 +707,7 @@ typedef struct {
    GLXContext GLXCONTEXT;
    Colormap CMAP;
    Bool DOUBLEBUFFER;
+   char *Title; 
    int REDISPLAYPENDING;
    int WIDTH, HEIGHT;
    XtWorkProcId REDISPLAYID, MOMENTUMID;
@@ -685,6 +718,7 @@ typedef struct {
    Widget ToolsMenu[SW_N_Tools]; /*!< Vector of widgets under File Menu */       
    Widget ViewMenu[SW_N_View]; /*!< Vector of widgets under View Menu */
    Widget HelpMenu[SW_N_Help]; /*!< Vector of widgets under Help Menu */
+   SUMA_PROMPT_DIALOG_STRUCT *LookAt_prmpt; /*!< structure for the LookAt dialog */
 }SUMA_X;
 
 /*! structure containg X vars common to all viewers */
