@@ -42,6 +42,8 @@ void DRAW_2dfiller( int nx , int ny , int ix , int jy , byte * ar ) ;
 
 void DRAW_saveas_finalize_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
+static void DRAW_2D_expand( int, int *, int *, int *, int, int *, int ** ) ;  /* 07 Oct 2002 */
+
 static PLUGIN_interface * plint = NULL ;
 
 static int infill_mode = 0 ;
@@ -133,6 +135,15 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *, int,int,int ) ;
 #define MODE_FLOOD_VZ    7   /* 30 Apr 2002 */
 #define MODE_FILLED      8   /* 25 Sep 2001 */
 
+#define MODE_2D_NN1      9   /* 07 Oct 2002 */
+#define MODE_2D_NN2     10
+#define MODE_2D_NN3     11
+#define MODE_2D_NN4     12
+#define MODE_2D_NN5     13
+
+#define FIRST_2D_MODE   MODE_2D_NN1
+#define LAST_2D_MODE    MODE_2D_NN5
+
 static char * mode_strings[] = {
   "Open Curve"      ,                  /* MODE_CURVE      */
   "Closed Curve"    ,                  /* MODE_CLOSED     */
@@ -142,14 +153,20 @@ static char * mode_strings[] = {
   "Flood->Zero"     ,                  /* MODE_FLOOD_ZERO */
   "Zero->Value"     ,                  /* MODE_ZERO_VAL   */
   "Flood->Val/Zero" ,                  /* MODE_FLOOD_VZ   */
-  "Filled Curve"                       /* MODE_FILLED     */
+  "Filled Curve"    ,                  /* MODE_FILLED     */
+  "2D Nbhd: 1st NN" ,
+  "2D Nbhd: 2nd NN" ,
+  "2D Nbhd: 3rd NN" ,
+  "2D Nbhd: 4th NN" ,
+  "2D Nbhd: 5th NN"
 } ;
 
 static int    mode_ints[] = {
   DRAWING_LINES  , DRAWING_FILL   , DRAWING_POINTS ,
   DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS ,
   DRAWING_POINTS ,
-  DRAWING_FILL
+  DRAWING_FILL   ,
+  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS
 } ;
 
 #define NUM_modes (sizeof(mode_ints)/sizeof(int))
@@ -344,29 +361,10 @@ void DRAW_make_widgets(void)
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
-   /*** button to let user choose dataset to edit ***/
-
-   xstr = XmStringCreateLtoR( "Choose Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
-   choose_pb = XtVaCreateManagedWidget(
-                  "AFNI" , xmPushButtonWidgetClass , rowcol ,
-                     XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
-                     XmNinitialResourcesPersistent , False ,
-                  NULL ) ;
-   XmStringFree(xstr) ;
-   XtAddCallback( choose_pb, XmNactivateCallback, DRAW_choose_CB, NULL ) ;
-   MCW_register_help( choose_pb ,
-                      "Use this to popup a\n"
-                      "'chooser' that lets\n"
-                      "you select which\n"
-                      "dataset to edit."
-                    ) ;
-   MCW_register_hint( choose_pb , "Popup a dataset chooser" ) ;
-
-   /*-- 24 Sep 2001: Copy mode stuff --*/
+   /*-- 24 Sep 2001: Copy mode stuff [moved up 06 Oct 2002] --*/
 
    { Widget rc ;
-     static char *cbox_label[1]   = { "Copy" } ;
+     static char *cbox_label[1]   = { "Copy Dataset" } ;
      static char *cmode_label[2]  = { "Data"  , "Zero" } ;
      static char *ctype_label[3]  = { "As Is" , "Func" , "Anat" } ;
      static char *cdatum_label[4] = { "As Is" , "Byte" , "Short" , "Float" } ;
@@ -390,6 +388,8 @@ void DRAW_make_widgets(void)
 
      MCW_reghint_children( copy_bbox->wrowcol ,
                            "Make copy of dataset on input" ) ;
+     MCW_reghelp_children( copy_bbox->wrowcol ,
+                           "Make copy of dataset on input?" ) ;
 
      /*** arrowvals to let user choose Copy method ***/
 
@@ -399,6 +399,10 @@ void DRAW_make_widgets(void)
 
      MCW_reghint_children( copy_mode_av->wrowcol ,
                            "How to copy values from dataset" ) ;
+     MCW_reghelp_children( copy_mode_av->wrowcol ,
+                           "How to copy values from dataset:\n"
+                           "Data => use input dataset values\n"
+                           "Zero => fill dataset with zeros" ) ;
 
      copy_type_av = new_MCW_optmenu( rc , NULL ,
                                      0 , 2 , 1 , 0 , NULL,NULL ,
@@ -406,6 +410,9 @@ void DRAW_make_widgets(void)
 
      MCW_reghint_children( copy_type_av->wrowcol ,
                            "Copy is Functional overlay or Anatomical underlay" ) ;
+     MCW_reghelp_children( copy_type_av->wrowcol ,
+                           "Copy will be Functional overlay\n"
+                           "or will be Anatomical underlay" ) ;
 
      copy_datum_av= new_MCW_optmenu( rc , NULL ,
                                      0 , 3 , 0 , 0 , NULL,NULL ,
@@ -413,6 +420,12 @@ void DRAW_make_widgets(void)
 
      MCW_reghint_children( copy_datum_av->wrowcol ,
                            "Data storage type for copy" ) ;
+     MCW_reghelp_children( copy_datum_av->wrowcol ,
+                           "Data storage type for copy:\n"
+                           "As Is => use data type in input dataset\n"
+                           "Byte  => store new dataset as bytes\n"
+                           "Short => store new dataset as shorts\n"
+                           "Float => store new dataset as floats"   ) ;
 
      AV_SENSITIZE( copy_mode_av , False ) ;
      AV_SENSITIZE( copy_type_av , False ) ;
@@ -421,6 +434,25 @@ void DRAW_make_widgets(void)
      XtManageChild(rc) ;
 
    } /* end of Copy mode stuff */
+
+   /*** button to let user choose dataset to edit ***/
+
+   xstr = XmStringCreateLtoR( "Choose Dataset on Which to Draw" , XmFONTLIST_DEFAULT_TAG ) ;
+   choose_pb = XtVaCreateManagedWidget(
+                  "AFNI" , xmPushButtonWidgetClass , rowcol ,
+                     XmNlabelString , xstr ,
+                     XmNtraversalOn , False ,
+                     XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+   XmStringFree(xstr) ;
+   XtAddCallback( choose_pb, XmNactivateCallback, DRAW_choose_CB, NULL ) ;
+   MCW_register_help( choose_pb ,
+                      "Use this to popup a\n"
+                      "'chooser' that lets\n"
+                      "you select which\n"
+                      "dataset to edit."
+                    ) ;
+   MCW_register_hint( choose_pb , "Popup a dataset chooser" ) ;
 
    /*** separator for visual neatness ***/
 
@@ -489,6 +521,20 @@ void DRAW_make_widgets(void)
                          "                   is hit\n"
                          "Filled Curve    = fill inside of closed curve with\n"
                          "                   Drawing Value\n"
+                         "\n"
+                         "2D Nbhd         = like Points, but fills in around\n"
+                         "                   the in-plane neighborhood of each\n"
+                         "                   point 'x' with the patterns:\n"
+                         "\n"
+                         "                        5 4 3 4 5\n"
+                         "                        4 2 1 2 4\n"
+                         "                        3 1 x 1 3\n"
+                         "                        4 2 1 2 4\n"
+                         "                        5 4 3 4 5\n"
+                         "\n"
+                         "                   where the number indicates the\n"
+                         "                   Nearest Neighbor order of the\n"
+                         "                   points nearby 'x'.\n"
                        ) ;
    MCW_reghint_children( mode_av->wrowcol , "How voxels are chosen") ;
 
@@ -958,6 +1004,14 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            its interior with the drawing value.  It is similar to\n"
   "            doing 'Closed Curve' followed by 'Flood->Value', but\n"
   "            more convenient.\n"
+  "        * '2D Nbhd: Kth NN' is like 'Points', but each the 2D in-slice\n"
+  "            neighborhood of a point 'x' is filled in with the following\n"
+  "            pattern of points, for K=1..5:\n"
+  "                                            5 4 3 4 5\n"
+  "                                            4 2 1 2 4\n"
+  "                                            3 1 x 1 3\n"
+  "                                            4 2 1 2 4\n"
+  "                                            5 4 3 4 5\n"
   "\n"
   "Step 5) Draw something in an image window.\n"
   "        * Drawing is done using mouse button 2.\n"
@@ -1427,7 +1481,20 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
               (mode_ival != MODE_FLOOD_VZ  )  &&
               (mode_ival != MODE_FILLED    ))   ){
 
-            DRAW_into_dataset( np , xd,yd,zd , NULL ) ;
+            /* 07 Oct 2002: expand set of points? */
+
+            if( plane != 0 && mode_ival >= FIRST_2D_MODE && mode_ival <= LAST_2D_MODE ){
+              int nfill=0, *xyzf=NULL ;
+
+              DRAW_2D_expand( np , xd,yd,zd , plane , &nfill , &xyzf ) ;
+              if( nfill > 0 && xyzf != NULL ){
+                DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
+                free(xyzf) ;
+              }
+
+            } else {
+              DRAW_into_dataset( np , xd,yd,zd , NULL ) ;   /* just draw points */
+            }
 
          } else {
 
@@ -1439,23 +1506,22 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                 nxy = nx*ny , nxyz = nxy*nz , ii,jj , ixyz ;
             int base , di,dj , itop,jtop,nij , xx=xd[0],yy=yd[0],zz=zd[0] , ix,jy ;
             byte * pl ;
-            int nfill , * xyzf , nf ;
+            int nfill , *xyzf , nf ;
 
             /* compute stuff for which plane we are in:
                 1 -> yz , 2 -> xz , 3 -> xy            */
 
             switch(plane){
-               case 1: base=xx    ; di=nx; dj=nxy; itop=ny; jtop=nz; ix=yy; jy=zz; break;
-               case 2: base=yy*nx ; di=1 ; dj=nxy; itop=nx; jtop=nz; ix=xx; jy=zz; break;
-               case 3: base=zz*nxy; di=1 ; dj=nx ; itop=nx; jtop=ny; ix=xx; jy=yy; break;
+              case 1: base=xx    ; di=nx; dj=nxy; itop=ny; jtop=nz; ix=yy; jy=zz; break;
+              case 2: base=yy*nx ; di=1 ; dj=nxy; itop=nx; jtop=nz; ix=xx; jy=zz; break;
+              case 3: base=zz*nxy; di=1 ; dj=nx ; itop=nx; jtop=ny; ix=xx; jy=yy; break;
             }
 
             /* create a 2D array with 0 where dataset != blocking value
                              and with 1 where dataset == blocking value */
 
             nij = itop*jtop ;
-            pl  = (byte *) malloc( sizeof(byte) * nij ) ;
-            memset( pl , 0 , sizeof(byte) * nij ) ;
+            pl  = (byte *) calloc( nij , sizeof(byte) ) ;
 
             if( mode_ival != MODE_FILLED ){  /* old code: flood to a dataset value */
 
@@ -2220,4 +2286,61 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *dset ,
    /*-- done successfully!!! --*/
 
    return new_dset ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/*! Expand set of points in 2D plane.  RWCox - 07 Oct 2002.
+-------------------------------------------------------------------------------*/
+
+static void DRAW_2D_expand( int np, int *xd, int *yd, int *zd, int plane ,
+                            int *nfill , int **xyzf )
+{
+   int base , di,dj , itop,jtop,nij , xx,yy,zz , ix,jy , *ip,*jp ;
+   int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
+       nxy = nx*ny , nxyz = nxy*nz  ;
+   int kadd , ii,jj,kk , ixn,jyn ;
+   int nnew , *xyzn ;
+
+   static int nadd[5] = { 4 , 8 , 12 , 20 , 24 } ;
+   static int nn[24][2] = { {-1, 0} , { 1, 0} , { 0, 1} , { 0,-1} ,
+                            {-1,-1} , {-1, 1} , { 1,-1} , { 1, 1} ,
+                            {-2, 0} , { 2, 0} , { 0, 2} , { 0,-2} ,
+                            {-2, 1} , {-2,-1} , {-1, 2} , {-1,-2} ,
+                            { 2, 1} , { 2,-1} , { 1, 2} , { 1,-2} ,
+                            {-2,-2} , {-2, 2} , { 2,-2} , { 2, 2}  } ;
+
+   /* check inputs */
+
+   if( np <= 0 || xd == NULL || yd == NULL || zd == NULL )     return ;
+   if( mode_ival < FIRST_2D_MODE && mode_ival > LAST_2D_MODE ) return ;
+   if( nfill == NULL || xyzf == NULL )                         return ;
+
+   /* compute stuff for which plane we are in:
+       1 -> yz , 2 -> xz , 3 -> xy            */
+
+   xx = xd[0] ; yy = yd[0] ; zz = zd[0] ;
+   switch(plane){
+     case 1: base=xx    ; di=nx; dj=nxy; itop=ny; jtop=nz; ip=yd; jp=zd; break;
+     case 2: base=yy*nx ; di=1 ; dj=nxy; itop=nx; jtop=nz; ip=xd; jp=zd; break;
+     case 3: base=zz*nxy; di=1 ; dj=nx ; itop=nx; jtop=ny; ip=xd; jp=yd; break;
+     default: return ;  /* bad input */
+   }
+
+   kadd = nadd[mode_ival-FIRST_2D_MODE] ;  /* how many pts around each input pt */
+
+   xyzn = (int *) malloc( sizeof(int)*np*(kadd+1) ) ;   /* output array */
+
+   for( ii=jj=0 ; ii < np ; ii++ ){
+     ix = ip[ii] ; jy = jp[ii] ;                                /* drawn point 2D index */
+     if( ix >= 0 && ix < itop && jy >= 0 && jy < jtop ){
+       xyzn[jj++] = base + ix*di + jy*dj ;                      /* load 3D index */
+       for( kk=0 ; kk < kadd ; kk++ ){
+         ixn = ix+nn[kk][0] ; jyn = jy+nn[kk][1] ;              /* nbhd pt 2D index */
+         if( ixn >= 0 && ixn < itop && jyn >= 0 && jyn < jtop )
+           xyzn[jj++] = base + ixn*di + jyn*dj ;                /* load 3D index */
+       }
+     }
+   }
+
+   *nfill = jj ; *xyzf  = xyzn ; return ;
 }
