@@ -74,8 +74,8 @@ int main( int argc , char * argv[] )
             " -ylabel aa = Put string 'aa' to the left of the y-axis\n"
             "                [default = no axis label]\n"
             "\n"
-            " -stdin     = Don't read from tsfile; instead, read a single\n"
-            "              column from stdin and plot it.\n"
+            " -stdin     = Don't read from tsfile; instead, read from\n"
+            "              stdin and plot it.\n"
             "\n"
             " -ynames aa bb ... = Use the strings 'aa', 'bb', etc., as\n"
             "                     labels to the right of the graphs,\n"
@@ -199,18 +199,35 @@ int main( int argc , char * argv[] )
    /*-- 01 Aug 2001: read from stdin instead of a file --*/
 
    if( use_stdin ){
-     float val ;
+     char lbuf[2560] , *cpt ;
+     int nval ;
+     float val[9] ;
 
-     subv[0] = '\0' ; nx = 1 ; ny = 0 ;
-     far = (float *) malloc(sizeof(float)) ;
+     cpt = fgets(lbuf,2560,stdin) ;
+     if( cpt == NULL ){
+        fprintf(stderr,"*** Can't read from stdin!\n"); exit(1);
+     }
+     nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
+                   val+0,val+1,val+2,val+3,val+4,val+5,val+6,val+7,val+8) ;
+     if( nval < 1 ){
+        fprintf(stderr,"*** Can't read numbers from stdin!\n"); exit(1);
+     }
+
+     subv[0] = '\0' ; nx = nval ; ny = 1 ;
+     far = (float *) malloc(sizeof(float)*nval) ;
+     memcpy(far,val,sizeof(float)*nx) ;
      while(1){  /* read from stdin */
-        ii = fscanf(stdin,"%f",&val) ;
-        if( ii < 1 ) break ;
-        far = (float *) realloc( far , sizeof(float)*(ny+1) ) ;
-        far[ny++] = val ;
+        cpt = fgets(lbuf,2560,stdin) ;
+        if( cpt == NULL ) break ;
+        nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
+                      val+0,val+1,val+2,val+3,val+4,val+5,val+6,val+7,val+8) ;
+        if( nval < 1 ) break ;
+        far = (float *) realloc( far , sizeof(float)*(ny+1)*nx ) ;
+        memcpy(far+ny*nx,val,sizeof(float)*nx) ;
+        ny++ ;
      }
      if( ny < 2 ){
-        fprintf(stderr,"** Can't read data from stdin\n"); exit(1);
+        fprintf(stderr,"** Can't read enough data from stdin\n"); exit(1);
      }
      inim = mri_new_vol_empty( nx,ny,1 , MRI_float ) ;
      mri_fix_data_pointer( far , inim ) ;

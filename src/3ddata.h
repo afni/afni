@@ -2368,6 +2368,8 @@ extern MRI_IMAGE * FD_brick_to_series( int , FD_brick * br ) ;
 extern MRI_IMAGE * THD_extract_series( int , THD_3dim_dataset * , int ) ;
 extern MRI_IMARR * THD_extract_many_series( int, int *, THD_3dim_dataset * );
 
+extern MRI_IMAGE * THD_extract_float_brick( int , THD_3dim_dataset * ) ;
+
 extern void THD_insert_series( int, THD_3dim_dataset *, int, int, void *, int );
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
@@ -2395,6 +2397,9 @@ extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_countmask( int , byte * ) ;
+
+extern float THD_cliplevel( MRI_IMAGE * , float ) ;        /* 12 Aug 2001 */
+extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;
 
  /* 08 Mar 2001 - functions for dealing with rows */
 

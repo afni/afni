@@ -44,7 +44,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
-           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat
+           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -59,7 +59,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+      \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
-                  3dConvolve 3dZcutup 3dZcat
+                  3dConvolve 3dZcutup 3dZcat 3dTqual
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -288,6 +288,10 @@ dsetdup:dsetdup.o
 3dZcat:3dZcat.o
 	$(RM) $@
 	$(CC) -o 3dZcat 3dZcat.o $(LFLAGS) $(LLIBS)
+
+3dTqual:3dTqual.o
+	$(RM) $@
+	$(CC) -o 3dTqual 3dTqual.o $(LFLAGS) $(LLIBS)
 
 3dTcat:3dTcat.o
 	$(RM) $@
@@ -974,7 +978,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_tmask.o thd_rotangles.o thd_md5.o thd_center.o           \
            thd_mismatch.o thd_read_vecmat.o thd_tshift.o thd_newprefix.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
-           thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o
+           thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o          \
+           thd_dsetto3D.o thd_median.o thd_cliplevel.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -1212,13 +1217,14 @@ clamdir.tgz:
 	$(TAR) cf - ./clamdir | $(GZIP) -9v > clamdir.tgz
 
 #######
-## The following only needs to be used if parser.f
+## The following line only needs to be used if parser.f
 ## is edited, since AFNI ships with parser.c already made.
 
 parser.c:
 	$(F2C) parser.f
 
 parser.o:parser.c f2c.h libf2c.a
+	$(CCFAST) -c parser.c $(IFLAGS)
 
 ccalc:parser.o parser_int.o ccalc.o
 	$(RM) $@

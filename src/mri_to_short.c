@@ -27,7 +27,7 @@ WHOAMI ; IMHEADER(oldim) ;
          case MRI_float:
          case MRI_double:
          case MRI_complex:
-            scale = mri_max( oldim ) ;
+            scale = mri_maxabs( oldim ) ;
             if( scale != 0.0 ) scale = 10000.0 / scale ;
 #ifdef MRI_DEBUG
    fprintf( stderr , "mri_to_short: scale factor = %e\n" , scale ) ;

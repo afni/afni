@@ -2998,3 +2998,21 @@
      direction.
  * (Re)modified to3d.c to allow creation of 1 slice datasets.  Hope it
      works out this time.
+
+10 Aug 2001
+ * Added TENT() function to parser.f and parser.inc.
+ * Added thd_dsetto3D.c, to extract/scale a float copy of a sub-brick.
+ * New program 3dTqual.c computes a 'quality index' of each sub-brick
+     in a 3D+time dataset.
+ * Modified 1dplot.c so that -stdin option can read more than 1 column.
+
+11 Aug 2001
+ * Modified plug_scatplot.c to print correlation coefficient.
+
+12 Aug 2001
+ * Fixed bug in 3dClipLevel.c that used 1 past the end of the histogram
+     array (bad Bob, bad).
+ * Added functions thd_median_brick() and thd_cliplevel() in files
+     THD_median.c and THD_cliplevel.c to the library.
+ * Modified 3dTqual.c to use these library functions.
+ * Modified 3dToutcount.c to have -autoclip option.

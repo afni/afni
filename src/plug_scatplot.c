@@ -13,6 +13,7 @@
 /***********************************************************************
   Plugin to plot a scatterplot of 2 bricks.
   [Adapted from plug_histog.c - RWCox - 13 Jan 2000]
+  11 Aug 2001: modified to print correlation coefficient
 ************************************************************************/
 
 char * SCAT_main( PLUGIN_interface * ) ;
@@ -108,7 +109,7 @@ char * SCAT_main( PLUGIN_interface * plint )
    THD_3dim_dataset * xdset, * ydset , * mask_dset=NULL ;
    int ivx,ivy , mcount , nvox , ii,jj , nbin=-1 ;
    float mask_bot=666.0 , mask_top=-666.0 ;
-   float xbot,xtop , ybot,ytop ;
+   float xbot,xtop , ybot,ytop , pcor=0 ;
    char * tag , * str ;
    char xlab[THD_MAX_NAME],ylab[THD_MAX_NAME],tlab[THD_MAX_NAME] ;
    char ab[16] , bb[16] , *pab,*pbb ;
@@ -378,7 +379,7 @@ char * SCAT_main( PLUGIN_interface * plint )
       AV_fval_to_char(xbot,ab) ; AV_fval_to_char(xtop,bb) ;
       pab = ab ; if( *pab == ' ' ) pab++ ;
       pbb = bb ; if( *pbb == ' ' ) pbb++ ;
-      sprintf( xlab , "%s[%d] (%s..%s)" , DSET_FILECODE(xdset),ivx,pab,pbb ) ;
+      sprintf( xlab , "%s[%d]<%s..%s>" , DSET_FILECODE(xdset),ivx,pab,pbb ) ;
    }
 
    if( ybot >= ytop ){
@@ -387,7 +388,21 @@ char * SCAT_main( PLUGIN_interface * plint )
       AV_fval_to_char(ybot,ab) ; AV_fval_to_char(ytop,bb) ;
       pab = ab ; if( *pab == ' ' ) pab++ ;
       pbb = bb ; if( *pbb == ' ' ) pbb++ ;
-      sprintf( ylab , "%s[%d] (%s..%s)" , DSET_FILECODE(ydset),ivy,pab,pbb ) ;
+      sprintf( ylab , "%s[%d]<%s..%s>" , DSET_FILECODE(ydset),ivy,pab,pbb ) ;
+   }
+
+   /*- 11 Aug 2001: compute correlation coefficient -*/
+
+   if( mcount > 1 ){
+     float xbar=0,ybar=0 , xq=0,yq=0,xyq=0 ;
+     for( ii=0 ; ii < mcount ; ii++ ){ xbar += xar[ii]; ybar += yar[ii]; }
+     xbar /= mcount ; ybar /= mcount ;
+     for( ii=0 ; ii < mcount ; ii++ ){
+        xq  += (xar[ii]-xbar)*(xar[ii]-xbar) ;
+        yq  += (yar[ii]-ybar)*(yar[ii]-ybar) ;
+        xyq += (xar[ii]-xbar)*(yar[ii]-ybar) ;
+     }
+     if( xq > 0.0 && yq > 0.0 ) pcor = xyq / sqrt(xq*yq) ;
    }
 
    if( mask_dset == NULL ){
@@ -396,6 +411,8 @@ char * SCAT_main( PLUGIN_interface * plint )
       sprintf(tlab,"Scatter Plot: %d Voxels (%s)",
               mcount , DSET_FILECODE(mask_dset)   ) ;
    }
+   if( pcor != 0.0 )
+      sprintf(tlab+strlen(tlab)," R^2=%7.4f",pcor) ;
 
    /*-- actually plot data --*/
 

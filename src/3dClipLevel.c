@@ -10,6 +10,8 @@ int main( int argc , char * argv[] )
    byte * bar ;
    int nhist , nneg=0 , verb=0 , nhalf , iv,nvals ;
 
+   mainENTRY("3dClipLevel main") ; machdep() ;  /* 10 Aug 2001 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dClipLevel [options] dataset\n"
              "Estimates the value at which to clip the anatomical dataset so\n"
@@ -122,20 +124,20 @@ int main( int argc , char * argv[] )
    /*-- initialize cut position to include upper 65% of positive voxels --*/
 
    qq = 0.65 * npos ; ib = rint(0.5*sqrt(dsum/npos)) ;
-   for( kk=0,ii=nhist ; ii >= ib && kk < qq ; ii-- ) kk += hist[ii] ;
+   for( kk=0,ii=nhist-1 ; ii >= ib && kk < qq ; ii-- ) kk += hist[ii] ;
 
    /*-- algorithm --*/
 
    ncut = ii ; qq = 0 ;
    do{
-      for( npos=0,ii=ncut ; ii <= nhist ; ii++ ) npos += hist[ii] ; /* number >= cut */
+      for( npos=0,ii=ncut ; ii < nhist ; ii++ ) npos += hist[ii] ; /* number >= cut */
       nhalf = npos/2 ;
-      for( kk=0,ii=ncut ; ii <= nhist && kk < nhalf ; ii++ )        /* find median */
+      for( kk=0,ii=ncut ; ii < nhist && kk < nhalf ; ii++ )        /* find median */
          kk += hist[ii] ;
       if( verb )
          fprintf(stderr,"++ Clip=%d  Median=%d  Number>=Clip=%d\n",ncut,ii,npos) ;
       nold = ncut ;
-      ncut = mfrac * ii ;                                           /* new cut */
+      ncut = mfrac * ii ;                                          /* new cut */
       qq++ ;
    } while( qq < 20 && ncut != nold ) ;
 

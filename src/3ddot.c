@@ -13,7 +13,7 @@ int main( int argc , char * argv[] )
 {
    double dxy ;
    int narg , ndset , nvox , demean=0 ;
-   THD_3dim_dataset * xset , * yset , * mask_dset ;
+   THD_3dim_dataset * xset , * yset , * mask_dset=NULL ;
    float mask_bot=666.0 , mask_top=-666.0 ;
    byte * mmm=NULL ;
 

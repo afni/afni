@@ -11,6 +11,8 @@ int main( int argc , char * argv[] )
    byte * mmm=NULL ;
    int    mmvox=0 ;
    char * prefix=NULL ;
+   int do_autoclip=0 , npass=0 ;   /* 12 Aug 2001 */
+   float clip_val=0.0 ;
 
    /*----- Read command line -----*/
 
@@ -23,6 +25,7 @@ int main( int argc , char * argv[] )
              " -mask mset = Only count voxels in the mask dataset.\n"
              " -qthr q    = Use 'q' instead of 0.001 in the calculation\n"
              "                of alpha (below): 0 < q < 1.\n"
+             " -autoclip  = Clip off 'small' voxels (as in 3dClipLevel).\n"
              " -save ppp  = Make a new dataset, and save the outlier Q in each\n"
              "                voxel, where Q is calculated from voxel value v by\n"
              "                Q = -log10(qg(abs((v-median)/(sqrt(PI/2)*MAD))))\n"
@@ -41,14 +44,10 @@ int main( int argc , char * argv[] )
              "    the dataset more fully.\n"
              "\n"
              "Since the results are written to stdout, you probably want to redirect\n"
-             "them to a file, as in this example, where we build a temporary mask\n"
-             "file from a 3D+time dataset, then compute outliers from time series\n"
-             "that lie within the mask:\n"
-             "  set clev = `3dClipLevel 'v1+orig[4]'`\n"
-             "  3dOverlap -save mmm v1+orig'[4..$]'\"<$clev .. 10000>\"\n"
-             "  3dToutcount -mask 'mmm+orig<50..100>' 'v1+orig[4..$]' > oc.1D\n"
-             "  1dplot oc.1D\n"
-             "  /bin/rm -f mmm+orig.*\n"
+             "them to a file or another program, as in this example:\n"
+             "  3dToutcount -autoclip v1+orig | 1dplot -stdin\n"
+             "\n"
+             "NOTE: also see program 3dTqual for a similar quality check.\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
       exit(0) ;
@@ -56,6 +55,10 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-autoclip") == 0 ){  /* 12 Aug 2001 */
+         do_autoclip = 1 ; iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-save") == 0 ){
          prefix = argv[++iarg] ;
@@ -121,6 +124,15 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
+   /*-- 12 Aug 2001: compute clip, if desired --*/
+
+   if( do_autoclip ){
+      MRI_IMAGE * medim = THD_median_brick( dset ) ;
+      clip_val = THD_cliplevel( medim , 0.5 ) ;
+      fprintf(stderr,"++ Autoclip value = %g\n",clip_val) ;
+      mri_free(medim) ;
+   }
+
    /*-- setup to save a new dataset, if desired --*/
 
    if( saveit ){
@@ -162,6 +174,8 @@ int main( int argc , char * argv[] )
       memcpy(var,far,sizeof(float)*nvals ) ;
 
       fmed = qmed_float( nvals , far ) ;
+      if( clip_val > 0.0 && fmed < clip_val ) continue ; /* 12 Aug 2001 */
+      npass++ ;
       for( iv=0 ; iv < nvals ; iv++ ) far[iv] = fabs(far[iv]-fmed) ;
       fmad = qmed_float( nvals , far ) ;
       fbot = fmed - alph*fmad ; ftop = fmed + alph*fmad ;
@@ -172,7 +186,7 @@ int main( int argc , char * argv[] )
             oot = (var[iv] < fbot || var[iv] > ftop ) ;
             if( oot ){ count[iv]++ ; cc++ ; }
             if( saveit ){
-               if( oot ){ far[iv] = -log10qg(fabs((var[iv]-fmed)*fsig)) ; ic++ ; }
+               if( oot ){ far[iv] = -log10qg(fabs((var[iv]-fmed)*fsig)); ic++; }
                else     { far[iv] = 0.0 ; }
             }
          }
@@ -191,6 +205,9 @@ int main( int argc , char * argv[] )
 #if 0
    DSET_unload(dset) ; free(count) ; free(var) ; if(mmm!=NULL)free(mmm) ;
 #endif
+
+   if( npass < nxyz )
+      fprintf(stderr,"++ %d voxels pass mask/clip\n",npass) ;
 
    exit(0) ;
 }
