@@ -66,6 +66,12 @@ static int         rowtype_num    = 0    ;
      rowtype_array[nn-1] = rr ;  rowtype_num = nn ;        \
  } while(0)
 
+/*! Debug flag for rowtype stuff. */
+
+static int ROWTYPE_debug = 0 ;
+
+void NI_rowtype_debug( int n ){ ROWTYPE_debug = n ; }
+
 /*--------------------------------------------------------------------------*/
 /*! Setup the alignment of basic NI types inside a struct (depends on CPU). */
 
@@ -103,7 +109,7 @@ static void setup_basic_types(void)
 
    /* initialize the rowtype table with the basic types */
 
-   rowtype_table = new_Htable(19) ;
+   rowtype_table = new_Htable(17) ;
 
    for( ii=0 ; ii < NI_NUM_BASIC_TYPES ; ii++ ){
 
@@ -113,25 +119,34 @@ static void setup_basic_types(void)
      rt->algn         = type_alignment[ii] ;
      rt->name         = strdup(type_name[ii]) ;
      rt->userdef      = strdup(type_name[ii]) ;
-     rt->part_num     = 1 ;
-     rt->part_typ     = NI_malloc(sizeof(int)) ;
+
+     rt->comp_num     = 1 ;                      /* basic types have */
+     rt->comp_typ     = NI_malloc(sizeof(int)) ; /* only one component */
+     rt->comp_typ[0]  = ii ;
+     rt->comp_dim     = NI_malloc(sizeof(int)) ;
+     rt->comp_dim[0]  = -1 ;
+
+     rt->part_num     = 1 ;                      /* basic types have */
+     rt->part_typ     = NI_malloc(sizeof(int)) ; /* only one part */
      rt->part_typ[0]  = ii ;
      rt->part_off     = NI_malloc(sizeof(int)) ;
      rt->part_off[0]  = 0 ;
-     rt->comp_num     = 1 ;
-     rt->comp_typ     = NI_malloc(sizeof(int)) ;
-     rt->comp_typ[0]  = ii ;
+     rt->part_dim     = NI_malloc(sizeof(int)) ;
+     rt->part_dim[0]  = -1 ;
 
      ROWTYPE_register( rt ) ;
    }
+
+   if( ROWTYPE_debug )
+     profile_Htable( "rowtype_table" , rowtype_table ) ;
 }
 
 /*-------------------------------------*/
 /*! Error exit macro for next function */
 
 #undef  ERREX
-#define ERREX(str)                                                         \
- do { fprintf(stderr,"** NI_rowtype_define(%s,%s): %s\n",tname,tdef,str);  \
+#define ERREX(str)                                                            \
+ do { fprintf(stderr,"** NI_rowtype_define('%s','%s'): %s\n",tname,tdef,str); \
       return -1 ; } while(0)
 
 /*--------------------------------------------------------------------------*/
@@ -166,15 +181,17 @@ static void setup_basic_types(void)
 int NI_rowtype_define( char *tname , char *tdef )
 {
    NI_rowtype *rt , *qt ;
-   int ii,jj , id,jd,nn , almax,cbase,np ;
+   int ii,jj , id,jd,kd,nn , almax,cbase,np ;
    str_array *sar ;
-   char *tp ;
+   char *tp,*up , str[256] ;
 
    /*-- check inputs --*/
 
    if( tname == NULL || *tname == '\0' ||
        tdef  == NULL || *tdef  == '\0' ||
        !isalpha(*tname)                   ) ERREX("bad inputs") ;
+
+   if( strlen(tname) > 255 )                ERREX("overlong typename") ;
 
    /*-- create Htable of basic types, if not already defined --*/
 
@@ -205,24 +222,48 @@ int NI_rowtype_define( char *tname , char *tdef )
    for( ii=0 ; ii < sar->num ; ii++ ){
 
      tp = sar->str[ii] ;
+     id = 0 ; kd = strlen(tp) ;  /* type name is from tp[id..kd-1] */
 
      /* get count in front of component name, if present, into jd */
 
-     if( isdigit(tp[0]) ){ /* a count */
+     if( isdigit(tp[0]) ){                      /*** num*typename ***/
+
        jd = nn = 0 ;
-       sscanf( tp , "%d%n" , &jd , &nn ) ;   /* get the count */
-       if( jd <= 0 || nn <= 0 ){             /* shouldn't happen */
+       sscanf( tp , "%d%n" , &jd , &nn ) ;      /* get the count */
+       if( jd <= 0 || nn <= 0 ){
          delete_rowtype(rt); delete_str_array(sar); ERREX("bad repeat count");
        }
-       id = nn ;                   /* skip count prefix characters */
-       if( tp[id] == '*' ) id++ ;  /* allow for "3*float" */
-     } else {
-       jd = 1 ; id = 0 ;           /* default count of 1 */
+       id = nn ;                                /* skip count prefix chars */
+       if( tp[id] == '*' ) id++ ;               /* allow for "3*float" */
+
+     } else if( (up=strchr(tp,'[')) != NULL ){  /*** typename[num] ***/
+
+       kd = (up-tp) ; up++ ;
+       if( kd == 0 || *up == '\0' ){
+         delete_rowtype(rt); delete_str_array(sar); ERREX("bad dimension");
+       }
+       jd = 0 ;
+       if( isdigit(*up) ){
+         sscanf( up , "%d" , &jd ) ;            /* get the count */
+       }
+       if( jd <= 0 ){
+         delete_rowtype(rt); delete_str_array(sar); ERREX("bad repeat count");
+       }
+
+     } else {                                   /*** pure typename ***/
+
+       jd = 1 ;                                 /* default count of 1 */
+
      }
 
      /* get the type of this component from its name */
 
-     qt = NI_rowtype_find_name( tp+id ) ;
+     if( kd-id < 1 || kd-id > 255 ){
+       delete_rowtype(rt); delete_str_array(sar); ERREX("overlong component name");
+     }
+
+     NI_strncpy( str , tp+id , kd-id+1 ) ;
+     qt = NI_rowtype_find_name( str ) ;
      if( qt == NULL ){
        delete_rowtype(rt); delete_str_array(sar); ERREX("bad component type");
      }
@@ -269,8 +310,8 @@ int NI_rowtype_define( char *tname , char *tdef )
      rt->part_typ[id] = qt->part_typ[0] ;  /* first part from component */
      rt->part_off[id] = cbase ;             /* goes at the current base */
 
-     jj = type_alignment[ rt->part_typ[id] ] ;     /* alignment of part */
-     if( jj > almax ) almax = jj ;   /* keep track of largest alignment */
+     kd = type_alignment[ rt->part_typ[id] ] ;     /* alignment of part */
+     if( kd > almax ) almax = kd ;   /* keep track of largest alignment */
 
      id++ ;  /* prepare to add next part */
 
@@ -280,13 +321,13 @@ int NI_rowtype_define( char *tname , char *tdef )
        rt->part_typ[id] = qt->part_typ[jj] ;       /* type of new part      */
        nn = type_size     [ rt->part_typ[id-1] ] ; /* # bytes in last part  */
        jd = rt->part_off  [ id-1               ] ; /* offset of last part   */
-       jj = type_alignment[ rt->part_typ[id]   ] ; /* how to align new part */
-       if( jj > almax ) almax = jj ;     /* keep track of largest alignment */
+       kd = type_alignment[ rt->part_typ[id]   ] ; /* how to align new part */
+       if( kd > almax ) almax = kd ;     /* keep track of largest alignment */
 
        nn += jd ;      /* next available byte = sum of last offset and size */
-       if( jj > 1 ){                               /* must move nn up if    */
-         jd = nn % jj ;                            /* not on exact multiple */
-         if( jd > 0 ) nn += (jj-jd) ;              /* of jj bytes alignment */
+       if( kd > 1 ){                               /* must move nn up if    */
+         jd = nn % kd ;                            /* not on exact multiple */
+         if( jd > 0 ) nn += (kd-jd) ;              /* of jj bytes alignment */
        }
        rt->part_off[id] = nn ;
      }
@@ -313,28 +354,28 @@ int NI_rowtype_define( char *tname , char *tdef )
 
    /** debugging printouts **/
 
-#if 0
-   printf("\n") ;
-   printf("NI_rowtype_define: %s %s\n",tname,tdef) ;
-   printf("  code     = %d\n",rt->code) ;
-   printf("  size     = %d\n",rt->size) ;
+   if( ROWTYPE_debug ){
+     printf("\n") ;
+     printf("NI_rowtype_define: %s %s\n",tname,tdef) ;
+     printf("  code     = %d\n",rt->code) ;
+     printf("  size     = %d\n",rt->size) ;
 
-   printf("  comp_num = %d\n",rt->part_num) ;
+     printf("  comp_num = %d\n",rt->part_num) ;
 
-   printf("  comp_typ = " ) ;
-   for( ii=0 ; ii < rt->comp_num ; ii++ ) printf("%d ",rt->comp_typ[ii]) ;
-   printf("\n") ;
+     printf("  comp_typ = " ) ;
+     for( ii=0 ; ii < rt->comp_num ; ii++ ) printf("%d ",rt->comp_typ[ii]) ;
+     printf("\n") ;
 
-   printf("  part_num = %d\n",rt->part_num) ;
+     printf("  part_num = %d\n",rt->part_num) ;
 
-   printf("  part_typ = " ) ;
-   for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_typ[ii]) ;
-   printf("\n") ;
+     printf("  part_typ = " ) ;
+     for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_typ[ii]) ;
+     printf("\n") ;
 
-   printf("  part_off = " ) ;
-   for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_off[ii]) ;
-   printf("\n") ;
-#endif
+     printf("  part_off = " ) ;
+     for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_off[ii]) ;
+     printf("\n") ;
+   }
 
    /* save this in the table of rowtypes,
       and return the numerical code for this new type */
