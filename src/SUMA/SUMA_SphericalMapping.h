@@ -51,7 +51,7 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg);
 float intersection_map(float a, float b, float c, float d, float val);
 float * SUMA_detWeight (float node0[], float node1[], float node2[], float ptHit[]);
 SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *node, float *P0, float *P1);
-SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int recDepth, float ctr[3], char rec[]);
+SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int recDepth, float ctr[3], char rec[], int ToSphere);
 SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject *surf2);
 void SUMA_Search_Min_Dist( float* pt, float* nodeList, int* seg, float restr, float *dist, int *i_dist );
 void SUMA_binTesselate(float *nodeList, int *triList, int *nCtr, int *tCtr, int recDepth, int depth, int n1, int n2, int n3);

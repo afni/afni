@@ -2934,6 +2934,11 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
+   if (!f_name_in) {
+      fprintf (SUMA_STDERR, "Error %s: NULL filename\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
    f_name = SUMA_Extension(f_name_in,".ply" , YUP); 
    f_name2  = SUMA_append_string(f_name,".ply");
    if (SUMA_filexists (f_name2)) {
