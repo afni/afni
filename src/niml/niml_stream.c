@@ -2123,7 +2123,7 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
              dms = NEXTDMS(dms); dms = MIN(dms,msec-ms); NI_sleep(dms);
            }
            if( ns->sd < 0 )                                  /* one last try? */
-              ns->sd  = tcp_connect( ns->name , ns->port ) ;
+             ns->sd  = tcp_connect( ns->name , ns->port ) ;
 
            if( ns->sd >= 0 ) ns->bad = 0 ;                   /* succeeded?    */
         }
