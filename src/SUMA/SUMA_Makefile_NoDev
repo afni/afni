@@ -156,6 +156,14 @@ SUMA_Homer: SUMA_Homer.c
 		${SUMALIB} libply.a ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SurfMeasures: SUMA_SurfMeasures.c 
+	$(RM) $@
+	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_SurfMeasures.c		\
+		${SUMA_INCLUDE_PATH}					\
+		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
+		${SUMALIB} libply.a ${AFNILIB} ${ZLIB}			\
+		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 libply.a: 
 	( cd PLY ;	\
 	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
@@ -182,6 +190,7 @@ install:
 	@if [ -f SUMA_ParseName ]; then mv SUMA_ParseName ${INSTALLDIR_SUMA}; fi;
 	@if [ -f 3dVol2Surf ]; then mv 3dVol2Surf ${INSTALLDIR_SUMA}; fi;
 	@if [ -f 3dSurf2Vol ]; then mv 3dSurf2Vol ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfMeasures ]; then mv SurfMeasures ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ConvertSurface ]; then mv ConvertSurface ${INSTALLDIR_SUMA}; fi;
@@ -209,6 +218,7 @@ packbins:
 	@if [ -f SUMA_ParseName ]; then $(CP) -p SUMA_ParseName SUMA_bin/; fi;
 	@if [ -f 3dVol2Surf ]; then $(CP) -p 3dVol2Surf SUMA_bin/; fi;
 	@if [ -f 3dSurf2Vol ]; then $(CP) -p 3dSurf2Vol SUMA_bin/; fi;
+	@if [ -f SurfMeasures ]; then $(CP) -p SurfMeasures SUMA_bin/; fi;
 	@if [ -f SUMA_glxdino ]; then $(CP) -p SUMA_glxdino SUMA_bin/; fi;
 	@if [ -f SUMA_pixmap2eps ]; then $(CP) -p SUMA_pixmap2eps SUMA_bin/; fi;	
 	@if [ -f ConvertSurface ]; then $(CP) -p ConvertSurface SUMA_bin/; fi;	
@@ -219,11 +229,12 @@ packbins:
 	
 all: libSUMA.a mainobj suma install 
 
-standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron SUMA_SureFit \
-SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer ScaleToMap MakeColorMap \
-CompareSurfaces SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface \
-3dVol2Surf 3dSurf2Vol SurfaceMetrics SUMA_TestDataSets ROI2dataset SurfSmooth
-
+standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
+	SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile	      \
+	SUMA_FreeSurfer ScaleToMap MakeColorMap CompareSurfaces		      \
+	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
+	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics SUMA_TestDataSets   \
+	ROI2dataset SurfSmooth
 
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 
