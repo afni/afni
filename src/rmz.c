@@ -48,7 +48,7 @@ int main( int argc , char * argv[] )
       if( irep < nrep ){
         for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = ((3+2*irep)*ii+jj) % 255 ;
       } else {
-        for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = 0 ;
+        for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = 0 ;  /* final loop ==> zero */
       }
 
       for( iarg=ibot ; iarg < argc ; iarg++ ){
