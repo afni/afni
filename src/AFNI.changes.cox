@@ -4739,3 +4739,7 @@
  * Added label popup menu to Draw Dataset plugin.
  * Added Button1 click in intensity bar to re-aspect image window.
      Also, skip attempt to reconfigure if happened before within last 33 ms.
+
+22 Oct 2003
+ * Inten->Save Palette with colorscales now saves a colorscale file.
+ * Inten->Read Palette with colorscales now reads a colorscale file.

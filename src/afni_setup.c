@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #undef MAIN
 #include "afni.h"
 
@@ -620,7 +620,9 @@ ENTRY("AFNI_pbar_CB") ;
       im3d->vwid->file_cb = AFNI_finalize_read_palette_CB ;
       im3d->vwid->file_cd = cd ;
       XtVaSetValues( im3d->vwid->file_dialog,
-                        XmNtitle, "AFNI: Read Palette",
+                        XmNtitle,
+                        (pbar->bigmode) ? "AFNI: Read colorscale"
+                                        : "AFNI: Read Palette" ,
                      NULL ) ;
 
       xstr = XmStringCreateLtoR( "*.pal"  , XmFONTLIST_DEFAULT_TAG ) ;
@@ -635,8 +637,8 @@ ENTRY("AFNI_pbar_CB") ;
 
    else if( w == im3d->vwid->func->pbar_writeout_pb ){
       MCW_choose_string( im3d->vwid->func->options_label ,
-                         "Palette Name" , NULL ,
-                         AFNI_finalize_write_palette_CB , cd ) ;
+                         (pbar->bigmode) ? "Colorscale Name" : "Palette Name" ,
+                         NULL , AFNI_finalize_write_palette_CB , cd ) ;
    }
 
    /*--- Display the palette table ---*/
@@ -706,7 +708,21 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
          Three_D_View * qq3d ;
          XmStringGetLtoR( cbs->value , XmFONTLIST_DEFAULT_TAG , &text ) ;
          if( text != NULL ){
-            if( THD_is_file(text) && !THD_is_directory(text) ){ /* read in file */
+           if( THD_is_file(text) && !THD_is_directory(text) ){ /* read in file */
+
+             if( im3d->vwid->func->inten_pbar->bigmode ){  /* 22 Oct 2003 */
+               char *cmd = AFNI_suck_file( text ) ;
+               ii = PBAR_define_bigmap(cmd); free(cmd);
+               if( ii == 0 )
+                 RWC_XtPopdown( im3d->vwid->file_dialog ) ;
+               else
+                 (void) MCW_popup_message( w ,
+                                           "******************************\n"
+                                           "** Can't use the colorscale **\n"
+                                           "** file you selected!       **\n"
+                                           "******************************"
+                                         , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+             } else {
 
                npal1 = (GPT == NULL) ? 0 : PALTAB_NUM(GPT) ;  /* how many before */
 
@@ -746,17 +762,17 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
                free(dum) ;
 
                RWC_XtPopdown( im3d->vwid->file_dialog ) ;  /* done with dialog */
-
-            } else {                                            /* bad filename */
-               (void) MCW_popup_message( w ,
-                                           "****************************\n"
-                                           "** Can't read the palette **\n"
-                                           "** file you selected!     **\n"
-                                           "****************************"
-                                       , MCW_USER_KILL | MCW_TIMER_KILL ) ;
-               BEEPIT ;
-            }
-            XtFree(text) ;
+             }
+           } else {                                            /* bad filename */
+              (void) MCW_popup_message( w ,
+                                          "****************************\n"
+                                          "** Can't open the palette **\n"
+                                          "** file you selected!     **\n"
+                                          "****************************"
+                                      , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+              BEEPIT ;
+           }
+           XtFree(text) ;
          }
       }
       break ;
@@ -857,34 +873,46 @@ ENTRY("AFNI_finalize_write_palette_CB") ;
    ovin  = pbar->ov_index ;
    pval  = pbar->pval ;
 
-   /* make list of all colors used, pruning redundancies */
+   /* 22 Oct 2003: Colorscale? */
 
-   novu = 1 ; ovu[0] = ovin[0] ;
-   for( ii=1 ; ii < npane ; ii++ ){        /* check each pane */
-      for( jj=0 ; jj < novu ; jj++ )       /* for match with current list */
+   if( pbar->bigmode ){
+     fprintf(fp,"%s\n",pbar->bigname) ;
+     for( ii=0 ; ii < NPANE_BIG ; ii++ )
+       fprintf(fp,"#%02x%02x%02x\n",
+               (unsigned int)pbar->bigcolor[ii].r ,
+               (unsigned int)pbar->bigcolor[ii].g ,
+               (unsigned int)pbar->bigcolor[ii].b  ) ;
+   } else {
+
+     /* make list of all discrete colors used, pruning redundancies */
+
+     novu = 1 ; ovu[0] = ovin[0] ;
+     for( ii=1 ; ii < npane ; ii++ ){        /* check each pane */
+       for( jj=0 ; jj < novu ; jj++ )       /* for match with current list */
          if( ovin[ii] == ovu[jj] ) break ;
 
-      if( jj == novu )                     /* didn't find a match */
+       if( jj == novu )                     /* didn't find a match */
          ovu[novu++] = ovin[ii] ;
-   }
+     }
 
-   /* write colors to file */
+     /* write colors to file */
 
-   fprintf( fp , "\n***COLORS\n" ) ;
-   for( ii=0 ; ii < novu ; ii++ ){
-      if( ovu[ii] > 0 )                                   /* don't write 'none' */
+     fprintf( fp , "\n***COLORS\n" ) ;
+     for( ii=0 ; ii < novu ; ii++ ){
+       if( ovu[ii] > 0 )                                   /* don't write 'none' */
          fprintf( fp , "  %s = %s\n" ,
                   im3d->dc->ovc->label_ov[ovu[ii]] ,
                   im3d->dc->ovc->name_ov[ovu[ii]]   ) ;
+     }
+
+     fname[ll-4] = '\0' ;
+     fprintf( fp , "\n***PALETTES %s [%d%s\n" ,
+              fname , npane , (jm==0) ? "]" : "+]" ) ;
+
+     for( ii=0 ; ii < npane ; ii++ )
+       fprintf( fp , "  %f -> %s\n" ,
+                pval[ii] , im3d->dc->ovc->label_ov[ovin[ii]] ) ;
    }
-
-   fname[ll-4] = '\0' ;
-   fprintf( fp , "\n***PALETTES %s [%d%s\n" ,
-            fname , npane , (jm==0) ? "]" : "+]" ) ;
-
-   for( ii=0 ; ii < npane ; ii++ )
-      fprintf( fp , "  %f -> %s\n" ,
-               pval[ii] , im3d->dc->ovc->label_ov[ovin[ii]] ) ;
 
    POPDOWN_string_chooser; fclose(fp); free(fname); EXRETURN;
 }
