@@ -1078,6 +1078,33 @@ The maximum number of entries shown at one time in a scrollable list
 chooser is given by variable AFNI_chooser_listmax if it exists, otherwise
 by AFNI_MENU_COLSIZE.
 
+-----------------------------
+Variable: AFNI_GLOBAL_SESSION
+-----------------------------
+This variable, if it exists, is the name of a directory that contains
+"global" datasets - ones that you want to be visible in each "Switch Anatomy"
+or "Switch Function" menu.  Pointers to the datasets read from this directory
+will be appended to the dataset list for each directory read from the
+command line.  In the "Switch" choosers, these datasets are marked with
+the character 'G' at the right, and they appear last in the list.
+
+It really only makes sense to put +tlrc datasets in the global session
+directory, since only they can be presumed to be aligned with other datasets.
+Also, it is probably best if you make sure each global anatomical dataset
+has itself as the anatomy parent; this can be enforced by issuing the command
+  3drefit -apar SELF *.HEAD
+in the global session directory.
+
+When you Switch Sessions and are viewing a global dataset, it is likely that
+you will NOT be viewing the same dataset after the Switch Session.  You will
+have to then Switch Anatomy and/or Switch Function to get back to the same
+global dataset(s).
+
+If you start AFNI and there are no datasets in the sessions given on the
+command line, then the directory specified by this variable becomes the
+default session.  If there are no datasets there, either, then AFNI makes
+up a dummy dataset (AFNI cannot operate without at least one dataset).
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

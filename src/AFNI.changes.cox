@@ -3406,3 +3406,5 @@
       if user is creating a 3D+time dataset.
  * Modified mri_read.c and to3d.c to correctly calculate and use
       MRILIB_xoff and MRILIB_yoff for GEMS images.
+ * Modified afni.h, afni.c, afni_func.c to implement AFNI_GLOBAL_SESSION
+      environment variable.

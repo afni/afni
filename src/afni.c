@@ -1011,6 +1011,8 @@ int main( int argc , char * argv[] )
    GLOBAL_library.plugins  = NULL ;
 #endif
 
+   GLOBAL_library.session  = NULL ;                    /* 20 Dec 2001 */
+
    /*--------------------------------------------------------------------*/
    /*--- initialize X, toplevel window, defaults, and display context ---*/
 
@@ -2888,7 +2890,7 @@ ENTRY("AFNI_read_inputs") ;
       Boolean good ;
       int num_ss , qd , qs , vv , no_args , jj , nskip_noanat=0 ;
       THD_string_array * flist , * dlist=NULL ;
-      char * dname ;
+      char * dname , *eee ;
       THD_session * new_ss ;
       int num_dsets=0 ;      /* 04 Jan 2000 */
 
@@ -3000,7 +3002,7 @@ if(PRINT_TRACING)
             REMOVEFROM_SARR( dlist , id ) ;  /* no datasets --> don't keep in list */
 #endif
          }
-      }  /* end of id loop */
+      }  /* end of id loop (over input directory names) */
 
       /** did we get anything?? **/
 
@@ -3013,6 +3015,48 @@ if(PRINT_TRACING)
 
          if( GLOBAL_library.sslist->num_sess <= 0 ) exit(1) ;
       }
+
+      /*-- 20 Dec 2001: Try to read a "global" session --*/
+
+      eee = getenv( "AFNI_GLOBAL_SESSION" ) ;   /* where it's supposed to be */
+      if( eee != NULL ){
+         new_ss =
+          GLOBAL_library.session = THD_init_session( eee ) ; /* try to read datasets */
+
+         if( new_ss != NULL ){                               /* got at least one */
+
+            new_ss->parent = NULL ;
+            for( qd=0 ; qd < new_ss->num_anat ; qd++ )
+               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                  PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
+
+            for( qd=0 ; qd < new_ss->num_func ; qd++ )
+               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                  PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
+
+            /*-- No other sessions?  Put this session in place. --*/
+
+            if( GLOBAL_library.sslist->num_sess == 0 ){
+
+               GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
+
+               sprintf(str,"\n session #%3d  = %s %d anatomical datasets,"
+                           " %d functional datasets",
+                   GLOBAL_library.sslist->num_sess ,
+                   new_ss->sessname , new_ss->num_anat , new_ss->num_func ) ;
+
+               num_dsets += (new_ss->num_anat + new_ss->num_func) ;
+
+               REPORT_PROGRESS(str) ;
+
+            /*-- Have other sessions?  Append these datasets to them. --*/
+
+            } else {
+               for( id=0 ; id < GLOBAL_library.sslist->num_sess ; id++ )
+                  AFNI_append_sessions( GLOBAL_library.sslist->ssar[id] , new_ss ) ;
+            }
+         }
+      } /* end of dealing with AFNI_GLOBAL_SESSION */
 
       /** if nothing read at all, make up a dummy **/
 
@@ -3255,6 +3299,9 @@ STATUS("forcible adoption of unparented datasets") ;
          new_ss = GLOBAL_library.sslist->ssar[id] ;               /* forcibly get one */
          AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
       }
+
+      if( GLOBAL_library.session != NULL )
+         AFNI_force_adoption( GLOBAL_library.session , GLOBAL_argopt.warp_4D ) ;
 
 STATUS("making descendant datasets") ;
 

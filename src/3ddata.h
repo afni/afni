@@ -1447,6 +1447,13 @@ extern MCW_idcode MCW_new_idcode(void) ;
    ( (ds)==(es) ||         \
      ((ds)!=NULL && (es)!=NULL && EQUIV_IDCODES((ds)->idcode,(es)->idcode)) )
 
+/*! Check if 2 AFNI dataset pointers are different but have the same ID codes. */
+
+#define DUPLICATE_DSETS(ds,es)   \
+   ( (ds) != (es) &&             \
+     (ds) != NULL &&             \
+     (es) != NULL && EQUIV_IDCODES((ds)->idcode,(es)->idcode) )
+
 /*! Zero out the ID code. */
 
 #define ZERO_IDCODE(id)   ((id).str[0] = (id).date[0] = '\0')
@@ -2657,7 +2664,7 @@ typedef struct THD_3dim_dataset_array {
 
 #define SESSION_TYPE 97
 
-/*! \brief Holds all the datasets from a directory (session) */
+/*! \brief Holds all the datasets from a directory (session). */
 
 typedef struct {
       int type     ;                  /*!< code indicating this is a THD_session */
@@ -2672,7 +2679,7 @@ typedef struct {
       XtPointer parent ;                                                 /*!< generic pointer to "owner"  */
 } THD_session ;
 
-/*! \brief Determine if ss points to a valid THD_session */
+/*! \brief Determine if ss points to a valid THD_session. */
 
 #define ISVALID_SESSION(ss) ( (ss) != NULL && (ss)->type == SESSION_TYPE )
 
