@@ -8522,12 +8522,12 @@ ENTRY("ISQ_rowgraph_CB") ;
    EXRETURN ;
 }
 
-void ISQ_rowgraph_draw( MCW_imseq * seq )
+void ISQ_rowgraph_draw( MCW_imseq *seq )
 {
-   MEM_plotdata * mp ;
+   MEM_plotdata *mp ;
    ISQ_cbs cbs ;
    int jbot,ix,jy , nrow , jj , nx,ny , ymask ;
-   float * yar[ROWGRAPH_MAX] ;
+   float *yar[ROWGRAPH_MAX] ;
 
 ENTRY("ISQ_rowgraph_draw") ;
 
@@ -8571,7 +8571,7 @@ ENTRY("ISQ_rowgraph_draw") ;
    ny   = seq->orim->ny ;
 
    for( jj=0 ; jj < nrow ; jj++ )
-      yar[jj] = MRI_FLOAT_PTR(seq->orim) + (jbot-jj)*nx ;
+     yar[jj] = MRI_FLOAT_PTR(seq->orim) + (jbot-jj)*nx ;
 
    /* make a plot in memory */
 
@@ -8665,38 +8665,67 @@ ENTRY("ISQ_graymap_mtdkill") ;
    if( mp == NULL ) EXRETURN ;
    seq = (MCW_imseq *) mp->userdata ;
    if( ISQ_VALID(seq) ) seq->graymap_mtd = NULL ;
+
+   seq->need_orim &= ~GRAYMAP_MASK ;  /* turn off need for orim for graymap */
+
    EXRETURN ;
 }
 
 void ISQ_graymap_draw( MCW_imseq *seq )  /* 24 Oct 2003 */
 {
    MEM_plotdata *mp ;
-   int ix , nx ;
-   float *yar , *xar , dx ;
+   int ix , nx , ny ;
+   float *yar[2] , *xar , dx , *ar ;
 
 ENTRY("ISQ_graymap_draw") ;
 
    if( !ISQ_REALZ(seq) || seq->dc->use_xcol_im ) EXRETURN ;  /* error */
 
+   seq->need_orim |= GRAYMAP_MASK ;
+
    /* make float arrays with grayscales and data range */
 
-   nx  = seq->dc->ncol_im ;
-   dx  = (seq->bartop - seq->barbot) / (nx-1) ; if( dx == 0.0 ) EXRETURN ;
-   yar = (float *) malloc( sizeof(float)*nx ) ;
-   xar = (float *) malloc( sizeof(float)*nx ) ;
+   nx     = seq->dc->ncol_im ;
+   ny     = 1 ;
+   dx     = (seq->bartop - seq->barbot) / (nx-1) ; if( dx == 0.0 ) EXRETURN ;
+   yar[0] = (float *) malloc( sizeof(float)*nx ) ;
+   xar    = (float *) malloc( sizeof(float)*nx ) ;
    for( ix=0 ; ix < nx ; ix++ ){
-     xar[ix] = seq->barbot + dx*ix ;
-     yar[ix] = seq->dc->xint_im[ix] ;
-     if( yar[ix] < 0.0 ) yar[ix] = 0.0 ;
+     xar[ix]    = seq->barbot + dx*ix ;
+     yar[0][ix] = seq->dc->xint_im[ix] ;
+     if( yar[0][ix] < 0.0 ) yar[0][ix] = 0.0 ;
      else {
-       yar[ix] *= (255.0/65280.0) ; if( yar[ix] > 255.0 ) yar[ix] = 255.0 ;
+       yar[0][ix] *= (255.0/65280.0) ; if( yar[0][ix] > 255.0 ) yar[0][ix] = 255.0 ;
+     }
+   }
+
+   /* histogram the image? */
+
+   if( seq->orim != NULL ){
+     float *iar=MRI_FLOAT_PTR(seq->orim) ;
+     float scl=nx/(seq->bartop-seq->barbot) ; register int ii,jj ;
+     ny = 2 ;
+     yar[1] = (float *) calloc( sizeof(float),nx ) ;
+     for( ii=0 ; ii < seq->orim->nvox ; ii++ ){
+       jj = (int)( scl*(iar[ii]-seq->barbot) ) ;
+       if( jj < 0 ) jj = 0 ; else if( jj > nx-1 ) jj = nx-1 ;
+       yar[1][jj] += 1.0 ;
+     }
+     for( scl=0.0,ii=1 ; ii < nx ; ii++ )
+       if( yar[1][ii] > scl ) scl = yar[1][ii] ;
+     if( scl == 0.0 ){
+       free(yar[1]) ; ny=1 ;
+     } else {
+       scl = 255.0/sqrt(scl) ;
+       for( ii=0 ; ii < nx ; ii++ ) yar[1][ii] = scl*sqrt(yar[1][ii]) ;
+       yar[1][0] = MIN( yar[1][0] , 255.0 ) ;
      }
    }
 
    /* make a plot in memory */
 
-   mp = plot_ts_mem( nx,xar, 1,0,&yar, "Data Value", "Gray Level", NULL,NULL ) ;
-   free(xar); free(yar);
+   mp = plot_ts_mem( nx,xar, ny,0,yar, "Data Value", "Gray Level", NULL,NULL ) ;
+   free(xar); free(yar[0]); if( ny == 2 ) free(yar[1]) ;
    if( mp == NULL ){
      fprintf(stderr,"*** error in ISQ_graymap_draw: can't make plot_ts_mem\n") ;
      EXRETURN ;  /* error */
