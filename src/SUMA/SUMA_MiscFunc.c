@@ -1167,7 +1167,7 @@ Purpose :
  
  
 Usage : 
-       SUMA_disp_vecmat (float *v,int nr, int nc, int SpcOpt )
+       SUMA_disp_vecmat (float *v,int nr, int nc, int SpcOpt, d_order, Out )
  
  
 Input paramters : 
@@ -1175,18 +1175,30 @@ Input paramters :
    nr (int) the number of rows in v
    nc (int) the number of columns
    SpcOpt (int) : spacing option (0 for space, 1 for tab and 2 for comma)
-   
+   d_order (SUMA_INDEXING_ORDER): Indicates how multiple values per node are stored in fin
+                        SUMA_ROW_MAJOR: The data in fin is stored in *** Row Major *** order.
+                        The ith value (start at 0) for node n is at index fin[vpn*n+i]
+                        SUMA_COLUMN_MAJOR: The data in fin is stored in *** Column Major *** order.
+                        The ith (start at 0) value for node n is at index fin[n+SO->N_Node*i]; 
+                        etc...
+   AddRowInd (SUMA_Boolean) YUP  = add the row index in the first column
+   Out (FILE *) pointer to output file. If NULL then output is to stdout.
  
  
 */ 
-void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt)
+void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt, 
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd)
 {/*SUMA_disp_vecmat*/
    char spc [40]; 
-    int i,j;
+   int i,j;
+   FILE *foutp;
    static char FuncName[]={"SUMA_disp_vecmat"};
       
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   if (!fout) foutp = stdout;
+   else foutp = fout;
+   
    if (!SpcOpt)
       sprintf(spc," ");
    else if (SpcOpt == 1)
@@ -1194,13 +1206,27 @@ void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt)
    else
       sprintf(spc," , ");
    
-   fprintf (SUMA_STDOUT,"\n");
-   for (i=0; i < nr; ++i)
-      {
-         for (j=0; j < nc; ++j)
-               fprintf (SUMA_STDOUT, "%4.2f%s",v[i*nc+j],spc);
-         fprintf (SUMA_STDOUT,"\n");
-      }
+   if (!fout) fprintf (SUMA_STDOUT,"\n"); /* a blank 1st line when writing to screen */
+   switch (d_order) {
+      case SUMA_ROW_MAJOR:
+         for (i=0; i < nr; ++i) {
+            if (AddRowInd) fprintf (foutp, "%d%s", i, spc);
+            for (j=0; j < nc; ++j) fprintf (foutp, "%f%s",v[i*nc+j],spc);
+            fprintf (foutp,"\n");
+         }
+         break;
+      case SUMA_COLUMN_MAJOR:
+         for (i=0; i < nr; ++i) {
+            if (AddRowInd) fprintf (foutp, "%d%s", i, spc);
+            for (j=0; j < nc; ++j) fprintf (foutp, "%f%s",v[i+j*nr],spc);
+            fprintf (foutp,"\n");
+         }
+         break;
+      default:
+         SUMA_SL_Err("Bad order.\n");
+         SUMA_RETURNe;
+         break;
+   }
 }/*SUMA_disp_vecmat*/
 
 
@@ -1215,7 +1241,7 @@ Purpose :
  
  
 Usage : 
-       SUMA_disp_vecdmat (float *v,int nr, int nc, int SpcOpt )
+       SUMA_disp_vecdmat (float *v,int nr, int nc, int SpcOpt, d_order, Out )
  
  
 Input paramters : 
@@ -1223,18 +1249,31 @@ Input paramters :
    nr (int) the number of rows in v
    nc (int) the number of columns
    SpcOpt (int) : spacing option (0 for space, 1 for tab and 2 for comma)
+   d_order (SUMA_INDEXING_ORDER): Indicates how multiple values per node are stored in fin
+                        SUMA_ROW_MAJOR: The data in fin is stored in *** Row Major *** order.
+                        The ith value (start at 0) for node n is at index fin[vpn*n+i]
+                        SUMA_COLUMN_MAJOR: The data in fin is stored in *** Column Major *** order.
+                        The ith (start at 0) value for node n is at index fin[n+SO->N_Node*i]; 
+                        etc...
+   AddRowInd (SUMA_Boolean) YUP  = add the row index in the first column
+   Out (FILE *) pointer to output file. If NULL then output is to stdout.
    
  
  
 */ 
-void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt)
+void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt, 
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd)
 {/*SUMA_disp_vecdmat*/
    char spc [40]; 
-    int i,j;
+   int i,j;
+   FILE *foutp;
    static char FuncName[]={"SUMA_disp_vectdmat"};
       
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   if (!fout) foutp = stdout;
+   else foutp = fout;
+   
    if (!SpcOpt)
       sprintf(spc," ");
    else if (SpcOpt == 1)
@@ -1242,13 +1281,27 @@ void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt)
    else
       sprintf(spc," , ");
    
-   fprintf (SUMA_STDOUT,"\n");
-   for (i=0; i < nr; ++i)
-      {
-         for (j=0; j < nc; ++j)
-               fprintf (SUMA_STDOUT, "%d%s",v[i*nc+j],spc);
-         fprintf (SUMA_STDOUT,"\n");
-      }
+   if (!fout) fprintf (SUMA_STDOUT,"\n"); /* a blank 1st line when writing to screen */
+   switch (d_order) {
+      case SUMA_ROW_MAJOR:
+         for (i=0; i < nr; ++i) {
+            if (AddRowInd) fprintf (foutp, "%d%s", i, spc);
+            for (j=0; j < nc; ++j) fprintf (foutp, "%d%s",v[i*nc+j],spc);
+            fprintf (foutp,"\n");
+         }
+         break;
+      case SUMA_COLUMN_MAJOR:
+         for (i=0; i < nr; ++i) {
+            if (AddRowInd) fprintf (foutp, "%d%s", i, spc);
+            for (j=0; j < nc; ++j) fprintf (foutp, "%d%s",v[i+j*nr],spc);
+            fprintf (foutp,"\n");
+         }
+         break;
+      default:
+         SUMA_SL_Err("Bad order.\n");
+         SUMA_RETURNe;
+         break;
+   }
 }/*SUMA_disp_vecdmat*/
 
 /*!

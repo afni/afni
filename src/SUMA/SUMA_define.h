@@ -208,6 +208,7 @@ typedef enum { SW_DrawROI_SaveWhat,
                SW_DrawROI_SaveWhatThis, SW_DrawROI_SaveWhatRelated, 
                SW_N_DrawROI_SaveWhat } SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT; /*!< Indices to widgets in DrawROI under
                                                                            SavingWhat */
+typedef enum { SUMA_NO_ORDER, SUMA_ROW_MAJOR, SUMA_COLUMN_MAJOR }  SUMA_INDEXING_ORDER;
                                                                            
 
 typedef struct {
@@ -511,7 +512,7 @@ typedef struct {
 typedef struct {
    int N_Node; /*!< Number of nodes whose neighbors are listed in this structure */
    int *NodeId; /*!< Id of each node whose neighbors are listed in this structure 
-                     WARNING: A lot of functions do not use this field and assume
+                     *** WARNING: *** A lot of functions do not use this field and assume
                      N_Node = number of nodes in the surface! */
    int **FirstNeighb; /*!< N_Node x N_Neighb_max matrix with each row specifying the indices of neighboring nodes.
                         After Tue Jan  7 18:13:44 EST 2003: The nodes are now ordered to form a path on the surface.
