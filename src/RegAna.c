@@ -83,6 +83,8 @@ int calc_matrices
   matrix xt, xtx;               /* temporary matrix calculation results */
   int ok;                       /* flag for successful matrix inversion */
 
+ENTRY("calc_matrices") ;
+
   /*----- extract the independent variable matrix X -----*/
   matrix_extract (xdata, p, plist, x);
 
@@ -104,7 +106,7 @@ int calc_matrices
     matrix_psinv  (*x, xtxinv , xtxinvxt ); ok = 1 ;  /* 19 Jul 2004 */
   }
 
-  return (ok);
+  RETURN (ok);
 }
 
 
@@ -125,6 +127,8 @@ int calc_glt_matrix
   matrix ct, xtxinvct, t1, t2;  /* temporary matrix calculation results */
   int ok;                       /* flag for successful matrix inversion */
 
+
+ENTRY("calc_glt_matrix") ;
 
   /*----- initialize matrices -----*/
   matrix_initialize (&ct);
@@ -155,7 +159,7 @@ int calc_glt_matrix
   matrix_destroy (&t1);
   matrix_destroy (&t2);
 
-  return (ok);
+  RETURN (ok);
 }
 
 

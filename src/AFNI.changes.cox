@@ -5309,3 +5309,6 @@
 
 01 Feb 2005
  * Added -redo_bstat option to 3drefit.c.
+
+07 Feb 2005
+ * Fixed bug in Deconvolve.c with removing mean of -stim_base columns.
