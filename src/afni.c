@@ -746,6 +746,18 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
 
    AFNI_load_defaults( shell ) ;
 
+   { char * home ; char fname[256] ;
+     GPT = NULL ;  /* 19 Dec 1997 */
+     home = getenv("HOME") ;
+     if( home != NULL ){
+        strcpy(fname,home) ; strcat(fname,"/.afnirc") ;
+     } else {
+        strcpy(fname,".afnirc") ;
+     }
+     AFNI_process_setup( fname , SETUP_INIT_MODE , NULL ) ;
+     dump_PBAR_palette_table() ;
+   }
+
    AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
 
    GLOBAL_library.dc = dc =

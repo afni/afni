@@ -2135,6 +2135,17 @@ ENTRY("AFNI_make_wid2") ;
                             XtListTail           /* last in queue */
                           ) ;
 
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmLabelWidgetClass , func->pbar_menu ,
+               LABEL_ARG("--- Cancel ---") ,
+               XmNrecomputeSize , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
    func->pbar_equalize_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
@@ -2147,17 +2158,69 @@ ENTRY("AFNI_make_wid2") ;
    XtAddCallback( func->pbar_equalize_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
 
+   MCW_register_hint( func->pbar_equalize_pb , "Space separators equally" ) ;
+
    func->pbar_readin_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
-            LABEL_ARG("Read in colors") ,
+            LABEL_ARG("Read in palette") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+   MCW_register_hint( func->pbar_readin_pb , "Read palette file [not implemented]" ) ;
+
    XtAddCallback( func->pbar_readin_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
+
+   func->pbar_writeout_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Write out palette") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   MCW_register_hint( func->pbar_writeout_pb , "Write palette file [not implemented]" ) ;
+
+   XtAddCallback( func->pbar_writeout_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+   func->pbar_palette_av = new_MCW_arrowval(
+                             func->pbar_menu ,     /* parent Widget */
+                             "Set Pal " ,          /* label */
+                             MCW_AV_optmenu ,      /* option menu style */
+                             0 ,                   /* first option */
+                             1 ,                   /* last option */
+                             0 ,                   /* initial selection */
+                             MCW_AV_readtext ,     /* ignored but needed */
+                             0 ,                   /* ditto */
+                             AFNI_palette_av_CB ,  /* callback when changed */
+                             (XtPointer) im3d ,    /* data for above */
+                             MCW_av_substring_CB , /* text creation routine */
+                             AFNI_dummy_av_label   /* data for above */
+                           ) ;
+
+   MCW_reghint_children( func->pbar_palette_av->wrowcol , "Choose a palette" ) ;
+
+   if( GPT != NULL && PALTAB_NUM(GPT) > 0 ){
+      refit_MCW_optmenu( func->pbar_palette_av ,
+                           0 ,                     /* new minval */
+                           PALTAB_NUM(GPT)-1 ,     /* new maxval */
+                           0 ,                     /* new inival */
+                           0 ,                     /* new decim? */
+                           AFNI_palette_label_CB , /* text routine */
+                           NULL                    /* text data */
+                        ) ;
+   } else {
+      XtUnmanageChild( func->pbar_palette_av->wrowcol ) ;
+   }
 
    /**-- Color pbar to control intensity-to-color mapping --**/
 
@@ -2210,7 +2273,9 @@ ENTRY("AFNI_make_wid2") ;
       "Drag the separator bars to alter the thresholds.\n"
       "Click in a pane to alter the color for that range.\n\n"
       "The functional dataset value that maps to 1.0 is\n"
-      "determined by the 'autoRange' controls to the right."
+      "determined by the 'autoRange' controls to the right.\n\n"
+      "N.B.: A popup menu to control the palette\n"
+      "      setup is 'hidden' under this label."
    ) ;
 
    MCW_register_hint( func->inten_label ,

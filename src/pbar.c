@@ -223,7 +223,7 @@ void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    MCW_pbar * pbar = NULL ;
    int ip , jm ;
 
-   if( cbs->ival > 0 ){
+   if( cbs->ival > 0 && cbs->ival < dc->ncol_ov ){
       XtVaSetValues( w , XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP , NULL ) ;
       MCW_set_widget_bg( w , NULL , dc->pix_ov[cbs->ival] ) ;
    } else {
@@ -241,6 +241,7 @@ void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                          pbar->ov_index[ip] = cbs->ival ;
 
    if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar , pbar->pb_data , pbCR_COLOR ) ;
+   return ;
 }
 
 /*--------------------------------------------------------------------

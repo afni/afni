@@ -16,7 +16,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_pcor.o afni_pcor_float.o editvol.o     \
             3ddata.o pbar.o afni_graph.o afni_plugin.o   \
             parser.o parser_int.o iochan.o afni_plugout.o \
-            3dmaker.o                                      \
+            3dmaker.o afni_setup.o                         \
             $(IMOBJS)
 
 T3OBJS  = to3d.o 3ddata.o mcw_glob.o $(IMOBJS)
@@ -293,21 +293,23 @@ waver:waver.o
 dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
       dafni_slice_complex.o  dafni_pcor_float.o  LiteClue.o    \
       afni.c afni_func.c afni_widg.c afni_warp.c afni_fimmer.c \
-      3ddata.c pbar.c display.c imseq.c bbox.c xim.c xutil.c   \
+      3ddata.c pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_setup.c  \
       afni_pcor.c afni_pcor_update.c editvol.c afni_plugin.c 3dmaker.c  \
       parser.c parser_int.c iochan.c afni_plugout.c afni_plugout.c
 	$(CCD) -o dafni $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE \
-                afni.c afni_func.c afni_widg.c afni_warp.c afni_graph.c afni_fimmer.c \
+                afni.c afni_func.c afni_widg.c afni_warp.c afni_graph.c \
                 dafni_slice_short.o dafni_slice_float.o  LiteClue.o \
-                dafni_slice_byte.o  dafni_slice_complex.o \
+                dafni_slice_byte.o  dafni_slice_complex.o afni_fimmer.c \
                 dafni_pcor_float.o editvol.c parser.c parser_int.c iochan.c \
                 3ddata.c pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_pcor.c \
-                afni_plugin.c 3dmaker.c afni_plugout.c $(PLFLAGS) -lf2c $(LLIBS)
+                afni_plugin.c 3dmaker.c afni_plugout.c afni_setup.c \
+                $(PLFLAGS) -lf2c $(LLIBS)
 	$(RM) afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o afni_pcor.o \
               3ddata.o pbar.o display.o imseq.o bbox.o xim.o xutil.o \
-              parser.o parser_int.o iochan.o afni_plugout.o \
+              parser.o parser_int.o iochan.o afni_plugout.o afni_setup.o \
               dafni_pcor_float.o editvol.o afni_graph.o afni_plugin.o 3dmaker.o \
-              dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o dafni_slice_complex.o
+              dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
+              dafni_slice_complex.o
 
 dto3d:to3d.c 3ddata.c display.c imseq.c bbox.c xim.c xutil.c mcw_glob.c
 	$(CCD) -o dto3d $(IFLAGS) \
@@ -498,15 +500,18 @@ install_lib:
 
 3ddata.o:killer.h vecmat.h machdep.h 3ddata.h
 
-afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h afni_graph.h machdep.h
+afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
+       afni_graph.h afni_setup.h machdep.h
 
 afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h
 afni_widg.o:imseq.h 3ddata.h xutil.h pbar.h afni.h mcw.h machdep.h
 afni_warp.o:afni_warp.h 3ddata.h machdep.h
 afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h machdep.h
 afni_fimmer.o:afni_graph.h afni.h machdep.h
-afni_plugin.o:afni_plugin.h 3ddata.h xutil.h afni.h bbox.h afni_warp.h machdep.h 3dmaker.h
+afni_plugin.o:afni_plugin.h 3ddata.h xutil.h afni.h bbox.h afni_warp.h \
+              machdep.h 3dmaker.h
 afni_plugout.o:afni_plugin.h afni_plugout.h machdep.h
+afni_setup.o:afni.h afni_setup.h pbar.h
 
 3dmaker.o:3dmaker.h 3ddata.h editvol.h
 

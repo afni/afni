@@ -190,9 +190,13 @@ There seem to be some bugs in Sun's Motif.  In particular, the
 File Selection Box used in the "Read Session" (and other) buttons
 in AFNI doesn't work too well.  I don't know how to fix this
 problem.  Also, AFNI sometimes crashes under Solaris if the graph
-windows are used.  I don't know what causes this problem, or
-how to fix it, either.  It doesn't occur on the systems to which
-I have regular access (SGI, HP, Linux).
+windows are used.  You need to install some patches that Sun has
+released for X11, Xt, and Motif.  For Solaris 2.5, these can be
+found at the USA Web page
+   http://access1.sun.com/patch.recommended/2.5.html
+or you can scout around on Sun's Web site to find them,
+if this link becomes void.  (Only the root user can install
+these patches.)
 
 WOES: Hewlett Packard
 ---------------------

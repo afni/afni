@@ -1,63 +1,11 @@
+#undef MAIN
 #include "afni.h"
 
-#define PAL_FIGNORE 9753.1
-#define PAL_IIGNORE -1
-#define MAX_PALABEL 16
-
-#ifndef MCW_strncpy
-#define MCW_strncpy(dest,src,n) \
-   ( (void) strncpy( (dest) , (src) , (n)-1 ) , (dest)[(n)-1] = '\0' )
+#ifdef AFNI_DEBUG
+#  define USE_TRACING
+#  define PRINT_TRACING
 #endif
-
-/*-------------------------------------------------------------------------*/
-
-typedef struct {
-   int npane , mode ;
-   float val[NPANE_MAX+1] ;
-   int   col[NPANE_MAX] ;
-} PBAR_palette ;
-
-typedef struct {
-   char label[32] ;
-   PBAR_palette * psgn[NPANE_MAX+1] ;
-   PBAR_palette * ppos[NPANE_MAX+1] ;
-} PBAR_palette_array ;
-
-#define INIT_PALARR(name)                          \
- do{ int qp ; (name) = XtNew(PBAR_palette_array) ; \
-     (name)->label[0] = '\0' ;                     \
-     for( qp=0 ; qp <= NPANE_MAX ; qp++ )          \
-        (name)->psgn[qp] = (name)->ppos[qp] = NULL ; } while(0)
-
-typedef struct {
-   int num , nall ;
-   PBAR_palette_array ** par ;
-} PBAR_palette_table ;
-
-#define INC_PALTAB 8
-
-#define INIT_PALTAB(name)                 \
-   ( (name) = XtNew(PBAR_palette_table) , \
-     (name)->num = (name)->nall = 0 ,     \
-     (name)->par = NULL )
-
-#define ADDTO_PALTAB(name,pp)                                       \
- do { if( (name)->num == (name)->nall ){                             \
-       (name)->nall += INC_PALTAB ;                                   \
-       (name)->par   = (PBAR_palette_array **)                         \
-                        XtRealloc( (char *) (name)->par ,               \
-                         sizeof(PBAR_palette_array *) * (name)->nall ) ; \
-      }                                                                 \
-      if( (pp) != NULL ){                                              \
-       (name)->par[(name)->num] = (PBAR_palette_array *) (pp) ;       \
-       ((name)->num)++ ;                                             \
-      } } while(0)
-
-#define PALTAB_NUM(name)            ( (name)->num )
-#define PALTAB_ARR(name,qq)         ( (name)->par[(qq)] )
-#define PALTAB_ARR_LABEL(name,qq)   ( (name)->par[(qq)]->label )
-#define PALTAB_ARR_PSGN(name,qq,ww) ( (name)->par[(qq)]->psgn[(ww)] )
-#define PALTAB_ARR_PPOS(name,qq,ww) ( (name)->par[(qq)]->ppos[(ww)] )
+#include "dbtrace.h"
 
 /*-------------------------------------------------------------------------*/
 
@@ -71,69 +19,6 @@ int label_in_PALTAB( PBAR_palette_table * pt , char * lab )
       if( strcmp( PALTAB_ARR_LABEL(pt,ii) , lab ) == 0 ) return ii ;
 
    return -1 ;
-}
-
-/*-------------------------------------------------------------------------*/
-
-PBAR_palette * read_PBAR_palette( char * fp , MCW_DC * dc , int * nused )
-{
-   PBAR_palette * pal ;
-   int cnext , ii , pp , nu ;
-   char str[32] ;
-   char * cpt ;
-   float vvv ;
-
-   *nused = 0 ;
-   if( fp == NULL || fp[0] == '\0' ) return NULL ;
-
-   pal = (PBAR_palette *) malloc( sizeof(PBAR_palette) ) ;
-
-   /** get first string **/
-
-   nu=0 ; ii = sscanf( fp , "%31s%n" , str,&nu ); *nused+=nu;fp+=nu;
-   if( ii == 0 ){ free(pal) ; return NULL ; }
-
-   /** at this point, str should be of the form [npane] or [npane+] **/
-
-   if( strstr(str,"+]") == NULL ){
-      ii = sscanf( str , "[%d]" , &(pal->npane) ) ;
-      if( ii == 0 ){ free(pal) ; return NULL ; }
-      pal->mode = 0 ;
-   } else {
-      ii = sscanf( str , "[%d+]" , &(pal->npane) ) ;
-      if( ii == 0 ){ free(pal) ; return NULL ; }
-      pal->mode = 1 ;
-   }
-   if( pal->npane < NPANE_MIN || pal->npane > NPANE_MAX ){ free(pal) ; return NULL ; }
-
-   /** initialize fields **/
-
-   for( pp=0 ; pp < NPANE_MAX ; pp++ ){
-      pal->val[pp] = PAL_FIGNORE ;
-      pal->col[pp] = PAL_IIGNORE ;
-   }
-   pal->val[NPANE_MAX] = PAL_FIGNORE ;
-
-   /** scan for fields: value color value color value ... **/
-
-   for( pp=0 ; pp < pal->npane ; pp++ ){
-
-      nu=0 ; ii = sscanf( fp , "%s%n" , str,&nu ); *nused+=nu;fp+=nu; /* next string */
-      if( ii == 0 || str[0] == '[' ){ free(pal) ; return NULL ; }
-
-      ii = sscanf( str , "%f" , &vvv ) ;          /* try to make a value */
-      if( ii == 1 ) pal->val[pp] = vvv ;
-
-      nu=0 ; ii = sscanf( fp , "%s%n" , str,&nu ); *nused+=nu;fp+=nu; /* next string */
-      if( ii == 0 || str[0] == '[' ){ free(pal) ; return NULL ; }
-
-      ii = DC_find_overlay_color( dc , str ) ;    /* try to find a color */
-      if( ii >= 0 ) pal->col[pp] = ii ;
-   }
-
-   /*** it worked !!! ***/
-
-   return pal ;
 }
 
 /*------------------------------------------------------------------------
@@ -168,16 +53,26 @@ char * suck_file( char * fname )
    Process an AFNI setup file.
 -------------------------------------------------------------------------*/
 
+#define ISTARRED(s) ( (s)[0]=='*' && (s)[1]=='*' && (s)[2]=='*' )
+
 #define GETSTR                                                              \
   do{ int nu=0,qq ; qq=sscanf(fptr,"%127s%n",str,&nu); nused+=nu;fptr+=nu;  \
       if( qq==0 || nu==0 ){ free(fbuf) ; return ; }                         \
     } while(0)
 
-void AFNI_process_setup( char * fname )
+#define GETEQN                                         \
+  do{ GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
+      strcpy(left,str) ;                               \
+      GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
+      strcpy(middle,str) ;                             \
+      GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
+      strcpy(right,str) ; } while(0)
+
+void AFNI_process_setup( char * fname , int mode , MCW_DC * dc )
 {
-   int    nbuf , nused , ii  ;
+   int    nbuf , nused , ii ;
    char * fbuf , * fptr ;
-   char str[128] ;
+   char str[128] , left[128] , middle[128] , right[128] ;
 
    fbuf = suck_file( fname ) ; if( fbuf == NULL ) return ;
    nbuf = strlen(fbuf) ;       if( nbuf == 0    ) return ;
@@ -186,60 +81,372 @@ void AFNI_process_setup( char * fname )
 
    /** scan for section strings, which start with "***" **/
 
-   GETSTR ;
+   str[0] = '\0' ;  /* initialize string */
+
+printf("\nReading AFNI setup file = %s\n",fname) ;
 
    while( nused < nbuf ){
 
-      if( strstr(str,"***") != str ){
-         fprintf(stderr,"\nExpected '***' in setup file %s starting here:\n%.64s\n",
-                        fname , str ) ;
-         free(fbuf) ; return ;
-      }
+      /**----------------------------------------**/
+      /**-- skip ahead to next section keyword --**/
 
-      /** COLORS section **/
+      SkipSection: while( ! ISTARRED(str) ){ GETSTR; }
+
+      /**--------------------**/
+      /**-- COLORS section --**/
 
       if( strcmp(str,"***COLORS") == 0 ){
          char label[128] , defn[128] ;
 
-         while(1){
-            GETSTR ; if( strstr(str,"***") == str ) break ;  /* skip ahead */
-            strcpy(label,str) ;
+printf("  -- enter ***COLORS\n") ;
 
-            GETSTR ;
-            if( str[0] != '=' ){
-               fprintf(stderr,"\nExpected '=' in setup file %s starting here:\n%.64s\n",
-                              fname , str ) ;
-               free(fbuf) ; return ;
+         while(1){                          /* loop, looking for 'label = color' */
+            GETEQN ;
+printf("    -- GETEQN: %s %s %s\n",left,middle,right) ;
+
+            if( mode == SETUP_INIT_MODE ){
+               if( INIT_ncolovr < MAX_NCOLOVR ){
+                  ii = INIT_ncolovr++ ;
+                  INIT_labovr[ii] = XtNewString(left) ;
+                  INIT_colovr[ii] = XtNewString(right) ;
+printf("    -- setup into #%d\n",ii) ;
+               } else {
+                  fprintf(stderr,"\nIn setup file %s, color table overflow!\n",fname);
+                  goto SkipSection ;
+               }
+            } else if( mode == SETUP_LATER_MODE ){
+               ii = DC_add_overlay_color( dc , right , left ) ;
+printf("    -- color index returned as #%d\n",ii) ;
+               if( ii < 0 ) fprintf(stderr,"\nIn setup file %s, unknown color %s\n",
+                                           fname , right ) ;
             }
-
-            GETSTR ; if( strstr(str,"***") == str ) break ;  /* skip ahead */
-            strcpy(defn,str) ;
-
-            /** must do something with label and defn now **/
-
          }
-         continue ;
+         continue ;  /* skip to end of outer while loop */
       } /* end of COLORS */
 
-      /** PALETTES section **/
+      /**----------------------**/
+      /**-- PALETTES section --**/
 
-      if( strcmp(str,"***PALETTES") == 0 ){
+      if( strcmp(str,"***PALETTES") == 0 ){  /* loop, looking for palettes */
+         char label[128] = "NoName" , ccc , * cpt ;
+         PBAR_palette_array * ppar ;
+         PBAR_palette ** ppp ;
+         PBAR_palette  * ppnew ;
+         int npane , pmode , icol , jj ;
+         float val ;
 
-         continue ;
+printf("  -- enter ***PALETTES\n") ;
+
+         if( GPT == NULL ){               /* 1st time in --> create palettry */
+printf("    -- create initial palettes\n") ;
+            INIT_PALTAB(GPT) ;
+            INIT_PALARR(ppar,"NoName") ;
+            ADDTO_PALTAB(GPT,ppar) ;
+         }
+
+         /* loop, looking for palettes */
+
+         while(1){
+            GETSTR ; if( ISTARRED(str) ) goto SkipSection ;
+
+            if( str[0] != '[' ){                     /* found a palette label */
+               strcpy(label,str) ;
+printf("    -- found palette label = %s\n",label) ;
+               ii = label_in_PALTAB( GPT , label ) ; /* an old one? */
+               if( ii < 0 ){
+printf("    -- making a new palette array\n") ;
+                  INIT_PALARR(ppar,label) ;          /* make a new palette array */
+                  ADDTO_PALTAB(GPT,ppar) ;
+               } else {
+printf("    -- matches old palette array #%d\n",ii) ;
+                  ppar = PALTAB_ARR(GPT,ii) ;        /* retrieve old palette array */
+               }
+               GETSTR ; if( ISTARRED(str) ) goto SkipSection ;
+            }
+
+            if( str[0] != '[' ){                    /* bad news! */
+               fprintf(stderr,"\nIn setup file %s, expected palette '[n]' here: %s\n",
+                              fname , str ) ;
+               break ;
+            }
+
+            /* decide how big the new palette is to be, and what mode  */
+            ii = sscanf( str , "[%d%c" , &npane , &ccc ) ;
+            if( ii < 2 ){
+               fprintf(stderr,"\nIn setup file %s, can't interpret palette %s\n",
+                              fname , str ) ;
+               break ;
+            } else if( npane < NPANE_MIN || npane > NPANE_MAX ){
+               fprintf(stderr,"\nIn setup file %s, illegal palette count %s\n",
+                              fname , str ) ;
+               break ;
+            }
+
+            pmode = (ccc == '+') ? 1 : 0 ;              /* pbar mode */
+            ppp   = (pmode==0) ? (ppar->psgn + npane)   /* pointer to pointer */
+                               : (ppar->ppos + npane) ; /* to existing palette */
+
+printf("    -- palette definition: npane=%d pmode=%d\n",npane,pmode) ;
+
+            ppnew = XtNew(PBAR_palette) ;               /* make a new palette */
+            ppnew->npane = npane ;
+            ppnew->mode  = pmode ;
+            for( ii=0 ; ii < npane ; ii++ ){
+               ppnew->val[ii] = PAL_FIGNORE ; ppnew->col[ii] = PAL_IIGNORE ;
+            }
+
+            /* at this point, now loop to read parameters for new palette */
+
+            for( ii=0 ; ii < npane ; ii++ ){
+               GETEQN ;
+printf("      -- GETEQN: %s %s %s\n",left,middle,right) ;
+
+               val = strtod(left,&cpt) ;
+               if( val == 0.0 && *cpt != '\0' ) val = PAL_FIGNORE ;
+
+               if( mode == SETUP_INIT_MODE ){
+                 if( strcmp(right,"none") == 0 ){
+                    icol = 0 ;
+                 } else {
+                    for( jj=0 ; jj < INIT_ncolovr ; jj++ )
+                       if( strcmp(right,INIT_labovr[jj]) == 0 ) break ;
+                    icol = (jj < INIT_ncolovr) ? jj+1 : PAL_IIGNORE ;
+                 }
+               } else if( mode == SETUP_LATER_MODE ){
+                  icol = DC_find_overlay_color( dc , right ) ;
+                  if( icol < 0 ) icol = PAL_IIGNORE ;
+               }
+               ppnew->val[ii] = val ; ppnew->col[ii] = icol ;
+printf("      -- palette entry #%d: val=%f col=%d\n",ii,val,icol) ;
+            }
+
+            ii = check_PBAR_palette( ppnew ) ;
+            if( ii < 0 ){
+               fprintf(stderr,"\nIn setup file %s, palette '%s [%d%s' is illegal\n",
+                       fname,label,npane, (pmode==0)?"]":"+]" ) ;
+               myXtFree(ppnew) ;
+            } else {
+               myXtFree(*ppp) ;
+               *ppp = ppnew ;
+printf("    -- stored new palette\n") ;
+            }
+         }
+
+         continue ;  /* to end of outer while */
       } /* end of PALETTES */
 
       /** END **/
 
-      if( strcmp(str,"***END") == 0 ) break ;
+      if( strcmp(str,"***END") == 0 ) break ;  /* exit main loop */
 
       /** unknown section **/
 
       fprintf(stderr,"\nIn setup file %s, unknown section: %s\n",
                      fname , str ) ;
-      break ;
+      break ;                                 /* exit main loop */
 
    }  /* end of while loop */
 
    free(fbuf) ; return ;
+}
 
+/*-----------------------------------------------------------------*/
+
+int check_PBAR_palette( PBAR_palette * pp )
+{
+   int ii , nn ;
+
+   if( pp == NULL ) return -1 ;
+   if( pp->npane < NPANE_MIN || pp->npane >  NPANE_MAX    ) return -1 ;
+   if( pp->mode  < 0         || pp->mode  >= PANE_MAXMODE ) return -1 ;
+
+   /** val must be all numbers or all ignores -- nothing mixed **/
+
+   nn = 0 ;
+   for( ii=0 ; ii < pp->npane ; ii++ )
+      if( pp->val[ii] == PAL_FIGNORE ) nn++ ;
+   if( nn > 0 && nn != pp->npane ) return -1 ;
+
+   /** if all numbers, must be ordered **/
+
+   if( nn == 0 ){
+      if( pp->val[0] <= 0.0 ) return -1 ;  /* 1st must be positive */
+      for( ii=1 ; ii < pp->npane ; ii++ )
+         if( pp->val[ii] >= pp->val[ii-1] ) return -1 ;  /* disordered? */
+
+      if( pp->mode == 1 && pp->val[pp->npane-1] < 0.0 ) return -1 ;
+   }
+
+   return 1 ;
+}
+
+void dump_PBAR_palette_table(void)
+{
+   int ii , jj , nn ;
+
+   if( GPT == NULL || PALTAB_NUM(GPT) == 0 ){
+      printf("Palette table: empty\n") ;
+      return ;
+   }
+
+   for( ii=0 ; ii < PALTAB_NUM(GPT) ; ii++ ){
+      if( PALTAB_ARR(GPT,ii) == NULL ){
+         printf("Palette table: array[%d] is empty\n",ii) ;
+      } else {
+         printf("Palette table: array[%d] label is %s\n",ii,PALTAB_ARR_LABEL(GPT,ii));
+         printf("      entries:") ;
+         nn = 0 ;
+         for( jj=NPANE_MIN ; jj <= NPANE_MAX ; jj++ ){
+            if( PALTAB_ARR_PSGN(GPT,ii,jj) != NULL ){
+               printf(" [%d]",jj) ; nn++ ;
+            }
+            if( PALTAB_ARR_PPOS(GPT,ii,jj) != NULL ){
+               printf(" [%d+]",jj) ; nn++ ;
+            }
+         }
+         if( nn == 0 ) printf(" NONE\n") ;
+         else          printf("\n") ;
+      }
+   }
+   return ;
+}
+
+void load_PBAR_palette_array( MCW_pbar * pbar , PBAR_palette_array * par )
+{
+   int ii , jj , jm , nn ;
+   PBAR_palette * pp ;
+
+   if( pbar == NULL || par == NULL ) return ;
+
+   nn = 0 ;
+   for( jj=NPANE_MIN ; jj <= NPANE_MAX ; jj++ ){
+      pp = par->psgn[jj] ; jm = 0 ;
+      if( pp != NULL ){
+         if( pp->val[0] != PAL_FIGNORE ){
+            for( ii=0 ; ii < jj ; ii++ )
+               pbar->pval_save[jj][ii][jm] = pp->val[ii] ;
+            pbar->pval_save[jj][jj][jm] = - pp->val[0] ;  /* reflection */
+         }
+
+         for( ii=0 ; ii < jj ; ii++ )
+            if( pp->col[ii] >= 0 && pp->col[ii] < pbar->dc->ncol_ov )
+               pbar->ovin_save[jj][ii][jm] = pp->col[ii] ;
+
+         nn++ ;
+      }
+
+      pp = par->ppos[jj] ; jm = 1 ;
+      if( pp != NULL ){
+         if( pp->val[0] != PAL_FIGNORE ){
+            for( ii=0 ; ii < jj ; ii++ )
+               pbar->pval_save[jj][ii][jm] = pp->val[ii] ;
+            pbar->pval_save[jj][jj][jm] = 0.0 ;  /* zero based */
+         }
+
+         for( ii=0 ; ii < jj ; ii++ )
+            if( pp->col[ii] >= 0 && pp->col[ii] < pbar->dc->ncol_ov )
+               pbar->ovin_save[jj][ii][jm] = pp->col[ii] ;
+
+         nn++ ;
+      }
+   }
+
+   if( nn > 0 ) alter_MCW_pbar( pbar , 0 , NULL ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------*/
+
+char * AFNI_palette_label_CB( MCW_arrowval * av , XtPointer cd )
+{
+   static char blab[32] ;
+
+   if( av->ival >= 0 && av->ival < PALTAB_NUM(GPT) )
+      sprintf(blab,"%-.14s",PALTAB_ARR_LABEL(GPT,av->ival)) ;
+   else
+      strcpy(blab,"???") ;
+
+   return blab ;
+}
+
+/*-----------------------------------------------------------------
+  Event handler to find #3 button press for pbar popup
+-------------------------------------------------------------------*/
+
+void AFNI_pbar_EV( Widget w , XtPointer cd ,
+                   XEvent * ev , Boolean * continue_to_dispatch )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_pbar_EV") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   switch( ev->type ){
+      case ButtonPress:{
+         XButtonEvent * event = (XButtonEvent *) ev ;
+         if( event->button == Button3 ){
+            XmMenuPosition( im3d->vwid->func->pbar_menu , event ) ; /* where */
+            XtManageChild ( im3d->vwid->func->pbar_menu ) ;         /* popup */
+         }
+      }
+      break ;
+   }
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------
+  Callback for all actions in the pbar popup
+-----------------------------------------------------------------*/
+
+void AFNI_pbar_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   MCW_pbar * pbar ;
+   int npane , jm , ii ;
+   double pmax , pmin ;
+   float pval[NPANE_MAX+1] ;
+
+ENTRY("AFNI_pbar_CB") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   pbar  = im3d->vwid->func->inten_pbar ;
+   npane = pbar->num_panes ;
+   jm    = pbar->mode ;
+   pmax  = pbar->pval_save[npane][0][jm] ;
+   pmin  = pbar->pval_save[npane][npane][jm] ;
+
+   if( w == im3d->vwid->func->pbar_equalize_pb ){
+      for( ii=0 ; ii <= npane ; ii++ )
+         pval[ii] = pmax - ii * (pmax-pmin)/npane ;
+      alter_MCW_pbar( pbar , 0 , pval ) ;
+   }
+
+   else if( w == im3d->vwid->func->pbar_readin_pb ){
+      XBell( im3d->dc->display , 100 ) ;
+   }
+
+   else if( w == im3d->vwid->func->pbar_writeout_pb ){
+      XBell( im3d->dc->display , 100 ) ;
+   }
+
+   EXRETURN ;
+}
+
+void AFNI_palette_av_CB( MCW_arrowval * av , XtPointer cd )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+
+   if( ! IM3D_VALID(im3d) || GPT == NULL ) return ;
+   if( av->ival < 0 || av->ival >= PALTAB_NUM(GPT) ) return ;
+
+   load_PBAR_palette_array( im3d->vwid->func->inten_pbar ,
+                            PALTAB_ARR(GPT,av->ival)      ) ;
+
+   if( im3d->vinfo->func_visible )
+      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+
+   return ;
 }

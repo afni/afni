@@ -381,7 +381,8 @@ typedef struct {
       MCW_arrowval * inten_av ;
       MCW_bbox     * inten_bbox ;
 
-      Widget pbar_menu , pbar_equalize_pb , pbar_readin_pb ;
+      Widget pbar_menu , pbar_equalize_pb , pbar_readin_pb , pbar_writeout_pb ;
+      MCW_arrowval * pbar_palette_av ;
 
       Widget options_rowcol , options_label ;
       MCW_bbox     * underlay_bbox ;
@@ -723,6 +724,8 @@ typedef struct {                 /* windows and widgets */
 
 /*-------------- Here there be global variables.  So shoot me. --------------*/
 
+#include "afni_setup.h"  /* 19 Dec 1997 */
+
 typedef struct {
    MCW_DC * dc ;                                  /* display context for everyone */
    THD_sessionlist * sslist ;                     /* all sessions viewable */
@@ -743,6 +746,8 @@ typedef struct {
    struct AFNI_plugin_array * plugins ;           /* plugins */
 #endif
 
+   PBAR_palette_table * gpt ;
+
 } AFNI_library_type ;
 
 #ifdef MAIN
@@ -751,16 +756,14 @@ typedef struct {
    extern AFNI_library_type GLOBAL_library ;
 #endif
 
-#define DISABLE_LOCK  (GLOBAL_library.ignore_lock=1)
-#define ENABLE_LOCK   (GLOBAL_library.ignore_lock=0)
+#define DISABLE_LOCK    (GLOBAL_library.ignore_lock=1)
+#define ENABLE_LOCK     (GLOBAL_library.ignore_lock=0)
+#define BEEPIT          XBell(GLOBAL_library.dc->display,100)
+#define ALLOW_real_time GLOBAL_argopt.allow_rt
+#define ELIDE_quality   GLOBAL_argopt.elide_quality
+#define GPT             GLOBAL_library.gpt
 
 #define DOING_REALTIME_WORK (GLOBAL_library.interruptables.windows != NULL)
-
-#define BEEPIT              XBell(GLOBAL_library.dc->display,100)
-
-#define ALLOW_real_time (GLOBAL_argopt.allow_rt)
-
-#define ELIDE_quality   (GLOBAL_argopt.elide_quality)
 
 /*-----------------------------------------------------------*/
 /*------------------------ prototypes -----------------------*/
@@ -957,9 +960,6 @@ extern void AFNI_thr_scale_drag_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_inten_pbar_CB( MCW_pbar * , XtPointer , int ) ;
 extern void AFNI_inten_av_CB( MCW_arrowval * , XtPointer ) ;
-
-extern void AFNI_pbar_CB( Widget , XtPointer , XtPointer ) ;
-extern void AFNI_pbar_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 
 extern void   AFNI_set_thresh_top( Three_D_View * , float ) ;
 extern char * AFNI_thresh_tlabel_CB( MCW_arrowval * , XtPointer ) ;
