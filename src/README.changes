@@ -279,3 +279,10 @@
    Added popup "hints" to AFNI controls.  See the file README.environment
      for information on how to turn them on and off.
 --------------------------------------------------------------------------
+06 November 1997:
+   Added program 3dRegAna to perform linear regression analysis on
+     voxels across multiple 3D datasets.  This could be used to detect
+     trends in activation data with some stimulus parameter, for example.
+     See the file 3dRegAna.ps (in doc.tgz) for more information.
+   [By BD Ward of MCW.]
+--------------------------------------------------------------------------
