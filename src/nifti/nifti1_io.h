@@ -272,9 +272,13 @@ static znzFile nifti_image_load_prep( nifti_image *nim );
 static size_t nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot,
                                 nifti_image *nim);
 
-static void   nifti_write_all_data(znzFile fp, nifti_image *nim,
+static int    nifti_write_all_data(znzFile fp, nifti_image *nim,
                                    nifti_brick_list * NBL);
 static size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes);
+
+static int          has_ascii_header( znzFile fp ) ;
+static nifti_image *read_ascii_image( znzFile fp, char *fname, int flen,
+                                      int read_data ) ;
 
 
 /* other routines */

@@ -889,3 +889,10 @@
   * make print_hex_vals() static
   * in disp_nifti_1_header, restrict string field widths
 
+23 Dec 2004: nifti library update (v 0.9) - minor updates
+  * broke ASCII header reading out of nifti_image_read(), into new
+       functions has_ascii_header() and read_ascii_image()
+  * check image_read failure and znzseek failure
+  * altered some debug output
+  * nifti_write_all_data() now returns an int
+

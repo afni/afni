@@ -18,7 +18,7 @@
 
 
 /* global version and history strings, for printing */
-static char gni_version[] = "nifti library version 0.8 (December 21, 2004)";
+static char gni_version[] = "nifti library version 0.9 (December 23, 2004)";
 static char gni_history[] = 
   "----------------------------------------------------------------------\n"
   "history (of nifti library changes):\n"
@@ -134,6 +134,13 @@ static char gni_history[] =
   "   - in nifti_valid_filename(), lose redundant (len < 0) check\n"
   "   - make print_hex_vals() static\n"
   "   - in disp_nifti_1_header, restrict string field widths\n"
+  "\n"
+  "0.9  23 Dec 2004 [rickr] - minor changes\n"
+  "   - broke ASCII header reading out of nifti_image_read(), into new\n"
+  "        functions has_ascii_header() and read_ascii_image()\n"
+  "   - check image_read failure and znzseek failure\n"
+  "   - altered some debug output\n"
+  "   - nifti_write_all_data() now returns an int\n"
   "----------------------------------------------------------------------\n";
 
 /* global debug level */
@@ -2114,7 +2121,7 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
       swap_nifti_header( &nhdr , is_nifti ) ;
    }
 
-   if ( gni_debug > 1 ) disp_nifti_1_header("-d nhdr2nim : ", &nhdr);
+   if ( gni_debug > 2 ) disp_nifti_1_header("-d nhdr2nim : ", &nhdr);
 
    if( nhdr.datatype == DT_BINARY ||
        nhdr.datatype == DT_UNKNOWN  )    ERREX("bad datatype") ;
@@ -2360,7 +2367,6 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
 static znzFile nifti_image_open( char *hname , char *opts , nifti_image **nim)
 {
   znzFile fptr=NULL;
-  znz_setnull(fptr);
 
   /* open the hdr and reading it in, but do not load the data  */
   *nim = nifti_image_read(hname,0);
@@ -2368,7 +2374,8 @@ static znzFile nifti_image_open( char *hname , char *opts , nifti_image **nim)
   /* open the image file, ready for reading
    * - NB: compressed works for all reads */
   if( ((*nim) == NULL)      || ((*nim)->iname == NULL) ||
-      ((*nim)->nbyper <= 0) || ((*nim)->nvox <= 0)       ) ERREX("bad header info") ;
+      ((*nim)->nbyper <= 0) || ((*nim)->nvox <= 0)       )
+     ERREX("bad header info") ;
 
   /** open image data file **/  
   fptr = znzopen((*nim)->iname ,opts,1);
@@ -2391,156 +2398,186 @@ nifti_image *nifti_image_read( char *hname , int read_data )
    struct nifti_1_header  nhdr ;
    nifti_image           *nim ;
    znzFile                fp ;
-   int                    ii , ilen, filesize, remaining;
+   int                    rv, ii , filesize, remaining;
    char                   fname[] = { "nifti_image_read" };
-   char                   buf[16] , *workingname=NULL;
+   char                  *hfile=NULL;
    
    /* determine file name to use for header */
-   workingname = nifti_findhdrname(hname);
-   if( workingname == NULL ){
-      if( gni_debug > 0 )
-         LNI_FERR(fname,"failed to find header file for", hname);
+   hfile = nifti_findhdrname(hname);
+   if( hfile == NULL ){
+      if(gni_debug > 0) LNI_FERR(fname,"failed to find header file for", hname);
       return NULL;  /* check return */
    } else if( gni_debug > 1 )
-      fprintf(stderr,"-d %s: found header filename '%s'\n",fname,workingname);
+      fprintf(stderr,"-d %s: found header filename '%s'\n",fname,hfile);
 
-   if( nifti_is_gzfile(workingname) )
-      filesize = -1;    /* cannot determine size of compressed file */
-   else
-      filesize = get_filesize(workingname);
+   if( nifti_is_gzfile(hfile) ) filesize = -1;  /* unknown */
+   else                         filesize = get_filesize(hfile);
 
-   fp = znzopen(workingname,"rb",1);
+   fp = znzopen(hfile,"rb",1);
    if( znz_isnull(fp) ){
-      if( gni_debug > 0 )
-         LNI_FERR(fname,"failed to open header file",workingname);
-      free(workingname);
+      if( gni_debug > 0 ) LNI_FERR(fname,"failed to open header file",hfile);
+      free(hfile);
       return NULL;
    }
 
-   /** test if header file starts with ASCII string "<nifti_image";
-       if so, read the dataset that special way and return now
-       (this is NOT part of the NIFTI-1 standard!)                **/
-
-   ii = znzread( buf , 1 , 12 , fp ) ;
-   if( ii < 12 ){
-      znzclose( fp ) ;
-      if( gni_debug > 0 )
-         LNI_FERR(fname,"short header read",workingname);
-         free(workingname);
-         return NULL;
+   rv = has_ascii_header( fp );
+   if( rv < 0 ){
+      if( gni_debug > 0 ) LNI_FERR(fname,"short header read",hfile);
+      znzclose( fp );
+      free(hfile);
+      return NULL;
    }
+   else if ( rv == 1 )  /* process special file type */
+      return read_ascii_image( fp, hfile, filesize, read_data );
 
-   znzrewind(fp) ;
-   buf[12] = '\0' ;
-   if( strcmp(buf,"<nifti_image") == 0 ){  /* have an ASCII header! */
-     int slen, txt_size;
-     char  *sbuf ;
-     if( nifti_is_gzfile(workingname) ){
-        LNI_FERR(fname, "compressed file with negative offset", workingname);
-        free(workingname);
-        return NULL;
-     }
-     slen = filesize;
+   /* else, just process normally */
 
-     if( gni_debug > 1 )
-        fprintf(stderr,"-d %s: have ASCII NIFTI file of size %d\n",fname,slen);
-
-     if( slen > 65530 ) slen = 65530 ;
-     sbuf = (char *)calloc(sizeof(char),slen+1) ;
-     znzread( sbuf , 1 , slen , fp ) ;
-     nim = nifti_image_from_ascii( sbuf, &txt_size ) ; free( sbuf ) ;
-     if( nim == NULL ){
-        LNI_FERR(fname,"failed nifti_image_from_ascii()",workingname);
-        free(workingname);
-        return NULL;
-     }
-     nim->nifti_type = 3 ;
-
-     /* compute remaining space for extensions */
-     remaining = filesize - txt_size - (int)nifti_get_volsize(nim);
-     if( remaining > 4 ){
-        /* read extensions (reposition file pointer, first) */
-        znzseek(fp, txt_size, SEEK_SET);
-        (void) nifti_read_extensions(nim, fp, remaining);
-     }
-
-     znzclose( fp ) ;
-
-     nim->iname_offset = -1 ;  /* now check from the end of the file */
-
-     if( read_data ) ii = nifti_image_load( nim ) ;
-     else            nim->data = NULL ;
-
-     free(workingname);
-
-     /* check for nifti_image_load() failure, maybe bail out */
-     if( read_data && ii != 0 ){
-        if( gni_debug > 1 )
-           fprintf(stderr,"-d failed image_load, free nifti image struct\n");
-        free(nim);
-        return NULL;
-     }
-
-     return nim ;
-   }
-
-   /**================ Normal case:  read binary header ===================*/
+   /**================ read binary header ===================*/
 
    ii = znzread( &nhdr , 1 , sizeof(nhdr) , fp ) ;       /* read the thing */
 
-   /* keep the file open for a while so we can check for extensions
-    * after nifti_convert_nhdr2nim() */
+   /* keep file open so we can check for exts. after nifti_convert_nhdr2nim() */
 
    if( ii < sizeof(nhdr) ){
       if( gni_debug > 0 ){
-         LNI_FERR(fname,"bad binary header read for file", workingname);
+         LNI_FERR(fname,"bad binary header read for file", hfile);
          fprintf(stderr,"  - read %d of %d bytes\n",ii, (int)sizeof(nhdr));
       }
-      free(workingname);
+      free(hfile);
       return NULL;
    }
 
    /*=== create output image struct and set it up ===*/
 
    /** convert all nhdr fields to nifti_image fields **/
-   nim = nifti_convert_nhdr2nim(nhdr,workingname);
+   nim = nifti_convert_nhdr2nim(nhdr,hfile);
 
    if( nim == NULL ){
       znzclose( fp ) ;                                   /* close the file */
       if( gni_debug > 0 )
-         LNI_FERR(fname,"failed to create nifti image from header",workingname);
-      free(workingname); /* had to save this for debug message */
+         LNI_FERR(fname,"cannot create nifti image from header",hfile);
+      free(hfile); /* had to save this for debug message */
       return NULL;
    }
 
    if( gni_debug > 1 ){
       fprintf(stderr,"+d nifti_image_read(), have nifti image:\n");
-      nifti_image_infodump(nim);
+      if( gni_debug > 2 ) nifti_image_infodump(nim);
    }
 
    /* check for extensions, let us just ignore any errors here */
    if( NIFTI_ONEFILE(nhdr) ) remaining = nim->iname_offset - sizeof(nhdr);
    else                      remaining = filesize - sizeof(nhdr);
 
-   if( remaining > 4 ) (void) nifti_read_extensions(nim, fp, remaining);
+   if( remaining > 4 )       (void) nifti_read_extensions(nim, fp, remaining);
+   else if ( gni_debug > 1 ) fprintf(stderr,"-d no room for extensions\n");
 
    znzclose( fp ) ;                                      /* close the file */
-   free(workingname);
-   /* check that the data file is OK */
-   if (!nifti_is_gzfile(nim->iname)) {
-     /* can't use get_filesize on a compressed file   :( */
-     ilen = get_filesize(nim->iname) ;
-     if( ilen <= nim->iname_offset ){
-        fprintf(stderr,"ERROR %s: file size less than offset (%d < %d)\n",
-                fname,ilen,nim->iname_offset);
-        free(nim);
-        return NULL;
-     }
-   }
+   free(hfile);
 
    /** read the data if desired, then bug out **/
-   if( read_data ) ii = nifti_image_load( nim ) ;
+   if( read_data ){
+      if( nifti_image_load( nim ) < 0 ){
+         nifti_image_free(nim);          /* take ball, go home. */
+         return NULL;
+      }
+   }
+   else nim->data = NULL ;
+
+   return nim ;
+}
+
+
+/*----------------------------------------------------------------------
+ * has_ascii_header  - see if the NIFTI header is an ASCII format
+ *
+ * If the file starts with the ASCII string "<nifti_image", then
+ * process the dataset as a type-3 .nia file.
+ *
+ * return:  -1 on error, 1 if true, or 0 if false
+ *
+ * NOTE: this is NOT part of the NIFTI-1 standard
+ *----------------------------------------------------------------------*/
+static int has_ascii_header( znzFile fp )
+{
+   char  buf[16];
+   int   nread;
+
+   if( znz_isnull(fp) ) return 0;
+
+   nread = znzread( buf, 1, 12, fp );
+   buf[12] = '\0';
+
+   if( nread < 12 ) return -1;
+
+   znzrewind(fp);  /* move back to the beginning, and check */
+
+   if( strcmp(buf, "<nifti_image") == 0 ) return 1;
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * read_ascii_image  - process as a type-3 .nia image file
+ *
+ * return NULL on failure
+ *
+ * NOTE: this is NOT part of the NIFTI-1 standard
+ *----------------------------------------------------------------------*/
+static nifti_image * read_ascii_image( znzFile fp, char * fname, int flen,
+                                       int read_data )
+{
+   nifti_image * nim;
+   int           slen, txt_size, remain, rv = 0;
+   char        * sbuf, lfunc[20] = { "read_ascii_image" };
+
+   if( nifti_is_gzfile(fname) ){
+      LNI_FERR(lfunc, "compressed file with negative offset", fname);
+      free(fname);
+      znzclose(fp);
+      return NULL;
+   }
+   slen = flen;  /* slen will be our buffer length */
+
+   if( gni_debug > 1 )
+      fprintf(stderr,"-d %s: have ASCII NIFTI file of size %d\n",fname,slen);
+
+   if( slen > 65530 ) slen = 65530 ;
+   sbuf = (char *)calloc(sizeof(char),slen+1) ;
+   znzread( sbuf , 1 , slen , fp ) ;
+   nim = nifti_image_from_ascii( sbuf, &txt_size ) ; free( sbuf ) ;
+   if( nim == NULL ){
+      LNI_FERR(lfunc,"failed nifti_image_from_ascii()",fname);
+      free(fname);
+      znzclose(fp);
+      return NULL;
+   }
+   nim->nifti_type = 3 ;
+
+   /* compute remaining space for extensions */
+   remain = flen - txt_size - (int)nifti_get_volsize(nim);
+   if( remain > 4 ){
+      /* read extensions (reposition file pointer, first) */
+      znzseek(fp, txt_size, SEEK_SET);
+      (void) nifti_read_extensions(nim, fp, remain);
+   }
+
+   free(fname);
+   znzclose( fp ) ;
+
+   nim->iname_offset = -1 ;  /* check from the end of the file */
+
+   if( read_data ) rv = nifti_image_load( nim ) ;
    else            nim->data = NULL ;
+
+   /* check for nifti_image_load() failure, maybe bail out */
+   if( read_data && rv != 0 ){
+      if( gni_debug > 1 )
+         fprintf(stderr,"-d failed image_load, free nifti image struct\n");
+      free(nim);
+      return NULL;
+   }
 
    return nim ;
 }
@@ -2581,7 +2618,7 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
               posn, nim->iname_offset, nim->nifti_type, remain);
 
    if( remain < 16 ){
-      if( gni_debug > 2 ) fprintf(stderr,"no space for extensions\n");
+      if( gni_debug > 2 ) fprintf(stderr,"-d no space for extensions\n");
       return 0;
    }
 
@@ -2589,13 +2626,13 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
 
    if( count < 4 ){
       if( gni_debug > 1 )
-         fprintf(stderr,"-d no extender stored in header file '%s'\n",
+         fprintf(stderr,"-d file '%s' is too short for an extender\n",
                  nim->fname);
       return 0;
    }
 
    if( extdr.extension[0] != 1 ){
-      if( gni_debug > 1 )
+      if( gni_debug > 2 )
          fprintf(stderr,"-d extender[0] (%d) shows no extensions for '%s'\n",
                  extdr.extension[0], nim->fname);
       return 0;
@@ -2620,7 +2657,7 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
          if( extn.ecode == NIFTI_ECODE_AFNI )  /* if AFNI, then ~XML */
             fprintf(stderr,"   AFNI extension: %.*s\n",extn.esize-8,extn.edata);
       }
-      if( remain > 0 ) remain -= extn.esize;
+      remain -= extn.esize;
       count++;
    }
 
@@ -2833,8 +2870,7 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
 
    fp = znzopen(nim->iname , "rb",1);
    if( znz_isnull(fp) ){
-      if( gni_debug > 0 )
-         LNI_FERR(fname,"cannot open data file",nim->iname);
+      if( gni_debug > 0 ) LNI_FERR(fname,"cannot open data file",nim->iname);
       return NULL;
    }
 
@@ -2848,8 +2884,7 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
      }
      ii = get_filesize( nim->iname ) ;
      if( ii <= 0 ){
-        if( gni_debug > 0 )
-           LNI_FERR(fname,"empty data file",nim->iname);
+        if( gni_debug > 0 ) LNI_FERR(fname,"empty data file",nim->iname);
         znzclose(fp);
         return NULL;
      }
@@ -2857,7 +2892,13 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
    } else {                              /* non-negative offset   */
      ioff = nim->iname_offset ;          /* means use it directly */
    }
-   znzseek( fp , ioff , SEEK_SET ) ;
+
+   if( znzseek(fp , ioff , SEEK_SET) < 0 ){
+      fprintf(stderr,"** could not seek to offset %d in file '%s'\n",
+              (int)ioff, nim->iname);
+      znzclose(fp);
+      return NULL;
+   }
 
    return fp;
 }
@@ -3036,23 +3077,10 @@ void nifti_image_infodump( nifti_image *nim )
    return ;
 }
 
-/*--------------------------------------------------------------------------*/
-/* Write a nifti_image to disk.  The following fields of nim affect how
-   the output appears:
-    - nifti_type = 0 ==> ANALYZE-7.5 format file pair will be written
-    - nifti_type = 1 ==> NIFTI-1 format single file will be written
-                         (data offset will be 348)
-    - nifti_type = 2 ==> NIFTI_1 format file pair will be written
-    - nifti_type = 3 ==> NIFTI_1 ASCII single file will be written
-    - fname is the name of the output file (header or header+data)
-    - if a file pair is being written, iname is the name of the data file
-    - existing files WILL be overwritten with extreme prejudice
-    - if qform_code > 0, the quatern_*, qoffset_*, and qfac fields determine
-      the qform output, NOT the qto_xyz matrix; if you want to compute these
-      fields from the qto_xyz matrix, you can use the utility function
-      mat44_to_quatern()
-----------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------
+ * just check for a null znzFile and call znzwrite
+ *--------------------------------------------------------------------------*/
 static size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes)
 {
    /** Write all the image data at once (no swapping here) **/
@@ -3061,19 +3089,13 @@ static size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes)
       fprintf(stderr,"** ERROR: nifti_write_buffer: null file pointer\n");
       return 0;
    }
-   ss = znzwrite( (void *) buffer , 1 , numbytes , fp ) ;
+   ss = znzwrite( buffer , 1 , numbytes , fp ) ;
    return ss;
 }
 
 
-/* just print...
-#undef  ERREX
-#define ERREX(msg)                                                \
- do{ fprintf(stderr,"** ERROR: nifti_image_write: %s\n",(msg)) ;  \
-     return ; } while(0)
-*/
-
-static void nifti_write_all_data(znzFile fp, nifti_image *nim,
+/* return 0 on success, -1 on failure */
+static int nifti_write_all_data(znzFile fp, nifti_image *nim,
                                  nifti_brick_list * NBL)
 {
    /** Write all the image data at once (no swapping here) **/
@@ -3086,7 +3108,7 @@ static void nifti_write_all_data(znzFile fp, nifti_image *nim,
          fprintf(stderr,
             "** ERROR: nifti_image_write: wrote only %d of %d bytes to file\n",
             (int)ss, nim->nbyper * nim->nvox);
-         return;
+         return -1;
       }
 
       if( gni_debug > 1 )
@@ -3095,7 +3117,7 @@ static void nifti_write_all_data(znzFile fp, nifti_image *nim,
       if( ! NBL->bricks || NBL->nbricks <= 0 || NBL->bsize <= 0 ){
          fprintf(stderr,"** write NBL: no brick data to write (%p,%d,%d)\n",
                  NBL->bricks, NBL->nbricks, NBL->bsize);
-         return;
+         return -1;
       }
 
       for( bnum = 0; bnum < NBL->nbricks; bnum++ ){
@@ -3104,7 +3126,7 @@ static void nifti_write_all_data(znzFile fp, nifti_image *nim,
             fprintf(stderr,
                "** write ERROR: wrote %d of %d bytes of brick %d of %d to file",
                (int)ss, NBL->bsize, bnum+1, NBL->nbricks);
-            return;
+            return -1;
          }
       }
       if( gni_debug > 1 )
@@ -3114,7 +3136,7 @@ static void nifti_write_all_data(znzFile fp, nifti_image *nim,
 
    nim->byteorder = short_order() ;  /* mark as being in this CPU byte order */
 
-   return ;
+   return 0;
 }
 
 /* return number of extensions written, or -1 on error */
@@ -3520,6 +3542,22 @@ static znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data ,
 }
 
 
+/*--------------------------------------------------------------------------*/
+/* Write a nifti_image to disk.  The following fields of nim affect how
+   the output appears:
+    - nifti_type = 0 ==> ANALYZE-7.5 format file pair will be written
+    - nifti_type = 1 ==> NIFTI-1 format single file will be written
+                         (data offset will be 348)
+    - nifti_type = 2 ==> NIFTI_1 format file pair will be written
+    - nifti_type = 3 ==> NIFTI_1 ASCII single file will be written
+    - fname is the name of the output file (header or header+data)
+    - if a file pair is being written, iname is the name of the data file
+    - existing files WILL be overwritten with extreme prejudice
+    - if qform_code > 0, the quatern_*, qoffset_*, and qfac fields determine
+      the qform output, NOT the qto_xyz matrix; if you want to compute these
+      fields from the qto_xyz matrix, you can use the utility function
+      mat44_to_quatern()
+----------------------------------------------------------------------------*/
 void nifti_image_write( nifti_image *nim )
 {
   nifti_image_write_hdr_img(nim,1,"wb");
