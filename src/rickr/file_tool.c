@@ -1,6 +1,10 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 2.0  May 29, 2003
+ *   - added information for ge4 study header
+ *   - added option -ge4_study
+ *
  * 1.2  May 06, 2003  (will go to 2.0 after more changes are made)
  *   - added interface for reading GEMS 4.x formatted image files
  *   - added corresponding options -ge4_all, -ge4_image, -ge4_series
@@ -161,9 +165,7 @@ process_ge4( char * filename, param_t * p )
     ge4_header H;
     int        rv;
 
-    memset( &H, 0, sizeof(H) );
-
-    rv = read_ge4_header( filename, &H );
+    rv = ge4_read_header( filename, &H );
 
     if ( rv != 0 )
     {
@@ -175,6 +177,9 @@ process_ge4( char * filename, param_t * p )
 	else			/* else just return it */
 	    return -1;
     }
+
+    if ( (p->debug > 1) || (p->ge4_disp & GE4_DISP_STUDY) )
+	idisp_ge4_study_header( filename, &H.std_h );
 
     if ( (p->debug > 1) || (p->ge4_disp & GE4_DISP_SERIES) )
 	idisp_ge4_series_header( filename, &H.ser_h );
@@ -534,9 +539,13 @@ set_params( param_t * p, int argc, char * argv[] )
   	{
 	    p->ge4_disp |= GE4_DISP_IMAGE;
 	}
-	else if ( ! strncmp(argv[ac], "-ge4_series", 7 ) )
+	else if ( ! strncmp(argv[ac], "-ge4_series", 8 ) )
   	{
 	    p->ge4_disp |= GE4_DISP_SERIES;
+	}
+	else if ( ! strncmp(argv[ac], "-ge4_study", 8 ) )
+  	{
+	    p->ge4_disp |= GE4_DISP_STUDY;
 	}
 	/* finish with bad option */
 	else
@@ -785,6 +794,7 @@ help_full( char * prog )
 	"      -ge4_all         : display GEMS 4.x series and image headers\n"
 	"      -ge4_image       : display GEMS 4.x image header\n"
 	"      -ge4_series      : display GEMS 4.x series header\n"
+	"      -ge4_study       : display GEMS 4.x study header\n"
 	"\n"
 	"  raw ascii options:\n"
 	"\n"

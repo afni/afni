@@ -3,7 +3,7 @@
  * This is an interface for processing GEMS 4.x image files
  * (see ge4_header.h for structure contents).
  * ----------------------------------------------------------------------
- * int read_ge4_header( char * filename, ge4_header * H )
+ * int ge4_read_header( char * filename, ge4_header * H )
  *
  *     The basic point is to pass an empty ge4_header structure in,
  *     along with a file name.  This function fills the structure.
@@ -53,10 +53,11 @@ static char * g_ge4_sl_orient[] = { "supine", "prone", "Lt", "Rt" };
  *        < 0 : on error
  * ----------------------------------------------------------------------
 */
-int read_ge4_header( char * filename, ge4_header * H )
+int ge4_read_header( char * filename, ge4_header * H )
 {
     ge4_image_t  * ih;
     ge4_series_t * sh;
+    ge4_study_t  * st;
     FILE         * fp;
     int            file_len;
     int            rres = 0;		/* read result */
@@ -67,6 +68,8 @@ int read_ge4_header( char * filename, ge4_header * H )
 	return -1;
     }
 
+    memset( H, 0, sizeof(ge4_header) );
+
     file_len = THD_filesize( filename );
 
     /* file size must be fixed at 145408 bytes (142 KB) */
@@ -75,7 +78,7 @@ int read_ge4_header( char * filename, ge4_header * H )
 
     if ( (fp = fopen( filename, "r" )) == NULL )
     {
-	fprintf( stderr, "read_ge4_header: failed to open '%s' for reading\n",
+	fprintf( stderr, "ge4_read_header: failed to open '%s' for reading\n",
 		 filename);
 	return -1;
     }
@@ -84,6 +87,10 @@ int read_ge4_header( char * filename, ge4_header * H )
 
     sh = &H->ser_h;	/* set helper pointer */
     ih = &H->im_h;	/* set helper pointer */
+    st = &H->std_h;	/* set helper pointer */
+
+    fseek( fp, GE4_OFF_STDY_TITLE, SEEK_SET );
+    rres |= (1 - fread( st->title, GE4_L_STDY_TITLE, 1, fp ));
 
     fseek( fp, GE4_OFF_SER_TITLE, SEEK_SET );
     rres |= (1 - fread( sh->title, GE4_L_SER_TITLE, 1, fp ));
@@ -92,12 +99,36 @@ int read_ge4_header( char * filename, ge4_header * H )
     rres |= (1 - fread( ih->title, GE4_L_IM_TITLE, 1, fp ));
 
     /* if read failure or bad title fields, we're outta' here */
-    if ( rres							 ||
-         strncmp( sh->title, GE4_SERIES_TITLE, GE4_L_SER_TITLE ) ||
-         strncmp( ih->title, GE4_IMAGE_TITLE,  GE4_L_IM_TITLE  )
+    if ( rres							  ||
+         strncmp( st->title, GE4_STUDY_TITLE,  GE4_L_STDY_TITLE ) ||
+         strncmp( sh->title, GE4_SERIES_TITLE, GE4_L_SER_TITLE  ) ||
+         strncmp( ih->title, GE4_IMAGE_TITLE,  GE4_L_IM_TITLE   )
        )
 	return 1;
 
+
+    /* study header fields */
+
+    fseek( fp, GE4_OFF_STDY_NUM, SEEK_SET );
+    rres |= (1 - fread( st->num, GE4_L_STDY_NUM, 1, fp ));
+
+    fseek( fp, GE4_OFF_STDY_DATE, SEEK_SET );
+    rres |= (1 - fread( st->date, GE4_L_STDY_DATE, 1, fp ));
+
+    fseek( fp, GE4_OFF_STDY_TIME, SEEK_SET );
+    rres |= (1 - fread( st->time, GE4_L_STDY_TIME, 1, fp ));
+
+    fseek( fp, GE4_OFF_STDY_PAT_NAME, SEEK_SET );
+    rres |= (1 - fread( st->pat_name, GE4_L_STDY_PAT_NAME, 1, fp ));
+
+    fseek( fp, GE4_OFF_STDY_PAT_ID, SEEK_SET );
+    rres |= (1 - fread( st->pat_id, GE4_L_STDY_PAT_ID, 1, fp ));
+
+    fseek( fp, GE4_OFF_STDY_AGE, SEEK_SET );
+    rres |= (1 - fread( st->age, GE4_L_STDY_AGE, 1, fp ));
+
+    fseek( fp, GE4_OFF_STDY_SEX, SEEK_SET );
+    rres |= (1 - fread( &st->sex, 1, 1, fp ));
 
     /* series header fields */
 
@@ -182,7 +213,7 @@ int read_ge4_header( char * filename, ge4_header * H )
 	return -1;
     }
 
-    if ( validate_ge4_header( H ) )
+    if ( ge4_validate_header( H ) )
 	return 1;
 
     if ( H->image != NULL )	/* then read in the image */
@@ -216,7 +247,7 @@ int read_ge4_header( char * filename, ge4_header * H )
  *         else : invalid
  *------------------------------------------------------------
 */
-int validate_ge4_header( ge4_header * h )
+int ge4_validate_header( ge4_header * h )
 {
     ge4_series_t * s;
     ge4_image_t  * im;
@@ -304,6 +335,38 @@ int ge4_swap_all_bytes( ge4_header * h )
  *  Display the contents of the ge4_image_t struct.
  *------------------------------------------------------------
 */
+int idisp_ge4_study_header( char * info, ge4_study_t * st )
+{
+    if ( info )
+	fputs( info, stdout );
+
+    if ( st == NULL )
+    {
+	printf( "r_idisp_ge4_study_t: st == NULL" );
+	return -1;
+    }
+
+    printf( " ge4_study_t at %p :\n"
+	    "    title                    = %s\n"
+	    "    num                      = %s\n"
+	    "    date                     = %s\n"
+	    "    time                     = %s\n"
+	    "    pat_name                 = %s\n"
+	    "    pat_id                   = %s\n"
+	    "    age                      = %s\n"
+	    "    sex                      = %c\n",
+	    st, st->title, st->num, st->date, st->time,
+	    st->pat_name, st->pat_id, st->age, st->sex
+	    );
+
+    return 0;
+}
+
+
+/*------------------------------------------------------------
+ *  Display the contents of the ge4_image_t struct.
+ *------------------------------------------------------------
+*/
 int idisp_ge4_image_header( char * info, ge4_image_t * im )
 {
     if ( info )
@@ -318,11 +381,17 @@ int idisp_ge4_image_header( char * info, ge4_image_t * im )
     printf( " ge4_image_t at %p :\n"
 	    "    title                    = %s\n"
 	    "    im_num                   = %s\n"
-	    "    im_loc, table_posn       = %.3f, %.3f\n"
-	    "    im_thickness, im_spacing = %.3f, %.3f\n"
-	    "    tr, te, ti (in ms)       = %.3f, %.3f, %.3f\n"
-	    "    num_echoes, echo_num     = %d, %d\n"
-	    "    iNEX, fNEX               = %d, %.3f\n"
+	    "    im_loc                   = %.3f\n"
+	    "    table_posn               = %.3f\n"
+	    "    im_thickness             = %.3f\n"
+	    "    im_spacing               = %.3f\n"
+	    "    tr (in ms)               = %.3f\n"
+	    "    te (in ms)               = %.3f\n"
+	    "    ti (in ms)               = %.3f\n"
+	    "    num_echoes               = %d\n"
+	    "    echo_num                 = %d\n"
+	    "    iNEX                     = %d\n"
+	    "    fNEX                     = %.3f\n"
 	    "    flip_angle               = %d\n",
 	    im, im->title, im->im_num, im->im_loc, im->table_posn,
 	    im->im_thickness, im->im_spacing, im->tr, im->te, im->ti,

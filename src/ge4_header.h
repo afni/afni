@@ -10,12 +10,14 @@
 #define GE4_DISP_NONE	       0x00
 #define GE4_DISP_IMAGE	       0x01
 #define GE4_DISP_SERIES	       0x02
+#define GE4_DISP_STUDY	       0x04
 #define GE4_DISP_ALL	       0xff
 
 /* ---- string constants ---- */
 
-#define GE4_SERIES_TITLE  "SERIES HEADER 04"
 #define GE4_IMAGE_TITLE   "IMAGE HEADER  04"
+#define GE4_SERIES_TITLE  "SERIES HEADER 04"
+#define GE4_STUDY_TITLE   "STUDY HEADER  04"
 
 /* ---- series header field offsets (base + 2 * word_num) ---- */
 
@@ -60,7 +62,42 @@
 #define GE4_L_IM_TITLE		16
 #define GE4_L_IM_NUM		 3
 
+/* ---- study header field offsets (base + 2 * word_num) ---- */
+
+#define GE4_OFF_STDY_TITLE		0x0c00
+#define GE4_OFF_STDY_NUM		0x0c40	/* = (0x0c00 + 2 * 032) */
+#define GE4_OFF_STDY_DATE		0x0c4e	/* = (0x0c00 + 2 * 039) */
+#define GE4_OFF_STDY_TIME		0x0c5e	/* = (0x0c00 + 2 * 047) */
+#define GE4_OFF_STDY_PAT_NAME		0x0c6c	/* = (0x0c00 + 2 * 054) */
+#define GE4_OFF_STDY_PAT_ID		0x0c8c	/* = (0x0c00 + 2 * 070) */
+#define GE4_OFF_STDY_AGE		0x0c9c	/* = (0x0c00 + 2 * 078) */
+#define GE4_OFF_STDY_SEX		0x0ca0	/* = (0x0c00 + 2 * 080) */
+
+/* ---- study header field lengths ---- */
+
+#define GE4_L_STDY_TITLE	16
+#define GE4_L_STDY_NUM		 5
+#define GE4_L_STDY_DATE		 9
+#define GE4_L_STDY_TIME		 8
+#define GE4_L_STDY_PAT_NAME	32
+#define GE4_L_STDY_PAT_ID	12
+#define GE4_L_STDY_AGE		 3
+
+/* ---------------------------------------------------------------------- */
+
 /* ---- actual data structures ---- */
+typedef struct
+{
+    char    title     [GE4_L_STDY_TITLE    + 1];
+    char    num       [GE4_L_STDY_NUM      + 1];
+    char    date      [GE4_L_STDY_DATE     + 1];
+    char    time      [GE4_L_STDY_TIME     + 1];
+    char    pat_name  [GE4_L_STDY_PAT_NAME + 1];
+    char    pat_id    [GE4_L_STDY_PAT_ID   + 1];
+    char    age       [GE4_L_STDY_AGE      + 1];
+    char    sex;
+} ge4_study_t;
+
 typedef struct
 {
     char    title     [GE4_L_SER_TITLE+1];	/* words 000-015 */
@@ -97,6 +134,7 @@ typedef struct
 
 typedef struct
 {
+    ge4_study_t		std_h;		/* series header data      */
     ge4_series_t	ser_h;		/* series header data      */
     ge4_image_t 	im_h;		/* image header data       */
     short             * image;		/* image data, if non-NULL */
@@ -105,14 +143,15 @@ typedef struct
 
 
 /* global prototypes */
-int read_ge4_header		( char * filename, ge4_header * H );
+int ge4_read_header		( char * filename, ge4_header * H );
 int idisp_ge4_image_header      ( char * info, ge4_image_t * im );
 int idisp_ge4_series_header     ( char * info, ge4_series_t * s );
+int idisp_ge4_study_header      ( char * info, ge4_study_t * st );
 
 
 int ge4_swap_all_bytes		( ge4_header * h );
 int idisp_ge4_series_header	( char * info, ge4_series_t * s );
-int validate_ge4_header         ( ge4_header * h );
+int ge4_validate_header         ( ge4_header * h );
 
 
 /* ---------------------------------------------------------------------- */
