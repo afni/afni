@@ -121,7 +121,7 @@ int main( int argc , char *argv[] )
 
    /*-- handle command line options --*/
 
-   if( argc < 3 || strncmp(argv[1],"-help",5) == 0 ){ VL_syntax() ; exit(0); }
+   if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){ VL_syntax() ; exit(0); }
 
    Argc = argc ; Argv = argv ; Iarg = 1 ;
    VL_command_line() ;

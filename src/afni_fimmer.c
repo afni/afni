@@ -269,7 +269,7 @@ THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
                                         MRI_IMAGE * ref_ts , MRI_IMAGE * ort_ts ,
                                         THD_session * sess , int code, int ucode )
 {
-   THD_3dim_dataset * new_dset ;
+   THD_3dim_dataset * new_dset=NULL ;
    char new_prefix[THD_MAX_PREFIX] ;
    char old_prefix[THD_MAX_PREFIX] ;
    THD_slist_find fff ;
@@ -321,7 +321,7 @@ ENTRY("AFNI_fimmer_compute") ;
        ref_ts->kind != MRI_float      ||
        ! IM3D_OPEN(im3d)              ||
        im3d->type != AFNI_3DDATA_VIEW ||
-       code == 0                      ||           /* Jan 1998 */
+       (code == 0 && ucode == 0)      ||           /* Jan 1998 & Feb 2000 */
        ref_ts->nx < DSET_NUM_TIMES(dset_time) ){
 
 if(PRINT_TRACING)
@@ -421,6 +421,10 @@ if(PRINT_TRACING)
          short * dar = (short *) DSET_ARRAY(dset_time,it1) ;
          for( iv=0,fthr=0.0 ; iv < nxyz ; iv++ ) fthr += abs(dar[iv]) ;
          fthr = FIM_THR * fthr / nxyz ;
+
+if(PRINT_TRACING)
+{ char str[256] ; sprintf(str,"fthr = %g",fthr) ; STATUS(str) ; }
+
          for( iv=0,nvox=0 ; iv < nxyz ; iv++ )
             if( abs(dar[iv]) > fthr ) nvox++ ;
          indx = (int *) malloc( sizeof(int) * nvox ) ;
@@ -437,6 +441,10 @@ if(PRINT_TRACING)
          float * dar = (float *) DSET_ARRAY(dset_time,it1) ;
          for( iv=0,fthr=0.0 ; iv < nxyz ; iv++ ) fthr += fabs(dar[iv]) ;
          fthr = FIM_THR * fthr / nxyz ;
+
+if(PRINT_TRACING)
+{ char str[256] ; sprintf(str,"fthr = %g",fthr) ; STATUS(str) ; }
+
          for( iv=0,nvox=0 ; iv < nxyz ; iv++ )
             if( fabs(dar[iv]) > fthr ) nvox++ ;
          indx = (int *) malloc( sizeof(int) * nvox ) ;
@@ -453,6 +461,10 @@ if(PRINT_TRACING)
          byte * dar = (byte *) DSET_ARRAY(dset_time,it1) ;
          for( iv=0,fthr=0.0 ; iv < nxyz ; iv++ ) fthr += dar[iv] ;
          fthr = FIM_THR * fthr / nxyz ;
+
+if(PRINT_TRACING)
+{ char str[256] ; sprintf(str,"fthr = %g",fthr) ; STATUS(str) ; }
+
          for( iv=0,nvox=0 ; iv < nxyz ; iv++ )
             if( dar[iv] > fthr ) nvox++ ;
          indx = (int *) malloc( sizeof(int) * nvox ) ;
@@ -467,8 +479,7 @@ if(PRINT_TRACING)
    }
 
 if(PRINT_TRACING)
-{ char str[256] ;
-  sprintf(str,"number of voxels in mask = %d",nvox) ; STATUS(str) ; }
+{ char str[256] ; sprintf(str,"number of voxels = %d",nvox) ; STATUS(str) ; }
 
    /** allocate space for voxel values **/
 
@@ -494,6 +505,23 @@ if(PRINT_TRACING)
    if( (code & FIM_PTOP_MASK) != 0)              { ibr_ptop = nbrik; nbrik++; }
    if( (code & FIM_TOPL_MASK) != 0)              { ibr_topl = nbrik; nbrik++; }
    if( (code & FIM_SIGM_MASK) != 0)              { ibr_sigm = nbrik; nbrik++; }
+
+   /** 01 Feb 2000: if no normal FIM stuff (code), skip to the ucode stuff **/
+
+if(PRINT_TRACING)
+{ char str[256] ; sprintf(str,"number of bricks = %d",nbrik) ; STATUS(str) ; }
+
+   if( nbrik == 0 ){
+
+#ifndef DONT_USE_METER
+   meter = MCW_popup_meter( im3d->vwid->top_shell , METER_TOP_WIDE ) ;
+   meter_pold = 0 ;
+#endif
+
+      goto ucode_stuff ;  /* way below */
+   }
+
+   /** normal case: do the normal recursive FIMming **/
 
 if(PRINT_TRACING)
 { char str[256] ;
@@ -624,6 +652,8 @@ if(PRINT_TRACING)
 
    /*--- Make a new dataset to hold the output ---*/
 
+STATUS("making new dataset") ;
+
    new_dset = EDIT_empty_copy( dset_time ) ;
 
    if( nbrik == 1 && ucode == 0 ){           /* 1 brick out --> a 'fim' dataset */
@@ -732,6 +762,8 @@ if(PRINT_TRACING)
 
    /* create bricks */
 
+STATUS("making output bricks") ;
+
    for( iv=0 ; iv < new_dset->dblk->nvals ; iv++ ){
       ptr = malloc( DSET_BRICK_BYTES(new_dset,iv) ) ;
       mri_fix_data_pointer( ptr ,  DSET_BRICK(new_dset,iv) ) ;
@@ -774,6 +806,8 @@ if(PRINT_TRACING)
    meter = MCW_popup_meter( im3d->vwid->top_shell , METER_TOP_WIDE ) ;
    meter_pold = 0 ;
 #endif
+
+STATUS("starting recursive least squares") ;
 
    for( it=itbot ; it < ntime ; it++ ){  /* loop over time */
 
@@ -859,7 +893,9 @@ if(PRINT_TRACING)
    for( iv=3 ; iv < MAX_STAT_AUX ; iv++ ) stataux[iv] = 0.0 ;
 
    if( ibr_corr >= 0 ){
-      EDIT_dset_items( new_dset, ADN_stat_aux, stataux, ADN_none ) ;
+      if( new_dset->func_type == FUNC_COR_TYPE )
+         EDIT_dset_items( new_dset, ADN_stat_aux, stataux, ADN_none ) ;
+
       EDIT_BRICK_TO_FICO( new_dset, ibr_corr, stataux[0],stataux[1],stataux[2] ) ;
    }
 
@@ -1458,7 +1494,10 @@ STATUS("setting brick_fac") ;
    if( tlbest!= NULL ) free(tlbest);  /* 03 Jan 2000 */
    if( sgbest!= NULL ) free(sgbest);  /* 03 Jan 2000 */
 
+   /*-----------------------------------------------------*/
    /*--- 01 Feb 2000: execute user specified functions ---*/
+
+ucode_stuff:
 
 #define MAXUFUN 64  /* should be at least sizeof(int) */
 
@@ -1467,7 +1506,7 @@ STATUS("setting brick_fac") ;
       int uuse[MAXUFUN] , nbrik[MAXUFUN] , brik1[MAXUFUN] ;
       void * udata[MAXUFUN] ;
       generic_func * ufunc[MAXUFUN] ;
-      int nuse , uu , newbrik , oldbrik=DSET_NVALS(new_dset) ;
+      int nuse , uu , newbrik , oldbrik ;
       FIMdata fd ;
       MRI_IMAGE * tsim ;
       float     * tsar , * val , ** vbr ;
@@ -1539,6 +1578,27 @@ STATUS("setting brick_fac") ;
       }
       free(val) ;  /* no longer needed */
 
+      /* if necessary, make the new dataset now */
+
+      if( new_dset != NULL ){
+         oldbrik = DSET_NVALS(new_dset) ;  /* number of bricks it has now */
+      } else {
+         oldbrik = 0 ;
+
+         new_dset = EDIT_empty_copy( dset_time ) ;
+
+         EDIT_dset_items( new_dset ,
+                             ADN_prefix      , new_prefix ,
+                             ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                             ADN_type        , ISHEAD(dset_time)
+                                               ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
+                             ADN_func_type   , FUNC_BUCK_TYPE ,
+                             ADN_nvals       , newbrik ,
+                             ADN_datum_all   , MRI_short ,
+                             ADN_ntt         , 0 ,
+                          ADN_none ) ;
+      }
+
       /* for each output brick:
            make short space for it,
            scale and stored floats into this space ,
@@ -1561,7 +1621,13 @@ STATUS("setting brick_fac") ;
          }
 
          free(tsar) ;
-         EDIT_add_brick( new_dset , MRI_short , topval , sar ) ;
+
+         if( oldbrik > 0 ){
+            EDIT_add_brick( new_dset , MRI_short , topval , sar ) ;
+         } else {
+            mri_fix_data_pointer( sar , DSET_BRICK(new_dset,iv) ) ;
+            EDIT_BRICK_FACTOR( new_dset , iv , topval ) ;
+         }
       }
       free(vbr) ;
 

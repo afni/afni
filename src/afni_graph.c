@@ -3515,7 +3515,7 @@ ENTRY("GRA_fim_CB") ;
       cbs.reason = graCR_dofim ;
       cbs.key    = MCW_val_bbox(grapher->fmenu->fimp_opt_bbox) ;
       cbs.mat    = MCW_val_bbox(grapher->fmenu->fimp_user_bbox) ; /* Feb 2000 */
-      if( cbs.key > 0 )
+      if( cbs.key || cbs.mat )
          grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
       else
          XBell( grapher->dc->display , 100 ) ;
@@ -3533,6 +3533,10 @@ ENTRY("GRA_fim_CB") ;
    else if( w == grapher->fmenu->fimp_setall_pb ){
       int mm = (2 << FIM_NUM_OPTS) - 1 ;
       MCW_set_bbox( grapher->fmenu->fimp_opt_bbox , mm ) ;
+   }
+
+   else if( w == grapher->fmenu->fimp_unsetall_pb ){
+      MCW_set_bbox( grapher->fmenu->fimp_opt_bbox , 0 ) ;
    }
 
    /*** FIM plotting buttons ***/
@@ -4197,6 +4201,16 @@ ENTRY("AFNI_new_fim_menu") ;
                                  XmNinitialResourcesPersistent , False ,
                                NULL ) ;
    XtAddCallback( fmenu->fimp_setall_pb ,
+                  XmNactivateCallback , cbfunc , (XtPointer) fmenu ) ;
+
+   fmenu->fimp_unsetall_pb =
+      XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
+                                 LABEL_ARG( "Unset All") ,
+                                 XmNmarginHeight , 0 ,
+                                 XmNtraversalOn , False ,
+                                 XmNinitialResourcesPersistent , False ,
+                               NULL ) ;
+   XtAddCallback( fmenu->fimp_unsetall_pb ,
                   XmNactivateCallback , cbfunc , (XtPointer) fmenu ) ;
 
    /* 01 Feb 2000: add user-contributed options (if any) */
