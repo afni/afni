@@ -233,7 +233,10 @@ USAGE:
 	echo "Example:"
 	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
 	echo ""
-	echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
+	echo ""
+	echo "Ziad Saad (ziad@nih.gov)"
+	echo "LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
+	echo ""
 	goto END
 
 END:
