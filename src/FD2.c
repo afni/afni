@@ -8,11 +8,6 @@
 
 #define CONTRAST_CHANGE_STEP 15000/* larger step => slower change AJ 11.1.96 */
 
-/*** setup macros for Cox modifications ***/
-
-#undef RWCOX
-#include "RWCox.h"
-
 #define ASC_NUL '\0'
 
 #ifndef COPYRIGHT_STRING

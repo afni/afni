@@ -71,7 +71,7 @@ extern void AGNI_truncate_memory ( AGNI_surface * ) ;
 extern void AGNI_nodesort_surface( AGNI_surface * ) ;
 extern int  AGNI_find_node_id    ( AGNI_surface *, int ) ;
 
-extern AGNI_surface * AGNI_read_surface( char * ) ;
+extern AGNI_surface * AGNI_read_surface( char * , struct THD_3dim_dataset * ) ;
 
 extern int * AGNI_map_vol_to_surf( AGNI_surface * ,
                                    int nx    , int ny    , int nz    ,
@@ -83,5 +83,9 @@ extern int * AGNI_map_dset_to_surf( AGNI_surface * , struct THD_3dim_dataset * )
 extern void AGNI_get_sname( struct THD_3dim_dataset * ) ;
 extern void AGNI_load     ( struct THD_3dim_dataset * ) ;
 extern void AGNI_unload   ( struct THD_3dim_dataset * ) ;
+
+extern THD_fvec3 THD_dicomm_to_surefit( struct THD_3dim_dataset *, THD_fvec3 ) ;
+extern THD_fvec3 THD_surefit_to_dicomm( struct THD_3dim_dataset *, THD_fvec3 ) ;
+extern void AGNI_import_surefit( AGNI_surface *, char *, struct THD_3dim_dataset * );
 
 #endif /* _AGNI_HEADER_FILE */

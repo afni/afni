@@ -3228,6 +3228,13 @@
      William Gandler of the NIH).
 
 25 Oct 2001
- * Added "-q" (quiet) option to afni.c.
+ * Added "-q" (quiet) option to afni.c (also affected afni.h, afni_widg.c,
+     and afni_plugin.c).
  * Fixed bug in AFNI_set_viewpoint() in afni.c, so that the AGNI node
      is looked up only if we are in "view brick" mode.
+ * Added program Vecwarp.c, at the request of David van Essen of Wash U.
+
+26 Oct 2001
+ * Added THD_surefit_to_dicomm() to agni.[ch] (from Vecwarp.c).
+ * Modified agni.c to allow SureFit coord files to be read directly
+     using <SureFit coord=filname IDadd=number/> in .SURF file.

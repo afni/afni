@@ -195,7 +195,21 @@ ENTRY("AGNI_nodesort_surface") ;
    AGNI_truncate_memory( ag ) ;
 
    nn = ag->num_nod ;
-   qsort_AGNI_nod( nn , ag->nod ) ; ag->sorted = 1 ;
+
+   /* check if nodes are already sorted [26 Oct 2001] */
+
+   for( ii=1 ; ii < nn ; ii++ )
+      if( ag->nod[ii].id <= ag->nod[ii-1].id ) break ;
+
+   /* if not in increasing order, sort them */
+
+   if( ii < nn ){
+fprintf(stderr,"AGNI: Sorting nodes") ;
+      qsort_AGNI_nod( nn , ag->nod ) ;
+fprintf(stderr," .. done\n") ;
+   }
+
+   ag->sorted = 1 ;  /* mark as sorted */
 
    /* check if node id-s are sequential */
 
@@ -212,7 +226,7 @@ ENTRY("AGNI_nodesort_surface") ;
       if( ag->nod[ii].id == ag->nod[ii-1].id ) ndup++ ;
 
    if( ndup > 0 )
-      fprintf(stderr,"** WARNING: duplicate surface node id's found!\n") ;
+      fprintf(stderr,"** AGNI: WARNING: duplicate surface node id's found!\n") ;
 
    /* find bounding box of all nodes (its useful on occasion) */
 
@@ -291,12 +305,12 @@ ENTRY("AGNI_find_node_id") ;
 
 #define NBUF 64
 
-AGNI_surface * AGNI_read_surface( char *fname )
+AGNI_surface * AGNI_read_surface( char *fname , THD_3dim_dataset *dset )
 {
    AGNI_surface *ag ;
    FILE *fp ;
    char lbuf[1024] , *cpt ;
-   int nnod=0, ntri=0 , do_nod=1 , ii ;
+   int  do_nod=1 , ii ;
    float xx[NBUF],yy[NBUF],zz[NBUF] ;
    int   pp[NBUF],qq[NBUF],rr[NBUF] , nn ;
 
@@ -314,6 +328,7 @@ ENTRY("AGNI_read_surface") ;
    } else {
       fp = fopen( fname , "r" ) ;
       if( fp == NULL ) RETURN( NULL );
+fprintf(stderr,"\nAGNI: Reading surface file %s\n",fname) ;
    }
 
    /*-- read data --*/
@@ -326,6 +341,8 @@ ENTRY("AGNI_read_surface") ;
       cpt = fgets(lbuf,1024,fp) ;  /* read a line */
       if( cpt == NULL ) break ;    /* end of file */
 
+      /*-- read a transformation matrix-vector --*/
+
       if( strncmp(lbuf,"<MATVEC>",8) == 0 ){  /* 07 Sep 2001 */
          float a11,a12,a13 , v1 ,
                a21,a22,a23 , v2 ,
@@ -337,26 +354,49 @@ ENTRY("AGNI_read_surface") ;
                       &a31,&a32,&a33 , &v3  ) ;
 
          if( ii < 12 ){
-            fprintf(stderr,"** Illegal MATVEC in %s\n",fname) ;
+            fprintf(stderr,"** AGNI: Illegal MATVEC in %s\n",fname) ;
             have_mv = 0 ;
          } else {
             LOAD_FVEC3(mv.vv , v1,v2,v3 ) ;
             LOAD_MAT  (mv.mm , a11,a12,a13,a21,a22,a23,a31,a32,a33) ;
             have_mv = 1 ;
          }
+         continue ; /* skip to next line */
       }
 
+      /*-- read data from SureFit? --*/
+
+      if( strncmp(lbuf,"<SureFit",8) == 0 ){ /* 26 Oct 2001 */
+
+         if( nn > 0 ){   /* process existing inputs, if any */
+            if( do_nod )
+               AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
+            else
+               AGNI_add_triangles( ag,nn , pp,qq,rr ) ;
+            nn = 0 ;
+         }
+
+         AGNI_import_surefit( ag , lbuf , dset ) ;
+         continue ; /* skip to next input line */
+
+      } /* end of SureFit input */
+
+      /*-- end of node input? --*/
+
       if( strstr(lbuf,"</NODES>") != NULL ){
-         if( nn > 0 ){
+         if( do_nod && nn > 0 ){
             AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
             nn = 0 ;
          }
 #if 0
-         do_nod = 0 ; continue ;  /* create triangles */
+         do_nod = 0 ;  /* from now on, triangles */
+         continue ;    /* skip to next line */
 #else
          break ;                  /* don't create triangles */
 #endif
       }
+
+      /*-- process line as a node? --*/
 
       if( do_nod ){               /* nodes */
 
@@ -368,23 +408,27 @@ ENTRY("AGNI_read_surface") ;
             qv = VECSUB_MAT( mv.mm , fv , mv.vv ) ;
             UNLOAD_FVEC3( qv , xx[nn],yy[nn],zz[nn] ) ;
          }
-         nn++ ; nnod++ ;
+         nn++ ;
          if( nn == NBUF ){
             AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
             nn = 0 ;
          }
 
+      /*-- process line as a triangle --*/
+
       } else {                    /* triangles */
 
          ii = sscanf(lbuf,"%d%d%d",pp+nn,qq+nn,rr+nn) ;
          if( ii < 3 ) continue ;
-         nn++ ; ntri++ ;
+         nn++ ;
          if( nn == NBUF ){
             AGNI_add_triangles( ag,nn , pp,qq,rr ) ;
             nn = 0 ;
          }
       }
    } /* end of loop over input lines */
+
+   /*-- finish up, eh? --*/
 
    if( fp != stdin ) fclose(fp) ;
    if( nn > 0 ){
@@ -394,8 +438,8 @@ ENTRY("AGNI_read_surface") ;
          AGNI_add_triangles( ag,nn , pp,qq,rr ) ;
    }
 
-   if( nnod < 3 ){
-      AGNI_destroy_surface(ag) ; RETURN( NULL );
+   if( ag->num_nod < 1 ){
+      AGNI_destroy_surface(ag) ; RETURN(NULL) ;
    }
 
    AGNI_nodesort_surface(ag) ;
@@ -427,7 +471,7 @@ int * AGNI_map_dset_to_surf( AGNI_surface *ag , THD_3dim_dataset *dset )
    THD_fvec3 fv ;
    THD_ivec3 iv ;
    int ibot,jbot,kbot , itop,jtop,ktop , lev , ijk ;
-   float xv,yv,zv , dd,dbest , xp,yp,zp ;
+   float xv,yv,zv , dd,dbest=0 , xp,yp,zp ;
    char *elev ; int ltop , ntop , lmask ;
 
 ENTRY("AGNI_map_dset_to_surf") ;
@@ -435,6 +479,8 @@ ENTRY("AGNI_map_dset_to_surf") ;
    if( ag == NULL || ag->num_nod < 1 || !ISVALID_DSET(dset) ) RETURN( NULL );
 
    /* setup */
+
+fprintf(stderr,"AGNI: Mapping surface nodes to voxel indexes") ;
 
    nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
    nxy = nx*ny ; nxyz = nxy*nz ;
@@ -492,6 +538,8 @@ STATUS("putting nodes into voxels") ;
    if( kbot < 1 ) kbot = 1 ; if( ktop >= nz ) ktop = nz-1 ;
 
    ntop = ag->nod[ag->num_nod-1].id + 100 ;
+
+fprintf(stderr,".") ;
 
    /* scan for voxels that are next to those already mapped */
 
@@ -559,7 +607,11 @@ STATUS("putting nodes into voxels") ;
         if( vmap[ijk] < -1 ) vmap[ijk] = (-vmap[ijk] - ntop) | lmask ;
     }}}
 
+fprintf(stderr,".") ;
+
    } /* end of loop over lev */
+
+fprintf(stderr,"\n") ;
 
    RETURN( vmap );
 }
@@ -594,7 +646,7 @@ ENTRY("AGNI_load") ;
    if( !ISVALID_DSET(dset)    ||
        dset->ag_sname == NULL || dset->ag_surf != NULL ) EXRETURN ;
 
-   dset->ag_surf = AGNI_read_surface( dset->ag_sname ) ;
+   dset->ag_surf = AGNI_read_surface( dset->ag_sname , dset ) ;
 
    if( dset->ag_surf == NULL ){
       free(dset->ag_sname) ; dset->ag_sname = NULL ; EXRETURN ;
@@ -622,6 +674,183 @@ ENTRY("AGNI_unload") ;
 
    if( dset->ag_vmap != NULL ){
       free( dset->ag_vmap ) ; dset->ag_vmap = NULL ;
+   }
+
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------
+   The following routines are used to convert DICOM order coordinates
+   (used in AFNI) to SureFit order coordinates -- 25 Oct 2001 - RWCox
+----------------------------------------------------------------------------*/
+
+THD_fvec3 THD_dicomm_to_surefit( THD_3dim_dataset *dset , THD_fvec3 fv )
+{
+   float xx,yy,zz , xbase,ybase,zbase ;
+   THD_fvec3 vout ;
+
+   xx = -fv.xyz[0] ; yy = -fv.xyz[1] ; zz = fv.xyz[2] ;   /* xyz now LPI */
+
+   if( dset != NULL ){
+      THD_fvec3 v1 , v2 ;
+      LOAD_FVEC3(v1, DSET_XORG(dset),DSET_YORG(dset),DSET_ZORG(dset)) ;
+      v1 = THD_3dmm_to_dicomm( dset , v1 ) ;
+      LOAD_FVEC3(v2, DSET_XORG(dset)+(DSET_NX(dset)-1)*DSET_DX(dset) ,
+                     DSET_YORG(dset)+(DSET_NY(dset)-1)*DSET_DY(dset) ,
+                     DSET_ZORG(dset)+(DSET_NZ(dset)-1)*DSET_DZ(dset)  ) ;
+      v2 = THD_3dmm_to_dicomm( dset , v2 ) ;
+      xbase = MAX( v1.xyz[0] , v2.xyz[0] ) ; xbase = -xbase ;  /* Left-most */
+      ybase = MAX( v1.xyz[1] , v2.xyz[1] ) ; ybase = -ybase ;  /* Posterior */
+      zbase = MIN( v1.xyz[2] , v2.xyz[2] ) ;                   /* Inferior  */
+   } else {
+      xbase = ybase = zbase = 0.0 ;
+   }
+
+   vout.xyz[0] = xx - xbase ;
+   vout.xyz[1] = yy - ybase ;
+   vout.xyz[2] = zz - zbase ; return vout ;
+}
+
+/* --------------------------------------------------------------------------*/
+
+THD_fvec3 THD_surefit_to_dicomm( THD_3dim_dataset *dset , THD_fvec3 fv )
+{
+   float xx,yy,zz , xbase,ybase,zbase ;
+   THD_fvec3 vout ;
+
+   xx = -fv.xyz[0] ; yy = -fv.xyz[1] ; zz = fv.xyz[2] ;   /* xyz now RAI */
+
+   if( dset != NULL ){
+      THD_fvec3 v1 , v2 ;
+      LOAD_FVEC3(v1, DSET_XORG(dset),DSET_YORG(dset),DSET_ZORG(dset)) ;
+      v1 = THD_3dmm_to_dicomm( dset , v1 ) ;
+      LOAD_FVEC3(v2, DSET_XORG(dset)+(DSET_NX(dset)-1)*DSET_DX(dset) ,
+                     DSET_YORG(dset)+(DSET_NY(dset)-1)*DSET_DY(dset) ,
+                     DSET_ZORG(dset)+(DSET_NZ(dset)-1)*DSET_DZ(dset)  ) ;
+      v2 = THD_3dmm_to_dicomm( dset , v2 ) ;
+      xbase = MAX( v1.xyz[0] , v2.xyz[0] ) ; xbase = -xbase ;
+      ybase = MAX( v1.xyz[1] , v2.xyz[1] ) ; ybase = -ybase ;
+      zbase = MIN( v1.xyz[2] , v2.xyz[2] ) ;
+   } else {
+      xbase = ybase = zbase = 0.0 ;
+   }
+
+   vout.xyz[0] = xx - xbase ;
+   vout.xyz[1] = yy - ybase ;
+   vout.xyz[2] = zz + zbase ; return vout ;
+}
+
+/*---------------------------------------------------------------------
+  Read a <SureFit .../> line into a surface
+    ag   = already existing surface (nodes loaded into this)
+    lbuf = line containing "<SureFit"
+    dset = dataset for SureFit-to-DICOM coordinate conversion
+-----------------------------------------------------------------------*/
+
+void AGNI_import_surefit( AGNI_surface *ag, char *lbuf, THD_3dim_dataset *dset )
+{
+   float xx[NBUF],yy[NBUF],zz[NBUF] ;
+   int   pp[NBUF] ;
+   int nn , ii , idadd=0 ;
+   FILE *sfp ;
+   char sname[1024] , *cpt ;
+   THD_fvec3 fv ;
+
+ENTRY("AGNI_import_surefit") ;
+
+   /* scan input line for coord=sname, and extract into sname */
+
+   cpt = strstr(lbuf,"coord=") ;
+   if( cpt == NULL ){
+      fprintf(stderr,"** AGNI: Illegal SureFit: no coord=\n** %s\n",lbuf) ;
+      EXRETURN ;
+   }
+   cpt += 6 ;                                  /* skip coord= */
+   if( *cpt == '\"' || *cpt == '\'' ) cpt++ ;  /* skip quote  */
+   ii = sscanf(cpt,"%s",sname) ;               /* get sname   */
+   if( ii == 0 ){
+      fprintf(stderr,"** AGNI: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
+      EXRETURN ;
+   }
+   ii = strlen(sname) ;
+   if( ii == 0 ){
+      fprintf(stderr,"** AGNI: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
+      EXRETURN ;
+   }
+   if( sname[ii-1] == '\'' || sname[ii-1] == '\"' ) sname[ii-1] = '\0' ;
+   if( strlen(sname) == 0 ){
+      fprintf(stderr,"** AGNI: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
+      EXRETURN ;
+   }
+
+   /* add dataset directory name to start of sname? */
+
+   if( sname[0] != '/' ){
+      char buf[1024] ;
+      sprintf(buf,"%s%s",DSET_DIRNAME(dset),sname) ;
+      strcpy(sname,buf) ;
+   }
+
+   /* scan line for IDadd=value, and extract into idadd */
+
+   cpt = strstr(lbuf,"IDadd=") ;
+   if( cpt != NULL ){
+      cpt += 6 ;
+      if( *cpt == '\"' || *cpt == '\'' ) cpt++ ;
+      ii = sscanf(cpt,"%d",&idadd) ;
+      if( ii == 0 || idadd < 0 ){
+         fprintf(stderr,"** AGNI: Illegal SureFit: bad IDadd=\n** %s\n",lbuf) ;
+         EXRETURN ;
+      }
+   }
+
+   /* open sname */
+
+fprintf(stderr,"AGNI: Opening SureFit file %s with IDadd=%d\n",sname,idadd) ;
+
+   sfp = fopen( sname , "r" ) ;
+   if( sfp == NULL ){
+      fprintf(stderr,"** AGNI: Illegal SureFit: can't open file %s\n** %s\n",sname,lbuf) ;
+      EXRETURN ;
+   }
+
+   nn = 0 ;
+
+   while(1){
+      cpt = fgets(sname,1024,sfp) ;  /* read a line */
+      if( cpt == NULL ) break ;      /* end of file */
+
+      if( strstr(sname,"BeginHeader") != NULL ){  /* skip SureFit header */
+         do{
+            cpt = fgets(sname,1024,sfp) ;                /* get next line */
+            if( cpt == NULL ){ fclose(sfp); EXRETURN; }  /* bad */
+         } while( strstr(sname,"EndHeader") == NULL ) ;
+         cpt = fgets(sname,1024,sfp) ;                   /* 1 more line */
+         if( cpt == NULL ){ fclose(sfp); EXRETURN; }     /* bad */
+         continue ;                                      /* start over */
+      }
+
+      ii = sscanf(sname,"%d%f%f%f",pp+nn,xx+nn,yy+nn,zz+nn) ;
+      if( ii < 4 ) continue ;   /* skip this line; it's bad */
+
+      /* process value to AFNI-ize it from SureFit */
+
+      pp[nn] += idadd ;
+      LOAD_FVEC3(fv,xx[nn],yy[nn],zz[nn]) ;
+      fv = THD_surefit_to_dicomm( dset , fv ) ;
+      UNLOAD_FVEC3(fv,xx[nn],yy[nn],zz[nn]) ;
+
+      nn++ ;
+      if( nn == NBUF ){
+         AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
+         nn = 0 ;
+      }
+   } /* end of loop over input lines */
+
+   fclose(sfp) ;
+
+   if( nn > 0 ){
+      AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
    }
 
    EXRETURN ;
