@@ -5149,3 +5149,8 @@
 04 Aug 2004
  * At long last, removed the ill-fated "merger" stuff from 3ddata.h and
      all AFNI functions.
+ * Added THD_open_tcat() in thd_opentcat.c, to open a list of datasets as
+     on long 3D+time dataset.  Also modified 3ddata.h, THD_open_dataset(),
+     and so forth.
+ * Modified 3dDeconvolve.c to use this feature to allow input catenation
+     (if the input_filename field has blanks in it).
