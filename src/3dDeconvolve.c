@@ -3636,25 +3636,29 @@ void calculate_results
 #define PSINV_EPS 1.e-12
 #endif
   if( !option_data->nocond ){
-    double *ev , ebot,emin,emax ; int i , nsmall ;
+    double *ev , ebot,emin,emax ; int i,nsmall=0 ;
     ev = matrix_singvals( xdata ) ;
-    emin = 1.e+38 ; emax = 1.e-38 ;
-    if( show_singvals ) fprintf(stderr,"++ Matrix singular values:") ;
+    emax = 1.e-38 ;
     for( i=0 ; i < xdata.cols ; i++ ){
-      if( show_singvals ) fprintf(stderr," %g",ev[i]) ;
       if( ev[i] > emax ) emax = ev[i] ;
     }
-    ebot = sqrt(PSINV_EPS)*emax ;
-    for( i=nsmall=0 ; i < xdata.cols ; i++ ){
+    ebot = sqrt(PSINV_EPS)*emax ; emin = 1.e+38 ;
+    for( i=0 ; i < xdata.cols ; i++ ){
       if( ev[i] >= ebot && ev[i] < emin ) emin = ev[i] ;
       if( ev[i] <  ebot ) nsmall++ ;
     }
-    if( show_singvals ) fprintf(stderr,"\n") ;
     if( nsmall > 0 ){
       fprintf(stderr,
-              "** WARNING: Largest singular value=%g;"
-              " %d are less than cutoff=%g\n" ,
-              emax , nsmall , ebot ) ;
+        "** WARNING: Largest singular value=%g;"
+                  " %d %s less than cutoff=%g\n"
+        "            Implies strong collinearity in the input regressors\n",
+              emax , nsmall , (nsmall==1)?"is":"are" , ebot ) ;
+      show_singvals = 1 ;
+    }
+    if( show_singvals ){
+      fprintf(stderr,"++ Matrix singular values:") ;
+      for( i=0; i < xdata.cols ; i++ ) fprintf(stderr," %g",ev[i]) ;
+      fprintf(stderr,"\n") ;
     }
     free((void *)ev) ;
     if( emin <= 0.0 || emax <= 0.0 ){
