@@ -445,15 +445,15 @@ double qginv( double p )
 
       dt = sqrt( -2.0 * log(dp) ) ;
       dx = dt
-           - ((.010328e+0*dt + .802853e+0)*dt + 2.515517e+0)
-           /(((.001308e+0*dt + .189269e+0)*dt + 1.432788e+0)*dt + 1.e+0) ;
+           - ((.010328*dt + .802853)*dt + 2.515517)
+           /(((.001308*dt + .189269)*dt + 1.432788)*dt + 1.) ;
 
 /**  Step 2:  do 3 Newton steps to improve this
               (uses the math library erfc function) **/
 
       for( newt=0 ; newt < 3 ; newt++ ){
-         dq  = 0.5e+0 * erfc( dx / 1.414213562373095e+0 ) - dp ;
-         ddq = exp( -0.5e+0 * dx * dx ) / 2.506628274631000e+0 ;
+         dq  = 0.5 * erfc( dx / 1.414213562373095 ) - dp ;
+         ddq = exp( -0.5 * dx * dx ) / 2.506628274631000 ;
          dx  = dx + dq / ddq ;
       }
 

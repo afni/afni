@@ -8,6 +8,12 @@
   Mod:      Added routines matrix_file_write and matrix_file_read.
   Date:     02 July 1999
 
+  Mod:      Added routine for calculating square root of matrix.
+  Date:     30 September 1999
+
+  Mod:      Added routines matrix_sprint and vector_sprint.
+  Date:     04 October 1999
+
 */
 
 
@@ -76,6 +82,14 @@ void matrix_create (int rows, int cols, matrix * m);
 */
 
 void matrix_print (matrix m);
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Print label and contents of matrix m.
+*/
+
+void matrix_sprint (char * s, matrix m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -186,6 +200,15 @@ int matrix_inverse (matrix a, matrix * ainv);
 
 /*---------------------------------------------------------------------------*/
 /*
+  Calculate square root of symmetric positive definite matrix a.  
+  Result is matrix s.
+*/
+
+int matrix_sqrt (matrix a, matrix * s);
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Initialize vector data structure.
 */
 
@@ -214,6 +237,14 @@ void vector_create (int dim, vector * v);
 */
 
 void vector_print (vector v);
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Print label and contents of vector v.
+*/
+
+void vector_sprint (char * s, vector v);
 
 
 /*---------------------------------------------------------------------------*/

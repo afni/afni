@@ -62,6 +62,17 @@ void Syntax(char * str)
     "\n"
     "  -nowarp         Removes all warping information from dataset.\n"
     "\n"
+    "  -apar aset      Set the dataset's anatomy dataset to 'aset'\n"
+    "               ** N.B.: The anatomy parent is the dataset from which the\n"
+    "                  transformation from +orig to +acpc and +tlrc coordinates\n"
+    "                  is taken.  It is appropriate to use -apar when there is\n"
+    "                  more than 1 anatomical dataset in a directory that has\n"
+    "                  been transformed.  In this way, you can be sure that\n"
+    "                  AFNI will choose the correct transformation.  You would\n"
+    "                  use this option on all the +orig dataset that are\n"
+    "                  aligned with 'aset' (i.e., that were acquired in the\n"
+    "                  same scanning session).\n"
+    "\n"
     "  -statpar v ...  Changes the statistical parameters stored in this\n"
     "                  dataset.  See 'to3d -help' for more details.\n"
     "\n"
@@ -138,7 +149,7 @@ void Syntax(char * str)
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset * dset , * aset = NULL ;
    THD_dataxes      * daxes ;
    int new_stuff = 0 ;
    int new_orient = 0 ; char orient_code[4] ; int xxor,yyor,zzor ;
@@ -179,6 +190,23 @@ int main( int argc , char * argv[] )
 #if 0
       if( strcmp(argv[iarg],"-v") == 0 ){ verbose = 1 ; iarg++ ; continue ; }
 #endif
+
+      /*----- -apar aset [14 Oct 1999] -----*/
+
+      if( strcmp(argv[iarg],"-apar")       == 0 ||
+          strcmp(argv[iarg],"-anatparent") == 0 ||
+          strcmp(argv[iarg],"-aset")       == 0    ){
+
+         if( iarg+1 >= argc )
+            Syntax("need 1 argument after -apar!") ;
+
+         iarg++ ;
+         aset = THD_open_one_dataset( argv[iarg] ) ;
+         if( aset == NULL )
+            Syntax("can't open -apar dataset!") ;
+
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
 
       /*----- -byteorder option [25 April 1998] -----*/
 
@@ -522,6 +550,11 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"Processing dataset %s\n",argv[iarg]) ;
 
       tross_Make_History( "3drefit" , argc,argv, dset ) ;
+
+      /* 14 Oct 1999 */
+
+      if( aset != NULL )
+         EDIT_dset_items( dset , ADN_anat_parent , aset , ADN_none ) ;
 
       /* 25 April 1998 */
 

@@ -220,81 +220,22 @@ char * HISTO_main( PLUGIN_interface * plint )
 
    /*-- build a byte mask array --*/
 
-   mmm = (byte *) calloc( sizeof(byte) * nvox , 1 ) ;
-   if( mmm == NULL )
-      return " \n*** Can't malloc mask workspace! ***\n" ;
-
    if( mask_dset == NULL ){
-      memset( mmm , 1, nvox ) ;
-      mcount = nvox ;
+      mmm = (byte *) malloc( sizeof(byte) * nvox ) ;
+      if( mmm == NULL )
+         return " \n*** Can't malloc workspace! ***\n" ;
+      memset( mmm , 1, nvox ) ; mcount = nvox ;
    } else {
 
-      /* separate code for each input data type */
-
-      switch( DSET_BRICK_TYPE(mask_dset,miv) ){
-         default:
-            free(mmm) ;
-            return "*** Can't use mask dataset -- illegal data type! ***" ;
-
-         case MRI_short:{
-            short mbot , mtop ;
-            short * mar = (short *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = SHORTIZE(mask_bot/mfac) ;
-               mtop = SHORTIZE(mask_top/mfac) ;
-            } else {
-               mbot = (short) -MRI_TYPE_maxval[MRI_short] ;
-               mtop = (short)  MRI_TYPE_maxval[MRI_short] ;
-            }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii]=1; mcount++; }
-         }
-         break ;
-
-         case MRI_byte:{
-            byte mbot , mtop ;
-            byte * mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = BYTEIZE(mask_bot/mfac) ;
-               mtop = BYTEIZE(mask_top/mfac) ;
-               if( mtop == 0 ){
-                  free(mmm) ;
-                  return "*** Illegal mask range for mask dataset of bytes. ***" ;
-               }
-            } else {
-               mbot = 0 ;
-               mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
-            }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii]=1; mcount++; }
-         }
-         break ;
-
-         case MRI_float:{
-            float mbot , mtop ;
-            float * mar = (float *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = (float) (mask_bot/mfac) ;
-               mtop = (float) (mask_top/mfac) ;
-            } else {
-               mbot = -WAY_BIG ;
-               mtop =  WAY_BIG ;
-            }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii]=1; mcount++; }
-         }
-         break ;
-      }
+      mmm = THD_makemask( mask_dset , miv , mask_bot , mask_top ) ;
+      if( mmm == NULL )
+         return " \n*** Can't make mask for some reason! ***\n" ;
+      mcount = THD_countmask( nvox , mmm ) ;
 
       if( !EQUIV_DSETS(mask_dset,input_dset) ) DSET_unload(mask_dset) ;
       if( mcount < 3 ){
-         free(mmm) ; return "*** Less than 3 voxels survive the mask! ***" ;
+         free(mmm) ;
+         return " \n*** Less than 3 voxels survive the mask! ***\n" ;
       }
       sprintf(buf," \n"
                   " %d voxels in the mask\n"
@@ -557,9 +498,10 @@ char *  CORREL_main( PLUGIN_interface * plint )
    PCOR_references * pc_ref ;
    PCOR_voxel_corr * pc_vc ;
    int fim_nref ;
-   float * ref_vec , * vval , * zval ;
+   float * ref_vec , * vval , * zval , * aval ;
    int   * hbin , * jbin , * kbin , *jist[2] ;
    float sum , sumq , dbin , gval,rval,gg , sqp , zmid,zmed,zsig ;
+   float pstar,zstar,zplus,zminus,psum,msum ;
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -671,83 +613,22 @@ char *  CORREL_main( PLUGIN_interface * plint )
 
    /*-- build a byte mask array --*/
 
-   mmm = (byte *) calloc( sizeof(byte) * nvox , 1 ) ;
-   if( mmm == NULL ){
-      mri_free(flim) ;
-      return " \n*** Can't malloc mask workspace! ***\n" ;
-   }
-
    if( mask_dset == NULL ){
-      memset( mmm , 1, nvox ) ;
-      mcount = nvox ;
+      mmm = (byte *) malloc( sizeof(byte) * nvox ) ;
+      if( mmm == NULL )
+         return " \n*** Can't malloc workspace! ***\n" ;
+      memset( mmm , 1, nvox ) ; mcount = nvox ;
    } else {
 
-      /* separate code for each input data type */
-
-      switch( DSET_BRICK_TYPE(mask_dset,miv) ){
-         default:
-            free(mmm) ; mri_free(flim) ;
-            return "*** Can't use mask dataset -- illegal data type! ***" ;
-
-         case MRI_short:{
-            short mbot , mtop ;
-            short * mar = (short *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = SHORTIZE(mask_bot/mfac) ;
-               mtop = SHORTIZE(mask_top/mfac) ;
-            } else {
-               mbot = (short) -MRI_TYPE_maxval[MRI_short] ;
-               mtop = (short)  MRI_TYPE_maxval[MRI_short] ;
-            }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii]=1; mcount++; }
-         }
-         break ;
-
-         case MRI_byte:{
-            byte mbot , mtop ;
-            byte * mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = BYTEIZE(mask_bot/mfac) ;
-               mtop = BYTEIZE(mask_top/mfac) ;
-               if( mtop == 0 ){
-                  free(mmm) ;
-                  return "*** Illegal mask range for mask dataset of bytes. ***" ;
-               }
-            } else {
-               mbot = 0 ;
-               mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
-            }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii]=1; mcount++; }
-         }
-         break ;
-
-         case MRI_float:{
-            float mbot , mtop ;
-            float * mar = (float *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = (float) (mask_bot/mfac) ;
-               mtop = (float) (mask_top/mfac) ;
-            } else {
-               mbot = -WAY_BIG ;
-               mtop =  WAY_BIG ;
-            }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii]=1; mcount++; }
-         }
-         break ;
-      }
+      mmm = THD_makemask( mask_dset , miv , mask_bot , mask_top ) ;
+      if( mmm == NULL )
+         return " \n*** Can't make mask for some reason! ***\n" ;
+      mcount = THD_countmask( nvox , mmm ) ;
 
       if( !EQUIV_DSETS(mask_dset,input_dset) ) DSET_unload(mask_dset) ;
       if( mcount < 3 ){
-         free(mmm);mri_free(flim); ; return "*** Less than 3 voxels survive the mask! ***" ;
+         free(mmm) ;
+         return " \n*** Less than 3 voxels survive the mask! ***\n" ;
       }
       sprintf(buf," \n"
                   " %d voxels in the mask\n"
@@ -833,6 +714,7 @@ char *  CORREL_main( PLUGIN_interface * plint )
    /*-- get robust statistics of Fisher z-transform --*/
 
    zval = (float *) malloc( sizeof(float) * mcount ) ;
+   aval = (float *) malloc( sizeof(float) * mcount ) ;
    for( ii=0 ; ii < mcount ; ii++ ) zval[ii] = atanh(vval[ii]) ;
    qsort_float( mcount , zval ) ;
    if( mcount%2 == 1 )              /* median */
@@ -840,20 +722,41 @@ char *  CORREL_main( PLUGIN_interface * plint )
    else
       zmid = 0.5 * ( zval[mcount/2] + zval[mcount/2-1] ) ;
 
-   for( ii=0 ; ii < mcount ; ii++ ) zval[ii] = fabs(zval[ii]-zmid) ;
-   qsort_float( mcount , zval ) ;
+   for( ii=0 ; ii < mcount ; ii++ ) aval[ii] = fabs(zval[ii]-zmid) ;
+   qsort_float( mcount , aval ) ;
    if( mcount%2 == 1 )              /* MAD = median absolute deviation */
-      zmed = zval[mcount/2] ;
+      zmed = aval[mcount/2] ;
    else
-      zmed = 0.5 * ( zval[mcount/2] + zval[mcount/2-1] ) ;
+      zmed = 0.5 * ( aval[mcount/2] + aval[mcount/2-1] ) ;
    zsig = 1.4826 * zmed ;           /* estimate st.dev. */
                                     /* 1/1.4826 = sqrt(2)*erfinv(0.5) */
+   free(aval) ;
 
+   /* compute unusuality (plus and minus) */
+
+   pstar  = 10.0 / mcount ;
+   zstar  = qginv(0.5*pstar) ;
+   zplus  = zmid + zsig * zstar ;
+   zminus = zmid - zsig * zstar ;
+   psum = msum = 0.0 ;
+   for( ii=0 ; ii < mcount ; ii++ ){
+      if( zval[ii] > zplus ){
+         gval = phizero( zval[ii] , zmid , zsig ) ;
+         if( gval > 0.0 ) psum += ww( pstar/gval ) ;
+      } else if( zval[ii] < zminus ){
+         gval = phizero( zval[ii] , zmid , zsig ) ;
+         if( gval > 0.0 ) msum += ww( pstar/gval ) ;
+      }
+   }
+   gg = psum - msum ;
+
+#if 0
    gg = 0.0 ; sqp = 2.0/mcount ;
    for( ii=0 ; ii < mcount ; ii++ ){
       gval = phizero( zval[ii] , zmid , zsig ) ;
       if( gval > 0.0 ) gg += ww( sqp/gval ) ;
    }
+#endif
    free(zval) ;
 
    /*-- do histogram --*/
@@ -895,7 +798,7 @@ char *  CORREL_main( PLUGIN_interface * plint )
    flim = mri_new_vol_empty( mcount,1,1 , MRI_float ) ;
    mri_fix_data_pointer( vval , flim ) ;
    mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
-   sprintf(buf,"%s(%d)^.%s:\\rho_{mid}=%4.2f\\pm%4.2f,g:%4.1f",
+   sprintf(buf,"%s(%d)^.%s:\\rho_{mid}=%.2f\\pm%.2f,u=%.1f",
                DSET_FILECODE(input_dset),
                mcount,
                (tsim->name != NULL) ? THD_trailname(tsim->name,0) : " " ,

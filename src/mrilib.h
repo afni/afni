@@ -595,6 +595,8 @@ extern double incbeta        ( double , double , double , double ) ;
 extern double incbeta_inverse( double , double , double , double ) ;
 extern double qginv          ( double ) ;
 
+#define erfcinv(y) (0.70710678*qginv(0.5*y))  /* 07 Oct 1999 */
+
 extern double student_t2p( double , double ) ;
 extern double student_p2t( double , double ) ;
 extern double student_t2z( double , double ) ;

@@ -6,6 +6,9 @@
   Author:  B. Douglas Ward
   Date:    15 February 1999
 
+  Mod:     Correction to rand_normal
+  Date:    15 September 1999
+
 */
 
 
@@ -38,8 +41,8 @@ float rand_normal (float mu, float var)
     }
   u2 = rand_uniform (0.0, 1.0);
 
-  r   = sqrt(-2.0*log(u1));
-  n = mu + r * cos(2.0*PI*u2);
+  r = sqrt(-2.0*log(u1));
+  n = r * cos(2.0*PI*u2);
 
   return (mu + n * sqrt(var));
 }

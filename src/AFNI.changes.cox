@@ -5,6 +5,7 @@
 
 25 July 1996:
  * Added Button 2 click (time_index += 1 or -= 1) to afni_graph.c
+     [N.B.: this change was later removed with the drawing plugin.]
 
 29 July 1996:
  * Added shadow color changing code to "colormenu" widgets in bbox.c --
@@ -67,10 +68,6 @@
      allocation macro MAKE_IBIG failed to take into account that
      the array ib[] index would run from 0.."top", and it only
      allocated "top" entries, whereas it should do at least "top+1".
-
-                     =========================
-                 ===== Release of AFNI 1.99b =====
-                     =========================
 
 8 August 1996:
  * Added "-gfisher" option to 3dmerge.c, for purpose of averaging
@@ -1709,3 +1706,28 @@
      in histograms.
  * Modified coxplot/plot_motif.c to look harder for the HOTCOLOR before
      it gives up and uses the default.
+
+07 Oct 1999
+ * Modified thd_makemask.c to include a counting function.
+ * Modified plug_histog.c to use THD_makemask() rather than create
+     its own mask the hard way (I just forgot about that routine).
+ * Added program 1deval.c, to evaluate an expression at a bunch
+     of points and write it to disk - the goal is to simplify
+     creation of sample 1D files.
+
+08 Oct 1999
+ * Increased buffer size in mri_read.c for ASCII file line length.
+
+09 Oct 1999
+ * Added AFNI_ENFORCE_ASPECT environment variable, to make imseq.c
+     enforce the image aspect ratio - this is to be used when the
+     window manager doesn't do this properly.
+
+13 Oct 1999
+ * Added program 3dTstat.c to compute the same stuff that plug_stats.c
+     does, but in a batch program.
+
+14 Oct 1999
+ * Added option -apar to 3drefit.c, to allow (re)setting of the anat parent.
+ * Added option -warp to 3dfractionize.c, to allow inverse warping from +tlrc
+     coords back to +orig coords during the fractionation process.

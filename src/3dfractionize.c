@@ -5,10 +5,15 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
+/*-- 14 Oct 1999: modified to allow for inverse warping --*/
+
+THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv ) ;
+
 int main( int argc , char * argv[] )
 {
    char * prefix = "fractionize" ;
-   THD_3dim_dataset * tset=NULL , * iset=NULL , * dset=NULL ;
+   THD_3dim_dataset * tset=NULL , * iset=NULL , * dset=NULL , *wset=NULL ;
+   THD_warp * warp=NULL ;
    int iarg=1 ;
    int nxin,nyin,nzin , nxyin ;
    float dxin,dyin,dzin , xorgin,yorgin,zorgin , clip=0.0 ;
@@ -34,7 +39,8 @@ int main( int argc , char * argv[] )
              "* The fraction is stored as a short in the range 0..10000,\n"
              "    indicating fractions running from 0..1.\n"
              "* The template dataset is used only to define the output grid;\n"
-             "    its brick(s) will not be read into memory.\n"
+             "    its brick(s) will not be read into memory.  (The same is\n"
+             "    true of the warp dataset, if it is used.)\n"
              "* The actual values stored in the input dataset are irrelevant,\n"
              "    except in that they are zero or nonzero.\n"
              "\n"
@@ -45,14 +51,14 @@ int main( int argc , char * argv[] )
              "fraction aren't used.  This can be done in 3dmaskave, by using\n"
              "3calc, or with the '-clip' option below.\n"
              "\n"
-             "Options are:\n"
+             "Options are [the first 2 are 'required options']:\n"
              "  -template tset  = Use dataset 'tset' as a template for the output.\n"
              "  -input iset     = Use dataset 'iset' for the input.\n"
              "                      Only the sub-brick #0 of the input is used.\n"
              "                      You can use the sub-brick selection technique\n"
              "                      described in '3dcalc -help' to choose the\n"
              "                      desired sub-brick from a multi-brick dataset.\n"
-             "  -prefix ppp     = Use 'ppp' for the prefix of the  output.\n"
+             "  -prefix ppp     = Use 'ppp' for the prefix of the output.\n"
              "                      [default = 'fractionize']\n"
              "  -clip fff       = Clip off voxels that are less than 'fff' occupied.\n"
              "                      'fff' can be a number between 0.0 and 1.0, meaning\n"
@@ -61,10 +67,23 @@ int main( int argc , char * argv[] )
              "                      a number between 100.0 and 10000.0, meaning the\n"
              "                      direct output value to use as a clip level.\n"
              "                      [default = 0.0]\n"
+             "  -warp wset      = If this option is used, 'wset' is a dataset that\n"
+             "                      provides a transformation (warp) from +orig\n"
+             "                      coordinates to the coordinates of 'iset'.\n"
+             "                      In this case, the output dataset will be in\n"
+             "                      +orig coordinates rather than the coordinates\n"
+             "                      of 'iset'.  With this option:\n"
+             "                   ** 'tset' must be in +orig coordinates\n"
+             "                   ** 'iset' must be in +acpc or +tlrc coordinates\n"
+             "                   ** 'wset' must be in the same coordinates as 'iset'\n"
+             "\n"
+             "Example usage:\n"
+             " 3dfractionize -template a+orig -input b+tlrc -warp anat+tlrc -clip 0.20\n"
              "\n"
              "This program will also work in going from a coarse grid to a fine grid,\n"
              "but it isn't clear that this capability has any purpose.\n"
              "-- RWCox - February 1999\n"
+             "         - October 1999: added -warp option (for Rob Risinger)\n"
             ) ;
       exit(0) ;
    }
@@ -87,7 +106,7 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-template") == 0 ){
+      if( strcmp(argv[iarg],"-template") == 0 || strcmp(argv[iarg],"-tset") == 0 ){
          if( tset != NULL ){
             fprintf(stderr,"** Can't have more than one -template argument!\n") ;
             exit(1) ;
@@ -100,7 +119,7 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-input") == 0 ){
+      if( strcmp(argv[iarg],"-input") == 0 || strcmp(argv[iarg],"-iset") == 0 ){
          if( iset != NULL ){
             fprintf(stderr,"** Can't have more than one -input argument!\n") ;
             exit(1) ;
@@ -108,6 +127,19 @@ int main( int argc , char * argv[] )
          iset = THD_open_dataset( argv[++iarg] ) ;
          if( iset == NULL ){
             fprintf(stderr,"** Can't open input %s\n",argv[iarg]) ;
+            exit(1) ;
+         }
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-warp") == 0 || strcmp(argv[iarg],"-wset") == 0 ){
+         if( wset != NULL ){
+            fprintf(stderr,"** Can't have more than one -warp argument!\n") ;
+            exit(1) ;
+         }
+         wset = THD_open_dataset( argv[++iarg] ) ;
+         if( wset == NULL ){
+            fprintf(stderr,"** Can't open warp %s\n",argv[iarg]) ;
             exit(1) ;
          }
          iarg++ ; continue ;
@@ -133,10 +165,35 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Illegal prefix?\n") ; exit(1) ;
    }
 
+   /*- 14 Oct 1999: additional checks with the -warp option -*/
+
+   if( wset != NULL ){
+
+      if( tset->view_type != VIEW_ORIGINAL_TYPE ){
+         fprintf(stderr,"** Template is not in +orig view - this is illegal!\n"); exit(1);
+      }
+
+      if( iset->view_type == VIEW_ORIGINAL_TYPE ){
+         fprintf(stderr,"** Input is in +orig view - this is illegal!\n"); exit(1);
+      }
+
+      if( wset != NULL && wset->view_type != iset->view_type ){
+         fprintf(stderr,"** Warp and Input are not in same view - this is illegal!\n");
+         exit(1);
+      }
+
+      warp = wset->warp ;
+      if( warp == NULL ){
+         fprintf(stderr,"** Warp dataset does not actually contain a warp transformation!\n");
+         exit(1) ;
+      }
+   }
+
    /*-- start to create output dataset --*/
 
    dset = EDIT_empty_copy( tset ) ;
 
+   tross_Copy_History( iset , dset ) ;                          /* 14 Oct 1999 */
    tross_Make_History( "3dfractionize" , argc,argv , dset ) ;
 
    EDIT_dset_items( dset ,
@@ -148,7 +205,6 @@ int main( int argc , char * argv[] )
                     ADN_none ) ;
 
    if( ISFUNC(dset) ) EDIT_dset_items( dset , ADN_func_type,FUNC_FIM_TYPE , ADN_none ) ;
-
 
    if( THD_is_file(dset->dblk->diskptr->header_name) ){
       fprintf(stderr,
@@ -222,13 +278,17 @@ int main( int argc , char * argv[] )
              x1,x2 , y1,y2 , z1,z2 ) ;
 #endif
 
+      /* transform these corner coordinates to output dataset grid coordinates */
+
       LOAD_FVEC3(vv , x1,y1,z1) ;
-      vv = THD_3dmm_to_dicomm( iset , vv ) ;  /* transpose from iset to Dicom */
-      vv = THD_dicomm_to_3dmm( dset , vv ) ;  /* and back from Dicom to dset  */
+      vv = THD_3dmm_to_dicomm( iset , vv ) ;        /* transpose from iset to Dicom */
+      vv = AFNI_backward_warp_vector( warp , vv ) ; /* transform to +orig ???*/
+      vv = THD_dicomm_to_3dmm( dset , vv ) ;        /* and back from Dicom to dset  */
       UNLOAD_FVEC3(vv , xx1,yy1,zz1) ;
 
       LOAD_FVEC3(vv , x2,y2,z2) ;
       vv = THD_3dmm_to_dicomm( iset , vv ) ;
+      vv = AFNI_backward_warp_vector( warp , vv ) ;
       vv = THD_dicomm_to_3dmm( dset , vv ) ;
       UNLOAD_FVEC3(vv , xx2,yy2,zz2) ;
 
@@ -285,8 +345,9 @@ int main( int argc , char * argv[] )
    }}}
 
    DSET_delete(iset) ;
+   if( wset != NULL ) DSET_delete(wset) ;
 
-   /*-- fill the output dataset and leave --*/
+   /*-- fill the output dataset and blow this burg --*/
 
    sin = (short *) malloc( sizeof(short) * nvoxout ) ;
    if( sin == NULL ){
@@ -309,4 +370,50 @@ int main( int argc , char * argv[] )
 
    DSET_write(dset) ;
    exit(0) ;
+}
+
+/*------------------------------------------------------------------------
+   Backward transform a vector following a warp
+   - lifted from afni.c
+   - note that a NULL warp is equivalent to the identity
+--------------------------------------------------------------------------*/
+
+THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
+{
+   THD_fvec3 new_fv ;
+
+   if( warp == NULL ) return old_fv ;
+
+   switch( warp->type ){
+
+      default: new_fv = old_fv ; break ;
+
+      case WARP_TALAIRACH_12_TYPE:{
+         THD_linear_mapping map ;
+         int iw ;
+
+         /* test if input is in bot..top of each defined map */
+
+         for( iw=0 ; iw < 12 ; iw++ ){
+            map = warp->tal_12.warp[iw] ;
+
+            if( old_fv.xyz[0] >= map.bot.xyz[0] &&
+                old_fv.xyz[1] >= map.bot.xyz[1] &&
+                old_fv.xyz[2] >= map.bot.xyz[2] &&
+                old_fv.xyz[0] <= map.top.xyz[0] &&
+                old_fv.xyz[1] <= map.top.xyz[1] &&
+                old_fv.xyz[2] <= map.top.xyz[2]   ) break ;  /* leave loop */
+         }
+         new_fv = MATVEC_SUB(map.mbac,old_fv,map.svec) ;
+      }
+      break ;
+
+      case WARP_AFFINE_TYPE:{
+         THD_linear_mapping map = warp->rig_bod.warp ;
+         new_fv = MATVEC_SUB(map.mbac,old_fv,map.svec) ;
+      }
+      break ;
+
+   }
+   return new_fv ;
 }

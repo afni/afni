@@ -1,7 +1,7 @@
 #include "mrilib.h"
 #include <unistd.h>
 
-#define NREP 7
+#define NREP 2
 #define NBUF 4096
 static unsigned char buf[NBUF] ;
 

@@ -3810,6 +3810,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) symeig_double ,
    (vptr_func *) MREN_render ,
    (vptr_func *) new_MCW_graf ,
+   (vptr_func *) THD_makemask ,
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){

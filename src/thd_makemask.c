@@ -1,14 +1,18 @@
 #include "mrilib.h"
 
 /*---------------------------------------------------------------------
-   make a byte mask from mask dataset:
+   Make a byte mask from mask dataset:
      miv = sub-brick of input
      if( mask_bot <= mask_top ) then
-       only values in this range will be used
+       only nonzero values in this range will be used
+     else
+       all nonzero values in the mask will be used
+   The input dataset should be byte-, short-, or float-valued.
 
    The output is a byte array with 1s in "hit" locations and 0s in
-   other locations.  This array should be free()-d someday.  If NULL
-   is returned, some error transpired.
+   other locations.  The number of bytes is DSET_NVOX(mask_dset).
+   This array should be free()-d someday.  If NULL is returned,
+   some grotesque error transpired.
 -----------------------------------------------------------------------*/
 
 byte * THD_makemask( THD_3dim_dataset * mask_dset ,
@@ -83,5 +87,16 @@ byte * THD_makemask( THD_3dim_dataset * mask_dset ,
       break ;
    }
 
-   DSET_unload(mask_dset) ; return mmm ;
+   return mmm ;
+}
+
+int THD_countmask( int nvox , byte * mmm )
+{
+   int ii,mc ;
+
+   if( nvox <= 0 || mmm == NULL ) return 0 ;
+
+   for( ii=mc=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) mc++ ;
+
+   return mc ;
 }

@@ -13,7 +13,13 @@
 
   Mod:      Added routines matrix_file_write and matrix_file_read.
   Date:     02 July 1999
-	    
+	
+  Mod:      Added routine for calculating square root of matrix.
+  Date:     30 September 1999
+
+  Mod:      Added routines matrix_sprint and vector_sprint.
+  Date:     04 October 1999
+
 */
 
 
@@ -125,6 +131,19 @@ void matrix_print (matrix m)
       printf (" \n");
     }
   printf (" \n");
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Print label and contents of matrix m.
+*/
+
+void matrix_sprint (char * s, matrix m)
+{
+  printf ("%s \n", s);
+
+  matrix_print (m);
 }
 
 
@@ -445,7 +464,6 @@ int matrix_inverse (matrix a, matrix * ainv)
   if (a.rows != a.cols) 
     matrix_error ("Illegal dimensions for matrix inversion");
 
-  matrix_initialize (&tmp);
 
   n = a.rows;
   matrix_identity (n, ainv);
@@ -493,6 +511,73 @@ int matrix_inverse (matrix a, matrix * ainv)
     }
   matrix_destroy (&tmp);
   return (1);
+}
+
+
+ 
+/*---------------------------------------------------------------------------*/
+/*
+  Calculate square root of symmetric positive definite matrix a.  
+  Result is matrix s.
+*/
+
+int matrix_sqrt (matrix a, matrix * s)
+{
+  const int MAX_ITER = 100;
+  int n;
+  int ok;
+  int iter;
+  float sse, psse;
+  int i, j;
+  matrix x, xinv, axinv, xtemp, error;
+
+  matrix_initialize (&x);
+  matrix_initialize (&xinv);
+  matrix_initialize (&axinv);
+  matrix_initialize (&xtemp);
+  matrix_initialize (&error);
+
+
+  if (a.rows != a.cols) 
+    matrix_error ("Illegal dimensions for matrix square root");
+
+
+  n = a.rows;
+  matrix_identity (n, &x);
+
+
+  psse = 1.0e+30;
+  for (iter = 0;  iter < MAX_ITER;  iter++)
+    {
+      ok = matrix_inverse (x, &xinv);
+      if (! ok)  return (0);
+      matrix_multiply (a, xinv, &axinv);
+      matrix_add (x, axinv, &xtemp);
+      matrix_scale (0.5, xtemp, &x);
+
+      matrix_multiply (x, x, &xtemp);
+      matrix_subtract (a, xtemp, &error);
+      sse = 0.0;
+      for (i = 0;  i < n;  i++)
+	for (j = 0;  j < n;  j++)
+	  sse += error.elts[i][j] * error.elts[i][j] ;
+
+      if (sse >= psse) break;
+
+      psse = sse;
+    }
+
+  if (iter == MAX_ITER)  return (0);
+
+  matrix_equate (x, s);
+
+  matrix_destroy (&x);
+  matrix_destroy (&xinv);
+  matrix_destroy (&axinv);
+  matrix_destroy (&xtemp);
+
+  return (1);
+
 }
 
 
@@ -556,6 +641,19 @@ void vector_print (vector v)
     printf ("  %10.4f \n", v.elts[i]);
   printf (" \n");
     
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Print label and contents of vector v.
+*/
+
+void vector_sprint (char * s, vector v)
+{
+  printf ("%s \n", s);
+
+  vector_print (v);
 }
 
 

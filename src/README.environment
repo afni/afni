@@ -51,8 +51,9 @@ variables "AFNI_graph_ggap" or "AFNI_GRAPH_GGAP", as in
 
   AFNI_graph_ggap = 6
 
-If an X11 resource is set, it will take priority over the environment
-variable.  Some of the variables that can be set in this way are:
+If an X11 resource is actually set, it will take priority over the
+environment variable.  Some of the variables that can be set in this
+way are:
 
   ncolors             = number of gray levels to use
   gamma               = gamma correction for image intensities
@@ -78,7 +79,34 @@ variable.  Some of the variables that can be set in this way are:
 Some other such variables are described in file AFNI.Xdefaults.  Note that
 values that actually affect the way the X11/Motif interface appears, such as
 AFNI*troughColor, must be set via the X11 mechanism and cannot be set using
-Unix environment variables.
+Unix environment variables.  This is because they are interpreted by the
+Motif graphics library and not by any actual AFNI code that I've written.
+
+The following example is my own .afnirc file on the Linux system on which
+I do most of the AFNI development.  The first ones (in lower case) are
+described in AFNI.Xdefaults.  The later ones (all upper case) are documented
+in this file.  (You can tell from this file that I like to have things line
+up.  You would never be able to tell this from my office, though.)
+
+ ***ENVIRONMENT
+
+ AFNI_ncolors             = 60      // number of gray levels
+ AFNI_gamma               = 1.5     // adjust for proper display
+ AFNI_purge               = True    // purge datasets from memory when not used
+ AFNI_chooser_doubleclick = Apply   // like Apply button; could also be Set
+ AFNI_chooser_listmax     = 25      // max nonscrolling items in chooser lists
+ AFNI_graph_width         = 512     // initial width of graph window (pixels)
+ AFNI_graph_height        = 384     // initial height of graph window
+ AFNI_graph_data_thick    = 1       // graph time series with thick lines
+ AFNI_fim_ignore          = 2       // default value for FIM ignore
+ AFNI_graph_ggap          = 7       // gap between sub-graphs (pixels)
+ AFNI_pbar_hide           = True    // hide color pbar when it changes size
+ AFNI_hotcolor            = Violet  // color to use on Done and Set buttons
+ AFNI_SESSTRAIL           = 2       // see below for these ...
+ AFNI_RENDER_ANGLE_DELTA  = 4.0     //                       |
+ AFNI_RENDER_CUTOUT_DELTA = 4.0     //                       |
+ AFNI_FIM_BKTHR           = 25.0    //                       |
+ AFNI_SPLASHTIME          = 3.0     //                       v
 
 ---------------------
 Variable: AFNI_ORIENT
@@ -467,6 +495,8 @@ warn you when reading in a dataset that does not contain a byte
 order flag.  The default is to issue such a warning.  Only older
 versions of AFNI create datasets that don't have the byte order
 flag.  (See also the variable AFNI_BYTEORDER, described far above.)
+The purpose of this warning is to alert you to possible problems
+when you move datasets between computers with different CPU types.
 
 --------------------------
 Variable: AFNI_PCOR_DENEPS
@@ -492,6 +522,15 @@ variable to a value for DENEPS; for example
   setenv AFNI_PCOR_DENEPS 0.0
 will turn off the checking entirely.  Or you could do
   setenv AFNI_PCOR_DENEPS 1.e-10
+
+-----------------------------
+Variable: AFNI_ENFORCE_ASPECT
+-----------------------------
+Some Linux window managers do no enforce the aspect ratio (width to height
+proportion) request that the image display module makes.  This means that
+image windows can become undesirably distorted when manually resized.
+Setting this variable (to anything) will make AFNI itself enforce the
+aspect ratio whenever an image window is resized.
 
 =================================
 | Robert W. Cox, PhD            |

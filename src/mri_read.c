@@ -887,7 +887,7 @@ WHOAMI ;
 -----------------------------------------------------------------*/
 
 #define INC_TSARSIZE 128
-#define LBUF         2048
+#define LBUF         32768
 
 MRI_IMAGE * mri_read_ascii( char * fname )
 {
