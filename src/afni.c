@@ -4734,9 +4734,10 @@ static char * AFNI_image_help =
  "p = panning mode on & off\n"
  "> = Page Up   = forward 1 image\n"
  "< = Page Down = backward 1 image\n"
- "v = Video up  V = Video down\n"
+ "v/V = Video up/down\n"
+ "r/R = Ricochet up/down\n"
  "Left/Right/Up/Down arrow keys\n"
- "  move crosshairs or pan image\n" ;
+ "  move crosshairs OR pan image\n" ;
 
 static char * AFNI_arrowpad_help =
    "Click arrows to scroll crosshair position\n"

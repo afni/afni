@@ -4679,8 +4679,8 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
            }
            break ;
 
-           case 'b':
-           case 'B':{
+           case 'r':
+           case 'R':{
              if( seq->button2_enabled ){
                MCW_popup_message( w, " \n Not when \n"
                                         " Drawing! \n ", MCW_USER_KILL );

@@ -52,7 +52,7 @@
    do{ char * mc = MCW_MALLOC_status ;    \
         if( mc != NULL ) printf("** Memory usage: %s\n",mc) ; } while(0)
 
-# define MPROBE do{ if( !DBG_trace ) MCW_MALLOC_status ; } while(0)
+# define MPROBE do{ if( !DBG_trace ) (void)MCW_MALLOC_status ; } while(0)
 
 #endif
 

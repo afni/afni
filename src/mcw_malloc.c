@@ -186,7 +186,7 @@ static void * malloc_track( size_t n , char * fn , int ln )
    size_t nn = n + 2*NEXTRA ;
    int ii ;
 
-   fred = AFMALL(char, nn) ;
+   fred = (char *) malloc(nn) ;
    if( fred == NULL ){                                     /* real bad news */
       fprintf(stderr,
               "\n*** MCW_malloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
@@ -207,14 +207,17 @@ static void * malloc_track( size_t n , char * fn , int ln )
   Check an entry in the hash table for local overrun integrity
 -------------------------------------------------------------------*/
 
+static const char *pr_nam = NULL ;
+static       int   pr_lin = 0 ;
+
 static void probe_track( mallitem * ip )
 {
    int ii ;
    size_t n ;
    char * fred ;
 
-   if( ip == NULL ) return ; /* error */
-   fred = (char *) ip->pmt ; if( fred == NULL ) return ;
+   if( ip == NULL ){ pr_nam=NULL; return; } /* error */
+   fred = (char *) ip->pmt ; if( fred == NULL ){ pr_nam=NULL; return; }
    n = ip->psz ;
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
@@ -222,6 +225,8 @@ static void probe_track( mallitem * ip )
          fprintf(stderr,"*** MCW_malloc pre-corruption!  "
                         "serial=%u size=%d source=%s line#=%d\n",
                         ip->pss,(int)ip->psz,ip->pfn,ip->pln ) ;
+         if( pr_nam != NULL )
+          fprintf(stderr," [[ Called from source=%.50s line#=%d ]]\n",pr_nam,pr_lin);
          break ;
       }
 
@@ -230,9 +235,15 @@ static void probe_track( mallitem * ip )
          fprintf(stderr,"*** MCW_malloc post-corruption!  "
                         "serial=%u size=%d source=%s line#=%d\n",
                         ip->pss,(int)ip->psz,ip->pfn,ip->pln ) ;
+#if 0
+         fprintf(stderr,"  pr_nam=%p\n",(void *)pr_nam) ;
+#endif
+         if( pr_nam != NULL )
+          fprintf(stderr," [[ Called from source=%.50s line#=%d ]]\n",pr_nam,pr_lin);
          break ;
       }
 
+   pr_nam = NULL ;  /* reset */
    return ;
 }
 
@@ -248,6 +259,7 @@ static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
 
    if( ip == NULL ) return NULL ;  /* should not happen */
 
+   pr_nam = (const char *)fn ; pr_lin = ln ;
    probe_track(ip) ;  /* check for integrity before reallocation */
    cfred = ip->pmt ;  /* old address */
 
@@ -311,6 +323,7 @@ static void free_track( mallitem * ip )
    cfred = (char *) ip->pmt ;
    if( cfred == NULL ) return ;
 
+   pr_nam = NULL ;
    probe_track(ip) ;  /* check for integrity before freeing */
 
    free(cfred) ; ip->pmt = NULL ; return ;
@@ -322,7 +335,7 @@ static void free_track( mallitem * ip )
 
 static int use_tracking = 0 ;  /* is the tracking enabled? */
 
-char * mcw_malloc_status(void)
+char * mcw_malloc_status(const char *fn , int ln)
 {
    static char buf[128] = "\0" ;
    int jj,kk , nptr=0 ; size_t nbyt=0 ;
@@ -332,6 +345,7 @@ char * mcw_malloc_status(void)
    for( jj=0 ; jj < SLOTS ; jj++ ){
       for( kk=0 ; kk < nhtab[jj] ; kk++ ){
          if( htab[jj][kk].pmt != NULL ){
+            pr_nam = (const char *)fn ; pr_lin = ln ;
             probe_track( htab[jj]+kk ) ; /* check for integrity */
             nptr++ ; nbyt += htab[jj][kk].psz ;
          }
@@ -446,7 +460,7 @@ void mcw_malloc_dump(void)
 
    /* and print out the summary line (to the file and screen) */
 
-   str = mcw_malloc_status() ;
+   str = mcw_malloc_status(NULL,0) ;
    fprintf(fp,"----- Summary: %s\n",str) ;
    fclose(fp) ;
 

@@ -4834,4 +4834,7 @@
 
 16 Dec 2003
  * Changes to niml/ functions to make them g++ compatible.
- * Added 'b/B' to imseq.[ch].
+ * Added 'r/R' to imseq.[ch] and afni_graph.[ch].
+
+17 Dec 2003
+ * Fixed Amalloc.h bug.

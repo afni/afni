@@ -12,7 +12,7 @@ static int THD_zfillin_byte( int nrow , byte * row , int maxstep )
    static byte *trow = NULL ; static int ntrow = 0 ;
 
    if( ntrow != nrow ){
-     trow = AFREALL(trow , byte, sizeof(byte)*nrow ) ;
+     trow = AFREALL(trow , byte, nrow ) ;
      ntrow = nrow ;
    }
    memcpy(trow,row,sizeof(byte)*nrow) ;
