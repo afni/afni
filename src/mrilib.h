@@ -21,12 +21,20 @@ extern int use_MRILIB_zoff ;            /* 20 Dec 2001 */
 extern int use_MRILIB_xoff ;
 extern int use_MRILIB_yoff ;
 
+extern int   use_MRILIB_xcos ;         /* 22 Jul 2002 */
+extern int   use_MRILIB_ycos ;
+extern int   use_MRILIB_zcos ;
+extern float MRILIB_xcos[3] ;
+extern float MRILIB_ycos[3] ;
+extern float MRILIB_zcos[3] ;
+
 /*! Clear the MRILIB globals (which are designed to transmit info from image files to to3d.c). */
 
 #define CLEAR_MRILIB_globals                              \
  do{ MRILIB_orients[0]='\0';                              \
      MRILIB_zoff=MRILIB_xoff=MRILIB_yoff=MRILIB_tr=0.0;   \
      use_MRILIB_xoff=use_MRILIB_yoff=use_MRILIB_zoff=0;   \
+     use_MRILIB_xcos=use_MRILIB_ycos=use_MRILIB_zcos=0;   \
  } while(0)
 
 #include <stdio.h>

@@ -55,9 +55,33 @@ int use_MRILIB_xoff    = 0 ;
 
 int use_MRILIB_yoff    = 0 ;
 
-/*! Global variable saying whether to use MRILIB_yoff. */
+/*! Global variable saying whether to use MRILIB_zoff. */
 
 int use_MRILIB_zoff    = 0 ;
+
+/*! Global variable saying whether to use MRILIB_xcos. */
+
+int use_MRILIB_xcos    = 0 ;
+
+/*! Global vector pointing in direction of x-axis. */
+
+float MRILIB_xcos[3]   = { 1.0 , 0.0 , 0.0 } ;
+
+/*! Global variable saying whether to use MRILIB_ycos. */
+
+int use_MRILIB_ycos    = 0 ;
+
+/*! Global vector pointing in direction of y-axis. */
+
+float MRILIB_ycos[3]   = { 0.0 , 1.0 , 0.0 } ;
+
+/*! Global variable saying whether to use MRILIB_zcos. */
+
+int use_MRILIB_zcos    = 0 ;
+
+/*! Global vector pointing in direction of y-axis. */
+
+float MRILIB_zcos[3]   = { 0.0 , 0.0 , 1.0 } ;
 
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
@@ -874,6 +898,7 @@ MRI_IMARR * mri_read_file( char * fname )
         ADDTO_IMARR(newar,newim) ;
       }
    }
+
    free(new_fname) ;
 
    /* 07 Mar 2002: add fname to the images, if needed */
@@ -1039,7 +1064,7 @@ int mri_imcount( char * tname )
    /*** not a 3D filename ***/
 
    free( new_fname ) ;
-   return 1 ;
+   return 1 ;           /* assume it has 1 image in it, somewhere */
 }
 
 /*--------------------------------------------------------------*/
