@@ -129,10 +129,6 @@ extern char *       NI_rowtype_code_to_name( int ) ;
 extern int          NI_rowtype_name_to_size( char * ) ;
 extern int          NI_rowtype_code_to_size( int ) ;
 
-/*! Used to set the code for each new user-defined type. */
-
-#define ROWTYPE_BASE_CODE (1001-NI_NUM_BASIC_TYPES)
-
 /*! Used to test if a rowtype code is a basic type. */
 
 #define ROWTYPE_is_basic_code(nn) ( (nn) < NI_NUM_BASIC_TYPES )
