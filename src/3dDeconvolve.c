@@ -3935,7 +3935,7 @@ ENTRY("calculate_results") ;
       int ixyz_bot=0 , ixyz_top=nxyz ;  /* voxel indexes to process */
 
 #ifdef USE_GET
-#define NGET 32               /* number to get at one time */
+#define NGET 128              /* number to get at one time */
       int nget=0 ,            /* number of time series current gotten */
           cget=0 ,            /* index of next timeseries in iget & imget */
           jget   ,            /* loop index for iget */
