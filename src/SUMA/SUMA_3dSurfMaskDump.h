@@ -1,7 +1,7 @@
 #ifndef _3DSURF2VOL_H_
 #define _3DSURF2VOL_H_
 
-#define PROG_NAME		"3dSurf2Vol"
+#define PROG_NAME		"3dSurfMaskDump"
 
 #define S2V_USE_LONG      	  1
 #define S2V_USE_SHORT     	  2
@@ -75,8 +75,9 @@ int create_node_list  ( smap_opts_t * sopt, node_list_t * N );
 int disp_opts_t       ( char * info, opts_t * opts );
 int disp_param_t      ( char * info, param_t * p );
 int disp_smap_opts_t  ( char * info, smap_opts_t * sopt );
-int dump_midpt_mask   ( smap_opts_t * sopt, param_t * p, node_list_t * N );
-int dump_single_mask  ( smap_opts_t * sopt, param_t * p, node_list_t * N );
+int dump_ave_map      ( smap_opts_t * sopt, param_t * p, node_list_t * N );
+int dump_midpt_map    ( smap_opts_t * sopt, param_t * p, node_list_t * N );
+int dump_single_map   ( smap_opts_t * sopt, param_t * p, node_list_t * N );
 int final_clean_up    ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
        			node_list_t * N );
 int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug );

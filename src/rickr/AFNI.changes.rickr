@@ -207,3 +207,7 @@
   * modifed SUMA_3dSurf2Vol.c - minor changes to help and s2v_fill_mask2()
   * modifed ge4_header.c to remove "static" warnings
 
+17 June 2003:
+  * modified SUMA_3dSurfMaskDump.[ch]
+      o added 'ave' map function -> version 2.1
+
