@@ -2235,6 +2235,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 			}
 			if (strcmp(argv[kar], "LB_FEM") == 0)  Opt->Method = SUMA_LB_FEM;
          else if (strcmp(argv[kar], "LM") == 0)  Opt->Method = SUMA_LM;
+         else if (strcmp(argv[kar], "BF") == 0)  Opt->Method = SUMA_BRUTE_FORCE;
          else {
             fprintf (SUMA_STDERR, "Method %s not supported.\n", argv[kar]);
 				exit (1);
@@ -2319,6 +2320,10 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
             /* form autoname  */
             Opt->out_name = SUMA_copy_string("NodeList_sm.1D");
             break;
+         case SUMA_BRUTE_FORCE:
+            /* form autoname  */
+            Opt->out_name = SUMA_copy_string("Bruto.1D");
+            break;
          default:
             fprintf (SUMA_STDERR,"Error %s:\nNot ready for this option here.\n", FuncName);
             exit(1);
@@ -2349,6 +2354,16 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
             exit(1);
          }         
          
+         break;
+      case SUMA_BRUTE_FORCE:
+         if (!Opt->in_name) {
+            fprintf (SUMA_STDERR,"Error %s:\ninput data not specified.\n", FuncName);
+            exit(1);
+         }
+         if (Opt->lim > 1000) {
+            fprintf (SUMA_STDERR,"Error %s:\n-lim option not specified.\n", FuncName);
+            exit(1);
+         }
          break;
       case SUMA_LM:
          

@@ -21,13 +21,24 @@
       }  \
    }
 #else
-   #define SUMA_RANGE_STRING(m_nel, m_i, m_str_min, m_str_max, m_str_minloc, m_str_maxloc, m_range){  \
+   #define SUMA_RANGE_STRING(m_dset, m_i, m_str_min, m_str_max, m_str_minloc, m_str_maxloc, m_range){  \
       int m_loc[2];  \
-      if (SUMA_GetColRange(m_nel, m_i, m_range, m_loc)) {   \
+      if (SUMA_GetColRange(m_dset->nel, m_i, m_range, m_loc)) {   \
+         SUMA_SurfaceObject *m_SOp = NULL;   \
+         char *m_idcode_str = NULL; \
+         int m_N_Node=-1;  \
+         /* number of nodes of parent surface */   \
+         m_idcode_str = NI_get_attribute(m_dset->nel, "MeshParent_idcode"); \
+         if (m_idcode_str) { \
+            m_SOp = SUMA_findSOp_inDOv(m_idcode_str, SUMAg_DOv, SUMAg_N_DOv);  \
+            if (m_SOp) {  \
+               m_N_Node = m_SOp->N_Node;   \
+            }  \
+         }  \
          sprintf(m_str_min, "%s", MV_format_fval2(m_range[0], 7));   \
          sprintf(m_str_max, "%s", MV_format_fval2(m_range[1], 7));   \
-         sprintf(m_str_minloc, "%d", m_loc[0]);   \
-         sprintf(m_str_maxloc, "%d", m_loc[1]);   \
+         sprintf(m_str_minloc, "%d", SUMA_GetNodeIndex_FromNodeRow(m_dset, m_loc[0], m_N_Node));   \
+         sprintf(m_str_maxloc, "%d", SUMA_GetNodeIndex_FromNodeRow(m_dset, m_loc[1], m_N_Node));   \
       } else { \
          sprintf(m_str_min, "???");   \
          sprintf(m_str_max, "???");   \
@@ -127,7 +138,8 @@ void SUMA_CreateTable(  Widget parent,
                         char **row_help, char **col_help, 
                         int *cwidth, SUMA_Boolean editable, SUMA_VARTYPE type, 
                         void (*NewValueCallback)(void * data), void *cb_data,
-                        void (*TitLabelCallback)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *TitLabelCallbackData,
+                        void (*TitLabelEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *TitLabelEVHandlerData,
+                        void (*CellEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *CellEVHandlerData,
                         SUMA_TABLE_FIELD *TF);
 void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_TableF_SetString (SUMA_TABLE_FIELD * AF);

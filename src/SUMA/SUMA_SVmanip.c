@@ -1832,6 +1832,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->SwitchBrtMenu = NULL;
    SurfCont->SwitchThrMenu = NULL;
    SurfCont->SwitchCmapMenu = NULL;
+   SurfCont->rc_CmapCont = NULL;
    SurfCont->N_CmapMenu = -1;
    SurfCont->CoordBiasMenu[SW_CoordBias] = NULL;
    SurfCont->opts_rc = NULL;
