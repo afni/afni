@@ -218,6 +218,8 @@ void matrix_transpose (matrix a, matrix * t);
 
 int matrix_inverse (matrix a, matrix * ainv);
 
+int matrix_inverse_dsc (matrix a, matrix * ainv);  /* 15 Jul 2004 */
+
 
 /*---------------------------------------------------------------------------*/
 /*

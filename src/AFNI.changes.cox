@@ -5077,8 +5077,11 @@
      - collinear column pairs in X matrix
      - compute matrix condition number
  * Modified matrix.[ch] and matrix_f.[ch] to support this stuff.
- * Disabled 3dDeconvolve_f binary.
+ * Disabled 3dDeconvolve_f binary, sort of.
 
 15 Jul 2004
  * Modified 3dDeconvolve.c and Deconvolve.c to have -legendre option, for
      use of better polynomials for the baseline estimation.
+ * Modified matrix.c and matrix_f.c to have matrix_inverse_dsc() function,
+     to use diagonal scaling before/after the matrix inversion.  Modified
+     RegAna.c to use this function, to avoid stupid scaling issues.

@@ -601,6 +601,50 @@ int matrix_inverse (matrix a, matrix * ainv)
   return (1);
 }
 
+/*---------------------------------------------------------------------------*/
+/*!
+  Use Gaussian elimination to calculate inverse of matrix a, with diagonal
+  scaling applied for stability.  Result is matrix ainv.
+*/
+
+int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
+{
+  matrix atmp;
+  register int i, j, n;
+  register double *diag ;
+  int mir ;
+
+  if (a.rows != a.cols)
+    matrix_error ("Illegal dimensions for matrix inversion");
+
+  matrix_initialize (&atmp);
+
+  n = a.rows;
+  matrix_equate (a, &atmp);
+  diag = (double *)malloc( sizeof(double)*n ) ;
+  for( i=0 ; i < n ; i++ ){
+    diag[i] = fabs(atmp.elts[i][i]) ;
+    if( diag[i] == 0.0l ) diag[i] = 1.0l ;  /* shouldn't happen? */
+    diag[i] = 1.0l / sqrt(diag[i]) ;
+  }
+
+  for( i=0 ; i < n ; i++ )                /* scale a */
+   for( j=0 ; j < n ; j++ )
+    atmp.elts[i][j] *= diag[i]*diag[j] ;
+
+  mir = matrix_inverse( atmp , ainv ) ;   /* invert */
+
+#if 0
+  for( i=0 ; i < n ; i++ ) diag[i] = 1.0/diag[i] ;
+#endif
+
+  for( i=0 ; i < n ; i++ )                /* scale inverse */
+   for( j=0 ; j < n ; j++ )
+     ainv->elts[i][j] *= diag[i]*diag[j] ;
+
+  matrix_destroy (&atmp); free((void *)diag) ;
+  return (mir);
+}
 
  
 /*---------------------------------------------------------------------------*/
@@ -1120,6 +1164,11 @@ double * matrix_singvals( matrix X )
        a[j+N*i] = sum ;
        if( j < i ) a[i+N*j] = sum ;
      }
+   }
+
+   for( i=0 ; i < N ; i++ ) e[i] = 1.0l / a[i+N*i] ;
+   for( i=0 ; i < N ; i++ ){
+     for( j=0 ; j < N ; j++ ) a[j+N*i] *= sqrt(e[i]*e[j]) ;
    }
 
    symeigval_double( N , a , e ) ;
