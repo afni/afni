@@ -5,6 +5,9 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 1.3a  2005 March 22
+ *   - removed all tabs
+ *
  * 1.3   2003 October 20
  *   - incorporate ALLOW_DATASET_VLIST check for r_idisp_THD_3dim_dataset
  *
@@ -97,8 +100,8 @@ int r_idisp_fd_brick( char * info, FD_brick * bp )
 
     if ( bp == NULL )
     {
-	printf( "r_idisp_fd_brick: bp == NULL\n" );
-	return -1;
+        printf( "r_idisp_fd_brick: bp == NULL\n" );
+        return -1;
     }
 
     printf( "FD_brick structure at %p :\n", bp );
@@ -111,10 +114,10 @@ int r_idisp_fd_brick( char * info, FD_brick * bp )
             "   start              = %d\n"
             "   (del1, del2, del3) = (%8.3f, %8.3f, %8.3f)\n"
             "   dset               = %p\n"
-	    "   resam_code         = %d\n"
+            "   resam_code         = %d\n"
             "   thr_resam_code     = %d\n"
             "   namecode           = <%s>\n"
-	    "   parent             = %p\n",
+            "   parent             = %p\n",
             bp->n1, bp->d1, bp->e1, bp->n2, bp->d2, bp->e2,
             bp->n3, bp->d3, bp->start,
             bp->del1, bp->del2, bp->del3,
@@ -131,7 +134,7 @@ int r_idisp_vec3i( char * info, int * vec )
 
     if ( vec == NULL )
     {
-	printf( "r_idisp_vec3i: vec == NULL\n" );
+        printf( "r_idisp_vec3i: vec == NULL\n" );
         return -1;
     }
 
@@ -148,8 +151,8 @@ int r_idisp_mri_image( char * info, MRI_IMAGE * ip )
 
     if ( ip == NULL )
     {
-	printf( "r_idisp_mri_image: ip == NULL\n" );
-	return -1;
+        printf( "r_idisp_mri_image: ip == NULL\n" );
+        return -1;
     }
 
     printf( "r_idisp_mri_image structure at %p :\n"
@@ -183,8 +186,8 @@ int r_idisp_mri_imarr( char * info, MRI_IMARR * ip, int images )
 
     if ( ip == NULL )
     {
-	printf( "r_idisp_mri_imarr: ip == NULL\n" );
-	return -1;
+        printf( "r_idisp_mri_imarr: ip == NULL\n" );
+        return -1;
     }
 
     printf( "r_idisp_mri_imarr structure at %p :\n"
@@ -193,10 +196,10 @@ int r_idisp_mri_imarr( char * info, MRI_IMARR * ip, int images )
 
     if ( images )
     {
-	for ( c = 0; c < ip->num; c++ )
+        for ( c = 0; c < ip->num; c++ )
         {
-	    r_idisp_mri_image( NULL, ip->imarr[c] );
-	}
+            r_idisp_mri_image( NULL, ip->imarr[c] );
+        }
     }
 
     return 0;
@@ -209,8 +212,8 @@ int r_idisp_mat33f( char * info, float mat[3][3] )
 
     if ( mat == NULL )
     {
-	printf( "r_idisp_mat33f: mat == NULL\n" );
-	return -1;
+        printf( "r_idisp_mat33f: mat == NULL\n" );
+        return -1;
     }
 
     printf( "mat33 float structure at %p :\n"
@@ -232,8 +235,8 @@ int r_idisp_mat33d( char * info, double mat[3][3] )
 
     if ( mat == NULL )
     {
-	printf( "r_idisp_mat33d: mat == NULL\n" );
-	return -1;
+        printf( "r_idisp_mat33d: mat == NULL\n" );
+        return -1;
     }
 
     printf( "mat33 double structure at %p :\n"
@@ -255,8 +258,8 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
 
     if ( dp == NULL )
     {
-	printf( "r_idisp_thd_3dim_dataset: dp == NULL\n" );
-	return -1;
+        printf( "r_idisp_thd_3dim_dataset: dp == NULL\n" );
+        return -1;
     }
 
     printf( "THD_3dim_dataset struct at %p\n"
@@ -300,24 +303,24 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
             "   kl.kill   : %p\n"
             "   parent    : %p\n"
             "-------------------------------------------\n",
-	    dp, dp->type, dp->view_type, dp->func_type,
+            dp, dp->type, dp->view_type, dp->func_type,
             dp->dblk, dp->daxes, dp->wod_daxes, dp->wod_flag,
             dp->taxis, dp->markers, dp->warp_parent, dp->warp, dp->vox_warp,
-	    dp->anat_parent, dp->stats,
+            dp->anat_parent, dp->stats,
 #ifdef ALLOW_DATASET_VLIST
-	    dp->pts, dp->pts_original,
+            dp->pts, dp->pts_original,
 #endif
-	    dp->death_mark,
+            dp->death_mark,
 #ifndef OMIT_DATASET_IDCODES
             CHECK_NULL_STR(dp->idcode.str),
-	    CHECK_NULL_STR(dp->idcode.date),
+            CHECK_NULL_STR(dp->idcode.date),
             CHECK_NULL_STR(dp->anat_parent_idcode.str),
-	    CHECK_NULL_STR(dp->anat_parent_idcode.date),
+            CHECK_NULL_STR(dp->anat_parent_idcode.date),
             CHECK_NULL_STR(dp->warp_parent_idcode.str),
-	    CHECK_NULL_STR(dp->warp_parent_idcode.date),
+            CHECK_NULL_STR(dp->warp_parent_idcode.date),
 #endif
             dp->keywords, dp->tagset,
-	    dp->kl.num, dp->kl.nalloc, dp->kl.kill, dp->parent
+            dp->kl.num, dp->kl.nalloc, dp->kl.kill, dp->parent
           );
 
     return 0;
@@ -331,8 +334,8 @@ int r_idisp_thd_diskptr( char * info, THD_diskptr * dp )
 
     if ( dp == NULL )
     {
-	printf( "r_idisp_thd_diskptr: dp == NULL\n" );
-	return -1;
+        printf( "r_idisp_thd_diskptr: dp == NULL\n" );
+        return -1;
     }
 
     printf( "THD_diskptr structure at %p\n"
@@ -350,13 +353,13 @@ int r_idisp_thd_diskptr( char * info, THD_diskptr * dp )
             "   header_name    : %.80s\n"
             "   brick_name     : %.80s\n"
             "   --------------------------------------\n",
-	    dp, DISKPTR_TYPE, dp->type, dp->rank,
-	    dp->dimsizes[0], dp->dimsizes[1], dp->dimsizes[2],
-	    dp->storage_mode, dp->byte_order,
+            dp, DISKPTR_TYPE, dp->type, dp->rank,
+            dp->dimsizes[0], dp->dimsizes[1], dp->dimsizes[2],
+            dp->storage_mode, dp->byte_order,
             CHECK_NULL_STR(dp->prefix),      CHECK_NULL_STR(dp->viewcode),
-	    CHECK_NULL_STR(dp->filecode),    CHECK_NULL_STR(dp->directory_name),
-	    CHECK_NULL_STR(dp->header_name), CHECK_NULL_STR(dp->brick_name)
-	  );
+            CHECK_NULL_STR(dp->filecode),    CHECK_NULL_STR(dp->directory_name),
+            CHECK_NULL_STR(dp->header_name), CHECK_NULL_STR(dp->brick_name)
+          );
 
     return 0;
 }
@@ -369,8 +372,8 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
 
     if ( dp == NULL )
     {
-	printf( "r_idisp_thd_datablock: dp == NULL\n" );
-	return -1;
+        printf( "r_idisp_thd_datablock: dp == NULL\n" );
+        return -1;
     }
 
     printf( "THD_datablock structure at %p\n"
@@ -379,36 +382,36 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
             "   brick       : %p\n"
             "   brick_fac   : %p\n"
             "   brick_bytes : %p\n",
-	    dp, dp->type, dp->nvals, dp->brick,
+            dp, dp->type, dp->nvals, dp->brick,
             dp->brick_fac, dp->brick_bytes );
 
     if ( dp->nvals > 0 )
     {
-	int c;
+        int c;
 
-	printf( 
-	  "   ----------------------------------------\n"
-	  "   sub   fac        brick_bytes   brick_lab\n"
-	  "   ---   ---        -----------   ---------\n" );
-	for ( c = 0; c < dp->nvals; c++ )
-	{
-	    printf( "   %3d   ", c );
+        printf( 
+          "   ----------------------------------------\n"
+          "   sub   fac        brick_bytes   brick_lab\n"
+          "   ---   ---        -----------   ---------\n" );
+        for ( c = 0; c < dp->nvals; c++ )
+        {
+            printf( "   %3d   ", c );
 
-	    if ( dp->brick_fac )
-		printf( "%f  ", dp->brick_fac[c] );
-	    else
-		printf( "         " );
+            if ( dp->brick_fac )
+                printf( "%f  ", dp->brick_fac[c] );
+            else
+                printf( "         " );
 
-	    if ( dp->brick_bytes )
-		printf( " %10d    ", dp->brick_bytes[c] );
-	    else
-		printf( "%15s", "" );
+            if ( dp->brick_bytes )
+                printf( " %10d    ", dp->brick_bytes[c] );
+            else
+                printf( "%15s", "" );
 
-	    if ( dp->brick_lab )
-		printf( "%s\n", CHECK_NULL_STR(dp->brick_lab[c]) );
-	    else
-		printf( "\n" );
-	}
+            if ( dp->brick_lab )
+                printf( "%s\n", CHECK_NULL_STR(dp->brick_lab[c]) );
+            else
+                printf( "\n" );
+        }
     }
 
     printf( "   --------------------------------------\n"
@@ -416,32 +419,32 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
             "   brick_statcode : %p\n"
             "   brick_stataux  : %p\n"
             "   --------------------------------------\n"
-	    "   total_bytes    : %d\n"
-	    "   malloc_type    : %d\n"
-	    "   locked         : %d\n"
+            "   total_bytes    : %d\n"
+            "   malloc_type    : %d\n"
+            "   locked         : %d\n"
             "   --------------------------------------\n"
-	    "   master_nvals   : %d\n"
-	    "   master_ival    : %p\n"
-	    "   master_bytes   : %p\n"
-	    "   master_bot     : %f\n"
-	    "   master_top     : %f\n"
+            "   master_nvals   : %d\n"
+            "   master_ival    : %p\n"
+            "   master_bytes   : %p\n"
+            "   master_bot     : %f\n"
+            "   master_top     : %f\n"
             "   --------------------------------------\n"
-	    "   diskptr        : %p\n"
-	    "   natr           : %d\n"
-	    "   natr_alloc     : %d\n"
-	    "   atr            : %p\n"
+            "   diskptr        : %p\n"
+            "   natr           : %d\n"
+            "   natr_alloc     : %d\n"
+            "   atr            : %p\n"
             "   --------------------------------------\n"
-	    "   kl.num         : %d\n"
-	    "   kl.nalloc      : %d\n"
-	    "   kl.kill        : %p\n"
-	    "   parent         : %p\n"
+            "   kl.num         : %d\n"
+            "   kl.nalloc      : %d\n"
+            "   kl.kill        : %p\n"
+            "   parent         : %p\n"
             "-----------------------------------------\n",
-	    dp->brick_keywords, dp->brick_statcode, dp->brick_stataux,
-	    dp->total_bytes, dp->malloc_type, dp->locked,
-	    dp->master_nvals, dp->master_ival, dp->master_bytes,
-	    dp->master_bot, dp->master_top,
-	    dp->diskptr, dp->natr, dp->natr_alloc, dp->atr,
-	    dp->kl.num, dp->kl.nalloc, dp->kl.kill, dp->parent );
+            dp->brick_keywords, dp->brick_statcode, dp->brick_stataux,
+            dp->total_bytes, dp->malloc_type, dp->locked,
+            dp->master_nvals, dp->master_ival, dp->master_bytes,
+            dp->master_bot, dp->master_top,
+            dp->diskptr, dp->natr, dp->natr_alloc, dp->atr,
+            dp->kl.num, dp->kl.nalloc, dp->kl.kill, dp->parent );
 
     return 0;
 }
@@ -454,8 +457,8 @@ int r_idisp_thd_dataxes( char * info, THD_dataxes * dp )
 
     if ( dp == NULL )
     {
-	printf( "r_idisp_thd_dataxes: dp == NULL\n" );
-	return -1;
+        printf( "r_idisp_thd_dataxes: dp == NULL\n" );
+        return -1;
     }
 
     printf( "THD_dataxes structure at %p\n"
@@ -466,7 +469,7 @@ int r_idisp_thd_dataxes( char * info, THD_dataxes * dp )
             "   (xxmin, yymin, zzmin) : (%8.3f, %8.3f, %8.3f)\n"
             "   (xxmax, yymax, zzmax) : (%8.3f, %8.3f, %8.3f)\n"
             "   (xxorient,yyorient,zzorient) : (%d, %d, %d)\n"
-	    "   parent                : %p\n"
+            "   parent                : %p\n"
             "   -----------------------\n",
             dp,
             dp->type, dp->nxx, dp->nyy, dp->nzz,
@@ -497,8 +500,8 @@ int r_idisp_cren_stuff( char * info, CREN_stuff * cp )
 
     if ( cp == NULL )
     {
-	printf( "r_idisp_thd_dataxes: cp == NULL\n" );
-	return -1;
+        printf( "r_idisp_thd_dataxes: cp == NULL\n" );
+        return -1;
     }
 
     printf( "CREN_stuff structure at %p\n"
