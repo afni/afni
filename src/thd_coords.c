@@ -277,9 +277,9 @@ THD_fvec3 THD_3dfind_to_fdfind( FD_brick * br , THD_fvec3 id ) /* 30 Aug 2001 */
 
 /*-------------------------------------------------------------------*/
 
-void THD_coorder_fill( char * orcode , THD_coorder * cord )
+void THD_coorder_fill( char * in_orcode , THD_coorder * cord )
 {
-   char acod ;
+   char acod , orcode[4] ;
    int xx,yy,zz , ss1,ss2,ss3 , ii,ll ;
 
    if( cord == NULL ) return ;
@@ -297,17 +297,17 @@ void THD_coorder_fill( char * orcode , THD_coorder * cord )
 
    /* check string for OKness */
 
-   if( orcode == NULL ) return ;
-   ll = strlen(orcode) ; if( ll < 1 ) return ;
-   for( ii=0 ; ii < ll ; ii++ ) orcode[ii] = toupper(orcode[ii]) ;
-   if( strncmp(orcode,"FLI",3) == 0 ) orcode = "LPI" ;
-   if( strlen(orcode) != 3 ) return ;
+   if( in_orcode == NULL ) return ;
+   strncpy(orcode,in_orcode,3) ; orcode[3] = '\0' ;
+   ll = strlen(orcode) ; if( ll != 3 ) return ;
+   for( ii=0 ; ii < 3 ; ii++ ) orcode[ii] = toupper(orcode[ii]) ;
+   if( strncmp(orcode,"FLI",3) == 0 ) strcpy(orcode,"LPI") ;
 
    /* extract direction codes */
 
-   acod = toupper(orcode[0]) ; xx = ORCODE(acod) ;
-   acod = toupper(orcode[1]) ; yy = ORCODE(acod) ;
-   acod = toupper(orcode[2]) ; zz = ORCODE(acod) ;
+   acod = orcode[0] ; xx = ORCODE(acod) ;
+   acod = orcode[1] ; yy = ORCODE(acod) ;
+   acod = orcode[2] ; zz = ORCODE(acod) ;
 
    /* check direction codes for OKness */
 

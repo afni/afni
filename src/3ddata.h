@@ -3103,6 +3103,8 @@ extern THD_fvec3 THD_dicomm_to_3dmm( THD_3dim_dataset * , THD_fvec3 ) ;
 
 extern THD_fvec3 THD_tta_to_mni( THD_fvec3 ) ;  /* 29 Apr 2002 */
 extern THD_fvec3 THD_mni_to_tta( THD_fvec3 ) ;
+extern void THD_3mni_to_3tta( float *, float *, float *) ;
+extern void THD_3tta_to_3mni( float *, float *, float *) ;
 
 extern float THD_timeof      ( int , float , THD_timeaxis * ) ;
 extern float THD_timeof_vox  ( int , int , THD_3dim_dataset * ) ;
