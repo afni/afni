@@ -9,6 +9,9 @@
  *  plug_hemisub.c      - AFNI plugin to subtract hemispheres
  *
  *  $Log$
+ *  Revision 1.5  2004/01/07 19:50:37  rwcox
+ *  Cput
+ *
  *  Revision 1.4  2000/12/21 16:10:54  cox
  *  AFNI
  *
@@ -57,6 +60,9 @@ static char        helpstring[] =
 /***********************************************************************
    Set up the interface to the user
 ************************************************************************/
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

@@ -9,6 +9,9 @@
  * plug_maskcalc.c		- plugin to do mask-based computations
  *
  * $Log$
+ * Revision 1.6  2004/01/07 19:50:37  rwcox
+ * Cput
+ *
  * Revision 1.5  2003/07/15 13:28:30  rwcox
  * Cput
  *
@@ -50,6 +53,9 @@ static char   grMessage[ R_MESSAGE_L ];
 
 static char * gr_help_message = 
        "maskcalc plugin - rickr";
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

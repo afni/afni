@@ -50,6 +50,9 @@ static int max_tlines = 0 ;
    set of interface widgets the first time in.
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
 

@@ -70,6 +70,9 @@ static char helpstring[] =
   Set up the interface to the user
 */
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
   /*----- plugin option labels -----*/

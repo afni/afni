@@ -106,8 +106,7 @@ static char help[] =
 /*encoding and decoding functions for mapping a triple to a single integer*/
 #define coord_encode(x, y, z, xdim, ydim) ((x) + (xdim)*((y) + (ydim)*(z)))
 
-static void coord_decode(coords, x, y, z, xdim, ydim)
-int coords, *x, *y, *z, xdim, ydim;
+static void coord_decode(int coords, int *x, int *y, int *z, int xdim, int ydim)
   {
   *x = coords % xdim;
   coords /= xdim;
@@ -134,10 +133,7 @@ typedef struct {
   } btree;
 
 /*Allocate a node whose fields contain the given values.*/
-static node *create_node(v, rc, src, p, l, r)
-int v;
-int rc, src;
-node *p, *l, *r;
+static node *create_node(int v, int rc, int src, node *p, node *l, node *r)
   {
   register node *n;
   n = (node *)malloc(sizeof(node));
@@ -151,15 +147,13 @@ node *p, *l, *r;
   }
 
 /*Deallocate a node.*/
-static void destroy_node(n)
-node *n;
+static void destroy_node(node *n)
   {
   free(n);
   }
 
 /*Deallocate all the nodes of the tree rooted at the given node 'n'.*/
-static void destroy_tree(n)
-node *n;
+static void destroy_tree(node *n)
   {
   register node *temp;
   while(n != NULLTREE)
@@ -173,9 +167,7 @@ node *n;
 
 /*Prune node 'n' from the tree rooted at 't->tree', rearranging the tree as
   necessary in order to preserve the descendants of 'n'.*/
-static void prune(t, n)
-btree *t;
-node *n;
+static void prune(btree *t, node *n)
   {
   register node **prune_site, *largest;
   register int ref_count_of_largest;
@@ -236,8 +228,7 @@ node *n;
   }
 
 /*Delete from the given btree the node at the head of the associated queue.*/
-static void delete_oldest(t)
-btree *t;
+static void delete_oldest(btree *t)
   {
   register node *n;
   if((t->tail+1)%(THRESH_FILTER_LEN+1) == t->head)
@@ -260,8 +251,7 @@ btree *t;
 
 /*Return the median of all the values in the given btree.  Do not alter the
   btree.*/
-static int extract_median(t)
-btree *t;
+static int extract_median(btree *t)
   {
   register node *n;
   register int left_count, right_count, left_size, right_size, middle_position;
@@ -299,9 +289,7 @@ btree *t;
 
 /*Insert the given value into the given btree and place it at the tail of the
   associated queue.*/
-static void insert_newest(v, t)
-int v;
-btree *t;
+static void insert_newest(int v, btree *t)
   {
   register node *n, *p;
   if((t->tail+2)%(THRESH_FILTER_LEN+1) == t->head)
@@ -355,7 +343,10 @@ btree *t;
   re-initialisations only in the case in which the regions being labelled are
   unconnected.)  This routine returns the size in voxels of the labelled
   region.*/
-static int THRESH_region_grow(img, mask_img, stack, region_num, x, y, z, xdim, ydim, zdim, threshold)
+static int THRESH_region_grow(
+short *img, short *mask_img, int *stack, int region_num,
+int x, int y, int z, int xdim, int ydim, int zdim, short threshold)
+#if 0
 short	*img,		/*source image*/
 	*mask_img;	/*same dimensions as img, pre-initialised to UNVISITED*/
 int	*stack,		/*a block of xdim*ydim*zdim ints*/
@@ -363,6 +354,7 @@ int	*stack,		/*a block of xdim*ydim*zdim ints*/
 	x, y, z,	/*starting location of this region*/
 	xdim, ydim, zdim; /*dimensions*/
 short	threshold;	/*threshold below which pixels are included*/
+#endif
   {
   register int dx, dy, dz;	/*increments to current voxel index*/
   register int	*sp,		/*stack of voxels scheduled for visiting*/
@@ -408,10 +400,7 @@ short	threshold;	/*threshold below which pixels are included*/
 /*On entry, img is the averaged echo-planar image.  On exit, each voxel in img
   has been replaced by a 1 if it's been identified as a brain voxel, or by a 0
   otherwise.  Returns 0 if OK, 1 if out of memory.*/
-static int THRESH_mask_brain(img, xdim, ydim, zdim, threshold)
-short *img;
-int xdim, ydim, zdim;
-short threshold;
+static int THRESH_mask_brain(short *img, int xdim, int ydim, int zdim, short threshold)
   {
   register int x, y, z, region;
   int region_size, max_region_size, max_region;
@@ -464,9 +453,7 @@ short threshold;
   minimum value, till its current value becomes very large (right-hand edge of
   the air peak).  The position of this minimum is the intensity threshold for
   distinguishing brain from non-brain.*/
-static short *THRESH_compute(dset, verbose)
-THD_3dim_dataset *dset;
-int verbose;
+static short *THRESH_compute(THD_3dim_dataset *dset, int verbose)
   {
   register int t, x, y, z;
   int xdim, ydim, zdim, nvox, tdim, histo_min, histo_max, centroid;
@@ -572,8 +559,7 @@ int verbose;
   return(img);
   }
 
-char *THRESH_main(plint)
-PLUGIN_interface *plint;
+char *THRESH_main(PLUGIN_interface *plint)
   {
   int t;
   char *prefix;
@@ -625,8 +611,10 @@ PLUGIN_interface *plint;
   return (char *)0;
   }
 
-PLUGIN_interface *PLUGIN_init(ncall)
-int ncall;
+
+DEFINE_PLUGIN_PROTOTYPE
+
+PLUGIN_interface *PLUGIN_init(int ncall)
   {
   PLUGIN_interface *plint;
   if(ncall > 0)

@@ -164,8 +164,7 @@ typedef struct {
 /*encoding and decoding functions for mapping a triple to a single integer*/
 #define coord_encode(x, y, z, xdim, ydim) ((x) + (xdim)*((y) + (ydim)*(z)))
 
-static void coord_decode(coords, x, y, z, xdim, ydim)
-int coords, *x, *y, *z, xdim, ydim;
+static void coord_decode(int coords, int *x, int *y, int *z, int xdim, int ydim)
   {
   *x = coords % xdim;
   coords /= xdim;
@@ -179,8 +178,7 @@ int coords, *x, *y, *z, xdim, ydim;
 
 /*flush output buffers on SIGUSR1 - useful for batch debugging*/
 #include <signal.h>
-static void flush(sig)
-int sig;
+static void flush(int sig)
   {
   fflush(stdout);
   fflush(stderr);
@@ -188,9 +186,7 @@ int sig;
   }
 
 /*slave routine to stree_traverse()*/
-void rcsv_stree_traverse(t, indent)
-SNODE *t;
-int indent;
+void rcsv_stree_traverse(SNODE *t, int indent)
   {
   register int i;
   while(t)
@@ -205,8 +201,7 @@ int indent;
   }
 
 /*Print a traversal of the given stree.*/
-void stree_traverse(t)
-STREE *t;
+void stree_traverse(STREE *t)
   {
   printf("t=%lx\n  mem=%lx  next=%lx = mem+%ld  root=%lx xdim=%d ydim=%d\n",
 	(long)t,
@@ -220,9 +215,7 @@ STREE *t;
   }
 
 /*slave routine to dtree_traverse()*/
-void rcsv_dtree_traverse(t, indent, order)
-DNODE *t;
-int indent, order;
+void rcsv_dtree_traverse(DNODE *t, int indent, int order)
   {
   register int i;
   while(t)
@@ -249,9 +242,7 @@ int indent, order;
 
 /*Print a traversal of a dtree.  Use corr links if order=0, coord links if
   order=1.*/
-void dtree_traverse(t, order)
-DTREE *t;
-int order;
+void dtree_traverse(DTREE *t, int order)
   {
   printf("t=%lx\n  mem=%lx  next=%lx = mem+%ld  coord_root=%lx corr_root=%lx xdim=%d ydim=%d\n",
 	(long)t,
@@ -266,8 +257,7 @@ int order;
   }
 
 /*slave routine to dtree_check_sizes()*/
-int rcsv_dtree_check_sizes(t)
-DNODE *t;
+int rcsv_dtree_check_sizes(DNODE *t)
   {
   int s;
   if(t)
@@ -285,17 +275,13 @@ DNODE *t;
 
 /*Check that the size fields of a dtree are consistent with each other and with
   the structure of the tree.*/
-int dtree_check_sizes(t)
-DTREE *t;
+int dtree_check_sizes(DTREE *t)
   {
   return(rcsv_dtree_check_sizes(t->corr_root));
   }
 
 /*slave routine to dtree_circtest()*/
-void rcsv_dtree_circtest(t, mem, mark, n, order)
-DNODE *t, *mem;
-char *mark;
-int n, order;
+void rcsv_dtree_circtest(DNODE *t, DNODE *mem, char *mark, int n, int order)
   {
   register int m;
   while(t)
@@ -324,9 +310,7 @@ int n, order;
 
 /*Test the given dtree for circular or out-of-bounds references.  Use corr links
   if order=0, coord links if order=1.*/
-void dtree_circtest(t, order)
-DTREE *t;
-int order;
+void dtree_circtest(DTREE *t, int order)
   {
   char *mark;
   int n;
@@ -342,8 +326,7 @@ int order;
   }
 
 /*slave routine to dtree_check_parent_pointers()*/
-int rcsv_dtree_check_parent_pointers(t)
-DNODE *t;
+int rcsv_dtree_check_parent_pointers(DNODE *t)
   {
   int bad;
   bad = 0;
@@ -374,15 +357,13 @@ DNODE *t;
 
 /*Verify that the corr_parent fields inside t are consistent with the
   corr_lchild and corr_rchild fields.*/
-int dtree_check_parent_pointers(t)
-DTREE *t;
+int dtree_check_parent_pointers(DTREE *t)
   {
   return(rcsv_dtree_check_parent_pointers(t->corr_root));
   }
 
 /*Print hex dump of an IEEE double-precision floating-point number, MSB first.*/
-void fdump(x)
-double *x;
+void fdump(double *x)
   {
   double test = 2.0;
   int i;
@@ -406,23 +387,20 @@ double *x;
   function neg().  For the positive one-tailed case, our maximum should be the
   most positive value, so we use the identity function id().*/
 
-static double id(r)
-double r;
+static double id(double r)
   {
   return(r);
   }
 
-static double neg(r)
-double r;
+static double neg(double r)
   {
   return(-r);
   }
 
-static double (*magnitude)();
+static double (*magnitude)(double);
 
 /*Allocate storage and initialise a tree that can contain up to nelem nodes.*/
-static STREE *stree_create(xdim, ydim, nelem)
-int xdim, ydim, nelem;
+static STREE *stree_create(int xdim, int ydim, int nelem)
   {
   STREE *t;
   t = (STREE *)malloc(sizeof(*t));
@@ -442,18 +420,14 @@ int xdim, ydim, nelem;
   }
 
 /*Deallocate a tree.*/
-static void stree_destroy(t)
-STREE *t;
+static void stree_destroy(STREE *t)
   {
   free(t->mem);
   free(t);
   }
 
 /*Insert the given value into the tree.*/
-static void stree_insert(t, r, x, y, z)
-STREE *t;
-double r;
-int x, y, z;
+static void stree_insert(STREE *t, double r, int x, int y, int z)
   {
   register SNODE **p;
   double rmag;
@@ -472,9 +446,7 @@ int x, y, z;
 
 /*Delete the maximum correlation value from the given tree, and return that
   value and its associated coordinates.*/
-static double stree_extract_max(t, x, y, z)
-STREE *t;
-int *x, *y, *z;
+static double stree_extract_max(STREE *t, int *x, int *y, int *z)
   {
   register SNODE **p, **pp;
   SNODE *target;
@@ -507,8 +479,7 @@ int *x, *y, *z;
   }
 
 /*Allocate storage and initialise a dtree that can contain up to nelem nodes.*/
-static DTREE *dtree_create(xdim, ydim, nelem)
-int xdim, ydim, nelem;
+static DTREE *dtree_create(int xdim, int ydim, int nelem)
   {
   DTREE *t;
   t = (DTREE *)malloc(sizeof(*t));
@@ -529,17 +500,14 @@ int xdim, ydim, nelem;
   }
 
 /*Deallocate a dtree.*/
-static void dtree_destroy(t)
-DTREE *t;
+static void dtree_destroy(DTREE *t)
   {
   free(t->mem);
   free(t);
   }
 
 /*Insert the given value into the dtree, using the given storage location.*/
-static void dtree_insert_at_node(t, node)
-DTREE *t;
-DNODE *node;
+static void dtree_insert_at_node(DTREE *t, DNODE *node)
   {
   register DNODE **p,			/*pointer into the coord tree*/
 		 *q, *qparent;		/*pointers to adjacent corr tree nodes*/
@@ -585,9 +553,7 @@ DNODE *node;
 static int num_coords;
 
 /*Insert the given value into the dtree.*/
-static void dtree_insert(t, clist)
-DTREE *t;
-CLIST *clist;
+static void dtree_insert(DTREE *t, CLIST *clist)
   {
   t->next->data = clist;
   t->next->dlen = num_coords;
@@ -599,9 +565,7 @@ static int num_coords_exhausted;
 /*p points to a coord_lchild, coord_rchild, or coord_root field that is to be
   unlinked from its coord children and its corr children and corr parent within
   the tree t.*/
-void dtree_unlink_node(t, p)
-DTREE *t;
-DNODE **p;
+void dtree_unlink_node(DTREE *t, DNODE **p)
   {
   register DNODE **q;
   DNODE *node, *parent, *temp;
@@ -685,10 +649,7 @@ DNODE **p;
   For each of the deleted nodes, if any substitute coordinates remain in the
   coordinate list, use those substitute coordinates to re-insert the node into
   the dtree.  Otherwise increment num_coords_exhausted.*/
-static void dtree_delete_coords(t, x, y, z, deleted)
-DTREE *t;
-int x, y, z;
-short *deleted;
+static void dtree_delete_coords(DTREE *t, int x, int y, int z, short *deleted)
 /*deleted[x+xdim*(y+ydim*z)] is nonzero iff (x,y,z) has not yet been deleted*/
   {
   register DNODE **p,			/*pointer into coord tree*/
@@ -747,9 +708,7 @@ short *deleted;
 /*Return a fraction in the interval (0,1) that describes the ordinal position
   that the given correlation value would occupy within the ordered contents of
   the dtree, were it to be added to the tree.*/
-static double dtree_position(t, r)
-DTREE *t;
-double r;
+static double dtree_position(DTREE *t, double r)
   {
   register DNODE *p;
   register int rank;
@@ -783,9 +742,7 @@ double r;
 /*Randomly permute the integer array a[0..n-1].
   Richard Durstenfeld, `Algorithm 235: Random Permutation [G6]',
   Communications of the Association for Computing Machinery 7:7:420 (1964).*/
-static void shuffle(a, n)
-int *a;
-int n;
+static void shuffle(int *a, int n)
   {
   register int i, j, b;
   for(i = n-1; i != 0; i--)
@@ -796,12 +753,7 @@ int n;
   }
 
 /*Prepare static sums for correlate().*/
-static void correlate_prep(x, y, nxy, sy, syy)
-float *x,
-      *y;
-int nxy;
-double *sy,
-       *syy;
+static void correlate_prep(float *x, float *y, int nxy, double *sy, double *syy)
   {
   register int n;	/*length of time series, excluding ignored points*/
   *sy = *syy = 0.0;
@@ -826,7 +778,10 @@ double *sy,
   calls to correlate_prep() of the following forms:
   correlate_prep(x, y, nxy, &sx, &sxx);
   correlate_prep(x, y, nxy, &sy, &syy);*/
-static void correlate(x, y, nxy, sx, sxx, sy, syy, r, m, b)
+static void correlate(float *x, float *y, int nxy,
+                      double sx, double sxx, double sy, double syy,
+                      double *r, double *m, double *b)
+#if 0
 float	*x,	/*ideal time series (points >= BLAST are ignored)*/
 	*y;	/*actual time series*/
 int nxy;	/*length of time series (including any ignored points)*/
@@ -837,6 +792,7 @@ double	sx,	/*sum of x[i] | 0<=i<nxy and x[i]<BLAST*/
 	*r,	/*correlation coefficient*/
 	*m,	/*slope*/
 	*b;	/*intercept*/
+#endif
   {
   register double sxy;
   register int n;	/*length of time series, excluding ignored points*/
@@ -880,10 +836,7 @@ double	sx,	/*sum of x[i] | 0<=i<nxy and x[i]<BLAST*/
   Store the result in new_y (which may point to the same location as y, in the
   case in which the original value of y need not be saved).  For linear
   detrending, input x[i] = i, 0<=i<n.*/
-static void orthogonalise(x, y, new_y, n, m, b)
-float *x, *y, *new_y;
-int n;
-double m, b;
+static void orthogonalise(float *x, float *y, float *new_y, int n, double m, double b)
   {
   while(n--)
     if(x[n] < BLAST)
@@ -891,7 +844,11 @@ double m, b;
   }
 
 /*Compute the permutation test.  Return 0 if successful, 1 if error.*/
-static int PERMTEST_compute(plint, dset, ref_ts, ort_ts, pcrit, one_tailed, intensities, zvals, fim_scale, mask, masklo, maskhi, verbose)
+static int PERMTEST_compute(
+  PLUGIN_interface *plint, THD_3dim_dataset *dset, MRI_IMAGE *ref_ts, MRI_IMAGE *ort_ts,
+  double pcrit, int one_tailed, short **intensities, short **zvals,
+  double *fim_scale, THD_3dim_dataset *mask, float masklo, float maskhi, int verbose)
+#if 0
 PLUGIN_interface *plint; /*AFNI plugin interface*/
 THD_3dim_dataset *dset;	 /*AFNI 3D+time dataset*/
 MRI_IMAGE *ref_ts,	 /*reference time series*/
@@ -905,6 +862,7 @@ int one_tailed;		 /*-1=one-tailed (-), 0=two-tailed, 1=one-tailed (+)*/
 THD_3dim_dataset *mask;	 /*mask dataset, or NULL for no mask*/
 float masklo, maskhi;	 /*lower and upper bounds on masked range*/
 int verbose;		 /*1 for verbose info on coordinates, 0 otherwise*/
+#endif
   {
   register int t, iter, xyz;	/*indices and counters*/
   int x, y, z,
@@ -1287,8 +1245,7 @@ int verbose;		 /*1 for verbose info on coordinates, 0 otherwise*/
 
 static Pixmap sipb_pixmap;		/*pixmap of SIPB logo*/
 
-static void PERMTEST_set_logo(plint)
-PLUGIN_interface *plint;
+static void PERMTEST_set_logo(PLUGIN_interface *plint)
   {
   Pixel bg_pix, fg_pix;			/*colours from control window*/
 #define sipb_width 90
@@ -1401,15 +1358,13 @@ PLUGIN_interface *plint;
   XtVaSetValues(plint->im3d->vwid->picture, XmNlabelPixmap, sipb_pixmap, NULL);
   }
 
-static void PERMTEST_reset_logo(plint)
-PLUGIN_interface *plint;
+static void PERMTEST_reset_logo(PLUGIN_interface *plint)
   {
   XtVaSetValues(plint->im3d->vwid->picture, XmNlabelPixmap, XmUNSPECIFIED_PIXMAP, NULL);
   XFreePixmap(XtDisplay(plint->im3d->vwid->top_shell), sipb_pixmap);
   }
 
-char *PERMTEST_main(plint)
-PLUGIN_interface *plint;
+char *PERMTEST_main(PLUGIN_interface *plint)
   {
   int t;
   char *prefix;
@@ -1571,8 +1526,10 @@ PLUGIN_interface *plint;
   return (char *)0;
   }
 
-PLUGIN_interface *PLUGIN_init(ncall)
-int ncall;
+
+DEFINE_PLUGIN_PROTOTYPE
+
+PLUGIN_interface *PLUGIN_init(int ncall)
   {
   PLUGIN_interface *plint;
   if(ncall > 0)

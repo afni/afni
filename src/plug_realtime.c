@@ -353,7 +353,8 @@ static PLUGIN_interface * plint = NULL ; /* AFNI plugin structure */
 
 /************ prototypes ***********/
 
-PLUGIN_interface * PLUGIN_init( int ) ;
+DEFINE_PLUGIN_PROTOTYPE
+
 char * RT_main( PLUGIN_interface * ) ;
 Boolean RT_worker( XtPointer ) ;
 RT_input * new_RT_input( IOCHAN * ) ;
@@ -2806,7 +2807,12 @@ void RT_process_image( RT_input * rtin )
          /** if needed, initialize the function computations **/
 
          if( rtin->func_condit == 0 ){
+#if 0
             jj = rtin->func_func( rtin , INIT_MODE ) ;
+#else
+            AFNI_CALL_VALU_2ARG( rtin->func_func , int,jj ,
+                                 RT_input *,rtin , int,INIT_MODE ) ;
+#endif
             if( jj < 0 ){ rtin->func_code = 0 ; rtin->func_func = NULL ; }
             rtin->func_condit = 1 ;  /* initialized */
          }
@@ -2814,7 +2820,12 @@ void RT_process_image( RT_input * rtin )
          /** do the function computations for this volume **/
 
          if( rtin->func_code > 0 )
-            rtin->func_func( rtin , rtin->nvol[cc] - 1 ) ;
+#if 0
+            jj = rtin->func_func( rtin , rtin->nvol[cc] - 1 ) ;
+#else
+            AFNI_CALL_VALU_2ARG( rtin->func_func , int,jj ,
+                                 RT_input *,rtin , int,rtin->nvol[cc]-1 ) ;
+#endif
       }
 
       /** make space for next sub-brick to arrive **/
@@ -3035,8 +3046,14 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
    /**--- Deal with the computed function, if any ---**/
 
    if( rtin->func_dset != NULL ){
+      int jj ;
 
-      rtin->func_func( rtin , UPDATE_MODE ) ;  /* put data into dataset */
+#if 0
+      jj = rtin->func_func( rtin , UPDATE_MODE ) ;  /* put data into dataset */
+#else
+      AFNI_CALL_VALU_2ARG( rtin->func_func , int,jj ,
+                           RT_input *,rtin , int,UPDATE_MODE ) ;
+#endif
 
       if( rtin->func_condit > 1 ){             /* data actually inside */
 
@@ -3186,7 +3203,13 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
       DSET_unlock( rtin->dset[cc] ) ;  /* 20 Mar 1998 */
 
       if( rtin->func_dset != NULL ){
-         rtin->func_func( rtin , FINAL_MODE ) ;
+         int jj ;
+#if 0
+         jj = rtin->func_func( rtin , FINAL_MODE ) ;
+#else
+         AFNI_CALL_VALU_2ARG( rtin->func_func , int,jj ,
+                              RT_input *,rtin , int,FINAL_MODE ) ;
+#endif
          THD_write_3dim_dataset( NULL,NULL , rtin->func_dset , True ) ;
          DSET_unlock( rtin->func_dset ) ;  /* 20 Mar 1998 */
          THD_force_malloc_type( rtin->func_dset->dblk , DATABLOCK_MEM_ANY ) ;
@@ -4043,7 +4066,7 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
 
 #define IFree(x) do{ if( (x)!=NULL ){ free(x) ; (x)=NULL ; } } while(0)
 
-int RT_fim_recurse( RT_input * rtin , int mode )
+int RT_fim_recurse( RT_input *rtin , int mode )
 {
    static Three_D_View * im3d ;
    static THD_3dim_dataset * dset_time ;

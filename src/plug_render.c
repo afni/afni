@@ -108,6 +108,9 @@ static int   precalc_ival   = MODE_MEDIUM ;
    set of interface widgets.
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    char * env ;

@@ -22,6 +22,9 @@ void outer9_box_func( int nx , int ny , double dx, double dy, float * ar ) ;
    Set up the interface to the user: NONE.
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;     /* will be the output of this routine */

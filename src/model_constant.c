@@ -37,6 +37,8 @@ void noise_model
   for the minimum and maximum parameter constraints.
 */
 
+DEFINE_MODEL_PROTOTYPE
+
 MODEL_interface * initialize_model ()
 {
   MODEL_interface * mi = NULL;

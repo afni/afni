@@ -113,9 +113,9 @@ static char helpstring[] =
 
 char * NL_main( PLUGIN_interface * ) ;  /* the entry point */
 
-void NL_fitter() ;
-void NL_error() ;
-void NL_worker() ;
+void NL_fitter( int nt, double to, double dt, float * vec, char ** label ) ;
+void NL_error ( int nt, double to, double dt, float * vec, char ** label ) ;
+void NL_worker( int nt, double dt, float * vec, int dofit, char ** label ) ;
 
 
 /*---------------- global data -------------------*/
@@ -316,7 +316,7 @@ void initialize_program
   /*----- initialize independent variable matrix -----*/
   if (!plug_timeref)
     {
-      static old_DELT = -1.0 ;
+      static float old_DELT = -1.0 ;
       DELT = (inTR && dsTR > 0.0) ? dsTR : 1.0 ;  /* 22 July 1998 */
       if( DELT != old_DELT ){
          old_DELT = DELT ;
@@ -536,6 +536,9 @@ float *  nlfit
         "PLUTO_add_number"     for a number chooser,
         "PLUTO_add_timeseries" for a timeseries chooser.
 ************************************************************************/
+
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {

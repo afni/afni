@@ -134,6 +134,8 @@ void conv_model( float *  gs      , int     ts_length ,
 
 /*-----------------------------------------------------------------------*/
 
+DEFINE_MODEL_PROTOTYPE
+
 MODEL_interface * initialize_model ()
 {
   MODEL_interface * mi = NULL;

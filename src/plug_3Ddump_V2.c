@@ -134,6 +134,8 @@ static int equal_strings (char *s1,char *s2);
    Set up the interface to the user
 ************************************************************************/
 
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;

@@ -99,6 +99,9 @@ static void DSETN_func_init(void)   /* 21 Jul 2003 */
    PLUG_startup_plugin_CB( NULL , (XtPointer)plint , NULL ) ;
 }
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    int id ;

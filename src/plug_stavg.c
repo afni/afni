@@ -66,6 +66,9 @@ int M_maxlength;
         "PLUTO_add_number"  for a number chooser.
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;     /* will be the output of this routine */
@@ -309,6 +312,7 @@ char * STAVG_main( PLUGIN_interface * plint )
    /*________________[ Main Code ]_________________________*/
   
    fout = avg_epochs( old_dset, stimar, user_maxlength, 1, plint );
+   if( fout == NULL ) return " \nError in avg_epochs() function!\n " ;
    
    if( RMB_DEBUG ) fprintf(stderr, "Done with avg_epochs\n");
    maxlength = M_maxlength;
@@ -470,7 +474,7 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    DSET_load(dset);
    
    inimar =  dset_to_mri(dset);
-   if( inimar == NULL ) return "Error in reading data";
+   if( inimar == NULL ) return NULL ;
 
    fxar = (float **) malloc( sizeof( float *) * numims);
    if( datum == MRI_float){

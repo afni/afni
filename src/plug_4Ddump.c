@@ -148,7 +148,9 @@ static char * format_strings[] = { "i x y z ts[1] ..." , "ts[1] ts[2] ..." };
 
 static char * EXTRACT_main( PLUGIN_interface * ) ;  /* the entry point */
 
-static void EXTRACT_tsfunc() ;                      /* the timeseries routine */
+static void EXTRACT_tsfunc( double T0 , double TR ,
+                            int npts , float ts[] , double ts_mean , double ts_slope ,
+                            void * udp) ;
 
 static void show_ud (struct extract_data* ud);
 
@@ -189,6 +191,8 @@ static PLUGIN_interface * global_plint = NULL ;
         "PLUTO_add_string"  for a string chooser,
         "PLUTO_add_number"  for a number chooser.
 ************************************************************************/
+
+DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
@@ -554,7 +558,7 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
    /*------------- ready to compute new dataset -----------*/
 
 	PLUTO_4D_to_nothing (old_dset , ud->ignore , ud->dtrnd ,
-                        EXTRACT_tsfunc , (void *)ud );
+                             EXTRACT_tsfunc , (void *)ud );
 
 	fclose (ud->outlogfile);
 	fclose (ud->outwritets);
@@ -1194,7 +1198,14 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
    /*----- Setup has ended.  Now do some real work. -----*/
 
    /* start notification */
+#if 0
    user_func(  0.0 , 0.0 , nvox , NULL,0.0,0.0 , user_data ) ;
+#else
+   { void (*uf)(double,double,int,float *,double,double,void *) =
+     (void (*)(double,double,int,float *,double,double,void *))(user_func) ;
+     uf( 0.0l,0.0l , nvox , NULL , 0.0l,0.0l , user_data ) ;
+   }
+#endif
 
    /***** loop over voxels *****/   
    for( ii=0 ; ii < nvox ; ii++  ){  /* 1 time series at a time */
@@ -1264,7 +1275,14 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
       }
 
       /*** Send data to user function ***/
+#if 0
       user_func( tzero,tdelta , nuse,fxar,ts_mean,ts_slope , user_data) ;
+#else
+     { void (*uf)(double,double,int,float *,double,double,void *) =
+       (void (*)(double,double,int,float *,double,double,void *))(user_func) ;
+       uf( tzero,tdelta , nuse,fxar,ts_mean,ts_slope , user_data) ;
+     }
+#endif
 
       
 
@@ -1273,7 +1291,14 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
    DSET_unload( old_dset ) ;  
 
    /* end notification */
+#if 0
    user_func( 0.0 , 0.0 , 0 , NULL,0.0,0.0 , user_data ) ;
+#else
+   { void (*uf)(double,double,int,float *,double,double,void *) =
+     (void (*)(double,double,int,float *,double,double,void *))(user_func) ;
+     uf( 0.0l,0.0l, 0 , NULL,0.0l,0.0l, user_data ) ;
+   }
+#endif
 
    
    /*-------------- Cleanup and go home ----------------*/

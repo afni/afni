@@ -264,6 +264,9 @@ static char * TTget_main( PLUGIN_interface * ) ;
 
 /*-----------------------------------------------------------------*/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;

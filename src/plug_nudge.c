@@ -50,6 +50,9 @@ static void NUD_update_base( Widget ) ;
    Set up the interface to the user
 ************************************************************************/
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    if( ncall > 0 ) return NULL ;  /* only one interface */

@@ -128,6 +128,9 @@ static float * plug_sgnl_filter = NULL;  /* select wavelet coefs. for signal */
    Set up the interface to the user.
 */
 
+
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
   PLUGIN_interface * plint ;     /* will be the output of this routine */
