@@ -35,7 +35,7 @@ int main( int argc , char * argv[] )
 
    /*----- Read command line -----*/
 
-   if( argc < 2 ){
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dTstat [options] dataset\n"
              "Computes a single voxel-wise statistic for a 3D+time dataset\n"
              "(if you want more than one of these, run 3dTstat more than once).\n"
