@@ -33,7 +33,7 @@ Boolean THD_purge_datablock( THD_datablock * blk , int mem_type )
 
       case DATABLOCK_MEM_MMAP:
          ptr = DBLK_ARRAY(blk,0) ;
-         if( ptr != NULL ){ munmap( ptr , blk->total_bytes ) ; nfreed++ ; }
+         if( ptr != NULL ){ munmap( ptr , (size_t)blk->total_bytes ) ; nfreed++ ; }
          for( ibr=0 ; ibr < blk->nvals ; ibr++ )
             mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
       return True ;

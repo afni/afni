@@ -4127,6 +4127,7 @@ STATUS("have new image") ;
                          ? DATABLOCK_MEM_MMAP : DATABLOCK_MEM_MALLOC ;
 
    if( cmode >= 0 ) dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
+   DBLK_mmapfix(dblk) ;  /* 28 Mar 2005 */
 #else
    dblk->malloc_type   = DATABLOCK_MEM_MALLOC ;
 #endif

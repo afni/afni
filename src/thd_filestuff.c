@@ -16,7 +16,7 @@ time_t THD_file_mtime( char *pathname )  /* 05 Dec 2001 */
 
    if( pathname == NULL || *pathname == '\0' ) return 0 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
-   return buf.st_mtime ;
+   return (time_t)buf.st_mtime ;
 }
 
 /*-----------------------------------------------------------*/
@@ -251,4 +251,52 @@ int THD_filename_pure( char *name )  /* 28 Feb 2001 */
       ii = (strstr(name,"/") == NULL) ;
    }
    return ii ;
+}
+
+/*--------------------------------------------------------------*/
+
+#undef FNAME
+#undef FSTYP
+#undef BSIZE
+#undef BFREE
+
+#if defined(DARWIN) || defined(FreeBSD)  /* Mac or BSD */
+#  include <sys/param.h>
+#  include <sys/mount.h>
+#  define FNAME(a,b) statfs(a,b)
+#  define FSTYP      statfs
+#  define BSIZE      f_bsize
+#  define BFREE      f_bavail
+#elif defined(LINUX)                     /* Linux */
+#  include <sys/vfs.h>
+#  define FNAME(a,b) statfs(a,b)
+#  define FSTYP      statfs
+#  define BSIZE      f_bsize
+#  define BFREE      f_bavail
+#elif defined(SOLARIS) || defined(SGI)   /* Sun or SGI */
+#  include <sys/types.h>
+#  include <sys/statvfs.h>
+#  define FNAME(a,b) statvfs64(a,b)
+#  define FSTYP      statvfs64
+#  define BSIZE      f_bsize
+#  define BFREE      f_bavail
+#endif
+
+/*--------------------------------------------------------------*/
+/*! Get free space (in megabytes) on a disk partition.
+    Return value is -1 if can't be determined.
+----------------------------------------------------------------*/
+
+int THD_freemegabytes( char *pathname )
+{
+#ifdef FNAME
+   int ii ; struct FSTYP buf ;
+   if( pathname == NULL || *pathname == '\0' ) return -1 ;
+   ii = FNAME( pathname , &buf ) ;
+   if( ii ) return -1 ;
+   ii = (int)((double)(buf.BFREE) * (double)(buf.BSIZE) / (1024.0*1024.0)) ;
+   return ii ;
+#else
+   return -1 ;
+#endif
 }

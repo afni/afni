@@ -11,7 +11,7 @@ static int native_order = -1 ;
 static int no_mmap      = -1 ;
 static int floatscan    = -1 ;  /* 30 Jul 1999 */
 
-#define PRINT_SIZE 100000000
+#define PRINT_SIZE 66600000
 #define PRINT_STEP 10
 
 static int verbose = 0 ;
@@ -105,10 +105,11 @@ Boolean THD_load_datablock( THD_datablock *blk )
 {
    THD_diskptr *dkptr ;
    int id , offset ;
-   int nx,ny,nz , nxy,nxyz,nxyzv , nv,vv , ii , ntot , ibr , nbad ;
+   int nx,ny,nz , nxy,nxyz , nv,vv , ii , ibr , nbad ;
    char *ptr ;
    MRI_IMAGE *im ;
-   int verb=verbose , print_size=PRINT_SIZE ;
+   int verb=verbose ;
+   int64_t idone , print_size=PRINT_SIZE ;
 
 ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
@@ -227,7 +228,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    nx = dkptr->dimsizes[0] ;
    ny = dkptr->dimsizes[1] ;  nxy   = nx * ny   ;
    nz = dkptr->dimsizes[2] ;  nxyz  = nxy * nz  ;
-   nv = dkptr->nvals       ;  nxyzv = nxyz * nv ; ntot = blk->total_bytes ;
+   nv = dkptr->nvals       ;
 
    if( DBLK_IS_MASTERED(blk) && blk->malloc_type == DATABLOCK_MEM_MMAP ) /* 11 Jan 1999 */
       blk->malloc_type = DATABLOCK_MEM_MALLOC ;
@@ -262,6 +263,8 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
        blk->malloc_type = DATABLOCK_MEM_MALLOC ;
    }
 
+   DBLK_mmapfix(blk) ;  /* 18 Mar 2005 */
+
    /** set up space for bricks via malloc, if so ordered **/
 
    if( blk->malloc_type == DATABLOCK_MEM_MALLOC ||
@@ -290,18 +293,18 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
       fsize = THD_filesize( dkptr->brick_name ) ;
       if( fsize < blk->total_bytes )
-         fprintf(stderr ,
-                 "\n*** WARNING: file %s size is %d, but should be at least %d!\n" ,
-                 dkptr->brick_name , fsize , blk->total_bytes ) ;
+        fprintf(stderr ,
+                "\n*** WARNING: file %s size is %d, but should be at least %lld!\n" ,
+                dkptr->brick_name , fsize , blk->total_bytes ) ;
 
       /* clear the sub-brick pointers */
 
       for( ibr=0 ; ibr < nv ; ibr++ )
-         mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
+        mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
 
       /* map the file into memory */
 
-      ptr = (char *) mmap( 0 , blk->total_bytes ,
+      ptr = (char *) mmap( 0 , (size_t)blk->total_bytes ,
                                PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
 
       /* if that fails, maybe try again (via freeup) */
@@ -314,7 +317,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
          if( freeup != NULL ){
             fprintf(stderr,"*** trying to fix problem\n") ; /* 18 Oct 2001 */
             freeup() ;                          /* AFNI_purge_unused_dsets */
-            ptr = (char *) mmap( 0 , blk->total_bytes ,
+            ptr = (char *) mmap( 0 , (size_t)blk->total_bytes ,
                                      PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
             if( ptr == (char *)(-1) ){
                fprintf(stderr,"*** cannot fix problem!\n") ;
@@ -353,17 +356,17 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    ptr = getenv("AFNI_LOAD_PRINTSIZE") ;   /* 23 Aug 2002 */
    if( verb && ptr != NULL ){
      char *ept ;
-     id = strtol( ptr , &ept , 10 ) ;
-     if( id > 0 ){
+     idone = strtol( ptr , &ept , 10 ) ;
+     if( idone > 0 ){
             if( *ept == 'K' || *ept == 'k' ) id *= 1024 ;
        else if( *ept == 'M' || *ept == 'm' ) id *= 1024*1024 ;
        print_size = id ;
      } else {
-       print_size = 1100000000 ;  /* 1 GB */
+       print_size = 666000000 ;
      }
    }
 
-   if( verb ) verb = (blk->total_bytes > print_size ) ;
+   if( verb ) verb = (blk->total_bytes > print_size) ;
    if( verb ) fprintf(stderr,"reading dataset %s",dkptr->filecode) ;
 
    switch( dkptr->storage_mode ){
@@ -396,12 +399,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
          /* read each sub-brick all at once */
 
-         id = 0 ;
+         idone = 0 ;
          if( ! DBLK_IS_MASTERED(blk) ){      /* read each brick */
 
             for( ibr=0 ; ibr < nv ; ibr++ ){
-              id += fread( DBLK_ARRAY(blk,ibr), 1,
-                           DBLK_BRICK_BYTES(blk,ibr), far ) ;
+              idone += fread( DBLK_ARRAY(blk,ibr), 1,
+                              DBLK_BRICK_BYTES(blk,ibr), far ) ;
 
               if( verb && ibr%PRINT_STEP == 0 ) fprintf(stderr,".") ;
             }
@@ -436,7 +439,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                  if( blk->master_ival[jbr] == ibr ){  /* copy it in */
                    memcpy( DBLK_ARRAY(blk,jbr) , buf , blk->master_bytes[ibr] ) ;
                    nfilled++ ;  /* number of bricks filled */
-                   id += nbr ;  /* number of bytes read into dataset */
+                   idone += nbr ;  /* number of bytes read into dataset */
                  }
                }
             }  /* end of loop over master sub-bricks */
@@ -450,12 +453,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
          /* check if total amount of data read is correct */
 
-         if( id != blk->total_bytes ){
+         if( idone != blk->total_bytes ){
             THD_purge_datablock( blk , blk->malloc_type ) ;
             fprintf(stderr ,
                     "\n*** failure while reading from brick file %s\n"
-                      "*** desired %d bytes but only got %d\n" ,
-                    dkptr->brick_name , blk->total_bytes , id ) ;
+                      "*** desired %lld bytes but only got %lld\n" ,
+                    dkptr->brick_name , blk->total_bytes , idone ) ;
             perror("*** Unix error message") ;
             RETURN( False );
          }
@@ -894,7 +897,7 @@ ENTRY("THD_alloc_datablock") ;
      { unsigned int offset ;
        if( blk->shm_idcode[0] == '\0' ){   /* new segment */
          UNIQ_idcode_fill( blk->shm_idcode ) ;
-         blk->shm_idint = shm_create( blk->shm_idcode , blk->total_bytes ) ;
+         blk->shm_idint = shm_create( blk->shm_idcode , (int)blk->total_bytes ) ;
          if( blk->shm_idint < 0 ){ blk->shm_idcode[0] = '\0'; RETURN(0); }
          ptr = shm_attach( blk->shm_idint ) ;
          if( ptr == NULL ){
