@@ -9,24 +9,26 @@
 
 /*---------------------------------------------------------------------*/
 
-Boolean THD_write_atr( THD_datablock * blk )
+Boolean THD_write_atr( THD_datablock *blk )
 {
-   THD_diskptr * dkptr ;
+   THD_diskptr *dkptr ;
    int ia , code , ii ;
-   ATR_any * atr_any ;
+   ATR_any *atr_any ;
    Boolean good = True ;
-   FILE * header_file ;
+   FILE *header_file ;
+
+ENTRY("THD_write_atr") ;
 
    /*--- sanity checks ---*/
 
-   if( ! ISVALID_DATABLOCK(blk) ) return False ;
+   if( ! ISVALID_DATABLOCK(blk) ) RETURN( False );
 
    dkptr = blk->diskptr ;
-   if( ! ISVALID_DISKPTR(dkptr) || strlen(dkptr->header_name) == 0 ) return False ;
+   if( ! ISVALID_DISKPTR(dkptr) || strlen(dkptr->header_name) == 0 ) RETURN( False );
 
-   if( DBLK_IS_MINC(blk)    ) return False ; /* 29 Oct 2001 */
-   if( DBLK_IS_ANALYZE(blk) ) return False ; /* 27 Aug 2002 */
-   if( DBLK_IS_NIFTI(blk)   ) return False ; /* 28 Aug 2003 */
+   if( DBLK_IS_MINC(blk)    ) RETURN( False ); /* 29 Oct 2001 */
+   if( DBLK_IS_ANALYZE(blk) ) RETURN( False ); /* 27 Aug 2002 */
+   if( DBLK_IS_NIFTI(blk)   ) RETURN( False ); /* 28 Aug 2003 */
 
    header_file = fopen( dkptr->header_name , "w" ) ;
    if( header_file == NULL ){
@@ -35,7 +37,7 @@ Boolean THD_write_atr( THD_datablock * blk )
               "         - Do you have permission to write to this disk?\n"
               "         - Is the disk full?\n" ,
               dkptr->header_name) ;
-      return False ;
+      RETURN( False );
    }
 
    for( ia=0 ; ia < blk->natr ; ia++ ){
@@ -127,5 +129,5 @@ Boolean THD_write_atr( THD_datablock * blk )
    /*--- close it down ---*/
 
    fclose( header_file ) ;
-   return True ;
+   RETURN( True );
 }

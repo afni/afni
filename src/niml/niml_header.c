@@ -9,6 +9,27 @@
 #define SKIPABL(c) ((c)=='#' || isspace(c))
 
 /*--------------------------------------------------------------------------*/
+/*! Find an attribute in a header_stuff struct.  Returns the RHS or NULL.
+----------------------------------------------------------------------------*/
+
+char * get_header_attribute( header_stuff *hs , char *attname )
+{
+   int nn ;
+   static char *zorkon = "\0" ;
+
+   if( hs == NULL ) return NULL ;
+
+   for( nn=0 ; nn < hs->nattr ; nn++ )
+     if( strcmp(hs->lhs[nn],attname) == 0 ) break ;
+
+   if( nn == hs->nattr ) return NULL ;
+
+   if( hs->rhs[nn] == NULL ) return zorkon ;
+
+   return hs->rhs[nn] ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Deallocate a header_stuff struct.
 ----------------------------------------------------------------------------*/
 

@@ -2357,12 +2357,12 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
                 BADNEWS ;
 
       } else if( STARTER("DRIVE_AFNI") ){   /* 30 Jul 2002 */
-         char cmd[256]="\0" ;
+         char cmd[1024]="\0" ;
          int ii ;
          if( strlen(buf) < 11 ){
             fprintf(stderr,"RT: DRIVE_AFNI lacks command\n") ;
          } else {  /* the command is everything after "DRIVE_AFNI " */
-            MCW_strncpy(cmd,buf+11,256) ;
+            MCW_strncpy(cmd,buf+11,1024) ;
             if( verbose == 2 )
                fprintf(stderr,"RT: command DRIVE_AFNI %s\n",cmd) ;
             ii = AFNI_driver( cmd ) ;  /* just do it */
