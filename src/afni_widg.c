@@ -4281,6 +4281,10 @@ ENTRY("new_AFNI_controller") ;
 
    im3d->brand_new = 1 ; /* 07 Dec 2001 */
 
+   /* 27 Jan 2004: mark if this currently looking at dummy dataset */
+
+   im3d->dummied = GLOBAL_library.have_dummy_dataset ;
+
    im3d->fimdata = myXtNew( AFNI_fimmer_type ); ADDTO_KILL(im3d->kl,im3d->fimdata);
    CLEAR_FIMDATA(im3d) ;
 

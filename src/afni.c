@@ -1399,8 +1399,10 @@ STATUS("call 12") ;
 
         AFNI_read_inputs( MAIN_argc , MAIN_argv ) ;
 
-        if( GLOBAL_library.have_dummy_dataset && MAIN_im3d->type == AFNI_3DDATA_VIEW )
-           XtSetSensitive( MAIN_im3d->vwid->prog->clone_pb , False ) ;
+        if( GLOBAL_library.have_dummy_dataset && MAIN_im3d->type == AFNI_3DDATA_VIEW ){
+          XtSetSensitive( MAIN_im3d->vwid->prog->clone_pb , False ) ;
+          MAIN_im3d->dummied = 1 ;  /* 27 Jan 2004 */
+        }
       }
       break ;
 
@@ -6630,7 +6632,7 @@ ENTRY("AFNI_purge_dsets") ;
    (the indexes of the desired session and datasets, that is)
 -----------------------------------------------------------------------*/
 
-void AFNI_initialize_view( THD_3dim_dataset * old_anat, Three_D_View * im3d )
+void AFNI_initialize_view( THD_3dim_dataset *old_anat, Three_D_View *im3d )
 {
    int vvv , itog , lll , sss , aaa , fff , id ;
    THD_3dim_dataset     * dset , * new_anat , * new_func ;
@@ -6803,7 +6805,17 @@ STATUS("turning markers on") ;
       fv = THD_dicomm_to_3dmm( dset , fv ) ;
       iv = THD_3dmm_to_3dind( dset , fv ) ;
    } else {
-      LOAD_IVEC3( iv,  im3d->vinfo->i1, im3d->vinfo->j2, im3d->vinfo->k3 ) ;
+      LOAD_IVEC3( iv, im3d->vinfo->i1, im3d->vinfo->j2, im3d->vinfo->k3 ) ;
+   }
+
+   /* 27 Jan 2004: set coordinate to center of dataset
+                   if we were formerly looking at the dummy dataset */
+
+   if( im3d->dummied && !GLOBAL_library.have_dummy_dataset ){
+     im3d->dummied = 0 ;
+     LOAD_IVEC3( iv , im3d->anat_now->daxes->nxx/2 ,
+                      im3d->anat_now->daxes->nyy/2 ,
+                      im3d->anat_now->daxes->nzz/2  ) ;
    }
 
    DISABLE_LOCK ;  /* 11 Nov 1996 */
