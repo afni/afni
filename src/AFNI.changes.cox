@@ -3306,3 +3306,7 @@
 09 Nov 2001
  * Replaced isblank() in afni_driver.c with isspace() - the former
      is a GNU extension, the latter is standard.
+
+12 Nov 2001
+ * Modified imreg.c to have -cmass option for pre-alignment of
+     center of mass.

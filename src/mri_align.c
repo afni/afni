@@ -168,7 +168,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
    if( imwt == NULL ) imww = mri_to_float( bim ) ;  /* 28 Oct 1996 */
    else               imww = mri_to_float( imwt ) ;
 
-   tar = MRI_FLOAT_PTR(imww) ;       
+   tar = MRI_FLOAT_PTR(imww) ;
    for( ii=0 ; ii < nx*ny ; ii++ ) tar[ii] = fabs(tar[ii]) ;  /* 16 Nov 1998 */
 
 #ifdef USE_DELAYED_FIT
@@ -202,7 +202,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
      if( imwt == NULL ) fine_imww = mri_to_float( bim ) ;  /* 03 Oct 1997 */
      else               fine_imww = mri_to_float( imwt ) ;
 
-     tar = MRI_FLOAT_PTR(fine_imww) ;       
+     tar = MRI_FLOAT_PTR(fine_imww) ;
      for( ii=0 ; ii < nx*ny ; ii++ ) tar[ii] = fabs(tar[ii]) ;
 
 #ifdef USE_DELAYED_FIT

@@ -584,7 +584,9 @@ extern MRI_IMARR * mri_align_dftime( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
                                      int, float *, float *, float * ) ;
 
 extern void mri_align_params( int,float,float,float,float,float,float ) ;
-extern void mri_align_method( int,int,int ) ;  /* 1 Oct 1998 */
+extern void mri_align_method( int,int,int ) ;  /* 01 Oct 1998 */
+
+extern void mri_get_cmass_2D( MRI_IMAGE *, float *, float * ); /* 12 Nov 2001 */
 
 /*---------------------------------------------------------------------*/
 /* 07 April 1998: routines for one-at-a-time alignment (mri_2dalign.c) */

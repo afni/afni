@@ -29,7 +29,7 @@ static int  RG_almode_coarse   = MRI_BICUBIC ;
 static int  RG_almode_fine     = MRI_BICUBIC ;
 static int  RG_almode_reg      = MRI_BICUBIC ;
 
-static int  RG_use_cm          = 0 ; /* 08 Nov 2001 */
+static int  RG_use_cmass       = 0 ; /* 12 Nov 2001 */
 
 static MRI_IMAGE * RG_imwt     = NULL ;
 
@@ -83,6 +83,52 @@ int main( int argc , char *argv[] )
    if( dx == NULL || dy == NULL || phi == NULL ){
      fprintf(stderr,"** malloc failure for mri_rotate parameters!\a\n") ; exit(1) ;
    }
+
+   /* 12 Nov 2001: shift input images to align centers of mass */
+
+   if( RG_use_cmass ){
+      float xbase,ybase , xcm,ycm ;
+      int ii,jj,kk , di,dj , nx,ny , sj,si  ;
+      MRI_IMAGE *fim , *nim ;
+      float     *far , *nar ;
+
+      if( RG_verbose ) printf("-- doing -cmass adjustments\n") ;
+
+      mri_get_cmass_2D( RG_baseimage , &xbase , &ybase ) ;
+
+      for( kk=0 ; kk < imcount ; kk++ ){
+         fim = mri_to_float( IMARR_SUBIM(RG_imseq,kk) ) ; /* copy image */
+         mri_get_cmass_2D( fim , &xcm , &ycm ) ;
+         di = (int) rint(xbase-xcm) ;                 /* integer shifts */
+         dj = (int) rint(ybase-ycm) ;
+         if( di != 0 || dj != 0 ){                 /* shift input image */
+
+#if 0
+fprintf(stderr,"Image %d: xbase=%g ybase=%g xcm=%g ycm=%g di=%d dj=%d\n",
+        kk,xbase,ybase,xcm,ycm,di,dj ) ;
+#endif
+
+            nim = mri_new_conforming( fim , MRI_float ); /* zero filled */
+            far = MRI_FLOAT_PTR(fim) ;
+            nar = MRI_FLOAT_PTR(nim) ;
+            nx  = fim->nx ; ny = fim->ny ;
+            for( jj=0 ; jj < ny ; jj++ ){          /* copy fim into nim */
+               sj = jj + dj ;
+               if( sj < 0 || sj >= ny ) continue ;
+               for( ii=0 ; ii < nx ; ii++ ){
+                  si = ii + di ;
+                  if( si < 0 || si >= nx ) continue ;
+                  nar[si+nx*sj] = far[ii+nx*jj] ;
+               }
+            }
+            mri_free( IMARR_SUBIM(RG_imseq,kk) ) ; /* replace image */
+            IMARR_SUBIM(RG_imseq,kk) = nim ;       /* in the array */
+         }
+         mri_free(fim) ;
+      }
+   } /* end of RG_use_cmass */
+
+   /* do the actual iterative alignments */
 
    if( RG_verbose ) printf("-- beginning alignment\n") ;
    switch( RG_meth ){
@@ -248,6 +294,8 @@ void REG_syntax(void)
 
     "  -cmass            Initialize the translation estimate by aligning\n"
     "                    the centers of mass of the images.\n"
+    "              N.B.: The reported shifts from the registration algorithm\n"
+    "                    do NOT include the shifts due to this initial step.\n"
     "\n"
     "The new two options are used to play with the -dfspace algorithm,\n"
     "which has a 'coarse' fit phase and a 'fine' fit phase:\n"
@@ -282,10 +330,10 @@ void REG_command_line(void)
 
    while( Iarg < Argc-2 && Argv[Iarg][0] == '-' ){
 
-      /** -cmass [08 Nov 2001] **/
+      /** -cmass [12 Nov 2001] **/
 
       if( strcmp(Argv[Iarg],"-cmass") == 0 ){
-         RG_use_cm = 1 ;
+         RG_use_cmass = 1 ;
          Iarg++ ; continue ;
       }
 
