@@ -1,0 +1,56 @@
+#Version of SUMA_Makefile with no ifdef statements
+
+#These normally come from AFNI's makefile, if you're running make without using afni's makefile, you need to set some variables
+
+SUMALIB = libSUMA.a
+AFNILIB = -lmri -lrickr
+MAINCODE = SUMA
+
+#that one was tried for static linking. Bad idea. Requires libGL.a which crashes with nvidia driver 
+#for static linking to work (forget about running the program) you need to build Mesa with the 
+#options --enable-static --without-glide with the ./configure script
+# ./configure --prefix=/usr --enable-static --without-glide
+#CCOPT = -static
+#SUMA_LINK_LIB = -lGLU -lGL -lpthread -lXmu -lXm -lXp -lXext -lXt -lSM -lICE -lX11 -lm 
+ 
+SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\
+		 SUMA_IV_FaceSetsextract.c  SUMA_SurfNorm.c SUMA_DOmanip.c SUMA_StripPath.c 	\
+		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
+		 SUMA_Engine.c SUMA_SureFit.c SUMA_FreeSurfer.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
+		 SUMA.c
+
+SUMA_OBJS = ${SUMA_SRCS:.c=.o}
+
+SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
+		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h
+
+#library only
+${SUMALIB} : ${SUMA_OBJS}
+	rm -f ${SUMALIB}
+	ar q ${SUMALIB} ${SUMA_OBJS}
+	echo "library Rebuilt ..."
+	#$(RANLIB) ${SUMALIB} 
+
+
+clean:
+	$(RM) *.o
+
+.c.o:
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c $*.c 
+	
+suma: SUMA.o
+	$(RM) $@
+	${CC} ${CCOPT} ${WARNOPT} -o suma SUMA.o ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+MakeColorMap: SUMA_Color.c
+	$(RM) $@
+	${CC} -DSUMA_MakeColorMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o MakeColorMap SUMA_Color.c ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+install:
+	if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
+	mv suma ${INSTALLDIR_SUMA}
+	mv MakeColorMap ${INSTALLDIR_SUMA} 
+	
+all: libSUMA.a suma MakeColorMap install
+
+anew: clean libSUMA.a suma MakeColorMap install
