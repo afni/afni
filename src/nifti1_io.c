@@ -257,7 +257,7 @@ mat44 quatern_to_mat44( float qb, float qc, float qd,
        the polar decomposition to find the orthogonal matrix closest
        to the column-normalized input matrix.
      - However, if the 3 input matrix columns are NOT orthogonal, then
-       the matrix produces by quatern_to_mat44 WILL have orthogonal
+       the matrix produced by quatern_to_mat44 WILL have orthogonal
        columns, so it won't be the same as the matrix input here.
        This "feature" is because the NIFTI 'qform' transform is
        deliberately not fully general -- it is intended to model a volume
@@ -812,10 +812,10 @@ unsigned int get_filesize( char *pathname )
 
 /*--------------------------------------------------------------------------*/
 /* Determine if this is a NIFTI-formatted file.
-    - returns 0 if file looks like ANALYZE 7.5 [checks sizeof_hdr field]
-    - returns 1 if file marked as NIFTI (header+data in 1 file)
-    - returns 2 if file marked as NIFTI (header+data in 2 files)
-    - returns -1 if it can't tell, file doesn't exist, etc.
+   - returns 0 if file looks like ANALYZE 7.5 [checks sizeof_hdr field == 348]
+   - returns 1 if file marked as NIFTI (header+data in 1 file)
+   - returns 2 if file marked as NIFTI (header+data in 2 files)
+   - returns -1 if it can't tell, file doesn't exist, etc.
 ----------------------------------------------------------------------------*/
 
 int is_nifti_file( char *hname )

@@ -12,6 +12,12 @@
 #endif
 #include "nifti1.h"                  /*** NIFTI-1 header specification ***/
 
+/*=================*/
+#ifdef  __cplusplus
+extern "C" {
+#endif
+/*=================*/
+
 /*****===================================================================*****/
 /*****         File nifti1_io.h == Declarations for nifti1_io.c          *****/
 /*****...................................................................*****/
@@ -179,5 +185,11 @@ int short_order(void) ;              /* CPU byte order */
 #define LSB_FIRST 1
 #define MSB_FIRST 2
 #define REVERSE_ORDER(x) (3-(x))    /* convert MSB_FIRST <--> LSB_FIRST */
+
+/*=================*/
+#ifdef  __cplusplus
+}
+#endif
+/*=================*/
 
 #endif /* _NIFTI_IO_HEADER_ */
