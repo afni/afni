@@ -1661,6 +1661,8 @@ void read_input_data
     }
 
 
+  *num_blocks = 0 ;  /* 04 Aug 2004 */
+
   /*----- Read the input fMRI measurement data -----*/
   if (option_data->nodata)
     {
@@ -1764,9 +1766,11 @@ void read_input_data
   /*----- Read the block list -----*/
   if (option_data->concat_filename == NULL)
     {
-      *num_blocks = 1;
-      *block_list = (int *) malloc (sizeof(int) * 1);
-      (*block_list)[0] = 0;
+      if( *num_blocks <= 0 ){
+        *num_blocks = 1;
+        *block_list = (int *) malloc (sizeof(int) * 1);
+        (*block_list)[0] = 0;
+      }
     }
   else
     {
