@@ -1,0 +1,25 @@
+Ifile: 
+
+Program to read GE RT-EPI image files and divine their ordering
+in time and space. Ifile also generates the command for @RenamePanga
+to package the images into an AFNI brick.
+
+Try one of the binaries Ifile_* or compile your own 
+
+To compile:
+
+Linux:
+   cc -o Ifile -O2 Ifile.c -lm
+SGI:
+	gcc -o Ifile_Irix -O2 Ifile.c -lm
+
+Solaris:
+	gcc -o Ifile_Solaris Ifile.c -lm
+
+For help on Ifile usage, execute Ifile with no arguments
+
+@RenamePanga:
+Script to package GE RT-EPI images into an AFNI brick.  
+
+
+Robert W. Cox (rwcox@nih.gov) & Ziad S. Saad (ziad@nih.gov) SSCC/NIMH Dec. 10/01

@@ -1,0 +1,49 @@
+
+DRIVE_AFNI commands from a plugout (see afni_driver.c)
+======================================================
+
+QUIT
+ AFNI will drop dead.
+
+RESCAN_THIS A
+ Like pressing "Rescan This" in controller #A (could also be B..E).
+ This causes any new datasets in the current session directory to be
+ detected by AFNI.
+
+SET_SESSION A.directoryname
+ Set the current session directory in controller #A to the given
+ directory.  Like using "Switch Session".
+
+SET_ANATOMY A.prefix
+ Set the current anatomical dataset in controller #A to the given
+ dataset.  Like using "Switch Anatomy".
+
+SET_FUNCTION A.prefix
+ Set the current functional dataset in controller #A to the given
+ dataset.  Like using "Switch Function".
+
+OPEN_WINDOW A.windowname [options]
+ Open the given window in controller #A.  Windownames that you
+ can use include
+   axialimage, sagittalimage, coronalimage,
+   axialgraph, sagittalgraph, coronalgraph.
+ For all windows, one allowed option is:
+   geom=PxQ+R+S or geom=PxQ or geom=+R+S
+   to make the window be PxQ pixels in size and located at screen
+   coordinates (R,S).
+ For image windows, other options available are:
+   ifrac=number -> set image fraction in window to number (<= 1.0)
+   mont=PxQ:R   -> montage P across, Q down, every R'th slice
+ For graph windows, other options available are:
+   matrix=number -> use number sub-graphs (<= 21)
+   pinnum=number -> pin the graph length to number time points
+ You can also open plugin windows with a windowname like so:
+   A.plugin.buttonlabel
+ where buttonlabel is the plugin's button label with blanks replaced
+ by underscores or hyphens (e.g., Render_Dataset).  You can also use
+ the geom= option with this type of window opening.
+
+CLOSE_WINDOW A.windowname
+ This will close the given window (but not a plugin) in the A
+ controller.  To close the controller itself, just use "A" for
+ the argument after CLOSE_WINDOW.
