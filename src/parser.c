@@ -9,17 +9,29 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b323 = 1.;
-static doublereal c_b325 = 0.;
+static doublereal c_b325 = 1.;
+static doublereal c_b327 = 0.;
+static doublereal c_b335 = 2.;
+static doublereal c_b336 = 3.;
+static doublereal c_b337 = 4.;
+static doublereal c_b338 = 5.;
+static doublereal c_b339 = 6.;
+static doublereal c_b340 = 7.;
+static doublereal c_b341 = 8.;
+static doublereal c_b342 = 9.;
+static doublereal c_b343 = 10.;
+static doublereal c_b344 = 11.;
+static doublereal c_b345 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
 {
     /* Initialized data */
 
-    static integer n_funcargs__[81] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
+    static integer n_funcargs__[82] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
 	    2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,-1,
-	    4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1,2 };
+	    4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1,2,1 
+	    };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -603,7 +615,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*82] = "SIN                             " 
+    static char c_funcname__[32*83] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -647,8 +659,8 @@ L9000:
 	    "                      " "FIPT_P2T                        " "FIPT"
 	    "_T2Z                        " "ZTONE                           " 
 	    "LMODE                           " "HMODE                       "
-	    "    " "GRAN                            " "DUMMY                 "
-	    "          ";
+	    "    " "GRAN                            " "URAN                  "
+	    "          " "DUMMY                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -743,7 +755,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*82] = "SIN                             " 
+    static char c_funcname__[32*83] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -787,8 +799,8 @@ L8000:
 	    "                      " "FIPT_P2T                        " "FIPT"
 	    "_T2Z                        " "ZTONE                           " 
 	    "LMODE                           " "HMODE                       "
-	    "    " "GRAN                            " "DUMMY                 "
-	    "          ";
+	    "    " "GRAN                            " "URAN                  "
+	    "          " "DUMMY                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -942,7 +954,7 @@ L120:
 */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 2592, c_id__, 32L, 32L);
+	s_copy(c_funcname__ + 2624, c_id__, 32L, 32L);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
 		 {
@@ -951,7 +963,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 81) {
+	if (ifunc <= 82) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1211,8 +1223,8 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
     /* Local variables */
     extern doublereal land_(integer *, doublereal *), derf_(doublereal *), 
 	    gran_(doublereal *, doublereal *), bool_(doublereal *), rect_(
-	    doublereal *), step_(doublereal *), bell2_(doublereal *), derfc_(
-	    doublereal *);
+	    doublereal *), uran_(doublereal *), step_(doublereal *), bell2_(
+	    doublereal *), derfc_(doublereal *);
     static integer ncode;
     static doublereal x, y;
     extern doublereal hmode_(integer *, doublereal *), lmode_(integer *, 
@@ -1440,6 +1452,10 @@ L1000:
 	--neval;
 	r8_eval__[neval - 1] = gran_(&r8_eval__[neval - 1], &r8_eval__[neval])
 		;
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "URAN", 8L, 4L) == 0) {
+	r8_eval__[neval - 1] = uran_(&r8_eval__[neval - 1]);
 /* ...................................................................
 .... */
     } else if (s_cmp(cncode, "SINH", 8L, 4L) == 0) {
@@ -1764,7 +1780,8 @@ L8000:
 	    gran_(doublereal *, doublereal *), bool_(doublereal *), rect_(
 	    doublereal *);
     static doublereal scop[101];
-    extern doublereal step_(doublereal *), bell2_(doublereal *);
+    extern doublereal uran_(doublereal *), step_(doublereal *), bell2_(
+	    doublereal *);
     static doublereal r8val[1664]	/* was [64][26] */;
     extern doublereal derfc_(doublereal *);
     static integer ncode;
@@ -2264,6 +2281,14 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = gran_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "URAN", 8L, 4L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = uran_(&r8_eval__[iv 
+			- ibv + (neval << 6) - 65]);
 	    }
 /* ...............................................................
 ........ */
@@ -2947,10 +2972,10 @@ doublereal unif_(doublereal *xjunk)
  */
 
     if (r__ == 0.) {
-	r__ = 2.4414435029029846e-4;
+	r__ = .014901164919137955;
     }
     d__1 = r__ * 41475557.;
-    r__ = d_mod(&d__1, &c_b323);
+    r__ = d_mod(&d__1, &c_b325);
     ret_val = r__;
     return ret_val;
 } /* unif_ */
@@ -2958,13 +2983,38 @@ doublereal unif_(doublereal *xjunk)
 
 
 
-doublereal gran_(doublereal *b, doublereal *s)
+doublereal uran_(doublereal *x)
 {
     /* System generated locals */
     doublereal ret_val;
 
+    /* Local variables */
+    extern doublereal unif_(doublereal *);
+
+
+/*  Return a U(0,X) random variable. */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
+
+    ret_val = *x * unif_(&c_b327);
+    return ret_val;
+} /* uran_ */
+
+
+
+
+doublereal gran2_(doublereal *b, doublereal *s)
+{
+    /* Initialized data */
+
+    static integer ip = 0;
+
+    /* System generated locals */
+    doublereal ret_val;
+
     /* Builtin functions */
-    double log(doublereal), sqrt(doublereal), sin(doublereal);
+    double log(doublereal), sqrt(doublereal), sin(doublereal), cos(doublereal)
+	    ;
 
     /* Local variables */
     extern doublereal unif_(doublereal *);
@@ -2976,13 +3026,69 @@ doublereal gran_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    u2 = unif_(&c_b325);
+    if (ip == 0) {
 L100:
-    u1 = unif_(&c_b325);
-    if (u1 <= 0.) {
-	goto L100;
+	u1 = unif_(&c_b327);
+	if (u1 <= 0.) {
+	    goto L100;
+	}
+/* L200: */
+	u2 = unif_(&c_b327);
+/* CC      IF( U2 .LE. 0.D+00 ) GOTO 200 */
+	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
+	ip = 1;
+    } else {
+	ret_val = *b + *s * sqrt(log(u1) * -2.) * cos(u2 * 6.2831853);
+	ip = 0;
     }
-    ret_val = *b + *s * sqrt(log(u1) * -2.f) * sin(u2 * 6.2831853);
+    return ret_val;
+} /* gran2_ */
+
+
+
+
+doublereal gran1_(doublereal *b, doublereal *s)
+{
+    /* System generated locals */
+    doublereal ret_val;
+
+    /* Local variables */
+    extern doublereal unif_(doublereal *);
+    static doublereal g;
+
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
+
+    g = unif_(&c_b325) - 6. + unif_(&c_b335) + unif_(&c_b336) + unif_(&c_b337)
+	     + unif_(&c_b338) + unif_(&c_b339) + unif_(&c_b340) + unif_(&
+	    c_b341) + unif_(&c_b342) + unif_(&c_b343) + unif_(&c_b344) + 
+	    unif_(&c_b345);
+    ret_val = *b + *s * g;
+    return ret_val;
+} /* gran1_ */
+
+
+
+
+doublereal gran_(doublereal *b, doublereal *s)
+{
+    /* System generated locals */
+    doublereal ret_val;
+
+    /* Local variables */
+    extern doublereal unif_(doublereal *), gran1_(doublereal *, doublereal *),
+	     gran2_(doublereal *, doublereal *);
+    static doublereal uu;
+
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
+
+    uu = unif_(&c_b327);
+    if (uu <= .5) {
+	ret_val = gran1_(b, s);
+    } else {
+	ret_val = gran2_(b, s);
+    }
     return ret_val;
 } /* gran_ */
 
@@ -3534,10 +3640,10 @@ doublereal dbesk1_(doublereal *x)
     integer s_wsfe(cilist *), e_wsfe(void);
 
     /* Fortran I/O blocks */
-    static cilist io___104 = { 0, 6, 0, fmt_999, 0 };
+    static cilist io___107 = { 0, 6, 0, fmt_999, 0 };
 
 
-    s_wsfe(&io___104);
+    s_wsfe(&io___107);
     e_wsfe();
     return 0;
 } /* qqqerr_ */

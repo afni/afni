@@ -817,7 +817,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
-     X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE, GRAN
+     X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE, GRAN,URAN
 C
 C  External library functions
 C
@@ -963,6 +963,9 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'GRAN')THEN
             NEVAL = NEVAL - 1
             R8_EVAL(NEVAL) = GRAN( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'URAN' )THEN
+            R8_EVAL(NEVAL) = URAN( R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
             IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
@@ -1239,7 +1242,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
-     X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE , GRAN
+     X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE , GRAN,URAN
 C
 C  External library functions
 C
@@ -1560,6 +1563,11 @@ C.......................................................................
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = GRAN( R8_EVAL(IV-IBV,NEVAL) ,
      X                                       R8_EVAL(IV-IBV,NEVAL+1) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'URAN')THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = URAN( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
@@ -2033,7 +2041,7 @@ C     THEN R ASSUMES ALL VALUES  0 < (4*K+1)/2**28 < 1 DURING
 C     A FULL PERIOD 2**26 OF SUNIF.
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C
-      IF( R .EQ. 0.D+00 ) R = 65537.D+00 / TWO28
+      IF( R .EQ. 0.D+00 ) R = 4000001.D+00 / TWO28
       R    = DMOD(R*FACTOR,1.0D+00)
       UNIF = R
       RETURN
@@ -2041,17 +2049,67 @@ C
 C
 C
 C
-      FUNCTION GRAN( B , S )
+      FUNCTION URAN( X )
+      IMPLICIT REAL*8 (A-H,O-Z)
+C
+C  Return a U(0,X) random variable.
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+      URAN = X * UNIF(0.D+00)
+      RETURN
+      END
+C
+C
+C
+      FUNCTION GRAN2( B , S )
       IMPLICIT REAL*8 (A-H,O-Z)
 C
 C  Compute a Gaussian random deviate with mean B and stdev S
 C
+      INTEGER IP
+      DATA    IP / 0 /
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C
-      U2 = UNIF(0.D+00)
-100   U1 = UNIF(0.D+00)
-      IF( U1 .LE. 0.D+00 ) GOTO 100
-      GRAN = B + S * SQRT(-2.0*LOG(U1)) * SIN(6.2831853D+00*U2)
+      IF( IP .EQ. 0 )THEN
+100      U1 = UNIF(0.D+00)
+         IF( U1 .LE. 0.D+00 ) GOTO 100
+200      U2 = UNIF(0.D+00)
+CCC      IF( U2 .LE. 0.D+00 ) GOTO 200
+         GRAN2 = B + S * SQRT(-2.0D+00*LOG(U1)) * SIN(6.2831853D+00*U2)
+         IP    = 1
+      ELSE
+         GRAN2 = B + S * SQRT(-2.0D+00*LOG(U1)) * COS(6.2831853D+00*U2)
+         IP    = 0
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+      FUNCTION GRAN1( B , S )
+      IMPLICIT REAL*8 (A-H,O-Z)
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+      G = -6.D+00 + UNIF(1.D+00) + UNIF(2.D+00) + UNIF(3.D+00)
+     X            + UNIF(4.D+00) + UNIF(5.D+00) + UNIF(6.D+00)
+     X            + UNIF(7.D+00) + UNIF(8.D+00) + UNIF(9.D+00)
+     X            + UNIF(10.D+0) + UNIF(11.D+0) + UNIF(12.D+0)
+      GRAN1 = B + S*G
+      RETURN
+      END
+C
+C
+C
+      FUNCTION GRAN( B , S )
+      IMPLICIT REAL*8 (A-H,O-Z)
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+      UU = UNIF(0.0D+00)
+      IF( UU .LE. 0.5D+00 )THEN
+         GRAN = GRAN1(B,S)
+      ELSE
+         GRAN = GRAN2(B,S)
+      ENDIF
       RETURN
       END
 C

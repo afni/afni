@@ -2017,6 +2017,15 @@
      sample.  Also included small changes to afni.[ch], afni_graph.[ch],
      and a large-ish addition to afni_fimmer.c.
  * Removed useless "break" statements in afni_graph.c that produced
-     those annoying "unreachable code" compilation warnings.
-     Also modified bbox.c bbox and arrowval routines to check if the
-     input items are NULL before accessing them.
+     some annoying "unreachable code" compilation warnings.
+     Also modified bbox.c bbox and arrowval utility routines to check
+     if the input items are NULL before accessing them.
+
+02 Feb 2000
+ * Modified 3dvolreg.c to make it not print out the -help stuff when
+     argc==2.
+ * Added uran() function to parser.
+
+03 Feb 2000
+ * Modified GRAN() random number generator in parser.f to make it be
+     less obviously periodic.
