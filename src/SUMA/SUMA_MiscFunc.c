@@ -3884,15 +3884,26 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    
    {
       int winedonce = 0;
-      if (SEL->min_N_Hosts == 1 || SEL->max_N_Hosts == 1) {
+      if (debug && (SEL->min_N_Hosts == 1 || SEL->max_N_Hosts == 1)) {
          winedonce = 1;
-         fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
-         fprintf(SUMA_STDERR,"Warning %s: You have edges that form a border in the surface.\n", FuncName);
+         fprintf(SUMA_STDERR,"Warning %s:\n Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+         fprintf(SUMA_STDERR," You have edges that form a border in the surface.\n");
       }
       if (SEL->min_N_Hosts > 2 || SEL->max_N_Hosts > 2) {
          winedonce = 1;
-         fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
-         fprintf(SUMA_STDERR,"Warning %s: You have edges that belong to more than two triangles. Bad for analysis assuming surface is a 2-manifold..\n", FuncName);
+         fprintf(SUMA_STDERR, "Warning %s:\n"
+                              "Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+         fprintf(SUMA_STDERR, "Warning %s:\n"
+                              " You have edges that belong to more than two triangles.\n"
+                              " Bad for analysis assuming surface is a 2-manifold.\n", FuncName);
+         if (debug) {
+            int iii=0;
+            fprintf(SUMA_STDERR, " These edges are formed by the following nodes:\n");
+            for (iii = 0; iii < SEL->N_EL; +++iii) { 
+               if (SEL->ELps[iii][2] > 2) fprintf (SUMA_STDERR," %d: Edge [%d %d] shared by %d triangles.\n", 
+                                                iii+1, SEL->EL[iii][0], SEL->EL[iii][1] , SEL->ELps[iii][2] );
+            }
+         }
       }
       if (debug && !winedonce) 
          fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
@@ -4736,11 +4747,14 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
         }
         if (jj != FN->N_Neighb[i]) {
             if (!TessErr_Cnt) {
-               fprintf (SUMA_STDERR, "Error %s: Failed in copying neighbor list! jj=%d, FN->N_Neighb[%d]=%d\n", 
-                  FuncName, jj, i, FN->N_Neighb[i]);
-               fprintf (SUMA_STDERR, "\tIf this is a closed surface, the problem is likely due to a tessellation error.\n\tOne or more edges may not be part of 2 and only 2 triangles.\n\tNeighbor list for node %d will not be ordered as connected vertices.\n", 
-                  i);
-               fprintf (SUMA_STDERR, "\tFurther occurences of this error will not be reported.\n");
+               fprintf (SUMA_STDERR,"Error %s:\n"
+                                    " Failed in copying neighbor list! jj=%d, FN->N_Neighb[%d]=%d\n"
+                                    " If this is a closed surface, the problem is likely due to a\n"
+                                    " tessellation error. One or more edges may not be part of 2 \n"
+                                    " and only 2 triangles. Neighbor list for node %d will not be\n"
+                                    " ordered as connected vertices.\n"
+                                    " Further occurences of this error will not be reported.\n"
+                                    ,  FuncName, jj, i, FN->N_Neighb[i], i);
             }
             ++TessErr_Cnt;
             while (jj < FN->N_Neighb[i]) {
@@ -4751,7 +4765,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
       #endif
    }
    if (TessErr_Cnt) {
-      fprintf (SUMA_STDERR, "\t%d similar occurences of the error above were found in this mesh.\n", TessErr_Cnt);
+      fprintf (SUMA_STDERR, " %d similar occurences of the error above were found in this mesh.\n", TessErr_Cnt);
    }
    SUMA_free2D((char **)FN->FirstNeighb, N_Node);
    FN->FirstNeighb = FirstNeighb;
@@ -5541,7 +5555,7 @@ float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_N
    
 
    if (DetailFile) {
-      fprintf (SUMA_STDERR,"%s:\nSaving curvature Info to %s.\n", FuncName, DetailFile);
+      fprintf (SUMA_STDERR,"%s:\nSaving convexity Info to %s.\n", FuncName, DetailFile);
       fid = fopen(DetailFile,"w");
    }
    
@@ -5553,7 +5567,7 @@ float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_N
       
       D = -NNL[id] * NL[id] - NNL[id+1] * NL[id+1] - NNL[id+2] * NL[id+2];
       
-      if (DetailFile) fprintf(fid,"%d\t%d\t", i, FN->N_Neighb[i]);
+      if (DetailFile) fprintf(fid,"%d   %d   ", i, FN->N_Neighb[i]);
       
       for (j=0; j < FN->N_Neighb[i]; ++j) {
          /* find the distance between the neighboring node j and the tangent plane at i 
@@ -6009,150 +6023,3 @@ int *SUMA_reorder(int *y, int *isort, int N_isort)
    SUMA_RETURN(yr);
 }
 
-/*!
-   \brief Appends newstring to string in SS->s while taking care of resizing space allocated for s
-   
-   \param SS (SUMA_STRING *) pointer to string structure
-   \param newstring (char *) pointer to string to add to SS
-   \return SS (SUMA_STRING *) pointer to string structure with SS->s now containing newstring
-   - When SS is null, 1000 characters are allocated for s (initialization) and s[0] = '\0';
-   - When newstring is NULL, space allocated for SS->s is resized to the correct dimension and 
-   a null character is placed at the end.
-   \sa SUMA_SS2S
-*/
-SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
-{
-   static char FuncName[]={"SUMA_StringAppend"};
-   int N_inc = 0, N_cur = 0;
-   int N_chunk = 1000;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-   
-   if (!SS) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Allocating for SS.\n", FuncName);
-      SS = (SUMA_STRING *) SUMA_malloc (sizeof(SUMA_STRING));
-      SS->s = (char *) SUMA_calloc (N_chunk, sizeof(char));
-      SS->s[0] = '\0';
-      SS->N_alloc = N_chunk;
-      SUMA_RETURN (SS);
-   }
-   
-   if (newstring) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Appending to SS->s.\n", FuncName);
-      N_inc = strlen (newstring);
-      N_cur = strlen (SS->s);
-      if (SS->N_alloc < N_cur+N_inc+1) { /* must reallocate */
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Must reallocate for SS->s.\n", FuncName);
-         SS->N_alloc = N_cur+N_inc+N_chunk+1;
-         SS->s = (char *)SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
-         if (!SS->s) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to reallocate for s.\n", FuncName);
-            SUMA_RETURN (NULL);
-         }
-      }
-      /* append */
-      sprintf (SS->s, "%s%s", SS->s, newstring);
-   }else {
-      /* shrink SS->s to small size */
-      N_cur = strlen (SS->s);
-      if (SS->N_alloc > N_cur+1) {
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Shrink realloc for SS->s.\n", FuncName);
-         SS->N_alloc = N_cur+1;
-         SS->s = (char *)SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
-         if (!SS->s) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to reallocate for s.\n", FuncName);
-            SUMA_RETURN (NULL);
-         }
-         /*put a null at the end */
-         SS->s[SS->N_alloc-1] = '\0';
-      }
-   }
-   
-   SUMA_RETURN (SS);
-
-}
-
-/*!
-   \brief Appends newstring to string in SS->s while taking care of resizing space allocated for s
-   A variable argument version of SUMA_StringAppend
-   
-   \param SS (SUMA_STRING *) pointer to string structure
-   \param newstring (char *) pointer to string to add to SS
-   \param ..... the remaining parameters a la printf manner
-   \return SS (SUMA_STRING *) pointer to string structure with SS->s now containing newstring
-   - When SS is null, 1000 characters are allocated for s (initialization) and s[0] = '\0';
-   - When newstring is NULL, space allocated for SS->s is resized to the correct dimension and 
-   a null character is placed at the end.
-   
-   - For this function, the formatted length of newstring should not be > than MAX_APPEND-1 
-   If that occurs, the string will be trunctated and no one should get hurt
-   
-   NOTE: DO NOT SEND NULL pointers in the variable argument parts or crashes will occur on SUN
-   Such NULL pointers do not result in null vararg_ptr and cause a seg fault in vsnprintf
-   
-   \sa SUMA_StringAppend
-   \sa SUMA_SS2S
-*/
-
-#define MAX_APPEND 1000
-
-SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
-{
-   static char FuncName[]={"SUMA_StringAppend_va"};
-   char sbuf[MAX_APPEND];
-   int nout;
-   va_list vararg_ptr ;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-   
-   if (!SS) {
-      SUMA_LH("NULL SS");
-      /* let the other one handle this */
-      SUMA_RETURN (SUMA_StringAppend(SS,newstring));
-   }
-   
-   if (newstring) {
-      SUMA_LH("newstring ...");
-      /* form the newstring and send it to the olde SUMA_StringAppend */
-      va_start( vararg_ptr ,  newstring) ;
-      if (strlen(newstring) >= MAX_APPEND -1 ) {
-         SUMA_SL_Err("newstring too long.\nCannot use SUMA_StringAppend_va");
-         SUMA_RETURN(SUMA_StringAppend(SS,"Error SUMA_StringAppend_va: ***string too long to add ***"));
-      }
-      if (LocalHead) {
-         SUMA_LH("Calling vsnprintf");
-         if (vararg_ptr) {
-            SUMA_LH("Non NULL vararg_ptr");
-         } else {
-            SUMA_LH("NULL vararg_ptr");
-         }
-      }
-      nout = vsnprintf (sbuf, MAX_APPEND * sizeof(char), newstring, vararg_ptr); 
-      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Calling va_end, nout = %d\n", FuncName, nout);
-      va_end(vararg_ptr);  /* cleanup */
-      
-      if (nout < 0) {
-         SUMA_SL_Err("Error reported by  vsnprintf");
-         SUMA_RETURN(SUMA_StringAppend(SS,"Error SUMA_StringAppend_va: ***Error reported by  vsnprintf"));
-      }
-      if (nout >= MAX_APPEND) {
-         SUMA_SL_Warn("String trunctated by vsnprintf");
-         SUMA_StringAppend(SS,sbuf);
-         SUMA_RETURN(SUMA_StringAppend(SS,"WARNING: ***Previous string trunctated because of its length. ***"));
-      }
-      SUMA_LH("Calling StringAppend");
-      SUMA_RETURN (SUMA_StringAppend(SS,sbuf));
-   }else {
-      SUMA_LH("NULL newstring");
-      /* let the other one handle this */
-      SUMA_RETURN (SUMA_StringAppend(SS,newstring));
-   }
-   
-   /* should not be here */
-   SUMA_RETURN (NULL);
-
-}
-
-      

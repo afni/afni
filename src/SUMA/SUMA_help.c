@@ -407,6 +407,7 @@ char *SUMA_All_Programs(void )
          "  SurfaceMetrics\n"
          "  SurfSmooth\n"
          "  SurfPatch\n"
+         "  SurfQual\n"
      );
    
    /* clean SS */
@@ -539,7 +540,12 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "                  annotation files.\n"
             "  + SurfPatch: Program to create surface patches\n"
             "               from a set of nodes.\n"
+            "  + SurfQual: Program to report defects in surfaces.\n"
+            "              For the moment, works on spherical \n"
+            "              surfaces only.\n"
             "Modifications:\n"
+            "  + Added affine transforms to ConvertSurface.\n"
+            "  + Added datasets into SUMA's code (no interface).\n"
             "  + Added saving/loading of viewer settings.\n"
             "  + Beginning of multiple group support in SUMA.\n"
             "  + Redisplays of Surface Viewers due to X events\n"

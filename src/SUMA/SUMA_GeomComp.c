@@ -6,6 +6,8 @@
 #define STAND_ALONE
 #elif defined SUMA_getPatch_STANDALONE
 #define STAND_ALONE 
+#elif defined SUMA_SurfQual_STANDALONE
+#define STAND_ALONE
 #endif
 
 #ifdef STAND_ALONE
@@ -44,6 +46,82 @@ extern int SUMAg_N_DOv;
                               Make sure GEOMCOMP_LINE < SUMA_MAX_STREAMS*/
 
 int SUMA_GEOMCOMP_NI_MODE = NI_BINARY_MODE;
+
+/*!
+   \brief Applies an affine transform the coordinates in NodeList
+   
+   \param NodeList (float *) a vector of node XYZ triplets. (N_Node x 3 long)
+   \param N_Node (int) number of nodes in NodeList
+   \param M (float **) the affine transform matrix. 
+                     Minimum size is 3 rows x 4 columns. 
+                     The top left 3x3 is mat
+                     The right most column is the shift vector vec (3 elements)
+   \param center (float *) If center is not null then
+                     XYZnew = mat * (vec - center) + vec + center
+                     else  XYZnew = mat * (vec ) + vec 
+   \return ans (SUMA_Boolean ) 1 OK, 0 not OK
+   
+   - COORDINATES IN NodeList are REPLACED with transformed ones.
+                        
+*/                     
+SUMA_Boolean SUMA_ApplyAffine (float *NodeList, int N_Node, float M[][4], float *center)
+{
+   static char FuncName[] = {"SUMA_ApplyAffine"};
+   float **XYZo, **Mr, **XYZn, D[3];
+   int i, i3, idbg = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!NodeList || N_Node <=0) { 
+      SUMA_SL_Err("Bad Entries.\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   Mr = (float **)SUMA_allocate2D(3, 3, sizeof(float));
+   XYZn = (float **)SUMA_allocate2D(3, 1, sizeof(float));
+   XYZo = (float **)SUMA_allocate2D(3, 1, sizeof(float));
+   
+   SUMA_LH("Forming Mr");
+   Mr[0][0] = M[0][0]; Mr[0][1] = M[0][1]; Mr[0][2] = M[0][2]; 
+   Mr[1][0] = M[1][0]; Mr[1][1] = M[1][1]; Mr[1][2] = M[1][2]; 
+   Mr[2][0] = M[2][0]; Mr[2][1] = M[2][1]; Mr[2][2] = M[2][2];
+   D[0] = M[0][3]; D[1] = M[1][3]; D[2] = M[2][3];
+   
+   SUMA_LH("Transforming");
+   if (LocalHead ) {
+      i3 = 3*idbg;
+      fprintf (SUMA_STDERR,"In: %f %f %f\n", NodeList[i3], NodeList[i3+1], NodeList[i3+2]);
+   }
+   for (i=0; i< N_Node; ++i) {
+      i3 = 3 * i;
+      if (!center) {
+         XYZo[0][0] = NodeList[i3]; XYZo[1][0] = NodeList[i3+1]; XYZo[2][0] = NodeList[i3+2];
+      } else {
+         XYZo[0][0] = NodeList[i3] - center[0]; XYZo[1][0] = NodeList[i3+1] - center[1]; XYZo[2][0] = NodeList[i3+2] - center[2];
+      }   
+
+      SUMA_MULT_MAT(Mr, XYZo, XYZn, 3, 3, 1, float,float,float);
+      
+      if (!center) { 
+         NodeList[i3] = XYZn[0][0]+D[0]; NodeList[i3+1] = XYZn[1][0]+D[1]; NodeList[i3+2] = XYZn[2][0]+D[2]; 
+      } else {
+         NodeList[i3] = XYZn[0][0]+D[0] + center[0]; NodeList[i3+1] = XYZn[1][0]+D[1]+ center[1]; NodeList[i3+2] = XYZn[2][0]+D[2]+ center[2]; 
+      }
+      
+   }
+   if (LocalHead ) {
+      i3 = 3*idbg;
+      fprintf (SUMA_STDERR,"Out: %f %f %f\n", NodeList[i3], NodeList[i3+1], NodeList[i3+2]);
+   }
+   SUMA_LH("Done");
+   
+   SUMA_free2D((char**)Mr, 3);
+   SUMA_free2D((char**)XYZn, 3);
+   SUMA_free2D((char**)XYZo, 3);
+   
+   SUMA_RETURN(YUP);
+}
 
 SUMA_Boolean SUMA_getoffsets (int n, SUMA_SurfaceObject *SO, float *Off, float lim) 
 {
@@ -1440,7 +1518,9 @@ NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_
    nel = SUMA_NewNel (  SUMA_NODE_XYZ, /* one of SUMA_DSET_TYPE */
                         SO->idcode_str, /* idcode of Domain Parent */
                         NULL, /* idcode of geometry parent, not useful here*/
-                        3*SO->N_Node); /* Number of elements */
+                        3*SO->N_Node,
+                        NULL,
+                        NULL); /* Number of elements */
    if (!nel) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_NewNel", FuncName);
       SUMA_RETURN(NULL);
@@ -1483,7 +1563,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
    static byte *rgba=NULL;
    char idcode_str[50];
    NI_element *nel=NULL;
-   int i, i4; 
+   int i, i4, i3; 
    float ClipRange[2], *Vsort= NULL;
    SUMA_Boolean LocalHead = NOPE;
     
@@ -1561,9 +1641,10 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
    /* copy the colors to rgba */
    for (i=0; i < SO->N_Node; ++i) {
       i4 = 4 * i;
-      rgba[i4] = (byte)(SV->cM[i][0] * 255); ++i4;
-      rgba[i4] = (byte)(SV->cM[i][1] * 255); ++i4;
-      rgba[i4] = (byte)(SV->cM[i][2] * 255); ++i4;
+      i3 = 3 *i;
+      rgba[i4] = (byte)(SV->cV[i3  ] * 255); ++i4;
+      rgba[i4] = (byte)(SV->cV[i3+1] * 255); ++i4;
+      rgba[i4] = (byte)(SV->cV[i3+2] * 255); ++i4;
       rgba[i4] = 255;
    }
    
@@ -1573,7 +1654,8 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
    nel = SUMA_NewNel (  SUMA_NODE_RGBAb, /* one of SUMA_DSET_TYPE */
                         SO->idcode_str, /* idcode of Domain Parent */
                         NULL, /* idcode of geometry parent, not useful here*/
-                        SO->N_Node); /* Number of elements */
+                        SO->N_Node,/* Number of elements */
+                        NULL, NULL); 
    if (!nel) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_NewNel", FuncName);
       SUMA_RETURN(NULL);
@@ -1871,16 +1953,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
           exit (0);
 		}
 		
-		if (!brk && 
-          ( (strcmp(argv[kar], "-memdbg") == 0) || 
-            (strcmp(argv[kar], "-iodbg") == 0)  ||
-            (strcmp(argv[kar], "-nomall") == 0) ||
-            (strcmp(argv[kar], "-yesmall") == 0) ||
-            (strcmp(argv[kar], "-trace") == 0) ||
-            (strcmp(argv[kar], "-TRACE") == 0)) ) {
-			/* valid options, but already taken care of */
-			brk = YUP;
-		}
+		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+
       if (!brk && strcmp(argv[kar], "-ni_text") == 0)
 		{
          SUMA_GEOMCOMP_NI_MODE = NI_TEXT_MODE;
@@ -2452,7 +2526,7 @@ int main (int argc,char *argv[])
          exit(1);
       }
       /* now read into SUMAg_DOv */
-      if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0) ) {
+      if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
 	      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
          exit(1);
       }
@@ -3000,7 +3074,7 @@ int main (int argc,char *argv[])
       exit(1);
    }
    /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0) ) {
+   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
 	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
       exit(1);
    }
@@ -5390,6 +5464,322 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
 
 
 
+#ifdef SUMA_SurfQual_STANDALONE
+#define SURFQUAL_MAX_SURF 10  /*!< Maximum number of input surfaces */
+
+void usage_SUMA_SurfQual ()
+   {
+      static char FuncName[]={"usage_SUMA_SurfQual"};
+      char * s = NULL;
+      printf ( "\nUsage:\n"
+               "  SurfQual <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
+               "             <-sphere> [-prefix OUTPREF]  \n"
+               "\n"
+               "  Mandatory parameters:\n"
+               "     -spec SpecFile: Spec file containing input surfaces.\n"
+               "     -surf_X: Name of input surface X where X is a character\n"
+               "              from A to Z. If surfaces are specified using two\n"
+               "              files, use the name of the node coordinate file.\n"
+               "     -sphere: Indicates that surfaces read are spherical.\n"
+               "              With this option you get the following output.\n"
+               "              - Absolute deviation between the distance (d) of each\n"
+               "                node from the surface's center and the estimated\n"
+               "                radius(r). The distances, abs (d - r), are sorted\n"
+               "                and written to the file OUTPREF_SortedDist.1D .\n"
+               "                The first column represents node index and the \n"
+               "                second is the absolute distance. A colorized \n"
+               "                version of the distances is written to the file \n"
+               "                OUTPREF_SortedDist.1D.col (node index followed \n"
+               "                by r g b values). A list of the 10 largest absolute\n"
+               "                distances is also output to the screen.\n"
+               "              - Also computed is the cosine of the angle between \n"
+               "                the normal at a node and the direction vector formed\n"
+               "                formed by the center and that node. Since both vectors\n"
+               "                are normalized, the cosine of the angle is the dot product.\n"
+               "                On a sphere, the abs(dot product) should be 1 or pretty \n"
+               "                close. Nodes where abs(dot product) < 0.9 are flagged as\n"
+               "                bad and written out to the file OUTPREF_BadNodes.1D .\n"
+               "                The file OUTPREF_dotprod.1D contains the dot product \n"
+               "                values for all the nodes. The files with colorized results\n"
+               "                are OUTPREF_BadNodes.1D.col and OUTPREF_dotprod.1D.col .\n"
+               "                A list of the bad nodes is also output to the screen for\n"
+               "                convenience. You can use the 'j' option in SUMA to have\n"
+               "                the cross-hair go to a particular node. Use 'Alt+l' to\n"
+               "                have the surface rotate and place the cross-hair at the\n"
+               "                center of your screen.\n"
+               "              NOTE: For detecting topological problems with spherical\n"
+               "                surfaces, I find the dot product method to work best.\n"              
+               "  Optional parameters:\n"
+               "     -prefix OUTPREF: Prefix of output files. If more than one surface\n"
+               "                      are entered, then the prefix will have _X added\n"
+               "                      to it, where X is a character from A to Z.\n"
+               "                      THIS PROGRAM WILL OVERWRITE EXISTING FILES.\n"
+               "                      Default prefix is the surface's label.\n"
+               "\n"
+               "  Comments:\n"
+               "     - The colorized (.col) files can be loaded into SUMA (with the 'c' \n"
+               "     option. By focusing on the bright spots, you can find trouble spots\n"
+               "     which would otherwise be very difficult to locate.\n"
+               "     - You should also pay attention to the messages output when the \n"
+               "     surfaces are being loaded, particularly to edges (segments that \n"
+               "     join 2 nodes) are shared by more than 2 triangles. For a proper\n"
+               "     closed surface, every segment should be shared by 2 triangles. \n"
+               "     For cut surfaces, segments belonging to 1 triangle only form\n"
+               "     the edge of that surface.\n"
+               "     - There are no utilities within SUMA to correct these defects.\n"
+               "     It is best to fix these problems with the surface creation\n"
+               "     software you are using.\n"
+               "\n");
+       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+       printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+       exit (0);
+   }
+
+typedef struct {
+   SUMA_SO_File_Type iType;
+   char *out_prefix;
+   char *sv_name;
+   char *surf_names[SURFQUAL_MAX_SURF];
+   int N_surf;
+   char *spec_file;
+   char *surftype;
+} SUMA_SURFQUAL_OPTIONS;
+
+/*!
+   \brief parse the arguments for SurfSmooth program
+   
+   \param argv (char *)
+   \param argc (int)
+   \return Opt (SUMA_SURFQUAL_OPTIONS *) options structure.
+               To free it, use 
+               SUMA_free(Opt->out_prefix); 
+               SUMA_free(Opt);
+*/
+SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
+{
+   static char FuncName[]={"SUMA_SurfQual_ParseInput"}; 
+   SUMA_SURFQUAL_OPTIONS *Opt=NULL;
+   int kar, i, ind;
+   char *outprefix;
+   SUMA_Boolean brk = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   Opt = (SUMA_SURFQUAL_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFQUAL_OPTIONS));
+
+   kar = 1;
+   Opt->iType = SUMA_FT_NOT_SPECIFIED;
+   Opt->out_prefix = NULL;
+   Opt->sv_name = NULL;
+   Opt->spec_file = NULL;
+   Opt->N_surf = -1;
+   Opt->surftype = NULL;
+   for (i=0; i<SURFQUAL_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
+	brk = NOPE;
+   
+	while (kar < argc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_SUMA_SurfQual();
+          exit (0);
+		}
+		
+      /* skip the options parsed in SUMA_ParseInput_basics */
+		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      
+      if (!brk && (strcmp(argv[kar], "-sphere") == 0)) {
+			if (Opt->surftype) {
+            SUMA_S_Err("Surface type already specified.\nOnly one type allowed.");
+            exit(1);
+         }
+         Opt->surftype = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
+				exit (1);
+			}
+			Opt->spec_file = argv[kar];
+			brk = YUP;
+		}
+            
+      if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -prefix \n");
+				exit (1);
+			}
+			Opt->out_prefix = SUMA_copy_string(argv[kar]);
+			brk = YUP;
+		}
+            
+      if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
+			if (kar + 1>= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
+				exit (1);
+			}
+			ind = argv[kar][6] - 'A';
+         if (ind < 0 || ind >= SURFQUAL_MAX_SURF) {
+            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range.\n");
+				exit (1);
+         }
+         kar ++;
+         Opt->surf_names[ind] = argv[kar];
+         Opt->N_surf = ind+1;
+         brk = YUP;
+		}
+      
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+      
+   }
+   
+   /* sanity checks */
+   if (!Opt->surftype) {
+      SUMA_S_Err("Must specify surface type (such as -sphere).");
+      exit(1);
+   }
+      
+   if (Opt->N_surf < 1) {
+      SUMA_SL_Err("No surface specified.");
+      exit(1);
+   }
+
+   SUMA_RETURN (Opt);
+     
+}
+
+int main (int argc,char *argv[])
+{/* Main */    
+   static char FuncName[]={"SurfQual"};
+   char *OutName = NULL, ext[5], *prefix = NULL;
+   SUMA_SURFQUAL_OPTIONS *Opt; 
+   int SO_read = -1;
+   int i, cnt;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfSpecFile Spec;
+   void *SO_name = NULL;
+   SUMA_Boolean DoConv = NOPE, DoSphQ = NOPE;   
+   SUMA_Boolean LocalHead = NOPE;
+	
+   /* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   /* sets the debuging flags, if any */
+   SUMA_ParseInput_basics(argv, argc);
+   
+	/* Allocate space for DO structure */
+	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   
+   if (argc < 4)
+       {
+          usage_SUMA_SurfQual();
+          exit (1);
+       }
+   
+   Opt = SUMA_SurfQual_ParseInput (argv, argc);
+   
+   /* read all surfaces */
+   if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
+		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
+		exit(1);
+	}
+   SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, SURFQUAL_MAX_SURF, 0);
+   if ( SO_read != Opt->N_surf )
+   {
+	   if (SO_read >=0 )
+         fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", FuncName,  SO_read, Opt->N_surf);
+      exit(1);
+   }
+   /* now read into SUMAg_DOv */
+   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 1, SUMAg_CF->DsetList) ) {
+	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
+      exit(1);
+   }
+  
+   DoConv = NOPE;
+   DoSphQ = NOPE;   
+   if (!strcmp(Opt->surftype, "-sphere")) { 
+      DoSphQ = YUP;
+   }else {
+      SUMA_S_Err("No such type allowed at the moment.\n");
+      exit(1);
+   }
+   
+   for (i=0; i < Opt->N_surf; ++i) {/* loop to read in surfaces */
+      /* now identify surface needed */
+      SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[i], SUMAg_DOv, SUMAg_N_DOv);
+      if (!SO) {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "Failed to find surface %s\n"
+                              "in spec file. Use full name.\n",
+                              FuncName, Opt->surf_names[i]);
+         exit(1);
+      }
+      
+      if (!SO->EL) SUMA_SurfaceMetrics(SO, "EdgeList", NULL);
+      if (!SO->MF) SUMA_SurfaceMetrics(SO, "MemberFace", NULL);
+      if (!SO->Label) SUMA_SurfaceFileName(SO, NOPE);
+      
+      
+      /* do the quality thing based on the Opt->surftype */
+      if (!Opt->out_prefix) prefix = SUMA_copy_string(SO->Label);
+      else prefix = SUMA_copy_string (Opt->out_prefix);
+      
+      if (DoConv) {
+         float *Cx = NULL;
+         if (Opt->N_surf > 1) {
+            sprintf(ext,"_%c", 65+i);
+            OutName = SUMA_append_replace_string (prefix, "_Conv_detail.1D", ext, 0);
+         } else { 
+            OutName = SUMA_append_string (prefix, "_Conv_detail.1D");
+         }
+         Cx = SUMA_Convexity_Engine ( SO->NodeList, SO->N_Node, 
+                                      SO->NodeNormList, SO->FN, OutName);
+         if (Cx) SUMA_free(Cx); Cx = NULL;
+         if (OutName) SUMA_free(OutName); OutName = NULL;
+      } 
+      if (DoSphQ) {
+         if (Opt->N_surf > 1) {
+            sprintf(ext,"_%c", 65+i);
+            OutName = SUMA_append_string (prefix, ext);
+         } else { 
+            OutName = SUMA_copy_string (prefix);
+         }
+         SUMA_SphereQuality (SO, OutName);   
+         if (OutName) SUMA_free(OutName); OutName = NULL;
+      }
+      
+      
+      if (prefix) SUMA_free(prefix); prefix = NULL;
+   }
+   
+   
+   SUMA_LH("clean up");
+   if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
+   if (Opt) SUMA_free(Opt);   
+   if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SL_Err("DO Cleanup Failed!");
+   }
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   exit(0);
+} 
+#endif
+
 
 
 #if 0
@@ -5806,4 +6196,6 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
                   }/*SUMA_WeldBranches*/
 
    /************************** END Branch Functions **************************/                   
+
+
 #endif 

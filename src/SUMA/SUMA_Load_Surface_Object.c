@@ -322,7 +322,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             SUMA_RETURN (NULL);
          }
          
-	 if ( debug )
+	 if ( debug > 1)
             SUMA_Show_FreeSurfer (FS, NULL);
          /* save the juice and clean up the rest */
          SO->N_Node = FS->N_Node;
@@ -1852,7 +1852,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
    SUMA_ENTRY;
 
-   SUMA_RETURN( SUMA_LoadSpec_eng(Spec, dov, N_dov, VolParName, 1) );
+   SUMA_RETURN( SUMA_LoadSpec_eng(Spec, dov, N_dov, VolParName, 1, SUMAg_CF->DsetList) );
 
 }/* SUMA_LoadSpec */
 
@@ -1864,7 +1864,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 /*! 
    Loads the surfaces specified in Spec and stores them in DOv
 */
-SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName, int debug)
+SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName, int debug, DList *DsetList)
 {/* SUMA_LoadSpec_eng */
    static char FuncName[]={"SUMA_LoadSpec_eng"};
    int i, k;
@@ -1930,7 +1930,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
          
          /* if the surface is loaded OK, and it has not been loaded previously, register it */
          if (SurfIn) {
-            if (!SUMA_SurfaceMetrics_eng (SO, "Convexity, EdgeList, MemberFace", NULL, debug)) {
+            if (!SUMA_SurfaceMetrics_eng (SO, "Convexity, EdgeList, MemberFace", NULL, debug, DsetList)) {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
@@ -1949,6 +1949,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                SUMA_STANDARD_CMAP MapType;
                SUMA_COLOR_SCALED_VECT * SV;
                float ClipRange[2], *Vsort;
+               float *Cx=NULL;
+               SUMA_DSET *dset=NULL;
                
                /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BYR64)*/
                CM = SUMA_GetStandardMap (SUMA_CMAP_nGRAY20);
@@ -1967,7 +1969,13 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                /* work the options a bit */
                OptScl->ApplyClip = YUP;
                ClipRange[0] = 5; ClipRange[1] = 95; /* percentile clipping range*/ 
-               Vsort = SUMA_PercRange (SO->Cx, NULL, SO->N_Node, ClipRange, ClipRange); 
+               Cx = (float *)SUMA_GetCx(SO->idcode_str, DsetList, 0);
+               if (!Cx) {
+                  SUMA_SL_Err("Failed to find Cx\n");
+                  SUMA_RETURN (NOPE); 
+               }
+               
+               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, ClipRange, ClipRange); 
                if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
                   /* the new method */
                   if (fabs(ClipRange[0]) > ClipRange[1]) {
@@ -1982,7 +1990,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
                OptScl->BrightFact = SUMA_DIM_CONVEXITY_COLOR_FACTOR;
 
-               /* map the values in SO->Cx to the colormap */
+               /* map the values in Cx to the colormap */
                SV = SUMA_Create_ColorScaledVect(SO->N_Node);/* allocate space for the result */
                if (!SV) {
                   fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
@@ -1992,14 +2000,18 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                /* finally ! */
                /* decide on the coloring range */
                /*fprintf (SUMA_STDERR,"%s: 1st color in map %f %f %f\n", FuncName, CM->M[0][0], CM->M[0][1],CM->M[0][2]);*/
-               if (!SUMA_ScaleToMap (SO->Cx, SO->N_Node, ClipRange[0], ClipRange[1], CM, OptScl, SV)) {
+               if (!SUMA_ScaleToMap (Cx, SO->N_Node, ClipRange[0], ClipRange[1], CM, OptScl, SV)) {
                   fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
                   SUMA_RETURN (NOPE);
                }
 
 
                /* create an overlay plane */
-               NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity");
+               if (!(dset = (SUMA_DSET *)SUMA_GetCx(SO->idcode_str, DsetList, 1))) {
+                  SUMA_SL_Err("Failed to find dset!");
+                  SUMA_RETURN (NOPE);
+               }
+               NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity", dset);
                if (!NewColPlane) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
                   SUMA_RETURN (NOPE);
@@ -2013,8 +2025,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                }
 
                /* Now place the color map in the Coloroverlay structure */
-               NewColPlane->ColMat = SV->cM; SV->cM = NULL; /* this way the color matrix will not be freed */
-               NewColPlane->N_NodeDef = SO->N_Node;
+               NewColPlane->ColVec = SV->cV; SV->cV = NULL; /* this way the color vector will not be freed */
+               /* NewColPlane->N_NodeDef = SO->N_Node; NO LONGER IN THIS STRUCT */
                NewColPlane->GlobalOpacity = SUMA_CONVEXITY_COLORPLANE_OPACITY;
                NewColPlane->Show = YUP;
                NewColPlane->BrightMod = YUP;
@@ -2172,7 +2184,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                } else SOinh = NULL;
          
                
-               if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace", SOinh, debug)) {
+               if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace", SOinh, debug, DsetList)) {
                   fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                   SUMA_RETURN (NOPE);
                }
@@ -2199,7 +2211,7 @@ SUMA_Boolean SUMA_SurfaceMetrics(SUMA_SurfaceObject *SO, const char *Metrics, SU
    
    SUMA_ENTRY;
 
-   SUMA_RETURN(SUMA_SurfaceMetrics_eng(SO, Metrics, SOinh, 1));
+   SUMA_RETURN(SUMA_SurfaceMetrics_eng(SO, Metrics, SOinh, 1, SUMAg_CF->DsetList));
 }
 
 
@@ -2210,7 +2222,7 @@ SUMA_Boolean SUMA_SurfaceMetrics(SUMA_SurfaceObject *SO, const char *Metrics, SU
 /*!
    calculate surface properties
    
-   ans = SUMA_SurfaceMetrics_eng (SO, Metrics, SOinh, debug)
+   ans = SUMA_SurfaceMetrics_eng (SO, Metrics, SOinh, debug, DList *DsetList)
    \param SO (SUMA_SurfaceObject *)
    \param Metrics (const char *) list of parameters to compute. Supported parameters are (case sensitive):
       "Convexity", "PolyArea", "Curvature", "EdgeList", "MemberFace", "CheckWind"
@@ -2223,6 +2235,9 @@ SUMA_Boolean SUMA_SurfaceMetrics(SUMA_SurfaceObject *SO, const char *Metrics, SU
       Currently, only EL and FN can use this feature if the number of nodes, facesets match and SOinh is the 
       mapping reference of SO
    \param debug (int) flag specifying whether to output non-error info
+   \param DsetList (DList *)  pointer to list where computed elements are to be stored
+                              as datasets. For the moment, this pointer can be NULL and
+                              if that is the case then nothing will get stored as a dataset.
    \return ans (SUMA_Boolean) NOPE = failure
    
    Convexity : Fills Cx field in SO, An inode is also created
@@ -2234,17 +2249,23 @@ SUMA_Boolean SUMA_SurfaceMetrics(SUMA_SurfaceObject *SO, const char *Metrics, SU
    
       
 */
-SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metrics, SUMA_SurfaceObject *SOinh, int debug)
+SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metrics, SUMA_SurfaceObject *SOinh, int debug, 
+                                       DList *DsetList)
 {
    static char FuncName[]={"SUMA_SurfaceMetrics_eng"};
+   float *Cx=NULL, *SOCx = NULL;
    SUMA_Boolean DoConv, DoArea, DoCurv, DoEL, DoMF, DoWind, LocalHead = NOPE;
    int i = 0;
    
    SUMA_ENTRY;
 
-   if (debug)
+   if (debug > 1)
       fprintf (SUMA_STDERR,"%s: Calculating surface metrics, please be patient...\n", FuncName);
    
+   if (!DsetList) {
+      SUMA_SL_Err("DsetList now is a must.");
+      SUMA_RETURN(NOPE);
+   }
    DoConv = DoArea = DoCurv = DoEL = DoMF = DoWind = NOPE;
    
    if (SUMA_iswordin (Metrics, "Convexity")) DoConv = YUP;
@@ -2260,8 +2281,9 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
       SUMA_RETURN (YUP);
    }
    
-   if (DoConv && SO->Cx != NULL) {
-      fprintf (SUMA_STDERR,"Warning %s: SO->Cx != NULL and thus appears to have been precomputed.\n", FuncName);
+   SOCx = (float *)SUMA_GetCx (SO->idcode_str, DsetList, 0); 
+   if (DoConv && SOCx) {
+      fprintf (SUMA_STDERR,"Warning %s: SOCx != NULL and thus appears to have been precomputed.\n", FuncName);
       DoConv = NOPE;
    }
    
@@ -2439,16 +2461,15 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
    if (DoConv) {
       /* calculate convexity */
       if (LocalHead) fprintf(SUMA_STDOUT, "%s: Calculating convexity ...\n", FuncName);
-      SO->Cx = SUMA_Convexity   (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->FN);
-      if (SO->Cx == NULL) {
+      Cx = SUMA_Convexity   (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->FN);
+      if (Cx == NULL) {
          fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Convexity\n", FuncName);
-         SO->Cx_Inode = NULL;
       }   
             
       /* flip sign of convexity if it's a SureFit Surface */
       if (SO->FileType == SUMA_SUREFIT) {
          for (i=0; i < SO->N_Node; ++i) {
-            SO->Cx[i] = -SO->Cx[i];
+            Cx[i] = -Cx[i];
          }
       }
       
@@ -2456,11 +2477,11 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
       { 
          /* smooth the estimate twice*/
          float *attr_sm;
-         attr_sm = SUMA_SmoothAttr_Neighb (SO->Cx, SO->N_Node, NULL, SO->FN, 1);
+         attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, SO->FN, 1);
          if (attr_sm == NULL) {
                fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
          }   else {
-            SO->Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, SO->Cx, SO->FN, 1);
+            Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx, SO->FN, 1);
             if (attr_sm) SUMA_free(attr_sm);
          }
       }
@@ -2471,25 +2492,47 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
             if (eee) {
                int N_smooth = (int)strtod(eee, NULL);
                if (N_smooth > 1) {
-                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, 1, N_smooth);
+                  Cx = SUMA_SmoothAttr_Neighb_Rec (Cx, SO->N_Node, Cx, SO->FN, 1, N_smooth);
                } else {
-                  SO->Cx = SUMA_SmoothAttr_Neighb_Rec (SO->Cx, SO->N_Node, SO->Cx, SO->FN, 1, 5);
+                  Cx = SUMA_SmoothAttr_Neighb_Rec (Cx, SO->N_Node, Cx, SO->FN, 1, 5);
                }
             }   
          }
       #endif
       
-      if (SO->Cx == NULL) {
+      if (Cx == NULL) {
          fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
-         SO->Cx_Inode = NULL;
-      } else {
-         /* create Cx_Inode */
-         SO->Cx_Inode = SUMA_CreateInode ((void *)SO->Cx, SO->idcode_str);
-         if (!SO->Cx_Inode) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
+      } 
+      
+      /* create a dataset of the convexity */
+      if (DsetList){ /* put the convexity as a DataSet */
+         SUMA_DSET *dset = NULL;
+         char *name_tmp=NULL;
+         if (SO->Label) {
+            name_tmp = SUMA_append_string("Convexity_",SO->Label);
+         } else {
+            name_tmp = SUMA_append_string("Convexity_",SO->idcode_str);
          }
+         dset = SUMA_CreateDsetPointer(name_tmp, /* no file name, but specify a name anyway _COD is computed on demand*/
+                                       SUMA_NODE_CONVEXITY,
+                                       NULL, /* let function create ID code */
+                                       SO->idcode_str,   /* that's the domain owner */
+                                       SO->N_Node);
+         SUMA_free(name_tmp); name_tmp = NULL;
+         if (!SUMA_InsertDsetPointer(dset, DsetList)) {
+            SUMA_SL_Err("Failed to insert dset into list");
+            SUMA_RETURN(NOPE);
+         }
+         if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_CX, (void *)Cx, NULL ,1)) {
+            SUMA_SL_Err("Failed in SUMA_AddNelCol");
+            SUMA_RETURN(NOPE);
+         }
+         
+         SUMA_free(Cx); Cx = NULL; /* Cx is safe and sound in DsetList */
+         
       }
    } /* DoConv */
+   
    
    if (DoWind){   
       /* check to make sure winding is consistent */
@@ -2962,6 +3005,7 @@ int main (int argc,char *argv[])
    char  *OutName=NULL, *OutPrefix = NULL, *if_name = NULL, 
          *if_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
          *tlrc_name = NULL;
+   float *Cx = NULL;
    SUMA_STRING *MetricList = NULL;
    int i, n1, n2, n1_3, n2_3, kar, nt;
    double edgeL2;
@@ -3419,8 +3463,8 @@ int main (int argc,char *argv[])
    
    if (Do_conv) {
       SUMA_S_Note("Writing convexities ...");
-      
-      if (!SO->Cx) {
+      Cx = (float *)SUMA_GetCx(SO->idcode_str, SUMAg_CF->DsetList, 0);
+      if (!Cx) {
          SUMA_S_Err("Convexities not computed");
          exit(1);
       }
@@ -3443,7 +3487,7 @@ int main (int argc,char *argv[])
       fprintf (fout,"#nI\tC\n\n");
       
       for (i=0; i < SO->N_Node; ++i) {
-         fprintf (fout,"%d\t%f\n", i, SO->Cx[i]);
+         fprintf (fout,"%d\t%f\n", i, Cx[i]);
       }
       
       fclose(fout); fout = NULL;
@@ -3455,6 +3499,10 @@ int main (int argc,char *argv[])
    if (OutPrefix) SUMA_free(OutPrefix);
    if (OutName) SUMA_free(OutName);   
    if (SO) SUMA_Free_Surface_Object(SO);
+   
+   /* dset and its contents are freed in SUMA_Free_CommonFields */
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+
    
    return(0);
 } /* Main */

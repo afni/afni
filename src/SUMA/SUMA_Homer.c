@@ -470,7 +470,7 @@ int main (int argc,char *argv[])
          }
 
          /* Now place the color map in the Coloroverlay structure */
-         NewColPlane->ColMat = SV->cM; SV->cM = NULL; /* this way the color matrix will not be freed */
+         NewColPlane->ColVec = SV->cV; SV->cV = NULL; /* this way the color vector will not be freed */
          NewColPlane->N_NodeDef = SOv[ipart]->N_Node;
          NewColPlane->GlobalOpacity = SUMA_CONVEXITY_COLORPLANE_OPACITY;
          NewColPlane->Show = YUP;

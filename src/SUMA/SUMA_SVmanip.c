@@ -1585,8 +1585,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->N_Group = -1;
    
    cf->scm = NULL;
-   cf->dset_v = NULL;
-   cf->N_dset = -1;
+   cf->DsetList = (DList *)SUMA_malloc(sizeof(DList));
+   dlist_init (cf->DsetList, SUMA_FreeDset);
    
    return (cf);
 
@@ -1828,8 +1828,9 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->X) free(cf->X);
    if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList);
    if (cf->scm) cf->scm = SUMA_DestroyAfniColors (cf->scm);
-   if (cf->N_dset > 0) {
-      fprintf(SUMA_STDERR,"%s:\nMUST FREE DSETS.\n", FuncName);
+   if (cf->DsetList) {
+      dlist_destroy(cf->DsetList); 
+      SUMA_free(cf->DsetList); cf->DsetList = NULL;
    }
    #ifdef USE_SUMA_MALLOC
    if (cf->Mem) SUMA_Free_MemTrace (cf->Mem); /* always free this right before the end */

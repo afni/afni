@@ -689,7 +689,7 @@ ENTRY("get_surf_measures");
 
     if ( geta ) 
     {
-	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[0], "PolyArea", NULL, debug) )
+	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[0], "PolyArea", NULL, debug, SUMAg_CF->DsetList) )
 	{
 	    fprintf(stderr,"** gsf: surface metrics A failure\n");
 	    RETURN(-1);
@@ -707,7 +707,7 @@ ENTRY("get_surf_measures");
 	    RETURN(-1);
 	}
 
-	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[1], "PolyArea", NULL, debug) )
+	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[1], "PolyArea", NULL, debug, SUMAg_CF->DsetList) )
 	{
 	    fprintf(stderr,"** gsf: surface metrics B failure\n");
 	    RETURN(-1);
@@ -1263,7 +1263,7 @@ ENTRY("spec2SUMA");
 
     /* actually load the surface(s) from the spec file */
     if (SUMA_LoadSpec_eng(spec, SUMAg_DOv, &SUMAg_N_DOv, opts->sv_file,
-	                  opts->debug>3) == 0)
+	                  opts->debug>3, SUMAg_CF->DsetList) == 0)
     {
 	fprintf( stderr, "** error: failed SUMA_LoadSpec(), exiting...\n" );
 	RETURN(-1);

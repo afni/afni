@@ -74,7 +74,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
    SUMA_COLOR_SCALED_VECT * SV;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -117,52 +117,60 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
    isortdist = SUMA_z_qsort ( dist , SO->N_Node  );
    
    /* report */
-   fprintf (SUMA_STDERR,"%s: Reporting on Spheriosity of %s\n", FuncName, SO->Label);
-   fprintf (SUMA_STDERR,"Mean distance from center (estimated radius): %f\n", mdist);
-   fprintf (SUMA_STDERR,"Largest 10 absolute departures from estimated radius:\n");
+   fprintf (SUMA_STDERR,"%s: \n"
+                        "Reporting on Spheriosity of %s\n", FuncName, SO->Label);
+   fprintf (SUMA_STDERR," Mean distance from center (estimated radius): %f\n", mdist);
+   fprintf (SUMA_STDERR," Largest 10 absolute departures from estimated radius:\n"
+                        " See output files for more detail.\n");
    for (i=SO->N_Node-1; i > SO->N_Node - 10; --i) {
       fprintf (SUMA_STDERR,"dist @ %d: %f\n", isortdist[i], dist[i]);
    }
    
    
-   if (LocalHead) {
-      /* Colorize results */
-      SV = SUMA_Create_ColorScaledVect(SO->N_Node);
-      if (!SV) {
-         fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
-         if (isortdist) SUMA_free(isortdist);
-         if (dist) SUMA_free(dist);
-         if (CM) SUMA_Free_ColorMap (CM);
-         if (OptScl) SUMA_free(OptScl);
-         exit(1);
-      }
-
-      if (!SUMA_ScaleToMap (dist, SO->N_Node, dist[0], dist[SO->N_Node-1], CM, OptScl, SV)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
-         if (isortdist) SUMA_free(isortdist);
-         if (dist) SUMA_free(dist);
-         if (CM) SUMA_Free_ColorMap (CM);
-         if (OptScl) SUMA_free(OptScl);
-         exit(1);
-      }
-   
-      /* write the data */
-      fname = SUMA_append_string(Froot, "_SortedDdist.1D");
-      fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
-      fid = fopen(fname, "w");
-      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", isortdist[i], dist[i]);
-      fclose(fid);
-      SUMA_free(fname); fname = NULL;
-      
-      /* write the colorized data */
-      fname = SUMA_append_string(Froot, "_SortedDdist.1D.col");
-      fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
-      fid = fopen(fname, "w");
-      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", isortdist[i], SV->cM[i][0], SV->cM[i][1], SV->cM[i][2]);
-      fclose(fid);
-      SUMA_free(fname); fname = NULL;
-      if (SV) SUMA_Free_ColorScaledVect (SV);
+   /* Colorize results */
+   SV = SUMA_Create_ColorScaledVect(SO->N_Node);
+   if (!SV) {
+      fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
+      if (isortdist) SUMA_free(isortdist);
+      if (dist) SUMA_free(dist);
+      if (CM) SUMA_Free_ColorMap (CM);
+      if (OptScl) SUMA_free(OptScl);
+      exit(1);
    }
+
+   if (!SUMA_ScaleToMap (dist, SO->N_Node, dist[0], dist[SO->N_Node-1], CM, OptScl, SV)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
+      if (isortdist) SUMA_free(isortdist);
+      if (dist) SUMA_free(dist);
+      if (CM) SUMA_Free_ColorMap (CM);
+      if (OptScl) SUMA_free(OptScl);
+      exit(1);
+   }
+
+   /* write the data */
+   fname = SUMA_append_string(Froot, "_SortedDist.1D");
+   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+   fid = fopen(fname, "w");
+   fprintf(fid,"#Sorted node distance from center of mass.\n"
+               "#col 0: Node Index\n"
+               "#col 1: distance\n");
+   for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", isortdist[i], dist[i]);
+   fclose(fid);
+   SUMA_free(fname); fname = NULL;
+ 
+   /* write the colorized data */
+   fname = SUMA_append_string(Froot, "_SortedDist.1D.col");
+   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+   fid = fopen(fname, "w");
+   fprintf(fid,"#Color file of sorted node distance from center of mass.\n"
+               "#col 0: Node Index\n"
+               "#col 1: R\n"
+               "#col 2: G\n"
+               "#col 3: B\n");
+   for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", isortdist[i], SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
+   fclose(fid);
+   SUMA_free(fname); fname = NULL;
+   if (SV) SUMA_Free_ColorScaledVect (SV);
       
    /* New idea:
    If we had a perfect sphere then the normal of each node
@@ -195,10 +203,13 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
    bad_ind = (int *)  SUMA_realloc(bad_ind, ibad * sizeof(int));
    bad_dot = (float *)SUMA_realloc(bad_dot, ibad * sizeof(float));
    
-   if (LocalHead) {
       fname = SUMA_append_string(Froot, "_dotprod.1D");
-      fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
+      fprintf(fid,"#Cosine of node normal angles with radial direction\n"
+                  "#col 0: Node Index\n"
+                  "#col 1: cos(angle)\n"
+                  ); 
       for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, dot[i]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
@@ -222,16 +233,26 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
          exit(1);
       }
       fname = SUMA_append_string(Froot, "_dotprod.1D.col");
-      fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
-      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", i, SV->cM[i][0], SV->cM[i][1], SV->cM[i][2]);
+      fprintf(fid,"#Color file of cosine of node normal angles with radial direction\n"
+                  "#col 0: Node Index\n"
+                  "#col 1: R\n"
+                  "#col 2: G\n"
+                  "#col 3: B\n"
+                  ); 
+      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", i, SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
       if (SV) SUMA_Free_ColorScaledVect (SV);
       
       fname = SUMA_append_string(Froot, "_BadNodes.1D");
-      fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
+      fprintf(fid,"#Nodes with normals at angle with radial direction: abs(dot product < 0.9)\n"
+                  "#col 0: Node Index\n"
+                  "#col 1: cos(angle)\n"
+                  ); 
       for (i=0; i<ibad; ++i) fprintf(fid,"%d\t%f\n", bad_ind[i], bad_dot[i]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
@@ -262,19 +283,26 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
          exit(1);
       }
       fname = SUMA_append_string(Froot, "_BadNodes.1D.col");
-      fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
       fid = fopen(fname, "w");
-      for (i=0; i<ibad; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", bad_ind[i], SV->cM[i][0], SV->cM[i][1], SV->cM[i][2]);
+      fprintf(fid,"#Color file of nodes with normals at angle with radial direction: abs(dot product < 0.9)\n"
+                  "#col 0: Node Index\n"
+                  "#col 1: R\n"
+                  "#col 2: G\n"
+                  "#col 3: B\n" ); 
+      for (i=0; i<ibad; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", bad_ind[i], SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
       if (SV) SUMA_Free_ColorScaledVect (SV);
       
-   }
    
-   /* report */
-   fprintf (SUMA_STDERR,"Nodes with normals at angle with radial direction: abs(dot product < 0.9)\n");
+   /* report, just 10 of them  */
+   if (ibad > 10) ibad = 10;
+   fprintf (SUMA_STDERR,"%d of the nodes with normals at angle with radial direction\n"
+                        " i.e. abs(dot product < 0.9)\n"
+                        " See output files for full list\n", ibad);
    for (i=0; i < ibad; ++i) {
-      fprintf (SUMA_STDERR,"cos(ang) @ %d: %f\n", bad_ind[i], bad_dot[i]);
+      fprintf (SUMA_STDERR,"cos(ang) @ node %d: %f\n", bad_ind[i], bad_dot[i]);
    }   
    
    if (dot) SUMA_free(dot);
@@ -2437,7 +2465,7 @@ int main (int argc, char *argv[])
    surfaces_orig = (SUMA_SurfaceObject **) SUMA_calloc( 2, sizeof(SUMA_SurfaceObject));
    surfaces_orig[0] = NULL; surfaces_orig[1] = NULL;
 
-   if ( !SUMA_LoadSpec_eng( &spec, SUMAg_DOv, &SUMAg_N_DOv, NULL , 0)) {
+   if ( !SUMA_LoadSpec_eng( &spec, SUMAg_DOv, &SUMAg_N_DOv, NULL , 0, SUMAg_CF->DsetList)) {
       fprintf(SUMA_STDERR, "Error %s: Error in SUMA_LoadSpec\n", FuncName);
       exit(1);
    }
@@ -2660,6 +2688,7 @@ void SUMA_MapIcosahedron_usage ()
    printf ( "\n"
             "Usage: MapIcosahedron <-spec specFile> \n"
             "                      [-rd recDepth] [-ld linDepth] \n"
+            "                      [-morph morphSurf] \n"
             "                      [-it numIt] [-prefix fout] \n"
             "                      [-verb] [-help]\n"
             "\n"
@@ -2680,12 +2709,17 @@ void SUMA_MapIcosahedron_usage ()
             "          choose a depth that best approximates the number of nodes in\n"
             "          original-mesh surfaces.\n"
             "\n"
+            "   -morph morphSurf: surface state to which icosahedron is inflated \n"
+            "        accectable inputs are 'sphere.reg' and 'sphere'\n"
+            "        (optional, default uses sphere.reg over sphere).\n"
+            "\n"
             "   -it numIt: number of smoothing interations \n"
             "        (optional, default none).\n"
             "\n"
             "   -prefix fout: prefix for output files.\n"
             "        (optional, default MapIco)\n"
             "\n"
+            "   NOTE: See program SurfQual -help for more info on the following 2 options.\n"
             "   [-sph_check]: Run tests for checking the spherical surface (sphere.asc)\n"
             "                The program exits after the checks.\n"
             "                This option is for debugging FreeSurfer surfaces only.\n"
@@ -2713,7 +2747,7 @@ void SUMA_MapIcosahedron_usage ()
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
 
    printf ( "\n"
-            "       Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n"
+            "       Brenna D. Argall LBC/NIMH/NIH brenna.argall@nih.gov \n"
             "       Ziad S. Saad     SSC/NIMH/NIH ziad@nih.gov\n"
             "          Fri Sept 20 2002\n"
             "\n");
@@ -2734,7 +2768,7 @@ int main (int argc, char *argv[])
    int numTriBin=0, numTriLin=0, numIt=0;
 
    int kar, i, j, k, p, it, id = -1, depth;
-   char *brainSpecFile=NULL, *OutName = NULL;
+   char *brainSpecFile=NULL, *OutName = NULL, *morph_surf = NULL;
    SUMA_SurfSpecFile brainSpec;  
 
    int i_surf, i_morph, mx_N_surf, N_inSpec, N_skip;
@@ -2743,7 +2777,7 @@ int main (int argc, char *argv[])
    SUMA_SpecSurfInfo *spec_info=NULL;
    SUMA_SurfaceObject **surfaces_orig=NULL, *icoSurf=NULL, *currSurf=NULL, *currMapRef=NULL;
    SUMA_MorphInfo *MI=NULL;
-   float *smNodeList=NULL, lambda, mu, bpf;
+   float *smNodeList=NULL, lambda, mu, bpf, *Cx = NULL;
    SUMA_INDEXING_ORDER d_order;
    SUMA_COMM_STRUCT *cs = NULL;
    struct  timeval start_time;
@@ -2776,6 +2810,7 @@ int main (int argc, char *argv[])
    
    /* read in the options */
    depth = 3;
+   morph_surf = NULL;
    sprintf( fout, "%s", "MapIco");
    sprintf( bin, "%s", "y");
    smooth = NOPE;  numIt=0;
@@ -2834,6 +2869,16 @@ int main (int argc, char *argv[])
             sprintf (bin, "n");
             brk = YUP;
          }      
+      if (!brk && strcmp(argv[kar], "-morph") == 0)
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -morph ");
+               exit (1);
+            }
+            morph_surf = argv[kar];
+            brk = YUP;
+         }   
       if (!brk && (strcmp(argv[kar], "-it") == 0 ))
          {
             kar ++;
@@ -2903,14 +2948,14 @@ int main (int argc, char *argv[])
       fprintf (SUMA_STDERR,"Error %s: No spec file specified.\n", FuncName);
       exit(1);
    }
-   
+ 
    /* read spec file*/
    if ( !SUMA_Read_SpecFile (brainSpecFile, &brainSpec)) {
       fprintf(SUMA_STDERR,"Error %s: Error in %s SUMA_Read_SpecFile\n", FuncName, brainSpecFile);
       exit(1);
    }
    /* load spec file (which loads surfaces)*/
-   if ( !SUMA_LoadSpec_eng( &brainSpec, SUMAg_DOv, &SUMAg_N_DOv, NULL, 0 ) ) {
+   if ( !SUMA_LoadSpec_eng( &brainSpec, SUMAg_DOv, &SUMAg_N_DOv, NULL, 0 , SUMAg_CF->DsetList) ) {
       fprintf(SUMA_STDERR, "Error %s: Error in SUMA_LoadSpec\n", FuncName);
       exit(1);
    }
@@ -3013,8 +3058,9 @@ int main (int argc, char *argv[])
                SUMA_SurfaceMetrics(surfaces_orig[id], "MemberFace", NULL);    
             surfaces_orig[id]->Label = SUMA_SurfaceFileName(surfaces_orig[id], NOPE);
             OutName = SUMA_append_string (surfaces_orig[id]->Label, "_Conv_detail.1D");
-            surfaces_orig[id]->Cx = SUMA_Convexity_Engine ( surfaces_orig[id]->NodeList, surfaces_orig[id]->N_Node, 
-                                                            surfaces_orig[id]->NodeNormList, surfaces_orig[id]->FN, OutName);
+            Cx = SUMA_Convexity_Engine ( surfaces_orig[id]->NodeList, surfaces_orig[id]->N_Node, 
+                                         surfaces_orig[id]->NodeNormList, surfaces_orig[id]->FN, OutName);
+            if (Cx) SUMA_free(Cx); Cx = NULL;
             if (surfaces_orig[id]) {
                if (id == 4) SUMA_SphereQuality (surfaces_orig[id], "SphereRegSurf");
                else if (id == 3) SUMA_SphereQuality (surfaces_orig[id], "SphereSurf");
@@ -3147,24 +3193,47 @@ int main (int argc, char *argv[])
    }
    
    /*determine which sphere to be morphed*/
-   if ( spec_order[4]!=-1 ) {
-      /*sphere.reg exists*/
-      i_morph = 4;
+   i_morph = -1;
+   if ( morph_surf!=NULL ) {
+      /*sphere specified by user input*/
+      if (SUMA_iswordin( morph_surf, "sphere.reg") ==1 )
+         i_morph = 4;
+      else if ( SUMA_iswordin( morph_surf, "sphere") == 1 &&
+                SUMA_iswordin( morph_surf, "sphere.reg") == 0 ) 
+         i_morph = 3;
+      else {
+         fprintf(SUMA_STDERR, "\nWarning %s: Indicated morphSurf (%s) is not sphere or sphere.reg.\n\tDefault path to determine morphing sphere will be taken.\n", FuncName, morph_surf);
+         morph_surf = NULL;
+      }
+      if ( i_morph!=-1 ) {
+         if ( spec_order[i_morph]==-1 ) {
+            /*user specified sphere does not exist*/
+            fprintf(SUMA_STDERR, "\nWarning %s: Indicated morphSurf (%s) does not exist.\n\tDefault path to determine morphing sphere will be taken.\n", FuncName, morph_surf);
+            morph_surf = NULL;
+         }
+      }
    }
-   else if ( spec_order[3]!=-1 )  {
-      /*sphere exists (but no sphere.reg)*/
-      i_morph = 3;
-   }
-   else {
-      /*no spherical input -> exit*/
-      fprintf(SUMA_STDERR, "\nError %s: Neither sphere.reg nor sphere brain states present in Spec file.\nWill not contintue.\n", FuncName);
-      if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
-      if (surfaces_orig) SUMA_free (surfaces_orig);
-      if (spec_order) SUMA_free(spec_order);
-      if (spec_mapRef) SUMA_free(spec_mapRef);
-      if (spec_info) SUMA_free(spec_info);
-      if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-      exit(1);
+   if ( morph_surf==NULL) {
+      /*no morphing sphere specified by user input*/
+      if ( spec_order[4]!=-1 ) {
+         /*sphere.reg exists*/
+         i_morph = 4;
+      }
+      else if ( spec_order[3]!=-1 )  {
+         /*sphere exists (but no sphere.reg)*/
+         i_morph = 3;
+      }
+      else {
+         /*no spherical input -> exit*/
+         fprintf(SUMA_STDERR, "\nError %s: Neither sphere.reg nor sphere brain states present in Spec file.\nWill not contintue.\n", FuncName);
+         if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
+         if (surfaces_orig) SUMA_free (surfaces_orig);
+         if (spec_order) SUMA_free(spec_order);
+         if (spec_mapRef) SUMA_free(spec_mapRef);
+         if (spec_info) SUMA_free(spec_info);
+         if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+         exit(1);
+      }
    }
    
    /*calculate surface metric for sphere to be morphed*/

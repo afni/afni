@@ -125,7 +125,6 @@ typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_
 
 typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC } SUMA_SO_File_Type;
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
-typedef enum { NOPE, YUP} SUMA_Boolean;
 typedef enum {SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type} SUMA_DO_Types;   /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
                                                                                     ROId: Region of interest drawn type,
@@ -169,7 +168,6 @@ typedef enum { SEI_WTSDS,
                SEI_Head, SEI_Tail, SEI_Before, SEI_After, SEI_In,
                SEI_BadLoc } SUMA_ENGINE_INSERT_LOCATION;
                
-typedef enum { SUMA_notypeset = -1, SUMA_byte, SUMA_int, SUMA_float, SUMA_double, SUMA_string} SUMA_VARTYPE;
 typedef enum {    SOPT_ibbb,  /*!< int, byte, byte, byte, null */
                   SOPT_ifff   /*!< int, float, float, float, null */
             } SUMA_OVERLAY_PLANE_TYPE; /*!< type of color plane data, letters code for 
@@ -291,7 +289,8 @@ typedef enum {   SUMA_No_Lock, SUMA_I_Lock, SUMA_XYZ_Lock, SUMA_N_Lock_Types}  S
 typedef enum {  SWP_TOP_RIGHT, /*!< Position to the top right of reference */
                 SWP_BOTTOM_RIGHT_CORNER, 
                 SWP_TOP_LEFT,
-                SWP_POINTER /*!< Position centered to the pointer */
+                SWP_POINTER, /*!< Position centered to the pointer */
+                SWP_POINTER_OFF
              } SUMA_WINDOW_POSITION; /*!< Types of relative window positions */
 
 typedef enum {    SAR_Undefined,
@@ -357,18 +356,24 @@ typedef struct {
                                sound clear a year from now */  
 } SUMA_ROI_PLANE;
 
-
 /*! Structure containing one color overlay */
 typedef struct {
    SUMA_Boolean Show; /*!< if YUP then this overlay enters the composite color map */
    char *Name; /*!< name of ovelay, CONVEXITY or Functional or areal boundaries perhaps. The Name can be a filename with path*/
    char *Label; /*!< Usually the same as Name without any existing path */
+   #if 0
+      /* These now come from dset_link ,
+      use macros COLP_NODEDEF, COLP_N_NODEDEF and COLP_N_ALLOC instead*/
    int *NodeDef; /*!< nodes over which the colors are defined*/
    int N_NodeDef; /*!< total number of nodes specified in NodeDef*/
    int N_Alloc; /*!< You'd think this should be equal to NodeDef, but in instances where you may be receiving
              varying numbers of colors to the same plane, it's a pain to have to free and realloc space.
              So, while the juice is only up to N_NodeDef, the allocation is for N_Alloc */
-   float **ColMat; /*!< N_NodeDef x 3 matrix containing colors of nodes specified in NodeDef */
+   #endif
+   int FullList; /*!< if 1 then it indicates that a full listing of node colors exists.
+                     i.e. nodes need not be defined explicitly */
+   /* float **ColMat; *//*!< N_NodeDef x 3 matrix containing colors of nodes specified in NodeDef */
+   float *ColVec; /*!< N_NodeDef x 3 vector containing colors of nodes specified in NodeDef, Replaces ColMat, Wed Mar 17 04*/
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to all values in ColMat */
    float *LocalOpacity; /*!< Opacity factor vector between 0 and 1 to apply to each individual node color */
    int PlaneOrder; /*!< Order of the overlay plane, 1st plane is 0 and is farthest away from the top */  
@@ -376,11 +381,12 @@ typedef struct {
                               brightness modulated by the average intensity of the colors in that 
                               plane see the function SUMA_Overlays_2_GLCOLAR4 for details. 
                               In other obscure words, if YUP then plane is part of background.*/ 
-   
+   float DimFact;    /*!< a scaling factor applied to the colors in ColVec */
    /* New additions, Fri Feb 20 13:21:28 EST 2004 */
-   char *dset_idcode_str; /*!< unique identifer of the data set of type SUMA_DSET 
-                               attached to this overlay plane */   
-   int N_sub;  /*!< Number of sub-bricks in data vector */
+   SUMA_DSET *dset_link; /*!< A COPY OF THE POINTER to the dataset this plane is 
+                              attached to. DO NOT FREE THIS POINTER MANUALLY.
+                              This is done in the functions for creating and destroying
+                              overlay planes */ 
    char *cmapname; /*!< name of colormap (must be in SUMAg_CF->scm)  */
    int find;   /*!< index of function sub-brick */
    int tind;   /*!< index of thresholf sub-brick */
@@ -388,36 +394,6 @@ typedef struct {
    
 } SUMA_OVERLAYS;
 
-/*! Structure to contain a dataset defined on the surface */
-typedef struct {
-   /* WHAT WILL YOU DO ABOUT THE FACT THAT YOU'LL NEED NodeDef 
-   and N_NodeDef both here AND in SUMA_OVERLAYS. 
-   You Might want to move it here because it is not 
-   really a property of SUMA_OVERLAYS. 
-   But you'll need a quick way to grab it from SUMA_DSET 
-   for a certain overlay and you'll need to create a SUMA_DSET
-   when you load a color file ... */
-   char *idcode_str; /*!< Unique identifier for this data set */
-   char *domain_idcode_str; /*!< Unique identifier for the domain over which this set is defined */
-   
-   void *data; /*!<  Vector containing node values. 
-                     Length of this vector is N_sub*NodeDef
-                     if order is SUMA_COLUMN_MAJOR then consecutive
-                     values in data correspond to consecutive nodes
-                     in NodeDef. Otherwise if SUMA_ROW_MAJOR, ordering
-                     is used then consecutive values correspond to different
-                     sub-brick values at the same node.
-                     You do not have to have data associated with an overlay plane,
-                     it can be just colors*/
-   SUMA_INDEXING_ORDER order; /*!< way in which node data are ordered in data vector.
-                                   See data for more info */
-   SUMA_VARTYPE tp; /*!< type of values stored in data */
-   SUMA_Boolean SortedNodeDef; /*!< flag indicating that nodes in NodeDef are sorted.
-                                    Need function to do binary search for a certain
-                                    node index... IS IT ALWAYS THE CASE THAT NodeDef 
-                                    is used or is it assumed that indexing is explicit
-                                    when a complete set is loaded ?*/ 
-} SUMA_DSET;
 
 typedef enum { SUMA_UNDEFINED_MODE, 
                SUMA_DIRECT, /*!< no interpolation on the colormap, node value is typecast to int and directly used
@@ -456,7 +432,8 @@ typedef struct {
 
 /*! structure containing the color mapping of a vector */
 typedef struct {
-   float **cM; /*!< N_Node x 3 matrix containing the colors at each node*/
+   /* float **cM; Prior to Mar 17 03*//*!< N_Node x 3 matrix containing the colors at each node*/
+   float *cV; /*!< N_Node x 3 vector containing the colors at each node*/
    int N_Node; /*!< obvious */
    SUMA_Boolean *isMasked; /*!< if isMasked[i] then node i has a mask color associated with it */ 
 } SUMA_COLOR_SCALED_VECT;
@@ -725,12 +702,6 @@ typedef struct {
                                     or after the shift and rotation matrices are applied */
 } SUMA_DO;
 
-/*! string stucture 
-*/
-typedef struct {
-   int N_alloc;  /*!< space allocated for s */
-   char *s; /*!< string s */
-} SUMA_STRING;
 
 typedef struct {
    Widget toplevel;  /*!< toplevel widget of the text display window */
@@ -1492,8 +1463,11 @@ typedef struct {
    float *PolyArea; /*!< N_FaceSet x 1 vector containing the area of each polygon in FaceSetList */
    SUMA_SURFACE_CURVATURE *SC; /*!< Structure containing the surface curvature info */
    
+   #if 0
+   /* Cx is now a dataset. Use function SUMA_GetCx to retrieve the equivalent of Cx */
    float *Cx; /*!< vector containing surface convexity at each node */
    SUMA_INODE *Cx_Inode; /*!< Inode structure for Cx */
+   #endif
    
    /* selection stuff */
    SUMA_Boolean ShowSelectedNode; /*!< flag for an obvious reason */
@@ -1863,8 +1837,7 @@ typedef struct {
    int N_Group;   /*!< number of groups  available */
 
    SUMA_AFNI_COLORS *scm;  /*!< a structure containing all the colormaps available to SUMA */
-   SUMA_DSET *dset_v; /*!< Vector of dataset structures */
-   int N_dset; /*!< number of datasets is dset_v */
+   DList *DsetList;  /*!< List containing datasets */
 } SUMA_CommonFields;
  
 #endif
