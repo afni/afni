@@ -485,3 +485,6 @@
 04 March 2004:
   * modified 3dresample.c to check RESAM_shortstr, reversed history
 
+08 March 2004:
+  * modified 3dFWHM.c to output NO_VALUE when results cannot be computed
+
