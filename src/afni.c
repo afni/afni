@@ -1012,7 +1012,7 @@ int main( int argc , char * argv[] )
    }
 #undef SHSH
 #undef SHSHSH
-#endif
+#endif /* SHOWOFF */
 
 #ifdef USE_FRIENDS
    { char * sf = AFNI_get_friend() ;
