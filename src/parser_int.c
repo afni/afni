@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #define  NEED_PARSER_INTERNALS
 #include "parser.h"
 
@@ -26,17 +26,29 @@ PARSER_code * PARSER_generate_code( char * expression )
    integer num_code ;
    int nexp ;
    PARSER_code * pc ;
+   char *exp,cc ; int ii,jj ;  /* 22 Jul 2003 */
 
    if( expression == NULL ) return NULL ;
    nexp = strlen( expression ) ;
    if( nexp == 0 ) return NULL ;
 
+   /* 22 Jul 2003: copy into local string, tossing bad stuff */
+
+   exp = malloc(nexp+4) ;
+   for( ii=jj=0 ; ii < nexp ; ii++ ){
+     cc = expression[ii] ;
+     if( !isspace(cc) && !iscntrl(cc) ) exp[jj++] = cc ;
+   }
+   exp[jj] = '\0' ;
+   nexp = strlen(exp) ; if( nexp == 0 ) return NULL ;
+
    pc = (PARSER_code *) malloc( sizeof(PARSER_code) ) ;
 
    pr = (printout) ? TRUE_ : FALSE_ ;
 
-   parser_( expression , &pr , &num_code , pc->c_code ,
-            (ftnlen) nexp , (ftnlen) 8 ) ;
+   parser_( exp, &pr, &num_code, pc->c_code, (ftnlen) nexp, (ftnlen) 8 ) ;
+
+   free(exp) ;  /* 22 Jul 2003 */
 
    if( num_code <= 0 ){ free(pc) ; return NULL ; }
 
