@@ -32,14 +32,14 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt \
-           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman
+           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegana
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
                   p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
                   waver 3dnewid 3dcalc ccalc imcalc \
-                  3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman
+                  3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegana
 
 all:libmri.a programs
 
@@ -266,6 +266,11 @@ AlphaSim:AlphaSim.o editvol.o 3ddata.o
 3dFriedman:3dFriedman.o editvol.o 3ddata.o
 	$(RM) $@
 	$(CC) -o 3dFriedman 3dFriedman.o editvol.o 3ddata.o \
+                        $(LFLAGS) $(LLIBS)
+
+3dRegAna:3dRegAna.o editvol.o 3ddata.o
+	$(RM) $@
+	$(CC) -o 3dRegAna 3dRegAna.o editvol.o 3ddata.o \
                         $(LFLAGS) $(LLIBS)
 
 waver:waver.o
