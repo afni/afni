@@ -2862,7 +2862,7 @@ if(PRINT_TRACING)
 
 #define QQ_NXYZ 16
 #define QQ_NT   15
-#define QQ_FOV  160.0
+#define QQ_FOV  240.0
 
       if( GLOBAL_library.sslist->num_sess <= 0 ){
          byte * bar ;  /* as opposed to a bite bar */

@@ -326,6 +326,7 @@ void RT_finish_dataset( RT_input * ) ;
 void RT_tell_afni( RT_input * , int ) ;
 void RT_start_child( RT_input * ) ;
 void RT_check_info( RT_input * , int ) ;
+void RT_process_xevents( RT_input * ) ;  /* 13 Oct 2000 */
 
 #ifdef ALLOW_REGISTRATION
   void RT_registration_2D_atend( RT_input * rtin ) ;
@@ -1043,6 +1044,36 @@ Boolean RT_worker( XtPointer elvis )
    rtinp->last_elapsed = PLUTO_elapsed_time() ;  /* record this time */
    return False ;
 }
+
+/*---------------------------------------------------------------------
+   13 Oct 2000: process some X events, to make AFNI less sluggish
+-----------------------------------------------------------------------*/
+
+#define MAX_NEV 6
+#if MAX_NEV > 0
+void RT_process_xevents( RT_input * rtin )
+{
+   Display * dis = XtDisplay(rtin->im3d->vwid->top_shell) ;
+   XEvent ev ; int nev=0 ;
+
+   XSync( dis , False ) ;
+   while( nev++ < MAX_NEV &&
+          XCheckMaskEvent(dis ,
+                          ButtonMotionMask   |PointerMotionMask|
+                          ButtonPressMask    |ButtonReleaseMask|
+                          KeyPressMask       |KeyReleaseMask   |
+                          StructureNotifyMask|ExposureMask      ,&ev) ){
+
+          XtDispatchEvent( &ev ) ;  /* do the actual work for this event */
+   }
+   XmUpdateDisplay(rtin->im3d->vwid->top_shell) ;
+   if( verbose == 2 && nev > 1 )
+      fprintf(stderr,"RT: processed %d events\n",nev-1);
+   return ;
+}
+#else
+void RT_process_xevents( RT_input * rtin ){}  /* doesn't do much */
+#endif
 
 /*--------------------------------------------------------------------------
    Initialize a new RT_input structure; returns pointer to new structure.
@@ -2116,6 +2147,8 @@ int RT_process_data( RT_input * rtin )
          RT_read_image( rtin , newbuf ) ;                  /* read image data */
       }
 
+      RT_process_xevents( rtinp ) ;
+
    }  /* end of loop over reading images as long as we can */
 
    /** return an error code if the input data channel has gone bad **/
@@ -2697,6 +2730,10 @@ void RT_finish_dataset( RT_input * rtin )
          "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
          "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
 
+      char * ttl = malloc( strlen(DSET_FILECODE(rtin->dset)) + 32 ) ;
+      strcpy(ttl,DSET_FILECODE(rtin->dset)) ;
+      if( rtin->reg_mode == REGMODE_3D_ESTIM ) strcat(ttl," [Estimate]") ;
+
       if( verbose == 2 )
          fprintf(stderr,"RT: graphing estimated 3D motion parameters\n") ;
 
@@ -2712,7 +2749,9 @@ void RT_finish_dataset( RT_input * rtin )
 
       plot_ts_lab( XtDisplay(rtin->im3d->vwid->top_shell) ,
                    nn , yar[0] , -6 , yar+1 ,
-                   "time" , NULL , DSET_FILECODE(rtin->dset) , nar , NULL ) ;
+                   "time" , NULL , ttl , nar , NULL ) ;
+
+      free(ttl) ;
    }
 #endif
 
@@ -3082,9 +3121,8 @@ void RT_registration_3D_realtime( RT_input * rtin )
             "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
 
          char * ttl = malloc( strlen(DSET_FILECODE(rtin->dset)) + 32 ) ;
-
          strcpy(ttl,DSET_FILECODE(rtin->dset)) ;
-         strcat(ttl," [Estimate]") ;
+         if( rtin->reg_mode == REGMODE_3D_ESTIM ) strcat(ttl," [Estimate]") ;
 
          rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,
                                   0.0,rtin->reg_graph_xr ,
@@ -3290,7 +3328,7 @@ void RT_registration_3D_setup( RT_input * rtin )
       break ;
 
       case REGMODE_3D_ESTIM:               /* just estimate motion */
-         ept = getenv("AFNI_REALTIME_volreg_maxite") ;
+         ept = getenv("AFNI_REALTIME_volreg_maxite_est") ;
          kk  = 1 ;
          if( ept != NULL ){
             kk = strtol(ept,NULL,10) ; if( kk <= 0 ) kk = 1 ;

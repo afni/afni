@@ -857,8 +857,9 @@ AFNI_REALTIME_YR           = a floating point number from 0.1 to 10.0
 The following internal controls can only be set using these environment
 variables:
 
-AFNI_REALTIME_volreg_maxite    = an integer >= 1
-AFNI_REALTIME_volreg_graphgeom = something like 320x320+59+159
+AFNI_REALTIME_volreg_maxite      = an integer >= 1 [default = 9]
+AFNI_REALTIME_volreg_maxite_est  = an integer >= 1 [default = 1]
+AFNI_REALTIME_volreg_graphgeom   = something like 320x320+59+159
 
 For more information about how the realtime plugin works, read the
 file README.realtime.

@@ -2345,3 +2345,11 @@
  * Modified afni_graph.c to redraw with autoscale when matrix or
      length is changed by an external (isqDR_) command (not by
      the user directly).
+ * Modified coxplot/plot_motif.c to get initial geometry of graph
+     shell from an environment variable.
+ * Minor changes to plug_realtime.c to make various things nicer.
+
+13 Oct 2000
+ * Modified plug_realtime.c to insert its own Xt event loop to deal
+     with interface-freeze when the images are being slammed in as
+     fast as possible (function RT_process_xevents).
