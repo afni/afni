@@ -68,9 +68,6 @@ newstuff.hhh:quotize README.changes
 	$(RM) newstuff.hhh
 	./quotize newstuff < README.changes > newstuff.hhh
 
-newstuff.h:newstuff.hhh
-	$(CP) newstuff.hhh newstuff.h
-
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
 
@@ -837,6 +834,9 @@ imcalc:imcalc.o parser.o parser_int.o
 
 fftest:fftest.o
 	$(CC) -o fftest fftest.o $(LFLAGS) $(LLIBS)
+
+fftest_dj:fftest_dj.o csfft_dj.o fft_dj.o
+	$(CC) -o fftest_dj fftest_dj.o csfft_dj.o fft_dj.o $(LFLAGS) $(LLIBS)
 
 fftprint:fftprint.o
 	$(CC) -o fftprint fftprint.o $(LFLAGS) $(LLIBS)

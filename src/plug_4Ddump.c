@@ -63,7 +63,6 @@ typedef struct extract_data
 		  int nrows;
 		  float * indvect;	/* vector that will hold the list of indices */
 		  fXYZ * xyzvect;			/* vecor that will hold the list of xyz coordinates */
-		  char * new_prefix; /* new prefix for data set */
 		  char * strout;
 		  char * strin;
 		  FILE * outwritets;
@@ -375,7 +374,7 @@ char * EXTRACT_main( PLUGIN_interface * plint )
              "Cannot find Input Dataset\n"
              "*************************"  ;
    
-   ud->dsetname = DSET_FILECODE (old_dset);
+   ud->dsetname = DSET_PREFIX (old_dset);
 	
 	ud->ignore = PLUTO_get_number(plint) ;    /* get number item */
 	
@@ -554,7 +553,7 @@ char * EXTRACT_main( PLUGIN_interface * plint )
 	fclose (ud->outlogfile);
 	fclose (ud->outwritets);
 	
-	free (tmpstr);		
+	if (tmpstr) free (tmpstr);		
    return NULL ;  /* null string returned means all was OK */
 }
 
@@ -666,7 +665,6 @@ void show_ud (struct extract_data* ud)
 		printf ("ud->nrows= %d\n",ud->nrows);
 		printf ("ud->ignore= %d\n",ud->ignore);
 		printf ("ud->dtrnd= %d\n",ud->dtrnd);
-		printf ("ud->new_prefix= %s\n",ud->new_prefix);
 		printf ("ud->format= %d\n",ud->format);
 		printf ("Hit enter to continue\a\n\n");
 		getchar ();
@@ -694,7 +692,6 @@ void write_ud (struct extract_data* ud)
 		fprintf (ud->outlogfile,"ud->nrows= %d\n",ud->nrows);
 		fprintf (ud->outlogfile,"ud->ignore= %d\n",ud->ignore);
 		fprintf (ud->outlogfile,"ud->dtrnd= %d\n",ud->dtrnd);
-		fprintf (ud->outlogfile,"ud->new_prefix= %s\n",ud->new_prefix);
 		fprintf (ud->outlogfile,"ud->format= %d\n",ud->format);
 		fprintf (ud->outlogfile,"\nThe format for the output file is the following:\n");
 		switch (ud->format)

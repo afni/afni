@@ -795,7 +795,7 @@ int main( int argc , char * argv[] )
          /** Must create a new brick and do the conversion **/
 
          void * dfim , * efim ;
-         float etop ;
+         float efac = DSET_BRICK_FACTOR(dset,ival) ;
 
          if( ! MRG_be_quiet ){
             printf("-- coercing output datum to be %s\n",
@@ -803,16 +803,30 @@ int main( int argc , char * argv[] )
          }
 
          efim = DSET_ARRAY(dset,ival) ;
-         dfim = (void *) XtMalloc( mri_datum_size(output_datum) * nxyz ) ;
+         dfim = (void *) malloc( mri_datum_size(output_datum) * nxyz ) ;
+         if( dfim == NULL ){
+            fprintf(stderr,"*** Can't malloc output brick #%d\n",ivout); exit(1);
+         }
 
-         fimfac = EDIT_coerce_autoscale( nxyz , input_datum  , efim ,
-                                                output_datum , dfim  ) ;
+         /** 03 Dec 1998: scale to integer and float types separately **/
 
-         DSET_BRICK_FACTOR(new_dset,ivout) = (fimfac != 0.0 && fimfac != 1.0)
-                                          ? 1.0/fimfac : 0.0 ;
+         if( MRI_IS_INT_TYPE(output_datum) ){
+            fimfac = EDIT_coerce_autoscale( nxyz , input_datum  , efim ,
+                                                   output_datum , dfim  ) ;
+            if( fimfac == 0.0 ) fimfac  = 1.0 ;
+            if( efac   != 0.0 ) fimfac /= efac ; 
 
-         EDIT_substitute_brick( new_dset , ivout , output_datum , dfim ) ;
+            DSET_BRICK_FACTOR(new_dset,ivout) = (fimfac != 0.0 && fimfac != 1.0)
+                                                ? 1.0/fimfac : 0.0 ;
+         } else {
+
+            EDIT_coerce_scale_type( nxyz , efac , input_datum  , efim ,
+                                                  output_datum , dfim  ) ;
+            DSET_BRICK_FACTOR(new_dset,ivout) = 0.0 ;
+         }
+
          mri_free( DSET_BRICK(dset,ival) ) ;
+         EDIT_substitute_brick( new_dset , ivout , output_datum , dfim ) ;
       }
 
       /** Now do the threshold data [won't happen if doall is also happening] **/
