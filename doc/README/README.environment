@@ -1762,6 +1762,16 @@ When you 'Save' a drawn dataset from the Draw Dataset plugin, the
   .HEAD file attribute VALUE_LABEL_DTABLE will contain a table in
   exactly this XML-based format.
 
+----------------------------------
+Variable: AFNI_3dDeconvolve_extend
+----------------------------------
+If you input a stimulus time series to 3dDeconvolve that is shorter than
+needed for the regression analysis, the program will normally print a
+warning message and extend the time series with zero values to the needed
+length.  If you would rather have the program stop if it detects this
+problem (the behavior before 22 Oct 2003), then set this environment
+variable to NO.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
