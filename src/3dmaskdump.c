@@ -21,6 +21,7 @@ int main( int argc , char * argv[] )
    MRI_IMAGE * flim ;
    float * flar ;
    int noijk=0 , yes_xyz=0 ;
+   int yes_index=0 ;   			/*-- 09 May 2003 [rickr] --*/
    byte * cmask=NULL ; int ncmask=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -42,6 +43,8 @@ int main( int argc , char * argv[] )
              "                 all nonzero values from 'mset' are used.\n"
              "                 Note that if a voxel is zero in 'mset', then\n"
              "                 it won't be included, even if a < 0 < b.\n"
+                             /*-- 09 May 2003: add -index option [rickr] */
+	     "  -index       Means to write out the dataset index values.\n"
              "  -noijk       Means not to write out the i,j,k values.\n"
              "  -xyz         Means to write the x,y,z coordinates from\n"
              "                 the 1st input dataset at the start of each\n"
@@ -109,6 +112,12 @@ int main( int argc , char * argv[] )
 
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
+
+      /*-- 09 May 2003: option to output index value (for Mike B) [rickr] --*/
+      if( strcmp(argv[narg],"-index") == 0 ){
+         yes_index = 1 ;
+         narg++ ; continue ;
+      }
 
       if( strcmp(argv[narg],"-noijk") == 0 ){
          noijk = 1 ;
@@ -282,7 +291,8 @@ int main( int argc , char * argv[] )
 
    /* output string buffers */
 
-   obuf = (char *) malloc( sizeof(char) * (ndval+9) * 16 ) ;
+   /*-- 09 May 2003: add room for the index (9 -> 10)    [rickr] --*/
+   obuf = (char *) malloc( sizeof(char) * (ndval+10) * 16 ) ;
 
    /* loop over voxels */
 
@@ -290,6 +300,11 @@ int main( int argc , char * argv[] )
       if( mmm != NULL && mmm[ii] == 0 ) continue ;  /* skip this voxel */
 
       obuf[0] = '\0' ;
+
+      if ( yes_index ){
+         otemp = MV_format_fval((float)ii);
+	 strcat(obuf,otemp); strcat(obuf," ");
+      }
 
       if( ! noijk ){
          i = DSET_index_to_ix( input_dset[0] , ii ) ;  /* voxel indexes */
