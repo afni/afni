@@ -24,6 +24,7 @@ typedef struct {
   float z ;         /*!< z-coordinate */
 } SUMA_ixyz ;
 
+/*! NIML rowtype definition for SUMA_ixyz struct */
 #define SUMA_ixyz_defn "int,3*float"
 
 /*! Type to store a triangle (a triple of node identifiers). */
@@ -31,6 +32,8 @@ typedef struct {
 typedef struct {
   float id,jd,kd ;
 } SUMA_ijk ;
+
+/*! NIML rowtype definition for SUMA_ijk struct */
 
 #define SUMA_ijk_defn "3*int"
 
@@ -40,6 +43,8 @@ typedef struct {
   int id ;
   unsigned char r,g,b,a ;
 } SUMA_irgba ;
+
+/*! NIML rowtype definition for SUMA_irgba struct */
 
 #define SUMA_irgba_defn "int,4*byte"
 
@@ -53,13 +58,15 @@ typedef struct {
 #define WAY_BIG 1.e+10
 #endif
 
-/*! Typedef for voxel value list */
+/*! Typedef for voxel value list (used to store ROIs from SUMA) */
 
 typedef struct {
-   int nvox ;
-   int   *voxijk ;
-   float *voxval ;
+   int nvox ;       /*!< number of voxels    */
+   int   *voxijk ;  /*!< voxel indexes       */
+   float *voxval ;  /*!< value at each voxel */
 } SUMA_vvlist ;
+
+/*! Macro to free a SUMA_vvlist struct */
 
 #define DESTROY_VVLIST(vv)                          \
  do{ if( vv != NULL ){                              \
@@ -70,7 +77,8 @@ typedef struct {
 
 /*! A surface structure in 3D space:
      - a bunch of SUMA_ixyz's
-     - a bunch of SUMA_ijk's linking them together */
+     - a bunch of SUMA_ijk's linking them together
+     - other miscellaneous and convenient information */
 
 typedef struct {
   int type     ;               /*!< == SUMA_SURFACE_TYPE */
@@ -97,7 +105,7 @@ typedef struct {
 
   char label[32] ;             /*!< Label for user-interaction [19 Aug 2002] */
 
-  SUMA_vvlist *vv ;            /*!< [16 Jun 2003] */
+  SUMA_vvlist *vv ;            /*!< For ROIs from SUMA [16 Jun 2003] */
 } SUMA_surface ;
 
 /*! Macro for node count in a SUMA_surface struct */
@@ -113,6 +121,10 @@ typedef struct {
 
 #define SUMA_MAX_NODES         (1<<26)
 
+/** These macros are used in SUMA_map_dset_to_surf()
+    to create an easily searched map between dataset
+    voxel indexes and surface nodes (currently disabled) **/
+
 #define SUMA_VMAP_LEVMASK(ll)  (ll << 26)       /* for ll=0..7 only! */
 #define SUMA_VMAP_UNMASK(v)    ((v) & ((1<<26)-1))
 #define SUMA_VMAP_LEVEL(v)     (((v) & (7<<26)) >> 26)
@@ -123,15 +135,16 @@ typedef struct {
 /*! Typedef for a voxel-node list */
 
 typedef struct {
-   int nvox ;       /*!< Number of voxels */
-   int *voxijk ;    /*!< Voxel indexes */
-   int *numnod ;    /*!< Number of nodes */
-   int **nlist ;    /*!< Array of node indexes */
+   int nvox ;       /*!< Number of voxels stored herein            */
+   int *voxijk ;    /*!< [i] = voxel index in dataset, i=0..nvox-1 */
+   int *numnod ;    /*!< [i] = number of nodes in voxel #i         */
+   int **nlist ;    /*!< [i] = array of node indexes for voxel #i;
+                         nnlist[i][j] for j=0..numnod[i]-1         */
 
    struct THD_3dim_dataset * dset ;  /*!< Dataset to which this is linked */
 } SUMA_vnlist ;
 
-/*--- prototypes ---*/
+/*--- -------------------- function prototypes -----------------------*/
 
 extern SUMA_surface * SUMA_create_empty_surface(void) ;
 extern void SUMA_destroy_surface( SUMA_surface * ) ;
