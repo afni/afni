@@ -435,5 +435,9 @@ for(ii=0; ii< newArgc-1; ii++) fprintf(stderr," argv[%d]=%s\n",ii,newArgv[ii]);
    unlink( dset->dblk->diskptr->header_name ) ;
    COMPRESS_unlink( dset->dblk->diskptr->brick_name ) ;
 
+   /* 30 Jul 2003: changes its directory to cwd */
+
+   EDIT_dset_items( dset , ADN_directory_name , "./" , ADN_none ) ;
+
    return dset ;
 }

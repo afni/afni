@@ -4665,3 +4665,7 @@
  * Many many changes to make func and anat datasets work interchangeably in
      the interactive AFNI.
  * 3dmerge.c now has -verb option.
+
+30 Jul 2003
+ * Modified plug_nudge.c to add NN interpolation option.
+ * Modified THD_open_3dcalc() to make dataset directory "./" after it is read in.

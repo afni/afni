@@ -129,16 +129,16 @@ static THD_dfvec3 * undo_svec=NULL ;
 static THD_dmat33 rmat ; /* current rotation matrix = undo_rmat[undo_nuse-1] */
 static THD_dfvec3 svec ; /* current shift vector    = undo_svec[undo_nuse-1] */
 
-#define NRESAM 6
+#define NRESAM 7
 #define NYESNO 2
 static char * REG_resam_strings[NRESAM] = {
-             "Linear" , "Cubic" , "Quintic" , "Heptic" , "Fourier" , "Fourier_nopad" } ;
+  "NN" ,  "Linear" ,  "Cubic" ,  "Quintic" ,  "Heptic" ,  "Fourier" ,  "Fourier_nopad" } ;
 
 static char * REG_resam_options[NRESAM] = {
-             "-linear" , "-cubic" , "-quintic" , "-heptic" , "-Fourier" , "-Fourier_nopad" } ;
+ "-NN" , "-linear" , "-cubic" , "-quintic" , "-heptic" , "-Fourier" , "-Fourier_nopad" } ;
 
 static int REG_resam_ints[NRESAM] = {
-             MRI_LINEAR , MRI_CUBIC , MRI_QUINTIC , MRI_HEPTIC , MRI_FOURIER , MRI_FOURIER_NOPAD } ;
+  MRI_NN, MRI_LINEAR, MRI_CUBIC, MRI_QUINTIC, MRI_HEPTIC, MRI_FOURIER, MRI_FOURIER_NOPAD } ;
 
 static char * YESNO_strings[NYESNO] = { "No" , "Yes" } ;
 
@@ -1350,7 +1350,7 @@ fprintf(stderr,"th1=%g th2=%g th3=%g\n",th1,th2,th3) ;
        fabs(dx)  < EPS && fabs(dy)  < EPS && fabs(dz)  < EPS   ) return ;
 
 #if 0
-   if( clipit && mode == MRI_LINEAR ) clipit = 0 ;
+   if( clipit && (mode == MRI_LINEAR || mode == MRI_NN) ) clipit = 0 ;
 #endif
 
    /* need a copy? */
