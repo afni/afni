@@ -52,4 +52,5 @@ LLIBS = -lmri -ldl -lm -lc       \
 
 ###############################################################
 
+MAKE = make
 include Makefile.INCLUDE

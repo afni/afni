@@ -56,4 +56,5 @@ LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -l
 
 ###############################################################
 
+MAKE = make
 include Makefile.INCLUDE

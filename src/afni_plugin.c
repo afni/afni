@@ -4943,7 +4943,6 @@ ENTRY("PLUTO_scatterplot") ;
    /*-- setup to plot --*/
 
    create_memplot_surely( "ScatPlot" , 1.3 ) ;
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    set_thick_memplot( 0.0 ) ;
 
    /*-- plot labels, if any --*/
@@ -4955,21 +4954,25 @@ ENTRY("PLUTO_scatterplot") ;
 
    /* x-axis label? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(xlab) )
       plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , xlab , 16 , 0 , 0 ) ;
 
    /* y-axis label? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(ylab) )
       plotpak_pwritf( xobot-0.12 , 0.5*(yobot+yotop) , ylab , 16 , 90 , 0 ) ;
 
    /* label at top? */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(tlab) )
       plotpak_pwritf( xobot+0.01 , yotop+0.01 , tlab , 18 , 0 , -2 ) ;
 
    /* plot axes */
 
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
    plotpak_periml( nnax,mmax , nnay,mmay ) ;
 

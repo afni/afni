@@ -779,7 +779,7 @@ C.......................................................................
       INTEGER     NTABLE
       PARAMETER ( NTABLE = 113 )
       INTEGER      ICHEXT(NTABLE)
-      CHARACTER*15 CHTEX(NTABLE) , CHCONT
+      CHARACTER*15 CHTEX(NTABLE) , CHCONT , CHESC,CHNESC
 C
 C  super/subscript control characters
 C
@@ -798,10 +798,12 @@ C  LOUT   = .TRUE. if we just output something to CHOUT,
 C           otherwise .FALSE.
 C
       INTEGER INC , NUSED , NSUPB , NTSUPB(10) , ITOP,I
-      LOGICAL LOUT , LALPH
+      LOGICAL LOUT , LALPH , LESC
 C
 C  Table of Tex-like escapes
 C
+      DATA CHESC  /'\\esc'/
+      DATA CHNESC /'\\noesc'/
       DATA CHTEX /'\\Plus' , '\\Cross'  , '\\Diamond', '\\Box'         ,
      X '\\FDiamond','\\FBox','\\FPlus','\\FCross','\\Burst','\\Octagon',
      X '\\alpha','\\beta' ,'\\gamma' , '\\delta', '\\epsilon','\\zeta' ,
@@ -857,6 +859,7 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C-----------------------------------------------------------------------
 C  Process input character no. INC
 C
+      LESC = .TRUE.
 100   CONTINUE
 C
 CCC      WRITE(*,666) 'ZZCONV at: ' // CHIN(INC:INC)
@@ -867,7 +870,7 @@ C
 C  Superscript:  ^{ starts a multi-character superscript, otherwise
 C                ^ starts a single-character superscript
 C
-         IF( CHIN(INC:INC).EQ.'^' .AND. INC.LT.NCHIN )THEN
+      IF( LESC .AND. CHIN(INC:INC).EQ.'^' .AND. INC.LT.NCHIN )THEN
             NSUPB = NSUPB + 1
             IF( CHIN(INC+1:INC+1) .EQ. '{' )THEN
                NTSUPB(NSUPB) = 2
@@ -882,7 +885,7 @@ CCC            WRITE(*,666) ' start superscript'
 C.......................................................................
 C  Subscript:  similar to above code
 C
-         ELSEIF( CHIN(INC:INC).EQ.'_' .AND. INC.LT.NCHIN )THEN
+      ELSEIF( LESC .AND. CHIN(INC:INC).EQ.'_' .AND. INC.LT.NCHIN )THEN
             NSUPB = NSUPB + 1
             IF( CHIN(INC+1:INC+1) .EQ. '{' )THEN
                NTSUPB(NSUPB) = -2
@@ -898,7 +901,7 @@ C.......................................................................
 C  If in super/subscript mode and we have a '}', then this terminates
 C  the current level of super/subscripts
 C
-         ELSEIF( CHIN(INC:INC).EQ.'}' .AND. NSUPB.GT.0 )THEN
+      ELSEIF( LESC .AND. CHIN(INC:INC).EQ.'}' .AND. NSUPB.GT.0 )THEN
             NUSED  = 1
             NCHOUT = NCHOUT + 1
             IF( NTSUPB(NSUPB) .GT. 0 )THEN
@@ -911,7 +914,7 @@ CCC            WRITE(*,666) ' end compound super/subscript'
 C.......................................................................
 C  Anything else that doesn't start with a \ is passed straight through
 C
-         ELSEIF( CHIN(INC:INC) .NE. '\\' )THEN
+      ELSEIF( .NOT.LESC .OR. CHIN(INC:INC) .NE. '\\' )THEN
             LOUT   = .TRUE.
             NUSED  = 1
             NCHOUT = NCHOUT + 1
@@ -920,7 +923,7 @@ CCC            WRITE(*,666) ' passthru'
 C.......................................................................
 C  If it started with a \ but we are at the last character, quit
 C
-         ELSEIF( INC .EQ. NCHIN )THEN
+      ELSEIF( INC .EQ. NCHIN )THEN
 CCC            WRITE(*,666) ' end of input'
             GOTO 8000
 C.......................................................................
@@ -928,7 +931,7 @@ C  TeX-like escapes -- there are 2 possibilities:
 C   1)  \asciistring
 C   2)  \specialcharacter
 C
-         ELSE
+      ELSE
             ITOP = INC + 1
 C
 C  If the next character is alphabetic, then scan until end-of-input
@@ -972,8 +975,12 @@ C
 CCC               WRITE(*,666) ' TeX escape: ' // CHCONT
 CCC            ELSE
 CCC               WRITE(*,666) ' unknown TeX escape: ' // CHCONT
+            ELSEIF( CHCONT .EQ. CHNESC )THEN
+               LESC = .FALSE.
+            ELSEIF( CHCONT .EQ. CHESC )THEN
+               LESC = .TRUE.
             ENDIF
-         ENDIF
+      ENDIF
 C.......................................................................
 C  If we are in single-character super/subscript mode, we must drop
 C  out of it after outputting something

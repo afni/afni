@@ -45,4 +45,5 @@ SUMA_BIN_ARCHIVE = SUMA_SGI.tar
 
 ###############################################################
 
+MAKE = make
 include Makefile.INCLUDE

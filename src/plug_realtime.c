@@ -3336,8 +3336,9 @@ void RT_finish_dataset( RT_input * rtin )
          "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
          "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
 
-      char * ttl = malloc( strlen(DSET_FILECODE(rtin->dset[0])) + 32 ) ;
-      strcpy(ttl,DSET_FILECODE(rtin->dset[0])) ;
+      char *ttl = malloc( strlen(DSET_FILECODE(rtin->dset[0])) + 32 ) ;
+      strcpy(ttl,"\noesc ") ;
+      strcat(ttl,DSET_FILECODE(rtin->dset[0])) ;
       if( rtin->reg_mode == REGMODE_3D_ESTIM ) strcat(ttl," [Estimate]") ;
 
       if( verbose == 2 )
@@ -3726,8 +3727,9 @@ void RT_registration_3D_realtime( RT_input * rtin )
             "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
             "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
 
-         char * ttl = malloc( strlen(DSET_FILECODE(rtin->dset[0])) + 32 ) ;
-         strcpy(ttl,DSET_FILECODE(rtin->dset[0])) ;
+         char *ttl = malloc( strlen(DSET_FILECODE(rtin->dset[0])) + 32 ) ;
+         strcpy(ttl,"\noesc ") ;
+         strcat(ttl,DSET_FILECODE(rtin->dset[0])) ;
          if( rtin->reg_mode == REGMODE_3D_ESTIM ) strcat(ttl," [Estimate]") ;
 
          rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,

@@ -2219,6 +2219,17 @@ typedef struct THD_3dim_dataset {
                               ISVALID_DISKPTR((ds)->dblk->diskptr) &&                \
                               (ds)->dblk->diskptr->storage_mode == STORAGE_BY_VOLUMES )
 
+/*! Determine if datablock db is stored in a MPEG file on disk */
+
+#define DBLK_IS_MPEG(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) && \
+                           (db)->diskptr->storage_mode == STORAGE_BY_MPEG )
+
+/*! Determine if dataset ds is stored in a MPEG file on disk */
+
+#define DSET_IS_MPEG(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&       \
+                           ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
+                           (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MPEG )
+
 /*! Determine if AFNI is allowed to over-write dataset ds */
 
 #define DSET_WRITEABLE(ds)       \

@@ -446,7 +446,7 @@ int main( int argc , char * argv[] )
      DSET_load( dset ) ;
      if( !DSET_LOADED(dset) ) ERREX("Can't load input dataset bricks") ;
      dset->idcode = MCW_new_idcode() ;
-
+     dset->dblk->diskptr->storage_mode = STORAGE_BY_BRICK ; /* 14 Jan 2004 */
      EDIT_dset_items( dset ,
                          ADN_prefix , prefix ,
                          ADN_label1 , prefix ,

@@ -491,7 +491,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
    if( maxcount > 0 ){
       for( ii=0 ; ii <= nbin ; ii++ ) hbin[ii] = MIN( hbin[ii] , maxcount ) ;
    }
-   sprintf(buf,"%s[%d] %d voxels",DSET_FILECODE(input_dset),iv,mcount) ;
+   sprintf(buf,"\\noesc %s[%d] %d voxels",DSET_FILECODE(input_dset),iv,mcount);
    PLUTO_histoplot( nbin,hbot,htop,hbin , NULL , NULL ,  buf , 0,NULL ) ;
 
    /*-- 05 Feb 2002: Output - VR --*/

@@ -4877,4 +4877,15 @@
 13 Jan 2004
  * Modified mri_read_dicom.c to alter operation of AFNI_SLICE_SPACING_IS_GAP
      so that "NO" means use the Spacing attribute even if it is smaller than
-     the Thickness attribute.  Seems to be needed for Phillips MRV.
+     the Thickness attribute.  Seems to be needed for Phillips.
+
+14 Jan 2004
+ * Modified coxplot/pwritf.f to allow color changes in the text, and to
+     allow disabling of the escape mechanism (so filenames with "_" are OK).
+ * Modified 3drotate.c, 3AnatNudge.c, 3dLRflip.c, 3dTagalign.c, 3copy.c to
+     allow processing of non-AFNI (e.g., MINC) datasets.  The problem was
+     that these program open/load a dataset, modify it in-place, rename it,
+     then write it out.  That won't quite work for non-AFNI datasets, since
+     the dataset is still marked as being MINC (say), and we can't write
+     those directly.  Solution: mark the dataset as AFNI-format, after
+     loading it and before changing its name.

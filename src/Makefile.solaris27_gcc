@@ -55,4 +55,5 @@ SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
 
 ######################################################################
 
+MAKE = make
 include Makefile.INCLUDE

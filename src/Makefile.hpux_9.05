@@ -40,4 +40,5 @@ LLAPACK = -L/users/cox/rwcox/lapack -llapack -lblas -lF77 -lI77
 
 ######################################################################
 
+MAKE = make
 include Makefile.INCLUDE

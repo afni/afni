@@ -1368,14 +1368,14 @@ plugout_graph:plugout_graph.o
 # Stuff that was originally in Fortran
 
 f2c:
-	( cd f2cdir ; \
-	  make f2c clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' 'CCMIN=$(CCMIN)' \
-	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	( cd f2cdir ;                                                         \
+	  $(MAKE) f2c clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' 'CCMIN=$(CCMIN)' \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ;  \
 	  $(MV) f2c .. ; )
 
 libf2c.a:
-	( cd f2cdir ; \
-	  make libf2c.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' \
+	( cd f2cdir ;                                                        \
+	  $(MAKE) libf2c.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'            \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
 	  $(MV) libf2c.a .. ; )
 
@@ -1390,7 +1390,7 @@ f2c.tgz:
 
 libdl.a:dlcompat/dlfcn.h dlcompat/dlopen.c
 	( cd dlcompat ;              \
-	  make libdl.a ;             \
+	  $(MAKE) libdl.a ;          \
 	  $(CP) libdl.a dlfcn.h .. ; \
           cd .. ;                    \
 	  $(RANLIB) libdl.a ;     )
@@ -1399,8 +1399,8 @@ libdl.a:dlcompat/dlfcn.h dlcompat/dlopen.c
 # plotting library
 
 libcoxplot.a:coxplot.h
-	( cd coxplot ; \
-	  make libcoxplot.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' \
+	( cd coxplot ;                                                       \
+	  $(MAKE) libcoxplot.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'        \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
 	  $(MV) libcoxplot.a .. ; )
 
@@ -1415,7 +1415,7 @@ coxplot.tgz:
 
 librickr.a:
 	( cd rickr ; 							\
-	make librickr.a clean 'RM=$(RM)' 'CC=$(CC)'			\
+	$(MAKE) librickr.a clean 'RM=$(RM)' 'CC=$(CC)'			\
 			      'RANLIB=$(RANLIB)' 'IFLAGS=$(IFLAGS)' ;	\
 	$(MV) librickr.a .. ; )
 
@@ -1424,61 +1424,46 @@ librickr.a:
 
 3dresample: librickr.a libmri.a $(AFWARPOBJS)
 	( cd rickr ; 							\
-	make 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        \
+	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'     \
 	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
 	$(MV) 3dresample .. ; )
 
 3dresample.exe: librickr.a libmri.a $(AFWARPOBJS)
 	( cd rickr ; 							\
-	make 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        \
+	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'     \
 	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
 	$(MV) 3dresample.exe .. ; )
 
 file_tool: ge4_header.o
 	( cd rickr ;                                                    \
-	make file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'         \
+	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'      \
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool .. ; )
 
 file_tool.exe: ge4_header.o
 	( cd rickr ;                                                    \
-	make file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'         \
+	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'      \
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool.exe .. ; )
 
 Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h thd_iochan.o
 	( cd rickr ; 							\
-	make Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
+	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Imon .. ; )
 
 Imon.exe: thd_iochan.o
 	( cd rickr ; 							\
-	make Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
+	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Imon.exe .. ; )
-
-#######
-# surface library (not currently used)
-
-libsipp.a:
-	( cd sipp ; \
-	  make libsipp.a clean 'RM=$(RM)' 'CC=$(CCFAST)' 'AR=$(AR)' \
-	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
-	  $(MV) libsipp.a .. ; )
-
-sipp.h:
-	$(CP) sipp/sipp.h ./
-
-sipp.tgz:
-	$(TAR) cf - ./sipp | $(GZIP) -9v > sipp.tgz
 
 #######
 # rendering library
 
 libvolpack.a:
-	( cd volpack ; \
-	  make libvolpack.a clean 'RM=$(RM)' 'CC=$(CCVOL)' 'AR=$(AR)' \
+	( cd volpack ;                                                       \
+	  $(MAKE) libvolpack.a clean 'RM=$(RM)' 'CC=$(CCVOL)' 'AR=$(AR)'     \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
 	  $(MV) libvolpack.a .. ; )
 
@@ -1492,31 +1477,31 @@ volpack.tgz:
 # for Larry Frank
 
 qhull:
-	( cd qhulldir ; \
-	  make qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
+	( cd qhulldir ;                                                  \
+	  $(MAKE) qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
 	  $(MV) qhull .. ; )
 
 # CYGWIN: we "mv" the result, so must name it correctly as qhull.exe
 
 qhull.exe:
-	( cd qhulldir ; \
-	  make qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
+	( cd qhulldir ;                                                  \
+	  $(MAKE) qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
 	  $(MV) qhull.exe .. ; )
 
 #######
 # Eispack and CDF library files - make them and move them up here
 
 eis_bakvec.o:
-	( cd eispack/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
+	( cd eispack/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
 
 cdf_00.o:
-	( cd cdflib/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
+	( cd cdflib/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
 
 #######
 # Ditto for NIML objects
 
 $(NIML_OBJS):niml.h
-	( cd niml/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
+	( cd niml/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
 
 niml.h:niml/niml.h
 	$(CP) niml/niml.h .
@@ -1530,7 +1515,7 @@ netcdf_attr.o:
           CXX="" ; export CXX ; CC="${CCMIN}";export CC;  \
           $(RM) config.cache config.log config.status ;   \
           chmod ugo+x ./configure ;                       \
-          ./configure ; make libsrc/all ;                 \
+          ./configure ; $(MAKE) libsrc/all ;              \
           $(CP) libsrc/netcdf.h  ../.. ;                  \
           $(MV) libsrc/attr.o    ../../netcdf_attr.o    ; \
           $(MV) libsrc/dim.o     ../../netcdf_dim.o     ; \
@@ -1545,31 +1530,31 @@ netcdf_attr.o:
           $(MV) libsrc/v2i.o     ../../netcdf_v2i.o     ; \
           $(MV) libsrc/var.o     ../../netcdf_var.o     ; \
           $(RM) config.cache config.log config.status ;   \
-          make clean ; )
+          $(MAKE) clean ; )
 
 #######
 # 27 Jul 2001 - for fun
 
 gifsicle:
-	( cd gifsicledir ; \
-	  make gifsicle clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
+	( cd gifsicledir ;                                                  \
+	  $(MAKE) gifsicle clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
 	  $(MV) gifsicle .. ; )
 
 #######
 # 02 Aug 2001 - for fun
 
 mpeg_encode:
-	( cd mpeg_encodedir ; \
-	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ; \
+	( cd mpeg_encodedir ;                                                                   \
+	  $(MAKE) mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ; \
 	  $(MV) mpeg_encode .. ; )
 
 #######
 # 03 Dec 2003 - for even more fun
 
 mpegtoppm:
-	( cd mpegtoppm_dir ; chmod ugo+x ./configure ;  \
+	( cd mpegtoppm_dir ; chmod ugo+x ./configure ;                                         \
 	  ./configure --disable-sdl --disable-mlib --without-x --disable-dependency-tracking ; \
-	  make ; mv doc/sample2 ../mpegtoppm ; make clean ; )
+	  $(MAKE) ; mv doc/sample2 ../mpegtoppm ; $(MAKE) clean ; )
 
 #######
 # 11 Sep 2002 - for fun
@@ -1577,17 +1562,17 @@ mpegtoppm:
 djpeg: cjpeg
 
 cjpeg:
-	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;           \
-          chmod ugo+x ./configure ; ./configure ;           \
-          make ; strip cjpeg djpeg ; $(MV) cjpeg djpeg .. ; \
-          make clean ; $(RM) Makefile jconfig.h )
+	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;              \
+          chmod ugo+x ./configure ; ./configure ;              \
+          $(MAKE) ; strip cjpeg djpeg ; $(MV) cjpeg djpeg .. ; \
+          $(MAKE) clean ; $(RM) Makefile jconfig.h )
 
 #######
 # FFTW - not used
 
 libfftw.a:
-	( cd fftw ; \
-	  make libfftw.a clean 'RM=$(RM)' 'CC=$(CCFAST)' 'AR=$(AR)' \
+	( cd fftw ;                                                    \
+	  $(MAKE) libfftw.a clean 'RM=$(RM)' 'CC=$(CCFAST)' 'AR=$(AR)' \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
 	  $(MV) libfftw.a .. ; )
 
@@ -1601,9 +1586,9 @@ fftw_setup:fftw_setup.o
 # CLAMS - not used
 
 libclam.a:
-	( cd clamdir ; \
-	  make libclam.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' \
-	        'RANLIB=$(RANLIB)' 'IFLAGS=-I..' ; \
+	( cd clamdir ;                                             \
+	  $(MAKE) libclam.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' \
+	        'RANLIB=$(RANLIB)' 'IFLAGS=-I..' ;                 \
 	  $(MV) libclam.a .. ; )
 
 libclam.h:
@@ -1787,10 +1772,11 @@ nifti1_test:nifti1_test.o
 libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
-	make -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;	\
@@ -1802,7 +1788,7 @@ libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 #link executables but check for libraries first and create them if needed	
 suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
-	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
 	3dSurf2Vol SurfMeasures ConvertSurface MapIcosahedron CreateIcosahedron SurfaceMetrics \
    SurfSmooth inspec quickspec packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -1810,6 +1796,7 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
@@ -1818,12 +1805,13 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 #run make all in SUMA directory, USE FOR DEVELOPMENT ONLY	
 suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
-	make -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
@@ -1832,12 +1820,13 @@ suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a 
 #run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY	
 suma_anew:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
-	make -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
@@ -1888,7 +1877,7 @@ suma_link:
 	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures ScaleToMap MapIcosahedron \
    CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics SurfSmooth inspec quickspec;\
-	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics SurfSmooth inspec quickspec\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -1896,6 +1885,7 @@ suma_link:
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)

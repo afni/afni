@@ -220,8 +220,9 @@ int main( int argc , char * argv[] )
 
       /*-- rename it (but don't save to disk yet) --*/
 
-      EDIT_dset_items( dset[ii] , ADN_prefix,new_prefix , ADN_none ) ;
       dset[ii]->idcode = MCW_new_idcode() ;
+      dset[ii]->dblk->diskptr->storage_mode = STORAGE_BY_BRICK ; /* 14 Jan 2004 */
+      EDIT_dset_items( dset[ii] , ADN_prefix,new_prefix , ADN_none ) ;
 
       /*-- check if new header already exists --*/
 

@@ -66,4 +66,5 @@ ls:
 	ls -al $(RCSFILES)
 ###############################################################
 
+MAKE = make
 include Makefile.INCLUDE
