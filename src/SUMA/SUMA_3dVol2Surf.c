@@ -1,5 +1,5 @@
 
-#define VERSION "version  6.0 (Sep 01, 2004)"
+#define VERSION "version  6.1 (Sep 02, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -194,6 +194,10 @@ static char g_history[] =
     "    and disp...() functions as vol2surf library interface\n"
     "  - added options to control column output (-skip_col_NAME)\n"
     "  - added -v2s_hist option for library history access\n"
+    "\n"
+    "6.1  September 2, 2004  [rickr]\n"
+    "  - library organizing: moved v2s_map_type() to vol2surf.c\n"
+    "  - moved gv2s_map_names to vol2surf.c, and externs to vol2surf.h\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -214,14 +218,6 @@ int                  SUMAg_N_SVv = 0;	/* length of SVv array          */
 SUMA_DO            * SUMAg_DOv = NULL;	/* array of Displayable Objects */
 int                  SUMAg_N_DOv = 0;	/* length of DOv array          */
 SUMA_CommonFields  * SUMAg_CF = NULL;	/* info common to all viewers   */
-
-/* --------------------  extern globals  -------------------- */
-extern char gv2s_history[];
-
-/* this must match v2s_map_nums enum */
-char * g_smap_names[] = { "none", "mask", "midpoint", "mask2", "ave",
-                          "count", "min", "max", "max_abs", "seg_vals",
-			  "median", "mode" };
 
 
 /* --------------------  AFNI prototype(s)  -------------------- */
@@ -387,7 +383,7 @@ ENTRY("write_outfile_1D");
     }
 
     if ( ! sopt->no_head )
-	print_header(fp, label, g_smap_names[sopt->map], sd);
+	print_header(fp, label, gv2s_map_names[sopt->map], sd);
 
     for ( c = 0; c < sd->nused; c++ )
     {
@@ -931,7 +927,7 @@ ENTRY("set_smap_opts");
     if ( (nsurf == 2) && !opts->snames[1] && !opts->use_norms )
     {
 	fprintf(stderr, "** function '%s' requires 2 surfaces\n",
-		        g_smap_names[sopt->map]);
+		        gv2s_map_names[sopt->map]);
 	RETURN(-1);
     }
 
@@ -1554,7 +1550,7 @@ ENTRY("check_map_func");
 	RETURN(E_SMAP_INVALID);
     }
 
-    map = smd_map_type( map_str );
+    map = v2s_map_type( map_str );
 
     switch ( map )
     {
@@ -1565,7 +1561,7 @@ ENTRY("check_map_func");
 	case E_SMAP_COUNT:
 	case E_SMAP_MASK2:
 	    fprintf( stderr, "** function '%s' coming soon ...\n",
-		     g_smap_names[map] );
+		     gv2s_map_names[map] );
 	    RETURN(E_SMAP_INVALID);
 	    break;
 
@@ -1585,39 +1581,6 @@ ENTRY("check_map_func");
 	fprintf( stderr, "** invalid map string '%s'\n", map_str );
 
     RETURN(map);
-}
-
-
-/*----------------------------------------------------------------------
- * smd_map_type - return an E_SMAP_XXX code
- *
- * on failure, return -1 (E_SMAP_INVALID)
- * else        return >0 (a valid map code)
- *----------------------------------------------------------------------
-*/
-int smd_map_type ( char * map_str )
-{
-    v2s_map_nums map;
-
-ENTRY("smd_map_type");
-
-    if ( map_str == NULL )
-    {
-	fprintf( stderr, "** smd_map_type: missing map_str parameter\n" );
-	RETURN((int)E_SMAP_INVALID);
-    }
-
-    if ( sizeof(g_smap_names) / sizeof(char *) != (int)E_SMAP_FINAL )
-    {
-	fprintf( stderr, "** error:  g_smap_names/v2s_map_num mis-match\n");
-	RETURN((int)E_SMAP_INVALID);
-    }
-
-    for ( map = E_SMAP_INVALID; map < E_SMAP_FINAL; map++ )
-	if ( !strcmp( map_str, g_smap_names[map] ) )
-	    RETURN((int)map);
-
-    RETURN((int)E_SMAP_INVALID);
 }
 
 

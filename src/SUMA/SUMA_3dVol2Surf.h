@@ -60,7 +60,6 @@ int print_default_line( FILE * fp, int max_ind, int node_ind,
                         int vind, int i, int j, int k, float fval );
 int print_header      ( FILE * outfp, char * surf, char * map, v2s_results *sd);int read_surf_files   ( opts_t * opts, SUMA_SurfSpecFile * spec );
 int set_smap_opts     ( opts_t * opts, v2s_param_t * p, v2s_opts_t * sopt );
-int smd_map_type      ( char * map_str );
 int suma2afni_surf    ( v2s_opts_t * sopt, v2s_param_t * p,
                         SUMA_SurfaceObject * so, int sindex );
 int surf_ave_radius   ( float * rad, SUMA_SurfaceObject * so, int disp );

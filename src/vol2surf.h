@@ -112,6 +112,15 @@ int disp_v2s_opts_t     ( char * info, v2s_opts_t * sopt );
 int disp_v2s_param_t    ( char * info, v2s_param_t * p );
 int disp_v2s_results    ( char * mesg, v2s_results * d );
 int free_v2s_results    ( v2s_results * sd );
+int v2s_map_type        ( char * map_str );
 int v2s_vals_over_steps ( int map );
+
+/* ---- define globals for everyone but vol2surf.c ---- */
+#ifndef _VOL2SURF_C_
+    extern v2s_plugin_opts   gv2s_plug_opts;
+    extern char            * gv2s_map_names[];
+    extern char              gv2s_history[];
+#endif
+
 
 #endif   /* _VOL2SURF_H_ */
