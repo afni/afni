@@ -11,6 +11,8 @@ static int native_order = -1 ;
 static int no_mmap      = -1 ;
 static int floatscan    = -1 ;  /* 30 Jul 1999 */
 
+#define PRINT_SIZE 100000000
+
 /*-----------------------------------------------------------------*/
 /*! Check if all sub-bricks have the same datum type. [14 Mar 2002]
 -------------------------------------------------------------------*/
@@ -298,7 +300,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    /*** Below here, space for brick images was malloc()-ed,
         and now we have to read data into them             ***/
 
+   if( blk->total_bytes > PRINT_SIZE )
+     fprintf(stderr,"reading dataset %s from disk",dkptr->filecode) ;
+
    switch( dkptr->storage_mode ){
+
+      /*-- should never ever happen --*/
 
       default:
          fprintf(stderr,"\n*** illegal storage mode in read ***\n") ;
@@ -591,6 +598,8 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
 
    if( dkptr->byte_order != native_order ){
       STATUS("byte swapping") ;
+      if( blk->total_bytes > PRINT_SIZE ) fprintf(stderr,"..byte swapping") ;
+
       for( ibr=0 ; ibr < nv ; ibr++ ){
          switch( DBLK_BRICK_TYPE(blk,ibr) ){
             case MRI_short:
@@ -615,6 +624,8 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
    if( floatscan ){
       int nerr=0 ;
       STATUS("float scanning") ;
+      if( blk->total_bytes > PRINT_SIZE ) fprintf(stderr,"..sub-ranging") ;
+
       for( ibr=0 ; ibr < nv ; ibr++ ){
          if( DBLK_BRICK_TYPE(blk,ibr) == MRI_float ){
             nerr += thd_floatscan( DBLK_BRICK_NVOX(blk,ibr) ,
@@ -641,6 +652,7 @@ fprintf(stderr,"master_bot=%g master_top=%g\n",blk->master_bot,blk->master_top) 
       int jbr ;
 
       STATUS("sub-ranging") ;
+      if( blk->total_bytes > PRINT_SIZE ) fprintf(stderr,"..sub-ranging") ;
 
       for( jbr=0 ; jbr < nv ; jbr++ ){
          switch( DBLK_BRICK_TYPE(blk,jbr) ){
@@ -711,6 +723,8 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
          }
       }
    }
+
+   if( blk->total_bytes > PRINT_SIZE ) fprintf(stderr,"..done\n") ;
 
    RETURN( True ) ;  /* things are now cool */
 }
