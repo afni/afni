@@ -4180,14 +4180,21 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
    \param ROIv (SUMA_DRAWN_ROI**) vector of ROI structures
    \param N_ROIv (int) number of ROI structures
    \param Parent_idcode_str (char *) idcode of parent surface
+   \param Pad_to (int)  create Dset that has a full node listing 
+                        from node 0 to node Pad_to (a total of Pad_to + 1 nodes)
+                        Use -1 to turn off padding.
+   \param Pad_val (int) use this value (usually 0) to label a node being padded
+                        as oppsed to a node being a part of an ROI. This option
+                        is only useful with Pad_to
    \return nel (NI_element *) structure to data set
                               NULL if failed
 */
-NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str) 
+NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str, int Pad_to, int Pad_val) 
 {
    static char FuncName[]={"SUMA_ROIv2dataset"};
-   int ii, i, nn, cnt, N_NodesTotal = 0, 
-      *ip=NULL, *NodesTotal=NULL, *LabelsTotal=NULL;
+   int ii, i, nn, cnt, N_NodesTotal = 0, MaxIndex = 0,
+      *ip=NULL, *NodesTotal=NULL, *LabelsTotal=NULL,
+      *NodesTotal_p=NULL, *LabelsTotal_p=NULL;
    NI_element *nel=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -4215,6 +4222,7 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
 
    cnt = 0;
    N_NodesTotal = 0;
+   MaxIndex = -1;
    for (ii=0; ii <  N_ROIv; ++ii) {
       SUMA_LH("Appending ROI");
       /* You do not need the Unique operation in SUMA_NodesInROI,
@@ -4231,6 +4239,7 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
       for (i=0; i < nn; ++i) {
          NodesTotal[cnt] = ip[i];
          LabelsTotal[cnt] = ROIv[ii]->iLabel;
+         if (ip[i] > MaxIndex) MaxIndex = ip[i];
          ++cnt;
       }
       N_NodesTotal += nn;
@@ -4275,6 +4284,33 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
       }
    }
 
+   if (Pad_to > 0) {
+      SUMA_LH("Padding to desired length");
+      if (Pad_to < MaxIndex) {
+         SUMA_SL_Err("ROI contains node index > padding limit\nNo padding done.");
+         if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
+         if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
+         SUMA_RETURN(NULL);
+      }else {
+         NodesTotal_p =  (int *)SUMA_calloc(Pad_to+1, sizeof(int));
+         LabelsTotal_p = (int *)SUMA_calloc(Pad_to+1, sizeof(int));
+         if (!NodesTotal_p || !LabelsTotal_p) {
+            SUMA_SL_Crit("Failed to allocate for NodesTotal_p || LabelsTotal_p");
+            if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
+            if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
+            SUMA_RETURN(NULL);
+         }
+         if (Pad_val)  for(i=0; i<=Pad_to; ++i) LabelsTotal_p[i] = Pad_val;
+         for(i=0; i<=Pad_to; ++i) NodesTotal_p[i] = i;
+         for(i=0; i<N_NodesTotal; ++i) {
+            LabelsTotal_p[NodesTotal[i]] = LabelsTotal[i];
+         }
+         SUMA_free(NodesTotal); NodesTotal = NodesTotal_p; NodesTotal_p = NULL;
+         SUMA_free(LabelsTotal);  LabelsTotal = LabelsTotal_p; LabelsTotal_p = NULL;
+         N_NodesTotal = Pad_to + 1;
+      }
+   }
+   
    /* construct a NIML data set for the output */
    SUMA_LH("Creating nel ");
    nel = SUMA_NewNel ( SUMA_NODE_ROI, /* one of SUMA_DSET_TYPE */
@@ -4302,7 +4338,8 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
       SUMA_SL_Err("Failed in SUMA_AddNelCol");
       SUMA_RETURN(nel);
    }
-
+   
+   SUMA_LH("cleanup ...");
    if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
    if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
    
@@ -4356,7 +4393,15 @@ void usage_ROI2dataset_Main ()
             "                    1D roi files do not have domain parent \n"
             "                    information. They will be added to the \n"
             "                    output data under the chosen dom_par_id.\n"
-            "    -prefix dsetname: Prefix of output data set.\n"
+            "    -pad_to_node max_index: Output a full dset from node 0 \n"
+            "                            to node max_index (a total of \n"
+            "                            max_index + 1 nodes). Nodes that\n"
+            "                            are not part of any ROI will get\n"
+            "                            a default label of 0 unless you\n"
+            "                            specify your own padding label.\n"
+            "    -pad_val padding_label: Use padding_label (an integer) to\n"
+            "                            label nodes that do not belong\n"
+            "                            to any ROI. Default is 0.\n" 
             "\n");
          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
          fprintf(SUMA_STDOUT, 
@@ -4369,16 +4414,20 @@ int main (int argc,char *argv[])
    static char FuncName[]={"ROI2dataset"}; 
    char  *prefix_name, **input_name_v=NULL, *out_name=NULL, 
          *Parent_idcode_str = NULL, *dummy_idcode_str = NULL, *stmp=NULL;
-   int kar, brk, N_input_name, cnt = 0, N_ROIv, N_tROI, ii, i, nn;
+   int kar, brk, N_input_name, cnt = 0, N_ROIv, N_tROI, ii, i, nn, pad_to, pad_val;
    NI_element *nel=NULL;
    NI_stream ns;
    SUMA_DSET_FORMAT Out_Format = SUMA_ASCII_NIML;
    SUMA_DRAWN_ROI ** ROIv = NULL, **tROIv = NULL;
-	SUMA_Boolean AddThis = NOPE, LocalHead = NOPE;
+	SUMA_Boolean AddThis = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
 	
+   SUMA_mainENTRY;
+   
    /* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
+	
+   if (SUMAg_CF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
@@ -4395,6 +4444,8 @@ int main (int argc,char *argv[])
    N_input_name = 0;
    Out_Format = SUMA_ASCII_NIML;
    Parent_idcode_str = NULL;
+   pad_to = -1;
+   pad_val = 0;
    while (kar < argc) { /* loop accross command ine options */
 		/* SUMA_LH("Parsing command line..."); */
       
@@ -4402,6 +4453,8 @@ int main (int argc,char *argv[])
 			 usage_ROI2dataset_Main();
           exit (1);
 		}
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
@@ -4456,6 +4509,26 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-pad_to_node") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -pad_to_node");
+				exit (1);
+			}
+			pad_to = atoi(argv[kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-pad_label") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -pad_label");
+				exit (1);
+			}
+			pad_val = atoi(argv[kar]);
+         brk = YUP;
+      }
+      
       if (!brk) {
 			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -4464,6 +4537,11 @@ int main (int argc,char *argv[])
 			kar ++;
 		}   
    }   
+   
+   if (!prefix_name) {
+      fprintf (SUMA_STDERR,"Error %s: No output prefix was specified.\n", FuncName);
+      exit(1);
+   }
    
    /* form the output name and check for existence */
    switch (Out_Format) {
@@ -4573,9 +4651,15 @@ int main (int argc,char *argv[])
         
    }
    
-   if (!(nel = SUMA_ROIv2dataset (ROIv, N_ROIv, Parent_idcode_str))) {
+   if (!(nel = SUMA_ROIv2dataset (ROIv, N_ROIv, Parent_idcode_str, pad_to, pad_val))) {
       SUMA_SL_Err("Failed in SUMA_ROIv2dataset");
       exit(1);
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Adding history\n",
+                        FuncName);
+        
    }
    
    /* Add the history line */
@@ -4585,6 +4669,11 @@ int main (int argc,char *argv[])
    }
 
 
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: preparing to write results\n",
+                        FuncName);
+        
+   }
    
    /* open stream */
    stmp = SUMA_append_string ("file:", out_name);

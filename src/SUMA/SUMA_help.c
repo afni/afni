@@ -121,11 +121,18 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    of the mesh consistent.  \n"
             "  + SurfQual:\n"
             "    Checks and warns about mesh's winding inconsistency.\n"
+            "  + SurfSmooth:\n"
+            "    Added NN_geom, nearest neighbor interpolation option.\n"
+            "    Combined with -match_vol or -match_area, this geometry\n"
+            "    smoothing mode can be used to inflate surfaces.\n"
             "  + SurfaceMeasures:\n"
             "    Option -vol calculates the volume of the closed surface.\n"
             "  + SurfPatch:\n"
             "    Option -vol to calculate the volume between two isotopic\n"
             "    surface patches.\n"
+            "  + ROI2dataset:\n"
+            "    Option -pad_to_node and -pad_label to output datasets\n"
+            "    containing full node listings.\n"
             );
          break; 
          */

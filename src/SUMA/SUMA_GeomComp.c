@@ -571,6 +571,77 @@ typedef struct {
    double R;
    float *tmpList;
 } SUMA_VolDiffDataStruct; /*!< a special struct for the functions to equate the volume of two surfaces */
+typedef struct {
+   SUMA_SurfaceObject *SO;
+   SUMA_SurfaceObject *SOref;
+   SUMA_COMM_STRUCT *cs;
+   double Aref;
+   double Rref;
+   double A;
+   double R;
+   float *tmpList;
+} SUMA_AreaDiffDataStruct; /*!< a special struct for the functions to equate the area of two surfaces */
+
+/*!
+   \brief Changes the coordinates of SO's nodes so that the new average radius of the surface
+   is equal to r
+   
+   This function is an integral part of the function for equating the areas of 2 surfaces.
+   Nodes are stretched by a fraction equal to:
+      (Rref - r) / Rref * Un where Un is the distance of the node from the center of the surface
+      Rref is the reference radius, r is the desired radius
+   \param SO (SUMA_SurfaceObject *) Surface object, obviously
+   \param r (double) (see above)
+   \param Rref (double) (see above)
+   \pram tmpList (float *) a pre-allocated vector to contain the new coordinates of the surface 
+   \return A (double) the area of the new surface (post streching)
+   \sa SUMA_AreaDiff
+*/
+double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float *tmpList)
+{
+   static char FuncName[]={"SUMA_NewAreaAtRadius"};
+   double Dr, A=0.0,  Un, U[3], Dn, **P2 = NULL, c[3];
+   float *fp;
+   int i;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   /* calculate Dr and normalize by the radius of SOref */
+   Dr = ( Rref - r ) / Rref;
+
+   /* Now loop over all the nodes in SO and add the deal */
+   for (i=0; i<SO->N_Node; ++i) {
+      /* change node coordinate of each node by Dr, along radial direction  */
+      fp = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(SO->Center, fp, U, Un);
+      Dn = Dr*Un + Un;
+      if (Un) {
+         SUMA_COPY_VEC(SO->Center, c, 3, float, double);
+         P2 = SUMA_dPoint_At_Distance(U, c, Dn);
+         if (P2) { /* must loose precision here to stay compatible with node coordinate list types */
+            tmpList[3*i] = (float)P2[0][0]; tmpList[3*i+1] = (float)P2[0][1]; tmpList[3*i+2] = (float)P2[0][2];
+            SUMA_free2D((char **)P2, 2);  P2 = NULL;
+         }else {
+            SUMA_SL_Err("Failed in SUMA_Point_At_Distance!\n"
+                     "No coordinates modified");
+            SUMA_RETURN(0);
+         }
+      } else {
+         SUMA_SL_Err("Identical points!\n"
+                     "No coordinates modified");
+         SUMA_RETURN(0);
+      }
+   }
+
+
+   /* calculate the new Area */
+   fp = SO->NodeList;/* save NodeList */
+   SO->NodeList = tmpList; /* use new coordinates */
+   A = fabs((double)SUMA_Mesh_Area(SO, NULL, -1));
+   SO->NodeList = fp; fp = NULL;   /* make NodeList point to the original data */
+
+   SUMA_RETURN(A);
+} 
 
 /*!
    \brief Changes the coordinates of SO's nodes so that the new average radius of the surface
@@ -632,6 +703,58 @@ double SUMA_NewVolumeAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, flo
 
    SUMA_RETURN(V);
 } 
+
+double SUMA_AreaDiff(double r, void *fvdata)
+{
+   static char FuncName[]={"SUMA_AreaDiff"};
+   double da, *fp, Dr, A;
+   static int ncall=0;
+   int i;
+   static double Rref = 0.0, Aref = 0.0;
+   SUMA_SurfaceObject *SO, *SOref;
+   SUMA_COMM_STRUCT *cs=NULL;
+   SUMA_AreaDiffDataStruct *fdata = (SUMA_AreaDiffDataStruct*)fvdata ;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!fdata) {
+      SUMA_LH("Reset");
+      Rref = 0.0; Aref = 0.0;
+      ncall = 0;
+      SUMA_RETURN(0.0);
+   }
+   
+   SO = fdata->SO;
+   SOref = fdata->SOref;
+   cs = fdata->cs;
+   
+   if (!ncall) {
+      SUMA_LH("Initializing, calculating Aref and Rref");
+      Aref = fdata->Aref;
+      Rref = fdata->Rref;
+      if (LocalHead) { fprintf(SUMA_STDERR,"%s: Reference volume = %f, radius = %f \n", FuncName, Aref, Rref); }
+      if (cs->Send) { /* send the first monster (it's SOref "in SUMA" that's being modified on the fly) */
+         if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+         }
+      }
+   }
+   
+   A = SUMA_NewAreaAtRadius(SO, r, Rref, fdata->tmpList);
+   da = Aref - A; /* the area difference */
+      
+   /* need an update ? */
+   if (cs->Send) { /* send the update (it's SOref "in SUMA" that's being modified on the fly) */
+      if (!SUMA_SendToAfni (SOref, cs, (void *)fdata->tmpList, SUMA_NODE_XYZ, 1)) {
+      SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      }
+   }
+
+   ++ncall;
+   
+   SUMA_RETURN(da);
+}
 
 double SUMA_VolDiff(double r, void *fvdata)
 {
@@ -733,6 +856,63 @@ double SUMA_BinaryZeroSearch(double a, double b, double(*f)(double x, void *data
 */
 /*!
    \brief a function to find two values a and b such that
+   DA(a) is < 0 and DA(b) is > 0
+   These two starting points are used for the optimization function
+   SUMA_BinaryZeroSearch
+*/
+SUMA_Boolean SUMA_GetAreaDiffRange(SUMA_AreaDiffDataStruct *fdata, double *ap, double *bp)
+{
+   static char FuncName[]={"SUMA_GetAreaDiffRange"};
+   double a = 0.0, b = 0.0, nat=0, nbt=0, An, Bn;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   /* decide on segment range */
+   fdata->Aref = fabs((double)SUMA_Mesh_Area(fdata->SOref, NULL, -1));
+   SUMA_SO_RADIUS(fdata->SOref, fdata->Rref);
+   fdata->A = fabs((double)SUMA_Mesh_Area(fdata->SO, NULL, -1));
+   SUMA_SO_RADIUS(fdata->SO, fdata->R);
+
+   /* a very simple range setting. might very well fail at times */
+   if (fdata->Aref - fdata->A < 0) { 
+      a = fdata->R; /* choose 'a' such that Aref - A is < 0, Choose b later*/
+      An = fdata->A;
+      b = fdata->Rref;
+      do {
+         SUMA_LH("Looking for b");
+         b *= 1.3;  /* choose A that Aref - A is > 0 */
+         Bn = SUMA_NewAreaAtRadius(fdata->SO, b, fdata->Rref, fdata->tmpList);
+         ++nbt;
+      } while ( fdata->Aref - Bn < 0 && nbt < 200);
+   }else{
+      b = fdata->R; /* choose 'b' such that Aref - A is > 0, Choose a later*/
+      Bn = fdata->A;
+      a = fdata->Rref;
+      do {
+         SUMA_LH("Looking for a");
+         a *= 0.7;
+         An = SUMA_NewAreaAtRadius(fdata->SO, a, fdata->Rref, fdata->tmpList);
+         ++nat;
+      } while ( fdata->Aref -  An> 0 && nat < 200);
+   }
+
+   *ap = a; *bp = b;
+
+   if (nat >= 200 || nbt >= 200) {
+      SUMA_SL_Err("Failed to find segment.");
+      SUMA_RETURN(NOPE);
+   }
+
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s:\nChosen range is [%f %f] with Areas [%f %f], reference Area is %f\n", 
+            FuncName, a, b, An, Bn, fdata->Aref);
+   }
+   
+   SUMA_RETURN(YUP); 
+}
+/*!
+   \brief a function to find two values a and b such that
    DV(a) is < 0 and DV(b) is > 0
    These two starting points are used for the optimization function
    SUMA_BinaryZeroSearch
@@ -776,6 +956,62 @@ SUMA_Boolean SUMA_GetVolDiffRange(SUMA_VolDiffDataStruct *fdata, double *ap, dou
    }
 
    SUMA_RETURN(YUP); 
+}
+
+/*!
+   \brief inflates or deflates a surface to make the area of one surface (SO) equal to the area of another (SOref)
+   \param SO: The surface to modify
+   \param SOref: The reference surface
+   \param tol (float): The acceptable difference between the two areas
+   \param cs (SUMA_COMM_STRUCT *): The suma communication structure
+   
+   - This function does not update the normals and other coordinate related properties for SO.
+   \sa SUMA_RECOMPUTE_NORMALS 
+*/
+SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float tol, SUMA_COMM_STRUCT *cs)
+{
+   static char FuncName[]={"SUMA_EquateSurfaceAreas"};
+   int iter, i, iter_max, ndiv;
+   double a, b, d;
+   SUMA_AreaDiffDataStruct fdata;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO || !SOref) { SUMA_SL_Err("NULL surfaces"); SUMA_RETURN(NOPE); }
+   if (SO->N_Node != SOref->N_Node || SO->N_FaceSet != SOref->N_FaceSet) { SUMA_SL_Err("Surfaces not isotopic"); SUMA_RETURN(NOPE); }
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           " SO    Center: %f, %f, %f\n"
+                           " SOref Center: %f, %f, %f\n"
+                           , FuncName, 
+                           SO->Center[0], SO->Center[1], SO->Center[2],
+                           SOref->Center[0], SOref->Center[1], SOref->Center[2]);  
+   }
+     
+   /* fill up fdata */
+   fdata.SO = SO; fdata.SOref = SOref; fdata.cs = cs;
+   fdata.tmpList = (float *)SUMA_malloc(SOref->NodeDim * SOref->N_Node * sizeof(float));
+   if (!fdata.tmpList) {
+      SUMA_SL_Err("Failed to allocate");
+      SUMA_RETURN(0);
+   }
+
+   if (!SUMA_GetAreaDiffRange(&fdata, &a, &b)) {
+      SUMA_SL_Err("Failed to get range");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\na = %f\tb=%f\n", FuncName, a, b);
+   }      
+   SUMA_BinaryZeroSearch(a, b, SUMA_AreaDiff, &fdata, 500, tol);  
+   
+   /* now make the new node list be SO's thingy*/
+   SUMA_free(SO->NodeList); SO->NodeList = fdata.tmpList; fdata.tmpList = NULL;
+       
+   SUMA_RETURN(YUP);
 }
 
 /*!
@@ -2336,6 +2572,11 @@ void usage_SUMA_SurfSmooth ()
               "                   within tolerance tol, that of the original surface. \n"
               "                   See option -vol in SurfaceMetrics for information about\n"
               "                   and calculation of the volume of a closed surface.\n"
+              "      -match_area tol: Adjust node coordinates of smoothed surface to \n"
+              "                   approximates the original's surface.\n"
+              "                   Nodes on the filtered surface are repositioned such\n"
+              "                   that the surface of the filtered surface equals, \n"
+              "                   within tolerance tol, that of the original surface. \n"
               "\n"
               "   Common options:\n"
               "      -Niter N: Number of smoothing iterations (default is 100)\n"
@@ -2406,9 +2647,15 @@ void usage_SUMA_SurfSmooth ()
               "         node coordinates are written out to NodeList_sm100.1D. \n"
               "\n"
               "   Sample command for considerable surface smoothing and inflation\n"
-              "   back to original size:\n"
+              "   back to original volume:\n"
               "       SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met NN_geom \\\n"
-              "                   -output NodeList_inflated.1D -Niter 200 -match_vol 0.1\n" 
+              "                   -output NodeList_inflated_mvol.1D -Niter 1500 \\\n"
+              "                   -match_vol 0.01\n" 
+              "   Sample command for considerable surface smoothing and inflation\n"
+              "   back to original area:\n"
+              "       SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met NN_geom \\\n"
+              "                   -output NodeList_inflated_marea.1D -Niter 1500 \\\n"
+              "                   -match_area 0.01\n" 
               "\n"
               "   References: \n"
               "      (1) M.K. Chung et al.   Deformation-based surface morphometry\n"
@@ -2813,7 +3060,16 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 			brk = YUP;
 		}
       
-     
+      if (!brk && (strcmp(argv[kar], "-match_area") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -match_area \n");
+				exit (1);
+			}
+			Opt->lim = atof(argv[kar]);
+         Opt->MatchMethod = 3;
+			brk = YUP;
+		}
       if (!brk && (strcmp(argv[kar], "-fwhm") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -3249,6 +3505,23 @@ int main (int argc,char *argv[])
                   break;
                case 2:
                   if (!SUMA_EquateSurfaceVolumes(SOnew, SO, Opt->lim, cs)) {
+                     SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+                  }
+
+                  /* send the unshrunk bunk */
+                  if (cs->Send) {
+                     SUMA_LH("Sending last fix to SUMA ...");
+                     if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                        SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                     }
+                  }
+                  /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
+                  dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
+                  SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+                  SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
+                  break;
+               case 3:
+                  if (!SUMA_EquateSurfaceAreas(SOnew, SO, Opt->lim, cs)) {
                      SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
                   }
 
@@ -4509,6 +4782,64 @@ double SUMA_Mesh_Volume(SUMA_SurfaceObject *SO, int *FSI, int N_FaceSet)
    SUMA_RETURN(Vol);
 }
 
+/*!
+   \brief computes the total area of a surface.
+   NOTE: This function will replace whatever values you have in SO->PolyArea.
+   If SO->PolyArea is NULL, it will remain that way.
+*/
+double SUMA_Mesh_Area(SUMA_SurfaceObject *SO, int *FaceSets, int N_FaceSet) 
+{
+   static char FuncName[]={"SUMA_Mesh_Area"};
+   double A = 0.0, a = 0.0;
+   int i, i3;
+   float *n0, *n1, *n2;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(A);  }
+   if (!SO->FaceSetList) { SUMA_SL_Err("NULL SO->FaceSetList"); SUMA_RETURN(A);  }
+      
+   if (!FaceSets ) { 
+      if (N_FaceSet != -1) {
+         SUMA_SL_Err("With NULL FaceSets, use -1 for N_FaceSet");
+         SUMA_RETURN(A);
+      }
+      N_FaceSet = SO->N_FaceSet; 
+      FaceSets = SO->FaceSetList;    
+   }else {
+      if (N_FaceSet < 0) {
+         SUMA_SL_Err("N_FaceSet < 0");
+         SUMA_RETURN(A);
+      }
+   }
+
+   A = 0.0;
+   if (SO->PolyArea) {
+      for (i=0;  i<N_FaceSet; ++i) {
+         i3 = 3*i;
+         n0 = &(SO->NodeList[3*FaceSets[i3]]);
+         n1 = &(SO->NodeList[3*FaceSets[i3+1]]);
+         n2 = &(SO->NodeList[3*FaceSets[i3+2]]);
+         SUMA_TRI_AREA( n0, n1, n2, a);
+         SO->PolyArea[i] = (float)a;
+         A += a;
+      }
+   } else {
+      for (i=0;  i<N_FaceSet; ++i) {
+         i3 = 3*i;
+         n0 = &(SO->NodeList[3*FaceSets[i3]]);
+         n1 = &(SO->NodeList[3*FaceSets[i3+1]]);
+         n2 = &(SO->NodeList[3*FaceSets[i3+2]]);
+         SUMA_TRI_AREA( n0, n1, n2, a);
+         A += a;
+      }
+   }
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\n   A = %f\n", FuncName, A);
+   }
+   SUMA_RETURN(A);
+}
 /*!
  
 From File : Plane_Equation.c

@@ -2863,7 +2863,8 @@ void usage_SUMA_SurfaceMetrics ()
       char * s = NULL;
       s = SUMA_help_basics();
       printf ( "\n"
-               "Usage: SurfaceMetrics <-Metric1> [[-Metric2] ...] <-i_TYPE inSurf> \n"
+               "Usage: SurfaceMetrics <-Metric1> [[-Metric2] ...] \n"
+               "                  <-spec SpecFile> <-surf_A insurf> \n"
                "                  [<-sv SurfaceVolume [VolParam for sf surfaces]>]\n"
                "                  [-tlrc] [<-prefix prefix>]\n"
                "\n"
@@ -2916,8 +2917,11 @@ void usage_SUMA_SurfaceMetrics ()
                "\n"
                "      You can use any or all of these metrics simultaneously.\n"
                "\n"
-               "   -i_TYPE inSurf: Specify the type and name of the input surface.\n"
-               "                   See ConvertSurface -help for more info.\n"
+               "   -spec SpecFile: Name of specfile containing surface of interest.\n"
+               "                   If the surface does not have a spec file, use the \n"
+               "                   program quickspec to create one.\n"
+               "   -surf_A insurf: Name of surface of interest. \n"
+               "                   NOTE: i_TYPE inSurf option is now obsolete.\n"
                "\n"
                "   -sv SurfaceVolume [VolParam for sf surfaces]: Specify a surface volume\n"
                "                   for surface alignment. See ConvertSurface -help for more info.\n"
