@@ -22,7 +22,11 @@
 
 typedef struct {                   /** 4x4 matrix struct **/
   float m[4][4] ;
-} nifti_mat44 ;
+} mat44 ;
+
+typedef struct {                   /** 3x3 matrix struct **/
+  float m[3][3] ;
+} mat33 ;
 
 /*...........................................................................*/
 
@@ -49,11 +53,11 @@ typedef struct {                  /** Image storage struct **/
         qoffset_y, qoffset_z,     /* [are used for qform, NOT qto_xyz] */
         qfac                 ;
 
-  nifti_mat44 qto_xyz ;           /* qform: transform (i,j,k) to (x,y,z) */
-  nifti_mat44 qto_ijk ;           /* qform: transform (x,y,z) to (i,j,k) */
+  mat44 qto_xyz ;                 /* qform: transform (i,j,k) to (x,y,z) */
+  mat44 qto_ijk ;                 /* qform: transform (x,y,z) to (i,j,k) */
 
-  nifti_mat44 sto_xyz ;           /* sform: transform (i,j,k) to (x,y,z) */
-  nifti_mat44 sto_ijk ;           /* sform: transform (x,y,z) to (i,j,k) */
+  mat44 sto_xyz ;                 /* sform: transform (i,j,k) to (x,y,z) */
+  mat44 sto_ijk ;                 /* sform: transform (x,y,z) to (i,j,k) */
 
   float toffset ;                 /* time coordinate offset */
 
@@ -84,7 +88,13 @@ char *nifti_units_string   ( int uu ) ;
 char *nifti_intent_string  ( int ii ) ;
 char *nifti_xform_string   ( int xx ) ;
 
-nifti_mat44 nifti_mat44_inverse( nifti_mat44 R ) ;
+mat44 mat44_inverse( mat44 R ) ;
+
+mat33 mat33_inverse( mat33 R ) ;
+mat33 mat33_polar  ( mat33 A ) ;
+float mat33_rownorm( mat33 A ) ;
+float mat33_colnorm( mat33 A ) ;
+float mat33_determ ( mat33 R ) ;
 
 void swap_2bytes ( int n , void *ar ) ;
 void swap_4bytes ( int n , void *ar ) ;
@@ -102,14 +112,14 @@ void          nifti_image_free    ( nifti_image *nim ) ;
 void          nifti_image_infodump( nifti_image *nim ) ;
 void          nifti_image_write   ( nifti_image *nim ) ;
 
-void nifti_mat44_to_quatern( nifti_mat44 R ,
-                             float *qb, float *qc, float *qd,
-                             float *qx, float *qy, float *qz,
-                             float *dx, float *dy, float *dz, float *qfac ) ;
+void mat44_to_quatern( mat44 R ,
+                       float *qb, float *qc, float *qd,
+                       float *qx, float *qy, float *qz,
+                       float *dx, float *dy, float *dz, float *qfac ) ;
 
-nifti_mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
-                                    float qx, float qy, float qz,
-                                    float dx, float dy, float dz, float qfac );
+mat44 quatern_to_mat44( float qb, float qc, float qd,
+                        float qx, float qy, float qz,
+                        float dx, float dy, float dz, float qfac );
 
 /*-------------------- Some C convenience macros ----------------------------*/
 
@@ -248,17 +258,17 @@ char *nifti_intent_string( int ii )
      - qb,qc,qd = quaternion parameters
      - qx,qy,qz = offset parameters
      - dx,dy,dz = grid stepsizes (non-negative inputs are set to 1.0)
-     - qfac     = sign of dx step
+     - qfac     = sign of dz step (< 0 is negative; >= 0 is positive)
    If qx=qy=qz=0, dx=dy=dz=1, then the output is a rotation matrix.
    For qfac >= 0, the rotation is proper.
    For qfac <  0, the rotation is improper.
 -----------------------------------------------------------------------------*/
 
-nifti_mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
-                                    float qx, float qy, float qz,
-                                    float dx, float dy, float dz, float qfac )
+mat44 quatern_to_mat44( float qb, float qc, float qd,
+                        float qx, float qy, float qz,
+                        float dx, float dy, float dz, float qfac )
 {
-   nifti_mat44 R ;
+   mat44 R ;
    double a,b=qb,c=qc,d=qd , xd,yd,zd ;
 
    /* last row is always [ 0 0 0 1 ] */
@@ -268,8 +278,8 @@ nifti_mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
    /* compute a parameter from b,c,d */
 
    a = 1.0l - (b*b + c*c + d*d) ;
-   if( a < 0.0 ){                      /* weird quaternion input! */
-     a = 1.0l / sqrt(1.0l-a) ;
+   if( a < 1.e-7l ){                   /* special case */
+     a = 1.0l / sqrt(b*b+c*c+d*d) ;
      b *= a ; c *= a ; d *= a ;        /* normalize (b,c,d) vector */
      a = 0.0l ;                        /* a = 0 ==> 180 degree rotation */
    } else{
@@ -282,7 +292,7 @@ nifti_mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
    yd = (dy > 0.0) ? dy : 1.0l ;
    zd = (dz > 0.0) ? dz : 1.0l ;
 
-   if( qfac < 0.0 ) xd = -xd ;         /* left handedness? */
+   if( qfac < 0.0 ) zd = -zd ;         /* left handedness? */
 
    R.m[0][0] =        (a*a+b*b-c*c-d*d) * xd ;
    R.m[0][1] = 2.0l * (b*c-a*d        ) * yd ;
@@ -307,25 +317,26 @@ nifti_mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
      - Any NULL pointer on input won't get assigned (e.g., if you don't want
        dx,dy,dz, just pass NULL in for those pointers).
      - If the 3 input matrix columns are NOT orthogonal, they will be
-       orthogonalized prior to calculating the parameters.  In this case,
-       applying this function to the inverse of the matrix will NOT give
-       the inverse quaternion.
+       orthogonalized prior to calculating the parameters, using
+       the polar decomposition to find the orthogonal matrix closest
+       to the column-normalized input matrix.
      - If the 3 input matrix columns are not linearly independent, you'll
        just have to take your luck, won't you?
 -----------------------------------------------------------------------------*/
 
-#undef ASSIF
-#define ASSIF(p,v) if( (p) != NULL ) *(p) = (v)
+#undef  ASSIF                                 /* assign v to *p, if possible */
+#define ASSIF(p,v) if( (p)!=NULL ) *(p) = (v)
 
-void nifti_mat44_to_quatern( nifti_mat44 R ,
-                             float *qb, float *qc, float *qd,
-                             float *qx, float *qy, float *qz,
-                             float *dx, float *dy, float *dz, float *qfac )
+void mat44_to_quatern( mat44 R ,
+                       float *qb, float *qc, float *qd,
+                       float *qx, float *qy, float *qz,
+                       float *dx, float *dy, float *dz, float *qfac )
 {
    double r11,r12,r13 , r21,r22,r23 , r31,r32,r33 ;
    double xd,yd,zd , a,b,c,d ;
+   mat33 P,Q ;
 
-   /* offset outputs are easy */
+   /* offset outputs are read write out of input matrix  */
 
    ASSIF(qx,R.m[0][3]) ; ASSIF(qy,R.m[1][3]) ; ASSIF(qz,R.m[2][3]) ;
 
@@ -335,13 +346,13 @@ void nifti_mat44_to_quatern( nifti_mat44 R ,
    r21 = R.m[1][0] ; r22 = R.m[1][1] ; r23 = R.m[1][2] ;
    r31 = R.m[2][0] ; r32 = R.m[2][1] ; r33 = R.m[2][2] ;
 
-   /* compute lengths of each column */
+   /* compute lengths of each column; these determine grid spacings  */
 
    xd = sqrt( r11*r11 + r21*r21 + r31*r31 ) ;
    yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;
    zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
 
-   /* if a length is zero, patch the trouble */
+   /* if a column length is zero, patch the trouble */
 
    if( xd == 0.0l ){ r11 = 1.0l ; r21 = r31 = 0.0l ; xd = 1.0l ; }
    if( yd == 0.0l ){ r22 = 1.0l ; r12 = r32 = 0.0l ; yd = 1.0l ; }
@@ -357,58 +368,27 @@ void nifti_mat44_to_quatern( nifti_mat44 R ,
    r12 /= yd ; r22 /= yd ; r32 /= yd ;
    r13 /= zd ; r23 /= zd ; r33 /= zd ;
 
-   /* orthogonalize column 2 to column 1 */
+   /* At this point, the matrix has normal columns, but we have to allow
+      for the fact that the hideous user may not have given us a matrix
+      with orthogonal columns.
 
-   xd = r11*r12 + r21*r22 + r31*r32 ;  /* dot product with #1 */
+      So, now find the orthogonal matrix closest to the current matrix.
 
-   if( fabs(xd) > 1.e-7l ){            /* not already orthogonal */
-     r12 -= xd*r11 ; r22 -= xd*r21 ; r32 -= xd*r31 ;  /* remove #1 */
-     yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;
-     if( yd > 0.0l ){
-       r12 /= yd ; r22 /= yd ; r32 /= yd ;      /* normalize again */
-     } else {
-               /* 2cd column parallel to 1st
-                  ==> pick some randomish direction
-                      and orthogonalize it to 1st column */
+      One reason for using the polar decomposition to get this
+      orthogonal matrix, rather than just directly orthogonalizing
+      the columns, is so that inputting the inverse matrix to R
+      will result in the inverse orthogonal matrix at this point.
+      If we just orthogonalized the columns, this wouldn't necessarily hold. */
 
-       r12 = .705489l ; r22 = -1.22097l ; r32 = 0.818019l;  /* randomish */
-       yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;            /* normalize */
-       r12 /= yd ; r22 /= yd ; r32 /= yd ;
-       xd = r11*r12 + r21*r22 + r31*r32 ;                    /* dot with #1 */
-       r12 -= xd*r11 ; r22 -= xd*r21 ; r32 -= xd*r31 ;       /* remove #1 */
-       yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;            /* normalize */
-       r12 /= yd ; r22 /= yd ; r32 /= yd ;
-     }
-   }
+   Q.m[0][0] = r11 ; Q.m[0][1] = r12 ; Q.m[0][2] = r13 ; /* load Q */
+   Q.m[1][0] = r21 ; Q.m[1][1] = r22 ; Q.m[1][2] = r23 ;
+   Q.m[2][0] = r31 ; Q.m[2][1] = r32 ; Q.m[2][2] = r33 ;
 
-   /* orthogonalize column 3 to columns 2 and 1 */
+   P = mat33_polar(Q) ;  /* P is orthog matrix closest to Q */
 
-   xd = r11*r13 + r21*r23 + r31*r33 ;  /* dot product with #1 */
-   yd = r12*r13 + r22*r23 + r32*r33 ;  /* dot product with #1 */
-
-   if( fabs(xd) > 1.e-7l || fabs(yd) > 1.e-7l ){  /* not already orthog */
-     r13 -= xd*r11+yd*r12 ;                       /* remove #1 and #2 */
-     r23 -= xd*r21+yd*r22 ;
-     r33 -= xd*r31+yd*r32 ;
-     zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
-     if( zd > 0.0l ){
-       r13 /= zd ; r23 /= zd ; r33 /= zd ;      /* normalize again */
-     } else {
-               /* 3rd column is in plane of #1 and #2
-                  ==> pick some randomish direction
-                      and orthogonalize it to #1 and #2 */
-       r13 = .802489l ; r23 = 1.32097l ; r33 = -0.918019l;  /* randomish */
-       zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
-       r13 /= zd ; r23 /= zd ; r33 /= zd ;                   /* normalize */
-       xd = r11*r13 + r21*r23 + r31*r33 ;                    /* dot with #1 */
-       yd = r12*r13 + r22*r23 + r32*r33 ;                    /* dot with #1 */
-       r13 -= xd*r11+yd*r12 ;                           /* remove #1 and #2 */
-       r23 -= xd*r21+yd*r22 ;
-       r33 -= xd*r31+yd*r32 ;
-       zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
-       r13 /= zd ; r23 /= zd ; r33 /= zd ;                   /* normalize */
-     }
-   }
+   r11 = P.m[0][0] ; r12 = P.m[0][1] ; r13 = P.m[0][2] ; /* unload */
+   r21 = P.m[1][0] ; r22 = P.m[1][1] ; r23 = P.m[1][2] ;
+   r31 = P.m[2][0] ; r32 = P.m[2][1] ; r33 = P.m[2][2] ;
 
    /*                            [ r11 r12 r13 ]               */
    /* at this point, the matrix  [ r21 r22 r23 ] is orthogonal */
@@ -421,9 +401,9 @@ void nifti_mat44_to_quatern( nifti_mat44 R ,
 
    if( zd > 0 ){             /* proper */
      ASSIF(qfac,1.0) ;
-   } else {                  /* improper ==> flip 1st column */
+   } else {                  /* improper ==> flip 3rd column */
      ASSIF(qfac,-1.0) ;
-     r11 = -r11 ; r21 = -r21 ; r31 = -r31 ;
+     r13 = -r13 ; r23 = -r23 ; r33 = -r33 ;
    }
 
    /* now, compute quaternion parameters */
@@ -472,10 +452,10 @@ void nifti_mat44_to_quatern( nifti_mat44 R ,
    be 1.0 for the normal case and 0.0 for the bad case.
 -----------------------------------------------------------------------------*/
 
-nifti_mat44 nifti_mat44_inverse( nifti_mat44 R )
+mat44 mat44_inverse( mat44 R )
 {
    double r11,r12,r13,r21,r22,r23,r31,r32,r33,v1,v2,v3 , deti ;
-   nifti_mat44 Q ;
+   mat44 Q ;
                                                        /** INPUT MATRIX IS: **/
    r11 = R.m[0][0]; r12 = R.m[0][1]; r13 = R.m[0][2];  /* [ r11 r12 r13 v1 ] */
    r21 = R.m[1][0]; r22 = R.m[1][1]; r23 = R.m[1][2];  /* [ r21 r22 r23 v2 ] */
@@ -512,6 +492,136 @@ nifti_mat44 nifti_mat44_inverse( nifti_mat44 R )
 }
 
 /*---------------------------------------------------------------------------*/
+
+mat33 mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
+{
+   double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
+   mat33 Q ;
+                                                       /** INPUT MATRIX: **/
+   r11 = R.m[0][0]; r12 = R.m[0][1]; r13 = R.m[0][2];  /* [ r11 r12 r13 ] */
+   r21 = R.m[1][0]; r22 = R.m[1][1]; r23 = R.m[1][2];  /* [ r21 r22 r23 ] */
+   r31 = R.m[2][0]; r32 = R.m[2][1]; r33 = R.m[2][2];  /* [ r31 r32 r33 ] */
+
+   deti = r11*r22*r33-r11*r32*r23-r21*r12*r33
+         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
+
+   if( deti != 0.0l ) deti = 1.0l / deti ;
+
+   Q.m[0][0] = deti*( r22*r33-r32*r23) ;
+   Q.m[0][1] = deti*(-r12*r33+r32*r13) ;
+   Q.m[0][2] = deti*( r12*r23-r22*r13) ;
+
+   Q.m[1][0] = deti*(-r21*r33+r31*r23) ;
+   Q.m[1][1] = deti*( r11*r33-r31*r13) ;
+   Q.m[1][2] = deti*(-r11*r23+r21*r13) ;
+
+   Q.m[2][0] = deti*( r21*r32-r31*r22) ;
+   Q.m[2][1] = deti*(-r11*r32+r31*r12) ;
+   Q.m[2][2] = deti*( r11*r22-r21*r12) ;
+
+   return Q ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+float mat33_determ( mat33 R )   /* determinant of 3x3 matrix */
+{
+   double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
+                                                       /** INPUT MATRIX: **/
+   r11 = R.m[0][0]; r12 = R.m[0][1]; r13 = R.m[0][2];  /* [ r11 r12 r13 ] */
+   r21 = R.m[1][0]; r22 = R.m[1][1]; r23 = R.m[1][2];  /* [ r21 r22 r23 ] */
+   r31 = R.m[2][0]; r32 = R.m[2][1]; r33 = R.m[2][2];  /* [ r31 r32 r33 ] */
+
+   return r11*r22*r33-r11*r32*r23-r21*r12*r33
+         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+float mat33_rownorm( mat33 A )  /* max row norm of 3x3 matrix */
+{
+   float r1,r2,r3 ;
+
+   r1 = fabs(A.m[0][0])+fabs(A.m[0][1])+fabs(A.m[0][2]) ;
+   r2 = fabs(A.m[1][0])+fabs(A.m[1][1])+fabs(A.m[1][2]) ;
+   r3 = fabs(A.m[2][0])+fabs(A.m[2][1])+fabs(A.m[2][2]) ;
+   if( r1 < r2 ) r1 = r2 ;
+   if( r1 < r3 ) r1 = r3 ;
+   return r1 ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+float mat33_colnorm( mat33 A )  /* max column norm of 3x3 matrix */
+{
+   float r1,r2,r3 ;
+
+   r1 = fabs(A.m[0][0])+fabs(A.m[1][0])+fabs(A.m[2][0]) ;
+   r2 = fabs(A.m[0][1])+fabs(A.m[1][1])+fabs(A.m[2][1]) ;
+   r3 = fabs(A.m[0][2])+fabs(A.m[1][2])+fabs(A.m[2][2]) ;
+   if( r1 < r2 ) r1 = r2 ;
+   if( r1 < r3 ) r1 = r3 ;
+   return r1 ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Polar decomposition of a 3x3 matrix: finds the closest orthogonal matrix
+   to input A (in both the Frobenius and L2 norms).  Algorithm is that from
+   NJ Higham, SIAM J Sci Stat Comput, 7:1160-1174.
+-----------------------------------------------------------------------------*/
+
+mat33 mat33_polar( mat33 A )
+{
+   mat33 X , Y , Z ;
+   float alp,bet,gam,gmi , dif=1.0 ;
+   int k=0 ;
+
+   X = A ;
+
+   /* force matrix to be nonsingular */
+
+   gam = mat33_determ(X) ;
+   while( gam == 0.0 ){        /* perturb matrix */
+     gam = 0.00001 * ( 0.001 + mat33_rownorm(X) ) ;
+     X.m[0][0] += gam ; X.m[1][1] += gam ; X.m[2][2] += gam ;
+     gam = mat33_determ(X) ;
+   }
+
+   while(1){
+     Y = mat33_inverse(X) ;
+     if( dif > 0.3 ){     /* far from convergence */
+       alp = sqrt( mat33_rownorm(X) * mat33_colnorm(X) ) ;
+       bet = sqrt( mat33_rownorm(Y) * mat33_colnorm(Y) ) ;
+       gam = sqrt( bet / alp ) ;
+       gmi = 1.0 / gam ;
+     } else {
+       gam = gmi = 1.0 ;  /* close to convergence */
+     }
+     Z.m[0][0] = 0.5 * ( gam*X.m[0][0] + gmi*Y.m[0][0] ) ;
+     Z.m[0][1] = 0.5 * ( gam*X.m[0][1] + gmi*Y.m[1][0] ) ;
+     Z.m[0][2] = 0.5 * ( gam*X.m[0][2] + gmi*Y.m[2][0] ) ;
+     Z.m[1][0] = 0.5 * ( gam*X.m[1][0] + gmi*Y.m[0][1] ) ;
+     Z.m[1][1] = 0.5 * ( gam*X.m[1][1] + gmi*Y.m[1][1] ) ;
+     Z.m[1][2] = 0.5 * ( gam*X.m[1][2] + gmi*Y.m[2][1] ) ;
+     Z.m[2][0] = 0.5 * ( gam*X.m[2][0] + gmi*Y.m[0][2] ) ;
+     Z.m[2][1] = 0.5 * ( gam*X.m[2][1] + gmi*Y.m[1][2] ) ;
+     Z.m[2][2] = 0.5 * ( gam*X.m[2][2] + gmi*Y.m[2][2] ) ;
+
+     dif = fabs(Z.m[0][0]-X.m[0][0])+fabs(Z.m[0][1]-X.m[0][1])
+          +fabs(Z.m[0][2]-X.m[0][2])+fabs(Z.m[1][0]-X.m[1][0])
+          +fabs(Z.m[1][1]-X.m[1][1])+fabs(Z.m[1][2]-X.m[1][2])
+          +fabs(Z.m[2][0]-X.m[2][0])+fabs(Z.m[2][1]-X.m[2][1])
+          +fabs(Z.m[2][2]-X.m[2][2])                          ;
+
+     k = k+1 ;
+     if( k > 100 || dif < 3.e-6 ) break ;  /* convergence or exhaustion */
+     X = Z ;
+   }
+
+   return Z ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Routines to swap byte arrays in various ways:
     -  2 at a time:  ab               -> ba               [short]
     -  4 at a time:  abcd             -> dcba             [int, float]
@@ -521,7 +631,7 @@ nifti_mat44 nifti_mat44_inverse( nifti_mat44 R )
 
 typedef struct { unsigned char a,b ; } twobytes ;
 
-void swap_2bytes( int n , void *ar )
+void swap_2bytes( int n , void *ar )    /* 2 bytes at a time */
 {
    register int ii ;
    register twobytes *tb = (twobytes *)ar ;
@@ -537,7 +647,7 @@ void swap_2bytes( int n , void *ar )
 
 typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 
-void swap_4bytes( int n , void *ar )
+void swap_4bytes( int n , void *ar )    /* 4 bytes at a time */
 {
    register int ii ;
    register fourbytes *tb = (fourbytes *)ar ;
@@ -554,7 +664,7 @@ void swap_4bytes( int n , void *ar )
 
 typedef struct { unsigned char a,b,c,d , D,C,B,A ; } eightbytes ;
 
-void swap_8bytes( int n , void *ar )
+void swap_8bytes( int n , void *ar )    /* 8 bytes at a time */
 {
    register int ii ;
    register eightbytes *tb = (eightbytes *)ar ;
@@ -574,7 +684,7 @@ void swap_8bytes( int n , void *ar )
 typedef struct { unsigned char a,b,c,d,e,f,g,h ,
                                H,G,F,E,D,C,B,A  ; } sixteenbytes ;
 
-void swap_16bytes( int n , void *ar )
+void swap_16bytes( int n , void *ar )    /* 16 bytes at a time */
 {
    register int ii ;
    register sixteenbytes *tb = (sixteenbytes *)ar ;
@@ -596,7 +706,7 @@ void swap_16bytes( int n , void *ar )
 
 /*---------------------------------------------------------------------------*/
 
-void swap_Nbytes( int n , int siz , void *ar )
+void swap_Nbytes( int n , int siz , void *ar )  /* subsuming case */
 {
    switch( siz ){
      case 2:  swap_2bytes ( n , ar ) ; break ;
@@ -891,7 +1001,7 @@ nifti_image * nifti_image_read( char *hname , int read_data )
 
      nim->qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
 
-     nim->qto_xyz = nifti_quatern_to_mat44(
+     nim->qto_xyz = quatern_to_mat44(
                       nim->quatern_b, nim->quatern_c, nim->quatern_c,
                       nim->qoffset_x, nim->qoffset_y, nim->qoffset_z,
                       nim->dx       , nim->dy       , nim->dz       ,
@@ -902,7 +1012,7 @@ nifti_image * nifti_image_read( char *hname , int read_data )
 
    /** load inverse transformation (x,y,z) -> (i,j,k) **/
 
-   nim->qto_ijk = nifti_mat44_inverse( nim->qto_xyz ) ;
+   nim->qto_ijk = mat44_inverse( nim->qto_xyz ) ;
 
    /** load sto_xyz affine transformation, if present **/
 
@@ -932,7 +1042,7 @@ nifti_image * nifti_image_read( char *hname , int read_data )
      nim->sto_xyz.m[3][0]=nim->sto_xyz.m[3][1]=nim->sto_xyz.m[3][2] = 0.0;
      nim->sto_xyz.m[3][3]= 1.0 ;
 
-     nim->sto_ijk = nifti_mat44_inverse( nim->sto_xyz ) ;
+     nim->sto_ijk = mat44_inverse( nim->sto_xyz ) ;
 
      nim->sform_code = nhdr.sform_code ;
    }
@@ -1238,7 +1348,7 @@ void nifti_image_infodump( nifti_image *nim )
     - if qform_code > 0, the quatern_*, qoffset_*, and qfac fields determine
       the qform output, NOT the qto_xyz matrix; if you want to compute these
       fields from the qto_xyz matrix, you can use the utility function
-      nifti_mat44_to_quatern()
+      mat44_to_quatern()
 ----------------------------------------------------------------------------*/
 
 #undef  ERREX
