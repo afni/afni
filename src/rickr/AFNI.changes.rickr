@@ -190,3 +190,10 @@
   * file_tool version 2.0 : added ge4 study header info
       o modified ge4_header.[ch] rickr/file_tool.[ch]
 
+03 June 2003:
+  * modified ge4_header.[ch] to be called from mri_read.c
+  * modified mri_read.c - added mri_read_ge4 and call from mri_read_file()
+  * modified mrilib.h - added declaration for mri_read_ge4()
+  * modified Makefile.INCLUDE - added ge4_header.o to MRI_OBJS for mri_read_file
+  * modified file_tool (version 2.1) for slight change to ge4_read_header()
+
