@@ -1924,7 +1924,7 @@ static int nap_time_from_tr( float tr )
     if ( tr2 > 10 )
 	return 10;			/* ??? tres big */
 
-    return( (int)(tr + 0.9) );  	/* basically, use ceiling */
+    return( (int)(tr2 + 0.9) );  	/* basically, use ceiling */
 }
 
 
