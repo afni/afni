@@ -2,6 +2,8 @@
  * plug_vol2surf.c		- plugin interface to vol2surf computation
  *
  * Provide an interface to the global v2s_plugin_opts structure.
+ *
+ * - R. Reynolds
  ***********************************************************************
 */
 
@@ -96,11 +98,11 @@ static char g_help[] =
     " \n"
     " \n"
     " *  for more infomation, please try the command: '3dVol2Surf -help'   *\n"
-    " ----------------------------------------------------------------------\n"
     " \n"
     " \n"
     " Author: R Reynolds\n"
     " \n"
+    " ----------------------------------------------------------------------\n"
     "   History:\n"
     " \n"
     "   1.0  9 September 2004 [rickr]\n"
@@ -109,6 +111,13 @@ static char g_help[] =
     "   1.1  16 September 2004 [rickr]\n"
     "     - init gp_index to -1 (set it in afni)\n"
     "     - allow the user to keep or reverse normal directions\n"
+    " \n"
+    "   1.2  29 September 2004 [rickr]\n"
+    "     - now set global ready if all is well\n"
+    "     - clear norms if not in use\n"
+    "     - name all local functions PV2S_*\n"
+    "     - if debug > 0, display chosen surfaces in terminal\n"
+    "     - if debug > 1, display all possible surfaces in terminal\n"
 	;
 
 #define P_MAP_NAMES_NVALS      12	/* should match enum for global maps */
@@ -127,15 +136,17 @@ typedef struct
     char            ** maps;
 } pv2s_globals;
 
-static pv2s_globals globs;
+static pv2s_globals globs;	/* these are just pointers to afni globals */
 
 /* local functions */
-static int check_surfaces(PLUGIN_interface * plint, int sa, int sb, char *mesg);
-static int init_plugin_opts(pv2s_globals * g);
-static int process_args(PLUGIN_interface * plint,pv2s_globals * g, char *mesg);
+static int PV2S_check_surfaces(PLUGIN_interface * plint, int sa, int sb,
+			       char *mesg, int debug);
+static int PV2S_init_plugin_opts(pv2s_globals * g);
+static int PV2S_process_args(PLUGIN_interface * plint,pv2s_globals * g,
+			     char *mesg);
 
 /* for ease of error reporting */
-#define P_V2S_BAIL_VALUE(buf,str,val)                                   \
+#define PV2S_BAIL_VALUE(buf,str,val)                                   \
         do { sprintf((buf),  "-------------------------------------\n"  \
                              "%s\n"                                     \
                              "bad value = %d\n"                         \
@@ -163,7 +174,7 @@ ENTRY("vol2surf: PLUGIN_init");
     /* using a void pointer so we don't have to put vol2surf.h in afni.h */
     globs.vpo = (v2s_plugin_opts *)void_vpo;
 
-    init_plugin_opts(&globs);
+    PV2S_init_plugin_opts(&globs);
 
     plint = PLUTO_new_interface("Vol2Surf",
 		"configure afni's volume to surface options",
@@ -201,7 +212,7 @@ ENTRY("vol2surf: PLUGIN_init");
     PLUTO_add_hint  ( plint, "control use of normals (instead of surf_B)" );
     PLUTO_add_string( plint, "use normals? ", P_NY_NVALS, gp_ny_list, 0 );
     PLUTO_add_hint  ( plint, "should normals be used to simulate surf_B?" );
-    PLUTO_add_number( plint, "norm len", -100, 100, 1, 0, 1 );
+    PLUTO_add_number( plint, "norm len", -100, 100, 1, 10, 1 );
     PLUTO_add_hint  ( plint, "what (signed) length should the normals be?" );
     PLUTO_add_string( plint, "norm dir", P_KEEP_NVALS, gp_keep_list, 0 );
     PLUTO_add_hint  ( plint, "check normal direction, or keep or reverse it" );
@@ -223,11 +234,11 @@ ENTRY("vol2surf: PLUGIN_init");
     PLUTO_add_hint  ( plint, "what to do when out of bounds or mask" );
     PLUTO_add_string( plint, "oob nodes?", P_NY_NVALS, gp_ny_list, 0 );
     PLUTO_add_hint  ( plint, "keep nodes that are outside the dataset?");
-    PLUTO_add_number( plint, "oob value", -100, 100, 1, 0, 1 );
+    PLUTO_add_number( plint, "oob value", 0, 0, 0, -2, 1 );
     PLUTO_add_hint  ( plint, "value to apply when out of dataset bounds" );
     PLUTO_add_string( plint, "oom nodes?", P_NY_NVALS, gp_ny_list, 0 );
     PLUTO_add_hint  ( plint, "keep nodes that are masked out?");
-    PLUTO_add_number( plint, "oom value", -100, 100, 1, 0, 1 );
+    PLUTO_add_number( plint, "oom value", 0, 0, 0, -1, 1 );
     PLUTO_add_hint  ( plint, "value for masked out nodes" );
 
     /* choose node processing range */
@@ -265,16 +276,16 @@ ENTRY("PV2S_main");
 
     g->vpo->ready = 0;
 
-    if ( process_args(plint, g, message) != 0 )
+    if ( PV2S_process_args(plint, g, message) != 0 )
 	RETURN(message);
 
     RETURN(NULL);
 }
 
 /* base defaults to local and duplicate to global */
-static int init_plugin_opts(pv2s_globals * g)
+static int PV2S_init_plugin_opts(pv2s_globals * g)
 {
-ENTRY("init_plugin_opts");
+ENTRY("PV2S_init_plugin_opts");
     memset(g->vpo, 0, sizeof(*g->vpo));
 
     g->vpo->ready =  0;		/* flag as "not ready to go" */
@@ -291,7 +302,8 @@ ENTRY("init_plugin_opts");
 
 
 
-static int process_args(PLUGIN_interface * plint, pv2s_globals * g, char * mesg)
+static int PV2S_process_args(PLUGIN_interface * plint, pv2s_globals * g,
+			     char * mesg)
 {
     THD_session     * ss;
     MCW_idcode      * idc;
@@ -301,7 +313,7 @@ static int process_args(PLUGIN_interface * plint, pv2s_globals * g, char * mesg)
     char            * tag, * str;
     int               val, ready = 0;
 
-ENTRY("process_args");
+ENTRY("PV2S_process_args");
 
     /* do we have a valid 3D view and session? */
     if ( !IM3D_OPEN(plint->im3d) || !plint->im3d->ss_now )
@@ -328,6 +340,9 @@ ENTRY("process_args");
 
     while ( (tag = PLUTO_get_optiontag(plint)) != NULL )
     {
+	if ( sopt->debug > 2 )
+	    fprintf(stderr,"++ received option tag: %s\n", tag);
+
 	if ( ! strcmp(tag, "op_st") )
 	{
 	    str = PLUTO_get_string(plint);
@@ -338,7 +353,7 @@ ENTRY("process_args");
 
 	    if ( (val < 0) || (val >= P_NY_NVALS) )
 	    {
-		P_V2S_BAIL_VALUE(mesg,"bad NY vals", val);
+		PV2S_BAIL_VALUE(mesg,"bad NY vals", val);
 		RETURN(1);
 	    }
 	    ready = val;		/* this is the interface to "ready" */
@@ -355,7 +370,7 @@ ENTRY("process_args");
 	    }
 	    else if ( (val < E_SMAP_INVALID) || (val >= E_SMAP_FINAL) )
 	    {
-		P_V2S_BAIL_VALUE(mesg, "illegal 'map func'", val);
+		PV2S_BAIL_VALUE(mesg, "illegal 'map func'", val);
 		RETURN(1);
 	    }
 	    sopt->map = val;
@@ -368,7 +383,7 @@ ENTRY("process_args");
 	    val = (int)PLUTO_get_number(plint);	/* num steps */
 	    if ( (val <= 0) || (val >= V2S_STEPS_TOOOOO_BIG) )
 	    {
-		P_V2S_BAIL_VALUE(mesg, "steps too big", val);
+		PV2S_BAIL_VALUE(mesg, "steps too big", val);
 		RETURN(1);
 	    }
 	    sopt->f_steps = val;
@@ -377,13 +392,10 @@ ENTRY("process_args");
 	{
 	    lvpo.surfA = (int)PLUTO_get_number(plint);	/* surf_A */
 	    str = PLUTO_get_string(plint);
-	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) == 0 )
-		lvpo.surfB = -1;	/* then do not use surf_B */
-	    else
+	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
 		lvpo.surfB = (int)PLUTO_get_number(plint);
-
-	    if ( check_surfaces(plint, lvpo.surfA, lvpo.surfB, mesg) )
-		RETURN(1);
+	    else
+		lvpo.surfB = -1;	/* else do not use surf_B */
    	}
 	else if ( ! strcmp(tag, "normals") )
 	{
@@ -399,6 +411,8 @@ ENTRY("process_args");
 		else if ( val == 2 ) sopt->norm_dir = V2S_NORM_REVERSE;
 		else                 sopt->norm_dir = V2S_NORM_DEFAULT;
 	    }
+	    else
+		sopt->use_norms = 0;
 	}
 	else if ( ! strcmp(tag, "offsets") )
 	{
@@ -423,30 +437,29 @@ ENTRY("process_args");
 	}
 	else if ( ! strcmp(tag, "oor") )
 	{
-	    int use = 0;
-
 	    /* out of bounds ... */
-	    str = PLUTO_get_string(plint);
-	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
-		use = 1;
+	    str  = PLUTO_get_string(plint);
+	    val  = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
 	    fval = PLUTO_get_number(plint);
-	    if ( use )
+	    if ( val != 0 )
 	    {
 		sopt->oob.show  = 1;
 		sopt->oob.value = fval;
 	    }
+	    else
+		sopt->oob.show  = 0;
 
 	    /* out of mask ... */
-	    use = 0;
-	    str = PLUTO_get_string(plint);
-	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
-		use = 1;
+	    str  = PLUTO_get_string(plint);
+	    val  = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
 	    fval = PLUTO_get_number(plint);
-	    if ( use )
+	    if ( val != 0 )
 	    {
 		sopt->oom.show  = 1;
 		sopt->oom.value = fval;
 	    }
+	    else
+		sopt->oom.show  = 0;
 	}
 	else if ( ! strcmp(tag, "output") )
 	{
@@ -498,6 +511,23 @@ ENTRY("process_args");
     if ( sopt->debug > 1 )
 	disp_v2s_opts_t( "plug_vol2surf options done : ", sopt );
 
+    if ( ! ready )  RETURN(1);
+
+    if ( ! v2s_is_good_map(sopt->map, 1) )
+    {
+	sprintf( mesg,  "-------------------------------------------\n"
+			"mapping function is invalid in this context\n"
+			"index %d, name '%s'\n"
+			"-------------------------------------------",
+		sopt->map,
+		(sopt->map < E_SMAP_INVALID || sopt->map >= E_SMAP_FINAL) ?
+		"out-of-range" : g->maps[sopt->map] );
+	RETURN(1);
+    }
+
+    if ( PV2S_check_surfaces(plint, lvpo.surfA, lvpo.surfB, mesg, sopt->debug) )
+	RETURN(1);
+
     if ( lvpo.surfB >= 0 && sopt->use_norms )
     {
 	sprintf( mesg,  "----------------------------------------\n"
@@ -510,42 +540,80 @@ ENTRY("process_args");
     sopt->skip_cols = V2S_SKIP_ALL ^ V2S_SKIP_NODES;
 
     if ( ready )		/* then copy changes over old values */
+    {
 	*g->vpo = lvpo;
+	g->vpo->ready = 1;
+    }
 
     RETURN(0);
 }
 
-static int check_surfaces(PLUGIN_interface * plint, int sa, int sb, char * mesg)
+static int PV2S_check_surfaces(PLUGIN_interface * plint, int sa, int sb,
+			       char * mesg, int debug)
 {
     THD_session * ss;
 
-ENTRY("check_surfaces");
+ENTRY("PV2S_check_surfaces");
 
     ss = plint->im3d->ss_now;
 
-    if (ss->su_num < 1 || (sb >= 0 && ss->su_num == 1))
+    if ( ss->su_num < 1 )
     {
-	P_V2S_BAIL_VALUE(mesg, "Not enough surfaces in session.\n", ss->su_num);
+	PV2S_BAIL_VALUE(mesg, "Not enough surfaces in session.\n", ss->su_num);
 	RETURN(1);
     }
 
-    if (sa >= ss->su_num)
+    /* verify that the surface indices are valid */
+    if ( sa < 0 )
     {
-	P_V2S_BAIL_VALUE(mesg, "surf_A beyond valid index", ss->su_num - 1);
+	PV2S_BAIL_VALUE(mesg, "surf_A has invalid index", sa);
 	RETURN(1);
     }
 
-    if (sb >= ss->su_num)
+    if ( sa >= ss->su_num )
     {
-	P_V2S_BAIL_VALUE(mesg, "surf_B beyond valid index", ss->su_num - 1);
+	PV2S_BAIL_VALUE(mesg, "surf_A beyond valid index", ss->su_num - 1);
+	RETURN(1);
+    }
+
+    if ( sb >= ss->su_num )
+    {
+	PV2S_BAIL_VALUE(mesg, "surf_B beyond valid index", ss->su_num - 1);
 	RETURN(1);
     }
 
     /* rcr - Once SUMA_surface has been updated to include local domain
      *       parent, verify that the two surfaces come from the same one.
-     *
-     *       If not, output a list of valid surface labels with indices.
      */
+
+    if ( debug > 0 && ss->su_surf )
+    {
+	if ( ss->su_surf[sa] )      /* we have checked sa >= 0, above */
+	    fprintf(stderr,"++ surf_A label: '%s'\n",
+		*ss->su_surf[sa]->label ? ss->su_surf[sa]->label : "not set");
+	else
+	    fprintf(stderr,"** surf_A (#%d) pointer not set??\n", sa);
+
+	if ( sb < 0 )
+	    fprintf(stderr,"-- surf_B not in use\n");
+	else if ( ss->su_surf[sb] )
+	    fprintf(stderr,"++ surf_B label: '%s'\n",
+		*ss->su_surf[sb]->label ? ss->su_surf[sb]->label : "not set");
+	else
+	    fprintf(stderr,"** surf_B (#%d) pointer not set??\n", sb);
+
+	if ( debug > 1 )
+	{
+	    int c;
+	    fprintf(stderr,"++ valid surface indices and labels:\n");
+	    for ( c = 0; c < ss->su_num; c++ )
+		if ( * ss->su_surf[c]->label )
+		    fprintf(stderr,"   index %2d, label '%s'\n",
+				   c, ss->su_surf[c]->label);
+		else
+		    fprintf(stderr,"   index %2d, label 'not set'\n", c);
+	}
+    }
 
     RETURN(0);
 }

@@ -646,3 +646,30 @@
 28 September 2004:
   * modified thd_coords.c and 3ddata.h, adding THD_3dmm_to_3dind_no_wod()
 
+04 October 2004:
+  * added afni_vol2surf.c: for computing SUMA_irgba from v2s_results
+  * modified afni_niml.c:
+    - if gv2s_plug_opts.ready, call AFNI_vol2surf_func_overlay()
+    - use saved_map in case of calling vol2surf twice, indentically
+    - only send nvtot and nvused to suma via AFNI_vnlist_func_overlay()
+  * modified Makefile.INCLUDE: added afni_vol2surf.o to AFOBJS
+  * modified plug_vol2surf.c:
+    - now set global ready if all is well
+    - clear norms if not in use
+    - name all local functions PV2S_*
+    - if debug > 0, display chosen surfaces in terminal
+    - if debug > 1, display all possible surfaces in terminal
+    - allow oob and oom values to be arbitrary
+    - on debug, output complete surface listing in PV2S_check_surfaces()
+  * modified vol2surf.c:
+    - added thd_mask_from_brick()
+    - added compact_results(), in case nalloc > nused
+    - added realloc_ints() and realloc_vals_list()
+    - in afni_vol2surf(), if 1 surf and no norms, set steps to 1
+    - in set_surf_results(), pass gp_index to v2s_apply_filter
+    - in segment_imarr()
+        o  changed THD_3dmm_to_3dind() to new THD_3dmm_to_3dind_no_wod()
+        o  if THD_extract_series() fails, report an error
+    - in init_seg_endpoints()
+        o  get rid of p1 and pn
+        o  save THD_dicomm_to_3dmm() until the end
