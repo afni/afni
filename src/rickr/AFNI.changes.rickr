@@ -964,3 +964,8 @@
   * made hdr and nim_fields arrays global, so do not pass in main()
   * return (from main()) after first act_diff() difference
 
+21 Jan 2005:
+  * modified Makefile.INCLUDE per the request of Vinai Roopchansingh,
+    adding $(IFLAGS) to the CC line for compiling whereami
+  * submitted the updated plug_permtest.c from Matthew Belmonte
+

@@ -1,6 +1,6 @@
 /*plug_permtest.c - AFNI plugin that applies a permutation test to a 3D+time
   dataset to create a fizt dataset.
-  Copyright (c) 2000 - 2002 Matthew Belmonte
+  Copyright (c) 2000 - 2005 Matthew Belmonte
 
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public License
@@ -45,7 +45,7 @@ static char help[] =
   "If you use this software, please take a moment to send mail to the author,\n"
   "belmonte@mit.edu, and cite the following paper in your report:\n\n"
 
-  "Matthew Belmonte and Deborah Yurgelun-Todd, `Permutation Testing Made\n"
+  "Matthew K Belmonte and Deborah A Yurgelun-Todd, `Permutation Testing Made\n"
   "Practical for Functional Magnetic Resonance Image Analysis',\n"
   "IEEE Transactions on Medical Imaging 20(3):243-248 (March 2001).\n\n"
 
@@ -84,7 +84,7 @@ static char help[] =
   "short integer are included in the permutation test.  These inclusion\n"
   "limits can be overridden using the optional `least mask value' and\n"
   "`greatest mask value' parameters.  Mask datasets can be generated\n"
-  "automatically using the Threshold plugin (q.v.)\n\n"
+  "automatically using the Threshold plugin (q.v.), or using 3dAutomask\n\n"
 
 "AUTHOR\n\n"
 
@@ -94,13 +94,14 @@ static char help[] =
 
 "REVISION HISTORY\n\n"
 
+  "1.3  20 January 2005   added support for 3dAutomask and other byte-valued masks\n"
   "1.2  19 December 2002  fixed a dtree bug that caused a rare crash in phase 3\n"
   "1.1  14 June 2001      cosmetic changes only\n"
   "1.0  4 January 2001    initial release\n\n"
 
 "SEE ALSO\n\n"
 
-  "Threshold Plugin\n"
+  "Threshold Plugin  or  3dAutomask program\n"
   "Draw Dataset Plugin\n"
   "(These normally are applied before the permutation test.)",
 
@@ -778,21 +779,17 @@ static void correlate_prep(float *x, float *y, int nxy, double *sy, double *syy)
   calls to correlate_prep() of the following forms:
   correlate_prep(x, y, nxy, &sx, &sxx);
   correlate_prep(x, y, nxy, &sy, &syy);*/
-static void correlate(float *x, float *y, int nxy,
-                      double sx, double sxx, double sy, double syy,
-                      double *r, double *m, double *b)
-#if 0
-float	*x,	/*ideal time series (points >= BLAST are ignored)*/
-	*y;	/*actual time series*/
-int nxy;	/*length of time series (including any ignored points)*/
-double	sx,	/*sum of x[i] | 0<=i<nxy and x[i]<BLAST*/
-	sxx,	/*sum of x[i]^2 | 0<=i<nxy and x[i]<BLAST*/
-	sy,	/*sum of y[i] | 0<=i<nxy and x[i]<BLAST*/
-	syy,	/*sum of y[i]^2 | 0<=i<nxy and x[i]<BLAST*/
-	*r,	/*correlation coefficient*/
-	*m,	/*slope*/
-	*b;	/*intercept*/
-#endif
+static void correlate(
+	float *x,	/*ideal time series (points >= BLAST are ignored)*/
+	float *y,	/*actual time series*/
+	int nxy,	/*length of time series (including any ignored points)*/
+	double sx,	/*sum of x[i] | 0<=i<nxy and x[i]<BLAST*/
+	double sxx,	/*sum of x[i]^2 | 0<=i<nxy and x[i]<BLAST*/
+	double sy,	/*sum of y[i] | 0<=i<nxy and x[i]<BLAST*/
+	double syy,	/*sum of y[i]^2 | 0<=i<nxy and x[i]<BLAST*/
+	double *r,	/*correlation coefficient*/
+	double *m,	/*slope*/
+	double *b)	/*intercept*/
   {
   register double sxy;
   register int n;	/*length of time series, excluding ignored points*/
@@ -845,24 +842,20 @@ static void orthogonalise(float *x, float *y, float *new_y, int n, double m, dou
 
 /*Compute the permutation test.  Return 0 if successful, 1 if error.*/
 static int PERMTEST_compute(
-  PLUGIN_interface *plint, THD_3dim_dataset *dset, MRI_IMAGE *ref_ts, MRI_IMAGE *ort_ts,
-  double pcrit, int one_tailed, short **intensities, short **zvals,
-  double *fim_scale, THD_3dim_dataset *mask, float masklo, float maskhi, int verbose)
-#if 0
-PLUGIN_interface *plint; /*AFNI plugin interface*/
-THD_3dim_dataset *dset;	 /*AFNI 3D+time dataset*/
-MRI_IMAGE *ref_ts,	 /*reference time series*/
-	  *ort_ts;	 /*time series against which to orthogonalise*/
-double pcrit;		 /*critical probability*/
-int one_tailed;		 /*-1=one-tailed (-), 0=two-tailed, 1=one-tailed (+)*/
+  PLUGIN_interface *plint,	/*AFNI plugin interface*/
+  THD_3dim_dataset *dset,	/*AFNI 3D+time dataset*/
+  MRI_IMAGE *ref_ts,		/*reference time series*/
+  MRI_IMAGE *ort_ts,		/*time series against which to orthogonalise*/
+  double pcrit,			/*critical probability*/
+  int one_tailed,	/*-1=one-tailed (-), 0=two-tailed, 1=one-tailed (+)*/
 	/*returned parameters:*/
-	short **intensities,	 /*address of pointer to intensities*/
-	      **zvals;		 /*address of pointer to z-scores*/
-	double *fim_scale;	 /*scaling factor for intensities*/
-THD_3dim_dataset *mask;	 /*mask dataset, or NULL for no mask*/
-float masklo, maskhi;	 /*lower and upper bounds on masked range*/
-int verbose;		 /*1 for verbose info on coordinates, 0 otherwise*/
-#endif
+  short **intensities,		/*address of pointer to intensities*/
+  short **zvals,		/*address of pointer to z-scores*/
+  double *fim_scale,		/*scaling factor for intensities*/
+  THD_3dim_dataset *mask,	/*mask dataset, or NULL for no mask*/
+  float masklo,			/*lower and upper bounds on masked range*/
+  float maskhi,
+  int verbose)		/*1 for verbose info on coordinates, 0 otherwise*/
   {
   register int t, iter, xyz;	/*indices and counters*/
   int x, y, z,
@@ -1050,7 +1043,10 @@ int verbose;		 /*1 for verbose info on coordinates, 0 otherwise*/
 	  mask_val = DSET_BRICK_FACTOR(mask, 0);
 	  if(mask_val == 0.0)
 	    mask_val = 1.0;
-	  mask_val *= ((short *)DSET_ARRAY(mask, 0))[xyz];
+	  if(DSET_BRICK_TYPE(mask, 0) == MRI_short)
+	    mask_val *= ((short *)DSET_ARRAY(mask, 0))[xyz];
+	  else
+	    mask_val *= ((char *)DSET_ARRAY(mask, 0))[xyz];
 	  }
 	if((mask_val >= masklo) && (mask_val <= maskhi))
 	  {
@@ -1156,7 +1152,10 @@ int verbose;		 /*1 for verbose info on coordinates, 0 otherwise*/
 	    mask_val = DSET_BRICK_FACTOR(mask, 0);
 	    if(mask_val == 0.0)
 	      mask_val = 1.0;
-	    mask_val *= ((short *)DSET_ARRAY(mask, 0))[xyz];
+	    if(DSET_BRICK_TYPE(mask, 0) == MRI_short)
+	      mask_val *= ((short *)DSET_ARRAY(mask, 0))[xyz];
+	    else
+	      mask_val *= ((char *)DSET_ARRAY(mask, 0))[xyz];
 	    }
 	  if((mask_val >= masklo) && (mask_val <= maskhi))
 	    {
@@ -1187,6 +1186,9 @@ int verbose;		 /*1 for verbose info on coordinates, 0 otherwise*/
       printf("iter=%d max_corr=%f\n", iter, coord_next->corr);
     coord_next += num_coords;
     }
+#ifdef PERMTEST_DEBUG
+  dtree_traverse(randomised_corr, 0);	/*dump distribution to stdout*/
+#endif
   PLUTO_set_meter(plint, 100);
 
 /******************************************************************************
@@ -1461,8 +1463,9 @@ char *PERMTEST_main(PLUGIN_interface *plint)
     mask = PLUTO_find_dset(PLUTO_get_idcode(plint));
     if(mask == (THD_3dim_dataset *)0)
       return("bad mask");
-    if(DSET_BRICK_TYPE(mask, 0) != MRI_short)
-      return("mask brick type must be short integer");
+    if((DSET_BRICK_TYPE(mask, 0) != MRI_short)
+    && (DSET_BRICK_TYPE(mask, 0) != MRI_byte))
+      return("mask brick type must be byte or short integer");
     optiontag = PLUTO_get_optiontag(plint);
     if(optiontag != (char *)0)
       {
@@ -1558,7 +1561,7 @@ PLUGIN_interface *PLUGIN_init(int ncall)
   PLUTO_add_option(plint, tails1neg, tails1neg, FALSE);
 /*last lines of dialogue box: mask dataset and bounds*/
   PLUTO_add_option(plint, mask_label, mask_label, FALSE);
-  PLUTO_add_dataset(plint, "mask dataset", 0, FUNC_FIM_MASK, DIMEN_3D_MASK | BRICK_SHORT_MASK);
+  PLUTO_add_dataset(plint, "mask dataset", 0, FUNC_FIM_MASK, DIMEN_3D_MASK | BRICK_SHORT_MASK | BRICK_BYTE_MASK);
   PLUTO_add_option(plint, masklo_label, masklo_label, FALSE);
   PLUTO_add_number(plint, "voxel is masked if >=", 0, 0x7fff, 0, 1, 1);
   PLUTO_add_option(plint, maskhi_label, maskhi_label, FALSE);
