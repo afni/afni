@@ -16,7 +16,7 @@ int main( int argc , char * argv[] )
    int keepzero = 0 , clipval = 0;
    int iarg ;
    THD_3dim_dataset *inset , *outset , *mset=NULL ;
-   byte *mask ;
+   byte *mask=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dWinsor [options] dataset\n"

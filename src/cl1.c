@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "f2c.h"
 
-/* prototype for function at end */
+/* prototype for function at end (from TOMS, via Netlib and f2c) */
 
 static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
                     integer *klmd, integer *klm2d, integer *nklmd,
@@ -30,11 +30,11 @@ static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
 
   If cony == 0, then the input y[j] is ignored.
 
-  The return value of the function is 0 if everything worked, and
-  nonzero if an error occured.
+  The return value of the function is E = sum |z[i]-SUM[i]| >= 0
+  if everything worked, and is a negative number if an error occured.
 -----------------------------------------------------------------------*/
 
-int cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
+float cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 {
    /* loop counters */
 
@@ -53,7 +53,7 @@ int cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 
    if( kode ){
      fprintf(stderr,"** cl1_solve ERROR: illegal inputs!\n") ;
-     return (int)kode ;
+     return (float)(-kode) ;
    }
 
    /*-- setup call to CL1 --*/
@@ -122,16 +122,156 @@ int cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
       default: fprintf(stderr,"** cl1_solve ERROR: unknown problem!\n")     ; break;
      }
 #endif
-     return (int)kode ;
+     return (float)(-kode) ;
    }
 
    /*-- copy results into output --*/
 
    for( jj=0 ; jj < nvec ; jj++ ) y[jj] = (float) x[jj] ;
 
-   free(x) ; return 0 ;
+   free(x) ; return (float)error ;
 }
 
+/*---------------------------------------------------------------------
+  Approximately (L1) solve equations
+
+             j=nvec-1
+    z[i] = SUM        A[j][i] * y[j]   (i=0..ndim-1)
+             j=0
+
+  for y[j] (j=0..nvec-1), subject to constraints on the signs of y[j]
+  (based on y[j] input) AND subject to constraints on the signs of
+  the residuals z[i]-SUM[i] (based on rez[i] input).
+
+  If input cony != 0, then you can supply constraints on the values
+  of the output y[j] by putting values into the input y[j]:
+
+  input y[j] =  0 ==> unconstrained
+             =  1 ==> y[j] must be non-negative on output
+             = -1 ==> y[j] must be non-positive on output
+
+  If cony == 0, then the input y[j] is ignored.
+
+  If input conr != 0, then you can supply constraints on the values
+  of the residuals z[i]-SUM[i] by putting values into the input rez[i]:
+
+  input rez[i] =  0 ==> unconstrained
+               =  1 ==> z[i]-SUM[i] must be non-negative
+               = -1 ==> z[i]-SUM[i] must be non-positive
+
+  If conr == 0, then the input values in rez[] are ignored.
+
+  The outputs are in y[] and rez[].
+
+  The return value of the function is E = sum |z[i]-SUM[i]| >= 0
+  if everything worked, and is a negative number if an error occured.
+-----------------------------------------------------------------------*/
+
+float cl1_solve_res( int ndim, int nvec, float *z, float **A,
+                     float *y, int cony , float *rez , int conr )
+{
+   /* loop counters */
+
+   int jj , ii ;
+
+   /* variables for CL1 (types declared in f2c.h) */
+
+   integer k,l,m,n,klmd,klm2d,nklmd,n2d , kode=0,iter , *iu,*s ;
+   real *q , toler , *x , *res , error , *cu ;
+
+   /*-- check inputs --*/
+
+   if( ndim < 1 || nvec < 1 )                         kode = 4 ;
+   if( A == NULL || y == NULL || z == NULL )          kode = 4 ;
+   for( jj=0 ; jj < nvec ; jj++ ) if( A[jj] == NULL ) kode = 4 ;
+
+   if( kode ){
+     fprintf(stderr,"** cl1_solve ERROR: illegal inputs!\n") ;
+     return (float)(-kode) ;
+   }
+
+   /*-- setup call to CL1 --*/
+
+   k     = ndim ;
+   l     = 0 ;     /* no linear equality constraints */
+   m     = 0 ;     /* no linear inequality constraints */
+   n     = nvec ;
+
+   klmd  = k+l+m ;
+   klm2d = k+l+m+2 ;
+   nklmd = n+k+l+m ;
+   n2d   = n+2 ;
+
+   kode  = (cony != 0 || conr != 0) ; /* enforce implicit constraints on x[] */
+   iter  = 11*klmd ;
+
+   toler = 0.0001 ;
+   error = 0.0 ;
+
+   /* input/output matrices & vectors */
+
+   q     = (real *) calloc( 1, sizeof(real) * klm2d*n2d ) ;
+   x     = (real *) calloc( 1, sizeof(real) * n2d ) ;
+   res   = (real *) calloc( 1, sizeof(real) * klmd ) ;
+
+   /* workspaces */
+
+   cu    = (real *)    calloc( 1, sizeof(real) * 2*nklmd ) ;
+   iu    = (integer *) calloc( 1, sizeof(integer) * 2*nklmd ) ;
+   s     = (integer *) calloc( 1, sizeof(integer) * klmd ) ;
+
+   /* load matrices & vectors */
+
+   for( jj=0 ; jj < nvec ; jj++ )
+      for( ii=0 ; ii < ndim ; ii++ )
+         q[ii+jj*klm2d] = A[jj][ii] ;   /* matrix */
+
+   for( ii=0 ; ii < ndim ; ii++ )
+      q[ii+nvec*klm2d] = z[ii] ;        /* vector */
+
+   if( cony ){
+     for( jj=0 ; jj < nvec ; jj++ )     /* constraints on solution */
+       x[jj] = (y[jj] < 0.0) ? -1.0
+              :(y[jj] > 0.0) ?  1.0 : 0.0 ;
+   }
+
+   if( conr ){
+     for( ii=0 ; ii < ndim ; ii++ )     /* constraints on resids */
+       res[ii] = (rez[ii] < 0.0) ? -1.0
+                :(rez[ii] > 0.0) ?  1.0 : 0.0 ;
+   }
+
+   /*-- do the work --*/
+
+   cl1_fort( &k, &l, &m, &n,
+             &klmd, &klm2d, &nklmd, &n2d,
+             q, &kode, &toler, &iter, x, res, &error, cu, iu, s) ;
+
+   free(q) ; free(cu) ; free(iu) ; free(s) ;
+
+   if( kode != 0 ){
+     free(x) ; free(res) ;
+#if 0
+     switch( kode ){
+       case 1: fprintf(stderr,"** cl1_solve ERROR: no feasible solution!\n"); break;
+       case 2: fprintf(stderr,"** cl1_solve ERROR: rounding errors!\n")     ; break;
+       case 3: fprintf(stderr,"** cl1_solve ERROR: max iterations!\n")      ; break;
+      default: fprintf(stderr,"** cl1_solve ERROR: unknown problem!\n")     ; break;
+     }
+#endif
+     return (float)(-kode) ;
+   }
+
+   /*-- copy results into output --*/
+
+   for( jj=0 ; jj < nvec ; jj++ ) y[jj] = (float) x[jj] ;
+
+   for( ii=0 ; ii < ndim ; ii++ ) rez[ii] = (float) res[ii] ;
+
+   free(res); free(x); return (float)error;
+}
+
+#if 0
 /*---------------------------------------------------------------------
   Find a set of coefficients ec[] so that
 
@@ -158,7 +298,6 @@ int cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
   N.B.: NOT TESTED
 -----------------------------------------------------------------------*/
 
-#if 0
 int cl1_pos_sum( int ndim , int nvec ,
                  float * base_vec , float ** extra_vec , float * ec )
 {

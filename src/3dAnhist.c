@@ -1,6 +1,54 @@
 #include "mrilib.h"
 
-void print_results( char * , int , float *, float * ) ;
+void print_results( char * , int , float *, float * ) ;  /* later, dude */
+
+/*---------------------------------------------------------------------------*/
+
+#if 0
+static double pmodel_pdf( double x )
+{
+   double q = 1.0-x*x ;
+   return (q <= 0.0) ? 0.0
+                     : 0.9375*q*q ;
+}
+
+static double pmodel_cdf( double x )   /* integral of pmodel_pdf(x) */
+{
+   double q ;
+   if( x <= -1.0 ) return 0.0 ;
+   if( x >=  1.0 ) return 1.0 ;
+   q = x*x ;
+   return 0.5 + x*(15.0-10.0*q+3.0*q*q)/16.0 ;
+}
+#else
+
+static double apar=0.0 ;
+
+static double pmodel_pdf( double x )
+{
+   double q = 1.0-x*x ;
+   return (q <= 0.0) ? 0.0
+                     : 0.9375*q*q
+                      * (1.0 + apar*x*fabs(x)) ;
+}
+
+static double pmodel_cdf( double x )
+{
+   double q , val , sss ;
+   if( x <= -1.0 ) return 0.0 ;
+   if( x >=  1.0 ) return 1.0 ;
+   q = x*x ;
+   val = 0.5 + x*(15.0-10.0*q+3.0*q*q)/16.0 - apar/14.0 ;
+   sss = (15.0/16.0) * (apar*x*q)*(1.0/3.0-0.4*q+q*q/7.0) ;
+   if( x < 0.0 ) val -= sss ;
+   else          val += sss ;
+   return val ;
+}
+#endif
+
+#define pmodel_bin(x1,x2,pk,wd) (pmodel_cdf((x2-pk)/wd)-pmodel_cdf((x1-pk)/wd))
+
+/*---------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
 {
@@ -20,7 +68,7 @@ int main( int argc , char * argv[] )
              "Output is a list of peaks in the histogram.\n"
              "Options:\n"
              "  -q  = be quiet (don't print progress reports)\n"
-             "  -h  = dump histogram to stdout\n"
+             "  -h  = dump histogram to file Anhist.1D\n"
              "  -w  = apply a Winsorizing filter\n"
              "        (or -w7 to Winsorize 7 times, etc.)\n"
             ) ;
@@ -188,7 +236,7 @@ int main( int argc , char * argv[] )
 
    if( win ){
      THD_3dim_dataset *wset ; float irad ;
-     irad = (verb) ? 3.0 : -3.0 ;
+     irad = (verb) ? 2.5 : -2.5 ;
      wset = WINsorize( dset , win , -1,-1 , irad , "winsor" , 0,0 , mask ) ;
      DSET_delete(dset) ;
      dset = wset ;
@@ -259,7 +307,7 @@ int main( int argc , char * argv[] )
        float ws=0.0 ;
        int ibot,itop ;
 
-       if( verb ) fprintf(stderr,"++ Smoothing range = %d .. %d around each value\n",-nwid,nwid) ;
+       if( verb ) fprintf(stderr,"++ Smoothing histogram = %d .. %d around each value\n",-nwid,nwid) ;
        for( ii=0 ; ii <= 2*nwid ; ii++ ){
          wt[ii] = nwid+0.5-abs(nwid-ii) ; ws += wt[ii] ;
        }
@@ -275,30 +323,171 @@ int main( int argc , char * argv[] )
        }
      }
 
+     if( verb ) fprintf(stderr,"++ Scanning histogram for peaks:" ) ;
      npk = 0 ;
      for( ii=cbot+2 ; ii <= ctop-2 ; ii++ ){
        if( gist[ii] > gist[ii-1] &&
            gist[ii] > gist[ii-2] &&
            gist[ii] > gist[ii+1] &&
-           gist[ii] > gist[ii+2]   ){ pval[npk]=ii; wval[npk++] = 0; }
+           gist[ii] > gist[ii+2]   ){
+             pval[npk]=ii; wval[npk++] = gist[ii];
+             if( verb ) fprintf(stderr," %.1f",pval[npk-1]) ;
+           }
 
        else if( gist[ii] == gist[ii+1] &&   /* very special case */
                 gist[ii] >  gist[ii-1] &&
                 gist[ii] >  gist[ii-2] &&
-                gist[ii] >  gist[ii+2]   ){ pval[npk]=ii+0.5; wval[npk++] = 0; }
+                gist[ii] >  gist[ii+2]   ){
+                  pval[npk]=ii+0.5; wval[npk++] = gist[ii];
+                  if( verb ) fprintf(stderr," %.1f",pval[npk-1]) ;
+                }
 
        else if( gist[ii] == gist[ii+1] &&   /* super special case */
                 gist[ii] == gist[ii-1] &&
                 gist[ii] >  gist[ii-2] &&
-                gist[ii] >  gist[ii+2]   ){ pval[npk]=ii; wval[npk++] = 0; }
+                gist[ii] >  gist[ii+2]   ){
+                  pval[npk]=ii; wval[npk++] = gist[ii];
+                  if( verb ) fprintf(stderr," %.1f",pval[npk-1]) ;
+                }
+     }
+     if( verb ) fprintf(stderr,"\n") ;
+
+     if( his ){
+       FILE *hf ;
+       float **Gmat, *Hvec, *lam, *rez, sum, *wt,wbot,wtop, ebest=-1.0;
+       float *ap,*pk,*ww ; int nregtry ;
+       float *pkbest,*wwbest,*apbest,*lambest , pplm,aplm,wplm ;
+       float *pklast,*wwlast,*aplast ;
+       npos = 0 ;
+       if( npk > 0 ){
+         int ndim=ctop-cbot+1 , nvec=npk , iw,nw ;
+         srand48((long)time(NULL)) ;
+         Gmat = (float **)malloc(sizeof(float *)*nvec) ;
+         for( jj=0 ; jj < nvec ; jj++ )
+           Gmat[jj] = (float *)malloc(sizeof(float)*ndim) ;
+         Hvec   = (float *)malloc(sizeof(float)*ndim) ;
+         rez    = (float *)malloc(sizeof(float)*ndim) ;
+         wt     = (float *)malloc(sizeof(float)*ndim) ;
+         lam    = (float *)malloc(sizeof(float)*nvec) ;
+         ww     = (float *)malloc(sizeof(float)*nvec) ;
+         pk     = (float *)malloc(sizeof(float)*nvec) ;
+         ap     = (float *)malloc(sizeof(float)*nvec) ;
+         apbest = (float *)malloc(sizeof(float)*nvec) ;
+         pkbest = (float *)malloc(sizeof(float)*nvec) ;
+         wwbest = (float *)malloc(sizeof(float)*nvec) ;
+         lambest= (float *)malloc(sizeof(float)*nvec) ;
+         aplast = (float *)malloc(sizeof(float)*nvec) ;
+         pklast = (float *)malloc(sizeof(float)*nvec) ;
+         wwlast = (float *)malloc(sizeof(float)*nvec) ;
+
+         if( verb ) fprintf(stderr,"++ Regressing histogram") ;
+         wbot = 0.1*cbot; wtop=0.9*cbot; pplm=0.05*cbot; aplm=0.95; wplm=0.4*cbot;
+         nregtry = 0 ;
+   RegTry:
+         switch(nvec){
+           case 1: nw =  50000 ; break ;
+           case 2: nw = 500000 ; break ;
+          default: nw = 900000 ; break ;
+         }
+         if( nregtry > 0 ){
+           pplm *= 0.7 ; aplm *= 0.7 ; wplm *= 0.7 ; nw /= 2 ;
+           memcpy(aplast,apbest,sizeof(float)*nvec) ;
+           memcpy(pklast,pkbest,sizeof(float)*nvec) ;
+           memcpy(wwlast,wwbest,sizeof(float)*nvec) ;
+         }
+         for( iw=0 ; iw < nw ; iw++ ){
+           if( nregtry == 0 ){
+             for( jj=0 ; jj < nvec ; jj++ ){               /* random search! */
+               ww[jj] = wbot+drand48()*(wtop-wbot) ;
+               pk[jj] = pval[jj] + (2.*drand48()-1.)*pplm ;
+               ap[jj] = (2.*drand48()-1.)*aplm ;
+             }
+           } else {
+             for( jj=0 ; jj < nvec ; jj++ ){
+               ww[jj] = wwlast[jj] + (2.*drand48()-1.)*wplm ;
+               pk[jj] = pklast[jj] + (2.*drand48()-1.)*pplm ;
+               ap[jj] = aplast[jj] + (2.*drand48()-1.)*aplm ;
+                    if( ap[jj] >  1.0 ) ap[jj] =  1.0 ;
+               else if( ap[jj] < -1.0 ) ap[jj] = -1.0 ;
+                    if( ww[jj] < cbot ) ww[jj] = cbot ;
+               else if( ww[jj] > ctop ) ww[jj] = ctop ;
+             }
+           }
+           sum = 0.0 ;
+           for( ii=0 ; ii < ndim ; ii++ ){
+            wt[ii] = 0.01/ndim ;
+            for( jj=0 ; jj < nvec ; jj++ ){
+             apar = ap[jj] ;
+             Gmat[jj][ii] = pmodel_bin(cbot+ii-0.5,cbot+ii+0.5,pk[jj],ww[jj]) ;
+             if( Gmat[jj][ii] < 0.0 ) Gmat[jj][ii] = 0.0 ;
+             wt[ii] += Gmat[jj][ii] ;
+            }
+            sum += wt[ii] ;
+           }
+           for( ii=0 ; ii < ndim ; ii++ ) wt[ii] /= sum ;
+           for( ii=0 ; ii < ndim ; ii++ ){
+             Hvec[ii] = gist[cbot+ii] * wt[ii] ;
+             for( jj=0 ; jj < nvec ; jj++ ) Gmat[jj][ii] *= wt[ii] ;
+           }
+           for( jj=0 ; jj < nvec ; jj++ ) lam[jj] = 1.0 ;
+           for( ii=0 ; ii < ndim ; ii++ ) rez[ii] = 1.0 ;
+           sum = cl1_solve_res( ndim,nvec , Hvec,Gmat , lam,1 , rez,1 ) ;
+           if( sum >= 0.0 ){
+             if( ebest < 0.0 || sum < ebest ){
+               ebest = sum ;
+               for( ii=0 ; ii < ndim ; ii++ ){
+                 sum = 0.0 ;
+                 for( jj=0 ; jj < nvec ; jj++ ) sum += Gmat[jj][ii] * lam[jj] ;
+                 hist[cbot+ii] = (int)rint(sum/wt[ii]) ;
+               }
+               npos = 1 ;
+               memcpy( apbest , ap , sizeof(float)*nvec ) ;
+               memcpy( pkbest , pk , sizeof(float)*nvec ) ;
+               memcpy( wwbest , ww , sizeof(float)*nvec ) ;
+               memcpy( lambest, lam, sizeof(float)*nvec ) ;
+             }
+           }
+         }
+         if( verb ) fprintf(stderr,".") ;
+         if( nregtry < 5 ){ nregtry++ ; goto RegTry ; }
+         if( verb ) fprintf(stderr,"\n") ;
+       }
+
+       hf = fopen( "Anhist.1D" , "w" ) ;
+       if( hf == NULL ){
+         fprintf(stderr,"** Can't open Anhist.1D!\n"); exit(1);
+       }
+       fprintf(hf,"# 3dAnhist") ;
+       for( ii=1 ; ii < argc ; ii++ ) fprintf(hf," %s",argv[ii]) ;
+       fprintf(hf,"\n") ;
+       for( jj=0 ; jj < npk ; jj++ ){
+         fprintf(hf,"# Peak %d: location=%.1f\n",jj+1,pval[jj]) ;
+       }
+       if( npos > 0 ){
+         for( jj=0 ; jj < npk ; jj++ ){
+           fprintf(hf,"# Peak %d fit: location=%.1f width=%.2f skew=%.3f height=%.1f\n",
+                   jj+1,pkbest[jj],wwbest[jj],apbest[jj],lambest[jj] ) ;
+         }
+         fprintf(hf,"#\n") ;
+         fprintf(hf,"# Val Histog Fitted Hi-Fit\n") ;
+         fprintf(hf,"# --- ------ ------ ------\n") ;
+         for( ii=cbot ; ii <= ctop ; ii++ )
+           fprintf(hf,"%5d %6d %6d %6d\n",ii,gist[ii],hist[ii],gist[ii]-hist[ii]) ;
+
+         for( jj=0; jj < npk ; jj++ ) free(Gmat[jj]);
+         free(Gmat);free(pk);free(ww);free(ap);free(Hvec);free(lam);free(rez);free(wt);
+         free(apbest);free(wwbest);free(pkbest);free(lambest);
+         free(aplast);free(wwlast);free(pklast);
+       } else {
+         fprintf(hf,"# Val Histog\n") ;
+         fprintf(hf,"# --- ------\n") ;
+         for( ii=cbot ; ii <= ctop ; ii++ )
+           fprintf(hf,"%5d %6d\n",ii,gist[ii]) ;
+       }
+       fclose(hf) ;
      }
 
      print_results( dname,npk , pval , wval ) ;
-
-     if( his ){
-       for( ii=cbot ; ii <= ctop ; ii++ )
-         printf("%3d %6d\n",ii,gist[ii]) ;
-     }
    }
 
    exit(0) ;

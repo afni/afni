@@ -5,7 +5,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * dset , * oset=NULL ;
    int nvals , iv , nxyz , ii,jj , iarg , saveit=0 , oot , ic,cc ;
    int * count ;
-   float qthr=0.001 , alph,fmed,fmad , fbot,ftop,fsig , sq2p ;
+   float qthr=0.001 , alph,fmed,fmad , fbot,ftop,fsig , sq2p,cls ;
    MRI_IMAGE * flim ;
    float * far , * var ;
    byte * mmm=NULL ;
@@ -257,8 +257,8 @@ int main( int argc , char * argv[] )
       } else {                               /* 07 Aug 2002: detrend */
 
         float val ;
-        jj = cl1_solve( nvals , nref , far , ref , fit,0 ); /* get fit */
-        if( jj ) continue ;                                 /* bad! should not happen */
+        cls = cl1_solve( nvals , nref , far , ref , fit,0 ); /* get fit */
+        if( cls < 0.0 ) continue ;                          /* bad! should not happen */
         for( iv=0 ; iv < nvals ; iv++ ){                    /* detrend */
           val = 0.0 ;
           for( jj=0 ; jj < nref ; jj++ )                    /* fitted value */
