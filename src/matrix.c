@@ -50,6 +50,9 @@
 	    matrices.
   Date:     18 March 2003
 
+  Mod:      UNROLL_VECMUL defined to allow unrolling by 2 of vector-multiply
+            dot product loops.
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -993,13 +996,13 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   qsum = 0.0 ; bb = b.elts ;
 
 #ifdef UNROLL_VECMUL
-  if( cols%2 == 0 ){
+  if( cols%2 == 0 ){                   /* even number */
     for (i = 0;  i < rows;  i++){
       aa = a.elts[i] ; sum = c.elts[i] ; 
       for (j = 0;  j < cols;  j+=2) sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
       d->elts[i] = sum ; qsum += sum*sum ;
     }
-  } else {
+  } else {                            /* odd number */
     for (i = 0;  i < rows;  i++){
       aa = a.elts[i] ; sum = c.elts[i] - aa[0]*bb[0] ; 
       for (j = 1;  j < cols;  j+=2) sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
