@@ -482,3 +482,6 @@
 01 March 2004:
   * fixed mbig.c (was using AFMALL() without #include), left malloc() for speed
 
+04 March 2004:
+  * modified 3dresample.c to check RESAM_shortstr, reversed history
+
