@@ -163,6 +163,7 @@ static void swap_2(void *ppp)
 /******************************************************************/
 
 /*! Earliest image reading function in the AFNI package.
+    Reads a single 2D image.
 
     \param  fname is the name of the file to try to read
     \return NULL if an image couldn't be read, otherwise
@@ -847,7 +848,7 @@ ENTRY("mri_read_3D") ;
    RETURN(newar);
 }
 
-/*--------------------------------------------------------------*/
+/*------------------------------------------------------------------------------*/
 
 /*! Read one or more 2D images from a file.
 
@@ -863,7 +864,7 @@ ENTRY("mri_read_3D") ;
            - PPM format
            - List of ASCII numbers
            - pre-defined 2D file size in mri_read()
-           - "Cox MRI" (god help you, no one else can)
+           - "Cox MRI" (if this is what you yave, god help you, no one else can)
 
    \return A pointer to an array of 2D images.  If nothing
            could be read, NULL is returned.
@@ -898,6 +899,15 @@ ENTRY("mri_read_file") ;
               strstr(new_fname,".IMA") != NULL   ){  /* 12 Mar 2001 */
 
       newar = mri_read_siemens( new_fname ) ;
+
+   } else if( strncmp(new_fname,"I.",2) == 0   ||
+              strstr(new_fname,"/I.")   != NULL  ){   /* 05 Nov 2002 */
+
+      newim = mri_read( new_fname ) ;      /* read from a 2D file */
+      if( newim != NULL ){
+        INIT_IMARR(newar) ;
+        ADDTO_IMARR(newar,newim) ;
+      }
 
    }
 
@@ -1080,7 +1090,9 @@ ENTRY("mri_imcount") ;
 
    /*** 19 Jul 2002: see if it is a DICOM file ***/
 
+   mri_dicom_seterr(0) ;
    nz = mri_imcount_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+   mri_dicom_seterr(1) ;
    if( nz > 0 ){ free(new_fname); RETURN(nz); }
 
    /*** not recognized ***/

@@ -187,6 +187,15 @@ void mri_dicom_setvm( int vv )
 
 /****************************************************************/
 
+static int rwc_err=1 ;                     /* 28 Oct 2002 */
+
+void mri_dicom_seterr( int vv )
+{
+  rwc_err = vv ;
+}
+
+/****************************************************************/
+
 static int rwc_fd ;  /* 10 Sep 2002 */
 
 char * mri_dicom_header( char *fname )
@@ -6439,8 +6448,9 @@ ENTRY("readVRLength") ;
 	vrCode[2] = '\0';
 	vrPtr = lookupVRCode(vrCode);
 	if (vrPtr == NULL){
-            fprintf(stderr,"** ERROR: unknown VR code %s in element (%04x,%04x)\n",  /* RWC */
-                    vrCode,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+            if( rwc_err )
+             fprintf(stderr,"** DICOM ERROR: unknown VR code %s in element (%04x,%04x)\n",  /* RWC */
+                     vrCode,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
 	    RETURN( COND_PushCondition(DCM_UNRECOGNIZEDVRCODE,
 				DCM_Message(DCM_UNRECOGNIZEDVRCODE), vrCode,
 				      "readVRLength") );
@@ -6467,8 +6477,9 @@ ENTRY("readVRLength") ;
 			       DCM_Message(DCM_VRMISMATCH), vrCode, e->tag));
                 }
 #else
-               fprintf(stderr,"++ WARNING: VR mismatch in element (%04x,%04x)\n",  /* RWC */
-                       DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+               if( rwc_err )
+                fprintf(stderr,"++ DICOM WARNING: VR mismatch in element (%04x,%04x)\n",  /* RWC */
+                        DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
                e->representation = vrPtr->representation;
 #endif
 	    }
@@ -6539,8 +6550,9 @@ ENTRY("readVRLength") ;
 	if (debug)
 	    (void) DCM_DumpElements((DCM_OBJECT **) object, 0);
 	(void) DCM_CloseObject((DCM_OBJECT **) object);
-        fprintf(stderr,"** ERROR: illegal odd length=%d in element (%04x,%04x)\n",  /* RWC */
-                e->length,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+        if( rwc_err )
+         fprintf(stderr,"** DICOM ERROR: illegal odd length=%d in element (%04x,%04x)\n",  /* RWC */
+                 e->length,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
 	RETURN( COND_PushCondition(DCM_UNEVENELEMENTLENGTH,
 				  DCM_Message(DCM_UNEVENELEMENTLENGTH),
 			     DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag),
@@ -6550,8 +6562,9 @@ ENTRY("readVRLength") ;
 	if (debug)
 	    (void) DCM_DumpElements((DCM_OBJECT **) object, 0);
 	(void) DCM_CloseObject((DCM_OBJECT **) object);
-        fprintf(stderr,"** ERROR: oversize length=%d in element (%04x,%04x)\n",  /* RWC */
-                e->length,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+        if( rwc_err )
+         fprintf(stderr,"** DICOM ERROR: oversize length=%d in element (%04x,%04x)\n",  /* RWC */
+                 e->length,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
 	RETURN( COND_PushCondition(DCM_ELEMENTLENGTHERROR,
 				  DCM_Message(DCM_ELEMENTLENGTHERROR),
 			     DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag),
