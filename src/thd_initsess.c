@@ -79,7 +79,9 @@ THD_session * THD_init_session( char * sessname )
       all_func = ISFUNC(dset_arr->ar[0]) ;
 
       if( !all_anat && !all_func ){
-         fprintf(stderr,"\n*** strange dataset types encountered ***\n") ;
+         fprintf(stderr,
+            "\n*** THD_init_session: %s - illegal dataset types encountered ***\n",
+            sessname ) ;
          for( idset=0 ; idset < dset_arr->num ; idset++ )
             THD_delete_3dim_dataset( dset_arr->ar[idset] , False ) ;
          FREE_3DARR(dset_arr) ;
@@ -93,8 +95,8 @@ THD_session * THD_init_session( char * sessname )
 
          if( nf >= THD_MAX_SESSION_FUNC ){
             fprintf(stderr,
-             "\n*** Session function table overflow with dataset %s ***\n",
-             dset_arr->ar[0]->self_name) ;
+             "\n*** Session %s function table overflow with dataset %s ***\n",
+             sessname , dset_arr->ar[0]->self_name) ;
             for( idset=0 ; idset < dset_arr->num ; idset++ )
                THD_delete_3dim_dataset( dset_arr->ar[idset] , False ) ;
             FREE_3DARR(dset_arr) ;
@@ -109,8 +111,8 @@ THD_session * THD_init_session( char * sessname )
 
             if( sess->func[nf][iview] != NULL ){
                fprintf(stderr,
-                "\n*** Session has duplicate function views of %s ***\n",
-                dset->self_name) ;
+                "\n*** Session %s has duplicate function views of %s ***\n",
+                sessname , dset->self_name) ;
                THD_delete_3dim_dataset( dset , False ) ;
             } else {
                sess->func[nf][iview] = dset ;
@@ -127,8 +129,8 @@ THD_session * THD_init_session( char * sessname )
 
          if( na >= THD_MAX_SESSION_ANAT ){
             fprintf(stderr,
-             "\n*** Session anatomy table overflow with dataset %s ***\n",
-             dset_arr->ar[0]->self_name) ;
+             "\n*** Session %s anatomy table overflow with dataset %s ***\n",
+             sessname , dset_arr->ar[0]->self_name) ;
             for( idset=0 ; idset < dset_arr->num ; idset++ )
                THD_delete_3dim_dataset( dset_arr->ar[idset] , False ) ;
             FREE_3DARR(dset_arr) ;
@@ -143,8 +145,8 @@ THD_session * THD_init_session( char * sessname )
 
             if( sess->anat[na][iview] != NULL ){
                fprintf(stderr,
-                "\n*** Session has duplicate anatomical views of %s ***\n",
-                dset->self_name) ;
+                "\n*** Session %s has duplicate anatomical views of %s ***\n",
+                sessname , dset->self_name) ;
                THD_delete_3dim_dataset( dset , False ) ;
             } else {
                sess->anat[na][iview] = dset ;

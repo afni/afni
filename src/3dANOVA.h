@@ -24,6 +24,9 @@
    Mod:     Added software for statistical tests of individual cell means,
             cell differences, and cell contrasts.
    Date:    27 October 1998
+
+   Mod:     Added changes for incorporating History notes.
+   Date:    09 September 1999
 */
 
 
@@ -34,6 +37,9 @@
 
 
 #include "mrilib.h"
+
+static char * commandline = NULL ;         /* command line for history notes */
+
 
 /*** HP-UX ***/
 #ifdef HP

@@ -79,7 +79,8 @@ ENTRY("THD_load_datablock") ;
       }
 
       if( THD_count_databricks(blk) < nv ){
-         fprintf(stderr,  "\n*** failure to malloc dataset memory\n") ;
+         fprintf(stderr,
+                "\n*** failure to malloc dataset memory - is memory exhausted?\n") ;
          if( freeup != NULL ){  /* try to free some space? */
             freeup() ;
             for( ibr=0 ; ibr < nv ; ibr++ ){
@@ -105,7 +106,8 @@ ENTRY("THD_load_datablock") ;
       int fd ;
       fd = open( dkptr->brick_name , O_RDONLY ) ;
       if( fd < 0 ){
-         fprintf( stderr , "\n*** cannot open brick file %s for mmap\n" ,
+         fprintf( stderr , "\n*** cannot open brick file %s for mmap\n"
+                           "   - do you have permission? does file exist?\n" ,
                   dkptr->brick_name ) ;
          perror("*** Unix error message") ;
          return False ;
@@ -118,7 +120,8 @@ ENTRY("THD_load_datablock") ;
                                PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
 
       if( ptr == (char *)(-1) ){
-         fprintf(stderr , "\n*** cannot mmap brick file %s\n" ,
+         fprintf(stderr ,
+                 "\n*** cannot mmap brick file %s - maybe hit a system limit?\n" ,
                  dkptr->brick_name ) ;
          perror("*** Unix error message") ;
          if( freeup != NULL ){
@@ -175,7 +178,9 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
                free( DBLK_ARRAY(blk,ibr) ) ;
                mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
             }
-            fprintf(stderr,"\n*** failure while opening brick file %s\n",
+            fprintf(stderr,
+                    "\n*** failure while opening brick file %s "
+                    "- do you have permission?\n" ,
                     dkptr->brick_name ) ;
             perror("*** Unix error message") ;
             return False ;

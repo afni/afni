@@ -378,7 +378,8 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
          bout = (short *) malloc( sizeof(short) * nvox ) ;
          tbout = (short *) malloc( sizeof(short) * nvox ) ;
          if( (bout == NULL) || (tbout == NULL) ){
-            fprintf(stderr,"\nFinal malloc error in MAKER_4D_to_fith\n\a") ;
+            fprintf(stderr,
+             "\nFinal malloc error in MAKER_4D_to_fith - is memory exhausted?\n\a") ;
             exit(1) ;
          }
 

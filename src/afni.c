@@ -4357,7 +4357,7 @@ ENTRY("AFNI_marks_action_CB") ;
                    MCW_USER_KILL | MCW_TIMER_KILL ) ;
 #endif
 
-         tross_Append_History( im3d->anat_now , "afni: markers were edited" ) ;
+         tross_Append_History( im3d->anat_now , "AFNI: markers were edited" ) ;
          (void) THD_write_3dim_dataset( NULL,NULL , im3d->anat_now , False ) ;
       }
 

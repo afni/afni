@@ -19,6 +19,10 @@
   Mod:     Modifications for matrix calculation of general linear tests.
   Date:    02 July 1999
 
+  Mod:     Additional statistical output (partial R^2 statistics).
+  Date:    07 September 1999
+
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -239,8 +243,9 @@ void regression_analysis
   vector * scoef_full,      /* std. devs. for regression parameters */
   vector * tcoef_full,      /* t-statistics for regression parameters */
   float * fpart,            /* partial F-statistics for the stimuli */
-  float * freg,             /* regression F-statistic */
-  float * rsqr,             /* coeff. of multiple determination R^2  */
+  float * rpart,            /* partial R^2 stats. for the stimuli */
+  float * ffull,            /* full model F-statistics */
+  float * rfull,            /* full model R^2 stats. */
   int * novar               /* flag for insufficient variation in data */
 )
 
@@ -272,10 +277,13 @@ void regression_analysis
       vector_create (p, scoef_full);
       vector_create (p, tcoef_full);
       for (is = 0;  is < num_stimts;  is++)
-	fpart[is] = 0.0; 
+	{
+	  fpart[is] = 0.0; 
+	  rpart[is] = 0.0;
+	}
       *mse = 0.0;
-      *rsqr = 0.0;
-      *freg = 0.0;
+      *rfull = 0.0;
+      *ffull = 0.0;
       vector_destroy (&coef_temp);
       return;
     }
@@ -313,15 +321,19 @@ void regression_analysis
       fpart[is] = calc_freg (N, p, p-(max_lag[is]-min_lag[is]+1), 
 			     sse_full, sse_rdcd);
 
+
+      /*----- Calculate partial R^2 for this stimulus -----*/
+      rpart[is] = calc_rsqr (sse_full, sse_rdcd);
+
     }
   
 
   /*----- Calculate coefficient of multiple determination R^2 -----*/
-  *rsqr = calc_rsqr (sse_full, sse_base);
+  *rfull = calc_rsqr (sse_full, sse_base);
 
 
   /*----- Calculate the total regression F-statistic -----*/
-  *freg = calc_freg (N, p, q, sse_full, sse_base);
+  *ffull = calc_freg (N, p, q, sse_full, sse_base);
 
 
   /*----- Dispose of vector -----*/
@@ -349,7 +361,8 @@ void glt_analysis
   matrix * glt_cmat,          /* general linear test matrices */
   matrix * glt_amat,          /* constant matrices */
   vector * glt_coef,          /* linear combinations from GLT matrices */
-  float * fglt                /* F-statistics for the general linear tests */
+  float * fglt,               /* F-statistics for the general linear tests */
+  float * rglt                /* R^2 statistics for the general linear tests */
 )
 
 {
@@ -371,6 +384,7 @@ void glt_analysis
 	{
 	  vector_create (glt_rows[iglt], &glt_coef[iglt]);
 	  fglt[iglt] = 0.0;
+	  rglt[iglt] = 0.0;
 	}
       else
 	{
@@ -386,6 +400,10 @@ void glt_analysis
 	  /*----- Calculate the F-statistic for the reduced model -----*/
 	  q = p - glt_rows[iglt]; 
 	  fglt[iglt] = calc_freg (n, p, q, ssef, sser);
+
+	  /*----- Calculate the R^2 statistic for the reduced model -----*/
+	  rglt[iglt] = calc_rsqr (ssef, sser);
+
 	}
     }
 
@@ -412,12 +430,14 @@ void report_results
   vector coef,                /* regression parameters */
   vector tcoef,               /* t-statistics for regression parameters */
   float * fpart,              /* partial F-statistics for the stimuli */
-  float freg,                 /* total regression F-statistic */
-  float rsqr,                 /* coeff. of multiple determination R^2  */
+  float * rpart,              /* partial R^2 stats. for the stimuli */
+  float ffull,                /* full model F-statistic */
+  float rfull,                /* full model R^2 stat. */
   int glt_num,                /* number of general linear tests */
   int * glt_rows,             /* number of linear constraints in glt */
   vector *  glt_coef,         /* linear combinations from GLT matrices */
   float * fglt,               /* F-statistics for the general linear tests */
+  float * rglt,               /* R^2 statistics for the general linear tests */
   char ** label               /* statistical summary for ouput display */
 )
 
@@ -466,6 +486,8 @@ void report_results
 	    strcat (lbuf, sbuf);
 	    m++;
 	  }
+	sprintf (sbuf, "%26sPartial R^2 = %10.4f \n", "", rpart[is]);
+	strcat (lbuf, sbuf);
 	sprintf (sbuf, "%26sPartial F   = %10.4f \n", "", fpart[is]);
 	strcat (lbuf, sbuf);
       }
@@ -484,6 +506,8 @@ void report_results
 			 ilc, glt_coef[iglt].elts[ilc]);
 		strcat (lbuf,sbuf);
 	      }
+	    sprintf (sbuf, "R^2    = %10.4f \n", rglt[iglt]);
+	    strcat (lbuf,sbuf);
 	    sprintf (sbuf, "F-stat = %10.4f \n", fglt[iglt]);
 	    strcat (lbuf,sbuf);
 	  }
@@ -494,10 +518,10 @@ void report_results
     sprintf (sbuf, "\nFull Model: \n");
     strcat (lbuf, sbuf);
 
-    sprintf (sbuf, "R^2    = %10.4f \n", rsqr);
+    sprintf (sbuf, "R^2    = %10.4f \n", rfull);
     strcat (lbuf, sbuf);
     
-    sprintf (sbuf, "F-stat = %10.4f \n", freg);
+    sprintf (sbuf, "F-stat = %10.4f \n", ffull);
     strcat (lbuf, sbuf);
     
     *label = lbuf ;  /* send address of lbuf back in what label points to */

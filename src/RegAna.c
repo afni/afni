@@ -12,6 +12,9 @@
   Mod:     Added routines for matrix calculation of general linear tests.
   Date:    02 July 1999
 
+  Mod:     Additional statistical output (partial R^2 statistics).
+  Date:    07 September 1999
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -459,7 +462,7 @@ float calc_freg
 float calc_rsqr 
 (
   float ssef,                 /* error sum of squares from full model */
-  float ssto                  /* total (corrected for mean) sum of squares */
+  float sser                  /* error sum of squares from reduced model */
 )
 
 {
@@ -468,10 +471,10 @@ float calc_rsqr
 
 
   /*----- coefficient of multiple determination R^2 -----*/
-  if (ssto < EPSILON)
+  if (sser < EPSILON)
     rsqr = 0.0;
   else
-    rsqr = 1.0 - ssef/ssto;
+    rsqr = (sser - ssef) / sser;
 
 
   /*----- Limit range of values for R^2 -----*/

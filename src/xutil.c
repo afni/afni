@@ -1074,8 +1074,8 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
          }
       }
       ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
-      if( cmax > 80 ) cmax = 80 ;
-      cmax+=2 ;
+      if( cmax > 100 ) cmax = 100 ;
+      cmax+=3 ;
       for( ll=0 ; ll < cmax ; ll++ ) cbuf[ll] = 'x' ;
       cbuf[cmax] = '\0' ;
 

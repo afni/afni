@@ -260,6 +260,7 @@ ENTRY("AFNI_fimmer_setpolort") ;
 
 /** Jan 1998:    code = combinations of the FIM_*_MASK values      **/
 /** 30 May 1999: allow polort to be variable (formerly fixed at 1) **/
+/** 08 Sep 1999: added PAVE and AVER options                       **/
 
 THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
                                         THD_3dim_dataset * dset_time ,
@@ -292,6 +293,9 @@ THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
    int polort = im3d->fimdata->polort , ip ;  /* 30 May 1999 */
 
    float top_perc = 0.0 ;                     /* 30 Aug 1999 */
+
+   int ibr_pave , ibr_aver ;                        /* 08 Sep 1999 */
+   float * paval , * avval , * pabest , * avbest ;  /* 08 Sep 1999 */
 
 #ifndef DONT_USE_METER
    Widget meter = NULL ;
@@ -456,6 +460,10 @@ if(PRINT_TRACING)
       break ;
    }
 
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"number of voxels in mask = %d",nvox) ; STATUS(str) ; }
+
    /** allocate space for voxel values **/
 
    vval = (float *) malloc( sizeof(float) * nvox) ;
@@ -467,12 +475,19 @@ if(PRINT_TRACING)
    /** compute number of output bricks **/
 
    ibr_fim=ibr_corr=ibr_best=ibr_perc=ibr_base = -1 ; nbrik = 0 ;
+   ibr_pave = ibr_aver = -1 ;
 
    if( (code & FIM_ALPHA_MASK)!= 0)              { ibr_fim  = nbrik ; nbrik++ ; }
    if( (code & FIM_BEST_MASK) != 0 && ny_ref > 1){ ibr_best = nbrik ; nbrik++ ; }
    if( (code & FIM_PERC_MASK) != 0)              { ibr_perc = nbrik ; nbrik++ ; }
+   if( (code & FIM_PAVE_MASK) != 0)              { ibr_pave = nbrik ; nbrik++ ; }
    if( (code & FIM_BASE_MASK) != 0)              { ibr_base = nbrik ; nbrik++ ; }
+   if( (code & FIM_AVER_MASK) != 0)              { ibr_aver = nbrik ; nbrik++ ; }
    if( (code & FIM_CORR_MASK) != 0)              { ibr_corr = nbrik ; nbrik++ ; }
+
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"code of FIM_MASKs = %d",code) ; STATUS(str) ; }
 
    /** allocate extra space for comparing results from multiple ref vectors **/
 
@@ -486,7 +501,12 @@ if(PRINT_TRACING)
       pval  = (float *) malloc(sizeof(float) * nvox) ;  /* 16 Jan 1998 */
       bval  = (float *) malloc(sizeof(float) * nvox) ;  /* 16 Jan 1998 */
 
-      if( bval == NULL ){
+      paval  = (float *) malloc(sizeof(float) * nvox) ; /* 08 Sep 1999 */
+      avval  = (float *) malloc(sizeof(float) * nvox) ; /* 08 Sep 1999 */
+      pabest = (float *) malloc(sizeof(float) * nvox) ; /* 16 Jan 1998 */
+      avbest = (float *) malloc(sizeof(float) * nvox) ; /* 16 Jan 1998 */
+
+      if( avbest == NULL ){
          fprintf(stderr,"\n*** 'best' malloc failure in AFNI_fimmer_compute\n") ;
          free(vval) ; free(indx) ;
          if( aval  != NULL ) free(aval)  ;
@@ -497,11 +517,16 @@ if(PRINT_TRACING)
          if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
          if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
          if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
+         if( paval != NULL ) free(paval) ;  /* 08 Sep 1999 */
+         if( avval != NULL ) free(avval) ;  /* 08 Sep 1999 */
+         if( pabest!= NULL ) free(pabest);  /* 08 Sep 1999 */
+         if( avbest!= NULL ) free(avbest);  /* 08 Sep 1999 */
          RETURN(NULL) ;
       }
    } else {
       aval = rbest = abest = pbest = bbest = pval = bval = NULL ;
-      ibest = NULL ;  /* 15 Dec 1997 */
+      paval = avval = pabest = avbest = NULL ;  /* 08 Sep 1999 */
+      ibest = NULL ;                            /* 15 Dec 1997 */
    }
 
 if(PRINT_TRACING)
@@ -523,6 +548,10 @@ if(PRINT_TRACING)
       if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
       if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
       if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
+      if( paval != NULL ) free(paval) ;  /* 08 Sep 1999 */
+      if( avval != NULL ) free(avval) ;  /* 08 Sep 1999 */
+      if( pabest!= NULL ) free(pabest);  /* 08 Sep 1999 */
+      if( avbest!= NULL ) free(avbest);  /* 08 Sep 1999 */
       fprintf(stderr,"\n*** FIM initialization fails in AFNI_fimmer_compute\n") ;
       RETURN(NULL) ;
    }
@@ -548,6 +577,10 @@ if(PRINT_TRACING)
       if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
       if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
       if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
+      if( paval != NULL ) free(paval) ;  /* 08 Sep 1999 */
+      if( avval != NULL ) free(avval) ;  /* 08 Sep 1999 */
+      if( pabest!= NULL ) free(pabest);  /* 08 Sep 1999 */
+      if( avbest!= NULL ) free(avbest);  /* 08 Sep 1999 */
       fprintf(stderr,"\n*** FIM initialization fails in AFNI_fimmer_compute\n") ;
       RETURN(NULL) ;
    }
@@ -612,6 +645,10 @@ if(PRINT_TRACING)
       if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
       if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
       if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
+      if( paval != NULL ) free(paval) ;  /* 08 Sep 1999 */
+      if( avval != NULL ) free(avval) ;  /* 08 Sep 1999 */
+      if( pabest!= NULL ) free(pabest);  /* 08 Sep 1999 */
+      if( avbest!= NULL ) free(avbest);  /* 08 Sep 1999 */
       RETURN(NULL) ;
    }
 
@@ -628,9 +665,14 @@ if(PRINT_TRACING)
    if( ibr_base >= 0 )
       EDIT_BRICK_LABEL( new_dset , ibr_base , "Baseline" ) ;
 
+   if( ibr_pave >= 0 )
+      EDIT_BRICK_LABEL( new_dset , ibr_pave , "% From Ave" ) ;  /* 08 Sep 1999 */
+   if( ibr_aver >= 0 )
+      EDIT_BRICK_LABEL( new_dset , ibr_aver , "Average" ) ;
+
    /*-- 30 Aug 1999: set limits on percent change --*/
 
-   if( ibr_perc >= 0 ){
+   if( ibr_perc >= 0 || ibr_pave >= 0 ){
       char * cp = my_getenv("AFNI_FIM_PERCENT_LIMIT") ;
       if( cp != NULL ){
          float tp = strtod(cp,NULL) ;
@@ -662,6 +704,10 @@ if(PRINT_TRACING)
       if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
       if( pval  != NULL ) free(pval)  ;  /* 16 Jan 1998 */
       if( bval  != NULL ) free(bval)  ;  /* 16 Jan 1998 */
+      if( paval != NULL ) free(paval) ;  /* 08 Sep 1999 */
+      if( avval != NULL ) free(avval) ;  /* 08 Sep 1999 */
+      if( pabest!= NULL ) free(pabest);  /* 08 Sep 1999 */
+      if( avbest!= NULL ) free(avbest);  /* 08 Sep 1999 */
       RETURN(NULL) ;
    }
 
@@ -811,7 +857,7 @@ STATUS("getting 1 ref pcor") ;
 
 STATUS("getting 1 ref perc") ;
 
-         PCOR_get_perc( pc_ref[0] , pc_vc[0] , vval , NULL ) ;
+         PCOR_get_perc( pc_ref[0] , pc_vc[0] , vval , NULL , 0 ) ;
 
          if( top_perc > 0.0 ) EDIT_clip_float( top_perc , nvox , vval ) ;
 
@@ -833,11 +879,37 @@ STATUS("getting 1 ref perc") ;
          }
       }
 
+      if( ibr_pave >= 0 ){  /* 08 Sep 1999 */
+
+STATUS("getting 1 ref pave") ;
+
+         PCOR_get_perc( pc_ref[0] , pc_vc[0] , vval , NULL , 1 ) ;
+
+         if( top_perc > 0.0 ) EDIT_clip_float( top_perc , nvox , vval ) ;
+
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(vval[iv]) > topval ) topval = fabs(vval[iv]) ;
+
+         bar = DSET_ARRAY( new_dset , ibr_pave ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( iv=0 ; iv < nvox ; iv++ )
+               bar[indx[iv]] = (short)(topval * vval[iv] + 0.499) ;
+
+            stataux[ibr_pave] = 1.0/topval ;
+         } else {
+            stataux[ibr_pave] = 0.0 ;
+         }
+      }
+
       if( ibr_base >= 0 ){
 
 STATUS("getting 1 ref base") ;
 
-         PCOR_get_perc( pc_ref[0] , pc_vc[0] , NULL , vval ) ;
+         PCOR_get_perc( pc_ref[0] , pc_vc[0] , NULL , vval , 0 ) ;
 
          topval = 0.0 ;
          for( iv=0 ; iv < nvox ; iv++ )
@@ -857,6 +929,30 @@ STATUS("getting 1 ref base") ;
          }
       }
 
+      if( ibr_aver >= 0 ){  /* 08 Sep 1999 */
+
+STATUS("getting 1 ref aver") ;
+
+         PCOR_get_perc( pc_ref[0] , pc_vc[0] , NULL , vval , 1 ) ;
+
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(vval[iv]) > topval ) topval = fabs(vval[iv]) ;
+
+         bar = DSET_ARRAY( new_dset , ibr_aver ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( iv=0 ; iv < nvox ; iv++ )
+               bar[indx[iv]] = (short)(topval * vval[iv] + 0.499) ;
+
+            stataux[ibr_aver] = 1.0/topval ;
+         } else {
+            stataux[ibr_aver] = 0.0 ;
+         }
+      }
+
    } else {
 
    /*** Multiple references --> find best correlation at each voxel ***/
@@ -865,7 +961,8 @@ STATUS("getting 1 ref base") ;
 
       PCOR_get_coef( pc_ref[0] , pc_vc[0] , abest ) ;
       PCOR_get_pcor( pc_ref[0] , pc_vc[0] , rbest ) ;
-      PCOR_get_perc( pc_ref[0] , pc_vc[0] , pbest , bbest ) ;
+      PCOR_get_perc( pc_ref[0] , pc_vc[0] , pbest , bbest , 0 ) ;
+      PCOR_get_perc( pc_ref[0] , pc_vc[0] , pabest, avbest, 1 ) ;
 
       for( iv=0 ; iv < nvox ; iv++ ) ibest[iv] = 1 ;  /* 15 Dec 1997 */
 
@@ -877,7 +974,8 @@ STATUS("getting 1 ref base") ;
 
          PCOR_get_coef( pc_ref[ivec] , pc_vc[ivec] , aval ) ;
          PCOR_get_pcor( pc_ref[ivec] , pc_vc[ivec] , vval ) ;
-         PCOR_get_perc( pc_ref[ivec] , pc_vc[ivec] , pval , bval ) ;
+         PCOR_get_perc( pc_ref[ivec] , pc_vc[ivec] , pval , bval , 0 ) ;
+         PCOR_get_perc( pc_ref[ivec] , pc_vc[ivec] , paval, avval, 1 ) ;
 
          for( iv=0 ; iv < nvox ; iv++ ){
             if( fabs(vval[iv]) > fabs(rbest[iv]) ){
@@ -886,6 +984,8 @@ STATUS("getting 1 ref base") ;
                ibest[iv] = (ivec+1) ;   /* 15 Dec 1997 */
                pbest[iv] = pval[iv] ;   /* Jan 1998 */
                bbest[iv] = bval[iv] ;
+               pabest[iv]= paval[iv] ;  /* 08 Sep 1999 */
+               avbest[iv]= avval[iv] ;
             }
          }
       }
@@ -959,6 +1059,30 @@ STATUS("getting 1 ref base") ;
          }
       }
 
+      /** pave brick [08 Sep 1999] */
+
+      if( ibr_pave >= 0 ){
+
+         if( top_perc > 0.0 ) EDIT_clip_float( top_perc , nvox , pabest ) ;
+
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(pabest[iv]) > topval ) topval = fabs(pabest[iv]) ;
+
+         bar = DSET_ARRAY( new_dset , ibr_pave ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( iv=0 ; iv < nvox ; iv++ )
+               bar[indx[iv]] = (short)(topval * pabest[iv] + 0.499) ;
+
+            stataux[ibr_pave] = 1.0/topval ;
+         } else {
+            stataux[ibr_pave] = 0.0 ;
+         }
+      }
+
       /** base brick */
 
       if( ibr_base >= 0 ){
@@ -979,16 +1103,36 @@ STATUS("getting 1 ref base") ;
             stataux[ibr_base] = 0.0 ;
          }
       }
-   }
+
+      /** aver brick [08 Sep 1999] */
+
+      if( ibr_aver >= 0 ){
+         topval = 0.0 ;
+         for( iv=0 ; iv < nvox ; iv++ )
+            if( fabs(avbest[iv]) > topval ) topval = fabs(avbest[iv]) ;
+
+         bar = DSET_ARRAY( new_dset , ibr_aver ) ;
+         memset( bar , 0 , sizeof(short)*nxyz ) ;
+
+         if( topval > 0.0 ){
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( iv=0 ; iv < nvox ; iv++ )
+               bar[indx[iv]] = (short)(topval * avbest[iv] + 0.499) ;
+
+            stataux[ibr_aver] = 1.0/topval ;
+         } else {
+            stataux[ibr_aver] = 0.0 ;
+         }
+      }
+
+   }  /* end of multiple reference case */
 
    /*** Set the brick factors for the new dataset,
         no matter how it was computed above.       ***/
 
 STATUS("setting brick_fac") ;
 
-   (void) EDIT_dset_items( new_dset ,
-                                    ADN_brick_fac , stataux ,
-                                 ADN_none ) ;
+   (void) EDIT_dset_items( new_dset , ADN_brick_fac , stataux , ADN_none ) ;
 
 #ifndef DONT_USE_METER
    MCW_set_meter( meter , 100 ) ;
@@ -1009,6 +1153,10 @@ STATUS("setting brick_fac") ;
    if( bbest != NULL ) free(bbest) ;  /* 16 Jan 1998 */
    if( pval  != NULL ) free(pval) ;   /* 16 Jan 1998 */
    if( bval  != NULL ) free(bval) ;   /* 16 Jan 1998 */
+   if( paval != NULL ) free(paval) ;  /* 08 Sep 1999 */
+   if( avval != NULL ) free(avval) ;  /* 08 Sep 1999 */
+   if( pabest!= NULL ) free(pabest);  /* 08 Sep 1999 */
+   if( avbest!= NULL ) free(avbest);  /* 08 Sep 1999 */
 
    /*--- Return new dataset ---*/
 
@@ -1265,6 +1413,8 @@ ENTRY("AFNI_fimmer_execute") ;
    AFNI_fimmer_redisplay( 1 , im3d , new_dset ) ;
    AFNI_SEE_FUNC_ON(im3d) ;
 
+   /* Sep 1999: add some history */
+
    { char his[512] ; int hh ;
      tross_Copy_History( dset_time , new_dset ) ;
      sprintf(his,"afni FIM: 3D+time=%s ignore=%d polort=%d",
@@ -1278,6 +1428,8 @@ ENTRY("AFNI_fimmer_execute") ;
      }
      tross_Append_History( new_dset , his ) ;
    }
+
+   /* write to disk */
 
    (void) THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 

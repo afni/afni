@@ -2349,4 +2349,7 @@ extern void   tross_Copy_History  ( THD_3dim_dataset *, THD_3dim_dataset * ) ;
 
 extern char * tross_breakup_string( char *, int , int ) ;
 
+#include <stdarg.h>
+void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
+
 #endif /* _MCW_3DDATASET_ */

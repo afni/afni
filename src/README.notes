@@ -81,6 +81,15 @@ routine - it is only necessary if you have some custom history to add.
 This routine adds the "[date time] " string to the front of "cn"
 before storing it into the History Note.
 ----------------------------------------------------------------------
+void tross_multi_Append_History( THD_3dim_dataset *dset, ... );
+
+This function is like the previous one, but takes an arbitrary number
+of strings as input.  Its usage is something like
+  tross_multi_Append_History(dset,str1,str2,str3,NULL);
+where each 'str' variable is of type char *.  The last input must
+be NULL.  The strings are concatenated and then tross_Append_History
+is invoked on the result.
+----------------------------------------------------------------------
 char * tross_commandline( char * pname, int argc, char ** argv );
 
 This routine is designed to produce an approximate copy of the command

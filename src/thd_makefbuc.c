@@ -408,7 +408,8 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
          for( iv=0 ; iv < nbrik ; iv++ ){
             bout = (short *) malloc( sizeof(short) * nvox ) ;
             if( bout == NULL ){
-               fprintf(stderr,"\nFinal malloc error in MAKER_4D_to_fbuc\n\a") ;
+               fprintf(stderr,
+                "\nFinal malloc error in MAKER_4D_to_fbuc - is memory exhausted?\n\a");
                exit(1) ;
             }
             sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;
@@ -435,7 +436,8 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
          for( iv=0 ; iv < nbrik ; iv++ ){
             bout = (byte *) malloc( sizeof(byte) * nvox ) ;
             if( bout == NULL ){
-               fprintf(stderr,"\nFinal malloc error in MAKER_4D_to_fbuc\n\a") ;
+               fprintf(stderr,
+                "\nFinal malloc error in MAKER_4D_to_fbuc - is memory exhausted?\n\a");
                exit(1) ;
             }
             sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;

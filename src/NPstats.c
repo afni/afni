@@ -6,6 +6,9 @@
   Author:  B. Douglas Ward
   Date:    23 July 1997
 
+  Mod:     Added changes for incorporating History notes.
+  Date:    08 September 1999
+
 */
 
 
@@ -14,23 +17,6 @@
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-
-*/
 
 
 /*---------------------------------------------------------------------------*/
@@ -418,8 +404,8 @@ float EDIT_coerce_autoscale_new( int nxyz ,
   
 */
 
-void write_afni_fizt (NP_options * option_data,  char * filename,  
-                      float * ffim,  float * ftr)
+void write_afni_fizt (int argc, char ** argv, NP_options * option_data,  
+		      char * filename, float * ffim,  float * ftr)
 {
   int nxyz;                           /* number of voxels */
   int ii;                             /* voxel index */
@@ -538,6 +524,10 @@ void write_afni_fizt (NP_options * option_data,  char * filename,
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
   fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+
+
+  /*----- Record history of dataset -----*/  
+  tross_Make_History( PROGRAM_NAME , argc , argv , new_dset ) ;
   
   THD_load_statistics( new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
@@ -560,8 +550,8 @@ void write_afni_fizt (NP_options * option_data,  char * filename,
 
 */
 
-void write_afni_fict (NP_options * option_data,  char * filename,  
-                      float * ffim,  float * ftr,  int dof)
+void write_afni_fict (int argc, char ** argv, NP_options * option_data,  
+		      char * filename, float * ffim,  float * ftr,  int dof)
 {
   int nxyz;                           /* number of voxels */
   int ii;                             /* voxel index */
@@ -682,7 +672,11 @@ void write_afni_fict (NP_options * option_data,  char * filename,
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
   fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
-  
+
+
+  /*----- Record history of dataset -----*/  
+  tross_Make_History( PROGRAM_NAME , argc , argv , new_dset ) ;
+
   THD_load_statistics( new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
   

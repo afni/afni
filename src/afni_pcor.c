@@ -457,12 +457,16 @@ void PCOR_get_lsqfit(PCOR_references * ref, PCOR_voxel_corr * vc, float *fit[] )
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-/*** get percent change (due to last reference) ***/
-/*** array coef must be big enough to hold the results ***/
-/*** if bline != NULL, it gets the baseline estimate ***/
+/*** get percent change (due to last reference).
+     array coef must be big enough to hold the results.
+     if bline != NULL, it gets the baseline estimate.
+     08 Sep 1999:
+       basaver = 0 ==> baseline for percent change calculation
+                       is the bottom of the curve [old method]
+               = 1 ==> baseline is average of the curve [for AJ] ***/
 
 void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
-                   float * coef, float * bline)
+                   float * coef, float * bline, int basaver )
 {
    int vox,jj,kk , nv=vc->nvox , nr=vc->nref , nup=ref->nupdate ;
    float sum , base , rdif , rmin ;
@@ -517,15 +521,12 @@ void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
          for( kk=jj+1 ; kk < nr ; kk++ ) sum -= ff[kk] * RCH(ref,kk,jj) ;
          ff[jj] = sum * dd[jj] ;
       }
-      base = ff[nr-1] * rmin ;         /* compute baseline */
 
-#if 0
-      for( jj=0 ; jj < nr-2 ; jj++ )   /* OLD version */
-         base += ff[jj] * bb[jj] ;
-#else
-      for( jj=0 ; jj < nr-1 ; jj++ )   /* 30 May 1999 */
-         base += ff[jj] * bb[jj] ;
-#endif
+      base = (basaver) ? ff[nr-1] * bb[nr-1]       /* baseline = average */
+                       : ff[nr-1] * rmin ;         /*          = bottom  */
+
+      for( jj=0 ; jj < nr-1 ; jj++ )   /* 30 May 1999: used to have nr-2 */
+         base += ff[jj] * bb[jj] ;     /*              which was wrong!  */
 
       if( coef != NULL ) coef[vox] = (base > 0.0) ? ff[nr-1] * rdif / base
                                                   : 0.0 ;

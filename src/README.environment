@@ -433,6 +433,23 @@ Notes plugin, for each note.  If not present, the limit is 4 lines
 shown per note at once -- to see a longer note, you'll have to
 use the scrollbars.
 
+-----------------------
+Variable: AFNI_FIM_MASK
+-----------------------
+This chooses the default subset of values computed with the FIM+
+button in a graph window.  The mask should be the sum of the desired
+values from this list:
+
+    1 = Fit Coef
+    2 = Best Index
+    4 = % Change
+    8 = Baseline
+   16 = Correlation
+   32 = % From Ave
+   64 = Average
+
+If you don't set this variable, the default mask is 23 = 1+2+4+16.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

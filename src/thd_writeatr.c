@@ -22,7 +22,9 @@ Boolean THD_write_atr( THD_datablock * blk )
    header_file = fopen( dkptr->header_name , "w" ) ;
    if( header_file == NULL ){
       fprintf(stderr,
-              "*** ERROR: failed to open file %s for attribute writing\n",
+              "*** ERROR: failed to open file %s for attribute writing;\n"
+              "         - Do you have permission to write to this disk?\n"
+              "         - Is the disk full?\n" ,
               dkptr->header_name) ;
       return False ;
    }
@@ -124,7 +126,8 @@ if( code == FAIL ) fprintf(stderr," ** attribute write failure!\n") ;
 
    if( good == False ){
       fprintf(stderr,
-              "*** WARNING: error in output to attribute file %s\n",
+              "*** WARNING: error in output to attribute file %s;\n"
+              "           - Is the disk full?\n" ,
               dkptr->header_name) ;
    }
 

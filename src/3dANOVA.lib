@@ -25,6 +25,10 @@
    Mod:     Added software for statistical tests of individual cell means,
             cell differences, and cell contrasts.
    Date:    27 October 1998
+
+   Mod:     Added changes for incorporating History notes.
+   Date:    09 September 1999
+
 */
 
 /*****************************************************************************
@@ -535,6 +539,7 @@ void write_afni_data (anova_options * option_data,  char * filename,
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
   float top, func_scale_short;        /* parameters for scaling data */
+  char label[80];                     /* label for output file history */ 
   
   
   /*----- initialize local variables -----*/
@@ -551,6 +556,15 @@ void write_afni_data (anova_options * option_data,  char * filename,
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
   
+
+  /*----- Record history of dataset -----*/
+
+  sprintf (label, "Output prefix: %s", filename);
+  if( commandline != NULL )
+     tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
+  else
+     tross_Append_History ( new_dset, label);
+
   
   iv = DSET_PRINCIPAL_VALUE(dset) ;
   if( option_data->datum >= 0 ){

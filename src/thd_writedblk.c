@@ -103,9 +103,11 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
 
    if( strlen(dkptr->directory_name) == 0 ||
        strlen(dkptr->header_name)    == 0 ||
-       strlen(dkptr->filecode)       == 0   ) WRITE_ERR("illegal file names") ;
+       strlen(dkptr->filecode)       == 0   )
+     WRITE_ERR("illegal file names stored in dataset") ;
 
-   if( dkptr->rank != 3 ) WRITE_ERR("cannot write non-3D datablock") ;
+   if( dkptr->rank != 3 )
+      WRITE_ERR("cannot write non-3D datablock") ;
 
    /*-- create directory if necessary --*/
 
@@ -113,7 +115,11 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
       id = mkdir( dkptr->directory_name , THD_MKDIR_MODE ) ;
       if( id != 0 ){
          fprintf(stderr,
-              "\n*** cannot mkdir new directory: %s\n",dkptr->directory_name) ;
+              "\n"
+              "*** cannot mkdir new directory: %s\n"
+              "  - Do you have permission to write to this disk?\n"
+              "  - Is the disk full?\n" ,
+              dkptr->directory_name) ;
          return False ;
       }
    }
@@ -262,7 +268,8 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
    /*-- actually write attributes to disk --*/
 
    good = THD_write_atr( blk ) ;
-   if( good == False ) WRITE_ERR("failure to write attributes!") ;
+   if( good == False )
+      WRITE_ERR("failure to write attributes - is disk full? do you have write permission?") ;
 
    /*-- if not writing data, can exit --*/
 
@@ -305,7 +312,7 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
             bold = DBLK_ARRAY(blk,0) ;      /* start of mapped file */
 
             if( bnew == NULL )
-               WRITE_ERR("cannot rewrite due to malloc failure") ;
+              WRITE_ERR("cannot rewrite due to malloc failure - is memory exhausted?") ;
 
             memcpy( bnew , bold , nb ) ;    /* make a copy,    */
             munmap( (void *) bold , nb ) ;  /* then unmap file */
@@ -344,7 +351,8 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
          if( compress_mode == COMPRESS_NOFILE ) THD_enviro_write_compression() ;
 
          far = COMPRESS_fopen_write( dkptr->brick_name , compress_mode ) ;
-         if( far == NULL ) WRITE_ERR("cannot open output brick file") ;
+         if( far == NULL )
+           WRITE_ERR("cannot open output brick file - do you have write permission?") ;
 
          /** write each brick out in a separate operation **/
 
@@ -383,7 +391,7 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
          }
 
          if( id != blk->total_bytes )
-            WRITE_ERR("write error in brick file (is disk full?)") ;
+            WRITE_ERR("write error in brick file - is disk full?") ;
 
          return True ;
       }

@@ -30,6 +30,9 @@
            arguments from stdin
   Date:    22 February 1999 -- RWCox
 
+  Mod:     Added changes for incorporating History notes.
+  Date:    09 September 1999
+
 */
 
 /*****************************************************************************
@@ -41,7 +44,7 @@
 
 #define PROGRAM_NAME "3dRegAna"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "16 December 1998"          /* date of last program mod */
+#define PROGRAM_DATE "09 September 1999"         /* date of last program mod */
 #define SUFFIX ".3dregana"                     /* suffix for temporary files */
 
 #include <stdio.h>
@@ -91,6 +94,8 @@
 #define MAX_OBSERVATIONS 1000    /* max. number of input datasets */
 #define MAX_NAME_LENGTH 80       /* max. streng length for file names */ 
 #define MEGA  1048576            /* one megabyte */
+
+static char * commandline = NULL ;       /* command line for history notes */
 
 
 typedef struct model
@@ -1976,6 +1981,11 @@ void initialize_program
 )
 
 {
+
+  /*----- save command line for history notes -----*/
+  commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
+
+
   /*----- create independent variable data matrix -----*/
   matrix_initialize (xdata);
 
@@ -2505,6 +2515,7 @@ void write_afni_data
   void  * vdif = NULL;                /* 1st sub-brick data pointer */
   float top, bot, func_scale_short;   /* parameters for scaling data */
   int top_ss, bot_ss;                 /* 2nd sub-brick value limits */
+  char label[80];                     /* label for output file history */ 
   
   
   /*----- initialize local variables -----*/
@@ -2514,13 +2525,21 @@ void write_afni_data
   dset = THD_open_one_dataset (option_data->first_dataset) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
-	    option_data->first_dataset);
-    exit(1) ;
+	    option_data->first_dataset);    exit(1) ;
   }
   
+
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
   
+  
+  /*----- Record history of dataset -----*/
+
+  sprintf (label, "Output prefix: %s", filename);
+  if( commandline != NULL )
+     tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
+  else
+     tross_Append_History ( new_dset, label);
   
   iv = DSET_PRINCIPAL_VALUE(dset) ;
   if( option_data->datum >= 0 ){
@@ -2677,6 +2696,7 @@ void write_bucket_data
   int piece_size;           /* number of voxels in dataset piece */
   int num_pieces;           /* dataset is divided into this many pieces */
   float * volume = NULL;    /* volume of floating point data */
+  char label[80];           /* label for output file history */ 
 
     
   /*----- initialize local variables -----*/
@@ -2705,6 +2725,13 @@ void write_bucket_data
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (old_dset);
   
+  
+  /*----- Record history of dataset -----*/
+  if( commandline != NULL )
+     tross_Append_History( new_dset , commandline ) ;
+  sprintf (label, "Output prefix: %s", output_prefix);
+  tross_Append_History ( new_dset, label);
+
 
   /*----- Modify some structural properties.  Note that the nbricks
           just make empty sub-bricks, without any data attached. -----*/
@@ -3122,7 +3149,7 @@ void terminate_program
   Multiple linear regression analysis (3dRegAna)
 */
 
-void main 
+int main 
 (
   int argc,                    /* number of input arguments */
   char ** argv                 /* array of input arguments */ 

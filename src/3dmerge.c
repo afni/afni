@@ -509,6 +509,8 @@ void MRG_Syntax(void)
     "       options do not apply, and the output dataset is simply the\n"
     "       '-1' options applied to the input dataset (i.e., edited).\n"
     " **  A merged output dataset is ALWAYS of the intensity-only variety.\n"
+    " **  You can combine the outputs of 3dmerge with other sub-bricks\n"
+    "       using the program 3dbucket.\n"
     " **  Complex-valued datasets cannot be merged.\n"
     " **  This program cannot handle time-dependent datasets.\n"
     " **  Note that the input datasets are specified by their .HEAD files,\n"

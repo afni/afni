@@ -1637,3 +1637,13 @@
 
 01 Sep 1999:
  * Wrote a Notes viewing/editing plugin.
+
+08 Sep 1999:
+ * Modified the error messages in some of the thd_*.c files to
+     be more verbose (Bharat Biswal couldn't understand one).
+ * Modified afni_fimmer.c (and afni.h, afni_graph.c) to allow computation
+     of "% From Ave" = percent change computed from the average instead
+     of from the baseline [per AJ].
+
+11 Sep 1999:
+ * Got History changes from Doug Ward.

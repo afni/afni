@@ -360,7 +360,8 @@ THD_3dim_dataset * MAKER_4D_to_typed_fim( THD_3dim_dataset * old_dset ,
 
          bout = (short *) malloc( sizeof(short) * nvox ) ;
          if( bout == NULL ){
-            fprintf(stderr,"\nFinal malloc error in MAKER_4D_to_fim\n\a") ;
+            fprintf(stderr,
+             "\nFinal malloc error in MAKER_4D_to_fim - is memory exhausted?\n\a");
             exit(1) ;
          }
 
@@ -392,7 +393,8 @@ THD_3dim_dataset * MAKER_4D_to_typed_fim( THD_3dim_dataset * old_dset ,
 
          bout = (byte *) malloc( sizeof(byte) * nvox ) ;
          if( bout == NULL ){
-            fprintf(stderr,"\nFinal malloc error in MAKER_4D_to_fim\n\a") ;
+            fprintf(stderr,
+             "\nFinal malloc error in MAKER_4D_to_fim - is memory exhausted?\n\a");
             exit(1) ;
          }
 

@@ -15,10 +15,14 @@
    Mod:      Added the -inTR option.
              Removed duplicate readin of dset_time, and removed the
                input of dset_time's bricks (never used).
-             22 July 1998 -- RWCox
+   Date:     22 July 1998 -- RWCox
 	     
    Mod:      Correction to initialization of dataset parameters.
-             12 November 1998
+   Date:     12 November 1998
+
+   Mod:      Added changes for incorporating History notes.
+   Date:     09 September 1999
+
 */
 
 
@@ -33,7 +37,7 @@
 
 #define PROGRAM_NAME "3dTSgen"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "12 November 1998"          /* date of last program mod */
+#define PROGRAM_DATE "09 September 1999"         /* date of last program mod */
 
 
 #include <stdio.h>
@@ -67,6 +71,10 @@ typedef struct NL_options
 static float DELT = 1.0;   /* default */
 static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
 static float dsTR = 0.0 ;  /* TR of the input file */
+
+
+static char * commandline = NULL ;         /* command line for history notes */
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -815,6 +823,10 @@ void initialize_program
   int ip;                  /* parameter index */
   int it;                  /* time index */
 
+
+  /*----- save command line for history notes -----*/
+  commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
+
   
   /*----- get command line inputs -----*/
   get_options (argc, argv, nname, sname, nmodel, smodel, 
@@ -1122,22 +1134,38 @@ void output_ts_array
 )
 
 {
-  int ii;                             /* voxel index */
   THD_3dim_dataset * dset = NULL;     /* input afni data set pointer */
   THD_3dim_dataset * new_dset = NULL; /* output afni data set pointer */
-  int iv;                             /* sub-brick index */ 
+  int ib;                             /* sub-brick index */ 
   int ierror;                         /* number of errors in editing data */
-  int ibuf[32];                       /* integer buffer */
-  float fbuf[10000];                  /* float buffer */
+  float * fbuf;                       /* float buffer */
   float fimfac;                       /* scale factor for short data */
+  char label[80];                     /* label for output file history */ 
   
-    
+     
+  /*----- allocate memory -----*/
+  fbuf = (float *)  malloc (sizeof(float) * ts_length);   MTEST (fbuf);
+  for (ib = 0;  ib < ts_length;  ib++)    fbuf[ib] = 0.0;
+
   
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   dset = THD_open_one_dataset (input_filename);
   new_dset = EDIT_empty_copy (dset);
+
+
+  /*----- Record history of dataset -----*/
+
+  sprintf (label, "Output prefix: %s", filename);
+  if( commandline != NULL )
+     tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
+  else
+     tross_Append_History ( new_dset, label);
+
+
+  /*----- delete prototype dataset -----*/
   THD_delete_3dim_dataset (dset, False);  dset = NULL ;
   
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
@@ -1161,25 +1189,23 @@ void output_ts_array
 
   
   /*----- attach bricks to new data set -----*/
-  for (ii = 0;  ii < ts_length;  ii++)
-    mri_fix_data_pointer (d_array[ii], DSET_BRICK(new_dset,ii)); 
+  for (ib = 0;  ib < ts_length;  ib++)
+    mri_fix_data_pointer (d_array[ib], DSET_BRICK(new_dset,ib)); 
   
   
   /*----- write afni data set -----*/
   printf("--- Writing combined dataset into %s\n",
 	 new_dset->dblk->diskptr->header_name) ;
 
-  for (ii = 0;  ii < 10000;  ii++)
-    fbuf[ii] = 0.0;
-  (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
   
   THD_load_statistics( new_dset ) ;
-
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+
   
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
+  free (fbuf);   fbuf = NULL;
 
 }
 
@@ -1206,6 +1232,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
   float top, func_scale_short;        /* parameters for scaling data */
+  char label[80];                     /* label for output file history */ 
   
     
   /*----- read input dataset -----*/
@@ -1218,7 +1245,14 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
+
   
+  /*----- Record history of dataset -----*/
+  if( commandline != NULL )
+     tross_Append_History( new_dset , commandline ) ;
+  sprintf (label, "Output prefix: %s", filename);
+  tross_Append_History ( new_dset, label);
+
   
   iv = DSET_PRINCIPAL_VALUE(dset) ;
   output_datum = DSET_BRICK_TYPE(dset,iv) ;
@@ -1331,6 +1365,7 @@ void write_bucket_data
   int ierror;               /* number of errors in editing data */
   float * volume;           /* volume of floating point data */
   int dimension;            /* dimension of full model = p + q */
+  char label[80];           /* label for output file history */ 
 
     
   /*----- initialize local variables -----*/
@@ -1352,7 +1387,14 @@ void write_bucket_data
 
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (old_dset);
+
   
+  /*----- Record history of dataset -----*/
+  if( commandline != NULL )
+     tross_Append_History( new_dset , commandline ) ;
+  sprintf (label, "Output prefix: %s", output_prefix);
+  tross_Append_History ( new_dset, label);
+
 
   /*----- Modify some structural properties.  Note that the nbricks
           just make empty sub-bricks, without any data attached. -----*/
@@ -1629,7 +1671,7 @@ void terminate_program
 
 /*---------------------------------------------------------------------------*/
 
-void main 
+int main 
 (
   int argc,                /* number of input arguments */
   char ** argv             /* array of input arguments */ 

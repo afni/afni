@@ -38,6 +38,10 @@
   Mod:     Increased max. allowed number of input stimulus functions.
   Date:    24 August 1999
 
+  Mod:     Additional statistical output (partial R^2 statistics).
+  Date:    07 September 1999
+
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -47,7 +51,7 @@
 
 #define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "24 August 1999"            /* date of last program mod */
+#define PROGRAM_DATE "07 September 1999"         /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -370,7 +374,7 @@ char * DC_main( PLUGIN_interface * plint )
     for (iglt = 0;  iglt < glt_num;  iglt++)
       {
 	printf ("\nGLT #%d   #rows = %d   from file: %s \n", 
-		iglt, glt_rows[iglt], glt_filename[iglt]);
+		iglt+1, glt_rows[iglt], glt_filename[iglt]);
 	matrix_file_read (glt_filename[iglt],
 			  glt_rows[iglt],
 			  plug_p,
@@ -422,8 +426,9 @@ int calculate_results
   vector scoef;               /* std. devs. for regression parameters */
   vector tcoef;               /* t-statistics for regression parameters */
   float fpart[MAX_STIMTS];    /* partial F-statistics for the stimuli */
-  float freg;                 /* regression F-statistic */
-  float rsqr;                 /* coeff. of multiple determination R^2  */
+  float rpart[MAX_STIMTS];    /* partial R^2 stats. for the stimuli */
+  float ffull;                /* full model F-statistic */
+  float rfull;                /* full model R^2 statistic */
   float mse;                  /* mean square error from full model */
 
   vector y;                   /* vector of measured data */       
@@ -437,6 +442,7 @@ int calculate_results
   int ok;                /* flag for successful matrix calculation */
   int novar;             /* flag for insufficient variation in data */
   float fglt[MAX_GLT];   /* F-statistics for the general linear tests */
+  float rglt[MAX_GLT];   /* R^2 statistics for the general linear tests */
 
 
   /*----- Check initialization flag -----*/
@@ -509,15 +515,16 @@ int calculate_results
       
       /*----- Perform the regression analysis for this voxel-----*/
       regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
-		 x_full, xtxinv_full, xtxinvxt_full, x_base,
-	         xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, y, rms_min, 
-	   	 &mse, &coef, &scoef, &tcoef, fpart, &freg, &rsqr, &novar);
+			   x_full, xtxinv_full, xtxinvxt_full, x_base,
+			   xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, 
+			   y, rms_min, &mse, &coef, &scoef, &tcoef, 
+			   fpart, rpart, &ffull, &rfull, &novar);
       
  	  
       /*----- Perform the general linear tests for this voxel -----*/
       if (glt_num > 0)
 	glt_analysis (N, p, x_full, y, mse*(N-p), coef, novar,
-		      glt_num, glt_rows, glt_cmat, glt_amat, glt_coef, fglt);
+		  glt_num, glt_rows, glt_cmat, glt_amat, glt_coef, fglt, rglt);
       
      
       /*----- Save the fit parameters -----*/
@@ -527,8 +534,8 @@ int calculate_results
       /*----- Report results for this voxel -----*/
       printf ("\nResults for Voxel: \n");
       report_results (q, num_stimts, stim_label, min_lag, max_lag,
-		      coef, tcoef, fpart, freg, rsqr, 
-		      glt_num, glt_rows, glt_coef, fglt, label);
+		      coef, tcoef, fpart, rpart, ffull, rfull, 
+		      glt_num, glt_rows, glt_coef, fglt, rglt, label);
       printf ("%s \n", *label);
 
       prev_nt = nt;

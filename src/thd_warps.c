@@ -27,7 +27,7 @@ THD_warp * AFNI_make_voxwarp( THD_warp * inwarp ,
 
       default:{
          fprintf(stderr,"\a\n*** ILLEGAL warp code!!! %d\n",inwarp->type) ;
-         sleep(1) ; exit(-1) ;
+         sleep(1) ; exit(1) ;
       }
       break ;
 

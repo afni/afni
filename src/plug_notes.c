@@ -92,7 +92,7 @@ static MCW_idcode         dset_idc ; /* 31 Mar 1999     */
 
 static int editor_open  = 0 ;
 
-#define NUM_DH 7
+#define NUM_DH 9
 static char * default_history[NUM_DH] = {
 
    "Those who cannot remember the past are condemned to repeat it.\n"
@@ -102,8 +102,8 @@ static char * default_history[NUM_DH] = {
    "I project the history of the future.\n"
    "-- Walt Whitman" ,
 
-   "I shall cheerfully bear the reproach of having descended\n"
-   "below the dignity of history.\n"
+   "I shall cheerfully bear the reproach of having descended below the\n"
+   "dignity of history.\n"
    "-- Thomas Macaulay" ,
 
    "There was a time - we see it in the marvellous dawn of Hellenic life -\n"
@@ -119,7 +119,20 @@ static char * default_history[NUM_DH] = {
 
    "History is the version of past events that people have decided to\n"
    "agree upon.\n"
-   "--Napoleon"
+   "--Napoleon" ,
+
+   "Ever returning Spring, trinity sure to me you bring:\n"
+   "Lilac blooming perennial, and drooping star in the West,\n"
+   "And thought of him I love.\n"
+   "-- Walt Whitman" ,
+
+   "What has occurred in this case, must ever recur in similar cases.\n"
+   "Human nature will not change. In any future great national trial,\n"
+   "compared with the men of this, we shall have as weak, and as strong;\n"
+   "as silly and as wise; as bad and good. Let us, therefore, study the\n"
+   "incidents of this, as philosophy to learn wisdom from, and none of\n"
+   "them as wrongs to be revenged.\n"
+   "-- Abraham Lincoln"
 
 } ;
 
@@ -161,7 +174,10 @@ char * NOTES_main( PLUGIN_interface * plint )
 
    /*-- set titlebar --*/
 
-   XtVaSetValues( shell , XmNtitle , "AFNI NOTES Editor" , NULL ) ;
+   { char ttl[32] ;
+     sprintf( ttl , "AFNI Notes %s" , AFNI_controller_label(im3d) ) ;
+     XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
+   }
 
    /*-- set the info label --*/
 
@@ -211,7 +227,7 @@ static MCW_action_item NOTES_actor[NACT] = {
   "Save edits to disk\nand continue" , "Save to disk; continue",0} ,
 
  {"Done",NOTES_done_CB,NULL,
-  "Save edits to disk\nand close Editor" , "Save and close",1}
+  "Save edits to disk\nand close Editor" , "Save and Quit",1}
 } ;
 
 static void NOTES_make_widgets(void)
@@ -391,6 +407,7 @@ static void NOTES_make_widgets(void)
                   NULL ) ;
    xstr = XmStringCreateLtoR( "----- History -----" , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( notar[0]->note_label , XmNlabelString , xstr , NULL ) ;
+   MCW_register_hint( notar[0]->textw , "Dataset History; or Edifying Text" ) ;
 
    /*** compute width of popup window ***/
 
@@ -627,33 +644,36 @@ static void NOTES_help_CB( Widget w, XtPointer client_data, XtPointer call_data 
 {
    (void ) new_MCW_textwin( choose_pb ,
 
+   " \n"
    "This plugin is used to view and edit the Notes attached to a dataset.\n"
+   "---------------------------------------------------------------------\n"
+   "The buttons at the top perform the following functions:\n"
    "\n"
-   "  Choose Dataset button:\n"
-   "                Use this to select a dataset to deal with.\n"
+   "  Choose Dataset: Use this to select a dataset to deal with.\n"
    "\n"
-   "  Quit button:  Exit the plugin without saving any edits to Notes\n"
-   "                made since the last 'Save' button press.\n"
+   "  Quit:           Exit the plugin without saving any edits to Notes\n"
+   "                  made since the last 'Save' button press.\n"
    "\n"
-   "  Help button:  I hope you already got the idea for this widget.\n"
+   "  Help:           I hope you already got the idea for this widget.\n"
    "\n"
-   "  Add button:   Add a new Note at the end of the existing notes.\n"
+   "  Add:            Add a new Note at the end of the existing notes.\n"
    "\n"
-   "  Refit button: Resize all Notes' sub-windows to fit the number of\n"
-   "                lines of text in each Note.  The maximum line count\n"
-   "                for each sub-window is set by the Unix environment\n"
-   "                variable AFNI_NOTES_DLINES; if this is not defined,\n"
-   "                the default maximum is 9.\n"
+   "  Refit:          Resize all Notes' sub-windows to fit the number of\n"
+   "                  lines of text in each Note.  The maximum line count\n"
+   "                  for each sub-window is set by the Unix environment\n"
+   "                  variable AFNI_NOTES_DLINES; if this is not defined,\n"
+   "                  the default maximum is 9.\n"
    "\n"
-   "  Save button:  Save the current Notes to the dataset .HEAD file.\n"
+   "  Save:           Save the current Notes to the dataset .HEAD file.\n"
    "\n"
-   "  Done button:  Save then Quit.\n"
+   "  Done:           Save then Quit.\n"
+   "-------------------------------------------------------------------------- \n"
+   "Below these buttons are the Notes sub-windows.\n"
    "\n"
-   "Below these buttons are the Notes sub-windows.  The first Note sub-window \n"
-   "shows the dataset History Note.  This Note cannot be edited by the user\n"
-   "- it is created by each AFNI program as a record of the actions that led\n"
-   "here. If no History Note is present in the dataset .HEAD file, some\n"
-   "edifying text will be shown here anyway.\n"
+   "The first Note sub-window shows the dataset History Note.  This Note can't\n"
+   "be edited by the user - it is created by each AFNI program as a record of\n"
+   "the actions that led to this dataset. If no History Note is present in the\n"
+   "dataset .HEAD file, some edifying text will be shown here instead.\n"
    "\n"
    "Each other Note sub-window shows the Note number, the date of the Note's\n"
    "creation (or last change), and the Note itself.  These windows are\n"
@@ -865,13 +885,14 @@ static void NOTES_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs
    if( his == NULL ){
       ii = ( lrand48() >> 8) % NUM_DH ;
       notar[0]->note_orig = newstring(default_history[ii]) ;
+      xstr = XmStringCreateLtoR( "----- EDIFYING TEXT -----" , XmFONTLIST_DEFAULT_TAG ) ;
    } else {
       notar[0]->note_orig = tross_breakup_string( his , 2*TWIDTH/3 , TWIDTH-1 ) ;
       free(his) ;
+      xstr = XmStringCreateLtoR( "----- HISTORY -----" , XmFONTLIST_DEFAULT_TAG ) ;
    }
    notar[0]->date_orig = NULL ;
 
-   xstr = XmStringCreateLtoR( "----- HISTORY -----" , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( notar[0]->note_label , XmNlabelString , xstr , NULL ) ;
    XmStringFree(xstr) ;
    XmTextSetString( notar[0]->textw , notar[0]->note_orig ) ;

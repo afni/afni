@@ -35,7 +35,7 @@ char * tross_commandline( char * pname , int argc , char ** argv )
 
          strcpy(aa,argv[ii]) ;        /* edit out bad characters */
          for( jj=0 ; jj < ll ; jj++ )
-            if( iscntrl(aa[jj]) || isspace(aa[jj]) || aa[jj] > 127 ) aa[jj] = ' ' ;
+            if( iscntrl(aa[jj]) || isspace(aa[jj]) || aa[jj] < 0 ) aa[jj] = ' ' ;
 
          strcat(ch," '") ; strcat(ch,aa) ; strcat(ch,"'") ; free(aa) ;
       } else {
@@ -284,6 +284,46 @@ void tross_Append_History( THD_3dim_dataset *dset, char *cn )
    }
 
    free(cdate) ; return ;
+}
+
+/*----------------------------------------------------------------------------
+   Append multiple strings to the History, all on one line.  Usage:
+     tross_multi_Append_History(dset,str1,str2,str3,NULL) ;
+   As many str variables as desired (at least 1), of type char *, can be
+   passed in.  The last one must be NULL.
+------------------------------------------------------------------------------*/
+
+#include <stdarg.h>
+
+void tross_multi_Append_History( THD_3dim_dataset *dset, ... )
+{
+   va_list vararg_ptr ;
+   int nstr=0 , nc , first=1 , ii ;
+   char * str , * cpt ;
+
+   va_start( vararg_ptr , dset ) ;
+
+   str = malloc(4) ; nstr = 0 ; str[0] = '\0' ;
+   while(1){
+      cpt = va_arg( vararg_ptr , char * ) ; if( cpt == NULL ) break ;
+      nc = strlen(cpt) ;                    if( nc  == 0    ) continue ;
+      nstr += nc ; str = realloc( str , nstr+8 ) ;
+      if( !first ) strcat(str," ; ") ;
+      strcat(str,cpt) ; first = 0 ;
+   }
+
+   va_end( vararg_ptr ) ;
+
+   nstr = strlen(str) ;
+   if( nstr > 0 ){
+      for( ii=0 ; ii < nstr ; ii++ )
+         if( str[ii]=='\n' || str[ii]=='\f' || str[ii]=='\r' || str[ii]=='\v' )
+            str[ii] = ' ' ;
+
+      tross_Append_History( dset , str ) ;
+   }
+
+   free(str) ; return ;
 }
 
 /*----------------------------------------------------------------------------

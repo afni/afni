@@ -6,6 +6,9 @@
   Author:  B. Douglas Ward
   Date:    23 July 1997
 
+  Mod:     Added changes for incorporating History notes.
+  Date:    08 September 1999
+
 */
 
 
@@ -14,27 +17,12 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-
-*/
 
 /*---------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME "3dKruskalWallis"  /* name of this program */
-#define LAST_MOD_DATE "23 July 1997"    /* date of last program modification */
+#define PROGRAM_NAME "3dKruskalWallis"               /* name of this program */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "08 September 1999"         /* date of last program mod */
 
 #define MAX_TREATMENTS 100     /* max. number of treatments */
 #define MAX_OBSERVATIONS 100   /* max. number of observations per treatment */
@@ -687,15 +675,17 @@ void calculate_results
 
 void output_results 
 (
-  NP_options * option_data,   /* user input options */
-  float * best,               /* index of best treatment */
-  float * kstat               /* Kruskal-Wallis statistic */
+  int argc,                         /* number of input arguments */
+  char ** argv,                     /* array of input arguments */ 
+  NP_options * option_data,         /* user input options */
+  float * best,                     /* index of best treatment */
+  float * kstat                     /* Kruskal-Wallis statistic */
 )
 
 {
 
   /*----- write out afni fict data file -----*/
-  write_afni_fict (option_data, option_data->outfile, 
+  write_afni_fict (argc, argv, option_data, option_data->outfile, 
 		   best, kstat, option_data->s - 1);
 
 }
@@ -753,14 +743,19 @@ void terminate
    treatments.
 */
  
-void main (int argc, char ** argv)
+int main (int argc, char ** argv)
 {
   NP_options * option_data = NULL;    /* user input options */
   float * best;                       /* index of best treatment */
   float * kstat;                      /* Kruskal-Wallis statistic */
- 
-  printf ("\n\nProgram %s \n\n", PROGRAM_NAME);
-  printf ("Last revision: %s \n", LAST_MOD_DATE);
+
+  
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
 
 
   /*----- program initialization -----*/
@@ -770,7 +765,7 @@ void main (int argc, char ** argv)
   calculate_results (option_data, best, kstat);
   
   /*----- generate requested output -----*/
-  output_results (option_data, best, kstat);
+  output_results (argc, argv, option_data, best, kstat);
 
   /*----- terminate program -----*/
   terminate (&option_data, &best, &kstat);

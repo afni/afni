@@ -111,7 +111,7 @@ extern void PCOR_get_lsqfit(PCOR_references *, PCOR_voxel_corr *, float *fit[]) 
 extern void PCOR_get_coef  (PCOR_references *, PCOR_voxel_corr *, float *) ;
 extern void PCOR_get_pcor  (PCOR_references *, PCOR_voxel_corr *, float *) ;
 extern void PCOR_get_mcor  (PCOR_references *, PCOR_voxel_corr *, int , float *) ;
-extern void PCOR_get_perc  (PCOR_references *, PCOR_voxel_corr *, float *,float *) ;
+extern void PCOR_get_perc  (PCOR_references *, PCOR_voxel_corr *, float *,float *, int );
 
 extern void PCOR_get_pcor_and_coef(PCOR_references *, PCOR_voxel_corr *,
                                    float, float *,float * ) ;

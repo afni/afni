@@ -7,6 +7,10 @@
   Author:  B. Douglas Ward
   Date:    02 April 1999
 
+  Mod:     Added changes for incorporating History notes.
+  Date:    10 September 1999
+
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 */
@@ -15,7 +19,7 @@
 
 #define PROGRAM_NAME "adwarp.c"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "02 April 1999"             /* date of last program mod */
+#define PROGRAM_DATE "10 September 1999"         /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -740,7 +744,7 @@ STATUS("have new image") ;
 
 /*---------------------------------------------------------------------------*/
 
-void main( int argc , char * argv[] )
+int main( int argc , char * argv[] )
 {
   adwarp_options * option_data;             /* adwarp program options */
   THD_3dim_dataset * new_dset = NULL;       /* new (output) dataset */
@@ -770,6 +774,11 @@ void main( int argc , char * argv[] )
   new_dset = adwarp_follower_dataset (option_data, option_data->aset, 
 				      option_data->dset);
 
+
+  /*----- Record history of dataset -----*/
+  tross_Copy_History( option_data->dset , new_dset ) ;
+  tross_Make_History( PROGRAM_NAME , argc , argv , new_dset ) ;
+   
   
   /*----- Allow for resampling to a new voxel size -----*/
   new_daxes.type = DATAXES_TYPE;

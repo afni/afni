@@ -2280,7 +2280,7 @@ ENTRY("GRA_handle_keypress") ;
 
 if(PRINT_TRACING){
 char str[256] ;
-sprintf(str,"buf[0]=%c (%x)",(int)buf[0],(int)buf[0]) ; 
+sprintf(str,"buf[0]=%c (%x)",(int)buf[0],(int)buf[0]) ;
 STATUS(str); }
 
    /*** deal with the key sequence 'N <digits> <Enter>' ***/
@@ -3492,6 +3492,7 @@ ENTRY("GRA_fim_CB") ;
       switch(val){
          default:  cbs.key = FIM_ALPHA_MASK | FIM_CORR_MASK ; break ;
          case 2:   cbs.key = FIM_PERC_MASK  | FIM_CORR_MASK ; break ;
+         case 4:   cbs.key = FIM_PAVE_MASK  | FIM_CORR_MASK ; break ;
       }
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    }
@@ -4115,12 +4116,12 @@ ENTRY("AFNI_new_fim_menu") ;
    FIM_MENU_QBUT( fim_execute_pb   , "Compute FIM" , "-> fico") ;
    MCW_set_widget_bg( fmenu->fim_execute_pb , redcolor , 0 ) ;
 
-   { static char * blab[] = { "Fit Coef" , "% Change" } ;
+   { static char * blab[] = { "Fit Coef" , "% Change" , "% From Ave" } ;
      (void) XtVaCreateManagedWidget(
              "dialog" , xmSeparatorWidgetClass , qbut_menu ,
               XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
-     fmenu->fim_opt_bbox = new_MCW_bbox( qbut_menu , 2 , blab ,
+     fmenu->fim_opt_bbox = new_MCW_bbox( qbut_menu , 3 , blab ,
                                          MCW_BB_radio_one , MCW_BB_noframe ,
                                          NULL , NULL ) ;
    }
@@ -4137,7 +4138,11 @@ ENTRY("AFNI_new_fim_menu") ;
                                         MCW_BB_check , MCW_BB_noframe ,
                                         NULL , NULL ) ;
 
-   MCW_set_bbox( fmenu->fimp_opt_bbox , FIM_DEFAULT_MASK ) ;
+   { char * ff = my_getenv( "AFNI_FIM_MASK" ) ; int mm=0 ;
+     if( ff != NULL ) mm = strtol(ff,NULL,10) ;
+     if( mm <= 0 ) mm = FIM_DEFAULT_MASK ;
+     MCW_set_bbox( fmenu->fimp_opt_bbox , mm ) ;
+   }
 
    RETURN(fmenu) ;
 }

@@ -6,19 +6,24 @@
   Author:  B. Douglas Ward
   Date:    04 June 1999
 
+
+  Mod:     Corrected initialization of PDF estimation flag.
+  Date:    06 August 1999
+
+  Mod:     Added changes for incorporating History notes.
+  Date:    09 September 1999
+
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
-
-  Mod:   Corrected initialization of PDF estimation flag.
-  Date:  06 August 1999
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dIntracranial"                /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
-#define PROGRAM_DATE "06 August 1999"            /* date of last program mod */
+#define PROGRAM_DATE "09 September 1999"         /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -29,7 +34,6 @@
 #include "mrilib.h"
 #include "Intracranial.h"
 
-static char * commandline = NULL ;
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -40,6 +44,7 @@ static char * anat_filename = NULL;      /* file name for input anat dataset */
 static char * prefix_filename = NULL;    /* prefix name for output dataset */
 static Boolean write_mask = FALSE;       /* flag for generate 'fim' mask */
 static Boolean quiet = FALSE;            /* flag for suppress screen output */
+static char * commandline = NULL ;       /* command line for history notes */
 
 
 /*---------------------------------------------------------------------------*/
@@ -314,6 +319,10 @@ void initialize_program
   Boolean ok = TRUE;               /* flag for successful PDF estimation */
 
 
+  /*----- save command line for history notes -----*/
+  commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
+
+
   /*----- Get operator inputs -----*/
   get_options (argc, argv);
 
@@ -452,6 +461,8 @@ void write_afni_data
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
 
+
+  /*----- Record history of dataset -----*/
   tross_Copy_History( dset , new_dset ) ;
   if( commandline != NULL )
      tross_Append_History( new_dset , commandline ) ;
@@ -597,7 +608,6 @@ int main
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
 
-  commandline = tross_commandline( "3dIntracranial" , argc,argv ) ;
   
   /*----- Program initialization -----*/
   initialize_program (argc, argv);

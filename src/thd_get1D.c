@@ -51,7 +51,8 @@ ENTRY("THD_get_many_timeseries") ;
 
       elocal = (char *) malloc( sizeof(char) * (ll+2) ) ;
       if( elocal == NULL ){
-         fprintf(stderr,"\n*** THD_get_many_timeseries malloc failure ***\n") ;
+         fprintf(stderr,
+                "\n*** THD_get_many_timeseries malloc failure - is memory full? ***\n");
          exit(1) ;
       }
       strcpy( elocal , epath ) ; elocal[ll] = ' ' ; elocal[ll+1] = '\0' ;

@@ -1,7 +1,6 @@
 #include "mrilib.h"
 #include "thd.h"
 
-
 /*----------------------------------------------------------------
    this routine writes all the data from the dataset into the
    datablock attributes, then writes the datablock to disk

@@ -20,6 +20,10 @@
   of sufficient length.
   BDW       14 January 1998
 
+  Mod:     Added changes for incorporating History notes.
+  Date:    10 September 1999
+
+
 */
 
 /*****************************************************************************
@@ -27,22 +31,8 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1996, 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-#define PROGRAM_NAME "3dfim"          /* name of this program */
-#define LAST_MOD_DATE "14 Jan 1998"  /* date of last program modification */
+#define PROGRAM_NAME "3dfim"                         /* name of this program */
+#define PROGRAM_DATE "10 September 1999"         /* date of last program mod */
 
 
 #define SO_BIG 33333
@@ -54,6 +44,7 @@
 
 #undef  USE_TRACING
 #include "dbtrace.h"
+
 
 /*-------------------------------------------------------------------
    Lots of CPU work in here!
@@ -1003,9 +994,12 @@ int main( int argc , char *argv[] )
    Boolean ok;                    /* true if 3d write is successful */
    
 
-   /*----- identify program -----*/
-   printf ("\n\nProgram %s \n", PROGRAM_NAME);
-   printf ("Last revision: %s \n\n", LAST_MOD_DATE);
+
+   /*----- Identify software -----*/
+   printf ("\n\n");
+   printf ("Program: %s \n", PROGRAM_NAME);
+   printf ("Date:    %s \n", PROGRAM_DATE);
+   printf ("\n");
 
 
    /* --- read command line --- */
@@ -1015,6 +1009,10 @@ int main( int argc , char *argv[] )
    new_dset = fim3d_fimmer_compute (opt.dset, opt.idts, opt.ortts, 
 				    opt.first_im, opt.prefix_name, 
 				    opt.max_percent);  /* 19 May 1997 */
+
+   /*----- Record history of dataset -----*/
+   tross_Copy_History( opt.dset , new_dset ) ;
+   tross_Make_History( PROGRAM_NAME , argc , argv , new_dset ) ;
    
    /* --- write 3d functional image data --- */
    ok = THD_write_3dim_dataset ("", opt.prefix_name, new_dset, TRUE);

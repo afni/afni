@@ -27,6 +27,9 @@
    Mod:     Added software for statistical tests of individual cell means.
    Date:    27 October 1998
 
+   Mod:     Added changes for incorporating History notes.
+   Date:    09 September 1999
+
 */
 
 
@@ -39,10 +42,9 @@
 
 #define PROGRAM_NAME "3dANOVA"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "27 October 1998"           /* date of last program mod */
+#define PROGRAM_DATE "08 September 1999"         /* date of last program mod */
 
 #define SUFFIX ".3danova"                 /* suffix for temporary data files */
-
 
 #include "3dANOVA.h"
 #include "3dANOVA.lib"
@@ -481,6 +483,11 @@ void initialize (int argc,  char ** argv,  anova_options ** option_data)
   int i;                               /* factor level index */
   
   
+
+  /*----- save command line for history notes -----*/
+  commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
+
+
   /*----- allocate memory space for input data -----*/   
   *option_data = (anova_options *) malloc(sizeof(anova_options));
   if (*option_data == NULL)
@@ -1480,7 +1487,7 @@ void terminate (anova_options * option_data)
    Single factor analysis of variance (ANOVA).
 */
  
-void main (int argc, char ** argv)
+int main (int argc, char ** argv)
 {
    anova_options * option_data = NULL;
 

@@ -27,6 +27,9 @@
   Mod:     Corrected problem with base image memory deallocation.
   Date:    20 July 1998
 
+  Mod:     Added changes for incorporating History notes.
+  Date:    10 September 1999
+
 */
 
 
@@ -38,7 +41,7 @@
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "2dImReg"                       /* name of this program */
-#define LAST_MOD_DATE "20 July 1998"             /* date of last program mod */
+#define PROGRAM_DATE "10 September 1999"         /* date of last program mod */
 
 #define MAX_NAME_LENGTH 80          /* max. strength length for file names */ 
 #define STATE_DIM 4                 /* number of registration parameters */   
@@ -50,6 +53,9 @@
 /*----- Global variables -----*/ 
 int * t_to_z = NULL;           /* convert time-order to z-order of slices */  
 int * z_to_t = NULL;           /* convert z-order to time-order of slices */
+
+
+static char * commandline = NULL ;       /* command line for history notes */
  
 
 typedef struct IR_options      /* user input options */
@@ -531,6 +537,11 @@ void initialize_program
 
 {
   THD_3dim_dataset * dset = NULL;
+
+
+  /*----- save command line for history notes -----*/
+  commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
+
 
   /*----- Initialize input options -----*/
   initialize_options (option_data);
@@ -1197,6 +1208,12 @@ char * IMREG_main
      fprintf(stderr,"IMREG: write new dataset to disk\n") ;
 
 
+  /*----- Record history of dataset -----*/
+   tross_Copy_History( old_dset , new_dset ) ;
+   if( commandline != NULL )
+     tross_Append_History( new_dset , commandline ) ;
+
+
   THD_load_statistics( new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
   
@@ -1447,7 +1464,7 @@ void terminate_program
 
 /*---------------------------------------------------------------------------*/
 
-void main
+int main
 (
   int argc,                    /* number of input arguments */
   char ** argv                 /* array of input arguments */ 
@@ -1462,8 +1479,10 @@ void main
 
 
   /*----- Identify software -----*/
-  printf ("\n\nProgram %s \n", PROGRAM_NAME);
-  printf ("Last revision: %s \n\n", LAST_MOD_DATE);
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
 
   
   /*----- Program initialization -----*/

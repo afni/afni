@@ -118,12 +118,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.23a"
+#define VERSION "2.24 "
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "02 September 1999"
+#define RELEASE "11 September 1999"
 
 #ifdef MAIN
 #define AFNI_about \
@@ -619,15 +619,18 @@ typedef struct {
 #define FIM_PERC_MASK   4
 #define FIM_BASE_MASK   8
 #define FIM_CORR_MASK  16
+#define FIM_PAVE_MASK  32
+#define FIM_AVER_MASK  64
 
-#define FIM_DOALL_MASK   (1 | 2 | 4 | 8 | 16)
+#define FIM_DOALL_MASK   (1 | 2 | 4 | 8 | 16 | 32 | 64 )
 #define FIM_DEFAULT_MASK (1 | 2 | 4 |     16)
 
-#define FIM_NUM_OPTS    5
+#define FIM_NUM_OPTS    7
 
 #ifdef MAIN
    char * fim_opt_labels[FIM_NUM_OPTS] = {
-     "Fit Coef" , "Best Index" , "% Change" , "Baseline" , "Correlation"
+     "Fit Coef" , "Best Index" , "% Change"   , "Baseline" , "Correlation" ,
+                                 "% From Ave" , "Average"
    } ;
 #else
    extern char * fim_opt_labels[] ;

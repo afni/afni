@@ -39,6 +39,9 @@
    Mod:      Added novar flag to eliminate unnecessary calculations.
    Date:     13 July 1999
 
+   Mod:      Added changes for incorporating History notes.
+   Date:     09 September 1999
+
 */
 
 
@@ -51,7 +54,7 @@
 
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "13 July 1999"              /* date of last program mod */
+#define PROGRAM_DATE "09 September 1999"         /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -86,6 +89,10 @@ typedef struct NL_options
 static float DELT = 1.0;   /* default */
 static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
 static float dsTR = 0.0 ;  /* TR of the input file */
+
+
+static char * commandline = NULL ;         /* command line for history notes */
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -1329,6 +1336,10 @@ void initialize_program
   float * tar;
   
 
+  /*----- save command line for history notes -----*/
+  commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
+
+
   /*----- get command line inputs -----*/
   get_options(argc, argv, ignore, nname, sname, nmodel, smodel, 
 	      r, p, npname, spname, 
@@ -1807,6 +1818,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
   float top, func_scale_short;        /* parameters for scaling data */
+  char label[80];                     /* label for output file history */ 
   
     
   /*----- read input dataset -----*/
@@ -1820,6 +1832,15 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
   
+
+  /*----- Record history of dataset -----*/
+  tross_Copy_History( dset , new_dset ) ;
+  sprintf (label, "Output prefix: %s", filename);
+  if( commandline != NULL )
+     tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
+  else
+     tross_Append_History ( new_dset, label);
+
   
   iv = DSET_PRINCIPAL_VALUE(dset) ;
   output_datum = DSET_BRICK_TYPE(dset,iv) ;
@@ -1972,6 +1993,7 @@ void write_bucket_data
   int ierror;               /* number of errors in editing data */
   float * volume;           /* volume of floating point data */
   int dimension;            /* dimension of full model = p + q */
+  char label[80];           /* label for output file history */ 
 
     
   /*----- initialize local variables -----*/
@@ -1994,6 +2016,14 @@ void write_bucket_data
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (old_dset);
   
+
+  /*----- Record history of dataset -----*/
+  tross_Copy_History( old_dset , new_dset ) ;
+  if( commandline != NULL )
+     tross_Append_History( new_dset , commandline ) ;
+  sprintf (label, "Output prefix: %s", output_prefix);
+  tross_Append_History ( new_dset, label);
+
 
   /*----- Modify some structural properties.  Note that the nbricks
           just make empty sub-bricks, without any data attached. -----*/
@@ -2126,24 +2156,35 @@ void write_3dtime
   int nxyz;                              /* total number of voxels */ 
   float factor;             /* factor is new scale factor for sub-brick #ib */
   short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
-  float fbuf[1000];         /* float buffer */
+  float * fbuf;             /* float buffer */
   float * volume;           /* pointer to volume of data */
+  char label[80];           /* label for output file history */ 
   
 
   /*----- Initialize local variables -----*/
   dset = THD_open_one_dataset (input_filename);
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
-  for (ib = 0;  ib < 1000;  ib++)
-    fbuf[ib] = 0.0;
 
  
   /*----- allocate memory -----*/
-  bar  = (short **) malloc (sizeof(short *) * ts_length);
-  MTEST (bar);
+  bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
+  fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
+  for (ib = 0;  ib < ts_length;  ib++)    fbuf[ib] = 0.0;
   
   
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (dset);
+
+
+  /*----- Record history of dataset -----*/
+  tross_Copy_History( dset , new_dset ) ;
+  if( commandline != NULL )
+     tross_Append_History( new_dset , commandline ) ;
+  sprintf (label, "Output prefix: %s", output_filename);
+  tross_Append_History ( new_dset, label);
+
+
+  /*----- delete prototype dataset -----*/
   THD_delete_3dim_dataset (dset, False);  dset = NULL ;
   
 
@@ -2206,6 +2247,7 @@ void write_3dtime
 
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
+  free (fbuf);   fbuf = NULL;
 
 }
 
