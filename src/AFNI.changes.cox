@@ -4636,3 +4636,9 @@
 18 Jul 2003
  * Modifed imseq.[ch] (etc.) to include a "pen" box to turn on the "pen drawing"
      Button-1 mode (only available when drawing has been enabled).
+
+21 Jul 2003
+ * Modified all uses of XmCreatePopupMenu() to make parent widget different than
+     the Button-3 popup widget when using Solaris -- some bug in Solaris seems to
+     cause a popup problem when the parent of the menu is also the one getting
+     the ButtonPress event.

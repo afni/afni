@@ -181,8 +181,13 @@ ENTRY("new_MCW_grapher") ;
    /*--- Button 3 popup menu ---*/
    /*---------------------------*/
 
+#ifdef BAD_BUTTON3_POPUPS
+   grapher->but3_menu =
+      XmCreatePopupMenu( grapher->form_tmp, "menu" , NULL , 0 ) ;
+#else
    grapher->but3_menu =
       XmCreatePopupMenu( grapher->draw_fd , "menu" , NULL , 0 ) ;
+#endif
 
    SAVEUNDERIZE(XtParent(grapher->but3_menu)) ; /* 27 Feb 2001 */
 
