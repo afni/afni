@@ -90,7 +90,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    if( dkptr->storage_mode == STORAGE_BY_VOLUMES ) no_mmap = 1 ;  /* 20 Jun 2002 */
 
-   /*-- 29 Oct 2001: MINC input --*/
+   /*-- 29 Oct 2001: MINC input (etc.) --*/
 
    if( dkptr->storage_mode == STORAGE_BY_MINC ){
       THD_load_minc( blk ) ;
@@ -121,6 +121,14 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       ii = THD_count_databricks( blk ) ;
       if( ii == blk->nvals ) RETURN( True ) ;
       STATUS("can't read CTF SAM file?!") ;
+      RETURN( False ) ;
+   }
+
+   if( dkptr->storage_mode == STORAGE_BY_1D ){      /* 04 Mar 2003 */
+      THD_load_1D( blk ) ;
+      ii = THD_count_databricks( blk ) ;
+      if( ii == blk->nvals ) RETURN( True ) ;
+      STATUS("can't read 1D dataset file?!") ;
       RETURN( False ) ;
    }
 

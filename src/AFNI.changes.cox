@@ -4381,3 +4381,10 @@
      from 3dDeconvolve.c when the FLOATIZE C macro is defined.  Speedup on a
      Linux box is about 40% (due to less memory fetch).
  * Modified mri_read_dicom.c to allow user to skip stupid GE fixup entirely.
+
+04 Mar 2003
+ * Modified afni.c to get rid of bug when de-sensitizing thr_rowcol for RGB
+     images.  Now it is always sensitized.  Also, afni_func.c now will deal
+     with RGB images as thresholds (just converts them to floats, though).
+ * Added thd_1Dtodset.c, functions to read and write 1D files as AFNI datasets.
+ * Added niml/niml_stat.c to be a place to store statistics code for NIML.

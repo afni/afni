@@ -1118,7 +1118,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o     \
            thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o \
            thd_mincwrite.o thd_mnicoords.o thd_strfunc.o                  \
-           thd_analyzeread.o thd_ctfread.o
+           thd_analyzeread.o thd_ctfread.o thd_1Ddset.o
 
 # these are now included in NIML
 
@@ -1127,7 +1127,7 @@ UNUSED_OBSJ = thd_md5.o thd_base64.o
 NIML_OBJS = niml_b64.o        niml_element.o  niml_elemio.o                  niml_util.o  \
             niml_byteorder.o  niml_header.o   niml_malloc.o  niml_rowtype.o  niml_uuid.o   \
             niml_do.o         niml_htable.o   niml_md5.o     niml_url.o      niml_stream.o  \
-            niml_struct.o     niml_dataset.o  niml_vector.o
+            niml_struct.o     niml_dataset.o  niml_vector.o  niml_stat.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
