@@ -99,7 +99,7 @@ typedef struct {
    ((uu)==UNDERLAY_ALLFUNC||(uu)==UNDERLAY_THRFUNC)
 
 static char * UNDERLAY_typestr[] =
-   { "Anat underlay" , "Func underlay" , "Func @Thr underlay" } ;
+   { "ULay underlay" , "OLay underlay" , "OLay@Thr underlay" } ;
 
 #define DEFAULT_FIM_SCALE 10000   /* change this and bad things will happen! */
 

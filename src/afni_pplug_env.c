@@ -208,11 +208,11 @@ PLUGIN_interface * ENV_init(void)
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
    ENV_add_string( "AFNI_VIEW_ANAT_BRICK" ,
-                   "Show Anat brick whenever possible" ,
+                   "Show OverLay brick whenever possible" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
    ENV_add_string( "AFNI_VIEW_FUNC_BRICK" ,
-                   "Show Func brick whenever possible" ,
+                   "Show UnderLay brick whenever possible" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
    ENV_add_string( "AFNI_ORIENT" ,
@@ -381,7 +381,7 @@ PLUGIN_interface * ENV_init(void)
                    NUM_threshlock_list , threshlock_list , NULL  ) ;
 
    ENV_add_yesno( "AFNI_PBAR_LOCK" , "Lock Color Pbars together?" ) ; /* 07 Feb 2004 */
-   ENV_add_yesno( "AFNI_RANGE_LOCK", "Lock Func Ranges together?" ) ; /* 23 Feb 2004 */
+   ENV_add_yesno( "AFNI_RANGE_LOCK", "Lock OLay Ranges together?" ) ; /* 23 Feb 2004 */
 
    ENV_add_yesno( "AFNI_DISP_SCROLLBARS" , "Image Disp menu get scrollbars?" ) ;
 
