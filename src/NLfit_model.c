@@ -270,7 +270,7 @@ NLFIT_MODEL_array * NLFIT_get_many_MODELs(void)
       /* 02 Feb 2002: check if ename has already been checked */
 
       for( ii=0 ; ii < qlist->num ; ii++ )
-         if( THD_equiv_file(qlist->ar[ii],ename) ) break ;
+         if( THD_equiv_files(qlist->ar[ii],ename) ) break ;
       if( ii < qlist->num ) continue ;
       ADDTO_SARR(qlist,ename) ;
 
