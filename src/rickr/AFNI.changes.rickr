@@ -437,3 +437,5 @@
         the scales of the motion graph
       - if GRAPH_XRANGE and GRAPH_YRANGE commands are both passed, do not
         display the final (scaled) motion graph
+  * modified README.realtime with details on GRAPH_XRANGE and GRAPH_YRANGE
+
