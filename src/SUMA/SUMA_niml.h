@@ -16,5 +16,8 @@ SUMA_NIML_DRAWN_ROI * SUMA_Free_NIMLDrawROI (SUMA_NIML_DRAWN_ROI *nimlROI);
 SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI);
 SUMA_DRAWN_ROI * SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SUMA_Boolean ForDisplay);
 void SUMA_FakeIt (int Solo);
+SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUMA);
+SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUMA_Boolean fromSUMA);
+int SUMA_which_stream_index (SUMA_CommonFields *cf, char *nel_stream_name);
 
 #endif

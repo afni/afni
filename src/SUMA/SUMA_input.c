@@ -132,6 +132,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_SurfaceObject *SO = NULL, *SOmap = NULL;
                int curstateID = -1, nxtstateID = -1, dov_ID = -1;
 
+               /* make sure switching is OK */
+               
                curstateID = SUMA_WhichState(sv->State, sv);
                SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
                if (SUMA_isINHmappable (SO)) {
@@ -809,7 +811,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
             }
             break;
-
+         
+         case XK_T:
+            if (!list) list = SUMA_CreateList();
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_StartListening, SES_Suma, sv);
+               
+            if (!SUMA_Engine (&list)) {
+                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            } 
+            break;
+            
          case XK_v:
             if (SUMAg_CF->Dev) {
                SUMA_Show_SurfaceViewer_Struct (sv, stdout);
@@ -1044,12 +1055,23 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                
                if (sv->N_VSv < 2) break;
 
+               if (SUMAg_N_SVv > 1) {
+                  ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, SUMAg_N_SVv, sv);
+                  if (ii >= 0) {
+                     sprintf (s, "You cannot switch states while other viewers\n"
+                                 "(like %c) are in momentum mode.\n", ii+65);
+                     SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                           s, FuncName, SMT_Error, SMA_LogAndPopup);
+                     SUMA_RETURNe;
+                  }
+               }
+                  
                do {
                   if (nxtstateID > -1) {
                      note = SUMA_append_string("Skipping state ",sv->State);
                      note = SUMA_append_replace_string(note, ".\nNo surfaces visible.", "", 1);
                      SUMA_SLP_Note(note);
-                     free(note);   note = NULL;
+                     SUMA_free(note);   note = NULL;
                   }
 
                   /*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);*/
@@ -1091,13 +1113,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                char *note=NULL;
                
                if (sv->N_VSv < 2) break;
-
+               
+               if (SUMAg_N_SVv > 1) {
+                  ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, SUMAg_N_SVv, sv);
+                  if (ii >= 0) {
+                     sprintf (s, "You cannot switch states while other viewers\n"
+                                 "(like %c) are in momentum mode.\n", ii+65);
+                     SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                           s, FuncName, SMT_Error, SMA_LogAndPopup);
+                     SUMA_RETURNe;
+                  }
+               }
+               
                do {
                   if (nxtstateID > -1) {
                      note = SUMA_append_string("Skipping state ",sv->State);
                      note = SUMA_append_replace_string(note, ".\nNo surfaces visible.", "", 1);
                      SUMA_SLP_Note(note);
-                     free(note);   note = NULL;
+                     SUMA_free(note);   note = NULL;
                   }
                   
                   /*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);*/
@@ -1563,15 +1596,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /* you do not want to waist time doing double calculations if the user clicks twice by mistake */
                   /* make sure no viewer, other than the one clicked in is in momentum mode */
                   if (SUMAg_N_SVv > 1) {
-                     for (ii=0; ii < SUMAg_N_SVv; ++ii) {
-                        /* if (&(SUMAg_SVv[ii]) != sv) {  USED TO ALLOW CLICKING IN VIEWER IN MOMENTUM, NOT GOOD */
-                           if (SUMAg_SVv[ii].GVS[SUMAg_SVv[ii].StdView].ApplyMomentum) {
-                              sprintf (s,"You cannot select or draw while viewers\n(like #%d) are in momentum mode.\n", ii);
-                              SUMA_RegisterMessage (SUMAg_CF->MessageList, 
-                                                    s, FuncName, SMT_Error, SMA_LogAndPopup);
-                              SUMA_RETURNe;
-                           }
-                       /* }   */
+                     ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, SUMAg_N_SVv, NULL);
+                     if (ii >= 0) {
+                        sprintf (s, "You cannot select or draw while viewers\n"
+                                    "(like %c) are in momentum mode.\n", ii+65);
+                        SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                              s, FuncName, SMT_Error, SMA_LogAndPopup);
+                        SUMA_RETURNe;
                      }
                   }  
                   
@@ -2028,7 +2059,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       }
       
       /* check to see if AFNI needs to be notified */
-      if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
+      if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
          if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
          /* register a call to SetAfniCrossHair */
          if (!list) list = SUMA_CreateList();
@@ -3695,7 +3726,7 @@ void SUMA_JumpIndex (char *s, void *data)
    }   
    
    /* check to see if AFNI needs to be notified */
-   if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
+   if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
       /* register a call to SetAfniCrossHair */
       SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
@@ -3776,7 +3807,7 @@ void SUMA_JumpXYZ (char *s, void *data)
    }
    
    /* check to see if AFNI needs to be notified */
-   if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
+   if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
       /* register a call to SetAfniCrossHair */
       SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);

@@ -496,7 +496,7 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    } else {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
    }
-   if (sumarc) free(sumarc);
+   if (sumarc) SUMA_free(sumarc);
    
    /* Show me the results: */
    if (LocalHead_Detail) {
@@ -4831,8 +4831,10 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
                         SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) * sopd->DimFact;
                      } else {
                         if (!wrn_cnt) {
-                           SUMA_SLP_Warn("Color plane includes node indices\n"   \
-                                         "that are >= number of nodes in surface.\n");
+                           sprintf(stmp, "Color plane includes node indices (%d at %d)\n"   \
+                                         "that are >= number of nodes in surface (%d).\n"\
+                                         "Other similar warnings will be muted.", inel[i], i, SO->N_Node); 
+                           SUMA_SLP_Warn(stmp);
                         }
                         ++wrn_cnt;  
                      }
@@ -5170,6 +5172,11 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
       
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   if (!data) {
+      SUMA_SLP_Err("Null data"); 
+      SUMA_RETURNe;
+   }
+   
    SO = (SUMA_SurfaceObject *)data;
    
    if (LocalHead) {

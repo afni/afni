@@ -26,74 +26,137 @@ static int started = 0 ;
 
 Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 {
-   int cc , nn ;
-   void *nini ;
    static char FuncName[]={"SUMA_niml_workproc"};
-   char tmpcom[100];
-   SUMA_Boolean LocalHead = NOPE;
+   int cc , nn, ngood = 0, id;
+   void *nini ;
+   char tmpcom[100], *nel_track;
    SUMA_SurfaceViewer *sv;
+   NI_element *nel ;
    DList *list = NULL;
    SUMA_EngineData *ED = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMA_NIML_WORKPROC_IO_NOTIFY && SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   sv = (SUMA_SurfaceViewer *)thereiselvis;
+   if (!SUMAg_CF->niml_work_on) SUMAg_CF->niml_work_on = YUP;
    
-     /* check if stream is open */
+   sv = (SUMA_SurfaceViewer *)thereiselvis;
+   SUMA_LH("In");
+   
+   for (cc=0; cc<SUMA_MAX_STREAMS; ++cc) {
+     #if 0 
+     /* *** Pre Dec. 18 03, only SUMA talked to AFNI */ 
+        /* check if stream is open */
 
-     if( SUMAg_CF->ns == NULL ){
-       fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream is not open. \n");
-       if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
-         SUMA_RETURN(True); /* Don't call me with that lousy stream again */
-       }
-         else return (True);
-     }
+        if( SUMAg_CF->ns == NULL ){
+          fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream is not open. \n");
+          if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
+            SUMA_RETURN(True); /* Don't call me with that lousy stream again */
+          }
+            else return (True); /* to reduce the massive amounts of tracing messages */
+        }
+      #else
+      /* *** post Dec. 18 03, making SUMA listen to people's needs */
+      /* open streams that aren't open */
 
+      
+      if (cc != SUMA_AFNI_STREAM_INDEX) { /* Leave AFNI's stream alone, SUMA initiates the connection here */
+         
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: Checking on stream %d, %s\n", FuncName, cc,  SUMAg_CF->NimlStream_v[cc]);
+         if( SUMAg_CF->ns_v[cc] == NULL && (SUMAg_CF->ns_flags_v[cc] & SUMA_FLAG_SKIP)==0 ){
+            if (LocalHead) fprintf (SUMA_STDERR, "%s: \tNot Skipped.\n", FuncName);
+            SUMAg_CF->ns_v[cc] = NI_stream_open( SUMAg_CF->NimlStream_v[cc] , "r" ) ;
+            if( SUMAg_CF->ns_v[cc] == NULL ){
+               fprintf (SUMA_STDERR, "%s: Stream %d, %s open returned NULL\n", FuncName, cc,  SUMAg_CF->NimlStream_v[cc]); 
+               SUMAg_CF->ns_flags_v[cc] = SUMA_FLAG_SKIP ; continue;
+            }
+            if (LocalHead) fprintf (SUMA_STDERR, "%s: Stream %d, %s open returned NOT null\n", FuncName, cc,  SUMAg_CF->NimlStream_v[cc]);
+            SUMAg_CF->ns_flags_v[cc]  = SUMA_FLAG_WAITING ;
+         }else {
+            if (SUMAg_CF->ns_v[cc] == NULL) { 
+               SUMA_LH("\tSkipped");
+               continue;
+            }
+         }
+
+         ngood ++;
+      } else {
+         if( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] ) {
+            ngood ++;
+         } else { /* do nothing for that stream */
+            continue;
+         }
+      }
+      #endif
+     
      /* check if stream has gone bad */
-
-     nn = NI_stream_goodcheck( SUMAg_CF->ns , 1 ) ;
+     nn = NI_stream_goodcheck( SUMAg_CF->ns_v[cc] , 1 ) ;
 
      if( nn < 0 ){                          /* is bad */
-       NI_stream_close( SUMAg_CF->ns ) ;
-       SUMAg_CF->ns = NULL ;
-       fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream gone bad. Stream closed. \n");
+       NI_stream_close( SUMAg_CF->ns_v[cc] ) ;
+       SUMAg_CF->ns_v[cc] = NULL ; /* this will get checked next time */
+       fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream %d gone bad. Stream closed. \n", cc);
        
        /* close everything */
        if (!list) list = SUMA_CreateList();
-       SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_CloseStream4All, SES_Suma, sv);
+       ED = SUMA_InitializeEngineListData(SE_CloseStream4All);
+       if (!SUMA_RegisterEngineListCommand ( list, ED, 
+                                          SEF_i, (void*)&cc,  
+                                          SES_Suma, (void *)sv, NOPE,   
+                                          SEI_Head, NULL)) {  
+         fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);   
+       }
 
        if (!SUMA_Engine (&list)) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Engine.\n\a", FuncName);
        }      
       
-       if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
-         SUMA_RETURN(True);               /* Don't call me with that lousy stream again */
-       }
-         else return (True);
+       continue;  /* skip to next stream */
      }
 
+     if (nn == 0) { /* waiting, come back later */
+         continue;
+     }
+     
      /* if here, stream is good;
         see if there is any data to be read */
-
+      
+      if (SUMAg_CF->ns_flags_v[cc] & SUMA_FLAG_WAITING) {
+         SUMAg_CF->ns_flags_v[cc] = SUMA_FLAG_CONNECTED;
+         fprintf(SUMA_STDERR, "%s: ++ NIML connection opened from %s\n",
+                  FuncName, NI_stream_name(SUMAg_CF->ns_v[cc])                ) ;
+      }
    #if 0
       /* not good enough, checks socket only, not buffer */
       nn = NI_stream_readcheck( SUMAg_CF->ns , 1 ) ;
    #else
-      nn = NI_stream_hasinput( SUMAg_CF->ns , 1 ) ;
+      nn = NI_stream_hasinput( SUMAg_CF->ns_v[cc] , 1 ) ;
    #endif
    
      if( nn > 0 ){                                   /* has data */
        int ct = NI_clock_time() ;
        if (LocalHead)   fprintf(SUMA_STDERR,"%s: reading data stream", FuncName) ;
 
-       nini = NI_read_element( SUMAg_CF->ns , 1 ) ;  /* read it */
+       nini = NI_read_element( SUMAg_CF->ns_v[cc] , 1 ) ;  /* read it */
 
-      if (LocalHead)   fprintf(SUMA_STDERR," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
+       if (LocalHead)   fprintf(SUMA_STDERR," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
 
        if( nini != NULL ) {
-          if (LocalHead)   {
-            NI_element *nel ;
-            nel = (NI_element *)nini ;
+         nel = (NI_element *)nini ;
+         if (SUMAg_CF->TrackingId_v[cc]) {
+            nel_track = NI_get_attribute(nel,"Tracking_ID");
+            if (nel_track) {
+               id = atoi(nel_track);
+               if (id != SUMAg_CF->TrackingId_v[cc] + 1) {
+                  /* remember, "StartTracking" nel is the #1 element, first data element starts at 2 */
+                  fprintf (SUMA_STDERR,"Warning %s:\n Expected element %d, received element %d.\n",
+                           FuncName,  SUMAg_CF->TrackingId_v[cc] + 1 , id );
+                  SUMA_BEEP;
+               }
+               SUMAg_CF->TrackingId_v[cc] = id;
+            }
+         }
+         if (LocalHead)   {
             fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
                   nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
          }      
@@ -106,13 +169,170 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 
       if (LocalHead)   fprintf(SUMA_STDERR,"processing time=%d ms\n",NI_clock_time()-ct) ;
 
-     }
+     } 
    
-
+   }/* for cc*/
+   
+   if (ngood == 0) {
+      SUMAg_CF->niml_work_on = NOPE;
+      SUMAg_CF->Listening = NOPE;
+      if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
+         SUMA_RETURN(True) ;  /* don't call me back */
+      }
+         else return (True);
+   }
+   
    if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
-      SUMA_RETURN(False) ;  /* always call me back */
+      SUMA_RETURN(False) ;  /* call me back baby*/
    }
       else return (False);
+}
+
+int SUMA_which_stream_index (SUMA_CommonFields *cf, char *nel_stream_name)
+{
+   static char FuncName[]={"SUMA_which_stream_index"};
+   int i;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   for (i=0; i < SUMA_MAX_STREAMS; ++i) {
+      if (strcmp(nel_stream_name, cf->NimlStream_v[i]) == 0) SUMA_RETURN(i);
+   }   
+   
+   SUMA_RETURN(-1);
+}
+
+SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUMA_Boolean fromSUMA)
+{
+   static char FuncName[]={"SUMA_niml_hangup"};
+   int i;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!nel_stream_name) {
+      if (!fromSUMA) { SUMA_SL_Err("NULL stream name"); }
+      else { SUMA_SLP_Err("NULL stream name"); }
+      SUMA_RETURN(NOPE);
+   }
+   
+   
+   i = SUMA_which_stream_index (cf, nel_stream_name);
+   
+   
+   if (i < 0) {
+      if (!fromSUMA) { SUMA_SL_Err("Stream not found"); }
+      else {  SUMA_SLP_Err("Stream not found"); }
+      SUMA_RETURN(NOPE); 
+   } else {
+      SUMA_LH("Stream found, closing");
+      fprintf (SUMA_STDERR,"%s: stream index %d\n", FuncName, i);
+      NI_stream_close(cf->ns_v[i]);
+      cf->ns_v[i] = NULL;
+      cf->Connected_v[i] = NOPE; 
+      cf->ns_flags_v[i] = 0;
+      cf->TrackingId_v[i] = 0;
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Initiates a call on stream cf->ns_v[si]
+   
+   \param cf (SUMA_CommonFields *) Overkill common field structure.
+                                    Only fields used are the niml 
+                                    communication ones.... 
+   \param si (int) index of stream to use
+   \param fromSUMA (SUMA_Boolean) YUP means call is initiated from SUMA 
+   \return NOPE: Sucked
+           YUP : Did not suck
+   
+   \sa SUMA_niml_hangup
+*/
+SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUMA)
+{
+   static char FuncName[]={"SUMA_niml_call"};
+   int nn, Wait_tot;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+     /* find out if the stream has been established already */
+      if (cf->ns_v[si]) { /* stream is open, nothing to do */
+         cf->ns_flags_v[si] = SUMA_FLAG_CONNECTED;
+         if (LocalHead) fprintf(SUMA_STDOUT,"%s: Stream existed, reusing.\n", FuncName);
+         fprintf(SUMA_STDOUT,"%s: Connected.\n", FuncName);
+      }else {   /* must open stream */              
+         /* contact afni */
+            fprintf(SUMA_STDOUT,"%s: Contacting ...\n", FuncName);
+            cf->ns_v[si] =  NI_stream_open( cf->NimlStream_v[si] , "w" ) ;
+            if (!cf->ns_v[si]) {
+               cf->ns_flags_v[si] = 0;
+               cf->TrackingId_v[si] = 0;
+
+               if (fromSUMA) { SUMA_SLP_Err("NI_stream_open failed."); }
+               else { SUMA_SL_Err("NI_stream_open failed."); }
+               SUMA_BEEP;
+               cf->Connected_v[si] = !cf->Connected_v[si];
+               SUMA_RETURN(NOPE) ;
+            }
+            if (!strcmp(cf->HostName_v[si],"localhost")) { /* only try shared memory when 
+                                                                  AfniHostName is localhost */
+               fprintf (SUMA_STDERR, "%s: Trying shared memory...\n", FuncName);
+               if( strstr( cf->NimlStream_v[si] , "tcp:localhost:" ) != NULL ) {
+                  if (!NI_stream_reopen( cf->ns_v[si] , "shm:WeLikeElvis:1M" )) {
+                     fprintf (SUMA_STDERR, "Warning %s: Shared memory communcation failed.\n", FuncName);
+                  }
+               }
+            }
+            /*   cf->ns_v[si] = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
+
+         if( cf->ns_v[si] == NULL ){
+            if (fromSUMA) { SUMA_SLP_Err("NI_stream_open failed");} 
+            else { SUMA_SL_Err("NI_stream_open failed");}
+            SUMA_BEEP; 
+            cf->Connected_v[si] = !cf->Connected_v[si];
+            cf->ns_flags_v[si] = 0;
+            cf->TrackingId_v[si] = 0;
+
+            SUMA_RETURN(NOPE) ;
+         }
+
+         Wait_tot = 0;
+         while(Wait_tot < SUMA_WriteCheckWaitMax){
+            nn = NI_stream_writecheck( cf->ns_v[si] , SUMA_WriteCheckWait) ;
+            if( nn == 1 ){ 
+               fprintf(stderr,"\n") ; 
+               cf->ns_flags_v[si] = SUMA_FLAG_CONNECTED;
+               SUMA_RETURN(YUP) ; 
+            }
+            if( nn <  0 ){ 
+               fprintf(stderr,"BAD\n"); 
+               cf->Connected_v[si] = !cf->Connected_v[si];
+               cf->ns_v[si] = NULL;
+               cf->ns_flags_v[si] = 0;
+               cf->TrackingId_v[si] = 0;
+               SUMA_RETURN(NOPE);
+            }
+            Wait_tot += SUMA_WriteCheckWait;
+            fprintf(SUMA_STDERR,".") ;
+         }
+
+         /* make sure you did not exit because of time out */
+         if (nn!=1) {
+            cf->Connected_v[si] = !cf->Connected_v[si];
+            cf->ns_v[si] = NULL;
+            cf->ns_flags_v[si] = 0; 
+            cf->TrackingId_v[si] = 0;
+            fprintf(SUMA_STDERR,"Error %s: WriteCheck timed out (> %d ms).\n", FuncName, SUMA_WriteCheckWaitMax);
+            SUMA_RETURN(NOPE);
+         }
+      } 
+
+      /* Stream is open */
+   SUMA_RETURN(YUP);
 }
 
 /*----------------------------------------------------------------------*/
@@ -168,6 +388,47 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
    }
    
+   /*--- stream closer ---*/
+   if( strcmp(nel->name,"CloseStream") == 0) { /* CloseStream */
+      fprintf (SUMA_STDERR,"%s:\nClosing stream %s ...\n", FuncName, NI_get_attribute(nel, "ni_stream_name"));
+      if (!SUMA_niml_hangup (SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"), NOPE)) {
+         SUMA_SL_Err("Failed in SUMA_niml_hangup.\n");
+         SUMA_RETURN(NOPE);
+      }
+      SUMA_RETURN(YUP);
+   } /* CloseStream */  
+
+   /*--- stream tracking ON ---*/
+   if( strcmp(nel->name,"StartTracking") == 0) { /* Start tracking */
+      fprintf (SUMA_STDERR,"%s:\n Starting NI element tracking for %s ...\n", FuncName, NI_get_attribute(nel, "ni_stream_name"));
+      i = SUMA_which_stream_index(SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"));
+      if ( i < 0) {
+         SUMA_SL_Err("Failed to find stream!\n");
+         SUMA_RETURN(NOPE);
+      }
+      if (NI_get_attribute(nel, "Tracking_ID")) {
+         if (atoi(NI_get_attribute(nel, "Tracking_ID")) != 1) {
+            SUMA_SL_Err("First tracking element is not 1.\nTracking ignored.\n");
+            SUMA_RETURN(YUP);
+         }
+      }
+      SUMA_LH("Tracking on ...");
+      SUMAg_CF->TrackingId_v[i] = 1; /* this is to be the first element ! */
+      SUMA_RETURN(YUP);
+   } /* Start tracking */  
+   
+   /*--- stream tracking OFF ---*/
+   if( strcmp(nel->name,"StopTracking") == 0) { /* Stop tracking */
+      fprintf (SUMA_STDERR,"%s:\n Stopping NI element tracking for %s ...\n", FuncName, NI_get_attribute(nel, "ni_stream_name"));
+      i = SUMA_which_stream_index(SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"));
+      if ( i < 0) {
+         SUMA_SL_Err("Failed to find stream!\n");
+         SUMA_RETURN(NOPE);
+      }
+      SUMA_LH("Tracking Off ...");
+      SUMAg_CF->TrackingId_v[i] = 0; /* this is to be the first element ! */
+      SUMA_RETURN(YUP);
+   } /* Stop tracking */  
 
    /*--- CrossHair XYZ --- */
    if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0) {/* SUMA_crosshair_xyz */
@@ -324,7 +585,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    }/* SUMA_crosshair_xyz */
    
    /* SUMA_irgba Node colors */
-   if( strcmp(nel->name,"SUMA_irgba") == 0) {/* SUMA_irgba */
+   if( strcmp(nel->name,"SUMA_irgba") == 0 || strcmp(nel->name,"Node_RGBAb") == 0) {/* SUMA_irgba */
       if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
          fprintf(SUMA_STDERR,"%s: Empty SUMA_irgba.\n", FuncName);
          Empty_irgba = YUP;
@@ -335,9 +596,23 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
         }
       }
      
-     /* show me nel */
-     /* if (LocalHead) SUMA_nel_stdout (nel); */
-     
+      #if 0
+      {  /* At times, I found the value in nel->vec[0] to be corrupted, use this to check on it */
+         int *ibad;
+         ibad = (int *)nel->vec[0]; 
+         fprintf (SUMA_STDERR,"ibad[0] = %d\n", ibad[0]);
+      }
+      #endif
+      
+      /* show me nel */
+      /* if (LocalHead) SUMA_nel_stdout (nel); */
+
+      if (1) {
+         char *nel_itercount=NULL;
+         nel_itercount = NI_get_attribute(nel, "iCol_iter_Niter");
+         if (nel_itercount) { fprintf(SUMA_STDOUT,"Receiving %s...\n",nel_itercount); }
+      }
+      
       /* look for the surface idcode */
       nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
       if (nel_surfidcode == NULL) {
@@ -362,7 +637,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       sopd.GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;
       sopd.BrightMod = NOPE;
       sopd.Show = YUP;
-      /* dim colors from maximum intensity to preserve surface shape highlights, division by 255 is to scale color values between 1 and 0 */
+      /* dim colors from maximum intensity to preserve surface shape highlights, 
+      division by 255 is to scale color values between 1 and 0 */
       sopd.DimFact = SUMA_DIM_AFNI_COLOR_FACTOR / 255.0;
       if (!Empty_irgba) {
          sopd.i = (void *)nel->vec[0];

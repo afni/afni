@@ -7,6 +7,48 @@ extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 
+/*!
+   \brief a function that returns the first viewer that is in momentum mode 
+   isv = SUMA_WhichViewerInMomentum( SVv,  N_SV,  sv); 
+   
+   \param SVv (SUMA_SurfaceViewer *) vector of surface viewers
+   \param N_SV (int ) number of surface viewer structures in SVv
+   \param sv (SUMA_SurfaceViewer *) if !NULL then the function returns the
+            index of a surface viewer OTHER THAN sv that is in momentum mode.
+            Otherwise the first surface viewer in momentum mode is returned
+   \return isv (int) the index (into SVv) of the first viewer that is in
+            momentum mode. If sv is not NULL then it is the index of the 
+            first viewer OTHER THAN sv that is in momentum mode
+            If none are found, ans = -1
+   
+   -  To turn the index into the viewer's label use: 
+      if (isv >= 0) sprintf(slabel,"[%c] SUMA", 65+isv); 
+      else sprintf(slabel,"[DOH] SUMA");
+*/
+
+int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV, SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_WhichViewerInMomentum"};
+   int ii = -1;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SVv) SUMA_RETURN(-1);
+   
+   for (ii=0; ii < SUMAg_N_SVv; ++ii) {
+         if (SVv[ii].GVS[SVv[ii].StdView].ApplyMomentum) {
+            if (!sv) { /* don't care which one */
+               SUMA_RETURN(ii);
+            } else if (&(SUMAg_SVv[ii]) != sv) { /* other than sv */
+               SUMA_RETURN(ii);
+            }
+         }
+   }
+   
+   SUMA_RETURN(-1);
+   
+}
+ 
 /* This is used to hold the functions that manipulate SV, Surface Viewer Structures */
 /*! 
 \brief returns a string corresponding to the link type
@@ -1192,7 +1234,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 {
    static char FuncName[]={"SUMA_Create_CommonFields"};
    SUMA_CommonFields *cf;
-   int i;
+   int i, portn = -1;
    char *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1214,8 +1256,33 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->MemTrace = NOPE;
    cf->Mem = SUMA_Create_MemTrace();
    
-   cf->ns = NULL;
-   cf->Connected = NOPE;
+   
+   eee = getenv("SUMA_AFNI_TCP_PORT");
+   if (eee) {
+      portn = atoi(eee);
+      if (portn < 1024 ||  portn > 65535) {
+         fprintf (SUMA_STDERR, "Warning %s:\n"
+                               "Environment variable SUMA_AFNI_TCP_PORT %d is invalid.\n"
+                               "port must be between 1025 and 65534.\n"
+                               "Using default of %d\n", FuncName, portn, SUMA_TCP_PORT);
+         portn = SUMA_TCP_PORT;
+      } 
+   } else {
+      portn = SUMA_TCP_PORT;
+   }   
+   
+   for (i=0; i<SUMA_MAX_STREAMS; ++i) {
+      cf->ns_v[i] = NULL;
+      cf->ns_flags_v[i] = 0;
+      cf->Connected_v[i] = NOPE;
+      cf->TrackingId_v[i] = 0;
+      cf->NimlStream_v[i][0] = '\0';
+      cf->HostName_v[i][0] = '\0';
+      cf->TCP_port[i] = portn + i;   /* me hopes those will be OK */
+   }
+   cf->Listening = NOPE;
+   cf->niml_work_on = NOPE;
+   
    for (i=0; i<SUMA_MAX_SURF_VIEWERS; ++i) {
       cf->Locked[i] = SUMA_I_Lock;
       cf->ViewLocked[i] = NOPE;
@@ -1525,47 +1592,75 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
 void SUMA_Show_CommonFields (SUMA_CommonFields *cf)
 {
    static char FuncName[]={"SUMA_Show_CommonFields"};
+   int i;
+   
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (cf == NULL) {
       fprintf (SUMA_STDOUT,"%s: NULL structure.\n", FuncName);
       SUMA_RETURNe;
    }
-   fprintf (SUMA_STDOUT,"%s: AfniHostName: %s\n", FuncName, cf->AfniHostName);
-   fprintf (SUMA_STDOUT,"%s: NimlAfniStream: %s\n", FuncName, cf->NimlAfniStream);
+   
+   for (i=0; i < SUMA_MAX_STREAMS; ++i) {
+      fprintf (SUMA_STDOUT,"%s: HostName: %s\n", FuncName, cf->HostName_v[i]);
+      fprintf (SUMA_STDOUT,"%s: NimlStream: %s\n", FuncName, cf->NimlStream_v[i]);
+   }
    SUMA_RETURNe;
 }
 /*! assign new afni host name 
-    SUMA_Assign_AfniHostName (cf, AfniHostName)
+    SUMA_Assign_HostName (cf, HostName, istream)
    
-   Assigns a new AfniHostName for niml communication
+   Assigns a new HostName for niml communication on a particular stream
    
    \param cf (SUMA_CommonFields *) pointer to Common Fields structure, field AfniHostName will be modified here
-   \param AfniHostName (char *) hostname in IP number form, or name form afni.nimh.nih.gov or afni (if in /etc/hosts file)
-                                 NULL to set cf->AfniHostName to localhost
+   \param HostName (char *) hostname in IP number form, or name form afni.nimh.nih.gov or afni (if in /etc/hosts file)
+                                 NULL to set cf->HostName_v[istream] to localhost if i = SUMA_AFNI_STREAM_INDEX
+                                                                                 127.0.0.1 otherwise. That's done to keep
+                                                                                 Shared Memory communication betwen AFNI 
+                                                                                 and SUMA only.
+   \param istream (int) if -1 then all streams are set to HostName
+                        otherwise, only HostName_v[istream] is set
    \ret ans (SUMA_Boolean) YUP/NOPE
    
    
 */
-SUMA_Boolean SUMA_Assign_AfniHostName (SUMA_CommonFields *cf, char *AfniHostName)
+SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream)
 {
-   static char FuncName[]={"SUMA_Assign_AfniHostName"};
-
+   static char FuncName[]={"SUMA_Assign_HostName"};
+   int istart = 0, istop = 0, i = 0;
+   SUMA_Boolean LocalHead = YUP;
+   
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   if (AfniHostName == NULL)
-      sprintf(cf->AfniHostName, "localhost");
-   else {   
-      if (strlen(AfniHostName) > SUMA_MAX_NAME_LENGTH - 20) {
-         fprintf(SUMA_STDERR,"Error %s: too long a host name (> %d chars).\n", FuncName, SUMA_MAX_NAME_LENGTH - 20);
-         SUMA_RETURN (NOPE);
-      }
-      sprintf(cf->AfniHostName,"%s", AfniHostName);
+   if (istream == -1) {
+      istart = 0; istop = SUMA_MAX_STREAMS; 
+   } else {
+      istart = istream; istop = istream + 1;
    }
+   
+   for (i = istart; i < istop; ++i) {
+      if (HostName == NULL)
+         if (i == SUMA_AFNI_STREAM_INDEX) {
+            sprintf(cf->HostName_v[i], "localhost"); /*  using localhost will allow the use of Shared Memory.
+                                                         That is only allowed for SUMA<-->AFNI */
+         } else {
+            sprintf(cf->HostName_v[i], "127.0.0.1");  /* force TCP for the commoners */
+         }  
+      else {   
+         if (strlen(HostName) > SUMA_MAX_NAME_LENGTH - 20) {
+            fprintf(SUMA_STDERR,"Error %s: too long a host name (> %d chars).\n", FuncName, SUMA_MAX_NAME_LENGTH - 20);
+            SUMA_RETURN (NOPE);
+         }
+         sprintf(cf->HostName_v[i],"%s", HostName);
+      }
 
-   sprintf(cf->NimlAfniStream,"tcp:%s:53211", cf->AfniHostName);
+      sprintf(cf->NimlStream_v[i],"tcp:%s:%d", 
+            cf->HostName_v[i], cf->TCP_port[i]);
 
-   fprintf(SUMA_STDOUT, "%s: Set AfniHostName to %s (stream name: %s)\n", FuncName, cf->AfniHostName, cf->NimlAfniStream);
+      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Set HostName %d to %s (stream name: %s)\n", 
+                     FuncName, i, cf->HostName_v[i], cf->NimlStream_v[i]);
+   }
+   
    SUMA_RETURN (YUP);
 }
 

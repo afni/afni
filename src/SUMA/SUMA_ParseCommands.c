@@ -16,7 +16,92 @@
 #endif
 
 /* CODE */
-   
+
+/*!
+   \brief load the environment varaibles first from 
+   $HOME/.sumarc and $HOME/.afnirc
+   if HOME is not defined then try .afnirc and .sumarc
+   Shameless wrapper for AFNI_process_environ
+
+   No fanices here, this function is called before CommonFields
+*/
+void SUMA_process_environ(void)
+{
+   static char FuncName[]={"SUMA_process_environ"};
+   struct stat stbuf;
+   char *sumarc = NULL, *homeenv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   sumarc = (char *)malloc(sizeof(char)*(SUMA_MAX_NAME_LENGTH+SUMA_MAX_DIR_LENGTH+1));
+
+   /* load the environment variables from .sumarc and .afnirc*/
+   homeenv = getenv("HOME");
+
+   if (!homeenv) sprintf(sumarc, ".sumarc");
+   else sprintf(sumarc,"%s/.sumarc", homeenv);
+   if (stat(sumarc, &stbuf) != -1) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
+      AFNI_process_environ(sumarc); 
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
+   }
+
+   if (!homeenv) sprintf(sumarc, ".afnirc");
+   else sprintf(sumarc,"%s/.afnirc", homeenv);
+   if (stat(sumarc, &stbuf) != -1) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
+      AFNI_process_environ(sumarc); 
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
+   }   
+
+   if (sumarc) free(sumarc); sumarc = NULL; /* allocated before CommonFields */
+   return;
+}
+
+
+/*!
+   \brief parse command line arguments for input/output debugging and
+   memory debugging. Use no fancies in this function!
+*/
+void SUMA_ParseInput_basics (void *cfv, char *argv[], int argc) 
+{
+   #ifdef SUMA_COMPILED 
+      {
+         static char FuncName[]={"SUMA_ParseInput_basics"};
+         int brk = 0;
+         int kar;
+         SUMA_CommonFields *cf;
+         
+         cf = (SUMA_CommonFields *)cfv;
+
+         if (!cf) return;
+         if (!argv) return;
+         if (argc < 2) return;
+
+         kar = 1;
+         brk = 0;
+         while (kar < argc) { /* loop accross command ine options */
+		      if ((strcmp(argv[kar], "-memdbg") == 0)) {
+			      fprintf(SUMA_STDOUT,"Warning %s:  running in memory trace mode.\n", FuncName);
+			      cf->MemTrace = YUP;
+			      brk = 1;
+		      }
+
+            if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
+			      fprintf(SUMA_STDOUT,"Warning %s:  running in in/out debug mode.\n", FuncName);
+			      cf->InOut_Notify = YUP;
+			      brk = 1;
+		      }
+
+            brk = 0;
+            kar ++;
+         }
+      }
+   #endif
+   return;
+}
+
 /*!
    \brief Returns the code for the next command (at the tail of the list).
    CommandCode =  SUMA_GetListNextCommand (list);
@@ -153,6 +238,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetSelectedFaceSet"))   SUMA_RETURN (SE_SetSelectedFaceSet);
    if (!strcmp(Scom,"ToggleShowSelectedFaceSet"))   SUMA_RETURN (SE_ToggleShowSelectedFaceSet);
    if (!strcmp(Scom,"ToggleConnected")) SUMA_RETURN (SE_ToggleConnected);
+   if (!strcmp(Scom,"StartListening")) SUMA_RETURN(SE_StartListening);
    if (!strcmp(Scom,"SetAfniCrossHair")) SUMA_RETURN (SE_SetAfniCrossHair);
    if (!strcmp(Scom,"SetForceAfniSurf")) SUMA_RETURN (SE_SetForceAfniSurf);
    if (!strcmp(Scom,"CloseStream4All")) SUMA_RETURN (SE_CloseStream4All);
@@ -257,6 +343,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("ToggleShowSelectedFaceSet");      
       case SE_ToggleConnected:
          SUMA_RETURN("ToggleConnected");      
+      case SE_StartListening:
+         SUMA_RETURN("StartListening");
       case SE_SetAfniCrossHair:
          SUMA_RETURN("SetAfniCrossHair");      
       case SE_SetForceAfniSurf:

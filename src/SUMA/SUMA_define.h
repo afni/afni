@@ -144,7 +144,7 @@ typedef enum { SE_Empty,
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
-               SE_SetSOinFocus,
+               SE_SetSOinFocus, SE_StartListening,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -516,6 +516,16 @@ typedef struct {
    int N_Groups;
    char StateList[SUMA_MAX_N_SURFACE_SPEC*100];
    char SpecFilePath[SUMA_MAX_DIR_LENGTH];
+   
+   /* modifications to the lame MappingRef field */
+   char AnatCorrect[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Does surface geometry matches anatomy ?*/
+   char Hemisphere[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];     /*!< Left/Right */
+   char ParentDomainID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!< Grandparent's mesh ID (icosahedron's for std-meshes) */
+   char OriginatorID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!<  ID common for surfaces from one subject that are created
+                                                                              at one point in time. Surfaces of the same subject,
+                                                                              created at different points in time (like in a longitudinal
+                                                                              study) will have differing OriginatorID fields */
+   
 } SUMA_SurfSpecFile;
 
 /*! structure that containing node's first order neighbors */
@@ -1278,13 +1288,25 @@ typedef struct {
 typedef struct {
    SUMA_SO_File_Type FileType; /*!< Type of Surface file */
    SUMA_SO_File_Format FileFormat; /*!< Format of Surface file ascii or binary*/
-   SUMA_SO_SIDE Side; /*!< Left/right */
-   
    SUMA_FileName Name; /*!< Directory and Name of surface object file (SO) */
    SUMA_FileName Name_coord; /*!< Directory and Name of surface coordinate file (for SureFit files) */
    SUMA_FileName Name_topo; /*!< Directory and Name of surface topology file  (for SureFit files)*/
    char *idcode_str; /*!< string containing the idcode of the surface */
    char *Label; /*!< string containing a label for the surface. Used for window titles and saved image names */
+   char *MapRef_idcode_str; /*!< if NULL, then it is not known whether surface is mappable or not
+                                 if equal to idcode_str then surface surface is Mappable, 
+                                 otherwise it specifies the idcode of the Mapping reference surface */
+   char *Name_NodeParent; /*!< Node parent of the SO.   Node Indices of SO are into NodeList matrix of the NodeParent SO*/               
+   char *Group;   /*!< Group the surface belongs to, like Simpsons H. */
+   char *State; /*!< State of SO (like inflated, bloated, exploded) */
+   /* modifications to the lame MappingRef field */
+   SUMA_SO_SIDE Side; /*!< Left/right */
+   SUMA_Boolean AnatCorrect;    /*!< Does surface geometry matches anatomy ? (YUP/NOPE)*/
+   char *ParentDomainID;        /*!< Grandparent's mesh ID (icosahedron's for std-meshes) */
+   char *OriginatorID;          /*!<  ID common for surfaces from one subject that are created
+                                      at one point in time. Surfaces of the same subject,
+                                      created at different points in time (like in a longitudinal
+                                      study) will have differing OriginatorID fields */
    
    SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume data sets ?*/
    SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/
@@ -1300,9 +1322,6 @@ typedef struct {
    float *NodeList; /*!< N_Node x 3 vector containing the XYZ node coordinates. 
                         If NodeDim is 2 then the third column is all zeros
                         Prior to SUMA  1.2 this used to be a 2D matrix (a vector of vectors) */
-   char *MapRef_idcode_str; /*!< if NULL, then it is not known whether surface is mappable or not
-                                 if equal to idcode_str then surface surface is Mappable, 
-                                 otherwise it specifies the idcode of the Mapping reference surface */
    
    int N_FaceSet; /*!< Number of polygons defining the surface  */
    int FaceSetDim; /*!< Number of sides on the polygon */
@@ -1325,7 +1344,6 @@ typedef struct {
                            set to 1 to give each object equal weight */
    int ViewCenterWeight; /*!< Contribution to center of gaze and viewfrom location */
    
-   char *Name_NodeParent; /*!< Node parent of the SO.   Node Indices of SO are into NodeList matrix of the NodeParent SO*/               
 
    GLfloat *glar_NodeList;         /*!< pointer to the 1D NodeList array - DO NOT FREE IT, it is a pointer copy of NodeList*/
    GLint  *glar_FaceSetList;      /*!< pointer to the 1D FaceSetList array - DO NOT FREE IT, it is a pointer copy of FaceSetList*/
@@ -1363,9 +1381,6 @@ typedef struct {
    SUMA_FaceSetMarker *FaceSetMarker; /*!< Aha, I hear ya */
    
    SUMA_VOLPAR *VolPar; /*!< Parent Volume structure */
-   
-   char *Group;   /*!< Group the surface belongs to, like Simpsons H. */
-   char *State; /*!< State of SO (like inflated, bloated, exploded) */
    
    SUMA_OVERLAYS **Overlays; /*!< vector of pointers to color overlay structures */
    SUMA_INODE **Overlays_Inode; /*!< vector of pointers to Inodes corresponding to each Overlays struct */
@@ -1456,10 +1471,21 @@ typedef struct {
 }  SUMA_MessageData;
 
 
+/* *** Niml defines */
+
+#define SUMA_TCP_PORT 53211      /*!< AFNI listens to SUMA on this port */
+#define SUMA_FLAG_WAITING    1   /*!< Waiting for connection flag */
+#define SUMA_FLAG_CONNECTED  2   /*!< Connected flag */
+#define SUMA_FLAG_SKIP       4   /*!< Skip flag */
+
+#define SUMA_AFNI_STREAM_INDEX 0  /*!< Index of SUMA<-->AFNI stream */       
+#define SUMA_INITIATED_STREAMS 1  /*!< Number of streams that SUMA initiates */ 
+#define SUMA_MAX_STREAMS       2  /*!< Maximum number of streams, >= SUMA_INITIATED_STREAMS */
+
+/* *** Niml defines end */
+
 /*! structure containing information global to all surface viewers */
 typedef struct {
-   char AfniHostName[SUMA_MAX_NAME_LENGTH]; /*!< name or ipaddress of afni host maximum allowed name is 20 chars less than allocated for, see SUMA_Assign_AfniHostName*/ 
-   char NimlAfniStream[SUMA_MAX_NAME_LENGTH]; /*!< niml stream name for communicating with afni */
    SUMA_Boolean Dev; /*!< Flag for developer option (allows the use of confusing or kludge options) */
    SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function is entered or exited */ 
    int InOut_Level; /*!< level of nested function calls */
@@ -1471,14 +1497,38 @@ typedef struct {
    SUMA_MEMTRACE_STRUCT *Mem; /*!< structure used to keep track of memory usage */
    SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage (must also set SUMA_MEMTRACE_FLAG ) */
 
-   NI_stream ns; /*!< Stream used to communicate with AFNI. 
+   char HostName_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH];   /*!<  name or ipaddress of hosts maximum allowed name is 20
+                                                                      chars less than allocated for, see SUMA_Assign_AfniHostName
+                                                                      *** Dec. 19 03: This field used to be called AfniHostName
+                                                                      It is now a vector of hostnmes allowing for multiple
+                                                                      connections. 
+                                                                      AfniHostName = HostName_v[SUMA_AFNI_STREAM_INDEX]*/ 
+   char NimlStream_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH]; /*!< niml stream name for communicating with other programs 
+                                                                 *** Dec. 19 03: This field used to be called AfniNimlStream
+                                                                 AfniNimlStream = NimlStream_v[SUMA_AFNI_STREAM_INDEX]*/
+   NI_stream ns_v[SUMA_MAX_STREAMS]; /*!< 
+                     *** Pre: Dec 19 03:
+                     Stream used to communicate with AFNI. 
                      It is null when no communication stream is open. 
                      The stream can be open with Connected set to NOPE.
                      In that case no communication between the two programs
                      but resuming communication is easy since surfaces need
                      not be sent to AFNI again as would be the case if the stream 
-                     was completely closed */
-   SUMA_Boolean Connected; /*!< YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI */
+                     was completely closed 
+                     *** Dec. 19 03
+                     Used to be called ns for connecting to AFNI.
+                     ns = ns_v[SUMA_AFNI_STREAM_INDEX]*/
+   int ns_flags_v[SUMA_MAX_STREAMS];
+   int TCP_port[SUMA_MAX_STREAMS];
+   
+   SUMA_Boolean Connected_v[SUMA_MAX_STREAMS]; /*!< YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI 
+                                                   *** Dec. 19 03
+                                                   Vectorized Connected like fields above*/
+   int TrackingId_v[SUMA_MAX_STREAMS]; /*!<  for keeping track of serial number of incoming nels 
+                                             0 if not keeping track. So start numbering at 1*/
+   
+   SUMA_Boolean Listening; /*!< SUMA is listening for connections */
+   SUMA_Boolean niml_work_on; /*!< Flag indicating that niml workprocess is ON */
    SUMA_LINK_TYPES Locked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that Locked[i] != SUMA_No_Lock have their cross hair locked together */   
    SUMA_Boolean ViewLocked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that ViewLocked[i] = YUP have their view point locked together */    
    SUMA_Boolean SwapButtons_1_3; /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
@@ -1656,6 +1706,16 @@ typedef struct {
                                  OffVect[k] is meaningless if LayerVect[k] < 0 */
 } SUMA_GET_OFFSET_STRUCT;  /*!< Structure containing nodes that are within a certain geodesic distance (lim) from 
                                 a certain node. */
+
+typedef struct {
+   float nelps;  /*!<   number of NI elements to send per second 
+                        -1 for going as fast as possible */
+   int TrackID;            /*!<  ID of next element to be sent 
+                                 NI_element StartTracking has an ID of 1 */
+   SUMA_Boolean GoneBad;   /*!< Flag indicating that stream went bad */
+   SUMA_Boolean Send;      /*!< Flag indicating that elements should be sent 
+                                As long as GoneBad is NOPE */
+}SUMA_COMM_STRUCT;
 
 
 #endif

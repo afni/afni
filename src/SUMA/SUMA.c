@@ -181,8 +181,8 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
 
-	if(!SUMA_Assign_AfniHostName (SUMAg_CF, AfniHostName)) {
-		fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_AfniHostName", FuncName);
+	if(!SUMA_Assign_HostName (SUMAg_CF, AfniHostName, -1)) {
+		fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_HostName", FuncName);
 		exit (1);
 	}
 	

@@ -13,6 +13,17 @@
 #define STAND_ALONE 
 #endif
 
+/* *** CHANGES TO BLEND WITH BRENNA's CODE 
+changes free to SUMA_free and set ptr to NULL for variables on lines:
+SUMA_SphericalMapping.c:131:      fname = SUMA_append_string(Froot, "_SortedDdist.1D");
+SUMA_SphericalMapping.c:139:      fname = SUMA_append_string(Froot, "_SortedDdist.1D.col");
+SUMA_SphericalMapping.c:180:      fname = SUMA_append_string(Froot, "_dotprod.1D");
+SUMA_SphericalMapping.c:198:      fname = SUMA_append_string(Froot, "_dotprod.1D.col");
+SUMA_SphericalMapping.c:206:      fname = SUMA_append_string(Froot, "_BadNodes.1D");
+SUMA_SphericalMapping.c:224:      fname = SUMA_append_string(Froot, "_BadNodes.1D.col");
+SUMA_SphericalMapping.c:2549:            OutName = SUMA_append_string (sphrSurf->Label, "_Conv_detail.1D");
+SUMA_SphericalMapping.c:2583:            OutName = SUMA_append_string (sphrNoRegSurf->Label, "_Conv_detail.1D");
+*/
 
 #ifdef STAND_ALONE
 /* these global variables must be declared even if they will not be used by this main */
@@ -133,7 +144,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
       fid = fopen(fname, "w");
       for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", isortdist[i], dist[i]);
       fclose(fid);
-      free(fname);
+      SUMA_free(fname); fname = NULL;
       
       /* write the colorized data */
       fname = SUMA_append_string(Froot, "_SortedDdist.1D.col");
@@ -141,7 +152,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
       fid = fopen(fname, "w");
       for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", isortdist[i], SV->cM[i][0], SV->cM[i][1], SV->cM[i][2]);
       fclose(fid);
-      free(fname);
+      SUMA_free(fname); fname = NULL;
       if (SV) SUMA_Free_ColorScaledVect (SV);
    }
       
@@ -182,7 +193,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
       fid = fopen(fname, "w");
       for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, dot[i]);
       fclose(fid);
-      free(fname);
+      SUMA_free(fname); fname = NULL;
       
       /* write the colorized data */
       SV = SUMA_Create_ColorScaledVect(SO->N_Node);
@@ -200,7 +211,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
       fid = fopen(fname, "w");
       for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", i, SV->cM[i][0], SV->cM[i][1], SV->cM[i][2]);
       fclose(fid);
-      free(fname);
+      SUMA_free(fname); fname = NULL;
       if (SV) SUMA_Free_ColorScaledVect (SV);
       
       fname = SUMA_append_string(Froot, "_BadNodes.1D");
@@ -208,7 +219,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
       fid = fopen(fname, "w");
       for (i=0; i<ibad; ++i) fprintf(fid,"%d\t%f\n", bad_ind[i], bad_dot[i]);
       fclose(fid);
-      free(fname);
+      SUMA_free(fname); fname = NULL;
       
       /* write the colorized data */
       SV = SUMA_Create_ColorScaledVect(ibad);
@@ -226,7 +237,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
       fid = fopen(fname, "w");
       for (i=0; i<ibad; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", bad_ind[i], SV->cM[i][0], SV->cM[i][1], SV->cM[i][2]);
       fclose(fid);
-      free(fname);
+      SUMA_free(fname); fname = NULL;
       if (SV) SUMA_Free_ColorScaledVect (SV);
       
    }
@@ -2553,7 +2564,7 @@ int main (int argc, char *argv[])
             fprintf(SUMA_STDERR, "%s:\nExiting after SUMA_SphereQuality (sphrSurf)\n", FuncName);
             if (sphrSurf) SUMA_Free_Surface_Object (sphrSurf);
             if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-            if (OutName) free(OutName);
+            if (OutName) SUMA_free(OutName); OutName = NULL;
             exit(0);
          } else {
             SUMA_SurfaceMetrics(sphrSurf, "EdgeList, MemberFace", NULL);
@@ -2587,7 +2598,7 @@ int main (int argc, char *argv[])
             fprintf(SUMA_STDERR, "%s:\nExiting after SUMA_SphereQuality (sphrNoRegSurf)\n", FuncName);
             if (sphrNoRegSurf) SUMA_Free_Surface_Object (sphrNoRegSurf);
             if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-            if (OutName) free(OutName);
+            if (OutName) SUMA_free(OutName); OutName = NULL;
             exit(0);
          }
       }

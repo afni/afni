@@ -9,7 +9,11 @@
 	SUMA_malloc_fn( FuncName, size)
 #define SUMA_realloc( ptr, size) \
 	SUMA_realloc_fn( FuncName, ptr, size)
-   
+#define SUMA_ENTRY  { \
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);   \
+}
+
+      
 void* SUMA_free_fn(const char *CallingFunc, void *ptr);
 void *SUMA_calloc_fn (const char *CallingFunc, size_t nmemb, size_t size);
 void *SUMA_malloc_fn (const char *CallingFunc, size_t size);
