@@ -281,5 +281,7 @@
       - created PROGRAM_EXE targets for Imon.exe, file_tool.exe, 3dresample.exe
 
 20 August 2003:
-  * modified Imon.c (-> v2.12)  - retest errors before reporting them
+  * modified Imon.c (-> v3.0)  - retest errors before reporting them
+      - major version change for high numbers, plus new warning output
+
 
