@@ -42,3 +42,8 @@
       of functional overlay (no longer needs to match underlay)
   * modified r_new_resam_dset.c to set view type to that of the master
   * updated VERSION of 3dresample to 1.2 (to note change to r_new_resam_dset)
+
+05 August 2002:
+  * modified plug_crender.c (rv 1.5) to align crosshairs with master grid
+  * added ENTRY() and RETURN() statements
+

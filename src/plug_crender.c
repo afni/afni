@@ -9,16 +9,21 @@
   ----------------------------------------------------------------------
 */
 
-#define PLUG_CRENDER_VERSION "Version 1.4 <July 2002>"
+#define PLUG_CRENDER_VERSION "Version 1.5 <July 2002>"
 
 /***********************************************************************
  * VERSION HISTORY
  *
- * 1.3   - re-orient overlay and underlay to rai
- *           o see dset_or and fset_or
- *
+ * 1.5   - aligned crosshairs to resampled grid
+ *           o see RCREND_xhair_underlay/RCREND_xhair_overlay
+ *           o passing mset to both RCREND_xhair_XXX functions
+ *       - added ENTRY(), EXRETURN and RETURN() statements
+ * 
  * 1.4   - underlay data set grid need not match that of overlay
  *           o see gcr.mset and new_fset
+ *
+ * 1.3   - re-orient overlay and underlay to rai
+ *           o see dset_or and fset_or
  ***********************************************************************
 */
 
@@ -74,8 +79,8 @@ void   RCREND_opacity_scale_CB  ( MCW_arrowval * , XtPointer ) ;
 void RCREND_finalize_dset_CB( Widget , XtPointer , MCW_choose_cbs * ) ; /* dataset chosen */
 
 void RCREND_reload_dataset(void) ;  /* actual reloading work */
-void RCREND_xhair_underlay(void) ;  /* make the crosshairs - in the underlay */
-void RCREND_xhair_overlay (MRI_IMAGE *) ;  /*               - in the overlay  */
+void RCREND_xhair_underlay(THD_3dim_dataset *);    /* make xhairs in underlay */
+void RCREND_xhair_overlay (THD_3dim_dataset *, MRI_IMAGE *) ;   /* in overlay */
 
 static PLUGIN_interface * plint = NULL ;                 /* what AFNI sees */
 
@@ -127,7 +132,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    char * env ;
    float  val ;
 
-   if( ncall > 0 ) return NULL ;  /* only one interface */
+   if( ncall > 0 ) return(NULL);  /* only one interface */
 
    plint = PLUTO_new_interface( "Render [new]" , NULL , NULL ,
                                 PLUGIN_CALL_IMMEDIATELY , RCREND_main ) ;
@@ -173,7 +178,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- done --*/
 
-   return plint ;
+   return(plint);
 }
 
 /***************************************************************************
@@ -903,6 +908,8 @@ void RCREND_make_widgets(void)
    XmString xstr ;
    Widget hrc , vrc ;
    int ii ;
+
+ENTRY( "RCREND_make_widgets" );
 
    /***=============================================================*/
 
@@ -1657,7 +1664,7 @@ void RCREND_make_widgets(void)
 #if 0
    XtVaSetValues( anat_rowcol , XmNresizeWidth , False , NULL ) ;
 #endif
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -1760,6 +1767,8 @@ RCREND_cutout * RCREND_make_cutout( int n )
    char      str[64] ;
    RCREND_cutout * rc ;
 
+ENTRY( "RCREND_make_cutout" );
+
    rc = myXtNew(RCREND_cutout) ;
 
    /* horizontal rowcol holds all that follows */
@@ -1843,7 +1852,7 @@ RCREND_cutout * RCREND_make_cutout( int n )
    XtUnmanageChild( rc->mustdo_bbox->wrowcol ) ;
 
    XtManageChild( rc->hrc ) ;
-   return rc ;
+   RETURN( rc );
 }
 
 /*-------------------------------------------------------------------
@@ -1932,6 +1941,8 @@ void RCREND_reload_dataset(void)
 #define NHIST 255
    int vtop ;
 
+ENTRY( "RCREND_reload_dataset" );
+
    MCW_invert_widget(reload_pb) ;        /* flash a signal */
 
    /* start by tossing any old data */
@@ -1983,7 +1994,7 @@ void RCREND_reload_dataset(void)
       default:{
 	 fprintf( stderr, "RCREND_reload_dataset: invalid brick type %d\n",
 		  btype );
-	 return;
+	 EXRETURN;
       }
 
       case MRI_short:{
@@ -2229,22 +2240,24 @@ void RCREND_reload_dataset(void)
          RCREND_cutout_blobs(grim_showthru) ;
    }
 
-   /* rcr - xhair update */
+   /* fill crosshair data into image volumes */
    if( xhair_flag )
    {
-      if ( ! func_computed )
-	  RCREND_xhair_underlay();                /* underlay only      */
+      if ( !ISVALID_DSET( gcr.mset ) )
+	  XBell(dc->display,100);
+      else if ( ! func_computed )
+	  RCREND_xhair_underlay( gcr.mset );      /* underlay only      */
       else if ( func_showthru )
-	  RCREND_xhair_overlay( grim_showthru );  /* showthru overlay   */
+	  RCREND_xhair_overlay( gcr.mset, grim_showthru );
       else
-	  RCREND_xhair_overlay( grim );           /* overlay is in grim */
+	  RCREND_xhair_overlay( gcr.mset, grim ); /* overlay is in grim */
    }
 
    MCW_invert_widget(reload_pb) ;  /* turn the signal off */
 
    new_dset = 0 ; new_data_loaded = 1 ;
    FIX_SCALE_SIZE ;     /* 09 May 2001 */
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -2253,13 +2266,15 @@ void RCREND_reload_dataset(void)
 
 void RCREND_reload_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   if( dset == NULL ){ XBell(dc->display,100) ; return ; }
+ENTRY( "RCREND_reload_CB" );
+
+   if( dset == NULL ){ XBell(dc->display,100) ; EXRETURN ; }
 
    RCREND_reload_dataset() ;             /* load data again */
 
    if( gcr.rh != NULL ) RCREND_draw_CB(NULL,NULL,NULL) ; /* draw */
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2268,7 +2283,9 @@ void RCREND_reload_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 void RCREND_reload_renderer(void)
 {
-   if( gcr.rh == NULL ) return ;  /* error */
+ENTRY( "RCREND_reload_renderer" );
+
+   if( gcr.rh == NULL ) EXRETURN ;  /* error */
 
    CREN_set_interp(gcr.rh, interp_ival);
 
@@ -2301,7 +2318,7 @@ void RCREND_reload_renderer(void)
       func_cmap_set = 1 ; /* do we need to reset the colormap? */
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -2312,11 +2329,13 @@ void RCREND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    MRI_IMAGE * rim ;
 
+ENTRY( "RCREND_draw_CB" );
+
 #ifdef USE_SCRIPTING
-   if( script_dontdraw ) return ;  /* 24 Nov 2000 */
+   if( script_dontdraw ) EXRETURN ;  /* 24 Nov 2000 */
 #endif
 
-   if( dset == NULL ){ XBell(dc->display,100) ; return ; }
+   if( dset == NULL ){ XBell(dc->display,100) ; EXRETURN ; }
 
    MCW_invert_widget(draw_pb) ;
 
@@ -2381,7 +2400,7 @@ void RCREND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
                                    "** Sorry -- RWCox      **\n" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XBell(dc->display,100) ;
-      MCW_invert_widget(draw_pb) ; return ;
+      MCW_invert_widget(draw_pb) ; EXRETURN ;
    }
 
    /* 07 Jan 2000 - make the showthru image now, if needed */
@@ -2499,7 +2518,7 @@ void RCREND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    MCW_invert_widget(draw_pb) ;
    FIX_SCALE_SIZE ;     /* 09 May 2001 */
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -2508,6 +2527,8 @@ void RCREND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
+ENTRY( "RCREND_help_CB" );
+
    (void ) new_MCW_textwin( info_lab ,
 
        "++++++++++++++++++  V O L U M E   R E N D E R I N G  ++++++++++++++++++\n"
@@ -3014,7 +3035,7 @@ void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "RC Reynolds, NIH  - " PLUG_CRENDER_VERSION "\n"
 
     , TEXT_READONLY ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -3052,6 +3073,8 @@ void RCREND_load_dsl( THD_3dim_dataset * mset , int float_ok )
    int           vv  = im3d->vinfo->view_type ; /* view type */
    THD_3dim_dataset * qset ;
    int id , nx,ny,nz ;
+
+ENTRY( "RCREND_load_dsl" );
 
    ndsl = 0 ; /* initialize */
 
@@ -3101,7 +3124,7 @@ void RCREND_load_dsl( THD_3dim_dataset * mset , int float_ok )
       make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
@@ -3115,6 +3138,8 @@ void RCREND_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
    int isl = -2 ;     /* 03 Apr 1999 */
    MCW_idcode midc ;
 
+ENTRY( "RCREND_choose_CB" );
+
    /*-- decide if we want overlay (func) or underlay --*/
 
    dofunc = (w == wfunc_choose_pb) ;
@@ -3123,7 +3148,7 @@ void RCREND_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
       (void) MCW_popup_message( w ,
                                    "Can't choose overlay\nbefore underlay!" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      XBell(dc->display,100) ; return ;
+      XBell(dc->display,100) ; EXRETURN ;
    }
 
    if( dofunc )
@@ -3137,7 +3162,7 @@ void RCREND_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
       (void) MCW_popup_message( w ,
                                    "Didn't find\nany datasets\nto render!" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      XBell(dc->display,100) ; return ;
+      XBell(dc->display,100) ; EXRETURN ;
    }
 
    /*--- loop over dataset links and patch their titles
@@ -3215,7 +3240,7 @@ void RCREND_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
    MCW_choose_strlist( w , label , ndsl , isl , strlist ,
                        (dofunc) ? RCREND_finalize_func_CB
                                 : RCREND_finalize_dset_CB , NULL ) ;
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
@@ -3226,15 +3251,17 @@ void RCREND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    char str[2*THD_MAX_NAME] ;
    float fac ;
 
+ENTRY( "RCREND_finalize_dset_CB" );
+
    /* check for errors */
 
-   if( ! renderer_open ){ POPDOWN_strlist_chooser ; XBell(dc->display,100) ; return ; }
+   if( ! renderer_open ){ POPDOWN_strlist_chooser ; XBell(dc->display,100) ; EXRETURN ; }
 
-   if( id < 0 || id >= ndsl ){ XBell(dc->display,100) ; return ; }
+   if( id < 0 || id >= ndsl ){ XBell(dc->display,100) ; EXRETURN ; }
 
    qset = PLUTO_find_dset( &(dsl[id].idcode) ) ;  /* the new dataset? */
 
-   if( qset == NULL ){ XBell(dc->display,100) ; return ; }
+   if( qset == NULL ){ XBell(dc->display,100) ; EXRETURN ; }
 
    /* if there was an existing renderer, kill it off */
 
@@ -3315,7 +3342,7 @@ void RCREND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    new_dset = 1;              /* flag it as new */
    RCREND_reload_dataset() ;  /* load the data */
 
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
@@ -3326,15 +3353,17 @@ void RCREND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    char str[2*THD_MAX_NAME] ;
    float fac ;
 
+ENTRY( "RCREND_finalize_func_CB" );
+
    /* check for errors */
 
-   if( ! renderer_open ){ POPDOWN_strlist_chooser ; XBell(dc->display,100) ; return ; }
+   if( ! renderer_open ){ POPDOWN_strlist_chooser ; XBell(dc->display,100) ; EXRETURN ; }
 
-   if( id < 0 || id >= ndsl ){ XBell(dc->display,100) ; return ; }
+   if( id < 0 || id >= ndsl ){ XBell(dc->display,100) ; EXRETURN ; }
 
    qset = PLUTO_find_dset( &(dsl[id].idcode) ) ;  /* the new dataset? */
 
-   if( qset == NULL ){ XBell(dc->display,100) ; return ; }
+   if( qset == NULL ){ XBell(dc->display,100) ; EXRETURN ; }
 
    /* accept this dataset */
 
@@ -3413,7 +3442,7 @@ void RCREND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Jul 2001 */
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -3422,10 +3451,12 @@ void RCREND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
 void RCREND_interp_CB( MCW_arrowval * av , XtPointer cd )
 {
+ENTRY( "RCREND_interp_CB" );
+
    interp_ival = av->ival ;
    CREN_set_interp( gcr.rh, interp_ival );
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -3436,11 +3467,13 @@ void RCREND_angle_CB( MCW_arrowval * av , XtPointer cd )
 {
    float na ;
 
+ENTRY( "RCREND_angle_CB" );
+
 /*==========================================================================*/
 #ifdef ALLOW_INCROT  /* 26 Apr 2002 - RWCox */
    if( cd == NULL && MCW_val_bbox(incrot_bbox) ){  /* increment mode  */
       RCREND_do_incrot( av ) ;                     /* ==> do work here */
-      return ;
+      EXRETURN ;
    }
 #endif
 /*==========================================================================*/
@@ -3467,13 +3500,13 @@ void RCREND_angle_CB( MCW_arrowval * av , XtPointer cd )
       if( na != av->fval ){ AV_assign_fval( av , na ) ; angle_yaw = na ; }
 
    } else {
-      return ;  /* should never happen */
+      EXRETURN ;  /* should never happen */
    }
 
    if( cd == NULL && dynamic_flag && gcr.rh != NULL )
       RCREND_draw_CB(NULL,NULL,NULL) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*==========================================================================*/
@@ -3481,9 +3514,11 @@ void RCREND_angle_CB( MCW_arrowval * av , XtPointer cd )
 
 void RCREND_incrot_CB( Widget w , XtPointer cld , XtPointer cad )
 {
+ENTRY( "RCREND_incrot_CB" );
+
    if( MCW_val_bbox(automate_bbox) ){       /* don't allow incrot */
       MCW_set_bbox( incrot_bbox , 0 ) ;     /* if Automate is set */
-      return ;
+      EXRETURN ;
    }
 
    /* if incrot is on, then force arrowvals back to numerical
@@ -3503,6 +3538,8 @@ void RCREND_do_incrot( MCW_arrowval * av )
    int ax ;
    float th , roll,pitch,yaw ;
 
+ENTRY( "RCREND_do_incrot" );
+
    /* read angles from arrowval's current status */
 
    roll  = roll_av ->fval ;
@@ -3516,7 +3553,7 @@ void RCREND_do_incrot( MCW_arrowval * av )
    else if( av == pitch_av ){ ax = 0; pitch = av->old_fval; }
    else if( av == yaw_av   ){ ax = 1; yaw   = av->old_fval; }
    else
-        return ;   /* should never happen */
+        EXRETURN ;   /* should never happen */
 
    th = av->fval - av->old_fval ;  /* angle increment */
 
@@ -3544,7 +3581,7 @@ void RCREND_do_incrot( MCW_arrowval * av )
    if( dynamic_flag && gcr.rh != NULL )
       RCREND_draw_CB(NULL,NULL,NULL) ;
 
-   return ;
+   EXRETURN ;
 }
 #endif /* ALLOW_INCROT */
 /*==========================================================================*/
@@ -3562,15 +3599,17 @@ void RCREND_do_incrot( MCW_arrowval * av )
                                      "because dataset grid and AFNI\n"  \
                                      "viewing grid don't coincide."   , \
                                   MCW_USER_KILL | MCW_TIMER_KILL ) ;    \
-        XBell(dc->display,100) ; return ;                               \
+        XBell(dc->display,100) ; EXRETURN ;                               \
      } } while(0)
 
 void RCREND_xhair_CB( Widget w , XtPointer cd , XtPointer call_data )
 {
    int old_xh = xhair_flag ;
 
+ENTRY( "RCREND_xhair_CB" );
+
    xhair_flag = MCW_val_bbox( xhair_bbox ) ;
-   if( old_xh == xhair_flag ) return ;
+   if( old_xh == xhair_flag ) EXRETURN ;
 
    CHECK_XHAIR_ERROR ;
    FREE_VOLUMES ; INVALIDATE_OVERLAY ;
@@ -3580,7 +3619,7 @@ void RCREND_xhair_CB( Widget w , XtPointer cd , XtPointer call_data )
    if( cd == NULL && dynamic_flag && gcr.rh != NULL )
       RCREND_draw_CB(NULL,NULL,NULL) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------
@@ -3590,6 +3629,8 @@ void RCREND_xhair_CB( Widget w , XtPointer cd , XtPointer call_data )
 void RCREND_xhair_EV( Widget w , XtPointer cd ,
                     XEvent * ev , Boolean * continue_to_dispatch )
 {
+ENTRY( "RCREND_xhair_EV" );
+
    switch( ev->type ){
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
@@ -3599,15 +3640,19 @@ void RCREND_xhair_EV( Widget w , XtPointer cd ,
       }
       break ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void RCREND_xhair_ovc_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
+ENTRY( "RCREND_xhair_ovc_CB" );
+
    xhair_ovc = cbs->ival ;
    INVALIDATE_OVERLAY ; FREE_VOLUMES ;
+
+   EXRETURN;
 }
 
 /*-------------------------------------------------------------------------
@@ -3617,12 +3662,14 @@ void RCREND_xhair_ovc_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
 void RCREND_xhair_recv( int why , int np , int * ijk , void * junk )
 {
+ENTRY( "RCREND_xhair_recv" );
+
    switch( why ){
 
       /*-- change of crosshair location --*/
 
       case RECEIVE_VIEWPOINT:{
-         if( !xhair_flag || !dynamic_flag || gcr.rh == NULL ) return ;
+         if( !xhair_flag || !dynamic_flag || gcr.rh == NULL ) EXRETURN ;
 
          CHECK_XHAIR_ERROR ;
 
@@ -3631,7 +3678,7 @@ void RCREND_xhair_recv( int why , int np , int * ijk , void * junk )
             RCREND_draw_CB(NULL,NULL,NULL) ;
          }
       }
-      return ;
+      EXRETURN ;
 
       /*-- user drew something --*/
 
@@ -3669,7 +3716,7 @@ void RCREND_xhair_recv( int why , int np , int * ijk , void * junk )
          if( doit && dynamic_flag && gcr.rh != NULL )
             RCREND_draw_CB(NULL,NULL,NULL) ;
       }
-      return ;
+      EXRETURN ;
 
       /*-- dataset pointers have changed --*/
 
@@ -3694,11 +3741,11 @@ void RCREND_xhair_recv( int why , int np , int * ijk , void * junk )
                                      "*****************************" ,
                                    MCW_USER_KILL | MCW_TIMER_KILL     ) ;
       }
-      return ;
+      EXRETURN ;
 
    }  /* end of switch on "why" */
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -3707,16 +3754,20 @@ void RCREND_xhair_recv( int why , int np , int * ijk , void * junk )
 
 void RCREND_dynamic_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
+ENTRY( "RCREND_dynamic_CB" );
+
    dynamic_flag = MCW_val_bbox( dynamic_bbox ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 
 void RCREND_accum_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
+ENTRY( "RCREND_accum_CB" );
+
    accum_flag = MCW_val_bbox( accum_bbox ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -3732,27 +3783,49 @@ void RCREND_accum_CB( Widget w , XtPointer client_data , XtPointer call_data )
 #define GXH_COLOR 127
 #define OXH       255
 
-void RCREND_xhair_underlay(void)
+void RCREND_xhair_underlay( THD_3dim_dataset * mset )
 {
-   int ix,jy,kz , nx,ny,nz,nxy , ii , gap , om ;
-   byte * gar;
-   byte   gxh;
+   THD_ivec3 ixyz;
+   THD_fvec3 fxyz;
+   int       ix,jy,kz , nx,ny,nz,nxy , ii , gap , om ;
+   float     xi,yj,zk;
+   byte    * gar;
+   byte      gxh;
 
-   if( grim == NULL ) return ;  /* error */
+ENTRY( "RCREND_xhair_underlay" );
+
+   if( grim == NULL ) EXRETURN ;  /* error */
 
    gxh = (xhair_ovc > 0) ? (128+xhair_ovc) : GXH_GRAY;
 
    CHECK_XHAIR_ERROR ;
 
-   ix = im3d->vinfo->i1 ; nx = grim->nx ;
-   jy = im3d->vinfo->j2 ; ny = grim->ny ; nxy = nx * ny ;
-   kz = im3d->vinfo->k3 ; nz = grim->nz ;
+   /* get Dicom mm coords */
+   xi = im3d->vinfo->xi;
+   yj = im3d->vinfo->yj;
+   zk = im3d->vinfo->zk;
+
+   nx = grim->nx;
+   ny = grim->ny;  nxy = nx * ny;
+   nz = grim->nz;
+
+   if ( !ISVALID_DSET(mset) )     /* But, that cannot be!  Aaaaaaghh! */
+   {
+      XBell(dc->display,100);
+      EXRETURN;
+   }
+
+   /* convert to ijk in mset */
+   LOAD_FVEC3( fxyz, xi, yj, zk );	       /* Dicom coords for dset */
+   fxyz = THD_dicomm_to_3dmm(mset, fxyz);  /*    mm coords for mset */
+   ixyz = THD_3dmm_to_3dind (mset, fxyz);  /*   ijk coords for mset */
+   UNLOAD_IVEC3( ixyz, ix, jy, kz );
 
    om = im3d->vinfo->xhairs_orimask ;  /* 02 Jun 1999 */
 
-   if( ix < 0 || ix >= nx ) return ;  /* error */
-   if( jy < 0 || jy >= ny ) return ;  /* error */
-   if( kz < 0 || kz >= nz ) return ;  /* error */
+   if( ix < 0 || ix >= nx ) EXRETURN ;  /* error */
+   if( jy < 0 || jy >= ny ) EXRETURN ;  /* error */
+   if( kz < 0 || kz >= nz ) EXRETURN ;  /* error */
 
    gap = im3d->vinfo->crosshair_gap ;
    gar = MRI_BYTE_PTR(grim) ;
@@ -3779,7 +3852,7 @@ void RCREND_xhair_underlay(void)
 
    xhair_ixold = ix ; xhair_jyold = jy ; xhair_kzold = kz ;  /* memory */
    xhair_omold = om ;                                        /* 02 Jun 1999 */
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------
@@ -3789,8 +3862,10 @@ void RCREND_xhair_underlay(void)
 
 void RCREND_graf_CB( MCW_graf * gp , void * cd )
 {
+ENTRY( "RCREND_graf_CB" );
+
    FREE_VOLUMES ;  /* free the volumes, will force reloading at redraw */
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -3799,6 +3874,8 @@ void RCREND_graf_CB( MCW_graf * gp , void * cd )
 
 void RCREND_clip_CB( MCW_arrowval * av , XtPointer cd )
 {
+ENTRY( "RCREND_clip_CB" );
+
    FREE_VOLUMES ;  /* free the volumes, will force reloading */
 
    if( clipbot_av->ival >= cliptop_av->ival ){
@@ -3829,7 +3906,7 @@ void RCREND_clip_CB( MCW_arrowval * av , XtPointer cd )
       }
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -3842,9 +3919,11 @@ void RCREND_cutout_type_CB( MCW_arrowval * av , XtPointer cd )
    int iv , val ;
    XmString xstr ;
 
+ENTRY( "RCREND_cutout_type_CB" );
+
    for( iv=0 ; iv < num_cutouts ; iv++ )
       if( av == cutouts[iv]->type_av ) break ;
-   if( iv == num_cutouts ) return ;
+   if( iv == num_cutouts ) EXRETURN ;
 
    val = av->ival ;           /* new type */
 
@@ -3894,7 +3973,7 @@ void RCREND_cutout_type_CB( MCW_arrowval * av , XtPointer cd )
    }
 
    FIX_SCALE_SIZE ;
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -3906,6 +3985,8 @@ void RCREND_numcutout_CB( MCW_arrowval * av , XtPointer cd )
    int ii ;
    num_cutouts = av->ival ;
 
+ENTRY( "RCREND_numcutout_CB" );
+
    HIDE_SCALE ;
 
    for( ii=0 ; ii < MAX_CUTOUTS ; ii++ ){
@@ -3916,7 +3997,7 @@ void RCREND_numcutout_CB( MCW_arrowval * av , XtPointer cd )
    }
 
    FIX_SCALE_SIZE ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------
@@ -3927,6 +4008,8 @@ void RCREND_load_cutout_state(void)
 {
    int ii ;
    char * str ;
+
+ENTRY( "RCREND_load_cutout_state" );
 
    current_cutout_state.num   = num_cutouts ;
    current_cutout_state.logic = logic_cutout = logiccutout_av->ival ;
@@ -3950,46 +4033,48 @@ void RCREND_load_cutout_state(void)
                                              current_cutout_state.opacity_scale ) ;
    current_cutout_state.opacity_scale = MIN( 1.000 ,
                                              current_cutout_state.opacity_scale ) ;
-   return ;
+   EXRETURN ;
 }
 
 int RCREND_cutout_state_changed(void)
 {
    int ii ;
 
-   if( current_cutout_state.opacity_scale != old_cutout_state.opacity_scale ) return 1;
+ENTRY( "RCREND_cutout_state_changed" );
 
-   if( current_cutout_state.num != old_cutout_state.num ) return 1 ;
-   if( current_cutout_state.num == 0                    ) return 0 ;
+   if( current_cutout_state.opacity_scale != old_cutout_state.opacity_scale ) RETURN(1);
+
+   if( current_cutout_state.num != old_cutout_state.num ) RETURN(1) ;
+   if( current_cutout_state.num == 0                    ) RETURN(0) ;
 
    if( current_cutout_state.num > 1 &&
-       (current_cutout_state.logic != old_cutout_state.logic) ) return 1 ;
+       (current_cutout_state.logic != old_cutout_state.logic) ) RETURN(1) ;
 
    for( ii=0 ; ii < current_cutout_state.num ; ii++ ){
-      if( current_cutout_state.type[ii] != old_cutout_state.type[ii] ) return 1 ;
+      if( current_cutout_state.type[ii] != old_cutout_state.type[ii] ) RETURN(1) ;
 
       if( current_cutout_state.type[ii] == CUT_NONE ) continue ;
 
       switch( current_cutout_state.type[ii] ){
          default :
-          if( current_cutout_state.param[ii] != old_cutout_state.param[ii] ) return 1;
+          if( current_cutout_state.param[ii] != old_cutout_state.param[ii] ) RETURN(1);
          break ;
 
          case CUT_EXPRESSION:
           if( strcmp( current_cutout_state.param_str[ii] ,
-                      old_cutout_state.param_str[ii]      ) != 0 ) return 1 ;
+                      old_cutout_state.param_str[ii]      ) != 0 ) RETURN(1) ;
 
           if( automate_flag &&
-              strchr(current_cutout_state.param_str[ii],'t') != NULL ) return 1 ;
+              strchr(current_cutout_state.param_str[ii],'t') != NULL ) RETURN(1) ;
          break ;
       }
 
       if( current_cutout_state.logic != CUTOUT_OR &&
           current_cutout_state.num   >  1         &&
-          current_cutout_state.mustdo[ii] != old_cutout_state.mustdo[ii] ) return 1 ;
+          current_cutout_state.mustdo[ii] != old_cutout_state.mustdo[ii] ) RETURN(1) ;
    }
 
-   return 0 ;
+   RETURN(0) ;
 }
 
 /*-------------------------------------------------------------------------------
@@ -4009,14 +4094,16 @@ void RCREND_cutout_set_CB( Widget w, XtPointer client_data, XtPointer call_data 
    int iv , typ ;
    float val ;
 
+ENTRY( "RCREND_cutout_set_CB" );
+
    for( iv=0 ; iv < num_cutouts ; iv++ )
       if( w == cutouts[iv]->set_pb ) break ;
-   if( iv == num_cutouts ) return ;
+   if( iv == num_cutouts ) EXRETURN ;
 
    typ = cutouts[iv]->type_av->ival ;
    switch( typ ){
 
-      default: XBell(dc->display,100) ; return ;  /* action is not defined */
+      default: XBell(dc->display,100) ; EXRETURN ;  /* action is not defined */
 
       case CUT_RIGHT_OF:
       case CUT_LEFT_OF:      val = im3d->vinfo->xi ; break ;
@@ -4064,7 +4151,7 @@ void RCREND_cutout_set_CB( Widget w, XtPointer client_data, XtPointer call_data 
    AV_assign_fval( cutouts[iv]->param_av , val ) ;
 
    if( dynamic_flag && gcr.rh != NULL ) RCREND_draw_CB(NULL,NULL,NULL) ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------
@@ -4082,6 +4169,8 @@ void RCREND_cutout_blobs( MRI_IMAGE * oppim )
    byte * oar , * gar ;
    byte ncdone = 0 ;
 
+ENTRY( "RCREND_cutout_blobs" );
+
    /* if we have a reoriented dataset, use it    26 June 2002 - rickr */
    if ( gcr.dset_or != NULL )
       local_dset = gcr.dset_or;
@@ -4090,7 +4179,7 @@ void RCREND_cutout_blobs( MRI_IMAGE * oppim )
 
    ncc   = current_cutout_state.num ;
    logic = current_cutout_state.logic ;
-   if( ncc < 1 || oppim == NULL ) return ;      /* error */
+   if( ncc < 1 || oppim == NULL ) EXRETURN ;      /* error */
 
    /* find out if the logic is effectively "OR" */
 
@@ -4104,7 +4193,7 @@ void RCREND_cutout_blobs( MRI_IMAGE * oppim )
 
    /* initialize */
 
-   oar = MRI_BYTE_PTR(oppim) ; if( oar == NULL ) return ;
+   oar = MRI_BYTE_PTR(oppim) ; if( oar == NULL ) EXRETURN ;
    nx  = oppim->nx ;
    ny  = oppim->ny ; nxy  = nx * ny ;
    nz  = oppim->nz ; nxyz = nxy * nz ;
@@ -4403,7 +4492,7 @@ void RCREND_cutout_blobs( MRI_IMAGE * oppim )
       free(gar) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -4413,8 +4502,12 @@ void RCREND_cutout_blobs( MRI_IMAGE * oppim )
 
 void RCREND_param_CB( MCW_arrowval * av , XtPointer cd )
 {
+ENTRY( "RCREND_param_CB" );
+
    if( cd == NULL && dynamic_flag && gcr.rh != NULL )
       RCREND_draw_CB(NULL,NULL,NULL) ;
+
+   EXRETURN;
 }
 
 /*-----------------------------------------------------------------------
@@ -4429,13 +4522,15 @@ float RCREND_evaluate( MCW_arrowval * av )
    char * str , * cpt ;
    float val ;
 
+ENTRY( "RCREND_evaluate" );
+
    /* get the string to convert */
 
-   if( av        == NULL ) return 0.0 ;        /* these cases should */
-   if( av->wtext == NULL ) return av->fval ;   /* never happen       */
+   if( av        == NULL ) RETURN(0.0) ;        /* these cases should */
+   if( av->wtext == NULL ) RETURN(av->fval) ;   /* never happen       */
 
    str = XmTextFieldGetString( av->wtext ) ;
-   if( str == NULL || str[0] == '\0' ){ XtFree(str) ; return 0.0 ; }
+   if( str == NULL || str[0] == '\0' ){ XtFree(str) ; RETURN(0.0) ; }
 
    /* try a regular numerical conversion */
 
@@ -4443,16 +4538,16 @@ float RCREND_evaluate( MCW_arrowval * av )
 
    for( ; *cpt != '\0' && isspace(*cpt) ; cpt++ ) ; /* skip blanks */
 
-   if( *cpt == '\0' ){ XtFree(str); AV_assign_fval(av,val); return val; }
+   if( *cpt == '\0' ){ XtFree(str); AV_assign_fval(av,val); RETURN(val); }
 
    /* try to parse an expression */
 
    pcode = PARSER_generate_code( str ) ;
-   if( pcode == NULL ){ XtFree(str) ; return 0.0 ; }
+   if( pcode == NULL ){ XtFree(str) ; RETURN(0.0) ; }
 
    val = PARSER_evaluate_one( pcode , atoz ) ; free(pcode) ;
 
-   XtFree(str) ; return val ;
+   XtFree(str) ; RETURN(val);
 }
 
 /*-------------------------------------------------------------------------
@@ -4468,9 +4563,11 @@ void RCREND_textact_CB( Widget wtex, XtPointer client_data, XtPointer call_data 
    float sval ;
    int iv ;
 
+ENTRY( "RCREND_textact_CB" );
+
    for( iv=0 ; iv < num_cutouts ; iv++ )  /* skip if is an Expr > 0 cutout */
       if( av == cutouts[iv]->param_av &&
-          cutouts[iv]->type_av->ival == CUT_EXPRESSION ) return ;
+          cutouts[iv]->type_av->ival == CUT_EXPRESSION ) EXRETURN ;
 
    MCW_invert_widget(wtex) ;
 
@@ -4478,7 +4575,7 @@ void RCREND_textact_CB( Widget wtex, XtPointer client_data, XtPointer call_data 
    AV_assign_fval( av , sval ) ;
 
    MCW_invert_widget(wtex) ;
-   return ;
+   EXRETURN ;
 }
 
 /**********************************************************************
@@ -4495,8 +4592,10 @@ void RCREND_open_imseq( void )
 {
    int ntot , ii ;
 
+ENTRY( "RCREND_open_imseq" );
+
    if( imseq != NULL      ||
-       renderings == NULL || IMARR_COUNT(renderings) == 0 ) return ;
+       renderings == NULL || IMARR_COUNT(renderings) == 0 ) EXRETURN ;
 
    ntot = IMARR_COUNT(renderings) ;
 
@@ -4561,15 +4660,17 @@ void RCREND_open_imseq( void )
          drive_MCW_imseq( imseq,isqDR_icon , (XtPointer) afni48ren_pixmap ) ;
 #endif
 
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_update_imseq( void )
 {
    int ntot , ii ;
 
-   if( imseq == NULL ){ RCREND_open_imseq() ; return ; }
-   if( renderings == NULL || IMARR_COUNT(renderings) == 0 ) return ;
+ENTRY( "RCREND_update_imseq" );
+
+   if( imseq == NULL ){ RCREND_open_imseq() ; EXRETURN ; }
+   if( renderings == NULL || IMARR_COUNT(renderings) == 0 ) EXRETURN ;
 
    ntot = IMARR_COUNT(renderings) ;
 
@@ -4594,14 +4695,16 @@ void RCREND_update_imseq( void )
 
    drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer)(ntot-1) ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_destroy_imseq( void )
 {
-   if( imseq == NULL ) return ;
+ENTRY( "RCREND_destroy_imseq" );
+
+   if( imseq == NULL ) EXRETURN ;
    drive_MCW_imseq( imseq , isqDR_destroy , NULL ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------
@@ -4612,6 +4715,8 @@ void RCREND_destroy_imseq( void )
 XtPointer RCREND_imseq_getim( int n , int type , XtPointer handle )
 {
    int ntot = 0 ;
+
+ENTRY( "RCREND_imseq_getim" );
 
    if( renderings != NULL ) ntot = IMARR_COUNT(renderings) ;
    if( ntot < 1 ) ntot = 1 ;
@@ -4631,12 +4736,12 @@ XtPointer RCREND_imseq_getim( int n , int type , XtPointer handle )
       stat->transforms0D = &(GLOBAL_library.registered_0D) ;
       stat->transforms2D = &(GLOBAL_library.registered_2D) ;
 
-      return (XtPointer) stat ;
+      RETURN((XtPointer)stat);
    }
 
    /*--- no overlay, never ---*/
 
-   if( type == isqCR_getoverlay ) return NULL ;
+   if( type == isqCR_getoverlay ) RETURN(NULL) ;
 
    /*--- return a copy of a rendered image
          (since the imseq will delete it when it is done) ---*/
@@ -4663,10 +4768,10 @@ XtPointer RCREND_imseq_getim( int n , int type , XtPointer handle )
          }
 #endif
       }
-      return (XtPointer) im ;
+      RETURN((XtPointer)im);
    }
 
-   return NULL ; /* should not occur, but who knows? */
+   RETURN(NULL); /* should not occur, but who knows? */
 }
 
 /*---------------------------------------------------------------------------
@@ -4677,13 +4782,15 @@ XtPointer RCREND_imseq_getim( int n , int type , XtPointer handle )
 
 void RCREND_seq_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
 {
+ENTRY( "RCREND_seq_send_CB" );
+
    switch( cbs->reason ){
       case isqCR_destroy:{
          myXtFree(imseq->status) ; myXtFree(imseq) ; imseq = NULL ;
       }
       break ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------
@@ -4693,13 +4800,15 @@ void RCREND_seq_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
 void RCREND_autoflag_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
    int flag = MCW_val_bbox( automate_bbox ) ;
+ENTRY( "RCREND_autoflag_CB" );
+
    XtSetSensitive( autocompute_pb , (Boolean) flag ) ;
 
 #ifdef ALLOW_INCROT  /* 26 Apr 2002 - RWCox */
    if( flag ) MCW_set_bbox( incrot_bbox , 0 ) ;
 #endif
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -4713,6 +4822,8 @@ void RCREND_autocompute_CB( Widget w, XtPointer client_data, XtPointer call_data
    int it , ntime = autoframe_av->ival ;
    float scl = 100.0/ntime ;
    Widget autometer ;
+
+ENTRY( "RCREND_autocompute_CB" );
 
    automate_flag = 1 ;
    if( ! accum_flag ){
@@ -4753,7 +4864,7 @@ void RCREND_autocompute_CB( Widget w, XtPointer client_data, XtPointer call_data
    XtUnmanageChild( autocancel_pb ) ; AFNI_add_interruptable(NULL) ;
 
    automate_flag = 0 ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -4762,8 +4873,12 @@ void RCREND_autocompute_CB( Widget w, XtPointer client_data, XtPointer call_data
 
 void RCREND_autocancel_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   if( autokill ){ XBell(dc->display,100) ; return ; }
+ENTRY( "RCREND_autocancel_CB" );
+
+   if( autokill ){ XBell(dc->display,100) ; EXRETURN ; }
    autokill = 1 ;
+
+   EXRETURN;
 }
 
 /*--------------------------------------------------------------------------
@@ -4774,6 +4889,8 @@ void RCREND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
 {
    XmString xstr ;
    char str[2*THD_MAX_NAME] ;
+
+ENTRY( "RCREND_choose_av_CB" );
 
    /*--- selection of an underlay sub-brick ---*/
 
@@ -4850,7 +4967,7 @@ void RCREND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
       INVALIDATE_OVERLAY ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------
@@ -4863,6 +4980,8 @@ char * RCREND_choose_av_label_CB( MCW_arrowval * av , XtPointer cd )
    THD_3dim_dataset * dset = (THD_3dim_dataset *) cd ;
    static char * lfmt[3] = { "#%1d %-14.14s" , "#%2d %-14.14s" , "#%3d %-14.14s"  } ;
    static char * rfmt[3] = { "%-14.14s #%1d" , "%-14.14s #%2d" , "%-14.14s #%3d"  } ;
+
+ENTRY( "RCREND_choose_av_label_CB" );
 
    if( ISVALID_3DIM_DATASET(dset) ){
 
@@ -4885,7 +5004,7 @@ char * RCREND_choose_av_label_CB( MCW_arrowval * av , XtPointer cd )
    else
       sprintf(blab," #%d ",av->ival) ;  /* should not happen! */
 
-   return blab ;
+   RETURN(blab) ;
 }
 
 /*----------------------------------------------------------------------------------
@@ -4897,6 +5016,8 @@ void RCREND_func_widgets(void)
    XmString xstr ;
    Widget   wqqq ;
    int      sel_height ;
+
+ENTRY( "RCREND_func_widgets" );
 
    /* top level managers */
 
@@ -5601,7 +5722,7 @@ void RCREND_func_widgets(void)
    XtVaSetValues( wfunc_uber_rowcol , XmNresizeWidth , False , NULL ) ;
 #endif
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------------
@@ -5610,9 +5731,11 @@ void RCREND_func_widgets(void)
 
 void RCREND_init_cmap(void)
 {
+ENTRY( "RCREND_init_cmap" );
+
    CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
                     (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------
@@ -5623,7 +5746,11 @@ void RCREND_init_cmap(void)
 #if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
 static void fixscale( XtPointer client_data , XtIntervalId * id )
 {
+ENTRY( "fixscale" );
+
    FIX_SCALE_SIZE ;
+
+   EXRETURN;
 }
 #endif
 
@@ -5634,6 +5761,8 @@ static void fixscale( XtPointer client_data , XtIntervalId * id )
 
 void RCREND_open_func_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
+ENTRY( "RCREND_open_func_CB" );
+
    if( wfunc_frame == NULL ) RCREND_func_widgets() ;  /* need to make them */
 
    if( XtIsManaged(wfunc_frame) ){          /* if open, close */
@@ -5655,7 +5784,7 @@ void RCREND_open_func_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    MCW_invert_widget(wfunc_open_pb) ;       /* a flag */
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------
@@ -5665,8 +5794,10 @@ void RCREND_open_func_CB( Widget w, XtPointer client_data, XtPointer call_data )
 char * RCREND_thresh_tlabel_CB( MCW_arrowval * av , XtPointer junk )
 {
    static char tlab[8] ;
+ENTRY( "RCREND_thresh_tlabel_CB" );
+
    sprintf(tlab,"%d",av->ival) ;
-   return tlab ;
+   RETURN(tlab);
 }
 
 /*---------------------------------------------------------------------------
@@ -5677,6 +5808,8 @@ void RCREND_setup_color_pbar(void)
 {
   MCW_pbar * pbar = wfunc_color_pbar ;
   int np , i , jm , lcol ;
+
+ENTRY( "RCREND_setup_color_pbar" );
 
   jm   = pbar->mode ;
   lcol = dc->ovc->ncol_ov - 1 ;
@@ -5705,7 +5838,7 @@ void RCREND_setup_color_pbar(void)
   for( i=0 ; i <  np ; i++ ) pbar->ov_index[i] = pbar->ovin_save[np][i][jm] ;
 
   pbar->update_me = 1 ;
-  return ;
+  EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -5719,6 +5852,8 @@ XmString RCREND_range_label(void)
    char buf[256] , qbuf[16] ;
    XmString xstr ;
    int iv ;
+
+ENTRY( "RCREND_range_label" );
 
    if( ISVALID_DSET(func_dset) && ISVALID_STATISTIC(func_dset->stats) ){
 
@@ -5746,7 +5881,7 @@ XmString RCREND_range_label(void)
 
    xstr = XmStringCreateLtoR( buf , XmFONTLIST_DEFAULT_TAG ) ;
 
-   return xstr ;
+   RETURN(xstr) ;
 }
 
 /*------------------------------------------------------------------------
@@ -5758,6 +5893,8 @@ XmString RCREND_autorange_label(void)
    XmString xstr ;
    float rrr = DEFAULT_FUNC_RANGE ;
    char buf[32] , qbuf[16] ;
+
+ENTRY( "RCREND_autorange_label" );
 
    if( ISVALID_DSET(func_dset) ){
 
@@ -5781,7 +5918,7 @@ XmString RCREND_autorange_label(void)
    sprintf( buf , "autoRange:%s" , qbuf ) ;
    xstr = XmStringCreateLtoR( buf , XmFONTLIST_DEFAULT_TAG ) ;
 
-   return xstr ;
+   RETURN(xstr);
 }
 
 /*-----------------------------------------------------------------------------
@@ -5793,7 +5930,9 @@ void RCREND_set_thr_pval(void)
    float thresh , pval ;
    char  buf[16] ;
 
-   if( !ISVALID_DSET(func_dset) ) return ;
+ENTRY( "RCREND_set_thr_pval" );
+
+   if( !ISVALID_DSET(func_dset) ) EXRETURN ;
 
    /* get the "true" threshold (scaled up from being in [0,1]) */
 
@@ -5838,7 +5977,7 @@ void RCREND_set_thr_pval(void)
       }
    }
    MCW_set_widget_label( wfunc_thr_pval_label , buf ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -5850,13 +5989,15 @@ void RCREND_thr_scale_CB( Widget w, XtPointer client_data, XtPointer call_data )
    XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call_data ;
    float fff ;
 
+ENTRY( "RCREND_thr_scale_CB" );
+
    fff = THR_FACTOR * cbs->value ;  /* between 0 and 1 now */
-   if( fff >= 0.0 && fff <= 1.0 ) func_threshold = fff ; else return ;
+   if( fff >= 0.0 && fff <= 1.0 ) func_threshold = fff ; else EXRETURN ;
    RCREND_set_thr_pval() ;
 
    INVALIDATE_OVERLAY ;
    FIX_SCALE_SIZE ;     /* 09 May 2001 */
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------------
@@ -5868,11 +6009,13 @@ void RCREND_thr_scale_drag_CB( Widget w, XtPointer client_data, XtPointer call_d
    XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call_data ;
    float fff ;
 
+ENTRY( "RCREND_thr_scale_drag_CB" );
+
    fff = THR_FACTOR * cbs->value ;  /* between 0 and 1 now */
-   if( fff >= 0.0 && fff <= 1.0 ) func_threshold = fff ; else return ;
+   if( fff >= 0.0 && fff <= 1.0 ) func_threshold = fff ; else EXRETURN ;
    RCREND_set_thr_pval() ;
 
-   return ;
+   EXRETURN ;
 }
 
 
@@ -5884,7 +6027,9 @@ void RCREND_range_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
 {
    int newauto = MCW_val_bbox(wfunc_range_bbox) ;
 
-   if( newauto == func_use_autorange ) return ;  /* no change? */
+ENTRY( "RCREND_range_bbox_CB" );
+
+   if( newauto == func_use_autorange ) EXRETURN ;  /* no change? */
 
    func_use_autorange = newauto ;
 
@@ -5896,7 +6041,7 @@ void RCREND_range_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
    AV_SENSITIZE( wfunc_range_av , ! newauto ) ;
 
    INVALIDATE_OVERLAY ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -5905,12 +6050,14 @@ void RCREND_range_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
 
 void RCREND_range_av_CB( MCW_arrowval * av , XtPointer cd )
 {
+ENTRY( "RCREND_range_av_CB" );
+
    func_range = av->fval ;
 
    AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Mar 2001 */
 
    INVALIDATE_OVERLAY ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -5924,6 +6071,8 @@ void RCREND_thresh_top_CB( MCW_arrowval * av , XtPointer cd )
    int decim ;
    float tval ;
 
+ENTRY( "RCREND_thresh_top_CB" );
+
    tval = dval[av->ival] ; if( tval <= 0.0 ) tval = 1.0 ;
 
    decim = (2*THR_TOP_EXPON) - (int)(THR_TOP_EXPON + 0.01 + log10(tval)) ;
@@ -5935,7 +6084,7 @@ void RCREND_thresh_top_CB( MCW_arrowval * av , XtPointer cd )
    RCREND_set_thr_pval() ;
 
    INVALIDATE_OVERLAY ;
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------------
@@ -5944,11 +6093,13 @@ void RCREND_thresh_top_CB( MCW_arrowval * av , XtPointer cd )
 
 void RCREND_color_pbar_CB( MCW_pbar * pbar , XtPointer cd , int reason )
 {
+ENTRY( "RCREND_color_pbar_CB" );
+
    FIX_SCALE_SIZE ;
    INVALIDATE_OVERLAY ;
 
    AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Mar 2001 */
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -5957,11 +6108,13 @@ void RCREND_color_pbar_CB( MCW_pbar * pbar , XtPointer cd , int reason )
 
 void RCREND_colornum_av_CB( MCW_arrowval * av , XtPointer cd )
 {
+ENTRY( "RCREND_colornum_av_CB" );
+
    HIDE_SCALE ;
    alter_MCW_pbar( wfunc_color_pbar , av->ival , NULL ) ;
    FIX_SCALE_SIZE ;
    INVALIDATE_OVERLAY ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -5972,7 +6125,9 @@ void RCREND_color_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
 {
    int jm , newpos=MCW_val_bbox(wfunc_color_bbox) ;
 
-   if( newpos == func_posfunc ) return ;  /* no change? */
+ENTRY( "RCREND_color_bbox_CB" );
+
+   if( newpos == func_posfunc ) EXRETURN ;  /* no change? */
 
    func_posfunc = newpos ;
    jm = wfunc_color_pbar->mode = (newpos) ? 1 : 0 ;  /* pbar mode */
@@ -5986,7 +6141,7 @@ void RCREND_color_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
    AV_assign_ival( wfunc_colornum_av , wfunc_color_pbar->npan_save[jm] ) ;
 
    INVALIDATE_OVERLAY ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -5995,12 +6150,14 @@ void RCREND_color_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
 
 void RCREND_color_opacity_CB( MCW_arrowval * av , XtPointer cd )
 {
+ENTRY( "RCREND_color_opacity_CB" );
+
    func_color_opacity = 0.1 * av->ival;
    func_color_opacity = MIN(func_color_opacity, 1.0);
 
    INVALIDATE_OVERLAY ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -6011,11 +6168,13 @@ void RCREND_see_overlay_CB( Widget w, XtPointer cd, XtPointer cb)
 {
    int newsee = MCW_val_bbox(wfunc_see_overlay_bbox) ;
 
-   if( newsee == func_see_overlay ) return ;
+ENTRY( "RCREND_see_overlay_CB" );
+
+   if( newsee == func_see_overlay ) EXRETURN ;
 
    func_see_overlay = newsee ;
    INVALIDATE_OVERLAY ; FREE_VOLUMES ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -6026,11 +6185,13 @@ void RCREND_see_ttatlas_CB( Widget w, XtPointer cd, XtPointer cb)
 {
    int newsee = MCW_val_bbox(wfunc_see_ttatlas_bbox) ;
 
-   if( newsee == func_see_ttatlas ) return ;
+ENTRY( "RCREND_see_ttatlas_CB" );
+
+   if( newsee == func_see_ttatlas ) EXRETURN ;
 
    func_see_ttatlas = newsee ;
    INVALIDATE_OVERLAY ; FREE_VOLUMES ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------
@@ -6040,7 +6201,9 @@ void RCREND_do_ST_CB( Widget w, XtPointer cd, XtPointer cb )
 {
    int newsee = MCW_val_bbox(wfunc_do_ST_bbox);
 
-   if( newsee == func_showthru ) return;
+ENTRY( "RCREND_do_ST_CB" );
+
+   if( newsee == func_showthru ) EXRETURN;
 
    func_showthru = newsee;
    INVALIDATE_OVERLAY; FREE_VOLUMES;
@@ -6050,7 +6213,7 @@ void RCREND_do_ST_CB( Widget w, XtPointer cd, XtPointer cb )
    else
       XtSetSensitive( wfunc_ST_fac_av->wrowcol, False );
 
-   return;
+   EXRETURN;
 }
 
 /*------------------------------------------------------------------------------
@@ -6061,12 +6224,14 @@ void RCREND_ST_factor_CB( MCW_arrowval * av , XtPointer cd )
 {
    float osf = func_showthru_fac;
 
+ENTRY( "RCREND_ST_factor_CB" );
+
    func_showthru_fac = av->ival * 0.05;
 
    if ( osf != func_showthru_fac )
       INVALIDATE_OVERLAY ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -6077,11 +6242,13 @@ void RCREND_cut_overlay_CB( Widget w, XtPointer cd, XtPointer cb)
 {
    int newcut = MCW_val_bbox(wfunc_cut_overlay_bbox) ;
 
-   if( newcut == func_cut_overlay ) return ;
+ENTRY( "RCREND_cut_overlay_CB" );
+
+   if( newcut == func_cut_overlay ) EXRETURN ;
 
    func_cut_overlay = newcut ;
    if( num_cutouts > 0 ){ INVALIDATE_OVERLAY ; }
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -6092,7 +6259,9 @@ void RCREND_kill_clusters_CB( Widget w, XtPointer cd, XtPointer cb)
 {
    int cc , newkill = MCW_val_bbox(wfunc_kill_clusters_bbox) ;
 
-   if( newkill == func_kill_clusters ) return ;
+ENTRY( "RCREND_kill_clusters_CB" );
+
+   if( newkill == func_kill_clusters ) EXRETURN ;
 
    func_kill_clusters = newkill ;
 
@@ -6107,12 +6276,14 @@ void RCREND_kill_clusters_CB( Widget w, XtPointer cd, XtPointer cb)
          break ;
       }
 
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_clusters_av_CB( MCW_arrowval * av , XtPointer cd )
 {
    int cc ;
+
+ENTRY( "RCREND_clusters_av_CB" );
 
    INVALIDATE_OVERLAY ;
 
@@ -6122,7 +6293,7 @@ void RCREND_clusters_av_CB( MCW_arrowval * av , XtPointer cd )
          break ;
       }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------------
@@ -6133,6 +6304,8 @@ void RCREND_pbarmenu_EV( Widget w , XtPointer cd ,
                        XEvent * ev , Boolean * continue_to_dispatch )
 {
    static int old_paltab_num = 0 ;
+
+ENTRY( "RCREND_pbarmenu_EV" );
 
    switch( ev->type ){
       case ButtonPress:{
@@ -6160,7 +6333,7 @@ void RCREND_pbarmenu_EV( Widget w , XtPointer cd ,
       }
       break ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------------
@@ -6173,6 +6346,8 @@ void RCREND_pbarmenu_CB( Widget w , XtPointer cd , XtPointer cbs )
    int npane , jm , ii ;
    double pmax , pmin ;
    float pval[NPANE_MAX+1] ;
+
+ENTRY( "RCREND_pbarmenu_CB" );
 
    pbar  = wfunc_color_pbar ;
    npane = pbar->num_panes ;
@@ -6208,12 +6383,14 @@ void RCREND_pbarmenu_CB( Widget w , XtPointer cd , XtPointer cbs )
                          RCREND_finalize_saveim_CB , cd ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_palette_av_CB( MCW_arrowval * av , XtPointer cd )
 {
-   if( GPT == NULL || av->ival < 0 || av->ival >= PALTAB_NUM(GPT) ) return ;
+ENTRY( "RCREND_palette_av_CB" );
+
+   if( GPT == NULL || av->ival < 0 || av->ival >= PALTAB_NUM(GPT) ) EXRETURN ;
 
    HIDE_SCALE ;
    load_PBAR_palette_array( wfunc_color_pbar ,             /* cf. afni_setup.c */
@@ -6221,13 +6398,15 @@ void RCREND_palette_av_CB( MCW_arrowval * av , XtPointer cd )
    FIX_SCALE_SIZE ;
 
    INVALIDATE_OVERLAY ;
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_mixshade_av_CB( MCW_arrowval * av , XtPointer cd )  /* 21 Dec 1999 */
 {
+ENTRY( "RCREND_mixshade_av_CB" );
+
    func_mixshade = av->ival ;
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_set_pbar_top_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
@@ -6237,11 +6416,13 @@ void RCREND_set_pbar_top_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    double pmax , fac ;
    int ii ;
 
-   if( ! renderer_open ){ POPDOWN_integer_chooser; XBell(dc->display,100); return; }
+ENTRY( "RCREND_set_pbar_top_CB" );
 
-   pmax = cbs->fval ; if( pmax <= 0.0 ) return ;           /* illegal */
+   if( ! renderer_open ){ POPDOWN_integer_chooser; XBell(dc->display,100); EXRETURN; }
+
+   pmax = cbs->fval ; if( pmax <= 0.0 ) EXRETURN ;           /* illegal */
    pbar = wfunc_color_pbar ;
-   fac  = pmax / pbar->pval[0] ; if( fac == 1.0 ) return ; /* no change */
+   fac  = pmax / pbar->pval[0] ; if( fac == 1.0 ) EXRETURN ; /* no change */
 
    for( ii=0 ; ii <= pbar->num_panes ; ii++ )
       pval[ii] = fac * pbar->pval[ii] ;
@@ -6251,7 +6432,7 @@ void RCREND_set_pbar_top_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    FIX_SCALE_SIZE ;
 
    INVALIDATE_OVERLAY ;
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs )
@@ -6261,13 +6442,15 @@ void RCREND_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * c
    int ll , nx=20 , ny=256 ;
    MRI_IMAGE * im ;
 
+ENTRY( "RCREND_finalize_saveim_CB" );
+
    if( !renderer_open || cbs->reason != mcwCR_string ||
-       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ) return;
+       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ) EXRETURN;
 
    fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
    strcpy( fname , cbs->cval ) ;
 
-   if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); return;}
+   if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); EXRETURN;}
 
                      ptr = strstr(fname,".ppm") ;
    if( ptr == NULL ) ptr = strstr(fname,".pnm") ;
@@ -6284,7 +6467,7 @@ void RCREND_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * c
    im = MCW_pbar_to_mri( wfunc_color_pbar , nx,ny ) ;
    mri_write_pnm( fname , im ) ;
 
-   POPDOWN_string_chooser; mri_free(im); free(fname); return;
+   POPDOWN_string_chooser; mri_free(im); free(fname); EXRETURN;
 }
 
 /*-----------------------------------------------------------------------------------
@@ -6304,13 +6487,21 @@ void RCREND_reload_func_dset(void)
    byte fim_ovc[NPANE_MAX+1] ;
    float fim_thr[NPANE_MAX] , scale_factor , thresh ;
 
+ENTRY( "RCREND_reload_func_dset" );
+
    INVALIDATE_OVERLAY ;              /* toss old overlay, if any */
+
+   if ( ! ISVALID_DSET( gcr.mset ) ) /* just continue with given func_dset  */
+   {
+      fprintf( stderr, "failure: no master for functional re-orientation" );
+      XBell( dc->display, 100 );
+   }
 
    /* 24 Jul 2001: if not seeing function, make empty ovim  */
    if( !func_see_overlay || func_dset == NULL ){
-      ovim = mri_new_conforming( DSET_BRICK(func_dset,dset_ival) , MRI_byte ) ;
+      ovim = mri_new_conforming( DSET_BRICK(gcr.mset,dset_ival) , MRI_byte ) ;
       ovar = MRI_BYTE_PTR(ovim) ;
-      memset( ovar , 0 , DSET_NVOX(func_dset) ) ;
+      memset( ovar , 0 , DSET_NVOX(gcr.mset) ) ;
       goto EndOfFuncOverlay ;                 /* AHA! */
    }
 
@@ -6322,12 +6513,7 @@ void RCREND_reload_func_dset(void)
 
 /* if (!IS_AXIAL_RAI(func_dset))    - no longer our test for re-orientation */
 
-   if ( ! ISVALID_DSET( gcr.mset ) ) /* just continue with given func_dset  */
-   {
-      fprintf( stderr, "failure: no master for functional re-orientation" );
-      XBell( dc->display, 100 );
-   }
-   else if ( ! EQUIV_DATAXES( gcr.mset->daxes, func_dset->daxes ) )
+   if ( ! EQUIV_DATAXES( gcr.mset->daxes, func_dset->daxes ) )
    {
       if ( new_fset || gcr.fset_or == NULL )          /* we need a new one */
       {
@@ -6378,7 +6564,7 @@ void RCREND_reload_func_dset(void)
 	 default: {
 	    fprintf( stderr, "RCREND_reload_func_dset: image kind %d is not"
 		     "supported here\n", cim->kind );
-	    return;
+	    EXRETURN;
 	 }
 
          case MRI_short:{
@@ -6443,7 +6629,7 @@ void RCREND_reload_func_dset(void)
 	 default: {
 	    fprintf( stderr, "RCREND_reload_func_dset (2): image kind %d is not"
 		     "supported here\n", cim->kind );
-	    return;
+	    EXRETURN;
 	 }
 
          case MRI_short:{
@@ -6542,7 +6728,7 @@ EndOfFuncOverlay:
 
    new_fset = 0;				      /* 28 June 2002 */
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -6561,16 +6747,18 @@ void RCREND_overlay_ttatlas(void)
    int fwin , gwin , nreg , hemi,hbot ;
    byte *brik , *val , *ovc , g_ov , a_ov , final_ov ;
 
+ENTRY( "RCREND_overlay_ttatlas" );
+
    /* sanity checks and setup */
 
-   if( ovim == NULL ) return ;
+   if( ovim == NULL ) EXRETURN ;
 
    nvox = ovim->nvox ;
 
 #if 0
 # define RET(s) do{fprintf(stderr,s);return;}while(0)
 #else
-# define RET(s) return
+# define RET(s) EXRETURN
 #endif
 
    /* 01 Aug 2001: retrieve Atlas dataset depending on size of brick */
@@ -6634,7 +6822,7 @@ void RCREND_overlay_ttatlas(void)
       ovar[ii] = final_ov ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -6646,25 +6834,41 @@ void RCREND_overlay_ttatlas(void)
 
 #define OV(i,j,k) ovar[(i)+(j)*nx+(k)*nxy]
 
-void RCREND_xhair_overlay( MRI_IMAGE * xovim )
+void RCREND_xhair_overlay( THD_3dim_dataset * mset, MRI_IMAGE * xovim )
 {
-   int ix,jy,kz , nx,ny,nz,nxy , ii , gap , om ;
-   byte * ovar ;
-   byte   gxh = 128 + xhair_ovc ;
+   THD_ivec3 ixyz;
+   THD_fvec3 fxyz;
+   int       ix,jy,kz , nx,ny,nz,nxy , ii , gap , om ;
+   float     xi,yj,zk;
+   byte    * ovar ;
+   byte      gxh = 128 + xhair_ovc ;
 
-   if( xovim == NULL || xhair_ovc == 0 ) return ;  /* error */
+ENTRY( "RCREND_xhair_overlay" );
+
+   if( xovim == NULL || xhair_ovc == 0 ) EXRETURN ;  /* error */
 
    CHECK_XHAIR_ERROR ;
 
-   ix = im3d->vinfo->i1 ; nx = xovim->nx ;
-   jy = im3d->vinfo->j2 ; ny = xovim->ny ; nxy = nx * ny ;
-   kz = im3d->vinfo->k3 ; nz = xovim->nz ;
+   /* get Dicom mm coords */
+   xi = im3d->vinfo->xi;
+   yj = im3d->vinfo->yj;
+   zk = im3d->vinfo->zk;
+
+   nx = xovim->nx;
+   ny = xovim->ny;  nxy = nx * ny;
+   nz = xovim->nz;
+
+   /* convert to ijk in mset */
+   LOAD_FVEC3( fxyz, xi, yj, zk );         /* Dicom coords for dset */
+   fxyz = THD_dicomm_to_3dmm(mset, fxyz);  /*    mm coords for mset */
+   ixyz = THD_3dmm_to_3dind (mset, fxyz);  /*   ijk coords for mset */
+   UNLOAD_IVEC3( ixyz, ix, jy, kz );
 
    om = im3d->vinfo->xhairs_orimask ;  /* 02 Jun 1999 */
 
-   if( ix < 0 || ix >= nx ) return ;  /* error */
-   if( jy < 0 || jy >= ny ) return ;  /* error */
-   if( kz < 0 || kz >= nz ) return ;  /* error */
+   if( ix < 0 || ix >= nx ) EXRETURN ;  /* error */
+   if( jy < 0 || jy >= ny ) EXRETURN ;  /* error */
+   if( kz < 0 || kz >= nz ) EXRETURN ;  /* error */
 
    gap  = im3d->vinfo->crosshair_gap ;
    ovar = MRI_BYTE_PTR(xovim) ;
@@ -6691,7 +6895,7 @@ void RCREND_xhair_overlay( MRI_IMAGE * xovim )
 
    xhair_ixold = ix ; xhair_jyold = jy ; xhair_kzold = kz ;  /* memory */
    xhair_omold = om ;                                        /* 02 Jun 1999 */
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------
@@ -6700,10 +6904,12 @@ void RCREND_xhair_overlay( MRI_IMAGE * xovim )
 
 void RCREND_opacity_scale_CB( MCW_arrowval * av , XtPointer cd )
 {
+ENTRY( "RCREND_opacity_scale_CB" );
+
    if( av->fval < MIN_OPACITY_SCALE ) AV_assign_fval(av,MIN_OPACITY_SCALE) ;
    if( cd == NULL && dynamic_flag && gcr.rh != NULL )
       RCREND_draw_CB(NULL,NULL,NULL) ;
-   return ;
+   EXRETURN ;
 }
 
 /*****************************************************************************
@@ -6725,6 +6931,8 @@ void RCREND_script_menu( Widget parent )
    static char * graf_bbox_label[1]    = { "Alter Grafs?" } ;
 #endif
    static char * dset_bbox_label[1]    = { "Alter Dsets?" } ;
+
+ENTRY( "RCREND_script_menu" );
 
    rc =  XtVaCreateWidget(
            "dialog" , xmRowColumnWidgetClass , parent ,
@@ -6838,7 +7046,7 @@ void RCREND_script_menu( Widget parent )
 #endif
 
    XtManageChild( rc ) ;
-   return ;
+   EXRETURN ;
 }
 
 #ifdef SCRIPT_DSETS
@@ -6848,8 +7056,10 @@ void RCREND_script_menu( Widget parent )
 
 void RCREND_script_dset_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
+ENTRY( "RCREND_script_dset_CB" );
+
    script_dsetchange = MCW_val_bbox( script_dset_bbox ) ;
-   return ;
+   EXRETURN ;
 }
 #endif
 
@@ -6860,8 +7070,10 @@ void RCREND_script_dset_CB( Widget w , XtPointer cd , XtPointer cbs )
 
 void RCREND_script_graf_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
+ENTRY( "RCREND_script_graf_CB" );
+
    script_graf = MCW_val_bbox( script_graf_bbox ) ;
-   return ;
+   EXRETURN ;
 }
 #endif
 
@@ -6871,8 +7083,10 @@ void RCREND_script_graf_CB( Widget w , XtPointer cd , XtPointer cbs )
 
 void RCREND_script_brindex_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
+ENTRY( "RCREND_script_brindex_CB" );
+
    script_brindex = MCW_val_bbox( script_brindex_bbox ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -6883,7 +7097,9 @@ void RCREND_script_load_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
    int sl = MCW_val_bbox( script_load_bbox ) ;
 
-   if( sl == script_load ) return ;  /* no change? */
+ENTRY( "RCREND_script_load_CB" );
+
+   if( sl == script_load ) EXRETURN ;  /* no change? */
 
    script_load      = sl ;
    script_load_last = -1 ;
@@ -6899,7 +7115,7 @@ void RCREND_script_load_CB( Widget w , XtPointer cd , XtPointer cbs )
       RCREND_state_to_widgets( last_rendered_state ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -6910,17 +7126,19 @@ static char script_read_fname[THD_MAX_NAME] = "\0" ;
 
 void RCREND_script_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
+ENTRY( "RCREND_script_CB" );
+
    if( w == script_save_this_pb ){
       MCW_choose_string( w , "[Save This] Filename prefix:" , NULL ,
                          RCREND_save_this_CB , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == script_read_this_pb ){
       MCW_choose_string( w , "[Read This] Filename prefix:" ,
                          script_read_fname ,
                          RCREND_read_this_CB , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == script_save_many_pb ){
@@ -6930,11 +7148,11 @@ void RCREND_script_CB( Widget w , XtPointer cd , XtPointer cbs )
                                       "** No rendering states\n"
                                       "** available to save!\n" ,
                                    MCW_USER_KILL | MCW_TIMER_KILL   ) ;
-         PLUTO_beep() ; return ;
+         PLUTO_beep() ; EXRETURN ;
       }
       MCW_choose_string( w , "[Save Many] Filename prefix:" , NULL ,
                          RCREND_save_many_CB , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    if( w == script_read_exec_pb ){
@@ -6949,17 +7167,17 @@ void RCREND_script_CB( Widget w , XtPointer cd , XtPointer cbs )
                                       "** No dataset loaded\n"
                                       "** for rendering!\n" ,
                                    MCW_USER_KILL | MCW_TIMER_KILL   ) ;
-         PLUTO_beep() ; return ;
+         PLUTO_beep() ; EXRETURN ;
       }
       MCW_choose_string( w , "[Read & Exec] Filename prefix:" ,
                          script_read_fname ,
                          RCREND_read_exec_CB , NULL ) ;
-      return ;
+      EXRETURN ;
    }
 
    /*-- should never be reached --*/
 
-   PLUTO_beep() ; return ;
+   PLUTO_beep() ; EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -6973,12 +7191,14 @@ void RCREND_save_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    RENDER_state rs ;
    FILE * fp ;
 
-   if( !renderer_open ){ POPDOWN_string_chooser ; return ; }
+ENTRY( "RCREND_save_this_CB" );
+
+   if( !renderer_open ){ POPDOWN_string_chooser ; EXRETURN ; }
 
    if( cbs->reason != mcwCR_string ||
        cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
 
-      PLUTO_beep() ; return ;
+      PLUTO_beep() ; EXRETURN ;
    }
 
    fname = malloc( sizeof(char) * (ll+8) ) ;
@@ -6995,7 +7215,7 @@ void RCREND_save_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                   "** Try something different.\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(fname) ; PLUTO_beep() ; return ;
+      free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
 
    if( THD_is_file(fname) ){
@@ -7004,7 +7224,7 @@ void RCREND_save_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                   "** AFNI won't overwrite it.\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(fname) ; PLUTO_beep() ; return ;
+      free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
 
    RCREND_widgets_to_state( &rs ) ;
@@ -7016,7 +7236,7 @@ void RCREND_save_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                                    "** Some error occured when\n"
                                    "** trying to save the state!\n" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(fname) ; PLUTO_beep() ; return ;
+      free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
 
    fp = fopen( fname , "w" ) ;
@@ -7026,13 +7246,13 @@ void RCREND_save_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                                    "** Some error occured when\n"
                                    "** trying to open the file!\n" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(sbuf) ; free(fname) ; PLUTO_beep() ; return ;
+      free(sbuf) ; free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
 
    POPDOWN_string_chooser ;
    fwrite( sbuf , 1 , strlen(sbuf) , fp ) ;
    fclose( fp ) ;
-   free( sbuf ) ; free(fname) ; return ;
+   free( sbuf ) ; free(fname) ; EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -7046,12 +7266,14 @@ void RCREND_read_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    RENDER_state rs ;
    RENDER_state_array * rsa ;
 
-   if( !renderer_open ){ POPDOWN_string_chooser ; return ; }
+ENTRY( "RCREND_read_this_CB" );
+
+   if( !renderer_open ){ POPDOWN_string_chooser ; EXRETURN ; }
 
    if( cbs->reason != mcwCR_string ||
        cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
 
-      PLUTO_beep() ; return ;
+      PLUTO_beep() ; EXRETURN ;
    }
 
    fname = malloc( sizeof(char) * (ll+8) ) ;
@@ -7071,7 +7293,7 @@ void RCREND_read_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                    "** trying to read file %s\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(fname) ; PLUTO_beep() ; return ;
+      free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
 
    free(fname) ; POPDOWN_string_chooser ;
@@ -7086,25 +7308,27 @@ void RCREND_read_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                           RCREND_read_this_finalize_CB , (XtPointer) rsa ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 void RCREND_read_this_finalize_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
    RENDER_state_array * rsa = (RENDER_state_array *) cd ;
 
+ENTRY( "RCREND_read_this_finalize_CB" );
+
    POPDOWN_integer_chooser ;
 
    if( cbs->reason != mcwCR_integer ||
        cbs->ival < 0                || cbs->ival >= RSA_COUNT(rsa) ){
 
-      PLUTO_beep() ; return ;
+      PLUTO_beep() ; EXRETURN ;
    }
 
    RCREND_state_to_widgets( RSA_SUBSTATE(rsa,cbs->ival) ) ;
 
    DESTROY_RSA(rsa) ;
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -7118,16 +7342,18 @@ void RCREND_save_many_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    RENDER_state * rs ;
    FILE * fp ;
 
+ENTRY( "RCREND_save_many_CB" );
+
    if( !renderer_open           ||
        renderings_state == NULL || RSA_COUNT(renderings_state) < 1 ){
 
-      POPDOWN_string_chooser ; return ;
+      POPDOWN_string_chooser ; EXRETURN ;
    }
 
    if( cbs->reason != mcwCR_string ||
        cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
 
-      PLUTO_beep() ; return ;
+      PLUTO_beep() ; EXRETURN ;
    }
 
    fname = malloc( sizeof(char) * (ll+8) ) ;
@@ -7144,7 +7370,7 @@ void RCREND_save_many_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                   "** Try something different.\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(fname) ; PLUTO_beep() ; return ;
+      free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
 
    if( THD_is_file(fname) ){
@@ -7153,7 +7379,7 @@ void RCREND_save_many_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                   "** AFNI won't overwrite it.\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(fname) ; PLUTO_beep() ; return ;
+      free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
 
    fp = fopen( fname , "w" ) ;
@@ -7163,7 +7389,7 @@ void RCREND_save_many_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                    "** trying to open file %s\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(fname) ; PLUTO_beep() ; return ;
+      free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
    free(fname) ; POPDOWN_string_chooser ;
 
@@ -7175,6 +7401,8 @@ void RCREND_save_many_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    }
 
    fclose( fp ) ;
+
+   EXRETURN;
 }
 
 /*----------------------------------------------------------------------
@@ -7190,12 +7418,14 @@ void RCREND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    float scl ;
    Widget autometer ;
 
-   if( !renderer_open ){ POPDOWN_string_chooser ; return ; }
+ENTRY( "RCREND_read_exec_CB" );
+
+   if( !renderer_open ){ POPDOWN_string_chooser ; EXRETURN ; }
 
    if( cbs->reason != mcwCR_string ||
        cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
 
-      PLUTO_beep() ; return ;
+      PLUTO_beep() ; EXRETURN ;
    }
 
    fname = malloc( sizeof(char) * (ll+8) ) ;
@@ -7215,7 +7445,7 @@ void RCREND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
                    "** trying to read file %s\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      free(fname) ; PLUTO_beep() ; return ;
+      free(fname) ; PLUTO_beep() ; EXRETURN ;
    }
 
    free(fname) ; POPDOWN_string_chooser ;
@@ -7260,7 +7490,7 @@ void RCREND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    }
 
    automate_flag = 0 ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -7308,9 +7538,11 @@ RENDER_state_array * RCREND_read_states( char * fname , RENDER_state * rsbase )
    RENDER_state * rs ;
    RENDER_state_array * rsa = NULL ;
 
+ENTRY( "RCREND_read_states" );
+
    /* setup & sanity checks */
 
-   fbuf = AFNI_suck_file( fname ) ; if( fbuf == NULL ) return NULL ;
+   fbuf = AFNI_suck_file( fname ) ; if( fbuf == NULL ) RETURN(NULL);
 
    nbuf = strlen(fbuf) ; fptr = fbuf ; nused = 0 ;
 
@@ -7607,7 +7839,7 @@ RENDER_state_array * RCREND_read_states( char * fname , RENDER_state * rsbase )
    Finished:
       free(fbuf) ;
       if( rsa != NULL && RSA_COUNT(rsa) == 0 ){ FREE_RSA(rsa) ; }
-      return rsa ;
+      RETURN(rsa);
 }
 
 /*-------------------------------------------------------------------------------
@@ -7639,7 +7871,9 @@ char * RCREND_save_state( RENDER_state * rs , RENDER_state * rsbase )
    char * sss ;
    int ii ;
 
-   if( rs == NULL ) return NULL ;
+ENTRY( "RCREND_save_state" );
+
+   if( rs == NULL ) RETURN(NULL);
 
    sss = (char *) malloc( sizeof(char) * 32 ) ;
    strcpy(sss,"\n***RENDER\n") ;
@@ -7773,7 +8007,7 @@ char * RCREND_save_state( RENDER_state * rs , RENDER_state * rsbase )
 #endif /* SCRIPT_GRAFS */
 
    sss = THD_zzprintf( sss , "\n" ) ;
-   return sss ;
+   RETURN(sss);
 }
 
 /*------------------------------------------------------------------------------
@@ -7786,7 +8020,9 @@ void RCREND_widgets_to_state( RENDER_state * rs )
 {
    int ii ;
 
-   if( rs == NULL ) return ;
+ENTRY( "RCREND_widgets_to_state" );
+
+   if( rs == NULL ) EXRETURN ;
 
    /* dataset stuff */
 
@@ -7856,7 +8092,7 @@ void RCREND_widgets_to_state( RENDER_state * rs )
    graf_state_get( opa_graf , &(rs->opacity_graf_state) ) ;
 #endif
 
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------------
@@ -7875,7 +8111,9 @@ void RCREND_state_to_widgets( RENDER_state * rs )
    int ii , flag ;
    static XtPointer xpt = (XtPointer) "Mr Tambourine Man" ;
 
-   if( rs == NULL ) return ;
+ENTRY( "RCREND_state_to_widgets" );
+
+   if( rs == NULL ) EXRETURN ;
 
    script_dontdraw = 1 ;  /* 24 Nov 2000 */
 
@@ -8178,7 +8416,7 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
 
    script_dontdraw = 0 ;  /* 24 Nov 2000 */
 
-   return ;
+   EXRETURN ;
 }
 
 #endif /* USE_SCRIPTING */
@@ -8193,11 +8431,13 @@ void RCREND_environ_CB( char * ename )
    char * ept ;
    float val ;
 
+ENTRY( "RCREND_environ_CB" );
+
    /* sanity checks */
 
-   if( ename == NULL ) return ;
+   if( ename == NULL ) EXRETURN ;
    ept = getenv(ename) ;
-   if( ept == NULL ) return ;
+   if( ept == NULL ) EXRETURN ;
 
    /*---*/
 
@@ -8226,7 +8466,7 @@ void RCREND_environ_CB( char * ename )
 
    /*---*/
 
-   return ;
+   EXRETURN ;
 }
 
 void rcr_disp_hist( unsigned char * im, int nvox, int b1, int cut, int b2 )
@@ -8235,10 +8475,12 @@ void rcr_disp_hist( unsigned char * im, int nvox, int b1, int cut, int b2 )
     unsigned char   max = 0;
     int             c1, s1, s2, cur;
 
+ENTRY( "rcr_disp_hist" );
+
     if ( ( b1 > 256 ) || ( b2 > 256 ) || ( im == NULL ) )
     {
 	fprintf( stderr, "*** incorrect parameters to rcr_disp_hist\n" );
-        return;
+        EXRETURN;
     }
 
     memset( grcr_hist_high, 0, 256 * sizeof(int) );
@@ -8279,6 +8521,8 @@ void rcr_disp_hist( unsigned char * im, int nvox, int b1, int cut, int b2 )
 	printf( "[%d,%d] : %d\n", cur, cur + s2 - 1, grcr_hist_high[c1] );
 	cur += s2;
     }
+
+    EXRETURN;
 }
 
 
@@ -8296,6 +8540,8 @@ static void RCREND_inc_angles( int ax, float th,
    double a,b,c ;
    THD_dmat33 qq , rr , pp ;
 
+ENTRY( "RCREND_inc_angles" );
+
    a = *yaw ; b = *pitch ; c = *roll ;           /* fetch input angles */
    qq = RCREND_rotmatrix( 1,a , 0,b , 2,c ) ;    /* compute matrix from angles */
 
@@ -8304,7 +8550,7 @@ static void RCREND_inc_angles( int ax, float th,
    pp = DMAT_MUL(rr,qq) ;                        /* total rotation matrix */
    RCREND_rotmatrix_to_angles( pp , &a,&b,&c ) ; /* get angles from this */
    *yaw = a ; *pitch = b ; *roll = c ;           /* store angles */
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -8315,11 +8561,13 @@ static THD_dmat33 RCREND_rotmatrix( int ax1,double th1 ,
 {
    THD_dmat33 q , p ;
 
+ENTRY( "RCREND_rotmatrix" );
+
    LOAD_ROT_MAT( q , th1 , ax1 ) ;
    LOAD_ROT_MAT( p , th2 , ax2 ) ; q = DMAT_MUL( p , q ) ;
    LOAD_ROT_MAT( p , th3 , ax3 ) ; q = DMAT_MUL( p , q ) ;
 
-   return q ;
+   RETURN(q);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -8341,6 +8589,8 @@ static void RCREND_rotmatrix_to_angles( THD_dmat33 q,
    double a,b,c ;
    double sb,cb , sc,cc ;
 
+ENTRY( "RCREND_rotmatrix_to_angles" );
+
    sb = -q.mat[2][1] ; b = PI-asin(sb) ; cb = cos(b) ;
 
    if( fabs(cb) < 0.001 ){  /* singular case */
@@ -8356,7 +8606,9 @@ static void RCREND_rotmatrix_to_angles( THD_dmat33 q,
    if( a < 0 ) a += 2.0*PI ;
    if( c < 0 ) c += 2.0*PI ;
 
-   *yaw = a ; *pitch = b ; *roll = c ; return ;
+   *yaw = a ; *pitch = b ; *roll = c ; EXRETURN ;
+
+    EXRETURN;
 }
 #endif /* ALLOW_INCROT */
 /*==========================================================================*/
