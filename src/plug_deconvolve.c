@@ -124,28 +124,33 @@
            when the baseline was set to "None".
   Date:    03 Oct 2002
 
+  Mod:     Increased size of screen output buffer (again).
+  Date:    28 October 2002
+
+  Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
+  Date:    02 December 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME    "plug_deconvolve"            /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
-#define PROGRAM_INITIAL "09 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "03 Oct  2002"    /* date of latest program revision */
+#define PROGRAM_INITIAL "09 September 1998"  /* initial program release date */
+#define PROGRAM_LATEST  "02 December 2002"   /* latest program revision date */
 
 /*---------------------------------------------------------------------------*/
 
-#define MAX_NAME_LENGTH 80              /* max. streng length for file names */
+#include "afni.h"
+#include "matrix.h"
+
+#define MAX_NAME_LENGTH THD_MAX_NAME    /* max. string length for file names */
 #define MAX_XVARS 250                           /* max. number of parameters */
 #define MAX_STIMTS 20                 /* max. number of stimulus time series */
 #define MAX_GLT 20                    /* max. number of general linear tests */
 #define MAX_CONSTR 20                 /* max. number of linear constraints   */
 
 #define RA_error DC_error
-
-#include "afni.h"
-#include "matrix.h"
-
 
 /*---------------------------------------------------------------------------*/
 /*

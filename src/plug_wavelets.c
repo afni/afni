@@ -11,6 +11,9 @@
   File:    plug_wavelet.c
   Author:  B. Douglas Ward
   Date:    28 March 2000
+
+  Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
+  Date:    02 December 2002
 */
 
 
@@ -21,18 +24,8 @@
 
 #define PROGRAM_NAME "plug_wavelets"                 /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "28 March 2000"             /* date of last program mod */
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Global constants. 
-*/
-
-#define MAX_NAME_LENGTH 80              /* max. streng length for file names */
-#define MAX_FILTERS 20                    /* max. number of blocking filters */
-#define MAX_BAND 20                       /* max. frequency band */
-
+#define PROGRAM_INITIAL "28 March 2000"      /* initial program release date */
+#define PROGRAM_LATEST  "02 December  2002"   /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -43,6 +36,14 @@
 #include "Wavelets.h"
 #include "Wavelets.c"
 
+/*---------------------------------------------------------------------------*/
+/*
+  Global constants. 
+*/
+
+#define MAX_NAME_LENGTH THD_MAX_NAME    /* max. string length for file names */
+#define MAX_FILTERS 20                  /* max. number of blocking filters */
+#define MAX_BAND 20                     /* max. frequency band */
 
 /*---------------------------------------------------------------------------*/
 
@@ -304,12 +305,15 @@ char * WA_main( PLUGIN_interface * plint )
   while (1);
 
 
-  /*----- show current input options -----*/
+  /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR);
-  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+  printf ("\n");
 
+  /*----- show current input options -----*/
   printf ("\nControls: \n");
   printf ("Wavelet Type = %10s \n", WAVELET_TYPE_name[plug_wavelet_type]);
   printf ("NFirst       = %10d \n", plug_NFirst);

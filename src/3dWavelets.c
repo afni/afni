@@ -15,6 +15,8 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
+  Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
+  Date:    02 December 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -25,16 +27,7 @@
 #define PROGRAM_NAME "3dWavelets"                    /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "28 March 2000"   /* date of initial program release */
-#define PROGRAM_LATEST "15 August 2001"     /* date of last program revision */
-
-/*---------------------------------------------------------------------------*/
-/*
-  Global constants. 
-*/
-
-#define MAX_NAME_LENGTH 80              /* max. streng length for file names */
-#define MAX_FILTERS 20               /* max. number of filter specifications */
-
+#define PROGRAM_LATEST "02 December 2002"   /* date of last program revision */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -44,6 +37,15 @@
 #include "mrilib.h"
 #include "Wavelets.h"
 #include "Wavelets.c"
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Global constants. 
+*/
+
+#define MAX_NAME_LENGTH THD_MAX_NAME    /* max. string length for file names */
+#define MAX_FILTERS 20               /* max. number of filter specifications */
 
 
 /*---------------------------------------------------------------------------*/

@@ -222,17 +222,18 @@
            simultaneously.
   Date:    10 October 2002
 
+  Mod:     Increased size of screen output buffer (again).
+  Date:    02 December 2002
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
-#define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "10 Oct 2002"     /* date of latest program revision */
+#define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
+#define PROGRAM_LATEST  "02 December 2002"    /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
-
 
 #define RA_error DC_error
 

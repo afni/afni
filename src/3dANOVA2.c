@@ -53,6 +53,9 @@
    Mod:     Modified routine write_afni_data of 3dANOVA.lib so that all output
             subbricks will now have the scaled short integer format.
    Date:    14 March 2002
+
+   Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
+   Date:    02 December 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -60,7 +63,7 @@
 #define PROGRAM_NAME    "3dANOVA2"                   /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Dec 1996"     /* date of initial program release */
-#define PROGRAM_LATEST  "14 Mar 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
