@@ -1,14 +1,14 @@
 # This Makefile works on Linux.
-# This is for compiling with GCC 3.2, for a Pentium IV or above CPU.
+# This is for compiling with GCC 3.3, on a 64-bit CPU.
 
 # CPROF = -pg -g
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
 
-CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
@@ -27,7 +27,7 @@ PLUGIN_CC     = $(CC)
 # PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
 PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib64
 
-SHOWOFF = -DSHOWOFF=linux_gcc32
+SHOWOFF = -DSHOWOFF=linux_gcc33_64
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib
@@ -42,7 +42,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./linux_gcc32
+INSTALLDIR = ./linux_gcc33_64
 LIBDIR = $(INSTALLDIR)
 
 INSTALL_PREREQ = suma
