@@ -144,6 +144,9 @@
                          without recompiling AFNI;  this option has only
                          been tested on CYGWIN, and requires a special Makefile.
 
+    BAD_BUTTON3_POPUPS = if this is set, then Button-3 popup menus don't work
+                         and the program tries something else (i.e., Solaris).
+
   Flags that MUST be set appropriately for each system:
 
     THD_MMAP_FLAG = value to set when using "mmap" to map a file to memory
