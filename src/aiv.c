@@ -103,17 +103,19 @@ int main( int argc , char *argv[] )
    INIT_IMARR(MAIN_imar) ;
 
    for( ii=1 ; ii < argc ; ii++ ){
+     fprintf(stderr,"+") ;
      im = mri_read( argv[ii] ) ;
      if( im == NULL ){
-       fprintf(stderr,"** Can't read image %s - skipping\n",argv[ii]) ;
+       fprintf(stderr,"\n** Can't read image %s - skipping **\n",argv[ii]) ;
        continue ;
-     }
+     } else
+       fprintf(stderr,"%s",argv[ii]) ;
      ADDTO_IMARR( MAIN_imar , im ) ;
    }
-
    if( IMARR_COUNT(MAIN_imar) == 0 ){
-     fprintf(stderr,"** NO IMAGES?\n") ; exit(1) ;
+     fprintf(stderr,"\n** NO IMAGES?\n") ; exit(1) ;
    }
+   fprintf(stderr," = %d images\n",IMARR_COUNT(MAIN_imar)) ;
 
    shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
                               &argc , argv , FALLback , NULL ) ;
