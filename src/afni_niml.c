@@ -184,8 +184,9 @@ static int     slist_surfs_for_ldp(ldp_surf_list * lsurf, int * surfs, int max,
  * 10 Mar 2005 - RWCox
 ------------------------------------------------------------------------*/
 
-static void    process_NIML_AFNI_dataset   ( NI_group * , int ) ;
-static void    process_NIML_AFNI_volumedata( void *     , int ) ;
+static void    process_NIML_AFNI_dataset   ( NI_group *   , int ) ;
+static void    process_NIML_AFNI_volumedata( void *       , int ) ;
+static void    process_NIML_MRI_IMAGE      ( NI_element * , int ) ;
 
 /************************************************************************/
 
@@ -543,6 +544,10 @@ ENTRY("AFNI_process_NIML_data") ;
    } else if( strcmp(nel->name,"VOLUME_DATA") == 0 ){         /* 10 Mar 2005 */
 
      process_NIML_AFNI_volumedata( nel , ct_start ) ;     /* AFNI sub-bricks */
+
+   } else if( strcmp(nel->name,"MRI_IMAGE") == 0 ){           /* 22 Mar 2005 */
+
+     process_NIML_MRI_IMAGE( nel , ct_start ) ;       /* store as a .1D file */
 
    } else {
      /*** If here, then name of element didn't match anything ***/
@@ -2126,7 +2131,7 @@ STATUS("redisplay Node_ROI function") ;
     that dataset with this one.
 ----------------------------------------------------------------------*/
 
-void process_NIML_AFNI_dataset( NI_group *ngr , int ct_start )
+static void process_NIML_AFNI_dataset( NI_group *ngr , int ct_start )
 {
    Three_D_View *im3d = AFNI_find_open_controller() ;
    THD_3dim_dataset *dset , *old_dset ;
@@ -2209,7 +2214,7 @@ ENTRY("process_NIML_AFNI_dataset") ;
     the idcode).
 ----------------------------------------------------------------------*/
 
-void process_NIML_AFNI_volumedata( void *nini , int ct_start )
+static void process_NIML_AFNI_volumedata( void *nini , int ct_start )
 {
    char *idc ;
    THD_slist_find find ;
@@ -2243,5 +2248,44 @@ ENTRY("process_NIML_AFNI_volumedata") ;
                             "  I/O time = %4d ms, Processing = %4d ms\n" ,
                             ct_read , ct_tot-ct_read ) ;
    SHOW_MESSAGE( msg ) ;
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Process a '<MRI_IMAGE ...>' element to add a .1D file to AFNI's
+    library of such things.
+----------------------------------------------------------------------*/
+
+static void process_NIML_MRI_IMAGE( NI_element *nel , int ct_start )
+{
+   MRI_IMAGE *im ;
+
+ENTRY("process_NIML_MRI_IMAGE") ;
+
+   im = niml_to_mri( nel ) ;   /* convert element to an image */
+
+   /* reject bad or overlarge images */
+
+   if( im == NULL ) EXRETURN ;
+   if( im->nx < 2 || im->nz > 1 || im->ny > 99 ){ mri_free(im); EXRETURN; }
+
+   /* convert to float, if needed */
+
+   if( im->kind != MRI_float ){
+     MRI_IMAGE *qim = mri_to_float(im) ;
+     if( qim != NULL ){ mri_free(im); im = qim; }
+   }
+
+   /* make up a name, if none provided */
+
+   if( im->name == NULL || im->name[0] == '\0' ){
+     static int nnn=1 ; char mmm[32] ;
+     sprintf(mmm,"niml_%03d",nnn) ;
+     mri_add_name(mmm,im) ;
+   }
+
+   /* store in AFNI's list, and vamoose */
+
+   AFNI_add_timeseries( im ) ;
    EXRETURN ;
 }

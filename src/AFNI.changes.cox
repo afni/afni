@@ -5382,3 +5382,7 @@
 
 22 Mar 2005
  * mean(), stdev(), and sem() for parser and 3dcalc.
+ * Modify Ziad's plugout_drive.c '-com' option to execute commands in
+     order given, rather than the reverse order.
+ * Fix REDISPLAY in afni_driver.c (oopsie).
+ * Added '<MRI_IMAGE ...>' input to afni_niml.c, to store as .1D files.
