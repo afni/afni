@@ -4809,3 +4809,6 @@
 
 24 Nov 2003
  * Fun with Apple's speech synthesis.
+
+01 Dec 2003
+ * Modified imseq.c to add AFNI_IMAGE_ZEROCOLOR environment variable.

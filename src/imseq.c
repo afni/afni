@@ -1451,9 +1451,12 @@ if( PRINT_TRACING ){
    XtAddCallback( newseq->wbar_sharp_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
 
    newseq->rng_bot   = newseq->rng_top = newseq->rng_ztop = 0 ;
-   newseq->zer_color = 0 ;
    newseq->flat_bot  = newseq->flat_top = 0.0 ;
    newseq->sharp_fac = 0.60 ;
+
+   newseq->zer_color = 0 ;
+   ii = DC_find_overlay_color( newseq->dc , getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
+   if( ii > 0 ) newseq->zer_color = ii ;
 
    /* label for informational display */
 
