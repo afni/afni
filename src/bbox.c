@@ -33,7 +33,7 @@ MCW_bbox * new_MCW_bbox( Widget parent ,
 
    if( num_but <= 0 || num_but >= 32 ){
       fprintf(stderr,"\n*** illegal new_MCW_bbox has %d buttons\n",num_but) ;
-      exit(-1) ;
+      EXIT(1) ;
    }
 
    bb = (MCW_bbox *) XtMalloc( sizeof(MCW_bbox) ) ;

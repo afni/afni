@@ -504,7 +504,6 @@ fprintf(stderr,"CREN_render: nx=%d ny=%d nz=%d\n",ar->nx,ar->ny,ar->nz);
         which is the matrix which transforms from
         image index coords to volume index coords  --*/
 
-
    uu = MAT_MUL( ar->skewmat , uu ) ; /* a signed permutation? */
 
    uu.mat[0][0] *= (dab / ar->dx ) ;  /* multiply columns by dab  */

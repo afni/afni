@@ -56,7 +56,7 @@ MRI_IMARR * THD_get_many_timeseries( THD_string_array * dlist )
       if( elocal == NULL ){
          fprintf(stderr,
                 "\n*** THD_get_many_timeseries malloc failure - is memory full? ***\n");
-         exit(1) ;
+         EXIT(1) ;
       }
       strcpy( elocal , epath ) ; elocal[ll] = ' ' ; elocal[ll+1] = '\0' ;
 

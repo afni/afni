@@ -27,7 +27,7 @@ int main( int argc , char * argv[] )
    if( argc == 2 && strcmp(argv[1],"-write") == 0 ){
       FILE * fp = fopen(VERSION_FILE,"w") ;
       if( fp == NULL ){
-         fprintf(stderr,"** Failed to open %s!\n",VERSION_FILE); exit(1);
+         fprintf(stderr,"** Failed to open %s!\n",VERSION_FILE); EXIT(1);
       }
       fprintf( fp , "%s\n%s\n" , VERSION , RELEASE ) ;
       fclose(fp) ;
@@ -61,7 +61,7 @@ int main( int argc , char * argv[] )
    fprintf(stderr,"\n") ;
 
    if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ){
-      fprintf(stderr,"** Error in fetch!\n"); exit(1);
+      fprintf(stderr,"** Error in fetch!\n"); EXIT(1);
    }
 
    sscanf( vbuf , "%127s %127s %127s %127s" , vv , r1,r2,r3 ) ;

@@ -19,13 +19,15 @@
 /*** Modified 26 Jan 2001 to separate it more fully from
      AFNI itself and incorporate it into the mrilib.    ***/
 
+/*** 20 Feb 2001: added TRACEBACK and EXIT macros       ***/
+
 /*-------------------------------------------------------------------
    29 Jan 2001: a hack for debugging files selectively
 ---------------------------------------------------------------------*/
 
 #ifndef TWO_TWO
    /** combine two interpreted tokens into one using TWO_TWO **/
- 
+
 #  define TWO_ONE(x,y) x ## y
 #  define TWO_TWO(x,y) TWO_ONE(x,y)
 #endif
@@ -62,6 +64,8 @@
 
 #endif
 
+#define TRACEBACK DBG_traceback()  /* 20 Feb 2001 */
+
 /*----------------------------------------------------------------
    Define things to be used in debugtrace.c
 ------------------------------------------------------------------*/
@@ -74,6 +78,12 @@
    int DBG_trace = 0 ;   /* turn off at start (cf. mainENTRY) */
 
    char * DBG_labels[3] = { "Trace=OFF " , "Trace=LOW " , "Trace=HIGH" } ;
+
+void DBG_traceback(void)
+{ int tt ;
+  for( tt=DBG_num-1; tt >= 1 ; tt-- )
+    fprintf(stderr,"%*.*s%s\n",tt+1,tt+1," ",DBG_rout[tt]) ;
+}
 
 void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
@@ -106,6 +116,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    extern int DBG_trace ;
    extern char * DBG_labels[3] ;
    extern void DBG_sigfunc(int) ;
+   extern void DBG_traceback(void) ;
 #endif /* _DEBUGTRACE_MAIN_ */
 
 #define DBG_SIGNALS ( signal(SIGPIPE,DBG_sigfunc) , \
@@ -158,6 +169,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #  define DBG_SIGNALS   /* nada */
 #  define MCHECK        /* nada */
 #  define MPROBE        /* nada */
+#  define TRACEBACK     /* nada */
 #  define PRINT_TRACING 0
 #  define DBG_trace     0          /* 09 Dec 1999 */
 
@@ -172,9 +184,15 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #endif /* USE_TRACING */
 /*********************************************************************/
 
+/* these macros are always defined here */
 
-#define RETURN(val) do{ DBEXIT ; return (val) ; } while(0)
-#define EXRETURN    do{ DBEXIT ; return ; } while(0)
+#undef RETURN
+#undef EXRETURN
+#undef EXIT
+
+#define RETURN(val) do{ DBEXIT    ; return (val) ; } while(0)
+#define EXRETURN    do{ DBEXIT    ; return       ; } while(0)
+#define EXIT(n)     do{ TRACEBACK ; exit(n)      ; } while(0)
 
 /*---------------------------------------------------------------*/
 

@@ -80,7 +80,7 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
          ffim = (float *) malloc (sizeof(float) * nxyz);
          if( ffim == NULL ){
             fprintf(stderr,"EDIT_filter_volume: no workspace!\n") ;
-            exit(1) ;
+            EXIT(1) ;
          }
          EDIT_coerce_type (nxyz, fim_type, vfim, MRI_float, ffim);
       } else {
@@ -113,12 +113,12 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
 
       if( fexpr == NULL ){
          fprintf(stderr,"*** EDIT_filter_volume: no fexpr for FCFLAG_EXPR!\n");
-         exit(1) ;
+         EXIT(1) ;
       }
 
       pcode = PARSER_generate_code( fexpr ) ;
       if( pcode == NULL ){
-         fprintf(stderr,"*** EDIT_filter_volume: illegal fexpr!\n"); exit(1);
+         fprintf(stderr,"*** EDIT_filter_volume: illegal fexpr!\n"); EXIT(1);
       }
 
       wt = (float *) malloc(sizeof(float)*(mnum+1)) ;
@@ -179,13 +179,13 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    if (ffim == NULL)
    {
       fprintf (stderr, "\n Error: cannot allocate filter workspace! \n");
-      exit(1);
+      EXIT(1);
    }
    ffim_out = (float *) malloc (sizeof(float) * nxyz);
    if (ffim_out == NULL)
    {
       fprintf (stderr, "\n Error: cannot allocate filter workspace! \n");
-      exit(1);
+      EXIT(1);
    }
 
    /*--- Convert vfim to floating point data ---*/
@@ -427,14 +427,14 @@ void EDIT_aver_fvol( int   nx, int   ny, int   nz,
       fprintf(stderr,"*** EDIT_aver_volume can't malloc workspace!\n") ;
       fprintf(stderr,"nx=%d ny=%d nz=%d nxadd=%d nyadd=%d nzadd=%d\n",
               nx,ny,nz , nxadd,nyadd,nzadd ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
    for( i=0 ; i < nxyz_add ; i++ ) ffim[i] = 0.0 ;
 
    madd = (int *) malloc( sizeof(int) * (mnum+1) ) ;
    if( madd == NULL ){
       fprintf(stderr,"*** EDIT_aver_volume can't malloc workspace!\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
    madd[0] = 0 ;
    for( ii=0 ; ii < mnum ; ii++ ){

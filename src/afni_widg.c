@@ -4055,13 +4055,13 @@ ENTRY("AFNI_initialize_controller") ;
    if( ! IM3D_VALID(im3d) ){
       fprintf(stderr,
               "\n*** AFNI_initialize_controller: invalid input ***\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    if( GLOBAL_library.sslist == NULL ){  /* any data to use? */
       fprintf(stderr,
               "\n*** AFNI_initialize_controller: no sessions to view ***\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    im3d->ss_now = GLOBAL_library.sslist->ssar[ im3d->vinfo->sess_num ] ;
@@ -4077,7 +4077,7 @@ ENTRY("AFNI_initialize_controller") ;
       if( im3d->ss_now == NULL ){  /* still no data? */
          fprintf(stderr,
                  "\n*** AFNI_initialize_controller: illegal initial session ***\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
    }
 
@@ -4094,7 +4094,7 @@ ENTRY("AFNI_initialize_controller") ;
 
    if( ii > LAST_VIEW_TYPE ){
       fprintf(stderr,"\n*** AFNI_initialize_controller: cannot initialize view ***\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
    im3d->vinfo->view_type = ii ;  /* first view with a good anat */
 

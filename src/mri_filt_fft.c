@@ -29,7 +29,7 @@
           name = (type *) malloc( sizeof(type) * (dim) ) ;                  \
           if( name == NULL ){                                               \
              fprintf(stderr,"*** can't malloc mri_filt_fft workspace\n") ;  \
-             exit(1) ; }                                                    \
+             EXIT(1) ; }                                                    \
           name ## _size = (dim) ; }                                         \
        break ; } while(1)
 
@@ -63,7 +63,7 @@ MRI_IMAGE * mri_filt_fft( MRI_IMAGE * im ,
 
    if( ! MRI_IS_2D(im) ){
       fprintf(stderr,"*** mri_filt_fft: Only works on 2D images\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    nx = im->nx ; ny = im->ny ;

@@ -33,7 +33,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
 
       impair = mri_complex_to_pair( imin ) ;
       if( impair == NULL ){
-         fprintf(stderr,"*** mri_complex_to_pair fails in mri_dup2D!\n"); exit(1);
+         fprintf(stderr,"*** mri_complex_to_pair fails in mri_dup2D!\n"); EXIT(1);
       }
       rim = IMAGE_IN_IMARR(impair,0) ;
       iim = IMAGE_IN_IMARR(impair,1) ;  FREE_IMARR(impair) ;
@@ -52,7 +52,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
 
       imtriple = mri_rgb_to_3byte( imin ) ;
       if( imtriple == NULL ){
-         fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); exit(1);
+         fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); EXIT(1);
       }
       rim = IMAGE_IN_IMARR(imtriple,0) ;
       gim = IMAGE_IN_IMARR(imtriple,1) ;
@@ -89,7 +89,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
    cold = (float *) malloc( sizeof(float) * ny ) ;
    cnew = (float *) malloc( sizeof(float) * nyup ) ;
    if( cold == NULL || cnew == NULL ){
-      fprintf(stderr,"*** mri_dup2D malloc failure!\n"); exit(1);
+      fprintf(stderr,"*** mri_dup2D malloc failure!\n"); EXIT(1);
    }
 
    for( ii=0 ; ii < nxup ; ii++ ){

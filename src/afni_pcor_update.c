@@ -58,7 +58,7 @@ void PCOR_UPDATE( DTYPE * vdata , PCOR_references * ref , PCOR_voxel_corr * vc )
 
    if( vc->nref != ref->nref ){
       fprintf( stderr , "PCOR_UPDATE: reference size mismatch!\n" ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
 /**----------------------------------------------------------------------

@@ -214,7 +214,7 @@ static int  nib = -1 ;
                               if(ib != NULL) free(ib) ;                     \
                               ib  = (int *) malloc(sizeof(int)*((top)+9)) ; \
                               if(ib==NULL){                                 \
-                                 fprintf(stderr,"\nmalloc fails in NN reslice!\n");exit(1);} \
+                                 fprintf(stderr,"\nmalloc fails in NN reslice!\n");EXIT(1);} \
                               nib = (top) ; } } while(0)
 
 /*---------------------------------------------------------------------

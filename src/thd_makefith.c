@@ -392,7 +392,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
          if( (bout == NULL) || (tbout == NULL) ){
             fprintf(stderr,
              "\nFinal malloc error in MAKER_4D_to_fith - is memory exhausted?\n\a") ;
-            exit(1) ;
+            EXIT(1) ;
          }
 
          /*-- find scaling and then scale --*/

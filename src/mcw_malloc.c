@@ -6,11 +6,13 @@
 
 #include "mcw_malloc.h"
 
-/*--------------------------------------------------------------
-  24 Jan 2001: Modified heavily to use a hash table instead of
-  a linear array to store the data about each allocated block
+/*--------------------------------------------------------------------------
+  24 Jan 2001: Modified heavily to use a hash table instead of a linear
+               array to store the data about each allocated block.
+  16 Feb 2001: Modified to include some debug traceback info (if
+               USE_TRACING is defined - searce for TRAC to see code).
   -- RWCox
-----------------------------------------------------------------*/
+----------------------------------------------------------------------------*/
 
 #define MAGIC  ((char) 0xd7)
 #define NEXTRA (2*sizeof(int))
@@ -24,10 +26,14 @@
 #undef XtFree
 #undef XtCalloc
 
-#ifdef UINT
-# undef UINT
-#endif
+#undef  UINT
 #define UINT unsigned int
+
+#ifdef USE_TRACING        /* 16 Feb 2001 */
+# include "debugtrace.h"
+# undef  NTB    /* number of traceback levels to keep for each malloc() */
+# define NTB 5  /* (chosen to make sizeof(mallitem) a multiple of 8)    */
+#endif
 
 /*-- struct to hold info about each malloc()-ed block --*/
 
@@ -37,6 +43,9 @@ typedef struct {
    char * pfn ;   /* function name that called */
    int    pln ;   /* function line number */
    UINT   pss ;   /* serial number of this malloc */
+#ifdef USE_TRACING
+   char * ptb[NTB] ; /* traceback from debugtrace.h */
+#endif
 } mallitem ;
 
 /** set hash table size (to a prime number, please) **/
@@ -56,6 +65,15 @@ static UINT       serial = 0    ; /* serial number of allocation */
 # define INLINE inline
 #else
 # define INLINE /*nada*/
+#endif
+
+#ifdef USE_TRACING
+# define ADD_TRACEBACK(ip)                                                   \
+   do{ int tt ;                                                              \
+       for( tt=1 ; tt <= NTB ; tt++ )                                        \
+         ip->ptb[tt-1] = (tt < DBG_num) ? DBG_rout[DBG_num-tt] : NULL; } while(0)
+#else
+# define ADD_TRACEBACK(ip) /* nada */
 #endif
 
 /*---------------------------------------------------------------
@@ -149,6 +167,8 @@ static void add_tracker( void * fred , size_t n , char * fn , int ln )
    ip->pln = ln ;
    ip->pss = ++serial ;
 
+   ADD_TRACEBACK(ip) ;  /* 16 Feb 2001 */
+
    return ;
 }
 
@@ -238,6 +258,8 @@ static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
       ip->pfn = fn ;
       ip->pln = ln ;
       ip->pss = ++serial ;
+
+      ADD_TRACEBACK(ip) ;  /* 16 Feb 2001 */
 
    } else {           /* must move into a different list */
 
@@ -376,18 +398,32 @@ void mcw_malloc_dump(void)
 
    /* now print table in serial number order */
 
-   fprintf(fp , "MCW Malloc Table Dump:\n"
-                "serial# size       source file          line# address    hash(j,k)\n"
-                "------- ---------- -------------------- ----- ---------- ----- ---\n") ;
+#ifdef USE_TRACING
+   fprintf(fp, "MCW Malloc Table Dump:\n"
+               "serial# size       source file          line# address    hash(j,k) <- Called by\n"
+               "------- ---------- -------------------- ----- ---------- ----- ---    ---------\n");
+#else
+   fprintf(fp, "MCW Malloc Table Dump:\n"
+               "serial# size       source file          line# address    hash(j,k)\n"
+               "------- ---------- -------------------- ----- ---------- ----- ---\n") ;
+#endif
 
    for( ii=0 ; ii < nptr ; ii++ ){
       jj = jk[ii] / JBASE ;           /* retrieve jj and kk */
       kk = jk[ii] % JBASE ;
-      if( htab[jj][kk].pmt != NULL )
-         fprintf(fp,"%7u %10d %-20.30s %5d %10p %5d %3d\n",
+      if( htab[jj][kk].pmt != NULL ){
+         fprintf(fp,"%7u %10d %-20.30s %5d %10p %5d %3d",
                  htab[jj][kk].pss , htab[jj][kk].psz ,
                  htab[jj][kk].pfn , htab[jj][kk].pln , htab[jj][kk].pmt ,
                  jj,kk ) ;
+#ifdef USE_TRACING
+         { int tt ;
+           for( tt=0 ; tt < NTB && htab[jj][kk].ptb[tt] != NULL ; tt++ )
+              fprintf(fp," <- %s",htab[jj][kk].ptb[tt]) ;
+         }
+#endif
+         fprintf(fp,"\n") ;
+      }
       else
          fprintf(fp,"*** Error at ii=%d jj=%d kk=%d\n",ii,jj,kk) ;
    }

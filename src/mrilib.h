@@ -323,7 +323,7 @@ static int MRI_mm ;
 #endif
 
 #define MRI_FATAL_ERROR \
-        {fprintf(stderr,"in file: %s at line %d\n",__FILE__,__LINE__);exit(1);}
+        {fprintf(stderr,"in file: %s at line %d\n",__FILE__,__LINE__);EXIT(1);}
 
 /**** prototypes ****/
 

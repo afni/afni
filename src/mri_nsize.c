@@ -23,7 +23,7 @@ MRI_IMAGE * mri_nsize( MRI_IMAGE * imin )
 
    if( ! MRI_IS_2D(imin) ){
       fprintf(stderr,"\n*** mri_nsize only works on 2D images!\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    nx   = imin->nx ;  ny = imin->ny ;

@@ -655,7 +655,7 @@ char * POWER_main( PLUGIN_interface * plint )
             bout = (short *) malloc( sizeof(short) * nvox ) ;
             if( bout == NULL ){
                fprintf(stderr,"\nFinal malloc error in plug_power!\n\a") ;
-               exit(1) ;
+               EXIT(1) ;
             }
 
             /*-- find scaling and then scale --*/
@@ -700,7 +700,7 @@ char * POWER_main( PLUGIN_interface * plint )
             bout = (byte *) malloc( sizeof(byte) * nvox ) ;
             if( bout == NULL ){
                fprintf(stderr,"\nFinal malloc error in plug_power!\n\a") ;
-               exit(1) ;
+               EXIT(1) ;
             }
 
             /*-- find scaling and then scale --*/

@@ -38,7 +38,7 @@ printf("Entry: mri_sobel\n") ;
 
    if( imin == NULL || ! MRI_IS_2D(imin) ){
       fprintf(stderr,"\n*** mri_sobel only works on 2D images!\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    nx = imin->nx ;

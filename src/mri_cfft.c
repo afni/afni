@@ -43,7 +43,7 @@
      }
      if( id != i4 ){
        fprintf(stderr,"\n In cfft : illegal idim=%d\n",idim);
-       exit(1) ;
+       EXIT(1) ;
      }
      f2     = id;
      n      = log(f2)/log(2.) + .5;
@@ -127,7 +127,7 @@ void cfft2d( mode , nx,ny , xr,xi )
    ibuf = (float *)malloc( ny * sizeof(float) ) ;
    if( rbuf == NULL || ibuf == NULL ){
       fprintf(stderr,"malloc error in cfft2d\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    for( jj=0 ; jj < ny ; jj++ ){

@@ -1675,6 +1675,8 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 #define DSET_PREFIX(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                        ? ((ds)->dblk->diskptr->prefix) : "\0" )
 
+extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2001 */
+
 #define DSET_FILECODE(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                          ? ((ds)->dblk->diskptr->filecode) : "\0" )
 

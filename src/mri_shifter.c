@@ -24,7 +24,7 @@
           if( name != NULL ) free(name) ;                                   \
           name = (type *) malloc( sizeof(type) * (dim) ) ;                  \
           if( name == NULL ){                                               \
-             fprintf(stderr,"*** can't malloc shifter space\n"); exit(1); } \
+             fprintf(stderr,"*** can't malloc shifter space\n"); EXIT(1); } \
           name ## _size = (dim) ; } } while(0)
 
 /* cubic interpolation polynomials */
@@ -51,7 +51,7 @@ float * shifter( int nar , float * far , float shift )
    if( nar == 1 ){
       fnew = (float *) malloc( sizeof(float) ) ;
       if( fnew == NULL ){
-          fprintf(stderr,"*** can't malloc shifter output\n"); exit(1);
+          fprintf(stderr,"*** can't malloc shifter output\n"); EXIT(1);
       }
      *fnew = far[0] ;
       return fnew ;
@@ -78,7 +78,7 @@ float * shifter( int nar , float * far , float shift )
 
    fnew = (float *) malloc( sizeof(float) * nar ) ;
    if( fnew == NULL ){
-       fprintf(stderr,"*** can't malloc shifter output\n"); exit(1);
+       fprintf(stderr,"*** can't malloc shifter output\n"); EXIT(1);
    }
 
    fmax = fmin = far[0] ;          /* find min and max of input */

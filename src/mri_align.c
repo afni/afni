@@ -124,7 +124,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
 
    if( ! MRI_IS_2D(imbase) ){
       fprintf(stderr,"\n*** mri_align_dfspace: cannot use nD images!\a\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    debug    = (code & ALIGN_DEBUG_CODE)    != 0 ;

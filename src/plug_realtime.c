@@ -1102,7 +1102,7 @@ RT_input * new_RT_input(void)
    con  = (char *)     malloc( INFO_SIZE ) ;
 
    if( rtin == NULL || con == NULL ){
-      fprintf(stderr,"RT: malloc fails in new_RT_input!\a\n") ; exit(1) ;
+      fprintf(stderr,"RT: malloc fails in new_RT_input!\a\n") ; EXIT(1) ;
    }
 
    /** read all data possible from control channel **/
@@ -1301,7 +1301,7 @@ RT_input * new_RT_input(void)
       }
       if( ii == MAX_CONTROLLERS ){                /* should not be possible */
          fprintf(stderr,"RT: no open controllers in AFNI!?\a\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
    }
    rtin->im3d = im3d ;
@@ -1377,7 +1377,7 @@ void RT_start_child( RT_input * rtin )
    child_pid = fork() ;             /* AKA bifurcation */
 
    if( child_pid == (pid_t)(-1) ){  /* real bad news */
-      fprintf(stderr,"RT: can't fork child process!\a\n") ; exit(1) ;
+      fprintf(stderr,"RT: can't fork child process!\a\n") ; EXIT(1) ;
    }
 
    if( child_pid > 0 ){              /** I'm the parent **/
@@ -1393,7 +1393,7 @@ void RT_start_child( RT_input * rtin )
       if( rtinp->ioc_info == NULL ){
          kill( child_pid , SIGTERM ) ;
          fprintf(stderr,"RT: can't create read channel from child!\a\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       rtin->child_start_time = PLUTO_elapsed_time() ;  /* 10 Dec 1998 */
@@ -1994,7 +1994,7 @@ void RT_start_dataset( RT_input * rtin )
    rtin->sbr      = malloc( rtin->sbr_size ) ; /* space to hold sub-brick */
    if( rtin->sbr == NULL ){
       fprintf(stderr,"RT: can't malloc space for real-time dataset!\a\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    if( rtin->dtype == DTYPE_2DZT || rtin->dtype == DTYPE_2DZ )
@@ -2056,12 +2056,12 @@ void RT_read_image( RT_input * rtin , char * im )
 
    if( rtin == NULL || im == NULL ){
       fprintf(stderr,"RT: illegal inputs to RT_read_image!\a\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    if( rtin->imsize <= 0 ){
       fprintf(stderr,"RT: image data present, but don't know its size!\a\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    /** see if any data in buffer already **/
@@ -2130,7 +2130,7 @@ int RT_process_data( RT_input * rtin )
 
          if( rtin->imsize <= 0 ){
             fprintf(stderr,"RT: image data present, but don't know its size!\a\n") ;
-            exit(1) ;
+            EXIT(1) ;
          }
 
          if( rtin->bufar == NULL )    /* initialize buffer for input images */
@@ -2292,7 +2292,7 @@ void RT_process_image( RT_input * rtin )
       rtin->sbr = malloc( rtin->sbr_size ) ;
       if( rtin->sbr == NULL ){
          fprintf(stderr,"RT: can't malloc real-time brick %d\a\n",rtin->nvol+1) ;
-         exit(1) ;
+         EXIT(1) ;
       }
       if( verbose == 2 )
          fprintf(stderr,"RT: malloc succeeded\n") ;
@@ -2399,7 +2399,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
 
          if( id >= THD_MAX_SESSION_ANAT ){
             fprintf(stderr,"RT: max number of anat datasets exceeded!\a\n") ;
-            exit(1) ;
+            EXIT(1) ;
          }
          sess->anat[id][VIEW_ORIGINAL_TYPE] = rtin->dset ; sess->num_anat = id+1 ;
          POPDOWN_strlist_chooser ;
@@ -2412,7 +2412,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
          id = sess->num_func ;
          if( id >= THD_MAX_SESSION_FUNC ){
             fprintf(stderr,"RT: max number of func datasets exceeded!\a\n") ;
-            exit(1) ;
+            EXIT(1) ;
          }
          sess->func[id][VIEW_ORIGINAL_TYPE] = rtin->dset ; (sess->num_func)++ ;
          AFNI_force_adoption( sess , False ) ;
@@ -2420,7 +2420,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
 
       } else {
          fprintf(stderr,"RT: bizarre dataset type error!\a\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       /** tell AFNI to jump to this dataset **/
@@ -2471,7 +2471,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
             id = sess->num_func ;
             if( id >= THD_MAX_SESSION_FUNC ){
                fprintf(stderr,"RT: max number of func datasets exceeded!\a\n") ;
-               exit(1) ;
+               EXIT(1) ;
             }
             sess->func[id][VIEW_ORIGINAL_TYPE] = rtin->func_dset ; (sess->num_func)++ ;
             AFNI_force_adoption( sess , False ) ;
@@ -2512,7 +2512,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
          id = sess->num_anat ;
          if( id >= THD_MAX_SESSION_ANAT ){
             fprintf(stderr,"RT: max number of anat datasets exceeded!\a\n") ;
-            exit(1) ;
+            EXIT(1) ;
          }
          sess->anat[id][VIEW_ORIGINAL_TYPE] = rtin->reg_dset ; sess->num_anat = id+1 ;
          POPDOWN_strlist_chooser ;
@@ -3766,7 +3766,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
             indx = (int *) malloc( sizeof(int) * nvox ) ;
             if( indx == NULL ){
                fprintf(stderr,"RTfim: indx malloc failure!\a\n") ;
-               exit(1) ;
+               EXIT(1) ;
             }
             for( iv=0,nvox=0 ; iv < nxyz ; iv++ )
                if( abs(dar[iv]) > fthr ) indx[nvox++] = iv ;
@@ -3782,7 +3782,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
             indx = (int *) malloc( sizeof(int) * nvox ) ;
             if( indx == NULL ){
                fprintf(stderr,"RTfim: indx malloc failure!\a\n") ;
-               exit(1) ;
+               EXIT(1) ;
             }
             for( iv=0,nvox=0 ; iv < nxyz ; iv++ )
                if( fabs(dar[iv]) > fthr ) indx[nvox++] = iv ;
@@ -3798,7 +3798,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
             indx = (int *) malloc( sizeof(int) * nvox ) ;
             if( indx == NULL ){
                fprintf(stderr,"RTfim: indx malloc failure!\a\n") ;
-               exit(1) ;
+               EXIT(1) ;
             }
             for( iv=0,nvox=0 ; iv < nxyz ; iv++ )
                if( dar[iv] > fthr ) indx[nvox++] = iv ;
@@ -3816,7 +3816,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
       vval = (float *) malloc( sizeof(float) * nvox) ;
       if( vval == NULL ){
          fprintf(stderr,"RTfim: vval malloc failure!\a\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       /** allocate extra space for comparing results from multiple ref vectors **/
@@ -3827,7 +3827,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
          abest = (float *) malloc( sizeof(float) * nvox) ;
          if( aval==NULL || rbest==NULL || abest==NULL ){
             fprintf(stderr,"RTfim: abest malloc failure!\a\n") ;
-            exit(1) ;
+            EXIT(1) ;
          }
       } else {
          aval = rbest = abest = NULL ;
@@ -3840,7 +3840,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
 
       if( pc_ref == NULL || pc_vc == NULL ){
          fprintf(stderr,"RTfim: can't malloc recursion space!\a\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       for( ivec=0 ; ivec < ny_ref ; ivec++ ){
@@ -3848,7 +3848,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
          pc_vc[ivec]  = new_PCOR_voxel_corr( nvox , fim_nref ) ;
          if( pc_ref[ivec] == NULL || pc_vc[ivec] == NULL ){
             fprintf(stderr,"RTfim: can't malloc refs and corr!\a\n") ;
-            exit(1) ;
+            EXIT(1) ;
          }
       }
 
@@ -3857,7 +3857,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
       rtin->func_dset = new_dset = EDIT_empty_copy( dset_time ) ;
       if( new_dset == NULL ){
          fprintf(stderr,"RTfim: can't create empty dataset!\a\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
       tross_Append_History( new_dset , "plug_realtime: FIM" ) ;
 
@@ -3881,7 +3881,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
          ptr = malloc( DSET_BRICK_BYTES(new_dset,iv) ) ;
          if( ptr == NULL ){
             fprintf(stderr,"RTfim: can't malloc dataset bricks!\a\n") ;
-            exit(1) ;
+            EXIT(1) ;
          }
          mri_fix_data_pointer( ptr ,  DSET_BRICK(new_dset,iv) ) ;
 

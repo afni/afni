@@ -512,7 +512,7 @@ char * VOLREG_main( PLUGIN_interface * plint )
          default:
             fprintf(stderr,"\n*** Can't register bricks of type %s\n",
                     MRI_TYPE_name[qim->kind] ) ;
-            exit(1) ;
+            EXIT(1) ;
       }
 
       DSET_unload_one( VL_dset , kim ) ;      /* don't need this anymore */

@@ -2540,7 +2540,7 @@ STATUS(old_ss->sessname) ;
    if( new_ss == NULL || new_ss->num_anat <= 0 ){
       fprintf(stderr,"\n*** Fatal error: Rescan of session %s finds no anats!\a\n",
               old_ss->sessname ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    myXtFree( old_ss ) ;  /* no longer need this */
@@ -2604,7 +2604,7 @@ STATUS("fixing active controllers") ;
                        " Cannot find anat dataset to switch to after"
                        " rescanning session %s\a\n",
                        new_ss->sessname ) ;
-               exit(1) ;
+               EXIT(1) ;
             }
          }
 

@@ -374,7 +374,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fim( THD_3dim_dataset * old_dset ,
          if( bout == NULL ){
             fprintf(stderr,
              "\nFinal malloc error in MAKER_4D_to_fim - is memory exhausted?\n\a");
-            exit(1) ;
+            EXIT(1) ;
          }
 
          /*-- find scaling and then scale --*/
@@ -407,7 +407,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fim( THD_3dim_dataset * old_dset ,
          if( bout == NULL ){
             fprintf(stderr,
              "\nFinal malloc error in MAKER_4D_to_fim - is memory exhausted?\n\a");
-            exit(1) ;
+            EXIT(1) ;
          }
 
          /*-- find scaling and then scale --*/

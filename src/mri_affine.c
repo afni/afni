@@ -40,7 +40,7 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
    float f_jm1,f_j00,f_jp1,f_jp2 , wt_m1,wt_00,wt_p1,wt_p2 ;
 
    if( im == NULL || ! MRI_IS_2D(im) ){
-      fprintf(stderr,"*** mri_affine only works on 2D images!\n") ; exit(1) ;
+      fprintf(stderr,"*** mri_affine only works on 2D images!\n") ; EXIT(1) ;
    }
 
    /* if complex image: break into pairs, do separately, reassemble */
@@ -50,7 +50,7 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
       MRI_IMAGE * rim , * iim , * tim ;
       impair = mri_complex_to_pair( im ) ;
       if( impair == NULL ){
-         fprintf(stderr,"*** mri_complex_to_pair fails in mri_affine!\n");exit(1);
+         fprintf(stderr,"*** mri_complex_to_pair fails in mri_affine!\n");EXIT(1);
       }
       rim = IMAGE_IN_IMARR(impair,0) ;
       iim = IMAGE_IN_IMARR(impair,1) ;  FREE_IMARR(impair) ;
@@ -71,7 +71,7 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
 
    det = a11*a22 - a21*a12 ;
    if( fabs(det) < 1.e-5*(fabs(a11)+fabs(a12)+fabs(a21)+fabs(a22)) ){
-      fprintf(stderr,"*** input determinant=0 in mri_affine!\n");exit(1);
+      fprintf(stderr,"*** input determinant=0 in mri_affine!\n");EXIT(1);
    }
    det = 1.0 / det ;
 
@@ -201,7 +201,7 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
    float f_j00,f_jp1 , wt_00,wt_p1 ;
 
    if( im == NULL || ! MRI_IS_2D(im) ){
-      fprintf(stderr,"*** mri_rota_bilinear only works on 2D images!\n") ; exit(1) ;
+      fprintf(stderr,"*** mri_rota_bilinear only works on 2D images!\n") ; EXIT(1) ;
    }
 
    /** if complex image, break into pairs, do each separately, put back together **/
@@ -211,7 +211,7 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
       MRI_IMAGE * rim , * iim , * tim ;
       impair = mri_complex_to_pair( im ) ;
       if( impair == NULL ){
-         fprintf(stderr,"*** mri_complex_to_pair fails in mri_rota!\n") ; exit(1) ;
+         fprintf(stderr,"*** mri_complex_to_pair fails in mri_rota!\n") ; EXIT(1) ;
       }
       rim = IMAGE_IN_IMARR(impair,0) ;
       iim = IMAGE_IN_IMARR(impair,1) ;  FREE_IMARR(impair) ;
@@ -448,7 +448,7 @@ MRI_IMAGE * mri_rota_shear( MRI_IMAGE *im, float aa, float bb, float phi )
    int ii , nxy ;
 
    if( im == NULL || ! MRI_IS_2D(im) ){
-      fprintf(stderr,"*** mri_rota_shear only works on 2D images!\n") ; exit(1) ;
+      fprintf(stderr,"*** mri_rota_shear only works on 2D images!\n") ; EXIT(1) ;
    }
 
    /** if complex image, break into pairs, do each separately, put back together **/
@@ -458,7 +458,7 @@ MRI_IMAGE * mri_rota_shear( MRI_IMAGE *im, float aa, float bb, float phi )
       MRI_IMAGE * rim , * iim , * tim ;
       impair = mri_complex_to_pair( im ) ;
       if( impair == NULL ){
-         fprintf(stderr,"*** mri_complex_to_pair fails in mri_rota!\n") ; exit(1) ;
+         fprintf(stderr,"*** mri_complex_to_pair fails in mri_rota!\n") ; EXIT(1) ;
       }
       rim  = IMAGE_IN_IMARR(impair,0) ;
       iim  = IMAGE_IN_IMARR(impair,1) ;  FREE_IMARR(impair) ;

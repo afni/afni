@@ -37,12 +37,12 @@ MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * imin )
 
       if( imin == NULL ){
          fprintf(stderr,"mri_stat_seq:  NULL argument for initial call!\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       if( ! MRI_IS_2D(imin) ){
          fprintf(stderr,"\n*** mri_stat_seq: only works on 2D images!\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       nx   = imin->nx ;
@@ -66,12 +66,12 @@ MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * imin )
 
       if( imin->nx != nx || imin->ny != ny ){
          fprintf(stderr,"mri_stat_seq: input image size mismatch!\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       if( ! MRI_IS_2D(imin) ){
          fprintf(stderr,"\n*** mri_stat_seq: only works on 2D images!\n") ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       if( imin->kind == MRI_float ){
@@ -95,7 +95,7 @@ MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * imin )
 
    if( nim < 1 ){
       fprintf(stderr,"mri_stat_seq: # images input=%d; too small!\n",nim) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    imfl = mri_new( nx , ny , MRI_float ) ;
@@ -120,7 +120,7 @@ MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * imin )
    retval = (MRI_IMAGE **) malloc( 2 * sizeof(MRI_IMAGE *) ) ;
    if( retval == NULL ){
       fprintf(stderr,"mri_stat_seq: malloc error for retval!\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    retval[0] = imfl ;

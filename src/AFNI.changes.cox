@@ -2547,3 +2547,21 @@
 15 Feb 2001
  * Added thd_tshift.c, which does what 3dTshift.c does (in place).
  * Used this to add -tshift option to 3dvolreg.c.
+ * Also added -ignore option to 3dTshift.c.
+
+16 Feb 2001
+ * Added traceback information to mcw_malloc.c.
+ * Added program 3dOverlap.c.
+ * Added function THD_newprefix() in thd_newprefix.c.
+
+20 Feb 2001
+ * Added EXIT and TRACEBACK macros to debugtrace.h.
+
+21 Feb 2001
+ * Modified afni.c to disable use of mmap() from malloc() on Linux
+     (malloc() would fail when memory was still available!).
+ * Modified thd_mastery.c to force dset[] inputs to be relabeled
+     as bucket types if they are not time-dependent.  This is to
+     prevent interpretation as fico, etc.
+ * Modified 3dmerge.c to allow use of sub-brick selectors on input
+     datasets.

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #undef MAIN
 #include "afni.h"
 
@@ -3760,7 +3760,9 @@ void PLUGIN_seq_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
 {
    PLUGIN_impopper * imp = (PLUGIN_impopper *) handle ;
 
-   if( imp == NULL ) return ;
+ENTRY("PLUGIN_seq_send_CB") ;
+
+   if( imp == NULL ) EXRETURN ;
 
    switch( cbs->reason ){
 
@@ -3770,8 +3772,25 @@ void PLUGIN_seq_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
          mri_free( imp->im )             ; imp->im  = NULL ;
       }
       break ;
+
+      case isqCR_buttonpress:{
+#define NBIRN 6
+         static int nold=-1 ; int nnew ;
+         static char * birn[NBIRN] = { " \n** Don't DO That! **\n "               ,
+                                       " \n** Stop it, Rasmus! **\n "             ,
+                                       " \n** Having fun yet? **\n "              ,
+                                       " \n** What do you want NOW? **\n "        ,
+                                       " \n** Too much time on your hands? **\n " ,
+                                       " \n** Do NOT read this message! **\n "     } ;
+
+         do{ nnew=lrand48()%NBIRN ; } while( nnew == nold ) ;
+         nold = nnew ;
+         MCW_popup_message( seq->wimage , birn[nnew] ,
+                            MCW_USER_KILL|MCW_TIMER_KILL ) ;
+      }
+      break ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------

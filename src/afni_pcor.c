@@ -117,7 +117,7 @@ void update_PCOR_references(float * vec, PCOR_references * ref)
       zz_size = nr ;
       if( zz == NULL ){
          fprintf( stderr , "\nupdate_PCOR_references: can't malloc!\n" ) ;
-         exit(1) ;
+         EXIT(1) ;
       }
    }
 
@@ -276,7 +276,7 @@ void PCOR_get_pcor(PCOR_references * ref, PCOR_voxel_corr * vc, float * pcor)
 
    if( vc->nref != ref->nref ){
       fprintf( stderr , "\nPCOR_get_pcor: reference size mismatch!\n" ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    /* 28 Sep 1999: load user option for denominator epsilon */
@@ -327,11 +327,11 @@ void PCOR_get_mcor(PCOR_references * ref, PCOR_voxel_corr * vc, int m , float * 
 
    if( vc->nref != ref->nref ){
       fprintf( stderr , "\nPCOR_get_mcor: reference size mismatch!\n" ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
    if( m >= nr ){
       fprintf( stderr , "\nPCOR_get_mcor: m=%d but nref=%d\n",m,nr) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    /*** Work ***/
@@ -379,7 +379,7 @@ void PCOR_get_coef(PCOR_references * ref, PCOR_voxel_corr * vc, float * coef)
 
    if( vc->nref != ref->nref ){
       fprintf( stderr , "\nPCOR_get_coef: reference size mismatch!\n" ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    /*** Work ***/
@@ -446,7 +446,7 @@ void PCOR_get_lsqfit(PCOR_references * ref, PCOR_voxel_corr * vc, float *fit[] )
 
    if( vc->nref != ref->nref ){
       fprintf( stderr , "\nPCOR_get_lsqfit: reference size mismatch!\n" ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    kk = 0 ;
@@ -459,7 +459,7 @@ void PCOR_get_lsqfit(PCOR_references * ref, PCOR_voxel_corr * vc, float *fit[] )
    ff = (float *) malloc( sizeof(float) * nr ) ;
    if( ff == NULL ){
       fprintf( stderr, "\nPCOR_get_lsqfit: can't malloc workspace!\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    /*** for each voxel, compute the nr fit coefficients (backwards) ***/
@@ -502,7 +502,7 @@ void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
 
    if( vc->nref != ref->nref ){
       fprintf( stderr , "\nPCOR_get_perc: reference size mismatch!\n" ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    if( coef == NULL && bline == NULL ) return ;  /* nothing to do */
@@ -514,7 +514,7 @@ void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
    dd = (float *) malloc( sizeof(float) * nr ) ;
    if( ff == NULL || bb == NULL || dd == NULL ){
       fprintf( stderr, "\nPCOR_get_perc: can't malloc workspace!\n") ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    /* range of last reference */
@@ -589,7 +589,7 @@ void PCOR_get_pcor_and_coef(PCOR_references * ref , PCOR_voxel_corr * vc ,
 
    if( vc->nref != ref->nref ){
       fprintf( stderr , "\nPCOR_get_pcor_and_coef: reference size mismatch!\n" ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    scale   = 1.0 / RCH(ref,nr-1,nr-1) ;      /* for coef calculation */

@@ -45,7 +45,7 @@ void EDIT_substitute_brick(THD_3dim_dataset * dset, int ival, int ftype,void * f
    if( nullfim ){                                        /* if needed, */
       fim = malloc( nbytes ) ;                           /* make array */
       if( fim == NULL ){
-         fprintf(stderr,"\n*** malloc error for dataset sub-brick\n") ; exit(1) ;
+         fprintf(stderr,"\n*** malloc error for dataset sub-brick\n") ; EXIT(1) ;
       }
    }
    mri_fix_data_pointer( fim , newim ) ;                 /* attach new data */

@@ -149,7 +149,7 @@ static void csfft_trigconsts( int idim )  /* internal function */
       csplus  = (complex *) malloc( sizeof(complex) * idim ) ;
       csminus = (complex *) malloc( sizeof(complex) * idim ) ;
       if( csplus == NULL || csminus == NULL ){
-         fprintf(stderr,"\n*** csfft cannot malloc space! ***\n"); exit(1) ;
+         fprintf(stderr,"\n*** csfft cannot malloc space! ***\n"); EXIT(1) ;
       }
    }
    nold = n = idim ;
@@ -1727,7 +1727,7 @@ static void fft_4dec( int mode , int idim , complex * xc )
    /*-- initialize cosine/sine table and memory space --*/
 
    if( rec >= RMAX ){
-      fprintf(stderr,"\n*** fft_4dec: too many recursions!\n"); exit(1);
+      fprintf(stderr,"\n*** fft_4dec: too many recursions!\n"); EXIT(1);
    }
 
    mold = rmold[rec] ;  /* what was done before at this recursion level */
@@ -1765,7 +1765,7 @@ static void fft_4dec( int mode , int idim , complex * xc )
    switch( N ){
 
       default: fprintf(stderr,"\n*** Illegal call to fft_4dec: N=%d\n",N);
-               exit(1) ;
+               EXIT(1) ;
 
       case 1024: fft256(mode,aa); fft256(mode,bb);
                  fft256(mode,cc); fft256(mode,dd); break;
@@ -1880,7 +1880,7 @@ static void fft_3dec( int mode , int idim , complex * xc )
    /*-- initialize cosine/sine table and memory space --*/
 
    if( rec >= RMAX ){
-      fprintf(stderr,"\n*** fft_3dec: too many recursions!\n"); exit(1);
+      fprintf(stderr,"\n*** fft_3dec: too many recursions!\n"); EXIT(1);
    }
 
    mold = rmold[rec] ;  /* what was done before at this recursion level */
@@ -2016,7 +2016,7 @@ static void fft_5dec( int mode , int idim , complex * xc )
    /*-- initialize cosine/sine table and memory space --*/
 
    if( rec >= RMAX ){
-      fprintf(stderr,"\n*** fft_5dec: too many recursions!\n"); exit(1);
+      fprintf(stderr,"\n*** fft_5dec: too many recursions!\n"); EXIT(1);
    }
 
    mold = rmold[rec] ;  /* what was done before at this recursion level */

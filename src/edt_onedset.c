@@ -74,7 +74,7 @@ ENTRY("EDIT_one_dataset") ;
       fprintf(stderr,
               "\n*** Cannot read data brick for dataset %s\a\n",
               dset->dblk->diskptr->brick_name ) ;
-      exit(1) ;
+      EXIT(1) ;
    }
 
    /** load the data sub-brick indexes (iv_*) and check types for legality **/
@@ -95,7 +95,7 @@ ENTRY("EDIT_one_dataset") ;
       if( ! AFNI_GOOD_DTYPE(fim_type) ){
          fprintf(stderr,"\n*** Illegal anatomy data type in dataset %s\a\n" ,
                     dset->dblk->diskptr->brick_name ) ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
 #ifdef AFNI_DEBUG
@@ -141,13 +141,13 @@ ENTRY("EDIT_one_dataset") ;
       if( ! AFNI_GOOD_FUNC_DTYPE(fim_type) ){
          fprintf(stderr,"\n*** Illegal functional data type in dataset %s\a\n" ,
                     dset->dblk->diskptr->brick_name ) ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
       if( thr_type >= 0 && ! AFNI_GOOD_FUNC_DTYPE(thr_type) ){
          fprintf(stderr,"\n*** Illegal threshold data type in dataset %s\a\n" ,
                     dset->dblk->diskptr->brick_name ) ;
-         exit(1) ;
+         EXIT(1) ;
       }
 
 #ifdef AFNI_DEBUG
@@ -168,7 +168,7 @@ ENTRY("EDIT_one_dataset") ;
       default:
          fprintf(stderr,"\n*** Illegal data type in dataset %s\a\n",
                  dset->dblk->diskptr->brick_name ) ;
-      exit(1) ;
+      EXIT(1) ;
 
       case MRI_short:   sfim = (short *)   vfim ; break ;
       case MRI_float:   ffim = (float *)   vfim ; break ;
@@ -182,7 +182,7 @@ ENTRY("EDIT_one_dataset") ;
          default:
             fprintf(stderr,"\n*** Illegal thresh data type in dataset %s\a\n",
                     dset->dblk->diskptr->brick_name ) ;
-         exit(1) ;
+         EXIT(1) ;
 
          case MRI_short:   sthr = (short *) vthr ; break ;
          case MRI_float:   fthr = (float *) vthr ; break ;

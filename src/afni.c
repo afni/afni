@@ -934,6 +934,15 @@ int main( int argc , char * argv[] )
 {
    int ii ;
 
+/*-----------------------------------*/
+#ifdef LINUX
+# include <malloc.h>
+# ifdef M_MMAP_MAX              /* 21 Feb 2001: disable mmap() in malloc() */
+   mallopt( M_MMAP_MAX , 0 ) ;
+# endif
+#endif
+/*-----------------------------------*/
+
 #ifdef CATCH_SIGNALS
    signal(SIGINT ,AFNI_sigfunc) ;   /* may be superseded by DBG_SIGNALS below */
    signal(SIGBUS ,AFNI_sigfunc) ;
@@ -2144,6 +2153,11 @@ if(PRINT_TRACING)
       case isqCR_buttonpress:{
          XButtonEvent * xev = (XButtonEvent *) cbs->event ;
 
+if(PRINT_TRACING){
+ char str[256] ;
+ sprintf(str,"isqCR_buttonpress: button=%d state=%x",xev->button,xev->state) ;
+ STATUS(str) ; }
+
          switch( xev->button ){
 
             default: EXRETURN ;  /* unused button */
@@ -2165,7 +2179,7 @@ if(PRINT_TRACING)
 
 if(PRINT_TRACING)
 { char str[256] ;
-  sprintf(str,"Button1 at %d %d %d\n",
+  sprintf(str,"Button1 at %d %d %d",
           cbs->xim,cbs->yim,cbs->nim) ; STATUS(str) ; }
 
                if( cbs->xim >= 0 && cbs->xim < br->n1 &&

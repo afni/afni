@@ -18,6 +18,10 @@
   Mod:     Changes to implement "-1dindex" and "-1tindex" options.
   Author:  RWCox
   Date:    12 Nov 1998
+
+  Mod:     Allow use of THD_open_dataset instead of THD_open_one_dataset.
+  Author:  RWCox
+  Date:    21 Feb 2001
 -----------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dmerge"                    /* name of this program */
@@ -31,6 +35,14 @@
 
 #ifndef myXtFree
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
+#endif
+
+#define ALLOW_SUBV  /* 21 Feb 2001 */
+
+#ifdef ALLOW_SUBV
+# define DSET_OPEN THD_open_dataset
+#else
+# define DSET_OPEN THD_open_one_dataset
 #endif
 
 /*-------------------------- global data --------------------------*/
@@ -541,7 +553,7 @@ void MRG_Syntax(void)
     "\n"
     "  -doall      = Apply editing and merging options to ALL sub-bricks \n"
     "                  uniformly in a dataset.\n"
-    "          N.B.: All datasets must have the same number of sub-bricks \n"
+    "          N.B.: All input datasets must have the same number of sub-bricks\n"
     "                  when using the -doall option. \n"
     "          N.B.: The threshold specific options (such as -1thresh, \n"
     "                  -keepthr, -tgfisher, etc.) are not compatible with \n"
@@ -738,9 +750,34 @@ void MRG_Syntax(void)
     " **  You can combine the outputs of 3dmerge with other sub-bricks\n"
     "       using the program 3dbucket.\n"
     " **  Complex-valued datasets cannot be merged.\n"
-    " **  This program cannot handle time-dependent datasets.\n"
+    " **  This program cannot handle time-dependent datasets without -doall.\n"
     " **  Note that the input datasets are specified by their .HEAD files,\n"
     "       but that their .BRIK files must exist also!\n"
+
+#ifdef ALLOW_SUBV
+    "\n"
+    MASTER_SHORTHELP_STRING
+    "\n"
+    " ** Input datasets using sub-brick selectors are treated as follows:\n"
+    "      - 3D+time if the dataset is 3D+time and more than 1 brick is chosen\n"
+    "      - otherwise, as bucket datasets (-abuc or -fbuc)\n"
+    " ** If you are NOT using -doall, and choose more than one sub-brick\n"
+    "     with the selector, then you may need to use -1dindex to further\n"
+    "     pick out the sub-brick on which to operate (why you would do this\n"
+    "     I cannot fathom).  If you are also using a thresholding operation\n"
+    "     (e.g., -1thresh), then you will also need to use -1tindex to\n"
+    "     choose which sub-brick counts as the 'threshold' value.  When used\n"
+    "     with sub-brick selection, 'index' refers the dataset AFTER it has\n"
+    "     been read in, so that\n"
+    "          -1dindex 1 -1tindex 3 'dset+orig[4..7]'\n"
+    "     means to use the #5 sub-brick of dset+orig as the data for merging\n"
+    "     and the #7 sub-brick of dset+orig as the threshold values.\n"
+    " ** The above example would better be done with\n"
+    "          -1tindex 1 'dset+orig[5,7]'\n"
+    "     since the default data index is 0. (You would only need to use -1tindex\n"
+    "     if you are actually using a thresholding operation.)\n"
+    " ** -1dindex and -1tindex apply to all input datasets.\n"
+#endif
    ) ;
    exit(0) ;
 }
@@ -837,7 +874,7 @@ int main( int argc , char * argv[] )
    /* check for existence of each input data set. */   /* 09 December 1996 */
    for (file_num = first_file;  file_num < argc;  file_num++)
      {
-       dset = THD_open_one_dataset( argv[file_num] ) ;
+       dset = DSET_OPEN( argv[file_num] ) ;
        if( ! ISVALID_3DIM_DATASET(dset) )
 	 {
 	   fprintf(stderr,"*** cannot open dataset %s\n",argv[file_num]) ;
@@ -864,7 +901,7 @@ int main( int argc , char * argv[] )
 
    /* read first dataset */
 
-   dset = THD_open_one_dataset( argv[first_file] ) ;
+   dset = DSET_OPEN( argv[first_file] ) ;
    if( ! ISVALID_3DIM_DATASET(dset) ){
       fprintf(stderr,"*** Unable to open first dataset %s\n",argv[first_file]) ;
       exit(1) ;
@@ -1264,7 +1301,7 @@ int main( int argc , char * argv[] )
 
       dset = dsetar[ file_num - first_file ] ;  /* Nov 1998 */
       if( dset == NULL ){
-         dset = dsetar[ file_num - first_file ] = THD_open_one_dataset( argv[file_num] ) ;
+         dset = dsetar[ file_num - first_file ] = DSET_OPEN( argv[file_num] ) ;
          if( ! ISVALID_3DIM_DATASET(dset) ){
             fprintf(stderr,"*** cannot open dataset %s\n",argv[file_num]) ; exit(1) ;
          }

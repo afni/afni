@@ -123,6 +123,13 @@ static void THD_setup_mastery( THD_3dim_dataset * dset , int * ivlist )
       } else {                               /* different number of times */
          dset->taxis->ntt = new_nvals ;
       }
+   } else {                                  /* 21 Feb 2001: change to bucket type */
+
+      if( ISANAT(dset) && !ISANATBUCKET(dset) )
+         EDIT_dset_items( dset , ADN_type,ANAT_BUCK_TYPE , ADN_none ) ;
+      else if( ISFUNC(dset) && !ISFUNCBUCKET(dset) )
+         EDIT_dset_items( dset , ADN_type,FUNC_BUCK_TYPE , ADN_none ) ;
+
    }
 
    /* redo brick_fac */

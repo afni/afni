@@ -16,7 +16,7 @@
           name = (type *) malloc( sizeof(type) * (dim) ) ;              \
           if( name == NULL ){                                           \
              fprintf(stderr,"\n*** cannot malloc EDIT workspace!\n") ;  \
-             exit(1) ; }                                                \
+             EXIT(1) ; }                                                \
           name ## _size = (dim) ; }                                     \
        break ; } while(1)
 

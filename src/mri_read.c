@@ -679,7 +679,7 @@ WHOAMI ;
 
    rgby = (byte *) malloc( sizeof(byte) * 3*nx*ny ) ;
    if( rgby == NULL ){
-      fprintf(stderr,"couldn't malloc workspace in mri_read_ppm3!\n") ; exit(-1) ;
+      fprintf(stderr,"couldn't malloc workspace in mri_read_ppm3!\n") ; EXIT(1) ;
    }
 
    /*** read all data into workspace array ***/
@@ -784,7 +784,7 @@ void init_MCW_sizes(void)
       imsize[num].prefix = (char *) malloc( sizeof(char) * strlen(str) ) ;
       if( imsize[num].prefix == NULL ){
          fprintf(stderr,"\n*** Can't malloc in init_MCW_sizes! ***\a\n");
-         exit(1) ;
+         EXIT(1) ;
       }
 
       if( str[0] != '%' ){  /* e.g., 16096=3D:-1:0:64:64:1: */
@@ -861,7 +861,7 @@ char * imsized_fname( char * fname )
          new_name = (char *) malloc( sizeof(char) * lll ) ;
          if( new_name == NULL ){
             fprintf(stderr,"\n*** Can't malloc in imsized_fname! ***\a\n");
-            exit(1) ;
+            EXIT(1) ;
          }
          sprintf( new_name , "%s%s" , imsize[num].prefix , fname ) ;
          return new_name ;
@@ -875,7 +875,7 @@ char * imsized_fname( char * fname )
          new_name = (char *) malloc( sizeof(char) * lll ) ;
          if( new_name == NULL ){
             fprintf(stderr,"\n*** Can't malloc in imsized_fname! ***\a\n");
-            exit(1) ;
+            EXIT(1) ;
          }
          sprintf( new_name , "%s%d:%s" , imsize[num].prefix , count , fname ) ;
          return new_name ;
@@ -995,7 +995,7 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    alloc_tsar = INC_TSARSIZE ;
    tsar       = (float *) malloc( sizeof(float) * alloc_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** malloc error in mri_read_ascii ***\n") ; exit(1) ;
+      fprintf(stderr,"\n*** malloc error in mri_read_ascii ***\n") ; EXIT(1) ;
    }
 
    /** read lines, convert to floats, store **/
@@ -1020,7 +1020,7 @@ MRI_IMAGE * mri_read_ascii( char * fname )
             alloc_tsar += INC_TSARSIZE ;
             tsar        = (float *)realloc( tsar,sizeof(float)*alloc_tsar );
             if( tsar == NULL ){
-               fprintf(stderr,"\n*** realloc error in mri_read_ascii ***\n") ; exit(1) ;
+               fprintf(stderr,"\n*** realloc error in mri_read_ascii ***\n") ; EXIT(1) ;
             }
          }
 
@@ -1037,7 +1037,7 @@ MRI_IMAGE * mri_read_ascii( char * fname )
 
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** final realloc error in mri_read_ascii ***\n") ; exit(1) ;
+      fprintf(stderr,"\n*** final realloc error in mri_read_ascii ***\n") ; EXIT(1) ;
    }
 
    outim = mri_new_vol_empty( ncol , nrow , 1 , MRI_float ) ;
@@ -1144,7 +1144,7 @@ static void read_ascii_floats( char * fname, int * nff , float ** ff )
    alloc_tsar = INC_TSARSIZE ;
    tsar       = (float *) malloc( sizeof(float) * alloc_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** malloc fails: read_ascii_floats ***\n"); exit(1);
+      fprintf(stderr,"\n*** malloc fails: read_ascii_floats ***\n"); EXIT(1);
    }
 
    /** read lines, convert to floats, store **/
@@ -1175,7 +1175,7 @@ static void read_ascii_floats( char * fname, int * nff , float ** ff )
             alloc_tsar += INC_TSARSIZE ;
             tsar        = (float *)realloc( tsar,sizeof(float)*alloc_tsar );
             if( tsar == NULL ){
-               fprintf(stderr,"\n*** realloc fails: read_ascii_floats ***\n"); exit(1);
+               fprintf(stderr,"\n*** realloc fails: read_ascii_floats ***\n"); EXIT(1);
             }
          }
 
@@ -1190,7 +1190,7 @@ static void read_ascii_floats( char * fname, int * nff , float ** ff )
 
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** final realloc fails: read_ascii_floats ***\n"); exit(1);
+      fprintf(stderr,"\n*** final realloc fails: read_ascii_floats ***\n"); EXIT(1);
    }
 
    *nff = used_tsar ; *ff  = tsar ; return ;
