@@ -688,7 +688,7 @@ void AFNI_make_descendants( THD_sessionlist * ssl )
 {
    AFNI_make_descendants_old( ssl , VIEW_ORIGINAL_TYPE ) ;
 #if 0
-   AFNI_make_descendants_old( ssl , VIEW_ACPCALIGNED_TYPE ) ;
+   AFNI_make_descendants_old( ssl , VIEW_ACPCALIGNED_TYPE ) ; /* doesn't work */
 #endif
    return ;
 }
@@ -713,6 +713,8 @@ ENTRY("AFNI_make_descendants_old") ;
       ss = ssl->ssar[iss] ;
       if( !ISVALID_SESSION(ss) ) continue ;  /* no good ==> skip */
 
+      if( ss == GLOBAL_library.session ) continue ; /* 21 Dec 2001 */
+
       /* loop over anats in this session */
 
       for( jdd=0 ; jdd < ss->num_anat ; jdd++ ){
@@ -720,6 +722,8 @@ ENTRY("AFNI_make_descendants_old") ;
          if( !ISVALID_3DIM_DATASET(orig_dset) ||              /* no good */
              orig_dset->anat_parent == NULL   ||              /* no parent */
              orig_dset->anat_parent == orig_dset ) continue ; /* ==> skip */
+
+         if( DSET_in_global_session(orig_dset) ) continue ; /* 25 Dec 2001 */
 
          /* look for orig_dset's anat parent in this sessionlist */
 
@@ -778,6 +782,8 @@ ENTRY("AFNI_make_descendants_old") ;
          if( !ISVALID_3DIM_DATASET(orig_dset) ||              /* no good */
              orig_dset->anat_parent == NULL   ||              /* no parent */
              orig_dset->anat_parent == orig_dset ) continue ; /* ==> skip */
+
+         if( DSET_in_global_session(orig_dset) ) continue ; /* 25 Dec 2001 */
 
          /* look for orig_dset's anat parent in this sessionlist */
 
@@ -858,6 +864,8 @@ ENTRY("AFNI_force_adoption") ;
 
    if( ! ISVALID_SESSION(ss) || ss->num_anat == 0 ) EXRETURN ;
 
+   if( ss == GLOBAL_library.session ) EXRETURN ; /* 21 Dec 2001 */
+
    /* find a "preferred" parent (one with the most number of markers set) */
 
    for( aa=0 ; aa < ss->num_anat ; aa++ ){
@@ -907,6 +915,8 @@ if(aset >= 0 && PRINT_TRACING)
          if( ! ISVALID_3DIM_DATASET(dset) ||
              dset->anat_parent != NULL      ) continue ; /* nothing to do */
 
+         if( DSET_in_global_session(dset) ) continue ; /* 25 Dec 2001 */
+
          if( ISVALID_3DIM_DATASET(ss->anat[apref][vv]) ){  /* if preferred is OK, */
             dset->anat_parent = ss->anat[apref][vv] ;      /* use it here         */
          } else {
@@ -942,6 +952,8 @@ if(aset >= 0 && PRINT_TRACING)
 
             if( ! ISVALID_3DIM_DATASET(dset) ||
                 dset->anat_parent != NULL      ) continue ; /* nothing to do */
+
+            if( DSET_in_global_session(dset) ) continue ; /* 25 Dec 2001 */
 
             if( ISVALID_3DIM_DATASET(ss->anat[apref][vv]) ){  /* if preferred is OK, */
                dset->anat_parent = ss->anat[apref][vv] ;      /* use it here         */
@@ -1755,6 +1767,23 @@ ENTRY("AFNI_set_window_titles") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------*/
+/*! Determine if dset is in the AFNI global session - 21 Dec 2001.
+----------------------------------------------------------------------*/
+
+int DSET_in_global_session( THD_3dim_dataset *dset )
+{
+   THD_slist_find find ;
+
+   if( !ISVALID_DSET(dset) ) return 0 ;
+
+   find = THD_dset_in_session( FIND_IDCODE ,
+                               &(dset->idcode) ,
+                               GLOBAL_library.session ) ;
+
+   return (find.dset != NULL) ;
+}
+
 /*--------------------------------------------------------------------
    used to select between sessions and datasets
 ----------------------------------------------------------------------*/
@@ -1861,13 +1890,8 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
             /* 20 Dec 2001: mark if this is a global dataset */
 
-            { THD_slist_find find ;
-              find = THD_dset_in_session( FIND_IDCODE ,
-                                          &(im3d->ss_now->anat[ii][vv]->idcode) ,
-                                          GLOBAL_library.session ) ;
-
-              if( find.dset != NULL ) strcat( strlist[ii] , "G" ) ;
-            }
+            if( DSET_in_global_session(im3d->ss_now->anat[ii][vv]) )
+              strcat( strlist[ii] , "G" ) ;
 
          } else
             MCW_strncpy( strlist[ii] , "??*BAD*??" , THD_MAX_PREFIX ) ;
@@ -1925,13 +1949,8 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
             /* 20 Dec 2001: mark if this is a global dataset */
 
-            { THD_slist_find find ;
-              find = THD_dset_in_session( FIND_IDCODE ,
-                                          &(im3d->ss_now->func[ii][vv]->idcode) ,
-                                          GLOBAL_library.session ) ;
-
-              if( find.dset != NULL ) strcat( strlist[ii] , "G" ) ;
-            }
+            if( DSET_in_global_session(im3d->ss_now->func[ii][vv]) )
+              strcat( strlist[ii] , "G" ) ;
 
          } else
             MCW_strncpy( strlist[ii] , "**?BAD?**" , THD_MAX_PREFIX ) ;
@@ -2881,6 +2900,8 @@ ENTRY("AFNI_rescan_session") ;
    old_ss = GLOBAL_library.sslist->ssar[sss] ;
    if( ! ISVALID_SESSION(old_ss) ){ BEEPIT ; EXRETURN ; }
 
+   if( old_ss == GLOBAL_library.session ) EXRETURN ;  /* 21 Dec 2001 */
+
    /*--- Make sure that the dataset choosers are closed.
          Since these are just instances of the generic strlist
          chooser, and we can't tell what is being chosen just now,
@@ -2895,12 +2916,18 @@ STATUS("marking old session datasets") ;
    for( ii=0 ; ii < old_ss->num_anat ; ii++ )
       for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
          if( ISVALID_3DIM_DATASET(old_ss->anat[ii][vv]) )
-            old_ss->anat[ii][vv]->death_mark = DOOMED ;
+            if( DSET_in_global_session(old_ss->anat[ii][vv]) )
+               old_ss->anat[ii][vv] = NULL ;   /* will be added back in later */
+            else
+               DSET_MARK_FOR_DEATH( old_ss->anat[ii][vv] ) ;
 
    for( ii=0 ; ii < old_ss->num_func ; ii++ )
       for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
          if( ISVALID_3DIM_DATASET(old_ss->func[ii][vv]) )
-            old_ss->func[ii][vv]->death_mark = DOOMED ;
+            if( DSET_in_global_session(old_ss->func[ii][vv]) )
+               old_ss->func[ii][vv] = NULL ;   /* will be added back in later */
+            else
+               DSET_MARK_FOR_DEATH( old_ss->func[ii][vv] ) ;
 
    /*--- mark all descendants for purging as well ---*/
 
@@ -3898,8 +3925,10 @@ STATUS("have new image") ;
   Note also that this routine does not actually destroy any datasets.
   That is done by AFNI_andersonville.
 
-  Jan 31, 1995: altered to avoid destruction of a dataset without
-                a warp parent, since that dataset cannot be recreated.
+  31 Jan 1995: altered to avoid destruction of a dataset without
+               a warp parent, since that dataset cannot be recreated.
+  21 Dec 2001: modified to use DSET_MARK_FOR_DEATH(), which will
+               not let a dataset marked for immortality be killed.
 --------------------------------------------------------------------*/
 
 void AFNI_mark_for_death( THD_sessionlist * ssl )
@@ -3930,7 +3959,7 @@ ENTRY("AFNI_mark_for_death") ;
                 dset->anat_parent->death_mark == DOOMED &&   /* parent dies */
                 dset->warp_parent != NULL                 ){ /* is a warp child */
 
-               dset->death_mark = DOOMED ;
+               DSET_MARK_FOR_DEATH(dset) ;
                num_marked ++ ;
             }
          }
@@ -3948,7 +3977,7 @@ ENTRY("AFNI_mark_for_death") ;
                 dset->anat_parent->death_mark == DOOMED &&   /* parent dies */
                 dset->warp_parent != NULL                 ){ /* is a warp child */
 
-               dset->death_mark = DOOMED ;
+               DSET_MARK_FOR_DEATH(dset) ;
                num_marked ++ ;
             }
          }
@@ -3985,6 +4014,8 @@ ENTRY("AFNI_andersonville") ;
    for( iss=0 ; iss < ssl->num_sess ; iss++ ){
       ss = ssl->ssar[iss] ;
       if( !ISVALID_SESSION(ss) ) continue ;  /* no good ==> skip */
+
+      if( ss == GLOBAL_library.session ) continue ; /* 21 Dec 2001 */
 
       /* loop over anats in this session */
 

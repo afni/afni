@@ -1995,6 +1995,21 @@ typedef struct THD_3dim_dataset {
 
 #define DOOMED 665
 
+/*! Mark a dataset to be eliminated by AFNI_mark_for_death() and AFNI_andersonville(). */
+
+#define DSET_MARK_FOR_DEATH(ds)                                         \
+ do{ if( ISVALID_DSET(ds) && ds->death_mark >= 0 ) ds->death_mark = DOOMED ; } while(0)
+
+/*! Mark a dataset to be ineligible for elimination during AFNI_rescan_session(). */
+
+#define DSET_MARK_FOR_IMMORTALITY(ds)                                   \
+ do{ if( ISVALID_DSET(ds) ) ds->death_mark = -1 ; } while(0)
+
+/*! Mark a dataset to be eligible for elimination if the need arises. */
+
+#define DSET_MARK_FOR_NORMAL(ds)                                        \
+ do{ if( ISVALID_DSET(ds) ) ds->death_mark = 0 ; } while(0)
+
 /*! \brief Return pointer to current dataset axes (warp-on-demand or permanent). */
 
 #define CURRENT_DAXES(ds) (((ds)->wod_flag) ? ((ds)->wod_daxes) : ((ds)->daxes))
