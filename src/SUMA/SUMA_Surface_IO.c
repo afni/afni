@@ -112,6 +112,75 @@ static void SUMA_swap_2(void *ppp)
    }  \
 }
 
+/*!
+   \brief a function to simplify loading surfaces the old way
+   The only difference with SUMA_Load_Surface_Object_eng is that it 
+   takes the file names needed in the first three character pointers
+   usually: if_name1: (char *) name of entire surface file or the coordinates file
+            if_name2: (char *) name of triangulation file
+            vp_name: (char *) name of volume parent file, just for SureFit surfaces.
+*/
+SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_name2, char *vp_name, 
+                                                   SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *sv_name, int debug)
+{
+   static char FuncName[]={"SUMA_Load_Surface_Object_Wrapper"};
+   SUMA_SurfaceObject *SO=NULL;
+   void *SO_name=NULL;
+   SUMA_SFname *SF_name = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   switch (SO_FT) {
+      case SUMA_SUREFIT:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", if_name);
+         sprintf(SF_name->name_topo,"%s", if_name2); 
+         if (!vp_name) { /* initialize to empty string */
+            SF_name->name_param[0] = '\0'; 
+         }
+         else {
+            sprintf(SF_name->name_param,"%s", vp_name);
+         }
+         SO_name = (void *)SF_name;
+         if (debug > 0) fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, sv_name);
+         break;
+      case SUMA_VEC:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", if_name);
+         sprintf(SF_name->name_topo,"%s", if_name2); 
+         SO_name = (void *)SF_name;
+         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
+         break;
+      case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         if (SUMA_isExtension(SO_name, ".asc")) 
+            SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
+         else
+            SO = SUMA_Load_Surface_Object_eng (SO_name, SUMA_FREE_SURFER, SUMA_BINARY_BE, sv_name, 0);
+         break;  
+      case SUMA_PLY:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
+         break;  
+      case SUMA_BRAIN_VOYAGER:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_BRAIN_VOYAGER, SUMA_BINARY, sv_name);
+         break;  
+      default:
+         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
+         exit(1);
+   }
+
+   if (SF_name) SUMA_free(SF_name); SF_name = NULL;
+   SUMA_RETURN(SO);
+}
 
 /*!
    \brief A function to take a prefix and turn it into the structure needed
@@ -164,6 +233,7 @@ void * SUMA_Prefix2SurfaceName (char *prefix, char *path, char *vp_name, SUMA_SO
          SO_name = (void *)SF_name;
          break;
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
          SO_name = (void *)SUMA_append_string(ppref,".asc"); 
          break;  
       case SUMA_PLY:
@@ -2008,6 +2078,70 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 	
 }/* SUMA_FreeSurfer_Read_eng*/
 
+SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, char *firstLine, SUMA_SurfaceObject *SO_parent)
+{
+   static char FuncName[]={"SUMA_FreeSurfer_WritePatch"};
+   int cnt, i, iface;
+   int *FaceSetIndexInParent=NULL;
+   SUMA_Boolean *isInPatch=NULL;
+   FILE *fout=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!fileNm || !SO || !SO_parent || !SO_parent->EL) {
+      SUMA_SL_Err("NULL input params");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (SUMA_filexists(fileNm)) {
+      SUMA_SL_Err("Output file exists, will not overwrite");
+      SUMA_RETURN(NOPE);
+   }
+   
+   fout = fopen(fileNm,"w");
+   if (!fout) {
+      SUMA_SL_Err("Failed to open file for writing.\nCheck permissions.");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (firstLine) {
+      fprintf(fout, "%s\n", firstLine);
+   } else {
+      if (!SO->Label) SO->Label = SUMA_SurfaceFileName (SO, NOPE);
+      fprintf(fout, "#!ascii version of patch %s\n", SO->Label);
+   }
+   
+   /* which nodes are in this patch ? */
+   isInPatch = SUMA_MaskOfNodesInPatch(SO, &cnt);
+   if (!isInPatch) {
+      SUMA_SL_Crit("Failed in SUMA_MaskOfNodesInPatch");
+      SUMA_RETURN(NOPE);
+   }
+
+   /* number of nodes and number of triangles in mesh */
+   fprintf(fout, "%d %d\n", cnt, SO->N_FaceSet);
+   /* write the node coordinates */
+   for (i=0; i < SO->N_Node; ++i) {
+      if (isInPatch[i]) {
+         fprintf(fout, "%d\n%f\t%f\t%f\n", i, SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2]);
+      }
+   }
+   for (i=0; i < SO->N_FaceSet; ++i) {
+      iface = SUMA_whichTri (SO_parent->EL, SO->FaceSetList[3*i], SO->FaceSetList[3*i+1], SO->FaceSetList[3*i+2], 0);
+      if (iface < 0) {
+         SUMA_SL_Warn("Parent surface does not contain triangle in patch!\nTriangle skipped.");
+      } else {
+         fprintf(fout, "%d\n%d\t%d\t%d\n", iface, SO->FaceSetList[3*i], SO->FaceSetList[3*i+1], SO->FaceSetList[3*i+2]);
+      }
+   }
+   
+   
+   SUMA_free(FaceSetIndexInParent); FaceSetIndexInParent = NULL;
+   SUMA_free(isInPatch); isInPatch = NULL;
+
+   fclose(fout);
+   SUMA_RETURN(YUP);
+}
 /*!
    
    Thanks for info from Graham Wideman, https://wideman-one.com/gw/brain/fs/surfacefileformats.htm
@@ -3092,8 +3226,14 @@ void usage_SUMA_ConvertSurface ()
                   "            FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n"
                   "       ply: PLY format, ascii or binary.\n"
                   "            Only vertex and triangulation info is preserved.\n"
+                  "    -ipar_TYPE ParentSurf specifies the parent surface. Only used\n"
+                  "            when -o_fsp is used, see below.\n"
                   "    -o_TYPE outSurf specifies the output surface, TYPE is one of the following:\n"
                   "       fs: FreeSurfer ascii surface. \n"
+                  "       fsp: FeeSurfer ascii patch surface. \n"
+                  "            In addition to outSurf, you need to specify\n"
+                  "            the name of the parent surface for the patch.\n"
+                  "            using the -ipar_TYPE option\n"
                   "       sf: SureFit surface. (NOT IMPLEMENTED YET)\n"
                   "           You must specify the .coord followed by the .topo file.\n"
                   "       vec (or 1D): Simple ascii matrix format. \n"
@@ -3148,17 +3288,20 @@ int main (int argc,char *argv[])
 	int kar, i;
    float xcen[3], M[3][4];
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
-         *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL, 
+         *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
          *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL,
-         *acpc_name=NULL, *xmat_name = NULL;
-   SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED, oType = SUMA_FT_NOT_SPECIFIED;
-   SUMA_SurfaceObject *SO = NULL;
+         *acpc_name=NULL, *xmat_name = NULL, *ifpar_name = NULL, *ifpar_name2 = NULL;
+   SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED, iparType = SUMA_FT_NOT_SPECIFIED,
+                     oType = SUMA_FT_NOT_SPECIFIED;
+   SUMA_SO_File_Format iForm = SUMA_FF_NOT_SPECIFIED, iparForm = SUMA_FF_NOT_SPECIFIED;
+   SUMA_SurfaceObject *SO = NULL, *SOpar = NULL, *SOsurf = NULL;
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
    SUMA_SFname *SF_name = NULL;
    void *SO_name = NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind;
+   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind, onemore;
+   SUMA_Boolean isFSpatch = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
 	SUMA_mainENTRY;
@@ -3185,6 +3328,8 @@ int main (int argc,char *argv[])
    Do_mni_LPI = NOPE;
    Do_acpc = NOPE;
    Do_wind = NOPE;
+   isFSpatch = NOPE;
+   onemore = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -3204,6 +3349,7 @@ int main (int argc,char *argv[])
 			}
 			if_name = argv[kar];
          iType = SUMA_BRAIN_VOYAGER;
+         iForm = SUMA_BINARY;
 			brk = YUP;
 		}
       
@@ -3215,6 +3361,10 @@ int main (int argc,char *argv[])
 			}
 			if_name = argv[kar];
          iType = SUMA_FREE_SURFER;
+         if (SUMA_isExtension(ifpar_name, ".asc")) 
+            iparForm = SUMA_ASCII;
+         else
+            iparForm = SUMA_BINARY_BE;
 			brk = YUP;
 		}
       
@@ -3256,6 +3406,7 @@ int main (int argc,char *argv[])
 			if_name = argv[kar]; kar ++;
          if_name2 = argv[kar];
          iType = SUMA_SUREFIT;
+         iForm = SUMA_ASCII;
 			brk = YUP;
 		}
       
@@ -3268,6 +3419,7 @@ int main (int argc,char *argv[])
 			if_name = argv[kar]; kar ++;
          if_name2 = argv[kar];
          iType = SUMA_VEC;
+         iForm = SUMA_ASCII;
 			brk = YUP;
 		}
       
@@ -3279,9 +3431,75 @@ int main (int argc,char *argv[])
 			}
 			if_name = argv[kar];
          iType = SUMA_PLY;
+         iForm = SUMA_FF_NOT_SPECIFIED;
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-ipar_bv") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -ipar_bv ");
+				exit (1);
+			}
+			ifpar_name = argv[kar];
+         iparType = SUMA_BRAIN_VOYAGER;
+         iparForm = SUMA_BINARY;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-ipar_fs") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -ipar_fs ");
+				exit (1);
+			}
+			ifpar_name = argv[kar];
+         iparType = SUMA_FREE_SURFER;
+         if (SUMA_isExtension(ifpar_name, ".asc")) 
+            iparForm = SUMA_ASCII;
+         else
+            iparForm = SUMA_BINARY_BE;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-ipar_sf") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -ipar_sf");
+				exit (1);
+			}
+			ifpar_name = argv[kar]; kar ++;
+         ifpar_name2 = argv[kar];
+         iparType = SUMA_SUREFIT;
+         iparForm = SUMA_ASCII;
+			brk = YUP;
+		}
+      
+      if (!brk && ( (strcmp(argv[kar], "-ipar_vec") == 0) || (strcmp(argv[kar], "-ipar_1d") == 0) ) ) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -ipar_vec (or -ipar_1D)");
+				exit (1);
+			}
+			ifpar_name = argv[kar]; kar ++;
+         ifpar_name2 = argv[kar];
+         iparType = SUMA_VEC;
+         iparForm = SUMA_ASCII;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-ipar_ply") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -ipar_ply ");
+				exit (1);
+			}
+			ifpar_name = argv[kar];
+         iparType = SUMA_PLY;
+         iparForm = SUMA_FF_NOT_SPECIFIED;
+			brk = YUP;
+		}
+
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
          if (iType == SUMA_FT_NOT_SPECIFIED) {
             fprintf (SUMA_STDERR, " -sv option must be preceeded by -i_TYPE option.");
@@ -3319,12 +3537,24 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-o_sf") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -o_sf");
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -o_sf");
 				exit (1);
 			}
 			of_name = argv[kar]; kar ++;
          of_name2 = argv[kar];
          oType = SUMA_SUREFIT;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-o_fsp") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -o_fsp");
+				exit (1);
+			}
+			of_name = argv[kar]; kar ++;
+         isFSpatch = YUP;
+         oType = SUMA_FREE_SURFER_PATCH;
 			brk = YUP;
 		}
       
@@ -3464,6 +3694,20 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
+
+   if (ifpar_name2) {
+      if (!SUMA_filexists(ifpar_name2)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, ifpar_name2);
+         exit(1);
+      }
+   }
+   
+   if (ifpar_name) {
+      if (!SUMA_filexists(ifpar_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, ifpar_name);
+         exit(1);
+      }
+   }
    
    if (xmat_name) {
       if (!SUMA_filexists(xmat_name)) {
@@ -3501,7 +3745,7 @@ int main (int argc,char *argv[])
       OF_name2 = (char *) SUMA_malloc (sizeof(char)*(strlen(of_name2)+20));
    }
 
-   if (oType == SUMA_FREE_SURFER) {
+   if (oType == SUMA_FREE_SURFER || oType == SUMA_FREE_SURFER_PATCH) {
       if (strcmp (of_name_strip->Ext,".asc")==0) {
          sprintf (OF_name,"%s%s.asc", of_name_strip->Path, of_name_strip->FileName_NoExt);
       }else {
@@ -3585,56 +3829,25 @@ int main (int argc,char *argv[])
       mri_free(im); im = NULL;
    }
    /* prepare the name of the surface object to read*/
-   switch (iType) {
-      case SUMA_SUREFIT:
-         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         sprintf(SF_name->name_coord,"%s", if_name);
-         sprintf(SF_name->name_topo,"%s", if_name2); 
-         if (!vp_name) { /* initialize to empty string */
-            SF_name->name_param[0] = '\0'; 
-         }
-         else {
-            sprintf(SF_name->name_param,"%s", vp_name);
-         }
-         SO_name = (void *)SF_name;
-         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, sv_name);
-         break;
-      case SUMA_VEC:
-         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         sprintf(SF_name->name_coord,"%s", if_name);
-         sprintf(SF_name->name_topo,"%s", if_name2); 
-         SO_name = (void *)SF_name;
-         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
-         break;
-      case SUMA_FREE_SURFER:
-         SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         if (SUMA_isExtension(SO_name, ".asc")) 
-            SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
-         else
-            SO = SUMA_Load_Surface_Object_eng (SO_name, SUMA_FREE_SURFER, SUMA_BINARY_BE, sv_name, 0);
-         break;  
-      case SUMA_PLY:
-         SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
-         break;  
-      case SUMA_BRAIN_VOYAGER:
-         SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_BRAIN_VOYAGER, SUMA_FF_NOT_SPECIFIED, sv_name);
-         break;  
-      default:
-         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
-         exit(1);
-   }
-   
+   SO = SUMA_Load_Surface_Object_Wrapper ( if_name, if_name2, vp_name, iType, iForm, sv_name, 1);
    if (!SO) {
       fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
       exit (1);
    }
+
+   if (ifpar_name) {
+      SOpar = SUMA_Load_Surface_Object_Wrapper ( ifpar_name, ifpar_name2, vp_name, iparType, iparForm, sv_name, 1);
+      if (!SOpar) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to read input parent surface.\n", FuncName);
+         exit (1);
+      }
+      /* need edge list */
+      if (!SUMA_SurfaceMetrics_eng (SOpar,"EdgeList", NULL, 0, SUMAg_CF->DsetList)) {
+         SUMA_SL_Err("Failed to create edgelist for parent");
+         exit(1);
+      }
+   }
+   
    
    /* if Do_wind */
    if (Do_wind) {
@@ -3768,7 +3981,7 @@ int main (int argc,char *argv[])
                    "%s", vp_name);
          }
          SO_name = (void *)SF_name;
-         if (!SUMA_Save_Surface_Object (SO_name, SO,  SUMA_SUREFIT, SUMA_ASCII)) {
+         if (!SUMA_Save_Surface_Object (SO_name, SO,  SUMA_SUREFIT, SUMA_ASCII, NULL)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
@@ -3781,21 +3994,28 @@ int main (int argc,char *argv[])
          snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
                    "%s", of_name2); 
          SO_name = (void *)SF_name;
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII)) {
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
          break;
       case SUMA_FREE_SURFER:
          SO_name = (void *)of_name; 
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII)) {
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII, NULL)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+            exit (1);
+         }
+         break;
+      case SUMA_FREE_SURFER_PATCH:
+         SO_name = (void *)of_name; 
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER_PATCH, SUMA_ASCII, SOpar)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
          break;  
       case SUMA_PLY:
          SO_name = (void *)of_name; 
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED)) {
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
@@ -3813,6 +4033,7 @@ int main (int argc,char *argv[])
    if (OF_name2) SUMA_free(OF_name2);
    if (SF_name) SUMA_free(SF_name);
    if (SO) SUMA_Free_Surface_Object(SO);
+   if (SOpar) SUMA_Free_Surface_Object(SOpar);
    return (0);
 }
 #endif

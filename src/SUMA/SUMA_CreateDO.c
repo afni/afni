@@ -3155,6 +3155,7 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
             SS = SUMA_StringAppend_va (SS,"FaceSetList Path: %s \n", SO->Name_topo.Path);
             break;
          case SUMA_FREE_SURFER:
+         case SUMA_FREE_SURFER_PATCH:
             SS = SUMA_StringAppend_va (SS,"FreeSurfer surface.\n");
             SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
             SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);

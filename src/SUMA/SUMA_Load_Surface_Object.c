@@ -58,7 +58,8 @@ extern int SUMAg_N_DOv;
    
 /*!
    \brief Function to write surface objects to disk in various formats
-   ans = SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF);
+   ans = SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SUMA_SO_File_Type SO_FT, 
+                              SUMA_SO_File_Format SO_FF, void *someparam);
    \param F_name (void *)
          For SUMA_INVENTOR_GENERIC F_name is (char *) containing path (if any) and filename of surface
          For SUMA_SUREFIT F_name is (SUMA_SFname *) containing full topo and coord names, with path (if any)
@@ -68,7 +69,8 @@ extern int SUMAg_N_DOv;
          For SUMA_PLY (char *) name of .ply file (with path)
    \param   SO_FT (SUMA_SO_File_Type) file type to be read (inventor, free surfer , Surefit )
    \param   SO_FF (SUMA_SO_File_Format) Ascii or Binary (only ascii at the moment, except for .ply files)
-
+   \param someparam (void *) a pointer used to pass extra parameters. At the moment, used for passing a parent
+                           surface when writing FreeSurferPatches
    \sa SUMA_Load_Surface_Object()
    
    NOTE:
@@ -76,7 +78,7 @@ extern int SUMAg_N_DOv;
    The Volume Parent transformation is not undone. 
    For SureFit surfaces, the volume param shift is not undone.
 */
-SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF)
+SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, void *someparam)
 {/*SUMA_Save_Surface_Object*/
    static char FuncName[]={"SUMA_Save_Surface_Object"};
    
@@ -96,6 +98,16 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
             SUMA_RETURN (NOPE);
          }
          if (!SUMA_FS_Write ((char *)F_name, SO, "#Output of SUMA_SurfaceConvert")) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to write FreeSurfer surface.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
+      case SUMA_FREE_SURFER_PATCH:
+         if (SO_FF != SUMA_ASCII) {
+            fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for Free Surfer surface patches.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (!SUMA_FreeSurfer_WritePatch ((char *)F_name, SO, NULL, (SUMA_SurfaceObject *)someparam)) {
             fprintf (SUMA_STDERR, "Error %s: Failed to write FreeSurfer surface.\n", FuncName);
             SUMA_RETURN (NOPE);
          }
@@ -233,6 +245,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
       case SUMA_SUREFIT:
          break;
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
          break;
       case SUMA_PLY:
          break;
@@ -338,6 +351,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          break;
          
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
          /* Allocate for FS */
          FS = (SUMA_FreeSurfer_struct *) SUMA_malloc(sizeof(SUMA_FreeSurfer_struct));   
          if (FS == NULL) {
@@ -3367,6 +3381,7 @@ int main (int argc,char *argv[])
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
          break;
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
          SO_name = (void *)if_name; 
          fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
@@ -3779,6 +3794,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
                      +   strlen(SO->Name_topo.FileName) + 5;
          break;
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
       case SUMA_BRAIN_VOYAGER:
       case SUMA_PLY:
          if (MitPath) nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
@@ -3799,6 +3815,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
    switch (SO->FileType) {
       case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
       case SUMA_PLY:
       case SUMA_BRAIN_VOYAGER:
          if (MitPath) sprintf(Name,"%s%s", SO->Name.Path, SO->Name.FileName);
@@ -3835,6 +3852,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
    switch (SO->FileType) {
       case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
       case SUMA_PLY:
       case SUMA_BRAIN_VOYAGER:
          if (  SUMA_iswordin (SO->Name.FileName, ".white") || 
@@ -3880,6 +3898,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
       case SUMA_INVENTOR_GENERIC:
          break;
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
          if (SUMA_iswordin (SO->Name.FileName, "lh")) {
             SUMA_RETURN(SUMA_LEFT);
          } else if (SUMA_iswordin (SO->Name.FileName, "rh")) {
