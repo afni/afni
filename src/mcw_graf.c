@@ -3,8 +3,13 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mcw_graf.h"
+
+#ifndef LABEL_ARG
+#define LABEL_ARG(str) \
+  XtVaTypedArg , XmNlabelString , XmRString , (str) , strlen(str)+1
+#endif
 
 /* graph drawing functions, inspired by the GRAF code in program xv */
 
@@ -74,6 +79,13 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
                          (XtPointer) gp ,       /* client data */
                          XtListTail ) ;         /* last in queue */
 
+   gp->popmenu  = XmCreatePopupMenu( gp->drawer , "menu" , NULL , 0 ) ;
+   gp->poplabel = XtVaCreateManagedWidget(
+                    "menu" , xmLabelWidgetClass , gp->popmenu ,
+                    LABEL_ARG("I am a label") ,
+                    XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+
    rcbox = XtVaCreateWidget(
                 "dialog" , xmRowColumnWidgetClass , gp->topform ,
                    XmNpacking          , XmPACK_TIGHT ,
@@ -131,6 +143,8 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
    GenerateGrafFunc(gp,0);
    memcpy( gp->oldf , gp->func , sizeof(byte)*256 ) ;
    gp->yeqx = 1 ;
+
+   gp->xbot = gp->xtop = gp->ybot = gp->ytop = 0.0 ;
 
    return gp ;
 }
@@ -260,7 +274,37 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
 #endif /* USE_MyCursor */
 
          but = event->button ;
-         if( but != Button1 ) return ;  /* meaningless */
+
+         if( but == Button3 && gp->popmenu != NULL ){   /* 29 Nov 2002 */
+           XmString xstr ; char str[128] , xbuf[32],ybuf[32] ;
+           float xx , yy , ff ;
+
+           if( event->x >= GRAF_SIZE || event->y >= GRAF_SIZE ) return ;  /* bad */
+
+           if( gp->xtop != gp->xbot ){
+             ff = event->x / (float)(GRAF_SIZE-1) ;
+             xx = ff*gp->xtop + (1.0-ff)*gp->xbot ;
+           } else {
+             xx = event->x ;
+           }
+
+           if( gp->ytop != gp->ybot ){
+             ff = event->y / (float)(GRAF_SIZE-1) ;
+             yy = ff*gp->ybot + (1.0-ff)*gp->ytop ;
+           } else {
+             yy = GRAF_SIZE-1 - event->y ;
+           }
+
+           AV_fval_to_char( xx,xbuf ); AV_fval_to_char( yy,ybuf );
+           sprintf(str,"%s %s",xbuf,ybuf) ;
+           MCW_set_widget_label( gp->poplabel , str ) ;
+
+           XmMenuPosition( gp->popmenu , event ) ;
+           XtManageChild ( gp->popmenu ) ;
+           return ;
+         }
+
+         if( but != Button1 ) return ;  /* meaningless button */
 
          /* see if press is within any of the handles */
 
@@ -271,7 +315,7 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
                         gp->hands[h].x-5,gp->hands[h].y-5,11,11)) break;
          }
 
-         if (h==gp->nhands) return ;  /* meaningless */
+         if (h==gp->nhands) return ;  /* meaningless click - not in a "hand" */
 
          grab = !XGrabPointer(gp->dc->display,
                               gp->gwin, False, 0, GrabModeAsync,
@@ -736,6 +780,8 @@ MCW_pasgraf * new_MCW_pasgraf( Widget wpar , MCW_DC * dc , char * title )
    gp->fg = gp->bg = 0 ;   /* will be fixed later */
    gp->gwin = (Window) 0 ;
 
+   gp->xbot = gp->xtop = gp->ybot = gp->ytop = 0.0 ;
+
    return gp ;
 }
 
@@ -876,4 +922,21 @@ void MCW_histo_bytes( int nb , byte * bar , int * har )
    for( i=0 ; i < nb ; i++ ) har[ bar[i] ]++ ;
 
    return ;
+}
+
+/********************************************************************************/
+
+void PASGRAF_set_xyrange( MCW_pasgraf *gp , float xb,float xt, float yb,float yt )
+{
+  if( gp == NULL ) return ;
+  gp->xbot = xb ; gp->xtop = xt ;
+  gp->ybot = yb ; gp->ytop = yt ;
+}
+
+
+void GRAF_set_xyrange( MCW_graf *gp , float xb,float xt, float yb,float yt )
+{
+  if( gp == NULL ) return ;
+  gp->xbot = xb ; gp->xtop = xt ;
+  gp->ybot = yb ; gp->ytop = yt ;
 }
