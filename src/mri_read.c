@@ -2165,6 +2165,8 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       /* 27 Nov 2001: scale image? */
 
       if( fac != 0.0 ) mri_scale_inplace( fac , newim ) ;
+
+      newim->dv = fac ;  /* 24 Jun 2002: save scale factor */
    }
 
    fclose(fp) ; return newar ;
