@@ -31,6 +31,7 @@
 /***** Header file for communication routines *****/
 
 #include "thd_iochan.h"
+#define COM_LENGTH 1000   /* max length of command (to allow for ziad's filenames) */
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/
@@ -39,7 +40,9 @@ static char afni_host[128] = "." ;
 static char afni_name[128] = "\0" ;
 static int  afni_port      = 8099 ;
 static int  afni_verbose   = 0 ;  /* print out debug info? */
-
+static int  DontWait = 0;
+static int  N_com = 0;
+static char *com[1024];
 /***** Prototype *****/
 
 int afni_io(void) ;
@@ -52,14 +55,17 @@ int afni_io(void) ;
 
 int main( int argc , char * argv[] )
 {
-   int narg , ii ;
+   int narg , ii;
+   
 
    /***** See if the pitiful user wants help *****/
 
    if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
       printf("Usage: plugout_drive [-host name] [-v]\n"
              "This program connects to AFNI and sends commands\n"
-             "that the user types in over to AFNI to be executed.\n"
+             " that the user specifies interactively or on command line\n"
+             " over to AFNI to be executed.\n"
+             "\n"
              "Options:\n"
              "  -host name  Means to connect to AFNI running on the\n"
              "                computer 'name' using TCP/IP.  The default is to\n"
@@ -70,12 +76,33 @@ int main( int argc , char * argv[] )
              "                same computer, they must use different ports.\n"
              "  -name sss   Use the string 'sss' for the name that AFNI assigns\n"
              "                to this plugout.  The default is something stupid.\n"
+             "  -com 'ACTION DATA'  Execute the following command. For example:\n"
+             "                       -com 'SET_FUNCTION SomeFunction'\n"
+             "                       will switch AFNI's function (overlay) to\n"
+             "                       dataset with prefix SomeFunction. \n"
+             "                      Make sure ACTION and DATA are together enclosed\n"
+             "                       in one pair of single quotes.\n"
+             "                      There are numerous actions listed in AFNI's\n"
+             "                       README.driver file.\n"
+             "                      You can use the option -com repeatedly. \n"
+             "  -quit  Quit after you are done with all the -com commands.\n"
+             "         The default is for the program to wait for more\n"
+             "          commands to be typed at the terminal's prompt.\n"
+             "\n"
+             "NOTE: You will need to turn plugouts on in AFNI using \n"
+             " one of the following methods: \n"
+             " 1- including the -yesplugouts as an option on AFNI's command line\n"
+             " 2- from AFNI: Define Datamode --> Misc --> Start Plugouts\n"
+             " 3- set the environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
+             "\n"
             ) ;
       exit(0) ;
    }
 
    /***** Process command line options *****/
 
+   N_com = 0;
+   DontWait = 0;
    narg = 1 ;
    while( narg < argc ){
 
@@ -123,12 +150,44 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
+      /*** -com 'command this' */
+      if( strncmp(argv[narg],"-com",4) == 0 ){
+         narg++ ;
+         if( narg >= argc ){
+            fprintf(stderr,"** -com needs a following argument!\a\n"); exit(1);
+         }
+         
+         if (argv[narg] && strlen(argv[narg]) >= COM_LENGTH) {
+            fprintf(stderr,"** Command length must be smaller than %d characters.\n", COM_LENGTH); 
+         }
+
+         if (N_com < 1024) {
+            com[N_com] = argv[narg];
+            ++N_com;
+         } else {
+            fprintf(stderr,"** Only 1024 -com options allowed. Are you nuts?\a\n"); exit(1);
+         } 
+         
+         narg++ ; continue ;
+      }
+
+      /*** -quit */
+      if( strncmp(argv[narg],"-quit",5) == 0 ){
+         DontWait = 1 ;
+         narg++ ; continue ;
+      }
+      
       /** Je ne sais pas **/
 
       fprintf(stderr,"** Unrecognized option: %s\a\n",argv[narg]) ;
       exit(1) ;
    }
 
+   if (DontWait && !N_com) {
+      fprintf(stderr,"** WARNING: -quit option is meaningless without -com option.\n");
+      DontWait = 0;
+   }  
+   
    /***** Loop and check in with AFNI every 100 msec *****/
 
    while( 1 ){
@@ -175,6 +234,7 @@ int main( int argc , char * argv[] )
 #define PO_ACK_BAD(ic)  iochan_sendall( (ic) , "BAD" , POACKSIZE )
 #define PO_ACK_OK(ic)   iochan_sendall( (ic) , "OK!" , POACKSIZE )
 #define PO_SEND(ic,str) iochan_sendall( (ic) , (str) , strlen((str))+1 )
+
 
 int afni_io(void)
 {
@@ -343,16 +403,23 @@ int afni_io(void)
    /***** See if the user wants to drive AFNI.               *****/
 
    if( afni_mode == AFNI_CONTINUE_MODE ){
-      char cmd_buf[200] , afni_buf[256];
+      char cmd_buf[COM_LENGTH] , afni_buf[COM_LENGTH+56];
 
-      /* get user input */
+      if (N_com) {
+         --N_com;
+         strcpy(afni_buf, "DRIVE_AFNI ") ;
+         strcat(afni_buf, com[N_com]); 
+      } else {
+         if (DontWait) exit(0);
+         /* get user input */
 
-      printf("Enter command: ") ; fflush(stdout) ; fgets(cmd_buf,200,stdin) ;
+         printf("Enter command: ") ; fflush(stdout) ; fgets(cmd_buf,COM_LENGTH,stdin) ;
 
-      /* make command to AFNI */
+         /* make command to AFNI */
 
-      strcpy(afni_buf,"DRIVE_AFNI ") ;
-      strcat(afni_buf,cmd_buf) ;
+         strcpy(afni_buf,"DRIVE_AFNI ") ;
+         strcat(afni_buf,cmd_buf) ;
+      }
 
       /* send command to AFNI */
 
