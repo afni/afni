@@ -1107,6 +1107,8 @@ ENTRY("THD_warp3D") ;
                           ADN_ttdur     , DSET_TIMEDURATION(qset) ,
                         ADN_none ) ;
 
+     THD_copy_datablock_auxdata( qset->dblk , outset->dblk ) ;  /* 08 Jun 2004 */
+
    } else {                          /*-- output is on new grid --*/
 
      float xmid,ymid,zmid ;
@@ -1174,6 +1176,8 @@ ENTRY("THD_warp3D") ;
                           ADN_ttdel     , DSET_TR(qset) ,
                           ADN_ttdur     , DSET_TIMEDURATION(qset) ,
                         ADN_none ) ;
+
+     THD_copy_datablock_auxdata( qset->dblk , outset->dblk ) ;  /* 08 Jun 2004 */
 
    } /*-- end of warping to new grid --*/
 
