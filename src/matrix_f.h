@@ -51,7 +51,9 @@ typedef struct matrix
   int      rows;
   int      cols;
   float  ** elts;
+#ifndef DONT_USE_MATRIX_MAT
   float   * mat ;  /* 04 Mar 2005 */
+#endif
 }  matrix;
 
 
