@@ -38,11 +38,13 @@ char gv2s_history[] =
     "  - in afni_vol2surf(), print v2s options when debug > 1\n"
     "  - allow (first_node > last_node) if (last == 0), then change to n-1\n"
     "\n"
-    "September 15, 2004 [rickr]\n"
+    "September 16, 2004 [rickr]\n"
     "  - added support for -gp_index, computing over a single sub-brick\n"
     "    - altered subs in dump_surf_3dt(), max_index in set_surf_results(),\n"
     "      set brick_index in v2s_apply_filter(), mem in alloc_output_mem(),\n"
     "      and added an index check in validate_v2s_inputs()\n"
+    "    - add gp_index as a parameter of afni_vol2surf()\n"
+    "    - changed keep_norm_dir to norm_dir, allowing default/keep/reverse\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -122,7 +124,11 @@ char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
 /*----------------------------------------------------------------------
  * afni_vol2surf     - create v2s_results from gv2s_* afni globals
  *
- *    input:   gpar  : AFNI dataset to be used as the grid parent
+ *    input:   gpar     : AFNI dataset to be used as the grid parent
+ *             gp_index : sub-brick selector
+ *             sA       : surface A structure
+ *             sB       : surface B structure
+ *	       mask     : thresholding mask
  * 
  *    output:  sd    : allocated v2s_results struct, with requested data
  *
@@ -130,8 +136,8 @@ char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
  * These structures are expected to be complete.
  *----------------------------------------------------------------------
 */
-v2s_results * afni_vol2surf ( THD_3dim_dataset * gpar, SUMA_surface * sA,
-			      SUMA_surface * sB, byte * mask )
+v2s_results * afni_vol2surf ( THD_3dim_dataset * gpar, int gp_index,
+			SUMA_surface * sA, SUMA_surface * sB, byte * mask )
 {
     static v2s_param_t   P;
     v2s_plugin_opts    * popt;
@@ -147,6 +153,7 @@ ENTRY("afni_vol2surf");
 
     popt = &gv2s_plug_opts;
     sopt = &gv2s_plug_opts.sopt;
+    sopt->gp_index = gp_index;
 
     /* now fill the param struct based on the inputs */
     memset(&P, 0, sizeof(P));
@@ -1329,7 +1336,7 @@ ENTRY("disp_v2s_opts_t");
 	    "    no_head, skip_cols    = %d, %d\n"
 	    "    first_node, last_node = %d, %d\n"
 	    "    use_norms, norm_len   = %d, %f\n"
-	    "    keep_norm_dir         = %d\n"
+	    "    norm_dir              = %d\n"
 	    "    f_index, f_steps      = %d, %d\n"
 	    "    f_p1_fr, f_pn_fr      = %f, %f\n"
 	    "    f_p1_mm, f_pn_mm      = %f, %f\n"
@@ -1339,7 +1346,7 @@ ENTRY("disp_v2s_opts_t");
 	    sopt->map, sopt->gp_index, sopt->debug, sopt->dnode,
 	    sopt->no_head, sopt->skip_cols,
 	    sopt->first_node, sopt->last_node,
-	    sopt->use_norms, sopt->norm_len, sopt->keep_norm_dir,
+	    sopt->use_norms, sopt->norm_len, sopt->norm_dir,
 	    sopt->f_index, sopt->f_steps,
 	    sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm,
 	    CHECK_NULL_STR(sopt->outfile_1D),

@@ -203,8 +203,8 @@ ENTRY("vol2surf: PLUGIN_init");
     PLUTO_add_hint  ( plint, "should normals be used to simulate surf_B?" );
     PLUTO_add_number( plint, "norm len", -100, 100, 1, 0, 1 );
     PLUTO_add_hint  ( plint, "what (signed) length should the normals be?" );
-    PLUTO_add_string( plint, "norm dir?", P_KEEP_NVALS, gp_keep_list, 0 );
-    PLUTO_add_hint  ( plint, "use SUMA normal direction (or re-compute)?" );
+    PLUTO_add_string( plint, "norm dir", P_KEEP_NVALS, gp_keep_list, 0 );
+    PLUTO_add_hint  ( plint, "check normal direction, or keep or reverse it" );
 
     /* segment offsets */
     PLUTO_add_option( plint, "offsets", "offsets", FALSE );

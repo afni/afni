@@ -8,6 +8,10 @@
 
 #define V2S_STEPS_TOOOOO_BIG  	  10000
 
+#define V2S_NORM_DEFAULT  	  0
+#define V2S_NORM_KEEP		  1
+#define V2S_NORM_REVERSE	  2
+
 #define V2S_EPSILON	      	  0.0001
 
 #define V2S_SKIP_NONE		  0
@@ -71,7 +75,7 @@ typedef struct
     int         last_node; 		/* skip nodes after this index   */
     int         use_norms;		/* use normals for segments      */
     float       norm_len;		/* signed length of normal       */
-    int         keep_norm_dir;		/* no directional check          */
+    int         norm_dir;		/* default, keep or reverse      */
     int         f_index;		/* node or voxel index type      */
     int         f_steps;		/* # int steps for mask2 map     */
     float       f_p1_fr;		/* fractional dist: add to p1    */
@@ -105,8 +109,8 @@ typedef struct
 
 /* ---- export function prototypes ---- */
 
-v2s_results * afni_vol2surf	( THD_3dim_dataset * gpar, SUMA_surface * sA,
-                                  SUMA_surface * sB, byte * mask );
+v2s_results * afni_vol2surf	( THD_3dim_dataset * gpar, int gp_index,
+			SUMA_surface * sA, SUMA_surface * sB, byte * mask );
 v2s_results * vol2surf		( v2s_opts_t * sopt, v2s_param_t * p );
 
 int disp_mri_imarr      ( char * info, MRI_IMARR * dp );
