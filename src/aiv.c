@@ -77,18 +77,19 @@ void AFNI_handler(char * msg){ return ; }
 void timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    PLUTO_imseq_popup( MAIN_imar , killer , NULL ) ;
+   DESTROY_IMARR( MAIN_imar ) ;
 }
 
 /*------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
-   int ii ;
+   int ii , verb=0 , iarg=1 ;
    MRI_IMAGE *im ;
    Widget shell ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: aiv image ...\n"
+     printf("Usage: aiv [-v] image ...\n"
             "AFNI Image Viewer:\n"
             "Shows the 2D images on the command line in an AFNI-like image viewer.\n"
             "Image formats are those supported by to3d:\n"
@@ -100,22 +101,24 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
+   if( strncmp(argv[iarg],"-v",2) == 0 ){ verb=1 ; iarg++ ; }
+
    INIT_IMARR(MAIN_imar) ;
 
-   for( ii=1 ; ii < argc ; ii++ ){
-     fprintf(stderr,"+") ;
+   for( ii=iarg ; ii < argc ; ii++ ){
+     if( verb ) fprintf(stderr,"+") ;
      im = mri_read( argv[ii] ) ;
      if( im == NULL ){
        fprintf(stderr,"\n** Can't read image %s - skipping **\n",argv[ii]) ;
        continue ;
      } else
-       fprintf(stderr,"%s",argv[ii]) ;
+       if( verb ) fprintf(stderr,"%s",argv[ii]) ;
      ADDTO_IMARR( MAIN_imar , im ) ;
    }
    if( IMARR_COUNT(MAIN_imar) == 0 ){
      fprintf(stderr,"\n** NO IMAGES?\n") ; exit(1) ;
    }
-   fprintf(stderr," = %d images\n",IMARR_COUNT(MAIN_imar)) ;
+   if( verb ) fprintf(stderr," = %d images\n",IMARR_COUNT(MAIN_imar)) ;
 
    shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
                               &argc , argv , FALLback , NULL ) ;
