@@ -259,6 +259,8 @@ void AFNI_syntax(void)
      "-------------------------------\n"
      "\n"
      "   -q           Tells afni to be 'quiet' on startup\n"
+     "   -Dname=val   Sets environment variable 'name' to 'val' inside AFNI;\n"
+     "                  will supersede any value set in .afnirc.\n"
      "   -gamma gg    Tells afni that the gamma correction factor for the\n"
      "                  monitor is 'gg' (default gg is 1.0; greater than\n"
      "                  1.0 makes the image contrast larger -- this may\n"
@@ -481,6 +483,13 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;
       }
 #endif
+
+      /*----- -Dname=val -- set environment variable [22 Mar 2005] -----*/
+
+      if( strncmp(argv[narg],"-D",2) == 0 && strchr(argv[narg],'=') != NULL ){
+        (void) AFNI_setenv( argv[narg]+2 ) ;
+        narg++ ; continue ;                 /* go to next arg */
+      }
 
       /*----- -layout (23 Sep 2000) -----*/
 
@@ -1235,12 +1244,12 @@ int main( int argc , char * argv[] )
    /*-- 04 Jun 1999: modify order of loading arguments and defaults --*/
 
    if( ! GLOBAL_argopt.skip_afnirc ){
-      char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 12 Apr 2000 */
-      if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 12 Apr 2000 */
+     char *sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;        /* 12 Apr 2000 */
+     if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 12 Apr 2000 */
 
-      AFNI_process_environ(NULL) ;                         /* 07 Jun 1999 */
+     AFNI_process_environ(NULL) ;                         /* 07 Jun 1999 */
    } else {
-      AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
+     AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
 
    AFNI_load_defaults( MAIN_shell ) ;
@@ -1252,7 +1261,7 @@ int main( int argc , char * argv[] )
       GPT = NULL ;  /* 19 Dec 1997 */
 
       if( sysenv != NULL )                                 /* 12 Apr 2000 */
-         AFNI_process_setup( sysenv , SETUP_INIT_MODE , NULL ) ;
+        AFNI_process_setup( sysenv , SETUP_INIT_MODE , NULL ) ;
 
       if( home != NULL ){ strcpy(fname,home) ; strcat(fname,"/.afnirc") ; }
       else              { strcpy(fname,".afnirc") ; }
