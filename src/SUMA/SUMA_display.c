@@ -5115,7 +5115,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTestShellStruct (void (*opencallback)
       SUMA_RETURN (NULL);
    }
    TextShell->text_w =  TextShell->search_w = TextShell->text_output = TextShell->toplevel = NULL;
-   TextShell->case_sensitive = YUP;
+   TextShell->case_sensitive = NOPE;
    TextShell->allow_edit = NOPE;
    TextShell->OpenCallBack = opencallback;
    TextShell->OpenData = opendata;

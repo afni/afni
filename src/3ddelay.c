@@ -283,7 +283,7 @@ void display_help_menu()
    "   [3] : Saad, Z.S., et al., Analysis and use of FMRI response delays. \n"
    "         Hum Brain Mapp, 2001. 13(2): p. 74-93.\n"
    "   [4] : Saad, Z.S., E.A. DeYoe, and K.M. Ropella, Estimation of FMRI Response Delays. \n"
-   "         Neuroimage, 2002: p. in press.\n\n"   
+   "         Neuroimage, 2003. 18(2): p. 494-504.\n\n"   
     );
 
   exit(0);
