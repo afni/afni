@@ -925,14 +925,14 @@ static Boolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
    static int nosplash = 0 ;
-   static double eltime ;
+   static double eltime , max_splash=5.0 ;
    int ii ;
 
    switch( MAIN_calls ){
 
       default:{
          if( nosplash ) return True ;
-         if( COX_clock_time() - eltime >= 5.0 ){ AFNI_splashdown(); return True; }
+         if( COX_clock_time()-eltime >= max_splash ){ AFNI_splashdown(); return True; }
       }
       break ;
 
@@ -944,7 +944,12 @@ static Boolean MAIN_workprocess( XtPointer fred )
 #else
         nosplash = (getenv("AFNI_NOSPLASH") != NULL) ;
 #endif
-        if( !nosplash ){ AFNI_splashup(); eltime = COX_clock_time(); }
+        if( !nosplash ){
+           char * hh ;
+           AFNI_splashup() ; eltime = COX_clock_time() ;
+           hh = getenv("AFNI_SPLASHTIME") ;
+           if( hh != NULL ) max_splash = strtod(hh,NULL) ;
+        }
       }
       break ;
 

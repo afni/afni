@@ -399,6 +399,17 @@ Variable: AFNI_NOSPLASH
 If this variable is set (to any value), then the AFNI splash screen will
 not be displayed when the program starts.
 
+-------------------------
+Variable: AFNI_SPLASHTIME
+-------------------------
+The value of this variable determines how long the AFNI splash screen
+will stay popped up, in seconds (default value = 5.0).  The splash
+screen will always stay up until the first AFNI controller window is
+ready for use.  If the time from program start to this ready condition
+is less than AFNI_SPLASHTIME, the splash screen will stay up until
+AFNI_SPLASHTIME has elapsed; otherwise, the splash screen will be
+removed as soon as AFNI is ready to go.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |
