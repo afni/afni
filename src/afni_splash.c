@@ -15,6 +15,7 @@
 void AFNI_splashdown (void){ return; }  /* for party poopers */
 void AFNI_splashup   (void){ return; }
 void AFNI_splashraise(void){ return; }
+void AFNI_faceup     (void){ return; }
 
 #else  /*=============================== for party animals !!!!!!!!!!!!!!!!!!*/
 
@@ -89,6 +90,13 @@ ENTRY("AFNI_splashdown") ;
 
 /*----------------------------------------------------------------------------*/
 
+static int    num_splash   =  0 ;   /* 26 Nov 2003 */
+static int    first_splash = -1 ;
+static char **fname_splash = NULL ;
+
+static int    num_face     =  0 ;   /* 28 Mar 2003 */
+static char **fname_face   = NULL ;
+
 void AFNI_splashup(void)
 {
    PLUGIN_impopper * ppp ;
@@ -99,11 +107,6 @@ void AFNI_splashup(void)
    int   sxx,syy ;
    char * sen ;
    static int ncall=0 , nov , dnov , nm=-1 ;
-   static int    num_splash  =0 ;   /* 26 Nov 2003 */
-   static int    first_splash=-1 ;
-   static char **fname_splash=NULL ;
-   static int    num_face  = 0 ;    /* 28 Mar 2003 */
-   static char **fname_face=NULL ;
 
 ENTRY("AFNI_splashup") ;
 
@@ -606,6 +609,57 @@ ENTRY("AFNI_find_jpegs") ;
    if( num_file == 0 ) num_file = -1 ;      /* flag that nothing was found */
    *fname = fflist ;                        /* list of found files */
    RETURN(num_file) ;                       /* return number of files found */
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void *face_phan=NULL ;
+
+void AFNI_facedown( void *kd ){ face_phan = NULL; }
+
+#undef  NXY
+#define NXY 128  /* expected size of face images; trim or pad, as needed */
+
+void AFNI_faceup(void)   /* 17 Dec 2004 */
+{
+   MRI_IMAGE *im , *fim ;
+   int ii , nx,ny , nxdown,nxup , nydown,nyup ;
+
+ENTRY("AFNI_faceup") ;
+
+   if( num_face <  0 || face_phan != NULL ){ BEEPIT; EXRETURN; }
+   if( num_face == 0 ){
+     num_face = AFNI_find_jpegs( "face_" , &fname_face ) ;
+     if( num_face <= 0 ){ BEEPIT; EXRETURN; }
+   }
+
+   for( ii=0 ; ii < num_face ; ii++ ){
+     im = mri_read_stuff( fname_face[ii] ) ;
+     if( im == NULL ) continue ;
+     nx = im->nx ; ny = im->ny ;
+
+     nxdown = (NXY-nx) / 2 ; nxup = NXY - nx - nxdown ;
+     nydown = (NXY-ny) / 2 ; nyup = NXY - ny - nydown ;
+     if( nxdown != 0 || nydown != 0 || nxup != 0 || nyup != 0 ){
+       fim = mri_zeropad_2D( nxdown,nxup , nydown,nyup , im ) ;
+       if( fim != NULL ){ mri_free(im) ; im = fim ; }
+     }
+     fim = mri_dup2D(2,im) ; mri_free(im) ;  /* double size for fun */
+     if( face_phan == NULL ){
+       face_phan = PLUTO_imseq_popim( fim,(generic_func *)AFNI_facedown,NULL );
+     } else {
+       PLUTO_imseq_addto( face_phan , fim ) ;
+     }
+     mri_free(fim) ;
+   }
+   if( face_phan != NULL ){
+     PLUTO_imseq_retitle( face_phan , "Faces of AFNI" ) ;
+     PLUTO_imseq_setim( face_phan , 0 ) ;
+   } else {
+     BEEPIT ;
+   }
+
+   EXRETURN ;
 }
 
 #endif /* NO_FRIVOLITIES */

@@ -5264,3 +5264,6 @@
 
 09 Dec 2004
  * PURGE_MEMORY addition to afni_driver.c.
+
+17 Dec 2004
+ * AFNI_faceup() in afni_splash.c and on the hidden popup menu.

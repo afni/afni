@@ -636,6 +636,8 @@ typedef struct {
 
    Widget hidden_speech_pb  ;  /* 25 Nov 2003 */
 
+   Widget hidden_faces_pb   ;  /* 17 Dec 2004 */
+
 #endif  /* USE_HIDDEN */
 
 } AFNI_program_widgets ;
@@ -1034,6 +1036,7 @@ extern void FatalError(char * str);
 extern void AFNI_splashup   (void) ;  /* 02 Aug 1999 */
 extern void AFNI_splashdown (void) ;
 extern void AFNI_splashraise(void) ;  /* 25 Sep 2000 */
+extern void AFNI_faceup     (void) ;  /* 17 Dec 2004 */
 
 extern void AFNI_quit_CB           ( Widget wcall , XtPointer cd , XtPointer cbs );
 extern void AFNI_quit_timeout_CB   ( XtPointer , XtIntervalId * ) ;

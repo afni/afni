@@ -613,6 +613,7 @@ extern void   PLUTO_imseq_addto( void * , MRI_IMAGE * ) ;
 extern void   PLUTO_imseq_destroy( void * ) ;
 extern void   PLUTO_imseq_retitle( void * , char * ) ;
 extern void   PLUTO_imseq_rekill( void *, generic_func *, void * ) ;
+extern void   PLUTO_imseq_setim( void * , int ) ;  /* 17 Dec 2004 */
 
 extern XtPointer PLUTO_imseq_getim( int , int , XtPointer ) ;
 extern void PLUTO_imseq_send_CB( MCW_imseq * , XtPointer , ISQ_cbs * ) ;
