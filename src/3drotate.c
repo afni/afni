@@ -36,7 +36,7 @@ int main( int argc , char * argv[] )
    int iopt , nvox , rotarg=-1 , dcode=-1 , ival,nval , ihand ;
    float * fvol ;
    double cputim ;
-   int clipit=0 ;  /* 11 Apr 2000 */
+   int clipit=1 ;  /* 11 Apr 2000 and 16 Apr 2002 */
    float cbot,ctop ;
 
    int matvec=0 ;    /* 19 July 2000 */
@@ -124,8 +124,8 @@ int main( int argc , char * argv[] )
        "  * These options are intended to be used to align datasets between sessions:\n"
        "     S1 = SPGR from session 1    E1 = EPI from session 1\n"
        "     S2 = SPGR from session 2    E2 = EPI from session 2\n"
-       " 3dvolreg -twopass -twodup -clipit -base S1+orig -prefix S2reg S2+orig\n"
-       " 3drotate -clipit -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg E2+orig\n"
+       " 3dvolreg -twopass -twodup -base S1+orig -prefix S2reg S2+orig\n"
+       " 3drotate -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg E2+orig\n"
        "     The result will have E2reg rotated from E2 in the same way that S2reg\n"
        "     was from S2, and also shifted/padded (as needed) to overlap with E1.\n"
        "\n"
@@ -228,7 +228,9 @@ int main( int argc , char * argv[] )
        " -quintic = Use the quintic (5th order) Lagrange polynomial method.\n"
        " -heptic  = Use the heptic (7th order) Lagrange polynomial method.\n"
        "\n"
-       " -clipit  = Clip results to input brick range\n"
+       " -clipit  = Clip results to input brick range [now the default]\n"
+       " -noclip  = Don't clip results to input brick range\n"
+       "\n"
        " -zpad n  = Zeropad around the edges by 'n' voxels during rotations\n"
        "              (these edge values will be stripped off in the output)\n"
        "        N.B.: Unlike to3d, in this program '-zpad' adds zeros in\n"
@@ -379,7 +381,13 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[iopt],"-clipit",4) == 0 ){  /* 11 Apr 2000 */
+         fprintf(stderr,"++ Notice: -clipit is now the default\n") ;
          clipit = 1 ;
+         iopt++ ; continue ;
+      }
+
+      if( strncmp(argv[iopt],"-noclip",4) == 0 ){  /* 16 Apr 2002 */
+         clipit = 0 ;
          iopt++ ; continue ;
       }
 

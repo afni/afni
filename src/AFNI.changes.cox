@@ -3651,3 +3651,11 @@
  * Changes to afni.c, afni_func.c, afni_slice.c, afni_warp.c, etc., to allow
      MRI_rgb-valued datasets.  These can be created in to3d from ppm input
      files.
+
+16 Apr 2002
+ * Modified thd_mincread.c to correctly use lower end of valid_range[].
+ * Modified thd_mincwrite.c to use "-range -scan_range" flags with
+     rawtominc program.
+ * Modified 3dvolreg.c and 3drotate.c to make -clipit the default.
+ * Modified machdep.h to disable the nl_langinfo() stuff for Darwin,
+     since can use "-llanginfo" link switch instead.
