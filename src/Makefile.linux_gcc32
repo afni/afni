@@ -8,7 +8,13 @@ CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
 
 CC     = /usr/local/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCVOL  = /usr/local/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCFAST = /usr/local/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = /usr/local/bin/gcc -O3 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
+
+# The following line includes compiling for the SSE operations.
+# However, I found that it actually makes things worse in some test code.
+# Your mileage may vary.
+
+# CCFAST = /usr/local/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 -DNO_GAMMA $(CEXTRA)
 
 CCMIN  = /usr/local/bin/gcc $(CPROF)
 CCD    = $(CC) $(CCDEBS)
