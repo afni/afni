@@ -596,6 +596,9 @@ ENTRY("AFNI_niml_redisplay_CB") ;
    ct = NI_clock_time() ;
 
    nmap = AFNI_vnlist_func_overlay( im3d , &map , &nvused ) ;
+
+   if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
+
    if( nmap < 0 ) EXRETURN ;
 
    if( nmap > 0 ){  /* make a data element with data */
