@@ -862,10 +862,17 @@ MRI_IMARR * mri_read_file( char * fname )
       newar = mri_read_siemens( new_fname ) ;
 
    } else {
-      newim = mri_read( new_fname ) ;      /* read from a 2D file */
-      if( newim == NULL ){ free(new_fname) ; return NULL ; }
-      INIT_IMARR(newar) ;
-      ADDTO_IMARR(newar,newim) ;
+
+      /* 19 Jul 2002: see if it is a DICOM file */
+
+      newar = mri_read_dicom( new_fname ) ;
+
+      if( newar == NULL ){   /* DICOM failed */
+        newim = mri_read( new_fname ) ;      /* read from a 2D file */
+        if( newim == NULL ){ free(new_fname) ; return NULL ; }
+        INIT_IMARR(newar) ;
+        ADDTO_IMARR(newar,newim) ;
+      }
    }
    free(new_fname) ;
 
@@ -1009,6 +1016,11 @@ int mri_imcount( char * tname )
       if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) return 0 ;
       else                                                                   return nz ;
    }
+
+   /*** 19 Jul 2002: see if it is a DICOM file ***/
+
+   nz = mri_imcount_dicom( new_fname ) ;
+   if( nz > 0 ) return nz ;
 
    /*** 05 Feb 2001: deal with ANALYZE .hdr files ***/
 
