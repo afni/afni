@@ -1033,3 +1033,15 @@
 24 March 2005:
   * modified strblast.c: added -help, -new_char, -new_string, -unescape options
 
+05 April 2005: NIFTI changes also uploaded at sourceforge.net
+  * modified nifti/nifti1_io.[ch]
+      - added nifti_read_collapsed_image(), an interface for reading partial
+        datasets, specifying a subset of array indices
+      - for read_collapsed_image, added static functions: rci_read_data(),
+        rci_alloc_mem(), and make_pivot_list()
+      - added nifti_nim_is_valid() to check for consistency (more to do)
+      - added nifti_nim_has_valid_dims() to do many dimensions tests
+  * modified nifti/Makefile: removed escaped characters, added USEZLIB defn.
+  * modified nifti/niftilib/Makefile: added nifti1_io.o target, for USEZLIB
+  * modified nifti/znzlib/Makefile: removed USEZLIB defn.
+  * modified nifti/utils/nifti_tool.c: (v 1.5) cannot mod_hdr on gzipped file(s)
