@@ -8,6 +8,7 @@
 
 static int native_order = -1 ;
 static int no_mmap      = -1 ;
+static int no_ordwarn   = -1 ;
 
 THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
 {
@@ -29,6 +30,11 @@ ENTRY("THD_init_one_datablock") ;
       char * hh = my_getenv("AFNI_NOMMAP") ;
       if( hh == NULL ) no_mmap = 0 ;
       else             no_mmap = (strcmp(hh,"YES") == 0) ;
+   }
+
+   if( no_ordwarn < 0 ){
+      char * hh = my_getenv("AFNI_NO_BYTEORDER_WARNING") ;
+      no_ordwarn = (hh != NULL) ;
    }
 
    /*-- sanity check --*/
@@ -195,6 +201,10 @@ printf("  -- atr_rank=%p  atr_dimen=%p  atr_scene=%p\n",
       else
          fprintf(stderr,"*** Unknown %s found in dataset %s\n",
                  ATRNAME_BYTEORDER , headname ) ;
+
+   } else if( !no_ordwarn ){  /* 20 Sep 1999 */
+      fprintf(stderr,"*** Dataset %s: assuming byteorder %s\n",
+              headname , BYTE_ORDER_STRING(dkptr->byte_order)  ) ;
    }
 
    /* if the data is not on disk, the flag remains at DATABLOCK_MEM_UNDEFINED,

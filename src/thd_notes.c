@@ -38,7 +38,8 @@ char * tross_commandline( char * pname , int argc , char ** argv )
 
          strcpy(aa,argv[ii]) ;        /* edit out bad characters */
          for( jj=0 ; jj < ll ; jj++ )
-            if( iscntrl(aa[jj]) || isspace(aa[jj]) || aa[jj] < 0 ) aa[jj] = ' ' ;
+            if( iscntrl(aa[jj]) ||
+                isspace(aa[jj]) || (aa[jj] & 128) != 0 ) aa[jj] = ' ' ;
 
          strcat(ch," '") ; strcat(ch,aa) ; strcat(ch,"'") ; free(aa) ;
 
@@ -70,6 +71,21 @@ static char * tross_hostname(void)  /* 19 Sep 1999 */
 {
    char * cn = malloc(NNAME) ;
    gethostname( cn , NNAME ) ;
+   return cn ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#include <pwd.h>
+
+static char * tross_username(void)  /* 20 Sep 1999 */
+{
+   uid_t uu = getuid() ;
+   struct passwd * pwd = getpwuid(uu) ;
+   char * cn = malloc(NNAME) ;
+
+   if( pwd == NULL ) strcpy(cn,"nobody") ;
+   else              strcpy(cn,pwd->pw_name) ;
    return cn ;
 }
 
@@ -267,24 +283,28 @@ void tross_Copy_History( THD_3dim_dataset * old_dset , THD_3dim_dataset * new_ds
 void tross_Append_History( THD_3dim_dataset *dset, char *cn )
 {
    ATR_string * hist ;
-   char * ch , * chold , * cdate , * cname ;
-   int ii , idate , iname ;
+   char * ch , * chold , * cdate , * cname , * cuser ;
+   int idate , iname , iuser ;
 
    if( !ISVALID_DSET(dset) || cn == NULL || cn[0] == '\0' ) return ;
 
    hist = THD_find_string_atr(dset->dblk,"HISTORY_NOTE") ;
    cdate = tross_datetime() ; idate = strlen(cdate) ;
    cname = tross_hostname() ; iname = strlen(cname) ;  /* 19 Sep 1999 */
+   cuser = tross_username() ; iuser = strlen(cuser) ;  /* 19 Sep 1999 */
 
    /*- add to the history -*/
 
    if( hist != NULL ){
 
       chold = tross_Expand_String(hist->ch) ; if( chold == NULL ) return ;
-      ii = strlen(chold) ; chold = realloc( chold , ii+idate+iname+strlen(cn)+12 ) ;
+      chold = realloc( chold , strlen(chold)+idate+iuser+iname+strlen(cn)+12 ) ;
+
       strcat(chold,"\n") ;
-      strcat(chold,"[") ; strcat(chold,cname) ; strcat(chold,": ") ;
-                          strcat(chold,cdate) ; strcat(chold,"] ") ;
+      strcat(chold,"[") ; strcat(chold,cuser) ; strcat(chold,"@") ;
+                          strcat(chold,cname) ; strcat(chold,": ") ;
+                          strcat(chold,cdate) ;
+      strcat(chold,"] ") ;
       strcat(chold,cn) ;
       ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); return; }
       THD_set_string_atr(dset->dblk, "HISTORY_NOTE", ch);
@@ -293,14 +313,14 @@ void tross_Append_History( THD_3dim_dataset *dset, char *cn )
    /*- create the history -*/
 
    } else {
-      chold = malloc( idate+iname+strlen(cn)+12 ) ;
-      sprintf(chold,"[%s: %s] %s",cname,cdate,cn) ;
+      chold = malloc( idate+iuser+iname+strlen(cn)+12 ) ;
+      sprintf(chold,"[%s@%s: %s] %s",cuser,cname,cdate,cn) ;
       ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); return; }
       THD_set_string_atr(dset->dblk, "HISTORY_NOTE", ch);
       free(ch) ; free(chold) ;
    }
 
-   free(cdate) ; free(cname) ; return ;
+   free(cdate) ; free(cname) ; free(cuser) ; return ;
 }
 
 /*----------------------------------------------------------------------------

@@ -568,6 +568,10 @@ extern MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im ) ;
 #define MSB_FIRST_STRING "MSB_FIRST"
 #define NATIVE_STRING    "NATIVE_ORDER"
 
+#define BYTE_ORDER_STRING(qq) (  ((qq)==LSB_FIRST) ? LSB_FIRST_STRING \
+                               : ((qq)==MSB_FIRST) ? MSB_FIRST_STRING \
+                                                   : "Illegal Value" )
+
 extern int mri_short_order(void) ;
 extern int mri_int_order(void) ;
 extern void mri_swap2( int , short * ) ;

@@ -1672,3 +1672,8 @@
      "{assumed}" next to the reported byte order.
  * Added hostname to History Note time stamp, so you can see what on what
      machine a program was run.
+
+20 Sep 1999
+ * thd_initdblk.c: print out a warning if byte order is unspecified when
+     creating a dataset.
+ * thd_notes.c: add the username to the History Note stamp.

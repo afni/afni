@@ -459,6 +459,15 @@ values from this list:
 
 If you don't set this variable, the default mask is 23 = 1+2+4+16.
 
+-----------------------------------
+Variable: AFNI_NO_BYTEORDER_WARNING
+-----------------------------------
+If this variable is set (to anything), then AFNI program will not
+warn you when reading in a dataset that does not contain a byte
+order flag.  The default is to issue such a warning.  Only older
+versions of AFNI create datasets that don't have the byte order
+flag.  (See also the variable AFNI_BYTEORDER, described far above.)
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |
