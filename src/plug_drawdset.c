@@ -429,10 +429,10 @@ char * DRAW_main( PLUGIN_interface * plint )
 #define NACT 7  /* number of action buttons */
 
 static MCW_action_item DRAW_actor[NACT] = {
- {"Undo [0]",DRAW_undo_CB,NULL,
+ {"Undo[0]",DRAW_undo_CB,NULL,
   "Undoes previous draw\naction, if possible","Undo last change",0} ,
 
- {"Redo [0]",DRAW_redo_CB,NULL,
+ {"Redo[0]",DRAW_redo_CB,NULL,
   "Redoes previous undone\naction, if possible","Redo last undo",0} ,
 
  {"Help",DRAW_help_CB,NULL,
@@ -1383,7 +1383,7 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "                   having already been established.\n"
   "                 Unlike Linear Fillin, TT Atlas drawing can be undone.\n"
   "\n"
-  "Step 6) Undo.\n"
+  "Step 6) Undo and Redo.\n"
   "        * The last drawing operation can be undone -- that is,\n"
   "            pressing 'Undo' will restore the voxel values before\n"
   "            the last button 2 press-release operation.\n"
@@ -2597,8 +2597,8 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
    return ndrawn ;
 }
 
-/*---------------------------------------------------------------------------
-  Limit size of data allowed in undo/redo buffers [19 Nov 2003]
+/*---------------------------------------------------------------------------*/
+/*!  Limit size of data allowed in undo buffers. [19 Nov 2003]
 -----------------------------------------------------------------------------*/
 
 static void DRAW_undo_sizecheck(void)
@@ -2639,19 +2639,22 @@ static void DRAW_undo_sizecheck(void)
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Set label of Undo or Redo button to reflect number of levels
+    available, and set sensitivity while we are at it.  [19 Nov 2003]
+-----------------------------------------------------------------------------*/
 
 static void DRAW_undo_butlab( Widget w , int n )
 {
    XmString xstr ;
    char label[32] ;
    int nfmt ;
-   static char *fmt[3] = { "%s [%d]" , "%s[%d]" , "%s:%d" } ;
+   static char *fmt[3] = { "%s[%d]" , "%s:%d" , "%s%d" } ;
 
    if( w == (Widget)NULL ) return ;  /* oom-possible? */
 
-        if( n <  10 ) nfmt = 0 ;     /* choose format based */
-   else if( n < 100 ) nfmt = 1 ;     /* on number of digits */
-   else               nfmt = 2 ;
+        if( n <  10  ) nfmt = 0 ;     /* choose format based */
+   else if( n < 100  ) nfmt = 1 ;     /* on number of digits */
+   else                nfmt = 2 ;
 
    sprintf( label, fmt[nfmt], (w==undo_pb) ? "Undo" : "Redo" , n ) ;
 
