@@ -4646,3 +4646,8 @@
      the Dataset#N, Dataset#2, and Expr0D plugin windows open when these
      transformations are selected from menus.
  * Modified the parser to take longer expressions.
+
+22 Jul 2003
+ * More expansion in parser.f, etc.
+ * Modified coxplot/plot_ts.c and 1dplot.c to let user control x- and y-axes
+     in more detail.

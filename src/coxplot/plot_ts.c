@@ -33,6 +33,19 @@ static int xpush=1 , ypush=1 ;
 
 void plot_ts_xypush( int a , int b ){ xpush=a; ypush=b; }  /* 12 Mar 2003 */
 
+static float xxbot,xxtop , yybot,yytop ;
+static int   nnaxx=-1,mmaxx=-1 , nnayy=-1,mmayy=-1 ;
+
+void plot_ts_xfix( int nax, int max, float xb, float xt )  /* 22 Jul 2003 */
+{
+  nnaxx = nax ; mmaxx = max ; xxbot = xb ; xxtop = xt ;
+}
+
+void plot_ts_yfix( int nay, int may, float yb, float yt )
+{
+  nnayy = nay ; mmayy = may ; yybot = yb ; yytop = yt ;
+}
+
 /*----------------------------------------------------------------------*/
 /* Check to define colors for plotting from environment variables.
 ------------------------------------------------------------------------*/
@@ -115,7 +128,12 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    /*-- push range of x outwards --*/
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 && xpush ){
+   if( nnaxx > 0 ){
+     nnax = nnaxx ; nnaxx = -1 ;
+     mmax = mmaxx ;
+     xbot = xxbot ;
+     xtop = xxtop ;
+   } else if( ptop != 0.0 && xpush ){
       np = (xtop-xbot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -174,7 +192,12 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    /*-- push range of y outwards --*/
 
    pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 && ypush ){
+   if( nnayy > 0 ){
+     nnay = nnayy ; nnayy = -1 ;
+     mmay = mmayy ;
+     ybot = yybot ;
+     ytop = yytop ;
+   } else if( ptop != 0.0 && ypush ){
       np = (ytop-ybot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
