@@ -479,14 +479,15 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
 
    /* label to look nice */
 
-   sprintf(str,"Surface Controls %s  ",AFNI_controller_label(im3d)) ;
-   xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
-   ww = XtVaCreateManagedWidget(
-         "dialog" , xmLabelWidgetClass , rc ,
-            XmNrecomputeSize , False ,
-            XmNlabelString , xstr ,
-            XmNtraversalOn , False ,
-         NULL ) ;
+
+   xstr = XmStringCreateLtoR( "xxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxx [x] " ,
+                              XmFONTLIST_DEFAULT_TAG ) ;
+   swid->top_lab = XtVaCreateManagedWidget(
+                    "dialog" , xmLabelWidgetClass , rc ,
+                       XmNrecomputeSize , False ,
+                       XmNlabelString , xstr ,
+                       XmNtraversalOn , False ,
+                    NULL ) ;
    XmStringFree(xstr) ;
 
    /* Done button */
@@ -537,11 +538,11 @@ void AFNI_update_surface_widgets( Three_D_View *im3d )
 {
    AFNI_surface_widgets *swid ;
    int num , ii , nwid,nall ;
-   char str[32] ;
+   char str[64] , nam[THD_MAX_NAME] , *tnam ;
 
 ENTRY("AFNI_update_surface_widgets") ;
 
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   if( !IM3D_OPEN(im3d) || im3d->anat_now == NULL ) EXRETURN ;
 
    num  = im3d->anat_now->su_num ;  /* # of surfaces */
    swid = im3d->vwid->view->swid ;
@@ -549,6 +550,15 @@ ENTRY("AFNI_update_surface_widgets") ;
    SENSITIZE( im3d->vwid->view->choose_surf_pb , (Boolean)(num > 0) ) ;
 
    if( swid == NULL ) EXRETURN ;
+
+   /* put dataset label in top of panel */
+
+   strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
+   strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
+   tnam = THD_trailname(nam,SESSTRAIL+1) ;
+   ii = strlen(tnam) ; if( ii > 43 ) tnam += (ii-43) ;
+   sprintf(str ,"%-.43s %s" , tnam, AFNI_controller_label(im3d) ) ;
+   MCW_set_widget_label( swid->top_lab , str ) ;
 
    /* make more widget rows? (1 per surface is needed) */
 
@@ -613,7 +623,7 @@ void AFNI_choose_surface_CB( Widget w , XtPointer cd, XtPointer cbs )
 
 ENTRY("AFNI_choose_surface_CB") ;
 
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   if( !IM3D_OPEN(im3d) || im3d->anat_now == NULL ) EXRETURN ;
 
    num  = im3d->anat_now->su_num ;
    swid = im3d->vwid->view->swid ;
