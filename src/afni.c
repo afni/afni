@@ -169,6 +169,9 @@ void AFNI_syntax(void)
      "                  (This option is available to override\n"
      "                   the AFNI_YESPLUGOUTS environment variable.)\n"
 #endif
+     "   -skip_afnirc Tells the program NOT to read the file .afnirc\n"
+     "                  in the home directory.  See README.setup for\n"
+     "                  details on the use of .afnirc for initialization.\n"
      "\n"
      " If no session_directories are given, then the program will use\n"
      "   the current working directory (i.e., './').\n"
@@ -254,6 +257,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.ignore   = INIT_ignore ;
    GLOBAL_argopt.allow_rt = 0 ;           /* April 1997 */
    GLOBAL_argopt.elide_quality = 0 ;      /* Dec 1997 */
+   GLOBAL_argopt.skip_afnirc   = 0 ;      /* 14 Jul 1998 */
 
 #ifdef ALLOW_PLUGINS
    { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
@@ -318,6 +322,13 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;
       }
 #endif
+
+      /*----- -skip_afnirc option (14 Jul 1998) -----*/
+
+      if( strncmp(argv[narg],"-skip_afnirc",12) == 0 ){
+         GLOBAL_argopt.skip_afnirc  = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
 
       /*----- -rt option -----*/
 
@@ -776,22 +787,26 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
 
    AFNI_load_defaults( shell ) ;
 
-   { char * home ; char fname[256] ;
-     GPT = NULL ;  /* 19 Dec 1997 */
-     home = getenv("HOME") ;
-     if( home != NULL ){
-        strcpy(fname,home) ; strcat(fname,"/.afnirc") ;
-     } else {
-        strcpy(fname,".afnirc") ;
-     }
-     AFNI_process_setup( fname , SETUP_INIT_MODE , NULL ) ;
-#ifdef AFNI_DEBUG
-     home = dump_PBAR_palette_table(0) ;
-     if( home != NULL ){ puts(home) ; free(home) ; }
-#endif
-   }
-
    AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
+
+   if( ! GLOBAL_argopt.skip_afnirc ){          /* this line added 14 Jul 1998 */
+      char * home ; char fname[256] ;
+      GPT = NULL ;  /* 19 Dec 1997 */
+      home = getenv("HOME") ;
+      if( home != NULL ){
+         strcpy(fname,home) ; strcat(fname,"/.afnirc") ;
+      } else {
+         strcpy(fname,".afnirc") ;
+      }
+      AFNI_process_setup( fname , SETUP_INIT_MODE , NULL ) ;
+#ifdef AFNI_DEBUG
+      home = dump_PBAR_palette_table(0) ;
+      if( home != NULL ){ puts(home) ; free(home) ; }
+#endif
+
+   } else {                                    /* these lines also 14 Jul 1998 */
+      REPORT_PROGRESS( "[skip .afnirc]" ) ;
+   }
 
    GLOBAL_library.dc = dc =
         MCW_new_DC( shell , GLOBAL_argopt.ncolor ,

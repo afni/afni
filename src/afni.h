@@ -36,7 +36,7 @@ typedef struct {
       Boolean read_images , read_sessions , auto_purge ,
               resize_images , keep_logo , pos_func , xtwarns ,
               destruct , tlrc_big , warp_4D , unique_dcs ;
-      int ncolor , datum , ignore , allow_rt ;
+      int ncolor , datum , ignore , allow_rt , skip_afnirc ;
       char orient_code[4] ;
       char title_name[32] ;
 #ifdef ALLOW_PLUGINS
@@ -111,12 +111,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.20a"
+#define VERSION "2.20b"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "30 Apr 1998      "
+#define RELEASE "14 July 1998     "
 
 #ifdef MAIN
 #define AFNI_about \

@@ -4,6 +4,12 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+14 July 1998:
+   3dmerge now has options (-1erode and -1dilate) to apply erosion and
+     dilation to a dataset when clustering it, so as to cut off small
+     'necks' that connect larger blobs.  See the new file 3dmerge.ps
+     for more documentation.
+--------------------------------------------------------------------------
 15 June 1998:
    3dmerge now has an option (-1clust_order) to assign distinct index
      values to each cluster.  This can be used to create masks, or simply

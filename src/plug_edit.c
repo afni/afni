@@ -7,6 +7,12 @@
    Author:   B. Douglas Ward
    Date:     15 May 1997
 
+
+   Mod:      Added Erode/Dilate option to sever narrow connecting path 
+             between clusters, by first eroding the outer layer of voxels, 
+	     then restoring voxels near the main body of the cluster.
+   Author:   B. Douglas Ward
+   Date:     18 June 1998
 */
 
 
@@ -43,29 +49,32 @@ char * EDIT_main( PLUGIN_interface * ) ;
 static char helpstring[] = 
   "Purpose: AFNI plugin to edit data and return new dataset.\n"
   "Inputs: \n"
-  "  Dataset      Input and Output datasets\n"
-  "    Input      Input dataset that must already be in memory \n"
-  "    Prefix       Prefix for output file name \n"
-  "    Session      Write output into specified directory (default=./) \n"
-  "  Clip         Clip intensities in range (lower,upper) to zero \n"
-  "    Unscaled     Do not apply any automatic scaling factor \n"
-  "  Threshold    Use threshold sub-brick to censor the intensities \n"
-  "  Blur         Gaussian blur using specified function width \n"
-  "  Zero Vol UL  Zero out entries inside the 3D volume defined by: \n"
-  "  Zero Vol LL    xLL <= x <=xUL,  yLL <= y <=yUL,  zLL <= z <= zUL \n"
-  "  Cluster      Form clusters and clip off data not in clusters \n"
-  "    Type         Options for setting voxel intensities within a cluster \n"
-  "    Radius       Max. distance for 2 voxels to be connected in a cluster \n"
-  "    MinVol       Min. volume for a cluster to survive \n"
-  "  Filter       Filter voxel intensities \n"
-  "    Type         Defines filter action \n"
-  "    Radius       Voxel intensity is effected by voxels within this radius\n"
-  "  Multiply     Multiply intensities by the given factor\n"
-  "  Datum        Coerce output data to be stored as the given type \n"
-  "  Keep Thr     Copy the threshold sub-brick into the output dataset \n"
-  "  Thr Blur     Apply Gaussian blur function to threshold data sub-brick \n"
-  "  Thr Filter   Apply specified filter to threshold data sub-brick \n"
-  "  Thr Datum    Coerce threshold data sub-brick to be stored as given type\n"
+  " Dataset       Input and Output datasets\n"
+  "   Input       Input dataset that must already be in memory \n"
+  "   Prefix        Prefix for output file name \n"
+  "   Session       Write output into specified directory (default=./) \n"
+  " Clip          Clip intensities in range (lower,upper) to zero \n"
+  "   Unscaled      Do not apply any automatic scaling factor \n"
+  " Threshold     Use threshold sub-brick to censor the intensities \n"
+  " Blur          Gaussian blur using specified function width \n"
+  " Zero Vol UL   Zero out entries inside the 3D volume defined by: \n"
+  " Zero Vol LL     xLL <= x <=xUL,  yLL <= y <=yUL,  zLL <= z <= zUL \n"
+  " Cluster       Form clusters and clip off data not in clusters \n"
+  "   Type          Options for setting voxel intensities within a cluster \n"
+  "   Radius        Max. distance for 2 voxels to be connected in a cluster \n"
+  "   MinVol        Min. volume for a cluster to survive \n"
+  " Erode/Dilate  Sever narrow connecting paths between clusters \n"
+  "   % Voxels      Min. % of active 'neighbors' for a voxel to survive \n"
+  "   Dilate        Restore voxels near main body of cluster \n"
+  " Filter        Filter voxel intensities \n"
+  "   Type          Defines filter action \n"
+  "   Radius        Voxel intensity is effected by voxels within this radius\n"
+  " Multiply      Multiply intensities by the given factor\n"
+  " Datum         Coerce output data to be stored as the given type \n"
+  " Keep Thr      Copy the threshold sub-brick into the output dataset \n"
+  " Thr Blur      Apply Gaussian blur function to threshold data sub-brick \n"
+  " Thr Filter    Apply specified filter to threshold data sub-brick \n"
+  " Thr Datum     Coerce threshold data sub-brick to be stored as given type\n"
   "Author -- BD Ward"
 ;
 
@@ -80,7 +89,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   /*----- plugin option labels -----*/
   char * boolean_types[2] = {"False", "True"};
   char * blur_types[3] = {"Sigma", "RMS", "FWHM"};
-  char * cluster_types[6] = {"Same", "Mean", "Max", "AMax", "SMax", "Size"};
+  char * cluster_types[7] = {"Keep", "Mean", "Max", "AMax", "SMax", "Size",
+                             "Order"};
   char * filter_types[6] = {"Mean", "NZMean", "Max", "AMax", "SMax", "Aver" };
   char * brick_types[2] = {"Intensity", "Threshold"};
   char * datum_types[3] = {"Byte", "Short", "Float"};
@@ -171,14 +181,25 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   PLUTO_add_option (plint, "Cluster", "Cluster", FALSE);
   PLUTO_add_hint( plint , "Find and reject small clusters" ) ;
 
-  PLUTO_add_string (plint, "Type", 6, cluster_types, 0);
+  PLUTO_add_string (plint, "Type", 7, cluster_types, 0);
   PLUTO_add_hint( plint , "How to process data inside clusters" ) ;
 
   PLUTO_add_number (plint, "Radius(mm)", 0, 100, 1, 20, TRUE);
   PLUTO_add_hint( plint , "Max distance between 'neighbors'" ) ;
 
   PLUTO_add_number (plint, "MinVol(ul)", 0, 1000, -1, 100, TRUE);
-  PLUTO_add_hint( plint , "Min size of cluster to keep" ) ;
+  PLUTO_add_hint( plint , "Min size for cluster to survive" ) ;
+
+  /*----- line 8a of input: Erosion/Dilation option -----*/ /* 18 June 1998 */
+  PLUTO_add_option (plint, "Erode/Dilate", "Erode/Dilate", FALSE);
+  PLUTO_add_hint (plint , "Sever narrow connecting paths between clusters");
+
+  PLUTO_add_number (plint, "% Voxels", 0, 100, 0, 50, TRUE);
+  PLUTO_add_hint (plint,  
+		  "Min % of active 'neighbors' for a voxel to survive");
+
+  PLUTO_add_string (plint, "Dilate?",  2, boolean_types, 0);
+  PLUTO_add_hint (plint , "Restore voxels near main body of cluster");
 
   /*----- line 9 of input: Filtering -----*/
   PLUTO_add_option (plint, "Filter", "Filter", FALSE);
@@ -245,6 +266,7 @@ char * EDIT_opts
   float fval;                     /* input floating point value */
   float dx, dy, dz, dxyz;         /* voxel dimensions */
   float x1, x2, y1, y2, z1, z2;   /* zero volume limits */
+  float pv;                       /* pv % voxels within rmm must be active */  
   
 
   /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -476,11 +498,11 @@ char * EDIT_opts
 	      "************************************\n"
 	      "EDIT_opts: Cluster vmul is too small\n"
 	      "************************************";
-
+	
 	  edopt->clust_rmm  = rmm;
 	  edopt->clust_vmul = vmul;
 	  
-	  if (strcmp(str,"Same") == 0)
+	  if (strcmp(str,"Keep") == 0)
 	    edopt->edit_clust = ECFLAG_SAME;
 	  else
 	    if (strcmp(str,"Mean") == 0)
@@ -498,10 +520,43 @@ char * EDIT_opts
 		    if (strcmp(str,"Size") == 0)
 		      edopt->edit_clust = ECFLAG_SIZE;
 		    else
-		      return 
-			"*********************************\n"
-			"EDIT_opts: Illegal Cluster option\n"
-			"*********************************";
+		      if (strcmp(str,"Order") == 0)
+			edopt->edit_clust = ECFLAG_ORDER;
+		      else
+			return 
+			  "*********************************\n"
+			  "EDIT_opts: Illegal Cluster option\n"
+			  "*********************************";
+	  
+	  continue;
+	}
+      
+      
+      /*----- Erosion/Dilation Option -----*/
+      if (strcmp(tag,"Erode/Dilate") == 0)
+	{
+	  pv  = PLUTO_get_number(plint);
+	  if ((pv > 0.0) && (edopt->clust_rmm <= 0.0))
+	    return 
+	      "******************************************************\n"
+	      "EDIT_opts: Erode/Dilate requires use of Cluster option\n"
+	      "******************************************************";
+	  else
+	    edopt->erode_pv  = pv / 100.0;
+	  
+	  str = PLUTO_get_string(plint);
+	  if (strcmp (str, "True") == 0)
+	    {
+	      if (pv <= 0.0)
+		return 
+		  "**********************************************\n"
+		  "EDIT_opts: Dilate requires use of Erode option\n"
+		  "**********************************************";
+	      else
+		edopt->dilate = 1;
+	    }
+	  else
+	    edopt->dilate = 0;
 	  
 	  continue;
 	}

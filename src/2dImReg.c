@@ -13,6 +13,17 @@
            error, to user specified ASCII files.
   Date:    20 March 1998
 
+  Mod:     Added option to change dx and dy output format from pixels to mm.
+  Date:    24 March 1998
+
+  Mod:     No longer assume that input and base datasets have same length.
+           This problem was reported by Paul Reber.
+  Date:    3 June 1998
+
+  Mod:     Routine eval_registration extended to include byte and float datum
+           types for base and input datasets.
+  Date:    3 June 1998
+
 */
 
 
@@ -37,7 +48,7 @@
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "2dImReg"                       /* name of this program */
-#define LAST_MOD_DATE "20 March 1998"            /* date of last program mod */
+#define LAST_MOD_DATE "3 June 1998"              /* date of last program mod */
 
 #define MAX_NAME_LENGTH 80          /* max. strength length for file names */ 
 #define STATE_DIM 4                 /* number of registration parameters */   
@@ -62,6 +73,7 @@ typedef struct IR_options      /* user input options */
   float dphi;                  /* convergence tolerance for rotations */
   char * new_prefix;           /* prefix name for registered dataset */
   char * dprefix;              /* prefix name for registration parameters */
+  int dmm;                     /* change dx and dy output from pixels to mm */
   char * rprefix;              /* prefix name for volume RMS error */
   int debug;                   /* write additional output to screen */
 } IR_options;
@@ -107,16 +119,17 @@ void display_help_menu()
      "                    containing the registration parameters for each   \n"
      "                    slice in chronological order.                     \n"
      "                    File formats:                                     \n"
-     "                      'dname'.dx:   time(sec)   dx(pixels)            \n"
-     "                      'dname'.dy:   time(sec)   dy(pixels)            \n"
-     "                      'dname'.psi   time(sec)   psi(degrees)          \n"
+     "                      'dname'.dx:    time(sec)   dx(pixels)           \n"
+     "                      'dname'.dy:    time(sec)   dy(pixels)           \n"
+     "                      'dname'.psi:   time(sec)   psi(degrees)         \n"
+     "-dmm              Change dx and dy output format from pixels to mm    \n"
      "                                                                      \n"
      "-rprefix rname    Write files 'rname'.oldrms and 'rname'.newrms       \n"
      "                    containing the volume RMS error for the original  \n"
      "                    and the registered datasets, respectively.        \n"
      "                    File formats:                                     \n"
-     "                      'rname'.oldrms:   volume(num)   rms_error       \n"
-     "                      'rname'.newrms:   volume(num)   rms_error       \n"
+     "                      'rname'.oldrms:   volume(number)   rms_error    \n"
+     "                      'rname'.newrms:   volume(number)   rms_error    \n"
      "                                                                      \n"
      "-debug            Lots of additional output to screen                 \n"
     );
@@ -164,6 +177,7 @@ void initialize_options
   (*opt)->new_prefix = NULL;
   (*opt)->dprefix = NULL;
   (*opt)->rprefix = NULL;
+  (*opt)->dmm = 0;
   (*opt)->debug = 0;
 }
 
@@ -315,6 +329,15 @@ void get_user_inputs
 	}
       
 
+      /*-----   -dmm -----*/
+      if (strncmp(argv[nopt], "-dmm", 4) == 0)
+	{
+	  (*option_data)->dmm = 1;
+	  nopt++;
+	  continue;
+	}
+
+           
       /*-----   -debug -----*/
       if (strncmp(argv[nopt], "-debug", 6) == 0)
 	{
@@ -517,7 +540,7 @@ void initialize_program
 )
 
 {
-  THD_3dim_dataset * dset;
+  THD_3dim_dataset * dset = NULL;
 
   /*----- Initialize input options -----*/
   initialize_options (option_data);
@@ -536,11 +559,13 @@ void initialize_program
 
 
   /*----- Initialize the array of state vectors -----*/
-  initialize_state_history (dset, state_history);
+  if ((*option_data)->dprefix != NULL)
+    initialize_state_history (dset, state_history);
 
 
   /*----- Allocate space for RMS error arrays -----*/
-  initialize_rms_arrays (dset, old_rms_array, new_rms_array);
+  if ((*option_data)->rprefix != NULL)
+    initialize_rms_arrays (dset, old_rms_array, new_rms_array);
 
 
   /*----- Release memory -----*/
@@ -678,38 +703,98 @@ void eval_registration
   int nx, ny, nz, nxyz;
   int ix, jy, kz;
   int ixyz;
+  int datum, base_datum;
   float old_sse, new_sse;
   float diff;
   float old_rmse, new_rmse;
   int ivolume, num_volumes;
-  short * sold, * snew, * sbase;
+  byte  * bold = NULL, * bnew = NULL, * bbase = NULL;
+  short * sold = NULL, * snew = NULL, * sbase = NULL;
+  float * fold = NULL, * fnew = NULL, * fbase = NULL;
+  float float_base, float_old, float_new;
 
 
-  /*----- Get dataset dimensions -----*/
+  /*----- Initialize local variables -----*/
   nx = old_dset->daxes->nxx;
   ny = old_dset->daxes->nyy;
   nz = old_dset->daxes->nzz;
   nxyz = nx * ny * nz;
   num_volumes = DSET_NUM_TIMES (old_dset);
+  datum       = DSET_BRICK_TYPE (new_dset,0) ;
+  base_datum  = DSET_BRICK_TYPE (base_dset,0);
 
-  sbase = (short *) DSET_ARRAY (base_dset, base);
+
+  /*----- Set base dataset pointer depending on base datum type -----*/
+  switch ( base_datum )
+    { 
+    case MRI_byte:
+      bbase = (byte *) DSET_ARRAY(base_dset,base);  break;
+      
+    case MRI_short:
+      sbase = (short *) DSET_ARRAY(base_dset,base);  break;
+
+    case MRI_float:
+      fbase = (float *) DSET_ARRAY(base_dset,base);  break;
+    }
+
 
   for (ivolume = 0;  ivolume < num_volumes; ivolume++)
     {
       old_sse = 0.0;
       new_sse = 0.0;
 
-      sold  = (short *) DSET_ARRAY (old_dset,ivolume);
-      snew  = (short *) DSET_ARRAY (new_dset,ivolume);
+      /*----- Set old and new dataset pointers depending on datum type -----*/
+      switch ( datum )
+	{  
+	case MRI_byte:
+	  bold = (byte *) DSET_ARRAY(old_dset,ivolume);  
+	  bnew = (byte *) DSET_ARRAY(new_dset,ivolume);  break;
+	  
+	case MRI_short:
+	  sold = (short *) DSET_ARRAY(old_dset,ivolume);  
+	  snew = (short *) DSET_ARRAY(new_dset,ivolume);  break;
+	  
+	case MRI_float:
+	  fold = (float *) DSET_ARRAY(old_dset,ivolume);  
+	  fnew = (float *) DSET_ARRAY(new_dset,ivolume);  break;
+	}
+
       
       for (kz = 0;  kz < nz;  kz++)
 	for (jy = 0;  jy < ny;  jy++)
 	  for (ix = 0;  ix < nx;  ix++)
 	    {
 	      ixyz = ix + jy*nx + kz*nx*ny;
-	      diff = sold[ixyz] - sbase[ixyz];
+
+	      /*----- Get base voxel floating point value -----*/
+	      switch ( base_datum )
+		{ 
+		case MRI_byte:   float_base = (float) bbase[ixyz];  break;
+		  
+		case MRI_short:  float_base = (float) sbase[ixyz];  break;
+		  
+		case MRI_float:  float_base = fbase[ixyz];  break;
+		}
+	      
+	      /*----- Get old and new voxel floating point value -----*/
+	      switch ( datum )
+		{  
+		case MRI_byte:
+		  float_old = (float) bold[ixyz];  
+		  float_new = (float) bnew[ixyz];  break;
+		  
+		case MRI_short:
+		  float_old = (float) sold[ixyz];  
+		  float_new = (float) snew[ixyz];  break;
+		  
+		case MRI_float:
+		  float_old = fold[ixyz];  
+		  float_new = fnew[ixyz];  break;
+		}
+
+	      diff = float_old - float_base;
 	      old_sse += diff*diff;
-	      diff = snew[ixyz] - sbase[ixyz];
+	      diff = float_new - float_base;
 	      new_sse += diff*diff;
 	    }
       
@@ -762,9 +847,9 @@ char * IMREG_main
    MRI_IMARR * ims_in , * ims_out ;
    MRI_IMAGE * im , * imbase ;
 
-   byte   ** bptr = NULL , ** bbase = NULL, ** bout = NULL ;
-   short  ** sptr = NULL , ** sbase = NULL, ** sout = NULL ; 
-   float  ** fptr = NULL , ** fbase = NULL, ** fout = NULL ;
+   byte   ** bptr = NULL , * bbase = NULL, ** bout = NULL ;
+   short  ** sptr = NULL , * sbase = NULL, ** sout = NULL ; 
+   float  ** fptr = NULL , * fbase = NULL, ** fout = NULL ;
 
    float * dxar = NULL , * dyar = NULL , * phiar = NULL ;
 
@@ -855,6 +940,7 @@ char * IMREG_main
    base_datum = DSET_BRICK_TYPE(base_dset,0);
 
    base = opt->base_vol_index;
+
    if( base >= DSET_NUM_TIMES(base_dset))
       return "******************************\n"
              "Base image number is too large\n"
@@ -960,28 +1046,17 @@ char * IMREG_main
 
    switch( base_datum ){  /* pointer type depends on base datum type */
       case MRI_byte:
-	 bbase = (byte **) malloc( sizeof(byte *) * ntime ) ;
-         for( ii=0 ; ii < ntime ; ii++ ){
-	    bbase[ii] = (byte *) DSET_ARRAY(base_dset,ii) ; 
-         }
+	bbase = (byte *) DSET_ARRAY(base_dset,base) ; 
       break ;
 
       case MRI_short:
-	 sbase = (short **) malloc( sizeof(short *) * ntime ) ; 
-         for( ii=0 ; ii < ntime ; ii++ ){
-	    sbase[ii] = (short *) DSET_ARRAY(base_dset,ii) ;
-         }
-
-	 if (opt->debug)
-	   fprintf(stderr,"IMREG: sbase[%d] = %p \n", base, sbase[base]) ;
-
+	sbase = (short *) DSET_ARRAY(base_dset,base) ;
+	if (opt->debug)
+	  fprintf(stderr,"IMREG: sbase[%d] = %p \n", base, sbase) ;
       break ;
 
       case MRI_float:
-	 fbase = (float **) malloc( sizeof(float *) * ntime ) ;
-         for( ii=0 ; ii < ntime ; ii++ ){
-	    fbase[ii] = (float *) DSET_ARRAY(base_dset,ii) ;
-         }
+	fbase = (float *) DSET_ARRAY(base_dset,base) ;
       break ;
    }
 
@@ -1007,19 +1082,19 @@ char * IMREG_main
          }
       }
 
-      /*** 4b) Setup im to point to base image ***/
+      /*** 4b) Setup imbase to point to base image ***/
 
       if (opt->debug)
 	fprintf(stderr,"IMREG: slice %d -- setup base image\n",kk) ;
 
 
-      switch( datum ){
+      switch( base_datum ){
          case MRI_byte:  
-	   mri_fix_data_pointer( bbase[base] + kk*npix, imbase ) ; break ;
+	   mri_fix_data_pointer( bbase + kk*npix, imbase ) ; break ;
          case MRI_short: 
-	   mri_fix_data_pointer( sbase[base] + kk*npix, imbase ) ; break ;
+	   mri_fix_data_pointer( sbase + kk*npix, imbase ) ; break ;
          case MRI_float: 
-	   mri_fix_data_pointer( fbase[base] + kk*npix, imbase ) ; break ;
+	   mri_fix_data_pointer( fbase + kk*npix, imbase ) ; break ;
       }
 
       /*** 4c) Register this slice at all times ***/
@@ -1040,8 +1115,17 @@ char * IMREG_main
 	for (ii = 0;  ii < ntime;  ii++)
 	  {
 	    it = ii*nz + z_to_t[kk];
-	    state_history[it].elts[1] = dxar[ii];
-	    state_history[it].elts[2] = dyar[ii];
+	    if (opt->dmm)
+	      {
+		state_history[it].elts[1] = dxar[ii] * dx;
+		state_history[it].elts[2] = dyar[ii] * dy;
+	      }
+	    else
+	      {
+		state_history[it].elts[1] = dxar[ii];
+		state_history[it].elts[2] = dyar[ii];
+	      }
+
 	    state_history[it].elts[3] = (180.0/PI)*phiar[ii];
 	  }
       
@@ -1334,11 +1418,11 @@ void terminate_program
 )
 
 {
-  THD_3dim_dataset * dset;       /* pointer to input 3d+time dataset */
-  int num_slices;                /* number of slices in each volume */
-  int ts_length;                 /* length of time series */
-  int num_vectors;               /* total number of state vectors */
-  int i;                         /* index */
+  THD_3dim_dataset * dset = NULL;   /* pointer to input 3d+time dataset */
+  int num_slices;                   /* number of slices in each volume */
+  int ts_length;                    /* length of time series */
+  int num_vectors;                  /* total number of state vectors */
+  int i;                            /* index */
 
 
   /*----- Initialize local variables -----*/
@@ -1381,7 +1465,7 @@ void main
 )
 
 {
-  IR_options * option_data;            /* user input options */
+  IR_options * option_data = NULL;     /* user input options */
   char * chptr;                        /* error message from processing */
   vector * state_history = NULL;       /* time series of state vectors */
   float * old_rms_array = NULL;        /* original data volume RMS error */

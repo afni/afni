@@ -1472,7 +1472,7 @@ L8000:
 	doublereal *vz, integer *lvec, doublereal *vout, ftnlen c_code_len)
 {
     /* System generated locals */
-    integer i__1, i__2;
+    integer i__1, i__2, i__3;
     doublereal d__1, d__2;
     static doublereal equiv_0[1];
 
@@ -1488,8 +1488,9 @@ L8000:
 
     /* Local variables */
     extern doublereal land_(integer *, doublereal *), derf_(doublereal *), 
-	    bool_(doublereal *), rect_(doublereal *), step_(doublereal *), 
-	    bell2_(doublereal *);
+	    bool_(doublereal *), rect_(doublereal *);
+    static doublereal scop[101];
+    extern doublereal step_(doublereal *), bell2_(doublereal *);
     static doublereal r8val[1664]	/* was [64][26] */;
     extern doublereal derfc_(doublereal *);
     static integer ncode;
@@ -1513,7 +1514,7 @@ L8000:
     extern doublereal qg_(doublereal *);
     static doublereal r8_eval__[6464]	/* was [64][101] */;
     extern doublereal dai_(doublereal *), dbi_(doublereal *, integer *);
-    static integer ibv, itm;
+    static integer ibv, itm, jtm;
     extern doublereal lor_(integer *, doublereal *);
     static integer ntm;
 
@@ -1523,6 +1524,9 @@ L8000:
 /*  [Modified by Raoqiong Tong, August 1997] */
 
 
+
+
+/*  14 Jul 1998: add 1D array for stack copy */
 
 
 /*  Internal library functions */
@@ -2138,16 +2142,24 @@ L1000:
 	    neval -= ntm;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = land_(&ntm, &
-			r8_eval__[iv - ibv + (neval << 6) - 65]);
+		i__3 = ntm;
+		for (jtm = 1; jtm <= i__3; ++jtm) {
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+			    6) - 65];
+		}
+		r8_eval__[iv - ibv + (neval << 6) - 65] = land_(&ntm, scop);
 	    }
 	} else if (s_cmp(cncode, "OR", 8L, 2L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = lor_(&ntm, &
-			r8_eval__[iv - ibv + (neval << 6) - 65]);
+		i__3 = ntm;
+		for (jtm = 1; jtm <= i__3; ++jtm) {
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+			    6) - 65];
+		}
+		r8_eval__[iv - ibv + (neval << 6) - 65] = lor_(&ntm, scop);
 	    }
 	} else if (s_cmp(cncode, "MOFN", 8L, 4L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
@@ -2156,8 +2168,13 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		itm = (integer) r8_eval__[iv - ibv + (neval << 6) - 65];
-		r8_eval__[iv - ibv + (neval << 6) - 65] = lmofn_(&itm, &ntm, &
-			r8_eval__[iv - ibv + (neval + 1 << 6) - 65]);
+		i__3 = ntm;
+		for (jtm = 1; jtm <= i__3; ++jtm) {
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm << 6) - 
+			    65];
+		}
+		r8_eval__[iv - ibv + (neval << 6) - 65] = lmofn_(&itm, &ntm, 
+			scop);
 	    }
 	} else if (s_cmp(cncode, "ASTEP", 8L, 5L) == 0) {
 	    --neval;
@@ -2568,10 +2585,10 @@ doublereal dbesk1_(doublereal *x)
     integer s_wsfe(cilist *), e_wsfe(void);
 
     /* Fortran I/O blocks */
-    static cilist io___81 = { 0, 6, 0, fmt_999, 0 };
+    static cilist io___83 = { 0, 6, 0, fmt_999, 0 };
 
 
-    s_wsfe(&io___81);
+    s_wsfe(&io___83);
     e_wsfe();
     return 0;
 } /* qqqerr_ */

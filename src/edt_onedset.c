@@ -17,6 +17,9 @@
 
   30 Nov 1997: added ability to edit a given sub-brick, using the
                edopt->iv_fim entry
+
+  17 June 1998:  Modifications for erosion and dilation of clusters.
+
 ----------------------------------------------------------------------*/
 
 void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
@@ -30,6 +33,8 @@ void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
    int   edit_clust    = edopt->edit_clust ;     /* 10 Sept 1996 */
    float clust_rmm     = edopt->clust_rmm ;
    float clust_vmul    = edopt->clust_vmul ;
+   float erode_pv      = edopt->erode_pv;        /* 17 June 1998 */
+   int   dilate        = edopt->dilate;          /* 17 June 1998 */
    int   filter_opt    = edopt->filter_opt;      /* 11 Sept 1996 */
    float filter_rmm    = edopt->filter_rmm;      /* 11 Sept 1996 */
    int   thrfilter_opt = edopt->thrfilter_opt;   /* 1 Oct 1996 */
@@ -620,6 +625,13 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 
       MCW_cluster_array * clbig ;
       MCW_cluster * cl ;
+
+
+     /*----- Erosion and dilation of clusters -----*/   /* 17 June 1998 */
+     if (erode_pv > 0.0)
+       MCW_erode_clusters (nx, ny, nz, dx, dy, dz, fim_type, vfim, rmm,
+			   erode_pv, dilate);
+
 
 STATUS("clustering") ;
 

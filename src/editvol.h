@@ -139,6 +139,11 @@ extern float MCW_vol_amax( int,int,int , int,void *) ;
 extern MCW_cluster * MCW_build_mask (int, int, int,
                                      float, float, float, float);
 
+/* 16 June 1998 */
+extern void * MCW_erode_clusters (int, int, int, float, float, float, int, 
+				  void *, float, float, int);
+
+
 /*----------------------------------------------------------------------------*/
 #undef ALLOW_SCALE_TO_MAX
 char * EDIT_options_help(void) ;  /* was a string, now a prototype */
@@ -160,6 +165,10 @@ typedef struct EDIT_options {
          blur ,                   /* --> Gaussian blur data with sigma = blur */
          thrblur ;                /* --> Gaussian blur threshold data,
                                          with sigma = thrblur (4 Oct 1996)    */
+
+   float erode_pv;                /* --> erosion percentage   (16 June 1998)  */
+   int dilate;                    /* --> dilation option      (16 June 1998)  */
+
 
    int edit_clust;                /* --> edit cluster option  (10 Sept 1996)  */
 
@@ -212,6 +221,8 @@ typedef struct EDIT_options {
         (edopt)->clust_rmm     = 0.0 , \
         (edopt)->clust_vmul    = 0.0 , \
         (edopt)->edit_clust    = 0   , \
+	(edopt)->erode_pv      = 0.0 , \
+	(edopt)->dilate        = 0   , \
         (edopt)->filter_rmm    = 0.0 , \
         (edopt)->filter_opt    = 0   , \
         (edopt)->thrfilter_rmm = 0.0 , \

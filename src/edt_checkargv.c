@@ -234,6 +234,31 @@ int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt 
       CHECK_DONE ;
    }
 
+   /**** -1erode pv ****/   /* 17 June 1998 */
+
+   if( strncmp(argv[nopt],"-1erode",7) == 0 ){
+      nopt++ ;
+      if( nopt >= argc ){
+         fprintf(stderr,"need 1 argument after -1erode!\n") ;
+         exit(1) ;
+      }
+      edopt->erode_pv  = strtod( argv[nopt++] , NULL ) ;
+      if (edopt->erode_pv > 1.0)  edopt->erode_pv /= 100.0;
+      if( edopt->erode_pv < 0.0 || edopt->erode_pv > 1.0 ){
+         fprintf(stderr,"illegal value after -1erode \n") ;
+         exit(1) ;
+      }
+      CHECK_DONE ;
+   }
+
+   /**** -1dilate ****/   /* 17 June 1998 */
+
+   if( strncmp(argv[nopt],"-1dilate",8) == 0 ){
+      nopt++ ;
+      edopt->dilate = 1;
+      CHECK_DONE ;
+   }
+
    /**** -1filter_mean rmm ****/   /* 11 Sept 1996 */
 
    if( strncmp(argv[nopt],"-1filter_mean",15) == 0 ){

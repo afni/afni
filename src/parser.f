@@ -1023,8 +1023,8 @@ C
 C
 C
       SUBROUTINE PAREVEC( NUM_CODE , C_CODE , VA, VB, VC, VD, VE, 
-     X                    VF, VG, VH, VI,VJ, VK, VL, VM, VN, VO, 
-     X   		  VP, VQ, VR, VS, VT, VU, VV, VW, VX,VY, VZ, 
+     X                    VF, VG, VH, VI, VJ, VK, VL, VM, VN, VO, 
+     X   		  VP, VQ, VR, VS, VT, VU, VV, VW, VX, VY, VZ, 
      X                    LVEC, VOUT )
       IMPLICIT NONE
 C
@@ -1046,10 +1046,14 @@ C
       REAL*8  R8_EVAL(NVMAX,NUM_ESTACK) , R8VAL(NVMAX,26)
 C
       INTEGER     NEVAL , NCODE , IALPHA , IV,IBV,IVBOT,IVTOP , 
-     X 		  JF,KF, NTM, ITM
+     X 		  JF,KF, NTM,ITM,JTM
       CHARACTER*8 C8_VAL , CNCODE , C2CODE
       REAL*8      R8_VAL , X , Y
       EQUIVALENCE ( C8_VAL , R8_VAL )
+C
+C  14 Jul 1998: add 1D array for stack copy
+C
+      REAL*8      SCOP(NUM_ESTACK)
 C
 C  Internal library functions
 C
@@ -1470,13 +1474,19 @@ C.......................................................................
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
             DO IV=IVBOT,IVTOP
-               R8_EVAL(IV-IBV,NEVAL) = LAND( NTM,R8_EVAL(IV-IBV,NEVAL))
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = LAND( NTM, SCOP )
 	    ENDDO
          ELSEIF( CNCODE .EQ. 'OR'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
             DO IV=IVBOT,IVTOP
-  	       R8_EVAL(IV-IBV,NEVAL) = LOR( NTM, R8_EVAL(IV-IBV,NEVAL))
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+  	       R8_EVAL(IV-IBV,NEVAL) = LOR( NTM, SCOP )
 	    ENDDO
          ELSEIF( CNCODE .EQ. 'MOFN'  )THEN
             NTM   = R8_EVAL(1,NEVAL)
@@ -1484,8 +1494,10 @@ C.......................................................................
             NTM   = NTM - 1
             DO IV=IVBOT,IVTOP
                ITM   = R8_EVAL(IV-IBV,NEVAL)
-               R8_EVAL(IV-IBV,NEVAL)=
-     X			LMOFN(ITM,NTM,R8_EVAL(IV-IBV,NEVAL+1))
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = LMOFN(ITM,NTM,SCOP)
 	    ENDDO
          ELSEIF( CNCODE .EQ. 'ASTEP' )THEN
             NEVAL = NEVAL - 1

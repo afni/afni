@@ -682,7 +682,7 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
                if( GPT != NULL && PALTAB_NUM(GPT) > 0 ){
                   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
                      qq3d = GLOBAL_library.controllers[ii] ;
-                     if( IM3D_VALID(qq3d) )
+                     if( IM3D_VALID(qq3d) ){
                         refit_MCW_optmenu( qq3d->vwid->func->pbar_palette_av ,
                                            0 ,                     /* new minval */
                                            PALTAB_NUM(GPT)-1 ,     /* new maxval */
@@ -691,6 +691,9 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
                                            AFNI_palette_label_CB , /* text routine */
                                            NULL                    /* text data */
                                           ) ;
+
+                        XtManageChild( qq3d->vwid->func->pbar_palette_av->wrowcol ) ;  /* 14 Jul 1998 */
+                     }
                   }
                }
 

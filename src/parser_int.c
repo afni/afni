@@ -53,14 +53,10 @@ double PARSER_evaluate_one( PARSER_code * pc , double atoz[] )
 
 /*----------------------------------------------------------------------
    pc    = code to evaluate expression
-   atoz  = double [26] containing values for variables A..Z
-   iv    = index (0..25) of variable that will be drawn from vector
-             vvar instead of from atoz
+   atoz  = double * [26] containing values for variables A..Z
    nv    = length of vectors
-   vvar  = double [nv] containing replacement values for atoz[iv]
    vout  = double [nv]; will get the output of the expression
-             evaluated using the fixed values in atoz and the
-             variable values in vvar.
+             evaluated using the values in atoz
 
    The only reason for calling this routine instead of
    PARSER_evaluate_one nv different times is efficiency.
@@ -77,20 +73,20 @@ void PARSER_evaluate_vector( PARSER_code * pc , double* atoz[] ,
    lvec     = (integer) nv ;
 
    parevec_( &num_code , pc->c_code ,
-             (doublereal *) atoz[0] , (doublereal *) atoz[1] ,
-             (doublereal *) atoz[2] ,(doublereal *) atoz[3] ,
-	     (doublereal *) atoz[4] ,(doublereal *) atoz[5] ,
-        	(doublereal *) atoz[6] ,(doublereal *) atoz[7] ,
-	     (doublereal *) atoz[8] ,(doublereal *) atoz[9] ,
-	     (doublereal *) atoz[10] ,(doublereal *) atoz[11] ,
-	     (doublereal *) atoz[12] ,(doublereal *) atoz[13] ,
-	     (doublereal *) atoz[14] ,(doublereal *) atoz[15] ,
-	     (doublereal *) atoz[16] ,(doublereal *) atoz[17] ,
-	     (doublereal *) atoz[18] ,(doublereal *) atoz[19] ,
-	     (doublereal *) atoz[20] ,(doublereal *) atoz[21] ,
-	     (doublereal *) atoz[22] ,(doublereal *) atoz[23] ,
-	     (doublereal *) atoz[24] ,(doublereal *) atoz[25] ,
-        	 &lvec , (doublereal *) vout , (ftnlen) 8 ) ;
+             (doublereal *) atoz[0]  , (doublereal *) atoz[1] ,
+             (doublereal *) atoz[2]  , (doublereal *) atoz[3] ,
+             (doublereal *) atoz[4]  , (doublereal *) atoz[5] ,
+             (doublereal *) atoz[6]  , (doublereal *) atoz[7] ,
+             (doublereal *) atoz[8]  , (doublereal *) atoz[9] ,
+             (doublereal *) atoz[10] , (doublereal *) atoz[11] ,
+             (doublereal *) atoz[12] , (doublereal *) atoz[13] ,
+             (doublereal *) atoz[14] , (doublereal *) atoz[15] ,
+             (doublereal *) atoz[16] , (doublereal *) atoz[17] ,
+             (doublereal *) atoz[18] , (doublereal *) atoz[19] ,
+             (doublereal *) atoz[20] , (doublereal *) atoz[21] ,
+             (doublereal *) atoz[22] , (doublereal *) atoz[23] ,
+             (doublereal *) atoz[24] , (doublereal *) atoz[25] ,
+         &lvec , (doublereal *) vout , (ftnlen) 8 ) ;
 
    return ;
 }

@@ -125,7 +125,7 @@ char * COPY_main( PLUGIN_interface * plint )
             if( ftyp <= LAST_FUNC_TYPE ){
                dtyp = HEAD_FUNC_TYPE ;
             } else {
-               ftyp -= LAST_FUNC_TYPE ;
+               ftyp -= (LAST_FUNC_TYPE+1) ;  /* 14 Jul 1998 */
                dtyp  = HEAD_ANAT_TYPE ;
             }
          }
@@ -144,8 +144,7 @@ char * COPY_main( PLUGIN_interface * plint )
    } else {
       new_dset = EDIT_empty_copy( dset ) ;
 
-      if( ISANATTYPE(dtyp) ) ftyp = ANAT_OMRI_TYPE ;
-      else                   ftyp = FUNC_FIM_TYPE ;
+      if( ISFUNCTYPE(dtyp) ) ftyp = FUNC_FIM_TYPE ;  /* 14 Jul 1998 */
    }
 
    if( new_dset == NULL )

@@ -242,3 +242,301 @@ void MCW_cluster_to_vol( int nx , int ny , int nz ,
 
    return ;  /* should not be reached */
 }
+
+
+/*----------------------------------------------------------------------------
+  Erosion and dilation of 3d clusters. 
+
+  Purpose:  Sometimes a cluster consists of several main bodies connected by
+            a narrow path.  The objective is to sever the connecting path, 
+            while keeping the main bodies intact, thereby producing separate
+            clusters.  
+
+  Method:   Erosion is applied to eliminate the outer layer of voxels.  This
+            should cut the connecting path.  The original main bodies are
+            then restored by dilating the result.
+
+  Author:   B. Douglas Ward
+
+  Date:     16 June 1998
+
+  
+-----------------------------------------------------------------------------*/
+
+void * MCW_erode_clusters
+(
+  int nx, int ny, int nz,           /* dimensions of volume fim */
+  float dx, float dy, float dz,     /* voxel dimensions */
+  int ftype,                        /* data type */
+  void * fim,                       /* volume data */
+  float max_dist,                   /* voxel connectivity radius */
+  float pv,                         /* pv % of voxels within max_dist must
+                                       be in the cluster */
+  int dilate                        /* boolean for perform dilation phase */
+)
+
+{
+  MCW_cluster * mask = NULL;        /* mask determines nbhd membership */
+  int minimum;                      /* minimum number of voxels in nbhd */
+  int count;                        /* count of voxels in neighborhood */
+  int nxy, nxyz;                    /* numbers of voxels */
+  int ijk, iv, jv, kv;              /* voxel indices */
+  int ijkm, im, jm, km;             /* voxel indices */
+  int imask, nmask;                 /* mask indices */
+  short * sfar;                     /* pointer to short data */
+  byte  * bfar;                     /* pointer to byte data */
+  float * ffar;                     /* pointer to float data */
+  float * efim = NULL;              /* copy of eroded voxels */
+
+  
+  /*----- Just in case -----*/
+  if ((fim == NULL) || (max_dist <= 0.0))  return;
+
+
+  /*----- Initialize local variables -----*/
+  nxy = nx * ny;   nxyz = nxy * nz;
+  
+
+  /*----- Set pointer to input data -----*/
+  switch (ftype)
+    {
+    default:  return;
+    case MRI_short:  sfar = (short *) fim;  break;
+    case MRI_byte :  bfar = (byte  *) fim;  break;
+    case MRI_float:  ffar = (float *) fim;  break;
+    }
+
+
+  /*----- Initialization for copy of eroded voxels -----*/
+  efim = (float *) malloc (sizeof(float) * nxyz); 
+  if (efim == NULL)
+    {
+      fprintf (stderr, "Unable to allocate memory in MCW_erode_clusters");
+      return;
+    }
+  for (ijk = 0;  ijk < nxyz;  ijk++)
+    efim[ijk] = 0.0;
+
+
+  /*--- Make a cluster that is a mask of points closer than max_dist ---*/
+  mask = MCW_build_mask (nx, ny, nz, dx, dy, dz, max_dist);
+  if (mask == NULL)
+    {
+      fprintf (stderr, "Unable to build mask in MCW_erode_clusters");
+      return;
+    }
+  
+
+  /*----- Calculate minimum number of voxels in nbhd. for non-erosion -----*/
+  nmask = mask->num_pt ;
+  minimum = floor(pv*nmask + 0.99);   
+  if (minimum <= 0)  return;     /*----- Nothing will be eroded -----*/
+
+
+  /*----- Step 1:  Identify voxels to be eroded -----*/
+  switch (ftype)
+    {
+    case MRI_short:
+      for (ijk = 0;  ijk < nxyz;  ijk++)
+	{	  
+	  if (sfar[ijk] == 0)  continue;
+	  IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
+
+	  /*----- Count number of active voxels in the neighborhood -----*/
+	  count = 0;
+	  for (imask = 0;  imask < nmask;  imask++)
+	    {
+	      im = iv + mask->i[imask];
+	      jm = jv + mask->j[imask];
+	      km = kv + mask->k[imask];
+	      if ( im < 0 || jm < 0 || km < 0 ||
+		   im >= nx || jm >= ny || km >= nz )  continue;
+	      ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
+	      if (sfar[ijkm] != 0)   count++;
+	    }
+
+	  /*----- Record voxel to be eroded -----*/
+	  if (count < minimum)  efim[ijk] = (float) sfar[ijk];
+	}
+      break;
+
+    case MRI_byte:
+      for (ijk = 0;  ijk < nxyz;  ijk++)
+	{	  
+	  if (bfar[ijk] == 0)  continue;
+	  IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
+
+	  /*----- Count number of active voxels in the neighborhood -----*/
+	  count = 0;
+	  for (imask = 0;  imask < nmask;  imask++)
+	    {
+	      im = iv + mask->i[imask];
+	      jm = jv + mask->j[imask];
+	      km = kv + mask->k[imask];
+	      if ( im < 0 || jm < 0 || km < 0 ||
+		   im >= nx || jm >= ny || km >= nz )  continue;
+	      ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
+	      if (bfar[ijkm] != 0)   count++;
+	    }
+
+	  /*----- Record voxel to be eroded -----*/
+	  if (count < minimum)  efim[ijk] = (float) bfar[ijk];
+	}
+      break;      
+
+    case MRI_float:
+      for (ijk = 0;  ijk < nxyz;  ijk++)
+	{	  
+	  if (ffar[ijk] == 0.0)  continue;
+	  IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
+
+	  /*----- Count number of active voxels in the neighborhood -----*/
+	  count = 0;
+	  for (imask = 0;  imask < nmask;  imask++)
+	    {
+	      im = iv + mask->i[imask];
+	      jm = jv + mask->j[imask];
+	      km = kv + mask->k[imask];
+	      if ( im < 0 || jm < 0 || km < 0 ||
+		   im >= nx || jm >= ny || km >= nz )  continue;
+	      ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
+	      if (ffar[ijkm] != 0.0)   count++;
+	    }
+
+	  /*----- Record voxel to be eroded -----*/
+	  if (count < minimum)  efim[ijk] = ffar[ijk];
+	}
+      break;      
+
+    }
+
+
+  /*----- Step 2:  Erode voxels -----*/
+  switch (ftype)
+    {
+    case MRI_short:
+      for (ijk = 0;  ijk < nxyz;  ijk++)
+	if (efim[ijk] != 0.0)  sfar[ijk] = 0;
+      break;
+
+    case MRI_byte:
+      for (ijk = 0;  ijk < nxyz;  ijk++)
+	if (efim[ijk] != 0.0)  bfar[ijk] = 0;
+      break;
+
+    case MRI_float:
+      for (ijk = 0;  ijk < nxyz;  ijk++)
+	if (efim[ijk] != 0.0)  ffar[ijk] = 0.0;
+      break;
+    }
+
+
+  /*----- Proceed with dilation phase? -----*/
+  if (dilate)
+    {
+
+
+      /*----- Step 3:  Identify voxels to be restored -----*/
+      switch (ftype)
+	{
+	case MRI_short:
+	  for (ijk = 0;  ijk < nxyz;  ijk++)
+	    {	  
+	      if (efim[ijk] == 0.0)  continue;
+	      IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
+	      
+	      /*---- Determine if any active voxels in the neighborhood ----*/
+	      for (imask = 0;  imask < nmask;  imask++)
+		{
+		  im = iv + mask->i[imask];
+		  jm = jv + mask->j[imask];
+		  km = kv + mask->k[imask];
+		  if ( im < 0 || jm < 0 || km < 0 ||
+		       im >= nx || jm >= ny || km >= nz )  continue;
+		  ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
+		  if (sfar[ijkm] != 0)  break;
+		}
+	      
+	      /*----- Reset voxel not to be restored -----*/
+	      if (imask == nmask)  efim[ijk] = 0.0;
+	    }
+	  break;
+	  
+	case MRI_byte:
+	  for (ijk = 0;  ijk < nxyz;  ijk++)
+	    {	  
+	      if (efim[ijk] == 0.0)  continue;
+	      IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
+	      
+	      /*---- Determine if any active voxels in the neighborhood ----*/
+	      for (imask = 0;  imask < nmask;  imask++)
+		{
+		  im = iv + mask->i[imask];
+		  jm = jv + mask->j[imask];
+		  km = kv + mask->k[imask];
+		  if ( im < 0 || jm < 0 || km < 0 ||
+		       im >= nx || jm >= ny || km >= nz )  continue;
+		  ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
+		  if (bfar[ijkm] != 0)  break;
+		}
+	      
+	      /*----- Reset voxel not to be restored -----*/
+	      if (imask == nmask)  efim[ijk] = 0.0;
+	    }
+	  break;
+	  
+	case MRI_float:
+	  for (ijk = 0;  ijk < nxyz;  ijk++)
+	    {	  
+	      if (efim[ijk] == 0.0)  continue;
+	      IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
+	      
+	      /*---- Determine if any active voxels in the neighborhood ----*/
+	      for (imask = 0;  imask < nmask;  imask++)
+		{
+		  im = iv + mask->i[imask];
+		  jm = jv + mask->j[imask];
+		  km = kv + mask->k[imask];
+		  if ( im < 0 || jm < 0 || km < 0 ||
+		       im >= nx || jm >= ny || km >= nz )  continue;
+		  ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
+		  if (ffar[ijkm] != 0.0)  break;
+		}
+	      
+	      /*----- Reset voxel not to be restored -----*/
+	      if (imask == nmask)  efim[ijk] = 0.0;
+	    }
+	  break;
+	}
+      
+      
+      /*----- Step 4:  Restore voxels -----*/
+      switch (ftype)
+	{
+	case MRI_short:
+	  for (ijk = 0;  ijk < nxyz;  ijk++)
+	    if (efim[ijk] != 0.0)  sfar[ijk] = (short) efim[ijk];
+	    break;
+	    
+	case MRI_byte:
+	  for (ijk = 0;  ijk < nxyz;  ijk++)
+	    if (efim[ijk] != 0.0)  bfar[ijk] = (byte) efim[ijk];
+	    break;
+	    
+	case MRI_float:
+	  for (ijk = 0;  ijk < nxyz;  ijk++)
+	    if (efim[ijk] != 0.0)  ffar[ijk] = efim[ijk];
+	  break;
+	}
+      
+    }   /*  if (dilate)  */
+
+
+  /*----- Release memory -----*/
+  KILL_CLUSTER(mask) ;
+  free (efim);   efim = NULL;
+
+}
+
+
+
